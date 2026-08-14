@@ -32,6 +32,7 @@ import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/Table
 import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useSession } from '@/hooks/useSession';
 import { useListeArticles } from '@/hooks/pieces/useListeArticles';
 import { formaterMontant } from '@/lib/formats';
@@ -39,6 +40,7 @@ import { chemins } from '@/routes/chemins';
 
 import { FormulaireArticle } from './FormulaireArticle';
 import { peutEcrireArticle } from './droits';
+import { formaterQuantiteMillieme } from './utils';
 
 const DELAI_DEBOUNCE_MS = 300;
 
@@ -70,6 +72,21 @@ export function EcranListeArticles() {
   const [statut, setStatut] = useState<StatutArticle | undefined>(undefined);
   const [tri, setTri] = useState<string>(TRI_DEFAUT_ARTICLES);
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
+
+  // Site dont la colonne « disponible » lit le stock — jamais deviné à plusieurs choix possibles
+  // (même doctrine que `SelecteurSiteRequis`) : auto-sélectionné UNIQUEMENT quand un seul site
+  // actif existe (aucune ambiguïté à deviner), sinon laissé au magasinier. Filtre d'affichage
+  // pur : ne change jamais la requête `/articles`, seulement la lecture de `stocksResume`.
+  const sitesActifs = useMemo(() => (session?.sites ?? []).filter((site) => site.actif), [session]);
+  const [site, setSite] = useState('');
+  useEffect(() => {
+    if (site === '' && sitesActifs.length === 1) {
+      const siteUnique = sitesActifs[0];
+      if (siteUnique) {
+        setSite(siteUnique.id);
+      }
+    }
+  }, [site, sitesActifs]);
 
   useEffect(() => {
     const identifiant = window.setTimeout(() => setQ(qSaisie), DELAI_DEBOUNCE_MS);
@@ -139,12 +156,48 @@ export function EcranListeArticles() {
       ),
     },
     {
+      // Libellé « TTC » explicite (pas « Prix » nu) — même clé et même doctrine que la colonne
+      // prix de `EcranRechercheComptoirPieces` : un magasinier qui saisit un montant sous un
+      // libellé ambigu peut croire au hors-taxe (constat testeur, prix affiché ≠ prix saisi).
       id: 'prix',
-      libelle: t('pieces:articles.liste.colonnes.prix'),
+      libelle: t('pieces:articles.prix.ttc'),
       alignement: 'droite',
       rendu: (article) => (
         <span className="tabular-nums">{formaterMontant(article.prixVenteTtcCentimes)}</span>
       ),
+    },
+    {
+      // Disponibilité RÉELLE au site choisi, jamais un total tous sites confondus (brief : « ce
+      // qu'il peut réellement sortir aujourd'hui, sur son site »). Trois rendus distincts, jamais
+      // confondus (règle du dépôt « absence de donnée ≠ valeur ») :
+      //  - aucun site choisi -> « — » (inconnu, pas zéro) ;
+      //  - site choisi, stock à 0 (ou jamais mouvementé sur ce site) -> badge « Rupture »,
+      //    l'information utile pour le magasinier reste la même dans les deux cas (rien à sortir
+      //    aujourd'hui sur ce site) ;
+      //  - site choisi, stock > 0 -> quantité en unités (conversion millièmes -> unités, JAMAIS
+      //    le brut millième affiché tel quel).
+      id: 'disponibilite',
+      libelle: t('pieces:stock.quantites.disponible'),
+      alignement: 'droite',
+      rendu: (article) => {
+        if (site === '') {
+          return <span className="tabular-nums text-muted-foreground">—</span>;
+        }
+        const quantite =
+          article.stocksResume.find((resume) => resume.siteId === site)
+            ?.quantiteDisponibleMillieme ?? 0;
+        return quantite > 0 ? (
+          <span className="tabular-nums text-statut-succes">
+            {t('pieces:rechercheComptoir.resultat.disponible', {
+              n: formaterQuantiteMillieme(quantite),
+            })}
+          </span>
+        ) : (
+          <span className="texte-libelle text-destructive">
+            {t('pieces:rechercheComptoir.resultat.rupture')}
+          </span>
+        );
+      },
     },
   ];
 
@@ -182,42 +235,39 @@ export function EcranListeArticles() {
 
   if (isPending) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('pieces:articles.liste.titre')}</h1>
+      <GabaritEcran titre={t('pieces:articles.liste.titre')}>
         <EtatChargement lignes={6} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (isError) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('pieces:articles.liste.titre')}</h1>
+      <GabaritEcran titre={t('pieces:articles.liste.titre')}>
         <EtatErreur
           titre={t('pieces:articles.liste.erreur.titre')}
           description={messageErreur(error, t)}
           onReessayer={() => void refetch()}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
+  // Titre TOUJOURS visible (retour @laupernoe du 13.08.2026 : « des fois il y a les titres de page, des
+  // fois il n'y en a pas » — sur Pièces précisément, « est-ce qu'on est dans le comptoir, ou dans
+  // le réapprovisionnement ? »). L'onglet actif « Articles » (`OngletsDomaine`) reste au-dessus,
+  // mais ne dit pas TOUJOURS ce qu'affiche l'écran (cf. Comptoir/Réapprovisionnement) — un titre
+  // dupliquant à la lettre son onglet reste préférable à son absence, doctrine tranchée par @laupernoe sur
+  // `EcranListeClients` (« il y a écrit Clients, c'est mieux ») puis reconduite ici pour Pièces.
+  //
+  // « Créer un article » n'est PAS dans le slot `actions` du gabarit (qui siégerait alors juste
+  // sous les onglets, seul sur sa ligne) — retour @laupernoe du 12.08.2026 : « le bouton "Créer un
+  // article" devrait être plus bas ». Il rejoint la ligne « Trier par », à droite — même
+  // déplacement que celui demandé pour Atelier (« Nouvel ordre de réparation », voir le rapport de
+  // ce chantier) : la barre de recherche remonte directement sous le titre, plus rien ne
+  // l'en sépare.
   return (
-    <div className="flex flex-col gap-6">
-      {/* Doublon strict du libellé de l'onglet actif « Articles » (`navigation-modele.ts`,
-          `ONGLETS_PIECES`) : le h1 reste dans le DOM pour le lecteur d'écran et la structure du
-          document, sans répéter visuellement ce que la barre d'onglets affiche déjà en
-          surbrillance. */}
-      <h1 className="sr-only">{t('pieces:articles.liste.titre')}</h1>
-
-      <div className="flex items-center justify-end gap-3">
-        {peutEcrireArticle(role) ? (
-          <Button onClick={() => setFormulaireOuvert(true)}>
-            {t('pieces:articles.actions.ajouter')}
-          </Button>
-        ) : null}
-      </div>
-
+    <GabaritEcran titre={t('pieces:articles.liste.titre')}>
       <BarreFiltres
         q={qSaisie}
         onChangeQ={setQSaisie}
@@ -274,15 +324,43 @@ export function EcranListeArticles() {
             </SelectContent>
           </Select>
         </div>
+        {sitesActifs.length > 1 ? (
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="filtre-site">{t('pieces:siteRequis.label')}</Label>
+            <Select value={site} onValueChange={setSite}>
+              <SelectTrigger
+                id="filtre-site"
+                className="w-[200px]"
+                aria-label={t('pieces:siteRequis.label')}
+              >
+                <SelectValue placeholder={t('pieces:siteRequis.label')} />
+              </SelectTrigger>
+              <SelectContent>
+                {sitesActifs.map((siteOption) => (
+                  <SelectItem key={siteOption.id} value={siteOption.id}>
+                    {siteOption.nom}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : null}
       </BarreFiltres>
 
-      <SelecteurTri
-        options={TRIS_ARTICLES.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
-        valeur={tri}
-        onChangeValeur={setTri}
-        label={t('pieces:articles.tri.label')}
-        className="max-w-xs"
-      />
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <SelecteurTri
+          options={TRIS_ARTICLES.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
+          valeur={tri}
+          onChangeValeur={setTri}
+          label={t('pieces:articles.tri.label')}
+          className="max-w-xs"
+        />
+        {peutEcrireArticle(role) ? (
+          <Button onClick={() => setFormulaireOuvert(true)}>
+            {t('pieces:articles.actions.ajouter')}
+          </Button>
+        ) : null}
+      </div>
 
       <TableComptoir
         colonnes={colonnes}
@@ -304,6 +382,6 @@ export function EcranListeArticles() {
         onOuvertChange={setFormulaireOuvert}
         onCree={(article) => navigate(chemins.pieces.articleDetail(article.id))}
       />
-    </div>
+    </GabaritEcran>
   );
 }

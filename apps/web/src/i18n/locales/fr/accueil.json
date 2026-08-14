@@ -4,7 +4,7 @@
   },
   "calendrier": {
     "titre": "Cette semaine",
-    "apercu": "Aperçu — les dates de restitution promises aux clients cette semaine. La prise de rendez-vous d'atelier viendra plus tard dans dmsforall ; ce calendrier en sera alors la surface.",
+    "apercu": "Aperçu — les dates de restitution promises aux clients cette semaine.",
     "droitRequis": "Vous n'avez pas le droit de consulter les ordres de réparation.",
     "vide": {
       "titre": "Aucune restitution promise cette semaine",
@@ -23,6 +23,6 @@
     "depuisLe": "Sans mouvement depuis le {date}",
     "autres": "{count, plural, one {+ # autre jeu à relancer} other {+ # autres jeux à relancer}}",
     "voirTout": "Voir tout le hangar à pneus",
-    "aVenir": "Les expertises MFK et les garanties rejoindront cette liste dès qu'un endpoint agrégé existera pour elles."
+    "aVenir": "Les expertises MFK et les garanties seront ajoutées à cette liste prochainement."
   }
 }

@@ -30,13 +30,15 @@ import type { ReponseExecutionConnecteur } from './execution';
  * et redépose le même relevé, `CC-06`), ne relance jamais le traitement — voir
  * `ReponseLancerImportConnecteur.dejaImporte`.
  */
-export const schemaLancerImportConnecteur = z.object({
-  nature: z.enum(NATURES_IMPORT_CONNECTEUR),
-  empreinteFichier: schemaEmpreinteSha256,
-  tailleOctets: z.number().int().min(1).max(2_000_000_000).optional(),
-  /** Facultatif, pour le journal — jamais utilisé pour décider quoi que ce soit côté serveur. */
-  nomFichierOriginal: z.string().trim().max(255).optional(),
-});
+export const schemaLancerImportConnecteur = z
+  .object({
+    nature: z.enum(NATURES_IMPORT_CONNECTEUR),
+    empreinteFichier: schemaEmpreinteSha256,
+    tailleOctets: z.number().int().min(1).max(2_000_000_000).optional(),
+    /** Facultatif, pour le journal — jamais utilisé pour décider quoi que ce soit côté serveur. */
+    nomFichierOriginal: z.string().trim().max(255).optional(),
+  })
+  .strict();
 export type EntreeLancerImportConnecteur = z.infer<typeof schemaLancerImportConnecteur>;
 
 export interface ReponseLancerImportConnecteur {

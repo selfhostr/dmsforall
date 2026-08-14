@@ -4,6 +4,7 @@ import type {
   EntreeCreationLigneDocument,
   EntreeEmissionDocumentVente,
   EntreeModificationDocumentVente,
+  EntreeModificationLigneDocument,
   FiltresDocumentsVente,
   PageCurseur,
   ReponseAvecAvertissements,
@@ -29,13 +30,12 @@ import { requeteApi } from '@/api/client';
  * ÉCART SIGNALÉ, DÉSORMAIS CONFIRMÉ (corrigé `10.08.2026`) : le paragraphe ci-dessous doutait du verbe
  * HTTP de suppression d'une ligne de brouillon (« à confirmer avec expert-api »). `types.gen.ts`
  * confirme `DELETE /documents-vente/{id}/lignes/{ligneId}` → `DocumentVenteController_supprimerLigne`
- * ("Suppression d'une ligne sur un brouillon (MD-21, MD-19)") : l'hypothèse de `supprimerLigneDocument`
- * ci-dessous était correcte. Reste vrai en revanche : ni cette fonction ni `useSupprimerLigneDocument`
- * (`useLignesDocumentVente.ts`) n'ont d'appelant dans `apps/web/src/ecrans/**` à ce jour — écrit,
- * jamais câblé à un écran, pas du code mort à supprimer sans un avis du propriétaire de l'écran 2.
- * `PATCH /documents-vente/{id}/lignes/{ligneId}` (`DocumentVenteController_modifierLigne`) existe
- * aussi côté contrat sans hook `modifierLigneDocument` correspondant ici — même statut, à confirmer
- * avant d'écrire quoi que ce soit.
+ * ("Suppression d'une ligne sur un brouillon (MD-19, MD-21)") : l'hypothèse de `supprimerLigneDocument`
+ * ci-dessous était correcte sur le VERBE. DÉSORMAIS CÂBLÉES (issue #125, `EcranFicheFacture.tsx` via
+ * `DialogueLigneDocumentVente.tsx`) : `ajouterLigneDocument`/`supprimerLigneDocument`/
+ * `modifierLigneDocument` (cette dernière NOUVELLE, le hook manquait) ont désormais un appelant
+ * écran — ce n'était plus du code mort à cette date, et un second bug d'enveloppe de réponse a été
+ * corrigé au passage (voir le commentaire de chacune des trois fonctions ci-dessous).
  *
  * Historique (contexte, ne plus revérifier) : le contrat partagé documente le CORPS de chaque action
  * (`schemaCreationAvoir`, `schemaCorrectionFacture`, `schemaEmissionDocumentVente`…) et le VERBE dans
@@ -172,40 +172,82 @@ export async function modifierDocumentVente(
 
 /** `POST /documents-vente/{id}/lignes` — uniquement pour une ligne saisie directement en
  *  facturation (ex. la ligne de démontage proposée, RF-91, ajoutée en écran 1 ou en rattrapage
- *  écran 2 §4.3). */
+ *  écran 2 §4.3 — désormais aussi l'ajout de ligne générique de l'écran 2, issue #125).
+ *
+ *  CORRECTIF (issue #125, confirmé en lisant `DocumentVenteController.ajouterLigne` /
+ *  `ServiceDocumentsVente.ajouterLigne`) : le corps RÉEL de cette route est une ENVELOPPE
+ *  `ReponseAvecAvertissements<ReponseDocumentVente>` (`{ donnees, avertissements }`), jamais un
+ *  `ReponseDocumentVente` nu — cette fonction le typait et le retournait tel quel avant ce
+ *  correctif (bug jamais manifesté : ni elle ni `useAjouterLigneDocument` n'avaient d'appelant
+ *  écran avant l'ajout du dialogue de lignes). Les avertissements éventuels (ex. dépassement de
+ *  stock RP-19/RP-20 sur une ligne `piece` — hors périmètre du dialogue actuel, qui ne pose jamais
+ *  `articleId`) sont délibérément ignorés ici plutôt que fuités jusqu'à l'appelant : aucun écran de
+ *  ce module n'affiche encore d'avertissement pour cette action. */
 export async function ajouterLigneDocument(
   id: string,
   entree: EntreeCreationLigneDocument,
   idempotencyKey: string,
 ): Promise<ReponseDocumentVente> {
-  const document = await requeteApi<ReponseDocumentVente>(`/documents-vente/${id}/lignes`, {
-    method: 'POST',
-    body: JSON.stringify(entree),
-    idempotencyKey,
-  });
-  if (!document) {
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseDocumentVente>>(
+    `/documents-vente/${id}/lignes`,
+    {
+      method: 'POST',
+      body: JSON.stringify(entree),
+      idempotencyKey,
+    },
+  );
+  if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /documents-vente/lignes.');
   }
-  return document;
+  return reponse.donnees;
+}
+
+/** `PATCH /documents-vente/{id}/lignes/{ligneId}` — édition d'une ligne sur un brouillon (MD-21,
+ *  issue #125). Corps ENTIÈREMENT repeuplé par l'appelant (jamais un diff partiel avec des clés
+ *  omises) : `schemaModificationLigneDocument` porte des `.default(...)` hérités de la forme de
+ *  création (voir le commentaire de `DocumentVenteController.modifierLigne`) qui s'appliqueraient
+ *  à tort à un champ omis — envoyer systématiquement la valeur RÉELLE de chaque champ affiché,
+ *  jamais `undefined` pour « je ne change pas ce champ », lève toute ambiguïté côté client. */
+export async function modifierLigneDocument(
+  id: string,
+  ligneId: string,
+  entree: EntreeModificationLigneDocument,
+): Promise<ReponseDocumentVente> {
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseDocumentVente>>(
+    `/documents-vente/${id}/lignes/${ligneId}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(entree),
+    },
+  );
+  if (!reponse) {
+    throw new Error('Réponse vide inattendue : PATCH /documents-vente/lignes.');
+  }
+  return reponse.donnees;
 }
 
 /** `DELETE /documents-vente/{id}/lignes/{ligneId}` — voir l'ÉCART SIGNALÉ en tête de fichier :
  *  verbe supposé, jamais confirmé par le contrat partagé. Uniquement pour une ligne ajoutée en
- *  facturation sur un brouillon, jamais une ligne recopiée d'un OR (§4.3 du design). */
+ *  facturation sur un brouillon, jamais une ligne recopiée d'un OR (§4.3 du design).
+ *
+ *  CORRECTIF (issue #125, même bug d'enveloppe que `ajouterLigneDocument` ci-dessus, confirmé en
+ *  lisant `ServiceDocumentsVente.supprimerLigne`, qui rend `{ donnees, avertissements }`) : voir
+ *  le commentaire de `ajouterLigneDocument`, même correctif, même doctrine d'ignorer
+ *  `avertissements` ici (aucun écran ne les affiche pour ce geste à ce jour). */
 export async function supprimerLigneDocument(
   id: string,
   ligneId: string,
 ): Promise<ReponseDocumentVente> {
-  const document = await requeteApi<ReponseDocumentVente>(
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseDocumentVente>>(
     `/documents-vente/${id}/lignes/${ligneId}`,
     {
       method: 'DELETE',
     },
   );
-  if (!document) {
+  if (!reponse) {
     throw new Error('Réponse vide inattendue : DELETE /documents-vente/lignes.');
   }
-  return document;
+  return reponse.donnees;
 }
 
 /** `POST /documents-vente/{id}/emettre` — `Idempotency-Key` OBLIGATOIRE (`RF-25`), point de

@@ -1,9 +1,9 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import type { ClientResume } from '@dfa/shared';
+import type { ClientResume, ReponseClient, ReponseDoublonsClients } from '@dfa/shared';
 
 import i18n from '@/i18n';
 import { server } from '@/test/msw/server';
@@ -25,6 +25,35 @@ const CLIENT_TEST: ClientResume = {
   dernierPassageLe: '2026-06-01T10:00:00.000Z',
 };
 
+const LISTE_VIDE = { donnees: [], curseurSuivant: null, limite: 50 };
+
+const CLIENT_CREE: ReponseClient = {
+  id: 'cl-42',
+  numeroClient: 'CL-000042',
+  type: 'particulier',
+  statut: 'actif',
+  civilite: null,
+  nom: 'Rossier',
+  prenom: 'Jean',
+  raisonSociale: null,
+  nomAffiche: 'Jean Rossier',
+  ide: null,
+  langueCorrespondance: 'fr',
+  email: null,
+  telephone: null,
+  telephoneE164: null,
+  poObligatoire: false,
+  groupeId: null,
+  fusionneVersClientId: null,
+  referenceExterne: null,
+  dernierPassageLe: null,
+  creeLe: '2026-08-12T08:00:00.000Z',
+  modifieLe: '2026-08-12T08:00:00.000Z',
+  notesAlerte: [],
+  plusAucunContact: false,
+  motif: null,
+};
+
 function rendreEcran(routeInitiale = '/clients') {
   return renduAvecRoutes(
     [
@@ -43,9 +72,48 @@ function repondreListe(donnees: readonly ClientResume[]) {
   );
 }
 
+/** Liste vide ET aperçu de doublons neutralisé (`GET /doublons-clients`, sollicité dès la
+ *  première frappe dans le tiroir « Nouveau client ») — nécessaire pour les scénarios issue #78/
+ *  #79 ci-dessous, qui ouvrent systématiquement ce tiroir. */
+function repondreListeVide() {
+  server.use(
+    http.get('/api/v1/clients', () => HttpResponse.json(LISTE_VIDE)),
+    http.get('/api/v1/doublons-clients', () =>
+      HttpResponse.json({ candidats: [] } satisfies ReponseDoublonsClients),
+    ),
+  );
+}
+
+/** Liste VIDE (`repondreListeVide`) : DEUX boutons portent le nom accessible « Nouveau client »
+ *  une fois `EtatVidePremierUsage` rendu — celui de l'en-tête (toujours présent, premier dans le
+ *  DOM) et celui de l'état vide. Le premier, systématiquement, jamais `getByRole` seul (ambigu dès
+ *  que la liste vide a fini de se rendre). */
+async function boutonNouveauClient() {
+  const boutons = await screen.findAllByRole('button', { name: 'Nouveau client' });
+  const bouton = boutons[0];
+  if (!bouton) throw new Error('Bouton « Nouveau client » introuvable.');
+  return bouton;
+}
+
+async function ouvrirTiroirEtTaper(
+  utilisateur: ReturnType<typeof userEvent.setup>,
+  texte = 'Rossier',
+) {
+  await utilisateur.click(await boutonNouveauClient());
+  await screen.findByLabelText('Nom');
+  await utilisateur.type(screen.getByLabelText('Nom'), texte);
+}
+
 describe('EcranListeClients', () => {
   afterEach(async () => {
     await i18n.changeLanguage('fr');
+  });
+
+  // Le brouillon (issue #78) vit dans `sessionStorage` sous une clé CONSTANTE — sans ce nettoyage,
+  // un brouillon écrit par un test bloquerait le garde-fou d'un test SUIVANT qui n'en veut pas
+  // (jsdom ne réinitialise pas `sessionStorage` entre les `it` d'un même fichier).
+  beforeEach(() => {
+    window.sessionStorage.clear();
   });
 
   it('affiche les clients renvoyés par le serveur', async () => {
@@ -132,6 +200,112 @@ describe('EcranListeClients', () => {
 
       expect(await screen.findByText('PAGE_FICHE_CLIENT')).toBeInTheDocument();
       expect(routeur.state.location.search).toBe('');
+    });
+  });
+
+  describe('issue #78 — le panneau « Nouveau client » se refermait tout seul pendant la saisie', () => {
+    it("bloque la fermeture sur Échap tant qu'une saisie réelle est en cours", async () => {
+      repondreListeVide();
+      const utilisateur = userEvent.setup();
+      rendreEcran();
+
+      await ouvrirTiroirEtTaper(utilisateur);
+      await utilisateur.keyboard('{Escape}');
+
+      // Le panneau reste ouvert ET la saisie reste intacte — la touche Échap n'a RIEN dû faire.
+      expect(screen.getByLabelText('Nom')).toHaveValue('Rossier');
+      expect(screen.getByRole('button', { name: 'Créer le client' })).toBeInTheDocument();
+    });
+
+    it("bloque la fermeture sur un clic hors du panneau tant qu'une saisie réelle est en cours", async () => {
+      repondreListeVide();
+      const utilisateur = userEvent.setup();
+      rendreEcran();
+
+      await ouvrirTiroirEtTaper(utilisateur);
+      // La zone grisée hors du panneau (`SheetOverlay`, `components/ui/sheet.tsx`) reçoit le clic
+      // — Radix pose `pointer-events: none` sur le reste de `<body>` tant que le tiroir est ouvert,
+      // un clic « au hasard » retombe donc toujours sur cette zone, jamais ailleurs. Sélecteur par
+      // classe faute d'attribut dédié dans `SheetOverlay` (composant partagé, lecture seule ici).
+      const voile = document.querySelector('.animation-voile');
+      expect(voile).not.toBeNull();
+      await utilisateur.click(voile as Element);
+
+      expect(screen.getByLabelText('Nom')).toHaveValue('Rossier');
+      expect(screen.getByRole('button', { name: 'Créer le client' })).toBeInTheDocument();
+    });
+
+    it("laisse Échap fermer normalement un tiroir VIDE — le garde-fou ne bloque QUE s'il y a quelque chose à perdre", async () => {
+      repondreListeVide();
+      const utilisateur = userEvent.setup();
+      rendreEcran();
+
+      await utilisateur.click(await boutonNouveauClient());
+      await screen.findByLabelText('Nom');
+      await utilisateur.keyboard('{Escape}');
+
+      expect(screen.queryByLabelText('Nom')).not.toBeInTheDocument();
+    });
+
+    it('le bouton de fermeture visible reste une fermeture EXPLICITE, toujours autorisée même avec une saisie en cours', async () => {
+      repondreListeVide();
+      const utilisateur = userEvent.setup();
+      rendreEcran();
+
+      await ouvrirTiroirEtTaper(utilisateur);
+      await utilisateur.click(screen.getByRole('button', { name: 'Fermer' }));
+
+      expect(screen.queryByLabelText('Nom')).not.toBeInTheDocument();
+    });
+
+    it('une saisie perdue par une fermeture accidentelle est restaurée à la réouverture, annoncée par un bandeau', async () => {
+      repondreListeVide();
+      const utilisateur = userEvent.setup();
+      rendreEcran();
+
+      await ouvrirTiroirEtTaper(utilisateur);
+      // Échap est bloqué tant que la saisie est en jeu (voir le test dédié plus haut) : ce test-ci
+      // vérifie l'étape SUIVANTE — la reprise elle-même — via la seule fermeture qui reste
+      // possible, le bouton explicite. La reprise ne dépend pas de la CAUSE de la fermeture,
+      // seulement du brouillon laissé dans `sessionStorage` (voir `FormulaireNouveauClient.tsx`).
+      await utilisateur.click(screen.getByRole('button', { name: 'Fermer' }));
+      await utilisateur.click(await boutonNouveauClient());
+
+      expect(await screen.findByLabelText('Nom')).toHaveValue('Rossier');
+      expect(screen.getByText(/Brouillon repris de/)).toBeInTheDocument();
+    });
+  });
+
+  describe('issue #79 — transmet numéro et nom du client créé pour la lecture qui suit', () => {
+    it("passe numeroClient/nomAffiche à l'état de navigation vers la fiche, en plus de l'id", async () => {
+      repondreListeVide();
+      server.use(
+        http.post('/api/v1/clients', () =>
+          HttpResponse.json({ donnees: CLIENT_CREE, avertissements: [] }),
+        ),
+      );
+      const utilisateur = userEvent.setup();
+      const { routeur } = rendreEcran();
+
+      await ouvrirTiroirEtTaper(utilisateur, 'Rossier');
+      await utilisateur.type(screen.getByLabelText('Rue et numéro'), 'Rue du Lac 8');
+      await utilisateur.type(screen.getByLabelText('NPA'), '1000');
+      await utilisateur.type(screen.getByLabelText('Localité'), 'Lausanne');
+      await utilisateur.click(screen.getByRole('button', { name: 'Créer le client' }));
+
+      expect(await screen.findByText('PAGE_FICHE_CLIENT')).toBeInTheDocument();
+      expect(routeur.state.location.pathname).toBe('/clients/cl-42');
+      // Verbatim terrain (client Rossier, CL-000013, issue #79) : sans ce numéro/nom transmis,
+      // `EcranFicheClient` ne peut pas dire « le client a bien été créé » si la lecture qui suit
+      // échoue à son tour — voir `EcranFicheClient.spec.tsx`.
+      expect(routeur.state.location.state).toMatchObject({
+        clientCreeNumero: 'CL-000042',
+        clientCreeNom: 'Jean Rossier',
+      });
+
+      await waitFor(() =>
+        expect(window.sessionStorage.getItem('dfa.brouillon.client-nouveau')).toBeNull(),
+      );
     });
   });
 });

@@ -6,11 +6,13 @@
 
 **Étape 0 (socle technique) livrée et vérifiée** : authentification par session Argon2id, multi-tenant avec isolation RLS, gestion des sites et rôles, i18n FR/DE/IT, API OpenAPI, squelette UI, tests d'intégration sur base Postgres réelle.
 
-**Étapes 1 et 2 livrées** : atelier complet (OR, planning, pointage), clients et véhicules, facturation (devis/facture/avoir, QR-facture suisse native, export fiduciaire, encaissement). Écrans et API fonctionnels.
+**Étapes 1 et 2 livrées** : atelier complet (OR, planning, rendez-vous, pointage API, impression feuille d'atelier), clients et véhicules, facturation (devis/facture/avoir, QR-facture suisse native, export fiduciaire, encaissement). Écrans et API fonctionnels.
 
-**Étape 3 (Pièces) — API livrée, écrans livrés** : articles, stock, mouvements, réservations. Commandes fournisseur et consignes en cours.
+**Étape 3 (Pièces)** : articles, stock, mouvements, réservations livrés ; commandes fournisseur et consignes en cours.
 
-**Étapes 4-5 en cours** : schémas ventes VN/VO et connecteurs posés ; implémentation API et écrans en parallèle.
+**Étape 4 (Ventes VN/VO)** : cycle complet livré (API + écrans) ; suivi leasings et garanties en cours.
+
+**Étape 5 (Connecteurs)** : socle exécutable et interfaces posées ; adaptateurs en cours.
 
 Voir [ARCHITECTURE.md](ARCHITECTURE.md) pour la vision complète et la feuille de route détaillée.
 
@@ -73,7 +75,7 @@ pnpm dev               # API :3000 + front :5173
 
 ### Identifiants de démonstration
 
-Après `pnpm db:seed`, se connecter sur `http://localhost:5173` avec **l'un des 7 comptes** ci-dessous (Garage Martin SA). Tous utilisent le mot de passe `Demo1234!Garage`.
+Après `pnpm db:seed`, se connecter sur `http://localhost:5173` avec **l'un des 8 comptes** ci-dessous (Garage Martin SA). Tous utilisent le mot de passe `Demo1234!Garage`.
 
 **⚠️ Important** : le compte `admin@` est un **rôle technique** sans aucun droit financier (RF-115). Tout refus d'action financière avec ce compte est **correct, pas un bug**. Utiliser `direction@` pour parcourir la facturation.
 
@@ -86,6 +88,7 @@ Après `pnpm db:seed`, se connecter sur `http://localhost:5173` avec **l'un des 
 | `chef.atelier@garage-martin.ch`   | chef d'atelier | Émet des devis/bons de commande. **Ni facture ni avoir, ni encaissement.** (Démontre l'asymétrie des droits.) |
 | `technicien@garage-martin.ch`     | technicien     | Lecture seule côté montants — le serveur retire les montants de toute réponse pour ce rôle.                   |
 | `magasinier@garage-martin.ch`     | magasinier     | Gestion pièces : articles, stock, mouvements, réservations, commandes fournisseur.                            |
+| `vendeur@garage-martin.ch`        | vendeur        | Ventes véhicules : dossiers VN/VO, reprises, financement, publication annonces.                               |
 
 **Ce que le jeu de démo contient** (pour savoir quoi parcourir une fois connecté) :
 
@@ -323,6 +326,7 @@ Voir [CONTRIBUTING.md](CONTRIBUTING.md) pour audit trail, isolation tenant en te
 
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** — Source de vérité : vision, positionnement, stack, modèle de données, couche connecteurs, feuille de route détaillée.
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** — Conventions de code non négociables, équipe d'agents, rôles et périmètres.
+- **[ERREURS-OUVERTES.md](ERREURS-OUVERTES.md)** — Défauts connus ouverts (disparaît quand corrigé ; source complète : issues GitHub).
 - **[docs/deploiement-local.md](docs/deploiement-local.md)** — Guide complet pour démarrer en dev, pièges Windows, rôles Postgres, tests d'intégration.
 
 ## Commandes utiles

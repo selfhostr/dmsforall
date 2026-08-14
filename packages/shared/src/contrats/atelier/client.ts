@@ -163,6 +163,19 @@ export interface ReponseClientCondition {
   readonly rabaisPiecesPourmille: number;
   readonly rabaisPneusPourmille: number;
   readonly tauxHoraireCode: string | null;
+  /**
+   * Résolus depuis le référentiel `taux_horaire` À LA DATE `valideDuLe` de CETTE condition (#72) —
+   * même mécanisme que la résolution RM-65 d'une ligne d'OR
+   * (`apps/api/src/atelier/taux-horaire.ts::resoudreTauxHorairePourDate`), appliqué ici à la date de
+   * la condition plutôt qu'à « aujourd'hui » : un taux modifié après coup dans le paramétrage ne
+   * doit pas réécrire l'historique d'une condition déjà en vigueur. `null` quand `tauxHoraireCode`
+   * est absent (rien à résoudre) ou que le code ne correspond à aucune période de validité couvrant
+   * `valideDuLe` (référentiel modifié depuis). FACULTATIFS dans le TYPE (le serveur les peuple
+   * TOUJOURS, `null` inclus) — additif pur, jamais une rupture de compatibilité (§11.1), même
+   * arbitrage qu'`OrdreReparationResume.enRetard?`.
+   */
+  readonly tauxHoraireLibelle?: string | null;
+  readonly tauxHoraireMontantCentimes?: number | null;
   readonly delaiPaiementJours: number | null;
   readonly modePaiement: string | null;
   readonly plafondCentimes: number | null;
@@ -329,14 +342,16 @@ function validerNpaSelonPays(
  * qu'un `.superRefine()` produirait. La validation NPA×pays est donc appliquée séparément à
  * CHAQUE forme finale ci-dessous plutôt qu'une seule fois ici.
  */
-const schemaAdresseClientBase = z.object({
-  type: z.enum(TYPES_ADRESSE),
-  rue: schemaTexteCourt,
-  complement: schemaTexteCourt.nullish(),
-  npa: z.string().trim().min(4).max(10),
-  localite: schemaTexteCourt,
-  pays: schemaCodePays.default('CH'),
-});
+const schemaAdresseClientBase = z
+  .object({
+    type: z.enum(TYPES_ADRESSE),
+    rue: schemaTexteCourt,
+    complement: schemaTexteCourt.nullish(),
+    npa: z.string().trim().min(4).max(10),
+    localite: schemaTexteCourt,
+    pays: schemaCodePays.default('CH'),
+  })
+  .strict();
 
 export const schemaAdresseClient = schemaAdresseClientBase.superRefine(validerNpaSelonPays);
 
@@ -360,45 +375,53 @@ export const schemaModificationAdresseClient = schemaAdresseClientBase
   .extend({ actif: z.boolean().optional() })
   .superRefine(validerNpaSelonPays);
 
-export const schemaContactClient = z.object({
-  nom: schemaTexteCourt,
-  prenom: schemaTexteCourt.nullish(),
-  fonction: schemaTexteCourt.nullish(),
-  telephone: z.string().trim().max(30).nullish(),
-  email: schemaEmail.nullish(),
-  langue: z.enum(LANGUES).nullish(),
-  /** Non vide : un contact sans rôle n'a aucun usage métier (`cardinality(roles) > 0` en base). */
-  roles: z.array(z.enum(ROLES_CONTACT)).min(1),
-});
+export const schemaContactClient = z
+  .object({
+    nom: schemaTexteCourt,
+    prenom: schemaTexteCourt.nullish(),
+    fonction: schemaTexteCourt.nullish(),
+    telephone: z.string().trim().max(30).nullish(),
+    email: schemaEmail.nullish(),
+    langue: z.enum(LANGUES).nullish(),
+    /** Non vide : un contact sans rôle n'a aucun usage métier (`cardinality(roles) > 0` en base). */
+    roles: z.array(z.enum(ROLES_CONTACT)).min(1),
+  })
+  .strict();
 
 export const schemaModificationContactClient = schemaContactClient
   .partial()
   .extend({ actif: z.boolean().optional() });
 
-export const schemaConditionClient = z.object({
-  rabaisMoPourmille: schemaPourmille.default(0),
-  rabaisPiecesPourmille: schemaPourmille.default(0),
-  rabaisPneusPourmille: schemaPourmille.default(0),
-  tauxHoraireCode: z.string().trim().max(40).nullish(),
-  delaiPaiementJours: z.number().int().min(0).max(365).nullish(),
-  modePaiement: z.string().trim().max(40).nullish(),
-  plafondCentimes: schemaCentimesPositif.nullish(),
-  valideDuLe: schemaDateJour,
-  /** `null` = ouvert. Un chevauchement produit `400 VALIDATION_ECHOUEE`. */
-  valideAuLe: schemaDateJour.nullish(),
-});
+export const schemaConditionClient = z
+  .object({
+    rabaisMoPourmille: schemaPourmille.default(0),
+    rabaisPiecesPourmille: schemaPourmille.default(0),
+    rabaisPneusPourmille: schemaPourmille.default(0),
+    tauxHoraireCode: z.string().trim().max(40).nullish(),
+    delaiPaiementJours: z.number().int().min(0).max(365).nullish(),
+    modePaiement: z.string().trim().max(40).nullish(),
+    plafondCentimes: schemaCentimesPositif.nullish(),
+    valideDuLe: schemaDateJour,
+    /** `null` = ouvert. Un chevauchement produit `400 VALIDATION_ECHOUEE`. */
+    valideAuLe: schemaDateJour.nullish(),
+  })
+  .strict();
 
-export const schemaConsentementClient = z.object({
-  type: z.enum(TYPES_CONSENTEMENT),
-  accorde: z.boolean(),
-  recueilliLe: schemaHorodatage,
-  canal: z.string().trim().max(40).nullish(),
-});
+export const schemaConsentementClient = z
+  .object({
+    type: z.enum(TYPES_CONSENTEMENT),
+    accorde: z.boolean(),
+    recueilliLe: schemaHorodatage,
+    canal: z.string().trim().max(40).nullish(),
+  })
+  .strict();
 
-export const schemaNoteClient = z.object({
-  nature: z.enum(NATURES_NOTE),
-  texte: schemaTexteLong,
-});
+export const schemaNoteClient = z
+  .object({
+    nature: z.enum(NATURES_NOTE),
+    texte: schemaTexteLong,
+  })
+  .strict();
 
 /**
  * `POST /clients` — `Idempotency-Key` OBLIGATOIRE (RM-11 : un rejeu ne doit pas brûler un numéro
@@ -437,10 +460,12 @@ export const schemaCreationClient = z
       .optional(),
     telephones: z
       .array(
-        z.object({
-          valeur: z.string().trim().min(4).max(30),
-          principal: z.boolean().default(false),
-        }),
+        z
+          .object({
+            valeur: z.string().trim().min(4).max(30),
+            principal: z.boolean().default(false),
+          })
+          .strict(),
       )
       .max(5)
       .default([]),
@@ -451,6 +476,7 @@ export const schemaCreationClient = z
     referenceExterne: z.string().trim().max(80).nullish(),
   })
   .extend(schemaConfirmations.shape)
+  .strict()
   .refine((v) => (v.type === 'particulier' ? Boolean(v.nom) : Boolean(v.raisonSociale)), {
     message: 'Un particulier exige `nom`, une entreprise exige `raisonSociale`.',
     path: ['nom'],
@@ -464,25 +490,27 @@ export const schemaCreationClient = z
  *
  * `statut` est en lecture seule : la désactivation passe par son action nommée.
  */
-export const schemaModificationClient = z.object({
-  civilite: z.string().trim().max(20).nullish(),
-  nom: schemaTexteCourt.nullish(),
-  prenom: schemaTexteCourt.nullish(),
-  raisonSociale: schemaTexteCourt.nullish(),
-  ide: schemaIde.nullish(),
-  langueCorrespondance: z.enum(LANGUES).optional(),
-  email: schemaEmail.nullish(),
-  telephone: z.string().trim().max(30).nullish(),
-  poObligatoire: z.boolean().optional(),
-  groupeId: schemaIdentifiant.nullish(),
-  referenceExterne: z.string().trim().max(80).nullish(),
-});
+export const schemaModificationClient = z
+  .object({
+    civilite: z.string().trim().max(20).nullish(),
+    nom: schemaTexteCourt.nullish(),
+    prenom: schemaTexteCourt.nullish(),
+    raisonSociale: schemaTexteCourt.nullish(),
+    ide: schemaIde.nullish(),
+    langueCorrespondance: z.enum(LANGUES).optional(),
+    email: schemaEmail.nullish(),
+    telephone: z.string().trim().max(30).nullish(),
+    poObligatoire: z.boolean().optional(),
+    groupeId: schemaIdentifiant.nullish(),
+    referenceExterne: z.string().trim().max(80).nullish(),
+  })
+  .strict();
 
 /**
  * `POST /clients/{clientId}/desactiver` — refusée s'il reste des OR, RDV ou détentions ouverts
  * (`409 CLIENT_DESACTIVATION_IMPOSSIBLE`, `blocages` nommant chacun d'eux).
  */
-export const schemaDesactivationClient = z.object({ motif: schemaMotif });
+export const schemaDesactivationClient = z.object({ motif: schemaMotif }).strict();
 
 /**
  * `POST /clients/{clientId}/arreter-contact` — RA-14 : pose l'arrêt de tout contact. `motif`
@@ -495,7 +523,7 @@ export const schemaDesactivationClient = z.object({ motif: schemaMotif });
  * 0006) — PAS encore exposée par une route API à ce jour, GAP DE CONTRAT signalé au même
  * titre que ceux déjà notés ailleurs dans ce fichier.
  */
-export const schemaArreterContactClient = z.object({ motif: schemaMotif });
+export const schemaArreterContactClient = z.object({ motif: schemaMotif }).strict();
 
 /**
  * `POST /clients/{clientId}/reprendre-contact` — RA-14 : lève l'arrêt de tout contact. `motif`
@@ -508,7 +536,7 @@ export const schemaArreterContactClient = z.object({ motif: schemaMotif });
  * (`schemaDesactivationClient` ci-dessus) : le service conserve ce motif sous forme de `client_note`
  * (nature `interne`) plutôt que de le perdre.
  */
-export const schemaReprendreContactClient = z.object({ motif: schemaMotif });
+export const schemaReprendreContactClient = z.object({ motif: schemaMotif }).strict();
 
 /**
  * `POST /clients/{clientId}/fusionner` (RM-06, CT-02) — droit `direction` seul.
@@ -521,7 +549,8 @@ export const schemaFusionClient = z
     clientSourceId: schemaIdentifiant,
     confirmationNom: schemaTexteCourt,
   })
-  .extend(schemaConfirmations.shape);
+  .extend(schemaConfirmations.shape)
+  .strict();
 
 export type EntreeCreationClient = z.infer<typeof schemaCreationClient>;
 export type EntreeModificationClient = z.infer<typeof schemaModificationClient>;

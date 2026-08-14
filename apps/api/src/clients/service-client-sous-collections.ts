@@ -29,7 +29,9 @@ import {
   clientContact,
   clientNote,
   utilisateur,
+  type LigneTauxHoraire,
 } from '../db/schema';
+import { chargerToutesTauxHoraire, resoudreTauxHorairePourDate } from '../atelier/taux-horaire';
 import { CollecteurAvertissements } from '../common/avertissements';
 import { ErreurMetier } from '../common/erreurs';
 import { ServiceJournal } from '../common/journal';
@@ -40,7 +42,7 @@ import {
 } from '../common/pagination';
 import { neGarderQueChampsEnvoyes, PipeZod } from '../common/validation';
 
-import type { AuteurNote } from './mappers';
+import type { AuteurNote, TauxHoraireResoluCondition } from './mappers';
 import {
   versAdresseResponse,
   versConditionResponse,
@@ -50,6 +52,29 @@ import {
 } from './mappers';
 import type { ParametresPageSousCollection } from './schemas';
 import { normaliserTelephoneCh } from './telephone';
+
+/**
+ * #72 : résout `condition.tauxHoraireCode` en libellé+montant lisibles, à SA date `valideDu` —
+ * `null` si la condition ne porte aucun code (rien à résoudre, RM-07 : le taux négocié est
+ * éventuel) ou si le référentiel a depuis changé sous ce code (le motif d'échec de
+ * `resoudreTauxHorairePourDate` n'est pas actionnable dans CETTE réponse, qui n'affiche qu'un
+ * résultat, jamais une erreur). Même mécanisme que la résolution RM-65 d'une ligne d'OR
+ * (`atelier/taux-horaire.ts`), jamais un second calcul qui pourrait diverger.
+ */
+function resoudreTauxHoraireCondition(
+  lignesTauxHoraire: readonly LigneTauxHoraire[],
+  condition: { readonly tauxHoraireCode: string | null; readonly valideDu: string },
+): TauxHoraireResoluCondition | null {
+  if (!condition.tauxHoraireCode) return null;
+  const resolution = resoudreTauxHorairePourDate(
+    lignesTauxHoraire,
+    condition.tauxHoraireCode,
+    condition.valideDu,
+  );
+  return resolution.centimes !== null
+    ? { libelle: resolution.libelle, montantCentimes: resolution.centimes }
+    : null;
+}
 
 /** Profondeur maximale de déballage de `.cause` — bornée pour ne jamais risquer une boucle
  *  infinie sur une chaîne cyclique pathologique (Drizzle n'enveloppe qu'une seule fois en
@@ -478,7 +503,14 @@ export class ServiceClientSousCollections {
         .orderBy(desc(clientCondition.creeLe), desc(clientCondition.id))
         .limit(params.limite + 1);
 
-      return assemblerPageSousCollection(lignes, params.limite, versConditionResponse);
+      // #72 : chargé UNE FOIS pour toute la page, jamais une requête par condition affichée — même
+      // doctrine que `service-ligne-or.ts::resoudreTauxHoraireCentimes` (table `taux_horaire` :
+      // une poignée de lignes par tenant).
+      const lignesTauxHoraire = await chargerToutesTauxHoraire(tx, ctx);
+
+      return assemblerPageSousCollection(lignes, params.limite, (ligne) =>
+        versConditionResponse(ligne, resoudreTauxHoraireCondition(lignesTauxHoraire, ligne)),
+      );
     });
   }
 
@@ -507,7 +539,10 @@ export class ServiceClientSousCollections {
           })
           .returning();
         if (!ligne) throw new ErreurMetier('ERREUR_INTERNE', 'Échec de création de la condition.');
-        return new CollecteurAvertissements().envelopper(versConditionResponse(ligne));
+        const lignesTauxHoraire = await chargerToutesTauxHoraire(tx, ctx);
+        return new CollecteurAvertissements().envelopper(
+          versConditionResponse(ligne, resoudreTauxHoraireCondition(lignesTauxHoraire, ligne)),
+        );
       } catch (erreur) {
         // RM-07/CT-03 : l'EXCLUDE `client_condition_periode_excl` refuse tout chevauchement de
         // périodes — traduit en 400 (§7.3 du contrat), PAS en 409 : c'est une erreur de saisie

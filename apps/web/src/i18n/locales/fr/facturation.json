@@ -22,6 +22,13 @@
       "regle": "Réglée",
       "tropPercu": "Trop perçu",
       "irrecouvrable": "Irrécouvrable"
+    },
+    "statutAvoir": {
+      "nonRegle": "Non imputé",
+      "partiel": "Partiellement imputé",
+      "regle": "Imputé",
+      "tropPercu": "Trop imputé",
+      "irrecouvrable": "Abandonné"
     }
   },
   "retard": {
@@ -49,7 +56,8 @@
   },
   "avanceClient": {
     "message": "Cet encaissement dépasse le solde de {montant} — l'excédent sera enregistré comme avance client, à affecter plus tard.",
-    "aucuneFactureOuverte": "Cet encaissement sera enregistré comme avance client."
+    "aucuneFactureOuverte": "Ce client n'a aucune facture ouverte à régler.",
+    "confirmerAction": "Enregistrer quand même comme avance client"
   },
   "motifsAvoir": {
     "erreurAdresse": "Erreur d'adresse",
@@ -149,8 +157,47 @@
         "tva": "TVA"
       },
       "ajouterDemontage": "Ajouter la ligne de démontage proposée",
+      "ajouter": "Ajouter une ligne",
       "retirer": "Retirer",
-      "vide": "Aucune ligne sur ce document."
+      "modifierAria": "Modifier la ligne « {designation} »",
+      "retirerAria": "Retirer la ligne « {designation} »",
+      "vide": "Aucune ligne sur ce document.",
+      "dialogueAjout": {
+        "titre": "Ajouter une ligne"
+      },
+      "dialogueModifier": {
+        "titre": "Modifier la ligne"
+      },
+      "champs": {
+        "type": "Type",
+        "designation": "Désignation",
+        "reference": "Référence",
+        "quantite": "Quantité",
+        "prixUnitaire": "Prix unitaire TTC",
+        "taux": "Taux de TVA",
+        "datePrestation": "Date de prestation"
+      },
+      "types": {
+        "main_oeuvre_bareme": "Main d'œuvre (barème)",
+        "main_oeuvre_temps_reel": "Main d'œuvre (temps réel)",
+        "forfait": "Forfait",
+        "piece": "Pièce",
+        "fourniture": "Fourniture",
+        "sous_traitance": "Sous-traitance",
+        "produit_atelier": "Produit atelier",
+        "taxe": "Taxe",
+        "texte": "Texte (note libre)",
+        "ecart_reprise": "Écart de reprise",
+        "repartition": "Répartition",
+        "consigne": "Consigne"
+      },
+      "taux": {
+        "normal": "Normal — 8.1%",
+        "reduit": "Réduit — 2.6%",
+        "hebergement": "Hébergement — 3.8%",
+        "exonere": "Exonéré — 0%",
+        "exclu": "Exclu du champ de la TVA — 0%"
+      }
     },
     "documentsLies": {
       "titre": "Documents liés",
@@ -230,7 +277,8 @@
       "resteDu": "reste dû {montant}",
       "emiseLe": "émise le {date}",
       "totalSelectionne": "Total sélectionné",
-      "vide": "Aucune facture ouverte"
+      "vide": "Aucune facture ouverte",
+      "devisesMultiples": "Ces factures sont dans des devises différentes. Décochez-en pour ne garder que des factures dans la même devise avant d'encaisser."
     },
     "lignes": {
       "titre": "Encaissements",
@@ -270,6 +318,7 @@
   "liste": {
     "titre": "Factures",
     "onglets": {
+      "groupeLabel": "Filtrer les factures",
       "toutes": "Toutes",
       "nonReglees": "Non réglées",
       "enRetard": "En retard",

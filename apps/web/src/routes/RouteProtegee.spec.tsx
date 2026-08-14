@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { delay, http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { describe, expect, it } from 'vitest';
@@ -8,6 +8,7 @@ import type { SessionCourante } from '@dfa/shared';
 
 import '@/i18n';
 
+import { clesQuery } from '@/api/cles';
 import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
 
@@ -40,6 +41,7 @@ function rendre(
       </MemoryRouter>
     </QueryClientProvider>,
   );
+  return queryClient;
 }
 
 describe('RouteProtegee — 4 branches (anti-flash)', () => {
@@ -79,6 +81,30 @@ describe('RouteProtegee — 4 branches (anti-flash)', () => {
     server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
     rendre();
     expect(await screen.findByText('CONTENU_PROTEGE')).toBeInTheDocument();
+  });
+});
+
+/**
+ * Régression issue #77 : une session DÉJÀ CONNUE ne doit jamais être effacée par un échec de
+ * RAFRAÎCHISSEMENT en arrière-plan (`refetchOnWindowFocus`, invalidation depuis un autre composant,
+ * etc.) — avant ce correctif, `isError` seul suffisait à démonter tout l'arbre protégé
+ * (`AppShell` + l'écran routé, y compris un formulaire en cours de saisie) pour le remplacer par
+ * `EcranServiceIndisponible`, alors même que TanStack Query conserve `data` sur un échec
+ * d'arrière-plan (`query-core`, réducteur `case 'error'`).
+ */
+describe('RouteProtegee — erreur d’arrière-plan avec session déjà connue', () => {
+  it('un refetch qui échoue APRÈS un premier chargement réussi laisse le contenu protégé affiché', async () => {
+    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
+    const queryClient = rendre();
+    expect(await screen.findByText('CONTENU_PROTEGE')).toBeInTheDocument();
+
+    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.error()));
+    await queryClient.refetchQueries({ queryKey: clesQuery.session() }).catch(() => undefined);
+
+    await waitFor(() => {
+      expect(screen.getByText('CONTENU_PROTEGE')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Service momentanément indisponible')).not.toBeInTheDocument();
   });
 });
 

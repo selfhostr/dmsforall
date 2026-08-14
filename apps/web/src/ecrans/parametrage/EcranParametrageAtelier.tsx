@@ -165,7 +165,7 @@ export function EcranParametrageAtelier() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <h1 className="texte-titre font-semibold text-foreground">
+      <h1 className="texte-titre-page font-semibold text-foreground">
         {t('parametrage:atelier.titre')}
       </h1>
 

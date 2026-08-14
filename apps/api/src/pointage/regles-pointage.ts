@@ -1,6 +1,7 @@
 import type {
   AgregatTempsLigneOr,
   ArrondiPointage,
+  CibleReprisePointage,
   EntreeDemarragePointage,
   StatutLigneOr,
   StatutOrdreReparation,
@@ -367,4 +368,152 @@ export function calculerAgregatsTempsLigne(
             : null,
       };
     });
+}
+
+/* ------------------------------------------------------------------ */
+/* GET /pointages/dernier-du-jour : cible mémorisée pour « Reprendre » (contrat CibleReprisePointage) */
+/* ------------------------------------------------------------------ */
+
+/**
+ * `[dateJour]T00:00:00.000Z` → `[dateJour]T23:59:59.999Z` — MÊME CONVENTION que
+ * `service-verrouillage-periode.ts::finDeJournee` (RM-95) : bornes calendaires en UTC PUR, pas en
+ * fuseau local. LIMITATION CONNUE, DÉJÀ SIGNALÉE LÀ-BAS, PAS RÉINVENTÉE ICI : `parametre_atelier`/
+ * `site` ne portent aujourd'hui aucune colonne de fuseau horaire — un pointage démarré entre 22h00
+ * et minuit (heure de Zurich, hiver) peut donc tomber côté UTC sur le jour calendaire SUIVANT.
+ * Écart d'implémentation assumé, à corriger le jour où un fuseau par site existe ; NE PAS lui
+ * substituer localement un calcul en fuseau Europe/Zurich, qui romprait la cohérence avec RM-95 et
+ * avec la (future) clôture automatique de fin de journée RM-91/RM-119, qui devra suivre la même
+ * convention pour que « journée verrouillée » et « journée encore proposée en reprise » coïncident.
+ *
+ * PRÉCISION SUR CE QUI EST RÉELLEMENT RÉUTILISÉ : `finDeJournee` (service-verrouillage-periode.ts)
+ * n'est PAS exportée (fonction de module privée à son fichier) et prend en entrée un jour DÉJÀ
+ * CONNU (`jusquauLe` du corps de requête RM-95), jamais « aujourd'hui ». Cette fonction-ci ne peut
+ * donc pas l'importer telle quelle — elle réplique volontairement sa même formule de bornage
+ * (`slice(0, 10)` + gabarit ISO) plutôt que d'en inventer une différente, ce qui est la meilleure
+ * réutilisation possible sans changer la visibilité d'un fichier hors du périmètre de cette tâche.
+ * AUCUN job de clôture automatique de fin de journée (RM-91/RM-119) n'existe à ce jour dans ce
+ * dépôt (vérifié : aucun `@Cron`/`@Processor`/BullMQ dans `apps/api/src/pointage/`) — cette
+ * fonction est donc la première pièce de code à formaliser « la journée de travail courante » côté
+ * serveur, sur la base de la SEULE convention de bornage de jour déjà écrite dans ce module.
+ */
+export function journeeTravailCourante(maintenant: Date): {
+  readonly debutLe: Date;
+  readonly finLe: Date;
+} {
+  const jour = maintenant.toISOString().slice(0, 10);
+  return {
+    debutLe: new Date(`${jour}T00:00:00.000Z`),
+    finLe: new Date(`${jour}T23:59:59.999Z`),
+  };
+}
+
+/** Entrée minimale, DB-agnostique, tirée de `pointage` + `ordre_reparation` + `ligne_or` — voir
+ *  `pointage-requetes.ts::chargerPointagesProductifsDuJour`. Un seul technicien, une seule journée,
+ *  jamais plus qu'une poignée de lignes : borné par construction de la requête, pas ici. */
+export interface PointageProductifDuJour {
+  readonly id: string;
+  /** Toujours non nul en pratique (la requête ne charge que `nature IN ('productif_ligne',
+   *  'productif_or')`) — type nullable conservé tel quel (miroir de `LignePointage.ordreReparationId`)
+   *  plutôt que forcé par un cast : une ligne dont ce serait `null` malgré le filtre SQL est ignorée
+   *  défensivement par `resoudreCibleReprise`, jamais supposée impossible. */
+  readonly ordreReparationId: string | null;
+  readonly ligneOrId: string | null;
+  readonly siteId: string;
+  readonly debutLe: Date;
+  readonly finLe: Date | null;
+  readonly statutOr: StatutOrdreReparation;
+  /** `null` quand `ligneOrId` est nul (`nature = 'productif_or'`, pas de jointure à faire) — voir
+   *  aussi le commentaire de `resoudreCibleReprise` sur le traitement fail-closed d'un `null`
+   *  alors que `ligneOrId` EST renseigné (jointure qui n'aurait pas dû échouer). */
+  readonly statutLigne: StatutLigneOr | null;
+  readonly numeroOr: string;
+  readonly designationLigne: string | null;
+}
+
+/**
+ * `GET /pointages/dernier-du-jour` — résout `CibleReprisePointage | null` à partir de TOUS les
+ * pointages productifs du technicien démarrés dans la journée de travail courante (déjà filtrés par
+ * la requête appelante, voir `pointage-requetes.ts`), PURE (aucune I/O, testable seule).
+ *
+ * Règles, DANS CET ORDRE (contrat de la tâche, ne pas réordonner) :
+ *  1. Seuls des pointages PRODUCTIFS entrent dans `pointagesDuJour` — une activité indirecte ne
+ *     devient jamais la cible ; c'est déjà garanti par la requête SQL appelante, pas re-vérifié ici.
+ *  2. Le PLUS RÉCENT (`debutLe` maximal) de la liste, qu'il soit `termine` ou encore `en_cours` —
+ *     PAS de repli sur un pointage plus ancien si celui-ci s'avère non pointable (règle 3) : si la
+ *     DERNIÈRE chose sur laquelle le technicien a travaillé aujourd'hui n'est plus pointable, la
+ *     réponse est `null`, jamais une proposition de reprendre quelque chose de plus ancien que le
+ *     technicien a déjà quitté délibérément pour cette raison précise. INTERPRÉTATION RETENUE de
+ *     l'énoncé numéroté de la tâche (« dans cet ordre »), signalée : c'est la lecture la plus
+ *     littérale, pas un choix arbitraire parmi plusieurs égales.
+ *  3. Cible ENCORE pointable au moment de la requête (`estOrPointable`/`estLignePointable`, les
+ *     MÊMES prédicats que `demarrer` en écriture — RM-92/RM-93) ; sinon `null`.
+ *  4. Hors journée de travail courante → déjà exclu par la requête SQL, jamais vu ici.
+ *  5. `cumulSecondesDuJour` = somme des durées BRUTES (secondes, `Math.floor`, RM-97) de TOUS les
+ *     segments productifs d'aujourd'hui sur la MÊME cible (même `ligneOrId` si `type === 'ligne'` ;
+ *     même `ordreReparationId` ET `ligneOrId === null` si `type === 'or'` — un segment
+ *     `productif_ligne` sur une AUTRE ligne du même OR ne compte jamais dans un cumul `type: 'or'`).
+ *     Segment encore ouvert inclus, borné à `maintenant`.
+ *  6. `ligneOrId` de la réponse est `null` si et seulement si `type === 'or'`.
+ *  7. `libelle` = désignation de la ligne, sinon (ligne sans désignation, ou `type === 'or'`) le
+ *     numéro de l'OR — `ordre_reparation` ne porte aucune colonne de désignation courte propre
+ *     (vérifié : seules `numero`/`clientDesignationFigee` existent), le numéro est donc la seule
+ *     valeur candidate.
+ */
+export function resoudreCibleReprise(
+  pointagesDuJour: readonly PointageProductifDuJour[],
+  maintenant: Date,
+): CibleReprisePointage | null {
+  if (pointagesDuJour.length === 0) return null;
+
+  // Tri défensif — la requête appelante trie déjà `debutLe desc`, mais cette fonction pure ne doit
+  // pas dépendre silencieusement de l'ordre d'un appelant qu'elle ne contrôle pas.
+  const plusRecent = [...pointagesDuJour].sort(
+    (a, b) => b.debutLe.getTime() - a.debutLe.getTime(),
+  )[0];
+
+  if (!plusRecent || plusRecent.ordreReparationId === null) return null;
+
+  const cibleEncorePointable =
+    estOrPointable(plusRecent.statutOr) &&
+    (plusRecent.ligneOrId === null ||
+      (plusRecent.statutLigne !== null && estLignePointable(plusRecent.statutLigne)));
+  if (!cibleEncorePointable) return null;
+
+  const type: CibleReprisePointage['type'] = plusRecent.ligneOrId !== null ? 'ligne' : 'or';
+  const ordreReparationId = plusRecent.ordreReparationId;
+
+  const memeCible = pointagesDuJour.filter((p) =>
+    type === 'ligne'
+      ? p.ligneOrId === plusRecent.ligneOrId
+      : p.ordreReparationId === ordreReparationId && p.ligneOrId === null,
+  );
+  const cumulSecondesDuJour = memeCible.reduce(
+    (total, p) => total + dureeBruteSegmentPointage(p.debutLe, p.finLe, maintenant),
+    0,
+  );
+
+  return {
+    type,
+    ordreReparationId,
+    numeroOr: plusRecent.numeroOr,
+    ligneOrId: type === 'ligne' ? plusRecent.ligneOrId : null,
+    libelle:
+      type === 'ligne' ? (plusRecent.designationLigne ?? plusRecent.numeroOr) : plusRecent.numeroOr,
+    siteId: plusRecent.siteId,
+    // INTERPRÉTATION RETENUE (voir le commentaire du champ, `contrats/pointage/pointage.ts`) : un
+    // dernier segment ENCORE ouvert n'a pas de vraie interruption — `maintenant` comble l'absence de
+    // `null` possible sur ce champ du contrat, plutôt que d'inventer une valeur arbitraire.
+    interrompuLe: (plusRecent.finLe ?? maintenant).toISOString(),
+    cumulSecondesDuJour,
+  };
+}
+
+/** `Math.floor((fin - debut) / 1000)` — MÊME FORMULE que `mappeurs.ts::dureeBruteDepuisPeriode`,
+ *  reprise ici plutôt qu'importée : cette fonction-là retourne `null` pour un segment ouvert (pas de
+ *  fin connue), alors qu'un cumul de reprise doit au contraire compter un segment ouvert jusqu'à
+ *  `maintenant` (RM-97, « segment en cours inclus » — règle 5 ci-dessus). Deux besoins différents,
+ *  même arithmétique brute. */
+function dureeBruteSegmentPointage(debutLe: Date, finLe: Date | null, maintenant: Date): number {
+  const fin = finLe ?? maintenant;
+  return Math.floor((fin.getTime() - debutLe.getTime()) / 1000);
 }

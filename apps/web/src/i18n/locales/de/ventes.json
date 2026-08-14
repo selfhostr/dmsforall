@@ -126,12 +126,19 @@
       "reserveLe": "Reserviert am",
       "venduLe": "Verkauft am",
       "livreLe": "Übergeben am",
-      "motif": "Grund"
+      "motif": "Grund",
+      "emplacement": "Stellplatz",
+      "emplacementPlaceholder": "Z. B.: vorne, Platz 3"
     },
     "assujetti": {
       "oui": "Ja",
       "non": "Nein",
       "nonRenseigne": "Nicht angegeben"
+    },
+    "vue": {
+      "groupeLabel": "Anzeigemodus",
+      "vendeur": "Verkäuferansicht",
+      "client": "Kundenansicht"
     },
     "joursStock": {
       "libelle": "Tage im Bestand",
@@ -182,7 +189,8 @@
         "provenance": "Herkunft",
         "statut": "Status",
         "joursStock": "Tage im Bestand",
-        "prixVente": "Verkaufspreis"
+        "prixVente": "Verkaufspreis",
+        "emplacement": "Stellplatz"
       },
       "actions": {
         "ficheCommerciale": "Verkaufsblatt",
@@ -208,7 +216,8 @@
         "receptionner": "Annehmen",
         "remettreDisponible": "Wieder verfügbar machen",
         "marquerVendu": "Als verkauft markieren",
-        "autresActions": "Weitere Aktionen"
+        "autresActions": "Weitere Aktionen",
+        "garantie": "Garantie"
       },
       "donneesCommerciales": "Verkaufsdaten",
       "historique": "Verlauf",
@@ -217,7 +226,16 @@
       "prixAchatVerrouille": "Der Ankaufspreis kann nach dem Verkauf nicht mehr geändert werden.",
       "remettreDisponibleDescription": "Das Fahrzeug wird wieder verfügbar zum Verkauf.",
       "receptionnerDescription": "Das Fahrzeug wechselt in den Status «Verfügbar».",
-      "marquerVenduDescription": "Das Fahrzeug wechselt in den Status «Verkauft»."
+      "marquerVenduDescription": "Das Fahrzeug wechselt in den Status «Verkauft».",
+      "garantie": {
+        "titre": "Garantie",
+        "description": "Manuelle Eingabe — ausfüllen, sobald die Information bekannt ist, nie automatisch berechnet.",
+        "debutLe": "Garantiebeginn",
+        "mois": "Dauer (Monate)",
+        "km": "Kilometer-Obergrenze",
+        "moisHorsPlage": "Muss zwischen 0 und 240 Monaten liegen.",
+        "kmHorsPlage": "Muss zwischen 0 und 1'000'000 km liegen."
+      }
     },
     "entree": {
       "titre": "In den Bestand aufnehmen",
@@ -342,6 +360,11 @@
       "bonCommande": "Bestellung",
       "aucunBonCommande": "Keine Bestellung für dieses Dossier vorhanden",
       "creerBonCommande": "Bestellung erstellen",
+      "facture": "Rechnung",
+      "aucuneFacture": "Keine Rechnung für dieses Dossier vorhanden",
+      "creerFacture": "Rechnung erstellen",
+      "voirFacture": "Rechnung ansehen",
+      "factureACompleter": "Fügen Sie die Positionen hinzu und stellen Sie die Rechnung aus, um ausliefern zu können.",
       "identitePieceType": "Vorgelegter Ausweis",
       "identitePieceTypes": {
         "carte_identite": "Identitätskarte",
@@ -350,6 +373,7 @@
         "titre_sejour": "Aufenthaltsbewilligung",
         "autre": "Andere"
       },
+      "identitePieceTypeAutrePrecision": "Ausweis genauer angeben",
       "engagerConfirmation": "Das Fahrzeug wird reserviert.",
       "engagerConfirmationReprise": "Der Eintausch wird bestätigt.",
       "confirmerAction": "Bestätigen",
@@ -543,6 +567,9 @@
       "champVehiculePlaceholder": "Kennzeichen oder Bezeichnung…",
       "champVehiculeIndication": "Geben Sie ein Kennzeichen oder eine Bezeichnung ein, um das eingetauschte Fahrzeug zu suchen.",
       "aucunVehiculeTrouve": "Kein Fahrzeug entspricht dieser Suche.",
+      "creerVehiculeBouton": "Dieses Fahrzeug anlegen",
+      "creerVehiculeAide": "Der Kunde bringt ein Fahrzeug, das der Garage noch nicht bekannt ist? Legen Sie es mit den nötigsten Angaben an — der Rest wird später in der Fahrzeugkarte ergänzt.",
+      "creerVehiculeSoumettre": "Anlegen und auswählen",
       "vehiculeSelectionne": "Ausgewähltes Fahrzeug: {designation}",
       "champValeurEstimee": "Geschätzter Wert",
       "valeurEstimee": "Geschätzter Wert",
@@ -652,6 +679,7 @@
       "titre": "Finanzierung vorschlagen",
       "champType": "Finanzierungsart",
       "champOrganisme": "Institut",
+      "champOrganismePlaceholder": "Institut suchen…",
       "champReferenceContrat": "Vertragsreferenz",
       "aideComptant": "Für eine Barzahlung ist keine weitere Bestätigung erforderlich.",
       "bouton": "Vorschlagen"
@@ -682,8 +710,6 @@
   },
   "suivi": {
     "titre": "Finanzierungs- & Garantieübersicht",
-    "lienDepuisListe": "Finanzierungs- & Garantieübersicht",
-    "retourListe": "Zurück zu den Verkaufsdossiers",
     "colonnes": {
       "dossier": "Kunde / Fahrzeug",
       "echeance": "Nächste Fälligkeit",

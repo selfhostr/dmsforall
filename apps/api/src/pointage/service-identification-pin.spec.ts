@@ -122,7 +122,9 @@ describe('ServiceIdentificationPin.identifier', () => {
 
     const rep = await service.identifier(CTX_BORNE, principalBorne(), '4071');
 
-    expect(rep).toEqual({ technicienId: MARCO, prenom: 'Marco', nom: 'Bianchi' });
+    // `siteId` = celui de la SESSION de la borne (`principalBorne().siteId`), pas un attribut du
+    // technicien reconnu — ajout rétrocompatible du contrat (`identification.ts`).
+    expect(rep).toEqual({ technicienId: MARCO, prenom: 'Marco', nom: 'Bianchi', siteId: SITE });
     expect(v.reinitialiser).toHaveBeenCalledWith(TENANT, BORNE);
     expect(v.enregistrerEchec).not.toHaveBeenCalled();
   });

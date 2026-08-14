@@ -50,6 +50,7 @@
     "reglagesFacturation": "Abrechnung",
     "reglagesTarifs": "Tarife & Leistungen",
     "reglagesPieces": "Teile",
+    "reglagesUtilisateurs": "Benutzer",
     "reglagesRelances": "Mahnstufen"
   },
   "liens": {
@@ -71,6 +72,7 @@
   },
   "entete": {
     "tousLesSites": "Alle Werkstätten",
+    "siteNonChoisi": "Kein Standort ausgewählt",
     "changerSite": "Standort wechseln"
   },
   "repli": {

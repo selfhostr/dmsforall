@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { formaterDateSuisse, formaterMontantCentimes } from './formatage-suisse';
+import {
+  formaterDateSuisse,
+  formaterMontantAvecDevise,
+  formaterMontantCentimes,
+} from './formatage-suisse';
 
 describe('formaterMontantCentimes', () => {
   it.each([
@@ -20,6 +24,32 @@ describe('formaterMontantCentimes', () => {
 
   it('refuse un montant non entier', () => {
     expect(() => formaterMontantCentimes(10.5)).toThrow(RangeError);
+  });
+});
+
+/**
+ * Bug #126 (PDF facture) : le corps du PDF (lignes, ventilation TVA, totaux) affichait des
+ * montants nus, sans devise — seul le bulletin QR la portait. Valeurs exactes attendues, jamais
+ * `toBeCloseTo` — l'arithmétique se prouve, elle ne se relit pas (`CONTRIBUTING.md`).
+ */
+describe('formaterMontantAvecDevise', () => {
+  it.each([
+    [25944, 'CHF', 'CHF 259.44'],
+    [0, 'CHF', 'CHF 0.00'],
+    [10000, 'EUR', 'EUR 100.00'],
+    [-500, 'CHF', 'CHF -5.00'],
+    [123456789, 'CHF', "CHF 1'234'567.89"],
+  ] as const)('formaterMontantAvecDevise(%d, %s) === %s', (centimes, devise, attendu) => {
+    expect(formaterMontantAvecDevise(centimes, devise)).toBe(attendu);
+  });
+
+  it('même corps que formaterMontantCentimes, seul le préfixe devise change', () => {
+    expect(formaterMontantAvecDevise(100050, 'CHF')).toBe(`CHF ${formaterMontantCentimes(100050)}`);
+    expect(formaterMontantAvecDevise(100050, 'EUR')).toBe(`EUR ${formaterMontantCentimes(100050)}`);
+  });
+
+  it('refuse un montant non entier (délègue à formaterMontantCentimes)', () => {
+    expect(() => formaterMontantAvecDevise(10.5, 'CHF')).toThrow(RangeError);
   });
 });
 

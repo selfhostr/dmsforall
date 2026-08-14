@@ -1,5 +1,6 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
@@ -32,7 +33,7 @@ const VEHICULE_STOCK: VehiculeStockResume = {
     designation: 'VW Touran 2.0 TDI',
     vin: 'WVWZZZ1KZAW123456',
     premiereMiseEnCirculationLe: '2018-04-01',
-    identificationIncomplete: false,
+    identificationIncomplete: true,
     emplacementLibre: null,
   },
   provenance: 'reprise',
@@ -70,6 +71,65 @@ describe('EcranListeVehiculesStock', () => {
 
     expect(await screen.findByText('VW Touran 2.0 TDI')).toBeInTheDocument();
     expect(screen.getByText('Disponible')).toBeInTheDocument();
+    expect(screen.getByText("1'890.00")).toBeInTheDocument();
+  });
+
+  /**
+   * Issue #142 : le champ `emplacementLibre` existe en base depuis la migration `0044` mais
+   * n'était exploité NULLE PART côté ventes. Ce test prouve la colonne « Emplacement » à la fois
+   * pour une valeur renseignée ET pour son absence — un tiret explicite (`ventes:commun.nonRenseigne`,
+   * même clé que `CelluleGarantieSuivi`), jamais une cellule vide silencieuse indiscernable d'un
+   * bug de chargement.
+   */
+  it('colonne Emplacement (#142) : affiche la valeur renseignée, ou un motif explicite si absente', async () => {
+    const AVEC_EMPLACEMENT: VehiculeStockResume = {
+      ...VEHICULE_STOCK,
+      id: 'veh-2',
+      vehicule: { ...VEHICULE_STOCK.vehicule, id: 'veh-2', emplacementLibre: 'Devant, place 3' },
+    };
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      http.get('/api/v1/vehicules-stock', () =>
+        HttpResponse.json(pageDe([VEHICULE_STOCK, AVEC_EMPLACEMENT])),
+      ),
+    );
+
+    rendre();
+
+    expect(await screen.findByText('Devant, place 3')).toBeInTheDocument();
+    // `VEHICULE_STOCK` (emplacementLibre: null) rend le motif explicite — le tiret apparaît aussi
+    // ailleurs sur la ligne (aucune autre colonne financière/date dans ce jeu de données), donc on
+    // vérifie qu'il apparaît au moins une fois plutôt qu'une seule occurrence stricte.
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+  });
+
+  /**
+   * Issue #84 (`securite`) : le vendeur pilote son stock avec provenance/jours en stock affichés
+   * (constat testeur : « c'est mon affaire, pas la sienne » / « si le client voit qu'une voiture
+   * est là depuis trois mois, il négocie 2000 francs »), mais tourne parfois ce même écran vers un
+   * client. La vue client RETIRE ces colonnes (et le badge « Identification incomplète », qui « fait
+   * négligé ») du DOM — rien à démasquer par erreur, contrairement à un simple assombrissement.
+   */
+  it('vue client : retire provenance, jours en stock et le badge d’identification incomplète, garde le prix', async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      http.get('/api/v1/vehicules-stock', () => HttpResponse.json(pageDe([VEHICULE_STOCK]))),
+    );
+
+    rendre();
+
+    expect(await screen.findByText('VW Touran 2.0 TDI')).toBeInTheDocument();
+    expect(screen.getByText('Reprise')).toBeInTheDocument();
+    expect(screen.getByText('12')).toBeInTheDocument();
+    expect(screen.getByText('Numéro de châssis manquant')).toBeInTheDocument();
+
+    const utilisateur = userEvent.setup();
+    await utilisateur.click(screen.getByRole('tab', { name: 'Vue client' }));
+
+    expect(screen.queryByText('Reprise')).not.toBeInTheDocument();
+    expect(screen.queryByText('12')).not.toBeInTheDocument();
+    expect(screen.queryByText('Numéro de châssis manquant')).not.toBeInTheDocument();
+    // Le prix de vente reste affiché : c'est justement ce que le vendeur veut montrer au client.
     expect(screen.getByText("1'890.00")).toBeInTheDocument();
   });
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
@@ -15,6 +15,7 @@ import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { useReprise } from '@/hooks/ventes/reprises/useReprise';
 import { formaterMontant } from '@/lib/formats';
 
+import { ValeurConfidentielle } from '../_composants/ValeurConfidentielle';
 import { BadgeStatutReprise } from './BadgeStatutReprise';
 import { DialogueCreationReprise } from './DialogueCreationReprise';
 import { DialogueModifierReprise } from './DialogueModifierReprise';
@@ -51,6 +52,18 @@ export function CarteReprise({ dossierVenteId, possedeReprise, role, onMutationR
 
   const requete = useReprise(dossierVenteId, possedeReprise);
   const peutEcrire = peutEcrireReprise(role);
+
+  // Valeur estimée / écart masqués par défaut — même doctrine que `EcranFicheVehiculeStock` :
+  // juxtaposée à la valeur négociée (celle annoncée au client), l'estimation interne du garage
+  // est un levier de négociation, pas une donnée à laisser voir en tournant l'écran. La valeur
+  // négociée, elle, reste TOUJOURS visible : c'est justement le montant qui sera annoncé au
+  // client (voir `ventes:reprise.negociation.avertissement`). Reset explicite sur changement de
+  // `dossierVenteId` pour la même raison que côté stock : cette carte n'est jamais démontée quand
+  // on navigue d'un dossier de vente à un autre.
+  const [estimationRevelee, setEstimationRevelee] = useState(false);
+  useEffect(() => {
+    setEstimationRevelee(false);
+  }, [dossierVenteId]);
 
   if (!peutLireReprise(role)) {
     return null;
@@ -150,7 +163,12 @@ export function CarteReprise({ dossierVenteId, possedeReprise, role, onMutationR
               {t('ventes:reprise.champs.valeurEstimee')}
             </p>
             <p className="texte-corps text-muted-foreground texte-montant">
-              {formaterMontant(reprise.valeurEstimeeCentimes)}
+              <ValeurConfidentielle
+                revele={estimationRevelee}
+                onToggle={() => setEstimationRevelee((valeur) => !valeur)}
+                valeur={formaterMontant(reprise.valeurEstimeeCentimes)}
+                nomChamp={t('ventes:reprise.champs.valeurEstimee')}
+              />
             </p>
           </div>
           {ecartTexte !== null ? (
@@ -158,9 +176,16 @@ export function CarteReprise({ dossierVenteId, possedeReprise, role, onMutationR
               <p className="texte-libelle text-muted-foreground">
                 {t('ventes:reprise.champs.ecart')}
               </p>
-              <Badge variant="outline" className="tabular-nums">
-                {ecartTexte}
-              </Badge>
+              <ValeurConfidentielle
+                revele={estimationRevelee}
+                onToggle={() => setEstimationRevelee((valeur) => !valeur)}
+                valeur={
+                  <Badge variant="outline" className="tabular-nums">
+                    {ecartTexte}
+                  </Badge>
+                }
+                nomChamp={t('ventes:reprise.champs.ecart')}
+              />
             </div>
           ) : null}
         </div>

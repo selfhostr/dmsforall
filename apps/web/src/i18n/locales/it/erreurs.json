@@ -170,6 +170,10 @@
     "RECEPTIONNER_VEHICULE": "Accetta veicolo",
     "RAFRAICHIR": "Aggiorna pagina"
   },
+  "filet": {
+    "titreDroit": "Azione rifiutata",
+    "titreConflit": "Azione non possibile"
+  },
   "blocages": {
     "ligne_or": "{count, plural, one {# riga da convalidare} other {# righe da convalidare}}",
     "pointage": "{count, plural, one {# timbratura in corso} other {# timbrature in corso}}",

@@ -8,6 +8,7 @@ import type {
   ReponseDisponibiliteArticle,
   ReponseStockArticle,
   ReservationActiveResume,
+  StatutSuiviStockArticle,
 } from '@dfa/shared';
 import { SEUIL_RESERVATIONS_DISPONIBILITE } from '@dfa/shared';
 
@@ -56,7 +57,11 @@ const DEFINITION_TRI_ECART: Readonly<Record<FiltresReapprovisionnement['tri'], D
 export class ServiceStock {
   constructor(@Inject(JETON_DB) private readonly acces: AccesBase) {}
 
-  /** `GET /articles/{id}/disponibilite?siteId=` — RP-14/RP-19, LE terrain de `CP-02`. */
+  /**
+   * `GET /articles/{id}/disponibilite?siteId=` — RP-14/RP-19, LE terrain de `CP-02`. Rend
+   * `statutSuivi` (`StatutSuiviStockArticle`) — un magasinier de Sion ne doit jamais lire un 0 de
+   * disponibilité comme « il n'en reste aucun » quand la vraie réponse est « pas suivi ici ».
+   */
   async disponibilite(
     ctx: ContexteTenant,
     articleId: string,
@@ -77,6 +82,23 @@ export class ServiceStock {
         )
         .limit(1);
       const ligneStock = stocks[0] ?? null;
+
+      // Pas de ligne pour CE site : distingue « suivi ailleurs, on ne sait pas ici »
+      // (`nonSuiviSurCeSite`) de « jamais mis en stock, sur aucun site » (`nonSuiviNullePart`) —
+      // seconde requête déclenchée UNIQUEMENT dans ce cas, jamais quand `ligneStock` existe déjà.
+      let statutSuivi: StatutSuiviStockArticle;
+      if (ligneStock) {
+        statutSuivi = 'suivi';
+      } else {
+        const ailleurs = await tx
+          .select({ siteId: stockArticle.siteId })
+          .from(stockArticle)
+          .where(
+            and(eq(stockArticle.tenantId, ctx.tenantId), eq(stockArticle.articleId, articleId)),
+          )
+          .limit(1);
+        statutSuivi = ailleurs.length > 0 ? 'nonSuiviSurCeSite' : 'nonSuiviNullePart';
+      }
 
       const resultat = await tx.execute<DonneesReservationActive & { rang: number }>(sql`
         select r.id as "reservationId", r.ligne_or_id as "ligneOrId", r.ordre_reparation_id as "ordreReparationId",
@@ -103,6 +125,7 @@ export class ServiceStock {
         articleId,
         siteId,
         ligneStock,
+        statutSuivi,
         reservationsActives,
         tronquees,
       );

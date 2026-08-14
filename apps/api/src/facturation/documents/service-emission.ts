@@ -143,6 +143,43 @@ export class ServiceEmissionDocument {
 
         const lignes = await listerLignesDocumentPourEcriture(tx, ctx, documentId);
 
+        // ISSUE #125 (terrain, testeur novice) : un bon de commande sans AUCUNE ligne pouvait être
+        // émis — donc verrouillé définitivement (MD-18/20) — à CHF 0.00 sans le moindre contenu
+        // commercial, faute d'écran pour ajouter des lignes ET faute de ce garde-fou serveur. Un
+        // contrôle purement côté écran se contourne par un appel direct à cet endpoint : posé ICI,
+        // avant TOUTE écriture (recalcul de lignes compris, RF-23/24 — un refus ici ne consomme
+        // toujours aucun numéro et ne touche jamais `document_vente`), pour les QUATRE types de
+        // document (devis/bon_commande/facture/avoir), même doctrine que `verifierDroitEmission`
+        // juste au-dessus : ce service ne fait aucune exception de type pour ses gardes d'émission.
+        //
+        // Code réutilisé : `VALIDATION_ECHOUEE` — même famille que les gardes de type document sur
+        // `accepter`/`refuser`/`annuler` plus bas dans ce fichier (une condition d'applicabilité de
+        // l'action à l'état COURANT du document, pas une erreur de forme du corps de requête).
+        // AUCUN code dédié n'existe pour ce cas dans `CODES_ERREUR` (`@dfa/shared`, contrat gelé,
+        // hors périmètre d'écriture de cet agent) — SIGNALÉ au rapport de livraison : un code
+        // `DOCUMENT_AUCUNE_LIGNE` dédié (additif, en fin de liste, même patron que
+        // `OR_FACTURATION_AUCUNE_LIGNE`) donnerait un bandeau générique plus précis qu'aujourd'hui.
+        // En attendant, le message RÉEL est porté par `erreurs[0].message` (rédigé à la main, en
+        // français, par ce service) — jamais par le générique `erreurs:codes.VALIDATION_ECHOUEE` :
+        // voir `ecrans/facturation/messages-erreur-mutation.ts` côté front, qui affiche CE message
+        // précis dès qu'`erreurs[]` porte au moins une entrée, exactement pour ce cas.
+        if (lignes.length === 0) {
+          throw new ErreurMetier(
+            'VALIDATION_ECHOUEE',
+            `Un document sans aucune ligne ne peut pas être émis (document ${documentId}).`,
+            {
+              erreurs: [
+                {
+                  champ: 'lignes',
+                  code: 'aucune_ligne',
+                  message:
+                    "Ce document n'a aucune ligne : ajoutez au moins une ligne avant de l'émettre.",
+                },
+              ],
+            },
+          );
+        }
+
         // 1. MD-59/60 : résout et ventile la remise globale de pied de document sur les lignes,
         // MAINTENANT — jamais avant (le brouillon peut tout contenir, MD-61).
         const sommeBase = lignes.reduce((s, l) => s + l.baseCentimes, 0);

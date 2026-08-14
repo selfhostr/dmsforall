@@ -164,6 +164,17 @@
       "commande": "Standardbestellmenge",
       "emplacement": "Lagerplatz"
     },
+    "seuilSite": {
+      "action": "Meldebestand",
+      "actionAria": "Meldebestand festlegen — {nomSite}",
+      "champ": "Neuer Meldebestand",
+      "champAide": "Der aktuelle Wert wird hier nicht angezeigt. Ist dieser Artikel bereits unter seinem Meldebestand, ist dieser im Bildschirm «Nachbestellung» sichtbar und bearbeitbar. Hier speichern setzt den Meldebestand für diesen Standort neu oder ersetzt ihn.",
+      "erreurVide": "Geben Sie eine Menge ein, oder verwenden Sie «Meldebestand entfernen», um keinen zu setzen.",
+      "erreurInvalide": "Ungültige Menge. Ein Meldebestand von null ist nicht möglich — um diesen Artikel nie nachzubestellen, verwenden Sie «Meldebestand entfernen».",
+      "retirer": "Meldebestand entfernen",
+      "confirmationPosee": "Meldebestand gespeichert: {valeur}.",
+      "confirmationRetiree": "Meldebestand entfernt: Dieser Artikel wird an diesem Standort nicht mehr für die Nachbestellung überwacht."
+    },
     "mouvements": {
       "titre": "Bewegungsverlauf",
       "type": "Typ",
@@ -223,6 +234,13 @@
         "article": "Artikel",
         "disponible": "Verfügbar",
         "minimum": "Minimum"
+      },
+      "seuil": {
+        "champ": "Meldebestand",
+        "champAide": "Dieser Artikel erscheint in der Liste, solange der verfügbare Bestand unter diesem Meldebestand liegt. Feld leeren, um die Überwachung zu entfernen; ein Meldebestand von null ist nicht möglich — verwenden Sie dazu «Meldebestand entfernen».",
+        "modifierAria": "Meldebestand für {designation} bearbeiten",
+        "erreurInvalide": "Ungültiger Meldebestand. Geben Sie eine Menge grösser als null ein, oder leeren Sie das Feld und bestätigen Sie «Meldebestand entfernen», um diesen Artikel nicht mehr zu überwachen.",
+        "retirer": "Meldebestand entfernen"
       },
       "erreur": {
         "titre": "Die Nachbestellung konnte nicht angezeigt werden"

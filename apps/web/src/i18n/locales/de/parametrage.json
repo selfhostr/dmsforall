@@ -268,5 +268,77 @@
       "articleDistinct": "Eine andere Verpackungseinheit ist ein eigener Artikel",
       "inerte": "feste Einstellung, noch nicht konfigurierbar"
     }
+  },
+  "utilisateurs": {
+    "titre": "Benutzer",
+    "nouveau": "Neuer Mitarbeiter",
+    "vide": {
+      "titre": "Kein Mitarbeiter",
+      "description": "Erstellen Sie den ersten Zugang für einen Mitarbeiter dieser Garage."
+    },
+    "colonnes": {
+      "nom": "Name",
+      "email": "E-Mail",
+      "role": "Rolle",
+      "sites": "Standorte",
+      "statut": "Status",
+      "actions": "Aktionen"
+    },
+    "statut": {
+      "actif": "Aktiv",
+      "suspendu": "Deaktiviert",
+      "invite": "Eingeladen"
+    },
+    "sitesAucun": "Kein Standort angegeben",
+    "actions": {
+      "modifier": "Rolle oder Standorte ändern",
+      "desactiver": "Deaktivieren",
+      "reactiver": "Reaktivieren",
+      "reinitialiserAcces": "Zugang zurücksetzen",
+      "menuAria": "Aktionen für {{nom}}"
+    },
+    "creation": {
+      "titre": "Mitarbeiter erstellen",
+      "description": "Das Passwort wird hier nie eingegeben: Es wird generiert und nach der Erstellung einmalig angezeigt.",
+      "champPrenom": "Vorname",
+      "champNom": "Name",
+      "champEmail": "E-Mail",
+      "champRole": "Rolle",
+      "champSites": "Standorte, an denen der Mitarbeiter arbeitet",
+      "aucunSiteDisponible": "Dieser Garage ist noch kein Standort zugeordnet.",
+      "sitesAucunSelectionne": "Wählen Sie mindestens einen Standort aus.",
+      "actions": {
+        "creer": "Erstellen"
+      }
+    },
+    "modification": {
+      "titre": "{{nom}} bearbeiten",
+      "description": "Rolle und/oder Standorte ändern — nützlich bei einem Stellenwechsel.",
+      "actions": {
+        "enregistrer": "Speichern"
+      }
+    },
+    "acces": {
+      "titre": "Zugang erstellt",
+      "description": "Dieses temporäre Passwort wird nie wieder angezeigt — notieren Sie es jetzt oder übermitteln Sie es dem Mitarbeiter.",
+      "champMotDePasse": "Temporäres Passwort",
+      "copie": "In die Zwischenablage kopiert.",
+      "fermer": "Ich habe das Passwort notiert"
+    },
+    "desactiver": {
+      "titre": "{{nom}} deaktivieren?",
+      "description": "Der Mitarbeiter kann sich nicht mehr anmelden. Sein Verlauf (Reparaturaufträge, Rechnungen, Zeiterfassung) bleibt zuordenbar — dies ist keine Löschung, das Konto kann jederzeit reaktiviert werden.",
+      "confirmer": "Deaktivieren"
+    },
+    "reactiver": {
+      "titre": "{{nom}} reaktivieren?",
+      "description": "Der Mitarbeiter kann sich mit seinem bestehenden Passwort wieder anmelden.",
+      "confirmer": "Reaktivieren"
+    },
+    "reinitialiserAcces": {
+      "titre": "Zugang von {{nom}} zurücksetzen?",
+      "description": "Ein neues temporäres Passwort wird generiert und alle offenen Sitzungen dieses Mitarbeiters werden sofort geschlossen.",
+      "confirmer": "Zurücksetzen"
+    }
   }
 }

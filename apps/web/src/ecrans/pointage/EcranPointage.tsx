@@ -74,7 +74,7 @@ export function EcranPointage() {
   if (!siteId) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('pointage:titre')}</h1>
+        <h1 className="texte-titre-page">{t('pointage:titre')}</h1>
         <SelecteurSitePointage
           onChoisir={(valeur) => {
             const parametres = new URLSearchParams(searchParams);
@@ -88,7 +88,7 @@ export function EcranPointage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('pointage:titre')}</h1>
+      <h1 className="texte-titre-page">{t('pointage:titre')}</h1>
 
       {vueEquipe ? (
         <Tabs value={vue} onValueChange={(valeur) => changerVue(valeur as VueGlobale)}>

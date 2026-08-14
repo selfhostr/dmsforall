@@ -85,9 +85,11 @@ export interface OptionsSeedAtelier {
  * `seed-facturation-demo.ts` consomme pour retrouver l'OR Master/Transports Rhône et le facturer
  * réellement via `POST /ordres-reparation/{orId}/facturer` (RF-81, `ServiceFacturationOr`) plutôt
  * que de recréer un document de vente sans lien à son OR source (défaut corrigé, voir la section
- * « OR n°3 — Master » plus bas). Les trois autres clés sont exposées pour la même raison —
+ * « OR n°3 — Master » plus bas). Les quatre autres clés sont exposées pour la même raison —
  * qu'un futur fichier de seed (pointage, par exemple) ait besoin de cibler un OR précis sans
- * dupliquer les VIN/plafonds qui permettent de le retrouver.
+ * dupliquer les VIN/plafonds qui permettent de le retrouver. `'bmw-second'` : voir la section
+ * « OR n°5 — BMW (second) » — c'est elle que `seed-rendez-vous-demo.ts` relie au rendez-vous
+ * honoré du jour courant (issue parc démo : aucun véhicule ne portait deux OR actifs à dessein).
  */
 export interface ResultatSeedAtelier {
   readonly idsOrdresReparationParCle: ReadonlyMap<string, string>;
@@ -143,6 +145,13 @@ const CLE_POINTAGE_MASTER_VIDANGE_ARRETER = 'cffda99b-8aa4-41ff-85ae-45661efc2bf
 
 const CLE_OR_BMW = '63ae3c79-46f2-46de-b4b3-7b121157cbac';
 const CLE_LIGNE_BMW_FREIN_ARR = '0ae59d2d-f5f0-49c7-89a7-a0a4392b4e85';
+
+/** OR n°5 — second OR ACTIF sur le même véhicule que `CLE_OR_BMW` (P-29,
+ *  `VEHICULE_DEUX_OR_OUVERTS`) : parc démo corrigé (constat : sur trois véhicules du jeu de
+ *  démo tirés au hasard, aucun n'avait délibérément deux OR ouverts, le cas n'était donc jamais
+ *  démontrable) — voir la section « OR n°5 » plus bas pour le récit. */
+const CLE_OR_BMW_SECOND = '2290fdb8-dcde-468b-abc3-ab524ec824ca';
+const CLE_LIGNE_BMW_SECOND_DIAG = 'b6067761-b482-4fbc-b0db-017b19dbdeb5';
 
 export async function semerAtelierDemo(options: OptionsSeedAtelier): Promise<ResultatSeedAtelier> {
   const journaliser = options.journaliser ?? ((m: string) => process.stdout.write(`${m}\n`));
@@ -592,12 +601,51 @@ export async function semerAtelierDemo(options: OptionsSeedAtelier): Promise<Res
     );
     journaliser(`  OR BMW/Meier — en_cours, attente de pièce`);
 
+    // === OR n°5 — BMW / Meier (second OR) — DEUX OR actifs sur le même véhicule, à dessein ========
+    // Parc démo corrigé : jusqu'ici aucun véhicule du jeu de démo ne portait délibérément deux OR
+    // actifs — le cas P-29 (`VEHICULE_DEUX_OR_OUVERTS`) n'était donc jamais observable en testant
+    // le produit. Récit : le kit plaquettes/disques arrière de l'OR n°4 est en attente fournisseur
+    // (rien à faire dessus aujourd'hui) quand Mme Meier revient le jour même pour un problème de
+    // démarrage SANS RAPPORT — le réceptionniste ouvre donc un second OR sur le même véhicule et
+    // confirme explicitement le doublon (`confirmations: ['VEHICULE_DEUX_OR_OUVERTS']`, même geste
+    // que `POST /ordres-reparation` avec le 409 déjà résolu côté appelant — la politique par défaut
+    // du tenant est `avertir`, jamais `bloquer`, voir migrations/0005 `deux_or_meme_vehicule`).
+    // Lié plus bas par `seed-rendez-vous-demo.ts` au rendez-vous honoré du jour courant.
+    const orBmwSecondId = await creerOr(
+      {
+        siteId: idSion,
+        vehiculeId: idBmw,
+        clientId: idClientMeier,
+        type: 'diagnostic',
+        kilometrageEntree: 63_500,
+        uniteKilometrage: 'km',
+        demandes: [
+          {
+            verbatim:
+              'Problème de démarrage à froid, sans rapport avec les plaquettes déjà en cours.',
+          },
+        ],
+        statutInitial: 'ouvert',
+        confirmations: ['VEHICULE_DEUX_OR_OUVERTS'],
+      },
+      CLE_OR_BMW_SECOND,
+    );
+    await creerLigne(
+      orBmwSecondId,
+      ligneForfait('Diagnostic démarrage à froid', 30, 6_000),
+      CLE_LIGNE_BMW_SECOND_DIAG,
+    );
+    journaliser(
+      `  OR BMW/Meier (second) — ouvert, second OR actif sur le même véhicule (P-29, délibéré)`,
+    );
+
     return {
       idsOrdresReparationParCle: new Map([
         ['golf', orGolfId],
         ['octavia', orOctaviaId],
         ['master', orMasterId],
         ['bmw', orBmwId],
+        ['bmw-second', orBmwSecondId],
       ]),
     };
   } finally {

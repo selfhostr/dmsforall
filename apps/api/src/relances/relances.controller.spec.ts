@@ -142,15 +142,30 @@ describe('RelancesController — validation d’entrée (schémas réels, pas de
 });
 
 describe('RelancesController — isolation tenant (jamais un paramètre de requête)', () => {
-  it('schemaUpsertRegleRelance ignore un tenantId envoyé dans le corps — le tenant vient TOUJOURS de la session, jamais du corps de la requête', () => {
-    // z.object() sans .strict() élague silencieusement les clés inconnues à l'analyse : un
-    // appelant qui tenterait de faire voyager `tenantId` dans le corps verrait ce champ disparaître
-    // avant même d'atteindre `this.contexte.contexteTenant()` (`relances.controller.ts::upserter`).
+  it('schemaUpsertRegleRelance rejette un tenantId envoyé dans le corps (`.strict()` refuse les clés inconnues) — le tenant vient TOUJOURS de la session, jamais du corps', () => {
+    // `.strict()` refuse désormais les clés inconnues dès le parse — un appelant qui tenterait
+    // de faire voyager `tenantId` dans le corps reçoit une erreur `unrecognized_keys` avant même
+    // d'atteindre `this.contexte.contexteTenant()` (`relances.controller.ts::upserter`).
+    // Avant : z.object() sans .strict() élaguait silencieusement `tenantId`, le refus était par
+    // omission. Après : refus explicite. Les deux GARANTISSENT que `tenantId` du corps ne peut pas
+    // contourner le tenant de la session (RM-01 / isolement tenant).
     const resultat = schemaUpsertRegleRelance.safeParse({
       actif: false,
       delaisJours: [],
       canaux: [],
       tenantId: 'un-tenant-different-arbitraire',
+    });
+    expect(resultat.success).toBe(false);
+    if (!resultat.success) {
+      expect(resultat.error.issues[0]?.code).toBe('unrecognized_keys');
+    }
+  });
+
+  it('schemaUpsertRegleRelance accepte une règle valide sans tenantId — le comportement normal reste inchangé', () => {
+    const resultat = schemaUpsertRegleRelance.safeParse({
+      actif: false,
+      delaisJours: [],
+      canaux: [],
     });
     expect(resultat.success).toBe(true);
     if (resultat.success) {

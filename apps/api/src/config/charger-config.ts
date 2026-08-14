@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { schemaConfigCourriel } from '../courriel/config-courriel';
 import { schemaConfigConsole } from '../exploitation/config-console';
 import { calculerBrancheParDefaut, calculerVersionAppParDefaut } from './version-app';
 
@@ -204,6 +205,13 @@ export const schemaConfig = z
     // explicitement par déploiement une fois ce besoin réel et le nettoyage éprouvé en
     // production.
     SENTRY_TAUX_ECHANTILLONNAGE_TRACES: z.coerce.number().min(0).max(1).default(0),
+    // --- Courriel (SMTP Infomaniak, envoi verrouillé hors production) ----------------------
+    // Bloc défini une seule fois dans `courriel/config-courriel.ts` et fusionné ici via
+    // `.shape`, même patron que `schemaConfigConsole` ci-dessous — une seule source de vérité
+    // sur le schéma, jamais une redéclaration séparée qui pourrait diverger. Voir ce fichier
+    // pour le détail de chaque variable et le verrou à deux clés (`NODE_ENV`/
+    // `COURRIEL_ENVOI_REEL`) qui décide entre transport réel et transport de capture.
+    ...schemaConfigCourriel.shape,
     // --- Console d'exploitation (plateforme, PORTE 1 uniquement) --------------------------
     // Bloc ENTIÈREMENT optionnel, défini une seule fois dans `exploitation/config-console.ts`
     // et fusionné ici via `.shape` : dupliquer les champs à la main les ferait diverger

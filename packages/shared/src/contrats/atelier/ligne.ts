@@ -163,42 +163,44 @@ export const schemaFiltresLignesOr = z.object({
  * `statut` n'est JAMAIS entrant : il découle de l'origine et des paramètres. `tauxHoraireCentimes`
  * et `tauxTvaPourmille` non plus — ils sont figés par le serveur.
  */
-export const schemaCreationLigneOr = z.object({
-  type: z.enum(TYPES_LIGNE_OR),
-  origine: z.enum(ORIGINES_LIGNE_OR),
-  designation: schemaTexteCourt,
-  referenceTexte: z.string().trim().max(80).nullish(),
-  /** RP-19/RP-20 (`pieces/reservation.ts`, GELÉ) : quand `type = 'piece'` et
-   *  `fournieParClient = false`, réserve la pièce en base — voir `ReponseLigneOr.articleId`. */
-  articleId: schemaIdentifiant.nullish(),
-  quantiteMillieme: schemaQuantiteMillieme.default(1000),
-  tempsBaremeCentiemes: schemaCentiemes.nullish(),
-  /**
-   * Prix saisi par le comptoir quand il n'y a pas de catalogue. Signé : une ligne de type
-   * `remise` porte un montant négatif. Pour une prestation catalogue, utiliser
-   * `POST /lignes-depuis-prestation` — le prix y est figé par le serveur.
-   */
-  prixUnitaireCentimes: schemaCentimes.nullish(),
-  rabaisPourmille: schemaPourmille.default(0),
-  payeur: z.enum(PAYEURS_LIGNE_OR).default('client'),
-  /** Obligatoire (règle SERVEUR, pas zod — même patron que le reste de ce schéma, aucun autre
-   *  champ n'y est croisé avec `payeur` ici) quand `payeur` vaut `'assurance'`, `'constructeur'`
-   *  ou `'tiers'` ; refusé sinon. Voir le commentaire de `ReponseLigneOr.payeurClientId`
-   *  (`AC-08`, `MD-62`, `MD-67`) — PAS de `.refine()` croisé à ce niveau : `schemaCreationLigneOr`
-   *  doit rester un `ZodObject` nu pour que `schemaModificationLigneOr` puisse continuer à
-   *  l'`.omit()`/`.partial()` (une `ZodEffects` issue d'un `.refine()` n'expose plus ces méthodes). */
-  payeurClientId: schemaIdentifiant.nullish(),
-  technicienId: schemaIdentifiant.nullish(),
-  urgence: z.enum(URGENCES_TRAVAIL).nullish(),
-  securite: z.boolean().default(false),
-  fournieParClient: z.boolean().default(false),
-  pieceARestituer: z.boolean().default(false),
-  codeOperation: z.string().trim().max(40).nullish(),
-  codeDefaut: z.string().trim().max(40).nullish(),
-  numeroSinistre: z.string().trim().max(60).nullish(),
-  numeroAccord: z.string().trim().max(60).nullish(),
-  blocage: z.enum(BLOCAGES_LIGNE_OR).default('aucun'),
-});
+export const schemaCreationLigneOr = z
+  .object({
+    type: z.enum(TYPES_LIGNE_OR),
+    origine: z.enum(ORIGINES_LIGNE_OR),
+    designation: schemaTexteCourt,
+    referenceTexte: z.string().trim().max(80).nullish(),
+    /** RP-19/RP-20 (`pieces/reservation.ts`, GELÉ) : quand `type = 'piece'` et
+     *  `fournieParClient = false`, réserve la pièce en base — voir `ReponseLigneOr.articleId`. */
+    articleId: schemaIdentifiant.nullish(),
+    quantiteMillieme: schemaQuantiteMillieme.default(1000),
+    tempsBaremeCentiemes: schemaCentiemes.nullish(),
+    /**
+     * Prix saisi par le comptoir quand il n'y a pas de catalogue. Signé : une ligne de type
+     * `remise` porte un montant négatif. Pour une prestation catalogue, utiliser
+     * `POST /lignes-depuis-prestation` — le prix y est figé par le serveur.
+     */
+    prixUnitaireCentimes: schemaCentimes.nullish(),
+    rabaisPourmille: schemaPourmille.default(0),
+    payeur: z.enum(PAYEURS_LIGNE_OR).default('client'),
+    /** Obligatoire (règle SERVEUR, pas zod — même patron que le reste de ce schéma, aucun autre
+     *  champ n'y est croisé avec `payeur` ici) quand `payeur` vaut `'assurance'`, `'constructeur'`
+     *  ou `'tiers'` ; refusé sinon. Voir le commentaire de `ReponseLigneOr.payeurClientId`
+     *  (`AC-08`, `MD-62`, `MD-67`) — PAS de `.refine()` croisé à ce niveau : `schemaCreationLigneOr`
+     *  doit rester un `ZodObject` nu pour que `schemaModificationLigneOr` puisse continuer à
+     *  l'`.omit()`/`.partial()` (une `ZodEffects` issue d'un `.refine()` n'expose plus ces méthodes). */
+    payeurClientId: schemaIdentifiant.nullish(),
+    technicienId: schemaIdentifiant.nullish(),
+    urgence: z.enum(URGENCES_TRAVAIL).nullish(),
+    securite: z.boolean().default(false),
+    fournieParClient: z.boolean().default(false),
+    pieceARestituer: z.boolean().default(false),
+    codeOperation: z.string().trim().max(40).nullish(),
+    codeDefaut: z.string().trim().max(40).nullish(),
+    numeroSinistre: z.string().trim().max(60).nullish(),
+    numeroAccord: z.string().trim().max(60).nullish(),
+    blocage: z.enum(BLOCAGES_LIGNE_OR).default('aucun'),
+  })
+  .strict();
 
 /**
  * `PATCH /ordres-reparation/{orId}/lignes/{ligneId}` — champs LIBRES seulement.
@@ -215,9 +217,11 @@ export const schemaModificationLigneOr = schemaCreationLigneOr
  * l'OR) parce que son corps est propre à la ligne et qu'elle ne porte AUCUN invariant inter-lignes.
  * `refusee` ne devient jamais `realisee` (RM-72, CT-28 -> `LIGNE_TRANSITION_INTERDITE`).
  */
-export const schemaMarquageRealisee = z.object({
-  tempsReelCentiemes: schemaCentiemes.optional(),
-});
+export const schemaMarquageRealisee = z
+  .object({
+    tempsReelCentiemes: schemaCentiemes.optional(),
+  })
+  .strict();
 
 /**
  * Actions GROUPÉES, portées par l'OR (§7.7) — voir `ordre-reparation.ts`.
@@ -225,31 +229,41 @@ export const schemaMarquageRealisee = z.object({
  * Une action de ligne est groupée au niveau de l'OR **si et seulement si** elle porte un invariant
  * INTER-LIGNES (le plafond) ou un motif PARTAGÉ. Sinon elle reste sur la ligne.
  */
-export const schemaValidationLignes = z.object({ ligneIds: schemaListeIdentifiants });
+export const schemaValidationLignes = z.object({ ligneIds: schemaListeIdentifiants }).strict();
 
-export const schemaRefusLignes = z.object({
-  ligneIds: schemaListeIdentifiants,
-  motif: schemaMotif.optional(),
-});
+export const schemaRefusLignes = z
+  .object({
+    ligneIds: schemaListeIdentifiants,
+    motif: schemaMotif.optional(),
+  })
+  .strict();
 
 /** RM-71 : le motif est OBLIGATOIRE — une annulation sans motif détruit la traçabilité. */
-export const schemaAnnulationLignes = z.object({
-  ligneIds: schemaListeIdentifiants,
-  motif: schemaMotif,
-});
+export const schemaAnnulationLignes = z
+  .object({
+    ligneIds: schemaListeIdentifiants,
+    motif: schemaMotif,
+  })
+  .strict();
 
-export const schemaSoumissionLignesADevis = z.object({ ligneIds: schemaListeIdentifiants });
+export const schemaSoumissionLignesADevis = z
+  .object({ ligneIds: schemaListeIdentifiants })
+  .strict();
 
 /** `POST /…/lignes-depuis-prestation` — prix FIGÉS par le serveur à la création (catalogue §7.9). */
-export const schemaLigneDepuisPrestation = z.object({
-  prestationId: schemaIdentifiant,
-  quantiteMillieme: schemaQuantiteMillieme.optional(),
-});
+export const schemaLigneDepuisPrestation = z
+  .object({
+    prestationId: schemaIdentifiant,
+    quantiteMillieme: schemaQuantiteMillieme.optional(),
+  })
+  .strict();
 
 /** `POST /…/lignes-depuis-travaux-reportes` (RM-73) — reprise au passage suivant. */
-export const schemaLignesDepuisTravauxReportes = z.object({
-  travailReporteIds: schemaListeIdentifiants,
-});
+export const schemaLignesDepuisTravauxReportes = z
+  .object({
+    travailReporteIds: schemaListeIdentifiants,
+  })
+  .strict();
 
 export type EntreeCreationLigneOr = z.infer<typeof schemaCreationLigneOr>;
 export type EntreeModificationLigneOr = z.infer<typeof schemaModificationLigneOr>;

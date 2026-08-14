@@ -14,7 +14,7 @@ import {
 import { ErreurApi, messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -119,6 +119,10 @@ export function FormulaireKilometrage({
             <DialogTitle>{t('vehicules:kilometrage.relever')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={soumettre} className="flex flex-col gap-4">
+            <LegendeChampsObligatoires>
+              {t('commun:formulaires.champsObligatoiresLegende')}
+            </LegendeChampsObligatoires>
+
             <ChampKilometrage
               valeur={valeur}
               onChangeValeur={setValeur}
@@ -147,7 +151,9 @@ export function FormulaireKilometrage({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="kilometrage-source">{t('vehicules:kilometrage.source')}</Label>
+              <Label htmlFor="kilometrage-source" requis>
+                {t('vehicules:kilometrage.source')}
+              </Label>
               <Select
                 value={source}
                 onValueChange={(valeurSource) => setSource(valeurSource as SourceKilometrage)}
@@ -155,6 +161,7 @@ export function FormulaireKilometrage({
                 <SelectTrigger
                   id="kilometrage-source"
                   aria-label={t('vehicules:kilometrage.source')}
+                  aria-required="true"
                 >
                   <SelectValue />
                 </SelectTrigger>

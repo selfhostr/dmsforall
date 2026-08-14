@@ -1,5 +1,7 @@
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { ArrowUpDown } from 'lucide-react';
-import type { KeyboardEvent, ReactNode } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { flushSync } from 'react-dom';
 
 import type { SensTri } from '@dfa/shared';
 
@@ -14,6 +16,31 @@ import {
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+
+/** Au-delà de ce nombre de lignes, `TableComptoir` bascule en rendu virtualisé (issue #92 —
+ *  fiche d'OR figée 1-2s avec 200 lignes / ~5700 nœuds DOM). En-deçà, comportement 100%
+ *  identique à avant (mêmes nœuds, mêmes tests) : la quasi-totalité des écrans du comptoir
+ *  paginent déjà côté API et ne franchissent jamais ce seuil — voir docs/design-comptoir.md
+ *  et le rapport de mesure de l'issue #92 pour le choix de la valeur (repère guideline
+ *  interne : listes de plus de 50 éléments). */
+const SEUIL_VIRTUALISATION = 60;
+
+/** Survol généreux : garde des lignes montées de part et d'autre de la fenêtre visible pour que
+ *  Ctrl+F et la tabulation clavier restent utilisables sur un voisinage raisonnable de la
+ *  position de scroll — limite connue de toute table virtualisée (voir commentaire sur
+ *  `estVirtualise` plus bas) : recherche/tabulation restent fiables PRÈS du scroll courant, pas
+ *  sur l'intégralité des lignes hors-écran. */
+const SURVOL_VIRTUALISATION = 12;
+
+/** Estimation initiale de hauteur de ligne par densité (`--densite-hauteur-ligne`, index.css) —
+ *  seulement un point de départ pour le premier rendu : `useVirtualizer` mesure ensuite la
+ *  hauteur RÉELLE de chaque ligne (contenu multi-lignes : désignation + icônes, montants
+ *  empilés TTC/HT/calcul) via `measureElement`. */
+const HAUTEUR_ESTIMEE_PAR_DENSITE: Record<Densite, number> = {
+  dense: 40,
+  aeree: 56,
+  'tres-aeree': 72,
+};
 
 /** Une colonne de `TableComptoir`. `libelle` et le contenu de `rendu` sont fournis par
  *  l'écran appelant — déjà traduits (namespace du domaine, ex. `clients:liste.colonnes.*`) :
@@ -102,10 +129,99 @@ export function TableComptoir<T>({
     }
   };
 
-  return (
-    <Table densite={densite} className={className}>
+  // Impression : une table virtualisée ne doit JAMAIS imprimer une feuille d'atelier tronquée
+  // aux seules lignes montées à l'écran (issue #92 — ce produit sert à imprimer des feuilles
+  // d'atelier). `beforeprint`/`afterprint` couvrent Chrome/Firefox/Safari ; `matchMedia('print')`
+  // en repli pour le cas où l'impression est déclenchée sans ces deux événements. Pendant
+  // l'impression, `estVirtualise` repasse à `false` plus bas : le rendu retombe intégralement
+  // sur le chemin non virtualisé (toutes les lignes, sans conteneur de défilement borné).
+  //
+  // `flushSync` plutôt qu'un `setState` batché ordinaire : MESURÉ (Chromium headless) que
+  // `beforeprint`/`afterprint` peuvent se déclencher de façon SYNCHRONE, l'un juste après l'autre,
+  // dans le même tour de pile — sans lui, les deux `setState` (true puis false) se neutralisent
+  // avant que React n'ait la moindre occasion de committer le rendu complet, et l'impression
+  // capture silencieusement la table encore tronquée à la fenêtre virtualisée. Dans un navigateur
+  // réel avec une vraie boîte de dialogue d'impression, l'écart est de plusieurs secondes (pas de
+  // risque) — mais rien ne garantit cet écart pour une impression déclenchée par script (test,
+  // automatisation), d'où cette précaution même si le cas interactif normal s'en passerait.
+  const [enImpression, setEnImpression] = useState(false);
+  useEffect(() => {
+    const gererAvantImpression = () => flushSync(() => setEnImpression(true));
+    const gererApresImpression = () => flushSync(() => setEnImpression(false));
+    window.addEventListener('beforeprint', gererAvantImpression);
+    window.addEventListener('afterprint', gererApresImpression);
+
+    // `window.matchMedia` : absent de jsdom (environnement de test, jamais d'un vrai navigateur)
+    // — protégé pour ne pas faire planter tout écran qui monte une table sous vitest. En repli,
+    // seuls `beforeprint`/`afterprint` (déjà posés ci-dessus) pilotent `enImpression`.
+    const mediaImpression =
+      typeof window.matchMedia === 'function' ? window.matchMedia('print') : null;
+    const gererChangementMedia = (evenement: MediaQueryListEvent) =>
+      flushSync(() => setEnImpression(evenement.matches));
+    mediaImpression?.addEventListener('change', gererChangementMedia);
+
+    return () => {
+      window.removeEventListener('beforeprint', gererAvantImpression);
+      window.removeEventListener('afterprint', gererApresImpression);
+      mediaImpression?.removeEventListener('change', gererChangementMedia);
+    };
+  }, []);
+
+  // En-deçà du seuil (l'immense majorité des écrans, qui paginent déjà côté API) : `estVirtualise`
+  // reste `false` en permanence, `virtualiseur` tourne à vide (count 0) et le rendu emprunte
+  // EXACTEMENT le même chemin qu'avant ce correctif — aucun nœud ni comportement supplémentaire.
+  const estVirtualisable = !enChargement && lignes.length > SEUIL_VIRTUALISATION;
+  const estVirtualise = estVirtualisable && !enImpression;
+
+  const conteneurDefilementRef = useRef<HTMLDivElement>(null);
+  const virtualiseur = useVirtualizer({
+    count: estVirtualise ? lignes.length : 0,
+    getScrollElement: () => conteneurDefilementRef.current,
+    estimateSize: () => HAUTEUR_ESTIMEE_PAR_DENSITE[densite],
+    overscan: SURVOL_VIRTUALISATION,
+  });
+
+  function rendreCellules(ligne: T) {
+    return colonnes.map((colonne) => (
+      <TableCell
+        key={colonne.id}
+        className={cn(classeAlignement(colonne.alignement), colonne.className)}
+        onClick={colonne.actions ? (evenement) => evenement.stopPropagation() : undefined}
+        onKeyDown={colonne.actions ? (evenement) => evenement.stopPropagation() : undefined}
+      >
+        {colonne.rendu(ligne)}
+      </TableCell>
+    ));
+  }
+
+  function proprietesLigneCliquable(ligne: T) {
+    return {
+      role: onOuvrirLigne ? ('link' as const) : undefined,
+      'aria-label': onOuvrirLigne ? libelleLigne?.(ligne) : undefined,
+      tabIndex: onOuvrirLigne ? 0 : undefined,
+      className: onOuvrirLigne ? 'cursor-pointer' : undefined,
+      onClick: onOuvrirLigne ? () => gererClicLigne(ligne) : undefined,
+      onKeyDown: onOuvrirLigne
+        ? (evenement: KeyboardEvent<HTMLTableRowElement>) => gererClavierLigne(evenement, ligne)
+        : undefined,
+    };
+  }
+
+  const elementsVirtuels = estVirtualise ? virtualiseur.getVirtualItems() : [];
+  const paddingHaut = elementsVirtuels.length > 0 ? (elementsVirtuels[0]?.start ?? 0) : 0;
+  const paddingBas =
+    elementsVirtuels.length > 0
+      ? virtualiseur.getTotalSize() - (elementsVirtuels[elementsVirtuels.length - 1]?.end ?? 0)
+      : 0;
+
+  const table = (
+    <Table
+      densite={densite}
+      className={className}
+      aria-rowcount={estVirtualise ? lignes.length + 1 : undefined}
+    >
       <TableHeader>
-        <TableRow>
+        <TableRow aria-rowindex={estVirtualise ? 1 : undefined}>
           {colonnes.map((colonne) => {
             const estTriee = tri?.colonneId === colonne.id;
             const ariaSort =
@@ -159,35 +275,57 @@ export function TableComptoir<T>({
               {contenuVide}
             </TableCell>
           </TableRow>
+        ) : estVirtualise ? (
+          <>
+            {paddingHaut > 0 ? (
+              <tr aria-hidden="true">
+                <td
+                  colSpan={colonnes.length}
+                  style={{ height: paddingHaut, padding: 0, border: 0 }}
+                />
+              </tr>
+            ) : null}
+            {elementsVirtuels.map((elementVirtuel) => {
+              const ligne = lignes[elementVirtuel.index];
+              if (!ligne) return null;
+              return (
+                <TableRow
+                  key={cleLigne(ligne)}
+                  data-index={elementVirtuel.index}
+                  ref={virtualiseur.measureElement}
+                  aria-rowindex={elementVirtuel.index + 2}
+                  {...proprietesLigneCliquable(ligne)}
+                >
+                  {rendreCellules(ligne)}
+                </TableRow>
+              );
+            })}
+            {paddingBas > 0 ? (
+              <tr aria-hidden="true">
+                <td
+                  colSpan={colonnes.length}
+                  style={{ height: paddingBas, padding: 0, border: 0 }}
+                />
+              </tr>
+            ) : null}
+          </>
         ) : (
           lignes.map((ligne) => (
-            <TableRow
-              key={cleLigne(ligne)}
-              role={onOuvrirLigne ? 'link' : undefined}
-              aria-label={onOuvrirLigne ? libelleLigne?.(ligne) : undefined}
-              tabIndex={onOuvrirLigne ? 0 : undefined}
-              className={onOuvrirLigne ? 'cursor-pointer' : undefined}
-              onClick={onOuvrirLigne ? () => gererClicLigne(ligne) : undefined}
-              onKeyDown={
-                onOuvrirLigne ? (evenement) => gererClavierLigne(evenement, ligne) : undefined
-              }
-            >
-              {colonnes.map((colonne) => (
-                <TableCell
-                  key={colonne.id}
-                  className={cn(classeAlignement(colonne.alignement), colonne.className)}
-                  onClick={colonne.actions ? (evenement) => evenement.stopPropagation() : undefined}
-                  onKeyDown={
-                    colonne.actions ? (evenement) => evenement.stopPropagation() : undefined
-                  }
-                >
-                  {colonne.rendu(ligne)}
-                </TableCell>
-              ))}
+            <TableRow key={cleLigne(ligne)} {...proprietesLigneCliquable(ligne)}>
+              {rendreCellules(ligne)}
             </TableRow>
           ))
         )}
       </TableBody>
     </Table>
+  );
+
+  // Conteneur de défilement borné : SEULEMENT pendant la virtualisation réelle. Table courte ou
+  // impression => pas de `<div>` supplémentaire, DOM strictement identique à avant ce correctif.
+  if (!estVirtualise) return table;
+  return (
+    <div ref={conteneurDefilementRef} className="max-h-[70dvh] overflow-auto">
+      {table}
+    </div>
   );
 }

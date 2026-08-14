@@ -18,7 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { DateInput } from '@/components/ui/date-input';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -128,6 +128,10 @@ export function FormulaireVehiculeStock({ ouvert, onOuvertChange, stock }: Props
         </DialogHeader>
 
         <form onSubmit={soumettre} noValidate className="flex flex-col gap-4">
+          <LegendeChampsObligatoires>
+            {t('commun:formulaires.champsObligatoiresLegende')}
+          </LegendeChampsObligatoires>
+
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="stock-date-entree">{t('ventes:stock.champs.dateEntreeStock')}</Label>
             <Controller

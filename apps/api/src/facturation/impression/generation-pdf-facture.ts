@@ -16,7 +16,11 @@
 
 import PDFDocument from 'pdfkit';
 import { SwissQRBill } from 'swissqrbill/pdf';
-import type { ReponseDocumentVente, ReponseLigneDocumentVente } from '@dfa/shared';
+import type {
+  DeviseFacturation,
+  ReponseDocumentVente,
+  ReponseLigneDocumentVente,
+} from '@dfa/shared';
 
 import { ErreurMetier } from '../../common/erreurs/erreur-metier';
 import {
@@ -24,7 +28,7 @@ import {
   langueSwissQrBill,
   validerLangueFigee,
 } from './donnees-swissqrbill';
-import { formaterDateSuisse, formaterMontantCentimes } from './formatage-suisse';
+import { formaterDateSuisse, formaterMontantAvecDevise } from './formatage-suisse';
 import { libellesImpression, type LibellesFacture } from './libelles-impression';
 import { verifierEquivalencePayload } from './verification-payload-qr';
 
@@ -99,8 +103,24 @@ function dessinerLignes(
   doc: PDFKit.PDFDocument,
   lignes: readonly ReponseLigneDocumentVente[],
   l: LibellesFacture,
+  devise: DeviseFacturation,
 ): void {
-  const colX = { designation: MARGE_PT, quantite: 300, prixUnitaire: 350, tva: 430, total: 470 };
+  // Largeurs revues (régression #126 bis, trouvée par la contre-vérification indépendante) :
+  // le premier passage avait élargi `prixUnitaire`/`total` pour le préfixe devise mais RÉTRÉCI
+  // `tva` à 25pt (430→455) — assez pour "TVA"/"IVA" (3 caractères) mais pas pour l'allemand
+  // "MWST" (4 caractères, `libelles-impression.ts` DE), qui se scindait en "MWS"/"T" sur deux
+  // lignes. Toutes les colonnes redimensionnées ensemble pour le pire cas des DEUX dimensions à
+  // la fois : le plus long en-tête de colonne (`"MWST"`, 4 car.) ET le plus long montant
+  // plausible (devise + 7 chiffres, `"CHF 1'234'567.89"`, 17 car.) — jamais testés isolément.
+  //   - `tva` (430→45pt de large, était 25pt) : "MWST" measuré à l'aide d'un PDF réel généré en
+  //     allemand tient désormais sur une seule ligne (voir le rapport de livraison).
+  //   - `prixUnitaire` (100pt de large) et `total` (115pt, jusqu'à la marge droite 555) : chacun
+  //     absorbe `"CHF 1'234'567.89"` sans déborder sur son voisin.
+  //   - `designation`/`quantite` légèrement resserrées en contrepartie (220pt/35pt) — une
+  //     désignation encore plus longue s'enroule sur plusieurs lignes (comportement `pdfkit`
+  //     déjà en place avant ce correctif), jamais tronquée silencieusement.
+  const colX = { designation: MARGE_PT, quantite: 260, prixUnitaire: 295, tva: 395, total: 440 };
+  const MARGE_DROITE_PT = 555;
 
   doc.fontSize(9).fillColor('#000000');
   const yEntete = doc.y;
@@ -108,9 +128,9 @@ function dessinerLignes(
   doc.text(l.quantite, colX.quantite, yEntete, { width: colX.prixUnitaire - colX.quantite });
   doc.text(l.prixUnitaire, colX.prixUnitaire, yEntete, { width: colX.tva - colX.prixUnitaire });
   doc.text(l.tva, colX.tva, yEntete, { width: colX.total - colX.tva });
-  doc.text(l.total, colX.total, yEntete);
+  doc.text(l.total, colX.total, yEntete, { width: MARGE_DROITE_PT - colX.total });
   doc.moveDown(0.3);
-  doc.moveTo(MARGE_PT, doc.y).lineTo(555, doc.y).strokeColor('#cccccc').stroke();
+  doc.moveTo(MARGE_PT, doc.y).lineTo(MARGE_DROITE_PT, doc.y).strokeColor('#cccccc').stroke();
   doc.moveDown(0.3);
 
   for (const ligne of lignes) {
@@ -120,7 +140,7 @@ function dessinerLignes(
     doc.text(String(quantite), colX.quantite, y, { width: colX.prixUnitaire - colX.quantite });
     doc.text(
       ligne.prixUnitaireTtcCentimes != null
-        ? formaterMontantCentimes(ligne.prixUnitaireTtcCentimes)
+        ? formaterMontantAvecDevise(ligne.prixUnitaireTtcCentimes, devise)
         : '',
       colX.prixUnitaire,
       y,
@@ -132,9 +152,10 @@ function dessinerLignes(
       width: colX.total - colX.tva,
     });
     doc.text(
-      ligne.montants ? formaterMontantCentimes(ligne.montants.montantTtcCentimes) : '',
+      ligne.montants ? formaterMontantAvecDevise(ligne.montants.montantTtcCentimes, devise) : '',
       colX.total,
       y,
+      { width: MARGE_DROITE_PT - colX.total },
     );
     doc.moveDown(0.4);
   }
@@ -144,35 +165,45 @@ function dessinerRecapitulatifTva(
   doc: PDFKit.PDFDocument,
   totaux: ReturnType<typeof exigerMontantsVisibles>,
   l: LibellesFacture,
+  devise: DeviseFacturation,
 ): void {
   doc.moveDown(1);
   doc.fontSize(10).text(l.recapitulatifTva, MARGE_PT);
   doc.moveDown(0.3);
 
-  const colX = { taux: MARGE_PT, base: 150, tva: 300 };
+  // `base`/`tva` élargies (150→170, 300→340) : même défaut que `dessinerLignes` ci-dessus — les
+  // libellés composés ici sont plus longs en allemand (`"Basis Netto"`/`"MWST-Betrag"`, contre
+  // `"Base HT"`/`"Montant TVA"` en français) ET portent désormais un montant préfixé de la devise
+  // (`"CHF 1'234'567.89"`, pire cas) depuis ce même correctif #126 — les deux se cumulent sur la
+  // colonne `base` en particulier (`"Basis Netto CHF 1'234'567.89"`, ~29 caractères).
+  const colX = { taux: MARGE_PT, base: 170, tva: 340 };
   doc.fontSize(9);
   for (const v of totaux.ventilationTva) {
     const y = doc.y;
     doc.text(`${l.tauxTvaLabel} ${(v.tauxTvaPourmille / 10).toFixed(1)}%`, colX.taux, y, {
       width: colX.base - colX.taux,
     });
-    doc.text(`${l.baseHt} ${formaterMontantCentimes(v.baseCentimes)}`, colX.base, y, {
+    doc.text(`${l.baseHt} ${formaterMontantAvecDevise(v.baseCentimes, devise)}`, colX.base, y, {
       width: colX.tva - colX.base,
     });
-    doc.text(`${l.montantTva} ${formaterMontantCentimes(v.tvaCentimes)}`, colX.tva, y);
+    doc.text(`${l.montantTva} ${formaterMontantAvecDevise(v.tvaCentimes, devise)}`, colX.tva, y);
     doc.moveDown(0.35);
   }
 
   doc.moveDown(0.5);
   doc
     .fontSize(9)
-    .text(`${l.totalHt} : ${formaterMontantCentimes(totaux.totalHtCentimes)}`, { align: 'right' });
-  doc.text(`${l.totalTva} : ${formaterMontantCentimes(totaux.totalTvaCentimes)}`, {
+    .text(`${l.totalHt} : ${formaterMontantAvecDevise(totaux.totalHtCentimes, devise)}`, {
+      align: 'right',
+    });
+  doc.text(`${l.totalTva} : ${formaterMontantAvecDevise(totaux.totalTvaCentimes, devise)}`, {
     align: 'right',
   });
-  doc.fontSize(11).text(`${l.totalTtc} : ${formaterMontantCentimes(totaux.totalTtcCentimes)}`, {
-    align: 'right',
-  });
+  doc
+    .fontSize(11)
+    .text(`${l.totalTtc} : ${formaterMontantAvecDevise(totaux.totalTtcCentimes, devise)}`, {
+      align: 'right',
+    });
   doc.fontSize(8).fillColor('#666666').text(l.mentionTvaComprise, { align: 'right' });
   doc.fillColor('#000000');
 }
@@ -221,8 +252,8 @@ export async function genererPdfFacture(document: ReponseDocumentVente): Promise
     pdf.on('error', reject);
 
     dessinerEnTete(pdf, document, libelles);
-    dessinerLignes(pdf, document.lignes, libelles);
-    dessinerRecapitulatifTva(pdf, totaux, libelles);
+    dessinerLignes(pdf, document.lignes, libelles, document.devise);
+    dessinerRecapitulatifTva(pdf, totaux, libelles, document.devise);
 
     const qrBill = new SwissQRBill(donneesSwissQrBill, {
       language: langueSwissQrBill(qr.qrLangue),

@@ -38,7 +38,7 @@ function rendre() {
 
 async function ouvrirEtRemplirFormulaire(utilisateur: ReturnType<typeof userEvent.setup>) {
   await utilisateur.click(screen.getByRole('button', { name: 'Ajouter un contact' }));
-  await utilisateur.type(screen.getByLabelText('Nom'), 'Rossi');
+  await utilisateur.type(screen.getByLabelText(/^Nom\s*\*$/), 'Rossi');
   await utilisateur.click(screen.getByRole('checkbox', { name: 'Conducteur' }));
 }
 
@@ -78,13 +78,13 @@ describe('OngletContacts — erreurs de création (RM-04)', () => {
     const utilisateur = userEvent.setup();
 
     await ouvrirEtRemplirFormulaire(utilisateur);
-    expect(screen.getByLabelText('Nom')).toHaveValue('Rossi');
+    expect(screen.getByLabelText(/^Nom\s*\*$/)).toHaveValue('Rossi');
 
     await utilisateur.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByLabelText('Nom')).not.toBeInTheDocument());
     await utilisateur.click(screen.getByRole('button', { name: 'Ajouter un contact' }));
 
-    expect(screen.getByLabelText('Nom')).toHaveValue('');
+    expect(screen.getByLabelText(/^Nom\s*\*$/)).toHaveValue('');
     expect(screen.getByRole('checkbox', { name: 'Conducteur' })).not.toBeChecked();
   });
 

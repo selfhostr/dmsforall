@@ -6,7 +6,12 @@ import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router';
 import type { z } from 'zod';
 
-import { schemaCreationClient, type EntreeCreationClient, type TypeClient } from '@dfa/shared';
+import {
+  schemaCreationClient,
+  type EntreeCreationClient,
+  type ReponseClient,
+  type TypeClient,
+} from '@dfa/shared';
 
 import { ErreurApi, ErreurReseau, messageErreur, messageErreurChamp } from '@/api/erreurs';
 import { useCleIdempotence } from '@/api/idempotence';
@@ -22,6 +27,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
+import { BandeauBrouillon } from '@/composants/motifs/BandeauBrouillon';
+import { effacerBrouillon, lireBrouillon } from '@/hooks/brouillon/brouillon';
+import { useSauvegardeBrouillon } from '@/hooks/brouillon/useSauvegardeBrouillon';
 import { useCreerClient } from '@/hooks/clients/useCreerClient';
 import { useDoublonsClients } from '@/hooks/clients/useDoublonsClients';
 import { useLangue } from '@/hooks/useLangue';
@@ -38,7 +46,12 @@ interface Props {
    *  nouvelle saisie s'insère alors dans l'ancienne plutôt que de la remplacer — défaut réel
    *  constaté en test navigateur, avec un client corrompu créé en base. */
   readonly ouvert: boolean;
-  readonly onCree: (clientId: string) => void;
+  /** Reçoit la fiche COMPLÈTE (pas seulement l'id) — issue #79 : `EcranListeClients` en a besoin
+   *  pour transmettre `numeroClient`/`nomAffiche` à `EcranFicheClient` via l'état de navigation,
+   *  seul moyen de distinguer, en cas d'échec de LECTURE juste après la création, « le client
+   *  Rossier Jean a bien été créé (CL-000013), seul l'affichage a échoué » d'un vrai échec de
+   *  création — voir `EcranFicheClient.tsx`. */
+  readonly onCree: (client: ReponseClient) => void;
 }
 
 /** Transforme une saisie vide en `undefined` — nécessaire pour tout champ
@@ -79,24 +92,114 @@ function adresseEstVide(adresse: ValeursSaisieFormulaire['adressePrincipale']): 
   );
 }
 
+/** Clé de brouillon (issue #78) — UNE SEULE, jamais paramétrée par site/utilisateur : un seul
+ *  tiroir « Nouveau client » peut être ouvert à la fois dans l'application (voir
+ *  `hooks/brouillon/brouillon.ts` pour la doctrine sessionStorage). Exportée pour que
+ *  `EcranListeClients` (le parent qui rend `SheetContent`) puisse, SANS dupliquer la forme du
+ *  brouillon, décider si une fermeture non explicite (Échap, clic hors du panneau) doit être
+ *  bloquée — voir `aUnBrouillonNouveauClientEnCours` ci-dessous. */
+export const CLE_BROUILLON_NOUVEAU_CLIENT = 'client-nouveau';
+
+/** Champs couverts par le brouillon (issue #78, verbatim terrain : « Nom, prénom, téléphone,
+ *  rue : tout parti. ») — l'identité, le moyen de contact et l'adresse, c'est-à-dire tout ce
+ *  qu'un réceptionniste tape avant de cliquer « Créer le client ». Volontairement PAS `email`/
+ *  `ide`/langue de correspondance à part `langueCorrespondance` (nécessaire pour reconstruire des
+ *  valeurs de formulaire valides) : portée alignée sur l'incident réel, pas un brouillon
+ *  générique de tout le formulaire. */
+interface ValeursBrouillonNouveauClient {
+  readonly type: TypeClient;
+  // `| null` en plus de `| undefined` : `form.watch(...)` renvoie le type BRUT
+  // `z.input<schemaCreationClient>` (`nullish()` accepte les deux), pas la forme déjà normalisée
+  // — voir `videVersIndefini`/`resolverClient`, qui n'entrent en jeu qu'à la soumission, jamais à
+  // chaque frappe.
+  readonly nom?: string | null;
+  readonly prenom?: string | null;
+  readonly raisonSociale?: string | null;
+  readonly ide?: string | null;
+  readonly email?: string | null;
+  readonly langueCorrespondance: EntreeCreationClient['langueCorrespondance'];
+  readonly telephoneSaisi: string;
+  readonly adressePrincipale?: ValeursSaisieFormulaire['adressePrincipale'];
+}
+
+/** Un brouillon où AUCUN des champs couverts n'a de contenu réel compte comme une ABSENCE de
+ *  brouillon (même doctrine que `adresseEstVide` ci-dessus, réutilisée pour le sous-champ
+ *  adresse) : sans ce garde-fou, `useSauvegardeBrouillon` réécrirait un brouillon « vide » dès la
+ *  première ouverture du tiroir (aucune saisie), et `BandeauBrouillon` annoncerait la reprise...
+ *  de rien à la prochaine ouverture — voir le même correctif sur `FormulaireNouvelOrdreReparation`
+ *  (issue #77). */
+function brouillonEstVide(valeurs: ValeursBrouillonNouveauClient): boolean {
+  return (
+    !valeurs.nom?.trim() &&
+    !valeurs.prenom?.trim() &&
+    !valeurs.raisonSociale?.trim() &&
+    !valeurs.ide?.trim() &&
+    !valeurs.email?.trim() &&
+    !valeurs.telephoneSaisi.trim() &&
+    adresseEstVide(valeurs.adressePrincipale)
+  );
+}
+
 /**
- * Enveloppe `zodResolver(schemaCreationClient)` plutôt que de l'utiliser tel quel : React Hook
- * Form garde `adressePrincipale` comme un OBJET (jamais `undefined`) tant qu'aucun champ n'a
- * remplacé les valeurs par défaut — un input non contrôlé sans saisie vaut toujours `''`, pas
- * l'absence de clé. Sans cette normalisation, un client sans adresse soumettrait
- * `{ rue: '', npa: '', localite: '', pays: 'CH' }`, que `schemaAdresseClientBase` refuse
- * (`rue`/`npa`/`localite` en `min(1)`) — exactement le blocage que `.optional()` vient de lever
- * côté contrat. Le contrat lui-même reste inchangé quand une adresse est réellement fournie :
- * cette fonction ne réécrit QUE le cas entièrement vide, jamais un cas partiel.
+ * Lue par `EcranListeClients` (le parent qui rend `SheetContent`, propriétaire de la fermeture du
+ * tiroir) pour décider si une fermeture NON explicite — touche Échap, clic sur la zone grisée
+ * hors du panneau — doit être BLOQUÉE (issue #78 : les deux ferment le tiroir par défaut chez
+ * Radix, sans confirmation, et ont fait perdre nom/prénom/téléphone/rue d'un réceptionniste en
+ * plein comptoir ; mesuré en navigateur, pas supposé — les deux gestes closent bien
+ * `SheetContent` aujourd'hui). Relit `sessionStorage` à chaque appel plutôt que de dupliquer un
+ * état React entre les deux composants : c'est la même source de vérité que
+ * `useSauvegardeBrouillon` écrit plus bas, sans mécanisme de synchronisation séparé. Le bouton de
+ * fermeture visible (`SheetContent`, coin supérieur droit) n'est PAS concerné par ce garde-fou —
+ * un clic dessus reste une fermeture EXPLICITE, toujours autorisée : le filet de rattrapage est
+ * alors le brouillon restauré à la prochaine ouverture (`BandeauBrouillon` ci-dessous), pas un
+ * blocage de la fermeture elle-même.
+ */
+export function aUnBrouillonNouveauClientEnCours(): boolean {
+  const brouillon = lireBrouillon<ValeursBrouillonNouveauClient>(CLE_BROUILLON_NOUVEAU_CLIENT);
+  return brouillon !== undefined && !brouillonEstVide(brouillon.valeurs);
+}
+
+/** Champs texte facultatifs (`schemaTexteCourt.nullish()`, voir `videVersIndefini`) que
+ *  `form.reset()` peut poser à `''` SANS passer par le `onChange` de `register()` (voir le
+ *  commentaire de `resolverClient` ci-dessous) — la liste que `resolverClient` doit normaliser
+ *  avant de déléguer à `zodResolver`. */
+const CHAMPS_TEXTE_NULLISH = ['nom', 'prenom', 'raisonSociale', 'ide', 'email'] as const;
+
+/**
+ * Enveloppe `zodResolver(schemaCreationClient)` plutôt que de l'utiliser tel quel — DEUX
+ * normalisations, pour la même raison de fond : un champ non contrôlé (`register`) réinitialisé
+ * par `form.reset(valeurs)` prend la valeur `valeurs` TELLE QUELLE dans le DOM, sans jamais
+ * repasser par le `onChange` de `register()` (donc sans jamais repasser par `videVersIndefini`,
+ * qui ne s'applique QU'à une saisie clavier réelle) :
+ *
+ * 1. `adressePrincipale` reste un OBJET (jamais `undefined`) tant qu'aucun champ n'a remplacé les
+ *    valeurs par défaut — un client sans adresse soumettrait `{ rue: '', npa: '', localite: '',
+ *    pays: 'CH' }`, que `schemaAdresseClientBase` refuse (`rue`/`npa`/`localite` en `min(1)`) —
+ *    exactement le blocage que `.optional()` vient de lever côté contrat. Ne réécrit QUE le cas
+ *    entièrement vide, jamais un cas partiel.
+ * 2. `CHAMPS_TEXTE_NULLISH` (issue #78) — `valeursParDefaut`/`valeursDepuisBrouillon` posent CES
+ *    champs à `''` (jamais `undefined`, jamais une clé omise) précisément pour que
+ *    `form.reset()` vide bien le NŒUD DOM d'un champ resté monté d'une réouverture à l'autre
+ *    (« Ignorer le brouillon » sans changer de type, notamment) — mesuré en test : `undefined` ou
+ *    une clé absente laissent le `.value` DOM déjà tapé tel quel, SEUL `''` le vide réellement.
+ *    Mais `''` heurte `.nullish()` (accepte `null`/`undefined`, jamais `''`) — sans ce second
+ *    correctif, un client PARTICULIER ne se créait plus du tout : `raisonSociale`/`ide` (jamais
+ *    rendus en mode particulier, donc jamais retapés) restaient à `''` jusqu'à la validation zod
+ *    de la soumission suivante, qui échouait SILENCIEUSEMENT (`handleSubmit` sans `onInvalid`, ni
+ *    message affiché — un champ MASQUÉ n'a nulle part où montrer son erreur).
  */
 const resolverClient: Resolver<ValeursSaisieFormulaire, unknown, EntreeCreationClient> = (
   valeurs,
   contexte,
   options,
 ) => {
-  const valeursValidees = adresseEstVide(valeurs.adressePrincipale)
-    ? { ...valeurs, adressePrincipale: undefined }
-    : valeurs;
+  const valeursNormalisees: ValeursSaisieFormulaire = { ...valeurs };
+  for (const champ of CHAMPS_TEXTE_NULLISH) {
+    if (valeursNormalisees[champ] === '') valeursNormalisees[champ] = undefined;
+  }
+  const valeursValidees = adresseEstVide(valeursNormalisees.adressePrincipale)
+    ? { ...valeursNormalisees, adressePrincipale: undefined }
+    : valeursNormalisees;
   return zodResolver(schemaCreationClient)(valeursValidees, contexte, options);
 };
 
@@ -114,8 +217,48 @@ function valeursParDefaut(
 ): DefaultValues<ValeursSaisieFormulaire> {
   return {
     type: 'particulier',
+    // `''` explicite (jamais omis, jamais `undefined`) sur `CHAMPS_TEXTE_NULLISH` — seule valeur
+    // qui fait réellement réinitialiser le NŒUD DOM d'un champ non contrôlé resté monté d'une
+    // réouverture à l'autre (mesuré en test : une clé absente OU `undefined` laissent le `.value`
+    // DOM déjà tapé tel quel). `resolverClient` ci-dessus neutralise le risque inverse (`''` heurte
+    // `.nullish()`) en la reconvertissant en `undefined` juste avant validation — voir son
+    // commentaire pour l'historique complet de ce correctif (issue #78).
+    nom: '',
+    prenom: '',
+    raisonSociale: '',
+    ide: '',
+    email: '',
     langueCorrespondance: langueCourante,
     adressePrincipale: { rue: '', npa: '', localite: '', pays: 'CH' },
+    telephones: [],
+    poObligatoire: false,
+  };
+}
+
+/** Reconstruit des valeurs de formulaire depuis un brouillon restauré (issue #78) — même rôle que
+ *  `valeursParDefaut` ci-dessus, pour le cas où une saisie antérieure existe. `telephones`/
+ *  `poObligatoire` restent posés comme `valeursParDefaut` (jamais couverts par le brouillon, voir
+ *  le commentaire de `ValeursBrouillonNouveauClient`) : `telephoneSaisi` est restauré à part, en
+ *  état local, exactement comme au premier rendu (voir plus bas). `CHAMPS_TEXTE_NULLISH` repliés
+ *  sur `''` (jamais omis) pour la même raison que `valeursParDefaut` — `resolverClient` s'occupe de
+ *  la reconversion avant validation. */
+function valeursDepuisBrouillon(
+  brouillon: ValeursBrouillonNouveauClient,
+): DefaultValues<ValeursSaisieFormulaire> {
+  return {
+    type: brouillon.type,
+    langueCorrespondance: brouillon.langueCorrespondance,
+    nom: brouillon.nom ?? '',
+    prenom: brouillon.prenom ?? '',
+    raisonSociale: brouillon.raisonSociale ?? '',
+    ide: brouillon.ide ?? '',
+    email: brouillon.email ?? '',
+    adressePrincipale: brouillon.adressePrincipale ?? {
+      rue: '',
+      npa: '',
+      localite: '',
+      pays: 'CH',
+    },
     telephones: [],
     poObligatoire: false,
   };
@@ -151,6 +294,11 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
     telephoneMobile?: string;
     ide?: string;
   }>({});
+  // Issue #78 : horodatage du brouillon restauré, `null` tant qu'aucun brouillon non vide n'a été
+  // repris — pilote UNIQUEMENT `BandeauBrouillon` ci-dessous, jamais la validation. Posé par
+  // l'effet de réinitialisation ci-dessous (qui relit `sessionStorage` à CHAQUE ouverture, y
+  // compris la toute première), jamais par un état initial paresseux : voir son commentaire.
+  const [brouillonRepriseLe, setBrouillonRepriseLe] = useState<string | null>(null);
 
   // Générique explicite (`ValeursSaisieFormulaire`, puis `unknown` pour le contexte, puis
   // `EntreeCreationClient` pour les valeurs TRANSFORMÉES reçues par `handleSubmit`) : voir le
@@ -164,8 +312,21 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
 
   useEffect(() => {
     if (!ouvert) return;
-    form.reset(valeursParDefaut(langueCourante));
-    setTelephoneSaisi('');
+    // Issue #78 (mesuré en navigateur : Échap et un clic sur la zone grisée hors du panneau
+    // ferment tous deux `SheetContent` par défaut, sans confirmation, et emportent nom/prénom/
+    // téléphone/rue avec eux) — relu à CHAQUE ouverture, pas seulement au montage, pour couvrir
+    // aussi bien la première ouverture qu'une réouverture après une fermeture accidentelle : si un
+    // brouillon non vide existe, il REMPLACE les valeurs par défaut plutôt que de les effacer.
+    // `EcranListeClients` bloque déjà la fermeture accidentelle elle-même
+    // (`aUnBrouillonNouveauClientEnCours`) : ceci est le filet de rattrapage pour tout ce qui lui
+    // échapperait malgré tout (fermeture explicite par le bouton visible, rechargement de page).
+    const brouillon = lireBrouillon<ValeursBrouillonNouveauClient>(CLE_BROUILLON_NOUVEAU_CLIENT);
+    const aBrouillon = brouillon !== undefined && !brouillonEstVide(brouillon.valeurs);
+    form.reset(
+      aBrouillon ? valeursDepuisBrouillon(brouillon.valeurs) : valeursParDefaut(langueCourante),
+    );
+    setTelephoneSaisi(aBrouillon ? brouillon.valeurs.telephoneSaisi : '');
+    setBrouillonRepriseLe(aBrouillon ? brouillon.enregistreLe : null);
     setEntreeEnAttente(null);
     setCriteres({});
     creerClient.reset();
@@ -185,10 +346,13 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
 
   const type = form.watch('type');
   const nom = form.watch('nom');
+  const prenom = form.watch('prenom');
   const raisonSociale = form.watch('raisonSociale');
-  const npa = form.watch('adressePrincipale.npa');
-  const email = form.watch('email');
   const ide = form.watch('ide');
+  const email = form.watch('email');
+  const langueCorrespondance = form.watch('langueCorrespondance');
+  const adressePrincipale = form.watch('adressePrincipale');
+  const npa = adressePrincipale?.npa;
 
   useEffect(() => {
     const identifiant = setTimeout(() => {
@@ -203,6 +367,33 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
     return () => clearTimeout(identifiant);
   }, [type, nom, raisonSociale, npa, email, telephoneSaisi, ide]);
 
+  // Sauvegarde AUTOMATIQUE à chaque changement de l'un des champs couverts (issue #78) — voir
+  // `ValeursBrouillonNouveauClient` pour la justification de cette portée précise. Actif dès le
+  // montage (clé constante, jamais `undefined`) : le tiroir n'existe QUE pour une création, il n'y
+  // a donc jamais de cas où ce brouillon ne devrait PAS s'écrire (contrairement à
+  // `FormulaireNouvelOrdreReparation`, dont la clé dépend d'un véhicule pas toujours connu).
+  useSauvegardeBrouillon<ValeursBrouillonNouveauClient>(CLE_BROUILLON_NOUVEAU_CLIENT, {
+    type,
+    nom,
+    prenom,
+    raisonSociale,
+    ide,
+    email,
+    langueCorrespondance,
+    telephoneSaisi,
+    adressePrincipale,
+  });
+
+  /** Rejet EXPLICITE du brouillon repris (exigence n°2, issue #78 — mêmes mots que le correctif
+   *  jumeau sur `FormulaireNouvelOrdreReparation`, issue #77) : `BandeauBrouillon` sans ce geste ne
+   *  ferait qu'annoncer la reprise, jamais permettre de l'écarter. */
+  function ignorerBrouillon() {
+    effacerBrouillon(CLE_BROUILLON_NOUVEAU_CLIENT);
+    form.reset(valeursParDefaut(langueCourante));
+    setTelephoneSaisi('');
+    setBrouillonRepriseLe(null);
+  }
+
   const doublons = useDoublonsClients(criteres);
   const candidats = doublons.data?.candidats ?? [];
   const premierCandidat = candidats[0];
@@ -213,7 +404,14 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
       {
         onSuccess: (reponse) => {
           idempotence.regenerer();
-          onCree(reponse.donnees.id);
+          // Effacé UNIQUEMENT sur un succès serveur confirmé (exigence n°1, issue #78) : un client
+          // créé avec succès rend le brouillon local obsolète — le laisser vivre ferait resurgir
+          // l'identité du CLIENT PRÉCÉDENT dans le tiroir suivant, envoyée sans relecture parce
+          // qu'on croirait reconnaître sa propre saisie (même risque que celui déjà écarté sur
+          // `FormulaireNouvelOrdreReparation`, issue #77). Jamais sur un simple échec (réseau ou
+          // refus serveur) : l'utilisateur doit encore pouvoir corriger et renvoyer sans retaper.
+          effacerBrouillon(CLE_BROUILLON_NOUVEAU_CLIENT);
+          onCree(reponse.donnees);
         },
         onError: (erreurMutation) => {
           // §3.5 règle 5 : une erreur de champ (`ProblemeDetail.erreurs[]`) est réinjectée dans
@@ -258,6 +456,19 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
 
   return (
     <form onSubmit={soumettre} noValidate className="mt-6 space-y-5">
+      {/* Issue #78 : signale ET permet de rejeter une saisie restaurée — un formulaire qui se
+       *  remplit tout seul sans le dire ferait douter de ce qu'on est en train d'envoyer.
+       *  `BandeauBrouillon` (partagé) ne porte pas de bouton de rejet lui-même (présentation
+       *  seule) : le geste vit ici, même patron que `FormulaireNouvelOrdreReparation` (issue #77). */}
+      {brouillonRepriseLe ? (
+        <div className="flex items-center gap-2">
+          <BandeauBrouillon repriseLe={brouillonRepriseLe} className="flex-1" />
+          <Button type="button" variant="outline" size="sm" onClick={ignorerBrouillon}>
+            {t('clients:formulaireNouveau.brouillon.ignorer')}
+          </Button>
+        </div>
+      ) : null}
+
       {erreur ? (
         <Alert variant={estErreurReseau ? 'avertissement' : 'destructive'}>
           {estErreurReseau ? (
@@ -269,6 +480,20 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
             {t(estErreurReseau ? 'erreurs:reseau.titre' : 'erreurs:inattendue.titre')}
           </AlertTitle>
           <AlertDescription>{messageErreur(erreur, t)}</AlertDescription>
+          {/* Issue #79 : une panne réseau pendant `POST /clients` ne dit rien sur ce qui s'est
+           *  réellement passé côté serveur — la création a pu aboutir sans que l'accusé de
+           *  réception arrive. Cliquer de nouveau sur « Créer le client » est SÛR dans ce tiroir
+           *  précisément parce que la clé d'idempotence (`api/idempotence.ts`) n'est régénérée
+           *  qu'après un succès confirmé ou une fermeture explicite (voir plus haut) : un rejeu
+           *  porte donc la MÊME clé, que le serveur reconnaît plutôt que de créer un second
+           *  client. Sans cette précision, le seul message affiché (« vérifiez votre connexion »)
+           *  laisse croire que rien n'a été tenté et pousse à retaper ailleurs — exactement le
+           *  quasi-doublon rapporté sur le client Rossier (issue #79). */}
+          {estErreurReseau ? (
+            <p className="mt-2 texte-libelle text-muted-foreground">
+              {t('clients:formulaireNouveau.reessaiSansDoublon')}
+            </p>
+          ) : null}
         </Alert>
       ) : null}
 

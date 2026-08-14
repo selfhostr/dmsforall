@@ -38,7 +38,8 @@
       "titre": "Bereich nicht verfügbar"
     },
     "actions": {
-      "nouvelOr": "Neuer RA"
+      "nouvelOr": "Neuer RA",
+      "modifierTitre": "Fahrzeugidentität bearbeiten"
     },
     "proprietaire": {
       "titre": "Eigentümer und Halter",
@@ -53,7 +54,9 @@
     },
     "ordresReparation": {
       "titre": "Reparaturaufträge",
-      "vide": "Kein Reparaturauftrag für dieses Fahrzeug."
+      "vide": "Kein Reparaturauftrag für dieses Fahrzeug.",
+      "designations": "{liste}",
+      "designationsTronquees": "{liste}…"
     },
     "factures": {
       "titre": "Rechnungen",
@@ -66,6 +69,12 @@
       "emplacement": "Standort: {emplacement}",
       "emplacementNonRenseigne": "Standort nicht erfasst",
       "lienHangar": "Im Reifenlager ansehen"
+    },
+    "rendezVous": {
+      "titre": "Nächste Termine",
+      "prendre": "Termin vereinbaren",
+      "vide": "Kein Termin für dieses Fahrzeug geplant.",
+      "creeTitre": "Termin gespeichert"
     }
   },
   "archiver": {
@@ -80,15 +89,33 @@
     "vin": "VIN",
     "codeType": "CH-Code",
     "plaque": "Kennzeichen",
+    "plaqueExemple": "VS 123456",
+    "plaqueAide": "Kanton, dann Nummer, mit Leerzeichen, wie auf dem Kontrollschild: VS 123456.",
     "mise1reCirc": "1. Zulassung",
     "kmActuels": "Km aktuell",
-    "copierCodeType": "CH-Code kopieren"
+    "copierCodeType": "CH-Code kopieren",
+    "autocompletion": {
+      "placeholderMarque": "Z. B. Volkswagen",
+      "placeholderModele": "Z. B. Golf",
+      "recherche": "Suche läuft…",
+      "aucunResultat": "Kein Treffer im Referenzverzeichnis — freie Eingabe möglich.",
+      "resultats": "{count, plural, one {# Treffer} other {# Treffer}}",
+      "horsReferentiel": "Nicht im Referenzverzeichnis — wird so gespeichert, wie eingegeben.",
+      "nombreModeles": "{count, plural, one {# Modell} other {# Modelle}}",
+      "erreurRecherche": "Vorschläge derzeit nicht verfügbar — freie Eingabe möglich."
+    }
   },
   "plaques": {
     "titre": "Kennzeichen",
     "canton": "Kanton",
+    "cantonExemple": "VS",
     "type": "Typ",
     "historique": "Kennzeichen-Verlauf"
+  },
+  "collisionPlaque": {
+    "avecDetail": "Kennzeichen {plaque} wird bereits seit dem {debutLe} von {vehicule} getragen.",
+    "sansDetail": "Dieses Kennzeichen ist bereits einem anderen Fahrzeug zugeordnet.",
+    "voirVehicule": "Dieses Fahrzeug ansehen"
   },
   "detentions": {
     "titre": "Halter",
@@ -250,6 +277,7 @@
     "travauxReportes": "Zurückgestellte Arbeiten",
     "campagnes": "Offene Rückrufe",
     "expertise": "MFK nächste Fälligkeit",
+    "expertiseEchue": "MFK abgelaufen",
     "garantie": "Garantie",
     "alerteClient": "Kundenalert",
     "importe": "Importiertes Fahrzeug",
@@ -266,7 +294,7 @@
     "detentions": "Kein Halterwechsel registriert"
   },
   "badges": {
-    "identificationIncomplete": "Identifikation unvollständig"
+    "identificationIncomplete": "Fahrgestellnummer fehlt"
   },
   "emplacement": {
     "titre": "Standort",

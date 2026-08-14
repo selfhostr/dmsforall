@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
@@ -84,7 +84,42 @@ describe('EcranFicheVehiculeStock', () => {
     expect(await screen.findByText('VW Touran 2.0 TDI')).toBeInTheDocument();
     expect(screen.getByText('En commande')).toBeInTheDocument();
     expect(screen.getByText('Non fixé')).toBeInTheDocument();
-    expect(screen.getByText("32'000.00")).toBeInTheDocument();
+
+    // Prix d'achat masqué par défaut (constat testeur : juxtaposé au prix de vente, il révèle la
+    // marge si le vendeur tourne l'écran vers le client) — la valeur brute n'apparaît qu'après un
+    // clic explicite sur le bouton de révélation.
+    expect(screen.queryByText("32'000.00")).not.toBeInTheDocument();
+    const utilisateur = userEvent.setup();
+    await utilisateur.click(screen.getByRole('button', { name: "Voir Prix d'achat" }));
+    expect(await screen.findByText("32'000.00")).toBeInTheDocument();
+  });
+
+  /**
+   * Issue #84 (`securite`) : constat testeur — « le prix d'achat et les frais de remise en état
+   * sont masqués par défaut... mais un petit œil juste à côté permet de les révéler. Un clic
+   * malheureux devant le client et il voit ce que la voiture m'a coûté. Ces deux lignes ne
+   * devraient carrément pas être sur l'écran que je tourne vers le client. » La vue client retire
+   * ces champs (et provenance, jours en stock, assujettissement TVA, historique, actions
+   * internes) du DOM — pas de bouton « Voir » à cliquer par erreur, rien à démasquer.
+   */
+  it('vue client : retire prix d’achat, frais de remise en état, provenance, historique et actions ; garde le prix de vente', async () => {
+    rendre();
+
+    expect(await screen.findByText('VW Touran 2.0 TDI')).toBeInTheDocument();
+
+    const utilisateur = userEvent.setup();
+    await utilisateur.click(screen.getByRole('tab', { name: 'Vue client' }));
+
+    expect(screen.queryByRole('button', { name: "Voir Prix d'achat" })).not.toBeInTheDocument();
+    expect(screen.queryByText("32'000.00")).not.toBeInTheDocument();
+    expect(screen.queryByText('Neuf constructeur')).not.toBeInTheDocument();
+    expect(screen.queryByText('Données commerciales')).not.toBeInTheDocument();
+    expect(screen.queryByText('Historique')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Réceptionner' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Autres actions' })).not.toBeInTheDocument();
+
+    // Le prix de vente reste affiché, mis en avant — c'est ce qu'on montre au client.
+    expect(screen.getByText('Non fixé')).toBeInTheDocument();
   });
 
   it('un rôle sans droit d’écriture ne voit aucune action (ni primaire ni menu de débordement)', async () => {
@@ -178,6 +213,86 @@ describe('EcranFicheVehiculeStock', () => {
     // dans `DialogContent`) — la modale reste ouverte, le message n'est pas perdu sous l'overlay.
     expect(await within(dialogue).findByRole('alert')).toBeInTheDocument();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  /**
+   * Issue #142 : le champ `emplacementLibre` existe en base depuis la migration `0044` mais
+   * aucune fiche du module ventes ne permettait de le renseigner. Preuve bout en bout : bouton →
+   * saisie → `PATCH /vehicules/{id}` → valeur reflétée, sans quitter la fiche stock.
+   */
+  it("renseigne l'emplacement du véhicule depuis la fiche stock (#142)", async () => {
+    let corpsRecu: Record<string, unknown> | null = null;
+    rendre('direction');
+    server.use(
+      http.patch('/api/v1/vehicules/veh-1', async ({ request }) => {
+        corpsRecu = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          donnees: { ...VEHICULE_STOCK.vehicule, emplacementLibre: 'Devant, place 3' },
+          avertissements: [],
+        });
+      }),
+    );
+
+    const utilisateur = userEvent.setup();
+    expect(await screen.findByText('VW Touran 2.0 TDI')).toBeInTheDocument();
+    expect(screen.getByText('Emplacement :')).toBeInTheDocument();
+
+    await utilisateur.click(screen.getByRole('button', { name: 'Modifier' }));
+    const champ = screen.getByLabelText('Emplacement');
+    await utilisateur.type(champ, 'Devant, place 3');
+    await utilisateur.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() => expect(corpsRecu).toEqual({ emplacementLibre: 'Devant, place 3' }));
+    expect(await screen.findByText('Devant, place 3')).toBeInTheDocument();
+  });
+
+  /**
+   * Issue #141 : `CelluleGarantieSuivi` affichait systématiquement « — » faute d'un endroit où
+   * saisir la garantie. Preuve bout en bout depuis la fiche stock : dialogue « Garantie » → saisie
+   * des trois champs → `PATCH /vehicules/{id}` avec exactement ces trois champs, rien de plus
+   * (aucune valeur devinée).
+   */
+  it('renseigne la garantie du véhicule depuis la fiche stock (#141)', async () => {
+    let corpsRecu: Record<string, unknown> | null = null;
+    rendre('direction');
+    server.use(
+      http.patch('/api/v1/vehicules/veh-1', async ({ request }) => {
+        corpsRecu = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ donnees: VEHICULE_STOCK.vehicule, avertissements: [] });
+      }),
+    );
+
+    const utilisateur = userEvent.setup();
+    await utilisateur.click(await screen.findByRole('button', { name: 'Garantie' }));
+
+    const dialogue = await screen.findByRole('dialog');
+    await utilisateur.type(within(dialogue).getByLabelText('Début de la garantie'), '04.08.2026');
+    await utilisateur.type(within(dialogue).getByLabelText('Durée (mois)'), '24');
+    await utilisateur.type(within(dialogue).getByLabelText('Plafond kilométrique'), '100000');
+    await utilisateur.click(within(dialogue).getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() =>
+      expect(corpsRecu).toEqual({
+        garantieDebutLe: '2026-08-04',
+        garantieMois: 24,
+        garantieKm: 100000,
+      }),
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  /**
+   * `vehicule.modifier` (emplacement, garantie) est un droit DISTINCT de
+   * `ventes.vehicule_stock.modifier` (prix, statut) — un `vendeur` a le second mais PAS le
+   * premier (exclu côté API, `droits.ts::peutModifierVehiculeAssocie`). Ce test échoue si les deux
+   * droits sont confondus par erreur.
+   */
+  it('un vendeur (droit vehicule_stock, pas vehicule.modifier) ne voit ni le crayon d’emplacement ni le bouton Garantie', async () => {
+    rendre('vendeur');
+
+    expect(await screen.findByText('VW Touran 2.0 TDI')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Modifier' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Garantie' })).not.toBeInTheDocument();
   });
 
   it('état erreur : message actionnable avec retry', async () => {

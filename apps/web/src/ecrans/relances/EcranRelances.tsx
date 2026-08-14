@@ -21,6 +21,7 @@ import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useEnvoyerRelances } from '@/hooks/relances/useEnvoyerRelances';
 import { useHistoriqueRelances } from '@/hooks/relances/useHistoriqueRelances';
 import { usePlanifierRelances } from '@/hooks/relances/usePlanifierRelances';
@@ -51,18 +52,24 @@ const CANAUX_FORMULAIRE = ['sms', 'email'] as const satisfies readonly CanalMess
  * `relance_envoi` via `GET /relances/facturation/historique` (`useHistoriqueRelances`) — une
  * ligne PAR TENTATIVE, jamais seulement la dernière (pièce de dossier pour le comptable : « ce
  * client a bien été relancé, et à cette date », y compris face à une contestation qui porte sur
- * une relance déjà remplacée par une suivante).
+ * une relance déjà remplacée par une suivante). Remplace la note qui annonçait littéralement
+ * « s'affichera ici dès que l'API de listing des envois sera livrée » (jargon interne, promesse de
+ * livraison) par la donnée réelle — voir aussi le rapport de livraison de l'issue #136.
  */
 export function EcranRelances() {
   const { t } = useTranslation(['relances', 'commun']);
   const requete = useReglesRelance();
 
+  // Migré sur `GabaritEcran` (retour @laupernoe du 13.08.2026 : « dans 'Relances' il y a un écart entre
+  // le titre et la barre ») — cet écran posait son propre `p-6` EN PLUS du `p-4 sm:p-6` que
+  // `AppShell` applique déjà à tout écran routé (même défaut, déjà documenté et corrigé une
+  // première fois sur `EcranListeDossiersVente`/`EcranSuiviVentes`, voir le commentaire de tête de
+  // `GabaritEcran`) : le padding DOUBLÉ en haut de page se lisait comme un écart vide entre la barre
+  // d'onglets de domaine (Factures/Relances) et le titre. Le sous-titre reste un paragraphe normal,
+  // premier enfant sous le titre — même patron que l'aide de `EcranRechercheComptoirPieces`.
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="texte-titre font-semibold text-foreground">{t('relances:titre')}</h1>
-        <p className="texte-corps text-muted-foreground">{t('relances:sousTitre')}</p>
-      </div>
+    <GabaritEcran titre={t('relances:titre')}>
+      <p className="texte-corps text-muted-foreground">{t('relances:sousTitre')}</p>
 
       {requete.isPending ? (
         <EtatChargement lignes={6} />
@@ -81,7 +88,7 @@ export function EcranRelances() {
           <BlocTracabilite />
         </>
       )}
-    </div>
+    </GabaritEcran>
   );
 }
 
@@ -130,7 +137,7 @@ function BlocRegleFactureEchue({ regle }: PropsBlocRegle) {
   return (
     <section className="flex flex-col gap-4 rounded-lg border p-4">
       <div className="flex flex-col gap-1">
-        <h2 className="text-lg font-semibold">{t('relances:regles.titre')}</h2>
+        <h2 className="texte-titre-section">{t('relances:regles.titre')}</h2>
         <p className="texte-corps text-muted-foreground">{t('relances:regles.description')}</p>
       </div>
 
@@ -431,7 +438,7 @@ function BlocDeclenchementManuel() {
   return (
     <section className="flex flex-col gap-4 rounded-lg border p-4">
       <div className="flex flex-col gap-1">
-        <h2 className="text-lg font-semibold">{t('relances:declenchement.titre')}</h2>
+        <h2 className="texte-titre-section">{t('relances:declenchement.titre')}</h2>
         <p className="texte-corps text-muted-foreground">
           {t('relances:declenchement.description')}
         </p>
@@ -534,7 +541,7 @@ function BlocTracabilite() {
   return (
     <section className="flex flex-col gap-4 rounded-lg border p-4">
       <div className="flex flex-col gap-1">
-        <h2 className="text-lg font-semibold">{t('relances:tracabilite.titre')}</h2>
+        <h2 className="texte-titre-section">{t('relances:tracabilite.titre')}</h2>
         <p className="texte-corps text-muted-foreground">{t('relances:tracabilite.description')}</p>
       </div>
 

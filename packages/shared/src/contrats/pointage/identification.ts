@@ -54,7 +54,7 @@ import { schemaCodePin } from './primitives';
  * que le statut HTTP identique aux codes `AUTH_*` est un piège facile pour un connecteur écrit
  * vite.
  */
-export const schemaIdentificationPin = z.object({ codePin: schemaCodePin });
+export const schemaIdentificationPin = z.object({ codePin: schemaCodePin }).strict();
 export type EntreeIdentificationPin = z.infer<typeof schemaIdentificationPin>;
 
 /**
@@ -70,4 +70,15 @@ export interface ReponseIdentificationPin {
   readonly technicienId: string;
   readonly prenom: string;
   readonly nom: string;
+  /**
+   * AJOUT RÉTROCOMPATIBLE (champ en plus, rien de retiré) — le site de la BORNE, résolu depuis
+   * `pin_pointage.site_id` (donc depuis la session de la borne, jamais depuis un paramètre de
+   * requête, même doctrine que le tenant). Permet à l'écran borne de ne PLUS jamais demander le
+   * site par un paramètre d'URL/état local : après identification, `siteId` voyage avec
+   * `technicienId` pour tous les appels de pointage suivants de cette session d'écran. Structurellement
+   * le MÊME site que celui déjà porté par `PrincipalAuthentifie.siteId` pour ce compte de service —
+   * ce champ existe pour que le CLIENT n'ait pas à le lire depuis un autre canal (le principal n'est
+   * pas exposé tel quel côté front).
+   */
+  readonly siteId: string;
 }

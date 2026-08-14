@@ -20,10 +20,12 @@ import type { SiteResume, TenantCourant } from './socle';
  * ne s'applique qu'à la création ou au changement de mot de passe, hors
  * périmètre de l'étape 0.
  */
-export const schemaConnexion = z.object({
-  email: z.string().trim().toLowerCase().email().max(320),
-  motDePasse: z.string().min(1).max(256),
-});
+export const schemaConnexion = z
+  .object({
+    email: z.string().trim().toLowerCase().email().max(320),
+    motDePasse: z.string().min(1).max(256),
+  })
+  .strict();
 export type EntreeConnexion = z.infer<typeof schemaConnexion>;
 
 export interface UtilisateurCourant {

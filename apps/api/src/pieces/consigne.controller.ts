@@ -1,4 +1,13 @@
-import { Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import type { FiltresConsignes } from '@dfa/shared';
 
@@ -44,6 +53,7 @@ export class ConsigneController {
   }
 
   @Post(':id/marquer-retour-fournisseur')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('pieces.consigne.retourner')
   @ApiOperation({
     summary:

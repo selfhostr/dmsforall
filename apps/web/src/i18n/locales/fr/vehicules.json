@@ -38,7 +38,8 @@
       "titre": "Section indisponible"
     },
     "actions": {
-      "nouvelOr": "Nouvel OR"
+      "nouvelOr": "Nouvel OR",
+      "modifierTitre": "Modifier l'identité du véhicule"
     },
     "proprietaire": {
       "titre": "Propriétaire et détenteurs",
@@ -53,7 +54,9 @@
     },
     "ordresReparation": {
       "titre": "Ordres de réparation",
-      "vide": "Aucun ordre de réparation pour ce véhicule."
+      "vide": "Aucun ordre de réparation pour ce véhicule.",
+      "designations": "{liste}",
+      "designationsTronquees": "{liste}…"
     },
     "factures": {
       "titre": "Factures",
@@ -66,6 +69,12 @@
       "emplacement": "Emplacement : {emplacement}",
       "emplacementNonRenseigne": "Emplacement non renseigné",
       "lienHangar": "Voir dans le hangar à pneus"
+    },
+    "rendezVous": {
+      "titre": "Prochains rendez-vous",
+      "prendre": "Prendre un rendez-vous",
+      "vide": "Aucun rendez-vous prévu pour ce véhicule.",
+      "creeTitre": "Rendez-vous enregistré"
     }
   },
   "archiver": {
@@ -80,15 +89,33 @@
     "vin": "VIN",
     "codeType": "Code type CH",
     "plaque": "Plaque",
+    "plaqueExemple": "VS 123456",
+    "plaqueAide": "Canton puis numéro, avec un espace, comme sur la plaque : VS 123456.",
     "mise1reCirc": "1re mise en circulation",
     "kmActuels": "Km actuels",
-    "copierCodeType": "Copier le code type"
+    "copierCodeType": "Copier le code type",
+    "autocompletion": {
+      "placeholderMarque": "Ex. : Volkswagen",
+      "placeholderModele": "Ex. : Golf",
+      "recherche": "Recherche en cours…",
+      "aucunResultat": "Aucune correspondance dans le référentiel — vous pouvez saisir librement.",
+      "resultats": "{count, plural, one {# résultat} other {# résultats}}",
+      "horsReferentiel": "Ne figure pas dans le référentiel — sera enregistré tel quel.",
+      "nombreModeles": "{count, plural, one {# modèle} other {# modèles}}",
+      "erreurRecherche": "Suggestions indisponibles pour le moment — vous pouvez saisir librement."
+    }
   },
   "plaques": {
     "titre": "Plaques",
     "canton": "Canton",
+    "cantonExemple": "VS",
     "type": "Type",
     "historique": "Historique des plaques"
+  },
+  "collisionPlaque": {
+    "avecDetail": "Plaque {plaque} déjà portée par {vehicule} depuis le {debutLe}.",
+    "sansDetail": "Cette plaque est déjà attribuée à un autre véhicule.",
+    "voirVehicule": "Voir ce véhicule"
   },
   "detentions": {
     "titre": "Détention",
@@ -250,6 +277,7 @@
     "travauxReportes": "Travaux reportés",
     "campagnes": "Campagnes ouvertes",
     "expertise": "Expertise prochaine",
+    "expertiseEchue": "Expertise échue",
     "garantie": "Garantie",
     "alerteClient": "Alerte client",
     "importe": "Véhicule importé",
@@ -266,7 +294,7 @@
     "detentions": "Aucune détention enregistrée"
   },
   "badges": {
-    "identificationIncomplete": "Identification incomplète"
+    "identificationIncomplete": "Numéro de châssis manquant"
   },
   "emplacement": {
     "titre": "Emplacement",

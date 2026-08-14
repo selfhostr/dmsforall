@@ -1,87 +1,145 @@
 {
-  "titre": "Planning",
-  "nouveau": "Nouveau rendez-vous",
-  "jour": "Jour",
-  "semaine": "Semaine",
-  "charge": {
-    "titre": "Charge atelier",
-    "capacite": "{heures} h / {capacite} h",
-    "saturation": "Atelier saturé"
+  "titre": "Rendez-vous",
+  "toolbar": {
+    "bascule": {
+      "jour": "Jour",
+      "semaine": "Semaine",
+      "liste": "Liste"
+    },
+    "navigation": {
+      "semainePrecedente": "Semaine précédente",
+      "semaineSuivante": "Semaine suivante",
+      "jourPrecedent": "Jour précédent",
+      "jourSuivant": "Jour suivant",
+      "aujourdhui": "Aujourd’hui"
+    },
+    "rechercheLabel": "Rechercher un client, un véhicule, une plaque",
+    "recherchePlaceholder": "Client, véhicule, plaque…",
+    "nouveauRendezVous": "Nouveau rendez-vous"
   },
-  "rdv": {
-    "heure": "Heure",
-    "duree": "Durée",
-    "plaque": "Plaque",
-    "client": "Client",
-    "motif": "Motif",
-    "motifs": "Motifs",
-    "modeAttente": "Mode d'attente",
-    "ressource": "Ressource",
-    "vehiculeRempl": "Véhicule de remplacement",
-    "presetVehicule": "Véhicule de remplacement réservé"
-  },
-  "modesAttente": {
-    "place": "Attend sur place",
-    "depot": "Dépôt – retrait prochain passage",
-    "depotVeille": "Dépôt – boîte à clés",
-    "navette": "Navette garage",
-    "prise": "Prise en charge"
-  },
-  "motifs": {
-    "service": "Entretien / Service",
-    "expertise": "Expertise / MFK",
-    "preExpertise": "Pré-expertise",
-    "pneus": "Pneus",
-    "diagnostic": "Diagnostic",
-    "carrosserie": "Carrosserie",
-    "rappel": "Rappel constructeur",
-    "retouche": "Retouche",
-    "devis": "Devis"
-  },
-  "statuts": {
-    "demande": "Demande",
-    "planifie": "Planifié",
-    "honore": "Honoré",
-    "absent": "Absent",
-    "annuleClient": "Annulé client",
-    "annuleGarage": "Annulé garage",
-    "reporte": "Reporté"
-  },
-  "transitions": {
-    "honorer": "Honorer",
-    "absent": "Marquer absent",
-    "annulerClient": "Annuler (client)",
-    "annulerGarage": "Annuler (garage)",
-    "reporter": "Reporter"
-  },
-  "colonnes": {
-    "vehiculesAttendus": "Véhicules attendus",
-    "orDuJour": "OR du jour",
-    "restitutions": "Restitutions promises"
-  },
-  "formulaire": {
-    "titre": "Nouveau rendez-vous",
-    "plaque": "Plaque",
-    "vehicule": "Véhicule",
-    "client": "Client",
-    "motifs": "Motifs",
-    "verbatim": "Verbatim client",
-    "date": "Date",
-    "heure": "Heure",
-    "duree": "Durée estimée",
-    "heuresAtelier": "Heures atelier",
-    "modeAttente": "Mode d'attente",
-    "vehiculeRempl": "Véhicule de remplacement",
-    "ressource": "Ressource",
-    "creer": "Créer le RDV",
-    "enCours": "Création…",
-    "avertissements": {
-      "aucunVehicule": "Ne pourra pas être converti en OR tel quel",
-      "ressourceChevauchement": "Ressource déjà réservée pour cet horaire"
+  "site": {
+    "manquant": {
+      "titre": "Choisissez un site",
+      "description": "Cliquez en haut à gauche, sous le nom du garage, pour choisir un site et voir son agenda de rendez-vous."
     }
   },
   "vide": {
-    "premier": "Aucun rendez-vous prévu pour ce jour.",
-    "recherche": "Aucun résultat."
+    "semaine": {
+      "titre": "Aucun rendez-vous prévu cette semaine",
+      "description": "L’agenda de cette semaine est vide pour ce site."
+    },
+    "jour": {
+      "titre": "Aucun rendez-vous prévu ce jour",
+      "description": "L’agenda de ce jour est vide pour ce site."
+    },
+    "recherche": {
+      "titre": "Aucun résultat",
+      "description": "Aucun rendez-vous ne correspond à « {recherche} »."
+    }
+  },
+  "erreur": {
+    "titre": "L’agenda n’a pas pu être chargé",
+    "capaciteTitre": "La capacité du jour n’a pas pu être chargée"
+  },
+  "capacite": {
+    "fraction": "{occupe} occupée sur {capacite}",
+    "fractionAvecReste": "{occupe} occupée sur {capacite} — encore {reste} libres",
+    "resteSeul": "encore {reste} libres",
+    "brut": "{reserves} rendez-vous",
+    "etat": {
+      "disponible": "Disponible",
+      "presqueComplet": "Presque complet",
+      "complet": "Complet",
+      "nonDefinie": "Capacité non définie"
+    },
+    "lienConfigurer": "Configurer la capacité",
+    "ariaJourDefinie": "{jour}, {reserves} rendez-vous, occupation {occupe} sur {capacite}, {etat}",
+    "ariaJourNonDefinie": "{jour}, {reserves} rendez-vous, capacité non définie",
+    "avertissementComplet": "Ce jour est complet.",
+    "ajouterEnDepassement": "Ajouter quand même"
+  },
+  "statuts": {
+    "confirme": "Confirmé",
+    "arrive": "Arrivé",
+    "absent": "Client absent",
+    "annule": "Annulé"
+  },
+  "moments": {
+    "matin": "Matin",
+    "apres_midi": "Après-midi",
+    "toute_journee": "Toute la journée"
+  },
+  "carte": {
+    "ouvrir": "Ouvrir le rendez-vous de {client}, {heure}"
+  },
+  "champs": {
+    "client": "Client",
+    "vehicule": "Véhicule",
+    "site": "Site",
+    "date": "Date du rendez-vous",
+    "moment": "Créneau",
+    "momentPlaceholder": "Choisir un créneau",
+    "heureSouhaitee": "Heure souhaitée",
+    "duree": "Durée estimée (min)",
+    "motif": "Motif du rendez-vous",
+    "motifPlaceholder": "Choisir un motif",
+    "remarque": "Remarque",
+    "conducteurPresent": "Conducteur présent (si différent du client)"
+  },
+  "dureeMinutes": "{minutes} min",
+  "identite": {
+    "changer": "Changer",
+    "sansVehicule": "Continuer sans véhicule connu"
+  },
+  "dialogueNouveau": {
+    "titre": "Nouveau rendez-vous",
+    "confirmer": "Confirmer le rendez-vous",
+    "enCours": "Enregistrement…",
+    "echec": "Le rendez-vous n’a pas pu être enregistré. Vos informations sont conservées, corrigez et réessayez.",
+    "rechercheClientPlaceholder": "Nom, numéro client, téléphone…",
+    "aucunClient": "Aucun client ne correspond à cette recherche.",
+    "aucunVehicule": "Ce client n’a aucun véhicule enregistré."
+  },
+  "dialogueArrivee": {
+    "titre": "Le véhicule est arrivé",
+    "confirmer": "Confirmer l’arrivée",
+    "confirmationDeuxOrOuverts": "Ce véhicule a déjà deux ordres de réparation ouverts.",
+    "confirmationGenerique": "Une confirmation est nécessaire pour enregistrer l’arrivée."
+  },
+  "detail": {
+    "titre": "Rendez-vous",
+    "actions": {
+      "vehiculeArrive": "Le véhicule est arrivé",
+      "signalerAbsence": "Signaler l’absence du client",
+      "annuler": "Annuler le rendez-vous",
+      "voirOrdre": "Voir l’ordre de réparation"
+    },
+    "annulation": {
+      "titre": "Annuler le rendez-vous",
+      "description": "Cette action est définitive : le rendez-vous n’apparaîtra plus dans l’agenda, mais reste visible dans l’historique du client.",
+      "motifLabel": "Motif de l’annulation",
+      "motifRequis": "Le motif est obligatoire.",
+      "confirmer": "Annuler le rendez-vous"
+    },
+    "lectureSeule": "Ce rendez-vous est annulé — lecture seule.",
+    "attenteBouton": "L'arrivée sera possible à partir du jour du rendez-vous.",
+    "historique": {
+      "titre": "Historique",
+      "creePar": "Créé par {nom}, le {date}",
+      "modifiePar": "Modifié par {nom}, le {date}",
+      "annulePar": "Annulé par {nom}, le {date}"
+    },
+    "succesEnregistrement": "Rendez-vous mis à jour.",
+    "echecEnregistrement": "L’action n’a pas pu être enregistrée."
+  },
+  "vueListe": {
+    "titre": "Liste des rendez-vous",
+    "colonnes": {
+      "heure": "Heure",
+      "client": "Client",
+      "vehicule": "Véhicule",
+      "motif": "Motif",
+      "statut": "Statut"
+    }
   }
 }

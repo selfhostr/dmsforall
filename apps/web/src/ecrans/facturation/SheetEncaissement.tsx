@@ -1,4 +1,5 @@
-import { X } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { CheckCircle2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -23,11 +24,13 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
+import { clesFacturation } from '@/hooks/facturation/cles';
 import { useEncaissement } from '@/hooks/facturation/useEncaissement';
 import { useFacturesOuvertesClient } from '@/hooks/facturation/useFacturesOuvertesClient';
 import { formaterDate, formaterMontant, formaterMontantAvecDevise } from '@/lib/formats';
 import { genererUuid } from '@/lib/uuid';
 
+import { BadgeStatutReglement } from './BadgeStatutReglement';
 import { EncartAvanceClient } from './EncartAvanceClient';
 
 /** Arrondi commercial au 5 centimes (RF-49) — seule la ligne Espèces qui SOLDE le document y est
@@ -45,6 +48,22 @@ interface LignePaiementSaisie {
    *  main (risque n°3 du design : « le montant déjà saisi manuellement n'est jamais modifié
    *  automatiquement une fois édité »). */
   readonly ecartArrondiCentimes: number | null;
+  /**
+   * Clé d'idempotence de CETTE ligne (`api/idempotence.ts` : « une clé par ligne, à l'instant où
+   * le contenu est déterminé »), STABLE tant que la ligne n'est ni modifiée ni soumise avec
+   * succès — DÉFAUT CORRIGÉ (testeur novice, encaissement de Meier Urs, 60.00 CHF) : `soumettre()`
+   * appelait autrefois `genererCleIdempotence()` DANS la boucle d'envoi, donc à CHAQUE clic sur
+   * « Enregistrer l'encaissement », y compris un simple rejeu après une erreur d'affichage. Un
+   * rejeu portant une clé neuve n'est jamais reconnu par le serveur comme le même geste : si le
+   * premier essai avait en réalité RÉUSSI côté serveur (réponse perdue côté client — timeout,
+   * coupure), le second envoyait un DEUXIÈME encaissement, distinct, sur un solde déjà nul —
+   * exactement le `IMPUTATION_MONTANT_EXCEDENTAIRE` observé par le testeur après avoir cliqué
+   * « Réessayez ». Preuve en exécution (`POST /paiements` réel, deux clés différentes, même
+   * corps) : 1er appel → 201 (facture soldée) ; 2e appel → 409, `restant=0`. La clé est régénérée
+   * UNIQUEMENT quand `moyen`/`montantCentimes` changent (`modifierMoyen`/`modifierMontant`
+   * ci-dessous) — un contenu modifié est, par construction, une requête distincte.
+   */
+  readonly idempotencyKey: string;
 }
 
 interface Props {
@@ -77,12 +96,36 @@ export function SheetEncaissement({
   factureIdPreselectionnee,
 }: Props) {
   const { t } = useTranslation(['facturation', 'commun']);
+  const queryClient = useQueryClient();
   const facturesOuvertes = useFacturesOuvertesClient(ouvert ? clientId : undefined);
   const encaissement = useEncaissement();
 
   const [selection, setSelection] = useState<ReadonlySet<string>>(new Set());
   const [lignes, setLignes] = useState<readonly LignePaiementSaisie[]>([]);
   const [erreurGenerique, setErreurGenerique] = useState<string | null>(null);
+  /** Non `null` UNIQUEMENT après un encaissement effectivement confirmé par le serveur (§ item 3
+   *  du correctif du testeur novice — « confirmer explicitement le succès »). Remplace le
+   *  formulaire par un accusé de réception explicite plutôt que de fermer le panneau en silence :
+   *  avant ce correctif, un succès et un échec se refermaient tous deux sans un mot, ce qui a fait
+   *  perdre le premier encaissement de vue au testeur. */
+  const [confirmationSucces, setConfirmationSucces] = useState<{
+    readonly montantCentimes: number;
+    readonly devise: DeviseFacturation;
+    readonly regle: boolean;
+  } | null>(null);
+  /**
+   * Défaut corrigé (issues #80/#61, testeur novice — « je n'ai pas osé cliquer, j'allais enregistrer
+   * une avance sur le compte d'un client qui a déjà payé ») : quand `factures.length === 0`, ce
+   * panneau composait DÉJÀ le message « aucune facture ouverte », mais laissait la section
+   * « Encaissements » et le bouton « Enregistrer » pleinement actifs juste en dessous — un utilisateur
+   * pressé pouvait saisir un montant et soumettre SANS jamais avoir choisi une avance, elle se
+   * produisait comme EFFET DE BORD d'un geste qui se voulait un encaissement normal. `avanceConfirmee`
+   * verrouille la saisie tant que l'utilisateur n'a pas cliqué un bouton dédié, EXPLICITE, qui NOMME
+   * ce que ce geste va faire — jamais un défaut silencieux. Sans objet (et donc sans effet) tant
+   * qu'au moins une facture ouverte existe : dans ce cas la saisie reste immédiatement disponible,
+   * comme avant ce correctif.
+   */
+  const [avanceConfirmee, setAvanceConfirmee] = useState(false);
 
   // Réinitialisation à chaque ouverture — la présélection (`RF-70`) n'a de sens qu'au premier
   // rendu après ouverture, jamais recalculée pendant la saisie.
@@ -91,31 +134,42 @@ export function SheetEncaissement({
     setSelection(factureIdPreselectionnee ? new Set([factureIdPreselectionnee]) : new Set());
     setLignes([]);
     setErreurGenerique(null);
+    setConfirmationSucces(null);
+    setAvanceConfirmee(false);
   }, [ouvert, factureIdPreselectionnee]);
 
   const factures = facturesOuvertes.data ?? [];
-  const totalSelectionneCentimes = factures
-    .filter((facture) => selection.has(facture.id))
-    .reduce((somme, facture) => somme + (facture.soldeCentimes ?? 0), 0);
+  // Voir le commentaire de `avanceConfirmee` ci-dessus : tant que la question n'est pas tranchée
+  // (chargement en cours), on ne bascule PAS en mode avance — un flash « aucune facture ouverte »
+  // pendant les quelques centaines de ms du premier rendu serait un mensonge temporaire.
+  const aucuneFactureOuverte = !facturesOuvertes.isPending && factures.length === 0;
 
   /**
    * Devise portée par les factures sélectionnées (`DocumentVenteResume.devise`, migration `0015`)
    * — déterminée UNIQUEMENT quand la sélection est homogène. Sélection vide (rien à régler
    * encore) ou mélangeant CHF/EUR (un client peut, en théorie, avoir des factures reprises dans
-   * deux devises) : `undefined`, jamais une devise devinée par défaut (règle du correctif).
-   *
-   * Un mélange réel resterait de toute façon arithmétiquement faux : `totalSelectionneCentimes`
-   * additionne des soldes qui ne partageraient pas une seule devise, et le paiement lui-même n'est
-   * créé qu'en CHF (`devise: 'CHF'` plus bas, `soumettre`) quelle que soit la devise de la facture
-   * réglée. Un vrai support multi-devise de l'encaissement (empêcher la sélection mixte, aligner la
-   * devise du paiement sur celle de la facture) est un chantier métier distinct qui dépasse un
-   * correctif d'affichage — signalé, non traité ici.
+   * deux devises) : `undefined`, jamais une devise devinée par défaut.
    */
   const devisesSelectionnees = new Set(
     factures.filter((facture) => selection.has(facture.id)).map((facture) => facture.devise),
   );
   const deviseSelectionCommune: DeviseFacturation | undefined =
     devisesSelectionnees.size === 1 ? [...devisesSelectionnees][0] : undefined;
+  /**
+   * Défaut corrigé (issue #135) : une sélection mixte (une facture CHF + une facture EUR cochées
+   * ensemble) laissait auparavant `totalSelectionneCentimes` additionner des soldes de deux
+   * devises différentes ET le paiement partait quand même codé en dur `devise: 'CHF'` — un
+   * garagiste qui cochait par erreur deux factures de devises différentes n'avait AUCUN signal
+   * avant l'échec, et l'échec lui-même (`409 IMPUTATION_DEVISE_INCOHERENTE`) n'aurait porté que
+   * sur la SECONDE facture imputée, jamais sur la sélection dans son ensemble. Verrouille la
+   * saisie (même patron que `avanceConfirmee` ci-dessus) tant que la sélection n'est pas ramenée
+   * à une seule devise — voir le message dédié plus bas dans le rendu.
+   */
+  const selectionMultiDevises = selection.size > 0 && devisesSelectionnees.size > 1;
+  const saisieDisponible = (!aucuneFactureOuverte || avanceConfirmee) && !selectionMultiDevises;
+  const totalSelectionneCentimes = factures
+    .filter((facture) => selection.has(facture.id))
+    .reduce((somme, facture) => somme + (facture.soldeCentimes ?? 0), 0);
 
   /** Affiche la devise quand elle est connue et non ambiguë (`deviseSelectionCommune`), sinon un
    *  montant nu plutôt qu'un préfixe inventé — voir le commentaire ci-dessus. */
@@ -161,12 +215,19 @@ export function SheetEncaissement({
           moyen: 'especes',
           montantCentimes: arrondi,
           ecartArrondiCentimes: ecart !== 0 ? ecart : null,
+          idempotencyKey: genererCleIdempotence(),
         },
       ]);
     } else {
       setLignes((valeur) => [
         ...valeur,
-        { id, moyen: 'especes', montantCentimes: null, ecartArrondiCentimes: null },
+        {
+          id,
+          moyen: 'especes',
+          montantCentimes: null,
+          ecartArrondiCentimes: null,
+          idempotencyKey: genererCleIdempotence(),
+        },
       ]);
     }
   }
@@ -175,10 +236,17 @@ export function SheetEncaissement({
     setLignes((valeur) => valeur.filter((ligne) => ligne.id !== id));
   }
 
+  // `modifierMoyen`/`modifierMontant` régénèrent la clé d'idempotence de la ligne : un contenu
+  // modifié est une requête DISTINCTE de celle (jamais envoyée, ou en échec) qui portait l'ancien
+  // contenu — voir le commentaire de `LignePaiementSaisie.idempotencyKey`. Ne PAS régénérer ici
+  // romprait la déduplication ; régénérer à chaque clic de soumission (l'ancien défaut) la cassait
+  // entièrement.
   function modifierMoyen(id: string, moyen: MoyenPaiement) {
     setLignes((valeur) =>
       valeur.map((ligne) =>
-        ligne.id === id ? { ...ligne, moyen, ecartArrondiCentimes: null } : ligne,
+        ligne.id === id
+          ? { ...ligne, moyen, ecartArrondiCentimes: null, idempotencyKey: genererCleIdempotence() }
+          : ligne,
       ),
     );
   }
@@ -186,12 +254,36 @@ export function SheetEncaissement({
   function modifierMontant(id: string, montantCentimes: number | null) {
     setLignes((valeur) =>
       valeur.map((ligne) =>
-        ligne.id === id ? { ...ligne, montantCentimes, ecartArrondiCentimes: null } : ligne,
+        ligne.id === id
+          ? {
+              ...ligne,
+              montantCentimes,
+              ecartArrondiCentimes: null,
+              idempotencyKey: genererCleIdempotence(),
+            }
+          : ligne,
       ),
     );
   }
 
   function fermer() {
+    // Défensif (item 2 du correctif, testeur novice) : si une erreur a été affichée sans qu'un
+    // rejeu réussi n'ait suivi, on NE SAIT PAS si la dernière tentative a réellement échoué côté
+    // serveur — voir le commentaire de `LignePaiementSaisie.idempotencyKey`. Invalider les mêmes
+    // clés qu'un succès plutôt que de laisser la fiche facture / la liste mentir jusqu'à ce que
+    // l'utilisateur navigue manuellement, exactement le symptôme rapporté (« facture Émise » et
+    // bouton « Encaisser » encore visibles après un encaissement en réalité déjà passé).
+    if (encaissement.isError) {
+      for (const factureId of selection) {
+        void queryClient.invalidateQueries({
+          queryKey: clesFacturation.documents.detail(factureId),
+        });
+      }
+      void queryClient.invalidateQueries({ queryKey: ['facturation', 'documents', 'liste'] });
+      void queryClient.invalidateQueries({
+        queryKey: clesFacturation.documents.ouvertesClient(clientId),
+      });
+    }
     onOuvertChange(false);
   }
 
@@ -223,6 +315,13 @@ export function SheetEncaissement({
       })
       .filter((imputation) => imputation.montantCentimes > 0);
 
+    // Capturés AVANT la boucle : `resteAEncaisserCentimes`/`sommeLignesCentimes`/
+    // `sommeEcartsCentimes` dépendent de `lignes`/`selection`, non mutées pendant l'envoi — la
+    // confirmation finale (item 3) reflète donc exactement ce que l'utilisateur a validé, pas un
+    // état recalculé après coup.
+    const montantTotalCollecteCentimes = Math.max(sommeLignesCentimes - sommeEcartsCentimes, 0);
+    const selectionDesormaisReglee = totalSelectionneCentimes > 0 && resteAEncaisserCentimes <= 0;
+
     try {
       for (const [index, ligne] of lignes.entries()) {
         const entree: EntreeCreationPaiement = {
@@ -230,18 +329,36 @@ export function SheetEncaissement({
           dateValeur: new Date().toISOString().slice(0, 10),
           moyen: ligne.moyen,
           montantCentimes: ligne.montantCentimes as number,
-          // Codé en dur (pas de sélecteur de devise sur les lignes de paiement, `ChampMontant`
-          // ci-dessous affiche d'ailleurs son préfixe `CHF` par défaut) — voir le commentaire de
-          // `deviseSelectionCommune` plus haut : un paiement en EUR pour solder une facture EUR
-          // reprise n'est structurellement pas possible avec cet écran aujourd'hui.
-          devise: 'CHF',
+          // Défaut corrigé (issue #135) : cette valeur était codée en dur `'CHF'` quelle que soit
+          // la facture réglée — une facture EUR sélectionnée envoyait donc TOUJOURS un paiement
+          // CHF, refusé par le serveur (`409 IMPUTATION_DEVISE_INCOHERENTE`) sans qu'aucun geste
+          // de l'utilisateur n'ait pu prévenir l'échec, ni le corriger (« CHF » restait un texte
+          // fixe, sans sélecteur). Décision (arbitrée en revue, pas d'écran de choix de devise) :
+          // le paiement suit TOUJOURS la devise de la facture réglée, jamais une devise choisie
+          // librement — le produit ne fait pas de change (`MD-50`), un paiement dans une autre
+          // devise que celle du document n'est jamais une opération valide, seulement une erreur
+          // de saisie à empêcher plutôt qu'à permettre puis refuser. `deviseSelectionCommune`
+          // (§ plus haut) porte déjà cette règle : `undefined` uniquement pour une sélection
+          // vide (avance client, RF-65, sans document à aligner — CHF par défaut, seule devise
+          // que ce flux connaît aujourd'hui) puisque `selectionMultiDevises` bloque déjà la
+          // saisie avant d'arriver ici pour toute sélection mixte.
+          devise: deviseSelectionCommune ?? 'CHF',
           payeurClientId: clientId,
           payeurLibelle: destinataireNom ?? '',
           imputations: index === 0 ? imputations : [],
         };
-        await encaissement.mutateAsync({ entree, idempotencyKey: genererCleIdempotence() });
+        // Clé STABLE portée par la ligne (voir `LignePaiementSaisie.idempotencyKey`) — plus jamais
+        // régénérée ici à chaque clic : DÉFAUT CORRIGÉ (testeur novice) qui empêchait tout rejeu
+        // réseau d'être reconnu comme tel par le serveur.
+        await encaissement.mutateAsync({ entree, idempotencyKey: ligne.idempotencyKey });
       }
-      fermer();
+      // Confirmation EXPLICITE du succès (item 3) — remplace la fermeture silencieuse : un succès
+      // et un échec ne doivent jamais se ressembler à l'écran.
+      setConfirmationSucces({
+        montantCentimes: montantTotalCollecteCentimes,
+        devise: deviseSelectionCommune ?? 'CHF',
+        regle: selectionDesormaisReglee,
+      });
     } catch {
       // L'erreur est déjà exposée via `encaissement.error`/`messageErreur` ci-dessous — pas de
       // retraitement ici, seule la fermeture du panneau doit être annulée pour laisser la saisie
@@ -263,149 +380,223 @@ export function SheetEncaissement({
         </SheetHeader>
 
         <div className="flex flex-col gap-6 py-4">
-          <section className="flex flex-col gap-2">
-            <h2 className="texte-libelle font-medium text-foreground">
-              {t('facturation:encaissement.facturesOuvertes.titre')}
-            </h2>
-            {facturesOuvertes.isPending ? (
-              <EtatChargement lignes={2} />
-            ) : factures.length === 0 ? (
-              <p className="texte-corps text-muted-foreground">
-                {t('facturation:encaissement.facturesOuvertes.vide')}
+          {confirmationSucces ? (
+            // Confirmation EXPLICITE du succès (item 3, testeur novice) : avant ce correctif, le
+            // panneau se refermait en silence sur `fermer()`, identique visuellement à un abandon
+            // — le testeur n'a découvert son premier encaissement réussi qu'en retournant à la
+            // liste. Compose UNIQUEMENT des clés/valeurs déjà traduites ailleurs dans l'app
+            // (`BadgeStatutReglement` porte déjà « Réglée », `commun:actions.fermer` porte déjà
+            // « Fermer ») plutôt que d'introduire une nouvelle clé de prose — voir le rapport de
+            // livraison pour la clé dédiée manquante (`facturation:encaissement.confirmationSucces`)
+            // à ajouter par l'agent i18n.
+            <section className="flex flex-col items-center gap-3 py-8 text-center">
+              <CheckCircle2 aria-hidden className="h-10 w-10 text-statut-succes" />
+              <p className="texte-titre-section font-semibold text-foreground">
+                {formaterMontantAvecDevise(
+                  confirmationSucces.montantCentimes,
+                  confirmationSucces.devise,
+                )}
               </p>
-            ) : (
-              <ul className="flex flex-col gap-1.5">
-                {factures.map((facture) => (
-                  <li key={facture.id} className="flex items-center gap-2 texte-corps">
-                    <Checkbox
-                      id={`encaissement-facture-${facture.id}`}
-                      checked={selection.has(facture.id)}
-                      onCheckedChange={() => basculerFacture(facture.id)}
-                    />
-                    <label htmlFor={`encaissement-facture-${facture.id}`} className="flex-1">
-                      {facture.numero} ·{' '}
-                      {t('facturation:encaissement.facturesOuvertes.emiseLe', {
-                        date: formaterDate(facture.dateDocument),
-                      })}
-                    </label>
-                    {facture.soldeCentimes !== undefined ? (
-                      <span className="tabular-nums text-muted-foreground">
-                        {t('facturation:encaissement.facturesOuvertes.resteDu', {
-                          montant: formaterMontantAvecDevise(facture.soldeCentimes, facture.devise),
-                        })}
-                      </span>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            )}
-            {factures.length === 0 && !facturesOuvertes.isPending ? (
-              <EncartAvanceClient message={t('facturation:avanceClient.aucuneFactureOuverte')} />
-            ) : (
-              <div className="flex items-center justify-between border-t pt-2 texte-corps font-medium">
-                <span>{t('facturation:encaissement.facturesOuvertes.totalSelectionne')}</span>
-                <span className="tabular-nums">
-                  {formaterTotalSelection(totalSelectionneCentimes)}
-                </span>
-              </div>
-            )}
-          </section>
-
-          <section className="flex flex-col gap-3">
-            <h2 className="texte-libelle font-medium text-foreground">
-              {t('facturation:encaissement.lignes.titre')}
-            </h2>
-            {lignes.map((ligne) => (
-              <div key={ligne.id} className="flex items-end gap-2 rounded-md border p-2">
-                <div className="flex flex-col gap-1.5">
-                  <span className="texte-libelle text-muted-foreground">
-                    {t('facturation:encaissement.lignes.moyen')}
-                  </span>
-                  <Select
-                    value={ligne.moyen}
-                    onValueChange={(valeur) => modifierMoyen(ligne.id, valeur as MoyenPaiement)}
-                  >
-                    <SelectTrigger
-                      className="w-[160px]"
-                      aria-label={t('facturation:encaissement.lignes.moyen')}
-                    >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MOYENS_PAIEMENT.map((moyen) => (
-                        <SelectItem key={moyen} value={moyen}>
-                          {t(`facturation:moyensPaiement.${moyen}`)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex-1">
-                  <ChampMontant
-                    valeurCentimes={ligne.montantCentimes}
-                    onChangeCentimes={(centimes) => modifierMontant(ligne.id, centimes)}
-                    label={t('facturation:encaissement.lignes.montant')}
+              {confirmationSucces.regle ? <BadgeStatutReglement statut="regle" /> : null}
+              <Button type="button" onClick={fermer} className="mt-2">
+                {t('commun:actions.fermer')}
+              </Button>
+            </section>
+          ) : (
+            <>
+              <section className="flex flex-col gap-2">
+                <h2 className="texte-libelle font-medium text-foreground">
+                  {t('facturation:encaissement.facturesOuvertes.titre')}
+                </h2>
+                {facturesOuvertes.isPending ? (
+                  <EtatChargement lignes={2} />
+                ) : factures.length === 0 ? (
+                  <p className="texte-corps text-muted-foreground">
+                    {t('facturation:encaissement.facturesOuvertes.vide')}
+                  </p>
+                ) : (
+                  <ul className="flex flex-col gap-1.5">
+                    {factures.map((facture) => (
+                      <li key={facture.id} className="flex items-center gap-2 texte-corps">
+                        <Checkbox
+                          id={`encaissement-facture-${facture.id}`}
+                          checked={selection.has(facture.id)}
+                          onCheckedChange={() => basculerFacture(facture.id)}
+                        />
+                        <label htmlFor={`encaissement-facture-${facture.id}`} className="flex-1">
+                          {facture.numero} ·{' '}
+                          {t('facturation:encaissement.facturesOuvertes.emiseLe', {
+                            date: formaterDate(facture.dateDocument),
+                          })}
+                        </label>
+                        {facture.soldeCentimes !== undefined ? (
+                          <span className="tabular-nums text-muted-foreground">
+                            {t('facturation:encaissement.facturesOuvertes.resteDu', {
+                              montant: formaterMontantAvecDevise(
+                                facture.soldeCentimes,
+                                facture.devise,
+                              ),
+                            })}
+                          </span>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {factures.length === 0 && !facturesOuvertes.isPending ? (
+                  <EncartAvanceClient
+                    message={t('facturation:avanceClient.aucuneFactureOuverte')}
                   />
-                  {ligne.ecartArrondiCentimes !== null ? (
-                    <p className="texte-libelle text-muted-foreground">
-                      {t('facturation:encaissement.lignes.arrondi', {
-                        ecart: `${ligne.ecartArrondiCentimes > 0 ? '+' : ''}${formaterMontant(ligne.ecartArrondiCentimes)}`,
+                ) : (
+                  <div className="flex items-center justify-between border-t pt-2 texte-corps font-medium">
+                    <span>{t('facturation:encaissement.facturesOuvertes.totalSelectionne')}</span>
+                    <span className="tabular-nums">
+                      {formaterTotalSelection(totalSelectionneCentimes)}
+                    </span>
+                  </div>
+                )}
+                {/* Défaut corrigé (issue #135) : le paiement suit TOUJOURS la devise de la
+                    facture réglée (voir le commentaire de `soumettre`) — une sélection mixte
+                    CHF/EUR n'a donc pas de devise unique à suivre. Message explicite plutôt
+                    qu'un échec serveur silencieux ou un montant total dans une devise inventée. */}
+                {selectionMultiDevises ? (
+                  <p className="texte-libelle text-statut-attention" role="alert">
+                    {t('facturation:encaissement.facturesOuvertes.devisesMultiples')}
+                  </p>
+                ) : null}
+              </section>
+
+              {saisieDisponible ? (
+                <>
+                  <section className="flex flex-col gap-3">
+                    <h2 className="texte-libelle font-medium text-foreground">
+                      {t('facturation:encaissement.lignes.titre')}
+                    </h2>
+                    {lignes.map((ligne) => (
+                      <div key={ligne.id} className="flex items-end gap-2 rounded-md border p-2">
+                        <div className="flex flex-col gap-1.5">
+                          <span className="texte-libelle text-muted-foreground">
+                            {t('facturation:encaissement.lignes.moyen')}
+                          </span>
+                          <Select
+                            value={ligne.moyen}
+                            onValueChange={(valeur) =>
+                              modifierMoyen(ligne.id, valeur as MoyenPaiement)
+                            }
+                          >
+                            <SelectTrigger
+                              className="w-[160px]"
+                              aria-label={t('facturation:encaissement.lignes.moyen')}
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {MOYENS_PAIEMENT.map((moyen) => (
+                                <SelectItem key={moyen} value={moyen}>
+                                  {t(`facturation:moyensPaiement.${moyen}`)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex-1">
+                          {/* Défaut corrigé (issue #135) : préfixe désormais la VRAIE devise de
+                              la facture réglée (`deviseSelectionCommune`) au lieu du défaut
+                              `CHF` figé de `ChampMontant` — un texte mort sur une sélection EUR,
+                              qui laissait croire à un paiement en francs sur une facture en
+                              euros. `undefined` uniquement pour l'avance client (aucune facture
+                              sélectionnée, § commentaire de `soumettre`), repli CHF alors
+                              inchangé. */}
+                          <ChampMontant
+                            valeurCentimes={ligne.montantCentimes}
+                            onChangeCentimes={(centimes) => modifierMontant(ligne.id, centimes)}
+                            label={t('facturation:encaissement.lignes.montant')}
+                            devise={deviseSelectionCommune}
+                          />
+                          {ligne.ecartArrondiCentimes !== null ? (
+                            <p className="texte-libelle text-muted-foreground">
+                              {t('facturation:encaissement.lignes.arrondi', {
+                                ecart: `${ligne.ecartArrondiCentimes > 0 ? '+' : ''}${formaterMontant(ligne.ecartArrondiCentimes)}`,
+                              })}
+                            </p>
+                          ) : null}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          aria-label={t('facturation:encaissement.lignes.retirer')}
+                          onClick={() => retirerLigne(ligne.id)}
+                        >
+                          <X className="h-4 w-4" aria-hidden />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button type="button" variant="outline" onClick={ajouterLigne}>
+                      {t('facturation:encaissement.lignes.ajouter')}
+                    </Button>
+                  </section>
+
+                  {tropPercuCentimes > 0 ? (
+                    <EncartAvanceClient
+                      message={t('facturation:avanceClient.message', {
+                        montant: formaterTotalSelection(totalSelectionneCentimes),
                       })}
+                    />
+                  ) : null}
+
+                  <div className="flex items-center justify-between border-t pt-3 texte-corps font-semibold">
+                    <span>{t('facturation:encaissement.resteAEncaisser')}</span>
+                    <span className="tabular-nums">
+                      {formaterTotalSelection(Math.max(resteAEncaisserCentimes, 0))}
+                    </span>
+                  </div>
+
+                  {encaissement.isError ? (
+                    <p className="texte-libelle text-destructive">
+                      {messageErreur(encaissement.error, t)}
                     </p>
                   ) : null}
+                  {erreurGenerique ? (
+                    <p className="texte-libelle text-destructive">{erreurGenerique}</p>
+                  ) : null}
+
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={fermer} disabled={enCours}>
+                      {t('commun:actions.annuler')}
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => void soumettre()}
+                      disabled={enCours || lignes.length === 0}
+                    >
+                      {enCours
+                        ? t('facturation:encaissement.enCours')
+                        : t('facturation:encaissement.confirmer')}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                // Défaut corrigé (issues #80/#61, voir le commentaire de `avanceConfirmee`) : aucune
+                // facture ouverte pour ce client — la saisie d'encaissement reste VERROUILLÉE tant
+                // que l'utilisateur n'a pas choisi, explicitement, d'enregistrer une avance. Le seul
+                // autre geste possible d'ici est d'annuler — jamais une saisie qui déboucherait sur
+                // une avance sans que ce mot ait été prononcé par un clic.
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={fermer}>
+                    {t('commun:actions.annuler')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setAvanceConfirmee(true)}
+                  >
+                    {t('facturation:avanceClient.confirmerAction')}
+                  </Button>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label={t('facturation:encaissement.lignes.retirer')}
-                  onClick={() => retirerLigne(ligne.id)}
-                >
-                  <X className="h-4 w-4" aria-hidden />
-                </Button>
-              </div>
-            ))}
-            <Button type="button" variant="outline" onClick={ajouterLigne}>
-              {t('facturation:encaissement.lignes.ajouter')}
-            </Button>
-          </section>
-
-          {tropPercuCentimes > 0 ? (
-            <EncartAvanceClient
-              message={t('facturation:avanceClient.message', {
-                montant: formaterTotalSelection(totalSelectionneCentimes),
-              })}
-            />
-          ) : null}
-
-          <div className="flex items-center justify-between border-t pt-3 texte-corps font-semibold">
-            <span>{t('facturation:encaissement.resteAEncaisser')}</span>
-            <span className="tabular-nums">
-              {formaterTotalSelection(Math.max(resteAEncaisserCentimes, 0))}
-            </span>
-          </div>
-
-          {encaissement.isError ? (
-            <p className="texte-libelle text-destructive">{messageErreur(encaissement.error, t)}</p>
-          ) : null}
-          {erreurGenerique ? (
-            <p className="texte-libelle text-destructive">{erreurGenerique}</p>
-          ) : null}
-
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={fermer} disabled={enCours}>
-              {t('commun:actions.annuler')}
-            </Button>
-            <Button
-              type="button"
-              onClick={() => void soumettre()}
-              disabled={enCours || lignes.length === 0}
-            >
-              {enCours
-                ? t('facturation:encaissement.enCours')
-                : t('facturation:encaissement.confirmer')}
-            </Button>
-          </div>
+              )}
+            </>
+          )}
         </div>
       </SheetContent>
     </Sheet>

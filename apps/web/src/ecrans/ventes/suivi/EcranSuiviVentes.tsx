@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 
 import type { LigneSuiviVente } from '@dfa/shared';
 
@@ -11,6 +11,7 @@ import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useListeSuiviVente } from '@/hooks/ventes/suivi/useListeSuiviVente';
 import { chemins } from '@/routes/chemins';
 
@@ -120,23 +121,16 @@ export function EcranSuiviVentes() {
     />
   );
 
-  // L'onglet de navigation « Suivi financement & garantie » (OngletsDomaine, actif sur cette
-  // route) porte déjà EXACTEMENT ce libellé à l'écran — répétition à la lettre, pas une simple
-  // ressemblance. Un h1 visible identique ne dit rien de neuf, il reste dans le DOM, masqué
-  // visuellement, pour la structure de document (lecteur d'écran, navigation au clavier) — même
-  // choix que `EcranListeFactures`. `justify-end` (plus `justify-between`) car le h1, sorti du
-  // flux par `sr-only`, ne compte plus comme second élément flex à écarter du lien.
-  const enTete = (
-    <div className="flex flex-wrap items-center justify-end gap-3">
-      <h1 className="sr-only">{t('ventes:suivi.titre')}</h1>
-      <Link
-        to={chemins.ventes.dossiers.liste(site)}
-        className="texte-corps text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-      >
-        {t('ventes:suivi.retourListe')}
-      </Link>
-    </div>
-  );
+  // Titre gardé dans le DOM (`titreVisible={false}`), jamais retiré : l'onglet de navigation
+  // « Suivi financement & garantie » (OngletsDomaine, actif sur cette route) porte déjà EXACTEMENT
+  // ce libellé à l'écran — répétition à la lettre, pas une simple ressemblance. Un h1 visible
+  // identique ne dit rien de neuf ; masqué visuellement pour la structure de document (lecteur
+  // d'écran, navigation au clavier) — même choix que `EcranListeFactures`.
+  //
+  // Retiré (retour @laupernoe du 12.08.2026, revue structure haute) : le lien « Retour aux dossiers de
+  // vente », qui flottait seul en haut à droite (« mal placé ») ET doublait l'onglet « Dossiers »
+  // d'`OngletsDomaine` un rang au-dessus (« c'est doublé aussi ») — même destination, même défaut
+  // que le bouton retiré d'`EcranListeDossiersVente`, voir sa note d'en-tête de fichier.
 
   // DÉFAUT AUDIT corrigé — les onglets sont rendus INCONDITIONNELLEMENT, AVANT tout retour anticipé
   // chargement/erreur (même patron que `EcranListeFactures.tsx`, référence explicite du brief).
@@ -145,14 +139,8 @@ export function EcranSuiviVentes() {
   // barre entière disparaissait puis reparaissait à chaque changement d'horizon — et en cas
   // d'erreur réseau, plus aucun moyen de revenir à l'onglet précédent. Seul le CONTENU sous les
   // onglets (chargement / erreur / table) varie selon l'état de la requête.
-  // Pas de `p-6` ici : `AppShell` (`composants/layout/AppShell.tsx`) pose déjà `p-4 sm:p-6` sur le
-  // `<main>` qui enveloppe cet écran — un `p-6` local le DOUBLAIT (48px au lieu de 24px, mesuré),
-  // seul écran de vente à le faire. Aligné sur `EcranListeVehiculesStock`, et sur la convention du
-  // reste du dépôt (`EcranListeVehicules`, `EcranListeOrdresReparation`, `EcranListeArticles`...).
   return (
-    <div className="flex flex-col gap-6">
-      {enTete}
-
+    <GabaritEcran titre={t('ventes:suivi.titre')} titreVisible={false}>
       <Tabs value={horizon} onValueChange={(valeur) => setHorizon(valeur as Horizon)}>
         <TabsList aria-label={t('ventes:suivi.filtres.horizonLabel')}>
           {OPTIONS_HORIZON.map((valeur) => (
@@ -193,6 +181,6 @@ export function EcranSuiviVentes() {
           />
         </>
       )}
-    </div>
+    </GabaritEcran>
   );
 }

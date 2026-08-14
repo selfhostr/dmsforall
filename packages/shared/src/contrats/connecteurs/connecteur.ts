@@ -78,11 +78,13 @@ export interface PolitiqueNouvellesTentativesConnecteur {
   readonly facteurCroissance: number;
 }
 
-export const schemaPolitiqueNouvellesTentativesConnecteur = z.object({
-  nombreMaxTentatives: z.number().int().min(1).max(20),
-  espacementInitialSecondes: z.number().int().min(1).max(86_400),
-  facteurCroissance: z.number().min(1).max(10),
-});
+export const schemaPolitiqueNouvellesTentativesConnecteur = z
+  .object({
+    nombreMaxTentatives: z.number().int().min(1).max(20),
+    espacementInitialSecondes: z.number().int().min(1).max(86_400),
+    facteurCroissance: z.number().min(1).max(10),
+  })
+  .strict();
 
 /**
  * L'activation — une ligne par `(tenant, type de connecteur[, site])`. Le TENANT n'apparaît
@@ -142,21 +144,25 @@ export type FiltresConnecteurActivations = z.infer<typeof schemaFiltresConnecteu
  * appliqué au socle transversal). `statut` n'est jamais entrant : toute activation naît `inactif`
  * — `PC-02`, activation explicite requise même après création.
  */
-export const schemaCreationConnecteurActivation = z.object({
-  typeConnecteurCode: schemaCodeConnecteur,
-  siteId: schemaIdentifiant.nullish(),
-  parametres: z.record(z.string(), z.unknown()).optional(),
-  politiqueNouvellesTentatives: schemaPolitiqueNouvellesTentativesConnecteur.nullish(),
-});
+export const schemaCreationConnecteurActivation = z
+  .object({
+    typeConnecteurCode: schemaCodeConnecteur,
+    siteId: schemaIdentifiant.nullish(),
+    parametres: z.record(z.string(), z.unknown()).optional(),
+    politiqueNouvellesTentatives: schemaPolitiqueNouvellesTentativesConnecteur.nullish(),
+  })
+  .strict();
 export type EntreeCreationConnecteurActivation = z.infer<typeof schemaCreationConnecteurActivation>;
 
 /** `PATCH /connecteurs/activations/{id}` — tous facultatifs. N'INCLUT PAS `statut` : transitions
  *  par actions nommées ci-dessous, même patron que `commande-fournisseur.ts`/`document.ts`. */
-export const schemaModificationConnecteurActivation = z.object({
-  siteId: schemaIdentifiant.nullish(),
-  parametres: z.record(z.string(), z.unknown()).optional(),
-  politiqueNouvellesTentatives: schemaPolitiqueNouvellesTentativesConnecteur.nullish(),
-});
+export const schemaModificationConnecteurActivation = z
+  .object({
+    siteId: schemaIdentifiant.nullish(),
+    parametres: z.record(z.string(), z.unknown()).optional(),
+    politiqueNouvellesTentatives: schemaPolitiqueNouvellesTentativesConnecteur.nullish(),
+  })
+  .strict();
 export type EntreeModificationConnecteurActivation = z.infer<
   typeof schemaModificationConnecteurActivation
 >;
@@ -183,9 +189,11 @@ export type EntreeModificationConnecteurActivation = z.infer<
  *
  * Remplace la référence courante — idempotent par construction, pas d'`Idempotency-Key`.
  */
-export const schemaConfigurationSecretConnecteur = z.object({
-  secretReferenceId: schemaIdentifiant,
-});
+export const schemaConfigurationSecretConnecteur = z
+  .object({
+    secretReferenceId: schemaIdentifiant,
+  })
+  .strict();
 export type EntreeConfigurationSecretConnecteur = z.infer<
   typeof schemaConfigurationSecretConnecteur
 >;

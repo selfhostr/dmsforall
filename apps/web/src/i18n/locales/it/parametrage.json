@@ -268,5 +268,77 @@
       "articleDistinct": "Un confezionamento diverso è un articolo distinto",
       "inerte": "impostazione fissa, non ancora configurabile"
     }
+  },
+  "utilisateurs": {
+    "titre": "Utenti",
+    "nouveau": "Nuovo dipendente",
+    "vide": {
+      "titre": "Nessun dipendente",
+      "description": "Crea il primo accesso per un dipendente di questa officina."
+    },
+    "colonnes": {
+      "nom": "Nome",
+      "email": "E-mail",
+      "role": "Ruolo",
+      "sites": "Sedi",
+      "statut": "Stato",
+      "actions": "Azioni"
+    },
+    "statut": {
+      "actif": "Attivo",
+      "suspendu": "Disattivato",
+      "invite": "Invitato"
+    },
+    "sitesAucun": "Nessuna sede indicata",
+    "actions": {
+      "modifier": "Modifica ruolo o sedi",
+      "desactiver": "Disattiva",
+      "reactiver": "Riattiva",
+      "reinitialiserAcces": "Reimposta accesso",
+      "menuAria": "Azioni per {{nom}}"
+    },
+    "creation": {
+      "titre": "Crea un dipendente",
+      "description": "La password non si inserisce qui: viene generata e mostrata una sola volta dopo la creazione.",
+      "champPrenom": "Nome",
+      "champNom": "Cognome",
+      "champEmail": "E-mail",
+      "champRole": "Ruolo",
+      "champSites": "Sedi in cui lavora il dipendente",
+      "aucunSiteDisponible": "Nessuna sede è ancora collegata a questa officina.",
+      "sitesAucunSelectionne": "Seleziona almeno una sede.",
+      "actions": {
+        "creer": "Crea"
+      }
+    },
+    "modification": {
+      "titre": "Modifica {{nom}}",
+      "description": "Cambia il ruolo e/o le sedi — utile in caso di cambio di mansione.",
+      "actions": {
+        "enregistrer": "Salva"
+      }
+    },
+    "acces": {
+      "titre": "Accesso creato",
+      "description": "Questa password temporanea non verrà più mostrata — annotala ora o trasmettila al dipendente.",
+      "champMotDePasse": "Password temporanea",
+      "copie": "Copiata negli appunti.",
+      "fermer": "Ho annotato la password"
+    },
+    "desactiver": {
+      "titre": "Disattivare {{nom}}?",
+      "description": "Il dipendente non potrà più accedere. La sua cronologia (ordini di riparazione, fatture, timbrature) resta attribuibile — non è un'eliminazione, l'account può essere riattivato in qualsiasi momento.",
+      "confirmer": "Disattiva"
+    },
+    "reactiver": {
+      "titre": "Riattivare {{nom}}?",
+      "description": "Il dipendente potrà nuovamente accedere con la password esistente.",
+      "confirmer": "Riattiva"
+    },
+    "reinitialiserAcces": {
+      "titre": "Reimpostare l'accesso di {{nom}}?",
+      "description": "Viene generata una nuova password temporanea e ogni sessione aperta di questo dipendente viene chiusa immediatamente.",
+      "confirmer": "Reimposta"
+    }
   }
 }

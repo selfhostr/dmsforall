@@ -439,7 +439,25 @@ describe('cohérence de devise entre le paiement et le document imputé (correct
       appliquerImputationsLettrage(tx, CTX, paiement, [
         { documentId: 'doc-1', montantCentimes: 15000, nature: 'reglement' },
       ]),
-    ).rejects.toMatchObject({ code: 'IMPUTATION_DEVISE_INCOHERENTE', status: 409 });
+    ).rejects.toMatchObject({
+      code: 'IMPUTATION_DEVISE_INCOHERENTE',
+      status: 409,
+      // Issue #15, point 3/3 : le lettrage générique porte `blocages[0].id: 'documentId'` — nom
+      // du champ fautif dans `formeImputationInline`/`schemaCreationImputation`, PAS un
+      // identifiant de rôle stable (même convention que VEHICULE_PLAQUE_COLLISION).
+      blocages: [
+        {
+          type: 'champ',
+          id: 'documentId',
+          donnees: {
+            paiementId: 'pmt-1',
+            paiementDevise: 'CHF',
+            documentId: 'doc-1',
+            documentDevise: 'EUR',
+          },
+        },
+      ],
+    });
 
     // Aucune écriture n'a dû partir : le refus intervient AVANT toute insertion/mise à jour.
     expect(inserts).toHaveLength(0);
@@ -474,7 +492,24 @@ describe('cohérence de devise entre le paiement et le document imputé (correct
 
     await expect(
       appliquerCompensationAvance(tx, CTX, paiementAvance, 'doc-regul', 200),
-    ).rejects.toMatchObject({ code: 'IMPUTATION_DEVISE_INCOHERENTE' });
+    ).rejects.toMatchObject({
+      code: 'IMPUTATION_DEVISE_INCOHERENTE',
+      // L'abandon d'avance porte `blocages[0].id: 'documentRegularisationId'` — nom du champ
+      // fautif dans `schemaAbandonnerAvance`, différent du lettrage générique ci-dessus : la
+      // valeur d'`id` VARIE selon la route, c'est voulu (même doctrine que la collision de plaque).
+      blocages: [
+        {
+          type: 'champ',
+          id: 'documentRegularisationId',
+          donnees: {
+            paiementId: 'pmt-avance',
+            paiementDevise: 'CHF',
+            documentId: 'doc-regul',
+            documentDevise: 'EUR',
+          },
+        },
+      ],
+    });
   });
 
   it('appelant historique sans devise explicite (défaut CHF du contrat) imputé sur une facture EUR reprise : refusé explicitement, pas un 500 ni une écriture silencieuse', async () => {

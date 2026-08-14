@@ -9,6 +9,7 @@ import {
   clientCondition,
   ordreReparation,
   parametreAtelier,
+  rendezVous,
   utilisateur,
   vehicule,
   vehiculeDetention,
@@ -351,6 +352,39 @@ const PARAMETRES_ATELIER_PAR_DEFAUT: Omit<
   periodicitesExpertise: {},
   relanceNonRetire: {},
 };
+
+/**
+ * Lecture MINIMALE du rendez-vous lié (`ordre_reparation.rendez_vous_id`) — sert uniquement à
+ * amorcer `restitution_promise_le` à la réception (`service-transitions.ts::receptionner`, le
+ * cœur du chantier RDV). Volontairement PAS un import du service `rendezvous/` (sens unique de
+ * dépendance déjà établi dans ce dépôt : `atelier` ne dépend jamais d'un module qui dépend
+ * lui-même d'`atelier`, même précédent que `FacturationModule`/`VehiculesModule`/`PiecesModule`
+ * ci-dessus) — lecture directe du schéma Drizzle partagé, comme tout le reste de ce fichier.
+ */
+export interface DonneesRendezVousPourAmorcage {
+  readonly date: string;
+  readonly moment: 'matin' | 'apres_midi' | 'toute_journee';
+  readonly heureSouhaitee: string | null;
+  readonly dureeEstimeeMinutes: number;
+}
+
+export async function chargerRendezVousPourAmorcage(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  rendezVousId: string,
+): Promise<DonneesRendezVousPourAmorcage | null> {
+  const [ligne] = await tx
+    .select({
+      date: rendezVous.date,
+      moment: rendezVous.moment,
+      heureSouhaitee: rendezVous.heureSouhaitee,
+      dureeEstimeeMinutes: rendezVous.dureeEstimeeMinutes,
+    })
+    .from(rendezVous)
+    .where(and(eq(rendezVous.tenantId, ctx.tenantId), eq(rendezVous.id, rendezVousId)))
+    .limit(1);
+  return ligne ?? null;
+}
 
 export async function chargerParametresAtelier(
   tx: TransactionDfa,

@@ -14,7 +14,9 @@ import type { RoleUtilisateur } from '@dfa/shared';
 import { chemins } from '@/routes/chemins';
 import {
   ROLES_BORNE_POINTAGE,
+  ROLES_LECTURE_RENDEZ_VOUS,
   ROLES_MENU_FACTURATION,
+  ROLES_GESTION_UTILISATEURS,
   ROLES_MENU_FINANCIER,
   ROLES_MENU_PARAMETRAGE_ATELIER,
   ROLES_PARAMETRAGE_PIECES,
@@ -178,6 +180,19 @@ const ONGLETS_ATELIER: readonly OngletDomaine[] = [
     chemin: (site) => chemins.atelier.ordresReparation.liste(site),
     motifs: ['/ordres-reparation', '/atelier/ordres-reparation'],
     roles: ROLES_LECTURE_OR,
+  },
+  /**
+   * Rendez-vous (Lot RDV-1) — activation du slot réservé au Lot D (§4.2 : « DEUXIÈME onglet
+   * d'Atelier, entre Ordres de réparation et Pointage »), retiré d'`EMPLACEMENTS_RESERVES`
+   * ci-dessous. `ROLES_LECTURE_RENDEZ_VOUS` reflète `rendez_vous.lire` (`droits-routes.ts`) : ferme
+   * la lecture elle-même à `vendeur`/`magasinier`/`comptable`/`poste_atelier`.
+   */
+  {
+    id: 'rendezVous',
+    cleLibelle: 'navigation:onglets.atelierPlanning',
+    chemin: (site) => chemins.atelier.rendezVous.agenda(site),
+    motifs: ['/rendez-vous'],
+    roles: ROLES_LECTURE_RENDEZ_VOUS,
   },
   /**
    * Pointage — CINQ vues, dont la borne. « Clôture de période » N'EST PLUS un écran autonome
@@ -570,6 +585,17 @@ const ONGLETS_REGLAGES: readonly OngletDomaine[] = [
     motifs: ['/parametrage/pieces'],
     roles: ROLES_PARAMETRAGE_PIECES,
   },
+  /** Gestion des employés (issue #137) — dernier onglet de Réglages : « le patron d'un garage ne
+   *  peut pas gérer ses employés » (brief). Visible SEULEMENT à `direction`/`admin`, même groupe
+   *  que la garde de route (`ROLES_GESTION_UTILISATEURS`, `droits-routes.ts`) — reflet direct de
+   *  `socle.utilisateur.lire` côté API, pas une restriction inventée par ce menu. */
+  {
+    id: 'utilisateurs',
+    cleLibelle: 'navigation:onglets.reglagesUtilisateurs',
+    chemin: (site) => chemins.parametrage.utilisateurs(site),
+    motifs: ['/parametrage/utilisateurs'],
+    roles: ROLES_GESTION_UTILISATEURS,
+  },
 ];
 
 /** Les SIX entrées, dans l'ordre de la journée. Réglages n'en fait pas partie : il vit en pied. */
@@ -674,15 +700,6 @@ export const EMPLACEMENTS_RESERVES: readonly {
       'Paliers de relance (§4.5 : « paliers -> Réglages »). Tant que `EcranRelances` mélange les ' +
       "règles et le déclenchement, l'écran vit en onglet de Facturation (voir ONGLETS_FACTURATION). " +
       "Le jour où les paliers s'en détachent, ils viennent ici en DERNIER onglet de Réglages.",
-  },
-  {
-    entree: 'atelier',
-    onglet: 'planning',
-    cleLibelle: 'navigation:onglets.atelierPlanning',
-    motif:
-      "Planning d'atelier (Lot I). §4.2 le place en DEUXIÈME onglet d'Atelier, entre Ordres de " +
-      'réparation et Pointage. Repli explicite retenu par le plan (option a) : onglet absent tant ' +
-      "que son contenu n'est pas cadré, plutôt qu'un onglet qui retrie une liste déjà existante.",
   },
 ];
 
