@@ -84,6 +84,33 @@
   },
   "tracabilite": {
     "titre": "Cronologia degli invii",
-    "note": "Il registro dettagliato — chi ha ricevuto quale promemoria, quando e con quale esito — apparirà qui non appena sarà disponibile l'API di listing degli invii. Nel frattempo, ogni avvio qui sopra mostra il bilancio della sua esecuzione."
+    "description": "Ogni promemoria inviato, con data, fattura interessata, livello ed esito dell'invio — una riga per tentativo, prova che un cliente è stato effettivamente sollecitato.",
+    "colonnes": {
+      "date": "Data di invio",
+      "facture": "Fattura",
+      "palier": "Livello",
+      "destinataire": "Destinatario",
+      "canal": "Canale",
+      "resultat": "Esito"
+    },
+    "statut": {
+      "envoye": "Inviato",
+      "echoue": "Non riuscito"
+    },
+    "raisons": {
+      "destinataire_invalide": "Indirizzo o numero del destinatario non valido",
+      "canal_non_supporte": "Canale non supportato per questo cliente",
+      "contenu_refuse": "Contenuto rifiutato dal fornitore di invio",
+      "quota_depasse": "Quota di invio superata o errore tecnico del fornitore",
+      "inconnue": "Non riuscito — motivo non disponibile"
+    },
+    "vide": {
+      "titre": "Nessun promemoria inviato",
+      "description": "Per questo garage non è ancora stato inviato alcun promemoria. La cronologia apparirà qui dal primo invio."
+    },
+    "etatErreur": {
+      "titre": "Impossibile mostrare la cronologia",
+      "description": "La cronologia degli invii non è stata caricata. Verifica la connessione e riprova."
+    }
   }
 }

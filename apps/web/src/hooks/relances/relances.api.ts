@@ -1,9 +1,11 @@
 import {
   schemaUpsertRegleRelance,
   type EntreeUpsertRegleRelance,
+  type PageCurseur,
   type ReponseEnvoiRelances,
   type ReponsePlanificationRelances,
   type ReponseRegleRelance,
+  type ReponseRelanceEnvoi,
   type TypeRelance,
 } from '@dfa/shared';
 
@@ -11,22 +13,23 @@ import { requeteApi } from '@/api/client';
 
 /**
  * Couche transport des relances automatiques (lot 1 — facturation, rappel #2,
- * `docs/specification-relances-automatiques.md`). Même convention que
- * `hooks/pneus/depot-pneus.api.ts` : les types consommés sont ceux de `@dfa/shared`
- * (`packages/shared/src/contrats/relances/`), jamais `api/types.gen.ts`.
+ * `docs/specification-relances-automatiques.md`, + historique d'envoi, issue #136). Même
+ * convention que `hooks/pneus/depot-pneus.api.ts` : les types consommés sont ceux de
+ * `@dfa/shared` (`packages/shared/src/contrats/relances/`), jamais `api/types.gen.ts`.
  *
  * ÉCART SIGNALÉ (même nature que `hooks/pneus/depot-pneus.api.ts`) : `apps/web/src/api/types.gen.ts`
  * n'a PAS été régénéré depuis l'OpenAPI pour inclure le module `relances` — vérifié le 05.08.2026,
- * aucune occurrence de `Relance`/`relances/regles` dans ce fichier généré. Les QUATRE routes
- * existent et sont prouvées côté API (`apps/api/src/relances/relances.controller.ts`) ; ce fichier
- * s'aligne sur leurs DTO, qui implémentent eux-mêmes les types `@dfa/shared` importés ci-dessus
- * (voir `apps/api/src/relances/dto/relances.dto.ts`). À réconcilier à la prochaine régénération
+ * toujours vrai au 14.08.2026 pour la nouvelle route `GET .../historique` ajoutée par cette
+ * issue. Les CINQ routes existent et sont prouvées côté API
+ * (`apps/api/src/relances/relances.controller.ts`) ; ce fichier s'aligne sur leurs DTO, qui
+ * implémentent eux-mêmes les types `@dfa/shared` importés ci-dessus (voir
+ * `apps/api/src/relances/dto/`). À réconcilier à la prochaine régénération
  * (`pnpm api:openapi && pnpm web:types`) — non exécutée ici (périmètre `apps/web` uniquement).
  *
- * LISTING ABSENT CÔTÉ API : aucune route ne liste `relance_planifiee` ni `relance_envoi`
- * (l'`index.ts` du contrat le dit explicitement — DTO de listing « laissés aux lots qui exposent
- * un écran »). L'écran affiche donc les bilans d'exécution (`planifier`/`envoyer`) mais pas le
- * journal détaillé par client, qui requiert ces routes — signalé au coordinateur.
+ * ISSUE #136 (résolue par ce fichier) : `GET /relances/facturation/historique` liste désormais
+ * `relance_envoi` (une ligne par tentative d'envoi tracée, append-only) — `listerHistoriqueRelances`
+ * ci-dessous. `relance_planifiee` (l'état courant d'une occasion) reste hors périmètre de cette
+ * issue, aucune route ne la liste encore.
  */
 
 /** `GET /relances/regles` — au plus 9 lignes (une par `TypeRelance`), aucune pagination. */
@@ -76,6 +79,27 @@ export async function envoyerRelancesFacture(): Promise<ReponseEnvoiRelances> {
   });
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /relances/facturation/envoyer.');
+  }
+  return reponse;
+}
+
+const LIMITE_HISTORIQUE = 50;
+
+/** `GET /relances/facturation/historique` (issue #136) — pagination par curseur, `factureId`
+ *  facultatif (omis : historique complet du tenant, utilisé par `EcranRelances.tsx`). */
+export async function listerHistoriqueRelances(
+  factureId: string | undefined,
+  curseur: string | undefined,
+): Promise<PageCurseur<ReponseRelanceEnvoi>> {
+  const params = new URLSearchParams({ limite: String(LIMITE_HISTORIQUE) });
+  if (factureId) params.set('factureId', factureId);
+  if (curseur) params.set('curseur', curseur);
+  const reponse = await requeteApi<PageCurseur<ReponseRelanceEnvoi>>(
+    `/relances/facturation/historique?${params.toString()}`,
+    { method: 'GET' },
+  );
+  if (!reponse) {
+    throw new Error('Réponse vide inattendue : GET /relances/facturation/historique.');
   }
   return reponse;
 }

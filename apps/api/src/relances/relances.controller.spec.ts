@@ -39,6 +39,16 @@ describe('RelancesController — droit exigé par route, et RF-115 (admin sans d
     ['upserter', RelancesController.prototype.upserter, 'relances.facturation.regle.ecrire'],
     ['planifier', RelancesController.prototype.planifier, 'relances.facturation.planifier'],
     ['envoyer', RelancesController.prototype.envoyer, 'relances.facturation.envoyer'],
+    // Issue #136 : réutilise DÉLIBÉRÉMENT `relances.facturation.regle.lire` — voir la doc
+    // d'en-tête de `relances.controller.ts` pour l'arbitrage (pas d'accès de cette tâche à
+    // `auth/matrice-droits.ts` pour poser une action dédiée, et le même périmètre de rôles est de
+    // toute façon celui qui convient : l'historique d'envoi expose la même politique commerciale
+    // que la configuration des relances).
+    [
+      'listerHistorique',
+      RelancesController.prototype.listerHistorique,
+      'relances.facturation.regle.lire',
+    ],
   ];
 
   it.each(casAttendus)('%s() exige exactement %s', (_nom, handler, actionAttendue) => {
@@ -48,12 +58,13 @@ describe('RelancesController — droit exigé par route, et RF-115 (admin sans d
   /**
    * RF-115, littéral et non négociable (`auth/matrice-droits.ts`, tête de section relances) :
    * « admin est un rôle technique et n'a aucun droit financier ». Configurer ou déclencher un
-   * rappel de facture EST un geste financier — un seul jeu de rôles (`direction`, `comptable`)
-   * gouverne les QUATRE routes de ce contrôleur, y compris LIRE (même lire la politique de
-   * recouvrement expose une décision commerciale, voir l'en-tête de `relances.controller.ts`).
-   * Un test qui attendrait `admin` permissif ici encoderait exactement le bug que RF-115 interdit.
+   * rappel de facture — ou consulter qui a été relancé et quand — EST un geste financier : un seul
+   * jeu de rôles (`direction`, `comptable`) gouverne les CINQ routes de ce contrôleur, y compris
+   * LIRE (même lire la politique de recouvrement expose une décision commerciale, voir l'en-tête
+   * de `relances.controller.ts`). Un test qui attendrait `admin` permissif ici encoderait
+   * exactement le bug que RF-115 interdit.
    */
-  it('les quatre actions relances sont réservées à direction + comptable SEULS — admin exclu (RF-115)', () => {
+  it('les actions relances sont réservées à direction + comptable SEULS — admin exclu (RF-115)', () => {
     const attendu = ['comptable', 'direction'].sort();
     for (const [, , action] of casAttendus) {
       const roles = rolesAyant(action);
