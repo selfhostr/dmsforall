@@ -66,6 +66,10 @@ export function useArreterPointage(): UseMutationResult<
         queryKey: ['pointages', 'technicienJour', technicienId],
       });
       void queryClient.invalidateQueries({ queryKey: clesPointage.ouvertsSite(siteId) });
+      // Même raison que `useDemarrerPointage` : un arrêt peut faire apparaître une reprise possible
+      // (fin d'un segment productif, RM-87) — `GET /pointages/dernier-du-jour` doit refléter la
+      // réalité sans recharger la page.
+      void queryClient.invalidateQueries({ queryKey: clesPointage.derniereCible(technicienId) });
     },
   });
 }
