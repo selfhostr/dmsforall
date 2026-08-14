@@ -220,6 +220,8 @@ export class ServiceArticle {
         prixVenteTtcCentimes: number;
         quantiteDisponibleMillieme: number;
         emplacement: string | null;
+        rayon: string | null;
+        tiroir: string | null;
         estEchangeStandard: boolean;
         montantConsigneTtcCentimes: number | null;
       }>(sql`
@@ -227,7 +229,8 @@ export class ServiceArticle {
                a.designation as "designation", a.reference_principale as "referencePrincipale",
                a.prix_vente_ttc_centimes as "prixVenteTtcCentimes",
                coalesce(s.quantite_physique_millieme, 0) - coalesce(s.quantite_reservee_millieme, 0) as "quantiteDisponibleMillieme",
-               s.emplacement as "emplacement", a.est_echange_standard as "estEchangeStandard",
+               s.emplacement as "emplacement", s.rayon as "rayon", s.tiroir as "tiroir",
+               a.est_echange_standard as "estEchangeStandard",
                a.montant_consigne_ttc_centimes as "montantConsigneTtcCentimes"
           from public.article a
           left join public.stock_article s

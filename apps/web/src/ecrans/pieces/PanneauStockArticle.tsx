@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { SiteResume, StockResumeArticle } from '@dfa/shared';
+import type { RoleUtilisateur, SiteResume, StockResumeArticle } from '@dfa/shared';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,12 +20,18 @@ import { EtatVide } from '@/composants/commun/EtatVide';
 import { useDisponibiliteArticle } from '@/hooks/pieces/useDisponibiliteArticle';
 import { formaterDateHeure } from '@/lib/formats';
 
-import { formaterQuantiteMillieme } from './utils';
+import {
+  DialogueEmplacementStockArticle,
+  type CasierAModifier,
+} from './DialogueEmplacementStockArticle';
+import { peutEcrireStockSite } from './droits';
+import { formaterQuantiteMillieme, texteEmplacementComplet } from './utils';
 
 interface Props {
   readonly articleId: string;
   readonly stocksResume: readonly StockResumeArticle[];
   readonly sites: readonly SiteResume[];
+  readonly role?: RoleUtilisateur;
 }
 
 function nomSite(sites: readonly SiteResume[], siteId: string): string {
@@ -39,9 +45,11 @@ function nomSite(sites: readonly SiteResume[], siteId: string): string {
  * actives — le terrain de CP-02 (RP-19), ce que le magasinier doit voir avant de dire « c'est
  * réservé » à un client au comptoir.
  */
-export function PanneauStockArticle({ articleId, stocksResume, sites }: Props) {
+export function PanneauStockArticle({ articleId, stocksResume, sites, role }: Props) {
   const { t } = useTranslation(['pieces', 'commun', 'erreurs']);
   const [siteDeplie, setSiteDeplie] = useState<string | null>(null);
+  const [casierOuvert, setCasierOuvert] = useState<CasierAModifier | null>(null);
+  const peutModifierCasier = peutEcrireStockSite(role);
 
   if (stocksResume.length === 0) {
     return (
@@ -68,30 +76,65 @@ export function PanneauStockArticle({ articleId, stocksResume, sites }: Props) {
               <TableHead>{t('pieces:stock.site')}</TableHead>
               <TableHead className="text-right">{t('pieces:stock.quantites.physique')}</TableHead>
               <TableHead className="text-right">{t('pieces:stock.quantites.disponible')}</TableHead>
+              <TableHead>{t('pieces:stock.quantites.emplacement')}</TableHead>
               <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
-            {stocksResume.map((stock) => (
-              <TableRow key={stock.siteId}>
-                <TableCell>{nomSite(sites, stock.siteId)}</TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formaterQuantiteMillieme(stock.quantitePhysiqueMillieme)}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formaterQuantiteMillieme(stock.quantiteDisponibleMillieme)}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => setSiteDeplie(siteDeplie === stock.siteId ? null : stock.siteId)}
-                  >
-                    {t('pieces:reservations.disponibilite.titre')}
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+            {stocksResume.map((stock) => {
+              const emplacementComplet = texteEmplacementComplet(t, stock);
+              return (
+                <TableRow key={stock.siteId}>
+                  <TableCell>{nomSite(sites, stock.siteId)}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formaterQuantiteMillieme(stock.quantitePhysiqueMillieme)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formaterQuantiteMillieme(stock.quantiteDisponibleMillieme)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-1">
+                      {emplacementComplet !== null ? (
+                        <span className="texte-libelle">{emplacementComplet}</span>
+                      ) : (
+                        <span className="texte-libelle text-muted-foreground">
+                          {t('pieces:emplacement.aucun')}
+                        </span>
+                      )}
+                      {peutModifierCasier ? (
+                        <button
+                          type="button"
+                          className="w-fit texte-libelle text-primary underline-offset-2 hover:underline"
+                          onClick={() =>
+                            setCasierOuvert({
+                              articleId,
+                              siteId: stock.siteId,
+                              nomSite: nomSite(sites, stock.siteId),
+                              rayon: stock.rayon,
+                              tiroir: stock.tiroir,
+                              emplacement: stock.emplacement,
+                            })
+                          }
+                        >
+                          {t('pieces:emplacement.modifier')}
+                        </button>
+                      ) : null}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() =>
+                        setSiteDeplie(siteDeplie === stock.siteId ? null : stock.siteId)
+                      }
+                    >
+                      {t('pieces:reservations.disponibilite.titre')}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
 
@@ -103,6 +146,11 @@ export function PanneauStockArticle({ articleId, stocksResume, sites }: Props) {
           />
         ) : null}
       </CardContent>
+
+      <DialogueEmplacementStockArticle
+        casier={casierOuvert}
+        onFerme={() => setCasierOuvert(null)}
+      />
     </Card>
   );
 }

@@ -19,6 +19,8 @@ const RESULTATS_TEST: readonly ResultatRechercheComptoirArticle[] = [
     prixVenteTtcCentimes: 8900,
     quantiteDisponibleMillieme: 3000,
     emplacement: 'B3',
+    rayon: null,
+    tiroir: null,
     estEchangeStandard: false,
     montantConsigneTtcCentimes: null,
   },

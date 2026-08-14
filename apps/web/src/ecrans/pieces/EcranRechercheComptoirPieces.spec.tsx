@@ -30,12 +30,20 @@ const ARTICLE: ResultatRechercheComptoirArticle = {
   prixVenteTtcCentimes: 8900,
   quantiteDisponibleMillieme: 3000,
   emplacement: 'B3',
+  rayon: null,
+  tiroir: null,
   estEchangeStandard: false,
   montantConsigneTtcCentimes: null,
 };
 
 function resultats(disponibleMillieme: number): readonly ResultatRechercheComptoirArticle[] {
   return [{ ...ARTICLE, quantiteDisponibleMillieme: disponibleMillieme }];
+}
+
+function resultatsAvecCasier(
+  champs: Partial<ResultatRechercheComptoirArticle>,
+): readonly ResultatRechercheComptoirArticle[] {
+  return [{ ...ARTICLE, quantiteDisponibleMillieme: 3000, ...champs }];
 }
 
 function rendre(role: (typeof SESSION_TEST)['utilisateur']['role'] = 'magasinier') {
@@ -265,5 +273,60 @@ describe('EcranRechercheComptoirPieces — actions de comptoir', () => {
       quantiteMillieme: 1000,
       motif: 'Pièce non montée',
     });
+  });
+});
+
+describe('EcranRechercheComptoirPieces — emplacement complet (0056), trois rendus distincts', () => {
+  it('aucun rayon, aucun tiroir, aucun texte libre : rien n’est affiché (jamais un tiret muet)', async () => {
+    server.use(
+      http.get('/api/v1/articles/recherche-comptoir', () =>
+        HttpResponse.json(resultatsAvecCasier({ emplacement: null, rayon: null, tiroir: null })),
+      ),
+    );
+    rendre('magasinier');
+    await rechercher();
+
+    expect(screen.queryByText(/rayon/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/tiroir/i)).not.toBeInTheDocument();
+  });
+
+  it('texte libre seul (rayon et tiroir absents) : le texte libre est affiché tel quel', async () => {
+    server.use(
+      http.get('/api/v1/articles/recherche-comptoir', () =>
+        HttpResponse.json(
+          resultatsAvecCasier({ emplacement: 'étagère du fond', rayon: null, tiroir: null }),
+        ),
+      ),
+    );
+    rendre('magasinier');
+    await rechercher();
+
+    expect(await screen.findByText('étagère du fond')).toBeInTheDocument();
+  });
+
+  it('casier structuré (rayon + tiroir), sans texte libre : « Rayon B3, tiroir 2 »', async () => {
+    server.use(
+      http.get('/api/v1/articles/recherche-comptoir', () =>
+        HttpResponse.json(resultatsAvecCasier({ emplacement: null, rayon: 'B3', tiroir: '2' })),
+      ),
+    );
+    rendre('magasinier');
+    await rechercher();
+
+    expect(await screen.findByText('Rayon B3, tiroir 2')).toBeInTheDocument();
+  });
+
+  it('casier structuré ET texte libre en plus : les deux coexistent dans le même rendu', async () => {
+    server.use(
+      http.get('/api/v1/articles/recherche-comptoir', () =>
+        HttpResponse.json(
+          resultatsAvecCasier({ emplacement: 'accès par le fond', rayon: 'B3', tiroir: '2' }),
+        ),
+      ),
+    );
+    rendre('magasinier');
+    await rechercher();
+
+    expect(await screen.findByText('Rayon B3, tiroir 2 — accès par le fond')).toBeInTheDocument();
   });
 });

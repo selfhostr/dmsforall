@@ -8,6 +8,23 @@
       "titre": "Ihre Standorte konnten nicht geladen werden"
     }
   },
+  "emplacement": {
+    "rayonTiroir": "Regal {rayon}, Schublade {tiroir}",
+    "rayonSeul": "Regal {rayon}",
+    "tiroirSeul": "Schublade {tiroir}",
+    "avecLibre": "{structure} — {emplacement}",
+    "modifier": "Lagerfach bearbeiten",
+    "aucun": "Kein Lagerfach hinterlegt",
+    "dialogue": {
+      "titre": "Lagerfach",
+      "description": "Regal und Schublade sind optional — eine strukturierte Ergänzung zum bestehenden Freitext, der für Sonderfälle weiterhin nutzbar bleibt.",
+      "rayon": "Regal",
+      "tiroir": "Schublade",
+      "aide": "„B3“, „b3“ und „B 3“ bezeichnen dasselbe Regal — Groß-/Kleinschreibung und Leerzeichen spielen keine Rolle.",
+      "libreActuel": "Aktueller Freitext für diesen Standort: {emplacement}",
+      "libreAucun": "Kein Freitext für diesen Standort hinterlegt."
+    }
+  },
   "rechercheComptoir": {
     "titre": "Thekensuche",
     "aide": "Referenz, Bezeichnung oder Strichcode eingeben.",
@@ -17,8 +34,7 @@
     },
     "resultat": {
       "disponible": "{n} auf Lager",
-      "rupture": "Nicht auf Lager",
-      "emplacement": "Lagerplatz {emplacement}"
+      "rupture": "Nicht auf Lager"
     },
     "erreur": {
       "titre": "Die Suche ist fehlgeschlagen"

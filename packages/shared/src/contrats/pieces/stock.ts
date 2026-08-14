@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { schemaEmplacement } from './primitives';
+import { schemaCasier, schemaEmplacement } from './primitives';
 import { schemaIdentifiant, schemaQuantiteMillieme } from '../atelier/primitives';
 import { schemaParametresPage } from '../pagination';
 
@@ -24,6 +24,11 @@ export interface ReponseStockArticle {
    *  que de produire une réservation partielle). */
   readonly quantiteDisponibleMillieme: number;
   readonly emplacement: string | null;
+  /** Casier structuré (0056), COMPLÉMENT de `emplacement` — voir `primitives.ts::schemaCasier`
+   *  pour la garantie de normalisation (`B3`/`b3`/`B 3` convergent). `null` = pas de rayon
+   *  renseigné, distinct d'un rayon vide (jamais stocké tel quel). */
+  readonly rayon: string | null;
+  readonly tiroir: string | null;
   readonly stockMinimumMillieme: number | null;
   /** Quantité de commande standard (`RP-12`) : le fournisseur vend par lot de 10, pas à l'unité. */
   readonly quantiteCommandeStandardMillieme: number | null;
@@ -133,6 +138,10 @@ export interface LigneReapprovisionnement {
  *  n'existe dans ce contrat, exactement pour empêcher un ajustement silencieux hors traçabilité). */
 export const schemaModificationStockSite = z.object({
   emplacement: schemaEmplacement.nullish(),
+  /** Casier structuré (0056) — COMPLÉMENT de `emplacement`, jamais un remplacement. Normalisé
+   *  avant écriture (`schemaCasier`) : `B3`/`b3`/`B 3` produisent tous la même valeur stockée. */
+  rayon: schemaCasier.optional(),
+  tiroir: schemaCasier.optional(),
   stockMinimumMillieme: schemaQuantiteMillieme.nullish(),
   quantiteCommandeStandardMillieme: schemaQuantiteMillieme.nullish(),
 });

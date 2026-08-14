@@ -417,6 +417,7 @@ export function EcranFicheArticle() {
         articleId={article.id}
         stocksResume={article.stocksResume}
         sites={sites}
+        role={role}
       />
 
       <PanneauMouvementsArticle

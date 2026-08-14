@@ -66,7 +66,7 @@ export class StockArticleController {
   @ExigerDroit('pieces.stock.modifier')
   @ApiOperation({
     summary:
-      'Réglages de stock d’un site (emplacement, seuils) — JAMAIS la quantité physique (RP-16→RP-18).',
+      'Réglages de stock d’un site (emplacement, rayon, tiroir, seuils) — JAMAIS la quantité physique (RP-16→RP-18).',
   })
   @ApiParam({ name: 'articleId', format: 'uuid' })
   @ApiParam({ name: 'siteId', format: 'uuid' })
