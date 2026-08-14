@@ -17,14 +17,20 @@ import { requeteApi } from '@/api/client';
  * convention que `hooks/pneus/depot-pneus.api.ts` : les types consommés sont ceux de
  * `@dfa/shared` (`packages/shared/src/contrats/relances/`), jamais `api/types.gen.ts`.
  *
- * ÉCART SIGNALÉ (même nature que `hooks/pneus/depot-pneus.api.ts`) : `apps/web/src/api/types.gen.ts`
- * n'a PAS été régénéré depuis l'OpenAPI pour inclure le module `relances` — vérifié le 05.08.2026,
- * toujours vrai au 14.08.2026 pour la nouvelle route `GET .../historique` ajoutée par cette
- * issue. Les CINQ routes existent et sont prouvées côté API
- * (`apps/api/src/relances/relances.controller.ts`) ; ce fichier s'aligne sur leurs DTO, qui
- * implémentent eux-mêmes les types `@dfa/shared` importés ci-dessus (voir
- * `apps/api/src/relances/dto/`). À réconcilier à la prochaine régénération
- * (`pnpm api:openapi && pnpm web:types`) — non exécutée ici (périmètre `apps/web` uniquement).
+ * ÉCART PARTIELLEMENT RÉSOLU au 14.08.2026 : `apps/web/src/api/types.gen.ts` a été régénéré par
+ * ailleurs (227 routes) et couvre désormais les QUATRE routes existantes avant cette issue
+ * (`GET regles`, `PUT regles/{typeRelance}`, `POST facturation/planifier`,
+ * `POST facturation/envoyer`) — vérifié : les quatre chemins `/relances/...` y figurent. La
+ * CINQUIÈME route, `GET /relances/facturation/historique` (ajoutée par cette issue), N'Y FIGURE
+ * PAS ENCORE et NE PEUT PAS y figurer : `pnpm api:openapi && pnpm web:types` n'ont pas tourné
+ * depuis son ajout côté API (régénération réservée à la session qui orchestre ce chantier, hors
+ * périmètre `apps/web`). `listerHistoriqueRelances` ci-dessous s'appuie donc, par nécessité et non
+ * par choix, sur `ReponseRelanceEnvoi`/`PageCurseur` de `@dfa/shared` — le DTO API
+ * (`apps/api/src/relances/dto/relance-envoi.dto.ts`) implémente ce même type, aucune forme n'est
+ * inventée ici. Les quatre fonctions existantes gardent, elles aussi, `@dfa/shared` plutôt que de
+ * migrer vers le type généré nouvellement disponible — laissé groupé avec la réconciliation
+ * complète du fichier à la prochaine régénération plutôt que fait à moitié ici (décision
+ * signalée au coordinateur, pas une omission).
  *
  * ISSUE #136 (résolue par ce fichier) : `GET /relances/facturation/historique` liste désormais
  * `relance_envoi` (une ligne par tentative d'envoi tracée, append-only) — `listerHistoriqueRelances`
