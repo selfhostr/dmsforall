@@ -21,9 +21,13 @@ interface Props {
 /**
  * Bandeau STATIONNAIRE en tête d'écran, offert dès qu'une reprise est possible — pas seulement
  * depuis une pause : TOUTE activité indirecte (nettoyage, attente pièces, magasin, formation,
- * absence…) laisse la cible productive mémorisée (`dernierCible`, `EcranPointageTechnicien.tsx`)
- * atteignable en UN SEUL appui, sans repasser par « Mes OR du jour » ni aucune question
- * intermédiaire. Vient EN COMPLÉMENT du bouton « Reprendre » déjà présent dans
+ * absence…) laisse la cible productive mémorisée CÔTÉ SERVEUR (`GET /pointages/dernier-du-jour`,
+ * P-34 — voir `hooks/pointage/useDerniereCiblePointage.ts`) atteignable en UN SEUL appui, sans
+ * repasser par « Mes OR du jour » ni aucune question intermédiaire. Fonctionne identiquement sur
+ * `EcranPointageTechnicien` (session personnelle) ET `EcranBornePointage` (identification PIN,
+ * chaque identification rechargeant l'écran — impossible avec une mémoire purement locale, voir
+ * `docs/proposition-refonte-pointage.md` §1.4). Vient EN COMPLÉMENT du bouton « Reprendre » déjà
+ * présent dans
  * `CartePointageEnCours` (même callback `onReprendre` côté appelant) — celui-ci reste le geste
  * accessible pendant qu'on regarde la carte en détail, le bandeau est le rappel qu'on ne peut pas
  * manquer en arrivant sur l'écran.

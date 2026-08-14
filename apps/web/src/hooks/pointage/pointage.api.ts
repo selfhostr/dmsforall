@@ -7,6 +7,7 @@ import type {
   NatureActivitePointage,
   PageCurseur,
   ReponseAvecAvertissements,
+  ReponseDernierPointageDuJour,
   ReponseDeverrouillagePeriodePointage,
   ReponsePointage,
   ReponseVerrouillagePeriodePointage,
@@ -147,6 +148,28 @@ export async function corrigerPointage(
   );
   if (!reponse) {
     throw new Error(`Réponse vide inattendue : POST /pointages/${id}/corriger.`);
+  }
+  return reponse;
+}
+
+/**
+ * `GET /pointages/dernier-du-jour` — cible PRODUCTIVE mémorisée par le SERVEUR pour « Reprendre »
+ * (P-34, remplace l'ancien état local volatile `dernierCible` — voir `useDerniereCiblePointage`).
+ * `technicienId` OMIS par défaut : le serveur infère alors le technicien de la SESSION courante
+ * (écran personnel). Fourni EXPLICITEMENT par la borne (identification PIN d'un technicien qui
+ * n'est pas le compte de service de la session) — même convention de sérialisation manuelle que le
+ * reste de ce fichier (voir l'en-tête, « filtres sérialisés à la main »).
+ */
+export async function obtenirDernierPointageDuJour(
+  technicienId?: string,
+): Promise<ReponseDernierPointageDuJour> {
+  const suffixe = technicienId ? `?technicienId=${encodeURIComponent(technicienId)}` : '';
+  const reponse = await requeteApi<ReponseDernierPointageDuJour>(
+    `/pointages/dernier-du-jour${suffixe}`,
+    { method: 'GET' },
+  );
+  if (!reponse) {
+    throw new Error('Réponse vide inattendue : GET /pointages/dernier-du-jour.');
   }
   return reponse;
 }

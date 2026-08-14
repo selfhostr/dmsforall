@@ -26,6 +26,11 @@ export const clesPointage = {
    *  (vue chef d'atelier « qui est pointé maintenant »). */
   ouvertTechnicien: (technicienId: string) =>
     ['pointages', 'ouvertTechnicien', technicienId] as const,
+  /** `GET /pointages/dernier-du-jour` — cible de reprise SERVEUR d'UN technicien précis (session
+   *  personnelle OU identification PIN à la borne, voir `useDerniereCiblePointage`). Invalidée par
+   *  `useDemarrerPointage`/`useArreterPointage`/`useCorrigerPointage` (`onSettled`/`onSuccess`) —
+   *  toujours par cette même clé, jamais une copie parallèle. */
+  derniereCible: (technicienId: string) => ['pointages', 'derniereCible', technicienId] as const,
   /** Réexport direct — un seul endroit à connaître pour les écrans de ce domaine. */
   ouvertsSite: clesQuery.pointages.ouverts,
   technicienJour: clesQuery.pointages.technicienJour,

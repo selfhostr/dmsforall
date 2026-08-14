@@ -4,9 +4,11 @@ import { bornesJourneeLocale, dateJourLocale } from './temps-pointage';
 import { useListePointages, type ResultatListePointages } from './useListePointages';
 
 /**
- * Descripteur minimal d'une cible de pointage — mêmes trois formes que `CibleMemorisee`
- * (`EcranPointageTechnicien.tsx`), mais sans libellé ni site : ce module ne fait QUE comparer des
- * identifiants pour cumuler des durées, jamais de l'affichage (voir `libelles.ts` pour ça).
+ * Descripteur minimal d'une cible de pointage — mêmes trois natures que `CibleReprisePointage`
+ * (`@dfa/shared`, cible de reprise SERVEUR, P-34), mais sans libellé ni site, et couvrant EN PLUS
+ * `indirect` (une cible de reprise n'est jamais `indirect`, celle-ci l'est parfois — voir
+ * `cibleCumulDepuisPointage` ci-dessous) : ce module ne fait QUE comparer des identifiants pour
+ * cumuler des durées, jamais de l'affichage (voir `libelles.ts` pour ça).
  */
 export type CibleCumulJour =
   | {
@@ -20,11 +22,13 @@ export type CibleCumulJour =
 /**
  * `ReponsePointage` -> `CibleCumulJour`, pour le cumul « Aujourd'hui sur cette cible » du segment
  * COURAMMENT pointé (`CartePointageEnCours`, point 6 — les trois natures sont possibles ici, à la
- * différence d'une cible MÉMORISÉE de reprise qui n'est jamais `indirect`, voir
- * `EcranPointageTechnicien.tsx#cibleCumulDepuisMemoire`). Partagé par `EcranPointageTechnicien` ET
- * `EcranBornePointage` — même carte `CartePointageEnCours`, même calcul. `undefined` dans les cas
- * frontière où l'identifiant attendu par la nature manque (ne DEVRAIT pas arriver, `ReponsePointage`
- * le garantit par nature — repli défensif plutôt qu'une hypothèse non vérifiée à l'exécution).
+ * différence d'une cible de reprise SERVEUR (`CibleReprisePointage`, `@dfa/shared`) qui n'est
+ * jamais `indirect` et rend directement son propre `cumulSecondesDuJour` — voir
+ * `hooks/pointage/useDerniereCiblePointage.ts`, DEUX calculs distincts, jamais fusionnés). Partagé
+ * par `EcranPointageTechnicien` ET `EcranBornePointage` — même carte `CartePointageEnCours`, même
+ * calcul. `undefined` dans les cas frontière où l'identifiant attendu par la nature manque (ne
+ * DEVRAIT pas arriver, `ReponsePointage` le garantit par nature — repli défensif plutôt qu'une
+ * hypothèse non vérifiée à l'exécution).
  */
 export function cibleCumulDepuisPointage(pointage: {
   readonly nature: 'productif_ligne' | 'productif_or' | 'indirect';

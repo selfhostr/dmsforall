@@ -3,9 +3,10 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
+  CibleReprisePointage,
   ClientResume,
   EntreeDemarragePointage,
   PageCurseur,
@@ -42,6 +43,19 @@ beforeAll(() => {
   Element.prototype.setPointerCapture = vi.fn();
   Element.prototype.releasePointerCapture = vi.fn();
   Element.prototype.scrollIntoView = vi.fn();
+});
+
+// Repli par défaut, RÉINSTALLÉ AVANT CHAQUE TEST (`beforeEach`, priorité la plus BASSE — voir
+// MSW : le dernier `server.use()` posé gagne) : « aucune cible de reprise connue du serveur »,
+// le cas normal pour la quasi-totalité des scénarios de ce fichier, qui n'ont rien à voir avec le
+// bandeau de reprise. Les tests qui exercent RÉELLEMENT `GET /pointages/dernier-du-jour` (voir plus
+// bas, « mémoire de reprise (P-34) ») posent leur propre handler par-dessus, via `server.use()`
+// dans le corps du test — jamais l'inverse, sous peine de dupliquer cette route dans chaque test
+// existant qui n'en a pas besoin (`onUnhandledRequest: 'error'`, `test/setup.ts`, sinon).
+beforeEach(() => {
+  server.use(
+    http.get('/api/v1/pointages/dernier-du-jour', () => HttpResponse.json({ cible: null })),
+  );
 });
 
 function pageOrdres(
@@ -227,6 +241,47 @@ function rendre() {
       </MemoryRouter>
     </QueryClientProvider>,
   );
+}
+
+/**
+ * Simule fidèlement `GET /pointages/dernier-du-jour` CÔTÉ SERVEUR (RM-87) plutôt qu'une réponse
+ * figée : une nature `productif_ligne`/`productif_or` DÉMARRÉE via `POST /pointages` devient la
+ * cible de reprise ; une nature `indirect` ne la remplace JAMAIS (elle la masque seulement). Utilisé
+ * par les tests qui exercent le cycle RÉEL démarrage/arrêt -> mémoire de reprise SERVEUR (P-34), pas
+ * seulement l'affichage d'une valeur préparée à l'avance — voir le commentaire de tête du fichier
+ * sur les mocks qui ne prouvent rien de la requête réelle.
+ */
+function construireGestionnaireDerniereCible() {
+  let cible: CibleReprisePointage | null = null;
+  return {
+    enregistrer(entree: EntreeDemarragePointage) {
+      if (entree.nature === 'productif_ligne') {
+        cible = {
+          type: 'ligne',
+          ordreReparationId: entree.ordreReparationId,
+          numeroOr: 'OR-000123',
+          ligneOrId: entree.ligneOrId,
+          libelle: 'OR-000123 — Vidange moteur',
+          siteId: entree.siteId,
+          interrompuLe: new Date().toISOString(),
+          cumulSecondesDuJour: 300,
+        };
+      } else if (entree.nature === 'productif_or') {
+        cible = {
+          type: 'or',
+          ordreReparationId: entree.ordreReparationId,
+          numeroOr: 'OR-000123',
+          ligneOrId: null,
+          libelle: 'OR-000123 — OR entier',
+          siteId: entree.siteId,
+          interrompuLe: new Date().toISOString(),
+          cumulSecondesDuJour: 300,
+        };
+      }
+      // `indirect` : ne touche JAMAIS `cible` (RM-87 — pause/nettoyage masquent, ne remplacent pas).
+    },
+    handler: http.get('/api/v1/pointages/dernier-du-jour', () => HttpResponse.json({ cible })),
+  };
 }
 
 describe('EcranPointageTechnicien', () => {
@@ -467,12 +522,17 @@ describe('EcranPointageTechnicien', () => {
     async () => {
       const appelsDemarrer: EntreeDemarragePointage[] = [];
       const appelsArreter: string[] = [];
+      // Mémoire de reprise SERVEUR RÉELLE (P-34) — plus une simple lecture de `useState` local :
+      // ce test prouve que le bandeau réagit à un VRAI aller-retour `GET /pointages/dernier-du-jour`,
+      // tenu à jour par le gestionnaire au fil des `POST /pointages` capturés ci-dessous.
+      const gestionnaireDerniereCible = construireGestionnaireDerniereCible();
 
       server.use(
         http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
         http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([]))),
         http.get('/api/v1/ordres-reparation', () => HttpResponse.json(pageOrdres([OR_ASSIGNE]))),
         http.get('/api/v1/ordres-reparation/or-1', () => HttpResponse.json(construireOrDetail())),
+        gestionnaireDerniereCible.handler,
         http.post('/api/v1/pointages/:id/arreter', ({ params }) => {
           appelsArreter.push(String(params.id));
           return HttpResponse.json({
@@ -483,6 +543,7 @@ describe('EcranPointageTechnicien', () => {
         http.post('/api/v1/pointages', async ({ request }) => {
           const entree = (await request.json()) as EntreeDemarragePointage;
           appelsDemarrer.push(entree);
+          gestionnaireDerniereCible.enregistrer(entree);
           const base = {
             ...POINTAGE_EN_COURS,
             id: entree.id,
@@ -500,7 +561,8 @@ describe('EcranPointageTechnicien', () => {
       const utilisateur = userEvent.setup();
       rendre();
 
-      // Démarre un pointage productif normal (« Mes OR du jour ») — ceci mémorise `dernierCible`.
+      // Démarre un pointage productif normal (« Mes OR du jour ») — le SERVEUR mémorise cette
+      // cible (`gestionnaireDerniereCible.enregistrer`, simule `GET /pointages/dernier-du-jour`).
       await utilisateur.click(await screen.findByText('OR-000123'));
       await utilisateur.click(await screen.findByRole('button', { name: 'Pointer sur cet OR' }));
       await screen.findByRole('button', { name: 'Arrêter' });
@@ -513,8 +575,8 @@ describe('EcranPointageTechnicien', () => {
       ).not.toBeInTheDocument();
 
       // « Changer » vers une activité indirecte AUTRE que la pause (« Nettoyage ») — la cible
-      // productive mémorisée survit (voir `demarrerEtMemoriser`, une activité indirecte ne
-      // remplace jamais `dernierCible`).
+      // productive mémorisée CÔTÉ SERVEUR survit (RM-87, `gestionnaireDerniereCible.enregistrer` :
+      // une nature `indirect` ne remplace jamais la cible).
       await utilisateur.click(await screen.findByRole('button', { name: 'Changer' }));
       await utilisateur.click(await screen.findByRole('button', { name: 'Nettoyage' }));
 
@@ -545,6 +607,173 @@ describe('EcranPointageTechnicien', () => {
         ).not.toBeInTheDocument(),
       );
       expect(await screen.findByRole('button', { name: 'Arrêter' })).toBeInTheDocument();
+    },
+  );
+
+  it(
+    'mémoire de reprise (P-34) : le bandeau apparaît dès que le serveur rend une cible pendant ' +
+      'une activité indirecte en cours',
+    async () => {
+      const pointageIndirect: ReponsePointage = {
+        ...POINTAGE_EN_COURS,
+        nature: 'indirect',
+        activiteIndirecte: 'nettoyage',
+        ordreReparationId: null,
+        ordreReparationNumero: null,
+        ligneOrId: null,
+        ligneOrDesignation: null,
+      };
+      const cibleServeur: CibleReprisePointage = {
+        type: 'or',
+        ordreReparationId: 'or-1',
+        numeroOr: 'OR-000123',
+        ligneOrId: null,
+        libelle: 'OR-000123 — OR entier',
+        siteId: 'site-1',
+        interrompuLe: pointageIndirect.debutLe,
+        cumulSecondesDuJour: 120,
+      };
+
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([pointageIndirect]))),
+        http.get('/api/v1/ordres-reparation', () => HttpResponse.json(pageOrdres([]))),
+        http.get('/api/v1/pointages/dernier-du-jour', () =>
+          HttpResponse.json({ cible: cibleServeur }),
+        ),
+      );
+
+      rendre();
+
+      expect(
+        await screen.findByRole('button', {
+          name: 'Reprendre le pointage sur OR-000123 — OR entier',
+        }),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it(
+    'mémoire de reprise (P-34) : aucun bandeau quand le serveur rend `cible: null` — état NORMAL, ' +
+      'jamais une erreur',
+    async () => {
+      const pointageIndirect: ReponsePointage = {
+        ...POINTAGE_EN_COURS,
+        nature: 'indirect',
+        activiteIndirecte: 'nettoyage',
+        ordreReparationId: null,
+        ordreReparationNumero: null,
+        ligneOrId: null,
+        ligneOrDesignation: null,
+      };
+
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([pointageIndirect]))),
+        http.get('/api/v1/ordres-reparation', () => HttpResponse.json(pageOrdres([]))),
+        http.get('/api/v1/pointages/dernier-du-jour', () => HttpResponse.json({ cible: null })),
+      );
+
+      rendre();
+
+      await screen.findByRole('button', { name: 'Arrêter' });
+      expect(
+        screen.queryByRole('button', { name: /Reprendre le pointage sur/ }),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it(
+    'mémoire de reprise (P-34) : une erreur de `GET /pointages/dernier-du-jour` laisse l’écran ' +
+      'utilisable — ne pas pouvoir reprendre n’empêche jamais de démarrer un nouveau pointage',
+    async () => {
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([]))),
+        http.get('/api/v1/ordres-reparation', () => HttpResponse.json(pageOrdres([OR_ASSIGNE]))),
+        http.get('/api/v1/ordres-reparation/or-1', () => HttpResponse.json(construireOrDetail())),
+        http.get('/api/v1/pointages/dernier-du-jour', () =>
+          HttpResponse.json(
+            {
+              type: 'https://docs.dmsforall.example/erreurs/ERREUR_INTERNE',
+              title: 'Erreur interne',
+              status: 500,
+              code: 'ERREUR_INTERNE',
+              instance: '',
+            },
+            { status: 500, headers: { 'content-type': 'application/problem+json' } },
+          ),
+        ),
+      );
+
+      rendre();
+
+      // L'écran reste utilisable : « Mes OR du jour » s'affiche normalement, aucun blocage lié à
+      // l'échec de ce complément non bloquant (voir la docstring d'`useDerniereCiblePointage`).
+      expect(await screen.findByText('OR-000123')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /Reprendre le pointage sur/ }),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it(
+    'mémoire de reprise (P-34) : `GET /pointages/dernier-du-jour` est réinterrogée après un ' +
+      'démarrage ET après un arrêt — le bandeau reflète la réalité sans recharger la page',
+    async () => {
+      let appelsDernierDuJour = 0;
+
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([]))),
+        http.get('/api/v1/ordres-reparation', () => HttpResponse.json(pageOrdres([OR_ASSIGNE]))),
+        http.get('/api/v1/ordres-reparation/or-1', () => HttpResponse.json(construireOrDetail())),
+        http.get('/api/v1/pointages/dernier-du-jour', () => {
+          appelsDernierDuJour += 1;
+          return HttpResponse.json({ cible: null });
+        }),
+        http.post('/api/v1/pointages/:id/arreter', () =>
+          HttpResponse.json({
+            donnees: { ...POINTAGE_EN_COURS, statut: 'termine', finLe: new Date().toISOString() },
+            avertissements: [],
+          }),
+        ),
+        http.post('/api/v1/pointages', async ({ request }) => {
+          const entree = (await request.json()) as EntreeDemarragePointage;
+          return HttpResponse.json(
+            {
+              donnees: {
+                ...POINTAGE_EN_COURS,
+                id: entree.id,
+                ordreReparationId: 'or-1',
+                ordreReparationNumero: 'OR-000123',
+                nature: 'productif_or',
+                ligneOrId: null,
+                ligneOrDesignation: null,
+              },
+              avertissements: [],
+            },
+            { status: 201 },
+          );
+        }),
+      );
+
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      await waitFor(() => expect(appelsDernierDuJour).toBeGreaterThanOrEqual(1));
+      const appelsApresMontage = appelsDernierDuJour;
+
+      await utilisateur.click(await screen.findByText('OR-000123'));
+      await utilisateur.click(await screen.findByRole('button', { name: 'Pointer sur cet OR' }));
+      await screen.findByRole('button', { name: 'Arrêter' });
+
+      await waitFor(() => expect(appelsDernierDuJour).toBeGreaterThan(appelsApresMontage));
+      const appelsApresDemarrage = appelsDernierDuJour;
+
+      await utilisateur.click(screen.getByRole('button', { name: 'Arrêter' }));
+
+      await waitFor(() => expect(appelsDernierDuJour).toBeGreaterThan(appelsApresDemarrage));
     },
   );
 

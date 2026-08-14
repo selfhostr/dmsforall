@@ -126,6 +126,14 @@ export function useDemarrerPointage(): UseMutationResult<
         queryKey: ['pointages', 'technicienJour', entree.technicienId],
       });
       void queryClient.invalidateQueries({ queryKey: clesPointage.ouvertsSite(entree.siteId) });
+      // Mémoire de reprise SERVEUR (P-34) : un démarrage peut redéfinir la cible de reprise (nature
+      // productive) ou la masquer temporairement (nature indirecte, RM-87) — dans les deux cas
+      // `GET /pointages/dernier-du-jour` doit être relu, jamais laissé périmé jusqu'à un rechargement
+      // manuel (voir `useDerniereCiblePointage`, consommé par `EcranPointageTechnicien`/
+      // `EcranBornePointage`).
+      void queryClient.invalidateQueries({
+        queryKey: clesPointage.derniereCible(entree.technicienId),
+      });
     },
   });
 }
