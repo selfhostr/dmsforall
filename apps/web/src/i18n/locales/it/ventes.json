@@ -345,6 +345,10 @@
       "ordresVehicule": {
         "titre": "Ordini di questo veicolo",
         "vide": "Nessun ordine per questo veicolo."
+      },
+      "garantie": {
+        "titre": "Garanzia",
+        "gererSurFicheVehicule": "Visualizza/modifica sulla scheda del veicolo"
       }
     },
     "transitions": {

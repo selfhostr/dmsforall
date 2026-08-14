@@ -409,7 +409,7 @@ describe('ServiceOr.lister — bornes de date restitutionPromiseDu/Au, ouvertDu/
   }
 
   describe('restitutionPromiseDu / restitutionPromiseAu', () => {
-    it('restitutionPromiseDu fourni : pose `restitution_promise_le >= $<début de journée UTC>`', async () => {
+    it('restitutionPromiseDu fourni : pose `restitution_promise_le >= $<début de journée suisse>`', async () => {
       const { sql, params } = await executerListerEtCapturer({
         restitutionPromiseDu: '2026-08-12',
       });
@@ -417,16 +417,18 @@ describe('ServiceOr.lister — bornes de date restitutionPromiseDu/Au, ouvertDu/
       expect(clauseWhere(sql)).toContain('"ordre_reparation"."restitution_promise_le" >= $');
       // Params sérialisés en ISO string par drizzle (pas une instance `Date`) — vérifié en
       // conditions réelles via `drizzle-orm/pg-core`.
-      expect(params).toContain('2026-08-12T00:00:00.000Z');
+      // Le 12.08.2026 en été (CEST, UTC+2) : début = 2026-08-11T22:00:00.000Z
+      expect(params).toContain('2026-08-11T22:00:00.000Z');
     });
 
-    it('restitutionPromiseAu fourni : pose `restitution_promise_le <= $<fin de journée UTC>` — bornes INCLUSES', async () => {
+    it('restitutionPromiseAu fourni : pose `restitution_promise_le <= $<fin de journée suisse>` — bornes INCLUSES', async () => {
       const { sql, params } = await executerListerEtCapturer({
         restitutionPromiseAu: '2026-08-12',
       });
 
       expect(clauseWhere(sql)).toContain('"ordre_reparation"."restitution_promise_le" <= $');
-      expect(params).toContain('2026-08-12T23:59:59.999Z');
+      // Le 12.08.2026 en été (CEST, UTC+2) : fin = 2026-08-12T21:59:59.999Z
+      expect(params).toContain('2026-08-12T21:59:59.999Z');
     });
 
     it('les deux bornes fournies avec des dates DIFFÉRENTES : les deux conditions coexistent, chacune avec SA valeur propre — jamais la même date recopiée sur les deux', async () => {
@@ -437,8 +439,10 @@ describe('ServiceOr.lister — bornes de date restitutionPromiseDu/Au, ouvertDu/
 
       expect(clauseWhere(sql)).toContain('"ordre_reparation"."restitution_promise_le" >= $');
       expect(clauseWhere(sql)).toContain('"ordre_reparation"."restitution_promise_le" <= $');
-      expect(params).toContain('2026-08-10T00:00:00.000Z');
-      expect(params).toContain('2026-08-12T23:59:59.999Z');
+      // Le 10.08.2026 en été : début = 2026-08-09T22:00:00.000Z
+      // Le 12.08.2026 en été : fin = 2026-08-12T21:59:59.999Z
+      expect(params).toContain('2026-08-09T22:00:00.000Z');
+      expect(params).toContain('2026-08-12T21:59:59.999Z');
     });
 
     it('absentes : AUCUNE condition sur restitution_promise_le dans la clause where — le filtre reste inerte par défaut (et un OR sans date promise reste visible, troisième état non exclu)', async () => {
@@ -449,18 +453,20 @@ describe('ServiceOr.lister — bornes de date restitutionPromiseDu/Au, ouvertDu/
   });
 
   describe('ouvertDu / ouvertAu', () => {
-    it('ouvertDu fourni : pose `ouvert_le >= $<début de journée UTC>`', async () => {
+    it('ouvertDu fourni : pose `ouvert_le >= $<début de journée suisse>`', async () => {
       const { sql, params } = await executerListerEtCapturer({ ouvertDu: '2026-07-01' });
 
       expect(clauseWhere(sql)).toContain('"ordre_reparation"."ouvert_le" >= $');
-      expect(params).toContain('2026-07-01T00:00:00.000Z');
+      // Le 01.07.2026 en été (CEST, UTC+2) : début = 2026-06-30T22:00:00.000Z
+      expect(params).toContain('2026-06-30T22:00:00.000Z');
     });
 
-    it('ouvertAu fourni : pose `ouvert_le <= $<fin de journée UTC>`', async () => {
+    it('ouvertAu fourni : pose `ouvert_le <= $<fin de journée suisse>`', async () => {
       const { sql, params } = await executerListerEtCapturer({ ouvertAu: '2026-07-31' });
 
       expect(clauseWhere(sql)).toContain('"ordre_reparation"."ouvert_le" <= $');
-      expect(params).toContain('2026-07-31T23:59:59.999Z');
+      // Le 31.07.2026 en été (CEST, UTC+2) : fin = 2026-07-31T21:59:59.999Z
+      expect(params).toContain('2026-07-31T21:59:59.999Z');
     });
 
     it("absentes : aucune comparaison `>=`/`<=` sur ouvert_le dans la clause where — seul l'`order by ... ouvert_le desc` mentionne la colonne", async () => {
@@ -556,6 +562,235 @@ describe('ServiceOr.lister — bornes de date restitutionPromiseDu/Au, ouvertDu/
       // parenthèses) ne fait pas de la clause globale une disjonction.
       expect(sql).toMatch(/^select .* from "ordre_reparation" where \(/);
     });
+  });
+
+  describe("bascules d'heure d'ete — les filtres de date utilisent fuseau-suisse, jamais UTC pur", () => {
+    it('bascule de printemps — 29.03.2026 (CET +1h -> CEST +2h) : une journee ne dure que 23h, debut = 2026-03-28T23:00:00.000Z', async () => {
+      const { sql, params } = await executerListerEtCapturer({
+        restitutionPromiseDu: '2026-03-29',
+      });
+
+      expect(clauseWhere(sql)).toContain('"ordre_reparation"."restitution_promise_le" >= $');
+      expect(params).toContain('2026-03-28T23:00:00.000Z');
+    });
+
+    it("bascule d'automne — 25.10.2026 (CEST +2h -> CET +1h) : une journee dure 25h, fin = 2026-10-25T22:59:59.999Z", async () => {
+      const { sql, params } = await executerListerEtCapturer({
+        restitutionPromiseAu: '2026-10-25',
+      });
+
+      expect(clauseWhere(sql)).toContain('"ordre_reparation"."restitution_promise_le" <= $');
+      expect(params).toContain('2026-10-25T22:59:59.999Z');
+    });
+
+    it('cas decisif du bug mesure le 14.08.2026 — 00h30 heure suisse (15.07.2026 en ete) doit etre rattache au bon jour civil (15), pas a la veille (14)', async () => {
+      // 00h30 locale (CEST, +2h) le 15.07.2026 == 2026-07-14T22:30:00.000Z en UTC.
+      // Le filtre restitutionPromiseDu: 2026-07-15 doit inclure cet instant.
+      const { params } = await executerListerEtCapturer({
+        restitutionPromiseDu: '2026-07-15',
+      });
+
+      // Debut de journee suisse du 15.07.2026 (ete, CEST +2h) = 2026-07-14T22:00:00.000Z
+      expect(params).toContain('2026-07-14T22:00:00.000Z');
+      // L\'instant 22:30 UTC depasse ce seuil, il est donc inclus — le bug aurait utilise
+      // 2026-07-15T00:00:00.000Z (UTC pur), excluant a tort cet instant.
+    });
+  });
+});
+
+/**
+ * `q` (constat terrain du 14.08.2026) : AUCUNE recherche d'OR ne rendait jamais de résultat —
+ * `q` était accepté par `schemaFiltresOrdresReparation` et documenté DANS CE FICHIER MÊME comme
+ * « jamais appliqué ICI », le piège exact décrit par CONTRIBUTING.md (« filtre accepté par le contrat ≠
+ * appliqué au SQL »). Même patron `QueryBuilder` driver-less que les blocs `technicienId`/`#73`/
+ * `tri` ci-dessus — la requête est RÉELLEMENT construite par `ServiceOr.lister()`, jamais
+ * reconstruite indépendamment.
+ *
+ * LIMITE ASSUMÉE de cette suite, signalée plutôt que masquée : `QueryBuilder` driver-less ne
+ * PARLE JAMAIS à un vrai Postgres, donc rien ici ne peut prouver que `normaliser_recherche()`
+ * gomme réellement accents/casse/séparateurs (ex. « 445566 » trouvant « VS 445566 ») — cette
+ * garantie est déjà prouvée par les assertions `DO $$…$$` de la migration 0003 elle-même
+ * (`echantillon := public.normaliser_recherche('VD 123''456')`, etc.) et exercée en production
+ * par les TROIS autres appelants de cette même fonction (`clients/service-client.ts::lister`,
+ * `recherche/service-recherche.ts`). ÉCRIRE UNE SECONDE FOIS cette normalisation en TypeScript
+ * pour la « prouver » ici la ferait diverger de la vraie fonction — exactement l'erreur que la
+ * doctrine du projet interdit. ce que CETTE suite prouve, à la place, et qui est bien LE test qui
+ * distingue un filtre appliqué d'un filtre ignoré (le défaut réel constaté) : que le paramètre
+ * `q` atteint RÉELLEMENT les trois branches de la clause WHERE émise, avec le motif fragmenté
+ * (`%q%`) et enveloppé dans `public.normaliser_recherche()`, sans transformation JS parallèle — et
+ * qu'en son absence, RIEN de tout cela n'apparaît (le filtre ignoré redeviendrait « toute la
+ * liste », le symptôme exact rapporté par le testeur).
+ */
+describe('ServiceOr.lister — recherche q (numéro OR / plaque courante / nom client, #defaut-recherche-or)', () => {
+  function txQueryBuilderFactice() {
+    const qb = new QueryBuilder();
+    const capturedSelects: { toSQL: () => { sql: string; params: unknown[] } }[] = [];
+    const tx = {
+      select: (...args: unknown[]) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const builder: any = (qb.select as any)(...args);
+        const fromOriginal = builder.from.bind(builder);
+        builder.from = (...fromArgs: unknown[]) => {
+          const requete = fromOriginal(...fromArgs);
+          capturedSelects.push(requete);
+          return requete;
+        };
+        return builder;
+      },
+    };
+    return { tx: tx as unknown as TransactionDfa, capturedSelects };
+  }
+
+  /** La requête OUTER reste la DERNIÈRE capturée : les deux sous-requêtes `in (select …)` (plaque
+   *  puis client) sont construites AVANT `tx.select()` de la requête principale, exactement le
+   *  même ordre que le `exists(...)` de `technicienId` plus haut — même garantie, même preuve. */
+  function requeteOuter(capturedSelects: { toSQL: () => { sql: string; params: unknown[] } }[]) {
+    const derniere = capturedSelects.at(-1);
+    if (!derniere) throw new Error('Aucune requête capturée — tx.select() jamais appelé.');
+    return derniere.toSQL();
+  }
+
+  /** Isole la clause `where` — même piège/correctif que `clauseWhere` du bloc `#73` ci-dessus. */
+  function clauseWhere(sqlTexte: string): string {
+    const debut = sqlTexte.indexOf(' where ');
+    if (debut === -1) return '';
+    const fin = sqlTexte.indexOf(' order by ', debut);
+    return fin === -1 ? sqlTexte.slice(debut) : sqlTexte.slice(debut, fin);
+  }
+
+  async function executerListerEtCapturer(filtres: Omit<FiltresOrdresReparation, 'tri'>) {
+    const { tx, capturedSelects } = txQueryBuilderFactice();
+    const acces = accesBaseFactice(tx);
+    const service = serviceFactice(acces);
+
+    await expect(
+      service.lister(
+        CTX,
+        principal('technicien'),
+        { ...filtres, tri: TRI_DEFAUT_ORDRES_REPARATION },
+        25,
+        undefined,
+      ),
+    ).rejects.toThrow();
+
+    return requeteOuter(capturedSelects);
+  }
+
+  it(
+    'TEST DÉCISIF — q fourni : la clause where pose une disjonction à TROIS branches, chacune ' +
+      'passée par `public.normaliser_recherche()`, avec le motif `%q%` RÉELLEMENT présent dans les ' +
+      'paramètres émis (numéro direct, plaque courante via `vehicule_id in (select …)`, nom client ' +
+      'via `client_id in (select …)`) — la preuve que le filtre est appliqué, pas seulement accepté.',
+    async () => {
+      const { sql, params } = await executerListerEtCapturer({ q: '445566' });
+      const where = clauseWhere(sql);
+
+      expect(where).toContain(
+        'public.normaliser_recherche("ordre_reparation"."numero") like public.normaliser_recherche($',
+      );
+      expect(where).toContain(
+        '"ordre_reparation"."vehicule_id" in (select "vehicule_id" from "vehicule_plaque"',
+      );
+      expect(where).toContain(
+        'public.normaliser_recherche("vehicule_plaque"."valeur") like public.normaliser_recherche($',
+      );
+      expect(where).toContain('"ordre_reparation"."client_id" in (select "id" from "client"');
+      expect(where).toContain('public.normaliser_recherche(coalesce("client"."raison_sociale"');
+      // Les trois branches portent LE MÊME motif fragment, jamais un motif tronqué ou réécrit.
+      expect(params.filter((p) => p === '%445566%')).toHaveLength(3);
+    },
+  );
+
+  it(
+    "TEST DÉCISIF (symétrique) — q absent : aucune des trois branches n'apparaît nulle part dans " +
+      'la requête (ni `normaliser_recherche`, ni `vehicule_plaque`, ni sous-requête sur `client`) — ' +
+      "le filtre reste inerte par défaut, jamais actif « à vide » (ce qui aurait, à l'inverse, " +
+      'exclu silencieusement des OR).',
+    async () => {
+      const { sql } = await executerListerEtCapturer({});
+
+      expect(sql).not.toContain('normaliser_recherche');
+      expect(sql).not.toContain('vehicule_plaque');
+      expect(sql).not.toMatch(/"ordre_reparation"\."client_id" in \(select/);
+    },
+  );
+
+  it("deux valeurs de q DISTINCTES produisent deux motifs DISTINCTS dans les paramètres — preuve que ce n'est pas un filtre figé", async () => {
+    const { params: paramsA } = await executerListerEtCapturer({ q: 'Rochat' });
+    const { params: paramsB } = await executerListerEtCapturer({ q: 'Dupont' });
+
+    expect(paramsA).toContain('%Rochat%');
+    expect(paramsB).toContain('%Dupont%');
+    expect(paramsA).not.toContain('%Dupont%');
+  });
+
+  it('un fragment (pas un préfixe) : le motif est enveloppé `%q%`, sans ancrage — un terme au milieu du nom/de la plaque/du numéro matche', async () => {
+    const { params } = await executerListerEtCapturer({ q: 'Rhône' });
+
+    expect(params).toContain('%Rhône%');
+    // Ni ancré au début (pas de `q%`), ni à la fin (pas de `%q`) : les deux `%` encadrent le terme.
+    expect(params).not.toContain('Rhône%');
+    expect(params).not.toContain('%Rhône');
+  });
+
+  it(
+    'plaque : le terme brut saisi (« 445566 », sans canton ni espace) est transmis TEL QUEL à ' +
+      '`normaliser_recherche()` — aucune reformulation JS séparée qui pourrait diverger de la ' +
+      'même fonction utilisée pour « VS 445566 » en base (RM-112, même mécanisme partout).',
+    async () => {
+      const { sql, params } = await executerListerEtCapturer({ q: '445566' });
+
+      expect(clauseWhere(sql)).toContain(
+        'public.normaliser_recherche("vehicule_plaque"."valeur") like public.normaliser_recherche($',
+      );
+      expect(params).toContain('%445566%');
+    },
+  );
+
+  it('plaque : seule la plaque COURANTE est cherchée (`vehicule_plaque.au is null`) — celle réellement affichée au-dessus de la liste, jamais une plaque historique', async () => {
+    const { sql } = await executerListerEtCapturer({ q: 'VS445566' });
+
+    expect(clauseWhere(sql)).toContain('"vehicule_plaque"."au" is null');
+  });
+
+  it("isolation tenant : les DEUX sous-requêtes (plaque, client) rescopent explicitement sur ctx.tenantId — le RLS est le filet, jamais le mécanisme (doctrine du projet), un OR d'un AUTRE tenant ne doit jamais remonter même si sa plaque/son nom correspond au motif", async () => {
+    const { sql, params } = await executerListerEtCapturer({ q: 'Dupont' });
+    const where = clauseWhere(sql);
+
+    expect(where).toContain('"vehicule_plaque"."tenant_id" = $');
+    expect(where).toContain('"client"."tenant_id" = $');
+    expect(params.filter((p) => p === CTX.tenantId).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it(
+    'garde-fou symboles seuls (ex. « --- ») : AUCUNE lettre ni chiffre dans q — la condition posée ' +
+      'est `false` (aucun résultat), JAMAIS la liste entière (qui serait la fuite totale : ' +
+      "l'exact inverse du défaut corrigé ici, où un filtre ignoré rendait déjà tout).",
+    async () => {
+      const { sql } = await executerListerEtCapturer({ q: '---' });
+      const where = clauseWhere(sql);
+
+      expect(where).toContain('false');
+      expect(where).not.toContain('normaliser_recherche');
+    },
+  );
+
+  it("aucune duplication ni JOIN introduits par q : la requête outer reste une SELECT simple sur ordre_reparation (in (select …) n'est jamais une jointure) — même garantie que le filtre technicienId plus haut", async () => {
+    const { sql } = await executerListerEtCapturer({ q: 'OR-2026' });
+
+    expect(sql).toMatch(/^select .* from "ordre_reparation" where /);
+    expect(sql).not.toMatch(/\bjoin\b/i);
+    expect(sql).not.toMatch(/\bgroup by\b/i);
+    expect(sql).not.toMatch(/\bdistinct\b/i);
+  });
+
+  it('q compose par ET avec les autres filtres (ex. siteId) — jamais un filtre qui en écrase un autre', async () => {
+    const { sql, params } = await executerListerEtCapturer({ q: 'Dupont', siteId: 'site-1' });
+    const where = clauseWhere(sql);
+
+    expect(where).toContain('"ordre_reparation"."site_id" = $');
+    expect(params).toContain('site-1');
+    expect(where).toContain('normaliser_recherche');
   });
 });
 

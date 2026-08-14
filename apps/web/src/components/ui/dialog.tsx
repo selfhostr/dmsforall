@@ -76,7 +76,15 @@ export const DialogContent = forwardRef<
           // dialogue sur tablette était le plus difficile à atteindre.
           // Reste un enfant direct du CADRE (pas du corps défilable) : c'est ce qui le maintient
           // toujours visible dans le coin, même quand le corps défile.
-          'absolute right-2 top-2 inline-flex h-11 w-11 items-center justify-center rounded-md',
+          // `z-20` : ce bouton et `DialogHeader`/`DialogFooter` (`z-10`, sticky) partagent la
+          // même pile locale — celle du cadre, `position: fixed` + `z-50`, qui forme son propre
+          // contexte d'empilement. Sans valeur explicite ici le bouton retombait à `z-index:
+          // auto` et un en-tête `sticky` à `z-10` le recouvrait visuellement ET absorbait le
+          // clic (survol/clic simulés retombent sur le premier élément peint au-dessus). `z-20`
+          // le remet au-dessus des deux zones collées (`z-10`) sans jamais rivaliser avec les
+          // popovers/menus/infobulles : ceux-ci sont portés par Radix vers `document.body`, donc
+          // hors de ce contexte d'empilement local — aucun risque de passer devant eux.
+          'absolute right-2 top-2 z-20 inline-flex h-11 w-11 items-center justify-center rounded-md',
           'text-muted-foreground transition-colors anneau-focus',
           'hover:bg-muted hover:text-foreground',
         )}
@@ -97,7 +105,13 @@ export function DialogHeader({ className, ...props }: HTMLAttributes<HTMLDivElem
       // #67). `bg-background` + `z-10` : sans fond opaque ni empilement au-dessus du contenu
       // suivant, le contenu défilé apparaîtrait à travers l'en-tête au lieu de disparaître
       // derrière lui.
-      className={cn('sticky top-0 z-10 flex flex-col gap-champ bg-background text-left', className)}
+      // `pr-12` : réserve la largeur du bouton de fermeture (44 px + décalage `right-2`) pour
+      // qu'un titre long ne passe jamais derrière lui, quel que soit le rembourrage `p-carte`
+      // (16 px sur mobile/tablette, 24 px en desktop) déjà posé par le corps défilable parent.
+      className={cn(
+        'sticky top-0 z-10 flex flex-col gap-champ bg-background pr-12 text-left',
+        className,
+      )}
       {...props}
     />
   );

@@ -19,6 +19,7 @@ import type {
   StatutConfirmationFinancement,
   StatutDossierVente,
   StatutReprise,
+  SuiviGarantie,
   TypeVehiculeVente,
   VehiculeResume,
   VehiculeStockResume,
@@ -312,6 +313,10 @@ export interface EntreeMapperDossierVente {
   readonly financement: FinancementResume | null | undefined;
   readonly financements: readonly FinancementResume[] | undefined;
   readonly financementsTronques: boolean | undefined;
+  /** Jamais `undefined` — la garantie n'est pas gatée par rôle (voir la doctrine sur
+   *  `@dfa/shared::ReponseDossierVente.garantie`), à la différence de `reprise`/`financement`
+   *  ci-dessus. */
+  readonly garantie: SuiviGarantie | null;
   readonly documents: readonly DocumentVenteResume[];
   readonly documentsTronques: boolean;
   readonly documentsRequis: readonly DocumentRequisDossierVente[];
@@ -343,6 +348,7 @@ export function versDossierVenteResponse(e: EntreeMapperDossierVente): ReponseDo
     ...(e.financementsTronques !== undefined
       ? { financementsTronques: e.financementsTronques }
       : {}),
+    garantie: e.garantie,
     documents: e.documents,
     documentsTronques: e.documentsTronques,
     documentsRequis: e.documentsRequis,

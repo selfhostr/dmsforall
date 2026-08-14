@@ -45,10 +45,15 @@ const VARIANTE_BADGE_STATUT: Record<StatutReservationPiece, 'default' | 'seconda
 
 /**
  * Vue transverse des réservations (RP-19 → RP-25, priorité 4 du brief) — « qu'est-ce qui est
- * réservé, pour qui, depuis quand ». `ReponseReservationPiece` (@dfa/shared) ne porte AUCUN champ
- * de désignation d'affichage (ni `numeroArticle`, ni le numéro d'OR) — seulement des identifiants
- * bruts (`articleId`, `ordreReparationId`) : cette table les rend donc CLIQUABLES vers la fiche
- * article et l'OR plutôt que d'inventer un libellé que le contrat ne fournit pas.
+ * réservé, pour qui, depuis quand ».
+ *
+ * DÉFAUT CORRIGÉ (test manuel du 14.08.2026, défaut n°3) : avant ce correctif, `ReponseReservationPiece`
+ * ne portait aucun champ de désignation (ni `numeroArticle`, ni numéro d'OR) — seulement des
+ * identifiants bruts, ce qui forçait cette table à afficher des liens génériques (« Voir
+ * l'article »/« Voir l'ordre de réparation ») qu'il fallait ouvrir un par un pour savoir de quoi il
+ * s'agissait. `articleNumero`/`articleDesignation`/`ordreReparationNumero` (`@dfa/shared`,
+ * `service-reservation.ts`) rendent maintenant le contenu lisible directement dans la table — les
+ * colonnes restent CLIQUABLES (même destination qu'avant), seul le libellé change.
  */
 export function EcranReservationsPieces() {
   const { t } = useTranslation(['pieces', 'commun']);
@@ -86,7 +91,7 @@ export function EcranReservationsPieces() {
           className="texte-corps font-medium text-primary underline"
           onClick={(e) => e.stopPropagation()}
         >
-          {t('pieces:reservations.voirArticle')}
+          {reservation.articleDesignation ?? t('pieces:reservations.voirArticle')}
         </Link>
       ),
     },
@@ -99,7 +104,7 @@ export function EcranReservationsPieces() {
           className="texte-corps font-medium text-primary underline"
           onClick={(e) => e.stopPropagation()}
         >
-          {t('pieces:reservations.voirOr')}
+          {reservation.ordreReparationNumero ?? t('pieces:reservations.voirOr')}
         </Link>
       ),
     },

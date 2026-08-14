@@ -6,6 +6,7 @@ import { MemoryRouter, Route, Routes } from 'react-router';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type {
+  CibleReprisePointage,
   ClientResume,
   EntreeDemarragePointage,
   PageCurseur,
@@ -578,6 +579,53 @@ describe('EcranBornePointage', () => {
 
       await waitFor(() => expect(appelsDemarrer).toHaveLength(1));
       expect(appelsDemarrer[0]).toMatchObject({ siteId: 'site-9' });
+    },
+  );
+
+  it(
+    'point 5 (bandeau de reprise), même correctif que `EcranPointageTechnicien` : apparaît sur la ' +
+      'BORNE aussi pendant une activité indirecte AUTRE que la pause (« Nettoyage »), avec ' +
+      '`pourAutrui: true` (P-34) — pas seulement sur l’écran personnel',
+    async () => {
+      const pointageIndirect = construirePointageEnCours({
+        nature: 'indirect',
+        activiteIndirecte: 'nettoyage',
+        ordreReparationId: null,
+        ordreReparationNumero: null,
+      });
+      const cibleServeur: CibleReprisePointage = {
+        type: 'or',
+        ordreReparationId: 'or-1',
+        numeroOr: 'OR-000123',
+        ligneOrId: null,
+        libelle: 'OR-000123 — OR entier',
+        siteId: 'site-1',
+        interrompuLe: pointageIndirect.debutLe,
+        cumulSecondesDuJour: 120,
+      };
+
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_BORNE)),
+        http.post('/api/v1/pointages/identification', () =>
+          HttpResponse.json(IDENTIFICATION_MARCO),
+        ),
+        http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([pointageIndirect]))),
+        http.get('/api/v1/ordres-reparation', () => HttpResponse.json(pageOrdres([]))),
+        http.get('/api/v1/pointages/dernier-du-jour', () =>
+          HttpResponse.json({ cible: cibleServeur }),
+        ),
+      );
+
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      await taperCode(utilisateur, '4071');
+
+      expect(
+        await screen.findByRole('button', {
+          name: 'Reprendre le pointage sur OR-000123 — OR entier',
+        }),
+      ).toBeInTheDocument();
     },
   );
 });

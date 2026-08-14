@@ -26,18 +26,44 @@ import {
   type DefinitionTri,
 } from './pagination-triee';
 
+/** `LigneReservationPiece` (Drizzle, `reservation_piece` seule) enrichie des colonnes jointes par
+ *  `COLONNES_RESERVATION_ALIASEES`/`JOINTURES_RESERVATION` — voir leur doc respective. */
+type LigneReservationPieceEnrichie = LigneReservationPiece & {
+  readonly articleNumero: string;
+  readonly articleDesignation: string;
+  readonly ordreReparationNumero: string;
+};
+
 const DEFINITIONS_TRI_RESERVATIONS: Readonly<Record<FiltresReservations['tri'], DefinitionTri>> = {
   'creeLe:desc': { expression: sql`r.cree_le`, sens: 'desc', nullable: false, temporel: true },
   'creeLe:asc': { expression: sql`r.cree_le`, sens: 'asc', nullable: false, temporel: true },
 };
 
+/**
+ * DÉFAUT CORRIGÉ (test manuel du 14.08.2026, défaut n°3) : `a.numero_article`/`a.designation` et
+ * `o.numero` rejoints EN PLUS des colonnes brutes de `reservation_piece` — sans quoi la vue
+ * transverse (`GET /reservations`) ne pouvait afficher que des identifiants opaques. Toute requête
+ * qui utilise cette constante DOIT joindre `public.article a` et `public.ordre_reparation o` sur
+ * `(tenant_id, id)` (voir `lister`/`chargerOu404`/`chargerPourVerrouOu404` ci-dessous) —
+ * `numero_article` reste `coalesce()`é à `''` (nullable en base, même doctrine que
+ * `service-stock.ts::reapprovisionnement`).
+ */
 const COLONNES_RESERVATION_ALIASEES = sql`
-  r.id as "id", r.article_id as "articleId", r.site_id as "siteId", r.ligne_or_id as "ligneOrId",
-  r.ordre_reparation_id as "ordreReparationId", r.quantite_millieme as "quantiteMillieme",
+  r.id as "id", r.article_id as "articleId", coalesce(a.numero_article, '') as "articleNumero",
+  a.designation as "articleDesignation", r.site_id as "siteId", r.ligne_or_id as "ligneOrId",
+  r.ordre_reparation_id as "ordreReparationId", o.numero as "ordreReparationNumero",
+  r.quantite_millieme as "quantiteMillieme",
   r.statut as "statut", r.cree_le as "creeLe", r.satisfaite_le as "satisfaiteLe",
   r.mouvement_sortie_id as "mouvementSortieId", r.liberee_le as "libereeLe",
   r.motif_liberation as "motifLiberation", r.motif_liberation_texte as "motifLiberationTexte",
   r.liberee_par_utilisateur_id as "libereeParUtilisateurId"
+`;
+
+/** Jointures REQUISES par `COLONNES_RESERVATION_ALIASEES` — factorisée pour ne jamais diverger
+ *  entre les trois requêtes qui la consomment. */
+const JOINTURES_RESERVATION = sql`
+  join public.article a on a.tenant_id = r.tenant_id and a.id = r.article_id
+  join public.ordre_reparation o on o.tenant_id = r.tenant_id and o.id = r.ordre_reparation_id
 `;
 
 /**
@@ -84,10 +110,11 @@ export class ServiceReservation {
       }
 
       const resultat = await tx.execute<
-        LigneReservationPiece & { triValeur: string | number | null }
+        LigneReservationPieceEnrichie & { triValeur: string | number | null }
       >(sql`
         select ${COLONNES_RESERVATION_ALIASEES}, ${expressionTriValeur(definition)} as "triValeur"
           from public.reservation_piece r
+          ${JOINTURES_RESERVATION}
          where ${sql.join(conditions, sql` and `)}
          order by ${construireOrderBy(definition, idExpr)}
          limit ${params.limite + 1}
@@ -159,8 +186,9 @@ export class ServiceReservation {
     ctx: ContexteTenant,
     ligneOrId: string,
   ): Promise<ReponseReservationPiece | null> {
-    const resultat = await tx.execute<LigneReservationPiece>(sql`
+    const resultat = await tx.execute<LigneReservationPieceEnrichie>(sql`
       select ${COLONNES_RESERVATION_ALIASEES} from public.reservation_piece r
+      ${JOINTURES_RESERVATION}
        where r.tenant_id = ${ctx.tenantId} and r.ligne_or_id = ${ligneOrId} and r.statut = 'active'
        for update
     `);
@@ -357,6 +385,70 @@ export class ServiceReservation {
     return liberees;
   }
 
+  /**
+   * DÉFAUT CORRIGÉ (test manuel du 14.08.2026, défaut n°2) : aperçu, EN LECTURE SEULE, de ce que
+   * `libererPourCascadeForcageTx` ci-dessus libérerait pour couvrir `quantiteACouvrirMillieme` —
+   * MÊME ordre (`cree_le desc, id desc`), MÊME algorithme glouton (réservations entières jusqu'à
+   * couvrir le déficit), mais AUCUNE écriture ni verrou (`for update` volontairement absent) : sert
+   * à avertir l'utilisateur AVANT qu'il ne confirme un forçage — RP-15 exige un forçage « explicite
+   * ET journalisé », ce qui suppose que l'explicite précède l'action, pas seulement le journal qui
+   * la suit. Appelée par `ServiceMouvement.apercuForcage` DANS SA PROPRE transaction (`tx` reçu en
+   * premier paramètre, même convention que `libererPourCascadeForcageTx`).
+   *
+   * PUREMENT INDICATIF : sans verrou, une course concurrente entre cet aperçu et un forçage réel
+   * (le sien ou celui d'un autre magasinier) reste possible — acceptable pour un avertissement
+   * affiché avant action, jamais pour l'action elle-même qui reste gouvernée, sous verrou, par
+   * `libererPourCascadeForcageTx`.
+   */
+  async apercuLiberationCascadeTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    articleId: string,
+    siteId: string,
+    quantiteACouvrirMillieme: number,
+  ): Promise<
+    readonly {
+      readonly id: string;
+      readonly ligneOrId: string;
+      readonly ordreReparationId: string;
+      readonly ordreReparationNumero: string;
+      readonly quantiteMillieme: number;
+    }[]
+  > {
+    if (quantiteACouvrirMillieme <= 0) return [];
+
+    const resultat = await tx.execute<{
+      id: string;
+      ligneOrId: string;
+      ordreReparationId: string;
+      ordreReparationNumero: string;
+      quantiteMillieme: number;
+    }>(sql`
+      select r.id as "id", r.ligne_or_id as "ligneOrId", r.ordre_reparation_id as "ordreReparationId",
+             o.numero as "ordreReparationNumero", r.quantite_millieme as "quantiteMillieme"
+        from public.reservation_piece r
+        join public.ordre_reparation o on o.tenant_id = r.tenant_id and o.id = r.ordre_reparation_id
+       where r.tenant_id = ${ctx.tenantId} and r.article_id = ${articleId} and r.site_id = ${siteId}
+         and r.statut = 'active'
+       order by r.cree_le desc, r.id desc
+    `);
+
+    const apercu: {
+      id: string;
+      ligneOrId: string;
+      ordreReparationId: string;
+      ordreReparationNumero: string;
+      quantiteMillieme: number;
+    }[] = [];
+    let couvert = 0;
+    for (const reservation of resultat.rows) {
+      if (couvert >= quantiteACouvrirMillieme) break;
+      apercu.push(reservation);
+      couvert += reservation.quantiteMillieme;
+    }
+    return apercu;
+  }
+
   /** Garde de transition commune à `satisfaireTx`/`libererTx` : seule une réservation `active` peut être satisfaite ou libérée manuellement. */
   private verifierActiveOu409(ligne: LigneReservationPiece): void {
     if (ligne.statut !== 'active') {
@@ -527,9 +619,10 @@ export class ServiceReservation {
     tx: TransactionDfa,
     ctx: ContexteTenant,
     reservationId: string,
-  ): Promise<LigneReservationPiece> {
-    const resultat = await tx.execute<LigneReservationPiece>(sql`
+  ): Promise<LigneReservationPieceEnrichie> {
+    const resultat = await tx.execute<LigneReservationPieceEnrichie>(sql`
       select ${COLONNES_RESERVATION_ALIASEES} from public.reservation_piece r
+      ${JOINTURES_RESERVATION}
        where r.tenant_id = ${ctx.tenantId} and r.id = ${reservationId}
     `);
     const ligne = resultat.rows[0];
@@ -542,9 +635,10 @@ export class ServiceReservation {
     tx: TransactionDfa,
     ctx: ContexteTenant,
     reservationId: string,
-  ): Promise<LigneReservationPiece> {
-    const resultat = await tx.execute<LigneReservationPiece>(sql`
+  ): Promise<LigneReservationPieceEnrichie> {
+    const resultat = await tx.execute<LigneReservationPieceEnrichie>(sql`
       select ${COLONNES_RESERVATION_ALIASEES} from public.reservation_piece r
+      ${JOINTURES_RESERVATION}
        where r.tenant_id = ${ctx.tenantId} and r.id = ${reservationId}
        for update
     `);

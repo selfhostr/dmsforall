@@ -30,6 +30,9 @@ export const clesPieces = {
       ['pieces', 'articles', 'disponibilite', articleId, siteId] as const,
     mouvements: (articleId: string, filtres: FiltresMouvementsStock) =>
       ['pieces', 'articles', 'mouvements', articleId, filtres] as const,
+    /** `GET .../mouvements/apercu-forcage` — défaut n°2 (test manuel du 14.08.2026). */
+    apercuForcage: (articleId: string, siteId: string, quantiteMillieme: number) =>
+      ['pieces', 'articles', 'apercuForcage', articleId, siteId, quantiteMillieme] as const,
   },
 
   stock: {

@@ -41,6 +41,7 @@ const DOSSIER: ReponseDossierVente = {
   financement: null,
   financements: [],
   financementsTronques: false,
+  garantie: null,
   documents: [],
   documentsTronques: false,
   documentsRequis: [],

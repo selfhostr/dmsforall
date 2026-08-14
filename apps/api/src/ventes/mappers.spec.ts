@@ -347,6 +347,7 @@ function entreeMapperFixture(
     financement: undefined,
     financements: undefined,
     financementsTronques: undefined,
+    garantie: null,
     documents: [],
     documentsTronques: false,
     documentsRequis: [],

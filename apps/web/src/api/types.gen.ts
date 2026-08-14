@@ -128,6 +128,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/articles/{articleId}/mouvements/apercu-forcage': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Aperçu, en lecture seule, des réservations qu'un forçage (`casse`/`perte`, `forcer: true`) libérerait s’il était soumis maintenant — à interroger AVANT de cocher « Forcer » (RP-15 : avertissement spécifique et chiffré). Réservé à qui détient déjà le droit de forcer : `[]` si le forçage ne libérerait rien (stock déjà suffisant, ou aucune réservation active). */
+    get: operations['MouvementController_apercuForcage'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/articles/{articleId}/mouvements/casse': {
     parameters: {
       query?: never;
@@ -278,7 +295,7 @@ export interface paths {
     delete?: never;
     options?: never;
     head?: never;
-    /** Réglages de stock d’un site (emplacement, seuils) — JAMAIS la quantité physique (RP-16→RP-18). */
+    /** Réglages de stock d’un site (emplacement, rayon, tiroir, seuils) — JAMAIS la quantité physique (RP-16→RP-18). */
     patch: operations['StockArticleController_modifierSite'];
     trace?: never;
   };
@@ -2524,6 +2541,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/relances/facturation/historique': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Historique d’envoi des relances de facture (issue #136) — une ligne par TENTATIVE réellement tracée dans `relance_envoi` (append-only), triée par date d’envoi décroissante.
+     * @description Pièce de dossier pour le comptable : date, palier, destinataire réellement touché (figé à l’envoi, jamais recalculé depuis la fiche client actuelle) et résultat. Le contenu du message envoyé n’est jamais exposé. `factureId` omis rend l’historique complet du tenant ; fourni, filtre sur cette seule facture.
+     */
+    get: operations['RelancesController_listerHistorique'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/relances/facturation/planifier': {
     parameters: {
       query?: never;
@@ -3485,9 +3522,13 @@ export interface components {
         | 'periode_verrouillee'
         | 'or_facture'
         | 'ligne_non_pointable'
-        | 'derive_horloge';
+        | 'derive_horloge'
+        | 'cloture_fin_journee';
       /** Format: date-time */
       traiteeLe: string | null;
+    };
+    ApercuForcageMouvementDto: {
+      reservations: components['schemas']['ReservationMenaceeParForcageDto'][];
     };
     ArticleAvecAvertissementsDto: {
       avertissements: components['schemas']['AvertissementDto'][];
@@ -4571,6 +4612,25 @@ export interface components {
       /** @description Total débit en centimes — chaîne (bigint, MD-85 : Σdébit = Σcrédit). */
       totalDebitCentimes: string;
     };
+    MargeIndisponibleTableauBordDto: {
+      /** @description Toujours `false` — jamais un montant fabriqué. */
+      disponible: boolean;
+      /** @description Clé i18n (namespace `tableauBord`, `financier.marges.indisponible.<clé>`) — jamais de texte figé émis par l’API. */
+      raisonCle: string;
+    };
+    MargesTableauBordDto: {
+      /** @description Aucun taux horaire coûtant modélisé — toujours `disponible: false`. */
+      mainOeuvre: components['schemas']['MargeIndisponibleTableauBordDto'];
+      /** @description Coût de revient des pièces non fiable (`article.prixAchatCentimes` mutable, méthode de valorisation non tranchée) — toujours `disponible: false`. */
+      pieces: components['schemas']['MargeIndisponibleTableauBordDto'];
+      vehicules: components['schemas']['MargeVehiculesPeriodeTableauBordDto'];
+    };
+    MargeVehiculesPeriodeTableauBordDto: {
+      /** @description Revenu HT des documents véhicule de la période, moins le coût d’acquisition verrouillé (`vehicule_stock.prixAchatCentimes`). Calculable même à 0 (aucune vente = vraie donnée). */
+      margeCentimes: number;
+      /** @description Nombre de véhicules FACTURÉS entrant dans le calcul. */
+      nombreVehiculesFactures: number;
+    };
     MarqueVehiculeChDto: {
       /**
        * @description `null` quand la marque a été trouvée directement (nom canonique ASTRA). Sinon, le terme d'alias qui a permis de la trouver (ex. « Volkswagen » pour la marque canonique « VW ») — un utilisateur qui tape le nom courant et voit le sigle ASTRA apparaître doit comprendre pourquoi.
@@ -4895,6 +4955,12 @@ export interface components {
     PageReapprovisionnementDto: {
       curseurSuivant: string | null;
       donnees: components['schemas']['LigneReapprovisionnementDto'][];
+      /** @example 50 */
+      limite: number;
+    };
+    PageRelanceEnvoiDto: {
+      curseurSuivant: string | null;
+      donnees: components['schemas']['RelanceEnvoiDto'][];
       /** @example 50 */
       limite: number;
     };
@@ -5328,6 +5394,27 @@ export interface components {
         | 'expertise_mfk'
         | 'campagne_constructeur';
     };
+    RelanceEnvoiDto: {
+      /** @enum {string} */
+      canal: 'sms' | 'email';
+      /** @example client@exemple.ch */
+      destinataire: string;
+      /** Format: date-time */
+      envoyeLe: string;
+      /** Format: uuid */
+      factureId: string;
+      /** @example F-2026-00042 */
+      factureNumero: string | null;
+      /** Format: uuid */
+      id: string;
+      /** @example 1 */
+      palier: number;
+      /** @enum {string|null} */
+      raisonEchec:
+        'destinataire_invalide' | 'canal_non_supporte' | 'contenu_refuse' | 'quota_depasse' | null;
+      /** @enum {string} */
+      statutEnvoi: 'envoye' | 'echoue';
+    };
     RepartitionStatutOrdreReparationTableauBordDto: {
       nombre: number;
       /** @enum {string} */
@@ -5646,6 +5733,8 @@ export interface components {
       financements?: components['schemas']['FinancementResumeDto'][];
       /** @description ABSENT dans les mêmes conditions que `financements`. */
       financementsTronques?: boolean;
+      /** @description Garantie constructeur du véhicule associé (RM-33), jamais gatée par rôle (contrairement à reprise/financement) — voir GET /ventes/suivi pour le même calcul. null = pas de véhicule associé, ou garantieDebut non renseigné. */
+      garantie: components['schemas']['SuiviGarantieDto'] | null;
       /** Format: uuid */
       id: string;
       /** @description RV-34 : type de pièce présentée à la signature du bon de commande. */
@@ -5799,9 +5888,11 @@ export interface components {
       encaissementsCentimes: number;
       /** @description Snapshot au moment de l’appel (PAS borné par `periode`) : créances ouvertes sur les factures encore au statut `emis`. */
       encoursClientsCentimes: number;
+      marges: components['schemas']['MargesTableauBordDto'];
       periode: components['schemas']['PeriodeResolueTableauBordDto'];
       /** Format: uuid */
       siteId: string | null;
+      stockPieces: components['schemas']['ValorisationStockPiecesTableauBordDto'];
     };
     ReponseIdentificationPinDto: {
       /** @description Nom, pour un accueil nominatif à l’écran. */
@@ -6737,13 +6828,26 @@ export interface components {
       /** Format: date-time */
       reserveeLe: string;
     };
+    ReservationMenaceeParForcageDto: {
+      /** Format: uuid */
+      id: string;
+      /** Format: uuid */
+      ligneOrId: string;
+      /** Format: uuid */
+      ordreReparationId: string;
+      ordreReparationNumero: string;
+      quantiteMillieme: number;
+    };
     ReservationPieceAvecAvertissementsDto: {
       avertissements: components['schemas']['AvertissementDto'][];
       donnees: components['schemas']['ReservationPieceDto'];
     };
     ReservationPieceDto: {
+      articleDesignation?: string;
       /** Format: uuid */
       articleId: string;
+      /** @description Désignation lisible de l'article (jointure de lecture). */
+      articleNumero?: string;
       /** Format: date-time */
       creeLe: string;
       /** Format: uuid */
@@ -6766,6 +6870,8 @@ export interface components {
       mouvementSortieId: string | null;
       /** Format: uuid */
       ordreReparationId: string;
+      /** @description Numéro lisible de l'ordre de réparation (jointure de lecture). */
+      ordreReparationNumero?: string;
       quantiteMillieme: number;
       /** Format: date-time */
       satisfaiteLe: string | null;
@@ -6786,12 +6892,16 @@ export interface components {
       prixVenteTtcCentimes: number;
       /** @description Fiable UNIQUEMENT si statutSuivi = 'suivi' ; sinon vaut 0 par convention et NE DOIT PAS être lu comme un stock nul — voir statutSuivi. */
       quantiteDisponibleMillieme: number;
+      /** @description Casier structuré (rayon, 0056), COMPLÉMENT de `emplacement`. */
+      rayon: string | null;
       referencePrincipale: string;
       /**
        * @description Suivi de stock au site demandé : 'suivi' (quantiteDisponibleMillieme fiable, y compris à 0), 'nonSuiviSurCeSite' (suivi ailleurs, inconnu ici) ou 'nonSuiviNullePart' (jamais mis en stock). À lire AVANT quantiteDisponibleMillieme.
        * @enum {string}
        */
       statutSuivi: 'suivi' | 'nonSuiviSurCeSite' | 'nonSuiviNullePart';
+      /** @description Casier structuré (tiroir, 0056). */
+      tiroir: string | null;
     };
     ResultatRechercheDto: {
       correspondance: components['schemas']['CorrespondanceRechercheDto'];
@@ -6865,16 +6975,26 @@ export interface components {
       quantiteDisponibleMillieme: number;
       quantitePhysiqueMillieme: number;
       quantiteReserveeMillieme: number;
+      /** @description Casier structuré (rayon, 0056), COMPLÉMENT de `emplacement` — jamais un remplacement. Toujours normalisé (majuscules, sans espace) : "B3", "b3" et "B 3" saisis produisent la même valeur. */
+      rayon: string | null;
       /** Format: uuid */
       siteId: string;
       stockMinimumMillieme: number | null;
+      /** @description Casier structuré (tiroir, 0056) — mêmes règles de normalisation que `rayon`. */
+      tiroir: string | null;
     };
     StockResumeArticleDto: {
+      /** @description Texte libre (RP-11). */
+      emplacement: string | null;
       /** @description quantitePhysiqueMillieme - quantiteReserveeMillieme (RP-14), dérivé. */
       quantiteDisponibleMillieme: number;
       quantitePhysiqueMillieme: number;
+      /** @description Casier structuré (rayon, 0056), COMPLÉMENT de `emplacement` — jamais un remplacement. Toujours normalisé (majuscules, sans espace) : "B3", "b3" et "B 3" saisis produisent la même valeur. */
+      rayon: string | null;
       /** Format: uuid */
       siteId: string;
+      /** @description Casier structuré (tiroir, 0056) — mêmes règles de normalisation que `rayon`. */
+      tiroir: string | null;
     };
     SuiviFinancementDto: {
       /** Format: date-time */
@@ -7045,6 +7165,12 @@ export interface components {
       /** Format: uuid */
       detenteurClientId: string | null;
       plaque: string | null;
+    };
+    ValorisationStockPiecesTableauBordDto: {
+      /** @description Nombre d’articles actifs en stock (quantité > 0) sans prix d’achat connu, EXCLUS de `totalCentimes` — jamais comptés à 0. */
+      articlesValeurInconnueNombre: number;
+      /** @description Snapshot (PAS borné par la période) : Σ quantité physique × prix d’achat courant, articles actifs à prix connu seulement. */
+      totalCentimes: number;
     };
     VehiculeContexteAtelierDto: {
       /** @example VD */
@@ -7725,6 +7851,63 @@ export interface operations {
       };
     };
   };
+  MouvementController_apercuForcage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        articleId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApercuForcageMouvementDto'];
+        };
+      };
+      /** @description Filtres invalides. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Article ou site introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
   MouvementController_casse: {
     parameters: {
       query?: never;
@@ -8391,7 +8574,9 @@ export interface operations {
         'application/json': {
           emplacement?: string | null;
           quantiteCommandeStandardMillieme?: number | null;
+          rayon?: string | null;
           stockMinimumMillieme?: number | null;
+          tiroir?: string | null;
         };
       };
     };
@@ -18314,6 +18499,56 @@ export interface operations {
         };
       };
       /** @description Droit insuffisant (relances.facturation.envoyer). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  RelancesController_listerHistorique: {
+    parameters: {
+      query?: {
+        curseur?: string;
+        limite?: number;
+        factureId?: unknown;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PageRelanceEnvoiDto'];
+        };
+      };
+      /** @description Curseur de pagination invalide. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant (relances.facturation.regle.lire). */
       403: {
         headers: {
           [name: string]: unknown;

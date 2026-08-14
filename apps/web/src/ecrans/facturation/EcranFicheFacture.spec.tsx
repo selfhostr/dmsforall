@@ -266,9 +266,11 @@ describe('EcranFicheFacture — action Imprimer / télécharger le PDF', () => {
 
   it(
     "n'apparaît pas pour un rôle sans droit aux montants, même si la facture est émise — le menu " +
-      'reste disponible pour Corriger/Créer un avoir, qui eux ne dépendent pas des montants',
+      'reste disponible pour Corriger, qui ne dépend pas des montants (mais du rôle — voir ' +
+      "`peutCorrigerFacture`, `comptable` connecté ici pour isoler l'axe montants de l'axe rôle)",
     async () => {
       installerHandlerDocument(construireDocumentSansMontants());
+      connecterSession('comptable');
       const utilisateur = userEvent.setup();
       rendre();
 
@@ -302,6 +304,93 @@ describe('EcranFicheFacture — action Imprimer / télécharger le PDF', () => {
         await screen.findByRole('menuitem', { name: 'Imprimer / télécharger le PDF' }),
       ).toBeInTheDocument();
       // « Corriger »/« Créer un avoir » n'ont en revanche plus de sens sur une facture déjà annulée.
+      expect(
+        screen.queryByRole('menuitem', { name: 'Corriger cette facture' }),
+      ).not.toBeInTheDocument();
+    },
+  );
+});
+
+/**
+ * DÉFAUT CORRIGÉ (relevé au test manuel du 14.08.2026, quatre comptes) : « Corriger cette facture »
+ * (menu ⋯) ET le lien « Corriger par un avoir → » sous les lignes restaient cliquables pour
+ * `chef_atelier` et pour le compte technique `admin` — le dialogue s'ouvrait, son bouton de
+ * validation était actif. `proposeCorriger` ne dépendait que de l'état du document
+ * (`peutGererFacture`), jamais du rôle. Matrice exigée : `direction`/`comptable` autorisés,
+ * `chef_atelier`/`vendeur`/`receptionnaire`/`technicien`/`magasinier`/`admin`/`poste_atelier`
+ * refusés — voir `peutCorrigerFacture` (`./droits.ts`) pour le détail et l'état réel du serveur
+ * aujourd'hui (l'endpoint `POST .../corriger` n'existe pas encore, voir
+ * `apps/api/src/facturation/documents/document-vente-corriger-absent.spec.ts`).
+ *
+ * Les DEUX points d'entrée sont couverts par CE SEUL mécanisme (`proposeCorriger`) — pas de
+ * contrôle dupliqué : le test le prouve en vérifiant les deux dans le même cas de figure.
+ */
+describe('EcranFicheFacture — « Corriger cette facture » / « Corriger par un avoir → » (défaut corrigé, test manuel du 14.08.2026)', () => {
+  beforeEach(() => {
+    Element.prototype.hasPointerCapture = vi.fn().mockReturnValue(false);
+    Element.prototype.setPointerCapture = vi.fn();
+    Element.prototype.releasePointerCapture = vi.fn();
+    Element.prototype.scrollIntoView = vi.fn();
+  });
+
+  afterEach(async () => {
+    await i18n.changeLanguage('fr');
+  });
+
+  it.each(['direction', 'comptable'] as const)(
+    '%s : autorisé — « Corriger cette facture » présent au menu ET « Corriger par un avoir → » cliquable sous les lignes',
+    async (role) => {
+      installerHandlerDocument(construireDocument());
+      connecterSession(role);
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      await screen.findByText('Jean Dupont');
+
+      // Lien sous les lignes — un vrai bouton cliquable, pas seulement le texte informatif.
+      expect(
+        screen.getByRole('button', {
+          name: 'Cette facture est émise et ne peut plus être modifiée. Corriger par un avoir →',
+        }),
+      ).toBeInTheDocument();
+
+      // Menu ⋯.
+      const boutonAutresActions = await screen.findByRole('button', { name: 'Autres actions' });
+      await utilisateur.click(boutonAutresActions);
+      expect(
+        await screen.findByRole('menuitem', { name: 'Corriger cette facture' }),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it.each([
+    'chef_atelier',
+    'vendeur',
+    'receptionnaire',
+    'technicien',
+    'magasinier',
+    'admin',
+    'poste_atelier',
+  ] as const)(
+    '%s : refusé — ni « Corriger cette facture » au menu, ni le lien « Corriger par un avoir → » cliquable sous les lignes (message informatif seul, non actionnable)',
+    async (role) => {
+      installerHandlerDocument(construireDocument());
+      connecterSession(role);
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      await screen.findByText('Jean Dupont');
+
+      // Le message reste visible (pourquoi c'est verrouillé) — jamais un bouton menant au dialogue.
+      expect(
+        screen.getByText('Cette facture est émise et ne peut plus être modifiée.'),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /Corriger par un avoir/ }),
+      ).not.toBeInTheDocument();
+
+      const boutonAutresActions = await screen.findByRole('button', { name: 'Autres actions' });
+      await utilisateur.click(boutonAutresActions);
       expect(
         screen.queryByRole('menuitem', { name: 'Corriger cette facture' }),
       ).not.toBeInTheDocument();
@@ -819,6 +908,120 @@ function construireLigne(
     ...overrides,
   };
 }
+
+/**
+ * Défaut corrigé (testeur du 14.08.2026) : une facture émise depuis un dossier de vente
+ * (`dossierVenteId`/`vehiculeId` renseignés par `mappeurs.ts`) affichait « Aucun document lié »
+ * dans la carte « Documents liés » — le composant ne testait que `ordreReparationId`/
+ * `factureAnnuleeId`/`annuleParAvoirId`, jamais ces deux champs, ni côté liens ni côté condition
+ * de vide. Même patron de navigation réelle que `navigation vers la fiche client` ci-dessus (une
+ * `<Route>` de test rend un marqueur), pas seulement `getByRole('button')`.
+ */
+describe('EcranFicheFacture — carte « Documents liés » (dossier de vente / véhicule)', () => {
+  function rendreAvecRoutesLiees(id = 'facture-1') {
+    const queryClient = creerQueryClientTest();
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[`/factures/${id}`]}>
+          <Routes>
+            <Route path="/factures/:id" element={<EcranFicheFacture />} />
+            <Route
+              path="/ventes/dossiers/:idDossier"
+              element={<p>Marqueur fiche dossier de vente atteinte</p>}
+            />
+            <Route
+              path="/vehicules/:idVehicule"
+              element={<p>Marqueur fiche véhicule atteinte</p>}
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  }
+
+  it(
+    'une facture avec dossierVenteId et vehiculeId affiche les deux liens et navigue vers les ' +
+      'bonnes fiches',
+    async () => {
+      installerHandlerDocument(
+        construireDocument({ dossierVenteId: 'dossier-1', vehiculeId: 'vehicule-1' }),
+      );
+      const utilisateur = userEvent.setup();
+      rendreAvecRoutesLiees();
+
+      const lienDossier = await screen.findByRole('button', {
+        name: 'Dossier de vente lié →',
+      });
+      expect(lienDossier).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Véhicule lié →' })).toBeInTheDocument();
+
+      await utilisateur.click(lienDossier);
+      expect(
+        await screen.findByText('Marqueur fiche dossier de vente atteinte'),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it('le lien véhicule navigue vers la fiche véhicule', async () => {
+    installerHandlerDocument(
+      construireDocument({ dossierVenteId: 'dossier-1', vehiculeId: 'vehicule-1' }),
+    );
+    const utilisateur = userEvent.setup();
+    rendreAvecRoutesLiees();
+
+    const lienVehicule = await screen.findByRole('button', { name: 'Véhicule lié →' });
+    await utilisateur.click(lienVehicule);
+
+    expect(await screen.findByText('Marqueur fiche véhicule atteinte')).toBeInTheDocument();
+  });
+
+  it(
+    "n'affiche aucun lien mort et conserve l'état vide correct quand dossierVenteId et " +
+      "vehiculeId sont null (facture d'atelier ordinaire, sans OR ni avoir)",
+    async () => {
+      installerHandlerDocument(
+        construireDocument({ dossierVenteId: null, vehiculeId: null, ordreReparationId: null }),
+      );
+      rendreAvecRoutesLiees();
+
+      await screen.findByText('Jean Dupont');
+      expect(
+        screen.queryByRole('button', { name: 'Dossier de vente lié →' }),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Véhicule lié →' })).not.toBeInTheDocument();
+      expect(await screen.findByText('Aucun document lié.')).toBeInTheDocument();
+    },
+  );
+
+  it(
+    "le couple avoir ↔ facture d'origine continue de s'afficher sans régression (dossierVenteId/" +
+      'vehiculeId absents sur ce cas)',
+    async () => {
+      installerHandlerDocument(
+        construireDocument({
+          id: 'avoir-documents-lies',
+          typeDocument: 'avoir',
+          natureFacture: null,
+          numero: '2026-AV-00004',
+          factureAnnuleeId: 'facture-1',
+          motifAvoir: 'geste_commercial',
+          qr: null,
+          dossierVenteId: null,
+          vehiculeId: null,
+        }),
+      );
+      rendreAvecRoutesLiees('avoir-documents-lies');
+
+      expect(
+        await screen.findByRole('button', { name: "Facture d'origine →" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Dossier de vente lié →' }),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText('Aucun document lié.')).not.toBeInTheDocument();
+    },
+  );
+});
 
 /**
  * Issue #125 : « impossible d'ajouter une ligne à un document de vente, et un document vide peut

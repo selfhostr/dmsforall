@@ -5,7 +5,6 @@ import { Link } from 'react-router';
 import type { FiltreTableauBord } from '@dfa/shared';
 
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
-import { versDateIsoLocale } from '@/ecrans/accueil/semaine';
 import { useActiviteTableauBord } from '@/hooks/tableau-bord/useActiviteTableauBord';
 import { chemins } from '@/routes/chemins';
 
@@ -24,28 +23,34 @@ interface Props {
  * TEST DE NON-FUITE F8 (§3.9 du design, verrouillé par `EcranTableauBord.spec.tsx`) : cet écran ne
  * doit JAMAIS porter de carte grisée « Financier » ni de section vide à la place du bloc financier
  * des autres rôles — les trois blocs ci-dessous sont TOUT ce qu'`admin` voit, point final.
+ *
+ * « OR actuellement en atelier » — même défaut corrigé que côté `TableauBordDirection` (test
+ * manuel du 14.08.2026) : snapshot `ordresReparationParStatut` (indépendant de la période, donc
+ * du filtre `siteId` seul) plutôt que `ordresReparationOuvertsPeriode` (compte les OR OUVERTS
+ * pendant la journée, pas ceux encore actifs) — voir la doc de tête de `TableauBordDirection.tsx`
+ * pour le détail de la cause mesurée.
  */
 export function TableauBordAdmin({ site }: Props) {
   const { t } = useTranslation(['tableauBord', 'commun']);
 
-  const filtreAujourdhui = useMemo<FiltreTableauBord>(() => {
-    const iso = versDateIsoLocale(new Date());
-    return { siteId: site, du: iso, au: iso };
-  }, [site]);
-  const activiteAujourdhui = useActiviteTableauBord(filtreAujourdhui);
+  const filtreSite = useMemo<FiltreTableauBord>(() => ({ siteId: site }), [site]);
+  const activite = useActiviteTableauBord(filtreSite);
 
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-4 sm:grid-cols-2">
         <CarteChiffreRequete
-          titre={t('tableauBord:activite.ordresOuverts.libelleAujourdhui')}
-          resultat={activiteAujourdhui}
+          titre={t('tableauBord:activite.enAtelier.libelle')}
+          resultat={activite}
           libelleErreur={t('tableauBord:activite.erreur.titre')}
-          valeur={(donnees) => String(donnees.ordresReparationOuvertsPeriode)}
+          valeur={(donnees) =>
+            String(donnees.ordresReparationParStatut.reduce((total, e) => total + e.nombre, 0))
+          }
+          description={() => t('tableauBord:activite.enAtelier.description')}
         />
         <CarteChiffreRequete
           titre={t('tableauBord:activite.articlesSousSeuil.libelle')}
-          resultat={activiteAujourdhui}
+          resultat={activite}
           libelleErreur={t('tableauBord:activite.erreur.titre')}
           valeur={(donnees) => String(donnees.articlesSousSeuilReapprovisionnement)}
         />

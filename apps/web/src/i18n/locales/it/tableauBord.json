@@ -3,7 +3,8 @@
   "periode": {
     "du": "Dal",
     "au": "Al",
-    "periodeAffichee": "Periodo visualizzato: {du} – {au}"
+    "periodeAffichee": "Periodo visualizzato: {du} – {au}",
+    "appliqueeAutomatiquement": "Applicato automaticamente non appena entrambe le date sono valide."
   },
   "communs": {
     "voirFactures": "Vedere le fatture"
@@ -19,6 +20,10 @@
     "ordresOuverts": {
       "libelle": "Ordini di riparazione aperti nel periodo",
       "libelleAujourdhui": "Ordini di riparazione aperti oggi"
+    },
+    "enAtelier": {
+      "libelle": "Ordini attualmente in officina",
+      "description": "Tutti gli stati attivi (aperto, in corso, controllo, terminato, fatturato), indipendentemente dal giorno di apertura."
     },
     "ordresRestitues": {
       "libelle": "Veicoli restituiti nel periodo"
@@ -67,6 +72,24 @@
     "encoursClients": {
       "libelle": "Crediti clienti in essere",
       "definition": "Fatture emesse non pagate."
+    },
+    "marges": {
+      "vehicules": {
+        "libelle": "Margine sulle vendite di veicoli",
+        "detail": "{nombreVehiculesFactures, plural, =0 {Nessun veicolo fatturato nel periodo} one {# veicolo fatturato nel periodo} other {# veicoli fatturati nel periodo}}"
+      },
+      "indisponible": {
+        "titre": "Margine ricambi e manodopera",
+        "libelle": "Non disponibile",
+        "piecesCoutNonFiable": "Ricambi: costo di acquisto non affidabile (prezzo d'acquisto corrente, non fissato al momento della vendita).",
+        "mainOeuvreCoutAbsent": "Manodopera: nessun costo orario registrato nel sistema.",
+        "raisonGenerique": "Dato non calcolabile con le informazioni disponibili oggi."
+      }
+    },
+    "stockPieces": {
+      "libelle": "Valore del magazzino ricambi",
+      "definition": "Quantità a magazzino × prezzo d'acquisto corrente, solo articoli attivi.",
+      "articlesValeurInconnue": "{count, plural, one {# articolo senza prezzo d'acquisto noto, escluso dal totale} other {# articoli senza prezzo d'acquisto noto, esclusi dal totale}}"
     }
   },
   "direction": {

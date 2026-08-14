@@ -47,6 +47,11 @@ interface LigneEnCours {
   readonly designation: string;
   readonly quantiteSaisie: string;
   readonly prixAttenduCentimes: number | null;
+  /** `true` UNIQUEMENT pour une ligne reçue pré-remplie depuis `EcranReapprovisionnement` (défaut
+   *  n°4, test manuel du 14.08.2026) — pilote l'aide sous le champ quantité qui dit EXPLICITEMENT
+   *  d'où vient le nombre proposé (« l'écran doit dire lequel il propose »), jamais pour une ligne
+   *  ajoutée manuellement via la recherche ci-dessous. */
+  readonly quantiteSuggereeManquante: boolean;
 }
 
 /**
@@ -98,6 +103,7 @@ export function EcranNouvelleCommandeFournisseur() {
       designation: ligne.designation,
       quantiteSaisie: quantiteMilliemeVersSaisie(ligne.quantiteSuggereeMillieme),
       prixAttenduCentimes: null,
+      quantiteSuggereeManquante: true,
     })),
   );
   const [erreurValidation, setErreurValidation] = useState<string | null>(null);
@@ -178,6 +184,7 @@ export function EcranNouvelleCommandeFournisseur() {
         designation,
         quantiteSaisie: '1',
         prixAttenduCentimes: prixVenteTtcCentimes,
+        quantiteSuggereeManquante: false,
       },
     ]);
     recherche.onSaisieChange('');
@@ -421,6 +428,16 @@ export function EcranNouvelleCommandeFournisseur() {
                         majLigne(ligne.articleId, { quantiteSaisie: evenement.target.value })
                       }
                     />
+                    {/* DÉFAUT CORRIGÉ (n°4, test manuel du 14.08.2026) : « l'écran doit dire lequel
+                        il propose » — la quantité pré-remplie est TOUJOURS la quantité manquante
+                        (`ecartMillieme`, `EcranReapprovisionnement`), jamais le lot fournisseur
+                        habituel ; ce texte le dit explicitement plutôt que de laisser le nombre
+                        parler seul. */}
+                    {ligne.quantiteSuggereeManquante ? (
+                      <p className="texte-libelle text-muted-foreground">
+                        {t('pieces:commandes.nouvelle.quantiteSuggereeReapprovisionnement')}
+                      </p>
+                    ) : null}
                   </div>
                   <ChampMontant
                     id={`cmd-prix-${ligne.articleId}`}

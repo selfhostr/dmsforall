@@ -629,7 +629,8 @@ export function EcranBornePointage() {
           <Button
             type="button"
             variant="ghost"
-            size="sm"
+            size="lg"
+            className="min-h-[72px]"
             onClick={() => {
               reinitialiserInactivite();
               setToutesOrOuvertesManuel(!toutesOrOuvertesVisible);

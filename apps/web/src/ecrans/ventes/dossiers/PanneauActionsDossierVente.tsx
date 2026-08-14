@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
+import { useQueryClient } from '@tanstack/react-query';
+
 import {
   schemaActionAbandonnerDossierVente,
   schemaActionAnnulerDossierVente,
@@ -38,6 +40,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ChampKilometrage } from '@/composants/comptoir/ChampKilometrage';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
 import { RefusBloquant } from '@/composants/motifs/RefusBloquant';
+import { clesVentesDossiers } from '@/hooks/ventes/dossiers/cles';
 import { useCreerBonCommandeDossier } from '@/hooks/ventes/dossiers/useCreerBonCommandeDossier';
 import { useCreerFactureDossier } from '@/hooks/ventes/dossiers/useCreerFactureDossier';
 import {
@@ -90,6 +93,7 @@ interface Props {
  */
 export function PanneauActionsDossierVente({ dossier }: Props) {
   const { t } = useTranslation(['ventes', 'commun', 'erreurs', 'validation']);
+  const queryClient = useQueryClient();
   const [actionOuverte, setActionOuverte] = useState<ActionDossierVente | null>(null);
   const [confirmationOuverte, setConfirmationOuverte] = useState(false);
   const [derniereEntree, setDerniereEntree] = useState<object | null>(null);
@@ -180,6 +184,16 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
   function ouvrir(action: ActionDossierVente) {
     fermer();
     setActionOuverte(action);
+    // Défaut corrigé : le dialogue `livrer` affichait un texte périmé (« émettez la facture pour
+    // pouvoir livrer ») même APRÈS émission — la version de `dossier.documents` reçue en `props`
+    // pouvait dater d'avant l'émission (posée depuis l'écran facturation, hors périmètre, qui
+    // n'invalide pas le cache de CETTE fiche). Invalider systématiquement à l'OUVERTURE de ce
+    // dialogue précis (pas des autres, qui ne dépendent pas du statut d'un document) garantit que
+    // le statut de la facture affiché reflète l'état réel du dossier à chaque ouverture, même si le
+    // composant n'a pas été démonté entre-temps.
+    if (action === 'livrer') {
+      void queryClient.invalidateQueries({ queryKey: clesVentesDossiers.detail(dossier.id) });
+    }
   }
 
   if (actionsTransition.length === 0) {
@@ -199,6 +213,19 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
   // `factureCreeeId` (voir sa note ci-dessus) couvre l'instant entre la création et le refetch.
   const facturesDossier = dossier.documents.filter((d) => d.typeDocument === 'facture');
   const factureAAfficherId = factureCreeeId ?? facturesDossier[0]?.id;
+  // Défaut corrigé : « Ajoutez les lignes et émettez la facture pour pouvoir livrer » restait
+  // affiché même APRÈS émission — le message était conditionné sur « une facture est rattachée »,
+  // jamais sur son STATUT réel. `livrer` (RV-37) exige une facture ÉMISE, pas seulement rattachée :
+  // le texte ne doit apparaître que tant que la facture est encore un `brouillon`. Si son statut
+  // n'est pas encore connu (facture tout juste créée via `factureCreeeId`, avant que le dossier ne
+  // soit rechargé — voir la note sur ce champ plus haut), elle est nécessairement un brouillon fraîchement
+  // posé (`lignes: []`) : traiter l'inconnu comme « pas encore complète » reste correct, jamais
+  // l'inverse (une facture qu'on ne peut pas confirmer émise ne doit jamais être traitée comme si
+  // elle l'était).
+  const factureCourante = facturesDossier.find((d) => d.id === factureAAfficherId);
+  const factureNecessiteCompletion = factureCourante
+    ? factureCourante.statut === 'brouillon'
+    : factureAAfficherId !== undefined;
   const repriseNegocieePresente = dossier.reprise?.statut === 'negociee';
 
   return (
@@ -493,9 +520,11 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
                     >
                       {t('ventes:dossier.transitions.voirFacture')}
                     </Link>
-                    <p className="texte-libelle text-muted-foreground">
-                      {t('ventes:dossier.transitions.factureACompleter')}
-                    </p>
+                    {factureNecessiteCompletion ? (
+                      <p className="texte-libelle text-muted-foreground">
+                        {t('ventes:dossier.transitions.factureACompleter')}
+                      </p>
+                    ) : null}
                   </div>
                 )}
               </div>

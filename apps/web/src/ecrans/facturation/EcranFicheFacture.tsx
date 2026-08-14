@@ -54,7 +54,7 @@ import { CarteBulletinVersement } from './CarteBulletinVersement';
 import { ChampVerrouille } from './ChampVerrouille';
 import { DialogueCorrectionFacture } from './DialogueCorrectionFacture';
 import { DialogueLigneDocumentVente } from './DialogueLigneDocumentVente';
-import { peutEmettreAvoir, peutEmettreFacture, peutEncaisser } from './droits';
+import { peutCorrigerFacture, peutEmettreAvoir, peutEmettreFacture, peutEncaisser } from './droits';
 import { IndicateurRetard } from './IndicateurRetard';
 import { messagesErreurMutation } from './messages-erreur-mutation';
 import { RecapitulatifTVA } from './RecapitulatifTVA';
@@ -178,15 +178,24 @@ export function EcranFicheFacture() {
   // (`irrecouvrable` reste, par exemple, un solde non nul qu'on peut légitimement recevoir).
   const resteDuCentimes = document_.soldeCentimes;
   const resteAEncaisser = resteDuCentimes !== undefined && resteDuCentimes > 0;
-  // Trois droits DISTINCTS, superposés à `estBrouillon`/`peutGererFacture` (état du document) —
+  // Quatre droits DISTINCTS, superposés à `estBrouillon`/`peutGererFacture` (état du document) —
   // défaut corrigé : ces deux booléens ne dépendaient auparavant que de l'état, jamais du rôle, et
-  // affichaient les trois gestes financiers à des rôles sans le droit correspondant côté serveur
+  // affichaient les gestes financiers à des rôles sans le droit correspondant côté serveur
   // (`apps/api/src/auth/matrice-droits.ts`, voir `./droits.ts` pour le miroir exact). Doctrine du
   // dépôt : un rôle sans droit ne voit pas un bouton grisé, il ne voit pas de bouton.
+  //
+  // `proposeCorriger` (DÉFAUT CORRIGÉ, relevé au test manuel du 14.08.2026) : gouvernait
+  // auparavant SEUL le menu « Corriger cette facture » (`peutGererFacture`, sans aucun contrôle de
+  // rôle) — le lien « Corriger par un avoir → » sous les lignes et celui de la carte Destinataire
+  // (`ChampVerrouille.onAction`) restaient en plus câblés directement sur `ouvrirCorrection()`,
+  // hors de toute condition, donc actifs pour N'IMPORTE QUEL rôle y compris `admin`. Les TROIS
+  // points d'entrée (menu, lien sous les lignes, action du champ verrouillé) sont désormais
+  // gouvernés par CE SEUL booléen — voir `peutCorrigerFacture` (`./droits.ts`) pour le détail du
+  // rôle et l'état RÉEL du serveur aujourd'hui (l'endpoint `POST .../corriger` n'existe pas encore).
   const proposeEmettre = estBrouillon && peutEmettreFacture(role);
   const proposeEncaisser = peutGererFacture && resteAEncaisser && peutEncaisser(role);
   const proposeCreerAvoir = peutGererFacture && peutEmettreAvoir(role);
-  const proposeCorriger = peutGererFacture;
+  const proposeCorriger = peutGererFacture && peutCorrigerFacture(role);
   // Imprimer : condition DÉCOUPLÉE de `peutGererFacture` — voir le commentaire de tête de fichier.
   // `document_.qr !== null` implique déjà `typeDocument === 'facture'` et une émission passée
   // (`mapperDocument`, serveur), donc ce document reste imprimable même `estAnnuleeParAvoir`
@@ -370,16 +379,21 @@ export function EcranFicheFacture() {
                   </p>
                 );
                 // Verrouillé dès que le document n'est plus un brouillon (§4.6) — un avoir émis
-                // n'a de toute façon aucune correction possible (`onAction` reste néanmoins
-                // câblé pour l'uniformité, la facture d'origine seule est corrigible en pratique).
+                // n'a de toute façon aucune correction possible. `libelleAction`/`onAction`
+                // omis pour un rôle sans `proposeCorriger` (DÉFAUT CORRIGÉ, voir le commentaire
+                // de tête de `proposeCorriger` ci-dessus) : le popover explique toujours pourquoi
+                // le champ est figé, mais ne propose plus l'action à qui n'a pas le droit de la
+                // déclencher — `ChampVerrouille` n'affiche alors que `message` (voir sa docstring).
                 return estBrouillon ? (
                   blocAdresse
                 ) : (
                   <ChampVerrouille
                     enfant={blocAdresse}
                     message={t('facturation:verrouille.message')}
-                    libelleAction={t('facturation:verrouille.corriger')}
-                    onAction={ouvrirCorrection}
+                    libelleAction={
+                      proposeCorriger ? t('facturation:verrouille.corriger') : undefined
+                    }
+                    onAction={proposeCorriger ? ouvrirCorrection : undefined}
                   />
                 );
               })()}
@@ -425,7 +439,12 @@ export function EcranFicheFacture() {
               ) : null}
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
-              {!estBrouillon ? (
+              {/* DÉFAUT CORRIGÉ (voir le commentaire de tête de `proposeCorriger` plus haut) : ce
+                  lien était câblé sur `!estBrouillon` SEUL, sans aucun contrôle de rôle — actif
+                  pour n'importe quel rôle, y compris `chef_atelier`/`admin`. `proposeCorriger`
+                  gouverne désormais L'ACTION elle-même ; un rôle sans droit garde le message
+                  informatif (« facture émise, non modifiable »), sans le lien cliquable. */}
+              {!estBrouillon && proposeCorriger ? (
                 <button
                   type="button"
                   className="w-fit texte-libelle text-muted-foreground underline-offset-2 hover:underline"
@@ -433,6 +452,11 @@ export function EcranFicheFacture() {
                 >
                   {t('facturation:verrouille.message')} {t('facturation:verrouille.corriger')}
                 </button>
+              ) : null}
+              {!estBrouillon && !proposeCorriger ? (
+                <p className="w-fit texte-libelle text-muted-foreground">
+                  {t('facturation:verrouille.message')}
+                </p>
               ) : null}
               {document_.lignes.length === 0 ? (
                 <p className="texte-corps text-muted-foreground">
@@ -628,6 +652,24 @@ export function EcranFicheFacture() {
                   {t('facturation:fiche.documentsLies.or')}
                 </button>
               ) : null}
+              {document_.dossierVenteId ? (
+                <button
+                  type="button"
+                  className="text-left text-primary underline-offset-2 hover:underline"
+                  onClick={() => navigate(`/ventes/dossiers/${document_.dossierVenteId}`)}
+                >
+                  {t('facturation:fiche.documentsLies.dossierVente')}
+                </button>
+              ) : null}
+              {document_.vehiculeId ? (
+                <button
+                  type="button"
+                  className="text-left text-primary underline-offset-2 hover:underline"
+                  onClick={() => navigate(`/vehicules/${document_.vehiculeId}`)}
+                >
+                  {t('facturation:fiche.documentsLies.vehicule')}
+                </button>
+              ) : null}
               {document_.factureAnnuleeId ? (
                 <button
                   type="button"
@@ -647,6 +689,8 @@ export function EcranFicheFacture() {
                 </button>
               ) : null}
               {!document_.ordreReparationId &&
+              !document_.dossierVenteId &&
+              !document_.vehiculeId &&
               !document_.factureAnnuleeId &&
               !document_.annuleParAvoirId ? (
                 <p className="text-muted-foreground">{t('facturation:fiche.documentsLies.vide')}</p>

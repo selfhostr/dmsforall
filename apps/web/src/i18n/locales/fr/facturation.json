@@ -202,6 +202,8 @@
     "documentsLies": {
       "titre": "Documents liés",
       "or": "Ordre de réparation lié →",
+      "dossierVente": "Dossier de vente lié →",
+      "vehicule": "Véhicule lié →",
       "facture": "Facture d'origine →",
       "avoir": "Avoir lié →",
       "vide": "Aucun document lié."

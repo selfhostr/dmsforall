@@ -22,6 +22,7 @@ import { chemins } from '@/routes/chemins';
 
 import { CarteDocumentsRequis } from './CarteDocumentsRequis';
 import { CarteDocumentsVente } from './CarteDocumentsVente';
+import { CarteGarantieDossier } from './CarteGarantieDossier';
 import { DialogueModifierDossierVente } from './DialogueModifierDossierVente';
 import { EnTeteDossierVente } from './EnTeteDossierVente';
 import { PanneauActionsDossierVente } from './PanneauActionsDossierVente';
@@ -152,6 +153,16 @@ export function EcranFicheDossierVente() {
         role={role}
         onMutationReussie={() => void requete.refetch()}
       />
+
+      {/* Jamais rendue sans véhicule associé (`dossier.garantie` vaudrait de toute façon `null`
+       *  dans ce cas, voir le contrat) — même garde que la carte « OR du véhicule » ci-dessous. */}
+      {dossier.vehicule ? (
+        <CarteGarantieDossier
+          garantie={dossier.garantie}
+          vehiculeStockId={dossier.vehicule.id}
+          site={site}
+        />
+      ) : null}
 
       {/* Lot B — « l'OR de préparation ». Voir le commentaire de tête de `requeteOr` ci-dessus :
        *  faute de champ contractuel reliant un OR précis à ce dossier, ce bloc liste tous les OR

@@ -21,6 +21,7 @@ import {
 } from '@nestjs/swagger';
 import type { Response } from 'express';
 import {
+  schemaApercuForcageMouvement,
   schemaCreationAjustementInventaire,
   schemaCreationMouvementCasse,
   schemaCreationMouvementPerte,
@@ -28,6 +29,7 @@ import {
   schemaCreationMouvementSortieComptoir,
   schemaCreationMouvementTransfert,
   schemaCreationRetourFournisseur,
+  type EntreeApercuForcageMouvement,
   type EntreeCreationAjustementInventaire,
   type EntreeCreationMouvementCasse,
   type EntreeCreationMouvementPerte,
@@ -44,7 +46,12 @@ import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
 
-import { MouvementAvecAvertissementsDto, MouvementStockDto, PageMouvementStockDto } from './dto';
+import {
+  ApercuForcageMouvementDto,
+  MouvementAvecAvertissementsDto,
+  MouvementStockDto,
+  PageMouvementStockDto,
+} from './dto';
 import { schemaFiltresMouvementsStock, schemaUuid } from './schemas';
 import { ServiceMouvement } from './service-mouvement';
 
@@ -78,6 +85,30 @@ export class MouvementController {
     const ctx = this.contexte.contexteTenant();
     const { role } = this.contexte.exigerPrincipal();
     return this.service.lister(ctx, role, articleId, query);
+  }
+
+  @Get(':articleId/mouvements/apercu-forcage')
+  @ExigerDroit('pieces.mouvement.forcer')
+  @ApiOperation({
+    summary:
+      "Aperçu, en lecture seule, des réservations qu'un forçage (`casse`/`perte`, `forcer: true`) " +
+      'libérerait s’il était soumis maintenant — à interroger AVANT de cocher « Forcer » ' +
+      '(RP-15 : avertissement spécifique et chiffré). Réservé à qui détient déjà le droit de ' +
+      'forcer : `[]` si le forçage ne libérerait rien (stock déjà suffisant, ou aucune réservation ' +
+      'active).',
+  })
+  @ApiParam({ name: 'articleId', format: 'uuid' })
+  @ApiOkResponse({ type: ApercuForcageMouvementDto })
+  @ApiReponseProbleme(400, 'Filtres invalides.')
+  @ApiReponseProbleme(401, 'Session absente ou expirée.')
+  @ApiReponseProbleme(403, 'Droit insuffisant.')
+  @ApiReponseProbleme(404, 'Article ou site introuvable pour ce tenant.')
+  async apercuForcage(
+    @Param('articleId', new PipeZod(schemaUuid)) articleId: string,
+    @Query(new PipeZod(schemaApercuForcageMouvement)) query: EntreeApercuForcageMouvement,
+  ): Promise<ApercuForcageMouvementDto> {
+    const ctx = this.contexte.contexteTenant();
+    return this.service.apercuForcage(ctx, articleId, query);
   }
 
   @Post(':articleId/mouvements/casse')

@@ -232,7 +232,13 @@
         "champQuantiteComptee": "Quantità contata",
         "champForcer": "Forza nonostante la scorta insufficiente",
         "avertissementEcart": "Rilevata una differenza significativa rispetto alla scorta stimata — verificare il conteggio.",
-        "aucunEcart": "Il conteggio corrisponde alla scorta attuale: nessun movimento è stato creato."
+        "aucunEcart": "Il conteggio corrisponde alla scorta attuale: nessun movimento è stato creato.",
+        "apercuForcage": {
+          "chargement": "Verifica delle prenotazioni interessate da questa forzatura…",
+          "erreur": "Impossibile verificare le prenotazioni interessate da questa forzatura.",
+          "titre": "{count} {count, plural, one {prenotazione sarà liberata} other {prenotazioni saranno liberate}} da questa forzatura.",
+          "listeOrs": "Ordini di riparazione interessati: {numeros}."
+        }
       }
     },
     "reapprovisionnement": {
@@ -365,7 +371,8 @@
     },
     "nouvelle": {
       "aucuneLigne": "Aggiungere almeno una riga all'ordine.",
-      "choisirSiteDabord": "Scegliere prima un'ubicazione per cercare gli articoli."
+      "choisirSiteDabord": "Scegliere prima un'ubicazione per cercare gli articoli.",
+      "quantiteSuggereeReapprovisionnement": "Quantità proposta: la quantità mancante per tornare sopra la soglia di riordino. Correggila se il fornitore impone un lotto diverso."
     },
     "filtres": {
       "statutTous": "Tutti gli stati",

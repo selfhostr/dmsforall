@@ -557,7 +557,8 @@ export function EcranPointageTechnicien() {
           <Button
             type="button"
             variant="ghost"
-            size="sm"
+            size="lg"
+            className="min-h-[72px]"
             onClick={() => setToutesOrOuvertesManuel(!toutesOrOuvertesVisible)}
           >
             {toutesOrOuvertesVisible

@@ -10,6 +10,7 @@ import { EtatVide } from '@/composants/commun/EtatVide';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { useListeOrdresReparation } from '@/hooks/atelier/useListeOrdresReparation';
+import { statutOrPointable } from '@/hooks/pointage/statuts-or-pointables';
 
 const DELAI_DEBOUNCE_MS = 300;
 
@@ -33,10 +34,14 @@ interface Props {
  * heurtait donc à un mur purement décoratif : ce composant lui donne un second chemin, légal côté
  * serveur depuis toujours.
  *
- * `statut: 'ouvert'` (mono-sélection, voir `FiltresListeOrdresReparation`) : reflète littéralement
- * le besoin exprimé (« n'importe quel OR OUVERT ») — une OR déjà `en_cours` reste atteignable par
- * « Mes OR du jour » si elle y est assignée, ou par une recherche future élargie si le besoin se
- * confirme ; pas d'invention au-delà de ce qui a été demandé.
+ * AUCUN filtre `statut` sur la requête (CORRECTIF, test manuel 14.08.2026) : `statut: 'ouvert'`
+ * rendait une OR `en_cours` — précisément la cible la plus probable d'un technicien qui cherche à
+ * pointer — introuvable par ce chemin, alors qu'elle reste légitimement pointable (RM-92). La liste
+ * NON filtrée par statut est donc chargée puis réduite CÔTÉ CLIENT à `statutOrPointable`
+ * (`hooks/pointage/statuts-or-pointables.ts`, MIROIR du prédicat serveur `estOrPointable`) —
+ * `FiltresListeOrdresReparation.statut` (`hooks/atelier/ordres-reparation.api.ts`, hors périmètre
+ * d'écriture de ce module) reste mono-sélection, un filtre serveur multi-statuts serait la solution
+ * idéale mais exige de toucher ce contrat, signalé au coordinateur plutôt que bricolé ici.
  *
  * Choisir une OR ici ouvre EXACTEMENT le même `DialogueChoixCiblePointage` que « Mes OR du jour »
  * (l'appelant partage le même `orSelectionneId` / `onChoisirOr`) — aucune mécanique dupliquée.
@@ -51,7 +56,9 @@ export function SelecteurOrOuvert({ siteId, onChoisirOr, disabled = false }: Pro
     return () => window.clearTimeout(identifiant);
   }, [qSaisie]);
 
-  const requete = useListeOrdresReparation({ q, siteId, statut: 'ouvert', tri: 'ouvertLe:desc' });
+  const requete = useListeOrdresReparation({ q, siteId, tri: 'ouvertLe:desc' });
+  // Filtre CÔTÉ CLIENT — voir la docstring de tête, § « AUCUN filtre `statut` sur la requête ».
+  const ordresPointables = requete.ordres.filter((or) => statutOrPointable(or.statut));
 
   return (
     <div className="flex flex-col gap-3">
@@ -77,13 +84,13 @@ export function SelecteurOrOuvert({ siteId, onChoisirOr, disabled = false }: Pro
         />
       ) : null}
 
-      {!requete.isPending && !requete.isError && requete.ordres.length === 0 ? (
+      {!requete.isPending && !requete.isError && ordresPointables.length === 0 ? (
         <EtatVide titre={t('pointage:toutesLesOr.aucunResultat')} description="" />
       ) : null}
 
-      {!requete.isPending && !requete.isError && requete.ordres.length > 0 ? (
+      {!requete.isPending && !requete.isError && ordresPointables.length > 0 ? (
         <div className="flex flex-col gap-2">
-          {requete.ordres.map((or) => (
+          {ordresPointables.map((or) => (
             <button
               key={or.id}
               type="button"

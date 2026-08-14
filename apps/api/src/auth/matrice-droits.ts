@@ -243,6 +243,17 @@ export const TOUTES_ACTIONS = [
   'facturation.document.emettre_facture',
   'facturation.document.emettre_avoir',
   'facturation.avoir.creer',
+  // `facturation.document.corriger` — demande relayée par l'orchestrateur pour le compte d'un agent
+  // sans accès à ce fichier (même patron que les blocs additifs déjà présents ici). ENDPOINT SERVEUR
+  // PAS ENCORE ÉCRIT à la date de cet ajout : contrat et écran l'appellent déjà, défaut ouvert par
+  // ailleurs — le droit est posé EN AVANCE de l'opération pour que la route, le jour où elle
+  // s'écrit, trouve sa garde déjà en place plutôt que d'être livrée sans `@ExigerDroit`. Distinct de
+  // `facturation.document.emettre_avoir` : corriger une facture ÉMISE annule par avoir ET RECRÉE une
+  // nouvelle facture dans la même opération — plus engageant qu'un simple avoir, ne réutilise donc
+  // pas son périmètre. Réservé à `direction`/`comptable` EXACTEMENT (voir `DROITS_DOCUMENT_PAR_ROLE`
+  // ci-dessous) — ni `admin` (RF-115, aucun droit financier), ni `receptionnaire` : périmètre
+  // arbitré, à ne pas élargir « par cohérence apparente » avec les actions de facturation voisines.
+  'facturation.document.corriger',
   // ---- Bloc créancier QR-facture (étape 2) — palier de gouvernance le plus élevé de la matrice ---
   // `GET|PATCH /parametres-facturation/creancier` (`apps/api/src/parametrage/bloc-creancier/`, PAS
   // le périmètre de ce fichier) porte l'IBAN sur lequel les clients du garage paient. Arbitrage du
@@ -1074,6 +1085,17 @@ const EMISSION_AVOIR: readonly Action[] = [
   'facturation.document.emettre_avoir',
 ];
 
+/**
+ * `facturation.document.corriger` — demande relayée par l'orchestrateur (voir le commentaire sur
+ * `TOUTES_ACTIONS` ci-dessus pour la doctrine complète : endpoint pas encore écrit, droit posé en
+ * avance). Corrige une facture ÉMISE : annule par avoir ET recrée une nouvelle facture dans la
+ * MÊME opération — plus engageant qu'`EMISSION_AVOIR` seule, périmètre volontairement PLUS ÉTROIT :
+ * `direction`/`comptable` EXACTEMENT, ni `receptionnaire` (qui a pourtant `EMISSION_AVOIR`) ni
+ * `admin` (RF-115). Ne pas élargir « par cohérence » avec les rôles de `EMISSION_AVOIR` — l'écart
+ * est délibéré, pas un oubli.
+ */
+const CORRECTION_FACTURE: readonly Action[] = ['facturation.document.corriger'];
+
 const DROITS_DOCUMENT_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
   direction: [
     ...LECTURE_DOCUMENT,
@@ -1081,6 +1103,7 @@ const DROITS_DOCUMENT_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action
     ...EMISSION_DEVIS_BC,
     ...EMISSION_FACTURE,
     ...EMISSION_AVOIR,
+    ...CORRECTION_FACTURE,
   ],
   comptable: [
     ...LECTURE_DOCUMENT,
@@ -1088,6 +1111,7 @@ const DROITS_DOCUMENT_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action
     ...EMISSION_DEVIS_BC,
     ...EMISSION_FACTURE,
     ...EMISSION_AVOIR,
+    ...CORRECTION_FACTURE,
   ],
   vendeur: [...LECTURE_DOCUMENT, ...ECRITURE_BROUILLON, ...EMISSION_DEVIS_BC, ...EMISSION_FACTURE],
   receptionnaire: [

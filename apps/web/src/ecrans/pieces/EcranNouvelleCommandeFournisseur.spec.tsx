@@ -228,6 +228,11 @@ describe('EcranNouvelleCommandeFournisseur — pré-remplissage depuis le réapp
     expect(
       screen.getByLabelText(`${i18n.t('pieces:commandes.lignes.quantiteCommandee')}*`),
     ).toHaveValue('4');
+    // DÉFAUT CORRIGÉ (n°4, test manuel du 14.08.2026) : « l'écran doit dire lequel il propose » —
+    // une ligne pré-remplie depuis le réapprovisionnement porte cette aide, jamais silencieuse.
+    expect(
+      screen.getByText(i18n.t('pieces:commandes.nouvelle.quantiteSuggereeReapprovisionnement')),
+    ).toBeInTheDocument();
   });
 
   it('reprend le dernier prix d’achat connu et détecte le fournisseur unique de l’article, puis crée la commande sans aucune resaisie manuelle', async () => {

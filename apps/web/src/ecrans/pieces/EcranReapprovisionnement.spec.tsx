@@ -220,15 +220,19 @@ describe('EcranReapprovisionnement — sélection et passage vers la création d
           articleId: 'art-1',
           numeroArticle: 'P-000123',
           designation: 'Plaquettes de frein avant',
-          // Pas de `quantiteCommandeStandardMillieme` pour cette ligne : repli sur `ecartMillieme`.
+          // Pas de `quantiteCommandeStandardMillieme` pour cette ligne : `ecartMillieme` seul.
           quantiteSuggereeMillieme: 4000,
         },
         {
           articleId: 'art-2',
           numeroArticle: 'P-000456',
           designation: 'Filtre à huile',
-          // `quantiteCommandeStandardMillieme` renseignée : priorité sur `ecartMillieme`.
-          quantiteSuggereeMillieme: 6000,
+          // DÉFAUT CORRIGÉ (n°4, test manuel du 14.08.2026) : `quantiteCommandeStandardMillieme`
+          // (6000, lot fournisseur habituel) NE prime PLUS sur `ecartMillieme` (3000, quantité
+          // RÉELLEMENT manquante) — avant ce correctif, cette assertion valait 6000 : elle
+          // encodait le défaut lui-même, pas le comportement attendu. `ecartMillieme` est
+          // TOUJOURS la quantité proposée : celle qui fait repasser l'article au-dessus du seuil.
+          quantiteSuggereeMillieme: 3000,
         },
       ],
     });

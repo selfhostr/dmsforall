@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { and, eq, sql } from 'drizzle-orm';
 import type {
   DetailStockInsuffisantPieces,
+  EntreeApercuForcageMouvement,
   EntreeCreationAjustementInventaire,
   EntreeCreationMouvementCasse,
   EntreeCreationMouvementPerte,
@@ -11,6 +12,7 @@ import type {
   EntreeCreationRetourFournisseur,
   FiltresMouvementsStock,
   PageCurseur,
+  ReponseApercuForcageMouvement,
   ReponseAvecAvertissements,
   ReponseMouvementStock,
   RoleUtilisateur,
@@ -18,7 +20,7 @@ import type {
 
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
 import { JETON_DB } from '../db';
-import { article, mouvementStock, parametrePieces, site } from '../db/schema';
+import { article, mouvementStock, parametrePieces, site, stockArticle } from '../db/schema';
 import type { LigneMouvementStock, NouveauMouvementStock } from '../db/schema';
 import { MATRICE_DROITS } from '../auth/matrice-droits';
 import { CollecteurAvertissements } from '../common/avertissements';
@@ -159,6 +161,73 @@ export class ServiceMouvement {
               })
             : null,
         limite: params.limite,
+      };
+    });
+  }
+
+  /**
+   * `GET /articles/{id}/mouvements/apercu-forcage` — DÉFAUT CORRIGÉ (test manuel du 14.08.2026,
+   * défaut n°2) : aperçu, EN LECTURE SEULE, de ce qu'un forçage (`casse`/`perte`, `forcer: true`)
+   * libérerait comme réservations `active` — voir `ReponseApercuForcageMouvement` (`@dfa/shared`)
+   * pour la doctrine complète. Reproduit EXACTEMENT le calcul de `verifierDisponible`/
+   * `libererCascadeSiNecessaire` ci-dessous (même seuils `disponible`/`physiqueApres`/
+   * `plafondReservee`/`aLiberer`), SANS `for update` (lecture non verrouillante — voir la doc de
+   * `ServiceReservation.apercuLiberationCascadeTx`, qui porte la même réserve) : un aperçu qui
+   * verrouillerait la ligne `stock_article` bloquerait inutilement les écritures concurrentes pour
+   * un simple `GET` consultatif.
+   */
+  async apercuForcage(
+    ctx: ContexteTenant,
+    articleId: string,
+    entree: EntreeApercuForcageMouvement,
+  ): Promise<ReponseApercuForcageMouvement> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      await this.chargerArticleOu404(tx, ctx, articleId);
+      await this.chargerSiteOu404(tx, ctx, entree.siteId);
+
+      const lignesStock = await tx
+        .select({
+          physique: stockArticle.quantitePhysiqueMillieme,
+          reservee: stockArticle.quantiteReserveeMillieme,
+        })
+        .from(stockArticle)
+        .where(
+          and(
+            eq(stockArticle.tenantId, ctx.tenantId),
+            eq(stockArticle.articleId, articleId),
+            eq(stockArticle.siteId, entree.siteId),
+          ),
+        )
+        .limit(1);
+      const ligneStock = lignesStock[0];
+      const physique = ligneStock?.physique ?? 0;
+      const reservee = ligneStock?.reservee ?? 0;
+      const disponible = physique - reservee;
+
+      // Même garde que `verifierDisponible` : le forçage ne changerait RIEN si le disponible
+      // couvre déjà la quantité demandée — aucune réservation ne serait libérée.
+      if (entree.quantiteMillieme <= disponible) return { reservations: [] };
+
+      const physiqueApres = physique - entree.quantiteMillieme;
+      const plafondReservee = Math.max(physiqueApres, 0);
+      const aLiberer = reservee - plafondReservee;
+      if (aLiberer <= 0) return { reservations: [] };
+
+      const apercu = await this.reservation.apercuLiberationCascadeTx(
+        tx,
+        ctx,
+        articleId,
+        entree.siteId,
+        aLiberer,
+      );
+      return {
+        reservations: apercu.map((r) => ({
+          id: r.id,
+          ligneOrId: r.ligneOrId,
+          ordreReparationId: r.ordreReparationId,
+          ordreReparationNumero: r.ordreReparationNumero,
+          quantiteMillieme: r.quantiteMillieme,
+        })),
       };
     });
   }

@@ -274,6 +274,48 @@ describe('EcranListeClients', () => {
       expect(await screen.findByLabelText('Nom')).toHaveValue('Rossier');
       expect(screen.getByText(/Brouillon repris de/)).toBeInTheDocument();
     });
+
+    // Test manuel du 14.08.2026 : le testeur n'a pas pu exécuter « ouvrir une fiche, fermer sans
+    // enregistrer, en ouvrir une autre et vérifier qu'aucun champ n'a gardé l'ancienne valeur »,
+    // parce que le tiroir ne se fermait pas du tout (défaut du bouton « Fermer », traqué à part —
+    // voir `components/ui/sheet.tsx`, hors périmètre de cet écran). Une fois la fermeture possible,
+    // CE test rejoue le scénario de bout en bout via le VRAI `<Sheet>` d'`EcranListeClients` (pas
+    // le harnais synthétique `EnveloppeTiroir` de `FormulaireNouveauClient.spec.tsx`, qui prouve la
+    // même garantie mais à un niveau plus unitaire) : aucune valeur d'une tentative abandonnée ne
+    // doit resurgir — ni en silence (elle est annoncée par le bandeau de brouillon, jamais
+    // simplement réapparue), ni en se mélangeant à la saisie suivante.
+    it("n'importe quelle valeur tapée dans une tentative abandonnée ne se mélange jamais à la suivante — prouvé via le vrai tiroir, fermeture par bouton comprise", async () => {
+      repondreListeVide();
+      const utilisateur = userEvent.setup();
+      rendreEcran();
+
+      // Première tentative, abandonnée par le bouton de fermeture explicite (le seul chemin
+      // toujours autorisé, saisie en cours ou non).
+      await ouvrirTiroirEtTaper(utilisateur, 'Rossier');
+      await utilisateur.click(screen.getByRole('button', { name: 'Fermer' }));
+      expect(screen.queryByLabelText('Nom')).not.toBeInTheDocument();
+
+      // Réouverture : la saisie perdue est restaurée et ANNONCÉE (issue #78), jamais silencieuse —
+      // c'est la garantie « jamais de perte de saisie », pas un formulaire vierge par défaut.
+      await utilisateur.click(await boutonNouveauClient());
+      expect(await screen.findByLabelText('Nom')).toHaveValue('Rossier');
+      expect(screen.getByText(/Brouillon repris de/)).toBeInTheDocument();
+
+      // Rejet EXPLICITE du brouillon — repartir d'une page blanche, à la demande de l'utilisateur.
+      await utilisateur.click(screen.getByRole('button', { name: 'Ignorer le brouillon' }));
+      expect(screen.getByLabelText('Nom')).toHaveValue('');
+
+      // Nouvelle saisie, distincte : ne doit contenir NI l'ancienne valeur ni une concaténation.
+      await utilisateur.type(screen.getByLabelText('Nom'), 'Muller');
+      expect(screen.getByLabelText('Nom')).toHaveValue('Muller');
+
+      // Un second aller-retour fermeture/réouverture doit reprendre CETTE saisie, jamais la
+      // première rejetée (« Rossier » ne doit plus jamais resurgir).
+      await utilisateur.click(screen.getByRole('button', { name: 'Fermer' }));
+      await utilisateur.click(await boutonNouveauClient());
+      expect(await screen.findByLabelText('Nom')).toHaveValue('Muller');
+      expect(screen.queryByText(/Rossier/)).not.toBeInTheDocument();
+    });
   });
 
   describe('issue #79 — transmet numéro et nom du client créé pour la lecture qui suit', () => {

@@ -3,7 +3,8 @@
   "periode": {
     "du": "Von",
     "au": "Bis",
-    "periodeAffichee": "Angezeigter Zeitraum: {du} – {au}"
+    "periodeAffichee": "Angezeigter Zeitraum: {du} – {au}",
+    "appliqueeAutomatiquement": "Wird automatisch angewendet, sobald beide Daten gültig sind."
   },
   "communs": {
     "voirFactures": "Rechnungen anzeigen"
@@ -19,6 +20,10 @@
     "ordresOuverts": {
       "libelle": "Eröffnete Reparaturaufträge im Zeitraum",
       "libelleAujourdhui": "Heute eröffnete Reparaturaufträge"
+    },
+    "enAtelier": {
+      "libelle": "Reparaturaufträge aktuell in der Werkstatt",
+      "description": "Alle aktiven Status zusammengefasst (eröffnet, in Bearbeitung, Kontrolle, fertig, fakturiert), unabhängig vom Eröffnungstag."
     },
     "ordresRestitues": {
       "libelle": "Zurückgegebene Fahrzeuge im Zeitraum"
@@ -67,6 +72,24 @@
     "encoursClients": {
       "libelle": "Offene Kundenforderungen",
       "definition": "Ausgestellte, unbezahlte Rechnungen."
+    },
+    "marges": {
+      "vehicules": {
+        "libelle": "Marge aus Fahrzeugverkäufen",
+        "detail": "{nombreVehiculesFactures, plural, =0 {Kein Fahrzeug im Zeitraum fakturiert} one {# im Zeitraum fakturiertes Fahrzeug} other {# im Zeitraum fakturierte Fahrzeuge}}"
+      },
+      "indisponible": {
+        "titre": "Teile- und Arbeitszeitmarge",
+        "libelle": "Nicht verfügbar",
+        "piecesCoutNonFiable": "Teile: Selbstkostenpreis nicht zuverlässig (aktueller Einkaufspreis, nicht zum Verkaufszeitpunkt fixiert).",
+        "mainOeuvreCoutAbsent": "Arbeitszeit: Kein Stundenkostensatz im System erfasst.",
+        "raisonGenerique": "Mit den heute verfügbaren Daten nicht berechenbar."
+      }
+    },
+    "stockPieces": {
+      "libelle": "Wert des Teilelagers",
+      "definition": "Lagermenge × aktueller Einkaufspreis, nur aktive Artikel.",
+      "articlesValeurInconnue": "{count, plural, one {# Artikel ohne bekannten Einkaufspreis, vom Total ausgeschlossen} other {# Artikel ohne bekannten Einkaufspreis, vom Total ausgeschlossen}}"
     }
   },
   "direction": {

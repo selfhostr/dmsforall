@@ -110,7 +110,8 @@
               "periode_verrouillee",
               "or_facture",
               "ligne_non_pointable",
-              "derive_horloge"
+              "derive_horloge",
+              "cloture_fin_journee"
             ],
             "type": "string"
           },
@@ -124,6 +125,20 @@
           "motif",
           "detecteeLe",
           "traiteeLe"
+        ],
+        "type": "object"
+      },
+      "ApercuForcageMouvementDto": {
+        "properties": {
+          "reservations": {
+            "items": {
+              "$ref": "#/components/schemas/ReservationMenaceeParForcageDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "reservations"
         ],
         "type": "object"
       },
@@ -3228,6 +3243,69 @@
         ],
         "type": "object"
       },
+      "MargeIndisponibleTableauBordDto": {
+        "properties": {
+          "disponible": {
+            "description": "Toujours `false` — jamais un montant fabriqué.",
+            "type": "boolean"
+          },
+          "raisonCle": {
+            "description": "Clé i18n (namespace `tableauBord`, `financier.marges.indisponible.<clé>`) — jamais de texte figé émis par l’API.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "disponible",
+          "raisonCle"
+        ],
+        "type": "object"
+      },
+      "MargesTableauBordDto": {
+        "properties": {
+          "mainOeuvre": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MargeIndisponibleTableauBordDto"
+              }
+            ],
+            "description": "Aucun taux horaire coûtant modélisé — toujours `disponible: false`."
+          },
+          "pieces": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MargeIndisponibleTableauBordDto"
+              }
+            ],
+            "description": "Coût de revient des pièces non fiable (`article.prixAchatCentimes` mutable, méthode de valorisation non tranchée) — toujours `disponible: false`."
+          },
+          "vehicules": {
+            "$ref": "#/components/schemas/MargeVehiculesPeriodeTableauBordDto"
+          }
+        },
+        "required": [
+          "vehicules",
+          "pieces",
+          "mainOeuvre"
+        ],
+        "type": "object"
+      },
+      "MargeVehiculesPeriodeTableauBordDto": {
+        "properties": {
+          "margeCentimes": {
+            "description": "Revenu HT des documents véhicule de la période, moins le coût d’acquisition verrouillé (`vehicule_stock.prixAchatCentimes`). Calculable même à 0 (aucune vente = vraie donnée).",
+            "type": "number"
+          },
+          "nombreVehiculesFactures": {
+            "description": "Nombre de véhicules FACTURÉS entrant dans le calcul.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "margeCentimes",
+          "nombreVehiculesFactures"
+        ],
+        "type": "object"
+      },
       "MarqueVehiculeChDto": {
         "properties": {
           "aliasTrouve": {
@@ -4227,6 +4305,30 @@
         ],
         "type": "object"
       },
+      "PageRelanceEnvoiDto": {
+        "properties": {
+          "curseurSuivant": {
+            "nullable": true,
+            "type": "string"
+          },
+          "donnees": {
+            "items": {
+              "$ref": "#/components/schemas/RelanceEnvoiDto"
+            },
+            "type": "array"
+          },
+          "limite": {
+            "example": 50,
+            "type": "number"
+          }
+        },
+        "required": [
+          "donnees",
+          "curseurSuivant",
+          "limite"
+        ],
+        "type": "object"
+      },
       "PageRendezVousDto": {
         "properties": {
           "curseurSuivant": {
@@ -5110,6 +5212,71 @@
           "prereglageAppliqueLe",
           "creeLe",
           "modifieLe"
+        ],
+        "type": "object"
+      },
+      "RelanceEnvoiDto": {
+        "properties": {
+          "canal": {
+            "enum": [
+              "sms",
+              "email"
+            ],
+            "type": "string"
+          },
+          "destinataire": {
+            "example": "client@exemple.ch",
+            "type": "string"
+          },
+          "envoyeLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "factureId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "factureNumero": {
+            "example": "F-2026-00042",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "palier": {
+            "example": 1,
+            "type": "number"
+          },
+          "raisonEchec": {
+            "enum": [
+              "destinataire_invalide",
+              "canal_non_supporte",
+              "contenu_refuse",
+              "quota_depasse"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "statutEnvoi": {
+            "enum": [
+              "envoye",
+              "echoue"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "factureId",
+          "factureNumero",
+          "palier",
+          "canal",
+          "destinataire",
+          "statutEnvoi",
+          "raisonEchec",
+          "envoyeLe"
         ],
         "type": "object"
       },
@@ -6040,6 +6207,16 @@
             "description": "ABSENT dans les mêmes conditions que `financements`.",
             "type": "boolean"
           },
+          "garantie": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SuiviGarantieDto"
+              }
+            ],
+            "description": "Garantie constructeur du véhicule associé (RM-33), jamais gatée par rôle (contrairement à reprise/financement) — voir GET /ventes/suivi pour le même calcul. null = pas de véhicule associé, ou garantieDebut non renseigné.",
+            "nullable": true,
+            "type": "object"
+          },
           "id": {
             "format": "uuid",
             "type": "string"
@@ -6149,6 +6326,7 @@
           "clientAcheteur",
           "clientFacture",
           "clientConducteur",
+          "garantie",
           "documents",
           "documentsTronques",
           "documentsRequis",
@@ -6487,6 +6665,9 @@
             "description": "Snapshot au moment de l’appel (PAS borné par `periode`) : créances ouvertes sur les factures encore au statut `emis`.",
             "type": "number"
           },
+          "marges": {
+            "$ref": "#/components/schemas/MargesTableauBordDto"
+          },
           "periode": {
             "$ref": "#/components/schemas/PeriodeResolueTableauBordDto"
           },
@@ -6494,6 +6675,9 @@
             "format": "uuid",
             "nullable": true,
             "type": "string"
+          },
+          "stockPieces": {
+            "$ref": "#/components/schemas/ValorisationStockPiecesTableauBordDto"
           }
         },
         "required": [
@@ -6501,7 +6685,9 @@
           "siteId",
           "chiffreAffaires",
           "encaissementsCentimes",
-          "encoursClientsCentimes"
+          "encoursClientsCentimes",
+          "marges",
+          "stockPieces"
         ],
         "type": "object"
       },
@@ -9057,6 +9243,36 @@
         ],
         "type": "object"
       },
+      "ReservationMenaceeParForcageDto": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "ligneOrId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "ordreReparationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "ordreReparationNumero": {
+            "type": "string"
+          },
+          "quantiteMillieme": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "ligneOrId",
+          "ordreReparationId",
+          "ordreReparationNumero",
+          "quantiteMillieme"
+        ],
+        "type": "object"
+      },
       "ReservationPieceAvecAvertissementsDto": {
         "properties": {
           "avertissements": {
@@ -9077,8 +9293,15 @@
       },
       "ReservationPieceDto": {
         "properties": {
+          "articleDesignation": {
+            "type": "string"
+          },
           "articleId": {
             "format": "uuid",
+            "type": "string"
+          },
+          "articleNumero": {
+            "description": "Désignation lisible de l'article (jointure de lecture).",
             "type": "string"
           },
           "creeLe": {
@@ -9124,6 +9347,10 @@
           },
           "ordreReparationId": {
             "format": "uuid",
+            "type": "string"
+          },
+          "ordreReparationNumero": {
+            "description": "Numéro lisible de l'ordre de réparation (jointure de lecture).",
             "type": "string"
           },
           "quantiteMillieme": {
@@ -9196,6 +9423,11 @@
             "description": "Fiable UNIQUEMENT si statutSuivi = 'suivi' ; sinon vaut 0 par convention et NE DOIT PAS être lu comme un stock nul — voir statutSuivi.",
             "type": "number"
           },
+          "rayon": {
+            "description": "Casier structuré (rayon, 0056), COMPLÉMENT de `emplacement`.",
+            "nullable": true,
+            "type": "string"
+          },
           "referencePrincipale": {
             "type": "string"
           },
@@ -9206,6 +9438,11 @@
               "nonSuiviSurCeSite",
               "nonSuiviNullePart"
             ],
+            "type": "string"
+          },
+          "tiroir": {
+            "description": "Casier structuré (tiroir, 0056).",
+            "nullable": true,
             "type": "string"
           }
         },
@@ -9218,6 +9455,8 @@
           "quantiteDisponibleMillieme",
           "statutSuivi",
           "emplacement",
+          "rayon",
+          "tiroir",
           "estEchangeStandard",
           "montantConsigneTtcCentimes"
         ],
@@ -9445,6 +9684,11 @@
           "quantiteReserveeMillieme": {
             "type": "number"
           },
+          "rayon": {
+            "description": "Casier structuré (rayon, 0056), COMPLÉMENT de `emplacement` — jamais un remplacement. Toujours normalisé (majuscules, sans espace) : \"B3\", \"b3\" et \"B 3\" saisis produisent la même valeur.",
+            "nullable": true,
+            "type": "string"
+          },
           "siteId": {
             "format": "uuid",
             "type": "string"
@@ -9452,6 +9696,11 @@
           "stockMinimumMillieme": {
             "nullable": true,
             "type": "number"
+          },
+          "tiroir": {
+            "description": "Casier structuré (tiroir, 0056) — mêmes règles de normalisation que `rayon`.",
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": [
@@ -9461,6 +9710,8 @@
           "quantiteReserveeMillieme",
           "quantiteDisponibleMillieme",
           "emplacement",
+          "rayon",
+          "tiroir",
           "stockMinimumMillieme",
           "quantiteCommandeStandardMillieme",
           "modifieLe"
@@ -9469,6 +9720,11 @@
       },
       "StockResumeArticleDto": {
         "properties": {
+          "emplacement": {
+            "description": "Texte libre (RP-11).",
+            "nullable": true,
+            "type": "string"
+          },
           "quantiteDisponibleMillieme": {
             "description": "quantitePhysiqueMillieme - quantiteReserveeMillieme (RP-14), dérivé.",
             "type": "number"
@@ -9476,15 +9732,28 @@
           "quantitePhysiqueMillieme": {
             "type": "number"
           },
+          "rayon": {
+            "description": "Casier structuré (rayon, 0056), COMPLÉMENT de `emplacement` — jamais un remplacement. Toujours normalisé (majuscules, sans espace) : \"B3\", \"b3\" et \"B 3\" saisis produisent la même valeur.",
+            "nullable": true,
+            "type": "string"
+          },
           "siteId": {
             "format": "uuid",
+            "type": "string"
+          },
+          "tiroir": {
+            "description": "Casier structuré (tiroir, 0056) — mêmes règles de normalisation que `rayon`.",
+            "nullable": true,
             "type": "string"
           }
         },
         "required": [
           "siteId",
           "quantitePhysiqueMillieme",
-          "quantiteDisponibleMillieme"
+          "quantiteDisponibleMillieme",
+          "emplacement",
+          "rayon",
+          "tiroir"
         ],
         "type": "object"
       },
@@ -9943,6 +10212,23 @@
         ],
         "type": "object"
       },
+      "ValorisationStockPiecesTableauBordDto": {
+        "properties": {
+          "articlesValeurInconnueNombre": {
+            "description": "Nombre d’articles actifs en stock (quantité > 0) sans prix d’achat connu, EXCLUS de `totalCentimes` — jamais comptés à 0.",
+            "type": "number"
+          },
+          "totalCentimes": {
+            "description": "Snapshot (PAS borné par la période) : Σ quantité physique × prix d’achat courant, articles actifs à prix connu seulement.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "totalCentimes",
+          "articlesValeurInconnueNombre"
+        ],
+        "type": "object"
+      },
       "VehiculeContexteAtelierDto": {
         "properties": {
           "canton": {
@@ -10238,7 +10524,7 @@
     "contact": {},
     "description": "API du DMS (Dealer Management System) pour garages et concessions suisses. Contrat d'erreur unique application/problem+json (schéma ProblemeDetailCommunDto, code machine stable). Le tenant est toujours résolu depuis la session — aucun endpoint n'accepte de tenantId en paramètre.",
     "title": "API dmsforall (DFA)",
-    "version": "0.1.306+0ff1a5b"
+    "version": "0.1.325+a2bc8ee"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -11193,6 +11479,83 @@
           }
         ],
         "summary": "Ajuste le stock physique à la quantité COMPTÉE (§7.6). `Idempotency-Key` obligatoire. Aucun mouvement créé si le compte correspond déjà au stock physique — `donnees: null`.",
+        "tags": [
+          "Pièces — Mouvements de stock"
+        ]
+      }
+    },
+    "/articles/{articleId}/mouvements/apercu-forcage": {
+      "get": {
+        "operationId": "MouvementController_apercuForcage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "articleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApercuForcageMouvementDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Filtres invalides."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Article ou site introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Aperçu, en lecture seule, des réservations qu'un forçage (`casse`/`perte`, `forcer: true`) libérerait s’il était soumis maintenant — à interroger AVANT de cocher « Forcer » (RP-15 : avertissement spécifique et chiffré). Réservé à qui détient déjà le droit de forcer : `[]` si le forçage ne libérerait rien (stock déjà suffisant, ou aucune réservation active).",
         "tags": [
           "Pièces — Mouvements de stock"
         ]
@@ -12337,12 +12700,34 @@
                       }
                     ]
                   },
+                  "rayon": {
+                    "anyOf": [
+                      {
+                        "maxLength": 20,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "stockMinimumMillieme": {
                     "anyOf": [
                       {
                         "maximum": 9007199254740991,
                         "minimum": 1,
                         "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "tiroir": {
+                    "anyOf": [
+                      {
+                        "maxLength": 20,
+                        "type": "string"
                       },
                       {
                         "type": "null"
@@ -12413,7 +12798,7 @@
             "cookie": []
           }
         ],
-        "summary": "Réglages de stock d’un site (emplacement, seuils) — JAMAIS la quantité physique (RP-16→RP-18).",
+        "summary": "Réglages de stock d’un site (emplacement, rayon, tiroir, seuils) — JAMAIS la quantité physique (RP-16→RP-18).",
         "tags": [
           "Pièces — Stock"
         ]
@@ -30361,6 +30746,89 @@
           }
         ],
         "summary": "Envoie les rappels facture `prete` (un lot borné par appel), via le connecteur NotificationSender — sans connecteur actif, rend un lot vide (jamais une erreur).",
+        "tags": [
+          "Relances"
+        ]
+      }
+    },
+    "/relances/facturation/historique": {
+      "get": {
+        "description": "Pièce de dossier pour le comptable : date, palier, destinataire réellement touché (figé à l’envoi, jamais recalculé depuis la fiche client actuelle) et résultat. Le contenu du message envoyé n’est jamais exposé. `factureId` omis rend l’historique complet du tenant ; fourni, filtre sur cette seule facture.",
+        "operationId": "RelancesController_listerHistorique",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "curseur",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limite",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "factureId",
+            "required": false,
+            "schema": {
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageRelanceEnvoiDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Curseur de pagination invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (relances.facturation.regle.lire)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Historique d’envoi des relances de facture (issue #136) — une ligne par TENTATIVE réellement tracée dans `relance_envoi` (append-only), triée par date d’envoi décroissante.",
         "tags": [
           "Relances"
         ]

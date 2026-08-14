@@ -15,6 +15,7 @@ import { ClientResumeDto, ModifieParDto } from './communs.dto';
 import { DocumentVenteResumeDto } from './document-vente-resume.dto';
 import { FinancementResumeDto } from './financement.dto';
 import { RepriseResumeDto } from './reprise.dto';
+import { SuiviGarantieDto } from './suivi-vente.dto';
 import { VehiculeStockResumeDto } from './vehicule-stock.dto';
 
 export class DocumentRequisDossierVenteDto implements DocumentRequisDossierVente {
@@ -129,6 +130,16 @@ export class ReponseDossierVenteDto implements ReponseDossierVente {
     description: 'ABSENT dans les mêmes conditions que `financements`.',
   })
   readonly financementsTronques?: boolean;
+
+  @ApiProperty({
+    type: () => SuiviGarantieDto,
+    nullable: true,
+    description:
+      'Garantie constructeur du véhicule associé (RM-33), jamais gatée par rôle (contrairement à ' +
+      'reprise/financement) — voir GET /ventes/suivi pour le même calcul. null = pas de véhicule ' +
+      'associé, ou garantieDebut non renseigné.',
+  })
+  readonly garantie!: SuiviGarantieDto | null;
 
   @ApiProperty({ type: () => [DocumentVenteResumeDto] })
   readonly documents!: readonly DocumentVenteResumeDto[];

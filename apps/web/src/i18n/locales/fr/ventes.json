@@ -345,6 +345,10 @@
       "ordresVehicule": {
         "titre": "OR de ce véhicule",
         "vide": "Aucun OR pour ce véhicule."
+      },
+      "garantie": {
+        "titre": "Garantie",
+        "gererSurFicheVehicule": "Voir/modifier sur la fiche du véhicule"
       }
     },
     "transitions": {

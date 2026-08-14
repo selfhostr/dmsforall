@@ -89,13 +89,29 @@ export function EcranReapprovisionnement() {
   function commanderSelection() {
     if (!site || selection.size === 0) return;
     const lignesSelectionnees = lignes.filter((ligne) => selection.has(ligne.articleId));
+    // DÉFAUT CORRIGÉ (test manuel du 14.08.2026, défaut n°4) : la quantité proposée était
+    // `quantiteCommandeStandardMillieme` (lot fournisseur habituel, PP-08 — « le fournisseur vend
+    // par lot de 10, pas à l'unité ») QUAND ce réglage existait, sans jamais tenir compte de
+    // l'écart RÉEL affiché dans cette même liste (colonne « Écart ») — un magasinier voyait
+    // « manquant : 3 » puis se retrouvait avec une commande pré-remplie à 4 (ou toute autre valeur
+    // du lot standard), sans lien apparent entre les deux nombres.
+    //
+    // DÉCISION : `ecartMillieme` est TOUJOURS la quantité juste métier ici — commander exactement
+    // le manquant fait repasser l'article au-dessus du seuil (`ecartMillieme = stockMinimumMillieme
+    // - quantiteDisponibleMillieme`, RP-12), et c'est le nombre que le magasinier vient de lire
+    // dans CETTE table, jamais une substitution invisible. `quantiteCommandeStandardMillieme`
+    // (lot fournisseur) reste un réglage réel et utile — mais UNIQUEMENT comme information que le
+    // magasinier applique lui-même en ajustant la quantité proposée sur l'écran suivant (il sait,
+    // lui, si son fournisseur impose des lots), jamais comme substitution automatique et silencieuse
+    // d'un nombre par un autre : les deux chiffres ont chacun un sens, mais un seul est LA quantité
+    // qui répond à « de combien ai-je besoin maintenant ».
     const etat: EtatPreremplissageCommandeFournisseur = {
       siteId: site,
       lignes: lignesSelectionnees.map((ligne) => ({
         articleId: ligne.articleId,
         numeroArticle: ligne.numeroArticle,
         designation: ligne.designation,
-        quantiteSuggereeMillieme: ligne.quantiteCommandeStandardMillieme ?? ligne.ecartMillieme,
+        quantiteSuggereeMillieme: ligne.ecartMillieme,
       })),
     };
     navigate(chemins.pieces.commandesFournisseur.nouvelle(), { state: etat });

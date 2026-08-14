@@ -8,16 +8,18 @@
  *
  *  - `GET /tableau-bord/activite` (`activite.ts`) : atelier + stock, EN QUANTITÉS/COMPTES
  *    seulement, jamais un montant — ouvert à tout rôle de personne.
- *  - `GET /tableau-bord/financier` (`financier.ts`) : chiffre d'affaires, encaissements, encours —
- *    réservé `direction`/`comptable` (RF-115 : `admin` explicitement exclu, aucun droit financier).
+ *  - `GET /tableau-bord/financier` (`financier.ts`) : chiffre d'affaires, encaissements, encours,
+ *    marge, valorisation du stock pièces — réservé `direction`/`comptable` (RF-115 : `admin`
+ *    explicitement exclu, aucun droit financier).
  *
  * Ce découpage EST la réponse à l'écueil que ce lot devait éviter : un tableau de bord qui
  * exposerait le chiffre d'affaires à tout rôle authentifié contournerait la séparation des
  * pouvoirs déjà posée par `ROLES_SANS_MONTANT`/`ROLES_SANS_MONTANT_FACTURATION`
  * (`auth/matrice-droits.ts`) — les deux réponses ne partagent délibérément AUCUN champ montant.
  *
- * Aucune notion de MARGE dans ce lot — voir l'en-tête de `financier.ts` pour le raisonnement
- * complet (base de coût absente ou non normée aujourd'hui).
+ * MARGE (14.08.2026) : seule la marge sur ventes de véhicules (VN/VO) est calculable aujourd'hui —
+ * voir l'en-tête de `financier.ts` pour le raisonnement complet, y compris pourquoi pièces et
+ * main-d'œuvre restent explicitement `{ disponible: false }`.
  */
 
 export * from './query';

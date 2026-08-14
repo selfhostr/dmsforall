@@ -232,7 +232,13 @@
         "champQuantiteComptee": "Gezählte Menge",
         "champForcer": "Trotz unzureichendem Bestand erzwingen",
         "avertissementEcart": "Deutliche Differenz zum geschätzten Bestand festgestellt — Zählung prüfen.",
-        "aucunEcart": "Die Zählung entspricht dem aktuellen Bestand: keine Bewegung wurde erstellt."
+        "aucunEcart": "Die Zählung entspricht dem aktuellen Bestand: keine Bewegung wurde erstellt.",
+        "apercuForcage": {
+          "chargement": "Prüfung der von dieser Erzwingung betroffenen Reservierungen…",
+          "erreur": "Die von dieser Erzwingung betroffenen Reservierungen konnten nicht geprüft werden.",
+          "titre": "{count} {count, plural, one {Reservierung wird} other {Reservierungen werden}} durch diese Erzwingung freigegeben.",
+          "listeOrs": "Betroffene Werkstattaufträge: {numeros}."
+        }
       }
     },
     "reapprovisionnement": {
@@ -365,7 +371,8 @@
     },
     "nouvelle": {
       "aucuneLigne": "Fügen Sie der Bestellung mindestens eine Position hinzu.",
-      "choisirSiteDabord": "Wählen Sie zuerst einen Ort, um nach Artikeln zu suchen."
+      "choisirSiteDabord": "Wählen Sie zuerst einen Ort, um nach Artikeln zu suchen.",
+      "quantiteSuggereeReapprovisionnement": "Vorgeschlagene Menge: die fehlende Menge, um den Meldebestand wieder zu überschreiten. Passen Sie sie an, falls Ihr Lieferant eine andere Gebindegrösse vorschreibt."
     },
     "filtres": {
       "statutTous": "Alle Status",

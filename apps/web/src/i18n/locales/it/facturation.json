@@ -202,6 +202,8 @@
     "documentsLies": {
       "titre": "Documenti collegati",
       "or": "Ordine di riparazione collegato →",
+      "dossierVente": "Pratica di vendita collegata →",
+      "vehicule": "Veicolo collegato →",
       "facture": "Fattura d'origine →",
       "avoir": "Nota di credito collegata →",
       "vide": "Nessun documento collegato."

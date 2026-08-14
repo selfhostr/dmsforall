@@ -232,7 +232,13 @@
         "champQuantiteComptee": "Quantité comptée",
         "champForcer": "Forcer malgré le stock insuffisant",
         "avertissementEcart": "Écart notable détecté par rapport au stock estimé — vérifiez le comptage.",
-        "aucunEcart": "Le comptage correspond au stock actuel : aucun mouvement n'a été créé."
+        "aucunEcart": "Le comptage correspond au stock actuel : aucun mouvement n'a été créé.",
+        "apercuForcage": {
+          "chargement": "Vérification des réservations concernées par ce forçage…",
+          "erreur": "Impossible de vérifier les réservations concernées par ce forçage.",
+          "titre": "{count} {count, plural, one {réservation sera libérée} other {réservations seront libérées}} par ce forçage.",
+          "listeOrs": "Ordres de réparation concernés : {numeros}."
+        }
       }
     },
     "reapprovisionnement": {
@@ -365,7 +371,8 @@
     },
     "nouvelle": {
       "aucuneLigne": "Ajoutez au moins une ligne à la commande.",
-      "choisirSiteDabord": "Choisissez un site pour rechercher des articles."
+      "choisirSiteDabord": "Choisissez un site pour rechercher des articles.",
+      "quantiteSuggereeReapprovisionnement": "Quantité proposée : la quantité manquante pour repasser au-dessus du seuil de réapprovisionnement. Ajustez-la si votre fournisseur impose un lot différent."
     },
     "filtres": {
       "statutTous": "Tous les statuts",

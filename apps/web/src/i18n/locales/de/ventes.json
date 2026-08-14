@@ -345,6 +345,10 @@
       "ordresVehicule": {
         "titre": "Reparaturaufträge dieses Fahrzeugs",
         "vide": "Kein Reparaturauftrag für dieses Fahrzeug."
+      },
+      "garantie": {
+        "titre": "Garantie",
+        "gererSurFicheVehicule": "Auf der Fahrzeugkarte ansehen/bearbeiten"
       }
     },
     "transitions": {

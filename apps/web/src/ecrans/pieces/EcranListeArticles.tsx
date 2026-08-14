@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 
 import {
   CATEGORIES_ARTICLE,
@@ -33,6 +33,7 @@ import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
+import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { useSession } from '@/hooks/useSession';
 import { useListeArticles } from '@/hooks/pieces/useListeArticles';
 import { formaterMontant } from '@/lib/formats';
@@ -74,19 +75,32 @@ export function EcranListeArticles() {
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
 
   // Site dont la colonne « disponible » lit le stock — jamais deviné à plusieurs choix possibles
-  // (même doctrine que `SelecteurSiteRequis`) : auto-sélectionné UNIQUEMENT quand un seul site
-  // actif existe (aucune ambiguïté à deviner), sinon laissé au magasinier. Filtre d'affichage
-  // pur : ne change jamais la requête `/articles`, seulement la lecture de `stocksResume`.
+  // (même doctrine que `SelecteurSiteRequis`). Filtre d'affichage pur : ne change jamais la
+  // requête `/articles`, seulement la lecture de `stocksResume`.
+  //
+  // DÉFAUT CORRIGÉ (test manuel du 14.08.2026, défaut n°5) : avant ce correctif, ce filtre local
+  // ne s'auto-sélectionnait QUE quand un seul site actif existait — il ignorait totalement le site
+  // déjà choisi en haut de page (`?site=` de l'URL, ou la préférence mémorisée du poste,
+  // `useSiteCourant`, MÊME résolution que `EnTete.tsx`/`SelecteurSiteEntete.tsx`), forçant un
+  // magasinier à re-choisir un site déjà visible dans l'en-tête avant de voir la moindre quantité —
+  // « — » (inconnu) affiché à tort là où une vraie valeur (potentiellement zéro) était disponible.
+  // Piège maison : absence de donnée ≠ valeur — ce correctif répare la PROPAGATION du site choisi,
+  // jamais le rendu du tiret lui-même (qui reste correct pour un site RÉELLEMENT non choisi).
   const sitesActifs = useMemo(() => (session?.sites ?? []).filter((site) => site.actif), [session]);
+  const [searchParams] = useSearchParams();
+  const { preferenceSiteId } = useSiteCourant();
   const [site, setSite] = useState('');
   useEffect(() => {
-    if (site === '' && sitesActifs.length === 1) {
-      const siteUnique = sitesActifs[0];
-      if (siteUnique) {
-        setSite(siteUnique.id);
-      }
-    }
-  }, [site, sitesActifs]);
+    if (site !== '') return;
+    const siteUrlOuPreference = searchParams.get('site') ?? preferenceSiteId;
+    const siteDejaChoisi =
+      siteUrlOuPreference && sitesActifs.some((candidat) => candidat.id === siteUrlOuPreference)
+        ? siteUrlOuPreference
+        : undefined;
+    const siteUnique = sitesActifs.length === 1 ? sitesActifs[0]?.id : undefined;
+    const siteResolu = siteDejaChoisi ?? siteUnique;
+    if (siteResolu) setSite(siteResolu);
+  }, [site, sitesActifs, searchParams, preferenceSiteId]);
 
   useEffect(() => {
     const identifiant = window.setTimeout(() => setQ(qSaisie), DELAI_DEBOUNCE_MS);
