@@ -32,10 +32,7 @@ function stock(champs: Partial<StockResumeArticle> = {}): StockResumeArticle {
 
 const STOCKS: readonly StockResumeArticle[] = [stock()];
 
-function rendre(
-  peutModifierStock: boolean,
-  stocksResume: readonly StockResumeArticle[] = STOCKS,
-) {
+function rendre(peutModifierStock: boolean, stocksResume: readonly StockResumeArticle[] = STOCKS) {
   const queryClient = creerQueryClientTest();
   return render(
     <QueryClientProvider client={queryClient}>

@@ -29,7 +29,11 @@ import {
   DialogueEmplacementStockArticle,
   type CasierAModifier,
 } from './DialogueEmplacementStockArticle';
-import { formaterQuantiteMillieme, saisieVersSeuilMillieme, texteEmplacementComplet } from './utils';
+import {
+  formaterQuantiteMillieme,
+  saisieVersSeuilMillieme,
+  texteEmplacementComplet,
+} from './utils';
 
 interface Props {
   readonly articleId: string;
