@@ -2,12 +2,13 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import '@/i18n';
 
 import type { SessionCourante } from '@dfa/shared';
 
+import { FournisseurSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { creerQueryClientTest } from '@/test/utils';
 
 import { EnTete } from './EnTete';
@@ -54,6 +55,21 @@ const session: SessionCourante = {
   expireLe: new Date(Date.now() + 3_600_000).toISOString(),
 };
 
+/** Même rendu que `rendre`, sous `FournisseurSiteCourant` — seul moyen d'exercer la préférence de
+ *  site mémorisée (`hooks/site/ContexteSiteCourant.tsx`, issue #91). */
+function rendreAvecPreferenceSite(routeInitiale: string) {
+  const queryClient = creerQueryClientTest();
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[routeInitiale]}>
+        <FournisseurSiteCourant>
+          <EnTete />
+        </FournisseurSiteCourant>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
 function rendre(routeInitiale: string) {
   // `RechercheGlobale` (Lot A, montée dans `EnTete` depuis le centre de la barre haute) appelle
   // `useRechercheComptoir`, donc `useQuery` — un `QueryClientProvider` est désormais requis même
@@ -93,6 +109,50 @@ describe('EnTete', () => {
 
     expect(screen.queryByText('site-inconnu')).not.toBeInTheDocument();
     expect(screen.queryByText('Martigny')).not.toBeInTheDocument();
+    expect(screen.queryByText('Sion')).not.toBeInTheDocument();
+  });
+
+  /**
+   * Régression issue #91 : « tous les sites » est un choix légitime pour le FILTRE du tableau de
+   * bord (`ecrans/tableau-bord/SelecteurSiteTableauBord.tsx`), jamais le libellé d'une absence de
+   * choix — doctrine maison « absence de donnée ≠ valeur ». Avant ce correctif, l'en-tête affichait
+   * « Tous les sites » aussi bien pour un choix explicite que pour l'absence totale de choix.
+   */
+  it('n’affiche jamais « Tous les sites » quand aucun site n’a été choisi (absence ≠ valeur)', () => {
+    rendre('/');
+
+    expect(screen.getByText('Aucun site choisi')).toBeInTheDocument();
+    expect(screen.queryByText('Tous les sites')).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Régression issue #91 (« il oublie mon choix dès que je change d'écran ») — l'en-tête reprend la
+ * dernière préférence mémorisée quand l'URL courante n'en porte aucune, plutôt que d'afficher
+ * aussitôt « Aucun site choisi » comme si rien n'avait jamais été choisi.
+ */
+describe('EnTete — reprise de la préférence de site', () => {
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('affiche le dernier site mémorisé quand l’URL n’en porte pas', () => {
+    window.localStorage.setItem('dfa.site-courant.t-1', 'site-sion');
+    useSessionMock.mockReturnValue({ data: session });
+
+    rendreAvecPreferenceSite('/');
+
+    expect(screen.getByText('Sion')).toBeInTheDocument();
+    expect(screen.queryByText('Aucun site choisi')).not.toBeInTheDocument();
+  });
+
+  it('l’URL reste prioritaire sur la préférence mémorisée', () => {
+    window.localStorage.setItem('dfa.site-courant.t-1', 'site-sion');
+    useSessionMock.mockReturnValue({ data: session });
+
+    rendreAvecPreferenceSite('/vehicules?site=site-martigny');
+
+    expect(screen.getByText('Martigny')).toBeInTheDocument();
     expect(screen.queryByText('Sion')).not.toBeInTheDocument();
   });
 });

@@ -60,6 +60,9 @@ import { ServiceSessionImpl } from './services/session.service';
     // module de données pures — c'est ce qui évite le cycle d'imports common ↔ auth.
     { provide: APP_GUARD, useClass: GardeDroit },
   ],
-  exports: [JETON_SERVICE_SESSION],
+  // `JETON_SERVICE_MOT_DE_PASSE` exporté depuis issue #137 : `SocleModule` (ServiceUtilisateur)
+  // en a besoin pour hacher le mot de passe temporaire généré à la création d'un employé et à la
+  // réinitialisation d'accès — même Argon2id que la connexion, jamais une seconde implémentation.
+  exports: [JETON_SERVICE_SESSION, JETON_SERVICE_MOT_DE_PASSE],
 })
 export class AuthModule {}

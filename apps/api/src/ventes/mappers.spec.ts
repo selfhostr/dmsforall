@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ClientResume, RepriseResume, RoleUtilisateur } from '@dfa/shared';
 
-import type { LigneDossierVente, LigneFinancementVente } from '../db/schema';
+import type { LigneDocumentVente, LigneDossierVente, LigneFinancementVente } from '../db/schema';
 
 import {
   calculerActionsDisponiblesVehiculeStock,
@@ -9,6 +9,7 @@ import {
   calculerJoursStock,
   roleVoitFinancement,
   roleVoitReprise,
+  versDocumentVenteResume,
   versDossierVenteResponse,
   versFinancementResponse,
   versFinancementResume,
@@ -123,6 +124,74 @@ function ligneFinancementFixture(
     ...champs,
   } as LigneFinancementVente;
 }
+
+/**
+ * #127 : « Montant TTC 0.00 » sur la carte Documents d'un dossier pour un bon de commande dont le
+ * montant réel était CHF 41'900.00. `versDocumentVenteResume` ne lit PLUS `doc.totalTtcCentimes`
+ * directement — l'appelant (`totauxTtcAffichesDocumentsDossier`, `references.ts`) fournit la valeur
+ * à AFFICHER en 3ᵉ argument (recalculée pour un `brouillon`, lue telle quelle sinon). Ce mapper
+ * n'était couvert par AUCUN test avant ce correctif (⚠️ codegraph).
+ */
+function documentVenteFixture(champs: Partial<LigneDocumentVente> = {}): LigneDocumentVente {
+  return {
+    id: 'doc-1',
+    typeDocument: 'bon_commande',
+    natureFacture: 'ordinaire',
+    numero: 'BC-2026-042',
+    statut: 'brouillon',
+    statutReglement: 'non_regle',
+    clientId: 'client-1',
+    clientDesignationFigee: 'Jean Dupont',
+    dateDocument: '2026-08-01',
+    devise: 'CHF',
+    totalTtcCentimes: 0n,
+    soldeCentimes: 0n,
+    ...champs,
+  } as LigneDocumentVente;
+}
+
+describe('versDocumentVenteResume — #127, totalTtcCentimes NE VIENT PLUS de doc.totalTtcCentimes', () => {
+  it.each<RoleUtilisateur>(['direction', 'vendeur', 'comptable'])(
+    'rôle %s (voit les montants) : totalTtcCentimes = la valeur AFFICHÉE passée par l’appelant, pas la colonne stockée',
+    (role) => {
+      // La colonne stockée est à 0 (cas brouillon réel, MD-45) — si le mapper la lisait encore
+      // directement, ce test échouerait avec 0 au lieu de 4189000.
+      const doc = documentVenteFixture({ totalTtcCentimes: 0n });
+
+      const resume = versDocumentVenteResume(doc, role, 4_189_000);
+
+      expect(resume.totalTtcCentimes).toBe(4_189_000);
+      expect(resume.soldeCentimes).toBe(0); // solde : colonne stockée, correcte à 0 pour un brouillon
+    },
+  );
+
+  it.each<RoleUtilisateur>(['technicien', 'poste_atelier', 'admin'])(
+    'rôle %s (masqué, RF-116) : totalTtcCentimes/soldeCentimes/statutReglement absents (pas null)',
+    (role) => {
+      const doc = documentVenteFixture({ totalTtcCentimes: 0n });
+
+      const resume = versDocumentVenteResume(doc, role, 4_189_000);
+
+      expect('totalTtcCentimes' in resume).toBe(false);
+      expect('soldeCentimes' in resume).toBe(false);
+      expect('statutReglement' in resume).toBe(false);
+    },
+  );
+
+  it('un document ÉMIS reçoit aussi la valeur AFFICHÉE passée par l’appelant (lue depuis la colonne stockée en amont, MD-45)', () => {
+    const facture = documentVenteFixture({
+      typeDocument: 'facture',
+      statut: 'emis',
+      totalTtcCentimes: 4_189_000n,
+      soldeCentimes: 4_189_000n,
+    });
+
+    const resume = versDocumentVenteResume(facture, 'direction', 4_189_000);
+
+    expect(resume.totalTtcCentimes).toBe(4_189_000);
+    expect(resume.soldeCentimes).toBe(4_189_000);
+  });
+});
 
 describe('versFinancementResponse — détail monétaire (0042), visibilité par rôle (RF-116)', () => {
   it.each<RoleUtilisateur>(['direction', 'vendeur', 'comptable'])(

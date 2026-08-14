@@ -260,22 +260,28 @@ const champsCommunsDemarragePointage = {
 };
 
 export const schemaDemarragePointage = z.discriminatedUnion('nature', [
-  z.object({
-    nature: z.literal('productif_ligne'),
-    ordreReparationId: schemaIdentifiant,
-    ligneOrId: schemaIdentifiant,
-    ...champsCommunsDemarragePointage,
-  }),
-  z.object({
-    nature: z.literal('productif_or'),
-    ordreReparationId: schemaIdentifiant,
-    ...champsCommunsDemarragePointage,
-  }),
-  z.object({
-    nature: z.literal('indirect'),
-    activiteIndirecte: z.enum(ACTIVITES_INDIRECTES),
-    ...champsCommunsDemarragePointage,
-  }),
+  z
+    .object({
+      nature: z.literal('productif_ligne'),
+      ordreReparationId: schemaIdentifiant,
+      ligneOrId: schemaIdentifiant,
+      ...champsCommunsDemarragePointage,
+    })
+    .strict(),
+  z
+    .object({
+      nature: z.literal('productif_or'),
+      ordreReparationId: schemaIdentifiant,
+      ...champsCommunsDemarragePointage,
+    })
+    .strict(),
+  z
+    .object({
+      nature: z.literal('indirect'),
+      activiteIndirecte: z.enum(ACTIVITES_INDIRECTES),
+      ...champsCommunsDemarragePointage,
+    })
+    .strict(),
 ]);
 export type EntreeDemarragePointage = z.infer<typeof schemaDemarragePointage>;
 
@@ -298,10 +304,12 @@ export type EntreeDemarragePointage = z.infer<typeof schemaDemarragePointage>;
  * `plan-etape-1-frontend.md` §4.3 point 4 le dit de façon générique pour « chaque événement » ;
  * ce fichier l'applique nommément aux trois actions d'écriture du pointage.
  */
-export const schemaArretPointage = z.object({
-  finLe: schemaHorodatage,
-  decalageHorlogeMs: schemaDecalageHorlogeMs.optional(),
-});
+export const schemaArretPointage = z
+  .object({
+    finLe: schemaHorodatage,
+    decalageHorlogeMs: schemaDecalageHorlogeMs.optional(),
+  })
+  .strict();
 export type EntreeArretPointage = z.infer<typeof schemaArretPointage>;
 
 /**
@@ -337,15 +345,17 @@ export type EntreeArretPointage = z.infer<typeof schemaArretPointage>;
  * pertinente (`actionsProposees` → contre-passation par un rôle habilité), alors que
  * `POINTAGE_TRANSITION_INTERDITE` ne dirait qu'« interdit », sans dire pourquoi.
  */
-export const schemaCorrectionPointage = z.object({
-  debutLe: schemaHorodatage.optional(),
-  finLe: schemaHorodatage.optional(),
-  nature: z.enum(NATURES_ACTIVITE_POINTAGE).optional(),
-  ordreReparationId: schemaIdentifiant.nullish(),
-  ligneOrId: schemaIdentifiant.nullish(),
-  activiteIndirecte: z.enum(ACTIVITES_INDIRECTES).nullish(),
-  motif: schemaMotif.optional(),
-});
+export const schemaCorrectionPointage = z
+  .object({
+    debutLe: schemaHorodatage.optional(),
+    finLe: schemaHorodatage.optional(),
+    nature: z.enum(NATURES_ACTIVITE_POINTAGE).optional(),
+    ordreReparationId: schemaIdentifiant.nullish(),
+    ligneOrId: schemaIdentifiant.nullish(),
+    activiteIndirecte: z.enum(ACTIVITES_INDIRECTES).nullish(),
+    motif: schemaMotif.optional(),
+  })
+  .strict();
 export type EntreeCorrectionPointage = z.infer<typeof schemaCorrectionPointage>;
 
 /**
@@ -364,6 +374,82 @@ export type EntreeCorrectionPointage = z.infer<typeof schemaCorrectionPointage>;
  * `valider` de `ACTIONS_POINTAGE` reste un changement ADDITIF côté client (une action en moins
  * dans une liste extensible), pas une rupture.
  */
-export const schemaValidationPointage = z.object({});
-export const schemaValidationPointages = z.object({ pointageIds: schemaListeIdentifiants });
+export const schemaValidationPointage = z.object({}).strict();
+export const schemaValidationPointages = z
+  .object({ pointageIds: schemaListeIdentifiants })
+  .strict();
 export type EntreeValidationPointages = z.infer<typeof schemaValidationPointages>;
+
+/* ------------------------------------------------------------------ */
+/* GET /pointages/dernier-du-jour — cible mémorisée pour « Reprendre »  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * `GET /pointages/dernier-du-jour` — remplace un état LOCAL volatile (`dernierCible`, avant ce
+ * contrat porté dans le `useState` de l'écran technicien) par une source de vérité SERVEUR : la
+ * dernière cible PRODUCTIVE (ligne d'OR ou OR entier — jamais une activité `indirect`, RM-87 : une
+ * pause/un nettoyage ne fait que MASQUER temporairement la cible productive, il ne la remplace
+ * jamais comme cible de reprise) sur laquelle le technicien a pointé dans la JOURNÉE DE TRAVAIL
+ * COURANTE. Nécessaire en particulier au mode borne (`/pointages/borne`) : chaque identification PIN
+ * y recharge l'écran, donc AUCUN état côté client ne survit d'une identification à l'autre.
+ *
+ * SEUIL DE REPRISE (P-34, arbitrage @laupernoe, NE PAS ROUVRIR) : la reprise reste proposée pendant TOUTE
+ * la journée de travail et disparaît le lendemain — aucun paramètre configurable par garage. Même
+ * notion de « journée » que la clôture automatique de fin de journée (RM-91/RM-119) et que le
+ * verrouillage de période (RM-95, `periode.ts`) : bornes calendaires UTC pures (voir
+ * `apps/api/src/pointage/regles-pointage.ts::journeeTravailCourante` côté serveur — même limitation
+ * connue, signalée là-bas : pas de fuseau par site à ce jour).
+ *
+ * `technicienId` en QUERY, OPTIONNEL : absent → le technicien de la SESSION ; présent → autorisé
+ * SEULEMENT si l'appelant détient `atelier.pointage.pointer_autrui` (encadrement) OU est un compte
+ * de service (`poste_atelier`, la borne — qui doit toujours le fournir : son identité de session
+ * n'est jamais celle d'un technicien). `403 DROIT_INSUFFISANT` sinon. Le TENANT, lui, vient TOUJOURS
+ * de la session — jamais de ce paramètre ni d'aucun autre.
+ *
+ * Réponse enveloppée dans `{ cible }` plutôt qu'un objet nu nullable en racine : un champ frère
+ * futur (hors périmètre ici) resterait ADDITIF sans casser la forme.
+ */
+export interface CibleReprisePointage {
+  /** `'ligne'` ⇔ `ligneOrId` non nul ; `'or'` ⇔ `ligneOrId` nul. Une cible `indirect` n'atteint
+   *  JAMAIS cette réponse (voir l'en-tête). */
+  readonly type: 'ligne' | 'or';
+  readonly ordreReparationId: string;
+  /** Résolu par le serveur — jamais reconstruit côté client, même doctrine que
+   *  `ReponsePointage.ordreReparationNumero`. */
+  readonly numeroOr: string;
+  /** `null` si et seulement si `type === 'or'`. */
+  readonly ligneOrId: string | null;
+  /** Désignation de la ligne visée, ou à défaut le numéro de l'OR (`type === 'or'`, ou ligne sans
+   *  désignation saisie — colonne nullable en base). Chaîne BRUTE, jamais assemblée pour
+   *  l'affichage (pas de « — OR-2026-1042 » concaténé côté serveur) : le front compose. */
+  readonly libelle: string;
+  /** Résolu depuis le pointage lui-même, jamais depuis un paramètre — la borne (site résolu par le
+   *  PIN, jamais par l'URL) n'a pas besoin de le redemander. */
+  readonly siteId: string;
+  /**
+   * Fin du dernier segment productif sur cette cible. INTERPRÉTATION RETENUE, signalée : ce champ
+   * ne peut pas être `null` dans ce contrat, or la sélection ci-dessous (voir le service) admet
+   * explicitement un dernier segment ENCORE `en_cours` (le technicien vient tout juste de démarrer,
+   * l'écran se recharge avant tout arrêt) — dans ce cas précis, `interrompuLe` vaut l'INSTANT DE LA
+   * REQUÊTE, pas une vraie interruption. Un consommateur qui a besoin de distinguer les deux cas
+   * doit croiser avec `GET /pointages?statut=en_cours&technicienId=…`, seule source qui porte
+   * l'état réellement ouvert.
+   */
+  readonly interrompuLe: string;
+  /**
+   * Somme des durées BRUTES (secondes, jamais arrondies — RM-97, comme `dureeBruteSecondes`) de
+   * TOUS les segments productifs d'AUJOURD'HUI sur CETTE MÊME cible (même `ligneOrId`, ou même
+   * `ordreReparationId` avec `ligneOrId` nul si `type === 'or'`) — segment encore en cours inclus.
+   * Entier, jamais une chaîne formatée : le front compose l'affichage.
+   */
+  readonly cumulSecondesDuJour: number;
+}
+
+export interface ReponseDernierPointageDuJour {
+  readonly cible: CibleReprisePointage | null;
+}
+
+export const schemaDernierPointageDuJourQuery = z
+  .object({ technicienId: schemaIdentifiant.optional() })
+  .strict();
+export type FiltresDernierPointageDuJour = z.infer<typeof schemaDernierPointageDuJourQuery>;

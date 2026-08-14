@@ -23,6 +23,8 @@ import { EcranFicheOrdreReparation } from './EcranFicheOrdreReparation';
 
 // Radix Dialog (`PanneauActionsOr`) appelle `hasPointerCapture`/`scrollIntoView`, absents de
 // jsdom — même stub que `composants/comptoir/SelecteurTri.spec.tsx` et `EcranFicheVehicule.spec.tsx`.
+// (`ResizeObserver`, aussi requis par `SelectTrigger` via `useSize`, est stubé globalement dans
+// `test/setup.ts` — plus besoin de copie locale ici.)
 beforeAll(() => {
   Element.prototype.hasPointerCapture = vi.fn().mockReturnValue(false);
   Element.prototype.setPointerCapture = vi.fn();
@@ -248,7 +250,9 @@ describe('EcranFicheOrdreReparation', () => {
       rendre();
 
       expect(await screen.findByText('Totaux')).toBeInTheDocument();
-      expect(screen.getByText('216.20')).toBeInTheDocument();
+      // Issue #72 : le montant seul ne disait pas d'où il sortait — devise et mention TTC
+      // désormais explicites (voir `or:lignes.montants.ttc`), jamais un chiffre nu.
+      expect(screen.getByText('CHF 216.20 TTC')).toBeInTheDocument();
       expect(screen.queryByText('Total validé')).not.toBeInTheDocument();
     });
   });
@@ -357,6 +361,36 @@ describe('EcranFicheOrdreReparation', () => {
       expect(screen.getByRole('menuitem', { name: 'Reprendre les travaux' })).toBeInTheDocument();
     });
 
+    it("atténue visuellement « Terminer » quand il est primaire sur un OR encore `ouvert` (test d'utilisabilité novice, 11.08.2026 : « Terminer quoi ? La voiture n'est même pas rentrée. »)", async () => {
+      // Rôle qui n'a droit qu'à `terminer`/`annuler` à ce statut (ex. réceptionniste sans
+      // `atelier.or.demarrer`) — `terminer` devient PRIMAIRE (il n'est pas dans
+      // `RESERVEES_SECONDAIRES`), mais reste `outline`, jamais `default`, tant que l'OR n'a pas
+      // commencé : ne doit plus ressembler à « l'étape attendue ».
+      installerHandler(
+        construireOr({ statut: 'ouvert', actionsDisponibles: ['terminer', 'annuler'] }),
+      );
+      const premierRendu = rendre();
+
+      const boutonTerminer = await screen.findByRole('button', { name: 'Terminer' });
+      expect(boutonTerminer).not.toHaveClass('bg-primary');
+
+      // Non-régression du chemin déjà correct : sur `en_cours` (travaux commencés), `terminer`
+      // primaire reste le bouton plein — même bouton, même libellé, poids visuel différent selon
+      // le statut, jamais une seconde machine à états côté client.
+      //
+      // CORRECTIF (le second rendu se superposait au premier sans le démonter : `findAllByRole`
+      // se résolvait dès qu'UN SEUL bouton « Terminer » existait — celui, déjà présent, du premier
+      // rendu — avant même que le second ait fini de charger. `boutonsTerminer[length - 1]`
+      // pointait alors vers le bouton `ouvert`/atténué, pas vers celui de `en_cours` : le test
+      // observait le mauvais élément, pas un vrai défaut de `PanneauActionsOr`. Démonter le
+      // premier rendu avant le second isole chaque assertion sur SON propre bouton.
+      premierRendu.unmount();
+      installerHandler(construireOr({ statut: 'en_cours', actionsDisponibles: ['terminer'] }));
+      rendre();
+      const boutonTerminerEnCours = await screen.findByRole('button', { name: 'Terminer' });
+      expect(boutonTerminerEnCours).toHaveClass('bg-primary');
+    });
+
     it("un clic sur une action du menu « Autres actions » ouvre le même dialogue de confirmation qu'un bouton de premier niveau", async () => {
       installerHandler(
         construireOr({ statut: 'ouvert', actionsDisponibles: ['demarrer', 'annuler'] }),
@@ -369,7 +403,12 @@ describe('EcranFicheOrdreReparation', () => {
 
       const dialogue = await screen.findByRole('dialog');
       expect(within(dialogue).getByText("Annuler l'OR")).toBeInTheDocument();
-      expect(within(dialogue).getByLabelText('Motif')).toBeInTheDocument();
+      // `/^Motif/` (pas `'Motif'` exact) : `motif` est OBLIGATOIRE pour cette action
+      // (`schemaActionAnnuler`, sans `.optional()`) — le libellé porte désormais une étoile
+      // (`Label requis`, `components/ui/label.tsx`), donc son texte accessible devient
+      // « Motif* », jamais confondue avec l'astérisque comme caractère lu par un lecteur d'écran
+      // (`aria-hidden`) mais présente dans le `textContent` que `getByLabelText` compare.
+      expect(within(dialogue).getByLabelText(/^Motif/)).toBeInTheDocument();
     });
 
     it('choisit le chemin positif comme primaire au contrôle qualité (« Valider le contrôle », pas « Refuser »)', async () => {
@@ -461,7 +500,64 @@ describe('EcranFicheOrdreReparation', () => {
     });
   });
 
-  describe('bouton « Ajouter une ligne » — gouverné par `atelier.ligne.creer` (ecrans/atelier/droits.ts)', () => {
+  describe('lien « OR précédent » (`EnTeteOrdreReparation.tsx`)', () => {
+    // Issue #113 (rapport de test terrain) : « le lien OR précédent : OR-2026-4 mène à la fiche
+    // du véhicule au lieu d'ouvrir l'ordre annoncé ». ÉTABLI avant tout changement : relecture du
+    // code actuel (`EnTeteOrdreReparation.tsx`, `onClick` du bouton « OR précédent ») montre un
+    // `navigate(chemins.atelier.ordresReparation.detail(...))` déjà correct — aucune trace d'un
+    // lien vers `chemins.vehicules.detail(...)`. Non couvert par un test jusqu'ici (aucun fichier
+    // `EnTeteOrdreReparation.spec.tsx` n'existait). Ce test PROUVE le comportement actuel plutôt
+    // que de se fier à la lecture seule — et sert de garde-fou si la régression décrite revenait.
+    function rendreAvecRoutePrecedentEtVehicule() {
+      const queryClient = creerQueryClientTest();
+      return render(
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter initialEntries={['/ordres-reparation/or-1']}>
+            <Routes>
+              <Route path="/ordres-reparation/:orId" element={<EcranFicheOrdreReparation />} />
+              {/* Sentinelle : si un jour ce lien redevenait un lien véhicule, ce texte apparaîtrait
+               *  à la place du numéro de l'OR précédent ci-dessous — échec net, jamais un faux vert. */}
+              <Route path="/vehicules/:id" element={<p>Fiche véhicule (mauvaise destination)</p>} />
+            </Routes>
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+    }
+
+    it("navigue vers la FICHE DE L'OR précédent (jamais la fiche du véhicule) au clic", async () => {
+      installerHandler(construireOr());
+      server.use(
+        http.get('/api/v1/ordres-reparation', ({ request }) => {
+          const url = new URL(request.url);
+          expect(url.searchParams.get('vehiculeId')).toBe(VEHICULE.id);
+          return HttpResponse.json({
+            donnees: [
+              { id: 'or-1', numero: 'OR-000123' },
+              { id: 'or-2', numero: 'OR-000099' },
+            ],
+            curseurSuivant: null,
+            limite: 5,
+          });
+        }),
+        http.get('/api/v1/ordres-reparation/or-2', () =>
+          HttpResponse.json(construireOr({ id: 'or-2', numero: 'OR-000099' })),
+        ),
+      );
+      const utilisateur = userEvent.setup();
+      rendreAvecRoutePrecedentEtVehicule();
+
+      await utilisateur.click(
+        await screen.findByRole('button', { name: 'OR précédent : OR-000099' }),
+      );
+
+      // Arrivée sur la fiche du bon OR (son propre numéro s'affiche), jamais sur la sentinelle
+      // « fiche véhicule ».
+      await screen.findAllByText('OR-000099');
+      expect(screen.queryByText('Fiche véhicule (mauvaise destination)')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('bouton « Ajouter un travail ou une pièce » — gouverné par `atelier.ligne.creer` (ecrans/atelier/droits.ts)', () => {
     function construireLigne(overrides: Partial<ReponseLigneOr> = {}): ReponseLigneOr {
       return {
         id: 'ligne-1',
@@ -509,7 +605,9 @@ describe('EcranFicheOrdreReparation', () => {
       installerHandler(construireOr());
       rendre();
 
-      expect(await screen.findByRole('button', { name: 'Ajouter une ligne' })).toBeInTheDocument();
+      expect(
+        await screen.findByRole('button', { name: i18n.t('or:lignes.ajouter') }),
+      ).toBeInTheDocument();
     });
 
     it('un rôle sans le droit (comptable) ne voit PAS le bouton', async () => {
@@ -528,7 +626,9 @@ describe('EcranFicheOrdreReparation', () => {
       // (page courante) en plus du titre de l'en-tête : deux occurrences légitimes, `findAllByText`
       // plutôt que `findByText` (qui exigerait une correspondance unique et échouerait ici).
       await screen.findAllByText('OR-000123');
-      expect(screen.queryByRole('button', { name: 'Ajouter une ligne' })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: i18n.t('or:lignes.ajouter') }),
+      ).not.toBeInTheDocument();
     });
 
     it('ajoute une ligne de main-d’œuvre depuis le dialogue, qui apparaît ensuite dans le tableau', async () => {
@@ -560,10 +660,15 @@ describe('EcranFicheOrdreReparation', () => {
       const utilisateur = userEvent.setup();
       rendre();
 
-      await utilisateur.click(await screen.findByRole('button', { name: 'Ajouter une ligne' }));
+      await utilisateur.click(
+        await screen.findByRole('button', { name: i18n.t('or:lignes.ajouter') }),
+      );
       const dialogue = await screen.findByRole('dialog');
+      // `/^Désignation/` : l'ancien `' *'` codé en dur dans le JSX est remplacé par le mécanisme
+      // partagé (`Label requis`, `components/ui/label.tsx`) — même étoile, texte accessible
+      // légèrement différent (« Désignation* », sans espace).
       await utilisateur.type(
-        within(dialogue).getByLabelText('Désignation *'),
+        within(dialogue).getByLabelText(/^Désignation/),
         'Remplacement plaquettes de frein avant',
       );
       await utilisateur.click(within(dialogue).getByRole('button', { name: 'Confirmer' }));
@@ -589,6 +694,54 @@ describe('EcranFicheOrdreReparation', () => {
       expect(cleIdempotence).toMatch(
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
       );
+    });
+  });
+
+  describe('carte « Devis et facture » sans document lié — trois rendus distincts (issue #105)', () => {
+    // Issue #105 (rapport terrain) : un OR `restitue`/`cloture` sans document lié rendait jusqu'ici
+    // exactement le même message générique qu'un OR encore actif — impossible pour une
+    // réceptionniste de savoir si « pas de facture » était normal ou un oubli. Trois statuts
+    // distincts (`termine` = pas terminal, `cloture`, `annule`), tous SANS document (le handler
+    // `beforeEach` renvoie déjà une liste vide par défaut).
+
+    it('OR non terminal (`termine`) sans document — « pas encore facturé », pas une absence de renoncement', async () => {
+      installerHandler(construireOr({ statut: 'termine' }));
+      rendre();
+
+      expect(
+        await screen.findByText("Pas encore facturé. L'OR reste ouvert à la facturation."),
+      ).toBeInTheDocument();
+    });
+
+    it('OR `cloture` sans document — message factuel de clôture, jamais le message générique « actif »', async () => {
+      installerHandler(construireOr({ statut: 'cloture', clotureLe: '2026-08-10T09:00:00.000Z' }));
+      rendre();
+
+      expect(
+        await screen.findByText(
+          "Aucune facture n'a été émise pour cet OR, désormais clôturé — plus aucune facturation n'est possible.",
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText("Pas encore facturé. L'OR reste ouvert à la facturation."),
+      ).not.toBeInTheDocument();
+    });
+
+    it('OR `annule` sans document — motif d’annulation interpolé depuis `or.motifAnnulation`, jamais inventé', async () => {
+      installerHandler(
+        construireOr({
+          statut: 'annule',
+          annuleLe: '2026-08-10T09:00:00.000Z',
+          motifAnnulation: 'Demande client, sans rapport avec les plaquettes déjà en cours',
+        }),
+      );
+      rendre();
+
+      expect(
+        await screen.findByText(
+          'OR annulé, aucune facture ne sera émise. Motif : Demande client, sans rapport avec les plaquettes déjà en cours',
+        ),
+      ).toBeInTheDocument();
     });
   });
 

@@ -1,6 +1,8 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { OrdreReparationResume, ReponseClient, VehiculeResume } from '@dfa/shared';
@@ -90,6 +92,30 @@ function rendreEcran(routeInitiale = '/clients/cl-1') {
       { path: '/atelier/ordres-reparation/nouveau', element: <div>PAGE_NOUVEL_OR</div> },
     ],
     { routeInitiale },
+  );
+}
+
+/** Reproduit ce que fait RÉELLEMENT `EcranListeClients` après une création réussie (issue #79) :
+ *  `navigate(chemins.clients.detail(id, site), { state: {...} })`. `renduAvecRoutes` (test/utils,
+ *  hors périmètre d'écriture ici) ne prend qu'un chemin brut en route initiale — pas d'état — donc
+ *  ce lanceur atterrit d'abord sur une route neutre puis navigue LUI-MÊME avec l'état voulu, par
+ *  les seuls hooks publics de `react-router`, sans toucher au harnais partagé. */
+function rendreEcranDepuisCreation(etat: { clientCreeNumero: string; clientCreeNom: string }) {
+  function Lanceur() {
+    const navigate = useNavigate();
+    useEffect(() => {
+      navigate('/clients/cl-1', { state: etat, replace: true });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    return null;
+  }
+  return renduAvecRoutes(
+    [
+      { path: '/depart', element: <Lanceur /> },
+      { path: '/clients', element: <div>PAGE_LISTE_CLIENTS</div> },
+      { path: '/clients/:id', element: <EcranFicheClient /> },
+    ],
+    { routeInitiale: '/depart' },
   );
 }
 
@@ -356,5 +382,139 @@ describe('EcranFicheClient', () => {
         expect(nombreAppels).toBe(0);
       },
     );
+  });
+
+  describe('issue #79 — le client Rossier avait bien été créé malgré un message d’échec', () => {
+    // Verbatim terrain : « Connexion impossible », recliqué, « Une erreur s'est produite » avec un
+    // « Réessayer » qui ne réparait rien — le client existait pourtant déjà (CL-000013). Cause
+    // mesurée : la CRÉATION avait réussi (`EcranListeClients` avait déjà navigué ici), seule la
+    // LECTURE `GET /clients/{id}` qui suit cette navigation échouait à son tour — voir le
+    // commentaire d'`EtatNavigationClientCree` dans `EcranFicheClient.tsx`.
+    function repondreLectureEchoue(status: number, code: string) {
+      server.use(
+        http.get('/api/v1/clients/cl-1', () =>
+          HttpResponse.json(
+            {
+              type: `https://docs.dmsforall.example/erreurs/${code}`,
+              title: code,
+              status,
+              code,
+              instance: 'req-fiche-apres-creation',
+            },
+            { status, headers: { 'content-type': 'application/problem+json' } },
+          ),
+        ),
+        http.get('/api/v1/clients/cl-1/vehicules', () => HttpResponse.json(PAGE_VIDE)),
+        http.get('/api/v1/clients/cl-1/ordres-reparation', () => HttpResponse.json(PAGE_VIDE)),
+        http.get('/api/v1/clients/cl-1/conditions', () => HttpResponse.json(PAGE_VIDE)),
+        http.get('/api/v1/clients/cl-1/contacts', () => HttpResponse.json(PAGE_VIDE)),
+        http.get('/api/v1/dossiers-vente', () => HttpResponse.json(PAGE_VIDE)),
+      );
+    }
+
+    it("dit que le client a bien été créé — jamais le message générique d'échec — quand la lecture échoue juste après une création confirmée", async () => {
+      repondreLectureEchoue(500, 'ERREUR_INTERNE');
+      rendreEcranDepuisCreation({ clientCreeNumero: 'CL-000013', clientCreeNom: 'Jean Rossier' });
+
+      expect(await screen.findByText('Client enregistré')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Le client Jean Rossier a bien été enregistré (CL-000013), mais sa fiche n'a pas pu s'afficher. Réessayez, ou retrouvez-le depuis la liste des clients — ne le recréez pas.",
+        ),
+      ).toBeInTheDocument();
+      // Jamais les messages génériques qui laissent croire que rien n'a abouti.
+      expect(screen.queryByText("Une erreur s'est produite")).not.toBeInTheDocument();
+      expect(screen.queryByText('Connexion impossible')).not.toBeInTheDocument();
+    });
+
+    it('affiche le même message rassurant même quand la lecture qui suit échoue pour une cause RÉSEAU (pas seulement un 500)', async () => {
+      // La cause exacte de l'échec de LECTURE n'a aucune importance pour l'utilisateur ici : ce
+      // qui compte est que la CRÉATION, elle, a réussi. `HttpResponse.error()` simule une panne
+      // réseau (`fetch` qui rejette), exactement le type d'erreur qui affichait « Connexion
+      // impossible » avant ce correctif.
+      server.use(
+        http.get('/api/v1/clients/cl-1', () => HttpResponse.error()),
+        http.get('/api/v1/clients/cl-1/vehicules', () => HttpResponse.json(PAGE_VIDE)),
+        http.get('/api/v1/clients/cl-1/ordres-reparation', () => HttpResponse.json(PAGE_VIDE)),
+        http.get('/api/v1/clients/cl-1/conditions', () => HttpResponse.json(PAGE_VIDE)),
+        http.get('/api/v1/clients/cl-1/contacts', () => HttpResponse.json(PAGE_VIDE)),
+        http.get('/api/v1/dossiers-vente', () => HttpResponse.json(PAGE_VIDE)),
+      );
+      rendreEcranDepuisCreation({ clientCreeNumero: 'CL-000013', clientCreeNom: 'Jean Rossier' });
+
+      expect(await screen.findByText('Client enregistré')).toBeInTheDocument();
+      expect(screen.queryByText('Connexion impossible')).not.toBeInTheDocument();
+    });
+
+    it('« Réessayer » relit la fiche (pas une recréation) et « Retour à la liste des clients » permet de retrouver le client sans le ressaisir', async () => {
+      let nombreAppelsLecture = 0;
+      server.use(
+        http.get('/api/v1/clients/cl-1', () => {
+          nombreAppelsLecture += 1;
+          return HttpResponse.json(
+            {
+              type: 'https://docs.dmsforall.example/erreurs/ERREUR_INTERNE',
+              title: 'Erreur interne',
+              status: 500,
+              code: 'ERREUR_INTERNE',
+              instance: 'req-fiche-apres-creation',
+            },
+            { status: 500, headers: { 'content-type': 'application/problem+json' } },
+          );
+        }),
+        http.get('/api/v1/clients/cl-1/vehicules', () => HttpResponse.json(PAGE_VIDE)),
+        http.get('/api/v1/clients/cl-1/ordres-reparation', () => HttpResponse.json(PAGE_VIDE)),
+        http.get('/api/v1/clients/cl-1/conditions', () => HttpResponse.json(PAGE_VIDE)),
+        http.get('/api/v1/clients/cl-1/contacts', () => HttpResponse.json(PAGE_VIDE)),
+        http.get('/api/v1/dossiers-vente', () => HttpResponse.json(PAGE_VIDE)),
+      );
+      const utilisateur = userEvent.setup();
+      const { routeur } = rendreEcranDepuisCreation({
+        clientCreeNumero: 'CL-000013',
+        clientCreeNom: 'Jean Rossier',
+      });
+
+      await screen.findByText('Client enregistré');
+      const appelsAvantReessai = nombreAppelsLecture;
+      await utilisateur.click(screen.getByRole('button', { name: 'Réessayer' }));
+      expect(nombreAppelsLecture).toBeGreaterThan(appelsAvantReessai);
+      // Aucune requête de CRÉATION n'est jamais partie ici — seul `GET /clients/cl-1` a été
+      // rappelé. `onUnhandledRequest: 'error'` (test/setup.ts) ferait de toute façon échouer ce
+      // test si un `POST /clients` inattendu partait.
+
+      await utilisateur.click(
+        screen.getByRole('button', { name: 'Retour à la liste des clients' }),
+      );
+      expect(routeur.state.location.pathname).toBe('/clients');
+    });
+
+    it("n'affiche PAS ce message rassurant sur un accès direct à la fiche (aucun état de création — comportement générique inchangé)", async () => {
+      server.use(
+        http.get('/api/v1/clients/cl-1', () =>
+          HttpResponse.json(
+            {
+              type: 'https://docs.dmsforall.example/erreurs/ERREUR_INTERNE',
+              title: 'Erreur interne',
+              status: 500,
+              code: 'ERREUR_INTERNE',
+              instance: 'req-1',
+            },
+            { status: 500, headers: { 'content-type': 'application/problem+json' } },
+          ),
+        ),
+        http.get('/api/v1/clients/cl-1/vehicules', () => HttpResponse.json(PAGE_VIDE)),
+        http.get('/api/v1/clients/cl-1/ordres-reparation', () => HttpResponse.json(PAGE_VIDE)),
+        http.get('/api/v1/clients/cl-1/conditions', () => HttpResponse.json(PAGE_VIDE)),
+        http.get('/api/v1/clients/cl-1/contacts', () => HttpResponse.json(PAGE_VIDE)),
+        http.get('/api/v1/dossiers-vente', () => HttpResponse.json(PAGE_VIDE)),
+      );
+      rendreEcran();
+
+      expect(await screen.findByRole('button', { name: /Réessayer/ })).toBeInTheDocument();
+      expect(screen.queryByText('Client enregistré')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Retour à la liste des clients' }),
+      ).not.toBeInTheDocument();
+    });
   });
 });

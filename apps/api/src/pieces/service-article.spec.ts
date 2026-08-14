@@ -447,3 +447,165 @@ describe('ServiceArticle.listerReferences — GET /articles/{id}/references, la 
     },
   );
 });
+
+describe('ServiceArticle.lister — filtre `q` tolérant à la casse ET aux accents', () => {
+  it('enveloppe désignation, référence principale ET référence alternative dans public.normaliser_recherche(...), des deux côtés du `like`', async () => {
+    const { tx, execute } = txFactice({
+      selects: [[]],
+      executes: [{ rows: [] }],
+    });
+    const service = new ServiceArticle(accesFactice(tx), idempotenceFactice(tx));
+
+    await service.lister(CTX, 'magasinier', {
+      limite: 50,
+      tri: 'creeLe:desc',
+      q: 'fréin',
+    });
+
+    const appel = execute.mock.calls[0]?.[0] as SQL;
+    const { sql: texte } = dialect.sqlToQuery(appel);
+    expect(texte).toContain(
+      'public.normaliser_recherche(a.designation) like public.normaliser_recherche(',
+    );
+    expect(texte).toContain(
+      'public.normaliser_recherche(a.reference_principale) like public.normaliser_recherche(',
+    );
+    expect(texte).toContain(
+      'public.normaliser_recherche(ar.reference) like public.normaliser_recherche(',
+    );
+    // Le défaut corrigé : un `ilike` nu ne gomme que la casse, jamais les accents.
+    expect(texte).not.toContain('ilike');
+  });
+});
+
+describe(
+  'ServiceArticle.rechercheComptoir — GET /articles/recherche-comptoir : le seul point d’entrée ' +
+    'du catalogue pour la saisie d’une ligne d’OR pièce (RP-01→RP-25, constat testeur : « aucun ' +
+    'lien avec le magasin »)',
+  () => {
+    function donneesBrutes(champs: Partial<Record<string, unknown>> = {}) {
+      return {
+        articleId: 'a1',
+        numeroArticle: 'P-000001',
+        designation: 'Jeu de plaquettes de frein avant',
+        referencePrincipale: 'GDB1330DTE',
+        prixVenteTtcCentimes: 8900,
+        quantitePhysiqueMillieme: null,
+        quantiteReserveeMillieme: null,
+        suiviQuelquePart: false,
+        emplacement: null,
+        estEchangeStandard: false,
+        montantConsigneTtcCentimes: null,
+        ...champs,
+      };
+    }
+
+    it('recherche par désignation ET par référence, tolérante à la casse et aux accents (même idiome que `lister`)', async () => {
+      const { tx, execute } = txFactice({ executes: [{ rows: [] }] });
+      const service = new ServiceArticle(accesFactice(tx), idempotenceFactice(tx));
+
+      await service.rechercheComptoir(CTX, { q: 'a huile', siteId: 's1', limite: 10 });
+
+      const appel = execute.mock.calls[0]?.[0] as SQL;
+      const { sql: texte } = dialect.sqlToQuery(appel);
+      expect(texte).toContain(
+        'public.normaliser_recherche(a.designation) like public.normaliser_recherche(',
+      );
+      expect(texte).toContain(
+        'public.normaliser_recherche(a.reference_principale) like public.normaliser_recherche(',
+      );
+      expect(texte).toContain(
+        'public.normaliser_recherche(ar.reference) like public.normaliser_recherche(',
+      );
+      expect(texte).not.toContain('ilike');
+    });
+
+    it('un critère qui ne correspond à aucun article rend une liste VIDE, jamais le catalogue entier', async () => {
+      const { tx } = txFactice({ executes: [{ rows: [] }] });
+      const service = new ServiceArticle(accesFactice(tx), idempotenceFactice(tx));
+
+      const resultats = await service.rechercheComptoir(CTX, {
+        q: 'introuvable-xyz',
+        siteId: 's1',
+        limite: 10,
+      });
+
+      expect(resultats).toEqual([]);
+    });
+
+    it("statutSuivi = 'suivi' quand une ligne stock_article existe pour CE site : quantiteDisponibleMillieme = physique - réservée, même à 0", async () => {
+      const { tx } = txFactice({
+        executes: [
+          {
+            rows: [
+              donneesBrutes({
+                quantitePhysiqueMillieme: 1000,
+                quantiteReserveeMillieme: 1000,
+                suiviQuelquePart: true,
+              }),
+            ],
+          },
+        ],
+      });
+      const service = new ServiceArticle(accesFactice(tx), idempotenceFactice(tx));
+
+      const [resultat] = await service.rechercheComptoir(CTX, {
+        q: 'plaquettes',
+        siteId: 's1',
+        limite: 10,
+      });
+
+      // « Il n'en reste aucun » — un ZÉRO CONNU, pas une absence de donnée.
+      expect(resultat?.statutSuivi).toBe('suivi');
+      expect(resultat?.quantiteDisponibleMillieme).toBe(0);
+    });
+
+    it("statutSuivi = 'nonSuiviSurCeSite' quand l'article est suivi sur un AUTRE site mais pas celui-ci — jamais confondu avec un stock à 0", async () => {
+      const { tx } = txFactice({
+        executes: [{ rows: [donneesBrutes({ suiviQuelquePart: true })] }],
+      });
+      const service = new ServiceArticle(accesFactice(tx), idempotenceFactice(tx));
+
+      const [resultat] = await service.rechercheComptoir(CTX, {
+        q: 'plaquettes',
+        siteId: 's1',
+        limite: 10,
+      });
+
+      expect(resultat?.statutSuivi).toBe('nonSuiviSurCeSite');
+      expect(resultat?.quantiteDisponibleMillieme).toBe(0);
+    });
+
+    it("statutSuivi = 'nonSuiviNullePart' quand l'article n'est suivi sur AUCUN site — « on ne sait pas » et « jamais mis en stock » restent deux réponses distinctes", async () => {
+      const { tx } = txFactice({
+        executes: [{ rows: [donneesBrutes({ suiviQuelquePart: false })] }],
+      });
+      const service = new ServiceArticle(accesFactice(tx), idempotenceFactice(tx));
+
+      const [resultat] = await service.rechercheComptoir(CTX, {
+        q: 'plaquettes',
+        siteId: 's1',
+        limite: 10,
+      });
+
+      expect(resultat?.statutSuivi).toBe('nonSuiviNullePart');
+      expect(resultat?.quantiteDisponibleMillieme).toBe(0);
+    });
+
+    it('le prix rendu est nommément TTC (prixVenteTtcCentimes), en centimes entiers', async () => {
+      const { tx } = txFactice({
+        executes: [{ rows: [donneesBrutes({ prixVenteTtcCentimes: 8900 })] }],
+      });
+      const service = new ServiceArticle(accesFactice(tx), idempotenceFactice(tx));
+
+      const [resultat] = await service.rechercheComptoir(CTX, {
+        q: 'plaquettes',
+        siteId: 's1',
+        limite: 10,
+      });
+
+      expect(resultat?.prixVenteTtcCentimes).toBe(8900);
+      expect(Number.isInteger(resultat?.prixVenteTtcCentimes)).toBe(true);
+    });
+  },
+);

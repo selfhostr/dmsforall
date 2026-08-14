@@ -102,9 +102,11 @@ export type FiltresReservations = z.infer<typeof schemaFiltresReservations>;
  * `annule` NI dans un état où la ligne a été refusée par décision de devis — précisément le
  * « avertissement si l'OR n'est ni annulé ni refusé » de `RP-23`, troisième cas.
  */
-export const schemaLiberationReservation = z.object({
-  motif: schemaMotif,
-});
+export const schemaLiberationReservation = z
+  .object({
+    motif: schemaMotif,
+  })
+  .strict();
 export type EntreeLiberationReservation = z.infer<typeof schemaLiberationReservation>;
 
 /*

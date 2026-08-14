@@ -230,7 +230,9 @@ describe('ServiceDossierVente.livrer — RV-24 : mise en stock automatique de la
       dossierFixture({ statut: 'livre' }),
     );
 
-    const { tx, insertCalls } = txFactice([[]]); // 1 select : détention ouverte du véhicule vendu
+    // 2 selects : (1) issue #140, existence d'une facture émise rattachée au dossier — (2)
+    // détention ouverte du véhicule vendu.
+    const { tx, insertCalls } = txFactice([[{ id: 'facture-1' }], []]);
     const svc = serviceFactice(accesFactice(tx));
 
     await svc.livrer(CTX, 'direction', DOSSIER_ID, ENTREE);
@@ -250,7 +252,7 @@ describe('ServiceDossierVente.livrer — RV-24 : mise en stock automatique de la
       dossierFixture({ statut: 'livre' }),
     );
 
-    const { tx, insertCalls } = txFactice([[]]);
+    const { tx, insertCalls } = txFactice([[{ id: 'facture-1' }], []]);
     const svc = serviceFactice(accesFactice(tx));
 
     await svc.livrer(CTX, 'direction', DOSSIER_ID, ENTREE);
@@ -269,8 +271,10 @@ describe('ServiceDossierVente.livrer — RV-24 : mise en stock automatique de la
       dossierFixture({ statut: 'livre' }),
     );
 
-    // 2 selects attendus, dans l'ordre : détention du véhicule VENDU, puis détention du véhicule REPRIS.
+    // 3 selects attendus, dans l'ordre : (1) issue #140, facture émise du dossier — (2) détention
+    // du véhicule VENDU — (3) détention du véhicule REPRIS.
     const { tx, insertCalls, updateCalls } = txFactice([
+      [{ id: 'facture-1' }],
       [{ id: 'detention-vendu-1' }],
       [{ id: 'detention-reprise-1' }],
     ]);
@@ -315,7 +319,7 @@ describe('ServiceDossierVente.livrer — RV-24 : mise en stock automatique de la
       vehiculeStockVenduFixture({ id: VEHICULE_REPRIS_ID }),
     );
 
-    const { tx, insertCalls } = txFactice([[]]);
+    const { tx, insertCalls } = txFactice([[{ id: 'facture-1' }], []]);
     const svc = serviceFactice(accesFactice(tx));
 
     await expect(svc.livrer(CTX, 'direction', DOSSIER_ID, ENTREE)).rejects.toMatchObject({
@@ -333,7 +337,7 @@ describe('ServiceDossierVente.livrer — RV-24 : mise en stock automatique de la
       repriseFixture({ valeurNegocieeCentimes: null }),
     );
 
-    const { tx, insertCalls } = txFactice([[]]);
+    const { tx, insertCalls } = txFactice([[{ id: 'facture-1' }], []]);
     const svc = serviceFactice(accesFactice(tx));
 
     await expect(svc.livrer(CTX, 'direction', DOSSIER_ID, ENTREE)).rejects.toMatchObject({
@@ -416,7 +420,10 @@ describe('ServiceDossierVente.livrer — traduction de la violation de contraint
       vehiculeStockVenduFixture(),
     );
 
-    const { tx, insertCalls, updateCalls } = txFactice([[{ id: 'detention-vendu-ouverte' }]]);
+    const { tx, insertCalls, updateCalls } = txFactice([
+      [{ id: 'facture-1' }], // issue #140 : facture émise du dossier
+      [{ id: 'detention-vendu-ouverte' }],
+    ]);
     // `livrer()` fait DEUX `update` avant l'écriture `vehicule_detention` : `transitionnerVehiculeStock`
     // (`vehicule_stock`) puis `transitionnerDossier` (`dossier_vente`), tous deux SANS rapport avec
     // cette contrainte — seul l'`update` de clôture de la détention ouverte du véhicule VENDU doit
@@ -457,7 +464,7 @@ describe('ServiceDossierVente.livrer — traduction de la violation de contraint
 
     // Pas de détention ouverte à clôturer (select vide) : l'échec porte sur l'INSERT de la
     // nouvelle détention (nouveau détenteur, RV-53).
-    const { tx } = txFactice([[]]);
+    const { tx } = txFactice([[{ id: 'facture-1' }], []]);
     tx.insert = ((table: unknown) =>
       table === vehiculeDetention
         ? {
@@ -516,6 +523,7 @@ describe('ServiceDossierVente.livrer — issue #13 : livraison le jour même d�
       // par ex. à 09h12 — l'heure réelle n'apparaît nulle part côté `du` (colonne `date`), ce test
       // n'en a donc pas besoin pour prouver que ce n'est PAS traité comme un conflit.
       const { tx, insertCalls, updateCalls } = txFactice([
+        [{ id: 'facture-1' }], // issue #140 : facture émise du dossier
         [{ id: 'detention-meme-jour', du: '2026-08-01' }],
       ]);
       const svc = serviceFactice(accesFactice(tx));
@@ -551,6 +559,7 @@ describe('ServiceDossierVente.livrer — issue #13 : livraison le jour même d�
       );
 
       const { tx, insertCalls, updateCalls } = txFactice([
+        [{ id: 'facture-1' }], // issue #140 : facture émise du dossier
         [{ id: 'detention-passee', du: '2026-07-20' }],
       ]);
       const svc = serviceFactice(accesFactice(tx));
@@ -595,6 +604,7 @@ describe('ServiceDossierVente.livrer — issue #13 : livraison le jour même d�
       );
 
       const { tx, insertCalls, updateCalls } = txFactice([
+        [{ id: 'facture-1' }], // issue #140 : facture émise du dossier
         [{ id: 'detention-meme-jour', du: '2026-08-01' }],
       ]);
       const acces = accesFactice(tx);
@@ -615,6 +625,75 @@ describe('ServiceDossierVente.livrer — issue #13 : livraison le jour même d�
       expect(insertCalls.filter((c) => c.table === vehiculeDetention)).toHaveLength(0);
     },
   );
+});
+
+/**
+ * DÉFAUT CORRIGÉ (issue #140, terrain) : `livrer()` ne vérifiait que
+ * `vehiculeStockLigne.statutCommercial === 'vendu'` — un statut que l'action « Marquer vendu »
+ * (`POST /vehicules/{id}/stock/marquer-vendu`, réservée à la direction, « correction
+ * exceptionnelle ») peut poser SANS AUCUNE facture. Un véhicule ainsi corrigé à la main pouvait
+ * donc être livré. Prouvé ici, base MOQUÉE : `livrer()` interroge désormais aussi `document_vente`
+ * (facture émise ou annulée par avoir, rattachée à CE dossier) EN PLUS du statut véhicule.
+ */
+describe('ServiceDossierVente.livrer — issue #140 : facture réellement rattachée au dossier', () => {
+  it('véhicule `vendu` SANS AUCUNE facture pour ce dossier (correction manuelle, sans passer par une émission réelle) : refusé, VENTE_LIVRAISON_FACTURE_REQUISE', async () => {
+    vi.mocked(references.chargerDossierVentePourEcriture).mockResolvedValue(dossierFixture());
+    vi.mocked(references.chargerVehiculeStockPourEcriture).mockResolvedValue(
+      vehiculeStockVenduFixture(), // statutCommercial: 'vendu'
+    );
+
+    // Le SEUL select consommé ici est celui d'existence de facture — vide : aucune facture,
+    // rattachée ou non, n'existe pour ce dossier. Le refus doit intervenir AVANT le select
+    // détention (jamais atteint), donc `txFactice([[]])` suffit : un select surnuméraire ferait
+    // échouer le test avec une erreur de queue vide, preuve indirecte qu'aucun autre select n'a
+    // lieu après le refus.
+    const { tx, updateCalls } = txFactice([[]]);
+    const svc = serviceFactice(accesFactice(tx));
+
+    await expect(svc.livrer(CTX, 'direction', DOSSIER_ID, ENTREE)).rejects.toMatchObject({
+      code: 'VENTE_LIVRAISON_FACTURE_REQUISE',
+      status: 409,
+    });
+    // Aucune écriture du tout : ni transition véhicule, ni transition dossier, ni détention.
+    expect(updateCalls).toHaveLength(0);
+  });
+
+  it("véhicule `vendu` avec une facture ANNULÉE PAR AVOIR (RF-32) rattachée au dossier : autorisé — la preuve qu'une facture a existé reste valable", async () => {
+    vi.mocked(references.chargerDossierVentePourEcriture).mockResolvedValue(dossierFixture());
+    vi.mocked(references.chargerVehiculeStockPourEcriture).mockResolvedValue(
+      vehiculeStockVenduFixture(),
+    );
+    vi.mocked(references.chargerRepriseParDossierOuNull).mockResolvedValue(null);
+    vi.mocked(references.chargerDossierVente).mockResolvedValue(
+      dossierFixture({ statut: 'livre' }),
+    );
+
+    const { tx } = txFactice([
+      [{ id: 'facture-annulee-par-avoir-1' }], // issue #140 : trouvée malgré `annule_par_avoir`
+      [],
+    ]);
+    const svc = serviceFactice(accesFactice(tx));
+
+    await expect(svc.livrer(CTX, 'direction', DOSSIER_ID, ENTREE)).resolves.not.toThrow();
+  });
+
+  it('chemin normal (RV-37) non régressé : une facture ÉMISE ordinaire suffit, comme avant ce correctif', async () => {
+    vi.mocked(references.chargerDossierVentePourEcriture).mockResolvedValue(dossierFixture());
+    vi.mocked(references.chargerVehiculeStockPourEcriture).mockResolvedValue(
+      vehiculeStockVenduFixture(),
+    );
+    vi.mocked(references.chargerRepriseParDossierOuNull).mockResolvedValue(null);
+    vi.mocked(references.chargerDossierVente).mockResolvedValue(
+      dossierFixture({ statut: 'livre' }),
+    );
+
+    const { tx, updateCalls } = txFactice([[{ id: 'facture-emise-1' }], []]);
+    const svc = serviceFactice(accesFactice(tx));
+
+    await svc.livrer(CTX, 'direction', DOSSIER_ID, ENTREE);
+
+    expect(updateCalls.some((c) => c.table === vehiculeStock)).toBe(true);
+  });
 });
 
 /**
@@ -709,6 +788,138 @@ describe('ServiceDossierVente — garde de rejeu explicite (preparer/marquerPret
 
     expect(updateCalls).toHaveLength(1);
     expect(updateCalls[0]?.champs).toMatchObject({ statut: 'clos' });
+  });
+});
+
+/**
+ * DÉFAUT CORRIGÉ (issue #115, terrain) : `marquerPretALivrer()` refusait la transition sous le
+ * MÊME code, avec le MÊME message, dans deux situations pourtant très différentes — aucun
+ * financement n'a jamais été créé pour ce dossier (vente au comptant, le cas courant, `courant ===
+ * null`) et un financement existe réellement mais n'est pas confirmé (`en_attente`/`refuse`).
+ * Prouvé ici, base MOQUÉE (`references.listerFinancementsDossier` mocké) : les TROIS situations
+ * distinguées par le correctif.
+ */
+describe('ServiceDossierVente.marquerPretALivrer — issue #115 : trois situations de financement', () => {
+  function financementFixture(champs: Partial<LigneFinancementVente> = {}): LigneFinancementVente {
+    return {
+      id: 'fin-1',
+      tenantId: 'tid-1',
+      dossierVenteId: DOSSIER_ID,
+      type: 'leasing',
+      organismeId: null,
+      referenceContrat: 'LSG-2026-042',
+      montantFinanceCentimes: 2_500_000,
+      acompteCentimes: 300_000,
+      mensualiteCentimes: 45_000,
+      tauxInteretPourmille: 39,
+      dureeMois: 48,
+      statut: 'confirme',
+      confirmeLe: new Date('2026-07-20T09:00:00.000Z'),
+      refuseLe: null,
+      motifRefus: null,
+      version: 1,
+      creeLe: new Date('2026-07-15T08:00:00.000Z'),
+      modifieLe: new Date('2026-07-20T09:00:00.000Z'),
+      ...champs,
+    } as LigneFinancementVente;
+  }
+
+  it('1) AUCUN financement (`courant === null`, vente au comptant) : AUTORISÉ — le cas qui était refusé à tort avant ce correctif', async () => {
+    vi.mocked(references.chargerDossierVentePourEcriture).mockResolvedValue(
+      dossierFixture({ statut: 'en_preparation' }),
+    );
+    vi.mocked(references.chargerDossierVente).mockResolvedValue(
+      dossierFixture({ statut: 'pret_a_livrer' }),
+    );
+    vi.mocked(references.listerFinancementsDossier).mockResolvedValue([]);
+    const { tx, updateCalls } = txFactice();
+    const svc = serviceFactice(accesFactice(tx));
+
+    await svc.marquerPretALivrer(CTX, 'direction', DOSSIER_ID, {});
+
+    expect(updateCalls[0]?.champs).toMatchObject({ statut: 'pret_a_livrer' });
+  });
+
+  it('2a) financement EN ATTENTE de confirmation : REFUSÉ, message qui nomme « en attente », jamais celui du cas « refusé »', async () => {
+    vi.mocked(references.chargerDossierVentePourEcriture).mockResolvedValue(
+      dossierFixture({ statut: 'en_preparation' }),
+    );
+    vi.mocked(references.listerFinancementsDossier).mockResolvedValue([
+      financementFixture({ statut: 'en_attente', confirmeLe: null }),
+    ]);
+    const { tx, updateCalls } = txFactice();
+    const svc = serviceFactice(accesFactice(tx));
+
+    const erreur: unknown = await svc
+      .marquerPretALivrer(CTX, 'direction', DOSSIER_ID, {})
+      .catch((e: unknown) => e);
+
+    expect(erreur).toMatchObject({
+      code: 'VENTE_FINANCEMENT_NON_CONFIRME',
+      message: expect.stringContaining('attente'),
+    });
+    expect((erreur as Error).message).not.toContain('refusé');
+    expect(updateCalls).toHaveLength(0);
+  });
+
+  it('2b) financement REFUSÉ : REFUSÉ, message qui nomme « refusé », jamais celui du cas « en attente »', async () => {
+    vi.mocked(references.chargerDossierVentePourEcriture).mockResolvedValue(
+      dossierFixture({ statut: 'en_preparation' }),
+    );
+    vi.mocked(references.listerFinancementsDossier).mockResolvedValue([
+      financementFixture({
+        statut: 'refuse',
+        confirmeLe: null,
+        refuseLe: new Date('2026-07-22T09:00:00.000Z'),
+        motifRefus: 'Dossier insolvable',
+      }),
+    ]);
+    const { tx, updateCalls } = txFactice();
+    const svc = serviceFactice(accesFactice(tx));
+
+    await expect(svc.marquerPretALivrer(CTX, 'direction', DOSSIER_ID, {})).rejects.toMatchObject({
+      code: 'VENTE_FINANCEMENT_NON_CONFIRME',
+      message: expect.stringContaining('refusé'),
+    });
+    expect(updateCalls).toHaveLength(0);
+  });
+
+  it('3) financement CONFIRMÉ : AUTORISÉ (comportement inchangé)', async () => {
+    vi.mocked(references.chargerDossierVentePourEcriture).mockResolvedValue(
+      dossierFixture({ statut: 'en_preparation' }),
+    );
+    vi.mocked(references.chargerDossierVente).mockResolvedValue(
+      dossierFixture({ statut: 'pret_a_livrer' }),
+    );
+    vi.mocked(references.listerFinancementsDossier).mockResolvedValue([financementFixture()]);
+    const { tx, updateCalls } = txFactice();
+    const svc = serviceFactice(accesFactice(tx));
+
+    await svc.marquerPretALivrer(CTX, 'direction', DOSSIER_ID, {});
+
+    expect(updateCalls[0]?.champs).toMatchObject({ statut: 'pret_a_livrer' });
+  });
+
+  it('plusieurs tentatives, la plus récente sans compter un `refuse` antérieur : le financement COURANT (`selectionnerFinancementCourant`) gouverne la garde, pas le premier de la liste', async () => {
+    vi.mocked(references.chargerDossierVentePourEcriture).mockResolvedValue(
+      dossierFixture({ statut: 'en_preparation' }),
+    );
+    vi.mocked(references.chargerDossierVente).mockResolvedValue(
+      dossierFixture({ statut: 'pret_a_livrer' }),
+    );
+    // `listerFinancementsDossier` rend `creeLe desc` : le plus RÉCENT (confirmé) en tête, un
+    // refus plus ancien ensuite — `selectionnerFinancementCourant` doit retenir le premier dont
+    // `statut !== 'refuse'`, ici directement le premier de la liste.
+    vi.mocked(references.listerFinancementsDossier).mockResolvedValue([
+      financementFixture({ id: 'fin-2', statut: 'confirme' }),
+      financementFixture({ id: 'fin-1', statut: 'refuse', confirmeLe: null }),
+    ]);
+    const { tx, updateCalls } = txFactice();
+    const svc = serviceFactice(accesFactice(tx));
+
+    await svc.marquerPretALivrer(CTX, 'direction', DOSSIER_ID, {});
+
+    expect(updateCalls[0]?.champs).toMatchObject({ statut: 'pret_a_livrer' });
   });
 });
 

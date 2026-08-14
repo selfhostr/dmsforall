@@ -1,4 +1,4 @@
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Pencil, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
@@ -37,6 +37,7 @@ import { ChampMontant } from '@/composants/comptoir/ChampMontant';
 import { obtenirEnv } from '@/config/env';
 import { useDocumentVente } from '@/hooks/facturation/useDocumentVente';
 import { useEmettreDocumentVente } from '@/hooks/facturation/useEmettreDocumentVente';
+import { useSupprimerLigneDocument } from '@/hooks/facturation/useLignesDocumentVente';
 import { useModifierDocumentVente } from '@/hooks/facturation/useModifierDocumentVente';
 import { useSession } from '@/hooks/useSession';
 import {
@@ -47,12 +48,15 @@ import {
 } from '@/lib/formats';
 
 import { BadgeEtatDocument } from './BadgeEtatDocument';
+import { BadgeStatutReglement } from './BadgeStatutReglement';
 import { BadgeTypeDocument } from './BadgeTypeDocument';
 import { CarteBulletinVersement } from './CarteBulletinVersement';
 import { ChampVerrouille } from './ChampVerrouille';
 import { DialogueCorrectionFacture } from './DialogueCorrectionFacture';
+import { DialogueLigneDocumentVente } from './DialogueLigneDocumentVente';
 import { peutEmettreAvoir, peutEmettreFacture, peutEncaisser } from './droits';
 import { IndicateurRetard } from './IndicateurRetard';
+import { messagesErreurMutation } from './messages-erreur-mutation';
 import { RecapitulatifTVA } from './RecapitulatifTVA';
 import { SheetEncaissement } from './SheetEncaissement';
 
@@ -103,6 +107,7 @@ export function EcranFicheFacture() {
   const requete = useDocumentVente(id);
   const modification = useModifierDocumentVente();
   const emission = useEmettreDocumentVente();
+  const suppressionLigne = useSupprimerLigneDocument();
 
   const [dialogueEmissionOuvert, setDialogueEmissionOuvert] = useState(false);
   const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
@@ -164,13 +169,22 @@ export function EcranFicheFacture() {
   // fois).
   const peutGererFacture =
     !estBrouillon && !estAnnuleeParAvoir && document_.typeDocument === 'facture';
+  // Défaut corrigé (issue #80/#94, testeur novice — « je n'ai pas osé cliquer Encaisser, j'allais
+  // enregistrer une avance sur le compte d'un client qui a déjà payé ») : `peutGererFacture` ne
+  // regarde que l'ÉTAT DU DOCUMENT (émis, pas annulé), jamais s'il reste quelque chose À ENCAISSER
+  // — une facture `emis` intégralement `regle` (`soldeCentimes === 0`) remplissait la condition et
+  // affichait quand même le bouton. `soldeCentimes` (jamais négatif, `RF-67`) est le seul prédicat
+  // correct : « rien à encaisser » se lit sur l'ARGENT dû, pas sur le libellé `statutReglement`
+  // (`irrecouvrable` reste, par exemple, un solde non nul qu'on peut légitimement recevoir).
+  const resteDuCentimes = document_.soldeCentimes;
+  const resteAEncaisser = resteDuCentimes !== undefined && resteDuCentimes > 0;
   // Trois droits DISTINCTS, superposés à `estBrouillon`/`peutGererFacture` (état du document) —
   // défaut corrigé : ces deux booléens ne dépendaient auparavant que de l'état, jamais du rôle, et
   // affichaient les trois gestes financiers à des rôles sans le droit correspondant côté serveur
   // (`apps/api/src/auth/matrice-droits.ts`, voir `./droits.ts` pour le miroir exact). Doctrine du
   // dépôt : un rôle sans droit ne voit pas un bouton grisé, il ne voit pas de bouton.
   const proposeEmettre = estBrouillon && peutEmettreFacture(role);
-  const proposeEncaisser = peutGererFacture && peutEncaisser(role);
+  const proposeEncaisser = peutGererFacture && resteAEncaisser && peutEncaisser(role);
   const proposeCreerAvoir = peutGererFacture && peutEmettreAvoir(role);
   const proposeCorriger = peutGererFacture;
   // Imprimer : condition DÉCOUPLÉE de `peutGererFacture` — voir le commentaire de tête de fichier.
@@ -209,6 +223,24 @@ export function EcranFicheFacture() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <BadgeEtatDocument etat={etatAffiche} />
+          {/* Défaut corrigé (issue #80, testeur novice) : cette fiche n'affichait QUE l'état du
+              DOCUMENT (« Émise »), jamais l'état du RÈGLEMENT — la liste (`EcranListeFactures.tsx`)
+              affichait l'inverse (règlement seul, jamais « Émise »). Même paire de badges, mêmes
+              mots, aux deux endroits — voir le commentaire jumeau côté liste. Restreint à `emis` :
+              un brouillon (`statutReglement` par défaut, rien n'est dû) ou une facture déjà
+              `annule_par_avoir` (`statutReglement` figé d'AVANT l'annulation, `RF-32`) ne doivent
+              jamais porter ce badge, même doctrine que la liste. */}
+          {etatAffiche === 'emis' && document_.statutReglement ? (
+            // Défaut corrigé (issue #129, vocabulaire) : un avoir n'est jamais « réglé »/« non
+            // réglé » comme une facture (le sens de l'argent s'inverse — DFA doit au client, un
+            // crédit s'IMPUTE, il ne se PAIE pas) — voir le commentaire de `contexte` sur
+            // `BadgeStatutReglement`. Les deux badges (document + règlement) restent côte à côte,
+            // seul le mot change selon `typeDocument`.
+            <BadgeStatutReglement
+              statut={document_.statutReglement}
+              contexte={document_.typeDocument === 'avoir' ? 'avoir' : 'facture'}
+            />
+          ) : null}
           <span className="texte-titre-section font-semibold text-foreground">
             {document_.numero ?? t('facturation:document.etat.brouillon')} — {destinataireNom}
           </span>
@@ -222,11 +254,18 @@ export function EcranFicheFacture() {
               {t('facturation:fiche.issueDeOr')}
             </button>
           ) : null}
-          {document_.emisLe ? (
-            <span className="texte-libelle text-muted-foreground">
-              {t('facturation:fiche.emiseLe', { date: formaterDate(document_.emisLe) })}
-            </span>
-          ) : null}
+          {/* Défaut corrigé (issue #60, testeur novice) : `emisLe` est l'horodatage SERVEUR de
+              l'émission, jamais la date légale/métier du document (`document.ts` : « les deux
+              champs ne sont PAS interchangeables et ne doivent pas partager le même libellé côté
+              écran »). Cette ligne affichait `emisLe` sous le libellé « émise le », en désaccord
+              avec la liste (`EcranListeFactures.tsx`) et la feuille d'encaissement
+              (`SheetEncaissement.tsx`), qui affichent TOUTES DEUX `dateDocument` sous ce même
+              libellé — trois dates différentes pour un même document selon l'écran. `dateDocument`
+              est non nul par construction (`document.ts`) : plus de garde de nullité nécessaire,
+              affiché pour tout document comme le fait déjà la liste. */}
+          <span className="texte-libelle text-muted-foreground">
+            {t('facturation:fiche.emiseLe', { date: formaterDate(document_.dateDocument) })}
+          </span>
           {/* `dateEcheance` n'a de sens que sur une facture (`document.ts` : toujours `null` pour
               un devis/bon de commande/avoir — « aucune échéance de paiement ne les concerne »).
               Restreindre l'affichage au `typeDocument` évite un "Échéance inconnue" trompeur sur
@@ -364,10 +403,26 @@ export function EcranFicheFacture() {
           </Card>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
               <CardTitle className="texte-titre-section">
                 {t('facturation:fiche.lignes.titre')}
               </CardTitle>
+              {/* Issue #125 : seul geste qui manquait pour qu'un brouillon puisse porter du
+                  contenu commercial avant émission. Aucun `peut*(role)` supplémentaire ici — même
+                  doctrine que la Card « Remise globale » juste en dessous, déjà éditable sur tout
+                  brouillon sans re-vérification de rôle côté écran (le serveur reste l'arbitre
+                  final, `facturation.document.modifier`, `ExigerDroit` sur la route). */}
+              {estBrouillon ? (
+                <DialogueLigneDocumentVente
+                  documentId={document_.id}
+                  enfantDeclencheur={
+                    <Button type="button" variant="outline" size="sm">
+                      <Plus className="h-4 w-4" aria-hidden />
+                      {t('facturation:fiche.lignes.ajouter')}
+                    </Button>
+                  }
+                />
+              ) : null}
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
               {!estBrouillon ? (
@@ -400,11 +455,24 @@ export function EcranFicheFacture() {
                       <TableHead className="text-right">
                         {t('facturation:fiche.lignes.colonnes.tva')}
                       </TableHead>
+                      {estBrouillon ? (
+                        <TableHead className="text-right">
+                          <span className="sr-only">{t('commun:actions.modifier')}</span>
+                        </TableHead>
+                      ) : null}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {document_.lignes.map((ligne) => {
-                      const contenu = (
+                      // Une ligne RECOPIÉE d'un OR (`ligneOrId !== null`) n'est jamais éditée ici :
+                      // `ligne.ts` (contrat) est explicite — « une ligne issue d'un OR n'est JAMAIS
+                      // saisie [en facturation], elle est RECOPIÉE par l'action serveur ». Retenue
+                      // par symétrie pour l'édition/suppression : ce dialogue ne sert QUE les
+                      // lignes saisies directement ici (vente comptoir, débours, correction),
+                      // jamais la provenance OR — décision de cet agent, non tirée d'une ligne
+                      // explicite de la spécification, signalée au rapport de livraison.
+                      const modifiable = estBrouillon && ligne.ligneOrId === null;
+                      return (
                         <TableRow key={ligne.id} className={cnLigne(ligne.ligneOrId !== null)}>
                           <TableCell>
                             {ligne.designation}
@@ -437,13 +505,61 @@ export function EcranFicheFacture() {
                           <TableCell className="text-right texte-libelle text-muted-foreground">
                             {formaterPourmille(ligne.tauxTvaPourmille)}
                           </TableCell>
+                          {estBrouillon ? (
+                            <TableCell className="text-right">
+                              {modifiable ? (
+                                <div className="flex justify-end gap-1">
+                                  <DialogueLigneDocumentVente
+                                    documentId={document_.id}
+                                    ligne={ligne}
+                                    enfantDeclencheur={
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        aria-label={t('facturation:fiche.lignes.modifierAria', {
+                                          designation: ligne.designation,
+                                        })}
+                                      >
+                                        <Pencil className="h-4 w-4" aria-hidden />
+                                      </Button>
+                                    }
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    disabled={
+                                      suppressionLigne.isPending &&
+                                      suppressionLigne.variables?.ligneId === ligne.id
+                                    }
+                                    aria-label={t('facturation:fiche.lignes.retirerAria', {
+                                      designation: ligne.designation,
+                                    })}
+                                    onClick={() =>
+                                      suppressionLigne.mutate({
+                                        documentId: document_.id,
+                                        ligneId: ligne.id,
+                                      })
+                                    }
+                                  >
+                                    {t('facturation:fiche.lignes.retirer')}
+                                  </Button>
+                                </div>
+                              ) : null}
+                            </TableCell>
+                          ) : null}
                         </TableRow>
                       );
-                      return contenu;
                     })}
                   </TableBody>
                 </Table>
               )}
+              {suppressionLigne.isError ? (
+                <p role="alert" className="texte-libelle text-destructive">
+                  {messageErreur(suppressionLigne.error, t)}
+                </p>
+              ) : null}
             </CardContent>
           </Card>
 
@@ -563,9 +679,17 @@ export function EcranFicheFacture() {
                 {t('facturation:champs.adresseIncompleteEmission')}
               </p>
             ) : null}
-            {emission.isError ? (
-              <p className="texte-libelle text-destructive">{messageErreur(emission.error, t)}</p>
-            ) : null}
+            {/* Issue #125 : `VALIDATION_ECHOUEE` (générique) est le code renvoyé quand ce document
+                n'a AUCUNE ligne — `messagesErreurMutation` affiche le VRAI message rédigé par le
+                serveur (`erreurs[0].message`) plutôt que le bandeau générique « Certaines
+                informations sont incorrectes. » dès qu'il existe (voir sa docstring). */}
+            {emission.isError
+              ? messagesErreurMutation(emission.error, t).map((message, index) => (
+                  <p key={index} role="alert" className="texte-libelle text-destructive">
+                    {message}
+                  </p>
+                ))
+              : null}
           </div>
           <DialogFooter>
             <DialogClose asChild>

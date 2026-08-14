@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useSearchParams } from 'react-router';
 
+import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { useSession } from '@/hooks/useSession';
 import { cn } from '@/lib/utils';
 
@@ -52,7 +53,10 @@ export function OngletsDomaine({ className }: Props) {
   const { t } = useTranslation('navigation');
   const { pathname } = useLocation();
   const [searchParams] = useSearchParams();
-  const site = searchParams.get('site') ?? undefined;
+  const { preferenceSiteId } = useSiteCourant();
+  // Même correctif que `BarreLaterale.tsx` (issue #91) : l'URL fait foi, la préférence ne comble
+  // que son absence, jamais ne l'écrase.
+  const site = searchParams.get('site') ?? preferenceSiteId;
   const { data: session } = useSession();
   const role = session?.utilisateur.role;
 

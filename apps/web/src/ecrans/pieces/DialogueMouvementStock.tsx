@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -210,6 +210,10 @@ export function DialogueMouvementStock({
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
+          <LegendeChampsObligatoires>
+            {t('commun:formulaires.champsObligatoiresLegende')}
+          </LegendeChampsObligatoires>
+
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="mvt-type">
               {t('pieces:stock.mouvements.nouveauMouvement.champType')}
@@ -238,11 +242,14 @@ export function DialogueMouvementStock({
           {type === 'transfert' ? (
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="mvt-site-source">{t('pieces:stock.mouvements.siteSource')}</Label>
+                <Label htmlFor="mvt-site-source" requis>
+                  {t('pieces:stock.mouvements.siteSource')}
+                </Label>
                 <Select value={siteSourceId} onValueChange={setSiteSourceId} disabled={enCours}>
                   <SelectTrigger
                     id="mvt-site-source"
                     aria-label={t('pieces:stock.mouvements.siteSource')}
+                    aria-required="true"
                   >
                     <SelectValue placeholder={t('pieces:stock.site')} />
                   </SelectTrigger>
@@ -256,7 +263,7 @@ export function DialogueMouvementStock({
                 </Select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="mvt-site-destination">
+                <Label htmlFor="mvt-site-destination" requis>
                   {t('pieces:stock.mouvements.siteDestination')}
                 </Label>
                 <Select
@@ -267,6 +274,7 @@ export function DialogueMouvementStock({
                   <SelectTrigger
                     id="mvt-site-destination"
                     aria-label={t('pieces:stock.mouvements.siteDestination')}
+                    aria-required="true"
                   >
                     <SelectValue placeholder={t('pieces:stock.site')} />
                   </SelectTrigger>
@@ -282,9 +290,15 @@ export function DialogueMouvementStock({
             </div>
           ) : (
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="mvt-site">{t('pieces:stock.site')}</Label>
+              <Label htmlFor="mvt-site" requis>
+                {t('pieces:stock.site')}
+              </Label>
               <Select value={siteId} onValueChange={setSiteId} disabled={enCours}>
-                <SelectTrigger id="mvt-site" aria-label={t('pieces:stock.site')}>
+                <SelectTrigger
+                  id="mvt-site"
+                  aria-label={t('pieces:stock.site')}
+                  aria-required="true"
+                >
                   <SelectValue placeholder={t('pieces:stock.site')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -299,7 +313,7 @@ export function DialogueMouvementStock({
           )}
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="mvt-quantite">
+            <Label htmlFor="mvt-quantite" requis>
               {type === 'ajustement_inventaire'
                 ? t('pieces:stock.mouvements.nouveauMouvement.champQuantiteComptee')
                 : t('pieces:stock.mouvements.quantite')}
@@ -308,6 +322,7 @@ export function DialogueMouvementStock({
               id="mvt-quantite"
               type="text"
               inputMode="decimal"
+              required
               readOnly={enCours}
               value={quantiteSaisie}
               onChange={(evenement) => setQuantiteSaisie(evenement.target.value)}
@@ -315,12 +330,12 @@ export function DialogueMouvementStock({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="mvt-motif">
+            <Label htmlFor="mvt-motif" requis={motifObligatoire}>
               {t('pieces:stock.mouvements.motif')}
-              {motifObligatoire ? ' *' : ''}
             </Label>
             <Input
               id="mvt-motif"
+              required={motifObligatoire}
               readOnly={enCours}
               value={motif}
               onChange={(evenement) => setMotif(evenement.target.value)}

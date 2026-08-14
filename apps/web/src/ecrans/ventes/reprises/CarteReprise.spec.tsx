@@ -101,10 +101,19 @@ describe('CarteReprise', () => {
     await waitFor(() => {
       expect(screen.getByText("8'500.00")).toBeInTheDocument();
     });
-    expect(screen.getByText("8'000.00")).toBeInTheDocument();
-    expect(screen.getByText('+500.00')).toBeInTheDocument();
     expect(screen.getByText('Négociée')).toBeInTheDocument();
     expect(screen.getByText('VW Touran 2.0 TDI')).toBeInTheDocument();
+
+    // Valeur estimée / écart masqués par défaut (constat testeur, même doctrine que
+    // EcranFicheVehiculeStock) — la valeur négociée reste TOUJOURS visible (c'est celle annoncée
+    // au client), mais l'estimation interne et l'écart n'apparaissent qu'après révélation
+    // explicite.
+    expect(screen.queryByText("8'000.00")).not.toBeInTheDocument();
+    expect(screen.queryByText('+500.00')).not.toBeInTheDocument();
+    const utilisateur = userEvent.setup();
+    await utilisateur.click(screen.getByRole('button', { name: 'Voir Valeur estimée' }));
+    expect(await screen.findByText("8'000.00")).toBeInTheDocument();
+    expect(screen.getByText('+500.00')).toBeInTheDocument();
   });
 
   it('affiche une erreur actionnable (retry) si la reprise ne peut pas être chargée', async () => {
@@ -234,7 +243,7 @@ describe('CarteReprise', () => {
 
     await utilisateur.click(screen.getByRole('button', { name: 'Actions de correction' }));
     await utilisateur.click(screen.getByRole('menuitem', { name: 'Confirmer' }));
-    await utilisateur.type(screen.getByLabelText('Motif'), 'Signature du bon de commande');
+    await utilisateur.type(screen.getByLabelText(/^Motif\s*\*$/), 'Signature du bon de commande');
     await utilisateur.click(screen.getByRole('button', { name: 'Confirmer' }));
 
     await waitFor(() => expect(screen.getByText('Confirmée')).toBeInTheDocument());
@@ -263,7 +272,10 @@ describe('CarteReprise', () => {
     rendre(<CarteReprise dossierVenteId="dossier-1" possedeReprise role="vendeur" />);
 
     await utilisateur.click(await screen.findByRole('button', { name: 'Refuser' }));
-    await utilisateur.type(screen.getByLabelText('Motif du refus'), 'Le client garde son véhicule');
+    await utilisateur.type(
+      screen.getByLabelText(/^Motif du refus\s*\*$/),
+      'Le client garde son véhicule',
+    );
     await utilisateur.click(screen.getByRole('button', { name: 'Confirmer' }));
 
     await waitFor(() => expect(screen.getByText('Refusée')).toBeInTheDocument());

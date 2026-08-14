@@ -48,14 +48,30 @@ const CLASSES_CONTOUR: Readonly<Record<TokenStatut, string>> = {
 interface Props {
   readonly statut: StatutReglementDocument;
   readonly className?: string;
+  /**
+   * Défaut corrigé (issue #129) : `statutReglement` porte la MÊME machine à états sur une
+   * `facture` et sur un `avoir` (`document.ts` : « le règlement ne concerne que facture et
+   * avoir »), pilotée par le même trigger `imputation_paiement` — mais le mot juste diffère
+   * selon le sens de l'argent. Une facture se RÈGLE (le client doit, puis paie) ; un avoir
+   * s'IMPUTE (DFA doit au client, le crédit se consomme contre une autre facture ou se
+   * rembourse) — « Non réglée » sur un avoir se lit comme une créance impayée, alors que
+   * personne ne doit rien : c'est l'ambiguïté remontée par le testeur. Par défaut `'facture'`
+   * pour ne pas casser les appelants existants (liste des factures — filtrée `typeDocument:
+   * ['facture']` — et la confirmation de `SheetEncaissement`, qui ne concerne jamais un avoir).
+   * Mêmes icône/couleur pour les deux — seule la clé i18n change (`reglement.statut` vs
+   * `reglement.statutAvoir`) : la distinction DOCUMENT/RÈGLEMENT posée récemment reste intacte,
+   * seul le vocabulaire du badge RÈGLEMENT change de contexte.
+   */
+  readonly contexte?: 'facture' | 'avoir';
 }
 
-export function BadgeStatutReglement({ statut, className }: Props) {
+export function BadgeStatutReglement({ statut, className, contexte = 'facture' }: Props) {
   const { t } = useTranslation('facturation');
   const config = CONFIG_STATUT[statut];
   const Icone = config.icone;
   const classesToken =
     config.forme === 'plein' ? CLASSES_PLEIN[config.token] : CLASSES_CONTOUR[config.token];
+  const racineCle = contexte === 'avoir' ? 'reglement.statutAvoir' : 'reglement.statut';
 
   return (
     <span
@@ -66,7 +82,7 @@ export function BadgeStatutReglement({ statut, className }: Props) {
       )}
     >
       <Icone aria-hidden className="h-3.5 w-3.5 shrink-0" />
-      {t(`facturation:reglement.statut.${config.cle}`)}
+      {t(`facturation:${racineCle}.${config.cle}`)}
     </span>
   );
 }

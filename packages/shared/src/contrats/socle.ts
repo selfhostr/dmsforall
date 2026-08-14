@@ -1,4 +1,7 @@
-import type { Langue } from './enums';
+import { z } from 'zod';
+
+import { ROLES_PERSONNE, type Langue, type RolePersonne, type StatutUtilisateur } from './enums';
+import type { PageCurseur } from './pagination';
 
 /** Corps de `GET /api/v1/tenant/courant`. */
 export interface TenantCourant {
@@ -14,4 +17,94 @@ export interface SiteResume {
   readonly code: string;
   readonly nom: string;
   readonly actif: boolean;
+}
+
+// =================================================================================================
+// Gestion des employés (issue #137) — le patron d'un garage crée/gère lui-même les accès de ses
+// employés, sans passer par l'éditeur. `apps/api/src/socle/service-utilisateur.ts` (droits
+// `socle.utilisateur.*`, `direction`/`admin` seuls, `auth/matrice-droits.ts`).
+// =================================================================================================
+
+/** Un site où travaille l'employé — affichage/planning uniquement, voir `UtilisateurResume`. */
+export interface SiteAffecteResume {
+  readonly id: string;
+  readonly nom: string;
+}
+
+/**
+ * Élément de `GET /api/v1/utilisateurs` — « qui a quel rôle sur quel site, d'un coup d'œil ».
+ *
+ * `sites` est PUREMENT DESCRIPTIF (migration 0054, table `utilisateur_site`) : le rôle vaut sur
+ * tout le tenant, AUCUN droit n'est scopé par site. Une liste vide signifie seulement « pas
+ * encore renseigné où travaille cette personne », jamais une restriction d'accès.
+ */
+export interface UtilisateurResume {
+  readonly id: string;
+  readonly prenom: string;
+  readonly nom: string;
+  readonly email: string;
+  readonly role: RolePersonne;
+  readonly statut: StatutUtilisateur;
+  readonly sites: readonly SiteAffecteResume[];
+  /** ISO 8601, `null` si l'employé ne s'est encore jamais connecté. */
+  readonly derniereConnexionLe: string | null;
+  readonly creeLe: string;
+}
+
+export type PageUtilisateurResume = PageCurseur<UtilisateurResume>;
+
+/**
+ * Tuple non vide requis par `z.enum` — `ROLES_PERSONNE` est calculé (`.filter()`), donc typé
+ * `readonly RolePersonne[]`, pas une tuple littérale. Le cast est sûr : `ROLES_UTILISATEUR`
+ * (source) est une constante `as const` non vide et le restera (retrait d'un rôle = migration).
+ */
+const ROLES_PERSONNE_TUPLE = ROLES_PERSONNE as unknown as [RolePersonne, ...RolePersonne[]];
+
+const schemaEmailUtilisateur = z.string().trim().toLowerCase().min(3).max(320).email();
+const schemaNomPersonne = z.string().trim().min(1).max(100);
+const schemaSiteIds = z.array(z.string().uuid()).min(1).max(50);
+
+/** Corps de `POST /api/v1/utilisateurs`. `.strict()` : un `tenantId` glissé dans le corps est
+ *  REFUSÉ (400 VALIDATION_ECHOUEE), jamais silencieusement ignoré — le tenant vient exclusivement
+ *  de la session (doctrine produit n°1). Aucun mot de passe n'est demandé : le serveur en génère
+ *  un et le rend une seule fois dans la réponse (`ReponseAccesTemporaire`) — personne ne choisit
+ *  le mot de passe d'autrui. */
+export const schemaCreationUtilisateur = z
+  .object({
+    prenom: schemaNomPersonne,
+    nom: schemaNomPersonne,
+    email: schemaEmailUtilisateur,
+    role: z.enum(ROLES_PERSONNE_TUPLE),
+    siteIds: schemaSiteIds,
+  })
+  .strict();
+export type EntreeCreationUtilisateur = z.infer<typeof schemaCreationUtilisateur>;
+
+/** Corps de `PATCH /api/v1/utilisateurs/{id}` — au moins un des deux champs, `.strict()` (même
+ *  doctrine tenant que la création). Ni prénom/nom/email ne se modifient ici : hors périmètre du
+ *  besoin (« modifier son rôle ou ses sites quand il change de poste »). */
+export const schemaModificationUtilisateur = z
+  .object({
+    role: z.enum(ROLES_PERSONNE_TUPLE).optional(),
+    siteIds: schemaSiteIds.optional(),
+  })
+  .strict()
+  .refine((valeur) => valeur.role !== undefined || valeur.siteIds !== undefined, {
+    message: 'Au moins un champ (role ou siteIds) doit être fourni.',
+  });
+export type EntreeModificationUtilisateur = z.infer<typeof schemaModificationUtilisateur>;
+
+/**
+ * Mot de passe temporaire en clair — présent UNE SEULE FOIS, dans la réponse de création ou de
+ * réinitialisation d'accès. Jamais persisté en clair, jamais journalisé (l'audit trace le geste,
+ * pas la valeur — voir `apps/api/src/db/schema/audit-utilisateur.ts`).
+ */
+export interface ReponseAccesTemporaire {
+  readonly motDePasseTemporaire: string;
+}
+
+/** Corps de `201 POST /api/v1/utilisateurs`. */
+export interface ReponseCreationUtilisateur {
+  readonly utilisateur: UtilisateurResume;
+  readonly acces: ReponseAccesTemporaire;
 }

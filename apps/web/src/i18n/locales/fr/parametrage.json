@@ -268,5 +268,77 @@
       "articleDistinct": "Un conditionnement différent est un article distinct",
       "inerte": "réglage fixe, pas encore paramétrable"
     }
+  },
+  "utilisateurs": {
+    "titre": "Utilisateurs",
+    "nouveau": "Nouvel employé",
+    "vide": {
+      "titre": "Aucun employé",
+      "description": "Créez le premier accès pour un employé de ce garage."
+    },
+    "colonnes": {
+      "nom": "Nom",
+      "email": "E-mail",
+      "role": "Rôle",
+      "sites": "Sites",
+      "statut": "Statut",
+      "actions": "Actions"
+    },
+    "statut": {
+      "actif": "Actif",
+      "suspendu": "Désactivé",
+      "invite": "Invité"
+    },
+    "sitesAucun": "Aucun site renseigné",
+    "actions": {
+      "modifier": "Modifier le rôle ou les sites",
+      "desactiver": "Désactiver",
+      "reactiver": "Réactiver",
+      "reinitialiserAcces": "Réinitialiser l'accès",
+      "menuAria": "Actions pour {{nom}}"
+    },
+    "creation": {
+      "titre": "Créer un employé",
+      "description": "Le mot de passe n'est jamais saisi ici : il est généré et affiché une seule fois après création.",
+      "champPrenom": "Prénom",
+      "champNom": "Nom",
+      "champEmail": "E-mail",
+      "champRole": "Rôle",
+      "champSites": "Sites où travaille l'employé",
+      "aucunSiteDisponible": "Aucun site n'est encore rattaché à ce garage.",
+      "sitesAucunSelectionne": "Sélectionnez au moins un site.",
+      "actions": {
+        "creer": "Créer"
+      }
+    },
+    "modification": {
+      "titre": "Modifier {{nom}}",
+      "description": "Changer le rôle et/ou les sites — utile quand un employé change de poste.",
+      "actions": {
+        "enregistrer": "Enregistrer"
+      }
+    },
+    "acces": {
+      "titre": "Accès créé",
+      "description": "Ce mot de passe temporaire ne sera plus jamais affiché — notez-le ou transmettez-le maintenant à l'employé.",
+      "champMotDePasse": "Mot de passe temporaire",
+      "copie": "Copié dans le presse-papiers.",
+      "fermer": "J'ai noté le mot de passe"
+    },
+    "desactiver": {
+      "titre": "Désactiver {{nom}} ?",
+      "description": "L'employé ne pourra plus se connecter. Son historique (ordres de réparation, factures, pointages) reste attribuable — ce n'est pas une suppression, et le compte peut être réactivé à tout moment.",
+      "confirmer": "Désactiver"
+    },
+    "reactiver": {
+      "titre": "Réactiver {{nom}} ?",
+      "description": "L'employé pourra à nouveau se connecter avec son mot de passe existant.",
+      "confirmer": "Réactiver"
+    },
+    "reinitialiserAcces": {
+      "titre": "Réinitialiser l'accès de {{nom}} ?",
+      "description": "Un nouveau mot de passe temporaire est généré et toute session ouverte de cet employé est fermée immédiatement.",
+      "confirmer": "Réinitialiser"
+    }
   }
 }

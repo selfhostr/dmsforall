@@ -41,9 +41,21 @@
  * que des lignes de §10). Pour ces cas, l'attribution est **inférée** et documentée comme telle,
  * avec sa justification (règle métier RM-xx, transition T-xx, ou principe explicite) :
  *
- *  - `admin` reçoit le même périmètre que `direction` (rôle technique/propriétaire du tenant,
- *    superset par construction — cohérent avec le fait que `direction` est "oui" ou "sans limite"
- *    sur les 24 lignes de §10, sans exception).
+ *  - `admin` reçoit le même périmètre que `direction` pour CE lot (atelier/clients/véhicules) —
+ *    superset par construction, cohérent avec le fait que `direction` est "oui" ou "sans limite"
+ *    sur les 24 lignes de §10, sans exception. DOCTRINE COMPLÈTE, ARBITRÉE (issue #21, tranchée
+ *    12.08.2026, à ne PAS rouvrir) : `admin` est le compte TECHNIQUE de l'intégrateur — celui qui
+ *    administre le système pour le compte du garage (tenants, sites, utilisateurs, paramètres). Il
+ *    ne vend pas, ne facture pas, ne touche pas au stock. `direction`, elle, EST le patron du
+ *    garage : il vend souvent lui-même et doit pouvoir contrôler et dépanner ses employés sur
+ *    l'intégralité du métier — c'est pour ça que `direction` reste le rôle « sans limite », jamais
+ *    `admin`. Les deux rôles reçoivent le MÊME périmètre ici (lot 1, atelier) parce que §10 ne
+ *    décrit pas `admin` comme acteur et que rien n'exclut explicitement l'atelier pour un compte
+ *    technique — mais dès qu'une action touche à l'argent (facturation, pièces/stock, export
+ *    fiduciaire, bloc créancier — voir RF-115 plus bas), `admin` retombe à `[]`, littéralement,
+ *    JAMAIS comblé par copier-coller de `direction`. Le compte de démo à utiliser pour tester le
+ *    métier est `direction@garage-martin.ch`, jamais `admin@` (qui n'a AUCUN droit métier
+ *    financier/stock et rend des 403 attendus sur ces domaines — voir la doc de démarrage).
  *  - `vendeur` n'est PAS un acteur de l'étape 1 (§2.1 ligne 66-67 : seul le manque de
  *    `receptionnaire` y est signalé, `vendeur` n'apparaît dans aucun flux du §3). Il reçoit une
  *    lecture minimale (paramétrage, clients, véhicules, recherche) et AUCUN droit d'écriture
@@ -68,6 +80,23 @@ export const TOUTES_ACTIONS = [
   // ---- Socle (étape 0), inchangé --------------------------------------------------------------
   'socle.tenant.lire',
   'socle.site.lire',
+  // ---- Gestion des employés (issue #137, arbitrage @laupernoe 13.08.2026) -----------------------------
+  // Rangée dans l'administration SYSTÈME par la doctrine RF-115 déjà écrite plus bas dans ce
+  // fichier (« tenants, sites, utilisateurs, paramètres »), pas dans le métier — c'est pourquoi
+  // `admin` reçoit ces cinq actions au même titre que `direction`, sans que ça rouvre RF-115 :
+  // gérer QUI a un accès et QUEL rôle il porte n'est ni une vente, ni une facture, ni un
+  // mouvement de stock. `direction` (le patron) gère ses employés au quotidien ; `admin` (le
+  // compte technique de l'intégrateur) le peut aussi, ne serait-ce que pour créer le tout premier
+  // compte `direction` d'un nouveau garage — geste qui, avant ce lot, se faisait par insertion
+  // directe en base (`db/seed/seed-dev.ts`). La garde qui empêche un patron de distribuer un
+  // accès d'intégrateur (créer/promouvoir un `admin`) ne vit PAS ici — voir
+  // `auth/gouvernance-roles.ts::verifierAttributionRoleAutorisee`, appliquée par
+  // `ServiceUtilisateur` en plus de cette matrice, jamais à sa place.
+  'socle.utilisateur.lire',
+  'socle.utilisateur.creer',
+  'socle.utilisateur.modifier',
+  'socle.utilisateur.desactiver',
+  'socle.utilisateur.reinitialiser_acces',
   // ---- Paramétrage atelier et référentiels (plan-lot1-execution.md §6.4) ----------------------
   'parametrage.atelier.lire',
   'parametrage.atelier.modifier',
@@ -447,6 +476,33 @@ export const TOUTES_ACTIONS = [
   'relances.facturation.regle.ecrire',
   'relances.facturation.planifier',
   'relances.facturation.envoyer',
+  // ---- Rendez-vous d'atelier (lot RDV-1, docs/conception-rendez-vous-metier.md §7, §9) ---------
+  // Bloc ADDITIF PUR, ajouté par l'agent `apps/api/src/rendezvous/` (périmètre disjoint autorisé
+  // à toucher ce fichier pour cette tâche — contrairement aux autres blocs additifs ci-dessus, pas
+  // un palliatif : aucune route ne tournait avant ce bloc).
+  //
+  // Distinct de `atelier.confirmation.or_sans_rdv`/`rendez_vous.confirmation.*` (préexistants,
+  // inertes) : ceux-là gouvernent des CONFIRMATIONS (§4.4), ceux-ci des ACTIONS. Distinct aussi de
+  // `parametrage.referentiel.lire`, réutilisé tel quel pour `GET /motifs-rendez-vous` (catalogue
+  // paramétrable, même nature que `GET /referentiels/taux-horaires` — pas une action propre au
+  // domaine rendez-vous, aucune entrée dédiée nécessaire ici).
+  //
+  // Répartition calée sur le brief de l'orchestrateur, littéral : « le réceptionniste prend et
+  // déplace les rendez-vous, le chef d'atelier les voit et les réorganise, le technicien les
+  // consulte » — donc `rendez_vous.creer` au réceptionniste SEUL (« prend »), `rendez_vous.
+  // modifier`/`arrivee`/`absence`/`annuler` à réceptionniste ET chef_atelier (« déplace » /
+  // « réorganise » couvrent le cycle de vie complet une fois pris), `rendez_vous.lire` ouvert aux
+  // trois plus direction/admin. `admin` reçoit le périmètre de `direction` (rôle technique,
+  // superset par construction, même doctrine que `DROITS_ADMIN` — RF-115 n'entre pas en jeu ici,
+  // aucune de ces actions n'est financière). `vendeur`/`magasinier`/`comptable`/`poste_atelier` :
+  // exclus, même périmètre que `atelier.or.*` (ni l'un ni l'autre n'est acteur du flux RDV, même
+  // raisonnement que `LECTURE_OR` déjà posé plus haut dans ce fichier).
+  'rendez_vous.lire',
+  'rendez_vous.creer',
+  'rendez_vous.modifier',
+  'rendez_vous.arrivee',
+  'rendez_vous.absence',
+  'rendez_vous.annuler',
 ] as const;
 
 /**
@@ -906,9 +962,13 @@ const DROITS_POSTE_ATELIER: readonly Action[] = [...LECTURE_SOCLE, ...LECTURE_OR
 const DROITS_DIRECTION: readonly Action[] = [...DROITS_CHEF_ATELIER, ...INFERE_CLIENT_CONDITIONS];
 
 /**
- * `admin` : rôle technique/propriétaire du tenant (`ARCHITECTURE.md §3`), non décrit comme acteur
- * métier de l'étape 1 — reçoit par construction le même périmètre que `direction` (voir note de
- * tête de fichier).
+ * `admin` : compte technique de l'intégrateur (`ARCHITECTURE.md §3`) — administre le système
+ * (tenants, sites, utilisateurs, paramètres), ne vend pas, ne facture pas, ne touche pas au stock.
+ * PAS le propriétaire métier du garage : ça, c'est `direction` (voir note de tête de fichier,
+ * doctrine complète arbitrée par l'issue #21). Non décrit comme acteur métier de l'étape 1 — reçoit
+ * par construction le même périmètre que `direction` UNIQUEMENT ici (atelier/clients/véhicules) ;
+ * retombe à `[]` littéral dès qu'une action touche à l'argent ou au stock (RF-115, blocs additifs
+ * plus bas).
  */
 const DROITS_ADMIN: readonly Action[] = [...DROITS_DIRECTION];
 
@@ -935,7 +995,9 @@ const DROITS_ADMIN: readonly Action[] = [...DROITS_DIRECTION];
 // — séparation des pouvoirs explicite dès l'étape 2 (qui crée des comptes ne doit pas pouvoir
 // émettre/encaisser), À LA DIFFÉRENCE de la doctrine de l'étape 1 rappelée en tête de fichier
 // (`admin` = superset de `direction`). Son entrée ci-dessous est donc `[]`, VOLONTAIREMENT, et ne
-// doit JAMAIS être remplie par copier-coller de celle de `direction`.
+// doit JAMAIS être remplie par copier-coller de celle de `direction`. CONFIRMÉ EXPLICITEMENT par
+// l'arbitrage de l'issue #21 (12.08.2026, voir tête de fichier) : `admin` = compte technique de
+// l'intégrateur, ne vend ni ne facture jamais — ce n'est pas un oubli de la matrice §11.
 
 /** RF-114, ligne « Voir les montants » côté paiements. */
 const LECTURE_PAIEMENT: readonly Action[] = ['facturation.paiement.lire'];
@@ -1227,7 +1289,9 @@ const DROITS_IMPRESSION_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Acti
 // matrice §11 écrit « non (RF-115, aucun droit métier) » jusque sur la ligne « Consulter
 // article/stock », ce qui est plus strict que la doctrine habituelle de ce fichier (`admin` =
 // superset de `direction` pour le lot 1 atelier/clients) : ici `admin` n'a AUCUN droit métier
-// pièces, ni écriture ni lecture, jamais à combler par copier-coller de `direction`.
+// pièces, ni écriture ni lecture, jamais à combler par copier-coller de `direction`. CONFIRMÉ,
+// DÉLIBÉRÉ (issue #21, tranchée 12.08.2026, voir tête de fichier) : `admin` administre le système,
+// il ne touche pas au stock — `direction` (le patron, qui vend et dépanne ses employés) le voit.
 //
 // COLONNES « (P) » DE LA MATRICE §11 — paramétrables en théorie, NON implémentées ce lot (aucun
 // paramètre `parametre_pieces` ne porte ces réglages, voir `contrats/pieces/parametrage.ts`,
@@ -1836,6 +1900,71 @@ const DROITS_RELANCES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action
   poste_atelier: [],
 };
 
+// =================================================================================================
+// Rendez-vous d'atelier (lot RDV-1) — bloc ADDITIF PUR, voir le commentaire des 6 entrées
+// `rendez_vous.*` de `TOUTES_ACTIONS` ci-dessus pour la justification complète de la répartition.
+// =================================================================================================
+const LECTURE_RDV: readonly Action[] = ['rendez_vous.lire'];
+const CYCLE_VIE_RDV: readonly Action[] = [
+  'rendez_vous.modifier',
+  'rendez_vous.arrivee',
+  'rendez_vous.absence',
+  'rendez_vous.annuler',
+];
+const RDV_COMPLET: readonly Action[] = [...LECTURE_RDV, 'rendez_vous.creer', ...CYCLE_VIE_RDV];
+
+const DROITS_RENDEZ_VOUS_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
+  // « Le réceptionniste prend et déplace les rendez-vous » (brief) : périmètre complet.
+  receptionnaire: [...RDV_COMPLET],
+  // « Le chef d'atelier les voit et les réorganise » : cycle de vie complet SAUF la prise
+  // initiale au téléphone — comptoir seul, cohérent avec `L958_CLIENT_ECRITURE`/`L960_
+  // VEHICULE_ECRITURE` où chef_atelier a déjà l'écriture courante mais pas la primauté d'accueil.
+  chef_atelier: [...LECTURE_RDV, ...CYCLE_VIE_RDV],
+  direction: [...RDV_COMPLET],
+  // `admin` = superset de `direction` par construction (RF-115 non applicable : aucune de ces
+  // actions n'est financière) — même doctrine que `DROITS_ADMIN` ci-dessous.
+  admin: [...RDV_COMPLET],
+  // « Le technicien les consulte » : lecture seule, même périmètre que `LECTURE_OR`.
+  technicien: [...LECTURE_RDV],
+  vendeur: [],
+  magasinier: [],
+  comptable: [],
+  // Compte de service (borne d'atelier) : aucun geste de comptoir depuis un écran mural.
+  poste_atelier: [],
+};
+
+// =================================================================================================
+// Gestion des employés (issue #137) — voir le commentaire des 5 entrées `socle.utilisateur.*` de
+// `TOUTES_ACTIONS` ci-dessus pour la justification complète (RF-115 : administration système, pas
+// métier — `direction` ET `admin`, seuls). AUCUN autre rôle ne détient ces actions : un technicien
+// ou un magasinier ne gère jamais les comptes de ses collègues, même en lecture.
+// =================================================================================================
+const LECTURE_GESTION_UTILISATEURS: readonly Action[] = ['socle.utilisateur.lire'];
+const GESTION_UTILISATEURS_COMPLETE: readonly Action[] = [
+  ...LECTURE_GESTION_UTILISATEURS,
+  'socle.utilisateur.creer',
+  'socle.utilisateur.modifier',
+  'socle.utilisateur.desactiver',
+  'socle.utilisateur.reinitialiser_acces',
+];
+
+const DROITS_UTILISATEUR_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
+  direction: [...GESTION_UTILISATEURS_COMPLETE],
+  // `admin` = superset de `direction` sur CE domaine précis (RF-115 non applicable : gérer les
+  // comptes est de l'administration système, pas du métier financier/commercial — voir le
+  // commentaire de tête de `TOUTES_ACTIONS`), contrairement au reste de la matrice où `admin`
+  // retombe à `[]` dès qu'une action touche à l'argent.
+  admin: [...GESTION_UTILISATEURS_COMPLETE],
+  vendeur: [],
+  receptionnaire: [],
+  chef_atelier: [],
+  technicien: [],
+  magasinier: [],
+  comptable: [],
+  // Compte de service (borne d'atelier) : ne gère jamais de comptes, pas même en lecture.
+  poste_atelier: [],
+};
+
 export const MATRICE_DROITS = {
   admin: [
     ...DROITS_ADMIN,
@@ -1852,6 +1981,8 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.admin,
     ...DROITS_PNEUS_PAR_ROLE.admin,
     ...DROITS_RELANCES_PAR_ROLE.admin,
+    ...DROITS_RENDEZ_VOUS_PAR_ROLE.admin,
+    ...DROITS_UTILISATEUR_PAR_ROLE.admin,
   ],
   direction: [
     ...DROITS_DIRECTION,
@@ -1868,6 +1999,8 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.direction,
     ...DROITS_PNEUS_PAR_ROLE.direction,
     ...DROITS_RELANCES_PAR_ROLE.direction,
+    ...DROITS_RENDEZ_VOUS_PAR_ROLE.direction,
+    ...DROITS_UTILISATEUR_PAR_ROLE.direction,
   ],
   vendeur: [
     ...DROITS_VENDEUR,
@@ -1884,6 +2017,8 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.vendeur,
     ...DROITS_PNEUS_PAR_ROLE.vendeur,
     ...DROITS_RELANCES_PAR_ROLE.vendeur,
+    ...DROITS_RENDEZ_VOUS_PAR_ROLE.vendeur,
+    ...DROITS_UTILISATEUR_PAR_ROLE.vendeur,
   ],
   receptionnaire: [
     ...DROITS_RECEPTIONNAIRE,
@@ -1900,6 +2035,8 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.receptionnaire,
     ...DROITS_PNEUS_PAR_ROLE.receptionnaire,
     ...DROITS_RELANCES_PAR_ROLE.receptionnaire,
+    ...DROITS_RENDEZ_VOUS_PAR_ROLE.receptionnaire,
+    ...DROITS_UTILISATEUR_PAR_ROLE.receptionnaire,
   ],
   chef_atelier: [
     ...DROITS_CHEF_ATELIER,
@@ -1916,6 +2053,8 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.chef_atelier,
     ...DROITS_PNEUS_PAR_ROLE.chef_atelier,
     ...DROITS_RELANCES_PAR_ROLE.chef_atelier,
+    ...DROITS_RENDEZ_VOUS_PAR_ROLE.chef_atelier,
+    ...DROITS_UTILISATEUR_PAR_ROLE.chef_atelier,
   ],
   technicien: [
     ...DROITS_TECHNICIEN,
@@ -1932,6 +2071,8 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.technicien,
     ...DROITS_PNEUS_PAR_ROLE.technicien,
     ...DROITS_RELANCES_PAR_ROLE.technicien,
+    ...DROITS_RENDEZ_VOUS_PAR_ROLE.technicien,
+    ...DROITS_UTILISATEUR_PAR_ROLE.technicien,
   ],
   magasinier: [
     ...DROITS_MAGASINIER,
@@ -1948,6 +2089,8 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.magasinier,
     ...DROITS_PNEUS_PAR_ROLE.magasinier,
     ...DROITS_RELANCES_PAR_ROLE.magasinier,
+    ...DROITS_RENDEZ_VOUS_PAR_ROLE.magasinier,
+    ...DROITS_UTILISATEUR_PAR_ROLE.magasinier,
   ],
   comptable: [
     ...DROITS_COMPTABLE,
@@ -1964,6 +2107,8 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.comptable,
     ...DROITS_PNEUS_PAR_ROLE.comptable,
     ...DROITS_RELANCES_PAR_ROLE.comptable,
+    ...DROITS_RENDEZ_VOUS_PAR_ROLE.comptable,
+    ...DROITS_UTILISATEUR_PAR_ROLE.comptable,
   ],
   poste_atelier: [
     ...DROITS_POSTE_ATELIER,
@@ -1980,6 +2125,8 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.poste_atelier,
     ...DROITS_PNEUS_PAR_ROLE.poste_atelier,
     ...DROITS_RELANCES_PAR_ROLE.poste_atelier,
+    ...DROITS_RENDEZ_VOUS_PAR_ROLE.poste_atelier,
+    ...DROITS_UTILISATEUR_PAR_ROLE.poste_atelier,
   ],
 } as const satisfies Readonly<Record<RoleUtilisateur, readonly Action[]>>;
 

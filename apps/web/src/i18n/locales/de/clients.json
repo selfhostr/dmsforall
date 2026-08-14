@@ -50,7 +50,13 @@
     "dossiersVente": "Verkaufsdossiers",
     "dossiersVenteVide": "Kein Verkaufsdossier.",
     "dossiersVenteDroitRequis": "Sie sind nicht berechtigt, die Verkaufsdossiers dieses Kunden einzusehen.",
-    "dossierSansVehicule": "Kein Fahrzeug zugewiesen"
+    "dossierSansVehicule": "Kein Fahrzeug zugewiesen",
+    "rendezVous": {
+      "titre": "Nächste Termine",
+      "prendre": "Termin vereinbaren",
+      "vide": "Kein Termin geplant.",
+      "creeTitre": "Termin gespeichert"
+    }
   },
   "alertes": {
     "bloque": "Gesperrt – Zahlungsrückstände",
@@ -75,6 +81,7 @@
     "rabaisPneus": "Reifenrabatt",
     "delaiPaiement": "Zahlungsfrist",
     "tauxHoraire": "Stundensatz",
+    "tauxHoraireDetail": "{libelle} · {montant} / Stunde",
     "plafond": "Kostengrenze",
     "dateEffet": "Gültig seit",
     "vide": "Keine Handelsbedingungen erfasst."
@@ -96,6 +103,8 @@
   "adresses": {
     "titre": "Adressen",
     "ajouter": "Adresse hinzufügen",
+    "modifier": "Adresse bearbeiten",
+    "modifierAriaLabel": "Adresse {type} bearbeiten",
     "types": {
       "principale": "Hauptadresse",
       "facturation": "Rechnungsadresse",
@@ -105,8 +114,18 @@
       "type": "Adresstyp",
       "rue": "Strasse und Hausnummer",
       "npa": "PLZ",
-      "localite": "Ort"
+      "localite": "Ort",
+      "pays": "Land"
     },
+    "pays": {
+      "CH": "Schweiz",
+      "DE": "Deutschland",
+      "FR": "Frankreich",
+      "IT": "Italien",
+      "AT": "Österreich",
+      "LI": "Liechtenstein"
+    },
+    "npaFormatInvalide": "Die Schweizer PLZ besteht aus genau 4 Ziffern (z. B. 1950).",
     "vide": "Keine Adresse erfasst."
   },
   "notes": {
@@ -169,6 +188,18 @@
     "titre": "Kunden deaktivieren",
     "motif": "Grund für Deaktivierung"
   },
+  "contact": {
+    "titre": "Kommunikation",
+    "statutActif": "Der Kunde kann normal kontaktiert werden.",
+    "statutArrete": "Dieser Kunde hat jeglichen Kontakt abgelehnt.",
+    "motifLabel": "Grund",
+    "arreterAction": "Jeglichen Kontakt stoppen",
+    "reprendreAction": "Kontakt wieder aufnehmen",
+    "arreterTitre": "Jeglichen Kontakt mit diesem Kunden stoppen",
+    "arreterDescription": "Dieser Kunde erhält keine Kommunikation mehr (Marketing, Erinnerungen, Mahnungen), auch nicht für eine offene Rechnung. Der Grund ist obligatorisch und wird im Verlauf gespeichert.",
+    "reprendreTitre": "Kontakt mit diesem Kunden wieder aufnehmen",
+    "reprendreDescription": "Dieser Kunde kann gemäss den erfassten Einwilligungen wieder kontaktiert werden. Der Grund ist obligatorisch und wird im Verlauf gespeichert."
+  },
   "fusion": {
     "titre": "Zwei Kunden zusammenführen",
     "confirmation": "Geben Sie den Namen des zu absorbierenden Kunden ein, um zu bestätigen",
@@ -187,5 +218,16 @@
     "rechercheDescription": "Versuchen Sie eine andere Suche.",
     "filtre": "Keine Ergebnisse mit diesen Filtern.",
     "filtreDescription": "Ändern oder löschen Sie die aktiven Filter."
+  },
+  "formulaireNouveau": {
+    "brouillon": {
+      "ignorer": "Entwurf verwerfen"
+    },
+    "reessaiSansDoublon": "Erneutes Klicken auf «Kunde erstellen» erzeugt keinen Doppeleintrag: ein vorheriger Versuch wird automatisch erkannt."
+  },
+  "ficheApresCreation": {
+    "titre": "Kunde erfasst",
+    "description": "Der Kunde {nom} wurde erfolgreich erfasst ({numero}), doch die Kundenkarte konnte nicht angezeigt werden. Versuchen Sie es erneut, oder suchen Sie ihn in der Kundenliste — bitte nicht neu anlegen.",
+    "retourListe": "Zurück zur Kundenliste"
   }
 }

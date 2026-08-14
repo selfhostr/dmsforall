@@ -26,3 +26,24 @@ const ROLES_ECRITURE_VEHICULE: ReadonlySet<RoleUtilisateur> = new Set([
 export function peutModifierVehicule(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && ROLES_ECRITURE_VEHICULE.has(role);
 }
+
+/**
+ * Gouvernance de la gestion de plaque (`POST /vehicules/{id}/plaques`, action
+ * `vehicule.plaque.gerer`) — DUPLIQUÉE depuis `apps/api/src/auth/matrice-droits.ts`
+ * (`INFERE_VEHICULE_GESTION`), même doctrine que `peutModifierVehicule` ci-dessus. PAS le même
+ * ensemble de rôles : le magasinier a `vehicule.modifier` (§10 L960) mais PAS
+ * `vehicule.plaque.gerer` (action de comptoir/atelier, alignée sur « changer le détenteur ») — un
+ * dialogue qui gate ses deux gestes avec `peutModifierVehicule` seul afficherait un champ plaque
+ * que le magasinier ne peut pas soumettre (403 rendu comme une saisie perdue, pas comme un refus
+ * de droit clair).
+ */
+const ROLES_GESTION_PLAQUE_VEHICULE: ReadonlySet<RoleUtilisateur> = new Set([
+  'admin',
+  'direction',
+  'receptionnaire',
+  'chef_atelier',
+]);
+
+export function peutGererPlaqueVehicule(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_GESTION_PLAQUE_VEHICULE.has(role);
+}

@@ -81,6 +81,13 @@ export function EncartAlertesVehicule({
     });
   }
 
+  // Issue #83 : « Expertise prochaine » et « Échue » ne se disent jamais du même mot — un cadre
+  // rouge qui annonce une échéance À VENIR contredit sa propre étiquette. Trois états distincts
+  // (règle « absence de donnée ≠ valeur ») : aucune expertise connue (`expertise` ou
+  // `prochaineLe` absents) -> aucune ligne, rien à signaler sans cliquer ; à venir -> titre
+  // « Expertise prochaine », cadre `attention` (orange) ; échue -> titre « Expertise échue »,
+  // cadre `danger` (rouge), réservé à ce qui exige une action. Le titre porte l'état à lui seul,
+  // la mention « Échue » n'est donc plus répétée dans le corps du texte.
   if (expertise && expertise.prochaineLe) {
     lignes.push({
       cle: 'expertise',
@@ -88,11 +95,12 @@ export function EncartAlertesVehicule({
       token: expertise.echue ? 'danger' : 'attention',
       contenu: (
         <>
-          <p className="font-medium text-foreground">{t('alertes.expertise')}</p>
+          <p className="font-medium text-foreground">
+            {t(expertise.echue ? 'alertes.expertiseEchue' : 'alertes.expertise')}
+          </p>
           <p className="text-muted-foreground">
             {formaterDate(expertise.prochaineLe)} · {t('expertise.source')} :{' '}
             {t(`expertise.sources.${expertise.source}`)}
-            {expertise.echue ? ` · ${t('expertise.echue')}` : ''}
           </p>
         </>
       ),

@@ -1,6 +1,7 @@
 import type {
   AgregatTempsLigneOr,
   ArrondiPointage,
+  CibleReprisePointage,
   EntreeDemarragePointage,
   MotifAnomaliePointage,
   StatutLigneOr,
@@ -8,7 +9,12 @@ import type {
   StatutPointage,
 } from '@dfa/shared';
 import type { LignePointage } from '../db/schema';
-import { instantLocalSuisse, jourCivilSuisse } from '../common/temps';
+import {
+  debutJourneeSuisse,
+  finJourneeSuisse,
+  instantLocalSuisse,
+  jourCivilSuisse,
+} from '../common/temps';
 
 /**
  * Règles métier PURES du pointage (RM-87 → RM-99, RM-113 → RM-123,
@@ -17,16 +23,12 @@ import { instantLocalSuisse, jourCivilSuisse } from '../common/temps';
  * `service-pointage.ts` qui, lui, ne peut être prouvé que par un test d'intégration (Postgres réel,
  * RLS, triggers ZDFA1).
  *
- * `journeeTravailCourante()` — LA FONCTION QUE LE RAPPORT DE LIVRAISON ATTENDAIT ICI (RM-91/RM-119,
- * bornage UTC pur répliqué depuis `service-verrouillage-periode.ts::finDeJournee`) N'EXISTE PAS
- * ENCORE dans cette branche au moment de ce chantier — mesuré, pas supposé : elle appartient à
- * `GET /pointages/dernier-du-jour` (reprise de cible, écran de pointage repensé), une fonctionnalité
- * livrée SUR `feat/pointage-ergonomie-et-socle-courriel` (commit `f3f9353`) APRÈS le point où ce
- * worktree a été créé (`f437774`, en amont de dev). SIGNALÉ EN RÉPONSE DE TÂCHE, PAS DEVINÉ EN
- * SILENCE : quand les deux branches convergeront, `journeeTravailCourante()` devra être recâblée sur
- * `common/temps/fuseau-suisse.ts` EXACTEMENT comme `service-verrouillage-periode.ts::finDeJournee`
- * l'a été ici — même bug UTC pur, même correctif, un seul propriétaire (`common/temps/`) pour cette
- * doctrine plutôt qu'une troisième copie.
+ * `journeeTravailCourante()` — RECÂBLÉE le 14.08.2026 sur `common/temps/fuseau-suisse.ts` (fusion
+ * de `feat/pointage-ergonomie-et-socle-courriel`, qui l'avait livrée bornée en UTC pur, RÉPLIQUANT
+ * alors le même bornage que `service-verrouillage-periode.ts::finDeJournee` — voir l'en-tête de
+ * `fuseau-suisse.ts` pour la doctrine complète et l'historique des deux copies). Un seul
+ * propriétaire (`common/temps/`) pour cette doctrine désormais, plus deux copies qui auraient pu
+ * diverger.
  */
 
 /* ------------------------------------------------------------------ */
@@ -471,4 +473,147 @@ export function determinerDecisionClotureAutomatique(
     anomalieMotif: candidat.anomalieMotif ?? 'cloture_fin_journee',
     anomalieDetecteeLe: candidat.anomalieDetecteeLe ?? maintenant,
   };
+}
+
+/* ------------------------------------------------------------------ */
+/* GET /pointages/dernier-du-jour : cible mémorisée pour « Reprendre » (contrat CibleReprisePointage) */
+/* ------------------------------------------------------------------ */
+
+/**
+ * `[jour]T00:00:00.000` → `[jour]T23:59:59.999` HEURE SUISSE (Europe/Zurich, CET/CEST gérées
+ * automatiquement par `common/temps/fuseau-suisse.ts`) — RECÂBLÉE le 14.08.2026 (fusion avec le
+ * chantier fuseau/clôture automatique) : cette fonction bornait initialement la journée en UTC
+ * PUR, RÉPLIQUANT alors le même bornage que `service-verrouillage-periode.ts::finDeJournee`
+ * (RM-95) — les DEUX ont été recâblées sur le même utilitaire, un seul propriétaire pour cette
+ * doctrine désormais, plus deux copies qui auraient pu diverger. Un pointage démarré entre 22h00
+ * et minuit heure de Zurich (hiver) appartient maintenant au bon jour civil suisse, plus au jour
+ * UTC suivant — voir `common/temps/fuseau-suisse.spec.ts` pour la preuve aux deux bascules
+ * d'heure d'été/hiver.
+ *
+ * AUCUN job de clôture automatique de fin de journée (RM-91/RM-119) n'appelle encore cette
+ * doctrine à ce jour (`ServiceClotureAutomatiquePointage` existe, sans déclencheur qui l'invoque —
+ * voir son en-tête) : cette fonction reste la pièce qui formalise « la journée de travail
+ * courante » côté serveur pour `GET /pointages/dernier-du-jour`, sur la même convention de
+ * bornage que RM-95 et RM-91/RM-119.
+ */
+export function journeeTravailCourante(maintenant: Date): {
+  readonly debutLe: Date;
+  readonly finLe: Date;
+} {
+  const jour = jourCivilSuisse(maintenant);
+  return {
+    debutLe: debutJourneeSuisse(jour),
+    finLe: finJourneeSuisse(jour),
+  };
+}
+
+/** Entrée minimale, DB-agnostique, tirée de `pointage` + `ordre_reparation` + `ligne_or` — voir
+ *  `pointage-requetes.ts::chargerPointagesProductifsDuJour`. Un seul technicien, une seule journée,
+ *  jamais plus qu'une poignée de lignes : borné par construction de la requête, pas ici. */
+export interface PointageProductifDuJour {
+  readonly id: string;
+  /** Toujours non nul en pratique (la requête ne charge que `nature IN ('productif_ligne',
+   *  'productif_or')`) — type nullable conservé tel quel (miroir de `LignePointage.ordreReparationId`)
+   *  plutôt que forcé par un cast : une ligne dont ce serait `null` malgré le filtre SQL est ignorée
+   *  défensivement par `resoudreCibleReprise`, jamais supposée impossible. */
+  readonly ordreReparationId: string | null;
+  readonly ligneOrId: string | null;
+  readonly siteId: string;
+  readonly debutLe: Date;
+  readonly finLe: Date | null;
+  readonly statutOr: StatutOrdreReparation;
+  /** `null` quand `ligneOrId` est nul (`nature = 'productif_or'`, pas de jointure à faire) — voir
+   *  aussi le commentaire de `resoudreCibleReprise` sur le traitement fail-closed d'un `null`
+   *  alors que `ligneOrId` EST renseigné (jointure qui n'aurait pas dû échouer). */
+  readonly statutLigne: StatutLigneOr | null;
+  readonly numeroOr: string;
+  readonly designationLigne: string | null;
+}
+
+/**
+ * `GET /pointages/dernier-du-jour` — résout `CibleReprisePointage | null` à partir de TOUS les
+ * pointages productifs du technicien démarrés dans la journée de travail courante (déjà filtrés par
+ * la requête appelante, voir `pointage-requetes.ts`), PURE (aucune I/O, testable seule).
+ *
+ * Règles, DANS CET ORDRE (contrat de la tâche, ne pas réordonner) :
+ *  1. Seuls des pointages PRODUCTIFS entrent dans `pointagesDuJour` — une activité indirecte ne
+ *     devient jamais la cible ; c'est déjà garanti par la requête SQL appelante, pas re-vérifié ici.
+ *  2. Le PLUS RÉCENT (`debutLe` maximal) de la liste, qu'il soit `termine` ou encore `en_cours` —
+ *     PAS de repli sur un pointage plus ancien si celui-ci s'avère non pointable (règle 3) : si la
+ *     DERNIÈRE chose sur laquelle le technicien a travaillé aujourd'hui n'est plus pointable, la
+ *     réponse est `null`, jamais une proposition de reprendre quelque chose de plus ancien que le
+ *     technicien a déjà quitté délibérément pour cette raison précise. INTERPRÉTATION RETENUE de
+ *     l'énoncé numéroté de la tâche (« dans cet ordre »), signalée : c'est la lecture la plus
+ *     littérale, pas un choix arbitraire parmi plusieurs égales.
+ *  3. Cible ENCORE pointable au moment de la requête (`estOrPointable`/`estLignePointable`, les
+ *     MÊMES prédicats que `demarrer` en écriture — RM-92/RM-93) ; sinon `null`.
+ *  4. Hors journée de travail courante → déjà exclu par la requête SQL, jamais vu ici.
+ *  5. `cumulSecondesDuJour` = somme des durées BRUTES (secondes, `Math.floor`, RM-97) de TOUS les
+ *     segments productifs d'aujourd'hui sur la MÊME cible (même `ligneOrId` si `type === 'ligne'` ;
+ *     même `ordreReparationId` ET `ligneOrId === null` si `type === 'or'` — un segment
+ *     `productif_ligne` sur une AUTRE ligne du même OR ne compte jamais dans un cumul `type: 'or'`).
+ *     Segment encore ouvert inclus, borné à `maintenant`.
+ *  6. `ligneOrId` de la réponse est `null` si et seulement si `type === 'or'`.
+ *  7. `libelle` = désignation de la ligne, sinon (ligne sans désignation, ou `type === 'or'`) le
+ *     numéro de l'OR — `ordre_reparation` ne porte aucune colonne de désignation courte propre
+ *     (vérifié : seules `numero`/`clientDesignationFigee` existent), le numéro est donc la seule
+ *     valeur candidate.
+ */
+export function resoudreCibleReprise(
+  pointagesDuJour: readonly PointageProductifDuJour[],
+  maintenant: Date,
+): CibleReprisePointage | null {
+  if (pointagesDuJour.length === 0) return null;
+
+  // Tri défensif — la requête appelante trie déjà `debutLe desc`, mais cette fonction pure ne doit
+  // pas dépendre silencieusement de l'ordre d'un appelant qu'elle ne contrôle pas.
+  const plusRecent = [...pointagesDuJour].sort(
+    (a, b) => b.debutLe.getTime() - a.debutLe.getTime(),
+  )[0];
+
+  if (!plusRecent || plusRecent.ordreReparationId === null) return null;
+
+  const cibleEncorePointable =
+    estOrPointable(plusRecent.statutOr) &&
+    (plusRecent.ligneOrId === null ||
+      (plusRecent.statutLigne !== null && estLignePointable(plusRecent.statutLigne)));
+  if (!cibleEncorePointable) return null;
+
+  const type: CibleReprisePointage['type'] = plusRecent.ligneOrId !== null ? 'ligne' : 'or';
+  const ordreReparationId = plusRecent.ordreReparationId;
+
+  const memeCible = pointagesDuJour.filter((p) =>
+    type === 'ligne'
+      ? p.ligneOrId === plusRecent.ligneOrId
+      : p.ordreReparationId === ordreReparationId && p.ligneOrId === null,
+  );
+  const cumulSecondesDuJour = memeCible.reduce(
+    (total, p) => total + dureeBruteSegmentPointage(p.debutLe, p.finLe, maintenant),
+    0,
+  );
+
+  return {
+    type,
+    ordreReparationId,
+    numeroOr: plusRecent.numeroOr,
+    ligneOrId: type === 'ligne' ? plusRecent.ligneOrId : null,
+    libelle:
+      type === 'ligne' ? (plusRecent.designationLigne ?? plusRecent.numeroOr) : plusRecent.numeroOr,
+    siteId: plusRecent.siteId,
+    // INTERPRÉTATION RETENUE (voir le commentaire du champ, `contrats/pointage/pointage.ts`) : un
+    // dernier segment ENCORE ouvert n'a pas de vraie interruption — `maintenant` comble l'absence de
+    // `null` possible sur ce champ du contrat, plutôt que d'inventer une valeur arbitraire.
+    interrompuLe: (plusRecent.finLe ?? maintenant).toISOString(),
+    cumulSecondesDuJour,
+  };
+}
+
+/** `Math.floor((fin - debut) / 1000)` — MÊME FORMULE que `mappeurs.ts::dureeBruteDepuisPeriode`,
+ *  reprise ici plutôt qu'importée : cette fonction-là retourne `null` pour un segment ouvert (pas de
+ *  fin connue), alors qu'un cumul de reprise doit au contraire compter un segment ouvert jusqu'à
+ *  `maintenant` (RM-97, « segment en cours inclus » — règle 5 ci-dessus). Deux besoins différents,
+ *  même arithmétique brute. */
+function dureeBruteSegmentPointage(debutLe: Date, finLe: Date | null, maintenant: Date): number {
+  const fin = finLe ?? maintenant;
+  return Math.floor((fin.getTime() - debutLe.getTime()) / 1000);
 }

@@ -1,12 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle, WifiOff } from 'lucide-react';
+import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Controller, useForm } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 
-import { schemaCreationVehicule } from '@dfa/shared';
+import { schemaCreationVehicule, type DetailCollisionPlaqueVehicule } from '@dfa/shared';
 
-import { ErreurReseau, messageErreur } from '@/api/erreurs';
+import { ErreurApi, ErreurReseau, messageErreur } from '@/api/erreurs';
 import { useCleIdempotence } from '@/api/idempotence';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -14,8 +15,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DateInput } from '@/components/ui/date-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  ChampAutocompletionVehicule,
+  type OptionAutocompletionVehicule,
+} from '@/composants/vehicules/ChampAutocompletionVehicule';
 import { useClient } from '@/hooks/clients/useClient';
 import { useCreerVehicule } from '@/hooks/vehicules/useCreerVehicule';
+import { useMarquesVehicule } from '@/hooks/vehicules/useMarquesVehicule';
+import { useModelesVehicule } from '@/hooks/vehicules/useModelesVehicule';
+import { useValeurDebouncee } from '@/hooks/vehicules/useValeurDebouncee';
+import { formaterDate } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
 /** Transforme une saisie vide en `undefined` — nécessaire pour tout champ `.nullish()` de
@@ -79,6 +88,47 @@ export function EcranNouveauVehicule() {
 
   const importe = form.watch('importe');
 
+  // Autocomplétion marque/modèle (référentiel véhicules suisse ASTRA/TAS, contrat gelé
+  // `packages/shared/src/contrats/vehicules/referentiel-vehicules-ch.ts`) — repli manuel TOUJOURS
+  // possible : `marque`/`modele` restent des champs texte libres au sens du formulaire
+  // (`schemaCreationVehicule`), l'autocomplétion ne fait que suggérer.
+  const marqueSaisie = form.watch('marque');
+  const modeleSaisie = form.watch('modele');
+  const marqueTemporisee = useValeurDebouncee(marqueSaisie);
+  const rechercheModeleTemporisee = useValeurDebouncee(modeleSaisie);
+
+  const marquesQuery = useMarquesVehicule(marqueTemporisee, {
+    enabled: marqueTemporisee.trim() !== '',
+  });
+  const modelesQuery = useModelesVehicule(marqueTemporisee, rechercheModeleTemporisee, {
+    enabled: marqueTemporisee.trim() !== '',
+  });
+
+  const optionsMarques: readonly OptionAutocompletionVehicule[] = (
+    marquesQuery.data?.marques ?? []
+  ).map((marque) => ({
+    valeur: marque.nom,
+    complement: t('vehicules:identite.autocompletion.nombreModeles', {
+      count: marque.nombreModeles,
+    }),
+  }));
+  const optionsModeles: readonly OptionAutocompletionVehicule[] = (
+    modelesQuery.data?.modeles ?? []
+  ).map((modele) => ({ valeur: modele.nom, complement: modele.codeTypeCh }));
+
+  const erreurMarques = marquesQuery.isError
+    ? t('vehicules:identite.autocompletion.erreurRecherche')
+    : null;
+  const erreurModeles = modelesQuery.isError
+    ? t('vehicules:identite.autocompletion.erreurRecherche')
+    : null;
+
+  // Choisir une marque conditionne les modèles suggérés ; changer VRAIMENT de marque réinitialise
+  // le modèle déjà saisi — mais UNIQUEMENT sur un choix explicite dans la liste (`onSelectOption`),
+  // jamais à chaque frappe : un garagiste qui corrige une faute de frappe dans la marque ne doit
+  // jamais se faire effacer le modèle qu'il vient de saisir (besoin explicite de @laupernoe).
+  const derniereMarqueConfirmeeRef = useRef('');
+
   const soumettre = form.handleSubmit((entree) => {
     creerVehicule.mutate(
       { entree: { ...entree, detenteurId: clientId ?? null }, idempotencyKey: idempotence.cle },
@@ -93,14 +143,31 @@ export function EcranNouveauVehicule() {
 
   const enCours = creerVehicule.isPending;
   const erreur = creerVehicule.error;
-  const estErreurReseau = erreur instanceof ErreurReseau;
+
+  // 409 VEHICULE_PLAQUE_COLLISION (RM-18, CT-06, issue #96) : même traitement que
+  // `DialogueModifierIdentiteVehicule.tsx` — nommer le véhicule fautif SOUS le champ plaque,
+  // jamais dans le bandeau générique. `blocages[0].id` vaut `'plaque'` ICI (nom du champ dans
+  // `EntreeCreationVehicule`) contre `'valeur'` sur `POST /vehicules/{id}/plaques` — convention du
+  // dépôt documentée dans `DetailCollisionPlaqueVehicule` (`@dfa/shared`) : ne jamais brancher sur
+  // `.id`, seulement sur le `code` puis lire `.donnees`.
+  const erreurEstCollisionPlaque =
+    erreur instanceof ErreurApi && erreur.probleme.code === 'VEHICULE_PLAQUE_COLLISION';
+  // Absent dans le cas de course où la ligne fautive n'est plus retrouvable à la relecture
+  // serveur (voir l'en-tête de `DetailCollisionPlaqueVehicule`) — message sobre en repli, jamais
+  // un libellé à trous.
+  const detailCollisionPlaque: DetailCollisionPlaqueVehicule | undefined =
+    erreur instanceof ErreurApi && erreurEstCollisionPlaque
+      ? (erreur.blocages[0]?.donnees as DetailCollisionPlaqueVehicule | undefined)
+      : undefined;
+  const erreurBandeau = erreurEstCollisionPlaque ? undefined : erreur;
+  const estErreurReseau = erreurBandeau instanceof ErreurReseau;
   const cheminAnnuler = clientId
     ? chemins.clients.detail(clientId, site)
     : chemins.vehicules.liste(site);
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 p-6">
-      <h1 className="texte-titre font-semibold text-foreground">{t('vehicules:nouveau')}</h1>
+      <h1 className="texte-titre-page font-semibold text-foreground">{t('vehicules:nouveau')}</h1>
 
       {clientId && requeteClient.data ? (
         <p className="texte-corps text-muted-foreground">
@@ -109,7 +176,7 @@ export function EcranNouveauVehicule() {
       ) : null}
 
       <form onSubmit={soumettre} noValidate className="flex flex-col gap-5">
-        {erreur ? (
+        {erreurBandeau ? (
           <Alert variant={estErreurReseau ? 'avertissement' : 'destructive'}>
             {estErreurReseau ? (
               <WifiOff className="h-4 w-4" aria-hidden="true" />
@@ -119,18 +186,36 @@ export function EcranNouveauVehicule() {
             <AlertTitle>
               {t(estErreurReseau ? 'erreurs:reseau.titre' : 'erreurs:inattendue.titre')}
             </AlertTitle>
-            <AlertDescription>{messageErreur(erreur, t)}</AlertDescription>
+            <AlertDescription>{messageErreur(erreurBandeau, t)}</AlertDescription>
           </Alert>
         ) : null}
 
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="nv-marque">{t('vehicules:identite.marque')}</Label>
-            <Input
-              id="nv-marque"
-              readOnly={enCours}
-              aria-invalid={form.formState.errors.marque ? true : undefined}
-              {...form.register('marque')}
+            <Controller
+              control={form.control}
+              name="marque"
+              render={({ field }) => (
+                <ChampAutocompletionVehicule
+                  id="nv-marque"
+                  libelle={t('vehicules:identite.marque')}
+                  valeur={field.value}
+                  onValeurChange={field.onChange}
+                  options={optionsMarques}
+                  enChargement={marquesQuery.isFetching}
+                  erreur={erreurMarques}
+                  placeholder={t('vehicules:identite.autocompletion.placeholderMarque')}
+                  disabled={enCours}
+                  ariaInvalid={form.formState.errors.marque ? true : undefined}
+                  onSelectionOption={(option) => {
+                    if (option.valeur !== derniereMarqueConfirmeeRef.current) {
+                      form.setValue('modele', '');
+                    }
+                    derniereMarqueConfirmeeRef.current = option.valeur;
+                  }}
+                />
+              )}
             />
             {form.formState.errors.marque ? (
               <p className="text-sm text-destructive">{t('validation:requis')}</p>
@@ -138,11 +223,23 @@ export function EcranNouveauVehicule() {
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="nv-modele">{t('vehicules:identite.modele')}</Label>
-            <Input
-              id="nv-modele"
-              readOnly={enCours}
-              aria-invalid={form.formState.errors.modele ? true : undefined}
-              {...form.register('modele')}
+            <Controller
+              control={form.control}
+              name="modele"
+              render={({ field }) => (
+                <ChampAutocompletionVehicule
+                  id="nv-modele"
+                  libelle={t('vehicules:identite.modele')}
+                  valeur={field.value}
+                  onValeurChange={field.onChange}
+                  options={optionsModeles}
+                  enChargement={modelesQuery.isFetching}
+                  erreur={erreurModeles}
+                  placeholder={t('vehicules:identite.autocompletion.placeholderModele')}
+                  disabled={enCours}
+                  ariaInvalid={form.formState.errors.modele ? true : undefined}
+                />
+              )}
             />
             {form.formState.errors.modele ? (
               <p className="text-sm text-destructive">{t('validation:requis')}</p>
@@ -198,8 +295,43 @@ export function EcranNouveauVehicule() {
             <Input
               id="nv-plaque"
               readOnly={enCours}
+              placeholder={t('vehicules:identite.plaqueExemple')}
+              aria-invalid={erreurEstCollisionPlaque ? true : undefined}
+              aria-describedby={erreurEstCollisionPlaque ? 'nv-plaque-collision-erreur' : undefined}
               {...form.register('plaque', { setValueAs: videVersIndefini })}
             />
+            <p className="texte-libelle text-muted-foreground">
+              {t('vehicules:identite.plaqueAide')}
+            </p>
+            {/* 409 VEHICULE_PLAQUE_COLLISION (issue #96) — même rendu que
+             *  `DialogueModifierIdentiteVehicule.tsx` : le véhicule fautif est NOMMÉ quand le
+             *  serveur a pu le relire, sinon message sobre (course rare où la ligne fautive n'est
+             *  plus retrouvable à la relecture), jamais un libellé à trous. */}
+            {erreurEstCollisionPlaque ? (
+              <Alert id="nv-plaque-collision-erreur" variant="destructive" className="p-3">
+                <AlertDescription>
+                  {detailCollisionPlaque ? (
+                    <>
+                      {t('vehicules:collisionPlaque.avecDetail', {
+                        plaque: detailCollisionPlaque.plaque,
+                        vehicule: `${detailCollisionPlaque.marque} ${detailCollisionPlaque.modele}${
+                          detailCollisionPlaque.version ? ` ${detailCollisionPlaque.version}` : ''
+                        }`,
+                        debutLe: formaterDate(detailCollisionPlaque.debutLe),
+                      })}{' '}
+                      <Link
+                        to={chemins.vehicules.detail(detailCollisionPlaque.vehiculeId)}
+                        className="underline"
+                      >
+                        {t('vehicules:collisionPlaque.voirVehicule')}
+                      </Link>
+                    </>
+                  ) : (
+                    t('vehicules:collisionPlaque.sansDetail')
+                  )}
+                </AlertDescription>
+              </Alert>
+            ) : null}
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="nv-canton">{t('vehicules:plaques.canton')}</Label>
@@ -207,6 +339,7 @@ export function EcranNouveauVehicule() {
               id="nv-canton"
               readOnly={enCours}
               maxLength={2}
+              placeholder={t('vehicules:plaques.cantonExemple')}
               aria-invalid={form.formState.errors.canton ? true : undefined}
               {...form.register('canton', { setValueAs: videVersIndefini })}
             />

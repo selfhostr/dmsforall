@@ -19,7 +19,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -117,13 +117,19 @@ export function DialogueCreationFinancement({
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
+          <LegendeChampsObligatoires>
+            {t('commun:formulaires.champsObligatoiresLegende')}
+          </LegendeChampsObligatoires>
+
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="financement-type">{t('ventes:financement.proposer.champType')}</Label>
+            <Label htmlFor="financement-type" requis>
+              {t('ventes:financement.proposer.champType')}
+            </Label>
             <Select
               value={type}
               onValueChange={(valeur) => setType(valeur as TypeFinancementVente)}
             >
-              <SelectTrigger id="financement-type">
+              <SelectTrigger id="financement-type" aria-required="true">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -143,6 +149,7 @@ export function DialogueCreationFinancement({
           ) : (
             <SelecteurOrganismeVente
               label={t('ventes:financement.proposer.champOrganisme')}
+              placeholder={t('ventes:financement.proposer.champOrganismePlaceholder')}
               obligatoire
               valeur={organismeId}
               onChangeValeur={setOrganismeId}

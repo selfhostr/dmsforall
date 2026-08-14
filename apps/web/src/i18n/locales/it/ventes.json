@@ -126,12 +126,19 @@
       "reserveLe": "Riservato il",
       "venduLe": "Venduto il",
       "livreLe": "Consegnato il",
-      "motif": "Motivo"
+      "motif": "Motivo",
+      "emplacement": "Ubicazione",
+      "emplacementPlaceholder": "Es.: davanti, posto 3"
     },
     "assujetti": {
       "oui": "Sì",
       "non": "No",
       "nonRenseigne": "Non indicato"
+    },
+    "vue": {
+      "groupeLabel": "Modalità di visualizzazione",
+      "vendeur": "Vista venditore",
+      "client": "Vista cliente"
     },
     "joursStock": {
       "libelle": "Giorni in stock",
@@ -182,7 +189,8 @@
         "provenance": "Provenienza",
         "statut": "Stato",
         "joursStock": "Giorni in stock",
-        "prixVente": "Prezzo di vendita"
+        "prixVente": "Prezzo di vendita",
+        "emplacement": "Ubicazione"
       },
       "actions": {
         "ficheCommerciale": "Scheda commerciale",
@@ -208,7 +216,8 @@
         "receptionner": "Accettare",
         "remettreDisponible": "Rendere di nuovo disponibile",
         "marquerVendu": "Contrassegnare come venduto",
-        "autresActions": "Altre azioni"
+        "autresActions": "Altre azioni",
+        "garantie": "Garanzia"
       },
       "donneesCommerciales": "Dati commerciali",
       "historique": "Cronologia",
@@ -217,7 +226,16 @@
       "prixAchatVerrouille": "Il prezzo di acquisto non può più essere modificato dopo la vendita.",
       "remettreDisponibleDescription": "Il veicolo torna disponibile alla vendita.",
       "receptionnerDescription": "Il veicolo passa allo stato «Disponibile».",
-      "marquerVenduDescription": "Il veicolo passa allo stato «Venduto»."
+      "marquerVenduDescription": "Il veicolo passa allo stato «Venduto».",
+      "garantie": {
+        "titre": "Garanzia",
+        "description": "Inserimento manuale — da compilare quando l'informazione è nota, mai calcolata automaticamente.",
+        "debutLe": "Inizio della garanzia",
+        "mois": "Durata (mesi)",
+        "km": "Limite chilometrico",
+        "moisHorsPlage": "Deve essere compreso tra 0 e 240 mesi.",
+        "kmHorsPlage": "Deve essere compreso tra 0 e 1'000'000 km."
+      }
     },
     "entree": {
       "titre": "Immettere in stock",
@@ -342,6 +360,11 @@
       "bonCommande": "Ordine di acquisto",
       "aucunBonCommande": "Nessun ordine di acquisto per questa pratica",
       "creerBonCommande": "Creare l'ordine di acquisto",
+      "facture": "Fattura",
+      "aucuneFacture": "Nessuna fattura per questa pratica",
+      "creerFacture": "Creare la fattura",
+      "voirFacture": "Vedere la fattura",
+      "factureACompleter": "Aggiungere le righe ed emettere la fattura per poter consegnare.",
       "identitePieceType": "Documento d'identità presentato",
       "identitePieceTypes": {
         "carte_identite": "Carta d'identità",
@@ -350,6 +373,7 @@
         "titre_sejour": "Permesso di soggiorno",
         "autre": "Altro"
       },
+      "identitePieceTypeAutrePrecision": "Precisare il documento presentato",
       "engagerConfirmation": "Il veicolo sarà riservato.",
       "engagerConfirmationReprise": "La permuta sarà confermata.",
       "confirmerAction": "Confermare",
@@ -543,6 +567,9 @@
       "champVehiculePlaceholder": "Targa o descrizione…",
       "champVehiculeIndication": "Digitare una targa o una descrizione per cercare il veicolo permutato.",
       "aucunVehiculeTrouve": "Nessun veicolo corrisponde a questa ricerca.",
+      "creerVehiculeBouton": "Crea questo veicolo",
+      "creerVehiculeAide": "Il cliente porta un veicolo che l'officina non conosce ancora? Createlo con le informazioni minime — il resto si completa più tardi dalla sua scheda.",
+      "creerVehiculeSoumettre": "Crea e seleziona",
       "vehiculeSelectionne": "Veicolo selezionato: {designation}",
       "champValeurEstimee": "Valore stimato",
       "valeurEstimee": "Valore stimato",
@@ -652,6 +679,7 @@
       "titre": "Proporre un finanziamento",
       "champType": "Tipo di finanziamento",
       "champOrganisme": "Istituto",
+      "champOrganismePlaceholder": "Cerca un istituto…",
       "champReferenceContrat": "Riferimento contratto",
       "aideComptant": "Per un pagamento in contanti non è necessaria alcuna ulteriore conferma.",
       "bouton": "Proporre"
@@ -682,8 +710,6 @@
   },
   "suivi": {
     "titre": "Monitoraggio finanziamento e garanzia",
-    "lienDepuisListe": "Monitoraggio finanziamento e garanzia",
-    "retourListe": "Torna alle pratiche di vendita",
     "colonnes": {
       "dossier": "Cliente / veicolo",
       "echeance": "Prossima scadenza",

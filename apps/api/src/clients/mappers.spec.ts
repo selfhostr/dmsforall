@@ -299,6 +299,30 @@ describe('versConditionResponse — RM-07 conditions datées', () => {
     expect(dto.valideDuLe).toBe('2025-01-01');
     expect(dto.valideAuLe).toBe('2025-12-31');
   });
+
+  // #72 : le mapper reste PUR (aucun accès base) — la résolution est faite par l'appelant
+  // (`ServiceClientSousCollections`, via `atelier/taux-horaire.ts`) et simplement PROJETÉE ici.
+  it('un taux horaire résolu par l’appelant est projeté tel quel (libellé + montant)', () => {
+    const dto = versConditionResponse(ligneCondition({ tauxHoraireCode: 'ATELIER' }), {
+      libelle: 'Taux horaire atelier',
+      montantCentimes: 13_500,
+    });
+    expect(dto.tauxHoraireCode).toBe('ATELIER');
+    expect(dto.tauxHoraireLibelle).toBe('Taux horaire atelier');
+    expect(dto.tauxHoraireMontantCentimes).toBe(13_500);
+  });
+
+  it('sans 2e argument (appelant historique), libellé/montant restent null — additif, rétrocompatible', () => {
+    const dto = versConditionResponse(ligneCondition({ tauxHoraireCode: 'ATELIER' }));
+    expect(dto.tauxHoraireLibelle).toBeNull();
+    expect(dto.tauxHoraireMontantCentimes).toBeNull();
+  });
+
+  it('une résolution explicitement `null` (code non résoluble) projette libellé/montant à null, pas `undefined`', () => {
+    const dto = versConditionResponse(ligneCondition({ tauxHoraireCode: 'ATELIER' }), null);
+    expect(dto.tauxHoraireLibelle).toBeNull();
+    expect(dto.tauxHoraireMontantCentimes).toBeNull();
+  });
 });
 
 describe('versConsentementResponse — RM-09 append-only', () => {

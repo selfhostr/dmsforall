@@ -16,7 +16,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import { useContactsClient, useCreerContactClient } from '@/hooks/clients/useContactsClient';
 
 import { cleRoleContact, texteOuVide } from '../utils';
@@ -103,9 +103,14 @@ export function OngletContacts({ clientId }: Props) {
             <DialogHeader>
               <DialogTitle>{t('clients:contacts.ajouter')}</DialogTitle>
             </DialogHeader>
+            <LegendeChampsObligatoires>
+              {t('commun:formulaires.champsObligatoiresLegende')}
+            </LegendeChampsObligatoires>
             <form onSubmit={soumettre} noValidate className="space-y-3">
               <div className="space-y-2">
-                <Label htmlFor="contact-nom">{t('clients:identite.nom')}</Label>
+                <Label htmlFor="contact-nom" requis>
+                  {t('clients:identite.nom')}
+                </Label>
                 <Input
                   id="contact-nom"
                   value={nom}
@@ -163,8 +168,21 @@ export function OngletContacts({ clientId }: Props) {
                 ) : null}
               </div>
               <div className="space-y-2">
-                <Label>{t('clients:contacts.champs.roles')}</Label>
-                <div className="flex flex-wrap gap-x-4 gap-y-2">
+                <Label id="contact-roles-label" requis>
+                  {t('clients:contacts.champs.roles')}
+                </Label>
+                {/* Groupe de cases à cocher « au moins un rôle » (`schemaContactClient.roles`,
+                    `.min(1)`) : aucune case Radix `Checkbox` prise isolément ne peut porter
+                    `aria-required` (la contrainte porte sur l'ENSEMBLE, pas sur une case précise)
+                    — posé ici, sur le groupe, avec `aria-labelledby` vers le libellé étoilé
+                    ci-dessus, exactement le même patron que le sélecteur de type de client
+                    (`FormulaireNouveauClient.tsx`, groupe de boutons). */}
+                <div
+                  role="group"
+                  aria-required="true"
+                  aria-labelledby="contact-roles-label"
+                  className="flex flex-wrap gap-x-4 gap-y-2"
+                >
                   {ROLES_CONTACT.map((role) => (
                     <label
                       key={role}

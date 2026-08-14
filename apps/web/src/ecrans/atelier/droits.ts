@@ -1,5 +1,7 @@
 import type { RoleUtilisateur } from '@dfa/shared';
 
+import { ROLES_PIECES } from '@/routes/droits-routes';
+
 /**
  * Miroir CÔTÉ FRONT de `L966_LIGNE_CREATION` / `L967_LIGNE_VALIDATION` / `INFERE_LIGNE_DECISION`
  * (`apps/api/src/auth/matrice-droits.ts`, §10 L966/L967, RM-71/RM-72) — même doctrine que
@@ -68,4 +70,22 @@ export function peutRefuserLigneOr(role: RoleUtilisateur | undefined): boolean {
 
 export function peutAnnulerLigneOr(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && ROLES_DECISION_LIGNE.has(role);
+}
+
+/**
+ * Issue #71 : `SelecteurArticlePiece` (recherche magasin depuis le dialogue « Ajouter une ligne
+ * d'OR ») interroge `GET /articles/recherche-comptoir`, qui exige `pieces.article.lire`
+ * (`DROITS_PIECES_PAR_ROLE`, `apps/api/src/auth/matrice-droits.ts`, RF-115) — un droit que
+ * `admin` N'A PAS (`DROITS_PIECES_PAR_ROLE.admin = []`, décision assumée, cf. le commentaire de
+ * `ROLES_PIECES` dans `routes/droits-routes.ts`). `ROLES_CREATION_LIGNE` ci-dessus inclut pourtant
+ * `admin` (il peut créer une ligne « pièce », juste pas la faire naître d'une recherche catalogue) :
+ * sans cette distinction, un `admin` voyait le champ de recherche s'ouvrir puis échouer sur
+ * CHAQUE frappe (`403 DROIT_INSUFFISANT`), un geste offert qui ne pouvait jamais aboutir. Réutilise
+ * `ROLES_PIECES` — LA liste des rôles qui lisent effectivement le catalogue pièces — plutôt qu'une
+ * troisième énumération qui pourrait diverger des deux autres. La saisie manuelle (désignation/
+ * référence/prix tapés à la main, `DialogueAjoutLigneOr`) reste TOUJOURS possible pour `admin`,
+ * seul le raccourci catalogue disparaît.
+ */
+export function peutRechercherArticlePiece(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && (ROLES_PIECES as readonly RoleUtilisateur[]).includes(role);
 }

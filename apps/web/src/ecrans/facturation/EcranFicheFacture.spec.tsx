@@ -1,11 +1,15 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { BlocPaiementQrFige, ReponseDocumentVente } from '@dfa/shared';
+import type {
+  BlocPaiementQrFige,
+  ReponseDocumentVente,
+  ReponseLigneDocumentVente,
+} from '@dfa/shared';
 
 import '@/i18n';
 import i18n from '@/i18n';
@@ -172,6 +176,27 @@ function rendre(id = 'facture-1') {
   };
 }
 
+describe('EcranFicheFacture — date affichée en en-tête (issue #60, testeur novice)', () => {
+  it(
+    'affiche `dateDocument` (date légale/métier), jamais `emisLe` (horodatage serveur) — DÉFAUT ' +
+      'CORRIGÉ : la fiche affichait `emisLe` sous le libellé « émise le », en désaccord avec la ' +
+      'liste des factures et la feuille d’encaissement, qui affichent TOUTES DEUX `dateDocument` ' +
+      "sous ce même libellé (trois dates différentes pour un même document selon l'écran). " +
+      '`document.ts` : « les deux champs ne sont PAS interchangeables et ne doivent pas partager ' +
+      'le même libellé côté écran »',
+    async () => {
+      installerHandlerDocument(
+        construireDocument({ dateDocument: '2026-01-15', emisLe: '2026-08-11T08:25:14.996Z' }),
+      );
+
+      rendre();
+
+      expect(await screen.findByText('émise le 15.01.2026')).toBeInTheDocument();
+      expect(screen.queryByText('émise le 11.08.2026')).not.toBeInTheDocument();
+    },
+  );
+});
+
 describe('EcranFicheFacture — action Imprimer / télécharger le PDF', () => {
   beforeEach(() => {
     Element.prototype.hasPointerCapture = vi.fn().mockReturnValue(false);
@@ -327,6 +352,10 @@ describe('EcranFicheFacture — échéance / retard (IndicateurRetard, en-tête)
 
     await screen.findByText('Jean Dupont');
     expect(await screen.findByText('en retard de 20 jours')).toBeInTheDocument();
+    // Défaut corrigé (issue #134) : l'échéance doit rester VISIBLE (pas seulement dans un
+    // attribut `title`, invisible au clavier/lecteur d'écran/tablette) même quand la facture
+    // est en retard — un client au téléphone demande précisément cette date.
+    expect(await screen.findByText('Échéance : 15.07.2026')).toBeInTheDocument();
   });
 
   it("affiche l'échéance SANS alarme pour une facture à venir (enRetard: false)", async () => {
@@ -385,6 +414,43 @@ describe('EcranFicheFacture — échéance / retard (IndicateurRetard, en-tête)
 
     await screen.findByText('Jean Dupont');
     expect(screen.queryByText('Échéance inconnue')).not.toBeInTheDocument();
+  });
+});
+
+describe('EcranFicheFacture — vocabulaire du badge de règlement sur un avoir (issue #129)', () => {
+  afterEach(async () => {
+    await i18n.changeLanguage('fr');
+  });
+
+  it('un avoir émis et non encore imputé affiche « Non imputé », jamais « Non réglée » (un avoir ne se paie pas, il crédite le client)', async () => {
+    installerHandlerDocument(
+      construireDocument({
+        id: 'avoir-vocabulaire',
+        typeDocument: 'avoir',
+        natureFacture: null,
+        numero: '2026-AV-00003',
+        factureAnnuleeId: 'facture-1',
+        motifAvoir: 'geste_commercial',
+        qr: null,
+        dateEcheance: null,
+        enRetard: undefined,
+        joursRetard: null,
+        statutReglement: 'non_regle',
+      }),
+    );
+    rendre('avoir-vocabulaire');
+
+    await screen.findByText('Jean Dupont');
+    expect(await screen.findByText('Non imputé')).toBeInTheDocument();
+    expect(screen.queryByText('Non réglée')).not.toBeInTheDocument();
+  });
+
+  it("une facture émise non réglée conserve « Non réglée » (vocabulaire inchangé, seul l'avoir change de mot)", async () => {
+    installerHandlerDocument(construireDocument({ statutReglement: 'non_regle' }));
+    rendre();
+
+    await screen.findByText('Jean Dupont');
+    expect(await screen.findByText('Non réglée')).toBeInTheDocument();
   });
 });
 
@@ -577,6 +643,30 @@ describe('EcranFicheFacture — droits par geste (émettre / encaisser / créer 
   );
 
   it(
+    'DÉFAUT CORRIGÉ (issues #80/#94, testeur novice — « je n’ai pas osé cliquer, j’allais ' +
+      'enregistrer une avance sur le compte d’un client qui a déjà payé ») : « Encaisser » ' +
+      'disparaît sur une facture émise dont le solde est nul (`statutReglement: regle`), MÊME pour ' +
+      'un rôle autorisé à encaisser — et le badge « Réglée » apparaît à côté de « Émise » plutôt ' +
+      'que de laisser la fiche taire l’état du règlement',
+    async () => {
+      installerHandlerDocument(
+        construireDocument({
+          statutReglement: 'regle',
+          soldeCentimes: 0,
+          montantRegleCentimes: 12345,
+        }),
+      );
+      connecterSession('magasinier');
+      rendre();
+
+      await screen.findByText('Jean Dupont');
+      expect(screen.getByText('Émise')).toBeInTheDocument();
+      expect(screen.getByText('Réglée')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Encaisser' })).not.toBeInTheDocument();
+    },
+  );
+
+  it(
     '« Créer un avoir » (menu ⋯) : absent pour vendeur (pas de droit `emettre_avoir`), présent ' +
       'pour réceptionnaire (autorisé)',
     async () => {
@@ -692,5 +782,257 @@ describe('EcranFicheFacture — navigation vers la fiche client', () => {
     expect(
       screen.queryByText('Cette facture est émise et ne peut plus être modifiée.'),
     ).not.toBeInTheDocument();
+  });
+});
+
+function construireLigne(
+  overrides: Partial<ReponseLigneDocumentVente> = {},
+): ReponseLigneDocumentVente {
+  return {
+    id: 'ligne-1',
+    documentId: 'facture-1',
+    numeroOrdre: 1,
+    type: 'forfait',
+    ligneOrId: null,
+    documentAcompteId: null,
+    designation: 'Forfait révision',
+    referenceTexte: null,
+    articleId: null,
+    quantiteMillieme: 1000,
+    prixUnitaireTtcCentimes: 10_000,
+    modeCalculTva: 'ttc',
+    regimeTva: 'normal',
+    tauxTvaPourmille: 81,
+    datePrestation: '2026-08-13',
+    remisePourmille: null,
+    remiseMontantCentimes: null,
+    remiseGlobaleRepartieCentimes: 0,
+    montants: {
+      montantHtCentimes: 9251,
+      montantTvaCentimes: 749,
+      montantTtcCentimes: 10_000,
+      montantFacturableCentimes: 10_000,
+      montantValoriseCentimes: 10_000,
+    },
+    creeLe: '2026-08-13T08:00:00.000Z',
+    modifieLe: '2026-08-13T08:00:00.000Z',
+    ...overrides,
+  };
+}
+
+/**
+ * Issue #125 : « impossible d'ajouter une ligne à un document de vente, et un document vide peut
+ * être émis. » Trois preuves ci-dessous :
+ *  1. l'ajout, la modification et la suppression de lignes sur un brouillon (une ligne recopiée
+ *     d'un OR reste NON éditable ici — décision documentée dans `EcranFicheFacture.tsx`) ;
+ *  2. ces trois gestes n'apparaissent JAMAIS sur un document émis (verrouillage MD-20/MD-21,
+ *     doctrine inchangée) ;
+ *  3. le refus d'émission d'un document sans ligne affiche le message SERVEUR précis
+ *     (`erreurs[0].message`), jamais le bandeau générique `VALIDATION_ECHOUEE`.
+ */
+describe('EcranFicheFacture — lignes de document (issue #125)', () => {
+  it('un brouillon SANS ligne affiche « Ajouter une ligne » et la soumission crée la ligne (corps envoyé exact)', async () => {
+    const document_ = construireDocument({
+      statut: 'brouillon',
+      numero: null,
+      numeroSequence: null,
+      emisLe: null,
+      emisPar: null,
+      qr: null,
+      lignes: [],
+      nombreLignes: 0,
+    });
+    installerHandlerDocument(document_);
+
+    let corpsRecu: unknown;
+    server.use(
+      http.post('/api/v1/documents-vente/facture-1/lignes', async ({ request }) => {
+        corpsRecu = await request.json();
+        return HttpResponse.json(
+          {
+            donnees: {
+              ...document_,
+              lignes: [construireLigne({ designation: 'Vidange complète' })],
+              nombreLignes: 1,
+            },
+            avertissements: [],
+          },
+          { status: 201 },
+        );
+      }),
+    );
+
+    const utilisateur = userEvent.setup();
+    rendre();
+
+    expect(await screen.findByText('Aucune ligne sur ce document.')).toBeInTheDocument();
+    const boutonAjouter = screen.getByRole('button', { name: 'Ajouter une ligne' });
+    await utilisateur.click(boutonAjouter);
+
+    const dialogue = await screen.findByRole('dialog');
+    await utilisateur.type(within(dialogue).getByLabelText(/^Désignation/), 'Vidange complète');
+    await utilisateur.type(within(dialogue).getByLabelText(/^Prix unitaire TTC/), '100.00');
+    await utilisateur.click(within(dialogue).getByRole('button', { name: 'Confirmer' }));
+
+    await waitFor(() => expect(corpsRecu).toBeDefined());
+    expect(corpsRecu).toMatchObject({
+      type: 'forfait',
+      designation: 'Vidange complète',
+      quantiteMillieme: 1000,
+      prixUnitaireTtcCentimes: 10_000,
+      regimeTva: 'normal',
+      tauxTvaPourmille: 81,
+    });
+
+    expect(await screen.findByText('Vidange complète')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it("une ligne saisie directement (`ligneOrId: null`) porte modifier/retirer ; une ligne issue d'un OR (`ligneOrId` renseigné) n'en porte aucun", async () => {
+    installerHandlerDocument(
+      construireDocument({
+        statut: 'brouillon',
+        numero: null,
+        numeroSequence: null,
+        emisLe: null,
+        emisPar: null,
+        qr: null,
+        lignes: [
+          construireLigne({
+            id: 'ligne-libre',
+            designation: 'Ligne saisie libre',
+            ligneOrId: null,
+          }),
+          construireLigne({
+            id: 'ligne-or',
+            designation: 'Ligne issue OR',
+            ligneOrId: 'or-ligne-9',
+            numeroOrdre: 2,
+          }),
+        ],
+        nombreLignes: 2,
+      }),
+    );
+    rendre();
+
+    const ligneLibre = (await screen.findByText('Ligne saisie libre')).closest('tr');
+    const ligneOr = (await screen.findByText('Ligne issue OR')).closest('tr');
+    if (!ligneLibre || !ligneOr) throw new Error('Lignes de tableau introuvables.');
+
+    expect(
+      within(ligneLibre).getByRole('button', { name: /Modifier la ligne/ }),
+    ).toBeInTheDocument();
+    expect(
+      within(ligneLibre).getByRole('button', { name: /Retirer la ligne/ }),
+    ).toBeInTheDocument();
+    expect(
+      within(ligneOr).queryByRole('button', { name: /Modifier la ligne/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(ligneOr).queryByRole('button', { name: /Retirer la ligne/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('« Retirer » appelle bien `DELETE .../lignes/{ligneId}` et la ligne disparaît de l’écran', async () => {
+    const document_ = construireDocument({
+      statut: 'brouillon',
+      numero: null,
+      numeroSequence: null,
+      emisLe: null,
+      emisPar: null,
+      qr: null,
+      lignes: [construireLigne({ id: 'ligne-a-retirer', designation: 'Ligne à retirer' })],
+      nombreLignes: 1,
+    });
+    installerHandlerDocument(document_);
+
+    let appelDelete = false;
+    server.use(
+      http.delete('/api/v1/documents-vente/facture-1/lignes/ligne-a-retirer', () => {
+        appelDelete = true;
+        return HttpResponse.json({
+          donnees: { ...document_, lignes: [], nombreLignes: 0 },
+          avertissements: [],
+        });
+      }),
+    );
+
+    const utilisateur = userEvent.setup();
+    rendre();
+
+    const bouton = await screen.findByRole('button', { name: /Retirer la ligne/ });
+    await utilisateur.click(bouton);
+
+    await waitFor(() => expect(appelDelete).toBe(true));
+    await waitFor(() => expect(screen.queryByText('Ligne à retirer')).not.toBeInTheDocument());
+    expect(await screen.findByText('Aucune ligne sur ce document.')).toBeInTheDocument();
+  });
+
+  it('un document ÉMIS ne montre ni « Ajouter une ligne » ni bouton modifier/retirer par ligne (verrouillage MD-20/MD-21)', async () => {
+    installerHandlerDocument(
+      construireDocument({
+        statut: 'emis',
+        lignes: [construireLigne({ designation: 'Ligne figée' })],
+        nombreLignes: 1,
+      }),
+    );
+    rendre();
+
+    await screen.findByText('Ligne figée');
+    expect(screen.queryByRole('button', { name: 'Ajouter une ligne' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Modifier la ligne/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Retirer la ligne/ })).not.toBeInTheDocument();
+  });
+
+  it("le refus d'émission d'un document SANS LIGNE affiche le message serveur précis, jamais le bandeau générique VALIDATION_ECHOUEE", async () => {
+    connecterSession('direction');
+    installerHandlerDocument(
+      construireDocument({
+        statut: 'brouillon',
+        numero: null,
+        numeroSequence: null,
+        emisLe: null,
+        emisPar: null,
+        qr: null,
+        lignes: [],
+        nombreLignes: 0,
+      }),
+    );
+    server.use(
+      http.post('/api/v1/documents-vente/facture-1/emettre', () =>
+        HttpResponse.json(
+          {
+            type: 'https://docs.dmsforall.example/erreurs/VALIDATION_ECHOUEE',
+            title: 'Validation échouée',
+            status: 400,
+            code: 'VALIDATION_ECHOUEE',
+            instance: 'req-1',
+            erreurs: [
+              {
+                champ: 'lignes',
+                code: 'aucune_ligne',
+                message:
+                  "Ce document n'a aucune ligne : ajoutez au moins une ligne avant de l'émettre.",
+              },
+            ],
+          },
+          { status: 400, headers: { 'content-type': 'application/problem+json' } },
+        ),
+      ),
+    );
+
+    const utilisateur = userEvent.setup();
+    rendre();
+
+    await utilisateur.click(await screen.findByRole('button', { name: 'Émettre' }));
+    const dialogue = await screen.findByRole('dialog');
+    await utilisateur.click(within(dialogue).getByRole('button', { name: 'Émettre' }));
+
+    expect(
+      await screen.findByText(
+        "Ce document n'a aucune ligne : ajoutez au moins une ligne avant de l'émettre.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Certaines informations sont incorrectes.')).not.toBeInTheDocument();
   });
 });

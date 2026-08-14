@@ -116,11 +116,13 @@ export type FiltresExecutionsConnecteur = z.infer<typeof schemaFiltresExecutions
  * suite la même exécution `necessite_action` fait échouer le second appel avec le même code, pas un
  * doublon d'exécution.
  */
-export const schemaRejouerExecutionConnecteur = z.object({
-  /** Facultatif : contexte pour le journal (« identifiants corrigés », « fichier redéposé ») —
-   *  jamais requis, `RC-04` n'impose aucune justification pour relancer. */
-  motif: schemaMotif.optional(),
-});
+export const schemaRejouerExecutionConnecteur = z
+  .object({
+    /** Facultatif : contexte pour le journal (« identifiants corrigés », « fichier redéposé ») —
+     *  jamais requis, `RC-04` n'impose aucune justification pour relancer. */
+    motif: schemaMotif.optional(),
+  })
+  .strict();
 export type EntreeRejouerExecutionConnecteur = z.infer<typeof schemaRejouerExecutionConnecteur>;
 
 /**
@@ -129,9 +131,11 @@ export type EntreeRejouerExecutionConnecteur = z.infer<typeof schemaRejouerExecu
  * Autorisé depuis `en_attente`, `echec_reprogramme` ou `necessite_action` uniquement — jamais depuis
  * `en_cours` (un traitement démarré se laisse terminer) ni un état déjà terminal.
  */
-export const schemaAnnulationExecutionConnecteur = z.object({
-  motif: schemaMotif,
-});
+export const schemaAnnulationExecutionConnecteur = z
+  .object({
+    motif: schemaMotif,
+  })
+  .strict();
 export type EntreeAnnulationExecutionConnecteur = z.infer<
   typeof schemaAnnulationExecutionConnecteur
 >;

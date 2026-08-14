@@ -170,6 +170,10 @@
     "RECEPTIONNER_VEHICULE": "Recevoir le véhicule",
     "RAFRAICHIR": "Rafraîchir la page"
   },
+  "filet": {
+    "titreDroit": "Action refusée",
+    "titreConflit": "Action impossible"
+  },
   "blocages": {
     "ligne_or": "{count, plural, one {# ligne à valider} other {# lignes à valider}}",
     "pointage": "{count, plural, one {# pointage en cours} other {# pointages en cours}}",

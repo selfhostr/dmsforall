@@ -69,3 +69,30 @@ export const ROLES_VENTES_STOCK: readonly RoleUtilisateur[] = [
   'receptionnaire',
   'chef_atelier',
 ];
+
+/**
+ * Gouvernance de `PATCH /vehicules/{id}` (action `vehicule.modifier`, étape 1) — DUPLIQUÉE ici
+ * depuis `apps/api/src/auth/matrice-droits.ts` (`L960_VEHICULE_ECRITURE`), même doctrine que
+ * `peutEcrireVehiculeStock` ci-dessus (jamais importée depuis `apps/api`, ni depuis
+ * `ecrans/vehicules/droits.ts` — hors périmètre d'écriture de ce sous-module, même règle
+ * documentée en tête de ce fichier).
+ *
+ * DISTINCT et VOLONTAIREMENT DIFFÉRENT de `peutEcrireVehiculeStock` : ce droit gouverne le
+ * VÉHICULE lui-même (emplacement, garantie — colonnes plates de `vehicule`), pas la fiche
+ * COMMERCIALE de stock (prix, statut). Un `vendeur`/`comptable` a `ventes.vehicule_stock.*` mais
+ * PAS `vehicule.modifier` (exclu côté API, ni technicien ni comptable ni vendeur ni
+ * poste_atelier) ; un `magasinier` a l'inverse. Utilisé pour gater `ChampEmplacementVehicule`
+ * (import direct depuis `composants/vehicule/`, réutilisé tel quel) et le dialogue « Garantie »
+ * de la fiche stock — les deux écrivent vers le même endpoint `PATCH /vehicules/{id}`.
+ */
+const ROLES_ECRITURE_VEHICULE: ReadonlySet<RoleUtilisateur> = new Set([
+  'admin',
+  'direction',
+  'receptionnaire',
+  'chef_atelier',
+  'magasinier',
+]);
+
+export function peutModifierVehiculeAssocie(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_ECRITURE_VEHICULE.has(role);
+}

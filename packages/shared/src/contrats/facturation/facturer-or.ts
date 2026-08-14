@@ -126,6 +126,7 @@ export const schemaSelecteurGroupePayeurOr = z
     payeur: z.enum(PAYEURS_FACTURATION_SELECTIONNABLES),
     payeurClientId: schemaIdentifiant.nullish(),
   })
+  .strict()
   .refine((v) => (v.payeur === 'client') === (v.payeurClientId == null), {
     message:
       "`payeurClientId` est obligatoire pour un payeur autre que 'client', et doit être absent pour 'client' (MD-62, AC-08).",
@@ -178,11 +179,12 @@ export const schemaFacturationOrdreReparation = z
      * erreur.
      */
     motifsReport: z
-      .array(schemaSelecteurGroupePayeurOr.and(z.object({ motif: schemaMotif })))
+      .array(schemaSelecteurGroupePayeurOr.and(z.object({ motif: schemaMotif }).strict()))
       .max(20)
       .default([]),
   })
   .extend(schemaConfirmations.shape)
+  .strict()
   .refine((v) => new Set(v.groupes.map(cleGroupe)).size === v.groupes.length, {
     message:
       'Un même groupe payeur ne peut être sélectionné qu’une seule fois dans `groupes` (MD-62).',

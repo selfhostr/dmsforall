@@ -142,25 +142,29 @@ export interface RepriseResume {
  * Statut initial toujours `estimee`, jamais entrant. `valeurNegocieeCentimes` n'existe pas encore à
  * ce stade — voir `schemaActionNegocierReprise`.
  */
-export const schemaCreationReprise = z.object({
-  vehiculeReprisId: schemaIdentifiant,
-  valeurEstimeeCentimes: schemaCentimesPositif,
-  detteFinancementResiduelleCentimes: schemaCentimesPositif.nullish(),
-  detteFinancementOrganismeId: schemaIdentifiant.nullish(),
-  detteFinancementOrganismeNom: z.string().trim().min(1).max(200).nullish(),
-});
+export const schemaCreationReprise = z
+  .object({
+    vehiculeReprisId: schemaIdentifiant,
+    valeurEstimeeCentimes: schemaCentimesPositif,
+    detteFinancementResiduelleCentimes: schemaCentimesPositif.nullish(),
+    detteFinancementOrganismeId: schemaIdentifiant.nullish(),
+    detteFinancementOrganismeNom: z.string().trim().min(1).max(200).nullish(),
+  })
+  .strict();
 export type EntreeCreationReprise = z.infer<typeof schemaCreationReprise>;
 
 /** `PATCH /dossiers-vente/{dossierVenteId}/reprise` — `If-Match` OBLIGATOIRE. `valeurEstimeeCentimes`
  *  reste modifiable UNIQUEMENT tant que `statut = 'estimee'` (contrôlé serveur, pas ici) — la
  *  révision post-expertise physique de `RV-27` passe par ici ; au-delà, la correction passe par
  *  `schemaActionNegocierReprise` (rappel explicite du changement, pas une édition silencieuse). */
-export const schemaModificationReprise = z.object({
-  valeurEstimeeCentimes: schemaCentimesPositif.optional(),
-  detteFinancementResiduelleCentimes: schemaCentimesPositif.nullish(),
-  detteFinancementOrganismeId: schemaIdentifiant.nullish(),
-  detteFinancementOrganismeNom: z.string().trim().min(1).max(200).nullish(),
-});
+export const schemaModificationReprise = z
+  .object({
+    valeurEstimeeCentimes: schemaCentimesPositif.optional(),
+    detteFinancementResiduelleCentimes: schemaCentimesPositif.nullish(),
+    detteFinancementOrganismeId: schemaIdentifiant.nullish(),
+    detteFinancementOrganismeNom: z.string().trim().min(1).max(200).nullish(),
+  })
+  .strict();
 export type EntreeModificationReprise = z.infer<typeof schemaModificationReprise>;
 
 /**
@@ -169,9 +173,11 @@ export type EntreeModificationReprise = z.infer<typeof schemaModificationReprise
  * signature reste une négociation, pas une nouvelle reprise) — chaque appel est un événement
  * audité, jamais un `PATCH` silencieux sur une donnée aussi sensible pour la marge (`RV-06`).
  */
-export const schemaActionNegocierReprise = z.object({
-  valeurNegocieeCentimes: schemaCentimesPositif,
-});
+export const schemaActionNegocierReprise = z
+  .object({
+    valeurNegocieeCentimes: schemaCentimesPositif,
+  })
+  .strict();
 export type EntreeActionNegocierReprise = z.infer<typeof schemaActionNegocierReprise>;
 
 /**
@@ -187,13 +193,14 @@ export type EntreeActionNegocierReprise = z.infer<typeof schemaActionNegocierRep
  */
 export const schemaActionConfirmerReprise = z
   .object({ motif: schemaMotif })
-  .extend(schemaConfirmations.shape);
+  .extend(schemaConfirmations.shape)
+  .strict();
 export type EntreeActionConfirmerReprise = z.infer<typeof schemaActionConfirmerReprise>;
 
 /** `POST /dossiers-vente/{dossierVenteId}/reprise/refuser` — `{estimee, negociee} -> refusee`
  *  (`RV-25` : le client garde son véhicule, le reste du dossier continue — n'annule PAS le
  *  dossier de vente). Motif OBLIGATOIRE, même doctrine que `ordre-reparation.ts::schemaActionAnnuler`. */
-export const schemaActionRefuserReprise = z.object({ motif: schemaMotif });
+export const schemaActionRefuserReprise = z.object({ motif: schemaMotif }).strict();
 export type EntreeActionRefuserReprise = z.infer<typeof schemaActionRefuserReprise>;
 
 /* Rappel (RV-24) : à la livraison du véhicule vendu, c'est `valeurNegocieeCentimes` — jamais

@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 
 interface Props {
   readonly ouvert: boolean;
@@ -59,10 +59,17 @@ export function DialogueMotifCommandeFournisseur({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
+        <LegendeChampsObligatoires>
+          {t('commun:formulaires.champsObligatoiresLegende')}
+        </LegendeChampsObligatoires>
+
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="cmd-motif">{t('pieces:commandes.lignes.motif')}</Label>
+          <Label htmlFor="cmd-motif" requis>
+            {t('pieces:commandes.lignes.motif')}
+          </Label>
           <Input
             id="cmd-motif"
+            required
             readOnly={enCours}
             value={motif}
             onChange={(evenement) => setMotif(evenement.target.value)}

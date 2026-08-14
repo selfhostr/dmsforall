@@ -2,14 +2,15 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { useState } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ReponseClient, ReponseDoublonsClients } from '@dfa/shared';
 
+import { lireBrouillon } from '@/hooks/brouillon/brouillon';
 import { server } from '@/test/msw/server';
 import { renduAvecRoutes } from '@/test/utils';
 
-import { FormulaireNouveauClient } from './FormulaireNouveauClient';
+import { CLE_BROUILLON_NOUVEAU_CLIENT, FormulaireNouveauClient } from './FormulaireNouveauClient';
 
 /** Reproduit le patron réel de `EcranListeClients` : `FormulaireNouveauClient` est monté SOUS un
  *  `<Sheet>` (Radix) dont le contenu n'est PAS conditionné par `sheetOuvert` dans le JSX — c'est
@@ -20,7 +21,7 @@ import { FormulaireNouveauClient } from './FormulaireNouveauClient';
  *  pour prouver que la réinitialisation vient de l'effet dépendant de `ouvert`, pas d'un
  *  démontage accidentel qui masquerait un formulaire encore bogué.
  */
-function EnveloppeTiroir({ onCree }: { readonly onCree: (id: string) => void }) {
+function EnveloppeTiroir({ onCree }: { readonly onCree: (client: ReponseClient) => void }) {
   const [ouvert, setOuvert] = useState(true);
   return (
     <div>
@@ -84,6 +85,15 @@ function rendreFormulaire(onCree = vi.fn(), routeInitiale = '/') {
 }
 
 describe('FormulaireNouveauClient', () => {
+  // Le brouillon (issue #78) vit dans `sessionStorage`, sous une clé CONSTANTE
+  // (`CLE_BROUILLON_NOUVEAU_CLIENT`) — sans ce nettoyage, un brouillon écrit par un test
+  // resurgirait au montage du suivant (jsdom ne réinitialise pas `sessionStorage` entre les `it`
+  // d'un même fichier), faisant passer ou échouer des tests selon leur ORDRE d'exécution plutôt
+  // que sur leur propre mérite.
+  beforeEach(() => {
+    window.sessionStorage.clear();
+  });
+
   it('affiche les erreurs de validation par champ à la soumission de données invalides, sans perte de saisie ni rejet silencieux', async () => {
     // Régression @hookform/resolvers + zod 4 : avec @hookform/resolvers@3.10.0, l'adaptateur zod
     // teste `Array.isArray(err?.errors)` pour convertir un ZodError en erreurs de champ RHF — or
@@ -142,7 +152,10 @@ describe('FormulaireNouveauClient', () => {
     await remplirIdentiteMinimale(utilisateur);
     await utilisateur.click(screen.getByRole('button', { name: 'Créer le client' }));
 
-    await waitFor(() => expect(onCree).toHaveBeenCalledWith('cl-42'));
+    // Issue #79 : `onCree` reçoit désormais la fiche COMPLÈTE (pas seulement l'id) — c'est ce que
+    // `EcranListeClients` transmet à `EcranFicheClient` via l'état de navigation si la lecture qui
+    // suit la création échoue (voir `EcranFicheClient.spec.tsx`).
+    await waitFor(() => expect(onCree).toHaveBeenCalledWith(CLIENT_CREE));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
@@ -186,7 +199,7 @@ describe('FormulaireNouveauClient', () => {
 
     await utilisateur.click(within(dialogue).getByRole('button', { name: 'Créer quand même' }));
 
-    await waitFor(() => expect(onCree).toHaveBeenCalledWith('cl-42'));
+    await waitFor(() => expect(onCree).toHaveBeenCalledWith(CLIENT_CREE));
   });
 
   describe('propagation du site (?site=) au lien « Voir » d’un doublon', () => {
@@ -230,7 +243,7 @@ describe('FormulaireNouveauClient', () => {
   });
 
   describe('défaut 1 — réinitialisation à la réouverture (corruption de saisie constatée en base)', () => {
-    it("efface toute la saisie d'une tentative précédente à la réouverture, MÊME quand le tiroir n'a jamais été démonté", async () => {
+    it("ne concatène jamais une saisie précédente à une nouvelle, MÊME quand le tiroir n'a jamais été démonté (brouillon rejeté explicitement)", async () => {
       server.use(
         http.get('/api/v1/doublons-clients', () =>
           HttpResponse.json({ candidats: [] } satisfies ReponseDoublonsClients),
@@ -255,17 +268,20 @@ describe('FormulaireNouveauClient', () => {
       await utilisateur.click(screen.getByRole('button', { name: 'Fermer le tiroir' }));
       await utilisateur.click(screen.getByRole('button', { name: 'Ouvrir le tiroir' }));
 
-      // Le type revient aussi au défaut (`particulier`) : les champs « entreprise » précédemment
+      // Issue #78 (postérieure au défaut 1) : la réouverture RESTAURE désormais la tentative
+      // précédente au lieu de l'effacer silencieusement — annoncée par le bandeau de brouillon,
+      // avec un moyen explicite de la rejeter (voir le describe « issue #78 » plus bas). On
+      // rejette ICI ce brouillon pour reproduire fidèlement l'intention originale du défaut 1
+      // (repartir d'une page blanche) et prouver que le coeur de sa garantie tient toujours :
+      // aucune valeur de la tentative précédente ne doit JAMAIS se concaténer à une nouvelle
+      // saisie sur le même champ.
+      await utilisateur.click(screen.getByRole('button', { name: 'Ignorer le brouillon' }));
+
+      // Le type revient au défaut (`particulier`) : les champs « entreprise » précédemment
       // remplis (Raison sociale/IDE) disparaissent complètement — remplacés par Nom/Prénom, tous
-      // deux vides. S'ils survivaient encore quelque part dans l'état du formulaire, ils
-      // réapparaîtraient pré-remplis au prochain passage en « Entreprise ».
+      // deux vides.
       expect(screen.queryByLabelText('Raison sociale')).not.toBeInTheDocument();
       expect(screen.getByLabelText('Nom')).toHaveValue('');
-
-      // Aucune valeur de la tentative précédente ne doit survivre sur les champs communs aux deux
-      // types : le défaut constaté produisait une concaténation (« Café Zür-BrücCafé
-      // Zür-Brücke Sàrlke Sàrl ») quand une nouvelle saisie s'insérait dans l'ancienne au lieu de
-      // la remplacer.
       expect(screen.getByLabelText('Rue et numéro')).toHaveValue('');
       expect(screen.getByLabelText('NPA')).toHaveValue('');
       expect(screen.getByLabelText('Localité')).toHaveValue('');
@@ -279,9 +295,106 @@ describe('FormulaireNouveauClient', () => {
       await utilisateur.click(screen.getByRole('button', { name: 'Particulier' }));
       expect(screen.getByLabelText('Nom')).toHaveValue('');
 
-      // Une NOUVELLE saisie, après réouverture, reste intacte (pas d'insertion dans un reliquat).
+      // Une NOUVELLE saisie, après réouverture, reste intacte (pas d'insertion dans un reliquat —
+      // le symptôme exact du défaut 1 : « Café Zür-BrücCafé Zür-Brücke Sàrlke Sàrl »).
       await utilisateur.type(screen.getByLabelText('Nom'), 'Rossi');
       expect(screen.getByLabelText('Nom')).toHaveValue('Rossi');
+    });
+  });
+
+  describe('issue #78 — le panneau perdait la saisie sur une fermeture accidentelle (Échap, clic hors du panneau)', () => {
+    it("restaure la saisie ET l'annonce via un bandeau, à la réouverture d'un tiroir resté monté", async () => {
+      server.use(
+        http.get('/api/v1/doublons-clients', () =>
+          HttpResponse.json({ candidats: [] } satisfies ReponseDoublonsClients),
+        ),
+      );
+      const utilisateur = userEvent.setup();
+      renduAvecRoutes([{ path: '/', element: <EnveloppeTiroir onCree={vi.fn()} /> }], {
+        routeInitiale: '/',
+      });
+
+      // Verbatim terrain (issue #78) : « Nom, prénom, téléphone, rue : tout parti. »
+      await utilisateur.type(screen.getByLabelText('Nom'), 'Rossier');
+      await utilisateur.type(screen.getByLabelText('Prénom'), 'Jean');
+      await utilisateur.type(screen.getByLabelText('Téléphone'), '079 123 45 67');
+      await utilisateur.type(screen.getByLabelText('Rue et numéro'), 'Rue du Lac 8');
+
+      // Aucun bandeau tant que rien n'a été perdu — il n'apparaît qu'à la REPRISE d'un brouillon,
+      // jamais pendant la saisie elle-même.
+      expect(screen.queryByText(/Brouillon repris de/)).not.toBeInTheDocument();
+
+      // Le tiroir « se ferme » puis « se rouvre » — représente aussi bien une fermeture EXPLICITE
+      // (bouton visible) qu'une fermeture accidentelle qu'`EcranListeClients` n'aurait pas
+      // bloquée (voir `EcranListeClients.spec.tsx` pour le garde-fou Échap/clic extérieur
+      // lui-même) : dans les deux cas, plus rien ne doit dépendre de CETTE instance React précise
+      // pour retrouver la saisie.
+      await utilisateur.click(screen.getByRole('button', { name: 'Fermer le tiroir' }));
+      await utilisateur.click(screen.getByRole('button', { name: 'Ouvrir le tiroir' }));
+
+      expect(screen.getByLabelText('Nom')).toHaveValue('Rossier');
+      expect(screen.getByLabelText('Prénom')).toHaveValue('Jean');
+      expect(screen.getByLabelText('Téléphone')).toHaveValue('079 123 45 67');
+      expect(screen.getByLabelText('Rue et numéro')).toHaveValue('Rue du Lac 8');
+      expect(screen.getByText(/Brouillon repris de/)).toBeInTheDocument();
+    });
+
+    it('« Ignorer le brouillon » vide le formulaire et fait disparaître le bandeau', async () => {
+      server.use(
+        http.get('/api/v1/doublons-clients', () =>
+          HttpResponse.json({ candidats: [] } satisfies ReponseDoublonsClients),
+        ),
+      );
+      const utilisateur = userEvent.setup();
+      renduAvecRoutes([{ path: '/', element: <EnveloppeTiroir onCree={vi.fn()} /> }], {
+        routeInitiale: '/',
+      });
+
+      await utilisateur.type(screen.getByLabelText('Nom'), 'Rossier');
+      await utilisateur.click(screen.getByRole('button', { name: 'Fermer le tiroir' }));
+      await utilisateur.click(screen.getByRole('button', { name: 'Ouvrir le tiroir' }));
+      expect(await screen.findByText(/Brouillon repris de/)).toBeInTheDocument();
+
+      await utilisateur.click(screen.getByRole('button', { name: 'Ignorer le brouillon' }));
+
+      expect(screen.queryByText(/Brouillon repris de/)).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Nom')).toHaveValue('');
+
+      // Preuve FONCTIONNELLE que le rejet a bien été pris en compte, pas seulement l'écran
+      // courant : une réouverture SUIVANTE ne restaure plus rien. `lireBrouillon` peut réécrire un
+      // enregistrement techniquement non vide juste après (le vidage des champs redéclenche
+      // `useSauvegardeBrouillon`, même artefact accepté et documenté sur le correctif jumeau
+      // `FormulaireNouvelOrdreReparation`, issue #77) — ce n'est jamais RESTAURÉ tant que son
+      // contenu est vide (`brouillonEstVide`), donc invisible et sans effet pour l'utilisateur.
+      await utilisateur.click(screen.getByRole('button', { name: 'Fermer le tiroir' }));
+      await utilisateur.click(screen.getByRole('button', { name: 'Ouvrir le tiroir' }));
+      expect(screen.queryByText(/Brouillon repris de/)).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Nom')).toHaveValue('');
+    });
+
+    it('efface le brouillon après une création réussie — il ne doit jamais resurgir pour le client suivant', async () => {
+      server.use(
+        http.get('/api/v1/doublons-clients', () =>
+          HttpResponse.json({ candidats: [] } satisfies ReponseDoublonsClients),
+        ),
+        http.post('/api/v1/clients', () =>
+          HttpResponse.json({ donnees: CLIENT_CREE, avertissements: [] }),
+        ),
+      );
+      const utilisateur = userEvent.setup();
+      const { onCree } = rendreFormulaire();
+
+      await remplirIdentiteMinimale(utilisateur);
+      // Le brouillon existe bel et bien avant la soumission — condition nécessaire pour que
+      // « effacé APRÈS succès » soit une preuve, pas un non-événement.
+      expect(lireBrouillon(CLE_BROUILLON_NOUVEAU_CLIENT)).toBeDefined();
+
+      await utilisateur.click(screen.getByRole('button', { name: 'Créer le client' }));
+
+      await waitFor(() => expect(onCree).toHaveBeenCalledWith(CLIENT_CREE));
+      // Sans ce nettoyage, le tiroir suivant reprendrait l'identité du client PRÉCÉDENT — le
+      // risque nommé dans le correctif jumeau (`FormulaireNouvelOrdreReparation`, issue #77).
+      expect(lireBrouillon(CLE_BROUILLON_NOUVEAU_CLIENT)).toBeUndefined();
     });
   });
 
@@ -316,25 +429,24 @@ describe('FormulaireNouveauClient', () => {
 
       // Avec un IDE valide, la même soumission part normalement (pas de régression du chemin
       // heureux) : on corrige le champ et on reconfirme que le formulaire se débloque.
+      const clientEntreprise: ReponseClient = {
+        ...CLIENT_CREE,
+        id: 'cl-99',
+        numeroClient: 'CL-000099',
+        type: 'entreprise',
+        raisonSociale: 'Garage Exemple Sàrl',
+        nom: null,
+        nomAffiche: 'Garage Exemple Sàrl',
+      };
       server.use(
         http.post('/api/v1/clients', () =>
-          HttpResponse.json({
-            donnees: {
-              ...CLIENT_CREE,
-              id: 'cl-99',
-              type: 'entreprise',
-              raisonSociale: 'Garage Exemple Sàrl',
-              nom: null,
-              nomAffiche: 'Garage Exemple Sàrl',
-            },
-            avertissements: [],
-          }),
+          HttpResponse.json({ donnees: clientEntreprise, avertissements: [] }),
         ),
       );
       await utilisateur.clear(screen.getByLabelText('IDE'));
       await utilisateur.type(screen.getByLabelText('IDE'), 'CHE-116.281.277');
       await utilisateur.click(screen.getByRole('button', { name: 'Créer le client' }));
-      await waitFor(() => expect(onCree).toHaveBeenCalledWith('cl-99'));
+      await waitFor(() => expect(onCree).toHaveBeenCalledWith(clientEntreprise));
     });
   });
 
@@ -347,15 +459,13 @@ describe('FormulaireNouveauClient', () => {
     // correctif. Ce test encodait le comportement cible en `it.fails` tant que le contrat bloquait ;
     // repassé en `it` normal maintenant qu'il passe.
     it('crée un client particulier sans indiquer aucune adresse', async () => {
+      const clientSansAdresse: ReponseClient = { ...CLIENT_CREE, id: 'cl-sans-adresse' };
       server.use(
         http.get('/api/v1/doublons-clients', () =>
           HttpResponse.json({ candidats: [] } satisfies ReponseDoublonsClients),
         ),
         http.post('/api/v1/clients', () =>
-          HttpResponse.json({
-            donnees: { ...CLIENT_CREE, id: 'cl-sans-adresse' },
-            avertissements: [],
-          }),
+          HttpResponse.json({ donnees: clientSansAdresse, avertissements: [] }),
         ),
       );
       const utilisateur = userEvent.setup();
@@ -365,7 +475,7 @@ describe('FormulaireNouveauClient', () => {
       await utilisateur.type(screen.getByLabelText('Nom'), 'Rossi');
       await utilisateur.click(screen.getByRole('button', { name: 'Créer le client' }));
 
-      await waitFor(() => expect(onCree).toHaveBeenCalledWith('cl-sans-adresse'));
+      await waitFor(() => expect(onCree).toHaveBeenCalledWith(clientSansAdresse));
     });
 
     it('conserve l’adresse saisie telle quelle dans la requête de création (aucune perte de saisie)', async () => {
@@ -385,7 +495,7 @@ describe('FormulaireNouveauClient', () => {
       await remplirIdentiteMinimale(utilisateur);
       await utilisateur.click(screen.getByRole('button', { name: 'Créer le client' }));
 
-      await waitFor(() => expect(onCree).toHaveBeenCalledWith('cl-42'));
+      await waitFor(() => expect(onCree).toHaveBeenCalledWith(CLIENT_CREE));
       expect(corpsRecu?.adressePrincipale).toMatchObject({
         rue: 'Rue Neuve 5',
         npa: '1000',
@@ -465,6 +575,31 @@ describe('FormulaireNouveauClient', () => {
       expect(screen.getByLabelText('E-mail')).toHaveAttribute('aria-invalid', 'true');
       expect(screen.queryByText(/Invalid email address/)).not.toBeInTheDocument();
       expect(onCree).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('issue #79 — un échec réseau sur la création laisse croire que rien n’a été tenté', () => {
+    it('affiche « Connexion impossible » ET une précision : rejouer ne créera pas de doublon (même clé d’idempotence)', async () => {
+      server.use(
+        http.get('/api/v1/doublons-clients', () =>
+          HttpResponse.json({ candidats: [] } satisfies ReponseDoublonsClients),
+        ),
+        http.post('/api/v1/clients', () => HttpResponse.error()),
+      );
+      const utilisateur = userEvent.setup();
+      const { onCree } = rendreFormulaire();
+
+      await remplirIdentiteMinimale(utilisateur);
+      await utilisateur.click(screen.getByRole('button', { name: 'Créer le client' }));
+
+      expect(await screen.findByText('Connexion impossible')).toBeInTheDocument();
+      // Verbatim terrain (client Rossier, CL-000013) : sans cette précision, le seul message
+      // affiché laisse croire que rien n'a été tenté, ce qui a failli faire ressaisir le client
+      // une seconde fois — un doublon, en garage, s'adresse au mauvais dossier.
+      expect(await screen.findByText(/ne créera pas de doublon/)).toBeInTheDocument();
+      expect(onCree).not.toHaveBeenCalled();
+      // La saisie survit à l'échec réseau — un réceptionniste qui rejoue ne retape rien.
+      expect(screen.getByLabelText('Nom')).toHaveValue('Rossi');
     });
   });
 });

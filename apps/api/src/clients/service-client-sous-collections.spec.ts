@@ -8,9 +8,27 @@ import type {
 } from '@dfa/shared';
 
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
+import type { LigneTauxHoraire } from '../db/schema';
 import type { ServiceJournal } from '../common/journal';
 import { ServiceClientSousCollections } from './service-client-sous-collections';
 import type { ParametresPageSousCollection } from './schemas';
+
+/** #72 : ligne `taux_horaire` factice — voir `ligneFixture`/`tauxHoraireFixture` de
+ *  `atelier/service-ligne-or.spec.ts` pour le même patron (référentiel réutilisé, pas réinventé). */
+function tauxHoraireFixture(overrides: Partial<LigneTauxHoraire> = {}): LigneTauxHoraire {
+  return {
+    id: 'th-1',
+    tenantId: 'tid-1',
+    code: 'ATELIER',
+    libelle: 'Taux horaire atelier',
+    montantCentimes: 13_500,
+    valideDu: '2020-01-01',
+    valideAu: null,
+    creeLe: new Date('2020-01-01T00:00:00.000Z'),
+    modifieLe: new Date('2020-01-01T00:00:00.000Z'),
+    ...overrides,
+  } as LigneTauxHoraire;
+}
 
 const CTX: ContexteTenant = { tenantId: 'tid-1', utilisateurId: 'u1', requeteId: null };
 const dialect = new PgDialect();
@@ -36,11 +54,26 @@ function txFactice(plan: { selects?: readonly unknown[][] } = {}) {
       from: () => ({
         where: (cond: unknown) => {
           whereArgs.push(cond);
-          // Deux formes utilisées selon l'appel : `.where().limit()` (vérification d'existence)
-          // et `.where().orderBy().limit()` (listes paginées) — les deux doivent aboutir à la
-          // même file de résultats, dans l'ordre des appels.
-          const resoudre = () => Promise.resolve(selects.shift() ?? []);
-          return { limit: resoudre, orderBy: () => ({ limit: resoudre }) };
+          // Trois formes utilisées selon l'appel : `.where().limit()` (vérification d'existence),
+          // `.where().orderBy().limit()` (listes paginées), et `.where()` attendu DIRECTEMENT sans
+          // `.limit()` (ex. `atelier/taux-horaire.ts::chargerToutesTauxHoraire` — lecture complète
+          // d'une petite table, même patron que le VRAI query builder Drizzle : `await
+          // tx.select().from(t).where(cond)` fonctionne sans `.limit()`, car chaque étape est
+          // elle-même `PromiseLike`). Les trois doivent consommer EXACTEMENT une entrée de la file
+          // par `.where()` — `resoudre` est donc MÉMOÏSÉ ici (un seul `selects.shift()`), pour que
+          // `.limit()` après un `.then()` (ou l'inverse) ne consomme jamais une deuxième entrée.
+          let resolu: Promise<unknown[]> | undefined;
+          const resoudre = () => {
+            resolu ??= Promise.resolve(selects.shift() ?? []);
+            return resolu;
+          };
+          return {
+            limit: resoudre,
+            orderBy: () => ({ limit: resoudre }),
+            then: (onFulfilled: (v: unknown[]) => unknown, onRejected?: (e: unknown) => unknown) =>
+              resoudre().then(onFulfilled, onRejected),
+            catch: (onRejected: (e: unknown) => unknown) => resoudre().catch(onRejected),
+          };
         },
       }),
     }),
@@ -200,6 +233,142 @@ describe('ServiceClientSousCollections.creerCondition — conditions commerciale
       );
     },
   );
+});
+
+describe('ServiceClientSousCollections — résolution du taux horaire lisible (#72)', () => {
+  const conditionRow = (overrides: Partial<Record<string, unknown>> = {}) => ({
+    id: 'cd1',
+    tenantId: 'tid-1',
+    clientId: 'c1',
+    rabaisMoPourmille: 0,
+    rabaisPiecesPourmille: 0,
+    rabaisPneusPourmille: 0,
+    tauxHoraireCode: 'ATELIER',
+    delaiPaiementJours: null,
+    modePaiement: null,
+    plafondCentimes: null,
+    valideDu: '2026-01-01',
+    valideAu: null,
+    creeLe: new Date('2026-01-01T00:00:00.000Z'),
+    modifieLe: new Date('2026-01-01T00:00:00.000Z'),
+    ...overrides,
+  });
+
+  it('creerCondition : un tauxHoraireCode qui couvre valideDuLe est résolu en libellé + montant', async () => {
+    const { tx, poserRetourInsert } = txFactice({
+      selects: [[{ id: 'c1' }], [tauxHoraireFixture()]],
+    });
+    poserRetourInsert([conditionRow()]);
+    const service = new ServiceClientSousCollections(accesFactice(tx), journalFactice());
+    const entree: EntreeConditionClient = {
+      rabaisMoPourmille: 0,
+      rabaisPiecesPourmille: 0,
+      rabaisPneusPourmille: 0,
+      tauxHoraireCode: 'ATELIER',
+      valideDuLe: '2026-01-01',
+      valideAuLe: null,
+    };
+
+    const enveloppe = await service.creerCondition(CTX, 'c1', entree);
+
+    expect(enveloppe.donnees.tauxHoraireCode).toBe('ATELIER');
+    expect(enveloppe.donnees.tauxHoraireLibelle).toBe('Taux horaire atelier');
+    expect(enveloppe.donnees.tauxHoraireMontantCentimes).toBe(13_500);
+  });
+
+  it("creerCondition : un tauxHoraireCode SANS période de validité couvrant valideDuLe rend libellé/montant null, sans lever d'erreur — cette réponse n'affiche qu'un résultat, jamais le motif d'échec RM-65", async () => {
+    const { tx, poserRetourInsert } = txFactice({
+      // Le SEUL taux du référentiel démarre après la date de la condition (2026-01-01) : aucune
+      // période ne la couvre.
+      selects: [[{ id: 'c1' }], [tauxHoraireFixture({ valideDu: '2026-06-01' })]],
+    });
+    poserRetourInsert([conditionRow()]);
+    const service = new ServiceClientSousCollections(accesFactice(tx), journalFactice());
+    const entree: EntreeConditionClient = {
+      rabaisMoPourmille: 0,
+      rabaisPiecesPourmille: 0,
+      rabaisPneusPourmille: 0,
+      tauxHoraireCode: 'ATELIER',
+      valideDuLe: '2026-01-01',
+      valideAuLe: null,
+    };
+
+    const enveloppe = await service.creerCondition(CTX, 'c1', entree);
+
+    expect(enveloppe.donnees.tauxHoraireLibelle).toBeNull();
+    expect(enveloppe.donnees.tauxHoraireMontantCentimes).toBeNull();
+  });
+
+  it('creerCondition : sans tauxHoraireCode (RM-07, taux négocié éventuel), libellé/montant restent null — jamais la cascade de repli RM-65 appliquée ici', async () => {
+    const { tx, poserRetourInsert } = txFactice({
+      selects: [[{ id: 'c1' }], [tauxHoraireFixture()]],
+    });
+    poserRetourInsert([conditionRow({ tauxHoraireCode: null })]);
+    const service = new ServiceClientSousCollections(accesFactice(tx), journalFactice());
+    const entree: EntreeConditionClient = {
+      rabaisMoPourmille: 0,
+      rabaisPiecesPourmille: 0,
+      rabaisPneusPourmille: 0,
+      valideDuLe: '2026-01-01',
+      valideAuLe: null,
+    };
+
+    const enveloppe = await service.creerCondition(CTX, 'c1', entree);
+
+    expect(enveloppe.donnees.tauxHoraireCode).toBeNull();
+    expect(enveloppe.donnees.tauxHoraireLibelle).toBeNull();
+    expect(enveloppe.donnees.tauxHoraireMontantCentimes).toBeNull();
+  });
+
+  it('listerConditions : résout CHAQUE condition à SA PROPRE valideDuLe, avec un SEUL chargement du référentiel taux_horaire pour toute la page (jamais une requête par condition)', async () => {
+    const conditionAncienne = conditionRow({
+      id: 'cd-ancienne',
+      tauxHoraireCode: 'ATELIER',
+      valideDu: '2020-01-01',
+      creeLeTexte: '2020-01-01 00:00:00+00',
+    });
+    const conditionRecente = conditionRow({
+      id: 'cd-recente',
+      tauxHoraireCode: 'ATELIER',
+      valideDu: '2026-06-01',
+      creeLeTexte: '2026-06-01 00:00:00+00',
+    });
+    const { tx, whereArgs } = txFactice({
+      selects: [
+        [{ id: 'c1' }],
+        [conditionAncienne, conditionRecente],
+        // Deux taux successifs sous le MÊME code : l'ancien couvre 2020-01-01, le nouveau prend le
+        // relais au 2026-03-01 — une condition datée de chaque côté de la bascule doit résoudre au
+        // taux EN VIGUEUR à SA PROPRE date, pas au dernier taux du référentiel.
+        [
+          tauxHoraireFixture({
+            valideDu: '2020-01-01',
+            valideAu: '2026-03-01',
+            montantCentimes: 13_500,
+          }),
+          tauxHoraireFixture({
+            id: 'th-2',
+            valideDu: '2026-03-01',
+            valideAu: null,
+            montantCentimes: 14_500,
+          }),
+        ],
+      ],
+    });
+    const service = new ServiceClientSousCollections(accesFactice(tx), journalFactice());
+
+    const page = await service.listerConditions(CTX, 'c1', { limite: 20 });
+
+    expect(page.donnees.find((c) => c.id === 'cd-ancienne')?.tauxHoraireMontantCentimes).toBe(
+      13_500,
+    );
+    expect(page.donnees.find((c) => c.id === 'cd-recente')?.tauxHoraireMontantCentimes).toBe(
+      14_500,
+    );
+    // 3 `.where()` en tout (client, page de conditions, référentiel taux_horaire) — jamais 4, ce
+    // qui prouverait un chargement du référentiel PAR condition affichée.
+    expect(whereArgs).toHaveLength(3);
+  });
 });
 
 describe('ServiceClientSousCollections.creerAdresse — une seule adresse active par type (RM-03)', () => {
@@ -534,8 +703,8 @@ describe('ServiceClientSousCollections.modifierAdresse — NPA×pays sur l’ét
   );
 
   it(
-    'modifierAdresse : un corps qui ne porte QUE des clés inconnues (retirées par zod au parse) ' +
-      'est refusé en 400 corps_vide, jamais un no-op silencieux',
+    'modifierAdresse : un corps qui ne porte QUE des clés inconnues (avec `.strict()`, ' +
+      "refusées plutôt qu'élaguées) est refusé en 400 unrecognized_keys, jamais un no-op silencieux",
     async () => {
       const fabrique = txFactice();
       const service = new ServiceClientSousCollections(accesFactice(fabrique.tx), journalFactice());
@@ -545,14 +714,16 @@ describe('ServiceClientSousCollections.modifierAdresse — NPA×pays sur l’ét
         .catch((e: unknown) => e);
 
       expect(erreur).toMatchObject({ code: 'VALIDATION_ECHOUEE', status: 400 });
-      expect((erreur as { erreurs: Array<{ code: string }> }).erreurs[0]?.code).toBe('corps_vide');
+      expect((erreur as { erreurs: Array<{ code: string }> }).erreurs[0]?.code).toBe(
+        'unrecognized_keys',
+      );
       expect(fabrique.updateSetArgs).toHaveLength(0);
       expect(fabrique.whereArgs).toHaveLength(0);
     },
   );
 
   it(
-    'modifierContact : un corps qui ne porte QUE des clés inconnues est refusé en 400 corps_vide, ' +
+    'modifierContact : un corps qui ne porte QUE des clés inconnues est refusé en 400 unrecognized_keys, ' +
       'même garde que modifierAdresse',
     async () => {
       const fabrique = txFactice();
@@ -563,7 +734,9 @@ describe('ServiceClientSousCollections.modifierAdresse — NPA×pays sur l’ét
         .catch((e: unknown) => e);
 
       expect(erreur).toMatchObject({ code: 'VALIDATION_ECHOUEE', status: 400 });
-      expect((erreur as { erreurs: Array<{ code: string }> }).erreurs[0]?.code).toBe('corps_vide');
+      expect((erreur as { erreurs: Array<{ code: string }> }).erreurs[0]?.code).toBe(
+        'unrecognized_keys',
+      );
       expect(fabrique.updateSetArgs).toHaveLength(0);
     },
   );

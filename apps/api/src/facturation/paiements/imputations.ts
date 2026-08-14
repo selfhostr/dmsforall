@@ -1,5 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import type {
+  DetailImputationDeviseIncoherente,
   EntreeCreationImputation,
   NatureImputation,
   StatutReglementDocument,
@@ -126,24 +127,43 @@ export function estErreurInvariantImputation(erreur: unknown): boolean {
  * comparer : sa devise reste celle déclarée à la création, non vérifiée tant qu'aucune imputation
  * ne la rattache à un document — le contrôle s'applique alors, via ce même chemin, à la première
  * imputation ou compensation qui la rattache (`ajouterImputation`, `abandonner`).
+ *
+ * `blocages` (issue #15, point 3/3, dernier restant) : même patron que `STOCK_INSUFFISANT`
+ * (`pieces/service-mouvement.ts`) et `VEHICULE_PLAQUE_COLLISION` — voir le commentaire de tête de
+ * `DetailImputationDeviseIncoherente` (`@dfa/shared`). `champDocumentId` est FOURNI PAR L'APPELANT,
+ * jamais deviné ici : le nom du champ fautif diffère selon la route (`'documentId'` pour le
+ * lettrage générique, `'documentRegularisationId'` pour l'abandon d'avance), et cette fonction n'a
+ * aucun moyen de savoir laquelle des deux l'a appelée.
  */
 function verifierCoherenceDevise(
   paiementLigne: Pick<LignePaiement, 'id' | 'devise'>,
   document: Pick<LigneDocumentVente, 'id' | 'devise'>,
+  champDocumentId: 'documentId' | 'documentRegularisationId',
 ): void {
   if (paiementLigne.devise !== document.devise) {
     // `detail` porte le contexte technique, PAS `erreurs` (§3.5 règle 5 du contrat d'erreur : ce
     // champ est réservé à la validation de saisie, jamais à un blocage métier — même patron que
     // `IMPUTATION_MONTANT_EXCEDENTAIRE` un peu plus bas dans ce fichier).
-    throw new ErreurMetier(
-      'IMPUTATION_DEVISE_INCOHERENTE',
+    const message =
       `Le paiement ${paiementLigne.id} est en ${paiementLigne.devise}, le document ${document.id} ` +
-        `en ${document.devise} — imputation refusée (MD-50) : un paiement ne peut pas régler un ` +
-        'document dans une autre devise que la sienne.',
-      {
-        detail: `paiement_id=${paiementLigne.id};paiement_devise=${paiementLigne.devise};document_id=${document.id};document_devise=${document.devise}`,
-      },
-    );
+      `en ${document.devise} — imputation refusée (MD-50) : un paiement ne peut pas régler un ` +
+      'document dans une autre devise que la sienne.';
+    throw new ErreurMetier('IMPUTATION_DEVISE_INCOHERENTE', message, {
+      detail: `paiement_id=${paiementLigne.id};paiement_devise=${paiementLigne.devise};document_id=${document.id};document_devise=${document.devise}`,
+      blocages: [
+        {
+          type: 'champ',
+          id: champDocumentId,
+          libelle: message,
+          donnees: {
+            paiementId: paiementLigne.id,
+            paiementDevise: paiementLigne.devise,
+            documentId: document.id,
+            documentDevise: document.devise,
+          } satisfies DetailImputationDeviseIncoherente,
+        },
+      ],
+    });
   }
 }
 
@@ -370,7 +390,7 @@ export async function appliquerImputationsLettrage(
     const document = await chargerDocumentPourEcriture(tx, ctx, documentId);
     await verifierDocumentImputable(tx, ctx, document);
     verifierDocumentPasAvoir(document);
-    verifierCoherenceDevise(paiementLigne, document);
+    verifierCoherenceDevise(paiementLigne, document, 'documentId');
     const totalDocument =
       document.totalTtcCentimes < 0n ? -document.totalTtcCentimes : document.totalTtcCentimes;
     const restantAvant = totalDocument - document.montantRegleCentimes;
@@ -468,7 +488,7 @@ export async function appliquerCompensationAvance(
 
   const document = await chargerDocumentPourEcriture(tx, ctx, documentRegularisationId);
   await verifierDocumentImputable(tx, ctx, document);
-  verifierCoherenceDevise(paiementAvance, document);
+  verifierCoherenceDevise(paiementAvance, document, 'documentRegularisationId');
   const totalDocument =
     document.totalTtcCentimes < 0n ? -document.totalTtcCentimes : document.totalTtcCentimes;
   const restantAvant = totalDocument - document.montantRegleCentimes;

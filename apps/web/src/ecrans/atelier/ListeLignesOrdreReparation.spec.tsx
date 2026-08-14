@@ -165,4 +165,29 @@ describe('ListeLignesOrdreReparation — sélection et actions groupées (valide
     expect(await within(dialogue).findByText('Le motif est obligatoire')).toBeInTheDocument();
     expect(appele).toBe(false);
   });
+
+  describe("motif d'annulation (issue #105) — donnée déjà envoyée par le serveur, jamais affichée jusqu'ici", () => {
+    it('affiche le motif sous le badge « Annulée » quand la ligne est annulée avec un motif', async () => {
+      rendre([
+        construireLigne({
+          statut: 'annulee',
+          motifAnnulation: 'Ligne de test creee pour verifier issue #72, a annuler',
+        }),
+      ]);
+
+      expect(await screen.findByText('Annulée')).toBeInTheDocument();
+      expect(
+        screen.getByText('Ligne de test creee pour verifier issue #72, a annuler'),
+      ).toBeInTheDocument();
+    });
+
+    it("n'affiche aucun sous-texte de motif pour une ligne qui n'est pas annulée", async () => {
+      rendre([construireLigne({ statut: 'validee', motifAnnulation: null })]);
+
+      expect(await screen.findByText('Validée')).toBeInTheDocument();
+      expect(
+        screen.queryByText('Ligne de test creee pour verifier issue #72, a annuler'),
+      ).not.toBeInTheDocument();
+    });
+  });
 });

@@ -4,9 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 
 import {
+  ATTENTES_ORDRE_REPARATION,
   STATUTS_ORDRE_REPARATION,
   TRI_DEFAUT_ORDRES_REPARATION,
   TRIS_ORDRES_REPARATION,
+  type AttenteOrdreReparation,
   type OrdreReparationResume,
   type StatutOrdreReparation,
 } from '@dfa/shared';
@@ -33,6 +35,7 @@ import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { peutCreerOrdreReparation } from '@/ecrans/atelier/droits';
 import { useListeOrdresReparation } from '@/hooks/atelier/useListeOrdresReparation';
 import { useSession } from '@/hooks/useSession';
@@ -47,8 +50,6 @@ const CLES_TRI: Record<(typeof TRIS_ORDRES_REPARATION)[number], string> = {
   'ouvertLe:asc': 'or:liste.tri.ouvertLeAsc',
   'restitutionPromiseLe:asc': 'or:liste.tri.restitutionPromiseLeAsc',
   'restitutionPromiseLe:desc': 'or:liste.tri.restitutionPromiseLeDesc',
-  'numeroSequence:desc': 'or:liste.tri.numeroSequenceDesc',
-  'numeroSequence:asc': 'or:liste.tri.numeroSequenceAsc',
   'joursAttenteRetrait:desc': 'or:liste.tri.joursAttenteRetraitDesc',
 };
 
@@ -65,6 +66,16 @@ const CLES_STATUT: Record<StatutOrdreReparation, string> = {
   restitue: 'restitue',
   cloture: 'cloture',
   annule: 'annule',
+};
+
+/** `AttenteOrdreReparation` -> suffixe de `or:statuts` — issue #111 : PAS un statut (voir la doc
+ *  du filtre `attente` sur `FiltresListeOrdresReparation`), donc ABSENT de `CLES_STATUT`
+ *  ci-dessus, mais le mot affiché reste le même que sur le badge (« Attente pièces »…) : réutilise
+ *  les clés `or:statuts.attente*` existantes plutôt que d'en dupliquer trois de plus. */
+const CLES_ATTENTE: Record<AttenteOrdreReparation, string> = {
+  accord: 'attenteAccord',
+  pieces: 'attentePieces',
+  externe: 'attenteExterne',
 };
 
 /** Convention assumée en l'absence de câblage de `src/routes/` à ce jour (agent dédié) — même
@@ -107,6 +118,10 @@ export function EcranListeOrdresReparation() {
   const [qSaisie, setQSaisie] = useState('');
   const [q, setQ] = useState('');
   const [statut, setStatut] = useState<StatutOrdreReparation | undefined>(undefined);
+  // Issue #111 — filtre ORTHOGONAL au statut (voir `CLES_ATTENTE` ci-dessus), jamais fusionné dans
+  // le même `<Select>` : un OR « attente pièces » a par ailleurs un statut réel (`en_cours` le
+  // plus souvent) que ce second filtre ne doit jamais masquer.
+  const [attente, setAttente] = useState<AttenteOrdreReparation | undefined>(undefined);
   const [tri, setTri] = useState<string>(TRI_DEFAUT_ORDRES_REPARATION);
 
   useEffect(() => {
@@ -115,8 +130,8 @@ export function EcranListeOrdresReparation() {
   }, [qSaisie]);
 
   const filtres = useMemo(
-    () => ({ q: q.trim() === '' ? undefined : q.trim(), statut, siteId: site, tri }),
-    [q, statut, site, tri],
+    () => ({ q: q.trim() === '' ? undefined : q.trim(), statut, attente, siteId: site, tri }),
+    [q, statut, attente, site, tri],
   );
 
   const {
@@ -130,13 +145,14 @@ export function EcranListeOrdresReparation() {
     fetchNextPage,
   } = useListeOrdresReparation(filtres);
 
-  const filtresStructuresActifs = statut !== undefined;
+  const filtresStructuresActifs = statut !== undefined || attente !== undefined;
   const filtresActifs = q.trim() !== '' || filtresStructuresActifs;
 
   function effacerFiltres() {
     setQSaisie('');
     setQ('');
     setStatut(undefined);
+    setAttente(undefined);
   }
 
   const colonnes: ColonneComptoir<OrdreReparationResume>[] = [
@@ -186,9 +202,20 @@ export function EcranListeOrdresReparation() {
   // Même bouton dans la barre d'actions (persistant) et dans l'état vide « premier usage »
   // (`EtatVidePremierUsage.action`) — même patron que `EcranListeVehicules.tsx`. Absent des deux
   // s'il n'y a rien à créer OU si le rôle courant n'a pas `atelier.or.creer`.
+  //
+  // CORRECTIF issue #81 (rapport de test terrain) : ce bouton — le plus visible de l'écran
+  // Atelier — pointait vers `chemins.atelier.ordresReparation.nouveau(site)` SANS `clientId`,
+  // que cet écran (liste, sans contexte client) n'a jamais. `EcranNouvelOrdreReparation` refusait
+  // alors systématiquement (`or:nouveau.client.requisTitre`, « Client non sélectionné ») : 100 %
+  // des clics depuis ICI tombaient sur ce cul-de-sac, dont le seul rôle était de renvoyer vers
+  // `/recherche` — un détour pur, jamais une étape utile. Pointer directement vers `/recherche`
+  // retire ce détour au lieu de le maquiller ; le geste réel « ouvrir un OR pour CE client » reste
+  // sur la fiche client (`clients:...ouvrirOr`, hors périmètre) et sur la fiche véhicule
+  // (`vehicules:...nouvelOr`, hors périmètre) — SIGNALÉ : ces deux boutons et celui-ci portent
+  // trois noms différents pour le même geste, non unifiables depuis ce seul périmètre.
   const boutonNouveauOr = peutCreer ? (
     <Button asChild>
-      <Link to={chemins.atelier.ordresReparation.nouveau(site)}>
+      <Link to={chemins.recherche.globale(site)}>
         <Plus aria-hidden className="h-4 w-4" />
         {t('or:liste.actions.nouveau')}
       </Link>
@@ -220,38 +247,32 @@ export function EcranListeOrdresReparation() {
 
   if (isPending) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('or:liste.titre')}</h1>
+      <GabaritEcran titre={t('or:liste.titre')}>
         <EtatChargement lignes={6} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (isError) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('or:liste.titre')}</h1>
+      <GabaritEcran titre={t('or:liste.titre')}>
         <EtatErreur
           titre={t('or:liste.erreur.titre')}
           description={messageErreur(error, t)}
           onReessayer={() => void refetch()}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
+  // Titre TOUJOURS visible (retour @laupernoe, chantier « zone haute des écrans de liste ») : ce n'est
+  // plus un doublon muet de l'onglet actif « Ordres de réparation » — @laupernoe veut voir écrit où il
+  // est. « Nouvel ordre de réparation » n'est PAS passé en `actions` de `GabaritEcran` (qui le
+  // placerait juste sous le titre, seul sur sa ligne, et décalerait tout le reste) : il rejoint la
+  // ligne « Trier par », à droite — écran de référence de ce chantier, même déplacement appliqué
+  // ensuite à Pneus/Clients/Véhicules et, en parallèle, à Pièces (`EcranListeArticles.tsx`).
   return (
-    <div className="flex flex-col gap-6">
-      {/* Doublon strict du libellé de l'onglet actif « Ordres de réparation »
-          (`navigation-modele.ts`, `ONGLETS_ATELIER`) : le h1 reste dans le DOM pour le lecteur
-          d'écran et la structure du document, mais n'ajoute rien visuellement à côté de la barre
-          d'onglets déjà en surbrillance. */}
-      <h1 className="sr-only">{t('or:liste.titre')}</h1>
-
-      {boutonNouveauOr ? (
-        <div className="flex items-center justify-end gap-4">{boutonNouveauOr}</div>
-      ) : null}
-
+    <GabaritEcran titre={t('or:liste.titre')}>
       <BarreFiltres
         q={qSaisie}
         onChangeQ={setQSaisie}
@@ -283,15 +304,50 @@ export function EcranListeOrdresReparation() {
             </SelectContent>
           </Select>
         </div>
+
+        {/* Issue #111 — filtre séparé, jamais fusionné dans le `<Select>` du statut ci-dessus
+         *  (voir `CLES_ATTENTE`) : « Attente pièces » est un drapeau, pas un état de la liste des
+         *  statuts réels, cumulable avec n'importe lequel d'entre eux. */}
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="filtre-attente-or">{t('or:liste.filtres.attente')}</Label>
+          <Select
+            value={attente ?? 'toutes'}
+            onValueChange={(valeur) =>
+              setAttente(valeur === 'toutes' ? undefined : (valeur as AttenteOrdreReparation))
+            }
+          >
+            <SelectTrigger
+              id="filtre-attente-or"
+              className="w-[200px]"
+              aria-label={t('or:liste.filtres.attente')}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="toutes">{t('or:liste.filtres.attenteToutes')}</SelectItem>
+              {ATTENTES_ORDRE_REPARATION.map((valeur) => (
+                <SelectItem key={valeur} value={valeur}>
+                  {t(`or:statuts.${CLES_ATTENTE[valeur]}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </BarreFiltres>
 
-      <SelecteurTri
-        options={TRIS_ORDRES_REPARATION.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
-        valeur={tri}
-        onChangeValeur={setTri}
-        label={t('or:liste.tri.label')}
-        className="max-w-xs"
-      />
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <SelecteurTri
+          options={TRIS_ORDRES_REPARATION.map((valeur) => ({
+            valeur,
+            libelle: t(CLES_TRI[valeur]),
+          }))}
+          valeur={tri}
+          onChangeValeur={setTri}
+          label={t('or:liste.tri.label')}
+          className="max-w-xs"
+        />
+        {boutonNouveauOr}
+      </div>
 
       <TableComptoir
         colonnes={colonnes}
@@ -307,6 +363,6 @@ export function EcranListeOrdresReparation() {
         enChargement={isFetchingNextPage}
         onChargerPlus={() => void fetchNextPage()}
       />
-    </div>
+    </GabaritEcran>
   );
 }

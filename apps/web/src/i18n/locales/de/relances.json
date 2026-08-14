@@ -84,6 +84,6 @@
   },
   "tracabilite": {
     "titre": "Versandverlauf",
-    "note": "Das detaillierte Protokoll — wer welche Erinnerung wann und mit welchem Ergebnis erhalten hat — erscheint hier, sobald die Listing-API für Versände verfügbar ist. Bis dahin zeigt jede Auslösung oben die Bilanz ihrer Ausführung."
+    "note": "Das Detail pro Versand (wer welche Erinnerung wann und mit welchem Ergebnis erhalten hat) ist in DFA noch nicht verfügbar. Die Bilanz jeder Auslösung (Anzahl versendet, fehlgeschlagen, storniert) bleibt oben sichtbar."
   }
 }

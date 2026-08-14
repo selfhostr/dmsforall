@@ -2,15 +2,32 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 
-import type { ClientResume, ReponseOrdreReparation, VehiculeResume } from '@dfa/shared';
+import type {
+  ClientResume,
+  ReponseClient,
+  ReponseOrdreReparation,
+  VehiculeResume,
+} from '@dfa/shared';
 
 import { ErreurReseau, messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { BandeauAlerteClient } from '@/composants/motifs/BandeauAlerteClient';
+// Import de lecture depuis le module `clients` (hors périmètre d'écriture ici, voir CONTRIBUTING.md) —
+// réutilise TEL QUEL le même formulaire que `EcranListeClients.tsx` (tiroir « Nouveau client »),
+// jamais une resaisie locale de la création client. Issue #107 (test terrain, verbatim : « c'est
+// là que j'aurais attrapé un bloc-notes ») : chercher un client inexistant depuis « Nouvel ordre
+// de réparation » menait à `/recherche`, qui n'offre elle-même AUCUN moyen de créer le client —
+// cul-de-sac total. Ce bouton coupe court AVANT même d'atteindre la recherche : le client créé ici
+// alimente directement `?clientId=`, l'écran continue sur le choix du véhicule SANS jamais quitter
+// ce flux. Ne dépend pas du bouton « Nouveau client » de l'écran Clients (`#122`, corrigé par un
+// agent parallèle) : ce déclencheur est un second point d'entrée totalement indépendant vers le
+// même formulaire, qui reste utilisable quel que soit l'état de ce correctif-là.
+import { FormulaireNouveauClient } from '@/ecrans/clients/FormulaireNouveauClient';
 import { useClient } from '@/hooks/clients/useClient';
 import { useVehiculesClient } from '@/hooks/clients/useVehiculesClient';
 import { chemins } from '@/routes/chemins';
@@ -90,6 +107,8 @@ export function EcranNouvelOrdreReparation() {
   const vehiculeIdPreselectionne = searchParams.get('vehiculeId') ?? undefined;
 
   const [vehiculeChoisi, setVehiculeChoisi] = useState<VehiculeResume | null>(null);
+  // Issue #107 — voir l'import de `FormulaireNouveauClient` ci-dessus pour le contexte complet.
+  const [creationClientOuverte, setCreationClientOuverte] = useState(false);
   // La présélection ne doit s'appliquer QU'UNE FOIS : si l'utilisateur revient explicitement au
   // sélecteur (`onChangerVehicule`, plus bas), l'effet ci-dessous ne doit pas la réimposer aussitôt.
   const preselectionTenteeRef = useRef(false);
@@ -152,11 +171,40 @@ export function EcranNouvelOrdreReparation() {
           titre={t('or:nouveau.client.requisTitre')}
           description={t('or:nouveau.client.requisDescription')}
           action={
-            <Button asChild>
-              <Link to={chemins.recherche.globale(site)}>{t('commun:actions.rechercher')}</Link>
-            </Button>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Button asChild variant="outline">
+                <Link to={chemins.recherche.globale(site)}>{t('commun:actions.rechercher')}</Link>
+              </Button>
+              {/* Issue #107 : le client cherché peut ne pas exister encore — ce second bouton
+               *  évite le détour par `/recherche`, qui ne sait de toute façon rien créer. */}
+              <Button type="button" onClick={() => setCreationClientOuverte(true)}>
+                {t('or:nouveau.client.creerAction')}
+              </Button>
+            </div>
           }
         />
+        <Dialog open={creationClientOuverte} onOpenChange={setCreationClientOuverte}>
+          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{t('or:nouveau.client.creerTitre')}</DialogTitle>
+            </DialogHeader>
+            <FormulaireNouveauClient
+              ouvert={creationClientOuverte}
+              onCree={(client: ReponseClient) => {
+                setCreationClientOuverte(false);
+                // Reste sur CET écran (jamais un aller-retour par `/recherche` ou la fiche
+                // client) : le client vient d'être choisi, l'étape suivante naturelle est le
+                // véhicule — `setSearchParams` complète l'URL exactement comme
+                // `SelecteurSiteOrRequis` le fait déjà pour `?site=` juste au-dessus.
+                setSearchParams((params) => {
+                  const suivant = new URLSearchParams(params);
+                  suivant.set('clientId', client.id);
+                  return suivant;
+                });
+              }}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }

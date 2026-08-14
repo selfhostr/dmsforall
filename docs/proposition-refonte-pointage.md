@@ -1,8 +1,8 @@
-# Proposition de refonte de l'écran de pointage technicien
+# Refonte de l'écran de pointage technicien — Décisions arbitrées
 
-**Date** : 2026-08-04  
-**Auteur** : Proposition soumise à arbitrage  
-**Destinataire** : @laupernoe (arbitrage et décisions métier)
+**Date d'arbitrage** : 2026-08-14  
+**Statut** : Décision prise, périmètre exécutable  
+**Fondement** : Retour utilisateur (ergonomie borne d'atelier) + arbitrage métier @laupernoe
 
 ---
 
@@ -20,15 +20,7 @@ Retour utilisateur : le module de pointage ne semble pas logique ni _user-friend
 
 ## 1. Constats vérifiés en exécution
 
-### 1.1 L'écran a régressé par rapport à sa propre spécification
-
-**Fait** : `docs/design-etape-1-atelier.md` (ligne 445) prévoit dans la maquette de l'écran « pointage en cours » un bouton secondaire **« Changer de ligne »** (56 px). Ce bouton n'a jamais été construit.
-
-**Évidence** : Consulter le composant `apps/web/src/ecrans/pointage/CartePointageEnCours.tsx` (lignes 11-24, interface `Props`) : seules trois actions sont exposées — `onArreter`, `onPause`, `onReprendre`. Aucune action « changer de ligne ».
-
-**Conséquence de cette absence** : Pour passer d'une ligne à l'autre du MÊME OR, il faut : (1) arrêter le pointage courant, (2) attendre le basculement d'écran, (3) retaper le même OR, (4) ouvrir la modale « Que pointez-vous ? », (5) choisir la nouvelle ligne — **cinq gestes**. La maquette du design exigeait « Deux taps maximum » (ligne 428) ; cette promesse est rompue.
-
-### 1.2 Inversion de fréquence — l'ergonomie traite le cas minoritaire
+### 1.1 Inversion de fréquence — l'ergonomie traite le cas minoritaire
 
 **Estimation à confirmer auprès d'un atelier** : Le changement de tâche en cours de service n'est ni le début de matinée ni l'arrêt du soir (une fois chacun) mais le geste **le plus répété** : 12–16 fois par jour sur 10–18 gestes de pointage au total. **C'est le cas dominant.**
 
@@ -36,7 +28,7 @@ Retour utilisateur : le module de pointage ne semble pas logique ni _user-friend
 
 **Durée réelle d'un geste** : Le coût réel n'est pas le tap. C'est se redresser de sous le véhicule, essuyer une main, marcher jusqu'à la borne : **15 à 30 secondes par aller-retour**. Chaque étape superflue multiplie cette latence. Sur une borne partagée, c'est aussi une file d'attente aux heures de pointe.
 
-### 1.3 Cibles tactiles sous la norme qu'on s'est fixée
+### 1.2 Cibles tactiles sous la norme qu'on s'est fixée
 
 **Norme du projet** : `design-etape-1-atelier.md` (ligne 594) impose **72 px** minimum pour la densité `très-aérée` — celle de l'écran de pointage, destiné aux mains gantées, lu vite.
 
@@ -44,13 +36,13 @@ Retour utilisateur : le module de pointage ne semble pas logique ni _user-friend
 
 **Justification de la norme** : L'écran de pointage a plus d'excuses que d'autres pour réduire les cibles — c'est l'inverse de la logique du projet.
 
-### 1.4 Couleur erronée sur le geste le plus répété
+### 1.3 Couleur erronée sur le geste le plus répété
 
 **Fait** : Le bouton « Arrêter » est en `variant="destructive"` (`CartePointageEnCours.tsx`, ligne 97), donc rouge.
 
 **Problème** : Arrêter un pointage n'est ni dangereux ni irréversible — c'est le geste le plus répété de la journée. Vous arrêtez la pause, vous arrêtez une ligne pour passer à la suivante, vous arrêtez le soir. Le rouge doit rester réservé au réellement risqué (ex. supprimer un OR, annuler une facture). Ici, il fait hésiter sur un geste anodin.
 
-### 1.5 État volatil interdit en mode borne
+### 1.4 État volatil interdit en mode borne
 
 **Fait** : La cible mémorisée (`dernierCible`) vit dans l'état local du composant React.
 
@@ -67,7 +59,7 @@ Retour utilisateur : le module de pointage ne semble pas logique ni _user-friend
 - Technicien A reprend son identification → nouvel écran. Le bouton « Reprendre » n'existe plus.
 - Technicien A ne peut retrouver sa ligne que via « Mes OR du jour ».
 
-### 1.6 Apprenti bloqué par une présomption de propriété de ligne
+### 1.5 Apprenti bloqué par une présomption de propriété de ligne
 
 **Fait** : `DialogueChoixCiblePointage.tsx` (lignes 57-58) filtre les lignes pointables sur `ligne.technicienId === technicienId` — seules les lignes assignées au technicien sont affichées.
 
@@ -77,21 +69,34 @@ Retour utilisateur : le module de pointage ne semble pas logique ni _user-friend
 
 **Si le cas est courant** : C'est un blocage ergonomique sérieux.
 
-### 1.7 « Mes OR du jour » affiche tous les OR du garage
-
-**Fait documenté** : `apps/api/src/atelier/service-or.ts` (lignes 531-535) documente honnêtement que `technicienId` n'est **pas câblé** — « SIMPLIFICATION SIGNALÉE ». Le paramètre existe dans le contrat OpenAPI, le code ne l'utilise pas.
-
-**Divergence front/back** : Le hook `apps/web/src/hooks/pointage/mes-ordres-assignes.api.ts` (lignes 6-15) affirme dans ses commentaires que le filtre existe « côté service (…, vérifié) ». C'est faux : le serveur était transparent, le front a supposé.
-
-**Conséquence** : L'écran affiche tous les OR du site, pas seulement ceux du technicien. Plus grave en gros atelier : le scroll pour trouver SON OR coûte des secondes.
-
-### 1.8 Mode borne bloqué sur le choix du site
+### 1.6 Mode borne bloqué sur le choix du site
 
 **Fait** : Le site est un paramètre d'URL (`?site=`, ligne 130 de `EcranPointageTechnicien.tsx`). Le sélecteur (`SelecteurSitePointage.tsx`) est un `<Select>` inline qui met à jour l'URL, mais cette URL n'est stockée nulle part côté serveur.
 
-**Mode borne, plusieurs sites** : Supposons une borne multi-site (prestataire avec deux garages). Le technicien tape son PIN, l'écran demande « Quel site ? » Il choisit. À la fin de son pointage, il se déconnecte. Le technicien suivant tape SON PIN → le sélecteur réapparaît. Le paramètre d'URL a été reset avec le rechargement.
+**Résolu** : Le site est déduit du PIN (section 8.2). Le paramètre d'URL `?site=` n'est plus une source de vérité — il vient du PIN.
 
-**Pire encore** : Si un technicien veut pointer avant d'avoir choisi son site, l'appui sur une tuile d'activité indirecte (« Pause ») échoue silencieusement — `siteId` est `undefined`.
+### 1.7 Aucun mécanisme n'existe pour clôturer automatiquement un pointage oublié
+
+**Constat (14.08.2026)** : Recherche dans `apps/api/src/pointage/` — aucun `@Cron`, `@Processor`, ni file BullMQ n'existe pour fermer les pointages `en_cours` en fin de journée. Le commentaire du code (`regles-pointage.ts`) admet explicitement : « AUCUN job de clôture automatique de fin de journée (RM-91/RM-119) n'existe à ce jour dans ce dépôt ».
+
+**Conséquence métier** : Un technicien qui part à 17h58 sans arrêter son pointage laisse un pointage `en_cours` ouvert indéfiniment. Le temps facturé devient faux — chaque ligne arrêtée manuellement plus tard intégrera cet excédent de temps.
+
+**Note technique** : La décision §8.1 (« la reprise reste proposée toute la journée et disparaît le lendemain ») s'appuie sur le bornage de journée (section 1.8), pas sur un mécanisme de clôture inexistant. La décision reste valide — c'est la définition de journée qui borne la reprise, jamais un job qui n'existe pas.
+
+### 1.8 Bornage de journée en UTC pur, sans fuseau par site
+
+**Constat (14.08.2026)** : Les fonctions de bornage (`debutDeJourneeUtc`, `finDeJourneeUtc` dans `service-or.ts` lignes 1125-1140) produisent des instants UTC sans tenir compte du fuseau horaire du site (`parametre_atelier`/`site` ne portent aucune colonne de fuseau).
+
+**Écart réel** : Entre minuit UTC et l'aube locale suisse, l'écart est de 1 h (hiver) à 2 h (été). Un pointage saisi entre minuit et 2 h du matin est rattaché à la veille, non au jour où le travail a eu lieu.
+
+**Cas courant aujourd'hui** : Rare en atelier de jour. **Blocage futur** : Critique le jour où un garage tourne en équipes de nuit ou en décalé. La correction demande un fuseau par site — non disponible à ce jour, signalé comme limitation documentée du code.
+
+---
+
+## Ce qui a été corrigé depuis la proposition (04.08.2026)
+
+- **Bouton « Changer »** : Implémenté en tant que correctif #117 (`CartePointageEnCours.tsx` ligne 120-130, prop `onChanger`). Permet de passer à une nouvelle cible sans arrêter d'abord, avec clôture automatique de l'ancien pointage côté serveur.
+- **Filtre technicienId** : Câblé au SQL via `exists()` (`service-or.ts` lignes 735-751). Le filtre « Mes OR du jour » fonctionne correctement et n'affiche que les OR assignés au technicien.
 
 ---
 
@@ -104,8 +109,6 @@ Ces points ne sont pas perfectibles — ce sont de vraies bonnes décisions qu'i
 - **Pas d'imposé sur le parcours** : Aucune saisie de texte n'est forçée avant de pouvoir pointer — le chronomètre démarre sans attendre du contexte textuel.
 
 - **Séparation clair « Arrêter » vs « Marquer réalisée »** (RM-118) : Un technicien qui arrête son pointage à midi pour manger ne doit pas déclarer son travail fini. Cette distinction évite une source d'erreur très fréquente.
-
-- **Clôture automatique de fin de journée** (RM-91/RM-119) : L'oubli le plus courant — un technicien qui part à 17h58 sans cliquer — est anticipé et résolu. C'est du bon design métier.
 
 - **Chronomètre calculé localement** : Pas d'attente réseau à chaque tick, il continue en avion. Très bon choix.
 
@@ -123,29 +126,24 @@ Ces points ne sont pas perfectibles — ce sont de vraies bonnes décisions qu'i
 
 **Choisi** : Un **bandeau stationnaire de 80 px** en tête d'écran quand il y a une reprise possible. Ce bandeau est plein écran, restant visible en scroll s'il y a du contenu sous. Un seul appui sur le bandeau démarre directement le pointage — pas de tuile, pas de modale, pas de nouvelle question.
 
-### 3.1 État : « Repos, rien n'est pointé »
+### 3.1 État : « Repos avec ou sans reprise possible »
 
-**Cas** : Matin à l'arrivée, ou après arrêt du soir précédent.
+**Cas** : Matin à l'arrivée (rien à reprendre) ou après interruption (reprise proposée).
 
-**À l'écran** :
+**Sans reprise** :
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│ Pointage technicien                                             │
-└─────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────┐
-│ [Tuile:Nettoyage] [Tuile:Attente pièces] [Tuile:Pause] ...     │
-└─────────────────────────────────────────────────────────────────┘
+┌─ Activités indirectes ────────────────────────────────────────┐
+│ [Pause] [Nettoyage] [Attente pièces] …                       │
+└───────────────────────────────────────────────────────────────┘
 
 ┌─ Mes OR du jour ──────────────────────────────────────────────┐
 │ [OR-2026-1040 - Plaquettes avant] • 2 lignes                 │
 │ [OR-2026-1041 - Révision 60k km] • 1 ligne                   │
-│ [OR-2026-1042 - Batterie] • 3 lignes                          │
-└────────────────────────────────────────────────────────────────┘
+└───────────────────────────────────────────────────────────────┘
 ```
 
-**Raison** : Matin, il n'y a rien à reprendre. La question « Que pointez-vous ? » est aussi logique que la réponse.
+**Avec reprise** : Bandeau de rappel apparaît en tête (voir 3.2).
 
 ### 3.2 État : « Repos avec reprise possible »
 
@@ -186,84 +184,27 @@ Ces points ne sont pas perfectibles — ce sont de vraies bonnes décisions qu'i
 
 ### 3.3 État : « Choix de cible »
 
-**Cas** : Vous avez appuyé sur un OR du matin, ou sur le bandeau de reprise d'une OR, mais il y a plusieurs lignes pointables dessus.
+**Cas** : OR avec plusieurs lignes pointables.
 
-**Changement ergonomique clé** : La modale devient un **écran plein écran** avec un bouton `← Retour` en haut.
+**Changement clé** : Écran plein écran (pas de modale) — évite les taps accidentels sur l'assombrissement quand on porte des gants. Bouton `← Retour` en haut.
 
-**Raison** : L'écran de pointage passe déjà en plein écran dès qu'un pointage démarre (voir 3.4). La modale est le seul endroit qui rompt ce principe. De plus, le tap accidentel sur le fond assombri d'une modale est un vrai risque quand vous portez des gants — l'écran plein écran prend tout l'espace tactile.
+**Nombre de gestes** : Deux (choisir OR, puis ligne). Compresser ce choix serait deviner à la place du technicien.
 
-```
-┌────────────────────────────────┐
-│ ← Retour                       │
-│                                │
-│ Que pointez-vous ?             │
-│                                │
-│ [ Démarrer sur l'OR entier ]   │
-│                                │
-│ Lignes pointables :            │
-│ [ Plaquettes avant ]           │
-│ [ Plaquettes arrière ]         │
-│ [ Remplissage liquide ]        │
-│                                │
-└────────────────────────────────┘
-```
+### 3.4 États : « Pointage productif » et « Activité indirecte »
 
-**Nombre de gestes** : Toujours deux — choisir l'OR, puis choisir la ligne. Compresser ce choix serait deviner à la place du technicien, ce qu'on ne peut pas faire.
+**Pointage productif** (ligne d'OR) :
 
-### 3.4 État : « Pointage productif en cours »
+- Chrono géant (56–64 px), centré
+- Cumul du jour affiché (ex. « 0h48 déjà pointées ») — seulement s'il existe un segment antérieur
+- Boutons : « Pause » (primaire), « Arrêter » (secondaire, contour neutre — pas de rouge)
 
-**Cas** : Vous pointez une ligne d'OR ou un OR entier (pas une activité indirecte).
+**Activité indirecte** (Pause, Nettoyage, etc.) :
 
-**Chrono** : Géant (56–64 px), centré.
+- Chrono normal
+- Bandeau de reprise visible (voir 3.2) : « ↺ Reprendre : Plaquettes... »
+- Boutons : « Reprendre : {cible} » (primaire, informatif), « Arrêter » (secondaire)
 
-**Cumul du jour** (affichage optionnel) : **Uniquement s'il existe un segment antérieur sur cette même ligne/cet OR** :
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ Pointage en cours : Plaquettes de frein — OR-2026-1042         │
-│                                                                  │
-│ Aujourd'hui sur cette ligne : 0h48 + en cours ci-dessous        │
-│                                                                  │
-│                          01:23:45                               │  ← Chrono géant
-│                                                                  │
-│ [ Pause ]        [ Arrêter ]                                    │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-**Boutons** :
-
-- **« Pause »** : Action primaire (pleine, pas d'outline), couleur standard (pas de rouge).
-- **« Arrêter »** : Action secondaire de contour, couleur neutre (pas destructive).
-
-**Raison du changement** : Dans une journée type, « Pause » est cliqué ~10 fois (plus que « Arrêter »), et c'est juste interrompre, pas supprimer. Le rouge crée une tension inutile.
-
-### 3.5 État : « Activité indirecte en cours »
-
-**Cas** : Vous pointez Pause, Nettoyage, Attente pièces, etc.
-
-**Reprise directe** : Le bandeau de reprise s'affiche (voir 3.2) avec le libellé de ce que vous faisiez avant (`Reprendre : Plaquettes...`).
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ ↺ Reprendre : Plaquettes de frein — OR-2026-1042             │
-│   Interrompu il y a 1 min • 0h48 déjà pointées aujourd'hui    │
-└─────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────┐
-│ Pointage en cours : Pause                                       │
-│                                                                  │
-│                          00:03:22                               │  ← Chrono
-│                                                                  │
-│ [ Reprendre : Plaquettes... ]    [ Arrêter ]                   │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-**Boutons** :
-
-- **« Reprendre : {cible} »** : Action primaire (pleine, 80 px), libellé informatif.
-- **« Arrêter »** : Action secondaire de contour.
-
-**Étendue de « Reprendre »** : Recouvre **toutes** les activités indirectes, pas seulement `pause`. Un technicien qui range le magasin en attendant une pièce — dès que la pièce arrive, il reprend sa ligne. Les données existent déjà : on connaît le pointage qui précédait l'activité indirecte.
+**Étendue de « Reprendre »** : Couvre **toutes** les activités indirectes (pas seulement Pause). Les données du pointage précédent existent déjà en base — aucun surcoût technique.
 
 ---
 
@@ -293,94 +234,75 @@ Remplace le langage du mockup d'origine, en cohérence avec RM-118 :
 
 ---
 
-## 6. Ce qui relève d'un choix de conception (tranché)
+## 6. Choix de conception (appliqués uniformément)
 
-Ces points **ne demandent pas d'arbitrage supplémentaire** — ils représentent une cohérence interne de la proposition. Ils peuvent être critiqués sur les bases du projet, mais l'arbitrage ici porte sur le fait que la proposition les applique uniformément.
-
-1. **Bandeau plutôt que fil chronologique** : Pas de duplication, pas de dégradation du cas dominant.
-2. **Extension de « Reprendre » à toutes les activités indirectes** : Les données existent, aucun coût technique supplémentaire, gain ergonomique direct.
-3. **Écran plein écran plutôt que modale** pour le choix de cible : Cohérence avec le reste de l'écran, robustesse des gants.
-4. **Retrait du rouge sur « Arrêter »** : « Arrêter » n'est pas risqué, juste répété. Le rouge doit rester pour le réellement dangereux.
-5. **Affichage du cumul dès qu'il existe** : Deux nombres clarifiés plutôt qu'un seul mystérieux.
+1. **Bandeau plutôt que fil chronologique** — Élimine la duplication avec `EcranJournalPointage`, n'affecte pas les performances.
+2. **Extension de « Reprendre » à toutes les activités indirectes** — Données existantes, zéro surcoût technique.
+3. **Écran plein écran pour le choix de cible** — Évite les accidents tactiles avec gants, cohérence de design.
+4. **Bouton « Arrêter » neutre (pas rouge)** — Geste répété, non-dangereux (seulement stoppage temporaire).
+5. **Affichage du cumul quand > 1 segment** — Clarification : deux nombres plutôt qu'un chrono cryptique.
 
 ---
 
-## 7. Ce qui exige l'accord d'un lead technique
+## 7. Point technique : persistance de `dernierCible`
 
-### 7.1 Basculer `dernierCible` d'une source React vers une dérivation serveur
+### 7.1 État persistant côté serveur (EN COURS D'IMPLÉMENTATION)
 
-**Changement** : Remplacer l'état local `dernierCible` (qui s'évapore au rechargement) par une **requête serveur** au montage de l'écran : « Quel était mon dernier pointage en cours ou interrompu aujourd'hui ? »
+**Constat** : `dernierCible` vit en `useState` React (`EcranPointageTechnicien.tsx` ligne ~157) — elle s'évapore au rechargement de page. En mode borne, cela bloque la reprise (chaque PIN recharge l'écran).
 
-**Pourquoi** :
+**Solution en cours** : Endpoint `GET /pointages/dernier-du-jour` (implémentation par un agent parallèle). Au montage de l'écran, charger le dernier pointage du jour côté serveur plutôt que de le relire depuis l'état React.
 
-- Mode personnel : F5 pendant une pause ne perd plus le bouton « Reprendre ».
-- **Mode borne : critique** — chaque PIN reset l'écran. La cible mémorisée doit vivre côté serveur pour traverser ce rechargement.
+**Bénéfice** : Fonctionne en mode borne (survit au rechargement) ET en mode personnel (F5 ne perd plus la reprise).
 
-**Ce que ça change**:
-
-- Une requête `GET /pointages/dernier-du-jour?technicienId=&siteId=` (ou équivalent) au montage.
-- Pas d'état React persistant.
-- Synchro possible : si deux technicidens pointent en parallèle (borne multitab, par erreur), le dernier GET gagne — comportement transparent et correct.
-
-**Coût** : Une requête HTTP supplémentaire au montage de l'écran. Négligeable en pratique (l'écran se charge une fois par jour de travail en mode borne, dix fois en mode personnel).
-
-**Décision** : Cela sort du périmètre d'une décision d'ergonomie — c'est un changement de source de vérité. **Lead technique à valider** (expert-api, expert-react, ou lead-backend selon l'organisation).
+**Coût** : Une requête HTTP au montage (négligeable en pratique).
 
 ---
 
-## 8. Ce qui revient à @laupernoe — questions d'arbitrage métier
+## 8. Arbitrages métier tranchés par @laupernoe (14.08.2026)
 
-### 8.1 Seuil au-delà duquel une reprise n'a pas de sens
+### 8.1 Seuil de reprise après interruption — Décision
 
-**P-34** (nouveau paramètre, aucun défaut proposé) : Quand proposer une reprise après une interruption ?
+**Décision** : La reprise reste proposée **toute la journée de travail** et **disparaît le lendemain**. Aucun paramètre configurable par garage (P-34 abandonné).
 
-- **Seuil bas (30 min)** : Vous revenez vite, probablement la même session de travail.
-- **Seuil moyen (2-4 h)** : Avant midi vs. après-midi.
-- **Seuil haut (jamais le lendemain)** : Le jour ouvrable suivant, « Reprendre » ne s'affiche pas, faut refiler depuis « Mes OR ».
+**Justification** : Préserve une cohérence sémantique : une journée de travail est une unité atomique ; un pointage interrompu après 17h ne « reprend » pas le lendemain. Le bornage repose sur la définition de journée (UTC pur, voir constat 1.8), jamais sur un mécanisme de clôture automatique (qui n'existe pas, constat 1.7).
 
-**Besoin de données terrain** : Quelle est la durée typique d'une interruption qu'on veut reprendre ? Interruption involontaire (chef qui demande un changement urgment) vs. volontaire (pause) ne se traitent-elles pas pareil ?
+**Implémentation** : Le bandeau de reprise disparaît si le pointage précédent date de plus d'une journée (calculé depuis `debutDeJourneeUtc` du pointage).
 
-### 8.2 Persistance du site en mode borne
+### 8.2 Persistance du site en mode borne — Décision
 
-**Constat** : Le site est un paramètre d'URL perdu au rechargement. En mode borne, c'est bloquant (point 1.8).
+**Décision** : Le site se déduit du PIN tapé. La table `pin_pointage` porte `site_id` — elle est la source de vérité. Le paramètre d'URL `?site=` n'est qu'un cache temporaire pour la session courante.
 
-**Trois options** :
+**Justification** : Chaque borne physique est associée à un seul garage (ou site). Un PIN identifie à la fois la personne et le site de sa borne. Faire dériver le site du PIN plutôt que d'un sélecteur supprime un geste et un point de défaillance.
 
-**Option A** : Chaque PIN apporte le site (« quels techniciens peuvent pointer à CETTE borne ? »). La table `pin_pointage` (specification-pointage-borne.md:79) porte `site_id` — elle sait. Au montage, dériver le site depuis le PIN, pas depuis un paramètre d'URL.
+**Implémentation** : Au montage de l'écran de pointage (après identification PIN), charger le site depuis la fiche PIN — jamais demander à l'utilisateur de le choisir de nouveau.
 
-**Option B** : Persister le site en `localStorage` ou `sessionStorage` (du navigateur, pas la session serveur). Moins robuste si la tablette redémarre, mais beaucoup plus simple à coder.
+**Écartées** : Les options B (localStorage) et C (rechoisir à chaque entrée).
 
-**Option C** : Accepter que l'utilisateur rechoisisse son site à chaque entrée, tant qu'il n'y a qu'un PIN par site. Moins friction que le paramètre d'URL perdu, mais encore non-optimal.
+### 8.3 Cas de l'apprenti — Décision
 
-**Besoin** : Validation de @laupernoe sur le mode borne réel — une borne par garage (Option A triviale), ou des bornes partagées multi-site (Option A compliquée, Option B ou C préférable) ?
+**Décision** : Un technicien peut pointer une ligne sans y être assigné. L'assignement redevient un détail d'organisation, jamais un droit de pointage. La modale « Que pointez-vous ? » ne filtre plus sur `technicienId`.
 
-### 8.3 Cas de l'apprenti
+**Justification** : RM-121 l'autorise déjà en base (plusieurs lignes `en_cours` en parallèle, techniciens multiples par ligne). L'écran ne doit pas inventer une restriction au-delà du modèle métier. Un apprenti qui aide un compagnon doit pouvoir pointer la ligne du compagnon sans être assigné.
 
-**Situation** : Un apprenti aide un compagnon sur une ligne assignée au compagnon seulement. Qui pointe ?
+**Implémentation** : Supprimer le filtre `ligne.technicienId === technicienId` dans `DialogueChoixCiblePointage.tsx`.
 
-**Trois interprétations** :
+**Écartées** : Les interprétations 1 (apprenti assigné obligatoire) et 2 (pointage indirect via le compagnon).
 
-1. **L'apprenti doit être assigné à la ligne** pour la voir et la pointer. (Aujourd'hui : DialogueChoixCiblePointage filtre sur technicienId.)
-2. **L'apprenti n'est pas assigné mais pointé en productif par le compagnon** (« je dois ajouter {apprenti} à ma facture »). DFA exporte le temps pointé ; le compagnon le règle en paie locale.
-3. **Deux pointages en parallèle** : Compagnon sur la ligne, apprenti aussi — simultanément. RM-121 l'autorise, mais l'écran n'expose pas ce flux.
+### 8.4 Distinction entre pauses payées et impayées — Décision
 
-**Besoin** : Clarification de la pratique réelle. Si l'apprenti doit voir la ligne du compagnon, c'est une régression ergonomique sérieuse (bloquerait la modale de choix de cible).
+**Décision** : Un seul type « Pause ». La distinction payée/non payée se règle à la paie, à partir des horaires de pointage, jamais à la borne.
 
-### 8.4 Distinction entre pauses payées et impayées
+**Justification** : Ajouter un sélecteur de type de pause complexifie l'écran sans bénéfice métier immédiat (la paie recalcule de toute façon). Les données de pointage restent nettes — une pause est une pause, le contexte de paie décide de son traitement.
 
-**Contexte** : Aujourd'hui, un seul bouton « Pause » couvre tout. Pause de 9h (snack, probablement payée) et pause de midi (repas, probablement pas payée) sont traitées identiquement.
-
-**Donnée métier** : Faut-il exposer plusieurs types d'activité indirecte, ou rester sur une classification simple (pause = pause, indépendant du type) ?
-
-**Besoin** : Décision métier. La proposition n'y change rien — elle élargit juste « Reprendre » à toutes les indirectes, unifié ou distincts, peu importe.
+**Implémentation** : Conserver un seul bouton « Pause » en activité indirecte.
 
 ---
 
-## 9. Synthèse pour arbitrage
+## 9. Synthèse des changements
 
 ### Ce qui change structurellement
 
-| Aspect                        | Aujourd'hui                            | Proposé                               | Justification                                             |
+| Aspect                        | Avant (état réel)                      | Après refonte                         | Bénéfice                                                  |
 | ----------------------------- | -------------------------------------- | ------------------------------------- | --------------------------------------------------------- |
 | **Espace mental**             | Modale « Que pointez-vous ? »          | Écran plein écran, même principe      | Pas de tap accidentel sur l'assombrissement. Cohérence.   |
 | **Reprise après pause**       | Tuile « Pause » → bouton « Reprendre » | Bandeau de rappel en tête, tap unique | Cas dominant (12–16 fois/jour) en un geste au lieu de 5.  |
@@ -389,21 +311,14 @@ Ces points **ne demandent pas d'arbitrage supplémentaire** — ils représenten
 | **Cible tactile**             | 64 px (sous-norme)                     | 72 px (conforme)                      | Mains gantées, norme du projet.                           |
 | **Affichage du temps**        | Chrono seul                            | Chrono + cumul si > 1 segment         | Clarification du what/where.                              |
 | **Mémoire de cible**          | État React (volatil)                   | Requête serveur (persistant)          | Critique pour mode borne.                                 |
+| **Filtrage des lignes**       | Filtre sur assignation                 | Aucun filtre écran (modèle = source)  | Apprenti peut pointer ligne du compagnon.                 |
 
 ### Ce qui ne change pas
 
 - Structure de données, RM-87 → RM-123.
 - Pas d'état « pause » en base (RM-116).
 - Séparation « Arrêter » / « Marquer réalisée » (RM-118).
-- Clôture automatique (RM-91/RM-119).
 - Droits, matrice de pointage.
-
-### Points de blocage pour @laupernoe
-
-1. **P-34** : Seuil de reprise (30 min ? 2 h ? jamais le lendemain ?).
-2. **Site en mode borne** : Persister comment ? (PIN porte le site, localStorage, ou accepter rechoisir ?)
-3. **Apprenti** : Doit-il être assigné à la ligne pour la pointer, ou existe-t-il un flux à inventer ?
-4. **Pause payée/impayée** : Faut-il deux types d'activité, ou une seule suffira ?
 
 ---
 

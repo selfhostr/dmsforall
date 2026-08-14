@@ -8,6 +8,7 @@ import '@/i18n';
 
 import type { RoleUtilisateur } from '@dfa/shared';
 
+import { FournisseurSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
@@ -34,6 +35,21 @@ function rendre(routeInitiale: string): RenderResult & { queryClient: QueryClien
   };
 }
 
+/** Même rendu que `rendre`, sous `FournisseurSiteCourant` — seul moyen d'exercer la préférence de
+ *  site mémorisée (`hooks/site/ContexteSiteCourant.tsx`, issue #91). */
+function rendreAvecPreferenceSite(routeInitiale: string): void {
+  const queryClient = creerQueryClientTest();
+  render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[routeInitiale]}>
+        <FournisseurSiteCourant>
+          <OngletsDomaine />
+        </FournisseurSiteCourant>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
 function connecte(role: RoleUtilisateur): void {
   server.use(
     http.get('/api/v1/auth/moi', () =>
@@ -52,12 +68,20 @@ function libelles(nav: HTMLElement): string[] {
 }
 
 describe('OngletsDomaine — les onglets d’un domaine', () => {
-  it('Atelier : Ordres de réparation, Pointage et Dépôt pneus — les entrées de menu retirées, retrouvées ici', async () => {
+  it('Atelier : Ordres de réparation, Rendez-vous, Pointage et Dépôt pneus — les entrées de menu retirées, retrouvées ici', async () => {
     connecte('chef_atelier');
     rendre('/ordres-reparation');
 
     const onglets = await screen.findByRole('navigation', { name: /onglets/i });
-    expect(libelles(onglets)).toEqual(['Ordres de réparation', 'Pointage', 'Dépôt pneus']);
+    // « Planning » (Lot RDV-1, slot activé dans `navigation-modele.ts`) prend la deuxième place,
+    // entre Ordres de réparation et Pointage — exactement l'emplacement tenu par
+    // `EMPLACEMENTS_RESERVES` avant son activation.
+    expect(libelles(onglets)).toEqual([
+      'Ordres de réparation',
+      'Planning',
+      'Pointage',
+      'Dépôt pneus',
+    ]);
   });
 
   it('Pièces : Comptoir, Articles, Approvisionnement, Consignes — six entrées de menu devenues quatre onglets', async () => {
@@ -274,6 +298,21 @@ describe('OngletsDomaine — contraintes du produit', () => {
       'href',
       '/pointage/jour?site=site-secondaire',
     );
+  });
+
+  /** Régression issue #91 : même correctif que `BarreLaterale.spec.tsx` — l'URL fait toujours foi,
+   *  la préférence mémorisée ne comble que son absence. */
+  it('reprend la préférence mémorisée de site quand l’URL n’en porte pas', async () => {
+    window.localStorage.setItem('dfa.site-courant.tenant-1', 'site-secondaire');
+    connecte('chef_atelier');
+    rendreAvecPreferenceSite('/pointage/jour');
+
+    const onglets = await screen.findByRole('navigation', { name: /onglets/i });
+    expect(within(onglets).getByRole('link', { name: /dépôt pneus/i })).toHaveAttribute(
+      'href',
+      '/pneus?site=site-secondaire',
+    );
+    window.localStorage.clear();
   });
 
   /** Postes de comptoir tactiles (≥ 24 pouces) — §4.6 : plancher de 44 px partout, y compris sur

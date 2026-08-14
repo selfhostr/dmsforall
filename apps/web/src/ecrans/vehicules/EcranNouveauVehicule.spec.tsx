@@ -1,14 +1,35 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import type { ReponseVehicule } from '@dfa/shared';
+import type {
+  ReponseMarquesVehiculesCh,
+  ReponseModelesVehiculesCh,
+  ReponseVehicule,
+} from '@dfa/shared';
 
 import { server } from '@/test/msw/server';
 import { renduAvecRoutes } from '@/test/utils';
 
 import { EcranNouveauVehicule } from './EcranNouveauVehicule';
+
+// Handlers par défaut pour l'autocomplétion marque/modèle (référentiel véhicules suisse) :
+// SANS eux, la moindre saisie dans « Marque »/« Modèle » déclenche — 300 ms plus tard, après le
+// débounce de `ChampAutocompletionVehicule` — une requête `GET /referentiels/vehicules/*` non
+// interceptée, qui casse la suite (`onUnhandledRequest: 'error'`, `src/test/setup.ts`). Réinstallés
+// à CHAQUE test (`beforeEach`, pas `beforeAll`) : `server.resetHandlers()` (`afterEach` global) les
+// efface tous après chaque test. Tests dédiés plus bas surchargent ce défaut au cas par cas.
+beforeEach(() => {
+  server.use(
+    http.get('/api/v1/referentiels/vehicules/marques', () =>
+      HttpResponse.json({ marques: [] } satisfies ReponseMarquesVehiculesCh),
+    ),
+    http.get('/api/v1/referentiels/vehicules/modeles', () =>
+      HttpResponse.json({ modeles: [] } satisfies ReponseModelesVehiculesCh),
+    ),
+  );
+});
 
 // jsdom (26.1, `src/test/environnementJsdomFetch.ts`) n'implémente PAS `ResizeObserver` — un vrai
 // navigateur si. `@radix-ui/react-checkbox` (case « importé ») l'utilise inconditionnellement dès
@@ -162,6 +183,191 @@ describe('EcranNouveauVehicule', () => {
     // La saisie n'est jamais perdue après un échec serveur (standard non négociable, CONTRIBUTING.md).
     expect(screen.getByLabelText('Marque')).toHaveValue('Volkswagen');
     expect(screen.getByLabelText('Modèle')).toHaveValue('Golf');
+  });
+
+  describe('collision de plaque (issue #96)', () => {
+    it('nomme le véhicule fautif et propose un lien vers sa fiche quand le serveur fournit le détail', async () => {
+      server.use(
+        http.post('/api/v1/vehicules', () =>
+          HttpResponse.json(
+            {
+              type: 'https://docs.dmsforall.example/erreurs/VEHICULE_PLAQUE_COLLISION',
+              title: 'Plaque déjà attribuée',
+              status: 409,
+              code: 'VEHICULE_PLAQUE_COLLISION',
+              instance: 'req-1',
+              // `blocages[0].id` vaut `'plaque'` sur CETTE route (nom du champ dans
+              // `EntreeCreationVehicule`) — jamais `'valeur'` (`POST /vehicules/{id}/plaques`,
+              // `DialogueModifierIdentiteVehicule`) : convention documentée par
+              // `DetailCollisionPlaqueVehicule`, l'écran ne doit brancher que sur le `code`.
+              blocages: [
+                {
+                  type: 'champ',
+                  id: 'plaque',
+                  libelle: 'Plaque déjà portée par le véhicule Volkswagen Golf VII Comfortline',
+                  donnees: {
+                    vehiculeId: 'veh-golf-existant',
+                    marque: 'Volkswagen',
+                    modele: 'Golf VII',
+                    version: 'Comfortline',
+                    plaque: '999999',
+                    canton: 'VD',
+                    debutLe: '2026-03-12',
+                    finLe: null,
+                  },
+                },
+              ],
+            },
+            { status: 409, headers: { 'content-type': 'application/problem+json' } },
+          ),
+        ),
+      );
+      const utilisateur = userEvent.setup();
+      rendreEcran();
+
+      await remplirIdentiteMinimale(utilisateur);
+      await utilisateur.type(screen.getByLabelText('Plaque'), '999999');
+      await utilisateur.click(screen.getByRole('button', { name: 'Créer le véhicule' }));
+
+      expect(
+        await screen.findByText(
+          'Plaque 999999 déjà portée par Volkswagen Golf VII Comfortline depuis le 12.03.2026.',
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Voir ce véhicule' })).toHaveAttribute(
+        'href',
+        '/vehicules/veh-golf-existant',
+      );
+      // Jamais dans le bandeau générique — même doctrine que `DialogueModifierIdentiteVehicule`.
+      expect(
+        screen.queryByText("Une erreur interne s'est produite. Réessayez."),
+      ).not.toBeInTheDocument();
+      // La saisie survit à l'échec, standard non négociable (CONTRIBUTING.md).
+      expect(screen.getByLabelText('Plaque')).toHaveValue('999999');
+    });
+
+    it('affiche un message sobre, jamais un libellé à trous, quand le serveur ne fournit aucun détail (course rare)', async () => {
+      server.use(
+        http.post('/api/v1/vehicules', () =>
+          HttpResponse.json(
+            {
+              type: 'https://docs.dmsforall.example/erreurs/VEHICULE_PLAQUE_COLLISION',
+              title: 'Plaque déjà attribuée',
+              status: 409,
+              code: 'VEHICULE_PLAQUE_COLLISION',
+              instance: 'req-1',
+            },
+            { status: 409, headers: { 'content-type': 'application/problem+json' } },
+          ),
+        ),
+      );
+      const utilisateur = userEvent.setup();
+      rendreEcran();
+
+      await remplirIdentiteMinimale(utilisateur);
+      await utilisateur.type(screen.getByLabelText('Plaque'), '999999');
+      await utilisateur.click(screen.getByRole('button', { name: 'Créer le véhicule' }));
+
+      expect(
+        await screen.findByText('Cette plaque est déjà attribuée à un autre véhicule.'),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/^Plaque .* déjà portée par/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('autocomplétion marque/modèle (référentiel véhicules suisse)', () => {
+    it('propose des marques après une frappe partielle, puis conditionne les modèles suggérés à la marque choisie', async () => {
+      server.use(
+        http.get('/api/v1/referentiels/vehicules/marques', ({ request }) => {
+          const recherche = new URL(request.url).searchParams.get('recherche');
+          if (recherche?.toLowerCase() !== 'volksw') return HttpResponse.json({ marques: [] });
+          return HttpResponse.json({
+            marques: [{ nom: 'Volkswagen', nombreModeles: 42, aliasTrouve: null }],
+          } satisfies ReponseMarquesVehiculesCh);
+        }),
+        http.get('/api/v1/referentiels/vehicules/modeles', ({ request }) => {
+          const url = new URL(request.url);
+          if (url.searchParams.get('marque') !== 'Volkswagen')
+            return HttpResponse.json({ modeles: [] });
+          return HttpResponse.json({
+            modeles: [{ nom: 'Golf', codeTypeCh: null }],
+          } satisfies ReponseModelesVehiculesCh);
+        }),
+      );
+      const utilisateur = userEvent.setup();
+      rendreEcran();
+
+      await utilisateur.type(screen.getByLabelText('Marque'), 'volksw');
+      const optionMarque = await screen.findByRole('option', { name: /Volkswagen/ });
+      await utilisateur.click(optionMarque);
+
+      expect(screen.getByLabelText('Marque')).toHaveValue('Volkswagen');
+
+      await utilisateur.click(screen.getByLabelText('Modèle'));
+      const optionModele = await screen.findByRole('option', { name: 'Golf' });
+      await utilisateur.click(optionModele);
+
+      expect(screen.getByLabelText('Modèle')).toHaveValue('Golf');
+    });
+
+    it('une marque absente du référentiel reste saisissable librement et aboutit à un véhicule enregistré — le repli manuel est un chemin de premier rang', async () => {
+      let corpsRecu: Record<string, unknown> | null = null;
+      server.use(
+        http.get('/api/v1/referentiels/vehicules/marques', () =>
+          HttpResponse.json({ marques: [] } satisfies ReponseMarquesVehiculesCh),
+        ),
+        http.post('/api/v1/vehicules', async ({ request }) => {
+          corpsRecu = (await request.json()) as Record<string, unknown>;
+          return HttpResponse.json(
+            {
+              donnees: { ...VEHICULE_CREE, marque: 'Garage Import Zoug', modele: 'Modèle maison' },
+              avertissements: [],
+            },
+            { status: 201 },
+          );
+        }),
+      );
+      const utilisateur = userEvent.setup();
+      rendreEcran();
+
+      const champMarque = screen.getByLabelText('Marque');
+      await utilisateur.type(champMarque, 'Garage Import Zoug');
+      await utilisateur.tab(); // perte de focus : c'est seulement là que le repli visible s'affiche.
+      await waitFor(() =>
+        expect(screen.getByText(/Ne figure pas dans le référentiel/)).toBeInTheDocument(),
+      );
+      await utilisateur.type(screen.getByLabelText('Modèle'), 'Modèle maison');
+
+      await utilisateur.click(screen.getByRole('button', { name: 'Créer le véhicule' }));
+
+      await waitFor(() =>
+        expect(corpsRecu).toMatchObject({ marque: 'Garage Import Zoug', modele: 'Modèle maison' }),
+      );
+    });
+
+    it('changer explicitement de marque réinitialise le modèle déjà saisi', async () => {
+      server.use(
+        http.get('/api/v1/referentiels/vehicules/marques', () =>
+          HttpResponse.json({
+            marques: [
+              { nom: 'Volkswagen', nombreModeles: 42, aliasTrouve: null },
+              { nom: 'Volvo', nombreModeles: 18, aliasTrouve: null },
+            ],
+          } satisfies ReponseMarquesVehiculesCh),
+        ),
+      );
+      const utilisateur = userEvent.setup();
+      rendreEcran();
+
+      await utilisateur.type(screen.getByLabelText('Modèle'), 'Golf');
+      expect(screen.getByLabelText('Modèle')).toHaveValue('Golf');
+
+      await utilisateur.type(screen.getByLabelText('Marque'), 'Vo');
+      const optionVolvo = await screen.findByRole('option', { name: /Volvo/ });
+      await utilisateur.click(optionVolvo);
+
+      expect(screen.getByLabelText('Modèle')).toHaveValue('');
+    });
   });
 
   // Pas de test « soumission vide -> erreurs de champ affichées » ici : un défaut PRÉEXISTANT et

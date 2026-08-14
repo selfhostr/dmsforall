@@ -38,8 +38,9 @@ vi.mock('./pointage-requetes', () => ({
   chargerPointageOuNull: vi.fn(),
   chargerPointageOuvertTechnicien: vi.fn(),
   chargerPointagesPourAgregatLigne: vi.fn(),
+  chargerPointagesProductifsDuJour: vi.fn(),
 }));
-import { chargerPointagePourEcriture } from './pointage-requetes';
+import { chargerPointagePourEcriture, chargerPointagesProductifsDuJour } from './pointage-requetes';
 
 const TENANT = '11111111-1111-1111-1111-111111111111';
 const MOI = '22222222-2222-2222-2222-222222222222';
@@ -423,5 +424,192 @@ describe('ServicePointage.lister — ordreReparationNumero / ligneOrDesignation 
     };
     expect(builderRendu.innerJoin).toHaveBeenCalledTimes(1);
     expect(builderRendu.leftJoin).toHaveBeenCalledTimes(2);
+  });
+});
+
+/**
+ * `GET /pointages/dernier-du-jour` — `resoudreCibleReprise`/`journeeTravailCourante` (pures) sont
+ * déjà couvertes en profondeur par `regles-pointage.spec.ts` ; ce bloc prouve l'ORCHESTRATION
+ * propre au service : la garde soi/autrui (MÊME garde que `demarrer`/`arreter`), le technicien par
+ * défaut quand `technicienId` est absent, et que le `ctx` (jamais reconstruit) porte l'isolation
+ * tenant jusqu'à la requête. `chargerPointagesProductifsDuJour` est une fonction de module : on la
+ * simule, même patron que `chargerPointagePourEcriture` en tête de fichier — ce test NE PROUVE PAS
+ * le WHERE réel (scoping tenant/technicien, filtre `nature`, bornes de date) : ça, seule une
+ * intégration contre une vraie base peut le prouver (signalé au rapport de tâche).
+ */
+describe('ServicePointage.dernierDuJour — orchestration (garde soi/autrui, journée, isolation)', () => {
+  const chargeur = chargerPointagesProductifsDuJour as unknown as Mock;
+  const HORLOGE_FIXE = new Date('2026-08-14T15:00:00.000Z');
+  const horlogeFixeStub = {
+    maintenant: () => HORLOGE_FIXE,
+  } as unknown as ConstructorParameters<typeof ServicePointage>[2];
+
+  beforeEach(() => chargeur.mockReset());
+
+  function serviceAvecAcces(): { service: ServicePointage; acces: { enTenant: Mock } } {
+    const acces = {
+      enTenant: vi.fn((_ctx: unknown, cb: (tx: unknown) => unknown) => cb({})),
+    };
+    const idempotence = {} as unknown as ConstructorParameters<typeof ServicePointage>[1];
+    return {
+      service: new ServicePointage(
+        acces as unknown as ConstructorParameters<typeof ServicePointage>[0],
+        idempotence,
+        horlogeFixeStub,
+      ),
+      acces,
+    };
+  }
+
+  it('technicienId ABSENT : interroge la cible du technicien de la SESSION, aucune vérification de droit supplémentaire', async () => {
+    chargeur.mockResolvedValue([]);
+    const { service } = serviceAvecAcces();
+
+    const resultat = await service.dernierDuJour(CTX, principal('technicien', MOI), undefined);
+
+    expect(resultat).toEqual({ cible: null });
+    // Journée de travail bornée HEURE SUISSE (Europe/Zurich, CEST +2h en août) — `journeeTravailCourante`
+    // recâblée sur `common/temps/fuseau-suisse.ts` le 14.08.2026 : `HORLOGE_FIXE` = 15:00Z = 17:00
+    // locale le 14.08, donc [00:00, 23:59:59.999] locale du 14.08 = [13.08 22:00Z, 14.08 21:59:59.999Z].
+    expect(chargeur).toHaveBeenCalledWith(
+      expect.anything(),
+      CTX,
+      MOI,
+      new Date('2026-08-13T22:00:00.000Z'),
+      new Date('2026-08-14T21:59:59.999Z'),
+    );
+  });
+
+  it('technicienId présent = SOI-MÊME : autorisé sans droit d’encadrement', async () => {
+    chargeur.mockResolvedValue([]);
+    const { service } = serviceAvecAcces();
+
+    await service.dernierDuJour(CTX, principal('technicien', MOI), MOI);
+    expect(chargeur).toHaveBeenCalledWith(
+      expect.anything(),
+      CTX,
+      MOI,
+      expect.any(Date),
+      expect.any(Date),
+    );
+  });
+
+  it('technicienId présent = AUTRUI, appelant SANS droit d’encadrement ni statut de compte de service : REFUSÉ (403 DROIT_INSUFFISANT), AUCUNE requête exécutée', async () => {
+    const { service, acces } = serviceAvecAcces();
+
+    await expect(
+      service.dernierDuJour(CTX, principal('technicien', MOI), AUTRE),
+    ).rejects.toMatchObject({ code: 'DROIT_INSUFFISANT' });
+    expect(acces.enTenant).not.toHaveBeenCalled();
+    expect(chargeur).not.toHaveBeenCalled();
+  });
+
+  it('technicienId présent = AUTRUI, appelant avec atelier.pointage.pointer_autrui (chef d’atelier) : AUTORISÉ', async () => {
+    chargeur.mockResolvedValue([]);
+    const { service } = serviceAvecAcces();
+
+    const resultat = await service.dernierDuJour(CTX, principal('chef_atelier', MOI), AUTRE);
+    expect(resultat).toEqual({ cible: null });
+    expect(chargeur).toHaveBeenCalledWith(
+      expect.anything(),
+      CTX,
+      AUTRE,
+      expect.any(Date),
+      expect.any(Date),
+    );
+  });
+
+  it('technicienId présent = AUTRUI, appelant = borne poste_atelier (compte de service, exempté du contrôle soi/autrui) : AUTORISÉ', async () => {
+    chargeur.mockResolvedValue([]);
+    const { service } = serviceAvecAcces();
+
+    const resultat = await service.dernierDuJour(CTX, principal('poste_atelier', BORNE), AUTRE);
+    expect(resultat).toEqual({ cible: null });
+    expect(chargeur).toHaveBeenCalledWith(
+      expect.anything(),
+      CTX,
+      AUTRE,
+      expect.any(Date),
+      expect.any(Date),
+    );
+  });
+
+  it('technicienId inexistant : la requête ne remonte aucun pointage → cible null, PAS de code d’erreur distinct (ne révèle pas si l’identifiant existe)', async () => {
+    const INEXISTANT = '99999999-9999-9999-9999-999999999999';
+    chargeur.mockResolvedValue([]); // simule ce qu'un technicienId inexistant produit réellement en base : aucune ligne.
+    const { service } = serviceAvecAcces();
+
+    const resultat = await service.dernierDuJour(CTX, principal('chef_atelier', MOI), INEXISTANT);
+    expect(resultat).toEqual({ cible: null });
+  });
+
+  it('isolation tenant : le `ctx` transmis à la requête est EXACTEMENT celui du contexte tenant reçu, jamais reconstruit depuis le principal', async () => {
+    chargeur.mockResolvedValue([]);
+    const { service, acces } = serviceAvecAcces();
+
+    await service.dernierDuJour(CTX, principal('technicien', MOI), undefined);
+
+    expect(acces.enTenant).toHaveBeenCalledWith(CTX, expect.any(Function));
+    expect(chargeur).toHaveBeenCalledWith(
+      expect.anything(),
+      CTX,
+      MOI,
+      expect.any(Date),
+      expect.any(Date),
+    );
+  });
+
+  it('un technicien d’un AUTRE tenant ne remonte jamais : la requête est scopée par le `ctx` du tenant courant, jamais par un `tenantId` lu ailleurs', async () => {
+    // Preuve d'orchestration (pas de SQL réel ici, signalé au rapport) : le SEUL tenant transmis à
+    // la couche de requête est `CTX.tenantId` — aucun autre canal (principal.tenantId, un
+    // `technicienId` d'un autre tenant) n'influence le `ctx` transmis.
+    const AUTRE_TENANT_CTX = {
+      tenantId: '77777777-7777-7777-7777-777777777777',
+      utilisateurId: MOI,
+      requeteId: null,
+    } satisfies ContexteTenant;
+    chargeur.mockResolvedValue([]);
+    const { service } = serviceAvecAcces();
+
+    await service.dernierDuJour(AUTRE_TENANT_CTX, principal('technicien', MOI), undefined);
+    expect(chargeur).toHaveBeenCalledWith(
+      expect.anything(),
+      AUTRE_TENANT_CTX,
+      MOI,
+      expect.any(Date),
+      expect.any(Date),
+    );
+  });
+
+  it('délègue la résolution à `resoudreCibleReprise` avec l’horloge injectée — une cible pointable remontée par la requête est bien rendue', async () => {
+    chargeur.mockResolvedValue([
+      {
+        id: 'p1',
+        ordreReparationId: 'or1',
+        ligneOrId: 'l1',
+        siteId: SITE,
+        debutLe: new Date('2026-08-14T08:00:00.000Z'),
+        finLe: new Date('2026-08-14T08:30:00.000Z'),
+        statutOr: 'en_cours',
+        statutLigne: 'en_cours',
+        numeroOr: 'OR-2026-00042',
+        designationLigne: 'Vidange',
+      },
+    ]);
+    const { service } = serviceAvecAcces();
+
+    const resultat = await service.dernierDuJour(CTX, principal('technicien', MOI), undefined);
+    expect(resultat).toEqual({
+      cible: {
+        type: 'ligne',
+        ordreReparationId: 'or1',
+        numeroOr: 'OR-2026-00042',
+        ligneOrId: 'l1',
+        libelle: 'Vidange',
+        siteId: SITE,
+        interrompuLe: '2026-08-14T08:30:00.000Z',
+        cumulSecondesDuJour: 1800,
+      },
+    });
   });
 });

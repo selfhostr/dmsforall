@@ -30,11 +30,15 @@ import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useListeClients, type TriClients } from '@/hooks/clients/useListeClients';
 import { formaterDate } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
-import { FormulaireNouveauClient } from './FormulaireNouveauClient';
+import {
+  aUnBrouillonNouveauClientEnCours,
+  FormulaireNouveauClient,
+} from './FormulaireNouveauClient';
 import { texteOuVide } from './utils';
 
 /** `statut` envoyé au serveur : `undefined` laisse jouer le défaut contrat (`actif`+`bloque`,
@@ -179,15 +183,16 @@ export function EcranListeClients() {
   const estErreurReseau = requete.error instanceof ErreurReseau;
 
   return (
-    <div className="flex flex-col gap-4 p-6">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="texte-titre font-semibold text-foreground">{t('clients:titre')}</h1>
-        <Button type="button" onClick={() => setSheetOuvert(true)}>
-          <Plus aria-hidden className="h-4 w-4" />
-          {t('clients:nouveau')}
-        </Button>
-      </div>
-
+    // Titre VISIBLE (défaut du gabarit) — référence citée par @laupernoe pour généraliser ce choix
+    // (« dans Clients il y a écrit Clients, c'est mieux ») : cet écran garde son h1 à l'écran,
+    // il ne fait pas que répéter un onglet déjà affiché. Aucun padding local : `AppShell` pose
+    // déjà `p-4 sm:p-6` sur tout écran routé — un `p-6` ici le doublerait (48px au lieu de 24px).
+    //
+    // « Nouveau client » N'EST PLUS dans l'emplacement `actions` du gabarit (qui le plaçait juste
+    // sous le titre, seul sur sa ligne, et décalait tout le reste) — retour @laupernoe, chantier
+    // « zone haute des écrans de liste » : le bouton descend juste sous la barre de filtres,
+    // aligné à droite, même déplacement que sur Atelier/Pneus/Véhicules.
+    <GabaritEcran titre={t('clients:titre')}>
       <BarreFiltres
         q={qSaisi}
         onChangeQ={setQSaisi}
@@ -221,6 +226,16 @@ export function EcranListeClients() {
         </div>
       </BarreFiltres>
 
+      {/* Pas de `SelecteurTri` sur cet écran (tri par colonnes triables de `TableComptoir`) :
+          le bouton d'action rejoint donc sa propre ligne, aligné à droite, directement sous la
+          barre de filtres — même principe que la ligne « Trier par » des autres écrans. */}
+      <div className="flex justify-end">
+        <Button type="button" onClick={() => setSheetOuvert(true)}>
+          <Plus aria-hidden className="h-4 w-4" />
+          {t('clients:nouveau')}
+        </Button>
+      </div>
+
       {requete.isError ? (
         <EtatErreur
           titre={t(estErreurReseau ? 'erreurs:reseau.titre' : 'erreurs:inattendue.titre')}
@@ -249,19 +264,46 @@ export function EcranListeClients() {
       )}
 
       <Sheet open={sheetOuvert} onOpenChange={setSheetOuvert}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+        <SheetContent
+          className="w-full overflow-y-auto sm:max-w-lg"
+          // Issue #78 (mesuré en navigateur : Échap et un clic sur la zone grisée hors du panneau
+          // ferment tous deux ce tiroir PAR DÉFAUT, chez Radix, sans confirmation — un
+          // réceptionniste a perdu nom/prénom/téléphone/rue en plein comptoir de cette façon).
+          // Les DEUX interactions passent par ces rappels avant d'atteindre `onOpenChange` ;
+          // `preventDefault()` les bloque tant qu'une saisie réelle est en jeu
+          // (`aUnBrouillonNouveauClientEnCours`, `FormulaireNouveauClient.tsx` — même source de
+          // vérité que le brouillon qu'il persiste). Le bouton de fermeture visible (coin
+          // supérieur droit de `SheetContent`) n'est PAS concerné : il ne déclenche ni l'un ni
+          // l'autre de ces événements, une fermeture par ce bouton reste toujours immédiate — le
+          // brouillon reste alors le filet de rattrapage, pas ce garde-fou.
+          onEscapeKeyDown={(evenement) => {
+            if (aUnBrouillonNouveauClientEnCours()) evenement.preventDefault();
+          }}
+          onPointerDownOutside={(evenement) => {
+            if (aUnBrouillonNouveauClientEnCours()) evenement.preventDefault();
+          }}
+          onInteractOutside={(evenement) => {
+            if (aUnBrouillonNouveauClientEnCours()) evenement.preventDefault();
+          }}
+        >
           <SheetHeader>
             <SheetTitle>{t('clients:nouveau')}</SheetTitle>
           </SheetHeader>
           <FormulaireNouveauClient
             ouvert={sheetOuvert}
-            onCree={(id) => {
+            onCree={(client) => {
               setSheetOuvert(false);
-              navigate(chemins.clients.detail(id, site));
+              // Issue #79 : transmet numéro + nom affiché via l'état de navigation — si la
+              // LECTURE de la fiche qui suit échoue (`EcranFicheClient`), l'écran doit pouvoir dire
+              // « le client a bien été créé, seul l'affichage a échoué » plutôt que de laisser
+              // planer le doute qui a failli faire ressaisir Rossier une seconde fois.
+              navigate(chemins.clients.detail(client.id, site), {
+                state: { clientCreeNumero: client.numeroClient, clientCreeNom: client.nomAffiche },
+              });
             }}
           />
         </SheetContent>
       </Sheet>
-    </div>
+    </GabaritEcran>
   );
 }

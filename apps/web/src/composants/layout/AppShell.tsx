@@ -5,11 +5,13 @@ import { Outlet } from 'react-router';
 
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { FournisseurSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { useSession } from '@/hooks/useSession';
 import { cn } from '@/lib/utils';
 
 import { BarreLaterale } from './BarreLaterale';
 import { EnTete } from './EnTete';
+import { LimiteErreurEcran } from './LimiteErreurEcran';
 import { entreesVisibles } from './navigation-modele';
 import { OngletsDomaine } from './OngletsDomaine';
 import { useRepliBarreLaterale } from './useRepliBarreLaterale';
@@ -44,72 +46,84 @@ export function AppShell() {
   const repliBarreLaterale = useRepliBarreLaterale();
 
   return (
-    <div className="min-h-dvh lg:flex">
-      {/* Lien d'évitement — première cible du clavier sur chaque écran. Avec une barre latérale à
-          six entrées et une rangée d'onglets, atteindre le contenu au clavier coûtait jusqu'à une
-          dizaine de tabulations ; ce lien le fait en une. Invisible tant qu'il n'a pas le focus,
-          jamais retiré du DOM (`sr-only` seul le cacherait aussi au focus). */}
-      <a
-        href="#contenu-principal"
-        className="sr-only rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50"
-      >
-        {t('navigation:evitement.contenu')}
-      </a>
-
-      {afficheNavigation ? (
-        // `lg:sticky lg:top-0 lg:h-dvh` : l'aside a sa propre hauteur de viewport et reste ancré
-        // pendant que la colonne de droite défile. `BarreLaterale` reçoit ainsi une hauteur définie
-        // (`h-full` s'y résout) et garde son pied (Réglages + version) collé en bas — sans jamais
-        // faire défiler ses six entrées, voir BarreLaterale.tsx. `lg:self-start` empêche
-        // `align-items: stretch` du flex parent d'étirer l'aside à la hauteur de la colonne droite.
-        <aside
-          className={cn(
-            'hidden shrink-0 self-start border-r lg:sticky lg:top-0 lg:block lg:h-dvh',
-            // w-16 = 64 px replié : au-dessus du plancher tactile de 44 px une fois l'inset `p-2`
-            // du repli soustrait (voir `BarreLaterale.tsx`) — jamais en dessous de 44 px, même
-            // repliée, borne et comptoir compris.
-            repliBarreLaterale.replie ? 'w-16' : 'w-60',
-          )}
+    // Porte la préférence de site (issue #91) pour toute la coquille et l'écran routé — voir
+    // `hooks/site/ContexteSiteCourant.tsx`. Montée ICI (au-dessus d'`EnTete`/`BarreLaterale`/
+    // `OngletsDomaine` ET de `<Outlet/>`) : les trois composants de navigation la lisent en frères
+    // synchronisés, et la route index (`routeur.tsx`) peut s'en servir pour atterrir directement
+    // sur le dernier site connu plutôt que sur « aucun site ».
+    <FournisseurSiteCourant>
+      <div className="min-h-dvh lg:flex">
+        {/* Lien d'évitement — première cible du clavier sur chaque écran. Avec une barre latérale à
+            six entrées et une rangée d'onglets, atteindre le contenu au clavier coûtait jusqu'à une
+            dizaine de tabulations ; ce lien le fait en une. Invisible tant qu'il n'a pas le focus,
+            jamais retiré du DOM (`sr-only` seul le cacherait aussi au focus). */}
+        <a
+          href="#contenu-principal"
+          className="sr-only rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50"
         >
-          <BarreLaterale repli={repliBarreLaterale} />
-        </aside>
-      ) : null}
+          {t('navigation:evitement.contenu')}
+        </a>
 
-      <div className="flex min-w-0 flex-1 flex-col">
         {afficheNavigation ? (
-          <div className="flex items-center border-b lg:hidden">
-            <Sheet open={ouvert} onOpenChange={setOuvert}>
-              <SheetTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="m-2"
-                  aria-label={t('navigation:menu.ouvrir')}
-                >
-                  <Menu className="h-5 w-5" aria-hidden="true" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-60 p-0">
-                {/* `SheetContent side="left"` pose déjà `fixed inset-y-0 ... h-full` (voir
-                    `components/ui/sheet.tsx`) : le tiroir a donc une hauteur de viewport définie
-                    sans rien ajouter ici, et `BarreLaterale` (h-full) s'y ancre exactement comme
-                    dans l'aside desktop. */}
-                <SheetTitle className="sr-only">{t('navigation:principale.aria')}</SheetTitle>
-                <BarreLaterale className="pt-4" />
-              </SheetContent>
-            </Sheet>
-          </div>
+          // `lg:sticky lg:top-0 lg:h-dvh` : l'aside a sa propre hauteur de viewport et reste ancré
+          // pendant que la colonne de droite défile. `BarreLaterale` reçoit ainsi une hauteur définie
+          // (`h-full` s'y résout) et garde son pied (Réglages + version) collé en bas — sans jamais
+          // faire défiler ses six entrées, voir BarreLaterale.tsx. `lg:self-start` empêche
+          // `align-items: stretch` du flex parent d'étirer l'aside à la hauteur de la colonne droite.
+          <aside
+            className={cn(
+              'hidden shrink-0 self-start border-r lg:sticky lg:top-0 lg:block lg:h-dvh',
+              // w-16 = 64 px replié : au-dessus du plancher tactile de 44 px une fois l'inset `p-2`
+              // du repli soustrait (voir `BarreLaterale.tsx`) — jamais en dessous de 44 px, même
+              // repliée, borne et comptoir compris.
+              repliBarreLaterale.replie ? 'w-16' : 'w-60',
+            )}
+          >
+            <BarreLaterale repli={repliBarreLaterale} />
+          </aside>
         ) : null}
 
-        <EnTete />
+        <div className="flex min-w-0 flex-1 flex-col">
+          {afficheNavigation ? (
+            <div className="flex items-center border-b lg:hidden">
+              <Sheet open={ouvert} onOpenChange={setOuvert}>
+                <SheetTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="m-2"
+                    aria-label={t('navigation:menu.ouvrir')}
+                  >
+                    <Menu className="h-5 w-5" aria-hidden="true" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-60 p-0">
+                  {/* `SheetContent side="left"` pose déjà `fixed inset-y-0 ... h-full` (voir
+                      `components/ui/sheet.tsx`) : le tiroir a donc une hauteur de viewport définie
+                      sans rien ajouter ici, et `BarreLaterale` (h-full) s'y ancre exactement comme
+                      dans l'aside desktop. */}
+                  <SheetTitle className="sr-only">{t('navigation:principale.aria')}</SheetTitle>
+                  <BarreLaterale className="pt-4" />
+                </SheetContent>
+              </Sheet>
+            </div>
+          ) : null}
 
-        <OngletsDomaine />
+          <EnTete />
 
-        <main id="contenu-principal" className="flex-1 p-4 sm:p-6">
-          <Outlet />
-        </main>
+          <OngletsDomaine />
+
+          {/* Limite d'erreur SCOPÉE à l'écran routé (issue #77, axe 1) — un crash de rendu dans
+              l'écran affiché ne démonte plus la coquille entière (barre latérale, en-tête,
+              onglets) : voir la justification complète dans `LimiteErreurEcran.tsx`. */}
+          <main id="contenu-principal" className="flex-1 p-4 sm:p-6">
+            <LimiteErreurEcran>
+              <Outlet />
+            </LimiteErreurEcran>
+          </main>
+        </div>
       </div>
-    </div>
+    </FournisseurSiteCourant>
   );
 }

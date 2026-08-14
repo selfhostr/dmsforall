@@ -38,7 +38,8 @@
       "titre": "Sezione non disponibile"
     },
     "actions": {
-      "nouvelOr": "Nuovo ordine"
+      "nouvelOr": "Nuovo ordine",
+      "modifierTitre": "Modifica identità del veicolo"
     },
     "proprietaire": {
       "titre": "Proprietario e detentori",
@@ -53,7 +54,9 @@
     },
     "ordresReparation": {
       "titre": "Ordini di riparazione",
-      "vide": "Nessun ordine di riparazione per questo veicolo."
+      "vide": "Nessun ordine di riparazione per questo veicolo.",
+      "designations": "{liste}",
+      "designationsTronquees": "{liste}…"
     },
     "factures": {
       "titre": "Fatture",
@@ -66,6 +69,12 @@
       "emplacement": "Posizione: {emplacement}",
       "emplacementNonRenseigne": "Posizione non indicata",
       "lienHangar": "Vedi nel deposito pneumatici"
+    },
+    "rendezVous": {
+      "titre": "Prossimi appuntamenti",
+      "prendre": "Fissa un appuntamento",
+      "vide": "Nessun appuntamento previsto per questo veicolo.",
+      "creeTitre": "Appuntamento registrato"
     }
   },
   "archiver": {
@@ -80,15 +89,33 @@
     "vin": "VIN",
     "codeType": "Codice CH",
     "plaque": "Targa",
+    "plaqueExemple": "VS 123456",
+    "plaqueAide": "Cantone poi numero, con uno spazio, come sulla targa: VS 123456.",
     "mise1reCirc": "1a immatricolazione",
     "kmActuels": "Km attuali",
-    "copierCodeType": "Copia codice tipo"
+    "copierCodeType": "Copia codice tipo",
+    "autocompletion": {
+      "placeholderMarque": "Es. Volkswagen",
+      "placeholderModele": "Es. Golf",
+      "recherche": "Ricerca in corso…",
+      "aucunResultat": "Nessuna corrispondenza nel repertorio — la digitazione libera resta possibile.",
+      "resultats": "{count, plural, one {# risultato} other {# risultati}}",
+      "horsReferentiel": "Non presente nel repertorio — verrà registrato così com'è.",
+      "nombreModeles": "{count, plural, one {# modello} other {# modelli}}",
+      "erreurRecherche": "Suggerimenti non disponibili al momento — la digitazione libera resta possibile."
+    }
   },
   "plaques": {
     "titre": "Targhe",
     "canton": "Cantone",
+    "cantonExemple": "VS",
     "type": "Tipo",
     "historique": "Storico delle targhe"
+  },
+  "collisionPlaque": {
+    "avecDetail": "Targa {plaque} già assegnata a {vehicule} dal {debutLe}.",
+    "sansDetail": "Questa targa è già assegnata a un altro veicolo.",
+    "voirVehicule": "Vedi questo veicolo"
   },
   "detentions": {
     "titre": "Proprietà",
@@ -250,6 +277,7 @@
     "travauxReportes": "Lavori rinviati",
     "campagnes": "Richiami aperti",
     "expertise": "Collaudo prossimo",
+    "expertiseEchue": "Collaudo scaduto",
     "garantie": "Garanzia",
     "alerteClient": "Avviso cliente",
     "importe": "Veicolo importato",
@@ -266,7 +294,7 @@
     "detentions": "Nessun cambio proprietario registrato"
   },
   "badges": {
-    "identificationIncomplete": "Identificazione incompleta"
+    "identificationIncomplete": "Numero di telaio mancante"
   },
   "emplacement": {
     "titre": "Ubicazione",

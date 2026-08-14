@@ -19,7 +19,11 @@ import type { LigneLigneOr } from '../db/schema';
  * `'garage'`, pour que `TotauxPayeurOr.payeur` ne rende jamais `'garage'` (contrat, voir
  * `packages/shared/.../ordre-reparation.ts::TotauxPayeurOr.payeur`).
  */
-const STATUTS_EXCLUS_DES_TOTAUX: ReadonlySet<LigneLigneOr['statut']> = new Set([
+/** Exporté (#76/#82) : même exclusion réutilisée par `service-or.ts::assemblerDocument` pour borner
+ *  l'aperçu de désignations d'un OR — une ligne annulée n'a jamais eu lieu, une ligne refusée
+ *  alimente les travaux reportés (RM-73), ni l'une ni l'autre ne doit apparaître dans un « ce qui a
+ *  été fait ». Un seul mécanisme d'exclusion, jamais deux copies qui pourraient diverger. */
+export const STATUTS_EXCLUS_DES_TOTAUX: ReadonlySet<LigneLigneOr['statut']> = new Set([
   'annulee',
   'refusee',
 ]);

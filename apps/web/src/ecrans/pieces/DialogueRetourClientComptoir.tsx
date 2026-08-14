@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import { useRetourClientComptoir } from '@/hooks/pieces/useVenteComptoirPieces';
 
 import { formaterQuantiteMillieme, saisieVersQuantiteMillieme } from './utils';
@@ -84,6 +84,10 @@ export function DialogueRetourClientComptoir({ ouvert, onOuvertChange, siteId, a
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
+          <LegendeChampsObligatoires>
+            {t('commun:formulaires.champsObligatoiresLegende')}
+          </LegendeChampsObligatoires>
+
           <div className="flex flex-col gap-0.5">
             <span className="font-medium">{article.designation}</span>
             <span className="font-mono texte-libelle text-muted-foreground">
@@ -92,11 +96,14 @@ export function DialogueRetourClientComptoir({ ouvert, onOuvertChange, siteId, a
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="retour-quantite">{t('pieces:comptoirVente.retour.quantite')}</Label>
+            <Label htmlFor="retour-quantite" requis>
+              {t('pieces:comptoirVente.retour.quantite')}
+            </Label>
             <Input
               id="retour-quantite"
               type="text"
               inputMode="decimal"
+              required
               autoFocus
               readOnly={enCours}
               value={quantiteSaisie}
@@ -110,9 +117,12 @@ export function DialogueRetourClientComptoir({ ouvert, onOuvertChange, siteId, a
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="retour-motif">{t('pieces:comptoirVente.retour.motif')} *</Label>
+            <Label htmlFor="retour-motif" requis>
+              {t('pieces:comptoirVente.retour.motif')}
+            </Label>
             <Input
               id="retour-motif"
+              required
               readOnly={enCours}
               value={motif}
               onChange={(evenement) => setMotif(evenement.target.value)}

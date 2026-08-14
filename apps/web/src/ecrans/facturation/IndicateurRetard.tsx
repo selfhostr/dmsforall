@@ -57,13 +57,32 @@ export function IndicateurRetard({ dateEcheance, enRetard, joursRetard, classNam
   }
 
   if (enRetard === true) {
+    // Défaut corrigé (issue #134, testeur — « je ne peux pas voir la date d'échéance sur la
+    // facture, exactement la question qu'un client pose au téléphone ») : cette branche ne
+    // portait la date QUE dans l'attribut `title` (info-bulle au survol) — invisible par
+    // construction au clavier, au lecteur d'écran et sur tablette (aucun survol possible au
+    // doigt). L'alarme « en retard de N jours » reste le repère principal, mais l'échéance
+    // doit être un texte VISIBLE, pas un secret réservé à la souris. `title` conservé en plus
+    // (bénin, cohérence avec les deux autres branches) mais n'est plus la seule source.
     return (
       <span
-        className={cn('inline-flex items-center gap-1 texte-libelle text-statut-danger', className)}
+        className={cn(
+          'inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5 texte-libelle text-statut-danger',
+          className,
+        )}
         title={t('facturation:retard.echeanceLe', { date: formaterDate(dateEcheance) })}
       >
         <AlertTriangle aria-hidden className="h-3.5 w-3.5 shrink-0" />
         {t('facturation:retard.enRetard', { jours: joursRetard ?? 0 })}
+        {/* Séparateur dans son propre nœud — le texte d'échéance reste isolé pour rester
+            reconnaissable tel quel (« Échéance : jj.mm.aaaa »), identique au libellé rendu par
+            les deux autres branches de ce composant, plutôt que noyé dans un « · Échéance… ». */}
+        <span aria-hidden className="text-muted-foreground">
+          ·
+        </span>
+        <span className="text-muted-foreground">
+          {t('facturation:retard.echeanceLe', { date: formaterDate(dateEcheance) })}
+        </span>
       </span>
     );
   }

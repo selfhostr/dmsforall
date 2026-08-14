@@ -35,6 +35,29 @@ export interface ReponseStockArticle {
 /* ------------------------------------------------------------------ */
 
 /**
+ * Trois informations qui NE SE RESSEMBLENT PAS, et qu'un simple nombre à 0 confond dangereusement
+ * (constat terrain : plusieurs défauts produits par cette confusion) :
+ *  - `suivi`             : une ligne `stock_article` existe pour CE (article, site) précis —
+ *    `quantiteDisponibleMillieme` est fiable, y COMPRIS quand elle vaut 0 (« il n'en reste
+ *    aucun » se lit alors dans le nombre, pas dans ce statut).
+ *  - `nonSuiviSurCeSite` : aucune ligne pour ce site, mais l'article est suivi sur AU MOINS UN
+ *    autre site du tenant — « on ne sait pas » pour CE site précisément, ce n'est ni un stock nul
+ *    ni une absence de gestion en stock.
+ *  - `nonSuiviNullePart` : aucune ligne `stock_article` n'existe pour cet article, sur AUCUN site
+ *    du tenant — l'article n'a jamais été mis en stock (« l'article n'est suivi nulle part »).
+ *
+ * Quand `statutSuivi !== 'suivi'`, les quantités de la réponse valent 0 par convention et NE
+ * DOIVENT JAMAIS être lues comme « stock nul » : c'est `statutSuivi` qui porte l'information,
+ * jamais le nombre brut seul — voir `ReponseDisponibiliteArticle`/`ResultatRechercheComptoirArticle`.
+ */
+export const STATUTS_SUIVI_STOCK_ARTICLE = [
+  'suivi',
+  'nonSuiviSurCeSite',
+  'nonSuiviNullePart',
+] as const;
+export type StatutSuiviStockArticle = (typeof STATUTS_SUIVI_STOCK_ARTICLE)[number];
+
+/**
  * `GET /articles/{id}/disponibilite?siteId=` — la réponse qui rend `RP-14`/`RP-19` VÉRIFIABLE par
  * un tiers, et qui donne au réceptionnaire de quoi dire « cette pièce est déjà réservée pour l'OR
  * de M. Dupont » plutôt que de laisser l'implémentation inventer une phrase.
@@ -50,6 +73,8 @@ export interface ReponseDisponibiliteArticle {
   readonly quantitePhysiqueMillieme: number;
   readonly quantiteReserveeMillieme: number;
   readonly quantiteDisponibleMillieme: number;
+  /** Voir `StatutSuiviStockArticle` — à lire AVANT les quantités ci-dessus. */
+  readonly statutSuivi: StatutSuiviStockArticle;
   readonly reservationsActives: readonly ReservationActiveResume[];
   readonly reservationsActivesTronquees: boolean;
 }
@@ -131,9 +156,11 @@ export interface LigneReapprovisionnement {
 /** `PATCH /articles/{id}/stock/{siteId}` — réglages de site, PAS la quantité physique (qui ne
  *  bouge que par mouvement, `RP-16`→`RP-18` : aucune écriture directe sur `quantitePhysiqueMillieme`
  *  n'existe dans ce contrat, exactement pour empêcher un ajustement silencieux hors traçabilité). */
-export const schemaModificationStockSite = z.object({
-  emplacement: schemaEmplacement.nullish(),
-  stockMinimumMillieme: schemaQuantiteMillieme.nullish(),
-  quantiteCommandeStandardMillieme: schemaQuantiteMillieme.nullish(),
-});
+export const schemaModificationStockSite = z
+  .object({
+    emplacement: schemaEmplacement.nullish(),
+    stockMinimumMillieme: schemaQuantiteMillieme.nullish(),
+    quantiteCommandeStandardMillieme: schemaQuantiteMillieme.nullish(),
+  })
+  .strict();
 export type EntreeModificationStockSite = z.infer<typeof schemaModificationStockSite>;

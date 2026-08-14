@@ -15,7 +15,7 @@ import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { DateInput } from '@/components/ui/date-input';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -137,8 +137,14 @@ export function FormulaireEntreeEnStock({ vehicule, sites, onRetour, onMisEnStoc
         </Button>
       </div>
 
+      <LegendeChampsObligatoires>
+        {t('commun:formulaires.champsObligatoiresLegende')}
+      </LegendeChampsObligatoires>
+
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="entree-site">{t('ventes:stock.champs.site')}</Label>
+        <Label htmlFor="entree-site" requis>
+          {t('ventes:stock.champs.site')}
+        </Label>
         <Controller
           control={form.control}
           name="siteId"
@@ -151,6 +157,7 @@ export function FormulaireEntreeEnStock({ vehicule, sites, onRetour, onMisEnStoc
               <SelectTrigger
                 id="entree-site"
                 aria-label={t('ventes:stock.champs.site')}
+                aria-required="true"
                 aria-invalid={form.formState.errors.siteId ? true : undefined}
                 aria-describedby={form.formState.errors.siteId ? 'entree-site-erreur' : undefined}
               >
@@ -175,7 +182,9 @@ export function FormulaireEntreeEnStock({ vehicule, sites, onRetour, onMisEnStoc
 
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="entree-provenance">{t('ventes:stock.champs.provenance')}</Label>
+          <Label htmlFor="entree-provenance" requis>
+            {t('ventes:stock.champs.provenance')}
+          </Label>
           <Controller
             control={form.control}
             name="provenanceSelect"
@@ -188,6 +197,7 @@ export function FormulaireEntreeEnStock({ vehicule, sites, onRetour, onMisEnStoc
                 <SelectTrigger
                   id="entree-provenance"
                   aria-label={t('ventes:stock.champs.provenance')}
+                  aria-required="true"
                 >
                   <SelectValue />
                 </SelectTrigger>
@@ -206,7 +216,9 @@ export function FormulaireEntreeEnStock({ vehicule, sites, onRetour, onMisEnStoc
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="entree-date">{t('ventes:stock.champs.dateEntreeStock')}</Label>
+          <Label htmlFor="entree-date" requis>
+            {t('ventes:stock.champs.dateEntreeStock')}
+          </Label>
           <Controller
             control={form.control}
             name="dateEntreeStock"
@@ -214,6 +226,7 @@ export function FormulaireEntreeEnStock({ vehicule, sites, onRetour, onMisEnStoc
               <DateInput
                 id="entree-date"
                 disabled={mettreEnStock.isPending}
+                required
                 aria-invalid={form.formState.errors.dateEntreeStock ? true : undefined}
                 value={field.value}
                 onChange={(iso) => field.onChange(iso ?? '')}
@@ -225,12 +238,13 @@ export function FormulaireEntreeEnStock({ vehicule, sites, onRetour, onMisEnStoc
 
       {provenanceSelect === PROVENANCE_AUTRE ? (
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="entree-provenance-libre">
+          <Label htmlFor="entree-provenance-libre" requis>
             {t('ventes:stock.entree.provenanceAutre')}
           </Label>
           <Input
             id="entree-provenance-libre"
             readOnly={mettreEnStock.isPending}
+            required
             aria-invalid={form.formState.errors.provenanceLibre ? true : undefined}
             aria-describedby={
               form.formState.errors.provenanceLibre ? 'entree-provenance-libre-erreur' : undefined

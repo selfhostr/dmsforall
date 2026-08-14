@@ -147,28 +147,33 @@ export interface FinancementResume {
  * base (`financement_vente_comptant_sans_detail_chk`, migration 0042), pas par ce schéma — même
  * doctrine que `organismeId` qui laisse le croisement de type au serveur.
  */
-export const schemaCreationFinancement = z.object({
-  type: z.enum(TYPES_FINANCEMENT_VENTE),
-  organismeId: schemaIdentifiant.nullish(),
-  referenceContrat: schemaTexteCourt.nullish(),
-  /** Montant financé (principal), en centimes entiers positifs ou nuls. */
-  montantFinanceCentimes: schemaCentimesPositif.nullish(),
-  /** Acompte/apport versé à la signature, en centimes entiers positifs ou nuls. */
-  acompteCentimes: schemaCentimesPositif.nullish(),
-  /** Mensualité (crédit) ou loyer (leasing), en centimes entiers positifs ou nuls. */
-  mensualiteCentimes: schemaCentimesPositif.nullish(),
-  /** Taux d'intérêt/leasing en POUR MILLE (`schemaPourmille`, `81` = 8,1 %). */
-  tauxInteretPourmille: schemaPourmille.nullish(),
-  /** Durée du contrat en mois. Bornée à 120 mois (10 ans) — garde-fou contre une saisie
-   *  aberrante, pas une règle métier tranchée ; `0` est explicitement rejeté (une durée nulle
-   *  n'est pas un financement). */
-  dureeMois: z.number().int().min(1).max(120).nullish(),
-});
+export const schemaCreationFinancement = z
+  .object({
+    type: z.enum(TYPES_FINANCEMENT_VENTE),
+    organismeId: schemaIdentifiant.nullish(),
+    referenceContrat: schemaTexteCourt.nullish(),
+    /** Montant financé (principal), en centimes entiers positifs ou nuls. */
+    montantFinanceCentimes: schemaCentimesPositif.nullish(),
+    /** Acompte/apport versé à la signature, en centimes entiers positifs ou nuls. */
+    acompteCentimes: schemaCentimesPositif.nullish(),
+    /** Mensualité (crédit) ou loyer (leasing), en centimes entiers positifs ou nuls. */
+    mensualiteCentimes: schemaCentimesPositif.nullish(),
+    /** Taux d'intérêt/leasing en POUR MILLE (`schemaPourmille`, `81` = 8,1 %). */
+    tauxInteretPourmille: schemaPourmille.nullish(),
+    /** Durée du contrat en mois. Bornée à 120 mois (10 ans) — garde-fou contre une saisie
+     *  aberrante, pas une règle métier tranchée ; `0` est explicitement rejeté (une durée nulle
+     *  n'est pas un financement). */
+    dureeMois: z.number().int().min(1).max(120).nullish(),
+  })
+  .strict();
 export type EntreeCreationFinancement = z.infer<typeof schemaCreationFinancement>;
 
 /** `POST /dossiers-vente/{dossierVenteId}/financements/{id}/confirmer` — `en_attente -> confirme`.
  *  Corps vide, mais l'objet existe (même doctrine que `schemaActionDemarrer` de l'atelier). */
-export const schemaActionConfirmerFinancement = z.object({}).extend(schemaConfirmations.shape);
+export const schemaActionConfirmerFinancement = z
+  .object({})
+  .extend(schemaConfirmations.shape)
+  .strict();
 export type EntreeActionConfirmerFinancement = z.infer<typeof schemaActionConfirmerFinancement>;
 
 /** `POST /dossiers-vente/{dossierVenteId}/financements/{id}/refuser` — `en_attente -> refuse`,
@@ -176,5 +181,5 @@ export type EntreeActionConfirmerFinancement = z.infer<typeof schemaActionConfir
  *  financement, il ne rouvre pas l'ancien — cohérent avec la doctrine collection/historique de ce
  *  fichier. Motif obligatoire : c'est ce texte qui explique au vendeur pourquoi il doit proposer un
  *  autre mode de financement (§7.3). */
-export const schemaActionRefuserFinancement = z.object({ motif: schemaMotif });
+export const schemaActionRefuserFinancement = z.object({ motif: schemaMotif }).strict();
 export type EntreeActionRefuserFinancement = z.infer<typeof schemaActionRefuserFinancement>;

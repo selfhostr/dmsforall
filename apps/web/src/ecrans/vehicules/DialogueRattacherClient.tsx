@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { DateInput } from '@/components/ui/date-input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -119,6 +119,10 @@ export function DialogueRattacherClient({
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={soumettre} className="flex flex-col gap-4">
+          <LegendeChampsObligatoires>
+            {t('commun:formulaires.champsObligatoiresLegende')}
+          </LegendeChampsObligatoires>
+
           {detenteurActuel ? (
             <div className="flex flex-col gap-1.5">
               <Label>{t('vehicules:detentions.dialogue.detenteurActuelLabel')}</Label>
@@ -138,7 +142,7 @@ export function DialogueRattacherClient({
           ) : null}
 
           <div className="flex flex-col gap-1.5">
-            <Label>{t('vehicules:detentions.dialogue.clientLabel')}</Label>
+            <Label requis>{t('vehicules:detentions.dialogue.clientLabel')}</Label>
             {client ? (
               <div className="flex items-center justify-between gap-3 rounded-md border border-primary bg-primary/5 p-3">
                 <IdentiteClient client={client} />
@@ -158,6 +162,7 @@ export function DialogueRattacherClient({
               <SelecteurClientVehicule
                 valeur={clientId}
                 libelle={t('vehicules:detentions.dialogue.clientLabel')}
+                requis
                 onChangeValeur={(idChoisi, clientChoisi) => {
                   setClientId(idChoisi);
                   setClient(clientChoisi);
@@ -167,9 +172,12 @@ export function DialogueRattacherClient({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="rattacher-date">{t('vehicules:detentions.dialogue.dateLabel')}</Label>
+            <Label htmlFor="rattacher-date" requis>
+              {t('vehicules:detentions.dialogue.dateLabel')}
+            </Label>
             <DateInput
               id="rattacher-date"
+              required
               className="max-w-[200px]"
               value={changementLe ?? null}
               onChange={setChangementLe}
@@ -178,7 +186,7 @@ export function DialogueRattacherClient({
 
           {motifRequis ? (
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="rattacher-motif">
+              <Label htmlFor="rattacher-motif" requis>
                 {t('vehicules:detentions.dialogue.motifLabel')}
               </Label>
               <Select
@@ -188,6 +196,7 @@ export function DialogueRattacherClient({
                 <SelectTrigger
                   id="rattacher-motif"
                   aria-label={t('vehicules:detentions.dialogue.motifLabel')}
+                  aria-required="true"
                 >
                   <SelectValue placeholder={t('vehicules:detentions.dialogue.motifLabel')} />
                 </SelectTrigger>

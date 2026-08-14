@@ -57,7 +57,7 @@
   "lignes": {
     "titre": "Arbeiten",
     "vide": "Keine Arbeiten erfasst.",
-    "ajouter": "Arbeit hinzufügen",
+    "ajouter": "Arbeit oder Ersatzteil hinzufügen",
     "tronquees": "Einige Positionen werden hier nicht angezeigt (Limite erreicht) — vollständige Liste konsultieren.",
     "groupes": {
       "aValider": "Zur Freigabe",
@@ -73,7 +73,7 @@
       "quantite": "Menge",
       "tempsBareme": "Richtzeit",
       "tempsPointe": "Erfasste Zeit",
-      "prixUnitaire": "Einzelpreis",
+      "prixUnitaire": "Einzelpreis exkl. MWST",
       "rabais": "Rabatt",
       "payeur": "Zahler",
       "technicien": "Techniker",
@@ -81,13 +81,13 @@
       "statut": "Status"
     },
     "types": {
-      "mainOeuvreBaremee": "Arbeitszeit Tarif",
-      "mainOeuvreTempsReel": "Arbeitszeit Realzeit",
+      "mainOeuvreBaremee": "Arbeitszeit (Richtzeit-Tarif)",
+      "mainOeuvreTempsReel": "Arbeitszeit (effektiv erfasste Zeit)",
       "forfait": "Pauschal",
-      "piece": "Teil",
-      "fourniture": "Zubehör",
+      "piece": "Teil (aus Lager entnommen)",
+      "fourniture": "Zubehör (Kleinmaterial)",
       "sousTraitance": "Fremdfertigung",
-      "produitAtelier": "Werkstattprodukt",
+      "produitAtelier": "Werkstattprodukt (z. B. Öl, Pflegemittel)",
       "taxeElimination": "Steuern / Entsorgung",
       "remise": "Rabatt",
       "texte": "Information"
@@ -124,6 +124,7 @@
     },
     "marqueurs": {
       "securite": "Sicherheit",
+      "securiteAide": "Verhindert die Fahrzeugrückgabe, solange kein schriftlicher Vorbehalt unterzeichnet ist.",
       "pieceARestituer": "Teil zurückzugeben",
       "fournieParClient": "Von Kunde",
       "attentePiece": "Wartet auf Teil",
@@ -157,6 +158,42 @@
     },
     "champs": {
       "referenceTexte": "Referenz"
+    },
+    "montants": {
+      "ttc": "{montant} inkl. MWST",
+      "ht": "{montant} exkl. MWST",
+      "calculMainOeuvre": "{temps} × {taux}/Std."
+    },
+    "selecteurArticle": {
+      "label": "Ersatzteil im Lager suchen",
+      "placeholder": "Bezeichnung, Referenz oder Barcode",
+      "recherche": "Suche läuft…",
+      "aucunResultat": "Kein Artikel im Lager gefunden. Sie können das Teil unten manuell erfassen.",
+      "resultats": "{count, plural, one {# Ergebnis} other {# Ergebnisse}}",
+      "choisi": "Aus dem Lager übernommen",
+      "changer": "Anderes Teil suchen",
+      "prixConverti": "Katalogpreis {prixTtc} inkl. MWST, umgerechnet auf netto (MWST {taux} %).",
+      "parcours": {
+        "aide": "Tippen Sie eine genaue Referenz zum Suchen, oder wählen Sie direkt aus dem Katalog unten.",
+        "vide": "Für diesen Standort ist aktuell kein Artikel im Katalog aktiv. Sie können das Teil unten manuell erfassen."
+      },
+      "erreur": {
+        "reessayer": "Erneut versuchen",
+        "parcours": "Der Lagerkatalog konnte nicht geladen werden. {message}"
+      },
+      "disponibilite": {
+        "nonSuiviNullePart": "Dieses Teil wird an keinem Standort geführt — nie ins Lager aufgenommen.",
+        "nonSuiviSurCeSite": "Dieser Standort führt dieses Teil nicht — es wird anderswo geführt.",
+        "aucune": "Aktuell an diesem Standort nicht verfügbar.",
+        "disponible": "{n} an diesem Standort verfügbar."
+      },
+      "calculPrixEnCours": "Nettopreis wird berechnet…",
+      "quantiteSuperieureStock": "Eingegebene Menge ({quantite}) übersteigt den verfügbaren Bestand.",
+      "avertissementStock": {
+        "titre": "Menge über dem Bestand bestätigen?",
+        "description": "{quantite} verlangt für {disponible} an diesem Standort verfügbar. Das fehlende Teil kann separat bestellt werden.",
+        "confirmer": "Trotzdem hinzufügen"
+      }
     },
     "groupees": {
       "colonneSelection": "Auswahl",
@@ -260,7 +297,7 @@
     "receptionRequise": "Das Fahrzeug muss angenommen werden, bevor daran gearbeitet werden kann.",
     "orFacture": "Ein fakturierter RA kann nicht direkt wiedergeöffnet werden. Erstellen Sie einen verknüpften Nacharbeits-RA.",
     "checklistIncomplete": "Checkliste nicht komplett. Fehlende Punkte unten aufgelistet.",
-    "poManquant": "Kundenauftrag (PO) ist erforderlich.",
+    "poManquant": "Kundenauftrag ist erforderlich.",
     "reserveSecuriteRequise": "Sicherheitsmitteilung muss vor Rückgabe unterzeichnet werden."
   },
   "vues": {
@@ -287,13 +324,13 @@
     "aucunResultat": "Kein Ergebnis."
   },
   "chargement": {
-    "or": "RA wird geladen…",
+    "or": "Reparaturauftrag wird geladen…",
     "lignes": "Arbeiten werden geladen…"
   },
   "liste": {
     "titre": "Reparaturaufträge",
     "actions": {
-      "nouveau": "Neuer RA"
+      "nouveau": "Neuer Reparaturauftrag"
     },
     "colonnes": {
       "numero": "RA-Nr.",
@@ -305,7 +342,9 @@
     },
     "filtres": {
       "statut": "Status",
-      "statutTous": "Alle Status"
+      "statutTous": "Alle Status",
+      "attente": "Wartestatus",
+      "attenteToutes": "Alle"
     },
     "tri": {
       "label": "Sortieren nach",
@@ -340,7 +379,9 @@
     },
     "documentsVente": {
       "titre": "Offerte und Rechnung",
-      "vide": "Kein Verkaufsdokument mit diesem RA verknüpft."
+      "pasEncoreFacture": "Noch nicht fakturiert. Der RA bleibt für die Fakturierung offen.",
+      "clotureSansFacture": "Für diesen RA wurde keine Rechnung ausgestellt, jetzt geschlossen — weitere Fakturierung ist nicht möglich.",
+      "annuleSansFacture": "RA storniert, es wird keine Rechnung ausgestellt. Grund: {motif}"
     },
     "pointage": {
       "titre": "Wer hat erfasst",
@@ -349,8 +390,10 @@
   },
   "actions": {
     "titre": "Aktionen",
+    "imprimer": "RA drucken",
     "confirmer": "Bestätigen",
     "confirmerAction": "Bestätigen Sie diese Aktion.",
+    "annulerAvertissement": "Diese Aktion ist endgültig: Ein stornierter Reparaturauftrag kann weder geändert noch fortgesetzt werden.",
     "motif": "Grund",
     "motifRequis": "Der Grund ist obligatorisch",
     "kilometrageEntree": "Kilometerstand bei Annahme",
@@ -363,13 +406,18 @@
   },
   "totaux": {
     "titre": "Totale",
-    "totalValide": "Validiertes Total"
+    "totalValide": "Validiertes Total (Kostengrenze-Überwachung)",
+    "aideDistinction": "«Validiertes Total» überwacht die Kostengrenze des Auftrags (bereits validierte Positionen, alle Kostenträger zusammen) — kein zu fakturierender Betrag. Für einen Betrag an einen Kostenträger die entsprechende Zeile oben verwenden."
+  },
+  "impression": {
+    "enCours": "Druckvorgang läuft…",
+    "erreur": "Werkstattblatt konnte nicht gedruckt werden. {message}"
   },
   "nouveau": {
     "titre": "Neuer Reparaturauftrag",
     "siteManquant": {
       "titre": "Kein Standort ausgewählt",
-      "description": "Wählen Sie einen Standort, bevor Sie einen Reparaturauftrag eröffnen: Die Nummerierung und die Einstellungen des RA hängen davon ab.",
+      "description": "Wählen Sie einen Standort, bevor Sie einen Reparaturauftrag eröffnen: Die Nummerierung und die Einstellungen des Reparaturauftrags hängen davon ab.",
       "label": "Standort",
       "erreur": {
         "titre": "Ihre Standorte konnten nicht geladen werden"
@@ -377,7 +425,9 @@
     },
     "client": {
       "requisTitre": "Kein Kunde ausgewählt",
-      "requisDescription": "Eröffnen Sie einen Reparaturauftrag über die Kundenkarte (Schaltfläche «RA eröffnen»), oder suchen Sie den Kunden zuerst."
+      "requisDescription": "Suchen Sie zuerst den Kunden, und eröffnen Sie dann einen Reparaturauftrag über seine Kundenkarte.",
+      "creerAction": "Neuen Kunden erfassen",
+      "creerTitre": "Neuer Kunde"
     },
     "vehicule": {
       "titre": "Fahrzeug",
@@ -385,7 +435,7 @@
       "erreur": "Die Fahrzeuge dieses Kunden konnten nicht geladen werden"
     },
     "type": {
-      "libelle": "RA-Typ",
+      "libelle": "Reparaturauftrag-Typ",
       "service": "Service",
       "reparation": "Reparatur",
       "diagnostic": "Diagnose",
@@ -409,9 +459,13 @@
     "erreur": {
       "titre": "Der Reparaturauftrag konnte nicht eröffnet werden"
     },
+    "confirmation": {
+      "vehiculeDeuxOrOuverts": "Für dieses Fahrzeug bereits offen: {numeros}. Trotzdem einen neuen Reparaturauftrag eröffnen?"
+    },
     "actions": {
-      "creer": "RA eröffnen",
-      "enCours": "Wird eröffnet…"
+      "creer": "Reparaturauftrag eröffnen",
+      "enCours": "Wird eröffnet…",
+      "ignorerBrouillon": "Entwurf verwerfen"
     }
   }
 }
