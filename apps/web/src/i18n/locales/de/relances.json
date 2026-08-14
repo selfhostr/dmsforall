@@ -84,6 +84,33 @@
   },
   "tracabilite": {
     "titre": "Versandverlauf",
-    "note": "Das Detail pro Versand (wer welche Erinnerung wann und mit welchem Ergebnis erhalten hat) ist in DFA noch nicht verfügbar. Die Bilanz jeder Auslösung (Anzahl versendet, fehlgeschlagen, storniert) bleibt oben sichtbar."
+    "description": "Jede versendete Erinnerung mit Datum, betroffener Rechnung, Stufe und Versandergebnis — eine Zeile pro Versuch, als Nachweis, dass ein Kunde tatsächlich gemahnt wurde.",
+    "colonnes": {
+      "date": "Versanddatum",
+      "facture": "Rechnung",
+      "palier": "Stufe",
+      "destinataire": "Empfänger",
+      "canal": "Kanal",
+      "resultat": "Ergebnis"
+    },
+    "statut": {
+      "envoye": "Versendet",
+      "echoue": "Fehlgeschlagen"
+    },
+    "raisons": {
+      "destinataire_invalide": "Ungültige Empfängeradresse oder -nummer",
+      "canal_non_supporte": "Kanal für diesen Kunden nicht unterstützt",
+      "contenu_refuse": "Inhalt vom Versanddienstleister abgelehnt",
+      "quota_depasse": "Versandkontingent überschritten oder technischer Fehler beim Dienstleister",
+      "inconnue": "Fehlgeschlagen — Grund nicht verfügbar"
+    },
+    "vide": {
+      "titre": "Keine Erinnerung versendet",
+      "description": "Für diesen Betrieb wurde noch keine Erinnerung versendet. Der Verlauf erscheint hier ab dem ersten Versand."
+    },
+    "etatErreur": {
+      "titre": "Verlauf kann nicht angezeigt werden",
+      "description": "Der Versandverlauf konnte nicht geladen werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
+    }
   }
 }

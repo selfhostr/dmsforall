@@ -16,11 +16,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
+import { EtatVide } from '@/composants/commun/EtatVide';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useEnvoyerRelances } from '@/hooks/relances/useEnvoyerRelances';
+import { useHistoriqueRelances } from '@/hooks/relances/useHistoriqueRelances';
 import { usePlanifierRelances } from '@/hooks/relances/usePlanifierRelances';
 import { useReglesRelance } from '@/hooks/relances/useReglesRelance';
 import { useUpserterRegleRelance } from '@/hooks/relances/useUpserterRegleRelance';
@@ -37,29 +40,21 @@ const CANAUX_FORMULAIRE = ['sms', 'email'] as const satisfies readonly CanalMess
 
 /**
  * Écran de gestion des relances automatiques (rappels de facture impayée, lot 1 —
- * `docs/specification-relances-automatiques.md`). Toute la plomberie (hooks TanStack Query,
- * préréglage, i18n) existait déjà avant cet écran — voir `hooks/relances/`, `./prereglages.ts`,
- * `i18n/locales/{fr,de,it}/relances.json`.
+ * `docs/specification-relances-automatiques.md`, + historique d'envoi, issue #136). Toute la
+ * plomberie (hooks TanStack Query, préréglage, i18n) existait déjà avant cet écran — voir
+ * `hooks/relances/`, `./prereglages.ts`, `i18n/locales/{fr,de,it}/relances.json`.
  *
- * ÉCART SIGNALÉ (documenté aussi dans `hooks/relances/relances.api.ts`, re-vérifié — issue #136 —
- * toujours vrai : `RelancesController` n'expose que `GET regles`, `PUT regles/:typeRelance`,
- * `POST facturation/planifier`, `POST facturation/envoyer`, aucun `GET` de listing) : aucune route
- * API ne liste `relance_planifiee`/`relance_envoi` — impossible d'afficher une vraie liste
- * « relances planifiées et leur état » ni un historique d'envoi ligne par ligne (qui/quoi/quand/
- * résultat par client), cette donnée n'existe simplement pas côté transport. MANQUE SERVEUR
- * SIGNALÉ, pas traité ici (hors périmètre front) : un `GET /relances/envois` (ou équivalent)
- * paginé par document/client serait nécessaire pour lever cet écart. Le bloc `déclenchement
- * manuel` affiche donc le BILAN de la dernière exécution de chaque opération (nombre créés/ignorés
- * ou envoyés/échoués/annulés), gardé en état local React — PAS dans le cache TanStack Query,
- * puisque ce n'est pas une ressource qu'un `GET` pourrait revalider.
+ * Le bloc `déclenchement manuel` affiche le BILAN de la dernière exécution de chaque opération
+ * (nombre créés/ignorés ou envoyés/échoués/annulés), gardé en état local React — PAS dans le
+ * cache TanStack Query, puisque ce n'est pas une ressource qu'un `GET` pourrait revalider.
  *
- * Défaut corrigé (issue #136) : le bloc `traçabilité` annonçait littéralement à l'utilisateur
- * final « s'affichera ici dès que l'API de listing des envois sera livrée » — jargon interne
- * (« API ») et promesse de livraison qu'aucun garagiste n'a à connaître pour faire son travail.
- * `relances:tracabilite.note` reformulée en état vide honnête, sans mentionner l'API : le
- * détail par envoi est absent (jamais présenté comme « zéro envoi », ce serait un mensonge — voir
- * `EtatVide`/`EtatVidePremierUsage`, doctrine du dépôt sur l'absence de donnée), et pointe vers le
- * bilan déjà affiché comme seul substitut disponible aujourd'hui.
+ * Le bloc `traçabilité` (issue #136, résolu par ce lot) liste désormais RÉELLEMENT
+ * `relance_envoi` via `GET /relances/facturation/historique` (`useHistoriqueRelances`) — une
+ * ligne PAR TENTATIVE, jamais seulement la dernière (pièce de dossier pour le comptable : « ce
+ * client a bien été relancé, et à cette date », y compris face à une contestation qui porte sur
+ * une relance déjà remplacée par une suivante). Remplace la note qui annonçait littéralement
+ * « s'affichera ici dès que l'API de listing des envois sera livrée » (jargon interne, promesse de
+ * livraison) par la donnée réelle — voir aussi le rapport de livraison de l'issue #136.
  */
 export function EcranRelances() {
   const { t } = useTranslation(['relances', 'commun']);
@@ -533,15 +528,96 @@ function BlocDeclenchementManuel() {
   );
 }
 
-/** Note explicative fixe sur l'absence de listing détaillé côté API (voir l'écart signalé en tête
- *  de fichier) — pas de bilan dupliqué ici, celui de chaque déclenchement vit déjà dans
- *  `BlocDeclenchementManuel` ci-dessus. */
+/**
+ * Historique d'envoi réel (issue #136) — une ligne par tentative tracée dans `relance_envoi`,
+ * jamais reconstruite depuis le bilan d'exécution de `BlocDeclenchementManuel` ci-dessus (qui ne
+ * porte que le total d'un appel, pas le détail par facture/client). Trois états explicites :
+ * chargement, aucune relance envoyée (cas normal, pas une erreur), erreur.
+ */
 function BlocTracabilite() {
   const { t } = useTranslation(['relances', 'commun']);
+  const { resultat, elements } = useHistoriqueRelances();
+
   return (
-    <section className="flex flex-col gap-2 rounded-lg border border-dashed p-4">
-      <h2 className="texte-titre-section">{t('relances:tracabilite.titre')}</h2>
-      <p className="texte-corps text-muted-foreground">{t('relances:tracabilite.note')}</p>
+    <section className="flex flex-col gap-4 rounded-lg border p-4">
+      <div className="flex flex-col gap-1">
+        <h2 className="texte-titre-section">{t('relances:tracabilite.titre')}</h2>
+        <p className="texte-corps text-muted-foreground">{t('relances:tracabilite.description')}</p>
+      </div>
+
+      {resultat.isPending ? (
+        <EtatChargement lignes={3} />
+      ) : resultat.isError ? (
+        <EtatErreur
+          titre={t('relances:tracabilite.etatErreur.titre')}
+          description={messageErreur(resultat.error, t)}
+          onReessayer={() => void resultat.refetch()}
+        />
+      ) : elements.length === 0 ? (
+        <EtatVide
+          titre={t('relances:tracabilite.vide.titre')}
+          description={t('relances:tracabilite.vide.description')}
+        />
+      ) : (
+        <>
+          <div className="overflow-x-auto">
+            <table className="w-full texte-corps">
+              <thead>
+                <tr className="border-b text-left text-muted-foreground">
+                  <th scope="col" className="py-2 pr-4 font-medium">
+                    {t('relances:tracabilite.colonnes.date')}
+                  </th>
+                  <th scope="col" className="py-2 pr-4 font-medium">
+                    {t('relances:tracabilite.colonnes.facture')}
+                  </th>
+                  <th scope="col" className="py-2 pr-4 font-medium">
+                    {t('relances:tracabilite.colonnes.palier')}
+                  </th>
+                  <th scope="col" className="py-2 pr-4 font-medium">
+                    {t('relances:tracabilite.colonnes.destinataire')}
+                  </th>
+                  <th scope="col" className="py-2 pr-4 font-medium">
+                    {t('relances:tracabilite.colonnes.canal')}
+                  </th>
+                  <th scope="col" className="py-2 font-medium">
+                    {t('relances:tracabilite.colonnes.resultat')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {elements.map((envoi) => (
+                  <tr key={envoi.id} className="border-b last:border-0">
+                    <td className="py-2 pr-4 tabular-nums">{formaterDate(envoi.envoyeLe)}</td>
+                    <td className="py-2 pr-4">{envoi.factureNumero ?? '—'}</td>
+                    <td className="py-2 pr-4">
+                      {t('relances:regles.paliers.libelle', { n: envoi.palier })}
+                    </td>
+                    <td className="py-2 pr-4">{envoi.destinataire}</td>
+                    <td className="py-2 pr-4">{t(`relances:regles.canaux.${envoi.canal}`)}</td>
+                    <td className="py-2">
+                      <div className="flex flex-col items-start gap-0.5">
+                        <Badge variant={envoi.statutEnvoi === 'envoye' ? 'default' : 'destructive'}>
+                          {t(`relances:tracabilite.statut.${envoi.statutEnvoi}`)}
+                        </Badge>
+                        {envoi.statutEnvoi === 'echoue' ? (
+                          <span className="texte-libelle text-muted-foreground">
+                            {t(`relances:tracabilite.raisons.${envoi.raisonEchec ?? 'inconnue'}`)}
+                          </span>
+                        ) : null}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <BoutonChargerPlus
+            aChargerPlus={resultat.hasNextPage ?? false}
+            enChargement={resultat.isFetchingNextPage}
+            onChargerPlus={() => void resultat.fetchNextPage()}
+          />
+        </>
+      )}
     </section>
   );
 }

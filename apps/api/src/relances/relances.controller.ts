@@ -1,5 +1,22 @@
-import { Controller, Get, HttpCode, HttpStatus, Param, Post, Put, UseGuards } from '@nestjs/common';
-import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiCookieAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import {
   schemaUpsertRegleRelance,
   type EntreeUpsertRegleRelance,
@@ -12,8 +29,18 @@ import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
 
-import { EnvoiRelancesDto, PlanificationRelancesDto, RegleRelanceDto } from './dto';
-import { schemaTypeRelance } from './schemas';
+import {
+  EnvoiRelancesDto,
+  PageRelanceEnvoiDto,
+  PlanificationRelancesDto,
+  RegleRelanceDto,
+} from './dto';
+import {
+  schemaListeHistoriqueEnvois,
+  schemaTypeRelance,
+  type ParametresListeHistoriqueEnvois,
+} from './schemas';
+import { ServiceHistoriqueEnvoisRelance } from './service-historique-envois';
 import { ServiceRegleRelance } from './service-regle-relance';
 import { ServiceRelancesFacture } from './service-relances-facture';
 
@@ -27,8 +54,18 @@ import { ServiceRelancesFacture } from './service-relances-facture';
  * aucune requête. Remplace le palliatif `@AucunDroitRequis()` + vérification de rôle en service
  * (`relances/droits-provisoires.ts`, retiré), posé faute d'accès de son auteur à
  * `auth/matrice-droits.ts` au moment de la livraison de ce module. UN SEUL jeu de rôles
- * (`direction`, `comptable`) gouverne les quatre routes ci-dessous — voir `matrice-droits.ts` pour
+ * (`direction`, `comptable`) gouverne les cinq routes ci-dessous — voir `matrice-droits.ts` pour
  * l'arbitrage (même LIRE la configuration des relances expose une politique de recouvrement).
+ *
+ * `GET .../historique` (issue #136, ajoutée après ce lot) RÉUTILISE
+ * `relances.facturation.regle.lire` plutôt qu'une action dédiée : cette tâche n'a, comme la
+ * livraison initiale de ce contrôleur ci-dessus, aucun accès à `auth/matrice-droits.ts` (hors de
+ * son périmètre d'écriture). L'historique d'envoi expose EXACTEMENT la même politique commerciale
+ * que la configuration des relances (qui a été relancé, quand — un fait aussi sensible que les
+ * paliers/canaux configurés), donc le MÊME périmètre de rôles (`direction`+`comptable`, `admin`
+ * exclu, RF-115) est correct dès aujourd'hui avec cette action — pas seulement « suffisant en
+ * attendant ». Une action dédiée (`relances.facturation.historique.lire`) resterait plus lisible
+ * dans `matrice-droits.ts` à terme ; signalé au coordinateur, pas bloquant pour ce livrable.
  *
  * AUCUN ORDONNANCEUR : `POST .../planifier` et `POST .../envoyer` sont des opérations APPELABLES
  * à la demande — un futur déclencheur périodique (cron applicatif, job BullMQ répété) les
@@ -44,6 +81,7 @@ export class RelancesController {
   constructor(
     private readonly serviceRegle: ServiceRegleRelance,
     private readonly serviceFacture: ServiceRelancesFacture,
+    private readonly serviceHistorique: ServiceHistoriqueEnvoisRelance,
     private readonly contexte: ServiceContexteRequete,
   ) {}
 
@@ -114,5 +152,31 @@ export class RelancesController {
   async envoyer(): Promise<EnvoiRelancesDto> {
     const ctx = this.contexte.contexteTenant();
     return this.serviceFacture.envoyerPretes(ctx);
+  }
+
+  @Get('facturation/historique')
+  @ExigerDroit('relances.facturation.regle.lire')
+  @ApiOperation({
+    summary:
+      'Historique d’envoi des relances de facture (issue #136) — une ligne par TENTATIVE ' +
+      'réellement tracée dans `relance_envoi` (append-only), triée par date d’envoi décroissante.',
+    description:
+      'Pièce de dossier pour le comptable : date, palier, destinataire réellement touché ' +
+      '(figé à l’envoi, jamais recalculé depuis la fiche client actuelle) et résultat. Le ' +
+      'contenu du message envoyé n’est jamais exposé. `factureId` omis rend l’historique complet ' +
+      'du tenant ; fourni, filtre sur cette seule facture.',
+  })
+  @ApiQuery({ name: 'factureId', required: false, format: 'uuid' })
+  @ApiQuery({ name: 'limite', required: false, type: Number })
+  @ApiQuery({ name: 'curseur', required: false, type: String })
+  @ApiOkResponse({ type: PageRelanceEnvoiDto })
+  @ApiReponseProbleme(400, 'Curseur de pagination invalide.')
+  @ApiReponseProbleme(401, 'Session absente ou expirée.')
+  @ApiReponseProbleme(403, 'Droit insuffisant (relances.facturation.regle.lire).')
+  async listerHistorique(
+    @Query(new PipeZod(schemaListeHistoriqueEnvois)) params: ParametresListeHistoriqueEnvois,
+  ): Promise<PageRelanceEnvoiDto> {
+    const ctx = this.contexte.contexteTenant();
+    return this.serviceHistorique.lister(ctx, params);
   }
 }

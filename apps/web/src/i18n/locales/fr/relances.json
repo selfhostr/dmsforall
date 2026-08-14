@@ -84,6 +84,33 @@
   },
   "tracabilite": {
     "titre": "Historique d'envoi",
-    "note": "Le détail envoi par envoi (qui a reçu quel rappel, quand, avec quel résultat) n'est pas encore disponible dans DFA. Le bilan de chaque déclenchement (nombre envoyés, échoués, annulés) reste visible ci-dessus."
+    "description": "Chaque relance partie, avec sa date, la facture concernée, le palier et le résultat de l'envoi — une ligne par tentative, pièce à l'appui pour prouver qu'un client a bien été relancé.",
+    "colonnes": {
+      "date": "Date d'envoi",
+      "facture": "Facture",
+      "palier": "Palier",
+      "destinataire": "Destinataire",
+      "canal": "Canal",
+      "resultat": "Résultat"
+    },
+    "statut": {
+      "envoye": "Envoyé",
+      "echoue": "Échoué"
+    },
+    "raisons": {
+      "destinataire_invalide": "Adresse ou numéro de destinataire invalide",
+      "canal_non_supporte": "Canal non pris en charge pour ce client",
+      "contenu_refuse": "Contenu refusé par le prestataire d'envoi",
+      "quota_depasse": "Quota d'envoi dépassé ou erreur technique du prestataire",
+      "inconnue": "Échec — raison indisponible"
+    },
+    "vide": {
+      "titre": "Aucune relance envoyée",
+      "description": "Aucun rappel n'a encore été envoyé pour ce garage. L'historique apparaîtra ici dès le premier envoi."
+    },
+    "etatErreur": {
+      "titre": "Impossible d'afficher l'historique",
+      "description": "L'historique d'envoi n'a pas pu être chargé. Vérifiez votre connexion et réessayez."
+    }
   }
 }
