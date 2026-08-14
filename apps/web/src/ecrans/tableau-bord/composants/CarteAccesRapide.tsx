@@ -10,19 +10,9 @@ interface Props {
 }
 
 /**
- * Carte « accès rapide » — un LIEN, jamais un chiffre inventé. Deux usages, tous deux documentés
- * dans `docs/design-tableau-bord-par-role.md` comme des raccourcis honnêtes plutôt que des
- * agrégats qui n'existent pas côté serveur :
+ * Carte « accès rapide » — un LIEN, jamais un chiffre inventé. Réservée aux cas où un compte
+ * honnête n'est structurellement pas atteignable depuis le front :
  *
- *  - Comptable « À relancer » (§3.2) : `GET /documents-vente?enRetard=true&relanceNiveau=0` est
- *    prouvé appliqué au SQL (`apps/api/src/facturation/documents/service-documents.ts:322-335`,
- *    vérifié en exécution avant construction de ce bloc), MAIS `EcranListeFactures` lit son onglet
- *    depuis un `useState` local (`onglet`), jamais depuis l'URL — un lien `?onglet=enRetard`
- *    n'aurait AUCUN effet, silencieusement. Gap supplémentaire à celui déjà signalé par le design
- *    (`chemins.facturation.liste` sans filtre) : même si ce constructeur acceptait un filtre,
- *    l'écran cible l'ignorerait. Plutôt que de construire un lien mort qui prétend filtrer, cette
- *    carte pointe honnêtement vers la liste des factures et NOMME le geste à faire une fois
- *    arrivé (ouvrir l'onglet « À relancer »).
  *  - Magasinier « Réservations actives » (§3.5) : `ReponseReservationPiece` ne porte ni désignation
  *    d'article ni numéro d'OR (seulement des UUID bruts, `articleId`/`ordreReparationId` —
  *    `EcranReservationsPieces.tsx` a le même constat, RECHERCHE confirmée, pas supposée) et
@@ -30,6 +20,15 @@ interface Props {
  *    UUID illisible, soit un chiffre potentiellement faux au-delà de la première page. Un lien
  *    direct vers l'écran des réservations, qui sait déjà gérer cette donnée brute, est le choix
  *    honnête.
+ *
+ * ANCIEN second usage, RETIRÉ (issue #93, testeur novice — « une carte qui me donne un itinéraire
+ * au lieu d'une information ») : le comptable « À relancer » (§3.2) utilisait aussi cette carte, au
+ * motif que `PageCurseur` n'expose aucun total. Faux en pratique : `TableauBordComptable.tsx`
+ * calcule désormais un compte honnête (borné, « 50+ » au-delà) à partir de la première page de
+ * `useListeDocumentsVente` avec le même filtre `enRetard=true&relanceNiveau=0` — voir son
+ * commentaire de tête pour le détail. Le gap resté réel (l'onglet de `EcranListeFactures` ne lit
+ * pas l'URL, un `?onglet=enRetard` n'aurait aucun effet) est désormais SANS CONSÉQUENCE : le lien
+ * mène à la liste générale, pas à une vue pré-filtrée qu'il prétendrait activer.
  */
 export function CarteAccesRapide({ titre, description, lien }: Props) {
   return (

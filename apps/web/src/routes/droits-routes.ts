@@ -93,6 +93,16 @@ export const ROLES_PARAMETRAGE_PIECES: readonly RoleUtilisateur[] = [
 ];
 
 /**
+ * Gestion des employés (issue #137) — CAS DE FIGURE 1 (protection RÉELLE de route), même
+ * raisonnement que `ROLES_PIECES`/`ROLES_VENTES` : `socle.utilisateur.lire` n'est accordé qu'à
+ * `direction` et `admin` côté API (`DROITS_UTILISATEUR_PAR_ROLE`, `auth/matrice-droits.ts`) — tout
+ * autre rôle reçoit `403 DROIT_INSUFFISANT` sur `GET /utilisateurs` lui-même, pas seulement sur
+ * l'écriture. Poser `rolesAutorises: ROLES_GESTION_UTILISATEURS` sur la route reflète cette
+ * restriction déjà réelle, elle ne l'invente pas.
+ */
+export const ROLES_GESTION_UTILISATEURS: readonly RoleUtilisateur[] = ['direction', 'admin'];
+
+/**
  * Module ventes VN/VO (étape 4) — CAS DE FIGURE 1 CI-DESSUS (protection RÉELLE de route), même
  * raisonnement que `ROLES_PIECES` : `admin`, `technicien` et `magasinier` reçoivent `[]`
  * littéralement sur tout le domaine `ventes.*` côté API (RF-115, `DROITS_VENTES_PAR_ROLE`,
@@ -268,5 +278,23 @@ export const ROLES_MENU_FACTURATION: readonly RoleUtilisateur[] = [
   'receptionnaire',
   'chef_atelier',
   'magasinier',
+  'technicien',
+];
+
+/**
+ * Agenda de rendez-vous (Lot RDV-1) — CAS DE FIGURE 1 CI-DESSUS (protection RÉELLE de route) :
+ * `rendez_vous.lire` (`apps/api/src/auth/matrice-droits.ts`, `DROITS_RENDEZ_VOUS_PAR_ROLE`) ferme
+ * la LECTURE elle-même à `vendeur`/`magasinier`/`comptable`/`poste_atelier` — poser
+ * `rolesAutorises={ROLES_LECTURE_RENDEZ_VOUS}` reflète donc une restriction réelle, elle ne
+ * l'invente pas. Même liste que `ecrans/rendez-vous/droits.ts` (duplication assumée, même chaîne
+ * que `ROLES_PIECES`/`ROLES_VENTES` ci-dessus). CRÉATION (`rendez_vous.creer`, réceptionniste/
+ * direction/admin seuls) et CYCLE DE VIE (modifier/arrivée/absence/annulation, sans `technicien`)
+ * sont plus étroits que la simple lecture — gérés DANS l'écran, jamais par une garde de route.
+ */
+export const ROLES_LECTURE_RENDEZ_VOUS: readonly RoleUtilisateur[] = [
+  'receptionnaire',
+  'chef_atelier',
+  'direction',
+  'admin',
   'technicien',
 ];

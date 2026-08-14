@@ -22,7 +22,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -187,11 +187,18 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
         </DialogHeader>
 
         <form onSubmit={soumettre} noValidate className="flex flex-col gap-4">
+          <LegendeChampsObligatoires>
+            {t('commun:formulaires.champsObligatoiresLegende')}
+          </LegendeChampsObligatoires>
+
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="art-designation">{t('pieces:articles.designation')}</Label>
+              <Label htmlFor="art-designation" requis>
+                {t('pieces:articles.designation')}
+              </Label>
               <Input
                 id="art-designation"
+                required
                 readOnly={enCours}
                 aria-invalid={form.formState.errors.designation ? true : undefined}
                 aria-describedby={
@@ -213,9 +220,12 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="art-reference">{t('pieces:articles.reference')}</Label>
+              <Label htmlFor="art-reference" requis>
+                {t('pieces:articles.reference')}
+              </Label>
               <Input
                 id="art-reference"
+                required
                 readOnly={enCours}
                 aria-invalid={form.formState.errors.referencePrincipale ? true : undefined}
                 aria-describedby={
@@ -236,7 +246,9 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="art-categorie">{t('pieces:articles.categorie')}</Label>
+            <Label htmlFor="art-categorie" requis>
+              {t('pieces:articles.categorie')}
+            </Label>
             <Controller
               control={form.control}
               name="categorie"
@@ -246,7 +258,11 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
                   onValueChange={(valeur) => field.onChange(valeur as CategorieArticle)}
                   disabled={enCours}
                 >
-                  <SelectTrigger id="art-categorie" aria-label={t('pieces:articles.categorie')}>
+                  <SelectTrigger
+                    id="art-categorie"
+                    aria-label={t('pieces:articles.categorie')}
+                    aria-required="true"
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -280,7 +296,9 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
               )}
             />
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="art-tva">{t('pieces:articles.tva')}</Label>
+              <Label htmlFor="art-tva" requis>
+                {t('pieces:articles.tva')}
+              </Label>
               <Controller
                 control={form.control}
                 name="tauxTvaPourmille"
@@ -290,7 +308,11 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
                     onValueChange={(valeur) => field.onChange(Number(valeur))}
                     disabled={enCours}
                   >
-                    <SelectTrigger id="art-tva" aria-label={t('pieces:articles.tva')}>
+                    <SelectTrigger
+                      id="art-tva"
+                      aria-label={t('pieces:articles.tva')}
+                      aria-required="true"
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

@@ -101,7 +101,7 @@ export function EcranConsolePlateforme() {
     return (
       <ConsoleShell>
         <div className="flex flex-col gap-6">
-          <h1 className="texte-titre font-semibold text-foreground">
+          <h1 className="texte-titre-page font-semibold text-foreground">
             {t('console:plateforme.titre')}
           </h1>
           <EtatChargement lignes={6} />
@@ -117,7 +117,7 @@ export function EcranConsolePlateforme() {
       return (
         <ConsoleShell>
           <div className="flex flex-col gap-6">
-            <h1 className="texte-titre font-semibold text-foreground">
+            <h1 className="texte-titre-page font-semibold text-foreground">
               {t('console:plateforme.titre')}
             </h1>
             <EtatErreur
@@ -133,7 +133,7 @@ export function EcranConsolePlateforme() {
       return (
         <ConsoleShell>
           <div className="flex flex-col gap-6">
-            <h1 className="texte-titre font-semibold text-foreground">
+            <h1 className="texte-titre-page font-semibold text-foreground">
               {t('console:plateforme.titre')}
             </h1>
             <EtatErreur
@@ -148,7 +148,7 @@ export function EcranConsolePlateforme() {
     return (
       <ConsoleShell>
         <div className="flex flex-col gap-6">
-          <h1 className="texte-titre font-semibold text-foreground">
+          <h1 className="texte-titre-page font-semibold text-foreground">
             {t('console:plateforme.titre')}
           </h1>
           <EtatErreur
@@ -185,7 +185,7 @@ export function EcranConsolePlateforme() {
     <ConsoleShell>
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-1">
-          <h1 className="texte-titre font-semibold text-foreground">
+          <h1 className="texte-titre-page font-semibold text-foreground">
             {t('console:plateforme.titre')}
           </h1>
           <p className="texte-corps text-muted-foreground">{t('console:plateforme.sousTitre')}</p>

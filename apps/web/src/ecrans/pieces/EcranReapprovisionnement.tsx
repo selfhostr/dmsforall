@@ -1,3 +1,4 @@
+import { Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -7,18 +8,27 @@ import type { LigneReapprovisionnement } from '@dfa/shared';
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
+import { useModifierStockSite } from '@/hooks/pieces/useModifierStockSite';
 import { useReapprovisionnement } from '@/hooks/pieces/useReapprovisionnement';
 import { useSession } from '@/hooks/useSession';
 import { chemins } from '@/routes/chemins';
 
-import { peutEcrireCommandeFournisseur } from './droits';
+import { peutEcrireCommandeFournisseur, peutEcrireStockSite } from './droits';
 import type { EtatPreremplissageCommandeFournisseur } from './etat-preremplissage-commande';
 import { SelecteurSiteRequis } from './SelecteurSiteRequis';
-import { formaterQuantiteMillieme } from './utils';
+import {
+  formaterQuantiteMillieme,
+  quantiteMilliemeVersSaisie,
+  saisieVersSeuilMillieme,
+} from './utils';
 
 /**
  * Réapprovisionnement (RP-12, priorité 4 du brief) — articles sous leur stock minimum, par site.
@@ -38,6 +48,18 @@ export function EcranReapprovisionnement() {
   const site = searchParams.get('site') ?? undefined;
   const { data: session } = useSession();
   const peutCommander = peutEcrireCommandeFournisseur(session?.utilisateur.role);
+  // Seuil de réapprovisionnement (#121) — LES DEUX emplacements envisagés se justifient, pas un
+  // seul : ici, une ÉDITION (voir `CelluleSeuil` plus bas), pré-remplie d'une valeur TOUJOURS
+  // réelle — `LigneReapprovisionnement` est le SEUL endroit du contrat qui rend
+  // `stockMinimumMillieme` lisible sans appel supplémentaire (`ReponseArticle.stocksResume` ne le
+  // porte pas, `contrats/pieces/article.ts::StockResumeArticle`), et une ligne n'existe ici que
+  // parce qu'un seuil EST posé et dépassé. `PanneauStockArticle.ActionSeuilSite` couvre l'AUTRE
+  // moitié du besoin (poser un seuil sur un article qui a encore largement de stock, avant qu'il
+  // ne manque) avec une ACTION D'ÉCRITURE plutôt qu'une édition — voir son commentaire : aucune
+  // route `GET` n'expose la valeur actuelle en dehors de cette liste, un formulaire pré-rempli y
+  // serait donc un mensonge. Droit distinct de `peutCommander` (`pieces.stock.modifier` côté
+  // serveur, `StockArticleController.modifierSite`), pas celui de la commande fournisseur.
+  const peutModifierSeuil = peutEcrireStockSite(session?.utilisateur.role);
 
   const {
     lignes,
@@ -129,9 +151,11 @@ export function EcranReapprovisionnement() {
       id: 'minimum',
       libelle: t('pieces:stock.reapprovisionnement.colonnes.minimum'),
       alignement: 'droite',
-      rendu: (ligne) => (
-        <span className="tabular-nums">{formaterQuantiteMillieme(ligne.stockMinimumMillieme)}</span>
-      ),
+      // `actions: true` — même geste que la colonne de sélection ci-dessus : la cellule porte un
+      // déclencheur de popover interactif, son clic ne doit jamais activer la navigation de ligne
+      // (`onOuvrirLigne`, `TableComptoir.tsx`).
+      actions: true,
+      rendu: (ligne) => <CelluleSeuil ligne={ligne} peutModifier={peutModifierSeuil} />,
     },
     {
       id: 'ecart',
@@ -147,48 +171,49 @@ export function EcranReapprovisionnement() {
 
   if (!site) {
     return (
-      <div className="mx-auto flex w-full max-w-lg flex-col gap-4 p-6">
-        <h1 className="sr-only">{t('pieces:stock.reapprovisionnement.titre')}</h1>
-        <SelecteurSiteRequis onChoisir={(siteId) => setSearchParams({ site: siteId })} />
-      </div>
+      <GabaritEcran titre={t('pieces:stock.reapprovisionnement.titre')}>
+        <div className="mx-auto w-full max-w-lg">
+          <SelecteurSiteRequis onChoisir={(siteId) => setSearchParams({ site: siteId })} />
+        </div>
+      </GabaritEcran>
     );
   }
 
   if (isError) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t('pieces:stock.reapprovisionnement.titre')}
-        </h1>
+      <GabaritEcran titre={t('pieces:stock.reapprovisionnement.titre')}>
         <EtatErreur
           titre={t('pieces:stock.reapprovisionnement.erreur.titre')}
           description={messageErreur(error, t)}
           onReessayer={() => void refetch()}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t('pieces:stock.reapprovisionnement.titre')}
-        </h1>
-        {peutCommander && selection.size > 0 ? (
-          <div className="flex items-center gap-3 rounded-md border bg-muted/50 px-3 py-2">
-            <span className="texte-corps text-foreground">
-              {t('pieces:stock.reapprovisionnement.selection.nombreSelectionnes', {
-                count: selection.size,
-              })}
-            </span>
-            <Button type="button" onClick={commanderSelection}>
-              {t('pieces:stock.reapprovisionnement.actions.commander')}
-            </Button>
-          </div>
-        ) : null}
+  const actionCommander =
+    peutCommander && selection.size > 0 ? (
+      <div className="flex items-center gap-3 rounded-md border bg-muted/50 px-3 py-2">
+        <span className="texte-corps text-foreground">
+          {t('pieces:stock.reapprovisionnement.selection.nombreSelectionnes', {
+            count: selection.size,
+          })}
+        </span>
+        <Button type="button" onClick={commanderSelection}>
+          {t('pieces:stock.reapprovisionnement.actions.commander')}
+        </Button>
       </div>
+    ) : undefined;
 
+  // « Commander » ne siège PAS dans le slot `actions` du gabarit (qui le placerait juste sous le
+  // titre, seul sur sa ligne) — même déplacement que « Créer un article » (`EcranListeArticles`) et
+  // « Nouvel ordre de réparation » (Atelier) : l'action principale d'un écran de liste rejoint le
+  // haut du tableau, jamais l'en-tête. Ici, pas de ligne « Trier par » à partager : l'action
+  // n'existe QUE quand une sélection est active (`actionCommander` reste `undefined` sinon), donc
+  // sa propre ligne, alignée à droite, juste au-dessus du tableau.
+  return (
+    <GabaritEcran titre={t('pieces:stock.reapprovisionnement.titre')}>
+      {actionCommander ? <div className="flex justify-end">{actionCommander}</div> : null}
       <TableComptoir
         colonnes={colonnes}
         lignes={lignes}
@@ -209,6 +234,130 @@ export function EcranReapprovisionnement() {
         enChargement={isFetchingNextPage}
         onChargerPlus={() => void fetchNextPage()}
       />
-    </div>
+    </GabaritEcran>
+  );
+}
+
+interface PropsCelluleSeuil {
+  readonly ligne: LigneReapprovisionnement;
+  readonly peutModifier: boolean;
+}
+
+/**
+ * Saisie du seuil (#121) — `stockMinimumMillieme` est TOUJOURS défini sur les lignes de cet écran
+ * (une ligne n'existe que parce qu'un seuil est posé ET dépassé, `LigneReapprovisionnement`), donc
+ * le champ part toujours pré-rempli d'une valeur réelle, jamais vide par défaut d'information. Un
+ * rôle en lecture seule (`!peutModifier`) voit la même valeur, sans déclencheur.
+ *
+ * Ferme le popover sur succès ; `useModifierStockSite` invalide déjà la liste de réapprovisionnement
+ * (voir son commentaire) — la ligne disparaît d'elle-même dès que le prochain rendu constate qu'elle
+ * n'est plus sous son seuil, ou que le seuil a été retiré (`RP-12`, preuve serveur du ticket).
+ */
+function CelluleSeuil({ ligne, peutModifier }: PropsCelluleSeuil) {
+  const { t } = useTranslation(['pieces', 'commun']);
+  const modifier = useModifierStockSite();
+  const [ouvert, setOuvert] = useState(false);
+  const [saisie, setSaisie] = useState('');
+  const [erreurSaisie, setErreurSaisie] = useState<string | null>(null);
+
+  if (!peutModifier) {
+    return (
+      <span className="tabular-nums">{formaterQuantiteMillieme(ligne.stockMinimumMillieme)}</span>
+    );
+  }
+
+  function gererOuverture(prochainEtat: boolean) {
+    setOuvert(prochainEtat);
+    if (prochainEtat) {
+      setSaisie(quantiteMilliemeVersSaisie(ligne.stockMinimumMillieme));
+      setErreurSaisie(null);
+      modifier.reset();
+    }
+  }
+
+  function appliquer(stockMinimumMillieme: number | null) {
+    modifier.mutate(
+      { articleId: ligne.articleId, siteId: ligne.siteId, entree: { stockMinimumMillieme } },
+      { onSuccess: () => setOuvert(false) },
+    );
+  }
+
+  function enregistrer() {
+    const resultat = saisieVersSeuilMillieme(saisie);
+    if (resultat.genre === 'invalide') {
+      setErreurSaisie(t('pieces:stock.reapprovisionnement.seuil.erreurInvalide'));
+      return;
+    }
+    setErreurSaisie(null);
+    appliquer(resultat.genre === 'absence' ? null : resultat.millieme);
+  }
+
+  const champId = `seuil-reappro-${ligne.articleId}-${ligne.siteId}`;
+
+  return (
+    <Popover open={ouvert} onOpenChange={gererOuverture}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="gap-1.5 tabular-nums"
+          aria-label={t('pieces:stock.reapprovisionnement.seuil.modifierAria', {
+            designation: ligne.designation,
+          })}
+        >
+          {formaterQuantiteMillieme(ligne.stockMinimumMillieme)}
+          <Pencil className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={champId}>{t('pieces:stock.reapprovisionnement.seuil.champ')}</Label>
+            <Input
+              id={champId}
+              type="text"
+              inputMode="decimal"
+              value={saisie}
+              disabled={modifier.isPending}
+              onChange={(evenement) => setSaisie(evenement.target.value)}
+              aria-invalid={erreurSaisie ? true : undefined}
+              aria-describedby={`${champId}-aide`}
+            />
+            <p id={`${champId}-aide`} className="texte-libelle text-muted-foreground">
+              {t('pieces:stock.reapprovisionnement.seuil.champAide')}
+            </p>
+          </div>
+
+          {erreurSaisie ? (
+            <p className="texte-libelle text-destructive" role="alert">
+              {erreurSaisie}
+            </p>
+          ) : null}
+          {modifier.isError ? (
+            <p className="texte-libelle text-destructive" role="alert">
+              {messageErreur(modifier.error, t)}
+            </p>
+          ) : null}
+
+          <div className="flex items-center justify-between gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={modifier.isPending}
+              onClick={() => appliquer(null)}
+            >
+              {t('pieces:stock.reapprovisionnement.seuil.retirer')}
+            </Button>
+            <Button type="button" size="sm" disabled={modifier.isPending} onClick={enregistrer}>
+              {modifier.isPending
+                ? t('commun:chargement.enCours')
+                : t('commun:actions.enregistrer')}
+            </Button>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

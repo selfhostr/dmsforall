@@ -101,7 +101,16 @@
     "perimees": "Données périmées"
   },
   "vide": {
-    "aucunOr": "Aucun OR à pointer pour vous aujourd'hui."
+    "aucunOr": "Aucun OR ne vous est assigné pour l'instant.",
+    "aucunOrDescription": "Vous pouvez tout de même choisir n'importe quelle OR ouverte ci-dessous pour démarrer un pointage."
+  },
+  "toutesLesOr": {
+    "titre": "Toutes les OR ouvertes",
+    "afficher": "Afficher toutes les OR ouvertes",
+    "masquer": "Masquer",
+    "rechercherLabel": "Numéro d'OR ou véhicule",
+    "rechercherPlaceholder": "Rechercher une OR…",
+    "aucunResultat": "Aucune OR ouverte ne correspond à cette recherche."
   },
   "statuts": {
     "en_cours": "En cours",
@@ -135,7 +144,14 @@
     },
     "pointageEnCours": {
       "titre": "Pointage en cours",
-      "depuis": "Depuis {heure}"
+      "depuis": "Depuis {heure}",
+      "cumulAujourdhui": "Aujourd'hui sur cette cible : {duree}"
+    },
+    "bandeauReprise": {
+      "titre": "Reprendre : {cible}",
+      "interrompuDepuis": "Interrompu il y a {duree}",
+      "cumulJour": "{cumul} déjà pointées aujourd'hui",
+      "libelleAccessible": "Reprendre le pointage sur {cible}"
     },
     "cible": {
       "ligne": "{numero} — {designation}",
@@ -146,6 +162,7 @@
       "arreter": "Arrêter",
       "pause": "Mettre en pause",
       "reprendre": "Reprendre",
+      "changer": "Changer",
       "demarrerOr": "Pointer sur cet OR",
       "demarrerLigne": "Pointer sur cette ligne"
     },
@@ -155,10 +172,12 @@
     },
     "choisirCible": {
       "titre": "Que pointez-vous ?",
-      "description": "Choisissez une ligne qui vous est assignée, ou pointez sur l'OR entier.",
+      "retour": "Retour",
+      "description": "Choisissez une ligne de l'OR, ou pointez sur l'OR entier.",
       "orEntier": "OR entier (sans ligne précise)",
-      "lignesTitre": "Lignes qui vous sont assignées",
-      "aucuneLigne": "Aucune ligne ne vous est assignée sur cet OR — vous pouvez pointer sur l'OR entier."
+      "lignesTitre": "Lignes de l'OR",
+      "aucuneLigne": "Cet OR n'a aucune ligne pointable — vous pouvez pointer sur l'OR entier.",
+      "assigneeAutre": "Assignée à un autre technicien."
     },
     "erreur": {
       "titre": "Impossible de charger votre pointage"

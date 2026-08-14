@@ -82,6 +82,10 @@ export class ServiceIdentificationPin {
             technicienId: pin.utilisateurId,
             prenom: pin.prenom,
             nom: pin.nom,
+            // Site de la BORNE (session), pas du technicien identifié — même valeur que `siteId`
+            // résolu ci-dessus par `exigerSiteDuCompteDeService`, portée jusqu'au client pour que
+            // l'écran borne n'ait plus jamais à le redemander (contrat `identification.ts`).
+            siteId,
           } satisfies ReponseIdentificationPin;
         }
       }

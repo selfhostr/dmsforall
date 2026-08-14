@@ -1,5 +1,5 @@
-import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
-import type { ReponseVehicule } from '@dfa/shared';
+import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import type { DetailCollisionPlaqueVehicule, ReponseVehicule } from '@dfa/shared';
 import type { ContexteTenant, TransactionDfa } from '../db';
 import {
   client,
@@ -131,6 +131,77 @@ export async function listerPlaques(
       and(eq(vehiculePlaque.tenantId, ctx.tenantId), eq(vehiculePlaque.vehiculeId, vehiculeId)),
     )
     .orderBy(desc(vehiculePlaque.du));
+}
+
+type LigneCollisionPlaqueBrute = {
+  readonly vehicule_id: string;
+  readonly marque: string;
+  readonly modele: string;
+  readonly version: string | null;
+  readonly valeur: string;
+  readonly canton: string | null;
+  readonly du: string;
+  readonly au: string | null;
+};
+
+/**
+ * Dette technique n°6 : après l'échec d'un INSERT sur `vehicule_plaque_collision_excl` (RM-18,
+ * CT-06 — `409 VEHICULE_PLAQUE_COLLISION`), la ligne fautive n'est PAS dans l'exception (c'est une
+ * contrainte d'EXCLUSION, pas une clé unique) — il faut donc aller la chercher pour nommer le
+ * véhicule qui porte déjà la plaque. Reproduit EXACTEMENT le prédicat de l'EXCLUDE
+ * (migrations/0007_vehicules.sql `vehicule_plaque_collision_excl`) : `tenant_id`,
+ * `normaliser_recherche(valeur)`, chevauchement de `daterange(du, au, '[)')`, restreint aux
+ * plaques CH ni interchangeables ni professionnelles (seules concernées par la contrainte —
+ * l'INSERT qui vient d'échouer les satisfaisait forcément lui-même, sinon l'EXCLUDE ne se serait
+ * pas déclenchée).
+ *
+ * Rescopée `tenant_id` EXPLICITEMENT en plus du RLS (RLS = filet, jamais le mécanisme). N'appeler
+ * QUE dans la branche d'erreur, jamais sur le chemin nominal — c'est une relecture de secours, pas
+ * une requête de validation.
+ *
+ * CAS DE COURSE (obligatoire à traiter) : la ligne en conflit au moment de l'INSERT peut avoir
+ * disparu au moment de cette relecture (clôturée par une autre requête entre-temps) — rend alors
+ * `null`, jamais une exception, jamais un identifiant inventé.
+ */
+export async function trouverVehiculeCollisionPlaque(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  plaque: { readonly valeur: string; readonly debutLe: string },
+): Promise<DetailCollisionPlaqueVehicule | null> {
+  const resultat = await tx.execute<LigneCollisionPlaqueBrute>(sql`
+    select v.id      as vehicule_id,
+           v.marque  as marque,
+           v.modele  as modele,
+           v.version as version,
+           vp.valeur as valeur,
+           vp.canton as canton,
+           vp.du::text as du,
+           vp.au::text as au
+      from public.vehicule_plaque vp
+      join public.vehicule v
+        on v.tenant_id = vp.tenant_id and v.id = vp.vehicule_id
+     where vp.tenant_id = ${ctx.tenantId}
+       and vp.pays = 'CH'
+       and not vp.interchangeable
+       and not vp.professionnelle
+       and public.normaliser_recherche(vp.valeur) = public.normaliser_recherche(${plaque.valeur})
+       and daterange(vp.du, vp.au, '[)') && daterange(${plaque.debutLe}::date, null::date, '[)')
+     limit 1
+  `);
+  const ligne = resultat.rows[0];
+  if (!ligne) {
+    return null;
+  }
+  return {
+    vehiculeId: ligne.vehicule_id,
+    marque: ligne.marque,
+    modele: ligne.modele,
+    version: ligne.version,
+    plaque: ligne.valeur,
+    canton: ligne.canton,
+    debutLe: ligne.du,
+    finLe: ligne.au,
+  };
 }
 
 export async function lireDernierKilometrage(

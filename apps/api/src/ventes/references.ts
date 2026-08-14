@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 
 import type { ContexteTenant, TransactionDfa } from '../db';
 import {
@@ -6,6 +6,7 @@ import {
   dossierVente,
   dossierVenteDocumentRequis,
   financementVente,
+  ligneDocument,
   reprise,
   vehiculeStock,
   type LigneDocumentVente,
@@ -16,6 +17,11 @@ import {
   type LigneVehiculeStock,
 } from '../db/schema';
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
+// Import direct du fichier (jamais un barrel `facturation/`) : fonction PURE, sans accès base ni
+// dépendance NestJS — même patron déjà en place pour `roleVoitLesMontants`, réutilisée en LECTURE
+// par `ventes/mappers.ts` depuis `facturation/documents/mappeurs.ts` (RF-116). Ce module ne modifie
+// jamais `document_vente`/`ligne_document` (propriété de `facturation/`, voir plus bas).
+import { calculerTotauxDocument } from '../facturation/documents/calcul-document';
 
 /**
  * Lectures PARTAGÉES entre les services de ce module (`vehicule_stock`, `dossier_vente`,
@@ -274,4 +280,91 @@ export async function listerDocumentsDossierBrut(
     )
     .orderBy(desc(documentVente.dateDocument))
     .limit(SEUIL_DOCUMENTS_DOSSIER + 1);
+}
+
+/**
+ * Total TTC à AFFICHER pour chaque document, un par `document.id` (#127, bug prouvé : la carte
+ * « Documents » d'un dossier affichait « Montant TTC 0.00 » pour un bon de commande dont le montant
+ * réel, ouvert directement via `/documents-vente/{id}`, était correct).
+ *
+ * CAUSE RACINE : `document_vente.total_ttc_centimes` n'est FIGÉ QU'À L'ÉMISSION (`MD-45`,
+ * `facturation/documents/service-emission.ts`) — jamais avant. Un document `brouillon` porte donc la
+ * valeur PAR DÉFAUT de la colonne (`0`, `db/schema/facturation/document-vente.ts:115`), la remise
+ * globale n'étant ventilée qu'à l'émission (`MD-59`/`MD-61`). Un bon de commande reste `brouillon`
+ * jusqu'à sa transformation en facture — c'est le cas exact qui déclenchait le bug. `versDocumentVenteResume`
+ * lisait cette colonne stockée directement pour TOUS les statuts, sur la foi d'un commentaire erroné
+ * (« maintenus par trigger » — il n'existe aucun trigger : la colonne n'est écrite QU'UNE FOIS, par
+ * `service-emission.ts`).
+ *
+ * Reprend EXACTEMENT la doctrine de `facturation/documents/service-documents.ts::assemblerDocument`
+ * (dont `calculerTotauxDocument`, fonction PURE sans accès base, est importée ici en LECTURE) : un
+ * `brouillon` recalcule EN DIRECT depuis ses lignes stockées (`ligne_document.{ht,tva,ttc}_centimes`,
+ * déjà persistées ligne par ligne — cette fonction ne recalcule RIEN au niveau ligne, elle ne fait
+ * que les SOMMER, comme `calculerTotauxDocument` le fait déjà côté facturation), un document émis
+ * (et au-delà) lit tel quel `document_vente.total_ttc_centimes`.
+ *
+ * Une seule requête `lignes` batchée pour tous les documents `brouillon` du lot (jamais une par
+ * document) — même souci de performance que `listerFinancementsDossier`/`listerDocumentsRequis`
+ * voisins.
+ */
+export interface LigneDocumentPourTotal {
+  readonly documentId: string;
+  readonly htCentimes: number;
+  readonly tvaCentimes: number;
+  readonly ttcCentimes: number;
+}
+
+/**
+ * Partie PURE de `totauxTtcAffichesDocumentsDossier` (aucun accès `tx`) — séparée pour rester
+ * testable sans mocker la chaîne `drizzle`, même patron que `calcul-document.ts` côté facturation
+ * (`calculerTotauxDocument` : pur, l'appelant fait les requêtes). `lignesBrouillon` ne contient QUE
+ * les lignes des documents `brouillon` de `documents` — un document émis n'a pas besoin de ses
+ * lignes ici, sa colonne stockée suffit (voir la docstring ci-dessous).
+ */
+export function repartirTotalTtcAfficheParDocument(
+  documents: readonly LigneDocumentVente[],
+  lignesBrouillon: readonly LigneDocumentPourTotal[],
+): ReadonlyMap<string, number> {
+  const parDocument = new Map<string, LigneDocumentPourTotal[]>();
+  for (const l of lignesBrouillon) {
+    const liste = parDocument.get(l.documentId) ?? [];
+    liste.push(l);
+    parDocument.set(l.documentId, liste);
+  }
+  const resultat = new Map<string, number>();
+  for (const doc of documents) {
+    resultat.set(
+      doc.id,
+      doc.statut === 'brouillon'
+        ? calculerTotauxDocument(parDocument.get(doc.id) ?? []).totalTtcCentimes
+        : Number(doc.totalTtcCentimes),
+    );
+  }
+  return resultat;
+}
+
+export async function totauxTtcAffichesDocumentsDossier(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  documents: readonly LigneDocumentVente[],
+): Promise<ReadonlyMap<string, number>> {
+  const brouillonIds = documents.filter((d) => d.statut === 'brouillon').map((d) => d.id);
+  if (brouillonIds.length === 0) return repartirTotalTtcAfficheParDocument(documents, []);
+
+  const lignesBrouillon = await tx
+    .select({
+      documentId: ligneDocument.documentId,
+      htCentimes: ligneDocument.htCentimes,
+      tvaCentimes: ligneDocument.tvaCentimes,
+      ttcCentimes: ligneDocument.ttcCentimes,
+    })
+    .from(ligneDocument)
+    .where(
+      and(
+        eq(ligneDocument.tenantId, ctx.tenantId),
+        inArray(ligneDocument.documentId, brouillonIds),
+      ),
+    );
+
+  return repartirTotalTtcAfficheParDocument(documents, lignesBrouillon);
 }

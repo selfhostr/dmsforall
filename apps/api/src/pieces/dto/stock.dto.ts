@@ -1,10 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type {
-  LigneReapprovisionnement,
-  PageCurseur,
-  ReponseDisponibiliteArticle,
-  ReponseStockArticle,
-  ReservationActiveResume,
+import {
+  STATUTS_SUIVI_STOCK_ARTICLE,
+  type LigneReapprovisionnement,
+  type PageCurseur,
+  type ReponseDisponibiliteArticle,
+  type ReponseStockArticle,
+  type ReservationActiveResume,
 } from '@dfa/shared';
 
 export class ReservationActiveResumeDto implements ReservationActiveResume {
@@ -95,8 +96,21 @@ export class DisponibiliteArticleDto implements ReponseDisponibiliteArticle {
   @ApiProperty()
   readonly quantiteReserveeMillieme!: number;
 
-  @ApiProperty()
+  @ApiProperty({
+    description:
+      "Fiable UNIQUEMENT si statutSuivi = 'suivi' ; sinon vaut 0 par convention et NE DOIT PAS " +
+      'être lu comme un stock nul — voir statutSuivi.',
+  })
   readonly quantiteDisponibleMillieme!: number;
+
+  @ApiProperty({
+    enum: STATUTS_SUIVI_STOCK_ARTICLE,
+    description:
+      "Suivi de stock au site demandé : 'suivi' (quantités fiables, y compris à 0), " +
+      "'nonSuiviSurCeSite' (suivi ailleurs, inconnu ici) ou 'nonSuiviNullePart' (jamais mis en " +
+      'stock). À lire AVANT les quantités ci-dessus.',
+  })
+  readonly statutSuivi!: ReponseDisponibiliteArticle['statutSuivi'];
 
   @ApiProperty({ type: () => [ReservationActiveResumeDto] })
   readonly reservationsActives!: readonly ReservationActiveResumeDto[];

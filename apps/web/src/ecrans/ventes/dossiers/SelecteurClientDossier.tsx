@@ -18,6 +18,10 @@ interface Props {
   readonly valeur: string | null;
   readonly onChangeValeur: (clientId: string, client: ClientResume) => void;
   readonly libelle: string;
+  /** Le champ associé est obligatoire (ex. `clientAcheteurId` de `schemaCreationDossierVente`) —
+   *  pose `required`/`aria-required` sur les contrôles (le NOM visible du champ reste porté par le
+   *  `CardTitle` de l'appelant, ce composant n'affiche aucun libellé visible propre). */
+  readonly requis?: boolean;
 }
 
 /**
@@ -30,7 +34,7 @@ interface Props {
  * `SelecteurVehiculeOrdre`/`SelecteurVehiculeStockDossier` : radiogroup de cartes `IdentiteClient`,
  * pas un `<select>` texte (le vendeur compare des numéros de client et des noms, pas des libellés).
  */
-export function SelecteurClientDossier({ valeur, onChangeValeur, libelle }: Props) {
+export function SelecteurClientDossier({ valeur, onChangeValeur, libelle, requis }: Props) {
   const { t } = useTranslation(['ventes', 'commun', 'erreurs']);
   const [qSaisie, setQSaisie] = useState('');
   const [q, setQ] = useState('');
@@ -58,6 +62,7 @@ export function SelecteurClientDossier({ valeur, onChangeValeur, libelle }: Prop
         placeholder={t('ventes:dossier.nouveau.client.rechercherPlaceholder')}
         value={qSaisie}
         onChange={(evenement) => setQSaisie(evenement.target.value)}
+        required={requis}
       />
 
       {!rechercheActive ? null : requete.isPending ? (
@@ -78,7 +83,12 @@ export function SelecteurClientDossier({ valeur, onChangeValeur, libelle }: Prop
           description={t('ventes:dossier.nouveau.client.aucun')}
         />
       ) : (
-        <div role="radiogroup" aria-label={libelle} className="flex flex-col gap-2">
+        <div
+          role="radiogroup"
+          aria-label={libelle}
+          aria-required={requis || undefined}
+          className="flex flex-col gap-2"
+        >
           {clients.map((client) => {
             const selectionne = client.id === valeur;
             return (

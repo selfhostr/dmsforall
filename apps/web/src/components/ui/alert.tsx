@@ -43,11 +43,11 @@ Alert.displayName = 'Alert';
 
 export const AlertTitle = forwardRef<HTMLParagraphElement, HTMLAttributes<HTMLHeadingElement>>(
   ({ className, ...props }, ref) => (
-    <h5
-      ref={ref}
-      className={cn('mb-1 texte-corps font-semibold leading-none', className)}
-      {...props}
-    />
+    // `texte-titre-section` (pas `texte-corps` + `font-semibold` manuel) : un encart d'alerte est
+    // un conteneur titré au même titre qu'une Card/Dialog/Sheet — CardTitle/DialogTitle/SheetTitle
+    // portent tous ce même rôle. Avant ce correctif, AlertTitle rendait 2px plus petit qu'un
+    // CardTitle voisin à chaque densité (14/16/18 vs 16/18/20) : même rôle, deux tailles.
+    <h5 ref={ref} className={cn('mb-1 texte-titre-section leading-none', className)} {...props} />
   ),
 );
 AlertTitle.displayName = 'AlertTitle';

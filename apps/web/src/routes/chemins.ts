@@ -84,6 +84,14 @@ export const chemins = {
       facturer: (id: string, site?: string) =>
         construireChemin(`/ordres-reparation/${id}/facturer`, { site }),
     },
+    /** Agenda des rendez-vous (Lot RDV-1, `docs/conception-rendez-vous-ecrans.md`) — chemin
+     *  littéral `/rendez-vous` (pas `/atelier/rendez-vous`) : même convention que
+     *  `ordresReparation.liste`/`detail` ci-dessus, c'est le préfixe que lit `routeur.tsx`. Un
+     *  agenda reste TOUJOURS scopé à un seul site (RV-06) — `?site=` conservé au même titre que le
+     *  reste de l'app. */
+    rendezVous: {
+      agenda: (site?: string) => construireChemin('/rendez-vous', { site }),
+    },
   },
   /** Facturation (étape 2) — ces chemins n'avaient AUCUN constructeur avant le Lot D : la barre
    *  latérale pointait `/factures` en chaîne brute et les écrans de facturation naviguaient en
@@ -122,6 +130,9 @@ export const chemins = {
      *  gardée par `rolesAutorises={ROLES_PARAMETRAGE_PIECES}` (`routeur.tsx`) : la lecture elle-même
      *  est restreinte côté API (`pieces.parametrage.lire`), pas seulement l'écriture. */
     pieces: (site?: string) => construireChemin('/parametrage/pieces', { site }),
+    /** Gestion des employés (issue #137) — jamais scopé par site (le rôle vaut sur tout le
+     *  tenant), `site` reçu pour la seule cohérence de sélecteur avec les autres onglets. */
+    utilisateurs: (site?: string) => construireChemin('/parametrage/utilisateurs', { site }),
   },
   /** Module pièces (étape 3). Même mécanique `?site=` que `clients`/`vehicules` : la recherche
    *  comptoir et le réapprovisionnement sont scopés par site (RP-03/RP-12), la fiche et la liste

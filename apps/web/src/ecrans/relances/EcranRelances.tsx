@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useEnvoyerRelances } from '@/hooks/relances/useEnvoyerRelances';
 import { usePlanifierRelances } from '@/hooks/relances/usePlanifierRelances';
 import { useReglesRelance } from '@/hooks/relances/useReglesRelance';
@@ -40,25 +41,40 @@ const CANAUX_FORMULAIRE = ['sms', 'email'] as const satisfies readonly CanalMess
  * préréglage, i18n) existait déjà avant cet écran — voir `hooks/relances/`, `./prereglages.ts`,
  * `i18n/locales/{fr,de,it}/relances.json`.
  *
- * ÉCART SIGNALÉ (documenté aussi dans `hooks/relances/relances.api.ts`) : aucune route API ne
- * liste `relance_planifiee`/`relance_envoi` — impossible d'afficher une vraie liste « relances
- * planifiées et leur état » ni un historique d'envoi ligne par ligne (qui/quoi/quand/résultat par
- * client), cette donnée n'existe simplement pas côté transport. Le bloc `déclenchement manuel`
- * affiche donc le BILAN de la dernière exécution de chaque opération (nombre créés/ignorés ou
- * envoyés/échoués/annulés), gardé en état local React — PAS dans le cache TanStack Query, puisque
- * ce n'est pas une ressource qu'un `GET` pourrait revalider. Le bloc `traçabilité` explicite cette
- * limite (`relances:tracabilite.note`) plutôt que de la laisser deviner.
+ * ÉCART SIGNALÉ (documenté aussi dans `hooks/relances/relances.api.ts`, re-vérifié — issue #136 —
+ * toujours vrai : `RelancesController` n'expose que `GET regles`, `PUT regles/:typeRelance`,
+ * `POST facturation/planifier`, `POST facturation/envoyer`, aucun `GET` de listing) : aucune route
+ * API ne liste `relance_planifiee`/`relance_envoi` — impossible d'afficher une vraie liste
+ * « relances planifiées et leur état » ni un historique d'envoi ligne par ligne (qui/quoi/quand/
+ * résultat par client), cette donnée n'existe simplement pas côté transport. MANQUE SERVEUR
+ * SIGNALÉ, pas traité ici (hors périmètre front) : un `GET /relances/envois` (ou équivalent)
+ * paginé par document/client serait nécessaire pour lever cet écart. Le bloc `déclenchement
+ * manuel` affiche donc le BILAN de la dernière exécution de chaque opération (nombre créés/ignorés
+ * ou envoyés/échoués/annulés), gardé en état local React — PAS dans le cache TanStack Query,
+ * puisque ce n'est pas une ressource qu'un `GET` pourrait revalider.
+ *
+ * Défaut corrigé (issue #136) : le bloc `traçabilité` annonçait littéralement à l'utilisateur
+ * final « s'affichera ici dès que l'API de listing des envois sera livrée » — jargon interne
+ * (« API ») et promesse de livraison qu'aucun garagiste n'a à connaître pour faire son travail.
+ * `relances:tracabilite.note` reformulée en état vide honnête, sans mentionner l'API : le
+ * détail par envoi est absent (jamais présenté comme « zéro envoi », ce serait un mensonge — voir
+ * `EtatVide`/`EtatVidePremierUsage`, doctrine du dépôt sur l'absence de donnée), et pointe vers le
+ * bilan déjà affiché comme seul substitut disponible aujourd'hui.
  */
 export function EcranRelances() {
   const { t } = useTranslation(['relances', 'commun']);
   const requete = useReglesRelance();
 
+  // Migré sur `GabaritEcran` (retour @laupernoe du 13.08.2026 : « dans 'Relances' il y a un écart entre
+  // le titre et la barre ») — cet écran posait son propre `p-6` EN PLUS du `p-4 sm:p-6` que
+  // `AppShell` applique déjà à tout écran routé (même défaut, déjà documenté et corrigé une
+  // première fois sur `EcranListeDossiersVente`/`EcranSuiviVentes`, voir le commentaire de tête de
+  // `GabaritEcran`) : le padding DOUBLÉ en haut de page se lisait comme un écart vide entre la barre
+  // d'onglets de domaine (Factures/Relances) et le titre. Le sous-titre reste un paragraphe normal,
+  // premier enfant sous le titre — même patron que l'aide de `EcranRechercheComptoirPieces`.
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="texte-titre font-semibold text-foreground">{t('relances:titre')}</h1>
-        <p className="texte-corps text-muted-foreground">{t('relances:sousTitre')}</p>
-      </div>
+    <GabaritEcran titre={t('relances:titre')}>
+      <p className="texte-corps text-muted-foreground">{t('relances:sousTitre')}</p>
 
       {requete.isPending ? (
         <EtatChargement lignes={6} />
@@ -77,7 +93,7 @@ export function EcranRelances() {
           <BlocTracabilite />
         </>
       )}
-    </div>
+    </GabaritEcran>
   );
 }
 
@@ -126,7 +142,7 @@ function BlocRegleFactureEchue({ regle }: PropsBlocRegle) {
   return (
     <section className="flex flex-col gap-4 rounded-lg border p-4">
       <div className="flex flex-col gap-1">
-        <h2 className="text-lg font-semibold">{t('relances:regles.titre')}</h2>
+        <h2 className="texte-titre-section">{t('relances:regles.titre')}</h2>
         <p className="texte-corps text-muted-foreground">{t('relances:regles.description')}</p>
       </div>
 
@@ -427,7 +443,7 @@ function BlocDeclenchementManuel() {
   return (
     <section className="flex flex-col gap-4 rounded-lg border p-4">
       <div className="flex flex-col gap-1">
-        <h2 className="text-lg font-semibold">{t('relances:declenchement.titre')}</h2>
+        <h2 className="texte-titre-section">{t('relances:declenchement.titre')}</h2>
         <p className="texte-corps text-muted-foreground">
           {t('relances:declenchement.description')}
         </p>
@@ -524,7 +540,7 @@ function BlocTracabilite() {
   const { t } = useTranslation(['relances', 'commun']);
   return (
     <section className="flex flex-col gap-2 rounded-lg border border-dashed p-4">
-      <h2 className="text-lg font-semibold">{t('relances:tracabilite.titre')}</h2>
+      <h2 className="texte-titre-section">{t('relances:tracabilite.titre')}</h2>
       <p className="texte-corps text-muted-foreground">{t('relances:tracabilite.note')}</p>
     </section>
   );

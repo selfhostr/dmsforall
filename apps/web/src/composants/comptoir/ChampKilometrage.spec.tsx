@@ -47,4 +47,32 @@ describe('ChampKilometrage', () => {
     await utilisateur.clear(screen.getByLabelText('Kilométrage'));
     expect(onChangeValeur).toHaveBeenLastCalledWith(null);
   });
+
+  it('marque le champ obligatoire via `aria-required`, jamais via une étoile lue à voix haute', () => {
+    render(
+      <ChampKilometrage
+        valeur={null}
+        onChangeValeur={vi.fn()}
+        unite="km"
+        label="Kilométrage"
+        obligatoire
+      />,
+    );
+
+    // `getByRole` calcule le VRAI nom accessible (algorithme ARIA, ignore `aria-hidden`) —
+    // contrairement à `getByLabelText`, qui matcherait sur le texte brut du `<label>` et
+    // échouerait donc à trouver "Kilométrage" seul (le DOM contient "Kilométrage *"). C'est
+    // exactement la preuve attendue : l'astérisque ne doit jamais s'ajouter au nom accessible.
+    const champ = screen.getByRole('textbox', { name: 'Kilométrage' });
+    expect(champ).toHaveAttribute('aria-required', 'true');
+  });
+
+  it("ne pose pas `aria-required` quand le champ n'est pas obligatoire", () => {
+    render(
+      <ChampKilometrage valeur={null} onChangeValeur={vi.fn()} unite="km" label="Kilométrage" />,
+    );
+    expect(screen.getByRole('textbox', { name: 'Kilométrage' })).not.toHaveAttribute(
+      'aria-required',
+    );
+  });
 });

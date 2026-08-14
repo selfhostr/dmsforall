@@ -509,6 +509,97 @@ describe('EcranFicheVehicule', () => {
     expect(screen.queryByRole('button', { name: 'Modifier' })).not.toBeInTheDocument();
   });
 
+  // Défaut mesuré en test d'utilisabilité (`DialogueModifierIdentiteVehicule.tsx`) : un véhicule
+  // créé sans VIN ni plaque après un refus de saisie silencieux n'avait ENSUITE aucun moyen d'en
+  // recevoir une — pas de bouton « Modifier » sur la fiche, l'étiquette « Identification
+  // incomplète » ne menant nulle part. Preuve bout en bout depuis la session réelle que
+  // « Modifier l'identité du véhicule » (en-tête) ouvre le dialogue, que les deux mutations
+  // indépendantes (VIN, plaque) partent avec les valeurs saisies, et que le dialogue se ferme
+  // seulement une fois les deux réussies.
+  it(
+    "répare une identification incomplète (VIN + plaque) depuis le crayon de l'en-tête, " +
+      'et fait disparaître le badge « Numéro de châssis manquant »',
+    async () => {
+      // GET /vehicules/v1 avec ÉTAT MUABLE : les deux mutations (VIN, plaque) invalident cette
+      // ressource — pour prouver que le badge disparaît RÉELLEMENT après coup (pas seulement que
+      // les corps envoyés sont corrects), le handler doit refléter ce que les mutations ont écrit,
+      // comme le ferait le vrai serveur.
+      let vehiculeActuel: ReponseVehicule = {
+        ...VEHICULE,
+        vin: null,
+        plaque: null,
+        canton: null,
+        identificationIncomplete: true,
+      };
+      installerHandlersLotB();
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/vehicules/v1', () => HttpResponse.json(vehiculeActuel)),
+        http.get('/api/v1/vehicules/v1/contexte-atelier', () =>
+          HttpResponse.json({
+            ...CONTEXTE,
+            vehicule: { ...CONTEXTE.vehicule, vin: null, plaque: null, canton: null },
+          }),
+        ),
+        http.get('/api/v1/vehicules/v1/kilometrages', () => HttpResponse.json(KILOMETRAGES)),
+        http.get('/api/v1/vehicules/v1/detentions', () => HttpResponse.json(DETENTIONS)),
+        http.get('/api/v1/vehicules/v1/travaux-reportes', () =>
+          HttpResponse.json(TRAVAUX_REPORTES),
+        ),
+      );
+      let corpsVin: Record<string, unknown> | null = null;
+      let corpsPlaque: Record<string, unknown> | null = null;
+      server.use(
+        http.patch('/api/v1/vehicules/v1', async ({ request }) => {
+          corpsVin = (await request.json()) as Record<string, unknown>;
+          vehiculeActuel = { ...vehiculeActuel, vin: 'WVGZZZ1TZ8W123456' };
+          return HttpResponse.json({ donnees: vehiculeActuel, avertissements: [] });
+        }),
+        http.post('/api/v1/vehicules/v1/plaques', async ({ request }) => {
+          corpsPlaque = (await request.json()) as Record<string, unknown>;
+          vehiculeActuel = {
+            ...vehiculeActuel,
+            plaque: 'VS 123456',
+            canton: 'VS',
+            identificationIncomplete: false,
+          };
+          return HttpResponse.json(
+            { id: 'p1', valeur: 'VS 123456', canton: 'VS' },
+            { status: 201 },
+          );
+        }),
+      );
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      expect(await screen.findByText('Numéro de châssis manquant')).toBeInTheDocument();
+      await utilisateur.click(
+        screen.getByRole('button', { name: "Modifier l'identité du véhicule" }),
+      );
+      const dialogue = await screen.findByRole('dialog');
+      await utilisateur.type(within(dialogue).getByLabelText('VIN'), 'WVGZZZ1TZ8W123456');
+      await utilisateur.type(within(dialogue).getByLabelText('Plaque'), 'VS 123456');
+      await utilisateur.type(within(dialogue).getByLabelText('Canton'), 'VS');
+      await utilisateur.click(within(dialogue).getByRole('button', { name: 'Enregistrer' }));
+
+      await waitFor(() => expect(corpsVin).toEqual({ vin: 'WVGZZZ1TZ8W123456' }));
+      await waitFor(() =>
+        expect(corpsPlaque).toEqual({
+          valeur: 'VS 123456',
+          canton: 'VS',
+          pays: 'CH',
+          debutLe: expect.any(String),
+          interchangeable: false,
+          professionnelle: false,
+        }),
+      );
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      await waitFor(() =>
+        expect(screen.queryByText('Numéro de châssis manquant')).not.toBeInTheDocument(),
+      );
+    },
+  );
+
   // Défaut corrigé (« le lien qui n'aboutit qu'à moitié ») : « Voir dans le hangar à pneus » menait
   // à `/pneus` sans jamais désigner LEQUEL des jeux du véhicule regarder — le magasinier devait
   // refaire une recherche visuelle dans le local pour retrouver la case H-014. Le lien transmet
@@ -572,4 +663,109 @@ describe('EcranFicheVehicule', () => {
       ).toBeInTheDocument();
     },
   );
+
+  // Issue #97 : les rendez-vous d'un véhicule étaient filtrés par son DÉTENTEUR (`clientId`),
+  // faute de filtre serveur `vehiculeId` — un véhicule SANS détenteur courant n'affichait ALORS
+  // rien, cas désormais couvert par `GET /rendez-vous?vehiculeId=...` (filtre appliqué au SQL,
+  // `service-rendez-vous.ts`). Ce test reproduit PRÉCISÉMENT le cas qui était impossible avant
+  // correctif : `DETENTIONS` vide (aucun détenteur, contrairement à la fixture par défaut « Jean
+  // Dupont ») et pourtant les rendez-vous du véhicule s'affichent.
+  it(
+    "affiche les rendez-vous d'un véhicule SANS détenteur courant (issue #97, filtre serveur " +
+      'vehiculeId — cas auparavant impossible)',
+    async () => {
+      installerHandlersOk();
+      const capture: { parametres: URLSearchParams | null } = { parametres: null };
+      server.use(
+        http.get('/api/v1/vehicules/v1/detentions', () => HttpResponse.json([])),
+        http.get('/api/v1/rendez-vous', ({ request }) => {
+          capture.parametres = new URL(request.url).searchParams;
+          return HttpResponse.json({
+            donnees: [
+              {
+                id: 'rdv-1',
+                siteId: 'site-1',
+                client: { id: 'c9', numeroClient: 'CLI-009', nomAffiche: 'Client Sans Lien' },
+                vehicule: {
+                  id: 'v1',
+                  plaque: '123456',
+                  canton: 'VD',
+                  designation: 'VW Touran 2.0 TDI',
+                  vin: 'WVGZZZ1TZ8W123456',
+                  premiereMiseEnCirculationLe: '2018-03-14',
+                  identificationIncomplete: false,
+                  emplacementLibre: 'Devant, place 3',
+                },
+                type: 'service',
+                motif: {
+                  id: 'm1',
+                  code: 'PNEUS',
+                  libelleFr: 'Changement de pneus',
+                  libelleDe: 'Reifenwechsel',
+                  libelleIt: 'Cambio pneumatici',
+                  dureeDefautMinutes: 45,
+                  heuresAtelierDefautCentiemes: null,
+                  actif: true,
+                },
+                commentaire: null,
+                dateLe: '2026-09-01',
+                moment: 'matin',
+                heureSouhaitee: null,
+                dureeEstimeeMinutes: 45,
+                statut: 'confirme',
+                motifAnnulation: null,
+                origine: 'reservation',
+                confirmeLe: '2026-08-01T08:00:00.000Z',
+                honoreLe: null,
+                absentConstateLe: null,
+                annuleLe: null,
+                ordreReparationId: null,
+                creeParId: null,
+                creeLe: '2026-08-01T08:00:00.000Z',
+                modifieLe: '2026-08-01T08:00:00.000Z',
+              },
+            ],
+            curseurSuivant: null,
+            limite: 50,
+          });
+        }),
+        http.get('/api/v1/motifs-rendez-vous', () => HttpResponse.json([])),
+      );
+      rendre();
+
+      // `CarteRendezVous` (composant partagé, hors périmètre ici) affiche le créneau
+      // (moment/heure) et le client, jamais `dateLe` directement — voir `libelleCreneau`.
+      expect(await screen.findByText('Matin')).toBeInTheDocument();
+      expect(screen.getByText('Client Sans Lien', { exact: false })).toBeInTheDocument();
+      // Le filtre serveur porte sur `vehiculeId`, plus jamais sur `clientId` (l'ancien
+      // contournement, désormais retiré).
+      expect(capture.parametres?.get('vehiculeId')).toBe('v1');
+      expect(capture.parametres?.has('clientId')).toBe(false);
+      // Le propriétaire de la fiche reste absent (règle « absence de donnée ≠ valeur ») — seule la
+      // liste des rendez-vous ne dépend plus de lui.
+      expect(screen.getByText('Aucun détenteur enregistré', { exact: false })).toBeInTheDocument();
+    },
+  );
+
+  // Issue #59 : la carte « Factures » remontait devis/bon de commande/facture indifférenciés —
+  // deux séries de numérotation DISTINCTES affichées ensemble fabriquaient l'illusion d'un doublon
+  // de numéro (numéros adjacents `2026-00001` devis / `2026-00002` facture, vérifié en exécution
+  // réelle). `typeDocument: ['facture']` — même convention que `EcranListeFactures.tsx`,
+  // `useFacturesOuvertesClient.ts`, `TableauBordComptable.tsx` — plutôt qu'inventer un second
+  // filtre ad hoc. Un devis en cours reste visible ailleurs (carte « Dossier de vente »), donc pas
+  // reproduit ici.
+  it('ne demande que les factures (typeDocument=facture), jamais les devis/bons de commande, à « ses factures »', async () => {
+    installerHandlersOk();
+    const capture: { parametres: URLSearchParams | null } = { parametres: null };
+    server.use(
+      http.get('/api/v1/documents-vente', ({ request }) => {
+        capture.parametres = new URL(request.url).searchParams;
+        return HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 20 });
+      }),
+    );
+    rendre();
+
+    await screen.findByText('Aucune facture pour ce véhicule.');
+    expect(capture.parametres?.getAll('typeDocument')).toEqual(['facture']);
+  });
 });

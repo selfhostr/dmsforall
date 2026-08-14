@@ -180,6 +180,17 @@
       "commande": "Quantité de commande standard",
       "emplacement": "Emplacement"
     },
+    "seuilSite": {
+      "action": "Seuil de réapprovisionnement",
+      "actionAria": "Définir le seuil de réapprovisionnement — {nomSite}",
+      "champ": "Nouveau seuil",
+      "champAide": "La valeur actuelle n'est pas affichée ici. Si cet article est déjà sous son seuil, celui-ci est visible et modifiable dans l'écran Réapprovisionnement. Enregistrer ici pose ou remplace le seuil pour ce site.",
+      "erreurVide": "Entrez une quantité, ou utilisez « Retirer le seuil » pour ne pas en poser.",
+      "erreurInvalide": "Quantité invalide. Un seuil à zéro n'est pas possible — pour ne jamais réapprovisionner cet article, utilisez « Retirer le seuil ».",
+      "retirer": "Retirer le seuil",
+      "confirmationPosee": "Seuil enregistré : {valeur}.",
+      "confirmationRetiree": "Seuil retiré : cet article n'est plus suivi pour le réapprovisionnement sur ce site."
+    },
     "mouvements": {
       "titre": "Historique des mouvements",
       "type": "Type",
@@ -239,6 +250,13 @@
         "article": "Article",
         "disponible": "Disponible",
         "minimum": "Minimum"
+      },
+      "seuil": {
+        "champ": "Seuil de réapprovisionnement",
+        "champAide": "Cet article apparaît dans la liste tant que le disponible reste sous ce seuil. Videz le champ pour retirer le suivi ; un seuil à zéro n'est pas possible, utilisez le retrait.",
+        "modifierAria": "Modifier le seuil de réapprovisionnement de {designation}",
+        "erreurInvalide": "Seuil invalide. Entrez une quantité supérieure à zéro, ou videz le champ et validez « Retirer le seuil » pour ne plus suivre cet article.",
+        "retirer": "Retirer le seuil"
       },
       "erreur": {
         "titre": "Impossible d'afficher le réapprovisionnement"

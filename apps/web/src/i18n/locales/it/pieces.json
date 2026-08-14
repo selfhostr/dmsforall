@@ -180,6 +180,17 @@
       "commande": "Quantita d'ordine standard",
       "emplacement": "Luogo di stoccaggio"
     },
+    "seuilSite": {
+      "action": "Soglia di riordino",
+      "actionAria": "Imposta la soglia di riordino — {nomSite}",
+      "champ": "Nuova soglia",
+      "champAide": "Il valore attuale non è visualizzato qui. Se questo articolo è già sotto la sua soglia, questa è visibile e modificabile nella schermata Riordino. Salvare qui imposta o sostituisce la soglia per questo sito.",
+      "erreurVide": "Inserire una quantità, oppure usare «Rimuovi la soglia» per non impostarne una.",
+      "erreurInvalide": "Quantità non valida. Una soglia pari a zero non è possibile — per non riordinare mai questo articolo, usare «Rimuovi la soglia».",
+      "retirer": "Rimuovi la soglia",
+      "confirmationPosee": "Soglia salvata: {valeur}.",
+      "confirmationRetiree": "Soglia rimossa: questo articolo non è più monitorato per il riordino su questo sito."
+    },
     "mouvements": {
       "titre": "Storico dei movimenti",
       "type": "Tipo",
@@ -239,6 +250,13 @@
         "article": "Articolo",
         "disponible": "Disponibile",
         "minimum": "Minimo"
+      },
+      "seuil": {
+        "champ": "Soglia di riordino",
+        "champAide": "Questo articolo compare nell'elenco finché la quantità disponibile resta sotto questa soglia. Svuotare il campo per rimuovere il monitoraggio; una soglia pari a zero non è possibile, usare la rimozione.",
+        "modifierAria": "Modifica la soglia di riordino di {designation}",
+        "erreurInvalide": "Soglia non valida. Inserire una quantità maggiore di zero, oppure svuotare il campo e confermare «Rimuovi la soglia» per non monitorare più questo articolo.",
+        "retirer": "Rimuovi la soglia"
       },
       "erreur": {
         "titre": "Impossibile visualizzare il riordino"

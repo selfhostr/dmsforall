@@ -37,12 +37,14 @@ export type FiltresFournisseurs = z.infer<typeof schemaFiltresFournisseurs>;
 /** `POST /fournisseurs` — pas d'`Idempotency-Key` : aucune ressource rare générée par le serveur
  *  (pas de numérotation, contrairement à `article`/`client`/OR) ; un doublon de nom n'est pas une
  *  collision technique, juste une fiche à fusionner plus tard (hors périmètre étape 3). */
-export const schemaCreationFournisseur = z.object({
-  nom: schemaTexteCourt,
-  email: schemaEmail.nullish(),
-  telephone: schemaTelephoneE164.nullish(),
-  delaiHabituelJours: schemaDelaiJours.nullish(),
-});
+export const schemaCreationFournisseur = z
+  .object({
+    nom: schemaTexteCourt,
+    email: schemaEmail.nullish(),
+    telephone: schemaTelephoneE164.nullish(),
+    delaiHabituelJours: schemaDelaiJours.nullish(),
+  })
+  .strict();
 export type EntreeCreationFournisseur = z.infer<typeof schemaCreationFournisseur>;
 
 export const schemaModificationFournisseur = schemaCreationFournisseur.partial();

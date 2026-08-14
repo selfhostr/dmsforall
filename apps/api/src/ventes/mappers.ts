@@ -256,17 +256,24 @@ export function versDocumentRequisResponse(
 }
 
 /**
- * `DocumentVenteResume` embarqué (`ReponseDossierVente.documents`) — construit directement depuis
- * les colonnes STOCKÉES de `document_vente` (totaux/solde maintenus par trigger côté facturation,
- * PAS recalculés ici) : lecture seule, ce module n'écrit jamais cette table. `roleVoitLesMontants`
- * (RF-116, `facturation/documents/mappeurs.ts`, import en LECTURE) filtre `statutReglement`/
- * `totalTtcCentimes`/`soldeCentimes` — même règle que la facturation applique déjà à
- * `ReponseDocumentVente`, reprise ici pour ne pas exposer un montant à un rôle qui ne le voit nulle
- * part ailleurs dans l'API.
+ * `DocumentVenteResume` embarqué (`ReponseDossierVente.documents`) — lecture seule, ce module
+ * n'écrit jamais `document_vente`. `roleVoitLesMontants` (RF-116, `facturation/documents/
+ * mappeurs.ts`, import en LECTURE) filtre `statutReglement`/`totalTtcCentimes`/`soldeCentimes` —
+ * même règle que la facturation applique déjà à `ReponseDocumentVente`, reprise ici pour ne pas
+ * exposer un montant à un rôle qui ne le voit nulle part ailleurs dans l'API.
+ *
+ * `totalTtcCentimesAffiche` est fourni par l'appelant (`totauxTtcAffichesDocumentsDossier`,
+ * `references.ts`) — PAS lu directement sur `doc.totalTtcCentimes` (#127, bug corrigé : cette
+ * colonne stockée n'est FIGÉE QU'À L'ÉMISSION, `MD-45` — un `brouillon`, tel un bon de commande pas
+ * encore transformé en facture, y porte `0`, sa valeur par défaut, jusqu'à l'émission ; ce mapper ne
+ * peut pas le savoir seul, faute d'accès aux lignes). `soldeCentimes` reste lu tel quel sur la
+ * colonne stockée : `0` par défaut y est une valeur CORRECTE pour un document pas encore émis (rien
+ * n'est dû sur un brouillon), à la différence de `totalTtcCentimes`.
  */
 export function versDocumentVenteResume(
   doc: LigneDocumentVente,
   role: RoleUtilisateur,
+  totalTtcCentimesAffiche: number,
 ): DocumentVenteResume {
   const voitMontants = roleVoitLesMontants(role);
   return {
@@ -282,7 +289,7 @@ export function versDocumentVenteResume(
     devise: doc.devise,
     ...(voitMontants
       ? {
-          totalTtcCentimes: Number(doc.totalTtcCentimes),
+          totalTtcCentimes: totalTtcCentimesAffiche,
           soldeCentimes: Number(doc.soldeCentimes),
         }
       : {}),

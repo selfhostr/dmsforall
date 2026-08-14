@@ -236,7 +236,8 @@ export const schemaCreationDossierVente = z
     vehiculeId: schemaIdentifiant.nullish(),
     dateLivraisonEstimee: schemaDateJour.nullish(),
   })
-  .extend(schemaConfirmations.shape);
+  .extend(schemaConfirmations.shape)
+  .strict();
 export type EntreeCreationDossierVente = z.infer<typeof schemaCreationDossierVente>;
 
 /** `PATCH /dossiers-vente/{id}` — `If-Match` OBLIGATOIRE (§9, même règle que
@@ -252,16 +253,19 @@ export const schemaModificationDossierVente = z
     vehiculeId: schemaIdentifiant.nullish(),
     dateLivraisonEstimee: schemaDateJour.nullish(),
   })
-  .extend(schemaConfirmations.shape);
+  .extend(schemaConfirmations.shape)
+  .strict();
 export type EntreeModificationDossierVente = z.infer<typeof schemaModificationDossierVente>;
 
 /** `POST /dossiers-vente/{id}/documents-requis/marquer` — coche/décoche un item de la check-list
  *  de livraison (`RV-35`). Pas d'`Idempotency-Key` : rejouer avec le même `fourni` est un no-op
  *  idempotent par nature (même valeur écrite deux fois), pas une création. */
-export const schemaMarquerDocumentRequis = z.object({
-  code: schemaTexteCourt,
-  fourni: z.boolean(),
-});
+export const schemaMarquerDocumentRequis = z
+  .object({
+    code: schemaTexteCourt,
+    fourni: z.boolean(),
+  })
+  .strict();
 export type EntreeMarquerDocumentRequis = z.infer<typeof schemaMarquerDocumentRequis>;
 
 /* ------------------------------------------------------------------ */
@@ -294,13 +298,14 @@ export const schemaActionEngager = z
     bonCommandeDocumentId: schemaIdentifiant,
     identitePieceType: schemaTexteCourt,
   })
-  .extend(schemaConfirmations.shape);
+  .extend(schemaConfirmations.shape)
+  .strict();
 export type EntreeActionEngager = z.infer<typeof schemaActionEngager>;
 
 /** `POST /dossiers-vente/{id}/preparer` — `engage -> en_preparation`. Corps vide : la transition
  *  elle-même ne porte aucune donnée, la préparation (remise en état, immatriculation) se pilote par
  *  ailleurs (atelier pour la VO, connecteur constructeur pour le VN — hors périmètre). */
-export const schemaActionPreparer = z.object({}).extend(schemaConfirmations.shape);
+export const schemaActionPreparer = z.object({}).extend(schemaConfirmations.shape).strict();
 export type EntreeActionPreparer = z.infer<typeof schemaActionPreparer>;
 
 /**
@@ -312,7 +317,10 @@ export type EntreeActionPreparer = z.infer<typeof schemaActionPreparer>;
  * dupliqué ici). Refusé (`409 VENTE_LIVRAISON_INCOMPLETE`) pour tout autre élément de `RV-52`
  * (plaques, immatriculation) non réuni côté paramétrage tenant (`PV-03`).
  */
-export const schemaActionMarquerPretALivrer = z.object({}).extend(schemaConfirmations.shape);
+export const schemaActionMarquerPretALivrer = z
+  .object({})
+  .extend(schemaConfirmations.shape)
+  .strict();
 export type EntreeActionMarquerPretALivrer = z.infer<typeof schemaActionMarquerPretALivrer>;
 
 /**
@@ -333,12 +341,16 @@ export const schemaActionLivrer = z
     kilometrageDepart: schemaKilometrage,
     uniteKilometrage: z.enum(UNITES_DISTANCE).default('km'),
   })
-  .extend(schemaConfirmations.shape);
+  .extend(schemaConfirmations.shape)
+  .strict();
 export type EntreeActionLivrer = z.infer<typeof schemaActionLivrer>;
 
 /** `POST /dossiers-vente/{id}/cloturer` — `livre -> clos`. État purement administratif (§6.2 :
  *  « toute la paperasse… complète »), pas un second contrôle métier — corps vide. */
-export const schemaActionCloturerDossierVente = z.object({}).extend(schemaConfirmations.shape);
+export const schemaActionCloturerDossierVente = z
+  .object({})
+  .extend(schemaConfirmations.shape)
+  .strict();
 export type EntreeActionCloturerDossierVente = z.infer<typeof schemaActionCloturerDossierVente>;
 
 /** `POST /dossiers-vente/{id}/annuler` — depuis `prospection`/`engage`/`en_preparation`
@@ -346,14 +358,14 @@ export type EntreeActionCloturerDossierVente = z.infer<typeof schemaActionClotur
  *  au-delà. Motif OBLIGATOIRE (même doctrine que `ordre-reparation.ts::schemaActionAnnuler`).
  *  EFFET DE BORD : véhicule associé, si `reserve` → `disponible` (`CV-01`, jamais bloqué
  *  indéfiniment). */
-export const schemaActionAnnulerDossierVente = z.object({ motif: schemaMotif });
+export const schemaActionAnnulerDossierVente = z.object({ motif: schemaMotif }).strict();
 export type EntreeActionAnnulerDossierVente = z.infer<typeof schemaActionAnnulerDossierVente>;
 
 /** `POST /dossiers-vente/{id}/abandonner` — même garde et même effet de bord que `annuler`
  *  (`409 VENTE_DOSSIER_ANNULATION_IMPOSSIBLE` au-delà de `en_preparation`), sémantique distincte
  *  pour le reporting : rupture volontaire (`annule`) contre client qui ne répond plus (`abandonne`,
  *  §6.2, même logique que l'OR abandonné côté atelier). Motif OBLIGATOIRE. */
-export const schemaActionAbandonnerDossierVente = z.object({ motif: schemaMotif });
+export const schemaActionAbandonnerDossierVente = z.object({ motif: schemaMotif }).strict();
 export type EntreeActionAbandonnerDossierVente = z.infer<typeof schemaActionAbandonnerDossierVente>;
 
 /* Rappel : `ACTIONS_DOSSIER_VENTE` (`enums.ts`) inclut `'modifier'` pour signaler que `PATCH` est

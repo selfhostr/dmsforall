@@ -26,12 +26,14 @@ import {
   schemaArretPointage,
   schemaCorrectionPointage,
   schemaDemarragePointage,
+  schemaDernierPointageDuJourQuery,
   schemaFiltresPointages,
   schemaIdentifiant,
   schemaParametresAgregatTempsLigne,
   type EntreeArretPointage,
   type EntreeCorrectionPointage,
   type EntreeDemarragePointage,
+  type FiltresDernierPointageDuJour,
   type ParametresAgregatTempsLigne,
 } from '@dfa/shared';
 
@@ -45,6 +47,7 @@ import {
   EnveloppePointageDto,
   PagePointageDto,
   ReponseAgregatTempsLigneDto,
+  ReponseDernierPointageDuJourDto,
   ReponsePointageDto,
 } from './dto';
 import { ServicePointage } from './service-pointage';
@@ -124,6 +127,36 @@ export class PointageController {
   ) {
     const ctx = this.contexte.contexteTenant();
     return this.service.obtenirAgregatsLigne(ctx, query.ordreReparationId);
+  }
+
+  @Get('dernier-du-jour')
+  @ExigerDroit('atelier.pointage.lire')
+  @ApiOperation({
+    summary:
+      'Dernière cible PRODUCTIVE pointée aujourd’hui (P-34) — remplace `dernierCible`, état local ' +
+      'volatile côté écran, par une source de vérité serveur (nécessaire en particulier au mode borne).',
+    description:
+      'Déclarée AVANT `GET /pointages/{id}` (même raison que `agregats-ligne` ci-dessus : ne doit jamais être ' +
+      'capturée par `:id`). `technicienId` optionnel : absent, le technicien de la session ; présent, exige ' +
+      '`atelier.pointage.pointer_autrui` (encadrement) ou un compte de service (`poste_atelier`, la borne) — ' +
+      'MÊME garde que `demarrer`/`arreter` (`ServicePointage.exigerDroitCiblerAutrui`). Journée de travail ' +
+      'courante = bornes calendaires UTC (même convention que le verrouillage de période RM-95). Une activité ' +
+      'indirecte (pause, nettoyage…) ne devient jamais cette cible — elle masque seulement la dernière cible ' +
+      'productive, jamais ne la remplace (RM-87).',
+  })
+  @ApiOkResponse({ type: ReponseDernierPointageDuJourDto })
+  @ApiReponseProbleme(400, 'technicienId mal formé.')
+  @ApiReponseProbleme(401, 'Session absente ou expirée.')
+  @ApiReponseProbleme(
+    403,
+    'technicienId désigne un tiers et l’appelant n’a ni le droit d’encadrement ni le statut de compte de service.',
+  )
+  async dernierDuJour(
+    @Query(new PipeZod(schemaDernierPointageDuJourQuery)) query: FiltresDernierPointageDuJour,
+  ) {
+    const ctx = this.contexte.contexteTenant();
+    const principal = this.contexte.exigerPrincipal();
+    return this.service.dernierDuJour(ctx, principal, query.technicienId);
   }
 
   @Get(':id')

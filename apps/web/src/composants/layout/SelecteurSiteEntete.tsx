@@ -1,4 +1,4 @@
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, MapPin } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useSearchParams } from 'react-router';
 
@@ -11,12 +11,15 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
+import { cn } from '@/lib/utils';
 
 interface Props {
   readonly sites: SessionCourante['sites'];
-  /** Site COURANT, lu par l'appelant (`EnTete.tsx`) depuis `?site=` — jamais recalculé ici. */
+  /** Site COURANT, résolu par l'appelant (`EnTete.tsx` — URL puis préférence mémorisée, voir
+   *  `hooks/site/ContexteSiteCourant.tsx`) — jamais recalculé ici. */
   readonly siteIdActif: string | undefined;
-  /** Libellé déjà résolu par l'appelant (nom du site ou « Tous les sites »), affiché tel quel. */
+  /** Libellé déjà résolu par l'appelant (nom du site ou « Aucun site choisi »), affiché tel quel. */
   readonly libelle: string;
 }
 
@@ -51,13 +54,27 @@ export function SelecteurSiteEntete({ sites, siteIdActif, libelle }: Props) {
   const { t } = useTranslation('navigation');
   const { pathname } = useLocation();
   const [searchParams] = useSearchParams();
+  const { definirPreferenceSite } = useSiteCourant();
 
   const sitesActifs = sites.filter((site) => site.actif);
+  // Aucun site RÉSOLU (ni l'URL ni la préférence mémorisée, `EnTete.tsx`) : c'est l'état « absence »
+  // que la doctrine du dépôt interdit de rendre comme « Tous les sites » (issue #91). Distingué
+  // visuellement — icône + texte de la couleur normale du contenu plutôt que la couleur atténuée
+  // habituelle du chrome — pour que ce petit repère en haut à gauche reste VISIBLE sans avoir à le
+  // chercher, plutôt que de se fondre dans le reste de l'en-tête.
+  const nonChoisi = siteIdActif === undefined;
 
   if (sitesActifs.length < 2) {
     return (
-      <p className="truncate text-sm text-muted-foreground" title={libelle}>
-        {libelle}
+      <p
+        className={cn(
+          'flex items-center gap-1 truncate text-sm',
+          nonChoisi ? 'font-medium text-foreground' : 'text-muted-foreground',
+        )}
+        title={libelle}
+      >
+        <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        <span className="truncate">{libelle}</span>
       </p>
     );
   }
@@ -74,8 +91,12 @@ export function SelecteurSiteEntete({ sites, siteIdActif, libelle }: Props) {
         <button
           type="button"
           title={libelle}
-          className="anneau-focus relative flex max-w-full items-center gap-1 truncate text-sm text-muted-foreground transition-colors after:absolute after:-inset-x-1 after:-inset-y-3 after:content-[''] hover:text-foreground"
+          className={cn(
+            "anneau-focus relative flex max-w-full items-center gap-1 truncate text-sm transition-colors after:absolute after:-inset-x-1 after:-inset-y-3 after:content-[''] hover:text-foreground",
+            nonChoisi ? 'font-medium text-foreground' : 'text-muted-foreground',
+          )}
         >
+          <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           <span className="truncate">{libelle}</span>
           <ChevronDown className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         </button>
@@ -84,7 +105,15 @@ export function SelecteurSiteEntete({ sites, siteIdActif, libelle }: Props) {
         <DropdownMenuLabel>{t('navigation:entete.changerSite')}</DropdownMenuLabel>
         {autresSites.map((site) => (
           <DropdownMenuItem key={site.id} asChild>
-            <Link to={construireHrefSite(pathname, searchParams, site.id)}>{site.nom}</Link>
+            {/* `onClick` en plus du `Link` (jamais à sa place) : mémorise le choix comme
+                PRÉFÉRENCE (`hooks/site/ContexteSiteCourant.tsx`, issue #91) sans changer la
+                navigation elle-même — Ctrl/Clic continue d'ouvrir un nouvel onglet normalement. */}
+            <Link
+              to={construireHrefSite(pathname, searchParams, site.id)}
+              onClick={() => definirPreferenceSite(site.id)}
+            >
+              {site.nom}
+            </Link>
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

@@ -84,6 +84,6 @@
   },
   "tracabilite": {
     "titre": "Historique d'envoi",
-    "note": "Le journal détaillé — qui a reçu quel rappel, quand, et avec quel résultat — s'affichera ici dès que l'API de listing des envois sera livrée. En attendant, chaque déclenchement ci-dessus affiche le bilan de son exécution."
+    "note": "Le détail envoi par envoi (qui a reçu quel rappel, quand, avec quel résultat) n'est pas encore disponible dans DFA. Le bilan de chaque déclenchement (nombre envoyés, échoués, annulés) reste visible ci-dessus."
   }
 }

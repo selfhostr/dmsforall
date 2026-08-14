@@ -4,7 +4,7 @@
   },
   "calendrier": {
     "titre": "Questa settimana",
-    "apercu": "Anteprima — le date di restituzione promesse questa settimana. La presa di appuntamento dell'officina arriverà più avanti in dmsforall; questo calendario ne sarà allora la superficie.",
+    "apercu": "Anteprima — le date di restituzione promesse questa settimana.",
     "droitRequis": "Non hai il diritto di consultare gli ordini di riparazione.",
     "vide": {
       "titre": "Nessuna restituzione promessa questa settimana",
@@ -23,6 +23,6 @@
     "depuisLe": "Senza movimento dal {date}",
     "autres": "{count, plural, one {+ # altro set da richiamare} other {+ # altri set da richiamare}}",
     "voirTout": "Vedi tutto il deposito pneumatici",
-    "aVenir": "I controlli MFK e le garanzie si aggiungeranno a questo elenco non appena esisterà un endpoint aggregato per essi."
+    "aVenir": "I controlli MFK e le garanzie verranno aggiunti a questo elenco molto presto."
   }
 }

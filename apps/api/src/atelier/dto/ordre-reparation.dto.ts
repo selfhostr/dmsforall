@@ -276,6 +276,15 @@ export class ReponseOrdreReparationDto implements ReponseOrdreReparation {
   })
   readonly restitutionInitialeLe!: string | null;
 
+  @ApiProperty({
+    description:
+      'Calculé UNE SEULE FOIS côté serveur (jamais recalculé par le client) : true seulement si ' +
+      'restitutionPromiseLe est renseigné, que le statut est encore actif (ni restitue, cloture, ' +
+      'ni annule) et que l’instant courant dépasse la promesse. Une date promise absente n’est ' +
+      'JAMAIS un retard. Toujours peuplé par le serveur malgré le type facultatif (voir le contrat).',
+  })
+  readonly enRetard?: boolean;
+
   @ApiProperty({ enum: LOCALISATIONS_VEHICULE })
   readonly localisation!: ReponseOrdreReparation['localisation'];
 

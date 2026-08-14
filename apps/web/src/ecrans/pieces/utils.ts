@@ -92,3 +92,31 @@ export function texteEmplacementComplet(
   }
   return emplacement;
 }
+
+/** Résultat de la saisie d'un SEUIL de réapprovisionnement — distinct de
+ *  `saisieVersQuantiteMillieme` (qui confond volontairement `''` et `'0'`, tous deux ramenés à
+ *  `null` : correct pour une quantité de mouvement, où zéro n'a pas de sens, mais FAUX ici. Un
+ *  champ vide retire le suivi (`stockMinimumMillieme = null`, RP-12 : « pas de suivi »), alors
+ *  qu'un zéro EXPLICITE voudrait dire « suivi, mais qu'on ne réapprovisionne jamais » — deux
+ *  états métier différents que le contrat serveur ne distingue PAS aujourd'hui
+ *  (`schemaQuantiteMillieme = z.number().int().min(1)`, `@dfa/shared/contrats/atelier/primitives`,
+ *  hors périmètre de ce module) : `PATCH /articles/{id}/stock/{siteId}` rejette `0` avec
+ *  `400 VALIDATION_ECHOUEE` (vérifié en conditions réelles). Faute de pouvoir représenter ce
+ *  troisième état, ce parseur refuse `0` comme un `'invalide'` plutôt que de le laisser passer
+ *  pour échouer côté serveur avec un message générique, ou de le confondre silencieusement avec
+ *  `'absence'` — l'aide affichée à l'écran doit expliquer ce choix. */
+export type ResultatSaisieSeuil =
+  | { readonly genre: 'absence' }
+  | { readonly genre: 'valeur'; readonly millieme: number }
+  | { readonly genre: 'invalide' };
+
+export function saisieVersSeuilMillieme(saisie: string): ResultatSaisieSeuil {
+  const normalisee = saisie.trim().replace(',', '.');
+  if (normalisee === '') return { genre: 'absence' };
+  if (!/^\d+(\.\d{1,3})?$/.test(normalisee)) return { genre: 'invalide' };
+  const valeur = Number.parseFloat(normalisee);
+  if (!Number.isFinite(valeur)) return { genre: 'invalide' };
+  const millieme = Math.round(valeur * 1000);
+  if (millieme < 1) return { genre: 'invalide' };
+  return { genre: 'valeur', millieme };
+}

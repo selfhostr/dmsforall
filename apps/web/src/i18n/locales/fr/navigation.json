@@ -50,6 +50,7 @@
     "reglagesFacturation": "Facturation",
     "reglagesTarifs": "Tarifs et prestations",
     "reglagesPieces": "Pièces",
+    "reglagesUtilisateurs": "Utilisateurs",
     "reglagesRelances": "Paliers de relance"
   },
   "liens": {
@@ -71,6 +72,7 @@
   },
   "entete": {
     "tousLesSites": "Tous les sites",
+    "siteNonChoisi": "Aucun site choisi",
     "changerSite": "Changer de site"
   },
   "repli": {

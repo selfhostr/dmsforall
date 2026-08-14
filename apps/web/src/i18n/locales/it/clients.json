@@ -50,7 +50,13 @@
     "dossiersVente": "Pratiche di vendita",
     "dossiersVenteVide": "Nessuna pratica di vendita.",
     "dossiersVenteDroitRequis": "Non ha il diritto di consultare le pratiche di vendita di questo cliente.",
-    "dossierSansVehicule": "Veicolo non assegnato"
+    "dossierSansVehicule": "Veicolo non assegnato",
+    "rendezVous": {
+      "titre": "Prossimi appuntamenti",
+      "prendre": "Fissa un appuntamento",
+      "vide": "Nessun appuntamento previsto.",
+      "creeTitre": "Appuntamento registrato"
+    }
   },
   "alertes": {
     "bloque": "Bloccato - arretrati",
@@ -75,6 +81,7 @@
     "rabaisPneus": "Sconto pneumatici",
     "delaiPaiement": "Termini di pagamento",
     "tauxHoraire": "Tariffa oraria",
+    "tauxHoraireDetail": "{libelle} · {montant} / ora",
     "plafond": "Tetto di spesa",
     "dateEffet": "Valido dal",
     "vide": "Nessuna condizione commerciale registrata."
@@ -96,6 +103,8 @@
   "adresses": {
     "titre": "Indirizzi",
     "ajouter": "Aggiungi indirizzo",
+    "modifier": "Modifica indirizzo",
+    "modifierAriaLabel": "Modifica indirizzo {type}",
     "types": {
       "principale": "Principale",
       "facturation": "Fatturazione",
@@ -105,8 +114,18 @@
       "type": "Tipo di indirizzo",
       "rue": "Via e numero",
       "npa": "CAP",
-      "localite": "Localita"
+      "localite": "Localita",
+      "pays": "Paese"
     },
+    "pays": {
+      "CH": "Svizzera",
+      "DE": "Germania",
+      "FR": "Francia",
+      "IT": "Italia",
+      "AT": "Austria",
+      "LI": "Liechtenstein"
+    },
+    "npaFormatInvalide": "Il CAP svizzero e composto da esattamente 4 cifre (es. 1950).",
     "vide": "Nessun indirizzo registrato."
   },
   "notes": {
@@ -169,6 +188,18 @@
     "titre": "Disattiva cliente",
     "motif": "Motivo della disattivazione"
   },
+  "contact": {
+    "titre": "Comunicazione",
+    "statutActif": "Il cliente puo essere contattato normalmente.",
+    "statutArrete": "Questo cliente ha richiesto l'interruzione di ogni contatto.",
+    "motifLabel": "Motivo",
+    "arreterAction": "Interrompi ogni contatto",
+    "reprendreAction": "Riprendi il contatto",
+    "arreterTitre": "Interrompere ogni contatto con questo cliente",
+    "arreterDescription": "Questo cliente non ricevera piu alcuna comunicazione (marketing, promemoria, solleciti), anche per una fattura non pagata. Il motivo e obbligatorio e viene conservato nello storico.",
+    "reprendreTitre": "Riprendere il contatto con questo cliente",
+    "reprendreDescription": "Questo cliente potra essere nuovamente contattato secondo i consensi registrati. Il motivo e obbligatorio e viene conservato nello storico."
+  },
   "fusion": {
     "titre": "Unisci due clienti",
     "confirmation": "Digitare il nome del cliente da unire per confermare",
@@ -187,5 +218,16 @@
     "rechercheDescription": "Prova un'altra ricerca.",
     "filtre": "Nessun risultato con questi filtri.",
     "filtreDescription": "Modifica o cancella i filtri attivi."
+  },
+  "formulaireNouveau": {
+    "brouillon": {
+      "ignorer": "Ignora la bozza"
+    },
+    "reessaiSansDoublon": "Cliccare di nuovo su «Crea cliente» non crea un doppione: un tentativo precedente viene riconosciuto automaticamente."
+  },
+  "ficheApresCreation": {
+    "titre": "Cliente registrato",
+    "description": "Il cliente {nom} è stato registrato correttamente ({numero}), ma la sua scheda non è potuta essere visualizzata. Riprova, oppure trovalo nell'elenco clienti — non crearlo di nuovo.",
+    "retourListe": "Torna all'elenco clienti"
   }
 }

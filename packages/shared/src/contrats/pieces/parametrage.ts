@@ -48,12 +48,14 @@ export interface ReponseParametresPieces {
  *  que `atelier/parametrage.ts`). `conditionnementArticleDistinct` ABSENT de ce schéma : ce n'est
  *  pas un réglage tenant tant que l'hypothèse `RP-05` n'est pas remise en cause (voir le
  *  commentaire du champ ci-dessus). */
-export const schemaModificationParametresPieces = z.object({
-  stockAutresSitesVisible: z.boolean().optional(),
-  stockNegatifForcageAutorise: z.boolean().optional(),
-  methodePrixAchat: z.enum(METHODES_PRIX_ACHAT).nullish(),
-  seuilValeurAjustementSignificatifCentimes: z.number().int().min(0).nullish(),
-  delaiConsigneAcquisitionJours: schemaDelaiJours.nullish(),
-  tauxTvaConsignePourmille: schemaPourmille.optional(),
-});
+export const schemaModificationParametresPieces = z
+  .object({
+    stockAutresSitesVisible: z.boolean().optional(),
+    stockNegatifForcageAutorise: z.boolean().optional(),
+    methodePrixAchat: z.enum(METHODES_PRIX_ACHAT).nullish(),
+    seuilValeurAjustementSignificatifCentimes: z.number().int().min(0).nullish(),
+    delaiConsigneAcquisitionJours: schemaDelaiJours.nullish(),
+    tauxTvaConsignePourmille: schemaPourmille.optional(),
+  })
+  .strict();
 export type EntreeModificationParametresPieces = z.infer<typeof schemaModificationParametresPieces>;

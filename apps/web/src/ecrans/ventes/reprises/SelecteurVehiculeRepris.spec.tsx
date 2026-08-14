@@ -1,7 +1,9 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
+
+import type { VehiculeResume } from '@dfa/shared';
 
 import '@/i18n';
 
@@ -10,8 +12,14 @@ import { renduAvecQueryClient } from '@/test/utils';
 
 import { SelecteurVehiculeRepris } from './SelecteurVehiculeRepris';
 
-function rendre() {
-  return renduAvecQueryClient(<SelecteurVehiculeRepris valeur={null} onChangeValeur={() => {}} />);
+function rendre(onChangeValeur: (vehiculeId: string, vehicule: VehiculeResume) => void = () => {}) {
+  return renduAvecQueryClient(
+    <SelecteurVehiculeRepris valeur={null} onChangeValeur={onChangeValeur} />,
+  );
+}
+
+function reponseListeVide() {
+  return HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 });
 }
 
 /**
@@ -58,7 +66,7 @@ describe('SelecteurVehiculeRepris', () => {
 
     rendre();
     const utilisateur = userEvent.setup();
-    await utilisateur.type(screen.getByLabelText('Véhicule repris *'), '123456');
+    await utilisateur.type(screen.getByLabelText(/^Véhicule repris\s*\*$/), '123456');
 
     await screen.findByText('VW Touran 2.0 TDI');
     expect(gestionnaire).toHaveBeenCalledTimes(1);
@@ -75,5 +83,100 @@ describe('SelecteurVehiculeRepris', () => {
 
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  /**
+   * Preuve du défaut #138 corrigé : un véhicule jamais vu par le garage (aucun résultat de
+   * recherche) doit pouvoir être créé sans quitter le dialogue de reprise, puis sélectionné
+   * automatiquement — exactement comme un résultat de recherche normal.
+   */
+  describe('création à la volée quand aucun résultat ne correspond (#138)', () => {
+    it('crée le véhicule avec les champs minimaux et le sélectionne automatiquement une fois créé', async () => {
+      server.use(http.get('/api/v1/vehicules', reponseListeVide));
+
+      let corpsRecu: Record<string, unknown> | null = null;
+      let cleIdempotenceRecue: string | null = null;
+      server.use(
+        http.post('/api/v1/vehicules', async ({ request }) => {
+          corpsRecu = (await request.json()) as Record<string, unknown>;
+          cleIdempotenceRecue = request.headers.get('Idempotency-Key');
+          return HttpResponse.json({
+            donnees: {
+              id: 'veh-nouveau',
+              plaque: null,
+              canton: null,
+              designation: 'Renault Clio',
+              vin: null,
+              premiereMiseEnCirculationLe: null,
+              identificationIncomplete: true,
+              emplacementLibre: null,
+            },
+            avertissements: [],
+          });
+        }),
+      );
+
+      const onChangeValeur = vi.fn();
+      rendre(onChangeValeur);
+      const utilisateur = userEvent.setup();
+      await utilisateur.type(screen.getByLabelText(/^Véhicule repris\s*\*$/), 'introuvable');
+
+      await screen.findByText('Aucun véhicule ne correspond à cette recherche.');
+      await utilisateur.click(screen.getByRole('button', { name: 'Créer ce véhicule' }));
+
+      await utilisateur.type(screen.getByLabelText(/^Marque\s*\*$/), 'Renault');
+      await utilisateur.type(screen.getByLabelText(/^Modèle\s*\*$/), 'Clio');
+      await utilisateur.click(screen.getByRole('button', { name: 'Créer et sélectionner' }));
+
+      await waitFor(() =>
+        expect(onChangeValeur).toHaveBeenCalledWith(
+          'veh-nouveau',
+          expect.objectContaining({ id: 'veh-nouveau', designation: 'Renault Clio' }),
+        ),
+      );
+      expect(corpsRecu).toMatchObject({ marque: 'Renault', modele: 'Clio', importe: false });
+      expect(cleIdempotenceRecue).toBeTruthy();
+    });
+
+    it('refuse la soumission sans marque ni modèle, sans appeler le serveur', async () => {
+      server.use(http.get('/api/v1/vehicules', reponseListeVide));
+      const gestionnairePost = vi.fn(() => HttpResponse.json({ donnees: {}, avertissements: [] }));
+      server.use(http.post('/api/v1/vehicules', gestionnairePost));
+
+      rendre();
+      const utilisateur = userEvent.setup();
+      await utilisateur.type(screen.getByLabelText(/^Véhicule repris\s*\*$/), 'introuvable');
+      await screen.findByText('Aucun véhicule ne correspond à cette recherche.');
+      await utilisateur.click(screen.getByRole('button', { name: 'Créer ce véhicule' }));
+
+      await utilisateur.click(screen.getByRole('button', { name: 'Créer et sélectionner' }));
+
+      expect(await screen.findAllByText('Ce champ est obligatoire.')).toHaveLength(2);
+      expect(gestionnairePost).not.toHaveBeenCalled();
+    });
+
+    it('affiche une erreur explicite et actionnable si la création échoue côté serveur', async () => {
+      server.use(http.get('/api/v1/vehicules', reponseListeVide));
+      server.use(
+        http.post(
+          '/api/v1/vehicules',
+          () => new HttpResponse(null, { status: 500, statusText: 'Erreur serveur' }),
+        ),
+      );
+
+      rendre();
+      const utilisateur = userEvent.setup();
+      await utilisateur.type(screen.getByLabelText(/^Véhicule repris\s*\*$/), 'introuvable');
+      await screen.findByText('Aucun véhicule ne correspond à cette recherche.');
+      await utilisateur.click(screen.getByRole('button', { name: 'Créer ce véhicule' }));
+
+      await utilisateur.type(screen.getByLabelText(/^Marque\s*\*$/), 'Renault');
+      await utilisateur.type(screen.getByLabelText(/^Modèle\s*\*$/), 'Clio');
+      await utilisateur.click(screen.getByRole('button', { name: 'Créer et sélectionner' }));
+
+      expect(await screen.findByRole('alert')).toBeInTheDocument();
+      // Le mini-formulaire reste ouvert avec la saisie intacte — aucune perte de saisie sur échec.
+      expect(screen.getByLabelText(/^Marque\s*\*$/)).toHaveValue('Renault');
+    });
   });
 });

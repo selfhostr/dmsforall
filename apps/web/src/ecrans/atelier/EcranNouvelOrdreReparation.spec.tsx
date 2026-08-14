@@ -214,7 +214,7 @@ describe('EcranNouvelOrdreReparation', () => {
       expect(await screen.findByText('Site non sélectionné')).toBeInTheDocument();
       expect(
         screen.getByText(
-          "Choisissez un site avant d'ouvrir un ordre de réparation : la numérotation et le paramétrage de l'OR en dépendent.",
+          "Choisissez un site avant d'ouvrir un ordre de réparation : la numérotation et le paramétrage de l'ordre de réparation en dépendent.",
         ),
       ).toBeInTheDocument();
       // Plus de renvoi vers l'accueil (ça perdait `clientId`, obligeant à rechercher le client une
@@ -251,13 +251,21 @@ describe('EcranNouvelOrdreReparation', () => {
   });
 
   describe('le client est un prérequis explicite, jamais deviné', () => {
-    it('sans `?clientId=`, renvoie vers `/recherche` (site conservé) plutôt que de proposer un second moyen de chercher un client ici', async () => {
+    it('sans `?clientId=`, propose de rechercher un client existant (renvoie vers `/recherche`, site conservé) OU d’en créer un nouveau sans quitter cet écran', async () => {
       rendre(`/ordres-reparation/nouveau?site=${SITE_ID}`);
 
       expect(await screen.findByText('Client non sélectionné')).toBeInTheDocument();
       const lien = screen.getByRole('link', { name: 'Rechercher' });
       expect(lien).toHaveAttribute('href', expect.stringContaining('/recherche'));
       expect(lien).toHaveAttribute('href', expect.stringContaining(`site=${SITE_ID}`));
+
+      // CORRECTIF issue #107 (test terrain, verbatim : « c'est là que j'aurais attrapé un
+      // bloc-notes ») : un nom introuvable via « Rechercher » n'est plus un cul-de-sac — ce
+      // bouton ouvre directement `FormulaireNouveauClient` (même formulaire que l'écran Clients),
+      // sans jamais quitter la création d'OR en cours.
+      const utilisateur = userEvent.setup();
+      await utilisateur.click(screen.getByRole('button', { name: 'Créer un nouveau client' }));
+      expect(await screen.findByRole('button', { name: 'Créer le client' })).toBeInTheDocument();
     });
   });
 
@@ -273,6 +281,35 @@ describe('EcranNouvelOrdreReparation', () => {
           } satisfies PageCurseur<VehiculeResume>),
         ),
         http.get('/api/v1/parametres-atelier', () => HttpResponse.json(PARAMETRES_ATELIER)),
+        // `FormulaireNouvelOrdreReparation` interroge ce contexte pour NOMMER les OR déjà ouverts
+        // dans la confirmation `VEHICULE_DEUX_OR_OUVERTS` (issues #64/#66) — vide ici, ce parcours
+        // ne teste pas cette confirmation (voir `FormulaireNouvelOrdreReparation.spec.tsx` pour
+        // ce cas). Sans ce handler, `onUnhandledRequest: 'error'` (`test/setup.ts`) le signale.
+        http.get(`/api/v1/vehicules/${VEHICULE_ID}/contexte-atelier`, () =>
+          HttpResponse.json({
+            vehicule: {
+              id: VEHICULE_ID,
+              plaque: VEHICULE.plaque,
+              canton: VEHICULE.canton,
+              designation: VEHICULE.designation,
+              premiereMiseEnCirculationLe: VEHICULE.premiereMiseEnCirculationLe,
+              vin: VEHICULE.vin,
+              codeTypeCh: null,
+              importe: { estImporte: false, paysOrigine: null, importeLe: null },
+              identificationIncomplete: false,
+            },
+            detenteurCourant: null,
+            dernierKilometrage: null,
+            expertise: null,
+            garantie: { constructeur: null, garage: null },
+            campagnesOuvertes: [],
+            travauxReportes: { total: 0, elements: [] },
+            alertesClient: [],
+            ordresReparationOuverts: [],
+            depotPneus: null,
+            avertissements: [],
+          }),
+        ),
         http.post('/api/v1/ordres-reparation', () =>
           HttpResponse.json({ donnees: construireOr(), avertissements: [] }, { status: 201 }),
         ),
@@ -288,7 +325,9 @@ describe('EcranNouvelOrdreReparation', () => {
       const optionVehicule = await screen.findByRole('radio', { name: /VW Touran 2\.0 TDI/ });
       await utilisateur.click(optionVehicule);
 
-      const boutonCreer = await screen.findByRole('button', { name: "Ouvrir l'OR" });
+      const boutonCreer = await screen.findByRole('button', {
+        name: "Ouvrir l'ordre de réparation",
+      });
       await utilisateur.click(boutonCreer);
 
       await waitFor(() => expect(screen.getByText('PAGE_FICHE_OR')).toBeInTheDocument());

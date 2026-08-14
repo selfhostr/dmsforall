@@ -18,6 +18,12 @@ interface Props {
   readonly valeur: string | null;
   readonly onChangeValeur: (clientId: string, client: ClientResume) => void;
   readonly libelle: string;
+  /** Le sélecteur — pas la recherche — porte la contrainte : c'est le groupe de cartes
+   *  sélectionnables qui doit être rempli avant soumission, pas le texte tapé pour le filtrer.
+   *  Aucune carte `role="radio"` isolée ne peut porter `aria-required` (la contrainte porte sur
+   *  l'ENSEMBLE), posé ici sur le `role="radiogroup"`, même patron que `OngletContacts.tsx`
+   *  (`role="group"` + `aria-required`) pour un groupe sans contrôle natif unique. */
+  readonly requis?: boolean;
 }
 
 /**
@@ -28,7 +34,7 @@ interface Props {
  * `composants/` : radiogroup de cartes `IdentiteClient`, pas un `<select>` texte, un garagiste au
  * comptoir compare des noms et des numéros de client, pas des libellés.
  */
-export function SelecteurClientVehicule({ valeur, onChangeValeur, libelle }: Props) {
+export function SelecteurClientVehicule({ valeur, onChangeValeur, libelle, requis }: Props) {
   const { t } = useTranslation(['vehicules', 'commun', 'erreurs']);
   const [qSaisie, setQSaisie] = useState('');
   const [q, setQ] = useState('');
@@ -76,6 +82,7 @@ export function SelecteurClientVehicule({ valeur, onChangeValeur, libelle }: Pro
         <div
           role="radiogroup"
           aria-label={libelle}
+          aria-required={requis ? 'true' : undefined}
           className="flex max-h-64 flex-col gap-2 overflow-y-auto"
         >
           {clients.map((client) => {

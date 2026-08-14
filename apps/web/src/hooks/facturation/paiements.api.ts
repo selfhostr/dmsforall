@@ -1,4 +1,8 @@
-import type { EntreeCreationPaiement, ReponsePaiement } from '@dfa/shared';
+import type {
+  EntreeCreationPaiement,
+  ReponseAvecAvertissements,
+  ReponsePaiement,
+} from '@dfa/shared';
 
 import { requeteApi } from '@/api/client';
 
@@ -13,19 +17,36 @@ import { requeteApi } from '@/api/client';
  * pas encore de la solder). À ajouter au lot qui construira l'écran dédié à ces trois issues.
  */
 
-/** `POST /paiements` — `Idempotency-Key` OBLIGATOIRE (consigne explicite de @laupernoe sur toute création
- *  sensible). `imputations` embarquées : l'écran d'encaissement lettre en un seul geste (`RF-69`). */
+/**
+ * `POST /paiements` — `Idempotency-Key` OBLIGATOIRE (consigne explicite de @laupernoe sur toute création
+ * sensible). `imputations` embarquées : l'écran d'encaissement lettre en un seul geste (`RF-69`).
+ *
+ * DÉFAUT CORRIGÉ (testeur novice, encaissement de Meier Urs, 60.00 CHF, message rouge
+ * « L'opération n'a pas pu être effectuée. Réessayez. » sur un paiement en réalité DÉJÀ enregistré
+ * côté serveur) : `PaiementController.creer` répond `PaiementAvecAvertissementsDto`, une
+ * ENVELOPPE `{ donnees, avertissements }` — même convention que `emettreDocumentVente`/
+ * `creerAvoir` ci-dessus (`documents-vente.api.ts`), toutes deux typées
+ * `ReponseAvecAvertissements<...>` et unwrappées via `.donnees`. Cette fonction typait
+ * autrefois `requeteApi<ReponsePaiement>` DIRECTEMENT (le type INTERNE, pas l'enveloppe) et
+ * retournait l'enveloppe telle quelle : `useEncaissement.onSuccess`, qui lit
+ * `paiement.imputations`, lisait donc `undefined` sur CHAQUE encaissement réussi — `for...of
+ * undefined` lève un `TypeError`, capturé par `mutateAsync`, qui REJETAIT alors une requête dont
+ * le serveur avait pourtant créé le paiement avec succès. `messageErreur` retombe sur son repli
+ * générique (`erreurs:inattendue.description`) faute de reconnaître ce `TypeError` — exactement
+ * le message observé. Preuve : `POST /paiements` réel (API tournante) répond bien
+ * `{"donnees":{...},"avertissements":[]}`, jamais l'objet nu.
+ */
 export async function creerPaiement(
   entree: EntreeCreationPaiement,
   idempotencyKey: string,
 ): Promise<ReponsePaiement> {
-  const paiement = await requeteApi<ReponsePaiement>('/paiements', {
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponsePaiement>>('/paiements', {
     method: 'POST',
     body: JSON.stringify(entree),
     idempotencyKey,
   });
-  if (!paiement) {
+  if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /paiements.');
   }
-  return paiement;
+  return reponse.donnees;
 }

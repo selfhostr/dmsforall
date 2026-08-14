@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { LegendeChampsObligatoires } from '@/components/ui/label';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
 import { RefusBloquant } from '@/composants/motifs/RefusBloquant';
 import { useModifierReprise } from '@/hooks/ventes/reprises/useTransitionsReprise';
@@ -106,6 +107,10 @@ export function DialogueModifierReprise({
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
+          <LegendeChampsObligatoires>
+            {t('commun:formulaires.champsObligatoiresLegende')}
+          </LegendeChampsObligatoires>
+
           <ChampMontant
             label={t('ventes:reprise.creation.valeurEstimee')}
             obligatoire

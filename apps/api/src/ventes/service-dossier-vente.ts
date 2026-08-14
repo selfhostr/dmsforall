@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type {
   EntreeActionAbandonnerDossierVente,
   EntreeActionAnnulerDossierVente,
@@ -93,6 +93,7 @@ import {
   listerDocumentsRequis,
   listerFinancementsDossier,
   SEUIL_DOCUMENTS_DOSSIER,
+  totauxTtcAffichesDocumentsDossier,
 } from './references';
 import { extraireVersionETag } from './service-vehicule-stock';
 import { traduireErreurTransitionVente } from './traducteur-transition-ventes';
@@ -563,6 +564,31 @@ export class ServiceDossierVente {
    * Même garde de rejeu explicite que `preparer` (voir sa docstring) : rien d'autre ne bloque un
    * second appel une fois `pret_a_livrer` déjà atteint — le financement reste `confirme`, et le
    * trigger générique laisse passer une écriture qui n'y change rien.
+   *
+   * DÉFAUT CORRIGÉ (issue #115, terrain) : la garde ci-dessous refusait la transition sous le
+   * MÊME code, avec le MÊME message, dans DEUX situations pourtant très différentes — `!courant`
+   * (aucun financement n'a JAMAIS été créé pour ce dossier : `DialogueCreationFinancement` reste
+   * un geste manuel et facultatif, § `ventes/financements/`) et `courant.statut !== 'confirme'`
+   * (un financement existe réellement, en attente ou refusé). Le premier cas est le chemin
+   * COURANT d'une vente au comptant — RIEN dans RV-37 ni dans le modèle n'exige un financement
+   * pour livrer, la table `financement_vente` reste vide par construction pour ces dossiers-là
+   * (`schema/ventes/financement.ts`) — et ne doit donc JAMAIS bloquer. Trois situations, désormais
+   * distinguées :
+   *  1. `financements.length === 0` : AUTORISÉ (vente au comptant, aucune tentative de
+   *     financement — le cas normal).
+   *  2. `courant.statut` ∈ `{'en_attente', 'refuse'}` : REFUSÉ, message qui NOMME la situation
+   *     réelle (« en attente de confirmation » / « a été refusé »), jamais le texte générique qui
+   *     ne distinguait pas les deux.
+   *  3. `courant.statut === 'confirme'` : AUTORISÉ (comportement inchangé).
+   *
+   * `VENTE_FINANCEMENT_NON_CONFIRME` reste l'unique code (`CODES_ERREUR`, contrat gelé — packages/
+   * shared hors périmètre d'écriture de cet agent, aucun code dédié `_EN_ATTENTE`/`_REFUSE` ajouté
+   * ici) : le bandeau `erreurs:codes.VENTE_FINANCEMENT_NON_CONFIRME` reste donc IDENTIQUE à
+   * l'écran pour les cas 2a/2b — mais reste honnête pour les deux (un financement en attente
+   * COMME un financement refusé sont, l'un et l'autre, réellement « non confirmés »). Le message
+   * RÉEL (champ `message` de l'exception, jamais affiché au garagiste — voir `ErreurMetier`) est
+   * néanmoins différencié pour les journaux/le support. SIGNALÉ au rapport de livraison : un code
+   * dédié par situation permettrait un bandeau distinct à l'écran, hors mandat de ce correctif.
    */
   async marquerPretALivrer(
     ctx: ContexteTenant,
@@ -581,10 +607,16 @@ export class ServiceDossierVente {
 
       const financements = await listerFinancementsDossier(tx, ctx, dossierVenteId);
       const courant = selectionnerFinancementCourant(financements);
-      if (!courant || courant.statut !== 'confirme') {
+      // `courant === null` : AUCUNE tentative de financement pour ce dossier — vente au comptant,
+      // transition AUTORISÉE (voir la docstring ci-dessus, situation 1). Ne throw QUE si un
+      // financement existe réellement et n'est pas confirmé (situation 2).
+      if (courant && courant.statut !== 'confirme') {
         throw new ErreurMetier(
           'VENTE_FINANCEMENT_NON_CONFIRME',
-          "Le financement de ce dossier n'est pas confirmé (RV-37).",
+          courant.statut === 'refuse'
+            ? `Le financement de ce dossier a été refusé (RV-37) — un nouveau financement doit être confirmé, ou le dossier doit repartir sans financement (vente au comptant).`
+            : `Le financement de ce dossier est en attente de confirmation (RV-37) — passage à « prêt à livrer » impossible tant qu'il n'est ni confirmé ni retiré.`,
+          { detail: `statutFinancement=${courant.statut};financementId=${courant.id}` },
         );
       }
 
@@ -641,6 +673,45 @@ export class ServiceDossierVente {
           `Livraison impossible : le véhicule n'est pas encore facturé (statut actuel : ${vehiculeStockLigne.statutCommercial}) — la facture doit être émise avant la livraison (RV-37).`,
           {
             detail: `Le véhicule est au statut « ${vehiculeStockLigne.statutCommercial} » : la facture de vente doit être émise avant la livraison (RV-37).`,
+          },
+        );
+      }
+
+      // DÉFAUT CORRIGÉ (issue #140, terrain) : la garde ci-dessus ne vérifie QUE
+      // `vehiculeStockLigne.statutCommercial === 'vendu'` — mais ce statut peut être posé SANS
+      // AUCUNE facture, par l'action « Marquer vendu » (`POST /vehicules/{id}/stock/marquer-
+      // vendu`, `ventes.vehicule_stock.corriger`, réservée à la direction, « correction
+      // exceptionnelle » — voir la docstring de `ServiceVehiculeStock.marquerVendu`). Un véhicule
+      // ainsi corrigé À LA MAIN, sans qu'aucune facture n'ait jamais été émise pour CE dossier,
+      // passait donc `livrer()` sur la seule foi du statut véhicule. Vérification AJOUTÉE, EN PLUS
+      // du statut du véhicule (jamais à sa place — le statut reste la garde normale du chemin
+      // programmatique RV-37, cette seconde garde ferme spécifiquement le chemin de correction
+      // manuelle) : au moins UN document `facture` rattaché à CE dossier (`dossier_vente_id`),
+      // déjà émis. `annule_par_avoir` inclus délibérément (RF-32) — une facture émise PUIS
+      // créditée en TOTALITÉ reste la preuve qu'une facture a bien existé pour ce dossier ; exiger
+      // `statut = 'emis'` strictement aurait fait régresser un dossier déjà `pret_a_livrer` dont la
+      // facture serait annulée par avoir entre-temps, un cas dégradé hors du périmètre de ce
+      // correctif. Chemin NORMAL (RV-37, `service-emission.ts::marquerVehiculeVenduSiApplicable`)
+      // inchangé : la facture qui marque le véhicule `vendu` EST déjà rattachée à ce dossier, donc
+      // toujours trouvée ici — non-régression vérifiée par `service-dossier-vente.spec.ts`.
+      const facturesDossier = await tx
+        .select({ id: documentVente.id })
+        .from(documentVente)
+        .where(
+          and(
+            eq(documentVente.tenantId, ctx.tenantId),
+            eq(documentVente.dossierVenteId, dossierVenteId),
+            eq(documentVente.typeDocument, 'facture'),
+            inArray(documentVente.statut, ['emis', 'annule_par_avoir']),
+          ),
+        )
+        .limit(1);
+      if (facturesDossier.length === 0) {
+        throw new ErreurMetier(
+          'VENTE_LIVRAISON_FACTURE_REQUISE',
+          `Livraison impossible : aucune facture émise n'est rattachée à ce dossier de vente (RV-37) — le véhicule porte le statut « ${vehiculeStockLigne.statutCommercial} », probablement posé par une correction manuelle (POST /vehicules/{id}/stock/marquer-vendu) plutôt que par l'émission réelle d'une facture.`,
+          {
+            detail: `dossierVenteId=${dossierVenteId} ; aucun document_vente typeDocument=facture statut∈{emis,annule_par_avoir} trouvé.`,
           },
         );
       }
@@ -1030,9 +1101,15 @@ export class ServiceDossierVente {
 
     const documentsBrut = await listerDocumentsDossierBrut(tx, ctx, ligne.id);
     const documentsTronques = documentsBrut.length > SEUIL_DOCUMENTS_DOSSIER;
-    const documents = (
-      documentsTronques ? documentsBrut.slice(0, SEUIL_DOCUMENTS_DOSSIER) : documentsBrut
-    ).map((d) => versDocumentVenteResume(d, role));
+    const documentsRetenus = documentsTronques
+      ? documentsBrut.slice(0, SEUIL_DOCUMENTS_DOSSIER)
+      : documentsBrut;
+    // #127 : totaux TTC recalculés en direct pour les documents `brouillon` (colonne stockée figée
+    // seulement à l'émission, voir la docstring de `totauxTtcAffichesDocumentsDossier`).
+    const totauxTtcAffiches = await totauxTtcAffichesDocumentsDossier(tx, ctx, documentsRetenus);
+    const documents = documentsRetenus.map((d) =>
+      versDocumentVenteResume(d, role, totauxTtcAffiches.get(d.id) ?? Number(d.totalTtcCentimes)),
+    );
 
     const documentsRequisLignes = await listerDocumentsRequis(tx, ctx, ligne.id);
     const documentsRequis = documentsRequisLignes.map(versDocumentRequisResponse);

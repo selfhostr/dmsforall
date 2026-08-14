@@ -50,6 +50,7 @@
     "reglagesFacturation": "Fatturazione",
     "reglagesTarifs": "Tariffe e prestazioni",
     "reglagesPieces": "Ricambi",
+    "reglagesUtilisateurs": "Utenti",
     "reglagesRelances": "Livelli di sollecito"
   },
   "liens": {
@@ -71,6 +72,7 @@
   },
   "entete": {
     "tousLesSites": "Tutte le officine",
+    "siteNonChoisi": "Nessuna sede selezionata",
     "changerSite": "Cambia sede"
   },
   "repli": {

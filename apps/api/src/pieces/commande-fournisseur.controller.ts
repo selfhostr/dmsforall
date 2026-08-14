@@ -57,6 +57,15 @@ import { ServiceCommandeFournisseur } from './service-commande-fournisseur';
  * Commande fournisseur (RP-26 → RP-31, §6.2) — priorité 1 du lot. PAS de `PATCH` générique sur
  * `statut` (même patron que `ordre-reparation.ts`/`document.ts`) : chaque transition est une
  * ACTION NOMMÉE (`envoyer`, `reception`, `annuler-reliquat`, `annuler`).
+ *
+ * DÉFAUT CORRIGÉ : `envoyer`, `annuler-reliquat` et `annuler` documentaient `200`
+ * (`@ApiOkResponse`) mais rendaient `201` (défaut de NestJS sur `@Post()` sans `@HttpCode`
+ * explicite) — signalé par `pneus/depot-pneus.controller.ts`. Corrigé par l'ajout de
+ * `@HttpCode(HttpStatus.OK)` sur ces trois routes, qui transitionnent une commande existante sans
+ * créer de ressource adressable propre (contrairement à `reception`, dont le type de réponse
+ * `ReceptionCommandeFournisseurAvecAvertissementsDto` — distinct de
+ * `CommandeFournisseurAvecAvertissementsDto` — porte les mouvements de stock créés : `reception`
+ * reste `201`, à raison).
  */
 @ApiTags('Pièces — Commandes fournisseur')
 @ApiCookieAuth()
@@ -147,6 +156,7 @@ export class CommandeFournisseurController {
   }
 
   @Post(':id/envoyer')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('pieces.commande_fournisseur.creer')
   @ApiOperation({ summary: 'Envoie la commande au fournisseur — `brouillon → envoyee` (§6.2).' })
   @ApiParam({ name: 'id', format: 'uuid' })
@@ -200,6 +210,7 @@ export class CommandeFournisseurController {
   }
 
   @Post(':id/lignes/:ligneId/annuler-reliquat')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('pieces.commande_fournisseur.reception')
   @ApiOperation({ summary: 'Solde un reliquat SANS livraison, avec motif (RP-28).' })
   @ApiParam({ name: 'id', format: 'uuid' })
@@ -223,6 +234,7 @@ export class CommandeFournisseurController {
   }
 
   @Post(':id/annuler')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('pieces.commande_fournisseur.creer')
   @ApiOperation({
     summary: 'Annule la commande entière, avec motif — UNIQUEMENT avant toute réception (§6.2).',

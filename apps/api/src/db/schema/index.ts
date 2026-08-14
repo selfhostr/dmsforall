@@ -15,6 +15,8 @@ export * from './colonnes-communes';
 export * from './tenant';
 export * from './site';
 export * from './utilisateur';
+export * from './utilisateur-site';
+export * from './audit-utilisateur';
 export * from './session';
 export * from './journal-securite';
 export * from './atelier';

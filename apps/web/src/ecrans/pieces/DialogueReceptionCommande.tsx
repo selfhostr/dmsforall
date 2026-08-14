@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
 import { useReceptionnerCommandeFournisseur } from '@/hooks/pieces/useTransitionsCommandeFournisseur';
 
@@ -134,6 +134,10 @@ export function DialogueReceptionCommande({ ouvert, onOuvertChange, commande }: 
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
+          <LegendeChampsObligatoires>
+            {t('commun:formulaires.champsObligatoiresLegende')}
+          </LegendeChampsObligatoires>
+
           {lignesReceptionnables.map((ligne) => {
             const saisie = lignes[ligne.id];
             if (!saisie) return null;
@@ -161,13 +165,14 @@ export function DialogueReceptionCommande({ ouvert, onOuvertChange, commande }: 
                 {saisie.selectionnee ? (
                   <div className="grid grid-cols-2 gap-3">
                     <div className="flex flex-col gap-1.5">
-                      <Label htmlFor={`recep-qte-${ligne.id}`}>
+                      <Label htmlFor={`recep-qte-${ligne.id}`} requis>
                         {t('pieces:commandes.lignes.quantiteRecue')}
                       </Label>
                       <Input
                         id={`recep-qte-${ligne.id}`}
                         type="text"
                         inputMode="decimal"
+                        required
                         readOnly={receptionner.isPending}
                         value={saisie.quantiteSaisie}
                         onChange={(evenement) =>

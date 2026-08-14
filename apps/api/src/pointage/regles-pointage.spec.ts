@@ -10,14 +10,17 @@ import {
   dureeDepasseLeSeuil,
   estLignePointable,
   estOrPointable,
+  journeeTravailCourante,
   ligneDevenueNonPointable,
   ligneDoitPasserEnCours,
   orDevenuNonPointable,
   orDoitPasserEnCours,
   pointageCorrespondEntree,
+  resoudreCibleReprise,
   SEUIL_DERIVE_HORLOGE_MS,
   type LigneOrPourAgregat,
   type PointagePourAgregat,
+  type PointageProductifDuJour,
 } from './regles-pointage';
 
 function pointageEnBase(surcharge: Partial<LignePointage> = {}): LignePointage {
@@ -485,5 +488,254 @@ describe('calculerAgregatsTempsLigne (GET /pointages/agregats-ligne)', () => {
     );
     expect(Number.isInteger(resultat[0]?.dureePointeeCentiemes)).toBe(true);
     expect(Number.isInteger(resultat[0]?.ecartCentiemes)).toBe(true);
+  });
+});
+
+describe('journeeTravailCourante (GET /pointages/dernier-du-jour) — bornes UTC pures, même convention que service-verrouillage-periode.ts::finDeJournee (RM-95)', () => {
+  it('un instant en milieu de journée UTC produit [00:00:00.000Z, 23:59:59.999Z] du MÊME jour calendaire', () => {
+    const bornes = journeeTravailCourante(new Date('2026-08-14T13:37:02.123Z'));
+    expect(bornes.debutLe.toISOString()).toBe('2026-08-14T00:00:00.000Z');
+    expect(bornes.finLe.toISOString()).toBe('2026-08-14T23:59:59.999Z');
+  });
+
+  it('exactement à minuit UTC : le jour EN COURS, pas la veille', () => {
+    const bornes = journeeTravailCourante(new Date('2026-08-14T00:00:00.000Z'));
+    expect(bornes.debutLe.toISOString()).toBe('2026-08-14T00:00:00.000Z');
+  });
+
+  it('exactement à 23:59:59.999Z : encore le même jour, pas le suivant', () => {
+    const bornes = journeeTravailCourante(new Date('2026-08-14T23:59:59.999Z'));
+    expect(bornes.finLe.toISOString()).toBe('2026-08-14T23:59:59.999Z');
+  });
+});
+
+describe('resoudreCibleReprise (GET /pointages/dernier-du-jour)', () => {
+  const MAINTENANT = new Date('2026-08-14T15:00:00.000Z');
+
+  function segment(surcharge: Partial<PointageProductifDuJour> = {}): PointageProductifDuJour {
+    return {
+      id: 'p1',
+      ordreReparationId: 'or1',
+      ligneOrId: 'l1',
+      siteId: 'site1',
+      debutLe: new Date('2026-08-14T08:00:00.000Z'),
+      finLe: new Date('2026-08-14T09:00:00.000Z'),
+      statutOr: 'en_cours',
+      statutLigne: 'en_cours',
+      numeroOr: 'OR-2026-00042',
+      designationLigne: 'Remplacement plaquettes avant',
+      ...surcharge,
+    };
+  }
+
+  it('aucun pointage productif aujourd’hui : null', () => {
+    expect(resoudreCibleReprise([], MAINTENANT)).toBeNull();
+  });
+
+  it('un seul segment de ligne, encore ouvert : type ligne, interrompuLe = maintenant (pas de vraie interruption), cumul = jusqu’à maintenant', () => {
+    const resultat = resoudreCibleReprise(
+      [
+        segment({
+          finLe: null,
+          debutLe: new Date('2026-08-14T14:00:00.000Z'), // 1h avant MAINTENANT = 3600s
+        }),
+      ],
+      MAINTENANT,
+    );
+    expect(resultat).toEqual({
+      type: 'ligne',
+      ordreReparationId: 'or1',
+      numeroOr: 'OR-2026-00042',
+      ligneOrId: 'l1',
+      libelle: 'Remplacement plaquettes avant',
+      siteId: 'site1',
+      interrompuLe: MAINTENANT.toISOString(),
+      cumulSecondesDuJour: 3600,
+    });
+  });
+
+  it('le plus récent est un segment CLOS (le technicien a enchaîné sur une activité indirecte, déjà exclue en amont par la requête SQL) : c’est quand même la cible, interrompuLe = son finLe réel', () => {
+    const resultat = resoudreCibleReprise(
+      [
+        segment({
+          id: 'p-matin',
+          debutLe: new Date('2026-08-14T08:00:00.000Z'),
+          finLe: new Date('2026-08-14T09:00:00.000Z'),
+        }),
+        segment({
+          id: 'p-plus-recent',
+          debutLe: new Date('2026-08-14T10:00:00.000Z'),
+          finLe: new Date('2026-08-14T10:45:00.000Z'), // 45 min = 2700s, le technicien s'est arrêté ici (RM-89/pause)
+        }),
+      ],
+      MAINTENANT,
+    );
+    expect(resultat?.interrompuLe).toBe('2026-08-14T10:45:00.000Z');
+  });
+
+  it('cible la plus récente devenue non pointable (OR facturé) : null, AUCUN repli sur un segment plus ancien encore pointable', () => {
+    const resultat = resoudreCibleReprise(
+      [
+        segment({
+          id: 'p-ancien',
+          debutLe: new Date('2026-08-14T08:00:00.000Z'),
+          statutOr: 'en_cours',
+        }),
+        segment({
+          id: 'p-recent-facture',
+          debutLe: new Date('2026-08-14T10:00:00.000Z'),
+          statutOr: 'facture',
+        }),
+      ],
+      MAINTENANT,
+    );
+    expect(resultat).toBeNull();
+  });
+
+  it('cible la plus récente sur une ligne devenue annulée (OR sain, ligne non pointable) : null', () => {
+    const resultat = resoudreCibleReprise(
+      [segment({ statutOr: 'en_cours', statutLigne: 'annulee' })],
+      MAINTENANT,
+    );
+    expect(resultat).toBeNull();
+  });
+
+  it('type "or" (productif_or, sans ligne) : OR seul non pointable produit aussi null', () => {
+    const resultat = resoudreCibleReprise(
+      [segment({ ligneOrId: null, statutLigne: null, statutOr: 'annule' })],
+      MAINTENANT,
+    );
+    expect(resultat).toBeNull();
+  });
+
+  it('cumulSecondesDuJour = somme EXACTE de trois segments productifs sur la MÊME ligne (jamais toBeCloseTo)', () => {
+    const resultat = resoudreCibleReprise(
+      [
+        segment({
+          id: 'seg1',
+          debutLe: new Date('2026-08-14T08:00:00.000Z'),
+          finLe: new Date('2026-08-14T08:37:00.000Z'), // 2220s
+        }),
+        segment({
+          id: 'seg2',
+          debutLe: new Date('2026-08-14T09:00:00.000Z'),
+          finLe: new Date('2026-08-14T09:12:30.000Z'), // 750s
+        }),
+        segment({
+          id: 'seg3',
+          debutLe: new Date('2026-08-14T13:00:00.000Z'),
+          finLe: new Date('2026-08-14T13:00:11.000Z'), // 11s
+        }),
+      ],
+      MAINTENANT,
+    );
+    // 2220 + 750 + 11 = 2981, exact.
+    expect(resultat?.cumulSecondesDuJour).toBe(2981);
+    expect(Number.isInteger(resultat?.cumulSecondesDuJour)).toBe(true);
+  });
+
+  it('type "ligne" : un pointage productif_ligne sur une AUTRE ligne du même OR ne compte JAMAIS dans le cumul', () => {
+    const resultat = resoudreCibleReprise(
+      [
+        segment({
+          id: 'ligne-cible',
+          ligneOrId: 'l1',
+          debutLe: new Date('2026-08-14T08:00:00.000Z'),
+          finLe: new Date('2026-08-14T08:10:00.000Z'), // 600s
+        }),
+        segment({
+          id: 'autre-ligne-meme-or',
+          ligneOrId: 'l2',
+          debutLe: new Date('2026-08-14T07:00:00.000Z'),
+          finLe: new Date('2026-08-14T07:30:00.000Z'), // 1800s — ne doit PAS s'additionner
+        }),
+      ],
+      MAINTENANT,
+    );
+    expect(resultat?.cumulSecondesDuJour).toBe(600);
+  });
+
+  it('type "or" : cumule uniquement les segments productif_or du MÊME OR (ligneOrId null), jamais les segments productif_ligne du même OR', () => {
+    const resultat = resoudreCibleReprise(
+      [
+        segment({
+          id: 'or-recent',
+          ligneOrId: null,
+          statutLigne: null,
+          debutLe: new Date('2026-08-14T10:00:00.000Z'),
+          finLe: new Date('2026-08-14T10:20:00.000Z'), // 1200s
+        }),
+        segment({
+          id: 'or-plus-tot',
+          ligneOrId: null,
+          statutLigne: null,
+          debutLe: new Date('2026-08-14T08:00:00.000Z'),
+          finLe: new Date('2026-08-14T08:05:00.000Z'), // 300s
+        }),
+        segment({
+          id: 'ligne-meme-or',
+          ligneOrId: 'l1',
+          debutLe: new Date('2026-08-14T09:00:00.000Z'),
+          finLe: new Date('2026-08-14T09:30:00.000Z'), // 1800s — ne doit PAS s'additionner (nature différente)
+        }),
+      ],
+      MAINTENANT,
+    );
+    expect(resultat).toMatchObject({ type: 'or', ligneOrId: null });
+    expect(resultat?.cumulSecondesDuJour).toBe(1500); // 1200 + 300
+  });
+
+  it('type "or" : ligneOrId de la réponse est null (jamais celui d’un segment productif_ligne croisé)', () => {
+    const resultat = resoudreCibleReprise(
+      [segment({ ligneOrId: null, statutLigne: null })],
+      MAINTENANT,
+    );
+    expect(resultat?.type).toBe('or');
+    expect(resultat?.ligneOrId).toBeNull();
+  });
+
+  it('libelle = numéro de l’OR quand la ligne n’a pas de désignation saisie (colonne nullable en base)', () => {
+    const resultat = resoudreCibleReprise(
+      [segment({ designationLigne: null, numeroOr: 'OR-2026-00099' })],
+      MAINTENANT,
+    );
+    expect(resultat?.libelle).toBe('OR-2026-00099');
+  });
+
+  it('libelle = numéro de l’OR pour une cible type "or" (pas de ligne à désigner)', () => {
+    const resultat = resoudreCibleReprise(
+      [segment({ ligneOrId: null, statutLigne: null, numeroOr: 'OR-2026-00050' })],
+      MAINTENANT,
+    );
+    expect(resultat?.libelle).toBe('OR-2026-00050');
+  });
+
+  it('tri défensif : la fonction ne suppose pas que l’appelant a trié — le plus récent reste bien sélectionné même en entrée désordonnée', () => {
+    const resultat = resoudreCibleReprise(
+      [
+        segment({
+          id: 'ancien',
+          debutLe: new Date('2026-08-14T08:00:00.000Z'),
+          ligneOrId: 'l-ancien',
+        }),
+        segment({
+          id: 'recent',
+          debutLe: new Date('2026-08-14T12:00:00.000Z'),
+          ligneOrId: 'l-recent',
+        }),
+        segment({
+          id: 'milieu',
+          debutLe: new Date('2026-08-14T10:00:00.000Z'),
+          ligneOrId: 'l-milieu',
+        }),
+      ],
+      MAINTENANT,
+    );
+    expect(resultat?.ligneOrId).toBe('l-recent');
+  });
+
+  it('défensif : ordreReparationId null malgré le filtre SQL (ne devrait jamais arriver) n’est jamais promu en cible — null, pas de crash', () => {
+    const resultat = resoudreCibleReprise([segment({ ordreReparationId: null })], MAINTENANT);
+    expect(resultat).toBeNull();
   });
 });

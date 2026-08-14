@@ -29,6 +29,7 @@ import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useConsignes } from '@/hooks/pieces/useConsignes';
 import { useMarquerRetourConsigne } from '@/hooks/pieces/useMarquerRetourConsigne';
 import { useSession } from '@/hooks/useSession';
@@ -172,30 +173,26 @@ export function EcranConsignesPieces() {
 
   if (isPending) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:consignes.titre')}</h1>
+      <GabaritEcran titre={t('pieces:consignes.titre')}>
         <EtatChargement lignes={6} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (isError) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:consignes.titre')}</h1>
+      <GabaritEcran titre={t('pieces:consignes.titre')}>
         <EtatErreur
           titre={t('pieces:consignes.erreur.titre')}
           description={messageErreur(error, t)}
           onReessayer={() => void refetch()}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:consignes.titre')}</h1>
-
+    <GabaritEcran titre={t('pieces:consignes.titre')}>
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-1.5 max-w-xs">
           <Label htmlFor="filtre-statut-consigne">{t('pieces:consignes.statut')}</Label>
@@ -278,6 +275,6 @@ export function EcranConsignesPieces() {
           });
         }}
       />
-    </div>
+    </GabaritEcran>
   );
 }

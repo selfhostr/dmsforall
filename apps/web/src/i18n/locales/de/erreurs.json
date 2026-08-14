@@ -170,6 +170,10 @@
     "RECEPTIONNER_VEHICULE": "Fahrzeug empfangen",
     "RAFRAICHIR": "Seite aktualisieren"
   },
+  "filet": {
+    "titreDroit": "Aktion abgelehnt",
+    "titreConflit": "Aktion nicht möglich"
+  },
   "blocages": {
     "ligne_or": "{count, plural, one {# Position zu validieren} other {# Positionen zu validieren}}",
     "pointage": "{count, plural, one {# laufende Zeiterfassung} other {# laufende Zeiterfassungen}}",

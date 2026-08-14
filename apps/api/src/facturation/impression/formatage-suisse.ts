@@ -5,6 +5,8 @@
  * reproductible d'un déploiement à l'autre — `Intl` n'est pas utilisé ici pour cette raison).
  */
 
+import type { DeviseFacturation } from '@dfa/shared';
+
 /** `centimes` : entier signé. `100050` → `"1'000.50"`, `-500` → `"-5.00"`, `0` → `"0.00"`. */
 export function formaterMontantCentimes(centimes: number): string {
   if (!Number.isInteger(centimes)) {
@@ -23,6 +25,28 @@ export function formaterMontantCentimes(centimes: number): string {
   const francsFormates = groupes.join("'");
 
   return `${signe}${francsFormates}.${String(centimesRestants).padStart(2, '0')}`;
+}
+
+/**
+ * `centimes` + devise du document (`ReponseDocumentVente.devise`, `CHF`/`EUR`) -> `"CHF 1'234.50"`
+ * / `"EUR 1'234.50"` — même convention que `apps/web/src/lib/formats.ts::formaterMontantAvecDevise`
+ * (front), reproduite ici plutôt que partagée : ce module PDF (`apps/api/src/facturation/
+ * impression/`) n'a pas de dépendance vers `apps/web/`, et l'inverse n'a pas de sens non plus (le
+ * front ne génère aucun PDF côté navigateur) — deux applications séparées, une même règle
+ * d'affichage suisse, dupliquée une fois plutôt que d'inventer un couplage inter-app pour ça.
+ *
+ * Bug #126 (PDF facture) : `formaterMontantCentimes` seule ne porte JAMAIS la devise — c'était déjà
+ * son contrat (montant nu, réutilisé partout, y compris hors contexte facturation) — et
+ * `generation-pdf-facture.ts` l'appelait directement sur chaque montant du CORPS du document (lignes,
+ * ventilation TVA, totaux), sans jamais composer de préfixe monétaire : seul le bulletin QR
+ * (`swissqrbill`, à qui `currency` est bien transmis) affichait `CHF`. Un document peut porter
+ * `devise = 'EUR'` (`DEVISES_FACTURATION`, `MD-58`) : un montant nu dans le corps du PDF, à côté
+ * d'un bulletin QR qui affiche `EUR`, se lirait par défaut comme des francs suisses — silencieusement
+ * faux. `formaterMontantCentimes` reste PURE et inchangée (déjà testée, réutilisée sans devise
+ * ailleurs) ; c'est cette fonction, appelée au site d'affichage, qui compose le préfixe — jamais
+ * l'inverse. */
+export function formaterMontantAvecDevise(centimes: number, devise: DeviseFacturation): string {
+  return `${devise} ${formaterMontantCentimes(centimes)}`;
 }
 
 /** `dateIso` : `"YYYY-MM-DD"` ou horodatage ISO complet (`"YYYY-MM-DDTHH:mm:ss.sssZ"`) — seuls les

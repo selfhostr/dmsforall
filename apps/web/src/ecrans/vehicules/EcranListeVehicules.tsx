@@ -31,6 +31,7 @@ import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { BoutonCopier } from '@/composants/vehicule/BoutonCopier';
 import { useListeVehicules } from '@/hooks/vehicules/useListeVehicules';
 import { chemins } from '@/routes/chemins';
@@ -167,43 +168,31 @@ export function EcranListeVehicules() {
 
   if (isPending) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('vehicules:liste.titre')}</h1>
+      <GabaritEcran titre={t('vehicules:liste.titre')}>
         <EtatChargement lignes={6} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (isError) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('vehicules:liste.titre')}</h1>
+      <GabaritEcran titre={t('vehicules:liste.titre')}>
         <EtatErreur
           titre={t('vehicules:liste.erreur.titre')}
           description={messageErreur(error, t)}
           onReessayer={() => void refetch()}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
+  // Titre TOUJOURS visible (retour @laupernoe, chantier « zone haute des écrans de liste ») : ce n'est
+  // plus un doublon muet de l'onglet actif « Véhicules » — @laupernoe veut voir écrit où il est.
+  // « Nouveau véhicule » n'est PAS passé en `actions` de `GabaritEcran` (qui le placerait juste
+  // sous le titre, seul sur sa ligne, et décalerait tout le reste) : il rejoint la ligne
+  // « Trier par », à droite — même déplacement que l'écran de référence (Atelier).
   return (
-    <div className="flex flex-col gap-6">
-      {/* Doublon strict du libellé de l'onglet actif « Véhicules »
-          (`navigation-modele.ts`, `ONGLETS_CLIENTS_VEHICULES`) : le h1 reste dans le DOM pour le
-          lecteur d'écran et la structure du document, sans répéter visuellement ce que la barre
-          d'onglets affiche déjà en surbrillance. */}
-      <h1 className="sr-only">{t('vehicules:liste.titre')}</h1>
-
-      <div className="flex items-center justify-end gap-4">
-        <Button asChild>
-          <Link to={chemins.vehicules.nouveau(site)}>
-            <Plus aria-hidden className="h-4 w-4" />
-            {t('vehicules:nouveau')}
-          </Link>
-        </Button>
-      </div>
-
+    <GabaritEcran titre={t('vehicules:liste.titre')}>
       <BarreFiltres
         q={qSaisie}
         onChangeQ={setQSaisie}
@@ -240,13 +229,21 @@ export function EcranListeVehicules() {
         </label>
       </BarreFiltres>
 
-      <SelecteurTri
-        options={TRIS_VEHICULES.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
-        valeur={tri}
-        onChangeValeur={setTri}
-        label={t('vehicules:liste.tri.label')}
-        className="max-w-xs"
-      />
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <SelecteurTri
+          options={TRIS_VEHICULES.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
+          valeur={tri}
+          onChangeValeur={setTri}
+          label={t('vehicules:liste.tri.label')}
+          className="max-w-xs"
+        />
+        <Button asChild>
+          <Link to={chemins.vehicules.nouveau(site)}>
+            <Plus aria-hidden className="h-4 w-4" />
+            {t('vehicules:nouveau')}
+          </Link>
+        </Button>
+      </div>
 
       <TableComptoir
         colonnes={colonnes}
@@ -266,6 +263,6 @@ export function EcranListeVehicules() {
         enChargement={isFetchingNextPage}
         onChargerPlus={() => void fetchNextPage()}
       />
-    </div>
+    </GabaritEcran>
   );
 }

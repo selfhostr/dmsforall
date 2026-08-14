@@ -13,7 +13,7 @@ import { useOrdreReparation } from '@/hooks/atelier/useOrdreReparation';
 import { listerDocumentsVente } from '@/hooks/facturation/documents-vente.api';
 import { useSession } from '@/hooks/useSession';
 import { chemins } from '@/routes/chemins';
-import { formaterDate, formaterMontant } from '@/lib/formats';
+import { formaterDate, formaterMontantAvecDevise } from '@/lib/formats';
 
 import { DialogueAjoutLigneOr } from './DialogueAjoutLigneOr';
 import { peutCreerLigneOr } from './droits';
@@ -145,7 +145,7 @@ export function EcranFicheOrdreReparation() {
         <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
           <CardTitle className="texte-titre-section">{t('or:lignes.titre')}</CardTitle>
           {peutCreerLigneOr(session.data?.utilisateur.role) ? (
-            <DialogueAjoutLigneOr orId={or.id} />
+            <DialogueAjoutLigneOr orId={or.id} siteId={or.siteId} />
           ) : null}
         </CardHeader>
         <CardContent>
@@ -209,7 +209,23 @@ export function EcranFicheOrdreReparation() {
           ) : documentsLies.length === 0 ? (
             <EtatVide
               titre={t('or:fiche.documentsVente.titre')}
-              description={t('or:fiche.documentsVente.vide')}
+              description={
+                // Issue #105 (rapport terrain) : « OR restitué + clôturé, aucune facture liée,
+                // bug ? » — non, `cloturer()` ne vérifie jamais l'existence d'un document
+                // (RF-83, migration 0010_facturation.sql §15 : facturation et restitution
+                // INDÉPENDANTES). Mais l'écran rendait jusqu'ici le MÊME message générique
+                // qu'un OR encore ouvert à la facturation — exactement la règle maison violée
+                // (« absence de donnée ≠ valeur : "inconnu", "aucun", "interdit" ne partagent
+                // jamais le même rendu »). Trois cas distincts, aucun motif métier inventé
+                // au-delà de ce que le contrat porte déjà (`or.statut`/`or.motifAnnulation`).
+                or.statut === 'cloture'
+                  ? t('or:fiche.documentsVente.clotureSansFacture')
+                  : or.statut === 'annule'
+                    ? t('or:fiche.documentsVente.annuleSansFacture', {
+                        motif: or.motifAnnulation,
+                      })
+                    : t('or:fiche.documentsVente.pasEncoreFacture')
+              }
             />
           ) : (
             <ul className="flex flex-col divide-y">
@@ -270,8 +286,13 @@ export function EcranFicheOrdreReparation() {
           <CardHeader>
             <CardTitle className="texte-titre-section">{t('or:totaux.titre')}</CardTitle>
           </CardHeader>
-          <CardContent>
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 texte-corps sm:grid-cols-3">
+          <CardContent className="flex flex-col gap-2">
+            {/* Grille à 2 colonnes FIXES, jamais `sm:grid-cols-3` : chaque paire (`dt` + `dd`)
+             *  n'utilise que 2 cellules — sur une grille à 3 colonnes, le nombre total de
+             *  cellules n'est multiple de 3 que par coïncidence (payeur unique = 4 cellules =
+             *  décalage garanti). Le total n'a plus besoin de `col-span`/`sm:col-span` puisque
+             *  chaque paire occupe naturellement sa propre ligne. */}
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 texte-corps">
               {or.totauxParPayeur.map((totaux) => (
                 // Clé = `(payeur, payeurClientId)` (MD-62), jamais `payeur` seul : deux assurances
                 // distinctes sur le même OR partagent `payeur = 'assurance'` mais sont deux groupes
@@ -284,20 +305,42 @@ export function EcranFicheOrdreReparation() {
                       ? ` — ${totaux.destinataire.nomAffiche}`
                       : ''}
                   </dt>
-                  <dd className="col-span-2 font-medium text-foreground sm:col-span-1 texte-montant">
-                    {formaterMontant(totaux.montantTtcCentimes)}
+                  <dd className="font-medium text-foreground texte-montant">
+                    {t('or:lignes.montants.ttc', {
+                      montant: formaterMontantAvecDevise(totaux.montantTtcCentimes, 'CHF'),
+                    })}
                   </dd>
                 </div>
               ))}
               {or.totalValideCentimes !== undefined ? (
-                <div className="contents border-t pt-2">
-                  <dt className="text-muted-foreground">{t('or:totaux.totalValide')}</dt>
-                  <dd className="col-span-2 font-semibold text-foreground sm:col-span-1 texte-montant">
-                    {formaterMontant(or.totalValideCentimes)}
+                // `border-t`/`pt-2` posés sur `dt`/`dd` eux-mêmes, jamais sur ce conteneur
+                // `display: contents` : un élément à `display: contents` ne génère aucune boîte
+                // propre, donc une bordure/un padding posé dessus ne s'affiche jamais.
+                <div className="contents">
+                  <dt className="border-t pt-2 text-muted-foreground">
+                    {t('or:totaux.totalValide')}
+                  </dt>
+                  <dd className="border-t pt-2 font-semibold text-foreground texte-montant">
+                    {t('or:lignes.montants.ttc', {
+                      montant: formaterMontantAvecDevise(or.totalValideCentimes, 'CHF'),
+                    })}
                   </dd>
                 </div>
               ) : null}
             </dl>
+            {/* CORRECTIF issue #72 (rapport de test terrain) : « il y a deux totaux différents,
+             *  Client 958.31 et Total validé 894.53. Lequel je dis au client ? » — les deux
+             *  chiffres sont réels mais répondent à des questions différentes (`totaux-payeur.ts`
+             *  regroupe TOUTES les lignes non annulées/refusées par payeur ; `totalValideCentimes`
+             *  suit le plafond, § RM-54, sur les lignes VALIDÉES de TOUS les payeurs confondus,
+             *  jamais un montant facturable). Le renommage du libellé ci-dessus ne suffit pas à
+             *  lui seul à lever l'ambiguïté une fois les deux chiffres sous les yeux — cette phrase
+             *  la tranche explicitement. */}
+            {or.totalValideCentimes !== undefined ? (
+              <p className="texte-libelle text-muted-foreground">
+                {t('or:totaux.aideDistinction')}
+              </p>
+            ) : null}
           </CardContent>
         </Card>
       ) : null}

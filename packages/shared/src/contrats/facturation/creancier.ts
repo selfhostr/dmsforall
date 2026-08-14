@@ -126,22 +126,24 @@ const LONGUEUR_MAX_SAISIE_IBAN = 34;
  * libre saisie (espaces tolérés, ex. `"CH93 0076 2011 6238 5295 7"`) part telle quelle, c'est le
  * serveur qui normalise.
  */
-export const schemaModificationBlocCreancier = z.object({
-  nom: z.string().trim().min(1).max(LONGUEURS_MAX_ADRESSE_CREANCIER.nom).nullish(),
-  rue: z.string().trim().min(1).max(LONGUEURS_MAX_ADRESSE_CREANCIER.rue).nullish(),
-  numero: z.string().trim().min(1).max(LONGUEURS_MAX_ADRESSE_CREANCIER.numero).nullish(),
-  npa: z.string().trim().min(1).max(LONGUEURS_MAX_ADRESSE_CREANCIER.npa).nullish(),
-  localite: z.string().trim().min(1).max(LONGUEURS_MAX_ADRESSE_CREANCIER.localite).nullish(),
-  /** Non nullable (colonne `not null default 'CH'`) : absent du corps = ne pas toucher (garde
-   *  la valeur en base, `CH` par défaut sur une ligne neuve), jamais effaçable à `null` — un
-   *  créancier sans pays n'a pas de sens pour un compte CH/LI. Même primitive que
-   *  `pays: schemaCodePays.default('CH')` de `atelier/vehicule.ts`, `atelier/client.ts` et
-   *  `facturation/document.ts` — cohérente avec le reste de l'API plutôt qu'un motif
-   *  `^[A-Z]{2}$` local : la borne stricte reste portée par la contrainte `CHECK` en base
-   *  (`tenant_bloc_creancier_pays_chk`), qui refuse de toute façon un code non alphabétique.
-   */
-  pays: schemaCodePays.optional(),
-  iban: z.string().trim().min(1).max(LONGUEUR_MAX_SAISIE_IBAN).nullish(),
-  qrIban: z.string().trim().min(1).max(LONGUEUR_MAX_SAISIE_IBAN).nullish(),
-});
+export const schemaModificationBlocCreancier = z
+  .object({
+    nom: z.string().trim().min(1).max(LONGUEURS_MAX_ADRESSE_CREANCIER.nom).nullish(),
+    rue: z.string().trim().min(1).max(LONGUEURS_MAX_ADRESSE_CREANCIER.rue).nullish(),
+    numero: z.string().trim().min(1).max(LONGUEURS_MAX_ADRESSE_CREANCIER.numero).nullish(),
+    npa: z.string().trim().min(1).max(LONGUEURS_MAX_ADRESSE_CREANCIER.npa).nullish(),
+    localite: z.string().trim().min(1).max(LONGUEURS_MAX_ADRESSE_CREANCIER.localite).nullish(),
+    /** Non nullable (colonne `not null default 'CH'`) : absent du corps = ne pas toucher (garde
+     *  la valeur en base, `CH` par défaut sur une ligne neuve), jamais effaçable à `null` — un
+     *  créancier sans pays n'a pas de sens pour un compte CH/LI. Même primitive que
+     *  `pays: schemaCodePays.default('CH')` de `atelier/vehicule.ts`, `atelier/client.ts` et
+     *  `facturation/document.ts` — cohérente avec le reste de l'API plutôt qu'un motif
+     *  `^[A-Z]{2}$` local : la borne stricte reste portée par la contrainte `CHECK` en base
+     *  (`tenant_bloc_creancier_pays_chk`), qui refuse de toute façon un code non alphabétique.
+     */
+    pays: schemaCodePays.optional(),
+    iban: z.string().trim().min(1).max(LONGUEUR_MAX_SAISIE_IBAN).nullish(),
+    qrIban: z.string().trim().min(1).max(LONGUEUR_MAX_SAISIE_IBAN).nullish(),
+  })
+  .strict();
 export type EntreeModificationBlocCreancier = z.infer<typeof schemaModificationBlocCreancier>;

@@ -101,7 +101,16 @@
     "perimees": "Daten veraltet"
   },
   "vide": {
-    "aucunOr": "Für Sie heute keine Arbeiten zu erfassen."
+    "aucunOr": "Ihnen ist derzeit kein RA zugewiesen.",
+    "aucunOrDescription": "Sie können trotzdem unten einen beliebigen offenen RA wählen, um eine Zeiterfassung zu starten."
+  },
+  "toutesLesOr": {
+    "titre": "Alle offenen RA",
+    "afficher": "Alle offenen RA anzeigen",
+    "masquer": "Ausblenden",
+    "rechercherLabel": "RA-Nummer oder Fahrzeug",
+    "rechercherPlaceholder": "RA suchen…",
+    "aucunResultat": "Kein offener RA entspricht dieser Suche."
   },
   "statuts": {
     "en_cours": "Läuft",
@@ -135,7 +144,14 @@
     },
     "pointageEnCours": {
       "titre": "Laufende Zeiterfassung",
-      "depuis": "Seit {heure}"
+      "depuis": "Seit {heure}",
+      "cumulAujourdhui": "Heute auf diesem Ziel: {duree}"
+    },
+    "bandeauReprise": {
+      "titre": "Fortsetzen: {cible}",
+      "interrompuDepuis": "Unterbrochen vor {duree}",
+      "cumulJour": "{cumul} heute bereits erfasst",
+      "libelleAccessible": "Zeiterfassung auf {cible} fortsetzen"
     },
     "cible": {
       "ligne": "{numero} — {designation}",
@@ -146,6 +162,7 @@
       "arreter": "Beenden",
       "pause": "Pausieren",
       "reprendre": "Fortsetzen",
+      "changer": "Wechseln",
       "demarrerOr": "Auf diesem RA erfassen",
       "demarrerLigne": "Auf dieser Arbeit erfassen"
     },
@@ -155,10 +172,12 @@
     },
     "choisirCible": {
       "titre": "Was erfassen Sie?",
-      "description": "Wählen Sie eine Ihnen zugewiesene Arbeit, oder erfassen Sie auf dem ganzen RA.",
+      "retour": "Zurück",
+      "description": "Wählen Sie eine Arbeit des RA, oder erfassen Sie auf dem ganzen RA.",
       "orEntier": "Ganzer RA (ohne genaue Arbeit)",
-      "lignesTitre": "Ihnen zugewiesene Arbeiten",
-      "aucuneLigne": "Ihnen ist keine Arbeit auf diesem RA zugewiesen — Sie können auf dem ganzen RA erfassen."
+      "lignesTitre": "Arbeiten des RA",
+      "aucuneLigne": "Dieser RA hat keine erfassbare Arbeit — Sie können auf dem ganzen RA erfassen.",
+      "assigneeAutre": "Einem anderen Techniker zugewiesen."
     },
     "erreur": {
       "titre": "Ihre Zeiterfassung konnte nicht geladen werden"

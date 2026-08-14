@@ -18,6 +18,15 @@ export class ReponseIdentificationPinDto implements ReponseIdentificationPin {
 
   @ApiProperty({ description: 'Nom, pour un accueil nominatif à l’écran.' })
   readonly nom!: string;
+
+  @ApiProperty({
+    format: 'uuid',
+    description:
+      'Site de la borne (résolu depuis `pin_pointage.site_id`, jamais depuis un paramètre de ' +
+      'requête) — ajout rétrocompatible : permet à l’écran borne de ne plus jamais demander le ' +
+      'site autrement que par cette identification.',
+  })
+  readonly siteId!: string;
 }
 
 /**

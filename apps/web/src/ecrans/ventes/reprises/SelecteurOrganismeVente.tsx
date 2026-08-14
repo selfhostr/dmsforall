@@ -21,6 +21,12 @@ interface Props {
   readonly label: string;
   readonly obligatoire?: boolean;
   readonly erreur?: string;
+  /** Placeholder du champ de recherche — le composant sert deux notions distinctes derrière le
+   *  même `ClientResume` (organisme de financement OU client/tiers de la dette de reprise, voir
+   *  l'en-tête ci-dessus) : le texte par défaut parle de « client », faux dans le contexte
+   *  financement (`DialogueCreationFinancement`). Défaut = comportement historique inchangé pour
+   *  `ChampDetteFinancementReprise` (issue #139). */
+  readonly placeholder?: string;
 }
 
 /**
@@ -40,6 +46,7 @@ export function SelecteurOrganismeVente({
   label,
   obligatoire = false,
   erreur,
+  placeholder,
 }: Props) {
   const { t } = useTranslation(['ventes', 'commun', 'erreurs']);
   const [saisie, setSaisie] = useState('');
@@ -59,16 +66,16 @@ export function SelecteurOrganismeVente({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <Label htmlFor="organisme-vente-recherche">
+      <Label htmlFor="organisme-vente-recherche" requis={obligatoire}>
         {label}
-        {obligatoire ? ' *' : ''}
       </Label>
       <Input
         id="organisme-vente-recherche"
-        placeholder={t('ventes:commun.organisme.rechercheClientPlaceholder')}
+        placeholder={placeholder ?? t('ventes:commun.organisme.rechercheClientPlaceholder')}
         value={saisie}
         onChange={(evenement) => setSaisie(evenement.target.value)}
         aria-invalid={erreur ? true : undefined}
+        required={obligatoire}
       />
 
       {rechercheActive ? (
@@ -85,6 +92,7 @@ export function SelecteurOrganismeVente({
             <div
               role="radiogroup"
               aria-label={label}
+              aria-required={obligatoire || undefined}
               className="flex max-h-64 flex-col gap-2 overflow-y-auto"
             >
               {clients.map((client) => {

@@ -125,7 +125,7 @@ export function EcranDoublonsClients() {
   return (
     <div className="flex flex-col gap-4 p-6">
       <div>
-        <h1 className="texte-titre font-semibold text-foreground">
+        <h1 className="texte-titre-page font-semibold text-foreground">
           {t('clients:doublonsEcran.titre')}
         </h1>
         <p className="texte-corps text-muted-foreground">
@@ -207,7 +207,7 @@ export function EcranDoublonsClients() {
           className="flex flex-col items-center gap-3 rounded-lg border border-statut-succes bg-statut-succes-fond p-10 text-center"
         >
           <CheckCircle2 aria-hidden className="h-8 w-8 text-statut-succes" />
-          <h2 className="text-lg font-semibold text-foreground">
+          <h2 className="texte-titre-section text-foreground">
             {t('clients:doublonsEcran.vide.aucunDoublon')}
           </h2>
           <p className="max-w-md text-muted-foreground">

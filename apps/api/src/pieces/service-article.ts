@@ -150,13 +150,19 @@ export class ServiceArticle {
         conditions.push(sql`a.est_echange_standard = ${params.estEchangeStandard}`);
       }
       if (params.q) {
+        // `public.normaliser_recherche(...)` des deux côtés — même idiome que
+        // `recherche/service-recherche.ts`, `clients/service-client.ts`, `vehicules/service-vehicule.ts` :
+        // un `ilike` nu ne gomme QUE la casse, jamais les accents (« fréin » ne trouve pas « Filtre à
+        // huile »/« frein »). Migration 0003 §2 pour la fonction elle-même, non touchée ici (hors
+        // périmètre `db/`).
         const motif = `%${params.q}%`;
         conditions.push(sql`(
-          a.designation ilike ${motif}
-          or a.reference_principale ilike ${motif}
+          public.normaliser_recherche(a.designation) like public.normaliser_recherche(${motif})
+          or public.normaliser_recherche(a.reference_principale) like public.normaliser_recherche(${motif})
           or exists (
             select 1 from public.article_reference ar
-             where ar.tenant_id = a.tenant_id and ar.article_id = a.id and ar.reference ilike ${motif}
+             where ar.tenant_id = a.tenant_id and ar.article_id = a.id
+               and public.normaliser_recherche(ar.reference) like public.normaliser_recherche(${motif})
           )
         )`);
       }
@@ -206,6 +212,15 @@ export class ServiceArticle {
     });
   }
 
+  /**
+   * `GET /articles/recherche-comptoir` — recherche par référence ET désignation, tolérante à la
+   * casse et aux accents (`public.normaliser_recherche`, même idiome que `lister()` ci-dessus et
+   * que `recherche/service-recherche.ts`). `quantite{Physique,Reservee}Millieme` restent NULLABLES
+   * côté SQL (jamais `coalesce()`é) : c'est cette nullité qui distingue « aucune ligne
+   * `stock_article` pour CE site » d'un stock réellement nul — `suiviQuelquePart` (sous-requête
+   * corrélée) complète la distinction entre « non suivi ici » et « jamais mis en stock » — voir
+   * `StatutSuiviStockArticle`/`mappers.ts::versRechercheComptoirResultat`.
+   */
   async rechercheComptoir(
     ctx: ContexteTenant,
     params: { readonly q: string; readonly siteId: string; readonly limite: number },
@@ -218,7 +233,9 @@ export class ServiceArticle {
         designation: string;
         referencePrincipale: string;
         prixVenteTtcCentimes: number;
-        quantiteDisponibleMillieme: number;
+        quantitePhysiqueMillieme: number | null;
+        quantiteReserveeMillieme: number | null;
+        suiviQuelquePart: boolean;
         emplacement: string | null;
         rayon: string | null;
         tiroir: string | null;
@@ -228,7 +245,12 @@ export class ServiceArticle {
         select a.id as "articleId", coalesce(a.numero_article, '') as "numeroArticle",
                a.designation as "designation", a.reference_principale as "referencePrincipale",
                a.prix_vente_ttc_centimes as "prixVenteTtcCentimes",
-               coalesce(s.quantite_physique_millieme, 0) - coalesce(s.quantite_reservee_millieme, 0) as "quantiteDisponibleMillieme",
+               s.quantite_physique_millieme as "quantitePhysiqueMillieme",
+               s.quantite_reservee_millieme as "quantiteReserveeMillieme",
+               exists (
+                 select 1 from public.stock_article s2
+                  where s2.tenant_id = a.tenant_id and s2.article_id = a.id
+               ) as "suiviQuelquePart",
                s.emplacement as "emplacement", s.rayon as "rayon", s.tiroir as "tiroir",
                a.est_echange_standard as "estEchangeStandard",
                a.montant_consigne_ttc_centimes as "montantConsigneTtcCentimes"
@@ -238,11 +260,12 @@ export class ServiceArticle {
          where a.tenant_id = ${ctx.tenantId}
            and a.statut = 'actif'
            and (
-             a.designation ilike ${motif}
-             or a.reference_principale ilike ${motif}
+             public.normaliser_recherche(a.designation) like public.normaliser_recherche(${motif})
+             or public.normaliser_recherche(a.reference_principale) like public.normaliser_recherche(${motif})
              or exists (
                select 1 from public.article_reference ar
-                where ar.tenant_id = a.tenant_id and ar.article_id = a.id and ar.reference ilike ${motif}
+                where ar.tenant_id = a.tenant_id and ar.article_id = a.id
+                  and public.normaliser_recherche(ar.reference) like public.normaliser_recherche(${motif})
              )
            )
          order by a.designation asc, a.id asc

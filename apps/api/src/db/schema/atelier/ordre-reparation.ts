@@ -30,6 +30,7 @@ import { origineDocumentEnum } from '../facturation/enums';
 import { site } from '../site';
 import { utilisateur } from '../utilisateur';
 import { client } from './client';
+import { rendezVous } from './rendez-vous';
 import {
   blocageLigneOrEnum,
   canalDevisEnum,
@@ -91,7 +92,12 @@ export const ordreReparation = pgTable(
     ordreReparationParentId: uuid('ordre_reparation_parent_id'),
     motifLien: motifLienOrEnum('motif_lien'),
 
-    /** Accroche lot 3 (planning) : sans FK, `rendez_vous` n'existe pas au lot 1. */
+    /**
+     * Accroche lot 3 (planning) posée sans FK au lot 1 (`rendez_vous` n'existait pas encore) —
+     * vraie FK composite posée par migrations/0052_rendez_vous_atelier.sql (NOT VALID puis
+     * VALIDATE, table `rendez_vous` neuve, aucune ligne existante à valider) : voir
+     * `ordre_reparation_fk_rendez_vous` ci-dessous.
+     */
     rendezVousId: uuid('rendez_vous_id'),
 
     numeroCommandeInterne: text('numero_commande_interne'),
@@ -152,6 +158,11 @@ export const ordreReparation = pgTable(
       columns: [t.tenantId, t.receptionnaireId],
       foreignColumns: [utilisateur.tenantId, utilisateur.id],
     }).onDelete('restrict'),
+    foreignKey({
+      name: 'ordre_reparation_fk_rendez_vous',
+      columns: [t.tenantId, t.rendezVousId],
+      foreignColumns: [rendezVous.tenantId, rendezVous.id],
+    }).onDelete('restrict'),
     check('ordre_reparation_numero_non_vide_chk', sql`length(btrim(${t.numero})) > 0`),
     check(
       'ordre_reparation_lien_coherent_chk',
@@ -170,6 +181,11 @@ export const ordreReparation = pgTable(
     index('ordre_reparation_vehicule_idx').on(t.tenantId, t.vehiculeId, t.ouvertLe.desc()),
     index('ordre_reparation_client_idx').on(t.tenantId, t.clientId, t.ouvertLe.desc()),
     index('ordre_reparation_pagination_idx').on(t.tenantId, t.creeLe.desc(), t.id.desc()),
+    // migrations/0052 : lien inverse vers le rendez-vous d'origine, partiel (souvent NULL — walk-in
+    // ou OR antérieur au lot rendez-vous).
+    index('ordre_reparation_rendez_vous_idx')
+      .on(t.tenantId, t.rendezVousId)
+      .where(sql`${t.rendezVousId} is not null`),
     // ordre_reparation_numero_origine_uk (index unique PARTIEL, where numero_origine is not
     // null — 0011) n'est pas modélisable via `unique()` de pg-core (pas de clause WHERE) : posé
     // en SQL brut, comme les index uniques partiels de document_vente (voir schema/facturation).

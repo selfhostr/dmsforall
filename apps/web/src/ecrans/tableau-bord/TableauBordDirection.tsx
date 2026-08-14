@@ -10,6 +10,7 @@ import { formaterMontant } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
 import { CarteChiffreRequete } from './composants/CarteChiffreRequete';
+import { CarteOrEnRetard } from './composants/CarteOrEnRetard';
 import { CarteRestitutionsJour } from './composants/CarteRestitutionsJour';
 import { SelecteurPeriodeTableauBord } from './SelecteurPeriodeTableauBord';
 
@@ -57,6 +58,11 @@ export function TableauBordDirection({ site }: Props) {
           resultat={financier}
           libelleErreur={t('tableauBord:financier.erreur.titre')}
           valeur={(donnees) => `CHF ${formaterMontant(donnees.encoursClientsCentimes)}`}
+          // Défaut corrigé (issue #94, testeur novice — « CHF 0.00 » lu comme « tout est à jour »
+          // sans savoir ce que le chiffre couvre) : la définition retenue par le calcul serveur
+          // (`ServiceTableauBordFinancier.obtenir` — factures ÉMISES, solde encore dû, jamais un
+          // brouillon) devient visible à l'écran plutôt que de rester un chiffre magique.
+          description={() => t('tableauBord:financier.encoursClients.definition')}
           lien={{
             to: chemins.facturation.liste(site),
             texte: t('tableauBord:communs.voirFactures'),
@@ -99,6 +105,9 @@ export function TableauBordDirection({ site }: Props) {
         videTitreCle="tableauBord:direction.sortiesDuSoir.vide.titre"
         videDescriptionCle="tableauBord:direction.sortiesDuSoir.vide.description"
       />
+
+      {/* Issue #112 : voir la doc de tête de `CarteOrEnRetard.tsx`. */}
+      <CarteOrEnRetard site={site} />
     </div>
   );
 }

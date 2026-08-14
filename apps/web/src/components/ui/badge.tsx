@@ -23,8 +23,13 @@ import { cn } from '@/lib/utils';
 // Une pastille de NOTIFICATION de menu (compteur du menu latéral) relève de la famille 1 et ne
 // doit reprendre aucun des six tokens de statut, sous peine de laisser croire qu'elle porte un
 // état d'OR.
+// `texte-libelle` (pas `text-xs` brut) : identique en densité dense (12px, les deux valent
+// 0.75rem) mais scale avec la densité en aérée/très-aérée (14/16px), comme les huit badges de
+// statut métier de `composants/identite/` (BadgeStatutOr, BadgeStatutClient…), qui utilisent tous
+// `texte-libelle font-medium` pour ce même rôle « étiquette ». Un `<Badge>` générique posé à côté
+// d'un badge de statut sur un écran de tablette (`densite-aeree`) rendait sinon 2px plus petit.
 const variantesBadge = cva(
-  'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors anneau-focus',
+  'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 texte-libelle font-medium transition-colors anneau-focus',
   {
     variants: {
       variant: {

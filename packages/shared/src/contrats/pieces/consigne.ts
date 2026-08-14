@@ -88,5 +88,5 @@ export type FiltresConsignes = z.infer<typeof schemaFiltresConsignes>;
  * Pas d'`Idempotency-Key` : transition gardée par l'état de départ
  * (`409 CONSIGNE_TRANSITION_INTERDITE` si `statut !== 'en_attente_retour_fournisseur'`).
  */
-export const schemaRetourFournisseurConsigne = z.object({});
+export const schemaRetourFournisseurConsigne = z.object({}).strict();
 export type EntreeRetourFournisseurConsigne = z.infer<typeof schemaRetourFournisseurConsigne>;

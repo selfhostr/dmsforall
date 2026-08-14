@@ -85,7 +85,7 @@ export function EcranSites() {
   if (!session) {
     return (
       <div className="flex flex-col gap-4 p-6">
-        <h1 className="texte-titre font-semibold text-foreground">
+        <h1 className="texte-titre-page font-semibold text-foreground">
           {t('parametrage:sites.titre')}
         </h1>
         <EtatChargement lignes={6} />
@@ -95,7 +95,9 @@ export function EcranSites() {
 
   return (
     <div className="flex flex-col gap-4 p-6">
-      <h1 className="texte-titre font-semibold text-foreground">{t('parametrage:sites.titre')}</h1>
+      <h1 className="texte-titre-page font-semibold text-foreground">
+        {t('parametrage:sites.titre')}
+      </h1>
 
       {sites.length === 0 ? (
         <EtatVide

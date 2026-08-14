@@ -80,19 +80,36 @@ function accesFactice(tx: TransactionDfa): AccesBase {
 }
 
 describe('ServiceStock.disponibilite — RP-14 : quantiteDisponible est TOUJOURS dérivé, jamais stocké', () => {
-  it('aucune ligne stock_article pour ce (article, site) : disponible = 0, jamais une exception', async () => {
-    const { tx } = txFactice({ selects: [[{ id: 'a1' }], []], executes: [{ rows: [] }] });
+  it('aucune ligne stock_article nulle part pour cet article : statutSuivi = nonSuiviNullePart, disponible = 0, jamais une exception', async () => {
+    const { tx } = txFactice({
+      selects: [[{ id: 'a1' }], [], []],
+      executes: [{ rows: [] }],
+    });
     const service = new ServiceStock(accesFactice(tx));
 
     const resultat = await service.disponibilite(CTX, 'a1', 's1');
 
+    expect(resultat.statutSuivi).toBe('nonSuiviNullePart');
     expect(resultat.quantitePhysiqueMillieme).toBe(0);
     expect(resultat.quantiteReserveeMillieme).toBe(0);
     expect(resultat.quantiteDisponibleMillieme).toBe(0);
     expect(resultat.reservationsActives).toHaveLength(0);
   });
 
-  it('quantiteDisponible = physique - réservée, réservations actives nommées, jamais tronquées sous le seuil', async () => {
+  it('aucune ligne pour CE site, mais suivi sur un autre site : statutSuivi = nonSuiviSurCeSite (ni « connu à 0 » ni « jamais suivi »)', async () => {
+    const { tx } = txFactice({
+      selects: [[{ id: 'a1' }], [], [{ siteId: 's2' }]],
+      executes: [{ rows: [] }],
+    });
+    const service = new ServiceStock(accesFactice(tx));
+
+    const resultat = await service.disponibilite(CTX, 'a1', 's1');
+
+    expect(resultat.statutSuivi).toBe('nonSuiviSurCeSite');
+    expect(resultat.quantiteDisponibleMillieme).toBe(0);
+  });
+
+  it('quantiteDisponible = physique - réservée, statutSuivi = suivi, réservations actives nommées, jamais tronquées sous le seuil', async () => {
     const { tx } = txFactice({
       selects: [[{ id: 'a1' }], [ligneStock()]],
       executes: [{ rows: [reservationActive(1), reservationActive(2)] }],
@@ -101,6 +118,7 @@ describe('ServiceStock.disponibilite — RP-14 : quantiteDisponible est TOUJOURS
 
     const resultat = await service.disponibilite(CTX, 'a1', 's1');
 
+    expect(resultat.statutSuivi).toBe('suivi');
     expect(resultat.quantiteDisponibleMillieme).toBe(4000); // 5000 - 1000
     expect(resultat.reservationsActives).toHaveLength(2);
     expect(resultat.reservationsActivesTronquees).toBe(false);

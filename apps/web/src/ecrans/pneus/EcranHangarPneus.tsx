@@ -237,7 +237,7 @@ export function EcranHangarPneus() {
   if (sessionEnChargement) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('pneus:hangar.titre')}</h1>
+        <h1 className="texte-titre-page">{t('pneus:hangar.titre')}</h1>
         <EtatChargement lignes={4} />
       </div>
     );
@@ -246,7 +246,7 @@ export function EcranHangarPneus() {
   if (sessionEnErreur) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('pneus:hangar.titre')}</h1>
+        <h1 className="texte-titre-page">{t('pneus:hangar.titre')}</h1>
         <EtatErreur
           titre={t('pneus:hangar.erreur.titre')}
           description={t('erreurs:inattendue.description')}
@@ -337,16 +337,15 @@ export function EcranHangarPneus() {
       : []),
   ];
 
+  // Titre TOUJOURS visible (déjà le cas ici — aucun changement) ; « Nouveau dépôt » N'EST PLUS
+  // sur la ligne du titre (retour @laupernoe, chantier « zone haute des écrans de liste » : « comme il
+  // est en haut, il fait que ça décale tout »). Cet écran n'a pas de ligne « Trier par » (plan en
+  // grille + onglets, pas de `SelecteurTri`) : le bouton rejoint la ligne la plus proche en
+  // esprit, juste sous la barre de recherche, dans l'onglet « Dans le hangar » où le geste
+  // « entrer un jeu » a lieu — voir plus bas, à l'intérieur de `TabsContent value="actifs"`.
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('pneus:hangar.titre')}</h1>
-        {peutCreer && site ? (
-          <Button type="button" onClick={() => setCreationOuverte(true)}>
-            {t('pneus:creation.actions.ouvrir')}
-          </Button>
-        ) : null}
-      </div>
+      <h1 className="texte-titre-page">{t('pneus:hangar.titre')}</h1>
 
       <Tabs value={onglet} onValueChange={changerOnglet} className="flex flex-col gap-6">
         <TabsList aria-label={t('pneus:hangar.onglets.ariaLabel')}>
@@ -394,6 +393,14 @@ export function EcranHangarPneus() {
                   onChange={(evenement) => recherche.onSaisieChange(evenement.target.value)}
                 />
               </div>
+
+              {peutCreer ? (
+                <div className="flex justify-end">
+                  <Button type="button" onClick={() => setCreationOuverte(true)}>
+                    {t('pneus:creation.actions.ouvrir')}
+                  </Button>
+                </div>
+              ) : null}
 
               {recherche.actif ? (
                 <div className="flex flex-col gap-4">

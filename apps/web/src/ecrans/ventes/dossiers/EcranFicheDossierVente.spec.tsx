@@ -140,6 +140,12 @@ function construireBonCommande(): ReponseDocumentVente {
   };
 }
 
+/** Jumeau de `construireBonCommande` pour #124 — même fixture, `typeDocument: 'facture'` et un
+ *  `id` distinct pour ne pas confondre les deux dans les assertions de lien. */
+function construireFacture(): ReponseDocumentVente {
+  return { ...construireBonCommande(), id: 'doc-facture-1', typeDocument: 'facture' };
+}
+
 function projeterResumeDocument(document: ReponseDocumentVente): DocumentVenteResume {
   return {
     id: document.id,
@@ -461,7 +467,63 @@ describe('EcranFicheDossierVente', () => {
     await waitFor(() =>
       expect(screen.queryByText('Aucun bon de commande sur ce dossier')).not.toBeInTheDocument(),
     );
-    expect(screen.getByRole('combobox', { name: 'Bon de commande' })).toBeInTheDocument();
+    const selecteur = screen.getByRole('combobox', { name: 'Bon de commande' });
+    expect(selecteur).toBeInTheDocument();
+
+    // Non-régression #128 : le document créé est un `brouillon` sans `numero` — l'option ne doit
+    // JAMAIS afficher `document.id` (`doc-bc-1`) en clair, mais un libellé traduit (statut + date).
+    await utilisateur.click(selecteur);
+    expect(await screen.findByRole('option', { name: /Brouillon/ })).toBeInTheDocument();
+    expect(screen.queryByText('doc-bc-1')).not.toBeInTheDocument();
+  });
+
+  // #124 : le parcours de vente était une impasse — `livrer` (RV-37) exige côté serveur une
+  // facture ÉMISE, mais aucun écran ne permettait d'en créer une depuis le dossier. Même chemin de
+  // bout en bout que le test « bon de commande » ci-dessus, appliqué au dialogue `livrer` : bouton
+  // « Créer la facture » -> `POST /documents-vente` porte `dossierVenteId` -> un lien vers
+  // `/factures/{id}` apparaît pour que le vendeur poursuive (lignes, émission — hors périmètre).
+  it('un dossier prêt à livrer sans facture : « Créer la facture » la rattache et affiche un lien vers /factures/{id}', async () => {
+    let documentsDossier: readonly DocumentVenteResume[] = [];
+    let corpsRecu: Record<string, unknown> | undefined;
+
+    server.use(
+      http.get('/api/v1/dossiers-vente/dossier-1', () =>
+        HttpResponse.json({
+          ...DOSSIER,
+          statut: 'pret_a_livrer',
+          actionsDisponibles: ['livrer'],
+          documents: documentsDossier,
+        }),
+      ),
+      http.post('/api/v1/documents-vente', async ({ request }) => {
+        corpsRecu = (await request.json()) as Record<string, unknown>;
+        const document = construireFacture();
+        documentsDossier = [projeterResumeDocument(document)];
+        return HttpResponse.json({ donnees: document, avertissements: [] });
+      }),
+    );
+
+    rendre();
+    const utilisateur = userEvent.setup();
+
+    await utilisateur.click(await screen.findByRole('button', { name: 'Livrer' }));
+    expect(screen.getByText('Aucune facture sur ce dossier')).toBeInTheDocument();
+
+    await utilisateur.click(screen.getByRole('button', { name: 'Créer la facture' }));
+
+    await waitFor(() => expect(corpsRecu).toBeDefined());
+    expect(corpsRecu).toMatchObject({
+      typeDocument: 'facture',
+      dossierVenteId: 'dossier-1',
+      siteId: 'site-1',
+      clientId: 'client-1',
+    });
+
+    // Le lien apparaît immédiatement (via `factureCreeeId`, pas d'attente du refetch) et pointe
+    // vers l'écran facturation où le vendeur ajoute les lignes et émet le document.
+    const lien = await screen.findByRole('link', { name: 'Voir la facture' });
+    expect(lien).toHaveAttribute('href', '/factures/doc-facture-1');
+    expect(screen.queryByText('Aucune facture sur ce dossier')).not.toBeInTheDocument();
   });
 
   // Non-régression : le refus serveur documenté (dossier clos/annulé/abandonné, RV-37) s'affiche

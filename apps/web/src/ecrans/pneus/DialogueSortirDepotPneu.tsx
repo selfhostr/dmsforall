@@ -35,14 +35,22 @@ interface Props {
 /** `POST /depots-pneus/{id}/sortir` (RPP-05) — statut TERMINAL, motif OBLIGATOIRE : jamais une
  *  suppression de ligne, le motif reste consultable dans l'historique du véhicule. Pas de motif
  *  présélectionné (l'utilisateur choisit toujours explicitement). */
+// Sentinelle DÉFINIE (jamais `null`) : un `<Select value={undefined}>` au premier rendu, contrôlé
+// dès qu'un motif est choisi, fait passer le composant Radix d'« non contrôlé » à « contrôlé » —
+// avertissement React (issue #144) qui annonce un vrai risque de saisie perdue au premier rendu.
+// `motif` reste `MotifSortieDepotPneus | typeof AUCUN_MOTIF_SELECTIONNE`, jamais `| null`.
+const AUCUN_MOTIF_SELECTIONNE = '' as const;
+
 export function DialogueSortirDepotPneu({ depot, onFerme }: Props) {
   const { t } = useTranslation(['pneus', 'commun', 'validation']);
   const sortir = useSortirDepotPneus();
-  const [motif, setMotif] = useState<MotifSortieDepotPneus | null>(null);
+  const [motif, setMotif] = useState<MotifSortieDepotPneus | typeof AUCUN_MOTIF_SELECTIONNE>(
+    AUCUN_MOTIF_SELECTIONNE,
+  );
 
   useEffect(() => {
     if (depot) {
-      setMotif(null);
+      setMotif(AUCUN_MOTIF_SELECTIONNE);
       // Défaut corrigé : sans ce `reset()`, une erreur de mutation restée affichée depuis le jeu
       // précédent (ex. échec sur le jeu A) réapparaissait à l'ouverture du dialogue pour le jeu B
       // — même patron que `DialogueNouveauDepotPneu` (`creer.reset()` à la réinitialisation).
@@ -73,7 +81,7 @@ export function DialogueSortirDepotPneu({ depot, onFerme }: Props) {
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="depot-pneu-motif-sortie">{t('pneus:sortie.champMotif')} *</Label>
           <Select
-            value={motif ?? undefined}
+            value={motif}
             onValueChange={(valeur) => setMotif(valeur as MotifSortieDepotPneus)}
           >
             <SelectTrigger id="depot-pneu-motif-sortie" aria-label={t('pneus:sortie.champMotif')}>
@@ -87,7 +95,7 @@ export function DialogueSortirDepotPneu({ depot, onFerme }: Props) {
               ))}
             </SelectContent>
           </Select>
-          {motif === null ? (
+          {motif === AUCUN_MOTIF_SELECTIONNE ? (
             <p className="texte-libelle text-muted-foreground">{t('validation:requis')}</p>
           ) : null}
         </div>

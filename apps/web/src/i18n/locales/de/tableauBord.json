@@ -32,10 +32,24 @@
       "jours": "{jours} T"
     },
     "lignesEnAttenteValidation": {
-      "libelle": "Positionen zur Freigabe"
+      "libelle": "Arbeiten zur Freigabe"
     },
     "articlesSousSeuil": {
       "libelle": "Artikel unter Meldebestand"
+    },
+    "orEnAttentePieces": {
+      "libelle": "Aufträge, die auf Teile warten",
+      "description": "Lieferanten nachfassen oder Kunden informieren.",
+      "erreur": "Aufträge in Teilewartestellung können nicht angezeigt werden"
+    },
+    "enRetard": "Verspätet",
+    "enRetardCarte": {
+      "titre": "Verspätet",
+      "description": "Zugesagte Rückgabe überschritten, Fahrzeug noch nicht übergeben — alle Tage zusammen, nicht nur heute.",
+      "vide": {
+        "titre": "Keine Verspätung",
+        "description": "Derzeit ist keine zugesagte Rückgabe überschritten."
+      }
     }
   },
   "financier": {
@@ -51,7 +65,8 @@
       "libelle": "Zahlungseingänge im Zeitraum"
     },
     "encoursClients": {
-      "libelle": "Offene Kundenforderungen"
+      "libelle": "Offene Kundenforderungen",
+      "definition": "Ausgestellte, unbezahlte Rechnungen."
     }
   },
   "direction": {
@@ -67,8 +82,9 @@
   "comptable": {
     "aRelancer": {
       "titre": "Zu mahnende Rechnungen",
-      "description": "Öffnen Sie die Rechnungsliste und wählen Sie den Reiter „Zu mahnen“.",
-      "lien": "Rechnungen öffnen"
+      "description": "Ausgestellte, überfällige, noch nie gemahnte Rechnungen.",
+      "lien": "Rechnungen öffnen",
+      "erreur": "Die zu mahnenden Rechnungen können nicht angezeigt werden"
     }
   },
   "chefAtelier": {
@@ -127,6 +143,30 @@
       "titre": "Übersicht nicht verfügbar",
       "description": "Die API erlaubt noch keine Filterung der Verkaufsdossiers nach zuständigem Verkäufer: alle Dossiers des Standorts als „Ihre Dossiers“ anzuzeigen wäre irreführend. Ihre Arbeit finden Sie unter Verkauf › Dossiers.",
       "lien": "Zu meinen Dossiers"
+    }
+  },
+  "receptionnaire": {
+    "rendezVousJour": {
+      "titre": "Heutige Termine",
+      "description": "Für heute bestätigte oder bereits eingetroffene Termine, in Tagesreihenfolge.",
+      "siteRequis": "Wählen Sie einen Standort, um die heutigen Termine zu sehen.",
+      "vide": {
+        "titre": "Keine Termine heute",
+        "description": "Für heute ist an diesem Standort kein Termin geplant."
+      },
+      "erreur": {
+        "titre": "Heutige Termine können nicht angezeigt werden"
+      },
+      "vehiculeInconnu": "Kein Fahrzeug hinterlegt",
+      "voirAgenda": "Terminplan öffnen"
+    },
+    "restitutionsJour": {
+      "titre": "Heutige Rückgaben",
+      "description": "Den Kunden für heute zugesagte Rückgaben.",
+      "vide": {
+        "titre": "Keine Rückgabe für heute geplant",
+        "description": "Kein eröffneter Reparaturauftrag hat ein zugesagtes Rückgabedatum für heute."
+      }
     }
   }
 }

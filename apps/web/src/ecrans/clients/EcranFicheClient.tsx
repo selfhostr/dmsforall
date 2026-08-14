@@ -1,6 +1,6 @@
 import { Plus, Wrench } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams, useSearchParams } from 'react-router';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 
 import type { ClientResume } from '@dfa/shared';
 
@@ -32,7 +32,37 @@ import { OngletConditions } from './onglets/OngletConditions';
 import { OngletConsentements } from './onglets/OngletConsentements';
 import { OngletContacts } from './onglets/OngletContacts';
 import { OngletNotes } from './onglets/OngletNotes';
+import { SectionRendezVousClient } from './SectionRendezVousClient';
 import { texteOuVide } from './utils';
+
+/**
+ * État de navigation posé par `EcranListeClients` juste après une création réussie (issue #79,
+ * client Rossier : « Connexion impossible », recliqué, « Une erreur s'est produite », le client
+ * avait pourtant déjà été créé — CL-000013). `POST /clients` peut réussir sans que l'écran de
+ * création le sache si l'accusé de réception se perd (voir le commentaire réseau de
+ * `FormulaireNouveauClient.tsx`) ; ICI, le cas mesuré est différent et tout aussi trompeur : la
+ * CRÉATION a été confirmée côté front (`onCree` a été appelé), mais la LECTURE `GET /clients/{id}`
+ * qui suit immédiatement — déclenchée par cette même navigation — échoue à son tour (nouvelle
+ * coupure, latence). Sans ce marqueur, la branche d'erreur ci-dessous ne peut pas distinguer
+ * « ce client n'existe pas / erreur d'affichage » de « ce client vient d'être créé, seul
+ * l'affichage échoue » — deux informations opposées qui ne doivent jamais partager le même
+ * rendu (doctrine du dépôt). `state`, jamais un paramètre d'URL : disparaît sur un rechargement de
+ * page ou un lien direct, exactement le comportement voulu (l'information n'est valable que pour
+ * CETTE navigation précise, pas pour un retour ultérieur sur la même fiche).
+ */
+interface EtatNavigationClientCree {
+  readonly clientCreeNumero: string;
+  readonly clientCreeNom: string;
+}
+
+function estEtatNavigationClientCree(valeur: unknown): valeur is EtatNavigationClientCree {
+  return (
+    typeof valeur === 'object' &&
+    valeur !== null &&
+    typeof (valeur as Record<string, unknown>).clientCreeNumero === 'string' &&
+    typeof (valeur as Record<string, unknown>).clientCreeNom === 'string'
+  );
+}
 
 /** `chemins.ts` (routes/) n'a pas encore d'entrée Atelier — module en cours de câblage par un
  *  autre agent (périmètre disjoint, voir routeur.tsx : `EcranFonctionAVenir`). Même sémantique que
@@ -68,6 +98,11 @@ export function EcranFicheClient() {
   const { id } = useParams<{ id: string }>();
   const { t } = useTranslation(['clients', 'commun', 'erreurs']);
   const navigate = useNavigate();
+  const location = useLocation();
+  // Issue #79 : présent UNIQUEMENT quand cette navigation suit une création tout juste réussie
+  // (`EcranListeClients`, voir `EtatNavigationClientCree` ci-dessus) — `undefined` sur tout autre
+  // chemin d'arrivée (lien direct, retour depuis un autre écran, rechargement de page).
+  const etatCreation = estEtatNavigationClientCree(location.state) ? location.state : undefined;
   // Le site sélectionné est un paramètre de requête, jamais un état global (routes/chemins.ts) :
   // deux onglets sur deux sites différents ne doivent pas se contredire.
   const [searchParams] = useSearchParams();
@@ -106,13 +141,44 @@ export function EcranFicheClient() {
 
   if (requete.isError || !requete.data) {
     const estErreurReseau = requete.error instanceof ErreurReseau;
+    // Issue #79 : cette navigation suit une création CONFIRMÉE (`etatCreation` défini) — la
+    // création a réussi, seule CETTE lecture échoue. Le message générique habituel (« Une erreur
+    // s'est produite » / « Connexion impossible », armé d'un simple « Réessayer ») laisse croire
+    // que rien n'a abouti, exactement ce qui a failli faire ressaisir le client Rossier en double.
+    // Peu importe ici que l'échec de LECTURE soit lui-même réseau ou non (`estErreurReseau`) : ce
+    // qui compte pour l'utilisateur, c'est que la CRÉATION, elle, a réussi — un seul message le
+    // dit, quelle que soit la cause de l'échec d'affichage.
     return (
       <div className="p-6">
         <EtatErreur
-          titre={t(estErreurReseau ? 'erreurs:reseau.titre' : 'erreurs:inattendue.titre')}
-          description={requete.error ? messageErreur(requete.error, t) : ''}
+          titre={
+            etatCreation
+              ? t('clients:ficheApresCreation.titre')
+              : t(estErreurReseau ? 'erreurs:reseau.titre' : 'erreurs:inattendue.titre')
+          }
+          description={
+            etatCreation
+              ? t('clients:ficheApresCreation.description', {
+                  nom: etatCreation.clientCreeNom,
+                  numero: etatCreation.clientCreeNumero,
+                })
+              : requete.error
+                ? messageErreur(requete.error, t)
+                : ''
+          }
           onReessayer={() => void requete.refetch()}
         />
+        {etatCreation ? (
+          <div className="mt-3 flex justify-center">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate(chemins.clients.liste(site))}
+            >
+              {t('clients:ficheApresCreation.retourListe')}
+            </Button>
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -120,6 +186,14 @@ export function EcranFicheClient() {
   const client = requete.data;
   const lignesVehicules = vehicules.data?.pages.flatMap((page) => page.donnees) ?? [];
   const lignesOrdres = ordres.data?.pages.flatMap((page) => page.donnees) ?? [];
+
+  // `DialogueNouveauRendezVous.site` (composants/rendez-vous/) est obligatoire (un `SiteResume`
+  // complet, pas juste un id) — même repli que `TableauBordMagasinier.tsx` (site actif du tenant,
+  // sinon le premier) quand la fiche est ouverte sans `?site=` explicite : jamais un site inventé,
+  // seulement le seul choix non ambigu quand aucun n'est précisé.
+  const siteRendezVous = site
+    ? session.data?.sites.find((candidat) => candidat.id === site)
+    : (session.data?.sites.find((candidat) => candidat.actif) ?? session.data?.sites[0]);
 
   // `IdentiteClient` prend un `ClientResume` (projection de LISTE) ; `GET /clients/{id}` renvoie
   // `ReponseClient` (fiche complète), qui n'a pas `localite`/`nombreVehicules` — des agrégats que
@@ -200,7 +274,11 @@ export function EcranFicheClient() {
               <OngletAdresses clientId={client.id} />
             </TabsContent>
             <TabsContent value="consentements" className="pt-4">
-              <OngletConsentements clientId={client.id} />
+              <OngletConsentements
+                clientId={client.id}
+                plusAucunContact={client.plusAucunContact}
+                motifContact={client.motif}
+              />
             </TabsContent>
             <TabsContent value="notes" className="pt-4">
               <OngletNotes clientId={client.id} />
@@ -209,6 +287,12 @@ export function EcranFicheClient() {
         </div>
 
         <div className="min-w-0 space-y-6">
+          <SectionRendezVousClient
+            client={clientPourIdentite}
+            vehiculesClient={lignesVehicules}
+            site={siteRendezVous}
+          />
+
           {/* Défaut corrigé : cette section testait `isLoading` puis la longueur de la liste,
            *  SANS branche d'erreur — un 403/404 stable retombait indéfiniment dans le squelette
            *  de chargement (TanStack Query réessaie par défaut), jamais résolu. `EtatSousCollection`

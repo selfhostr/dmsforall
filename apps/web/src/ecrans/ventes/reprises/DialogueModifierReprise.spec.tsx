@@ -70,7 +70,10 @@ describe('DialogueModifierReprise — ne perd pas la saisie en cours', () => {
     renduAvecQueryClient(<EnveloppeSimulantRefetch />);
     const utilisateur = userEvent.setup();
 
-    const champ = await screen.findByLabelText('Valeur estimée *');
+    // Regex plutôt qu'une chaîne exacte : le `*` du libellé est un `<span>` séparé sans espace
+    // (`Label.tsx`), donc le texte concaténé est `Valeur estimée*` — même convention que
+    // `CarteReprise.spec.tsx`/`EcranFicheDossierVente.spec.tsx` pour ce même champ.
+    const champ = await screen.findByLabelText(/Valeur estimée/);
     expect(champ).toHaveValue('8000.00');
 
     await utilisateur.clear(champ);
@@ -104,6 +107,6 @@ describe('DialogueModifierReprise — ne perd pas la saisie en cours', () => {
       />,
     );
 
-    expect(await screen.findByLabelText('Valeur estimée *')).toHaveValue('8000.00');
+    expect(await screen.findByLabelText(/Valeur estimée/)).toHaveValue('8000.00');
   });
 });

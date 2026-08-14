@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   CATEGORIES_ARTICLE,
   STATUTS_ARTICLE,
+  STATUTS_SUIVI_STOCK_ARTICLE,
   TYPES_REFERENCE_ARTICLE,
   type PageCurseur,
   type ReponseArticle,
@@ -206,11 +207,24 @@ export class ResultatRechercheComptoirArticleDto implements ResultatRechercheCom
   @ApiProperty()
   readonly referencePrincipale!: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'TVA comprise (RP-36) — jamais le prix hors taxe.' })
   readonly prixVenteTtcCentimes!: number;
 
-  @ApiProperty()
+  @ApiProperty({
+    description:
+      "Fiable UNIQUEMENT si statutSuivi = 'suivi' ; sinon vaut 0 par convention et NE DOIT PAS " +
+      'être lu comme un stock nul — voir statutSuivi.',
+  })
   readonly quantiteDisponibleMillieme!: number;
+
+  @ApiProperty({
+    enum: STATUTS_SUIVI_STOCK_ARTICLE,
+    description:
+      "Suivi de stock au site demandé : 'suivi' (quantiteDisponibleMillieme fiable, y compris à " +
+      "0), 'nonSuiviSurCeSite' (suivi ailleurs, inconnu ici) ou 'nonSuiviNullePart' (jamais mis " +
+      'en stock). À lire AVANT quantiteDisponibleMillieme.',
+  })
+  readonly statutSuivi!: ResultatRechercheComptoirArticle['statutSuivi'];
 
   @ApiProperty({ type: String, nullable: true })
   readonly emplacement!: string | null;

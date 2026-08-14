@@ -234,3 +234,202 @@ describe('EcranReapprovisionnement — sélection et passage vers la création d
     });
   });
 });
+
+/**
+ * Ticket #121 — le seuil n'avait aucun point de saisie côté écran (l'API le prenait déjà en
+ * charge, hook `useModifierStockSite` posé mais jamais consommé). Ce bloc prouve le CÂBLAGE : la
+ * valeur pré-remplie est la vraie valeur du seuil (jamais vide par défaut, cf. commentaire de
+ * `CelluleSeuil`), une saisie valide part en `PATCH`, un champ vidé retire le seuil (`null`,
+ * distinct d'un zéro — voir `saisieVersSeuilMillieme`), et un rôle sans droit ne voit qu'une
+ * valeur affichée, sans déclencheur.
+ */
+describe('EcranReapprovisionnement — seuil de réapprovisionnement (#121)', () => {
+  function reponseStock(articleId: string, siteId: string, stockMinimumMillieme: number | null) {
+    return {
+      articleId,
+      siteId,
+      quantitePhysiqueMillieme: 10000,
+      quantiteReserveeMillieme: 0,
+      quantiteDisponibleMillieme: 10000,
+      emplacement: null,
+      stockMinimumMillieme,
+      quantiteCommandeStandardMillieme: null,
+      modifieLe: '2026-08-13T00:00:00.000Z',
+    };
+  }
+
+  it('un rôle habilité (magasinier) modifie le seuil : la valeur pré-remplie est la vraie valeur, la requête part avec la nouvelle', async () => {
+    connecterSession('magasinier');
+    server.use(
+      http.get(CHEMIN, () =>
+        HttpResponse.json({ donnees: LIGNES, curseurSuivant: null, limite: 50 }),
+      ),
+    );
+    let corpsRecu: unknown;
+    server.use(
+      http.patch('/api/v1/articles/art-1/stock/site-1', async ({ request }) => {
+        corpsRecu = await request.json();
+        return HttpResponse.json(reponseStock('art-1', 'site-1', 8000));
+      }),
+    );
+
+    rendre();
+    await screen.findByText('Plaquettes de frein avant');
+
+    const utilisateur = userEvent.setup();
+    const declencheur = screen.getByRole('button', {
+      name: i18n.t('pieces:stock.reapprovisionnement.seuil.modifierAria', {
+        designation: 'Plaquettes de frein avant',
+      }),
+    });
+    await utilisateur.click(declencheur);
+
+    const champ = await screen.findByLabelText(
+      i18n.t('pieces:stock.reapprovisionnement.seuil.champ'),
+    );
+    // Pré-rempli avec la vraie valeur du seuil (5000 millièmes -> "5"), jamais vide.
+    expect(champ).toHaveValue('5');
+
+    await utilisateur.clear(champ);
+    await utilisateur.type(champ, '8');
+    await utilisateur.click(
+      screen.getByRole('button', { name: i18n.t('commun:actions.enregistrer') }),
+    );
+
+    expect(corpsRecu).toEqual({ stockMinimumMillieme: 8000 });
+  });
+
+  it('un champ vidé puis enregistré retire le seuil (`null`, pas `0`)', async () => {
+    connecterSession('direction');
+    server.use(
+      http.get(CHEMIN, () =>
+        HttpResponse.json({ donnees: LIGNES, curseurSuivant: null, limite: 50 }),
+      ),
+    );
+    let corpsRecu: unknown;
+    server.use(
+      http.patch('/api/v1/articles/art-1/stock/site-1', async ({ request }) => {
+        corpsRecu = await request.json();
+        return HttpResponse.json(reponseStock('art-1', 'site-1', null));
+      }),
+    );
+
+    rendre();
+    await screen.findByText('Plaquettes de frein avant');
+
+    const utilisateur = userEvent.setup();
+    await utilisateur.click(
+      screen.getByRole('button', {
+        name: i18n.t('pieces:stock.reapprovisionnement.seuil.modifierAria', {
+          designation: 'Plaquettes de frein avant',
+        }),
+      }),
+    );
+    const champ = await screen.findByLabelText(
+      i18n.t('pieces:stock.reapprovisionnement.seuil.champ'),
+    );
+    await utilisateur.clear(champ);
+    await utilisateur.click(
+      screen.getByRole('button', { name: i18n.t('commun:actions.enregistrer') }),
+    );
+
+    expect(corpsRecu).toEqual({ stockMinimumMillieme: null });
+  });
+
+  it('« Retirer le seuil » envoie directement `null`, sans passer par le champ', async () => {
+    connecterSession('chef_atelier');
+    server.use(
+      http.get(CHEMIN, () =>
+        HttpResponse.json({ donnees: LIGNES, curseurSuivant: null, limite: 50 }),
+      ),
+    );
+    let corpsRecu: unknown;
+    server.use(
+      http.patch('/api/v1/articles/art-2/stock/site-1', async ({ request }) => {
+        corpsRecu = await request.json();
+        return HttpResponse.json(reponseStock('art-2', 'site-1', null));
+      }),
+    );
+
+    rendre();
+    await screen.findByText('Filtre à huile');
+
+    const utilisateur = userEvent.setup();
+    await utilisateur.click(
+      screen.getByRole('button', {
+        name: i18n.t('pieces:stock.reapprovisionnement.seuil.modifierAria', {
+          designation: 'Filtre à huile',
+        }),
+      }),
+    );
+    await utilisateur.click(
+      screen.getByRole('button', {
+        name: i18n.t('pieces:stock.reapprovisionnement.seuil.retirer'),
+      }),
+    );
+
+    expect(corpsRecu).toEqual({ stockMinimumMillieme: null });
+  });
+
+  it('une saisie à zéro affiche une erreur explicite et ne part JAMAIS au serveur (le contrat rejette `0`, distinct de l’absence)', async () => {
+    connecterSession('magasinier');
+    server.use(
+      http.get(CHEMIN, () =>
+        HttpResponse.json({ donnees: LIGNES, curseurSuivant: null, limite: 50 }),
+      ),
+    );
+    let appele = false;
+    server.use(
+      http.patch('/api/v1/articles/art-1/stock/site-1', () => {
+        appele = true;
+        return HttpResponse.json(reponseStock('art-1', 'site-1', 0));
+      }),
+    );
+
+    rendre();
+    await screen.findByText('Plaquettes de frein avant');
+
+    const utilisateur = userEvent.setup();
+    await utilisateur.click(
+      screen.getByRole('button', {
+        name: i18n.t('pieces:stock.reapprovisionnement.seuil.modifierAria', {
+          designation: 'Plaquettes de frein avant',
+        }),
+      }),
+    );
+    const champ = await screen.findByLabelText(
+      i18n.t('pieces:stock.reapprovisionnement.seuil.champ'),
+    );
+    await utilisateur.clear(champ);
+    await utilisateur.type(champ, '0');
+    await utilisateur.click(
+      screen.getByRole('button', { name: i18n.t('commun:actions.enregistrer') }),
+    );
+
+    expect(
+      await screen.findByText(i18n.t('pieces:stock.reapprovisionnement.seuil.erreurInvalide')),
+    ).toBeInTheDocument();
+    expect(appele).toBe(false);
+  });
+
+  it('un rôle sans droit (technicien) voit la valeur du seuil, sans déclencheur de modification', async () => {
+    connecterSession('technicien');
+    server.use(
+      http.get(CHEMIN, () =>
+        HttpResponse.json({ donnees: LIGNES, curseurSuivant: null, limite: 50 }),
+      ),
+    );
+
+    rendre();
+    await screen.findByText('Plaquettes de frein avant');
+
+    expect(screen.getByText('5')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {
+        name: i18n.t('pieces:stock.reapprovisionnement.seuil.modifierAria', {
+          designation: 'Plaquettes de frein avant',
+        }),
+      }),
+    ).not.toBeInTheDocument();
+  });
+});
