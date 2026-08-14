@@ -20,6 +20,12 @@ import { EtatVide } from '@/composants/commun/EtatVide';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { useOrdreReparation } from '@/hooks/atelier/useOrdreReparation';
+import {
+  calculerCumulSecondesCible,
+  cibleCumulDepuisPointage,
+  useCumulsPointagesJour,
+  type CibleCumulJour,
+} from '@/hooks/pointage/cumul-cible-jour';
 import { compterLignesAssigneesPointables } from '@/hooks/pointage/lignes-assignees';
 import { useArreterPointage } from '@/hooks/pointage/useArreterPointage';
 import { useDemarrerPointage } from '@/hooks/pointage/useDemarrerPointage';
@@ -28,6 +34,7 @@ import { usePointageOuvertTechnicien } from '@/hooks/pointage/usePointageOuvertT
 import { useSession } from '@/hooks/useSession';
 import { genererUuid } from '@/lib/uuid';
 
+import { BandeauReprisePointage } from './BandeauReprisePointage';
 import { CartePointageEnCours } from './CartePointageEnCours';
 import { DialogueChoixCiblePointage } from './DialogueChoixCiblePointage';
 import { peutDemarrerPointage } from './droits';
@@ -55,6 +62,19 @@ type CibleMemorisee =
       readonly siteId: string;
       readonly libelle: string;
     };
+
+/** `CibleMemorisee` -> `CibleCumulJour` (`hooks/pointage/cumul-cible-jour.ts`) : la cible du
+ *  bandeau de reprise n'est jamais `indirect` (voir le commentaire de tête sur `dernierCible`, qui
+ *  n'est JAMAIS remplacée par une activité indirecte), donc uniquement les deux formes productives. */
+function cibleCumulDepuisMemoire(cible: CibleMemorisee): CibleCumulJour {
+  return cible.type === 'ligne'
+    ? {
+        nature: 'productif_ligne',
+        ordreReparationId: cible.ordreReparationId,
+        ligneOrId: cible.ligneOrId,
+      }
+    : { nature: 'productif_or', ordreReparationId: cible.ordreReparationId };
+}
 
 function construireEntreeDemarrage(
   base: { readonly technicienId: string; readonly debutLe: string },
@@ -114,10 +134,18 @@ function construireEntreeDemarrage(
 /**
  * Écran de pointage du technicien — le plus important du module (voir le brief de livraison) :
  * voir ses OR du jour, démarrer/mettre en pause/reprendre/changer de cible/arrêter un pointage,
- * chrono qui défile. Pensé tablette d'atelier : peu de texte, cibles tactiles généreuses, un seul
- * état affiché à la fois (soit « en train de pointer », soit « à choisir quoi pointer », jamais
- * les deux mélangés — sauf pendant un « Changer », voir `changementCibleOuvert` plus bas, qui
- * superpose délibérément les deux le temps du choix).
+ * chrono qui défile. Pensé tablette d'atelier : peu de texte, cibles tactiles à 72 px minimum
+ * (RM-72tactile, voir la docstring de `CartePointageEnCours`), un seul état affiché à la fois
+ * (soit « en train de pointer », soit « à choisir quoi pointer », jamais les deux mélangés — sauf
+ * pendant un « Changer », voir `changementCibleOuvert` plus bas, qui superpose délibérément les
+ * deux le temps du choix ; « choisir quoi pointer » lui-même est désormais une vue PLEIN ÉCRAN,
+ * voir l'early return sur `orSelectionneId` plus bas, plus une modale flottante).
+ *
+ * REFONTE ERGONOMIQUE (14.08.2026, `docs/proposition-refonte-pointage.md`) : bandeau de reprise
+ * stationnaire en tête d'écran (`BandeauReprisePointage`) dès qu'une activité INDIRECTE
+ * QUELCONQUE est en cours (plus seulement `pause` — voir `reprisePossible` plus bas, partagé avec
+ * le bouton « Reprendre » de `CartePointageEnCours` : les deux ne divergent JAMAIS) ; cumul « deux
+ * nombres » du jour sur la cible affichée à côté du chrono (`hooks/pointage/cumul-cible-jour.ts`).
  *
  * `technicienId` = l'utilisateur SESSION courant, jamais un paramètre de route ni de requête :
  * chaque technicien pointe pour lui-même (voir l'en-tête de `pointage.api.ts` — le PIN décrit par
@@ -180,6 +208,9 @@ export function EcranPointageTechnicien() {
   const requeteOrPointageActuel = useOrdreReparation(
     pointageOuvert.data?.ordreReparationId ?? undefined,
   );
+  // Point 6 (« deux nombres ») + bandeau de reprise (point 5) : UNE SEULE requête « aujourd'hui »,
+  // partagée par les deux affichages — voir l'en-tête de `cumul-cible-jour.ts`.
+  const cumulsJour = useCumulsPointagesJour(technicien?.id);
 
   const demarrer = useDemarrerPointage();
   const arreter = useArreterPointage();
@@ -411,6 +442,24 @@ export function EcranPointageTechnicien() {
     );
   }
 
+  // Vue plein écran « Que pointez-vous ? » (point 3) : remplace ENTIÈREMENT l'écran, qu'on vienne
+  // du flux normal (« Mes OR »/« Toutes les OR ouvertes ») ou du correctif #117 (« Changer »
+  // pendant un pointage en cours) — les deux chemins passent par le même `setOrSelectionneId`.
+  // Placé APRÈS les gardes de chargement/erreur ci-dessus (l'utilisateur ne peut matériellement
+  // choisir un OR qu'une fois l'écran normal déjà rendu), mais AVANT tout le reste du rendu.
+  if (orSelectionneId) {
+    return (
+      <DialogueChoixCiblePointage
+        onFermer={() => setOrSelectionneId(undefined)}
+        technicienId={technicienId}
+        requeteOr={requeteOrSelectionne}
+        onChoisirLigne={handleChoisirLigne}
+        onChoisirOrEntier={handleChoisirOrEntier}
+        enDemarrage={demarrer.isPending}
+      />
+    );
+  }
+
   const pointageActuel = pointageOuvert.data;
 
   // Libellé de la cible EN COURS : la mémoire (`dernierCible`) si elle correspond exactement au
@@ -470,7 +519,7 @@ export function EcranPointageTechnicien() {
                   type="button"
                   disabled={!peutDemarrerPointage(role) || enTraitement}
                   onClick={() => setOrSelectionneId(or.id)}
-                  className="flex min-h-[64px] flex-col items-start gap-1 rounded-lg border p-4 text-left transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex min-h-[72px] flex-col items-start gap-1 rounded-lg border p-4 text-left transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="flex flex-col gap-1">
                     <span className="font-medium">{or.numero}</span>
@@ -540,7 +589,7 @@ export function EcranPointageTechnicien() {
                   key={activite}
                   size="lg"
                   variant="outline"
-                  className="h-16 text-base"
+                  className="min-h-[72px] text-base"
                   disabled={!peutDemarrerPointage(role) || enTraitement}
                   onClick={() => handleDemarrerActiviteIndirecte(activite)}
                 >
@@ -554,9 +603,42 @@ export function EcranPointageTechnicien() {
     </>
   );
 
+  // Point 5 (bandeau de reprise) : possible dès qu'une activité INDIRECTE quelconque est en cours
+  // ET qu'une cible productive est mémorisée — plus seulement `pause` (voir la docstring de tête,
+  // « étendue de la reprise »). Même condition que `onReprendre` de `CartePointageEnCours` plus
+  // bas : les deux affichages du même geste ne doivent JAMAIS diverger sur leur condition.
+  const reprisePossible = pointageActuel?.nature === 'indirect' && dernierCible !== undefined;
+
+  // Point 6 (« deux nombres ») : cumul du jour sur la cible du segment COURANT, dérivé de
+  // `cumulsJour` (une seule requête, voir sa déclaration). `undefined` tant que la requête n'a pas
+  // abouti ou que la nature du pointage ne se résout à aucune cible connue (repli défensif) —
+  // `CartePointageEnCours` traite déjà `undefined`/`0` comme « rien à afficher ».
+  const cibleSegmentCourant = pointageActuel ? cibleCumulDepuisPointage(pointageActuel) : undefined;
+  const cumulSegmentCourant =
+    cibleSegmentCourant && cumulsJour.pointages
+      ? calculerCumulSecondesCible(cumulsJour.pointages, cibleSegmentCourant)
+      : undefined;
+
+  // Cumul du jour sur la cible MÉMORISÉE (celle que propose le bandeau de reprise) — distincte du
+  // segment courant pendant une activité indirecte.
+  const cumulCibleReprise =
+    reprisePossible && dernierCible && cumulsJour.pointages
+      ? calculerCumulSecondesCible(cumulsJour.pointages, cibleCumulDepuisMemoire(dernierCible))
+      : undefined;
+
   return (
     <div className="flex flex-col gap-6">
       <h1 className="texte-titre-page">{t('pointage:technicien.titreEcran')}</h1>
+
+      {reprisePossible && pointageActuel && dernierCible ? (
+        <BandeauReprisePointage
+          cibleLibelle={dernierCible.libelle}
+          interrompuDepuisLe={pointageActuel.debutLe}
+          cumulAujourdhuiSecondes={cumulCibleReprise}
+          onReprendre={() => void handleReprendre()}
+          enTraitement={enTraitement}
+        />
+      ) : null}
 
       {pointageActuel ? (
         <CartePointageEnCours
@@ -568,13 +650,7 @@ export function EcranPointageTechnicien() {
               ? () => void handlePause()
               : undefined
           }
-          onReprendre={
-            pointageActuel.nature === 'indirect' &&
-            pointageActuel.activiteIndirecte === 'pause' &&
-            dernierCible
-              ? () => void handleReprendre()
-              : undefined
-          }
+          onReprendre={reprisePossible ? () => void handleReprendre() : undefined}
           onChanger={
             peutDemarrerPointage(role)
               ? () => setChangementCibleOuvert((valeur) => !valeur)
@@ -583,6 +659,7 @@ export function EcranPointageTechnicien() {
           enTraitement={enTraitement}
           messageErreur={erreurAction}
           avertissement={avertissementAction}
+          cumulAujourdhuiSecondes={cumulSegmentCourant}
         />
       ) : null}
 
@@ -601,16 +678,6 @@ export function EcranPointageTechnicien() {
           {blocChoixCible}
         </div>
       ) : null}
-
-      <DialogueChoixCiblePointage
-        ouvert={Boolean(orSelectionneId)}
-        onFermer={() => setOrSelectionneId(undefined)}
-        technicienId={technicien.id}
-        requeteOr={requeteOrSelectionne}
-        onChoisirLigne={handleChoisirLigne}
-        onChoisirOrEntier={handleChoisirOrEntier}
-        enDemarrage={demarrer.isPending}
-      />
     </div>
   );
 }

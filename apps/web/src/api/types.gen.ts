@@ -1781,6 +1781,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/ordres-reparation/{orId}/pdf': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Feuille d'atelier de l'ordre de réparation au format PDF (accrochée au rétroviseur).
+     * @description RÉGÉNÉRÉE À CHAQUE APPEL, sans cache : contrairement au PDF de facture (immuable une fois émis), un OR est VIVANT — lignes, statut et restitution promise évoluent tant qu'il n'est pas clôturé. Imprimable quel que soit le statut de l’OR — ce document sert à travailler sur le véhicule, pas à l'engager. Document DE TRAVAIL, pas commercial : reste visible depuis l'extérieur d'un véhicule garé dehors, donc SANS nom de client, téléphone, prix, total ni signature, quel que soit le rôle qui imprime — distinct du masquage des montants par rôle (`atelier/mappeurs.ts::roleVoitLesMontants`), qui reste actif ailleurs sur `GET /ordres-reparation/{orId}` et non altéré ici.
+     */
+    get: operations['ImpressionOrController_telechargerPdf'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/ordres-reparation/{orId}/receptionner': {
     parameters: {
       query?: never;
@@ -2231,6 +2251,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/pointages/dernier-du-jour': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Dernière cible PRODUCTIVE pointée aujourd’hui (P-34) — remplace `dernierCible`, état local volatile côté écran, par une source de vérité serveur (nécessaire en particulier au mode borne).
+     * @description Déclarée AVANT `GET /pointages/{id}` (même raison que `agregats-ligne` ci-dessus : ne doit jamais être capturée par `:id`). `technicienId` optionnel : absent, le technicien de la session ; présent, exige `atelier.pointage.pointer_autrui` (encadrement) ou un compte de service (`poste_atelier`, la borne) — MÊME garde que `demarrer`/`arreter` (`ServicePointage.exigerDroitCiblerAutrui`). Journée de travail courante = bornes calendaires UTC (même convention que le verrouillage de période RM-95). Une activité indirecte (pause, nettoyage…) ne devient jamais cette cible — elle masque seulement la dernière cible productive, jamais ne la remplace (RM-87).
+     */
+    get: operations['PointageController_dernierDuJour'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/pointages/deverrouiller-periode': {
     parameters: {
       query?: never;
@@ -2425,6 +2465,46 @@ export interface paths {
     head?: never;
     /** Modifie partiellement une période de taux horaire (jamais son `code`). */
     patch: operations['TauxHorairesController_modifier'];
+    trace?: never;
+  };
+  '/referentiels/vehicules/marques': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Marques du référentiel véhicules suisse, par préfixe (autocomplétion).
+     * @description `recherche` absent ou vide = les marques les plus fréquentes du référentiel (classées par nombre de modèles), jamais une erreur ni la liste complète non triée. Insensible à la casse, aux accents et aux séparateurs (`normaliser_recherche`). Résout aussi les alias de comptoir (ex. « Volkswagen » -> VW, « MB » -> Mercedes-Benz — table d'alias, migration 0051) : `aliasTrouve` sur chaque résultat indique le terme qui a permis de le trouver quand ce n'est pas le nom canonique ASTRA.
+     */
+    get: operations['ReferentielVehiculesChController_marques'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/referentiels/vehicules/modeles': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Modèles du référentiel véhicules suisse pour une marque, par préfixe (autocomplétion).
+     * @description `marque` obligatoire (la marque est déjà choisie à l'étape précédente de la cascade). `codeTypeCh` renseigné seulement quand le nom de modèle correspond à un UNIQUE code type ASTRA pour cette marque — `null` si plusieurs motorisations/variantes le partagent.
+     */
+    get: operations['ReferentielVehiculesChController_modeles'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
     trace?: never;
   };
   '/relances/facturation/envoyer': {
@@ -2848,6 +2928,107 @@ export interface paths {
     get: operations['TenantController_courant'];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/utilisateurs': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Liste des employés du tenant courant
+     * @description Pagination par curseur opaque, tri stable (creeLe desc, id desc). N'inclut jamais les comptes de service (bornes d'atelier) — voir POST /pointage/comptes-de-service pour ceux-ci.
+     */
+    get: operations['UtilisateurController_lister'];
+    put?: never;
+    /**
+     * Créer un employé
+     * @description Le mot de passe n'est jamais choisi par l'appelant : le serveur en génère un et le rend UNE SEULE FOIS dans la réponse (acces.motDePasseTemporaire) — à transmettre oralement à l'employé. Un patron (direction) ne peut jamais créer de compte admin (403) — seul un compte admin le peut.
+     */
+    post: operations['UtilisateurController_creer'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/utilisateurs/{utilisateurId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Modifier le rôle et/ou les sites d’un employé
+     * @description Au moins un des deux champs (role, siteIds) requis. Promouvoir vers admin est réservé à un acteur déjà admin (403 sinon), même avec le droit socle.utilisateur.modifier.
+     */
+    patch: operations['UtilisateurController_modifier'];
+    trace?: never;
+  };
+  '/utilisateurs/{utilisateurId}/desactiver': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Désactiver un employé (jamais une suppression)
+     * @description L'historique (OR, factures, pointages) reste attribuable — le compte est suspendu, pas supprimé. Révoque immédiatement toute session active de cet employé.
+     */
+    post: operations['UtilisateurController_desactiver'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/utilisateurs/{utilisateurId}/reactiver': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Réactiver un employé précédemment désactivé */
+    post: operations['UtilisateurController_reactiver'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/utilisateurs/{utilisateurId}/reinitialiser-acces': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Réinitialiser l'accès d'un employé (mot de passe perdu)
+     * @description Nouveau mot de passe temporaire généré par le serveur, rendu UNE SEULE FOIS dans la réponse. Toute session active de l'employé est révoquée. Tracé dans l'audit — jamais la valeur du mot de passe.
+     */
+    post: operations['UtilisateurController_reinitialiserAcces'];
     delete?: never;
     options?: never;
     head?: never;
@@ -3607,6 +3788,36 @@ export interface components {
       totalTtcCentimes: number;
       totalTvaCentimes: number;
     };
+    CibleReprisePointageDto: {
+      /** @description Somme des durées brutes (secondes, jamais arrondies) de tous les segments productifs d’aujourd’hui sur cette même cible, segment en cours inclus. Entier, jamais une chaîne formatée. */
+      cumulSecondesDuJour: number;
+      /**
+       * Format: date-time
+       * @description Fin du dernier segment productif sur cette cible ; si ce segment est encore `en_cours` au moment de la requête, vaut l’instant de la requête (voir le commentaire du contrat pour cette interprétation).
+       */
+      interrompuLe: string;
+      /** @description Désignation de la ligne, ou à défaut le numéro de l’OR. Chaîne brute, jamais assemblée — le front compose. */
+      libelle: string;
+      /**
+       * Format: uuid
+       * @description `null` ⇔ `type === "or"`.
+       */
+      ligneOrId: string | null;
+      /** @description Résolu par le serveur — jamais reconstruit côté client. */
+      numeroOr: string;
+      /** Format: uuid */
+      ordreReparationId: string;
+      /**
+       * Format: uuid
+       * @description Résolu depuis le pointage lui-même, jamais depuis un paramètre.
+       */
+      siteId: string;
+      /**
+       * @description Une cible `indirect` n’atteint jamais cette réponse.
+       * @enum {string}
+       */
+      type: 'ligne' | 'or';
+    };
     ClientAdresseAvecAvertissementsDto: {
       avertissements: components['schemas']['AvertissementDto'][];
       donnees: components['schemas']['ClientAdresseDto'];
@@ -4360,6 +4571,29 @@ export interface components {
       /** @description Total débit en centimes — chaîne (bigint, MD-85 : Σdébit = Σcrédit). */
       totalDebitCentimes: string;
     };
+    MarqueVehiculeChDto: {
+      /**
+       * @description `null` quand la marque a été trouvée directement (nom canonique ASTRA). Sinon, le terme d'alias qui a permis de la trouver (ex. « Volkswagen » pour la marque canonique « VW ») — un utilisateur qui tape le nom courant et voit le sigle ASTRA apparaître doit comprendre pourquoi.
+       * @example Volkswagen
+       */
+      aliasTrouve: string | null;
+      /** @example VW */
+      nom: string;
+      /**
+       * @description Nombre de modèles distincts du référentiel.
+       * @example 959
+       */
+      nombreModeles: number;
+    };
+    ModeleVehiculeChDto: {
+      /**
+       * @description Code type ASTRA, seulement quand ce nom de modèle correspond à un unique code type pour la marque demandée — `null` si plusieurs motorisations/variantes le partagent.
+       * @example 1AA101
+       */
+      codeTypeCh: string | null;
+      /** @example GOLF */
+      nom: string;
+    };
     ModifieParDto: {
       nomAffiche: string;
       /** Format: uuid */
@@ -4701,6 +4935,13 @@ export interface components {
     PageTauxHoraireDto: {
       curseurSuivant: string | null;
       donnees: components['schemas']['ReponseTauxHoraireDto'][];
+      limite: number;
+    };
+    PageUtilisateurResumeDto: {
+      /** @description Opaque base64url ; null = fin de liste. */
+      curseurSuivant: string | null;
+      donnees: components['schemas']['UtilisateurResumeDto'][];
+      /** @example 50 */
       limite: number;
     };
     PageVehiculeResumeDto: {
@@ -5092,6 +5333,13 @@ export interface components {
       /** @enum {string} */
       statut: 'planifie' | 'ouvert' | 'en_cours' | 'controle' | 'termine' | 'facture';
     };
+    ReponseAccesTemporaireDto: {
+      /**
+       * @description Mot de passe temporaire en clair, à transmettre oralement à l'employé — ne réapparaît plus jamais.
+       * @example k3f9Qz…
+       */
+      motDePasseTemporaire: string;
+    };
     ReponseActiviteTableauBordDto: {
       articlesSousSeuilReapprovisionnement: number;
       /** @description `null` si aucun OR restitué sur la période (pas 0 : distinction délibérée). */
@@ -5165,6 +5413,13 @@ export interface components {
       ordresReparationOuverts: components['schemas']['OrdreReparationOuvertContexteDto'][];
       travauxReportes: components['schemas']['TravauxReportesContexteDto'];
       vehicule: components['schemas']['VehiculeContexteAtelierDto'];
+    };
+    ReponseCreationUtilisateurDto: {
+      acces: components['schemas']['ReponseAccesTemporaireDto'];
+      utilisateur: components['schemas']['UtilisateurResumeDto'];
+    };
+    ReponseDernierPointageDuJourDto: {
+      cible: components['schemas']['CibleReprisePointageDto'] | null;
     };
     ReponseDeverrouillagePeriodePointageDto: {
       /**
@@ -5555,6 +5810,11 @@ export interface components {
       prenom: string;
       /**
        * Format: uuid
+       * @description Site de la borne (résolu depuis `pin_pointage.site_id`, jamais depuis un paramètre de requête) — ajout rétrocompatible : permet à l’écran borne de ne plus jamais demander le site autrement que par cette identification.
+       */
+      siteId: string;
+      /**
+       * Format: uuid
        * @description Identifiant du technicien reconnu.
        */
       technicienId: string;
@@ -5741,6 +6001,12 @@ export interface components {
         | 'texte';
       /** @enum {string|null} */
       urgence: 'urgent' | 'a_faire' | 'a_surveiller' | null;
+    };
+    ReponseMarquesVehiculesChDto: {
+      marques: components['schemas']['MarqueVehiculeChDto'][];
+    };
+    ReponseModelesVehiculesChDto: {
+      modeles: components['schemas']['ModeleVehiculeChDto'][];
     };
     ReponseMotifRendezVousDto: {
       actif: boolean;
@@ -6572,6 +6838,12 @@ export interface components {
       /** @enum {string} */
       type: 'reception' | 'restitution' | 'reserve_securite';
     };
+    SiteAffecteResumeDto: {
+      /** Format: uuid */
+      id: string;
+      /** @example Sion */
+      nom: string;
+    };
     SiteResumeDto: {
       actif: boolean;
       /** @example SION */
@@ -6716,6 +6988,39 @@ export interface components {
         | 'magasinier'
         | 'comptable'
         | 'poste_atelier';
+    };
+    UtilisateurResumeDto: {
+      /** Format: date-time */
+      creeLe: string;
+      /** Format: date-time */
+      derniereConnexionLe: string | null;
+      /** @example julie.rey@garage-martin.ch */
+      email: string;
+      /** Format: uuid */
+      id: string;
+      /** @example Rey */
+      nom: string;
+      /** @example Julie */
+      prenom: string;
+      /**
+       * @example technicien
+       * @enum {string}
+       */
+      role:
+        | 'admin'
+        | 'direction'
+        | 'vendeur'
+        | 'receptionnaire'
+        | 'chef_atelier'
+        | 'technicien'
+        | 'magasinier'
+        | 'comptable';
+      sites: components['schemas']['SiteAffecteResumeDto'][];
+      /**
+       * @example actif
+       * @enum {string}
+       */
+      statut: 'invite' | 'actif' | 'suspendu';
     };
     ValeursFigeesDocumentDto: {
       adresseFacturation: components['schemas']['AdresseStructureeQrDto'] | null;
@@ -15151,6 +15456,46 @@ export interface operations {
       };
     };
   };
+  ImpressionOrController_telechargerPdf: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/pdf': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant (rôle sans atelier.or.lire). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/pdf': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Ordre de réparation introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/pdf': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
   OrdreReparationTransitionsController_receptionner: {
     parameters: {
       query?: never;
@@ -17157,6 +17502,52 @@ export interface operations {
       };
     };
   };
+  PointageController_dernierDuJour: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseDernierPointageDuJourDto'];
+        };
+      };
+      /** @description technicienId mal formé. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description technicienId désigne un tiers et l’appelant n’a ni le droit d’encadrement ni le statut de compte de service. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
   PointagePeriodeController_deverrouiller: {
     parameters: {
       query?: never;
@@ -17831,6 +18222,71 @@ export interface operations {
       };
     };
   };
+  ReferentielVehiculesChController_marques: {
+    parameters: {
+      query?: {
+        limite?: number;
+        recherche?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Marques correspondantes. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseMarquesVehiculesChDto'];
+        };
+      };
+      /** @description VALIDATION_ECHOUEE — paramètres de requête invalides. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  ReferentielVehiculesChController_modeles: {
+    parameters: {
+      query: {
+        limite?: number;
+        recherche?: string;
+        marque: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Modèles correspondants. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseModelesVehiculesChDto'];
+        };
+      };
+      /** @description VALIDATION_ECHOUEE — paramètres de requête invalides (ex. `marque` absente). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
   RelancesController_envoyer: {
     parameters: {
       query?: never;
@@ -18009,7 +18465,18 @@ export interface operations {
   };
   RendezVousController_lister: {
     parameters: {
-      query?: never;
+      query: {
+        curseur?: string;
+        limite?: number;
+        tri?: 'creeLe:desc' | 'creeLe:asc';
+        /** @description Rendez-vous d'un véhicule précis (fiche véhicule), indépendant du détenteur courant. */
+        vehiculeId?: string;
+        clientId?: string;
+        statut?: 'confirme' | 'honore' | 'absent' | 'annule';
+        siteId?: string;
+        au: string;
+        du: string;
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -19222,6 +19689,356 @@ export interface operations {
       };
       /** @description Droit insuffisant (rôle sans socle.tenant.lire). */
       403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  UtilisateurController_lister: {
+    parameters: {
+      query?: {
+        curseur?: string;
+        limite?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PageUtilisateurResumeDto'];
+        };
+      };
+      /** @description Curseur illisible ou paramètres de pagination invalides. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant (rôle sans socle.utilisateur.lire). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  UtilisateurController_creer: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** Format: email */
+          email: string;
+          nom: string;
+          prenom: string;
+          /** @enum {string} */
+          role:
+            | 'admin'
+            | 'direction'
+            | 'vendeur'
+            | 'receptionnaire'
+            | 'chef_atelier'
+            | 'technicien'
+            | 'magasinier'
+            | 'comptable';
+          siteIds: string[];
+        };
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseCreationUtilisateurDto'];
+        };
+      };
+      /** @description Corps invalide, ou un ou plusieurs siteIds introuvables pour ce tenant. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant (rôle sans socle.utilisateur.creer), ou tentative de créer un compte admin par un acteur non-admin. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Adresse email déjà utilisée par un autre compte. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  UtilisateurController_modifier: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        utilisateurId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @enum {string} */
+          role?:
+            | 'admin'
+            | 'direction'
+            | 'vendeur'
+            | 'receptionnaire'
+            | 'chef_atelier'
+            | 'technicien'
+            | 'magasinier'
+            | 'comptable';
+          siteIds?: string[];
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UtilisateurResumeDto'];
+        };
+      };
+      /** @description Corps invalide, ou un ou plusieurs siteIds introuvables pour ce tenant. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant, ou tentative de promotion vers admin par un acteur non-admin. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Employé introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  UtilisateurController_desactiver: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        utilisateurId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UtilisateurResumeDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant (rôle sans socle.utilisateur.desactiver). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Employé introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Tentative de désactiver son propre compte. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  UtilisateurController_reactiver: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        utilisateurId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UtilisateurResumeDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant (rôle sans socle.utilisateur.desactiver). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Employé introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  UtilisateurController_reinitialiserAcces: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        utilisateurId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseAccesTemporaireDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant (rôle sans socle.utilisateur.reinitialiser_acces). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Employé introuvable pour ce tenant. */
+      404: {
         headers: {
           [name: string]: unknown;
         };

@@ -219,6 +219,7 @@ export class ArticleController {
   }
 
   @Post(':articleId/references')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('pieces.article.modifier')
   @ApiOperation({
     summary:
@@ -244,6 +245,7 @@ export class ArticleController {
   }
 
   @Post(':articleId/marquer-obsolete')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('pieces.article.modifier')
   @ApiOperation({ summary: 'Marque un article obsolète (RP-04).' })
   @ApiParam({ name: 'articleId', format: 'uuid' })
@@ -262,6 +264,7 @@ export class ArticleController {
   }
 
   @Post(':articleId/desactiver')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('pieces.article.modifier')
   @ApiOperation({
     summary: 'Désactive un article (§6.1) — refusé si une réservation active porte sur lui.',

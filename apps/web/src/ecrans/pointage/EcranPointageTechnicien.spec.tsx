@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
@@ -460,6 +460,94 @@ describe('EcranPointageTechnicien', () => {
     },
   );
 
+  it(
+    'point 5 (bandeau de reprise) : apparaît pendant N’IMPORTE QUELLE activité indirecte — pas ' +
+      'seulement la pause —, disparaît une fois la reprise effectuée, et un SEUL appui démarre ' +
+      'directement le pointage sur la cible mémorisée (aucune modale, aucune question)',
+    async () => {
+      const appelsDemarrer: EntreeDemarragePointage[] = [];
+      const appelsArreter: string[] = [];
+
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([]))),
+        http.get('/api/v1/ordres-reparation', () => HttpResponse.json(pageOrdres([OR_ASSIGNE]))),
+        http.get('/api/v1/ordres-reparation/or-1', () => HttpResponse.json(construireOrDetail())),
+        http.post('/api/v1/pointages/:id/arreter', ({ params }) => {
+          appelsArreter.push(String(params.id));
+          return HttpResponse.json({
+            donnees: { ...POINTAGE_EN_COURS, statut: 'termine', finLe: new Date().toISOString() },
+            avertissements: [],
+          });
+        }),
+        http.post('/api/v1/pointages', async ({ request }) => {
+          const entree = (await request.json()) as EntreeDemarragePointage;
+          appelsDemarrer.push(entree);
+          const base = {
+            ...POINTAGE_EN_COURS,
+            id: entree.id,
+            nature: entree.nature,
+            ordreReparationId: 'ordreReparationId' in entree ? entree.ordreReparationId : null,
+            ordreReparationNumero: 'ordreReparationId' in entree ? 'OR-000123' : null,
+            ligneOrId: null,
+            ligneOrDesignation: null,
+            activiteIndirecte: 'activiteIndirecte' in entree ? entree.activiteIndirecte : null,
+          };
+          return HttpResponse.json({ donnees: base, avertissements: [] }, { status: 201 });
+        }),
+      );
+
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      // Démarre un pointage productif normal (« Mes OR du jour ») — ceci mémorise `dernierCible`.
+      await utilisateur.click(await screen.findByText('OR-000123'));
+      await utilisateur.click(await screen.findByRole('button', { name: 'Pointer sur cet OR' }));
+      await screen.findByRole('button', { name: 'Arrêter' });
+
+      // Pendant un pointage PRODUCTIF, aucun bandeau (rien à reprendre).
+      expect(
+        screen.queryByRole('button', {
+          name: 'Reprendre le pointage sur OR-000123 — OR entier',
+        }),
+      ).not.toBeInTheDocument();
+
+      // « Changer » vers une activité indirecte AUTRE que la pause (« Nettoyage ») — la cible
+      // productive mémorisée survit (voir `demarrerEtMemoriser`, une activité indirecte ne
+      // remplace jamais `dernierCible`).
+      await utilisateur.click(await screen.findByRole('button', { name: 'Changer' }));
+      await utilisateur.click(await screen.findByRole('button', { name: 'Nettoyage' }));
+
+      // Le bandeau apparaît désormais — étendue de la reprise à TOUTE activité indirecte.
+      const boutonBandeau = await screen.findByRole('button', {
+        name: 'Reprendre le pointage sur OR-000123 — OR entier',
+      });
+      expect(screen.getByText('Reprendre : OR-000123 — OR entier')).toBeInTheDocument();
+
+      // Un SEUL appui démarre directement le pointage sur la cible mémorisée.
+      await utilisateur.click(boutonBandeau);
+
+      await waitFor(() => expect(appelsDemarrer).toHaveLength(3));
+      expect(appelsDemarrer[2]).toMatchObject({
+        nature: 'productif_or',
+        ordreReparationId: 'or-1',
+      });
+      // « Changer » (étape précédente) n'appelle JAMAIS `arreter` explicitement (cascade serveur,
+      // correctif #117) ; seule la reprise passe par le couple arrêter+démarrer (RM-116).
+      expect(appelsArreter).toHaveLength(1);
+
+      // Le bandeau disparaît une fois la reprise effectuée (retour à un pointage productif).
+      await waitFor(() =>
+        expect(
+          screen.queryByRole('button', {
+            name: 'Reprendre le pointage sur OR-000123 — OR entier',
+          }),
+        ).not.toBeInTheDocument(),
+      );
+      expect(await screen.findByRole('button', { name: 'Arrêter' })).toBeInTheDocument();
+    },
+  );
+
   it('affiche le chrono et le bouton Arrêter quand un pointage est en cours', async () => {
     server.use(
       http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
@@ -652,14 +740,23 @@ describe('EcranPointageTechnicien', () => {
   );
 
   it(
-    'carte et détail affichent le même nombre — régression OR-2026-15 : lignes non assignées à ' +
-      'ce technicien (`technicienId: null`), la carte affichait « 2 lignes qui vous sont ' +
-      'assignées » quand le détail affichait « Aucune ligne assignée »',
+    'régression OR-2026-15, ADAPTÉE à l’arbitrage @laupernoe du 14.08.2026 (voir hooks/pointage/' +
+      'lignes-assignees.ts) : la carte « Mes OR du jour » compte toujours SPÉCIFIQUEMENT les ' +
+      'lignes assignées à ce technicien (repère organisationnel, inchangé) — mais le détail ' +
+      '« Que pointez-vous ? » ne filtre PLUS par assignation : des lignes non assignées à ' +
+      'personne (`technicienId: null`) restent pointables et doivent apparaître comme boutons, ' +
+      'jamais comme « aucune ligne » (l’assignation n’est plus une condition pour pointer).',
     async () => {
-      const ligneNonAssignee1 = construireLigne({ id: 'ligne-1', technicienId: null });
-      const ligneNonAssignee2 = construireLigne({ id: 'ligne-2', technicienId: null });
-      // `nombreLignes: 2` (le total serveur, non filtré) délibérément conservé égal au nombre de
-      // lignes : c'est exactement ce total que le bug utilisait à tort comme compteur affiché.
+      const ligneNonAssignee1 = construireLigne({
+        id: 'ligne-1',
+        technicienId: null,
+        designation: 'Vidange moteur',
+      });
+      const ligneNonAssignee2 = construireLigne({
+        id: 'ligne-2',
+        technicienId: null,
+        designation: 'Contrôle freins',
+      });
       const orNonAssigne = construireOrDetail({
         lignes: [ligneNonAssignee1, ligneNonAssignee2],
         nombreLignes: 2,
@@ -675,60 +772,77 @@ describe('EcranPointageTechnicien', () => {
       const utilisateur = userEvent.setup();
       rendre();
 
-      // La carte : aucune des deux lignes n'est assignée à CE technicien — le compteur doit
-      // afficher 0, jamais `nombreLignes` (2, le total serveur non filtré).
+      // La carte : repère organisationnel inchangé — aucune des deux lignes ne m'est assignée.
       expect(await screen.findByText('0 ligne qui vous est assignée')).toBeInTheDocument();
       expect(screen.queryByText(/lignes qui vous sont assignées/)).not.toBeInTheDocument();
 
-      // Le détail doit annoncer EXACTEMENT la même chose : aucune ligne assignée.
+      // Le détail : les deux lignes, NON assignées, restent proposées au pointage — jamais
+      // masquées, jamais annoncées comme absentes.
       await utilisateur.click(screen.getByText('OR-000123'));
+      expect(await screen.findByRole('button', { name: 'Vidange moteur' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Contrôle freins' })).toBeInTheDocument();
       expect(
-        await screen.findByText(
+        screen.queryByText(
           "Aucune ligne ne vous est assignée sur cet OR — vous pouvez pointer sur l'OR entier.",
         ),
-      ).toBeInTheDocument();
+      ).not.toBeInTheDocument();
     },
   );
 
-  it('carte : compte uniquement les lignes assignées au technicien courant, pas le total de l’OR', async () => {
-    const idTechnicien = SESSION_TEST.utilisateur.id;
-    const ligneAMoi1 = construireLigne({
-      id: 'ligne-a',
-      technicienId: idTechnicien,
-      designation: 'Vidange',
-    });
-    const ligneAMoi2 = construireLigne({
-      id: 'ligne-b',
-      technicienId: idTechnicien,
-      designation: 'Contrôle freins',
-    });
-    const ligneAutreTechnicien = construireLigne({
-      id: 'ligne-c',
-      technicienId: 'un-autre-technicien',
-      designation: 'Pneus',
-    });
-    // 2 lignes m'appartiennent, 1 appartient à un collègue : le compteur doit valoir 2, pas
-    // `nombreLignes` (3, le total de l'OR).
-    const or = construireOrDetail({
-      lignes: [ligneAMoi1, ligneAMoi2, ligneAutreTechnicien],
-      nombreLignes: 3,
-    });
+  it(
+    'arbitrage @laupernoe du 14.08.2026 : la carte continue de compter UNIQUEMENT les lignes assignées ' +
+      'au technicien courant (repère organisationnel), mais le détail « Que pointez-vous ? » ' +
+      'propose TOUTES les lignes pointables de l’OR, y compris celles assignées à un collègue — ' +
+      'annoncées comme une information, jamais cachées ni bloquées',
+    async () => {
+      const idTechnicien = SESSION_TEST.utilisateur.id;
+      const ligneAMoi1 = construireLigne({
+        id: 'ligne-a',
+        technicienId: idTechnicien,
+        designation: 'Vidange',
+      });
+      const ligneAMoi2 = construireLigne({
+        id: 'ligne-b',
+        technicienId: idTechnicien,
+        designation: 'Contrôle freins',
+      });
+      const ligneAutreTechnicien = construireLigne({
+        id: 'ligne-c',
+        technicienId: 'un-autre-technicien',
+        designation: 'Pneus',
+      });
+      // 2 lignes m'appartiennent, 1 appartient à un collègue : le compteur DE LA CARTE doit
+      // valoir 2, pas `nombreLignes` (3, le total de l'OR) — inchangé par l'arbitrage.
+      const or = construireOrDetail({
+        lignes: [ligneAMoi1, ligneAMoi2, ligneAutreTechnicien],
+        nombreLignes: 3,
+      });
 
-    server.use(
-      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
-      http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([]))),
-      http.get('/api/v1/ordres-reparation', () => HttpResponse.json(pageOrdres([or]))),
-      http.get('/api/v1/ordres-reparation/or-1', () => HttpResponse.json(or)),
-    );
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([]))),
+        http.get('/api/v1/ordres-reparation', () => HttpResponse.json(pageOrdres([or]))),
+        http.get('/api/v1/ordres-reparation/or-1', () => HttpResponse.json(or)),
+      );
 
-    const utilisateur = userEvent.setup();
-    rendre();
+      const utilisateur = userEvent.setup();
+      rendre();
 
-    expect(await screen.findByText('2 lignes qui vous sont assignées')).toBeInTheDocument();
+      expect(await screen.findByText('2 lignes qui vous sont assignées')).toBeInTheDocument();
 
-    await utilisateur.click(screen.getByText('OR-000123'));
-    expect(await screen.findByRole('button', { name: 'Vidange' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Contrôle freins' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Pneus' })).not.toBeInTheDocument();
-  });
+      await utilisateur.click(screen.getByText('OR-000123'));
+      expect(await screen.findByRole('button', { name: 'Vidange' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Contrôle freins' })).toBeInTheDocument();
+      // « Pneus » (assignée à un collègue) reste PROPOSÉE — l'apprenti qui prête main-forte au
+      // compagnon peut la choisir sans détour par le bureau (arbitrage @laupernoe, NE PAS ROUVRIR).
+      // Nom accessible complet (bouton + info d'assignation) : `getByText` cible juste le
+      // libellé visible de la ligne, `closest('button')` retrouve le bouton qui la porte.
+      const boutonPneus = screen.getByText('Pneus').closest('button');
+      expect(boutonPneus).toBeInTheDocument();
+      expect(boutonPneus).toBeEnabled();
+      expect(
+        within(boutonPneus as HTMLElement).getByText('Assignée à un autre technicien.'),
+      ).toBeInTheDocument();
+    },
+  );
 });

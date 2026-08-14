@@ -37,8 +37,19 @@ function ligneEstAssignee(ligne: ReponseLigneOr, technicienId: string): boolean 
 }
 
 /**
- * Lignes assignées ET pointables d'un OR, pour un technicien donné — le même sous-ensemble que
- * propose `DialogueChoixCiblePointage` (« Que pointez-vous ? »).
+ * Lignes assignées ET pointables d'un OR, pour un technicien donné — sert désormais UNIQUEMENT le
+ * repère organisationnel de « Mes OR du jour » (compteur de carte, voir `compterLignesAssigneesPointables`
+ * ci-dessous), PLUS `DialogueChoixCiblePointage` avant l'arbitrage @laupernoe du 14.08.2026 ci-dessous.
+ *
+ * ARBITRAGE @laupernoe (14.08.2026, NE PAS ROUVRIR) : un technicien peut pointer une ligne sans y être
+ * assigné (la base l'autorise déjà — RM-121, plusieurs pointages simultanés sur une même ligne ; le
+ * serveur, `ServicePointage.demarrer`, ne vérifie JAMAIS l'assignation). Cas réel : l'apprenti qui
+ * prête main-forte au compagnon ne doit pas faire un aller-retour au bureau pour se faire assigner.
+ * `DialogueChoixCiblePointage` (« Que pointez-vous ? ») utilise donc `lignesPointables` ci-dessous
+ * (TOUTES les lignes pointables de l'OR, sans filtre d'assignation) — jamais cette fonction-ci.
+ * `lignesAssigneesPointables` reste exacte et utile ailleurs : l'assignation redevient un simple
+ * REPÈRE D'ORGANISATION (qui d'habitude s'occupe de quoi), pas un droit de pointer — « Mes OR du
+ * jour » continue donc de compter et lister CE repère, inchangé par cet arbitrage.
  *
  * LIMITE CONNUE, héritée du serveur : `ReponseOrdreReparation.lignes` est plafonné à 200 entrées
  * (`SEUIL_LIGNES_EMBARQUEES`, voir `service-or.ts`) — si `or.lignesTronquees` vaut `true`, ce
@@ -52,6 +63,21 @@ export function lignesAssigneesPointables(
   return or.lignes.filter(
     (ligne) => ligneEstAssignee(ligne, technicienId) && ligneEstPointable(ligne),
   );
+}
+
+/**
+ * TOUTES les lignes pointables d'un OR, SANS filtre d'assignation — ce que
+ * `DialogueChoixCiblePointage` (« Que pointez-vous ? ») propose désormais au technicien, suite à
+ * l'arbitrage @laupernoe du 14.08.2026 documenté ci-dessus sur `lignesAssigneesPointables`. Même critère de
+ * statut que le reste de ce fichier (`ligneEstPointable` — jamais `refusee`/`annulee`/`facturee`),
+ * SEULE différence : aucune comparaison à `technicienId`. L'assignation existante de chaque ligne
+ * reste lisible par l'appelant via `ligne.technicienId` (à afficher comme une INFORMATION — « assignée
+ * à un autre technicien » — jamais comme un blocage : voir `DialogueChoixCiblePointage`).
+ */
+export function lignesPointables(
+  or: Pick<ReponseOrdreReparation, 'lignes'>,
+): readonly ReponseLigneOr[] {
+  return or.lignes.filter(ligneEstPointable);
 }
 
 /** Nombre de lignes assignées et pointables — c'est CE nombre, et seulement celui-là, que « Mes OR

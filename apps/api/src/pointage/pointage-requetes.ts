@@ -1,9 +1,9 @@
-import { and, eq, isNotNull } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNotNull, lte } from 'drizzle-orm';
 
 import type { ContexteTenant, TransactionDfa } from '../db';
-import { pointage, type LignePointage } from '../db/schema';
+import { ligneOr, ordreReparation, pointage, type LignePointage } from '../db/schema';
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
-import type { PointagePourAgregat } from './regles-pointage';
+import type { PointagePourAgregat, PointageProductifDuJour } from './regles-pointage';
 
 /**
  * Lectures/verrous PARTAGÉS sur la table `pointage` elle-même. Rescoping explicite sur `tenant_id`
@@ -91,4 +91,61 @@ export async function chargerPointagesPourAgregatLigne(
         isNotNull(pointage.ligneOrId),
       ),
     );
+}
+
+/**
+ * `GET /pointages/dernier-du-jour` — tous les pointages PRODUCTIFS (`productif_ligne`/
+ * `productif_or`, JAMAIS `indirect` — RM-87, voir `regles-pointage.ts::resoudreCibleReprise`) du
+ * technicien démarrés dans la journée de travail courante (`[debutJournee, finJournee]` inclus, UTC
+ * pur — `regles-pointage.ts::journeeTravailCourante`), avec le statut de l'OR et, le cas échéant, de
+ * la ligne ciblée : JOINTS ici (pas résolus par un second aller-retour) pour que la fonction pure
+ * appelante puisse trancher « encore pointable » sans requête supplémentaire — même doctrine que le
+ * `leftJoin` direct de `service-pointage.ts::lister` sur `ordre_reparation`/`ligne_or`.
+ *
+ * `innerJoin` sur `ordre_reparation` (toujours renseigné pour un pointage productif, FK non
+ * annulable) ; `leftJoin` sur `ligne_or` (nul quand `nature = 'productif_or'`). Borné à UN
+ * technicien sur UNE journée : jamais plus qu'une poignée de lignes, lecture NON verrouillée (rapport
+ * de consultation, même patron que `chargerPointagesPourAgregatLigne`). Rescoping explicite sur
+ * `tenant_id` pour les DEUX jointures, pas seulement sur `pointage` — le RLS est le filet, jamais le
+ * mécanisme (doctrine du projet).
+ */
+export async function chargerPointagesProductifsDuJour(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  technicienId: string,
+  debutJournee: Date,
+  finJournee: Date,
+): Promise<readonly PointageProductifDuJour[]> {
+  return tx
+    .select({
+      id: pointage.id,
+      ordreReparationId: pointage.ordreReparationId,
+      ligneOrId: pointage.ligneOrId,
+      siteId: pointage.siteId,
+      debutLe: pointage.debutLe,
+      finLe: pointage.finLe,
+      statutOr: ordreReparation.statut,
+      statutLigne: ligneOr.statut,
+      numeroOr: ordreReparation.numero,
+      designationLigne: ligneOr.designation,
+    })
+    .from(pointage)
+    .innerJoin(
+      ordreReparation,
+      and(
+        eq(ordreReparation.tenantId, ctx.tenantId),
+        eq(ordreReparation.id, pointage.ordreReparationId),
+      ),
+    )
+    .leftJoin(ligneOr, and(eq(ligneOr.tenantId, ctx.tenantId), eq(ligneOr.id, pointage.ligneOrId)))
+    .where(
+      and(
+        eq(pointage.tenantId, ctx.tenantId),
+        eq(pointage.technicienId, technicienId),
+        inArray(pointage.nature, ['productif_ligne', 'productif_or']),
+        gte(pointage.debutLe, debutJournee),
+        lte(pointage.debutLe, finJournee),
+      ),
+    )
+    .orderBy(desc(pointage.debutLe));
 }

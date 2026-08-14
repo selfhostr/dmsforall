@@ -21,6 +21,11 @@ import { EtatVide } from '@/composants/commun/EtatVide';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { useOrdreReparation } from '@/hooks/atelier/useOrdreReparation';
+import {
+  calculerCumulSecondesCible,
+  cibleCumulDepuisPointage,
+  useCumulsPointagesJour,
+} from '@/hooks/pointage/cumul-cible-jour';
 import { compterLignesAssigneesPointables } from '@/hooks/pointage/lignes-assignees';
 import { useArreterPointage } from '@/hooks/pointage/useArreterPointage';
 import { useDemarrerPointage } from '@/hooks/pointage/useDemarrerPointage';
@@ -196,6 +201,10 @@ export function EcranBornePointage() {
   const pointageOuvert = usePointageOuvertTechnicien(technicienId);
   const mesOrdres = useMesOrdresAssignes(technicienId);
   const requeteOrSelectionne = useOrdreReparation(orSelectionneId);
+  // Point 6 (« deux nombres ») — même mécanique qu'`EcranPointageTechnicien` : voir l'en-tête de
+  // `cumul-cible-jour.ts`. Pas de bandeau de reprise ici (borne PARTAGÉE, voir `onReprendre`
+  // plus bas, inchangé), seulement le cumul du jour affiché par `CartePointageEnCours`.
+  const cumulsJour = useCumulsPointagesJour(technicienId);
 
   const demarrer = useDemarrerPointage();
   const arreter = useArreterPointage();
@@ -447,6 +456,16 @@ export function EcranBornePointage() {
 
   const enTraitement = demarrer.isPending || arreter.isPending || enChainage;
 
+  // Point 6 (« deux nombres ») : cumul du jour sur la cible du pointage OUVERT, même calcul
+  // qu'`EcranPointageTechnicien` — voir l'en-tête de `cumul-cible-jour.ts`.
+  const cibleSegmentCourant = pointageOuvert.data
+    ? cibleCumulDepuisPointage(pointageOuvert.data)
+    : undefined;
+  const cumulSegmentCourant =
+    cibleSegmentCourant && cumulsJour.pointages
+      ? calculerCumulSecondesCible(cumulsJour.pointages, cibleSegmentCourant)
+      : undefined;
+
   /* ---------------------------------------------------------------------------------------- */
   /* Rendu                                                                                      */
   /* ---------------------------------------------------------------------------------------- */
@@ -520,7 +539,7 @@ export function EcranBornePointage() {
                     reinitialiserInactivite();
                     setOrSelectionneId(or.id);
                   }}
-                  className="flex min-h-[64px] flex-col items-start gap-1 rounded-lg border p-4 text-left transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex min-h-[72px] flex-col items-start gap-1 rounded-lg border p-4 text-left transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="flex flex-col gap-1">
                     <span className="font-medium">{or.numero}</span>
@@ -581,7 +600,7 @@ export function EcranBornePointage() {
                 key={activite}
                 size="lg"
                 variant="outline"
-                className="h-16 text-base"
+                className="min-h-[72px] text-base"
                 disabled={enTraitement}
                 onClick={() => handleDemarrerActiviteIndirecte(activite)}
               >
@@ -601,10 +620,9 @@ export function EcranBornePointage() {
       // assise devant un clavier. Les autres écrans du domaine (`EcranPointage` — journal/équipe,
       // `DialogueCloturePeriode`) restent sur le repli `densite-dense` : poste de travail, chef
       // d'atelier assis. Cascade par variables CSS custom properties sur toute la sous-arborescence
-      // en DOM réel (`PaveNumerique`, `CartePointageEnCours`) — aucune classe dupliquée côté
-      // enfants. EXCEPTION mesurée : `DialogueChoixCiblePointage` rend via un portail Radix (hors
-      // de cette sous-arborescence DOM) et reçoit donc `densite="tres-aeree"` explicitement plus
-      // bas, voir sa docstring.
+      // en DOM réel (`PaveNumerique`, `CartePointageEnCours`, et depuis la refonte plein écran
+      // `DialogueChoixCiblePointage` — qui n'utilise plus de portail Radix, voir sa docstring) —
+      // aucune classe dupliquée côté enfants.
       className="densite-tres-aeree flex min-h-[70vh] flex-col items-center justify-center gap-8"
       onPointerDown={identifie ? reinitialiserInactivite : undefined}
     >
@@ -647,6 +665,22 @@ export function EcranBornePointage() {
             onValider={validerManuel}
           />
         </div>
+      ) : orSelectionneId ? (
+        // Vue plein écran « Que pointez-vous ? » (point 3) : remplace ENTIÈREMENT le panneau du
+        // technicien identifié, même patron que `EcranPointageTechnicien` — voir la docstring de
+        // `DialogueChoixCiblePointage`. Rendue DANS cette sous-arborescence (ancêtre
+        // `.densite-tres-aeree` juste au-dessus), plus de portail Radix à contourner : le prop
+        // `densite` explicite qu'exigeait l'ancienne modale n'a donc plus lieu d'être.
+        <div className="flex w-full max-w-2xl flex-col gap-6">
+          <DialogueChoixCiblePointage
+            onFermer={() => setOrSelectionneId(undefined)}
+            technicienId={technicienId as string}
+            requeteOr={requeteOrSelectionne}
+            onChoisirLigne={handleChoisirLigne}
+            onChoisirOrEntier={handleChoisirOrEntier}
+            enDemarrage={demarrer.isPending}
+          />
+        </div>
       ) : (
         <div className="flex w-full max-w-2xl flex-col gap-6">
           <div className="flex items-center justify-between gap-4">
@@ -657,7 +691,7 @@ export function EcranBornePointage() {
               type="button"
               variant="outline"
               size="lg"
-              className="h-14 text-base"
+              className="min-h-[72px] text-base"
               onClick={revenirEcranNeutre}
             >
               {t('pointage:identification.terminer')}
@@ -680,6 +714,7 @@ export function EcranBornePointage() {
                 <CartePointageEnCours
                   pointage={pointageOuvert.data}
                   libelleCible={libelleCiblePointage(pointageOuvert.data, t)}
+                  cumulAujourdhuiSecondes={cumulSegmentCourant}
                   onArreter={() => void handleArreter()}
                   onPause={
                     pointageOuvert.data.nature === 'productif_ligne' ||
@@ -724,17 +759,6 @@ export function EcranBornePointage() {
               ) : null}
             </>
           ) : null}
-
-          <DialogueChoixCiblePointage
-            ouvert={Boolean(orSelectionneId)}
-            onFermer={() => setOrSelectionneId(undefined)}
-            technicienId={technicienId as string}
-            requeteOr={requeteOrSelectionne}
-            onChoisirLigne={handleChoisirLigne}
-            onChoisirOrEntier={handleChoisirOrEntier}
-            enDemarrage={demarrer.isPending}
-            densite="tres-aeree"
-          />
         </div>
       )}
     </div>

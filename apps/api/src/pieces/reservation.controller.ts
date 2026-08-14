@@ -1,4 +1,13 @@
-import { Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import {
   schemaLiberationReservation,
@@ -50,6 +59,7 @@ export class ReservationController {
   }
 
   @Post(':id/satisfaire')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('pieces.reservation.satisfaire')
   @ApiOperation({
     summary: 'Le magasinier remet physiquement la pièce (RP-21) — génère le mouvement sortie_or.',
@@ -66,6 +76,7 @@ export class ReservationController {
   }
 
   @Post(':id/liberer')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('pieces.reservation.liberer')
   @ApiOperation({
     summary:

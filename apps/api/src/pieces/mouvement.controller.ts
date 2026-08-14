@@ -168,6 +168,7 @@ export class MouvementController {
   }
 
   @Post(':articleId/mouvements/ajustement-inventaire')
+  @HttpCode(HttpStatus.CREATED)
   @ExigerDroit('pieces.mouvement.creer')
   @ApiOperation({
     summary:

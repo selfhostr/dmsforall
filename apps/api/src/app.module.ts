@@ -17,6 +17,7 @@ import { CommonModule, MiddlewareContexteRequete } from './common';
 import type { Config } from './config';
 import { ConfigModule } from './config';
 import { ConnecteursModule } from './connecteurs/connecteurs.module';
+import { CourrielModule } from './courriel';
 import { DbModule } from './db/db.module';
 import { ExploitationModule } from './exploitation';
 import { FacturationModule } from './facturation/facturation.module';
@@ -46,6 +47,13 @@ export class AppModule implements NestModule {
         AuthModule,
         SocleModule,
         SanteModule,
+        // `CourrielModule` (capacité d'envoi de courriel — SMTP Infomaniak/capture, voir
+        // `courriel/`) — SOCLE SEUL, aucun branchement métier pour l'instant (ni relances, ni
+        // envoi de facture, ni invitation d'utilisateur : ces usages viendront plus tard, par
+        // d'autres modules qui injecteront `ServiceCourriel`). Aucune dépendance de compilation
+        // avec un autre module métier, placé ici par simple cohérence avec les autres briques
+        // d'infrastructure transverse (Common/Db/Auth/Socle/Sante) juste au-dessus.
+        CourrielModule,
         // Lot 1 (L1-16) — `ParametrageModule` en premier : il porte `CompteursModule` (`@Global`),
         // dont `ClientsModule`/`AtelierModule` dépendent (`JETON_COMPTEURS`) sans l'importer
         // explicitement (anti-cycle, voir `atelier/atelier.jetons.ts`). L'ordre des `imports` Nest
