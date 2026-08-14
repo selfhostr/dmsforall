@@ -8,6 +8,23 @@
       "titre": "Impossible de charger vos sites"
     }
   },
+  "emplacement": {
+    "rayonTiroir": "Rayon {rayon}, tiroir {tiroir}",
+    "rayonSeul": "Rayon {rayon}",
+    "tiroirSeul": "Tiroir {tiroir}",
+    "avecLibre": "{structure} — {emplacement}",
+    "modifier": "Modifier le casier",
+    "aucun": "Aucun casier renseigné",
+    "dialogue": {
+      "titre": "Casier de rangement",
+      "description": "Rayon et tiroir sont facultatifs — un complément structuré au texte libre déjà en place, qui reste utilisable pour les cas particuliers.",
+      "rayon": "Rayon",
+      "tiroir": "Tiroir",
+      "aide": "« B3 », « b3 » et « B 3 » désignent le même rayon : majuscules et espaces n'ont pas d'importance.",
+      "libreActuel": "Texte libre actuel pour ce site : {emplacement}",
+      "libreAucun": "Aucun texte libre renseigné pour ce site."
+    }
+  },
   "rechercheComptoir": {
     "titre": "Recherche comptoir",
     "aide": "Tapez une référence, une désignation ou un code-barres.",
@@ -17,8 +34,7 @@
     },
     "resultat": {
       "disponible": "{n} en stock",
-      "rupture": "Rupture de stock",
-      "emplacement": "Emplacement {emplacement}"
+      "rupture": "Rupture de stock"
     },
     "erreur": {
       "titre": "La recherche a échoué"

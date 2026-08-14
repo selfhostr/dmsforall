@@ -50,6 +50,26 @@ export class StockResumeArticleDto implements StockResumeArticle {
     description: 'quantitePhysiqueMillieme - quantiteReserveeMillieme (RP-14), dérivé.',
   })
   readonly quantiteDisponibleMillieme!: number;
+
+  @ApiProperty({ type: String, nullable: true, description: 'Texte libre (RP-11).' })
+  readonly emplacement!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description:
+      'Casier structuré (rayon, 0056), COMPLÉMENT de `emplacement` — jamais un remplacement. ' +
+      'Toujours normalisé (majuscules, sans espace) : "B3", "b3" et "B 3" saisis produisent la ' +
+      'même valeur.',
+  })
+  readonly rayon!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Casier structuré (tiroir, 0056) — mêmes règles de normalisation que `rayon`.',
+  })
+  readonly tiroir!: string | null;
 }
 
 export class ArticleDto implements ReponseArticle {
@@ -208,6 +228,16 @@ export class ResultatRechercheComptoirArticleDto implements ResultatRechercheCom
 
   @ApiProperty({ type: String, nullable: true })
   readonly emplacement!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Casier structuré (rayon, 0056), COMPLÉMENT de `emplacement`.',
+  })
+  readonly rayon!: string | null;
+
+  @ApiProperty({ type: String, nullable: true, description: 'Casier structuré (tiroir, 0056).' })
+  readonly tiroir!: string | null;
 
   @ApiProperty()
   readonly estEchangeStandard!: boolean;

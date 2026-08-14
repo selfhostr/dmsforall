@@ -237,6 +237,8 @@ export class ServiceArticle {
         quantiteReserveeMillieme: number | null;
         suiviQuelquePart: boolean;
         emplacement: string | null;
+        rayon: string | null;
+        tiroir: string | null;
         estEchangeStandard: boolean;
         montantConsigneTtcCentimes: number | null;
       }>(sql`
@@ -249,7 +251,8 @@ export class ServiceArticle {
                  select 1 from public.stock_article s2
                   where s2.tenant_id = a.tenant_id and s2.article_id = a.id
                ) as "suiviQuelquePart",
-               s.emplacement as "emplacement", a.est_echange_standard as "estEchangeStandard",
+               s.emplacement as "emplacement", s.rayon as "rayon", s.tiroir as "tiroir",
+               a.est_echange_standard as "estEchangeStandard",
                a.montant_consigne_ttc_centimes as "montantConsigneTtcCentimes"
           from public.article a
           left join public.stock_article s

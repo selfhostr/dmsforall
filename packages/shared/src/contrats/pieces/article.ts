@@ -52,6 +52,12 @@ export interface StockResumeArticle {
   readonly siteId: string;
   readonly quantitePhysiqueMillieme: number;
   readonly quantiteDisponibleMillieme: number;
+  /** Texte libre (`RP-11`) — voir `stock.ts::ReponseStockArticle.emplacement`. */
+  readonly emplacement: string | null;
+  /** Casier structuré (0056), COMPLÉMENT de `emplacement` — voir
+   *  `pieces/primitives.ts::schemaCasier` pour la garantie de normalisation. */
+  readonly rayon: string | null;
+  readonly tiroir: string | null;
 }
 
 export interface ReponseArticle {
@@ -170,6 +176,10 @@ export interface ResultatRechercheComptoirArticle {
   /** Suivi de stock au site demandé — à lire AVANT `quantiteDisponibleMillieme`. */
   readonly statutSuivi: StatutSuiviStockArticle;
   readonly emplacement: string | null;
+  /** Casier structuré (0056), COMPLÉMENT de `emplacement` — voir
+   *  `pieces/primitives.ts::schemaCasier` pour la garantie de normalisation. */
+  readonly rayon: string | null;
+  readonly tiroir: string | null;
   readonly estEchangeStandard: boolean;
   readonly montantConsigneTtcCentimes: number | null;
 }

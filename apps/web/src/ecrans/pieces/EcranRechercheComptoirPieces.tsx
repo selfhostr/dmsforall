@@ -22,7 +22,7 @@ import { DialogueRetourClientComptoir } from './DialogueRetourClientComptoir';
 import { DialogueVenteComptoir } from './DialogueVenteComptoir';
 import { peutCreerMouvement } from './droits';
 import { SelecteurSiteRequis } from './SelecteurSiteRequis';
-import { formaterQuantiteMillieme } from './utils';
+import { formaterQuantiteMillieme, texteEmplacementComplet } from './utils';
 
 /**
  * Recherche comptoir pièces (`GET /articles/recherche-comptoir` en recherche, `GET /articles` en
@@ -103,27 +103,25 @@ export function EcranRechercheComptoirPieces() {
       id: 'disponibilite',
       libelle: t('pieces:stock.quantites.disponible'),
       alignement: 'droite',
-      rendu: (article) =>
-        article.quantiteDisponibleMillieme > 0 ? (
+      rendu: (article) => {
+        const emplacementComplet = texteEmplacementComplet(t, article);
+        return article.quantiteDisponibleMillieme > 0 ? (
           <div className="flex flex-col items-end">
             <span className="tabular-nums text-statut-succes">
               {t('pieces:rechercheComptoir.resultat.disponible', {
                 n: formaterQuantiteMillieme(article.quantiteDisponibleMillieme),
               })}
             </span>
-            {article.emplacement ? (
-              <span className="texte-libelle text-muted-foreground">
-                {t('pieces:rechercheComptoir.resultat.emplacement', {
-                  emplacement: article.emplacement,
-                })}
-              </span>
+            {emplacementComplet !== null ? (
+              <span className="texte-libelle text-muted-foreground">{emplacementComplet}</span>
             ) : null}
           </div>
         ) : (
           <span className="texte-libelle text-destructive">
             {t('pieces:rechercheComptoir.resultat.rupture')}
           </span>
-        ),
+        );
+      },
     },
   ];
 

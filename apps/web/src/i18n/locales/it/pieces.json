@@ -8,6 +8,23 @@
       "titre": "Impossibile caricare le tue ubicazioni"
     }
   },
+  "emplacement": {
+    "rayonTiroir": "Scaffale {rayon}, cassetto {tiroir}",
+    "rayonSeul": "Scaffale {rayon}",
+    "tiroirSeul": "Cassetto {tiroir}",
+    "avecLibre": "{structure} — {emplacement}",
+    "modifier": "Modifica vano",
+    "aucun": "Nessun vano indicato",
+    "dialogue": {
+      "titre": "Vano di stoccaggio",
+      "description": "Scaffale e cassetto sono facoltativi — un complemento strutturato al testo libero già presente, che resta utilizzabile per i casi particolari.",
+      "rayon": "Scaffale",
+      "tiroir": "Cassetto",
+      "aide": "«B3», «b3» e «B 3» indicano lo stesso scaffale: maiuscole e spazi non contano.",
+      "libreActuel": "Testo libero attuale per questa ubicazione: {emplacement}",
+      "libreAucun": "Nessun testo libero indicato per questa ubicazione."
+    }
+  },
   "rechercheComptoir": {
     "titre": "Ricerca al banco",
     "aide": "Digitare un riferimento, una descrizione o un codice a barre.",
@@ -17,8 +34,7 @@
     },
     "resultat": {
       "disponible": "{n} disponibili",
-      "rupture": "Esaurito",
-      "emplacement": "Ubicazione {emplacement}"
+      "rupture": "Esaurito"
     },
     "erreur": {
       "titre": "La ricerca non è riuscita"

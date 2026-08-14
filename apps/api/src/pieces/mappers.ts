@@ -110,6 +110,9 @@ export function versStockResumeArticle(ligne: LigneStockArticle): StockResumeArt
     siteId: ligne.siteId,
     quantitePhysiqueMillieme: ligne.quantitePhysiqueMillieme,
     quantiteDisponibleMillieme: ligne.quantitePhysiqueMillieme - ligne.quantiteReserveeMillieme,
+    emplacement: ligne.emplacement,
+    rayon: ligne.rayon,
+    tiroir: ligne.tiroir,
   };
 }
 
@@ -121,6 +124,8 @@ export function versStockResponse(ligne: LigneStockArticle): ReponseStockArticle
     quantiteReserveeMillieme: ligne.quantiteReserveeMillieme,
     quantiteDisponibleMillieme: ligne.quantitePhysiqueMillieme - ligne.quantiteReserveeMillieme,
     emplacement: ligne.emplacement,
+    rayon: ligne.rayon,
+    tiroir: ligne.tiroir,
     stockMinimumMillieme: ligne.stockMinimumMillieme,
     quantiteCommandeStandardMillieme: ligne.quantiteCommandeStandardMillieme,
     modifieLe: enDate(ligne.modifieLe).toISOString(),
@@ -268,6 +273,8 @@ export interface DonneesRechercheComptoir {
   readonly quantiteReserveeMillieme: number | null;
   readonly suiviQuelquePart: boolean;
   readonly emplacement: string | null;
+  readonly rayon: string | null;
+  readonly tiroir: string | null;
   readonly estEchangeStandard: boolean;
   readonly montantConsigneTtcCentimes: number | null;
 }
@@ -292,6 +299,8 @@ export function versRechercheComptoirResultat(
       : 0,
     statutSuivi,
     emplacement: donnees.emplacement,
+    rayon: donnees.rayon,
+    tiroir: donnees.tiroir,
     estEchangeStandard: donnees.estEchangeStandard,
     montantConsigneTtcCentimes: donnees.montantConsigneTtcCentimes,
   };

@@ -30,6 +30,8 @@ const ARTICLE: ResultatRechercheComptoirArticle = {
   prixVenteTtcCentimes: 8900,
   quantiteDisponibleMillieme: 3000,
   emplacement: 'B3',
+  rayon: null,
+  tiroir: null,
   estEchangeStandard: false,
   montantConsigneTtcCentimes: null,
   statutSuivi: 'suivi',
@@ -37,6 +39,12 @@ const ARTICLE: ResultatRechercheComptoirArticle = {
 
 function resultats(disponibleMillieme: number): readonly ResultatRechercheComptoirArticle[] {
   return [{ ...ARTICLE, quantiteDisponibleMillieme: disponibleMillieme }];
+}
+
+function resultatsAvecCasier(
+  champs: Partial<ResultatRechercheComptoirArticle>,
+): readonly ResultatRechercheComptoirArticle[] {
+  return [{ ...ARTICLE, quantiteDisponibleMillieme: 3000, ...champs }];
 }
 
 /**
@@ -326,6 +334,61 @@ describe('EcranRechercheComptoirPieces — actions de comptoir', () => {
   });
 });
 
+describe('EcranRechercheComptoirPieces — emplacement complet (0056), trois rendus distincts', () => {
+  it('aucun rayon, aucun tiroir, aucun texte libre : rien n’est affiché (jamais un tiret muet)', async () => {
+    server.use(
+      http.get('/api/v1/articles/recherche-comptoir', () =>
+        HttpResponse.json(resultatsAvecCasier({ emplacement: null, rayon: null, tiroir: null })),
+      ),
+    );
+    rendre('magasinier');
+    await rechercher();
+
+    expect(screen.queryByText(/rayon/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/tiroir/i)).not.toBeInTheDocument();
+  });
+
+  it('texte libre seul (rayon et tiroir absents) : le texte libre est affiché tel quel', async () => {
+    server.use(
+      http.get('/api/v1/articles/recherche-comptoir', () =>
+        HttpResponse.json(
+          resultatsAvecCasier({ emplacement: 'étagère du fond', rayon: null, tiroir: null }),
+        ),
+      ),
+    );
+    rendre('magasinier');
+    await rechercher();
+
+    expect(await screen.findByText('étagère du fond')).toBeInTheDocument();
+  });
+
+  it('casier structuré (rayon + tiroir), sans texte libre : « Rayon B3, tiroir 2 »', async () => {
+    server.use(
+      http.get('/api/v1/articles/recherche-comptoir', () =>
+        HttpResponse.json(resultatsAvecCasier({ emplacement: null, rayon: 'B3', tiroir: '2' })),
+      ),
+    );
+    rendre('magasinier');
+    await rechercher();
+
+    expect(await screen.findByText('Rayon B3, tiroir 2')).toBeInTheDocument();
+  });
+
+  it('casier structuré ET texte libre en plus : les deux coexistent dans le même rendu', async () => {
+    server.use(
+      http.get('/api/v1/articles/recherche-comptoir', () =>
+        HttpResponse.json(
+          resultatsAvecCasier({ emplacement: 'accès par le fond', rayon: 'B3', tiroir: '2' }),
+        ),
+      ),
+    );
+    rendre('magasinier');
+    await rechercher();
+
+    expect(await screen.findByText('Rayon B3, tiroir 2 — accès par le fond')).toBeInTheDocument();
+  });
+});
+
 describe('EcranRechercheComptoirPieces — mode parcours (saisie vide)', () => {
   it("sans saisie, liste le catalogue actif du site trié par désignation — pas une case vide en attente d'une référence connue d'avance", async () => {
     let parametresRecus: URLSearchParams | undefined;
@@ -343,6 +406,9 @@ describe('EcranRechercheComptoirPieces — mode parcours (saisie vide)', () => {
                   siteId: 'site-1',
                   quantitePhysiqueMillieme: 3500,
                   quantiteDisponibleMillieme: 3500,
+                  emplacement: null,
+                  rayon: null,
+                  tiroir: null,
                 },
               ],
             }),
@@ -375,10 +441,9 @@ describe('EcranRechercheComptoirPieces — mode parcours (saisie vide)', () => {
     // signification que "stock explicitement à 0" — doctrine partagée avec la colonne
     // « disponible » d'`EcranListeArticles` (rien à sortir aujourd'hui sur ce site).
     expect(screen.getByText('Rupture de stock')).toBeInTheDocument();
-    // `emplacement` n'existe pas sur le résumé de stock embarqué (StockResumeArticle) : jamais
-    // deviné, donc jamais affiché en mode parcours — à la différence du mode recherche (voir
-    // `ARTICLE.emplacement` utilisé par les tests d'actions de comptoir ci-dessus).
-    expect(screen.queryByText(/Emplacement/)).not.toBeInTheDocument();
+    // `emplacement`/`rayon`/`tiroir` (0056) SONT portés par `StockResumeArticle` depuis ce lot,
+    // mais cette fixture ne les renseigne pas (`null`) : rien à afficher, jamais deviné.
+    expect(screen.queryByText(/Rayon|Tiroir|Emplacement/)).not.toBeInTheDocument();
   });
 
   it('bascule en mode recherche dès la première frappe, puis revient au catalogue une fois le champ vidé', async () => {

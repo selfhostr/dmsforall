@@ -214,10 +214,17 @@ export class ServiceStock {
 
       const valeurs: {
         emplacement?: string | null;
+        rayon?: string | null;
+        tiroir?: string | null;
         stockMinimumMillieme?: number | null;
         quantiteCommandeStandardMillieme?: number | null;
       } = {};
       if ('emplacement' in entree) valeurs.emplacement = entree.emplacement ?? null;
+      // `entree.rayon`/`entree.tiroir` sont déjà normalisés par `schemaCasier` côté contrat
+      // (majuscules, sans espace, `''` transformé en `null`) — jamais une seconde normalisation
+      // ici, un seul mécanisme, la base ne fait que vérifier (filet, `stock_article_rayon_normalise_chk`).
+      if ('rayon' in entree) valeurs.rayon = entree.rayon ?? null;
+      if ('tiroir' in entree) valeurs.tiroir = entree.tiroir ?? null;
       if ('stockMinimumMillieme' in entree)
         valeurs.stockMinimumMillieme = entree.stockMinimumMillieme ?? null;
       if ('quantiteCommandeStandardMillieme' in entree) {

@@ -44,6 +44,16 @@ export const stockArticle = pgTable(
     quantitePhysiqueMillieme: integer('quantite_physique_millieme').notNull().default(0),
     quantiteReserveeMillieme: integer('quantite_reservee_millieme').notNull().default(0),
     emplacement: text('emplacement'),
+    /**
+     * Casier structuré (0056), COMPLÉMENT de `emplacement` (texte libre), jamais un remplacement —
+     * même rattachement (tenant, article, site). Toujours stocké dans sa forme canonique
+     * (majuscules, aucun espace interne) — `stock_article_rayon_normalise_chk`/`_tiroir_` (0056)
+     * sont le FILET qui refuse toute écriture non normalisée ; la normalisation elle-même vit dans
+     * `schemaCasier` (packages/shared/src/contrats/pieces/primitives.ts), appliquée avant toute
+     * écriture applicative.
+     */
+    rayon: text('rayon'),
+    tiroir: text('tiroir'),
     stockMinimumMillieme: integer('stock_minimum_millieme'),
     quantiteCommandeStandardMillieme: integer('quantite_commande_standard_millieme'),
     ...colonnesHorodatage(),
@@ -75,6 +85,16 @@ export const stockArticle = pgTable(
     check(
       'stock_article_quantite_commande_standard_chk',
       sql`${t.quantiteCommandeStandardMillieme} is null or ${t.quantiteCommandeStandardMillieme} > 0`,
+    ),
+    // 0056 — filet de normalisation, pas le mécanisme (voir schemaCasier). Aucune longueur
+    // bornée ici, même doctrine que `emplacement` : borne applicative uniquement.
+    check(
+      'stock_article_rayon_normalise_chk',
+      sql`${t.rayon} is null or (${t.rayon} <> '' and ${t.rayon} = upper(regexp_replace(${t.rayon}, '\\s+', '', 'g')))`,
+    ),
+    check(
+      'stock_article_tiroir_normalise_chk',
+      sql`${t.tiroir} is null or (${t.tiroir} <> '' and ${t.tiroir} = upper(regexp_replace(${t.tiroir}, '\\s+', '', 'g')))`,
     ),
     index('stock_article_site_idx').on(t.tenantId, t.siteId),
   ],

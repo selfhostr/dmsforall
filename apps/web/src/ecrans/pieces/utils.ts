@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next';
+
 /**
  * Utilitaires locaux au module pièces — `lib/**` est hors périmètre de cet agent, même règle que
  * `ecrans/clients/utils.ts` (fonctions propres à un domaine, pas assez génériques pour `lib/`).
@@ -54,6 +56,41 @@ export function quantiteMilliemeVersSaisie(millieme: number): string {
     );
   }
   return String(millieme / 1000);
+}
+
+/** Les trois champs de localisation d'un article À UN SITE DONNÉ (0056) — `emplacement` (texte
+ *  libre, RP-11) est un COMPLÉMENT de `rayon`/`tiroir` (casier structuré), jamais l'inverse. */
+export interface LocalisationArticle {
+  readonly emplacement: string | null;
+  readonly rayon: string | null;
+  readonly tiroir: string | null;
+}
+
+/**
+ * Rend l'emplacement complet d'un article pour un site — casier structuré ET/OU texte libre.
+ *
+ * TROIS RENDUS DISTINCTS, jamais confondus (« absence de donnée ≠ valeur », CONTRIBUTING.md) :
+ *   1. aucun rayon, aucun tiroir, aucun texte libre -> `null` : rien à afficher, jamais un tiret
+ *      muet qui laisserait croire à un casier vide plutôt qu'à une absence de saisie ;
+ *   2. texte libre SEUL (rayon et tiroir absents) -> le texte libre affiché tel quel ;
+ *   3. casier structuré (rayon et/ou tiroir renseignés) -> le casier, complété par le texte libre
+ *      entre tirets s'il existe AUSSI (les deux systèmes coexistent, l'un ne masque jamais l'autre).
+ */
+export function texteEmplacementComplet(
+  t: TFunction,
+  { emplacement, rayon, tiroir }: LocalisationArticle,
+): string | null {
+  let structure: string | null = null;
+  if (rayon && tiroir) structure = t('pieces:emplacement.rayonTiroir', { rayon, tiroir });
+  else if (rayon) structure = t('pieces:emplacement.rayonSeul', { rayon });
+  else if (tiroir) structure = t('pieces:emplacement.tiroirSeul', { tiroir });
+
+  if (structure !== null) {
+    return emplacement !== null
+      ? t('pieces:emplacement.avecLibre', { structure, emplacement })
+      : structure;
+  }
+  return emplacement;
 }
 
 /** Résultat de la saisie d'un SEUIL de réapprovisionnement — distinct de
