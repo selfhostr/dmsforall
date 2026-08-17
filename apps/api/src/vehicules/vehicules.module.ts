@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { ReferentielVehiculesChController } from './referentiel/referentiel-vehicules-ch.controller';
+import { ReferentielVehiculesChJobModule } from './referentiel/referentiel-vehicules-ch-job.module';
 import { ServiceReferentielVehiculesCh } from './referentiel/service-referentiel-vehicules-ch';
 import { ServiceVehicule } from './service-vehicule';
 import { ServiceVehiculeCampagne } from './service-vehicule-campagne';
@@ -36,6 +37,13 @@ import { VehiculeTravailReporteController } from './vehicule-travail-reporte.con
  * lier son futur jeton `JETON_CREATION_TRAVAIL_REPORTE` à cette instance (`useExisting`).
  */
 @Module({
+  imports: [
+    // Job quotidien de contrôle/import du référentiel véhicules ASTRA — file BullMQ +
+    // planification, voir `referentiel/referentiel-vehicules-ch-job.module.ts`. Dépend de
+    // `OrdonnancementModule` (connexion BullMQ partagée) monté à la racine de l'app
+    // (`app.module.ts`), jamais réimporté ici.
+    ReferentielVehiculesChJobModule,
+  ],
   controllers: [
     VehiculeController,
     VehiculeDetentionController,

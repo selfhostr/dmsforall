@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { schemaConfigCourriel } from '../courriel/config-courriel';
 import { schemaConfigConsole } from '../exploitation/config-console';
+import { schemaConfigJobReferentielVehiculesCh } from '../vehicules/referentiel/config-job-referentiel-vehicules-ch';
 import { calculerBrancheParDefaut, calculerVersionAppParDefaut } from './version-app';
 
 /**
@@ -226,6 +227,10 @@ export const schemaConfig = z
     // monte `ExploitationModule` — donc toujours avant l'ouverture du port, jamais un démarrage
     // silencieux avec une console mal branchée.
     ...schemaConfigConsole.shape,
+    // --- Job quotidien de contrôle/import du référentiel véhicules suisse ASTRA -------------
+    // Bloc défini une seule fois dans `vehicules/referentiel/config-job-referentiel-vehicules-ch.ts`
+    // et fusionné ici via `.shape`, même patron que les deux blocs juste au-dessus.
+    ...schemaConfigJobReferentielVehiculesCh.shape,
   })
   .superRefine((c, ctx) => {
     if (c.NODE_ENV === 'production' && !c.COOKIE_SECURE) {

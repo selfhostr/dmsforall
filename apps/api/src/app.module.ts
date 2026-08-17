@@ -22,6 +22,7 @@ import { DbModule } from './db/db.module';
 import { ExploitationModule } from './exploitation';
 import { FacturationModule } from './facturation/facturation.module';
 import { ImpressionModule } from './facturation/impression/impression.module';
+import { OrdonnancementModule } from './ordonnancement';
 import { ParametrageModule } from './parametrage/parametrage.module';
 import { PiecesModule } from './pieces/pieces.module';
 import { PneusModule } from './pneus/pneus.module';
@@ -47,6 +48,13 @@ export class AppModule implements NestModule {
         AuthModule,
         SocleModule,
         SanteModule,
+        // Socle d'ordonnancement (BullMQ) — PREMIER ordonnanceur de ce dépôt, voir
+        // `ordonnancement/ordonnancement.module.ts` pour le choix d'architecture complet. Monté
+        // une seule fois ici ; tout module de job (ex. `VehiculesModule`, qui porte le job
+        // quotidien de contrôle/import du référentiel véhicules ASTRA) importe `BullModule.
+        // registerQueue(...)` directement, sans réimporter celui-ci — voir `referentiel-
+        // vehicules-ch-job.module.ts`.
+        OrdonnancementModule,
         // `CourrielModule` (capacité d'envoi de courriel — SMTP Infomaniak/capture, voir
         // `courriel/`) — SOCLE SEUL, aucun branchement métier pour l'instant (ni relances, ni
         // envoi de facture, ni invitation d'utilisateur : ces usages viendront plus tard, par
