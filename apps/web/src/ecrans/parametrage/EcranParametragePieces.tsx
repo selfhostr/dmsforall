@@ -26,6 +26,7 @@ import {
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useModifierParametresPieces } from '@/hooks/pieces/useModifierParametresPieces';
 import type { EntreeModificationParametresPieces } from '@/hooks/pieces/useModifierParametresPieces';
 import { useParametresPieces } from '@/hooks/pieces/useParametresPieces';
@@ -106,11 +107,7 @@ export function EcranParametragePieces() {
   const peutEcrire = peutModifierParametragePieces(session?.utilisateur.role);
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <h1 className="texte-titre-page font-semibold text-foreground">
-        {t('parametrage:pieces.titre')}
-      </h1>
-
+    <GabaritEcran titre={t('parametrage:pieces.titre')}>
       {requete.isPending ? (
         <EtatChargement lignes={8} />
       ) : requete.isError ? (
@@ -131,7 +128,7 @@ export function EcranParametragePieces() {
           peutEcrire={peutEcrire}
         />
       )}
-    </div>
+    </GabaritEcran>
   );
 }
 

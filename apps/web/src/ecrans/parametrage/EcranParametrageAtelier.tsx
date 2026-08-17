@@ -32,6 +32,7 @@ import {
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import {
   useModifierParametresAtelier,
   type EntreeModificationParametresAtelier,
@@ -164,11 +165,7 @@ export function EcranParametrageAtelier() {
   const peutEcrire = peutModifierParametrage(session?.utilisateur.role);
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <h1 className="texte-titre-page font-semibold text-foreground">
-        {t('parametrage:atelier.titre')}
-      </h1>
-
+    <GabaritEcran titre={t('parametrage:atelier.titre')}>
       {requete.isPending ? (
         <EtatChargement lignes={10} />
       ) : requete.isError ? (
@@ -180,7 +177,7 @@ export function EcranParametrageAtelier() {
       ) : (
         <FormulaireParametresAtelier donnees={requete.data} peutEcrire={peutEcrire} />
       )}
-    </div>
+    </GabaritEcran>
   );
 }
 

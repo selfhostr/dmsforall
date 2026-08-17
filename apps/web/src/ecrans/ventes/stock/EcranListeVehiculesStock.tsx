@@ -261,27 +261,46 @@ export function EcranListeVehiculesStock() {
       ? toutesColonnes.filter((colonne) => !colonnesMasqueesVueClient.has(colonne.id))
       : toutesColonnes;
 
+  // Bascule vue vendeur/client (issue #84) + « Mettre en stock » — ACTIONS de l'en-tête d'écran
+  // (retour @laupernoe du 17.08.2026 : « Vue vendeur, Vue client, il faut le mettre ailleurs »). Construit
+  // AVANT les retours anticipés chargement/erreur pour que l'en-tête garde EXACTEMENT la même
+  // composition entre les trois états (même doctrine que `EcranSuiviVentes` pour ses onglets
+  // d'horizon) — ni la bascule ni le bouton ne dépendent des données de la requête, aucune raison
+  // de les faire apparaître/disparaître au chargement.
+  const actionsEnTete = (
+    <>
+      <BasculeVueStock vue={vue} onChangeVue={definirVue} />
+      {peutEcrireVehiculeStock(role) && vue === 'vendeur' ? (
+        <Button onClick={() => navigate(chemins.ventes.stock.nouveau(site))}>
+          {t('ventes:stock.liste.actions.mettreEnStock')}
+        </Button>
+      ) : null}
+    </>
+  );
+
+  // Titres d'état vide nommant l'ABSENCE (jamais « Véhicules en parc », qui répéterait l'onglet
+  // actif/le menu — même défaut que celui corrigé le 17.08.2026 sur `EcranListeFactures.tsx`).
   let contenuVide: ReactNode;
   if (q.trim() !== '') {
     contenuVide = (
       <EtatVideRecherche
-        titre={t('ventes:stock.liste.titre')}
-        description={t('ventes:stock.liste.vide')}
+        titre={t('ventes:stock.liste.vide.recherche.titre')}
+        description={t('ventes:stock.liste.vide.recherche.description')}
       />
     );
   } else if (filtresStructuresActifs) {
     contenuVide = (
       <EtatVideFiltre
-        titre={t('ventes:stock.liste.titre')}
-        description={t('ventes:stock.liste.vide')}
+        titre={t('ventes:stock.liste.vide.filtre.titre')}
+        description={t('ventes:stock.liste.vide.filtre.description')}
         onEffacerFiltres={effacerFiltres}
       />
     );
   } else {
     contenuVide = (
       <EtatVidePremierUsage
-        titre={t('ventes:stock.liste.titre')}
-        description={t('ventes:stock.liste.vide')}
+        titre={t('ventes:stock.liste.vide.premierUsage.titre')}
+        description={t('ventes:stock.liste.vide.premierUsage.description')}
         action={
           peutEcrireVehiculeStock(role) && vue === 'vendeur' ? (
             <Button onClick={() => navigate(chemins.ventes.stock.nouveau(site))}>
@@ -295,7 +314,7 @@ export function EcranListeVehiculesStock() {
 
   if (isPending) {
     return (
-      <GabaritEcran titre={t('ventes:stock.liste.titre')} titreVisible={false}>
+      <GabaritEcran titre={t('ventes:stock.liste.titre')} actions={actionsEnTete}>
         <EtatChargement lignes={6} />
       </GabaritEcran>
     );
@@ -303,7 +322,7 @@ export function EcranListeVehiculesStock() {
 
   if (isError) {
     return (
-      <GabaritEcran titre={t('ventes:stock.liste.titre')} titreVisible={false}>
+      <GabaritEcran titre={t('ventes:stock.liste.titre')} actions={actionsEnTete}>
         <EtatErreur
           titre={t('ventes:stock.liste.erreur.titre')}
           description={messageErreur(error, t)}
@@ -314,25 +333,21 @@ export function EcranListeVehiculesStock() {
   }
 
   return (
-    // L'onglet de navigation « Véhicules en parc » (OngletsDomaine, actif sur cette route) porte
-    // déjà ce référent à l'écran : « Parc en stock » ne fait que le reformuler (mêmes deux mots,
-    // ordre inversé), sans qualificatif neuf (aucun compte, aucun filtre, aucun site) — titre gardé
-    // dans le DOM (`titreVisible={false}`, jamais retiré) pour la structure de document, même choix
-    // que `EcranListeFactures`/`EcranSuiviVentes`. `BasculeVueStock` n'est pas une ACTION de cet
-    // écran (elle ne crée ni ne modifie rien) — elle ne va donc pas dans le slot `actions` du
-    // gabarit, qui reste réservé à « Mettre en stock » ; elle garde sa propre ligne, comme avant ce
-    // gabarit (silhouette déjà jugée correcte par @laupernoe, seul son style a changé, voir
-    // `BasculeVueStock.tsx`).
-    <GabaritEcran titre={t('ventes:stock.liste.titre')} titreVisible={false}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <BasculeVueStock vue={vue} onChangeVue={definirVue} />
-        {peutEcrireVehiculeStock(role) && vue === 'vendeur' ? (
-          <Button onClick={() => navigate(chemins.ventes.stock.nouveau(site))}>
-            {t('ventes:stock.liste.actions.mettreEnStock')}
-          </Button>
-        ) : null}
-      </div>
-
+    // Titre MASQUÉ automatiquement — `ventes:stock.liste.titre` vaut désormais littéralement
+    // « Véhicules en parc », IDENTIQUE à l'onglet actif « Véhicules en parc » (`navigation-modele.ts`,
+    // `ONGLETS_VENTES`) une fois normalisé (§3 du contrat du chantier « titres doublés »,
+    // 17.08.2026) — avant ce correctif le libellé était « Parc en stock » (mêmes deux mots, ordre
+    // inversé), qui NE matchait PAS la règle mécanique d'inclusion du contrat et serait donc resté
+    // visible à tort. Renommé plutôt que de poser `titreVisible={false}` (interdit par le contrat
+    // §5.2, « ne jamais poser titreVisible pour être sûr ») : le texte, désormais identique à
+    // l'allemand `stock.liste.titre`/`Fahrzeugbestand` qui matchait déjà son onglet par coïncidence,
+    // fait tomber la détection automatique juste dans les trois langues.
+    //
+    // `BasculeVueStock` a quitté sa propre ligne pour le slot `actions` du gabarit, à droite du
+    // titre — retour @laupernoe du 17.08.2026 (« Vue vendeur, Vue client, il faut le mettre ailleurs »),
+    // voir `actionsEnTete` ci-dessus. Le contenu commence directement par la barre de filtres,
+    // remonté d'une rangée entière (retour @laupernoe du 17.08.2026, « tu peux mettre plus haut le truc »).
+    <GabaritEcran titre={t('ventes:stock.liste.titre')} actions={actionsEnTete}>
       <BarreFiltres
         q={qSaisie}
         onChangeQ={setQSaisie}

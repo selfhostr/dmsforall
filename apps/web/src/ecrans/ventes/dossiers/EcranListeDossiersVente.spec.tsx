@@ -104,7 +104,7 @@ describe('EcranListeDossiersVente', () => {
 
     rendre();
 
-    expect(await screen.findByText('Aucun dossier de vente.')).toBeInTheDocument();
+    expect(await screen.findByText('Aucun dossier de vente')).toBeInTheDocument();
   });
 
   it('état erreur : message actionnable avec retry', async () => {

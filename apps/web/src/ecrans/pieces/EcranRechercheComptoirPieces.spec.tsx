@@ -125,6 +125,35 @@ async function rechercher(terme = '1K0698151') {
   await screen.findByText('Plaquettes de frein avant', {}, { timeout: 2000 });
 }
 
+/**
+ * Chantier « titres doublés & espacements » (contrat figé du 17.08.2026, §3) — défaut cité
+ * nommément par @laupernoe : « dans Comptoir, c'est écrit "Recherche comptoir" et du coup ça fait un
+ * espace horrible ». « Recherche comptoir » (`pieces:rechercheComptoir.titre`) CONTIENT le
+ * libellé de l'onglet actif « Comptoir » (`navigation-modele.ts`, `ONGLETS_PIECES`) —
+ * `GabaritEcran` doit le masquer par inclusion, jamais le retirer du DOM.
+ */
+describe('EcranRechercheComptoirPieces — titre de page (doublon avec l’onglet « Comptoir »)', () => {
+  it('le titre « Recherche comptoir » reste dans le DOM mais est masqué visuellement', async () => {
+    server.use(
+      http.get('/api/v1/articles/recherche-comptoir', () => HttpResponse.json(resultats(3000))),
+    );
+    rendre('magasinier');
+
+    // La détection dépend du rôle en session (`useNavigationActive`) — le `<h1>` existe dès le
+    // premier rendu mais ne devient `sr-only` qu'après résolution de la session (re-rendu). Cet
+    // écran ne pose ni `sousTitre` ni `actions` sur `GabaritEcran` : la bascule visible -> masqué
+    // fait passer par sa branche « anti-trou », qui REMPLACE le nœud `<h1>` (structure JSX
+    // différente) au lieu de muter sa classe en place. On RE-INTERROGE le DOM à chaque tentative
+    // de `waitFor`, jamais une référence figée avant la résolution de session.
+    await screen.findByRole('heading', { level: 1, name: 'Recherche comptoir' });
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 1, name: 'Recherche comptoir' })).toHaveClass(
+        'sr-only',
+      );
+    });
+  });
+});
+
 describe('EcranRechercheComptoirPieces — actions de comptoir', () => {
   it('masque entièrement les actions « Vendre » et « Retour client » sans le droit pieces.mouvement.creer', async () => {
     server.use(
@@ -492,7 +521,7 @@ describe('EcranRechercheComptoirPieces — mode parcours (saisie vide)', () => {
 
     // Cas NOMINAL « le catalogue actif de ce site est vide » — pas une erreur, pas le message de
     // recherche sans résultat.
-    expect(await screen.findByText('Aucun article.')).toBeInTheDocument();
+    expect(await screen.findByText('Aucun article au catalogue')).toBeInTheDocument();
     expect(
       screen.queryByText('Aucun article ne correspond à cette recherche sur ce site.'),
     ).not.toBeInTheDocument();
@@ -508,7 +537,7 @@ describe('EcranRechercheComptoirPieces — mode parcours (saisie vide)', () => {
         ).toBeInTheDocument(),
       { timeout: 2000 },
     );
-    expect(screen.queryByText('Aucun article.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Aucun article au catalogue')).not.toBeInTheDocument();
   });
 
   it('« Charger plus » charge la page suivante du catalogue par curseur, en accumulant sur la première page', async () => {

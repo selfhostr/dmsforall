@@ -27,6 +27,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useCreerAvoir } from '@/hooks/facturation/useCreerAvoir';
 import { useDocumentVente } from '@/hooks/facturation/useDocumentVente';
 import { useEmettreDocumentVente } from '@/hooks/facturation/useEmettreDocumentVente';
@@ -74,25 +75,29 @@ export function EcranAvoir() {
     }
   }, [dialogueOuvert]);
 
+  // Titre générique tant que la facture d'origine n'est pas chargée (chantier « titres doublés &
+  // espacements », 17.08.2026) — passe par `GabaritEcran` comme le reste de l'écran, pour que
+  // l'en-tête ne saute pas entre chargement/erreur/contenu. « Avoir » (mot seul) ne fait doublon
+  // avec aucun libellé de navigation de cette route (onglet « Factures », entrée « Facturation »),
+  // il reste donc visible — sans que ce soit un problème : `EtatChargement`/`EtatErreur` n'ont pas
+  // d'actions, la ligne de titre n'ajoute qu'une hauteur normale, jamais un trou vide.
   if (requete.isPending) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('facturation:titre')}</h1>
+      <GabaritEcran titre={t('facturation:document.type.avoir')}>
         <EtatChargement lignes={6} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (requete.isError) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('facturation:titre')}</h1>
+      <GabaritEcran titre={t('facturation:document.type.avoir')}>
         <EtatErreur
           titre={t('facturation:avoir.erreur.titre')}
           description={messageErreur(requete.error, t)}
           onReessayer={() => void requete.refetch()}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
@@ -175,20 +180,23 @@ export function EcranAvoir() {
   const motifValide = motif !== 'autre' || (motifAutre.trim() !== '' && !motifAutreTropLong);
   const peutEmettre = selection.size > 0 && motifValide;
 
+  // Titre COMPOSÉ « Avoir sur facture {numéro} — {destinataire} » (chantier « titres doublés &
+  // espacements », 17.08.2026) : ne fait doublon avec aucun libellé de navigation (onglet
+  // « Factures », entrée « Facturation »), reste donc visible par détection automatique — aucun
+  // `titreVisible` posé. Le destinataire n'apparaît nulle part ailleurs sur cet écran (contrairement
+  // à `EcranFicheFacture`, qui porte une Card « Destinataire » dédiée) : pas de redite à retirer ici.
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="texte-titre-section font-semibold text-foreground">
-          {t('facturation:avoir.titre', {
-            numero: facture.numero ?? '',
-            destinataire: facture.figees.clientDesignation,
-          })}
-        </h1>
+    <GabaritEcran
+      titre={t('facturation:avoir.titre', {
+        numero: facture.numero ?? '',
+        destinataire: facture.figees.clientDesignation,
+      })}
+      actions={
         <Button type="button" disabled={!peutEmettre} onClick={() => setDialogueOuvert(true)}>
           {t('facturation:avoir.action.emettre')}
         </Button>
-      </div>
-
+      }
+    >
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
@@ -313,6 +321,6 @@ export function EcranAvoir() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </GabaritEcran>
   );
 }

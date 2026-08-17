@@ -27,6 +27,7 @@ import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useReservations } from '@/hooks/pieces/useReservations';
 import { useSatisfaireReservation } from '@/hooks/pieces/useTransitionsReservation';
 import { useSession } from '@/hooks/useSession';
@@ -170,34 +171,29 @@ export function EcranReservationsPieces() {
 
   if (isPending) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('pieces:reservations.titre')}</h1>
+      <GabaritEcran titre={t('pieces:reservations.titre')}>
         <EtatChargement lignes={6} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (isError) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('pieces:reservations.titre')}</h1>
+      <GabaritEcran titre={t('pieces:reservations.titre')}>
         <EtatErreur
           titre={t('pieces:reservations.erreur.titre')}
           description={messageErreur(error, t)}
           onReessayer={() => void refetch()}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
+  // Titre MASQUÉ automatiquement — doublon strict du libellé de la vue active « Réservations »
+  // (`navigation-modele.ts`, `ONGLETS_PIECES`, vue « reservations » de l'onglet Articles) :
+  // `GabaritEcran` le détecte lui-même (§3 du contrat du chantier « titres doublés », 17.08.2026).
   return (
-    <div className="flex flex-col gap-6">
-      {/* Doublon strict du libellé de la vue active « Réservations » (`navigation-modele.ts`,
-          `ONGLETS_PIECES`, vue « reservations » de l'onglet Articles) : le h1 reste dans le DOM
-          pour le lecteur d'écran et la structure du document, sans répéter visuellement ce que la
-          barre d'onglets affiche déjà en surbrillance. */}
-      <h1 className="sr-only">{t('pieces:reservations.titre')}</h1>
-
+    <GabaritEcran titre={t('pieces:reservations.titre')}>
       <div className="flex flex-col gap-1.5 max-w-xs">
         <Label htmlFor="filtre-statut-reservation">{t('pieces:reservations.statut')}</Label>
         <Select
@@ -253,6 +249,6 @@ export function EcranReservationsPieces() {
         reservationId={reservationALiberer}
         onFerme={() => setReservationALiberer(null)}
       />
-    </div>
+    </GabaritEcran>
   );
 }

@@ -146,9 +146,7 @@ describe('EcranListeVehiculesStock', () => {
 
     rendre();
 
-    expect(
-      await screen.findByText('Aucun véhicule en stock ne correspond à ces critères.'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Aucun véhicule en stock')).toBeInTheDocument();
     expect(
       screen.getAllByRole('button', { name: 'Mettre un véhicule en stock' }).length,
     ).toBeGreaterThan(0);

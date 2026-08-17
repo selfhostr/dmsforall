@@ -194,6 +194,17 @@ function construireEntreeDemarrageBorne(
  * `docs/proposition-refonte-pointage.md` §1.4) : la reprise fonctionne maintenant ICI AUSSI, plus
  * seulement sur l'écran personnel — bénéfice direct de la bascule serveur, pas une extension
  * d'ergonomie décidée par ce fichier.
+ *
+ * PAS DE `GabaritEcran` ICI (chantier « titres doublés », 17.08.2026, décision MESURÉE — voir
+ * `AppShell.tsx` : `poste_atelier`, le compte réel de cet écran, n'a NI barre latérale NI onglets
+ * — seul `EnTete` reste ; `chef_atelier`/`admin`, qui y accèdent en mise en service, VOIENT la
+ * rangée d'onglets/vues, mais aucun de ces titres — « Qui êtes-vous ? », « Bonjour {prénom} », « Que
+ * pointez-vous ? » — ne recoupe jamais « Pointage »/« Borne d'atelier » : la détection automatique
+ * du gabarit ne masquerait donc RIEN ici, le h1 resterait visible dans tous les cas. La composition
+ * plein écran centrée (pavé tactile mural, gants, lu à distance) est en outre incompatible avec la
+ * rangée titre+actions imposée par `GabaritEcran` — signalé au coordinateur, pas retenu comme
+ * périmètre de ce chantier. Les trois `h1` ci-dessous restent donc posés à la main, mais
+ * COHÉRENTS entre eux (toujours visibles, jamais `sr-only` au chargement puis visibles ensuite).
  */
 export function EcranBornePointage() {
   const { t } = useTranslation(['pointage', 'commun']);
@@ -545,7 +556,10 @@ export function EcranBornePointage() {
   if (sessionEnAttente) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('pointage:identification.titre')}</h1>
+        {/* Visible, PAS `sr-only` (chantier « titres doublés ») : cohérent avec les autres états
+         *  de cet écran (pavé neutre, panneau identifié) — l'en-tête ne doit jamais sauter entre
+         *  deux états, voir la docstring de tête, § « pas de GabaritEcran ici ». */}
+        <h1 className="texte-titre-page">{t('pointage:identification.titre')}</h1>
         <EtatChargement lignes={4} />
       </div>
     );
@@ -553,10 +567,13 @@ export function EcranBornePointage() {
 
   if (sessionEnErreur || !session) {
     return (
-      <EtatErreur
-        titre={t('pointage:identification.erreur.titre')}
-        description={t('pointage:identification.erreur.session')}
-      />
+      <div className="flex flex-col gap-6">
+        <h1 className="texte-titre-page">{t('pointage:identification.titre')}</h1>
+        <EtatErreur
+          titre={t('pointage:identification.erreur.titre')}
+          description={t('pointage:identification.erreur.session')}
+        />
+      </div>
     );
   }
 
@@ -737,7 +754,10 @@ export function EcranBornePointage() {
         // `DialogueChoixCiblePointage`. Rendue DANS cette sous-arborescence (ancêtre
         // `.densite-tres-aeree` juste au-dessus), plus de portail Radix à contourner : le prop
         // `densite` explicite qu'exigeait l'ancienne modale n'a donc plus lieu d'être.
+        // `DialogueChoixCiblePointage` ne pose plus son propre `h1` (chantier « titres doublés ») —
+        // porté ici, comme chez `EcranPointageTechnicien`.
         <div className="flex w-full max-w-2xl flex-col gap-6">
+          <h1 className="texte-titre-page">{t('pointage:technicien.choisirCible.titre')}</h1>
           <DialogueChoixCiblePointage
             onFermer={() => setOrSelectionneId(undefined)}
             technicienId={technicienId as string}

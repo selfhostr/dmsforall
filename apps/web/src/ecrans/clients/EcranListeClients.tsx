@@ -183,13 +183,14 @@ export function EcranListeClients() {
   const estErreurReseau = requete.error instanceof ErreurReseau;
 
   return (
-    // Titre VISIBLE (défaut du gabarit) — référence citée par @laupernoe pour généraliser ce choix
-    // (« dans Clients il y a écrit Clients, c'est mieux ») : cet écran garde son h1 à l'écran,
-    // il ne fait pas que répéter un onglet déjà affiché. Aucun padding local : `AppShell` pose
-    // déjà `p-4 sm:p-6` sur tout écran routé — un `p-6` ici le doublerait (48px au lieu de 24px).
+    // Titre laissé à la détection automatique du gabarit (chantier « titres doublés &
+    // espacements », re-arbitrage @laupernoe du 17.08.2026 — ANNULE le retour du 12.08.2026 cité ici
+    // auparavant, qui demandait ce même h1 visible : l'onglet « Clients », déjà affiché à
+    // l'écran, porte désormais ce libellé, le h1 devient `sr-only` (jamais retiré du DOM).
+    // Aucun padding local : `AppShell` pose déjà `p-4 sm:p-6` sur tout écran routé.
     //
-    // « Nouveau client » N'EST PLUS dans l'emplacement `actions` du gabarit (qui le plaçait juste
-    // sous le titre, seul sur sa ligne, et décalait tout le reste) — retour @laupernoe, chantier
+    // « Nouveau client » N'EST PAS dans l'emplacement `actions` du gabarit (qui le placerait juste
+    // sous le titre, seul sur sa ligne, et décalerait tout le reste) — retour @laupernoe, chantier
     // « zone haute des écrans de liste » : le bouton descend juste sous la barre de filtres,
     // aligné à droite, même déplacement que sur Atelier/Pneus/Véhicules.
     <GabaritEcran titre={t('clients:titre')}>

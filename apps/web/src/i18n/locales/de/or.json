@@ -360,9 +360,18 @@
       "titre": "Reparaturaufträge konnten nicht geladen werden"
     },
     "vide": {
-      "premierUsage": "Noch kein Reparaturauftrag erfasst.",
-      "recherche": "Kein Reparaturauftrag entspricht dieser Suche.",
-      "filtre": "Kein Ergebnis mit diesem Filter."
+      "premierUsage": {
+        "titre": "Kein Reparaturauftrag",
+        "description": "Eröffnen Sie einen, sobald ein Fahrzeug eintrifft."
+      },
+      "recherche": {
+        "titre": "Kein Reparaturauftrag gefunden",
+        "description": "Kein Reparaturauftrag entspricht dieser Suche."
+      },
+      "filtre": {
+        "titre": "Kein Auftrag mit diesen Filtern",
+        "description": "Kein Reparaturauftrag entspricht den gewählten Filtern."
+      }
     }
   },
   "fiche": {

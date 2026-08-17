@@ -28,6 +28,7 @@ import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useListeCommandesFournisseur } from '@/hooks/pieces/useListeCommandesFournisseur';
 import { useSession } from '@/hooks/useSession';
 import { formaterDate } from '@/lib/formats';
@@ -142,41 +143,38 @@ export function EcranListeCommandesFournisseur() {
 
   if (isPending) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="texte-titre-page">{t('pieces:commandes.titre')}</h1>
+      <GabaritEcran titre={t('pieces:commandes.titre')}>
         <EtatChargement lignes={6} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (isError) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="texte-titre-page">{t('pieces:commandes.titre')}</h1>
+      <GabaritEcran titre={t('pieces:commandes.titre')}>
         <EtatErreur
           titre={t('pieces:commandes.erreur.titre')}
           description={messageErreur(error, t)}
           onReessayer={() => void refetch()}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
-  return (
-    <div className="flex flex-col gap-6">
-      {/* NON masqué volontairement : la vue active « Commandes » (`navigation-modele.ts`,
-          `ONGLETS_PIECES`, vue « commandes » de l'onglet Approvisionnement) ne dit pas de quoi il
-          s'agit — « Commandes fournisseur » porte l'information « fournisseur » qu'aucun onglet ni
-          vue n'affiche. Comparaison mot pour mot avec la barre d'onglets active : pas un doublon. */}
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="texte-titre-page">{t('pieces:commandes.titre')}</h1>
-        {peutEcrireCommandeFournisseur(role) ? (
-          <Button onClick={() => navigate('/pieces/commandes-fournisseur/nouvelle')}>
-            {t('pieces:commandes.actions.creer')}
-          </Button>
-        ) : null}
-      </div>
+  // Titre MASQUÉ automatiquement — « Commandes fournisseur » (`pieces:commandes.titre`) est un
+  // doublon de la vue active « Commandes » (`navigation-modele.ts`, `ONGLETS_PIECES`, vue
+  // « commandes » de l'onglet Approvisionnement) : `GabaritEcran` le détecte par inclusion (le
+  // titre CONTIENT le libellé de la vue). Défaut cité nommément par @laupernoe le 17.08.2026 (« dans
+  // Commandes, "Commandes fournisseur" ») — l'ancien commentaire ici (« pas un doublon », retiré
+  // par ce correctif) argumentait l'inverse ; @laupernoe a explicitement tranché dans l'autre sens.
+  const boutonCreer = peutEcrireCommandeFournisseur(role) ? (
+    <Button onClick={() => navigate('/pieces/commandes-fournisseur/nouvelle')}>
+      {t('pieces:commandes.actions.creer')}
+    </Button>
+  ) : undefined;
 
+  return (
+    <GabaritEcran titre={t('pieces:commandes.titre')} actions={boutonCreer}>
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-1.5 max-w-xs">
           <Label htmlFor="filtre-statut-commande">{t('pieces:commandes.statut')}</Label>
@@ -251,6 +249,6 @@ export function EcranListeCommandesFournisseur() {
         enChargement={isFetchingNextPage}
         onChargerPlus={() => void fetchNextPage()}
       />
-    </div>
+    </GabaritEcran>
   );
 }

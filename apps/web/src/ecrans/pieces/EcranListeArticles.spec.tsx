@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { describe, expect, it } from 'vitest';
@@ -92,6 +92,38 @@ function rendre(routeInitiale: string) {
  * — ces trois tests prouvent les TROIS rendus distincts (inconnue / zéro / valeur réelle), pilotés
  * par la PROPAGATION du site déjà choisi, jamais par le rendu du tiret lui-même.
  */
+/**
+ * Chantier « titres doublés & espacements » (contrat figé du 17.08.2026, §3) — « Articles »
+ * (`pieces:articles.liste.titre`) est un doublon STRICT de l'onglet actif « Articles »
+ * (`navigation-modele.ts`, `ONGLETS_PIECES`) et de sa vue « Tous » : `GabaritEcran` doit le
+ * masquer visuellement (`sr-only`) sans le retirer du DOM — jamais une assertion affaiblie en
+ * « le titre a disparu ».
+ */
+describe('EcranListeArticles — titre de page (doublon avec l’onglet « Articles »)', () => {
+  it('le titre « Articles » reste dans le DOM mais est masqué visuellement (doublon avec l’onglet actif)', async () => {
+    connecterSession(SESSION_TEST);
+    server.use(http.get(CHEMIN, () => HttpResponse.json(pageArticles([]))));
+
+    rendre('/pieces/articles');
+
+    // La détection dépend du rôle en session (`useNavigationActive`, `role = session?.utilisateur.role`) —
+    // le `<h1>` existe dès le premier rendu mais ne devient `sr-only` qu'après résolution de la
+    // session (re-rendu). Ce screen ne pose ni `sousTitre` ni `actions` : `GabaritEcran` bascule
+    // alors sur sa branche « anti-trou » quand le titre passe visible -> masqué, ce qui REMPLACE
+    // le nœud `<h1>` (structure JSX différente) plutôt que de muter sa classe en place — une
+    // référence DOM capturée avant ce basculement devient obsolète. On RE-INTERROGE le DOM à
+    // chaque tentative de `waitFor`, jamais une référence figée avant la résolution de session.
+    expect(
+      screen.getByRole('heading', { level: 1, name: i18n.t('pieces:articles.liste.titre') }),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { level: 1, name: i18n.t('pieces:articles.liste.titre') }),
+      ).toHaveClass('sr-only');
+    });
+  });
+});
+
 describe('EcranListeArticles — propagation du site déjà choisi vers la colonne « Disponible »', () => {
   it('quantité INCONNUE (« — ») : aucun site résolu nulle part (ni ?site= ni préférence), plusieurs sites actifs — jamais une valeur devinée', async () => {
     connecterSession(SESSION_DEUX_SITES);

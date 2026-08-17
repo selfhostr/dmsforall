@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
@@ -71,6 +71,44 @@ function rendre(routeInitiale = '/pieces/reapprovisionnement?site=site-1') {
     </QueryClientProvider>,
   );
 }
+
+/**
+ * Chantier « titres doublés & espacements » (contrat figé du 17.08.2026, §3) — défaut cité
+ * nommément par @laupernoe : « Dans Approvisionnement, c'est écrit "Réapprovisionnement" ». « Réapprovisionnement »
+ * (`pieces:stock.reapprovisionnement.titre`) CONTIENT le libellé de l'onglet actif « Approvisionnement »
+ * (`navigation-modele.ts`, `ONGLETS_PIECES`) — `GabaritEcran` doit le masquer par inclusion,
+ * jamais le retirer du DOM.
+ */
+describe('EcranReapprovisionnement — titre de page (doublon avec l’onglet « Approvisionnement »)', () => {
+  it('le titre « Réapprovisionnement » reste dans le DOM mais est masqué visuellement', async () => {
+    connecterSession();
+    server.use(
+      http.get(CHEMIN, () =>
+        HttpResponse.json({ donnees: LIGNES, curseurSuivant: null, limite: 50 }),
+      ),
+    );
+    rendre();
+
+    // La détection dépend du rôle en session (`useNavigationActive`) — le `<h1>` existe dès le
+    // premier rendu mais ne devient `sr-only` qu'après résolution de la session (re-rendu). Cet
+    // écran ne pose ni `sousTitre` ni `actions` sur `GabaritEcran` : la bascule visible -> masqué
+    // fait passer par sa branche « anti-trou », qui REMPLACE le nœud `<h1>` (structure JSX
+    // différente) au lieu de muter sa classe en place. On RE-INTERROGE le DOM à chaque tentative
+    // de `waitFor`, jamais une référence figée avant la résolution de session.
+    await screen.findByRole('heading', {
+      level: 1,
+      name: i18n.t('pieces:stock.reapprovisionnement.titre'),
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: i18n.t('pieces:stock.reapprovisionnement.titre'),
+        }),
+      ).toHaveClass('sr-only');
+    });
+  });
+});
 
 describe('EcranReapprovisionnement — états de base', () => {
   it('demande un site tant qu’aucun n’est sélectionné', async () => {

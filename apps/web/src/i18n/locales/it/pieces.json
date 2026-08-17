@@ -30,7 +30,14 @@
     "aide": "Digitare un riferimento, una descrizione o un codice a barre.",
     "champRecherche": "Riferimento, descrizione, codice a barre…",
     "vide": {
-      "recherche": "Nessun articolo corrisponde a questa ricerca in questa ubicazione."
+      "recherche": {
+        "titre": "Nessun articolo trovato",
+        "description": "Nessun articolo corrisponde a questa ricerca in questa ubicazione."
+      },
+      "catalogue": {
+        "titre": "Nessun articolo a catalogo",
+        "description": "Nessun articolo attivo è registrato in questa ubicazione."
+      }
     },
     "resultat": {
       "disponible": "{n} disponibili",
@@ -126,6 +133,20 @@
       },
       "erreur": {
         "titre": "Impossibile visualizzare gli articoli"
+      },
+      "vide": {
+        "recherche": {
+          "titre": "Nessun articolo trovato",
+          "description": "Nessun articolo corrisponde a questa ricerca."
+        },
+        "filtre": {
+          "titre": "Nessun articolo con questi filtri",
+          "description": "Nessun articolo corrisponde ai filtri selezionati."
+        },
+        "premierUsage": {
+          "titre": "Nessun articolo a catalogo",
+          "description": "Create il primo articolo per iniziare ad alimentare il magazzino."
+        }
       }
     },
     "fiche": {
@@ -370,6 +391,7 @@
       "ecart": "Differenza rilevata — riferimento diverso"
     },
     "nouvelle": {
+      "titre": "Nuovo ordine fornitore",
       "aucuneLigne": "Aggiungere almeno una riga all'ordine.",
       "choisirSiteDabord": "Scegliere prima un'ubicazione per cercare gli articoli.",
       "quantiteSuggereeReapprovisionnement": "Quantità proposta: la quantità mancante per tornare sopra la soglia di riordino. Correggila se il fornitore impone un lotto diverso."

@@ -42,6 +42,12 @@ interface Props {
  * hors sous-arborescence), il hérite normalement des variables `--densite-*`/`--texte-*` posées par
  * la classe `.densite-*` ambiante — le prop `densite` explicite qu'exigeait l'ancienne version
  * (portail vers `document.body`, hors sous-arborescence) n'a donc plus lieu d'être.
+ *
+ * PAS DE `h1` ICI (chantier « titres doublés », 17.08.2026) : ce composant est monté par
+ * `EcranPointageTechnicien`/`EcranBornePointage` comme un ÉTAT de leur écran routé, pas comme un
+ * écran séparé — le titre « Que pointez-vous ? » est désormais porté par le `GabaritEcran` de
+ * l'appelant (un seul niveau 1 par état d'écran). Le bouton « Retour » ci-dessous reste ici, colocalisé
+ * avec la gestion de focus qu'il porte (`boutonRetourRef`).
  */
 export function DialogueChoixCiblePointage({
   onFermer,
@@ -77,7 +83,6 @@ export function DialogueChoixCiblePointage({
           <ArrowLeft aria-hidden="true" className="h-5 w-5" />
           {t('pointage:technicien.choisirCible.retour')}
         </Button>
-        <h1 className="texte-titre-page">{t('pointage:technicien.choisirCible.titre')}</h1>
       </div>
 
       {requeteOr.isPending ? <EtatChargement lignes={3} /> : null}

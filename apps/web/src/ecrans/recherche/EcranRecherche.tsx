@@ -6,6 +6,7 @@ import type { ResultatRecherche } from '@dfa/shared';
 import { ErreurReseau, messageErreur } from '@/api/erreurs';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { CONSTRUCTEURS_CHEMIN_RESULTAT } from '@/composants/recherche/chemins-resultats';
 import { PanneauResultatsRecherche } from '@/composants/recherche/PanneauResultatsRecherche';
 import { useRechercheComptoir } from '@/hooks/recherche/useRechercheComptoir';
@@ -38,9 +39,12 @@ export function EcranRecherche() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-4">
-      <h1 className="texte-titre-page">{t('commun:titres.recherche')}</h1>
-
+    // Écran de recherche = un unique champ de saisie et son panneau de résultats, jamais une
+    // matière tabulaire à étaler sur toute la largeur (contrairement à `EcranRechercheComptoirPieces`,
+    // dont l'ancien `max-w-2xl` était un défaut de largeur mesuré et corrigé — ici la largeur
+    // resserrée EST le design voulu). `mx-auto max-w-2xl` conservé sur le gabarit, `p-4` local retiré
+    // : c'était un doublon avec le `p-4 sm:p-6` déjà posé par `AppShell`.
+    <GabaritEcran titre={t('commun:titres.recherche')} className="mx-auto max-w-2xl">
       {enErreur ? (
         <EtatErreur
           titre={
@@ -66,6 +70,6 @@ export function EcranRecherche() {
           ) : null}
         </>
       )}
-    </div>
+    </GabaritEcran>
   );
 }

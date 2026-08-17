@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import {
   useModifierParametresSite,
   type EntreeModificationParametresSite,
@@ -84,21 +85,14 @@ export function EcranSites() {
 
   if (!session) {
     return (
-      <div className="flex flex-col gap-4 p-6">
-        <h1 className="texte-titre-page font-semibold text-foreground">
-          {t('parametrage:sites.titre')}
-        </h1>
+      <GabaritEcran titre={t('parametrage:sites.titre')}>
         <EtatChargement lignes={6} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4 p-6">
-      <h1 className="texte-titre-page font-semibold text-foreground">
-        {t('parametrage:sites.titre')}
-      </h1>
-
+    <GabaritEcran titre={t('parametrage:sites.titre')}>
       {sites.length === 0 ? (
         <EtatVide
           titre={t('parametrage:sites.vide.titre')}
@@ -151,7 +145,7 @@ export function EcranSites() {
           </div>
         </div>
       )}
-    </div>
+    </GabaritEcran>
   );
 }
 

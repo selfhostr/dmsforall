@@ -30,7 +30,14 @@
     "aide": "Tapez une référence, une désignation ou un code-barres.",
     "champRecherche": "Référence, désignation, code-barres…",
     "vide": {
-      "recherche": "Aucun article ne correspond à cette recherche sur ce site."
+      "recherche": {
+        "titre": "Aucun article trouvé",
+        "description": "Aucun article ne correspond à cette recherche sur ce site."
+      },
+      "catalogue": {
+        "titre": "Aucun article au catalogue",
+        "description": "Aucun article actif n'est enregistré sur ce site."
+      }
     },
     "resultat": {
       "disponible": "{n} en stock",
@@ -126,6 +133,20 @@
       },
       "erreur": {
         "titre": "Impossible d'afficher les articles"
+      },
+      "vide": {
+        "recherche": {
+          "titre": "Aucun article trouvé",
+          "description": "Aucun article ne correspond à cette recherche."
+        },
+        "filtre": {
+          "titre": "Aucun article avec ces filtres",
+          "description": "Aucun article ne correspond aux filtres choisis."
+        },
+        "premierUsage": {
+          "titre": "Aucun article au catalogue",
+          "description": "Créez le premier article pour commencer à alimenter le stock."
+        }
       }
     },
     "fiche": {
@@ -370,6 +391,7 @@
       "ecart": "Écart détecté — référence différente"
     },
     "nouvelle": {
+      "titre": "Nouvelle commande fournisseur",
       "aucuneLigne": "Ajoutez au moins une ligne à la commande.",
       "choisirSiteDabord": "Choisissez un site pour rechercher des articles.",
       "quantiteSuggereeReapprovisionnement": "Quantité proposée : la quantité manquante pour repasser au-dessus du seuil de réapprovisionnement. Ajustez-la si votre fournisseur impose un lot différent."

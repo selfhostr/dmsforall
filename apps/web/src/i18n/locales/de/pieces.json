@@ -30,7 +30,14 @@
     "aide": "Referenz, Bezeichnung oder Strichcode eingeben.",
     "champRecherche": "Referenz, Bezeichnung, Strichcode…",
     "vide": {
-      "recherche": "Kein Artikel entspricht dieser Suche an diesem Standort."
+      "recherche": {
+        "titre": "Kein Artikel gefunden",
+        "description": "Kein Artikel entspricht dieser Suche an diesem Standort."
+      },
+      "catalogue": {
+        "titre": "Kein Artikel im Katalog",
+        "description": "An diesem Standort ist kein aktiver Artikel erfasst."
+      }
     },
     "resultat": {
       "disponible": "{n} auf Lager",
@@ -126,6 +133,20 @@
       },
       "erreur": {
         "titre": "Die Artikel konnten nicht angezeigt werden"
+      },
+      "vide": {
+        "recherche": {
+          "titre": "Kein Artikel gefunden",
+          "description": "Kein Artikel entspricht dieser Suche."
+        },
+        "filtre": {
+          "titre": "Kein Artikel mit diesen Filtern",
+          "description": "Kein Artikel entspricht den gewählten Filtern."
+        },
+        "premierUsage": {
+          "titre": "Kein Artikel im Katalog",
+          "description": "Erfassen Sie den ersten Artikel, um den Lagerbestand aufzubauen."
+        }
       }
     },
     "fiche": {
@@ -370,6 +391,7 @@
       "ecart": "Abweichung erkannt — andere Referenz"
     },
     "nouvelle": {
+      "titre": "Neue Lieferantenbestellung",
       "aucuneLigne": "Fügen Sie der Bestellung mindestens eine Position hinzu.",
       "choisirSiteDabord": "Wählen Sie zuerst einen Ort, um nach Artikeln zu suchen.",
       "quantiteSuggereeReapprovisionnement": "Vorgeschlagene Menge: die fehlende Menge, um den Meldebestand wieder zu überschreiten. Passen Sie sie an, falls Ihr Lieferant eine andere Gebindegrösse vorschreibt."

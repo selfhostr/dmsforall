@@ -65,12 +65,15 @@ export function EcranRelances() {
   // `AppShell` applique déjà à tout écran routé (même défaut, déjà documenté et corrigé une
   // première fois sur `EcranListeDossiersVente`/`EcranSuiviVentes`, voir le commentaire de tête de
   // `GabaritEcran`) : le padding DOUBLÉ en haut de page se lisait comme un écart vide entre la barre
-  // d'onglets de domaine (Factures/Relances) et le titre. Le sous-titre reste un paragraphe normal,
-  // premier enfant sous le titre — même patron que l'aide de `EcranRechercheComptoirPieces`.
+  // d'onglets de domaine (Factures/Relances) et le titre.
+  //
+  // Sous-titre migré vers la prop `sousTitre` (chantier « titres doublés & espacements »,
+  // 17.08.2026) — l'espacement titre/sous-titre est désormais imposé par le gabarit, plus par un
+  // `<p>` local. Titre « Relances automatiques » : contient l'onglet « Relances »
+  // (`navigation:onglets.facturationRelances`) — masqué en `sr-only` par la détection automatique
+  // du gabarit, aucun `titreVisible` posé ici.
   return (
-    <GabaritEcran titre={t('relances:titre')}>
-      <p className="texte-corps text-muted-foreground">{t('relances:sousTitre')}</p>
-
+    <GabaritEcran titre={t('relances:titre')} sousTitre={t('relances:sousTitre')}>
       {requete.isPending ? (
         <EtatChargement lignes={6} />
       ) : requete.isError ? (

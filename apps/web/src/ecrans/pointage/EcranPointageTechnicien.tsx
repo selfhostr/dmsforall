@@ -19,6 +19,7 @@ import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useOrdreReparation } from '@/hooks/atelier/useOrdreReparation';
 import {
   calculerCumulSecondesCible,
@@ -228,10 +229,9 @@ export function EcranPointageTechnicien() {
 
   if (!technicien) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('pointage:technicien.titreEcran')}</h1>
+      <GabaritEcran titre={t('pointage:technicien.titreEcran')}>
         <EtatChargement lignes={4} />
-      </div>
+      </GabaritEcran>
     );
   }
 
@@ -434,23 +434,21 @@ export function EcranPointageTechnicien() {
 
   if (pointageOuvert.isPending || mesOrdres.isPending) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="texte-titre-page">{t('pointage:technicien.titreEcran')}</h1>
+      <GabaritEcran titre={t('pointage:technicien.titreEcran')}>
         <EtatChargement lignes={5} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (pointageOuvert.isError) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="texte-titre-page">{t('pointage:technicien.titreEcran')}</h1>
+      <GabaritEcran titre={t('pointage:technicien.titreEcran')}>
         <EtatErreur
           titre={t('pointage:technicien.erreur.titre')}
           description={messageErreur(pointageOuvert.error, t)}
           onReessayer={() => void pointageOuvert.refetch()}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
@@ -459,16 +457,20 @@ export function EcranPointageTechnicien() {
   // pendant un pointage en cours) — les deux chemins passent par le même `setOrSelectionneId`.
   // Placé APRÈS les gardes de chargement/erreur ci-dessus (l'utilisateur ne peut matériellement
   // choisir un OR qu'une fois l'écran normal déjà rendu), mais AVANT tout le reste du rendu.
+  // Titre porté par CE gabarit (pas par `DialogueChoixCiblePointage`, qui ne pose plus son propre
+  // `h1` — un seul niveau 1 par état d'écran, chantier « titres doublés »).
   if (orSelectionneId) {
     return (
-      <DialogueChoixCiblePointage
-        onFermer={() => setOrSelectionneId(undefined)}
-        technicienId={technicienId}
-        requeteOr={requeteOrSelectionne}
-        onChoisirLigne={handleChoisirLigne}
-        onChoisirOrEntier={handleChoisirOrEntier}
-        enDemarrage={demarrer.isPending}
-      />
+      <GabaritEcran titre={t('pointage:technicien.choisirCible.titre')}>
+        <DialogueChoixCiblePointage
+          onFermer={() => setOrSelectionneId(undefined)}
+          technicienId={technicienId}
+          requeteOr={requeteOrSelectionne}
+          onChoisirLigne={handleChoisirLigne}
+          onChoisirOrEntier={handleChoisirOrEntier}
+          enDemarrage={demarrer.isPending}
+        />
+      </GabaritEcran>
     );
   }
 
@@ -632,9 +634,7 @@ export function EcranPointageTechnicien() {
       : undefined;
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="texte-titre-page">{t('pointage:technicien.titreEcran')}</h1>
-
+    <GabaritEcran titre={t('pointage:technicien.titreEcran')}>
       {reprisePossible && pointageActuel && cibleReprise ? (
         <BandeauReprisePointage
           cibleLibelle={cibleReprise.libelle}
@@ -683,6 +683,6 @@ export function EcranPointageTechnicien() {
           {blocChoixCible}
         </div>
       ) : null}
-    </div>
+    </GabaritEcran>
   );
 }

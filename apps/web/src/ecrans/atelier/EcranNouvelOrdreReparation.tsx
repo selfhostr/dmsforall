@@ -17,6 +17,7 @@ import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { BandeauAlerteClient } from '@/composants/motifs/BandeauAlerteClient';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 // Import de lecture depuis le module `clients` (hors périmètre d'écriture ici, voir CONTRIBUTING.md) —
 // réutilise TEL QUEL le même formulaire que `EcranListeClients.tsx` (tiroir « Nouveau client »),
 // jamais une resaisie locale de la création client. Issue #107 (test terrain, verbatim : « c'est
@@ -146,119 +147,130 @@ export function EcranNouvelOrdreReparation() {
   // l'en-tête. `SelecteurSiteOrRequis` (même doctrine que `ecrans/pieces/SelecteurSiteRequis.tsx`)
   // résout le site SANS quitter cet écran ni perdre `clientId` : il complète juste `?site=` dans
   // l'URL courante.
+  // Titre TOUJOURS visible à travers les cinq états ci-dessous (site manquant / client manquant /
+  // chargement / erreur / formulaire) : la détection automatique du gabarit ne trouve aucun
+  // doublon (« Nouvel ordre de réparation » ne recoupe ni l'onglet « Ordres de réparation » ni
+  // aucune vue), et un même h1 sur tous les états évite que l'en-tête saute d'un état à l'autre
+  // (contrat gabarit §5.1). Le titre de chaque état intermédiaire (`EtatVide`/`EtatErreur`) reste
+  // en outre affiché SOUS ce h1 — même patron que `EcranListeOrdresReparation` (h1 de page +
+  // titre d'état), pas un second doublon.
   if (!site) {
     return (
-      <div className="mx-auto flex max-w-lg flex-col gap-4 p-6">
-        <h1 className="sr-only">{t('or:nouveau.titre')}</h1>
-        <SelecteurSiteOrRequis
-          onChoisir={(siteId) =>
-            setSearchParams((params) => {
-              const suivant = new URLSearchParams(params);
-              suivant.set('site', siteId);
-              return suivant;
-            })
-          }
-        />
-      </div>
+      <GabaritEcran titre={t('or:nouveau.titre')}>
+        <div className="mx-auto flex w-full max-w-lg flex-col gap-4">
+          <SelecteurSiteOrRequis
+            onChoisir={(siteId) =>
+              setSearchParams((params) => {
+                const suivant = new URLSearchParams(params);
+                suivant.set('site', siteId);
+                return suivant;
+              })
+            }
+          />
+        </div>
+      </GabaritEcran>
     );
   }
 
   if (!clientId) {
     return (
-      <div className="mx-auto flex max-w-lg flex-col gap-4 p-6">
-        <h1 className="sr-only">{t('or:nouveau.titre')}</h1>
-        <EtatVide
-          titre={t('or:nouveau.client.requisTitre')}
-          description={t('or:nouveau.client.requisDescription')}
-          action={
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <Button asChild variant="outline">
-                <Link to={chemins.recherche.globale(site)}>{t('commun:actions.rechercher')}</Link>
-              </Button>
-              {/* Issue #107 : le client cherché peut ne pas exister encore — ce second bouton
-               *  évite le détour par `/recherche`, qui ne sait de toute façon rien créer. */}
-              <Button type="button" onClick={() => setCreationClientOuverte(true)}>
-                {t('or:nouveau.client.creerAction')}
-              </Button>
-            </div>
-          }
-        />
-        <Dialog open={creationClientOuverte} onOpenChange={setCreationClientOuverte}>
-          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>{t('or:nouveau.client.creerTitre')}</DialogTitle>
-            </DialogHeader>
-            <FormulaireNouveauClient
-              ouvert={creationClientOuverte}
-              onCree={(client: ReponseClient) => {
-                setCreationClientOuverte(false);
-                // Reste sur CET écran (jamais un aller-retour par `/recherche` ou la fiche
-                // client) : le client vient d'être choisi, l'étape suivante naturelle est le
-                // véhicule — `setSearchParams` complète l'URL exactement comme
-                // `SelecteurSiteOrRequis` le fait déjà pour `?site=` juste au-dessus.
-                setSearchParams((params) => {
-                  const suivant = new URLSearchParams(params);
-                  suivant.set('clientId', client.id);
-                  return suivant;
-                });
-              }}
-            />
-          </DialogContent>
-        </Dialog>
-      </div>
+      <GabaritEcran titre={t('or:nouveau.titre')}>
+        <div className="mx-auto flex w-full max-w-lg flex-col gap-4">
+          <EtatVide
+            titre={t('or:nouveau.client.requisTitre')}
+            description={t('or:nouveau.client.requisDescription')}
+            action={
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <Button asChild variant="outline">
+                  <Link to={chemins.recherche.globale(site)}>{t('commun:actions.rechercher')}</Link>
+                </Button>
+                {/* Issue #107 : le client cherché peut ne pas exister encore — ce second bouton
+                 *  évite le détour par `/recherche`, qui ne sait de toute façon rien créer. */}
+                <Button type="button" onClick={() => setCreationClientOuverte(true)}>
+                  {t('or:nouveau.client.creerAction')}
+                </Button>
+              </div>
+            }
+          />
+          <Dialog open={creationClientOuverte} onOpenChange={setCreationClientOuverte}>
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>{t('or:nouveau.client.creerTitre')}</DialogTitle>
+              </DialogHeader>
+              <FormulaireNouveauClient
+                ouvert={creationClientOuverte}
+                onCree={(client: ReponseClient) => {
+                  setCreationClientOuverte(false);
+                  // Reste sur CET écran (jamais un aller-retour par `/recherche` ou la fiche
+                  // client) : le client vient d'être choisi, l'étape suivante naturelle est le
+                  // véhicule — `setSearchParams` complète l'URL exactement comme
+                  // `SelecteurSiteOrRequis` le fait déjà pour `?site=` juste au-dessus.
+                  setSearchParams((params) => {
+                    const suivant = new URLSearchParams(params);
+                    suivant.set('clientId', client.id);
+                    return suivant;
+                  });
+                }}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
+      </GabaritEcran>
     );
   }
 
   if (requeteClient.isPending) {
     return (
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-        <h1 className="sr-only">{t('or:nouveau.titre')}</h1>
-        <EtatChargement lignes={6} />
-      </div>
+      <GabaritEcran titre={t('or:nouveau.titre')}>
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+          <EtatChargement lignes={6} />
+        </div>
+      </GabaritEcran>
     );
   }
 
   if (requeteClient.isError) {
     const estErreurReseau = requeteClient.error instanceof ErreurReseau;
     return (
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-        <h1 className="sr-only">{t('or:nouveau.titre')}</h1>
-        <EtatErreur
-          titre={t(estErreurReseau ? 'erreurs:reseau.titre' : 'erreurs:inattendue.titre')}
-          description={messageErreur(requeteClient.error, t)}
-          onReessayer={() => void requeteClient.refetch()}
-        />
-      </div>
+      <GabaritEcran titre={t('or:nouveau.titre')}>
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+          <EtatErreur
+            titre={t(estErreurReseau ? 'erreurs:reseau.titre' : 'erreurs:inattendue.titre')}
+            description={messageErreur(requeteClient.error, t)}
+            onReessayer={() => void requeteClient.refetch()}
+          />
+        </div>
+      </GabaritEcran>
     );
   }
 
   const client = requeteClient.data;
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-6">
-      <h1 className="texte-titre-section font-semibold text-foreground">{t('or:nouveau.titre')}</h1>
-
-      <BandeauAlerteClient
-        bloque={client.statut === 'bloque'}
-        alertes={client.notesAlerte.map((note) => ({ id: note.id, texte: note.texte }))}
-      />
-      <IdentiteClient client={versClientResume(client)} alerte={client.notesAlerte.length > 0} />
-
-      {vehiculeChoisi ? (
-        <FormulaireNouvelOrdreReparation
-          site={site}
-          client={client}
-          vehicule={vehiculeChoisi}
-          onChangerVehicule={() => setVehiculeChoisi(null)}
-          onCree={surCreation}
+    <GabaritEcran titre={t('or:nouveau.titre')}>
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
+        <BandeauAlerteClient
+          bloque={client.statut === 'bloque'}
+          alertes={client.notesAlerte.map((note) => ({ id: note.id, texte: note.texte }))}
         />
-      ) : (
-        <SelecteurVehiculeOrdre
-          clientId={client.id}
-          valeur={null}
-          onChangeValeur={(_vehiculeId, vehicule) => setVehiculeChoisi(vehicule)}
-        />
-      )}
-    </div>
+        <IdentiteClient client={versClientResume(client)} alerte={client.notesAlerte.length > 0} />
+
+        {vehiculeChoisi ? (
+          <FormulaireNouvelOrdreReparation
+            site={site}
+            client={client}
+            vehicule={vehiculeChoisi}
+            onChangerVehicule={() => setVehiculeChoisi(null)}
+            onCree={surCreation}
+          />
+        ) : (
+          <SelecteurVehiculeOrdre
+            clientId={client.id}
+            valeur={null}
+            onChangeValeur={(_vehiculeId, vehicule) => setVehiculeChoisi(vehicule)}
+          />
+        )}
+      </div>
+    </GabaritEcran>
   );
 }

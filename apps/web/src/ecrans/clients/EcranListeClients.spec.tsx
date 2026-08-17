@@ -125,6 +125,23 @@ describe('EcranListeClients', () => {
     expect(screen.getByText('Lausanne')).toBeInTheDocument();
   });
 
+  // Chantier « titres doublés & espacements » (re-arbitrage @laupernoe du 17.08.2026, ANNULE le retour du
+  // 12.08.2026 qui demandait ce même h1 visible — voir le commentaire de `EcranListeClients.tsx`) :
+  // l'onglet actif « Clients » (`OngletsDomaine`) porte déjà ce libellé, `GabaritEcran` doit donc
+  // garder le h1 dans le DOM (lecteur d'écran) mais masqué visuellement, jamais retiré. La classe
+  // posée par le gabarit (`cn('texte-titre-page', !titreVisible && 'sr-only')`) est la preuve
+  // fiable ici — `toBeVisible()` (jest-dom) ne teste que `display`/`visibility`/`opacity`/`hidden`,
+  // jamais la technique `position: absolute; clip: …` d'une classe `sr-only`, et aucune feuille de
+  // style n'est chargée dans ces tests (jsdom) : cette assertion resterait verte même sans masquage.
+  it('garde un h1 accessible « Clients » dans le DOM, masqué via `sr-only` (doublon avec l’onglet actif)', async () => {
+    repondreListe([CLIENT_TEST]);
+    rendreEcran();
+
+    const titre = await screen.findByRole('heading', { level: 1, name: 'Clients' });
+    expect(titre).toBeInTheDocument();
+    expect(titre.className).toMatch(/\bsr-only\b/);
+  });
+
   it('affiche des lignes squelette pendant le chargement', async () => {
     server.use(
       http.get('/api/v1/clients', async () => {

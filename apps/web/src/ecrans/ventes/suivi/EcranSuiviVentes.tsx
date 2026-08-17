@@ -1,3 +1,4 @@
+import * as TabsPrimitive from '@radix-ui/react-tabs';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -5,7 +6,6 @@ import { useNavigate, useSearchParams } from 'react-router';
 import type { LigneSuiviVente } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
@@ -13,6 +13,7 @@ import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useListeSuiviVente } from '@/hooks/ventes/suivi/useListeSuiviVente';
+import { cn } from '@/lib/utils';
 import { chemins } from '@/routes/chemins';
 
 import { BadgeEcheanceSuivi } from './BadgeEcheanceSuivi';
@@ -121,11 +122,11 @@ export function EcranSuiviVentes() {
     />
   );
 
-  // Titre gardé dans le DOM (`titreVisible={false}`), jamais retiré : l'onglet de navigation
-  // « Suivi financement & garantie » (OngletsDomaine, actif sur cette route) porte déjà EXACTEMENT
-  // ce libellé à l'écran — répétition à la lettre, pas une simple ressemblance. Un h1 visible
-  // identique ne dit rien de neuf ; masqué visuellement pour la structure de document (lecteur
-  // d'écran, navigation au clavier) — même choix que `EcranListeFactures`.
+  // Titre MASQUÉ automatiquement — « Suivi financement & garantie » (`ventes:suivi.titre`) est
+  // IDENTIQUE, à la lettre, à l'onglet de navigation actif « Suivi financement & garantie »
+  // (`navigation-modele.ts`, `ONGLETS_VENTES`) : égalité stricte après normalisation (§3 du contrat
+  // du chantier « titres doublés », 17.08.2026). `GabaritEcran` le détecte lui-même — ne JAMAIS
+  // poser `titreVisible` ici.
   //
   // Retiré (retour @laupernoe du 12.08.2026, revue structure haute) : le lien « Retour aux dossiers de
   // vente », qui flottait seul en haut à droite (« mal placé ») ET doublait l'onglet « Dossiers »
@@ -140,16 +141,39 @@ export function EcranSuiviVentes() {
   // d'erreur réseau, plus aucun moyen de revenir à l'onglet précédent. Seul le CONTENU sous les
   // onglets (chargement / erreur / table) varie selon l'état de la requête.
   return (
-    <GabaritEcran titre={t('ventes:suivi.titre')} titreVisible={false}>
-      <Tabs value={horizon} onValueChange={(valeur) => setHorizon(valeur as Horizon)}>
-        <TabsList aria-label={t('ventes:suivi.filtres.horizonLabel')}>
+    <GabaritEcran titre={t('ventes:suivi.titre')}>
+      {/* Sélecteur d'horizon — retour @laupernoe du 17.08.2026 : « 30/90/60 jours, toutes les échéances des
+          jours, tu peux enlever l'espace aussi qui n'est pas très beau ». `components/ui/tabs.tsx`
+          (utilisé avant ce correctif) porte le style de la NAVIGATION (soulignement, `h-11`,
+          `border-b`) — un poids visuel de rangée de navigation pour un simple filtre d'horizon, qui
+          épaississait l'écart entre l'en-tête, ce groupe et le tableau. Ce contrôle change la façon
+          dont CET écran affiche les mêmes lignes, il ne navigue nulle part : même doctrine, mêmes
+          classes que `BasculeVueStock` (issue #84, déjà approuvée par @laupernoe pour EXACTEMENT ce
+          distinguo) — fond plein compact plutôt que soulignement, alignée sur le gabarit de poids
+          visuel de la barre de filtres (`BarreFiltres`) plutôt que sur la navigation de premier
+          niveau. Rôles ARIA (`tablist`/`tab`) et clavier inchangés : `@radix-ui/react-tabs`
+          directement, même contrat de test (`getByRole('tab', …)`). */}
+      <TabsPrimitive.Root value={horizon} onValueChange={(valeur) => setHorizon(valeur as Horizon)}>
+        <TabsPrimitive.List
+          aria-label={t('ventes:suivi.filtres.horizonLabel')}
+          className="inline-flex items-stretch gap-1 rounded-md border bg-muted/40 p-1"
+        >
           {OPTIONS_HORIZON.map((valeur) => (
-            <TabsTrigger key={valeur} value={valeur}>
+            <TabsPrimitive.Trigger
+              key={valeur}
+              value={valeur}
+              className={cn(
+                'flex h-9 items-center whitespace-nowrap rounded-sm px-3 text-sm font-medium transition-colors',
+                'anneau-focus',
+                'text-muted-foreground hover:text-foreground',
+                'data-[state=active]:bg-background data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-sm',
+              )}
+            >
               {t(`ventes:suivi.filtres.horizon.${valeur}`)}
-            </TabsTrigger>
+            </TabsPrimitive.Trigger>
           ))}
-        </TabsList>
-      </Tabs>
+        </TabsPrimitive.List>
+      </TabsPrimitive.Root>
 
       {isPending ? (
         <EtatChargement lignes={6} />

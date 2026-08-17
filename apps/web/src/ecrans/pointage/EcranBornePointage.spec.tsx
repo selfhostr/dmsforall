@@ -228,9 +228,10 @@ describe('EcranBornePointage', () => {
     rendre();
 
     // La session résout de façon asynchrone (skeleton `EtatChargement` d'abord — qui porte lui
-    // aussi un `<h1 class="sr-only">` « Qui êtes-vous ? », voir l'en-tête du composant) : on
-    // attend le pavé lui-même (`findByRole`, qui réinterroge le DOM jusqu'à son apparition)
-    // plutôt que le titre, dont une occurrence existe déjà pendant le chargement.
+    // aussi un `<h1>` « Qui êtes-vous ? » VISIBLE, voir l'en-tête du composant — cohérent avec le
+    // pavé neutre, l'en-tête ne saute jamais entre deux états) : on attend le pavé lui-même
+    // (`findByRole`, qui réinterroge le DOM jusqu'à son apparition) plutôt que le titre, dont une
+    // occurrence existe déjà pendant le chargement.
     expect(await screen.findByRole('button', { name: 'Chiffre 1' })).toBeInTheDocument();
     expect(screen.getByText('Qui êtes-vous ?')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Effacer' })).toBeInTheDocument();

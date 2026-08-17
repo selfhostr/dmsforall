@@ -24,6 +24,7 @@ import {
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useDesactiverUtilisateur } from '@/hooks/parametrage/useDesactiverUtilisateur';
 import { useListeUtilisateurs } from '@/hooks/parametrage/useListeUtilisateurs';
 import { useReactiverUtilisateur } from '@/hooks/parametrage/useReactiverUtilisateur';
@@ -99,17 +100,15 @@ export function EcranUtilisateurs() {
         : reinitialiserAcces;
 
   return (
-    <div className="flex flex-col gap-4 p-6">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="texte-titre-page font-semibold text-foreground">
-          {t('parametrage:utilisateurs.titre')}
-        </h1>
+    <GabaritEcran
+      titre={t('parametrage:utilisateurs.titre')}
+      actions={
         <Button type="button" onClick={() => setDialogueOuvert(true)}>
           <Plus className="h-4 w-4" aria-hidden="true" />
           {t('parametrage:utilisateurs.nouveau')}
         </Button>
-      </div>
-
+      }
+    >
       {requete.isPending ? <EtatChargement lignes={6} /> : null}
 
       {requete.isError ? (
@@ -262,7 +261,7 @@ export function EcranUtilisateurs() {
         motDePasseTemporaire={motDePasseAffiche}
         onFerme={() => setMotDePasseAffiche(null)}
       />
-    </div>
+    </GabaritEcran>
   );
 }
 

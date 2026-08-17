@@ -20,7 +20,7 @@
     "sansDimension": "Dimensione sconosciuta",
     "plaqueInconnue": "Targa sconosciuta",
     "dernierMouvement": "Ultimo movimento il {date}",
-    "avertissementRelance": "Nessun movimento da oltre due anni — da richiamare presso il cliente.",
+    "avertissementRelance": "Nessun movimento da oltre due anni.",
     "actions": {
       "voirVehicule": "Vedi il veicolo",
       "changerSaison": "Cambio stagione",
@@ -40,7 +40,7 @@
     "misEnEvidence": {
       "absent": {
         "titre": "Set introvabile qui",
-        "description": "Il deposito cercato non è più visibile in questo deposito per questa sede — potrebbe essere stato spostato, fatto uscire, oppure la sua sede è cambiata. Il piano qui sotto resta aggiornato."
+        "description": "Il deposito cercato non è più visibile per questa sede — potrebbe essere stato spostato, fatto uscire, oppure la sua sede è cambiata. Il piano qui sotto resta aggiornato."
       }
     },
     "siteRequis": {
@@ -66,9 +66,9 @@
       "reperePlaceholder": "Es. Scaffale 3"
     },
     "vide": {
-      "titre": "Deposito pneumatici",
+      "titre": "Nessun set di pneumatici",
       "filtreDescription": "Nessun set corrisponde a questa ubicazione.",
-      "premierUsage": "Nessun set di pneumatici ancora depositato in questo deposito."
+      "premierUsage": "Nessun set di pneumatici ancora depositato qui."
     },
     "onglets": {
       "ariaLabel": "Vista del deposito pneumatici",
@@ -111,12 +111,12 @@
     "champMotifPlaceholder": "Scegliere un motivo"
   },
   "aRelancer": {
-    "titre": "Set da richiamare",
-    "description": "Set di pneumatici senza movimento da oltre due anni — da richiamare presso il cliente prima che occupino inutilmente un posto.",
+    "titre": "Nessun set di pneumatici",
+    "description": "Senza movimento da oltre due anni, prima che un set occupi inutilmente un posto.",
     "erreur": {
       "titre": "Impossibile visualizzare i set da richiamare"
     },
-    "vide": "Nessun set da richiamare.",
+    "vide": "Nessun set è in ritardo di movimento.",
     "filtreSite": "Sede",
     "filtreSiteTous": "Tutte le sedi",
     "colonnes": {

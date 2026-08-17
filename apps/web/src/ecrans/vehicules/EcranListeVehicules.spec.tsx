@@ -187,4 +187,18 @@ describe('EcranListeVehicules', () => {
     expect(await screen.findByText('Erstellen Sie Ihr erstes Fahrzeug')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1, name: 'Fahrzeuge' })).toBeInTheDocument();
   });
+
+  // Chantier « titres doublés & espacements » (17.08.2026, défaut cité nommément par @laupernoe : « dans
+  // Clients et véhicules, l'onglet Véhicules, tu vois, c'est vraiment écrit "Véhicules", ça ne sert
+  // à rien ») : l'onglet actif « Véhicules » (`OngletsDomaine`) porte déjà ce libellé,
+  // `GabaritEcran` doit donc garder le h1 dans le DOM (lecteur d'écran) mais masqué visuellement.
+  // La classe `sr-only` est la preuve fiable ici — `toBeVisible()` (jest-dom) ne détecte pas la
+  // technique `position: absolute; clip: …` sans feuille de style chargée (jsdom, ces tests).
+  it('garde un h1 accessible « Véhicules » dans le DOM, masqué via `sr-only` (doublon avec l’onglet actif)', async () => {
+    server.use(http.get('/api/v1/vehicules', () => HttpResponse.json(pageDe([VEHICULE_1]))));
+    rendre();
+
+    const titre = await screen.findByRole('heading', { level: 1, name: 'Véhicules' });
+    expect(titre.className).toMatch(/\bsr-only\b/);
+  });
 });

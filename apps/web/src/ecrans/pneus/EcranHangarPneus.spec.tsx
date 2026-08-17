@@ -127,8 +127,48 @@ describe('EcranHangarPneus', () => {
     rendre();
 
     expect(
-      await screen.findByText("Aucun jeu de pneus n'est encore entré dans ce hangar."),
+      await screen.findByText("Aucun jeu de pneus n'est encore entré ici."),
     ).toBeInTheDocument();
+  });
+
+  // Chantier « titres doublés & espacements » (17.08.2026, GabaritEcran) : le titre d'écran
+  // (« Dépôt pneus ») répète mot pour mot le libellé de l'onglet Atelier actif — la détection
+  // automatique de `GabaritEcran` doit donc garder le h1 dans le DOM (lecteur d'écran) mais masqué
+  // visuellement, jamais retiré. La classe `sr-only` est la preuve fiable ici — `toBeVisible()`
+  // (jest-dom) ne détecte pas la technique `position: absolute; clip: …` sans feuille de style
+  // chargée (jsdom, ces tests) — même mesure que `EcranListeVehicules.spec.tsx`. Rendu à `/pneus`,
+  // la VRAIE route de production (`chemins.pneus.hangar`, `motifs: ['/pneus']` dans
+  // `navigation-modele.ts`) : un montage à `/` ne prouverait rien sur la détection, qui dépend de
+  // la correspondance route → onglet.
+  //
+  // RE-QUÊTE À CHAQUE ITÉRATION (pas de référence DOM capturée une fois pour toutes) — mesuré :
+  // cet écran ne passe ni `sousTitre` ni `actions` à `GabaritEcran`, donc tant que le titre reste
+  // visible (avant que la session/le rôle ne soit résolu, `estTitreDoublonNavigation` n'a pas encore
+  // de libellé d'onglet à comparer) le gabarit rend la ligne d'en-tête complète ; dès que le doublon
+  // est détecté ET qu'aucun sous-titre/action n'est présent, `GabaritEcran` bascule sur sa branche
+  // anti-trou (§4 du contrat), qui a une profondeur JSX différente — React démonte alors l'ancien
+  // `h1` et en remonte un nouveau plutôt que de muter en place. Un `h1` capturé une seule fois avant
+  // ce basculement reste un nœud DÉTACHÉ dont la classe ne bougera jamais (vérifié en isolant le
+  // rendu : `document.querySelectorAll('h1')` ne compte jamais plus d'UN SEUL `h1` dans le DOM à un
+  // instant donné — ce n'est pas un doublon de titre, seulement une identité de nœud qui change).
+  // `waitFor` avec une requête `getByRole` FRAÎCHE à chaque tour contourne cette instabilité sans
+  // rien affaiblir : la classe `sr-only` doit toujours finir par apparaître sur LE `h1` réellement
+  // présent à l'écran. Signalé au socle (`composants/motifs/GabaritEcran.tsx`, hors périmètre
+  // d'écriture de cet agent) : la bascule entre les deux formes de rendu du gabarit pourrait
+  // conserver la même profondeur de conteneur pour éviter ce remontage.
+  it("garde un h1 accessible « Dépôt pneus » dans le DOM, masqué via `sr-only` (doublon avec l'onglet actif)", async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      http.get('/api/v1/sites/site-1/hangar-pneus', () => HttpResponse.json(pageDe([DEPOT]))),
+    );
+
+    rendre();
+
+    await screen.findByRole('heading', { level: 1, name: 'Dépôt pneus' });
+    await waitFor(() => {
+      const titre = screen.getByRole('heading', { level: 1, name: 'Dépôt pneus' });
+      expect(titre.className).toMatch(/\bsr-only\b/);
+    });
   });
 
   it('état erreur : message actionnable avec retry', async () => {
@@ -500,7 +540,9 @@ describe('EcranHangarPneus', () => {
 
       await utilisateur.click(await screen.findByRole('tab', { name: 'À relancer' }));
 
-      expect(await screen.findByText('Aucun jeu à relancer.')).toBeInTheDocument();
+      expect(
+        await screen.findByText("Aucun jeu n'est en retard de mouvement."),
+      ).toBeInTheDocument();
     });
 
     it(

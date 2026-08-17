@@ -18,7 +18,20 @@ export function enregistrerTraductionsTestVentes(): void {
       stock: {
         liste: {
           titre: 'Véhicules en stock',
-          vide: 'Aucun véhicule en stock ne correspond à ces critères.',
+          vide: {
+            recherche: {
+              titre: 'Aucun véhicule trouvé',
+              description: 'Aucun véhicule du parc ne correspond à cette recherche.',
+            },
+            filtre: {
+              titre: 'Aucun véhicule avec ces filtres',
+              description: 'Aucun véhicule du parc ne correspond aux filtres choisis.',
+            },
+            premierUsage: {
+              titre: 'Aucun véhicule en stock',
+              description: 'Mettez votre premier véhicule en stock.',
+            },
+          },
           rechercherPlaceholder: 'Plaque, VIN, désignation…',
           erreur: { titre: "Impossible d'afficher les véhicules en stock" },
           actions: {

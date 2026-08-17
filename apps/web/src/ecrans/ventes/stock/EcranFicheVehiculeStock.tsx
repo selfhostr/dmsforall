@@ -23,6 +23,7 @@ import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { ActionPrimaire, type ActionSecondaireMenu } from '@/composants/layout/ActionPrimaire';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useSession } from '@/hooks/useSession';
 import {
   useMarquerVenduVehiculeStock,
@@ -136,25 +137,29 @@ export function EcranFicheVehiculeStock() {
     setConfirmationReceptionOuverte(ouvertSuivant);
   }
 
+  // Bascule vue vendeur/client (issue #84) — ACTION de l'en-tête d'écran (retour @laupernoe du 17.08.2026 :
+  // « Vue vendeur, Vue client, il faut le mettre ailleurs »), construite AVANT les retours anticipés
+  // chargement/erreur pour que l'en-tête ne change pas de composition entre les états : elle ne
+  // dépend que de l'URL, jamais de `stock`.
+  const actionsEnTete = <BasculeVueStock vue={vue} onChangeVue={definirVue} />;
+
   if (requeteStock.isPending) {
     return (
-      <div className="flex flex-col gap-6 p-6">
-        <h1 className="sr-only">{t('ventes:stock.fiche.titre')}</h1>
+      <GabaritEcran titre={t('ventes:stock.fiche.titre')} actions={actionsEnTete}>
         <EtatChargement lignes={8} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (requeteStock.isError) {
     return (
-      <div className="flex flex-col gap-6 p-6">
-        <h1 className="sr-only">{t('ventes:stock.fiche.titre')}</h1>
+      <GabaritEcran titre={t('ventes:stock.fiche.titre')} actions={actionsEnTete}>
         <EtatErreur
           titre={t('ventes:stock.fiche.erreur.titre')}
           description={messageErreur(requeteStock.error, t)}
           onReessayer={() => void requeteStock.refetch()}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
@@ -223,15 +228,14 @@ export function EcranFicheVehiculeStock() {
       : null,
   ].filter((action): action is ActionSecondaireMenu => action !== null);
 
+  // Titre VISIBLE — « Fiche commerciale » (`ventes:stock.fiche.titre`) ne fait aucune inclusion
+  // avec l'onglet actif « Véhicules en parc » (§3 du contrat du chantier « titres doublés »,
+  // 17.08.2026) : contre-exemple mesuré, titre de FICHE qui doit rester visible. Avant ce correctif
+  // le `h1` était forcé `sr-only` À LA MAIN, sans même passer par le gabarit — défaut du même ordre
+  // que celui que ce chantier corrige ailleurs (structure haute non mécanique), corrigé ici en même
+  // temps que le passage par `GabaritEcran`.
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <h1 className="sr-only">{t('ventes:stock.fiche.titre')}</h1>
-
-      {/* Bascule vue vendeur/client (issue #84) — voir `BasculeVueStock` pour la doctrine
-          complète. Placée avant tout le reste : c'est le premier geste avant de tourner l'écran
-          vers un client. */}
-      <BasculeVueStock vue={vue} onChangeVue={definirVue} />
-
+    <GabaritEcran titre={t('ventes:stock.fiche.titre')} actions={actionsEnTete}>
       <div className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -523,6 +527,6 @@ export function EcranFicheVehiculeStock() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </GabaritEcran>
   );
 }

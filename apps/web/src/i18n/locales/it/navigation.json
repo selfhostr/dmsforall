@@ -80,6 +80,7 @@
     "agrandir": "Espandi la barra laterale"
   },
   "pied": {
-    "version": "{branche} · {numero}"
+    "version": "Versione {info}",
+    "versionInconnue": "sconosciuta"
   }
 }

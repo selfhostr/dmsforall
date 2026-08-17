@@ -287,9 +287,18 @@
     "identite": "Fahrzeug nicht identifiziert",
     "plaques": "Kein Kennzeichen registriert",
     "kilometrage": "Kein Kilometerstand erfasst",
-    "nouveau": "Erstellen Sie Ihr erstes Fahrzeug",
-    "recherche": "Kein Fahrzeug gefunden",
-    "filtre": "Keine Ergebnisse mit diesen Filtern",
+    "nouveau": {
+      "titre": "Kein Fahrzeug erfasst",
+      "description": "Erstellen Sie Ihr erstes Fahrzeug"
+    },
+    "recherche": {
+      "titre": "Kein Fahrzeug gefunden",
+      "description": "Kein Fahrzeug entspricht dieser Suche."
+    },
+    "filtre": {
+      "titre": "Keine Ergebnisse mit diesen Filtern",
+      "description": "Kein Fahrzeug entspricht den gewählten Filtern."
+    },
     "travauxReportes": "Keine aufgeschobenen Arbeiten",
     "detentions": "Kein Halterwechsel registriert"
   },

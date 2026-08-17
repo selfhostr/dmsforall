@@ -61,6 +61,30 @@ function rendreAvecPreremplissage(etat: EtatPreremplissageCommandeFournisseur) {
 }
 
 /**
+ * Chantier « titres doublés & espacements » (contrat figé du 17.08.2026, §3) — CONTRE-EXEMPLE
+ * cité nommément au contrat : « Nouvelle commande fournisseur » ne doit PAS être masqué par
+ * l'onglet « Approvisionnement » ni par la vue « Commandes », malgré le mot commun « commande » —
+ * aucune inclusion au sens strict (« commande » singulier ne contient pas « commandes » pluriel).
+ * Vérifié en exécution plutôt que supposé : si `GabaritEcran` masquait ce titre à tort, ce serait
+ * un défaut du socle à signaler, pas à contourner ici.
+ */
+describe('EcranNouvelleCommandeFournisseur — titre de page (PAS un doublon)', () => {
+  it('le titre « Nouvelle commande fournisseur » reste visible (pas masqué par l’onglet/la vue « Commandes »)', async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      http.get('/api/v1/fournisseurs', () =>
+        HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 200 }),
+      ),
+    );
+
+    rendre();
+
+    const titre = await screen.findByRole('heading', { name: 'Nouvelle commande fournisseur' });
+    expect(titre).not.toHaveClass('sr-only');
+  });
+});
+
+/**
  * Preuve du défaut 2 corrigé : l'écran ne destructurait que `fournisseurs` (`[]` par défaut) —
  * un chargement lent ou un échec laissait le Select vide sans explication, l'utilisateur restait
  * bloqué sans savoir pourquoi. `isPending`/`isError` doivent maintenant être traités
@@ -78,7 +102,7 @@ describe('EcranNouvelleCommandeFournisseur — chargement des fournisseurs', () 
 
     rendre();
 
-    await screen.findByRole('heading', { name: 'Créer une commande' });
+    await screen.findByRole('heading', { name: 'Nouvelle commande fournisseur' });
     // Le Select fournisseur n'est pas rendu tant que le chargement n'est pas terminé — pas de
     // combobox vide qui donnerait l'illusion « aucun fournisseur ».
     expect(screen.queryByRole('combobox', { name: 'Fournisseur' })).not.toBeInTheDocument();
@@ -328,7 +352,9 @@ describe('EcranNouvelleCommandeFournisseur — pré-remplissage depuis le réapp
 
     rendre();
 
-    expect(await screen.findByRole('heading', { name: 'Créer une commande' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Nouvelle commande fournisseur' }),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(i18n.t('pieces:commandes.nouvelle.choisirSiteDabord')),
     ).toBeInTheDocument();

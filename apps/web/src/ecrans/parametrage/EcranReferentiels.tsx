@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SelecteurLangue } from '@/composants/layout/SelecteurLangue';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useSession } from '@/hooks/useSession';
 
 import { OngletPrestations } from './OngletPrestations';
@@ -45,14 +46,10 @@ export function EcranReferentiels() {
   const [onglet, setOnglet] = useState<Onglet>('tauxHoraires');
 
   return (
-    <div className="flex flex-col gap-4 p-6">
-      <h1 className="texte-titre-page font-semibold text-foreground">
-        {t('parametrage:referentiels.titre')}
-      </h1>
-      <p className="texte-corps text-muted-foreground">
-        {t('parametrage:referentiels.introduction')}
-      </p>
-
+    <GabaritEcran
+      titre={t('parametrage:referentiels.titre')}
+      sousTitre={t('parametrage:referentiels.introduction')}
+    >
       <Card>
         <CardHeader>
           <CardTitle className="texte-titre-section">{t('parametrage:monCompte.titre')}</CardTitle>
@@ -86,7 +83,7 @@ export function EcranReferentiels() {
           <OngletPrestations role={session?.utilisateur.role} />
         </TabsContent>
       </Tabs>
-    </div>
+    </GabaritEcran>
   );
 }
 

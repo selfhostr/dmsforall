@@ -5,7 +5,6 @@ import { Link, useLocation, useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { useSession } from '@/hooks/useSession';
-import { useVersionApplication } from '@/hooks/useVersionApplication';
 import { cn } from '@/lib/utils';
 
 import {
@@ -17,6 +16,33 @@ import {
   type EntreeMenu,
 } from './navigation-modele';
 import type { UtiliserRepliBarreLaterale } from './useRepliBarreLaterale';
+
+/**
+ * Numéro de version affiché collé au bouton Réglages (demande explicite de @laupernoe, 17.08.2026 :
+ * « mets-le au-dessus ou en dessous du bouton Réglages », pas un pied de page détaché). But réel :
+ * identifier sans ambiguïté le BUNDLE FRONT réellement affiché en test à distance (« bundle
+ * périmé ou vrai défaut ? », doute qui a coûté du temps réel le 16.08.2026) — le numéro de
+ * version seul (`apps/web/package.json`) ne suffit pas, il ne bouge pas entre deux commits de la
+ * même journée, d'où le hash court en plus (voir `vite.config.ts`, `define`).
+ *
+ * Repli défensif « valeur manquante » — PAS seulement celui déjà posé côté build
+ * (`calculerInfoVersionWeb` dans `vite.config.ts`, `'inconnu'` si `git` est absent) : sous
+ * Vitest, `vitest.config.ts` est une config SÉPARÉE qui ne porte pas le `define` de
+ * `vite.config.ts`, donc `import.meta.env.VITE_DFA_VERSION_INFO` y est un simple accès de
+ * propriété sur l'objet réel `import.meta.env` → `undefined`, jamais une exception.
+ * `typeof … === 'string'` traite ce cas (et toute chaîne vide) exactement comme une vraie valeur
+ * manquante — règle maison : absence de donnée ≠ valeur, le mot « inconnue » (traduit dans
+ * `navigation.json`) ne doit jamais se confondre avec un vrai numéro.
+ *
+ * RE-ARBITRAGE 17.08.2026 : l'issue #85 cachait la version (« un client au comptoir ne doit voir
+ * ni branche ni hash Git ») — @laupernoe a tranché l'inverse ce jour-là, visible tout le temps, y compris
+ * devant un client, pour identifier sans ambiguïté le bundle servi en test à distance. Ne pas
+ * « corriger » cette visibilité en croyant réappliquer #85 : elle est voulue, plus le contraire.
+ */
+function infoVersionBrute(): string {
+  const brut = import.meta.env.VITE_DFA_VERSION_INFO;
+  return typeof brut === 'string' && brut.trim() !== '' ? brut : '';
+}
 
 interface Props {
   readonly className?: string;
@@ -92,11 +118,10 @@ export function BarreLaterale({ className, repli }: Props) {
   const { pathname } = useLocation();
   const { data: session } = useSession();
   const role = session?.utilisateur.role;
-  // Numéro de version (support téléphonique) — `data` reste `undefined` pendant le chargement
-  // ET en cas d'erreur, ce qui suffit à ne rien afficher dans les deux cas : voir le paragraphe
-  // en bas du JSX pour la justification de cette exception à la règle « chargement / vide /
-  // erreur » des écrans métier.
-  const { data: sante } = useVersionApplication();
+  // Numéro de version — voir la doc de `infoVersionBrute` en tête de fichier. Repli traduit
+  // (« inconnue ») posé ICI, pas dans `infoVersionBrute`, pour rester une fonction pure sans
+  // dépendance à `t`.
+  const infoVersion = infoVersionBrute() || t('navigation:pied.versionInconnue');
 
   // `repli` absent (tiroir mobile) => jamais replié, quelle que soit la préférence mémorisée par
   // ailleurs : la lecture de cette préférence est entièrement du ressort de l'appelant desktop.
@@ -234,33 +259,39 @@ export function BarreLaterale({ className, repli }: Props) {
        * Pied ancré, séparé des six entrées par un filet (§4.2) — `shrink-0` : ne rétrécit jamais.
        * Le filet encode une frontière réelle : au-dessus, les six plans de travail qu'on ouvre
        * chaque jour ; en dessous, ce qu'on configure rarement et jamais dans le flux de travail
-       * (Réglages), puis une métadonnée inerte (la version).
+       * (Réglages), puis le numéro de version.
        *
-       * Version — chargement et erreur : `sante` reste `undefined` dans les deux cas -> RIEN n'est
-       * affiché, aucun squelette ni placeholder. Exception ASSUMÉE à la règle « chaque écran gère
-       * chargement / vide / erreur » du CONTRIBUTING.md : c'est une information d'ambiance dans un chrome
-       * affiché huit heures par jour, pas un écran métier — quand elle manque, l'utilisateur n'a
-       * rien à en faire, et un placeholder permanent serait du bruit. Le texte visible
-       * (« main · 0.1.234 ») est déjà explicite pour un lecteur au téléphone, donc pas
-       * d'`aria-label` séparé. `truncate` + `title` (au lieu de disparaître ou de déborder de la
-       * colonne repliée à 64 px) : même idiome que le nom de tenant/site d'`EnTete.tsx`.
+       * Numéro de version SOUS Réglages, pas dessus (demande @laupernoe, 17.08.2026 : « au-dessus ou en
+       * dessous du bouton Réglages », choix laissé à l'agent) : le lien actionnable se lit en
+       * premier, la métadonnée de confort ensuite — même ordre qu'un pied d'application classique
+       * (action, puis « à propos »/version). Conditionné par LE MÊME `reglagesVisibles(role)` que
+       * le lien : « collé au bouton », donc rien à afficher si ce bouton n'existe pas pour ce
+       * rôle — jamais un second pied indépendant.
+       *
+       * REPLIÉ (icônes seules, colonne à 64 px) : le texte est MASQUÉ entièrement (`hidden`),
+       * jamais tronqué ni réduit — même idiome que le mot-symbole « dmsforall » en tête de cette
+       * barre (`hidden`, pas une opacité à zéro : retiré du flux ET de l'arbre d'accessibilité).
+       * Aucune chaîne de version ne tient sur les ~48 px utiles restants sans déborder ou perdre
+       * tout son sens tronquée, et ce texte n'est qu'une métadonnée de confort — jamais un
+       * contrôle qu'un lecteur d'écran devrait pouvoir atteindre en repli.
+       *
+       * ABSENTE pour `poste_atelier` (borne murale, `AppShell.tsx` retire l'`aside` entier) :
+       * assumé, confirmé sans effet de bord par les tests de masquage par rôle existants
+       * (`describe('BarreLaterale — masquage par rôle')`) — rien de spécifique à ajouter ici, la
+       * disparition suit celle de toute la colonne.
        */}
-      {reglagesVisibles(role) || sante ? (
+      {reglagesVisibles(role) ? (
         <div className={cn('shrink-0 border-t', replie ? 'p-2' : 'p-3')}>
-          {reglagesVisibles(role) ? (
-            <ul className="flex flex-col gap-1">{rendreEntree(ENTREE_REGLAGES)}</ul>
-          ) : null}
-          {sante ? (
-            <div
-              className="hidden"
-              data-version={sante.version}
-              data-branche={sante.branche}
-              title={t('navigation:pied.version', {
-                branche: sante.branche,
-                numero: sante.version,
-              })}
-            />
-          ) : null}
+          <ul className="flex flex-col gap-1">{rendreEntree(ENTREE_REGLAGES)}</ul>
+          <p
+            className={cn(
+              'texte-libelle select-text text-muted-foreground',
+              replie ? 'hidden' : 'mt-1 px-3',
+            )}
+            title={t('navigation:pied.version', { info: infoVersion })}
+          >
+            {infoVersion}
+          </p>
         </div>
       ) : null}
     </nav>

@@ -6,7 +6,19 @@ import { Button } from '@/components/ui/button';
 
 /** Rendu quand `useSession` est en `isError` (le serveur n'a pas répondu au tout, ex. panne
  *  API) — surtout PAS l'écran de login : on ne sait pas si l'utilisateur a une session valide
- *  ou non, seulement que l'API est muette. */
+ *  ou non, seulement que l'API est muette.
+ *
+ *  EXCEPTION MESURÉE, PAS `GabaritEcran` : `GabaritEcran` v2 consomme
+ *  `useLibellesNavigationAffiches` -> `useNavigationActive` -> `useSession()` — un DEUXIÈME
+ *  abonnement à la même requête `clesQuery.session()`, précisément celle qui est EN ERREUR quand
+ *  cet écran s'affiche. Constaté en exécution (`routes/RouteProtegee.spec.tsx`, test « isError »)
+ *  : avec `GabaritEcran`, le rendu reste bloqué sur `EcranVerificationSession` indéfiniment (testé
+ *  jusqu'à 15 s, jamais résolu) puis une exception « window is not defined » survient après le
+ *  démontage du test — un blocage, pas une simple lenteur. C'est exactement le pire endroit pour
+ *  ce défaut : l'écran qui doit annoncer « le serveur ne répond pas » resterait lui-même bloqué
+ *  quand le serveur ne répond pas. Défaut SIGNALÉ au socle (`composants/motifs/GabaritEcran.tsx`
+ *  / `composants/layout/useNavigationActive.ts`), pas corrigé ici (hors périmètre) — h1 manuel
+ *  conservé, sans dépendance à la navigation. */
 export function EcranServiceIndisponible() {
   const { t } = useTranslation(['erreurs', 'commun']);
   const queryClient = useQueryClient();

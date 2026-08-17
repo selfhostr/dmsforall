@@ -9,6 +9,7 @@ import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { listerCommandesFournisseur } from '@/hooks/pieces/commandes-fournisseur.api';
 import { useArticle } from '@/hooks/pieces/useArticle';
 import { useFournisseur } from '@/hooks/pieces/useFournisseur';
@@ -129,23 +130,21 @@ export function EcranFicheArticle() {
 
   if (requeteArticle.isPending) {
     return (
-      <div className="flex flex-col gap-6 p-6">
-        <h1 className="sr-only">{t('pieces:articles.titre')}</h1>
+      <GabaritEcran titre={t('pieces:articles.titre')}>
         <EtatChargement lignes={8} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (requeteArticle.isError) {
     return (
-      <div className="flex flex-col gap-6 p-6">
-        <h1 className="sr-only">{t('pieces:articles.titre')}</h1>
+      <GabaritEcran titre={t('pieces:articles.titre')}>
         <EtatErreur
           titre={t('pieces:articles.fiche.erreur.titre')}
           description={messageErreur(requeteArticle.error, t)}
           onReessayer={() => void requeteArticle.refetch()}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
@@ -171,10 +170,13 @@ export function EcranFicheArticle() {
     marquerObsolete.isPending || desactiver.isPending || reactiver.isPending;
   const erreurTransition = marquerObsolete.error ?? desactiver.error ?? reactiver.error;
 
+  // Titre MASQUÉ automatiquement — « Articles » (titre générique de la fiche, identité RÉELLE
+  // portée par le `<h2>` visible dans `EnTeteFicheArticle`, `article.designation`) est un doublon
+  // de l'onglet actif « Articles » : `GabaritEcran` le détecte lui-même. Un seul `<h1>` par page
+  // (accessibilité) — l'ancien code posait DEUX `<h1>` (celui-ci, sr-only, ET celui
+  // d'`EnTeteFicheArticle`, visible) : défaut corrigé au passage, voir son commentaire.
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <h1 className="sr-only">{t('pieces:articles.titre')}</h1>
-
+    <GabaritEcran titre={t('pieces:articles.titre')}>
       <EnTeteFicheArticle
         article={article}
         peutEcrire={peutEcrire}
@@ -449,6 +451,6 @@ export function EcranFicheArticle() {
         onConfirmer={confirmer}
         enCours={enCoursTransition}
       />
-    </div>
+    </GabaritEcran>
   );
 }

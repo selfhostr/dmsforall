@@ -9,6 +9,7 @@ import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { GrilleAgendaSemaine } from '@/composants/rendez-vous/GrilleAgendaSemaine';
 import { VueListeRendezVous } from '@/composants/rendez-vous/VueListeRendezVous';
 import type { JourAgenda, RendezVousCarte } from '@/composants/rendez-vous/types';
@@ -70,12 +71,20 @@ export function EcranAgendaRendezVous({
 }: Props) {
   const { t } = useTranslation(['planning', 'commun', 'erreurs']);
 
+  // Écran jusqu'ici sans aucun h1 (ni visible ni `sr-only`) — corrigé par ce chantier : un h1
+  // doit TOUJOURS exister dans le DOM (contrat gabarit §1). « Rendez-vous » (`planning:titre`)
+  // ne recoupe aucun libellé de navigation (l'onglet actif est « Planning », pas « Rendez-vous » —
+  // `ONGLETS_ATELIER`, `navigation-modele.ts`) : la détection automatique le laisse visible, y
+  // compris sur l'état « site non choisi » ci-dessous, pour que l'en-tête ne saute pas entre les
+  // états (même patron que `EcranNouvelOrdreReparation`).
   if (!site) {
     return (
-      <EtatVide
-        titre={t('planning:site.manquant.titre')}
-        description={t('planning:site.manquant.description')}
-      />
+      <GabaritEcran titre={t('planning:titre')}>
+        <EtatVide
+          titre={t('planning:site.manquant.titre')}
+          description={t('planning:site.manquant.description')}
+        />
+      </GabaritEcran>
     );
   }
 
@@ -156,7 +165,7 @@ export function EcranAgendaRendezVous({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <GabaritEcran titre={t('planning:titre')}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs value={vue} onValueChange={(valeur) => onChangerVue(valeur as VueAgendaEcran)}>
           <TabsList>
@@ -208,6 +217,6 @@ export function EcranAgendaRendezVous({
       />
 
       {contenu()}
-    </div>
+    </GabaritEcran>
   );
 }

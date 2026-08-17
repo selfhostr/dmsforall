@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
+import { MemoryRouter } from 'react-router';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import type { PageCurseur, ReponseRegleRelance, ReponseRelanceEnvoi } from '@dfa/shared';
@@ -40,8 +41,17 @@ beforeAll(() => {
   }
 });
 
+// `GabaritEcran` (chantier « titres doublés & espacements », 17.08.2026) résout désormais sa
+// détection automatique de doublon via `useNavigationActive` (`useLocation`/`useSearchParams`) —
+// un Router de test est donc requis, même pour un rendu isolé de l'écran (pas de matching de route
+// nécessaire : `useLocation().pathname` suffit, `MemoryRouter` seul convient, pas besoin du jeu de
+// routes complet de l'app comme `renduAvecRoutes` ci-dessous, réservé aux tests de garde de rôle).
 function rendre() {
-  return renduAvecQueryClient(<EcranRelances />);
+  return renduAvecQueryClient(
+    <MemoryRouter initialEntries={['/relances']}>
+      <EcranRelances />
+    </MemoryRouter>,
+  );
 }
 
 const PAGE_HISTORIQUE_VIDE: PageCurseur<ReponseRelanceEnvoi> = {

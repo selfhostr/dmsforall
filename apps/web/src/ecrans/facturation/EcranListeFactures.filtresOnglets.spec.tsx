@@ -165,9 +165,7 @@ describe('EcranListeFactures — filtres réels par onglet', () => {
 
       await utilisateur.click(await screen.findByRole('tab', { name: 'En retard' }));
 
-      expect(
-        await screen.findByText('Aucune facture en retard — tout est à jour.'),
-      ).toBeInTheDocument();
+      expect(await screen.findByText('Aucune facture en retard')).toBeInTheDocument();
       // Preuve que ce texte vient bien d'une réponse serveur passée par le filtre attendu, pas
       // d'un court-circuit qui l'aurait affiché quel que soit le filtre.
       expect(dernierFiltres().enRetard).toBe(true);
@@ -214,9 +212,7 @@ describe('EcranListeFactures — filtres réels par onglet', () => {
       await utilisateur.click(await screen.findByRole('tab', { name: 'En retard' }));
 
       expect(await screen.findByText('Meier Urs')).toBeInTheDocument();
-      expect(
-        screen.queryByText('Aucune facture en retard — tout est à jour.'),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText('Aucune facture en retard')).not.toBeInTheDocument();
     },
   );
 });

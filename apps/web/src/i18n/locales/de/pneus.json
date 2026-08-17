@@ -20,7 +20,7 @@
     "sansDimension": "Dimension unbekannt",
     "plaqueInconnue": "Kennzeichen unbekannt",
     "dernierMouvement": "Letzte Bewegung am {date}",
-    "avertissementRelance": "Seit über zwei Jahren ohne Bewegung — beim Kunden nachfragen.",
+    "avertissementRelance": "Seit über zwei Jahren ohne Bewegung.",
     "actions": {
       "voirVehicule": "Fahrzeug anzeigen",
       "changerSaison": "Saison wechseln",
@@ -40,7 +40,7 @@
     "misEnEvidence": {
       "absent": {
         "titre": "Satz hier nicht auffindbar",
-        "description": "Die gesuchte Einlagerung ist in diesem Reifenhotel an diesem Standort nicht mehr sichtbar — sie wurde möglicherweise verschoben, ausgelagert, oder der Standort hat sich geändert. Der Plan unten ist weiterhin aktuell."
+        "description": "Die gesuchte Einlagerung ist an diesem Standort nicht mehr sichtbar — sie wurde möglicherweise verschoben, ausgelagert, oder der Standort hat sich geändert. Der Plan unten ist weiterhin aktuell."
       }
     },
     "siteRequis": {
@@ -66,9 +66,9 @@
       "reperePlaceholder": "Z. B. Regal 3"
     },
     "vide": {
-      "titre": "Reifenhotel",
+      "titre": "Kein Reifensatz",
       "filtreDescription": "Kein Satz entspricht diesem Standort.",
-      "premierUsage": "Noch kein Reifensatz in diesem Hotel eingelagert."
+      "premierUsage": "Noch kein Reifensatz hier eingelagert."
     },
     "onglets": {
       "ariaLabel": "Ansicht des Reifenhotels",
@@ -111,12 +111,12 @@
     "champMotifPlaceholder": "Grund wählen"
   },
   "aRelancer": {
-    "titre": "Sätze zum Nachfassen",
-    "description": "Reifensätze ohne Bewegung seit über zwei Jahren — beim Kunden nachfragen, bevor sie unnötig einen Platz belegen.",
+    "titre": "Kein Reifensatz",
+    "description": "Ohne Bewegung seit über zwei Jahren, bevor ein Satz unnötig einen Platz belegt.",
     "erreur": {
       "titre": "Die Sätze zum Nachfassen können nicht angezeigt werden"
     },
-    "vide": "Keine Sätze zum Nachfassen.",
+    "vide": "Kein Satz ist überfällig.",
     "filtreSite": "Standort",
     "filtreSiteTous": "Alle Standorte",
     "colonnes": {

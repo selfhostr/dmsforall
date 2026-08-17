@@ -13,6 +13,7 @@ import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { BadgeStatutOr } from '@/composants/identite/BadgeStatutOr';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { CarteFinancement } from '@/ecrans/ventes/financements/CarteFinancement';
 import { CarteReprise } from '@/ecrans/ventes/reprises/CarteReprise';
 import { useSession } from '@/hooks/useSession';
@@ -93,42 +94,44 @@ export function EcranFicheDossierVente() {
 
   if (requete.isPending) {
     return (
-      <div className="flex flex-col gap-6 p-6">
-        <h1 className="sr-only">{t('ventes:dossier.fiche.titre')}</h1>
+      <GabaritEcran titre={t('ventes:dossier.fiche.titre')}>
         <EtatChargement lignes={8} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (requete.isError) {
     return (
-      <div className="flex flex-col gap-6 p-6">
-        <h1 className="sr-only">{t('ventes:dossier.fiche.titre')}</h1>
+      <GabaritEcran titre={t('ventes:dossier.fiche.titre')}>
         <EtatErreur
           titre={t('ventes:dossier.fiche.erreur.titre')}
           description={messageErreur(requete.error, t)}
           onReessayer={() => void requete.refetch()}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
   const dossier = requete.data;
   const peutModifier = dossier.actionsDisponibles.includes('modifier');
 
+  // Titre VISIBLE — « Dossier de vente » (`ventes:dossier.fiche.titre`) ne fait AUCUNE inclusion
+  // (au sens §3 du contrat du chantier « titres doublés », 17.08.2026) avec l'onglet actif
+  // « Dossiers » : contre-exemple mesuré du contrat (« les titres de FICHE... doivent rester
+  // VISIBLES »), même famille que « Nouvelle commande fournisseur » dans sa table. `GabaritEcran`
+  // le laisse donc visible SANS qu'on pose `titreVisible` — la détection automatique fait le
+  // travail, poser la prop ici serait justement ce que le contrat interdit (§5.2).
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="texte-titre-section font-semibold text-foreground">
-          {t('ventes:dossier.fiche.titre')}
-        </h1>
-        {peutModifier ? (
+    <GabaritEcran
+      titre={t('ventes:dossier.fiche.titre')}
+      actions={
+        peutModifier ? (
           <Button variant="outline" onClick={() => setModificationOuverte(true)}>
             {t('commun:actions.modifier')}
           </Button>
-        ) : null}
-      </div>
-
+        ) : undefined
+      }
+    >
       <EnTeteDossierVente
         dossier={dossier}
         peutAssignerVehicule={peutModifier && dossier.statut === 'prospection'}
@@ -232,6 +235,6 @@ export function EcranFicheDossierVente() {
           onOuvertChange={setModificationOuverte}
         />
       ) : null}
-    </div>
+    </GabaritEcran>
   );
 }

@@ -9,10 +9,11 @@ import { schemaConnexion, type EntreeConnexion } from '@dfa/shared';
 import { ErreurReseau, messageErreur } from '@/api/erreurs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SelecteurLangue } from '@/composants/layout/SelecteurLangue';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useConnexion } from '@/hooks/useConnexion';
 
 /** Points de contrat non négociables (voir contrats-etape-0.md §5) :
@@ -48,7 +49,17 @@ export function EcranConnexion() {
   const estErreurReseau = erreur instanceof ErreurReseau;
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-muted/30 p-4">
+    // Hors de la coquille `AppShell` (route `/login`, `RoutePublique` — pas de barre latérale ni
+    // d'onglets) : la détection automatique du gabarit ne trouve aucun libellé de navigation à
+    // comparer et rendrait donc le h1 VISIBLE par défaut (règle §3 du contrat GabaritEcran) — ce
+    // qui DOUBLERAIT ici le titre affiché par `CardTitle` juste en dessous (« Connexion » deux
+    // fois à l'écran). Cas réel, mesuré : `titreVisible={false}` forcé pour garder le h1 dans le
+    // DOM (lecteur d'écran) sans le montrer, `CardTitle` restant le seul titre VISIBLE de l'écran.
+    <GabaritEcran
+      titre={t('auth:connexion.titre')}
+      titreVisible={false}
+      className="min-h-dvh items-center justify-center bg-muted/30 p-4"
+    >
       <div className="w-full max-w-[420px] space-y-4">
         <div className="flex justify-end">
           <SelecteurLangue />
@@ -56,7 +67,7 @@ export function EcranConnexion() {
 
         <Card>
           <CardHeader>
-            <CardTitle>{t('auth:connexion.titre')}</CardTitle>
+            <div className="texte-titre-section leading-none">{t('auth:connexion.titre')}</div>
             <CardDescription>{t('auth:connexion.sousTitre')}</CardDescription>
           </CardHeader>
           <CardContent>
@@ -146,6 +157,6 @@ export function EcranConnexion() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </GabaritEcran>
   );
 }

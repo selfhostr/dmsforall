@@ -16,6 +16,7 @@ import { EtatVide } from '@/composants/commun/EtatVide';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { RefusBloquant } from '@/composants/motifs/RefusBloquant';
 import { useClient } from '@/hooks/clients/useClient';
 import { useCreationDossierVente } from '@/hooks/ventes/dossiers/useCreationDossierVente';
@@ -139,230 +140,240 @@ export function EcranNouveauDossierVente() {
 
   if (!site) {
     return (
-      <div className="mx-auto flex max-w-lg flex-col gap-4 p-6">
-        <h1 className="sr-only">{t('ventes:dossier.nouveau.titre')}</h1>
-        <EtatVide
-          titre={t('ventes:dossier.nouveau.siteManquant.titre')}
-          description={t('ventes:dossier.nouveau.siteManquant.description')}
-          action={
-            <Button asChild variant="outline">
-              <Link to="/">{t('commun:actions.retourAccueil')}</Link>
-            </Button>
-          }
-        />
-      </div>
+      <GabaritEcran titre={t('ventes:dossier.nouveau.titre')}>
+        <div className="mx-auto flex w-full max-w-lg flex-col gap-4">
+          <EtatVide
+            titre={t('ventes:dossier.nouveau.siteManquant.titre')}
+            description={t('ventes:dossier.nouveau.siteManquant.description')}
+            action={
+              <Button asChild variant="outline">
+                <Link to="/">{t('commun:actions.retourAccueil')}</Link>
+              </Button>
+            }
+          />
+        </div>
+      </GabaritEcran>
     );
   }
 
   if (clientIdPrefilled && requeteClientPrefilled.isPending) {
     return (
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-        <h1 className="sr-only">{t('ventes:dossier.nouveau.titre')}</h1>
-        <EtatChargement lignes={6} />
-      </div>
+      <GabaritEcran titre={t('ventes:dossier.nouveau.titre')}>
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+          <EtatChargement lignes={6} />
+        </div>
+      </GabaritEcran>
     );
   }
 
   if (clientIdPrefilled && requeteClientPrefilled.isError) {
     return (
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-        <h1 className="sr-only">{t('ventes:dossier.nouveau.titre')}</h1>
-        <EtatErreur
-          titre={t('erreurs:inattendue.titre')}
-          description={messageErreur(requeteClientPrefilled.error, t)}
-          onReessayer={() => void requeteClientPrefilled.refetch()}
-        />
-      </div>
+      <GabaritEcran titre={t('ventes:dossier.nouveau.titre')}>
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+          <EtatErreur
+            titre={t('erreurs:inattendue.titre')}
+            description={messageErreur(requeteClientPrefilled.error, t)}
+            onReessayer={() => void requeteClientPrefilled.refetch()}
+          />
+        </div>
+      </GabaritEcran>
     );
   }
 
   const peutSoumettre = Boolean(clientAcheteurEffectif) && !creation.enCours;
 
+  // Titre VISIBLE — « Nouveau dossier de vente » ne fait aucune inclusion avec l'onglet « Dossiers »
+  // (§3 du contrat du chantier « titres doublés », 17.08.2026 : même famille que l'exemple
+  // « Nouvelle commande fournisseur » de sa table, verdict « visible »). Écran de CRÉATION, contre-
+  // exemple mesuré du contrat qui doit rester visible sans qu'on pose `titreVisible`.
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-6">
-      <h1 className="texte-titre-section font-semibold text-foreground">
-        {t('ventes:dossier.nouveau.titre')}
-      </h1>
+    <GabaritEcran titre={t('ventes:dossier.nouveau.titre')}>
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
+        <LegendeChampsObligatoires>
+          {t('commun:formulaires.champsObligatoiresLegende')}
+        </LegendeChampsObligatoires>
 
-      <LegendeChampsObligatoires>
-        {t('commun:formulaires.champsObligatoiresLegende')}
-      </LegendeChampsObligatoires>
+        <Card>
+          <CardHeader>
+            <CardTitle className="texte-corps font-medium">
+              {t('ventes:dossier.nouveau.client.titre')}
+              {/* Seul champ réellement obligatoire de cet écran (`clientAcheteurId`,
+               *  `schemaCreationDossierVente`) — `CardTitle` (pas `<Label>`) porte ici le nom visible
+               *  du champ (le sélecteur ci-dessous n'a pas de libellé visible propre), même rendu
+               *  d'étoile (`aria-hidden`) que `Label requis` pour rester cohérent avec la légende. */}
+              <span aria-hidden="true" className="ml-0.5 text-destructive">
+                *
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {clientAcheteurEffectif ? (
+              <div className="flex items-center justify-between gap-3">
+                <IdentiteClient client={clientAcheteurEffectif} />
+                {!clientIdPrefilled ? (
+                  <Button variant="ghost" size="sm" onClick={() => setClientAcheteur(null)}>
+                    {t('commun:actions.modifier')}
+                  </Button>
+                ) : null}
+              </div>
+            ) : (
+              <SelecteurClientDossier
+                valeur={null}
+                onChangeValeur={(_id, client) => setClientAcheteur(client)}
+                libelle={t('ventes:dossier.nouveau.client.titre')}
+                requis
+              />
+            )}
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="texte-corps font-medium">
-            {t('ventes:dossier.nouveau.client.titre')}
-            {/* Seul champ réellement obligatoire de cet écran (`clientAcheteurId`,
-             *  `schemaCreationDossierVente`) — `CardTitle` (pas `<Label>`) porte ici le nom visible
-             *  du champ (le sélecteur ci-dessous n'a pas de libellé visible propre), même rendu
-             *  d'étoile (`aria-hidden`) que `Label requis` pour rester cohérent avec la légende. */}
-            <span aria-hidden="true" className="ml-0.5 text-destructive">
-              *
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {clientAcheteurEffectif ? (
-            <div className="flex items-center justify-between gap-3">
-              <IdentiteClient client={clientAcheteurEffectif} />
-              {!clientIdPrefilled ? (
-                <Button variant="ghost" size="sm" onClick={() => setClientAcheteur(null)}>
-                  {t('commun:actions.modifier')}
-                </Button>
-              ) : null}
+        <Card>
+          <CardHeader>
+            <CardTitle className="texte-corps font-medium">
+              {t('ventes:dossier.nouveau.vehicule.titre')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {vehiculeEffectif ? (
+              <div className="flex items-center justify-between gap-3">
+                <IdentiteVehicule vehicule={vehiculeEffectif.vehicule} />
+                {!vehiculeIdPrefilled ? (
+                  <Button variant="ghost" size="sm" onClick={() => setVehicule(null)}>
+                    {t('commun:actions.modifier')}
+                  </Button>
+                ) : null}
+              </div>
+            ) : (
+              <SelecteurVehiculeStockDossier
+                valeur={null}
+                onChangeValeur={(_id, v) => setVehicule(v)}
+                libelle={t('ventes:dossier.nouveau.vehicule.titre')}
+              />
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="flex flex-col gap-4 pt-6">
+            <label
+              htmlFor="dossier-facturer-a-tiers"
+              className="flex items-center gap-2 texte-corps"
+            >
+              <Checkbox
+                id="dossier-facturer-a-tiers"
+                checked={facturerATiers}
+                onCheckedChange={(coche) => setFacturerATiers(coche === true)}
+              />
+              {t('ventes:dossier.nouveau.clientFacture.activer')}
+            </label>
+            {facturerATiers ? (
+              <SelecteurClientDossier
+                valeur={clientFacture?.id ?? null}
+                onChangeValeur={(_id, client) => setClientFacture(client)}
+                libelle={t('ventes:dossier.nouveau.clientFacture.titre')}
+              />
+            ) : null}
+
+            <label
+              htmlFor="dossier-conducteur-different"
+              className="flex items-center gap-2 texte-corps"
+            >
+              <Checkbox
+                id="dossier-conducteur-different"
+                checked={conducteurDifferent}
+                onCheckedChange={(coche) => setConducteurDifferent(coche === true)}
+              />
+              {t('ventes:dossier.nouveau.clientConducteur.activer')}
+            </label>
+            {conducteurDifferent ? (
+              <SelecteurClientDossier
+                valeur={clientConducteur?.id ?? null}
+                onChangeValeur={(_id, client) => setClientConducteur(client)}
+                libelle={t('ventes:dossier.nouveau.clientConducteur.titre')}
+              />
+            ) : null}
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="dossier-vente-date-livraison">
+                {t('ventes:dossier.nouveau.dateLivraisonEstimee')}
+              </Label>
+              <DateInput
+                id="dossier-vente-date-livraison"
+                value={dateLivraisonEstimee}
+                onChange={(valeurISO: string | undefined) =>
+                  setDateLivraisonEstimee(valeurISO ?? '')
+                }
+              />
             </div>
-          ) : (
-            <SelecteurClientDossier
-              valeur={null}
-              onChangeValeur={(_id, client) => setClientAcheteur(client)}
-              libelle={t('ventes:dossier.nouveau.client.titre')}
-              requis
-            />
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="texte-corps font-medium">
-            {t('ventes:dossier.nouveau.vehicule.titre')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {vehiculeEffectif ? (
-            <div className="flex items-center justify-between gap-3">
-              <IdentiteVehicule vehicule={vehiculeEffectif.vehicule} />
-              {!vehiculeIdPrefilled ? (
-                <Button variant="ghost" size="sm" onClick={() => setVehicule(null)}>
-                  {t('commun:actions.modifier')}
-                </Button>
-              ) : null}
-            </div>
-          ) : (
-            <SelecteurVehiculeStockDossier
-              valeur={null}
-              onChangeValeur={(_id, v) => setVehicule(v)}
-              libelle={t('ventes:dossier.nouveau.vehicule.titre')}
-            />
-          )}
-        </CardContent>
-      </Card>
+        {creation.erreurActive && creation.confirmationsRequises.length === 0 ? (
+          <RefusBloquant
+            code={creation.erreurActive.probleme.code}
+            blocages={creation.erreurActive.blocages}
+            actionsProposees={creation.erreurActive.actionsProposees}
+          />
+        ) : null}
 
-      <Card>
-        <CardContent className="flex flex-col gap-4 pt-6">
-          <label htmlFor="dossier-facturer-a-tiers" className="flex items-center gap-2 texte-corps">
-            <Checkbox
-              id="dossier-facturer-a-tiers"
-              checked={facturerATiers}
-              onCheckedChange={(coche) => setFacturerATiers(coche === true)}
-            />
-            {t('ventes:dossier.nouveau.clientFacture.activer')}
-          </label>
-          {facturerATiers ? (
-            <SelecteurClientDossier
-              valeur={clientFacture?.id ?? null}
-              onChangeValeur={(_id, client) => setClientFacture(client)}
-              libelle={t('ventes:dossier.nouveau.clientFacture.titre')}
-            />
-          ) : null}
-
-          <label
-            htmlFor="dossier-conducteur-different"
-            className="flex items-center gap-2 texte-corps"
-          >
-            <Checkbox
-              id="dossier-conducteur-different"
-              checked={conducteurDifferent}
-              onCheckedChange={(coche) => setConducteurDifferent(coche === true)}
-            />
-            {t('ventes:dossier.nouveau.clientConducteur.activer')}
-          </label>
-          {conducteurDifferent ? (
-            <SelecteurClientDossier
-              valeur={clientConducteur?.id ?? null}
-              onChangeValeur={(_id, client) => setClientConducteur(client)}
-              libelle={t('ventes:dossier.nouveau.clientConducteur.titre')}
-            />
-          ) : null}
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="dossier-vente-date-livraison">
-              {t('ventes:dossier.nouveau.dateLivraisonEstimee')}
-            </Label>
-            <DateInput
-              id="dossier-vente-date-livraison"
-              value={dateLivraisonEstimee}
-              onChange={(valeurISO: string | undefined) => setDateLivraisonEstimee(valeurISO ?? '')}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {creation.erreurActive && creation.confirmationsRequises.length === 0 ? (
-        <RefusBloquant
-          code={creation.erreurActive.probleme.code}
-          blocages={creation.erreurActive.blocages}
-          actionsProposees={creation.erreurActive.actionsProposees}
-        />
-      ) : null}
-
-      {/* Erreur réseau ou inattendue (ni `ErreurApi`, donc `erreurActive` reste `null`) — même
-       *  repli que `EcranFicheArticle` : un message court plutôt qu'un `RefusBloquant` qui exige un
-       *  `CodeErreur` connu. */}
-      {creation.erreur && !creation.erreurActive ? (
-        <p className="texte-libelle text-destructive" role="alert">
-          {messageErreur(creation.erreur, t)}
-        </p>
-      ) : null}
-
-      {/* CONFIRMATION_REQUISE (§4.4) : même patron que `FormulaireNouvelOrdreReparation` — prompt
-       *  inline puis modal, un accord explicite plutôt qu'un second clic silencieux. */}
-      {creation.confirmationsRequises.length > 0 ? (
-        <div
-          role="alert"
-          className="rounded-md border border-statut-attention bg-statut-attention-fond p-3"
-        >
-          <p className="texte-corps text-statut-attention">
-            {creation.erreurActive ? messageErreur(creation.erreurActive, t) : ''}
+        {/* Erreur réseau ou inattendue (ni `ErreurApi`, donc `erreurActive` reste `null`) — même
+         *  repli que `EcranFicheArticle` : un message court plutôt qu'un `RefusBloquant` qui exige un
+         *  `CodeErreur` connu. */}
+        {creation.erreur && !creation.erreurActive ? (
+          <p className="texte-libelle text-destructive" role="alert">
+            {messageErreur(creation.erreur, t)}
           </p>
-          <Button
-            type="button"
-            variant="outline"
-            className="mt-2"
-            onClick={() => setConfirmationOuverte(true)}
+        ) : null}
+
+        {/* CONFIRMATION_REQUISE (§4.4) : même patron que `FormulaireNouvelOrdreReparation` — prompt
+         *  inline puis modal, un accord explicite plutôt qu'un second clic silencieux. */}
+        {creation.confirmationsRequises.length > 0 ? (
+          <div
+            role="alert"
+            className="rounded-md border border-statut-attention bg-statut-attention-fond p-3"
           >
-            {t('commun:actions.continuerQuandMeme')}
+            <p className="texte-corps text-statut-attention">
+              {creation.erreurActive ? messageErreur(creation.erreurActive, t) : ''}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-2"
+              onClick={() => setConfirmationOuverte(true)}
+            >
+              {t('commun:actions.continuerQuandMeme')}
+            </Button>
+          </div>
+        ) : null}
+
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" asChild>
+            <Link
+              to={site ? `/ventes/dossiers?site=${encodeURIComponent(site)}` : '/ventes/dossiers'}
+            >
+              {t('commun:actions.annuler')}
+            </Link>
+          </Button>
+          <Button disabled={!peutSoumettre} onClick={soumettre}>
+            {t('ventes:dossier.nouveau.creer')}
           </Button>
         </div>
-      ) : null}
 
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" asChild>
-          <Link
-            to={site ? `/ventes/dossiers?site=${encodeURIComponent(site)}` : '/ventes/dossiers'}
-          >
-            {t('commun:actions.annuler')}
-          </Link>
-        </Button>
-        <Button disabled={!peutSoumettre} onClick={soumettre}>
-          {t('ventes:dossier.nouveau.creer')}
-        </Button>
+        <AvertissementConfirmable
+          ouvert={confirmationOuverte}
+          onOuvertChange={setConfirmationOuverte}
+          titre={t('ventes:dossier.nouveau.titre')}
+          description={creation.erreurActive ? messageErreur(creation.erreurActive, t) : ''}
+          libelleConfirmation={t('commun:actions.continuerQuandMeme')}
+          onConfirmer={() => {
+            setConfirmationOuverte(false);
+            creation.confirmerEtResoumettre({
+              onSuccess: (dossier) => navigate(chemins.ventes.dossiers.detail(dossier.id, site)),
+            });
+          }}
+          enCours={creation.enCours}
+        />
       </div>
-
-      <AvertissementConfirmable
-        ouvert={confirmationOuverte}
-        onOuvertChange={setConfirmationOuverte}
-        titre={t('ventes:dossier.nouveau.titre')}
-        description={creation.erreurActive ? messageErreur(creation.erreurActive, t) : ''}
-        libelleConfirmation={t('commun:actions.continuerQuandMeme')}
-        onConfirmer={() => {
-          setConfirmationOuverte(false);
-          creation.confirmerEtResoumettre({
-            onSuccess: (dossier) => navigate(chemins.ventes.dossiers.detail(dossier.id, site)),
-          });
-        }}
-        enCours={creation.enCours}
-      />
-    </div>
+    </GabaritEcran>
   );
 }

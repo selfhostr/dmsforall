@@ -142,6 +142,9 @@
     "chargement": "Caricamento…"
   },
   "fiche": {
+    "titre": "{type} {numero}",
+    "titreBrouillonFacture": "Nuova fattura",
+    "titreBrouillonAvoir": "Nuova nota di credito",
     "issueDeOr": "proveniente da un ordine di riparazione →",
     "emiseLe": "emessa il {date}",
     "destinataire": {
@@ -339,12 +342,27 @@
       "titre": "Impossibile caricare le fatture"
     },
     "vide": {
-      "premierUsage": "Nessuna fattura emessa per il momento. Le fatture si creano a partire da un ordine di riparazione terminato.",
+      "premierUsage": {
+        "titre": "Nessuna fattura emessa",
+        "description": "Le fatture si creano a partire da un ordine di riparazione terminato."
+      },
       "voirOr": "Vedere gli ordini di riparazione →",
-      "nonReglees": "Nessuna fattura non pagata — tutto è aggiornato.",
-      "enRetard": "Nessuna fattura in ritardo — tutto è aggiornato.",
-      "aRelancer": "Nessuna fattura da sollecitare al momento.",
-      "recherche": "Nessuna fattura corrisponde a questa ricerca."
+      "nonReglees": {
+        "titre": "Niente da incassare",
+        "description": "Tutti i crediti sono saldati."
+      },
+      "enRetard": {
+        "titre": "Nessuna fattura in ritardo",
+        "description": "Tutte le scadenze sono rispettate."
+      },
+      "aRelancer": {
+        "titre": "Nessuna fattura da sollecitare",
+        "description": "Nessuna fattura è in attesa di sollecito."
+      },
+      "recherche": {
+        "titre": "Nessuna fattura trovata",
+        "description": "Nessuna fattura corrisponde a questo numero o nome cliente."
+      }
     }
   },
   "actions": {

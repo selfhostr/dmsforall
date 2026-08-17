@@ -18,6 +18,7 @@ import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { BarreFiltres } from '@/composants/comptoir/BarreFiltres';
 import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 
 import { ConsoleShell } from './ConsoleShell';
 import {
@@ -97,100 +98,62 @@ export function EcranConsolePlateforme() {
     navigate(construireCheminGarageConsole(garage.tenantId));
   }
 
-  if (requete.isPending) {
-    return (
-      <ConsoleShell>
-        <div className="flex flex-col gap-6">
-          <h1 className="texte-titre-page font-semibold text-foreground">
-            {t('console:plateforme.titre')}
-          </h1>
-          <EtatChargement lignes={6} />
-        </div>
-      </ConsoleShell>
-    );
-  }
+  // Les quatre états (chargement / trois variantes d'erreur / contenu) passent tous par le MÊME
+  // `GabaritEcran` — un seul point où `titre` est posé — pour que l'en-tête ne saute jamais d'un
+  // état à l'autre (défaut mesuré : quatre `h1` recopiés à la main avant ce chantier).
+  let contenu: ReactNode;
 
-  if (requete.isError) {
+  if (requete.isPending) {
+    contenu = <EtatChargement lignes={6} />;
+  } else if (requete.isError) {
     const categorie = categoriserErreurConsole(requete.error);
 
     if (categorie === 'moduleInactif') {
-      return (
-        <ConsoleShell>
-          <div className="flex flex-col gap-6">
-            <h1 className="texte-titre-page font-semibold text-foreground">
-              {t('console:plateforme.titre')}
-            </h1>
-            <EtatErreur
-              titre={t('console:plateforme.etatErreur.moduleInactif.titre')}
-              description={t('console:plateforme.etatErreur.moduleInactif.description')}
-            />
-          </div>
-        </ConsoleShell>
+      contenu = (
+        <EtatErreur
+          titre={t('console:plateforme.etatErreur.moduleInactif.titre')}
+          description={t('console:plateforme.etatErreur.moduleInactif.description')}
+        />
+      );
+    } else if (categorie === 'accesRefuse') {
+      contenu = (
+        <EtatErreur
+          titre={t('console:plateforme.etatErreur.accesRefuse.titre')}
+          description={t('console:plateforme.etatErreur.accesRefuse.description')}
+        />
+      );
+    } else {
+      contenu = (
+        <EtatErreur
+          titre={t('console:plateforme.etatErreur.titre')}
+          description={messageErreur(requete.error, t)}
+          onReessayer={() => void requete.refetch()}
+        />
+      );
+    }
+  } else {
+    let contenuVide: ReactNode = undefined;
+    if (garages.length === 0) {
+      contenuVide = (
+        <EtatVide
+          titre={t('console:plateforme.etatVide.titre')}
+          description={t('console:plateforme.etatVide.description')}
+        />
+      );
+    } else if (garagesFiltres.length === 0) {
+      contenuVide = (
+        <EtatVideFiltre
+          titre={t('console:plateforme.etatVideFiltre.titre')}
+          description={t('console:plateforme.etatVideFiltre.description')}
+          onEffacerFiltres={effacerFiltres}
+        />
       );
     }
 
-    if (categorie === 'accesRefuse') {
-      return (
-        <ConsoleShell>
-          <div className="flex flex-col gap-6">
-            <h1 className="texte-titre-page font-semibold text-foreground">
-              {t('console:plateforme.titre')}
-            </h1>
-            <EtatErreur
-              titre={t('console:plateforme.etatErreur.accesRefuse.titre')}
-              description={t('console:plateforme.etatErreur.accesRefuse.description')}
-            />
-          </div>
-        </ConsoleShell>
-      );
-    }
+    const indicateurFiltreActif = indicateurs.find((candidat) => candidat.id === filtreIndicateur);
 
-    return (
-      <ConsoleShell>
-        <div className="flex flex-col gap-6">
-          <h1 className="texte-titre-page font-semibold text-foreground">
-            {t('console:plateforme.titre')}
-          </h1>
-          <EtatErreur
-            titre={t('console:plateforme.etatErreur.titre')}
-            description={messageErreur(requete.error, t)}
-            onReessayer={() => void requete.refetch()}
-          />
-        </div>
-      </ConsoleShell>
-    );
-  }
-
-  let contenuVide: ReactNode = undefined;
-  if (garages.length === 0) {
-    contenuVide = (
-      <EtatVide
-        titre={t('console:plateforme.etatVide.titre')}
-        description={t('console:plateforme.etatVide.description')}
-      />
-    );
-  } else if (garagesFiltres.length === 0) {
-    contenuVide = (
-      <EtatVideFiltre
-        titre={t('console:plateforme.etatVideFiltre.titre')}
-        description={t('console:plateforme.etatVideFiltre.description')}
-        onEffacerFiltres={effacerFiltres}
-      />
-    );
-  }
-
-  const indicateurFiltreActif = indicateurs.find((candidat) => candidat.id === filtreIndicateur);
-
-  return (
-    <ConsoleShell>
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-1">
-          <h1 className="texte-titre-page font-semibold text-foreground">
-            {t('console:plateforme.titre')}
-          </h1>
-          <p className="texte-corps text-muted-foreground">{t('console:plateforme.sousTitre')}</p>
-        </div>
-
+    contenu = (
+      <>
         <IndicateursPlateformeConsole
           valeurs={indicateurs}
           filtreActif={filtreIndicateur}
@@ -263,7 +226,20 @@ export function EcranConsolePlateforme() {
           onEntrer={onEntrer}
           contenuVide={contenuVide}
         />
-      </div>
+      </>
+    );
+  }
+
+  return (
+    <ConsoleShell>
+      <GabaritEcran
+        titre={t('console:plateforme.titre')}
+        sousTitre={
+          !requete.isPending && !requete.isError ? t('console:plateforme.sousTitre') : undefined
+        }
+      >
+        {contenu}
+      </GabaritEcran>
     </ConsoleShell>
   );
 }

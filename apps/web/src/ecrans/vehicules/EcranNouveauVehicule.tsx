@@ -15,6 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DateInput } from '@/components/ui/date-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import {
   ChampAutocompletionVehicule,
   type OptionAutocompletionVehicule,
@@ -165,225 +166,236 @@ export function EcranNouveauVehicule() {
     ? chemins.clients.detail(clientId, site)
     : chemins.vehicules.liste(site);
 
+  // Titre laissé à la détection automatique du gabarit (chantier « titres doublés &
+  // espacements », 17.08.2026) : « Nouveau véhicule » ne recoupe aucun libellé de navigation
+  // affiché (l'onglet actif reste « Véhicules », pas d'inclusion dans les deux sens) — le h1 reste
+  // donc visible, conformément à l'exigence du contrat pour les écrans de création.
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 p-6">
-      <h1 className="texte-titre-page font-semibold text-foreground">{t('vehicules:nouveau')}</h1>
-
-      {clientId && requeteClient.data ? (
-        <p className="texte-corps text-muted-foreground">
-          {t('vehicules:nouveauPourClient', { nom: requeteClient.data.nomAffiche })}
-        </p>
-      ) : null}
-
-      <form onSubmit={soumettre} noValidate className="flex flex-col gap-5">
-        {erreurBandeau ? (
-          <Alert variant={estErreurReseau ? 'avertissement' : 'destructive'}>
-            {estErreurReseau ? (
-              <WifiOff className="h-4 w-4" aria-hidden="true" />
-            ) : (
-              <AlertCircle className="h-4 w-4" aria-hidden="true" />
-            )}
-            <AlertTitle>
-              {t(estErreurReseau ? 'erreurs:reseau.titre' : 'erreurs:inattendue.titre')}
-            </AlertTitle>
-            <AlertDescription>{messageErreur(erreurBandeau, t)}</AlertDescription>
-          </Alert>
-        ) : null}
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="nv-marque">{t('vehicules:identite.marque')}</Label>
-            <Controller
-              control={form.control}
-              name="marque"
-              render={({ field }) => (
-                <ChampAutocompletionVehicule
-                  id="nv-marque"
-                  libelle={t('vehicules:identite.marque')}
-                  valeur={field.value}
-                  onValeurChange={field.onChange}
-                  options={optionsMarques}
-                  enChargement={marquesQuery.isFetching}
-                  erreur={erreurMarques}
-                  placeholder={t('vehicules:identite.autocompletion.placeholderMarque')}
-                  disabled={enCours}
-                  ariaInvalid={form.formState.errors.marque ? true : undefined}
-                  onSelectionOption={(option) => {
-                    if (option.valeur !== derniereMarqueConfirmeeRef.current) {
-                      form.setValue('modele', '');
-                    }
-                    derniereMarqueConfirmeeRef.current = option.valeur;
-                  }}
-                />
+    <GabaritEcran
+      titre={t('vehicules:nouveau')}
+      sousTitre={
+        clientId && requeteClient.data
+          ? t('vehicules:nouveauPourClient', { nom: requeteClient.data.nomAffiche })
+          : undefined
+      }
+    >
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-5">
+        <form onSubmit={soumettre} noValidate className="flex flex-col gap-5">
+          {erreurBandeau ? (
+            <Alert variant={estErreurReseau ? 'avertissement' : 'destructive'}>
+              {estErreurReseau ? (
+                <WifiOff className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <AlertCircle className="h-4 w-4" aria-hidden="true" />
               )}
-            />
-            {form.formState.errors.marque ? (
-              <p className="text-sm text-destructive">{t('validation:requis')}</p>
-            ) : null}
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="nv-modele">{t('vehicules:identite.modele')}</Label>
-            <Controller
-              control={form.control}
-              name="modele"
-              render={({ field }) => (
-                <ChampAutocompletionVehicule
-                  id="nv-modele"
-                  libelle={t('vehicules:identite.modele')}
-                  valeur={field.value}
-                  onValeurChange={field.onChange}
-                  options={optionsModeles}
-                  enChargement={modelesQuery.isFetching}
-                  erreur={erreurModeles}
-                  placeholder={t('vehicules:identite.autocompletion.placeholderModele')}
-                  disabled={enCours}
-                  ariaInvalid={form.formState.errors.modele ? true : undefined}
-                />
-              )}
-            />
-            {form.formState.errors.modele ? (
-              <p className="text-sm text-destructive">{t('validation:requis')}</p>
-            ) : null}
-          </div>
-        </div>
+              <AlertTitle>
+                {t(estErreurReseau ? 'erreurs:reseau.titre' : 'erreurs:inattendue.titre')}
+              </AlertTitle>
+              <AlertDescription>{messageErreur(erreurBandeau, t)}</AlertDescription>
+            </Alert>
+          ) : null}
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="nv-version">{t('vehicules:identite.version')}</Label>
-            <Input
-              id="nv-version"
-              readOnly={enCours}
-              {...form.register('version', { setValueAs: videVersIndefini })}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="nv-finition">{t('vehicules:identite.finition')}</Label>
-            <Input
-              id="nv-finition"
-              readOnly={enCours}
-              {...form.register('finition', { setValueAs: videVersIndefini })}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="nv-vin">{t('vehicules:identite.vin')}</Label>
-            <Input
-              id="nv-vin"
-              readOnly={enCours}
-              aria-invalid={form.formState.errors.vin ? true : undefined}
-              {...form.register('vin', { setValueAs: videVersIndefini })}
-            />
-            {form.formState.errors.vin ? (
-              <p className="text-sm text-destructive">{t('validation:longueurMin', { min: 5 })}</p>
-            ) : null}
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="nv-code-type">{t('vehicules:identite.codeType')}</Label>
-            <Input
-              id="nv-code-type"
-              readOnly={enCours}
-              {...form.register('codeTypeCh', { setValueAs: videVersIndefini })}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="nv-plaque">{t('vehicules:identite.plaque')}</Label>
-            <Input
-              id="nv-plaque"
-              readOnly={enCours}
-              placeholder={t('vehicules:identite.plaqueExemple')}
-              aria-invalid={erreurEstCollisionPlaque ? true : undefined}
-              aria-describedby={erreurEstCollisionPlaque ? 'nv-plaque-collision-erreur' : undefined}
-              {...form.register('plaque', { setValueAs: videVersIndefini })}
-            />
-            <p className="texte-libelle text-muted-foreground">
-              {t('vehicules:identite.plaqueAide')}
-            </p>
-            {/* 409 VEHICULE_PLAQUE_COLLISION (issue #96) — même rendu que
-             *  `DialogueModifierIdentiteVehicule.tsx` : le véhicule fautif est NOMMÉ quand le
-             *  serveur a pu le relire, sinon message sobre (course rare où la ligne fautive n'est
-             *  plus retrouvable à la relecture), jamais un libellé à trous. */}
-            {erreurEstCollisionPlaque ? (
-              <Alert id="nv-plaque-collision-erreur" variant="destructive" className="p-3">
-                <AlertDescription>
-                  {detailCollisionPlaque ? (
-                    <>
-                      {t('vehicules:collisionPlaque.avecDetail', {
-                        plaque: detailCollisionPlaque.plaque,
-                        vehicule: `${detailCollisionPlaque.marque} ${detailCollisionPlaque.modele}${
-                          detailCollisionPlaque.version ? ` ${detailCollisionPlaque.version}` : ''
-                        }`,
-                        debutLe: formaterDate(detailCollisionPlaque.debutLe),
-                      })}{' '}
-                      <Link
-                        to={chemins.vehicules.detail(detailCollisionPlaque.vehiculeId)}
-                        className="underline"
-                      >
-                        {t('vehicules:collisionPlaque.voirVehicule')}
-                      </Link>
-                    </>
-                  ) : (
-                    t('vehicules:collisionPlaque.sansDetail')
-                  )}
-                </AlertDescription>
-              </Alert>
-            ) : null}
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="nv-canton">{t('vehicules:plaques.canton')}</Label>
-            <Input
-              id="nv-canton"
-              readOnly={enCours}
-              maxLength={2}
-              placeholder={t('vehicules:plaques.cantonExemple')}
-              aria-invalid={form.formState.errors.canton ? true : undefined}
-              {...form.register('canton', { setValueAs: videVersIndefini })}
-            />
-            {form.formState.errors.canton ? (
-              <p className="text-sm text-destructive">{t('validation:longueurMin', { min: 2 })}</p>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="nv-mise-circulation">{t('vehicules:identite.mise1reCirc')}</Label>
-          <Controller
-            control={form.control}
-            name="premiereMiseEnCirculationLe"
-            render={({ field }) => (
-              <DateInput
-                id="nv-mise-circulation"
-                disabled={enCours}
-                className="max-w-[200px]"
-                value={field.value}
-                onChange={field.onChange}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="nv-marque">{t('vehicules:identite.marque')}</Label>
+              <Controller
+                control={form.control}
+                name="marque"
+                render={({ field }) => (
+                  <ChampAutocompletionVehicule
+                    id="nv-marque"
+                    libelle={t('vehicules:identite.marque')}
+                    valeur={field.value}
+                    onValeurChange={field.onChange}
+                    options={optionsMarques}
+                    enChargement={marquesQuery.isFetching}
+                    erreur={erreurMarques}
+                    placeholder={t('vehicules:identite.autocompletion.placeholderMarque')}
+                    disabled={enCours}
+                    ariaInvalid={form.formState.errors.marque ? true : undefined}
+                    onSelectionOption={(option) => {
+                      if (option.valeur !== derniereMarqueConfirmeeRef.current) {
+                        form.setValue('modele', '');
+                      }
+                      derniereMarqueConfirmeeRef.current = option.valeur;
+                    }}
+                  />
+                )}
               />
-            )}
-          />
-        </div>
+              {form.formState.errors.marque ? (
+                <p className="text-sm text-destructive">{t('validation:requis')}</p>
+              ) : null}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="nv-modele">{t('vehicules:identite.modele')}</Label>
+              <Controller
+                control={form.control}
+                name="modele"
+                render={({ field }) => (
+                  <ChampAutocompletionVehicule
+                    id="nv-modele"
+                    libelle={t('vehicules:identite.modele')}
+                    valeur={field.value}
+                    onValeurChange={field.onChange}
+                    options={optionsModeles}
+                    enChargement={modelesQuery.isFetching}
+                    erreur={erreurModeles}
+                    placeholder={t('vehicules:identite.autocompletion.placeholderModele')}
+                    disabled={enCours}
+                    ariaInvalid={form.formState.errors.modele ? true : undefined}
+                  />
+                )}
+              />
+              {form.formState.errors.modele ? (
+                <p className="text-sm text-destructive">{t('validation:requis')}</p>
+              ) : null}
+            </div>
+          </div>
 
-        <label className="flex h-11 items-center gap-2 texte-corps">
-          <Checkbox
-            checked={importe}
-            disabled={enCours}
-            onCheckedChange={(coche) => form.setValue('importe', coche === true)}
-          />
-          {t('vehicules:importation.importe')}
-        </label>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="nv-version">{t('vehicules:identite.version')}</Label>
+              <Input
+                id="nv-version"
+                readOnly={enCours}
+                {...form.register('version', { setValueAs: videVersIndefini })}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="nv-finition">{t('vehicules:identite.finition')}</Label>
+              <Input
+                id="nv-finition"
+                readOnly={enCours}
+                {...form.register('finition', { setValueAs: videVersIndefini })}
+              />
+            </div>
+          </div>
 
-        <div className="flex items-center gap-3">
-          <Button type="submit" disabled={enCours}>
-            {enCours ? t('commun:chargement.enCours') : t('vehicules:creer')}
-          </Button>
-          <Button type="button" variant="outline" disabled={enCours} asChild>
-            <Link to={cheminAnnuler}>{t('commun:actions.annuler')}</Link>
-          </Button>
-        </div>
-      </form>
-    </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="nv-vin">{t('vehicules:identite.vin')}</Label>
+              <Input
+                id="nv-vin"
+                readOnly={enCours}
+                aria-invalid={form.formState.errors.vin ? true : undefined}
+                {...form.register('vin', { setValueAs: videVersIndefini })}
+              />
+              {form.formState.errors.vin ? (
+                <p className="text-sm text-destructive">
+                  {t('validation:longueurMin', { min: 5 })}
+                </p>
+              ) : null}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="nv-code-type">{t('vehicules:identite.codeType')}</Label>
+              <Input
+                id="nv-code-type"
+                readOnly={enCours}
+                {...form.register('codeTypeCh', { setValueAs: videVersIndefini })}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="nv-plaque">{t('vehicules:identite.plaque')}</Label>
+              <Input
+                id="nv-plaque"
+                readOnly={enCours}
+                placeholder={t('vehicules:identite.plaqueExemple')}
+                aria-invalid={erreurEstCollisionPlaque ? true : undefined}
+                aria-describedby={
+                  erreurEstCollisionPlaque ? 'nv-plaque-collision-erreur' : undefined
+                }
+                {...form.register('plaque', { setValueAs: videVersIndefini })}
+              />
+              <p className="texte-libelle text-muted-foreground">
+                {t('vehicules:identite.plaqueAide')}
+              </p>
+              {/* 409 VEHICULE_PLAQUE_COLLISION (issue #96) — même rendu que
+               *  `DialogueModifierIdentiteVehicule.tsx` : le véhicule fautif est NOMMÉ quand le
+               *  serveur a pu le relire, sinon message sobre (course rare où la ligne fautive n'est
+               *  plus retrouvable à la relecture), jamais un libellé à trous. */}
+              {erreurEstCollisionPlaque ? (
+                <Alert id="nv-plaque-collision-erreur" variant="destructive" className="p-3">
+                  <AlertDescription>
+                    {detailCollisionPlaque ? (
+                      <>
+                        {t('vehicules:collisionPlaque.avecDetail', {
+                          plaque: detailCollisionPlaque.plaque,
+                          vehicule: `${detailCollisionPlaque.marque} ${detailCollisionPlaque.modele}${
+                            detailCollisionPlaque.version ? ` ${detailCollisionPlaque.version}` : ''
+                          }`,
+                          debutLe: formaterDate(detailCollisionPlaque.debutLe),
+                        })}{' '}
+                        <Link
+                          to={chemins.vehicules.detail(detailCollisionPlaque.vehiculeId)}
+                          className="underline"
+                        >
+                          {t('vehicules:collisionPlaque.voirVehicule')}
+                        </Link>
+                      </>
+                    ) : (
+                      t('vehicules:collisionPlaque.sansDetail')
+                    )}
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="nv-canton">{t('vehicules:plaques.canton')}</Label>
+              <Input
+                id="nv-canton"
+                readOnly={enCours}
+                maxLength={2}
+                placeholder={t('vehicules:plaques.cantonExemple')}
+                aria-invalid={form.formState.errors.canton ? true : undefined}
+                {...form.register('canton', { setValueAs: videVersIndefini })}
+              />
+              {form.formState.errors.canton ? (
+                <p className="text-sm text-destructive">
+                  {t('validation:longueurMin', { min: 2 })}
+                </p>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="nv-mise-circulation">{t('vehicules:identite.mise1reCirc')}</Label>
+            <Controller
+              control={form.control}
+              name="premiereMiseEnCirculationLe"
+              render={({ field }) => (
+                <DateInput
+                  id="nv-mise-circulation"
+                  disabled={enCours}
+                  className="max-w-[200px]"
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              )}
+            />
+          </div>
+
+          <label className="flex h-11 items-center gap-2 texte-corps">
+            <Checkbox
+              checked={importe}
+              disabled={enCours}
+              onCheckedChange={(coche) => form.setValue('importe', coche === true)}
+            />
+            {t('vehicules:importation.importe')}
+          </label>
+
+          <div className="flex items-center gap-3">
+            <Button type="submit" disabled={enCours}>
+              {enCours ? t('commun:chargement.enCours') : t('vehicules:creer')}
+            </Button>
+            <Button type="button" variant="outline" disabled={enCours} asChild>
+              <Link to={cheminAnnuler}>{t('commun:actions.annuler')}</Link>
+            </Button>
+          </div>
+        </form>
+      </div>
+    </GabaritEcran>
   );
 }

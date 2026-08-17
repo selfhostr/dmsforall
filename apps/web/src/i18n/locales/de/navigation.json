@@ -80,6 +80,7 @@
     "agrandir": "Seitenleiste ausklappen"
   },
   "pied": {
-    "version": "{branche} · {numero}"
+    "version": "Version {info}",
+    "versionInconnue": "unbekannt"
   }
 }

@@ -1,12 +1,44 @@
+import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactElement } from 'react';
+import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
 import '@/i18n';
 
 import type { JourAgenda } from '@/composants/rendez-vous/types';
+import { creerQueryClientTest } from '@/test/utils';
 
 import { EcranAgendaRendezVous, type VueAgendaEcran } from './EcranAgendaRendezVous';
+
+/**
+ * `EcranAgendaRendezVous` passe désormais par `GabaritEcran` (chantier « titres doublés &
+ * espacements », 17.08.2026), qui lit la session (`useSession`) et l'URL (`useNavigationActive`)
+ * pour détecter un titre en double avec la navigation — même wrapping de test que
+ * `GabaritEcran.spec.tsx`/`EcranListeOrdresReparation.spec.tsx` : `QueryClientProvider` (session)
+ * + `MemoryRouter` (URL), désormais requis même pour ce composant de présentation pure.
+ */
+function rendre(ui: ReactElement) {
+  const queryClient = creerQueryClientTest();
+  const resultat = render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={['/rendez-vous']}>{ui}</MemoryRouter>
+    </QueryClientProvider>,
+  );
+  return {
+    ...resultat,
+    // `rerender` seul remplacerait la racine ENTIÈRE (perdrait `QueryClientProvider`/
+    // `MemoryRouter`, désormais requis par `GabaritEcran`) : ce wrapper les repose autour du
+    // nouvel élément, même `queryClient` conservé.
+    rerenderUi: (nouvelUi: ReactElement) =>
+      resultat.rerender(
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter initialEntries={['/rendez-vous']}>{nouvelUi}</MemoryRouter>
+        </QueryClientProvider>,
+      ),
+  };
+}
 
 function construireJour(overrides: Partial<JourAgenda> = {}): JourAgenda {
   return {
@@ -39,19 +71,19 @@ const PROPS_BASE = {
 
 describe('EcranAgendaRendezVous', () => {
   it('affiche l’état dédié "choisissez un site" quand aucun site n’est sélectionné', () => {
-    render(<EcranAgendaRendezVous {...PROPS_BASE} site={undefined} etat="contenu" />);
+    rendre(<EcranAgendaRendezVous {...PROPS_BASE} site={undefined} etat="contenu" />);
     expect(screen.getByText('Choisissez un site')).toBeInTheDocument();
   });
 
   it('affiche des squelettes pendant le chargement', () => {
-    const { container } = render(<EcranAgendaRendezVous {...PROPS_BASE} etat="chargement" />);
+    const { container } = rendre(<EcranAgendaRendezVous {...PROPS_BASE} etat="chargement" />);
     expect(container.querySelectorAll('[class*="animate-pulse"]').length).toBeGreaterThan(0);
   });
 
   it('affiche une erreur actionnable (réessayer) en cas d’échec réseau', async () => {
     const utilisateur = userEvent.setup();
     const onReessayer = vi.fn();
-    render(
+    rendre(
       <EcranAgendaRendezVous
         {...PROPS_BASE}
         etat="erreur"
@@ -65,10 +97,10 @@ describe('EcranAgendaRendezVous', () => {
   });
 
   it('distingue "aucun rendez-vous" de "aucun résultat de recherche" — jamais le même message', () => {
-    const { rerender } = render(<EcranAgendaRendezVous {...PROPS_BASE} etat="contenu" />);
+    const { rerenderUi } = rendre(<EcranAgendaRendezVous {...PROPS_BASE} etat="contenu" />);
     expect(screen.getByText('Aucun rendez-vous prévu cette semaine')).toBeInTheDocument();
 
-    rerender(<EcranAgendaRendezVous {...PROPS_BASE} etat="contenu" recherche="Dupont" />);
+    rerenderUi(<EcranAgendaRendezVous {...PROPS_BASE} etat="contenu" recherche="Dupont" />);
     expect(screen.getByText('Aucun résultat')).toBeInTheDocument();
     expect(screen.queryByText('Aucun rendez-vous prévu cette semaine')).not.toBeInTheDocument();
   });
@@ -76,7 +108,7 @@ describe('EcranAgendaRendezVous', () => {
   it('le bouton "Nouveau rendez-vous" est toujours accessible, y compris sur l’état vide', async () => {
     const utilisateur = userEvent.setup();
     const onNouveau = vi.fn();
-    render(
+    rendre(
       <EcranAgendaRendezVous {...PROPS_BASE} etat="contenu" onNouveauRendezVous={onNouveau} />,
     );
     const boutons = screen.getAllByRole('button', { name: 'Nouveau rendez-vous' });
@@ -87,7 +119,7 @@ describe('EcranAgendaRendezVous', () => {
   it('bascule de vue Semaine à Liste via les onglets', async () => {
     const utilisateur = userEvent.setup();
     const onChangerVue = vi.fn();
-    render(<EcranAgendaRendezVous {...PROPS_BASE} etat="contenu" onChangerVue={onChangerVue} />);
+    rendre(<EcranAgendaRendezVous {...PROPS_BASE} etat="contenu" onChangerVue={onChangerVue} />);
     await utilisateur.click(screen.getByRole('tab', { name: 'Liste' }));
     expect(onChangerVue).toHaveBeenCalledWith('liste');
   });

@@ -177,8 +177,21 @@
       "prixVente": "Prezzo di vendita esposto"
     },
     "liste": {
-      "titre": "Parco veicoli in stock",
-      "vide": "Nessun veicolo in stock.",
+      "titre": "Veicoli in parco",
+      "vide": {
+        "recherche": {
+          "titre": "Nessun veicolo trovato",
+          "description": "Nessun veicolo del parco corrisponde a questa ricerca."
+        },
+        "filtre": {
+          "titre": "Nessun veicolo con questi filtri",
+          "description": "Nessun veicolo del parco corrisponde ai filtri selezionati."
+        },
+        "premierUsage": {
+          "titre": "Nessun veicolo in stock",
+          "description": "Immetti il tuo primo veicolo in stock."
+        }
+      },
       "rechercherPlaceholder": "Targa, VIN o descrizione…",
       "erreur": {
         "titre": "Impossibile visualizzare il parco veicoli in stock"
@@ -262,7 +275,20 @@
     "liste": {
       "titre": "Pratiche di vendita",
       "nouveauDossier": "Nuova pratica di vendita",
-      "vide": "Nessuna pratica di vendita.",
+      "vide": {
+        "recherche": {
+          "titre": "Nessuna pratica trovata",
+          "description": "Nessuna pratica di vendita corrisponde a questa ricerca."
+        },
+        "filtre": {
+          "titre": "Nessuna pratica con questi filtri",
+          "description": "Nessuna pratica di vendita corrisponde ai filtri selezionati."
+        },
+        "premierUsage": {
+          "titre": "Nessuna pratica di vendita",
+          "description": "Apritene una non appena un cliente è interessato."
+        }
+      },
       "vehiculeNonAssigne": "— non assegnato",
       "erreur": {
         "titre": "Impossibile visualizzare le pratiche di vendita"

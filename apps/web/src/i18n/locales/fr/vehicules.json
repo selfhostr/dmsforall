@@ -287,9 +287,18 @@
     "identite": "Véhicule non identifié",
     "plaques": "Aucune plaque enregistrée",
     "kilometrage": "Aucun kilométrage relevé",
-    "nouveau": "Créez votre premier véhicule",
-    "recherche": "Aucun véhicule trouvé",
-    "filtre": "Aucun résultat avec ces filtres",
+    "nouveau": {
+      "titre": "Aucun véhicule enregistré",
+      "description": "Créez votre premier véhicule"
+    },
+    "recherche": {
+      "titre": "Aucun véhicule trouvé",
+      "description": "Aucun véhicule ne correspond à cette recherche."
+    },
+    "filtre": {
+      "titre": "Aucun résultat avec ces filtres",
+      "description": "Aucun véhicule ne correspond aux filtres choisis."
+    },
     "travauxReportes": "Aucun travail reporté",
     "detentions": "Aucune détention enregistrée"
   },

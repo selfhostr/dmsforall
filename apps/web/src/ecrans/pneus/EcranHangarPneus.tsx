@@ -25,6 +25,7 @@ import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/Table
 import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useHangarPneus } from '@/hooks/pneus/useHangarPneus';
 import { useJeuxARelancer } from '@/hooks/pneus/useJeuxARelancer';
 import { useRechercheHangarPneus } from '@/hooks/pneus/useRechercheHangarPneus';
@@ -236,23 +237,21 @@ export function EcranHangarPneus() {
 
   if (sessionEnChargement) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="texte-titre-page">{t('pneus:hangar.titre')}</h1>
+      <GabaritEcran titre={t('pneus:hangar.titre')}>
         <EtatChargement lignes={4} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (sessionEnErreur) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="texte-titre-page">{t('pneus:hangar.titre')}</h1>
+      <GabaritEcran titre={t('pneus:hangar.titre')}>
         <EtatErreur
           titre={t('pneus:hangar.erreur.titre')}
           description={t('erreurs:inattendue.description')}
           onReessayer={() => void relancerSession()}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
@@ -337,16 +336,24 @@ export function EcranHangarPneus() {
       : []),
   ];
 
-  // Titre TOUJOURS visible (déjà le cas ici — aucun changement) ; « Nouveau dépôt » N'EST PLUS
-  // sur la ligne du titre (retour @laupernoe, chantier « zone haute des écrans de liste » : « comme il
-  // est en haut, il fait que ça décale tout »). Cet écran n'a pas de ligne « Trier par » (plan en
-  // grille + onglets, pas de `SelecteurTri`) : le bouton rejoint la ligne la plus proche en
-  // esprit, juste sous la barre de recherche, dans l'onglet « Dans le hangar » où le geste
-  // « entrer un jeu » a lieu — voir plus bas, à l'intérieur de `TabsContent value="actifs"`.
+  // GABARIT (chantier « titres doublés & espacements », 17.08.2026) : `pneus:hangar.titre` vaut
+  // désormais « Dépôt pneus », MOT POUR MOT identique au libellé de l'onglet Atelier
+  // (`navigation:onglets.atelierDepotPneus`, `composants/layout/navigation-modele.ts`) — avant ce
+  // chantier il valait « Hangar à pneus », doublon reformulé que @laupernoe a cité nommément (« Atelier >
+  // Dépôt pneus → titre Hangar à pneus, même chose, dit autrement »). L'égalité de libellé permet à
+  // la détection automatique de `GabaritEcran` (§3 du contrat de chantier) de masquer le `h1` en
+  // `sr-only` SANS poser `titreVisible` à la main. DE/IT n'ont pas bougé : leurs titres d'écran
+  // (« Reifenhotel », « Deposito pneumatici ») étaient déjà identiques à leur libellé d'onglet
+  // respectif — seul le FR divergeait.
+  //
+  // « Nouveau dépôt » N'EST PLUS sur la ligne du titre (retour @laupernoe, chantier « zone haute des
+  // écrans de liste » : « comme il est en haut, il fait que ça décale tout »). Cet écran n'a pas de
+  // ligne « Trier par » (plan en grille + onglets, pas de `SelecteurTri`) : le bouton rejoint la
+  // ligne la plus proche en esprit, juste sous la barre de recherche, dans l'onglet « Dans le
+  // hangar » où le geste « entrer un jeu » a lieu — voir plus bas, à l'intérieur de
+  // `TabsContent value="actifs"`.
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="texte-titre-page">{t('pneus:hangar.titre')}</h1>
-
+    <GabaritEcran titre={t('pneus:hangar.titre')}>
       <Tabs value={onglet} onValueChange={changerOnglet} className="flex flex-col gap-6">
         <TabsList aria-label={t('pneus:hangar.onglets.ariaLabel')}>
           <TabsTrigger value="actifs">{t('pneus:hangar.onglets.actifs')}</TabsTrigger>
@@ -628,6 +635,6 @@ export function EcranHangarPneus() {
         ouvert={creationOuverte}
         onFerme={() => setCreationOuverte(false)}
       />
-    </div>
+    </GabaritEcran>
   );
 }

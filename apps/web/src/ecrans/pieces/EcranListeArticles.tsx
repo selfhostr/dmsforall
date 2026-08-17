@@ -215,27 +215,29 @@ export function EcranListeArticles() {
     },
   ];
 
+  // Titres d'état vide nommant l'ABSENCE (jamais « Articles », qui répéterait l'onglet actif/le
+  // menu Pièces — même défaut que celui corrigé le 17.08.2026 sur `EcranListeFactures.tsx`).
   let contenuVide: ReactNode;
   if (q.trim() !== '') {
     contenuVide = (
       <EtatVideRecherche
-        titre={t('pieces:articles.liste.titre')}
-        description={t('pieces:articles.vide')}
+        titre={t('pieces:articles.liste.vide.recherche.titre')}
+        description={t('pieces:articles.liste.vide.recherche.description')}
       />
     );
   } else if (filtresStructuresActifs) {
     contenuVide = (
       <EtatVideFiltre
-        titre={t('pieces:articles.liste.titre')}
-        description={t('pieces:articles.vide')}
+        titre={t('pieces:articles.liste.vide.filtre.titre')}
+        description={t('pieces:articles.liste.vide.filtre.description')}
         onEffacerFiltres={effacerFiltres}
       />
     );
   } else {
     contenuVide = (
       <EtatVidePremierUsage
-        titre={t('pieces:articles.liste.titre')}
-        description={t('pieces:articles.vide')}
+        titre={t('pieces:articles.liste.vide.premierUsage.titre')}
+        description={t('pieces:articles.liste.vide.premierUsage.description')}
         action={
           peutEcrireArticle(role) ? (
             <Button onClick={() => setFormulaireOuvert(true)}>
@@ -267,12 +269,14 @@ export function EcranListeArticles() {
     );
   }
 
-  // Titre TOUJOURS visible (retour @laupernoe du 13.08.2026 : « des fois il y a les titres de page, des
-  // fois il n'y en a pas » — sur Pièces précisément, « est-ce qu'on est dans le comptoir, ou dans
-  // le réapprovisionnement ? »). L'onglet actif « Articles » (`OngletsDomaine`) reste au-dessus,
-  // mais ne dit pas TOUJOURS ce qu'affiche l'écran (cf. Comptoir/Réapprovisionnement) — un titre
-  // dupliquant à la lettre son onglet reste préférable à son absence, doctrine tranchée par @laupernoe sur
-  // `EcranListeClients` (« il y a écrit Clients, c'est mieux ») puis reconduite ici pour Pièces.
+  // Titre MASQUÉ automatiquement — « Articles » (`pieces:articles.liste.titre`) est un doublon
+  // strict de l'onglet actif « Articles » (`navigation-modele.ts`, `ONGLETS_PIECES`) et de sa vue
+  // « Tous ». `GabaritEcran` le détecte lui-même (§3 du contrat du chantier « titres doublés »,
+  // 17.08.2026) — ne JAMAIS poser `titreVisible` ici pour forcer la visibilité : la doctrine
+  // « un titre dupliquant à la lettre son onglet reste préférable à son absence » (retour @laupernoe du
+  // 12.08.2026 sur `EcranListeClients`) a été explicitement RE-ARBITRÉE par @laupernoe le 17.08.2026 dans
+  // l'autre sens (voir le contrat du chantier, §3) — ce commentaire la corrigeait à tort ici avant
+  // ce correctif.
   //
   // « Créer un article » n'est PAS dans le slot `actions` du gabarit (qui siégerait alors juste
   // sous les onglets, seul sur sa ligne) — retour @laupernoe du 12.08.2026 : « le bouton "Créer un
