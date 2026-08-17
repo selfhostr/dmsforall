@@ -7,10 +7,6 @@ apps/web/src/api/schema.d.ts
 apps/api/openapi.json
 apps/api/drizzle/**/*.sql
 
-# Données générées à l'exécution par inscription.php (compteur de limitation de débit), jamais
-# commitées (voir ancien-site/.gitignore) — Prettier les voit quand même sur une copie de travail
-# locale et ferait échouer format:check sans effet durable, puisque le fichier est régénéré.
-ancien-site/data/
 # Généré par `pnpm api:openapi` (apps/api/src/openapi/exporter-openapi.ts, cible réelle du script :
 # packages/shared/openapi/dfa-openapi.json — `apps/api/openapi.json` ci-dessus semble être
 # l'ancienne cible, le fichier n'existe plus à ce chemin). JSON entièrement re-sérialisé par
@@ -18,11 +14,13 @@ ancien-site/data/
 # n'aurait aucun effet durable et fait échouer `format:check` à chaque régénération.
 packages/shared/openapi/dfa-openapi.json
 
-# Sites Hugo (doc + vitrine) : ont leur propre outillage (node_modules, config Prettier avec
-# plugin go-template non installé à la racine), et embarquent le thème Blowfish en sous-module
-# (code tiers, pas le nôtre à reformater). Se formatent eux-mêmes ; n'impose pas ces dépendances
-# au dépôt entier.
+# site/ : le site Hugo unique (vitrine + doc, fusionnés depuis le 17.08.2026) — a son propre
+# outillage (node_modules, config Prettier avec plugin go-template non installé à la racine), et
+# embarque le thème Blowfish en sous-module (code tiers, pas le nôtre à reformater). Se formate
+# lui-même ; n'impose pas ces dépendances au dépôt entier.
 site/
 site/themes/blowfish/
+# ancien-site/ : ne contient plus de projet Hugo (voir ancien-site/README.md), seulement
+# l'ancien contenu HTML pré-Hugo (prose README/DEPLOIEMENT.md incluses) gardé pour comparaison —
+# pas notre code à reformater non plus.
 ancien-site/
-ancien-site/themes/blowfish/

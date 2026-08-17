@@ -71,10 +71,9 @@ $RECYCLE.BIN/
 
 # CodeGraph — index de graphe du dépôt, reconstruit par `codegraph init` sur chaque poste
 
-# Sites Hugo (doc + vitrine) — artefacts de build
+# Site Hugo (vitrine + doc, fusionnés depuis le 17.08.2026) — artefacts de build
 site/.hugo_build.lock
 site/public/
 site/resources/
-ancien-site/.hugo_build.lock
-ancien-site/public/
-ancien-site/resources/
+# ancien-site/ ne contient plus de projet Hugo (voir ancien-site/README.md) :
+# seul l'ancien contenu HTML pré-Hugo y reste, versionné tel quel.
