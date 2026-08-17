@@ -295,6 +295,7 @@
     },
     "lignesInvalides": "Chaque moyen de paiement doit porter un montant supérieur à zéro.",
     "resteAEncaisser": "Reste à encaisser",
+    "confirmationSucces": "Encaissement enregistré",
     "confirmer": "Enregistrer l'encaissement",
     "enCours": "Enregistrement…",
     "erreur": {

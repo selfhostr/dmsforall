@@ -36,6 +36,7 @@ import { chemins } from '@/routes/chemins';
 
 import { DialogueLiberationReservation } from './DialogueLiberationReservation';
 import { peutLibererReservation, peutSatisfaireReservation } from './droits';
+import { messageErreurMutation } from './messages-erreur-mutation';
 import { formaterQuantiteMillieme } from './utils';
 
 const VARIANTE_BADGE_STATUT: Record<StatutReservationPiece, 'default' | 'secondary' | 'outline'> = {
@@ -218,6 +219,12 @@ export function EcranReservationsPieces() {
           </SelectContent>
         </Select>
       </div>
+
+      {satisfaire.isError ? (
+        <p className="texte-libelle text-destructive" role="alert">
+          {messageErreurMutation(satisfaire.error, t)}
+        </p>
+      ) : null}
 
       <TableComptoir
         colonnes={colonnes}

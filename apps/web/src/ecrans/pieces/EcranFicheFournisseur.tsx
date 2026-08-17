@@ -20,6 +20,7 @@ import { useSession } from '@/hooks/useSession';
 
 import { peutEcrireFournisseur, peutLireFournisseur } from './droits';
 import { FormulaireFournisseur } from './FormulaireFournisseur';
+import { messageErreurMutation } from './messages-erreur-mutation';
 import { texteOuVide } from './utils';
 
 type Confirmation = 'desactiver' | 'reactiver' | null;
@@ -96,6 +97,9 @@ export function EcranFicheFournisseur() {
   const fournisseur = requeteFournisseur.data;
   const peutEcrire = peutEcrireFournisseur(role);
 
+  // Ferme la modale seulement sur succès (issue #63, correctif de cause racine) : un échec la
+  // laisse ouverte, `AvertissementConfirmable` affiche `erreurTransition` DANS la modale via sa
+  // prop `messageErreur` plutôt que dans l'écran, sous l'overlay où il restait invisible.
   function confirmer() {
     if (confirmation === 'desactiver') {
       desactiver.mutate(undefined, { onSuccess: () => setConfirmation(null) });
@@ -161,12 +165,6 @@ export function EcranFicheFournisseur() {
         ) : null}
       </div>
 
-      {erreurTransition ? (
-        <p className="texte-libelle text-destructive" role="alert">
-          {messageErreur(erreurTransition, t)}
-        </p>
-      ) : null}
-
       {peutEcrire ? (
         <FormulaireFournisseur
           ouvert={formulaireOuvert}
@@ -187,6 +185,7 @@ export function EcranFicheFournisseur() {
         libelleConfirmation={confirmation ? t(`pieces:fournisseurs.actions.${confirmation}`) : ''}
         onConfirmer={confirmer}
         enCours={enCoursTransition}
+        messageErreur={erreurTransition ? messageErreurMutation(erreurTransition, t) : null}
       />
     </GabaritEcran>
   );

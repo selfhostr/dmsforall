@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { ResultatRechercheComptoirArticle } from '@dfa/shared';
 
-import { ErreurApi, messageErreur } from '@/api/erreurs';
+import { ErreurApi } from '@/api/erreurs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,6 +18,7 @@ import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import { useVenteComptoir } from '@/hooks/pieces/useVenteComptoirPieces';
 import { formaterMontant } from '@/lib/formats';
 
+import { messageErreurMutation } from './messages-erreur-mutation';
 import { formaterQuantiteMillieme, saisieVersQuantiteMillieme } from './utils';
 
 /** 1 unité — la vente d'une seule pièce est de très loin le cas majoritaire au comptoir : la
@@ -192,7 +193,7 @@ export function DialogueVenteComptoir({ ouvert, onOuvertChange, siteId, article 
           ) : null}
           {erreur && !stockInsuffisant ? (
             <p className="texte-libelle text-destructive" role="alert">
-              {messageErreur(erreur, t)}
+              {messageErreurMutation(erreur, t)}
             </p>
           ) : null}
         </div>

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -14,6 +13,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useModifierStockSite } from '@/hooks/pieces/useModifierStockSite';
+
+import { messageErreurMutation } from './messages-erreur-mutation';
 
 /** Le casier (rayon/tiroir, 0056) à modifier — `null` = dialogue fermé, même patron que
  *  `DialogueLiberationReservation` (`reservationId: string | null`). `emplacement` (texte libre)
@@ -107,7 +108,7 @@ export function DialogueEmplacementStockArticle({ casier, onFerme }: Props) {
 
         {modifier.error ? (
           <p className="texte-libelle text-destructive" role="alert">
-            {messageErreur(modifier.error, t)}
+            {messageErreurMutation(modifier.error, t)}
           </p>
         ) : null}
 

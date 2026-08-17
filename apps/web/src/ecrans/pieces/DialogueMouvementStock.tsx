@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 
 import type { SiteResume, TypeMouvementStock } from '@dfa/shared';
 
-import { messageErreur } from '@/api/erreurs';
 import { useCleIdempotence } from '@/api/idempotence';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -33,6 +32,7 @@ import {
   useCreerRetourFournisseur,
 } from '@/hooks/pieces/useCreerMouvementStock';
 
+import { messageErreurMutation } from './messages-erreur-mutation';
 import { saisieVersQuantiteMillieme } from './utils';
 
 /** Les CINQ mouvements à déclenchement direct (RP-16 → RP-18) — voir `useCreerMouvementStock.ts`.
@@ -412,7 +412,7 @@ export function DialogueMouvementStock({
           ) : null}
           {erreur ? (
             <p className="texte-libelle text-destructive" role="alert">
-              {messageErreur(erreur, t)}
+              {messageErreurMutation(erreur, t)}
             </p>
           ) : null}
         </div>

@@ -23,6 +23,7 @@ import { chemins } from '@/routes/chemins';
 
 import { peutEcrireCommandeFournisseur, peutEcrireStockSite } from './droits';
 import type { EtatPreremplissageCommandeFournisseur } from './etat-preremplissage-commande';
+import { messageErreurMutation } from './messages-erreur-mutation';
 import { SelecteurSiteRequis } from './SelecteurSiteRequis';
 import {
   formaterQuantiteMillieme,
@@ -352,7 +353,7 @@ function CelluleSeuil({ ligne, peutModifier }: PropsCelluleSeuil) {
           ) : null}
           {modifier.isError ? (
             <p className="texte-libelle text-destructive" role="alert">
-              {messageErreur(modifier.error, t)}
+              {messageErreurMutation(modifier.error, t)}
             </p>
           ) : null}
 

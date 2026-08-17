@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -14,6 +13,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import { useLibererReservation } from '@/hooks/pieces/useTransitionsReservation';
+
+import { messageErreurMutation } from './messages-erreur-mutation';
 
 interface Props {
   readonly reservationId: string | null;
@@ -69,7 +70,7 @@ export function DialogueLiberationReservation({ reservationId, onFerme }: Props)
 
         {liberer.error ? (
           <p className="texte-libelle text-destructive" role="alert">
-            {messageErreur(liberer.error, t)}
+            {messageErreurMutation(liberer.error, t)}
           </p>
         ) : null}
 

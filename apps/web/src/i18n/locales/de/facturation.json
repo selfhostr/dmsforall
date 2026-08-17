@@ -295,6 +295,7 @@
     },
     "lignesInvalides": "Jede Zahlungsart muss einen Betrag über null aufweisen.",
     "resteAEncaisser": "Noch zu inkassieren",
+    "confirmationSucces": "Zahlungseingang erfasst",
     "confirmer": "Zahlungseingang erfassen",
     "enCours": "Wird erfasst…",
     "erreur": {

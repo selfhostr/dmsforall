@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -13,6 +12,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
+
+import { messageErreurMutation } from './messages-erreur-mutation';
 
 interface Props {
   readonly ouvert: boolean;
@@ -82,7 +83,7 @@ export function DialogueMotifCommandeFournisseur({
 
         {erreur ? (
           <p className="texte-libelle text-destructive" role="alert">
-            {messageErreur(erreur, t)}
+            {messageErreurMutation(erreur, t)}
           </p>
         ) : null}
 

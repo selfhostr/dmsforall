@@ -295,6 +295,7 @@
     },
     "lignesInvalides": "Ogni modalità di pagamento deve avere un importo superiore a zero.",
     "resteAEncaisser": "Residuo da incassare",
+    "confirmationSucces": "Incasso registrato",
     "confirmer": "Registrare l'incasso",
     "enCours": "Registrazione…",
     "erreur": {

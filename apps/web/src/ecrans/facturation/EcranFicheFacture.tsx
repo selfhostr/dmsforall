@@ -632,6 +632,20 @@ export function EcranFicheFacture() {
                   {t('facturation:actions.enregistrer')}
                 </Button>
               </CardContent>
+              {/* Défaut corrigé (issue #63) : ce bouton mettait bien à jour le total TTC en cas de
+                  succès (revalidation visible), mais un ÉCHEC (ex. `409` sur une facture déjà
+                  émise entre-temps par un autre poste) ne produisait ICI aucun message — seul le
+                  bouton redevenait cliquable. Même patron que `emission.isError`/
+                  `suppressionLigne.isError` plus haut sur cet écran. */}
+              {modification.isError ? (
+                <CardContent className="pt-0">
+                  {messagesErreurMutation(modification.error, t).map((message, index) => (
+                    <p key={index} role="alert" className="texte-libelle text-destructive">
+                      {message}
+                    </p>
+                  ))}
+                </CardContent>
+              ) : null}
             </Card>
           ) : null}
 

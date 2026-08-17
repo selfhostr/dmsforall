@@ -36,6 +36,7 @@ import { useSession } from '@/hooks/useSession';
 import { formaterMontant } from '@/lib/formats';
 
 import { estEtatPreremplissageValide } from './etat-preremplissage-commande';
+import { messageErreurMutation } from './messages-erreur-mutation';
 import {
   formaterQuantiteMillieme,
   quantiteMilliemeVersSaisie,
@@ -475,7 +476,7 @@ export function EcranNouvelleCommandeFournisseur() {
         ) : null}
         {creer.error ? (
           <p className="texte-libelle text-destructive" role="alert">
-            {messageErreur(creer.error, t)}
+            {messageErreurMutation(creer.error, t)}
           </p>
         ) : null}
 

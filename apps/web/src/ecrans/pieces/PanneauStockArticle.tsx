@@ -23,6 +23,8 @@ import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { useDisponibiliteArticle } from '@/hooks/pieces/useDisponibiliteArticle';
 import { useModifierStockSite } from '@/hooks/pieces/useModifierStockSite';
+
+import { messageErreurMutation } from './messages-erreur-mutation';
 import { formaterDateHeure } from '@/lib/formats';
 
 import {
@@ -351,7 +353,7 @@ function ActionSeuilSite({ articleId, siteId, nomSite }: PropsActionSeuilSite) {
             ) : null}
             {modifier.isError ? (
               <p className="texte-libelle text-destructive" role="alert">
-                {messageErreur(modifier.error, t)}
+                {messageErreurMutation(modifier.error, t)}
               </p>
             ) : null}
 

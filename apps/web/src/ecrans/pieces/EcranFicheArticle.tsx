@@ -32,6 +32,7 @@ import {
 } from './droits';
 import { EnTeteFicheArticle } from './EnTeteFicheArticle';
 import { FormulaireArticle } from './FormulaireArticle';
+import { messageErreurMutation } from './messages-erreur-mutation';
 import { PanneauMouvementsArticle } from './PanneauMouvementsArticle';
 import { PanneauStockArticle } from './PanneauStockArticle';
 
@@ -156,6 +157,9 @@ export function EcranFicheArticle() {
     commande.lignes.some((ligne) => ligne.articleId === article.id),
   );
 
+  // Ferme la modale seulement sur succès (issue #63, correctif de cause racine) : un échec la
+  // laisse ouverte, `AvertissementConfirmable` affiche `erreurTransition` DANS la modale via sa
+  // prop `messageErreur` plutôt que dans l'écran, sous l'overlay où il restait invisible.
   function confirmer() {
     if (confirmation === 'marquerObsolete') {
       marquerObsolete.mutate({}, { onSuccess: () => setConfirmation(null) });
@@ -185,12 +189,6 @@ export function EcranFicheArticle() {
         onDesactiver={() => setConfirmation('desactiver')}
         onReactiver={() => setConfirmation('reactiver')}
       />
-
-      {erreurTransition ? (
-        <p className="texte-libelle text-destructive" role="alert">
-          {messageErreur(erreurTransition, t)}
-        </p>
-      ) : null}
 
       <Card>
         <CardHeader>
@@ -450,6 +448,7 @@ export function EcranFicheArticle() {
         libelleConfirmation={confirmation ? t(`pieces:articles.actions.${confirmation}`) : ''}
         onConfirmer={confirmer}
         enCours={enCoursTransition}
+        messageErreur={erreurTransition ? messageErreurMutation(erreurTransition, t) : null}
       />
     </GabaritEcran>
   );

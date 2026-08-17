@@ -33,6 +33,7 @@ import {
   peutLireCommandeFournisseur,
   peutReceptionnerCommandeFournisseur,
 } from './droits';
+import { messageErreurMutation } from './messages-erreur-mutation';
 import { formaterQuantiteMillieme, texteOuVide } from './utils';
 
 type Confirmation =
@@ -234,8 +235,13 @@ export function EcranFicheCommandeFournisseur() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {peutEnvoyer ? (
-                <DropdownMenuItem onSelect={() => envoyer.mutate(undefined)}>
-                  {t('pieces:commandes.actions.envoyer')}
+                <DropdownMenuItem
+                  disabled={envoyer.isPending}
+                  onSelect={() => envoyer.mutate(undefined)}
+                >
+                  {envoyer.isPending
+                    ? t('commun:chargement.enCours')
+                    : t('pieces:commandes.actions.envoyer')}
                 </DropdownMenuItem>
               ) : null}
               {peutOuvrirReception ? (
@@ -255,7 +261,7 @@ export function EcranFicheCommandeFournisseur() {
 
       {erreurTransition ? (
         <p className="texte-libelle text-destructive" role="alert">
-          {messageErreur(erreurTransition, t)}
+          {messageErreurMutation(erreurTransition, t)}
         </p>
       ) : null}
 
