@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { schemaConfigCourriel } from '../courriel/config-courriel';
 import { schemaConfigConsole } from '../exploitation/config-console';
+import { schemaConfigJobClotureAutomatiquePointage } from '../pointage/config-job-cloture-automatique-pointage';
 import { schemaConfigJobReferentielVehiculesCh } from '../vehicules/referentiel/config-job-referentiel-vehicules-ch';
 import { calculerBrancheParDefaut, calculerVersionAppParDefaut } from './version-app';
 
@@ -231,6 +232,10 @@ export const schemaConfig = z
     // Bloc défini une seule fois dans `vehicules/referentiel/config-job-referentiel-vehicules-ch.ts`
     // et fusionné ici via `.shape`, même patron que les deux blocs juste au-dessus.
     ...schemaConfigJobReferentielVehiculesCh.shape,
+    // --- Job quotidien de clôture automatique de fin de journée du pointage (RM-91/RM-119) ---
+    // Bloc défini une seule fois dans `pointage/config-job-cloture-automatique-pointage.ts` et
+    // fusionné ici via `.shape`, même patron que le bloc ASTRA juste au-dessus.
+    ...schemaConfigJobClotureAutomatiquePointage.shape,
   })
   .superRefine((c, ctx) => {
     if (c.NODE_ENV === 'production' && !c.COOKIE_SECURE) {

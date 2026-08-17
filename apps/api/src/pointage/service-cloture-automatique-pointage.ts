@@ -22,30 +22,28 @@ import { determinerDecisionClotureAutomatique } from './regles-pointage';
  * `regles-pointage.ts::determinerDecisionClotureAutomatique` pour la raison (fonction PURE, seule
  * responsable de CE calcul) : ce service-ci ne fait qu'orchestrer l'I/O autour d'elle.
  *
- * AUCUN ORDONNANCEUR NE DÉCLENCHE ENCORE CE SERVICE — mesuré, pas supposé (voir le rapport de
- * livraison de ce chantier) : ni `@nestjs/schedule`, ni BullMQ/Redis ne sont des dépendances
- * installées dans ce dépôt à ce jour (`apps/api/package.json`), malgré la mention « Redis/BullMQ »
- * du stack en tête de `CONTRIBUTING.md` — le seul module de ce dépôt qui documente un besoin de
- * planification périodique équivalent (`relances/service-relances-facture.ts`, RM-1) le dit
- * explicitement dans son en-tête : « aucun ordonnanceur n'existe dans ce dépôt (§6 de la spec :
- * "zéro usage de BullMQ vérifié") ». MÊME MOTIF REPRIS ICI, DÉLIBÉRÉMENT : une opération
- * IDEMPOTENTE, PAR TENANT, appelable à la demande — jamais un `@Cron`/`@Processor` qui n'aurait
- * rien à quoi s'accrocher dans ce dépôt aujourd'hui. Ce qui reste à poser, HORS PÉRIMÈTRE de ce
- * chantier (signalé, pas fait) :
- *  1. un déclencheur périodique réel (`@nestjs/schedule`, ou BullMQ+Redis une fois ces dépendances
- *     effectivement installées — décision d'infrastructure transverse, pas une décision du module
- *     `pointage/`) ;
- *  2. l'énumération des tenants actifs à traiter à chaque passage — `db/acces-amorcage.service.ts`
- *     (§ en-tête : « les 6 SEULES opérations hors contexte tenant », toutes `SECURITY DEFINER`)
- *     est DÉLIBÉRÉMENT une surface minuscule et figée ; y ajouter une 7ᵉ opération d'énumération
- *     cross-tenant est une décision de sécurité qui dépasse le périmètre `pointage/` de ce
- *     chantier. `executerPourTenant` ci-dessous prend donc un `ContexteTenant` déjà résolu — au
- *     futur appelant (le déclencheur du point 1) de le fournir pour chaque tenant à traiter, un
- *     par un, jamais un balayage cross-tenant en une seule requête ;
- *  3. l'identité d'appel du déclencheur — même trou déjà signalé par `relances/relances.controller.
- *     ts` (« aucun des rôles autorisés ne désigne un compte de service ») : un job système n'a pas
- *     de session utilisateur, `ContexteTenant.utilisateurId` vaut `null` pour lui par convention
- *     (`db/db.types.ts`, commentaire du champ : « tâche système »).
+ * DÉCLENCHÉ DEPUIS LE 17.08.2026 (chantier « socle d'ordonnancement ») — `executerPourTenant`
+ * ci-dessous reste inchangé (fonction I/O pure sur UN tenant, aucune connaissance de BullMQ ni des
+ * autres tenants), mais n'est plus un service orphelin : `OrdonnanceurClotureAutomatiquePointage`
+ * programme un job quotidien BullMQ (`Queue.upsertJobScheduler`, socle posé par
+ * `ordonnancement/ordonnancement.module.ts`) qui appelle `ServiceJobClotureAutomatiquePointage`,
+ * lequel énumère les tenants actifs et appelle CETTE méthode une fois par tenant — voir
+ * `orchestration-job-cloture-automatique-pointage.ts` pour l'orchestration multi-tenant complète.
+ * Les trois points ci-dessous, laissés ouverts par la version précédente de cet en-tête, sont
+ * TRANCHÉS par ce chantier (justification complète dans le fichier cité pour chacun) :
+ *  1. déclencheur périodique : BullMQ (`@Processor` + `Queue.upsertJobScheduler`), même socle que
+ *     le job quotidien ASTRA (`vehicules/referentiel/`) — un seul déclenchement par tick même avec
+ *     plusieurs instances d'API, garanti par BullMQ/Redis, sans verrou applicatif redondant ;
+ *  2. énumération des tenants actifs : `enumerer-tenants-actifs-pointage.ts` — canal `dfa_migrator`
+ *     (`DATABASE_URL_MIGRATION`), politique RLS `tenant_migrator` DÉJÀ posée par la migration 0001
+ *     pour exactement ce besoin (« future migration de reprise de données »), jamais une 7ᵉ
+ *     fonction `amorcage.*`. Cette méthode-ci continue de recevoir un `ContexteTenant` DÉJÀ résolu,
+ *     un tenant à la fois, jamais un balayage cross-tenant en une seule requête — inchangé ;
+ *  3. identité d'appel : `ContexteTenant.utilisateurId = null`, convention DÉJÀ documentée par
+ *     `db/db.types.ts` (« tâche système ») — jamais un faux compte utilisateur inventé. Distingué
+ *     d'une correction humaine dans l'audit trail (`audit_atelier`, trigger générique existant,
+ *     AUCUNE écriture applicative ajoutée) par la combinaison `cloture_automatique = true` +
+ *     `utilisateur_id NULL` + `requete_id` préfixé `job:pointage-cloture-automatique:`.
  */
 @Injectable()
 export class ServiceClotureAutomatiquePointage {

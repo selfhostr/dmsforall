@@ -490,11 +490,17 @@ export function determinerDecisionClotureAutomatique(
  * UTC suivant — voir `common/temps/fuseau-suisse.spec.ts` pour la preuve aux deux bascules
  * d'heure d'été/hiver.
  *
- * AUCUN job de clôture automatique de fin de journée (RM-91/RM-119) n'appelle encore cette
- * doctrine à ce jour (`ServiceClotureAutomatiquePointage` existe, sans déclencheur qui l'invoque —
- * voir son en-tête) : cette fonction reste la pièce qui formalise « la journée de travail
- * courante » côté serveur pour `GET /pointages/dernier-du-jour`, sur la même convention de
- * bornage que RM-95 et RM-91/RM-119.
+ * Le job de clôture automatique de fin de journée (RM-91/RM-119) n'appelle PAS directement cette
+ * fonction (il utilise `determinerDecisionClotureAutomatique`, plus haut dans ce fichier, ancrée
+ * sur le jour d'OUVERTURE du pointage plutôt que sur « aujourd'hui » — voir CT-57) — mais partage
+ * la MÊME doctrine de bornage (`common/temps/fuseau-suisse.ts`, journée civile suisse) et a
+ * d'ailleurs fixé son heure de déclenchement BullMQ dessus (voir `config-job-cloture-automatique-
+ * pointage.ts`, § cron : le job se déclenche juste après minuit suisse, garanti par construction
+ * postérieur à toute `heure_cloture_pointage` de site pour la journée qui vient de se terminer).
+ * Cette fonction-ci reste la pièce qui formalise « la journée de travail courante » côté serveur
+ * pour `GET /pointages/dernier-du-jour`, sur la même convention de bornage que RM-95 et RM-91/
+ * RM-119. Déclenché depuis le 17.08.2026 — voir `service-cloture-automatique-pointage.ts` pour le
+ * chaînage complet.
  */
 export function journeeTravailCourante(maintenant: Date): {
   readonly debutLe: Date;
