@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { ReferentielVehiculesChController } from './referentiel/referentiel-vehicules-ch.controller';
 import { ReferentielVehiculesChJobModule } from './referentiel/referentiel-vehicules-ch-job.module';
 import { ServiceReferentielVehiculesCh } from './referentiel/service-referentiel-vehicules-ch';
+import { VehiculeOcrModule } from './ocr/vehicule-ocr.module';
 import { ServiceVehicule } from './service-vehicule';
 import { ServiceVehiculeCampagne } from './service-vehicule-campagne';
 import { ServiceVehiculeContexteAtelier } from './service-vehicule-contexte-atelier';
@@ -43,6 +44,10 @@ import { VehiculeTravailReporteController } from './vehicule-travail-reporte.con
     // `OrdonnancementModule` (connexion BullMQ partagée) monté à la racine de l'app
     // (`app.module.ts`), jamais réimporté ici.
     ReferentielVehiculesChJobModule,
+    // Scan OCR du permis de circulation — module autonome (`ocr/vehicule-ocr.module.ts`),
+    // importé ici pour que son contrôleur soit réellement monté (un contrôleur non déclaré dans
+    // un `@Module` donne un 404 silencieux, piège documenté de ce dépôt).
+    VehiculeOcrModule,
   ],
   controllers: [
     VehiculeController,

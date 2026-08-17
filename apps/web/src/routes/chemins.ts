@@ -236,4 +236,12 @@ export const chemins = {
    *  (`routes/droits-routes.ts`) : la lecture elle-même est restreinte à `direction`/`comptable`
    *  côté API. */
   relances: (site?: string) => construireChemin('/relances', { site }),
+  /** Scanner de permis de circulation (mobile) — même mécanique `?site=` que `clients`/
+   *  `vehicules` ci-dessus : le client/véhicule créé depuis le scan hérite du site courant du
+   *  comptoir. Gardée par `rolesAutorises={ROLES_SCAN}` (`routes/droits-routes.ts`) : seuls les
+   *  rôles qui peuvent réellement créer un client ET un véhicule (`client.creer`/`vehicule.creer`
+   *  côté API) atteignent cette route, sinon l'écran serait un cul-de-sac (formulaire prérempli
+   *  qu'aucune soumission ne peut jamais faire aboutir). Voir aussi `composants/layout/
+   *  useModeScanMobile.ts` : sur téléphone, ces mêmes rôles y sont redirigés automatiquement. */
+  scan: (site?: string) => construireChemin('/scan', { site }),
 } as const;

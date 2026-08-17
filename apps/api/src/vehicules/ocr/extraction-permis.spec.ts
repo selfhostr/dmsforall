@@ -1,0 +1,154 @@
+import { describe, expect, it } from 'vitest';
+
+import {
+  candidatsCodeType,
+  checksumVinValide,
+  extraireAdresse,
+  extraireDate,
+  extrairePlaque,
+  extraireVin,
+  nettoyerTexteLibre,
+} from './extraction-permis';
+
+describe('checksumVinValide', () => {
+  it('VIN de démonstration à clé de contrôle correcte (exemple pédagogique publié, non lié à un document réel) -> valide', () => {
+    expect(checksumVinValide('1M8GDM9AXKP042788')).toBe(true);
+  });
+
+  it('VIN existant du dépôt (fixture vehicule.controller.ts) à clé de contrôle incorrecte -> invalide', () => {
+    expect(checksumVinValide('WVWZZZ1KZAW123456')).toBe(false);
+  });
+
+  it('longueur différente de 17 -> invalide sans planter', () => {
+    expect(checksumVinValide('TROP-COURT')).toBe(false);
+  });
+
+  it('caractère hors alphabet VIN (I/O/Q exclus par ISO 3779) -> invalide', () => {
+    expect(checksumVinValide('IO8GDM9AXKP042788')).toBe(false);
+  });
+});
+
+describe('extraireVin', () => {
+  it('texte propre -> VIN + verdict du checksum', () => {
+    const resultat = extraireVin('1M8GDM9AXKP042788');
+    expect(resultat).toEqual({ valeur: '1M8GDM9AXKP042788', checksumValide: true });
+  });
+
+  it('groupes séparés par des espaces (mise en page du permis) -> espaces ignorés', () => {
+    const resultat = extraireVin('1M8 GDM 9AX KP0 427 88');
+    expect(resultat?.valeur).toBe('1M8GDM9AXKP042788');
+  });
+
+  it('texte sans run de 17 caractères exploitable -> null (jamais une valeur tronquée)', () => {
+    expect(extraireVin('illisible')).toBeNull();
+  });
+
+  it('chaîne vide -> null', () => {
+    expect(extraireVin('')).toBeNull();
+  });
+});
+
+describe('candidatsCodeType', () => {
+  it('texte propre -> le premier candidat (le plus probable, essayé en premier) est la valeur nettoyée telle quelle', () => {
+    expect(candidatsCodeType('1VD455')[0]).toBe('1VD455');
+  });
+
+  it('bruit en fin de chaîne (colonne "Code"/poids voisine, mesuré sur échantillon réel) -> candidats tronqués en plus du candidat brut', () => {
+    const candidats = candidatsCodeType('1VD455B');
+    expect(candidats).toContain('1VD455B');
+    expect(candidats).toContain('1VD455');
+    // Coupe à 2 caractères seulement si la longueur restante reste exploitable (>= 4).
+    expect(candidats).toContain('1VD45');
+  });
+
+  it('bruit en début de chaîne -> candidat privé du premier caractère aussi proposé', () => {
+    const candidats = candidatsCodeType('X1VD455');
+    expect(candidats).toContain('1VD455');
+  });
+
+  it('texte trop court pour être un code type -> aucun candidat', () => {
+    expect(candidatsCodeType('AB')).toEqual([]);
+  });
+
+  it('espaces internes ignorés (mise en page « 1VD4 55 » du permis)', () => {
+    expect(candidatsCodeType('1VD4 55')).toContain('1VD455');
+  });
+
+  it('bruit important en fin de chaîne (colonne "Poids total" voisine captée, mesuré sur échantillon réel) -> jusqu’à 4 caractères tolérés', () => {
+    expect(candidatsCodeType('1VD455 33SN')).toContain('1VD455');
+  });
+});
+
+describe('extrairePlaque', () => {
+  it('canton + numéro -> extraits, la couleur suivante ignorée', () => {
+    expect(extrairePlaque('VS 135792 blanc')).toEqual({ canton: 'VS', numero: '135792' });
+  });
+
+  it('sans séparateur -> extraits quand même', () => {
+    expect(extrairePlaque('VD123456')).toEqual({ canton: 'VD', numero: '123456' });
+  });
+
+  it('texte qui ne commence pas par deux lettres de canton -> null', () => {
+    expect(extrairePlaque('135792 VS')).toBeNull();
+  });
+
+  it('chaîne vide -> null', () => {
+    expect(extrairePlaque('')).toBeNull();
+  });
+});
+
+describe('extraireDate', () => {
+  const MAINTENANT = new Date('2026-08-17T00:00:00Z');
+
+  it('jj.mm.aaaa valide -> ISO aaaa-mm-jj', () => {
+    expect(extraireDate('31.01.2007', MAINTENANT)).toBe('2007-01-31');
+  });
+
+  it('bruit en fin de chaîne (colonne voisine, mesuré sur échantillon réel) -> ignoré', () => {
+    expect(extraireDate('31.01.20072', MAINTENANT)).toBe('2007-01-31');
+  });
+
+  it('jour hors bornes calendaires (31 février) -> null, jamais normalisé en silence', () => {
+    expect(extraireDate('31.02.2007', MAINTENANT)).toBeNull();
+  });
+
+  it('mois hors bornes -> null', () => {
+    expect(extraireDate('15.13.2007', MAINTENANT)).toBeNull();
+  });
+
+  it('date dans le futur -> null (une 1re mise en circulation ne peut pas être à venir)', () => {
+    expect(extraireDate('01.01.2099', MAINTENANT)).toBeNull();
+  });
+
+  it('aucune date reconnaissable -> null', () => {
+    expect(extraireDate('texte sans date', MAINTENANT)).toBeNull();
+  });
+});
+
+describe('nettoyerTexteLibre', () => {
+  it('espaces multiples réduits, bords rognés', () => {
+    expect(nettoyerTexteLibre('  Un   Nom   ')).toBe('Un Nom');
+  });
+
+  it('chaîne vide après nettoyage -> null', () => {
+    expect(nettoyerTexteLibre('   ')).toBeNull();
+  });
+});
+
+describe('extraireAdresse', () => {
+  it('rue puis ligne NPA+localité -> décomposées', () => {
+    const resultat = extraireAdresse('Route Exemple 4D\n1906 Localite');
+    expect(resultat).toEqual({ rue: 'Route Exemple 4D', npa: '1906', localite: 'Localite' });
+  });
+
+  it('bloc sans NPA reconnaissable -> npa/localite null, rue quand même prise', () => {
+    const resultat = extraireAdresse('Un bloc sans code postal reconnu');
+    expect(resultat.npa).toBeNull();
+    expect(resultat.localite).toBeNull();
+    expect(resultat.rue).toBe('Un bloc sans code postal reconnu');
+  });
+
+  it('bloc vide -> tout null', () => {
+    expect(extraireAdresse('')).toEqual({ rue: null, npa: null, localite: null });
+  });
+});

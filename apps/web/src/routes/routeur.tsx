@@ -37,6 +37,7 @@ import { EcranPointage } from '@/ecrans/pointage/EcranPointage';
 import { EcranPointageTechnicien } from '@/ecrans/pointage/EcranPointageTechnicien';
 import { EcranRecherche } from '@/ecrans/recherche/EcranRecherche';
 import { EcranRelances } from '@/ecrans/relances/EcranRelances';
+import { EcranScan } from '@/ecrans/scan/EcranScan';
 // `EcranRendezVous` (routé ci-dessous) est le CONTENEUR réseau ; il rend `EcranAgendaRendezVous`
 // (présentation pure, testée séparément par fixtures locales) — l'écran métier existe donc bien
 // dans ce fichier, à un niveau d'indirection près (`ecrans/rendez-vous/EcranAgendaRendezVous.tsx`).
@@ -67,6 +68,7 @@ import {
   ROLES_PNEUS,
   ROLES_POINTAGE,
   ROLES_RELANCES,
+  ROLES_SCAN,
   ROLES_TABLEAU_BORD_ACTIVITE,
   ROLES_VENTES,
 } from './droits-routes';
@@ -301,6 +303,21 @@ export const routesConfig: RouteObject[] = [
       // statique (`doublons`) avant un segment dynamique (`:id`), l'ordre de déclaration ne change
       // rien à la résolution.
       { path: 'clients/doublons', element: <EcranDoublonsClients /> },
+      // Scanner de permis de circulation (mobile) — `rolesAutorises={ROLES_SCAN}` REFLÈTE une
+      // restriction RÉELLE, même raisonnement que `ROLES_PIECES`/`ROLES_VENTES` ci-dessus : sans
+      // `client.creer` ET `vehicule.creer` à la fois, la soumission du formulaire prérempli par
+      // l'OCR échoue systématiquement en `403` — voir `droits-routes.ts` pour le détail complet.
+      // Rattachée au menu comme TROISIÈME onglet de Clients & véhicules
+      // (`composants/layout/navigation-modele.ts`) ; sur téléphone, `AppShell.tsx`
+      // (`useModeScanMobile`) y redirige automatiquement les mêmes rôles sans passer par ce menu.
+      {
+        path: 'scan',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_SCAN}>
+            <EcranScan />
+          </RouteProtegee>
+        ),
+      },
       // Module pièces (étape 3) — CINQ routes, TOUTES sous `rolesAutorises={ROLES_PIECES}`
       // (`droits-routes.ts`) : `DROITS_PIECES_PAR_ROLE.admin` vaut `[]` littéralement côté API
       // (RF-115), la lecture elle-même est fermée à `admin` — contrairement à

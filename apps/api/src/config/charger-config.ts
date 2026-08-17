@@ -4,6 +4,7 @@ import { schemaConfigCourriel } from '../courriel/config-courriel';
 import { schemaConfigConsole } from '../exploitation/config-console';
 import { schemaConfigJobClotureAutomatiquePointage } from '../pointage/config-job-cloture-automatique-pointage';
 import { schemaConfigJobReferentielVehiculesCh } from '../vehicules/referentiel/config-job-referentiel-vehicules-ch';
+import { schemaConfigOcrPermis } from '../vehicules/ocr/config-ocr';
 import { calculerBrancheParDefaut, calculerVersionAppParDefaut } from './version-app';
 
 /**
@@ -236,6 +237,10 @@ export const schemaConfig = z
     // Bloc défini une seule fois dans `pointage/config-job-cloture-automatique-pointage.ts` et
     // fusionné ici via `.shape`, même patron que le bloc ASTRA juste au-dessus.
     ...schemaConfigJobClotureAutomatiquePointage.shape,
+    // --- Scan OCR du permis de circulation (reconnaissance automatique, carte grise) ---
+    // Bloc défini une seule fois dans `vehicules/ocr/config-ocr.ts` et fusionné ici via `.shape`,
+    // même patron que les blocs ci-dessus.
+    ...schemaConfigOcrPermis.shape,
   })
   .superRefine((c, ctx) => {
     if (c.NODE_ENV === 'production' && !c.COOKIE_SECURE) {

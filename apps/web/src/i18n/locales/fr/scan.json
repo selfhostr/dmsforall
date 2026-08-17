@@ -1,0 +1,58 @@
+{
+  "titre": "Scanner un permis de circulation",
+  "sousTitre": "Photographiez le permis, vérifiez, puis validez.",
+  "echappement": {
+    "message": "Vue simplifiée pour téléphone : seul le scan est accessible ici.",
+    "action": "Ouvrir l'application complète"
+  },
+  "capture": {
+    "consigneTitre": "Photographiez le permis de circulation",
+    "consignePlat": "Document posé bien à plat, entièrement dans le cadre",
+    "consigneLumiere": "Bon éclairage, sans reflet ni ombre portée",
+    "consigneCadre": "Texte net et lisible, appareil tenu bien au-dessus",
+    "action": "Prendre la photo"
+  },
+  "preparation": {
+    "enCours": "Préparation de la photo…"
+  },
+  "analyse": {
+    "enCours": "Lecture du permis en cours…"
+  },
+  "erreurs": {
+    "titre": "La photo n'a pas pu être utilisée",
+    "photoIllisible": "Cette photo n'a pas pu être ouverte. Reprenez-la avec l'appareil photo, bien à plat et bien éclairée.",
+    "heicNonPrisEnCharge": "Ce format de photo n'est pas pris en charge sur cet appareil. Reprenez la photo avec le bouton « Prendre la photo » plutôt que depuis la pellicule."
+  },
+  "actions": {
+    "reessayer": "Reprendre une photo",
+    "scannerUnAutre": "Scanner un autre permis"
+  },
+  "formulaire": {
+    "sectionDetenteur": "Détenteur",
+    "sectionVehicule": "Véhicule",
+    "clientTrouve": "Client déjà enregistré — le véhicule lui sera rattaché",
+    "clientCreeTitre": "Client enregistré",
+    "clientCreeDescription": "{nom} a été créé. Vérifiez maintenant le véhicule ci-dessous.",
+    "langueAide": "Non imprimée sur le permis — à choisir vous-même.",
+    "valider": "Valider et enregistrer"
+  },
+  "confiance": {
+    "nonLu": "Non lu — à compléter",
+    "douteux": "À vérifier",
+    "valide": "Lu et validé"
+  },
+  "rienACreer": {
+    "titre": "Rien à créer",
+    "description": "Ce client et ce véhicule sont déjà enregistrés.",
+    "posteFixe": {
+      "enAttente": "Information du poste fixe en cours…",
+      "confirme": "Le poste fixe a été informé.",
+      "indisponible": "Confirmation indisponible pour le moment — le client et le véhicule restent accessibles via les liens ci-dessus."
+    }
+  },
+  "resultat": {
+    "titre": "Enregistrement terminé",
+    "clientCree": "{nom} et le véhicule ont été créés.",
+    "clientRattache": "Le véhicule a été rattaché à {nom}."
+  }
+}

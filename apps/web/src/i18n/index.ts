@@ -29,6 +29,7 @@ import dePneus from './locales/de/pneus.json';
 import deTableauBord from './locales/de/tableauBord.json';
 import deRelances from './locales/de/relances.json';
 import deConsole from './locales/de/console.json';
+import deScan from './locales/de/scan.json';
 import frAccueil from './locales/fr/accueil.json';
 import frAuth from './locales/fr/auth.json';
 import frCommun from './locales/fr/commun.json';
@@ -50,6 +51,7 @@ import frPneus from './locales/fr/pneus.json';
 import frTableauBord from './locales/fr/tableauBord.json';
 import frRelances from './locales/fr/relances.json';
 import frConsole from './locales/fr/console.json';
+import frScan from './locales/fr/scan.json';
 import itAccueil from './locales/it/accueil.json';
 import itAuth from './locales/it/auth.json';
 import itCommun from './locales/it/commun.json';
@@ -71,6 +73,7 @@ import itPneus from './locales/it/pneus.json';
 import itTableauBord from './locales/it/tableauBord.json';
 import itRelances from './locales/it/relances.json';
 import itConsole from './locales/it/console.json';
+import itScan from './locales/it/scan.json';
 
 /** 19 namespaces par domaine (propriété expert-i18n) : jamais modifiés ici, seulement importés.
  *  Les 6 premiers sont le socle (étape 0) ; les 7 suivants (`recherche` à `or`) sont le lot 1 —
@@ -110,6 +113,7 @@ export const NAMESPACES = [
   'tableauBord',
   'relances',
   'console',
+  'scan',
 ] as const;
 
 const ressources = {
@@ -135,6 +139,7 @@ const ressources = {
     tableauBord: frTableauBord,
     relances: frRelances,
     console: frConsole,
+    scan: frScan,
   },
   de: {
     commun: deCommun,
@@ -158,6 +163,7 @@ const ressources = {
     tableauBord: deTableauBord,
     relances: deRelances,
     console: deConsole,
+    scan: deScan,
   },
   it: {
     commun: itCommun,
@@ -181,6 +187,7 @@ const ressources = {
     tableauBord: itTableauBord,
     relances: itRelances,
     console: itConsole,
+    scan: itScan,
   },
 } as const;
 

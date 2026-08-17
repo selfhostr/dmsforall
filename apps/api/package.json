@@ -50,6 +50,7 @@
     "@testcontainers/postgresql": "^12.1.0",
     "@types/cookie-parser": "^1.4.8",
     "@types/express": "^5.0.0",
+    "@types/multer": "^2.2.0",
     "@types/node": "^22.10.5",
     "@types/nodemailer": "^8.0.1",
     "@types/pdfkit": "^0.17.6",

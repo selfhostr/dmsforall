@@ -33,6 +33,7 @@ import { RendezVousModule } from './rendezvous/rendezvous.module';
 import { SanteModule } from './sante';
 import { SocleModule } from './socle';
 import { TableauBordModule } from './tableau-bord/tableau-bord.module';
+import { TempsReelModule } from './temps-reel';
 import { VehiculesModule } from './vehicules/vehicules.module';
 import { VentesModule } from './ventes/ventes.module';
 
@@ -125,6 +126,13 @@ export class AppModule implements NestModule {
         // même raisonnement que `PneusModule`/`RelancesModule` ci-dessus (aucune contrainte
         // d'ordre réelle, `AtelierModule` n'importe jamais ce module — sens unique).
         RendezVousModule,
+        // `TempsReelModule` (canal SSE générique de notification poste fixe, socle) — importe
+        // `AuthModule` lui-même (`JETON_SERVICE_SESSION`, revalidation de session sur une
+        // connexion longue) ; aucun module métier ne l'importe encore, il est enregistré ici pour
+        // que `ServiceEvenementsTempsReel` soit injectable par le premier consommateur (scan de
+        // permis de circulation, `vehicules/`) — même patron que `ConnecteursModule` plus haut :
+        // aucune dépendance de compilation avec un autre module métier à ce stade.
+        TempsReelModule,
         // `ExploitationModule` (console d'exploitation, PORTE 1 — agrégats de plateforme, aucune
         // donnée personnelle, `docs/conception-console-exploitation-acces.md`) — ÉTEINTE PAR
         // DÉFAUT : `ExploitationModule.pourConfig` rend un module vide (aucun contrôleur, aucun

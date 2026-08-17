@@ -12,3 +12,4 @@
 
 export * from './referentiel-vehicules-ch';
 export * from './collision-plaque';
+export * from './scan-permis-circulation';
