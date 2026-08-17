@@ -453,6 +453,74 @@ export async function lireRelancesPlanifieesPourObjet(
   }));
 }
 
+/** Lecture directe de `relance_envoi` (même doctrine que §7 ci-dessus : aucune route HTTP
+ *  n'expose l'historique ligne à ligne pour un test — voir `service-historique-envois.ts` pour
+ *  ce qui EST exposé, des compteurs agrégés). Sert à prouver qu'un envoi a — ou n'a PAS —
+ *  réellement laissé une trace : `envoyees: 1` seul ne prouve rien sur ce qui a été construit et
+ *  transmis, cette table si. */
+export interface LigneHistoriqueEnvoiDeTest {
+  readonly id: string;
+  readonly relancePlanifieeId: string;
+  readonly tentative: number;
+  readonly canal: string;
+  readonly destinataireFige: string;
+  readonly statutEnvoi: string;
+  readonly fournisseurMessageId: string | null;
+}
+
+export async function lireHistoriqueEnvoisPourRelance(
+  bdd: BaseEphemere,
+  tenantId: string,
+  relancePlanifieeId: string,
+): Promise<readonly LigneHistoriqueEnvoiDeTest[]> {
+  const lignes = await requeteSousTenant<{
+    id: string;
+    relance_planifiee_id: string;
+    tentative: number;
+    canal: string;
+    destinataire_fige: string;
+    statut_envoi: string;
+    fournisseur_message_id: string | null;
+  }>(
+    bdd.poolApp,
+    tenantId,
+    `select id, relance_planifiee_id, tentative, canal, destinataire_fige, statut_envoi,
+            fournisseur_message_id
+       from public.relance_envoi
+      where tenant_id = $1 and relance_planifiee_id = $2
+      order by tentative asc`,
+    [tenantId, relancePlanifieeId],
+  );
+  return lignes.map((l) => ({
+    id: l.id,
+    relancePlanifieeId: l.relance_planifiee_id,
+    tentative: l.tentative,
+    canal: l.canal,
+    destinataireFige: l.destinataire_fige,
+    statutEnvoi: l.statut_envoi,
+    fournisseurMessageId: l.fournisseur_message_id,
+  }));
+}
+
+/** Lecture directe de `client.email` — troisième exception au patron « tout par l'API » (voir §2
+ *  de l'en-tête) : `ClientFixtureLot1` (`garage-demo-lot1.ts`) n'expose pas l'e-mail semé, et
+ *  aucune route de ce module ne le rend. Sert uniquement à comparer le `destinataire_fige` d'un
+ *  envoi réel à la coordonnée effectivement connue du client, plutôt qu'à une valeur recopiée en
+ *  dur qui romprait silencieusement si la fixture `CLIENTS_TENANT_A` changeait d'adresse. */
+export async function lireEmailClientPourTest(
+  bdd: BaseEphemere,
+  tenantId: string,
+  clientId: string,
+): Promise<string | null> {
+  const lignes = await requeteSousTenant<{ email: string | null }>(
+    bdd.poolApp,
+    tenantId,
+    `select email from public.client where tenant_id = $1 and id = $2`,
+    [tenantId, clientId],
+  );
+  return lignes[0]?.email ?? null;
+}
+
 // -------------------------------------------------------------------------------------------
 // 8. Routes du module — planifier/envoyer/regles.
 // -------------------------------------------------------------------------------------------
