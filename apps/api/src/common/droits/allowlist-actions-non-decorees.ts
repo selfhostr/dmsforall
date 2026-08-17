@@ -297,24 +297,6 @@ export const ALLOWLIST_ACTIONS_SANS_DECORATEUR: readonly EntreeAllowlistAction[]
       '.../contexte-atelier sous le droit vehicule.lire, pas sous cette action.',
   },
   {
-    // Demande relayée par l'orchestrateur (pour le compte d'un agent facturation sans accès à
-    // `auth/matrice-droits.ts`) : le contrat/l'écran de correction de facture émise APPELLENT déjà
-    // cette action, mais AUCUNE route serveur ne l'exerce à ce jour — défaut ouvert PAR AILLEURS
-    // (pas le périmètre de cet ajout). Le droit est posé EN AVANCE de la route pour que le jour où
-    // elle s'écrit (annuler par avoir ET recréer une facture dans la MÊME opération, plus engageant
-    // qu'`facturation.document.emettre_avoir` seule — voir `auth/matrice-droits.ts`, commentaire sur
-    // `CORRECTION_FACTURE`), elle trouve sa garde déjà en place plutôt que d'être livrée sans
-    // `@ExigerDroit`. À RETIRER de cette liste le jour où le contrôleur correspondant pose
-    // `@ExigerDroit('facturation.document.corriger')` sur sa route.
-    action: 'facturation.document.corriger',
-    categorie: 'action-inerte-anticipee',
-    justification:
-      "Aucune route HTTP n'existe encore pour la correction de facture émise (annulation par avoir + recréation " +
-      'dans la même opération) — contrat et écran l’appellent déjà, défaut ouvert séparément, hors périmètre de cet ' +
-      'ajout. Droit posé par anticipation, réservé à direction/comptable EXACTEMENT (auth/matrice-droits.ts, ' +
-      'CORRECTION_FACTURE), à retirer d’ici dès que le contrôleur pose son propre @ExigerDroit.',
-  },
-  {
     // `apps/api/src/ventes/financement.controller.ts` (tête de fichier) est explicite : le
     // financement est une sous-ressource COLLECTION APPEND-ONLY d'un dossier de vente, et le
     // contrat GELÉ `packages/shared/src/contrats/ventes/financement.ts` (tête de fichier, §« Pas de
