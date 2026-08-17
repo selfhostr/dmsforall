@@ -446,9 +446,17 @@ describe('verrouillage post-émission — trigger document_vente_verrouiller_apr
 // sur ce tenant) : les deltas sont vérifiés en RELATIF à la première valeur observée, jamais en
 // tenant pour acquis que la séquence démarre à 1 — robuste même si l'ordre d'exécution des fichiers
 // de tests change un jour.
-
+//
+// PRÉFIXE `DEV-`/`BDC-`/`FAC-`/`AVO-` : décision de numérotation TRANCHÉE (bug #104, commit
+// a295bd8 du 13.08.2026, voir `documents/numerotation.ts::PREFIXES_TYPE_DOCUMENT`) — PAS un
+// marqueur d'environnement (rien dans le code ne conditionne ce préfixe à `NODE_ENV` ou
+// équivalent : il est affiché à L'IDENTIQUE en dev et en production). `DEV` est l'abréviation du
+// type de document « devis », au même titre que `FAC` = facture, `BDC` = bon de commande,
+// `AVO` = avoir. Objectif du préfixe : éviter qu'un devis, un bon de commande, une facture et un
+// avoir du même exercice affichent tous `2026-00001` (collision D'AFFICHAGE seulement — l'unicité
+// EN BASE, elle, était déjà garantie par `document_vente_numero_uk`, scopée par type_document).
 describe('numérotation continue, sans trou (RF-20/RF-23/RF-24) — tenant B, type devis', () => {
-  it('deux émissions successives donnent des numéros de séquence consécutifs, au format `<exercice>-<5 chiffres>`', async () => {
+  it('deux émissions successives donnent des numéros de séquence consécutifs, au format `DEV-<exercice>-<5 chiffres>`', async () => {
     const docA = await creerBrouillon(garage.tenantB, 'chef_atelier', 'devis');
     const emisA = await emettre(garage.tenantB, 'chef_atelier', docA.id);
     expect(emisA.status).toBe(200);
@@ -456,6 +464,9 @@ describe('numérotation continue, sans trou (RF-20/RF-23/RF-24) — tenant B, ty
       .donnees;
     const sequenceA = donneesA.numeroSequence;
     expect(Number.isInteger(sequenceA)).toBe(true);
+    // Format vérifié dès le premier document, pas seulement sur le delta ci-dessous : une
+    // régression qui ferait disparaître le préfixe DOIT rougir ici, sur CHAQUE numéro émis.
+    expect(donneesA.numero).toMatch(/^DEV-\d{4}-\d{5}$/);
 
     const docB = await creerBrouillon(garage.tenantB, 'chef_atelier', 'devis');
     const emisB = await emettre(garage.tenantB, 'chef_atelier', docB.id);
@@ -466,8 +477,32 @@ describe('numérotation continue, sans trou (RF-20/RF-23/RF-24) — tenant B, ty
 
     const anneeCourante = new Date().getUTCFullYear();
     expect(donneesB.numero).toBe(
-      `${String(anneeCourante)}-${String(sequenceA + 1).padStart(5, '0')}`,
+      `DEV-${String(anneeCourante)}-${String(sequenceA + 1).padStart(5, '0')}`,
     );
+  });
+
+  it("bug #104 (régression protégée) : un devis et un bon de commande du MÊME tenant/exercice, même si leur numéroSequence coïncide, ne partagent JAMAIS le même numéro affiché — la collision qui a motivé le préfixe par type ne doit plus jamais se reproduire", async () => {
+    const devis = await creerBrouillon(garage.tenantB, 'chef_atelier', 'devis');
+    const emisDevis = await emettre(garage.tenantB, 'chef_atelier', devis.id);
+    expect(emisDevis.status).toBe(200);
+    const donneesDevis = (emisDevis.body as { donnees: DocumentDeTest & { numeroSequence: number } })
+      .donnees;
+
+    const bonCommande = await creerBrouillon(garage.tenantB, 'chef_atelier', 'bon_commande');
+    const emisBonCommande = await emettre(garage.tenantB, 'chef_atelier', bonCommande.id);
+    expect(emisBonCommande.status).toBe(200);
+    const donneesBonCommande = (
+      emisBonCommande.body as { donnees: DocumentDeTest & { numeroSequence: number } }
+    ).donnees;
+
+    // Chaque type de document a sa PROPRE séquence (clé de compteur `document_vente:<type>`,
+    // `documents/numerotation.ts`) — ce ne sont donc structurellement JAMAIS la même séquence,
+    // mais leurs VALEURS numériques peuvent parfaitement coïncider (ex. premier devis ET premier
+    // bon de commande du tenant → toutes deux `numeroSequence === 1`). C'est PRÉCISÉMENT le cas
+    // qui produisait `2026-00001` des deux côtés avant le correctif #104.
+    expect(donneesDevis.numero).toMatch(/^DEV-\d{4}-\d{5}$/);
+    expect(donneesBonCommande.numero).toMatch(/^BDC-\d{4}-\d{5}$/);
+    expect(donneesDevis.numero).not.toBe(donneesBonCommande.numero);
   });
 
   it('une émission REFUSÉE (droit insuffisant) NE consomme AUCUN numéro : la séquence reste consécutive malgré la tentative avortée entre les deux', async () => {
