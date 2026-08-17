@@ -70,3 +70,11 @@ $RECYCLE.BIN/
 
 
 # CodeGraph — index de graphe du dépôt, reconstruit par `codegraph init` sur chaque poste
+
+# Sites Hugo (doc + vitrine) — artefacts de build
+site/.hugo_build.lock
+site/public/
+site/resources/
+ancien-site/.hugo_build.lock
+ancien-site/public/
+ancien-site/resources/

@@ -481,12 +481,13 @@ describe('numérotation continue, sans trou (RF-20/RF-23/RF-24) — tenant B, ty
     );
   });
 
-  it("bug #104 (régression protégée) : un devis et un bon de commande du MÊME tenant/exercice, même si leur numéroSequence coïncide, ne partagent JAMAIS le même numéro affiché — la collision qui a motivé le préfixe par type ne doit plus jamais se reproduire", async () => {
+  it('bug #104 (régression protégée) : un devis et un bon de commande du MÊME tenant/exercice, même si leur numéroSequence coïncide, ne partagent JAMAIS le même numéro affiché — la collision qui a motivé le préfixe par type ne doit plus jamais se reproduire', async () => {
     const devis = await creerBrouillon(garage.tenantB, 'chef_atelier', 'devis');
     const emisDevis = await emettre(garage.tenantB, 'chef_atelier', devis.id);
     expect(emisDevis.status).toBe(200);
-    const donneesDevis = (emisDevis.body as { donnees: DocumentDeTest & { numeroSequence: number } })
-      .donnees;
+    const donneesDevis = (
+      emisDevis.body as { donnees: DocumentDeTest & { numeroSequence: number } }
+    ).donnees;
 
     const bonCommande = await creerBrouillon(garage.tenantB, 'chef_atelier', 'bon_commande');
     const emisBonCommande = await emettre(garage.tenantB, 'chef_atelier', bonCommande.id);

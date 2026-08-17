@@ -17,3 +17,12 @@ ancien-site/data/
 # JSON.stringify(..., null, 2) à chaque export, jamais édité à la main : le formater avec Prettier
 # n'aurait aucun effet durable et fait échouer `format:check` à chaque régénération.
 packages/shared/openapi/dfa-openapi.json
+
+# Sites Hugo (doc + vitrine) : ont leur propre outillage (node_modules, config Prettier avec
+# plugin go-template non installé à la racine), et embarquent le thème Blowfish en sous-module
+# (code tiers, pas le nôtre à reformater). Se formatent eux-mêmes ; n'impose pas ces dépendances
+# au dépôt entier.
+site/
+site/themes/blowfish/
+ancien-site/
+ancien-site/themes/blowfish/

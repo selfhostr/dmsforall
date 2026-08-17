@@ -19,17 +19,17 @@ API: http://localhost:3000 — Frontend: http://localhost:5173
 
 Tous les comptes utilisent le mot de passe `Demo1234!Garage`.
 
-| Email                             | Rôle | Accès |
-| --------------------------------- | ---- | ---- |
-| `admin@garage-martin.ch`          | admin | Gestion technique : comptes, sites, paramètres. **Aucun droit financier.** |
-| `direction@garage-martin.ch`      | direction | Tous les droits : atelier, facturation, stock, ventes. |
-| `comptable@garage-martin.ch`      | comptable | Encaissement, paiements, export fiduciaire. |
-| `receptionniste@garage-martin.ch` | receptionnaire | Comptoir : devis, factures, encaissement. |
-| `chef.atelier@garage-martin.ch`   | chef_atelier | Atelier : OR, constat, devis, validation. |
-| `technicien@garage-martin.ch`     | technicien | Exécution atelier : pointage (lecture montants masquée). |
-| `magasinier@garage-martin.ch`     | magasinier | Stock pièces : mouvements, réservations, fournisseurs. |
-| `vendeur@garage-martin.ch`        | vendeur | Ventes VN/VO : dossiers, reprises, financement. |
-| `borne.atelier@garage-martin.ch`  | poste_atelier | Compte service (tablette murale) : pointage tactile par PIN. |
+| Email                             | Rôle           | Accès                                                                      |
+| --------------------------------- | -------------- | -------------------------------------------------------------------------- |
+| `admin@garage-martin.ch`          | admin          | Gestion technique : comptes, sites, paramètres. **Aucun droit financier.** |
+| `direction@garage-martin.ch`      | direction      | Tous les droits : atelier, facturation, stock, ventes.                     |
+| `comptable@garage-martin.ch`      | comptable      | Encaissement, paiements, export fiduciaire.                                |
+| `receptionniste@garage-martin.ch` | receptionnaire | Comptoir : devis, factures, encaissement.                                  |
+| `chef.atelier@garage-martin.ch`   | chef_atelier   | Atelier : OR, constat, devis, validation.                                  |
+| `technicien@garage-martin.ch`     | technicien     | Exécution atelier : pointage (lecture montants masquée).                   |
+| `magasinier@garage-martin.ch`     | magasinier     | Stock pièces : mouvements, réservations, fournisseurs.                     |
+| `vendeur@garage-martin.ch`        | vendeur        | Ventes VN/VO : dossiers, reprises, financement.                            |
+| `borne.atelier@garage-martin.ch`  | poste_atelier  | Compte service (tablette murale) : pointage tactile par PIN.               |
 
 **Note** : utiliser `direction@` pour tester la facturation. Le compte `admin@` refuse tous les gestes financiers (normal, pas un bug).
 
@@ -72,21 +72,21 @@ pnpm docker:reset && pnpm db:migrate && pnpm db:seed
 
 ## Commandes
 
-| Commande | Effet |
-| -------- | ----- |
-| `pnpm dev` | API + front en hot-reload |
-| `pnpm dev:api` | API seule (:3000) |
-| `pnpm dev:web` | Front seul (:5173) |
-| `pnpm build` | Build production |
-| `pnpm typecheck` | Vérifier TypeScript |
-| `pnpm lint` | Linter |
-| `pnpm test` | Tests unitaires |
+| Commande                | Effet                          |
+| ----------------------- | ------------------------------ |
+| `pnpm dev`              | API + front en hot-reload      |
+| `pnpm dev:api`          | API seule (:3000)              |
+| `pnpm dev:web`          | Front seul (:5173)             |
+| `pnpm build`            | Build production               |
+| `pnpm typecheck`        | Vérifier TypeScript            |
+| `pnpm lint`             | Linter                         |
+| `pnpm test`             | Tests unitaires                |
 | `pnpm test:integration` | Tests d'intégration (Postgres) |
-| `pnpm db:migrate` | Appliquer migrations |
-| `pnpm db:seed` | Charger données de démo |
-| `pnpm api:openapi` | Exporter schéma OpenAPI |
-| `pnpm web:types` | Générer types frontend |
-| `pnpm docker:reset` | Repartir de zéro |
+| `pnpm db:migrate`       | Appliquer migrations           |
+| `pnpm db:seed`          | Charger données de démo        |
+| `pnpm api:openapi`      | Exporter schéma OpenAPI        |
+| `pnpm web:types`        | Générer types frontend         |
+| `pnpm docker:reset`     | Repartir de zéro               |
 
 ## Conventions essentielles
 
