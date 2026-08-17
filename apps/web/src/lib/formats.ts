@@ -6,22 +6,113 @@ import type { DeviseFacturation } from '@dfa/shared';
  * sa langue de travail. Ne jamais dériver ces formateurs de la langue i18n courante.
  */
 
+/**
+ * Fuseau UNIQUE du produit — décision de @laupernoe, 14.08.2026 (voir
+ * `apps/api/src/common/temps/fuseau-suisse.ts`, qui a posé cette doctrine côté API). Un DMS
+ * suisse affiche l'heure suisse parce que c'est un DMS suisse, JAMAIS parce que la machine qui
+ * l'exécute se trouve réglée sur Zurich : `Intl.DateTimeFormat` SANS `timeZone` explicite retombe
+ * sur le fuseau du PROCESSUS (celui de la CI, d'un conteneur Docker, du poste d'un dev à
+ * l'étranger), pas celui du garage. Toujours poser `timeZone: FUSEAU_SUISSE` explicitement, ici et
+ * dans toute conversion de ce fichier.
+ *
+ * Dupliqué (pas importé) depuis `apps/api/src/common/temps/fuseau-suisse.ts` : le web ne dépend
+ * jamais du code serveur (API-first, aucun accès privilégié) — même MÉTHODE (Intl.DateTimeFormat
+ * adossé à la base tzdata du moteur, point fixe pour le sens heure-murale -> UTC), pas de code
+ * partagé possible entre les deux bundles.
+ */
+const FUSEAU_SUISSE = 'Europe/Zurich';
+
 const FORMATEUR_MONTANT = new Intl.NumberFormat('de-CH', {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
 
 const FORMATEUR_DATE = new Intl.DateTimeFormat('de-CH', {
+  timeZone: FUSEAU_SUISSE,
   day: '2-digit',
   month: '2-digit',
   year: 'numeric',
 });
 
 const FORMATEUR_HEURE = new Intl.DateTimeFormat('de-CH', {
+  timeZone: FUSEAU_SUISSE,
   hour: '2-digit',
   minute: '2-digit',
   hourCycle: 'h23',
 });
+
+/** Composantes murales suisses (année/mois/jour/heure/minute) d'un instant absolu — locale
+ *  'en-US' choisie UNIQUEMENT parce qu'elle rend des champs numériques simples à relire via
+ *  `formatToParts` (aucun rapport avec les États-Unis, même choix que `FORMATEUR_HORLOGE` dans
+ *  `apps/api/src/common/temps/fuseau-suisse.ts`). `hourCycle: 'h23'` — jamais `'h24'`, qui rendrait
+ *  minuit comme "24" au lieu de "00" et ferait déborder le parsing numérique d'un jour. */
+const FORMATEUR_COMPOSANTES_SUISSE = new Intl.DateTimeFormat('en-US', {
+  timeZone: FUSEAU_SUISSE,
+  hourCycle: 'h23',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
+interface ComposantesSuisses {
+  annee: number;
+  mois: number; // 1-12
+  jour: number;
+  heure: number; // 0-23
+  minute: number;
+}
+
+/** Lit les composantes murales SUISSES (Europe/Zurich) d'un instant absolu — jamais les
+ *  composantes locales du PROCESSUS (`d.getFullYear()`/`d.getHours()`, qui lisent le fuseau de la
+ *  machine). C'est le point de lecture UNIQUE de ce fichier pour aller d'un instant absolu vers
+ *  une heure murale suisse. */
+function composantesSuisses(instant: Date): ComposantesSuisses {
+  const parties = Object.fromEntries(
+    FORMATEUR_COMPOSANTES_SUISSE.formatToParts(instant).map((p) => [p.type, p.value]),
+  );
+  return {
+    annee: Number(parties.year),
+    mois: Number(parties.month),
+    jour: Number(parties.day),
+    heure: Number(parties.hour),
+    minute: Number(parties.minute),
+  };
+}
+
+/** Décalage Europe/Zurich (en minutes, à l'EST d'UTC — +60 CET l'hiver, +120 CEST l'été) EN
+ *  VIGUEUR à l'instant UTC donné. Même méthode que `decalageMinutesZurich` dans
+ *  `apps/api/src/common/temps/fuseau-suisse.ts`. */
+function decalageMinutesSuisse(instantUtc: Date): number {
+  const { annee, mois, jour, heure, minute } = composantesSuisses(instantUtc);
+  const relu = Date.UTC(annee, mois - 1, jour, heure, minute);
+  return Math.round((relu - instantUtc.getTime()) / 60000);
+}
+
+/**
+ * Instant UTC correspondant à l'heure MURALE SUISSE `heure:minute` du `jour/mois/annee` civils
+ * donnés — sens INVERSE de `composantesSuisses`. MÉTHODE — point fixe par itération (même patron
+ * qu'`instantLocalSuisse` dans `apps/api/src/common/temps/fuseau-suisse.ts`, qui documente en
+ * détail pourquoi deux itérations suffisent TOUJOURS : le décalage CET/CEST ne prend que deux
+ * valeurs, 60 ou 120 minutes, jamais davantage d'écart entre une estimation initiale et la
+ * vraie réponse).
+ */
+function instantSuisseVersUtc(
+  annee: number,
+  mois: number,
+  jour: number,
+  heure: number,
+  minute: number,
+): Date {
+  const cible = (): number => Date.UTC(annee, mois - 1, jour, heure, minute, 0, 0);
+  let estimationUtc = cible();
+  for (let iteration = 0; iteration < 2; iteration += 1) {
+    const decalage = decalageMinutesSuisse(new Date(estimationUtc));
+    estimationUtc = cible() - decalage * 60000;
+  }
+  return new Date(estimationUtc);
+}
 
 const FORMATEUR_ENTIER = new Intl.NumberFormat('de-CH', { maximumFractionDigits: 0 });
 
@@ -172,31 +263,20 @@ export function isoDirectValide(valeur: string): string | undefined {
 /** Convertit un horodatage ISO ou objet Date en chaîne au format suisse jj.mm.aaaa HH:MM pour
  *  saisie/affichage. Utilisé par DatetimeInput pour afficher le placeholder et la valeur.
  *
- *  FUSEAU HORAIRE : reçoit une valeur ISO (UTC) du serveur et la convertit en heure locale
- *  du navigateur (CET/CEST). Le aller-retour formatSuisseVersISO_Datetime →
- *  datetimeVersFormatSuisse doit reproduire la même heure que celle tapée initialement. */
+ *  FUSEAU HORAIRE : reçoit un instant absolu (ISO, UTC) et le convertit en heure MURALE SUISSE
+ *  (Europe/Zurich) — jamais l'heure locale du PROCESSUS qui exécute le code (CI en UTC, poste de
+ *  dev à l'étranger, etc. n'affichent pas la même chose que Zurich). Voir `composantesSuisses`. */
 export function datetimeVersFormatSuisse(datetime: Date | string | undefined): string {
   if (!datetime) return '';
   const d = typeof datetime === 'string' ? new Date(datetime) : datetime;
   if (Number.isNaN(d.getTime())) return '';
 
-  // `d` contient un horodatage UTC. Pour l'afficher en heure locale (de - CH), on soustrait
-  // le décalage de fuseau horaire du navigateur. `getTimezoneOffset()` retourne le décalage
-  // de la DATE ACTUELLE (changement heure d'été/hiver pris en compte), ce qui est correct.
-  //
-  // Exemple inverse : serveur stocke 2026-08-12T12:30:00.000Z (UTC).
-  // Navigateur en CEST (UTC+2) doit afficher 14:30 (local).
-  // `d.getTimezoneOffset()` retourne -120 (minutes).
-  // `d.getTime() - (-120 * 60 * 1000)` ajoute 2h, produisant 14:30.
-  const offsetMs = d.getTimezoneOffset() * 60 * 1000;
-  const localDate = new Date(d.getTime() - offsetMs);
-
-  const jour = String(localDate.getUTCDate()).padStart(2, '0');
-  const mois = String(localDate.getUTCMonth() + 1).padStart(2, '0');
-  const annee = localDate.getUTCFullYear();
-  const heure = String(localDate.getUTCHours()).padStart(2, '0');
-  const minute = String(localDate.getUTCMinutes()).padStart(2, '0');
-  return `${jour}.${mois}.${annee} ${heure}:${minute}`;
+  const { annee, mois, jour, heure, minute } = composantesSuisses(d);
+  const jourStr = String(jour).padStart(2, '0');
+  const moisStr = String(mois).padStart(2, '0');
+  const heureStr = String(heure).padStart(2, '0');
+  const minuteStr = String(minute).padStart(2, '0');
+  return `${jourStr}.${moisStr}.${annee} ${heureStr}:${minuteStr}`;
 }
 
 /** Convertit une saisie au format suisse jj.mm.aaaa HH:MM en ISO datetime pour react-hook-form.
@@ -216,30 +296,29 @@ export function formatSuisseVersISO_Datetime(valeur: string | undefined): string
   const heure = parseInt(match[4], 10);
   const minute = parseInt(match[5], 10);
 
-  // Valide que la date existe réellement
-  const d = new Date(annee, mois - 1, jour, heure, minute, 0, 0);
-  if (d.getFullYear() !== annee || d.getMonth() !== mois - 1 || d.getDate() !== jour) {
-    return undefined; // ex: 31.02.2026 échoue
-  }
-
-  // Valide que l'heure est valide
+  // Valide que l'heure est structurellement possible AVANT la validation calendaire ci-dessous —
+  // sinon un `24:00` déborderait sur le jour suivant côté `Date.UTC` sans être rejeté ici.
   if (heure < 0 || heure > 23 || minute < 0 || minute > 59) {
     return undefined;
   }
 
-  // Convertit l'heure locale en UTC en appliquant le décalage de fuseau horaire.
-  // `d` a été créée avec new Date(annee, mois, jour, heure, minute), ce qui l'interprète
-  // comme heure locale du navigateur. `getTimezoneOffset()` retourne le décalage en minutes
-  // (négatif pour UTC+, positif pour UTC-). Pour obtenir l'heure UTC équivalente, on ajoute
-  // ce décalage au timestamp.
-  //
-  // Exemple : en CEST (UTC+2), un utilisateur qui tape "14:30" veut dire 14:30 local.
-  // `new Date(2027, 6, 15, 14, 30)` crée une Date représentant 14:30 comme timestamp interne.
-  // `getTimezoneOffset()` retourne -120 (minutes) pour UTC+2.
-  // `d.getTime() + (-120 * 60 * 1000)` soustrait 2h, produisant 12:30 UTC.
-  const offsetMs = d.getTimezoneOffset() * 60 * 1000;
-  const utcDate = new Date(d.getTime() + offsetMs);
-  return utcDate.toISOString();
+  // Valide que la date existe réellement — comparaison en UTC PUR (Date.UTC), jamais interprétée
+  // dans un fuseau (ni celui du PROCESSUS ni celui de la Suisse) : seule la combinatoire
+  // calendaire jj/mm/aaaa compte ici, pas un instant réel.
+  const dValidation = new Date(Date.UTC(annee, mois - 1, jour, heure, minute));
+  if (
+    dValidation.getUTCFullYear() !== annee ||
+    dValidation.getUTCMonth() !== mois - 1 ||
+    dValidation.getUTCDate() !== jour
+  ) {
+    return undefined; // ex: 31.02.2026 échoue
+  }
+
+  // `jj.mm.aaaa HH:MM` est une heure MURALE SUISSE (Europe/Zurich) saisie par le garagiste —
+  // JAMAIS l'heure locale du navigateur/PROCESSUS. Le décalage CET/CEST en vigueur CE jour-là
+  // (pas celui d'aujourd'hui, pas celui de la machine) est déterminé par point fixe : voir
+  // `instantSuisseVersUtc`, même méthode qu'`instantLocalSuisse` côté API.
+  return instantSuisseVersUtc(annee, mois, jour, heure, minute).toISOString();
 }
 
 /** Valide qu'une saisie est déjà un horodatage ISO structurellement correct ET réellement

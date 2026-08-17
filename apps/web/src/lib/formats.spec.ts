@@ -2,9 +2,60 @@ import { describe, expect, it } from 'vitest';
 
 import {
   datetimeVersFormatSuisse,
+  formaterDate,
+  formaterDateHeure,
+  formaterHeure,
   formatSuisseVersISO_Datetime,
   isoDatetimeDirectValide,
 } from './formats';
+
+/**
+ * Preuve du correctif de fond du 16.08.2026 : le rendu/parsing d'une heure suisse ne doit JAMAIS
+ * dépendre du fuseau du PROCESSUS qui exécute les tests (celui de la CI, d'un poste de dev à
+ * l'étranger…) — seul le fuseau Europe/Zurich compte. Ces assertions comparent un instant absolu
+ * FIXE (`...Z`, sans ambiguïté) à une chaîne suisse littérale : contrairement à un aller-retour
+ * encode-puis-decode (symétrique par construction, donc incapable de distinguer « heure suisse »
+ * de « heure du process »), une valeur littérale attendue échoue réellement si `timeZone:
+ * 'Europe/Zurich'` disparaît d'un formateur. Vérifié manuellement : en retirant le `timeZone`
+ * explicite de `FORMATEUR_DATE`/`FORMATEUR_HEURE`/`FORMATEUR_COMPOSANTES_SUISSE` et en rejouant
+ * `TZ=UTC pnpm --filter @dfa/web exec vitest run src/lib/formats.spec.ts`, ces tests-ci basculent
+ * de vert à rouge (09:15 rendu au lieu de 11:15 attendu) — preuve qu'ils testent bien le bon
+ * mécanisme, pas un artefact de l'environnement de test.
+ */
+describe('Heure suisse — indépendance au fuseau du PROCESSUS', () => {
+  it("rend un instant absolu d'été (CEST, UTC+2) en heure murale suisse, quel que soit TZ", () => {
+    const instant = '2026-07-20T09:15:00.000Z';
+    expect(formaterDateHeure(instant)).toBe('20.07.2026 11:15');
+    expect(datetimeVersFormatSuisse(instant)).toBe('20.07.2026 11:15');
+  });
+
+  it("rend un instant absolu d'hiver (CET, UTC+1) en heure murale suisse, quel que soit TZ", () => {
+    const instant = '2026-01-15T09:15:00.000Z';
+    expect(formaterDateHeure(instant)).toBe('15.01.2026 10:15');
+    expect(datetimeVersFormatSuisse(instant)).toBe('15.01.2026 10:15');
+  });
+
+  it("interprète une saisie murale suisse d'été comme le bon instant absolu, quel que soit TZ", () => {
+    expect(formatSuisseVersISO_Datetime('20.07.2026 11:15')).toBe('2026-07-20T09:15:00.000Z');
+  });
+
+  it("interprète une saisie murale suisse d'hiver comme le bon instant absolu, quel que soit TZ", () => {
+    expect(formatSuisseVersISO_Datetime('15.01.2026 10:15')).toBe('2026-01-15T09:15:00.000Z');
+  });
+});
+
+describe('formaterDate / formaterHeure', () => {
+  it('formaterDate rend le jour civil suisse, quel que soit TZ (23h locale = jour suivant en Suisse)', () => {
+    // 2026-01-15T23:15:00.000Z (UTC) = 16.01.2026 00:15 en Suisse (CET, +1) : le jour civil
+    // suisse a déjà basculé alors que le jour civil UTC ne bascule qu'à minuit UTC.
+    expect(formaterDate('2026-01-15T23:15:00.000Z')).toBe('16.01.2026');
+  });
+
+  it('formaterHeure rend l’heure murale suisse, quel que soit TZ', () => {
+    expect(formaterHeure('2026-07-20T09:15:00.000Z')).toBe('11:15');
+    expect(formaterHeure('2026-01-15T09:15:00.000Z')).toBe('10:15');
+  });
+});
 
 describe('Utilitaires de datetime suisse', () => {
   describe('datetimeVersFormatSuisse', () => {
@@ -51,6 +102,25 @@ describe('Utilitaires de datetime suisse', () => {
         const iso = formatSuisseVersISO_Datetime(entree);
         const sortie = datetimeVersFormatSuisse(iso);
         expect(sortie).toBe(entree);
+      }
+    });
+
+    it("aller-retour exact en heure d'été (CEST, UTC+2) et heure d'hiver (CET, UTC+1), verrouillé sur l'ISO absolu attendu", () => {
+      // ATTENTION : un aller-retour encode-puis-decode comparé à sa propre entrée ne prouve RIEN
+      // — il est symétrique par construction et passe même si les deux fonctions partagent, à
+      // tort, le fuseau du PROCESSUS plutôt que Europe/Zurich (mesuré le 16.08.2026 : cette
+      // version antérieure du test passait identiquement sous TZ=UTC, TZ=America/New_York et
+      // TZ=Europe/Zurich alors que le rendu affiché, lui, était faux sous UTC). Chaque cas
+      // verrouille donc en plus l'ISO absolu attendu, indépendant de tout fuseau.
+      const casTestes: Array<{ suisse: string; isoAttendu: string }> = [
+        { suisse: '15.08.2026 14:30', isoAttendu: '2026-08-15T12:30:00.000Z' }, // CEST, UTC+2
+        { suisse: '15.01.2026 14:30', isoAttendu: '2026-01-15T13:30:00.000Z' }, // CET, UTC+1
+      ];
+
+      for (const { suisse, isoAttendu } of casTestes) {
+        const iso = formatSuisseVersISO_Datetime(suisse);
+        expect(iso).toBe(isoAttendu);
+        expect(datetimeVersFormatSuisse(iso)).toBe(suisse);
       }
     });
 
