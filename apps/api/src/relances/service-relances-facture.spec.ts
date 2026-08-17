@@ -7,6 +7,14 @@ import { Horloge } from '../common/horloge';
 import { ServiceJournal } from '../common/journal';
 import type { AdaptateurNotificationSender } from '../connecteurs';
 import { RegistreConnecteursService } from '../connecteurs';
+import type { Config } from '../config';
+import { ServiceCourriel } from '../courriel/service-courriel';
+import { TransportCapture } from '../courriel/transport-capture';
+import type { MessageCourriel } from '../courriel/service-courriel';
+import type {
+  EnveloppeCourriel,
+  ResultatEnvoiCourriel,
+} from '../courriel/transport-courriel.interface';
 
 import { ServiceRelancesFacture } from './service-relances-facture';
 
@@ -148,6 +156,48 @@ function adaptateurFactice(
   } as unknown as AdaptateurNotificationSender & { readonly appels: RequeteEnvoiMessageClient[] };
 }
 
+/** Double de `ServiceCourriel` — pour les tests qui portent sur l'ORCHESTRATION (comptage,
+ *  retry, indépendance vis-à-vis du connecteur SMS), pas sur le contenu exact de l'enveloppe.
+ *  Voir `chemin réel via ServiceCourriel + TransportCapture` plus bas pour la preuve que le
+ *  CONTENU construit (destinataire, Reply-To, sujet, corps, langue) est correct — un double ne
+ *  prouve jamais ça, seul le vrai socle courriel le peut. */
+function courrielFactice(
+  resultat: ResultatEnvoiCourriel = { succes: true, idMessage: 'courriel-1' },
+): ServiceCourriel & { readonly appels: MessageCourriel[] } {
+  const appels: MessageCourriel[] = [];
+  return {
+    envoyer: vi.fn(async (message: MessageCourriel) => {
+      appels.push(message);
+      return resultat;
+    }),
+    appels,
+  } as unknown as ServiceCourriel & { readonly appels: MessageCourriel[] };
+}
+
+function configFactice(surcharges: Partial<Config> = {}): Config {
+  return { SMTP_EXPEDITEUR: 'no-reply@dmsforall.example', ...surcharges } as Config;
+}
+
+/** Ligne rendue par la requête de `resoudreExpediteurGarage` — un `execute` de plus dans la file
+ *  dès qu'au moins une ligne `prete` existe (voir `envoyerPretes`), AVANT la première réclamation
+ *  (`updateReturning`). */
+function ligneExpediteurGarage(
+  champs: {
+    readonly raisonSociale?: string;
+    readonly emailContactGarage?: string | null;
+  } = {},
+): readonly [{ readonly raisonSociale: string; readonly emailContactGarage: string | null }] {
+  return [
+    {
+      raisonSociale: champs.raisonSociale ?? 'Garage Martin SA',
+      emailContactGarage:
+        champs.emailContactGarage === undefined
+          ? 'direction@garage-martin.ch'
+          : champs.emailContactGarage,
+    },
+  ];
+}
+
 describe('ServiceRelancesFacture.planifier — RA-05 (idempotence)', () => {
   it(
     'aucune règle configurée (ou inactive) → rien à planifier, AUCUNE lecture de document ' +
@@ -160,6 +210,8 @@ describe('ServiceRelancesFacture.planifier — RA-05 (idempotence)', () => {
         registreFactice(null),
         horlogeFixe('2026-08-05'),
         journalFactice(),
+        courrielFactice(),
+        configFactice(),
       );
 
       const resultat = await service.planifier(CTX);
@@ -188,6 +240,8 @@ describe('ServiceRelancesFacture.planifier — RA-05 (idempotence)', () => {
       registreFactice(null),
       horlogeFixe('2026-07-10'),
       journalFactice(),
+      courrielFactice(),
+      configFactice(),
     );
 
     const resultat = await service.planifier(CTX);
@@ -217,6 +271,8 @@ describe('ServiceRelancesFacture.planifier — RA-05 (idempotence)', () => {
         registreFactice(null),
         horlogeFixe('2026-07-10'),
         journalFactice(),
+        courrielFactice(),
+        configFactice(),
       );
 
       const resultat = await service.planifier(CTX);
@@ -235,6 +291,8 @@ describe('ServiceRelancesFacture.planifier — RA-05 (idempotence)', () => {
       registreFactice(null),
       horlogeFixe('2026-07-10'),
       journalFactice(),
+      courrielFactice(),
+      configFactice(),
     );
 
     const resultat = await service.planifier(CTX);
@@ -244,33 +302,46 @@ describe('ServiceRelancesFacture.planifier — RA-05 (idempotence)', () => {
 });
 
 describe('ServiceRelancesFacture.envoyerPretes', () => {
-  it('aucun connecteur NotificationSender actif → lot vide, JAMAIS d’accès base (RegistreConnecteursService.resoudre rend null, cas normal)', async () => {
-    const { tx } = txFactice([]);
-    const { acces } = accesFactice(tx);
-    const service = new ServiceRelancesFacture(
-      acces,
-      registreFactice(null),
-      horlogeFixe('2026-08-05'),
-      journalFactice(),
-    );
+  it(
+    'aucun connecteur SMS actif ET aucune ligne prête → lot vide, sans jamais résoudre ' +
+      'l’expéditeur garage ni tenter le moindre envoi (aucune requête superflue)',
+    async () => {
+      const { tx, restantes } = txFactice([
+        { genre: 'select', valeur: [ligneRegle({ canaux: ['sms'] })] },
+        { genre: 'execute', valeur: [] }, // candidats prêts : aucun
+      ]);
+      const { acces } = accesFactice(tx);
+      const courriel = courrielFactice();
+      const service = new ServiceRelancesFacture(
+        acces,
+        registreFactice(null),
+        horlogeFixe('2026-08-05'),
+        journalFactice(),
+        courriel,
+        configFactice(),
+      );
 
-    const resultat = await service.envoyerPretes(CTX);
-    expect(resultat).toEqual({ envoyees: 0, echouees: 0, annulees: 0, encoreATraiter: false });
-    expect(acces.enTenant).not.toHaveBeenCalled();
-  });
+      const resultat = await service.envoyerPretes(CTX);
+      expect(resultat).toEqual({ envoyees: 0, echouees: 0, annulees: 0, encoreATraiter: false });
+      expect(restantes()).toBe(0);
+      expect(courriel.envoyer).not.toHaveBeenCalled();
+    },
+  );
 
   it(
     'aucune facture rappel n’est due pour un dossier déjà réglé — vérifié À L’EXÉCUTION ' +
       '(§9 cas n°1/n°4) : la ligne réclamée est annulée, raison objet_traite, ZÉRO tentative ' +
-      'envoyée au connecteur',
+      'envoyée que ce soit au connecteur SMS ou au socle courriel',
     async () => {
       const adaptateur = adaptateurFactice({
         statut: 'accepte',
         identifiantMessagePrestataire: 'x',
       });
+      const courriel = courrielFactice();
       const { tx } = txFactice([
         { genre: 'select', valeur: [ligneRegle()] }, // canaux
         { genre: 'execute', valeur: [{ id: 'relance-1' }] }, // candidats prête
+        { genre: 'execute', valeur: ligneExpediteurGarage() }, // expéditeur garage
         { genre: 'updateReturning', valeur: [{ id: 'relance-1', objetId: 'doc-1', palier: 1 }] }, // claim
         {
           genre: 'execute',
@@ -298,11 +369,14 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
         registreFactice(adaptateur),
         horlogeFixe('2026-08-05'),
         journalFactice(),
+        courriel,
+        configFactice(),
       );
 
       const resultat = await service.envoyerPretes(CTX);
       expect(resultat).toEqual({ envoyees: 0, echouees: 0, annulees: 1, encoreATraiter: false });
       expect(adaptateur.envoyer).not.toHaveBeenCalled();
+      expect(courriel.envoyer).not.toHaveBeenCalled();
     },
   );
 
@@ -314,9 +388,11 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
         statut: 'accepte',
         identifiantMessagePrestataire: 'x',
       });
+      const courriel = courrielFactice();
       const { tx } = txFactice([
         { genre: 'select', valeur: [ligneRegle()] },
         { genre: 'execute', valeur: [{ id: 'relance-1' }] },
+        { genre: 'execute', valeur: ligneExpediteurGarage() },
         { genre: 'updateReturning', valeur: [{ id: 'relance-1', objetId: 'doc-1', palier: 1 }] },
         {
           genre: 'execute',
@@ -344,25 +420,31 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
         registreFactice(adaptateur),
         horlogeFixe('2026-08-05'),
         journalFactice(),
+        courriel,
+        configFactice(),
       );
 
       const resultat = await service.envoyerPretes(CTX);
       expect(resultat).toEqual({ envoyees: 0, echouees: 0, annulees: 1, encoreATraiter: false });
       expect(adaptateur.envoyer).not.toHaveBeenCalled();
+      expect(courriel.envoyer).not.toHaveBeenCalled();
     },
   );
 
   it(
-    'chemin complet : réclame, envoie, trace — envoyees=1, cleIdempotence = ' +
-      '"<id>:<tentative>" (RA-05 côté connecteur, notification-sender.ts décision 2)',
+    'canal email : chemin complet, réclame/envoie/trace VIA LE SOCLE COURRIEL, JAMAIS via le ' +
+      'connecteur NotificationSender (issue #136 — avant cette issue, aucun e-mail ne partait ' +
+      'réellement, voir la doc d’en-tête de service-relances-facture.ts)',
     async () => {
       const adaptateur = adaptateurFactice({
         statut: 'accepte',
-        identifiantMessagePrestataire: 'msg-1',
+        identifiantMessagePrestataire: 'x',
       });
+      const courriel = courrielFactice({ succes: true, idMessage: 'courriel-msg-1' });
       const { tx } = txFactice([
         { genre: 'select', valeur: [ligneRegle({ canaux: ['email'] })] },
         { genre: 'execute', valeur: [{ id: 'relance-1' }] },
+        { genre: 'execute', valeur: ligneExpediteurGarage() },
         { genre: 'updateReturning', valeur: [{ id: 'relance-1', objetId: 'doc-1', palier: 1 }] },
         {
           genre: 'execute',
@@ -390,32 +472,217 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
       const { acces } = accesFactice(tx);
       const service = new ServiceRelancesFacture(
         acces,
-        registreFactice(adaptateur),
+        registreFactice(adaptateur), // présent mais NE DOIT JAMAIS servir : le canal est email
         horlogeFixe('2026-08-05'),
         journalFactice(),
+        courriel,
+        configFactice(),
       );
 
       const resultat = await service.envoyerPretes(CTX);
 
       expect(resultat).toEqual({ envoyees: 1, echouees: 0, annulees: 0, encoreATraiter: false });
-      expect(adaptateur.envoyer).toHaveBeenCalledTimes(1);
-      expect(adaptateur.appels[0]?.cleIdempotence).toBe('relance-1:1');
+      expect(adaptateur.envoyer).not.toHaveBeenCalled();
+      expect(courriel.envoyer).toHaveBeenCalledTimes(1);
+      expect(courriel.appels[0]).toMatchObject({
+        destinataires: ['client@example.ch'],
+        nomGarage: 'Garage Martin SA',
+        adresseReponseGarage: 'direction@garage-martin.ch',
+      });
     },
   );
 
   it(
-    'échec du connecteur, tentatives non épuisées → repasse en prete (retenté plus tard), ' +
-      'compté comme "echouee" pour CET appel (§6.1 : rejoue le MÊME enregistrement, jamais une ' +
-      'deuxième ligne)',
+    'canal email, échec du transport courriel (rejet du socle) → repasse en prete (retenté ' +
+      'plus tard), compté comme "echouee" pour CET appel, jamais le connecteur SMS sollicité',
     async () => {
       const adaptateur = adaptateurFactice({
-        statut: 'rejete',
-        raison: 'destinataire_invalide',
-        message: 'adresse invalide',
+        statut: 'accepte',
+        identifiantMessagePrestataire: 'x',
       });
+      const courriel = courrielFactice({ succes: false, erreur: 'boîte du destinataire pleine' });
       const { tx } = txFactice([
         { genre: 'select', valeur: [ligneRegle({ canaux: ['email'] })] },
         { genre: 'execute', valeur: [{ id: 'relance-1' }] },
+        { genre: 'execute', valeur: ligneExpediteurGarage() },
+        { genre: 'updateReturning', valeur: [{ id: 'relance-1', objetId: 'doc-1', palier: 1 }] },
+        {
+          genre: 'execute',
+          valeur: [
+            {
+              numero: 'F-1',
+              statut: 'emis',
+              contentieux: false,
+              statutReglement: 'non_regle',
+              totalTtcCentimes: 1000,
+              soldeCentimes: 1000,
+              dateEcheance: '2026-06-01',
+              email: 'client@example.ch',
+              telephoneE164: null,
+              plusAucunContact: false,
+              langue: 'fr',
+            },
+          ],
+        },
+        { genre: 'execute', valeur: [{ n: 0 }] },
+        { genre: 'execute', valeur: [] }, // insert relance_envoi (échoué)
+        { genre: 'update', valeur: undefined }, // statut repasse à 'prete'
+      ]);
+      const { acces } = accesFactice(tx);
+      const service = new ServiceRelancesFacture(
+        acces,
+        registreFactice(adaptateur),
+        horlogeFixe('2026-08-05'),
+        journalFactice(),
+        courriel,
+        configFactice(),
+      );
+
+      const resultat = await service.envoyerPretes(CTX);
+      expect(resultat).toEqual({ envoyees: 0, echouees: 1, annulees: 0, encoreATraiter: false });
+      expect(adaptateur.envoyer).not.toHaveBeenCalled();
+    },
+  );
+
+  it(
+    'canal sms, aucun connecteur NotificationSender actif → rejet tracé (canal_non_supporte), ' +
+      'AUCUN appel réseau tenté, comptée "echouee" (retentable) — avant l’issue #136, ce cas ' +
+      'empêchait même les lignes email d’être traitées, régression désormais impossible',
+    async () => {
+      const courriel = courrielFactice();
+      const { tx } = txFactice([
+        { genre: 'select', valeur: [ligneRegle({ canaux: ['sms'] })] },
+        { genre: 'execute', valeur: [{ id: 'relance-1' }] },
+        { genre: 'execute', valeur: ligneExpediteurGarage() },
+        { genre: 'updateReturning', valeur: [{ id: 'relance-1', objetId: 'doc-1', palier: 1 }] },
+        {
+          genre: 'execute',
+          valeur: [
+            {
+              numero: 'F-1',
+              statut: 'emis',
+              contentieux: false,
+              statutReglement: 'non_regle',
+              totalTtcCentimes: 1000,
+              soldeCentimes: 1000,
+              dateEcheance: '2026-06-01',
+              email: null,
+              telephoneE164: '+41791234567',
+              plusAucunContact: false,
+              langue: 'fr',
+            },
+          ],
+        },
+        { genre: 'execute', valeur: [{ n: 0 }] },
+        { genre: 'execute', valeur: [] }, // insert relance_envoi (échoué)
+        { genre: 'update', valeur: undefined }, // statut repasse à 'prete'
+      ]);
+      const { acces } = accesFactice(tx);
+      const service = new ServiceRelancesFacture(
+        acces,
+        registreFactice(null), // AUCUN connecteur SMS actif
+        horlogeFixe('2026-08-05'),
+        journalFactice(),
+        courriel,
+        configFactice(),
+      );
+
+      const resultat = await service.envoyerPretes(CTX);
+      expect(resultat).toEqual({ envoyees: 0, echouees: 1, annulees: 0, encoreATraiter: false });
+      expect(courriel.envoyer).not.toHaveBeenCalled();
+    },
+  );
+
+  it(
+    'chemin RÉEL, canal email, via le vrai ServiceCourriel + TransportCapture (aucun double de ' +
+      'transport — voir CONTRIBUTING.md : « un test qui mocke la couche réseau ne prouve rien ») : ' +
+      'destinataire, Reply-To, nom affiché, sujet et corps sont construits correctement, dans la ' +
+      'langue du client (DE)',
+    async () => {
+      const transportCapture = new TransportCapture(journalFactice());
+      const espionTransport = vi.spyOn(transportCapture, 'envoyer');
+      const serviceCourriel = new ServiceCourriel(
+        transportCapture,
+        configFactice({ SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' }),
+        journalFactice(),
+      );
+
+      const { tx } = txFactice([
+        { genre: 'select', valeur: [ligneRegle({ canaux: ['email'] })] },
+        { genre: 'execute', valeur: [{ id: 'relance-1' }] },
+        {
+          genre: 'execute',
+          valeur: ligneExpediteurGarage({
+            raisonSociale: 'Garage Martin SA',
+            emailContactGarage: 'direction@garage-martin.ch',
+          }),
+        },
+        { genre: 'updateReturning', valeur: [{ id: 'relance-1', objetId: 'doc-1', palier: 2 }] },
+        {
+          genre: 'execute',
+          valeur: [
+            {
+              numero: 'F-42',
+              statut: 'emis',
+              contentieux: false,
+              statutReglement: 'non_regle',
+              totalTtcCentimes: 123450,
+              soldeCentimes: 123450,
+              dateEcheance: '2026-06-01',
+              email: 'client@example.ch',
+              telephoneE164: null,
+              plusAucunContact: false,
+              langue: 'de',
+            },
+          ],
+        },
+        { genre: 'execute', valeur: [{ n: 1 }] },
+        { genre: 'execute', valeur: [] }, // insert relance_envoi
+        { genre: 'update', valeur: undefined }, // statut='envoyee'
+        { genre: 'execute', valeur: [] }, // update document_vente
+      ]);
+      const { acces } = accesFactice(tx);
+      const service = new ServiceRelancesFacture(
+        acces,
+        registreFactice(null), // aucun connecteur SMS — l’email ne doit JAMAIS en dépendre
+        horlogeFixe('2026-08-05'),
+        journalFactice(),
+        serviceCourriel,
+        configFactice({ SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' }),
+      );
+
+      const resultat = await service.envoyerPretes(CTX);
+
+      expect(resultat).toEqual({ envoyees: 1, echouees: 0, annulees: 0, encoreATraiter: false });
+      expect(espionTransport).toHaveBeenCalledTimes(1);
+      const enveloppe = espionTransport.mock.calls[0]?.[0] as EnveloppeCourriel;
+      expect(enveloppe.destinataires).toEqual(['client@example.ch']);
+      expect(enveloppe.repondreA).toBe('direction@garage-martin.ch');
+      expect(enveloppe.de).toBe('no-reply@dmsforall.example');
+      expect(enveloppe.nomExpediteurAffiche).toBe('Garage Martin SA via dmsforall');
+      // Langue lue à l'envoi (RA-11) — le client est `de`, sujet et corps doivent l'être aussi.
+      expect(enveloppe.sujet).toBe('Zahlungserinnerung — Rechnung F-42');
+      expect(enveloppe.corpsTexte).toContain('Mahnung 2');
+      expect(enveloppe.corpsTexte).toContain('F-42');
+      expect(enveloppe.corpsTexte).toContain("1'234.50");
+    },
+  );
+
+  it(
+    'canal email : aucun compte direction/comptable actif pour ce tenant → repli sur ' +
+      'SMTP_EXPEDITEUR pour le Reply-To (jamais un envoi bloqué faute de contact garage connu)',
+    async () => {
+      const courriel = courrielFactice();
+      const { tx } = txFactice([
+        { genre: 'select', valeur: [ligneRegle({ canaux: ['email'] })] },
+        { genre: 'execute', valeur: [{ id: 'relance-1' }] },
+        {
+          genre: 'execute',
+          valeur: ligneExpediteurGarage({
+            raisonSociale: 'Garage Martin SA',
+            emailContactGarage: null,
+          }),
+        },
         { genre: 'updateReturning', valeur: [{ id: 'relance-1', objetId: 'doc-1', palier: 1 }] },
         {
           genre: 'execute',
@@ -438,17 +705,21 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
         { genre: 'execute', valeur: [{ n: 0 }] },
         { genre: 'execute', valeur: [] },
         { genre: 'update', valeur: undefined },
+        { genre: 'execute', valeur: [] },
       ]);
       const { acces } = accesFactice(tx);
       const service = new ServiceRelancesFacture(
         acces,
-        registreFactice(adaptateur),
+        registreFactice(null),
         horlogeFixe('2026-08-05'),
         journalFactice(),
+        courriel,
+        configFactice({ SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' }),
       );
 
-      const resultat = await service.envoyerPretes(CTX);
-      expect(resultat).toEqual({ envoyees: 0, echouees: 1, annulees: 0, encoreATraiter: false });
+      await service.envoyerPretes(CTX);
+
+      expect(courriel.appels[0]?.adresseReponseGarage).toBe('no-reply@dmsforall.example');
     },
   );
 });

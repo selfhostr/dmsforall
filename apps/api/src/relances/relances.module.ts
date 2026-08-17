@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { ConnecteursModule } from '../connecteurs/connecteurs.module';
+import { CourrielModule } from '../courriel/courriel.module';
 
 import { RelancesController } from './relances.controller';
 import { ServiceHistoriqueEnvoisRelance } from './service-historique-envois';
@@ -17,10 +18,19 @@ import { ServiceRelancesFacture } from './service-relances-facture';
  *
  * `ConnecteursModule` IMPORTÉ explicitement : contrairement à `JETON_DB`/`Horloge`/`ServiceJournal`
  * (fournis par des modules `@Global`, voir `app.module.ts`), `RegistreConnecteursService` ne l'est
- * pas — `ServiceRelancesFacture` en a besoin pour résoudre l'adaptateur `NotificationSender`.
+ * pas — `ServiceRelancesFacture` en a besoin pour résoudre l'adaptateur `NotificationSender`
+ * (canal SMS uniquement depuis l'issue #136, voir son en-tête).
+ *
+ * `CourrielModule` IMPORTÉ explicitement (issue #136) : le canal e-mail des relances de facture
+ * n'attend plus un adaptateur `NotificationSender` — `RegistreConnecteursService.resoudre()` rend
+ * TOUJOURS `null` aujourd'hui (`SourceActivationsConnecteurAucune`, voir l'en-tête de
+ * `connecteurs.module.ts` : aucune table `connecteur_activation` n'existe), donc router l'e-mail
+ * par ce chemin revenait à ne JAMAIS l'envoyer réellement. `ServiceRelancesFacture` consomme
+ * directement `ServiceCourriel` (socle SMTP/capture déjà livré, `courriel/`) pour ce canal — voir
+ * `service-relances-facture.ts`, section « email ».
  */
 @Module({
-  imports: [ConnecteursModule],
+  imports: [ConnecteursModule, CourrielModule],
   controllers: [RelancesController],
   providers: [ServiceRegleRelance, ServiceRelancesFacture, ServiceHistoriqueEnvoisRelance],
   exports: [ServiceRegleRelance, ServiceRelancesFacture, ServiceHistoriqueEnvoisRelance],
