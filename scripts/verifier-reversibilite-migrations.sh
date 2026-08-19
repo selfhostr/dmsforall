@@ -154,10 +154,25 @@ trap nettoyer EXIT
 journaliser "Démarrage du Postgres éphémère (${NOM_CONTENEUR_PG})…"
 docker network create "$NOM_RESEAU" >/dev/null
 
+# Trouve un port hôte FIXE libre (nécessaire pour Docker rootless qui ne supporte pas les
+# ports éphémères mappés). Boucle sur la plage 25432–25442 et teste la disponibilité côté
+# hôte avec bash /dev/tcp. Prend le premier libre.
+PORT_PUBLIE=""
+for port_candidate in $(seq 25432 25442); do
+  if ! (exec 3<>/dev/tcp/127.0.0.1/"$port_candidate") 2>/dev/null; then
+    PORT_PUBLIE="$port_candidate"
+    break
+  fi
+done
+if [[ -z "$PORT_PUBLIE" ]]; then
+  journaliser "ÉCHEC : aucun port libre trouvé dans la plage 25432–25442."
+  exit 1
+fi
+
 docker run -d \
   --name "$NOM_CONTENEUR_PG" \
   --network "$NOM_RESEAU" \
-  -p "127.0.0.1::5432" \
+  -p "${PORT_PUBLIE}:5432" \
   -e POSTGRES_USER="$SUPERUSER_PG" \
   -e POSTGRES_PASSWORD="$SUPERUSER_MDP_PG" \
   -e POSTGRES_DB="$BASE_EPHEMERE" \
@@ -165,19 +180,56 @@ docker run -d \
   -v "$RACINE_DEPOT_POUR_DOCKER/docker/postgres/init/01-roles.sql:/docker-entrypoint-initdb.d/01-roles.sql:ro" \
   postgres:16-alpine >/dev/null
 
-for _ in $(seq 1 30); do
-  if docker exec "$NOM_CONTENEUR_PG" pg_isready -U "$SUPERUSER_PG" -d "$BASE_EPHEMERE" >/dev/null 2>&1; then
-    break
+# Sonde que Postgres répond réellement. L'image postgres officielle démarre d'abord un
+# serveur temporaire (phase initdb), puis le serveur final. On teste en forçant TCP
+# (-h 127.0.0.1 -p 5432) DANS le conteneur pour confirmer que Postgres répond vraiment,
+# pas juste que la socket Unix existe. Demande 2 succès consécutifs (espacés d'1s) pour
+# ignorer les faux positifs (fenêtres où seul le serveur temporaire est actif).
+DEBUT_READINESS=$(date +%s)
+SUCCES_CONSECUTIFS=0
+for i in $(seq 1 120); do
+  # pg_isready -h 127.0.0.1 -p 5432 force TCP dans le conteneur — teste si Postgres
+  # répond réellement au protocole Postgres. Le rôle SUPERUSER_PG est créé par 01-roles.sql
+  # au démarrage, donc cette commande réussit seulement quand Postgres est ENTIÈREMENT
+  # prêt (phase initdb complète, serveur final en marche).
+  if docker exec "$NOM_CONTENEUR_PG" pg_isready -h 127.0.0.1 -p 5432 -U "$SUPERUSER_PG" -d "$BASE_EPHEMERE" >/dev/null 2>&1; then
+    SUCCES_CONSECUTIFS=$(( SUCCES_CONSECUTIFS + 1 ))
+    if [[ $SUCCES_CONSECUTIFS -ge 2 ]]; then
+      break
+    fi
+  else
+    SUCCES_CONSECUTIFS=0
   fi
   sleep 1
 done
-if ! docker exec "$NOM_CONTENEUR_PG" pg_isready -U "$SUPERUSER_PG" -d "$BASE_EPHEMERE" >/dev/null 2>&1; then
-  journaliser "ÉCHEC : le Postgres éphémère n'est jamais devenu prêt."
+DUREE_READINESS=$(( $(date +%s) - DEBUT_READINESS ))
+if [[ $SUCCES_CONSECUTIFS -lt 2 ]]; then
+  journaliser "ÉCHEC : le Postgres éphémère n'est jamais devenu prêt (${DUREE_READINESS}s d'attente)."
   docker logs "$NOM_CONTENEUR_PG" >&2 || true
   exit 1
 fi
 
-PORT_PUBLIE="$(docker inspect "$NOM_CONTENEUR_PG" --format '{{ (index (index .NetworkSettings.Ports "5432/tcp") 0).HostPort }}')"
+# Vérifie une dernière fois que le port publié fixe fonctionne vraiment (la connexion TCP
+# depuis l'hôte — c'est celle que pnpm utilisera). Demande 2 succès consécutifs (espacés
+# d'1s) pour confirmer. Timeout court (≤15s) : si pg_isready a réussi, TCP depuis l'hôte
+# devrait fonctionner immédiatement avec un port fixe.
+SUCCES_TCP_HOTE=0
+for i in $(seq 1 15); do
+  if (exec 3<>/dev/tcp/127.0.0.1/"$PORT_PUBLIE") 2>/dev/null; then
+    SUCCES_TCP_HOTE=$(( SUCCES_TCP_HOTE + 1 ))
+    if [[ $SUCCES_TCP_HOTE -ge 2 ]]; then
+      break
+    fi
+  else
+    SUCCES_TCP_HOTE=0
+  fi
+  sleep 1
+done
+if [[ $SUCCES_TCP_HOTE -lt 2 ]]; then
+  journaliser "ÉCHEC : le port publié 127.0.0.1:${PORT_PUBLIE} n'a jamais répondu en TCP."
+  exit 1
+fi
+
 journaliser "Postgres éphémère prêt sur 127.0.0.1:${PORT_PUBLIE} (conteneur ${NOM_CONTENEUR_PG})."
 
 export NODE_ENV=test

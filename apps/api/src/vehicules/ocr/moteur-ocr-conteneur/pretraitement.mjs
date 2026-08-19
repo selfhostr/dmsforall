@@ -79,6 +79,18 @@ export async function reduireResolutionPage(bufferPageComplete, { largeurCible =
 }
 
 /**
+ * Bordure blanche ajoutée AUTOUR de la zone agrandie, APRÈS binarisation (pas avant : la bordure
+ * doit rester un blanc pur constant, indépendant du seuil choisi). Technique documentée (voir la
+ * tâche de refonte, sources publiées) : un caractère dont le TRAIT touche le bord de la découpe
+ * (VIN/code type coupés pile sur un jambage) perd des repères de contour que le moteur utilise pour
+ * segmenter — un cadre de respiration autour, même petit, réduit mesurablement les échecs de
+ * détection de bord. Valeur par défaut proche de la fourchette documentée (« une vingtaine de
+ * pixels ») — indépendante de `largeurCible` (une bordure proportionnelle à la largeur cible ferait
+ * varier son effet avec la résolution choisie, hors du périmètre qu'elle vise à corriger).
+ */
+const BORDURE_BLANCHE_PX = 20;
+
+/**
  * Recadrage + upscale CIBLÉ d'une zone de champ, à partir de l'image PLEINE PAGE DÉJÀ prétraitée
  * (mêmes pixels que ceux où les ancres ont été localisées — pas de nouveau décodage depuis
  * l'original, les coordonnées d'ancre resteraient sinon désynchronisées).
@@ -88,7 +100,11 @@ export async function reduireResolutionPage(bufferPageComplete, { largeurCible =
  * ZONE recadrée (mesuré : gain de justesse net sur VIN/code type/date) mais dégraderait la lecture
  * des libellés en pleine page (fond/éclairage moins uniforme sur toute la photo).
  */
-export async function recadrerChamp(bufferPageComplete, boite, { largeurCible = 1800 } = {}) {
+export async function recadrerChamp(
+  bufferPageComplete,
+  boite,
+  { largeurCible = 1800, bordurePx = BORDURE_BLANCHE_PX } = {},
+) {
   const { left, top, width, height } = boite;
   const recadre = sharp(bufferPageComplete).extract({
     left: Math.max(0, Math.round(left)),
@@ -101,5 +117,12 @@ export async function recadrerChamp(bufferPageComplete, boite, { largeurCible = 
     .resize({ width: largeurCible, kernel: 'lanczos3' })
     .sharpen()
     .threshold(150)
+    .extend({
+      top: bordurePx,
+      bottom: bordurePx,
+      left: bordurePx,
+      right: bordurePx,
+      background: { r: 255, g: 255, b: 255 },
+    })
     .toBuffer();
 }

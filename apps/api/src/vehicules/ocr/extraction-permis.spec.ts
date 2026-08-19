@@ -8,6 +8,7 @@ import {
   extrairePlaque,
   extraireVin,
   nettoyerTexteLibre,
+  rechercherVin,
 } from './extraction-permis';
 
 describe('checksumVinValide', () => {
@@ -45,6 +46,78 @@ describe('extraireVin', () => {
 
   it('chaîne vide -> null', () => {
     expect(extraireVin('')).toBeNull();
+  });
+});
+
+describe('rechercherVin', () => {
+  /** Exemple pédagogique publié, non lié à un document réel (même fixture que `checksumVinValide`
+   *  ci-dessus) — WMI `1M8`, absent de `WMI_PAR_MARQUE` (`wmi-marques.ts`). */
+  const VRAI = '1M8GDM9AXKP042788';
+
+  it('lecture déjà correcte (clé de contrôle valide telle quelle) -> rendue sans recherche de substitution', () => {
+    expect(rechercherVin(VRAI)).toEqual({ valeur: VRAI, checksumValide: true });
+  });
+
+  it('une seule confusion visuelle plausible (8 lu B, position 3) -> corrigée, seule à valider la clé', () => {
+    // '1MBGDM9AXKP042788' : VRAI avec un '8' lu 'B' (classe de confusion 8/B).
+    const resultat = rechercherVin('1MBGDM9AXKP042788');
+    expect(resultat).toEqual({ valeur: VRAI, checksumValide: true });
+  });
+
+  it('caractère hors alphabet VIN lu (I au lieu de 1, position forcée) COMBINÉ à une confusion optionnelle (8/B) -> corrigée quand même', () => {
+    // 'I' (position 0) n'appartient pas à l'alphabet VIN (ISO 3779) : substitution FORCÉE, pas
+    // comptée dans le budget de substitutions optionnelles (`MAX_SUBSTITUTIONS_SIMULTANEES`).
+    const resultat = rechercherVin('IMBGDM9AXKP042788');
+    expect(resultat).toEqual({ valeur: VRAI, checksumValide: true });
+  });
+
+  it('bruit de bordure (libellé + espaces autour) EN PLUS d’une confusion de caractère -> fenêtre correcte retrouvée par glissement, puis corrigée', () => {
+    const resultat = rechercherVin('XX 1MBGDM9AXKP042788 YY');
+    expect(resultat).toEqual({ valeur: VRAI, checksumValide: true });
+  });
+
+  it('deux candidats DISTINCTS valident la clé au même niveau minimal -> aucun choix, la lecture brute est rendue douteuse (jamais un VIN faux)', () => {
+    // Cas réel trouvé par recherche exhaustive (rapport de livraison) : 'JM8CT4CZ3DYK9NY46' a
+    // EXACTEMENT deux corrections à une substitution qui valident toutes deux la clé de contrôle
+    // ('JMBCT4CZ3DYK9NY46' et 'JM8CT4CZ30YK9NY46') — sans marque connue, aucune ne doit être
+    // choisie.
+    const bruite = 'JM8CT4CZ3DYK9NY46';
+    expect(rechercherVin(bruite)).toEqual({ valeur: bruite, checksumValide: false });
+  });
+
+  it('marque connue (croisement WMI) qui départage les deux candidats ci-dessus -> validée', () => {
+    const bruite = 'JM8CT4CZ3DYK9NY46';
+    expect(rechercherVin(bruite, 'MITSUBISHI')).toEqual({
+      valeur: 'JMBCT4CZ3DYK9NY46',
+      checksumValide: true,
+    });
+  });
+
+  it('marque connue en contradiction avec l’UNIQUE candidat trouvé -> rejeté MÊME seul (gage de cohérence, pas seulement un départage — v. wmi-marques.ts)', () => {
+    // Le seul candidat valide de '1MBGDM9AXKP042788' est VRAI (WMI `1M8`), qui n'appartient à
+    // aucun WMI Volkswagen connu de la table.
+    const resultat = rechercherVin('1MBGDM9AXKP042788', 'VOLKSWAGEN');
+    expect(resultat).toEqual({ valeur: '1MBGDM9AXKP042788', checksumValide: false });
+  });
+
+  it('marque connue mais ABSENTE de la table curatée -> aucun effet, la correction sans contradiction établie reste validée', () => {
+    const resultat = rechercherVin('1MBGDM9AXKP042788', 'MARQUE-INCONNUE-XYZ');
+    expect(resultat).toEqual({ valeur: VRAI, checksumValide: true });
+  });
+
+  it('lecture existante à clé de contrôle incorrecte et sans AUCUNE substitution qui valide -> rendue douteuse, jamais une correction inventée', () => {
+    // Fixture existante du dépôt (vehicule.controller.ts), déjà utilisée par `checksumVinValide`
+    // ci-dessus : sa clé ne valide ni brute ni via aucune substitution à une position.
+    const bruite = 'WVWZZZ1KZAW123456';
+    expect(rechercherVin(bruite)).toEqual({ valeur: bruite, checksumValide: false });
+  });
+
+  it('texte sans run de 17 caractères exploitable, même après tolérance de fenêtre -> null', () => {
+    expect(rechercherVin('illisible')).toBeNull();
+  });
+
+  it('texte vide -> null', () => {
+    expect(rechercherVin('')).toBeNull();
   });
 });
 

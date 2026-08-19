@@ -340,6 +340,94 @@ describe('ServiceVehiculeOcr.scanner — succès, confiance par champ', () => {
     expect('client' in reponse.correspondances).toBe(false);
   });
 
+  it('VIN lu avec une confusion de caractère plausible (0/O, 1/I, 5/S…) -> corrigé et rendu "sure" (recherche contrainte, extraction-permis.rechercherVin)', async () => {
+    const moteur: ClientMoteurOcr = {
+      // '1MBGDM9AXKP042788' : le VIN valide '1M8GDM9AXKP042788' avec un '8' lu 'B' (classe de
+      // confusion visuelle 8/B) — corrigible car SEUL candidat à valider la clé de contrôle.
+      scanner: vi
+        .fn()
+        .mockResolvedValue(brutComplet({ vin: { texte: '1MBGDM9AXKP042788', confiance: 75 } })),
+    };
+    const { service } = construireService({ moteur });
+
+    const reponse = await service.scanner(CTX, Buffer.from('x'));
+
+    expect(reponse.donnees.vehicule.vin).toEqual({
+      valeur: '1M8GDM9AXKP042788',
+      confiance: 'sure',
+    });
+  });
+
+  it('code type non trouvé en EXACT mais retrouvé en APPROXIMATIF (distance d’édition <= 2 contre le référentiel) -> marque/modele "sure" quand même', async () => {
+    const tx = txFactice({
+      // Fragment PROPRE à la requête approximative (`public.similarity(`, absent de la requête
+      // exacte qui utilise `=` sans fonction de score) — la requête exacte, elle, ne matche aucune
+      // route ci-dessous et rend donc [] pour chaque candidat essayé, avant le repli approximatif.
+      'similarity(': [
+        { code_type_ch: '1VD450', marque: 'VW', modele: 'Polo', carburant_code: 'ESSENCE' },
+      ],
+    });
+    const moteur: ClientMoteurOcr = {
+      // 'O' au lieu de '0' (confusion visuelle) — à distance d'édition 1 de '1VD450'.
+      scanner: vi
+        .fn()
+        .mockResolvedValue(brutComplet({ codeTypeCh: { texte: '1VD45O', confiance: 65 } })),
+    };
+    const { service } = construireService({ tx, moteur });
+
+    const reponse = await service.scanner(CTX, Buffer.from('x'));
+
+    expect(reponse.donnees.vehicule.marque).toEqual({ valeur: 'VW', confiance: 'sure' });
+    expect(reponse.donnees.vehicule.modele).toEqual({ valeur: 'Polo', confiance: 'sure' });
+  });
+
+  it('le code type est cherché AVANT le VIN : sa marque (trouvée au référentiel) sert à départager deux candidats VIN concurrents (croisement WMI, wmi-marques.ts)', async () => {
+    const tx = txFactice({
+      // Route exacte : le PREMIER candidat de code type essayé matche déjà, donc l'approximatif
+      // n'est jamais interrogé — même patron que le test de succès existant ci-dessus.
+      type_approbation_ch: [
+        {
+          code_type_ch: '1VD455',
+          marque: 'MITSUBISHI',
+          modele: 'Space Star',
+          carburant_code: null,
+        },
+      ],
+    });
+    const moteur: ClientMoteurOcr = {
+      // 'JM8CT4CZ3DYK9NY46' : à une substitution de DEUX VIN différents à clé de contrôle valide
+      // ('JMBCT4CZ3DYK9NY46' WMI JMB, et 'JM8CT4CZ30YK9NY46' WMI JM8) — ambigu SANS la marque, le
+      // WMI Mitsubishi (JMB, wmi-marques.ts) départage vers le premier.
+      scanner: vi
+        .fn()
+        .mockResolvedValue(brutComplet({ vin: { texte: 'JM8CT4CZ3DYK9NY46', confiance: 70 } })),
+    };
+    const { service } = construireService({ tx, moteur });
+
+    const reponse = await service.scanner(CTX, Buffer.from('x'));
+
+    expect(reponse.donnees.vehicule.vin).toEqual({
+      valeur: 'JMBCT4CZ3DYK9NY46',
+      confiance: 'sure',
+    });
+  });
+
+  it('deux candidats VIN valident la clé de contrôle et le code type n’est PAS trouvé (aucune marque pour départager) -> VIN rendu douteux, jamais un choix arbitraire', async () => {
+    const moteur: ClientMoteurOcr = {
+      scanner: vi
+        .fn()
+        .mockResolvedValue(brutComplet({ vin: { texte: 'JM8CT4CZ3DYK9NY46', confiance: 70 } })),
+    };
+    const { service } = construireService({ moteur }); // txFactice() par défaut : code type jamais trouvé
+
+    const reponse = await service.scanner(CTX, Buffer.from('x'));
+
+    expect(reponse.donnees.vehicule.vin).toEqual({
+      valeur: 'JM8CT4CZ3DYK9NY46',
+      confiance: 'douteuse',
+    });
+  });
+
   it('scan réussi -> une ligne "succes" est écrite dans le journal d’audit', async () => {
     const { service, tx } = construireService();
 

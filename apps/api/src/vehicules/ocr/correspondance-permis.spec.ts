@@ -4,6 +4,8 @@ import type { ContexteTenant, TransactionDfa } from '../../db';
 import {
   rechercherCorrespondanceClient,
   rechercherCorrespondanceTypeApprobation,
+  rechercherCorrespondanceTypeApprobationApprox,
+  rechercherCorrespondanceTypeApprobationComplete,
   rechercherCorrespondanceVehicule,
 } from './correspondance-permis';
 
@@ -63,6 +65,126 @@ describe('rechercherCorrespondanceTypeApprobation', () => {
     const resultat = await rechercherCorrespondanceTypeApprobation(tx, ['AAA', 'BBB']);
     expect(resultat.trouve).toBe(false);
     expect(tx.execute).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('rechercherCorrespondanceTypeApprobationApprox', () => {
+  it('aucun candidat -> non trouvé, aucune requête exécutée (même le `set local` de seuil est évité)', async () => {
+    const tx = txSequence([]);
+    const resultat = await rechercherCorrespondanceTypeApprobationApprox(tx, []);
+    expect(resultat.trouve).toBe(false);
+    expect(tx.execute).not.toHaveBeenCalled();
+  });
+
+  it('une ligne à distance 1 -> trouvée', async () => {
+    const tx = txSequence([
+      [], // `set local pg_trgm.similarity_threshold`
+      [{ code_type_ch: '1VD450', marque: 'VW', modele: 'Polo', carburant_code: 'ESSENCE' }],
+    ]);
+
+    const resultat = await rechercherCorrespondanceTypeApprobationApprox(tx, ['1VD455']);
+
+    expect(resultat).toEqual({
+      trouve: true,
+      marque: 'VW',
+      modele: 'Polo',
+      carburantCode: 'ESSENCE',
+    });
+  });
+
+  it('deux lignes à distances différentes -> la plus proche (distance minimale) gagne', async () => {
+    const tx = txSequence([
+      [],
+      [
+        // '1VD400' est à distance 2 de '1VD455' (positions 4 et 5), '1VD450' à distance 1
+        // (position 4 seule) — la ligne à distance 1 doit gagner.
+        { code_type_ch: '1VD400', marque: 'Autre', modele: 'X', carburant_code: null },
+        { code_type_ch: '1VD450', marque: 'VW', modele: 'Polo', carburant_code: 'ESSENCE' },
+      ],
+    ]);
+
+    const resultat = await rechercherCorrespondanceTypeApprobationApprox(tx, ['1VD455']);
+
+    expect(resultat.trouve).toBe(true);
+    expect(resultat.marque).toBe('VW');
+  });
+
+  it('deux lignes À LA MÊME distance minimale -> ambigu, non trouvé (jamais un choix arbitraire)', async () => {
+    const tx = txSequence([
+      [],
+      [
+        { code_type_ch: '1VD450', marque: 'VW', modele: 'Polo', carburant_code: null },
+        { code_type_ch: '1VD456', marque: 'Audi', modele: 'A3', carburant_code: null },
+      ],
+    ]);
+
+    const resultat = await rechercherCorrespondanceTypeApprobationApprox(tx, ['1VD455']);
+
+    expect(resultat.trouve).toBe(false);
+  });
+
+  it('toutes les lignes ramenées sont à distance > 2 -> non trouvé (le filtre trigramme n’est qu’une PRÉ-sélection, pas le critère final)', async () => {
+    const tx = txSequence([
+      [],
+      [{ code_type_ch: 'XYZ999', marque: 'X', modele: 'Y', carburant_code: null }],
+    ]);
+
+    const resultat = await rechercherCorrespondanceTypeApprobationApprox(tx, ['1VD455']);
+
+    expect(resultat.trouve).toBe(false);
+  });
+
+  it('plusieurs candidats essayés -> le gagnant GLOBAL (toutes requêtes confondues) est celui à la distance minimale, pas celui du premier candidat interrogé', async () => {
+    const tx = txSequence([
+      [], // set local
+      [{ code_type_ch: '1VD400', marque: 'Autre', modele: 'X', carburant_code: null }], // distance 2 de '1VD455'
+      [{ code_type_ch: '1VD455', marque: 'VW', modele: 'Polo', carburant_code: 'ESSENCE' }], // distance 0 de '1VD45' -> en fait '1VD455' vs '1VD45' = distance 1 (insertion)
+    ]);
+
+    const resultat = await rechercherCorrespondanceTypeApprobationApprox(tx, ['1VD455', '1VD45']);
+
+    expect(resultat.trouve).toBe(true);
+    expect(resultat.marque).toBe('VW');
+  });
+
+  it('borne à 5 candidats essayés au maximum, même si `candidatsCodeType` en fournit plus', async () => {
+    const tx = txSequence([[], [], [], [], [], []]); // 1 set local + 5 requêtes (aucune ligne)
+    const candidats = ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7'];
+
+    await rechercherCorrespondanceTypeApprobationApprox(tx, candidats);
+
+    // 1 `set local` + 5 candidats essayés (PAS 7).
+    expect(tx.execute).toHaveBeenCalledTimes(6);
+  });
+});
+
+describe('rechercherCorrespondanceTypeApprobationComplete', () => {
+  it('trouvé en EXACT -> l’approximatif n’est jamais interrogé', async () => {
+    const tx = txSequence([
+      [{ code_type_ch: '1VD455', marque: 'VW', modele: 'Polo', carburant_code: 'ESSENCE' }],
+    ]);
+
+    const resultat = await rechercherCorrespondanceTypeApprobationComplete(tx, ['1VD455']);
+
+    expect(resultat.trouve).toBe(true);
+    expect(tx.execute).toHaveBeenCalledTimes(1); // aucun `set local` ni requête approximative
+  });
+
+  it('non trouvé en exact -> repli sur l’approximatif', async () => {
+    const tx = txSequence([
+      [], // recherche exacte : aucune ligne
+      [], // set local
+      [{ code_type_ch: '1VD450', marque: 'VW', modele: 'Polo', carburant_code: 'ESSENCE' }],
+    ]);
+
+    const resultat = await rechercherCorrespondanceTypeApprobationComplete(tx, ['1VD455']);
+
+    expect(resultat).toEqual({
+      trouve: true,
+      marque: 'VW',
+      modele: 'Polo',
+      carburantCode: 'ESSENCE',
+    });
   });
 });
 

@@ -35,7 +35,7 @@ import {
 import { ServiceEvenementsTempsReel } from '../../temps-reel';
 import {
   rechercherCorrespondanceClient,
-  rechercherCorrespondanceTypeApprobation,
+  rechercherCorrespondanceTypeApprobationComplete,
   rechercherCorrespondanceVehicule,
 } from './correspondance-permis';
 import {
@@ -45,8 +45,8 @@ import {
   extraireDate,
   extraireNomEtPrenom,
   extrairePlaque,
-  extraireVin,
   nettoyerTexteLibre,
+  rechercherVin,
 } from './extraction-permis';
 import {
   ErreurMoteurOcr,
@@ -113,10 +113,22 @@ export class ServiceVehiculeOcr {
     }
 
     return this.acces.enTenant(ctx, async (tx) => {
-      const vinExtrait = brut.champs.vin ? extraireVin(brut.champs.vin.texte) : null;
       const candidatsType = brut.champs.codeTypeCh
         ? candidatsCodeType(brut.champs.codeTypeCh.texte)
         : [];
+      // Le code type est cherché AVANT le VIN : une fois trouvé, sa marque sert de croisement WMI
+      // pour départager d'éventuels candidats VIN concurrents (`rechercherVin`, ci-dessous).
+      const correspondanceType = await rechercherCorrespondanceTypeApprobationComplete(
+        tx,
+        candidatsType,
+      );
+
+      const vinExtrait = brut.champs.vin
+        ? rechercherVin(
+            brut.champs.vin.texte,
+            correspondanceType.trouve ? correspondanceType.marque : null,
+          )
+        : null;
       const plaqueExtraite = brut.champs.plaque ? extrairePlaque(brut.champs.plaque.texte) : null;
       const dateExtraite = brut.champs.premiereMiseEnCirculationLe
         ? extraireDate(brut.champs.premiereMiseEnCirculationLe.texte)
@@ -130,7 +142,6 @@ export class ServiceVehiculeOcr {
         ? extraireAdresse(brut.champs.detenteurAdresse.texte)
         : null;
 
-      const correspondanceType = await rechercherCorrespondanceTypeApprobation(tx, candidatsType);
       const correspondanceVehicule = await rechercherCorrespondanceVehicule(tx, ctx, {
         vin: vinExtrait?.valeur ?? null,
         plaque: plaqueExtraite,
