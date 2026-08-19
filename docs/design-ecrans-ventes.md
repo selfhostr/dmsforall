@@ -1,4 +1,5 @@
-# Design — Écrans du module Ventes (VN/VO)
+Design — Écrans du module Ventes (VN/VO)
+========================================
 
 Conception d'écran pour l'étape 4 (véhicule en stock, dossier de vente, reprise, financement,
 livraison). Source normative des données : `packages/shared/src/contrats/ventes/` (`vehicule-stock.ts`,
@@ -23,7 +24,9 @@ de ces primitives, au même niveau que `BadgeStatutOr` ou `EncartAlertesVehicule
 
 ---
 
-## 0. Cadrage
+0. Cadrage
+
+---
 
 Trois affirmations du brief que ce document traite comme des contraintes dures, pas des suggestions :
 
@@ -39,7 +42,9 @@ Trois affirmations du brief que ce document traite comme des contraintes dures, 
 
 ---
 
-## 1. Un véhicule, une fiche — l'architecture de navigation qui en découle
+1. Un véhicule, une fiche — l'architecture de navigation qui en découle
+
+---
 
 Décision structurante : **`EcranFicheVehicule.tsx` (existant) reste l'écran unique de tout véhicule**,
 qu'il ait ou non une extension stock. Ce document ne crée **aucune** route `/vehicules-stock/{id}`
@@ -57,7 +62,7 @@ séparée. Conséquences concrètes :
   `livrer`, `RV-24`). Après livraison, cette même fiche affiche en plus `BlocVente`. Aucun nouvel
   écran n'est créé à cet instant — c'est la preuve à l'écran du principe n°1.
 
-### 1.1 `BlocVente` — nouvelle section de `EcranFicheVehicule`
+**1.1 `BlocVente` — nouvelle section de `EcranFicheVehicule`**
 
 Positionnée **juste après `EncartAlertesVehicule`**, avant la grille `BlocEcheances`/`BlocDonneesAtelier` :
 au même niveau de priorité que les alertes atelier, parce qu'un véhicule en stock qui dort est une
@@ -90,7 +95,9 @@ la performance perçue d'un écran qui est aujourd'hui rapide.
 
 ---
 
-## 2. Vocabulaire et pièges de traduction FR/DE/IT
+2. Vocabulaire et pièges de traduction FR/DE/IT
+
+---
 
 Vocabulaire imposé par le brief, rappelé pour mémoire : VN = _Neuwagen_, VO = _Occasion_ (DE
 _Gebrauchtwagen_), expertise = **MFK**, jamais de jargon informatique.
@@ -129,26 +136,45 @@ Pièges identifiés en concevant ces écrans — à vérifier par `expert-i18n`,
 
 ---
 
-## 3. Composants transverses à créer
+3. Composants transverses à créer
+
+---
 
 Cinq compositions nouvelles, aucune ne réinvente une primitive shadcn. Toutes suivent la doctrine
 `BadgeStatutOr` : **couleur + forme + icône + mot**, jamais la couleur seule (accessibilité daltonisme,
 docs/design-comptoir.md §5.5).
 
-### 3.1 `BadgeStatutVehiculeStock`
+**3.1 `BadgeStatutVehiculeStock`**
 
 Mapping exhaustif des 5 valeurs de `STATUTS_COMMERCIAUX_VEHICULE`, sur le modèle exact de
 `CONFIG_STATUT_OR` (`Record` complet, `tsc` casse si une valeur est ajoutée sans mapping) :
 
-| statut        | token     | forme   | icône proposée |
-| ------------- | --------- | ------- | -------------- |
-| `en_commande` | neutre    | contour | `Clock`        |
-| `disponible`  | succes    | plein   | `CircleCheck`  |
-| `reserve`     | attention | plein   | `Bookmark`     |
-| `vendu`       | info      | plein   | `Handshake`    |
-| `livre`       | terminal  | contour | `KeyRound`     |
+- **statut** — `en_commande`
+- **token** — neutre
+- **forme** — contour
+- **icône proposée** — `Clock`
 
-### 3.2 `BadgeStatutDossierVente`
+- **statut** — `disponible`
+- **token** — succes
+- **forme** — plein
+- **icône proposée** — `CircleCheck`
+
+- **statut** — `reserve`
+- **token** — attention
+- **forme** — plein
+- **icône proposée** — `Bookmark`
+
+- **statut** — `vendu`
+- **token** — info
+- **forme** — plein
+- **icône proposée** — `Handshake`
+
+- **statut** — `livre`
+- **token** — terminal
+- **forme** — contour
+- **icône proposée** — `KeyRound`
+
+**3.2 `BadgeStatutDossierVente`**
 
 8 valeurs de `STATUTS_DOSSIER_VENTE`. `annule`/`abandonne` en token `danger`/contour (jamais
 d'icône « poubelle », doctrine déjà posée pour l'OR : le mot « supprimer » n'existe pas dans ce
@@ -157,7 +183,7 @@ produit). Ce badge sert uniquement dans les **listes** (§6) — sur la fiche do
 affiché en en-tête pour la cohérence visuelle avec le reste du produit (même doctrine que l'OR, qui
 porte à la fois `BadgeStatutOr` et un bandeau détaillé).
 
-### 3.3 `FriseStatutDossierVente`
+**3.3 `FriseStatutDossierVente`**
 
 Nouveau, sans précédent direct dans l'existant — justifié parce que la machine à états du dossier est
 **linéaire** (contrairement à celle de l'OR, qui a des branches d'attente non ordonnées justifiant un
@@ -172,7 +198,7 @@ deux embranchements ne se produisent qu'_à la place_ d'une suite normale). Rend
 visible (jamais au clic — même doctrine que `BlocEcheances` pour la source d'échéance : l'information
 qui explique un état anormal ne se cache pas derrière une interaction).
 
-### 3.4 `IndicateurJoursStock`
+**3.4 `IndicateurJoursStock`**
 
 Pas un badge de statut (`joursStock` est une métrique calculée, pas un état de la machine) — rendu en
 texte proéminent (`texte-donnee-proeminente`, classe déjà en usage) avec une icône `Clock`/`AlertTriangle`
@@ -186,7 +212,7 @@ et une emphase à seuils, sur le modèle de `EncartAlertesVehicule` pour l'urgen
 Seuils **provisoires** — voir §13 question 2 : aucun paramétrage tenant (`PV-01`) n'existe encore pour
 ce seuil, contrairement au reste du produit où ce genre de valeur est toujours configurable.
 
-### 3.5 `BadgeStatutReprise` / `BadgeStatutFinancement`
+**3.5 `BadgeStatutReprise` / `BadgeStatutFinancement`**
 
 Même doctrine, 4 et 3 valeurs respectivement (`STATUTS_REPRISE`, `STATUTS_CONFIRMATION_FINANCEMENT`).
 `refusee`/`refuse` en token `danger`/contour — mais voir §8 : un badge rouge sur une reprise refusée
@@ -195,7 +221,9 @@ ne doit **pas** lire comme une erreur du produit, juste comme un fait (le mot po
 
 ---
 
-## 4. Où va le message d'erreur (règle valable sur tout ce document)
+4. Où va le message d'erreur (règle valable sur tout ce document)
+
+---
 
 Défaut trouvé sur ce dépôt (rappelé dans le brief) : une confirmation modale masque le reste de
 l'écran, donc un refus serveur qui ne s'affiche pas _dans_ la modale est invisible. Règle **non
@@ -226,13 +254,15 @@ mécanisme d'erreur ne se redécrit pas à chaque fois, il est celui-ci, partout
 
 ---
 
-## 5. Écran — Le parc en stock
+5. Écran — Le parc en stock
+
+---
 
 Route proposée : `chemins.ventes.stock(site?)` → `/ventes/stock`. Reprend au trait près
 `EcranListeVehicules.tsx` : `BarreFiltres` + `SelecteurTri` + `TableComptoir` + `BoutonChargerPlus`,
 triade chargement/erreur/vide obligatoire, site en paramètre de requête jamais en état global.
 
-### 5.1 Filtre par défaut — le parti pris de cet écran
+**5.1 Filtre par défaut — le parti pris de cet écran**
 
 La collection complète (`GET /vehicules-stock`) inclut les véhicules `vendu`/`livre` — un historique
 utile, mais **ce n'est pas la tâche de cet écran**. Le parc en stock répond à une seule question :
@@ -244,7 +274,7 @@ le défaut technique du contrat (`dateEntreeStock:desc`) mais **`joursStock:desc
 délibéré : l'écran existe pour rendre visible ce qui dort, le véhicule qui dort depuis le plus
 longtemps doit être la première ligne vue, pas la dernière arrivée.
 
-### 5.2 Filtres (`BarreFiltres`)
+**5.2 Filtres (`BarreFiltres`)**
 
 - `q` (texte libre, plaque/VIN/désignation — même champ que `EcranListeVehicules`).
 - Statut commercial — `Select` simple (une valeur, comme le filtre `statut` existant), le filtre
@@ -256,7 +286,7 @@ longtemps doit être la première ligne vue, pas la dernière arrivée.
   au paramétrage, pas maintenant.
 - Site — paramètre d'URL `?site=`, identique au reste du produit.
 
-### 5.3 Colonnes (`TableComptoir`, densité `dense`)
+**5.3 Colonnes (`TableComptoir`, densité `dense`)**
 
 Exactement les trois informations que le brief demande « en un coup d'œil », rien de plus — la
 densité maîtrisée veut que le reste (VIN, provenance détaillée, dates exactes) attende le clic sur la
@@ -277,14 +307,14 @@ Ligne cliquable → `/vehicules/{id}` (§1). Pas de colonne d'actions dans la ta
 « Vendre » vit sur la fiche véhicule (`BlocVente`, §1.1), pas ici — cohérent avec la doctrine « une
 ligne dense ne porte que ce qui aide à décider si on l'ouvre ».
 
-### 5.4 Actions de page
+**5.4 Actions de page**
 
 Bouton primaire unique en tête d'écran : **« Nouveau dossier de vente »** — ouvre la création (§6.1)
 sans véhicule pré-rempli (le vendeur part du client). C'est le **deuxième** point d'entrée vers la
 création, l'autre étant le bouton « Vendre » par véhicule (§1.1, part du véhicule). Les deux
 aboutissent au même formulaire, seul le champ pré-rempli diffère — pas deux parcours à maintenir.
 
-### 5.5 Ce que je n'ai pas ajouté
+**5.5 Ce que je n'ai pas ajouté**
 
 Pas de bandeau d'agrégats (nombre total en stock, jours moyen, valeur immobilisée) en tête de liste :
 calculer une moyenne sur la seule page chargée (pagination par curseur) donnerait un chiffre trompeur
@@ -294,7 +324,9 @@ pilotage a besoin d'un agrégat calculé côté serveur sur la collection entiè
 
 ---
 
-## 6. Écran — Liste des dossiers de vente (accès)
+6. Écran — Liste des dossiers de vente (accès)
+
+---
 
 Route : `chemins.ventes.dossiers(site?)` → `/ventes/dossiers`. Prérequis de navigation vers la fiche
 dossier (§7), même patron que `EcranListeOrdresReparation` : `q` (nom client / plaque véhicule),
@@ -304,7 +336,7 @@ atténué), `BadgeStatutDossierVente`, date de livraison estimée. Filtre par d�
 `clos`/`annule`/`abandonne` — même logique qu'en §5.1, un dossier terminé n'est plus une tâche
 active.
 
-### 6.1 Création d'un dossier de vente
+**6.1 Création d'un dossier de vente**
 
 Dialog (pas un écran séparé — la création ne porte que 5 champs) :
 
@@ -322,13 +354,15 @@ création d'OR) — un double-clic ne doit jamais ouvrir deux dossiers pour la m
 
 ---
 
-## 7. Écran — Le dossier de vente (fiche)
+7. Écran — Le dossier de vente (fiche)
+
+---
 
 Route : `chemins.ventes.dossierDetail(id, site?)`. `GET /dossiers-vente/{id}` renvoie le document
 complet (reprise, financement courant + historique, documents, documents requis) — une seule requête
 bloque l'écran entier, doctrine identique à `GET /ordres-reparation/{id}` (D-10).
 
-### 7.1 En-tête (`EnTeteDossierVente`)
+**7.1 En-tête (`EnTeteDossierVente`)**
 
 Sur le modèle de `EnTeteOrdreReparation` (`Card` pleine largeur) :
 
@@ -350,7 +384,7 @@ Sur le modèle de `EnTeteOrdreReparation` (`Card` pleine largeur) :
   devis (écran facturation, hors périmètre de ce document, lien inter-module).
 - `dateLivraisonEstimee` si renseignée.
 
-### 7.2 `PanneauProchaineEtape` — le cœur de la réponse au point dur du brief
+**7.2 `PanneauProchaineEtape` — le cœur de la réponse au point dur du brief**
 
 Nouveau composant, sans précédent direct : l'OR se contente de boutons visibles seulement quand
 `actionsDisponibles` les liste (« une action affichée mais refusée est pire que pas d'action »). Le
@@ -364,14 +398,35 @@ checklist des conditions connues pour atteindre la prochaine étape linéaire, c
 partir des champs déjà présents sur `ReponseDossierVente`** (pas une nouvelle requête, pas une règle
 métier redevinée — uniquement la mise en forme lisible de faits déjà renvoyés par le serveur) :
 
-| Étape suivante          | Condition affichée                     | Source                                             | Rendu si non satisfait                                                     |
-| ----------------------- | -------------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------- |
-| `engager`               | Véhicule assigné                       | `vehicule !== null`                                | « À : vous — assigner un véhicule »                                        |
-| `engager`               | Identité vérifiée                      | `identiteVerifieeLe !== null`                      | « À : vous — vérifier une pièce d'identité »                               |
-| `engager`               | Reprise négociée (si reprise présente) | `reprise?.statut !== 'estimee'`                    | « À : vous — négocier la reprise avant de signer »                         |
-| `marquer_pret_a_livrer` | Financement confirmé                   | `financement?.statutConfirmation === 'confirme'`   | « À : {organisme.nomAffiche ou "l'organisme"} — financement en attente »   |
-| `marquer_pret_a_livrer` | Expertise MFK à jour (si applicable)   | information vivant côté atelier, pas dupliquée ici | « À : l'atelier — expertise MFK à vérifier » (lien vers la fiche véhicule) |
-| `livrer`                | Documents de livraison réunis          | `documentsRequis.every(d => d.fourni)`             | « À : {N} document(s) manquant(s) » + lien vers §7.6                       |
+- **Étape suivante** — `engager`
+- **Condition affichée** — Véhicule assigné
+- **Source** — `vehicule !== null`
+- **Rendu si non satisfait** — « À : vous — assigner un véhicule »
+
+- **Étape suivante** — `engager`
+- **Condition affichée** — Identité vérifiée
+- **Source** — `identiteVerifieeLe !== null`
+- **Rendu si non satisfait** — « À : vous — vérifier une pièce d'identité »
+
+- **Étape suivante** — `engager`
+- **Condition affichée** — Reprise négociée (si reprise présente)
+- **Source** — `reprise?.statut !== 'estimee'`
+- **Rendu si non satisfait** — « À : vous — négocier la reprise avant de signer »
+
+- **Étape suivante** — `marquer_pret_a_livrer`
+- **Condition affichée** — Financement confirmé
+- **Source** — `financement?.statutConfirmation === 'confirme'`
+- **Rendu si non satisfait** — « À : {organisme.nomAffiche ou "l'organisme"} — financement en attente »
+
+- **Étape suivante** — `marquer_pret_a_livrer`
+- **Condition affichée** — Expertise MFK à jour (si applicable)
+- **Source** — information vivant côté atelier, pas dupliquée ici
+- **Rendu si non satisfait** — « À : l'atelier — expertise MFK à vérifier » (lien vers la fiche véhicule)
+
+- **Étape suivante** — `livrer`
+- **Condition affichée** — Documents de livraison réunis
+- **Source** — `documentsRequis.every(d => d.fourni)`
+- **Rendu si non satisfait** — « À : {N} document(s) manquant(s) » + lien vers §7.6
 
 Chaque ligne satisfaite affiche une coche discrète (`CheckCircle2`, token `succes`), chaque ligne non
 satisfaite affiche le token `attention` et le texte « à : … » explicite — jamais un bouton grisé sans
@@ -385,7 +440,7 @@ serveur (`vehicule_expertise`, hors périmètre de ce contrat) — tant qu'aucun
 `ReponseDossierVente`, cette ligne reste **informative et non bloquante côté client** (elle rappelle
 d'aller vérifier, elle ne coche/décoche rien). Voir §13 question 4.
 
-### 7.3 `PanneauActionsDossierVente`
+**7.3 `PanneauActionsDossierVente`**
 
 Copie conforme de `PanneauActionsOr.tsx` : un bouton par valeur de `dossier.actionsDisponibles`
 (jamais une liste devinée depuis `statut`), un hook de mutation par action, ouverture d'un `Dialog`
@@ -413,11 +468,11 @@ d.typeDocument === 'bon_commande')`. Si aucun bon de commande n'existe encore su
   uniquement. Description de confirmation obligatoire sur l'effet de bord : « Si un véhicule est
   réservé sur ce dossier, il redevient disponible à la vente. »
 
-### 7.4 Section Reprise, Financement, Documents, Documents requis
+**7.4 Section Reprise, Financement, Documents, Documents requis**
 
 Voir §8, §9, §7.6 respectivement — sections composées dans la fiche, pas des écrans séparés.
 
-### 7.5 Documents de la chaîne facturation
+**7.5 Documents de la chaîne facturation**
 
 `Card` listant `documents` (`DocumentVenteResume[]`) : type traduit, numéro, statut, montant TTC,
 solde, date — table simple (pas `TableComptoir`, pas de tri/filtre nécessaire pour une poignée de
@@ -429,7 +484,7 @@ lignes), chaque ligne un lien vers l'écran facturation existant (hors périmèt
   n'existe pas, ce lien ne peut pas être posé — je le note comme demande en §14, pas comme un lien
   cassé livré silencieusement.
 
-### 7.6 Documents requis (checklist de livraison)
+**7.6 Documents requis (checklist de livraison)**
 
 `Card` avec une liste de `Checkbox` (une par élément de `documentsRequis`), libellé + date de fourniture
 si cochée. Coche/décoche appelle `POST /dossiers-vente/{id}/documents-requis/marquer` directement (pas
@@ -441,7 +496,9 @@ sur l'écran.
 
 ---
 
-## 8. Composant — La reprise (`CarteReprise`)
+8. Composant — La reprise (`CarteReprise`)
+
+---
 
 Carte dans la fiche dossier (§7), pas un écran séparé — cohérent avec la doctrine du contrat
 (« sous-ressource singulière », 0 ou 1 par dossier). Requête secondaire non bloquante
@@ -449,7 +506,7 @@ Carte dans la fiche dossier (§7), pas un écran séparé — cohérent avec la 
 que `useContexteAtelier` vs `useKilometragesVehicule` sur `EcranFicheVehicule` (primaire bloquant vs
 secondaire par section).
 
-### 8.1 Absence de reprise
+**8.1 Absence de reprise**
 
 `dossier.reprise === null` et `statut` non terminal → carte compacte : « Pas de reprise sur ce dossier »
 
@@ -461,7 +518,7 @@ secondaire par section).
   financement résiduelle (montant optionnel) + organisme (recherche client/tiers OU texte libre — les
   deux champs du contrat, l'un ou l'autre).
 
-### 8.2 Présence d'une reprise — l'affichage des deux valeurs
+**8.2 Présence d'une reprise — l'affichage des deux valeurs**
 
 C'est le point le plus délicat du module. Rendu :
 
@@ -483,7 +540,7 @@ C'est le point le plus délicat du module. Rendu :
   rappelant qu'il s'agit d'une condition suspensive (`RV-26`) — pas un montant qui s'additionne
   silencieusement aux deux précédents.
 
-### 8.3 Ce que cette carte n'affiche jamais
+**8.3 Ce que cette carte n'affiche jamais**
 
 **Aucune base TVA, aucun montant de TVA calculé sur l'écart.** Le traitement fiscal de l'écart
 (`QV-05`) n'est pas tranché — le contrat l'interdit explicitement (« Ce fichier ne calcule NI n'expose
@@ -500,7 +557,7 @@ uniquement `valeurNegocieeCentimes` comme ligne de déduction. Signalé aussi en
 côté facturation (le type de ligne `ecart_reprise_vehicule` qui matérialiserait cet écart sur le
 document n'existe pas encore côté contrat facturation).
 
-### 8.4 Actions
+**8.4 Actions**
 
 - **`modifier`** (tant que `statut = 'estimee'`) — dialog simple, révision de la valeur estimée.
 - **`negocier`** — dialog avec un seul champ, la nouvelle valeur négociée. Texte d'accompagnement,
@@ -517,19 +574,21 @@ document n'existe pas encore côté contrat facturation).
 
 ---
 
-## 9. Composant — Le financement (`CarteFinancement`)
+9. Composant — Le financement (`CarteFinancement`)
+
+---
 
 Carte dans la fiche dossier, collection embarquée (`financement` courant + `financements` historique
 complet, jusqu'à `SEUIL_FINANCEMENTS_EMBARQUES = 20`) — pas de pagination séparée, le contrat le
 justifie explicitement (peu de tentatives en pratique).
 
-### 9.1 En-tête — le financement courant
+**9.1 En-tête — le financement courant**
 
 Type traduit (comptant/crédit/leasing), organisme le cas échéant, `BadgeStatutFinancement`. Étiquette
 « Actuel » toujours visible sur cette entrée pour ne pas dépendre uniquement de sa position dans la
 liste.
 
-### 9.2 Historique — pourquoi il doit rester visible
+**9.2 Historique — pourquoi il doit rester visible**
 
 `CV-03` : un refus n'écrase jamais l'ancien enregistrement, un nouveau financement s'ouvre à côté.
 Rendu en liste verticale chronologique (plus récent en premier, doctrine de tri constante du produit),
@@ -538,7 +597,7 @@ confirmation/refus, et — si refusé — `motifRefus` affiché en clair sous l'
 clic supplémentaire : c'est exactement l'information qui explique au vendeur pourquoi il doit proposer
 un autre mode de financement, `§7.3` du contrat).
 
-### 9.3 Actions
+**9.3 Actions**
 
 - **« Proposer un financement »** — bouton toujours visible tant que `statut` du dossier n'est pas
   terminal. Dialog : type (`Select`), organisme (recherche client/tiers, affiché **et obligatoire**
@@ -556,7 +615,7 @@ un autre mode de financement, `§7.3` du contrat).
   alors une nouvelle proposition, l'écran doit accompagner ce prochain geste plutôt que de laisser
   l'utilisateur le retrouver seul.
 
-### 9.4 Limite connue, signalée
+**9.4 Limite connue, signalée**
 
 Si `financementsTronques === true` (plus de 20 tentatives), l'écran l'annonce (« Historique limité aux
 20 dernières tentatives ») mais **ne peut proposer aucun lien « voir plus »** : aucun endpoint paginé
@@ -565,13 +624,15 @@ honnêtement que de mentir par omission. Voir §14.
 
 ---
 
-## 10. Parcours — La livraison
+10. Parcours — La livraison
+
+---
 
 Pas un écran séparé : c'est la combinaison de la carte « Documents requis » (§7.6, visible dès
 `en_preparation`) et du dialog déclenché par l'action `livrer` (§7.3), la plus riche de toutes les
 transitions du dossier.
 
-### 10.1 Dialog `livrer`
+**10.1 Dialog `livrer`**
 
 Champs : date de livraison effective (`DatePicker`, défaut = aujourd'hui), kilométrage de départ
 (réutilise `ChampKilometrage`, composant déjà en usage sur l'OR), unité (km par défaut, masquée sauf
@@ -588,7 +649,7 @@ l'utilisateur clique :
 - Si `reprise?.statut === 'confirmee'` : « Le véhicule repris entrera au parc en stock à sa valeur
   négociée ({formaterMontant(valeurNegocieeCentimes)}). »
 
-### 10.2 Après livraison
+**10.2 Après livraison**
 
 `statut = 'livre'` : la frise (§3.3) avance, `PanneauProchaineEtape` (§7.2) n'affiche plus qu'une
 ligne « Reste à faire : clôturer le dossier » sans blocage (action purement administrative,
@@ -596,7 +657,7 @@ ligne « Reste à faire : clôturer le dossier » sans blocage (action purement 
 délibéré, cohérent avec le contrat qui traite `cloturer` comme un second contrôle humain de la
 paperasse, pas un effet de bord.
 
-### 10.3 Ce qui manque pour un parcours complet de remise de clés
+**10.3 Ce qui manque pour un parcours complet de remise de clés**
 
 Le contrat ne porte **aucun champ de signature électronique**, ni sur `schemaActionLivrer` ni sur
 `schemaActionEngager`. Si une capture de signature (tablette, show-room) est prévue pour ce moment,
@@ -605,7 +666,9 @@ défaut (§13 question 5).
 
 ---
 
-## 11. Le point dur : la reprise gonflée — récapitulatif des règles de conception
+11. Le point dur : la reprise gonflée — récapitulatif des règles de conception
+
+---
 
 Ce paragraphe rassemble, en un seul endroit, les règles déjà posées en §8 pour qu'elles soient
 vérifiables d'un coup d'œil par quiconque implémente ou relit cet écran :
@@ -625,7 +688,9 @@ vérifiables d'un coup d'œil par quiconque implémente ou relit cet écran :
 
 ---
 
-## 12. Tablette vs desktop
+12. Tablette vs desktop
+
+---
 
 Le module Ventes est, dans son ensemble, **desktop d'abord** (brief : « bureau » pour stock et
 facturation) — le parc en stock, la fiche dossier, la reprise et le financement sont des tâches de
@@ -639,7 +704,9 @@ dialog précis.
 
 ---
 
-## 13. Décisions que j'ai dû prendre faute d'information — questions pour @laupernoe
+13. Décisions que j'ai dû prendre faute d'information — questions pour @laupernoe
+
+---
 
 1. **Numéro de dossier.** `ReponseDossierVente` ne porte aucun champ `numero` (contrairement à l'OR
    qui a `or.numero`). L'écran s'identifie donc par client + véhicule, jamais par un numéro court.
@@ -676,7 +743,9 @@ dialog précis.
 
 ---
 
-## 14. Demandes d'API — formulées comme des demandes, pas des acquis
+14. Demandes d'API — formulées comme des demandes, pas des acquis
+
+---
 
 - **`ReponseVehicule.enStock` (ou `stockId`)** — déjà signalé par le contrat lui-même
   (`vehicule-stock.ts`) ; je le reformule comme dépendance concrète de `BlocVente` (§1.1).
@@ -695,7 +764,8 @@ dialog précis.
 
 ---
 
-## Rappel de périmètre
+Rappel de périmètre
+-------------------
 
 Ce document ne conçoit **aucun écran de facturation** (devis, bon de commande, facture, avoir — la
 fiche dossier ne fait que les lister et y renvoyer par lien, §7.5) ni **aucun écran de paramétrage

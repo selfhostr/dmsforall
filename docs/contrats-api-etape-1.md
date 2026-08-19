@@ -1,4 +1,5 @@
-# Contrats d'API — Étape 1 : Atelier + Clients
+Contrats d'API — Étape 1 : Atelier + Clients
+============================================
 
 > Auteur : expert-api. Sources : `docs/specification-etape-1-atelier-clients.md` (RM-01→112, machines
 > à états §5, cas tordus §6, paramètres P-01→32, cas de test CT-01→52),
@@ -18,7 +19,8 @@ jamais._
 
 ---
 
-## Sommaire
+Sommaire
+--------
 
 1. [Conventions transverses](#1-conventions-transverses)
 2. [Décision structurante : les transitions sont des actions nommées](#2-décision-structurante--les-transitions-sont-des-actions-nommées)
@@ -37,19 +39,31 @@ jamais._
 
 ---
 
-## 1. Conventions transverses
+1. Conventions transverses
 
-### 1.1 Trois catégories de chemins, et une seule règle par catégorie
+---
+
+1.1 Trois catégories de chemins, et une seule règle par catégorie
+-----------------------------------------------------------------
 
 L'erreur classique d'une API métier riche est de mélanger des ressources, des actions et des rapports
 sous une même grammaire, puis de ne plus savoir quel verbe HTTP s'applique où. On fixe trois
 catégories, exhaustives et reconnaissables **à l'œil nu dans le chemin**.
 
-| Catégorie      | Forme du segment                    | Verbes autorisés                                                          | Exemple                                                |
-| -------------- | ----------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------ |
-| **Ressource**  | nom **pluriel**, kebab-case         | `GET` (collection et unité), `POST` (création), `PATCH`, `PUT` (cas §5.2) | `/clients`, `/ordres-reparation/{id}/lignes`           |
-| **Action**     | **verbe à l'infinitif**, kebab-case | `POST` **uniquement**                                                     | `/ordres-reparation/{id}/terminer`                     |
-| **Projection** | nom composé décrivant le contenu    | `GET` **uniquement**, jamais d'identifiant propre                         | `/vehicules/{id}/contexte-atelier`, `/planning/charge` |
+- Catégorie — **Ressource**
+- Forme du segment — nom **pluriel**, kebab-case
+- Verbes autorisés — `GET` (collection et unité), `POST` (création), `PATCH`, `PUT` (cas §5.2)
+- Exemple — `/clients`, `/ordres-reparation/{id}/lignes`
+
+- Catégorie — **Action**
+- Forme du segment — **verbe à l'infinitif**, kebab-case
+- Verbes autorisés — `POST` **uniquement**
+- Exemple — `/ordres-reparation/{id}/terminer`
+
+- Catégorie — **Projection**
+- Forme du segment — nom composé décrivant le contenu
+- Verbes autorisés — `GET` **uniquement**, jamais d'identifiant propre
+- Exemple — `/vehicules/{id}/contexte-atelier`, `/planning/charge`
 
 Conséquences, toutes vérifiables mécaniquement (§13) :
 
@@ -66,32 +80,72 @@ en plus irrégulière (`honorer` → « honoration » ?), ce qui produirait une 
 mémorisable seulement par ceux qui l'ont écrite. L'infinitif est régulier, univoque, et il rend la
 règle « verbe ⇒ POST seul » applicable sans exception.
 
-### 1.2 Règles non négociables héritées du socle
+1.2 Règles non négociables héritées du socle
+--------------------------------------------
 
-| Règle                                                   | Application étape 1                                                                                                                                                                                   |
-| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Aucun `tenantId`** en chemin, query, corps ou en-tête | Vérifié par test de contrat sur le document OpenAPI complet (§13). `siteId` **est** accepté : ce n'est pas un tenant. Un `siteId` d'un autre tenant → `404 RESSOURCE_INTROUVABLE`, jamais 403 (I-13). |
-| Préfixe et version                                      | `/api/v1` — inchangé. Voir §11.4 pour la politique de version.                                                                                                                                        |
-| Erreurs                                                 | `application/problem+json`, schéma unique `ProblemeDetailCommunDto`, champ `code` seul contrat machine. Le front n'affiche jamais `title` ni `detail`.                                                |
-| Pagination                                              | Curseur opaque (§6).                                                                                                                                                                                  |
-| Auth                                                    | Cookie de session (`@ApiCookieAuth`). Les tokens API pour connecteurs sont étape 5 ; le contrat n'en dépend pas.                                                                                      |
-| Un droit par route                                      | `@ExigerDroit('atelier.or.terminer')`, matrice `apps/api/src/auth/matrice-droits.ts`. Nomenclature imposée : `<module>.<ressource>.<action>`.                                                         |
+- Règle — **Aucun `tenantId`** en chemin, query, corps ou en-tête
+- Application étape 1 — Vérifié par test de contrat sur le document OpenAPI complet (§13). `siteId` **est** accepté : ce n'est pas un tenant. Un `siteId` d'un autre tenant → `404 RESSOURCE_INTROUVABLE`, jamais 403 (I-13).
 
-### 1.3 Nommage des champs et unités
+- Règle — Préfixe et version
+- Application étape 1 — `/api/v1` — inchangé. Voir §11.4 pour la politique de version.
+
+- Règle — Erreurs
+- Application étape 1 — `application/problem+json`, schéma unique `ProblemeDetailCommunDto`, champ `code` seul contrat machine. Le front n'affiche jamais `title` ni `detail`.
+
+- Règle — Pagination
+- Application étape 1 — Curseur opaque (§6).
+
+- Règle — Auth
+- Application étape 1 — Cookie de session (`@ApiCookieAuth`). Les tokens API pour connecteurs sont étape 5 ; le contrat n'en dépend pas.
+
+- Règle — Un droit par route
+- Application étape 1 — `@ExigerDroit('atelier.or.terminer')`, matrice `apps/api/src/auth/matrice-droits.ts`. Nomenclature imposée : `<module>.<ressource>.<action>`.
+
+1.3 Nommage des champs et unités
+--------------------------------
 
 Le suffixe d'unité dans le nom du champ est la meilleure défense connue contre un flottant qui
 s'infiltre trois ans plus tard dans un connecteur tiers.
 
-| Grandeur          | Suffixe imposé           | Type JSON                     | Exemple                                 |
-| ----------------- | ------------------------ | ----------------------------- | --------------------------------------- |
-| Argent            | `…Centimes`              | `integer`                     | `plafondCentimes: 80000` (= CHF 800.00) |
-| Total agrégé      | `…Centimes`              | `integer` (64 bits côté base) | `totalTtcCentimes: 74235`               |
-| Temps de travail  | `…Centiemes` (d'heure)   | `integer`                     | `tempsBaremeCentiemes: 120` (= 1,2 h)   |
-| Quantité          | `…Millieme`              | `integer`                     | `quantiteMillieme: 2500` (= 2,5)        |
-| Taux, rabais, TVA | `…Pourmille`             | `integer`                     | `tauxTvaPourmille: 81` (= 8,1 %)        |
-| Durée d'horloge   | `…Secondes` / `…Minutes` | `integer`                     | `dureeBruteSecondes`                    |
-| Date métier       | `…Le` (date seule)       | `string` (`date`)             | `debutLe: "2026-03-20"`                 |
-| Horodatage        | `…Le`                    | `string` (`date-time`, UTC)   | `ouvertLe: "2026-07-27T06:42:11.000Z"`  |
+- Grandeur — Argent
+- Suffixe imposé — `…Centimes`
+- Type JSON — `integer`
+- Exemple — `plafondCentimes: 80000` (= CHF 800.00)
+
+- Grandeur — Total agrégé
+- Suffixe imposé — `…Centimes`
+- Type JSON — `integer` (64 bits côté base)
+- Exemple — `totalTtcCentimes: 74235`
+
+- Grandeur — Temps de travail
+- Suffixe imposé — `…Centiemes` (d'heure)
+- Type JSON — `integer`
+- Exemple — `tempsBaremeCentiemes: 120` (= 1,2 h)
+
+- Grandeur — Quantité
+- Suffixe imposé — `…Millieme`
+- Type JSON — `integer`
+- Exemple — `quantiteMillieme: 2500` (= 2,5)
+
+- Grandeur — Taux, rabais, TVA
+- Suffixe imposé — `…Pourmille`
+- Type JSON — `integer`
+- Exemple — `tauxTvaPourmille: 81` (= 8,1 %)
+
+- Grandeur — Durée d'horloge
+- Suffixe imposé — `…Secondes` / `…Minutes`
+- Type JSON — `integer`
+- Exemple — `dureeBruteSecondes`
+
+- Grandeur — Date métier
+- Suffixe imposé — `…Le` (date seule)
+- Type JSON — `string` (`date`)
+- Exemple — `debutLe: "2026-03-20"`
+
+- Grandeur — Horodatage
+- Suffixe imposé — `…Le`
+- Type JSON — `string` (`date-time`, UTC)
+- Exemple — `ouvertLe: "2026-07-27T06:42:11.000Z"`
 
 Aucun champ monétaire, temporel ou quantitatif n'est jamais typé `number` non entier. **Il n'existe
 aucun champ `float` dans cette API**, et c'est une clause de compatibilité : en introduire un serait
@@ -102,20 +156,38 @@ Le reste : `camelCase`, enums en `snake_case` (miroir exact des types PostgreSQL
 le formatage suisse (`1'234.50`, `jj.mm.aaaa`) est **strictement une affaire de présentation** et
 n'apparaît nulle part dans les charges utiles.
 
-### 1.4 En-têtes de requête et de réponse
+1.4 En-têtes de requête et de réponse
+-------------------------------------
 
-| En-tête                 | Sens                                  | Où                                                                         |
-| ----------------------- | ------------------------------------- | -------------------------------------------------------------------------- |
-| `Idempotency-Key`       | uuid v4, identité de la **requête**   | §5.1 — obligatoire sur les créations listées                               |
-| `If-Match`              | ETag attendu                          | obligatoire sur `PATCH /ordres-reparation/{id}` (§9)                       |
-| `ETag`                  | `W/"<version>"`                       | réponse de `GET /ordres-reparation/{id}` et de toute action qui le modifie |
-| `X-Requete-Id`          | corrélation, = `problem.instance`     | déjà en place (socle)                                                      |
-| `Content-Language`      | langue effective d'un document généré | réponses `GET …/documents/{type}` (RM-108, P-23)                           |
-| `Deprecation`, `Sunset` | RFC 8594                              | §11.4, aucun usage en étape 1                                              |
+- En-tête — `Idempotency-Key`
+- Sens — uuid v4, identité de la **requête**
+- Où — §5.1 — obligatoire sur les créations listées
+
+- En-tête — `If-Match`
+- Sens — ETag attendu
+- Où — obligatoire sur `PATCH /ordres-reparation/{id}` (§9)
+
+- En-tête — `ETag`
+- Sens — `W/"<version>"`
+- Où — réponse de `GET /ordres-reparation/{id}` et de toute action qui le modifie
+
+- En-tête — `X-Requete-Id`
+- Sens — corrélation, = `problem.instance`
+- Où — déjà en place (socle)
+
+- En-tête — `Content-Language`
+- Sens — langue effective d'un document généré
+- Où — réponses `GET …/documents/{type}` (RM-108, P-23)
+
+- En-tête — `Deprecation`, `Sunset`
+- Sens — RFC 8594
+- Où — §11.4, aucun usage en étape 1
 
 ---
 
-## 2. Décision structurante : les transitions sont des actions nommées
+2. Décision structurante : les transitions sont des actions nommées
+
+---
 
 **Tranché : `POST /ordres-reparation/{id}/<verbe>`. `PATCH {"statut": "termine"}` est refusé.**
 
@@ -123,7 +195,8 @@ C'est le choix qui engage l'API le plus durablement, parce qu'il détermine la f
 évolution ultérieure des machines à états (OR, ligne, RDV, pointage, prêt — cinq machines, une
 vingtaine de transitions autorisées, quinze interdites nommément).
 
-### 2.1 Les trois options examinées
+2.1 Les trois options examinées
+-------------------------------
 
 **Option A — `PATCH /ordres-reparation/{id}` avec `{"statut": "..."}`.**
 Séduisante parce qu'elle donne une surface minuscule : une route, un champ. Elle casse sur quatre
@@ -164,7 +237,8 @@ développeur tiers voit dix actions et comprend le cycle de vie sans lire la sp�
 Coût assumé : la surface passe de 1 à ~12 routes pour l'OR. C'est le prix d'un contrat qui se lit. Le
 plan backend arrive à la même conclusion (§4.1) ; on ne diverge que sur la forme du segment (§1.1).
 
-### 2.2 Le corollaire indispensable : la machine à états est aussi une donnée
+2.2 Le corollaire indispensable : la machine à états est aussi une donnée
+-------------------------------------------------------------------------
 
 Une API d'actions nommées oblige le client à savoir quelles actions sont possibles maintenant — sinon
 il code la machine à états en dur, et il se désynchronise au premier changement de paramètre.
@@ -180,7 +254,8 @@ pour l'appelant courant (statut + droits + paramètres), présent dans la répon
 `GET /ordres-reparation/{id}`. Il ne remplace pas la vérification serveur ; il évite au client de la
 rejouer. Champ additif, donc sans risque d'évolution.
 
-### 2.3 Ce que les actions **ne** font pas
+2.3 Ce que les actions **ne** font pas
+--------------------------------------
 
 - **Aucune action n'accepte de statut cible.** `POST /terminer` ne prend pas `{"statut": "termine"}` :
   la cible est dans le chemin. Un statut dans un corps est un défaut de revue.
@@ -192,12 +267,15 @@ rejouer. Champ additif, donc sans risque d'évolution.
 
 ---
 
-## 3. Le contrat d'erreur exploitable (D-05)
+3. Le contrat d'erreur exploitable (D-05)
+
+---
 
 > « Un `problem+json` qui dit _refusé_ sans dire **quoi** est inutilisable en atelier. »
 > D-05 du plan frontend. C'est la demande la plus juste des douze, et la plus structurante.
 
-### 3.1 Le problème à résoudre
+3.1 Le problème à résoudre
+--------------------------
 
 I-08 : on refuse de terminer un OR **parce que deux lignes attendent un accord**. I-09 : on refuse
 **parce que Rui et Sarah pointent encore**. I-10 : on refuse **parce que trois lignes validées n'ont
@@ -209,7 +287,8 @@ lui, a besoin de la liste — et d'un chemin pour en sortir.
 le front sait déjà que `erreurs[]` se rend sous les champs d'un formulaire, et une ligne d'OR n'est pas
 un champ. On ajoute donc, **sans rien retirer ni renommer**, trois propriétés facultatives.
 
-### 3.2 L'extension — additive, donc rétrocompatible
+3.2 L'extension — additive, donc rétrocompatible
+------------------------------------------------
 
 ```ts
 // packages/shared/src/contrats/probleme.ts — AJOUTS UNIQUEMENT
@@ -266,32 +345,73 @@ log et le corps brut d'une réponse soient lisibles par un humain sans requête 
 rend l'élément à partir de `type`, `id` et `donnees`, avec ses propres composants et sa propre langue.
 La règle reste entière et doit être répétée dans la description OpenAPI du champ.
 
-### 3.3 Les codes d'action proposée
+3.3 Les codes d'action proposée
+-------------------------------
 
 Liste fermée, en `SCREAMING_SNAKE` comme les codes d'erreur, dans `packages/shared` :
 
-| `CodeActionProposee`         | Situation                                                                     | Ce que le client propose                                                                                   |
-| ---------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `CREER_DEVIS_COMPLEMENTAIRE` | `OR_PLAFOND_DEPASSE` (RM-54, CT-20)                                           | ouvre le panneau devis pré-rempli avec `parametres.ligneIds` et `parametres.nouveauPlafondSuggereCentimes` |
-| `VALIDER_LIGNES`             | `OR_LIGNES_A_VALIDER` (I-08)                                                  | fait défiler jusqu'aux lignes de `blocages`                                                                |
-| `ARRETER_POINTAGES`          | `OR_POINTAGE_OUVERT` (I-09)                                                   | liste les techniciens, propose l'arrêt                                                                     |
-| `MARQUER_LIGNES_REALISEES`   | `OR_LIGNE_NON_REALISEE` (I-10)                                                | idem                                                                                                       |
-| `COMPLETER_CONTROLE_QUALITE` | `OR_CHECKLIST_INCOMPLETE` (P-08)                                              | liste les points manquants                                                                                 |
-| `CREER_OR_RETOUCHE`          | `OR_TRANSITION_INTERDITE` sur `facture → en_cours` (I-02)                     | `parametres.ordreReparationParentId`                                                                       |
-| `CREER_NOUVEL_OR`            | `OR_TRANSITION_INTERDITE` depuis `restitue` (I-04), `absent → honore` (CT-16) | —                                                                                                          |
-| `RENSEIGNER_PO`              | `OR_PO_MANQUANT` (RM-14, CT-49)                                               | —                                                                                                          |
-| `SIGNER_RESERVE_SECURITE`    | `OR_RESERVE_SECURITE_REQUISE` (§6.12, CT-52)                                  | `parametres.typeSignature: "reserve-securite"`                                                             |
-| `FOURNIR_MOTIF`              | `VEHICULE_KILOMETRAGE_REGRESSIF`, `POINTAGE_MOTIF_REQUIS`                     | `parametres.motifsAcceptes: [...]` — l'enum du motif attendu                                               |
-| `REJOUER_AVEC_CONFIRMATION`  | `CONFIRMATION_REQUISE` (§4.4)                                                 | rejoue avec `confirmations[]`                                                                              |
-| `DEMANDER_HABILITATION`      | confirmation requise mais **l'appelant n'a pas le droit**                     | affiche « demandez au chef d'atelier »                                                                     |
-| `RECEPTIONNER_VEHICULE`      | `OR_RECEPTION_REQUISE` (I-07, CT-18)                                          | —                                                                                                          |
-| `RAFRAICHIR`                 | `CONFLIT` (§9)                                                                | refetch + réapplication de la saisie                                                                       |
+- `CodeActionProposee` — `CREER_DEVIS_COMPLEMENTAIRE`
+- Situation — `OR_PLAFOND_DEPASSE` (RM-54, CT-20)
+- Ce que le client propose — ouvre le panneau devis pré-rempli avec `parametres.ligneIds` et `parametres.nouveauPlafondSuggereCentimes`
+
+- `CodeActionProposee` — `VALIDER_LIGNES`
+- Situation — `OR_LIGNES_A_VALIDER` (I-08)
+- Ce que le client propose — fait défiler jusqu'aux lignes de `blocages`
+
+- `CodeActionProposee` — `ARRETER_POINTAGES`
+- Situation — `OR_POINTAGE_OUVERT` (I-09)
+- Ce que le client propose — liste les techniciens, propose l'arrêt
+
+- `CodeActionProposee` — `MARQUER_LIGNES_REALISEES`
+- Situation — `OR_LIGNE_NON_REALISEE` (I-10)
+- Ce que le client propose — idem
+
+- `CodeActionProposee` — `COMPLETER_CONTROLE_QUALITE`
+- Situation — `OR_CHECKLIST_INCOMPLETE` (P-08)
+- Ce que le client propose — liste les points manquants
+
+- `CodeActionProposee` — `CREER_OR_RETOUCHE`
+- Situation — `OR_TRANSITION_INTERDITE` sur `facture → en_cours` (I-02)
+- Ce que le client propose — `parametres.ordreReparationParentId`
+
+- `CodeActionProposee` — `CREER_NOUVEL_OR`
+- Situation — `OR_TRANSITION_INTERDITE` depuis `restitue` (I-04), `absent → honore` (CT-16)
+- Ce que le client propose — —
+
+- `CodeActionProposee` — `RENSEIGNER_PO`
+- Situation — `OR_PO_MANQUANT` (RM-14, CT-49)
+- Ce que le client propose — —
+
+- `CodeActionProposee` — `SIGNER_RESERVE_SECURITE`
+- Situation — `OR_RESERVE_SECURITE_REQUISE` (§6.12, CT-52)
+- Ce que le client propose — `parametres.typeSignature: "reserve-securite"`
+
+- `CodeActionProposee` — `FOURNIR_MOTIF`
+- Situation — `VEHICULE_KILOMETRAGE_REGRESSIF`, `POINTAGE_MOTIF_REQUIS`
+- Ce que le client propose — `parametres.motifsAcceptes: [...]` — l'enum du motif attendu
+
+- `CodeActionProposee` — `REJOUER_AVEC_CONFIRMATION`
+- Situation — `CONFIRMATION_REQUISE` (§4.4)
+- Ce que le client propose — rejoue avec `confirmations[]`
+
+- `CodeActionProposee` — `DEMANDER_HABILITATION`
+- Situation — confirmation requise mais **l'appelant n'a pas le droit**
+- Ce que le client propose — affiche « demandez au chef d'atelier »
+
+- `CodeActionProposee` — `RECEPTIONNER_VEHICULE`
+- Situation — `OR_RECEPTION_REQUISE` (I-07, CT-18)
+- Ce que le client propose — —
+
+- `CodeActionProposee` — `RAFRAICHIR`
+- Situation — `CONFLIT` (§9)
+- Ce que le client propose — refetch + réapplication de la saisie
 
 `DEMANDER_HABILITATION` est la réponse à un piège d'ergonomie réel : quand le réceptionnaire ouvre un
 OR pour un client bloqué (RM-08), il ne peut pas confirmer lui-même. Sans ce code, l'écran affiche un
 refus muet et le réceptionnaire appelle le support.
 
-### 3.4 Exemples normatifs
+3.4 Exemples normatifs
+----------------------
 
 Ces trois corps sont à reprendre **tels quels** comme `examples` OpenAPI (§12.3) et comme fixtures de
 test (CT-21, CT-22, CT-20).
@@ -411,7 +531,8 @@ test (CT-21, CT-22, CT-20).
 > pré-rempli (§3.5 du plan frontend). Le corps ci-dessus contient exactement ce qu'il faut pour le
 > faire — c'est le critère de validation du contrat.
 
-### 3.5 Règles d'usage, opposables en revue
+3.5 Règles d'usage, opposables en revue
+---------------------------------------
 
 1. **Tout refus d'action ou de transition porte `blocages` dès qu'il existe un élément nommable.**
    Un `409 OR_LIGNES_A_VALIDER` sans `blocages` est un bug, pas un choix.
@@ -427,18 +548,30 @@ test (CT-21, CT-22, CT-20).
 
 ---
 
-## 4. Codes d'erreur, d'avertissement et de confirmation
+4. Codes d'erreur, d'avertissement et de confirmation
 
-### 4.1 Trois familles, un seul espace de traduction
+---
+
+4.1 Trois familles, un seul espace de traduction
+------------------------------------------------
 
 La spécification distingue clairement trois natures de retour, et les confondre produit exactement les
 bugs d'ergonomie que le plan frontend §9.5 cherche à éviter.
 
-| Famille           | Type TS             | Transport                                                 | Rendu front                     |
-| ----------------- | ------------------- | --------------------------------------------------------- | ------------------------------- |
-| **Erreur**        | `CodeErreur`        | `problem+json`, statut ≥ 400                              | `RefusBloquant`                 |
-| **Avertissement** | `CodeAvertissement` | `avertissements[]` dans une réponse **2xx**               | encart informatif, non bloquant |
-| **Confirmation**  | `CodeConfirmation`  | `confirmationsRequises[]` d'un `409 CONFIRMATION_REQUISE` | `AvertissementConfirmable`      |
+- Famille — **Erreur**
+- Type TS — `CodeErreur`
+- Transport — `problem+json`, statut ≥ 400
+- Rendu front — `RefusBloquant`
+
+- Famille — **Avertissement**
+- Type TS — `CodeAvertissement`
+- Transport — `avertissements[]` dans une réponse **2xx**
+- Rendu front — encart informatif, non bloquant
+
+- Famille — **Confirmation**
+- Type TS — `CodeConfirmation`
+- Transport — `confirmationsRequises[]` d'un `409 CONFIRMATION_REQUISE`
+- Rendu front — `AvertissementConfirmable`
 
 Les trois familles partagent **un seul espace de clés i18n**, `erreurs:codes.<CODE>`, déjà en place.
 C'est ce qui permet à `CLIENT_DOUBLON_PROBABLE` (avertissement) et `CLIENT_BLOQUE` (confirmation) de
@@ -450,7 +583,8 @@ uniques** toutes familles confondues : un code appartient à une famille et une 
 > ne contient que la famille `CodeErreur`. Y faire figurer un code d'avertissement serait un
 > contresens : il n'a pas de statut HTTP.
 
-### 4.2 Alignement sur les traductions déjà écrites
+4.2 Alignement sur les traductions déjà écrites
+-----------------------------------------------
 
 Les 23 codes de `apps/web/src/i18n/locales/fr/erreurs.json` § `codes` ont été relus un à un. **On
 s'aligne sur ces noms**, y compris là où le plan backend §4.3 en proposait d'autres : les traductions
@@ -459,22 +593,43 @@ cosmétique après coup est du coût pur.
 
 Écarts relevés entre `plan-etape-1-backend.md` §4.3 et les traductions — **le nom i18n l'emporte** :
 
-| Plan backend                                                       | Retenu (= i18n)                                                        | Note                                                                                                                                 |
-| ------------------------------------------------------------------ | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `OR_LIGNES_NON_REALISEES`                                          | **`OR_LIGNE_NON_REALISEE`**                                            | correspond à `or:refus.ligneNonRealisee`                                                                                             |
-| `OR_PO_REQUIS`                                                     | **`OR_PO_MANQUANT`**                                                   | correspond à `or:refus.poManquant`                                                                                                   |
-| `OR_MENTION_SECURITE_REQUISE`                                      | **`OR_RESERVE_SECURITE_REQUISE`**                                      | correspond à `or:refus.reserveSecuriteRequise`                                                                                       |
-| `POINTAGE_DEJA_OUVERT`                                             | **`POINTAGE_CHEVAUCHEMENT`**                                           | symétrique de `RDV_RESSOURCE_CHEVAUCHEMENT`                                                                                          |
-| `VEHICULE_KM_REGRESSIF`                                            | **`VEHICULE_KILOMETRAGE_REGRESSIF`**                                   | non abrégé, plus lisible pour un tiers                                                                                               |
-| `VEHICULE_PLAQUE_OCCUPEE`                                          | **`VEHICULE_PLAQUE_COLLISION`**                                        | « collision » couvre aussi le cas interchangeable                                                                                    |
-| `RDV_RESSOURCE_INDISPONIBLE`                                       | **`RDV_RESSOURCE_CHEVAUCHEMENT`**                                      | la ressource n'est pas indisponible, elle est doublement réservée                                                                    |
-| `VEHICULE_SUPPRESSION_IMPOSSIBLE`, `CLIENT_SUPPRESSION_IMPOSSIBLE` | **`VEHICULE_ARCHIVAGE_IMPOSSIBLE`, `CLIENT_DESACTIVATION_IMPOSSIBLE`** | il n'existe **aucun `DELETE`** dans cette API : un code nommé « suppression » documenterait une opération inexistante (RM-12, RM-31) |
+- Plan backend — `OR_LIGNES_NON_REALISEES`
+- Retenu (= i18n) — **`OR_LIGNE_NON_REALISEE`**
+- Note — correspond à `or:refus.ligneNonRealisee`
+
+- Plan backend — `OR_PO_REQUIS`
+- Retenu (= i18n) — **`OR_PO_MANQUANT`**
+- Note — correspond à `or:refus.poManquant`
+
+- Plan backend — `OR_MENTION_SECURITE_REQUISE`
+- Retenu (= i18n) — **`OR_RESERVE_SECURITE_REQUISE`**
+- Note — correspond à `or:refus.reserveSecuriteRequise`
+
+- Plan backend — `POINTAGE_DEJA_OUVERT`
+- Retenu (= i18n) — **`POINTAGE_CHEVAUCHEMENT`**
+- Note — symétrique de `RDV_RESSOURCE_CHEVAUCHEMENT`
+
+- Plan backend — `VEHICULE_KM_REGRESSIF`
+- Retenu (= i18n) — **`VEHICULE_KILOMETRAGE_REGRESSIF`**
+- Note — non abrégé, plus lisible pour un tiers
+
+- Plan backend — `VEHICULE_PLAQUE_OCCUPEE`
+- Retenu (= i18n) — **`VEHICULE_PLAQUE_COLLISION`**
+- Note — « collision » couvre aussi le cas interchangeable
+
+- Plan backend — `RDV_RESSOURCE_INDISPONIBLE`
+- Retenu (= i18n) — **`RDV_RESSOURCE_CHEVAUCHEMENT`**
+- Note — la ressource n'est pas indisponible, elle est doublement réservée
+
+- Plan backend — `VEHICULE_SUPPRESSION_IMPOSSIBLE`, `CLIENT_SUPPRESSION_IMPOSSIBLE`
+- Retenu (= i18n) — **`VEHICULE_ARCHIVAGE_IMPOSSIBLE`, `CLIENT_DESACTIVATION_IMPOSSIBLE`**
+- Note — il n'existe **aucun `DELETE`** dans cette API : un code nommé « suppression » documenterait une opération inexistante (RM-12, RM-31)
 
 **Un seul écart à corriger dans les fichiers i18n** — le seul dont le nom induit un tiers en erreur :
 
-| Actuel (i18n)                | À renommer                          | Pourquoi                                                                                                                                                                                                                                                                                                                                                                |
-| ---------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `RDV_VEHICULE_NON_IDENTIFIE` | **`RDV_IDENTIFICATION_INCOMPLETE`** | RM-35 / CT-12 exigent **client _et_ véhicule** identifiés. Le message FR déjà écrit dit correctement « Un RDV avec client et véhicule identifiés est nécessaire pour l'honorer » — seule la clé ment. Un connecteur qui reçoit `RDV_VEHICULE_NON_IDENTIFIE` alors que c'est le client qui manque perdra du temps, et le champ `blocages` ne rattrapera pas un nom faux. |
+- Actuel (i18n) — `RDV_VEHICULE_NON_IDENTIFIE`
+- À renommer — **`RDV_IDENTIFICATION_INCOMPLETE`**
+- Pourquoi — RM-35 / CT-12 exigent **client _et_ véhicule** identifiés. Le message FR déjà écrit dit correctement « Un RDV avec client et véhicule identifiés est nécessaire pour l'honorer » — seule la clé ment. Un connecteur qui reçoit `RDV_VEHICULE_NON_IDENTIFIE` alors que c'est le client qui manque perdra du temps, et le champ `blocages` ne rattrapera pas un nom faux.
 
 > Renommage à faire par expert-i18n dans `fr/de/it/erreurs.json` (**clé seule, messages inchangés**),
 > avant que le code ne soit ajouté à `CODES_ERREUR`. Coût : trois lignes. Après publication de la v1,
@@ -484,55 +639,213 @@ Note mineure sans action : `OR_LIGNES_A_VALIDER` est au pluriel, `OR_LIGNE_NON_R
 alors que les deux transportent une liste. L'incohérence est cosmétique, le code est opaque au front,
 et le renommage ne vaut pas la churn sur trois fichiers de traduction. **On ne touche pas.**
 
-### 4.3 Codes d'erreur — la table complète
+4.3 Codes d'erreur — la table complète
+--------------------------------------
 
 Codes existants (socle, gelés) : `VALIDATION_ECHOUEE`, `AUTH_*` (9), `DROIT_INSUFFISANT`,
 `RESSOURCE_INTROUVABLE`, `CONFLIT`, `ERREUR_INTERNE`. **On ajoute en fin de tableau, on ne réordonne
 jamais** — `CODES_ERREUR` est un `as const` dont l'ordre n'a pas de sens sémantique, mais le respecter
 évite les diffs illisibles et les revues distraites.
 
-| Code                              | HTTP | Règle                                                      | `blocages`                            |
-| --------------------------------- | ---- | ---------------------------------------------------------- | ------------------------------------- |
-| `OR_TRANSITION_INTERDITE`         | 409  | I-01→I-07, I-11, I-12                                      | statut courant + cible                |
-| `OR_RECEPTION_REQUISE`            | 409  | I-07, CT-18                                                | —                                     |
-| `OR_KM_ENTREE_REQUIS`             | 400  | RM-51, CT-19, P-10                                         | `champ:kilometrageEntree`             |
-| `OR_LIGNES_A_VALIDER`             | 409  | I-08, CT-21                                                | **lignes**                            |
-| `OR_POINTAGE_OUVERT`              | 409  | I-09, CT-22                                                | **pointages + techniciens**           |
-| `OR_LIGNE_NON_REALISEE`           | 409  | I-10                                                       | **lignes**                            |
-| `OR_CHECKLIST_INCOMPLETE`         | 409  | P-08, T-13                                                 | **points de contrôle**                |
-| `OR_PLAFOND_DEPASSE`              | 409  | RM-54, CT-20                                               | lignes + champ plafond                |
-| `OR_ANNULATION_IMPOSSIBLE`        | 409  | RM-62, I-03, CT-25, CT-26                                  | pointages / lignes / facture          |
-| `OR_LIGNE_VERROUILLEE`            | 409  | I-15, CT-30                                                | ligne                                 |
-| `OR_PO_MANQUANT`                  | 409  | RM-14, CT-49                                               | `champ:numeroCommandeInterne`         |
-| `OR_RESERVE_SECURITE_REQUISE`     | 409  | §6.12, CT-52, P-28                                         | **lignes marquées sécurité**          |
-| `OR_FACTURATION_AUCUNE_LIGNE`     | 409  | I-14                                                       | payeur concerné                       |
-| `LIGNE_TRANSITION_INTERDITE`      | 409  | §5.2, CT-28                                                | ligne + statut                        |
-| `LIGNE_SUPPRESSION_IMPOSSIBLE`    | 409  | RM-71, CT-27                                               | pointages / pièces                    |
-| `DEVIS_IMMUABLE`                  | 409  | RM-79, CT-35                                               | devis                                 |
-| `DEVIS_INTERLOCUTEUR_REQUIS`      | 400  | RM-81, CT-32                                               | `champ:interlocuteurNom`              |
-| `RDV_TRANSITION_INTERDITE`        | 409  | §5.3, CT-16                                                | statut courant                        |
-| `RDV_IDENTIFICATION_INCOMPLETE`   | 409  | RM-35, CT-12                                               | `champ:clientId` / `champ:vehiculeId` |
-| `RDV_RESSOURCE_CHEVAUCHEMENT`     | 409  | RM-39, CT-15                                               | **réservations en conflit**           |
-| `RDV_ANNULATION_IMPOSSIBLE`       | 409  | RM-47, CT-17                                               | OR lié                                |
-| `RDV_HORS_OUVERTURE`              | 409  | RM-48                                                      | plage demandée                        |
-| `POINTAGE_TRANSITION_INTERDITE`   | 409  | §5.4                                                       | pointage + statut                     |
-| `POINTAGE_CHEVAUCHEMENT`          | 409  | RM-88 (P-06 = interdit et clôture auto refusée)            | pointage ouvert                       |
-| `POINTAGE_OR_NON_MODIFIABLE`      | 409  | RM-92, CT-41                                               | OR + statut                           |
-| `POINTAGE_LIGNE_NON_POINTABLE`    | 409  | RM-93, CT-34                                               | ligne + statut                        |
-| `POINTAGE_PERIODE_VERROUILLEE`    | 409  | RM-95, CT-43                                               | période                               |
-| `POINTAGE_MOTIF_REQUIS`           | 400  | RM-94, CT-42                                               | `champ:motif`                         |
-| `POINTAGE_HORODATAGE_INVALIDE`    | 400  | §5.4 (pointage dans le futur), dérive d'horloge §4.3 front | `champ:debutLe`/`finLe`               |
-| `VEHICULE_KILOMETRAGE_REGRESSIF`  | 409  | RM-24, CT-07                                               | dernier relevé connu                  |
-| `VEHICULE_PLAQUE_COLLISION`       | 409  | RM-18, CT-06                                               | **véhicule qui porte déjà la plaque** |
-| `VEHICULE_VIN_EXISTANT`           | 409  | RM-15                                                      | véhicule existant                     |
-| `VEHICULE_ARCHIVAGE_IMPOSSIBLE`   | 409  | RM-31                                                      | OR ouverts                            |
-| `CLIENT_TYPE_IMMUABLE`            | 409  | RM-01                                                      | —                                     |
-| `CLIENT_DESACTIVATION_IMPOSSIBLE` | 409  | RM-12                                                      | OR / RDV / détentions                 |
-| `PRET_VEHICULE_INDISPONIBLE`      | 409  | RM-103, CT-45                                              | prêt en conflit                       |
-| `PRET_CONDUCTEUR_REQUIS`          | 400  | RM-102                                                     | `champ:conducteur*`                   |
-| `CONFIRMATION_REQUISE`            | 409  | §4.4                                                       | ce qui doit être confirmé             |
-| `IDEMPOTENCE_CONFLIT`             | 409  | §5.1                                                       | —                                     |
-| `FONCTION_NON_DISPONIBLE`         | 501  | §11.3                                                      | —                                     |
+- Code — `OR_TRANSITION_INTERDITE`
+- HTTP — 409
+- Règle — I-01→I-07, I-11, I-12
+- `blocages` — statut courant + cible
+
+- Code — `OR_RECEPTION_REQUISE`
+- HTTP — 409
+- Règle — I-07, CT-18
+- `blocages` — —
+
+- Code — `OR_KM_ENTREE_REQUIS`
+- HTTP — 400
+- Règle — RM-51, CT-19, P-10
+- `blocages` — `champ:kilometrageEntree`
+
+- Code — `OR_LIGNES_A_VALIDER`
+- HTTP — 409
+- Règle — I-08, CT-21
+- `blocages` — **lignes**
+
+- Code — `OR_POINTAGE_OUVERT`
+- HTTP — 409
+- Règle — I-09, CT-22
+- `blocages` — **pointages + techniciens**
+
+- Code — `OR_LIGNE_NON_REALISEE`
+- HTTP — 409
+- Règle — I-10
+- `blocages` — **lignes**
+
+- Code — `OR_CHECKLIST_INCOMPLETE`
+- HTTP — 409
+- Règle — P-08, T-13
+- `blocages` — **points de contrôle**
+
+- Code — `OR_PLAFOND_DEPASSE`
+- HTTP — 409
+- Règle — RM-54, CT-20
+- `blocages` — lignes + champ plafond
+
+- Code — `OR_ANNULATION_IMPOSSIBLE`
+- HTTP — 409
+- Règle — RM-62, I-03, CT-25, CT-26
+- `blocages` — pointages / lignes / facture
+
+- Code — `OR_LIGNE_VERROUILLEE`
+- HTTP — 409
+- Règle — I-15, CT-30
+- `blocages` — ligne
+
+- Code — `OR_PO_MANQUANT`
+- HTTP — 409
+- Règle — RM-14, CT-49
+- `blocages` — `champ:numeroCommandeInterne`
+
+- Code — `OR_RESERVE_SECURITE_REQUISE`
+- HTTP — 409
+- Règle — §6.12, CT-52, P-28
+- `blocages` — **lignes marquées sécurité**
+
+- Code — `OR_FACTURATION_AUCUNE_LIGNE`
+- HTTP — 409
+- Règle — I-14
+- `blocages` — payeur concerné
+
+- Code — `LIGNE_TRANSITION_INTERDITE`
+- HTTP — 409
+- Règle — §5.2, CT-28
+- `blocages` — ligne + statut
+
+- Code — `LIGNE_SUPPRESSION_IMPOSSIBLE`
+- HTTP — 409
+- Règle — RM-71, CT-27
+- `blocages` — pointages / pièces
+
+- Code — `DEVIS_IMMUABLE`
+- HTTP — 409
+- Règle — RM-79, CT-35
+- `blocages` — devis
+
+- Code — `DEVIS_INTERLOCUTEUR_REQUIS`
+- HTTP — 400
+- Règle — RM-81, CT-32
+- `blocages` — `champ:interlocuteurNom`
+
+- Code — `RDV_TRANSITION_INTERDITE`
+- HTTP — 409
+- Règle — §5.3, CT-16
+- `blocages` — statut courant
+
+- Code — `RDV_IDENTIFICATION_INCOMPLETE`
+- HTTP — 409
+- Règle — RM-35, CT-12
+- `blocages` — `champ:clientId` / `champ:vehiculeId`
+
+- Code — `RDV_RESSOURCE_CHEVAUCHEMENT`
+- HTTP — 409
+- Règle — RM-39, CT-15
+- `blocages` — **réservations en conflit**
+
+- Code — `RDV_ANNULATION_IMPOSSIBLE`
+- HTTP — 409
+- Règle — RM-47, CT-17
+- `blocages` — OR lié
+
+- Code — `RDV_HORS_OUVERTURE`
+- HTTP — 409
+- Règle — RM-48
+- `blocages` — plage demandée
+
+- Code — `POINTAGE_TRANSITION_INTERDITE`
+- HTTP — 409
+- Règle — §5.4
+- `blocages` — pointage + statut
+
+- Code — `POINTAGE_CHEVAUCHEMENT`
+- HTTP — 409
+- Règle — RM-88 (P-06 = interdit et clôture auto refusée)
+- `blocages` — pointage ouvert
+
+- Code — `POINTAGE_OR_NON_MODIFIABLE`
+- HTTP — 409
+- Règle — RM-92, CT-41
+- `blocages` — OR + statut
+
+- Code — `POINTAGE_LIGNE_NON_POINTABLE`
+- HTTP — 409
+- Règle — RM-93, CT-34
+- `blocages` — ligne + statut
+
+- Code — `POINTAGE_PERIODE_VERROUILLEE`
+- HTTP — 409
+- Règle — RM-95, CT-43
+- `blocages` — période
+
+- Code — `POINTAGE_MOTIF_REQUIS`
+- HTTP — 400
+- Règle — RM-94, CT-42
+- `blocages` — `champ:motif`
+
+- Code — `POINTAGE_HORODATAGE_INVALIDE`
+- HTTP — 400
+- Règle — §5.4 (pointage dans le futur), dérive d'horloge §4.3 front
+- `blocages` — `champ:debutLe`/`finLe`
+
+- Code — `VEHICULE_KILOMETRAGE_REGRESSIF`
+- HTTP — 409
+- Règle — RM-24, CT-07
+- `blocages` — dernier relevé connu
+
+- Code — `VEHICULE_PLAQUE_COLLISION`
+- HTTP — 409
+- Règle — RM-18, CT-06
+- `blocages` — **véhicule qui porte déjà la plaque**
+
+- Code — `VEHICULE_VIN_EXISTANT`
+- HTTP — 409
+- Règle — RM-15
+- `blocages` — véhicule existant
+
+- Code — `VEHICULE_ARCHIVAGE_IMPOSSIBLE`
+- HTTP — 409
+- Règle — RM-31
+- `blocages` — OR ouverts
+
+- Code — `CLIENT_TYPE_IMMUABLE`
+- HTTP — 409
+- Règle — RM-01
+- `blocages` — —
+
+- Code — `CLIENT_DESACTIVATION_IMPOSSIBLE`
+- HTTP — 409
+- Règle — RM-12
+- `blocages` — OR / RDV / détentions
+
+- Code — `PRET_VEHICULE_INDISPONIBLE`
+- HTTP — 409
+- Règle — RM-103, CT-45
+- `blocages` — prêt en conflit
+
+- Code — `PRET_CONDUCTEUR_REQUIS`
+- HTTP — 400
+- Règle — RM-102
+- `blocages` — `champ:conducteur*`
+
+- Code — `CONFIRMATION_REQUISE`
+- HTTP — 409
+- Règle — §4.4
+- `blocages` — ce qui doit être confirmé
+
+- Code — `IDEMPOTENCE_CONFLIT`
+- HTTP — 409
+- Règle — §5.1
+- `blocages` — —
+
+- Code — `FONCTION_NON_DISPONIBLE`
+- HTTP — 501
+- Règle — §11.3
+- `blocages` — —
 
 **40 codes ajoutés.** 21 reprennent des clés i18n déjà traduites (dont 1 renommée, §4.2) ; **19 codes
 restent à traduire en FR/DE/IT** par expert-i18n :
@@ -545,22 +858,47 @@ restent à traduire en FR/DE/IT** par expert-i18n :
 (19 entrées — `OR_CHECKLIST_INCOMPLETE` correspond à la clé UI `or:refus.checklistIncomplete` déjà
 prévue par le plan frontend §7.2, dont le code manquait dans les deux plans).
 
-### 4.4 Avertissements et confirmations
+4.4 Avertissements et confirmations
+-----------------------------------
 
 **Avertissements** — un succès avec réserve, jamais une erreur (RM-05, RM-25, RM-38, §6.16). Enveloppe
 de réponse en §7.1.
 
-| `CodeAvertissement`                  | Déclencheur   | `donnees`                                                                       |
-| ------------------------------------ | ------------- | ------------------------------------------------------------------------------- |
-| `CLIENT_DOUBLON_PROBABLE`            | RM-05, CT-01  | `candidats[]` : `{clientId, numeroClient, nom, npa, critere}`                   |
-| `VEHICULE_VIN_COURT`                 | RM-15         | `vin`, `longueur`                                                               |
-| `VEHICULE_IDENTIFICATION_INCOMPLETE` | RM-16         | —                                                                               |
-| `VEHICULE_KILOMETRAGE_ABERRANT`      | RM-25         | `ecartKm`, `kmParJour`                                                          |
-| `VEHICULE_EXPERTISE_ECHUE`           | RM-29, CT-09  | `prochaineExpertiseLe`, `source`                                                |
-| `PLANNING_CAPACITE_DEPASSEE`         | RM-38, CT-14  | `capaciteCentiemes`, `chargeCentiemes`, `date`                                  |
-| `POINTAGE_CLOTURE_AUTOMATIQUE`       | RM-89, CT-37  | `pointageId`, `orNumero`, `finLe`, `cause: nouveau_pointage\|fermeture_atelier` |
-| `PRET_CASCADE_RESTITUTION`           | RM-104, CT-46 | `pretId`, `clientSuivant`, `dateReservee`                                       |
-| `OR_MULTI_PAYEURS_DESACTIVE`         | P-12          | —                                                                               |
+- `CodeAvertissement` — `CLIENT_DOUBLON_PROBABLE`
+- Déclencheur — RM-05, CT-01
+- `donnees` — `candidats[]` : `{clientId, numeroClient, nom, npa, critere}`
+
+- `CodeAvertissement` — `VEHICULE_VIN_COURT`
+- Déclencheur — RM-15
+- `donnees` — `vin`, `longueur`
+
+- `CodeAvertissement` — `VEHICULE_IDENTIFICATION_INCOMPLETE`
+- Déclencheur — RM-16
+- `donnees` — —
+
+- `CodeAvertissement` — `VEHICULE_KILOMETRAGE_ABERRANT`
+- Déclencheur — RM-25
+- `donnees` — `ecartKm`, `kmParJour`
+
+- `CodeAvertissement` — `VEHICULE_EXPERTISE_ECHUE`
+- Déclencheur — RM-29, CT-09
+- `donnees` — `prochaineExpertiseLe`, `source`
+
+- `CodeAvertissement` — `PLANNING_CAPACITE_DEPASSEE`
+- Déclencheur — RM-38, CT-14
+- `donnees` — `capaciteCentiemes`, `chargeCentiemes`, `date`
+
+- `CodeAvertissement` — `POINTAGE_CLOTURE_AUTOMATIQUE`
+- Déclencheur — RM-89, CT-37
+- `donnees` — `pointageId`, `orNumero`, `finLe`, `cause: nouveau_pointage\
+
+- `CodeAvertissement` — `PRET_CASCADE_RESTITUTION`
+- Déclencheur — RM-104, CT-46
+- `donnees` — `pretId`, `clientSuivant`, `dateReservee`
+
+- `CodeAvertissement` — `OR_MULTI_PAYEURS_DESACTIVE`
+- Déclencheur — P-12
+- `donnees` — —
 
 `POINTAGE_CLOTURE_AUTOMATIQUE` mérite d'être souligné : CT-37 attend qu'un démarrage de pointage
 **réussisse** tout en signalant la clôture du précédent. C'est précisément un avertissement en 2xx —
@@ -569,14 +907,29 @@ dans un `catch` (§4.3 du plan frontend).
 
 **Confirmations** — le geste explicite d'un rôle habilité, tracé.
 
-| `CodeConfirmation`            | Règle            | Droit requis                  |
-| ----------------------------- | ---------------- | ----------------------------- |
-| `CLIENT_BLOQUE`               | RM-08            | `chef_atelier` ou `direction` |
-| `VEHICULE_DEUX_OR_OUVERTS`    | P-29 = `avertir` | `receptionnaire`+             |
-| `RDV_RESSOURCE_CHEVAUCHEMENT` | RM-39, CT-15     | `chef_atelier` ou `direction` |
-| `RDV_HORS_OUVERTURE`          | RM-48            | `chef_atelier` ou `direction` |
-| `PRET_VEHICULE_INDISPONIBLE`  | RM-103           | `chef_atelier` ou `direction` |
-| `OR_SANS_RDV`                 | P-21 = interdit  | `chef_atelier` ou `direction` |
+- `CodeConfirmation` — `CLIENT_BLOQUE`
+- Règle — RM-08
+- Droit requis — `chef_atelier` ou `direction`
+
+- `CodeConfirmation` — `VEHICULE_DEUX_OR_OUVERTS`
+- Règle — P-29 = `avertir`
+- Droit requis — `receptionnaire`+
+
+- `CodeConfirmation` — `RDV_RESSOURCE_CHEVAUCHEMENT`
+- Règle — RM-39, CT-15
+- Droit requis — `chef_atelier` ou `direction`
+
+- `CodeConfirmation` — `RDV_HORS_OUVERTURE`
+- Règle — RM-48
+- Droit requis — `chef_atelier` ou `direction`
+
+- `CodeConfirmation` — `PRET_VEHICULE_INDISPONIBLE`
+- Règle — RM-103
+- Droit requis — `chef_atelier` ou `direction`
+
+- `CodeConfirmation` — `OR_SANS_RDV`
+- Règle — P-21 = interdit
+- Droit requis — `chef_atelier` ou `direction`
 
 **Protocole de confirmation** — deux temps, jamais un `?force=true` (un forçage se trace) :
 
@@ -600,11 +953,14 @@ Règles associées :
 
 ---
 
-## 5. Idempotence (D-03, D-04)
+5. Idempotence (D-03, D-04)
+
+---
 
 Deux mécanismes, un critère de choix limpide : **qui nomme la ressource ?**
 
-### 5.1 Le serveur nomme → en-tête `Idempotency-Key`
+5.1 Le serveur nomme → en-tête `Idempotency-Key`
+------------------------------------------------
 
 Quand la création consomme une ressource rare et non réutilisable — un numéro d'OR séquentiel (RM-49),
 un numéro de client jamais réutilisé (RM-11) —, le client ne peut pas nommer la ressource. Il nomme la
@@ -612,18 +968,35 @@ un numéro de client jamais réutilisé (RM-11) —, le client ne peut pas nomme
 
 `Idempotency-Key: <uuid v4>`, **obligatoire** (absence → `400 VALIDATION_ECHOUEE`) sur :
 
-| Endpoint                                                                | Pourquoi                                                                       |
-| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `POST /clients`                                                         | RM-11 — un rejeu ne doit pas brûler un numéro de client                        |
-| `POST /vehicules`                                                       | un doublon de véhicule pollue la recherche par plaque, l'entrée n°1 du produit |
-| `POST /rendez-vous`                                                     | double-clic au téléphone, §5.6 du plan frontend                                |
-| `POST /ordres-reparation`                                               | **le cas critique** — RM-49, un rejeu ne brûle jamais un numéro d'OR           |
-| `POST /rendez-vous/{id}/honorer`                                        | crée un OR (RM-43)                                                             |
-| `POST /ordres-reparation/{id}/lignes`                                   | saisie en rafale, double `Entrée` (§3.5 du plan frontend)                      |
-| `POST /ordres-reparation/{id}/devis-complementaires`                    | pièce à valeur probante                                                        |
-| `POST /ordres-reparation/{id}/devis-complementaires/{devisId}/repondre` | **une double réponse est un litige** (RM-81)                                   |
-| `POST /ordres-reparation/{id}/signatures`                               | une signature perdue ou dupliquée détruit la preuve (RM-109)                   |
-| `POST /prets`                                                           | lot 5                                                                          |
+- Endpoint — `POST /clients`
+- Pourquoi — RM-11 — un rejeu ne doit pas brûler un numéro de client
+
+- Endpoint — `POST /vehicules`
+- Pourquoi — un doublon de véhicule pollue la recherche par plaque, l'entrée n°1 du produit
+
+- Endpoint — `POST /rendez-vous`
+- Pourquoi — double-clic au téléphone, §5.6 du plan frontend
+
+- Endpoint — `POST /ordres-reparation`
+- Pourquoi — **le cas critique** — RM-49, un rejeu ne brûle jamais un numéro d'OR
+
+- Endpoint — `POST /rendez-vous/{id}/honorer`
+- Pourquoi — crée un OR (RM-43)
+
+- Endpoint — `POST /ordres-reparation/{id}/lignes`
+- Pourquoi — saisie en rafale, double `Entrée` (§3.5 du plan frontend)
+
+- Endpoint — `POST /ordres-reparation/{id}/devis-complementaires`
+- Pourquoi — pièce à valeur probante
+
+- Endpoint — `POST /ordres-reparation/{id}/devis-complementaires/{devisId}/repondre`
+- Pourquoi — **une double réponse est un litige** (RM-81)
+
+- Endpoint — `POST /ordres-reparation/{id}/signatures`
+- Pourquoi — une signature perdue ou dupliquée détruit la preuve (RM-109)
+
+- Endpoint — `POST /prets`
+- Pourquoi — lot 5
 
 Sémantique, à documenter mot pour mot dans l'OpenAPI :
 
@@ -638,7 +1011,8 @@ Sémantique, à documenter mot pour mot dans l'OpenAPI :
   connecteur doit savoir combien de temps un rejeu reste sûr. Toute réduction est une rupture (§11.4) ;
 - l'écriture de la clé et le travail métier sont dans **la même transaction**.
 
-### 5.2 Le client nomme → `PUT` sur un identifiant fourni par le client
+5.2 Le client nomme → `PUT` sur un identifiant fourni par le client
+-------------------------------------------------------------------
 
 C'est la réponse à D-03, et elle mérite d'être comprise pour ce qu'elle est : **la seule façon de
 clôturer hors ligne un pointage jamais synchronisé.** L'événement `fin` produit sur la tablette doit
@@ -678,7 +1052,8 @@ Trois précisions qui éviteront des tickets :
    `409 POINTAGE_TRANSITION_INTERDITE` (le pointage est déjà terminé) et le client doit passer par une
    correction — pas par un second arrêt.
 
-### 5.3 Horloge et hors ligne
+5.3 Horloge et hors ligne
+-------------------------
 
 `PUT /pointages/{id}` accepte `debutLe` (horodatage **déclaré par l'appareil**),
 `decalageHorlogeMs` (mesuré au dernier échange réussi) et `appareilId`. Le serveur stocke les deux
@@ -693,9 +1068,12 @@ de dérive (5 minutes), `finLe` antérieur à `debutLe`, `debutLe` dans une pér
 
 ---
 
-## 6. Pagination, filtres et tris
+6. Pagination, filtres et tris
 
-### 6.1 Le curseur doit apprendre à trier autrement que par date de création
+---
+
+6.1 Le curseur doit apprendre à trier autrement que par date de création
+------------------------------------------------------------------------
 
 Le curseur du socle encode `{"c": "<cree_le ISO>", "i": "<uuid>"}` pour un tri fixe
 `(cree_le DESC, id DESC)`. L'étape 1 introduit des tris métier indispensables : un planning se lit par
@@ -723,29 +1101,87 @@ Paramètres communs à toutes les collections : `limite` (1..200, défaut 50), `
 `tri` a la forme `<champ>:<asc|desc>`, avec une **liste fermée par collection** (un tri non listé →
 `400`, jamais un tri silencieusement ignoré).
 
-### 6.2 Filtres et tris, collection par collection
+6.2 Filtres et tris, collection par collection
+----------------------------------------------
 
 Convention : un filtre multivalué se répète (`?statut=actif&statut=bloque`) — pas de listes séparées
 par virgules, qui cassent dès qu'une valeur en contient une. Un intervalle s'écrit `xDu` / `xAu`,
 bornes **incluses**. `q` est la recherche libre normalisée (RM-112).
 
-| Collection                                          | Filtres                                                                                                                                                                                                      | Tris (défaut **gras**)                                                                             | Notes                                                                                     |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `GET /clients`                                      | `q`, `type`, `statut` (multi, défaut `actif`+`bloque`), `groupeId`, `poObligatoire`, `siteId` (si P-30 = cloisonné)                                                                                          | **`nom:asc`**, `numeroClient:asc`, `creeLe:desc`, `dernierPassageLe:desc`                          | `q` porte sur nom, raison sociale, n° client, téléphone, e-mail, IDE                      |
-| `GET /vehicules`                                    | `q`, `detenteurId`, `statut`, `marque`, `importe`, `prochaineExpertiseAu`, `siteId`                                                                                                                          | **`plaque:asc`**, `creeLe:desc`, `prochaineExpertiseLe:asc`                                        | `prochaineExpertiseAu` sert la liste de relance (RM-29)                                   |
-| `GET /clients/{id}/vehicules`                       | `inclureAnciennesDetentions` (bool, défaut `false`)                                                                                                                                                          | **`plaque:asc`**                                                                                   | RM-20 : détentions closes visibles sur demande                                            |
-| `GET /clients/{id}/ordres-reparation`               | `statut` (multi)                                                                                                                                                                                             | **`ouvertLe:desc`**                                                                                | RM-21 : les OR restent au client de l'époque                                              |
-| `GET /vehicules/{id}/kilometrages`                  | `du`, `au`                                                                                                                                                                                                   | **`releveLe:desc`**                                                                                | RM-23                                                                                     |
-| `GET /vehicules/{id}/travaux-reportes`              | `statut` (multi, défaut `ouvert`), `urgence`                                                                                                                                                                 | **`constateLe:desc`**                                                                              | RM-73                                                                                     |
-| `GET /rendez-vous`                                  | `siteId` **(obligatoire)**, `du`/`au` **(obligatoires, fenêtre ≤ 62 jours)**, `statut` (multi), `technicienId`, `posteTravailId`, `motifId`, `vehiculeId`, `clientId`, `origine`                             | **`debutLe:asc`**                                                                                  | fenêtre bornée : sans elle, un connecteur balaie trois ans de planning à chaque poll      |
-| `GET /ordres-reparation`                            | `siteId`, `statut` (multi), `vue` (§6.3), `clientId`, `vehiculeId`, `technicienId`, `localisation` (multi), `attente` (multi : `accord\|pieces\|externe`), `restitutionPromiseDu`/`Au`, `ouvertDu`/`Au`, `q` | **`ouvertLe:desc`**, `restitutionPromiseLe:asc`, `numeroSequence:desc`, `joursAttenteRetrait:desc` | `q` porte sur n° d'OR, plaque, nom du client                                              |
-| `GET /ordres-reparation/{id}/lignes`                | `statut` (multi), `origine`, `payeur`, `technicienId`                                                                                                                                                        | **`ordreAffichage:asc`**                                                                           | collection paginée pour connecteurs ; l'écran lit les lignes embarquées (§8.3)            |
-| `GET /ordres-reparation/{id}/devis-complementaires` | `decision`                                                                                                                                                                                                   | **`numeroOrdre:asc`**                                                                              |                                                                                           |
-| `GET /ordres-reparation/{id}/journal`               | `entite`, `action`, `du`/`au`                                                                                                                                                                                | **`survenuLe:desc`**                                                                               | RM-59, chargé à l'ouverture du panneau                                                    |
-| `GET /pointages`                                    | `du`/`au` **(obligatoires, ≤ 92 jours)**, `technicienId`, `siteId`, `ordreReparationId`, `ligneOrId`, `statut` (multi), `anomalie` (bool), `natureActivite`                                                  | **`debutLe:desc`**                                                                                 | `statut=en_cours` remplace un endpoint `/ouverts` ; `anomalie=true` remplace `/anomalies` |
-| `GET /periodes-pointage`                            | `statut`, `annee`                                                                                                                                                                                            | **`debutLe:desc`**                                                                                 | RM-95                                                                                     |
-| `GET /prets`                                        | `siteId`, `statut` (multi), `du`/`au`, `vehiculeCourtoisieId`, `clientId`                                                                                                                                    | **`debutPrevuLe:desc`**                                                                            | lot 5                                                                                     |
-| `GET /audit`                                        | `entite` **(obligatoire)**, `entiteId` **(obligatoire)**, `du`/`au`                                                                                                                                          | **`survenuLe:desc`**                                                                               | droits `direction`/`admin`                                                                |
+- Collection — `GET /clients`
+- Filtres — `q`, `type`, `statut` (multi, défaut `actif`+`bloque`), `groupeId`, `poObligatoire`, `siteId` (si P-30 = cloisonné)
+- Tris (défaut **gras**) — **`nom:asc`**, `numeroClient:asc`, `creeLe:desc`, `dernierPassageLe:desc`
+- Notes — `q` porte sur nom, raison sociale, n° client, téléphone, e-mail, IDE
+
+- Collection — `GET /vehicules`
+- Filtres — `q`, `detenteurId`, `statut`, `marque`, `importe`, `prochaineExpertiseAu`, `siteId`
+- Tris (défaut **gras**) — **`plaque:asc`**, `creeLe:desc`, `prochaineExpertiseLe:asc`
+- Notes — `prochaineExpertiseAu` sert la liste de relance (RM-29)
+
+- Collection — `GET /clients/{id}/vehicules`
+- Filtres — `inclureAnciennesDetentions` (bool, défaut `false`)
+- Tris (défaut **gras**) — **`plaque:asc`**
+- Notes — RM-20 : détentions closes visibles sur demande
+
+- Collection — `GET /clients/{id}/ordres-reparation`
+- Filtres — `statut` (multi)
+- Tris (défaut **gras**) — **`ouvertLe:desc`**
+- Notes — RM-21 : les OR restent au client de l'époque
+
+- Collection — `GET /vehicules/{id}/kilometrages`
+- Filtres — `du`, `au`
+- Tris (défaut **gras**) — **`releveLe:desc`**
+- Notes — RM-23
+
+- Collection — `GET /vehicules/{id}/travaux-reportes`
+- Filtres — `statut` (multi, défaut `ouvert`), `urgence`
+- Tris (défaut **gras**) — **`constateLe:desc`**
+- Notes — RM-73
+
+- Collection — `GET /rendez-vous`
+- Filtres — `siteId` **(obligatoire)**, `du`/`au` **(obligatoires, fenêtre ≤ 62 jours)**, `statut` (multi), `technicienId`, `posteTravailId`, `motifId`, `vehiculeId`, `clientId`, `origine`
+- Tris (défaut **gras**) — **`debutLe:asc`**
+- Notes — fenêtre bornée : sans elle, un connecteur balaie trois ans de planning à chaque poll
+
+- Collection — `GET /ordres-reparation`
+- Filtres — `siteId`, `statut` (multi), `vue` (§6.3), `clientId`, `vehiculeId`, `technicienId`, `localisation` (multi), `attente` (multi : `accord\
+- Tris (défaut **gras**) — pieces\
+- Notes — externe`), `restitutionPromiseDu`/`Au`, `ouvertDu`/`Au`, `q`
+
+- Collection — `GET /ordres-reparation/{id}/lignes`
+- Filtres — `statut` (multi), `origine`, `payeur`, `technicienId`
+- Tris (défaut **gras**) — **`ordreAffichage:asc`**
+- Notes — collection paginée pour connecteurs ; l'écran lit les lignes embarquées (§8.3)
+
+- Collection — `GET /ordres-reparation/{id}/devis-complementaires`
+- Filtres — `decision`
+- Tris (défaut **gras**) — **`numeroOrdre:asc`**
+- Notes —
+
+- Collection — `GET /ordres-reparation/{id}/journal`
+- Filtres — `entite`, `action`, `du`/`au`
+- Tris (défaut **gras**) — **`survenuLe:desc`**
+- Notes — RM-59, chargé à l'ouverture du panneau
+
+- Collection — `GET /pointages`
+- Filtres — `du`/`au` **(obligatoires, ≤ 92 jours)**, `technicienId`, `siteId`, `ordreReparationId`, `ligneOrId`, `statut` (multi), `anomalie` (bool), `natureActivite`
+- Tris (défaut **gras**) — **`debutLe:desc`**
+- Notes — `statut=en_cours` remplace un endpoint `/ouverts` ; `anomalie=true` remplace `/anomalies`
+
+- Collection — `GET /periodes-pointage`
+- Filtres — `statut`, `annee`
+- Tris (défaut **gras**) — **`debutLe:desc`**
+- Notes — RM-95
+
+- Collection — `GET /prets`
+- Filtres — `siteId`, `statut` (multi), `du`/`au`, `vehiculeCourtoisieId`, `clientId`
+- Tris (défaut **gras**) — **`debutPrevuLe:desc`**
+- Notes — lot 5
+
+- Collection — `GET /audit`
+- Filtres — `entite` **(obligatoire)**, `entiteId` **(obligatoire)**, `du`/`au`
+- Tris (défaut **gras**) — **`survenuLe:desc`**
+- Notes — droits `direction`/`admin`
 
 **Sur les fenêtres obligatoires** (`/rendez-vous`, `/pointages`, `/audit`) : c'est une décision de
 contrat, pas une limite d'implémentation. Une collection dont la taille croît sans borne avec
@@ -753,47 +1189,76 @@ l'ancienneté du tenant produit, cinq ans plus tard, des connecteurs qui paginen
 milliers de lignes à chaque synchronisation. Imposer la fenêtre **maintenant** est gratuit ; l'imposer
 plus tard est une rupture.
 
-### 6.3 Les sept vues d'exception : du sucre, jamais une sémantique cachée
+6.3 Les sept vues d'exception : du sucre, jamais une sémantique cachée
+----------------------------------------------------------------------
 
 Le plan frontend §2.5 demande sept vues pré-câblées avec compteurs. `?vue=<nom>` existe, **mais sous
 une règle stricte : toute vue est exactement équivalente à une combinaison de filtres primitifs
 documentés.** Une vue ne fait jamais rien que le développeur tiers ne puisse reproduire — sans quoi
 elle devient une sémantique privée, non testable et impossible à faire évoluer.
 
-| `vue`                    | Équivalent primitif exact                                                                               | Règle        |
-| ------------------------ | ------------------------------------------------------------------------------------------------------- | ------------ |
-| `en_cours`               | `statut=ouvert&statut=en_cours&statut=controle`                                                         | —            |
-| `attente_accord`         | `attente=accord`                                                                                        | RM-58        |
-| `attente_pieces`         | `attente=pieces`                                                                                        | RM-58        |
-| `attente_externe`        | `attente=externe`                                                                                       | §6.15        |
-| `prets_au_retrait`       | `statut=termine&statut=facture&localisation=pret_au_retrait`, tri `joursAttenteRetrait:desc`            | §6.5, CT-50  |
-| `restitution_aujourdhui` | `restitutionPromiseDu=<aujourd'hui>&restitutionPromiseAu=<aujourd'hui>`, tri `restitutionPromiseLe:asc` | RM-56        |
-| `pointages_anormaux`     | _(sur `/pointages`)_ `anomalie=true`                                                                    | RM-91, RM-96 |
+- `vue` — `en_cours`
+- Équivalent primitif exact — `statut=ouvert&statut=en_cours&statut=controle`
+- Règle — —
+
+- `vue` — `attente_accord`
+- Équivalent primitif exact — `attente=accord`
+- Règle — RM-58
+
+- `vue` — `attente_pieces`
+- Équivalent primitif exact — `attente=pieces`
+- Règle — RM-58
+
+- `vue` — `attente_externe`
+- Équivalent primitif exact — `attente=externe`
+- Règle — §6.15
+
+- `vue` — `prets_au_retrait`
+- Équivalent primitif exact — `statut=termine&statut=facture&localisation=pret_au_retrait`, tri `joursAttenteRetrait:desc`
+- Règle — §6.5, CT-50
+
+- `vue` — `restitution_aujourdhui`
+- Équivalent primitif exact — `restitutionPromiseDu=<aujourd'hui>&restitutionPromiseAu=<aujourd'hui>`, tri `restitutionPromiseLe:asc`
+- Règle — RM-56
+
+- `vue` — `pointages_anormaux`
+- Équivalent primitif exact — _(sur `/pointages`)_ `anomalie=true`
+- Règle — RM-91, RM-96
 
 `vue` et les filtres primitifs sont **cumulables** (`?vue=prets_au_retrait&siteId=…`) ; en cas de
 contradiction, le filtre explicite l'emporte et l'écart est documenté. La projection
 **`GET /ordres-reparation/compteurs-vues?siteId=`** renvoie les six compteurs d'un coup — la barre de
 vues du chef d'atelier ne déclenche pas six requêtes.
 
-### 6.4 Ce qui n'est pas paginé, et pourquoi
+6.4 Ce qui n'est pas paginé, et pourquoi
+----------------------------------------
 
 Trois exceptions, toutes explicites et bornées — parce qu'un curseur sur un résultat de saisie au
 clavier est un piège, pas une garantie :
 
-| Endpoint                               | Borne                         | Justification                                                                                                                                                                 |
-| -------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /recherche`                       | `limite` ≤ 50, pas de curseur | omnibox à la frappe : on veut les meilleurs résultats, pas la page 3. Un `curseurSuivant` inciterait à paginer une recherche fuzzy dont le classement change à chaque frappe. |
-| `GET /parametres-atelier`              | singleton                     | —                                                                                                                                                                             |
-| `GET /vehicules/{id}/contexte-atelier` | sections bornées (§8.1)       | —                                                                                                                                                                             |
+- Endpoint — `GET /recherche`
+- Borne — `limite` ≤ 50, pas de curseur
+- Justification — omnibox à la frappe : on veut les meilleurs résultats, pas la page 3. Un `curseurSuivant` inciterait à paginer une recherche fuzzy dont le classement change à chaque frappe.
+
+- Endpoint — `GET /parametres-atelier`
+- Borne — singleton
+- Justification — —
+
+- Endpoint — `GET /vehicules/{id}/contexte-atelier`
+- Borne — sections bornées (§8.1)
+- Justification — —
 
 Ces trois-là sont des **projections** (§1.1), pas des collections. La règle « pagination par curseur
 sur toutes les collections » reste sans exception.
 
 ---
 
-## 7. Ressources et endpoints — la table complète
+7. Ressources et endpoints — la table complète
 
-### 7.1 L'enveloppe de réponse des écritures
+---
+
+7.1 L'enveloppe de réponse des écritures
+----------------------------------------
 
 Toute création ou modification d'une ressource métier de l'étape 1 répond avec :
 
@@ -818,7 +1283,8 @@ Trois questions tranchées d'un coup :
 Exceptions : `204 No Content` (aucune ressource à rendre) et les endpoints d'authentification du
 socle, inchangés.
 
-### 7.2 Codes implicites sur tous les endpoints
+7.2 Codes implicites sur tous les endpoints
+-------------------------------------------
 
 Pour ne pas répéter cinq lignes quarante fois, **ces codes sont implicites partout** et ne sont pas
 listés dans les tables ci-dessous :
@@ -832,23 +1298,73 @@ Les tables listent **uniquement les codes métier** propres à chaque endpoint. 
 est contractuelle : elle doit être exhaustive, et un code renvoyé mais non déclaré est un bug de
 contrat (§13).
 
-### 7.3 Clients
+7.3 Clients
+-----------
 
-| Méthode et chemin                                                           | Entrée                                                                                                                                                                                              | 2xx                     | Codes métier                                                                                  |
-| --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------- |
-| `GET /clients`                                                              | §6.2                                                                                                                                                                                                | `200` page              | —                                                                                             |
-| `POST /clients`                                                             | `Idempotency-Key` ; `{type, civilite?, nom?, prenom?, raisonSociale?, ide?, langueCorrespondance, adressePrincipale, telephones[], email?, conditions?, poObligatoire?, groupeId?, confirmations?}` | `201` enveloppe         | `IDEMPOTENCE_CONFLIT` · avert. `CLIENT_DOUBLON_PROBABLE` (RM-05, CT-01 : **jamais bloquant**) |
-| `GET /clients/{clientId}`                                                   | —                                                                                                                                                                                                   | `200`                   | —                                                                                             |
-| `PATCH /clients/{clientId}`                                                 | champs modifiables (le `type` n'en est pas)                                                                                                                                                         | `200` enveloppe         | `CLIENT_TYPE_IMMUABLE` (RM-01)                                                                |
-| `POST /clients/{clientId}/desactiver`                                       | `{motif}`                                                                                                                                                                                           | `200` enveloppe         | `CLIENT_DESACTIVATION_IMPOSSIBLE` (RM-12, `blocages` = OR/RDV/détentions ouverts)             |
-| `POST /clients/{clientId}/fusionner`                                        | `Idempotency-Key` ; `{clientSourceId, confirmationNom}`                                                                                                                                             | `200` enveloppe (cible) | `CLIENT_DESACTIVATION_IMPOSSIBLE`, `CONFIRMATION_REQUISE` · droit `direction` seul (§10)      |
-| `GET /clients/{clientId}/vehicules`                                         | §6.2                                                                                                                                                                                                | `200` page              | —                                                                                             |
-| `GET /clients/{clientId}/ordres-reparation`                                 | §6.2                                                                                                                                                                                                | `200` page              | —                                                                                             |
-| `GET\|POST /clients/{clientId}/adresses` · `PATCH .../adresses/{adresseId}` | RM-03                                                                                                                                                                                               | `200`/`201`             | `VALIDATION_ECHOUEE` (une seule `principale`)                                                 |
-| `GET\|POST /clients/{clientId}/contacts` · `PATCH .../contacts/{contactId}` | RM-04, rôles cumulables                                                                                                                                                                             | `200`/`201`             | —                                                                                             |
-| `GET\|POST /clients/{clientId}/conditions`                                  | RM-07, **datées**                                                                                                                                                                                   | `200`/`201`             | `VALIDATION_ECHOUEE` (chevauchement de validité)                                              |
-| `GET\|POST /clients/{clientId}/consentements`                               | RM-09                                                                                                                                                                                               | `200`/`201`             | —                                                                                             |
-| `GET\|POST /clients/{clientId}/notes`                                       | RM-13 (`interne`\|`alerte`)                                                                                                                                                                         | `200`/`201`             | —                                                                                             |
+- Méthode et chemin — `GET /clients`
+- Entrée — §6.2
+- 2xx — `200` page
+- Codes métier — —
+
+- Méthode et chemin — `POST /clients`
+- Entrée — `Idempotency-Key` ; `{type, civilite?, nom?, prenom?, raisonSociale?, ide?, langueCorrespondance, adressePrincipale, telephones[], email?, conditions?, poObligatoire?, groupeId?, confirmations?}`
+- 2xx — `201` enveloppe
+- Codes métier — `IDEMPOTENCE_CONFLIT` · avert. `CLIENT_DOUBLON_PROBABLE` (RM-05, CT-01 : **jamais bloquant**)
+
+- Méthode et chemin — `GET /clients/{clientId}`
+- Entrée — —
+- 2xx — `200`
+- Codes métier — —
+
+- Méthode et chemin — `PATCH /clients/{clientId}`
+- Entrée — champs modifiables (le `type` n'en est pas)
+- 2xx — `200` enveloppe
+- Codes métier — `CLIENT_TYPE_IMMUABLE` (RM-01)
+
+- Méthode et chemin — `POST /clients/{clientId}/desactiver`
+- Entrée — `{motif}`
+- 2xx — `200` enveloppe
+- Codes métier — `CLIENT_DESACTIVATION_IMPOSSIBLE` (RM-12, `blocages` = OR/RDV/détentions ouverts)
+
+- Méthode et chemin — `POST /clients/{clientId}/fusionner`
+- Entrée — `Idempotency-Key` ; `{clientSourceId, confirmationNom}`
+- 2xx — `200` enveloppe (cible)
+- Codes métier — `CLIENT_DESACTIVATION_IMPOSSIBLE`, `CONFIRMATION_REQUISE` · droit `direction` seul (§10)
+
+- Méthode et chemin — `GET /clients/{clientId}/vehicules`
+- Entrée — §6.2
+- 2xx — `200` page
+- Codes métier — —
+
+- Méthode et chemin — `GET /clients/{clientId}/ordres-reparation`
+- Entrée — §6.2
+- 2xx — `200` page
+- Codes métier — —
+
+- Méthode et chemin — `GET\
+- Entrée — POST /clients/{clientId}/adresses`·`PATCH .../adresses/{adresseId}`
+- 2xx — RM-03
+- Codes métier — `200`/`201`
+
+- Méthode et chemin — `GET\
+- Entrée — POST /clients/{clientId}/contacts`·`PATCH .../contacts/{contactId}`
+- 2xx — RM-04, rôles cumulables
+- Codes métier — `200`/`201`
+
+- Méthode et chemin — `GET\
+- Entrée — POST /clients/{clientId}/conditions`
+- 2xx — RM-07, **datées**
+- Codes métier — `200`/`201`
+
+- Méthode et chemin — `GET\
+- Entrée — POST /clients/{clientId}/consentements`
+- 2xx — RM-09
+- Codes métier — `200`/`201`
+
+- Méthode et chemin — `GET\
+- Entrée — POST /clients/{clientId}/notes`
+- 2xx — RM-13 (`interne`\
+- Codes métier — `alerte`)
 
 **`POST /clients/{clientId}/fusionner`** (RM-06, CT-02) : la fusion est irréversible côté utilisateur
 et déplace véhicules, OR, RDV et documents. `confirmationNom` reprend le nom exact de la fiche
@@ -863,25 +1379,83 @@ Placée à la racine et non sous `/clients/…` par application de la règle §1
 se met jamais là où un identifiant est attendu (`/clients/doublons-probables` serait ambigu avec
 `/clients/{clientId}` et se casserait le jour où un identifiant cesse d'être un uuid).
 
-### 7.4 Véhicules
+7.4 Véhicules
+-------------
 
-| Méthode et chemin                                                                  | Entrée                                                                                                                                | 2xx                   | Codes métier                                                                                                                                     |
-| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `GET /vehicules`                                                                   | §6.2                                                                                                                                  | `200` page            | —                                                                                                                                                |
-| `POST /vehicules`                                                                  | `Idempotency-Key` ; `{vin?, marque, modele, version?, codeTypeCh?, premiereMiseEnCirculationLe?, plaque?, detenteurId?, importe?, …}` | `201` enveloppe       | `VEHICULE_VIN_EXISTANT` (RM-15) · `VEHICULE_PLAQUE_COLLISION` (RM-18, CT-06) · avert. `VEHICULE_VIN_COURT`, `VEHICULE_IDENTIFICATION_INCOMPLETE` |
-| `GET /vehicules/{vehiculeId}`                                                      | —                                                                                                                                     | `200`                 | —                                                                                                                                                |
-| `PATCH /vehicules/{vehiculeId}`                                                    | données d'atelier (RM-26), garanties (RM-33)                                                                                          | `200` enveloppe       | `VEHICULE_VIN_EXISTANT`                                                                                                                          |
-| `POST /vehicules/{vehiculeId}/archiver`                                            | `{motif}` (RM-31)                                                                                                                     | `200` enveloppe       | `VEHICULE_ARCHIVAGE_IMPOSSIBLE` (`blocages` = OR ouverts)                                                                                        |
-| `POST /vehicules/{vehiculeId}/fusionner`                                           | `{vehiculeSourceId, confirmationVin}`                                                                                                 | `200` enveloppe       | RM-32, droit `direction`                                                                                                                         |
-| `GET\|POST /vehicules/{vehiculeId}/plaques`                                        | `{valeur, canton, debutLe, interchangeable?, professionnelle?, paysEtranger?}`                                                        | `200`/`201`           | `VEHICULE_PLAQUE_COLLISION` (RM-18)                                                                                                              |
-| `POST /vehicules/{vehiculeId}/plaques/{plaqueId}/cloturer`                         | `{finLe}`                                                                                                                             | `200`                 | RM-17                                                                                                                                            |
-| `GET\|POST /vehicules/{vehiculeId}/detentions`                                     | `{clientId, debutLe}` — correction/import                                                                                             | `200`/`201`           | `VALIDATION_ECHOUEE` (deux détenteurs courants)                                                                                                  |
-| **`POST /vehicules/{vehiculeId}/changer-detenteur`**                               | `{nouveauClientId, changementLe, motifFin, nouvellePlaque?}`                                                                          | `200` enveloppe       | RM-20/21, CT-47                                                                                                                                  |
-| `GET\|POST /vehicules/{vehiculeId}/kilometrages`                                   | `{valeur, unite, releveLe, source, motifRegression?}`                                                                                 | `200`/`201` enveloppe | `VEHICULE_KILOMETRAGE_REGRESSIF` (RM-24, CT-07) · avert. `VEHICULE_KILOMETRAGE_ABERRANT` (RM-25)                                                 |
-| `GET\|POST /vehicules/{vehiculeId}/expertises`                                     | `{dateLe, resultat, defauts[], prochaineEcheanceLe, sourceEcheance}`                                                                  | `200`/`201`           | RM-28, CT-10                                                                                                                                     |
-| `GET\|POST /vehicules/{vehiculeId}/campagnes` · `PATCH .../campagnes/{campagneId}` | RM-30                                                                                                                                 | `200`/`201`           | —                                                                                                                                                |
-| `GET /vehicules/{vehiculeId}/travaux-reportes` · `PATCH .../{travailId}`           | RM-73                                                                                                                                 | `200`                 | —                                                                                                                                                |
-| **`GET /vehicules/{vehiculeId}/contexte-atelier`**                                 | projection, §8.1                                                                                                                      | `200`                 | —                                                                                                                                                |
+- Méthode et chemin — `GET /vehicules`
+- Entrée — §6.2
+- 2xx — `200` page
+- Codes métier — —
+
+- Méthode et chemin — `POST /vehicules`
+- Entrée — `Idempotency-Key` ; `{vin?, marque, modele, version?, codeTypeCh?, premiereMiseEnCirculationLe?, plaque?, detenteurId?, importe?, …}`
+- 2xx — `201` enveloppe
+- Codes métier — `VEHICULE_VIN_EXISTANT` (RM-15) · `VEHICULE_PLAQUE_COLLISION` (RM-18, CT-06) · avert. `VEHICULE_VIN_COURT`, `VEHICULE_IDENTIFICATION_INCOMPLETE`
+
+- Méthode et chemin — `GET /vehicules/{vehiculeId}`
+- Entrée — —
+- 2xx — `200`
+- Codes métier — —
+
+- Méthode et chemin — `PATCH /vehicules/{vehiculeId}`
+- Entrée — données d'atelier (RM-26), garanties (RM-33)
+- 2xx — `200` enveloppe
+- Codes métier — `VEHICULE_VIN_EXISTANT`
+
+- Méthode et chemin — `POST /vehicules/{vehiculeId}/archiver`
+- Entrée — `{motif}` (RM-31)
+- 2xx — `200` enveloppe
+- Codes métier — `VEHICULE_ARCHIVAGE_IMPOSSIBLE` (`blocages` = OR ouverts)
+
+- Méthode et chemin — `POST /vehicules/{vehiculeId}/fusionner`
+- Entrée — `{vehiculeSourceId, confirmationVin}`
+- 2xx — `200` enveloppe
+- Codes métier — RM-32, droit `direction`
+
+- Méthode et chemin — `GET\
+- Entrée — POST /vehicules/{vehiculeId}/plaques`
+- 2xx — `{valeur, canton, debutLe, interchangeable?, professionnelle?, paysEtranger?}`
+- Codes métier — `200`/`201`
+
+- Méthode et chemin — `POST /vehicules/{vehiculeId}/plaques/{plaqueId}/cloturer`
+- Entrée — `{finLe}`
+- 2xx — `200`
+- Codes métier — RM-17
+
+- Méthode et chemin — `GET\
+- Entrée — POST /vehicules/{vehiculeId}/detentions`
+- 2xx — `{clientId, debutLe}` — correction/import
+- Codes métier — `200`/`201`
+
+- Méthode et chemin — **`POST /vehicules/{vehiculeId}/changer-detenteur`**
+- Entrée — `{nouveauClientId, changementLe, motifFin, nouvellePlaque?}`
+- 2xx — `200` enveloppe
+- Codes métier — RM-20/21, CT-47
+
+- Méthode et chemin — `GET\
+- Entrée — POST /vehicules/{vehiculeId}/kilometrages`
+- 2xx — `{valeur, unite, releveLe, source, motifRegression?}`
+- Codes métier — `200`/`201` enveloppe
+
+- Méthode et chemin — `GET\
+- Entrée — POST /vehicules/{vehiculeId}/expertises`
+- 2xx — `{dateLe, resultat, defauts[], prochaineEcheanceLe, sourceEcheance}`
+- Codes métier — `200`/`201`
+
+- Méthode et chemin — `GET\
+- Entrée — POST /vehicules/{vehiculeId}/campagnes`·`PATCH .../campagnes/{campagneId}`
+- 2xx — RM-30
+- Codes métier — `200`/`201`
+
+- Méthode et chemin — `GET /vehicules/{vehiculeId}/travaux-reportes` · `PATCH .../{travailId}`
+- Entrée — RM-73
+- 2xx — `200`
+- Codes métier — —
+
+- Méthode et chemin — **`GET /vehicules/{vehiculeId}/contexte-atelier`**
+- Entrée — projection, §8.1
+- 2xx — `200`
+- Codes métier — —
 
 **`POST /vehicules/{vehiculeId}/changer-detenteur`** est un ajout au regard des deux plans, et il est
 important. Le plan backend expose `POST /detentions` + `POST /detentions/{id}/cloturer` : deux appels
@@ -896,7 +1470,8 @@ restent exposés pour les corrections d'historique et les imports.
 "compteur_remplace","erreur_saisie","changement_unite","correction"]}}]`. La conversion mi→km est faite
 **par le serveur** avant comparaison (CT-08) : le client n'a aucune arithmétique d'unité à rejouer.
 
-### 7.5 Recherche (D-08)
+7.5 Recherche (D-08)
+--------------------
 
 **`GET /recherche?q=&types=&limite=`** — projection, `types` répétable
 (`vehicule`\|`client`\|`ordre_reparation`), `limite` ≤ 50.
@@ -954,45 +1529,129 @@ La normalisation est serveur parce qu'elle doit être **identique à celle des i
 (`normaliser_recherche()`, plan backend §2.1.7). Deux normalisations divergentes, l'une en TypeScript
 navigateur et l'autre en SQL, produiraient des résultats manquants indébogables.
 
-### 7.6 Ordres de réparation — ressource et champs libres
+7.6 Ordres de réparation — ressource et champs libres
+-----------------------------------------------------
 
-| Méthode et chemin                                       | Entrée                                                                                                                                                                                                                                           | 2xx                                          | Codes métier                                                                                                                                                             |
-| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `GET /ordres-reparation`                                | §6.2, §6.3                                                                                                                                                                                                                                       | `200` page                                   | —                                                                                                                                                                        |
-| `POST /ordres-reparation`                               | `Idempotency-Key` ; `{siteId, vehiculeId, clientId, type, rendezVousId?, kilometrageEntree?, demandes[], plafondCentimes?, plafondAutorisePar?, restitutionPromiseLe?, conducteurPresent?, statutInitial: "planifie"\|"ouvert", confirmations?}` | `201` enveloppe                              | `OR_KM_ENTREE_REQUIS` (RM-51, CT-19, P-10) · `IDEMPOTENCE_CONFLIT` · `CONFIRMATION_REQUISE` (`CLIENT_BLOQUE` RM-08, `VEHICULE_DEUX_OR_OUVERTS` P-29, `OR_SANS_RDV` P-21) |
-| `GET /ordres-reparation/{orId}`                         | —                                                                                                                                                                                                                                                | `200` + `ETag`                               | —                                                                                                                                                                        |
-| `PATCH /ordres-reparation/{orId}`                       | `If-Match` ; `{localisation?, restitutionPromiseLe?, motifReport?, plafondCentimes?, plafondAutorisePar?, numeroCommandeInterne?, conducteurPresent?}`                                                                                           | `200` enveloppe + `ETag`                     | `CONFLIT` (§9) · `OR_LIGNE_VERROUILLEE` (I-15, OR figé) · avert. `PRET_CASCADE_RESTITUTION` (RM-104, CT-46)                                                              |
-| `GET\|POST /ordres-reparation/{orId}/demandes`          | `{verbatim}` — RM-52                                                                                                                                                                                                                             | `200`/`201`                                  | pas de `PATCH` : un verbatim n'est **jamais** réécrit                                                                                                                    |
-| `GET /ordres-reparation/{orId}/journal`                 | §6.2                                                                                                                                                                                                                                             | `200` page                                   | RM-59, RM-111                                                                                                                                                            |
-| `GET /ordres-reparation/{orId}/documents`               | —                                                                                                                                                                                                                                                | `200`                                        | liste des types disponibles **et la langue de sortie** de chacun (RM-108, P-23)                                                                                          |
-| `GET /ordres-reparation/{orId}/documents/{type}`        | `?langue=` (surcharge motivée)                                                                                                                                                                                                                   | `200` `application/pdf` + `Content-Language` | RM-61 : imprimable **à tout moment**, dans l'état courant                                                                                                                |
-| `GET /ordres-reparation/{orId}/proposition-facturation` | projection, §8.4                                                                                                                                                                                                                                 | `200`                                        | `OR_FACTURATION_AUCUNE_LIGNE` si aucun payeur n'a de ligne (I-14)                                                                                                        |
-| `POST /ordres-reparation/{orId}/signatures`             | `Idempotency-Key` ; `{type, nomSignataire, image, appareil, empreinteDocument}`                                                                                                                                                                  | `201` enveloppe                              | RM-109                                                                                                                                                                   |
+- Méthode et chemin — `GET /ordres-reparation`
+- Entrée — §6.2, §6.3
+- 2xx — `200` page
+- Codes métier — —
+
+- Méthode et chemin — `POST /ordres-reparation`
+- Entrée — `Idempotency-Key` ; `{siteId, vehiculeId, clientId, type, rendezVousId?, kilometrageEntree?, demandes[], plafondCentimes?, plafondAutorisePar?, restitutionPromiseLe?, conducteurPresent?, statutInitial: "planifie"\
+- 2xx — "ouvert", confirmations?}`
+- Codes métier — `201` enveloppe
+
+- Méthode et chemin — `GET /ordres-reparation/{orId}`
+- Entrée — —
+- 2xx — `200` + `ETag`
+- Codes métier — —
+
+- Méthode et chemin — `PATCH /ordres-reparation/{orId}`
+- Entrée — `If-Match` ; `{localisation?, restitutionPromiseLe?, motifReport?, plafondCentimes?, plafondAutorisePar?, numeroCommandeInterne?, conducteurPresent?}`
+- 2xx — `200` enveloppe + `ETag`
+- Codes métier — `CONFLIT` (§9) · `OR_LIGNE_VERROUILLEE` (I-15, OR figé) · avert. `PRET_CASCADE_RESTITUTION` (RM-104, CT-46)
+
+- Méthode et chemin — `GET\
+- Entrée — POST /ordres-reparation/{orId}/demandes`
+- 2xx — `{verbatim}` — RM-52
+- Codes métier — `200`/`201`
+
+- Méthode et chemin — `GET /ordres-reparation/{orId}/journal`
+- Entrée — §6.2
+- 2xx — `200` page
+- Codes métier — RM-59, RM-111
+
+- Méthode et chemin — `GET /ordres-reparation/{orId}/documents`
+- Entrée — —
+- 2xx — `200`
+- Codes métier — liste des types disponibles **et la langue de sortie** de chacun (RM-108, P-23)
+
+- Méthode et chemin — `GET /ordres-reparation/{orId}/documents/{type}`
+- Entrée — `?langue=` (surcharge motivée)
+- 2xx — `200` `application/pdf` + `Content-Language`
+- Codes métier — RM-61 : imprimable **à tout moment**, dans l'état courant
+
+- Méthode et chemin — `GET /ordres-reparation/{orId}/proposition-facturation`
+- Entrée — projection, §8.4
+- 2xx — `200`
+- Codes métier — `OR_FACTURATION_AUCUNE_LIGNE` si aucun payeur n'a de ligne (I-14)
+
+- Méthode et chemin — `POST /ordres-reparation/{orId}/signatures`
+- Entrée — `Idempotency-Key` ; `{type, nomSignataire, image, appareil, empreinteDocument}`
+- 2xx — `201` enveloppe
+- Codes métier — RM-109
 
 `PATCH` modifie **uniquement des champs libres**, jamais un statut. Un report de restitution exige
 `motifReport` (RM-56) : le refuser est une règle métier, pas une validation de forme —
 `400 VALIDATION_ECHOUEE` avec `erreurs[0].champ = "motifReport"`.
 
-### 7.7 Ordres de réparation — les actions
+7.7 Ordres de réparation — les actions
+--------------------------------------
 
 Toutes en `POST`, toutes journalisées, toutes renvoyant **l'OR complet à jour** (§8.3) dans
 l'enveloppe : après une transition, l'écran d'OR n'a pas à relire — c'est l'écran le plus rafraîchi du
 produit.
 
-| Action                                     | Transition                                | Corps                                                            | Codes métier                                                                                                                                             |
-| ------------------------------------------ | ----------------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/receptionner`                            | T-03 `planifie→ouvert`                    | `{kilometrageEntree, unite, signatureDifferee?, motifDifferee?}` | `OR_TRANSITION_INTERDITE` · `OR_KM_ENTREE_REQUIS` (RM-51) · `VEHICULE_KILOMETRAGE_REGRESSIF`                                                             |
-| `/demarrer`                                | T-04 `ouvert→en_cours`                    | `{}`                                                             | `OR_TRANSITION_INTERDITE` · `OR_RECEPTION_REQUISE` (I-07, CT-18)                                                                                         |
-| `/reprendre-travaux`                       | T-06/T-08/T-10                            | `{ligneIds?, motif?}` — lève les blocages                        | `OR_TRANSITION_INTERDITE`                                                                                                                                |
-| `/passer-en-controle`                      | T-11 `en_cours→controle`                  | `{}`                                                             | `OR_LIGNES_A_VALIDER` (I-08) · `OR_LIGNE_NON_REALISEE` (I-10) · `OR_POINTAGE_OUVERT` (I-09)                                                              |
-| `/refuser-controle`                        | T-12 `controle→en_cours`                  | `{motif}` **obligatoire**                                        | `OR_TRANSITION_INTERDITE`                                                                                                                                |
-| `/valider-controle`                        | T-13 `controle→termine`                   | `{controleurId, pointsControles[]}`                              | `OR_CHECKLIST_INCOMPLETE` (P-08) · `OR_POINTAGE_OUVERT` · `OR_PO_MANQUANT`                                                                               |
-| `/terminer`                                | T-14 `en_cours→termine` (P-08 = `jamais`) | `{kilometrageSortie?}`                                           | `OR_TRANSITION_INTERDITE` (si CQ obligatoire) · `OR_LIGNES_A_VALIDER` · `OR_POINTAGE_OUVERT` · `OR_LIGNE_NON_REALISEE` · `OR_PO_MANQUANT` (RM-14, CT-49) |
-| `/rouvrir`                                 | T-15 `termine→en_cours`                   | `{motif}` **obligatoire**                                        | `OR_TRANSITION_INTERDITE` (I-02 depuis `facture` → `CREER_OR_RETOUCHE`)                                                                                  |
-| `/restituer`                               | T-17/T-18                                 | `{kilometrageSortie?, piecesRestituees?, paiementRecu?}`         | `OR_TRANSITION_INTERDITE` (I-12) · `OR_RESERVE_SECURITE_REQUISE` (§6.12, CT-52) · `OR_PO_MANQUANT`                                                       |
-| `/cloturer`                                | T-19                                      | `{}`                                                             | `OR_TRANSITION_INTERDITE` · `OR_PO_MANQUANT`                                                                                                             |
-| `/annuler`                                 | T-20                                      | `{motif}` **obligatoire**                                        | `OR_ANNULATION_IMPOSSIBLE` (RM-62, CT-25, CT-26 — `blocages` = pointages, pièces, factures)                                                              |
-| `/invoquer-retention` · `/lever-retention` | §6.5                                      | `{motif, montantContesteCentimes?}`                              | droit `direction` seul (§10)                                                                                                                             |
+- Action — `/receptionner`
+- Transition — T-03 `planifie→ouvert`
+- Corps — `{kilometrageEntree, unite, signatureDifferee?, motifDifferee?}`
+- Codes métier — `OR_TRANSITION_INTERDITE` · `OR_KM_ENTREE_REQUIS` (RM-51) · `VEHICULE_KILOMETRAGE_REGRESSIF`
+
+- Action — `/demarrer`
+- Transition — T-04 `ouvert→en_cours`
+- Corps — `{}`
+- Codes métier — `OR_TRANSITION_INTERDITE` · `OR_RECEPTION_REQUISE` (I-07, CT-18)
+
+- Action — `/reprendre-travaux`
+- Transition — T-06/T-08/T-10
+- Corps — `{ligneIds?, motif?}` — lève les blocages
+- Codes métier — `OR_TRANSITION_INTERDITE`
+
+- Action — `/passer-en-controle`
+- Transition — T-11 `en_cours→controle`
+- Corps — `{}`
+- Codes métier — `OR_LIGNES_A_VALIDER` (I-08) · `OR_LIGNE_NON_REALISEE` (I-10) · `OR_POINTAGE_OUVERT` (I-09)
+
+- Action — `/refuser-controle`
+- Transition — T-12 `controle→en_cours`
+- Corps — `{motif}` **obligatoire**
+- Codes métier — `OR_TRANSITION_INTERDITE`
+
+- Action — `/valider-controle`
+- Transition — T-13 `controle→termine`
+- Corps — `{controleurId, pointsControles[]}`
+- Codes métier — `OR_CHECKLIST_INCOMPLETE` (P-08) · `OR_POINTAGE_OUVERT` · `OR_PO_MANQUANT`
+
+- Action — `/terminer`
+- Transition — T-14 `en_cours→termine` (P-08 = `jamais`)
+- Corps — `{kilometrageSortie?}`
+- Codes métier — `OR_TRANSITION_INTERDITE` (si CQ obligatoire) · `OR_LIGNES_A_VALIDER` · `OR_POINTAGE_OUVERT` · `OR_LIGNE_NON_REALISEE` · `OR_PO_MANQUANT` (RM-14, CT-49)
+
+- Action — `/rouvrir`
+- Transition — T-15 `termine→en_cours`
+- Corps — `{motif}` **obligatoire**
+- Codes métier — `OR_TRANSITION_INTERDITE` (I-02 depuis `facture` → `CREER_OR_RETOUCHE`)
+
+- Action — `/restituer`
+- Transition — T-17/T-18
+- Corps — `{kilometrageSortie?, piecesRestituees?, paiementRecu?}`
+- Codes métier — `OR_TRANSITION_INTERDITE` (I-12) · `OR_RESERVE_SECURITE_REQUISE` (§6.12, CT-52) · `OR_PO_MANQUANT`
+
+- Action — `/cloturer`
+- Transition — T-19
+- Corps — `{}`
+- Codes métier — `OR_TRANSITION_INTERDITE` · `OR_PO_MANQUANT`
+
+- Action — `/annuler`
+- Transition — T-20
+- Corps — `{motif}` **obligatoire**
+- Codes métier — `OR_ANNULATION_IMPOSSIBLE` (RM-62, CT-25, CT-26 — `blocages` = pointages, pièces, factures)
+
+- Action — `/invoquer-retention` · `/lever-retention`
+- Transition — §6.5
+- Corps — `{motif, montantContesteCentimes?}`
+- Codes métier — droit `direction` seul (§10)
 
 **Réservé étape 2, non publié en v1** : `/facturer` (T-16). Le nom est réservé ici pour qu'aucune autre
 action ne le prenne. Publier dès maintenant une route répondant `501 FONCTION_NON_DISPONIBLE` serait
@@ -1001,12 +1660,21 @@ pire : un connecteur coderait contre elle. Le front sait que la facturation arri
 
 **Actions groupées sur les lignes** — portées par l'OR, jamais par la sous-collection :
 
-| Action                      | Corps                                 | Codes métier                                                                                |
-| --------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `/valider-lignes`           | `{ligneIds[]}`                        | `OR_PLAFOND_DEPASSE` (RM-54, CT-20) · `LIGNE_TRANSITION_INTERDITE` · `OR_LIGNE_VERROUILLEE` |
-| `/refuser-lignes`           | `{ligneIds[], motif?}`                | `LIGNE_TRANSITION_INTERDITE`                                                                |
-| `/annuler-lignes`           | `{ligneIds[], motif}` **obligatoire** | `LIGNE_SUPPRESSION_IMPOSSIBLE` (RM-71, CT-27) · `LIGNE_TRANSITION_INTERDITE`                |
-| `/soumettre-lignes-a-devis` | `{ligneIds[]}`                        | `LIGNE_TRANSITION_INTERDITE`                                                                |
+- Action — `/valider-lignes`
+- Corps — `{ligneIds[]}`
+- Codes métier — `OR_PLAFOND_DEPASSE` (RM-54, CT-20) · `LIGNE_TRANSITION_INTERDITE` · `OR_LIGNE_VERROUILLEE`
+
+- Action — `/refuser-lignes`
+- Corps — `{ligneIds[], motif?}`
+- Codes métier — `LIGNE_TRANSITION_INTERDITE`
+
+- Action — `/annuler-lignes`
+- Corps — `{ligneIds[], motif}` **obligatoire**
+- Codes métier — `LIGNE_SUPPRESSION_IMPOSSIBLE` (RM-71, CT-27) · `LIGNE_TRANSITION_INTERDITE`
+
+- Action — `/soumettre-lignes-a-devis`
+- Corps — `{ligneIds[]}`
+- Codes métier — `LIGNE_TRANSITION_INTERDITE`
 
 **Pourquoi le groupe est atomique, et pourquoi ce n'est pas une optimisation.** Valider cinq lignes une
 par une contre un plafond (RM-54) donne quatre succès et un refus, avec l'OR laissé dans un état que
@@ -1018,16 +1686,38 @@ est un tableau de taille 1 — pas de route dédiée, pas de duplication de règ
 Le placement au niveau de l'OR (`/valider-lignes` plutôt que `/lignes/valider`) applique la règle §1.1 :
 `/lignes/valider` entrerait en concurrence de routage avec `/lignes/{ligneId}`.
 
-### 7.8 Lignes d'OR
+7.8 Lignes d'OR
+---------------
 
-| Méthode et chemin                                                  | Entrée                                                                                                                                                                                                                                                                           | 2xx             | Codes métier                                                                         |
-| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------ |
-| `GET /ordres-reparation/{orId}/lignes`                             | §6.2                                                                                                                                                                                                                                                                             | `200` page      | —                                                                                    |
-| `POST /ordres-reparation/{orId}/lignes`                            | `Idempotency-Key` ; `{type, origine, designation, reference?, quantiteMillieme, tempsBaremeCentiemes?, prixUnitaireCentimes?, rabaisPourmille?, payeur?, technicienId?, urgence?, securite?, fournieParClient?, pieceARestituer?, codeOperation?, codeDefaut?, numeroSinistre?}` | `201` enveloppe | `OR_LIGNE_VERROUILLEE` (I-15, CT-30) · `IDEMPOTENCE_CONFLIT`                         |
-| `PATCH /ordres-reparation/{orId}/lignes/{ligneId}`                 | champs libres (désignation, quantité, temps, prix, rabais, payeur, technicien, urgence, marqueurs)                                                                                                                                                                               | `200` enveloppe | `OR_LIGNE_VERROUILLEE` · `OR_PLAFOND_DEPASSE` (si la ligne est déjà `validee`)       |
-| `POST /ordres-reparation/{orId}/lignes/{ligneId}/marquer-realisee` | `{tempsReelCentiemes?}`                                                                                                                                                                                                                                                          | `200` enveloppe | `LIGNE_TRANSITION_INTERDITE` (RM-72, CT-28 : `refusee` ne devient jamais `realisee`) |
-| `POST /ordres-reparation/{orId}/lignes-depuis-prestation`          | `{prestationId, quantiteMillieme?}`                                                                                                                                                                                                                                              | `201` enveloppe | catalogue §7.9 de la spéc, prix **figés** à la création                              |
-| `POST /ordres-reparation/{orId}/lignes-depuis-travaux-reportes`    | `{travailReporteIds[]}`                                                                                                                                                                                                                                                          | `201` enveloppe | RM-73 → reprise au passage suivant                                                   |
+- Méthode et chemin — `GET /ordres-reparation/{orId}/lignes`
+- Entrée — §6.2
+- 2xx — `200` page
+- Codes métier — —
+
+- Méthode et chemin — `POST /ordres-reparation/{orId}/lignes`
+- Entrée — `Idempotency-Key` ; `{type, origine, designation, reference?, quantiteMillieme, tempsBaremeCentiemes?, prixUnitaireCentimes?, rabaisPourmille?, payeur?, technicienId?, urgence?, securite?, fournieParClient?, pieceARestituer?, codeOperation?, codeDefaut?, numeroSinistre?}`
+- 2xx — `201` enveloppe
+- Codes métier — `OR_LIGNE_VERROUILLEE` (I-15, CT-30) · `IDEMPOTENCE_CONFLIT`
+
+- Méthode et chemin — `PATCH /ordres-reparation/{orId}/lignes/{ligneId}`
+- Entrée — champs libres (désignation, quantité, temps, prix, rabais, payeur, technicien, urgence, marqueurs)
+- 2xx — `200` enveloppe
+- Codes métier — `OR_LIGNE_VERROUILLEE` · `OR_PLAFOND_DEPASSE` (si la ligne est déjà `validee`)
+
+- Méthode et chemin — `POST /ordres-reparation/{orId}/lignes/{ligneId}/marquer-realisee`
+- Entrée — `{tempsReelCentiemes?}`
+- 2xx — `200` enveloppe
+- Codes métier — `LIGNE_TRANSITION_INTERDITE` (RM-72, CT-28 : `refusee` ne devient jamais `realisee`)
+
+- Méthode et chemin — `POST /ordres-reparation/{orId}/lignes-depuis-prestation`
+- Entrée — `{prestationId, quantiteMillieme?}`
+- 2xx — `201` enveloppe
+- Codes métier — catalogue §7.9 de la spéc, prix **figés** à la création
+
+- Méthode et chemin — `POST /ordres-reparation/{orId}/lignes-depuis-travaux-reportes`
+- Entrée — `{travailReporteIds[]}`
+- 2xx — `201` enveloppe
+- Codes métier — RM-73 → reprise au passage suivant
 
 **Aucun `DELETE`.** RM-71 / CT-27 : une ligne s'annule avec motif et reste visible. C'est le point où
 une API mal conçue détruit une preuve, et c'est la raison pour laquelle le privilège `DELETE` n'est
@@ -1038,14 +1728,28 @@ conditions client sont **capturés par le serveur** au moment de la création et
 représentation. Le client ne les envoie jamais et ne les recalcule jamais. Ils apparaissent en lecture
 seule dans la ressource, avec `figeLe`.
 
-### 7.9 Devis complémentaires
+7.9 Devis complémentaires
+-------------------------
 
-| Méthode et chemin                                               | Entrée                                                                                                                  | 2xx             | Codes métier                                                                  |
-| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | --------------- | ----------------------------------------------------------------------------- |
-| `GET /ordres-reparation/{orId}/devis-complementaires`           | §6.2                                                                                                                    | `200` page      | —                                                                             |
-| `POST /ordres-reparation/{orId}/devis-complementaires`          | `Idempotency-Key` ; `{ligneIds[], nouveauPlafondCentimes, canal, destinataireContactId?, impactRestitutionLe?}`         | `201` enveloppe | `LIGNE_TRANSITION_INTERDITE` · `DEVIS_IMMUABLE`                               |
-| `GET /ordres-reparation/{orId}/devis-complementaires/{devisId}` | —                                                                                                                       | `200`           | —                                                                             |
-| `POST /…/devis-complementaires/{devisId}/repondre`              | `Idempotency-Key` ; `{decision, canal, interlocuteurNom, repondueLe, retranscription?, lignes?: [{ligneId, decision}]}` | `200` enveloppe | `DEVIS_INTERLOCUTEUR_REQUIS` (RM-81, CT-32) · `DEVIS_IMMUABLE` (RM-79, CT-35) |
+- Méthode et chemin — `GET /ordres-reparation/{orId}/devis-complementaires`
+- Entrée — §6.2
+- 2xx — `200` page
+- Codes métier — —
+
+- Méthode et chemin — `POST /ordres-reparation/{orId}/devis-complementaires`
+- Entrée — `Idempotency-Key` ; `{ligneIds[], nouveauPlafondCentimes, canal, destinataireContactId?, impactRestitutionLe?}`
+- 2xx — `201` enveloppe
+- Codes métier — `LIGNE_TRANSITION_INTERDITE` · `DEVIS_IMMUABLE`
+
+- Méthode et chemin — `GET /ordres-reparation/{orId}/devis-complementaires/{devisId}`
+- Entrée — —
+- 2xx — `200`
+- Codes métier — —
+
+- Méthode et chemin — `POST /…/devis-complementaires/{devisId}/repondre`
+- Entrée — `Idempotency-Key` ; `{decision, canal, interlocuteurNom, repondueLe, retranscription?, lignes?: [{ligneId, decision}]}`
+- 2xx — `200` enveloppe
+- Codes métier — `DEVIS_INTERLOCUTEUR_REQUIS` (RM-81, CT-32) · `DEVIS_IMMUABLE` (RM-79, CT-35)
 
 Pas de `PATCH`, pas de `DELETE` : un devis répondu est immuable (RM-79). Une réponse erronée se corrige
 par un nouveau devis, jamais par réécriture — c'est la pièce qui gagne le litige.
@@ -1065,18 +1769,48 @@ qu'ils dépassent la ressource et surprendraient un tiers :
   silence (CT-36). C'est le cas tordu le plus important de la spécification, et le contrat doit refléter
   la nuance « proposer ≠ créer ».
 
-### 7.10 Pointages
+7.10 Pointages
+--------------
 
-| Méthode et chemin                                     | Entrée                                                                                                                                           | 2xx                     | Codes métier                                                                                                                                                                                                                                                                            |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /pointages`                                      | §6.2 (fenêtre obligatoire)                                                                                                                       | `200` page              | —                                                                                                                                                                                                                                                                                       |
-| **`PUT /pointages/{pointageId}`**                     | `{technicienId, siteId, natureActivite, ordreReparationId?, ligneOrId?, activiteIndirecteId?, debutLe, source, appareilId?, decalageHorlogeMs?}` | `201` / `200` enveloppe | `POINTAGE_OR_NON_MODIFIABLE` (RM-92, CT-41) · `POINTAGE_LIGNE_NON_POINTABLE` (RM-93, CT-34) · `POINTAGE_CHEVAUCHEMENT` (RM-88) · `POINTAGE_PERIODE_VERROUILLEE` (RM-95) · `POINTAGE_HORODATAGE_INVALIDE` · `IDEMPOTENCE_CONFLIT` · avert. `POINTAGE_CLOTURE_AUTOMATIQUE` (RM-89, CT-37) |
-| `POST /pointages/{pointageId}/arreter`                | `{finLe}`                                                                                                                                        | `200` enveloppe         | `POINTAGE_TRANSITION_INTERDITE` · `POINTAGE_PERIODE_VERROUILLEE` · `POINTAGE_HORODATAGE_INVALIDE`                                                                                                                                                                                       |
-| `PATCH /pointages/{pointageId}`                       | `{debutLe?, finLe?, ligneOrId?, natureActivite?, motif}` — `motif` **obligatoire**                                                               | `200` enveloppe         | `POINTAGE_MOTIF_REQUIS` (RM-94, CT-42) · `POINTAGE_PERIODE_VERROUILLEE` (CT-43) · `POINTAGE_TRANSITION_INTERDITE`                                                                                                                                                                       |
-| `POST /pointages/{pointageId}/valider` · `/devaliser` | `{motif?}`                                                                                                                                       | `200` enveloppe         | `POINTAGE_TRANSITION_INTERDITE` · droit chef d'atelier                                                                                                                                                                                                                                  |
-| `GET\|POST /periodes-pointage`                        | `{debutLe, finLe}`                                                                                                                               | `200`/`201`             | —                                                                                                                                                                                                                                                                                       |
-| `POST /periodes-pointage/{periodeId}/verrouiller`     | `{}`                                                                                                                                             | `200` enveloppe         | RM-95, droits `comptable`/`direction`                                                                                                                                                                                                                                                   |
-| `GET /indicateurs-pointage`                           | `du`/`au` **obligatoires**, `technicienId?`, `siteId?`                                                                                           | `200`                   | RM-99 — présence, productivité, rendement, taux de retouche                                                                                                                                                                                                                             |
+- Méthode et chemin — `GET /pointages`
+- Entrée — §6.2 (fenêtre obligatoire)
+- 2xx — `200` page
+- Codes métier — —
+
+- Méthode et chemin — **`PUT /pointages/{pointageId}`**
+- Entrée — `{technicienId, siteId, natureActivite, ordreReparationId?, ligneOrId?, activiteIndirecteId?, debutLe, source, appareilId?, decalageHorlogeMs?}`
+- 2xx — `201` / `200` enveloppe
+- Codes métier — `POINTAGE_OR_NON_MODIFIABLE` (RM-92, CT-41) · `POINTAGE_LIGNE_NON_POINTABLE` (RM-93, CT-34) · `POINTAGE_CHEVAUCHEMENT` (RM-88) · `POINTAGE_PERIODE_VERROUILLEE` (RM-95) · `POINTAGE_HORODATAGE_INVALIDE` · `IDEMPOTENCE_CONFLIT` · avert. `POINTAGE_CLOTURE_AUTOMATIQUE` (RM-89, CT-37)
+
+- Méthode et chemin — `POST /pointages/{pointageId}/arreter`
+- Entrée — `{finLe}`
+- 2xx — `200` enveloppe
+- Codes métier — `POINTAGE_TRANSITION_INTERDITE` · `POINTAGE_PERIODE_VERROUILLEE` · `POINTAGE_HORODATAGE_INVALIDE`
+
+- Méthode et chemin — `PATCH /pointages/{pointageId}`
+- Entrée — `{debutLe?, finLe?, ligneOrId?, natureActivite?, motif}` — `motif` **obligatoire**
+- 2xx — `200` enveloppe
+- Codes métier — `POINTAGE_MOTIF_REQUIS` (RM-94, CT-42) · `POINTAGE_PERIODE_VERROUILLEE` (CT-43) · `POINTAGE_TRANSITION_INTERDITE`
+
+- Méthode et chemin — `POST /pointages/{pointageId}/valider` · `/devaliser`
+- Entrée — `{motif?}`
+- 2xx — `200` enveloppe
+- Codes métier — `POINTAGE_TRANSITION_INTERDITE` · droit chef d'atelier
+
+- Méthode et chemin — `GET\
+- Entrée — POST /periodes-pointage`
+- 2xx — `{debutLe, finLe}`
+- Codes métier — `200`/`201`
+
+- Méthode et chemin — `POST /periodes-pointage/{periodeId}/verrouiller`
+- Entrée — `{}`
+- 2xx — `200` enveloppe
+- Codes métier — RM-95, droits `comptable`/`direction`
+
+- Méthode et chemin — `GET /indicateurs-pointage`
+- Entrée — `du`/`au` **obligatoires**, `technicienId?`, `siteId?`
+- 2xx — `200`
+- Codes métier — RM-99 — présence, productivité, rendement, taux de retouche
 
 `GET /pointages/ouverts` et `/anomalies` **n'existent pas** : ce sont `?statut=en_cours` et
 `?anomalie=true`. Même raison qu'en §6.3 — un endpoint dédié qui n'est qu'un filtre finit toujours par
@@ -1086,19 +1820,53 @@ Le technicien ne reçoit **aucun montant** dans ces réponses (invariant fronten
 des champs monétaires est faite côté serveur selon le rôle, pas masquée côté écran. Un écran d'atelier
 est un écran partagé.
 
-### 7.11 Rendez-vous et planning
+7.11 Rendez-vous et planning
+----------------------------
 
-| Méthode et chemin                             | Entrée                                                                                                                                                                                                                                                     | 2xx                                             | Codes métier                                                                                                                                              |
-| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /rendez-vous`                            | §6.2 (site + fenêtre obligatoires)                                                                                                                                                                                                                         | `200` page                                      | —                                                                                                                                                         |
-| `POST /rendez-vous`                           | `Idempotency-Key` ; `{siteId, debutLe, dureeMinutes, heuresAtelierCentiemes?, clientId? \| {nom, telephone}, vehiculeId?, motifPrincipalId, motifsSecondairesIds[], verbatim?, modeAttente, origine, ressources[], vehiculeCourtoisieId?, confirmations?}` | `201` enveloppe                                 | `RDV_RESSOURCE_CHEVAUCHEMENT` (RM-39, CT-15) · `RDV_HORS_OUVERTURE` (RM-48) · `CONFIRMATION_REQUISE` · avert. `PLANNING_CAPACITE_DEPASSEE` (RM-38, CT-14) |
-| `GET\|PATCH /rendez-vous/{rdvId}`             | changement de véhicule autorisé tant que `planifie` (§6.3)                                                                                                                                                                                                 | `200`                                           | `RDV_TRANSITION_INTERDITE` · `RDV_RESSOURCE_CHEVAUCHEMENT`                                                                                                |
-| `POST /rendez-vous/{rdvId}/honorer`           | `Idempotency-Key` ; corps de `POST /ordres-reparation` (sans `rendezVousId`)                                                                                                                                                                               | `201` enveloppe `{rendezVous, ordreReparation}` | `RDV_IDENTIFICATION_INCOMPLETE` (RM-35, CT-12) · `RDV_TRANSITION_INTERDITE` (CT-16) · tous les codes de création d'OR                                     |
-| `POST /rendez-vous/{rdvId}/marquer-absent`    | `{}`                                                                                                                                                                                                                                                       | `200` enveloppe                                 | `RDV_TRANSITION_INTERDITE` · avert. si seuil de no-show franchi (RM-44)                                                                                   |
-| `POST /rendez-vous/{rdvId}/annuler`           | `{origine: "client"\|"garage", motif?}`                                                                                                                                                                                                                    | `200` enveloppe                                 | `RDV_ANNULATION_IMPOSSIBLE` (RM-47, CT-17 — `blocages` = OR ouvert)                                                                                       |
-| `POST /rendez-vous/{rdvId}/reporter`          | `{nouveauDebutLe, dureeMinutes?, motif}`                                                                                                                                                                                                                   | `201` enveloppe (**nouveau RDV**)               | `RDV_TRANSITION_INTERDITE` · `RDV_RESSOURCE_CHEVAUCHEMENT`                                                                                                |
-| `GET /planning/charge`                        | `siteId`, `du`, `au`                                                                                                                                                                                                                                       | `200`                                           | projection §8.5                                                                                                                                           |
-| `GET\|PATCH /sites/{siteId}/capacite-atelier` | RM-38, P-20                                                                                                                                                                                                                                                | `200`                                           | —                                                                                                                                                         |
+- Méthode et chemin — `GET /rendez-vous`
+- Entrée — §6.2 (site + fenêtre obligatoires)
+- 2xx — `200` page
+- Codes métier — —
+
+- Méthode et chemin — `POST /rendez-vous`
+- Entrée — `Idempotency-Key` ; `{siteId, debutLe, dureeMinutes, heuresAtelierCentiemes?, clientId? \
+- 2xx — {nom, telephone}, vehiculeId?, motifPrincipalId, motifsSecondairesIds[], verbatim?, modeAttente, origine, ressources[], vehiculeCourtoisieId?, confirmations?}`
+- Codes métier — `201` enveloppe
+
+- Méthode et chemin — `GET\
+- Entrée — PATCH /rendez-vous/{rdvId}`
+- 2xx — changement de véhicule autorisé tant que `planifie` (§6.3)
+- Codes métier — `200`
+
+- Méthode et chemin — `POST /rendez-vous/{rdvId}/honorer`
+- Entrée — `Idempotency-Key` ; corps de `POST /ordres-reparation` (sans `rendezVousId`)
+- 2xx — `201` enveloppe `{rendezVous, ordreReparation}`
+- Codes métier — `RDV_IDENTIFICATION_INCOMPLETE` (RM-35, CT-12) · `RDV_TRANSITION_INTERDITE` (CT-16) · tous les codes de création d'OR
+
+- Méthode et chemin — `POST /rendez-vous/{rdvId}/marquer-absent`
+- Entrée — `{}`
+- 2xx — `200` enveloppe
+- Codes métier — `RDV_TRANSITION_INTERDITE` · avert. si seuil de no-show franchi (RM-44)
+
+- Méthode et chemin — `POST /rendez-vous/{rdvId}/annuler`
+- Entrée — `{origine: "client"\
+- 2xx — "garage", motif?}`
+- Codes métier — `200` enveloppe
+
+- Méthode et chemin — `POST /rendez-vous/{rdvId}/reporter`
+- Entrée — `{nouveauDebutLe, dureeMinutes?, motif}`
+- 2xx — `201` enveloppe (**nouveau RDV**)
+- Codes métier — `RDV_TRANSITION_INTERDITE` · `RDV_RESSOURCE_CHEVAUCHEMENT`
+
+- Méthode et chemin — `GET /planning/charge`
+- Entrée — `siteId`, `du`, `au`
+- 2xx — `200`
+- Codes métier — projection §8.5
+
+- Méthode et chemin — `GET\
+- Entrée — PATCH /sites/{siteId}/capacite-atelier`
+- 2xx — RM-38, P-20
+- Codes métier — `200`
 
 `/annuler` couvre `annule_client` et `annule_garage` par un champ `origine` plutôt que par deux
 endpoints : c'est la même transition, avec la même trace d'audit et le même droit — seule l'imputation
@@ -1108,25 +1876,44 @@ statistique change. Deux routes auraient dupliqué la règle « impossible si l'
 `reporteVersRendezVousId`. Le déplacement subi par le client est une donnée de qualité de service : le
 contrat interdit structurellement la modification en place.
 
-### 7.12 Paramétrage, référentiels, courtoisie, audit
+7.12 Paramétrage, référentiels, courtoisie, audit
+-------------------------------------------------
 
-| Méthode et chemin                                                                                                   | Note                                                                                                   |
-| ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `GET /parametres-atelier` · `PATCH` (admin)                                                                         | projection §8.2, `ETag`                                                                                |
-| `GET /sites/{siteId}/parametres-atelier` · `PATCH`                                                                  | P-20, P-31 — paramètres de niveau site, greffés sur la ressource `/sites` du socle                     |
-| `GET\|POST /referentiels/taux-horaires` · `PATCH /{id}`                                                             | **datés** (RM-65)                                                                                      |
-| `GET\|POST /referentiels/prestations` · `PATCH /{id}`                                                               | catalogue, prix **historisés** (§7.9 de la spéc)                                                       |
-| `GET\|POST /referentiels/motifs-rendez-vous` · `/postes-travail` · `/activites-indirectes` · `/checklists-controle` | —                                                                                                      |
-| `GET /referentiels/transitions?entite=`                                                                             | §2.2 — la machine à états comme donnée                                                                 |
-| `GET\|POST /vehicules-courtoisie` · `PATCH /{id}`                                                                   | RM-100 (lot 5)                                                                                         |
-| `GET\|POST /prets` · `GET /prets/{id}` · `POST /prets/{id}/remettre` · `/retourner` · `/cloturer` · `/annuler`      | RM-101→105 — `PRET_CONDUCTEUR_REQUIS`, `PRET_VEHICULE_INDISPONIBLE`, avert. `PRET_CASCADE_RESTITUTION` |
-| `GET /audit?entite=&entiteId=`                                                                                      | RM-111, droits `direction`/`admin`                                                                     |
+- Méthode et chemin — `GET /parametres-atelier` · `PATCH` (admin)
+- Note — projection §8.2, `ETag`
+
+- Méthode et chemin — `GET /sites/{siteId}/parametres-atelier` · `PATCH`
+- Note — P-20, P-31 — paramètres de niveau site, greffés sur la ressource `/sites` du socle
+
+- Méthode et chemin — `GET\
+- Note — POST /referentiels/taux-horaires`·`PATCH /{id}`
+
+- Méthode et chemin — `GET\
+- Note — POST /referentiels/prestations`·`PATCH /{id}`
+
+- Méthode et chemin — `GET\
+- Note — POST /referentiels/motifs-rendez-vous`·`/postes-travail`·`/activites-indirectes`·`/checklists-controle`
+
+- Méthode et chemin — `GET /referentiels/transitions?entite=`
+- Note — §2.2 — la machine à états comme donnée
+
+- Méthode et chemin — `GET\
+- Note — POST /vehicules-courtoisie`·`PATCH /{id}`
+
+- Méthode et chemin — `GET\
+- Note — POST /prets`·`GET /prets/{id}`·`POST /prets/{id}/remettre`·`/retourner`·`/cloturer`·`/annuler`
+
+- Méthode et chemin — `GET /audit?entite=&entiteId=`
+- Note — RM-111, droits `direction`/`admin`
 
 ---
 
-## 8. Les projections agrégées (D-01, D-02, D-10)
+8. Les projections agrégées (D-01, D-02, D-10)
 
-### 8.0 Ce que coûte un endpoint agrégé, et à quelles conditions on le paie
+---
+
+8.0 Ce que coûte un endpoint agrégé, et à quelles conditions on le paie
+-----------------------------------------------------------------------
 
 L'objection est réelle et il faut la formuler honnêtement : **un agrégat est façonné par un écran.**
 Quand l'écran change, l'endpoint est sous pression de changer ; le développeur tiers hérite d'une forme
@@ -1152,7 +1939,8 @@ font partie au sens métier. Le retourner entier, c'est respecter sa frontière 
 l'UI. Cette distinction protège de la dérive : on peut refuser un futur `/tableau-de-bord-comptoir`
 sans se contredire.
 
-### 8.1 `GET /vehicules/{vehiculeId}/contexte-atelier` (D-01, RM-36, CT-13)
+8.1 `GET /vehicules/{vehiculeId}/contexte-atelier` (D-01, RM-36, CT-13)
+-----------------------------------------------------------------------
 
 Consommé au même instant à la prise de RDV **et** à la réception du matin.
 
@@ -1245,7 +2033,8 @@ Points de contrat :
 backend §4.2). Un seul nom, pas d'alias : un alias créé le premier jour est une dette de compatibilité
 qu'on porte pour toujours et que personne n'ose retirer.
 
-### 8.2 `GET /parametres-atelier` (D-02, R3 du plan frontend)
+8.2 `GET /parametres-atelier` (D-02, R3 du plan frontend)
+---------------------------------------------------------
 
 Singleton du tenant, **lisible par tout utilisateur authentifié** (l'UI en dépend à chaque écran),
 modifiable par `admin`. `ETag` + `Cache-Control: private, must-revalidate` : `staleTime` 30 min côté
@@ -1314,7 +2103,8 @@ Les paramètres de niveau site (P-20 capacité, P-31 heure de clôture automatiq
 `GET /sites/{siteId}/parametres-atelier` — greffés sur la ressource `/sites` du socle plutôt que dans
 une famille `/parametrage/sites/{id}` parallèle, qui donnerait deux chemins pour un même site.
 
-### 8.3 `GET /ordres-reparation/{orId}` — le document complet (D-10)
+8.3 `GET /ordres-reparation/{orId}` — le document complet (D-10)
+----------------------------------------------------------------
 
 Renvoie **l'OR entier** : identité et valeurs figées, demandes en verbatim, lignes, devis
 complémentaires, contrôle qualité, signatures, prêt, cumuls de pointage, totaux par payeur, drapeaux
@@ -1346,7 +2136,8 @@ délibéré : le jour où un OR pathologique imposera un plafond, il pourra êtr
 parce que les clients auront toujours vu le champ. Un `lignesTronquees` ajouté après coup serait ignoré
 par tous les clients déjà déployés — c'est-à-dire inutile.
 
-### 8.4 `GET /ordres-reparation/{orId}/proposition-facturation` — l'accroche de l'étape 2
+8.4 `GET /ordres-reparation/{orId}/proposition-facturation` — l'accroche de l'étape 2
+-------------------------------------------------------------------------------------
 
 Projection en lecture seule (CT-29), **sans émission de document, sans numérotation, sans verrouillage**
 — tout cela est l'étape 2. Elle produit le regroupement par payeur, avec TVA calculée par ligne puis
@@ -1359,7 +2150,8 @@ Sa forme est déjà celle dont l'étape 2 aura besoin : `groupes[]` par payeur, 
 présents dès l'étape 1**, même si l'atelier ne raisonne qu'en TTC : les ajouter plus tard serait
 additif, mais les calculer plus tard obligerait à revalider toute l'arithmétique sur des OR existants.
 
-### 8.5 `GET /planning/charge?siteId=&du=&au=`
+8.5 `GET /planning/charge?siteId=&du=&au=`
+------------------------------------------
 
 Par jour et par compétence : `capaciteCentiemes`, `chargeCentiemes`, `tauxOccupationPourmille`,
 `depassement` (booléen). Le dépassement **n'est jamais bloquant** (RM-38, CT-14) : le surbooking est une
@@ -1371,7 +2163,9 @@ une barre à zéro est un mensonge.
 
 ---
 
-## 9. Concurrence et conflits (D-06)
+9. Concurrence et conflits (D-06)
+
+---
 
 Plusieurs postes et plusieurs onglets travaillent sur le même OR : c'est la norme au comptoir, pas
 l'exception (§9.3 du plan frontend).
@@ -1416,14 +2210,17 @@ doit pouvoir le découvrir sans surprise.
 
 ---
 
-## 10. Webhooks et journal d'événements
+10. Webhooks et journal d'événements
+
+---
 
 Aucun connecteur ne consommera ces webhooks en 2026. Le catalogue et l'enveloppe se figent quand même
 maintenant, pour une raison qui ne se rattrape pas : **on ne peut pas fabriquer rétroactivement
 l'historique des événements d'un garage.** Si l'étape 1 n'écrit pas ses événements, l'étape 5 démarrera
 avec un journal vide et les premiers connecteurs travailleront à l'aveugle sur les dossiers antérieurs.
 
-### 10.1 Outbox dès l'étape 1
+10.1 Outbox dès l'étape 1
+-------------------------
 
 Chaque transition écrit, **dans la même transaction** que le changement d'état, une ligne dans
 `evenement_metier` (`tenant_id`, `type`, `ressource`, `ressource_id`, `survenu_le`, `charge_utile`,
@@ -1431,30 +2228,53 @@ Chaque transition écrit, **dans la même transaction** que le changement d'éta
 urgente, pas la livraison. C'est l'unique demande de ce document qui touche l'implémentation de
 l'étape 1 sans être exigée par un écran — et c'est celle qui sera la plus coûteuse à ajouter après.
 
-### 10.2 Catalogue d'événements de l'étape 1
+10.2 Catalogue d'événements de l'étape 1
+----------------------------------------
 
 Nom : `<ressource>.<evenement au participe passé>`, en `snake_case`. Additif : **on ajoute des types,
 on n'en renomme jamais.**
 
-| Type                                          | Déclencheur                                            |
-| --------------------------------------------- | ------------------------------------------------------ |
-| `ordre_reparation.ouvert`                     | T-02 / T-03                                            |
-| `ordre_reparation.termine`                    | T-13 / T-14                                            |
-| `ordre_reparation.restitue`                   | T-17 / T-18                                            |
-| `ordre_reparation.cloture`                    | T-19                                                   |
-| `ordre_reparation.annule`                     | T-20                                                   |
-| `ligne_or.constatee`                          | ligne d'origine `constatee` créée (constat technicien) |
-| `devis_complementaire.envoye` · `.repondu`    | RM-79→81                                               |
-| `rendez_vous.honore` · `.absent` · `.reporte` | §5.3                                                   |
-| `vehicule.detenteur_change`                   | RM-20, §6.2                                            |
-| `vehicule.kilometrage_releve`                 | RM-23                                                  |
-| `pointage.anomalie_detectee`                  | RM-91, RM-96                                           |
-| `client.fusionne`                             | RM-06                                                  |
+- Type — `ordre_reparation.ouvert`
+- Déclencheur — T-02 / T-03
+
+- Type — `ordre_reparation.termine`
+- Déclencheur — T-13 / T-14
+
+- Type — `ordre_reparation.restitue`
+- Déclencheur — T-17 / T-18
+
+- Type — `ordre_reparation.cloture`
+- Déclencheur — T-19
+
+- Type — `ordre_reparation.annule`
+- Déclencheur — T-20
+
+- Type — `ligne_or.constatee`
+- Déclencheur — ligne d'origine `constatee` créée (constat technicien)
+
+- Type — `devis_complementaire.envoye` · `.repondu`
+- Déclencheur — RM-79→81
+
+- Type — `rendez_vous.honore` · `.absent` · `.reporte`
+- Déclencheur — §5.3
+
+- Type — `vehicule.detenteur_change`
+- Déclencheur — RM-20, §6.2
+
+- Type — `vehicule.kilometrage_releve`
+- Déclencheur — RM-23
+
+- Type — `pointage.anomalie_detectee`
+- Déclencheur — RM-91, RM-96
+
+- Type — `client.fusionne`
+- Déclencheur — RM-06
 
 Réservés étape 2, déjà nommés pour que personne ne prenne le nom : `facture.emise`, `facture.payee`,
 `avoir.emis`.
 
-### 10.3 Enveloppe et signature
+10.3 Enveloppe et signature
+---------------------------
 
 ```jsonc
 {
@@ -1486,9 +2306,12 @@ Réservés étape 2, déjà nommés pour que personne ne prenne le nom : `factur
 
 ---
 
-## 11. Compatibilité ascendante : préparer l'étape 2
+11. Compatibilité ascendante : préparer l'étape 2
 
-### 11.1 La règle de base, à énoncer dans la documentation publique
+---
+
+11.1 La règle de base, à énoncer dans la documentation publique
+---------------------------------------------------------------
 
 > Un client de cette API **doit ignorer les champs qu'il ne connaît pas** et **ne doit pas échouer sur
 > une valeur d'enum inconnue**. Sous cette condition, l'ajout d'un champ, d'un endpoint, d'un
@@ -1497,7 +2320,8 @@ Réservés étape 2, déjà nommés pour que personne ne prenne le nom : `factur
 Sans cette clause explicite, tout ajout devient négociable, et une API qui ne peut plus rien ajouter
 meurt lentement.
 
-### 11.2 Les enums sont le vrai risque, pas les champs
+11.2 Les enums sont le vrai risque, pas les champs
+--------------------------------------------------
 
 Ajouter un champ ne casse personne. **Ajouter une valeur d'enum casse tout client qui l'énumère
 exhaustivement** — et le front du projet le fait volontairement (« si le backend ajoute une valeur
@@ -1507,10 +2331,13 @@ une rupture pour un tiers.
 D'où une **classification explicite de chaque enum dans l'OpenAPI**, via l'extension
 `x-dfa-enum-extensible` :
 
-| `x-dfa-enum-extensible` | Enums                                                                                                                                                                                                                                              | Engagement                                                                                                                                                                                            |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `false` — **gelé**      | `statut_ordre_reparation`, `statut_ligne_or`, `statut_rendez_vous`, `statut_pointage`, `payeur_ligne_or`, `origine_ligne_or`                                                                                                                       | Aucune valeur ne sera ajoutée en v1. Un client peut les énumérer exhaustivement sans risque. `facture` et `facturee` **existent déjà** : l'étape 2 ne les ajoutera pas, elle les rendra atteignables. |
-| `true` — **extensible** | `type_ligne_or`, `localisation_vehicule`, `motif_fin_detention`, `source_kilometrage`, `type_ordre_reparation`, `canal_devis`, `origine_rendez_vous`, `nature_activite_pointage`, `TypeElementBloquant`, `CodeAvertissement`, `CodeActionProposee` | Peuvent croître en mineure. Un client doit traiter l'inconnu comme « autre » et ne jamais échouer.                                                                                                    |
+- `x-dfa-enum-extensible` — `false` — **gelé**
+- Enums — `statut_ordre_reparation`, `statut_ligne_or`, `statut_rendez_vous`, `statut_pointage`, `payeur_ligne_or`, `origine_ligne_or`
+- Engagement — Aucune valeur ne sera ajoutée en v1. Un client peut les énumérer exhaustivement sans risque. `facture` et `facturee` **existent déjà** : l'étape 2 ne les ajoutera pas, elle les rendra atteignables.
+
+- `x-dfa-enum-extensible` — `true` — **extensible**
+- Enums — `type_ligne_or`, `localisation_vehicule`, `motif_fin_detention`, `source_kilometrage`, `type_ordre_reparation`, `canal_devis`, `origine_rendez_vous`, `nature_activite_pointage`, `TypeElementBloquant`, `CodeAvertissement`, `CodeActionProposee`
+- Engagement — Peuvent croître en mineure. Un client doit traiter l'inconnu comme « autre » et ne jamais échouer.
 
 Les enums de **statut sont gelés** parce qu'ils portent la machine à états : y ajouter une valeur, c'est
 changer le cycle de vie, ce qui est une rupture métier bien avant d'être une rupture technique. C'est
@@ -1522,29 +2349,64 @@ qu'on s'engage à ne plus toucher.
 **extensible par nature**, et le contrat impose déjà le repli (`api/erreurs.ts` : un code inconnu
 retombe sur `ERREUR_INTERNE`). À documenter comme tel pour les tiers.
 
-### 11.3 Ce que l'étape 2 ajoutera sur ces mêmes ressources — et qui est déjà prévu ici
+11.3 Ce que l'étape 2 ajoutera sur ces mêmes ressources — et qui est déjà prévu ici
+-----------------------------------------------------------------------------------
 
-| Ajout étape 2                              | Prévu dès maintenant                                                                            | Nature                                       |
-| ------------------------------------------ | ----------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| Émission de facture                        | statut `facture` **dans l'enum gelé** ; transition T-16 ; nom `/facturer` réservé et non publié | atteignable sans changer l'enum              |
-| `factureId` / `numeroFacture` sur la ligne | colonne `facture_id` nullable (plan backend §2.1.8) ; champ absent tant qu'il est vide          | ajout de champ = additif                     |
-| Numérotation légale, QR-facture            | `proposition-facturation` (§8.4) a déjà la forme du document                                    | nouvelle ressource `/factures`, aucun impact |
-| Ventilation HT / TVA / TTC                 | **déjà exposée** en étape 1 par ligne et par groupe de payeur                                   | rien à faire                                 |
-| Adresse de facturation figée               | **déjà figée** sur l'OR (RM-50)                                                                 | rien à faire                                 |
-| Verrouillage après émission                | `OR_LIGNE_VERROUILLEE` (I-15) déjà en place                                                     | rien à faire                                 |
-| Avoirs                                     | `ordre_reparation.facture → annule` reste interdit (I-03)                                       | code `OR_ANNULATION_IMPOSSIBLE` déjà présent |
-| Paiements, exports fiduciaires             | `Idempotency-Key` et son contrat de rétention déjà établis                                      | même mécanisme                               |
-| Événements `facture.emise`                 | outbox déjà en place (§10.1)                                                                    | nom réservé                                  |
-| Stock pièces (étape 3)                     | `articleId` nullable sur la ligne                                                               | ajout de champ                               |
-| Véhicules en stock (étape 4)               | `vehiculeStockId` nullable                                                                      | ajout de champ                               |
-| Dépôt de pneus                             | `contexte-atelier.depotPneus: null` déjà présent                                                | passe de `null` à un objet                   |
+- Ajout étape 2 — Émission de facture
+- Prévu dès maintenant — statut `facture` **dans l'enum gelé** ; transition T-16 ; nom `/facturer` réservé et non publié
+- Nature — atteignable sans changer l'enum
+
+- Ajout étape 2 — `factureId` / `numeroFacture` sur la ligne
+- Prévu dès maintenant — colonne `facture_id` nullable (plan backend §2.1.8) ; champ absent tant qu'il est vide
+- Nature — ajout de champ = additif
+
+- Ajout étape 2 — Numérotation légale, QR-facture
+- Prévu dès maintenant — `proposition-facturation` (§8.4) a déjà la forme du document
+- Nature — nouvelle ressource `/factures`, aucun impact
+
+- Ajout étape 2 — Ventilation HT / TVA / TTC
+- Prévu dès maintenant — **déjà exposée** en étape 1 par ligne et par groupe de payeur
+- Nature — rien à faire
+
+- Ajout étape 2 — Adresse de facturation figée
+- Prévu dès maintenant — **déjà figée** sur l'OR (RM-50)
+- Nature — rien à faire
+
+- Ajout étape 2 — Verrouillage après émission
+- Prévu dès maintenant — `OR_LIGNE_VERROUILLEE` (I-15) déjà en place
+- Nature — rien à faire
+
+- Ajout étape 2 — Avoirs
+- Prévu dès maintenant — `ordre_reparation.facture → annule` reste interdit (I-03)
+- Nature — code `OR_ANNULATION_IMPOSSIBLE` déjà présent
+
+- Ajout étape 2 — Paiements, exports fiduciaires
+- Prévu dès maintenant — `Idempotency-Key` et son contrat de rétention déjà établis
+- Nature — même mécanisme
+
+- Ajout étape 2 — Événements `facture.emise`
+- Prévu dès maintenant — outbox déjà en place (§10.1)
+- Nature — nom réservé
+
+- Ajout étape 2 — Stock pièces (étape 3)
+- Prévu dès maintenant — `articleId` nullable sur la ligne
+- Nature — ajout de champ
+
+- Ajout étape 2 — Véhicules en stock (étape 4)
+- Prévu dès maintenant — `vehiculeStockId` nullable
+- Nature — ajout de champ
+
+- Ajout étape 2 — Dépôt de pneus
+- Prévu dès maintenant — `contexte-atelier.depotPneus: null` déjà présent
+- Nature — passe de `null` à un objet
 
 `FONCTION_NON_DISPONIBLE` (501) reste au catalogue pour un cas précis : un paramètre activé dont
 l'implémentation n'est pas encore là. **Mieux vaut un 501 explicite qu'un calcul faux** — un garage qui
 active les produits d'atelier en mode « lignes réelles » avant que ce mode existe doit recevoir un refus
 net, pas une facture silencieusement fausse.
 
-### 11.4 Politique de version et de dépréciation
+11.4 Politique de version et de dépréciation
+--------------------------------------------
 
 - **`/api/v1` ne bougera pas** pour tout ce qui est additif. Une `v2` ne serait justifiée que par un
   changement de modèle de sécurité ou une refonte de la forme d'erreur — rien de prévisible.
@@ -1561,13 +2423,16 @@ net, pas une facture silencieusement fausse.
 
 ---
 
-## 12. Fragments OpenAPI de référence
+12. Fragments OpenAPI de référence
+
+---
 
 Ces fragments sont **normatifs** : ils fixent la forme attendue de la génération NestJS/Swagger. Le
 document réel reste produit par `pnpm api:openapi` à partir des décorateurs — ce qui suit dit à quoi il
 doit ressembler.
 
-### 12.1 Schémas d'erreur enrichis
+12.1 Schémas d'erreur enrichis
+------------------------------
 
 ```yaml
 components:
@@ -1676,7 +2541,8 @@ components:
             Chemins de sortie. Vide uniquement si aucune sortie n'existe (état terminal).
 ```
 
-### 12.2 Enveloppes de réponse
+12.2 Enveloppes de réponse
+--------------------------
 
 ```yaml
 Avertissement:
@@ -1700,7 +2566,8 @@ ReponseOrdreReparation:
         capacité dépassée, clôture automatique de pointage) n'est jamais une erreur.
 ```
 
-### 12.3 Une action de transition, entièrement documentée
+12.3 Une action de transition, entièrement documentée
+-----------------------------------------------------
 
 ```yaml
 paths:
@@ -1764,7 +2631,8 @@ paths:
 > Les deux `examples` sont ceux de §3.4, mot pour mot. **Chaque endpoint de l'étape 1 doit porter au
 > moins un exemple de refus réaliste** — un tiers apprend une API par ses erreurs, pas par ses succès.
 
-### 12.4 Le pointage hors ligne
+12.4 Le pointage hors ligne
+---------------------------
 
 ```yaml
 /pointages/{pointageId}:
@@ -1831,7 +2699,8 @@ paths:
           `IDEMPOTENCE_CONFLIT`.
 ```
 
-### 12.5 Pagination, tri et curseur
+12.5 Pagination, tri et curseur
+-------------------------------
 
 ```yaml
   /ordres-reparation:
@@ -1865,29 +2734,76 @@ paths:
 
 ---
 
-## 13. Tests de contrat à écrire
+13. Tests de contrat à écrire
+
+---
 
 À placer dans la suite d'intégration (`expert-tests`), exécutés **sur le document OpenAPI généré**,
 pas sur des routes prises une à une — sans quoi la 41ᵉ route échappera à la règle.
 
-| #    | Test                                                                                                                              | Ce qu'il protège                            |
-| ---- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| C-01 | **Aucune opération n'expose un paramètre ou une propriété nommée `tenantId`** (chemin, query, en-tête, corps, à toute profondeur) | la règle n°1 du projet                      |
-| C-02 | Tout segment de chemin qui est un **verbe** (liste close) n'accepte que `POST`                                                    | §1.1                                        |
-| C-03 | **Aucune opération `DELETE`** dans tout le document                                                                               | RM-110                                      |
-| C-04 | Toute réponse ≥ 400 référence `ProblemeDetailCommunDto` et aucun autre schéma                                                     | contrat d'erreur unique                     |
-| C-05 | Tout code renvoyé en exécution figure dans la liste déclarée pour l'endpoint                                                      | exhaustivité de la colonne « codes métier » |
-| C-06 | Toute collection déclare `limite`, `curseur`, `tri` ; tout `tri` a un enum fermé et un défaut                                     | §6                                          |
-| C-07 | Un curseur dont le `t` ne correspond pas au `tri` demandé → `400`, jamais une page                                                | §6.1                                        |
-| C-08 | Tout endpoint listé en §5.1 refuse l'absence d'`Idempotency-Key` par `400`                                                        | §5.1                                        |
-| C-09 | Tout `409` de transition d'OR porte `blocages` non vide **et** `actionsProposees` non vide                                        | D-05, invariant frontend n°8                |
-| C-10 | Toute écriture répond avec l'enveloppe `{donnees, avertissements}`                                                                | §7.1                                        |
-| C-11 | Chaque enum du document porte `x-dfa-enum-extensible`                                                                             | §11.2                                       |
-| C-12 | Les enums marqués `false` sont **identiques** à la liste gelée de référence                                                       | §11.2                                       |
-| C-13 | Chaque `CodeErreur` a une entrée dans `STATUT_PAR_CODE_ERREUR` **et** dans `fr/de/it/erreurs.json`                                | pas de code muet en production              |
-| C-14 | Tout endpoint mutant déclare au moins un `example` de refus                                                                       | §12.3                                       |
-| C-15 | Le document généré ne perd ni ne renomme aucun champ par rapport à l'instantané versionné                                         | §11.4                                       |
-| C-16 | Une ressource d'un autre tenant répond `404`, jamais `403`                                                                        | I-13, CT-11                                 |
+- # — C-01
+- Test — **Aucune opération n'expose un paramètre ou une propriété nommée `tenantId`** (chemin, query, en-tête, corps, à toute profondeur)
+- Ce qu'il protège — la règle n°1 du projet
+
+- # — C-02
+- Test — Tout segment de chemin qui est un **verbe** (liste close) n'accepte que `POST`
+- Ce qu'il protège — §1.1
+
+- # — C-03
+- Test — **Aucune opération `DELETE`** dans tout le document
+- Ce qu'il protège — RM-110
+
+- # — C-04
+- Test — Toute réponse ≥ 400 référence `ProblemeDetailCommunDto` et aucun autre schéma
+- Ce qu'il protège — contrat d'erreur unique
+
+- # — C-05
+- Test — Tout code renvoyé en exécution figure dans la liste déclarée pour l'endpoint
+- Ce qu'il protège — exhaustivité de la colonne « codes métier »
+
+- # — C-06
+- Test — Toute collection déclare `limite`, `curseur`, `tri` ; tout `tri` a un enum fermé et un défaut
+- Ce qu'il protège — §6
+
+- # — C-07
+- Test — Un curseur dont le `t` ne correspond pas au `tri` demandé → `400`, jamais une page
+- Ce qu'il protège — §6.1
+
+- # — C-08
+- Test — Tout endpoint listé en §5.1 refuse l'absence d'`Idempotency-Key` par `400`
+- Ce qu'il protège — §5.1
+
+- # — C-09
+- Test — Tout `409` de transition d'OR porte `blocages` non vide **et** `actionsProposees` non vide
+- Ce qu'il protège — D-05, invariant frontend n°8
+
+- # — C-10
+- Test — Toute écriture répond avec l'enveloppe `{donnees, avertissements}`
+- Ce qu'il protège — §7.1
+
+- # — C-11
+- Test — Chaque enum du document porte `x-dfa-enum-extensible`
+- Ce qu'il protège — §11.2
+
+- # — C-12
+- Test — Les enums marqués `false` sont **identiques** à la liste gelée de référence
+- Ce qu'il protège — §11.2
+
+- # — C-13
+- Test — Chaque `CodeErreur` a une entrée dans `STATUT_PAR_CODE_ERREUR` **et** dans `fr/de/it/erreurs.json`
+- Ce qu'il protège — pas de code muet en production
+
+- # — C-14
+- Test — Tout endpoint mutant déclare au moins un `example` de refus
+- Ce qu'il protège — §12.3
+
+- # — C-15
+- Test — Le document généré ne perd ni ne renomme aucun champ par rapport à l'instantané versionné
+- Ce qu'il protège — §11.4
+
+- # — C-16
+- Test — Une ressource d'un autre tenant répond `404`, jamais `403`
+- Ce qu'il protège — I-13, CT-11
 
 C-15 mérite une insistance : c'est le seul test qui empêche une rupture accidentelle d'atteindre la
 production. Un instantané du document OpenAPI est versionné ; le test compare et échoue sur toute
@@ -1896,44 +2812,119 @@ ajoute, on ne casse jamais ».
 
 ---
 
-## 14. Divergences assumées avec les plans, et points à trancher
+14. Divergences assumées avec les plans, et points à trancher
 
-### 14.1 Divergences avec `plan-etape-1-backend.md` §4
+---
 
-| Point                                        | Plan backend                                                       | Ce contrat                                                                                               | Pourquoi                                                                                                                                                                        |
-| -------------------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Forme des actions                            | substantifs (`/terminaison`, `/annulation`)                        | **infinitifs** (`/terminer`, `/annuler`)                                                                 | §1.1 — un substantif se lit comme une sous-ressource et rend la règle « verbe ⇒ POST » inapplicable ; en français la dérivation est irrégulière (`honorer` → ?)                 |
-| Nom de l'agrégat véhicule                    | `/dossier-comptoir`                                                | **`/contexte-atelier`**                                                                                  | nommé deux fois par le plan frontend et par la demande d'origine ; un seul nom, aucun alias                                                                                     |
-| Paramétrage                                  | `/parametrage/atelier`, `/parametrage/sites/{id}`                  | **`/parametres-atelier`**, **`/sites/{id}/parametres-atelier`**                                          | ressource au pluriel, et les paramètres de site se greffent sur `/sites` du socle plutôt que de créer un second chemin vers un site                                             |
-| Référentiels                                 | `/referentiel/...`                                                 | **`/referentiels/...`**                                                                                  | pluriel, cohérence                                                                                                                                                              |
-| Actions sur ligne                            | `POST .../lignes/{lid}/validation`                                 | **`POST .../valider-lignes {ligneIds[]}`** au niveau de l'OR                                             | atomicité contre le plafond (RM-54) : valider 5 lignes une à une laisse un état que personne n'a voulu. Évite aussi la collision de routage `/lignes/valider` vs `/lignes/{id}` |
-| Pointage                                     | `POST /pointages/demarrage` + `pointageId` dans le corps           | **`PUT /pointages/{pointageId}`**                                                                        | idempotence intrinsèque, pas d'en-tête requis, pas de collision `/pointages/demarrage` vs `/pointages/{id}` ; répond exactement à D-03                                          |
-| `/pointages/ouverts`, `/pointages/anomalies` | endpoints dédiés                                                   | **filtres** `?statut=en_cours`, `?anomalie=true`                                                         | un endpoint qui n'est qu'un filtre finit par diverger du filtre équivalent                                                                                                      |
-| Détenteur                                    | `POST /detentions` + `/detentions/{id}/cloture`                    | **`POST /vehicules/{id}/changer-detenteur`** (les deux autres restent pour les corrections)              | atomicité : un véhicule ne doit jamais être observable sans détenteur ou avec deux (CT-47)                                                                                      |
-| Doublons clients                             | `GET /clients/{id}/doublons-probables`                             | **`GET /doublons-clients?...`**                                                                          | détection **avant** création (RM-05, à la frappe) ; et un segment littéral ne se place pas là où un identifiant est attendu                                                     |
-| Codes                                        | 8 noms différents des traductions                                  | **noms i18n retenus** (§4.2)                                                                             | les traductions FR/DE/IT existent et sont cohérentes avec `or:refus.*`                                                                                                          |
-| Codes « suppression »                        | `VEHICULE_SUPPRESSION_IMPOSSIBLE`, `CLIENT_SUPPRESSION_IMPOSSIBLE` | **`VEHICULE_ARCHIVAGE_IMPOSSIBLE`, `CLIENT_DESACTIVATION_IMPOSSIBLE`**                                   | il n'existe aucun `DELETE` : un code nommé « suppression » documenterait une opération inexistante                                                                              |
-| `CONFIRMATION_REQUISE`                       | toujours ce code                                                   | **conservé, mais uniquement si l'appelant a le droit** ; sinon code spécifique + `DEMANDER_HABILITATION` | sans cela, un réceptionnaire face à un client bloqué reçoit un refus muet                                                                                                       |
-| Codes manquants                              | —                                                                  | **ajout** de `OR_CHECKLIST_INCOMPLETE` et `POINTAGE_HORODATAGE_INVALIDE`                                 | P-08 est exigé par `or:refus.checklistIncomplete` côté front ; la dérive d'horloge est explicitement attendue par §4.3 du plan frontend                                         |
+14.1 Divergences avec `plan-etape-1-backend.md` §4
+--------------------------------------------------
 
-### 14.2 Réponses aux douze dépendances du plan frontend
+- Point — Forme des actions
+- Plan backend — substantifs (`/terminaison`, `/annulation`)
+- Ce contrat — **infinitifs** (`/terminer`, `/annuler`)
+- Pourquoi — §1.1 — un substantif se lit comme une sous-ressource et rend la règle « verbe ⇒ POST » inapplicable ; en français la dérivation est irrégulière (`honorer` → ?)
 
-| #    | Statut                                                                                                                                                                                                                                                                                                           |
-| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D-01 | **Servi** — §8.1, nom `contexte-atelier` retenu, avec `depotPneus: null` réservé                                                                                                                                                                                                                                 |
-| D-02 | **Servi** — §8.2, regroupé par domaine, `ETag`, plus `fonctionnalites` pour l'attente de l'étape 2                                                                                                                                                                                                               |
-| D-03 | **Servi** — §5.2, `PUT /pointages/{pointageId}`                                                                                                                                                                                                                                                                  |
-| D-04 | **Servi** — §5.1, dix endpoints, rétention 7 jours contractuelle                                                                                                                                                                                                                                                 |
-| D-05 | **Servi** — §3, `blocages` + `actionsProposees` + `confirmationsRequises`                                                                                                                                                                                                                                        |
-| D-06 | **Servi** — §9, `ETag`/`version`, `If-Match` sur `PATCH`, corps de conflit exploitable                                                                                                                                                                                                                           |
-| D-07 | **Servi** — §4.3, 39 codes, dont 19 à traduire (§4.3) et 1 clé à renommer (§4.2)                                                                                                                                                                                                                                 |
-| D-08 | **Servi** — §7.5, plaques historiques et interchangeables portées par le contrat                                                                                                                                                                                                                                 |
-| D-09 | **Partiellement caduc** — `receptionnaire` **existe déjà** dans `ROLES_UTILISATEUR` et dans `0000_socle.sql`. Seule la **cumulabilité** des rôles reste ouverte, et le plan backend A-02 la reporte à l'étape 2. Aucun impact sur ce contrat : les droits sont exprimés par route (`@ExigerDroit`), pas par rôle |
-| D-10 | **Servi** — §8.3, OR complet, renvoyé aussi par chaque action                                                                                                                                                                                                                                                    |
-| D-11 | **Hors périmètre API** — durée de session, à arbitrer avec expert-auth. Aucun endpoint de ce contrat n'en dépend                                                                                                                                                                                                 |
-| D-12 | **Ce document** — l'OpenAPI généré doit suivre §12 avant le démarrage de la vague 1                                                                                                                                                                                                                              |
+- Point — Nom de l'agrégat véhicule
+- Plan backend — `/dossier-comptoir`
+- Ce contrat — **`/contexte-atelier`**
+- Pourquoi — nommé deux fois par le plan frontend et par la demande d'origine ; un seul nom, aucun alias
 
-### 14.3 Points à trancher avant l'implémentation
+- Point — Paramétrage
+- Plan backend — `/parametrage/atelier`, `/parametrage/sites/{id}`
+- Ce contrat — **`/parametres-atelier`**, **`/sites/{id}/parametres-atelier`**
+- Pourquoi — ressource au pluriel, et les paramètres de site se greffent sur `/sites` du socle plutôt que de créer un second chemin vers un site
+
+- Point — Référentiels
+- Plan backend — `/referentiel/...`
+- Ce contrat — **`/referentiels/...`**
+- Pourquoi — pluriel, cohérence
+
+- Point — Actions sur ligne
+- Plan backend — `POST .../lignes/{lid}/validation`
+- Ce contrat — **`POST .../valider-lignes {ligneIds[]}`** au niveau de l'OR
+- Pourquoi — atomicité contre le plafond (RM-54) : valider 5 lignes une à une laisse un état que personne n'a voulu. Évite aussi la collision de routage `/lignes/valider` vs `/lignes/{id}`
+
+- Point — Pointage
+- Plan backend — `POST /pointages/demarrage` + `pointageId` dans le corps
+- Ce contrat — **`PUT /pointages/{pointageId}`**
+- Pourquoi — idempotence intrinsèque, pas d'en-tête requis, pas de collision `/pointages/demarrage` vs `/pointages/{id}` ; répond exactement à D-03
+
+- Point — `/pointages/ouverts`, `/pointages/anomalies`
+- Plan backend — endpoints dédiés
+- Ce contrat — **filtres** `?statut=en_cours`, `?anomalie=true`
+- Pourquoi — un endpoint qui n'est qu'un filtre finit par diverger du filtre équivalent
+
+- Point — Détenteur
+- Plan backend — `POST /detentions` + `/detentions/{id}/cloture`
+- Ce contrat — **`POST /vehicules/{id}/changer-detenteur`** (les deux autres restent pour les corrections)
+- Pourquoi — atomicité : un véhicule ne doit jamais être observable sans détenteur ou avec deux (CT-47)
+
+- Point — Doublons clients
+- Plan backend — `GET /clients/{id}/doublons-probables`
+- Ce contrat — **`GET /doublons-clients?...`**
+- Pourquoi — détection **avant** création (RM-05, à la frappe) ; et un segment littéral ne se place pas là où un identifiant est attendu
+
+- Point — Codes
+- Plan backend — 8 noms différents des traductions
+- Ce contrat — **noms i18n retenus** (§4.2)
+- Pourquoi — les traductions FR/DE/IT existent et sont cohérentes avec `or:refus.*`
+
+- Point — Codes « suppression »
+- Plan backend — `VEHICULE_SUPPRESSION_IMPOSSIBLE`, `CLIENT_SUPPRESSION_IMPOSSIBLE`
+- Ce contrat — **`VEHICULE_ARCHIVAGE_IMPOSSIBLE`, `CLIENT_DESACTIVATION_IMPOSSIBLE`**
+- Pourquoi — il n'existe aucun `DELETE` : un code nommé « suppression » documenterait une opération inexistante
+
+- Point — `CONFIRMATION_REQUISE`
+- Plan backend — toujours ce code
+- Ce contrat — **conservé, mais uniquement si l'appelant a le droit** ; sinon code spécifique + `DEMANDER_HABILITATION`
+- Pourquoi — sans cela, un réceptionnaire face à un client bloqué reçoit un refus muet
+
+- Point — Codes manquants
+- Plan backend — —
+- Ce contrat — **ajout** de `OR_CHECKLIST_INCOMPLETE` et `POINTAGE_HORODATAGE_INVALIDE`
+- Pourquoi — P-08 est exigé par `or:refus.checklistIncomplete` côté front ; la dérive d'horloge est explicitement attendue par §4.3 du plan frontend
+
+14.2 Réponses aux douze dépendances du plan frontend
+----------------------------------------------------
+
+- # — D-01
+- Statut — **Servi** — §8.1, nom `contexte-atelier` retenu, avec `depotPneus: null` réservé
+
+- # — D-02
+- Statut — **Servi** — §8.2, regroupé par domaine, `ETag`, plus `fonctionnalites` pour l'attente de l'étape 2
+
+- # — D-03
+- Statut — **Servi** — §5.2, `PUT /pointages/{pointageId}`
+
+- # — D-04
+- Statut — **Servi** — §5.1, dix endpoints, rétention 7 jours contractuelle
+
+- # — D-05
+- Statut — **Servi** — §3, `blocages` + `actionsProposees` + `confirmationsRequises`
+
+- # — D-06
+- Statut — **Servi** — §9, `ETag`/`version`, `If-Match` sur `PATCH`, corps de conflit exploitable
+
+- # — D-07
+- Statut — **Servi** — §4.3, 39 codes, dont 19 à traduire (§4.3) et 1 clé à renommer (§4.2)
+
+- # — D-08
+- Statut — **Servi** — §7.5, plaques historiques et interchangeables portées par le contrat
+
+- # — D-09
+- Statut — **Partiellement caduc** — `receptionnaire` **existe déjà** dans `ROLES_UTILISATEUR` et dans `0000_socle.sql`. Seule la **cumulabilité** des rôles reste ouverte, et le plan backend A-02 la reporte à l'étape 2. Aucun impact sur ce contrat : les droits sont exprimés par route (`@ExigerDroit`), pas par rôle
+
+- # — D-10
+- Statut — **Servi** — §8.3, OR complet, renvoyé aussi par chaque action
+
+- # — D-11
+- Statut — **Hors périmètre API** — durée de session, à arbitrer avec expert-auth. Aucun endpoint de ce contrat n'en dépend
+
+- # — D-12
+- Statut — **Ce document** — l'OpenAPI généré doit suivre §12 avant le démarrage de la vague 1
+
+14.3 Points à trancher avant l'implémentation
+---------------------------------------------
 
 1. **Renommage `RDV_VEHICULE_NON_IDENTIFIE` → `RDV_IDENTIFICATION_INCOMPLETE`** dans les trois fichiers
    de traduction, **clé seule** (les messages FR/DE/IT sont déjà justes). À faire avant l'ajout du code

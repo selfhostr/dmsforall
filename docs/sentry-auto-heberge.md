@@ -1,5 +1,4 @@
-# Supervision des erreurs — Sentry auto-hébergé (ou alternative légère)
-
+$=^
 Décision de @laupernoe : la supervision des erreurs (Sentry, SDK déjà intégré dans
 `apps/api/src/observabilite/` et `apps/web/src/observabilite/`) doit être **auto-hébergée en
 Suisse**, pas le produit `sentry.io` — cohérence avec le reste de l'infrastructure (nLPD, données de
@@ -10,7 +9,9 @@ propose une alternative plus légère qui satisfait la même contrainte.
 `nettoyer-evenement.ts`, `apps/web/src/observabilite/sentry.ts`) est faite par d'autres agents en
 parallèle. Ici : comment et où fait tourner l'instance qui reçoit ces événements.
 
-## 0. Ce qui ne change pas, quel que soit le choix ci-dessous
+0. Ce qui ne change pas, quel que soit le choix ci-dessous
+
+---
 
 **L'application ne dépend jamais de la disponibilité de sa supervision.** C'est déjà garanti côté
 code, pas seulement une intention :
@@ -31,16 +32,29 @@ cette fenêtre, il ne perd pas le service. C'est ce qui rend défendable de comm
 option modeste : le pire cas n'est jamais une panne de production, seulement un angle mort
 temporaire de supervision.
 
-## 1. Deux options, une recommandation
+1. Deux options, une recommandation
 
-|                                         | Sentry auto-hébergé (pile complète)                                                                                    | GlitchTip (recommandé)                                                                                       |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Composants                              | Kafka, ClickHouse, Postgres dédié, Redis, Zookeeper, Symbolicator, Relay, Snuba, plusieurs workers (~15-20 conteneurs) | Django + Celery + Postgres + Redis (4-5 conteneurs)                                                          |
-| RAM réaliste                            | de l'ordre de 16 Go et plus (voir §2.1)                                                                                | de l'ordre de 2-4 Go                                                                                         |
-| Compatible SDK `@sentry/*` déjà intégré | Oui (c'est le produit d'origine)                                                                                       | Oui — GlitchTip implémente le même protocole d'ingestion Sentry, DSN de même forme, aucun changement de code |
-| Fonctionnalités                         | Capture d'erreurs, tracing de performance, session replay, alerting avancé, etc.                                       | Capture d'erreurs, tracing basique, alerting — pas de session replay, UI plus simple                         |
-| Cycle de mises à jour                   | Rapide, parfois cassant (§2.3)                                                                                         | Plus lent, projet plus petit, moins de composants qui peuvent diverger                                       |
-| Adapté à                                | Une équipe qui utilise réellement le tracing/replay avancés                                                            | Un développeur seul qui veut voir ses erreurs, pas opérer une plateforme d'observabilité                     |
+---
+
+**Composants**
+
+- Sentry auto-hébergé (pile complète) : Kafka, ClickHouse, Postgres dédié, Redis, Zookeeper, Symbolicator, Relay, Snuba, plusieurs workers (~15-20 conteneurs)
+- GlitchTip (recommandé) : Django + Celery + Postgres + Redis (4-5 conteneurs)
+  **RAM réaliste**
+- Sentry auto-hébergé (pile complète) : de l'ordre de 16 Go et plus (voir §2.1)
+- GlitchTip (recommandé) : de l'ordre de 2-4 Go
+  **Compatible SDK `@sentry/*` déjà intégré**
+- Sentry auto-hébergé (pile complète) : Oui (c'est le produit d'origine)
+- GlitchTip (recommandé) : Oui — GlitchTip implémente le même protocole d'ingestion Sentry, DSN de même forme, aucun changement de code
+  **Fonctionnalités**
+- Sentry auto-hébergé (pile complète) : Capture d'erreurs, tracing de performance, session replay, alerting avancé, etc.
+- GlitchTip (recommandé) : Capture d'erreurs, tracing basique, alerting — pas de session replay, UI plus simple
+  **Cycle de mises à jour**
+- Sentry auto-hébergé (pile complète) : Rapide, parfois cassant (§2.3)
+- GlitchTip (recommandé) : Plus lent, projet plus petit, moins de composants qui peuvent diverger
+  **Adapté à**
+- Sentry auto-hébergé (pile complète) : Une équipe qui utilise réellement le tracing/replay avancés
+- GlitchTip (recommandé) : Un développeur seul qui veut voir ses erreurs, pas opérer une plateforme d'observabilité
 
 **Recommandation : GlitchTip**, tant que le besoin réel est « voir les erreurs avant que le
 client les signale » (la formulation même de la philosophie de support de ce projet) et pas
@@ -55,9 +69,11 @@ deux est un choix d'outillage, pas un choix de conformité. Si @laupernoe préf�
 complète (ex. anticipation d'un besoin de tracing avancé), §2 documente honnêtement ce que ça
 implique à opérer seul ; §3 documente GlitchTip dans le même niveau de détail.
 
-## 2. Option A — Sentry auto-hébergé (pile complète)
+2. Option A — Sentry auto-hébergé (pile complète)
 
-### 2.1 Prérequis matériels réalistes
+---
+
+**2.1 Prérequis matériels réalistes**
 
 La documentation officielle du projet `getsentry/self-hosted` évolue avec chaque version — les
 chiffres ci-dessous sont des ordres de grandeur à vérifier contre la version installée au moment
@@ -79,7 +95,7 @@ voir `docs/deploiement-production.md` §3.4) : la pile Sentry complète, à elle
 le même serveur n'est pas raisonnable sans un dimensionnement bien plus généreux — voir §2.6 pour
 la recommandation d'isolement.
 
-### 2.2 Installation
+**2.2 Installation**
 
 Le projet officiel (`github.com/getsentry/self-hosted`) fournit un installeur scripté, pas un
 simple `docker compose up` : `git clone` du dépôt officiel, puis `./install.sh`, qui génère sa
@@ -89,7 +105,7 @@ de `docker-compose.yml` (§2.6 explique pourquoi les garder séparés). Prévoir
 pour la première installation, plus le temps de créer le premier compte admin et le premier
 projet (qui donne le DSN à reporter dans `SENTRY_DSN`/`VITE_SENTRY_DSN`).
 
-### 2.3 Mises à jour — le point le plus honnête de ce document
+**2.3 Mises à jour — le point le plus honnête de ce document**
 
 Le cycle de release de Sentry self-hosted est rapide (nouvelles versions fréquentes) et **casse
 parfois** : montées de version majeures de ClickHouse ou de Kafka, changements de schéma qui
@@ -104,7 +120,7 @@ Prévoir une fenêtre calme, une sauvegarde fraîche (§2.4) juste avant, et acc
 jour puisse occasionnellement demander plus qu'un après-midi à cause d'une régression amont — ce
 risque est structurel au projet, pas une question de compétence.
 
-### 2.4 Sauvegarde de Sentry lui-même
+**2.4 Sauvegarde de Sentry lui-même**
 
 Sentry self-hosted a son propre Postgres (métadonnées : projets, utilisateurs, règles d'alerte),
 son propre ClickHouse (événements bruts), son propre volume Kafka (file d'attente, pas destinée à
@@ -126,7 +142,7 @@ son propre ClickHouse (événements bruts), son propre volume Kafka (file d'atte
   restaurer — **réinstaller proprement et repartir à vide** est une option légitime, précisément
   parce que §0 garantit que ça n'affecte jamais DFA lui-même.
 
-### 2.5 Rétention et volumétrie des événements
+**2.5 Rétention et volumétrie des événements**
 
 Le défaut officiel (90 jours de rétention côté ClickHouse) est largement au-dessus du besoin réel
 de ce projet à ce stade (quelques garages, volume d'erreurs attendu faible). Réduire la rétention
@@ -134,7 +150,7 @@ de ce projet à ce stade (quelques garages, volume d'erreurs attendu faible). R�
 croissance du volume disque sans perdre de capacité de diagnostic utile — une erreur non
 diagnostiquée en un mois ne le sera généralement pas mieux trois mois plus tard.
 
-### 2.6 Sécurisation de l'accès et isolement
+**2.6 Sécurisation de l'accès et isolement**
 
 - Interface d'administration Sentry derrière un accès authentifié (compte Sentry natif, 2FA
   activé sur le compte admin) — ne jamais l'exposer sans authentification, elle donne accès aux
@@ -151,7 +167,9 @@ diagnostiquée en un mois ne le sera généralement pas mieux trois mois plus ta
   même logique que Caddy pour DFA, mais une instance séparée), jamais les ports internes
   (Kafka, ClickHouse, Postgres interne) exposés au-delà du réseau Docker de cette stack.
 
-## 3. Option B — GlitchTip (recommandé)
+3. Option B — GlitchTip (recommandé)
+
+---
 
 GlitchTip est un projet open source qui réimplémente l'API d'ingestion d'événements de Sentry
 (protocole/format DSN identiques) avec une architecture nettement plus légère : Django + Celery
@@ -161,7 +179,7 @@ code** — seul le DSN change d'hôte, exactement comme le passage de `sentry.io
 interne l'est déjà pour l'option A (voir le commentaire de tête de
 `apps/api/src/observabilite/initialiser-sentry.ts`, écrit pour être vrai des deux options).
 
-### 3.1 Prérequis matériels réalistes
+**3.1 Prérequis matériels réalistes**
 
 De l'ordre de 2 à 4 Go de RAM et 1-2 vCPU suffisent pour un usage à l'échelle de ce projet
 (quelques garages, volume d'erreurs modeste) — un gabarit qui peut raisonnablement cohabiter avec
@@ -170,7 +188,7 @@ nécessiter une seconde machine dédiée comme le recommande §2.6 pour la pile 
 malgré tout sur un hôte séparé reste une bonne pratique de défense en profondeur (isolement des
 domaines de panne, §0), mais c'est ici un confort, pas une nécessité dictée par le gabarit.
 
-### 3.2 Installation
+**3.2 Installation**
 
 GlitchTip se déploie via son propre `docker-compose.yml` (fourni par le projet,
 `docs.glitchtip.com`) : un service `web` (Django), un `worker` (Celery), `postgres`, `redis`, et
@@ -182,7 +200,7 @@ l'autre. Premier démarrage : créer le compte admin (`docker compose exec web p
 createsuperuser` ou équivalent selon la version), créer une organisation et un projet, récupérer
 le DSN généré.
 
-### 3.3 Mises à jour
+**3.3 Mises à jour**
 
 Cycle de release plus lent et plus prévisible qu'une pile Sentry complète (moins de composants
 tiers à synchroniser entre eux) : `docker compose pull && up -d` suffit dans l'immense majorité
@@ -191,25 +209,25 @@ Toujours lire les notes de version avant une montée de version majeure, et sauv
 juste avant (§3.4) — même discipline que pour n'importe quel service stateful de ce projet, mais
 sans le risque structurel documenté en §2.3.
 
-### 3.4 Sauvegarde
+**3.4 Sauvegarde**
 
 Un seul Postgres à sauvegarder (contrairement à Postgres + ClickHouse pour l'option A) : même
 politique que §7 de `docs/deploiement-production.md` (dump chiffré, hors site, testé en
 restauration) — c'est un Postgres ordinaire, la procédure ne demande aucune adaptation
 particulière au-delà de pointer vers cette instance plutôt que celle de DFA.
 
-### 3.5 Rétention et volumétrie
+**3.5 Rétention et volumétrie**
 
 Rétention configurable au niveau de l'organisation/projet dans l'interface GlitchTip ; à défaut
 de besoin identifié, 30 jours est un point de départ raisonnable pour ce projet, ajustable sans
 redéploiement.
 
-### 3.6 Sécurisation de l'accès
+**3.6 Sécurisation de l'accès**
 
 Mêmes principes que §2.6 : TLS, authentification native + 2FA sur le compte admin, aucun port
 interne (Postgres/Redis de GlitchTip) exposé au-delà du réseau Docker de cette stack.
 
-### 3.7 Limites connues à accepter
+**3.7 Limites connues à accepter**
 
 Pas de session replay (rejouer visuellement une session utilisateur ayant produit une erreur), et
 un tracing de performance plus basique que l'offre Sentry complète. Pour ce projet, à ce stade
@@ -217,7 +235,9 @@ un tracing de performance plus basique que l'offre Sentry complète. Pour ce pro
 perte fonctionnelle qui justifie le coût d'exploitation supplémentaire de l'option A — à
 réévaluer seulement si un besoin concret et récurrent de ces fonctionnalités apparaît.
 
-## 4. Ce qui reste vrai quelle que soit l'option retenue
+4. Ce qui reste vrai quelle que soit l'option retenue
+
+---
 
 - `SENTRY_DSN`/`SENTRY_ENVIRONMENT`/`SENTRY_TAUX_ECHANTILLONNAGE_TRACES` côté `.env.production`
   de l'API, et `VITE_SENTRY_DSN` inliné au build de l'image `web` (voir

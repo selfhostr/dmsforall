@@ -1,4 +1,5 @@
-# Déclenchement périodique des relances de facturation — cron, pas file d'attente
+Déclenchement périodique des relances de facturation — cron, pas file d'attente
+====================================================================================
 
 Décision de @laupernoe : l'hébergement sera toujours du Linux dans Docker, jamais un cluster nécessitant
 une file d'attente distribuée pour coordonner des workers. `POST /relances/facturation/planifier`
@@ -12,7 +13,8 @@ distribué : un double déclenchement ne peut pas produire de doublon métier.
 L'implémentation exécutable de tout ce document est `docker/relances/` (scripts + gabarits
 systemd) — ce fichier explique le **pourquoi**, les scripts exécutent, ils ne réexpliquent pas.
 
-## 1. Où vit le cron : l'hôte, via systemd timer
+Où vit le cron : l'hôte, via systemd timer
+-------------------------------------------
 
 **Décision : `systemd timer` sur le serveur hôte, pas un conteneur dédié, pas de cron applicatif
 dans le process API.**
@@ -40,7 +42,8 @@ dfa-relances.service` est le premier réflexe de débogage, déjà la doctrine d
   redémarre le process — risque de double ou zéro déclenchement le jour du déploiement) et mélange
   une responsabilité d'infrastructure dans le code métier.
 
-## 2. Authentification — le point dur, non résolu aujourd'hui
+Authentification — le point dur, non résolu aujourd'hui
+------------------------------------------------------
 
 **Aucun mécanisme existant ne permet à ce cron d'appeler l'API légitimement aujourd'hui.** Deux
 pistes examinées et écartées, une troisième à construire.
@@ -94,7 +97,8 @@ doctrine du produit pour préserver l'audit trail, pas une exception à inventer
 Tant que ceci n'existe pas, `docker/relances/declencher-relances.sh` reçoit aujourd'hui
 `403 AUTH_ORIGINE_REFUSEE` sur chaque appel — documenté en tête du script, assumé, pas contourné.
 
-## 3. Multi-tenant : boucle côté script, jamais côté API
+Multi-tenant : boucle côté script, jamais côté API
+---------------------------------------------------
 
 Aucune route n'accepte de `tenantId` en paramètre (règle absolue du dépôt) : le tenant est toujours
 résolu depuis le principal authentifié de la requête. Une route « pour tous les tenants » n'existe
@@ -112,7 +116,8 @@ Coût assumé à 10 garages : @laupernoe ajoute une ligne au fichier à chaque o
 réévaluer (script de génération depuis la table `tenant`) si ce nombre approche la cinquantaine —
 sur-ingénierie aujourd'hui, dette réelle plus tard.
 
-## 4. Fenêtre d'envoi : jours ouvrés, 07:30 Europe/Zurich
+Fenêtre d'envoi : jours ouvrés, 07:30 Europe/Zurich
+----------------------------------------------------
 
 Jamais 3h du matin (aucune raison métier de relancer la nuit, et un rappel de facture impayée qui
 arrive à 3h du matin dégrade la relation client pour rien), jamais le week-end (personne ne répond
@@ -128,7 +133,8 @@ malvenue, pas un incident. Sur-ingénierie réelle à ce stade ; à rouvrir seul
 s'étend un jour à l'appel téléphonique (hors périmètre actuel, §5 de
 `docs/specification-relances-automatiques.md`).
 
-## 5. Observabilité : GlitchTip, déjà en place, exploité directement
+Observabilité : GlitchTip, déjà en place, exploité directement
+--------------------------------------------------------------
 
 **Un cron mort en silence est le pire cas** : des clients qui ne sont plus relancés, sans qu'aucune
 route ne le révèle jamais (ni erreur 500, ni ticket client). Deux mécanismes distincts, parce que
@@ -154,7 +160,8 @@ route ne le révèle jamais (ni erreur 500, ni ticket client). Deux mécanismes 
 auto-hébergé, et couvre le même besoin sans ajouter de dépendance ni rouvrir une question nLPD pour
 une méta-donnée aussi mineure que « le job a tourné ».
 
-## 6. Reprise des relances bloquées (point remonté par l'audit)
+Reprise des relances bloquées (point remonté par l'audit)
+----------------------------------------------------------
 
 `traiterUneRelance` (`apps/api/src/relances/service-relances-facture.ts`) réclame une ligne par une
 mise à jour conditionnelle (`statut: 'prete' → 'en_cours_envoi'`), puis fait l'appel réseau vers le
@@ -179,7 +186,8 @@ hors périmètre de cette tâche) :
   L'exécution suivante du cron (ou la même, si le déblocage précède la boucle de réclamation)
   reprend la ligne normalement.
 
-## 7. Ce qui reste à construire côté applicatif (hors périmètre `docker/`, `docs/`, `scripts/`)
+Ce qui reste à construire côté applicatif
+-------------------------------------------
 
 1. Authentification par jeton API (§2, points 1 à 5) — le blocage réel avant toute exécution.
 2. Déblocage des relances orphelines `en_cours_envoi` (§6) — pas bloquant pour livrer le cron, mais

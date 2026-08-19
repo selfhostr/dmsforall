@@ -1,10 +1,13 @@
-# Conception données — rendez-vous d'atelier
+Conception données — rendez-vous d'atelier
+==========================================
 
 Branche `feat/rendez-vous-atelier`. Angle données uniquement : schéma, contraintes, index, invariants. Parcours d'écran et workflow métier : hors périmètre, voir les propositions parallèles.
 
 **Migration proposée : `0052`.** `0050` et `0051` sont pris par le second développeur (point de contact à négocier avant d'écrire le SQL réel — un nouveau `0051`/`0052` en parallèle du sien est le scénario de collision documenté dans CONTRIBUTING.md).
 
-## 0. Ce que le dépôt a déjà anticipé
+0. Ce que le dépôt a déjà anticipé
+
+---
 
 Avant de trancher, trois éléments existants contraignent la conception — ignorer l'un des trois produirait un doublon ou une incohérence avec du code déjà mergé :
 
@@ -15,7 +18,9 @@ Avant de trancher, trois éléments existants contraignent la conception — ign
 
 Le modèle ci-dessous complète ces accroches, il ne les recrée pas.
 
-## 1. Forme du rendez-vous : jour + moment, pas un intervalle
+1. Forme du rendez-vous : jour + moment, pas un intervalle
+
+---
 
 **Décision : pas de `tsrange` + `EXCLUDE`.** Un `EXCLUDE USING gist` empêche le chevauchement de deux intervalles sur une **ressource nommée** — c'est l'outil pour « ce pont est occupé de 9h à 10h ». Ici, rien n'est réservé nommément (§2) : sans ressource, un intervalle exact n'a rien à ne-pas-chevaucher, et il mentirait par excès de précision (un client dit « demain matin », pas « 9h14–9h58 »).
 
@@ -28,7 +33,9 @@ Colonnes :
 
 Pas de contrainte DB reliant `date`/`moment` au « futur » : un rendez-vous rétroactif (`origine = 'retroactif'`, §4) peut légitimement porter une date passée.
 
-## 2. Ce qui est réservé : capacité agrégée, pas de ressource nommée
+2. Ce qui est réservé : capacité agrégée, pas de ressource nommée
+
+---
 
 **Décision : capacité agrégée, calculée à la volée, pas de ressource nommée au rendez-vous.** Aucune colonne `technicien_id` ni `pont_id` sur `rendez_vous`. Rationnel :
 
@@ -36,36 +43,38 @@ Pas de contrainte DB reliant `date`/`moment` au « futur » : un rendez-vous ré
 - `parametre_site.capacite_heures_jour_centiemes` existe déjà mais mesure autre chose : un objectif de productivité pointage (heures facturables visées par jour), pas un nombre de créneaux d'accueil. Le réutiliser pour plafonner les rendez-vous confondrait deux métriques sans rapport (un jour à 3 techniciens malades a une capacité pointage réduite sans que le nombre de ponts d'accueil ait changé) — pas de couplage entre les deux.
 - **Pas de plafond fait tenir par la base dans cette proposition.** Le compte de rendez-vous actifs par site/jour/moment est une lecture directe et bon marché (`COUNT(*) ... WHERE tenant_id=… AND site_id=… AND date=… AND moment=… AND statut='confirme'`), servie par l'index partiel `rendez_vous_actifs_idx` (§6) — pas besoin de compteur maintenu qui dérive. Si le métier veut un **refus dur** au-delà d'un seuil (pas seulement un avertissement), c'est un point d'arbitrage : un tel plafond demanderait soit une colonne de capacité par site/moment (absente aujourd'hui, à ajouter) plus un verrou applicatif (`SELECT ... FOR UPDATE` sur la fenêtre avant insertion, seule façon fiable d'empêcher une course sans ressource nommée à exclure), soit l'acceptation d'un dépassement occasionnel corrigé a posteriori. **Signalé pour ton arbitrage — l'agent métier tranche le blocage/avertissement, ce document ne pose que le seam de données (l'index qui rend le comptage bon marché).**
 
-## 3. Table `rendez_vous`
+3. Table `rendez_vous`
 
-| Colonne                  | Type                                                      | Contrainte                                                               | Rôle                                                                                                                                                                                                                                                                                                                                                                               |
-| ------------------------ | --------------------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`                     | uuid                                                      | PK, `default gen_random_uuid()`                                          | `colonneId()` standard.                                                                                                                                                                                                                                                                                                                                                            |
-| `tenant_id`              | uuid                                                      | NOT NULL                                                                 | Isolation tenant (RLS + scoping applicatif).                                                                                                                                                                                                                                                                                                                                       |
-| `site_id`                | uuid                                                      | NOT NULL, FK composite `(tenant_id, site_id) -> site`                    | Martigny/Sion — chaque rendez-vous est rattaché à un site, pas au tenant seul.                                                                                                                                                                                                                                                                                                     |
-| `client_id`              | uuid                                                      | NOT NULL, FK composite `-> client`                                       | Qui appelle. Toujours connu au moment de la prise de RDV.                                                                                                                                                                                                                                                                                                                          |
-| `vehicule_id`            | uuid                                                      | **nullable**, FK composite `-> vehicule`                                 | Souvent connu, pas toujours (client qui n'a pas la plaque sous la main, ou nouveau client sans fiche véhicule). Doit être renseigné avant que le rendez-vous devienne un OR (garde applicative — `ordre_reparation.vehicule_id` est NOT NULL) ; la base ne force pas le remplissage plus tôt, ce serait refuser une réservation légitime pour une donnée qui arrivera à l'accueil. |
-| `type`                   | enum `type_ordre_reparation` (réutilisé, pas dupliqué)    | NOT NULL                                                                 | Même enum que `ordre_reparation.type` (`service`, `reparation`, `diagnostic`, `expertise`, `pneus`, `carrosserie`, `retouche`, `interne`) : le garagiste classe au téléphone ce qu'il reclasserait de toute façon à l'ouverture de l'OR. Un seul enum à faire évoluer, jamais deux taxonomies à resynchroniser.                                                                    |
-| `motif`                  | text                                                      | NOT NULL, `CHECK length(btrim(motif)) > 0`                               | Verbatim du garagiste (« bruit au freinage avant droit »). Même doctrine que `ordre_reparation_demande.verbatim` : texte libre, pas d'enum — les motifs réels ne se laissent pas clore dans une liste.                                                                                                                                                                             |
-| `date`                   | date                                                      | NOT NULL                                                                 | §1.                                                                                                                                                                                                                                                                                                                                                                                |
-| `moment`                 | enum `moment_rendez_vous`                                 | NOT NULL                                                                 | §1.                                                                                                                                                                                                                                                                                                                                                                                |
-| `heure_souhaitee`        | time                                                      | nullable                                                                 | §1.                                                                                                                                                                                                                                                                                                                                                                                |
-| `duree_estimee_minutes`  | integer                                                   | nullable, `CHECK > 0`                                                    | §1.                                                                                                                                                                                                                                                                                                                                                                                |
-| `statut`                 | enum `statut_rendez_vous`                                 | NOT NULL, défaut `'confirme'`                                            | §4.                                                                                                                                                                                                                                                                                                                                                                                |
-| `motif_annulation`       | text                                                      | nullable, `CHECK (statut <> 'annule') OR (motif_annulation IS NOT NULL)` | Obligatoire seulement à l'annulation — même patron que `ordre_reparation_annulation_coherente_chk`.                                                                                                                                                                                                                                                                                |
-| `origine`                | enum `origine_rendez_vous` (`reservation` / `retroactif`) | NOT NULL, défaut `'reservation'`                                         | Distingue une vraie prise de rendez-vous d'une ligne créée après coup pour un walk-in (`parametre_atelier.rdv_retroactif_auto`). Sans cette colonne, toute statistique « % du travail passé par le planning » compterait les deux identiquement et mentirait.                                                                                                                      |
-| `confirme_le`            | timestamptz                                               | NOT NULL, `default now()`                                                | Instant de la prise (= `cree_le` en pratique pour `origine='reservation'`, mais nommé sémantiquement pour rester correct si un jour un RDV naît `'provisoire'` avant confirmation — hors périmètre v1, voir §7).                                                                                                                                                                   |
-| `honore_le`              | timestamptz                                               | nullable                                                                 | Instant de la transition vers `'honore'`.                                                                                                                                                                                                                                                                                                                                          |
-| `no_show_constate_le`    | timestamptz                                               | nullable                                                                 | Instant de la transition vers `'no_show'`.                                                                                                                                                                                                                                                                                                                                         |
-| `annule_le`              | timestamptz                                               | nullable                                                                 | Instant de la transition vers `'annule'`.                                                                                                                                                                                                                                                                                                                                          |
-| `cree_par_id`            | uuid                                                      | nullable, FK composite `-> utilisateur`                                  | Qui a pris l'appel (réceptionniste). Nullable : une reprise de données historique n'aura pas toujours cette information.                                                                                                                                                                                                                                                           |
-| `cree_le` / `modifie_le` | timestamptz                                               | `colonnesHorodatage()`                                                   | Standard. `modifie_le` bouge à chaque déplacement de créneau — **ne sert donc jamais** à dater « quand est-il devenu honoré » : c'est le rôle des trois colonnes `*_le` ci-dessus, même raisonnement que les multiples `*_le` de `ordre_reparation` plutôt qu'un unique `modifie_le` surchargé.                                                                                    |
+---
+
+- **Colonne `id`** — Type : uuid · Contrainte : PK, `default gen_random_uuid()` · Rôle : `colonneId()` standard.
+- **Colonne `tenant_id`** — Type : uuid · Contrainte : NOT NULL · Rôle : Isolation tenant (RLS + scoping applicatif).
+- **Colonne `site_id`** — Type : uuid · Contrainte : NOT NULL, FK composite `(tenant_id, site_id) -> site` · Rôle : Martigny/Sion — chaque rendez-vous est rattaché à un site, pas au tenant seul.
+- **Colonne `client_id`** — Type : uuid · Contrainte : NOT NULL, FK composite `-> client` · Rôle : Qui appelle. Toujours connu au moment de la prise de RDV.
+- **Colonne `vehicule_id`** — Type : uuid · Contrainte : **nullable**, FK composite `-> vehicule` · Rôle : Souvent connu, pas toujours (client qui n'a pas la plaque sous la main, ou nouveau client sans fiche véhicule). Doit être renseigné avant que le rendez-vous devienne un OR (garde applicative — `ordre_reparation.vehicule_id` est NOT NULL) ; la base ne force pas le remplissage plus tôt, ce serait refuser une réservation légitime pour une donnée qui arrivera à l'accueil.
+- **Colonne `type`** — Type : enum `type_ordre_reparation` (réutilisé, pas dupliqué) · Contrainte : NOT NULL · Rôle : Même enum que `ordre_reparation.type` (`service`, `reparation`, `diagnostic`, `expertise`, `pneus`, `carrosserie`, `retouche`, `interne`) : le garagiste classe au téléphone ce qu'il reclasserait de toute façon à l'ouverture de l'OR. Un seul enum à faire évoluer, jamais deux taxonomies à resynchroniser.
+- **Colonne `motif`** — Type : text · Contrainte : NOT NULL, `CHECK length(btrim(motif)) > 0` · Rôle : Verbatim du garagiste (« bruit au freinage avant droit »). Même doctrine que `ordre_reparation_demande.verbatim` : texte libre, pas d'enum — les motifs réels ne se laissent pas clore dans une liste.
+- **Colonne `date`** — Type : date · Contrainte : NOT NULL · Rôle : §1.
+- **Colonne `moment`** — Type : enum `moment_rendez_vous` · Contrainte : NOT NULL · Rôle : §1.
+- **Colonne `heure_souhaitee`** — Type : time · Contrainte : nullable · Rôle : §1.
+- **Colonne `duree_estimee_minutes`** — Type : integer · Contrainte : nullable, `CHECK > 0` · Rôle : §1.
+- **Colonne `statut`** — Type : enum `statut_rendez_vous` · Contrainte : NOT NULL, défaut `'confirme'` · Rôle : §4.
+- **Colonne `motif_annulation`** — Type : text · Contrainte : nullable, `CHECK (statut <> 'annule') OR (motif_annulation IS NOT NULL)` · Rôle : Obligatoire seulement à l'annulation — même patron que `ordre_reparation_annulation_coherente_chk`.
+- **Colonne `origine`** — Type : enum `origine_rendez_vous` (`reservation` / `retroactif`) · Contrainte : NOT NULL, défaut `'reservation'` · Rôle : Distingue une vraie prise de rendez-vous d'une ligne créée après coup pour un walk-in (`parametre_atelier.rdv_retroactif_auto`). Sans cette colonne, toute statistique « % du travail passé par le planning » compterait les deux identiquement et mentirait.
+- **Colonne `confirme_le`** — Type : timestamptz · Contrainte : NOT NULL, `default now()` · Rôle : Instant de la prise (= `cree_le` en pratique pour `origine='reservation'`, mais nommé sémantiquement pour rester correct si un jour un RDV naît `'provisoire'` avant confirmation — hors périmètre v1, voir §7).
+- **Colonne `honore_le`** — Type : timestamptz · Contrainte : nullable · Rôle : Instant de la transition vers `'honore'`.
+- **Colonne `no_show_constate_le`** — Type : timestamptz · Contrainte : nullable · Rôle : Instant de la transition vers `'no_show'`.
+- **Colonne `annule_le`** — Type : timestamptz · Contrainte : nullable · Rôle : Instant de la transition vers `'annule'`.
+- **Colonne `cree_par_id`** — Type : uuid · Contrainte : nullable, FK composite `-> utilisateur` · Rôle : Qui a pris l'appel (réceptionniste). Nullable : une reprise de données historique n'aura pas toujours cette information.
+- **Colonne `cree_le` / `modifie_le`** — Type : timestamptz · Contrainte : `colonnesHorodatage()` · Rôle : Standard. `modifie_le` bouge à chaque déplacement de créneau — **ne sert donc jamais** à dater « quand est-il devenu honoré » : c'est le rôle des trois colonnes `*_le` ci-dessus, même raisonnement que les multiples `*_le` de `ordre_reparation` plutôt qu'un unique `modifie_le` surchargé.
 
 **Déplacer un rendez-vous** = `UPDATE` de `date`/`moment`/`heure_souhaitee` sur la même ligne, `statut` inchangé (`'confirme'` reste `'confirme'`). Pas de colonne dédiée « ancien créneau » : l'entité est auditée (§8, `auditer_atelier('rendez_vous')`), l'avant/après du déplacement vit dans `audit_atelier` comme pour toute autre entité sensible — pas de mécanisme bespoke à la `pointage.derniere_correction_*` (celui-ci existe pour gérer un cas hors-ligne/horodatage-client que le rendez-vous n'a pas).
 
 **Pas de `numero`.** Contrairement à l'OR ou à la facture, le rendez-vous n'est pas un document légal numéroté séquentiellement — il se retrouve par client + date, jamais cité tel quel sur un document imprimé. Lui donner un compteur (`compteur_document`) ajouterait une séquence sans consommateur.
 
-## 4. États : `statut_rendez_vous`
+4. États : `statut_rendez_vous`
+
+---
 
 ```
 confirme ──> honore
@@ -84,7 +93,9 @@ rendez_vous_empecher_reouverture() :
 
 Ce trigger n'interdit pas de corriger un autre champ (ex. `motif_annulation`) après coup — seule la résurrection du statut est bloquée. La logique **qui** peut déclencher `honore`/`no_show`/`annule`, et depuis quel geste métier (arrivée du client, ouverture d'OR, appel de désistement), reste au service applicatif — trop dépendante du parcours pour être une règle de base, et c'est l'objet du chantier métier parallèle. **Avis motivé** : la base tient l'irréversibilité (peu coûteux, jamais négociable), le service tient l'orchestration (dépend du contexte d'appel, change plus souvent que la structure).
 
-## 5. Restitution promise : un seul champ, celui qui existe déjà
+5. Restitution promise : un seul champ, celui qui existe déjà
+
+---
 
 **Décision : `ordre_reparation.restitution_promise_le` reste l'unique source de vérité.** Aucun champ de restitution n'est ajouté à `rendez_vous`. Deux écrans qui liraient chacun un champ différent (l'un le RDV, l'autre l'OR) sont exactement le bug que le prompt signale — quatre défauts déjà produits par cette confusion cette semaine sur un mécanisme voisin (`IndicateurRetard`/`enRetard` de la facturation, qui a dû être corrigé pour la même raison : deux notions proches fusionnées dans un seul champ produisaient un mauvais calcul, `apps/web/src/ecrans/facturation/IndicateurRetard.tsx`).
 
@@ -92,9 +103,12 @@ Le rendez-vous ne **promet** rien formellement — au téléphone, le garagiste 
 
 Ceci répond aussi à la question du « retard de rendu, aujourd'hui impossible faute de date renseignée » : la colonne existe depuis le lot 1, elle n'est simplement jamais écrite par aucun service actuel (aucun appelant trouvé dans le code exploré). Le vrai manque n'est pas une colonne absente, c'est l'absence d'écrivain — et ce rendez-vous en devient le premier.
 
-## 6. Contraintes et index — table par table
+6. Contraintes et index — table par table
 
-### `rendez_vous`
+---
+
+`rendez_vous`
+-------------
 
 ```
 unique (tenant_id, id)
@@ -112,15 +126,14 @@ CHECK rendez_vous_terminal_le_coherent_chk  : (statut = 'honore')  = (honore_le 
 
 Index :
 
-| Index                        | Colonnes                                                            | Justification                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| ---------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `rendez_vous_agenda_idx`     | `(tenant_id, site_id, date, moment)`                                | Vue planning du jour par site — la requête la plus fréquente de l'écran (« les RDV de Martigny demain matin »).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `rendez_vous_actifs_idx`     | `(tenant_id, site_id, date, moment) WHERE statut = 'confirme'`      | Comptage de capacité (§2) et rappels J-1 — partiel : les RDV terminaux ne participent ni à l'un ni à l'autre, pas la peine de les scanner.                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| `rendez_vous_client_idx`     | `(tenant_id, client_id, date DESC)`                                 | Historique de RDV d'un client (fiche client).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `rendez_vous_vehicule_idx`   | `(tenant_id, vehicule_id, date DESC) WHERE vehicule_id IS NOT NULL` | Historique de RDV d'un véhicule ; partiel car souvent nul (§3).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `rendez_vous_pagination_idx` | `(tenant_id, cree_le DESC, id DESC)`                                | Liste globale paginée par curseur (`GET /rendez-vous`), même patron que `ordre_reparation_pagination_idx`. **Piège connu du dépôt** : `pg` réduit un `timestamptz` en `Date` JS et perd la microseconde, ce qui saute des lignes en silence sous forte cadence d'écriture — l'endpoint de liste doit lire `cree_le::text` et construire son curseur avec `valeurCurseurTimestamptz()`, jamais comparer des `Date` JS. Ce n'est pas un choix d'index, c'est une contrainte sur le code de lecture qui consomme cet index — signalé ici pour que l'agent d'implémentation ne le redécouvre pas à la dure. |
+- **`rendez_vous_agenda_idx`** — `(tenant_id, site_id, date, moment)` — Vue planning du jour par site — la requête la plus fréquente de l'écran (« les RDV de Martigny demain matin »).
+- **`rendez_vous_actifs_idx`** — `(tenant_id, site_id, date, moment) WHERE statut = 'confirme'` — Comptage de capacité (§2) et rappels J-1 — partiel : les RDV terminaux ne participent ni à l'un ni à l'autre, pas la peine de les scanner.
+- **`rendez_vous_client_idx`** — `(tenant_id, client_id, date DESC)` — Historique de RDV d'un client (fiche client).
+- **`rendez_vous_vehicule_idx`** — `(tenant_id, vehicule_id, date DESC) WHERE vehicule_id IS NOT NULL` — Historique de RDV d'un véhicule ; partiel car souvent nul (§3).
+- **`rendez_vous_pagination_idx`** — `(tenant_id, cree_le DESC, id DESC)` — Liste globale paginée par curseur (`GET /rendez-vous`), même patron que `ordre_reparation_pagination_idx`. **Piège connu du dépôt** : `pg` réduit un `timestamptz` en `Date` JS et perd la microseconde, ce qui saute des lignes en silence sous forte cadence d'écriture — l'endpoint de liste doit lire `cree_le::text` et construire son curseur avec `valeurCurseurTimestamptz()`, jamais comparer des `Date` JS. Ce n'est pas un choix d'index, c'est une contrainte sur le code de lecture qui consomme cet index — signalé ici pour que l'agent d'implémentation ne le redécouvre pas à la dure.
 
-### `ordre_reparation` (modification, pas de nouvelle table)
+`ordre_reparation` (modification, pas de nouvelle table)
+--------------------------------------------------------
 
 ```
 ALTER TABLE ordre_reparation
@@ -142,14 +155,18 @@ CREATE INDEX ordre_reparation_rendez_vous_idx
 
 `ON DELETE RESTRICT`, comme toutes les FK de ce schéma (`ordre_reparation_fk_client`, `ordre_reparation_fk_vehicule`, etc.) : un rendez-vous honoré ne se supprime jamais tant qu'un OR le référence.
 
-## 7. Ce qui reste hors périmètre (assumé, pas oublié)
+7. Ce qui reste hors périmètre (assumé, pas oublié)
+
+---
 
 - **Pas de rappel automatisé (SMS/e-mail J-1)** — c'est un job/notification, aucune colonne dédiée ici au-delà de ce que `rendez_vous_actifs_idx` rend déjà bon marché à interroger.
 - **Pas d'état `'provisoire'`** (créneau retenu mais pas confirmé) — le besoin décrit est « oui/non au téléphone », donc binaire dès la création. Si le métier veut un entre-deux, `statut_rendez_vous` gagne une valeur (`ALTER TYPE ... ADD VALUE`, non réversible mais additif, même limite acceptée par `0010`/`0016`/`0025`/`0033`/`0043`).
 - **Pas de plafond de capacité dur en base** — §2, arbitrage explicitement renvoyé.
 - **Pas de champ `type` obligatoire si le métier préfère laisser le premier appel non classé** — actuellement NOT NULL par choix (§3) ; c'est le seul endroit où ce document empiète légèrement sur le parcours métier, à confirmer par l'agent métier.
 
-## 8. Migration — plan expand/contract
+8. Migration — plan expand/contract
+
+---
 
 Tout tient dans une seule migration additive (`0052_rendez_vous_atelier.sql`), rien à retirer :
 
@@ -166,7 +183,9 @@ Tout tient dans une seule migration additive (`0052_rendez_vous_atelier.sql`), r
 
 Aucune donnée existante à transformer (aucune ligne `ordre_reparation` n'a `rendez_vous_id` renseigné à ce jour) — pas de phase `expand` séparée d'un `contract` ultérieur, la FK s'ajoute directement.
 
-## 9. Priorités
+9. Priorités
+
+---
 
 **Premier** (rien d'autre ne fonctionne sans) : la table `rendez_vous` elle-même (§3), ses trois enums, la FK `ordre_reparation -> rendez_vous`, `rendez_vous_agenda_idx`. C'est le socle qui permet « dire oui au téléphone, le retrouver, l'honorer ».
 

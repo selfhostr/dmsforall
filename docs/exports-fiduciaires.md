@@ -1,4 +1,5 @@
-# Exports fiduciaires — formats, cibles et questions ouvertes
+Exports fiduciaires — formats, cibles et questions ouvertes
+==========================================================
 
 > **Statut** : document de référence des **cibles d'export**. Il décrit ce que chaque adaptateur
 > doit produire, et **ce qu'on ne sait pas encore**.
@@ -8,18 +9,20 @@
 > réel** — c'est-à-dire devant le comptable du garage, au moment de la clôture. Une liste de
 > questions justes vaut infiniment mieux qu'une spécification plausible.
 
-| §                                                   | Contenu                                                             | Identifiants      |
-| --------------------------------------------------- | ------------------------------------------------------------------- | ----------------- |
-| [1](#1-principe-et-répartition-des-responsabilités) | Principe, ce que fait le cœur et ce que fait l'adaptateur           | `EF-01` → `EF-09` |
-| [2](#2-winbiz--cible-prioritaire-du-pilote)         | **WinBIZ** — format établi et sourcé                                | `EF-10` → `EF-19` |
-| [3](#3-ireach--aucun-format-établi)                 | **iReach** — ce qu'on sait, ce qu'on ignore, ce qu'il faut demander | `EF-20` → `EF-29` |
-| [4](#4-csv-générique)                               | CSV générique — filet de sécurité                                   | `EF-30` → `EF-34` |
-| [5](#5-cibles-différées)                            | Bexio, Banana — différées, pas abandonnées                          | `EF-35` → `EF-39` |
-| [6](#6-récapitulatif-des-questions-à-poser)         | **Les questions à poser à @laupernoe et à ses fiduciaires**                | `EF-40`           |
+Table de matières :
+
+- **1. Principe et répartition des responsabilités** — comptes `EF-01` → `EF-09`
+- **2. WinBIZ — cible prioritaire du pilote** — comptes `EF-10` → `EF-19`
+- **3. iReach — aucun format établi** — comptes `EF-20` → `EF-29`
+- **4. CSV générique** — comptes `EF-30` → `EF-34`
+- **5. Cibles différées** — comptes `EF-35` → `EF-39`
+- **6. Récapitulatif des questions à poser** — compte `EF-40`
 
 ---
 
-## 1. Principe et répartition des responsabilités
+1. Principe et répartition des responsabilités
+
+---
 
 **`EF-01`** — Le cœur produit des **écritures équilibrées et neutres** ; les adaptateurs les
 **sérialisent** (`RF-101`, `RF-102`, `MD-84`). Aucun adaptateur ne calcule un montant, ne choisit un
@@ -64,7 +67,9 @@ fonctionnalité livrée.** Ce paragraphe existe pour que personne n'en déduise 
 
 ---
 
-## 2. WinBIZ — cible prioritaire du pilote
+2. WinBIZ — cible prioritaire du pilote
+
+---
 
 > **Niveau de preuve : élevé.** Format documenté publiquement par l'éditeur, **et** fichiers
 > d'exemple officiels téléchargeables qui confirment la spécification. C'est un cas rare et
@@ -79,10 +84,9 @@ Documentation : <https://helpcenter.winbiz.ch>
 
 **`EF-11` — Deux canaux d'import possibles, et le choix n'est pas neutre.**
 
-| Canal                                              | Ce qu'il transporte                                                                                                    | Adapté à                                                               |
-| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| **Import de documents** (`bizexdoc.csv` / `*.wdx`) | En-tête + adresse + lignes, avec TVA par ligne. Types `20` Facture débiteurs, `22` Note de crédit débiteur, `10` Offre | **Un DMS.** Correspond directement à la chaîne devis → facture → avoir |
-| **Import d'écritures** (20 colonnes)               | Écritures comptables brutes, débit/crédit                                                                              | Une fiduciaire qui ne veut que du comptable                            |
+- **Import de documents** (`bizexdoc.csv` / `*.wdx`) — En-tête + adresse + lignes, avec TVA par ligne. Types `20` Facture débiteurs, `22` Note de crédit débiteur, `10` Offre. **Adapté à : Un DMS.** Correspond directement à la chaîne devis → facture → avoir
+
+- **Import d'écritures** (20 colonnes) — Écritures comptables brutes, débit/crédit. **Adapté à : Une fiduciaire qui ne veut que du comptable**
 
 **Recommandation : viser les deux, derrière la même interface `AccountingExporter`**, l'import de
 documents comme chemin principal et l'import d'écritures comme repli. C'est la fiduciaire qui dira
@@ -91,45 +95,40 @@ lequel elle veut, et la question est en `EF-40`.
 **`EF-12` — Conventions de fichier, communes aux deux canaux.** Établies par la documentation **et
 confirmées par les fichiers d'exemple officiels** :
 
-| Convention           | Valeur                        | ⚠️ Piège                                                                                                                                                                   |
-| -------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Séparateur de champs | **`;`**                       | —                                                                                                                                                                          |
-| Fin de ligne         | **CRLF**                      | Pas LF                                                                                                                                                                     |
-| Encodage             | **Windows-1252 / ISO-8859-1** | **Pas UTF-8.** Le défaut naturel d'un backend Node est UTF-8 — c'est l'erreur à commettre en premier. Les `é`, `à`, `ü` des raisons sociales et des localités en dépendent |
-| Format de date       | **`jj.mm.aaaa`**              | —                                                                                                                                                                          |
-| Séparateur décimal   | **point** (`108.1`)           | Pas de virgule, pas de séparateur de milliers                                                                                                                              |
-| Ligne d'en-tête      | Présente dans les exemples    | L'option « Importation du premier enregistrement » doit alors rester **décochée**                                                                                          |
+- **Séparateur de champs** — `;`
+- **Fin de ligne** — `CRLF` (pas LF)
+- **Encodage** — `Windows-1252 / ISO-8859-1` (⚠️ pas UTF-8. Le défaut naturel d'un backend Node est UTF-8 — c'est l'erreur à commettre en premier. Les `é`, `à`, `ü` des raisons sociales et des localités en dépendent)
+- **Format de date** — `jj.mm.aaaa`
+- **Séparateur décimal** — point (`108.1`) (pas de virgule, pas de séparateur de milliers)
+- **Ligne d'en-tête** — présente dans les exemples (l'option « Importation du premier enregistrement » doit alors rester **décochée**)
 
 **`EF-13` — Import d'écritures : les 20 champs, dans cet ordre.** La documentation précise
 explicitement que **le nom des colonnes ne détermine pas le contenu — seul l'ordre fait foi.**
 
-| #   | Nom          | Type      | Long. | Obligation                      |
-| --- | ------------ | --------- | ----- | ------------------------------- |
-| 1   | `Date`       | Date      | 10    | Obligatoire                     |
-| 2   | `Pièce`      | Caractère | 10    | Facultatif                      |
-| 3   | `Libellé`    | Caractère | 100   | Obligatoire                     |
-| 4   | `Cpt_debit`  | Caractère | 12    | Obligatoire                     |
-| 5   | `Cpt_credit` | Caractère | 12    | Obligatoire                     |
-| 6   | `Montant`    | Numérique | 15,2  | Obligatoire                     |
-| 7   | `Journal`    | Caractère | 1     | Facultatif                      |
-| 8   | `ME_cours`   | Numérique | 12,6  | Obligatoire si devise étrangère |
-| 9   | `ME_mnt`     | Numérique | 15,2  | Obligatoire si devise étrangère |
-| 10  | `TVA_taux`   | Numérique | 5,2   | Obligatoire si TVA              |
-| 11  | `TVA_mnt`    | Numérique | 15    | Obligatoire si TVA              |
-| 12  | `TVA_cpt`    | Caractère | 1     | Obligatoire si TVA              |
-| 13  | `TVA_typ`    | Numérique | 1     | Obligatoire si TVA              |
-| 14  | `TVA_meth`   | Numérique | 1     | Obligatoire si TVA              |
-| 15  | `TVA_soum`   | Numérique | 6,2   | Facultatif (défaut 100 %)       |
-| 16  | `Ecr_monnai` | Numérique | 4     | **Ignoré à l'import**           |
-| 17  | `Ecr_monqte` | Numérique | 6     | `0` si monnaie locale           |
-| 18  | `Comment`    | Caractère | 80    | **Ignoré à l'import**           |
-| 19  | `Ecr_ana`    | Caractère | 20    | N° de compte analytique         |
-| 20  | `Ecr_vtcode` | Caractère | 20    | Code / chiffre TVA              |
+- **1** — `Date` — Type Date — Long. 10 — **Obligatoire**
+- **2** — `Pièce` — Caractère — Long. 10 — Facultatif
+- **3** — `Libellé` — Caractère — Long. 100 — **Obligatoire**
+- **4** — `Cpt_debit` — Caractère — Long. 12 — **Obligatoire**
+- **5** — `Cpt_credit` — Caractère — Long. 12 — **Obligatoire**
+- **6** — `Montant` — Numérique — Long. 15,2 — **Obligatoire**
+- **7** — `Journal` — Caractère — Long. 1 — Facultatif
+- **8** — `ME_cours` — Numérique — Long. 12,6 — Obligatoire si devise étrangère
+- **9** — `ME_mnt` — Numérique — Long. 15,2 — Obligatoire si devise étrangère
+- **10** — `TVA_taux` — Numérique — Long. 5,2 — Obligatoire si TVA
+- **11** — `TVA_mnt` — Numérique — Long. 15 — Obligatoire si TVA
+- **12** — `TVA_cpt` — Caractère — Long. 1 — Obligatoire si TVA
+- **13** — `TVA_typ` — Numérique — Long. 1 — Obligatoire si TVA
+- **14** — `TVA_meth` — Numérique — Long. 1 — Obligatoire si TVA
+- **15** — `TVA_soum` — Numérique — Long. 6,2 — Facultatif (défaut 100 %)
+- **16** — `Ecr_monnai` — Numérique — Long. 4 — **Ignoré à l'import**
+- **17** — `Ecr_monqte` — Numérique — Long. 6 — `0` si monnaie locale
+- **18** — `Comment` — Caractère — Long. 80 — **Ignoré à l'import**
+- **19** — `Ecr_ana` — Caractère — Long. 20 — N° de compte analytique
+- **20** — `Ecr_vtcode` — Caractère — Long. 20 — Code / chiffre TVA
 
 Codes énumérés :
 
-- **`Journal`** : `d` Divers · `s` Salaires · `a` Achats · **`v` Ventes** · `i` Inventaires ·
-  `m` Amortissements · `o` Soldes initiaux · `b` Bouclement · `x` À extourner.
+- **`Journal`** : `d` Divers · `s` Salaires · `a` Achats · **`v` Ventes** · `i` Inventaires · `m` Amortissements · `o` Soldes initiaux · `b` Bouclement · `x` À extourner.
 - **`TVA_cpt`** : `d` compte TVA au débit · `c` compte TVA au crédit.
 - **`TVA_typ`** : `1` Pas de TVA · **`2` TVA due (à payer)** · `3` Impôt préalable · `4` Hors taxe.
 - **`TVA_meth`** : `1` Brut · `2` Net.
@@ -142,13 +141,9 @@ vide ou zéro.
 
 **`EF-14` — Deux limites structurelles de ce canal, à connaître avant de le choisir :**
 
-1. **Écritures simples uniquement.** Les écritures multi-lignes ne sont pas importables par ce
-   canal. Une écriture de facture qui débite un compte et crédite trois comptes de produits plus la
-   TVA (`CF-04`) doit donc être **décomposée en écritures simples**, ou passer par l'import de
-   documents. **C'est l'argument le plus fort en faveur du canal « documents ».**
-2. **Renumérotation automatique** des écritures à l'import (mécanisme anti-doublon de WinBIZ). Notre
-   numéro de pièce voyage dans le champ 2 `Pièce` — c'est lui qui assure la traçabilité de
-   `RF-108`, pas le numéro d'écriture.
+- **Écritures simples uniquement.** Les écritures multi-lignes ne sont pas importables par ce canal. Une écriture de facture qui débite un compte et crédite trois comptes de produits plus la TVA (`CF-04`) doit donc être **décomposée en écritures simples**, ou passer par l'import de documents. **C'est l'argument le plus fort en faveur du canal « documents ».**
+
+- **Renumérotation automatique** des écritures à l'import (mécanisme anti-doublon de WinBIZ). Notre numéro de pièce voyage dans le champ 2 `Pièce` — c'est lui qui assure la traçabilité de `RF-108`, pas le numéro d'écriture.
 
 **`EF-15` — Exemple officiel de l'éditeur**, reproduit tel quel (fichier `ecr_standardv6.csv`,
 en-tête + 2 lignes) :
@@ -223,13 +218,15 @@ un lot).
 
 **`EF-19` — Ce qui reste à vérifier sur WinBIZ, malgré une documentation de bonne qualité :**
 
-| #   | Point                                                                         | Pourquoi ça compte                                                                                                                                                                                                                                                                                          |
-| --- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **Sémantique du champ `Montant` selon `TVA_meth` (brut / net) : TTC ou HT ?** | **Seul vrai bloquant technique.** L'exemple officiel montre `montant=108.1` avec `tva_mnt=8.1` et `tva_meth=2` (Net), ce qui suggère un montant TTC — mais aucune page ne l'énonce. **À trancher par un test sur un dossier réel, pas par la documentation.** Se tromper inverse le sens de chaque écriture |
-| 2   | Codes des types de TVA du dossier du garage                                   | Non devinables (`EF-17`)                                                                                                                                                                                                                                                                                    |
-| 3   | Plan comptable effectif du garage                                             | Comptes de CA par nature (main-d'œuvre, pièces, VN, VO), comptes TVA, compte collectif débiteurs                                                                                                                                                                                                            |
-| 4   | Canal retenu : documents ou écritures ?                                       | Décide de l'essentiel de l'adaptateur (`EF-11`, `EF-14`)                                                                                                                                                                                                                                                    |
-| 5   | Différences Classic / Cloud                                                   | Une seule est documentée (XLS/XLSX indisponibles en Cloud) ; le reste est inconnu                                                                                                                                                                                                                           |
+- **1** — **Sémantique du champ `Montant` selon `TVA_meth` (brut / net) : TTC ou HT ?** — Pourquoi ça compte : **Seul vrai bloquant technique.** L'exemple officiel montre `montant=108.1` avec `tva_mnt=8.1` et `tva_meth=2` (Net), ce qui suggère un montant TTC — mais aucune page ne l'énonce. **À trancher par un test sur un dossier réel, pas par la documentation.** Se tromper inverse le sens de chaque écriture
+
+- **2** — Codes des types de TVA du dossier du garage — Pourquoi ça compte : Non devinables (`EF-17`)
+
+- **3** — Plan comptable effectif du garage — Pourquoi ça compte : Comptes de CA par nature (main-d'œuvre, pièces, VN, VO), comptes TVA, compte collectif débiteurs
+
+- **4** — Canal retenu : documents ou écritures ? — Pourquoi ça compte : Décide de l'essentiel de l'adaptateur (`EF-11`, `EF-14`)
+
+- **5** — Différences Classic / Cloud — Pourquoi ça compte : Une seule est documentée (XLS/XLSX indisponibles en Cloud) ; le reste est inconnu
 
 **Élément favorable à signaler à @laupernoe** : WinBIZ dispose déjà d'**importateurs dédiés pour des
 logiciels métier tiers** (Crésus, TCPOS, EasyTemp). L'intégration d'un logiciel tiers par fichier est
@@ -239,17 +236,19 @@ moteur de règles — utile à connaître pour l'articulation du rapprochement b
 
 ---
 
-## 3. iReach — aucun format établi
+3. iReach — aucun format établi
 
-> ## ⛔ Aucun adaptateur iReach ne doit être écrit en l'état.
->
+---
+
+**⛔ Aucun adaptateur iReach ne doit être écrit en l'état.**
+
 > **Il n'existe aucune spécification d'échange publique.** Ce paragraphe ne contient **aucun** nom de
 > champ, aucune extension de fichier, aucune capacité produit supposée. Ce qui suit est soit sourcé,
 > soit marqué comme inconnu.
 
 **`EF-20` — La question préalable, qui prime sur toutes les autres.**
 
-> ### « Qui utilise iReach — le garage, ou sa fiduciaire ? »
+**« Qui utilise iReach — le garage, ou sa fiduciaire ? »**
 
 Les recherches identifient **iReach** comme un **DMS automobile** (Dealer Management System) édité
 par **Automotive Systems** (Bornem, Belgique), présent en Belgique, au Luxembourg **et en Suisse**,
@@ -265,37 +264,44 @@ concurrent** — c'est-à-dire, pour dmsforall, un sujet de **reprise de donnée
 
 Les deux réponses possibles et leurs conséquences :
 
-| Réponse                          | Ce que ça veut dire                                                                                         | Où va le travail                                                                                                                                     |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Le garage utilise iReach**     | C'est son DMS actuel, celui que DFA remplace. Sa fiduciaire consulte la compta tenue **dans** iReach        | **Reprise de données**, étape de migration. **Aucun adaptateur d'export.** La fiduciaire aura besoin d'une **autre** cible — laquelle ? (`EF-40` Q4) |
-| **La fiduciaire utilise iReach** | Cas surprenant — un DMS automobile chez un fiduciaire — mais pas impossible si elle est spécialisée garages | Adaptateur d'export à écrire, **après** obtention du format auprès de l'éditeur                                                                      |
+- **Le garage utilise iReach** — Ce que ça veut dire : C'est son DMS actuel, celui que DFA remplace. Sa fiduciaire consulte la compta tenue **dans** iReach. Où va le travail : **Reprise de données**, étape de migration. **Aucun adaptateur d'export.** La fiduciaire aura besoin d'une **autre** cible — laquelle ? (`EF-40` Q4)
+
+- **La fiduciaire utilise iReach** — Ce que ça veut dire : Cas surprenant — un DMS automobile chez un fiduciaire — mais pas impossible si elle est spécialisée garages. Où va le travail : Adaptateur d'export à écrire, **après** obtention du format auprès de l'éditeur
 
 **Tant que cette question n'est pas tranchée, tout développement est un pari.**
 
 **`EF-21` — Ce qui est établi, avec sources.**
 
-| Fait                                                                                                                                                                                               | Source                                                                       |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| iReach est un DMS édité par Automotive Systems (Bornem, BE)                                                                                                                                        | <https://automotivesystems.be/fr/index.html>                                 |
-| Présence Belgique / Luxembourg / **Suisse**, 300+ sites, 2 300+ utilisateurs                                                                                                                       | <https://www.automotivesystems.be/nl/index.html>                             |
-| Classé ERP, intégration « On-Premise »                                                                                                                                                             | <https://www.brightanalytics.eu/integrations/ireach/>                        |
-| ERP couvrant pre-sales, vente, service, CRM **et comptabilité**                                                                                                                                    | <https://www.autotechoutlook.com/automotive-systems>                         |
-| Distributeur suisse : e-Car Distribution Sàrl. « Multisites et multi-société », « accès à une base de données SQL », « points d'accès facilitant les interfaces »                                  | <https://ecarsarl.com/ireach/>                                               |
-| Le seul export cité par l'éditeur est **Microsoft Excel**                                                                                                                                          | pages FR et NL de l'éditeur                                                  |
-| Un import comptable existe, via **« Comptabilité > Documents > importer des documents »**, en désignant un dossier de fichiers. Décrit par un **tiers** (INSYPRO / PlanManager), pas par l'éditeur | <https://faq.insypro.com/index.php?action=artikel&artlang=fr&cat=15&id=1151> |
-| Dépôt de fichiers dans un répertoire prédéfini, chargé par iReach **la nuit suivante**                                                                                                             | <https://faq.insypro.com/index.php?action=artikel&artlang=nl&cat=28&id=788>  |
+- **iReach est un DMS édité par Automotive Systems (Bornem, BE)** — Source : <https://automotivesystems.be/fr/index.html>
+
+- **Présence Belgique / Luxembourg / Suisse, 300+ sites, 2 300+ utilisateurs** — Source : <https://www.automotivesystems.be/nl/index.html>
+
+- **Classé ERP, intégration « On-Premise »** — Source : <https://www.brightanalytics.eu/integrations/ireach/>
+
+- **ERP couvrant pre-sales, vente, service, CRM et comptabilité** — Source : <https://www.autotechoutlook.com/automotive-systems>
+
+- **Distributeur suisse : e-Car Distribution Sàrl.** « Multisites et multi-société », « accès à une base de données SQL », « points d'accès facilitant les interfaces » — Source : <https://ecarsarl.com/ireach/>
+
+- **Le seul export cité par l'éditeur est Microsoft Excel** — Source : pages FR et NL de l'éditeur
+
+- **Un import comptable existe, via « Comptabilité > Documents > importer des documents », en désignant un dossier de fichiers.** Décrit par un **tiers** (INSYPRO / PlanManager), pas par l'éditeur — Source : <https://faq.insypro.com/index.php?action=artikel&artlang=fr&cat=15&id=1151>
+
+- **Dépôt de fichiers dans un répertoire prédéfini, chargé par iReach la nuit suivante** — Source : <https://faq.insypro.com/index.php?action=artikel&artlang=nl&cat=28&id=788>
 
 **`EF-22` — Ce qui est INCONNU, et qu'il ne faut pas combler par déduction :**
 
-- **Le format des fichiers acceptés** : extension, structure, séparateur, encodage, noms de champs,
-  ordre des colonnes. **Rien.** Le CSV mentionné dans les FAQ INSYPRO est le format de **sortie de
-  PlanManager** — les mêmes articles existent pour Venice, Exact, Ciel, AccountView — **ce n'est pas
-  une spécification iReach.**
+- **Le format des fichiers acceptés** : extension, structure, séparateur, encodage, noms de champs, ordre des colonnes. **Rien.** Le CSV mentionné dans les FAQ INSYPRO est le format de **sortie de PlanManager** — les mêmes articles existent pour Venice, Exact, Ciel, AccountView — **ce n'est pas une spécification iReach.**
+
 - L'existence d'une API, d'un SDK, d'un format XML.
+
 - La granularité attendue : écriture par facture, par document, ou journal agrégé.
+
 - Le plan comptable et les codes TVA utilisés.
+
 - La gestion des taux suisses (8.1 / 2.6 / 3.8), de la QR-facture, de Swissdec dans la version suisse.
+
 - Les conditions d'accès aux données (licence, contrat, coût).
+
 - Le mode de transmission : fichier déposé, API, accès base.
 
 **`EF-23` — Aucune documentation développeur ni page « intégrations » n'a été trouvée** sur
@@ -317,7 +323,9 @@ personne ne peut lire.
 
 ---
 
-## 4. CSV générique
+4. CSV générique
+
+---
 
 **`EF-30`** — Le CSV générique est le **filet de sécurité** : il existe pour qu'aucune fiduciaire ne
 soit bloquée faute de connecteur. Il n'est spécifique à aucun outil, et c'est sa raison d'être.
@@ -338,7 +346,9 @@ neutres, et le défaut est dans le cœur, pas dans l'adaptateur.
 
 ---
 
-## 5. Cibles différées
+5. Cibles différées
+
+---
 
 > **Différées ≠ abandonnées.** Ces cibles restent au périmètre produit. Elles ne sont simplement pas
 > nécessaires au **pilote**. Le travail déjà réalisé à leur sujet reste valable et **ne doit pas être
@@ -364,62 +374,73 @@ est prévu**. Les deux ne disent pas la même chose et ne doivent jamais être c
 
 ---
 
-## 6. Récapitulatif des questions à poser
+6. Récapitulatif des questions à poser
+
+---
 
 **`EF-40`** — À poser à @laupernoe, et par lui à ses fiduciaires. **Ordonnées par ce qu'elles débloquent**,
 pas par ordre d'apparition.
 
-### Bloquant absolu — avant toute ligne de code sur iReach
+Bloquant absolu — avant toute ligne de code sur iReach
 
-| #      | Question                                                                                        | Pourquoi elle prime                                                                                                                                                                       |
-| ------ | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Q1** | **Qui utilise iReach : le garage, ou sa fiduciaire ?**                                          | Décide s'il s'agit d'une **reprise de données** (DMS concurrent) ou d'un **adaptateur d'export**. Deux chantiers, deux étapes, deux experts (`EF-20`)                                     |
-| **Q2** | Si c'est le **garage** : quel outil utilise alors sa fiduciaire pour tenir la compta ?          | C'est **cette** cible-là qu'il faut écrire, et elle n'est peut-être dans aucune de nos listes                                                                                             |
-| **Q3** | Si c'est la **fiduciaire** : accepte-t-elle de demander la spécification d'import à l'éditeur ? | Contacts : Automotive Systems (helpdesk, Bornem BE) ou e-Car Distribution Sàrl (distributeur suisse). **Une demande de la fiduciaire aboutit mieux que la nôtre** — c'est elle la cliente |
-| **Q4** | Le garage a-t-il **deux** fiduciaires, ou est-ce une fiduciaire et un DMS ?                     | « WinBIZ et iReach » est ambigu. Un garage à deux fiduciaires est inhabituel et changerait la conception du paramétrage (mapping par cible **et** par périmètre ?)                        |
+```
 
-### Si un échange iReach est confirmé — les cinq questions de format
+- **Q1** — **Qui utilise iReach : le garage, ou sa fiduciaire ?** — Pourquoi elle prime : Décide s'il s'agit d'une **reprise de données** (DMS concurrent) ou d'un **adaptateur d'export**. Deux chantiers, deux étapes, deux experts (`EF-20`)
 
-| #      | Question                                                                                                                                                                          | Enjeu                                                         |
-| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| **Q5** | **Quel format de fichier est accepté ?** Extension, structure, séparateur, encodage, jeu de caractères                                                                            | Rien ne peut être écrit sans cette réponse (`EF-22`)          |
-| **Q6** | **Quelle granularité ?** Une écriture par facture, par document, ou un journal agrégé par période                                                                                 | Décide du mode `detaille` / `agrege` (`EF-04`)                |
-| **Q7** | **Quel plan comptable ?** Comptes de CA par nature (main-d'œuvre, pièces, VN, VO), compte collectif débiteurs, comptes financiers par moyen de paiement, compte d'écart d'arrondi | `EF-06`, `QF-03`                                              |
-| **Q8** | **Comment les taux de TVA sont-ils représentés ?** Codes propres au dossier, taux littéraux, chiffres AFC ? Et les régimes `exclu` / `exonere` ?                                  | `EF-17` montre que c'est **le** point où chaque outil diffère |
-| **Q9** | **Quel mode de transmission ?** Dépôt de fichier dans un répertoire, envoi manuel, API, accès base                                                                                | Décide de l'exploitation autant que du code                   |
+- **Q2** — Si c'est le **garage** : quel outil utilise alors sa fiduciaire pour tenir la compta ? — Pourquoi elle prime : C'est **cette** cible-là qu'il faut écrire, et elle n'est peut-être dans aucune de nos listes
 
-### WinBIZ — à confirmer avant le premier export réel
+- **Q3** — Si c'est la **fiduciaire** : accepte-t-elle de demander la spécification d'import à l'éditeur ? — Pourquoi elle prime : Contacts : Automotive Systems (helpdesk, Bornem BE) ou e-Car Distribution Sàrl (distributeur suisse). **Une demande de la fiduciaire aboutit mieux que la nôtre** — c'est elle la cliente
 
-| #       | Question                                                                                                      | Enjeu                                                                                                                       |
-| ------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| **Q10** | **Le champ `Montant` est-il TTC ou HT selon `TVA_meth` brut/net ?**                                           | **Seul vrai bloquant technique de WinBIZ** (`EF-19`). À trancher **par un test sur dossier réel**, pas par la documentation |
-| **Q11** | La fiduciaire préfère-t-elle l'import de **documents** (`bizexdoc`, types 20/22) ou d'**écritures** ?         | Décide de l'essentiel de l'adaptateur (`EF-11`, `EF-14`)                                                                    |
-| **Q12** | Quels sont les **codes de types de TVA** du dossier du garage, et leur chiffre AFC ?                          | Non devinables, propres à chaque dossier (`EF-17`)                                                                          |
-| **Q13** | Quel est le **plan comptable effectif** du garage ?                                                           | `EF-06`                                                                                                                     |
-| **Q14** | WinBIZ **Classic ou Cloud** ? Et l'API est-elle accessible (URL, authentification, conditions commerciales) ? | `EF-18`                                                                                                                     |
-| **Q15** | La fiduciaire accepterait-elle de demander à Fiducial WinBIZ un **importateur dédié « dmsforall »** ?         | L'éditeur en fournit déjà pour Crésus, TCPOS, EasyTemp — le chemin est établi (`EF-19`)                                     |
+- **Q4** — Le garage a-t-il **deux** fiduciaires, ou est-ce une fiduciaire et un DMS ? — Pourquoi elle prime : « WinBIZ et iReach » est ambigu. Un garage à deux fiduciaires est inhabituel et changerait la conception du paramétrage (mapping par cible **et** par périmètre ?)
 
-### Transverse
+Si un échange iReach est confirmé — les cinq questions de format
+```
 
-| #       | Question                                                                                                        | Enjeu                                                                                                                          |
-| ------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| **Q16** | Confirmer que la méthode de calcul de TVA de DFA (`Σ` des TVA de ligne, `RF-35`) convient aux deux fiduciaires  | `QF-01`. **C'est elle qui devra vivre avec l'écart.** À poser en montrant `CF-03`                                              |
-| **Q17** | Confirmer le traitement des acomptes (facture d'acompte ou encaissement) selon la méthode de décompte du garage | `QF-02`. `CF-07` et `CF-23` chiffrent les deux branches — **la discussion part de deux jeux de chiffres, pas d'une intuition** |
-| **Q18** | Monotonie des dates : bloquante ou simple avertissement ?                                                       | `QF-09`. **Volontairement non tranchée**, et aucun code d'erreur n'a été créé pour ne pas préjuger de la réponse               |
+- **Q5** — **Quel format de fichier est accepté ?** Extension, structure, séparateur, encodage, jeu de caractères — Enjeu : Rien ne peut être écrit sans cette réponse (`EF-22`)
+
+- **Q6** — **Quelle granularité ?** Une écriture par facture, par document, ou un journal agrégé par période — Enjeu : Décide du mode `detaille` / `agrege` (`EF-04`)
+
+- **Q7** — **Quel plan comptable ?** Comptes de CA par nature (main-d'œuvre, pièces, VN, VO), compte collectif débiteurs, comptes financiers par moyen de paiement, compte d'écart d'arrondi — Enjeu : `EF-06`, `QF-03`
+
+- **Q8** — **Comment les taux de TVA sont-ils représentés ?** Codes propres au dossier, taux littéraux, chiffres AFC ? Et les régimes `exclu` / `exonere` ? — Enjeu : `EF-17` montre que c'est **le** point où chaque outil diffère
+
+- **Q9** — **Quel mode de transmission ?** Dépôt de fichier dans un répertoire, envoi manuel, API, accès base — Enjeu : Décide de l'exploitation autant que du code
+
+WinBIZ — à confirmer avant le premier export réel
+
+```
+
+- **Q10** — **Le champ `Montant` est-il TTC ou HT selon `TVA_meth` brut/net ?** — Enjeu : **Seul vrai bloquant technique de WinBIZ** (`EF-19`). À trancher **par un test sur dossier réel**, pas par la documentation
+
+- **Q11** — La fiduciaire préfère-t-elle l'import de **documents** (`bizexdoc`, types 20/22) ou d'**écritures** ? — Enjeu : Décide de l'essentiel de l'adaptateur (`EF-11`, `EF-14`)
+
+- **Q12** — Quels sont les **codes de types de TVA** du dossier du garage, et leur chiffre AFC ? — Enjeu : Non devinables, propres à chaque dossier (`EF-17`)
+
+- **Q13** — Quel est le **plan comptable effectif** du garage ? — Enjeu : `EF-06`
+
+- **Q14** — WinBIZ **Classic ou Cloud** ? Et l'API est-elle accessible (URL, authentification, conditions commerciales) ? — Enjeu : `EF-18`
+
+- **Q15** — La fiduciaire accepterait-elle de demander à Fiducial WinBIZ un **importateur dédié « dmsforall »** ? — Enjeu : L'éditeur en fournit déjà pour Crésus, TCPOS, EasyTemp — le chemin est établi (`EF-19`)
+
+Transverse
+~~~~~~~~~~
+
+- **Q16** — Confirmer que la méthode de calcul de TVA de DFA (`Σ` des TVA de ligne, `RF-35`) convient aux deux fiduciaires — Enjeu : `QF-01`. **C'est elle qui devra vivre avec l'écart.** À poser en montrant `CF-03`
+
+- **Q17** — Confirmer le traitement des acomptes (facture d'acompte ou encaissement) selon la méthode de décompte du garage — Enjeu : `QF-02`. `CF-07` et `CF-23` chiffrent les deux branches — **la discussion part de deux jeux de chiffres, pas d'une intuition**
+
+- **Q18** — Monotonie des dates : bloquante ou simple avertissement ? — Enjeu : `QF-09`. **Volontairement non tranchée**, et aucun code d'erreur n'a été créé pour ne pas préjuger de la réponse
 
 ---
 
-## Ce que ce document n'affirme pas
+Ce que ce document n'affirme pas
+---------------------------------
 
 Par honnêteté sur son statut :
 
-- **WinBIZ est sourcé** : documentation publique de l'éditeur **et** fichiers d'exemple officiels
-  concordants. C'est la partie de ce document sur laquelle on peut coder. `EF-19` liste néanmoins
-  cinq points à confirmer, dont un bloquant réel (le sens du champ `Montant`).
-- **iReach n'est pas spécifié, et ne doit pas l'être par déduction.** Ce qui est écrit à son sujet
-  est sourcé ou marqué inconnu. **Aucun champ, aucune extension, aucune capacité produit n'a été
-  supposé.** L'hypothèse dominante — qu'il s'agit d'un DMS concurrent et non d'un outil de
-  fiduciaire — est étiquetée comme telle et **doit être confirmée par @laupernoe** (`EF-20`).
-- **Les questions de `EF-40` sont l'essentiel de ce document**, pas son annexe. Y répondre coûte un
-  appel téléphonique ; y répondre après le premier export raté coûte la confiance du comptable du
-  garage, au moment de la clôture.
+- **WinBIZ est sourcé** : documentation publique de l'éditeur **et** fichiers d'exemple officiels concordants. C'est la partie de ce document sur laquelle on peut coder. `EF-19` liste néanmoins cinq points à confirmer, dont un bloquant réel (le sens du champ `Montant`).
+
+- **iReach n'est pas spécifié, et ne doit pas l'être par déduction.** Ce qui est écrit à son sujet est sourcé ou marqué inconnu. **Aucun champ, aucune extension, aucune capacité produit n'a été supposé.** L'hypothèse dominante — qu'il s'agit d'un DMS concurrent et non d'un outil de fiduciaire — est étiquetée comme telle et **doit être confirmée par @laupernoe** (`EF-20`).
+
+- **Les questions de `EF-40` sont l'essentiel de ce document**, pas son annexe. Y répondre coûte un appel téléphonique ; y répondre après le premier export raté coûte la confiance du comptable du garage, au moment de la clôture.
+```

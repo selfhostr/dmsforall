@@ -1,15 +1,20 @@
-# Spécification métier — Relances automatiques
+Spécification métier — Relances automatiques
+============================================
 
 Spécification métier, avant toute implémentation. Aucun code, aucune migration, aucun contrat
 OpenAPI ici — juste les règles à figer avant que quiconque écrive une ligne.
 
-## 0. En une phrase
+0. En une phrase
+
+---
 
 Le DMS sait qu'un événement mérite un rappel (facture échue, devis sans réponse, pneus à
 remonter, expertise qui approche…) et envoie, seul, le bon message au bon client, dans sa langue,
 sur le bon canal — sans qu'un garagiste y pense, et sans jamais le faire deux fois.
 
-## 1. Le cadre légal d'abord : deux familles, pas treize cas particuliers
+1. Le cadre légal d'abord : deux familles, pas treize cas particuliers
+
+---
 
 Le module de consentements nLPD existe déjà (`apps/api/src/clients/`) avec exactement trois
 types : `marketing_email`, `marketing_sms`, `marketing_appel`. Arbitrage non rouvert. La question
@@ -32,28 +37,28 @@ silencieusement absent du calcul si non accordé, jamais une erreur.
 de sécurité pour une question de consentement marketing est un risque plus grave pour le garage
 que l'inverse. `obligatoire = false` (confort) reste Famille B.
 
-## 2. Catalogue des rappels — la vraie valeur, pas le bruit
+2. Catalogue des rappels — la vraie valeur, pas le bruit
+
+---
 
 @laupernoe en évoque 13. J'en retiens **9** avec un ancrage réel en base et une valeur claire, j'en
 **écarte 3**, j'en **reporte 1** faute de donnée exploitable. Le compte ne fait pas 13 parce que
 certains "types" évoqués sont du bruit qui abîme la relation, pas des fonctionnalités qui
 manquent.
 
-### Retenus
+**Retenus**
 
-| #   | Rappel                                              | Univers       | Fam.   | Ancrage en base                                                  | Valeur                                            |
-| --- | --------------------------------------------------- | ------------- | ------ | ---------------------------------------------------------------- | ------------------------------------------------- |
-| 1   | Devis émis, sans réponse                            | Facturation   | A      | `document_vente` (`devis`, `envoye`)                             | Ferme des ventes qui dorment.                     |
-| 2   | Facture échue, rappel puis sommation                | Facturation   | A      | `relanceNiveau`/`relanceLe` (déjà en base, jamais alimenté auto) | Trésorerie — un manque comblé, pas une nouveauté. |
-| 3   | Devis complémentaire en attente, mi-travaux         | Atelier       | A      | OR ouvert, décision client due                                   | Pont bloqué, urgence réelle.                      |
-| 4   | Véhicule prêt, non restitué                         | Atelier       | A      | OR clôturé, véhicule sur site                                    | Évite parking qui déborde + responsabilité.       |
-| 5   | Pneus en dépôt oubliés                              | Atelier       | A      | `depots-pneus` (liste manuelle `à-relancer` existe déjà)         | Rendre un bien gardé, pas prospecter.             |
-| 6   | Travail reporté urgent/sécurité non repris          | Atelier       | A      | `vehicule_travail_reporte` (`urgent`/`securite`, chiffré)        | Ancré à un diagnostic déjà discuté.               |
-| 7   | Pneus saisonniers à remonter                        | Vente/service | B      | Hangar pneus + saison                                            | Cas en or : biannuel, universel, donnée déjà là.  |
-| 8   | Échéance MFK qui approche                           | Vente/service | B      | `vehicule_expertise.prochaineEcheance`                           | Échéance légale connue, occasion de RDV.          |
-| 9   | Campagne constructeur sécurité (`obligatoire=true`) | Vente/service | A (§1) | `vehicule_campagne`                                              | Sécurité + responsabilité garage.                 |
+- 1 / Devis émis, sans réponse / Facturation / A / `document_vente` (`devis`, `envoye`) / Ferme des ventes qui dorment.
+- 2 / Facture échue, rappel puis sommation / Facturation / A / `relanceNiveau`/`relanceLe` (déjà en base, jamais alimenté auto) / Trésorerie — un manque comblé, pas une nouveauté.
+- 3 / Devis complémentaire en attente, mi-travaux / Atelier / A / OR ouvert, décision client due / Pont bloqué, urgence réelle.
+- 4 / Véhicule prêt, non restitué / Atelier / A / OR clôturé, véhicule sur site / Évite parking qui déborde + responsabilité.
+- 5 / Pneus en dépôt oubliés / Atelier / A / `depots-pneus` (liste manuelle `à-relancer` existe déjà) / Rendre un bien gardé, pas prospecter.
+- 6 / Travail reporté urgent/sécurité non repris / Atelier / A / `vehicule_travail_reporte` (`urgent`/`securite`, chiffré) / Ancré à un diagnostic déjà discuté.
+- 7 / Pneus saisonniers à remonter / Vente/service / B / Hangar pneus + saison / Cas en or : biannuel, universel, donnée déjà là.
+- 8 / Échéance MFK qui approche / Vente/service / B / `vehicule_expertise.prochaineEcheance` / Échéance légale connue, occasion de RDV.
+- 9 / Campagne constructeur sécurité (`obligatoire=true`) / Vente/service / A (§1) / `vehicule_campagne` / Sécurité + responsabilité garage.
 
-### Écartés
+**Écartés**
 
 - **Anniversaire d'achat / fidélisation générique** : aucun besoin réel derrière, pur marketing
   calendaire — le genre de message qui fait dire "ils m'écrivent pour rien" à un client que le
@@ -66,7 +71,7 @@ manquent.
   garages suisses sur des tickets courants, perçue comme intrusive sur une facture pas encore en
   retard. Si un garage le veut un jour, c'est un palier de plus dans #2, pas un type séparé.
 
-### Reporté — donnée manquante
+**Reporté — donnée manquante**
 
 **Révision/entretien périodique dû** (date ou km) : probablement le rappel le plus rentable après
 pneus et MFK, mais **aucun intervalle d'entretien n'est modélisé** aujourd'hui (ni par véhicule,
@@ -74,7 +79,9 @@ ni par modèle, ni dérivé de `vehicule_kilometrage`). Le spécifier maintenant
 inventer un modèle de données. Hors lots ci-dessous ; chantier séparé, probablement lié au
 référentiel constructeur de l'étape 5.
 
-## 3. Règles métier
+3. Règles métier
+
+---
 
 **Consentement et ciblage**
 
@@ -133,7 +140,9 @@ référentiel constructeur de l'étape 5.
   ligne d'envoi et jamais recalculé après coup — même doctrine que `client_designation_figee` en
   facturation. Un modèle de texte modifié demain ne change pas la preuve d'hier.
 
-## 4. Préréglage recommandé, un clic
+4. Préréglage recommandé, un clic
+
+---
 
 Chaque type a un délai par défaut proposé (devis : J+7 puis J+15 ; pneus : 3 semaines avant le
 week-end de bascule saisonnière habituel du canton ; MFK : J-60 puis J-30). "Activer le
@@ -141,7 +150,9 @@ préréglage" copie ces valeurs comme point de départ modifiable dans la même 
 configuration (`regle_relance`, §5) — pas un mode magique séparé. Un garage qui n'y touche jamais
 doit déjà avoir un comportement raisonnable.
 
-## 5. Modèle de données minimal
+5. Modèle de données minimal
+
+---
 
 Conventions du dépôt : UUID, `timestamptz`, `tenant_id NOT NULL` + RLS sur chaque table, enums
 Postgres. Pas de montants ici — ce module ne facture rien.
@@ -164,7 +175,9 @@ Postgres. Pas de montants ici — ce module ne facture rien.
 Pas de table séparée pour RA-14 : une colonne `plus_aucun_contact bool` + `motif` sur `client`,
 cohérente avec ce qui existe déjà (`langue`, `email`…).
 
-## 6. Le point dur : idempotence, échec, et absence de travail de fond
+6. Le point dur : idempotence, échec, et absence de travail de fond
+
+---
 
 Le dépôt n'a **aucun mécanisme de tâche planifiée** aujourd'hui : zéro usage de BullMQ vérifié
 dans `apps/api/src`, malgré sa présence dans le choix de stack déclaré. Ce module en serait le
@@ -189,7 +202,9 @@ pods requête-réponse), à signaler à expert-devops avant le lot 1.
    moment, répondre "qu'est-ce qu'on lui a envoyé, quand, et est-ce que ça a marché" sans
    reconstruction.
 
-## 7. L'alerte "tu coupes un rappel qui rapporte" — mesurable, pas comme promis
+5. L'alerte "tu coupes un rappel qui rapporte" — mesurable, pas comme promis
+
+---
 
 Une mesure causale honnête ("ce rappel a généré CHF X") n'est **pas vérifiable** avec les moyens
 du bord : pas de groupe témoin, biais de sélection évident (un client qui répond à un rappel
@@ -204,7 +219,9 @@ véhicule". Un indicateur descriptif, pas une preuve de causalité.
 dans N% des cas historiques", jamais "vous allez perdre CHF X". Historique trop court (tenant
 récent, < 20 occurrences) → rien afficher plutôt qu'un pourcentage sur trois échantillons.
 
-## 8. Machine à états — `relance_planifiee.statut`
+8. Machine à états — `relance_planifiee.statut`
+
+---
 
 ```
 a_planifier ──(coordonnée/consentement OK)──> prete ──(job d'envoi)──> en_cours_envoi
@@ -222,7 +239,9 @@ a_planifier ──(coordonnée/consentement OK)──> prete ──(job d'envoi)
 correction se fait par une nouvelle occasion (nouveau palier), jamais par réédition d'une ligne
 déjà tranchée (même doctrine que la chaîne documentaire facturation).
 
-## 9. Cas de test métier
+9. Cas de test métier
+
+---
 
 1. Facture avec deux rappels déjà envoyés, payée le jour du palier 3, et devis accepté par
    téléphone juste avant le job de planification → dans les deux cas, statut vérifié à
@@ -246,7 +265,9 @@ déjà tranchée (même doctrine que la chaîne documentaire facturation).
 10. Campagne constructeur `obligatoire=true` sans aucun consentement marketing du client → le
     rappel part quand même (§1, cas limite tranché).
 
-## 10. Découpage en lots
+11. Découpage en lots
+
+---
 
 Un lot = un répertoire, un propriétaire.
 

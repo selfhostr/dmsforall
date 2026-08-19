@@ -1,5 +1,4 @@
-# Refonte de la navigation — document de décision
-
+$=^
 06.08.2026. Ce document tranche. Il confronte deux études menées en parallèle —
 `docs/refonte-navigation-metier.md` (usage réel du garage) et
 `docs/refonte-navigation-structure.md` (architecture de l'information) — et se substitue à elles
@@ -11,7 +10,9 @@ pour un garagiste ET soutenable pour un homme seul qui fait le support de dix ga
 
 ---
 
-## 1. Le diagnostic commun
+1. Le diagnostic commun
+
+---
 
 Les deux études convergent, par des chemins différents, sur le même constat. Il tient en cinq
 points, tous **mesurés dans le code**, pas supposés.
@@ -69,9 +70,11 @@ exactement ce qui fait dire d'un logiciel qu'il est illogique.
 
 ---
 
-## 2. Le désaccord principal, tranché
+2. Le désaccord principal, tranché
 
-### Les deux positions
+---
+
+**Les deux positions**
 
 **Étude structure** : une seule arborescence pour les neuf rôles, filtrée par droits, ordre
 identique pour tous. Seule dérogation, la borne. Argument : neuf arborescences, c'est neuf
@@ -81,7 +84,7 @@ produits ; au téléphone, « clique sur Atelier, deuxième entrée » doit êtr
 technicien), borne (aucun menu). Argument : un menu masqué par rôle n'est pas un menu pensé par
 rôle ; un technicien qui traverse chaque jour un menu conçu pour le comptoir perd du temps.
 
-### Ce que révèle la superposition
+**Ce que révèle la superposition**
 
 L'écart réel est beaucoup plus petit que les mots ne le laissent croire. Le poste « comptoir » de
 l'étude métier et l'arborescence unique de l'étude structure sont **les mêmes six entrées**, à un
@@ -92,7 +95,7 @@ Magasin) ; l'arborescence unique filtrée par les droits du `technicien` en lais
 **Le désaccord porte donc sur une entrée, pour un rôle sur neuf.** Ce n'est pas un désaccord
 d'architecture, c'est un désaccord de réglage — et il ne justifie pas de construire trois produits.
 
-### Décision : une seule arborescence, ordre fixe pour tous, filtrée par droits
+**Décision : une seule arborescence, ordre fixe pour tous, filtrée par droits**
 
 Quatre raisons, dans l'ordre de poids.
 
@@ -118,7 +121,7 @@ grise de choses interdites » est faux : la barre latérale filtre déjà par dr
 trois décisions de rangement à chaque écran ajouté — pour un produit qui compte déjà quarante-sept
 écrans métier et qui grandira.
 
-### Ce que l'option écartée avait raison de défendre, et qui est repris
+**Ce que l'option écartée avait raison de défendre, et qui est repris**
 
 L'étude métier a raison sur le fond : **le technicien ne doit pas atterrir dans un écran conçu
 pour le comptoir**. Ce besoin est réel et il est satisfait sans trois arborescences.
@@ -131,15 +134,13 @@ pour le comptoir**. Ce besoin est réel et il est satisfait sans trois arboresce
 - **« Mon travail » n'est pas une septième entrée** : c'est la première vue de l'onglet Pointage
   d'Atelier, et l'atterrissage du technicien.
 
-| Rôle                             | Atterrissage                                          |
-| -------------------------------- | ----------------------------------------------------- |
-| `technicien`                     | Via `/pointage/borne` partagée (voir note ci-dessous) |
-| `magasinier`                     | Pièces › Comptoir                                     |
-| `receptionnaire`, `chef_atelier` | Aujourd'hui                                           |
-| `vendeur`                        | Ventes › Dossiers                                     |
-| `comptable`                      | Facturation › Factures                                |
-| `direction`, `admin`             | Aujourd'hui                                           |
-| `poste_atelier`                  | `/pointage/borne`, plein écran                        |
+- **`technicien`** : Via `/pointage/borne` partagée (voir note ci-dessous)
+- **`magasinier`** : Pièces › Comptoir
+- **`receptionnaire`, `chef_atelier`** : Aujourd'hui
+- **`vendeur`** : Ventes › Dossiers
+- **`comptable`** : Facturation › Factures
+- **`direction`, `admin`** : Aujourd'hui
+- **`poste_atelier`** : `/pointage/borne`, plein écran
 
 **Ce que l'option écartée perd réellement, et qu'il faut assumer :** le technicien verra deux
 entrées qu'il n'ouvrira jamais (Aujourd'hui, Clients & véhicules). Deux lignes de plus dans un
@@ -158,18 +159,18 @@ l'audit trail et la reprise de pointages, mais n'est pas un point d'entrée appl
 
 ---
 
-## 3. La cause profonde : les fiches ne mènent nulle part
+3. La cause profonde : les fiches ne mènent nulle part
+
+---
 
 C'est la découverte de l'étude métier, et elle passe devant tout le reste. Vérifiée dans le code,
 en comptant les liens sortants de chaque fiche :
 
-| Fiche                           | Liens sortants |
-| ------------------------------- | -------------- |
-| `EcranFicheOrdreReparation.tsx` | **0**          |
-| `EcranFicheVehicule.tsx`        | **0**          |
-| `EcranFicheArticle.tsx`         | **0**          |
-| `EcranFicheFacture.tsx`         | 7              |
-| `EcranFicheClient.tsx`          | 3              |
+- **`EcranFicheOrdreReparation.tsx`** : **0**
+- **`EcranFicheVehicule.tsx`** : **0**
+- **`EcranFicheArticle.tsx`** : **0**
+- **`EcranFicheFacture.tsx`** : 7
+- **`EcranFicheClient.tsx`** : 3
 
 Depuis un véhicule, on n'atteint **ni son propriétaire, ni ses OR, ni ses factures, ni ses pneus au
 dépôt**. Depuis un OR, rien : l'en-tête affiche le nom du client et la plaque, et aucun des deux
@@ -203,29 +204,34 @@ client. C'est ce qui permet de raccrocher le téléphone en sachant de quoi on p
 
 ---
 
-## 4. L'arborescence retenue
+4. L'arborescence retenue
 
-### 4.1 La règle de rangement
+---
+
+**4.1 La règle de rangement**
 
 Trois classes, et tout écran futur se range par elles. C'est ce qui empêchera le menu de regrossir.
 
-| Classe          | Définition                                                                       | Où ça vit                                 |
-| --------------- | -------------------------------------------------------------------------------- | ----------------------------------------- |
-| **Destination** | un plan de travail qu'on ouvre sans savoir à l'avance quel objet on va manipuler | **le menu**, et rien d'autre              |
-| **Objet**       | un client, un véhicule, un OR, une facture, un article, un dossier               | la **recherche** et les liens contextuels |
-| **Réglage**     | configuré rarement, jamais dans le flux de travail                               | **Réglages**, une seule porte             |
+****Destination****
 
-### 4.2 Le menu
+- Définition : un plan de travail qu'on ouvre sans savoir à l'avance quel objet on va manipuler
+- Où ça vit : **le menu**, et rien d'autre
+  ****Objet****
+- Définition : un client, un véhicule, un OR, une facture, un article, un dossier
+- Où ça vit : la **recherche** et les liens contextuels
+  ****Réglage****
+- Définition : configuré rarement, jamais dans le flux de travail
+- Où ça vit : **Réglages**, une seule porte
 
-| Entrée                                       | Onglets (le premier est celui par défaut)                                                                                                                    |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| ◆ **Aujourd'hui**                            | Accueil + Tableau de bord fusionnés. Blocs actionnables : OR du jour, sorties du soir, attentes de pièces, garanties à échéance, jeux de pneus à relancer    |
-| ◆ **Atelier**                                | Ordres de réparation · Planning · Pointage _(Mon travail · Journal · Équipe)_ · Dépôt pneus _(au dépôt · à relancer · sortis)_                               |
-| ◆ **Clients & véhicules**                    | Clients _(bandeau doublons intégré)_ · Véhicules                                                                                                             |
-| ◆ **Pièces**                                 | Comptoir _(défaut du magasinier)_ · Articles _(filtres : réservés · à commander)_ · Approvisionnement _(À commander · Commandes · Fournisseurs)_ · Consignes |
-| ◆ **Facturation**                            | Factures _(toutes · impayées · à relancer)_ · Encaissements                                                                                                  |
-| ◆ **Ventes**                                 | Dossiers · Véhicules en parc · Suivi financement & garantie                                                                                                  |
-| ⚙ **Réglages** _(pied, séparé par un filet)_ | Atelier · Sites · Facturation · Tarifs et prestations · Pièces · Relances                                                                                    |
+**4.2 Le menu**
+
+- **◆ **Aujourd'hui**** : Accueil + Tableau de bord fusionnés. Blocs actionnables : OR du jour, sorties du soir, attentes de pièces, garanties à échéance, jeux de pneus à relancer
+- **◆ **Atelier**** : Ordres de réparation · Planning · Pointage _(Mon travail · Journal · Équipe)_ · Dépôt pneus _(au dépôt · à relancer · sortis)_
+- **◆ **Clients & véhicules**** : Clients _(bandeau doublons intégré)_ · Véhicules
+- **◆ **Pièces**** : Comptoir _(défaut du magasinier)_ · Articles _(filtres : réservés · à commander)_ · Approvisionnement _(À commander · Commandes · Fournisseurs)_ · Consignes
+- **◆ **Facturation**** : Factures _(toutes · impayées · à relancer)_ · Encaissements
+- **◆ **Ventes**** : Dossiers · Véhicules en parc · Suivi financement & garantie
+- **⚙ **Réglages** _(pied, séparé par un filet)_** : Atelier · Sites · Facturation · Tarifs et prestations · Pièces · Relances
 
 **Six entrées, et le menu ne se déplie jamais.** Le second niveau vit dans l'écran, en onglets. Un
 accordéon à six groupes ne réduit pas la charge : il la déplace, et il ajoute un état (quel groupe
@@ -238,17 +244,26 @@ le téléphone (Clients & véhicules), la pièce qu'on va chercher (Pièces), le
 rythme mensuel (Ventes). Il est **identique pour tous les rôles** — un ordre variable détruirait la
 mémoire spatiale et le support téléphonique pour un gain nul.
 
-### 4.3 Les noms, là où les deux études divergeaient
+**4.3 Les noms, là où les deux études divergeaient**
 
-| Chose                | Nom retenu              | Pourquoi, en une ligne                                                                                                                                                                            |
-| -------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Le stock de pièces   | **Pièces**              | « Magasin » n'était justifié que comme conteneur commun avec les pneus ; les pneus n'y vont pas (§4.4), le mot perd sa raison d'être. « Stock » est déjà pris par `ventes/stock`.                 |
-| Les VN/VO en parc    | **Véhicules en parc**   | lève l'homonymie avec « Pièces », et dit ce que c'est plutôt que d'où ça vient.                                                                                                                   |
-| Clients et véhicules | **Clients & véhicules** | « Clients » seul ne laisse pas deviner qu'on y trouve les véhicules ; le garagiste cherche une plaque avant un nom. Tient en allemand (_Kunden & Fahrzeuge_) et en italien (_Clienti e veicoli_). |
-| Les pneus gardés     | **Dépôt pneus**         | dit la nature juridique (garde, pas propriété) et non le local. Écarte « Hangar », qui est un bâtiment chez certains et une étagère chez d'autres.                                                |
-| L'écran du matin     | **Aujourd'hui**         | un moment, pas un module. Écarte « Tableau de bord », qui promet des chiffres à qui vient chercher son travail.                                                                                   |
+**Le stock de pièces**
 
-### 4.4 Où va le dépôt pneus — arbitrage
+- Nom retenu : **Pièces**
+- Pourquoi, en une ligne : « Magasin » n'était justifié que comme conteneur commun avec les pneus ; les pneus n'y vont pas (§4.4), le mot perd sa raison d'être. « Stock » est déjà pris par `ventes/stock`.
+  **Les VN/VO en parc**
+- Nom retenu : **Véhicules en parc**
+- Pourquoi, en une ligne : lève l'homonymie avec « Pièces », et dit ce que c'est plutôt que d'où ça vient.
+  **Clients et véhicules**
+- Nom retenu : **Clients & véhicules**
+- Pourquoi, en une ligne : « Clients » seul ne laisse pas deviner qu'on y trouve les véhicules ; le garagiste cherche une plaque avant un nom. Tient en allemand (_Kunden & Fahrzeuge_) et en italien (_Clienti e veicoli_).
+  **Les pneus gardés**
+- Nom retenu : **Dépôt pneus**
+- Pourquoi, en une ligne : dit la nature juridique (garde, pas propriété) et non le local. Écarte « Hangar », qui est un bâtiment chez certains et une étagère chez d'autres.
+  **L'écran du matin**
+- Nom retenu : **Aujourd'hui**
+- Pourquoi, en une ligne : un moment, pas un module. Écarte « Tableau de bord », qui promet des chiffres à qui vient chercher son travail.
+
+**4.4 Où va le dépôt pneus — arbitrage**
 
 L'étude métier le range sous « Magasin » (même question pour celui qui travaille : où est la chose
 physique ?). L'étude structure le range sous « Atelier » (test comptable : ce n'est pas du
@@ -266,32 +281,30 @@ L'entrée de menu sert au magasinier qui range, deux mois par an ; la fiche véh
 réceptionnaire qui reçoit, tous les jours. Ce bloc est donc au lot B ; l'emplacement dans le menu
 est secondaire.
 
-### 4.5 Ce qui sort du menu — tableau complet
+**4.5 Ce qui sort du menu — tableau complet**
 
-| Entrée actuelle                           | Où on y accède désormais                                                                                                                                                                                                                     |
-| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Accueil + Tableau de bord                 | fusionnés en **Aujourd'hui**                                                                                                                                                                                                                 |
-| Recherche                                 | **champ permanent d'en-tête + `Ctrl+K`**, en surimpression, sans quitter l'écran                                                                                                                                                             |
-| Véhicules                                 | onglet de Clients & véhicules · recherche · fiche client                                                                                                                                                                                     |
-| Doublons clients                          | **bandeau dans l'écran Clients** (« 12 fiches probablement en double ») **+ détection à la frappe dans le formulaire de création** — un doublon se crée là, c'est là qu'il faut l'empêcher ; une entrée de menu attend qu'on pense à cliquer |
-| Référentiels (tarifs, prestations)        | **Réglages**. Un réceptionnaire ne consulte pas un tarif horaire : il ajoute une prestation sur un OR et le prix vient tout seul. S'il doit voir un prix, c'est dans le sélecteur de prestation de l'OR.                                     |
-| Relances                                  | paliers → Réglages ; déclenchement → onglet « À relancer » de Factures                                                                                                                                                                       |
-| Pièces › Recherche comptoir               | Pièces › Comptoir                                                                                                                                                                                                                            |
-| Pièces › Articles                         | Pièces › Articles                                                                                                                                                                                                                            |
-| Pièces › Réservations                     | **filtre** d'Articles                                                                                                                                                                                                                        |
-| Pièces › Réapprovisionnement              | Pièces › Approvisionnement, vue « À commander »                                                                                                                                                                                              |
-| Pièces › Commandes fournisseur            | Pièces › Approvisionnement, vue « Commandes »                                                                                                                                                                                                |
-| Pièces › Fournisseurs                     | Pièces › Approvisionnement, vue « Fournisseurs » + recherche. Un fournisseur se consulte depuis une commande, jamais dans l'absolu.                                                                                                          |
-| Pièces › Consignes                        | Pièces › Consignes                                                                                                                                                                                                                           |
-| Pièces › Paramétrage                      | Réglages › Pièces                                                                                                                                                                                                                            |
-| Pointage › Saisie                         | Atelier › Pointage › Mon travail                                                                                                                                                                                                             |
-| Pointage › Journal / Équipe               | Atelier › Pointage, **deux vues du même écran** (même hook, mesuré)                                                                                                                                                                          |
-| Pointage › Clôture de période             | **action** en tête de la vue Équipe : on clôture ce qu'on regarde                                                                                                                                                                            |
-| Pointage › Borne                          | **plus dans le menu du tout** — la borne se connecte avec son propre compte et atterrit dessus                                                                                                                                               |
-| Pneus › Hangar                            | Atelier › Dépôt pneus                                                                                                                                                                                                                        |
-| Pneus › Jeux à relancer                   | **filtre** de Dépôt pneus (c'est déjà ce qu'il est dans le code) + bloc actionnable dans Aujourd'hui à la saison                                                                                                                             |
-| Ventes › Stock / Dossiers / Suivi         | trois onglets de Ventes ; le suivi garanties alimente aussi un bloc d'Aujourd'hui                                                                                                                                                            |
-| Paramétrage atelier / sites / facturation | Réglages                                                                                                                                                                                                                                     |
+- **Accueil + Tableau de bord** : fusionnés en **Aujourd'hui**
+- **Recherche** : **champ permanent d'en-tête + `Ctrl+K`**, en surimpression, sans quitter l'écran
+- **Véhicules** : onglet de Clients & véhicules · recherche · fiche client
+- **Doublons clients** : **bandeau dans l'écran Clients** (« 12 fiches probablement en double ») **+ détection à la frappe dans le formulaire de création** — un doublon se crée là, c'est là qu'il faut l'empêcher ; une entrée de menu attend qu'on pense à cliquer
+- **Référentiels (tarifs, prestations)** : **Réglages**. Un réceptionnaire ne consulte pas un tarif horaire : il ajoute une prestation sur un OR et le prix vient tout seul. S'il doit voir un prix, c'est dans le sélecteur de prestation de l'OR.
+- **Relances** : paliers → Réglages ; déclenchement → onglet « À relancer » de Factures
+- **Pièces › Recherche comptoir** : Pièces › Comptoir
+- **Pièces › Articles** : Pièces › Articles
+- **Pièces › Réservations** : **filtre** d'Articles
+- **Pièces › Réapprovisionnement** : Pièces › Approvisionnement, vue « À commander »
+- **Pièces › Commandes fournisseur** : Pièces › Approvisionnement, vue « Commandes »
+- **Pièces › Fournisseurs** : Pièces › Approvisionnement, vue « Fournisseurs » + recherche. Un fournisseur se consulte depuis une commande, jamais dans l'absolu.
+- **Pièces › Consignes** : Pièces › Consignes
+- **Pièces › Paramétrage** : Réglages › Pièces
+- **Pointage › Saisie** : Atelier › Pointage › Mon travail
+- **Pointage › Journal / Équipe** : Atelier › Pointage, **deux vues du même écran** (même hook, mesuré)
+- **Pointage › Clôture de période** : **action** en tête de la vue Équipe : on clôture ce qu'on regarde
+- **Pointage › Borne** : **plus dans le menu du tout** — la borne se connecte avec son propre compte et atterrit dessus
+- **Pneus › Hangar** : Atelier › Dépôt pneus
+- **Pneus › Jeux à relancer** : **filtre** de Dépôt pneus (c'est déjà ce qu'il est dans le code) + bloc actionnable dans Aujourd'hui à la saison
+- **Ventes › Stock / Dossiers / Suivi** : trois onglets de Ventes ; le suivi garanties alimente aussi un bloc d'Aujourd'hui
+- **Paramétrage atelier / sites / facturation** : Réglages
 
 **30 entrées → 6 + Réglages. Aucun écran supprimé, aucun rendu inatteignable.**
 
@@ -303,7 +316,8 @@ factures en retard sur Facturation. Un menu qui clignote de partout ne signale p
 
 ---
 
-## 4.6 Contraintes transverses (s'appliquent à tous les lots)
+4.6 Contraintes transverses (s'appliquent à tous les lots)
+----------------------------------------------------------
 
 **Responsive et tactile dès la conception.** Les postes de comptoir fonctionnent sur des écrans tactiles
 (≥ 24 pouces). La navigation doit être utilisable avec cliquer/taper, et dégradable vers tablette et
@@ -317,7 +331,9 @@ mobile — même si le principal cas d'usage est desktop tactile. Conséquences 
 
 ---
 
-## 5. Ordre des travaux
+5. Ordre des travaux
+
+---
 
 Six lots. Chacun apporte de la valeur seul et peut être livré sans attendre le suivant.
 
@@ -383,7 +399,9 @@ _Note :_ L'écran actuel tient le rôle temporairement ; ce lot apporte une conc
 
 ---
 
-## 6. Réponses de @laupernoe (06.08.2026) — Arbitrages figés
+6. Réponses de @laupernoe (06.08.2026) — Arbitrages figés
+
+---
 
 Huit questions adressées le 06.08.2026 pour trancher les points résiduels. Toutes reçues une réponse.
 Chacune change concrètement quelque chose ; celles qui n'en changeaient pas ont été tranchées plus tôt.

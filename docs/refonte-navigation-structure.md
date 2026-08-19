@@ -1,11 +1,12 @@
-# Refonte de la navigation — angle structure et ergonomie
-
+$=^
 Document de conception, 06.08.2026. Angle : **architecture de l'information**. Un second document
 traite le même sujet sous l'angle métier ; les deux sont faits pour être confrontés.
 
 ---
 
-## 1. Ce qui a été mesuré (et non supposé)
+1. Ce qui a été mesuré (et non supposé)
+
+---
 
 Sources : `apps/web/src/composants/layout/BarreLaterale.tsx`, `routes/routeur.tsx`,
 `routes/droits-routes.ts`, `ecrans/pointage/droits.ts`, `packages/shared/src/contrats/enums.ts`.
@@ -33,9 +34,11 @@ Sources : `apps/web/src/composants/layout/BarreLaterale.tsx`, `routes/routeur.ts
 
 ---
 
-## 2. Diagnostic : pourquoi 30 entrées est un défaut mesurable
+2. Diagnostic : pourquoi 30 entrées est un défaut mesurable
 
-### 2.1 Le coût n'est pas logarithmique, il est linéaire
+---
+
+**2.1 Le coût n'est pas logarithmique, il est linéaire**
 
 La loi de Hick (temps de décision ∝ log₂(n+1)) suppose un ensemble **ordonné et catégorisé** :
 l'utilisateur élimine par moitiés. Elle donnerait 30 → 6 ≈ 1,8× plus rapide — un gain modeste.
@@ -47,31 +50,40 @@ catégorie : l'œil fait une **recherche visuelle sérielle**, dont le temps cro
 avec n (≈ 40–100 ms par item, et le double quand la cible est absente, puisqu'il faut épuiser la
 liste). Trente items, plusieurs dizaines de fois par jour.
 
-### 2.2 Une liste qui défile interdit la mémoire spatiale
+**2.2 Une liste qui défile interdit la mémoire spatiale**
 
 Défaut le plus coûteux, et purement structurel. Un menu de position **stable** est mémorisé en
 quelques jours : la main va au 3ᵉ item sans que l'œil lise. Un menu qui défile n'a pas de 3ᵉ item
 stable — l'utilisateur **relit** à chaque fois, indéfiniment, et ne progresse jamais vers
 l'expertise. Un menu long ne coûte pas cher une fois ; il coûte cher **tous les jours, cinq ans**.
 
-### 2.3 L'échec de première tentative est le vrai coût
+**2.3 L'échec de première tentative est le vrai coût**
 
 Cible non trouvée au scan ⇒ l'utilisateur ouvre un écran plausible : chargement, lecture, constat
 d'erreur, retour, re-scan. Ce cycle vaut 10 à 20 secondes et sédimente une conviction — « ce
 logiciel est compliqué » — qui ne se corrige pas par une mise à jour. C'est exactement le reproche
 adressé à Auto-i et Nextlane.
 
-### 2.4 Les six défauts de structure, nommés
+**2.4 Les six défauts de structure, nommés**
 
 **D1 — Niveaux incohérents : une entité et son sous-cas au même rang.** Mesuré, pas supposé :
 
-| Rang 1             | Rang 1 (alors que c'est un sous-cas) | Preuve                                                                                                |
-| ------------------ | ------------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| Clients            | Doublons clients                     | outil contextuel de la gestion clients                                                                |
-| Pneus > Hangar     | Pneus > À relancer                   | `EcranHangarPneus` expose littéralement `SelectItem value="a_relancer"`, même endpoint, mêmes actions |
-| Pièces > Articles  | Pièces > Réapprovisionnement         | même domaine, projection dérivée du stock                                                             |
-| Ventes > Dossiers  | Ventes > Suivi                       | vue dérivée, même droit `ventes.dossier.lire`                                                         |
-| Pointage > Journal | Pointage > Équipe                    | **même hook `useListePointages`, même site, même fenêtre du jour** — seule l'agrégation diffère       |
+**Clients**
+
+- Rang 1 (alors que c'est un sous-cas) : Doublons clients
+- Preuve : outil contextuel de la gestion clients
+  **Pneus > Hangar**
+- Rang 1 (alors que c'est un sous-cas) : Pneus > À relancer
+- Preuve : `EcranHangarPneus` expose littéralement `SelectItem value="a_relancer"`, même endpoint, mêmes actions
+  **Pièces > Articles**
+- Rang 1 (alors que c'est un sous-cas) : Pièces > Réapprovisionnement
+- Preuve : même domaine, projection dérivée du stock
+  **Ventes > Dossiers**
+- Rang 1 (alors que c'est un sous-cas) : Ventes > Suivi
+- Preuve : vue dérivée, même droit `ventes.dossier.lire`
+  **Pointage > Journal**
+- Rang 1 (alors que c'est un sous-cas) : Pointage > Équipe
+- Preuve : **même hook `useListePointages`, même site, même fenêtre du jour** — seule l'agrégation diffère
 
 **D2 — Regroupement par module technique, pas par intention.** Les cinq groupes du menu
 (`pieces`, `pointage`, `pneus`, `ventes`, `parametrage`) sont, à l'identique, les répertoires de
@@ -100,7 +112,9 @@ pas une personne : elle n'a pas besoin d'un menu, elle a besoin d'un seul geste 
 
 ---
 
-## 3. Le pivot : la recherche doit sortir du menu et absorber une partie de son rôle
+3. Le pivot : la recherche doit sortir du menu et absorber une partie de son rôle
+
+---
 
 **Verdict : oui, et c'est ce qui rend le reste de la proposition possible.**
 
@@ -136,19 +150,26 @@ gagner `article`, `dossier_vente`, `depot_pneu`, `fournisseur`. Sans cela la pal
 
 ---
 
-## 4. Structure proposée
+4. Structure proposée
 
-### 4.1 Les trois classes d'accès (la règle de rangement, D4)
+---
 
-| Classe          | Définition                                                                       | Où ça vit                                |
-| --------------- | -------------------------------------------------------------------------------- | ---------------------------------------- |
-| **Destination** | un plan de travail qu'on ouvre sans savoir à l'avance quel objet on va manipuler | **le menu**, et rien d'autre             |
-| **Objet**       | un client, un véhicule, un OR, une facture, un article, un dossier               | la **recherche** + les liens contextuels |
-| **Réglage**     | configuré rarement, jamais dans le flux de travail                               | **Réglages**, une seule porte            |
+**4.1 Les trois classes d'accès (la règle de rangement, D4)**
+
+****Destination****
+
+- Définition : un plan de travail qu'on ouvre sans savoir à l'avance quel objet on va manipuler
+- Où ça vit : **le menu**, et rien d'autre
+  ****Objet****
+- Définition : un client, un véhicule, un OR, une facture, un article, un dossier
+- Où ça vit : la **recherche** + les liens contextuels
+  ****Réglage****
+- Définition : configuré rarement, jamais dans le flux de travail
+- Où ça vit : **Réglages**, une seule porte
 
 Tout écran futur se range par cette règle. C'est ce qui empêche le menu de regrossir.
 
-### 4.2 Arborescence
+**4.2 Arborescence**
 
 **Six entrées de travail + Réglages en pied.** Pourquoi six : c'est le nombre au-delà duquel une
 liste cesse d'être perçue d'un coup d'œil et redevient une liste à lire. Six tient sans défilement
@@ -194,33 +215,31 @@ accordéon à six groupes ouvrables ne réduit pas la charge : il la déplace, e
 objet stable de six lignes, la position de chaque item est mémorisable dès la première semaine, et
 le support téléphonique peut dire « troisième entrée » et être compris.
 
-### 4.3 Ce qui SORT du menu, entrée par entrée
+**4.3 Ce qui SORT du menu, entrée par entrée**
 
-| Entrée actuelle                           | Devient                                                                                                                                                                                                                                                                     |
-| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Accueil + Tableau de bord                 | fusionnés en « Aujourd'hui » (cf. question 6)                                                                                                                                                                                                                               |
-| Recherche                                 | champ permanent d'en-tête + `Ctrl+K`                                                                                                                                                                                                                                        |
-| **Doublons clients**                      | **bandeau dans l'écran Clients** (« 12 fiches probablement en double ») **+ détection à la frappe dans le formulaire de création** — c'est là qu'un doublon se crée, donc là qu'il faut l'empêcher. Une entrée de menu ne détecte rien : elle attend qu'on pense à cliquer. |
-| Référentiels                              | Réglages → Tarifs et prestations                                                                                                                                                                                                                                            |
-| Relances                                  | paliers → Réglages ; déclenchement → onglet « À relancer » de Factures, **aujourd'hui inerte faute de filtre au contrat** — à câbler                                                                                                                                        |
-| Pièces > Recherche comptoir               | Pièces, onglet Comptoir                                                                                                                                                                                                                                                     |
-| Pièces > Articles                         | Pièces, onglet Articles                                                                                                                                                                                                                                                     |
-| Pièces > Réapprovisionnement              | Pièces > Approvisionnement, vue « À commander »                                                                                                                                                                                                                             |
-| Pièces > Commandes fournisseur            | Pièces > Approvisionnement, vue « Commandes »                                                                                                                                                                                                                               |
-| Pièces > Fournisseurs                     | Pièces > Approvisionnement, vue « Fournisseurs » + recherche                                                                                                                                                                                                                |
-| Pièces > Consignes                        | Pièces, onglet Consignes                                                                                                                                                                                                                                                    |
-| Pièces > Paramétrage                      | Réglages → Pièces                                                                                                                                                                                                                                                           |
-| Pointage > Saisie                         | Atelier > Pointage, vue « Ma saisie »                                                                                                                                                                                                                                       |
-| Pointage > Journal / Équipe               | Atelier > Pointage, deux vues du **même** écran (même hook, mesuré)                                                                                                                                                                                                         |
-| Pointage > Clôture de période             | **action** en tête de la vue Équipe, pas un écran : on clôture ce qu'on est en train de regarder                                                                                                                                                                            |
-| Pneus > Hangar                            | Atelier > Dépôt pneus                                                                                                                                                                                                                                                       |
-| Pneus > À relancer                        | **filtre** de Dépôt pneus — c'est déjà exactement ce qu'il est dans le code                                                                                                                                                                                                 |
-| Ventes > Stock / Dossiers / Suivi         | trois onglets de Ventes                                                                                                                                                                                                                                                     |
-| Paramétrage atelier / sites / facturation | Réglages                                                                                                                                                                                                                                                                    |
+- **Accueil + Tableau de bord** : fusionnés en « Aujourd'hui » (cf. question 6)
+- **Recherche** : champ permanent d'en-tête + `Ctrl+K`
+- ****Doublons clients**** : **bandeau dans l'écran Clients** (« 12 fiches probablement en double ») **+ détection à la frappe dans le formulaire de création** — c'est là qu'un doublon se crée, donc là qu'il faut l'empêcher. Une entrée de menu ne détecte rien : elle attend qu'on pense à cliquer.
+- **Référentiels** : Réglages → Tarifs et prestations
+- **Relances** : paliers → Réglages ; déclenchement → onglet « À relancer » de Factures, **aujourd'hui inerte faute de filtre au contrat** — à câbler
+- **Pièces > Recherche comptoir** : Pièces, onglet Comptoir
+- **Pièces > Articles** : Pièces, onglet Articles
+- **Pièces > Réapprovisionnement** : Pièces > Approvisionnement, vue « À commander »
+- **Pièces > Commandes fournisseur** : Pièces > Approvisionnement, vue « Commandes »
+- **Pièces > Fournisseurs** : Pièces > Approvisionnement, vue « Fournisseurs » + recherche
+- **Pièces > Consignes** : Pièces, onglet Consignes
+- **Pièces > Paramétrage** : Réglages → Pièces
+- **Pointage > Saisie** : Atelier > Pointage, vue « Ma saisie »
+- **Pointage > Journal / Équipe** : Atelier > Pointage, deux vues du **même** écran (même hook, mesuré)
+- **Pointage > Clôture de période** : **action** en tête de la vue Équipe, pas un écran : on clôture ce qu'on est en train de regarder
+- **Pneus > Hangar** : Atelier > Dépôt pneus
+- **Pneus > À relancer** : **filtre** de Dépôt pneus — c'est déjà exactement ce qu'il est dans le code
+- **Ventes > Stock / Dossiers / Suivi** : trois onglets de Ventes
+- **Paramétrage atelier / sites / facturation** : Réglages
 
 **30 → 6 + Réglages.** Aucun écran supprimé, aucun rendu inatteignable.
 
-### 4.4 Deux fusions d'écrans confirmées par le code
+**4.4 Deux fusions d'écrans confirmées par le code**
 
 - **Pneus** : `EcranJeuxARelancer` interroge `GET /depots-pneus/a-relancer` là où `EcranHangarPneus`
   fait déjà `?statut=a_relancer` sur le même jeu de données, avec les mêmes actions Déplacer /
@@ -239,7 +258,9 @@ elles ne se confondent pas.** Un onglet n'est pas une fusion : c'est un rangemen
 
 ---
 
-## 5. Les rôles : une seule structure qui se réduit
+5. Les rôles : une seule structure qui se réduit
+
+---
 
 **Décision : une seule arborescence pour les neuf rôles. Pas de navigation par rôle.** Trois
 raisons, dans l'ordre de poids :
@@ -259,14 +280,12 @@ raisons, dans l'ordre de poids :
 
 Ce qui varie par rôle, en revanche : **l'écran d'atterrissage** (`/`), et rien d'autre.
 
-| Rôle                             | Atterrissage                          |
-| -------------------------------- | ------------------------------------- |
-| `technicien`                     | Atelier → Pointage, vue « Ma saisie » |
-| `magasinier`                     | Pièces → Comptoir                     |
-| `receptionnaire`, `chef_atelier` | Aujourd'hui                           |
-| `vendeur`                        | Ventes → Dossiers                     |
-| `comptable`                      | Facturation → Factures                |
-| `direction`, `admin`             | Aujourd'hui                           |
+- **`technicien`** : Atelier → Pointage, vue « Ma saisie »
+- **`magasinier`** : Pièces → Comptoir
+- **`receptionnaire`, `chef_atelier`** : Aujourd'hui
+- **`vendeur`** : Ventes → Dossiers
+- **`comptable`** : Facturation → Factures
+- **`direction`, `admin`** : Aujourd'hui
 
 **L'ordre des six entrées reste identique pour tous** — un ordre variable détruirait la mémoire
 spatiale et le support téléphonique, pour un gain nul.
@@ -278,7 +297,9 @@ par ses droits.
 
 ---
 
-## 6. Avis sur la proposition de @laupernoe : « pièces et pneus sous Stock »
+6. Avis sur la proposition de @laupernoe : « pièces et pneus sous Stock »
+
+---
 
 **D'accord sur la moitié, en désaccord sur l'autre — et le désaccord porte sur le mot lui-même.**
 
@@ -308,7 +329,9 @@ de qui ouvre cet écran le matin, ce que je ne peux pas trancher seul (questions
 
 ---
 
-## 7. Questions à @laupernoe
+7. Questions à @laupernoe
+
+---
 
 1. **Vendez-vous des pneus neufs (article de stock), en plus de garder ceux des clients ?**
    → Si oui, deux objets homonymes coexistent (le pneu-article et le pneu-dépôt) et il faut les
@@ -344,7 +367,9 @@ de qui ouvre cet écran le matin, ce que je ne peux pas trancher seul (questions
 
 ---
 
-## 8. Défauts hors périmètre, signalés
+8. Défauts hors périmètre, signalés
+
+---
 
 - **`/pointage/borne` n'est lié depuis aucun menu** (`BarreLaterale.tsx`) — l'écran n'est
   atteignable qu'en tapant l'URL. À corriger indépendamment de cette refonte.

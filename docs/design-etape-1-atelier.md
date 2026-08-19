@@ -1,4 +1,5 @@
-# Design — Étape 1 : l'écran d'ordre de réparation et le système visuel de l'atelier
+Design — Étape 1 : l'écran d'ordre de réparation et le système visuel de l'atelier
+==================================================================================
 
 > Auteur : expert-ui. Base : `docs/specification-etape-1-atelier-clients.md` (métier, RM/CT/T/I) et
 > `docs/plan-etape-1-frontend.md` (carte des écrans, arbitrages déjà pris — §2 à §11).
@@ -12,7 +13,8 @@
 
 ---
 
-## Sommaire
+Sommaire
+--------
 
 0. [Principe directeur](#0-principe-directeur)
 1. [Grille de référence des points d'arrêt](#1-grille-de-référence-des-points-darrêt)
@@ -28,7 +30,9 @@
 
 ---
 
-## 0. Principe directeur
+0. Principe directeur
+
+---
 
 Auto-i et Nextlane répondent à « où en est ce dossier ? » en ouvrant cinq onglets, trois couleurs par
 statut selon l'écran, et une table qui affiche quarante colonnes par défaut. Le pari de DFA est inverse :
@@ -42,17 +46,40 @@ par une couleur supplémentaire. C'est ce qui évite la table de lignes bariolé
 
 ---
 
-## 1. Grille de référence des points d'arrêt
+1. Grille de référence des points d'arrêt
+
+---
 
 Le plan (§1.3) nomme des contextes d'usage sans les attacher aux préfixes Tailwind. Ce document fixe la
 correspondance — elle s'applique à tout l'écran d'OR et doit être reprise telle quelle par expert-react :
 
-| Contexte nommé (plan §1.3) | Largeur      | Préfixe Tailwind      | Densité                             | Cible tactile  | Texte de base |
-| -------------------------- | ------------ | --------------------- | ----------------------------------- | -------------- | ------------- |
-| Téléphone                  | < 768 px     | (aucun, mobile-first) | lecture + actions rapides seulement | 48 px          | 16 px         |
-| Tablette atelier portrait  | 768–1023 px  | `md:`                 | aérée                               | 56 px          | 18 px         |
-| Tablette atelier paysage   | 1024–1279 px | `lg:`                 | aérée                               | 48 px          | 16 px         |
-| Comptoir / bureau          | ≥ 1280 px    | `xl:`                 | dense                               | 32 px (souris) | 14 px         |
+- **Contexte nommé (plan §1.3)** — Téléphone
+- **Largeur** — < 768 px
+- **Préfixe Tailwind** — (aucun, mobile-first)
+- **Densité** — lecture + actions rapides seulement
+- **Cible tactile** — 48 px
+- **Texte de base** — 16 px
+
+- **Contexte nommé (plan §1.3)** — Tablette atelier portrait
+- **Largeur** — 768–1023 px
+- **Préfixe Tailwind** — `md:`
+- **Densité** — aérée
+- **Cible tactile** — 56 px
+- **Texte de base** — 18 px
+
+- **Contexte nommé (plan §1.3)** — Tablette atelier paysage
+- **Largeur** — 1024–1279 px
+- **Préfixe Tailwind** — `lg:`
+- **Densité** — aérée
+- **Cible tactile** — 48 px
+- **Texte de base** — 16 px
+
+- **Contexte nommé (plan §1.3)** — Comptoir / bureau
+- **Largeur** — ≥ 1280 px
+- **Préfixe Tailwind** — `xl:`
+- **Densité** — dense
+- **Cible tactile** — 32 px (souris)
+- **Texte de base** — 14 px
 
 L'écran de pointage (`/atelier`, §6) n'utilise **que** le premier palier utile de cette échelle : il est conçu
 `lg:`-first (tablette paysage posée ou murale), avec des cibles de 72 px indépendamment du point d'arrêt —
@@ -61,9 +88,11 @@ sales, debout).
 
 ---
 
-## 2. L'écran d'OR — maquette structurelle
+2. L'écran d'OR — maquette structurelle
 
-### 2.1 Vue d'ensemble — bureau (`xl:`, ≥ 1280 px)
+---
+
+**2.1 Vue d'ensemble — bureau (`xl:`, ≥ 1280 px)**
 
 ```
 ┌ EnTete (AppShell, existant, défile normalement — non sticky) ──────────────────────────┐
@@ -107,27 +136,74 @@ sales, debout).
 └──────────────────────────────────────────────────────────────────────────────────────────
 ```
 
-### 2.2 Table des zones — ce qui est fixe, ce qui défile, ce qui se replie
+**2.2 Table des zones — ce qui est fixe, ce qui défile, ce qui se replie**
 
-| Zone                          | Composant             | Fixe au défilement                                                                                       | Hauteur                                                            | Repliable                                                                                                                                                                                                                                                |
-| ----------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| En-tête applicatif            | `EnTete` (existant)   | Non — défile normalement                                                                                 | 64 px (`h-16`)                                                     | non                                                                                                                                                                                                                                                      |
-| Bandeau alerte client         | `BandeauAlerteClient` | **Oui**, `sticky top-0 z-40`, présent seulement si RM-13/RM-08                                           | 32 px (`h-8`)                                                      | non — jamais refermable définitivement (§9.4 du plan)                                                                                                                                                                                                    |
-| Bandeau d'identité            | `BandeauOr`           | **Oui**, `sticky` — `top-0` sans alerte, `top-8` avec alerte, `z-30`                                     | 96 px (`h-24`) fixe, ne wrap jamais à `xl:`                        | non                                                                                                                                                                                                                                                      |
-| Groupe « À valider »          | dans `TableLignesOr`  | Non (défile avec la page)                                                                                | auto                                                               | **non** — c'est l'alerte, elle doit toujours se voir en entier                                                                                                                                                                                           |
-| Groupe « À faire / en cours » | idem                  | Non                                                                                                      | auto                                                               | non                                                                                                                                                                                                                                                      |
-| Groupe « Fait »               | idem                  | Non                                                                                                      | auto                                                               | oui — replié par défaut **si > 5 lignes**, sinon déplié                                                                                                                                                                                                  |
-| Groupe « Refusé / reporté »   | idem                  | Non                                                                                                      | auto                                                               | oui — **déplié par défaut** (RM-73, trace de protection)                                                                                                                                                                                                 |
-| Groupe « Annulé »             | idem                  | Non                                                                                                      | auto                                                               | oui — **replié par défaut** (RM-71)                                                                                                                                                                                                                      |
-| Barre de saisie rapide        | `BarreSaisieRapide`   | **Oui**, `sticky bottom-0 z-20` dans la colonne lignes                                                   | 56 px repos, jusqu'à 88 px si popover d'autocomplétion ouvert (§4) | non                                                                                                                                                                                                                                                      |
-| Chaque panneau latéral        | `Panneau*`            | La **colonne** est `xl:sticky xl:top-24 xl:self-start` ; en dessous de `xl:` elle rejoint le flux normal | auto par panneau                                                   | oui, individuellement — état par défaut : **déplié si le panneau porte une alerte active** (devis en attente, checklist incomplète, signature manquante), **replié sinon**. Le panneau Journal est toujours replié par défaut (lazy load, §3.6 du plan). |
+- **Zone** — En-tête applicatif
+- **Composant** — `EnTete` (existant)
+- **Fixe au défilement** — Non — défile normalement
+- **Hauteur** — 64 px (`h-16`)
+- **Repliable** — non
+
+- **Zone** — Bandeau alerte client
+- **Composant** — `BandeauAlerteClient`
+- **Fixe au défilement** — **Oui**, `sticky top-0 z-40`, présent seulement si RM-13/RM-08
+- **Hauteur** — 32 px (`h-8`)
+- **Repliable** — non — jamais refermable définitivement (§9.4 du plan)
+
+- **Zone** — Bandeau d'identité
+- **Composant** — `BandeauOr`
+- **Fixe au défilement** — **Oui**, `sticky` — `top-0` sans alerte, `top-8` avec alerte, `z-30`
+- **Hauteur** — 96 px (`h-24`) fixe, ne wrap jamais à `xl:`
+- **Repliable** — non
+
+- **Zone** — Groupe « À valider »
+- **Composant** — dans `TableLignesOr`
+- **Fixe au défilement** — Non (défile avec la page)
+- **Hauteur** — auto
+- **Repliable** — **non** — c'est l'alerte, elle doit toujours se voir en entier
+
+- **Zone** — Groupe « À faire / en cours »
+- **Composant** — idem
+- **Fixe au défilement** — Non
+- **Hauteur** — auto
+- **Repliable** — non
+
+- **Zone** — Groupe « Fait »
+- **Composant** — idem
+- **Fixe au défilement** — Non
+- **Hauteur** — auto
+- **Repliable** — oui — replié par défaut **si > 5 lignes**, sinon déplié
+
+- **Zone** — Groupe « Refusé / reporté »
+- **Composant** — idem
+- **Fixe au défilement** — Non
+- **Hauteur** — auto
+- **Repliable** — oui — **déplié par défaut** (RM-73, trace de protection)
+
+- **Zone** — Groupe « Annulé »
+- **Composant** — idem
+- **Fixe au défilement** — Non
+- **Hauteur** — auto
+- **Repliable** — oui — **replié par défaut** (RM-71)
+
+- **Zone** — Barre de saisie rapide
+- **Composant** — `BarreSaisieRapide`
+- **Fixe au défilement** — **Oui**, `sticky bottom-0 z-20` dans la colonne lignes
+- **Hauteur** — 56 px repos, jusqu'à 88 px si popover d'autocomplétion ouvert (§4)
+- **Repliable** — non
+
+- **Zone** — Chaque panneau latéral
+- **Composant** — `Panneau*`
+- **Fixe au défilement** — La **colonne** est `xl:sticky xl:top-24 xl:self-start` ; en dessous de `xl:` elle rejoint le flux normal
+- **Hauteur** — auto par panneau
+- **Repliable** — oui, individuellement — état par défaut : **déplié si le panneau porte une alerte active** (devis en attente, checklist incomplète, signature manquante), **replié sinon**. Le panneau Journal est toujours replié par défaut (lazy load, §3.6 du plan).
 
 Pourquoi une colonne « sticky + self-start » plutôt qu'un panneau à défilement indépendant (deux zones de
 scroll superposées) : c'est le motif le plus simple à implémenter correctement en CSS pur (`position:
 sticky`), il ne demande aucun calcul de hauteur en JavaScript, et il se comporte naturellement quelle que
 soit la longueur relative des deux colonnes. Ne pas complexifier ce point.
 
-### 2.3 Déclinaisons par point d'arrêt
+**2.3 Déclinaisons par point d'arrêt**
 
 **`lg:` (1024–1279 px, tablette paysage)** — un seul écran d'usage réel : le chef d'atelier consulte/arbitre
 un OR sur tablette posée au comptoir.
@@ -161,19 +237,38 @@ un OR sur tablette posée au comptoir.
 
 ---
 
-## 3. Le bandeau d'état
+3. Le bandeau d'état
 
-### 3.1 Les cinq questions → les cinq réponses
+---
 
-| #   | Question (spéc)                  | Élément du bandeau                                                                                                                               | Si l'information manque                                                                                                                                                                     |
-| --- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Où est le véhicule ?             | `Localisation` — menu déroulant directement actionnable, ligne 2                                                                                 | Jamais vide silencieusement : valeur par défaut `Parc` à l'ouverture de l'OR, affichée en `AvertissementConfirmable` ambre si aucune mise à jour depuis > 4 h alors que l'OR est `en_cours` |
-| 2   | Qui travaille dessus ?           | `PastilleTechnicienEnCours` (une par pointage ouvert), ligne 2 droite                                                                            | Si aucun pointage ouvert et statut `en_cours` : zone remplacée par le texte neutre « Personne ne pointe actuellement » (jamais un vide muet)                                                |
-| 3   | Combien ça fait aujourd'hui ?    | `Total du jour` TTC, ligne 2                                                                                                                     | Toujours affiché, même à 0.00                                                                                                                                                               |
-| 4   | Qu'est-ce qui attend un accord ? | `JaugePlafond` (ligne 2) **et** groupe « À valider » en tête de table (§2.2) — le bandeau donne le montant, la table donne le détail actionnable | Si aucune ligne à valider : jauge neutre, pas de couleur d'alerte                                                                                                                           |
-| 5   | Quand ça part ?                  | `IndicateurRestitution` — date + heure + délai relatif, ligne 2                                                                                  | Si jamais saisie : `AvertissementConfirmable` inline « Restitution non promise » — RM-56 attend une date, ne pas la rendre invisible                                                        |
+**3.1 Les cinq questions → les cinq réponses**
 
-### 3.2 Anatomie exacte (bureau, `xl:`)
+- **#** — 1
+- **Question (spéc)** — Où est le véhicule ?
+- **Élément du bandeau** — `Localisation` — menu déroulant directement actionnable, ligne 2
+- **Si l'information manque** — Jamais vide silencieusement : valeur par défaut `Parc` à l'ouverture de l'OR, affichée en `AvertissementConfirmable` ambre si aucune mise à jour depuis > 4 h alors que l'OR est `en_cours`
+
+- **#** — 2
+- **Question (spéc)** — Qui travaille dessus ?
+- **Élément du bandeau** — `PastilleTechnicienEnCours` (une par pointage ouvert), ligne 2 droite
+- **Si l'information manque** — Si aucun pointage ouvert et statut `en_cours` : zone remplacée par le texte neutre « Personne ne pointe actuellement » (jamais un vide muet)
+
+- **#** — 3
+- **Question (spéc)** — Combien ça fait aujourd'hui ?
+- **Élément du bandeau** — `Total du jour` TTC, ligne 2
+- **Si l'information manque** — Toujours affiché, même à 0.00
+
+- **#** — 4
+- **Question (spéc)** — Qu'est-ce qui attend un accord ?
+- **Élément du bandeau** — `JaugePlafond` (ligne 2) **et** groupe « À valider » en tête de table (§2.2) — le bandeau donne le montant, la table donne le détail actionnable
+- **Si l'information manque** — Si aucune ligne à valider : jauge neutre, pas de couleur d'alerte
+
+- **#** — 5
+- **Question (spéc)** — Quand ça part ?
+- **Élément du bandeau** — `IndicateurRestitution` — date + heure + délai relatif, ligne 2
+- **Si l'information manque** — Si jamais saisie : `AvertissementConfirmable` inline « Restitution non promise » — RM-56 attend une date, ne pas la rendre invisible
+
+**3.2 Anatomie exacte (bureau, `xl:`)**
 
 **Ligne 1 — identité (`h-10`, 40 px)**, de gauche à droite, `items-center gap-x-4` :
 
@@ -206,20 +301,27 @@ groupes :
    mise à jour visuelle seulement, pas de re-render coûteux à la seconde — throttle 15 s suffisant pour
    l'affichage, le vrai temps est calculé serveur).
 
-### 3.3 États particuliers du bandeau
+**3.3 États particuliers du bandeau**
 
-| État                              | Comportement                                                                                                                                                                                                                                                                                                                                                          |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Action primaire par statut        | Table exacte du plan §3.3 — reprise telle quelle, un seul bouton, jamais deux.                                                                                                                                                                                                                                                                                        |
-| `cloture` / `annule`              | Le bandeau devient **`BandeauLectureSeule`** : la zone action primaire est remplacée par un badge textuel (« OR clôturé le 12.05 » / « OR annulé — motif : … »), le menu `⋯` ne garde que `Imprimer`. Localisation et jauge restent affichées mais non cliquables (curseur par défaut, pas de survol interactif).                                                     |
-| Refus de transition (I-01 → I-15) | Le clic sur l'action primaire ne ferme jamais silencieusement sur une erreur : un encart `RefusBloquant` s'ouvre **sous le bandeau, au-dessus de la table**, liste les éléments bloquants cliquables (I-08/I-09/I-10), et la vue défile jusqu'à lui. Le bandeau lui-même ne change pas de forme — il ne devient jamais rouge en entier, ce serait alarmant pour rien. |
-| Conflit de version (§5.5 du plan) | Encart identique au refus, positionné au même endroit, avec le bouton `Réappliquer ma modification`.                                                                                                                                                                                                                                                                  |
+- **État** — Action primaire par statut
+- **Comportement** — Table exacte du plan §3.3 — reprise telle quelle, un seul bouton, jamais deux.
+
+- **État** — `cloture` / `annule`
+- **Comportement** — Le bandeau devient **`BandeauLectureSeule`** : la zone action primaire est remplacée par un badge textuel (« OR clôturé le 12.05 » / « OR annulé — motif : … »), le menu `⋯` ne garde que `Imprimer`. Localisation et jauge restent affichées mais non cliquables (curseur par défaut, pas de survol interactif).
+
+- **État** — Refus de transition (I-01 → I-15)
+- **Comportement** — Le clic sur l'action primaire ne ferme jamais silencieusement sur une erreur : un encart `RefusBloquant` s'ouvre **sous le bandeau, au-dessus de la table**, liste les éléments bloquants cliquables (I-08/I-09/I-10), et la vue défile jusqu'à lui. Le bandeau lui-même ne change pas de forme — il ne devient jamais rouge en entier, ce serait alarmant pour rien.
+
+- **État** — Conflit de version (§5.5 du plan)
+- **Comportement** — Encart identique au refus, positionné au même endroit, avec le bouton `Réappliquer ma modification`.
 
 ---
 
-## 4. La saisie de lignes au clavier
+4. La saisie de lignes au clavier
 
-### 4.1 Disposition des champs — `BarreSaisieRapide`
+---
+
+**4.1 Disposition des champs — `BarreSaisieRapide`**
 
 Bureau (`xl:`), une seule rangée, hauteur repos 56 px :
 
@@ -244,27 +346,69 @@ Sous `xl:` (tablette), la barre passe sur **deux rangées** : rangée 1 = Désig
 rangée 2 = Qté / Temps / PU / Payeur / Technicien / bouton Ajouter. L'ordre de tabulation logique ne change
 pas, seul l'habillage visuel s'enroule.
 
-### 4.2 Carte des raccourcis — récapitulatif implémentable
+**4.2 Carte des raccourcis — récapitulatif implémentable**
 
-| Touche                                           | Contexte                                                               | Effet                                                                                                                                                                                    |
-| ------------------------------------------------ | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Ctrl+Entrée`                                    | n'importe où sur l'écran d'OR                                          | Focus dans le champ Désignation de la barre de saisie                                                                                                                                    |
-| `Alt+T`                                          | focus dans la barre                                                    | Type = main-d'œuvre barémée                                                                                                                                                              |
-| `Alt+R`                                          | focus dans la barre                                                    | Type = main-d'œuvre au temps réel                                                                                                                                                        |
-| `Alt+F`                                          | focus dans la barre                                                    | Type = forfait                                                                                                                                                                           |
-| `Alt+P`                                          | focus dans la barre                                                    | Type = pièce                                                                                                                                                                             |
-| `Alt+S`                                          | focus dans la barre                                                    | Type = sous-traitance                                                                                                                                                                    |
-| `Alt+X`                                          | focus dans la barre                                                    | Type = texte (ligne d'information non chiffrée)                                                                                                                                          |
-| flèches ↑ / ↓                                    | popover d'autocomplétion ouvert                                        | Navigue dans les résultats, sans quitter le champ                                                                                                                                        |
-| `Tab`                                            | dans un champ de la barre                                              | Avance : Désignation → Qté → Temps → PU → Payeur → Technicien. Le badge de type n'est **pas** dans cet ordre (accessible seulement par `Alt+lettre` ou par `Maj+Tab` depuis Désignation) |
-| `Entrée`                                         | résultat d'autocomplétion sélectionné                                  | Sélectionne, pré-remplit temps/taux/prix/TVA/catégorie depuis le catalogue, ferme le popover, garde le focus sur Désignation                                                             |
-| `Entrée`                                         | dans un champ de la barre, popover fermé                               | Crée la ligne, **rouvre une barre vide, focus dans Désignation** — enchaînement en rafale                                                                                                |
-| `Maj+Entrée`                                     | dans un champ de la barre                                              | Crée la ligne, garde le focus sur la ligne créée (mode complément, pas rafale)                                                                                                           |
-| `Échap` (1er appui)                              | popover d'autocomplétion ouvert                                        | Ferme le popover, **conserve le texte tapé** dans Désignation                                                                                                                            |
-| `Échap` (2e appui, ou 1er si popover déjà fermé) | dans la barre                                                          | Abandonne la ligne en cours, vide la barre, **aucun appel serveur**                                                                                                                      |
-| `Ctrl+Entrée`                                    | sur une ligne existante du tableau (focus dans la table, pas la barre) | Passe la ligne en `validee` si le plafond le permet (RM-54)                                                                                                                              |
+- **Touche** — `Ctrl+Entrée`
+- **Contexte** — n'importe où sur l'écran d'OR
+- **Effet** — Focus dans le champ Désignation de la barre de saisie
 
-### 4.3 Autocomplétion
+- **Touche** — `Alt+T`
+- **Contexte** — focus dans la barre
+- **Effet** — Type = main-d'œuvre barémée
+
+- **Touche** — `Alt+R`
+- **Contexte** — focus dans la barre
+- **Effet** — Type = main-d'œuvre au temps réel
+
+- **Touche** — `Alt+F`
+- **Contexte** — focus dans la barre
+- **Effet** — Type = forfait
+
+- **Touche** — `Alt+P`
+- **Contexte** — focus dans la barre
+- **Effet** — Type = pièce
+
+- **Touche** — `Alt+S`
+- **Contexte** — focus dans la barre
+- **Effet** — Type = sous-traitance
+
+- **Touche** — `Alt+X`
+- **Contexte** — focus dans la barre
+- **Effet** — Type = texte (ligne d'information non chiffrée)
+
+- **Touche** — flèches ↑ / ↓
+- **Contexte** — popover d'autocomplétion ouvert
+- **Effet** — Navigue dans les résultats, sans quitter le champ
+
+- **Touche** — `Tab`
+- **Contexte** — dans un champ de la barre
+- **Effet** — Avance : Désignation → Qté → Temps → PU → Payeur → Technicien. Le badge de type n'est **pas** dans cet ordre (accessible seulement par `Alt+lettre` ou par `Maj+Tab` depuis Désignation)
+
+- **Touche** — `Entrée`
+- **Contexte** — résultat d'autocomplétion sélectionné
+- **Effet** — Sélectionne, pré-remplit temps/taux/prix/TVA/catégorie depuis le catalogue, ferme le popover, garde le focus sur Désignation
+
+- **Touche** — `Entrée`
+- **Contexte** — dans un champ de la barre, popover fermé
+- **Effet** — Crée la ligne, **rouvre une barre vide, focus dans Désignation** — enchaînement en rafale
+
+- **Touche** — `Maj+Entrée`
+- **Contexte** — dans un champ de la barre
+- **Effet** — Crée la ligne, garde le focus sur la ligne créée (mode complément, pas rafale)
+
+- **Touche** — `Échap` (1er appui)
+- **Contexte** — popover d'autocomplétion ouvert
+- **Effet** — Ferme le popover, **conserve le texte tapé** dans Désignation
+
+- **Touche** — `Échap` (2e appui, ou 1er si popover déjà fermé)
+- **Contexte** — dans la barre
+- **Effet** — Abandonne la ligne en cours, vide la barre, **aucun appel serveur**
+
+- **Touche** — `Ctrl+Entrée`
+- **Contexte** — sur une ligne existante du tableau (focus dans la table, pas la barre)
+- **Effet** — Passe la ligne en `validee` si le plafond le permet (RM-54)
+
+**4.3 Autocomplétion**
 
 - Popover ancré sous le champ Désignation, largeur = largeur du champ, `max-height: 320px`, `overflow-y:
 auto`.
@@ -276,7 +420,7 @@ auto`.
 - Debounce 150 ms, `keepPreviousData` — la liste ne clignote jamais pendant la frappe (même règle que
   l'omnibox, §2.0 du plan).
 
-### 4.4 Ne jamais perdre une saisie interrompue
+**4.4 Ne jamais perdre une saisie interrompue**
 
 Deux mécanismes distincts, pour deux causes d'interruption différentes :
 
@@ -305,7 +449,7 @@ soumis** de la barre (ce qui est tapé mais pas encore validé par `Entrée`) es
   discrète) et un texte inline « Reprise de votre saisie » à côté du champ, effaçable d'un `Échap`.
 - Purge du brouillon local à la création réussie de la ligne, ou à l'abandon explicite (`Échap` double).
 
-### 4.5 Édition en place et verrouillage
+**4.5 Édition en place et verrouillage**
 
 - Une cellule s'édite au clic ou `Entrée` (focus clavier), se valide par `Entrée`, s'annule par `Échap`.
   Aucune modale pour ajouter ou modifier une ligne — les modales sont réservées aux actions qui exigent un
@@ -319,9 +463,11 @@ soumis** de la barre (ce qui est tapé mais pas encore validé par `Entrée`) es
 
 ---
 
-## 5. Le système de statuts visuels
+5. Le système de statuts visuels
 
-### 5.1 Principe : un seul budget couleur par écran
+---
+
+**5.1 Principe : un seul budget couleur par écran**
 
 Cinq couleurs sémantiques suffisent à tout le produit (§8.1). Elles sont réservées **exclusivement** aux deux
 dimensions qui représentent un état de workflow : le **statut de l'OR** et le **statut de la ligne**.
@@ -335,53 +481,164 @@ statuts d'OR entre eux, par exemple). La réutilisation d'une même icône entre
 que la position à l'écran et le mot qui l'accompagne lèvent toute ambiguïté — elles ne sont jamais comparées
 l'une à l'autre.
 
-### 5.2 Statuts d'OR — `BadgeStatutOr`
+**5.2 Statuts d'OR — `BadgeStatutOr`**
 
-| Statut            | Mot (clé `or:statuts.*`) | Couleur              | Icône (lucide-react) | Forme du badge |
-| ----------------- | ------------------------ | -------------------- | -------------------- | -------------- |
-| `planifie`        | Planifié                 | `--statut-neutre`    | `Calendar`           | contour        |
-| `ouvert`          | Ouvert                   | `--statut-info`      | `Circle`             | plein          |
-| `en_cours`        | En cours                 | `--statut-info`      | `Wrench`             | plein          |
-| `attente_accord`  | Attente d'accord         | `--statut-attention` | `HelpCircle`         | plein          |
-| `attente_pieces`  | Attente de pièces        | `--statut-attention` | `PackageSearch`      | plein          |
-| `attente_externe` | Attente externe          | `--statut-attention` | `Truck`              | plein          |
-| `controle`        | Contrôle                 | `--statut-attention` | `Search`             | plein          |
-| `termine`         | Terminé                  | `--statut-succes`    | `CheckCircle2`       | plein          |
-| `facture`         | Facturé                  | `--statut-succes`    | `Receipt`            | plein          |
-| `restitue`        | Restitué                 | `--statut-succes`    | `KeyRound`           | plein          |
-| `cloture`         | Clôturé                  | `--statut-terminal`  | `Lock`               | contour        |
-| `annule`          | Annulé                   | `--statut-danger`    | `Ban`                | contour        |
+- **Statut** — `planifie`
+- **Mot (clé `or:statuts.*`)** — Planifié
+- **Couleur** — `--statut-neutre`
+- **Icône (lucide-react)** — `Calendar`
+- **Forme du badge** — contour
+
+- **Statut** — `ouvert`
+- **Mot (clé `or:statuts.*`)** — Ouvert
+- **Couleur** — `--statut-info`
+- **Icône (lucide-react)** — `Circle`
+- **Forme du badge** — plein
+
+- **Statut** — `en_cours`
+- **Mot (clé `or:statuts.*`)** — En cours
+- **Couleur** — `--statut-info`
+- **Icône (lucide-react)** — `Wrench`
+- **Forme du badge** — plein
+
+- **Statut** — `attente_accord`
+- **Mot (clé `or:statuts.*`)** — Attente d'accord
+- **Couleur** — `--statut-attention`
+- **Icône (lucide-react)** — `HelpCircle`
+- **Forme du badge** — plein
+
+- **Statut** — `attente_pieces`
+- **Mot (clé `or:statuts.*`)** — Attente de pièces
+- **Couleur** — `--statut-attention`
+- **Icône (lucide-react)** — `PackageSearch`
+- **Forme du badge** — plein
+
+- **Statut** — `attente_externe`
+- **Mot (clé `or:statuts.*`)** — Attente externe
+- **Couleur** — `--statut-attention`
+- **Icône (lucide-react)** — `Truck`
+- **Forme du badge** — plein
+
+- **Statut** — `controle`
+- **Mot (clé `or:statuts.*`)** — Contrôle
+- **Couleur** — `--statut-attention`
+- **Icône (lucide-react)** — `Search`
+- **Forme du badge** — plein
+
+- **Statut** — `termine`
+- **Mot (clé `or:statuts.*`)** — Terminé
+- **Couleur** — `--statut-succes`
+- **Icône (lucide-react)** — `CheckCircle2`
+- **Forme du badge** — plein
+
+- **Statut** — `facture`
+- **Mot (clé `or:statuts.*`)** — Facturé
+- **Couleur** — `--statut-succes`
+- **Icône (lucide-react)** — `Receipt`
+- **Forme du badge** — plein
+
+- **Statut** — `restitue`
+- **Mot (clé `or:statuts.*`)** — Restitué
+- **Couleur** — `--statut-succes`
+- **Icône (lucide-react)** — `KeyRound`
+- **Forme du badge** — plein
+
+- **Statut** — `cloture`
+- **Mot (clé `or:statuts.*`)** — Clôturé
+- **Couleur** — `--statut-terminal`
+- **Icône (lucide-react)** — `Lock`
+- **Forme du badge** — contour
+
+- **Statut** — `annule`
+- **Mot (clé `or:statuts.*`)** — Annulé
+- **Couleur** — `--statut-danger`
+- **Icône (lucide-react)** — `Ban`
+- **Forme du badge** — contour
 
 `Ban` (cercle barré) et jamais `Trash2` (corbeille) — le mot « supprimer » n'existe pas dans l'atelier (R2),
 l'iconographie ne doit pas le suggérer non plus.
 
-### 5.3 Statuts de ligne — `BadgeStatutLigne`
+**5.3 Statuts de ligne — `BadgeStatutLigne`**
 
-| Statut      | Mot       | Couleur              | Icône                                                       | Forme                                                                      |
-| ----------- | --------- | -------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `proposee`  | Proposée  | `--statut-neutre`    | `PencilLine`                                                | contour pointillé                                                          |
-| `a_valider` | À valider | `--statut-attention` | `AlertCircle`                                               | plein                                                                      |
-| `validee`   | Validée   | `--statut-info`      | `Check`                                                     | contour                                                                    |
-| `en_cours`  | En cours  | `--statut-info`      | `Loader` (statique, pas d'animation dans le badge de table) | plein                                                                      |
-| `realisee`  | Réalisée  | `--statut-succes`    | `CheckCheck`                                                | plein                                                                      |
-| `facturee`  | Facturée  | `--statut-succes`    | `Receipt`                                                   | contour                                                                    |
-| `refusee`   | Refusée   | `--statut-danger`    | `X`                                                         | contour (jamais plein — c'est une décision client, pas une erreur système) |
-| `annulee`   | Annulée   | `--statut-neutre`    | `Ban`                                                       | contour, texte barré dans la cellule Désignation                           |
+- **Statut** — `proposee`
+- **Mot** — Proposée
+- **Couleur** — `--statut-neutre`
+- **Icône** — `PencilLine`
+- **Forme** — contour pointillé
 
-### 5.4 Payeur, origine, localisation, urgence, marqueurs — forme et mot, jamais couleur
+- **Statut** — `a_valider`
+- **Mot** — À valider
+- **Couleur** — `--statut-attention`
+- **Icône** — `AlertCircle`
+- **Forme** — plein
+
+- **Statut** — `validee`
+- **Mot** — Validée
+- **Couleur** — `--statut-info`
+- **Icône** — `Check`
+- **Forme** — contour
+
+- **Statut** — `en_cours`
+- **Mot** — En cours
+- **Couleur** — `--statut-info`
+- **Icône** — `Loader` (statique, pas d'animation dans le badge de table)
+- **Forme** — plein
+
+- **Statut** — `realisee`
+- **Mot** — Réalisée
+- **Couleur** — `--statut-succes`
+- **Icône** — `CheckCheck`
+- **Forme** — plein
+
+- **Statut** — `facturee`
+- **Mot** — Facturée
+- **Couleur** — `--statut-succes`
+- **Icône** — `Receipt`
+- **Forme** — contour
+
+- **Statut** — `refusee`
+- **Mot** — Refusée
+- **Couleur** — `--statut-danger`
+- **Icône** — `X`
+- **Forme** — contour (jamais plein — c'est une décision client, pas une erreur système)
+
+- **Statut** — `annulee`
+- **Mot** — Annulée
+- **Couleur** — `--statut-neutre`
+- **Icône** — `Ban`
+- **Forme** — contour, texte barré dans la cellule Désignation
+
+**5.4 Payeur, origine, localisation, urgence, marqueurs — forme et mot, jamais couleur**
 
 Aucun de ces éléments ne consomme les tokens `--statut-*`. Ils utilisent la couleur de texte par défaut
 (`--foreground` / `--muted-foreground`), jamais autre chose.
 
-| Famille                                    | Valeurs                                                                                              | Rendu                                                                                                                                                                                                                                                               | Icône proposée                                                                                                                                                   |
-| ------------------------------------------ | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Payeur** (RM-66)                         | client, constructeur, assurance, tiers, garage                                                       | Texte + petite icône, cellule éditable en place                                                                                                                                                                                                                     | `User`, `Factory`, `ShieldCheck`, `Building2`, `Store`                                                                                                           |
-| **Origine** (RM-64)                        | commandée, constatée, campagne, garantie, retouche, interne                                          | **Texte seul**, sans icône — RM-64 est trop lourd de conséquences pour être résumé par un pictogramme (repris du plan §3.4)                                                                                                                                         | —                                                                                                                                                                |
-| **Localisation** (RM-55)                   | parc, atelier, sous-traitant, essai routier, lavage, prêt au retrait, restitué, sorti provisoirement | Texte + icône dans le menu déroulant du bandeau                                                                                                                                                                                                                     | `MapPin`, `Wrench`, `Truck`, `Navigation`, `Droplets`, `PackageCheck`, `KeyRound`, `ArrowRightLeft`                                                              |
-| **Urgence** (constat technicien)           | urgent, à faire, à surveiller                                                                        | Icône seule dans la table dense (largeur limitée), **forme distincte garantissant la lecture sans couleur** ; mot complet visible au dépliement de la ligne et en `aria-label`                                                                                      | `TriangleAlert` (urgent), `Circle` plein petit (à faire), `Eye` (à surveiller)                                                                                   |
-| **Marqueurs** (RM-77, RM-78, RM-90, §6.12) | sécurité, pièce à restituer, fournie par le client, attente de pièce, temps partagé                  | Icône + info-bulle, jamais de couleur de la palette statut — **exception : `sécurité` peut utiliser `--statut-danger`**, c'est la seule marque autorisée à emprunter la couleur de statut, parce que son urgence justifie de rompre la règle une fois, et une seule | `TriangleAlert` (sécurité, rouge), `PackageCheck` (pièce à restituer), `HandCoins` (fournie par le client), `Clock3` (attente de pièce), `Users` (temps partagé) |
+- **Famille** — **Payeur** (RM-66)
+- **Valeurs** — client, constructeur, assurance, tiers, garage
+- **Rendu** — Texte + petite icône, cellule éditable en place
+- **Icône proposée** — `User`, `Factory`, `ShieldCheck`, `Building2`, `Store`
 
-### 5.5 Vérification daltonisme
+- **Famille** — **Origine** (RM-64)
+- **Valeurs** — commandée, constatée, campagne, garantie, retouche, interne
+- **Rendu** — **Texte seul**, sans icône — RM-64 est trop lourd de conséquences pour être résumé par un pictogramme (repris du plan §3.4)
+- **Icône proposée** — —
+
+- **Famille** — **Localisation** (RM-55)
+- **Valeurs** — parc, atelier, sous-traitant, essai routier, lavage, prêt au retrait, restitué, sorti provisoirement
+- **Rendu** — Texte + icône dans le menu déroulant du bandeau
+- **Icône proposée** — `MapPin`, `Wrench`, `Truck`, `Navigation`, `Droplets`, `PackageCheck`, `KeyRound`, `ArrowRightLeft`
+
+- **Famille** — **Urgence** (constat technicien)
+- **Valeurs** — urgent, à faire, à surveiller
+- **Rendu** — Icône seule dans la table dense (largeur limitée), **forme distincte garantissant la lecture sans couleur** ; mot complet visible au dépliement de la ligne et en `aria-label`
+- **Icône proposée** — `TriangleAlert` (urgent), `Circle` plein petit (à faire), `Eye` (à surveiller)
+
+- **Famille** — **Marqueurs** (RM-77, RM-78, RM-90, §6.12)
+- **Valeurs** — sécurité, pièce à restituer, fournie par le client, attente de pièce, temps partagé
+- **Rendu** — Icône + info-bulle, jamais de couleur de la palette statut — **exception : `sécurité` peut utiliser `--statut-danger`**, c'est la seule marque autorisée à emprunter la couleur de statut, parce que son urgence justifie de rompre la règle une fois, et une seule
+- **Icône proposée** — `TriangleAlert` (sécurité, rouge), `PackageCheck` (pièce à restituer), `HandCoins` (fournie par le client), `Clock3` (attente de pièce), `Users` (temps partagé)
+
+**5.5 Vérification daltonisme**
 
 Méthode : puisque **aucune information de ce système n'est portée par la couleur seule** (chaque badge de
 statut associe forme + icône + mot ; chaque marqueur/payeur/origine/localisation n'a de toute façon pas de
@@ -398,13 +655,15 @@ teintes proposées en §8.1 visent ≥ 4.5:1 sur fond blanc pour le texte/icône
 
 ---
 
-## 6. Le pointage sur tablette
+6. Le pointage sur tablette
+
+---
 
 Le comportement hors-ligne complet (file IndexedDB, FIFO, idempotence, corbeille d'anomalies) est déjà
 spécifié en détail au plan §4.3 — non répété ici. Ce qui suit précise l'écran, les tailles et le rendu visuel
 concret de la tolérance à la latence et du réseau dégradé.
 
-### 6.1 Écran « au repos »
+**6.1 Écran « au repos »**
 
 ```
 ┌ CoqueAtelier — barre supérieure, h-14 (56px) ──────────────────────────────────────────┐
@@ -428,7 +687,7 @@ concret de la tolérance à la latence et du réseau dégradé.
   **Deux taps maximum** (reprend l'exigence du plan §4.2).
 - Les tuiles d'activité indirecte démarrent le pointage en **un seul tap** (pas d'OR à choisir).
 
-### 6.2 Écran « en cours »
+**6.2 Écran « en cours »**
 
 Plein écran, aucune tuile visible :
 
@@ -451,7 +710,7 @@ Plein écran, aucune tuile visible :
 - `Signaler un constat` : champ court + trois gros boutons d'urgence (Urgent / À faire / À surveiller),
   chacun ≥ 72×56 px. Crée une ligne `constatee`/`proposee` (RM-64). Le technicien ne saisit jamais de prix.
 
-### 6.3 Tolérance à la latence
+**6.3 Tolérance à la latence**
 
 Règle unique : **aucune transition d'écran n'attend le réseau.**
 
@@ -465,14 +724,23 @@ Règle unique : **aucune transition d'écran n'attend le réseau.**
    bandeau discret non bloquant se glisse en haut de la grille « au repos » la prochaine fois que
    l'utilisateur y revient : `⚠ 1 pointage à corriger` (tap → corbeille).
 
-### 6.4 Réseau dégradé — ce qu'on affiche
+**6.4 Réseau dégradé — ce qu'on affiche**
 
-| État        | Rendu barre supérieure (pilule, min 44×44 px tap)                                    | Rendu supplémentaire                                                                                                                              |
-| ----------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Synchronisé | pastille `--statut-succes` + « à jour »                                              | bandeau réseau (6 px) absent                                                                                                                      |
-| En attente  | pastille `--statut-attention` + « {n} pointage(s) en attente d'envoi » (pluriel ICU) | bandeau réseau absent tant que < 2 min d'attente                                                                                                  |
-| Hors ligne  | pastille `--statut-neutre` + icône off + « hors ligne depuis HH:MM »                 | bandeau réseau 6 px, `--statut-attention`, en haut de tout l'écran — glanceable en périphérie sans lire le texte, pour un usage mains sales/gants |
-| Anomalie    | pastille `--statut-danger` + « {n} pointage(s) à corriger »                          | bandeau réseau 6 px `--statut-danger` + bandeau discret sur la grille « au repos » (§6.3)                                                         |
+- **État** — Synchronisé
+- **Rendu barre supérieure (pilule, min 44×44 px tap)** — pastille `--statut-succes` + « à jour »
+- **Rendu supplémentaire** — bandeau réseau (6 px) absent
+
+- **État** — En attente
+- **Rendu barre supérieure (pilule, min 44×44 px tap)** — pastille `--statut-attention` + « {n} pointage(s) en attente d'envoi » (pluriel ICU)
+- **Rendu supplémentaire** — bandeau réseau absent tant que < 2 min d'attente
+
+- **État** — Hors ligne
+- **Rendu barre supérieure (pilule, min 44×44 px tap)** — pastille `--statut-neutre` + icône off + « hors ligne depuis HH:MM »
+- **Rendu supplémentaire** — bandeau réseau 6 px, `--statut-attention`, en haut de tout l'écran — glanceable en périphérie sans lire le texte, pour un usage mains sales/gants
+
+- **État** — Anomalie
+- **Rendu barre supérieure (pilule, min 44×44 px tap)** — pastille `--statut-danger` + « {n} pointage(s) à corriger »
+- **Rendu supplémentaire** — bandeau réseau 6 px `--statut-danger` + bandeau discret sur la grille « au repos » (§6.3)
 
 Détection réseau : ne jamais se fier à `navigator.onLine` seul (faux positif wifi associé sans route) — état
 dérivé du résultat réel des requêtes, confirmé par un battement, `hors ligne` affiché seulement après un
@@ -483,9 +751,11 @@ sur les tuiles si le cache date de plus de 5 minutes — jamais de données pér
 
 ---
 
-## 7. La signature client
+7. La signature client
 
-### 7.1 Ce que le client voit — `CoqueClient`, `/or/:id/signature/:type`
+---
+
+**7.1 Ce que le client voit — `CoqueClient`, `/or/:id/signature/:type`**
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────┐
@@ -514,7 +784,7 @@ sur les tuiles si le cache date de plus de 5 minutes — jamais de données pér
   retour automatique à l'écran d'OR après 3 secondes (ou immédiatement si l'employé reprend la tablette et
   tape l'écran) — le retour est un geste **de l'employé**, jamais une navigation que le client doit chercher.
 
-### 7.2 Ce que le client ne doit jamais pouvoir atteindre
+**7.2 Ce que le client ne doit jamais pouvoir atteindre**
 
 Liste exhaustive de ce qui est **absent** de cette route, sans exception :
 
@@ -534,7 +804,7 @@ Liste exhaustive de ce qui est **absent** de cette route, sans exception :
   manipulation directe de l'URL par le client ne puisse techniquement rien atteindre d'autre, même en
   contournant l'absence d'UI.
 
-### 7.3 Ce qui n'est jamais optimiste ici
+**7.3 Ce qui n'est jamais optimiste ici**
 
 Reprend R4/§5.4 du plan sans exception : le tracé de signature reste en mémoire tant que le `201` n'est pas
 revenu. En cas d'échec réseau : « Signature non enregistrée — ne fermez pas cet écran » + `Réessayer`, le
@@ -542,14 +812,16 @@ tracé n'est jamais perdu ni redemandé au client.
 
 ---
 
-## 8. Tokens de design à ajouter au thème
+8. Tokens de design à ajouter au thème
+
+---
 
 Additions à `apps/web/src/index.css`, dans le même format que l'existant (triplet HSL en variable, puis
 exposition via `@theme inline` pour obtenir des classes Tailwind `bg-statut-*` / `text-statut-*` /
 `border-statut-*`). Aucune couleur de statut n'est utilisée en dur dans un composant — toujours via ces
 tokens.
 
-### 8.1 Couleurs de statut
+**8.1 Couleurs de statut**
 
 ```
 :root {
@@ -582,28 +854,57 @@ Valeurs de luminosité (`L`) volontairement assombries par rapport à des couleu
 standard, pour viser un contraste texte ≥ 4.5:1 sur fond blanc à 13–14 px — **à confirmer avec un outil de
 contraste avant merge** (§5.5).
 
-### 8.2 Densités
+**8.2 Densités**
 
 Trois densités nommées, à formaliser en constantes partagées (`lib/densites.ts` côté expert-react, ou
 variables CSS `--densite-*` côté expert-ui — au choix de l'implémentation, le contrat est le tableau) :
 
-| Densité      | Usage                                                      | Hauteur de ligne (table)             | Padding cellule | Cible tactile min |
-| ------------ | ---------------------------------------------------------- | ------------------------------------ | --------------- | ----------------- |
-| `dense`      | Listes bureau (`/or`, `/clients`, table de lignes à `xl:`) | 40 px                                | `px-3 py-2`     | 32 px             |
-| `aeree`      | Tablette atelier générale, table de lignes à `lg:`/`md:`   | 56 px                                | `px-4 py-3`     | 48–56 px          |
-| `tres-aeree` | Écran de pointage (`/atelier`)                             | 72 px min, 120 px pour les tuiles OR | `px-4 py-4`     | 72 px             |
+- **Densité** — `dense`
+- **Usage** — Listes bureau (`/or`, `/clients`, table de lignes à `xl:`)
+- **Hauteur de ligne (table)** — 40 px
+- **Padding cellule** — `px-3 py-2`
+- **Cible tactile min** — 32 px
 
-### 8.3 Échelle typographique — bureau vs atelier
+- **Densité** — `aeree`
+- **Usage** — Tablette atelier générale, table de lignes à `lg:`/`md:`
+- **Hauteur de ligne (table)** — 56 px
+- **Padding cellule** — `px-4 py-3`
+- **Cible tactile min** — 48–56 px
 
-| Rôle                                            | Bureau (`xl:`, densité `dense`) | Atelier (`lg:`/`md:`, densité `aeree`) | Pointage (`tres-aeree`)        |
-| ----------------------------------------------- | ------------------------------- | -------------------------------------- | ------------------------------ |
-| Corps de texte                                  | 14 px / 20 px                   | 16 px / 24 px                          | 18 px / 28 px                  |
-| Libellé de champ / muted                        | 12 px / 16 px                   | 14 px / 20 px                          | 16 px / 24 px                  |
-| Titre de section                                | 16 px / 24 px, semibold         | 18 px / 28 px, semibold                | 20 px / 28 px, semibold        |
-| Donnée proéminente (plaque, montant du bandeau) | 20 px, bold                     | 24 px, bold                            | —                              |
-| Chiffre géant (chronomètre)                     | —                               | —                                      | 56–64 px, bold, `tabular-nums` |
+- **Densité** — `tres-aeree`
+- **Usage** — Écran de pointage (`/atelier`)
+- **Hauteur de ligne (table)** — 72 px min, 120 px pour les tuiles OR
+- **Padding cellule** — `px-4 py-4`
+- **Cible tactile min** — 72 px
 
-### 8.4 Gouvernance des tokens
+**8.3 Échelle typographique — bureau vs atelier**
+
+- **Rôle** — Corps de texte
+- **Bureau (`xl:`, densité `dense`)** — 14 px / 20 px
+- **Atelier (`lg:`/`md:`, densité `aeree`)** — 16 px / 24 px
+- **Pointage (`tres-aeree`)** — 18 px / 28 px
+
+- **Rôle** — Libellé de champ / muted
+- **Bureau (`xl:`, densité `dense`)** — 12 px / 16 px
+- **Atelier (`lg:`/`md:`, densité `aeree`)** — 14 px / 20 px
+- **Pointage (`tres-aeree`)** — 16 px / 24 px
+
+- **Rôle** — Titre de section
+- **Bureau (`xl:`, densité `dense`)** — 16 px / 24 px, semibold
+- **Atelier (`lg:`/`md:`, densité `aeree`)** — 18 px / 28 px, semibold
+- **Pointage (`tres-aeree`)** — 20 px / 28 px, semibold
+
+- **Rôle** — Donnée proéminente (plaque, montant du bandeau)
+- **Bureau (`xl:`, densité `dense`)** — 20 px, bold
+- **Atelier (`lg:`/`md:`, densité `aeree`)** — 24 px, bold
+- **Pointage (`tres-aeree`)** — —
+
+- **Rôle** — Chiffre géant (chronomètre)
+- **Bureau (`xl:`, densité `dense`)** — —
+- **Atelier (`lg:`/`md:`, densité `aeree`)** — —
+- **Pointage (`tres-aeree`)** — 56–64 px, bold, `tabular-nums`
+
+**8.4 Gouvernance des tokens**
 
 - Un statut = un token sémantique (`--statut-*`), jamais une couleur Tailwind brute (`bg-amber-500`) posée
   directement dans un composant métier. Une revue qui trouve une couleur Tailwind nue dans `composants/**`
@@ -616,21 +917,36 @@ variables CSS `--densite-*` côté expert-ui — au choix de l'implémentation, 
 
 ---
 
-## 9. Traçabilité
-
-| Section de ce document   | Règles/cas couverts                                                                          |
-| ------------------------ | -------------------------------------------------------------------------------------------- |
-| §2 Maquette structurelle | RM-55, RM-56, RM-53, RM-64/65/66, RM-73, RM-71                                               |
-| §3 Bandeau d'état        | RM-53, RM-54, RM-55, RM-56, RM-59, I-01→I-15, §3.3/§9.8 du plan                              |
-| §4 Saisie de lignes      | RM-54, RM-63→65, §3.5 et §5.6 (idempotence) du plan, §9.2 du plan (interruption comptoir)    |
-| §5 Statuts visuels       | §5.1 (machine à états OR), §5.2 (ligne), RM-64, RM-66, RM-77/78, §6.12 (marqueur sécurité)   |
-| §6 Pointage tablette     | RM-87→99, T-21, §4 du plan (architecture hors ligne), CT-37→CT-44                            |
-| §7 Signature client      | RM-108, RM-109, §6.6, §6.12/P-28, §2.9 et §5.4 du plan                                       |
-| §8 Tokens                | R3 (paramétrable), §1.3 et §9.6 du plan (argent/temps), accessibilité de base non négociable |
+9. Traçabilité
 
 ---
 
-## 10. Checklist de conformité
+- **Section de ce document** — §2 Maquette structurelle
+- **Règles/cas couverts** — RM-55, RM-56, RM-53, RM-64/65/66, RM-73, RM-71
+
+- **Section de ce document** — §3 Bandeau d'état
+- **Règles/cas couverts** — RM-53, RM-54, RM-55, RM-56, RM-59, I-01→I-15, §3.3/§9.8 du plan
+
+- **Section de ce document** — §4 Saisie de lignes
+- **Règles/cas couverts** — RM-54, RM-63→65, §3.5 et §5.6 (idempotence) du plan, §9.2 du plan (interruption comptoir)
+
+- **Section de ce document** — §5 Statuts visuels
+- **Règles/cas couverts** — §5.1 (machine à états OR), §5.2 (ligne), RM-64, RM-66, RM-77/78, §6.12 (marqueur sécurité)
+
+- **Section de ce document** — §6 Pointage tablette
+- **Règles/cas couverts** — RM-87→99, T-21, §4 du plan (architecture hors ligne), CT-37→CT-44
+
+- **Section de ce document** — §7 Signature client
+- **Règles/cas couverts** — RM-108, RM-109, §6.6, §6.12/P-28, §2.9 et §5.4 du plan
+
+- **Section de ce document** — §8 Tokens
+- **Règles/cas couverts** — R3 (paramétrable), §1.3 et §9.6 du plan (argent/temps), accessibilité de base non négociable
+
+---
+
+10. Checklist de conformité
+
+---
 
 À vérifier par expert-react et expert-ui avant de considérer une tâche T-UI-0x / T-R-06* terminée, en
 complément des critères de done déjà posés au plan §6.4 :

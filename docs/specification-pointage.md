@@ -1,4 +1,5 @@
-# Spécification — Pointage (lot 2)
+Spécification — Pointage (lot 2)
+================================
 
 > Périmètre : le temps que passe un technicien sur un OR, une ligne d'OR, ou une activité indirecte.
 > Ce document **consolide et prolonge** ce qui existe déjà, dispersé dans les livrables de l'étape 1 :
@@ -13,7 +14,9 @@
 > conventions collectives sont l'affaire de la fiduciaire, via export. Aucune règle ci-dessous ne doit
 > dériver vers du calcul de paie.
 
-## 0. Ce qui est déjà tranché — ne pas rouvrir
+0. Ce qui est déjà tranché — ne pas rouvrir
+
+---
 
 Une investigation préalable (voir la consigne de cette tâche) a établi, preuves à l'appui, que le module
 pointage a déjà des points d'ancrage réels dans le dépôt bien qu'aucun code ne l'implémente :
@@ -38,33 +41,35 @@ pointage a déjà des points d'ancrage réels dans le dépôt bien qu'aucun code
   pointage, corriger celui d'un autre, verrouiller une période). Le §10 de ce document construit le
   jeu d'actions complet à partir de cette base, dans la convention déjà utilisée (`atelier.<domaine>.<verbe>`).
 
-## 1. RM-87 → RM-99 : rappel sans répétition
+1. RM-87 → RM-99 : rappel sans répétition
+
+---
 
 Ces treize règles sont déjà écrites et ne sont pas reproduites ici in extenso — se référer à
 `specification-etape-1-atelier-clients.md:339-351`. Résumé d'une ligne chacune pour mémoire de travail :
 
-| #     | Résumé                                                                                                                      |
-| ----- | --------------------------------------------------------------------------------------------------------------------------- |
-| RM-87 | Un pointage porte technicien + plage horaire + activité : ligne d'OR, OR sans ligne précise (**P**), ou activité indirecte. |
-| RM-88 | Un seul pointage ouvert par technicien, sauf chevauchement autorisé (**P**, P-06).                                          |
-| RM-89 | Chevauchement interdit (défaut) → le nouveau pointage clôture automatiquement le précédent.                                 |
-| RM-90 | Chevauchement autorisé → répartition au prorata pour la productivité, brut consultable.                                     |
-| RM-91 | Clôture automatique à l'heure de fermeture (**P**, P-31), anomalie.                                                         |
-| RM-92 | Pas de pointage sur un OR `terminé`/`facturé`/`restitué`/`clôturé`/`annulé`.                                                |
-| RM-93 | Pas de pointage sur une ligne `à valider`/`refusée`/`annulée`.                                                              |
-| RM-94 | Correction = rôle habilité + motif obligatoire + valeur d'origine conservée + journalisée.                                  |
-| RM-95 | Période verrouillée → aucune modification, contre-passation uniquement.                                                     |
-| RM-96 | Anomalie si durée > N heures (**P**, défaut 10 h) ou chevauchement de nuit.                                                 |
-| RM-97 | Arrondi à l'affichage/calcul (**P**, P-19), brut conservé à la seconde.                                                     |
-| RM-98 | Le pointage ne détermine jamais le temps facturé (sauf lignes « au temps réel »).                                           |
-| RM-99 | Indicateurs : présence, productivité, rendement, taux de retouche.                                                          |
+- RM-87 — Un pointage porte technicien + plage horaire + activité : ligne d'OR, OR sans ligne précise (**P**), ou activité indirecte.
+- RM-88 — Un seul pointage ouvert par technicien, sauf chevauchement autorisé (**P**, P-06).
+- RM-89 — Chevauchement interdit (défaut) → le nouveau pointage clôture automatiquement le précédent.
+- RM-90 — Chevauchement autorisé → répartition au prorata pour la productivité, brut consultable.
+- RM-91 — Clôture automatique à l'heure de fermeture (**P**, P-31), anomalie.
+- RM-92 — Pas de pointage sur un OR `terminé`/`facturé`/`restitué`/`clôturé`/`annulé`.
+- RM-93 — Pas de pointage sur une ligne `à valider`/`refusée`/`annulée`.
+- RM-94 — Correction = rôle habilité + motif obligatoire + valeur d'origine conservée + journalisée.
+- RM-95 — Période verrouillée → aucune modification, contre-passation uniquement.
+- RM-96 — Anomalie si durée > N heures (**P**, défaut 10 h) ou chevauchement de nuit.
+- RM-97 — Arrondi à l'affichage/calcul (**P**, P-19), brut conservé à la seconde.
+- RM-98 — Le pointage ne détermine jamais le temps facturé (sauf lignes « au temps réel »).
+- RM-99 — Indicateurs : présence, productivité, rendement, taux de retouche.
 
 Ces règles sont le socle. Ce qui suit les **prolonge** — nouveaux repères numérotés à partir de RM-113,
 parce que le bloc RM-87 → RM-99 est déjà cité, tel quel, par au moins six documents (contrats API, plans
 d'exécution, doc de design, i18n) : insérer au milieu casserait ces renvois sans qu'un grep ne le révèle
 immédiatement. Prolonger est le choix le plus sûr.
 
-## 2. Identification du technicien — le code PIN
+2. Identification du technicien — le code PIN
+
+---
 
 **Ce que le PIN est** (déjà décidé ailleurs, `plan-etape-1-frontend.md:443` : « code PIN à 4 chiffres au
 pavé tactile ») : un moyen de **désigner rapidement** quel technicien, parmi ceux affectés au site, est en
@@ -94,9 +99,11 @@ train d'agir sur une borne partagée, mains sales ou gantées, sans clavier.
 (RFID, déjà utilisé pour un contrôle d'accès ou une pointeuse RH existante). Le geste « badger » est plus
 rapide et plus fiable qu'un PIN tapé — voir Q-A en fin de document.
 
-## 3. Le cycle d'un pointage
+3. Le cycle d'un pointage
 
-### 3.1 Il n'y a que deux états, pas quatre
+---
+
+**3.1 Il n'y a que deux états, pas quatre**
 
 **RM-116 (clarifie RM-87 → RM-89, à ne pas manquer à l'implémentation)** — La consigne de cette tâche
 demande « démarrage, pause, reprise, arrêt » comme si c'étaient quatre opérations distinctes. **Ce n'en
@@ -116,7 +123,7 @@ optionnelle, et une activité** — jamais un statut intermédiaire à faire év
 « pause/reprise » doit se traduire en **deux appels à l'API de pointage** (`fin` puis `debut`), pas en un
 état nouveau.
 
-### 3.2 Ce qui manque encore : le lien pointage → statut de la ligne et de l'OR
+**3.2 Ce qui manque encore : le lien pointage → statut de la ligne et de l'OR**
 
 C'est le trou identifié dans la consigne (`0003_prealables_etape1.sql:419`, `service-ligne-or.ts:359`).
 Deux règles nouvelles le comblent :
@@ -139,7 +146,7 @@ Deux règles nouvelles le comblent :
   (bouton distinct, ou question « ligne terminée ? » posée seulement quand le technicien change de ligne ou
   quitte l'écran atelier, jamais un `oui` par défaut).
 
-### 3.3 Oubli de clôture, absence prolongée
+**3.3 Oubli de clôture, absence prolongée**
 
 - Couvert par **RM-91**, déjà écrite : clôture automatique à l'heure de fermeture du site (P-31), marquage
   « clôture automatique », anomalie. Un technicien qui part en congé avec un pointage ouvert **n'a pas
@@ -155,7 +162,9 @@ Deux règles nouvelles le comblent :
   fausses sur deux semaines) est le genre d'erreur qu'un garagiste remarque immédiatement et qui coûte la
   confiance dans l'outil entier.
 
-## 4. Granularité : pointer la ligne ou l'OR — la question à ne pas trancher seul
+4. Granularité : pointer la ligne ou l'OR — la question à ne pas trancher seul
+
+---
 
 **Établi (le modèle le permet déjà, structurellement)** : RM-87 prévoit les trois cas depuis le début —
 ligne, OR sans ligne précise, activité indirecte — comme trois valeurs possibles du même événement, pas
@@ -179,7 +188,7 @@ la marque ; E, saisie différée sur papier). Je ne retranche rien à cette anal
   terminable et facturable : le pointage est **facultatif**, cohérent avec P-07 déjà écrit (« pointage
   obligatoire pour passer un OR à terminé », défaut : non obligatoire).
 
-### 4.1 La question qui en découle : plusieurs lignes `en_cours` en même temps sur un même OR
+**4.1 La question qui en découle : plusieurs lignes `en_cours` en même temps sur un même OR**
 
 **RM-121** — Rien dans §5.2 (machine à états de la ligne) ne limite le nombre de lignes `en_cours`
 simultanées sur un même OR, et §6.8 de la spec étape 1 valide déjà explicitement le cas jumeau « deux
@@ -191,7 +200,9 @@ est déjà documenté comme dérivé et non saisi (note sous T-21, `specificatio
 Il n'y a **pas** de verrou « un seul pointage actif par OR » à construire — ce serait une régression pour
 tout garage au-dessus de 3-4 techniciens.
 
-## 5. Activités indirectes et taux d'occupation productif
+5. Activités indirectes et taux d'occupation productif
+
+---
 
 Déjà cadrées par RM-87 (liste : nettoyage, entretien atelier, formation, attente, magasin, retouche
 interne, absence) et par le namespace i18n (`pointage.json:activites` — nettoyage, attentePieces,
@@ -206,19 +217,21 @@ ajouter sur la liste elle-même ; deux précisions utiles pour l'implémentation
   de présence. Rien de nouveau à définir ici, seulement le confirmer comme la métrique de référence — pas
   besoin d'un indicateur distinct nommé « taux d'occupation ».
 
-## 6. Temps pointé contre temps facturé — qui fait foi pour quoi
+6. Temps pointé contre temps facturé — qui fait foi pour quoi
+
+---
 
 **Déjà tranché par RM-98 et testé par CT-44** (ligne barémée 1,2 h, 2,4 h pointées → la facturation propose
 1,2 h, l'écart alimente le rendement). Ce document précise la portée par destination, parce que la
 question « lequel fait foi » n'a pas une seule réponse — elle dépend de ce qu'on en fait :
 
-| Destination                         | Quelle valeur                                                                                                                                                                                             | Pourquoi                                                                                                                                                                                             |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Facturation**                     | Le temps **barémé ou forfaitaire** de la ligne, jamais le temps pointé — sauf ligne explicitement « au temps réel », où le temps pointé est **proposé** et reste modifiable par un rôle habilité (RM-98). | Un forfait constructeur facture ce qui est convenu, pas ce que le technicien a réellement mis — sans quoi un technicien lent facturerait plus cher le même travail.                                  |
-| **Rendement / indicateurs (RM-99)** | Le temps **pointé**, comparé au temps vendu.                                                                                                                                                              | C'est précisément l'écart qui a de la valeur pour le chef d'atelier : un rendement < 100 % pointe un problème de méthode, d'outillage ou de formation.                                               |
-| **Paie** _(hors périmètre produit)_ | Le temps **pointé**, présence + productif + indirect.                                                                                                                                                     | DFA exporte la donnée ; le calcul du salaire (majorations, absences, CCT) appartient à la fiduciaire. **Aucune règle de ce document ne doit dicter comment ce temps devient un montant de salaire.** |
+- **Facturation** / Le temps **barémé ou forfaitaire** de la ligne, jamais le temps pointé — sauf ligne explicitement « au temps réel », où le temps pointé est **proposé** et reste modifiable par un rôle habilité (RM-98). / Un forfait constructeur facture ce qui est convenu, pas ce que le technicien a réellement mis — sans quoi un technicien lent facturerait plus cher le même travail.
+- **Rendement / indicateurs (RM-99)** / Le temps **pointé**, comparé au temps vendu. / C'est précisément l'écart qui a de la valeur pour le chef d'atelier : un rendement < 100 % pointe un problème de méthode, d'outillage ou de formation.
+- **Paie** _(hors périmètre produit)_ / Le temps **pointé**, présence + productif + indirect. / DFA exporte la donnée ; le calcul du salaire (majorations, absences, CCT) appartient à la fiduciaire. **Aucune règle de ce document ne doit dicter comment ce temps devient un montant de salaire.**
 
-## 7. Anomalies
+7. Anomalies
+
+---
 
 Le namespace i18n a déjà six motifs prêts (`pointage.json:anomalies.motifs`) : `dureeTrop` (RM-96, défaut
 10 h — déjà décidé, pas inventé ici), `nuit` (RM-96), `chevauchement` (RM-88/90), `periodeVerrouillee`
@@ -244,7 +257,9 @@ de paramètre officiel :
   pointages (le temps de taper sur la tablette) est normal et ne doit pas noyer la corbeille d'anomalies
   sous du bruit ; au-dessus, il révèle une vraie pratique à comprendre ou une erreur de saisie.
 
-## 8. Hors ligne — c'est réel, pas anticipé
+8. Hors ligne — c'est réel, pas anticipé
+
+---
 
 **Constat, pas hypothèse** : l'architecture hors ligne est déjà entièrement spécifiée et justifiée par le
 métier, pas par la technique pour la technique — voir `plan-etape-1-frontend.md:469-527` (§4.3, huit
@@ -262,24 +277,24 @@ négociable pour l'écran de pointage lui-même, et rappelle la limite déjà po
 qui touche un document ou un engagement (signature, transition d'OR, réponse de devis, kilométrage) ne
 passe par cette file** (`plan-etape-1-frontend.md:511-514`) — seul le pointage et le constat le peuvent.
 
-## 9. Droits — construire la matrice manquante
+9. Droits — construire la matrice manquante
+
+---
 
 Comme noté au §0, `matrice-droits.ts` ne porte aujourd'hui aucune action de pointage. Voici le jeu
 d'actions proposé, dans la convention déjà en usage (`atelier.<domaine>.<verbe>`, cf. `atelier.or.*`,
 `atelier.ligne.*`, `atelier.devis.*`) et réconcilié avec la matrice narrative existante
 (`specification-etape-1-atelier-clients.md:972-974`).
 
-| Action proposée                                                    | Réceptionnaire | Chef d'atelier | Technicien                            | Magasinier   | Comptable    | Direction | Source                                                                                                                   |
-| ------------------------------------------------------------------ | -------------- | -------------- | ------------------------------------- | ------------ | ------------ | --------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `atelier.pointage.demarrer` (le sien)                              | —              | oui            | oui                                   | oui          | non          | oui       | reprend la ligne 972 telle quelle                                                                                        |
-| `atelier.pointage.arreter` (le sien)                               | —              | oui            | oui                                   | oui          | non          | oui       | idem                                                                                                                     |
-| `atelier.pointage.lire` (le sien)                                  | —              | oui            | oui                                   | oui          | non          | oui       | inféré, nécessaire pour afficher l'écran atelier au technicien lui-même                                                  |
-| `atelier.pointage.lire_equipe` (tous les techniciens d'un site)    | non            | oui            | non                                   | non          | non          | oui       | inféré du rôle de supervision déjà écrit ailleurs (« le chef d'atelier supervise et peut se substituer à tout instant ») |
-| `atelier.pointage.corriger_autrui`                                 | non            | oui            | non                                   | non          | non          | oui       | reprend la ligne 973 telle quelle                                                                                        |
-| `atelier.pointage.corriger_soi_meme`                               | —              | oui            | **[OUVERT]**                          | **[OUVERT]** | non          | oui       | absent de la matrice narrative — voir Questions pour @laupernoe                                                                 |
-| `atelier.pointage.verrouiller_periode`                             | non            | non            | non                                   | non          | oui          | oui       | reprend la ligne 974 telle quelle                                                                                        |
-| `atelier.pointage.deverrouiller_periode` (contre-passation, RM-95) | non            | non            | non                                   | non          | **[OUVERT]** | oui       | RM-95 dit « contre-passation uniquement », ne dit pas qui                                                                |
-| `atelier.pointage.lire_indicateurs` (RM-99)                        | **[OUVERT]**   | oui            | **[OUVERT — ses propres chiffres ?]** | non          | **[OUVERT]** | oui       | RM-99 définit les indicateurs, pas qui les consulte                                                                      |
+- `atelier.pointage.demarrer` (le sien) / — / oui / oui / oui / non / oui / reprend la ligne 972 telle quelle
+- `atelier.pointage.arreter` (le sien) / — / oui / oui / oui / non / oui / idem
+- `atelier.pointage.lire` (le sien) / — / oui / oui / oui / non / oui / inféré, nécessaire pour afficher l'écran atelier au technicien lui-même
+- `atelier.pointage.lire_equipe` (tous les techniciens d'un site) / non / oui / non / non / non / oui / inféré du rôle de supervision déjà écrit ailleurs (« le chef d'atelier supervise et peut se substituer à tout instant »)
+- `atelier.pointage.corriger_autrui` / non / oui / non / non / non / oui / reprend la ligne 973 telle quelle
+- `atelier.pointage.corriger_soi_meme` / — / oui / **[OUVERT]** / **[OUVERT]** / non / oui / absent de la matrice narrative — voir Questions pour @laupernoe
+- `atelier.pointage.verrouiller_periode` / non / non / non / non / oui / oui / reprend la ligne 974 telle quelle
+- `atelier.pointage.deverrouiller_periode` (contre-passation, RM-95) / non / non / non / non / **[OUVERT]** / oui / RM-95 dit « contre-passation uniquement », ne dit pas qui
+- `atelier.pointage.lire_indicateurs` (RM-99) / **[OUVERT]** / oui / **[OUVERT — ses propres chiffres ?]** / non / **[OUVERT]** / oui / RM-99 définit les indicateurs, pas qui les consulte
 
 **Ce que la consigne de cette tâche demandait explicitement de trancher — je ne le tranche pas, je pose les
 deux hypothèses avec leurs conséquences** : « un technicien peut-il corriger son propre pointage d'hier ? »
@@ -297,7 +312,9 @@ deux hypothèses avec leurs conséquences** : « un technicien peut-il corriger 
   conservée, journalisée) s'applique à l'identique — l'auto-correction n'est pas une auto-correction
   silencieuse.
 
-## 10. Machine à états — reprise et compléments
+10. Machine à états — reprise et compléments
+
+---
 
 La machine §5.4 de la spec étape 1 n'est pas modifiée :
 
@@ -319,25 +336,27 @@ Compléments issus de ce document, sans toucher au diagramme :
 - `pointage.en_cours → termine` **ne déclenche rien** sur la ligne (§3.2, RM-118) : `marquer_realisee`
   reste une action séparée, explicite.
 
-## 11. Récapitulatif des nouveaux repères
+11. Récapitulatif des nouveaux repères
+
+---
 
 Pour que personne ne les cherche dans le bloc RM-87 → RM-99 par erreur — tous introduits par **ce**
 document, à la suite de RM-112 (dernier repère pris avant ce document) :
 
-| Bloc | Repères         | Sujet                                                                                                  |
-| ---- | --------------- | ------------------------------------------------------------------------------------------------------ |
-| RM   | RM-113 → RM-115 | PIN : attribution ≠ authentification, ralentissement anti-brute-force, périmètre du geste PIN          |
-| RM   | RM-116          | Pas d'état « pause » — deux transitions, pas un troisième état                                         |
-| RM   | RM-117, RM-118  | Le déclencheur manquant ligne/OR ; `Terminer` ≠ `marquer réalisée`                                     |
-| RM   | RM-119          | Clôture automatique : exigence de job planifié, pas de calcul paresseux                                |
-| RM   | RM-120, RM-121  | Pointage facultatif si aucune ligne n'est pointée ; plusieurs lignes `en_cours` simultanées autorisées |
-| RM   | RM-122          | Activité indirecte = temps payé non facturable, doit être pointé                                       |
-| RM   | RM-123          | Ligne annulée/refusée pendant un pointage ouvert → anomalie `ligneNonPointable`, pas d'arrêt forcé     |
-| P    | P-33            | Granularité proposée par défaut à l'écran (ligne / OR)                                                 |
-| P    | P-34            | Seuil de chevauchement toléré avant anomalie (minutes)                                                 |
-| CT   | CT-53 → CT-57   | Voir §12                                                                                               |
+- RM / RM-113 → RM-115 / PIN : attribution ≠ authentification, ralentissement anti-brute-force, périmètre du geste PIN
+- RM / RM-116 / Pas d'état « pause » — deux transitions, pas un troisième état
+- RM / RM-117, RM-118 / Le déclencheur manquant ligne/OR ; `Terminer` ≠ `marquer réalisée`
+- RM / RM-119 / Clôture automatique : exigence de job planifié, pas de calcul paresseux
+- RM / RM-120, RM-121 / Pointage facultatif si aucune ligne n'est pointée ; plusieurs lignes `en_cours` simultanées autorisées
+- RM / RM-122 / Activité indirecte = temps payé non facturable, doit être pointé
+- RM / RM-123 / Ligne annulée/refusée pendant un pointage ouvert → anomalie `ligneNonPointable`, pas d'arrêt forcé
+- P / P-33 / Granularité proposée par défaut à l'écran (ligne / OR)
+- P / P-34 / Seuil de chevauchement toléré avant anomalie (minutes)
+- CT / CT-53 → CT-57 / Voir §12
 
-## 12. Cas de test métier — nouveaux, en continuité de CT-52
+12. Cas de test métier — nouveaux, en continuité de CT-52
+
+---
 
 Les cas de pointage déjà écrits (CT-34, CT-37 → CT-44, `specification-etape-1-atelier-clients.md:1037,1043-1050`)
 restent valides tels quels et ne sont pas reproduits ici.
@@ -361,7 +380,9 @@ restent valides tels quels et ne sont pas reproduits ici.
   clôturé automatiquement **le soir même** du départ (heure de fermeture, P-31), pas à la date de
   détection ; il apparaît en anomalie dès ce soir-là, pas deux semaines plus tard. (RM-91, RM-119)
 
-## 13. Questions pour @laupernoe
+13. Questions pour @laupernoe
+
+---
 
 Formulées pour un garagiste, avec où aller vérifier — Auto-i et Nextlane sont directement accessibles.
 

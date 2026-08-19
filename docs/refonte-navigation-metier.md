@@ -1,13 +1,14 @@
-# Refonte de la navigation — le point de vue de celui qui l'utilise huit heures par jour
-
+$=^
 Document de conception, rédigé depuis le métier et non depuis l'arborescence du dépôt.
 
-## 1. La journée réelle
+1. La journée réelle
+
+---
 
 Garage suisse type de nos clients : 3 à 9 personnes, un site (parfois deux), 8 à 20 véhicules qui
 passent par jour. Qui fait quoi, dans l'ordre, et à quelle fréquence.
 
-### Le réceptionniste — 7 h par jour dans le logiciel, sans exagération
+**Le réceptionniste — 7 h par jour dans le logiciel, sans exagération**
 
 C'est lui l'utilisateur principal. Il est debout, le téléphone sonne, un client attend au comptoir.
 
@@ -29,7 +30,7 @@ C'est lui l'utilisateur principal. Il est debout, le téléphone sonne, un clien
 Ce qu'il ne fait **jamais** : ouvrir le paramétrage, consulter un référentiel de tarifs pour lui-même,
 regarder les fournisseurs, faire une clôture de période.
 
-### Le mécanicien / technicien — 30 minutes par jour, en tout
+**Le mécanicien / technicien — 30 minutes par jour, en tout**
 
 Il a les mains sales. Il touche le logiciel **debout, à une borne murale ou à un poste partagé**,
 et il déteste ça.
@@ -44,7 +45,7 @@ et il déteste ça.
 Il ne veut voir que **deux choses** : sa liste de travaux et le chronomètre. Tout le reste est du bruit
 qu'il traversera en soupirant.
 
-### Les autres, beaucoup plus vite
+**Les autres, beaucoup plus vite**
 
 **Le chef d'atelier — 1 h par jour, par à-coups.** Le matin, il répartit les OR sur ses gens : le
 geste le plus important du garage. Ensuite en continu : « où en est la 306 ? », « qui est libre à
@@ -66,7 +67,9 @@ qui coince ; le vendredi soir, les impayés, les relances, l'export pour la fidu
 **La borne d'atelier.** Un compte de service sur un écran mural : elle doit afficher **une seule
 chose** et n'a rien à faire avec un menu latéral. Déjà le cas dans le produit, et c'est bien vu.
 
-## 2. Les cinq gestes qui font 80 % du temps
+2. Les cinq gestes qui font 80 % du temps
+
+---
 
 1. **Retrouver un véhicule ou un client** à partir d'une plaque, d'un nom, d'un numéro de téléphone
    ou d'un châssis — puis voir tout son passé d'un coup d'œil.
@@ -80,7 +83,9 @@ chose** et n'a rien à faire avec un menu latéral. Déjà le cas dans le produi
 Cinq gestes. Le logiciel doit être organisé autour d'eux, et tout le reste doit se ranger
 **derrière**, sans jamais leur voler un pixel.
 
-## 3. Confrontation avec les 30 entrées actuelles
+3. Confrontation avec les 30 entrées actuelles
+
+---
 
 Fréquence d'ouverture réelle, dans un garage de 5 personnes, par la personne concernée :
 
@@ -101,16 +106,18 @@ largeur, la même hauteur et la même dignité visuelle qu'un écran ouvert quin
 sont jamais ouvertes par personne d'autre que celui qui a installé le logiciel. Un menu n'est pas une
 table des matières du logiciel : c'est une **carte des endroits où on retourne**.
 
-## 4. L'organisation que je propose
+4. L'organisation que je propose
 
-### Le principe qui commande tout
+---
+
+**Le principe qui commande tout**
 
 **Un menu n'est pas masqué par rôle — il est construit par rôle.** Aujourd'hui, une liste unique de
 30 entrées dont on cache des morceaux selon qui regarde : personne ne voit un menu conçu pour lui,
 chacun voit les restes d'un menu conçu pour tout le monde. Je propose trois **postes de travail**,
 chacun avec sa propre barre.
 
-### Poste « comptoir » — réceptionniste, chef d'atelier, direction, admin
+**Poste « comptoir » — réceptionniste, chef d'atelier, direction, admin**
 
 Six entrées. Pas sept.
 
@@ -132,7 +139,7 @@ la main — ce que faisait déjà l'équipe pour les ordres de réparation avant
 Chaque entrée correspond à **un moment de la journée**, pas à un module du code : « Aujourd'hui »
 c'est le matin, « Atelier » la journée, « Facturation » le soir, « Réglages » une fois par an.
 
-### Poste « atelier » — technicien, sur poste partagé ou tablette
+**Poste « atelier » — technicien, sur poste partagé ou tablette**
 
 ```
   Mon travail         ← chronomètre, mes OR, mes lignes
@@ -146,7 +153,7 @@ liste grise de choses interdites est une insulte quotidienne.
 **Poste « borne »** (compte `poste_atelier`) : aucun menu, plein écran, gros boutons, pavé numérique.
 Déjà le cas — **ne pas y toucher**.
 
-### 4.3 « Stock » : d'accord sur le regroupement, pas sur le mot
+**4.3 « Stock » : d'accord sur le regroupement, pas sur le mot**
 
 @laupernoe propose de regrouper Pièces et Pneus sous « Stock ». **Le regroupement, oui. Le mot, non.**
 
@@ -172,7 +179,7 @@ ouvre son véhicule, et on doit lire là _« jeu hiver au dépôt, emplacement C
 12.11.2025 »_. Le menu Magasin sert au magasinier qui range ; la fiche véhicule sert au
 réceptionniste qui reçoit — et il y a dix fois plus de réceptionnistes que de magasiniers.
 
-### 4.4 Ce qui descend d'un niveau
+**4.4 Ce qui descend d'un niveau**
 
 - **Véhicules** → onglet de **Clients**, plus la recherche globale, plus la fiche client.
 - **Relances** → onglet de **Facturation**. **Tableau de bord** → fusionné dans **Aujourd'hui**.
@@ -181,7 +188,7 @@ réceptionniste qui reçoit — et il y a dix fois plus de réceptionnistes que 
   même liste. **Pneus** (2 entrées) → **Magasin** › Dépôt pneus.
 - **Ventes stock et suivi** → onglets de **Ventes**.
 
-### 4.5 Ce qui sort complètement du menu
+**4.5 Ce qui sort complètement du menu**
 
 - **Doublons clients** — ne se cherche jamais « en général ». Un bouton secondaire dans l'écran
   Clients, et surtout un **bandeau contextuel sur la fiche client** quand un homonyme probable existe
@@ -202,9 +209,11 @@ réceptionniste qui reçoit — et il y a dix fois plus de réceptionnistes que 
 - **Tout le paramétrage** — quatre entrées ouvertes deux fois par an, derrière une seule porte
   « Réglages » en pied de colonne, en gris.
 
-## 5. Le point vraiment important : les chemins, pas les menus
+5. Le point vraiment important : les chemins, pas les menus
 
-### Le diagnostic, mesuré et non supposé
+---
+
+**Le diagnostic, mesuré et non supposé**
 
 J'ai regardé ce que les écrans savent faire aujourd'hui. Le résultat explique tout le reste :
 
@@ -220,7 +229,7 @@ J'ai regardé ce que les écrans savent faire aujourd'hui. Le résultat explique
 autrement. Chaque lien manquant dans un écran devient une ligne de plus dans la barre latérale.
 Réduire le menu sans réparer les chemins ne ferait qu'enfermer les gens.
 
-### Les enchaînements que l'application doit offrir
+**Les enchaînements que l'application doit offrir**
 
 Le fil de tous les jours, à parcourir dans les deux sens sans jamais repasser par le menu :
 
@@ -253,7 +262,7 @@ client. C'est ce qui permet de raccrocher le téléphone en sachant de quoi on p
 - **Dépôt pneus** → le véhicule · le client · le dernier OR de changement de saison.
 - **Fiche facture** → déjà bien faite, à prendre comme modèle pour toutes les autres.
 
-### La recherche n'est pas une destination
+**La recherche n'est pas une destination**
 
 Aujourd'hui « Recherche » est une entrée de menu qui mène à un écran. Erreur de nature : chercher
 n'est pas un endroit où l'on va, c'est **un geste qu'on fait depuis là où on est**.
@@ -266,7 +275,7 @@ du métier, il ne peut pas coûter deux clics et un changement d'écran. Une foi
 une entrée disparaît et le besoin de dix autres s'évapore — on ne va plus « dans les véhicules » pour
 trouver un véhicule.
 
-### Le fil d'Ariane doit porter le contexte, pas l'adresse
+**Le fil d'Ariane doit porter le contexte, pas l'adresse**
 
 Sur un OR, le haut de l'écran doit dire _qui_ et _quoi_, chaque morceau cliquable :
 
@@ -278,7 +287,7 @@ Pas `Atelier > Ordres de réparation > Détail`. Le premier est une carte du dos
 second une carte du logiciel — et personne ne travaille dans un logiciel : on travaille sur une Golf
 qui appartient à Martin SA.
 
-### Un écran, une action principale
+**Un écran, une action principale**
 
 « Pas un milliard de boutons partout » : la règle qui rend ça vrai, c'est **une seule action primaire
 par écran**, en couleur, à un endroit constant. Tout le reste — corriger, annuler, dupliquer,
@@ -286,7 +295,9 @@ imprimer, exporter — descend derrière un bouton « … ». Sur un OR, l'actio
 l'état du dossier : _Ajouter une ligne_ quand il est en cours, _Facturer_ quand tout est réalisé.
 L'écran répond à « et maintenant, je fais quoi ? » sans qu'on ait à choisir.
 
-## 6. Ce que je pense, sans ménagement
+6. Ce que je pense, sans ménagement
+
+---
 
 **Mal conçu, à corriger même si personne ne l'a demandé :**
 
@@ -322,7 +333,9 @@ existent toutes, mais à l'endroit où on en a besoin.
 maximum — les OR ouverts sur _Atelier_, les factures en retard sur _Facturation_. Un menu qui
 clignote de partout ne signale plus rien.
 
-## 7. Questions à @laupernoe
+7. Questions à @laupernoe
+
+---
 
 Chaque réponse change concrètement la proposition.
 
