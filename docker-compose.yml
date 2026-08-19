@@ -68,6 +68,36 @@ services:
       retries: 10
       start_period: 5s
 
+  ocr-permis:
+    # Service OCR dédié à la lecture du permis de circulation (RapidOCR, voir
+    # apps/api/src/vehicules/ocr/moteur-rapidocr-conteneur/). Construit localement (pas d'image
+    # publiée) — même doctrine que les autres conteneurs internes de ce dépôt.
+    build:
+      context: ./apps/api/src/vehicules/ocr/moteur-rapidocr-conteneur
+    container_name: dfa-ocr-permis
+    restart: unless-stopped
+    ports:
+      # 8092, HORS de la plage éphémère du noyau (32768-60999) : Docker rootless (ce poste) ne
+      # publie PAS un port choisi dans cette plage — piège vérifié, voir docs/deploiement-local.md.
+      # Publié sur l'hôte car l'API (Node local, `pnpm dev`) l'appelle directement, comme
+      # postgres/redis ci-dessus — voir OCR_SERVICE_URL (apps/api/src/vehicules/ocr/config-ocr.ts,
+      # `.env`).
+      - '8092:8092'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request; urllib.request.urlopen('http://localhost:8092/sante', timeout=3)",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      # Chargement de deux instances RapidOCR au démarrage (profils "page"/"zone", voir moteur.py)
+      # — quelques secondes, pas instantané.
+      start_period: 20s
+
 volumes:
   # Volumes nommés : les données survivent aux `docker compose down` (sans -v) et aux
   # recréations de conteneurs. `docker compose down -v` reste le moyen de repartir de zéro.

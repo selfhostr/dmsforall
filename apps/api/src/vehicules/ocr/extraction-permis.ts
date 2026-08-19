@@ -1,6 +1,6 @@
 /**
  * Extraction et validation STRUCTURELLE du texte brut rendu par le conteneur OCR
- * (`moteur-ocr-conteneur/`) — fonctions pures, aucun accès base ni réseau, donc testables sans
+ * (`moteur-rapidocr-conteneur/`) — fonctions pures, aucun accès base ni réseau, donc testables sans
  * aucune image ni fixture (`extraction-permis.spec.ts`). La correspondance CONTRE la base
  * (référentiel ASTRA, véhicules, clients du tenant) vit dans `correspondance-permis.ts`, à dessein
  * séparée : ce fichier ne sait rien du tenant, ni de Postgres.
@@ -333,7 +333,7 @@ export function rechercherVin(
  * `type_approbation_ch` (`correspondance-permis.ts`) essaie chacun DANS CET ORDRE et s'arrête au
  * premier trouvé. Gère le bruit de bord de recadrage (ex. `1VD455 33SN` au lieu de `1VD455` —
  * mesuré sur l'échantillon réel : la marge généreuse du recadrage côté conteneur capte le début de
- * la colonne "Poids total" voisine, voir `moteur-ocr-conteneur/ancres.mjs`) SANS avoir à deviner
+ * la colonne "Poids total" voisine, voir `moteur-rapidocr-conteneur/permis.py`) SANS avoir à deviner
  * une largeur de recadrage parfaite, impossible à garantir sur une photo de comptoir. Tolère
  * jusqu'à 4 caractères de bruit en fin de chaîne (mesure réelle : jusqu'à 4 caractères captés en
  * plus de la colonne voisine sur l'échantillon réel — voir le rapport de livraison).
@@ -393,7 +393,7 @@ const CANTONS_CH = [
 ] as const;
 
 /** NON ancrée (mesuré sur le corpus réel : la découpe de la zone plaque, généreuse par choix
- *  assumé — voir `zones-cadrees.mjs` — capte souvent le LIBELLÉ empilé fr/de/it/rm devant la
+ *  assumé — voir `zones_cadrees.py` — capte souvent le LIBELLÉ empilé fr/de/it/rm devant la
  *  valeur ; une regex ancrée en tête de chaîne échouait alors systématiquement). Cherche le canton
  *  n'IMPORTE OÙ dans le texte nettoyé plutôt qu'en première position — restreint aux 26 abréviations
  *  cantonales réelles (pas `[A-Z]{2}` quelconque) précisément pour pouvoir se permettre de ne plus

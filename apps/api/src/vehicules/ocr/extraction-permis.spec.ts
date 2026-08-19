@@ -173,7 +173,7 @@ describe('extrairePlaque', () => {
     expect(extrairePlaque('')).toBeNull();
   });
 
-  it('libellé fr/de/it/rm empilé capté avant la valeur (bruit de tête, mesuré sur le corpus réel — la découpe de zone est volontairement généreuse, voir zones-cadrees.mjs) -> canton+numéro trouvés quand même, PAS ancré en tête de chaîne', () => {
+  it('libellé fr/de/it/rm empilé capté avant la valeur (bruit de tête, mesuré sur le corpus réel — la découpe de zone est volontairement généreuse, voir zones_cadrees.py) -> canton+numéro trouvés quand même, PAS ancré en tête de chaîne', () => {
     expect(extrairePlaque('SCHILDPLAQUETARGANUMER VS 135792 blanc')).toEqual({
       canton: 'VS',
       numero: '135792',

@@ -5,6 +5,7 @@ import type { ServiceLimitationDebit } from '../../common/limitation';
 import type { ServiceEvenementsTempsReel } from '../../temps-reel';
 import {
   ErreurMoteurOcr,
+  type ChampMultiLectureOcr,
   type ClientMoteurOcr,
   type ReponseBruteMoteurOcr,
 } from './client-moteur-ocr';
@@ -19,18 +20,24 @@ const CONFIG: ConfigOcrPermis = {
   LIMITE_OCR_PERMIS_FENETRE_SECONDES: 300,
 };
 
+/** Champ à UNE lecture — les six champs partagent la même forme depuis le retrait du vote
+ *  triple-passe (20.08, voir `ChampMultiLectureOcr`) : jamais plus d'une lecture par champ. */
+function champUnique(texte: string, confiance: number): ChampMultiLectureOcr {
+  return { lectures: [{ texte, confiance }] };
+}
+
 /** Réponse brute « tout est lu » — chaque test part de cette base et l'altère au besoin. */
 function brutComplet(
   surcharge: Partial<ReponseBruteMoteurOcr['champs']> = {},
 ): ReponseBruteMoteurOcr {
   return {
     champs: {
-      plaque: { texte: 'VD 123456', confiance: 90 },
-      vin: { texte: '1M8GDM9AXKP042788', confiance: 88 },
-      codeTypeCh: { texte: '1VD455', confiance: 70 },
-      premiereMiseEnCirculationLe: { texte: '31.01.2007', confiance: 85 },
-      detenteurNom: { texte: 'Dupont Jean', confiance: 60 },
-      detenteurAdresse: { texte: 'Rue Exemple 4\n1950 Sion', confiance: 55 },
+      plaque: champUnique('VD 123456', 90),
+      vin: champUnique('1M8GDM9AXKP042788', 88),
+      codeTypeCh: champUnique('1VD455', 70),
+      premiereMiseEnCirculationLe: champUnique('31.01.2007', 85),
+      detenteurNom: champUnique('Dupont Jean', 60),
+      detenteurAdresse: champUnique('Rue Exemple 4\n1950 Sion', 55),
       ...surcharge,
     },
     avertissements: [],
@@ -205,21 +212,18 @@ describe('ServiceVehiculeOcr.scanner — succès, confiance par champ', () => {
     expect(reponse.donnees.vehicule.modele).toEqual({ valeur: 'Polo', confiance: 'sure' });
   });
 
-  it('VIN à clé de contrôle incohérente -> "douteuse", jamais silencieusement écarté', async () => {
+  it('VIN à clé de contrôle incohérente -> "absente" (jamais de statut "douteuse" pour ce champ)', async () => {
     const moteur: ClientMoteurOcr = {
       // WVWZZZ1KZAW123456 : fixture VIN existante du dépôt (vehicule.controller.ts), checksum invalide.
       scanner: vi
         .fn()
-        .mockResolvedValue(brutComplet({ vin: { texte: 'WVWZZZ1KZAW123456', confiance: 82 } })),
+        .mockResolvedValue(brutComplet({ vin: champUnique('WVWZZZ1KZAW123456', 82) })),
     };
     const { service } = construireService({ moteur });
 
     const reponse = await service.scanner(CTX, Buffer.from('x'));
 
-    expect(reponse.donnees.vehicule.vin).toEqual({
-      valeur: 'WVWZZZ1KZAW123456',
-      confiance: 'douteuse',
-    });
+    expect(reponse.donnees.vehicule.vin).toEqual({ valeur: null, confiance: 'absente' });
   });
 
   it('code type absent du référentiel -> marque/modele "absente" (jamais une valeur OCRisée non recoupée)', async () => {
@@ -231,7 +235,7 @@ describe('ServiceVehiculeOcr.scanner — succès, confiance par champ', () => {
     expect(reponse.donnees.vehicule.modele).toEqual({ valeur: null, confiance: 'absente' });
   });
 
-  it('champ non lu par le conteneur (libellé non localisé) -> "absente", valeur null', async () => {
+  it('champ non lu par le conteneur (zone/libellé non localisé) -> "absente", valeur null', async () => {
     const moteur: ClientMoteurOcr = {
       scanner: vi.fn().mockResolvedValue(brutComplet({ vin: null })),
     };
@@ -260,9 +264,7 @@ describe('ServiceVehiculeOcr.scanner — succès, confiance par champ', () => {
     const moteur: ClientMoteurOcr = {
       scanner: vi
         .fn()
-        .mockResolvedValue(
-          brutComplet({ detenteurNom: { texte: 'Garage Exemple SA', confiance: 70 } }),
-        ),
+        .mockResolvedValue(brutComplet({ detenteurNom: champUnique('Garage Exemple SA', 70) })),
     };
     const { service } = construireService({ moteur });
 
@@ -346,7 +348,7 @@ describe('ServiceVehiculeOcr.scanner — succès, confiance par champ', () => {
       // confusion visuelle 8/B) — corrigible car SEUL candidat à valider la clé de contrôle.
       scanner: vi
         .fn()
-        .mockResolvedValue(brutComplet({ vin: { texte: '1MBGDM9AXKP042788', confiance: 75 } })),
+        .mockResolvedValue(brutComplet({ vin: champUnique('1MBGDM9AXKP042788', 75) })),
     };
     const { service } = construireService({ moteur });
 
@@ -369,9 +371,7 @@ describe('ServiceVehiculeOcr.scanner — succès, confiance par champ', () => {
     });
     const moteur: ClientMoteurOcr = {
       // 'O' au lieu de '0' (confusion visuelle) — à distance d'édition 1 de '1VD450'.
-      scanner: vi
-        .fn()
-        .mockResolvedValue(brutComplet({ codeTypeCh: { texte: '1VD45O', confiance: 65 } })),
+      scanner: vi.fn().mockResolvedValue(brutComplet({ codeTypeCh: champUnique('1VD45O', 65) })),
     };
     const { service } = construireService({ tx, moteur });
 
@@ -400,7 +400,7 @@ describe('ServiceVehiculeOcr.scanner — succès, confiance par champ', () => {
       // WMI Mitsubishi (JMB, wmi-marques.ts) départage vers le premier.
       scanner: vi
         .fn()
-        .mockResolvedValue(brutComplet({ vin: { texte: 'JM8CT4CZ3DYK9NY46', confiance: 70 } })),
+        .mockResolvedValue(brutComplet({ vin: champUnique('JM8CT4CZ3DYK9NY46', 70) })),
     };
     const { service } = construireService({ tx, moteur });
 
@@ -412,20 +412,17 @@ describe('ServiceVehiculeOcr.scanner — succès, confiance par champ', () => {
     });
   });
 
-  it('deux candidats VIN valident la clé de contrôle et le code type n’est PAS trouvé (aucune marque pour départager) -> VIN rendu douteux, jamais un choix arbitraire', async () => {
+  it('deux candidats VIN valident la clé de contrôle et le code type n’est PAS trouvé (aucune marque pour départager) -> VIN "absente" (jamais un choix arbitraire)', async () => {
     const moteur: ClientMoteurOcr = {
       scanner: vi
         .fn()
-        .mockResolvedValue(brutComplet({ vin: { texte: 'JM8CT4CZ3DYK9NY46', confiance: 70 } })),
+        .mockResolvedValue(brutComplet({ vin: champUnique('JM8CT4CZ3DYK9NY46', 70) })),
     };
     const { service } = construireService({ moteur }); // txFactice() par défaut : code type jamais trouvé
 
     const reponse = await service.scanner(CTX, Buffer.from('x'));
 
-    expect(reponse.donnees.vehicule.vin).toEqual({
-      valeur: 'JM8CT4CZ3DYK9NY46',
-      confiance: 'douteuse',
-    });
+    expect(reponse.donnees.vehicule.vin).toEqual({ valeur: null, confiance: 'absente' });
   });
 
   it('scan réussi -> une ligne "succes" est écrite dans le journal d’audit', async () => {
@@ -439,5 +436,36 @@ describe('ServiceVehiculeOcr.scanner — succès, confiance par champ', () => {
 
     expect(appelJournal).toBeDefined();
     expect(texteSql(appelJournal)).toContain("'succes'");
+  });
+});
+
+describe('ServiceVehiculeOcr.scanner — code type, une seule passe (retrait du vote triple-passe, 20.08)', () => {
+  it('lecture validée au référentiel -> "sure" (voir le rapport de recalibrage : le vote triple-passe a été mesuré sans gain suffisant sur ce champ pour son coût en temps, retiré)', async () => {
+    const tx = txFactice({
+      type_approbation_ch: [
+        { code_type_ch: '1VD455', marque: 'VW', modele: 'Polo', carburant_code: 'ESSENCE' },
+      ],
+    });
+    const moteur: ClientMoteurOcr = {
+      scanner: vi.fn().mockResolvedValue(brutComplet({ codeTypeCh: champUnique('1VD455', 70) })),
+    };
+    const { service } = construireService({ tx, moteur });
+
+    const reponse = await service.scanner(CTX, Buffer.from('x'));
+
+    expect(reponse.donnees.vehicule.marque).toEqual({ valeur: 'VW', confiance: 'sure' });
+  });
+
+  it('lecture ne se validant pas au référentiel -> "absente", jamais une proposition non confirmée', async () => {
+    // txFactice() par défaut, aucune route enregistrée : toute recherche (exacte puis
+    // approximative) rend systématiquement [] -- aucun candidat, quel qu'il soit, ne trouve.
+    const moteur: ClientMoteurOcr = {
+      scanner: vi.fn().mockResolvedValue(brutComplet({ codeTypeCh: champUnique('1VD455', 70) })),
+    };
+    const { service } = construireService({ moteur });
+
+    const reponse = await service.scanner(CTX, Buffer.from('x'));
+
+    expect(reponse.donnees.vehicule.marque).toEqual({ valeur: null, confiance: 'absente' });
   });
 });

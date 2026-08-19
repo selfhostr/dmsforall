@@ -1,8 +1,9 @@
 /**
- * Client HTTP interne vers le conteneur OCR dédié (`moteur-ocr-conteneur/`) — réseau Docker
- * interne, `fetch` global (Node 22, aucune dépendance HTTP supplémentaire). L'image reçue par le
- * contrôleur (`vehicule-ocr.controller.ts`) transite en mémoire jusqu'ici (`Buffer`), jamais sur
- * disque — voir la note de non-persistance en tête de `service-vehicule-ocr.ts`.
+ * Client HTTP interne vers le conteneur OCR dédié (`moteur-rapidocr-conteneur/`, RapidOCR — le
+ * conteneur Tesseract `moteur-ocr-conteneur/` est retiré, voir son rapport de livraison) — réseau
+ * Docker interne, `fetch` global (Node 22, aucune dépendance HTTP supplémentaire). L'image reçue
+ * par le contrôleur (`vehicule-ocr.controller.ts`) transite en mémoire jusqu'ici (`Buffer`), jamais
+ * sur disque — voir la note de non-persistance en tête de `service-vehicule-ocr.ts`.
  */
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -24,8 +25,23 @@ export interface ChampBrutOcr {
   readonly confiance: number;
 }
 
+/**
+ * 0 ou 1 lecture BRUTE — `champs[nom]` vaut `null` côté conteneur quand la découpe n'a rien donné
+ * d'exploitable, jamais un `ChampMultiLectureOcr` à `lectures` vide. Forme LISTE conservée depuis
+ * le vote triple-passe essayé le 19.08 (`vin`/`codeTypeCh` lus trois fois, chaque passe sur un
+ * prétraitement différent de la même découpe) puis RETIRÉ le 20.08 — mesuré sur le banc des 17
+ * photos d'échantillon une fois les zones resserrées : le vote ne gagnait plus qu'1 lecture de
+ * code type sur 17 (aucun gain sur le VIN) pour un temps quasi doublé, largement au-delà du budget
+ * sur le lot de photos natives (voir `moteur-rapidocr-conteneur/permis.py` pour le détail chiffré).
+ * La validation (clé de contrôle ISO 3779, référentiel `type_approbation_ch`) reste ICI côté API
+ * (`service-vehicule-ocr.ts`) — le conteneur n'a pas accès à Postgres.
+ */
+export interface ChampMultiLectureOcr {
+  readonly lectures: readonly ChampBrutOcr[];
+}
+
 export interface ReponseBruteMoteurOcr {
-  readonly champs: Readonly<Record<ChampOcrPermis, ChampBrutOcr | null>>;
+  readonly champs: Readonly<Record<ChampOcrPermis, ChampMultiLectureOcr | null>>;
   readonly avertissements: readonly string[];
   readonly dureeMs: number;
 }

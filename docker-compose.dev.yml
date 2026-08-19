@@ -81,6 +81,11 @@ x-service-node-dev: &service-node-dev
     DATABASE_URL: postgresql://dfa_app:dfa_app_dev@postgres:5432/dfa_dev
     DATABASE_URL_MIGRATION: postgresql://dfa_migrator:dfa_migrator_dev@postgres:5432/dfa_dev
     REDIS_URL: redis://redis:6379
+    # `ocr-permis` : nom de service du docker-compose.yml existant (réseau par défaut du projet,
+    # voir plus haut) — `.env` porte `http://localhost:8092`, correct pour l'API en Node sur
+    # l'hôte (flux normal) mais qui désignerait le conteneur `api` lui-même depuis l'intérieur du
+    # réseau Compose. Ignorée par le service `web` (inoffensif).
+    OCR_SERVICE_URL: http://ocr-permis:8092
     # Cible du proxy Vite `/api` vue par le conteneur `web` — voir apps/web/vite.config.ts et
     # son commentaire. Ignorée par le service `api` (inoffensif). Absente en dev Node local :
     # `vite.config.ts` retombe alors sur son défaut `http://localhost:3000`, inchangé.

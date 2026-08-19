@@ -30,16 +30,28 @@ type LigneTypeApprobationBrute = {
  * Sortie INTERNE (pas le contrat public) : ce que le référentiel ASTRA donne pour préremplir
  * `VehiculeScanne.marque`/`.modele` — jamais exposée telle quelle, `service-vehicule-ocr.ts` la
  * traduit en `ChampScanne<string>` (confiance `sure` seulement si `trouve`).
+ *
+ * `codeTypeCh` (ajouté pour le vote triple-passe, 19.08) : le code type EFFECTIVEMENT retrouvé au
+ * référentiel — pas seulement le candidat essayé (`candidatsCodeType` peut proposer un candidat
+ * tronqué qui ne correspond pas mot pour mot à la valeur imprimée). Sert de CLÉ D'ACCORD entre
+ * plusieurs lectures indépendantes du même champ (`service-vehicule-ocr.ts`) : deux lectures
+ * peuvent partir de candidats de bordure différents et pourtant retrouver le MÊME code au
+ * référentiel — c'est cette identité-là qui compte pour le vote, jamais l'égalité des candidats
+ * bruts.
  */
 export interface CorrespondanceTypeApprobationBrute {
   readonly trouve: boolean;
+  readonly codeTypeCh: string | null;
   readonly marque: string | null;
   readonly modele: string | null;
   readonly carburantCode: string | null;
 }
 
-const AUCUNE_CORRESPONDANCE_TYPE_APPROBATION: CorrespondanceTypeApprobationBrute = {
+/** Exportée pour le vote triple-passe (`service-vehicule-ocr.ts`) : valeur de repli quand aucune
+ *  lecture ne s'accorde, jamais reconstruite ailleurs au risque de diverger d'un champ. */
+export const AUCUNE_CORRESPONDANCE_TYPE_APPROBATION: CorrespondanceTypeApprobationBrute = {
   trouve: false,
+  codeTypeCh: null,
   marque: null,
   modele: null,
   carburantCode: null,
@@ -66,6 +78,7 @@ export async function rechercherCorrespondanceTypeApprobation(
     if (ligne) {
       return {
         trouve: true,
+        codeTypeCh: ligne.code_type_ch,
         marque: ligne.marque,
         modele: ligne.modele,
         carburantCode: ligne.carburant_code,
@@ -201,6 +214,7 @@ export async function rechercherCorrespondanceTypeApprobationApprox(
   const { ligne } = gagnants[0]!;
   return {
     trouve: true,
+    codeTypeCh: ligne.code_type_ch,
     marque: ligne.marque,
     modele: ligne.modele,
     carburantCode: ligne.carburant_code,

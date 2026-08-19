@@ -40,6 +40,7 @@ describe('rechercherCorrespondanceTypeApprobation', () => {
 
     expect(resultat).toEqual({
       trouve: true,
+      codeTypeCh: '1VD455',
       marque: 'VW',
       modele: 'Polo',
       carburantCode: 'ESSENCE',
@@ -86,6 +87,7 @@ describe('rechercherCorrespondanceTypeApprobationApprox', () => {
 
     expect(resultat).toEqual({
       trouve: true,
+      codeTypeCh: '1VD450',
       marque: 'VW',
       modele: 'Polo',
       carburantCode: 'ESSENCE',
@@ -181,6 +183,7 @@ describe('rechercherCorrespondanceTypeApprobationComplete', () => {
 
     expect(resultat).toEqual({
       trouve: true,
+      codeTypeCh: '1VD450',
       marque: 'VW',
       modele: 'Polo',
       carburantCode: 'ESSENCE',

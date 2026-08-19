@@ -33,7 +33,7 @@ from rapidocr import RapidOCR; \
 from rapidocr.utils.typings import ModelType, OCRVersion, LangRec; \
 RapidOCR(params={'Rec.lang_type': LangRec.LATIN, 'Rec.model_type': ModelType.MOBILE, 'Rec.ocr_version': OCRVersion.PPOCRV5})"
 
-COPY server.py moteur.py extraction.py entree.py deskew.py champs.py ./
+COPY server.py moteur.py extraction.py entree.py deskew.py champs.py permis.py ancres.py zones_cadrees.py geometrie.py ./
 
 ENV PORT=8092
 ENV PYTHONUNBUFFERED=1

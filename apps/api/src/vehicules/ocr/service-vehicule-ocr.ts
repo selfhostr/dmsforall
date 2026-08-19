@@ -25,7 +25,7 @@ import type {
 } from '@dfa/shared';
 import { sql } from 'drizzle-orm';
 
-import { JETON_DB, type AccesBase, type ContexteTenant } from '../../db';
+import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../../db';
 import { JETON_CONFIG } from '../../config/config.jetons';
 import { ErreurMetier } from '../../common/erreurs';
 import {
@@ -34,9 +34,11 @@ import {
 } from '../../common/limitation';
 import { ServiceEvenementsTempsReel } from '../../temps-reel';
 import {
+  AUCUNE_CORRESPONDANCE_TYPE_APPROBATION,
   rechercherCorrespondanceClient,
   rechercherCorrespondanceTypeApprobationComplete,
   rechercherCorrespondanceVehicule,
+  type CorrespondanceTypeApprobationBrute,
 } from './correspondance-permis';
 import {
   candidatsCodeType,
@@ -47,10 +49,12 @@ import {
   extrairePlaque,
   nettoyerTexteLibre,
   rechercherVin,
+  type VinExtrait,
 } from './extraction-permis';
 import {
   ErreurMoteurOcr,
   JETON_CLIENT_MOTEUR_OCR,
+  type ChampMultiLectureOcr,
   type ClientMoteurOcr,
   type ReponseBruteMoteurOcr,
 } from './client-moteur-ocr';
@@ -80,6 +84,50 @@ function champ<T>(
   return valeur === null || valeur === undefined
     ? champAbsent<T>()
     : { valeur, confiance: confianceSiPresent };
+}
+
+/** Texte de la (SEULE) lecture — `champBrut.lectures` ne contient jamais plus d'un élément (voir
+ *  `ChampMultiLectureOcr`) : le vote triple-passe essayé le 19.08 sur `vin`/`codeTypeCh` a été
+ *  RETIRÉ le 20.08, mesuré sur le banc des 17 photos d'échantillon une fois les zones resserrées
+ *  (`moteur-rapidocr-conteneur/permis.py` pour le détail chiffré) — gain marginal (1 code type
+ *  sur 17, aucun sur le VIN) pour un temps quasi doublé, hors budget sur le lot de photos
+ *  natives. Les six champs partagent maintenant exactement la même forme : une lecture, validée
+ *  ou non. */
+function texteBrut(champBrut: ChampMultiLectureOcr | null): string | null {
+  return champBrut?.lectures[0]?.texte ?? null;
+}
+
+/**
+ * Code type ASTRA : la lecture (candidats de bordure + recherche exacte puis approximative,
+ * `rechercherCorrespondanceTypeApprobationComplete`, inchangée) est validée ou non — plus de vote
+ * à agréger depuis le retrait du triple-passe (voir `texteBrut`) : cette fonction ne fait plus que
+ * nommer l'appel au référentiel pour ce champ précis, symétrique à `plaqueExtraite`/`dateExtraite`
+ * (single-pass) juste en dessous.
+ */
+async function validerCodeType(
+  tx: TransactionDfa,
+  champBrut: ChampMultiLectureOcr | null,
+): Promise<CorrespondanceTypeApprobationBrute> {
+  const texte = texteBrut(champBrut);
+  if (texte === null) return AUCUNE_CORRESPONDANCE_TYPE_APPROBATION;
+  return rechercherCorrespondanceTypeApprobationComplete(tx, candidatsCodeType(texte));
+}
+
+/**
+ * VIN : validé UNIQUEMENT si sa clé de contrôle ISO 3779 concorde (`rechercherVin(...)
+ * .checksumValide`, `marqueConnue` déjà décidée par `validerCodeType` en amont) — plus de vote à
+ * agréger depuis le retrait du triple-passe (voir `texteBrut`). Une clé de contrôle invalide rend
+ * `null` — CHAMP VIDE, jamais un statut `douteuse` pour ce champ (règle de conception : « un VIN
+ * faux est pire qu'un champ vide »).
+ */
+function validerVin(
+  champBrut: ChampMultiLectureOcr | null,
+  marqueConnue: string | null,
+): VinExtrait | null {
+  const texte = texteBrut(champBrut);
+  if (texte === null) return null;
+  const resultat = rechercherVin(texte, marqueConnue);
+  return resultat?.checksumValide ? resultat : null;
 }
 
 @Injectable()
@@ -113,34 +161,25 @@ export class ServiceVehiculeOcr {
     }
 
     return this.acces.enTenant(ctx, async (tx) => {
-      const candidatsType = brut.champs.codeTypeCh
-        ? candidatsCodeType(brut.champs.codeTypeCh.texte)
-        : [];
-      // Le code type est cherché AVANT le VIN : une fois trouvé, sa marque sert de croisement WMI
-      // pour départager d'éventuels candidats VIN concurrents (`rechercherVin`, ci-dessous).
-      const correspondanceType = await rechercherCorrespondanceTypeApprobationComplete(
-        tx,
-        candidatsType,
-      );
+      // Le code type est validé AVANT le VIN : une fois trouvé, sa marque sert de croisement WMI
+      // pour départager d'éventuels candidats VIN concurrents (`validerVin`, ci-dessous) — même
+      // ordre qu'au temps du vote triple-passe (retiré, voir `texteBrut`), inchangé.
+      const correspondanceType = await validerCodeType(tx, brut.champs.codeTypeCh);
 
-      const vinExtrait = brut.champs.vin
-        ? rechercherVin(
-            brut.champs.vin.texte,
-            correspondanceType.trouve ? correspondanceType.marque : null,
-          )
-        : null;
-      const plaqueExtraite = brut.champs.plaque ? extrairePlaque(brut.champs.plaque.texte) : null;
-      const dateExtraite = brut.champs.premiereMiseEnCirculationLe
-        ? extraireDate(brut.champs.premiereMiseEnCirculationLe.texte)
-        : null;
-      const nomTexteBrut = brut.champs.detenteurNom
-        ? nettoyerTexteLibre(brut.champs.detenteurNom.texte)
-        : null;
+      const vinExtrait = validerVin(
+        brut.champs.vin,
+        correspondanceType.trouve ? correspondanceType.marque : null,
+      );
+      const plaqueTexteBrut = texteBrut(brut.champs.plaque);
+      const plaqueExtraite = plaqueTexteBrut ? extrairePlaque(plaqueTexteBrut) : null;
+      const dateTexteBrut = texteBrut(brut.champs.premiereMiseEnCirculationLe);
+      const dateExtraite = dateTexteBrut ? extraireDate(dateTexteBrut) : null;
+      const nomLu = texteBrut(brut.champs.detenteurNom);
+      const nomTexteBrut = nomLu ? nettoyerTexteLibre(nomLu) : null;
       const nomPrenom = extraireNomEtPrenom(nomTexteBrut);
       const estEntreprise = detecterRaisonSociale(nomTexteBrut);
-      const adresseExtraite = brut.champs.detenteurAdresse
-        ? extraireAdresse(brut.champs.detenteurAdresse.texte)
-        : null;
+      const adresseTexteBrut = texteBrut(brut.champs.detenteurAdresse);
+      const adresseExtraite = adresseTexteBrut ? extraireAdresse(adresseTexteBrut) : null;
 
       const correspondanceVehicule = await rechercherCorrespondanceVehicule(tx, ctx, {
         vin: vinExtrait?.valeur ?? null,
@@ -154,7 +193,9 @@ export class ServiceVehiculeOcr {
       const vehicule: VehiculeScanne = {
         marque: champ(correspondanceType.trouve ? correspondanceType.marque : null, 'sure'),
         modele: champ(correspondanceType.trouve ? correspondanceType.modele : null, 'sure'),
-        vin: champ(vinExtrait?.valeur ?? null, vinExtrait?.checksumValide ? 'sure' : 'douteuse'),
+        // `vinExtrait` n'est JAMAIS non-null sans clé de contrôle validée (voir `validerVin`) :
+        // toujours `sure` quand présent, jamais de statut `douteuse` pour ce champ.
+        vin: champ(vinExtrait?.valeur ?? null, 'sure'),
         plaque: champ(plaqueExtraite?.numero ?? null, 'sure'),
         canton: champ(plaqueExtraite?.canton ?? null, 'sure'),
         premiereMiseEnCirculationLe: champ(dateExtraite, 'sure'),
