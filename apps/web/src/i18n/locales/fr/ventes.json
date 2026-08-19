@@ -216,6 +216,16 @@
         "joursStockDesc": "En stock depuis le plus longtemps",
         "prixVenteAsc": "Prix de vente croissant",
         "prixVenteDesc": "Prix de vente décroissant"
+      },
+      "plan": {
+        "groupeLabelBascule": "Liste ou plan",
+        "affichage": {
+          "liste": "Liste",
+          "plan": "Plan"
+        },
+        "groupeLabel": "Plan du parc par emplacement",
+        "sansEmplacement": "Sans emplacement",
+        "nombreVehicules": "{n, plural, one {# véhicule} other {# véhicules}}"
       }
     },
     "fiche": {

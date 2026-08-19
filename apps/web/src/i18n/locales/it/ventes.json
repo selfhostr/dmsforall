@@ -216,6 +216,16 @@
         "joursStockDesc": "Da più tempo in stock",
         "prixVenteAsc": "Prezzo di vendita crescente",
         "prixVenteDesc": "Prezzo di vendita decrescente"
+      },
+      "plan": {
+        "groupeLabelBascule": "Elenco o piantina",
+        "affichage": {
+          "liste": "Elenco",
+          "plan": "Piantina"
+        },
+        "groupeLabel": "Piantina del parco per ubicazione",
+        "sansEmplacement": "Senza ubicazione",
+        "nombreVehicules": "{n, plural, one {# veicolo} other {# veicoli}}"
       }
     },
     "fiche": {

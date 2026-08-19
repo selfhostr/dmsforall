@@ -216,6 +216,16 @@
         "joursStockDesc": "Am längsten im Bestand",
         "prixVenteAsc": "Verkaufspreis aufsteigend",
         "prixVenteDesc": "Verkaufspreis absteigend"
+      },
+      "plan": {
+        "groupeLabelBascule": "Liste oder Plan",
+        "affichage": {
+          "liste": "Liste",
+          "plan": "Plan"
+        },
+        "groupeLabel": "Standortplan des Bestands",
+        "sansEmplacement": "Ohne Standort",
+        "nombreVehicules": "{n, plural, one {# Fahrzeug} other {# Fahrzeuge}}"
       }
     },
     "fiche": {

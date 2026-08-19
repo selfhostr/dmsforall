@@ -41,10 +41,16 @@ import { chemins } from '@/routes/chemins';
 
 import { BadgeStatutVehiculeStock } from './BadgeStatutVehiculeStock';
 import {
+  BasculeAffichageStock,
+  lireAffichageStock,
+  type AffichageStock,
+} from './_composants/BasculeAffichageStock';
+import {
   BasculeVueStock,
   lireVueAffichageStock,
   type VueAffichageStock,
 } from './_composants/BasculeVueStock';
+import { PlanParcVehicules } from './_composants/PlanParcVehicules';
 import { peutEcrireVehiculeStock } from './droits';
 
 const DELAI_DEBOUNCE_MS = 300;
@@ -81,6 +87,7 @@ export function EcranListeVehiculesStock() {
   const [searchParams, setSearchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
   const vue = lireVueAffichageStock(searchParams);
+  const affichage = lireAffichageStock(searchParams);
 
   function definirVue(valeur: VueAffichageStock) {
     const parametres = new URLSearchParams(searchParams);
@@ -88,6 +95,18 @@ export function EcranListeVehiculesStock() {
       parametres.set('vue', 'client');
     } else {
       parametres.delete('vue');
+    }
+    setSearchParams(parametres);
+  }
+
+  // Orthogonal à `vue` (confidentialité) : celui-ci choisit la MISE EN FORME, jamais les données —
+  // voir la note d'en-tête de `BasculeAffichageStock`.
+  function definirAffichage(valeur: AffichageStock) {
+    const parametres = new URLSearchParams(searchParams);
+    if (valeur === 'plan') {
+      parametres.set('affichage', 'plan');
+    } else {
+      parametres.delete('affichage');
     }
     setSearchParams(parametres);
   }
@@ -152,6 +171,17 @@ export function EcranListeVehiculesStock() {
     isFetchingNextPage,
     fetchNextPage,
   } = useListeVehiculesStock(filtres);
+
+  // Vue Plan (issue #142) : « retrouver sa place exacte » exige TOUT le parc filtré, pas seulement
+  // la première page de 50 — un véhicule garé au fond, jamais chargé, serait invisible du plan sans
+  // qu'on sache qu'il manque. Récupère les pages restantes automatiquement tant que le mode Plan
+  // est actif ; la vue Liste garde `BoutonChargerPlus` (comportement inchangé).
+  useEffect(() => {
+    if (affichage === 'plan' && hasNextPage && !isFetchingNextPage) {
+      void fetchNextPage();
+    }
+  }, [affichage, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  const planEnChargementComplet = affichage === 'plan' && (isFetchingNextPage || hasNextPage);
 
   const filtresStructuresActifs =
     provenanceActive !== undefined || statutCommercial !== undefined || typeVehicule !== undefined;
@@ -269,6 +299,7 @@ export function EcranListeVehiculesStock() {
   // de les faire apparaître/disparaître au chargement.
   const actionsEnTete = (
     <>
+      <BasculeAffichageStock affichage={affichage} onChangeAffichage={definirAffichage} />
       <BasculeVueStock vue={vue} onChangeVue={definirVue} />
       {peutEcrireVehiculeStock(role) && vue === 'vendeur' ? (
         <Button onClick={() => navigate(chemins.ventes.stock.nouveau(site))}>
@@ -436,30 +467,50 @@ export function EcranListeVehiculesStock() {
         ) : null}
       </BarreFiltres>
 
-      <SelecteurTri
-        options={optionsTri.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
-        valeur={triActif}
-        onChangeValeur={setTri}
-        label={t('ventes:stock.liste.tri.label')}
-        className="max-w-xs"
-      />
+      {affichage === 'plan' ? (
+        // Vue Plan (issue #142) : pas de tri ni de pagination manuelle — le regroupement par zone
+        // remplace les deux (`planEnChargementComplet` couvre le chargement du reste des pages,
+        // voir l'effet ci-dessus).
+        planEnChargementComplet ? (
+          <EtatChargement lignes={4} />
+        ) : (
+          <PlanParcVehicules
+            vehiculesStock={vehiculesStock}
+            onOuvrirVehicule={(id) => navigate(chemins.vehicules.detail(id, site))}
+            libelleOuvrirVehicule={(ligne) =>
+              t('commun:actions.ouvrirElement', { nom: ligne.vehicule.designation })
+            }
+            contenuVide={contenuVide}
+          />
+        )
+      ) : (
+        <>
+          <SelecteurTri
+            options={optionsTri.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
+            valeur={triActif}
+            onChangeValeur={setTri}
+            label={t('ventes:stock.liste.tri.label')}
+            className="max-w-xs"
+          />
 
-      <TableComptoir
-        colonnes={colonnes}
-        lignes={vehiculesStock}
-        cleLigne={(ligne) => ligne.id}
-        onOuvrirLigne={(ligne) => navigate(chemins.vehicules.detail(ligne.id, site))}
-        libelleLigne={(ligne) =>
-          t('commun:actions.ouvrirElement', { nom: ligne.vehicule.designation })
-        }
-        contenuVide={contenuVide}
-      />
+          <TableComptoir
+            colonnes={colonnes}
+            lignes={vehiculesStock}
+            cleLigne={(ligne) => ligne.id}
+            onOuvrirLigne={(ligne) => navigate(chemins.vehicules.detail(ligne.id, site))}
+            libelleLigne={(ligne) =>
+              t('commun:actions.ouvrirElement', { nom: ligne.vehicule.designation })
+            }
+            contenuVide={contenuVide}
+          />
 
-      <BoutonChargerPlus
-        aChargerPlus={Boolean(hasNextPage)}
-        enChargement={isFetchingNextPage}
-        onChargerPlus={() => void fetchNextPage()}
-      />
+          <BoutonChargerPlus
+            aChargerPlus={Boolean(hasNextPage)}
+            enChargement={isFetchingNextPage}
+            onChargerPlus={() => void fetchNextPage()}
+          />
+        </>
+      )}
     </GabaritEcran>
   );
 }
