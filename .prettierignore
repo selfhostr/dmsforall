@@ -14,19 +14,7 @@ apps/api/drizzle/**/*.sql
 # n'aurait aucun effet durable et fait échouer `format:check` à chaque régénération.
 packages/shared/openapi/dfa-openapi.json
 
-# site/ : projet Astro autonome (vitrine + doc + légal, depuis le 17.08.2026 — remplace un socle
-# Hugo+Blowfish construit puis écarté le même jour, voir site/README.md), hors du workspace pnpm
-# racine (site/pnpm-workspace.yaml), avec son propre Prettier (site/.prettierrc.json, plugin
-# prettier-plugin-astro non installé à la racine). `pnpm --dir site format:check` le couvre —
-# n'impose pas cette dépendance au dépôt entier.
-site/
-# ancien-site/ : ne contient plus de projet Hugo (voir ancien-site/README.md), seulement
-# l'ancien contenu HTML pré-Hugo (prose README/DEPLOIEMENT.md incluses) gardé pour comparaison —
-# pas notre code à reformater non plus.
-ancien-site/
-
 # contenu/ : prose Markdown (documentation utilisateur, pages légales) rédigée par d'autres
-# chantiers en parallèle de celui-ci, montée par site/ sans jamais être recopiée (voir
-# site/src/content.config.ts). Pas du code, pas notre périmètre de rédaction — la largeur de ligne
-# éditoriale (listes, tableaux, citations) n'a pas à suivre les 100 colonnes de ce dépôt.
+# chantiers en parallèle de celui-ci. Pas du code, pas notre périmètre de rédaction — la largeur
+# de ligne éditoriale (listes, tableaux, citations) n'a pas à suivre les 100 colonnes de ce dépôt.
 contenu/

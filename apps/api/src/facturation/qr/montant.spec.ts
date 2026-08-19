@@ -34,13 +34,22 @@ describe('formaterMontantPayload — centimes entiers vers la représentation du
     // Le piège que ce module existe pour éviter : `(c / 100).toFixed(2)` est faux pour certaines
     // valeurs en virgule flottante. Ici, aucun flottant n'intervient — on le prouve sur 20 000
     // valeurs consécutives dont on relit les centimes (borné pour rester loin du délai de 5 s
-    // des tests unitaires, y compris sur un runner CI froid).
+    // des tests unitaires, y compris sur un runner CI froid). Boucle en pur JS pour éviter
+    // 40 000 appels expect()/matcher ; vérifications collectées, verdict une fois.
+    const erreurs: string[] = [];
     for (let centimes = 1; centimes <= 20_000; centimes += 1) {
       const formate = formaterMontantPayload(centimes);
       const [francs = '', decimales = ''] = formate.split('.');
-      expect(Number(francs) * 100 + Number(decimales)).toBe(centimes);
-      expect(decimales).toHaveLength(2);
+      const recompose = Number(francs) * 100 + Number(decimales);
+
+      if (recompose !== centimes) {
+        erreurs.push(`centimes=${centimes}: recompose=${recompose}`);
+      }
+      if (decimales.length !== 2) {
+        erreurs.push(`centimes=${centimes}: decimales.length=${decimales.length}`);
+      }
     }
+    expect(erreurs).toHaveLength(0);
   });
 
   it('refuse un montant non entier, négatif, nul ou hors bornes', () => {

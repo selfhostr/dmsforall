@@ -119,8 +119,11 @@ Branche de fonctionnalité : git switch -c feat/<nom> depuis dev. PR contre dev.
 
 ```bash
 git push -u origin feat/<nom>
-gh pr create --base dev
 ```
+
+Puis ouvrir une pull request depuis http://forge.example.org/owner/dmsforall
+(créer une PR vers la branche dev). Avec la CLI forge (tea), la commande
+équivalente est : tea pr create --base dev
 
 Règles : périmètre disjoint (un répertoire = un propriétaire), points de
 contact négociés avant le code.
@@ -129,16 +132,16 @@ Structure du dépôt
 ------------------
 
 - apps/ — API (NestJS), interface web (React).
-- site/ — Site public (Astro + React + Tailwind). Dev : cd site && pnpm
-  install && pnpm dev (:4321).
-- contenu/ — Docs FR/DE/IT et pages légales.
-- outils/captures/ — Génération de captures d'écran.
-- kanban/ — Tableau de suivi (http://localhost:8088).
-- ancien-site/ — Ancien site (Hugo), en sursis.
+- packages/ — Modules partagés (contrats TypeScript, types métier).
+- notes de travail — Idées et chantiers restants, par domaine.
+
+Documentation, guides de démarrage et spécifications techniques :
+http://forge.example.org/owner/dmsforall/wiki
 
 Ressources
 ----------
 
 - ARCHITECTURE.md — Source de vérité
 - CONTRIBUTING.md — Conventions de code
-- docs/ — Guides détaillés
+- Wiki : http://forge.example.org/owner/dmsforall/wiki — Spécifications,
+  guides utilisateur, documentation légale.
