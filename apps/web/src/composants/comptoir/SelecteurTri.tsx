@@ -27,9 +27,19 @@ export interface ProprietesSelecteurTri {
   readonly className?: string;
 }
 
-/** Sélecteur de tri compact — alternative aux en-têtes triables de `TableComptoir` (utile en
- *  tablette où la table dense n'est pas le gabarit par défaut). `valeur` suit la forme du
- *  paramètre `tri` de l'API, pas de mapping supplémentaire côté appelant. */
+/**
+ * Sélecteur de tri compact — alternative aux en-têtes triables de `TableComptoir` (utile en
+ * tablette où la table dense n'est pas le gabarit par défaut). `valeur` suit la forme du
+ * paramètre `tri` de l'API, pas de mapping supplémentaire côté appelant.
+ *
+ * LIBELLÉ `sr-only` (19.08.2026, signalé par l'agent atelier) — le `Select` affiche déjà l'option
+ * triée en toutes lettres (`SelectValue`, ex. « Date, plus récent d'abord ») : un libellé visible
+ * « Trier par » au-dessus ne fait que répéter ce que le contrôle montre déjà, pour le seul coût de
+ * consommer de la hauteur (doctrine du chantier « cadre applicatif » : pas de libellé qui répète
+ * son contrôle). `htmlFor`/`aria-label` restent posés SANS changement — un contrôle ne devient
+ * jamais anonyme pour un lecteur d'écran quand on masque son libellé à l'œil, seulement invisible
+ * à l'écran (`sr-only`, retiré du flux visuel, jamais de l'arbre d'accessibilité).
+ */
 export function SelecteurTri({
   id,
   options,
@@ -42,8 +52,10 @@ export function SelecteurTri({
   const idChamp = id ?? idGenere;
 
   return (
-    <div className={cn('flex flex-col gap-1.5', className)}>
-      <Label htmlFor={idChamp}>{label}</Label>
+    <div className={cn(className)}>
+      <Label htmlFor={idChamp} className="sr-only">
+        {label}
+      </Label>
       <Select value={valeur} onValueChange={onChangeValeur}>
         <SelectTrigger id={idChamp} aria-label={label}>
           <SelectValue />

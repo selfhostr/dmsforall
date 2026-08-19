@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { beforeAll, describe, expect, it } from 'vitest';
 
@@ -528,6 +529,14 @@ describe('routeur — /parametrage/facturation refuse réellement (protection pa
  *
  * Route rendue : `/parametrage/referentiels`, atteignable par TOUS les rôles (test du describe
  * précédent) — ce qui permet de comparer deux rôles sur exactement la même URL.
+ *
+ * RÉ-ORIENTÉ UNE SECONDE FOIS au lot « cadre applicatif » (19.08.2026) : Réglages a quitté le lien
+ * direct de la barre latérale pour rejoindre le menu du pied compte (identité + Réglages +
+ * déconnexion, un seul déclencheur qui se déplie — voir la doc de tête de `BarreLaterale.tsx`,
+ * § pied compte). La PROPRIÉTÉ testée ici ne change pas — Réglages doit rester atteignable dans
+ * l'assemblage réel, avec ses onglets filtrés par rôle — seul le GESTE pour l'atteindre a changé
+ * (ouvrir le menu du compte, cliquer Réglages, plutôt qu'un clic direct sur un lien de la barre).
+ * Le test suit maintenant ce geste réel au lieu de chercher un lien qui n'existe plus par défaut.
  */
 describe('routeur — Réglages : les onglets existent dans l’assemblage réel et se filtrent par rôle', () => {
   it('technicien : la rangée de Réglages ne propose que Tarifs et prestations', async () => {
@@ -540,13 +549,21 @@ describe('routeur — Réglages : les onglets existent dans l’assemblage réel
       ),
       http.get('/api/v1/*', () => HttpResponse.json({ donnees: [], curseurSuivant: null })),
     );
+    const utilisateur = userEvent.setup();
     renduAvecRoutes(routesConfig, { routeInitiale: '/parametrage/referentiels' });
+
+    // Réglages est atteignable depuis le menu du pied compte (nom + prénom de `SESSION_TEST`,
+    // inchangés par la surcharge de rôle ci-dessus) — même geste qu'un utilisateur réel : ouvrir
+    // le menu, puis y trouver Réglages, pointant vers le seul onglet ouvert à ce rôle.
+    const declencheurCompte = await screen.findByRole('button', { name: /jean dupont/i });
+    await utilisateur.click(declencheurCompte);
+    const reglages = await screen.findByRole('menuitem', { name: /réglages/i });
+    expect(reglages).toHaveAttribute('href', '/parametrage/referentiels');
 
     // Un seul onglet visible => aucune rangée rendue (une rangée à un onglet n'offre aucun choix).
     await waitFor(() => {
-      expect(screen.queryByRole('link', { name: /^réglages$/i })).toBeInTheDocument();
+      expect(screen.queryByRole('navigation', { name: /onglets/i })).toBeNull();
     });
-    expect(screen.queryByRole('navigation', { name: /onglets/i })).toBeNull();
     expect(screen.queryByRole('link', { name: /paramètres atelier/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /^sites$/i })).not.toBeInTheDocument();
   });

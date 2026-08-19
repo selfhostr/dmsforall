@@ -59,7 +59,16 @@ export function EcranTableauBord() {
   const role: RoleUtilisateur | undefined = session?.utilisateur.role;
 
   return (
-    <GabaritEcran titre={t('tableauBord:titre')}>
+    // `densite-dense` (index.css) : écran de pilotage lu à distance sur un poste de bureau, jamais
+    // sur la tablette d'atelier (`docs/design-tableau-bord-par-role.md`) — le même gabarit de
+    // densité que « comptoir » (`components/ui/card.tsx`), qui resserre le rembourrage des cartes
+    // (24→16px), l'échelle typographique (titres/corps/chiffre géant) et les espacements
+    // sémantiques (`gap-section`/`gap-groupe` ci-dessous dans chaque `TableauBord<Role>`) sans
+    // toucher aux CIBLES TACTILES : `Button`/`SelectTrigger`/`DateInput` posent une hauteur fixe
+    // (`h-11`, 44px) indépendante de ces tokens (vérifié dans leurs fichiers respectifs), donc aucun
+    // contrôle interactif de cet écran ne rétrécit sous 44px. Chantier « tableau de bord tient sans
+    // défilement » (retour @laupernoe du 16.08.2026, périmètre `ecrans/tableau-bord/**`).
+    <GabaritEcran titre={t('tableauBord:titre')} className="densite-dense">
       <SelecteurSiteTableauBord
         sites={session?.sites ?? []}
         siteId={siteId}

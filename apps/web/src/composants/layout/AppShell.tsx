@@ -1,17 +1,16 @@
-import { Menu } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, Outlet, useLocation } from 'react-router';
 
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { FournisseurSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { useSession } from '@/hooks/useSession';
 import { cn } from '@/lib/utils';
 import { chemins } from '@/routes/chemins';
 
+import { BandeauSansNavigation } from './BandeauSansNavigation';
 import { BarreLaterale } from './BarreLaterale';
-import { EnTete } from './EnTete';
+import { BarreOutilsSuperieure } from './BarreOutilsSuperieure';
 import { LimiteErreurEcran } from './LimiteErreurEcran';
 import { entreesVisibles } from './navigation-modele';
 import { OngletsDomaine } from './OngletsDomaine';
@@ -20,20 +19,27 @@ import { useRepliBarreLaterale } from './useRepliBarreLaterale';
 
 /**
  * >=1024px : barre latérale fixe 240px. En dessous : Sheet (tiroir) déclenché par un bouton
- * hamburger dans la bande supérieure mobile.
+ * hamburger dans le bandeau supérieur mobile (`BarreOutilsSuperieure.tsx`).
  *
- * Lot D — DEUX ajouts. (1) `OngletsDomaine` est monté ICI, une fois, entre l'en-tête et le
- * contenu : le second niveau de l'arborescence existe donc pour toute route qui appartient au
+ * Lot D — DEUX ajouts. (1) `OngletsDomaine` est monté ICI, une fois, entre le bandeau supérieur et
+ * le contenu : le second niveau de l'arborescence existe donc pour toute route qui appartient au
  * menu, sans qu'aucun écran n'ait à s'en souvenir (voir la justification complète en tête
  * d'`OngletsDomaine.tsx`). (2) La colonne de navigation disparaît entièrement quand le compte
  * connecté n'a aucune entrée — c'est le cas de `poste_atelier`, la borne murale : un appareil, pas
  * un employé (§2 de l'arbitrage, « aucun menu, aucun en-tête, aucune recherche »). Afficher une
  * colonne vide sur une tablette d'atelier serait pire que de ne pas l'afficher.
  *
- * L'en-tête reste en place pour la borne, contrairement à la lettre de §2 : il porte le bouton
- * « Se déconnecter », et une borne partagée qu'on ne peut plus déconnecter au comptoir est un
- * problème d'exploitation réel. Le plein écran intégral de la borne est une décision qui appartient
- * à `ecrans/pointage/` (signalé à la session, hors du périmètre d'écriture du Lot D).
+ * LOT « CADRE APPLICATIF » (19.08.2026, demande @laupernoe) — `EnTete.tsx` est SUPPRIMÉ, remplacé par DEUX
+ * bandeaux mutuellement exclusifs, choisis sur le MÊME `afficheNavigation` qui gouvernait déjà
+ * l'`aside` ci-dessous : `BarreOutilsSuperieure.tsx` (recherche + déclencheur du tiroir mobile)
+ * quand la navigation existe — tenant, site, identité et déconnexion ont migré dans
+ * `BarreLaterale.tsx`, contexte permanent du cadre plutôt que d'une bande répétée en haut de
+ * chaque écran — et `BandeauSansNavigation.tsx` (déconnexion seule) sinon. Ce second cas couvre
+ * exactement ce que gardait l'ancienne `EnTete.tsx` « contrairement à la lettre de §2 » : la borne
+ * murale (`poste_atelier`) et le mode scan mobile n'ont NI l'un NI l'autre de `BarreLaterale` où
+ * loger la déconnexion, un poste partagé qu'on ne peut plus déconnecter au comptoir restant un
+ * problème d'exploitation réel. Le plein écran intégral de la borne reste une décision qui
+ * appartient à `ecrans/pointage/` (signalé à la session, hors de ce périmètre d'écriture).
  */
 export function AppShell() {
   const { t } = useTranslation('navigation');
@@ -94,32 +100,24 @@ export function AppShell() {
 
         <div className="flex min-w-0 flex-1 flex-col">
           {afficheNavigation ? (
-            <div className="flex items-center border-b lg:hidden">
-              <Sheet open={ouvert} onOpenChange={setOuvert}>
-                <SheetTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="m-2"
-                    aria-label={t('navigation:menu.ouvrir')}
-                  >
-                    <Menu className="h-5 w-5" aria-hidden="true" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-60 p-0">
-                  {/* `SheetContent side="left"` pose déjà `fixed inset-y-0 ... h-full` (voir
-                      `components/ui/sheet.tsx`) : le tiroir a donc une hauteur de viewport définie
-                      sans rien ajouter ici, et `BarreLaterale` (h-full) s'y ancre exactement comme
-                      dans l'aside desktop. */}
-                  <SheetTitle className="sr-only">{t('navigation:principale.aria')}</SheetTitle>
-                  <BarreLaterale className="pt-4" />
-                </SheetContent>
-              </Sheet>
-            </div>
-          ) : null}
-
-          <EnTete />
+            // `Sheet` enveloppe `BarreOutilsSuperieure` (qui porte le `SheetTrigger`, déclencheur du
+            // tiroir sur mobile) ET `SheetContent` (le tiroir lui-même) : Radix relie les deux par
+            // contexte, la position exacte du déclencheur dans l'arbre n'a pas besoin d'être un
+            // enfant direct de `SheetContent`.
+            <Sheet open={ouvert} onOpenChange={setOuvert}>
+              <BarreOutilsSuperieure />
+              <SheetContent side="left" className="w-60 p-0">
+                {/* `SheetContent side="left"` pose déjà `fixed inset-y-0 ... h-full` (voir
+                    `components/ui/sheet.tsx`) : le tiroir a donc une hauteur de viewport définie
+                    sans rien ajouter ici, et `BarreLaterale` (h-full) s'y ancre exactement comme
+                    dans l'aside desktop. */}
+                <SheetTitle className="sr-only">{t('navigation:principale.aria')}</SheetTitle>
+                <BarreLaterale />
+              </SheetContent>
+            </Sheet>
+          ) : (
+            <BandeauSansNavigation />
+          )}
 
           {/* Aucune rangée d'onglets en mode scan mobile (`modeScan.actif`) : la seule destination
               qui reste accessible est `/scan` lui-même, une rangée à un seul onglet actif

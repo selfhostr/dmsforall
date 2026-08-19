@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 
 import type { SuiviGarantie } from '@dfa/shared';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { chemins } from '@/routes/chemins';
 
 import { CelluleGarantieSuivi } from '../suivi/CelluleGarantieSuivi';
@@ -39,13 +39,10 @@ interface Props {
 export function CarteGarantieDossier({ garantie, vehiculeStockId, site }: Props) {
   const { t } = useTranslation('ventes');
 
+  // CardHeader/CardTitle délibérément absents — même motif et même raison que
+  // `CarteFinancement.tsx` (chantier « mise en page ventes », 19.08.2026), voir son commentaire.
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="texte-titre-section">
-          {t('ventes:dossier.fiche.garantie.titre')}
-        </CardTitle>
-      </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <CelluleGarantieSuivi garantie={garantie} />
         <Link

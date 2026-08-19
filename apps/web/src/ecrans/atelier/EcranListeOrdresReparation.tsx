@@ -290,60 +290,66 @@ export function EcranListeOrdresReparation() {
         filtresActifs={filtresActifs}
         onEffacerFiltres={effacerFiltres}
       >
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="filtre-statut-or">{t('or:liste.filtres.statut')}</Label>
-          <Select
-            value={statut ?? 'tous'}
-            onValueChange={(valeur) =>
-              setStatut(valeur === 'tous' ? undefined : (valeur as StatutOrdreReparation))
-            }
+        {/* Libellé retiré de l'affichage (demande @laupernoe : « Statut »/« Attente » au-dessus du
+         *  contrôle ne font que répéter ce que le contrôle dit déjà) — `sr-only`, jamais un
+         *  contrôle anonyme : `htmlFor`/`id` + `aria-label` sur le déclencheur conservent le nom
+         *  accessible complet pour un lecteur d'écran. Plus de conteneur `flex-col` autour : sans
+         *  libellé visible à empiler au-dessus, le `<Select>` (h-11) s'aligne directement sur la
+         *  hauteur du champ de recherche voisin. */}
+        <Label htmlFor="filtre-statut-or" className="sr-only">
+          {t('or:liste.filtres.statut')}
+        </Label>
+        <Select
+          value={statut ?? 'tous'}
+          onValueChange={(valeur) =>
+            setStatut(valeur === 'tous' ? undefined : (valeur as StatutOrdreReparation))
+          }
+        >
+          <SelectTrigger
+            id="filtre-statut-or"
+            className="w-[200px]"
+            aria-label={t('or:liste.filtres.statut')}
           >
-            <SelectTrigger
-              id="filtre-statut-or"
-              className="w-[200px]"
-              aria-label={t('or:liste.filtres.statut')}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="tous">{t('or:liste.filtres.statutTous')}</SelectItem>
-              {STATUTS_ORDRE_REPARATION.map((valeur) => (
-                <SelectItem key={valeur} value={valeur}>
-                  {t(`or:statuts.${CLES_STATUT[valeur]}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="tous">{t('or:liste.filtres.statutTous')}</SelectItem>
+            {STATUTS_ORDRE_REPARATION.map((valeur) => (
+              <SelectItem key={valeur} value={valeur}>
+                {t(`or:statuts.${CLES_STATUT[valeur]}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         {/* Issue #111 — filtre séparé, jamais fusionné dans le `<Select>` du statut ci-dessus
          *  (voir `CLES_ATTENTE`) : « Attente pièces » est un drapeau, pas un état de la liste des
          *  statuts réels, cumulable avec n'importe lequel d'entre eux. */}
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="filtre-attente-or">{t('or:liste.filtres.attente')}</Label>
-          <Select
-            value={attente ?? 'toutes'}
-            onValueChange={(valeur) =>
-              setAttente(valeur === 'toutes' ? undefined : (valeur as AttenteOrdreReparation))
-            }
+        <Label htmlFor="filtre-attente-or" className="sr-only">
+          {t('or:liste.filtres.attente')}
+        </Label>
+        <Select
+          value={attente ?? 'toutes'}
+          onValueChange={(valeur) =>
+            setAttente(valeur === 'toutes' ? undefined : (valeur as AttenteOrdreReparation))
+          }
+        >
+          <SelectTrigger
+            id="filtre-attente-or"
+            className="w-[200px]"
+            aria-label={t('or:liste.filtres.attente')}
           >
-            <SelectTrigger
-              id="filtre-attente-or"
-              className="w-[200px]"
-              aria-label={t('or:liste.filtres.attente')}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="toutes">{t('or:liste.filtres.attenteToutes')}</SelectItem>
-              {ATTENTES_ORDRE_REPARATION.map((valeur) => (
-                <SelectItem key={valeur} value={valeur}>
-                  {t(`or:statuts.${CLES_ATTENTE[valeur]}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="toutes">{t('or:liste.filtres.attenteToutes')}</SelectItem>
+            {ATTENTES_ORDRE_REPARATION.map((valeur) => (
+              <SelectItem key={valeur} value={valeur}>
+                {t(`or:statuts.${CLES_ATTENTE[valeur]}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </BarreFiltres>
 
       <div className="flex flex-wrap items-end justify-between gap-3">

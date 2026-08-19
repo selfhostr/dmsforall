@@ -1,10 +1,19 @@
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { ChevronsUpDown, LogOut, PanelLeftClose, PanelLeftOpen, Settings } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useSearchParams } from 'react-router';
 
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
+import { useDeconnexion } from '@/hooks/useDeconnexion';
 import { useSession } from '@/hooks/useSession';
+import { cleTraductionRole } from '@/lib/roles';
 import { cn } from '@/lib/utils';
 
 import {
@@ -15,6 +24,7 @@ import {
   trouverCorrespondance,
   type EntreeMenu,
 } from './navigation-modele';
+import { SelecteurSiteEntete } from './SelecteurSiteEntete';
 import type { UtiliserRepliBarreLaterale } from './useRepliBarreLaterale';
 
 /**
@@ -102,9 +112,45 @@ interface Props {
  *
  * `poste_atelier` (la borne murale) ne voit AUCUNE entrée — c'est un appareil, pas un employé
  * (§2). `AppShell` retire alors la colonne entière plutôt que d'afficher un cadre vide.
+ *
+ * LOT « CADRE APPLICATIF » (19.08.2026, demande @laupernoe) — TROIS ajouts, tous motivés par le même
+ * constat : l'ancienne `EnTete.tsx` occupait 64 px de hauteur sur CHAQUE écran pour n'afficher que
+ * du contexte permanent (tenant, site, identité, déconnexion) — un défilement vertical inutile sur
+ * un métier où « un écran est plus large que haut ». Ce contexte appartient au CADRE, pas à une
+ * bande qui se répète en haut de chaque page :
+ *
+ *  1. BLOC TENANT + SITE en tête de colonne, à la place de l'ancien mot-symbole « dmsforall ».
+ *     Repris de @laupernoe SANS détour : le mot-symbole ne ressemblait à rien du reste de la barre (taille
+ *     de police différente, corps étranger) et, pire, faisait de la publicité pour le produit une
+ *     fois DANS l'application — personne ne le regarde, le nom du produit est déjà dans l'onglet du
+ *     navigateur et dans l'URL. Le nom du TENANT, lui, est une information utile en permanence
+ *     (« je travaille pour quel garage »), donc la marque est SUPPRIMÉE (pas réduite à un
+ *     pictogramme — un pictogramme resterait la même publicité, juste plus petite) et sa place
+ *     revient entièrement au tenant + au sélecteur de site (`SelecteurSiteEntete`, déplacé tel quel
+ *     depuis `EnTete.tsx`, dont la résolution URL -> préférence mémorisée est reprise ICI à
+ *     l'identique — voir `site` ci-dessous, seule source pour toute la colonne). La marque reste
+ *     l'affaire de l'écran de connexion (`EcranConnexion.tsx`, hors périmètre), pas du cadre
+ *     applicatif une fois authentifié.
+ *  2. PIED COMPTE — identité + Réglages + déconnexion regroupés en UN SEUL déclencheur adjacent au
+ *     filet du pied (§4.2 déjà en place), qui déplie un menu (`DropdownMenu`) au lieu de trois
+ *     éléments dispersés. RE-ARBITRAGE ASSUMÉ de la doctrine « Se déconnecter jamais enfoui »
+ *     (ancien commentaire de tête d'`EnTete.tsx`, motivé par le poste d'atelier PARTAGÉ) : ce
+ *     motif reste vrai à sa place d'origine, la BORNE MURALE (`poste_atelier`), qui ne monte de
+ *     toute façon jamais cette colonne (`AppShell.tsx` retire l'`aside` entier pour elle, voir
+ *     `BandeauSansNavigation.tsx` où la déconnexion reste un bouton en clair, seule pour cette
+ *     raison). Pour un poste de PERSONNE (celui qui monte réellement cette colonne), @laupernoe demande
+ *     explicitement ce lot un menu qui se déplie — et dupliquer Réglages en lien direct ICI EN PLUS
+ *     du menu aurait reproduit le défaut que ce dépôt corrige déjà ailleurs (deux commandes vers la
+ *     même destination sur le même écran, voir `GabaritEcran.tsx`, retour @laupernoe du 12.08.2026).
+ *  3. `EnTete.tsx` est SUPPRIMÉ. Ce qu'il portait pour un poste de personne (tenant, site, identité,
+ *     déconnexion) descend ici ; la recherche permanente devient `BarreOutilsSuperieure.tsx` (un
+ *     bandeau de 48 px, pas 64, avec la ligne du tiroir mobile FUSIONNÉE dedans plutôt qu'empilée
+ *     dessus) ; le seul besoin qui restait — la déconnexion pour un poste SANS colonne
+ *     (`poste_atelier`, mode scan mobile) — devient `BandeauSansNavigation.tsx`. Voir leurs en-têtes
+ *     respectifs pour le chiffrage de hauteur gagnée et le détail de cette scission.
  */
 export function BarreLaterale({ className, repli }: Props) {
-  const { t } = useTranslation('navigation');
+  const { t } = useTranslation(['navigation', 'auth']);
   const [searchParams] = useSearchParams();
   const { preferenceSiteId } = useSiteCourant();
   // CORRECTIF issue #91 (« le logiciel oublie mon choix dès que je change d'écran ») : l'URL reste
@@ -118,10 +164,29 @@ export function BarreLaterale({ className, repli }: Props) {
   const { pathname } = useLocation();
   const { data: session } = useSession();
   const role = session?.utilisateur.role;
+  const deconnexion = useDeconnexion();
   // Numéro de version — voir la doc de `infoVersionBrute` en tête de fichier. Repli traduit
   // (« inconnue ») posé ICI, pas dans `infoVersionBrute`, pour rester une fonction pure sans
   // dépendance à `t`.
   const infoVersion = infoVersionBrute() || t('navigation:pied.versionInconnue');
+
+  // Résolution du nom de site affiché — reprise À L'IDENTIQUE de l'ancienne `EnTete.tsx` (même
+  // doctrine « absence de donnée ≠ valeur », issue #91) : un `site` qui ne correspond à AUCUN site
+  // de la session (lien obsolète, site renommé/supprimé) est une ABSENCE, jamais la valeur brute de
+  // l'URL ni « tous les sites » deviné. `SelecteurSiteEntete` REÇOIT ce libellé déjà résolu, il ne
+  // le recalcule pas — un seul endroit qui décide, comme avant ce lot.
+  const libelleSite = session
+    ? (session.sites.find((candidat) => candidat.id === site)?.nom ??
+      t('navigation:entete.siteNonChoisi'))
+    : '';
+
+  // Identité du pied compte (§2 du lot ci-dessus) — repris à l'identique de l'ancien
+  // `MenuUtilisateur.tsx` (initiales, nom complet, libellé de rôle traduit).
+  const libelleCompte = session ? `${session.utilisateur.prenom} ${session.utilisateur.nom}` : '';
+  const libelleRole = session ? t(cleTraductionRole(session.utilisateur.role)) : '';
+  const initiales = session
+    ? `${session.utilisateur.prenom.charAt(0)}${session.utilisateur.nom.charAt(0)}`.toUpperCase()
+    : '';
 
   // `repli` absent (tiroir mobile) => jamais replié, quelle que soit la préférence mémorisée par
   // ailleurs : la lecture de cette préférence est entièrement du ressort de l'appelant desktop.
@@ -208,42 +273,62 @@ export function BarreLaterale({ className, repli }: Props) {
     // `h-full` : résolu par le parent — `AppShell` donne à l'aside desktop une hauteur de viewport
     // (`lg:h-dvh`) et le tiroir mobile (`Sheet`) est déjà en hauteur pleine.
     <nav aria-label={t('navigation:principale.aria')} className="flex h-full flex-col">
-      {repli ? (
-        // Bouton de repli — SEULEMENT quand `repli` est fourni (jamais dans le tiroir mobile, voir
-        // la doc du prop). `aria-expanded` porte l'état pour un lecteur d'écran ; `title` donne
-        // l'infobulle au survol, en confort du `aria-label` qui reste le porteur obligatoire.
+      {repli || session ? (
+        // EN-TÊTE DE COLONNE — tenant + site (voir le §1 du lot « cadre applicatif » en tête de
+        // fichier), plus le bouton de repli quand `repli` est fourni (jamais dans le tiroir
+        // mobile). Rendu dès que L'UN DES DEUX existe : le bouton de repli ne dépend d'aucune
+        // donnée de session (préférence locale pure) et doit rester utilisable même avant que la
+        // session ne soit résolue — seul le bloc tenant/site, lui, attend `session` pour ne rien
+        // affirmer de faux pendant le chargement (même doctrine que le reste du fichier, « le menu
+        // s'enrichit, il ne clignote pas »).
         <div
           className={cn(
-            'flex shrink-0 items-center p-3 pb-0',
-            replie ? 'justify-center' : 'justify-between',
+            'flex shrink-0 flex-col gap-2 border-b p-3',
+            replie ? 'items-center gap-3 p-2' : undefined,
           )}
         >
-          {/* Mot-symbole (demande @laupernoe, revue webui du 10.08.2026) — un `span`, pas un `h1`/`h2` :
-              ni le fil d'Ariane ni le titre d'écran ne doivent lui céder leur rôle de repère de
-              navigation, il ne fait que remplir le vide au-dessus des six entrées. AUCUNE clé
-              i18n : c'est un nom de produit, identique en fr/de/it — une clé qui porterait trois
-              fois la même valeur ne protégerait rien et ajouterait une entrée à traduire pour rien.
-              `hidden` (pas une opacité à zéro) une fois repliée : retiré du flux ET de l'arbre
-              d'accessibilité, aucun espace réservé ne subsiste pour annuler le gain de largeur, et
-              un lecteur d'écran ne l'annonce plus. */}
-          <span className={cn('truncate text-sm font-semibold tracking-tight', replie && 'hidden')}>
-            dmsforall
-          </span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={repli.basculer}
-            aria-expanded={!replie}
-            aria-label={t(replie ? 'navigation:repli.agrandir' : 'navigation:repli.reduire')}
-            title={t(replie ? 'navigation:repli.agrandir' : 'navigation:repli.reduire')}
-          >
-            {replie ? (
-              <PanelLeftOpen className="h-4 w-4" aria-hidden="true" />
-            ) : (
-              <PanelLeftClose className="h-4 w-4" aria-hidden="true" />
+          <div
+            className={cn(
+              'flex w-full items-center gap-2',
+              replie ? 'flex-col' : 'justify-between',
             )}
-          </Button>
+          >
+            {session && !replie ? (
+              <p
+                className="min-w-0 flex-1 truncate text-sm font-semibold tracking-tight"
+                title={session.tenant.raisonSociale}
+              >
+                {session.tenant.raisonSociale}
+              </p>
+            ) : null}
+            {repli ? (
+              // `aria-expanded` porte l'état pour un lecteur d'écran ; `title` donne l'infobulle
+              // au survol, en confort du `aria-label` qui reste le porteur obligatoire.
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={repli.basculer}
+                aria-expanded={!replie}
+                aria-label={t(replie ? 'navigation:repli.agrandir' : 'navigation:repli.reduire')}
+                title={t(replie ? 'navigation:repli.agrandir' : 'navigation:repli.reduire')}
+              >
+                {replie ? (
+                  <PanelLeftOpen className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <PanelLeftClose className="h-4 w-4" aria-hidden="true" />
+                )}
+              </Button>
+            ) : null}
+          </div>
+          {session ? (
+            <SelecteurSiteEntete
+              sites={session.sites}
+              siteIdActif={site}
+              libelle={libelleSite}
+              compact={replie}
+            />
+          ) : null}
         </div>
       ) : null}
 
@@ -256,33 +341,91 @@ export function BarreLaterale({ className, repli }: Props) {
       </ul>
 
       {/*
-       * Pied ancré, séparé des six entrées par un filet (§4.2) — `shrink-0` : ne rétrécit jamais.
-       * Le filet encode une frontière réelle : au-dessus, les six plans de travail qu'on ouvre
-       * chaque jour ; en dessous, ce qu'on configure rarement et jamais dans le flux de travail
-       * (Réglages), puis le numéro de version.
+       * PIED COMPTE — identité + Réglages + déconnexion, voir le §2 du lot « cadre applicatif » en
+       * tête de fichier. Séparé des six entrées par un filet (§4.2) — `shrink-0` : ne rétrécit
+       * jamais. UN SEUL déclencheur (`DropdownMenuTrigger`), jamais trois éléments dispersés : la
+       * doctrine anti-doublon du dépôt (`GabaritEcran.tsx`) interdit déjà deux commandes vers la
+       * même destination sur le même écran — Réglages ne vit donc QUE dans ce menu, pas aussi en
+       * lien direct à côté.
        *
-       * Numéro de version SOUS Réglages, pas dessus (demande @laupernoe, 17.08.2026 : « au-dessus ou en
-       * dessous du bouton Réglages », choix laissé à l'agent) : le lien actionnable se lit en
-       * premier, la métadonnée de confort ensuite — même ordre qu'un pied d'application classique
-       * (action, puis « à propos »/version). Conditionné par LE MÊME `reglagesVisibles(role)` que
-       * le lien : « collé au bouton », donc rien à afficher si ce bouton n'existe pas pour ce
-       * rôle — jamais un second pied indépendant.
+       * Rendu dès que `session` existe, SANS dépendre de `reglagesVisibles(role)` — contrairement
+       * à l'ancien pied qui conditionnait tout (Réglages ET la version) sur ce même test. Piège
+       * évité : `reglagesVisibles` ne vaut aujourd'hui jamais `false` pour un rôle de personne
+       * (l'onglet « Tarifs et prestations » n'a AUCUNE restriction), donc l'ancien couplage était
+       * invisible en pratique — mais un futur retrait de cette exception aurait fait disparaître la
+       * DÉCONNEXION en même temps que Réglages pour le rôle concerné, une régression opérationnelle
+       * bien plus grave qu'un onglet manquant. Le menu ne propose Réglages QUE si
+       * `reglagesVisibles(role)` reste vrai ; la déconnexion, elle, est TOUJOURS proposée.
        *
-       * REPLIÉ (icônes seules, colonne à 64 px) : le texte est MASQUÉ entièrement (`hidden`),
-       * jamais tronqué ni réduit — même idiome que le mot-symbole « dmsforall » en tête de cette
-       * barre (`hidden`, pas une opacité à zéro : retiré du flux ET de l'arbre d'accessibilité).
-       * Aucune chaîne de version ne tient sur les ~48 px utiles restants sans déborder ou perdre
-       * tout son sens tronquée, et ce texte n'est qu'une métadonnée de confort — jamais un
-       * contrôle qu'un lecteur d'écran devrait pouvoir atteindre en repli.
+       * Numéro de version SOUS le déclencheur, pas dessus (demande @laupernoe, 17.08.2026 : « au-dessus ou
+       * en dessous du bouton Réglages », choix laissé à l'agent — Réglages a changé de forme depuis,
+       * l'ordre de lecture reste le même : l'action en premier, la métadonnée de confort ensuite).
        *
-       * ABSENTE pour `poste_atelier` (borne murale, `AppShell.tsx` retire l'`aside` entier) :
-       * assumé, confirmé sans effet de bord par les tests de masquage par rôle existants
-       * (`describe('BarreLaterale — masquage par rôle')`) — rien de spécifique à ajouter ici, la
-       * disparition suit celle de toute la colonne.
+       * REPLIÉ (icônes seules, colonne à 64 px) : le texte identité + le texte de version sont
+       * MASQUÉS entièrement (`hidden`), jamais tronqués — même idiome que le reste de la colonne
+       * repliée. L'avatar seul reste le déclencheur, `aria-label`/`title` portent le nom complet +
+       * le rôle (même motif que les six entrées : posé dans LES DEUX états, jamais recalculé selon
+       * ce qui est visuellement affiché).
+       *
+       * ABSENT pour `poste_atelier` (borne murale, `AppShell.tsx` retire l'`aside` entier) : la
+       * déconnexion de la borne reste un bouton en clair, JAMAIS enfoui — voir
+       * `BandeauSansNavigation.tsx`, seul endroit où l'ancienne doctrine « jamais dans un menu »
+       * reste appliquée à la lettre, précisément parce que c'est un poste PARTAGÉ.
        */}
-      {reglagesVisibles(role) ? (
+      {session ? (
         <div className={cn('shrink-0 border-t', replie ? 'p-2' : 'p-3')}>
-          <ul className="flex flex-col gap-1">{rendreEntree(ENTREE_REGLAGES)}</ul>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className={cn(
+                  'anneau-focus flex h-11 w-full items-center rounded-md text-sm font-medium transition-colors hover:bg-muted',
+                  replie ? 'justify-center px-2' : 'gap-3 px-3',
+                )}
+                aria-label={`${libelleCompte} — ${libelleRole}`}
+                title={replie ? `${libelleCompte} — ${libelleRole}` : undefined}
+              >
+                <span
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground"
+                  aria-hidden="true"
+                >
+                  {initiales}
+                </span>
+                {!replie ? (
+                  <>
+                    <span className="min-w-0 flex-1 text-left leading-tight">
+                      <span className="block truncate text-foreground">{libelleCompte}</span>
+                      <span className="block truncate text-muted-foreground">{libelleRole}</span>
+                    </span>
+                    <ChevronsUpDown
+                      className="h-4 w-4 shrink-0 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                  </>
+                ) : null}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" side="top" className="w-56">
+              <DropdownMenuLabel className="truncate font-normal text-muted-foreground">
+                {libelleCompte} — {libelleRole}
+              </DropdownMenuLabel>
+              {reglagesVisibles(role) ? (
+                <DropdownMenuItem asChild>
+                  <Link to={cheminEntree(ENTREE_REGLAGES, role, site) ?? ''}>
+                    <Settings className="h-4 w-4" aria-hidden="true" />
+                    {t('navigation:entrees.reglages')}
+                  </Link>
+                </DropdownMenuItem>
+              ) : null}
+              <DropdownMenuItem
+                onSelect={() => deconnexion.mutate()}
+                disabled={deconnexion.isPending}
+              >
+                <LogOut className="h-4 w-4" aria-hidden="true" />
+                {t('auth:deconnexion.action')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <p
             className={cn(
               'texte-libelle select-text text-muted-foreground',

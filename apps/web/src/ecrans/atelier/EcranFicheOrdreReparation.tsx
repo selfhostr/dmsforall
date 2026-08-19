@@ -162,193 +162,202 @@ export function EcranFicheOrdreReparation() {
         </CardContent>
       </Card>
 
-      {/* Lot B — pièces utilisées, vers la fiche article (magasinier : « depuis une fiche
-       *  article, voir sur quel OR elle a été posée » — ici le sens inverse, tout aussi demandé
-       *  par le chef d'atelier). */}
-      {piecesUtilisees.length > 0 ? (
+      {/* Regroupement en grille large plutôt qu'empilement (« un écran est plus large que
+       *  haut ») : ces quatre cartes sont des blocs d'information COURTS (liste/`dl`), jamais un
+       *  contenu qui a besoin de toute la largeur de page comme le tableau de lignes ci-dessus —
+       *  les empiler en pleine largeur ne faisait que gaspiller du défilement vertical. Chacune
+       *  reste conditionnelle comme avant (contenu inchangé), la grille absorbe simplement
+       *  1 à 4 d'entre elles selon ce que ce document précis porte. */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {/* Lot B — pièces utilisées, vers la fiche article (magasinier : « depuis une fiche
+         *  article, voir sur quel OR elle a été posée » — ici le sens inverse, tout aussi demandé
+         *  par le chef d'atelier). */}
+        {piecesUtilisees.length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="texte-titre-section">
+                {t('or:fiche.piecesUtilisees.titre')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="flex flex-col divide-y">
+                {piecesUtilisees.map((piece) => (
+                  <li
+                    key={piece.articleId}
+                    className="flex items-center justify-between gap-3 py-2"
+                  >
+                    <button
+                      type="button"
+                      className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      onClick={() => navigate(chemins.pieces.articleDetail(piece.articleId, site))}
+                    >
+                      {piece.designation}
+                    </button>
+                    <span className="texte-libelle tabular-nums text-muted-foreground">
+                      {(piece.quantiteMillieme / 1000).toString()}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {/* Lot B — devis d'origine et facture émise, liés à cet OR (`ordreReparationId`,
+         *  `FiltresDocumentsVente`). Route générique `/factures/{id}` (`EcranFicheFacture`, déjà
+         *  câblée pour tout `typeDocument`, même lien que `CarteDocumentsVente.tsx` côté ventes). */}
         <Card>
           <CardHeader>
             <CardTitle className="texte-titre-section">
-              {t('or:fiche.piecesUtilisees.titre')}
+              {t('or:fiche.documentsVente.titre')}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="flex flex-col divide-y">
-              {piecesUtilisees.map((piece) => (
-                <li key={piece.articleId} className="flex items-center justify-between gap-3 py-2">
-                  <button
-                    type="button"
-                    className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    onClick={() => navigate(chemins.pieces.articleDetail(piece.articleId, site))}
-                  >
-                    {piece.designation}
-                  </button>
-                  <span className="texte-libelle tabular-nums text-muted-foreground">
-                    {(piece.quantiteMillieme / 1000).toString()}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            {requeteDocuments.isPending ? (
+              <EtatChargement lignes={2} />
+            ) : requeteDocuments.isError ? (
+              <EtatErreur
+                titre={t('or:fiche.erreurSection.titre')}
+                description={messageErreur(requeteDocuments.error, t)}
+                onReessayer={() => void requeteDocuments.refetch()}
+              />
+            ) : documentsLies.length === 0 ? (
+              <EtatVide
+                titre={t('or:fiche.documentsVente.titre')}
+                description={
+                  // Issue #105 (rapport terrain) : « OR restitué + clôturé, aucune facture liée,
+                  // bug ? » — non, `cloturer()` ne vérifie jamais l'existence d'un document
+                  // (RF-83, migration 0010_facturation.sql §15 : facturation et restitution
+                  // INDÉPENDANTES). Mais l'écran rendait jusqu'ici le MÊME message générique
+                  // qu'un OR encore ouvert à la facturation — exactement la règle maison violée
+                  // (« absence de donnée ≠ valeur : "inconnu", "aucun", "interdit" ne partagent
+                  // jamais le même rendu »). Trois cas distincts, aucun motif métier inventé
+                  // au-delà de ce que le contrat porte déjà (`or.statut`/`or.motifAnnulation`).
+                  or.statut === 'cloture'
+                    ? t('or:fiche.documentsVente.clotureSansFacture')
+                    : or.statut === 'annule'
+                      ? t('or:fiche.documentsVente.annuleSansFacture', {
+                          motif: or.motifAnnulation,
+                        })
+                      : t('or:fiche.documentsVente.pasEncoreFacture')
+                }
+              />
+            ) : (
+              <ul className="flex flex-col divide-y">
+                {documentsLies.map((document_) => (
+                  <li key={document_.id} className="flex items-center justify-between gap-3 py-2">
+                    <button
+                      type="button"
+                      className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      onClick={() => navigate(`/factures/${document_.id}`)}
+                    >
+                      {t(
+                        `facturation:document.type.${cleTypeDocumentVente(document_.typeDocument, document_.natureFacture ?? null)}`,
+                      )}
+                      {document_.numero ? ` ${document_.numero}` : ''}
+                    </button>
+                    <span className="texte-libelle text-muted-foreground">
+                      {formaterDate(document_.dateDocument)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
-      ) : null}
 
-      {/* Lot B — devis d'origine et facture émise, liés à cet OR (`ordreReparationId`,
-       *  `FiltresDocumentsVente`). Route générique `/factures/{id}` (`EcranFicheFacture`, déjà
-       *  câblée pour tout `typeDocument`, même lien que `CarteDocumentsVente.tsx` côté ventes). */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="texte-titre-section">
-            {t('or:fiche.documentsVente.titre')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {requeteDocuments.isPending ? (
-            <EtatChargement lignes={2} />
-          ) : requeteDocuments.isError ? (
-            <EtatErreur
-              titre={t('or:fiche.erreurSection.titre')}
-              description={messageErreur(requeteDocuments.error, t)}
-              onReessayer={() => void requeteDocuments.refetch()}
-            />
-          ) : documentsLies.length === 0 ? (
-            <EtatVide
-              titre={t('or:fiche.documentsVente.titre')}
-              description={
-                // Issue #105 (rapport terrain) : « OR restitué + clôturé, aucune facture liée,
-                // bug ? » — non, `cloturer()` ne vérifie jamais l'existence d'un document
-                // (RF-83, migration 0010_facturation.sql §15 : facturation et restitution
-                // INDÉPENDANTES). Mais l'écran rendait jusqu'ici le MÊME message générique
-                // qu'un OR encore ouvert à la facturation — exactement la règle maison violée
-                // (« absence de donnée ≠ valeur : "inconnu", "aucun", "interdit" ne partagent
-                // jamais le même rendu »). Trois cas distincts, aucun motif métier inventé
-                // au-delà de ce que le contrat porte déjà (`or.statut`/`or.motifAnnulation`).
-                or.statut === 'cloture'
-                  ? t('or:fiche.documentsVente.clotureSansFacture')
-                  : or.statut === 'annule'
-                    ? t('or:fiche.documentsVente.annuleSansFacture', {
-                        motif: or.motifAnnulation,
-                      })
-                    : t('or:fiche.documentsVente.pasEncoreFacture')
-              }
-            />
-          ) : (
-            <ul className="flex flex-col divide-y">
-              {documentsLies.map((document_) => (
-                <li key={document_.id} className="flex items-center justify-between gap-3 py-2">
-                  <button
-                    type="button"
-                    className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    onClick={() => navigate(`/factures/${document_.id}`)}
-                  >
-                    {t(
-                      `facturation:document.type.${cleTypeDocumentVente(document_.typeDocument, document_.natureFacture ?? null)}`,
-                    )}
-                    {document_.numero ? ` ${document_.numero}` : ''}
-                  </button>
-                  <span className="texte-libelle text-muted-foreground">
-                    {formaterDate(document_.dateDocument)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Lot B — « qui a pointé et combien » (`or.cumulsPointage`, déjà embarqué dans le document
-       *  complet, aucune requête supplémentaire). Absent de valeur (pas de pointage) affiché
-       *  distinctement d'un total à zéro produit par un pointage réel — même doctrine « une
-       *  absence n'est pas une valeur » que le reste du dépôt. */}
-      {or.cumulsPointage.parTechnicien.length > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="texte-titre-section">{t('or:fiche.pointage.titre')}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 texte-corps sm:grid-cols-3">
-              {or.cumulsPointage.parTechnicien.map((cumul) => (
-                <div key={cumul.technicienId} className="contents">
-                  <dt className="text-muted-foreground">{cumul.nomAffiche}</dt>
-                  <dd className="col-span-2 tabular-nums sm:col-span-1">
-                    {formaterTempsHeures(cumul.centiemes)}
+        {/* Lot B — « qui a pointé et combien » (`or.cumulsPointage`, déjà embarqué dans le document
+         *  complet, aucune requête supplémentaire). Absent de valeur (pas de pointage) affiché
+         *  distinctement d'un total à zéro produit par un pointage réel — même doctrine « une
+         *  absence n'est pas une valeur » que le reste du dépôt. */}
+        {or.cumulsPointage.parTechnicien.length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="texte-titre-section">{t('or:fiche.pointage.titre')}</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-2 texte-corps">
+                {or.cumulsPointage.parTechnicien.map((cumul) => (
+                  <div key={cumul.technicienId} className="contents">
+                    <dt className="text-muted-foreground">{cumul.nomAffiche}</dt>
+                    <dd className="tabular-nums">{formaterTempsHeures(cumul.centiemes)}</dd>
+                  </div>
+                ))}
+                <div className="contents border-t pt-2">
+                  <dt className="font-medium text-foreground">{t('or:fiche.pointage.total')}</dt>
+                  <dd className="font-semibold tabular-nums text-foreground">
+                    {formaterTempsHeures(or.cumulsPointage.totalCentiemes)}
                   </dd>
                 </div>
-              ))}
-              <div className="contents border-t pt-2">
-                <dt className="font-medium text-foreground">{t('or:fiche.pointage.total')}</dt>
-                <dd className="col-span-2 font-semibold tabular-nums text-foreground sm:col-span-1">
-                  {formaterTempsHeures(or.cumulsPointage.totalCentiemes)}
-                </dd>
-              </div>
-            </dl>
-          </CardContent>
-        </Card>
-      ) : null}
+              </dl>
+            </CardContent>
+          </Card>
+        ) : null}
 
-      {or.totauxParPayeur && or.totauxParPayeur.length > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="texte-titre-section">{t('or:totaux.titre')}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            {/* Grille à 2 colonnes FIXES, jamais `sm:grid-cols-3` : chaque paire (`dt` + `dd`)
-             *  n'utilise que 2 cellules — sur une grille à 3 colonnes, le nombre total de
-             *  cellules n'est multiple de 3 que par coïncidence (payeur unique = 4 cellules =
-             *  décalage garanti). Le total n'a plus besoin de `col-span`/`sm:col-span` puisque
-             *  chaque paire occupe naturellement sa propre ligne. */}
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 texte-corps">
-              {or.totauxParPayeur.map((totaux) => (
-                // Clé = `(payeur, payeurClientId)` (MD-62), jamais `payeur` seul : deux assurances
-                // distinctes sur le même OR partagent `payeur = 'assurance'` mais sont deux groupes
-                // — une clé par seul `payeur` les ferait entrer en collision React (dernier gagne,
-                // l'autre disparaît silencieusement de l'écran).
-                <div key={`${totaux.payeur}:${totaux.payeurClientId ?? ''}`} className="contents">
-                  <dt className="text-muted-foreground">
-                    {t(`or:lignes.payeurs.${totaux.payeur}`)}
-                    {totaux.payeur !== 'client' && totaux.destinataire
-                      ? ` — ${totaux.destinataire.nomAffiche}`
-                      : ''}
-                  </dt>
-                  <dd className="font-medium text-foreground texte-montant">
-                    {t('or:lignes.montants.ttc', {
-                      montant: formaterMontantAvecDevise(totaux.montantTtcCentimes, 'CHF'),
-                    })}
-                  </dd>
-                </div>
-              ))}
+        {or.totauxParPayeur && or.totauxParPayeur.length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="texte-titre-section">{t('or:totaux.titre')}</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              {/* Grille à 2 colonnes FIXES, jamais `sm:grid-cols-3` : chaque paire (`dt` + `dd`)
+               *  n'utilise que 2 cellules — sur une grille à 3 colonnes, le nombre total de
+               *  cellules n'est multiple de 3 que par coïncidence (payeur unique = 4 cellules =
+               *  décalage garanti). Le total n'a plus besoin de `col-span`/`sm:col-span` puisque
+               *  chaque paire occupe naturellement sa propre ligne. */}
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-2 texte-corps">
+                {or.totauxParPayeur.map((totaux) => (
+                  // Clé = `(payeur, payeurClientId)` (MD-62), jamais `payeur` seul : deux assurances
+                  // distinctes sur le même OR partagent `payeur = 'assurance'` mais sont deux groupes
+                  // — une clé par seul `payeur` les ferait entrer en collision React (dernier gagne,
+                  // l'autre disparaît silencieusement de l'écran).
+                  <div key={`${totaux.payeur}:${totaux.payeurClientId ?? ''}`} className="contents">
+                    <dt className="text-muted-foreground">
+                      {t(`or:lignes.payeurs.${totaux.payeur}`)}
+                      {totaux.payeur !== 'client' && totaux.destinataire
+                        ? ` — ${totaux.destinataire.nomAffiche}`
+                        : ''}
+                    </dt>
+                    <dd className="font-medium text-foreground texte-montant">
+                      {t('or:lignes.montants.ttc', {
+                        montant: formaterMontantAvecDevise(totaux.montantTtcCentimes, 'CHF'),
+                      })}
+                    </dd>
+                  </div>
+                ))}
+                {or.totalValideCentimes !== undefined ? (
+                  // `border-t`/`pt-2` posés sur `dt`/`dd` eux-mêmes, jamais sur ce conteneur
+                  // `display: contents` : un élément à `display: contents` ne génère aucune boîte
+                  // propre, donc une bordure/un padding posé dessus ne s'affiche jamais.
+                  <div className="contents">
+                    <dt className="border-t pt-2 text-muted-foreground">
+                      {t('or:totaux.totalValide')}
+                    </dt>
+                    <dd className="border-t pt-2 font-semibold text-foreground texte-montant">
+                      {t('or:lignes.montants.ttc', {
+                        montant: formaterMontantAvecDevise(or.totalValideCentimes, 'CHF'),
+                      })}
+                    </dd>
+                  </div>
+                ) : null}
+              </dl>
+              {/* CORRECTIF issue #72 (rapport de test terrain) : « il y a deux totaux différents,
+               *  Client 958.31 et Total validé 894.53. Lequel je dis au client ? » — les deux
+               *  chiffres sont réels mais répondent à des questions différentes (`totaux-payeur.ts`
+               *  regroupe TOUTES les lignes non annulées/refusées par payeur ; `totalValideCentimes`
+               *  suit le plafond, § RM-54, sur les lignes VALIDÉES de TOUS les payeurs confondus,
+               *  jamais un montant facturable). Le renommage du libellé ci-dessus ne suffit pas à
+               *  lui seul à lever l'ambiguïté une fois les deux chiffres sous les yeux — cette phrase
+               *  la tranche explicitement. */}
               {or.totalValideCentimes !== undefined ? (
-                // `border-t`/`pt-2` posés sur `dt`/`dd` eux-mêmes, jamais sur ce conteneur
-                // `display: contents` : un élément à `display: contents` ne génère aucune boîte
-                // propre, donc une bordure/un padding posé dessus ne s'affiche jamais.
-                <div className="contents">
-                  <dt className="border-t pt-2 text-muted-foreground">
-                    {t('or:totaux.totalValide')}
-                  </dt>
-                  <dd className="border-t pt-2 font-semibold text-foreground texte-montant">
-                    {t('or:lignes.montants.ttc', {
-                      montant: formaterMontantAvecDevise(or.totalValideCentimes, 'CHF'),
-                    })}
-                  </dd>
-                </div>
+                <p className="texte-libelle text-muted-foreground">
+                  {t('or:totaux.aideDistinction')}
+                </p>
               ) : null}
-            </dl>
-            {/* CORRECTIF issue #72 (rapport de test terrain) : « il y a deux totaux différents,
-             *  Client 958.31 et Total validé 894.53. Lequel je dis au client ? » — les deux
-             *  chiffres sont réels mais répondent à des questions différentes (`totaux-payeur.ts`
-             *  regroupe TOUTES les lignes non annulées/refusées par payeur ; `totalValideCentimes`
-             *  suit le plafond, § RM-54, sur les lignes VALIDÉES de TOUS les payeurs confondus,
-             *  jamais un montant facturable). Le renommage du libellé ci-dessus ne suffit pas à
-             *  lui seul à lever l'ambiguïté une fois les deux chiffres sous les yeux — cette phrase
-             *  la tranche explicitement. */}
-            {or.totalValideCentimes !== undefined ? (
-              <p className="texte-libelle text-muted-foreground">
-                {t('or:totaux.aideDistinction')}
-              </p>
-            ) : null}
-          </CardContent>
-        </Card>
-      ) : null}
+            </CardContent>
+          </Card>
+        ) : null}
+      </div>
     </GabaritEcran>
   );
 }

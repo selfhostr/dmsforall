@@ -3,7 +3,7 @@ import { render, screen, waitFor, type RenderResult } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import '@/i18n';
 
@@ -26,8 +26,18 @@ import { BarreLaterale } from './BarreLaterale';
  *     précisément la régression qu'un futur ajout d'entrée réintroduirait sans bruit.
  *  3. Chaque entrée ouvre sur son PREMIER ONGLET VISIBLE pour le rôle, jamais sur un écran refusé.
  *
+ * Lot « cadre applicatif » (19.08.2026) — TROIS groupes de tests EN PLUS, à la fin du fichier :
+ * le bloc tenant + site en tête de colonne, le pied compte (identité + Réglages + déconnexion,
+ * regroupés dans un menu qui se déplie — Réglages n'est donc plus un `role=link` direct, voir la
+ * doc de tête de `BarreLaterale.tsx` §2), et leur rendu repliée.
+ *
  * `SESSION_TEST` porte le rôle `chef_atelier`.
  */
+const { mutateMock } = vi.hoisted(() => ({ mutateMock: vi.fn() }));
+vi.mock('@/hooks/useDeconnexion', () => ({
+  useDeconnexion: () => ({ mutate: mutateMock, isPending: false }),
+}));
+
 function rendre(routeInitiale: string): RenderResult & { queryClient: QueryClient } {
   const queryClient = creerQueryClientTest();
   return {
@@ -90,7 +100,9 @@ function connecte(role: RoleUtilisateur): void {
 }
 
 /** Libellés des entrées dans l'ordre du DOM — la seule façon de prouver l'ORDRE, qu'une simple
- *  série de `getByRole` ne dirait pas. */
+ *  série de `getByRole` ne dirait pas. Réglages n'est PLUS un `role=link` direct (Lot « cadre
+ *  applicatif » : regroupé dans le menu du pied compte) — cette liste ne porte donc plus que les
+ *  six entrées. */
 function libellesDesEntrees(): string[] {
   return screen
     .getAllByRole('link')
@@ -102,8 +114,22 @@ function hrefDuLien(nom: RegExp): string | null {
   return screen.getByRole('link', { name: nom }).getAttribute('href');
 }
 
+/** Ouvre le menu du pied compte — déclencheur nommé par prénom + nom + rôle (voir la doc de tête
+ *  de `BarreLaterale.tsx`, § pied compte). `Jean Dupont` est l'identité de `SESSION_TEST`. */
+async function ouvrirMenuCompte(): Promise<void> {
+  const utilisateur = userEvent.setup();
+  // `findByRole` (pas `getByRole`) : le pied compte n'existe qu'une fois `session` résolue
+  // (requête MSW asynchrone) — voir la doc de tête de `BarreLaterale.tsx`, § pied compte.
+  const declencheur = await screen.findByRole('button', { name: /jean dupont/i });
+  await utilisateur.click(declencheur);
+}
+
+beforeEach(() => {
+  mutateMock.mockClear();
+});
+
 describe('BarreLaterale — les six entrées', () => {
-  it('direction (droits les plus larges) : exactement six entrées + Réglages, dans l’ordre de la journée', async () => {
+  it('direction (droits les plus larges) : exactement six entrées, dans l’ordre de la journée', async () => {
     connecte('direction');
     rendre('/');
 
@@ -116,7 +142,6 @@ describe('BarreLaterale — les six entrées', () => {
       'Pièces',
       'Facturation',
       'Ventes',
-      'Réglages',
     ]);
   });
 
@@ -134,7 +159,6 @@ describe('BarreLaterale — les six entrées', () => {
       'Clients & véhicules',
       'Pièces',
       'Facturation',
-      'Réglages',
     ]);
   });
 
@@ -145,30 +169,14 @@ describe('BarreLaterale — les six entrées', () => {
    * `overflow-y-auto` « par sécurité » (le geste exact qui a produit l'état d'avant le lot) fait
    * rougir ce test au lieu de laisser le menu se remettre à défiler en silence.
    */
-  it('aucune zone défilante dans la barre, et jamais plus de sept liens à rendre', async () => {
+  it('aucune zone défilante dans la barre, et jamais plus de six liens de menu à rendre', async () => {
     connecte('direction');
     const { container } = rendre('/');
 
     await screen.findByRole('link', { name: /^pièces$/i });
 
     expect(container.querySelectorAll('[class*="overflow-y"]')).toHaveLength(0);
-    expect(screen.getAllByRole('link').length).toBeLessThanOrEqual(7);
-  });
-
-  it('Réglages vit dans le pied, séparé des six entrées — jamais dans la même liste', async () => {
-    connecte('direction');
-    rendre('/');
-
-    const reglages = await screen.findByRole('link', { name: /^réglages$/i });
-    const nav = screen.getByRole('navigation');
-    const listeDesSix = nav.firstElementChild;
-    const pied = nav.lastElementChild;
-
-    expect(listeDesSix).not.toBe(pied);
-    expect(listeDesSix?.contains(reglages)).toBe(false);
-    expect(pied?.contains(reglages)).toBe(true);
-    // Le filet est ce qui encode la frontière entre les plans de travail et ce qu'on configure.
-    expect(pied?.className).toContain('border-t');
+    expect(screen.getAllByRole('link').length).toBeLessThanOrEqual(6);
   });
 
   it('cibles tactiles : chaque entrée fait au moins 44 px de haut (h-11), postes de comptoir tactiles', async () => {
@@ -198,7 +206,6 @@ describe('BarreLaterale — où mène chaque entrée', () => {
     expect(hrefDuLien(/^pièces$/i)).toBe('/pieces/recherche-comptoir');
     expect(hrefDuLien(/^facturation$/i)).toBe('/factures');
     expect(hrefDuLien(/^ventes$/i)).toBe('/ventes/dossiers');
-    expect(hrefDuLien(/^réglages$/i)).toBe('/parametrage/atelier');
   });
 
   /**
@@ -213,22 +220,26 @@ describe('BarreLaterale — où mène chaque entrée', () => {
   });
 
   /**
-   * Le premier onglet visible dépend des droits : un réceptionniste n'a accès qu'à « Tarifs et
-   * prestations » dans Réglages, l'entrée l'y emmène donc directement — jamais sur un onglet
-   * « Paramètres atelier » qui lui rendrait un refus.
+   * Réglages a rejoint le menu du pied compte (Lot « cadre applicatif ») : sa cible dépend TOUJOURS
+   * du premier onglet visible pour le rôle, exactement comme avant — seule la façon de l'atteindre
+   * a changé (ouvrir le menu, puis cliquer l'entrée du menu plutôt qu'un lien direct de la barre).
    */
-  it('réceptionniste : Réglages ouvre sur Tarifs et prestations, son seul onglet', async () => {
+  it('réceptionniste : le menu du pied ouvre Réglages sur Tarifs et prestations, son seul onglet', async () => {
     connecte('receptionnaire');
     rendre('/');
 
-    await waitFor(() => expect(hrefDuLien(/^réglages$/i)).toBe('/parametrage/referentiels'));
+    await ouvrirMenuCompte();
+    const reglages = await screen.findByRole('menuitem', { name: /réglages/i });
+    expect(reglages.getAttribute('href')).toBe('/parametrage/referentiels');
   });
 
-  it('comptable : Réglages ouvre sur les coordonnées bancaires (gouvernance atelier fermée)', async () => {
+  it('comptable : le menu du pied ouvre Réglages sur les coordonnées bancaires (gouvernance atelier fermée)', async () => {
     connecte('comptable');
     rendre('/');
 
-    await waitFor(() => expect(hrefDuLien(/^réglages$/i)).toBe('/parametrage/facturation'));
+    await ouvrirMenuCompte();
+    const reglages = await screen.findByRole('menuitem', { name: /réglages/i });
+    expect(reglages.getAttribute('href')).toBe('/parametrage/facturation');
   });
 });
 
@@ -320,41 +331,6 @@ describe('BarreLaterale — entrée active', () => {
     );
   });
 
-  /**
-   * NE PROVIENT PAS DE L'ARBITRAGE DE NAVIGATION. Ce test reste EN ROUGE après vérification, et
-   * pas à cause d'un modèle abandonné : `navigation-modele.ts` résout correctement
-   * `trouverCorrespondance('/pointage/equipe') → { entree: 'atelier', … }` (vérifié isolément), et
-   * `actif` dans `BarreLaterale.tsx` vaut donc bien `true` pour l'entrée Atelier au moment du rendu
-   * (la classe `bg-primary` est posée). Le défaut est dans la façon dont `aria-current` est confié à
-   * `<NavLink>` : react-router détruit le prop `aria-current` en `ariaCurrentProp` (défaut `"page"`)
-   * et ne le RESTITUE que si son PROPRE `isActive` (comparaison `to` / `location.pathname`, indépendante
-   * de ce composant) est vrai — voir `NavLinkWithRef` dans
-   * `react-router/dist/development/chunk-G5KIBF6U.js` (« let ariaCurrent = isActive ? ariaCurrentProp
-   * : void 0 »). Ici `to` vaut `/ordres-reparation` (premier onglet visible, onglet PAR DÉFAUT de
-   * l'entrée, pas l'onglet courant), donc `isActive` de `NavLink` est `false` sur
-   * `/pointage/equipe` quelle que soit la valeur passée à `aria-current` — `'page'` ou `undefined`
-   * aboutissent au MÊME rendu (`undefined` retombe sur le défaut `"page"` du destructuring, qui est
-   * de toute façon ignoré par le `isActive ? … : void 0` qui suit). Reproduit isolément avec un
-   * `<NavLink to="/ordres-reparation" aria-current="page">` nu dans un `MemoryRouter` sur
-   * `/pointage/equipe` : `aria-current` n'apparaît jamais dans le DOM.
-   *
-   * `OngletsDomaine.tsx` porte le même idiome mais n'est pas exposé au même défaut : son `to` est
-   * TOUJOURS le chemin propre de l'onglet/vue qu'on est en train de rendre (pas un onglet par
-   * défaut), donc le `isActive` propre à `NavLink` coïncide par construction avec `actif` — masquant
-   * le même bug plutôt que le corrigeant. `BarreLaterale.tsx` diffère structurellement : `to` est le
-   * chemin de l'onglet PAR DÉFAUT de l'entrée, qui n'a aucune raison de préfixer l'URL courante dès
-   * que l'onglet actif n'est pas cet onglet par défaut (ex. chef_atelier sur Pointage, dont
-   * `/pointage/equipe` ne préfixe jamais `/ordres-reparation`).
-   *
-   * Correction hors du périmètre d'écriture de ce fichier (`composants/layout/BarreLaterale.tsx` est
-   * explicitement interdit à l'agent qui a produit cette correction) : il faut soit rendre un `<a>`
-   * (ou `<Link>`) et poser `aria-current` soi-même sans passer par le prop géré de `NavLink`, soit
-   * une autre voie côté composant. Gardé EN ROUGE volontairement plutôt que rendu vert en affaiblissant
-   * l'assertion ou en choisissant un rôle/route qui ferait coïncider `to` et le pathname par
-   * accident (ex. `technicien`, dont l'onglet par défaut d'Atelier EST déjà Pointage) — un tel
-   * choix cesserait de prouver que la logique `actif`/`idEntreeActive` fonctionne réellement et
-   * masquerait la régression au lieu de la révéler.
-   */
   it('surligne Atelier depuis une vue de pointage (`/pointage/equipe`), pas seulement depuis `/pointage`', async () => {
     connecte('chef_atelier');
     rendre('/pointage/equipe');
@@ -398,8 +374,10 @@ describe('BarreLaterale — masquage par rôle', () => {
     expect(screen.queryByRole('link', { name: /^facturation$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /^pièces$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /^ventes$/i })).not.toBeInTheDocument();
-    // Il garde en revanche Réglages : la gouvernance atelier lui est ouverte.
-    expect(screen.getByRole('link', { name: /^réglages$/i })).toBeInTheDocument();
+    // Il garde en revanche Réglages : la gouvernance atelier lui est ouverte — vérifié dans le
+    // menu du pied compte, où Réglages vit désormais (Lot « cadre applicatif »).
+    await ouvrirMenuCompte();
+    expect(await screen.findByRole('menuitem', { name: /réglages/i })).toBeInTheDocument();
   });
 
   /**
@@ -422,7 +400,6 @@ describe('BarreLaterale — masquage par rôle', () => {
       'Pièces',
       'Facturation',
       'Ventes',
-      'Réglages',
     ]);
   });
 
@@ -437,9 +414,13 @@ describe('BarreLaterale — masquage par rôle', () => {
   /**
    * `poste_atelier` est un APPAREIL, pas un employé (§2, « aucun menu, aucun en-tête, aucune
    * recherche »). Filtrer entrée par entrée aurait laissé passer celles sans restriction de rôle
-   * (Clients & véhicules) et remis un menu sur une tablette murale.
+   * (Clients & véhicules) et remis un menu sur une tablette murale. Cette garantie-là appartient à
+   * `AppShell.tsx`, qui retire la colonne ENTIÈRE pour ce rôle (`afficheNavigation`) — ce test-ci
+   * prouve seulement que `BarreLaterale`, prise isolément, ne rend elle-même AUCUNE des six
+   * entrées pour ce rôle (le reste — bloc tenant/site, pied compte — n'est pas gouverné par ce
+   * composant, voir la description du pied compte plus bas dans ce fichier).
    */
-  it('poste_atelier (borne murale) : aucune entrée du tout', async () => {
+  it('poste_atelier (borne murale) : aucune des six entrées', async () => {
     connecte('poste_atelier');
     rendre('/pointage/borne');
 
@@ -466,9 +447,9 @@ describe('BarreLaterale — masquage par rôle', () => {
       expect(screen.queryByRole('link', { name: /^atelier$/i })).not.toBeInTheDocument();
     });
     expect(screen.getByRole('link', { name: /clients & véhicules/i })).toBeInTheDocument();
-    // Réglages reste proposé : « Tarifs et prestations » est ouvert à tout rôle authentifié
-    // (outil de comptoir — voir droits-routes.ts, l'absence de restriction EST la décision).
-    expect(screen.getByRole('link', { name: /^réglages$/i })).toBeInTheDocument();
+    // Sans session résolue, ni le bloc tenant/site ni le pied compte ne se rendent (les deux
+    // attendent `session`, voir la doc de `BarreLaterale.tsx`) — rien à affirmer de faux.
+    expect(screen.queryByRole('button', { name: /jean dupont/i })).not.toBeInTheDocument();
   });
 });
 
@@ -480,7 +461,7 @@ describe('BarreLaterale — masquage par rôle', () => {
  * `aria-label` qui porte le nom, pas le texte visible qui disparaît (`sr-only`).
  */
 describe('BarreLaterale — repli desktop', () => {
-  it('repliée : les six entrées + Réglages gardent un nom accessible malgré l’icône seule', async () => {
+  it('repliée : les six entrées gardent un nom accessible malgré l’icône seule', async () => {
     connecte('direction');
     rendreAvecRepli('/', true);
 
@@ -493,10 +474,9 @@ describe('BarreLaterale — repli desktop', () => {
     expect(pieces).toHaveAccessibleName('Pièces');
     const atelier = screen.getByRole('link', { name: /^atelier$/i });
     expect(atelier).toHaveAccessibleName('Atelier');
-    // Sept liens (six entrées + Réglages), chacun nommé — pas un seul lien muet une fois l'icône
-    // seule affichée.
+    // Six liens, chacun nommé — pas un seul lien muet une fois l'icône seule affichée.
     const liens = screen.getAllByRole('link');
-    expect(liens).toHaveLength(7);
+    expect(liens).toHaveLength(6);
     for (const lien of liens) {
       expect(lien.getAttribute('aria-label')).not.toBe('');
     }
@@ -515,7 +495,6 @@ describe('BarreLaterale — repli desktop', () => {
       'Pièces',
       'Facturation',
       'Ventes',
-      'Réglages',
     ]);
     // Déplié, le libellé reste un texte normal (pas `sr-only`) — repli fourni ou non ne doit rien
     // changer au rendu déplié.
@@ -561,41 +540,42 @@ describe('BarreLaterale — repli desktop', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('sans prop `repli` (tiroir mobile) : aucun bouton de repli n’est rendu', async () => {
+  it('sans prop `repli` (tiroir mobile) : aucun bouton de repli n’est rendu, tenant + site restent affichés', async () => {
     connecte('direction');
     rendre('/');
 
     await screen.findByRole('link', { name: /^atelier$/i });
     expect(screen.queryByRole('button', { name: /barre latérale/i })).not.toBeInTheDocument();
+    expect(screen.getByText('Garage Test SA')).toBeInTheDocument();
   });
 });
 
 /**
- * Numéro de version (demande @laupernoe, 17.08.2026) — collé au bouton Réglages, jamais un pied de page
+ * Numéro de version (demande @laupernoe, 17.08.2026) — collé au pied compte, jamais un pied de page
  * détaché (précision explicite après une première implémentation ailleurs). Injecté par
  * `vite.config.ts` (`define`) dans `import.meta.env.VITE_DFA_VERSION_INFO`, une config SÉPARÉE de
  * `vitest.config.ts` qui ne porte pas ce `define` : ces tests stubbent donc explicitement la
  * valeur (`vi.stubEnv`, qui met aussi à jour `import.meta.env` sous Vitest) plutôt que de dépendre
  * d'un état par défaut.
+ *
+ * DÉCOUPLÉ de `reglagesVisibles(role)` depuis le Lot « cadre applicatif » (voir la doc de tête de
+ * `BarreLaterale.tsx`, § pied compte) — la version reste affichée pour TOUT rôle qui monte
+ * réellement cette colonne, que Réglages lui soit ouvert ou non.
  */
-describe('BarreLaterale — numéro de version, collé à Réglages', () => {
+describe('BarreLaterale — numéro de version, collé au pied compte', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
   });
 
-  it('affiche la version telle qu’injectée à la compilation, dans le même pied que Réglages', async () => {
+  it('affiche la version telle qu’injectée à la compilation, dans le même pied que le compte', async () => {
     vi.stubEnv('VITE_DFA_VERSION_INFO', '0.1.0+a1b2c3d');
     connecte('direction');
     rendre('/');
 
-    const reglages = await screen.findByRole('link', { name: /^réglages$/i });
+    const compte = await screen.findByRole('button', { name: /jean dupont/i });
     const version = screen.getByText('0.1.0+a1b2c3d');
-    const nav = screen.getByRole('navigation');
-    const pied = nav.lastElementChild;
-
-    // Même conteneur que le lien Réglages, pas un pied détaché.
-    expect(pied?.contains(reglages)).toBe(true);
-    expect(pied?.contains(version)).toBe(true);
+    // Même conteneur que le déclencheur du pied compte, pas un pied détaché.
+    expect(compte.closest('div')?.contains(version)).toBe(true);
     // Sélectionnable à la souris (copier-coller) : jamais `select-none`.
     expect(version.className).toContain('select-text');
     expect(version.className).not.toContain('select-none');
@@ -607,7 +587,7 @@ describe('BarreLaterale — numéro de version, collé à Réglages', () => {
     connecte('direction');
     rendre('/');
 
-    await screen.findByRole('link', { name: /^réglages$/i });
+    await screen.findByRole('button', { name: /jean dupont/i });
     expect(screen.getByText('0.1.0+a1b2c3d+modifié')).toBeInTheDocument();
   });
 
@@ -616,17 +596,17 @@ describe('BarreLaterale — numéro de version, collé à Réglages', () => {
     connecte('direction');
     rendre('/');
 
-    await screen.findByRole('link', { name: /^réglages$/i });
+    await screen.findByRole('button', { name: /jean dupont/i });
     expect(screen.getByText('inconnue')).toBeInTheDocument();
   });
 
-  it('repliée : le texte de version est masqué entièrement (jamais tronqué), Réglages reste accessible en icône', async () => {
+  it('repliée : le texte de version est masqué entièrement (jamais tronqué), le pied compte reste accessible en icône', async () => {
     vi.stubEnv('VITE_DFA_VERSION_INFO', '0.1.0+a1b2c3d');
     connecte('direction');
     rendreAvecRepli('/', true);
 
-    const reglages = await screen.findByRole('link', { name: /^réglages$/i });
-    expect(reglages).toBeInTheDocument();
+    const compte = await screen.findByRole('button', { name: /jean dupont/i });
+    expect(compte).toBeInTheDocument();
     const version = screen.getByText('0.1.0+a1b2c3d');
     expect(version.className).toContain('hidden');
   });
@@ -636,12 +616,20 @@ describe('BarreLaterale — numéro de version, collé à Réglages', () => {
     connecte('direction');
     rendreAvecRepli('/', false);
 
-    await screen.findByRole('link', { name: /^réglages$/i });
+    await screen.findByRole('button', { name: /jean dupont/i });
     const version = screen.getByText('0.1.0+a1b2c3d');
     expect(version.className).not.toContain('hidden');
   });
 
-  it('poste_atelier (borne murale) : ni Réglages ni version — la colonne entière est absente (assumé)', async () => {
+  /**
+   * Poste_atelier n'apparaît JAMAIS dans ce scénario en usage réel (`AppShell.tsx` retire l'`aside`
+   * entier pour ce rôle) — mais `BarreLaterale`, prise isolément, ne connaît pas cette règle : sa
+   * seule responsabilité est de ne jamais faire disparaître la version/la déconnexion pour une
+   * raison qui n'a rien à voir avec elles (voir le commentaire du Lot « cadre applicatif » sur le
+   * découplage d'avec `reglagesVisibles`). Réglages, en revanche, reste absent du menu pour ce
+   * rôle — c'est la seule chose que ce rôle ferme réellement ici.
+   */
+  it('poste_atelier : la version et la déconnexion restent affichées, Réglages seul disparaît du menu', async () => {
     vi.stubEnv('VITE_DFA_VERSION_INFO', '0.1.0+a1b2c3d');
     connecte('poste_atelier');
     rendre('/pointage/borne');
@@ -649,6 +637,101 @@ describe('BarreLaterale — numéro de version, collé à Réglages', () => {
     await waitFor(() => {
       expect(screen.queryByRole('link')).not.toBeInTheDocument();
     });
-    expect(screen.queryByText('0.1.0+a1b2c3d')).not.toBeInTheDocument();
+    expect(screen.getByText('0.1.0+a1b2c3d')).toBeInTheDocument();
+
+    await ouvrirMenuCompte();
+    expect(screen.queryByRole('menuitem', { name: /réglages/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /se déconnecter/i })).toBeInTheDocument();
+  });
+});
+
+/**
+ * BLOC TENANT + SITE — Lot « cadre applicatif » (19.08.2026), en tête de colonne, à la place de
+ * l'ancien mot-symbole « dmsforall » (voir la doc de tête du fichier, §1). `SESSION_TEST` ne porte
+ * qu'un seul site actif (`Site principal`) : ces tests couvrent le rendu à un site ; le
+ * multi-site est déjà couvert par `SelecteurSiteEntete.spec.tsx` (composant réutilisé tel quel).
+ */
+describe('BarreLaterale — bloc tenant + site', () => {
+  it('affiche le nom du tenant et le site courant, jamais le mot-symbole du produit', async () => {
+    connecte('direction');
+    // `?site=site-1` explicite : sans lui, aucun site n'est résolu (doctrine « absence de donnée
+    // ≠ valeur », issue #91) — même mécanisme que `BarreLaterale — conservation du site courant`
+    // plus haut dans ce fichier.
+    rendre('/?site=site-1');
+
+    expect(await screen.findByText('Garage Test SA')).toBeInTheDocument();
+    expect(screen.getByText('Site principal')).toBeInTheDocument();
+    expect(screen.queryByText('dmsforall')).not.toBeInTheDocument();
+  });
+
+  it('sans session résolue, n’affirme aucun tenant ni site', () => {
+    rendre('/');
+
+    expect(screen.queryByText('Garage Test SA')).not.toBeInTheDocument();
+    expect(screen.queryByText('Site principal')).not.toBeInTheDocument();
+  });
+
+  it('repliée : le nom du tenant est masqué (jamais tronqué), le site reste identifiable par son code court', async () => {
+    connecte('direction');
+    rendreAvecRepli('/?site=site-1', true);
+
+    await screen.findByRole('link', { name: /^pièces$/i });
+    expect(screen.queryByText('Garage Test SA')).not.toBeInTheDocument();
+    // Site unique + repliée : rendu non interactif (`<p>`), code court visible, nom complet porté
+    // par le texte `sr-only` — voir `SelecteurSiteEntete.tsx`, § rendu compact.
+    expect(screen.getByText('PRINCIPAL')).toBeInTheDocument();
+  });
+});
+
+/**
+ * PIED COMPTE — identité + Réglages + déconnexion, regroupés dans UN SEUL déclencheur qui déplie
+ * un menu (Lot « cadre applicatif », §2 de la doc de tête). RE-ARBITRAGE ASSUMÉ de la doctrine
+ * « déconnexion jamais enfouie » pour un poste de PERSONNE — cette doctrine reste appliquée à la
+ * lettre pour le poste PARTAGÉ (`BandeauSansNavigation.spec.tsx`).
+ */
+describe('BarreLaterale — pied compte', () => {
+  it('affiche l’identité (initiales, nom, rôle) comme déclencheur, pas comme texte inerte', async () => {
+    connecte('chef_atelier');
+    rendre('/');
+
+    const declencheur = await screen.findByRole('button', { name: /jean dupont/i });
+    expect(declencheur).toHaveTextContent('Jean Dupont');
+    expect(declencheur).toHaveTextContent('Chef d’atelier');
+    expect(declencheur).toHaveTextContent('JD');
+  });
+
+  it('le menu propose Réglages puis Se déconnecter, dans cet ordre — jamais Réglages en lien direct à côté', async () => {
+    connecte('chef_atelier');
+    rendre('/');
+
+    // Aucun lien direct nommé « Réglages » dans la barre avant ouverture du menu — la seule voie
+    // reste le menu (doctrine anti-doublon, `GabaritEcran.tsx`).
+    await screen.findByRole('link', { name: /^pièces$/i });
+    expect(screen.queryByRole('link', { name: /^réglages$/i })).not.toBeInTheDocument();
+
+    await ouvrirMenuCompte();
+    const elements = await screen.findAllByRole('menuitem');
+    expect(elements.map((element) => element.textContent?.trim())).toEqual([
+      expect.stringContaining('Réglages'),
+      expect.stringContaining('Se déconnecter'),
+    ]);
+  });
+
+  it('déclenche la mutation de déconnexion au clic sur « Se déconnecter »', async () => {
+    connecte('chef_atelier');
+    const utilisateur = userEvent.setup();
+    rendre('/');
+
+    await ouvrirMenuCompte();
+    await utilisateur.click(await screen.findByRole('menuitem', { name: /se déconnecter/i }));
+    expect(mutateMock).toHaveBeenCalledOnce();
+  });
+
+  it('repliée : le déclencheur perd son texte visible mais garde son nom accessible complet', async () => {
+    connecte('chef_atelier');
+    rendreAvecRepli('/', true);
+
+    const declencheur = await screen.findByRole('button', { name: /jean dupont.*chef d.atelier/i });
+    expect(declencheur.querySelector('span.min-w-0')).not.toBeInTheDocument();
   });
 });

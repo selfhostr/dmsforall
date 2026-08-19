@@ -35,8 +35,8 @@ export function TableauBordMagasinier({ site, sites }: Props) {
   const siteResolu = site ?? sites.find((candidat) => candidat.actif)?.id ?? sites[0]?.id;
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="grid gap-4 sm:grid-cols-2">
+    <div className="flex flex-col gap-section">
+      <div className="grid gap-groupe sm:grid-cols-2">
         <CarteAccesRapide
           titre={t('tableauBord:magasinier.reservations.titre')}
           description={t('tableauBord:magasinier.reservations.description')}

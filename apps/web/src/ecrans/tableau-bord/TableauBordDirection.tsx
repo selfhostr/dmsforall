@@ -79,8 +79,11 @@ export function TableauBordDirection({ site }: Props) {
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    // `gap-section`/`gap-groupe` : tokens de densité (index.css), déjà resserrés par `densite-dense`
+    // posé sur `EcranTableauBord` — remplacent les `gap-6`/`gap-4` fixes d'origine, mêmes valeurs en
+    // mode aéré (dégradation sûre hors de ce contexte), plus petites ici.
+    <div className="flex flex-col gap-section">
+      <div className="grid gap-groupe sm:grid-cols-2 lg:grid-cols-4">
         <CarteChiffreRequete
           titre={t('tableauBord:financier.encoursClients.libelle')}
           resultat={financier}
@@ -129,7 +132,7 @@ export function TableauBordDirection({ site }: Props) {
         />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-groupe sm:grid-cols-2 lg:grid-cols-3">
         <CarteChiffreRequete
           titre={t('tableauBord:financier.marges.vehicules.libelle')}
           resultat={financier}
@@ -185,16 +188,21 @@ export function TableauBordDirection({ site }: Props) {
         />
       </div>
 
-      <CarteRestitutionsJour
-        site={site}
-        titreCle="tableauBord:direction.sortiesDuSoir.titre"
-        descriptionCle="tableauBord:direction.sortiesDuSoir.description"
-        videTitreCle="tableauBord:direction.sortiesDuSoir.vide.titre"
-        videDescriptionCle="tableauBord:direction.sortiesDuSoir.vide.description"
-      />
+      {/* Largeur exploitée plutôt que deux blocs empilés : deux listes indépendantes, de hauteur
+          comparable, posées côte à côte dès `lg` (mission « le défilement vertical est l'ennemi »).
+          `items-start` : ne pas étirer la carte la plus courte à la hauteur de sa voisine. */}
+      <div className="grid gap-groupe lg:grid-cols-2 lg:items-start">
+        <CarteRestitutionsJour
+          site={site}
+          titreCle="tableauBord:direction.sortiesDuSoir.titre"
+          descriptionCle="tableauBord:direction.sortiesDuSoir.description"
+          videTitreCle="tableauBord:direction.sortiesDuSoir.vide.titre"
+          videDescriptionCle="tableauBord:direction.sortiesDuSoir.vide.description"
+        />
 
-      {/* Issue #112 : voir la doc de tête de `CarteOrEnRetard.tsx`. */}
-      <CarteOrEnRetard site={site} />
+        {/* Issue #112 : voir la doc de tête de `CarteOrEnRetard.tsx`. */}
+        <CarteOrEnRetard site={site} />
+      </div>
     </div>
   );
 }

@@ -42,19 +42,23 @@ export function TableauBordChefAtelier({ site }: Props) {
   const orEnAttentePieces = useOrEnAttentePieces(site);
 
   return (
-    <div className="flex flex-col gap-6">
-      <CarteRestitutionsJour
-        site={site}
-        titreCle="tableauBord:chefAtelier.sortiesDuJour.titre"
-        descriptionCle="tableauBord:chefAtelier.sortiesDuJour.description"
-        videTitreCle="tableauBord:chefAtelier.sortiesDuJour.vide.titre"
-        videDescriptionCle="tableauBord:chefAtelier.sortiesDuJour.vide.description"
-      />
+    <div className="flex flex-col gap-section">
+      {/* Deux listes indépendantes côte à côte dès `lg` plutôt qu'empilées — même patron que
+          `TableauBordDirection` (mission « largeur plutôt que défilement »). */}
+      <div className="grid gap-groupe lg:grid-cols-2 lg:items-start">
+        <CarteRestitutionsJour
+          site={site}
+          titreCle="tableauBord:chefAtelier.sortiesDuJour.titre"
+          descriptionCle="tableauBord:chefAtelier.sortiesDuJour.description"
+          videTitreCle="tableauBord:chefAtelier.sortiesDuJour.vide.titre"
+          videDescriptionCle="tableauBord:chefAtelier.sortiesDuJour.vide.description"
+        />
 
-      {/* Issue #112 : voir la doc de tête de `CarteOrEnRetard.tsx`. */}
-      <CarteOrEnRetard site={site} />
+        {/* Issue #112 : voir la doc de tête de `CarteOrEnRetard.tsx`. */}
+        <CarteOrEnRetard site={site} />
+      </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-groupe sm:grid-cols-3">
         <CarteChiffreRequete
           titre={t('tableauBord:activite.orEnAttentePieces.libelle')}
           resultat={orEnAttentePieces}

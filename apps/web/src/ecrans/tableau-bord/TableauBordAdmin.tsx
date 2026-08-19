@@ -37,24 +37,26 @@ export function TableauBordAdmin({ site }: Props) {
   const activite = useActiviteTableauBord(filtreSite);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <CarteChiffreRequete
-          titre={t('tableauBord:activite.enAtelier.libelle')}
-          resultat={activite}
-          libelleErreur={t('tableauBord:activite.erreur.titre')}
-          valeur={(donnees) =>
-            String(donnees.ordresReparationParStatut.reduce((total, e) => total + e.nombre, 0))
-          }
-          description={() => t('tableauBord:activite.enAtelier.description')}
-        />
-        <CarteChiffreRequete
-          titre={t('tableauBord:activite.articlesSousSeuil.libelle')}
-          resultat={activite}
-          libelleErreur={t('tableauBord:activite.erreur.titre')}
-          valeur={(donnees) => String(donnees.articlesSousSeuilReapprovisionnement)}
-        />
-      </div>
+    // Trois blocs SUR UNE SEULE RANGÉE dès `lg` (Admin n'en a que trois au total, mission « largeur
+    // plutôt que défilement ») — les raccourcis rejoignent les deux chiffres au lieu de rester
+    // empilés en dessous. `items-start` : la carte raccourcis (deux liens) ne s'étire pas à la
+    // hauteur d'une carte chiffre+description.
+    <div className="grid gap-groupe sm:grid-cols-2 lg:grid-cols-3 lg:items-start">
+      <CarteChiffreRequete
+        titre={t('tableauBord:activite.enAtelier.libelle')}
+        resultat={activite}
+        libelleErreur={t('tableauBord:activite.erreur.titre')}
+        valeur={(donnees) =>
+          String(donnees.ordresReparationParStatut.reduce((total, e) => total + e.nombre, 0))
+        }
+        description={() => t('tableauBord:activite.enAtelier.description')}
+      />
+      <CarteChiffreRequete
+        titre={t('tableauBord:activite.articlesSousSeuil.libelle')}
+        resultat={activite}
+        libelleErreur={t('tableauBord:activite.erreur.titre')}
+        valeur={(donnees) => String(donnees.articlesSousSeuilReapprovisionnement)}
+      />
 
       {/* Le design (§3.9) propose aussi « créer un utilisateur » — AUCUNE route/écran de gestion
           des utilisateurs n'existe encore dans ce dépôt (vérifié : `routeur.tsx`/`chemins.ts`

@@ -255,9 +255,15 @@ describe('EcranFicheDossierVente', () => {
         ),
       );
 
+      const utilisateur = userEvent.setup();
       rendre();
 
-      expect(await screen.findByText('Garantie')).toBeInTheDocument();
+      // Financement/Garantie vivent désormais dans un `Tabs` local (motif de `EcranFicheClient`,
+      // chantier « mise en page ventes », 19.08.2026) — l'onglet « Financement » est actif par
+      // défaut (`defaultValue`), le contenu « Garantie » n'est monté qu'après avoir cliqué son
+      // déclencheur, même geste qu'un utilisateur réel.
+      await utilisateur.click(await screen.findByRole('tab', { name: 'Garantie' }));
+
       expect(screen.getByText('—')).toBeInTheDocument();
       expect(screen.queryByText('Garantie échue')).not.toBeInTheDocument();
       expect(screen.queryByText('Garantie active')).not.toBeInTheDocument();
@@ -286,7 +292,11 @@ describe('EcranFicheDossierVente', () => {
         ),
       );
 
+      const utilisateur = userEvent.setup();
       rendre();
+
+      // Même onglet local que le test précédent — voir son commentaire.
+      await utilisateur.click(await screen.findByRole('tab', { name: 'Garantie' }));
 
       expect(await screen.findByText('Garantie active')).toBeInTheDocument();
     });

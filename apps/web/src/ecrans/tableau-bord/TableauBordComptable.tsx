@@ -88,7 +88,7 @@ export function TableauBordComptable({ site }: Props) {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-groupe">
       <SelecteurPeriodeTableauBord
         du={du}
         au={au}
@@ -97,7 +97,7 @@ export function TableauBordComptable({ site }: Props) {
         periodeAppliquee={financier.data?.periode}
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-groupe sm:grid-cols-3">
         <CarteChiffreRequete
           titre={t('tableauBord:financier.encoursClients.libelle')}
           resultat={financier}

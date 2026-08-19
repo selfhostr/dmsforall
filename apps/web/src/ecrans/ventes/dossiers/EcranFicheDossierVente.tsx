@@ -9,12 +9,14 @@ import { requeteApi } from '@/api/client';
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { BadgeStatutOr } from '@/composants/identite/BadgeStatutOr';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { CarteFinancement } from '@/ecrans/ventes/financements/CarteFinancement';
+import { peutLireFinancement } from '@/ecrans/ventes/financements/droits';
 import { CarteReprise } from '@/ecrans/ventes/reprises/CarteReprise';
 import { useSession } from '@/hooks/useSession';
 import { useDossierVente } from '@/hooks/ventes/dossiers/useDossierVente';
@@ -115,6 +117,19 @@ export function EcranFicheDossierVente() {
   const dossier = requete.data;
   const peutModifier = dossier.actionsDisponibles.includes('modifier');
 
+  // Onglets « Financement » / « Garantie » (chantier « mise en page ventes », 19.08.2026 — « le
+  // même menu que dans Clients ») — MÊME motif que `EcranFicheClient.tsx` (`Tabs`/`TabsList`/
+  // `TabsTrigger`/`TabsContent` de `components/ui/tabs.tsx`, jamais `OngletsDomaine` : ce ne sont
+  // pas des routes, exactement la même distinction que documentée en tête de ce fichier partagé),
+  // remplace l'empilement vertical des deux cartes qui réservait chacune sa pleine largeur l'une
+  // sous l'autre. Visibilité calculée AVANT le rendu plutôt que déléguée aux deux cartes (qui
+  // continuent, elles, de s'auto-garder — `CarteFinancement` retourne `null` sans droit,
+  // `CarteGarantieDossier` exige un `vehiculeStockId`) : c'est ce qui permet de choisir ENTRE
+  // « les deux onglets » et « une seule carte, pas d'onglet à un seul choix » — un onglet unique
+  // n'offre aucun choix, même doctrine que `OngletsDomaine` (« un onglet unique ne rend rien »).
+  const afficheFinancement = peutLireFinancement(role);
+  const afficheGarantie = vehiculeId !== undefined;
+
   // Titre VISIBLE — « Dossier de vente » (`ventes:dossier.fiche.titre`) ne fait AUCUNE inclusion
   // (au sens §3 du contrat du chantier « titres doublés », 17.08.2026) avec l'onglet actif
   // « Dossiers » : contre-exemple mesuré du contrat (« les titres de FICHE... doivent rester
@@ -147,22 +162,47 @@ export function EcranFicheDossierVente() {
         onMutationReussie={() => void requete.refetch()}
       />
 
-      <CarteFinancement
-        dossierVenteId={dossier.id}
-        financement={dossier.financement ?? null}
-        financements={dossier.financements ?? []}
-        financementsTronques={dossier.financementsTronques ?? false}
-        statutDossierVente={dossier.statut}
-        role={role}
-        onMutationReussie={() => void requete.refetch()}
-      />
-
-      {/* Jamais rendue sans véhicule associé (`dossier.garantie` vaudrait de toute façon `null`
-       *  dans ce cas, voir le contrat) — même garde que la carte « OR du véhicule » ci-dessous. */}
-      {dossier.vehicule ? (
+      {afficheFinancement && afficheGarantie ? (
+        <Tabs defaultValue="financement">
+          <TabsList>
+            <TabsTrigger value="financement">{t('ventes:financement.titre')}</TabsTrigger>
+            <TabsTrigger value="garantie">{t('ventes:dossier.fiche.garantie.titre')}</TabsTrigger>
+          </TabsList>
+          <TabsContent value="financement" className="pt-4">
+            <CarteFinancement
+              dossierVenteId={dossier.id}
+              financement={dossier.financement ?? null}
+              financements={dossier.financements ?? []}
+              financementsTronques={dossier.financementsTronques ?? false}
+              statutDossierVente={dossier.statut}
+              role={role}
+              onMutationReussie={() => void requete.refetch()}
+            />
+          </TabsContent>
+          {/* Jamais rendu sans véhicule associé (`afficheGarantie`, calculé plus haut) —
+           *  `dossier.garantie` vaudrait de toute façon `null` dans ce cas, voir le contrat. */}
+          <TabsContent value="garantie" className="pt-4">
+            <CarteGarantieDossier
+              garantie={dossier.garantie}
+              vehiculeStockId={vehiculeId as string}
+              site={site}
+            />
+          </TabsContent>
+        </Tabs>
+      ) : afficheFinancement ? (
+        <CarteFinancement
+          dossierVenteId={dossier.id}
+          financement={dossier.financement ?? null}
+          financements={dossier.financements ?? []}
+          financementsTronques={dossier.financementsTronques ?? false}
+          statutDossierVente={dossier.statut}
+          role={role}
+          onMutationReussie={() => void requete.refetch()}
+        />
+      ) : afficheGarantie ? (
         <CarteGarantieDossier
           garantie={dossier.garantie}
-          vehiculeStockId={dossier.vehicule.id}
+          vehiculeStockId={vehiculeId as string}
           site={site}
         />
       ) : null}

@@ -15,7 +15,6 @@ import {
 
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -291,23 +290,27 @@ export function EcranListeVehiculesStock() {
       ? toutesColonnes.filter((colonne) => !colonnesMasqueesVueClient.has(colonne.id))
       : toutesColonnes;
 
-  // Bascule vue vendeur/client (issue #84) + « Mettre en stock » — ACTIONS de l'en-tête d'écran
-  // (retour @laupernoe du 17.08.2026 : « Vue vendeur, Vue client, il faut le mettre ailleurs »). Construit
-  // AVANT les retours anticipés chargement/erreur pour que l'en-tête garde EXACTEMENT la même
-  // composition entre les trois états (même doctrine que `EcranSuiviVentes` pour ses onglets
-  // d'horizon) — ni la bascule ni le bouton ne dépendent des données de la requête, aucune raison
-  // de les faire apparaître/disparaître au chargement.
-  const actionsEnTete = (
-    <>
-      <BasculeAffichageStock affichage={affichage} onChangeAffichage={definirAffichage} />
-      <BasculeVueStock vue={vue} onChangeVue={definirVue} />
-      {peutEcrireVehiculeStock(role) && vue === 'vendeur' ? (
-        <Button onClick={() => navigate(chemins.ventes.stock.nouveau(site))}>
-          {t('ventes:stock.liste.actions.mettreEnStock')}
-        </Button>
-      ) : null}
-    </>
-  );
+  // « Mettre en stock » — seule ACTION de l'en-tête d'écran (retour @laupernoe du 17.08.2026 : « Vue
+  // vendeur, Vue client, il faut le mettre ailleurs »). Construite AVANT les retours anticipés
+  // chargement/erreur pour que l'en-tête garde EXACTEMENT la même composition entre les trois
+  // états (même doctrine que `EcranSuiviVentes` pour ses onglets d'horizon) — le bouton ne dépend
+  // pas des données de la requête, aucune raison de le faire apparaître/disparaître au chargement.
+  // `undefined` (jamais un fragment vide) quand aucun bouton n'est proposé : un fragment vide
+  // resterait un `actions` « vrai » pour `GabaritEcran`, qui rendrait alors une rangée d'en-tête
+  // sans rien dedans — exactement la règle anti-trou de ce gabarit (voir son en-tête).
+  //
+  // `BasculeAffichageStock` (Liste/Plan) et `BasculeVueStock` (Vendeur/Client) ont QUITTÉ ce slot
+  // (correctif « mise en page ventes », 19.08.2026 : « deux petits contrôles à droite créent un
+  // grand bandeau blanc sur toute la largeur restante » — cette fiche n'a pas de titre visible,
+  // « Véhicules en parc » doublonnant l'onglet actif, donc `actions` seul occupait toute la
+  // rangée). Rejointes à la barre de filtres, où elles partagent la largeur avec les filtres et le
+  // champ de recherche plutôt que de rester seules sur leur rangée — voir plus bas.
+  const boutonMettreEnStock =
+    peutEcrireVehiculeStock(role) && vue === 'vendeur' ? (
+      <Button onClick={() => navigate(chemins.ventes.stock.nouveau(site))}>
+        {t('ventes:stock.liste.actions.mettreEnStock')}
+      </Button>
+    ) : undefined;
 
   // Titres d'état vide nommant l'ABSENCE (jamais « Véhicules en parc », qui répéterait l'onglet
   // actif/le menu — même défaut que celui corrigé le 17.08.2026 sur `EcranListeFactures.tsx`).
@@ -345,7 +348,7 @@ export function EcranListeVehiculesStock() {
 
   if (isPending) {
     return (
-      <GabaritEcran titre={t('ventes:stock.liste.titre')} actions={actionsEnTete}>
+      <GabaritEcran titre={t('ventes:stock.liste.titre')} actions={boutonMettreEnStock}>
         <EtatChargement lignes={6} />
       </GabaritEcran>
     );
@@ -353,7 +356,7 @@ export function EcranListeVehiculesStock() {
 
   if (isError) {
     return (
-      <GabaritEcran titre={t('ventes:stock.liste.titre')} actions={actionsEnTete}>
+      <GabaritEcran titre={t('ventes:stock.liste.titre')} actions={boutonMettreEnStock}>
         <EtatErreur
           titre={t('ventes:stock.liste.erreur.titre')}
           description={messageErreur(error, t)}
@@ -374,20 +377,29 @@ export function EcranListeVehiculesStock() {
     // l'allemand `stock.liste.titre`/`Fahrzeugbestand` qui matchait déjà son onglet par coïncidence,
     // fait tomber la détection automatique juste dans les trois langues.
     //
-    // `BasculeVueStock` a quitté sa propre ligne pour le slot `actions` du gabarit, à droite du
-    // titre — retour @laupernoe du 17.08.2026 (« Vue vendeur, Vue client, il faut le mettre ailleurs »),
-    // voir `actionsEnTete` ci-dessus. Le contenu commence directement par la barre de filtres,
-    // remonté d'une rangée entière (retour @laupernoe du 17.08.2026, « tu peux mettre plus haut le truc »).
-    <GabaritEcran titre={t('ventes:stock.liste.titre')} actions={actionsEnTete}>
-      <BarreFiltres
-        q={qSaisie}
-        onChangeQ={setQSaisie}
-        placeholderRecherche={t('ventes:stock.liste.rechercherPlaceholder')}
-        filtresActifs={filtresActifs}
-        onEffacerFiltres={effacerFiltres}
-      >
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="filtre-type-vehicule">{t('ventes:stock.champs.typeVehicule')}</Label>
+    // `BasculeVueStock`/`BasculeAffichageStock` ont quitté le slot `actions` du gabarit (correctif
+    // « mise en page ventes », 19.08.2026, voir `boutonMettreEnStock` ci-dessus) pour rejoindre la
+    // barre de filtres ci-dessous — visibles dans les DEUX modes d'affichage (`liste`/`plan`), donc
+    // posées à côté de `BarreFiltres`, qui elle non plus ne dépend pas du mode. Le contenu commence
+    // directement par cette rangée, remonté d'une rangée entière (retour @laupernoe du 17.08.2026,
+    // « tu peux mettre plus haut le truc »).
+    <GabaritEcran titre={t('ventes:stock.liste.titre')} actions={boutonMettreEnStock}>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <BarreFiltres
+          q={qSaisie}
+          onChangeQ={setQSaisie}
+          placeholderRecherche={t('ventes:stock.liste.rechercherPlaceholder')}
+          filtresActifs={filtresActifs}
+          onEffacerFiltres={effacerFiltres}
+          className="min-w-0 flex-1"
+        >
+          {/* Libellés au-dessus des trois filtres RETIRÉS (correctif « mise en page ventes »,
+              19.08.2026) : chaque `SelectTrigger` affiche déjà la valeur choisie en toutes lettres
+              (« Tous les types », « VN », etc.) — un libellé fixe juste au-dessus ne faisait que
+              répéter, en plus court, ce que le contrôle dit déjà, tout en consommant une ligne
+              entière (`flex-col`) par filtre. `aria-label` déjà porté par chaque `SelectTrigger` :
+              rien ne se perd pour un lecteur d'écran, qui annonce toujours le nom du filtre avant
+              sa valeur. */}
           <Select
             value={typeVehicule ?? 'tous'}
             onValueChange={(valeur) =>
@@ -410,11 +422,6 @@ export function EcranListeVehiculesStock() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="filtre-statut-commercial">
-            {t('ventes:stock.champs.statutCommercial')}
-          </Label>
           <Select
             value={statutCommercial ?? 'tous'}
             onValueChange={(valeur) =>
@@ -439,10 +446,7 @@ export function EcranListeVehiculesStock() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-        {vue === 'vendeur' ? (
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="filtre-provenance">{t('ventes:stock.champs.provenance')}</Label>
+          {vue === 'vendeur' ? (
             <Select
               value={provenance ?? 'toutes'}
               onValueChange={(valeur) => setProvenance(valeur === 'toutes' ? undefined : valeur)}
@@ -463,9 +467,19 @@ export function EcranListeVehiculesStock() {
                 ))}
               </SelectContent>
             </Select>
-          </div>
-        ) : null}
-      </BarreFiltres>
+          ) : null}
+        </BarreFiltres>
+
+        {/* Bascules Liste/Plan et Vendeur/Client (correctif « mise en page ventes », 19.08.2026) —
+            groupées ici plutôt qu'isolées dans `actions` du gabarit : côte à côte avec la barre de
+            filtres sur la même rangée, elles ne réservent plus de bande pleine largeur à elles
+            deux. `shrink-0` : sur un poste étroit, cette rangée passe sous les filtres (`flex-wrap`
+            du conteneur) plutôt que de compresser les bascules. */}
+        <div className="flex shrink-0 items-center gap-2">
+          <BasculeAffichageStock affichage={affichage} onChangeAffichage={definirAffichage} />
+          <BasculeVueStock vue={vue} onChangeVue={definirVue} />
+        </div>
+      </div>
 
       {affichage === 'plan' ? (
         // Vue Plan (issue #142) : pas de tri ni de pagination manuelle — le regroupement par zone

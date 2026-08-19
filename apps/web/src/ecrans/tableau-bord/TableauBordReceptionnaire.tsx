@@ -40,7 +40,11 @@ export function TableauBordReceptionnaire({ site }: Props) {
   const activite = useActiviteTableauBord(filtre);
 
   return (
-    <div className="flex flex-col gap-6">
+    // Quatre cartes indépendantes, plus jamais empilées plein-écran dès `lg` (mission « largeur
+    // plutôt que défilement », ce rôle était l'écran le plus haut des quatre stacks originaux) :
+    // ordre de lecture inchangé, gauche→droite puis haut→bas — qui est attendu aujourd'hui, ce qui
+    // sort aujourd'hui, ce qui est en retard, l'état du parc.
+    <div className="grid gap-groupe lg:grid-cols-2 lg:items-start">
       <CarteRendezVousJour site={site} />
 
       <CarteRestitutionsJour

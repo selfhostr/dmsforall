@@ -13,7 +13,6 @@ import {
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -267,21 +266,24 @@ export function EcranListeDossiersVente() {
   // ici a été retiré, voir la note de l'en-tête de fichier.
   return (
     <GabaritEcran titre={t('ventes:dossier.liste.titre')} actions={boutonNouveauDossier}>
-      <BarreFiltres
-        q={qSaisie}
-        onChangeQ={setQSaisie}
-        placeholderRecherche={t('ventes:dossier.liste.filtres.q')}
-        filtresActifs={filtresActifs}
-        onEffacerFiltres={effacerFiltres}
-      >
-        <div className="flex flex-col gap-1.5">
-          {/* `ventes:dossier.liste.filtres.statutLabel` MANQUANT sur le namespace déjà livré (seuls
-           *  `.statutTous` et `.afficherTermines` existent) — voir le rapport de livraison. Clé
-           *  invoquée dans le même schéma de nommage que le reste du fichier ; si absente au rendu,
-           *  i18next affiche la clé brute plutôt que rien (aucun texte perdu, juste non traduit). */}
-          <Label htmlFor="filtre-statut-dossier-vente">
-            {t('ventes:dossier.liste.filtres.statutLabel')}
-          </Label>
+      {/* Rangée UNIQUE filtres + tri (correctif « mise en page ventes », 19.08.2026 : « grands
+          espaces vides entre le titre et le premier contenu ») — `SelecteurTri` tenait auparavant
+          toute une rangée pleine largeur à lui seul sous la barre de filtres, un `gap-6` (24px)
+          de plus rien que pour l'espacer. `BarreFiltres` grandit (`flex-1`), le tri vient à sa
+          suite dans le même `flex-wrap` : sur un écran étroit il repasse sous les filtres comme
+          avant, sur un poste large il vient s'aligner à côté au lieu de laisser filer une ligne
+          quasi vide. Le libellé « Statut » retiré au-dessus du sélecteur de statut (defect
+          signalé : le bouton affiche déjà « Tous les statuts », `aria-label` déjà porté par
+          `SelectTrigger` — même correctif que les trois filtres de `EcranListeVehiculesStock`). */}
+      <div className="flex flex-wrap items-end gap-3">
+        <BarreFiltres
+          q={qSaisie}
+          onChangeQ={setQSaisie}
+          placeholderRecherche={t('ventes:dossier.liste.filtres.q')}
+          filtresActifs={filtresActifs}
+          onEffacerFiltres={effacerFiltres}
+          className="min-w-0 flex-1"
+        >
           <Select
             value={filtreStatut}
             onValueChange={(valeur) => setFiltreStatut(valeur as FiltreStatut)}
@@ -302,30 +304,30 @@ export function EcranListeDossiersVente() {
               ))}
             </SelectContent>
           </Select>
-        </div>
 
-        {filtreStatut === 'tous' ? (
-          <label
-            htmlFor="dossiers-afficher-termines"
-            className="flex items-center gap-2 texte-corps"
-          >
-            <Checkbox
-              id="dossiers-afficher-termines"
-              checked={afficherTermines}
-              onCheckedChange={(coche) => setAfficherTermines(coche === true)}
-            />
-            {t('ventes:dossier.liste.filtres.afficherTermines')}
-          </label>
-        ) : null}
-      </BarreFiltres>
+          {filtreStatut === 'tous' ? (
+            <label
+              htmlFor="dossiers-afficher-termines"
+              className="flex items-center gap-2 texte-corps"
+            >
+              <Checkbox
+                id="dossiers-afficher-termines"
+                checked={afficherTermines}
+                onCheckedChange={(coche) => setAfficherTermines(coche === true)}
+              />
+              {t('ventes:dossier.liste.filtres.afficherTermines')}
+            </label>
+          ) : null}
+        </BarreFiltres>
 
-      <SelecteurTri
-        options={TRIS_DOSSIERS_VENTE.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
-        valeur={tri}
-        onChangeValeur={setTri}
-        label={t('ventes:dossier.liste.tri.label')}
-        className="max-w-xs"
-      />
+        <SelecteurTri
+          options={TRIS_DOSSIERS_VENTE.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
+          valeur={tri}
+          onChangeValeur={setTri}
+          label={t('ventes:dossier.liste.tri.label')}
+          className="w-[220px] shrink-0"
+        />
+      </div>
 
       <TableComptoir
         colonnes={colonnes}

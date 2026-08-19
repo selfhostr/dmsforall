@@ -5,7 +5,7 @@ import type { FinancementResume, RoleUtilisateur, StatutDossierVente } from '@df
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { EtatVide } from '@/composants/commun/EtatVide';
 
 import { BadgeStatutFinancement } from './BadgeStatutFinancement';
@@ -75,11 +75,17 @@ export function CarteFinancement({
   const dossierTerminal = STATUTS_DOSSIER_TERMINAUX.has(statutDossierVente);
   const peutProposer = !dossierTerminal && peutCreerFinancement(role);
 
+  // CardHeader/CardTitle délibérément absents (chantier « mise en page ventes », 19.08.2026) :
+  // quand cette carte est rendue dans `EcranFicheDossierVente`, elle vit soit dans l'onglet
+  // « Financement » du `Tabs` local (motif de `EcranFicheClient.tsx`) — le déclencheur d'onglet
+  // porte déjà le libellé, un `CardTitle` identique juste en dessous serait le même texte deux
+  // fois, exactement le défaut « libellé qui répète son contrôle » que ce chantier corrige ailleurs
+  // (`EcranListeDossiersVente`/`EcranListeVehiculesStock`, labels au-dessus de filtres déjà
+  // auto-descriptifs) — soit seule visible (repli sans onglet, rôle sans droit garantie ou dossier
+  // sans véhicule), auquel cas l'appelant (`EcranFicheDossierVente`) pose lui-même le titre de
+  // section, même patron que sa carte « OR du véhicule ».
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="texte-titre-section">{t('ventes:financement.titre')}</CardTitle>
-      </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {financements.length === 0 ? (
           <EtatVide
