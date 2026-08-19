@@ -85,8 +85,28 @@ export class ErreurFormatImage extends Error {
   }
 }
 
+/** Facteur d'agrandissement CIBLÉ sur la largeur RÉELLE de la découpe (pas une largeur de sortie
+ *  fixe pour tous les champs, ce qui donnait un facteur très inégal selon la largeur de zone —
+ *  mesuré : ~2.3x sur VIN/plaque contre ~4.1x sur code type avec l'ancien `largeurCible` fixe à
+ *  1800px, en dehors de la fourchette 3-4x documentée pour les champs techniques). Borné haut pour
+ *  ne pas payer un coût mémoire/temps Tesseract disproportionné sur une découpe déjà large (zone
+ *  nom/adresse, plus permissive) ni bas pour rester lisible sur une découpe minuscule. */
+export const FACTEUR_AGRANDISSEMENT_CIBLE = 3.5;
+export const LARGEUR_CROP_MIN = 1200;
+export const LARGEUR_CROP_MAX = 3600;
+
+/** Fonction pure (testable sans image ni Tesseract, voir extraction-champs.spec.mjs) — extraite
+ *  d'`ocrZone` pour ne pas enterrer cette règle dans un pipeline async. */
+export function calculerLargeurCibleChamp(largeurBoitePixel) {
+  return Math.min(
+    LARGEUR_CROP_MAX,
+    Math.max(LARGEUR_CROP_MIN, Math.round(largeurBoitePixel * FACTEUR_AGRANDISSEMENT_CIBLE)),
+  );
+}
+
 async function ocrZone(bufferPageSource, boitePixel, nomChamp) {
-  const crop = await recadrerChamp(bufferPageSource, boitePixel);
+  const largeurCible = calculerLargeurCibleChamp(boitePixel.width);
+  const crop = await recadrerChamp(bufferPageSource, boitePixel, { largeurCible });
   const resultat = await reconnaitreChamp(crop, CONFIG_PAR_CHAMP[nomChamp]);
   const texte = resultat.texte.trim();
   return texte.length > 0 ? { texte, confiance: resultat.confiance } : null;
