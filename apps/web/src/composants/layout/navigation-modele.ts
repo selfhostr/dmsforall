@@ -376,6 +376,25 @@ const ROLES_LECTURE_FOURNISSEUR_PIECES: readonly RoleUtilisateur[] = [
  * systématiquement les autres onglets du fichier après le rapport du chasseur : l'onglet Consignes
  * portait le même défaut (`ROLES_PIECES`) et n'avait pas été testé par lui.
  */
+/**
+ * Lecture facture fournisseur (`pieces.facture_fournisseur.lire`, INFÉRÉ — pas encore de
+ * `matrice-droits.ts` côté serveur pour ce sous-domaine au moment où cette vue est câblée, voir
+ * `hooks/pieces/factures-fournisseur.temporaire.ts`) : `direction`, `chef_atelier`, `magasinier`,
+ * ET `comptable` — mêmes valeurs, MÊME raisonnement (« une créance/dépense qui dort ») que
+ * `ROLES_LECTURE_CONSIGNE_PIECES` ci-dessous, mais gardée SÉPARÉE plutôt que réutilisée : les deux
+ * droits sont distincts côté API (consigne vs facture fournisseur), une coïncidence de valeurs
+ * aujourd'hui ne garantit rien pour demain. Mêmes valeurs littérales que la constante privée
+ * `ROLES_LECTURE_FACTURE_FOURNISSEUR` d'`apps/web/src/ecrans/pieces/droits.ts` — même chaîne de
+ * duplication assumée que `ROLES_LECTURE_FOURNISSEUR_PIECES` ci-dessus (`routes/` et
+ * `composants/layout/` ne dépendent jamais d'`ecrans/*`).
+ */
+const ROLES_LECTURE_FACTURE_FOURNISSEUR_PIECES: readonly RoleUtilisateur[] = [
+  'direction',
+  'chef_atelier',
+  'magasinier',
+  'comptable',
+];
+
 const ROLES_LECTURE_CONSIGNE_PIECES: readonly RoleUtilisateur[] = [
   'direction',
   'chef_atelier',
@@ -452,6 +471,7 @@ const ONGLETS_PIECES: readonly OngletDomaine[] = [
       '/pieces/reapprovisionnement',
       '/pieces/commandes-fournisseur',
       '/pieces/fournisseurs',
+      '/pieces/factures-fournisseur',
     ],
     roles: ROLES_PIECES,
     vues: [
@@ -475,6 +495,21 @@ const ONGLETS_PIECES: readonly OngletDomaine[] = [
         chemin: (site) => chemins.pieces.fournisseurs.liste(site),
         motifs: ['/pieces/fournisseurs'],
         roles: ROLES_LECTURE_FOURNISSEUR_PIECES,
+      },
+      /**
+       * Factures fournisseurs (dépôt, rapprochement, décision) — dernière vue du groupe, même
+       * famille que Commandes/Fournisseurs ci-dessus (workflow fournisseur), rôles ÉLARGIS à
+       * `comptable` (voir `ROLES_LECTURE_FACTURE_FOURNISSEUR_PIECES`, pièce comptable) —
+       * `vendeur`/`receptionnaire`/`technicien` n'y ont aucun droit, comme pour Commandes et
+       * Fournisseurs. Motif couvre les trois routes (`liste`, `deposer`, `:id`) : correspondance
+       * par segment (`cheminCorrespond`), un seul préfixe suffit.
+       */
+      {
+        id: 'facturesFournisseur',
+        cleLibelle: 'navigation:onglets.piecesFacturesFournisseur',
+        chemin: (site) => chemins.pieces.facturesFournisseur.liste(site),
+        motifs: ['/pieces/factures-fournisseur'],
+        roles: ROLES_LECTURE_FACTURE_FOURNISSEUR_PIECES,
       },
     ],
   },

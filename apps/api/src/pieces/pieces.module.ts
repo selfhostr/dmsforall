@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { ArticleController } from './article.controller';
 import { CommandeFournisseurController } from './commande-fournisseur.controller';
 import { ConsigneController } from './consigne.controller';
+import { FactureFournisseurModule } from './factures-fournisseur/facture-fournisseur.module';
 import { FournisseurController } from './fournisseur.controller';
 import { MouvementController } from './mouvement.controller';
 import { ParametragePiecesController } from './parametrage-pieces.controller';
@@ -38,8 +39,14 @@ import { StockArticleController } from './stock.controller';
  *
  * `JETON_DB`/`JETON_IDEMPOTENCE` sont fournis par `DbModule`/`CommonModule` (tous deux `@Global`,
  * voir `app.module.ts`) : aucun des deux n'est importé ici, même précédent que `ClientsModule`.
+ *
+ * `FactureFournisseurModule` (lecture automatique des factures fournisseurs, `factures-fournisseur/`)
+ * IMPORTÉ plutôt que ses providers/contrôleur listés ici directement : sous-module complet avec
+ * ses propres providers internes (orchestrateur de lecture, port OCR) — même patron qu'un futur
+ * sous-domaine encapsulé, évite de faire fuir ici des jetons qui n'intéressent que lui.
  */
 @Module({
+  imports: [FactureFournisseurModule],
   controllers: [
     ArticleController,
     StockArticleController,

@@ -26,3 +26,4 @@ export * from './fournisseur';
 export * from './commande-fournisseur';
 export * from './consigne';
 export * from './parametrage';
+export * from './facture-fournisseur';

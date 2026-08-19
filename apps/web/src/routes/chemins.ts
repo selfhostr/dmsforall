@@ -160,6 +160,22 @@ export const chemins = {
       detail: (id: string, site?: string) =>
         construireChemin(`/pieces/fournisseurs/${id}`, { site }),
     },
+    /** Factures fournisseur (dépôt/rapprochement) — même famille que `commandesFournisseur`
+     *  ci-dessus : ressource par TENANT, pas de filtrage par site dans les écrans livrés
+     *  (`EcranListeFacturesFournisseur` ne lit aucun `site`), `?site=` conservé uniquement pour la
+     *  continuité du site affiché dans l'en-tête en passant par cet onglet. Chemins littéraux
+     *  (`/pieces/factures-fournisseur`, `.../deposer`, `.../:id`) déjà consommés tels quels par les
+     *  trois écrans (`navigate`/`Link` en dur, voir leurs specs) — repris ici à l'identique plutôt
+     *  qu'inventés, pour que `navigation-modele.ts` ait un constructeur typé sans rien changer aux
+     *  écrans (hors périmètre). Segment statique `deposer` déclaré séparément de `:id`, même
+     *  convention que `commandes-fournisseur/nouvelle` ci-dessus. */
+    facturesFournisseur: {
+      liste: (site?: string) => construireChemin('/pieces/factures-fournisseur', { site }),
+      deposer: (site?: string) =>
+        construireChemin('/pieces/factures-fournisseur/deposer', { site }),
+      detail: (id: string, site?: string) =>
+        construireChemin(`/pieces/factures-fournisseur/${id}`, { site }),
+    },
     consignes: (site?: string) => construireChemin('/pieces/consignes', { site }),
   },
   /** Module pointage (lot 2). Ressources par TENANT, jamais de `?site=` dans les écrans livrés —

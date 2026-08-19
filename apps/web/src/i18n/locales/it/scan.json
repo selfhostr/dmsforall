@@ -6,11 +6,38 @@
     "action": "Apri l'applicazione completa"
   },
   "capture": {
-    "consigneTitre": "Fotografate la licenza di circolazione",
-    "consignePlat": "Documento appoggiato ben piatto, interamente nell'inquadratura",
-    "consigneLumiere": "Buona illuminazione, senza riflessi né ombre",
-    "consigneCadre": "Testo nitido e leggibile, apparecchio tenuto ben sopra il documento",
+    "objectifTitre": "Fotografate la licenza di circolazione",
+    "objectifDetail": "Il veicolo e il cliente saranno precompilati automaticamente — resterà solo da verificare.",
+    "conseilPriseDeVue": "Il fronte, ben piatto e ben illuminato.",
     "action": "Scatta la foto"
+  },
+  "controleQualite": {
+    "enCours": "Verifica della foto…"
+  },
+  "cadrage": {
+    "titre": "Ritaglio automatico rilevato",
+    "description": "I bordi del documento sono stati individuati automaticamente. Verificate che non manchi nulla.",
+    "continuer": "Continua",
+    "photoEntiere": "Usa la foto intera",
+    "apercuAlt": "Anteprima della foto con il ritaglio rilevato automaticamente"
+  },
+  "captureLive": {
+    "recherche": "Ricerca del documento…",
+    "cadrageBon": "Inquadratura corretta",
+    "captureAutomatiqueImminente": "Scatto automatico — non muovetevi",
+    "declencherManuel": "Scatta ora la foto",
+    "apercuCameraAlt": "Anteprima della fotocamera"
+  },
+  "refus": {
+    "titre": "Questa foto non va bene",
+    "motifs": {
+      "resolutionInsuffisante": "La foto non ha una definizione sufficiente. Rifatela più da vicino.",
+      "documentTropPetit": "La licenza è troppo piccola nel riquadro. Avvicinatevi.",
+      "photoFloue": "La foto è sfocata. Tenete l'apparecchio ben fermo."
+    },
+    "avertissementEnvoiForce": "Senza rifare la foto, la lettura automatica sarà probabilmente incompleta.",
+    "envoyerQuandMeme": "Invia comunque",
+    "apercuAlt": "Anteprima della foto scattata per la verifica"
   },
   "preparation": {
     "enCours": "Preparazione della foto…"

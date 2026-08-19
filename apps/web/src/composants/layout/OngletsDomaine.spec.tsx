@@ -235,13 +235,23 @@ describe('OngletsDomaine — les vues d’un onglet', () => {
     expect(screen.queryByRole('link', { name: /^fournisseurs$/i })).not.toBeInTheDocument();
   });
 
-  /** Contre-épreuve du test précédent : un rôle qui a réellement le droit voit les trois vues. */
-  it('Approvisionnement : un magasinier voit À commander, Commandes et Fournisseurs', async () => {
+  /**
+   * Contre-épreuve du test précédent : un rôle qui a réellement le droit voit les quatre vues.
+   * « Factures fournisseurs » ajoutée en dernière vue (droit élargi à `comptable` en plus des trois
+   * autres — voir `ROLES_LECTURE_FACTURE_FOURNISSEUR_PIECES`, `navigation-modele.ts`) : un
+   * `magasinier` y a droit comme aux deux vues précédentes.
+   */
+  it('Approvisionnement : un magasinier voit À commander, Commandes, Fournisseurs et Factures fournisseurs', async () => {
     connecte('magasinier');
     rendre('/pieces/reapprovisionnement');
 
     const vues = await screen.findByRole('navigation', { name: /vues/i });
-    expect(libelles(vues)).toEqual(['À commander', 'Commandes', 'Fournisseurs']);
+    expect(libelles(vues)).toEqual([
+      'À commander',
+      'Commandes',
+      'Fournisseurs',
+      'Factures fournisseurs',
+    ]);
   });
 });
 

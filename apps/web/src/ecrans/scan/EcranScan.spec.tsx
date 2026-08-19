@@ -34,13 +34,17 @@ class FauxEventSource {
 }
 
 /**
- * Suite d'intégration de l'écran de scan — machine à états (capture -> préparation -> analyse ->
- * formulaire | résultat | erreur), voir la doc de tête d'`EcranScan.tsx`. Trois soucis techniques
- * de test à connaître avant de lire les stubs ci-dessous :
+ * Suite d'intégration de l'écran de scan — machine à états (capture -> controleQualite ->
+ * [refus ->] preparation -> analyse -> formulaire | résultat | erreur), voir la doc de tête
+ * d'`EcranScan.tsx`. Quatre soucis techniques de test à connaître avant de lire les stubs
+ * ci-dessous :
  *
  *  1. jsdom (`environnementJsdomFetch.ts`) ne décode pas réellement une image ni n'implémente
- *     `HTMLCanvasElement.getContext` — la réduction d'image (`reduireImage.ts`) est donc simulée
- *     ici comme dans `reduireImage.spec.ts` (même patron de stub `Image`/`canvas`).
+ *     `HTMLCanvasElement.getContext` — la réduction d'image (`reduireImage.ts`) ET le contrôle
+ *     qualité (`analyserQualitePhoto.ts`) sont donc simulés ici comme dans `reduireImage.spec.ts`
+ *     / `analyserQualitePhoto.spec.ts` (même patron de stub `Image`/`canvas`, `getImageData`
+ *     compris — c'est SA donnée renvoyée qui pilote le verdict qualité dans ces tests, pas un vrai
+ *     rendu canevas).
  *  2. `<input type="file">` ne peut pas recevoir de fichier par un vrai clic utilisateur sous
  *     jsdom : on cible directement l'`<input>` caché (`sr-only`) via son `aria-label` et on
  *     déclenche `userEvent.upload`, qui simule fidèlement l'événement `change` du navigateur.
@@ -48,9 +52,53 @@ class FauxEventSource {
  *     aucun rôle résolu, donc `useModeScanMobile` reste inactif — cohérent avec ces tests, qui
  *     portent sur le PARCOURS de scan lui-même, pas sur la restriction mobile (couverte à part par
  *     `composants/layout/useModeScanMobile.spec.ts`).
+ *  4. Les dimensions par défaut de la photo factice (3000x2000) sont volontairement AU-DESSUS du
+ *     seuil de résolution (`RESOLUTION_MIN_PX` dans `analyserQualitePhoto.ts`) : les tests qui ne
+ *     portent pas sur le contrôle qualité lui-même passent le contrôle sans y penser (`qualite`
+ *     par défaut `'ok'`, damier net et contrasté — voir `donneesPixelsPour`).
  */
 
-function installerImageEtCanvasFactices(comportement: 'succes' | 'echec'): void {
+type ComportementQualite = 'ok' | 'documentTropPetit' | 'photoFloue' | 'resolutionInsuffisante';
+
+// Dimensions de l'échantillon d'analyse — MÊME valeur que la constante privée
+// `LARGEUR_ECHANTILLON`/hauteur dérivée de `RATIO_CADRE` dans `analyserQualitePhoto.ts` (non
+// exportées, détail d'implémentation) : `getImageData` doit renvoyer un tableau de CETTE taille
+// pour que `nuancesDeGris`/`varianceLaplacien` (appelés avec les dimensions RÉELLES calculées côté
+// production) retombent juste. Voir `analyserQualitePhoto.spec.ts` pour le même patron.
+const LARGEUR_ECHANTILLON_TEST = 240;
+const HAUTEUR_ECHANTILLON_TEST = Math.round(240 / 1.42);
+
+function donneesPixelsPour(qualite: ComportementQualite): { data: Uint8ClampedArray } {
+  const total = LARGEUR_ECHANTILLON_TEST * HAUTEUR_ECHANTILLON_TEST;
+  const data = new Uint8ClampedArray(total * 4);
+  for (let i = 0; i < total; i += 1) {
+    const x = i % LARGEUR_ECHANTILLON_TEST;
+    const y = Math.floor(i / LARGEUR_ECHANTILLON_TEST);
+    const valeur =
+      qualite === 'documentTropPetit'
+        ? 180 // zone quasi uniforme — aucun contenu détecté
+        : qualite === 'photoFloue'
+          ? Math.round((x / (LARGEUR_ECHANTILLON_TEST - 1)) * 255) // rampe : contrastée mais floue
+          : (x + y) % 2 === 0
+            ? 20
+            : 235; // damier : contrasté ET net
+    const base = i * 4;
+    data[base] = valeur;
+    data[base + 1] = valeur;
+    data[base + 2] = valeur;
+    data[base + 3] = 255;
+  }
+  return { data };
+}
+
+function installerImageEtCanvasFactices(
+  comportement: 'succes' | 'echec',
+  qualite: ComportementQualite = 'ok',
+): void {
+  const dimensions =
+    qualite === 'resolutionInsuffisante'
+      ? { largeur: 800, hauteur: 600 }
+      : { largeur: 3000, hauteur: 2000 };
   class ImageFactice {
     onload: (() => void) | null = null;
     onerror: (() => void) | null = null;
@@ -59,8 +107,8 @@ function installerImageEtCanvasFactices(comportement: 'succes' | 'echec'): void 
     set src(_valeur: string) {
       queueMicrotask(() => {
         if (comportement === 'succes') {
-          this.naturalWidth = 1200;
-          this.naturalHeight = 800;
+          this.naturalWidth = dimensions.largeur;
+          this.naturalHeight = dimensions.hauteur;
           this.onload?.();
         } else {
           this.onerror?.();
@@ -72,6 +120,7 @@ function installerImageEtCanvasFactices(comportement: 'succes' | 'echec'): void 
   if (comportement === 'succes') {
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
       drawImage: vi.fn(),
+      getImageData: vi.fn(() => donneesPixelsPour(qualite)),
     } as unknown as CanvasRenderingContext2D);
     vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(function (
       this: HTMLCanvasElement,
@@ -137,9 +186,14 @@ describe('EcranScan', () => {
     vi.unstubAllGlobals();
   });
 
-  it('affiche la consigne de capture au premier rendu, sans appel réseau', () => {
+  it('affiche l’objectif de la capture au premier rendu, sans appel réseau', () => {
     rendre();
     expect(screen.getByText('Photographiez le permis de circulation')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Le véhicule et le client seront pré-remplis automatiquement — il ne restera qu'à vérifier.",
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Prendre la photo' })).toBeInTheDocument();
   });
 
@@ -205,6 +259,65 @@ describe('EcranScan', () => {
     ).toBeInTheDocument();
     expect(screen.getByLabelText('Nom')).toHaveValue('Rossier');
     expect(screen.getByLabelText('Marque')).toHaveValue('Volkswagen');
+  });
+
+  it('une photo sans document détectable dans le cadre est REFUSÉE avant tout appel réseau, avec le motif en français simple', async () => {
+    installerImageEtCanvasFactices('succes', 'documentTropPetit');
+    let appelOcrRecu = false;
+    server.use(
+      http.post('/api/v1/scan/permis-circulation', () => {
+        appelOcrRecu = true;
+        return HttpResponse.json(reponseScan());
+      }),
+    );
+    const utilisateur = userEvent.setup();
+    rendre();
+
+    await photographier(utilisateur);
+
+    expect(await screen.findByText('Cette photo ne convient pas')).toBeInTheDocument();
+    expect(
+      screen.getByText('Le permis est trop petit dans le cadre. Rapprochez-vous.'),
+    ).toBeInTheDocument();
+    // Refus AVANT envoi — aucune requête OCR n'a été déclenchée pour une photo refusée.
+    expect(appelOcrRecu).toBe(false);
+  });
+
+  it('« Reprendre une photo » depuis un refus ramène à l’étape de capture et libère l’aperçu (aucun piège)', async () => {
+    const revoquer = vi.fn();
+    Object.defineProperty(URL, 'revokeObjectURL', { value: revoquer, configurable: true });
+    installerImageEtCanvasFactices('succes', 'photoFloue');
+    const utilisateur = userEvent.setup();
+    rendre();
+    await photographier(utilisateur);
+    await screen.findByText('La photo est floue. Reprenez-la bien stable.');
+
+    await utilisateur.click(screen.getByRole('button', { name: 'Reprendre une photo' }));
+
+    expect(screen.getByRole('button', { name: 'Prendre la photo' })).toBeInTheDocument();
+    expect(revoquer).toHaveBeenCalledWith('blob:objet-1');
+  });
+
+  it('« Envoyer quand même » depuis un refus poursuit normalement jusqu’au formulaire (le contournement n’est jamais un blocage)', async () => {
+    installerImageEtCanvasFactices('succes', 'resolutionInsuffisante');
+    server.use(
+      http.post('/api/v1/scan/permis-circulation', () => HttpResponse.json(reponseScan())),
+    );
+    const utilisateur = userEvent.setup();
+    rendre();
+    await photographier(utilisateur);
+    await screen.findByText('Cette photo ne convient pas');
+    expect(
+      screen.getByText(
+        'Sans reprendre la photo, la lecture automatique sera probablement incomplète.',
+      ),
+    ).toBeInTheDocument();
+
+    await utilisateur.click(screen.getByRole('button', { name: 'Envoyer quand même' }));
+
+    expect(
+      await screen.findByRole('button', { name: 'Valider et enregistrer' }),
+    ).toBeInTheDocument();
   });
 
   it('le client existe déjà, pas le véhicule : le bloc détenteur n’est plus un formulaire, seul le véhicule reste à vérifier', async () => {
@@ -404,5 +517,163 @@ describe('EcranScan', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'Prendre la photo' })).toBeInTheDocument(),
     );
+  });
+});
+
+/**
+ * CADRAGE AUTOMATIQUE — chantier du 18.08.2026 (détection réelle des bords, voir
+ * `detecterBordsDocument.ts`). `installerImageEtCanvasFactices` (ci-dessus) ne peut pas servir ici :
+ * son unique mock `getContext` renvoie la MÊME donnée quelle que soit la taille de canevas demandée,
+ * ce qui fait que `detecterBordsDocument.ts` (canevas ~320px) ne reçoit jamais un tampon de la
+ * bonne taille pour SA donnée de test et se dégrade silencieusement (comportement voulu — voir la
+ * doc de tête de `detecterBordsDepuisPixels`) : c'est justement ce qui garde TOUTE la suite
+ * ci-dessus verte sans la modifier, la détection y reste toujours « non confiante » (repli sur le
+ * cadre fixe, comportement inchangé). Pour exercer le chemin où la détection RÉUSSIT, ce mock lit
+ * la taille RÉELLEMENT demandée (`this.width`/`this.height`, posés par le code de production AVANT
+ * `getContext`) et sert une image synthétique adaptée à CHAQUE canevas : un rectangle sombre net
+ * sur fond clair pour le canevas de détection (~320px), un damier contrasté pour le canevas
+ * d'échantillonnage qualité (240px, `LARGEUR_ECHANTILLON` dans `analyserQualitePhoto.ts`).
+ */
+describe('cadrage automatique détecté', () => {
+  function installerImageEtCanvasPourCadrageDetecte(): void {
+    const dimensions = { largeur: 3000, hauteur: 2000 };
+    class ImageFactice {
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      naturalWidth = 0;
+      naturalHeight = 0;
+      set src(_valeur: string) {
+        queueMicrotask(() => {
+          this.naturalWidth = dimensions.largeur;
+          this.naturalHeight = dimensions.hauteur;
+          this.onload?.();
+        });
+      }
+    }
+    vi.stubGlobal('Image', ImageFactice as unknown as typeof Image);
+
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(function (
+      this: HTMLCanvasElement,
+    ) {
+      const largeur = this.width;
+      const hauteur = this.height;
+      return {
+        drawImage: vi.fn(),
+        getImageData: vi.fn(() => {
+          const data = new Uint8ClampedArray(largeur * hauteur * 4);
+          for (let y = 0; y < hauteur; y += 1) {
+            for (let x = 0; x < largeur; x += 1) {
+              const base = (y * largeur + x) * 4;
+              const estCanevasQualite = largeur === 240; // LARGEUR_ECHANTILLON, analyserQualitePhoto.ts
+              const valeur = estCanevasQualite
+                ? (x + y) % 2 === 0
+                  ? 20
+                  : 235 // damier net et contrasté — même patron que l'« ok » de la suite ci-dessus
+                : x > largeur * 0.2 && x < largeur * 0.8 && y > hauteur * 0.2 && y < hauteur * 0.8
+                  ? 20 // rectangle plein, net, occupant 36 % de l'aire — détecté avec confiance
+                  : 220; // fond uniforme
+              data[base] = valeur;
+              data[base + 1] = valeur;
+              data[base + 2] = valeur;
+              data[base + 3] = 255;
+            }
+          }
+          return { data };
+        }),
+      } as unknown as CanvasRenderingContext2D;
+    });
+    vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(function (
+      this: HTMLCanvasElement,
+      callback: BlobCallback,
+    ) {
+      callback(new Blob(['jpeg-factice'], { type: 'image/jpeg' }));
+    });
+  }
+
+  beforeEach(() => {
+    Object.defineProperty(URL, 'createObjectURL', {
+      value: vi.fn(() => 'blob:objet-1'),
+      configurable: true,
+    });
+    Object.defineProperty(URL, 'revokeObjectURL', { value: vi.fn(), configurable: true });
+    FauxEventSource.instances = [];
+    vi.stubGlobal('EventSource', FauxEventSource);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('une détection confiante affiche la confirmation de cadrage AVANT tout envoi réseau', async () => {
+    installerImageEtCanvasPourCadrageDetecte();
+    let appelOcrRecu = false;
+    server.use(
+      http.post('/api/v1/scan/permis-circulation', () => {
+        appelOcrRecu = true;
+        return HttpResponse.json(reponseScan());
+      }),
+    );
+    const utilisateur = userEvent.setup();
+    rendre();
+
+    await photographier(utilisateur);
+
+    expect(await screen.findByText('Cadrage automatique détecté')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Continuer' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Utiliser la photo entière' })).toBeInTheDocument();
+    expect(appelOcrRecu).toBe(false);
+  });
+
+  it('« Continuer » accepte le cadrage détecté et poursuit normalement jusqu’au formulaire', async () => {
+    installerImageEtCanvasPourCadrageDetecte();
+    server.use(
+      http.post('/api/v1/scan/permis-circulation', () => HttpResponse.json(reponseScan())),
+    );
+    const utilisateur = userEvent.setup();
+    rendre();
+    await photographier(utilisateur);
+    await screen.findByText('Cadrage automatique détecté');
+
+    await utilisateur.click(screen.getByRole('button', { name: 'Continuer' }));
+
+    expect(
+      await screen.findByRole('button', { name: 'Valider et enregistrer' }),
+    ).toBeInTheDocument();
+  });
+
+  it('« Utiliser la photo entière » annule le cadrage détecté et poursuit quand même (l’annulation n’est jamais un blocage)', async () => {
+    installerImageEtCanvasPourCadrageDetecte();
+    server.use(
+      http.post('/api/v1/scan/permis-circulation', () => HttpResponse.json(reponseScan())),
+    );
+    const utilisateur = userEvent.setup();
+    rendre();
+    await photographier(utilisateur);
+    await screen.findByText('Cadrage automatique détecté');
+
+    await utilisateur.click(screen.getByRole('button', { name: 'Utiliser la photo entière' }));
+
+    expect(
+      await screen.findByRole('button', { name: 'Valider et enregistrer' }),
+    ).toBeInTheDocument();
+  });
+
+  it('quitter la confirmation de cadrage libère l’aperçu (aucune fuite d’URL, même patron que le panneau de refus)', async () => {
+    const revoquer = vi.fn();
+    Object.defineProperty(URL, 'revokeObjectURL', { value: revoquer, configurable: true });
+    installerImageEtCanvasPourCadrageDetecte();
+    server.use(
+      http.post('/api/v1/scan/permis-circulation', () => HttpResponse.json(reponseScan())),
+    );
+    const utilisateur = userEvent.setup();
+    rendre();
+    await photographier(utilisateur);
+    await screen.findByText('Cadrage automatique détecté');
+
+    await utilisateur.click(screen.getByRole('button', { name: 'Continuer' }));
+    await screen.findByRole('button', { name: 'Valider et enregistrer' });
+
+    expect(revoquer).toHaveBeenCalledWith('blob:objet-1');
   });
 });

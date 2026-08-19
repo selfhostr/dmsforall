@@ -61,6 +61,24 @@ export async function pretraiterPageComplete(buffer, { largeurCible = 2000 } = {
 }
 
 /**
+ * Réduit encore la résolution d'une page DÉJÀ prétraitée (niveaux de gris/contraste déjà
+ * appliqués par `pretraiterPageComplete`) — sert UNIQUEMENT la passe de repérage des libellés
+ * (repli, `ancres.mjs`), jamais le recadrage de valeur : Tesseract lit un LIBELLÉ IMPRIMÉ connu
+ * d'avance (pas une valeur variable), une résolution modeste suffit à le localiser (mesuré :
+ * confiance de reconnaissance des libellés inchangée à 1100px de large contre 2000px sur
+ * l'échantillon réel, temps de la passe pleine page divisé par ~7-8 — voir le rapport de
+ * livraison). Coordonnées d'ancre trouvées ici sont ensuite exprimées en FRACTION (résolution-
+ * indépendantes) avant d'être reprojetées sur la page haute résolution pour le recadrage réel
+ * (voir `extraction-champs.mjs`) — jamais un recadrage depuis CETTE image basse résolution.
+ */
+export async function reduireResolutionPage(bufferPageComplete, { largeurCible = 1100 } = {}) {
+  const tampon = await sharp(bufferPageComplete)
+    .resize({ width: largeurCible, withoutEnlargement: true, kernel: 'lanczos3' })
+    .toBuffer({ resolveWithObject: true });
+  return { buffer: tampon.data, largeur: tampon.info.width, hauteur: tampon.info.height };
+}
+
+/**
  * Recadrage + upscale CIBLÉ d'une zone de champ, à partir de l'image PLEINE PAGE DÉJÀ prétraitée
  * (mêmes pixels que ceux où les ancres ont été localisées — pas de nouveau décodage depuis
  * l'original, les coordonnées d'ancre resteraient sinon désynchronisées).

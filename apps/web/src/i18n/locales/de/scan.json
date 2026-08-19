@@ -6,11 +6,38 @@
     "action": "Vollständige Anwendung öffnen"
   },
   "capture": {
-    "consigneTitre": "Fotografieren Sie den Fahrzeugausweis",
-    "consignePlat": "Dokument flach hingelegt, vollständig im Bildausschnitt",
-    "consigneLumiere": "Gute Beleuchtung, ohne Reflexionen oder Schatten",
-    "consigneCadre": "Text scharf und lesbar, Gerät weit genug darüber halten",
+    "objectifTitre": "Fotografieren Sie den Fahrzeugausweis",
+    "objectifDetail": "Fahrzeug und Kunde werden automatisch vorausgefüllt — Sie müssen nur noch prüfen.",
+    "conseilPriseDeVue": "Die Vorderseite, flach hingelegt und gut beleuchtet.",
     "action": "Foto aufnehmen"
+  },
+  "controleQualite": {
+    "enCours": "Foto wird geprüft…"
+  },
+  "cadrage": {
+    "titre": "Automatischer Zuschnitt erkannt",
+    "description": "Die Ränder des Dokuments wurden automatisch erkannt. Prüfen Sie, dass nichts abgeschnitten ist.",
+    "continuer": "Weiter",
+    "photoEntiere": "Ganzes Foto verwenden",
+    "apercuAlt": "Vorschau des Fotos mit automatisch erkanntem Zuschnitt"
+  },
+  "captureLive": {
+    "recherche": "Dokument wird gesucht…",
+    "cadrageBon": "Rahmen korrekt",
+    "captureAutomatiqueImminente": "Automatische Aufnahme — nicht mehr bewegen",
+    "declencherManuel": "Jetzt Foto aufnehmen",
+    "apercuCameraAlt": "Kameravorschau"
+  },
+  "refus": {
+    "titre": "Dieses Foto ist nicht geeignet",
+    "motifs": {
+      "resolutionInsuffisante": "Das Foto hat nicht genug Auflösung. Nehmen Sie es näher auf.",
+      "documentTropPetit": "Der Ausweis ist zu klein im Rahmen. Gehen Sie näher heran.",
+      "photoFloue": "Das Foto ist unscharf. Halten Sie das Gerät ruhig."
+    },
+    "avertissementEnvoiForce": "Ohne erneute Aufnahme wird die automatische Lesung wahrscheinlich unvollständig sein.",
+    "envoyerQuandMeme": "Trotzdem senden",
+    "apercuAlt": "Vorschau des aufgenommenen Fotos zur Prüfung"
   },
   "preparation": {
     "enCours": "Foto wird vorbereitet…"

@@ -512,5 +512,120 @@
       "motif": "Motif du retour",
       "confirmer": "Enregistrer le retour"
     }
+  },
+  "facturesFournisseur": {
+    "titre": "Factures fournisseur",
+    "titreDepot": "Déposer une facture fournisseur",
+    "sousTitreDepot": "Déposez le PDF reçu du fournisseur : il est lu automatiquement et rapproché à la commande correspondante.",
+    "deposeeLe": "Déposée le {date}",
+    "sansNumero": "Facture sans numéro lu",
+    "vide": "Aucune facture fournisseur déposée.",
+    "erreur": {
+      "titre": "Impossible d'afficher les factures fournisseur"
+    },
+    "droitRequis": {
+      "lecture": "Vous n'avez pas le droit de consulter les factures fournisseur.",
+      "depot": "Vous n'avez pas le droit de déposer une facture fournisseur."
+    },
+    "filtres": {
+      "statutTous": "Tous les statuts"
+    },
+    "colonnes": {
+      "fichier": "Facture",
+      "fournisseur": "Fournisseur",
+      "montant": "Montant",
+      "statut": "Statut",
+      "ecarts": "Écarts"
+    },
+    "statuts": {
+      "deposee": "Déposée",
+      "rapprochee": "Rapprochée",
+      "validee": "Validée",
+      "rejetee": "Rejetée"
+    },
+    "ecartsPresents": "Écarts à vérifier",
+    "certitude": {
+      "certaine": "Lu (certain)",
+      "incertaine": "À vérifier",
+      "absente": "Non lu"
+    },
+    "natureEcart": {
+      "aucun": "Conforme",
+      "quantite": "Écart de quantité",
+      "prix_unitaire": "Écart de prix",
+      "quantite_et_prix": "Écart de quantité et de prix",
+      "non_rapprochee": "Non rapprochée"
+    },
+    "depot": {
+      "consigneTitre": "Déposez la facture reçue du fournisseur",
+      "consigneDetail": "Fichier PDF uniquement, 15 Mo maximum.",
+      "glisserDeposer": "Glissez-déposez le fichier ici",
+      "ou": "ou",
+      "parcourir": "Choisir un fichier"
+    },
+    "analyse": {
+      "enCours": "Lecture de la facture en cours…"
+    },
+    "erreurs": {
+      "titre": "Le dépôt a échoué",
+      "fichierPasPdf": "Seuls les fichiers PDF sont acceptés.",
+      "fichierTropLourd": "Ce fichier dépasse la taille maximale de 15 Mo."
+    },
+    "rapprochement": {
+      "titre": "Résultat de la lecture",
+      "fournisseurTrouveTitre": "Fournisseur reconnu",
+      "fournisseurAbsentTitre": "Aucun fournisseur reconnu",
+      "fournisseurAbsentDescription": "Le nom lu sur la facture ne correspond à aucun fournisseur du tenant. Vérifiez-le avant de valider.",
+      "commandeTrouveeTitre": "Rapprochée à une commande fournisseur",
+      "commandeAbsenteTitre": "Aucune commande correspondante",
+      "commandeAbsenteDescription": "Cette facture n'a pas pu être rattachée à une commande fournisseur. Vérifiez-la manuellement avant de valider."
+    },
+    "enTete": {
+      "titre": "Données lues sur la facture",
+      "numeroFacture": "Numéro de facture",
+      "dateFacture": "Date de facture",
+      "fournisseur": "Nom du créancier (lu)",
+      "iban": "IBAN du créancier",
+      "referencePaiement": "Référence de paiement",
+      "montantTotal": "Montant total",
+      "devise": "Devise"
+    },
+    "synthese": {
+      "titreAvecEcarts": "{count, plural, one {# ligne présente un écart à vérifier} other {# lignes présentent un écart à vérifier}}",
+      "titreSansEcart": "Aucun écart détecté",
+      "detailMontant": "Écart total : {montant}",
+      "detailSansMontant": "Les lignes concernées ne sont pas rapprochées à une commande."
+    },
+    "lignes": {
+      "titre": "Lignes",
+      "colonnes": {
+        "ecart": "Écart",
+        "designation": "Désignation",
+        "quantite": "Quantité",
+        "prixUnitaire": "Prix unitaire",
+        "total": "Total"
+      },
+      "commande": "commandé : {valeur}",
+      "ecartValeur": "écart {unites}",
+      "vide": "Aucune ligne lue sur cette facture."
+    },
+    "validation": {
+      "dejaValidee": "Facture validée le {date}.",
+      "dejaRejetee": "Facture rejetée.",
+      "succesTitre": "Facture validée",
+      "succesTitreRejet": "Facture rejetée"
+    },
+    "rejet": {
+      "titre": "Rejeter la facture",
+      "description": "Le document reste conservé et consultable. Indiquez pourquoi cette facture est rejetée."
+    },
+    "actions": {
+      "deposer": "Déposer une facture",
+      "voirDocument": "Voir le document",
+      "valider": "Valider le rapprochement",
+      "rejeter": "Rejeter",
+      "deposerUneAutre": "Déposer une autre facture",
+      "consulter": "Consulter"
+    }
   }
 }

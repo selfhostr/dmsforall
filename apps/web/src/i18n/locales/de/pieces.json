@@ -512,5 +512,120 @@
       "motif": "Grund der Rückgabe",
       "confirmer": "Rückgabe erfassen"
     }
+  },
+  "facturesFournisseur": {
+    "titre": "Lieferantenrechnungen",
+    "titreDepot": "Lieferantenrechnung hochladen",
+    "sousTitreDepot": "Laden Sie das vom Lieferanten erhaltene PDF hoch: Es wird automatisch gelesen und der passenden Bestellung zugeordnet.",
+    "deposeeLe": "Hochgeladen am {date}",
+    "sansNumero": "Rechnung ohne gelesene Nummer",
+    "vide": "Keine Lieferantenrechnung hochgeladen.",
+    "erreur": {
+      "titre": "Lieferantenrechnungen können nicht angezeigt werden"
+    },
+    "droitRequis": {
+      "lecture": "Sie haben keine Berechtigung, Lieferantenrechnungen anzuzeigen.",
+      "depot": "Sie haben keine Berechtigung, eine Lieferantenrechnung hochzuladen."
+    },
+    "filtres": {
+      "statutTous": "Alle Status"
+    },
+    "colonnes": {
+      "fichier": "Rechnung",
+      "fournisseur": "Lieferant",
+      "montant": "Betrag",
+      "statut": "Status",
+      "ecarts": "Abweichungen"
+    },
+    "statuts": {
+      "deposee": "Hochgeladen",
+      "rapprochee": "Abgeglichen",
+      "validee": "Bestätigt",
+      "rejetee": "Abgelehnt"
+    },
+    "ecartsPresents": "Abweichungen zu prüfen",
+    "certitude": {
+      "certaine": "Gelesen (sicher)",
+      "incertaine": "Zu prüfen",
+      "absente": "Nicht gelesen"
+    },
+    "natureEcart": {
+      "aucun": "Übereinstimmend",
+      "quantite": "Mengenabweichung",
+      "prix_unitaire": "Preisabweichung",
+      "quantite_et_prix": "Mengen- und Preisabweichung",
+      "non_rapprochee": "Nicht abgeglichen"
+    },
+    "depot": {
+      "consigneTitre": "Laden Sie die vom Lieferanten erhaltene Rechnung hoch",
+      "consigneDetail": "Nur PDF-Dateien, maximal 15 MB.",
+      "glisserDeposer": "Datei hierher ziehen und ablegen",
+      "ou": "oder",
+      "parcourir": "Datei auswählen"
+    },
+    "analyse": {
+      "enCours": "Rechnung wird gelesen …"
+    },
+    "erreurs": {
+      "titre": "Der Upload ist fehlgeschlagen",
+      "fichierPasPdf": "Es werden nur PDF-Dateien akzeptiert.",
+      "fichierTropLourd": "Diese Datei überschreitet die maximale Grösse von 15 MB."
+    },
+    "rapprochement": {
+      "titre": "Ergebnis der Lesung",
+      "fournisseurTrouveTitre": "Lieferant erkannt",
+      "fournisseurAbsentTitre": "Kein Lieferant erkannt",
+      "fournisseurAbsentDescription": "Der auf der Rechnung gelesene Name entspricht keinem Lieferanten des Mandanten. Bitte vor der Bestätigung prüfen.",
+      "commandeTrouveeTitre": "Einer Lieferantenbestellung zugeordnet",
+      "commandeAbsenteTitre": "Keine passende Bestellung",
+      "commandeAbsenteDescription": "Diese Rechnung konnte keiner Lieferantenbestellung zugeordnet werden. Prüfen Sie sie manuell, bevor Sie sie bestätigen."
+    },
+    "enTete": {
+      "titre": "Auf der Rechnung gelesene Daten",
+      "numeroFacture": "Rechnungsnummer",
+      "dateFacture": "Rechnungsdatum",
+      "fournisseur": "Name des Gläubigers (gelesen)",
+      "iban": "IBAN des Gläubigers",
+      "referencePaiement": "Zahlungsreferenz",
+      "montantTotal": "Gesamtbetrag",
+      "devise": "Währung"
+    },
+    "synthese": {
+      "titreAvecEcarts": "{count, plural, one {# Position weist eine zu prüfende Abweichung auf} other {# Positionen weisen eine zu prüfende Abweichung auf}}",
+      "titreSansEcart": "Keine Abweichung festgestellt",
+      "detailMontant": "Gesamtabweichung: {montant}",
+      "detailSansMontant": "Die betroffenen Positionen sind keiner Bestellung zugeordnet."
+    },
+    "lignes": {
+      "titre": "Positionen",
+      "colonnes": {
+        "ecart": "Abweichung",
+        "designation": "Bezeichnung",
+        "quantite": "Menge",
+        "prixUnitaire": "Einzelpreis",
+        "total": "Total"
+      },
+      "commande": "bestellt: {valeur}",
+      "ecartValeur": "Abweichung {unites}",
+      "vide": "Auf dieser Rechnung wurde keine Position gelesen."
+    },
+    "validation": {
+      "dejaValidee": "Rechnung bestätigt am {date}.",
+      "dejaRejetee": "Rechnung abgelehnt.",
+      "succesTitre": "Rechnung bestätigt",
+      "succesTitreRejet": "Rechnung abgelehnt"
+    },
+    "rejet": {
+      "titre": "Rechnung ablehnen",
+      "description": "Das Dokument bleibt aufbewahrt und einsehbar. Geben Sie an, warum diese Rechnung abgelehnt wird."
+    },
+    "actions": {
+      "deposer": "Rechnung hochladen",
+      "voirDocument": "Dokument anzeigen",
+      "valider": "Abgleich bestätigen",
+      "rejeter": "Ablehnen",
+      "deposerUneAutre": "Weitere Rechnung hochladen",
+      "consulter": "Anzeigen"
+    }
   }
 }

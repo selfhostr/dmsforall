@@ -13,13 +13,16 @@
 
 import { pgEnum } from 'drizzle-orm/pg-core';
 import {
+  ACTIONS_AUDIT_FACTURE_FOURNISSEUR,
   CATEGORIES_ARTICLE,
   METHODES_PRIX_ACHAT,
   MOTIFS_LIBERATION_RESERVATION,
   ORIGINES_COMMANDE_FOURNISSEUR,
+  ORIGINES_DONNEE_FACTURE,
   STATUTS_ARTICLE,
   STATUTS_COMMANDE_FOURNISSEUR,
   STATUTS_CONSIGNE_ECHANGE_STANDARD,
+  STATUTS_FACTURE_FOURNISSEUR,
   STATUTS_FOURNISSEUR,
   STATUTS_RESERVATION_PIECE,
   TYPES_MOUVEMENT_STOCK,
@@ -63,3 +66,14 @@ export const statutConsigneEchangeStandardEnum = pgEnum(
 
 // --- 0028 (paramétrage) ---------------------------------------------------------------------
 export const methodePrixAchatEnum = pgEnum('methode_prix_achat', METHODES_PRIX_ACHAT);
+
+// --- 0059 (facture fournisseur — lecture automatique) ----------------------------------------
+export const statutFactureFournisseurEnum = pgEnum(
+  'statut_facture_fournisseur',
+  STATUTS_FACTURE_FOURNISSEUR,
+);
+export const origineDonneeFactureEnum = pgEnum('origine_donnee_facture', ORIGINES_DONNEE_FACTURE);
+export const actionAuditFactureFournisseurEnum = pgEnum(
+  'action_audit_facture_fournisseur',
+  ACTIONS_AUDIT_FACTURE_FOURNISSEUR,
+);

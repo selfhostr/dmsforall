@@ -102,9 +102,11 @@ export function candidatsCodeType(texteBrut: string): readonly string[] {
   for (let coupe = 1; coupe <= 4 && nettoye.length - coupe >= 4; coupe++) {
     candidats.add(nettoye.slice(0, -coupe));
   }
-  // Bruit en début de chaîne (numéro de ligne/marge captée) : 1 caractère de trop.
-  if (nettoye.length > 4) {
-    candidats.add(nettoye.slice(1));
+  // Bruit en début de chaîne (libellé fr/de/it/rm empilé capté avant la valeur — même cause que le
+  // bruit de fin, voir ci-dessus ; mesuré sur le corpus réel jusqu'à 4 caractères de trop, pas
+  // seulement 1) : jusqu'à 4 caractères retirés en tête, tant qu'il en reste au moins 4.
+  for (let coupe = 1; coupe <= 4 && nettoye.length - coupe >= 4; coupe++) {
+    candidats.add(nettoye.slice(coupe));
   }
   return [...candidats];
 }
@@ -114,7 +116,43 @@ export interface PlaqueExtraite {
   readonly numero: string;
 }
 
-const REGEX_PLAQUE = /^([A-Z]{2})\s*([0-9]{1,6})/;
+/** Les 26 cantons suisses (abréviation officielle à 2 lettres imprimée sur la plaque). */
+const CANTONS_CH = [
+  'AG',
+  'AI',
+  'AR',
+  'BE',
+  'BL',
+  'BS',
+  'FR',
+  'GE',
+  'GL',
+  'GR',
+  'JU',
+  'LU',
+  'NE',
+  'NW',
+  'OW',
+  'SG',
+  'SH',
+  'SO',
+  'SZ',
+  'TG',
+  'TI',
+  'UR',
+  'VD',
+  'VS',
+  'ZG',
+  'ZH',
+] as const;
+
+/** NON ancrée (mesuré sur le corpus réel : la découpe de la zone plaque, généreuse par choix
+ *  assumé — voir `zones-cadrees.mjs` — capte souvent le LIBELLÉ empilé fr/de/it/rm devant la
+ *  valeur ; une regex ancrée en tête de chaîne échouait alors systématiquement). Cherche le canton
+ *  n'IMPORTE OÙ dans le texte nettoyé plutôt qu'en première position — restreint aux 26 abréviations
+ *  cantonales réelles (pas `[A-Z]{2}` quelconque) précisément pour pouvoir se permettre de ne plus
+ *  ancrer sans capter un faux positif dans le bruit de libellé environnant. */
+const REGEX_PLAQUE = new RegExp(`(${CANTONS_CH.join('|')})\\s*([0-9]{1,6})`);
 
 /** Canton (2 lettres) + numéro — la couleur imprimée à la suite (« blanc »/« vert »…) n'est pas
  *  un champ du contrat (`PlaqueLuePermis`), volontairement ignorée ici. */

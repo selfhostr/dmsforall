@@ -8,7 +8,9 @@
     "node": ">=20"
   },
   "scripts": {
-    "start": "node server.mjs"
+    "start": "node server.mjs",
+    "test": "node --test *.spec.mjs",
+    "mesurer": "node outillage-mesure.mjs"
   },
   "dependencies": {
     "heic-convert": "^2.1.0",

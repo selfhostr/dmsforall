@@ -1,5 +1,5 @@
-import { AlertCircle, Camera, CheckCircle2, Loader2, ScanLine, WifiOff } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { AlertCircle, Camera, CheckCircle2, IdCard, Loader2, WifiOff } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router';
 
@@ -15,11 +15,17 @@ import {
 import { useSession } from '@/hooks/useSession';
 import { chemins } from '@/routes/chemins';
 
+import { analyserQualitePhoto, type MotifRefusPhoto } from './analyserQualitePhoto';
+import { CaptureLiveCadrage } from './CaptureLiveCadrage';
 import {
   appellerScanPermisCirculation,
   type ReponseScanPermisCirculation,
 } from './contrat-ocr.temporaire';
+import { estCaptureLiveDisponible } from './disponibiliteCaptureLive';
+import type { FractionsCadre, RectanglePixels } from './geometrieCadre';
 import { FormulairePermisScanne, type ResultatCreationScan } from './FormulairePermisScanne';
+import { PanneauConfirmationCadrage } from './PanneauConfirmationCadrage';
+import { PanneauRefusPhoto } from './PanneauRefusPhoto';
 import { ErreurReductionImage, reduireImagePourEnvoi } from './reduireImage';
 
 /**
@@ -30,6 +36,22 @@ import { ErreurReductionImage, reduireImagePourEnvoi } from './reduireImage';
  */
 type EtapeScan =
   | { readonly phase: 'capture' }
+  | { readonly phase: 'controleQualite' }
+  | {
+      readonly phase: 'refus';
+      readonly fichier: File;
+      readonly urlApercu: string;
+      readonly zone: RectanglePixels;
+      readonly fractions: FractionsCadre;
+      readonly motif: MotifRefusPhoto;
+    }
+  | {
+      readonly phase: 'cadrage';
+      readonly fichier: File;
+      readonly urlApercu: string;
+      readonly zone: RectanglePixels;
+      readonly fractions: FractionsCadre;
+    }
   | { readonly phase: 'preparation' }
   | { readonly phase: 'analyse'; readonly controleur: AbortController }
   | { readonly phase: 'formulaire'; readonly reponse: ReponseScanPermisCirculation }
@@ -42,10 +64,43 @@ type EtapeScan =
 
 /**
  * ÉCRAN SCAN — point d'entrée unique du chantier « scanner de permis de circulation ». Photographie
- * (capture native, jamais un flux vidéo maison), réduction/conversion côté client
- * (`reduireImage.ts`, gère aussi le HEIC des iPhone), appel OCR (`contrat-ocr.temporaire.ts` —
- * contrat TEMPORAIRE, endpoint encore en construction par un autre agent, en parallèle),
- * vérification/correction (`FormulairePermisScanne.tsx`), puis création.
+ * — capture native par défaut, flux vidéo en direct (`CaptureLiveCadrage.tsx`) UNIQUEMENT sur
+ * contexte sécurisé (`liveDisponible`, voir `disponibiliteCaptureLive.ts` — au 18.08.2026 le site
+ * ne sert pas en HTTPS, donc toujours la capture native en pratique, sans que rien n'ait besoin de
+ * changer ici le jour où ça change) — puis CADRAGE AUTOMATIQUE avec CONTRÔLE QUALITÉ avant envoi
+ * (`analyserQualitePhoto.ts` — résolution, netteté, présence d'un document dans le cadre ; voir sa
+ * doc de tête pour ce qui est honnêtement mesurable et ce qui ne l'est pas), recadrage +
+ * réduction/conversion côté client (`reduireImage.ts`, gère aussi le HEIC des iPhone), appel OCR
+ * (`contrat-ocr.temporaire.ts` — contrat TEMPORAIRE, endpoint encore en construction par un autre
+ * agent, en parallèle), vérification/correction (`FormulairePermisScanne.tsx`), puis création.
+ *
+ * L'ÉTAPE « capture » NE MONTRE PLUS DE CADRE (retiré lors du chantier ergonomie du 16.08.2026,
+ * retour direct de @laupernoe : « un grand rectangle, on comprend rien »). Cause profonde identifiée : la
+ * prise de vue passe par l'appareil photo NATIF du téléphone (plein écran, hors de notre contrôle)
+ * — un cadre affiché AVANT de déclencher n'est donc JAMAIS visible pendant la capture, il ne guidait
+ * personne. À la place, cette étape dit l'OBJECTIF avant tout (pictogramme `IdCard` + un titre qui
+ * explique le bénéfice concret — la fiche se remplit toute seule — plutôt qu'une consigne
+ * technique), puis un seul geste évident (`scan:capture.action`, bouton `h-14` unique de l'écran).
+ * Le cadre (`CadrePermis.tsx`, proportions du RECTO du permis suisse — décision de @laupernoe, jamais le
+ * verso) réapparaît seulement là où il a un sens : SUPERPOSÉ SUR LA PHOTO déjà prise, en phase
+ * `refus` OU `cadrage`, pour montrer exactement la zone jugée/retenue.
+ *
+ * CADRAGE AUTOMATIQUE (demande de @laupernoe, 18.08.2026) — `analyserQualitePhoto.ts` tente désormais une
+ * vraie DÉTECTION DES BORDS du document (`detecterBordsDocument.ts`, contraste avec le fond ; voir
+ * sa doc de tête pour la méthode et ses limites, notamment l'absence de correction de perspective) ;
+ * repli sur le cadre géométrique fixe (`geometrieCadre.ts`, calcul déterministe, aucune lecture du
+ * contenu) quand la détection n'est pas assez confiante. UNE DÉTECTION PEUT SE TROMPER — jamais un
+ * recadrage détecté n'est envoyé sans confirmation : phase `cadrage`
+ * (`PanneauConfirmationCadrage.tsx`) avant tout appel réseau, avec un recours EXPLICITE pour
+ * repartir de la photo entière (« annulabilité » exigée par @laupernoe). Le cadre de REPLI, lui, reste
+ * envoyé directement (comportement inchangé d'avant ce chantier : sa marge de 14 % ne coupe jamais
+ * le document, aucun recours n'est nécessaire).
+ *
+ * CONTRÔLE QUALITÉ AVEC POSSIBILITÉ DE FORCER (décision de @laupernoe), jamais bloquant. Une photo
+ * manifestement mauvaise (résolution insuffisante, document trop petit dans le cadre, floue)
+ * déclenche un REFUS EXPLICITE ET RÉESSAYABLE (`PanneauRefusPhoto.tsx`, phase `refus`) plutôt qu'un
+ * envoi silencieusement dégradé ; « Envoyer quand même » reste toujours atteignable depuis ce refus,
+ * avec un avertissement explicite que la lecture risque d'être partielle — jamais un blocage total.
  *
  * TROIS ISSUES, jamais confondues (décision de @laupernoe) : rien n'existe (les deux sont créés), le
  * client existe déjà seul (le véhicule est créé et rattaché), les deux existent déjà (rien à
@@ -66,6 +121,13 @@ export function EcranScan() {
 
   const [etape, setEtape] = useState<EtapeScan>({ phase: 'capture' });
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Bascule LIVE <-> NATIVE — voir `disponibiliteCaptureLive.ts` : vérifié une fois au montage
+  // (contexte sécurisé ou non ne change pas pendant la vie de l'écran), et peut redescendre à
+  // `false` en cours de route si `CaptureLiveCadrage` échoue à obtenir un flux caméra (permission
+  // refusée, caméra absente/occupée — voir `onIndisponible` plus bas) : JAMAIS l'inverse, une fois
+  // replié sur la capture native on n'y retente pas la caméra dans la même visite de l'écran.
+  const [liveDisponible, setLiveDisponible] = useState(estCaptureLiveDisponible);
 
   // Abonnement au canal temps réel OUVERT DÈS LE MONTAGE de l'écran, AVANT même la prise de
   // photo — arbitrage du coordinateur : supprime la fenêtre de course plutôt que de la réduire.
@@ -91,12 +153,96 @@ export function EcranScan() {
     setEtape({ phase: 'capture' });
   }
 
+  // L'aperçu affiché en phase `refus` OU `cadrage` (`PanneauRefusPhoto`/`PanneauConfirmationCadrage`)
+  // garde une URL d'objet vivante tant que l'utilisateur regarde ce panneau — jamais plus longtemps :
+  // ce nettoyage se déclenche à CHAQUE changement de `etape` (donc dès qu'on QUITTE l'une de ces
+  // deux phases, quel que soit le chemin — reprendre, envoyer quand même/continuer/photo entière, ou
+  // même une navigation qui démonte l'écran) et ne fait rien les autres fois (aucune URL créée hors
+  // de ces phases). Centraliser ici plutôt que dans chaque gestionnaire de sortie : une seule règle,
+  // jamais oubliable à un futur point de sortie supplémentaire.
+  useEffect(() => {
+    if (etape.phase !== 'refus' && etape.phase !== 'cadrage') return;
+    const url = etape.urlApercu;
+    return () => URL.revokeObjectURL(url);
+  }, [etape]);
+
+  /**
+   * ÉTAPE 1/2 du traitement d'une photo : contrôle qualité AVANT tout envoi réseau — jamais un
+   * décodage-réduction direct comme avant ce chantier. `analyserQualitePhoto` décode `fichier` une
+   * première fois (les erreurs de décodage — HEIC illisible, fichier corrompu — sont TRAITÉES ICI,
+   * identiquement à avant : même message, même phase `erreur`) puis mesure ce qu'elle peut mesurer
+   * honnêtement sur la zone retenue (détectée automatiquement ou cadre de repli — voir sa doc de
+   * tête). Trois issues, jamais confondues :
+   *  - refusée (qualité insuffisante) -> phase `refus`, l'utilisateur décide (reprendre ou forcer) ;
+   *  - acceptée avec un cadrage DÉTECTÉ (`cadrageDetecte`) -> phase `cadrage`, confirmation
+   *    obligatoire AVANT tout envoi (`PanneauConfirmationCadrage.tsx` — une détection peut se
+   *    tromper, brief explicite de @laupernoe sur l'« annulabilité ») ;
+   *  - acceptée avec le cadre de REPLI géométrique fixe -> directement `envoyerPourAnalyse`, AUCUNE
+   *    étape intermédiaire (comportement inchangé d'avant ce chantier : ce cadre est généreux par
+   *    construction, jamais besoin d'un recours).
+   */
   async function traiterFichier(fichier: File) {
+    setEtape({ phase: 'controleQualite' });
+
+    let resultat: Awaited<ReturnType<typeof analyserQualitePhoto>>;
+    try {
+      resultat = await analyserQualitePhoto(fichier);
+    } catch (cause) {
+      const motif = cause instanceof ErreurReductionImage ? cause.motif : 'echec_lecture';
+      setEtape({
+        phase: 'erreur',
+        categorie: 'image',
+        message: t(
+          motif === 'heic_non_pris_en_charge'
+            ? 'scan:erreurs.heicNonPrisEnCharge'
+            : 'scan:erreurs.photoIllisible',
+        ),
+      });
+      return;
+    }
+
+    if (resultat.motifRefus) {
+      setEtape({
+        phase: 'refus',
+        fichier,
+        urlApercu: URL.createObjectURL(fichier),
+        zone: resultat.zone,
+        fractions: resultat.fractions,
+        motif: resultat.motifRefus,
+      });
+      return;
+    }
+
+    if (resultat.cadrageDetecte) {
+      setEtape({
+        phase: 'cadrage',
+        fichier,
+        urlApercu: URL.createObjectURL(fichier),
+        zone: resultat.zone,
+        fractions: resultat.fractions,
+      });
+      return;
+    }
+
+    void envoyerPourAnalyse(fichier, resultat.zone);
+  }
+
+  /**
+   * ÉTAPE 2/2 : recadrage + réduction (`reduireImagePourEnvoi`, avec `zone` — voir sa doc de tête)
+   * puis appel OCR. Reprend exactement la logique d'avant ce chantier, désormais atteinte depuis
+   * TROIS chemins (`traiterFichier` quand le contrôle qualité accepte sans détection, `confirmerCadrage`
+   * quand l'utilisateur valide un cadrage détecté, `envoyerMalgreRefus` quand l'utilisateur force
+   * malgré un refus) — jamais dupliquée entre eux. `zone` OMISE (`undefined`) = photo ENTIÈRE,
+   * aucun recadrage — c'est le cas « Utiliser la photo entière » (`utiliserPhotoEntiere`), qui
+   * s'appuie sur le comportement déjà documenté de `reduireImagePourEnvoi` plutôt que de recalculer
+   * un rectangle plein cadre ici.
+   */
+  async function envoyerPourAnalyse(fichier: File, zone?: RectanglePixels) {
     setEtape({ phase: 'preparation' });
 
     let image: Awaited<ReturnType<typeof reduireImagePourEnvoi>>;
     try {
-      image = await reduireImagePourEnvoi(fichier);
+      image = await reduireImagePourEnvoi(fichier, zone);
     } catch (cause) {
       const motif = cause instanceof ErreurReductionImage ? cause.motif : 'echec_lecture';
       setEtape({
@@ -126,6 +272,24 @@ export function EcranScan() {
     }
   }
 
+  function envoyerMalgreRefus() {
+    if (etape.phase !== 'refus') return;
+    void envoyerPourAnalyse(etape.fichier, etape.zone);
+  }
+
+  /** Accepte le cadrage détecté automatiquement (`PanneauConfirmationCadrage`, action primaire). */
+  function confirmerCadrage() {
+    if (etape.phase !== 'cadrage') return;
+    void envoyerPourAnalyse(etape.fichier, etape.zone);
+  }
+
+  /** Recours de l'« annulabilité » exigée par @laupernoe : renonce au cadrage détecté et envoie la photo
+   *  ENTIÈRE (`zone` omise, voir la doc de tête d'`envoyerPourAnalyse`). */
+  function utiliserPhotoEntiere() {
+    if (etape.phase !== 'cadrage') return;
+    void envoyerPourAnalyse(etape.fichier, undefined);
+  }
+
   function annulerAnalyse() {
     if (etape.phase === 'analyse') etape.controleur.abort();
     setEtape({ phase: 'capture' });
@@ -147,46 +311,103 @@ export function EcranScan() {
         ) : null}
 
         {etape.phase === 'capture' ? (
-          <div className="mx-auto flex w-full max-w-md flex-col items-center gap-6 text-center">
-            <div className="flex h-40 w-full items-center justify-center rounded-lg border-2 border-dashed border-input bg-muted/30">
-              <ScanLine className="h-16 w-16 text-muted-foreground" aria-hidden="true" />
+          <div className="mx-auto flex w-full max-w-md flex-col items-center gap-8 text-center">
+            {/* 1. L'OBJECTIF, dit AVANT tout (retour de @laupernoe : un cadre vide affiché ici ne se
+                comprenait pas — voir la doc de tête de l'écran pour la cause profonde). Le
+                pictogramme `IdCard` identifie le SUJET (« un document d'identité ») ; ce n'est pas
+                un viseur à aligner, juste une icône dans un badge rond, sans ambiguïté possible
+                avec un cadre de visée. Le titre porte le BÉNÉFICE concret (la fiche se remplit
+                seule), pas seulement l'instruction. */}
+            <div className="flex flex-col items-center gap-3">
+              <div
+                aria-hidden="true"
+                className="flex h-20 w-20 items-center justify-center rounded-full bg-muted/60"
+              >
+                <IdCard className="h-10 w-10 text-muted-foreground" />
+              </div>
+              <div className="space-y-1">
+                <p className="texte-corps font-medium">{t('scan:capture.objectifTitre')}</p>
+                <p className="texte-libelle text-muted-foreground">
+                  {t('scan:capture.objectifDetail')}
+                </p>
+              </div>
             </div>
-            <div className="space-y-2">
-              <p className="texte-corps font-medium">{t('scan:capture.consigneTitre')}</p>
-              <ul className="space-y-1 texte-libelle text-muted-foreground">
-                <li>{t('scan:capture.consignePlat')}</li>
-                <li>{t('scan:capture.consigneLumiere')}</li>
-                <li>{t('scan:capture.consigneCadre')}</li>
-              </ul>
-            </div>
-            {/* Capture native uniquement (`capture="environment"`) — pas de flux vidéo maison,
-                consigne explicite du brief. `accept="image/*"` reste large (pas `image/jpeg` seul)
-                pour laisser l'appareil choisir son propre format natif ; `reduireImage.ts` gère la
-                conversion, HEIC compris, avant l'envoi. */}
-            <input
-              ref={inputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="sr-only"
-              aria-label={t('scan:capture.action')}
-              onChange={(evenement) => {
-                const fichier = evenement.target.files?.[0];
-                evenement.target.value = '';
-                if (fichier) void traiterFichier(fichier);
-              }}
-            />
-            {/* h-14 (56 px), bien au-dessus du plancher tactile de 44 px du produit — action
-                PRIMAIRE unique de cette étape, pensée pour un pouce, une seule main. */}
-            <Button
-              type="button"
-              className="h-14 w-full gap-2 text-base"
-              onClick={() => inputRef.current?.click()}
-            >
-              <Camera className="h-5 w-5" aria-hidden="true" />
-              {t('scan:capture.action')}
-            </Button>
+
+            {/* 2. LE GESTE — bascule LIVE/NATIVE (`liveDisponible`, voir sa doc de tête). Le flux
+                vidéo maison (`CaptureLiveCadrage.tsx`) ne remplace la capture native que sur un
+                contexte sécurisé ; SANS AUCUNE trace visible du choix pour l'utilisateur (pas de
+                message, pas de bouton en plus — l'un OU l'autre, jamais les deux à la fois). */}
+            {liveDisponible ? (
+              <CaptureLiveCadrage
+                onCapture={(fichier) => void traiterFichier(fichier)}
+                onIndisponible={() => setLiveDisponible(false)}
+              />
+            ) : (
+              <>
+                {/* Capture native (`capture="environment"`) — repli par défaut tant que le site ne
+                    sert pas en HTTPS, voir `disponibiliteCaptureLive.ts`. `accept="image/*"` reste
+                    large (pas `image/jpeg` seul) pour laisser l'appareil choisir son propre format
+                    natif ; `reduireImage.ts` gère la conversion, HEIC compris, avant l'envoi. */}
+                <input
+                  ref={inputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="sr-only"
+                  aria-label={t('scan:capture.action')}
+                  onChange={(evenement) => {
+                    const fichier = evenement.target.files?.[0];
+                    evenement.target.value = '';
+                    if (fichier) void traiterFichier(fichier);
+                  }}
+                />
+                {/* Action PRIMAIRE unique de cette étape, pensée pour un pouce, une seule main
+                    (h-14, 56 px, bien au-dessus du plancher tactile de 44 px du produit). Le conseil
+                    de prise de vue est un simple rappel, juste au-dessus, jamais dominant. */}
+                <div className="flex w-full flex-col items-center gap-3">
+                  <p className="texte-libelle text-muted-foreground">
+                    {t('scan:capture.conseilPriseDeVue')}
+                  </p>
+                  <Button
+                    type="button"
+                    className="h-14 w-full gap-2 text-base"
+                    onClick={() => inputRef.current?.click()}
+                  >
+                    <Camera className="h-5 w-5" aria-hidden="true" />
+                    {t('scan:capture.action')}
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
+        ) : null}
+
+        {etape.phase === 'controleQualite' ? (
+          <div className="mx-auto flex w-full max-w-md flex-col items-center gap-4 py-10 text-center">
+            <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" aria-hidden="true" />
+            <p role="status" className="texte-corps font-medium">
+              {t('scan:controleQualite.enCours')}
+            </p>
+          </div>
+        ) : null}
+
+        {etape.phase === 'refus' ? (
+          <PanneauRefusPhoto
+            urlApercu={etape.urlApercu}
+            fractions={etape.fractions}
+            motif={etape.motif}
+            onReprendre={recommencer}
+            onEnvoyerQuandMeme={envoyerMalgreRefus}
+          />
+        ) : null}
+
+        {etape.phase === 'cadrage' ? (
+          <PanneauConfirmationCadrage
+            urlApercu={etape.urlApercu}
+            fractions={etape.fractions}
+            onContinuer={confirmerCadrage}
+            onPhotoEntiere={utiliserPhotoEntiere}
+          />
         ) : null}
 
         {etape.phase === 'preparation' ? (

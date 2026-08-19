@@ -77,6 +77,10 @@ describe('candidatsCodeType', () => {
   it('bruit important en fin de chaîne (colonne "Poids total" voisine captée, mesuré sur échantillon réel) -> jusqu’à 4 caractères tolérés', () => {
     expect(candidatsCodeType('1VD455 33SN')).toContain('1VD455');
   });
+
+  it('bruit important en DÉBUT de chaîne (libellé fr/de/it/rm empilé capté avant la valeur, mesuré sur le corpus réel) -> jusqu’à 4 caractères tolérés, pas seulement 1', () => {
+    expect(candidatsCodeType('ABCD1VD455')).toContain('1VD455');
+  });
 });
 
 describe('extrairePlaque', () => {
@@ -88,12 +92,23 @@ describe('extrairePlaque', () => {
     expect(extrairePlaque('VD123456')).toEqual({ canton: 'VD', numero: '123456' });
   });
 
-  it('texte qui ne commence pas par deux lettres de canton -> null', () => {
+  it('texte qui ne commence pas par deux lettres de canton, et où aucun canton n’est suivi de chiffres -> null', () => {
     expect(extrairePlaque('135792 VS')).toBeNull();
   });
 
   it('chaîne vide -> null', () => {
     expect(extrairePlaque('')).toBeNull();
+  });
+
+  it('libellé fr/de/it/rm empilé capté avant la valeur (bruit de tête, mesuré sur le corpus réel — la découpe de zone est volontairement généreuse, voir zones-cadrees.mjs) -> canton+numéro trouvés quand même, PAS ancré en tête de chaîne', () => {
+    expect(extrairePlaque('SCHILDPLAQUETARGANUMER VS 135792 blanc')).toEqual({
+      canton: 'VS',
+      numero: '135792',
+    });
+  });
+
+  it('deux lettres qui NE sont PAS une abréviation cantonale suisse -> null, même suivies de chiffres (whitelist des 26 cantons, pas [A-Z]{2} quelconque)', () => {
+    expect(extrairePlaque('XX 123456')).toBeNull();
   });
 });
 

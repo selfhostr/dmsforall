@@ -129,6 +129,40 @@ describe('reduireImagePourEnvoi', () => {
     expect(revoquerObjectUrl).toHaveBeenCalledWith('blob:objet-1');
   });
 
+  it('avec une zone de recadrage, réduit depuis les dimensions DE LA ZONE (pas de l’image entière) et dessine le bon rectangle source', async () => {
+    installerImageFactice('succes', { largeur: 4000, hauteur: 3000 });
+    const { drawImage } = installerCanvasFactice();
+
+    const resultat = await reduireImagePourEnvoi(fichier('permis.jpg', 'image/jpeg'), {
+      x: 100,
+      y: 200,
+      largeur: 1800,
+      hauteur: 900,
+    });
+
+    // Zone 1800x900, déjà sous DIMENSION_MAX_PX (1920) sur son plus grand côté : aucune réduction
+    // supplémentaire — la sortie a EXACTEMENT les dimensions de la zone, pas celles de l'image
+    // entière (4000x3000, qui aurait été réduite à 1920x1440 sans recadrage).
+    expect(resultat.largeurPx).toBe(1800);
+    expect(resultat.hauteurPx).toBe(900);
+    expect(drawImage).toHaveBeenCalledWith(expect.anything(), 100, 200, 1800, 900, 0, 0, 1800, 900);
+  });
+
+  it('une zone de recadrage plus grande que DIMENSION_MAX_PX est réduite comme l’image entière l’aurait été, mais depuis SES propres dimensions', async () => {
+    installerImageFactice('succes', { largeur: 4000, hauteur: 3000 });
+    installerCanvasFactice();
+
+    const resultat = await reduireImagePourEnvoi(fichier('permis.jpg', 'image/jpeg'), {
+      x: 0,
+      y: 0,
+      largeur: 3840,
+      hauteur: 2160,
+    });
+
+    expect(resultat.largeurPx).toBe(1920);
+    expect(resultat.hauteurPx).toBe(1080);
+  });
+
   it('sans polyfill canvas (jsdom réel, getContext non mocké) : échec explicite, jamais un succès silencieux', async () => {
     // AUCUN `installerCanvasFactice()` ici — comportement RÉEL de ce dépôt sous jsdom (constaté :
     // `HTMLCanvasElement.prototype.getContext` renvoie `null`), preuve que le code ne suppose

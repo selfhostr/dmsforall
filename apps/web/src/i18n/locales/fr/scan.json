@@ -6,11 +6,38 @@
     "action": "Ouvrir l'application complète"
   },
   "capture": {
-    "consigneTitre": "Photographiez le permis de circulation",
-    "consignePlat": "Document posé bien à plat, entièrement dans le cadre",
-    "consigneLumiere": "Bon éclairage, sans reflet ni ombre portée",
-    "consigneCadre": "Texte net et lisible, appareil tenu bien au-dessus",
+    "objectifTitre": "Photographiez le permis de circulation",
+    "objectifDetail": "Le véhicule et le client seront pré-remplis automatiquement — il ne restera qu'à vérifier.",
+    "conseilPriseDeVue": "Le recto, bien à plat et bien éclairé.",
     "action": "Prendre la photo"
+  },
+  "controleQualite": {
+    "enCours": "Vérification de la photo…"
+  },
+  "cadrage": {
+    "titre": "Cadrage automatique détecté",
+    "description": "Les bords du document ont été repérés automatiquement. Vérifiez que rien n'est coupé.",
+    "continuer": "Continuer",
+    "photoEntiere": "Utiliser la photo entière",
+    "apercuAlt": "Aperçu de la photo avec le cadrage détecté automatiquement"
+  },
+  "captureLive": {
+    "recherche": "Recherche du document…",
+    "cadrageBon": "Cadrage correct",
+    "captureAutomatiqueImminente": "Capture automatique — ne bougez plus",
+    "declencherManuel": "Prendre la photo maintenant",
+    "apercuCameraAlt": "Aperçu de la caméra"
+  },
+  "refus": {
+    "titre": "Cette photo ne convient pas",
+    "motifs": {
+      "resolutionInsuffisante": "La photo n'a pas assez de définition. Reprenez-la de plus près.",
+      "documentTropPetit": "Le permis est trop petit dans le cadre. Rapprochez-vous.",
+      "photoFloue": "La photo est floue. Reprenez-la bien stable."
+    },
+    "avertissementEnvoiForce": "Sans reprendre la photo, la lecture automatique sera probablement incomplète.",
+    "envoyerQuandMeme": "Envoyer quand même",
+    "apercuAlt": "Aperçu de la photo prise pour vérification"
   },
   "preparation": {
     "enCours": "Préparation de la photo…"

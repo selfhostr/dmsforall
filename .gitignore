@@ -77,5 +77,10 @@ $RECYCLE.BIN/
 # build) et site/node_modules/ sont déjà couverts par les motifs génériques
 # dist/ et node_modules/ ci-dessus — rien de spécifique à ajouter pour eux.
 site/.astro/
+# Dérivés redimensionnés des captures produit (générés au build par
+# scripts/redimensionner-captures.mjs à partir de outils/captures/sortie,
+# jamais la source elle-même) — reconstructibles, jamais commités, comme
+# tout le reste de ce qui est généré au build.
+site/public/captures-redim/
 # ancien-site/ ne contient plus de projet Hugo (voir ancien-site/README.md) :
 # seul l'ancien contenu HTML pré-Hugo y reste, versionné tel quel.

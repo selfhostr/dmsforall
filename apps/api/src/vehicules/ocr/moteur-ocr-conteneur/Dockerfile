@@ -22,7 +22,7 @@ RUN mkdir -p /app/tessdata \
        https://github.com/tesseract-ocr/tessdata_fast/raw/main/fra.traineddata \
     && apt-get purge -y curl && apt-get autoremove -y
 COPY --from=build /app/node_modules ./node_modules
-COPY package.json server.mjs pretraitement.mjs ancres.mjs moteur-tesseract.mjs extraction-champs.mjs ./
+COPY package.json server.mjs pretraitement.mjs ancres.mjs geometrie.mjs zones-cadrees.mjs moteur-tesseract.mjs extraction-champs.mjs ./
 
 ENV OCR_TESSDATA_PATH=/app/tessdata
 ENV PORT=8090

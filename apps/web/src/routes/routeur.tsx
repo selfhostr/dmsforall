@@ -21,11 +21,14 @@ import { EcranReferentiels } from '@/ecrans/parametrage/EcranReferentiels';
 import { EcranSites } from '@/ecrans/parametrage/EcranSites';
 import { EcranUtilisateurs } from '@/ecrans/parametrage/EcranUtilisateurs';
 import { EcranConsignesPieces } from '@/ecrans/pieces/EcranConsignesPieces';
+import { EcranDepotFactureFournisseur } from '@/ecrans/pieces/EcranDepotFactureFournisseur';
+import { EcranFactureFournisseur } from '@/ecrans/pieces/EcranFactureFournisseur';
 import { EcranFicheArticle } from '@/ecrans/pieces/EcranFicheArticle';
 import { EcranFicheCommandeFournisseur } from '@/ecrans/pieces/EcranFicheCommandeFournisseur';
 import { EcranFicheFournisseur } from '@/ecrans/pieces/EcranFicheFournisseur';
 import { EcranListeArticles } from '@/ecrans/pieces/EcranListeArticles';
 import { EcranListeCommandesFournisseur } from '@/ecrans/pieces/EcranListeCommandesFournisseur';
+import { EcranListeFacturesFournisseur } from '@/ecrans/pieces/EcranListeFacturesFournisseur';
 import { EcranListeFournisseurs } from '@/ecrans/pieces/EcranListeFournisseurs';
 import { EcranNouvelleCommandeFournisseur } from '@/ecrans/pieces/EcranNouvelleCommandeFournisseur';
 import { EcranReapprovisionnement } from '@/ecrans/pieces/EcranReapprovisionnement';
@@ -410,6 +413,36 @@ export const routesConfig: RouteObject[] = [
         element: (
           <RouteProtegee rolesAutorises={ROLES_PIECES}>
             <EcranFicheFournisseur />
+          </RouteProtegee>
+        ),
+      },
+      // Factures fournisseur (dépôt/rapprochement) — même garde `ROLES_PIECES` (7 rôles) que
+      // `commandes-fournisseur`/`fournisseurs` ci-dessus : le droit fin (`peutLireFactureFournisseur`,
+      // `ecrans/pieces/droits.ts`, direction/chef_atelier/magasinier/comptable) est vérifié DANS
+      // chaque écran, pas ici — même raisonnement que ces deux routes (voir leurs commentaires).
+      // Segment statique `deposer` déclaré AVANT `:id`, même convention que
+      // `pieces/commandes-fournisseur/nouvelle` plus haut.
+      {
+        path: 'pieces/factures-fournisseur',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+            <EcranListeFacturesFournisseur />
+          </RouteProtegee>
+        ),
+      },
+      {
+        path: 'pieces/factures-fournisseur/deposer',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+            <EcranDepotFactureFournisseur />
+          </RouteProtegee>
+        ),
+      },
+      {
+        path: 'pieces/factures-fournisseur/:id',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+            <EcranFactureFournisseur />
           </RouteProtegee>
         ),
       },

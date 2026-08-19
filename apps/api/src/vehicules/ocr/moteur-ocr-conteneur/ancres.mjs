@@ -38,64 +38,68 @@ const ANCRES_PAR_CHAMP = {
  * Géométrie de la zone VALEUR relative à la bbox du libellé trouvé, en FRACTION de la largeur/
  * hauteur de la page prétraitée (pas en pixels — indépendant de la résolution d'upscale choisie).
  *
+ * RELATIF À L'ANCRE UNIQUEMENT (`ancreBbox.x1 + MARGE_APRES_LIBELLE`) — une ancienne version de ce
+ * module visait une `colonneValeurFixeFraction` (fraction ABSOLUE de page, commune à tous les
+ * champs), construite sur une page suffisamment "un seul recto vertical" comme hypothèse de
+ * structure. Le corpus réel (13 photos, 18.08) contredit cette hypothèse : un permis suisse se
+ * photographie CARNET OUVERT, DOUBLE PAGE (page gauche = détenteur, page droite = véhicule,
+ * paysage) — un libellé de la page droite (plaque/VIN/code type/date) se trouve donc vers
+ * x≈0.55-0.65 DE LA PHOTO, un libellé de la page gauche (nom/adresse) vers x≈0.15-0.25. Une
+ * fraction de page fixe et unique ne peut viser juste dans les deux cas à la fois — mesuré :
+ * `colonneValeurFixeFraction` (0.245) plaçait la zone valeur des champs page-droite EN PLEIN DANS
+ * LE BLOC DÉTENTEUR de la page gauche, zéro caractère utile capté (4 photos du corpus réel à 0
+ * champ lu en repli). Le décalage RELATIF À L'ANCRE RETROUVÉE SUR CETTE PHOTO s'affranchit du
+ * cadrage/zoom (photos prises à main levée, jamais deux identiquement cadrées) : seule la position
+ * réellement observée compte, jamais une fraction de page devinée à l'avance.
+ *
  * `etendreDroite`/`etendreBas` : la valeur suit rarement le libellé sur une seule ligne (formulaire
  * en tableau) — on prend une bande généreuse à droite ET vers le bas plutôt que de viser une boîte
  * exacte, quitte à capter le début de la colonne suivante (bleed). C'est un choix ASSUMÉ : la
  * correction se fait après coup côté API (extraction par motif + validation référentiel/checksum),
  * pas ici par un recadrage pixel-parfait impossible à garantir sur une photo de comptoir.
  *
- * `colonneValeurFixeFraction` (au lieu d'un décalage relatif à `ancreBbox.x1`), mesuré sur
- * l'échantillon réel : chaque libellé de champ est en réalité un EMPILEMENT de 3-4 lignes
- * (fr/de/it/rm, ex. « Fahrgestell-Nr. / Châssis no / Telaio n. / Schassis nr. ») — l'ancre ne
- * matche souvent qu'UNE SEULE de ces lignes, généralement la plus courte, dont la largeur ne dit
- * rien de la largeur réelle de la colonne de libellé (bornée par le filet vertical du tableau
- * imprimé). Un décalage relatif à la largeur du mot trouvé sous-estimait donc largement le début
- * de la colonne valeur (mesuré : le texte utile commençait bien plus à droite que
- * `ancreBbox.x1 + marge`). Une fraction FIXE de la largeur de page, commune à tous les champs en
- * ligne (vin/codeType/plaque/date, alignés sur la même grille de tableau), est plus robuste.
+ * `MARGE_APRES_LIBELLE` volontairement PETITE (pas un grand décalage) : chaque libellé de champ est
+ * en réalité un EMPILEMENT de 3-4 lignes (fr/de/it/rm) dont l'ancre ne matche souvent qu'UNE, pas
+ * forcément la plus longue — son bord droit `x1` ne dit rien de la largeur réelle de la colonne de
+ * libellé imprimée (bornée par le filet vertical du tableau). Partir tôt (marge faible) risque de
+ * capter la fin du libellé en plus de la valeur ; partir tard (marge large) risque de couper le
+ * début de la valeur — la première erreur est récupérable en aval (regex/motif tolérant au bruit de
+ * PRÉFIXE, voir `extraction-permis.ts`), la seconde ne l'est pas (caractères perdus, aucun moyen de
+ * les reconstruire). Marge faible assumée pour cette raison.
  */
-const COLONNE_VALEUR_FIXE_FRACTION = 0.245;
+const MARGE_APRES_LIBELLE = 0.01;
 
 /**
- * `hauteurFraction` (~0.055, ~155px à 2800px de hauteur de page — la hauteur mesurée de
- * l'empilement des 3-4 lignes fr/de/it/rm d'un libellé, plus marge) et CENTRÉE sur l'ancre (voir
- * `boiteValeur`) plutôt qu'alignée sur son bord haut : l'ancre ne matche souvent qu'UNE de ces
- * lignes (parfois la dernière), pas forcément la première. Mesuré sur l'échantillon réel : aligner
- * sur `ancreBbox.y0` de la ligne matchée manquait la valeur quand la ligne matchée n'était pas la
- * première de l'empilement ; une fenêtre trop haute (`~0.1` essayé d'abord) capte à l'inverse la
- * ligne du champ SUIVANT. Une fenêtre centrée, calée sur la hauteur réelle de l'empilement, couvre
- * la valeur quelle que soit la ligne effectivement trouvée sans déborder sur le champ voisin.
+ * `hauteurFraction` CENTRÉE sur l'ancre pour les champs alignés en ligne (vin/codeType/plaque/
+ * date) : l'ancre ne matche souvent qu'UNE des 3-4 lignes fr/de/it/rm empilées (parfois la
+ * dernière), pas forcément la première — centrer sur SA bbox (pas aligner sur son bord haut) couvre
+ * la valeur quelle que soit la ligne effectivement trouvée. `detenteurNom`/`detenteurAdresse`
+ * gardent un comportement dédié : la valeur (nom, puis adresse sur 1-2 lignes) suit le libellé
+ * VERS LE BAS dans la même cellule de tableau, jamais centrée dessus.
+ *
+ * BUG CORRIGÉ (calibrage du 18.08, corpus réel) : `boiteValeurFraction` ci-dessous branche sur
+ * `geo.hauteurEstCelleDeLaLigne`, mais aucune entrée ne portait ce marqueur — la centration décrite
+ * ci-dessus n'était donc JAMAIS appliquée en repli, les 4 champs en ligne retombaient tous dans la
+ * branche par défaut (`y0 - hauteur * 0.15`, alignée sur le bord haut de la ligne matchée, pas
+ * centrée). Sans effet sur la ligne fr (souvent la première matchée, donc déjà en haut de
+ * l'empilement) mais ratait la valeur quand la ligne matchée était de/it/rm (plus bas dans
+ * l'empilement) — c'est-à-dire précisément le cas que cette centration existe pour couvrir.
  */
 const GEOMETRIE_VALEUR = {
-  vin: {
-    colonneValeurFixeFraction: COLONNE_VALEUR_FIXE_FRACTION,
-    largeurFraction: 0.6,
-    hauteurFraction: 0.055,
-  },
-  codeTypeCh: {
-    colonneValeurFixeFraction: COLONNE_VALEUR_FIXE_FRACTION,
-    largeurFraction: 0.45,
-    hauteurFraction: 0.055,
-  },
-  plaque: {
-    colonneValeurFixeFraction: COLONNE_VALEUR_FIXE_FRACTION,
-    largeurFraction: 0.6,
-    hauteurFraction: 0.055,
-  },
+  vin: { largeurFraction: 0.38, hauteurFraction: 0.065, hauteurEstCelleDeLaLigne: true },
+  codeTypeCh: { largeurFraction: 0.26, hauteurFraction: 0.065, hauteurEstCelleDeLaLigne: true },
+  plaque: { largeurFraction: 0.38, hauteurFraction: 0.065, hauteurEstCelleDeLaLigne: true },
   premiereMiseEnCirculationLe: {
-    colonneValeurFixeFraction: COLONNE_VALEUR_FIXE_FRACTION,
-    largeurFraction: 0.35,
-    hauteurFraction: 0.055,
+    largeurFraction: 0.22,
+    hauteurFraction: 0.065,
+    hauteurEstCelleDeLaLigne: true,
   },
-  detenteurNom: { decalageDroiteFraction: -0.55, largeurFraction: 0.55, hauteurFraction: 0.03 },
-  detenteurAdresse: {
-    decalageDroiteFraction: -0.55,
-    largeurFraction: 0.55,
-    // Nom + rue + NPA/localité sur plusieurs lignes : bande verticale plus haute, part du BAS du
-    // libellé "Wohnort/Domicile" (l'adresse suit le nom, jamais avant).
-    hauteurFraction: 0.055,
-    depuisBasLibelle: true,
-  },
+  // Nom : ligne unique, immédiatement au niveau du libellé matché (pas centrée : la ligne nom est
+  // la PREMIÈRE de la cellule détenteur, jamais après).
+  detenteurNom: { largeurFraction: 0.32, hauteurFraction: 0.05 },
+  // Adresse : part du BAS du libellé matché (l'adresse suit le nom, jamais avant), bande plus haute
+  // pour couvrir rue + NPA/localité sur 2 lignes.
+  detenteurAdresse: { largeurFraction: 0.34, hauteurFraction: 0.11, depuisBasLibelle: true },
 };
 
 export function normaliserMot(texte) {
@@ -157,34 +161,51 @@ export function localiserAncres(mots) {
   return resultat;
 }
 
-/** Bbox pixel de la zone à recadrer pour lire la VALEUR d'un champ, depuis la bbox de son ancre. */
-export function boiteValeur(champ, ancreBbox, largeurPage, hauteurPage) {
+/**
+ * Bbox de la zone VALEUR d'un champ, en FRACTION de page (`[0,1]`, pas en pixel) — depuis la bbox
+ * de son ancre EXPRIMÉE ELLE AUSSI EN FRACTION (`normaliserBboxFraction` ci-dessous). Fonction pure,
+ * résolution-indépendante par construction : l'ancre peut avoir été localisée sur une page basse
+ * résolution (passe de repérage réduite, voir `pretraitement.reduireResolutionPage`) pendant que
+ * la zone résultante est recadrée sur une page haute résolution différente — seule la fraction
+ * traverse les deux résolutions, jamais un pixel. Le passage fraction -> pixel (sur la page cible
+ * du recadrage) et l'élargissement de bord (`geometrie.elargirEtBornerBoite`) sont à la charge de
+ * l'appelant (`extraction-champs.mjs`), pas de ce module qui ne connaît aucune image.
+ */
+export function boiteValeurFraction(champ, ancreBboxFraction) {
   const geo = GEOMETRIE_VALEUR[champ];
-  const largeur = geo.largeurFraction * largeurPage;
-  const hauteur = geo.hauteurFraction * hauteurPage;
+  const largeur = geo.largeurFraction;
+  const hauteur = geo.hauteurFraction;
 
-  // Colonne fixe (vin/codeType/plaque/date, alignés sur la même grille de tableau) : indépendant
-  // de la largeur du mot d'ancre trouvé, voir le commentaire de `GEOMETRIE_VALEUR`. Sinon (nom/
-  // adresse), décalage relatif à `ancreBbox.x1` — comportement d'origine, ces deux champs n'ont
-  // pas la même grille en colonnes que les champs numérotés en ligne.
-  const left =
-    geo.colonneValeurFixeFraction !== undefined
-      ? geo.colonneValeurFixeFraction * largeurPage
-      : ancreBbox.x1 + geo.decalageDroiteFraction * largeurPage;
+  // TOUJOURS relatif à l'ancre trouvée sur CETTE photo — voir le commentaire de `GEOMETRIE_VALEUR`
+  // (aucune fraction de page absolue, abandonnée après mesure sur le corpus réel du 18.08).
+  const left = ancreBboxFraction.x1 + MARGE_APRES_LIBELLE;
 
-  // Vertical : CENTRÉ sur l'ancre pour les champs à colonne fixe (voir le commentaire de
-  // `GEOMETRIE_VALEUR`) ; comportement d'origine (depuis le haut, ou depuis le bas du libellé)
-  // pour nom/adresse, dont la valeur suit réellement une position fixe par rapport au libellé.
-  const top =
-    geo.colonneValeurFixeFraction !== undefined
-      ? (ancreBbox.y0 + ancreBbox.y1) / 2 - hauteur / 2
-      : (geo.depuisBasLibelle ? ancreBbox.y1 : ancreBbox.y0) - hauteur * 0.15;
+  // Vertical : CENTRÉ sur l'ancre pour les champs en ligne (vin/codeType/plaque/date) — la valeur
+  // partage la même bande horizontale que le libellé, quelle que soit la ligne fr/de/it/rm
+  // matchée. `depuisBasLibelle` (adresse) part du bord bas du libellé matché ; sinon (nom), du bord
+  // haut avec une marge réduite (la ligne nom suit immédiatement le libellé, jamais après une
+  // ligne intermédiaire).
+  const top = geo.depuisBasLibelle
+    ? ancreBboxFraction.y1
+    : geo.hauteurEstCelleDeLaLigne
+      ? (ancreBboxFraction.y0 + ancreBboxFraction.y1) / 2 - hauteur / 2
+      : ancreBboxFraction.y0 - hauteur * 0.15;
 
   return {
-    left: Math.min(Math.max(0, left), largeurPage - 10),
-    top: Math.min(Math.max(0, top), hauteurPage - 10),
-    width: Math.min(largeur, largeurPage - left),
+    left: Math.max(0, left),
+    top: Math.max(0, top),
+    width: largeur,
     height: hauteur,
+  };
+}
+
+/** Bbox pixel (`{x0,y0,x1,y1}`, telle que rendue par Tesseract.js) -> fraction de page. */
+export function normaliserBboxFraction(bboxPixel, largeurPage, hauteurPage) {
+  return {
+    x0: bboxPixel.x0 / largeurPage,
+    x1: bboxPixel.x1 / largeurPage,
+    y0: bboxPixel.y0 / hauteurPage,
+    y1: bboxPixel.y1 / hauteurPage,
   };
 }
 

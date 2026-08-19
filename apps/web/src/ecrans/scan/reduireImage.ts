@@ -47,7 +47,9 @@ export interface ImageReduite {
   readonly hauteurPx: number;
 }
 
-async function decoderImage(fichier: File, url: string): Promise<HTMLImageElement> {
+/** Exporté pour `analyserQualitePhoto.ts` — même décodage EXACT (mêmes erreurs, même détection
+ *  HEIC) que celui utilisé juste avant l'envoi, pas une variante réécrite en double. */
+export async function decoderImage(fichier: File, url: string): Promise<HTMLImageElement> {
   const image = new Image();
   await new Promise<void>((resolve, reject) => {
     image.onload = () => resolve();
@@ -66,28 +68,65 @@ async function decoderImage(fichier: File, url: string): Promise<HTMLImageElemen
   return image;
 }
 
+/** Rectangle en pixels de l'image SOURCE décodée (jamais de la sortie réduite) — même type que
+ *  `RectanglePixels` de `geometrieCadre.ts`, redéfini ici en structurel plutôt qu'importé pour ne
+ *  pas coupler ce module bas niveau (réutilisable indépendamment du chantier scan) à la géométrie
+ *  du cadre d'un écran précis. */
+export interface ZoneRecadrage {
+  readonly x: number;
+  readonly y: number;
+  readonly largeur: number;
+  readonly hauteur: number;
+}
+
 /**
  * Réduit `fichier` à `DIMENSION_MAX_PX` de plus grand côté et le réencode en JPEG. La photo
  * SOURCE n'est jamais conservée par cette fonction : l'URL d'objet créée pour le décodage est
  * révoquée dans tous les cas (succès ou échec), et seul le `Blob` réduit en résulte — c'est
  * l'appelant (`EcranScan.tsx`) qui garantit ensuite qu'aucun des deux ne survit au-delà de
  * l'envoi (exigence produit : « la photo n'est pas conservée »).
+ *
+ * `zoneRecadrage`, quand fourni (voir `geometrieCadre.ts`), restreint la source dessinée sur le
+ * canevas à ce seul rectangle — le recadrage et la réduction de résolution se font donc en UNE
+ * seule passe canevas, jamais un aller-retour décodage/réencodage supplémentaire. Omis (comme
+ * avant ce chantier) : comportement inchangé, image entière. `DIMENSION_MAX_PX` continue de
+ * plafonner le plus grand côté de la zone effectivement dessinée (recadrée ou non) — recadrer
+ * D'ABORD, réduire ENSUITE, pour que la définition disponible profite au document plutôt qu'au
+ * fond écarté.
  */
-export async function reduireImagePourEnvoi(fichier: File): Promise<ImageReduite> {
+export async function reduireImagePourEnvoi(
+  fichier: File,
+  zoneRecadrage?: ZoneRecadrage,
+): Promise<ImageReduite> {
   const url = URL.createObjectURL(fichier);
   try {
     const image = await decoderImage(fichier, url);
 
-    const ratio = Math.min(1, DIMENSION_MAX_PX / Math.max(image.naturalWidth, image.naturalHeight));
-    const largeurPx = Math.round(image.naturalWidth * ratio);
-    const hauteurPx = Math.round(image.naturalHeight * ratio);
+    const sourceX = zoneRecadrage?.x ?? 0;
+    const sourceY = zoneRecadrage?.y ?? 0;
+    const sourceLargeur = zoneRecadrage?.largeur ?? image.naturalWidth;
+    const sourceHauteur = zoneRecadrage?.hauteur ?? image.naturalHeight;
+
+    const ratio = Math.min(1, DIMENSION_MAX_PX / Math.max(sourceLargeur, sourceHauteur));
+    const largeurPx = Math.round(sourceLargeur * ratio);
+    const hauteurPx = Math.round(sourceHauteur * ratio);
 
     const canvas = document.createElement('canvas');
     canvas.width = largeurPx;
     canvas.height = hauteurPx;
     const contexte = canvas.getContext('2d');
     if (!contexte) throw new ErreurReductionImage('echec_lecture');
-    contexte.drawImage(image, 0, 0, largeurPx, hauteurPx);
+    contexte.drawImage(
+      image,
+      sourceX,
+      sourceY,
+      sourceLargeur,
+      sourceHauteur,
+      0,
+      0,
+      largeurPx,
+      hauteurPx,
+    );
 
     const blob = await new Promise<Blob | null>((resolve) =>
       canvas.toBlob(resolve, 'image/jpeg', QUALITE_JPEG),
