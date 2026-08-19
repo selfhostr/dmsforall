@@ -109,6 +109,15 @@ gh pr create --base dev
 
 Règles : périmètre disjoint (un répertoire = un propriétaire), points de contact négociés avant le code.
 
+## Structure du dépôt
+
+- **`apps/`** — API (NestJS) et frontend (React).
+- **`site/`** — Site public (vitrine, documentation, pages légales). Astro + React + Tailwind. Dev : `cd site && pnpm install && pnpm dev` (:4321).
+- **`contenu/`** — Source unique : documentation utilisateur FR/DE/IT et pages légales, montée par le site.
+- **`outils/captures/`** — Génération automatisée des captures d'écran, par Docker.
+- **`kanban/`** — Tableau de suivi. Lancer : `docker compose -f kanban/docker-compose.yml up -d` (http://localhost:8088).
+- **`ancien-site/`** — Ancien site (Hugo), en sursis lors de la transition.
+
 ## Ressources
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) — Source de vérité

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ErreurReductionImage, reduireImagePourEnvoi } from './reduireImage';
+import { ErreurReductionImage, ratioDeReduction, reduireImagePourEnvoi } from './reduireImage';
 
 /**
  * jsdom (26.1) n'implémente ni le décodage réel d'`<img>` ni `HTMLCanvasElement.getContext` (ce
@@ -78,9 +78,9 @@ describe('reduireImagePourEnvoi', () => {
 
     const resultat = await reduireImagePourEnvoi(fichier('permis.jpg', 'image/jpeg'));
 
-    // 3840x2160, ratio 16:9 — plafonné à 1920 de plus grand côté (voir `DIMENSION_MAX_PX`).
-    expect(resultat.largeurPx).toBe(1920);
-    expect(resultat.hauteurPx).toBe(1080);
+    // 3840x2160, ratio 16:9 — plafonné à 2800 de plus grand côté (voir `DIMENSION_MAX_PX`).
+    expect(resultat.largeurPx).toBe(2800);
+    expect(resultat.hauteurPx).toBe(1575);
     expect(resultat.blob.type).toBe('image/jpeg');
   });
 
@@ -140,9 +140,9 @@ describe('reduireImagePourEnvoi', () => {
       hauteur: 900,
     });
 
-    // Zone 1800x900, déjà sous DIMENSION_MAX_PX (1920) sur son plus grand côté : aucune réduction
+    // Zone 1800x900, déjà sous DIMENSION_MAX_PX (2800) sur son plus grand côté : aucune réduction
     // supplémentaire — la sortie a EXACTEMENT les dimensions de la zone, pas celles de l'image
-    // entière (4000x3000, qui aurait été réduite à 1920x1440 sans recadrage).
+    // entière (4000x3000, qui aurait été réduite à 2800x2100 sans recadrage).
     expect(resultat.largeurPx).toBe(1800);
     expect(resultat.hauteurPx).toBe(900);
     expect(drawImage).toHaveBeenCalledWith(expect.anything(), 100, 200, 1800, 900, 0, 0, 1800, 900);
@@ -159,8 +159,19 @@ describe('reduireImagePourEnvoi', () => {
       hauteur: 2160,
     });
 
-    expect(resultat.largeurPx).toBe(1920);
-    expect(resultat.hauteurPx).toBe(1080);
+    expect(resultat.largeurPx).toBe(2800);
+    expect(resultat.hauteurPx).toBe(1575);
+  });
+
+  describe('ratioDeReduction — garde anti-sur-réduction', () => {
+    it('ne réduit jamais une zone déjà sous DIMENSION_MAX_PX (ratio 1, jamais un agrandissement)', () => {
+      expect(ratioDeReduction(1100, 775)).toBe(1);
+      expect(ratioDeReduction(2800, 1575)).toBe(1); // exactement à la limite
+    });
+
+    it('réduit une zone au-dessus de la limite, en plafonnant le plus grand côté', () => {
+      expect(ratioDeReduction(3840, 2160)).toBeCloseTo(2800 / 3840, 10);
+    });
   });
 
   it('sans polyfill canvas (jsdom réel, getContext non mocké) : échec explicite, jamais un succès silencieux', async () => {

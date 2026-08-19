@@ -6,6 +6,22 @@
  * mesuré sur un vrai jeu de permis dans cet environnement (aucun accès à un appareil physique
  * dans ce contexte d'agent — voir le rapport de livraison, à vérifier en test terrain).
  *
+ * `DIMENSION_MAX_PX` RELEVÉ DE 1920 À 2800 (diagnostic du 19.08.2026, chiffré) : un permis suisse
+ * ouvert fait ~210mm de large, VIN/code type imprimés à ~2mm de haut ; en dessous d'~20px/caractère
+ * l'OCR n'est fiable sur aucun moteur testé (mesuré sur 13 photos réelles à 1920 : VIN validé par
+ * clé de contrôle 0/13). `DIMENSION_MAX_PX` s'applique à la zone déjà RECADRÉE (voir
+ * `zoneRecadrage` plus bas, recadrage puis réduction en une seule passe canevas — l'ordre était déjà
+ * correct avant ce changement, seule la limite était trop basse) : à 2800px sur une capture native
+ * (~4032px de large côté iPhone), la zone recadrée couvre ~13px/mm au lieu de ~9px/mm à 1920 —
+ * mesure honnête : les 13 photos réelles disponibles pour ce diagnostic sont déjà compressées à
+ * 1280px au transfert, donc trop petites pour que ce relèvement change quoi que ce soit sur cet
+ * échantillon précis (leur zone recadrée, ~1100-1260px, reste sous les DEUX limites) — le gain ne se
+ * mesure que sur une capture native, non vérifié ici faute d'échantillon non compressé. Poids
+ * résultant sur l'échantillon disponible : inchangé par ce relèvement (voir le rapport de
+ * livraison) ; sur une capture native, poids estimé plus élevé mais non mesuré directement (pas de
+ * photo native non compressée disponible pour ce diagnostic) — à confirmer en test terrain avant de
+ * resserrer `QUALITE_JPEG` si le poids réel dépasse la cible (quelques centaines de Ko).
+ *
  * PASSAGE PAR CANVAS = conversion de format GRATUITE au passage : `<img>` décode la source dans
  * le format que le moteur du navigateur sait lire, `canvas.toBlob('image/jpeg', ...)` réencode
  * TOUJOURS en JPEG quel que soit le format d'entrée. C'est ce qui gère le HEIC des iPhone SANS
@@ -18,7 +34,7 @@
  * test terrain avant mise en service (voir le rapport de livraison).
  */
 
-const DIMENSION_MAX_PX = 1920;
+const DIMENSION_MAX_PX = 2800;
 const QUALITE_JPEG = 0.82;
 
 export type MotifEchecReductionImage = 'heic_non_pris_en_charge' | 'echec_lecture';
@@ -80,6 +96,22 @@ export interface ZoneRecadrage {
 }
 
 /**
+ * GARDE EXPLICITE CONTRE LA SUR-RÉDUCTION : calcule le ratio d'échelle appliqué à une zone de
+ * `largeur x hauteur` pixels, JAMAIS supérieur à 1. Une zone déjà sous `DIMENSION_MAX_PX` sur son
+ * plus grand côté (photo déjà petite, zone recadrée serrée, ou capture d'entrée de gamme) N'EST
+ * DONC JAMAIS AGRANDIE PAR INTERPOLATION — un agrandissement n'invente aucun pixel réel, il
+ * produirait un flou qui SEMBLE net à l'écran mais reste tout aussi illisible pour l'OCR qu'avant,
+ * seulement plus lourd à envoyer. Dans ce cas le ratio vaut 1 : la zone est envoyée TELLE QUELLE
+ * (recadrée, réencodée en JPEG, mais à sa résolution native) plutôt qu'une version « réduite »
+ * qui n'aurait jamais été agrandie de toute façon mais qu'un lecteur pressé pourrait croire
+ * redimensionnée pour rien. Fonction PURE, exportée pour être testée indépendamment du canevas
+ * (voir `reduireImage.spec.ts`, « garde anti-sur-réduction »).
+ */
+export function ratioDeReduction(largeur: number, hauteur: number): number {
+  return Math.min(1, DIMENSION_MAX_PX / Math.max(largeur, hauteur));
+}
+
+/**
  * Réduit `fichier` à `DIMENSION_MAX_PX` de plus grand côté et le réencode en JPEG. La photo
  * SOURCE n'est jamais conservée par cette fonction : l'URL d'objet créée pour le décodage est
  * révoquée dans tous les cas (succès ou échec), et seul le `Blob` réduit en résulte — c'est
@@ -91,8 +123,10 @@ export interface ZoneRecadrage {
  * seule passe canevas, jamais un aller-retour décodage/réencodage supplémentaire. Omis (comme
  * avant ce chantier) : comportement inchangé, image entière. `DIMENSION_MAX_PX` continue de
  * plafonner le plus grand côté de la zone effectivement dessinée (recadrée ou non) — recadrer
- * D'ABORD, réduire ENSUITE, pour que la définition disponible profite au document plutôt qu'au
- * fond écarté.
+ * D'ABORD, réduire ENSUITE (déjà le cas avant le diagnostic du 19.08.2026 : vérifié, jamais
+ * inversé — voir la doc de tête), pour que la définition disponible profite au document plutôt
+ * qu'au fond écarté. Le ratio lui-même vient de `ratioDeReduction` (garde anti-sur-réduction
+ * explicite, voir sa doc).
  */
 export async function reduireImagePourEnvoi(
   fichier: File,
@@ -107,7 +141,7 @@ export async function reduireImagePourEnvoi(
     const sourceLargeur = zoneRecadrage?.largeur ?? image.naturalWidth;
     const sourceHauteur = zoneRecadrage?.hauteur ?? image.naturalHeight;
 
-    const ratio = Math.min(1, DIMENSION_MAX_PX / Math.max(sourceLargeur, sourceHauteur));
+    const ratio = ratioDeReduction(sourceLargeur, sourceHauteur);
     const largeurPx = Math.round(sourceLargeur * ratio);
     const hauteurPx = Math.round(sourceHauteur * ratio);
 
