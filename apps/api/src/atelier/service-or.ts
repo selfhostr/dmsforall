@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, eq, exists, gte, inArray, lte, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, eq, exists, gte, inArray, isNull, lte, or, sql, type SQL } from 'drizzle-orm';
 import type {
   AttentesOr,
   ClientResume,
@@ -21,6 +21,7 @@ import {
   ligneOr,
   ordreReparation,
   ordreReparationDemande,
+  vehiculePlaque,
   type LigneLigneOr,
   type LigneOrdreReparation,
 } from '../db/schema';
@@ -37,6 +38,7 @@ import {
   type ResultatIdempotent,
   type ServiceIdempotence,
 } from '../common/idempotence';
+import { debutJourneeSuisse, finJourneeSuisse } from '../common/temps';
 import { JETON_COMPTEURS } from '../parametrage/compteurs/compteurs.jetons';
 import type { ServiceCompteurs } from '../parametrage/compteurs/compteurs.types';
 
@@ -594,11 +596,9 @@ export class ServiceOr {
    * `restitutionPromiseDu`/`Au` étaient acceptés par le schéma et TRANSMIS jusqu'ici sans jamais
    * poser de condition SQL — la liste rendait tous les OR actifs quel que soit
    * `restitutionPromiseLe`, `null` compris, sous un appel qui prétendait filtrer « aujourd'hui ».
-   * Câblés ci-dessous en bornes UTC INCLUSIVES (même doctrine que
-   * `pointage/service-verrouillage-periode.ts::finDeJournee` — UTC pur, pas de fuseau par site,
-   * `parametre_atelier`/`site` ne portent aucune colonne de fuseau horaire ; écart potentiel d'une
-   * heure (hiver) ou deux (été) autour de minuit local, à corriger le jour où un fuseau par site
-   * existe). `ouvertDu`/`Au`, MÊME lacune sur `ouvertLe`, câblés ici pour la même raison.
+   * Câblés ci-dessous en bornes SUISSES INCLUSIVES via `debutJourneeSuisse`/`finJourneeSuisse`
+   * (`common/temps/fuseau-suisse.ts`) — correcteur de fuseau unique du produit (Europe/Zurich,
+   * décision du 14.08.2026). `ouvertDu`/`Au`, MÊME câblage sur `ouvertLe`.
    *
    * DÉCISION explicite sur le troisième état (RESTITUTION_PROMISE_LE NULL) : un OR sans date de
    * restitution promise n'est NI « dans la fenêtre » NI « hors fenêtre » — `gte`/`lte` sur une
@@ -671,10 +671,15 @@ export class ServiceOr {
    * ne casse à le laisser en l'état, mais la câbler à l'aveugle inventerait quand même une sémantique
    * métier non arbitrée.
    *
-   * `q` : plein texte, explicitement hors périmètre d'`atelier` par conception (porté par
-   * `recherche/`, L1-11) — accepté par ce schéma mais jamais appliqué ICI ; candidat à un retrait du
-   * contrat de CETTE collection plutôt qu'un correctif, si `recherche/` ne l'expose pas déjà par un
-   * autre chemin.
+   * `q` — DÉSORMAIS APPLIQUÉ (#defaut-recherche-or, 14.08.2026 : constat terrain, aucune recherche
+   * d'OR ne rendait jamais de résultat — accepté par ce schéma, documenté ICI MÊME comme « jamais
+   * appliqué », et en effet totalement inerte). Porte sur le n° d'OR, la plaque COURANTE du
+   * véhicule et le nom/raison sociale du client (exactement ce que documente déjà
+   * `schemaFiltresOrdresReparation.q`), fragment (pas préfixe), normalisé par
+   * `public.normaliser_recherche()` — la MÊME fonction et la MÊME doctrine que
+   * `clients/service-client.ts::lister` et `recherche/service-recherche.ts` (jamais une seconde
+   * normalisation réimplémentée en TypeScript). Détail complet, y compris la limite de plan
+   * `BitmapOr` connue au grand volume, dans le corps de `lister()` au point d'appel.
    *
    * `technicienId` (I-18/#19) : « OR du technicien » = porte AU MOINS UNE ligne (`ligne_or`,
    * tout statut confondu — y compris `annulee`/`realisee` : un OR déjà travaillé par ce
@@ -701,6 +706,94 @@ export class ServiceOr {
       if (filtres.siteId) conditions.push(eq(ordreReparation.siteId, filtres.siteId));
       if (filtres.clientId) conditions.push(eq(ordreReparation.clientId, filtres.clientId));
       if (filtres.vehiculeId) conditions.push(eq(ordreReparation.vehiculeId, filtres.vehiculeId));
+      // `q` (#defaut-recherche-or, 14.08.2026) : DÉSORMAIS appliqué — voir la doctrine complète au
+      // JSDoc de tête de `lister()`. Comparaison à `undefined`, jamais à la véracité : `q` est déjà
+      // `trim().min(1)` côté schéma zod (`schemaFiltresOrdresReparation`), donc une chaîne vide ne
+      // peut structurellement pas arriver ici, mais on ne suppose jamais ce qu'un schéma amont a
+      // déjà garanti (même garde-fou que `ServiceRecherche.rechercher`).
+      if (filtres.q !== undefined && !/[\p{L}\p{N}]/u.test(filtres.q)) {
+        // Garde-fou IDENTIQUE à `ServiceRecherche.rechercher` (recherche/service-recherche.ts) : un
+        // terme sans AUCUNE lettre ni chiffre (ex. `---`, encore possible après le `trim().min(1)`
+        // du schéma) normaliserait vers une chaîne VIDE côté `public.normaliser_recherche()`, et
+        // `like '%%'` matcherait ALORS TOUT LE TENANT — l'exact inverse du défaut corrigé ici (un
+        // filtre qui, au lieu d'être silencieusement ignoré, deviendrait une fuite totale). On ne
+        // devine jamais ce que `normaliser_recherche` va produire pour un cas qu'on peut refuser
+        // structurellement : `false` rend explicitement AUCUN résultat, jamais la liste entière.
+        conditions.push(sql`false`);
+      } else if (filtres.q !== undefined) {
+        const motif = `%${filtres.q}%`;
+        // Trois branches, une SEULE normalisation (`public.normaliser_recherche()`, migration 0003
+        // §2) — jamais réimplémentée en TypeScript (même doctrine que
+        // `recherche/utilitaires-recherche.ts`, tête de fichier : deux normalisations divergentes
+        // produiraient des résultats manquants indébogables).
+        //
+        // 1. Numéro d'OR : condition DIRECTE sur `ordre_reparation.numero`, servie par
+        //    `ordre_reparation_numero_recherche_idx` (GIN trigram, migration 0013).
+        //
+        // 2. Plaque : sur la plaque COURANTE (`vehicule_plaque.au is null`) — le CHAMP AFFICHÉ par
+        //    cette même liste (`assemblerDocument` → `chargerPlaqueCourante`), jamais une plaque
+        //    historique. Une recherche par plaque HISTORIQUE existe déjà par ailleurs
+        //    (`recherche/service-recherche.ts::chercherVehicules`, périmètre distinct, hors de
+        //    cette collection) — chercher l'historique ICI AUSSI redéfinirait silencieusement ce
+        //    que « la plaque » désigne pour cette liste précise, jamais tranché par le contrat.
+        //    Écrite en `vehiculeId IN (sous-requête NON CORRÉLÉE)`, PAS en `exists(...)` corrélé
+        //    (à la différence de `technicienId` ci-dessus) : la sous-requête ne référence QUE
+        //    `vehicule_plaque`, donc `ordre_reparation.vehicule_id = any(...)` reste indexable par
+        //    `ordre_reparation_vehicule_idx` (migration 0008) et peut entrer dans un `BitmapOr` aux
+        //    côtés de la branche 1 — un `exists(...)` corrélé ne le peut JAMAIS pour un `OR`
+        //    multi-tables (raison documentée dans le détail par migration 0013, section « AUTRES
+        //    LACUNES »). Servie, côté sous-requête, par `vehicule_plaque_recherche_idx` (GIN
+        //    trigram, migration 0007).
+        //
+        // 3. Nom du client : MÊME expression EXACTE que `clients/service-client.ts::lister`
+        //    (`coalesce(raison_sociale, nom || ' ' || coalesce(prenom, ''))`) — same réutilisation
+        //    volontaire que la plaque ci-dessus, `clientId IN (sous-requête non corrélée)`, servie
+        //    par `client_recherche_idx` (GIN trigram, migration 0006).
+        //
+        // INDEX : AUCUN nouveau nécessaire — les trois existent déjà (0006/0007/0013), chacun posé
+        // pour cette exacte expression. Ce qui reste non résolu, SIGNALÉ plutôt que masqué (rapport
+        // de livraison) : combiner les trois branches par `OR` empêche Postgres de fusionner leurs
+        // plans en un seul `BitmapOr` sur `ordre_reparation` (les branches 2/3 filtrent d'abord une
+        // AUTRE table) — la requête retombe donc en `Seq Scan` sur `ordre_reparation` dès que `q`
+        // est fourni, avec deux sous-requêtes indexées (rapides) évaluées par ligne balayée. Correct
+        // fonctionnellement, mais PAS optimal au grand volume — même limite, déjà documentée pour
+        // les mêmes trois axes, par `migrations/0013…sql` (section « AUTRES LACUNES DU MÊME
+        // GENRE ») pour `service-client.ts::lister` et `service-vehicule.ts`. Le correctif réel est
+        // une restructuration de requête (candidats par ID, UNION, cf. `recherche/service-recherche.ts`),
+        // pas un index — hors périmètre d'une migration seule, donc pas fait ici.
+        const conditionRecherche = or(
+          sql`public.normaliser_recherche(${ordreReparation.numero}) like public.normaliser_recherche(${motif})`,
+          inArray(
+            ordreReparation.vehiculeId,
+            tx
+              .select({ vehiculeId: vehiculePlaque.vehiculeId })
+              .from(vehiculePlaque)
+              .where(
+                and(
+                  eq(vehiculePlaque.tenantId, ctx.tenantId),
+                  isNull(vehiculePlaque.au),
+                  sql`public.normaliser_recherche(${vehiculePlaque.valeur}) like public.normaliser_recherche(${motif})`,
+                ),
+              ),
+          ),
+          inArray(
+            ordreReparation.clientId,
+            tx
+              .select({ id: client.id })
+              .from(client)
+              .where(
+                and(
+                  eq(client.tenantId, ctx.tenantId),
+                  sql`public.normaliser_recherche(coalesce(${client.raisonSociale}, ${client.nom} || ' ' || coalesce(${client.prenom}, ''), '')) like public.normaliser_recherche(${motif})`,
+                ),
+              ),
+          ),
+        );
+        // `or(...)` appelé avec TROIS arguments TOUJOURS présents ci-dessus (jamais un tableau vide
+        // comme pour `attente`) : `condition` est donc structurellement toujours défini — le garde
+        // suit quand même le même patron que `attente` ci-dessus, par cohérence de style.
+        if (conditionRecherche) conditions.push(conditionRecherche);
+      }
       if (filtres.statut && filtres.statut.length > 0)
         conditions.push(inArray(ordreReparation.statut, filtres.statut));
       if (filtres.localisation && filtres.localisation.length > 0)
@@ -721,17 +814,17 @@ export class ServiceOr {
         conditions.push(
           gte(
             ordreReparation.restitutionPromiseLe,
-            debutDeJourneeUtc(filtres.restitutionPromiseDu),
+            debutJourneeSuisse(filtres.restitutionPromiseDu),
           ),
         );
       if (filtres.restitutionPromiseAu)
         conditions.push(
-          lte(ordreReparation.restitutionPromiseLe, finDeJourneeUtc(filtres.restitutionPromiseAu)),
+          lte(ordreReparation.restitutionPromiseLe, finJourneeSuisse(filtres.restitutionPromiseAu)),
         );
       if (filtres.ouvertDu)
-        conditions.push(gte(ordreReparation.ouvertLe, debutDeJourneeUtc(filtres.ouvertDu)));
+        conditions.push(gte(ordreReparation.ouvertLe, debutJourneeSuisse(filtres.ouvertDu)));
       if (filtres.ouvertAu)
-        conditions.push(lte(ordreReparation.ouvertLe, finDeJourneeUtc(filtres.ouvertAu)));
+        conditions.push(lte(ordreReparation.ouvertLe, finJourneeSuisse(filtres.ouvertAu)));
       if (filtres.technicienId) {
         const technicienId = filtres.technicienId;
         conditions.push(
@@ -1119,24 +1212,6 @@ export function decoderCurseurOffset(curseur: string | undefined): number {
     });
   }
   return brut;
-}
-
-/**
- * `'AAAA-MM-JJ'` -> instant UTC de DÉBUT de journée (00:00:00.000) — borne inférieure INCLUSE des
- * filtres `xDu` de `ServiceOr.lister` (`restitutionPromiseDu`, `ouvertDu`). Même doctrine que
- * `pointage/service-verrouillage-periode.ts::finDeJournee` : UTC pur, pas de fuseau par site
- * (`parametre_atelier`/`site` ne portent aucune colonne de fuseau horaire) — écart potentiel
- * d'une heure (hiver) ou deux (été) autour de minuit local, à corriger le jour où un fuseau par
- * site existe.
- */
-function debutDeJourneeUtc(dateJour: string): Date {
-  return new Date(`${dateJour}T00:00:00.000Z`);
-}
-
-/** `'AAAA-MM-JJ'` -> instant UTC de FIN de journée (23:59:59.999) — borne supérieure INCLUSE des
- *  filtres `xAu` de `ServiceOr.lister`. Voir `debutDeJourneeUtc` pour la doctrine UTC. */
-function finDeJourneeUtc(dateJour: string): Date {
-  return new Date(`${dateJour}T23:59:59.999Z`);
 }
 
 /**

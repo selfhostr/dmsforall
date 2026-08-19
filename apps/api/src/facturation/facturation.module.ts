@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { DocumentVenteController } from './documents/document-vente.controller';
 import { DocumentVenteTransitionsController } from './documents/document-vente-transitions.controller';
 import { ServiceAvoir } from './documents/service-avoir';
+import { ServiceCorrectionFacture } from './documents/service-correction';
 import { ServiceDocumentsVente } from './documents/service-documents';
 import { ServiceEmissionDocument } from './documents/service-emission';
 import { ExportModule } from './export/export.module';
@@ -72,7 +73,12 @@ import { VentesModule } from '../ventes/ventes.module';
 @Module({
   imports: [PaiementsModule, ExportModule, VentesModule, PiecesModule],
   controllers: [DocumentVenteController, DocumentVenteTransitionsController],
-  providers: [ServiceDocumentsVente, ServiceEmissionDocument, ServiceAvoir],
-  exports: [ServiceDocumentsVente, ServiceEmissionDocument, ServiceAvoir],
+  providers: [
+    ServiceDocumentsVente,
+    ServiceEmissionDocument,
+    ServiceAvoir,
+    ServiceCorrectionFacture,
+  ],
+  exports: [ServiceDocumentsVente, ServiceEmissionDocument, ServiceAvoir, ServiceCorrectionFacture],
 })
 export class FacturationModule {}

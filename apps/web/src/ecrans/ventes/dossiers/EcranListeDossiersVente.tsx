@@ -202,30 +202,33 @@ export function EcranListeDossiersVente() {
     },
   ];
 
-  // Description UNIQUE (`ventes:dossier.liste.vide`, namespace déjà livré ne distingue pas
-  // recherche/filtre/premier usage) — seule l'ACTION proposée varie selon le contexte, même
-  // doctrine que `EcranListeOrdresReparation` pour le choix du bon motif d'état vide.
+  // Titres et descriptions d'état vide désormais DISTINCTS par cas (`ventes:dossier.liste.vide.
+  // {recherche,filtre,premierUsage}`) — l'ancienne description UNIQUE reprenait, en `titre`, le
+  // texte de l'écran (« Dossiers de vente »), doublon de l'onglet actif « Dossiers » et de l'entrée
+  // de menu, même défaut que celui corrigé le 17.08.2026 sur `EcranListeFactures.tsx`. Seule
+  // l'ACTION proposée varie encore selon le contexte, même doctrine que `EcranListeOrdresReparation`
+  // pour le choix du bon motif d'état vide.
   let contenuVide: ReactNode;
   if (q.trim() !== '') {
     contenuVide = (
       <EtatVideRecherche
-        titre={t('ventes:dossier.liste.titre')}
-        description={t('ventes:dossier.liste.vide')}
+        titre={t('ventes:dossier.liste.vide.recherche.titre')}
+        description={t('ventes:dossier.liste.vide.recherche.description')}
       />
     );
   } else if (filtresStructuresActifs) {
     contenuVide = (
       <EtatVideFiltre
-        titre={t('ventes:dossier.liste.titre')}
-        description={t('ventes:dossier.liste.vide')}
+        titre={t('ventes:dossier.liste.vide.filtre.titre')}
+        description={t('ventes:dossier.liste.vide.filtre.description')}
         onEffacerFiltres={effacerFiltres}
       />
     );
   } else {
     contenuVide = (
       <EtatVidePremierUsage
-        titre={t('ventes:dossier.liste.titre')}
-        description={t('ventes:dossier.liste.vide')}
+        titre={t('ventes:dossier.liste.vide.premierUsage.titre')}
+        description={t('ventes:dossier.liste.vide.premierUsage.description')}
         action={boutonNouveauDossier}
       />
     );
@@ -251,11 +254,17 @@ export function EcranListeDossiersVente() {
     );
   }
 
-  // Titre VISIBLE (h1 « Dossiers de vente », qui AJOUTE une précision absente de l'onglet
-  // « Dossiers » — pas un doublon, donc pas de `titreVisible={false}`, à la différence
-  // d'`EcranListeVehiculesStock`/`EcranSuiviVentes`). Seule action du titre : « Nouveau dossier de
-  // vente » — le bouton « Suivi financement & garantie » qui siégeait ici a été retiré, voir la
-  // note de l'en-tête de fichier.
+  // Titre MASQUÉ automatiquement — « Dossiers de vente » (`ventes:dossier.liste.titre`) est un
+  // doublon (au sens inclusion, §3 du contrat du chantier « titres doublés », 17.08.2026) de
+  // l'onglet actif « Dossiers » (`navigation-modele.ts`, `ONGLETS_VENTES`) : c'est EXACTEMENT le
+  // défaut cité nommément par @laupernoe (« dans Ventes, c'est écrit "Dossiers de vente" alors que l'onglet
+  // dit déjà Dossiers, et du coup ça fait un espace horrible »). `GabaritEcran` le détecte lui-même
+  // — ne JAMAIS poser `titreVisible` ici pour forcer la visibilité : ce commentaire affirmait
+  // l'inverse avant ce correctif (« pas un doublon »), à tort — la doctrine « un titre visible reste
+  // préférable » a été explicitement RE-ARBITRÉE par @laupernoe dans l'autre sens pour ce cas précis (voir
+  // le contrat du chantier, §3, qui liste ce couple titre/onglet à la lettre). Seule action du
+  // titre : « Nouveau dossier de vente » — le bouton « Suivi financement & garantie » qui siégeait
+  // ici a été retiré, voir la note de l'en-tête de fichier.
   return (
     <GabaritEcran titre={t('ventes:dossier.liste.titre')} actions={boutonNouveauDossier}>
       <BarreFiltres

@@ -1,16 +1,9 @@
 import { useTranslation } from 'react-i18next';
-import { Link, useLocation, useSearchParams } from 'react-router';
+import { Link } from 'react-router';
 
-import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
-import { useSession } from '@/hooks/useSession';
 import { cn } from '@/lib/utils';
 
-import {
-  ongletsVisibles,
-  trouverCorrespondance,
-  vuesVisibles,
-  type CorrespondanceNavigation,
-} from './navigation-modele';
+import { useNavigationActive } from './useNavigationActive';
 
 interface Props {
   readonly className?: string;
@@ -41,6 +34,12 @@ interface Props {
  * exportés, et un écran qui aurait besoin de sa propre rangée (un plein écran hors coquille, par
  * exemple) peut monter ce composant lui-même.
  *
+ * La résolution (URL -> correspondance -> onglets/vues visibles pour le rôle) vit dans
+ * `useNavigationActive` (`./useNavigationActive.ts`), PAS ici — `GabaritEcran`
+ * (`composants/motifs/GabaritEcran.tsx`) consomme le même hook pour sa détection de titre en
+ * double (chantier « titres doublés & espacements », 17.08.2026) : sans cette source unique, les
+ * deux auraient pu diverger sur « qu'est-ce qui est réellement affiché ».
+ *
  * ÉTAT VIDE : une URL hors arborescence (`/recherche`, `/login`, une 404) ou un onglet unique ne
  * rend RIEN — pas une rangée à un seul onglet, qui n'offre aucun choix et ne ferait que voler
  * 44 px de hauteur à l'écran. Il n'y a ni chargement ni erreur à gérer : la structure est statique
@@ -51,23 +50,9 @@ interface Props {
  */
 export function OngletsDomaine({ className }: Props) {
   const { t } = useTranslation('navigation');
-  const { pathname } = useLocation();
-  const [searchParams] = useSearchParams();
-  const { preferenceSiteId } = useSiteCourant();
-  // Même correctif que `BarreLaterale.tsx` (issue #91) : l'URL fait foi, la préférence ne comble
-  // que son absence, jamais ne l'écrase.
-  const site = searchParams.get('site') ?? preferenceSiteId;
-  const { data: session } = useSession();
-  const role = session?.utilisateur.role;
-
-  const correspondance: CorrespondanceNavigation | undefined = trouverCorrespondance(pathname);
+  const { correspondance, site, onglets, vues, afficheOnglets, afficheVues } =
+    useNavigationActive();
   if (correspondance === undefined) return null;
-
-  const onglets = ongletsVisibles(correspondance.entree, role);
-  const vues = vuesVisibles(correspondance.onglet, role);
-
-  const afficheOnglets = onglets.length > 1;
-  const afficheVues = vues.length > 1;
   if (!afficheOnglets && !afficheVues) return null;
 
   const libelleEntree = t(correspondance.entree.cleLibelle);

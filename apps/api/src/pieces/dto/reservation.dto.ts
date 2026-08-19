@@ -16,6 +16,18 @@ export class ReservationPieceDto implements ReponseReservationPiece {
   @ApiProperty({ format: 'uuid' })
   readonly articleId!: string;
 
+  // `?` — voir la doctrine complète sur `ReponseReservationPiece.articleNumero` (`@dfa/shared`) :
+  // TOUJOURS renseigné en pratique (`versReservationResponse`), optionnel en TYPE uniquement pour
+  // ne pas casser une fixture hors du périmètre d'écriture de ce correctif.
+  @ApiProperty({
+    required: false,
+    description: "Désignation lisible de l'article (jointure de lecture).",
+  })
+  readonly articleNumero?: string;
+
+  @ApiProperty({ required: false })
+  readonly articleDesignation?: string;
+
   @ApiProperty({ format: 'uuid' })
   readonly siteId!: string;
 
@@ -24,6 +36,12 @@ export class ReservationPieceDto implements ReponseReservationPiece {
 
   @ApiProperty({ format: 'uuid' })
   readonly ordreReparationId!: string;
+
+  @ApiProperty({
+    required: false,
+    description: "Numéro lisible de l'ordre de réparation (jointure de lecture).",
+  })
+  readonly ordreReparationNumero?: string;
 
   @ApiProperty()
   readonly quantiteMillieme!: number;

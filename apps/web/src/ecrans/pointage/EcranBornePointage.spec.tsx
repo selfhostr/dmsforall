@@ -3,9 +3,10 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import type {
+  CibleReprisePointage,
   ClientResume,
   EntreeDemarragePointage,
   PageCurseur,
@@ -52,6 +53,7 @@ const IDENTIFICATION_MARCO: ReponseIdentificationPin = {
   technicienId: 'technicien-marco',
   prenom: 'Marco',
   nom: 'Rossi',
+  siteId: 'site-1',
 };
 
 function pagePointages(donnees: readonly ReponsePointage[]): PageCurseur<ReponsePointage> {
@@ -211,14 +213,25 @@ async function taperCode(utilisateur: ReturnType<typeof userEvent.setup>, code: 
 }
 
 describe('EcranBornePointage', () => {
+  // Repli par défaut, RÉINSTALLÉ AVANT CHAQUE TEST : « aucune cible de reprise connue du serveur »
+  // — le cas normal pour la quasi-totalité des scénarios de ce fichier, sans rapport avec la
+  // mémoire de reprise. Priorité MSW la plus basse : un `server.use()` posé dans le corps d'un test
+  // gagne toujours sur celui-ci (voir `EcranPointageTechnicien.spec.tsx`, même patron).
+  beforeEach(() => {
+    server.use(
+      http.get('/api/v1/pointages/dernier-du-jour', () => HttpResponse.json({ cible: null })),
+    );
+  });
+
   it('affiche le pavé numérique neutre, sans aucun code en clair, tant que personne ne s’est identifié', async () => {
     poserHandlersSession();
     rendre();
 
     // La session résout de façon asynchrone (skeleton `EtatChargement` d'abord — qui porte lui
-    // aussi un `<h1 class="sr-only">` « Qui êtes-vous ? », voir l'en-tête du composant) : on
-    // attend le pavé lui-même (`findByRole`, qui réinterroge le DOM jusqu'à son apparition)
-    // plutôt que le titre, dont une occurrence existe déjà pendant le chargement.
+    // aussi un `<h1>` « Qui êtes-vous ? » VISIBLE, voir l'en-tête du composant — cohérent avec le
+    // pavé neutre, l'en-tête ne saute jamais entre deux états) : on attend le pavé lui-même
+    // (`findByRole`, qui réinterroge le DOM jusqu'à son apparition) plutôt que le titre, dont une
+    // occurrence existe déjà pendant le chargement.
     expect(await screen.findByRole('button', { name: 'Chiffre 1' })).toBeInTheDocument();
     expect(screen.getByText('Qui êtes-vous ?')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Effacer' })).toBeInTheDocument();
@@ -516,4 +529,104 @@ describe('EcranBornePointage', () => {
     expect(await screen.findByText('Qui êtes-vous ?')).toBeInTheDocument();
     expect(screen.queryByText('Bonjour Marco')).not.toBeInTheDocument();
   });
+
+  it(
+    'décision @laupernoe du 14.08.2026 : le site de la borne vient du `siteId` rendu par l’identification ' +
+      'PIN, jamais de la session ni d’un sélecteur — aucun sélecteur de site n’est rendu',
+    async () => {
+      // Site DÉLIBÉRÉMENT différent de `SESSION_BORNE.sites[0].id` ('site-1') : si le code lisait
+      // encore le site depuis la session plutôt que depuis l'identification, ce test échouerait sur
+      // l'assertion `siteId` ci-dessous — preuve directe, pas une simple absence de régression.
+      const identificationAutreSite = { ...IDENTIFICATION_MARCO, siteId: 'site-9' };
+      const appelsDemarrer: EntreeDemarragePointage[] = [];
+
+      poserHandlersSession();
+      server.use(
+        http.post('/api/v1/pointages/identification', () =>
+          HttpResponse.json(identificationAutreSite),
+        ),
+        http.post('/api/v1/pointages', async ({ request }) => {
+          const entree = (await request.json()) as EntreeDemarragePointage;
+          appelsDemarrer.push(entree);
+          return HttpResponse.json(
+            {
+              donnees: construirePointageEnCours({
+                id: entree.id,
+                siteId: 'site-9',
+                nature: 'indirect',
+                activiteIndirecte: 'nettoyage',
+                ordreReparationId: null,
+                ordreReparationNumero: null,
+              }),
+              avertissements: [],
+            },
+            { status: 201 },
+          );
+        }),
+      );
+
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      await taperCode(utilisateur, '4071');
+      await screen.findByText('Bonjour Marco');
+
+      // Aucun sélecteur de site nulle part sur le panneau identifié.
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+
+      // Démarre une activité indirecte : le `siteId` envoyé au serveur doit être celui de
+      // L'IDENTIFICATION ('site-9'), jamais celui de la session de la borne ('site-1').
+      await utilisateur.click(await screen.findByRole('button', { name: 'Nettoyage' }));
+
+      await waitFor(() => expect(appelsDemarrer).toHaveLength(1));
+      expect(appelsDemarrer[0]).toMatchObject({ siteId: 'site-9' });
+    },
+  );
+
+  it(
+    'point 5 (bandeau de reprise), même correctif que `EcranPointageTechnicien` : apparaît sur la ' +
+      'BORNE aussi pendant une activité indirecte AUTRE que la pause (« Nettoyage »), avec ' +
+      '`pourAutrui: true` (P-34) — pas seulement sur l’écran personnel',
+    async () => {
+      const pointageIndirect = construirePointageEnCours({
+        nature: 'indirect',
+        activiteIndirecte: 'nettoyage',
+        ordreReparationId: null,
+        ordreReparationNumero: null,
+      });
+      const cibleServeur: CibleReprisePointage = {
+        type: 'or',
+        ordreReparationId: 'or-1',
+        numeroOr: 'OR-000123',
+        ligneOrId: null,
+        libelle: 'OR-000123 — OR entier',
+        siteId: 'site-1',
+        interrompuLe: pointageIndirect.debutLe,
+        cumulSecondesDuJour: 120,
+      };
+
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_BORNE)),
+        http.post('/api/v1/pointages/identification', () =>
+          HttpResponse.json(IDENTIFICATION_MARCO),
+        ),
+        http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([pointageIndirect]))),
+        http.get('/api/v1/ordres-reparation', () => HttpResponse.json(pageOrdres([]))),
+        http.get('/api/v1/pointages/dernier-du-jour', () =>
+          HttpResponse.json({ cible: cibleServeur }),
+        ),
+      );
+
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      await taperCode(utilisateur, '4071');
+
+      expect(
+        await screen.findByRole('button', {
+          name: 'Reprendre le pointage sur OR-000123 — OR entier',
+        }),
+      ).toBeInTheDocument();
+    },
+  );
 });

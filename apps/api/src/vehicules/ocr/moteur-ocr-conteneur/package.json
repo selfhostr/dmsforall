@@ -1,0 +1,20 @@
+{
+  "name": "dfa-ocr-permis-conteneur",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Service OCR dédié, auto-hébergé, pour la reconnaissance du permis de circulation suisse. Isolé à dessein du workspace pnpm principal (image Docker autonome, npm install au build) — voir apps/api/src/vehicules/ocr/README dans le rapport de livraison pour la ligne docker-compose à ajouter.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test *.spec.mjs",
+    "mesurer": "node outillage-mesure.mjs"
+  },
+  "dependencies": {
+    "heic-convert": "^2.1.0",
+    "sharp": "^0.35.3",
+    "tesseract.js": "^7.0.0"
+  }
+}

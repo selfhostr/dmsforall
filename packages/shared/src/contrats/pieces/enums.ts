@@ -176,3 +176,49 @@ export const STATUTS_CONSIGNE_ECHANGE_STANDARD = [
   'retournee_fournisseur',
 ] as const;
 export type StatutConsigneEchangeStandard = (typeof STATUTS_CONSIGNE_ECHANGE_STANDARD)[number];
+
+/* ------------------------------------------------------------------ */
+/* Facture fournisseur — lecture automatique                           */
+/* ------------------------------------------------------------------ */
+
+/**
+ * `statut_facture_fournisseur` — **GELÉ**, même doctrine que `STATUTS_CONSIGNE_ECHANGE_STANDARD` :
+ * engage directement de l'argent (écarts prix/quantité contre une commande fournisseur), un client
+ * doit pouvoir énumérer ces quatre valeurs sans repli « inconnu ». Machine à états SIMPLE (pas de
+ * table `transition_autorisee` dédiée, voir la migration) : `deposee` → (`rapprochee` | reste
+ * `deposee` si aucune commande ne correspond) → `validee` | `rejetee`, ces deux derniers TERMINAUX.
+ * Aucun retour arrière : une facture validée par erreur se corrige par une nouvelle décision
+ * humaine hors de ce contrat (pas de `DELETE`, le document reste retrouvable dix ans, art. 958f CO).
+ */
+export const STATUTS_FACTURE_FOURNISSEUR = ['deposee', 'rapprochee', 'validee', 'rejetee'] as const;
+export type StatutFactureFournisseur = (typeof STATUTS_FACTURE_FOURNISSEUR)[number];
+
+/**
+ * `origine_donnee_facture` — extensible. Par QUEL MOYEN une valeur (montant, référence, ligne…) a
+ * été obtenue — jamais une question de confiance floue, trois moyens qui ne se confondent JAMAIS :
+ *   - `qr` : lue dans le symbole Swiss QR Code (« Swiss Payments Code ») — décodage exact, aucune
+ *     reconnaissance de caractères, la même garantie qu'un scanner de paiement bancaire.
+ *   - `texte_pdf` : extraite du texte déjà présent dans le PDF (produit par un logiciel) — exacte
+ *     elle aussi (aucun OCR), mais dépend d'un DÉCOUPAGE de mise en page qui peut se tromper de
+ *     colonne — moins absolue que `qr`, encore certaine caractère par caractère.
+ *   - `ocr` : reconnue par un moteur de reconnaissance optique sur une image (PDF scanné) — jamais
+ *     certaine, toujours à confirmer par un humain avant tout usage financier.
+ */
+export const ORIGINES_DONNEE_FACTURE = ['qr', 'texte_pdf', 'ocr'] as const;
+export type OrigineDonneeFacture = (typeof ORIGINES_DONNEE_FACTURE)[number];
+
+/**
+ * `action_audit_facture_fournisseur` — extensible, même doctrine que `ACTIONS_AUDITEES`
+ * (`contrats/atelier/enums.ts`) : catégorise un événement déjà survenu sur `facture_fournisseur`,
+ * ne pilote aucune transition. Piste d'audit DÉDIÉE (`facture_fournisseur_audit`, append-only,
+ * même patron que `vehicule_ocr_scan_journal`) plutôt que le dispositif générique `audit_atelier` :
+ * ce dernier est propriété du domaine atelier (`entite_auditee` n'énumère aucune entité pièces), et
+ * l'étendre est hors périmètre d'écriture de ce lot (signalé, pas modifié en douce).
+ */
+export const ACTIONS_AUDIT_FACTURE_FOURNISSEUR = [
+  'depot',
+  'rapprochement',
+  'validation',
+  'rejet',
+] as const;
+export type ActionAuditFactureFournisseur = (typeof ACTIONS_AUDIT_FACTURE_FOURNISSEUR)[number];

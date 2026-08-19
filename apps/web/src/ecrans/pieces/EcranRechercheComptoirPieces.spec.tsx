@@ -30,6 +30,8 @@ const ARTICLE: ResultatRechercheComptoirArticle = {
   prixVenteTtcCentimes: 8900,
   quantiteDisponibleMillieme: 3000,
   emplacement: 'B3',
+  rayon: null,
+  tiroir: null,
   estEchangeStandard: false,
   montantConsigneTtcCentimes: null,
   statutSuivi: 'suivi',
@@ -37,6 +39,12 @@ const ARTICLE: ResultatRechercheComptoirArticle = {
 
 function resultats(disponibleMillieme: number): readonly ResultatRechercheComptoirArticle[] {
   return [{ ...ARTICLE, quantiteDisponibleMillieme: disponibleMillieme }];
+}
+
+function resultatsAvecCasier(
+  champs: Partial<ResultatRechercheComptoirArticle>,
+): readonly ResultatRechercheComptoirArticle[] {
+  return [{ ...ARTICLE, quantiteDisponibleMillieme: 3000, ...champs }];
 }
 
 /**
@@ -116,6 +124,35 @@ async function rechercher(terme = '1K0698151') {
   // Anti-rebond de `useRechercheComptoirPieces` (300 ms) + résolution de la requête.
   await screen.findByText('Plaquettes de frein avant', {}, { timeout: 2000 });
 }
+
+/**
+ * Chantier « titres doublés & espacements » (contrat figé du 17.08.2026, §3) — défaut cité
+ * nommément par @laupernoe : « dans Comptoir, c'est écrit "Recherche comptoir" et du coup ça fait un
+ * espace horrible ». « Recherche comptoir » (`pieces:rechercheComptoir.titre`) CONTIENT le
+ * libellé de l'onglet actif « Comptoir » (`navigation-modele.ts`, `ONGLETS_PIECES`) —
+ * `GabaritEcran` doit le masquer par inclusion, jamais le retirer du DOM.
+ */
+describe('EcranRechercheComptoirPieces — titre de page (doublon avec l’onglet « Comptoir »)', () => {
+  it('le titre « Recherche comptoir » reste dans le DOM mais est masqué visuellement', async () => {
+    server.use(
+      http.get('/api/v1/articles/recherche-comptoir', () => HttpResponse.json(resultats(3000))),
+    );
+    rendre('magasinier');
+
+    // La détection dépend du rôle en session (`useNavigationActive`) — le `<h1>` existe dès le
+    // premier rendu mais ne devient `sr-only` qu'après résolution de la session (re-rendu). Cet
+    // écran ne pose ni `sousTitre` ni `actions` sur `GabaritEcran` : la bascule visible -> masqué
+    // fait passer par sa branche « anti-trou », qui REMPLACE le nœud `<h1>` (structure JSX
+    // différente) au lieu de muter sa classe en place. On RE-INTERROGE le DOM à chaque tentative
+    // de `waitFor`, jamais une référence figée avant la résolution de session.
+    await screen.findByRole('heading', { level: 1, name: 'Recherche comptoir' });
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 1, name: 'Recherche comptoir' })).toHaveClass(
+        'sr-only',
+      );
+    });
+  });
+});
 
 describe('EcranRechercheComptoirPieces — actions de comptoir', () => {
   it('masque entièrement les actions « Vendre » et « Retour client » sans le droit pieces.mouvement.creer', async () => {
@@ -326,6 +363,61 @@ describe('EcranRechercheComptoirPieces — actions de comptoir', () => {
   });
 });
 
+describe('EcranRechercheComptoirPieces — emplacement complet (0056), trois rendus distincts', () => {
+  it('aucun rayon, aucun tiroir, aucun texte libre : rien n’est affiché (jamais un tiret muet)', async () => {
+    server.use(
+      http.get('/api/v1/articles/recherche-comptoir', () =>
+        HttpResponse.json(resultatsAvecCasier({ emplacement: null, rayon: null, tiroir: null })),
+      ),
+    );
+    rendre('magasinier');
+    await rechercher();
+
+    expect(screen.queryByText(/rayon/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/tiroir/i)).not.toBeInTheDocument();
+  });
+
+  it('texte libre seul (rayon et tiroir absents) : le texte libre est affiché tel quel', async () => {
+    server.use(
+      http.get('/api/v1/articles/recherche-comptoir', () =>
+        HttpResponse.json(
+          resultatsAvecCasier({ emplacement: 'étagère du fond', rayon: null, tiroir: null }),
+        ),
+      ),
+    );
+    rendre('magasinier');
+    await rechercher();
+
+    expect(await screen.findByText('étagère du fond')).toBeInTheDocument();
+  });
+
+  it('casier structuré (rayon + tiroir), sans texte libre : « Rayon B3, tiroir 2 »', async () => {
+    server.use(
+      http.get('/api/v1/articles/recherche-comptoir', () =>
+        HttpResponse.json(resultatsAvecCasier({ emplacement: null, rayon: 'B3', tiroir: '2' })),
+      ),
+    );
+    rendre('magasinier');
+    await rechercher();
+
+    expect(await screen.findByText('Rayon B3, tiroir 2')).toBeInTheDocument();
+  });
+
+  it('casier structuré ET texte libre en plus : les deux coexistent dans le même rendu', async () => {
+    server.use(
+      http.get('/api/v1/articles/recherche-comptoir', () =>
+        HttpResponse.json(
+          resultatsAvecCasier({ emplacement: 'accès par le fond', rayon: 'B3', tiroir: '2' }),
+        ),
+      ),
+    );
+    rendre('magasinier');
+    await rechercher();
+
+    expect(await screen.findByText('Rayon B3, tiroir 2 — accès par le fond')).toBeInTheDocument();
+  });
+});
+
 describe('EcranRechercheComptoirPieces — mode parcours (saisie vide)', () => {
   it("sans saisie, liste le catalogue actif du site trié par désignation — pas une case vide en attente d'une référence connue d'avance", async () => {
     let parametresRecus: URLSearchParams | undefined;
@@ -343,6 +435,9 @@ describe('EcranRechercheComptoirPieces — mode parcours (saisie vide)', () => {
                   siteId: 'site-1',
                   quantitePhysiqueMillieme: 3500,
                   quantiteDisponibleMillieme: 3500,
+                  emplacement: null,
+                  rayon: null,
+                  tiroir: null,
                 },
               ],
             }),
@@ -375,10 +470,9 @@ describe('EcranRechercheComptoirPieces — mode parcours (saisie vide)', () => {
     // signification que "stock explicitement à 0" — doctrine partagée avec la colonne
     // « disponible » d'`EcranListeArticles` (rien à sortir aujourd'hui sur ce site).
     expect(screen.getByText('Rupture de stock')).toBeInTheDocument();
-    // `emplacement` n'existe pas sur le résumé de stock embarqué (StockResumeArticle) : jamais
-    // deviné, donc jamais affiché en mode parcours — à la différence du mode recherche (voir
-    // `ARTICLE.emplacement` utilisé par les tests d'actions de comptoir ci-dessus).
-    expect(screen.queryByText(/Emplacement/)).not.toBeInTheDocument();
+    // `emplacement`/`rayon`/`tiroir` (0056) SONT portés par `StockResumeArticle` depuis ce lot,
+    // mais cette fixture ne les renseigne pas (`null`) : rien à afficher, jamais deviné.
+    expect(screen.queryByText(/Rayon|Tiroir|Emplacement/)).not.toBeInTheDocument();
   });
 
   it('bascule en mode recherche dès la première frappe, puis revient au catalogue une fois le champ vidé', async () => {
@@ -427,7 +521,7 @@ describe('EcranRechercheComptoirPieces — mode parcours (saisie vide)', () => {
 
     // Cas NOMINAL « le catalogue actif de ce site est vide » — pas une erreur, pas le message de
     // recherche sans résultat.
-    expect(await screen.findByText('Aucun article.')).toBeInTheDocument();
+    expect(await screen.findByText('Aucun article au catalogue')).toBeInTheDocument();
     expect(
       screen.queryByText('Aucun article ne correspond à cette recherche sur ce site.'),
     ).not.toBeInTheDocument();
@@ -443,7 +537,7 @@ describe('EcranRechercheComptoirPieces — mode parcours (saisie vide)', () => {
         ).toBeInTheDocument(),
       { timeout: 2000 },
     );
-    expect(screen.queryByText('Aucun article.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Aucun article au catalogue')).not.toBeInTheDocument();
   });
 
   it('« Charger plus » charge la page suivante du catalogue par curseur, en accumulant sur la première page', async () => {

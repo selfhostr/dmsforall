@@ -29,6 +29,7 @@
     "clientsTous": "Alle",
     "clientsDoublons": "Dubletten",
     "vehicules": "Fahrzeuge",
+    "scan": "Scannen",
     "piecesComptoir": "Theke",
     "piecesArticles": "Artikel",
     "piecesArticlesTous": "Alle",
@@ -37,6 +38,7 @@
     "piecesACommander": "Zu bestellen",
     "piecesCommandes": "Bestellungen",
     "piecesFournisseurs": "Lieferanten",
+    "piecesFacturesFournisseur": "Lieferantenrechnungen",
     "piecesConsignes": "Pfand",
     "facturationFactures": "Rechnungen",
     "facturationEncaissements": "Zahlungseingänge",
@@ -80,6 +82,7 @@
     "agrandir": "Seitenleiste ausklappen"
   },
   "pied": {
-    "version": "{branche} · {numero}"
+    "version": "Version {info}",
+    "versionInconnue": "unbekannt"
   }
 }

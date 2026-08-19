@@ -55,6 +55,7 @@ const DOSSIER: ReponseDossierVente = {
   financement: null,
   financements: [],
   financementsTronques: false,
+  garantie: null,
   documents: [],
   documentsTronques: false,
   documentsRequis: [],
@@ -78,6 +79,32 @@ const DOSSIER: ReponseDossierVente = {
   modifieLe: '2026-08-01T08:00:00.000Z',
   modifiePar: null,
 };
+
+/** Véhicule en stock minimal — utilisé par les tests de la carte « Garantie » (défaut corrigé :
+ *  cette carte n'existait pas du tout sur la fiche dossier avant, voir `CarteGarantieDossier.tsx`).
+ *  `garantieDebut`/`garantieMois`/`garantieKm` (RM-33) ne sont PAS portés par `VehiculeResume`
+ *  (projection minimale) — c'est `ReponseDossierVente.garantie` (top-level, calculé côté serveur)
+ *  qui les expose, pas ce fixture. */
+function construireVehiculeStock(): NonNullable<ReponseDossierVente['vehicule']> {
+  return {
+    id: 'veh-stock-1',
+    vehicule: {
+      id: 'veh-stock-1',
+      plaque: 'GE 123456',
+      canton: 'GE',
+      designation: 'VW Golf 8 GTI',
+      vin: 'WVWZZZ1KZAW123456',
+      premiereMiseEnCirculationLe: '2024-03-01',
+      identificationIncomplete: false,
+      emplacementLibre: null,
+    },
+    provenance: 'neuf_constructeur',
+    typeVehicule: 'vn',
+    statutCommercial: 'reserve',
+    prixVenteAfficheCentimes: 4_500_000,
+    joursStock: 12,
+  };
+}
 
 /** Fixture minimale mais complète (tous les champs non-optionnels de `ReponseDocumentVente`) — le
  *  document renvoyé par `POST /documents-vente` lors du rattachement d'un bon de commande (RV-37,
@@ -198,6 +225,71 @@ describe('EcranFicheDossierVente', () => {
     expect(screen.getByRole('button', { name: 'Ajouter une reprise' })).toBeInTheDocument();
     expect(screen.getByText('Aucune tentative de financement enregistrée.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Proposer un financement' })).toBeInTheDocument();
+  });
+
+  // Défaut corrigé : la fiche dossier de vente ne comportait AUCUNE section garantie (ni
+  // consultation ni saisie), alors que `vehicule.garantieDebut`/`garantieMois`/`garantieKm`
+  // existent en base depuis l'étape 1 (RM-33) et sont déjà exploités par `GET /ventes/suivi`. Ces
+  // trois tests prouvent les TROIS rendus distincts exigés (« absence de donnée ≠ valeur ») : pas
+  // de véhicule -> pas de carte du tout ; véhicule sans `garantieDebut` -> « — » (inconnue, jamais
+  // confondue avec « échue ») ; garantie renseignée et encore valable -> « Garantie active ».
+  describe('carte Garantie (RM-33)', () => {
+    it('aucun véhicule associé : la carte Garantie ne apparaît pas du tout', async () => {
+      server.use(http.get('/api/v1/dossiers-vente/dossier-1', () => HttpResponse.json(DOSSIER)));
+
+      rendre();
+
+      await screen.findAllByText('Jean Dupont');
+      expect(screen.queryByText('Garantie')).not.toBeInTheDocument();
+    });
+
+    it('véhicule associé sans garantieDebut renseigné : rendu « — », jamais confondu avec une garantie échue', async () => {
+      server.use(
+        http.get('/api/v1/dossiers-vente/dossier-1', () =>
+          HttpResponse.json({ ...DOSSIER, vehicule: construireVehiculeStock(), garantie: null }),
+        ),
+        // Bloc « OR de ce véhicule » (Lot B, hors sujet ici) : sans handler dédié, MSW logue un
+        // avertissement « requête non interceptée » à chaque test qui associe un véhicule.
+        http.get('/api/v1/ordres-reparation', () =>
+          HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 10 }),
+        ),
+      );
+
+      rendre();
+
+      expect(await screen.findByText('Garantie')).toBeInTheDocument();
+      expect(screen.getByText('—')).toBeInTheDocument();
+      expect(screen.queryByText('Garantie échue')).not.toBeInTheDocument();
+      expect(screen.queryByText('Garantie active')).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('link', { name: 'Voir/modifier sur la fiche du véhicule' }),
+      ).toHaveAttribute('href', '/ventes/stock/veh-stock-1');
+    });
+
+    it('véhicule associé avec garantie encore valable : « Garantie active »', async () => {
+      server.use(
+        http.get('/api/v1/dossiers-vente/dossier-1', () =>
+          HttpResponse.json({
+            ...DOSSIER,
+            vehicule: construireVehiculeStock(),
+            garantie: {
+              debutLe: '2024-03-01',
+              mois: 24,
+              plafondKm: 100_000,
+              finLe: '2099-03-01',
+              active: true,
+            },
+          }),
+        ),
+        http.get('/api/v1/ordres-reparation', () =>
+          HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 10 }),
+        ),
+      );
+
+      rendre();
+
+      expect(await screen.findByText('Garantie active')).toBeInTheDocument();
+    });
   });
 
   // RÈGLE DURE (masquage par rôle, voir le brief de branchement) : un rôle qui lit le dossier de
@@ -524,6 +616,48 @@ describe('EcranFicheDossierVente', () => {
     const lien = await screen.findByRole('link', { name: 'Voir la facture' });
     expect(lien).toHaveAttribute('href', '/factures/doc-facture-1');
     expect(screen.queryByText('Aucune facture sur ce dossier')).not.toBeInTheDocument();
+  });
+
+  // Défaut corrigé : « Ajoutez les lignes et émettez la facture pour pouvoir livrer » restait
+  // affiché même après émission de la facture — le message ne regardait que « une facture est
+  // rattachée », jamais son statut réel. Ce test prouve les DEUX moitiés du correctif : (1) le
+  // message ne s'affiche plus dès que la facture est `emis`, (2) le dialogue relit l'état réel du
+  // dossier à CHAQUE ouverture — ici la facture passe de `brouillon` à `emis` DEPUIS L'ÉCRAN
+  // FACTURATION (hors périmètre, jamais un geste de ce composant), la réouverture doit donc le
+  // détecter sans qu'aucune mutation locale n'ait eu lieu entre les deux.
+  it('livrer : le message « pour pouvoir livrer » disparaît une fois la facture émise, y compris sur une simple réouverture', async () => {
+    let statutFacture: 'brouillon' | 'emis' = 'brouillon';
+
+    server.use(
+      http.get('/api/v1/dossiers-vente/dossier-1', () =>
+        HttpResponse.json({
+          ...DOSSIER,
+          statut: 'pret_a_livrer',
+          actionsDisponibles: ['livrer'],
+          documents: [{ ...projeterResumeDocument(construireFacture()), statut: statutFacture }],
+        }),
+      ),
+    );
+
+    rendre();
+    const utilisateur = userEvent.setup();
+
+    await utilisateur.click(await screen.findByRole('button', { name: 'Livrer' }));
+    expect(
+      await screen.findByText('Ajoutez les lignes et émettez la facture pour pouvoir livrer.'),
+    ).toBeInTheDocument();
+
+    await utilisateur.click(screen.getByRole('button', { name: 'Annuler' }));
+
+    // Émission simulée AILLEURS (écran facturation) : rien dans CE composant ne déclenche ce
+    // changement, seule la réouverture du dialogue doit le révéler.
+    statutFacture = 'emis';
+
+    await utilisateur.click(await screen.findByRole('button', { name: 'Livrer' }));
+    expect(await screen.findByRole('link', { name: 'Voir la facture' })).toBeInTheDocument();
+    expect(
+      screen.queryByText('Ajoutez les lignes et émettez la facture pour pouvoir livrer.'),
+    ).not.toBeInTheDocument();
   });
 
   // Non-régression : le refus serveur documenté (dossier clos/annulé/abandonné, RV-37) s'affiche

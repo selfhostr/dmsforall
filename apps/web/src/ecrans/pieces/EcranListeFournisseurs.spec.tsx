@@ -52,6 +52,33 @@ function rendre() {
 }
 
 describe('EcranListeFournisseurs', () => {
+  /**
+   * Chantier « titres doublés & espacements » (contrat figé du 17.08.2026, §3) — « Fournisseurs »
+   * est un doublon STRICT du libellé de la vue active « Fournisseurs » (`navigation-modele.ts`,
+   * `ONGLETS_PIECES`, vue « fournisseurs » de l'onglet Approvisionnement) : `GabaritEcran` doit le
+   * masquer visuellement (`sr-only`) sans le retirer du DOM.
+   */
+  it('le titre « Fournisseurs » reste dans le DOM mais est masqué visuellement', async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      http.get('/api/v1/fournisseurs', () => HttpResponse.json(pageDe([]))),
+    );
+
+    rendre();
+
+    // La détection dépend du rôle en session (`useNavigationActive`) — le `<h1>` existe dès le
+    // premier rendu mais ne devient `sr-only` qu'après résolution de la session (re-rendu).
+    // RE-INTERROGE le DOM à chaque tentative de `waitFor` (pas une référence figée) : si le rôle
+    // en session n'a pas le droit d'écrire (pas de bouton `actions`), `GabaritEcran` bascule sur
+    // sa branche « anti-trou » et REMPLACE le nœud `<h1>` plutôt que de muter sa classe en place.
+    await screen.findByRole('heading', { level: 1, name: 'Fournisseurs' });
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 1, name: 'Fournisseurs' })).toHaveClass(
+        'sr-only',
+      );
+    });
+  });
+
   it('affiche les fournisseurs actifs par défaut', async () => {
     server.use(
       http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),

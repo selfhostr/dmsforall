@@ -1,19 +1,21 @@
 import { Menu } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Outlet } from 'react-router';
+import { Navigate, Outlet, useLocation } from 'react-router';
 
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { FournisseurSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { useSession } from '@/hooks/useSession';
 import { cn } from '@/lib/utils';
+import { chemins } from '@/routes/chemins';
 
 import { BarreLaterale } from './BarreLaterale';
 import { EnTete } from './EnTete';
 import { LimiteErreurEcran } from './LimiteErreurEcran';
 import { entreesVisibles } from './navigation-modele';
 import { OngletsDomaine } from './OngletsDomaine';
+import { useModeScanMobile } from './useModeScanMobile';
 import { useRepliBarreLaterale } from './useRepliBarreLaterale';
 
 /**
@@ -37,7 +39,14 @@ export function AppShell() {
   const { t } = useTranslation('navigation');
   const [ouvert, setOuvert] = useState(false);
   const { data: session } = useSession();
-  const afficheNavigation = entreesVisibles(session?.utilisateur.role).length > 0;
+  const location = useLocation();
+  // Restriction mobile au scan seul (chantier scanner de permis de circulation) — voir la doc de
+  // tête d'`useModeScanMobile.ts` pour le détail de la détection et de son échappatoire. `actif`
+  // masque toute la navigation ci-dessous (même traitement que `poste_atelier`, la borne murale :
+  // aucune colonne, aucun onglet) ET redirige toute route hors `/scan` (voir `<main>` plus bas).
+  const modeScan = useModeScanMobile(session?.utilisateur.role);
+  const afficheNavigation =
+    entreesVisibles(session?.utilisateur.role).length > 0 && !modeScan.actif;
   // Repli DESKTOP de la barre latérale (demande @laupernoe, revue webui du 10.08.2026) — préférence
   // mémorisée (`useRepliBarreLaterale`), lue ici et nulle part ailleurs : seul l'`aside` ci-dessous
   // la reçoit. Le tiroir mobile (`Sheet`) monte `BarreLaterale` SANS le prop `repli`, il reste donc
@@ -112,14 +121,28 @@ export function AppShell() {
 
           <EnTete />
 
-          <OngletsDomaine />
+          {/* Aucune rangée d'onglets en mode scan mobile (`modeScan.actif`) : la seule destination
+              qui reste accessible est `/scan` lui-même, une rangée à un seul onglet actif
+              n'offrirait aucun choix réel — même raisonnement que le repli de la barre latérale
+              ci-dessus, appliqué à ce second niveau de navigation. */}
+          {modeScan.actif ? null : <OngletsDomaine />}
 
           {/* Limite d'erreur SCOPÉE à l'écran routé (issue #77, axe 1) — un crash de rendu dans
               l'écran affiché ne démonte plus la coquille entière (barre latérale, en-tête,
               onglets) : voir la justification complète dans `LimiteErreurEcran.tsx`. */}
           <main id="contenu-principal" className="flex-1 p-4 sm:p-6">
             <LimiteErreurEcran>
-              <Outlet />
+              {/* Toute route hors `/scan` redirige vers `/scan` en mode scan mobile — c'est ce qui
+                  rend la restriction « stricte » (pas seulement une navigation masquée qu'une URL
+                  tapée à la main contournerait) : atelier, facturation, liste de clients restent
+                  des routes RÉELLES (utiles au menu desktop, à un lien profond partagé...), mais
+                  un téléphone concerné n'y reste jamais affiché. `chemins.scan()` sans site : le
+                  scan n'est pas scopé par site (voir sa doc dans `routes/chemins.ts`). */}
+              {modeScan.actif && location.pathname !== chemins.scan() ? (
+                <Navigate to={chemins.scan()} replace />
+              ) : (
+                <Outlet />
+              )}
             </LimiteErreurEcran>
           </main>
         </div>

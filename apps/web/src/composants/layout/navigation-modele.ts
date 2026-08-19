@@ -25,6 +25,7 @@ import {
   ROLES_POINTAGE,
   ROLES_POINTAGE_ENCADREMENT,
   ROLES_RELANCES,
+  ROLES_SCAN,
   ROLES_TABLEAU_BORD_ACTIVITE,
   ROLES_VENTES,
 } from '@/routes/droits-routes';
@@ -325,6 +326,26 @@ const ONGLETS_CLIENTS_VEHICULES: readonly OngletDomaine[] = [
     chemin: (site) => chemins.vehicules.liste(site),
     motifs: ['/vehicules'],
   },
+  /**
+   * Scanner de permis de circulation — TROISIÈME onglet de Clients & véhicules (nouveau chantier
+   * mobile). Rangement choisi ici, pas une septième entrée de menu (§4.1, « la règle de
+   * rangement ») : le scan est une DESTINATION (« créer client + véhicule depuis un permis »), pas
+   * un objet, et il crée exactement ce que ces deux onglets voisins listent — même famille que
+   * §4.1 le prescrit. `roles: ROLES_SCAN` (`routes/droits-routes.ts`) : seuls les rôles qui
+   * détiennent `client.creer` ET `vehicule.creer` voient l'onglet, faute de quoi la soumission du
+   * formulaire échouerait systématiquement en `403` pour eux.
+   *
+   * C'est aussi l'ancrage DESKTOP de l'écran (mise en service, vérification du rendu) — sur
+   * téléphone, `composants/layout/useModeScanMobile.ts` y redirige automatiquement les mêmes
+   * rôles, sans passer par ce menu (voir sa doc de tête).
+   */
+  {
+    id: 'scan',
+    cleLibelle: 'navigation:onglets.scan',
+    chemin: (site) => chemins.scan(site),
+    motifs: ['/scan'],
+    roles: ROLES_SCAN,
+  },
 ];
 
 /**
@@ -355,6 +376,25 @@ const ROLES_LECTURE_FOURNISSEUR_PIECES: readonly RoleUtilisateur[] = [
  * systématiquement les autres onglets du fichier après le rapport du chasseur : l'onglet Consignes
  * portait le même défaut (`ROLES_PIECES`) et n'avait pas été testé par lui.
  */
+/**
+ * Lecture facture fournisseur (`pieces.facture_fournisseur.lire`, INFÉRÉ — pas encore de
+ * `matrice-droits.ts` côté serveur pour ce sous-domaine au moment où cette vue est câblée, voir
+ * `hooks/pieces/factures-fournisseur.temporaire.ts`) : `direction`, `chef_atelier`, `magasinier`,
+ * ET `comptable` — mêmes valeurs, MÊME raisonnement (« une créance/dépense qui dort ») que
+ * `ROLES_LECTURE_CONSIGNE_PIECES` ci-dessous, mais gardée SÉPARÉE plutôt que réutilisée : les deux
+ * droits sont distincts côté API (consigne vs facture fournisseur), une coïncidence de valeurs
+ * aujourd'hui ne garantit rien pour demain. Mêmes valeurs littérales que la constante privée
+ * `ROLES_LECTURE_FACTURE_FOURNISSEUR` d'`apps/web/src/ecrans/pieces/droits.ts` — même chaîne de
+ * duplication assumée que `ROLES_LECTURE_FOURNISSEUR_PIECES` ci-dessus (`routes/` et
+ * `composants/layout/` ne dépendent jamais d'`ecrans/*`).
+ */
+const ROLES_LECTURE_FACTURE_FOURNISSEUR_PIECES: readonly RoleUtilisateur[] = [
+  'direction',
+  'chef_atelier',
+  'magasinier',
+  'comptable',
+];
+
 const ROLES_LECTURE_CONSIGNE_PIECES: readonly RoleUtilisateur[] = [
   'direction',
   'chef_atelier',
@@ -431,6 +471,7 @@ const ONGLETS_PIECES: readonly OngletDomaine[] = [
       '/pieces/reapprovisionnement',
       '/pieces/commandes-fournisseur',
       '/pieces/fournisseurs',
+      '/pieces/factures-fournisseur',
     ],
     roles: ROLES_PIECES,
     vues: [
@@ -454,6 +495,21 @@ const ONGLETS_PIECES: readonly OngletDomaine[] = [
         chemin: (site) => chemins.pieces.fournisseurs.liste(site),
         motifs: ['/pieces/fournisseurs'],
         roles: ROLES_LECTURE_FOURNISSEUR_PIECES,
+      },
+      /**
+       * Factures fournisseurs (dépôt, rapprochement, décision) — dernière vue du groupe, même
+       * famille que Commandes/Fournisseurs ci-dessus (workflow fournisseur), rôles ÉLARGIS à
+       * `comptable` (voir `ROLES_LECTURE_FACTURE_FOURNISSEUR_PIECES`, pièce comptable) —
+       * `vendeur`/`receptionnaire`/`technicien` n'y ont aucun droit, comme pour Commandes et
+       * Fournisseurs. Motif couvre les trois routes (`liste`, `deposer`, `:id`) : correspondance
+       * par segment (`cheminCorrespond`), un seul préfixe suffit.
+       */
+      {
+        id: 'facturesFournisseur',
+        cleLibelle: 'navigation:onglets.piecesFacturesFournisseur',
+        chemin: (site) => chemins.pieces.facturesFournisseur.liste(site),
+        motifs: ['/pieces/factures-fournisseur'],
+        roles: ROLES_LECTURE_FACTURE_FOURNISSEUR_PIECES,
       },
     ],
   },

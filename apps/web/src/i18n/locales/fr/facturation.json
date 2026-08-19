@@ -142,6 +142,9 @@
     "chargement": "Chargement…"
   },
   "fiche": {
+    "titre": "{type} {numero}",
+    "titreBrouillonFacture": "Nouvelle facture",
+    "titreBrouillonAvoir": "Nouvel avoir",
     "issueDeOr": "issue d'un ordre de réparation →",
     "emiseLe": "émise le {date}",
     "destinataire": {
@@ -202,6 +205,8 @@
     "documentsLies": {
       "titre": "Documents liés",
       "or": "Ordre de réparation lié →",
+      "dossierVente": "Dossier de vente lié →",
+      "vehicule": "Véhicule lié →",
       "facture": "Facture d'origine →",
       "avoir": "Avoir lié →",
       "vide": "Aucun document lié."
@@ -290,6 +295,7 @@
     },
     "lignesInvalides": "Chaque moyen de paiement doit porter un montant supérieur à zéro.",
     "resteAEncaisser": "Reste à encaisser",
+    "confirmationSucces": "Encaissement enregistré",
     "confirmer": "Enregistrer l'encaissement",
     "enCours": "Enregistrement…",
     "erreur": {
@@ -337,12 +343,27 @@
       "titre": "Impossible de charger les factures"
     },
     "vide": {
-      "premierUsage": "Aucune facture émise pour l'instant. Les factures se créent depuis un OR terminé.",
+      "premierUsage": {
+        "titre": "Aucune facture émise",
+        "description": "Les factures se créent depuis un OR terminé."
+      },
       "voirOr": "Voir les ordres de réparation →",
-      "nonReglees": "Aucune facture non réglée — tout est à jour.",
-      "enRetard": "Aucune facture en retard — tout est à jour.",
-      "aRelancer": "Aucune facture à relancer pour le moment.",
-      "recherche": "Aucune facture ne correspond à cette recherche."
+      "nonReglees": {
+        "titre": "Rien à régler",
+        "description": "Toutes les créances sont soldées."
+      },
+      "enRetard": {
+        "titre": "Aucune facture en retard",
+        "description": "Toutes les échéances sont respectées."
+      },
+      "aRelancer": {
+        "titre": "Aucune facture à relancer",
+        "description": "Aucune facture n'attend de rappel."
+      },
+      "recherche": {
+        "titre": "Aucune facture trouvée",
+        "description": "Aucune facture ne correspond à ce numéro ou à ce nom de client."
+      }
     }
   },
   "actions": {

@@ -384,13 +384,21 @@ export function SheetEncaissement({
             // Confirmation EXPLICITE du succès (item 3, testeur novice) : avant ce correctif, le
             // panneau se refermait en silence sur `fermer()`, identique visuellement à un abandon
             // — le testeur n'a découvert son premier encaissement réussi qu'en retournant à la
-            // liste. Compose UNIQUEMENT des clés/valeurs déjà traduites ailleurs dans l'app
-            // (`BadgeStatutReglement` porte déjà « Réglée », `commun:actions.fermer` porte déjà
-            // « Fermer ») plutôt que d'introduire une nouvelle clé de prose — voir le rapport de
-            // livraison pour la clé dédiée manquante (`facturation:encaissement.confirmationSucces`)
-            // à ajouter par l'agent i18n.
-            <section className="flex flex-col items-center gap-3 py-8 text-center">
+            // liste. Défaut corrigé (issue #63) : la clé de titre manquait réellement
+            // (`facturation:encaissement.confirmationSucces`, signalée dans le commentaire
+            // d'origine mais jamais posée) — le montant seul, sans texte, ne dit pas explicitement
+            // ce qui vient de se passer ; `role="status"`/`aria-live="polite"` manquaient aussi,
+            // donc un lecteur d'écran n'annonçait rien à l'ouverture de cette confirmation (même
+            // patron que `EtatChargement`/`BoutonImprimerOr`, voir leurs régions `role="status"`).
+            <section
+              role="status"
+              aria-live="polite"
+              className="flex flex-col items-center gap-3 py-8 text-center"
+            >
               <CheckCircle2 aria-hidden className="h-10 w-10 text-statut-succes" />
+              <p className="texte-corps font-medium text-foreground">
+                {t('facturation:encaissement.confirmationSucces')}
+              </p>
               <p className="texte-titre-section font-semibold text-foreground">
                 {formaterMontantAvecDevise(
                   confirmationSucces.montantCentimes,

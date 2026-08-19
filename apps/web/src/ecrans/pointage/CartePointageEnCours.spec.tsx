@@ -54,6 +54,7 @@ describe('CartePointageEnCours', () => {
           enTraitement={false}
           messageErreur={undefined}
           avertissement={undefined}
+          cumulAujourdhuiSecondes={undefined}
         />,
       );
 
@@ -78,6 +79,7 @@ describe('CartePointageEnCours', () => {
         enTraitement={false}
         messageErreur={undefined}
         avertissement={undefined}
+        cumulAujourdhuiSecondes={undefined}
       />,
     );
 
@@ -99,6 +101,7 @@ describe('CartePointageEnCours', () => {
           enTraitement={false}
           messageErreur={undefined}
           avertissement="Ce pointage a été clôturé automatiquement à la fermeture."
+          cumulAujourdhuiSecondes={undefined}
         />,
       );
 
@@ -120,11 +123,74 @@ describe('CartePointageEnCours', () => {
         enTraitement
         messageErreur={undefined}
         avertissement={undefined}
+        cumulAujourdhuiSecondes={undefined}
       />,
     );
 
     expect(screen.getByRole('button', { name: 'Changer' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Mettre en pause' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Arrêter' })).toBeDisabled();
+  });
+
+  it(
+    'point 6 (« deux nombres ») : n’affiche AUCUN cumul quand `cumulAujourdhuiSecondes` est nul ' +
+      'ou absent — première visite du jour sur cette cible, le chrono seul suffit',
+    () => {
+      render(
+        <CartePointageEnCours
+          pointage={POINTAGE}
+          libelleCible="OR-000123 — OR entier"
+          onArreter={vi.fn()}
+          onPause={vi.fn()}
+          onReprendre={undefined}
+          onChanger={undefined}
+          enTraitement={false}
+          messageErreur={undefined}
+          avertissement={undefined}
+          cumulAujourdhuiSecondes={0}
+        />,
+      );
+
+      expect(screen.queryByText(/Aujourd'hui sur cette cible/)).not.toBeInTheDocument();
+    },
+  );
+
+  it('point 6 (« deux nombres ») : affiche le cumul du jour à côté du chrono dès qu’il est non nul', () => {
+    render(
+      <CartePointageEnCours
+        pointage={POINTAGE}
+        libelleCible="OR-000123 — OR entier"
+        onArreter={vi.fn()}
+        onPause={vi.fn()}
+        onReprendre={undefined}
+        onChanger={undefined}
+        enTraitement={false}
+        messageErreur={undefined}
+        avertissement={undefined}
+        cumulAujourdhuiSecondes={2880}
+      />,
+    );
+
+    expect(screen.getByText("Aujourd'hui sur cette cible : 48 min")).toBeInTheDocument();
+  });
+
+  it('l’arrêt n’est plus une action « destructive » (rouge) — geste répété, pas dangereux', () => {
+    render(
+      <CartePointageEnCours
+        pointage={POINTAGE}
+        libelleCible="OR-000123 — OR entier"
+        onArreter={vi.fn()}
+        onPause={vi.fn()}
+        onReprendre={undefined}
+        onChanger={undefined}
+        enTraitement={false}
+        messageErreur={undefined}
+        avertissement={undefined}
+        cumulAujourdhuiSecondes={undefined}
+      />,
+    );
+
+    const boutonArreter = screen.getByRole('button', { name: 'Arrêter' });
+    expect(boutonArreter.className).not.toContain('destructive');
   });
 });

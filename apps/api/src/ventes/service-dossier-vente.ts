@@ -19,6 +19,7 @@ import type {
   ReponseDossierVente,
   RepriseResume,
   RoleUtilisateur,
+  SuiviGarantie,
   VehiculeStockResume,
 } from '@dfa/shared';
 
@@ -43,6 +44,12 @@ import {
   versClientResume,
 } from '../atelier/references';
 import { interpreterContrainteVehicule } from '../vehicules/erreurs-contraintes';
+// Import cross-domaine EN LECTURE SEULE, même précédent que `calculerGarantie`/`ajouterMoisIso`
+// réutilisés par `suivi-mappers.ts` depuis ce même module `vehicules/` : aucune écriture posée ici
+// dans le domaine véhicule (voir le constat documenté en tête de cette classe, juste au-dessus de
+// `ServiceDossierVente` — `livrer` ne pose toujours pas `vehicule.garantie_debut`, seule la
+// LECTURE de la garantie déjà existante est ajoutée ici).
+import { lireDernierKilometrage } from '../vehicules/vehicule-requetes';
 import { CollecteurAvertissements } from '../common/avertissements';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
 import { JETON_AUDIT, type ServiceAudit } from '../common/audit';
@@ -73,6 +80,9 @@ import {
   versFinancementResume,
   versRepriseResume,
 } from './mappers';
+// `construireSuiviGarantie` : même fonction PURE que `GET /ventes/suivi` (voir son en-tête) —
+// aucune seconde définition d'« encore valable » pour la fiche du dossier.
+import { construireSuiviGarantie } from './suivi-mappers';
 import {
   construireConditionKeyset,
   construireOrderBy,
@@ -1063,7 +1073,11 @@ export class ServiceDossierVente {
       ? await versClientResume(tx, ctx, await chargerClientLigne(tx, ctx, ligne.clientConducteurId))
       : null;
 
-    const { vehicule, typeVehicule } = await this.assemblerVehicule(tx, ctx, ligne.vehiculeId);
+    const { vehicule, typeVehicule, garantie } = await this.assemblerVehicule(
+      tx,
+      ctx,
+      ligne.vehiculeId,
+    );
 
     // FAILLE CORRIGÉE (audit sécurité) : `reprise`/`financement(s)` n'étaient JAMAIS gatés par leur
     // propre droit de lecture — `GET /dossiers-vente/{id}` (protégé par `ventes.dossier.lire` SEUL)
@@ -1134,6 +1148,7 @@ export class ServiceDossierVente {
       financement: financementCourant,
       financements,
       financementsTronques,
+      garantie,
       documents,
       documentsTronques,
       documentsRequis,
@@ -1165,8 +1180,9 @@ export class ServiceDossierVente {
   ): Promise<{
     vehicule: VehiculeStockResume | null;
     typeVehicule: ReponseDossierVente['typeVehicule'];
+    garantie: SuiviGarantie | null;
   }> {
-    if (!vehiculeId) return { vehicule: null, typeVehicule: null };
+    if (!vehiculeId) return { vehicule: null, typeVehicule: null, garantie: null };
 
     const vehiculeStockLigne = await chargerVehiculeStock(tx, ctx, vehiculeId);
     const vehiculeLigne = await chargerVehiculeLigne(tx, ctx, vehiculeId);
@@ -1186,7 +1202,20 @@ export class ServiceDossierVente {
       prixVenteAfficheCentimes: vehiculeStockLigne.prixVenteAfficheCentimes,
       joursStock: 0,
     };
-    return { vehicule, typeVehicule };
+    // `vehicule.garantieDebut`/`garantieMois`/`garantieKm` existent depuis `migrations/
+    // 0007_vehicules.sql` (RM-33, étape 1) — pas de nouvelle colonne, LECTURE seule. Même fonction
+    // pure que `GET /ventes/suivi` (`construireSuiviGarantie`), même relevé de kilométrage
+    // (`lireDernierKilometrage`, `vehicules/vehicule-requetes.ts`) pour que `active` évalue la
+    // borne kilométrique exactement comme le suivi — jamais une seconde règle d'« encore valable ».
+    const dernierKilometrage = await lireDernierKilometrage(tx, ctx, vehiculeId);
+    const garantie = construireSuiviGarantie(
+      vehiculeLigne.garantieDebut,
+      vehiculeLigne.garantieMois,
+      vehiculeLigne.garantieKm,
+      dernierKilometrage?.valeurKm ?? null,
+      this.horloge.maintenant(),
+    );
+    return { vehicule, typeVehicule, garantie };
   }
 
   private async assemblerRepriseResume(

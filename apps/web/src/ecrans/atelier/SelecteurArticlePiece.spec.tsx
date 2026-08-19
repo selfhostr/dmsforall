@@ -24,6 +24,10 @@ const PLAQUETTES: ResultatRechercheComptoirArticle = {
   quantiteDisponibleMillieme: 3000,
   statutSuivi: 'suivi',
   emplacement: 'A-12',
+  // Casier structuré (0056) : aucun rayon/tiroir posé pour cette fixture, donc `null` — jamais
+  // une valeur inventée (« absence de donnée ≠ valeur »).
+  rayon: null,
+  tiroir: null,
   estEchangeStandard: false,
   montantConsigneTtcCentimes: null,
 };

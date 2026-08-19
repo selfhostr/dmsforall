@@ -21,11 +21,13 @@ import {
   EN_TETE_IDEMPOTENCE,
   schemaAccepterDevis,
   schemaAnnulerDocument,
+  schemaCorrectionFacture,
   schemaCreationAvoir,
   schemaEmissionDocumentVente,
   schemaIdentifiant,
   schemaRefuserDocument,
   type EntreeAnnulerDocument,
+  type EntreeCorrectionFacture,
   type EntreeCreationAvoir,
   type EntreeEmissionDocumentVente,
   type EntreeRefuserDocument,
@@ -38,11 +40,16 @@ import { ApiReponseProbleme } from '../../common/erreurs';
 import { PipeZod } from '../../common/validation';
 
 import { etagDocumentVente } from './document-vente.etag';
-import { EnveloppeDocumentDto, ReponseDocumentVenteDto } from './dto';
+import { EnveloppeDocumentDto, ReponseCorrectionFactureDto, ReponseDocumentVenteDto } from './dto';
 import { ServiceAvoir } from './service-avoir';
+import { ServiceCorrectionFacture } from './service-correction';
 import { ServiceEmissionDocument } from './service-emission';
 
 const EnveloppeDocumentVenteDto = EnveloppeDocumentDto(ReponseDocumentVenteDto, 'DocumentVente');
+const EnveloppeCorrectionFactureDto = EnveloppeDocumentDto(
+  ReponseCorrectionFactureDto,
+  'CorrectionFacture',
+);
 
 /**
  * `schemaEmissionDocumentVente`/`schemaAccepterDevis` (`@dfa/shared`) n'imposent AUCUN champ — seul
@@ -78,6 +85,7 @@ export class DocumentVenteTransitionsController {
   constructor(
     private readonly emission: ServiceEmissionDocument,
     private readonly avoirs: ServiceAvoir,
+    private readonly corrections: ServiceCorrectionFacture,
     private readonly contexte: ServiceContexteRequete,
   ) {}
 
@@ -230,6 +238,72 @@ export class DocumentVenteTransitionsController {
     res.status(resultat.reponse.statutHttp);
     if (resultat.rejoue) res.setHeader('Idempotency-Rejeu', 'true');
     res.setHeader('ETag', etagDocumentVente(new Date(resultat.reponse.corps.donnees.modifieLe)));
+    return resultat.reponse.corps;
+  }
+
+  @Post(':factureId/corriger')
+  @HttpCode(HttpStatus.CREATED)
+  @ExigerDroit('facturation.document.corriger')
+  @ApiOperation({
+    summary:
+      'Correction — annule par avoir ET recrée une facture, dans la même transaction (RF-12 → RF-14).',
+    description:
+      "`Idempotency-Key` obligatoire — c'est une création de facture, donc une création sensible. " +
+      'Une facture ÉMISE ne se modifie JAMAIS (MD-20) : ce geste produit TROIS documents immuables — ' +
+      "un avoir TOTAL (déjà émis, sans retour physique de stock) créditant la facture d'origine (qui " +
+      'bascule `annule_par_avoir`), et une facture de remplacement (déjà émise) reprenant les mêmes ' +
+      "lignes avec l'en-tête corrigé (`champsCorriges` : désignation et/ou adresse de facturation " +
+      'uniquement — une erreur de montant ou de taux se corrige par un avoir libre, `POST ' +
+      '/documents-vente/{factureId}/avoirs`, jamais par ce geste). ' +
+      "Droit DÉDIÉ, périmètre volontairement PLUS ÉTROIT qu'émettre un avoir simple : " +
+      '`direction`/`comptable` SEULS (ni `receptionnaire`, ni `admin`, RF-115).',
+  })
+  @ApiParam({ name: 'factureId', format: 'uuid' })
+  @ApiHeader({
+    name: EN_TETE_IDEMPOTENCE,
+    required: true,
+    description: 'uuid v4, identité de la requête.',
+  })
+  @ApiResponse({ status: 201, type: EnveloppeCorrectionFactureDto })
+  @ApiReponseProbleme(400, 'Corps invalide ou Idempotency-Key manquante/mal formée.')
+  @ApiReponseProbleme(401, 'Session absente ou expirée.')
+  @ApiReponseProbleme(403, 'Droit insuffisant.')
+  @ApiReponseProbleme(404, 'Facture introuvable pour ce tenant.')
+  @ApiReponseProbleme(
+    409,
+    'DOCUMENT_TRANSITION_INTERDITE (facture non émise ou déjà corrigée/annulée) ou IDEMPOTENCE_CONFLIT.',
+  )
+  async corriger(
+    @Param('factureId', new PipeZod(schemaIdentifiant)) factureId: string,
+    @CorpsZod(schemaCorrectionFacture, {
+      exemple: {
+        motif: 'erreur_adresse',
+        corrigerFicheClient: true,
+        champsCorriges: {
+          adresseFacturation: { rue: 'Rue du Marché 12', npa: '1000', localite: 'Lausanne' },
+        },
+      },
+    })
+    entree: EntreeCorrectionFacture,
+    @Headers(EN_TETE_IDEMPOTENCE.toLowerCase()) cleIdempotence: string | undefined,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<unknown> {
+    const ctx = this.contexte.contexteTenant();
+    const principal = this.contexte.exigerPrincipal();
+    const resultat = await this.corrections.corriger(
+      ctx,
+      principal,
+      factureId,
+      entree,
+      cleIdempotence ?? '',
+    );
+
+    res.status(resultat.reponse.statutHttp);
+    if (resultat.rejoue) res.setHeader('Idempotency-Rejeu', 'true');
+    res.setHeader(
+      'ETag',
+      etagDocumentVente(new Date(resultat.reponse.corps.donnees.factureRemplacement.modifieLe)),
+    );
     return resultat.reponse.corps;
   }
 }

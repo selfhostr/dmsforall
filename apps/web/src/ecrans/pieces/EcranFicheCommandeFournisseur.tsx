@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useCommandeFournisseur } from '@/hooks/pieces/useCommandeFournisseur';
 import { useFournisseur } from '@/hooks/pieces/useFournisseur';
 import {
@@ -32,6 +33,7 @@ import {
   peutLireCommandeFournisseur,
   peutReceptionnerCommandeFournisseur,
 } from './droits';
+import { messageErreurMutation } from './messages-erreur-mutation';
 import { formaterQuantiteMillieme, texteOuVide } from './utils';
 
 type Confirmation =
@@ -85,43 +87,39 @@ export function EcranFicheCommandeFournisseur() {
 
   if (session.isLoading) {
     return (
-      <div className="flex flex-col gap-6 p-6">
-        <h1 className="sr-only">{t('pieces:commandes.titre')}</h1>
+      <GabaritEcran titre={t('pieces:commandes.titre')}>
         <EtatChargement lignes={8} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (!peutLire) {
     return (
-      <div className="flex flex-col gap-6 p-6">
-        <h1 className="sr-only">{t('pieces:commandes.titre')}</h1>
+      <GabaritEcran titre={t('pieces:commandes.titre')}>
         <p className="texte-corps text-muted-foreground">
           {t('pieces:commandes.fiche.droitRequis')}
         </p>
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (requeteCommande.isPending) {
     return (
-      <div className="flex flex-col gap-6 p-6">
-        <h1 className="sr-only">{t('pieces:commandes.titre')}</h1>
+      <GabaritEcran titre={t('pieces:commandes.titre')}>
         <EtatChargement lignes={8} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (requeteCommande.isError || !commande) {
     return (
-      <div className="flex flex-col gap-6 p-6">
-        <h1 className="sr-only">{t('pieces:commandes.titre')}</h1>
+      <GabaritEcran titre={t('pieces:commandes.titre')}>
         <EtatErreur
           titre={t('pieces:commandes.fiche.erreur.titre')}
           description={messageErreur(requeteCommande.error, t)}
           onReessayer={() => void requeteCommande.refetch()}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
@@ -148,10 +146,12 @@ export function EcranFicheCommandeFournisseur() {
   }, null);
   const totalIncomplet = commande.lignes.some((ligne) => ligne.prixAchatAttenduCentimes === null);
 
+  // Titre MASQUÉ automatiquement — « Commandes fournisseur » (titre générique de la fiche,
+  // identité RÉELLE portée par le `<h2>` visible ci-dessous, la date de la commande) est un
+  // doublon de la vue active « Commandes » : `GabaritEcran` le détecte lui-même. Un seul `<h1>`
+  // par page (accessibilité) — jamais deux niveaux 1 en compétition.
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <h1 className="sr-only">{t('pieces:commandes.titre')}</h1>
-
+    <GabaritEcran titre={t('pieces:commandes.titre')}>
       <div className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-2">
@@ -235,8 +235,13 @@ export function EcranFicheCommandeFournisseur() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {peutEnvoyer ? (
-                <DropdownMenuItem onSelect={() => envoyer.mutate(undefined)}>
-                  {t('pieces:commandes.actions.envoyer')}
+                <DropdownMenuItem
+                  disabled={envoyer.isPending}
+                  onSelect={() => envoyer.mutate(undefined)}
+                >
+                  {envoyer.isPending
+                    ? t('commun:chargement.enCours')
+                    : t('pieces:commandes.actions.envoyer')}
                 </DropdownMenuItem>
               ) : null}
               {peutOuvrirReception ? (
@@ -256,7 +261,7 @@ export function EcranFicheCommandeFournisseur() {
 
       {erreurTransition ? (
         <p className="texte-libelle text-destructive" role="alert">
-          {messageErreur(erreurTransition, t)}
+          {messageErreurMutation(erreurTransition, t)}
         </p>
       ) : null}
 
@@ -375,6 +380,6 @@ export function EcranFicheCommandeFournisseur() {
           );
         }}
       />
-    </div>
+    </GabaritEcran>
   );
 }

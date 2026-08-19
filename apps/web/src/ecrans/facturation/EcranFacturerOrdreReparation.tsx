@@ -21,6 +21,7 @@ import { EtatVide } from '@/composants/commun/EtatVide';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useOrdreReparation } from '@/hooks/atelier/useOrdreReparation';
 import { useFacturationOrdreReparation } from '@/hooks/facturation/useFacturationOrdreReparation';
 import { formaterMontant, formaterMontantAvecDevise } from '@/lib/formats';
@@ -158,28 +159,31 @@ export function EcranFacturerOrdreReparation() {
       });
   }, [requete.data]);
 
+  // Titre unique, posé via `GabaritEcran` sur les QUATRE branches de retour de cet écran
+  // (chargement/erreur/vide/normal) — chantier « titres doublés & espacements », 17.08.2026 :
+  // avant ce chantier, seule la branche « vide » portait un h1 VISIBLE, les branches chargement/
+  // erreur un h1 `sr-only`, et la branche normale n'en portait AUCUN. La détection automatique du
+  // gabarit tranche seule la visibilité ; aucun `titreVisible` posé ici.
   if (requete.isPending) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('facturation:facturerOr.titre')}</h1>
+      <GabaritEcran titre={t('facturation:facturerOr.titre')}>
         <p className="texte-corps text-muted-foreground">
           {t('facturation:facturerOr.chargement')}
         </p>
         <EtatChargement lignes={6} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (requete.isError) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('facturation:facturerOr.titre')}</h1>
+      <GabaritEcran titre={t('facturation:facturerOr.titre')}>
         <EtatErreur
           titre={t('facturation:facturerOr.erreur.titre')}
           description={messageErreur(requete.error, t)}
           onReessayer={() => void requete.refetch()}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
@@ -246,20 +250,17 @@ export function EcranFacturerOrdreReparation() {
 
   if (groupes.length === 0 && !bloque) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="texte-titre-section font-semibold text-foreground">
-          {t('facturation:facturerOr.titre')}
-        </h1>
+      <GabaritEcran titre={t('facturation:facturerOr.titre')}>
         <EtatVide
           titre={t('facturation:facturerOr.vide.titre')}
           description={t('facturation:facturerOr.vide.description')}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <GabaritEcran titre={t('facturation:facturerOr.titre')}>
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3">
         <div className="flex flex-wrap items-center gap-3">
           <span className="texte-corps font-semibold text-foreground">{or.numero}</span>
@@ -468,6 +469,6 @@ export function EcranFacturerOrdreReparation() {
         }}
         enCours={facturation.enCours}
       />
-    </div>
+    </GabaritEcran>
   );
 }

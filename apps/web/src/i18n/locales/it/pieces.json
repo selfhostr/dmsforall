@@ -8,17 +8,40 @@
       "titre": "Impossibile caricare le tue ubicazioni"
     }
   },
+  "emplacement": {
+    "rayonTiroir": "Scaffale {rayon}, cassetto {tiroir}",
+    "rayonSeul": "Scaffale {rayon}",
+    "tiroirSeul": "Cassetto {tiroir}",
+    "avecLibre": "{structure} — {emplacement}",
+    "modifier": "Modifica vano",
+    "aucun": "Nessun vano indicato",
+    "dialogue": {
+      "titre": "Vano di stoccaggio",
+      "description": "Scaffale e cassetto sono facoltativi — un complemento strutturato al testo libero già presente, che resta utilizzabile per i casi particolari.",
+      "rayon": "Scaffale",
+      "tiroir": "Cassetto",
+      "aide": "«B3», «b3» e «B 3» indicano lo stesso scaffale: maiuscole e spazi non contano.",
+      "libreActuel": "Testo libero attuale per questa ubicazione: {emplacement}",
+      "libreAucun": "Nessun testo libero indicato per questa ubicazione."
+    }
+  },
   "rechercheComptoir": {
     "titre": "Ricerca al banco",
     "aide": "Digitare un riferimento, una descrizione o un codice a barre.",
     "champRecherche": "Riferimento, descrizione, codice a barre…",
     "vide": {
-      "recherche": "Nessun articolo corrisponde a questa ricerca in questa ubicazione."
+      "recherche": {
+        "titre": "Nessun articolo trovato",
+        "description": "Nessun articolo corrisponde a questa ricerca in questa ubicazione."
+      },
+      "catalogue": {
+        "titre": "Nessun articolo a catalogo",
+        "description": "Nessun articolo attivo è registrato in questa ubicazione."
+      }
     },
     "resultat": {
       "disponible": "{n} disponibili",
-      "rupture": "Esaurito",
-      "emplacement": "Ubicazione {emplacement}"
+      "rupture": "Esaurito"
     },
     "erreur": {
       "titre": "La ricerca non è riuscita"
@@ -110,6 +133,20 @@
       },
       "erreur": {
         "titre": "Impossibile visualizzare gli articoli"
+      },
+      "vide": {
+        "recherche": {
+          "titre": "Nessun articolo trovato",
+          "description": "Nessun articolo corrisponde a questa ricerca."
+        },
+        "filtre": {
+          "titre": "Nessun articolo con questi filtri",
+          "description": "Nessun articolo corrisponde ai filtri selezionati."
+        },
+        "premierUsage": {
+          "titre": "Nessun articolo a catalogo",
+          "description": "Create il primo articolo per iniziare ad alimentare il magazzino."
+        }
       }
     },
     "fiche": {
@@ -216,7 +253,13 @@
         "champQuantiteComptee": "Quantità contata",
         "champForcer": "Forza nonostante la scorta insufficiente",
         "avertissementEcart": "Rilevata una differenza significativa rispetto alla scorta stimata — verificare il conteggio.",
-        "aucunEcart": "Il conteggio corrisponde alla scorta attuale: nessun movimento è stato creato."
+        "aucunEcart": "Il conteggio corrisponde alla scorta attuale: nessun movimento è stato creato.",
+        "apercuForcage": {
+          "chargement": "Verifica delle prenotazioni interessate da questa forzatura…",
+          "erreur": "Impossibile verificare le prenotazioni interessate da questa forzatura.",
+          "titre": "{count} {count, plural, one {prenotazione sarà liberata} other {prenotazioni saranno liberate}} da questa forzatura.",
+          "listeOrs": "Ordini di riparazione interessati: {numeros}."
+        }
       }
     },
     "reapprovisionnement": {
@@ -348,8 +391,10 @@
       "ecart": "Differenza rilevata — riferimento diverso"
     },
     "nouvelle": {
+      "titre": "Nuovo ordine fornitore",
       "aucuneLigne": "Aggiungere almeno una riga all'ordine.",
-      "choisirSiteDabord": "Scegliere prima un'ubicazione per cercare gli articoli."
+      "choisirSiteDabord": "Scegliere prima un'ubicazione per cercare gli articoli.",
+      "quantiteSuggereeReapprovisionnement": "Quantità proposta: la quantità mancante per tornare sopra la soglia di riordino. Correggila se il fornitore impone un lotto diverso."
     },
     "filtres": {
       "statutTous": "Tutti gli stati",
@@ -466,6 +511,121 @@
       "quantite": "Quantità",
       "motif": "Motivo del reso",
       "confirmer": "Registra il reso"
+    }
+  },
+  "facturesFournisseur": {
+    "titre": "Fatture fornitore",
+    "titreDepot": "Carica una fattura fornitore",
+    "sousTitreDepot": "Carica il PDF ricevuto dal fornitore: viene letto automaticamente e riconciliato con l'ordine corrispondente.",
+    "deposeeLe": "Caricata il {date}",
+    "sansNumero": "Fattura senza numero letto",
+    "vide": "Nessuna fattura fornitore caricata.",
+    "erreur": {
+      "titre": "Impossibile visualizzare le fatture fornitore"
+    },
+    "droitRequis": {
+      "lecture": "Non hai il diritto di consultare le fatture fornitore.",
+      "depot": "Non hai il diritto di caricare una fattura fornitore."
+    },
+    "filtres": {
+      "statutTous": "Tutti gli stati"
+    },
+    "colonnes": {
+      "fichier": "Fattura",
+      "fournisseur": "Fornitore",
+      "montant": "Importo",
+      "statut": "Stato",
+      "ecarts": "Scostamenti"
+    },
+    "statuts": {
+      "deposee": "Caricata",
+      "rapprochee": "Riconciliata",
+      "validee": "Confermata",
+      "rejetee": "Respinta"
+    },
+    "ecartsPresents": "Scostamenti da verificare",
+    "certitude": {
+      "certaine": "Letto (certo)",
+      "incertaine": "Da verificare",
+      "absente": "Non letto"
+    },
+    "natureEcart": {
+      "aucun": "Conforme",
+      "quantite": "Scostamento di quantità",
+      "prix_unitaire": "Scostamento di prezzo",
+      "quantite_et_prix": "Scostamento di quantità e prezzo",
+      "non_rapprochee": "Non riconciliata"
+    },
+    "depot": {
+      "consigneTitre": "Carica la fattura ricevuta dal fornitore",
+      "consigneDetail": "Solo file PDF, massimo 15 MB.",
+      "glisserDeposer": "Trascina qui il file",
+      "ou": "oppure",
+      "parcourir": "Scegli un file"
+    },
+    "analyse": {
+      "enCours": "Lettura della fattura in corso…"
+    },
+    "erreurs": {
+      "titre": "Il caricamento non è riuscito",
+      "fichierPasPdf": "Sono accettati solo file PDF.",
+      "fichierTropLourd": "Questo file supera la dimensione massima di 15 MB."
+    },
+    "rapprochement": {
+      "titre": "Risultato della lettura",
+      "fournisseurTrouveTitre": "Fornitore riconosciuto",
+      "fournisseurAbsentTitre": "Nessun fornitore riconosciuto",
+      "fournisseurAbsentDescription": "Il nome letto sulla fattura non corrisponde a nessun fornitore del tenant. Verificalo prima di confermare.",
+      "commandeTrouveeTitre": "Riconciliata con un ordine fornitore",
+      "commandeAbsenteTitre": "Nessun ordine corrispondente",
+      "commandeAbsenteDescription": "Questa fattura non ha potuto essere collegata a un ordine fornitore. Verificala manualmente prima di confermarla."
+    },
+    "enTete": {
+      "titre": "Dati letti sulla fattura",
+      "numeroFacture": "Numero di fattura",
+      "dateFacture": "Data fattura",
+      "fournisseur": "Nome del creditore (letto)",
+      "iban": "IBAN del creditore",
+      "referencePaiement": "Riferimento di pagamento",
+      "montantTotal": "Importo totale",
+      "devise": "Valuta"
+    },
+    "synthese": {
+      "titreAvecEcarts": "{count, plural, one {# riga presenta uno scostamento da verificare} other {# righe presentano uno scostamento da verificare}}",
+      "titreSansEcart": "Nessuno scostamento rilevato",
+      "detailMontant": "Scostamento totale: {montant}",
+      "detailSansMontant": "Le righe interessate non sono riconciliate con un ordine."
+    },
+    "lignes": {
+      "titre": "Righe",
+      "colonnes": {
+        "ecart": "Scostamento",
+        "designation": "Descrizione",
+        "quantite": "Quantità",
+        "prixUnitaire": "Prezzo unitario",
+        "total": "Totale"
+      },
+      "commande": "ordinato: {valeur}",
+      "ecartValeur": "scostamento {unites}",
+      "vide": "Nessuna riga letta su questa fattura."
+    },
+    "validation": {
+      "dejaValidee": "Fattura confermata il {date}.",
+      "dejaRejetee": "Fattura respinta.",
+      "succesTitre": "Fattura confermata",
+      "succesTitreRejet": "Fattura respinta"
+    },
+    "rejet": {
+      "titre": "Respingi la fattura",
+      "description": "Il documento resta conservato e consultabile. Indica perché questa fattura viene respinta."
+    },
+    "actions": {
+      "deposer": "Carica una fattura",
+      "voirDocument": "Visualizza il documento",
+      "valider": "Conferma la riconciliazione",
+      "rejeter": "Respingi",
+      "deposerUneAutre": "Carica un'altra fattura",
+      "consulter": "Consulta"
     }
   }
 }

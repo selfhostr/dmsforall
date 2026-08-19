@@ -1,121 +1,148 @@
 import type { UseQueryResult } from '@tanstack/react-query';
+import { ArrowLeft } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { ReponseLigneOr, ReponseOrdreReparation } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { type Densite } from '@/components/ui/table';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
-import { lignesAssigneesPointables } from '@/hooks/pointage/lignes-assignees';
+import { lignesPointables } from '@/hooks/pointage/lignes-assignees';
 
 interface Props {
-  readonly ouvert: boolean;
   readonly onFermer: () => void;
   readonly technicienId: string;
   readonly requeteOr: UseQueryResult<ReponseOrdreReparation>;
   readonly onChoisirLigne: (or: ReponseOrdreReparation, ligne: ReponseLigneOr) => void;
   readonly onChoisirOrEntier: (or: ReponseOrdreReparation) => void;
   readonly enDemarrage: boolean;
-  /** Repli `'dense'`, identique au reste du produit — voir la note sur `DialogContent` ci-dessous
-   *  pour pourquoi ce dialogue ne peut PAS se contenter d'hériter de son appelant. */
-  readonly densite?: Densite;
 }
 
 /**
- * « Que pointez-vous ? » — s'ouvre quand le technicien tape un OR dans « Mes OR du jour ».
- * Liste UNIQUEMENT les lignes qui LUI sont assignées (`ligne.technicienId === technicienId`) et
- * encore pointables, plus un bouton « OR entier » toujours disponible (RM-87, nature
+ * « Que pointez-vous ? » — vue PLEIN ÉCRAN (plus une modale, voir ci-dessous), atteinte quand le
+ * technicien tape un OR dans « Mes OR du jour » / « Toutes les OR ouvertes ». Liste TOUTES les
+ * lignes pointables de l'OR (`lignesPointables`, filtrage par STATUT seul — jamais `refusee`/
+ * `annulee`/`facturee`), plus un bouton « OR entier » toujours disponible (RM-87, nature
  * `productif_or` — un OR ne porte pas forcément une répartition par ligne).
  *
- * Partagé par DEUX appelants à densités différentes : `EcranBornePointage` (très aérée) et
- * `EcranPointageTechnicien` (repli dense, poste de travail, inchangé). `DialogContent` rend via
- * `DialogPortal` (Radix) — un portail vers `document.body`, donc HORS de la sous-arborescence DOM
- * de l'écran appelant. Les variables `--densite-*`/`--texte-*` posées par la classe `densite-*` de
- * l'écran (héritage CSS par ancêtre DOM) n'atteignent JAMAIS ce contenu : mesuré en Playwright,
- * sans ce prop le dialogue retombait systématiquement sur les valeurs `dense` (titre 16px) même
- * ouvert depuis la borne en `densite-tres-aeree`. D'où ce prop explicite, posé ICI sur
- * `DialogContent`, plutôt qu'une hypothèse d'héritage qui ne tient pas pour du contenu porté.
+ * ARBITRAGE @laupernoe (14.08.2026, NE PAS ROUVRIR — voir `hooks/pointage/lignes-assignees.ts`) : un
+ * technicien peut pointer une ligne sans y être assigné (l'apprenti qui prête main-forte au
+ * compagnon, par ex.). Ce composant n'appelle donc PLUS `lignesAssigneesPointables` (qui filtrait
+ * par `technicienId`) : `technicienId` ne sert plus ici qu'à annoter, à titre d'INFORMATION, les
+ * lignes assignées à un AUTRE technicien (`assigneeAutre` ci-dessous) — jamais à les cacher.
+ *
+ * VUE PLEIN ÉCRAN, PLUS UNE MODALE (correctif ergonomique) : sur une borne d'atelier, mains
+ * gantées, le tap accidentel sur le fond assombri d'une modale Radix fermait ce dialogue par
+ * erreur. Ce composant remplace désormais ENTIÈREMENT l'écran appelant le temps du choix (même
+ * patron que les autres bascules d'état d'`EcranPointageTechnicien`/`EcranBornePointage` — « un
+ * seul état affiché à la fois »), avec un bouton « Retour » explicite plutôt qu'un clic hors-cible.
+ * Se rendant désormais DANS l'arborescence DOM réelle de l'écran appelant (plus de portail Radix
+ * hors sous-arborescence), il hérite normalement des variables `--densite-*`/`--texte-*` posées par
+ * la classe `.densite-*` ambiante — le prop `densite` explicite qu'exigeait l'ancienne version
+ * (portail vers `document.body`, hors sous-arborescence) n'a donc plus lieu d'être.
+ *
+ * PAS DE `h1` ICI (chantier « titres doublés », 17.08.2026) : ce composant est monté par
+ * `EcranPointageTechnicien`/`EcranBornePointage` comme un ÉTAT de leur écran routé, pas comme un
+ * écran séparé — le titre « Que pointez-vous ? » est désormais porté par le `GabaritEcran` de
+ * l'appelant (un seul niveau 1 par état d'écran). Le bouton « Retour » ci-dessous reste ici, colocalisé
+ * avec la gestion de focus qu'il porte (`boutonRetourRef`).
  */
 export function DialogueChoixCiblePointage({
-  ouvert,
   onFermer,
   technicienId,
   requeteOr,
   onChoisirLigne,
   onChoisirOrEntier,
   enDemarrage,
-  densite = 'dense',
 }: Props) {
   const { t } = useTranslation(['pointage', 'commun']);
+  const boutonRetourRef = useRef<HTMLButtonElement>(null);
 
-  const lignesAssignees = requeteOr.data
-    ? lignesAssigneesPointables(requeteOr.data, technicienId)
-    : [];
+  // Foyer explicite sur « Retour » à l'entrée de cette vue plein écran — même doctrine
+  // d'accessibilité qu'un changement de route : l'utilisateur (clavier/lecteur d'écran) doit
+  // atterrir quelque part de connu, jamais laissé sur un focus perdu dans le DOM précédent.
+  useEffect(() => {
+    boutonRetourRef.current?.focus();
+  }, []);
+
+  const lignes = requeteOr.data ? lignesPointables(requeteOr.data) : [];
 
   return (
-    <Dialog open={ouvert} onOpenChange={(valeur) => !valeur && onFermer()}>
-      <DialogContent className={`densite-${densite} sm:max-w-lg`}>
-        <DialogHeader>
-          <DialogTitle>{t('pointage:technicien.choisirCible.titre')}</DialogTitle>
-        </DialogHeader>
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center gap-3">
+        <Button
+          ref={boutonRetourRef}
+          type="button"
+          variant="ghost"
+          size="lg"
+          className="min-h-[72px] gap-2 px-3"
+          onClick={onFermer}
+        >
+          <ArrowLeft aria-hidden="true" className="h-5 w-5" />
+          {t('pointage:technicien.choisirCible.retour')}
+        </Button>
+      </div>
 
-        {requeteOr.isPending ? <EtatChargement lignes={3} /> : null}
+      {requeteOr.isPending ? <EtatChargement lignes={3} /> : null}
 
-        {requeteOr.isError ? (
-          <EtatErreur
-            titre={t('pointage:technicien.erreur.titre')}
-            description={messageErreur(requeteOr.error, t)}
-            onReessayer={() => void requeteOr.refetch()}
-          />
-        ) : null}
+      {requeteOr.isError ? (
+        <EtatErreur
+          titre={t('pointage:technicien.erreur.titre')}
+          description={messageErreur(requeteOr.error, t)}
+          onReessayer={() => void requeteOr.refetch()}
+        />
+      ) : null}
 
-        {requeteOr.data ? (
-          <div className="flex flex-col gap-4">
-            <p className="texte-corps text-muted-foreground">
-              {t('pointage:technicien.choisirCible.description')}
-            </p>
+      {requeteOr.data ? (
+        <div className="flex flex-col gap-4">
+          <p className="texte-corps text-muted-foreground">
+            {t('pointage:technicien.choisirCible.description')}
+          </p>
 
-            <Button
-              size="lg"
-              variant="secondary"
-              className="h-auto min-h-14 w-full justify-start whitespace-normal break-words text-base"
-              disabled={enDemarrage}
-              onClick={() => onChoisirOrEntier(requeteOr.data)}
-            >
-              {t('pointage:technicien.boutons.demarrerOr')}
-            </Button>
+          <Button
+            size="lg"
+            variant="secondary"
+            className="h-auto min-h-[72px] w-full justify-start whitespace-normal break-words text-base"
+            disabled={enDemarrage}
+            onClick={() => onChoisirOrEntier(requeteOr.data)}
+          >
+            {t('pointage:technicien.boutons.demarrerOr')}
+          </Button>
 
-            <div className="flex flex-col gap-2">
-              <h3 className="texte-titre-section">
-                {t('pointage:technicien.choisirCible.lignesTitre')}
-              </h3>
-              {lignesAssignees.length === 0 ? (
-                <p className="texte-libelle text-muted-foreground">
-                  {t('pointage:technicien.choisirCible.aucuneLigne')}
-                </p>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {lignesAssignees.map((ligne) => (
-                    <Button
-                      key={ligne.id}
-                      size="lg"
-                      variant="outline"
-                      className="h-auto min-h-14 w-full justify-start whitespace-normal break-words text-left text-base"
-                      disabled={enDemarrage}
-                      onClick={() => onChoisirLigne(requeteOr.data, ligne)}
-                    >
-                      {ligne.designation}
-                    </Button>
-                  ))}
-                </div>
-              )}
-            </div>
+          <div className="flex flex-col gap-2">
+            <h2 className="texte-titre-section">
+              {t('pointage:technicien.choisirCible.lignesTitre')}
+            </h2>
+            {lignes.length === 0 ? (
+              <p className="texte-libelle text-muted-foreground">
+                {t('pointage:technicien.choisirCible.aucuneLigne')}
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {lignes.map((ligne) => (
+                  <Button
+                    key={ligne.id}
+                    size="lg"
+                    variant="outline"
+                    className="h-auto min-h-[72px] w-full flex-col items-start justify-center whitespace-normal break-words text-left text-base"
+                    disabled={enDemarrage}
+                    onClick={() => onChoisirLigne(requeteOr.data, ligne)}
+                  >
+                    <span>{ligne.designation}</span>
+                    {ligne.technicienId && ligne.technicienId !== technicienId ? (
+                      <span className="texte-libelle font-normal text-muted-foreground">
+                        {t('pointage:technicien.choisirCible.assigneeAutre')}
+                      </span>
+                    ) : null}
+                  </Button>
+                ))}
+              </div>
+            )}
           </div>
-        ) : null}
-      </DialogContent>
-    </Dialog>
+        </div>
+      ) : null}
+    </div>
   );
 }

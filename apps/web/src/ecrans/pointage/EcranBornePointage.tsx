@@ -21,15 +21,22 @@ import { EtatVide } from '@/composants/commun/EtatVide';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { useOrdreReparation } from '@/hooks/atelier/useOrdreReparation';
+import {
+  calculerCumulSecondesCible,
+  cibleCumulDepuisPointage,
+  useCumulsPointagesJour,
+} from '@/hooks/pointage/cumul-cible-jour';
 import { compterLignesAssigneesPointables } from '@/hooks/pointage/lignes-assignees';
 import { useArreterPointage } from '@/hooks/pointage/useArreterPointage';
 import { useDemarrerPointage } from '@/hooks/pointage/useDemarrerPointage';
+import { useDerniereCiblePointage } from '@/hooks/pointage/useDerniereCiblePointage';
 import { useIdentificationPin } from '@/hooks/pointage/useIdentificationPin';
 import { useMesOrdresAssignes } from '@/hooks/pointage/useMesOrdresAssignes';
 import { usePointageOuvertTechnicien } from '@/hooks/pointage/usePointageOuvertTechnicien';
 import { useSession } from '@/hooks/useSession';
 import { genererUuid } from '@/lib/uuid';
 
+import { BandeauReprisePointage } from './BandeauReprisePointage';
 import { CartePointageEnCours } from './CartePointageEnCours';
 import { DialogueChoixCiblePointage } from './DialogueChoixCiblePointage';
 import { libelleActiviteIndirecte, libelleCiblePointage } from './libelles';
@@ -169,10 +176,39 @@ function construireEntreeDemarrageBorne(
  * garage qui choisit le mode borne y navigue directement (lien de menu ou favori sur la tablette
  * murale). Signalé au coordinateur : si le paramètre de site est ajouté plus tard côté API, cet
  * écran devra probablement devenir la destination conditionnelle d'une redirection automatique.
+ *
+ * SITE DE LA BORNE — DÉCISION @laupernoe du 14.08.2026, NE PAS ROUVRIR : le site vient désormais
+ * EXCLUSIVEMENT de `ReponseIdentificationPin.siteId` (résolu par le serveur depuis
+ * `pin_pointage.site_id`, jamais d'un paramètre de requête) — plus de `session.sites[0]?.id`, plus
+ * aucun sélecteur possible sur cet écran. Conséquence directe : le site n'est connu qu'APRÈS une
+ * identification réussie, jamais avant — le pavé de saisie du PIN, lui, ne dépend JAMAIS du site
+ * (voir le rendu plus bas, aucune garde de site avant `identifie`). Un technicien qui tape son code
+ * n'a donc plus jamais à choisir son site : la borne le déduit du PIN, une fois pour toutes.
+ *
+ * MÉMOIRE DE LA CIBLE DE REPRISE (P-34, 14.08.2026) : comme `EcranPointageTechnicien`, la cible du
+ * bandeau/bouton « Reprendre » vient de `GET /pointages/dernier-du-jour`
+ * (`useDerniereCiblePointage`, `pourAutrui: true` ICI — la borne identifie un AUTRE technicien que
+ * le compte de service de sa propre session, voir l'en-tête du contrat, § « technicienId en QUERY,
+ * OPTIONNEL »). C'est précisément le scénario qui rendait l'ancienne mémoire LOCALE inutilisable en
+ * mode borne (chaque identification PIN rechargeait l'écran, voir
+ * `docs/proposition-refonte-pointage.md` §1.4) : la reprise fonctionne maintenant ICI AUSSI, plus
+ * seulement sur l'écran personnel — bénéfice direct de la bascule serveur, pas une extension
+ * d'ergonomie décidée par ce fichier.
+ *
+ * PAS DE `GabaritEcran` ICI (chantier « titres doublés », 17.08.2026, décision MESURÉE — voir
+ * `AppShell.tsx` : `poste_atelier`, le compte réel de cet écran, n'a NI barre latérale NI onglets
+ * — seul `EnTete` reste ; `chef_atelier`/`admin`, qui y accèdent en mise en service, VOIENT la
+ * rangée d'onglets/vues, mais aucun de ces titres — « Qui êtes-vous ? », « Bonjour {prénom} », « Que
+ * pointez-vous ? » — ne recoupe jamais « Pointage »/« Borne d'atelier » : la détection automatique
+ * du gabarit ne masquerait donc RIEN ici, le h1 resterait visible dans tous les cas. La composition
+ * plein écran centrée (pavé tactile mural, gants, lu à distance) est en outre incompatible avec la
+ * rangée titre+actions imposée par `GabaritEcran` — signalé au coordinateur, pas retenu comme
+ * périmètre de ce chantier. Les trois `h1` ci-dessous restent donc posés à la main, mais
+ * COHÉRENTS entre eux (toujours visibles, jamais `sr-only` au chargement puis visibles ensuite).
  */
 export function EcranBornePointage() {
   const { t } = useTranslation(['pointage', 'commun']);
-  const { data: session, isPending: sessionEnAttente, isError: sessionEnErreur } = useSession();
+  const { isPending: sessionEnAttente, isError: sessionEnErreur, data: session } = useSession();
 
   const [code, setCode] = useState('');
   const [erreur, setErreur] = useState<EtatErreurIdentification | undefined>(undefined);
@@ -191,11 +227,21 @@ export function EcranBornePointage() {
 
   const identification = useIdentificationPin();
   const technicienId = identifie?.technicienId;
-  const siteId = session?.sites[0]?.id;
+  // Site de la borne = site RÉSOLU PAR LE PIN (décision 14.08.2026, voir la docstring de tête) —
+  // `undefined` tant que personne n'est identifié, TOUJOURS défini une fois `identifie` posé
+  // (`ReponseIdentificationPin.siteId` est un champ requis du contrat, jamais `null`/absent).
+  const siteId = identifie?.siteId;
 
   const pointageOuvert = usePointageOuvertTechnicien(technicienId);
   const mesOrdres = useMesOrdresAssignes(technicienId);
   const requeteOrSelectionne = useOrdreReparation(orSelectionneId);
+  // Point 6 (« deux nombres ») — même mécanique qu'`EcranPointageTechnicien` : voir l'en-tête de
+  // `cumul-cible-jour.ts`. Couvre le cumul du SEGMENT COURANT (`cumulSegmentCourant` plus bas),
+  // jamais celui de la cible de REPRISE — `useDerniereCiblePointage` rend directement le sien.
+  const cumulsJour = useCumulsPointagesJour(technicienId);
+  // Mémoire de reprise SERVEUR (P-34) — `pourAutrui: true` : cet écran identifie un AUTRE
+  // technicien que le compte de service de sa propre session (voir la docstring de tête).
+  const derniereCible = useDerniereCiblePointage(technicienId, { pourAutrui: true });
 
   const demarrer = useDemarrerPointage();
   const arreter = useArreterPointage();
@@ -212,9 +258,9 @@ export function EcranBornePointage() {
     setErreurAction(undefined);
     setAvertissementAction(undefined);
     // Borne PARTAGÉE : un « Changer » ou une recherche élargie laissés ouverts par le technicien
-    // précédent ne doivent JAMAIS survivre au changement d'identité (même principe que
-    // `dernierCible` sur `EcranPointageTechnicien`, qui n'existe d'ailleurs pas ici pour cette
-    // raison — voir sa docstring, § « Pas de Reprendre sur la borne »).
+    // précédent ne doivent JAMAIS survivre au changement d'identité. La mémoire de reprise, elle,
+    // n'a RIEN à réinitialiser ici : elle vient du serveur (`useDerniereCiblePointage`), scopée par
+    // `technicienId` — une nouvelle identification change la clé de cache, jamais son contenu.
     setChangementCibleOuvert(false);
     setToutesOrOuvertesManuel(undefined);
     setCode('');
@@ -445,7 +491,63 @@ export function EcranBornePointage() {
     }
   }
 
+  async function handleReprendre() {
+    const cible = derniereCible.data;
+    if (!pointageOuvert.data || !technicienId || !cible) return;
+    reinitialiserInactivite();
+    setErreurAction(undefined);
+    setEnChainage(true);
+    const p = pointageOuvert.data;
+    try {
+      await arreter.mutateAsync({
+        id: p.id,
+        technicienId,
+        siteId: p.siteId,
+        entree: { finLe: new Date().toISOString() },
+        idempotencyKey: genererCleIdempotence(),
+      });
+      // Même repli défensif qu'`EcranPointageTechnicien.handleReprendre` : `cible.ligneOrId` n'est
+      // garanti non nul pour `type === 'ligne'` que PAR LE CONTRAT, pas par le compilateur.
+      if (cible.type === 'ligne' && cible.ligneOrId) {
+        await demarrerEtSuivre({
+          nature: 'productif_ligne',
+          ordreReparationId: cible.ordreReparationId,
+          ligneOrId: cible.ligneOrId,
+          siteId: cible.siteId,
+        });
+      } else {
+        await demarrerEtSuivre({
+          nature: 'productif_or',
+          ordreReparationId: cible.ordreReparationId,
+          siteId: cible.siteId,
+        });
+      }
+    } catch (erreurCapturee) {
+      setErreurAction(messageErreur(erreurCapturee, t));
+    } finally {
+      setEnChainage(false);
+    }
+  }
+
   const enTraitement = demarrer.isPending || arreter.isPending || enChainage;
+
+  // Point 6 (« deux nombres ») : cumul du jour sur la cible du pointage OUVERT, même calcul
+  // qu'`EcranPointageTechnicien` — voir l'en-tête de `cumul-cible-jour.ts`. Ne couvre pas le cumul
+  // de la cible de REPRISE, rendu directement par `useDerniereCiblePointage` (`cumulSecondesDuJour`).
+  const cibleSegmentCourant = pointageOuvert.data
+    ? cibleCumulDepuisPointage(pointageOuvert.data)
+    : undefined;
+  const cumulSegmentCourant =
+    cibleSegmentCourant && cumulsJour.pointages
+      ? calculerCumulSecondesCible(cumulsJour.pointages, cibleSegmentCourant)
+      : undefined;
+
+  // Bandeau/bouton de reprise (P-34) — même condition qu'`EcranPointageTechnicien` : activité
+  // INDIRECTE en cours ET cible productive connue du serveur. `cible` reste `undefined` tant que
+  // la requête n'a pas abouti ou si elle échoue -> pas de bandeau prématuré, jamais d'erreur
+  // affichée pour ce complément non bloquant (voir la docstring d'`useDerniereCiblePointage`).
+  const cibleReprise = derniereCible.data;
+  const reprisePossible = pointageOuvert.data?.nature === 'indirect' && Boolean(cibleReprise);
 
   /* ---------------------------------------------------------------------------------------- */
   /* Rendu                                                                                      */
@@ -454,7 +556,10 @@ export function EcranBornePointage() {
   if (sessionEnAttente) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('pointage:identification.titre')}</h1>
+        {/* Visible, PAS `sr-only` (chantier « titres doublés ») : cohérent avec les autres états
+         *  de cet écran (pavé neutre, panneau identifié) — l'en-tête ne doit jamais sauter entre
+         *  deux états, voir la docstring de tête, § « pas de GabaritEcran ici ». */}
+        <h1 className="texte-titre-page">{t('pointage:identification.titre')}</h1>
         <EtatChargement lignes={4} />
       </div>
     );
@@ -462,25 +567,21 @@ export function EcranBornePointage() {
 
   if (sessionEnErreur || !session) {
     return (
-      <EtatErreur
-        titre={t('pointage:identification.erreur.titre')}
-        description={t('pointage:identification.erreur.session')}
-      />
+      <div className="flex flex-col gap-6">
+        <h1 className="texte-titre-page">{t('pointage:identification.titre')}</h1>
+        <EtatErreur
+          titre={t('pointage:identification.erreur.titre')}
+          description={t('pointage:identification.erreur.session')}
+        />
+      </div>
     );
   }
 
-  if (!siteId) {
-    // Un compte `poste_atelier` est TOUJOURS scopé à exactement un site (contrainte SQL
-    // `utilisateur_site_compte_de_service_chk`, voir `pin.controller.ts`) — cette branche ne
-    // devrait jamais s'atteindre en usage normal ; état vide honnête plutôt qu'un écran cassé si
-    // un compte de service est un jour mal configuré.
-    return (
-      <EtatVide
-        titre={t('pointage:identification.erreur.titre')}
-        description={t('pointage:siteRequis.description')}
-      />
-    );
-  }
+  // PLUS DE GARDE `!siteId` ICI (décision 14.08.2026, voir la docstring de tête) : le site vient
+  // désormais de l'identification PIN, pas de la session — il n'est simplement pas encore connu
+  // avant `identifie`, ce qui n'empêche jamais le pavé de saisie de s'afficher (branche `!identifie`
+  // du rendu plus bas). Le seul cas où `identifie` serait posé sans `siteId` violerait le contrat
+  // `ReponseIdentificationPin` (champ requis) — pas un état à défendre côté écran.
 
   // Correctif #148 : même repli automatique qu'`EcranPointageTechnicien` — voir sa déclaration de
   // `toutesOrOuvertesManuel` pour le détail du tri-état.
@@ -520,7 +621,7 @@ export function EcranBornePointage() {
                     reinitialiserInactivite();
                     setOrSelectionneId(or.id);
                   }}
-                  className="flex min-h-[64px] flex-col items-start gap-1 rounded-lg border p-4 text-left transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex min-h-[72px] flex-col items-start gap-1 rounded-lg border p-4 text-left transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="flex flex-col gap-1">
                     <span className="font-medium">{or.numero}</span>
@@ -545,7 +646,8 @@ export function EcranBornePointage() {
           <Button
             type="button"
             variant="ghost"
-            size="sm"
+            size="lg"
+            className="min-h-[72px]"
             onClick={() => {
               reinitialiserInactivite();
               setToutesOrOuvertesManuel(!toutesOrOuvertesVisible);
@@ -581,7 +683,7 @@ export function EcranBornePointage() {
                 key={activite}
                 size="lg"
                 variant="outline"
-                className="h-16 text-base"
+                className="min-h-[72px] text-base"
                 disabled={enTraitement}
                 onClick={() => handleDemarrerActiviteIndirecte(activite)}
               >
@@ -601,10 +703,9 @@ export function EcranBornePointage() {
       // assise devant un clavier. Les autres écrans du domaine (`EcranPointage` — journal/équipe,
       // `DialogueCloturePeriode`) restent sur le repli `densite-dense` : poste de travail, chef
       // d'atelier assis. Cascade par variables CSS custom properties sur toute la sous-arborescence
-      // en DOM réel (`PaveNumerique`, `CartePointageEnCours`) — aucune classe dupliquée côté
-      // enfants. EXCEPTION mesurée : `DialogueChoixCiblePointage` rend via un portail Radix (hors
-      // de cette sous-arborescence DOM) et reçoit donc `densite="tres-aeree"` explicitement plus
-      // bas, voir sa docstring.
+      // en DOM réel (`PaveNumerique`, `CartePointageEnCours`, et depuis la refonte plein écran
+      // `DialogueChoixCiblePointage` — qui n'utilise plus de portail Radix, voir sa docstring) —
+      // aucune classe dupliquée côté enfants.
       className="densite-tres-aeree flex min-h-[70vh] flex-col items-center justify-center gap-8"
       onPointerDown={identifie ? reinitialiserInactivite : undefined}
     >
@@ -647,6 +748,25 @@ export function EcranBornePointage() {
             onValider={validerManuel}
           />
         </div>
+      ) : orSelectionneId ? (
+        // Vue plein écran « Que pointez-vous ? » (point 3) : remplace ENTIÈREMENT le panneau du
+        // technicien identifié, même patron que `EcranPointageTechnicien` — voir la docstring de
+        // `DialogueChoixCiblePointage`. Rendue DANS cette sous-arborescence (ancêtre
+        // `.densite-tres-aeree` juste au-dessus), plus de portail Radix à contourner : le prop
+        // `densite` explicite qu'exigeait l'ancienne modale n'a donc plus lieu d'être.
+        // `DialogueChoixCiblePointage` ne pose plus son propre `h1` (chantier « titres doublés ») —
+        // porté ici, comme chez `EcranPointageTechnicien`.
+        <div className="flex w-full max-w-2xl flex-col gap-6">
+          <h1 className="texte-titre-page">{t('pointage:technicien.choisirCible.titre')}</h1>
+          <DialogueChoixCiblePointage
+            onFermer={() => setOrSelectionneId(undefined)}
+            technicienId={technicienId as string}
+            requeteOr={requeteOrSelectionne}
+            onChoisirLigne={handleChoisirLigne}
+            onChoisirOrEntier={handleChoisirOrEntier}
+            enDemarrage={demarrer.isPending}
+          />
+        </div>
       ) : (
         <div className="flex w-full max-w-2xl flex-col gap-6">
           <div className="flex items-center justify-between gap-4">
@@ -657,7 +777,7 @@ export function EcranBornePointage() {
               type="button"
               variant="outline"
               size="lg"
-              className="h-14 text-base"
+              className="min-h-[72px] text-base"
               onClick={revenirEcranNeutre}
             >
               {t('pointage:identification.terminer')}
@@ -676,10 +796,21 @@ export function EcranBornePointage() {
 
           {!pointageOuvert.isPending && !pointageOuvert.isError ? (
             <>
+              {reprisePossible && pointageOuvert.data && cibleReprise ? (
+                <BandeauReprisePointage
+                  cibleLibelle={cibleReprise.libelle}
+                  interrompuDepuisLe={pointageOuvert.data.debutLe}
+                  cumulAujourdhuiSecondes={cibleReprise.cumulSecondesDuJour}
+                  onReprendre={() => void handleReprendre()}
+                  enTraitement={enTraitement}
+                />
+              ) : null}
+
               {pointageOuvert.data ? (
                 <CartePointageEnCours
                   pointage={pointageOuvert.data}
                   libelleCible={libelleCiblePointage(pointageOuvert.data, t)}
+                  cumulAujourdhuiSecondes={cumulSegmentCourant}
                   onArreter={() => void handleArreter()}
                   onPause={
                     pointageOuvert.data.nature === 'productif_ligne' ||
@@ -687,11 +818,11 @@ export function EcranBornePointage() {
                       ? () => void handlePause()
                       : undefined
                   }
-                  // Pas de « Reprendre » sur la borne : à la différence de `EcranPointageTechnicien`
-                  // (mémoire de la dernière cible pendant la vie de l'onglet), une borne est
-                  // PARTAGÉE — ne rien retenir d'une identité à l'autre est le comportement honnête,
-                  // même dégradation assumée que le F5 sur l'écran personnel.
-                  onReprendre={undefined}
+                  // « Reprendre » sur la borne (P-34, 14.08.2026) : désormais possible — la mémoire
+                  // de reprise vient du serveur (`useDerniereCiblePointage`, scopée par
+                  // `technicienId`), elle survit donc à un changement d'identité PIN. Voir la
+                  // docstring de tête, § « Mémoire de la cible de reprise ».
+                  onReprendre={reprisePossible ? () => void handleReprendre() : undefined}
                   onChanger={() => {
                     reinitialiserInactivite();
                     setChangementCibleOuvert((valeur) => !valeur);
@@ -724,17 +855,6 @@ export function EcranBornePointage() {
               ) : null}
             </>
           ) : null}
-
-          <DialogueChoixCiblePointage
-            ouvert={Boolean(orSelectionneId)}
-            onFermer={() => setOrSelectionneId(undefined)}
-            technicienId={technicienId as string}
-            requeteOr={requeteOrSelectionne}
-            onChoisirLigne={handleChoisirLigne}
-            onChoisirOrEntier={handleChoisirOrEntier}
-            enDemarrage={demarrer.isPending}
-            densite="tres-aeree"
-          />
         </div>
       )}
     </div>

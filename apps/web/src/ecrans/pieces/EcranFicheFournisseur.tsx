@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useFournisseur } from '@/hooks/pieces/useFournisseur';
 import {
   useDesactiverFournisseur,
@@ -19,6 +20,7 @@ import { useSession } from '@/hooks/useSession';
 
 import { peutEcrireFournisseur, peutLireFournisseur } from './droits';
 import { FormulaireFournisseur } from './FormulaireFournisseur';
+import { messageErreurMutation } from './messages-erreur-mutation';
 import { texteOuVide } from './utils';
 
 type Confirmation = 'desactiver' | 'reactiver' | null;
@@ -56,49 +58,48 @@ export function EcranFicheFournisseur() {
 
   if (session.isLoading) {
     return (
-      <div className="flex flex-col gap-6 p-6">
-        <h1 className="sr-only">{t('pieces:fournisseurs.titre')}</h1>
+      <GabaritEcran titre={t('pieces:fournisseurs.titre')}>
         <EtatChargement lignes={6} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (!peutLire) {
     return (
-      <div className="flex flex-col gap-6 p-6">
-        <h1 className="sr-only">{t('pieces:fournisseurs.titre')}</h1>
+      <GabaritEcran titre={t('pieces:fournisseurs.titre')}>
         <p className="texte-corps text-muted-foreground">
           {t('pieces:fournisseurs.fiche.droitRequis')}
         </p>
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (requeteFournisseur.isPending) {
     return (
-      <div className="flex flex-col gap-6 p-6">
-        <h1 className="sr-only">{t('pieces:fournisseurs.titre')}</h1>
+      <GabaritEcran titre={t('pieces:fournisseurs.titre')}>
         <EtatChargement lignes={6} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (requeteFournisseur.isError) {
     return (
-      <div className="flex flex-col gap-6 p-6">
-        <h1 className="sr-only">{t('pieces:fournisseurs.titre')}</h1>
+      <GabaritEcran titre={t('pieces:fournisseurs.titre')}>
         <EtatErreur
           titre={t('pieces:fournisseurs.fiche.erreur.titre')}
           description={messageErreur(requeteFournisseur.error, t)}
           onReessayer={() => void requeteFournisseur.refetch()}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
   const fournisseur = requeteFournisseur.data;
   const peutEcrire = peutEcrireFournisseur(role);
 
+  // Ferme la modale seulement sur succès (issue #63, correctif de cause racine) : un échec la
+  // laisse ouverte, `AvertissementConfirmable` affiche `erreurTransition` DANS la modale via sa
+  // prop `messageErreur` plutôt que dans l'écran, sous l'overlay où il restait invisible.
   function confirmer() {
     if (confirmation === 'desactiver') {
       desactiver.mutate(undefined, { onSuccess: () => setConfirmation(null) });
@@ -110,10 +111,12 @@ export function EcranFicheFournisseur() {
   const enCoursTransition = desactiver.isPending || reactiver.isPending;
   const erreurTransition = desactiver.error ?? reactiver.error;
 
+  // Titre MASQUÉ automatiquement — « Fournisseurs » (titre générique de la fiche, identité RÉELLE
+  // portée par le `<h2>` visible ci-dessous, `fournisseur.nom`) est un doublon de la vue active
+  // « Fournisseurs » : `GabaritEcran` le détecte lui-même. Un seul `<h1>` par page (accessibilité) —
+  // jamais deux niveaux 1 en compétition avec `fournisseur.nom`.
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <h1 className="sr-only">{t('pieces:fournisseurs.titre')}</h1>
-
+    <GabaritEcran titre={t('pieces:fournisseurs.titre')}>
       <div className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-2">
@@ -162,12 +165,6 @@ export function EcranFicheFournisseur() {
         ) : null}
       </div>
 
-      {erreurTransition ? (
-        <p className="texte-libelle text-destructive" role="alert">
-          {messageErreur(erreurTransition, t)}
-        </p>
-      ) : null}
-
       {peutEcrire ? (
         <FormulaireFournisseur
           ouvert={formulaireOuvert}
@@ -188,7 +185,8 @@ export function EcranFicheFournisseur() {
         libelleConfirmation={confirmation ? t(`pieces:fournisseurs.actions.${confirmation}`) : ''}
         onConfirmer={confirmer}
         enCours={enCoursTransition}
+        messageErreur={erreurTransition ? messageErreurMutation(erreurTransition, t) : null}
       />
-    </div>
+    </GabaritEcran>
   );
 }

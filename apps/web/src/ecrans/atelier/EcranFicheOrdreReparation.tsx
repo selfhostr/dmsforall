@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useOrdreReparation } from '@/hooks/atelier/useOrdreReparation';
 import { listerDocumentsVente } from '@/hooks/facturation/documents-vente.api';
 import { useSession } from '@/hooks/useSession';
@@ -76,25 +77,31 @@ export function EcranFicheOrdreReparation() {
     enabled: requete.data?.id !== undefined,
   });
 
+  // `titreVisible={false}` FORCÉ (contredit la détection automatique, qui laisserait ce h1
+  // visible : « Ordre de réparation » ne recoupe aucun libellé de navigation). Mesuré : ce n'est
+  // pas l'onglet qui fait doublon ici mais le CONTENU — `EnTeteOrdreReparation` affiche déjà,
+  // juste sous ce même en-tête, le numéro de l'OR en gros caractères (`texte-titre-section`,
+  // `or.numero`) accompagné du badge de statut. Rendre ce h1 visible empilerait un second titre
+  // générique au-dessus d'une identité déjà affichée — même défaut, à l'intérieur de l'écran
+  // plutôt qu'entre l'écran et l'onglet. Comportement inchangé (déjà `sr-only` avant ce chantier),
+  // désormais uniforme sur les trois états (chargement/erreur/contenu) via le gabarit commun.
   if (requete.isPending) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('or:titre')}</h1>
+      <GabaritEcran titre={t('or:titre')} titreVisible={false}>
         <EtatChargement lignes={8} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (requete.isError) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('or:titre')}</h1>
+      <GabaritEcran titre={t('or:titre')} titreVisible={false}>
         <EtatErreur
           titre={t('or:fiche.erreur.titre')}
           description={messageErreur(requete.error, t)}
           onReessayer={() => void requete.refetch()}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
@@ -127,9 +134,7 @@ export function EcranFicheOrdreReparation() {
   const documentsLies = requeteDocuments.data?.donnees ?? [];
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="sr-only">{t('or:titre')}</h1>
-
+    <GabaritEcran titre={t('or:titre')} titreVisible={false}>
       <EnTeteOrdreReparation or={or} />
 
       <Card>
@@ -344,6 +349,6 @@ export function EcranFicheOrdreReparation() {
           </CardContent>
         </Card>
       ) : null}
-    </div>
+    </GabaritEcran>
   );
 }

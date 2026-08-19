@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useSession } from '@/hooks/useSession';
 
 import { peutVoirEquipePointage } from './droits';
@@ -73,8 +74,7 @@ export function EcranPointage() {
 
   if (!siteId) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="texte-titre-page">{t('pointage:titre')}</h1>
+      <GabaritEcran titre={t('pointage:titre')}>
         <SelecteurSitePointage
           onChoisir={(valeur) => {
             const parametres = new URLSearchParams(searchParams);
@@ -82,14 +82,12 @@ export function EcranPointage() {
             setSearchParams(parametres);
           }}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="texte-titre-page">{t('pointage:titre')}</h1>
-
+    <GabaritEcran titre={t('pointage:titre')}>
       {vueEquipe ? (
         <Tabs value={vue} onValueChange={(valeur) => changerVue(valeur as VueGlobale)}>
           <TabsList>
@@ -106,6 +104,6 @@ export function EcranPointage() {
       ) : (
         <VueJournalPointage siteId={siteId} />
       )}
-    </div>
+    </GabaritEcran>
   );
 }

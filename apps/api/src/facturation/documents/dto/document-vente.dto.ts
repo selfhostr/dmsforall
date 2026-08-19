@@ -11,6 +11,7 @@ import {
   TYPES_DOCUMENT_VENTE,
   type AdresseStructureeQr,
   type DocumentVenteTva,
+  type ReponseCorrectionFacture,
   type ReponseDocumentVente,
   type ReponseLigneDocumentVente,
   type ValeursFigeesDocument,
@@ -282,4 +283,14 @@ export class ReponseDocumentVenteDto implements ReponseDocumentVente {
 
   @ApiProperty({ type: 'object', nullable: true, properties: NOM_AFFICHE_PROPERTIES })
   readonly modifiePar!: { readonly utilisateurId: string; readonly nomAffiche: string } | null;
+}
+
+/** `POST /documents-vente/{factureId}/corriger` (`RF-12`→`RF-14`) — les deux documents nés de la
+ *  correction (avoir total + facture de remplacement, tous deux déjà `emis`). */
+export class ReponseCorrectionFactureDto implements ReponseCorrectionFacture {
+  @ApiProperty({ type: () => ReponseDocumentVenteDto })
+  readonly avoir!: ReponseDocumentVente;
+
+  @ApiProperty({ type: () => ReponseDocumentVenteDto })
+  readonly factureRemplacement!: ReponseDocumentVente;
 }

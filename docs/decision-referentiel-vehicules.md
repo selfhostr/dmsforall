@@ -1,11 +1,13 @@
-# Décision : référentiel de données véhicules pour la saisie
+Décision : référentiel de données véhicules pour la saisie
+===========================================================
 
 **Statut** : proposition — décision finale à @laupernoe sur les points marqués « à trancher ».
 **Auteur** : expert-métier (agent), 10.08.2026.
 **Portée** : d'où vient la liste marque/modèle/finition/motorisation utilisée à la création d'un
 véhicule (`EcranNouveauVehicule`, `schemaCreationVehicule`). Aucun code dans ce document.
 
-## 1. Le besoin exact
+Le besoin exact
+----------------
 
 @laupernoe : « quand on crée le véhicule, ce serait beaucoup plus simple si tu allais chercher sur
 internet une liste à jour d'à peu près toutes les marques et tous les modèles [...] tu rentres
@@ -18,7 +20,8 @@ L'écran existant (`apps/web/src/ecrans/vehicules/EcranNouveauVehicule.tsx`) a d
 existe déjà dans le schéma (`packages/shared/src/contrats/atelier/vehicule.ts`) sans qu'aucun
 mécanisme ne l'exploite encore : c'est le bon point d'ancrage, voir §5.
 
-## 2. Contraintes qui écartent des solutions d'emblée
+Contraintes qui écartent des solutions d'emblée
+-------------------------------------------------
 
 - **nLPD / hébergement CH** : un appel à un tiers à chaque frappe envoie la saisie du garagiste
   hors de l'infrastructure DFA. Toléré seulement si (a) la donnée transmise n'est pas une donnée
@@ -33,20 +36,83 @@ mécanisme ne l'exploite encore : c'est le bon point d'ancrage, voir §5.
 - **Fraîcheur** : les modèles changent chaque année ; toute base choisie a besoin d'un mécanisme
   de mise à jour explicite, pas d'un dump figé au jour du build.
 
-## 3. Sources recensées
+Sources recensées
+------------------
 
-| Source                                                                                   | Couverture CH/marché                                                                                                                                                                                    | Licence                                                                                                                                                                                                                                                                                                                    | Fraîcheur                                                                                                                                                                                                                                  | Volume/profondeur                                                                                                                                                                                                                                                                                                                                                                                       | Format                                                                                                       | Coût                                                                                                                                                         |
-| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **ASTRA/OFROU — TARGA, données de réception par type (`opendata.astra.admin.ch/ivzod`)** | **Officielle suisse** — c'est la base légale de l'immatriculation, du contrôle MFK et de la taxe CO₂ en Suisse.                                                                                         | Open Government Data, gratuit, sans inscription ; le portail impose un engagement d'usage « soigneux et responsable ». **Le texte exact des conditions de réutilisation (un des libellés standardisés opendata.swiss) n'a pas pu être récupéré en accès direct (403) — à confirmer avant tout usage commercial, voir §7.** | 3ᵉ génération (dès 1995, la quasi-totalité du parc en circulation) : mise à jour par l'OFROU au fil des homologations. 2ᵉ génération (1985–1995) en Excel. 1ʳᵉ génération (avant 1985) en PDF scannés — non exploitable en autocomplétion. | Plus de 200 000 réceptions par type (3ᵉ génération), fichiers JSON **bilingues DE/FR** (bonus direct pour l'i18n DFA) avec noms d'attributs en anglais, plus export TXT. Contient marque, type, variante, version, et les données techniques d'homologation (cylindrée, puissance, carburant, poids, CO₂) — donc **va jusqu'à la motorisation**, à la différence de la plupart des catalogues gratuits. | Fichiers plats (JSON/TXT/Excel selon génération) à télécharger et importer, pas d'API de requête à la volée. | Gratuit.                                                                                                                                                     |
-| **typenscheine.ch (No Broken Code GmbH, CH)**                                            | Suisse — même source de fond (TARGA), reconditionnée avec une interface de recherche (par n° de réception, marque/type, VIN, n° d'homologation UE). Plus de 245 000 réceptions indexées.                | Commercial, offres par abonnement (« Our Plans ») — tarif exact non publié, à demander.                                                                                                                                                                                                                                    | Suit les mises à jour ASTRA.                                                                                                                                                                                                               | Recherche facilitée, mais **pas d'API confirmée** dans le contenu public consulté — probablement un service web à usage manuel, pas un backend d'autocomplétion.                                                                                                                                                                                                                                        | Interface web.                                                                                               | Abonnement, montant à demander au fournisseur.                                                                                                               |
-| **TecDoc / TecAlliance (DE)**                                                            | Européenne, standard de fait de l'après-vente automobile en Europe — c'est très probablement ce que Auto-i et Nextlane utilisent en toile de fond.                                                      | Commercial, licence par utilisateur/poste, réductions de volume à partir de 5-10 licences. Grille tarifaire non publiée.                                                                                                                                                                                                   | Continue, alimentée par les constructeurs et importateurs.                                                                                                                                                                                 | Très profond : marque → modèle → type → moteur, avec liaison catalogue pièces (K-Type). Dépasse largement le besoin de ce module.                                                                                                                                                                                                                                                                       | API REST documentée + exports.                                                                               | Sur devis, vraisemblablement plusieurs milliers de CHF/an vu le positionnement du produit (catalogue pièces professionnel, pas juste un référentiel modèle). |
-| **Eurotax/Schwacke, aujourd'hui JD Power (siège Suisse, Steinhausen ZG)**                | Suisse et DACH — le standard du secteur pour la valorisation VO et la reprise. Identifie 99 % des véhicules par code d'immatriculation, historique de cote sur 20 ans.                                  | Commercial, API REST (« Autovista API »). Grille tarifaire non publiée.                                                                                                                                                                                                                                                    | Continue, mise à jour marché.                                                                                                                                                                                                              | Très profond, avec valeur résiduelle — dépasse le besoin de ce module (mais recoupe un besoin futur : reprise VO, cote).                                                                                                                                                                                                                                                                                | API REST.                                                                                                    | Sur devis — acteur premium, coût probablement significatif (contrat entreprise, pas un plan self-service).                                                   |
-| **NHTSA vPIC (USA, gratuit)**                                                            | **Disqualifiée pour la Suisse** — confirmé : la donnée ne couvre que les véhicules destinés au marché américain ; un véhicule européen non importé aux USA renvoie des résultats très pauvres ou vides. | Domaine public (US Open Data).                                                                                                                                                                                                                                                                                             | Continue.                                                                                                                                                                                                                                  | Très profond pour le marché US.                                                                                                                                                                                                                                                                                                                                                                         | API REST JSON, gratuite, sans clé.                                                                           | Gratuit — mais inutile ici.                                                                                                                                  |
-| **Wikidata**                                                                             | Généraliste mondiale, couverture par marque très inégale ; les finitions/motorisations spécifiques au marché suisse (souvent identiques au marché DE/AT) sont rarement saisies à ce niveau de détail.   | **CC0 (domaine public)** — confirmé, la plus sûre de toutes les sources listées ici.                                                                                                                                                                                                                                       | Communautaire, pas de garantie de fraîcheur ni de complétude — un modèle 2026 peut ne pas y être encore.                                                                                                                                   | Marque + modèle globalement correct ; finition/motorisation incomplet.                                                                                                                                                                                                                                                                                                                                  | SPARQL / dumps.                                                                                              | Gratuit.                                                                                                                                                     |
-| **Jeux GitHub communautaires** (`open-vehicle-db`, `vehicle-make-model-data`, etc.)      | Marché US à large majorité, licences hétérogènes projet par projet (à vérifier une par une, plusieurs sans licence explicite — donc **non réutilisables** en l'état dans un produit commercial).        | Variable, souvent absente → disqualifiant par défaut.                                                                                                                                                                                                                                                                      | Figée à la dernière contribution, plusieurs projets non maintenus depuis des années.                                                                                                                                                       | Marque/modèle/année, rarement la finition.                                                                                                                                                                                                                                                                                                                                                              | JSON/CSV/SQL.                                                                                                | Gratuit mais risque de licence.                                                                                                                              |
-| **CarAPI (commercial, USA)**                                                             | Marché US en priorité ; couverture Europe non vérifiée en profondeur (trims annoncés « 1990-2026 » mais l'échantillon consulté ne prouve pas la couverture des finitions suisses/européennes).          | Commercial, CGU à vérifier avant usage — jeu public accessible sans compte, la production nécessite un plan payant.                                                                                                                                                                                                        | Continue, source revendiquée à jour jusqu'à l'année courante.                                                                                                                                                                              | Marque/modèle/trim/moteur — profondeur correcte pour un marché US.                                                                                                                                                                                                                                                                                                                                      | API REST JSON.                                                                                               | 199 à 299 $/an selon palier — nettement moins cher que TecDoc/Eurotax, mais couverture Suisse non garantie.                                                  |
+**ASTRA/OFROU — TARGA, données de réception par type** (`opendata.astra.admin.ch/ivzod`)
 
-## 4. Décision
+- Couverture : **Officielle suisse** — c'est la base légale de l'immatriculation, du contrôle MFK et de la taxe CO₂ en Suisse.
+- Licence : Open Government Data, gratuit, sans inscription ; le portail impose un engagement d'usage « soigneux et responsable ». **Le texte exact des conditions de réutilisation n'a pas pu être récupéré en accès direct (403) — à confirmer avant tout usage commercial.**
+- Fraîcheur : 3ᵉ génération (dès 1995) : mise à jour par l'OFROU au fil des homologations. 2ᵉ génération (1985–1995) en Excel. 1ʳᵉ génération (avant 1985) en PDF scannés.
+- Volume : Plus de 200 000 réceptions par type, fichiers JSON **bilingues DE/FR** avec données techniques d'homologation (cylindrée, puissance, carburant, poids, CO₂) — **va jusqu'à la motorisation**.
+- Format : Fichiers plats (JSON/TXT/Excel selon génération) à télécharger et importer, pas d'API de requête à la volée.
+- Coût : Gratuit.
+
+**typenscheine.ch** (No Broken Code GmbH, CH)
+
+- Couverture : Suisse — même source de fond (TARGA), reconditionnée avec interface de recherche. Plus de 245 000 réceptions indexées.
+- Licence : Commercial, offres par abonnement — tarif exact non publié.
+- Fraîcheur : Suit les mises à jour ASTRA.
+- Volume : Recherche facilitée, mais **pas d'API confirmée** — probablement un service web à usage manuel.
+- Format : Interface web.
+- Coût : Abonnement, montant à demander.
+
+**TecDoc / TecAlliance** (DE)
+
+- Couverture : Européenne, standard de fait de l'après-vente automobile en Europe.
+- Licence : Commercial, licence par utilisateur/poste, réductions de volume à partir de 5-10 licences.
+- Fraîcheur : Continue, alimentée par les constructeurs et importateurs.
+- Volume : Très profond : marque → modèle → type → moteur, avec liaison catalogue pièces (K-Type).
+- Format : API REST documentée + exports.
+- Coût : Sur devis, vraisemblablement plusieurs milliers de CHF/an.
+
+**Eurotax/Schwacke, aujourd'hui JD Power** (siège Suisse, Steinhausen ZG)
+
+- Couverture : Suisse et DACH — standard du secteur pour la valorisation VO. Identifie 99 % des véhicules par code d'immatriculation.
+- Licence : Commercial, API REST (« Autovista API »). Grille tarifaire non publiée.
+- Fraîcheur : Continue, mise à jour marché.
+- Volume : Très profond, avec valeur résiduelle — dépasse le besoin de ce module.
+- Format : API REST.
+- Coût : Sur devis — acteur premium, coût probablement significatif.
+
+**NHTSA vPIC** (USA, gratuit)
+
+- Couverture : **Disqualifiée pour la Suisse** — la donnée ne couvre que les véhicules destinés au marché américain.
+- Licence : Domaine public (US Open Data).
+- Fraîcheur : Continue.
+- Volume : Très profond pour le marché US.
+- Format : API REST JSON, gratuite, sans clé.
+- Coût : Gratuit — mais inutile ici.
+
+**Wikidata**
+
+- Couverture : Généraliste mondiale, couverture par marque très inégale.
+- Licence : **CC0 (domaine public)** — confirmé, la plus sûre de toutes les sources.
+- Fraîcheur : Communautaire, pas de garantie de fraîcheur ni de complétude.
+- Volume : Marque + modèle globalement correct ; finition/motorisation incomplet.
+- Format : SPARQL / dumps.
+- Coût : Gratuit.
+
+**Jeux GitHub communautaires** (`open-vehicle-db`, `vehicle-make-model-data`, etc.)
+
+- Couverture : Marché US à large majorité, licences hétérogènes projet par projet.
+- Licence : Variable, souvent absente → disqualifiant par défaut.
+- Fraîcheur : Figée à la dernière contribution, plusieurs projets non maintenus.
+- Volume : Marque/modèle/année, rarement la finition.
+- Format : JSON/CSV/SQL.
+- Coût : Gratuit mais risque de licence.
+
+**CarAPI** (commercial, USA)
+
+- Couverture : Marché US en priorité ; couverture Europe non vérifiée en profondeur.
+- Licence : Commercial, CGU à vérifier avant usage.
+- Fraîcheur : Continue, source revendiquée à jour jusqu'à l'année courante.
+- Volume : Marque/modèle/trim/moteur — profondeur correcte pour marché US.
+- Format : API REST JSON.
+- Coût : 199 à 299 $/an selon palier — nettement moins cher que TecDoc/Eurotax.
+
+Décision
+---------
 
 **Recommandation : bâtir le référentiel sur les données ouvertes ASTRA/TARGA, importées et
 embarquées dans notre propre base Postgres, avec un import périodique.**
@@ -73,7 +139,8 @@ besoins voisins mais distincts (liaison pièces, valorisation VO) qui reviendron
 la feuille de route (lot 3 Pièces, reprise VO). Ne pas les écarter définitivement — les
 re-challenger le jour où ce besoin-là apparaît, avec son propre calcul coût/bénéfice.
 
-## 5. Jusqu'à la motorisation ?
+Jusqu'à la motorisation ?
+--------------------------
 
 Oui, TARGA le permet — et c'est le point le plus contre-intuitif de cette recherche : la plupart
 des catalogues _gratuits_ s'arrêtent au modèle, mais **la base d'homologation, elle, ne peut pas
@@ -87,7 +154,8 @@ index texte marque→modèle→finition optimisé pour la frappe. Construire l'a
 travail d'ETL (regrouper les entrées par marque/modèle/désignation lisible) — un projet
 d'implémentation à part entière, mais borné et à coût nul en données.
 
-## 6. VIN vs code type CH — laquelle est la voie courte ?
+VIN vs code type CH — laquelle est la voie courte ?
+----------------------------------------------------
 
 **Le code type, pas le VIN.** C'est le résultat le plus utile de cette recherche pour l'ergonomie
 visée.
@@ -117,7 +185,8 @@ la saisie libre marque/modèle reste le seul recours immédiat — c'est un cas 
 masquer : l'autocomplétion s'améliore pour le cas majoritaire (véhicule déjà ou bientôt
 immatriculé en Suisse), pas pour 100 % des cas dès le jour 1.
 
-## 7. Ce qu'il reste à trancher par @laupernoe
+Ce qu'il reste à trancher par @laupernoe
+-----------------------------------
 
 1. **Confirmer le texte exact des conditions de réutilisation d'ASTRA/TARGA** avant tout
    développement — je n'ai pas pu récupérer la page de métadonnées opendata.swiss du jeu
@@ -135,7 +204,8 @@ immatriculé en Suisse), pas pour 100 % des cas dès le jour 1.
    la saisie libre suffit-elle indéfiniment ? Proposition : saisie libre pour l'instant, ne pas
    complexifier avant d'observer combien de créations passent réellement par le cas importé.
 
-## 8. Trajectoire proposée
+Trajectoire proposée
+---------------------
 
 **Phase 1 — le raccourci le plus court, livrable vite** : dans `EcranNouveauVehicule`, un champ
 « code type CH » qui, une fois rempli (ou tapé après consultation du permis de circulation), va
@@ -155,9 +225,8 @@ choisir séparément, probablement commerciale, avec son propre calcul coût/bé
 pour les véhicules importés non homologués CH ; réexamen de TecDoc/Eurotax si un besoin de
 catalogue pièces ou de cote VO l'exige indépendamment de ce ticket.
 
-## 9. Comportement attendu de la fonctionnalité (à formaliser en règles numérotées à
-
-l'implémentation, non figées ici)
+Comportement attendu de la fonctionnalité
+-------------------------------------------
 
 - Un code type CH reconnu dans le référentiel local propose un préremplissage ; le garagiste
   valide ou modifie avant écriture — jamais d'écriture automatique sans passage par l'écran.
@@ -173,7 +242,8 @@ l'implémentation, non figées ici)
   différence de tout le reste du modèle de données DFA — à signaler explicitement à
   `expert-database` le jour de l'implémentation pour ne pas lui appliquer RLS par erreur.
 
-## Sources consultées
+Sources consultées
+-------------------
 
 - [Fahrzeugdaten — ASTRA/OFROU, produits d'information](https://www.astra.admin.ch/astra/en/home/documentation/data-and-information-products/vehicle-information-products.html)
 - [opendata.astra.admin.ch/ivzod — répertoire TARGA](https://opendata.astra.admin.ch/ivzod/2000-Typengenehmigungen_TG_TARGA/)

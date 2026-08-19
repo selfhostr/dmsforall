@@ -8,17 +8,40 @@
       "titre": "Impossible de charger vos sites"
     }
   },
+  "emplacement": {
+    "rayonTiroir": "Rayon {rayon}, tiroir {tiroir}",
+    "rayonSeul": "Rayon {rayon}",
+    "tiroirSeul": "Tiroir {tiroir}",
+    "avecLibre": "{structure} — {emplacement}",
+    "modifier": "Modifier le casier",
+    "aucun": "Aucun casier renseigné",
+    "dialogue": {
+      "titre": "Casier de rangement",
+      "description": "Rayon et tiroir sont facultatifs — un complément structuré au texte libre déjà en place, qui reste utilisable pour les cas particuliers.",
+      "rayon": "Rayon",
+      "tiroir": "Tiroir",
+      "aide": "« B3 », « b3 » et « B 3 » désignent le même rayon : majuscules et espaces n'ont pas d'importance.",
+      "libreActuel": "Texte libre actuel pour ce site : {emplacement}",
+      "libreAucun": "Aucun texte libre renseigné pour ce site."
+    }
+  },
   "rechercheComptoir": {
     "titre": "Recherche comptoir",
     "aide": "Tapez une référence, une désignation ou un code-barres.",
     "champRecherche": "Référence, désignation, code-barres…",
     "vide": {
-      "recherche": "Aucun article ne correspond à cette recherche sur ce site."
+      "recherche": {
+        "titre": "Aucun article trouvé",
+        "description": "Aucun article ne correspond à cette recherche sur ce site."
+      },
+      "catalogue": {
+        "titre": "Aucun article au catalogue",
+        "description": "Aucun article actif n'est enregistré sur ce site."
+      }
     },
     "resultat": {
       "disponible": "{n} en stock",
-      "rupture": "Rupture de stock",
-      "emplacement": "Emplacement {emplacement}"
+      "rupture": "Rupture de stock"
     },
     "erreur": {
       "titre": "La recherche a échoué"
@@ -110,6 +133,20 @@
       },
       "erreur": {
         "titre": "Impossible d'afficher les articles"
+      },
+      "vide": {
+        "recherche": {
+          "titre": "Aucun article trouvé",
+          "description": "Aucun article ne correspond à cette recherche."
+        },
+        "filtre": {
+          "titre": "Aucun article avec ces filtres",
+          "description": "Aucun article ne correspond aux filtres choisis."
+        },
+        "premierUsage": {
+          "titre": "Aucun article au catalogue",
+          "description": "Créez le premier article pour commencer à alimenter le stock."
+        }
       }
     },
     "fiche": {
@@ -216,7 +253,13 @@
         "champQuantiteComptee": "Quantité comptée",
         "champForcer": "Forcer malgré le stock insuffisant",
         "avertissementEcart": "Écart notable détecté par rapport au stock estimé — vérifiez le comptage.",
-        "aucunEcart": "Le comptage correspond au stock actuel : aucun mouvement n'a été créé."
+        "aucunEcart": "Le comptage correspond au stock actuel : aucun mouvement n'a été créé.",
+        "apercuForcage": {
+          "chargement": "Vérification des réservations concernées par ce forçage…",
+          "erreur": "Impossible de vérifier les réservations concernées par ce forçage.",
+          "titre": "{count} {count, plural, one {réservation sera libérée} other {réservations seront libérées}} par ce forçage.",
+          "listeOrs": "Ordres de réparation concernés : {numeros}."
+        }
       }
     },
     "reapprovisionnement": {
@@ -348,8 +391,10 @@
       "ecart": "Écart détecté — référence différente"
     },
     "nouvelle": {
+      "titre": "Nouvelle commande fournisseur",
       "aucuneLigne": "Ajoutez au moins une ligne à la commande.",
-      "choisirSiteDabord": "Choisissez un site pour rechercher des articles."
+      "choisirSiteDabord": "Choisissez un site pour rechercher des articles.",
+      "quantiteSuggereeReapprovisionnement": "Quantité proposée : la quantité manquante pour repasser au-dessus du seuil de réapprovisionnement. Ajustez-la si votre fournisseur impose un lot différent."
     },
     "filtres": {
       "statutTous": "Tous les statuts",
@@ -466,6 +511,121 @@
       "quantite": "Quantité",
       "motif": "Motif du retour",
       "confirmer": "Enregistrer le retour"
+    }
+  },
+  "facturesFournisseur": {
+    "titre": "Factures fournisseur",
+    "titreDepot": "Déposer une facture fournisseur",
+    "sousTitreDepot": "Déposez le PDF reçu du fournisseur : il est lu automatiquement et rapproché à la commande correspondante.",
+    "deposeeLe": "Déposée le {date}",
+    "sansNumero": "Facture sans numéro lu",
+    "vide": "Aucune facture fournisseur déposée.",
+    "erreur": {
+      "titre": "Impossible d'afficher les factures fournisseur"
+    },
+    "droitRequis": {
+      "lecture": "Vous n'avez pas le droit de consulter les factures fournisseur.",
+      "depot": "Vous n'avez pas le droit de déposer une facture fournisseur."
+    },
+    "filtres": {
+      "statutTous": "Tous les statuts"
+    },
+    "colonnes": {
+      "fichier": "Facture",
+      "fournisseur": "Fournisseur",
+      "montant": "Montant",
+      "statut": "Statut",
+      "ecarts": "Écarts"
+    },
+    "statuts": {
+      "deposee": "Déposée",
+      "rapprochee": "Rapprochée",
+      "validee": "Validée",
+      "rejetee": "Rejetée"
+    },
+    "ecartsPresents": "Écarts à vérifier",
+    "certitude": {
+      "certaine": "Lu (certain)",
+      "incertaine": "À vérifier",
+      "absente": "Non lu"
+    },
+    "natureEcart": {
+      "aucun": "Conforme",
+      "quantite": "Écart de quantité",
+      "prix_unitaire": "Écart de prix",
+      "quantite_et_prix": "Écart de quantité et de prix",
+      "non_rapprochee": "Non rapprochée"
+    },
+    "depot": {
+      "consigneTitre": "Déposez la facture reçue du fournisseur",
+      "consigneDetail": "Fichier PDF uniquement, 15 Mo maximum.",
+      "glisserDeposer": "Glissez-déposez le fichier ici",
+      "ou": "ou",
+      "parcourir": "Choisir un fichier"
+    },
+    "analyse": {
+      "enCours": "Lecture de la facture en cours…"
+    },
+    "erreurs": {
+      "titre": "Le dépôt a échoué",
+      "fichierPasPdf": "Seuls les fichiers PDF sont acceptés.",
+      "fichierTropLourd": "Ce fichier dépasse la taille maximale de 15 Mo."
+    },
+    "rapprochement": {
+      "titre": "Résultat de la lecture",
+      "fournisseurTrouveTitre": "Fournisseur reconnu",
+      "fournisseurAbsentTitre": "Aucun fournisseur reconnu",
+      "fournisseurAbsentDescription": "Le nom lu sur la facture ne correspond à aucun fournisseur du tenant. Vérifiez-le avant de valider.",
+      "commandeTrouveeTitre": "Rapprochée à une commande fournisseur",
+      "commandeAbsenteTitre": "Aucune commande correspondante",
+      "commandeAbsenteDescription": "Cette facture n'a pas pu être rattachée à une commande fournisseur. Vérifiez-la manuellement avant de valider."
+    },
+    "enTete": {
+      "titre": "Données lues sur la facture",
+      "numeroFacture": "Numéro de facture",
+      "dateFacture": "Date de facture",
+      "fournisseur": "Nom du créancier (lu)",
+      "iban": "IBAN du créancier",
+      "referencePaiement": "Référence de paiement",
+      "montantTotal": "Montant total",
+      "devise": "Devise"
+    },
+    "synthese": {
+      "titreAvecEcarts": "{count, plural, one {# ligne présente un écart à vérifier} other {# lignes présentent un écart à vérifier}}",
+      "titreSansEcart": "Aucun écart détecté",
+      "detailMontant": "Écart total : {montant}",
+      "detailSansMontant": "Les lignes concernées ne sont pas rapprochées à une commande."
+    },
+    "lignes": {
+      "titre": "Lignes",
+      "colonnes": {
+        "ecart": "Écart",
+        "designation": "Désignation",
+        "quantite": "Quantité",
+        "prixUnitaire": "Prix unitaire",
+        "total": "Total"
+      },
+      "commande": "commandé : {valeur}",
+      "ecartValeur": "écart {unites}",
+      "vide": "Aucune ligne lue sur cette facture."
+    },
+    "validation": {
+      "dejaValidee": "Facture validée le {date}.",
+      "dejaRejetee": "Facture rejetée.",
+      "succesTitre": "Facture validée",
+      "succesTitreRejet": "Facture rejetée"
+    },
+    "rejet": {
+      "titre": "Rejeter la facture",
+      "description": "Le document reste conservé et consultable. Indiquez pourquoi cette facture est rejetée."
+    },
+    "actions": {
+      "deposer": "Déposer une facture",
+      "voirDocument": "Voir le document",
+      "valider": "Valider le rapprochement",
+      "rejeter": "Rejeter",
+      "deposerUneAutre": "Déposer une autre facture",
+      "consulter": "Consulter"
     }
   }
 }

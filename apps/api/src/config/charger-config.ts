@@ -1,6 +1,10 @@
 import { z } from 'zod';
 
+import { schemaConfigCourriel } from '../courriel/config-courriel';
 import { schemaConfigConsole } from '../exploitation/config-console';
+import { schemaConfigJobClotureAutomatiquePointage } from '../pointage/config-job-cloture-automatique-pointage';
+import { schemaConfigJobReferentielVehiculesCh } from '../vehicules/referentiel/config-job-referentiel-vehicules-ch';
+import { schemaConfigOcrPermis } from '../vehicules/ocr/config-ocr';
 import { calculerBrancheParDefaut, calculerVersionAppParDefaut } from './version-app';
 
 /**
@@ -204,6 +208,13 @@ export const schemaConfig = z
     // explicitement par déploiement une fois ce besoin réel et le nettoyage éprouvé en
     // production.
     SENTRY_TAUX_ECHANTILLONNAGE_TRACES: z.coerce.number().min(0).max(1).default(0),
+    // --- Courriel (SMTP Infomaniak, envoi verrouillé hors production) ----------------------
+    // Bloc défini une seule fois dans `courriel/config-courriel.ts` et fusionné ici via
+    // `.shape`, même patron que `schemaConfigConsole` ci-dessous — une seule source de vérité
+    // sur le schéma, jamais une redéclaration séparée qui pourrait diverger. Voir ce fichier
+    // pour le détail de chaque variable et le verrou à deux clés (`NODE_ENV`/
+    // `COURRIEL_ENVOI_REEL`) qui décide entre transport réel et transport de capture.
+    ...schemaConfigCourriel.shape,
     // --- Console d'exploitation (plateforme, PORTE 1 uniquement) --------------------------
     // Bloc ENTIÈREMENT optionnel, défini une seule fois dans `exploitation/config-console.ts`
     // et fusionné ici via `.shape` : dupliquer les champs à la main les ferait diverger
@@ -218,6 +229,18 @@ export const schemaConfig = z
     // monte `ExploitationModule` — donc toujours avant l'ouverture du port, jamais un démarrage
     // silencieux avec une console mal branchée.
     ...schemaConfigConsole.shape,
+    // --- Job quotidien de contrôle/import du référentiel véhicules suisse ASTRA -------------
+    // Bloc défini une seule fois dans `vehicules/referentiel/config-job-referentiel-vehicules-ch.ts`
+    // et fusionné ici via `.shape`, même patron que les deux blocs juste au-dessus.
+    ...schemaConfigJobReferentielVehiculesCh.shape,
+    // --- Job quotidien de clôture automatique de fin de journée du pointage (RM-91/RM-119) ---
+    // Bloc défini une seule fois dans `pointage/config-job-cloture-automatique-pointage.ts` et
+    // fusionné ici via `.shape`, même patron que le bloc ASTRA juste au-dessus.
+    ...schemaConfigJobClotureAutomatiquePointage.shape,
+    // --- Scan OCR du permis de circulation (reconnaissance automatique, carte grise) ---
+    // Bloc défini une seule fois dans `vehicules/ocr/config-ocr.ts` et fusionné ici via `.shape`,
+    // même patron que les blocs ci-dessus.
+    ...schemaConfigOcrPermis.shape,
   })
   .superRefine((c, ctx) => {
     if (c.NODE_ENV === 'production' && !c.COOKIE_SECURE) {

@@ -3,6 +3,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import type {
   ContenuMessageClient,
   Langue,
+  ReponseEnvoiMessageClient,
   ReponseEnvoiRelances,
   ReponsePlanificationRelances,
   StatutDocumentVente,
@@ -17,6 +18,9 @@ import { Horloge } from '../common/horloge';
 import { ServiceJournal } from '../common/journal';
 import type { AdaptateurNotificationSender } from '../connecteurs';
 import { RegistreConnecteursService } from '../connecteurs';
+import { EXPEDITEUR_DFA_PAR_DEFAUT } from '../courriel/config-courriel';
+import { ServiceCourriel } from '../courriel/service-courriel';
+import { JETON_CONFIG, type Config } from '../config';
 
 import {
   calculerPaliersDus,
@@ -38,14 +42,35 @@ import {
  *  - `planifier()` — calcule les paliers dus (§6.1) et les insère (`ON CONFLICT DO NOTHING` sur
  *    `relance_planifiee_tenant_type_objet_palier_uk`, RA-05).
  *  - `envoyerPretes()` — fait passer à l'envoi les lignes `prete`, réclamées une par une par
- *    mise à jour conditionnelle (`WHERE statut = 'prete'`, §6.1) avant tout appel au connecteur
- *    `NotificationSender` (résolu via `RegistreConnecteursService`, étape 5).
+ *    mise à jour conditionnelle (`WHERE statut = 'prete'`, §6.1) avant l'envoi effectif, dont le
+ *    chemin dépend du CANAL choisi par `choisirCanalEtDestinataire` (RA-03) :
+ *      - `email` → `ServiceCourriel.envoyer()` (socle SMTP/capture, `courriel/`) — envoi RÉEL
+ *        depuis l'issue #136, voir `envoyerEmailReel()` ci-dessous.
+ *      - `sms` → l'adaptateur `NotificationSender` (résolu via `RegistreConnecteursService`,
+ *        étape 5) — INCHANGÉ, toujours sans prestataire câblé à ce jour (`resoudre()` rend
+ *        systématiquement `null`, voir `connecteurs.module.ts`) : une ligne `sms` sans adaptateur
+ *        actif est un REJET tracé (`canal_non_supporte`), jamais un blocage du lot entier.
  *
  * Droits posés définitivement dans `auth/matrice-droits.ts` (`relances.facturation.planifier`/
  * `.envoyer`) : l'autorisation est portée EXCLUSIVEMENT par `@ExigerDroit(...)` + `GardeDroit` sur
  * `relances.controller.ts` — ce service ne prend PLUS de rôle en paramètre (retiré avec le
  * palliatif `relances/droits-provisoires.ts`, même patron que `service-regle-relance.ts` et
  * `pneus/service-depot-pneus.ts`).
+ *
+ * ISSUE #136 — CE QUI A CHANGÉ : avant cette issue, `envoyerPretes()` résolvait `NotificationSender`
+ * UNE SEULE FOIS pour tout le lot et rendait un lot vide dès que `resoudre()` rendait `null` — ce
+ * qui arrive TOUJOURS aujourd'hui (`SourceActivationsConnecteurAucune`), donc AUCUNE relance, e-mail
+ * compris, ne partait jamais réellement (le connecteur factice n'était même pas atteint). Le canal
+ * SMS reste dans cet état (`sms`), documenté, pas régressé. Le canal `email`, lui, ne dépend plus
+ * de ce registre : voir `envoyerEmailReel()`.
+ *
+ * ADRESSE DE RÉPONSE DU GARAGE (`adresseReponseGarage`, `resoudreExpediteurGarage()`) — AUCUN champ
+ * dédié n'existe dans le modèle de données (`tenant`, `site`, bloc créancier de facturation) pour
+ * « l'adresse de contact du garage » : signalé à @laupernoe (rapport de livraison de cette issue), plutôt
+ * qu'une supposition à l'aveugle. En attendant un champ dédié, ce service retient l'e-mail du
+ * premier compte `direction` actif du tenant (à défaut `comptable`), repli défensif sur
+ * `SMTP_EXPEDITEUR`/`EXPEDITEUR_DFA_PAR_DEFAUT` si aucun des deux n'existe (jamais un envoi
+ * bloqué pour cette seule raison).
  *
  * CE QUI RESTE À FAIRE (signalé, pas fait ici, hors périmètre déclaré de cette tâche) : un
  * déclencheur PÉRIODIQUE (cron applicatif, job BullMQ répété, ou appel externe programmé) qui
@@ -61,6 +86,8 @@ export class ServiceRelancesFacture {
     private readonly registre: RegistreConnecteursService,
     private readonly horloge: Horloge,
     private readonly journal: ServiceJournal,
+    private readonly serviceCourriel: ServiceCourriel,
+    @Inject(JETON_CONFIG) private readonly config: Config,
   ) {}
 
   /** Nombre de documents candidats examinés par appel — voir l'en-tête. */
@@ -169,19 +196,24 @@ export class ServiceRelancesFacture {
   }
 
   async envoyerPretes(ctx: ContexteTenant): Promise<ReponseEnvoiRelances> {
+    // Résolution OPTIONNELLE — canal `sms` UNIQUEMENT (voir la doc d'en-tête de cette classe). Ne
+    // bloque JAMAIS le lot : contrairement à avant l'issue #136, `null` ici ne rend plus un lot
+    // vide immédiat — seules les lignes qui choisissent effectivement `sms` en dépendent (voir
+    // `traiterUneRelance`/`envoyerSmsViaConnecteur`).
     const resolu = await this.registre.resoudre(ctx, 'NotificationSender');
     if (!resolu) {
       // Cas NORMAL (§6.3, en-tête de `notification-sender.ts` : « aucun vrai prestataire n'est
       // câblé nulle part aujourd'hui ») — jamais une erreur bloquante, voir
       // `RegistreConnecteursService.resoudre` (cas 1/2 de son en-tête).
-      this.journal.warn('relances.envoi.connecteur_absent', { tenantId: ctx.tenantId });
-      return { envoyees: 0, echouees: 0, annulees: 0, encoreATraiter: false };
+      this.journal.warn('relances.envoi.connecteur_sms_absent', { tenantId: ctx.tenantId });
     }
     // Narrowing sûr : le registre résout PAR `nomInterface`, seul un adaptateur déclarant
     // `nomInterface: 'NotificationSender'` peut être renvoyé ici (voir `adaptateur-notification-
     // sender.ts`, en-tête : « le registre … ne connaissent que le port générique »). `envoyer()`
     // n'existe que sur `AdaptateurNotificationSender`, jamais sur `AdaptateurConnecteur`.
-    const adaptateur = resolu.adaptateur as unknown as AdaptateurNotificationSender;
+    const adaptateurSms = resolu
+      ? (resolu.adaptateur as unknown as AdaptateurNotificationSender)
+      : null;
 
     const [regle] = await this.acces.enTenant(ctx, async (tx) =>
       tx
@@ -213,18 +245,29 @@ export class ServiceRelancesFacture {
     const encoreATraiter = candidatIds.length > limite;
     const idsATraiter = candidatIds.slice(0, limite);
 
+    if (idsATraiter.length === 0) {
+      return { envoyees: 0, echouees: 0, annulees: 0, encoreATraiter };
+    }
+
+    // Une seule résolution par appel (constante pour tout le lot, un seul tenant) — jamais une
+    // requête par ligne. Voir la doc d'en-tête de la classe : aucun champ dédié n'existe encore
+    // pour « l'adresse de contact du garage », ce repli est un ARBITRAGE SIGNALÉ, pas une donnée
+    // stable.
+    const expediteurGarage = await this.resoudreExpediteurGarage(ctx);
+
     let envoyees = 0;
     let echouees = 0;
     let annulees = 0;
 
     // Séquentiel, volontairement : une ligne à la fois, jamais `Promise.all` — chaque itération
     // ouvre ses propres transactions courtes (réclamation, puis trace) et un seul appel réseau
-    // (factice ici) à la fois, borné par LOT_ENVOI. Un futur worker réel peut paralléliser par
-    // PROCESSUS (plusieurs appels concurrents à cette méthode), la réclamation conditionnelle
-    // (`WHERE statut = 'prete'`) reste alors la seule protection nécessaire contre un double
-    // traitement — jamais une hypothèse d'exclusivité côté application.
+    // (SMTP réel ou capture pour l'e-mail, factice pour le SMS) à la fois, borné par LOT_ENVOI. Un
+    // futur worker réel peut paralléliser par PROCESSUS (plusieurs appels concurrents à cette
+    // méthode), la réclamation conditionnelle (`WHERE statut = 'prete'`) reste alors la seule
+    // protection nécessaire contre un double traitement — jamais une hypothèse d'exclusivité côté
+    // application.
     for (const id of idsATraiter) {
-      const issue = await this.traiterUneRelance(ctx, id, adaptateur, canaux);
+      const issue = await this.traiterUneRelance(ctx, id, adaptateurSms, canaux, expediteurGarage);
       if (issue === 'envoyee') envoyees += 1;
       else if (issue === 'echouee') echouees += 1;
       else if (issue === 'annulee') annulees += 1;
@@ -235,11 +278,52 @@ export class ServiceRelancesFacture {
     return { envoyees, echouees, annulees, encoreATraiter };
   }
 
+  /**
+   * Identité d'expédition e-mail des relances — `nomGarage` (nom affiché) et `adresseReponseGarage`
+   * (`Reply-To`, arbitrage de @laupernoe du 14.08.2026 : « le client répond au garagiste, pas au néant »).
+   * `raisonSociale` est TOUJOURS présente (`tenant.raisonSociale`, colonne `NOT NULL`) ; l'adresse
+   * de réponse, elle, n'a AUCUNE colonne dédiée aujourd'hui (`tenant`, `site`, bloc créancier de
+   * facturation) — signalé au coordinateur plutôt qu'une supposition non vérifiable. Repli, dans
+   * l'ordre : e-mail du premier compte `direction` actif du tenant, puis `comptable`, puis
+   * `SMTP_EXPEDITEUR`/`EXPEDITEUR_DFA_PAR_DEFAUT` (jamais un envoi bloqué pour cette seule raison).
+   */
+  private async resoudreExpediteurGarage(ctx: ContexteTenant): Promise<ExpediteurGarage> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      const resultat = await tx.execute<LigneExpediteurGarage>(sql`
+        select
+          t.raison_sociale as "raisonSociale",
+          (
+            select u.email
+              from public.utilisateur u
+             where u.tenant_id = t.id
+               and u.statut = 'actif'
+               and u.role in ('direction', 'comptable')
+             order by (u.role = 'direction') desc, u.cree_le asc
+             limit 1
+          ) as "emailContactGarage"
+        from public.tenant t
+        where t.id = ${ctx.tenantId}
+      `);
+      const ligne = resultat.rows[0];
+      /* c8 ignore next 3 -- invariant : `ctx.tenantId` référence toujours un tenant existant
+       * (session authentifiée sur ce tenant), jamais un identifiant arbitraire. */
+      if (!ligne) {
+        throw new Error(`tenant ${ctx.tenantId} introuvable (invariant rompu).`);
+      }
+      return {
+        nomGarage: ligne.raisonSociale,
+        adresseReponseGarage:
+          ligne.emailContactGarage ?? this.config.SMTP_EXPEDITEUR ?? EXPEDITEUR_DFA_PAR_DEFAUT,
+      };
+    });
+  }
+
   private async traiterUneRelance(
     ctx: ContexteTenant,
     relancePlanifieeId: string,
-    adaptateur: AdaptateurNotificationSender,
+    adaptateurSms: AdaptateurNotificationSender | null,
     canaux: readonly ('sms' | 'email')[],
+    expediteurGarage: ExpediteurGarage,
   ): Promise<'envoyee' | 'echouee' | 'annulee' | 'ignoree'> {
     const claim = await this.acces.enTenant(ctx, async (tx): Promise<ClaimAEnvoyer> => {
       // Réclamation conditionnelle — §6.1 : « le job d'envoi ne traite qu'une ligne dont il vient
@@ -361,8 +445,9 @@ export class ServiceRelancesFacture {
       return claim.statut;
     }
 
-    // Appel au connecteur HORS transaction — jamais de connexion base tenue ouverte pendant un
-    // appel réseau (même le factice), voir la note de séquentialité dans `envoyerPretes()`.
+    // Appel au transport HORS transaction — jamais de connexion base tenue ouverte pendant un
+    // appel réseau (SMTP réel, capture, ou le connecteur SMS factice), voir la note de
+    // séquentialité dans `envoyerPretes()`.
     const contenu: ContenuMessageClient = construireContenuRappelFacture({
       palier: claim.palier,
       numero: claim.numero,
@@ -375,11 +460,123 @@ export class ServiceRelancesFacture {
     });
     const cleIdempotence = `${relancePlanifieeId}:${claim.tentative}`;
 
-    let reponse: Awaited<ReturnType<AdaptateurNotificationSender['envoyer']>>;
+    // Deux chemins d'envoi, un seul point de bifurcation (voir la doc d'en-tête de la classe) :
+    // `email` part RÉELLEMENT via le socle courriel (`ServiceCourriel`), `sms` reste derrière le
+    // connecteur générique `NotificationSender` (aucun prestataire câblé à ce jour). Ni l'un ni
+    // l'autre ne laisse une exception remonter jusqu'ici — chacun absorbe son échec transitoire et
+    // rend un `ReponseEnvoiMessageClient`, seul type que `enregistrerIssueEnvoi` connaît.
+    const reponse: ReponseEnvoiMessageClient =
+      contenu.canal === 'email'
+        ? await this.envoyerEmailReel(
+            ctx,
+            relancePlanifieeId,
+            contenu,
+            expediteurGarage,
+            cleIdempotence,
+          )
+        : await this.envoyerSmsViaConnecteur(
+            ctx,
+            relancePlanifieeId,
+            adaptateurSms,
+            claim.langue,
+            contenu,
+            cleIdempotence,
+          );
+
+    return this.enregistrerIssueEnvoi(ctx, relancePlanifieeId, claim, contenu, reponse);
+  }
+
+  /**
+   * Canal `email` — envoi RÉEL (issue #136), via `ServiceCourriel.envoyer()` (socle `courriel/`,
+   * déjà responsable du verrou à deux clés `courrielDoitEnvoyerReellement` : SMTP réel UNIQUEMENT
+   * si `NODE_ENV === 'production'` ET `COURRIEL_ENVOI_REEL === true`, capture sinon — ce service
+   * ne réimplémente ni ne contourne ce verrou, il consomme `ServiceCourriel` tel quel).
+   *
+   * `ServiceCourriel.envoyer()` ne rejette JAMAIS sa promesse en pratique (chaque transport
+   * encapsule son échec dans `ResultatEnvoiCourriel.succes`) — le `try/catch` reste une garde
+   * défensive, même doctrine que `envoyerSmsViaConnecteur` : un appelant de ce service ne doit
+   * jamais dépendre d'une implémentation particulière de transport pour rester robuste.
+   */
+  private async envoyerEmailReel(
+    ctx: ContexteTenant,
+    relancePlanifieeId: string,
+    contenu: Extract<ContenuMessageClient, { readonly canal: 'email' }>,
+    expediteurGarage: ExpediteurGarage,
+    cleIdempotence: string,
+  ): Promise<ReponseEnvoiMessageClient> {
     try {
-      reponse = await adaptateur.envoyer({
+      const resultat = await this.serviceCourriel.envoyer({
+        destinataires: [contenu.destinataire],
+        sujet: contenu.sujet,
+        corpsTexte: contenu.texte,
+        corpsHtml: contenu.html ?? undefined,
+        nomGarage: expediteurGarage.nomGarage,
+        adresseReponseGarage: expediteurGarage.adresseReponseGarage,
+      });
+      if (resultat.succes) {
+        // `identifiantMessagePrestataire` ne doit JAMAIS être vide (contrat, décision 1) — repli
+        // sur `cleIdempotence` si le transport n'en rend aucun (le transport de capture en rend
+        // toujours un, `TransportSmtp` aussi via le `Message-Id` nodemailer ; défensif seulement).
+        return {
+          statut: 'accepte',
+          identifiantMessagePrestataire: resultat.idMessage ?? cleIdempotence,
+        };
+      }
+      // Aucun des quatre codes `RaisonRejetMessageClient` (`destinataire_invalide`,
+      // `canal_non_supporte`, `contenu_refuse`, `quota_depasse`) ne nomme littéralement « échec de
+      // transport SMTP » — cet enum est un contrat GELÉ du domaine `connecteurs`, hors périmètre
+      // d'écriture de cette issue (voir CONTRIBUTING.md : périmètres disjoints). `quota_depasse` est déjà
+      // le code de repli établi par ce même fichier pour toute exception transitoire de connecteur
+      // (voir `envoyerSmsViaConnecteur` ci-dessous) — repris ici pour la même famille de panne
+      // (tiers indisponible), jamais un jugement sur la cause réelle. Signalé au coordinateur :
+      // un code dédié (`erreur_transport` ou équivalent) serait plus lisible dans l'historique.
+      return {
+        statut: 'rejete',
+        raison: 'quota_depasse',
+        message: resultat.erreur ?? 'Échec d’envoi du courriel (transport).',
+      };
+    } catch (erreur) {
+      // Jamais journalisé avec le contenu (PII) — même garde que `envoyerSmsViaConnecteur`.
+      this.journal.warn('relances.envoi.exception_courriel', {
+        tenantId: ctx.tenantId,
+        relancePlanifieeId,
+        erreurNom: erreur instanceof Error ? erreur.name : 'inconnue',
+      });
+      return {
+        statut: 'rejete',
+        raison: 'quota_depasse',
+        message:
+          erreur instanceof Error ? erreur.message : 'Erreur inconnue du transport courriel.',
+      };
+    }
+  }
+
+  /**
+   * Canal `sms` — INCHANGÉ par l'issue #136 : toujours derrière le connecteur générique
+   * `NotificationSender` (résolu une fois par lot dans `envoyerPretes()`), toujours sans
+   * prestataire réel câblé (`RegistreConnecteursService.resoudre()` rend `null`, voir la doc
+   * d'en-tête de la classe). `adaptateurSms === null` est un REJET tracé, jamais un blocage
+   * silencieux — avant l'issue #136, ce cas empêchait même les lignes `email` d'être traitées.
+   */
+  private async envoyerSmsViaConnecteur(
+    ctx: ContexteTenant,
+    relancePlanifieeId: string,
+    adaptateurSms: AdaptateurNotificationSender | null,
+    langue: Langue,
+    contenu: ContenuMessageClient,
+    cleIdempotence: string,
+  ): Promise<ReponseEnvoiMessageClient> {
+    if (!adaptateurSms) {
+      return {
+        statut: 'rejete',
+        raison: 'canal_non_supporte',
+        message: 'Aucun connecteur SMS actif pour ce tenant.',
+      };
+    }
+    try {
+      return await adaptateurSms.envoyer({
         cleIdempotence,
-        langue: claim.langue,
+        langue,
         contenu,
         referenceExterne: relancePlanifieeId,
       });
@@ -391,14 +588,12 @@ export class ServiceRelancesFacture {
         relancePlanifieeId,
         erreurNom: erreur instanceof Error ? erreur.name : 'inconnue',
       });
-      reponse = {
+      return {
         statut: 'rejete',
         raison: 'quota_depasse',
         message: erreur instanceof Error ? erreur.message : 'Erreur inconnue du connecteur.',
       };
     }
-
-    return this.enregistrerIssueEnvoi(ctx, relancePlanifieeId, claim, contenu, reponse);
   }
 
   private async enregistrerIssueEnvoi(
@@ -406,7 +601,7 @@ export class ServiceRelancesFacture {
     relancePlanifieeId: string,
     claim: InfosAEnvoyer,
     contenu: ContenuMessageClient,
-    reponse: Awaited<ReturnType<AdaptateurNotificationSender['envoyer']>>,
+    reponse: ReponseEnvoiMessageClient,
   ): Promise<'envoyee' | 'echouee'> {
     const contenuFige = serialiserContenuFige(contenu);
 
@@ -467,6 +662,21 @@ export class ServiceRelancesFacture {
       return 'echouee' as const;
     });
   }
+}
+
+/** Identité d'expédition e-mail résolue pour UN lot (`resoudreExpediteurGarage`) — voir la doc
+ *  d'en-tête de la classe pour l'arbitrage signalé sur `adresseReponseGarage`. */
+interface ExpediteurGarage {
+  readonly nomGarage: string;
+  readonly adresseReponseGarage: string;
+}
+
+interface LigneExpediteurGarage {
+  readonly [cle: string]: unknown;
+  readonly raisonSociale: string;
+  /** `null` si le tenant n'a aucun compte `direction`/`comptable` actif — voir le repli dans
+   *  `resoudreExpediteurGarage`. */
+  readonly emailContactGarage: string | null;
 }
 
 /** `[key: string]: unknown` : requis par la contrainte générique de `TransactionDfa.execute<T>`

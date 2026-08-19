@@ -1,4 +1,5 @@
-# Design — Écrans du comptoir (lot 1)
+Design — Écrans du comptoir (lot 1)
+===================================
 
 Addendum à [`design-etape-1-atelier.md`](design-etape-1-atelier.md), qui couvre l'écran d'OR, le
 pointage et la signature (lots 2 et 3) mais pas les écrans du comptoir du lot 1 : liste et fiche
@@ -11,16 +12,39 @@ atelier, §0 et §5.1 y compris.
 
 ---
 
-## 1. Grille de points d'arrêt
+1. Grille de points d'arrêt
+
+---
 
 Reprise identique à `design-etape-1-atelier.md` §1 — aucune variante locale pour le comptoir :
 
-| Contexte          | Largeur      | Préfixe Tailwind | Densité                   | Cible tactile  | Texte de base |
-| ----------------- | ------------ | ---------------- | ------------------------- | -------------- | ------------- |
-| Téléphone         | < 768 px     | (mobile-first)   | lecture + actions rapides | 48 px          | 16 px         |
-| Tablette portrait | 768–1023 px  | `md:`            | `aeree`                   | 56 px          | 18 px         |
-| Tablette paysage  | 1024–1279 px | `lg:`            | `aeree`                   | 48 px          | 16 px         |
-| Comptoir / bureau | ≥ 1280 px    | `xl:`            | `dense`                   | 32 px (souris) | 14 px         |
+- **Contexte** — Téléphone
+- **Largeur** — < 768 px
+- **Préfixe Tailwind** — (mobile-first)
+- **Densité** — lecture + actions rapides
+- **Cible tactile** — 48 px
+- **Texte de base** — 16 px
+
+- **Contexte** — Tablette portrait
+- **Largeur** — 768–1023 px
+- **Préfixe Tailwind** — `md:`
+- **Densité** — `aeree`
+- **Cible tactile** — 56 px
+- **Texte de base** — 18 px
+
+- **Contexte** — Tablette paysage
+- **Largeur** — 1024–1279 px
+- **Préfixe Tailwind** — `lg:`
+- **Densité** — `aeree`
+- **Cible tactile** — 48 px
+- **Texte de base** — 16 px
+
+- **Contexte** — Comptoir / bureau
+- **Largeur** — ≥ 1280 px
+- **Préfixe Tailwind** — `xl:`
+- **Densité** — `dense`
+- **Cible tactile** — 32 px (souris)
+- **Texte de base** — 14 px
 
 Les écrans comptoir (clients, véhicules, recherche) sont **desktop-first** dans leur densité par
 défaut (`dense`) : c'est le contexte principal d'usage (réception, facturation), la tablette est
@@ -28,7 +52,9 @@ un repli qui bascule en `aeree` sous `lg:`.
 
 ---
 
-## 2. Le contrat de tokens (rappel d'usage)
+2. Le contrat de tokens (rappel d'usage)
+
+---
 
 Les tokens sont posés dans `src/index.css`, jamais recopiés en dur dans un composant.
 
@@ -48,7 +74,7 @@ Les tokens sont posés dans `src/index.css`, jamais recopiés en dur dans un com
   `text-sm`/`text-base` Tailwind nu sur un libellé de fiche ou une cellule de table dense : ça
   fige la taille indépendamment du contexte bureau/tablette et casse le contrat.
 
-### Contraste mesuré — statuts
+**Contraste mesuré — statuts**
 
 Méthode : calcul programmatique du ratio de contraste WCAG 2.1 (formule de luminance relative
 officielle), pas d'estimation visuelle. Script Node autonome, HSL → sRGB → luminance relative →
@@ -57,14 +83,41 @@ ratio, vérifié sur trois paires pertinentes pour chaque token : texte/icône d
 et texte blanc sur fond plein du token (badge « plein », §5.2 du document atelier). Seuil requis :
 ≥ 4.5:1 (WCAG AA, texte normal).
 
-| Token                | Sur `--background` | Sur `--muted` | Blanc sur fond plein | Conforme |
-| -------------------- | ------------------ | ------------- | -------------------- | -------- |
-| `--statut-neutre`    | 5.22:1             | 4.75:1        | 5.22:1               | Oui      |
-| `--statut-info`      | 5.98:1             | 5.44:1        | 5.98:1               | Oui      |
-| `--statut-attention` | 5.31:1             | 4.84:1        | 5.31:1               | Oui      |
-| `--statut-succes`    | 5.68:1             | 5.17:1        | 5.68:1               | Oui      |
-| `--statut-danger`    | 6.47:1             | 5.89:1        | 6.47:1               | Oui      |
-| `--statut-terminal`  | 9.06:1             | 8.24:1        | 9.06:1               | Oui      |
+- **Token** — `--statut-neutre`
+- **Sur `--background`** — 5.22:1
+- **Sur `--muted`** — 4.75:1
+- **Blanc sur fond plein** — 5.22:1
+- **Conforme** — Oui
+
+- **Token** — `--statut-info`
+- **Sur `--background`** — 5.98:1
+- **Sur `--muted`** — 5.44:1
+- **Blanc sur fond plein** — 5.98:1
+- **Conforme** — Oui
+
+- **Token** — `--statut-attention`
+- **Sur `--background`** — 5.31:1
+- **Sur `--muted`** — 4.84:1
+- **Blanc sur fond plein** — 5.31:1
+- **Conforme** — Oui
+
+- **Token** — `--statut-succes`
+- **Sur `--background`** — 5.68:1
+- **Sur `--muted`** — 5.17:1
+- **Blanc sur fond plein** — 5.68:1
+- **Conforme** — Oui
+
+- **Token** — `--statut-danger`
+- **Sur `--background`** — 6.47:1
+- **Sur `--muted`** — 5.89:1
+- **Blanc sur fond plein** — 6.47:1
+- **Conforme** — Oui
+
+- **Token** — `--statut-terminal`
+- **Sur `--background`** — 9.06:1
+- **Sur `--muted`** — 8.24:1
+- **Blanc sur fond plein** — 9.06:1
+- **Conforme** — Oui
 
 Deux tokens échouaient à la mesure initiale (valeurs du document atelier §8.1, données comme « à
 confirmer ») et ont été assombris avant d'être posés dans `index.css` :
@@ -85,7 +138,9 @@ la méthode complète (déjà validée, non refaite ici).
 
 ---
 
-## 3. Primitives — composants shadcn standard sur Radix
+3. Primitives — composants shadcn standard sur Radix
+
+---
 
 Toutes les primitives interactives sont maintenant des copies du composant shadcn standard,
 posées sur le vrai paquet Radix correspondant (`@radix-ui/react-tabs`, `react-dropdown-menu`,
@@ -99,16 +154,37 @@ Seul l'habillage (tokens, densités, cibles tactiles, échelle typographique) re
 projet — c'est la partie que chaque fichier `components/ui/*.tsx` continue de porter par-dessus le
 composant Radix nu :
 
-| Primitive                                | Paquet Radix                                      | Ce que l'habillage du projet ajoute                                                                                                                                                                                                                                                                                                                                     |
-| ---------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `table.tsx`, `badge.tsx`, `textarea.tsx` | aucun (HTML pur même chez shadcn)                 | Inchangé                                                                                                                                                                                                                                                                                                                                                                |
-| `separator.tsx`                          | `@radix-ui/react-separator`                       | Classes de trait (`bg-border`) et épaisseur, API `orientation`/`decorative` inchangée                                                                                                                                                                                                                                                                                   |
-| `checkbox.tsx`                           | `@radix-ui/react-checkbox`                        | Racine Radix dimensionnée en cible tactile 44×44 (`h-11 w-11`), case visuelle 20px centrée dedans, stylée via `group-data-[state=checked]` sur la racine (plus de `peer` — il n'y a plus d'`<input>` frère)                                                                                                                                                             |
-| `select.tsx`                             | `@radix-ui/react-select`                          | API composée standard (`Select/SelectTrigger/SelectValue/SelectContent/SelectItem`), `SelectTrigger` à `h-11`/texte 16px, `SelectItem` à hauteur minimale 44px                                                                                                                                                                                                          |
-| `tabs.tsx`                               | `@radix-ui/react-tabs`                            | `TabsList`/`TabsTrigger` à `h-11`, indicateur actif en `border-primary`, aucune logique ARIA/clavier propre — Radix gère `tablist/tab/tabpanel` et les flèches                                                                                                                                                                                                          |
-| `tooltip.tsx`                            | `@radix-ui/react-tooltip`                         | `TooltipProvider` réel (délai configurable côté Radix), contenu en portail. À réserver à l'information complémentaire, jamais à une donnée indispensable à la décision — même règle qu'avant, elle ne dépend pas de l'implémentation                                                                                                                                    |
-| `popover.tsx`, `dropdown-menu.tsx`       | `@radix-ui/react-popover` / `react-dropdown-menu` | Contenu en portail (`Portal`) : un ancêtre `overflow-hidden`/`overflow-auto` ne rogne plus le contenu ouvert — la limite documentée avant la bascule n'existe plus                                                                                                                                                                                                      |
-| `command.tsx`                            | `cmdk`                                            | `Command` posé avec `shouldFilter={false}` par défaut : la recherche par plaque/châssis/nom interroge l'API, jamais un filtre client sur une liste déjà chargée. `CommandInput` prend `value`/`onValueChange` en contrôlé pour brancher une recherche serveur (debounce côté appelant). Un appelant avec une vraie liste statique peut repasser `shouldFilter` à `true` |
+- **Primitive** — `table.tsx`, `badge.tsx`, `textarea.tsx`
+- **Paquet Radix** — aucun (HTML pur même chez shadcn)
+- **Ce que l'habillage du projet ajoute** — Inchangé
+
+- **Primitive** — `separator.tsx`
+- **Paquet Radix** — `@radix-ui/react-separator`
+- **Ce que l'habillage du projet ajoute** — Classes de trait (`bg-border`) et épaisseur, API `orientation`/`decorative` inchangée
+
+- **Primitive** — `checkbox.tsx`
+- **Paquet Radix** — `@radix-ui/react-checkbox`
+- **Ce que l'habillage du projet ajoute** — Racine Radix dimensionnée en cible tactile 44×44 (`h-11 w-11`), case visuelle 20px centrée dedans, stylée via `group-data-[state=checked]` sur la racine (plus de `peer` — il n'y a plus d'`<input>` frère)
+
+- **Primitive** — `select.tsx`
+- **Paquet Radix** — `@radix-ui/react-select`
+- **Ce que l'habillage du projet ajoute** — API composée standard (`Select/SelectTrigger/SelectValue/SelectContent/SelectItem`), `SelectTrigger` à `h-11`/texte 16px, `SelectItem` à hauteur minimale 44px
+
+- **Primitive** — `tabs.tsx`
+- **Paquet Radix** — `@radix-ui/react-tabs`
+- **Ce que l'habillage du projet ajoute** — `TabsList`/`TabsTrigger` à `h-11`, indicateur actif en `border-primary`, aucune logique ARIA/clavier propre — Radix gère `tablist/tab/tabpanel` et les flèches
+
+- **Primitive** — `tooltip.tsx`
+- **Paquet Radix** — `@radix-ui/react-tooltip`
+- **Ce que l'habillage du projet ajoute** — `TooltipProvider` réel (délai configurable côté Radix), contenu en portail. À réserver à l'information complémentaire, jamais à une donnée indispensable à la décision — même règle qu'avant, elle ne dépend pas de l'implémentation
+
+- **Primitive** — `popover.tsx`, `dropdown-menu.tsx`
+- **Paquet Radix** — `@radix-ui/react-popover` / `react-dropdown-menu`
+- **Ce que l'habillage du projet ajoute** — Contenu en portail (`Portal`) : un ancêtre `overflow-hidden`/`overflow-auto` ne rogne plus le contenu ouvert — la limite documentée avant la bascule n'existe plus
+
+- **Primitive** — `command.tsx`
+- **Paquet Radix** — `cmdk`
+- **Ce que l'habillage du projet ajoute** — `Command` posé avec `shouldFilter={false}` par défaut : la recherche par plaque/châssis/nom interroge l'API, jamais un filtre client sur une liste déjà chargée. `CommandInput` prend `value`/`onValueChange` en contrôlé pour brancher une recherche serveur (debounce côté appelant). Un appelant avec une vraie liste statique peut repasser `shouldFilter` à `true`
 
 Deux écarts d'API assumés par rapport à ce qui existait avant cette bascule, documentés ici pour
 que `expert-react` ne les redécouvre pas en écrivant un écran :
@@ -124,7 +200,9 @@ déjà documentés §4-§8) : rien à réapprendre pour les écrans à venir.
 
 ---
 
-## 4. Patron — table dense
+4. Patron — table dense
+
+---
 
 Composants : `Table`, `TableHeader`, `TableRow`, `TableHead`, `TableBody`, `TableCell` (table.tsx).
 
@@ -192,7 +270,9 @@ Règles :
 
 ---
 
-## 5. Patron — fiche à deux colonnes
+5. Patron — fiche à deux colonnes
+
+---
 
 Client, véhicule : même charpente. `xl:` (≥ 1280 px) deux colonnes ; en dessous, empilé dans
 l'ordre colonne principale puis colonne secondaire (jamais l'inverse — l'action et l'identité
@@ -233,7 +313,9 @@ Règles :
 
 ---
 
-## 6. Patron — encart d'alertes
+6. Patron — encart d'alertes
+
+---
 
 Utilisé pour : alerte client (impayé, litige), échéance d'expertise proche, identification
 incomplète. Un seul encart par nature d'alerte, jamais une pile de bannières redondantes.
@@ -261,7 +343,9 @@ incomplète. Un seul encart par nature d'alerte, jamais une pile de bannières r
 
 ---
 
-## 7. Patron — panneau latéral
+7. Patron — panneau latéral
+
+---
 
 `Sheet` (existant, `sheet.tsx`) pour toute action qui édite/complète sans quitter le contexte de
 la fiche (ex. « modifier les coordonnées », « ajouter une note ») — jamais pour une simple
@@ -294,7 +378,9 @@ consultation (ça, c'est la colonne secondaire de la fiche, §5).
 
 ---
 
-## 8. Patron — avertissement / refus (invariant n°8, hors OR)
+8. Patron — avertissement / refus (invariant n°8, hors OR)
+
+---
 
 Même famille que `RefusBloquant`/`AvertissementConfirmable` (F1-U2, périmètre `composants/motifs/`
 d'un autre lot) mais le comptoir en a besoin plus tôt : ex. tentative de suppression d'un véhicule
@@ -315,7 +401,9 @@ qui a des OR liés, ou de fusion de deux fiches client.
 
 ---
 
-## 9. Checklist de conformité (F1-U0)
+9. Checklist de conformité (F1-U0)
+
+---
 
 - [x] Contraste mesuré et consigné ≥ 4.5:1 pour les six tokens de statut, sur fond clair et sur
       fond plein (« sombre ») — §2, outil : script Node, formule de luminance relative WCAG 2.1.

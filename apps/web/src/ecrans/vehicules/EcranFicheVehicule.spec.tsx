@@ -291,6 +291,24 @@ describe('EcranFicheVehicule', () => {
     expect(screen.getByText('Chargement…')).toBeInTheDocument();
   });
 
+  // Chantier « titres doublés & espacements » (17.08.2026) — `GabaritEcran` force ce h1 en
+  // `sr-only` (contenu déjà affiché en gros caractères par `EnTeteFicheVehicule`, voir le
+  // commentaire de `EcranFicheVehicule.tsx`) : présent dans le DOM pour un lecteur d'écran, jamais
+  // retiré, mais masqué visuellement. `getByRole('heading', ...)` le trouve malgré tout (un élément
+  // `sr-only` reste dans l'arbre d'accessibilité) — mesuré : `toBeVisible()` (jest-dom) ne teste que
+  // `display`/`visibility`/`opacity`/`hidden`, jamais la technique `position: absolute; clip: …`
+  // utilisée par `.sr-only`, et aucune feuille de style n'est chargée dans ces tests (jsdom) — cette
+  // assertion resterait donc verte même si le masquage disparaissait. La classe posée par
+  // `GabaritEcran` (`cn('texte-titre-page', !titreVisible && 'sr-only')`) est la preuve fiable ici.
+  it('garde un h1 accessible « Fiche véhicule » dans le DOM, masqué via `sr-only`', async () => {
+    installerHandlersOk();
+    rendre();
+
+    const titre = await screen.findByRole('heading', { level: 1, name: 'Fiche véhicule' });
+    expect(titre).toBeInTheDocument();
+    expect(titre.className).toMatch(/\bsr-only\b/);
+  });
+
   it('affiche une erreur actionnable si le véhicule est introuvable, avec un bouton réessayer', async () => {
     // Lot B — `vehiculeId` vient du paramètre de route (toujours défini ici, `v1`), pas de la
     // résolution de `requeteVehicule` : les requêtes secondaires de ce lot (OR, factures, pneus,

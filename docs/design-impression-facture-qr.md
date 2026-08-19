@@ -1,4 +1,5 @@
-# Design — Impression de la facture et bulletin QR
+Design — Impression de la facture et bulletin QR
+================================================
 
 > Auteur : expert-ui. Comble un trou signalé dans `docs/design-etape-2-facturation.md` §4.6 : le menu
 > `⋯` de l'écran facture y prévoyait déjà une entrée « Imprimer / télécharger le PDF », **sans qu'aucun
@@ -20,7 +21,8 @@
 
 ---
 
-## Sommaire
+Sommaire
+--------
 
 0. [Ce qui est déjà tranché ailleurs, repris tel quel](#0-ce-qui-est-déjà-tranché-ailleurs-repris-tel-quel)
 1. [`DI-1` — Génération serveur, PDF natif — pas d'impression navigateur seule](#1-di-1--génération-serveur-pdf-natif--pas-dimpression-navigateur-seule)
@@ -37,7 +39,9 @@
 
 ---
 
-## 0. Ce qui est déjà tranché ailleurs, repris tel quel
+0. Ce qui est déjà tranché ailleurs, repris tel quel
+
+---
 
 Trois faits du modèle documentaire structurent tout ce qui suit — je ne les redécide pas, je les
 prends comme contraintes dures :
@@ -55,7 +59,9 @@ prends comme contraintes dures :
 
 ---
 
-## 1. `DI-1` — Génération serveur, PDF natif — pas d'impression navigateur seule
+1. `DI-1` — Génération serveur, PDF natif — pas d'impression navigateur seule
+
+---
 
 **Décision : le document imprimable (facture + bulletin QR) est un PDF produit côté serveur par une
 bibliothèque de génération PDF native (positionnement en unités physiques exactes), jamais par
@@ -96,7 +102,9 @@ de moteur de rendu web : une facture est une mise en page fixe, pas une page int
 
 ---
 
-## 2. `DI-2` — Rendu du QR : côté serveur, une seule fois, jamais dans le navigateur
+2. `DI-2` — Rendu du QR : côté serveur, une seule fois, jamais dans le navigateur
+
+---
 
 **Décision : le symbole QR est encodé en image au moment de la génération du PDF (§1), côté serveur,
 à partir de `qrPayload` figé — et nulle part ailleurs.** Aucun rendu QR côté client, ni comme aperçu
@@ -115,7 +123,9 @@ référence, montant, langue) sans image QR — l'image QR existe uniquement dan
 
 ---
 
-## 3. `DI-3` — Cycle de vie : génération à la demande, cache, jamais de régénération silencieuse
+3. `DI-3` — Cycle de vie : génération à la demande, cache, jamais de régénération silencieuse
+
+---
 
 **Décision : le PDF est généré au premier clic explicite sur « Imprimer / télécharger le PDF »** — pas
 automatiquement à l'émission de la facture. Le résultat est stocké (`pdfCle` = clé de l'objet stocké,
@@ -141,7 +151,9 @@ sous-produit d'une action utilisateur normale.
 
 ---
 
-## 4. `DI-4` — Contraintes dimensionnelles SIX : ce qui est vérifié, ce qui ne l'est pas
+4. `DI-4` — Contraintes dimensionnelles SIX : ce qui est vérifié, ce qui ne l'est pas
+
+---
 
 **Aucune dimension en millimètres n'est vérifiée dans ce dépôt à ce jour, et je n'en invente aucune
 ici.** Une recherche dans `docs/*.md` ne fait remonter aucune mesure physique du bulletin — seul le
@@ -181,12 +193,14 @@ une citation vérifiable de sa source.**
 
 ---
 
-## 5. `DI-5` — L'écran : les trois cas mesurés
+5. `DI-5` — L'écran : les trois cas mesurés
+
+---
 
 Route inchangée, `/factures/:id` (`EcranFicheFacture.tsx`). Trois amendements, correspondant aux trois
 cas mesurés — **aucun n'est une erreur, les trois sont des états normaux à afficher clairement.**
 
-### 5.1 Action « Imprimer / télécharger le PDF »
+**5.1 Action « Imprimer / télécharger le PDF »**
 
 Ajoutée au menu `⋯` déjà existant (celui qui porte aujourd'hui « Corriger cette facture » et
 « Créer un avoir »), **uniquement pour un document `typeDocument = 'facture'`, `statut ∈ {emis,
@@ -207,7 +221,7 @@ vrai — alors que `docs/design-etape-2-facturation.md` §4.6 prévoyait explici
 garde que Voir le journal et Imprimer » sur une facture annulée par avoir (le document annulé reste
 consultable, `RF-32`). Câbler « Imprimer » implique de rouvrir cette condition pour cette seule entrée.
 
-### 5.2 Carte « Bulletin de versement » — colonne secondaire, sous `RecapitulatifTVA`
+**5.2 Carte « Bulletin de versement » — colonne secondaire, sous `RecapitulatifTVA`**
 
 Résumé texte, jamais d'image QR (`DI-2`) :
 
@@ -223,12 +237,17 @@ Résumé texte, jamais d'image QR (`DI-2`) :
 **Cas A — `qr` est `null`.** Trois sous-cas, trois rendus différents, jamais un message d'erreur
 générique :
 
-| Sous-cas                                               | Rendu                                                                                                                                                                                                                 |
-| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Type `devis`/`bon_commande`/`avoir`                    | Carte **absente** — pas d'état vide affiché, ces documents n'ont structurellement pas de section paiement (l'avoir crédite, il ne se paie pas).                                                                       |
-| Facture en `brouillon`                                 | Carte **absente** — le bulletin n'existe qu'à l'émission, cohérent avec l'absence du bouton « Imprimer » en brouillon.                                                                                                |
-| Facture émise, rôle sans droit aux montants (`RF-116`) | Carte **absente**, action « Imprimer » absente du menu (§5.1) — pas de version dégradée de la carte qui laisserait deviner un montant.                                                                                |
-| Facture émise, devise ni CHF ni EUR (`RF-58`)          | Carte **absente**, mais « Imprimer » **reste proposée** : le PDF existe, sa section paiement affiche les coordonnées bancaires en clair au lieu d'un QR — cas géré au niveau du gabarit PDF (`DI-1`), pas de l'écran. |
+- **Sous-cas** — Type `devis`/`bon_commande`/`avoir`
+- **Rendu** — Carte **absente** — pas d'état vide affiché, ces documents n'ont structurellement pas de section paiement (l'avoir crédite, il ne se paie pas).
+
+- **Sous-cas** — Facture en `brouillon`
+- **Rendu** — Carte **absente** — le bulletin n'existe qu'à l'émission, cohérent avec l'absence du bouton « Imprimer » en brouillon.
+
+- **Sous-cas** — Facture émise, rôle sans droit aux montants (`RF-116`)
+- **Rendu** — Carte **absente**, action « Imprimer » absente du menu (§5.1) — pas de version dégradée de la carte qui laisserait deviner un montant.
+
+- **Sous-cas** — Facture émise, devise ni CHF ni EUR (`RF-58`)
+- **Rendu** — Carte **absente**, mais « Imprimer » **reste proposée** : le PDF existe, sa section paiement affiche les coordonnées bancaires en clair au lieu d'un QR — cas géré au niveau du gabarit PDF (`DI-1`), pas de l'écran.
 
 **Cas B — `debiteur` est `null` sur un `qr` présent** (`RF-59`, adresse client incomplète à
 l'émission — cas mesuré sur la facture de démonstration `2026-00002`). La carte s'affiche
@@ -250,7 +269,7 @@ libellé i18n au moment de l'implémentation.
 garantie d'implémentation (`DI-3`), pas un état d'écran. Il se traduit uniquement par l'absence de tout
 mécanisme de rafraîchissement automatique du PDF stocké (§3).
 
-### 5.3 États
+**5.3 États**
 
 - **Chargement du PDF** (premier clic) : le bouton « Imprimer / télécharger le PDF » passe en état de
   chargement, reste cliquable une seule fois (pas de double génération concurrente pour le même
@@ -260,7 +279,9 @@ mécanisme de rafraîchissement automatique du PDF stocké (§3).
 
 ---
 
-## 6. `DI-6` — Multilingue : la langue du client, jamais celle de l'utilisateur connecté
+6. `DI-6` — Multilingue : la langue du client, jamais celle de l'utilisateur connecté
+
+---
 
 Le contrat porte déjà les deux champs nécessaires, figés à l'émission :
 `ReponseDocumentVente.figees.clientLangue` (langue du document entier) et
@@ -294,20 +315,39 @@ document produit ne sera pas dans la langue que l'utilisateur voit à l'écran, 
 
 ---
 
-## 7. Composants et endpoints à ajouter
-
-| Élément                                                                      | Rôle                                                                                                                                                              | Propriétaire                                                                          |
-| ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `GET /documents-vente/{id}/pdf` (esquissé ici, contrat complet à formaliser) | Retourne le PDF — génère au premier appel, sert le cache ensuite (`DI-3`). Doit refuser (pas seulement masquer) l'accès à un rôle sans droit aux montants (§5.1). | `expert-api` pour le contrat OpenAPI définitif, `expert-nestjs` pour l'implémentation |
-| Générateur PDF facture + bulletin QR                                         | Gabarit en unités physiques, lit `figees`, `lignes`, `ventilationTva`, `qr` — n'en recompose aucun (`DI-3`). Bibliothèque à choisir (§9).                         | `expert-nestjs`/`expert-facturation`                                                  |
-| Libellés fixes du gabarit PDF (fr/de/it)                                     | Vocabulaire fermé du document imprimé, dans `@dfa/shared` (§6).                                                                                                   | `expert-i18n`                                                                         |
-| Carte « Bulletin de versement » (§5.2)                                       | Nouveau composant, résumé texte uniquement.                                                                                                                       | `expert-react`                                                                        |
-| Item menu « Imprimer / télécharger le PDF » (§5.1)                           | Ajout au `DropdownMenu` existant de `EcranFicheFacture.tsx`, gating par droit et par `estAnnuleeParAvoir` corrigé.                                                | `expert-react`                                                                        |
-| Indicateur `ⓘ` langue du document (§6)                                       | Réutilise/câble la clé `reception:langue` existante.                                                                                                              | `expert-react`                                                                        |
+7. Composants et endpoints à ajouter
 
 ---
 
-## 8. Hors périmètre, volontairement
+- **Élément** — `GET /documents-vente/{id}/pdf` (esquissé ici, contrat complet à formaliser)
+- **Rôle** — Retourne le PDF — génère au premier appel, sert le cache ensuite (`DI-3`). Doit refuser (pas seulement masquer) l'accès à un rôle sans droit aux montants (§5.1).
+- **Propriétaire** — `expert-api` pour le contrat OpenAPI définitif, `expert-nestjs` pour l'implémentation
+
+- **Élément** — Générateur PDF facture + bulletin QR
+- **Rôle** — Gabarit en unités physiques, lit `figees`, `lignes`, `ventilationTva`, `qr` — n'en recompose aucun (`DI-3`). Bibliothèque à choisir (§9).
+- **Propriétaire** — `expert-nestjs`/`expert-facturation`
+
+- **Élément** — Libellés fixes du gabarit PDF (fr/de/it)
+- **Rôle** — Vocabulaire fermé du document imprimé, dans `@dfa/shared` (§6).
+- **Propriétaire** — `expert-i18n`
+
+- **Élément** — Carte « Bulletin de versement » (§5.2)
+- **Rôle** — Nouveau composant, résumé texte uniquement.
+- **Propriétaire** — `expert-react`
+
+- **Élément** — Item menu « Imprimer / télécharger le PDF » (§5.1)
+- **Rôle** — Ajout au `DropdownMenu` existant de `EcranFicheFacture.tsx`, gating par droit et par `estAnnuleeParAvoir` corrigé.
+- **Propriétaire** — `expert-react`
+
+- **Élément** — Indicateur `ⓘ` langue du document (§6)
+- **Rôle** — Réutilise/câble la clé `reception:langue` existante.
+- **Propriétaire** — `expert-react`
+
+---
+
+8. Hors périmètre, volontairement
+
+---
 
 - **Aucun aperçu PDF intégré à l'écran en V1** (§1) — le bouton télécharge/imprime directement.
   Un aperçu (par exemple via `pdf.js` embarqué) est une amélioration ultérieure indépendante, pas
@@ -326,7 +366,9 @@ document produit ne sera pas dans la langue que l'utilisateur voit à l'écran, 
 
 ---
 
-## 9. À vérifier avant implémentation
+9. À vérifier avant implémentation
+
+---
 
 - **Toutes les dimensions physiques du bulletin** (§4) contre la spécification officielle SIX (« Swiss
   Implementation Guidelines QR-bill », `paymentstandards.ch`) — taille et zone de repos du symbole QR,
@@ -344,7 +386,9 @@ document produit ne sera pas dans la langue que l'utilisateur voit à l'écran, 
   passé (« a été émis ») sur une facture déjà `emis`, à vérifier avec `expert-i18n` pour les trois
   langues, pas seulement le français.
 
-## 10. Ce qui appartient à @laupernoe
+10. Ce qui appartient à @laupernoe
+
+---
 
 - **Impriment-ils vraiment, ou envoient-ils par courriel ?** La réponse change tout : si le pilote
   envoie systématiquement par courriel plutôt que d'imprimer sur papier, le PDF reste l'artefact, mais
@@ -367,14 +411,16 @@ document produit ne sera pas dans la langue que l'utilisateur voit à l'écran, 
 
 ---
 
-## 11. Implémentation backend — bibliothèque, invariant de vérification, état de livraison (expert-facturation)
+11. Implémentation backend — bibliothèque, invariant de vérification, état de livraison (expert-facturation)
+
+---
 
 > Auteur : expert-facturation. Répond à `DI-4` §« voie 2 » (adopter une bibliothèque QR-bill suisse
 > déjà maintenue plutôt que redériver les cotes à la main) et à `§9`/`§7` de la section précédente
 > (choix de bibliothèque, endpoint, RF-116). N'écrase rien de ce qui précède — l'ajoute. Code :
 > `apps/api/src/facturation/impression/`.
 
-### 11.1 Bibliothèque retenue : `swissqrbill`
+**11.1 Bibliothèque retenue : `swissqrbill`**
 
 Évaluation mesurée en exécution (Node portable, décodage indépendant PyMuPDF + OpenCV, artefacts
 conservés hors dépôt) : trois alternatives écartées sur preuve (deux antérieures au retrait de
@@ -393,7 +439,7 @@ Versions **épinglées exactement** dans `apps/api/package.json` (`"swissqrbill"
 structure interne que `verification-payload-qr.ts` observe (voir §11.3), et la criticité financière
 de ce chemin justifie de ne jamais la découvrir en production via une mise à jour silencieuse.
 
-### 11.2 L'incompatibilité décisive, et comment `DI-3`/`MD-77` la traverse quand même
+**11.2 L'incompatibilité décisive, et comment `DI-3`/`MD-77` la traverse quand même**
 
 `swissqrbill` ne recompose jamais le payload à partir d'une chaîne déjà construite — il le reconstruit
 TOUJOURS depuis des champs structurés (`Data`), et n'expose PUBLIQUEMENT aucune fonction acceptant un
@@ -442,7 +488,7 @@ prouver l'équivalence sur cinq combinaisons réelles (QRR+QR-IBAN, SCOR+IBAN or
 référence, débiteur présent, débiteur absent, CHF, EUR) — construites avec le VRAI encodeur
 d'émission (`facturation/qr/encodeur.ts`), pas une fixture écrite à la main.
 
-### 11.3 Ce que l'implémentation a découvert, non anticipé dans les sections précédentes
+**11.3 Ce que l'implémentation a découvert, non anticipé dans les sections précédentes**
 
 - **`pdfkit` émet ses événements `data` de façon ASYNCHRONE**, pas synchrone après `.end()` — vérifié
   en exécution (0 octet lu juste après `.end()`, contenu complet seulement à l'événement `end`).
@@ -457,7 +503,7 @@ d'émission (`facturation/qr/encodeur.ts`), pas une fixture écrite à la main.
   l'horodatage de génération : élimine une fenêtre de course bénigne entre deux premières requêtes
   concurrentes sur le même document (§11.4) en rendant la génération déterministe octet pour octet.
 
-### 11.4 Cycle de vie et stockage (`DI-3` appliqué)
+**11.4 Cycle de vie et stockage (`DI-3` appliqué)**
 
 `ServiceImpressionFacture.obtenirPdf()` : lit `document.pdfCle` ; si posé, relit le fichier stocké et
 vérifie son empreinte SHA-256 contre `document.pdfSha256` (refuse si elles divergent — corruption de
@@ -473,7 +519,7 @@ mono-instance, pas une décision de production** : un adaptateur S3-compatible (
 cohérent avec `ARCHITECTURE.md`) devra le remplacer derrière la même interface avant un déploiement
 multi-instance — décision et implémentation `expert-devops`, hors du périmètre de cette tâche.
 
-### 11.5 `RF-116` : droit dédié — résolu
+**11.5 `RF-116` : droit dédié — résolu**
 
 Le PDF contient le montant en clair (charge QR) — `@ExigerDroit(...)` doit gouverner la route, pas un
 masquage d'affichage (repris de §5.1). `'facturation.document.imprimer'` (`auth/matrice-droits.ts`)
@@ -572,7 +618,7 @@ ce document ») pour un devis/bon de commande/avoir/brouillon ; `ERREUR_INTERNE`
 pour la divergence de payload et la corruption de cache — ces deux cas ne devraient JAMAIS se produire
 en fonctionnement normal, un `500` est le bon signal (alerte, pas erreur utilisateur à corriger).
 
-### 11.6 Ce qui reste hors de portée — non vérifié, et qui doit le rester tant que non fait
+**11.6 Ce qui reste hors de portée — non vérifié, et qui doit le rester tant que non fait**
 
 Reprend et confirme `DI-4`, sans l'affaiblir : **aucune cote millimétrique n'est vérifiée**, ni par
 l'agent d'évaluation précédent ni par cette implémentation. Déléguer la géométrie à `swissqrbill`
@@ -589,7 +635,7 @@ encodé est fidèle au payload figé ; il ne dit rien sur la **conformité physi
 repos, taille de la croix suisse, dimensions du récépissé) qu'un scanner bancaire tolérant pourrait
 accepter alors qu'un contrôle strict au guichet la refuserait.
 
-### 11.7 Preuve — facture `2026-00002` (`dfa_dev`, débiteur absent — RF-59)
+**11.7 Preuve — facture `2026-00002` (`dfa_dev`, débiteur absent — RF-59)**
 
 Exécutée contre la base de développement réelle (`ServiceAccesBase` connecté à `dfa_dev`,
 `ServiceDocumentsVente`/`ServiceAuditImpl` réels — pas de mock), sans passer par la route HTTP
@@ -613,7 +659,7 @@ au périmètre d'écriture de cette tâche) — le PDF produit est disponible po
 (chemin gitignoré, généré par la preuve ci-dessus — régénérable à l'identique par un nouvel appel à
 `obtenirPdf`, la génération étant déterministe, §11.3).
 
-### 11.8 Preuve HTTP réelle — le garde mord
+**11.8 Preuve HTTP réelle — le garde mord**
 
 Une fois l'action `'facturation.document.imprimer'` ajoutée (§11.5) et la route câblée, l'API
 (`nest start --watch`, hot-reload) a repris la route à chaud — confirmé dans les logs réels :
@@ -627,17 +673,20 @@ Une fois l'action `'facturation.document.imprimer'` ajoutée (§11.5) et la rout
 Trois connexions réelles (`POST /api/v1/auth/connexion`, `Demo1234!Garage`) contre le seed
 `garage-martin`, puis `GET /api/v1/documents-vente/8cf6de58-d78a-46b1-8add-bf68fb8f371f/pdf` :
 
-| Rôle                                                      | Résultat mesuré                                                                                                                                                                                                                                                                                     |
-| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `technicien@garage-martin.ch`                             | **`403 DROIT_INSUFFISANT`** — ne voit pas les montants, n'obtient pas le PDF                                                                                                                                                                                                                        |
-| `admin@garage-martin.ch`                                  | **`403 DROIT_INSUFFISANT`** — `RF-115`, aucun droit financier                                                                                                                                                                                                                                       |
-| `receptionniste@garage-martin.ch` (rôle `receptionnaire`) | **`200`**, `Content-Type: application/pdf`, `Content-Length: 10564`, `ETag: "02da2923d5e9694b117e0762f945a430b930b5a7f1097a8e497d270345bc8554"` — exactement le PDF généré et mis en cache en §11.7 (même empreinte), servi cette fois par la vraie route HTTP, pas par un appel direct au service. |
+- **Rôle** — `technicien@garage-martin.ch`
+- **Résultat mesuré** — **`403 DROIT_INSUFFISANT`** — ne voit pas les montants, n'obtient pas le PDF
+
+- **Rôle** — `admin@garage-martin.ch`
+- **Résultat mesuré** — **`403 DROIT_INSUFFISANT`** — `RF-115`, aucun droit financier
+
+- **Rôle** — `receptionniste@garage-martin.ch` (rôle `receptionnaire`)
+- **Résultat mesuré** — **`200`**, `Content-Type: application/pdf`, `Content-Length: 10564`, `ETag: "02da2923d5e9694b117e0762f945a430b930b5a7f1097a8e497d270345bc8554"` — exactement le PDF généré et mis en cache en §11.7 (même empreinte), servi cette fois par la vraie route HTTP, pas par un appel direct au service.
 
 C'est la vérification qui compte le plus : elle prouve qu'on ne peut pas télécharger, via l'endpoint
 PDF, des montants qu'on n'a pas le droit de voir à l'écran — `@ExigerDroit('facturation.document.imprimer')`
 mord réellement, ce n'est pas un masquage d'affichage contournable par un appel direct.
 
-### 11.9 État de test et de compilation à la livraison
+**11.9 État de test et de compilation à la livraison**
 
 - `tsc --noEmit` : exit 0 sur l'ensemble du dépôt API.
 - `eslint apps/api/src/facturation/impression apps/api/src/app.module.ts --max-warnings=0` : aucun

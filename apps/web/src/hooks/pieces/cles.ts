@@ -8,6 +8,7 @@ import type {
 } from '@dfa/shared';
 
 import type { FiltresListeArticles } from './articles.api';
+import type { FiltresEcranFacturesFournisseur } from './factures-fournisseur.temporaire';
 
 /**
  * Clés TanStack Query du domaine pièces — même convention que `clesFacturation`
@@ -30,6 +31,9 @@ export const clesPieces = {
       ['pieces', 'articles', 'disponibilite', articleId, siteId] as const,
     mouvements: (articleId: string, filtres: FiltresMouvementsStock) =>
       ['pieces', 'articles', 'mouvements', articleId, filtres] as const,
+    /** `GET .../mouvements/apercu-forcage` — défaut n°2 (test manuel du 14.08.2026). */
+    apercuForcage: (articleId: string, siteId: string, quantiteMillieme: number) =>
+      ['pieces', 'articles', 'apercuForcage', articleId, siteId, quantiteMillieme] as const,
   },
 
   stock: {
@@ -61,4 +65,14 @@ export const clesPieces = {
 
   /** Singleton du tenant (`GET|PATCH /parametrage/pieces`) — aucun filtre, une seule clé. */
   parametrage: () => ['pieces', 'parametrage'] as const,
+
+  /** Dépôt/rapprochement des factures fournisseur — contrat TEMPORAIRE tant que
+   *  `factures-fournisseur.temporaire.ts` n'a pas été remplacé par les types générés (voir sa
+   *  doc de tête). Même convention que `commandesFournisseur` ci-dessus (tuple plat, filtres
+   *  complets). */
+  facturesFournisseur: {
+    liste: (filtres: FiltresEcranFacturesFournisseur) =>
+      ['pieces', 'facturesFournisseur', 'liste', filtres] as const,
+    detail: (id: string) => ['pieces', 'facturesFournisseur', 'detail', id] as const,
+  },
 } as const;

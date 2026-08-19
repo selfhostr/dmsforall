@@ -1,4 +1,5 @@
-# Spécification métier — Étape 3 : Pièces
+Spécification métier — Étape 3 : Pièces
+=======================================
 
 > Périmètre : article (référentiel pièces), stock par site, mouvements, réservation, commande
 > fournisseur, consigne (échange standard), vente comptoir.
@@ -16,7 +17,8 @@
 
 ---
 
-## Sommaire
+Sommaire
+--------
 
 1. [Périmètre et non-périmètre](#1-périmètre-et-non-périmètre)
 2. [Ce qui existe déjà et que ce module doit respecter](#2-ce-qui-existe-déjà-et-que-ce-module-doit-respecter)
@@ -34,7 +36,9 @@
 
 ---
 
-## 1. Périmètre et non-périmètre
+1. Périmètre et non-périmètre
+
+---
 
 **Dans le périmètre** : le référentiel des pièces (article), le stock par site, les mouvements de
 stock et leur traçabilité, la réservation d'une pièce pour un OR précis, la commande fournisseur
@@ -57,7 +61,9 @@ d'échange standard, la vente de pièce au comptoir sans OR.
 
 ---
 
-## 2. Ce qui existe déjà et que ce module doit respecter
+2. Ce qui existe déjà et que ce module doit respecter
+
+---
 
 Le module atelier (étape 1) a **anticipé** l'étape 3 à plusieurs endroits précis. Ce module s'y
 raccorde, il ne les réinvente pas :
@@ -111,7 +117,9 @@ raccorde, il ne les réinvente pas :
 
 ---
 
-## 3. Vocabulaire
+3. Vocabulaire
+
+---
 
 - **Article** — la fiche pièce elle-même, indépendante de tout stock : référence, désignation,
   marque, prix. Un article existe même à quantité zéro.
@@ -136,7 +144,9 @@ raccorde, il ne les réinvente pas :
 
 ---
 
-## 4. Le flux réel de bout en bout
+4. Le flux réel de bout en bout
+
+---
 
 Ce que fait concrètement un magasinier, dans l'ordre où ça arrive dans sa journée — pas dans l'ordre
 d'un schéma de base de données :
@@ -166,9 +176,11 @@ d'un schéma de base de données :
 
 ---
 
-## 5. Règles métier
+5. Règles métier
 
-### 5.1 L'article et ses références (`RP-01` → `RP-08`)
+---
+
+**5.1 L'article et ses références (`RP-01` → `RP-08`)**
 
 - **`RP-01`** — Un `article` porte une **désignation**, une **marque** (constructeur du véhicule ou
   équipementier), une **référence principale**, et éventuellement un **code-barres** (EAN ou
@@ -206,7 +218,7 @@ d'un schéma de base de données :
 - **`RP-08`** — Le numéro d'article interne (distinct des références constructeur/fournisseur) est
   unique par tenant, généré automatiquement.
 
-### 5.2 Le stock (`RP-09` → `RP-15`)
+**5.2 Le stock (`RP-09` → `RP-15`)**
 
 - **`RP-09`** — Le stock est tenu **par site** : `(article, site) → quantité`. Un même article peut
   avoir une quantité différente sur deux sites du même tenant.
@@ -234,7 +246,7 @@ d'un schéma de base de données :
   par un rôle habilité **(P)** — le cas réel existe (compteur informatique faux, pièce retrouvée
   après une casse déclarée par erreur) mais reste l'exception qui doit se voir.
 
-### 5.3 Les mouvements (`RP-16` → `RP-18`)
+**5.3 Les mouvements (`RP-16` → `RP-18`)**
 
 - **`RP-16`** — Tout mouvement de stock est de l'un des types : `entree_livraison` (réception
   fournisseur), `sortie_or` (consommée par un OR), `sortie_comptoir` (vendue au comptoir sans OR),
@@ -252,7 +264,7 @@ d'un schéma de base de données :
   supprimé** : une correction se fait par un **mouvement inverse** tracé, jamais par une édition en
   place — même doctrine que la chaîne documentaire de facturation (devis→facture→avoir immuable).
 
-### 5.4 La réservation (`RP-19` → `RP-25`)
+**5.4 La réservation (`RP-19` → `RP-25`)**
 
 C'est le cœur du sujet — et ce que les DMS existants ratent le plus souvent : le lien pièce ↔ OR y
 reste **physique** (une étagère, un nom écrit au marqueur), pas informatique, précisément parce que
@@ -291,7 +303,7 @@ le logiciel ne le représente pas correctement.
   Il expose la disponibilité, le délai annoncé, et laisse le réceptionnaire ou le chef d'atelier
   choisir, comme le prévoit déjà §6.7 de la spec étape 1.
 
-### 5.5 La commande fournisseur (`RP-26` → `RP-31`)
+**5.5 La commande fournisseur (`RP-26` → `RP-31`)**
 
 - **`RP-26`** — Une commande fournisseur porte un fournisseur, une date, 0..n lignes (article,
   quantité commandée, prix d'achat attendu), et un statut (§6.2). Elle peut naître de trois façons :
@@ -317,7 +329,7 @@ le logiciel ne le représente pas correctement.
 - **`RP-31`** — La commande fournisseur et le mouvement de stock sont des entités auditées au sens
   du dépôt (`CONTRIBUTING.md`) — voir la remarque de §2 sur l'extension nécessaire de `entite_auditee`.
 
-### 5.6 Le prix (`RP-32` → `RP-36`)
+**5.6 Le prix (`RP-32` → `RP-36`)**
 
 - **`RP-32`** — Tout montant est en **centimes entiers**, jamais de nombre à virgule flottante —
   aucune exception pour les pièces (règle n°1 du dépôt sur l'argent).
@@ -338,7 +350,7 @@ le logiciel ne le représente pas correctement.
   `ligne_or.tauxTvaPourmille`, déjà `notNull` avec figeage — `RM-65` de la spec étape 1). Un
   changement de taux TVA légal ne modifie jamais une ligne déjà créée.
 
-### 5.7 La consigne — échange standard (`RP-37` → `RP-42`)
+**5.7 La consigne — échange standard (`RP-37` → `RP-42`)**
 
 Ce paragraphe **débloque `RF-100`** (spec étape 2, marquée non résolue sur trois questions de
 terrain, §13 `QP-05` à `QP-07`) : le métier pièces sait ce qui se passe physiquement, la facturation
@@ -373,7 +385,7 @@ en découle.
   `RF-100` : taux normal 8.1 %) — **[À VALIDER fiscalement, `QP-06`, déjà ouvert en `RF-100`]**, ce
   module ne fait qu'hériter de l'hypothèse posée côté facturation, il ne la referme pas.
 
-### 5.8 La pièce vendue au comptoir, sans OR (`RP-43` → `RP-48`)
+**5.8 La pièce vendue au comptoir, sans OR (`RP-43` → `RP-48`)**
 
 - **`RP-43`** — Une vente comptoir est un `document_vente` (facturation, type `facture` dans le cas
   usuel du paiement immédiat) **sans OR associé**, avec ses propres lignes de type pièce. Ce module
@@ -407,9 +419,11 @@ en découle.
 
 ---
 
-## 6. Machines à états
+6. Machines à états
 
-### 6.1 L'article
+---
+
+**6.1 L'article**
 
 ```
         ┌──────────┐   marquage manuel    ┌───────────┐
@@ -426,7 +440,7 @@ Pas de machine à états complexe pour l'article lui-même : `actif` ↔ `obsol�
 trois réversibles sauf que `désactivé` exige l'absence de mouvement récent en cours (réservation
 active) — **[À VALIDER, seuil exact, `QP-02`]**.
 
-### 6.2 La commande fournisseur
+**6.2 La commande fournisseur**
 
 ```
 brouillon ──▶ envoyee ──▶ partiellement_recue ──▶ recue ──▶ cloturee
@@ -450,7 +464,7 @@ brouillon ──▶ envoyee ──▶ partiellement_recue ──▶ recue ──
   `RP-29`) — **[À VALIDER : cette étape existe-t-elle réellement comme geste distinct du
   magasinier, ou `recue` et `cloturee` sont-elles la même chose en pratique, `QP-10`]**.
 
-### 6.3 La réservation (état dérivé, pas une table séparée nécessairement — voir §8)
+**6.3 La réservation (état dérivé, pas une table séparée nécessairement — voir §8)**
 
 ```
 active ──▶ satisfaite (mouvement sortie_or généré, RP-21)
@@ -461,7 +475,7 @@ active ──▶ satisfaite (mouvement sortie_or généré, RP-21)
 Une réservation `active` retire la quantité du stock disponible (`RP-14`). `satisfaite` et
 `liberee` sont toutes deux terminales et ne retirent plus rien.
 
-### 6.4 La vieille pièce d'un échange standard (consigne)
+**6.4 La vieille pièce d'un échange standard (consigne)**
 
 ```
 deposee_par_client ──▶ en_attente_retour_fournisseur ──▶ retournee_fournisseur
@@ -474,9 +488,11 @@ partiel, déclenché par le même geste que `retournee_fournisseur`, `RP-40`) �
 
 ---
 
-## 7. Les cas tordus
+7. Les cas tordus
 
-### 7.1 La pièce facturée puis retournée, l'avoir partiel
+---
+
+**7.1 La pièce facturée puis retournée, l'avoir partiel**
 
 **Scénario** : un client achète 4 plaquettes de frein au comptoir, s'aperçoit une fois rentré qu'il
 s'est trompé de côté (avant/arrière), revient le lendemain avec les plaquettes non montées et le
@@ -488,7 +504,7 @@ déjà montées et 2 rendues. Le prix de vente TTC repris est **celui du documen
 recalculé au tarif du jour (même principe que toute correction en facturation : on ne modifie pas un
 document émis, on émet un avoir dessus).
 
-### 7.2 Deux OR concurrents demandent la même pièce en stock 1
+**7.2 Deux OR concurrents demandent la même pièce en stock 1**
 
 **Scénario** : il reste 1 disque de frein en stock. L'OR-1042 (ouvert ce matin) et l'OR-1043 (ouvert
 il y a 5 minutes) réclament chacun 1 disque de la même référence.
@@ -499,7 +515,7 @@ course silencieuse où les deux lignes croient chacune avoir la pièce jusqu'à 
 s'en aperçoive physiquement au comptoir. C'est exactement le défaut que `RP-14`/`RP-19` existent
 pour empêcher.
 
-### 7.3 Le véhicule (et son OR) annulé après la commande de la pièce
+**7.3 Le véhicule (et son OR) annulé après la commande de la pièce**
 
 **Scénario** : une pièce spéciale, non standard, est commandée pour un OR. Avant son arrivée, le
 client vend son véhicule ou annule l'intervention.
@@ -511,7 +527,7 @@ magasinier doit être **averti** que la pièce en cours de commande n'a plus de 
 « réservations libérées avec commande encore ouverte »), pas laissé à découvrir l'anomalie quand le
 carton arrive.
 
-### 7.4 Pièce reçue en trop, ou référence différente de la commande
+**7.4 Pièce reçue en trop, ou référence différente de la commande**
 
 **Scénario** : le fournisseur livre 6 filtres à huile alors que 4 étaient commandés (erreur de
 préparation), ou livre la bonne quantité mais avec une référence légèrement différente de celle
@@ -524,7 +540,7 @@ seulement si l'article livré est reconnu comme référence équivalente (`RP-02
 sinon le magasinier crée l'écart en anomalie de réception plutôt que de forcer une correspondance
 fausse.
 
-### 7.5 Vente comptoir à un autre garage (dépannage entre confrères)
+**7.5 Vente comptoir à un autre garage (dépannage entre confrères)**
 
 **Scénario**, courant dans le métier : un garage voisin manque d'une pièce, appelle, envoie
 quelqu'un la chercher, règle en fin de mois sur facture groupée.
@@ -533,7 +549,7 @@ quelqu'un la chercher, règle en fin de mois sur facture groupée.
 garage tiers), avec conditions de paiement à crédit — aucune règle nouvelle, le mécanisme client
 entreprise de l'étape 1 (`RM-01`, `RM-07`) et la vente comptoir (§5.8) suffisent ensemble.
 
-### 7.6 Inventaire avec écart, et la question de qui décide
+**7.6 Inventaire avec écart, et la question de qui décide**
 
 **Scénario** : le comptage physique annuel trouve 3 turbos en stock théorique, 2 en rayon. L'écart
 peut être une casse jamais déclarée, un vol, une erreur de saisie ancienne, ou une pièce sortie sans
@@ -546,7 +562,7 @@ l'ajustement. Un ajustement sur un article de valeur significative **(P)** devra
 avertissement à la validation, pas seulement une écriture discrète — **[À VALIDER : seuil et
 fréquence réelle de l'inventaire pratiqué, `QP-11`]**.
 
-### 7.7 La pièce consignée jamais rendue, définitivement
+**7.7 La pièce consignée jamais rendue, définitivement**
 
 Déjà couvert en `RP-41` — repris ici comme cas tordu parce qu'il touche trois modules à la fois :
 stock (la vieille pièce reste indéfiniment « en attente de retour »), facturation (la consigne reste
@@ -556,7 +572,9 @@ jamais les solder tout seul.
 
 ---
 
-## 8. Modèle de données métier (conceptuel)
+8. Modèle de données métier (conceptuel)
+
+---
 
 Volontairement **sans DDL** — c'est le rôle d'expert-database, pas de cette spécification. Entités
 et relations attendues :
@@ -583,7 +601,9 @@ et relations attendues :
 
 ---
 
-## 9. Contexte suisse
+9. Contexte suisse
+
+---
 
 - **TVA** — le taux applicable à une pièce est en général le **taux normal (8.1 %)** : une pièce
   détachée montée dans le cadre d'une réparation automobile n'entre pas dans les catégories à taux
@@ -608,48 +628,50 @@ et relations attendues :
 
 ---
 
-## 10. Ce qui doit être paramétrable
-
-| #       | Paramètre                                                                                  | Portée usuelle      | Exemple de valeur par défaut                                    |
-| ------- | ------------------------------------------------------------------------------------------ | ------------------- | --------------------------------------------------------------- |
-| `PP-01` | Stock d'un site visible en lecture depuis les autres sites (`RP-10`)                       | tenant              | oui, lecture seule                                              |
-| `PP-02` | Blocage strict du stock négatif, ou forçage possible (`RP-15`)                             | tenant              | blocage, forçage journalisé réservé à un rôle habilité          |
-| `PP-03` | Prix d'achat retenu : dernier prix connu ou moyenne pondérée (`RP-33`)                     | tenant              | **à trancher avec @laupernoe, `QP-04`**                                |
-| `PP-04` | Conditionnement = article distinct, ou unité de vente/stock séparées (`RP-05`)             | tenant              | article distinct                                                |
-| `PP-05` | Délai avant qu'un ajustement d'inventaire significatif déclenche un avertissement (`§7.6`) | tenant              | **à définir, aucune valeur avancée sans donnée réelle**         |
-| `PP-06` | Délai avant qu'une consigne non retournée puisse être proposée comme acquise (`RP-41`)     | tenant              | **aucune valeur avancée — dépend de `QP-07`**                   |
-| `PP-07` | Taux de TVA appliqué à la consigne (`RP-42`)                                               | tenant              | 8.1 % — hérite de l'hypothèse `RF-100`, à confirmer fiscalement |
-| `PP-08` | Seuil de stock minimum et quantité de commande standard (`RP-12`)                          | par (article, site) | saisi pièce par pièce, pas de valeur globale                    |
+10. Ce qui doit être paramétrable
 
 ---
 
-## 11. Matrice rôle × action
+- `PP-01` / Stock d'un site visible en lecture depuis les autres sites (`RP-10`) / tenant / oui, lecture seule
+- `PP-02` / Blocage strict du stock négatif, ou forçage possible (`RP-15`) / tenant / blocage, forçage journalisé réservé à un rôle habilité
+- `PP-03` / Prix d'achat retenu : dernier prix connu ou moyenne pondérée (`RP-33`) / tenant / **à trancher avec @laupernoe, `QP-04`**
+- `PP-04` / Conditionnement = article distinct, ou unité de vente/stock séparées (`RP-05`) / tenant / article distinct
+- `PP-05` / Délai avant qu'un ajustement d'inventaire significatif déclenche un avertissement (`§7.6`) / tenant / **à définir, aucune valeur avancée sans donnée réelle**
+- `PP-06` / Délai avant qu'une consigne non retournée puisse être proposée comme acquise (`RP-41`) / tenant / **aucune valeur avancée — dépend de `QP-07`**
+- `PP-07` / Taux de TVA appliqué à la consigne (`RP-42`) / tenant / 8.1 % — hérite de l'hypothèse `RF-100`, à confirmer fiscalement
+- `PP-08` / Seuil de stock minimum et quantité de commande standard (`RP-12`) / par (article, site) / saisi pièce par pièce, pas de valeur globale
+
+---
+
+11. Matrice rôle × action
+
+---
 
 Cohérence stricte avec `apps/api/src/auth/matrice-droits.ts` — ce tableau **décrit** les actions
 attendues sur le nouveau périmètre pièces, il ne prétend pas fixer la syntaxe des `Action` qui sera
 choisie à l'implémentation (rôle d'expert-auth/expert-api).
 
-| Action                                                  | direction   | comptable | vendeur     | réceptionnaire | chef d'atelier                                         | magasinier                     | technicien                                                   | admin                            |
-| ------------------------------------------------------- | ----------- | --------- | ----------- | -------------- | ------------------------------------------------------ | ------------------------------ | ------------------------------------------------------------ | -------------------------------- |
-| Consulter article/stock                                 | oui         | oui       | oui         | oui            | oui                                                    | oui                            | oui (sans prix d'achat/marge, cf. `RF-116` pour le principe) | non (RF-115, aucun droit métier) |
-| Voir prix d'achat / marge                               | oui         | oui       | non **(P)** | non **(P)**    | oui **(P)**                                            | oui                            | non                                                          | non                              |
-| Créer/modifier un article                               | oui         | non       | non         | non            | oui **[À VALIDER]**                                    | oui                            | non                                                          | non                              |
-| Créer une réservation (ligne d'OR pièce)                | oui         | non       | non         | oui            | oui                                                    | oui                            | oui (`L966_LIGNE_CREATION` déjà accordé, RM existant)        | non                              |
-| Libérer une réservation active (`RP-23`, 3ᵉ cas)        | oui         | non       | non         | non            | oui                                                    | oui                            | non                                                          | non                              |
-| Enregistrer une entrée (réception livraison)            | non **(P)** | non       | non         | non            | non **(P)**                                            | oui                            | non                                                          | non                              |
-| Enregistrer une sortie (`sortie_or`, `sortie_comptoir`) | non **(P)** | non       | non         | non            | non **(P)**                                            | oui                            | non                                                          | non                              |
-| Créer / envoyer une commande fournisseur                | oui         | non       | non         | non            | oui                                                    | oui                            | non                                                          | non                              |
-| Réceptionner une commande (partielle ou complète)       | non **(P)** | non       | non         | non            | non **(P)**                                            | oui                            | non                                                          | non                              |
-| Faire l'inventaire / saisir un ajustement               | oui         | non       | non         | non            | oui                                                    | oui                            | non                                                          | non                              |
-| Valider un ajustement significatif (§7.6)               | oui         | non       | non         | non            | oui **(P)**                                            | non                            | non                                                          | non                              |
-| Vente comptoir — brouillon                              | oui         | oui       | oui         | oui            | oui                                                    | oui                            | non                                                          | non                              |
-| Vente comptoir — encaisser                              | oui         | oui       | oui         | oui            | non (`RF-114`, chef d'atelier exclu de l'encaissement) | oui                            | non                                                          | non                              |
-| Vente comptoir — émettre                                | oui         | oui       | oui         | oui            | non                                                    | **non — voir `RP-47`/`QP-09`** | non                                                          | non                              |
-| Avoir sur retour comptoir                               | oui         | oui       | non         | oui            | non                                                    | non                            | non                                                          | non                              |
+- Consulter article/stock / oui / oui / oui / oui / oui / oui / oui (sans prix d'achat/marge, cf. `RF-116` pour le principe) / non (RF-115, aucun droit métier)
+- Voir prix d'achat / marge / oui / oui / non **(P)** / non **(P)** / oui **(P)** / oui / non / non
+- Créer/modifier un article / oui / non / non / non / oui **[À VALIDER]** / oui / non / non
+- Créer une réservation (ligne d'OR pièce) / oui / non / non / oui / oui / oui / oui (`L966_LIGNE_CREATION` déjà accordé, RM existant) / non
+- Libérer une réservation active (`RP-23`, 3ᵉ cas) / oui / non / non / non / oui / oui / non / non
+- Enregistrer une entrée (réception livraison) / non **(P)** / non / non / non / non **(P)** / oui / non / non
+- Enregistrer une sortie (`sortie_or`, `sortie_comptoir`) / non **(P)** / non / non / non / non **(P)** / oui / non / non
+- Créer / envoyer une commande fournisseur / oui / non / non / non / oui / oui / non / non
+- Réceptionner une commande (partielle ou complète) / non **(P)** / non / non / non / non **(P)** / oui / non / non
+- Faire l'inventaire / saisir un ajustement / oui / non / non / non / oui / oui / non / non
+- Valider un ajustement significatif (§7.6) / oui / non / non / non / oui **(P)** / non / non / non
+- Vente comptoir — brouillon / oui / oui / oui / oui / oui / oui / non / non
+- Vente comptoir — encaisser / oui / oui / oui / oui / non (`RF-114`, chef d'atelier exclu de l'encaissement) / oui / non / non
+- Vente comptoir — émettre / oui / oui / oui / oui / non / **non — voir `RP-47`/`QP-09`** / non / non
+- Avoir sur retour comptoir / oui / oui / non / oui / non / non / non / non
 
 ---
 
-## 12. Cas de test métier
+12. Cas de test métier
+
+---
 
 - **`CP-01`** — Recherche par référence fournisseur qui diffère de la référence OEM. Contexte : un
   article existe avec référence OEM `03L 115 561 H`, et une référence alternative `HU 719/7x` (Mann
@@ -704,7 +726,9 @@ choisie à l'implémentation (rôle d'expert-auth/expert-api).
 
 ---
 
-## 13. Questions ouvertes à poser à @laupernoe
+13. Questions ouvertes à poser à @laupernoe
+
+---
 
 Formulées pour un garagiste ou pour un accès direct aux systèmes existants — pas pour un
 développeur.

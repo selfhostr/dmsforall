@@ -22,7 +22,7 @@ import { DialogueRetourClientComptoir } from './DialogueRetourClientComptoir';
 import { DialogueVenteComptoir } from './DialogueVenteComptoir';
 import { peutCreerMouvement } from './droits';
 import { SelecteurSiteRequis } from './SelecteurSiteRequis';
-import { formaterQuantiteMillieme } from './utils';
+import { formaterQuantiteMillieme, texteEmplacementComplet } from './utils';
 
 /**
  * Recherche comptoir pièces (`GET /articles/recherche-comptoir` en recherche, `GET /articles` en
@@ -103,27 +103,25 @@ export function EcranRechercheComptoirPieces() {
       id: 'disponibilite',
       libelle: t('pieces:stock.quantites.disponible'),
       alignement: 'droite',
-      rendu: (article) =>
-        article.quantiteDisponibleMillieme > 0 ? (
+      rendu: (article) => {
+        const emplacementComplet = texteEmplacementComplet(t, article);
+        return article.quantiteDisponibleMillieme > 0 ? (
           <div className="flex flex-col items-end">
             <span className="tabular-nums text-statut-succes">
               {t('pieces:rechercheComptoir.resultat.disponible', {
                 n: formaterQuantiteMillieme(article.quantiteDisponibleMillieme),
               })}
             </span>
-            {article.emplacement ? (
-              <span className="texte-libelle text-muted-foreground">
-                {t('pieces:rechercheComptoir.resultat.emplacement', {
-                  emplacement: article.emplacement,
-                })}
-              </span>
+            {emplacementComplet !== null ? (
+              <span className="texte-libelle text-muted-foreground">{emplacementComplet}</span>
             ) : null}
           </div>
         ) : (
           <span className="texte-libelle text-destructive">
             {t('pieces:rechercheComptoir.resultat.rupture')}
           </span>
-        ),
+        );
+      },
     },
   ];
 
@@ -187,16 +185,18 @@ export function EcranRechercheComptoirPieces() {
   // Deux raisons distinctes pour une liste vide : le catalogue actif n'a AUCUN article (mode
   // parcours) contre « rien ne correspond à cette recherche » (mode recherche) — même distinction
   // que `EcranListeArticles` entre `EtatVidePremierUsage` et `EtatVideRecherche`, jamais le même
-  // message pour les deux cas.
+  // message pour les deux cas. Titres nommant l'ABSENCE, jamais « Recherche comptoir » (le h1 de
+  // cet écran, masqué en `sr-only` par `GabaritEcran` car doublon de l'onglet « Comptoir ») — même
+  // défaut que celui corrigé le 17.08.2026 sur `EcranListeFactures.tsx`.
   const contenuVide = enParcours ? (
     <EtatVidePremierUsage
-      titre={t('pieces:rechercheComptoir.titre')}
-      description={t('pieces:articles.vide')}
+      titre={t('pieces:rechercheComptoir.vide.catalogue.titre')}
+      description={t('pieces:rechercheComptoir.vide.catalogue.description')}
     />
   ) : (
     <EtatVideRecherche
-      titre={t('pieces:rechercheComptoir.titre')}
-      description={t('pieces:rechercheComptoir.vide.recherche')}
+      titre={t('pieces:rechercheComptoir.vide.recherche.titre')}
+      description={t('pieces:rechercheComptoir.vide.recherche.description')}
     />
   );
 
@@ -205,11 +205,15 @@ export function EcranRechercheComptoirPieces() {
     // largeur de la page ») — `GabaritEcran` ne pose plus de `max-w-2xl`/`mx-auto` sur l'écran
     // entier ; seul l'état « choisir un site » ci-dessus, une carte de sélection volontairement
     // centrée et étroite, garde sa propre largeur limitée (`max-w-lg` posé localement dessus, pas
-    // sur tout l'écran). Titre VISIBLE, voir la justification ci-dessous : NON masqué
-    // volontairement — l'onglet actif est « Comptoir » (`navigation-modele.ts`, `ONGLETS_PIECES`,
-    // onglet « comptoir », sans vue), qui ne dit pas ce qu'on y fait — « Recherche comptoir » porte
-    // l'information « Recherche » qu'aucun onglet n'affiche. Comparaison mot pour mot avec la barre
-    // d'onglets active : pas un doublon.
+    // sur tout l'écran).
+    //
+    // Titre MASQUÉ automatiquement (retour @laupernoe du 17.08.2026, chantier « titres doublés » :
+    // « dans Comptoir, c'est écrit "Recherche comptoir" et du coup ça fait un espace horrible »).
+    // Ancienne doctrine (ci-dessus jusqu'à ce correctif) : « Recherche comptoir » n'était PAS
+    // considéré comme un doublon de l'onglet « Comptoir » (le titre ajoutait « Recherche », absent
+    // de l'onglet). @laupernoe a explicitement re-arbitré dans l'autre sens le 17.08.2026 — le titre
+    // CONTIENT le libellé de l'onglet (« comptoir »), la détection de `GabaritEcran` le masque
+    // (`sr-only`, jamais retiré du DOM) sans qu'il soit besoin de poser `titreVisible` ici.
     <GabaritEcran titre={t('pieces:rechercheComptoir.titre')}>
       {/* Rappel permanent (pas seulement dans le placeholder, coupé sur tablette) que la
           recherche accepte un bout de désignation, pas seulement une référence exacte. */}

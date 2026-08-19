@@ -70,3 +70,17 @@ $RECYCLE.BIN/
 
 
 # CodeGraph — index de graphe du dépôt, reconstruit par `codegraph init` sur chaque poste
+
+# site/ (Astro, depuis le 17.08.2026 — remplace un socle Hugo+Blowfish
+# construit puis écarté le même jour, voir site/README.md) : cache de
+# contenu/types généré par `astro dev`/`astro build`. site/dist/ (sortie de
+# build) et site/node_modules/ sont déjà couverts par les motifs génériques
+# dist/ et node_modules/ ci-dessus — rien de spécifique à ajouter pour eux.
+site/.astro/
+# Dérivés redimensionnés des captures produit (générés au build par
+# scripts/redimensionner-captures.mjs à partir de outils/captures/sortie,
+# jamais la source elle-même) — reconstructibles, jamais commités, comme
+# tout le reste de ce qui est généré au build.
+site/public/captures-redim/
+# ancien-site/ ne contient plus de projet Hugo (voir ancien-site/README.md) :
+# seul l'ancien contenu HTML pré-Hugo y reste, versionné tel quel.

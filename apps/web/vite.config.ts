@@ -1,3 +1,6 @@
+import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath, URL } from 'node:url';
 
 import tailwindcss from '@tailwindcss/vite';
@@ -5,6 +8,62 @@ import react from '@vitejs/plugin-react';
 import { defineConfig, loadEnv } from 'vite';
 
 const racineMonorepo = fileURLToPath(new URL('../..', import.meta.url));
+
+function executerGit(args: readonly string[], cwd: string): string | undefined {
+  try {
+    return execFileSync('git', args as string[], {
+      cwd,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+  } catch {
+    return undefined;
+  }
+}
+
+function lireVersionPackageJsonWeb(racineDepot: string): string {
+  try {
+    const brut = readFileSync(join(racineDepot, 'apps/web/package.json'), 'utf-8');
+    const version = (JSON.parse(brut) as { version?: string }).version;
+    return typeof version === 'string' && version.trim() !== '' ? version : '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
+}
+
+/**
+ * Numéro de version affiché en pied du menu utilisateur (demande @laupernoe, 17.08.2026 : « il manque
+ * le numéro de version ... implémente-le quelque part de simple dans l'UI, pour le dev »),
+ * voir `composants/layout/MenuUtilisateur.tsx`. Calculé UNE SEULE FOIS ici, à la résolution de
+ * cette config (démarrage de `pnpm dev` ou `vite build`) — jamais recalculé côté client, aucune
+ * trace de `git`/`node:fs` dans le bundle envoyé au navigateur, seule la chaîne déjà calculée
+ * l'est (voir `define` plus bas).
+ *
+ * BUT RÉEL : identifier sans ambiguïté le BUNDLE FRONT réellement servi (« bundle périmé ou vrai
+ * défaut ? », doute qui a coûté du temps réel le 16.08.2026 en test à distance). Le numéro de
+ * version seul (`apps/web/package.json`) ne suffit pas : il ne bouge pas entre deux commits d'une
+ * même journée, exactement le cas qui a fait perdre du temps — d'où le hash court en plus.
+ *
+ * NE DOIT JAMAIS FAIRE ÉCHOUER LA CONFIG NI LE BUILD : dépôt sans `.git` (archive téléchargée),
+ * `git` absent du `PATH`, ou commande qui échoue pour toute autre raison retombent tous sur la
+ * chaîne `'inconnu'` — repli honnête (règle maison : absence de donnée ≠ valeur), jamais une
+ * exception qui casserait `pnpm dev`/`pnpm build`, jamais une chaîne vide silencieuse qu'on
+ * confondrait avec une vraie valeur.
+ *
+ * Repère `+modifié` : posé quand l'arbre de travail était SALE au moment du build (`git status
+ * --porcelain` non vide) — cas nominal en développement, où builder puis regarder l'écran sans
+ * avoir commité est la norme, pas l'exception.
+ */
+function calculerInfoVersionWeb(racineDepot: string): string {
+  const version = lireVersionPackageJsonWeb(racineDepot);
+  const shaCourt = executerGit(['rev-parse', '--short', 'HEAD'], racineDepot);
+  if (shaCourt === undefined) {
+    return 'inconnu';
+  }
+  const statutPorcelain = executerGit(['status', '--porcelain'], racineDepot);
+  const modifie = statutPorcelain !== undefined && statutPorcelain !== '';
+  return `${version}+${shaCourt}${modifie ? '+modifié' : ''}`;
+}
 
 // Dev : proxy /api -> API NestJS locale (voir contrats-etape-0.md §0). En prod, le front est
 // servi derrière le même reverse proxy que l'API, aucun proxy Vite n'entre en jeu.
@@ -28,6 +87,21 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
+    // Numéro de version (`composants/layout/MenuUtilisateur.tsx`) — remplacement TEXTUEL à la
+    // compilation de toute occurrence de `import.meta.env.VITE_DFA_VERSION_INFO` dans le code
+    // source par cette chaîne JSON, exactement le mécanisme déjà utilisé par Vite pour les
+    // variables `VITE_*` lues depuis `.env` (`envDir` ci-dessous) — ici la valeur ne vient pas
+    // d'un fichier mais d'un calcul (voir `calculerInfoVersionWeb`), d'où l'usage explicite de
+    // `define` plutôt que `loadEnv`. `vitest.config.ts` est un fichier SÉPARÉ qui ne porte pas ce
+    // `define` : sous test, `import.meta.env.VITE_DFA_VERSION_INFO` reste un simple accès de
+    // propriété sur l'objet réel `import.meta.env`, donc `undefined` plutôt qu'une exception — le
+    // repli défensif de `MenuUtilisateur.tsx` (`typeof … === 'string'`) traite ce cas exactement
+    // comme une vraie valeur manquante en production.
+    define: {
+      'import.meta.env.VITE_DFA_VERSION_INFO': JSON.stringify(
+        calculerInfoVersionWeb(racineMonorepo),
+      ),
+    },
     plugins: [react(), tailwindcss()],
     // Une seule source de config pour tout le monorepo : le `.env` à la racine (voir
     // `.env.example` racine et la séquence de démarrage dans README.md/CONTRIBUTING.md), pas un

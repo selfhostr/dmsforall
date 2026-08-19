@@ -178,7 +178,20 @@
     },
     "liste": {
       "titre": "Fahrzeugbestand",
-      "vide": "Kein Fahrzeug im Bestand.",
+      "vide": {
+        "recherche": {
+          "titre": "Kein Fahrzeug gefunden",
+          "description": "Kein Fahrzeug im Bestand entspricht dieser Suche."
+        },
+        "filtre": {
+          "titre": "Kein Fahrzeug mit diesen Filtern",
+          "description": "Kein Fahrzeug im Bestand entspricht den gewählten Filtern."
+        },
+        "premierUsage": {
+          "titre": "Kein Fahrzeug im Bestand",
+          "description": "Nehmen Sie Ihr erstes Fahrzeug in den Bestand auf."
+        }
+      },
       "rechercherPlaceholder": "Kennzeichen, VIN oder Bezeichnung…",
       "erreur": {
         "titre": "Der Fahrzeugbestand kann nicht angezeigt werden"
@@ -203,6 +216,16 @@
         "joursStockDesc": "Am längsten im Bestand",
         "prixVenteAsc": "Verkaufspreis aufsteigend",
         "prixVenteDesc": "Verkaufspreis absteigend"
+      },
+      "plan": {
+        "groupeLabelBascule": "Liste oder Plan",
+        "affichage": {
+          "liste": "Liste",
+          "plan": "Plan"
+        },
+        "groupeLabel": "Standortplan des Bestands",
+        "sansEmplacement": "Ohne Standort",
+        "nombreVehicules": "{n, plural, one {# Fahrzeug} other {# Fahrzeuge}}"
       }
     },
     "fiche": {
@@ -262,7 +285,20 @@
     "liste": {
       "titre": "Verkaufsdossiers",
       "nouveauDossier": "Neues Verkaufsdossier",
-      "vide": "Kein Verkaufsdossier.",
+      "vide": {
+        "recherche": {
+          "titre": "Kein Dossier gefunden",
+          "description": "Kein Verkaufsdossier entspricht dieser Suche."
+        },
+        "filtre": {
+          "titre": "Kein Dossier mit diesen Filtern",
+          "description": "Kein Verkaufsdossier entspricht den gewählten Filtern."
+        },
+        "premierUsage": {
+          "titre": "Kein Verkaufsdossier",
+          "description": "Eröffnen Sie eines, sobald sich ein Kunde interessiert."
+        }
+      },
       "vehiculeNonAssigne": "— nicht zugewiesen",
       "erreur": {
         "titre": "Die Verkaufsdossiers können nicht angezeigt werden"
@@ -345,6 +381,10 @@
       "ordresVehicule": {
         "titre": "Reparaturaufträge dieses Fahrzeugs",
         "vide": "Kein Reparaturauftrag für dieses Fahrzeug."
+      },
+      "garantie": {
+        "titre": "Garantie",
+        "gererSurFicheVehicule": "Auf der Fahrzeugkarte ansehen/bearbeiten"
       }
     },
     "transitions": {

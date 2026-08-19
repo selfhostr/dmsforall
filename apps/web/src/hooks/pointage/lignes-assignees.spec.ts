@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import type { ReponseLigneOr, ReponseOrdreReparation } from '@dfa/shared';
 
-import { compterLignesAssigneesPointables, lignesAssigneesPointables } from './lignes-assignees';
+import {
+  compterLignesAssigneesPointables,
+  lignesAssigneesPointables,
+  lignesPointables,
+} from './lignes-assignees';
 
 const TECHNICIEN_ID = 'tech-1';
 
@@ -95,4 +99,37 @@ describe('lignes-assignees', () => {
       expect(compterLignesAssigneesPointables(or, TECHNICIEN_ID)).toBe(1);
     },
   );
+
+  describe('lignesPointables — arbitrage @laupernoe du 14.08.2026, NE PAS ROUVRIR', () => {
+    it('inclut une ligne pointable même SANS assignation (`technicienId: null`)', () => {
+      const or = construireOr([construireLigne({ id: 'l1', technicienId: null })]);
+
+      expect(lignesPointables(or).map((l) => l.id)).toEqual(['l1']);
+    });
+
+    it('inclut une ligne pointable assignée à un AUTRE technicien — jamais filtrée', () => {
+      const or = construireOr([construireLigne({ id: 'l1', technicienId: 'un-autre-technicien' })]);
+
+      expect(lignesPointables(or).map((l) => l.id)).toEqual(['l1']);
+    });
+
+    it('mélange assignée-à-moi / assignée-à-un-autre / non-assignée : les trois ressortent', () => {
+      const or = construireOr([
+        construireLigne({ id: 'l1', technicienId: TECHNICIEN_ID }),
+        construireLigne({ id: 'l2', technicienId: 'un-autre-technicien' }),
+        construireLigne({ id: 'l3', technicienId: null }),
+      ]);
+
+      expect(lignesPointables(or).map((l) => l.id)).toEqual(['l1', 'l2', 'l3']);
+    });
+
+    it.each(['refusee', 'annulee', 'facturee'] as const)(
+      'exclut toujours une ligne au statut non pointable (%s), assignation ou non',
+      (statut) => {
+        const or = construireOr([construireLigne({ id: 'l1', technicienId: null, statut })]);
+
+        expect(lignesPointables(or)).toEqual([]);
+      },
+    );
+  });
 });

@@ -133,27 +133,30 @@ export function EcranListeVehicules() {
     },
   ];
 
+  // Titres d'état vide nommant l'ABSENCE (jamais « Véhicules », qui répéterait l'onglet actif/le
+  // menu — même défaut que celui corrigé le 17.08.2026 sur `EcranListeFactures.tsx`). Les textes
+  // d'absence vivaient déjà, à tort, dans `description` — inversion corrigée ici.
   let contenuVide: ReactNode;
   if (q.trim() !== '') {
     contenuVide = (
       <EtatVideRecherche
-        titre={t('vehicules:liste.titre')}
-        description={t('vehicules:vide.recherche')}
+        titre={t('vehicules:vide.recherche.titre')}
+        description={t('vehicules:vide.recherche.description')}
       />
     );
   } else if (filtresStructuresActifs) {
     contenuVide = (
       <EtatVideFiltre
-        titre={t('vehicules:liste.titre')}
-        description={t('vehicules:vide.filtre')}
+        titre={t('vehicules:vide.filtre.titre')}
+        description={t('vehicules:vide.filtre.description')}
         onEffacerFiltres={effacerFiltres}
       />
     );
   } else {
     contenuVide = (
       <EtatVidePremierUsage
-        titre={t('vehicules:liste.titre')}
-        description={t('vehicules:vide.nouveau')}
+        titre={t('vehicules:vide.nouveau.titre')}
+        description={t('vehicules:vide.nouveau.description')}
         action={
           <Button asChild>
             <Link to={chemins.vehicules.nouveau(site)}>
@@ -186,10 +189,12 @@ export function EcranListeVehicules() {
     );
   }
 
-  // Titre TOUJOURS visible (retour @laupernoe, chantier « zone haute des écrans de liste ») : ce n'est
-  // plus un doublon muet de l'onglet actif « Véhicules » — @laupernoe veut voir écrit où il est.
-  // « Nouveau véhicule » n'est PAS passé en `actions` de `GabaritEcran` (qui le placerait juste
-  // sous le titre, seul sur sa ligne, et décalerait tout le reste) : il rejoint la ligne
+  // Titre laissé à la détection automatique du gabarit (chantier « titres doublés &
+  // espacements », 17.08.2026) : l'onglet actif « Véhicules » affiche déjà ce libellé — défaut
+  // cité nommément par @laupernoe (« dans Clients et véhicules, l'onglet Véhicules, tu vois, c'est
+  // vraiment écrit "Véhicules", ça ne sert à rien ») — le h1 devient `sr-only` (jamais retiré du
+  // DOM). « Nouveau véhicule » n'est PAS passé en `actions` de `GabaritEcran` (qui le placerait
+  // juste sous le titre, seul sur sa ligne, et décalerait tout le reste) : il rejoint la ligne
   // « Trier par », à droite — même déplacement que l'écran de référence (Atelier).
   return (
     <GabaritEcran titre={t('vehicules:liste.titre')}>

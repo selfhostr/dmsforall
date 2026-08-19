@@ -2,8 +2,10 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   TYPES_MOUVEMENT_STOCK,
   type PageCurseur,
+  type ReponseApercuForcageMouvement,
   type ReponseAvecAvertissements,
   type ReponseMouvementStock,
+  type ReservationMenaceeParForcage,
 } from '@dfa/shared';
 
 import { AvertissementDto } from './avertissement.dto';
@@ -81,6 +83,32 @@ export class MouvementAvecAvertissementsDto implements ReponseAvecAvertissements
 
   @ApiProperty({ type: () => [AvertissementDto] })
   readonly avertissements!: readonly AvertissementDto[];
+}
+
+/** Une réservation `active` que le forçage simulé (`GET .../apercu-forcage`) libérerait — voir
+ *  `ReservationMenaceeParForcage` (`@dfa/shared`) pour la doctrine complète. */
+export class ReservationMenaceeParForcageDto implements ReservationMenaceeParForcage {
+  @ApiProperty({ format: 'uuid' })
+  readonly id!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  readonly ligneOrId!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  readonly ordreReparationId!: string;
+
+  @ApiProperty()
+  readonly ordreReparationNumero!: string;
+
+  @ApiProperty()
+  readonly quantiteMillieme!: number;
+}
+
+/** `GET /articles/{id}/mouvements/apercu-forcage` — voir `ReponseApercuForcageMouvement`
+ *  (`@dfa/shared`) pour la doctrine complète (défaut n°2, test manuel du 14.08.2026). */
+export class ApercuForcageMouvementDto implements ReponseApercuForcageMouvement {
+  @ApiProperty({ type: () => [ReservationMenaceeParForcageDto] })
+  readonly reservations!: readonly ReservationMenaceeParForcageDto[];
 }
 
 export class PageMouvementStockDto implements PageCurseur<MouvementStockDto> {

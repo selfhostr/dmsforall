@@ -19,6 +19,7 @@ import type {
   PageCurseur,
   ReponseAgregatTempsLigne,
   ReponseAvecAvertissements,
+  ReponseDernierPointageDuJour,
   ReponsePointage,
   RoleUtilisateur,
 } from '@dfa/shared';
@@ -61,6 +62,7 @@ import {
   chargerPointageOuvertTechnicien,
   chargerPointagePourEcriture,
   chargerPointagesPourAgregatLigne,
+  chargerPointagesProductifsDuJour,
 } from './pointage-requetes';
 import { dureeBruteDepuisPeriode, mapperPointage } from './mappeurs';
 import {
@@ -82,11 +84,13 @@ import {
   dureeDepasseLeSeuil,
   estLignePointable,
   estOrPointable,
+  journeeTravailCourante,
   ligneDevenueNonPointable,
   ligneDoitPasserEnCours,
   orDevenuNonPointable,
   orDoitPasserEnCours,
   pointageCorrespondEntree,
+  resoudreCibleReprise,
 } from './regles-pointage';
 import { traduireErreurTransitionPointage } from './traducteur-transition-pointage';
 
@@ -783,6 +787,51 @@ export class ServicePointage {
         technicien.nomAffiche,
         cible,
       );
+    });
+  }
+
+  /**
+   * `GET /pointages/dernier-du-jour` — remplace l'état LOCAL volatile `dernierCible` de l'écran
+   * technicien par une source de vérité SERVEUR (voir l'en-tête du contrat,
+   * `contrats/pointage/pointage.ts`). Nécessaire en particulier au mode borne : chaque
+   * identification PIN y recharge l'écran, aucun état client ne survit d'une identification à
+   * l'autre.
+   *
+   * `technicienIdDemande` OPTIONNEL : absent → le technicien de la SESSION, aucune vérification de
+   * droit supplémentaire (on lit toujours SA propre cible). Présent → MÊME GARDE que `demarrer`/
+   * `arreter` (`exigerDroitCiblerAutrui`, faille corrigée déjà en place pour les deux autres écritures
+   * « soi/autrui ») : autorisé pour soi, pour l'encadrement (`atelier.pointage.pointer_autrui`), ou
+   * pour un compte de service (la borne, exemptée du contrôle soi/autrui — elle n'est jamais « soi »).
+   *
+   * AUCUNE vérification d'existence du technicien ciblé (contrairement à `demarrer`, qui charge
+   * `chargerResumeTechnicien` et lève `RESSOURCE_INTROUVABLE`) : cette réponse ne porte ni le nom ni
+   * l'identifiant du technicien, seulement sa cible — un `technicienId` inexistant ne produit
+   * simplement AUCUN pointage à la requête SQL, donc `cible: null`, sans distinction observable
+   * entre « inexistant » et « aucun pointage aujourd'hui ». C'est le comportement voulu : ne pas
+   * révéler par un code d'erreur distinct si un identifiant correspond à quelqu'un du tenant.
+   */
+  async dernierDuJour(
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    technicienIdDemande: string | undefined,
+  ): Promise<ReponseDernierPointageDuJour> {
+    if (technicienIdDemande !== undefined) {
+      this.exigerDroitCiblerAutrui(principal, technicienIdDemande);
+    }
+    const technicienId = technicienIdDemande ?? principal.utilisateurId;
+
+    const maintenant = this.horloge.maintenant();
+    const { debutLe, finLe } = journeeTravailCourante(maintenant);
+
+    return this.acces.enTenant(ctx, async (tx) => {
+      const pointagesDuJour = await chargerPointagesProductifsDuJour(
+        tx,
+        ctx,
+        technicienId,
+        debutLe,
+        finLe,
+      );
+      return { cible: resoudreCibleReprise(pointagesDuJour, maintenant) };
     });
   }
 

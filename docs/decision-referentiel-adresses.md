@@ -1,4 +1,5 @@
-# Décision : référentiel de données d'adresses pour la saisie
+Décision : référentiel de données d'adresses pour la saisie
+===========================================================
 
 **Statut** : proposition — décision finale à @laupernoe sur les points marqués « à trancher ».
 **Auteur** : expert-métier (agent), 10.08.2026.
@@ -7,7 +8,8 @@
 d'écriture de cet agent est ce seul fichier ; `apps/api/src/db/` est verrouillé par l'agent qui pose
 le référentiel véhicules en parallèle.
 
-## 1. Le besoin exact
+Le besoin exact
+----------------
 
 @laupernoe : « on n'aurait pas une base publique de toutes les adresses et les rues de Suisse ? Tu mets le
 début du NPA, ça te trouve direct ; le début de l'adresse, ça trouve direct. Et bien sûr, si ça ne
@@ -21,7 +23,8 @@ référence n'existe, aucune clé étrangère vers un registre. C'est le bon poi
 libre qui doit rester ne demande aucune migration de rattrapage, seulement un confort ajouté
 par-dessus.
 
-## 2. Contraintes qui écartent des solutions d'emblée
+Contraintes qui écartent des solutions d'emblée
+-------------------------------------------------
 
 - **100 % gratuit, pas seulement « la plupart des cas »** : La Poste suisse vend des répertoires de
   rues enrichis de données de tri (« Répertoires des rues – avec données de tri »,
@@ -40,27 +43,80 @@ par-dessus.
   (`docs/decision-referentiel-vehicules.md`) — les champs restent du texte libre, un lien optionnel
   vers la fiche du registre au maximum, jamais de FK obligatoire. Voir §8.
 
-## 3. Sources recensées
+Sources recensées
+------------------
 
-| Source                                                                                                            | Nature                                                                                                                                                                                                | Licence                                                                                                                                                                | Fraîcheur                                                                                                                                                     | Format / accès                                                                 | Coût                                                                                                                                                                        |
-| ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Répertoire officiel des localités** (swisstopo, `ch.swisstopo-vd.ortschaftenverzeichnis_plz`)                   | NPA + nom de localité + périmètre + canton, toute la Suisse et le Liechtenstein. Alimenté par les communes et La Poste, publié par swisstopo.                                                         | **Confirmée** — conditions d'utilisation OGD swisstopo (§5).                                                                                                           | Mensuelle selon la fiche produit (non revérifiée sur le PDF technique, illisible dans cet environnement — voir §10).                                          | CSV/GDB/SHP/INTERLIS2, téléchargement direct + API STAC (`data.geo.admin.ch`). | Gratuit.                                                                                                                                                                    |
-| **Répertoire officiel des rues** (swisstopo, `ch.swisstopo.amtliches-strassenverzeichnis`)                        | Tous les noms de rue officiellement déclarés dans le RegBL, avec la commune et le canton.                                                                                                             | **Confirmée**, même licence.                                                                                                                                           | **Quotidienne** — texte exact swisstopo : « Le répertoire officiel des rues est mis à jour quotidiennement », alimenté chaque jour par l'OFS depuis le RegBL. | CSV/GDB/INTERLIS2, téléchargement direct + STAC.                               | Gratuit.                                                                                                                                                                    |
-| **Répertoire officiel des adresses de bâtiments** (swisstopo, `ch.swisstopo.amtliches-gebaeudeadressverzeichnis`) | Chaque adresse officielle de bâtiment : rue, numéro, NPA, localité, commune, canton, coordonnées, identifiants EGID/EDID.                                                                             | **Confirmée**, même licence.                                                                                                                                           | **Quotidienne** — même mécanisme que les rues.                                                                                                                | CSV/GDB/INTERLIS2, téléchargement direct + STAC.                               | Gratuit.                                                                                                                                                                    |
-| RegBL brut via demande motivée (`housing-stat.ch`, conditions 2017)                                               | Accès aux données complètes du registre (au-delà du niveau A), sur demande écrite motivée, réservé aux administrations/instituts de recherche/tiers mandatés par une administration (art. 15 ORegBL). | Gratuit pour les ayants droit de l'art. 15, mais **processus d'autorisation, pas un téléchargement libre**.                                                            | Continue côté source, mais accès par lien fourni sous 15 jours ouvrables après validation de la demande.                                                      | Formulaire en ligne, périmètre limité au territoire de l'utilisateur.          | Gratuit, mais **écarté** : DFA n'entre pas dans les ayants droit de l'art. 15, et le produit swisstopo republié couvre exactement le besoin sans ce processus.              |
-| La Poste CH — répertoires des rues avec données de tri                                                            | Rues enrichies de codes de tri postal pour le courrier en nombre.                                                                                                                                     | Commercial.                                                                                                                                                            | Non vérifiée.                                                                                                                                                 | Fichiers vendus par abonnement.                                                | **Payant — écarté**, contrainte §2.                                                                                                                                         |
-| OpenStreetMap Suisse (mention, non retenue)                                                                       | Communautaire, couverture bonne en pratique mais non garantie légalement, pas la source faisant foi pour une adresse suisse officielle.                                                               | ODbL — réutilisation libre mais **share-alike** : toute base dérivée publiée devrait rester sous licence compatible, contrainte que la source officielle n'impose pas. | Continue, communautaire.                                                                                                                                      | API Nominatim/Overpass, extraits réguliers.                                    | Gratuit, mais moins bien disant que swisstopo sur licence (share-alike) et sur légitimité (donnée officielle vs contribution bénévole) — pas retenue comme source primaire. |
+**Répertoire officiel des localités** (swisstopo, `ch.swisstopo-vd.ortschaftenverzeichnis_plz`)
 
-## 4. Volumes mesurés (téléchargement réel des trois jeux, pas une estimation)
+- Nature : NPA + nom de localité + périmètre + canton, toute la Suisse et le Liechtenstein. Alimenté par les communes et La Poste, publié par swisstopo.
+- Licence : **Confirmée** — conditions d'utilisation OGD swisstopo (§5).
+- Fraîcheur : Mensuelle selon la fiche produit (non revérifiée sur le PDF technique).
+- Format/accès : CSV/GDB/SHP/INTERLIS2, téléchargement direct + API STAC (`data.geo.admin.ch`).
+- Coût : Gratuit.
+
+**Répertoire officiel des rues** (swisstopo, `ch.swisstopo.amtliches-strassenverzeichnis`)
+
+- Nature : Tous les noms de rue officiellement déclarés dans le RegBL, avec la commune et le canton.
+- Licence : **Confirmée**, même licence.
+- Fraîcheur : **Quotidienne** — texte exact swisstopo : « Le répertoire officiel des rues est mis à jour quotidiennement », alimenté chaque jour par l'OFS depuis le RegBL.
+- Format/accès : CSV/GDB/INTERLIS2, téléchargement direct + STAC.
+- Coût : Gratuit.
+
+**Répertoire officiel des adresses de bâtiments** (swisstopo, `ch.swisstopo.amtliches-gebaeudeadressverzeichnis`)
+
+- Nature : Chaque adresse officielle de bâtiment : rue, numéro, NPA, localité, commune, canton, coordonnées, identifiants EGID/EDID.
+- Licence : **Confirmée**, même licence.
+- Fraîcheur : **Quotidienne** — même mécanisme que les rues.
+- Format/accès : CSV/GDB/INTERLIS2, téléchargement direct + STAC.
+- Coût : Gratuit.
+
+**RegBL brut via demande motivée** (`housing-stat.ch`, conditions 2017)
+
+- Nature : Accès aux données complètes du registre (au-delà du niveau A), sur demande écrite motivée, réservé aux administrations/instituts de recherche/tiers mandatés par une administration (art. 15 ORegBL).
+- Licence : Gratuit pour les ayants droit de l'art. 15, mais **processus d'autorisation, pas un téléchargement libre**.
+- Fraîcheur : Continue côté source, mais accès par lien fourni sous 15 jours ouvrables après validation de la demande.
+- Format/accès : Formulaire en ligne, périmètre limité au territoire de l'utilisateur.
+- Coût : Gratuit, mais **écarté** : DFA n'entre pas dans les ayants droit de l'art. 15, et le produit swisstopo republié couvre exactement le besoin sans ce processus.
+
+**La Poste CH — répertoires des rues avec données de tri**
+
+- Nature : Rues enrichies de codes de tri postal pour le courrier en nombre.
+- Licence : Commercial.
+- Fraîcheur : Non vérifiée.
+- Format/accès : Fichiers vendus par abonnement.
+- Coût : **Payant — écarté**, contrainte §2.
+
+**OpenStreetMap Suisse** (mention, non retenue)
+
+- Nature : Communautaire, couverture bonne en pratique mais non garantie légalement, pas la source faisant foi pour une adresse suisse officielle.
+- Licence : ODbL — réutilisation libre mais **share-alike** : toute base dérivée publiée devrait rester sous licence compatible, contrainte que la source officielle n'impose pas.
+- Fraîcheur : Continue, communautaire.
+- Format/accès : API Nominatim/Overpass, extraits réguliers.
+- Coût : Gratuit, mais moins bien disant que swisstopo sur licence (share-alike) et sur légitimité (donnée officielle vs contribution bénévole) — pas retenue comme source primaire.
+
+Volumes mesurés (téléchargement réel des trois jeux, pas une estimation)
+------------------------------------------------------------------------
 
 Les trois fichiers CSV (variante Suisse, projection LV95) ont été téléchargés et comptés ligne par
 ligne le 10.08.2026 :
 
-| Jeu de données                                                                  | Lignes (hors en-tête)                           | Taille CSV décompressé | Conclusion architecture                                                                                                                                                                                                                                                                                                                                                          |
-| ------------------------------------------------------------------------------- | ----------------------------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Localités (NPA + nom + périmètre)                                               | **5 716** lignes, **3 974** codes NPA distincts | 492 Ko                 | **Vit dans le navigateur** sans problème — plus petit que la plupart des bundles JS déjà servis. Aucune raison de passer par une API pour ce niveau.                                                                                                                                                                                                                             |
-| Rues officielles                                                                | **224 838** lignes                              | 24 Mo                  | **Trop gros pour le bundle du navigateur tel quel**, largement possible en table Postgres indexée avec recherche par préfixe côté API (même patron que le référentiel véhicules, table de référence sans `tenant_id`). Une variante compressée/allégée pourrait être mise en cache client si le besoin de fonctionner hors-ligne apparaît un jour — pas nécessaire au lancement. |
-| Adresses de bâtiments (rue + numéro + NPA + localité + coordonnées + EGID/EDID) | **3 298 882** lignes                            | 447 Mo                 | **Postgres exclusivement**, aucun scénario de bundle navigateur. Confirme l'hypothèse de départ de @laupernoe (« deux millions d'adresses non ») — en réalité 3,3 millions, l'ordre de grandeur est le même).                                                                                                                                                                           |
+**Localités (NPA + nom + périmètre)**
+
+- Lignes : **5 716** lignes, **3 974** codes NPA distincts
+- Taille CSV : 492 Ko
+- Conclusion : **Vit dans le navigateur** sans problème — plus petit que la plupart des bundles JS déjà servis. Aucune raison de passer par une API pour ce niveau.
+
+**Rues officielles**
+
+- Lignes : **224 838** lignes
+- Taille CSV : 24 Mo
+- Conclusion : **Trop gros pour le bundle du navigateur tel quel**, largement possible en table Postgres indexée avec recherche par préfixe côté API (même patron que le référentiel véhicules, table de référence sans `tenant_id`). Une variante compressée/allégée pourrait être mise en cache client si le besoin de fonctionner hors-ligne apparaît un jour — pas nécessaire au lancement.
+
+**Adresses de bâtiments** (rue + numéro + NPA + localité + coordonnées + EGID/EDID)
+
+- Lignes : **3 298 882** lignes
+- Taille CSV : 447 Mo
+- Conclusion : **Postgres exclusivement**, aucun scénario de bundle navigateur. Confirme l'hypothèse de départ de @laupernoe (« deux millions d'adresses non ») — en réalité 3,3 millions, l'ordre de grandeur est le même.
 
 Confirmation de l'intuition de @laupernoe (point 6 de sa demande) : **oui, le NPA et la localité seuls sont
 un gain disproportionné pour un coût quasi nul** — 492 Ko à importer une fois, zéro infrastructure de
@@ -69,7 +125,8 @@ correction du couple NPA/localité est l'erreur de saisie la plus fréquente et 
 (un NPA existe pour plusieurs localités homonymes dans des cantons différents — ex. plusieurs
 communes suisses portent le même nom, seul le NPA ou le canton les distingue sans ambiguïté).
 
-## 5. Licence — texte exact vérifié
+Licence — texte exact vérifié
+------------------------------
 
 Source : [swisstopo — Conditions d'utilisation des géodonnées et géoservices gratuits (OGD)](https://www.swisstopo.admin.ch/ogd-conditions),
 version 1.3.2021, base légale citée explicitement : Loi fédérale sur la géoinformation (LGéo,
@@ -87,7 +144,8 @@ page de licence via son lien `rel: license`. Réutilisation commerciale explicit
 attribution obligatoire — équivalent en pratique à une licence CC-BY. Aucune ambiguïté restante :
 c'est la licence, pas une supposition.
 
-## 6. Conformité nLPD — vérifié sur la donnée réelle, pas supposé
+Conformité nLPD — vérifié sur la donnée réelle, pas supposé
+-----------------------------------------------------------
 
 L'hypothèse de départ (« ce registre contient des données de bâtiments, pas de personnes ») est
 **globalement vraie mais avec une réserve trouvée en creusant les données réelles**, à traiter
@@ -122,7 +180,8 @@ référence partagée entre tenants (comme le référentiel véhicules), pas de 
 point à signaler explicitement à `expert-database` pour ne pas lui appliquer la politique par défaut
 par erreur.
 
-## 7. Le geste de saisie — NPA d'abord, dans cet ordre précis
+Le geste de saisie — NPA d'abord, dans cet ordre précis
+-------------------------------------------------------
 
 Sur une carte grise ou une carte d'identité suisse, l'adresse s'écrit toujours
 `NPA Localité` avant `Rue Numéro` dans le bloc adresse (ex. « 1000 Lausanne », puis
@@ -160,7 +219,8 @@ Ordre inverse (rue d'abord) rejeté : sans commune connue, une recherche « Bahn
 « Rue de la Gare » renvoie des centaines d'homonymes dans tout le pays — pire ergonomie, plus de
 frappes nécessaires pour désambiguïser après coup.
 
-## 8. Saisie libre — non négociable, même doctrine que le référentiel véhicules
+Saisie libre — non négociable, même doctrine que le référentiel véhicules
+--------------------------------------------------------------------------
 
 - Les champs `rue`, `npa`, `localite`, `complement`, `pays` de `schemaAdresseClientBase`
   **restent du texte libre**, aujourd'hui comme demain. Aucune migration de contrainte NOT NULL
@@ -180,7 +240,8 @@ frappes nécessaires pour désambiguïser après coup.
   ce référentiel : un NPA suisse mal formé reste refusé par la validation existante, qu'il vienne de
   l'autocomplétion ou de la saisie manuelle.
 
-## 9. Trajectoire proposée
+Trajectoire proposée
+---------------------
 
 **Phase 1 — le plus court chemin, le plus gros gain (§4 le confirme : 492 Ko, aucune infrastructure
 de recherche à construire)** : importer le répertoire des localités (5 716 lignes, mensuel) dans une
@@ -205,7 +266,8 @@ saisie visée ici. En revanche cette table devient utile le jour où un besoin d
 ne pas l'importer au lancement de ce module, la reconsidérer avec son propre calcul coût/bénéfice
 quand un besoin de géocodage se présente.
 
-## 10. Ce qu'il reste à trancher par @laupernoe
+Ce qu'il reste à trancher par @laupernoe
+-----------------------------------
 
 1. **Emplacement de la recherche NPA/localité (phase 1)** : liste embarquée côté client (0 latence,
    0 endpoint, mais 492 Ko à charger et à rafraîchir avec l'app) vs endpoint API de recherche par
@@ -227,7 +289,8 @@ quand un besoin de géocodage se présente.
 5. **Table de référence partagée sans `tenant_id`** (§6, dernier paragraphe) : à valider avec
    `expert-database` au moment de l'implémentation, même remarque que pour le référentiel véhicules.
 
-## Sources consultées
+Sources consultées
+-------------------
 
 - [swisstopo — Répertoires officiels géographiques](https://www.swisstopo.admin.ch/fr/repertoires-officiels-geographiques)
 - [swisstopo — Répertoire officiel des localités](https://www.swisstopo.admin.ch/fr/repertoire-officiel-des-localites)

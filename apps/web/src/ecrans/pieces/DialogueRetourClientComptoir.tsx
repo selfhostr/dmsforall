@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 
 import type { ResultatRechercheComptoirArticle } from '@dfa/shared';
 
-import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -16,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import { useRetourClientComptoir } from '@/hooks/pieces/useVenteComptoirPieces';
 
+import { messageErreurMutation } from './messages-erreur-mutation';
 import { formaterQuantiteMillieme, saisieVersQuantiteMillieme } from './utils';
 
 const QUANTITE_PAR_DEFAUT = '1';
@@ -136,7 +136,7 @@ export function DialogueRetourClientComptoir({ ouvert, onOuvertChange, siteId, a
           ) : null}
           {erreur ? (
             <p className="texte-libelle text-destructive" role="alert">
-              {messageErreur(erreur, t)}
+              {messageErreurMutation(erreur, t)}
             </p>
           ) : null}
         </div>

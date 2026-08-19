@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { SEUIL_RESERVATIONS_DISPONIBILITE } from '@dfa/shared';
+import { schemaModificationStockSite, SEUIL_RESERVATIONS_DISPONIBILITE } from '@dfa/shared';
 
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
 import type { LigneStockArticle } from '../db/schema';
@@ -15,6 +15,10 @@ function ligneStock(champs: Partial<LigneStockArticle> = {}): LigneStockArticle 
     quantitePhysiqueMillieme: 5000,
     quantiteReserveeMillieme: 1000,
     emplacement: 'B3',
+    // Casier structuré (0056) : `null` par défaut dans la fixture — un article sans casier
+    // renseigné reste un état parfaitement valide (voir le describe dédié plus bas).
+    rayon: null,
+    tiroir: null,
     stockMinimumMillieme: null,
     quantiteCommandeStandardMillieme: null,
     creeLe: new Date('2026-07-31T08:00:00.000Z'),
@@ -44,23 +48,27 @@ function txFactice(
   const selects = [...(plan.selects ?? [])];
   const executes = [...(plan.executes ?? [])];
   const onConflictArgs: unknown[] = [];
+  const insertValues: unknown[] = [];
 
   const tx = {
     select: () => ({
       from: () => ({ where: () => ({ limit: () => Promise.resolve(selects.shift() ?? []) }) }),
     }),
     insert: (_table: unknown) => ({
-      values: (_vals: unknown) => ({
-        onConflictDoUpdate: (args: unknown) => {
-          onConflictArgs.push(args);
-          return Promise.resolve(undefined);
-        },
-      }),
+      values: (vals: unknown) => {
+        insertValues.push(vals);
+        return {
+          onConflictDoUpdate: (args: unknown) => {
+            onConflictArgs.push(args);
+            return Promise.resolve(undefined);
+          },
+        };
+      },
     }),
     execute: vi.fn(() => Promise.resolve(executes.shift() ?? { rows: [] })),
   };
 
-  return { tx: tx as unknown as TransactionDfa, onConflictArgs };
+  return { tx: tx as unknown as TransactionDfa, onConflictArgs, insertValues };
 }
 
 function accesFactice(tx: TransactionDfa): AccesBase {
@@ -155,5 +163,86 @@ describe('ServiceStock.modifierSite — réglages de site, jamais la quantité p
     expect(onConflictArgs).toHaveLength(1);
     expect(resultat.emplacement).toBe('C4');
     expect(resultat.quantitePhysiqueMillieme).toBe(0);
+  });
+
+  it('rayon/tiroir écrits dans les valeurs upsert, tenantId toujours celui du contexte (isolation tenant)', async () => {
+    const { tx, insertValues } = txFactice({
+      selects: [[{ id: 'a1' }], [{ id: 's1' }], [ligneStock({ rayon: 'B3', tiroir: '2' })]],
+    });
+    const service = new ServiceStock(accesFactice(tx));
+
+    const resultat = await service.modifierSite(CTX, 'a1', 's1', { rayon: 'B3', tiroir: '2' });
+
+    expect(insertValues).toHaveLength(1);
+    expect(insertValues[0]).toMatchObject({
+      tenantId: CTX.tenantId,
+      articleId: 'a1',
+      siteId: 's1',
+      rayon: 'B3',
+      tiroir: '2',
+    });
+    expect(resultat.rayon).toBe('B3');
+    expect(resultat.tiroir).toBe('2');
+  });
+
+  it('`rayon` absent du corps : jamais touché (patch partiel, pas écrasé à null)', async () => {
+    const { tx, onConflictArgs } = txFactice({
+      selects: [[{ id: 'a1' }], [{ id: 's1' }], [ligneStock({ stockMinimumMillieme: 5000 })]],
+    });
+    const service = new ServiceStock(accesFactice(tx));
+
+    await service.modifierSite(CTX, 'a1', 's1', { stockMinimumMillieme: 5000 });
+
+    const argument = onConflictArgs[0] as { set: Record<string, unknown> };
+    expect('rayon' in argument.set).toBe(false);
+    expect('tiroir' in argument.set).toBe(false);
+  });
+
+  it('un article sans rayon ni tiroir reste un état valide : `rayon`/`tiroir` explicitement `null`, jamais une erreur', async () => {
+    const { tx } = txFactice({
+      selects: [[{ id: 'a1' }], [{ id: 's1' }], [ligneStock({ rayon: null, tiroir: null })]],
+    });
+    const service = new ServiceStock(accesFactice(tx));
+
+    const resultat = await service.modifierSite(CTX, 'a1', 's1', {});
+
+    expect(resultat.rayon).toBeNull();
+    expect(resultat.tiroir).toBeNull();
+  });
+});
+
+describe('schemaModificationStockSite — normalisation du casier (0056), le seul point qui rend la structure utile', () => {
+  it('« B3 », « b3 » et « B 3 » convergent tous vers la même valeur stockée', () => {
+    const variantes = ['B3', 'b3', 'B 3', '  b3  ', 'b 3'];
+    const normalisees = variantes.map(
+      (rayon) => schemaModificationStockSite.parse({ rayon }).rayon,
+    );
+
+    for (const valeur of normalisees) {
+      expect(valeur).toBe('B3');
+    }
+  });
+
+  it('même normalisation pour `tiroir` (majuscule, aucun espace interne)', () => {
+    expect(schemaModificationStockSite.parse({ tiroir: 't 2' }).tiroir).toBe('T2');
+    expect(schemaModificationStockSite.parse({ tiroir: 'T2' }).tiroir).toBe('T2');
+  });
+
+  it('une entrée blanche (vide ou uniquement des espaces) devient `null`, jamais une chaîne vide stockée', () => {
+    expect(schemaModificationStockSite.parse({ rayon: '' }).rayon).toBeNull();
+    expect(schemaModificationStockSite.parse({ rayon: '   ' }).rayon).toBeNull();
+  });
+
+  it('`rayon` absent du corps reste `undefined` : un PATCH qui ne le mentionne pas ne le touche pas', () => {
+    expect(schemaModificationStockSite.parse({}).rayon).toBeUndefined();
+  });
+
+  it('`rayon: null` explicite reste `null` : un PATCH peut effacer un casier déjà renseigné', () => {
+    expect(schemaModificationStockSite.parse({ rayon: null }).rayon).toBeNull();
+  });
+
+  it('longueur bornée à 20 caractères (borne applicative, RP-11 étendu) : au-delà, rejeté', () => {
+    expect(() => schemaModificationStockSite.parse({ rayon: 'X'.repeat(21) })).toThrow();
+    expect(() => schemaModificationStockSite.parse({ rayon: 'X'.repeat(20) })).not.toThrow();
   });
 });

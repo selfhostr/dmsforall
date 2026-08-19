@@ -1,4 +1,5 @@
-# Design — Étape 2 : les écrans de la facturation
+Design — Étape 2 : les écrans de la facturation
+===============================================
 
 > Auteur : expert-ui. Base : `docs/specification-etape-2-facturation.md` (métier, `RF-1` → `RF-120`,
 > `CF-16` → `CF-27`). Continuité visuelle avec `docs/design-comptoir.md` (tokens, densité, patrons
@@ -19,7 +20,8 @@
 
 ---
 
-## Sommaire
+Sommaire
+--------
 
 0. [Principe directeur et continuité visuelle](#0-principe-directeur-et-continuité-visuelle)
 1. [Vocabulaire à l'écran](#1-vocabulaire-à-lécran)
@@ -36,7 +38,9 @@
 
 ---
 
-## 0. Principe directeur et continuité visuelle
+0. Principe directeur et continuité visuelle
+
+---
 
 L'étape 1 a établi la règle : **un seul budget couleur par écran**, réservé au statut de workflow ;
 tout le reste (payeur, type, moyen de paiement) se distingue par forme et par mot. La facturation
@@ -62,33 +66,59 @@ compris dans un badge, un aria-label ou un titre de dialogue.
 
 ---
 
-## 1. Vocabulaire à l'écran
-
-Repris directement de `RF-1` → `RF-6`, traduit en règles de copywriting pour les écrans qui suivent :
-
-| Règle                                           | Application à l'écran                                                                                                                                                                                                                                                          |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `RF-2` — « demande d'accord » ≠ « devis »       | Aucun des cinq écrans de ce document ne mentionne la demande d'accord de l'atelier ; le mot « devis » désigne exclusivement le document commercial. ⚠️ **À VALIDER AVEC @laupernoe** (hérité de `RF-2`) : si le terrain dit autrement, seul le libellé i18n change, pas la structure. |
-| `RF-3` — vocabulaire figé des types de document | Tout badge de type utilise exactement `facturation.document.type.*` (§2.3)                                                                                                                                                                                                     |
-| `RF-5` — « Émettre » est le seul verbe          | Aucun bouton « Valider », « Confirmer » ou « Enregistrer » sur une action qui verrouille un document. « Enregistrer » reste correct pour un brouillon ou un paiement (qui ne verrouillent rien d'irréversible au même sens)                                                    |
-| `RF-6` — le TTC est le prix annoncé             | Voir préambule — tenu partout, sans exception                                                                                                                                                                                                                                  |
-| `RF-4` — « avoir » ≠ « avance client »          | Le mot « avoir » n'apparaît jamais pour désigner un trop-perçu non imputé (§5, §6)                                                                                                                                                                                             |
+1. Vocabulaire à l'écran
 
 ---
 
-## 2. Nouveaux tokens — statuts des documents de vente
+Repris directement de `RF-1` → `RF-6`, traduit en règles de copywriting pour les écrans qui suivent :
+
+- **Règle** — `RF-2` — « demande d'accord » ≠ « devis »
+- **Application à l'écran** — Aucun des cinq écrans de ce document ne mentionne la demande d'accord de l'atelier ; le mot « devis » désigne exclusivement le document commercial. ⚠️ **À VALIDER AVEC @laupernoe** (hérité de `RF-2`) : si le terrain dit autrement, seul le libellé i18n change, pas la structure.
+
+- **Règle** — `RF-3` — vocabulaire figé des types de document
+- **Application à l'écran** — Tout badge de type utilise exactement `facturation.document.type.*` (§2.3)
+
+- **Règle** — `RF-5` — « Émettre » est le seul verbe
+- **Application à l'écran** — Aucun bouton « Valider », « Confirmer » ou « Enregistrer » sur une action qui verrouille un document. « Enregistrer » reste correct pour un brouillon ou un paiement (qui ne verrouillent rien d'irréversible au même sens)
+
+- **Règle** — `RF-6` — le TTC est le prix annoncé
+- **Application à l'écran** — Voir préambule — tenu partout, sans exception
+
+- **Règle** — `RF-4` — « avoir » ≠ « avance client »
+- **Application à l'écran** — Le mot « avoir » n'apparaît jamais pour désigner un trop-perçu non imputé (§5, §6)
+
+---
+
+2. Nouveaux tokens — statuts des documents de vente
+
+---
 
 Deux dimensions orthogonales à ajouter, **distinctes** du statut d'OR/de ligne existant (`RM-16` :
 le règlement n'est pas un état du document, `RF-68`). Elles suivent la même discipline que
 `design-etape-1-atelier.md` §5 : un badge = forme + icône + mot, jamais la couleur seule.
 
-### 2.1 État du document — `BadgeEtatDocument`
+**2.1 État du document — `BadgeEtatDocument`**
 
-| État               | Mot               | Couleur             | Icône        | Forme             | Réutilise le patron de…                                                                 |
-| ------------------ | ----------------- | ------------------- | ------------ | ----------------- | --------------------------------------------------------------------------------------- |
-| `brouillon`        | Brouillon         | `--statut-neutre`   | `PencilLine` | contour pointillé | `proposee` (ligne d'OR) — même idée : rien n'est figé                                   |
-| `emis`             | Émise             | `--statut-terminal` | `Lock`       | contour           | `cloture` (OR) — même idée : figé, plus aucune action de modification                   |
-| `annule_par_avoir` | Annulée par avoir | `--statut-neutre`   | `Ban`        | contour           | jamais affiché seul — **toujours accompagné du lien vers l'avoir** (`RF-32`), voir §4.6 |
+- **État** — `brouillon`
+- **Mot** — Brouillon
+- **Couleur** — `--statut-neutre`
+- **Icône** — `PencilLine`
+- **Forme** — contour pointillé
+- **Réutilise le patron de…** — `proposee` (ligne d'OR) — même idée : rien n'est figé
+
+- **État** — `emis`
+- **Mot** — Émise
+- **Couleur** — `--statut-terminal`
+- **Icône** — `Lock`
+- **Forme** — contour
+- **Réutilise le patron de…** — `cloture` (OR) — même idée : figé, plus aucune action de modification
+
+- **État** — `annule_par_avoir`
+- **Mot** — Annulée par avoir
+- **Couleur** — `--statut-neutre`
+- **Icône** — `Ban`
+- **Forme** — contour
+- **Réutilise le patron de…** — jamais affiché seul — **toujours accompagné du lien vers l'avoir** (`RF-32`), voir §4.6
 
 `brouillon` et `emis` ne coexistent jamais sur le même document dans le temps — c'est une
 progression, pas un choix (`RF-9`, `RF-22`). `annule_par_avoir` se pose **par-dessus** `emis` (un
@@ -96,16 +126,28 @@ document annulé reste émis, il ne redevient pas brouillon) : le badge affiché
 `annule_par_avoir`, mais la mention « Émise le 12.05.2026 » reste visible en second niveau — le
 document n'a pas cessé d'exister (`RF-32`).
 
-### 2.2 Statut de règlement — `BadgeStatutReglement`
+**2.2 Statut de règlement — `BadgeStatutReglement`**
 
 Réservé aux documents de nature facture/facture d'acompte. Un devis, un bon de commande ou un avoir
 n'a pas de statut de règlement.
 
-| Statut      | Mot                  | Couleur           | Icône          | Forme   |
-| ----------- | -------------------- | ----------------- | -------------- | ------- |
-| `non_regle` | Non réglée           | `--statut-neutre` | `Circle`       | contour |
-| `partiel`   | Partiellement réglée | `--statut-info`   | `PieChart`     | plein   |
-| `regle`     | Réglée               | `--statut-succes` | `CheckCircle2` | plein   |
+- **Statut** — `non_regle`
+- **Mot** — Non réglée
+- **Couleur** — `--statut-neutre`
+- **Icône** — `Circle`
+- **Forme** — contour
+
+- **Statut** — `partiel`
+- **Mot** — Partiellement réglée
+- **Couleur** — `--statut-info`
+- **Icône** — `PieChart`
+- **Forme** — plein
+
+- **Statut** — `regle`
+- **Mot** — Réglée
+- **Couleur** — `--statut-succes`
+- **Icône** — `CheckCircle2`
+- **Forme** — plein
 
 **Décision de design directement liée au principe directeur de @laupernoe** : `non_regle` utilise le token
 **neutre**, pas `--statut-attention`. Une facture fraîchement émise et non payée n'est pas une alerte
@@ -113,41 +155,61 @@ n'a pas de statut de règlement.
 le **retard**, qui est une dimension séparée (§2.4) — jamais fusionnée dans le badge de règlement lui-
 même, précisément pour ne pas colorer en orange/rouge une facture du jour qui n'est pas en retard.
 
-### 2.3 Type de document — `BadgeTypeDocument`
+**2.3 Type de document — `BadgeTypeDocument`**
 
 Comme payeur/origine/localisation à l'étape 1 (`design-etape-1-atelier.md` §5.4) : **aucune couleur
 de statut**, texte + icône sur `--foreground`/`--muted-foreground`.
 
-| Type                         | Mot (clé `facturation.document.type.*`, `RF-3`) | Icône                                                                                                                           |
-| ---------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `devis`                      | Devis                                           | `FileText`                                                                                                                      |
-| `bon_commande`               | Bon de commande                                 | `FileCheck`                                                                                                                     |
-| `facture`                    | Facture                                         | `Receipt`                                                                                                                       |
-| `facture` + `nature=acompte` | Facture d'acompte                               | `Receipt` + libellé complet, jamais l'icône seule (distinction texte, pas pictogramme)                                          |
-| `avoir`                      | Avoir                                           | `ReceiptText` (jamais `Receipt` seul — la confusion visuelle avec une facture serait le pire endroit pour économiser une icône) |
-| `bulletin_paiement`          | Bulletin de versement                           | `QrCode`                                                                                                                        |
+- **Type** — `devis`
+- **Mot (clé `facturation.document.type.*`, `RF-3`)** — Devis
+- **Icône** — `FileText`
 
-### 2.4 Retard — indicateur, pas un statut
+- **Type** — `bon_commande`
+- **Mot (clé `facturation.document.type.*`, `RF-3`)** — Bon de commande
+- **Icône** — `FileCheck`
+
+- **Type** — `facture`
+- **Mot (clé `facturation.document.type.*`, `RF-3`)** — Facture
+- **Icône** — `Receipt`
+
+- **Type** — `facture` + `nature=acompte`
+- **Mot (clé `facturation.document.type.*`, `RF-3`)** — Facture d'acompte
+- **Icône** — `Receipt` + libellé complet, jamais l'icône seule (distinction texte, pas pictogramme)
+
+- **Type** — `avoir`
+- **Mot (clé `facturation.document.type.*`, `RF-3`)** — Avoir
+- **Icône** — `ReceiptText` (jamais `Receipt` seul — la confusion visuelle avec une facture serait le pire endroit pour économiser une icône)
+
+- **Type** — `bulletin_paiement`
+- **Mot (clé `facturation.document.type.*`, `RF-3`)** — Bulletin de versement
+- **Icône** — `QrCode`
+
+**2.4 Retard — indicateur, pas un statut**
 
 Le retard est un **texte + icône accolé** au badge de règlement, jamais une variante de couleur du
 badge lui-même :
 
-| Situation                                         | Rendu                                                                          |
-| ------------------------------------------------- | ------------------------------------------------------------------------------ |
-| Échéance non dépassée                             | Rien — la date d'échéance suffit, visible au clic/survol                       |
-| Échéance dépassée, 1ᵉʳ niveau de relance          | `· en retard de 12 j` en `--statut-attention`, icône `Clock`                   |
-| Échéance dépassée, relance avancée (paramétrable) | `· en retard de 46 j — 2ᵉ relance` en `--statut-danger`, icône `AlertTriangle` |
+- **Situation** — Échéance non dépassée
+- **Rendu** — Rien — la date d'échéance suffit, visible au clic/survol
+
+- **Situation** — Échéance dépassée, 1ᵉʳ niveau de relance
+- **Rendu** — `· en retard de 12 j` en `--statut-attention`, icône `Clock`
+
+- **Situation** — Échéance dépassée, relance avancée (paramétrable)
+- **Rendu** — `· en retard de 46 j — 2ᵉ relance` en `--statut-danger`, icône `AlertTriangle`
 
 ---
 
-## 3. Écran 1 — Passer un OR en facture
+3. Écran 1 — Passer un OR en facture
+
+---
 
 Route : `/or/:id/facturer`, plein écran (le geste est trop dense pour un panneau latéral). Point
 d'entrée unique : le bouton d'action primaire du bandeau d'OR quand le statut est `termine`
 (`design-etape-1-atelier.md` §3.3 — la table des actions par statut de ce document s'enrichit d'une
 ligne `termine → « Facturer… »`).
 
-### 3.1 Ce que cet écran fait, et ne fait pas
+**3.1 Ce que cet écran fait, et ne fait pas**
 
 **Ne fait pas** : retaper un montant. Toutes les lignes affichées sont **recopiées** depuis l'OR,
 figées, non éditables ici (`RF-81`) — cet écran est un **tri et une confirmation**, pas une saisie.
@@ -156,7 +218,7 @@ figées, non éditables ici (`RF-81`) — cet écran est un **tri et une confirm
 spécifiques au passage atelier→facture (démontage refusé, taxe d'élimination, consigne), et bloque
 tant qu'une ligne est dans un état indécis.
 
-### 3.2 Maquette structurelle
+**3.2 Maquette structurelle**
 
 ```
 ┌ En-tête — repris du bandeau d'OR, compact, lecture seule ───────────────────────────────┐
@@ -201,7 +263,7 @@ tant qu'une ligne est dans un état indécis.
 └───────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 3.3 Règles de comportement
+**3.3 Règles de comportement**
 
 - **Groupement par payeur** (`RF-87`) : un groupe = un futur document. Le payeur `garage` (`RF-92`)
   n'a pas de groupe séparé — ses lignes apparaissent **dans le groupe du client**, à CHF 0.00, avec
@@ -233,7 +295,7 @@ tant qu'une ligne est dans un état indécis.
   pratique l'échange standard. Si non pratiqué, cette note n'apparaît simplement jamais (donnée
   absente de l'OR) — rien à retirer côté écran.
 
-### 3.4 États
+**3.4 États**
 
 - **Chargement** : squelette des groupes payeur (3 lignes grisées par groupe estimé), bouton
   primaire désactivé avec libellé neutre « Chargement… ».
@@ -247,14 +309,16 @@ tant qu'une ligne est dans un état indécis.
 
 ---
 
-## 4. Écran 2 — Facture : édition, émission, verrouillage
+4. Écran 2 — Facture : édition, émission, verrouillage
+
+---
 
 Route : `/factures/:id`. Un seul écran, deux visages selon `BadgeEtatDocument` — **brouillon**
 (éditable, décrit en §4.2-4.4) et **émise** (verrouillée, décrite en §4.5-4.6). C'est la continuité
 qui compte : le réceptionniste ne change pas d'écran entre l'édition et la lecture, seuls les
 contrôles disparaissent.
 
-### 4.1 Charpente commune (fiche à deux colonnes, patron `design-comptoir.md` §5)
+**4.1 Charpente commune (fiche à deux colonnes, patron `design-comptoir.md` §5)**
 
 ```
 ┌ En-tête de fiche ─────────────────────────────────────────────────────────────────────┐
@@ -276,7 +340,7 @@ Le total TTC est le **plus gros chiffre de l'écran** (`texte-chiffre-geant` ou 
 `texte-donnee-proeminente` selon densité), ancré en bas de la colonne principale — c'est la dernière
 chose que l'œil rencontre avant le bouton d'action, jamais noyé dans la table de lignes.
 
-### 4.2 Card « Destinataire »
+**4.2 Card « Destinataire »**
 
 - Nom, adresse complète, éditable **en brouillon uniquement**.
 - Si adresse incomplète pour le bloc débiteur QR (un des cinq champs `RF-60` manque) :
@@ -284,7 +348,7 @@ chose que l'œil rencontre avant le bouton d'action, jamais noyé dans la table 
   bulletin sera émis sans destinataire pré-rempli. » + lien « Compléter la fiche » (`RF-61`). **Ne
   bloque jamais** l'émission.
 
-### 4.3 Card « Lignes » — brouillon
+**4.3 Card « Lignes » — brouillon**
 
 - Table dense, chaque ligne recopiée depuis l'OR est **en lecture** (`RF-81`) : fond légèrement
   estompé (`bg-muted/30`), curseur par défaut, une petite étiquette `depuis OR-2026-1042` en fin de
@@ -299,7 +363,7 @@ chose que l'œil rencontre avant le bouton d'action, jamais noyé dans la table 
 - Aucune modale pour ces deux actions (cohérence avec `design-etape-1-atelier.md` §4.5) : la case à
   cocher agit en direct.
 
-### 4.4 Card « Remise globale » — brouillon uniquement
+**4.4 Card « Remise globale » — brouillon uniquement**
 
 - Un champ, montant ou pourcentage (jamais les deux à la fois, `RF-41` — ici c'est le rabais de
   **pied** de document, `RF-42`), avec un libellé obligatoire affiché sur le document (« Remise
@@ -310,7 +374,7 @@ chose que l'œil rencontre avant le bouton d'action, jamais noyé dans la table 
 - Si la facture ne porte qu'un seul taux de TVA, le champ se comporte identiquement — pas de
   raccourci visuel qui laisserait croire que la ventilation ne s'applique pas (`RF-43`).
 
-### 4.5 Émission — le geste et sa confirmation
+**4.5 Émission — le geste et sa confirmation**
 
 Bouton primaire **« Émettre »** (`RF-5`, jamais « Valider »/« Confirmer »). Au clic, `Dialog` de
 confirmation — la seule confirmation modale de tout ce document, réservée précisément parce que
@@ -349,7 +413,7 @@ pourrait remplacer l'impression du bulletin QR par une mention « Payé le … ,
 implémentée tant que la pratique terrain n'est pas confirmée — l'écran fonctionne à l'identique sans
 elle (impression standard avec bulletin, encaissement enregistré séparément à l'écran 3 juste après).
 
-### 4.6 État émis — verrouillage et pourquoi
+**4.6 État émis — verrouillage et pourquoi**
 
 ```
 ┌ En-tête de fiche ─────────────────────────────────────────────────────────────────────┐
@@ -379,7 +443,7 @@ avoir` (§6), `Voir le journal`.
   cliquables. Le bouton primaire disparaît (rien à encaisser sur un document annulé), le menu `⋯` ne
   garde que `Voir le journal` et `Imprimer` (le document annulé reste consultable, `RF-32`).
 
-### 4.7 « Corriger cette facture » — le geste en un clic (`RF-11`, `RF-12`)
+**4.7 « Corriger cette facture » — le geste en un clic (`RF-11`, `RF-12`)**
 
 Accessible uniquement sur une facture `emis` non encore `annule_par_avoir`. Portée volontairement
 **limitée aux corrections qui invalident le document dans son ensemble** — adresse, destinataire,
@@ -436,7 +500,7 @@ proposer une refonte totale du document pour un correctif qui n'en a pas besoin.
   ci-dessus se limite à changer le libellé du bouton et à afficher le plafond dépassé, sans inventer
   de file d'attente non spécifiée.
 
-### 4.8 États
+**4.8 États**
 
 - **Chargement** : squelette de la fiche (en-tête + 4 lignes de table + carte TVA grisée), aucune
   action disponible.
@@ -448,7 +512,9 @@ proposer une refonte totale du document pour un correctif qui n'en a pas besoin.
 
 ---
 
-## 5. Écran 3 — Encaissement
+5. Écran 3 — Encaissement
+
+---
 
 Un `Sheet` (`side="right"`), jamais une page dédiée — l'encaissement est une action qui **complète**
 le contexte d'une facture ou d'une fiche client sans en sortir (patron `design-comptoir.md` §7).
@@ -459,7 +525,7 @@ Deux points d'entrée, un seul composant :
 2. Depuis `/clients/:id`, action secondaire **« Nouvel encaissement »** → panneau qui liste toutes
    les factures ouvertes du client, sans présélection de document.
 
-### 5.1 Maquette
+**5.1 Maquette**
 
 ```
 ┌ Sheet — Encaisser · Meier Hans ──────────────────────────────────────────────┐
@@ -487,7 +553,7 @@ Deux points d'entrée, un seul composant :
   ┌ Moyen [Espèces ▾]      Montant [CHF 104.30]  ⓘ arrondi −0.01 (RF-49)   [×] ┐
 ```
 
-### 5.2 Sélection des factures — lettrage (`RF-69`, `RF-70`)
+**5.2 Sélection des factures — lettrage (`RF-69`, `RF-70`)**
 
 - Liste triée par ancienneté, une facture cochée **par défaut uniquement si un montant saisi tombe
   exactement juste sur une seule d'entre elles** (`RF-70`) — sinon, aucune présélection : deviner et
@@ -500,7 +566,7 @@ Deux points d'entrée, un seul composant :
   la liste affiche l'état vide « Aucune facture ouverte » et une note : « Cet encaissement sera
   enregistré comme avance client. » — pas un blocage, un cas normal du dispositif 1.
 
-### 5.3 Moyens multiples et arrondi espèces (`RF-49` → `RF-52`, `RF-73` → `RF-75`)
+**5.3 Moyens multiples et arrondi espèces (`RF-49` → `RF-52`, `RF-73` → `RF-75`)**
 
 - Chaque ligne « Encaissements » est un `paiement` distinct, avec son propre moyen
   (Espèces/Carte/Virement/QR/TWINT/Compensation/Leasing). Bouton `+ Ajouter un moyen de paiement`
@@ -529,7 +595,7 @@ Deux points d'entrée, un seul composant :
   issues restent des actions **séparées et explicites** menées plus tard depuis la fiche client
   (`RF-79`), jamais décidées dans le feu de l'encaissement.
 
-### 5.4 Après enregistrement
+**5.4 Après enregistrement**
 
 - Le panneau se ferme, la facture repasse avec son nouveau `BadgeStatutReglement` (§2.2) mis à jour
   en direct.
@@ -540,7 +606,7 @@ Deux points d'entrée, un seul composant :
   pré-rempli avec un montant négatif du même moyen, lié au paiement d'origine. La saisie fausse
   **reste visible**, jamais masquée (`RF-66`).
 
-### 5.5 États
+**5.5 États**
 
 - **Chargement** (liste des factures ouvertes) : squelette de 2-3 lignes grisées, bouton
   `Enregistrer` désactivé.
@@ -550,7 +616,9 @@ Deux points d'entrée, un seul composant :
 
 ---
 
-## 6. Écran 4 — Avoir
+6. Écran 4 — Avoir
+
+---
 
 Route : `/factures/:id/avoir`, plein écran (même poids qu'une édition de facture — sélection de
 lignes, récapitulatif TVA, montants qui s'additionnent en direct méritent l'espace d'une page, pas
@@ -559,7 +627,7 @@ distinct de « Corriger cette facture » (§4.7) — cet écran couvre les avoir
 motifs qui ne justifient pas une facture de remplacement (`prestation_annulee`, `geste_commercial`,
 et tout avoir total qui n'a pas besoin d'un document suivant).
 
-### 6.1 Maquette
+**6.1 Maquette**
 
 ```
 ┌ En-tête ──────────────────────────────────────────────────────────────────────────────┐
@@ -578,7 +646,7 @@ et tout avoir total qui n'a pas besoin d'un document suivant).
 └───────────────────────────────────────────────────┴─────────────────────────────────────┘
 ```
 
-### 6.2 Règles de comportement
+**6.2 Règles de comportement**
 
 - **Motif obligatoire** (`RF-15`), les 7 valeurs complètes ici (y compris `prestation_annulee` et
   `geste_commercial`, contrairement au dialogue §4.7). « Autre » impose un texte libre.
@@ -604,7 +672,7 @@ et tout avoir total qui n'a pas besoin d'un document suivant).
   `BadgeEtatDocument` (elle reste `emis`, seul son `BadgeStatutReglement` peut évoluer vers
   `partiel`/`regle`).
 
-### 6.3 États
+**6.3 États**
 
 - **Chargement** : squelette de la liste de lignes + carte TVA grisée, bouton primaire désactivé.
 - **Vide** : sans objet — une facture émise a toujours au moins une ligne à proposer. Si toutes les
@@ -617,12 +685,14 @@ et tout avoir total qui n'a pas besoin d'un document suivant).
 
 ---
 
-## 7. Écran 5 — Liste des factures
+7. Écran 5 — Liste des factures
+
+---
 
 Route `/factures`, dans la navigation principale. C'est l'écran que le patron regarde : triage
 rapide, pas de saisie. Patron de table dense identique à `design-comptoir.md` §4.
 
-### 7.1 Maquette
+**7.1 Maquette**
 
 ```
 ┌ Facturation ───────────────────────────────────────────────────────────────────────────┐
@@ -668,7 +738,7 @@ danger`, §2.4).
   (écran 1) ou d'une correction (écran 2/4). Ne pas ajouter de bouton « + » qui n'aurait nulle part où
   mener.
 
-### 7.2 États
+**7.2 États**
 
 - **Chargement** : squelette de 6 lignes grisées, onglets déjà interactifs (le changement d'onglet ne
   doit pas attendre le premier chargement pour être cliquable).
@@ -683,26 +753,54 @@ danger`, §2.4).
 
 ---
 
-## 8. Composants nouveaux à ajouter au design system
+8. Composants nouveaux à ajouter au design system
+
+---
 
 Récapitulatif de ce qui n'existait pas avant ce document, à livrer par `expert-react`/`expert-ui`
 avant ou pendant l'implémentation des écrans ci-dessus :
 
-| Composant                                                           | Rôle                                                                                                     | Réutilise                                                                                                                                                                                   |
-| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `BadgeEtatDocument`                                                 | Brouillon / Émise / Annulée par avoir (§2.1)                                                             | Mapping type-safe identique à `BadgeStatutOr` (`design-etape-1-atelier.md` §8.4)                                                                                                            |
-| `BadgeStatutReglement`                                              | Non réglée / Partielle / Réglée (§2.2)                                                                   | idem                                                                                                                                                                                        |
-| `BadgeTypeDocument`                                                 | Devis / Bon de commande / Facture / Facture d'acompte / Avoir / Bulletin (§2.3)                          | Patron payeur/origine sans couleur (`design-etape-1-atelier.md` §5.4)                                                                                                                       |
-| `IndicateurRetard`                                                  | `· en retard de {n} j` accolé à `BadgeStatutReglement` (§2.4)                                            | Nouveau, léger                                                                                                                                                                              |
-| `RecapitulatifTVA`                                                  | Table Base HT / TVA / Total TTC par taux + total général, pied de facture/avoir (§4.1, §6.1)             | Nouveau — **seul endroit du produit où le HT est affiché en primaire**, à documenter comme tel dans son propre composant pour qu'aucun autre écran ne le réutilise par erreur hors contexte |
-| `LigneDocumentLue`                                                  | Ligne de table recopiée, non éditable, étiquette de provenance (§4.3)                                    | Variante de `TableRow` avec `bg-muted/30`                                                                                                                                                   |
-| `ChampVerrouille` (pattern, pas nécessairement un composant unique) | Tooltip/Popover « pourquoi c'est verrouillé + quoi faire » sur tout champ figé d'un document émis (§4.6) | `Tooltip`/`Popover` existants                                                                                                                                                               |
-| `LignePaiement`                                                     | Ligne de moyen de paiement dans le `Sheet` d'encaissement, avec calcul d'arrondi conditionnel (§5.3)     | Nouveau                                                                                                                                                                                     |
-| `EncartAvanceClient`                                                | Encart neutre-informatif pour trop-perçu (§5.3)                                                          | Variante non alarmante du patron d'encart d'alertes (`design-comptoir.md` §6), sur `--muted`, pas sur un token de statut                                                                    |
+- **Composant** — `BadgeEtatDocument`
+- **Rôle** — Brouillon / Émise / Annulée par avoir (§2.1)
+- **Réutilise** — Mapping type-safe identique à `BadgeStatutOr` (`design-etape-1-atelier.md` §8.4)
+
+- **Composant** — `BadgeStatutReglement`
+- **Rôle** — Non réglée / Partielle / Réglée (§2.2)
+- **Réutilise** — idem
+
+- **Composant** — `BadgeTypeDocument`
+- **Rôle** — Devis / Bon de commande / Facture / Facture d'acompte / Avoir / Bulletin (§2.3)
+- **Réutilise** — Patron payeur/origine sans couleur (`design-etape-1-atelier.md` §5.4)
+
+- **Composant** — `IndicateurRetard`
+- **Rôle** — `· en retard de {n} j` accolé à `BadgeStatutReglement` (§2.4)
+- **Réutilise** — Nouveau, léger
+
+- **Composant** — `RecapitulatifTVA`
+- **Rôle** — Table Base HT / TVA / Total TTC par taux + total général, pied de facture/avoir (§4.1, §6.1)
+- **Réutilise** — Nouveau — **seul endroit du produit où le HT est affiché en primaire**, à documenter comme tel dans son propre composant pour qu'aucun autre écran ne le réutilise par erreur hors contexte
+
+- **Composant** — `LigneDocumentLue`
+- **Rôle** — Ligne de table recopiée, non éditable, étiquette de provenance (§4.3)
+- **Réutilise** — Variante de `TableRow` avec `bg-muted/30`
+
+- **Composant** — `ChampVerrouille` (pattern, pas nécessairement un composant unique)
+- **Rôle** — Tooltip/Popover « pourquoi c'est verrouillé + quoi faire » sur tout champ figé d'un document émis (§4.6)
+- **Réutilise** — `Tooltip`/`Popover` existants
+
+- **Composant** — `LignePaiement`
+- **Rôle** — Ligne de moyen de paiement dans le `Sheet` d'encaissement, avec calcul d'arrondi conditionnel (§5.3)
+- **Réutilise** — Nouveau
+
+- **Composant** — `EncartAvanceClient`
+- **Rôle** — Encart neutre-informatif pour trop-perçu (§5.3)
+- **Réutilise** — Variante non alarmante du patron d'encart d'alertes (`design-comptoir.md` §6), sur `--muted`, pas sur un token de statut
 
 ---
 
-## 9. Risques identifiés dans le parcours
+9. Risques identifiés dans le parcours
+
+---
 
 Signalés comme demandé, distincts des hypothèses `⚠️` déjà posées par la spec (§11.1 de la spec) —
 ce sont des risques de **conception d'écran**, pas des questions métier :
@@ -742,22 +840,39 @@ ce sont des risques de **conception d'écran**, pas des questions métier :
 
 ---
 
-## 10. Traçabilité
-
-| Section de ce document      | Règles couvertes                                                                                                                        |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| §1 Vocabulaire              | `RF-1` → `RF-6`                                                                                                                         |
-| §2 Tokens statuts documents | `RF-9`, `RF-22`, `RF-32`, `RF-68`                                                                                                       |
-| §3 Écran 1 — OR → facture   | `RF-81` → `RF-92`, `RF-99`, `RF-100`                                                                                                    |
-| §4 Écran 2 — Facture        | `RF-5`, `RF-9`, `RF-10`, `RF-11` → `RF-19`, `RF-22`, `RF-25`, `RF-38`, `RF-41` → `RF-44`, `RF-54`, `RF-60`, `RF-61`, `RF-117`, `RF-120` |
-| §5 Écran 3 — Encaissement   | `RF-49` → `RF-52`, `RF-65` → `RF-80`                                                                                                    |
-| §6 Écran 4 — Avoir          | `RF-15`, `RF-17`, `RF-18`, `RF-117`                                                                                                     |
-| §7 Écran 5 — Liste          | `RF-68`, orientation générale du chapitre 6-7 de la spec                                                                                |
-| §9 Risques                  | aucun `RF` — observations de conception propres à ce document                                                                           |
+10. Traçabilité
 
 ---
 
-## 11. Checklist de conformité
+- **Section de ce document** — §1 Vocabulaire
+- **Règles couvertes** — `RF-1` → `RF-6`
+
+- **Section de ce document** — §2 Tokens statuts documents
+- **Règles couvertes** — `RF-9`, `RF-22`, `RF-32`, `RF-68`
+
+- **Section de ce document** — §3 Écran 1 — OR → facture
+- **Règles couvertes** — `RF-81` → `RF-92`, `RF-99`, `RF-100`
+
+- **Section de ce document** — §4 Écran 2 — Facture
+- **Règles couvertes** — `RF-5`, `RF-9`, `RF-10`, `RF-11` → `RF-19`, `RF-22`, `RF-25`, `RF-38`, `RF-41` → `RF-44`, `RF-54`, `RF-60`, `RF-61`, `RF-117`, `RF-120`
+
+- **Section de ce document** — §5 Écran 3 — Encaissement
+- **Règles couvertes** — `RF-49` → `RF-52`, `RF-65` → `RF-80`
+
+- **Section de ce document** — §6 Écran 4 — Avoir
+- **Règles couvertes** — `RF-15`, `RF-17`, `RF-18`, `RF-117`
+
+- **Section de ce document** — §7 Écran 5 — Liste
+- **Règles couvertes** — `RF-68`, orientation générale du chapitre 6-7 de la spec
+
+- **Section de ce document** — §9 Risques
+- **Règles couvertes** — aucun `RF` — observations de conception propres à ce document
+
+---
+
+11. Checklist de conformité
+
+---
 
 À vérifier par `expert-react`/`expert-ui` avant de considérer une tâche de l'étape 2 terminée :
 

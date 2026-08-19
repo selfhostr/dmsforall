@@ -177,8 +177,21 @@
       "prixVente": "Prix de vente affiché"
     },
     "liste": {
-      "titre": "Parc en stock",
-      "vide": "Aucun véhicule en stock.",
+      "titre": "Véhicules en parc",
+      "vide": {
+        "recherche": {
+          "titre": "Aucun véhicule trouvé",
+          "description": "Aucun véhicule du parc ne correspond à cette recherche."
+        },
+        "filtre": {
+          "titre": "Aucun véhicule avec ces filtres",
+          "description": "Aucun véhicule du parc ne correspond aux filtres choisis."
+        },
+        "premierUsage": {
+          "titre": "Aucun véhicule en stock",
+          "description": "Mettez votre premier véhicule en stock."
+        }
+      },
       "rechercherPlaceholder": "Plaque, VIN ou désignation…",
       "erreur": {
         "titre": "Impossible d'afficher le parc en stock"
@@ -203,6 +216,16 @@
         "joursStockDesc": "En stock depuis le plus longtemps",
         "prixVenteAsc": "Prix de vente croissant",
         "prixVenteDesc": "Prix de vente décroissant"
+      },
+      "plan": {
+        "groupeLabelBascule": "Liste ou plan",
+        "affichage": {
+          "liste": "Liste",
+          "plan": "Plan"
+        },
+        "groupeLabel": "Plan du parc par emplacement",
+        "sansEmplacement": "Sans emplacement",
+        "nombreVehicules": "{n, plural, one {# véhicule} other {# véhicules}}"
       }
     },
     "fiche": {
@@ -262,7 +285,20 @@
     "liste": {
       "titre": "Dossiers de vente",
       "nouveauDossier": "Nouveau dossier de vente",
-      "vide": "Aucun dossier de vente.",
+      "vide": {
+        "recherche": {
+          "titre": "Aucun dossier trouvé",
+          "description": "Aucun dossier de vente ne correspond à cette recherche."
+        },
+        "filtre": {
+          "titre": "Aucun dossier avec ces filtres",
+          "description": "Aucun dossier de vente ne correspond aux filtres choisis."
+        },
+        "premierUsage": {
+          "titre": "Aucun dossier de vente",
+          "description": "Ouvrez-en un dès qu'un client est intéressé."
+        }
+      },
       "vehiculeNonAssigne": "— non assigné",
       "erreur": {
         "titre": "Impossible d'afficher les dossiers de vente"
@@ -345,6 +381,10 @@
       "ordresVehicule": {
         "titre": "OR de ce véhicule",
         "vide": "Aucun OR pour ce véhicule."
+      },
+      "garantie": {
+        "titre": "Garantie",
+        "gererSurFicheVehicule": "Voir/modifier sur la fiche du véhicule"
       }
     },
     "transitions": {

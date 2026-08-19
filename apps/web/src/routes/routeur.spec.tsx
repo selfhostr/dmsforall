@@ -150,6 +150,15 @@ const FINANCIER_MINIMAL: ReponseFinancierTableauBord = {
   },
   encaissementsCentimes: 0,
   encoursClientsCentimes: 0,
+  // Champs ajoutés au contrat le 14.08.2026 (marge véhicules, valorisation stock pièces) — mêmes
+  // valeurs neutres que le reste de ce filet minimal, ce fichier teste le CÂBLAGE de la
+  // redirection, pas le contenu financier (couvert par `ecrans/tableau-bord/EcranTableauBord.spec.tsx`).
+  marges: {
+    vehicules: { margeCentimes: 0, nombreVehiculesFactures: 0 },
+    pieces: { disponible: false, raisonCle: 'piecesCoutNonFiable' },
+    mainOeuvre: { disponible: false, raisonCle: 'mainOeuvreCoutAbsent' },
+  },
+  stockPieces: { totalCentimes: 0, articlesValeurInconnueNombre: 0 },
 };
 
 /** Filet générique pour toutes les collections paginées par curseur qu'un dashboard par rôle peut

@@ -1,9 +1,10 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { MemoryRouter } from 'react-router';
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import type { ReponseRegleRelance } from '@dfa/shared';
+import type { PageCurseur, ReponseRegleRelance, ReponseRelanceEnvoi } from '@dfa/shared';
 
 import '@/i18n';
 
@@ -40,9 +41,38 @@ beforeAll(() => {
   }
 });
 
+// `GabaritEcran` (chantier « titres doublés & espacements », 17.08.2026) résout désormais sa
+// détection automatique de doublon via `useNavigationActive` (`useLocation`/`useSearchParams`) —
+// un Router de test est donc requis, même pour un rendu isolé de l'écran (pas de matching de route
+// nécessaire : `useLocation().pathname` suffit, `MemoryRouter` seul convient, pas besoin du jeu de
+// routes complet de l'app comme `renduAvecRoutes` ci-dessous, réservé aux tests de garde de rôle).
 function rendre() {
-  return renduAvecQueryClient(<EcranRelances />);
+  return renduAvecQueryClient(
+    <MemoryRouter initialEntries={['/relances']}>
+      <EcranRelances />
+    </MemoryRouter>,
+  );
 }
+
+const PAGE_HISTORIQUE_VIDE: PageCurseur<ReponseRelanceEnvoi> = {
+  donnees: [],
+  curseurSuivant: null,
+  limite: 50,
+};
+
+/** Défaut appliqué à CHAQUE test de ce fichier : `BlocTracabilite` (issue #136) appelle
+ *  systématiquement `GET .../historique` au montage de l'écran — un handler par défaut évite de
+ *  le répéter dans les describe qui ne testent rien de ce bloc (le serveur MSW refuse toute
+ *  requête non gérée, `src/test/setup.ts::onUnhandledRequest: 'error'`). Les tests dédiés à
+ *  l'historique, plus bas, l'écrasent avec `server.use(...)` — msw priorise le handler le plus
+ *  récemment enregistré. */
+beforeEach(() => {
+  server.use(
+    http.get('/api/v1/relances/facturation/historique', () =>
+      HttpResponse.json(PAGE_HISTORIQUE_VIDE),
+    ),
+  );
+});
 
 describe('EcranRelances — nominal', () => {
   it('affiche la règle du rappel facture échue quand elle est configurée', async () => {
@@ -210,6 +240,171 @@ describe('EcranRelances — modification manuelle', () => {
 
     expect(screen.queryByRole('button', { name: 'Enregistrer' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Modifier la règle' })).toBeInTheDocument();
+  });
+});
+
+const ENVOI_REUSSI: ReponseRelanceEnvoi = {
+  id: 'env-1',
+  factureId: 'facture-1',
+  factureNumero: 'F-2026-00042',
+  palier: 1,
+  canal: 'email',
+  destinataire: 'client@exemple.ch',
+  statutEnvoi: 'envoye',
+  raisonEchec: null,
+  envoyeLe: '2026-08-10T08:00:00.000Z',
+};
+
+const ENVOI_ECHOUE: ReponseRelanceEnvoi = {
+  id: 'env-2',
+  factureId: 'facture-1',
+  factureNumero: 'F-2026-00042',
+  palier: 2,
+  canal: 'sms',
+  destinataire: '+41791234567',
+  statutEnvoi: 'echoue',
+  raisonEchec: 'quota_depasse',
+  envoyeLe: '2026-08-11T08:00:00.000Z',
+};
+
+/**
+ * Issue #136 : le bloc `BlocTracabilite` affichait jusqu'ici une note statique (« s'affichera ici
+ * dès que l'API… ») — ce bloc de tests prouve la liste RÉELLE, ses trois états, et le point
+ * central de l'issue : chaque tentative d'envoi apparaît (jamais seulement la dernière), avec la
+ * date, le palier, le destinataire réellement touché, et le résultat en langage compréhensible.
+ */
+describe('EcranRelances — historique d’envoi (issue #136)', () => {
+  it('état de chargement de l’historique, indépendant de la règle déjà affichée', async () => {
+    server.use(
+      http.get('/api/v1/relances/regles', () => HttpResponse.json([REGLE_FACTURE_ECHUE])),
+      http.get('/api/v1/relances/facturation/historique', async () => {
+        await new Promise((resolve) => setTimeout(resolve, 30));
+        return HttpResponse.json(PAGE_HISTORIQUE_VIDE);
+      }),
+    );
+
+    rendre();
+
+    await screen.findByText('Active');
+    expect(screen.getByText("Historique d'envoi")).toBeInTheDocument();
+    expect(screen.getAllByRole('status').length).toBeGreaterThan(0);
+
+    await waitFor(() => expect(screen.getByText('Aucune relance envoyée')).toBeInTheDocument());
+  });
+
+  it('état vide (aucune relance envoyée) : cas normal, pas une erreur', async () => {
+    server.use(http.get('/api/v1/relances/regles', () => HttpResponse.json([REGLE_FACTURE_ECHUE])));
+
+    rendre();
+
+    expect(await screen.findByText('Aucune relance envoyée')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Aucun rappel n'a encore été envoyé pour ce garage. L'historique apparaîtra ici dès le premier envoi.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('état erreur : actionnable avec retry, indépendant d’une règle chargée avec succès', async () => {
+    server.use(
+      http.get('/api/v1/relances/regles', () => HttpResponse.json([REGLE_FACTURE_ECHUE])),
+      http.get('/api/v1/relances/facturation/historique', () =>
+        HttpResponse.json(
+          {
+            type: 'https://docs.dmsforall.example/erreurs/ERREUR_INTERNE',
+            title: 'Erreur interne',
+            status: 500,
+            code: 'ERREUR_INTERNE',
+            instance: 'req-hist-1',
+          },
+          { status: 500, headers: { 'content-type': 'application/problem+json' } },
+        ),
+      ),
+    );
+
+    rendre();
+
+    expect(await screen.findByText("Impossible d'afficher l'historique")).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Réessayer' }).length).toBeGreaterThan(0);
+  });
+
+  it('une ligne par TENTATIVE (jamais seulement la dernière) — date, palier, destinataire figé, canal et résultat', async () => {
+    server.use(
+      http.get('/api/v1/relances/regles', () => HttpResponse.json([REGLE_FACTURE_ECHUE])),
+      http.get('/api/v1/relances/facturation/historique', () =>
+        HttpResponse.json({
+          donnees: [ENVOI_REUSSI, ENVOI_ECHOUE],
+          curseurSuivant: null,
+          limite: 50,
+        }),
+      ),
+    );
+
+    rendre();
+
+    await screen.findByText('client@exemple.ch');
+    const lignes = screen.getAllByRole('row').slice(1); // exclut la ligne d'en-tête
+    expect(lignes).toHaveLength(2);
+
+    expect(within(lignes[0]!).getByText('10.08.2026')).toBeInTheDocument();
+    expect(within(lignes[0]!).getByText('Palier 1')).toBeInTheDocument();
+    expect(within(lignes[0]!).getByText('client@exemple.ch')).toBeInTheDocument();
+    expect(within(lignes[0]!).getByText('E-mail')).toBeInTheDocument();
+    expect(within(lignes[0]!).getByText('Envoyé')).toBeInTheDocument();
+
+    expect(within(lignes[1]!).getByText('11.08.2026')).toBeInTheDocument();
+    expect(within(lignes[1]!).getByText('Palier 2')).toBeInTheDocument();
+    expect(within(lignes[1]!).getByText('+41791234567')).toBeInTheDocument();
+    expect(within(lignes[1]!).getByText('Échoué')).toBeInTheDocument();
+    expect(
+      within(lignes[1]!).getByText("Quota d'envoi dépassé ou erreur technique du prestataire"),
+    ).toBeInTheDocument();
+  });
+
+  it('raisonEchec absent (format inattendu côté API) : libellé générique, jamais un plantage d’affichage', async () => {
+    server.use(
+      http.get('/api/v1/relances/regles', () => HttpResponse.json([REGLE_FACTURE_ECHUE])),
+      http.get('/api/v1/relances/facturation/historique', () =>
+        HttpResponse.json({
+          donnees: [{ ...ENVOI_ECHOUE, raisonEchec: null }],
+          curseurSuivant: null,
+          limite: 50,
+        }),
+      ),
+    );
+
+    rendre();
+
+    expect(await screen.findByText('Échec — raison indisponible')).toBeInTheDocument();
+  });
+
+  it('charger plus : ajoute la page suivante sans perdre la première (curseur, jamais un numéro de page)', async () => {
+    server.use(
+      http.get('/api/v1/relances/regles', () => HttpResponse.json([REGLE_FACTURE_ECHUE])),
+      http.get('/api/v1/relances/facturation/historique', ({ request }) => {
+        const curseur = new URL(request.url).searchParams.get('curseur');
+        if (!curseur) {
+          return HttpResponse.json({
+            donnees: [ENVOI_REUSSI],
+            curseurSuivant: 'curseur-page-2',
+            limite: 50,
+          });
+        }
+        return HttpResponse.json({ donnees: [ENVOI_ECHOUE], curseurSuivant: null, limite: 50 });
+      }),
+    );
+
+    rendre();
+    const utilisateur = userEvent.setup();
+
+    await screen.findByText('client@exemple.ch');
+    expect(screen.getAllByRole('row')).toHaveLength(2);
+
+    await utilisateur.click(screen.getByRole('button', { name: 'Charger plus' }));
+
+    await waitFor(() => expect(screen.getAllByRole('row')).toHaveLength(3));
+    expect(screen.getByText('client@exemple.ch')).toBeInTheDocument();
+    expect(screen.getByText('+41791234567')).toBeInTheDocument();
   });
 });
 

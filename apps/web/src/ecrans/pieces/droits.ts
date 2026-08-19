@@ -110,6 +110,23 @@ const ROLES_ECRITURE_PARAMETRAGE_PIECES: ReadonlySet<RoleUtilisateur> = new Set(
   'chef_atelier',
 ]);
 
+/**
+ * Factures fournisseur (dépôt/rapprochement) — INFÉRÉ (pas encore de `matrice-droits.ts` côté
+ * serveur, le service est écrit EN PARALLÈLE par un autre agent, voir
+ * `hooks/pieces/factures-fournisseur.temporaire.ts`). Lecture élargie à `comptable` (pièce
+ * comptable, RF-115 mise à part `admin` reste `[]`) — même périmètre que `ROLES_LECTURE_CONSIGNE`
+ * ci-dessus, même raisonnement (« une créance/dépense qui dort »). Dépôt et validation réservés à
+ * `magasinier` SEUL (« le magasinier confirme », brief) — même périmètre que
+ * `ROLES_ECRITURE_MOUVEMENT`. À confronter à la matrice réelle dès qu'elle existe côté serveur.
+ */
+const ROLES_LECTURE_FACTURE_FOURNISSEUR: ReadonlySet<RoleUtilisateur> = new Set([
+  'direction',
+  'chef_atelier',
+  'magasinier',
+  'comptable',
+]);
+const ROLES_ECRITURE_FACTURE_FOURNISSEUR: ReadonlySet<RoleUtilisateur> = new Set(['magasinier']);
+
 export function peutEcrireArticle(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && ROLES_ECRITURE_ARTICLE.has(role);
 }
@@ -166,4 +183,20 @@ export function peutLireParametragePieces(role: RoleUtilisateur | undefined): bo
 
 export function peutModifierParametragePieces(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && ROLES_ECRITURE_PARAMETRAGE_PIECES.has(role);
+}
+
+export function peutLireFactureFournisseur(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_LECTURE_FACTURE_FOURNISSEUR.has(role);
+}
+
+/** Déposer une facture ET confirmer son rapprochement : même droit, `magasinier` seul. */
+export function peutDeposerFactureFournisseur(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_ECRITURE_FACTURE_FOURNISSEUR.has(role);
+}
+
+/** Valider OU rejeter le rapprochement : même droit côté contrôleur (déduit, `magasinier` seul —
+ *  « le magasinier confirme », brief). Un seul nom couvre les DEUX transitions terminales
+ *  (`STATUTS_FACTURE_FOURNISSEUR`, `@dfa/shared`) : elles engagent la même décision humaine. */
+export function peutDeciderFactureFournisseur(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_ECRITURE_FACTURE_FOURNISSEUR.has(role);
 }

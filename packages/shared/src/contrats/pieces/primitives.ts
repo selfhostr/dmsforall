@@ -28,6 +28,32 @@ export const schemaDelaiJours = z.number().int().min(0).max(3650);
 /** Emplacement de rangement, texte libre humain (`RP-11`) : « B3 », « étagère du fond ». */
 export const schemaEmplacement = z.string().trim().max(60);
 
+/**
+ * Rayon/tiroir du casier de rangement (0056) — COMPLÉMENT STRUCTURÉ de `schemaEmplacement`,
+ * jamais un remplacement : le texte libre reste pour les cas particuliers (« étagère du fond »,
+ * « dehors sous bâche ») et les articles hors casier.
+ *
+ * NORMALISATION — le seul point qui rend la structuration utile : `B3`, `b3` et `B 3` doivent
+ * désigner LE MÊME rayon, sinon on n'a fait que déplacer le problème du texte libre (deux
+ * magasiniers, deux graphies, plus personne qui s'y retrouve). Transformation appliquée AVANT
+ * toute écriture — trim, suppression de tout espace interne, majuscule — pour produire exactement
+ * la forme canonique qu'exige le CHECK base `stock_article_rayon_normalise_chk`/`_tiroir_`
+ * (migrations/0056) : la base est le FILET (elle refuse toute valeur qui n'aurait pas transité par
+ * cette normalisation), ce schéma est le MÉCANISME.
+ *
+ * Chaîne vide après normalisation (entrée blanche ou uniquement des espaces) → `null`, jamais une
+ * chaîne vide stockée : « pas de casier renseigné » ne doit jamais se distinguer d'une absence
+ * qu'en apparence.
+ */
+export const schemaCasier = z
+  .string()
+  .trim()
+  .max(20)
+  .transform((valeur) => valeur.replace(/\s+/g, '').toUpperCase())
+  .transform((valeur) => (valeur.length === 0 ? null : valeur))
+  .nullable();
+export type Casier = z.infer<typeof schemaCasier>;
+
 /** Référence article (OEM, équivalente, fournisseur, interne) : texte court, jamais vide. */
 export const schemaReferenceArticle = z.string().trim().min(1).max(80);
 

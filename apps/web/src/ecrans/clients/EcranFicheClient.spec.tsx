@@ -155,6 +155,21 @@ describe('EcranFicheClient', () => {
     expect(screen.getByText('Aucun passage enregistré.')).toBeInTheDocument();
   });
 
+  // Chantier « titres doublés & espacements » (17.08.2026) : `GabaritEcran` force ce h1 en
+  // `sr-only` (contenu déjà affiché en gros caractères par `IdentiteClient`, voir le commentaire
+  // de `EcranFicheClient.tsx`) — présent dans le DOM pour un lecteur d'écran, jamais retiré, mais
+  // masqué visuellement. La classe posée par le gabarit est la preuve fiable ici — `toBeVisible()`
+  // (jest-dom) ne détecte pas la technique `position: absolute; clip: …` d'une classe `sr-only`
+  // sans feuille de style chargée (jsdom, ces tests).
+  it('garde un h1 accessible « Fiche client » dans le DOM, masqué via `sr-only`', async () => {
+    repondreFicheOk();
+    rendreEcran();
+
+    const titre = await screen.findByRole('heading', { level: 1, name: 'Fiche client' });
+    expect(titre).toBeInTheDocument();
+    expect(titre.className).toMatch(/\bsr-only\b/);
+  });
+
   it('affiche le bandeau bloqué pour un client au statut bloqué', async () => {
     repondreFicheOk({ ...CLIENT_TEST, statut: 'bloque' });
     rendreEcran();

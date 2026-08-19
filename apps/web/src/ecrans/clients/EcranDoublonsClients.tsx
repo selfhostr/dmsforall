@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import {
   useDoublonsClients,
   type CriteresDoublonsClients,
@@ -123,16 +124,15 @@ export function EcranDoublonsClients() {
   const estErreurReseau = requete.error instanceof ErreurReseau;
 
   return (
-    <div className="flex flex-col gap-4 p-6">
-      <div>
-        <h1 className="texte-titre-page font-semibold text-foreground">
-          {t('clients:doublonsEcran.titre')}
-        </h1>
-        <p className="texte-corps text-muted-foreground">
-          {t('clients:doublonsEcran.description')}
-        </p>
-      </div>
-
+    // Titre laissé à la détection automatique du gabarit (chantier « titres doublés &
+    // espacements », 17.08.2026) : cet écran est atteint comme VUE « Doublons » sous l'onglet
+    // Clients (`navigation-modele.ts`, ONGLETS_CLIENTS_VEHICULES) — la vue active affiche déjà ce
+    // libellé, le h1 devient `sr-only` (jamais retiré du DOM). La description reste visible via
+    // `sousTitre` : c'est elle qui explique l'écran, pas un titre redondant avec la vue.
+    <GabaritEcran
+      titre={t('clients:doublonsEcran.titre')}
+      sousTitre={t('clients:doublonsEcran.description')}
+    >
       <Card>
         <CardContent className="grid gap-3 pt-6 sm:grid-cols-2 lg:grid-cols-5">
           <div className="space-y-2">
@@ -251,7 +251,7 @@ export function EcranDoublonsClients() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </GabaritEcran>
   );
 }
 

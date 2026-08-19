@@ -26,6 +26,7 @@ import {
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { recupererArticle } from '@/hooks/pieces/articles.api';
 import { clesPieces } from '@/hooks/pieces/cles';
 import { useCreerCommandeFournisseur } from '@/hooks/pieces/useCreerCommandeFournisseur';
@@ -35,6 +36,7 @@ import { useSession } from '@/hooks/useSession';
 import { formaterMontant } from '@/lib/formats';
 
 import { estEtatPreremplissageValide } from './etat-preremplissage-commande';
+import { messageErreurMutation } from './messages-erreur-mutation';
 import {
   formaterQuantiteMillieme,
   quantiteMilliemeVersSaisie,
@@ -47,6 +49,11 @@ interface LigneEnCours {
   readonly designation: string;
   readonly quantiteSaisie: string;
   readonly prixAttenduCentimes: number | null;
+  /** `true` UNIQUEMENT pour une ligne reçue pré-remplie depuis `EcranReapprovisionnement` (défaut
+   *  n°4, test manuel du 14.08.2026) — pilote l'aide sous le champ quantité qui dit EXPLICITEMENT
+   *  d'où vient le nombre proposé (« l'écran doit dire lequel il propose »), jamais pour une ligne
+   *  ajoutée manuellement via la recherche ci-dessous. */
+  readonly quantiteSuggereeManquante: boolean;
 }
 
 /**
@@ -98,6 +105,7 @@ export function EcranNouvelleCommandeFournisseur() {
       designation: ligne.designation,
       quantiteSaisie: quantiteMilliemeVersSaisie(ligne.quantiteSuggereeMillieme),
       prixAttenduCentimes: null,
+      quantiteSuggereeManquante: true,
     })),
   );
   const [erreurValidation, setErreurValidation] = useState<string | null>(null);
@@ -178,6 +186,7 @@ export function EcranNouvelleCommandeFournisseur() {
         designation,
         quantiteSaisie: '1',
         prixAttenduCentimes: prixVenteTtcCentimes,
+        quantiteSuggereeManquante: false,
       },
     ]);
     recherche.onSaisieChange('');
@@ -254,211 +263,227 @@ export function EcranNouvelleCommandeFournisseur() {
 
   const enCours = creer.isPending;
 
+  // Titre VISIBLE — « Nouvelle commande fournisseur » (`pieces:commandes.nouvelle.titre`) n'est
+  // PAS un doublon : ni de l'onglet « Approvisionnement », ni de la vue « Commandes » (« commande »
+  // singulier ne contient pas « commandes » pluriel — cas cité nommément au contrat du chantier
+  // « titres doublés », 17.08.2026, §3, comme contre-exemple à ne PAS masquer). `GabaritEcran` ne
+  // le masque donc pas de lui-même — pas besoin de forcer `titreVisible` ici, vérifié en test
+  // (`EcranNouvelleCommandeFournisseur.spec.tsx`).
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 p-6">
-      <h1 className="texte-titre-page">{t('pieces:commandes.actions.creer')}</h1>
+    <GabaritEcran titre={t('pieces:commandes.nouvelle.titre')}>
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-5">
+        <LegendeChampsObligatoires>
+          {t('commun:formulaires.champsObligatoiresLegende')}
+        </LegendeChampsObligatoires>
 
-      <LegendeChampsObligatoires>
-        {t('commun:formulaires.champsObligatoiresLegende')}
-      </LegendeChampsObligatoires>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="cmd-fournisseur" requis>
-            {t('pieces:commandes.fournisseur')}
-          </Label>
-          {fournisseursRequete.isPending ? (
-            <EtatChargement lignes={1} />
-          ) : fournisseursRequete.isError ? (
-            <EtatErreur
-              titre={t('pieces:fournisseurs.erreur.titre')}
-              description={messageErreur(fournisseursRequete.error, t)}
-              onReessayer={() => void fournisseursRequete.refetch()}
-            />
-          ) : (
-            <Select value={fournisseurId} onValueChange={setFournisseurId} disabled={enCours}>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="cmd-fournisseur" requis>
+              {t('pieces:commandes.fournisseur')}
+            </Label>
+            {fournisseursRequete.isPending ? (
+              <EtatChargement lignes={1} />
+            ) : fournisseursRequete.isError ? (
+              <EtatErreur
+                titre={t('pieces:fournisseurs.erreur.titre')}
+                description={messageErreur(fournisseursRequete.error, t)}
+                onReessayer={() => void fournisseursRequete.refetch()}
+              />
+            ) : (
+              <Select value={fournisseurId} onValueChange={setFournisseurId} disabled={enCours}>
+                <SelectTrigger
+                  id="cmd-fournisseur"
+                  aria-label={t('pieces:commandes.fournisseur')}
+                  aria-required="true"
+                >
+                  <SelectValue placeholder={t('pieces:fournisseurs.titre')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {fournisseurs.map((fournisseur) => (
+                    <SelectItem key={fournisseur.id} value={fournisseur.id}>
+                      {fournisseur.nom}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="cmd-site" requis>
+              {t('pieces:commandes.site')}
+            </Label>
+            <Select value={siteId} onValueChange={setSiteId} disabled={enCours}>
               <SelectTrigger
-                id="cmd-fournisseur"
-                aria-label={t('pieces:commandes.fournisseur')}
+                id="cmd-site"
+                aria-label={t('pieces:commandes.site')}
                 aria-required="true"
               >
-                <SelectValue placeholder={t('pieces:fournisseurs.titre')} />
+                <SelectValue placeholder={t('pieces:stock.site')} />
               </SelectTrigger>
               <SelectContent>
-                {fournisseurs.map((fournisseur) => (
-                  <SelectItem key={fournisseur.id} value={fournisseur.id}>
-                    {fournisseur.nom}
+                {sites.map((site) => (
+                  <SelectItem key={site.id} value={site.id}>
+                    {site.nom}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-          )}
+          </div>
         </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="cmd-site" requis>
-            {t('pieces:commandes.site')}
-          </Label>
-          <Select value={siteId} onValueChange={setSiteId} disabled={enCours}>
-            <SelectTrigger
-              id="cmd-site"
-              aria-label={t('pieces:commandes.site')}
-              aria-required="true"
-            >
-              <SelectValue placeholder={t('pieces:stock.site')} />
-            </SelectTrigger>
-            <SelectContent>
-              {sites.map((site) => (
-                <SelectItem key={site.id} value={site.id}>
-                  {site.nom}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="cmd-date">{t('pieces:commandes.dateCommande')}</Label>
-          <DateInput
-            id="cmd-date"
-            disabled={enCours}
-            value={dateCommande}
-            onChange={(valeurISO: string | undefined) => setDateCommande(valeurISO ?? '')}
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="cmd-reference">{t('pieces:commandes.reference')}</Label>
-          <Input
-            id="cmd-reference"
-            disabled={enCours}
-            value={reference}
-            onChange={(evenement) => setReference(evenement.target.value)}
-          />
-        </div>
-      </div>
-
-      <fieldset className="flex flex-col gap-3 rounded-md border p-3">
-        <legend className="px-1 texte-libelle font-medium text-foreground">
-          {t('pieces:commandes.lignes.titre')}
-        </legend>
-
-        {!siteId ? (
-          <p className="texte-libelle text-muted-foreground">
-            {t('pieces:commandes.nouvelle.choisirSiteDabord')}
-          </p>
-        ) : (
-          <>
-            <Input
-              placeholder={t('pieces:rechercheComptoir.champRecherche')}
-              value={recherche.saisie}
-              onChange={(evenement) => recherche.onSaisieChange(evenement.target.value)}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="cmd-date">{t('pieces:commandes.dateCommande')}</Label>
+            <DateInput
+              id="cmd-date"
               disabled={enCours}
+              value={dateCommande}
+              onChange={(valeurISO: string | undefined) => setDateCommande(valeurISO ?? '')}
             />
-            {recherche.resultats && recherche.resultats.length > 0 ? (
-              <ul className="flex flex-col gap-1.5">
-                {recherche.resultats.map((resultat) => (
-                  <li key={resultat.articleId}>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="cmd-reference">{t('pieces:commandes.reference')}</Label>
+            <Input
+              id="cmd-reference"
+              disabled={enCours}
+              value={reference}
+              onChange={(evenement) => setReference(evenement.target.value)}
+            />
+          </div>
+        </div>
+
+        <fieldset className="flex flex-col gap-3 rounded-md border p-3">
+          <legend className="px-1 texte-libelle font-medium text-foreground">
+            {t('pieces:commandes.lignes.titre')}
+          </legend>
+
+          {!siteId ? (
+            <p className="texte-libelle text-muted-foreground">
+              {t('pieces:commandes.nouvelle.choisirSiteDabord')}
+            </p>
+          ) : (
+            <>
+              <Input
+                placeholder={t('pieces:rechercheComptoir.champRecherche')}
+                value={recherche.saisie}
+                onChange={(evenement) => recherche.onSaisieChange(evenement.target.value)}
+                disabled={enCours}
+              />
+              {recherche.resultats && recherche.resultats.length > 0 ? (
+                <ul className="flex flex-col gap-1.5">
+                  {recherche.resultats.map((resultat) => (
+                    <li key={resultat.articleId}>
+                      <button
+                        type="button"
+                        disabled={idsDejaAjoutes.has(resultat.articleId) || enCours}
+                        onClick={() =>
+                          ajouterLigne(
+                            resultat.articleId,
+                            resultat.numeroArticle,
+                            resultat.designation,
+                            resultat.prixVenteTtcCentimes,
+                          )
+                        }
+                        className="flex w-full items-center justify-between gap-2 rounded-md border p-2 texte-corps hover:bg-muted disabled:opacity-50"
+                      >
+                        <span className="flex flex-col items-start">
+                          <span className="font-medium">{resultat.designation}</span>
+                          <span className="font-mono texte-libelle text-muted-foreground">
+                            {resultat.referencePrincipale}
+                          </span>
+                        </span>
+                        <span className="tabular-nums">
+                          {formaterMontant(resultat.prixVenteTtcCentimes)}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </>
+          )}
+
+          {lignes.length > 0 ? (
+            <ul className="flex flex-col gap-2">
+              {lignes.map((ligne) => (
+                <li key={ligne.articleId} className="flex flex-col gap-2 rounded-md bg-muted p-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="texte-corps font-medium">{ligne.designation}</span>
                     <button
                       type="button"
-                      disabled={idsDejaAjoutes.has(resultat.articleId) || enCours}
-                      onClick={() =>
-                        ajouterLigne(
-                          resultat.articleId,
-                          resultat.numeroArticle,
-                          resultat.designation,
-                          resultat.prixVenteTtcCentimes,
-                        )
-                      }
-                      className="flex w-full items-center justify-between gap-2 rounded-md border p-2 texte-corps hover:bg-muted disabled:opacity-50"
-                    >
-                      <span className="flex flex-col items-start">
-                        <span className="font-medium">{resultat.designation}</span>
-                        <span className="font-mono texte-libelle text-muted-foreground">
-                          {resultat.referencePrincipale}
-                        </span>
-                      </span>
-                      <span className="tabular-nums">
-                        {formaterMontant(resultat.prixVenteTtcCentimes)}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </>
-        )}
-
-        {lignes.length > 0 ? (
-          <ul className="flex flex-col gap-2">
-            {lignes.map((ligne) => (
-              <li key={ligne.articleId} className="flex flex-col gap-2 rounded-md bg-muted p-2">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="texte-corps font-medium">{ligne.designation}</span>
-                  <button
-                    type="button"
-                    aria-label={t('commun:actions.annuler')}
-                    onClick={() => retirerLigne(ligne.articleId)}
-                    disabled={enCours}
-                    className="shrink-0 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-4 w-4" aria-hidden="true" />
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor={`cmd-qte-${ligne.articleId}`} requis>
-                      {t('pieces:commandes.lignes.quantiteCommandee')}
-                    </Label>
-                    <Input
-                      id={`cmd-qte-${ligne.articleId}`}
-                      type="text"
-                      inputMode="decimal"
-                      required
+                      aria-label={t('commun:actions.annuler')}
+                      onClick={() => retirerLigne(ligne.articleId)}
                       disabled={enCours}
-                      value={ligne.quantiteSaisie}
-                      onChange={(evenement) =>
-                        majLigne(ligne.articleId, { quantiteSaisie: evenement.target.value })
+                      className="shrink-0 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor={`cmd-qte-${ligne.articleId}`} requis>
+                        {t('pieces:commandes.lignes.quantiteCommandee')}
+                      </Label>
+                      <Input
+                        id={`cmd-qte-${ligne.articleId}`}
+                        type="text"
+                        inputMode="decimal"
+                        required
+                        disabled={enCours}
+                        value={ligne.quantiteSaisie}
+                        onChange={(evenement) =>
+                          majLigne(ligne.articleId, { quantiteSaisie: evenement.target.value })
+                        }
+                      />
+                      {/* DÉFAUT CORRIGÉ (n°4, test manuel du 14.08.2026) : « l'écran doit dire lequel
+                        il propose » — la quantité pré-remplie est TOUJOURS la quantité manquante
+                        (`ecartMillieme`, `EcranReapprovisionnement`), jamais le lot fournisseur
+                        habituel ; ce texte le dit explicitement plutôt que de laisser le nombre
+                        parler seul. */}
+                      {ligne.quantiteSuggereeManquante ? (
+                        <p className="texte-libelle text-muted-foreground">
+                          {t('pieces:commandes.nouvelle.quantiteSuggereeReapprovisionnement')}
+                        </p>
+                      ) : null}
+                    </div>
+                    <ChampMontant
+                      id={`cmd-prix-${ligne.articleId}`}
+                      label={t('pieces:commandes.lignes.prixAchatAttendu')}
+                      disabled={enCours}
+                      valeurCentimes={ligne.prixAttenduCentimes}
+                      onChangeCentimes={(centimes) =>
+                        majLigne(ligne.articleId, { prixAttenduCentimes: centimes })
                       }
                     />
                   </div>
-                  <ChampMontant
-                    id={`cmd-prix-${ligne.articleId}`}
-                    label={t('pieces:commandes.lignes.prixAchatAttendu')}
-                    disabled={enCours}
-                    valeurCentimes={ligne.prixAttenduCentimes}
-                    onChangeCentimes={(centimes) =>
-                      majLigne(ligne.articleId, { prixAttenduCentimes: centimes })
-                    }
-                  />
-                </div>
-                {saisieVersQuantiteMillieme(ligne.quantiteSaisie) === null ? (
-                  <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
-                ) : (
-                  <p className="texte-libelle text-muted-foreground">
-                    {formaterQuantiteMillieme(
-                      saisieVersQuantiteMillieme(ligne.quantiteSaisie) ?? 0,
-                    )}
-                  </p>
-                )}
-              </li>
-            ))}
-          </ul>
+                  {saisieVersQuantiteMillieme(ligne.quantiteSaisie) === null ? (
+                    <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
+                  ) : (
+                    <p className="texte-libelle text-muted-foreground">
+                      {formaterQuantiteMillieme(
+                        saisieVersQuantiteMillieme(ligne.quantiteSaisie) ?? 0,
+                      )}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </fieldset>
+
+        {erreurValidation ? (
+          <p className="texte-libelle text-destructive">{erreurValidation}</p>
         ) : null}
-      </fieldset>
+        {creer.error ? (
+          <p className="texte-libelle text-destructive" role="alert">
+            {messageErreurMutation(creer.error, t)}
+          </p>
+        ) : null}
 
-      {erreurValidation ? (
-        <p className="texte-libelle text-destructive">{erreurValidation}</p>
-      ) : null}
-      {creer.error ? (
-        <p className="texte-libelle text-destructive" role="alert">
-          {messageErreur(creer.error, t)}
-        </p>
-      ) : null}
-
-      <Button type="button" className="w-full" disabled={enCours} onClick={soumettre}>
-        {enCours ? t('commun:chargement.enCours') : t('pieces:commandes.actions.creer')}
-      </Button>
-    </div>
+        <Button type="button" className="w-full" disabled={enCours} onClick={soumettre}>
+          {enCours ? t('commun:chargement.enCours') : t('pieces:commandes.actions.creer')}
+        </Button>
+      </div>
+    </GabaritEcran>
   );
 }

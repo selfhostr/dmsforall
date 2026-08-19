@@ -4,6 +4,7 @@ import { MODULE_METADATA } from '@nestjs/common/constants';
 import { AppModule } from '../app.module';
 import { chargerConfig } from '../config';
 import { ConnecteursModule } from '../connecteurs/connecteurs.module';
+import { CourrielModule } from '../courriel/courriel.module';
 
 import { RelancesController } from './relances.controller';
 import { RelancesModule } from './relances.module';
@@ -30,13 +31,25 @@ describe('RelancesModule — câblage réel (pas seulement compile)', () => {
     expect(controleurs).toContain(RelancesController);
   });
 
-  it('importe ConnecteursModule (ServiceRelancesFacture en a besoin pour résoudre NotificationSender)', () => {
+  it('importe ConnecteursModule (ServiceRelancesFacture en a besoin pour résoudre NotificationSender, canal sms)', () => {
     const imports = Reflect.getMetadata(MODULE_METADATA.IMPORTS, RelancesModule) as
       unknown[] | undefined;
 
     expect(imports).toBeDefined();
     expect(imports).toContain(ConnecteursModule);
   });
+
+  it(
+    'importe CourrielModule (issue #136 — ServiceRelancesFacture en a besoin pour envoyer ' +
+      'RÉELLEMENT le canal email, sans dépendre du connecteur NotificationSender jamais câblé)',
+    () => {
+      const imports = Reflect.getMetadata(MODULE_METADATA.IMPORTS, RelancesModule) as
+        unknown[] | undefined;
+
+      expect(imports).toBeDefined();
+      expect(imports).toContain(CourrielModule);
+    },
+  );
 
   it('AppModule importe réellement RelancesModule (sinon aucune de ses routes ne monte jamais)', () => {
     const descripteurApp = AppModule.pourConfig(CONFIG_MINIMALE);

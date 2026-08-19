@@ -29,6 +29,14 @@ interface Props {
    *  action normale du produit, pas une suppression. */
   readonly destructif?: boolean;
   readonly enCours?: boolean;
+  /** Message d'erreur de la tentative de confirmation précédente (ex. `messageErreurMutation(erreur,
+   *  t)`), affiché À L'INTÉRIEUR de la modale — jamais dans l'écran en dessous, invisible sous
+   *  l'overlay tant que la modale reste ouverte (issue #63, correctif de cause racine). Absent ou
+   *  `null` par défaut : rétrocompatible avec les appelants qui n'ont pas encore de mutation
+   *  susceptible d'échouer ici. Fournir cette prop ne referme PAS la modale automatiquement — reste
+   *  à l'appelant de ne fermer que sur succès (ex. `mutate(x, { onSuccess: () => onOuvertChange(false) })`,
+   *  jamais `onSettled`) : sinon un échec ferme la modale avant que ce message n'ait pu s'afficher. */
+  readonly messageErreur?: string | null;
 }
 
 /**
@@ -48,6 +56,7 @@ export function AvertissementConfirmable({
   onConfirmer,
   destructif = false,
   enCours = false,
+  messageErreur = null,
 }: Props) {
   const { t } = useTranslation('commun');
 
@@ -61,6 +70,11 @@ export function AvertissementConfirmable({
           </div>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
+        {messageErreur ? (
+          <p className="texte-libelle text-destructive" role="alert">
+            {messageErreur}
+          </p>
+        ) : null}
         <DialogFooter>
           <DialogClose asChild>
             <Button variant="outline">{t('commun:actions.annuler')}</Button>

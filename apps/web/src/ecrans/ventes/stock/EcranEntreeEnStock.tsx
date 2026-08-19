@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 
 import type { VehiculeResume } from '@dfa/shared';
 
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useSession } from '@/hooks/useSession';
 import { chemins } from '@/routes/chemins';
 
@@ -30,10 +31,12 @@ export function EcranEntreeEnStock() {
 
   const sites = session?.sites ?? [];
 
+  // Titre VISIBLE — « Mettre en stock » ne fait aucune inclusion avec l'onglet « Véhicules en parc »
+  // (§3 du contrat du chantier « titres doublés », 17.08.2026 : même famille que l'exemple
+  // « Nouvelle commande fournisseur » de sa table, verdict « visible »). Écran de CRÉATION, contre-
+  // exemple mesuré du contrat qui doit rester visible sans qu'on pose `titreVisible`.
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <h1 className="texte-titre-page">{t('ventes:stock.entree.titre')}</h1>
-
+    <GabaritEcran titre={t('ventes:stock.entree.titre')}>
       {vehiculeChoisi === null ? (
         <SelecteurVehiculeExistant onChoisir={setVehiculeChoisi} />
       ) : (
@@ -44,6 +47,6 @@ export function EcranEntreeEnStock() {
           onMisEnStock={(vehiculeId) => navigate(chemins.ventes.stock.detail(vehiculeId, site))}
         />
       )}
-    </div>
+    </GabaritEcran>
   );
 }

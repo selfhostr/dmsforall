@@ -1,4 +1,5 @@
-# Évaluation — kokonutui comme source de composants pour dmsforall
+Évaluation — kokonutui comme source de composants pour dmsforall
+================================================================
 
 Date : 09.08.2026. Évaluation seule : aucun fichier du dépôt applicatif n'a été modifié, aucune
 dépendance installée. Sources : dépôt `kokonut-labs/kokonutui` sur GitHub (README, LICENSE,
@@ -6,7 +7,8 @@ dépendance installée. Sources : dépôt `kokonut-labs/kokonutui` sur GitHub (R
 du dépôt DFA (`apps/web/package.json`, `apps/web/src/ecrans/`, `apps/web/src/composants/`,
 `apps/web/src/components/ui/`, `docs/plan-refonte-navigation.md` §Lot K).
 
-## Recommandation (tranchée)
+Recommandation (tranchée)
+--------------------------
 
 **Ne pas adopter maintenant. Si un jour adopté, seulement après le Lot K, et sous forme
 d'inspiration réécrite — pas de copie.** Le catalogue est à 90 % marketing/décoratif (texte
@@ -17,7 +19,8 @@ l'app n'est pas entièrement fonctionnelle) ; et introduire une deuxième source
 que le Lot K ait codifié la première (tokens, typographie, densité, états) créerait une divergence
 visuelle qu'on paierait ensuite à corriger.
 
-## 1. Qu'est-ce que c'est exactement
+Qu'est-ce que c'est exactement
+-------------------------------
 
 Pas une bibliothèque installable au sens npm. `components.json` du dépôt kokonutui déclare le
 schéma `https://ui.shadcn.com/schema.json` et un bloc `registries` pointant vers
@@ -32,15 +35,20 @@ modification, distribution commerciale, sans obligation de publication du code d
 exigence : conserver la notice de copyright). Aucun obstacle pour un produit commercial. Ce n'est
 pas le point bloquant ici.
 
-## 2. Compatibilité réelle avec notre stack — verdict net
+Compatibilité réelle avec notre stack — verdict net
+----------------------------------------------------
 
-| Aspect    | kokonutui                                                                                             | DFA (`apps/web/package.json`)                     | Verdict                                                    |
-| --------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ---------------------------------------------------------- |
-| Framework | Next.js `^16.2.10`, `rsc: true` (composants serveur par défaut)                                       | React + Vite (SPA pure, pas de Next)              | **Incompatible pour une partie du catalogue**              |
-| React     | `^19.2.7`                                                                                             | `^19.0.0`                                         | Compatible (même majeure)                                  |
-| Tailwind  | `^4.3.0`                                                                                              | `^4.0.6`                                          | Compatible (même majeure, format CSS-first v4)             |
-| Animation | `motion` (`^12.23.25`, ex-Framer Motion) — dépendance dure de la quasi-totalité des composants animés | Aucune lib d'animation en dépendance actuellement | **Nouvelle dépendance à assumer, composant par composant** |
-| Icônes    | `lucide-react`                                                                                        | `lucide-react`                                    | Compatible                                                 |
+**Comparaison de compatibilité**
+
+- **Framework** : kokonutui utilise Next.js `^16.2.10` avec `rsc: true` (composants serveur). DFA utilise React + Vite (SPA pure). **Verdict** : Incompatible pour une partie du catalogue.
+
+- **React** : kokonutui utilise `^19.2.7`, DFA utilise `^19.0.0`. **Verdict** : Compatible (même majeure).
+
+- **Tailwind** : kokonutui utilise `^4.3.0`, DFA utilise `^4.0.6`. **Verdict** : Compatible (même majeure, format CSS-first v4).
+
+- **Animation** : kokonutui utilise `motion` (`^12.23.25`, ex-Framer Motion) — dépendance dure de la quasi-totalité des composants animés. DFA n'a aucune lib d'animation en dépendance. **Verdict** : Nouvelle dépendance à assumer, composant par composant.
+
+- **Icônes** : kokonutui utilise `lucide-react`, DFA aussi. **Verdict** : Compatible.
 
 Le blocage n'est donc pas Next.js dans l'absolu — React 19 et Tailwind 4 correspondent aux
 versions du dépôt. Le blocage est **au niveau de chaque fichier individuel** : inspection directe
@@ -55,7 +63,8 @@ une passe de portage manuelle (retirer les imports Next, décider si `motion` va
 pour ce cas précis, revérifier les tokens de couleur contre les nôtres). Ce n'est pas un « ajouter
 un composant », c'est « réécrire un composant en s'inspirant d'un autre ».
 
-## 3. Ce que contient réellement le catalogue
+Ce que contient réellement le catalogue
+-----------------------------------------
 
 Liste exhaustive des 44 composants du registre (`components/kokonutui/*.tsx` du dépôt) :
 `action-search-bar`, `ai-input-search`, `ai-loading`, `ai-prompt`, `ai-text-loading`, `ai-voice`,
@@ -79,7 +88,8 @@ emploi avec ce qu'on a déjà : `smooth-drawer` ≈ notre `Sheet` (Radix), `smoo
 (Radix, déjà utilisé pour `OngletsDomaine`), `profile-dropdown` ≈ notre `DropdownMenu` (Radix,
 déjà accessible, déjà utilisé), `loader` ≈ notre `Skeleton` (déjà systématisé via `EtatChargement`).
 
-## 4. Où un gain réel existerait — et pourquoi ce n'est pas le moment
+Où un gain réel existerait — et pourquoi ce n'est pas le moment
+---------------------------------------------------------------
 
 J'ai cherché des cas où un composant apporterait une lisibilité ou une clarté d'état mesurable sur
 nos écrans réels (`BlocActiviteTableauBord.tsx`, `PanneauResultatsRecherche.tsx`,
@@ -118,7 +128,8 @@ Les autres pistes que j'ai examinées et écartées, avec la raison précise :
 Aucun des cas examinés ne justifie une adoption immédiate. C'est un résultat valable : la
 bibliothèque n'a simplement pas été conçue pour ce type de produit.
 
-## 5. Ce qu'il ne faut clairement pas prendre, et pourquoi
+Ce qu'il ne faut clairement pas prendre, et pourquoi
+-----------------------------------------------------
 
 - **Tout composant à animation continue ou déclenchée par simple survol sur une cible d'action**
   (`particle-button`, `attract-button`, `hold-button`, `gradient-button`, `slide-text-button`,
@@ -143,7 +154,8 @@ bibliothèque n'a simplement pas été conçue pour ce type de produit.
   (réseaux sociaux, produits Apple), sans rapport avec le vocabulaire métier garage suisse exigé
   (OR, VN/VO, expertise, pointage).
 
-## 6. Risque de divergence avec le Lot K — réel, et évitable seulement en s'abstenant maintenant
+Risque de divergence avec le Lot K — réel, et évitable seulement en s'abstenant maintenant
+-----------------------------------------------------------------------------------------------
 
 Le Lot K (`docs/plan-refonte-navigation.md`, section « Système visuel et cohérence des
 composants ») **n'est pas encore fait** : pas de famille typographique déclarée dans `index.css`,
@@ -167,7 +179,8 @@ densité, états, `prefers-reduced-motion` tranché une fois pour toutes) — se
 composant ponctuel de kokonutui, réécrit pour porter les tokens DFA plutôt que copié tel quel.
 Jamais l'inverse.
 
-## Synthèse en trois lignes
+Synthèse en trois lignes
+-------------------------
 
 Licence MIT, aucun problème commercial. Compatibilité technique correcte sur React/Tailwind mais
 chaque composant exige un portage manuel (imports Next, dépendance `motion`) — ce n'est pas du

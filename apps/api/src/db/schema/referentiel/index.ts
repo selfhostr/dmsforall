@@ -6,3 +6,4 @@
 
 export * from './type-approbation-ch';
 export * from './type-approbation-ch-marque-alias';
+export * from './etat-import-referentiel-vehicules-ch';

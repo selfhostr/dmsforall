@@ -1,4 +1,5 @@
-# Spécification métier — Étape 4 : Véhicules / Ventes
+Spécification métier — Étape 4 : Véhicules / Ventes
+===================================================
 
 > Périmètre : le véhicule en stock destiné à la vente (VN et VO), la reprise, le dossier de vente
 > de la proposition à la livraison, le financement/leasing, les frais annexes (plaques, MFK,
@@ -20,7 +21,8 @@
 
 ---
 
-## Sommaire
+Sommaire
+--------
 
 1. [Périmètre et non-périmètre](#1-périmètre-et-non-périmètre)
 2. [Ce qui existe déjà et que ce module doit respecter](#2-ce-qui-existe-déjà-et-que-ce-module-doit-respecter)
@@ -38,7 +40,9 @@
 
 ---
 
-## 1. Périmètre et non-périmètre
+1. Périmètre et non-périmètre
+
+---
 
 **Dans le périmètre** : le véhicule en stock destiné à la vente (fiche distincte du véhicule-client
 de l'atelier, avec provenance, coût, marge, durée en stock), la distinction VN/VO, la reprise
@@ -69,7 +73,9 @@ plus du véhicule (plaques, expertise MFK, garantie, préparation, immatriculati
 
 ---
 
-## 2. Ce qui existe déjà et que ce module doit respecter
+2. Ce qui existe déjà et que ce module doit respecter
+
+---
 
 - **Le véhicule (fiche technique)** — `apps/api/src/db/schema/atelier/vehicule.ts` — porte déjà
   immatriculation, VIN, marque/modèle, garantie (`garantieDebut`, `garantieMois`, `garantieKm`),
@@ -127,29 +133,31 @@ plus du véhicule (plaques, expertise MFK, garantie, préparation, immatriculati
 
 ---
 
-## 3. Vocabulaire
-
-| Terme                                            | Définition métier                                                                                                                                                                                                  |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **VN**                                           | Véhicule neuf (_Neuwagen_). Commandé au constructeur/importateur, n'existe en stock DFA qu'à partir de la commande ferme (ou de son arrivée), délai de livraison de plusieurs semaines à plusieurs mois.           |
-| **VO**                                           | Véhicule d'occasion (_Occasion_). Disponible immédiatement ou après remise en état, provenance variable (§5.1).                                                                                                    |
-| **Occasion certifiée**                           | VO du programme du constructeur (souvent appelée par sa marque commerciale, ex. véhicule labellisé), avec garantie et standards de préparation propres au programme — à distinguer d'une VO « garage » sans label. |
-| **Véhicule de démonstration (démo)**             | Véhicule en stock utilisé pour les essais clients avant d'être vendu, généralement sous plaques professionnelles interchangeables.                                                                                 |
-| **Reprise**                                      | Véhicule apporté par le client en déduction du prix d'un véhicule acheté chez le garage. Entre en stock du garage à la livraison.                                                                                  |
-| **Valeur de reprise négociée**                   | Le montant réellement porté au dossier de vente en déduction — peut différer de la valeur marchande réelle estimée (§5.3).                                                                                         |
-| **Prime constructeur / prime de reprise**        | Rabais temporaire financé (en tout ou partie) par le constructeur/importateur pour stimuler les ventes, distinct de la valeur de reprise du véhicule lui-même.                                                     |
-| **Dossier de vente**                             | L'objet qui porte tout le parcours d'une vente : proposition, véhicule vendu, reprise éventuelle, financement, frais annexes, documents liés, jusqu'à la livraison.                                                |
-| **Bon de commande**                              | Le document signé par le client qui l'engage sur l'achat (type `bon_commande` de la chaîne documentaire existante).                                                                                                |
-| **Leasing**                                      | Financement où l'organisme devient acquéreur du véhicule auprès du garage ; le client est preneur (locataire) auprès de l'organisme, pas acheteur auprès du garage (§5.5).                                         |
-| **Plaques professionnelles (plaques garagiste)** | Jeu de plaques interchangeables détenues par le garage, utilisées pour les essais et les déplacements de véhicules en stock non immatriculés individuellement (déjà modélisées, §2).                               |
-| **MFK**                                          | Expertise / contrôle technique cantonal périodique. Une VO peut nécessiter un passage avant livraison si l'échéance est proche ou dépassée.                                                                        |
-| **Frais de remise en état (reconditionnement)**  | Travaux (mécanique, carrosserie, pneus, nettoyage) exécutés sur une VO entre son entrée en stock et sa mise en vente, qui réduisent la marge affichée.                                                             |
-| **Jours de stock (aging)**                       | Durée écoulée depuis l'entrée en stock d'un véhicule non vendu — indicateur de coût d'immobilisation.                                                                                                              |
-| **Immatriculation**                              | Démarche administrative cantonale qui attribue (ou transfère) des plaques au nom du nouveau détenteur.                                                                                                             |
+3. Vocabulaire
 
 ---
 
-## 4. Le flux réel de bout en bout
+- **VN** — Véhicule neuf (_Neuwagen_). Commandé au constructeur/importateur, n'existe en stock DFA qu'à partir de la commande ferme (ou de son arrivée), délai de livraison de plusieurs semaines à plusieurs mois.
+- **VO** — Véhicule d'occasion (_Occasion_). Disponible immédiatement ou après remise en état, provenance variable (§5.1).
+- **Occasion certifiée** — VO du programme du constructeur (souvent appelée par sa marque commerciale, ex. véhicule labellisé), avec garantie et standards de préparation propres au programme — à distinguer d'une VO « garage » sans label.
+- **Véhicule de démonstration (démo)** — Véhicule en stock utilisé pour les essais clients avant d'être vendu, généralement sous plaques professionnelles interchangeables.
+- **Reprise** — Véhicule apporté par le client en déduction du prix d'un véhicule acheté chez le garage. Entre en stock du garage à la livraison.
+- **Valeur de reprise négociée** — Le montant réellement porté au dossier de vente en déduction — peut différer de la valeur marchande réelle estimée (§5.3).
+- **Prime constructeur / prime de reprise** — Rabais temporaire financé (en tout ou partie) par le constructeur/importateur pour stimuler les ventes, distinct de la valeur de reprise du véhicule lui-même.
+- **Dossier de vente** — L'objet qui porte tout le parcours d'une vente : proposition, véhicule vendu, reprise éventuelle, financement, frais annexes, documents liés, jusqu'à la livraison.
+- **Bon de commande** — Le document signé par le client qui l'engage sur l'achat (type `bon_commande` de la chaîne documentaire existante).
+- **Leasing** — Financement où l'organisme devient acquéreur du véhicule auprès du garage ; le client est preneur (locataire) auprès de l'organisme, pas acheteur auprès du garage (§5.5).
+- **Plaques professionnelles (plaques garagiste)** — Jeu de plaques interchangeables détenues par le garage, utilisées pour les essais et les déplacements de véhicules en stock non immatriculés individuellement (déjà modélisées, §2).
+- **MFK** — Expertise / contrôle technique cantonal périodique. Une VO peut nécessiter un passage avant livraison si l'échéance est proche ou dépassée.
+- **Frais de remise en état (reconditionnement)** — Travaux (mécanique, carrosserie, pneus, nettoyage) exécutés sur une VO entre son entrée en stock et sa mise en vente, qui réduisent la marge affichée.
+- **Jours de stock (aging)** — Durée écoulée depuis l'entrée en stock d'un véhicule non vendu — indicateur de coût d'immobilisation.
+- **Immatriculation** — Démarche administrative cantonale qui attribue (ou transfère) des plaques au nom du nouveau détenteur.
+
+---
+
+4. Le flux réel de bout en bout
+
+---
 
 **VN — de la commande à la livraison :**
 
@@ -190,9 +198,11 @@ plus du véhicule (plaques, expertise MFK, garantie, préparation, immatriculati
 
 ---
 
-## 5. Règles métier
+5. Règles métier
 
-### 5.1 Le véhicule en stock à vendre (`RV-01` → `RV-14`)
+---
+
+**5.1 Le véhicule en stock à vendre (`RV-01` → `RV-14`)**
 
 - **`RV-01`** — Un véhicule en stock est le **même enregistrement `vehicule`** que celui que
   l'atelier connaît (§2), enrichi d'attributs propres à la vente (prix d'achat, frais de remise en
@@ -247,7 +257,7 @@ plus du véhicule (plaques, expertise MFK, garantie, préparation, immatriculati
   de marge interne (`RV-06`) et, pour la reprise, la donnée de déduction de l'impôt préalable fictif
   (§5.8).
 
-### 5.2 VN et VO — ce qui les distingue réellement (`RV-15` → `RV-18`)
+**5.2 VN et VO — ce qui les distingue réellement (`RV-15` → `RV-18`)**
 
 - **`RV-15`** — La différence structurante n'est pas neuf/occasion au sens de l'âge, c'est
   **disponibilité immédiate contre commande à délai** : un VN engage le client sur un délai de
@@ -270,7 +280,7 @@ plus du véhicule (plaques, expertise MFK, garantie, préparation, immatriculati
   avec un véhicule non désiré à écouler — il devient alors une VO **neuve non immatriculée** (« VO à
   kilométrage zéro ») pour la suite du processus. Cas tordu détaillé en `CV-06`.
 
-### 5.3 La reprise (`RV-19` → `RV-28`)
+**5.3 La reprise (`RV-19` → `RV-28`)**
 
 - **`RV-19`** — La reprise porte **deux valeurs distinctes**, et le dossier de vente doit les
   garder toutes les deux : la **valeur estimée** (évaluation technique/argus au moment de
@@ -323,7 +333,7 @@ plus du véhicule (plaques, expertise MFK, garantie, préparation, immatriculati
   suit les mêmes règles de stock, mais peut nécessiter une expertise suisse avant toute revente —
   se raccorde à `vehicule_expertise` (§2), pas de duplication.
 
-### 5.4 Le dossier de vente — de la proposition à la livraison (`RV-29` → `RV-38`)
+**5.4 Le dossier de vente — de la proposition à la livraison (`RV-29` → `RV-38`)**
 
 - **`RV-29`** — Le dossier de vente est l'objet central de ce module : il lie un véhicule en stock
   (`RV-01`), un client acheteur, une reprise optionnelle (§5.3), un financement (§5.5), les frais
@@ -371,7 +381,7 @@ plus du véhicule (plaques, expertise MFK, garantie, préparation, immatriculati
   facturation passe par un **avoir**, jamais par une modification du document. Le rôle `vendeur` ne
   peut pas émettre cet avoir (§2, §11) — seul un rôle habilité (comptable/direction) le fait.
 
-### 5.5 Le financement et le leasing (`RV-39` → `RV-45`)
+**5.5 Le financement et le leasing (`RV-39` → `RV-45`)**
 
 - **`RV-39`** — Le **leasing n'est pas une vente au client** : c'est une vente du garage à
   l'**organisme de financement**, qui devient propriétaire du véhicule. Le client n'est que
@@ -400,7 +410,7 @@ plus du véhicule (plaques, expertise MFK, garantie, préparation, immatriculati
 - **`RV-45`** — Un financement (leasing ou crédit) **refusé par l'organisme après signature du bon
   de commande** est un cas réel — voir `CV-05`.
 
-### 5.6 Les frais annexes (`RV-46` → `RV-51`)
+**5.6 Les frais annexes (`RV-46` → `RV-51`)**
 
 - **`RV-46`** — Un dossier de vente facture, en plus du prix du véhicule, des postes réels et
   distincts : **plaques** (émission/transfert), **expertise MFK** (si nécessaire avant livraison),
@@ -432,7 +442,7 @@ plus du véhicule (plaques, expertise MFK, garantie, préparation, immatriculati
   (accepté / accepté avec défauts / refusé), il ne le duplique pas. Un résultat `refuse` bloque la
   livraison (`RV-56`).
 
-### 5.7 La livraison (`RV-52` → `RV-58`)
+**5.7 La livraison (`RV-52` → `RV-58`)**
 
 - **`RV-52`** — La livraison suppose que **tous** les éléments suivants soient réunis :
   facture émise et réglée (ou financement confirmé, `RV-37`), plaques posées, immatriculation faite,
@@ -457,7 +467,7 @@ plus du véhicule (plaques, expertise MFK, garantie, préparation, immatriculati
   appel ou un contrôle de satisfaction à J+X après livraison. Si cette pratique doit être outillée,
   elle relève potentiellement du pointage/CRM (lot 2), pas de ce module — à confirmer.
 
-### 5.8 Contexte TVA propre à la vente — compléments à `MD-68`→`MD-70` (`RV-59` → `RV-62`)
+**5.8 Contexte TVA propre à la vente — compléments à `MD-68`→`MD-70` (`RV-59` → `RV-62`)**
 
 - **`RV-59`** — **Métier établi** (repris de `MD-68`, §2, ne pas rouvrir) : une vente de véhicule
   d'occasion en 2026 est une vente TVA normale sur le prix de vente total, sans mention spéciale.
@@ -484,9 +494,11 @@ plus du véhicule (plaques, expertise MFK, garantie, préparation, immatriculati
 
 ---
 
-## 6. Machines à états
+6. Machines à états
 
-### 6.1 Le véhicule en stock — statut commercial (`RV-09`)
+---
+
+**6.1 Le véhicule en stock — statut commercial (`RV-09`)**
 
 ```
                     ┌───────────────┐
@@ -518,7 +530,7 @@ Remarque : `reserve → disponible` (retour en stock) doit rester possible à to
 facturation — annulation ou abandon du dossier de vente ne doit jamais laisser un véhicule bloqué en
 `reserve` indéfiniment (`CV-01`).
 
-### 6.2 Le dossier de vente
+**6.2 Le dossier de vente**
 
 ```
  prospection ──► engage ──► en_preparation ──► pret_a_livrer ──► livre ──► clos
@@ -541,7 +553,7 @@ facturation — annulation ou abandon du dossier de vente ne doit jamais laisser
 Après `livre`, toute correction de prix passe par un avoir sur la facture (`RV-38`) — le dossier de
 vente lui-même n'a pas de retour en arrière.
 
-### 6.3 La reprise (au sein d'un dossier de vente)
+**6.3 La reprise (au sein d'un dossier de vente)**
 
 ```
  estimee ──► negociee ──► confirmee (à la signature du bon de commande, RV-19/RV-27)
@@ -553,9 +565,11 @@ vente lui-même n'a pas de retour en arrière.
 
 ---
 
-## 7. Les cas tordus
+7. Les cas tordus
 
-### 7.1 Le véhicule vendu entre la prise du dossier et la préparation
+---
+
+**7.1 Le véhicule vendu entre la prise du dossier et la préparation**
 
 **Contexte** : deux vendeurs travaillent en parallèle. Le véhicule A (VO unique en stock) est
 proposé à un client par le vendeur 1 (devis, pas encore de bon de commande), pendant que le vendeur
@@ -566,7 +580,7 @@ véhicule. Tant qu'un dossier reste en `prospection` (simple devis), le véhicul
 et peut être réservé par un autre dossier. Le premier vendeur doit être notifié que son véhicule
 vient d'être vendu sous lui — **[À VALIDER — mécanisme de notification, `QV-14`]**.
 
-### 7.2 La dette de leasing résiduelle sur le véhicule repris
+**7.2 La dette de leasing résiduelle sur le véhicule repris**
 
 **Contexte** : le client apporte en reprise un véhicule encore sous leasing chez un autre
 organisme, avec un solde restant dû de plusieurs milliers de francs.
@@ -578,7 +592,7 @@ même le solde avant la reprise. Le dossier de vente doit porter cette dette et 
 règlement, sinon la valeur de reprise affichée au client ne correspond à rien de vérifiable.
 **[À VALIDER — qui règle concrètement l'organisme et à quel moment, `QV-05` bis]**.
 
-### 7.3 Le financement (leasing ou crédit) refusé après signature du bon de commande
+**7.3 Le financement (leasing ou crédit) refusé après signature du bon de commande**
 
 **Contexte** : le client signe un bon de commande avec l'intention de financer en leasing.
 L'organisme refuse le dossier une semaine plus tard (défaut de solvabilité).
@@ -589,7 +603,7 @@ financement, ou le fait basculer en `annule` si le client ne peut finalement pas
 repasse `disponible` (`RV-10`). L'acompte éventuellement versé (`RV-33`) suit sa propre règle de
 remboursement/retenue — **[À VALIDER, `QV-06` bis]**.
 
-### 7.4 Le client entreprise avec plusieurs conducteurs et une adresse de facturation distincte
+**7.4 Le client entreprise avec plusieurs conducteurs et une adresse de facturation distincte**
 
 **Contexte** : une PME achète trois véhicules de fonction. Le signataire du bon de commande est le
 directeur, chaque véhicule a un conducteur attitré différent, et la facture doit partir au service
@@ -600,7 +614,7 @@ véhicule, adresse `facturation` distincte de l'adresse `principale`) couvrent d
 atelier ; la vente l'utilise tel quel. Trois dossiers de vente distincts (un par véhicule), un seul
 client entreprise, trois détentions différentes une fois livrés.
 
-### 7.5 La reprise gonflée découverte après coup par la comptabilité
+**7.5 La reprise gonflée découverte après coup par la comptabilité**
 
 **Contexte** : trois mois après la vente, le véhicule repris (entré en stock à une valeur négociée
 de CHF X) se revend nettement en dessous de son prix d'achat apparent, alertant la comptabilité sur
@@ -612,7 +626,7 @@ déjà porté par le modèle de facturation), pas caché dans le prix d'achat du
 l'écart est bien imputé à l'origine, la marge apparente du véhicule repris en stock reste réaliste,
 et la rentabilité de l'affaire complète (vente + reprise) reste lisible ailleurs.
 
-### 7.6 Le VN annulé après commande constructeur
+**7.6 Le VN annulé après commande constructeur**
 
 **Contexte** : le client se rétracte après que le garage a passé commande au constructeur ; le
 véhicule arrive quand même, personne pour le récupérer au prix commandé.
@@ -622,7 +636,7 @@ véhicule arrive quand même, personne pour le récupérer au prix commandé.
 nouveau dossier). Le éventuel acompte du premier client suit une règle de retenue/remboursement
 propre au garage — **[À VALIDER, `QV-06` ter]**.
 
-### 7.7 Le véhicule vendu sans reprise, mais avec une prime constructeur conditionnelle
+**7.7 Le véhicule vendu sans reprise, mais avec une prime constructeur conditionnelle**
 
 **Contexte** : le constructeur offre une prime de CHF X « toute reprise, même hors d'état » pour
 stimuler les ventes — le client sans véhicule à reprendre (jeune conducteur, primo-accédant) ne peut
@@ -635,11 +649,13 @@ constructeur selon les conditions réelles de l'opération — hors DFA (`RF-101
 
 ---
 
-## 8. Modèle de données métier (conceptuel)
+8. Modèle de données métier (conceptuel)
+
+---
 
 Volontairement conceptuel — noms de champs indicatifs, pas un schéma final (rôle d'expert-database).
 
-### 8.1 Véhicule en stock (extension du `vehicule` existant, pas une nouvelle table racine)
+**8.1 Véhicule en stock (extension du `vehicule` existant, pas une nouvelle table racine)**
 
 - Rattaché à `vehicule.id` existant (§2).
 - `provenance` (`RV-02`), `date_entree_stock`, `prix_achat_centimes` (`RV-03`),
@@ -648,7 +664,7 @@ Volontairement conceptuel — noms de champs indicatifs, pas un schéma final (r
   `vendeur_precedent_assujetti` (booléen, `RV-60`), `origine_reprise_dossier_vente_id` (traçabilité
   si provenance = `reprise`).
 
-### 8.2 Dossier de vente
+**8.2 Dossier de vente**
 
 - `id`, `tenant_id`, `site_id`, `statut` (§6.2), `type_vehicule` (`vn`/`vo`, pour le filtrage, dérivé
   de la provenance et du statut du véhicule associé plutôt qu'une donnée saisie séparément —
@@ -660,20 +676,20 @@ Volontairement conceptuel — noms de champs indicatifs, pas un schéma final (r
 - Liens vers les documents de la chaîne facturation existante via `dossier_vente_id` déjà posé côté
   facturation (§2) — aucune duplication du montant, de la TVA ou du statut de paiement ici.
 
-### 8.3 Reprise (rattachée à un dossier de vente)
+**8.3 Reprise (rattachée à un dossier de vente)**
 
 - `id`, `dossier_vente_id`, `vehicule_repris_id` (référence à un `vehicule` existant ou nouvellement
   créé si le véhicule repris n'était pas connu de DFA), `valeur_estimee_centimes` (`RV-19`),
   `valeur_negociee_centimes` (`RV-19`), `statut` (§6.3), `dette_financement_residuelle_centimes`
   (`RV-26`), `organisme_financement_solde` (texte libre ou lien vers un tiers, `CV-02`).
 
-### 8.4 Financement / leasing (rattaché à un dossier de vente)
+**8.4 Financement / leasing (rattaché à un dossier de vente)**
 
 - `id`, `dossier_vente_id`, `type` (`comptant`/`credit`/`leasing`, `RV-39`/`RV-44`), `organisme_id`
   (fiche client existante, `RV-40`), `reference_contrat` (`RV-42`), `statut_confirmation`
   (`en_attente`/`confirme`/`refuse`, `CV-03`).
 
-### 8.5 Frais annexes
+**8.5 Frais annexes**
 
 - Ne sont **pas** un objet de données à part — ce sont des `ligne_document` typées sur le document
   de vente existant (§2), avec un `type_ligne_document` étendu si besoin pour distinguer
@@ -681,7 +697,9 @@ Volontairement conceptuel — noms de champs indicatifs, pas un schéma final (r
 
 ---
 
-## 9. Contexte suisse
+9. Contexte suisse
+
+---
 
 - **TVA** : 8.1 % normal, applicable à une vente VO comme VN sur le prix de vente total (`RV-59`,
   déjà tranché `MD-68`). Le bénéfice fiscal de l'achat à un particulier (impôt préalable fictif, LTVA
@@ -701,41 +719,43 @@ Volontairement conceptuel — noms de champs indicatifs, pas un schéma final (r
 
 ---
 
-## 10. Ce qui doit être paramétrable
-
-| Repère  | Ce qui varie d'un garage à l'autre                                                                                                                                  |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PV-01` | Seuil de jours de stock déclenchant une alerte (`RV-08`)                                                                                                            |
-| `PV-02` | Taux/montant d'acompte par défaut à la signature du bon de commande (`RV-33`)                                                                                       |
-| `PV-03` | Check-list exacte des documents requis avant livraison (`RV-35`)                                                                                                    |
-| `PV-04` | Tolérance de livraison sans paiement intégral confirmé, si elle existe (`RV-37`)                                                                                    |
-| `PV-05` | Liste des provenances de véhicule en stock, extensible par tenant (`RV-02`)                                                                                         |
-| `PV-06` | Durée et étendue par défaut de la garantie occasion du garage (`RV-16`)                                                                                             |
-| `PV-07` | Ventilation exacte des frais annexes facturés par défaut (`RV-46`)                                                                                                  |
-| `PV-08` | Statuts intermédiaires du dossier de vente activés/désactivés selon la taille du garage (`en_preparation` a-t-il un sens pour un tout petit garage VO uniquement ?) |
+10. Ce qui doit être paramétrable
 
 ---
 
-## 11. Matrice rôle × action
+- `PV-01` — Seuil de jours de stock déclenchant une alerte (`RV-08`)
+- `PV-02` — Taux/montant d'acompte par défaut à la signature du bon de commande (`RV-33`)
+- `PV-03` — Check-list exacte des documents requis avant livraison (`RV-35`)
+- `PV-04` — Tolérance de livraison sans paiement intégral confirmé, si elle existe (`RV-37`)
+- `PV-05` — Liste des provenances de véhicule en stock, extensible par tenant (`RV-02`)
+- `PV-06` — Durée et étendue par défaut de la garantie occasion du garage (`RV-16`)
+- `PV-07` — Ventilation exacte des frais annexes facturés par défaut (`RV-46`)
+- `PV-08` — Statuts intermédiaires du dossier de vente activés/désactivés selon la taille du garage (`en_preparation` a-t-il un sens pour un tout petit garage VO uniquement ?)
+
+---
+
+11. Matrice rôle × action
+
+---
 
 Cohérente avec `apps/api/src/auth/matrice-droits.ts` — ce module ne crée pas de nouveau rôle, il
 étend l'usage des rôles existants.
 
-| Action                                                                  | vendeur                    | direction | comptable | réceptionnaire                        |
-| ----------------------------------------------------------------------- | -------------------------- | --------- | --------- | ------------------------------------- |
-| Créer/modifier un dossier de vente en `prospection`                     | oui                        | oui       | —         | —                                     |
-| Faire signer un bon de commande                                         | oui                        | oui       | —         | —                                     |
-| Saisir une estimation/valeur de reprise négociée                        | oui                        | oui       | —         | —                                     |
-| Voir la marge d'un véhicule en stock (`RV-06`)                          | **[À VALIDER, `QV-15`]**   | oui       | oui       | —                                     |
-| Émettre la facture de vente                                             | oui                        | oui       | oui       | —                                     |
-| Émettre un avoir sur une facture de vente                               | **non** (§2, déjà tranché) | oui       | oui       | —                                     |
-| Confirmer un financement/leasing                                        | oui                        | oui       | oui       | —                                     |
-| Enregistrer la livraison (changement de détention)                      | oui                        | oui       | —         | possible selon organisation (`QV-16`) |
-| Modifier le prix d'achat/frais de remise en état d'un véhicule en stock | **[À VALIDER, `QV-15`]**   | oui       | —         | —                                     |
+- Créer/modifier un dossier de vente en `prospection` / oui / oui / — / —
+- Faire signer un bon de commande / oui / oui / — / —
+- Saisir une estimation/valeur de reprise négociée / oui / oui / — / —
+- Voir la marge d'un véhicule en stock (`RV-06`) / **[À VALIDER, `QV-15`]** / oui / oui / —
+- Émettre la facture de vente / oui / oui / oui / —
+- Émettre un avoir sur une facture de vente / **non** (§2, déjà tranché) / oui / oui / —
+- Confirmer un financement/leasing / oui / oui / oui / —
+- Enregistrer la livraison (changement de détention) / oui / oui / — / possible selon organisation (`QV-16`)
+- Modifier le prix d'achat/frais de remise en état d'un véhicule en stock / **[À VALIDER, `QV-15`]** / oui / — / —
 
 ---
 
-## 12. Cas de test métier
+12. Cas de test métier
+
+---
 
 - **`CV-01`** — Deux dossiers de vente sur le même véhicule VO unique. Contexte : véhicule
   `disponible`, dossier 1 en `prospection` (devis), dossier 2 passe en `engage` (bon de commande
@@ -778,7 +798,9 @@ Cohérente avec `apps/api/src/auth/matrice-droits.ts` — ce module ne crée pas
 
 ---
 
-## 13. Questions ouvertes à poser à @laupernoe
+13. Questions ouvertes à poser à @laupernoe
+
+---
 
 Pour chacune, l'endroit où aller regarder ou à qui demander — le terrain de @laupernoe (accès direct à
 Auto-i et Nextlane sur plus de dix garages) vaut mieux que tout raisonnement ici.

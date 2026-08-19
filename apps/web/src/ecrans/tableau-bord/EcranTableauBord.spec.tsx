@@ -86,6 +86,12 @@ const FINANCIER_NOMINAL: ReponseFinancierTableauBord = {
   },
   encaissementsCentimes: 98700,
   encoursClientsCentimes: 45600,
+  marges: {
+    vehicules: { margeCentimes: 250000, nombreVehiculesFactures: 1 },
+    pieces: { disponible: false, raisonCle: 'piecesCoutNonFiable' },
+    mainOeuvre: { disponible: false, raisonCle: 'mainOeuvreCoutAbsent' },
+  },
+  stockPieces: { totalCentimes: 987500, articlesValeurInconnueNombre: 3 },
 };
 
 const CLIENT_TEST: ClientResume = {
@@ -349,7 +355,7 @@ function rendre(cheminInitial = '/tableau-bord') {
 }
 
 describe('EcranTableauBord — Direction', () => {
-  it('affiche les 4 blocs attendus : encours, CA, OR ouverts aujourd’hui, sorties du soir', async () => {
+  it('affiche les 6 blocs attendus : encours, CA, OR en atelier, marge véhicules, marge indisponible, stock, sorties du soir', async () => {
     connecterSession('direction');
     server.use(
       http.get(CHEMIN_ACTIVITE, () => HttpResponse.json(ACTIVITE_NOMINALE)),
@@ -360,7 +366,31 @@ describe('EcranTableauBord — Direction', () => {
 
     expect(await screen.findByText("CHF 1'234.50")).toBeInTheDocument(); // CA TTC
     expect(screen.getByText('CHF 456.00')).toBeInTheDocument(); // encours clients
-    expect(screen.getByText('12')).toBeInTheDocument(); // OR ouverts aujourd'hui
+    // « OR actuellement en atelier » (défaut corrigé du 14.08.2026) : SOMME des 6 statuts de
+    // ACTIVITE_NOMINALE (2+3+5+1+6+2 = 19), PAS `ordresReparationOuvertsPeriode` (12, valeur
+    // délibérément différente dans la fixture pour prouver que la carte lit le bon champ).
+    expect(screen.getByText('19')).toBeInTheDocument();
+    expect(screen.queryByText('12')).not.toBeInTheDocument();
+    // Marge véhicules : CHF 2'500.00 (250000 centimes), calculable même si elle vaut 0 ailleurs.
+    expect(screen.getByText("CHF 2'500.00")).toBeInTheDocument();
+    // Marge pièces/main-d'œuvre : jamais un montant, un mot distinct.
+    expect(
+      screen.getByText(i18n.t('tableauBord:financier.marges.indisponible.libelle')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n.t('tableauBord:financier.marges.indisponible.piecesCoutNonFiable')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n.t('tableauBord:financier.marges.indisponible.mainOeuvreCoutAbsent')),
+    ).toBeInTheDocument();
+    // Stock pièces valorisé : CHF 9'875.00 (987500 centimes), avec les 3 articles à valeur
+    // inconnue signalés explicitement — jamais absorbés silencieusement dans le total.
+    expect(screen.getByText("CHF 9'875.00")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        i18n.t('tableauBord:financier.stockPieces.articlesValeurInconnue', { count: 3 }),
+      ),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(i18n.t('tableauBord:direction.sortiesDuSoir.titre')),
     ).toBeInTheDocument();
@@ -368,6 +398,10 @@ describe('EcranTableauBord — Direction', () => {
     expect(
       screen.queryByText(i18n.t('tableauBord:activite.repartitionStatuts.titre')),
     ).not.toBeInTheDocument();
+    // Le sélecteur de période dit explicitement qu'il s'applique tout seul (défaut #3, 14.08.2026).
+    expect(
+      screen.getByText(i18n.t('tableauBord:periode.appliqueeAutomatiquement')),
+    ).toBeInTheDocument();
   });
 });
 
@@ -633,7 +667,7 @@ describe('EcranTableauBord — Vendeur (tableau de bord non construit, gap signa
  * `/tableau-bord/financier`).
  */
 describe('EcranTableauBord — Admin (RF-115, non-fuite financière)', () => {
-  it('affiche exactement 3 blocs (OR ouverts, articles sous seuil, raccourcis), aucun montant, aucune requête financière', async () => {
+  it('affiche exactement 3 blocs (OR en atelier, articles sous seuil, raccourcis), aucun montant, aucune requête financière', async () => {
     connecterSession('admin');
     let appelsFinancier = 0;
     server.use(
@@ -645,7 +679,10 @@ describe('EcranTableauBord — Admin (RF-115, non-fuite financière)', () => {
     );
     rendre();
 
-    expect(await screen.findByText('12')).toBeInTheDocument(); // OR ouverts aujourd'hui
+    // « OR actuellement en atelier » : même défaut corrigé que Direction, même somme (19), jamais
+    // `ordresReparationOuvertsPeriode` (12).
+    expect(await screen.findByText('19')).toBeInTheDocument();
+    expect(screen.queryByText('12')).not.toBeInTheDocument();
     expect(screen.getByText('7')).toBeInTheDocument(); // articles sous seuil
     expect(screen.getByText(i18n.t('tableauBord:admin.raccourcis.titre'))).toBeInTheDocument();
 
@@ -662,7 +699,7 @@ describe('EcranTableauBord — Admin (RF-115, non-fuite financière)', () => {
 });
 
 describe('EcranTableauBord — période sans aucune activité (zéro digne, jamais un état vide)', () => {
-  it('direction : les compteurs à zéro restent affichés, jamais masqués', async () => {
+  it('direction : les compteurs à zéro restent affichés, jamais masqués — y compris la marge véhicules et le stock, DISTINCTS de la marge indisponible', async () => {
     connecterSession('direction');
     server.use(
       http.get(CHEMIN_ACTIVITE, () => HttpResponse.json(ACTIVITE_VIDE)),
@@ -676,14 +713,28 @@ describe('EcranTableauBord — période sans aucune activité (zéro digne, jama
             totalTtcCentimes: 0,
             nombreDocuments: 0,
           },
+          marges: {
+            vehicules: { margeCentimes: 0, nombreVehiculesFactures: 0 },
+            pieces: { disponible: false, raisonCle: 'piecesCoutNonFiable' },
+            mainOeuvre: { disponible: false, raisonCle: 'mainOeuvreCoutAbsent' },
+          },
+          stockPieces: { totalCentimes: 0, articlesValeurInconnueNombre: 0 },
         }),
       ),
       http.get(CHEMIN_OR, () => HttpResponse.json(PAGE_VIDE)),
     );
     rendre();
 
-    expect((await screen.findAllByText('CHF 0.00')).length).toBeGreaterThan(0);
-    expect(screen.getByText('0')).toBeInTheDocument(); // OR ouverts aujourd'hui
+    // Zéro DIGNE : CA, encours, marge véhicules et stock à zéro s'affichent tous comme "CHF 0.00"
+    // — au moins 4 occurrences (une par carte à zéro), jamais masquées.
+    expect((await screen.findAllByText('CHF 0.00')).length).toBeGreaterThanOrEqual(4);
+    // « OR actuellement en atelier » : ACTIVITE_VIDE n'a aucun OR actif, 0 est la vraie donnée.
+    expect(screen.getByText('0')).toBeInTheDocument();
+    // La marge pièces/main-d'œuvre reste « Indisponible » (un mot, jamais un montant à 0) même
+    // quand tout le reste de la réponse est à zéro — distinction structurelle préservée.
+    expect(
+      screen.getByText(i18n.t('tableauBord:financier.marges.indisponible.libelle')),
+    ).toBeInTheDocument();
   });
 });
 

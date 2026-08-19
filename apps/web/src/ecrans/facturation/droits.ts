@@ -85,3 +85,44 @@ export function peutEncaisser(role: RoleUtilisateur | undefined): boolean {
 export function peutEmettreAvoir(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && ROLES_EMISSION_AVOIR.has(role);
 }
+
+/**
+ * Correction totale d'une facture émise (`POST /documents-vente/{id}/corriger`, geste unique
+ * `RF-12` → `RF-14` : un avoir total + une facture de remplacement en une transaction) — QUATRIÈME
+ * geste financier de `EcranFicheFacture`, DÉFAUT CORRIGÉ (relevé au test manuel du 14.08.2026) :
+ * `proposeCorriger` ne dépendait avant ce correctif QUE de l'état du document
+ * (`peutGererFacture`), JAMAIS du rôle — un chef d'atelier ou le compte technique `admin`
+ * voyaient donc « Corriger cette facture » au menu ⋯ ET le lien « Corriger par un avoir → » sous
+ * les lignes, le dialogue s'ouvrait, son bouton de validation était actif. Même doctrine que les
+ * trois fonctions ci-dessus : un rôle sans droit ne voit pas de bouton.
+ *
+ * **MESURÉ CÔTÉ SERVEUR avant ce correctif (pas supposé)** : `POST /documents-vente/{id}/corriger`
+ * N'EXISTE PAS dans `apps/api/src/facturation/documents/` — aucun `@Post(':id/corriger')`, aucune
+ * méthode `corriger`/`corrigerFacture` dans `DocumentVenteController`/
+ * `DocumentVenteTransitionsController`, aucun service, zéro test (recherche exhaustive du
+ * répertoire, confirmée par grep ET par `codegraph_explore`). Le contrat (`schemaCorrectionFacture`,
+ * `packages/shared/src/contrats/facturation/document.ts`) et le hook front
+ * (`hooks/facturation/useCorrigerFacture.ts`) sont posés, mais AUCUNE route ne les sert : toute
+ * requête, de N'IMPORTE QUEL rôle (y compris `direction`/`comptable`), reçoit aujourd'hui un `404`
+ * générique de Nest (route non montée), PAS un `403 DROIT_INSUFFISANT` — ce n'est donc pas un refus
+ * par rôle, c'est une fonctionnalité absente. Voir `document-vente-corriger-absent.spec.ts`
+ * (verrouille cette absence) et le rapport de livraison de cet agent pour le détail.
+ *
+ * Ce défensif front reste posé MAINTENANT, par anticipation (même doctrine que
+ * `atelier.pointage.identifier`/`gerer_pin` côté serveur, posés avant leur route) : le jour où
+ * l'endpoint existera, ce fichier n'aura rien à changer, et l'écran n'aura jamais laissé un rôle
+ * non autorisé ouvrir le dialogue entre-temps.
+ *
+ * Rôles EXACTEMENT `direction` + `comptable` — PAS `réceptionnaire` (contrairement à
+ * `ROLES_EMISSION_AVOIR` ci-dessus, dont ce geste n'est PAS un simple alias : corriger annule ET
+ * recrée une facture en un seul geste, structurellement plus engageant qu'émettre un avoir
+ * ordinaire). Action de droit à créer côté `apps/api/src/auth/matrice-droits.ts` le jour où la
+ * route existe : `facturation.document.corriger`, accordée à `direction`/`comptable` SEULS —
+ * aucune action existante n'a cette sémantique ET ce périmètre exact (`facturation.document.
+ * emettre_avoir`/`facturation.avoir.creer` incluent à tort `receptionnaire` pour ce geste-ci).
+ */
+const ROLES_CORRECTION_FACTURE: ReadonlySet<RoleUtilisateur> = new Set(['direction', 'comptable']);
+
+export function peutCorrigerFacture(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_CORRECTION_FACTURE.has(role);
+}

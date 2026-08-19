@@ -75,7 +75,8 @@
       "periodeVerrouillee": "Periodo bloccato",
       "orFacture": "Ordine fatturato",
       "ligneNonPointable": "Lavoro non timbrabile",
-      "deriveHorloge": "Orologio disallineato"
+      "deriveHorloge": "Orologio disallineato",
+      "clotureFinJournee": "Chiuso automaticamente a fine giornata"
     },
     "corbeille": "Mostra cestino",
     "corriger": "Da correggere"
@@ -144,7 +145,14 @@
     },
     "pointageEnCours": {
       "titre": "Timbratura in corso",
-      "depuis": "Dalle {heure}"
+      "depuis": "Dalle {heure}",
+      "cumulAujourdhui": "Oggi su questa destinazione: {duree}"
+    },
+    "bandeauReprise": {
+      "titre": "Riprendi: {cible}",
+      "interrompuDepuis": "Interrotto {duree} fa",
+      "cumulJour": "{cumul} già timbrate oggi",
+      "libelleAccessible": "Riprendi la timbratura su {cible}"
     },
     "cible": {
       "ligne": "{numero} — {designation}",
@@ -165,10 +173,12 @@
     },
     "choisirCible": {
       "titre": "Cosa stai timbrando?",
-      "description": "Scegli un lavoro a te assegnato, oppure timbra sull'ordine intero.",
+      "retour": "Indietro",
+      "description": "Scegli un lavoro dell'ordine, oppure timbra sull'ordine intero.",
       "orEntier": "Ordine intero (senza lavoro preciso)",
-      "lignesTitre": "Lavori a te assegnati",
-      "aucuneLigne": "Nessun lavoro ti e assegnato su questo ordine — puoi timbrare sull'ordine intero."
+      "lignesTitre": "Lavori dell'ordine",
+      "aucuneLigne": "Questo ordine non ha alcun lavoro timbrabile — puoi timbrare sull'ordine intero.",
+      "assigneeAutre": "Assegnato a un altro tecnico."
     },
     "erreur": {
       "titre": "Impossibile caricare la tua timbratura"

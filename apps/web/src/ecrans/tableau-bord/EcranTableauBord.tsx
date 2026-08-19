@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router';
 
 import type { RoleUtilisateur } from '@dfa/shared';
 
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useSession } from '@/hooks/useSession';
 
 import { SelecteurSiteTableauBord } from './SelecteurSiteTableauBord';
@@ -58,9 +59,7 @@ export function EcranTableauBord() {
   const role: RoleUtilisateur | undefined = session?.utilisateur.role;
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="texte-titre-page font-semibold text-foreground">{t('tableauBord:titre')}</h1>
-
+    <GabaritEcran titre={t('tableauBord:titre')}>
       <SelecteurSiteTableauBord
         sites={session?.sites ?? []}
         siteId={siteId}
@@ -92,6 +91,6 @@ export function EcranTableauBord() {
             return null;
         }
       })()}
-    </div>
+    </GabaritEcran>
   );
 }

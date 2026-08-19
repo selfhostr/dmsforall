@@ -13,6 +13,7 @@ import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { BadgeStatutOr } from '@/composants/identite/BadgeStatutOr';
 import { BandeauAlerteClient } from '@/composants/motifs/BandeauAlerteClient';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { BadgeStatutDossierVente } from '@/ecrans/ventes/dossiers/BadgeStatutDossierVente';
 // Matrice de droits ventes (RF-115) DUPLIQUÉE côté front, jamais importée depuis `apps/api` —
 // voir l'en-tête de `ecrans/ventes/dossiers/droits.ts`. Hors périmètre d'écriture ici
@@ -131,11 +132,20 @@ export function EcranFicheClient() {
     { enabled: Boolean(id) && peutVoirDossiersVente },
   );
 
+  // `titreVisible={false}` FORCÉ (contredit la détection automatique, qui laisserait ce h1
+  // visible : « Fiche client » ne recoupe aucun libellé de navigation). Mesuré : ce n'est pas
+  // l'onglet qui fait doublon ici mais le CONTENU — `IdentiteClient`, juste sous ce même en-tête,
+  // affiche déjà le nom et le badge de statut du client en gros caractères. Rendre ce h1 visible
+  // empilerait un second titre générique au-dessus d'une identité déjà affichée — même défaut,
+  // à l'intérieur de l'écran plutôt qu'entre l'écran et l'onglet (même doctrine que
+  // `EcranFicheOrdreReparation.tsx`/`EcranFicheVehicule.tsx`). Comportement inchangé sur le fond
+  // (aucun h1 visible n'existait avant ce chantier), désormais uniforme sur les trois états
+  // (chargement/erreur/contenu) via le gabarit commun.
   if (requete.isLoading) {
     return (
-      <div className="p-6">
+      <GabaritEcran titre={t('clients:fiche.titre')} titreVisible={false}>
         <EtatChargement lignes={6} />
-      </div>
+      </GabaritEcran>
     );
   }
 
@@ -149,7 +159,7 @@ export function EcranFicheClient() {
     // qui compte pour l'utilisateur, c'est que la CRÉATION, elle, a réussi — un seul message le
     // dit, quelle que soit la cause de l'échec d'affichage.
     return (
-      <div className="p-6">
+      <GabaritEcran titre={t('clients:fiche.titre')} titreVisible={false}>
         <EtatErreur
           titre={
             etatCreation
@@ -169,7 +179,7 @@ export function EcranFicheClient() {
           onReessayer={() => void requete.refetch()}
         />
         {etatCreation ? (
-          <div className="mt-3 flex justify-center">
+          <div className="flex justify-center">
             <Button
               type="button"
               variant="outline"
@@ -179,7 +189,7 @@ export function EcranFicheClient() {
             </Button>
           </div>
         ) : null}
-      </div>
+      </GabaritEcran>
     );
   }
 
@@ -214,21 +224,14 @@ export function EcranFicheClient() {
   };
 
   return (
-    <div className="flex flex-col gap-4 p-6">
+    <GabaritEcran titre={t('clients:fiche.titre')} titreVisible={false}>
       <BandeauAlerteClient
         bloque={client.statut === 'bloque'}
         alertes={client.notesAlerte.map((note) => ({ id: note.id, texte: note.texte }))}
       />
 
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="texte-libelle text-muted-foreground">{t('clients:fiche.titre')}</p>
-          <IdentiteClient
-            client={clientPourIdentite}
-            alerte={client.notesAlerte.length > 0}
-            className="mt-1"
-          />
-        </div>
+        <IdentiteClient client={clientPourIdentite} alerte={client.notesAlerte.length > 0} />
         {/* Action primaire unique de la fiche (RM-21) — chemin assumé en l'absence de câblage
          *  du module atelier à ce jour, à ajuster par l'agent de routage si besoin. */}
         <Button type="button" onClick={() => navigate(cheminNouvelOr(client.id, site))}>
@@ -433,6 +436,6 @@ export function EcranFicheClient() {
           </section>
         </div>
       </div>
-    </div>
+    </GabaritEcran>
   );
 }

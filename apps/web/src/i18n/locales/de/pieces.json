@@ -8,17 +8,40 @@
       "titre": "Ihre Standorte konnten nicht geladen werden"
     }
   },
+  "emplacement": {
+    "rayonTiroir": "Regal {rayon}, Schublade {tiroir}",
+    "rayonSeul": "Regal {rayon}",
+    "tiroirSeul": "Schublade {tiroir}",
+    "avecLibre": "{structure} — {emplacement}",
+    "modifier": "Lagerfach bearbeiten",
+    "aucun": "Kein Lagerfach hinterlegt",
+    "dialogue": {
+      "titre": "Lagerfach",
+      "description": "Regal und Schublade sind optional — eine strukturierte Ergänzung zum bestehenden Freitext, der für Sonderfälle weiterhin nutzbar bleibt.",
+      "rayon": "Regal",
+      "tiroir": "Schublade",
+      "aide": "„B3“, „b3“ und „B 3“ bezeichnen dasselbe Regal — Groß-/Kleinschreibung und Leerzeichen spielen keine Rolle.",
+      "libreActuel": "Aktueller Freitext für diesen Standort: {emplacement}",
+      "libreAucun": "Kein Freitext für diesen Standort hinterlegt."
+    }
+  },
   "rechercheComptoir": {
     "titre": "Thekensuche",
     "aide": "Referenz, Bezeichnung oder Strichcode eingeben.",
     "champRecherche": "Referenz, Bezeichnung, Strichcode…",
     "vide": {
-      "recherche": "Kein Artikel entspricht dieser Suche an diesem Standort."
+      "recherche": {
+        "titre": "Kein Artikel gefunden",
+        "description": "Kein Artikel entspricht dieser Suche an diesem Standort."
+      },
+      "catalogue": {
+        "titre": "Kein Artikel im Katalog",
+        "description": "An diesem Standort ist kein aktiver Artikel erfasst."
+      }
     },
     "resultat": {
       "disponible": "{n} auf Lager",
-      "rupture": "Nicht auf Lager",
-      "emplacement": "Lagerplatz {emplacement}"
+      "rupture": "Nicht auf Lager"
     },
     "erreur": {
       "titre": "Die Suche ist fehlgeschlagen"
@@ -110,6 +133,20 @@
       },
       "erreur": {
         "titre": "Die Artikel konnten nicht angezeigt werden"
+      },
+      "vide": {
+        "recherche": {
+          "titre": "Kein Artikel gefunden",
+          "description": "Kein Artikel entspricht dieser Suche."
+        },
+        "filtre": {
+          "titre": "Kein Artikel mit diesen Filtern",
+          "description": "Kein Artikel entspricht den gewählten Filtern."
+        },
+        "premierUsage": {
+          "titre": "Kein Artikel im Katalog",
+          "description": "Erfassen Sie den ersten Artikel, um den Lagerbestand aufzubauen."
+        }
       }
     },
     "fiche": {
@@ -216,7 +253,13 @@
         "champQuantiteComptee": "Gezählte Menge",
         "champForcer": "Trotz unzureichendem Bestand erzwingen",
         "avertissementEcart": "Deutliche Differenz zum geschätzten Bestand festgestellt — Zählung prüfen.",
-        "aucunEcart": "Die Zählung entspricht dem aktuellen Bestand: keine Bewegung wurde erstellt."
+        "aucunEcart": "Die Zählung entspricht dem aktuellen Bestand: keine Bewegung wurde erstellt.",
+        "apercuForcage": {
+          "chargement": "Prüfung der von dieser Erzwingung betroffenen Reservierungen…",
+          "erreur": "Die von dieser Erzwingung betroffenen Reservierungen konnten nicht geprüft werden.",
+          "titre": "{count} {count, plural, one {Reservierung wird} other {Reservierungen werden}} durch diese Erzwingung freigegeben.",
+          "listeOrs": "Betroffene Werkstattaufträge: {numeros}."
+        }
       }
     },
     "reapprovisionnement": {
@@ -348,8 +391,10 @@
       "ecart": "Abweichung erkannt — andere Referenz"
     },
     "nouvelle": {
+      "titre": "Neue Lieferantenbestellung",
       "aucuneLigne": "Fügen Sie der Bestellung mindestens eine Position hinzu.",
-      "choisirSiteDabord": "Wählen Sie zuerst einen Ort, um nach Artikeln zu suchen."
+      "choisirSiteDabord": "Wählen Sie zuerst einen Ort, um nach Artikeln zu suchen.",
+      "quantiteSuggereeReapprovisionnement": "Vorgeschlagene Menge: die fehlende Menge, um den Meldebestand wieder zu überschreiten. Passen Sie sie an, falls Ihr Lieferant eine andere Gebindegrösse vorschreibt."
     },
     "filtres": {
       "statutTous": "Alle Status",
@@ -466,6 +511,121 @@
       "quantite": "Menge",
       "motif": "Grund der Rückgabe",
       "confirmer": "Rückgabe erfassen"
+    }
+  },
+  "facturesFournisseur": {
+    "titre": "Lieferantenrechnungen",
+    "titreDepot": "Lieferantenrechnung hochladen",
+    "sousTitreDepot": "Laden Sie das vom Lieferanten erhaltene PDF hoch: Es wird automatisch gelesen und der passenden Bestellung zugeordnet.",
+    "deposeeLe": "Hochgeladen am {date}",
+    "sansNumero": "Rechnung ohne gelesene Nummer",
+    "vide": "Keine Lieferantenrechnung hochgeladen.",
+    "erreur": {
+      "titre": "Lieferantenrechnungen können nicht angezeigt werden"
+    },
+    "droitRequis": {
+      "lecture": "Sie haben keine Berechtigung, Lieferantenrechnungen anzuzeigen.",
+      "depot": "Sie haben keine Berechtigung, eine Lieferantenrechnung hochzuladen."
+    },
+    "filtres": {
+      "statutTous": "Alle Status"
+    },
+    "colonnes": {
+      "fichier": "Rechnung",
+      "fournisseur": "Lieferant",
+      "montant": "Betrag",
+      "statut": "Status",
+      "ecarts": "Abweichungen"
+    },
+    "statuts": {
+      "deposee": "Hochgeladen",
+      "rapprochee": "Abgeglichen",
+      "validee": "Bestätigt",
+      "rejetee": "Abgelehnt"
+    },
+    "ecartsPresents": "Abweichungen zu prüfen",
+    "certitude": {
+      "certaine": "Gelesen (sicher)",
+      "incertaine": "Zu prüfen",
+      "absente": "Nicht gelesen"
+    },
+    "natureEcart": {
+      "aucun": "Übereinstimmend",
+      "quantite": "Mengenabweichung",
+      "prix_unitaire": "Preisabweichung",
+      "quantite_et_prix": "Mengen- und Preisabweichung",
+      "non_rapprochee": "Nicht abgeglichen"
+    },
+    "depot": {
+      "consigneTitre": "Laden Sie die vom Lieferanten erhaltene Rechnung hoch",
+      "consigneDetail": "Nur PDF-Dateien, maximal 15 MB.",
+      "glisserDeposer": "Datei hierher ziehen und ablegen",
+      "ou": "oder",
+      "parcourir": "Datei auswählen"
+    },
+    "analyse": {
+      "enCours": "Rechnung wird gelesen …"
+    },
+    "erreurs": {
+      "titre": "Der Upload ist fehlgeschlagen",
+      "fichierPasPdf": "Es werden nur PDF-Dateien akzeptiert.",
+      "fichierTropLourd": "Diese Datei überschreitet die maximale Grösse von 15 MB."
+    },
+    "rapprochement": {
+      "titre": "Ergebnis der Lesung",
+      "fournisseurTrouveTitre": "Lieferant erkannt",
+      "fournisseurAbsentTitre": "Kein Lieferant erkannt",
+      "fournisseurAbsentDescription": "Der auf der Rechnung gelesene Name entspricht keinem Lieferanten des Mandanten. Bitte vor der Bestätigung prüfen.",
+      "commandeTrouveeTitre": "Einer Lieferantenbestellung zugeordnet",
+      "commandeAbsenteTitre": "Keine passende Bestellung",
+      "commandeAbsenteDescription": "Diese Rechnung konnte keiner Lieferantenbestellung zugeordnet werden. Prüfen Sie sie manuell, bevor Sie sie bestätigen."
+    },
+    "enTete": {
+      "titre": "Auf der Rechnung gelesene Daten",
+      "numeroFacture": "Rechnungsnummer",
+      "dateFacture": "Rechnungsdatum",
+      "fournisseur": "Name des Gläubigers (gelesen)",
+      "iban": "IBAN des Gläubigers",
+      "referencePaiement": "Zahlungsreferenz",
+      "montantTotal": "Gesamtbetrag",
+      "devise": "Währung"
+    },
+    "synthese": {
+      "titreAvecEcarts": "{count, plural, one {# Position weist eine zu prüfende Abweichung auf} other {# Positionen weisen eine zu prüfende Abweichung auf}}",
+      "titreSansEcart": "Keine Abweichung festgestellt",
+      "detailMontant": "Gesamtabweichung: {montant}",
+      "detailSansMontant": "Die betroffenen Positionen sind keiner Bestellung zugeordnet."
+    },
+    "lignes": {
+      "titre": "Positionen",
+      "colonnes": {
+        "ecart": "Abweichung",
+        "designation": "Bezeichnung",
+        "quantite": "Menge",
+        "prixUnitaire": "Einzelpreis",
+        "total": "Total"
+      },
+      "commande": "bestellt: {valeur}",
+      "ecartValeur": "Abweichung {unites}",
+      "vide": "Auf dieser Rechnung wurde keine Position gelesen."
+    },
+    "validation": {
+      "dejaValidee": "Rechnung bestätigt am {date}.",
+      "dejaRejetee": "Rechnung abgelehnt.",
+      "succesTitre": "Rechnung bestätigt",
+      "succesTitreRejet": "Rechnung abgelehnt"
+    },
+    "rejet": {
+      "titre": "Rechnung ablehnen",
+      "description": "Das Dokument bleibt aufbewahrt und einsehbar. Geben Sie an, warum diese Rechnung abgelehnt wird."
+    },
+    "actions": {
+      "deposer": "Rechnung hochladen",
+      "voirDocument": "Dokument anzeigen",
+      "valider": "Abgleich bestätigen",
+      "rejeter": "Ablehnen",
+      "deposerUneAutre": "Weitere Rechnung hochladen",
+      "consulter": "Anzeigen"
     }
   }
 }

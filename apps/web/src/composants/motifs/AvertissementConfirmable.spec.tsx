@@ -54,6 +54,69 @@ describe('AvertissementConfirmable', () => {
     expect(onConfirmer).toHaveBeenCalledTimes(1);
   });
 
+  it("affiche `messageErreur` DANS la modale (issue #63 : jamais sous l'overlay), avec le rôle `alert`", () => {
+    render(
+      <AvertissementConfirmable
+        ouvert
+        onOuvertChange={() => {}}
+        titre="Archiver ce véhicule ?"
+        description="Il restera consultable en lecture seule."
+        libelleConfirmation="Archiver"
+        onConfirmer={() => {}}
+        messageErreur="Impossible d'archiver : le véhicule a un ordre de réparation en cours."
+      />,
+    );
+
+    const dialogue = screen.getByRole('dialog');
+    const erreur = screen.getByRole('alert');
+    expect(erreur).toHaveTextContent(
+      "Impossible d'archiver : le véhicule a un ordre de réparation en cours.",
+    );
+    // Le nœud d'erreur est un DESCENDANT de la modale — pas un élément séparé ailleurs dans le
+    // document (ce qui reproduirait le défaut : un bandeau vivant sous l'overlay de la modale).
+    expect(dialogue.contains(erreur)).toBe(true);
+  });
+
+  it('sans `messageErreur`, ne rend aucun rôle `alert` (rétrocompatible avec les appelants existants)', () => {
+    render(
+      <AvertissementConfirmable
+        ouvert
+        onOuvertChange={() => {}}
+        titre="Archiver ce véhicule ?"
+        description="Il restera consultable en lecture seule."
+        libelleConfirmation="Archiver"
+        onConfirmer={() => {}}
+      />,
+    );
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it("reste ouverte tant que l'appelant ne referme pas — `messageErreur` seul ne ferme jamais la modale", async () => {
+    const utilisateur = userEvent.setup();
+    const onOuvertChange = vi.fn();
+    render(
+      <AvertissementConfirmable
+        ouvert
+        onOuvertChange={onOuvertChange}
+        titre="Archiver ce véhicule ?"
+        description="Il restera consultable en lecture seule."
+        libelleConfirmation="Archiver"
+        onConfirmer={() => {}}
+        messageErreur="Échec de la tentative précédente."
+      />,
+    );
+
+    await utilisateur.click(screen.getByRole('button', { name: 'Archiver' }));
+
+    // `onConfirmer` ne pilote pas `ouvert` lui-même (composant contrôlé) : au bout d'un échec,
+    // l'appelant est celui qui décide de ne PAS appeler `onOuvertChange(false)` — la modale, elle,
+    // reste montée et son message d'erreur reste visible tant que rien ne la referme.
+    expect(onOuvertChange).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+  });
+
   it('ne rend rien quand `ouvert` est faux', () => {
     render(
       <AvertissementConfirmable

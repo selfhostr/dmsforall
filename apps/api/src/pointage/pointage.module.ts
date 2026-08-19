@@ -1,12 +1,18 @@
 import { Module } from '@nestjs/common';
+import { BullModule } from '@nestjs/bullmq';
 
 import { JETON_SERVICE_MOT_DE_PASSE } from '../auth/jetons';
 import { ServiceMotDePasseArgon2id } from '../auth/services/mot-de-passe.service';
 
+import { NOM_FILE_CLOTURE_AUTOMATIQUE_POINTAGE } from './cloture-automatique-pointage.jetons';
+import { OrdonnanceurClotureAutomatiquePointage } from './ordonnanceur-cloture-automatique-pointage';
 import { PinController } from './pin.controller';
 import { PointagePeriodeController } from './pointage-periode.controller';
 import { PointageController } from './pointage.controller';
+import { ProcesseurClotureAutomatiquePointage } from './processeur-cloture-automatique-pointage';
+import { ServiceClotureAutomatiquePointage } from './service-cloture-automatique-pointage';
 import { ServiceIdentificationPin } from './service-identification-pin';
+import { ServiceJobClotureAutomatiquePointage } from './service-job-cloture-automatique-pointage';
 import { ServiceLecturePointage } from './service-lecture-pointage';
 import { ServicePointage } from './service-pointage';
 import { ServiceVerrouillagePeriode } from './service-verrouillage-periode';
@@ -43,6 +49,14 @@ import { ServiceVerrouillagePin } from './service-verrouillage-pin';
  * fourni globalement par `LimitationModule` — rien à importer ici.
  */
 @Module({
+  imports: [
+    // Socle BullMQ (`OrdonnancementModule`, monté une seule fois à la racine de l'app) —
+    // `registerQueue` se raccroche automatiquement à la connexion Redis posée par
+    // `BullModule.forRootAsync`, aucun import explicite d'`OrdonnancementModule` requis (même
+    // constat que `vehicules/referentiel/referentiel-vehicules-ch-job.module.ts`, le modèle suivi
+    // ici — voir `ordonnanceur-cloture-automatique-pointage.ts` pour le détail complet).
+    BullModule.registerQueue({ name: NOM_FILE_CLOTURE_AUTOMATIQUE_POINTAGE }),
+  ],
   controllers: [PointageController, PointagePeriodeController, PinController],
   providers: [
     ServicePointage,
@@ -50,8 +64,26 @@ import { ServiceVerrouillagePin } from './service-verrouillage-pin';
     ServiceLecturePointage,
     ServiceIdentificationPin,
     ServiceVerrouillagePin,
+    // RM-91/RM-119 : clôture automatique de fin de journée — DÉSORMAIS DÉCLENCHÉE (chantier
+    // "socle d'ordonnancement", 17.08.2026). `ServiceClotureAutomatiquePointage` reste le service
+    // métier pur (une transaction par tenant, RLS) ; les trois providers suivants le branchent à
+    // BullMQ : `ServiceJobClotureAutomatiquePointage` (orchestration multi-tenant),
+    // `ProcesseurClotureAutomatiquePointage` (`@Processor`, consomme la file),
+    // `OrdonnanceurClotureAutomatiquePointage` (`OnApplicationBootstrap`, programme le
+    // déclenchement quotidien via `Queue.upsertJobScheduler` — voir son en-tête pour pourquoi
+    // c'est un PROVIDER de CE module plutôt qu'un second `@Module` séparé enregistré dans
+    // `app.module.ts`, hors périmètre d'écriture de cet agent).
+    ServiceClotureAutomatiquePointage,
+    ServiceJobClotureAutomatiquePointage,
+    ProcesseurClotureAutomatiquePointage,
+    OrdonnanceurClotureAutomatiquePointage,
     { provide: JETON_SERVICE_MOT_DE_PASSE, useClass: ServiceMotDePasseArgon2id },
   ],
-  exports: [ServicePointage, ServiceVerrouillagePeriode, ServiceLecturePointage],
+  exports: [
+    ServicePointage,
+    ServiceVerrouillagePeriode,
+    ServiceLecturePointage,
+    ServiceClotureAutomatiquePointage,
+  ],
 })
 export class PointageModule {}

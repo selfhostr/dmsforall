@@ -360,9 +360,18 @@
       "titre": "Impossible de charger les ordres de réparation"
     },
     "vide": {
-      "premierUsage": "Aucun ordre de réparation enregistré pour le moment.",
-      "recherche": "Aucun ordre de réparation ne correspond à cette recherche.",
-      "filtre": "Aucun résultat avec ce filtre."
+      "premierUsage": {
+        "titre": "Aucun ordre de réparation",
+        "description": "Ouvrez-en un dès l'arrivée d'un véhicule."
+      },
+      "recherche": {
+        "titre": "Aucun OR trouvé",
+        "description": "Aucun ordre de réparation ne correspond à cette recherche."
+      },
+      "filtre": {
+        "titre": "Aucun OR avec ces filtres",
+        "description": "Aucun ordre de réparation ne correspond aux filtres choisis."
+      }
     }
   },
   "fiche": {

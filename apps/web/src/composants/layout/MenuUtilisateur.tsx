@@ -9,7 +9,11 @@ interface Props {
 }
 
 /** Affichage identité + rôle. Volontairement non interactif : le bouton de déconnexion est
- *  affiché en clair dans EnTete, PAS enfoui dans ce menu (poste partagé d'atelier). */
+ *  affiché en clair dans EnTete, PAS enfoui dans ce menu (poste partagé d'atelier).
+ *
+ * Le numéro de version (demande @laupernoe, 17.08.2026) N'EST PLUS ici — précision explicite de @laupernoe
+ * après une première implémentation dans ce composant : « colle-le au bouton Réglages », voir
+ * `BarreLaterale.tsx` (pied de la barre latérale, adjacent à l'entrée Réglages). */
 export function MenuUtilisateur({ utilisateur }: Props) {
   const { t } = useTranslation('commun');
   const initiales = `${utilisateur.prenom.charAt(0)}${utilisateur.nom.charAt(0)}`.toUpperCase();

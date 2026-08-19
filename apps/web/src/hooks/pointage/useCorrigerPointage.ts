@@ -45,6 +45,12 @@ export function useCorrigerPointage(): UseMutationResult<
       void queryClient.invalidateQueries({
         queryKey: ['pointages', 'technicienJour', reponse.donnees.technicienId],
       });
+      // Une correction peut changer la nature/cible d'un pointage du jour (RM-94/RM-123) — la
+      // mémoire de reprise SERVEUR (P-34) doit rester cohérente, même doctrine que
+      // `useDemarrerPointage`/`useArreterPointage`.
+      void queryClient.invalidateQueries({
+        queryKey: clesPointage.derniereCible(reponse.donnees.technicienId),
+      });
     },
   });
 }

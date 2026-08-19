@@ -1,0 +1,85 @@
+{
+  "titre": "Scansiona una licenza di circolazione",
+  "sousTitre": "Fotografate la licenza, verificate, poi confermate.",
+  "echappement": {
+    "message": "Vista semplificata per cellulare: qui è disponibile solo la scansione.",
+    "action": "Apri l'applicazione completa"
+  },
+  "capture": {
+    "objectifTitre": "Fotografate la licenza di circolazione",
+    "objectifDetail": "Il veicolo e il cliente saranno precompilati automaticamente — resterà solo da verificare.",
+    "conseilPriseDeVue": "Il fronte, ben piatto e ben illuminato.",
+    "action": "Scatta la foto"
+  },
+  "controleQualite": {
+    "enCours": "Verifica della foto…"
+  },
+  "cadrage": {
+    "titre": "Ritaglio automatico rilevato",
+    "description": "I bordi del documento sono stati individuati automaticamente. Verificate che non manchi nulla.",
+    "continuer": "Continua",
+    "photoEntiere": "Usa la foto intera",
+    "apercuAlt": "Anteprima della foto con il ritaglio rilevato automaticamente"
+  },
+  "captureLive": {
+    "recherche": "Ricerca del documento…",
+    "cadrageBon": "Inquadratura corretta",
+    "captureAutomatiqueImminente": "Scatto automatico — non muovetevi",
+    "declencherManuel": "Scatta ora la foto",
+    "apercuCameraAlt": "Anteprima della fotocamera"
+  },
+  "refus": {
+    "titre": "Questa foto non va bene",
+    "motifs": {
+      "resolutionInsuffisante": "La foto non ha una definizione sufficiente. Rifatela più da vicino.",
+      "documentTropPetit": "La licenza è troppo piccola nel riquadro. Avvicinatevi.",
+      "photoFloue": "La foto è sfocata. Tenete l'apparecchio ben fermo."
+    },
+    "avertissementEnvoiForce": "Senza rifare la foto, la lettura automatica sarà probabilmente incompleta.",
+    "envoyerQuandMeme": "Invia comunque",
+    "apercuAlt": "Anteprima della foto scattata per la verifica"
+  },
+  "preparation": {
+    "enCours": "Preparazione della foto…"
+  },
+  "analyse": {
+    "enCours": "Lettura della licenza in corso…"
+  },
+  "erreurs": {
+    "titre": "La foto non può essere utilizzata",
+    "photoIllisible": "Questa foto non può essere aperta. Rifatela con la fotocamera, ben piatta e ben illuminata.",
+    "heicNonPrisEnCharge": "Questo formato di foto non è supportato su questo dispositivo. Rifate la foto con il pulsante «Scatta la foto» invece che dal rullino."
+  },
+  "actions": {
+    "reessayer": "Rifai la foto",
+    "scannerUnAutre": "Scansiona un'altra licenza"
+  },
+  "formulaire": {
+    "sectionDetenteur": "Detentore",
+    "sectionVehicule": "Veicolo",
+    "clientTrouve": "Cliente già registrato — il veicolo gli sarà collegato",
+    "clientCreeTitre": "Cliente registrato",
+    "clientCreeDescription": "{nom} è stato creato. Verificate ora il veicolo qui sotto.",
+    "langueAide": "Non stampata sulla licenza — da scegliere voi stessi.",
+    "valider": "Conferma e registra"
+  },
+  "confiance": {
+    "nonLu": "Non letto — da completare",
+    "douteux": "Da verificare",
+    "valide": "Letto e confermato"
+  },
+  "rienACreer": {
+    "titre": "Niente da creare",
+    "description": "Questo cliente e questo veicolo sono già registrati.",
+    "posteFixe": {
+      "enAttente": "Notifica alla postazione fissa in corso…",
+      "confirme": "La postazione fissa è stata avvisata.",
+      "indisponible": "Conferma non disponibile al momento — il cliente e il veicolo restano accessibili tramite i link qui sopra."
+    }
+  },
+  "resultat": {
+    "titre": "Registrazione completata",
+    "clientCree": "{nom} e il veicolo sono stati creati.",
+    "clientRattache": "Il veicolo è stato collegato a {nom}."
+  }
+}

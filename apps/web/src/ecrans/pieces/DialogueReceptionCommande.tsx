@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 
 import type { EntreeReceptionCommandeFournisseur, ReponseCommandeFournisseur } from '@dfa/shared';
 
-import { messageErreur } from '@/api/erreurs';
 import { useCleIdempotence } from '@/api/idempotence';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -20,6 +19,7 @@ import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
 import { useReceptionnerCommandeFournisseur } from '@/hooks/pieces/useTransitionsCommandeFournisseur';
 
+import { messageErreurMutation } from './messages-erreur-mutation';
 import { quantiteMilliemeVersSaisie, saisieVersQuantiteMillieme } from './utils';
 
 interface Props {
@@ -215,7 +215,7 @@ export function DialogueReceptionCommande({ ouvert, onOuvertChange, commande }: 
           ) : null}
           {receptionner.error ? (
             <p className="texte-libelle text-destructive" role="alert">
-              {messageErreur(receptionner.error, t)}
+              {messageErreurMutation(receptionner.error, t)}
             </p>
           ) : null}
         </div>

@@ -19,6 +19,7 @@ import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { BadgeStatutOr } from '@/composants/identite/BadgeStatutOr';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { BlocDonneesAtelier } from '@/composants/vehicule/BlocDonneesAtelier';
 import { BlocEcheances } from '@/composants/vehicule/BlocEcheances';
 import { EncartAlertesVehicule } from '@/composants/vehicule/EncartAlertesVehicule';
@@ -177,20 +178,26 @@ export function EcranFicheVehicule() {
     { enabled: Boolean(vehiculeId) && peutVoirDossiersVente },
   );
 
+  // `titreVisible={false}` FORCÉ (contredit la détection automatique, qui laisserait ce h1
+  // visible : « Fiche véhicule » ne recoupe aucun libellé de navigation). Mesuré : ce n'est pas
+  // l'onglet qui fait doublon ici mais le CONTENU — `EnTeteFicheVehicule` affiche déjà, juste sous
+  // ce même en-tête, la plaque/le VIN en gros caractères (`IdentiteVehicule`, taille `xl`). Rendre
+  // ce h1 visible empilerait un second titre générique au-dessus d'une identité déjà affichée —
+  // même doctrine que `EcranFicheOrdreReparation.tsx`/`EcranFicheClient.tsx`. Comportement inchangé
+  // sur le fond (déjà `sr-only` avant ce chantier), désormais uniforme sur les trois états
+  // (chargement/erreur/contenu) via le gabarit commun.
   if (requeteVehicule.isPending || requeteContexte.isPending) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('commun:titres.vehiculeDetail')}</h1>
+      <GabaritEcran titre={t('commun:titres.vehiculeDetail')} titreVisible={false}>
         <EtatChargement lignes={8} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (requeteVehicule.isError || requeteContexte.isError) {
     const erreur = requeteVehicule.error ?? requeteContexte.error;
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('commun:titres.vehiculeDetail')}</h1>
+      <GabaritEcran titre={t('commun:titres.vehiculeDetail')} titreVisible={false}>
         <EtatErreur
           titre={t('vehicules:fiche.erreur.titre')}
           description={messageErreur(erreur, t)}
@@ -199,7 +206,7 @@ export function EcranFicheVehicule() {
             void requeteContexte.refetch();
           }}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
@@ -255,9 +262,7 @@ export function EcranFicheVehicule() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="sr-only">{t('commun:titres.vehiculeDetail')}</h1>
-
+    <GabaritEcran titre={t('commun:titres.vehiculeDetail')} titreVisible={false}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <EnTeteFicheVehicule vehicule={vehicule} dernierKilometrage={contexte.dernierKilometrage} />
         {/* Lot B — action primaire « nouvel OR » depuis la fiche véhicule. CORRECTIF issue #48 :
@@ -654,6 +659,6 @@ export function EcranFicheVehicule() {
           />
         </>
       ) : null}
-    </div>
+    </GabaritEcran>
   );
 }

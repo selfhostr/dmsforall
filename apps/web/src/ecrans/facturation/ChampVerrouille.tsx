@@ -9,8 +9,18 @@ interface Props {
    *  `facturation:paiementVerrouille.message`) — ce composant ne porte aucun texte métier en dur,
    *  il sert la table de lignes ET l'historique des paiements (§4.6, §5.4). */
   readonly message: string;
-  readonly libelleAction: string;
-  readonly onAction: () => void;
+  /**
+   * `libelleAction`/`onAction` vont ensemble, TOUS DEUX omis ou TOUS DEUX fournis — jamais un seul
+   * des deux (l'appelant qui n'en passe qu'un a un bug, pas une intention). Omis : le popover
+   * n'affiche que `message`, sans bouton d'action — c'est le cas d'un rôle qui a le droit de VOIR
+   * pourquoi le champ est verrouillé mais pas celui de déclencher l'action de correction (ex.
+   * `EcranFicheFacture`, correction de facture réservée à `direction`/`comptable` —
+   * `peutCorrigerFacture`, `./droits.ts`). Doctrine du dépôt : un rôle sans droit ne voit pas un
+   * bouton grisé, il ne voit pas de bouton — mais il garde le droit de comprendre pourquoi le champ
+   * est figé, ce que `message` seul continue de porter.
+   */
+  readonly libelleAction?: string;
+  readonly onAction?: () => void;
   readonly className?: string;
 }
 
@@ -49,13 +59,15 @@ export function ChampVerrouille({ enfant, message, libelleAction, onAction, clas
       </PopoverTrigger>
       <PopoverContent className="flex flex-col gap-2">
         <p className="text-muted-foreground">{message}</p>
-        <button
-          type="button"
-          className="text-left font-medium text-primary underline-offset-2 hover:underline"
-          onClick={onAction}
-        >
-          {libelleAction}
-        </button>
+        {libelleAction && onAction ? (
+          <button
+            type="button"
+            className="text-left font-medium text-primary underline-offset-2 hover:underline"
+            onClick={onAction}
+          >
+            {libelleAction}
+          </button>
+        ) : null}
       </PopoverContent>
     </Popover>
   );

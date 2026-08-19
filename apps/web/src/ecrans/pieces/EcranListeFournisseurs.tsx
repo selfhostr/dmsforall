@@ -27,6 +27,7 @@ import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useListeFournisseurs } from '@/hooks/pieces/useListeFournisseurs';
 import { useSession } from '@/hooks/useSession';
 
@@ -106,42 +107,36 @@ export function EcranListeFournisseurs() {
 
   if (isPending) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('pieces:fournisseurs.titre')}</h1>
+      <GabaritEcran titre={t('pieces:fournisseurs.titre')}>
         <EtatChargement lignes={6} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (isError) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('pieces:fournisseurs.titre')}</h1>
+      <GabaritEcran titre={t('pieces:fournisseurs.titre')}>
         <EtatErreur
           titre={t('pieces:fournisseurs.erreur.titre')}
           description={messageErreur(error, t)}
           onReessayer={() => void refetch()}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
+  // Titre MASQUÉ automatiquement — « Fournisseurs » est un doublon strict du libellé de la vue
+  // active « Fournisseurs » (`navigation-modele.ts`, `ONGLETS_PIECES`, vue « fournisseurs » de
+  // l'onglet Approvisionnement) : `GabaritEcran` le détecte lui-même (§3 du contrat du chantier
+  // « titres doublés », 17.08.2026), plus besoin de le faire à la main ici.
+  const boutonAjouter = peutEcrireFournisseur(role) ? (
+    <Button onClick={() => setFormulaireOuvert(true)}>
+      {t('pieces:fournisseurs.actions.ajouter')}
+    </Button>
+  ) : undefined;
+
   return (
-    <div className="flex flex-col gap-6">
-      {/* Doublon strict du libellé de la vue active « Fournisseurs » (`navigation-modele.ts`,
-          `ONGLETS_PIECES`, vue « fournisseurs » de l'onglet Approvisionnement) : le h1 reste dans
-          le DOM pour le lecteur d'écran et la structure du document, sans répéter visuellement ce
-          que la barre d'onglets affiche déjà en surbrillance. */}
-      <h1 className="sr-only">{t('pieces:fournisseurs.titre')}</h1>
-
-      <div className="flex items-center justify-end gap-3">
-        {peutEcrireFournisseur(role) ? (
-          <Button onClick={() => setFormulaireOuvert(true)}>
-            {t('pieces:fournisseurs.actions.ajouter')}
-          </Button>
-        ) : null}
-      </div>
-
+    <GabaritEcran titre={t('pieces:fournisseurs.titre')} actions={boutonAjouter}>
       <div className="flex flex-col gap-1.5 max-w-xs">
         <Label htmlFor="filtre-statut-fournisseur">{t('pieces:fournisseurs.statut')}</Label>
         <Select
@@ -207,6 +202,6 @@ export function EcranListeFournisseurs() {
         onOuvertChange={setFormulaireOuvert}
         onCree={(fournisseur) => navigate(`/pieces/fournisseurs/${fournisseur.id}`)}
       />
-    </div>
+    </GabaritEcran>
   );
 }

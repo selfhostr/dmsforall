@@ -177,8 +177,21 @@
       "prixVente": "Prezzo di vendita esposto"
     },
     "liste": {
-      "titre": "Parco veicoli in stock",
-      "vide": "Nessun veicolo in stock.",
+      "titre": "Veicoli in parco",
+      "vide": {
+        "recherche": {
+          "titre": "Nessun veicolo trovato",
+          "description": "Nessun veicolo del parco corrisponde a questa ricerca."
+        },
+        "filtre": {
+          "titre": "Nessun veicolo con questi filtri",
+          "description": "Nessun veicolo del parco corrisponde ai filtri selezionati."
+        },
+        "premierUsage": {
+          "titre": "Nessun veicolo in stock",
+          "description": "Immetti il tuo primo veicolo in stock."
+        }
+      },
       "rechercherPlaceholder": "Targa, VIN o descrizione…",
       "erreur": {
         "titre": "Impossibile visualizzare il parco veicoli in stock"
@@ -203,6 +216,16 @@
         "joursStockDesc": "Da più tempo in stock",
         "prixVenteAsc": "Prezzo di vendita crescente",
         "prixVenteDesc": "Prezzo di vendita decrescente"
+      },
+      "plan": {
+        "groupeLabelBascule": "Elenco o piantina",
+        "affichage": {
+          "liste": "Elenco",
+          "plan": "Piantina"
+        },
+        "groupeLabel": "Piantina del parco per ubicazione",
+        "sansEmplacement": "Senza ubicazione",
+        "nombreVehicules": "{n, plural, one {# veicolo} other {# veicoli}}"
       }
     },
     "fiche": {
@@ -262,7 +285,20 @@
     "liste": {
       "titre": "Pratiche di vendita",
       "nouveauDossier": "Nuova pratica di vendita",
-      "vide": "Nessuna pratica di vendita.",
+      "vide": {
+        "recherche": {
+          "titre": "Nessuna pratica trovata",
+          "description": "Nessuna pratica di vendita corrisponde a questa ricerca."
+        },
+        "filtre": {
+          "titre": "Nessuna pratica con questi filtri",
+          "description": "Nessuna pratica di vendita corrisponde ai filtri selezionati."
+        },
+        "premierUsage": {
+          "titre": "Nessuna pratica di vendita",
+          "description": "Apritene una non appena un cliente è interessato."
+        }
+      },
       "vehiculeNonAssigne": "— non assegnato",
       "erreur": {
         "titre": "Impossibile visualizzare le pratiche di vendita"
@@ -345,6 +381,10 @@
       "ordresVehicule": {
         "titre": "Ordini di questo veicolo",
         "vide": "Nessun ordine per questo veicolo."
+      },
+      "garantie": {
+        "titre": "Garanzia",
+        "gererSurFicheVehicule": "Visualizza/modifica sulla scheda del veicolo"
       }
     },
     "transitions": {

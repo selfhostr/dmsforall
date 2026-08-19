@@ -1,6 +1,7 @@
 import { PgDialect } from 'drizzle-orm/pg-core';
 import type { SQL } from 'drizzle-orm';
 import { describe, expect, it, vi } from 'vitest';
+import type { FiltresReservations } from '@dfa/shared';
 
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
 import type { LigneReservationPiece } from '../db/schema';
@@ -280,5 +281,123 @@ describe('ServiceReservation.libererPourLigneTx — RP-23, appelée par annulerL
     // Ordre des paramètres liés : motif, motif_liberation_texte (null), liberee_par_utilisateur_id
     // (null), tenantId, reservationId — voir `ecrireLiberation` dans `service-reservation.ts`.
     expect(params).toEqual(['refus_devis', null, null, 'tid-1', 'r1']);
+  });
+});
+
+/**
+ * DÉFAUT CORRIGÉ (test manuel du 14.08.2026, défaut n°3) : `GET /reservations` ne rendait que des
+ * identifiants bruts (`articleId`, `ordreReparationId`) — la vue transverse
+ * (`EcranReservationsPieces.tsx`) n'avait d'autre choix que d'afficher des liens génériques (« Voir
+ * l'article »/« Voir l'ordre de réparation »). `lister()` n'avait AUCUNE couverture avant ce test
+ * (recherche confirmée, pas supposée) : ce bloc comble le vide en même temps qu'il prouve le
+ * correctif — la jointure (`JOINTURES_RESERVATION`) figure dans le SQL généré, et les trois champs
+ * enrichis (`articleNumero`, `articleDesignation`, `ordreReparationNumero`) traversent jusqu'à la
+ * réponse.
+ */
+describe('ServiceReservation.lister — vue transverse enrichie (défaut n°3, test manuel du 14.08.2026)', () => {
+  const FILTRES: FiltresReservations = { tri: 'creeLe:desc', limite: 50 };
+
+  it('joint `article`/`ordre_reparation` dans le SQL généré (JOINTURES_RESERVATION), et rend les trois champs enrichis dans chaque ligne', async () => {
+    const tx = txFactice([
+      {
+        rows: [
+          {
+            id: 'r1',
+            articleId: 'a1',
+            articleNumero: 'P-000123',
+            articleDesignation: 'Plaquettes de frein avant',
+            siteId: 's1',
+            ligneOrId: 'lo1',
+            ordreReparationId: 'or1',
+            ordreReparationNumero: 'OR-2026-0042',
+            quantiteMillieme: 1000,
+            statut: 'active',
+            creeLe: new Date('2026-07-31T08:00:00.000Z'),
+            satisfaiteLe: null,
+            mouvementSortieId: null,
+            libereeLe: null,
+            motifLiberation: null,
+            motifLiberationTexte: null,
+            libereeParUtilisateurId: null,
+            triValeur: new Date('2026-07-31T08:00:00.000Z'),
+          },
+        ],
+      },
+    ]);
+    const service = new ServiceReservation(accesFactice(tx));
+
+    const page = await service.lister(CTX, FILTRES);
+
+    const appel = (tx.execute as unknown as ReturnType<typeof vi.fn>).mock.calls[0];
+    const { sql: texte } = dialect.sqlToQuery(appel?.[0] as SQL);
+    expect(texte).toContain('join public.article a');
+    expect(texte).toContain('join public.ordre_reparation o');
+
+    expect(page.donnees).toEqual([
+      expect.objectContaining({
+        id: 'r1',
+        articleId: 'a1',
+        articleNumero: 'P-000123',
+        articleDesignation: 'Plaquettes de frein avant',
+        ordreReparationId: 'or1',
+        ordreReparationNumero: 'OR-2026-0042',
+      }),
+    ]);
+  });
+});
+
+describe('ServiceReservation.apercuLiberationCascadeTx — aperçu EN LECTURE SEULE (défaut n°2, test manuel du 14.08.2026)', () => {
+  it('`quantiteACouvrirMillieme <= 0` : rend `[]` SANS interroger la base', async () => {
+    const tx = txFactice([]);
+    const service = new ServiceReservation(accesFactice(tx));
+
+    const resultat = await service.apercuLiberationCascadeTx(tx, CTX, 'a1', 's1', 0);
+
+    expect(resultat).toEqual([]);
+    expect(tx.execute).not.toHaveBeenCalled();
+  });
+
+  it('sélectionne les réservations `active` dans le MÊME ordre que `libererPourCascadeForcageTx` (cree_le desc, id desc), SANS `for update` — lecture non verrouillante délibérée', async () => {
+    const tx = txFactice([
+      {
+        rows: [
+          {
+            id: 'r-recente',
+            ligneOrId: 'lo-2',
+            ordreReparationId: 'or-2',
+            ordreReparationNumero: 'OR-2',
+            quantiteMillieme: 500,
+          },
+          {
+            id: 'r-ancienne',
+            ligneOrId: 'lo-1',
+            ordreReparationId: 'or-1',
+            ordreReparationNumero: 'OR-1',
+            quantiteMillieme: 500,
+          },
+        ],
+      },
+    ]);
+    const service = new ServiceReservation(accesFactice(tx));
+
+    const resultat = await service.apercuLiberationCascadeTx(tx, CTX, 'a1', 's1', 500);
+
+    // Ne couvre QUE la première ligne rendue par la requête (500 déjà couvert) — l'ordre SQL fait
+    // foi, cette méthode ne trie jamais elle-même.
+    expect(resultat).toEqual([
+      {
+        id: 'r-recente',
+        ligneOrId: 'lo-2',
+        ordreReparationId: 'or-2',
+        ordreReparationNumero: 'OR-2',
+        quantiteMillieme: 500,
+      },
+    ]);
+
+    const appel = (tx.execute as unknown as ReturnType<typeof vi.fn>).mock.calls[0];
+    const { sql: texte } = dialect.sqlToQuery(appel?.[0] as SQL);
+    expect(texte).toContain("statut = 'active'");
+    expect(texte).toContain('order by r.cree_le desc, r.id desc');
+    expect(texte).not.toContain('for update');
   });
 });

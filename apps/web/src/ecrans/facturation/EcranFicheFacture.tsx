@@ -34,6 +34,7 @@ import {
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { obtenirEnv } from '@/config/env';
 import { useDocumentVente } from '@/hooks/facturation/useDocumentVente';
 import { useEmettreDocumentVente } from '@/hooks/facturation/useEmettreDocumentVente';
@@ -54,7 +55,7 @@ import { CarteBulletinVersement } from './CarteBulletinVersement';
 import { ChampVerrouille } from './ChampVerrouille';
 import { DialogueCorrectionFacture } from './DialogueCorrectionFacture';
 import { DialogueLigneDocumentVente } from './DialogueLigneDocumentVente';
-import { peutEmettreAvoir, peutEmettreFacture, peutEncaisser } from './droits';
+import { peutCorrigerFacture, peutEmettreAvoir, peutEmettreFacture, peutEncaisser } from './droits';
 import { IndicateurRetard } from './IndicateurRetard';
 import { messagesErreurMutation } from './messages-erreur-mutation';
 import { RecapitulatifTVA } from './RecapitulatifTVA';
@@ -135,25 +136,29 @@ export function EcranFicheFacture() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requete.data?.id]);
 
+  // Titre générique tant que le document n'est pas chargé (numéro/type pas encore connus) — passe
+  // quand même par `GabaritEcran` (chantier « titres doublés & espacements », 17.08.2026) pour que
+  // la structure d'en-tête ne saute pas entre chargement/erreur/contenu. « Facture » (mot seul) est
+  // contenu dans le libellé de l'onglet « Factures » (`navigation:onglets.facturationFactures`) —
+  // masqué en `sr-only` par la détection automatique, comme le h1 `sr-only` déjà posé ici avant ce
+  // chantier ; aucune régression visuelle, aucune `titreVisible` posée.
   if (requete.isPending) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('facturation:titre')}</h1>
+      <GabaritEcran titre={t('facturation:document.type.facture')}>
         <EtatChargement lignes={8} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (requete.isError) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('facturation:titre')}</h1>
+      <GabaritEcran titre={t('facturation:document.type.facture')}>
         <EtatErreur
           titre={t('facturation:fiche.erreur.titre')}
           description={messageErreur(requete.error, t)}
           onReessayer={() => void requete.refetch()}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
@@ -178,21 +183,43 @@ export function EcranFicheFacture() {
   // (`irrecouvrable` reste, par exemple, un solde non nul qu'on peut légitimement recevoir).
   const resteDuCentimes = document_.soldeCentimes;
   const resteAEncaisser = resteDuCentimes !== undefined && resteDuCentimes > 0;
-  // Trois droits DISTINCTS, superposés à `estBrouillon`/`peutGererFacture` (état du document) —
+  // Quatre droits DISTINCTS, superposés à `estBrouillon`/`peutGererFacture` (état du document) —
   // défaut corrigé : ces deux booléens ne dépendaient auparavant que de l'état, jamais du rôle, et
-  // affichaient les trois gestes financiers à des rôles sans le droit correspondant côté serveur
+  // affichaient les gestes financiers à des rôles sans le droit correspondant côté serveur
   // (`apps/api/src/auth/matrice-droits.ts`, voir `./droits.ts` pour le miroir exact). Doctrine du
   // dépôt : un rôle sans droit ne voit pas un bouton grisé, il ne voit pas de bouton.
+  //
+  // `proposeCorriger` (DÉFAUT CORRIGÉ, relevé au test manuel du 14.08.2026) : gouvernait
+  // auparavant SEUL le menu « Corriger cette facture » (`peutGererFacture`, sans aucun contrôle de
+  // rôle) — le lien « Corriger par un avoir → » sous les lignes et celui de la carte Destinataire
+  // (`ChampVerrouille.onAction`) restaient en plus câblés directement sur `ouvrirCorrection()`,
+  // hors de toute condition, donc actifs pour N'IMPORTE QUEL rôle y compris `admin`. Les TROIS
+  // points d'entrée (menu, lien sous les lignes, action du champ verrouillé) sont désormais
+  // gouvernés par CE SEUL booléen — voir `peutCorrigerFacture` (`./droits.ts`) pour le détail du
+  // rôle et l'état RÉEL du serveur aujourd'hui (l'endpoint `POST .../corriger` n'existe pas encore).
   const proposeEmettre = estBrouillon && peutEmettreFacture(role);
   const proposeEncaisser = peutGererFacture && resteAEncaisser && peutEncaisser(role);
   const proposeCreerAvoir = peutGererFacture && peutEmettreAvoir(role);
-  const proposeCorriger = peutGererFacture;
+  const proposeCorriger = peutGererFacture && peutCorrigerFacture(role);
   // Imprimer : condition DÉCOUPLÉE de `peutGererFacture` — voir le commentaire de tête de fichier.
   // `document_.qr !== null` implique déjà `typeDocument === 'facture'` et une émission passée
   // (`mapperDocument`, serveur), donc ce document reste imprimable même `estAnnuleeParAvoir`
   // (`impression-facture.controller.ts` ne teste que `typeDocument`/`qr`, jamais `statut`).
   const peutImprimer = document_.qr !== null;
   const urlPdf = `${obtenirEnv().VITE_API_URL}/documents-vente/${document_.id}/pdf`;
+  // Titre de FICHE (chantier « titres doublés & espacements », 17.08.2026) — « Facture 2026-00002 »
+  // / « Avoir 2026-AV-00001 » : CONTRE-EXEMPLE cité par le contrat du chantier, il ne fait PAS
+  // doublon avec l'onglet « Factures » (aucune inclusion : « facture » ≠ « factures » une fois le
+  // numéro accolé) et doit rester VISIBLE, à la différence du titre générique de chargement
+  // ci-dessus. Aucun `titreVisible` posé : la détection automatique du gabarit suffit ici aussi.
+  const titreDocument = document_.numero
+    ? t('facturation:fiche.titre', {
+        type: t(`facturation:document.type.${document_.typeDocument}`),
+        numero: document_.numero,
+      })
+    : document_.typeDocument === 'avoir'
+      ? t('facturation:fiche.titreBrouillonAvoir')
+      : t('facturation:fiche.titreBrouillonFacture');
 
   function ouvrirCorrection() {
     setCorrectionOuverte(true);
@@ -216,116 +243,120 @@ export function EcranFicheFacture() {
     });
   }
 
-  return (
-    <div className="flex flex-col gap-6">
-      <h1 className="sr-only">{t('facturation:titre')}</h1>
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <BadgeEtatDocument etat={etatAffiche} />
-          {/* Défaut corrigé (issue #80, testeur novice) : cette fiche n'affichait QUE l'état du
-              DOCUMENT (« Émise »), jamais l'état du RÈGLEMENT — la liste (`EcranListeFactures.tsx`)
-              affichait l'inverse (règlement seul, jamais « Émise »). Même paire de badges, mêmes
-              mots, aux deux endroits — voir le commentaire jumeau côté liste. Restreint à `emis` :
-              un brouillon (`statutReglement` par défaut, rien n'est dû) ou une facture déjà
-              `annule_par_avoir` (`statutReglement` figé d'AVANT l'annulation, `RF-32`) ne doivent
-              jamais porter ce badge, même doctrine que la liste. */}
-          {etatAffiche === 'emis' && document_.statutReglement ? (
-            // Défaut corrigé (issue #129, vocabulaire) : un avoir n'est jamais « réglé »/« non
-            // réglé » comme une facture (le sens de l'argent s'inverse — DFA doit au client, un
-            // crédit s'IMPUTE, il ne se PAIE pas) — voir le commentaire de `contexte` sur
-            // `BadgeStatutReglement`. Les deux badges (document + règlement) restent côte à côte,
-            // seul le mot change selon `typeDocument`.
-            <BadgeStatutReglement
-              statut={document_.statutReglement}
-              contexte={document_.typeDocument === 'avoir' ? 'avoir' : 'facture'}
-            />
-          ) : null}
-          <span className="texte-titre-section font-semibold text-foreground">
-            {document_.numero ?? t('facturation:document.etat.brouillon')} — {destinataireNom}
-          </span>
-          <BadgeTypeDocument type={document_.typeDocument} nature={document_.natureFacture} />
-          {document_.ordreReparationId ? (
-            <button
+  // Actions de l'écran (chantier « titres doublés & espacements », 17.08.2026) — définies avant le
+  // retour pour être passées à `GabaritEcran` plutôt qu'imbriquées dans un second bloc `justify-
+  // between` local, désormais porté par le gabarit.
+  const actionsEnTete = (
+    <div className="flex items-center gap-2">
+      {proposeEmettre ? (
+        <Button type="button" onClick={() => setDialogueEmissionOuvert(true)}>
+          {t('facturation:fiche.actions.emettre')}
+        </Button>
+      ) : null}
+      {proposeEncaisser ? (
+        <Button type="button" onClick={() => setEncaissementOuvert(true)}>
+          {t('facturation:fiche.actions.encaisser')}
+        </Button>
+      ) : null}
+      {peutImprimer || proposeCorriger || proposeCreerAvoir ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
               type="button"
-              className="texte-libelle text-muted-foreground underline-offset-2 hover:underline"
-              onClick={() => navigate(`/ordres-reparation/${document_.ordreReparationId}`)}
+              variant="ghost"
+              size="icon"
+              aria-label={t('facturation:fiche.actions.autresActions')}
             >
-              {t('facturation:fiche.issueDeOr')}
-            </button>
-          ) : null}
-          {/* Défaut corrigé (issue #60, testeur novice) : `emisLe` est l'horodatage SERVEUR de
-              l'émission, jamais la date légale/métier du document (`document.ts` : « les deux
-              champs ne sont PAS interchangeables et ne doivent pas partager le même libellé côté
-              écran »). Cette ligne affichait `emisLe` sous le libellé « émise le », en désaccord
-              avec la liste (`EcranListeFactures.tsx`) et la feuille d'encaissement
-              (`SheetEncaissement.tsx`), qui affichent TOUTES DEUX `dateDocument` sous ce même
-              libellé — trois dates différentes pour un même document selon l'écran. `dateDocument`
-              est non nul par construction (`document.ts`) : plus de garde de nullité nécessaire,
-              affiché pour tout document comme le fait déjà la liste. */}
-          <span className="texte-libelle text-muted-foreground">
-            {t('facturation:fiche.emiseLe', { date: formaterDate(document_.dateDocument) })}
-          </span>
-          {/* `dateEcheance` n'a de sens que sur une facture (`document.ts` : toujours `null` pour
-              un devis/bon de commande/avoir — « aucune échéance de paiement ne les concerne »).
-              Restreindre l'affichage au `typeDocument` évite un "Échéance inconnue" trompeur sur
-              un document qui n'est structurellement jamais échu. La disparition pour un rôle sans
-              droit financier vient naturellement de `dateEcheance === undefined`
-              (`IndicateurRetard` rend alors `null`), même mécanisme que `totalTtcCentimes`. */}
-          {document_.typeDocument === 'facture' ? (
-            <IndicateurRetard
-              dateEcheance={document_.dateEcheance}
-              enRetard={document_.enRetard}
-              joursRetard={document_.joursRetard}
-            />
-          ) : null}
-        </div>
+              <MoreHorizontal className="h-4 w-4" aria-hidden />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {peutImprimer ? (
+              <DropdownMenuItem asChild>
+                <a href={urlPdf} target="_blank" rel="noopener noreferrer">
+                  {t('facturation:fiche.actions.menu.imprimer')}
+                </a>
+              </DropdownMenuItem>
+            ) : null}
+            {proposeCorriger ? (
+              <DropdownMenuItem onSelect={ouvrirCorrection}>
+                {t('facturation:fiche.actions.menu.corriger')}
+              </DropdownMenuItem>
+            ) : null}
+            {proposeCreerAvoir ? (
+              <DropdownMenuItem onSelect={() => navigate(`/factures/${document_.id}/avoir`)}>
+                {t('facturation:fiche.actions.menu.creerAvoir')}
+              </DropdownMenuItem>
+            ) : null}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : null}
+    </div>
+  );
 
-        <div className="flex items-center gap-2">
-          {proposeEmettre ? (
-            <Button type="button" onClick={() => setDialogueEmissionOuvert(true)}>
-              {t('facturation:fiche.actions.emettre')}
-            </Button>
-          ) : null}
-          {proposeEncaisser ? (
-            <Button type="button" onClick={() => setEncaissementOuvert(true)}>
-              {t('facturation:fiche.actions.encaisser')}
-            </Button>
-          ) : null}
-          {peutImprimer || proposeCorriger || proposeCreerAvoir ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label={t('facturation:fiche.actions.autresActions')}
-                >
-                  <MoreHorizontal className="h-4 w-4" aria-hidden />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {peutImprimer ? (
-                  <DropdownMenuItem asChild>
-                    <a href={urlPdf} target="_blank" rel="noopener noreferrer">
-                      {t('facturation:fiche.actions.menu.imprimer')}
-                    </a>
-                  </DropdownMenuItem>
-                ) : null}
-                {proposeCorriger ? (
-                  <DropdownMenuItem onSelect={ouvrirCorrection}>
-                    {t('facturation:fiche.actions.menu.corriger')}
-                  </DropdownMenuItem>
-                ) : null}
-                {proposeCreerAvoir ? (
-                  <DropdownMenuItem onSelect={() => navigate(`/factures/${document_.id}/avoir`)}>
-                    {t('facturation:fiche.actions.menu.creerAvoir')}
-                  </DropdownMenuItem>
-                ) : null}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : null}
-        </div>
+  return (
+    <GabaritEcran titre={titreDocument} actions={actionsEnTete}>
+      <div className="flex flex-wrap items-center gap-3">
+        <BadgeEtatDocument etat={etatAffiche} />
+        {/* Défaut corrigé (issue #80, testeur novice) : cette fiche n'affichait QUE l'état du
+            DOCUMENT (« Émise »), jamais l'état du RÈGLEMENT — la liste (`EcranListeFactures.tsx`)
+            affichait l'inverse (règlement seul, jamais « Émise »). Même paire de badges, mêmes
+            mots, aux deux endroits — voir le commentaire jumeau côté liste. Restreint à `emis` :
+            un brouillon (`statutReglement` par défaut, rien n'est dû) ou une facture déjà
+            `annule_par_avoir` (`statutReglement` figé d'AVANT l'annulation, `RF-32`) ne doivent
+            jamais porter ce badge, même doctrine que la liste. */}
+        {etatAffiche === 'emis' && document_.statutReglement ? (
+          // Défaut corrigé (issue #129, vocabulaire) : un avoir n'est jamais « réglé »/« non
+          // réglé » comme une facture (le sens de l'argent s'inverse — DFA doit au client, un
+          // crédit s'IMPUTE, il ne se PAIE pas) — voir le commentaire de `contexte` sur
+          // `BadgeStatutReglement`. Les deux badges (document + règlement) restent côte à côte,
+          // seul le mot change selon `typeDocument`.
+          <BadgeStatutReglement
+            statut={document_.statutReglement}
+            contexte={document_.typeDocument === 'avoir' ? 'avoir' : 'facture'}
+          />
+        ) : null}
+        {/* Le nom du destinataire N'EST PLUS répété ici (chantier « titres doublés & espacements »,
+            17.08.2026, §5.4 « supprimer les redites de vocabulaire ») : la Card « Destinataire »
+            ci-dessous l'affiche déjà, en clair et cliquable — le doubler dans cette ligne de
+            badges n'apportait rien, et créait deux nœuds de texte identiques pour un même nom
+            (risque de sélecteur ambigu en test). Le numéro/type du document vit désormais dans le
+            h1 (`titreDocument`, voir plus haut), pas ici non plus. */}
+        <BadgeTypeDocument type={document_.typeDocument} nature={document_.natureFacture} />
+        {document_.ordreReparationId ? (
+          <button
+            type="button"
+            className="texte-libelle text-muted-foreground underline-offset-2 hover:underline"
+            onClick={() => navigate(`/ordres-reparation/${document_.ordreReparationId}`)}
+          >
+            {t('facturation:fiche.issueDeOr')}
+          </button>
+        ) : null}
+        {/* Défaut corrigé (issue #60, testeur novice) : `emisLe` est l'horodatage SERVEUR de
+            l'émission, jamais la date légale/métier du document (`document.ts` : « les deux
+            champs ne sont PAS interchangeables et ne doivent pas partager le même libellé côté
+            écran »). Cette ligne affichait `emisLe` sous le libellé « émise le », en désaccord
+            avec la liste (`EcranListeFactures.tsx`) et la feuille d'encaissement
+            (`SheetEncaissement.tsx`), qui affichent TOUTES DEUX `dateDocument` sous ce même
+            libellé — trois dates différentes pour un même document selon l'écran. `dateDocument`
+            est non nul par construction (`document.ts`) : plus de garde de nullité nécessaire,
+            affiché pour tout document comme le fait déjà la liste. */}
+        <span className="texte-libelle text-muted-foreground">
+          {t('facturation:fiche.emiseLe', { date: formaterDate(document_.dateDocument) })}
+        </span>
+        {/* `dateEcheance` n'a de sens que sur une facture (`document.ts` : toujours `null` pour
+            un devis/bon de commande/avoir — « aucune échéance de paiement ne les concerne »).
+            Restreindre l'affichage au `typeDocument` évite un "Échéance inconnue" trompeur sur
+            un document qui n'est structurellement jamais échu. La disparition pour un rôle sans
+            droit financier vient naturellement de `dateEcheance === undefined`
+            (`IndicateurRetard` rend alors `null`), même mécanisme que `totalTtcCentimes`. */}
+        {document_.typeDocument === 'facture' ? (
+          <IndicateurRetard
+            dateEcheance={document_.dateEcheance}
+            enRetard={document_.enRetard}
+            joursRetard={document_.joursRetard}
+          />
+        ) : null}
       </div>
 
       {estAnnuleeParAvoir && document_.annuleParAvoirId ? (
@@ -370,16 +401,21 @@ export function EcranFicheFacture() {
                   </p>
                 );
                 // Verrouillé dès que le document n'est plus un brouillon (§4.6) — un avoir émis
-                // n'a de toute façon aucune correction possible (`onAction` reste néanmoins
-                // câblé pour l'uniformité, la facture d'origine seule est corrigible en pratique).
+                // n'a de toute façon aucune correction possible. `libelleAction`/`onAction`
+                // omis pour un rôle sans `proposeCorriger` (DÉFAUT CORRIGÉ, voir le commentaire
+                // de tête de `proposeCorriger` ci-dessus) : le popover explique toujours pourquoi
+                // le champ est figé, mais ne propose plus l'action à qui n'a pas le droit de la
+                // déclencher — `ChampVerrouille` n'affiche alors que `message` (voir sa docstring).
                 return estBrouillon ? (
                   blocAdresse
                 ) : (
                   <ChampVerrouille
                     enfant={blocAdresse}
                     message={t('facturation:verrouille.message')}
-                    libelleAction={t('facturation:verrouille.corriger')}
-                    onAction={ouvrirCorrection}
+                    libelleAction={
+                      proposeCorriger ? t('facturation:verrouille.corriger') : undefined
+                    }
+                    onAction={proposeCorriger ? ouvrirCorrection : undefined}
                   />
                 );
               })()}
@@ -425,7 +461,12 @@ export function EcranFicheFacture() {
               ) : null}
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
-              {!estBrouillon ? (
+              {/* DÉFAUT CORRIGÉ (voir le commentaire de tête de `proposeCorriger` plus haut) : ce
+                  lien était câblé sur `!estBrouillon` SEUL, sans aucun contrôle de rôle — actif
+                  pour n'importe quel rôle, y compris `chef_atelier`/`admin`. `proposeCorriger`
+                  gouverne désormais L'ACTION elle-même ; un rôle sans droit garde le message
+                  informatif (« facture émise, non modifiable »), sans le lien cliquable. */}
+              {!estBrouillon && proposeCorriger ? (
                 <button
                   type="button"
                   className="w-fit texte-libelle text-muted-foreground underline-offset-2 hover:underline"
@@ -433,6 +474,11 @@ export function EcranFicheFacture() {
                 >
                   {t('facturation:verrouille.message')} {t('facturation:verrouille.corriger')}
                 </button>
+              ) : null}
+              {!estBrouillon && !proposeCorriger ? (
+                <p className="w-fit texte-libelle text-muted-foreground">
+                  {t('facturation:verrouille.message')}
+                </p>
               ) : null}
               {document_.lignes.length === 0 ? (
                 <p className="texte-corps text-muted-foreground">
@@ -586,6 +632,20 @@ export function EcranFicheFacture() {
                   {t('facturation:actions.enregistrer')}
                 </Button>
               </CardContent>
+              {/* Défaut corrigé (issue #63) : ce bouton mettait bien à jour le total TTC en cas de
+                  succès (revalidation visible), mais un ÉCHEC (ex. `409` sur une facture déjà
+                  émise entre-temps par un autre poste) ne produisait ICI aucun message — seul le
+                  bouton redevenait cliquable. Même patron que `emission.isError`/
+                  `suppressionLigne.isError` plus haut sur cet écran. */}
+              {modification.isError ? (
+                <CardContent className="pt-0">
+                  {messagesErreurMutation(modification.error, t).map((message, index) => (
+                    <p key={index} role="alert" className="texte-libelle text-destructive">
+                      {message}
+                    </p>
+                  ))}
+                </CardContent>
+              ) : null}
             </Card>
           ) : null}
 
@@ -628,6 +688,24 @@ export function EcranFicheFacture() {
                   {t('facturation:fiche.documentsLies.or')}
                 </button>
               ) : null}
+              {document_.dossierVenteId ? (
+                <button
+                  type="button"
+                  className="text-left text-primary underline-offset-2 hover:underline"
+                  onClick={() => navigate(`/ventes/dossiers/${document_.dossierVenteId}`)}
+                >
+                  {t('facturation:fiche.documentsLies.dossierVente')}
+                </button>
+              ) : null}
+              {document_.vehiculeId ? (
+                <button
+                  type="button"
+                  className="text-left text-primary underline-offset-2 hover:underline"
+                  onClick={() => navigate(`/vehicules/${document_.vehiculeId}`)}
+                >
+                  {t('facturation:fiche.documentsLies.vehicule')}
+                </button>
+              ) : null}
               {document_.factureAnnuleeId ? (
                 <button
                   type="button"
@@ -647,6 +725,8 @@ export function EcranFicheFacture() {
                 </button>
               ) : null}
               {!document_.ordreReparationId &&
+              !document_.dossierVenteId &&
+              !document_.vehiculeId &&
               !document_.factureAnnuleeId &&
               !document_.annuleParAvoirId ? (
                 <p className="text-muted-foreground">{t('facturation:fiche.documentsLies.vide')}</p>
@@ -721,7 +801,7 @@ export function EcranFicheFacture() {
           navigate(`/factures/${idNouvelleFacture}`)
         }
       />
-    </div>
+    </GabaritEcran>
   );
 }
 

@@ -1,4 +1,5 @@
 import type {
+  EntreeApercuForcageMouvement,
   EntreeCreationAjustementInventaire,
   EntreeCreationMouvementCasse,
   EntreeCreationMouvementPerte,
@@ -8,6 +9,7 @@ import type {
   EntreeCreationRetourFournisseur,
   FiltresMouvementsStock,
   PageCurseur,
+  ReponseApercuForcageMouvement,
   ReponseAvecAvertissements,
   ReponseMouvementStock,
 } from '@dfa/shared';
@@ -48,6 +50,26 @@ export async function listerMouvementsArticle(
     { method: 'GET' },
   );
   return reponse ?? { donnees: [], curseurSuivant: null, limite: page.limite };
+}
+
+/** `GET /articles/{id}/mouvements/apercu-forcage?siteId=&quantiteMillieme=` — DÉFAUT CORRIGÉ (test
+ *  manuel du 14.08.2026, défaut n°2) : lecture seule, à interroger AVANT de soumettre un forçage
+ *  (voir `ReponseApercuForcageMouvement`, `@dfa/shared`, pour la doctrine complète). `reservations:
+ *  []` par défaut si la réponse est vide/absente — jamais `undefined`, même convention que
+ *  `listerMouvementsArticle` ci-dessus. */
+export async function recupererApercuForcage(
+  articleId: string,
+  entree: EntreeApercuForcageMouvement,
+): Promise<ReponseApercuForcageMouvement> {
+  const parametres = new URLSearchParams({
+    siteId: entree.siteId,
+    quantiteMillieme: String(entree.quantiteMillieme),
+  });
+  const reponse = await requeteApi<ReponseApercuForcageMouvement>(
+    `/articles/${articleId}/mouvements/apercu-forcage?${parametres.toString()}`,
+    { method: 'GET' },
+  );
+  return reponse ?? { reservations: [] };
 }
 
 /** `POST /articles/{id}/mouvements/casse` — `Idempotency-Key` OBLIGATOIRE. */

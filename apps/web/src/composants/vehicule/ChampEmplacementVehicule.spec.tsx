@@ -33,7 +33,8 @@ describe('ChampEmplacementVehicule', () => {
     );
 
     expect(screen.getByText('Devant, place 3')).toBeInTheDocument();
-    expect(screen.getByText('Noté le 20.07.2026 09:15')).toBeInTheDocument();
+    // 2026-07-20T09:15:00.000Z (UTC) -> 11:15 heure locale CEST (UTC+2)
+    expect(screen.getByText('Noté le 20.07.2026 11:15')).toBeInTheDocument();
   });
 
   it("affiche un texte neutre — ni erreur ni alarme — quand l'emplacement n'est pas renseigné, sans date", () => {

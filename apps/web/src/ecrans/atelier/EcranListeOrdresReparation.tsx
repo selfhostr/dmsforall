@@ -222,24 +222,30 @@ export function EcranListeOrdresReparation() {
     </Button>
   ) : undefined;
 
+  // Titres d'état vide nommant l'ABSENCE (jamais « Ordres de réparation », qui ne ferait que
+  // répéter l'onglet actif/l'entrée de menu Atelier, même défaut que celui corrigé le 17.08.2026
+  // sur `EcranListeFactures.tsx` et `pneus:hangar.vide.titre`).
   let contenuVide: ReactNode;
   if (q.trim() !== '') {
     contenuVide = (
-      <EtatVideRecherche titre={t('or:liste.titre')} description={t('or:liste.vide.recherche')} />
+      <EtatVideRecherche
+        titre={t('or:liste.vide.recherche.titre')}
+        description={t('or:liste.vide.recherche.description')}
+      />
     );
   } else if (filtresStructuresActifs) {
     contenuVide = (
       <EtatVideFiltre
-        titre={t('or:liste.titre')}
-        description={t('or:liste.vide.filtre')}
+        titre={t('or:liste.vide.filtre.titre')}
+        description={t('or:liste.vide.filtre.description')}
         onEffacerFiltres={effacerFiltres}
       />
     );
   } else {
     contenuVide = (
       <EtatVidePremierUsage
-        titre={t('or:liste.titre')}
-        description={t('or:liste.vide.premierUsage')}
+        titre={t('or:liste.vide.premierUsage.titre')}
+        description={t('or:liste.vide.premierUsage.description')}
         action={boutonNouveauOr}
       />
     );
@@ -265,9 +271,14 @@ export function EcranListeOrdresReparation() {
     );
   }
 
-  // Titre TOUJOURS visible (retour @laupernoe, chantier « zone haute des écrans de liste ») : ce n'est
-  // plus un doublon muet de l'onglet actif « Ordres de réparation » — @laupernoe veut voir écrit où il
-  // est. « Nouvel ordre de réparation » n'est PAS passé en `actions` de `GabaritEcran` (qui le
+  // RE-ARBITRÉ le 17.08.2026 (chantier « titres doublés & espacements ») : ce h1 redit à la
+  // lettre l'onglet actif « Ordres de réparation » (`ONGLETS_ATELIER`, `navigation-modele.ts`) —
+  // exactement le doublon cité nommément par @laupernoe (« dans atelier, on est sous l'onglet Ordres de
+  // réparation, il ne faut pas qu'il y ait de nouveau Ordres de réparation »). Aucun `titreVisible`
+  // posé ici : la détection automatique de `GabaritEcran` (§3 du contrat gabarit) masque ce h1
+  // d'elle-même (`sr-only`, jamais retiré du DOM). L'ancien arbitrage du 12.08.2026 (titre toujours
+  // visible) est superseded par celui du 17.08.2026 — voir l'en-tête de `GabaritEcran`.
+  // « Nouvel ordre de réparation » n'est PAS passé en `actions` de `GabaritEcran` (qui le
   // placerait juste sous le titre, seul sur sa ligne, et décalerait tout le reste) : il rejoint la
   // ligne « Trier par », à droite — écran de référence de ce chantier, même déplacement appliqué
   // ensuite à Pneus/Clients/Véhicules et, en parallèle, à Pièces (`EcranListeArticles.tsx`).

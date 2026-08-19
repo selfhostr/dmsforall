@@ -1,0 +1,85 @@
+{
+  "titre": "Fahrzeugausweis scannen",
+  "sousTitre": "Fahrzeugausweis fotografieren, prüfen, dann bestätigen.",
+  "echappement": {
+    "message": "Vereinfachte Ansicht für Mobilgeräte: Hier ist nur der Scan verfügbar.",
+    "action": "Vollständige Anwendung öffnen"
+  },
+  "capture": {
+    "objectifTitre": "Fotografieren Sie den Fahrzeugausweis",
+    "objectifDetail": "Fahrzeug und Kunde werden automatisch vorausgefüllt — Sie müssen nur noch prüfen.",
+    "conseilPriseDeVue": "Die Vorderseite, flach hingelegt und gut beleuchtet.",
+    "action": "Foto aufnehmen"
+  },
+  "controleQualite": {
+    "enCours": "Foto wird geprüft…"
+  },
+  "cadrage": {
+    "titre": "Automatischer Zuschnitt erkannt",
+    "description": "Die Ränder des Dokuments wurden automatisch erkannt. Prüfen Sie, dass nichts abgeschnitten ist.",
+    "continuer": "Weiter",
+    "photoEntiere": "Ganzes Foto verwenden",
+    "apercuAlt": "Vorschau des Fotos mit automatisch erkanntem Zuschnitt"
+  },
+  "captureLive": {
+    "recherche": "Dokument wird gesucht…",
+    "cadrageBon": "Rahmen korrekt",
+    "captureAutomatiqueImminente": "Automatische Aufnahme — nicht mehr bewegen",
+    "declencherManuel": "Jetzt Foto aufnehmen",
+    "apercuCameraAlt": "Kameravorschau"
+  },
+  "refus": {
+    "titre": "Dieses Foto ist nicht geeignet",
+    "motifs": {
+      "resolutionInsuffisante": "Das Foto hat nicht genug Auflösung. Nehmen Sie es näher auf.",
+      "documentTropPetit": "Der Ausweis ist zu klein im Rahmen. Gehen Sie näher heran.",
+      "photoFloue": "Das Foto ist unscharf. Halten Sie das Gerät ruhig."
+    },
+    "avertissementEnvoiForce": "Ohne erneute Aufnahme wird die automatische Lesung wahrscheinlich unvollständig sein.",
+    "envoyerQuandMeme": "Trotzdem senden",
+    "apercuAlt": "Vorschau des aufgenommenen Fotos zur Prüfung"
+  },
+  "preparation": {
+    "enCours": "Foto wird vorbereitet…"
+  },
+  "analyse": {
+    "enCours": "Fahrzeugausweis wird gelesen…"
+  },
+  "erreurs": {
+    "titre": "Das Foto konnte nicht verwendet werden",
+    "photoIllisible": "Dieses Foto konnte nicht geöffnet werden. Nehmen Sie es erneut mit der Kamera auf, flach hingelegt und gut beleuchtet.",
+    "heicNonPrisEnCharge": "Dieses Fotoformat wird auf diesem Gerät nicht unterstützt. Nehmen Sie das Foto erneut über die Schaltfläche „Foto aufnehmen“ auf statt aus der Fotobibliothek."
+  },
+  "actions": {
+    "reessayer": "Foto erneut aufnehmen",
+    "scannerUnAutre": "Weiteren Fahrzeugausweis scannen"
+  },
+  "formulaire": {
+    "sectionDetenteur": "Halter",
+    "sectionVehicule": "Fahrzeug",
+    "clientTrouve": "Kunde bereits erfasst — das Fahrzeug wird ihm zugeordnet",
+    "clientCreeTitre": "Kunde erfasst",
+    "clientCreeDescription": "{nom} wurde angelegt. Prüfen Sie nun das Fahrzeug unten.",
+    "langueAide": "Nicht auf dem Ausweis aufgedruckt — bitte selbst auswählen.",
+    "valider": "Bestätigen und speichern"
+  },
+  "confiance": {
+    "nonLu": "Nicht gelesen — zu ergänzen",
+    "douteux": "Zu prüfen",
+    "valide": "Gelesen und bestätigt"
+  },
+  "rienACreer": {
+    "titre": "Nichts anzulegen",
+    "description": "Dieser Kunde und dieses Fahrzeug sind bereits erfasst.",
+    "posteFixe": {
+      "enAttente": "Benachrichtigung des Empfangsarbeitsplatzes läuft…",
+      "confirme": "Der Empfangsarbeitsplatz wurde benachrichtigt.",
+      "indisponible": "Bestätigung derzeit nicht verfügbar — Kunde und Fahrzeug bleiben über die obigen Links erreichbar."
+    }
+  },
+  "resultat": {
+    "titre": "Erfassung abgeschlossen",
+    "clientCree": "{nom} und das Fahrzeug wurden angelegt.",
+    "clientRattache": "Das Fahrzeug wurde {nom} zugeordnet."
+  }
+}

@@ -287,9 +287,18 @@
     "identite": "Veicolo non identificato",
     "plaques": "Nessuna targa registrata",
     "kilometrage": "Nessun chilometraggio registrato",
-    "nouveau": "Crea il tuo primo veicolo",
-    "recherche": "Nessun veicolo trovato",
-    "filtre": "Nessun risultato con questi filtri",
+    "nouveau": {
+      "titre": "Nessun veicolo registrato",
+      "description": "Crea il tuo primo veicolo"
+    },
+    "recherche": {
+      "titre": "Nessun veicolo trovato",
+      "description": "Nessun veicolo corrisponde a questa ricerca."
+    },
+    "filtre": {
+      "titre": "Nessun risultato con questi filtri",
+      "description": "Nessun veicolo corrisponde ai filtri selezionati."
+    },
     "travauxReportes": "Nessun lavoro rinviato",
     "detentions": "Nessun cambio proprietario registrato"
   },

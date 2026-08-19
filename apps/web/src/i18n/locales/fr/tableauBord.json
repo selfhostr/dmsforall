@@ -3,7 +3,8 @@
   "periode": {
     "du": "Du",
     "au": "Au",
-    "periodeAffichee": "Période affichée : {du} – {au}"
+    "periodeAffichee": "Période affichée : {du} – {au}",
+    "appliqueeAutomatiquement": "Appliqué automatiquement dès que les deux dates sont valides."
   },
   "communs": {
     "voirFactures": "Voir les factures"
@@ -19,6 +20,10 @@
     "ordresOuverts": {
       "libelle": "OR ouverts sur la période",
       "libelleAujourdhui": "OR ouverts aujourd'hui"
+    },
+    "enAtelier": {
+      "libelle": "OR actuellement en atelier",
+      "description": "Tous statuts actifs confondus (ouvert, en cours, contrôle, terminé, facturé), quel que soit le jour d'ouverture."
     },
     "ordresRestitues": {
       "libelle": "OR restitués sur la période"
@@ -67,6 +72,24 @@
     "encoursClients": {
       "libelle": "Encours clients",
       "definition": "Factures émises non réglées."
+    },
+    "marges": {
+      "vehicules": {
+        "libelle": "Marge sur ventes de véhicules",
+        "detail": "{nombreVehiculesFactures, plural, =0 {Aucun véhicule facturé sur la période} one {# véhicule facturé sur la période} other {# véhicules facturés sur la période}}"
+      },
+      "indisponible": {
+        "titre": "Marge pièces et main-d'œuvre",
+        "libelle": "Indisponible",
+        "piecesCoutNonFiable": "Pièces : coût de revient non fiable (prix d'achat courant, pas figé au moment de la vente).",
+        "mainOeuvreCoutAbsent": "Main-d'œuvre : aucun coût horaire enregistré dans l'outil.",
+        "raisonGenerique": "Donnée non calculable avec les informations disponibles aujourd'hui."
+      }
+    },
+    "stockPieces": {
+      "libelle": "Valeur du stock pièces",
+      "definition": "Quantité en stock × prix d'achat courant, articles actifs seulement.",
+      "articlesValeurInconnue": "{count, plural, one {# article sans prix d'achat connu, exclu du total} other {# articles sans prix d'achat connu, exclus du total}}"
     }
   },
   "direction": {

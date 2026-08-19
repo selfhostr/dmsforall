@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
@@ -58,6 +58,36 @@ function rendre() {
     </QueryClientProvider>,
   );
 }
+
+describe('EcranListeCommandesFournisseur — titre de page (doublon avec la vue « Commandes »)', () => {
+  /**
+   * Chantier « titres doublés & espacements » (contrat figé du 17.08.2026, §3) — défaut cité
+   * nommément par @laupernoe : « Dans Commandes, "Commandes fournisseur" ». Le titre CONTIENT le libellé
+   * de la vue active « Commandes » (`navigation-modele.ts`, `ONGLETS_PIECES`, vue « commandes » de
+   * l'onglet Approvisionnement) — `GabaritEcran` doit le masquer par inclusion, jamais le retirer
+   * du DOM.
+   */
+  it('le titre « Commandes fournisseur » reste dans le DOM mais est masqué visuellement', async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      http.get('/api/v1/commandes-fournisseur', () => HttpResponse.json(pageDe([]))),
+    );
+
+    rendre();
+
+    // La détection dépend du rôle en session (`useNavigationActive`) — le `<h1>` existe dès le
+    // premier rendu mais ne devient `sr-only` qu'après résolution de la session (re-rendu).
+    // RE-INTERROGE le DOM à chaque tentative de `waitFor` (pas une référence figée) : si le rôle
+    // en session n'a pas le droit d'écrire (pas de bouton `actions`), `GabaritEcran` bascule sur
+    // sa branche « anti-trou » et REMPLACE le nœud `<h1>` plutôt que de muter sa classe en place.
+    await screen.findByRole('heading', { level: 1, name: 'Commandes fournisseur' });
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 1, name: 'Commandes fournisseur' })).toHaveClass(
+        'sr-only',
+      );
+    });
+  });
+});
 
 describe('EcranListeCommandesFournisseur', () => {
   it('affiche les commandes avec leur statut et leur référence', async () => {

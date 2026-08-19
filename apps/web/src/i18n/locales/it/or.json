@@ -360,9 +360,18 @@
       "titre": "Impossibile caricare gli ordini di riparazione"
     },
     "vide": {
-      "premierUsage": "Nessun ordine di riparazione registrato per il momento.",
-      "recherche": "Nessun ordine di riparazione corrisponde a questa ricerca.",
-      "filtre": "Nessun risultato con questo filtro."
+      "premierUsage": {
+        "titre": "Nessun ordine di riparazione",
+        "description": "Apritene uno non appena arriva un veicolo."
+      },
+      "recherche": {
+        "titre": "Nessun ordine trovato",
+        "description": "Nessun ordine di riparazione corrisponde a questa ricerca."
+      },
+      "filtre": {
+        "titre": "Nessun ordine con questi filtri",
+        "description": "Nessun ordine di riparazione corrisponde ai filtri selezionati."
+      }
     }
   },
   "fiche": {

@@ -38,9 +38,10 @@ const FILTRES_PARCOURS: FiltresListeArticles = { statut: 'actif', tri: 'designat
 
 /** `ReponseArticle` (endpoint catalogue, déjà stable et sans dépendance au contrat en cours côté
  *  serveur) -> même forme que `ResultatRechercheComptoirArticle` (endpoint recherche comptoir) —
- *  permet à l'écran de consommer UNE seule forme de résultat quel que soit le mode. `emplacement`
- *  n'existe pas sur le résumé de stock embarqué (`StockResumeArticle`, contrairement au détail
- *  complet `ReponseStockArticle`) : `null`, jamais deviné. Un site sans entrée dans
+ *  permet à l'écran de consommer UNE seule forme de résultat quel que soit le mode.
+ *  `emplacement`/`rayon`/`tiroir` (0056) SONT désormais portés par `StockResumeArticle` (résumé
+ *  embarqué sur `ReponseArticle.stocksResume`) : repris ici tels quels quand une entrée existe pour
+ *  CE site, jamais devinés sinon (`null`, pas une valeur plausible). Un site sans entrée dans
  *  `stocksResume` (article jamais mouvementé sur ce site) compte pour 0 disponible — même
  *  décision que la colonne « disponible » de `EcranListeArticles` : dans les deux cas, la réponse
  *  utile au magasinier est identique (« rien à sortir aujourd'hui sur ce site »).
@@ -68,7 +69,9 @@ function versResultatParcours(
     prixVenteTtcCentimes: article.prixVenteTtcCentimes,
     quantiteDisponibleMillieme: stock?.quantiteDisponibleMillieme ?? 0,
     statutSuivi,
-    emplacement: null,
+    emplacement: stock?.emplacement ?? null,
+    rayon: stock?.rayon ?? null,
+    tiroir: stock?.tiroir ?? null,
     estEchangeStandard: article.estEchangeStandard,
     montantConsigneTtcCentimes: article.montantConsigneTtcCentimes,
   };

@@ -17,10 +17,12 @@ import { CommonModule, MiddlewareContexteRequete } from './common';
 import type { Config } from './config';
 import { ConfigModule } from './config';
 import { ConnecteursModule } from './connecteurs/connecteurs.module';
+import { CourrielModule } from './courriel';
 import { DbModule } from './db/db.module';
 import { ExploitationModule } from './exploitation';
 import { FacturationModule } from './facturation/facturation.module';
 import { ImpressionModule } from './facturation/impression/impression.module';
+import { OrdonnancementModule } from './ordonnancement';
 import { ParametrageModule } from './parametrage/parametrage.module';
 import { PiecesModule } from './pieces/pieces.module';
 import { PneusModule } from './pneus/pneus.module';
@@ -31,6 +33,7 @@ import { RendezVousModule } from './rendezvous/rendezvous.module';
 import { SanteModule } from './sante';
 import { SocleModule } from './socle';
 import { TableauBordModule } from './tableau-bord/tableau-bord.module';
+import { TempsReelModule } from './temps-reel';
 import { VehiculesModule } from './vehicules/vehicules.module';
 import { VentesModule } from './ventes/ventes.module';
 
@@ -46,6 +49,20 @@ export class AppModule implements NestModule {
         AuthModule,
         SocleModule,
         SanteModule,
+        // Socle d'ordonnancement (BullMQ) — PREMIER ordonnanceur de ce dépôt, voir
+        // `ordonnancement/ordonnancement.module.ts` pour le choix d'architecture complet. Monté
+        // une seule fois ici ; tout module de job (ex. `VehiculesModule`, qui porte le job
+        // quotidien de contrôle/import du référentiel véhicules ASTRA) importe `BullModule.
+        // registerQueue(...)` directement, sans réimporter celui-ci — voir `referentiel-
+        // vehicules-ch-job.module.ts`.
+        OrdonnancementModule,
+        // `CourrielModule` (capacité d'envoi de courriel — SMTP Infomaniak/capture, voir
+        // `courriel/`) — SOCLE SEUL, aucun branchement métier pour l'instant (ni relances, ni
+        // envoi de facture, ni invitation d'utilisateur : ces usages viendront plus tard, par
+        // d'autres modules qui injecteront `ServiceCourriel`). Aucune dépendance de compilation
+        // avec un autre module métier, placé ici par simple cohérence avec les autres briques
+        // d'infrastructure transverse (Common/Db/Auth/Socle/Sante) juste au-dessus.
+        CourrielModule,
         // Lot 1 (L1-16) — `ParametrageModule` en premier : il porte `CompteursModule` (`@Global`),
         // dont `ClientsModule`/`AtelierModule` dépendent (`JETON_COMPTEURS`) sans l'importer
         // explicitement (anti-cycle, voir `atelier/atelier.jetons.ts`). L'ordre des `imports` Nest
@@ -109,6 +126,13 @@ export class AppModule implements NestModule {
         // même raisonnement que `PneusModule`/`RelancesModule` ci-dessus (aucune contrainte
         // d'ordre réelle, `AtelierModule` n'importe jamais ce module — sens unique).
         RendezVousModule,
+        // `TempsReelModule` (canal SSE générique de notification poste fixe, socle) — importe
+        // `AuthModule` lui-même (`JETON_SERVICE_SESSION`, revalidation de session sur une
+        // connexion longue) ; aucun module métier ne l'importe encore, il est enregistré ici pour
+        // que `ServiceEvenementsTempsReel` soit injectable par le premier consommateur (scan de
+        // permis de circulation, `vehicules/`) — même patron que `ConnecteursModule` plus haut :
+        // aucune dépendance de compilation avec un autre module métier à ce stade.
+        TempsReelModule,
         // `ExploitationModule` (console d'exploitation, PORTE 1 — agrégats de plateforme, aucune
         // donnée personnelle, `docs/conception-console-exploitation-acces.md`) — ÉTEINTE PAR
         // DÉFAUT : `ExploitationModule.pourConfig` rend un module vide (aucun contrôleur, aucun

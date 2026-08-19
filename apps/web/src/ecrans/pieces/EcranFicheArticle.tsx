@@ -9,6 +9,7 @@ import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { listerCommandesFournisseur } from '@/hooks/pieces/commandes-fournisseur.api';
 import { useArticle } from '@/hooks/pieces/useArticle';
 import { useFournisseur } from '@/hooks/pieces/useFournisseur';
@@ -31,6 +32,7 @@ import {
 } from './droits';
 import { EnTeteFicheArticle } from './EnTeteFicheArticle';
 import { FormulaireArticle } from './FormulaireArticle';
+import { messageErreurMutation } from './messages-erreur-mutation';
 import { PanneauMouvementsArticle } from './PanneauMouvementsArticle';
 import { PanneauStockArticle } from './PanneauStockArticle';
 
@@ -129,23 +131,21 @@ export function EcranFicheArticle() {
 
   if (requeteArticle.isPending) {
     return (
-      <div className="flex flex-col gap-6 p-6">
-        <h1 className="sr-only">{t('pieces:articles.titre')}</h1>
+      <GabaritEcran titre={t('pieces:articles.titre')}>
         <EtatChargement lignes={8} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (requeteArticle.isError) {
     return (
-      <div className="flex flex-col gap-6 p-6">
-        <h1 className="sr-only">{t('pieces:articles.titre')}</h1>
+      <GabaritEcran titre={t('pieces:articles.titre')}>
         <EtatErreur
           titre={t('pieces:articles.fiche.erreur.titre')}
           description={messageErreur(requeteArticle.error, t)}
           onReessayer={() => void requeteArticle.refetch()}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
@@ -157,6 +157,9 @@ export function EcranFicheArticle() {
     commande.lignes.some((ligne) => ligne.articleId === article.id),
   );
 
+  // Ferme la modale seulement sur succès (issue #63, correctif de cause racine) : un échec la
+  // laisse ouverte, `AvertissementConfirmable` affiche `erreurTransition` DANS la modale via sa
+  // prop `messageErreur` plutôt que dans l'écran, sous l'overlay où il restait invisible.
   function confirmer() {
     if (confirmation === 'marquerObsolete') {
       marquerObsolete.mutate({}, { onSuccess: () => setConfirmation(null) });
@@ -171,10 +174,13 @@ export function EcranFicheArticle() {
     marquerObsolete.isPending || desactiver.isPending || reactiver.isPending;
   const erreurTransition = marquerObsolete.error ?? desactiver.error ?? reactiver.error;
 
+  // Titre MASQUÉ automatiquement — « Articles » (titre générique de la fiche, identité RÉELLE
+  // portée par le `<h2>` visible dans `EnTeteFicheArticle`, `article.designation`) est un doublon
+  // de l'onglet actif « Articles » : `GabaritEcran` le détecte lui-même. Un seul `<h1>` par page
+  // (accessibilité) — l'ancien code posait DEUX `<h1>` (celui-ci, sr-only, ET celui
+  // d'`EnTeteFicheArticle`, visible) : défaut corrigé au passage, voir son commentaire.
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <h1 className="sr-only">{t('pieces:articles.titre')}</h1>
-
+    <GabaritEcran titre={t('pieces:articles.titre')}>
       <EnTeteFicheArticle
         article={article}
         peutEcrire={peutEcrire}
@@ -183,12 +189,6 @@ export function EcranFicheArticle() {
         onDesactiver={() => setConfirmation('desactiver')}
         onReactiver={() => setConfirmation('reactiver')}
       />
-
-      {erreurTransition ? (
-        <p className="texte-libelle text-destructive" role="alert">
-          {messageErreur(erreurTransition, t)}
-        </p>
-      ) : null}
 
       <Card>
         <CardHeader>
@@ -448,7 +448,8 @@ export function EcranFicheArticle() {
         libelleConfirmation={confirmation ? t(`pieces:articles.actions.${confirmation}`) : ''}
         onConfirmer={confirmer}
         enCours={enCoursTransition}
+        messageErreur={erreurTransition ? messageErreurMutation(erreurTransition, t) : null}
       />
-    </div>
+    </GabaritEcran>
   );
 }

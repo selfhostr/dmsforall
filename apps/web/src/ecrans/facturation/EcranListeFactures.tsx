@@ -236,52 +236,61 @@ export function EcranListeFactures() {
       : []),
   ];
 
+  // Titres d'état vide : chacun nomme ce qui MANQUE (jamais « Factures », qui ne ferait que
+  // répéter l'onglet actif ET l'entrée de menu — défaut constaté en navigateur par @laupernoe le
+  // 17.08.2026, cause : ces cinq états reprenaient tous `facturation:liste.titre`, le même texte
+  // que le h1 masqué en `sr-only` par `GabaritEcran`. Même doctrine que `pneus:hangar.vide.titre`
+  // (matin du 17.08.2026) — cinq cas distincts (recherche, Toutes, Non réglées, En retard, À
+  // relancer), donc cinq libellés distincts, jamais un titre générique recopié.
   let contenuVide: ReactNode;
   if (q.trim() !== '') {
     contenuVide = (
       <EtatVideRecherche
-        titre={t('facturation:liste.titre')}
-        description={t('facturation:liste.vide.recherche')}
+        titre={t('facturation:liste.vide.recherche.titre')}
+        description={t('facturation:liste.vide.recherche.description')}
       />
     );
   } else if (onglet === 'toutes') {
     contenuVide = (
       <EtatVide
-        titre={t('facturation:liste.titre')}
-        description={t('facturation:liste.vide.premierUsage')}
+        titre={t('facturation:liste.vide.premierUsage.titre')}
+        description={t('facturation:liste.vide.premierUsage.description')}
         note={t('facturation:liste.vide.voirOr')}
       />
     );
   } else if (onglet === 'nonReglees') {
     contenuVide = (
       <EtatVide
-        titre={t('facturation:liste.titre')}
-        description={t('facturation:liste.vide.nonReglees')}
+        titre={t('facturation:liste.vide.nonReglees.titre')}
+        description={t('facturation:liste.vide.nonReglees.description')}
       />
     );
   } else if (onglet === 'enRetard') {
     contenuVide = (
       <EtatVide
-        titre={t('facturation:liste.titre')}
-        description={t('facturation:liste.vide.enRetard')}
+        titre={t('facturation:liste.vide.enRetard.titre')}
+        description={t('facturation:liste.vide.enRetard.description')}
       />
     );
   } else {
     contenuVide = (
       <EtatVide
-        titre={t('facturation:liste.titre')}
-        description={t('facturation:liste.vide.aRelancer')}
+        titre={t('facturation:liste.vide.aRelancer.titre')}
+        description={t('facturation:liste.vide.aRelancer.description')}
       />
     );
   }
 
   return (
-    // Titre TOUJOURS visible (retour @laupernoe du 13.08.2026 : titres de page incohérents d'un écran à
-    // l'autre — plus de `titreVisible={false}` réservé au lecteur d'écran). L'onglet de navigation
-    // « Factures » (OngletsDomaine) affiche déjà ce nom, mais un h1 qui le répète reste le repère
-    // attendu (doctrine tranchée sur `EcranListeClients` : « il y a écrit Clients, c'est mieux »).
-    // Aucun padding local : le gabarit ne pose ni max-largeur ni remplissage, `AppShell` fournit
-    // déjà l'unique `p-4 sm:p-6` de tout écran routé.
+    // Détection automatique (chantier « titres doublés », retour @laupernoe du 17.08.2026, cas cité
+    // nommément : « dans Facturation, c'est écrit "Factures" [...] on sait qu'on est dans les
+    // factures puisqu'à gauche on a le menu »). Le titre « Factures » fait doublon avec l'onglet
+    // « Factures » (OngletsDomaine) ET avec l'entrée de barre latérale « Facturation » n'est pas
+    // recalculé ici — `GabaritEcran` masque lui-même le h1 en `sr-only` selon la route courante.
+    // Ne PAS poser `titreVisible` : ce re-arbitrage supersède l'ancienne doctrine « il y a écrit
+    // Clients, c'est mieux » (12.08.2026), tranchée dans l'autre sens le 17.08.2026 pour ce cas
+    // précis. Aucun padding local : le gabarit ne pose ni max-largeur ni remplissage, `AppShell`
+    // fournit déjà l'unique `p-4 sm:p-6` de tout écran routé.
     <GabaritEcran titre={t('facturation:liste.titre')}>
       {/* Bascule de VUE à l'intérieur de cet écran (elle ne navigue nulle part — elle change quelles
           factures la même liste affiche), pas un second niveau de NAVIGATION : empilée sous la

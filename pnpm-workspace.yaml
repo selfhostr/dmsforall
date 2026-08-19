@@ -20,6 +20,11 @@ allowBuilds:
   # Binaire natif du compilateur SWC, requis par Vitest pour émettre les métadonnées de
   # décorateurs sans lesquelles l'injection de dépendances NestJS ne se résout pas en test.
   '@swc/core': true
+  # Accélération native optionnelle de l'encodage msgpack utilisé par BullMQ (jobs
+  # d'ordonnancement, voir apps/api/src/ordonnancement/). Refusée, même doctrine que
+  # cpu-features/ssh2 ci-dessus : msgpackr retombe proprement sur une implémentation JS pure
+  # sans ce binaire natif, pour un job planifié une fois par jour le coût est négligeable.
+  msgpackr-extract: false
 # Surcharges de sécurité. pnpm 11 ne lit plus le champ "pnpm.overrides" de package.json ;
 # ce bloc est son remplaçant.
 overrides:

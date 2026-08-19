@@ -36,6 +36,7 @@ import { useSession } from '@/hooks/useSession';
 import { formaterDate, formaterMontant } from '@/lib/formats';
 
 import { peutRetournerConsigne } from './droits';
+import { messageErreurMutation } from './messages-erreur-mutation';
 
 const VARIANTE_BADGE_STATUT: Record<
   StatutConsigneEchangeStandard,
@@ -268,8 +269,12 @@ export function EcranConsignesPieces() {
         description={t('pieces:consignes.confirmations.marquerRetourDescription')}
         libelleConfirmation={t('pieces:consignes.actions.marquerRetour')}
         enCours={marquerRetour.isPending}
+        messageErreur={marquerRetour.isError ? messageErreurMutation(marquerRetour.error, t) : null}
         onConfirmer={() => {
           if (!consigneAConfirmer) return;
+          // Ferme la modale seulement sur succès (issue #63, correctif de cause racine) : un échec
+          // la laisse ouverte, `messageErreur` ci-dessus l'affiche DANS la modale plutôt que sous
+          // l'overlay où il restait invisible.
           marquerRetour.mutate(consigneAConfirmer, {
             onSuccess: () => setConsigneAConfirmer(null),
           });

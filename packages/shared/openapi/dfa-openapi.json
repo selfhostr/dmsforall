@@ -110,7 +110,8 @@
               "periode_verrouillee",
               "or_facture",
               "ligne_non_pointable",
-              "derive_horloge"
+              "derive_horloge",
+              "cloture_fin_journee"
             ],
             "type": "string"
           },
@@ -124,6 +125,20 @@
           "motif",
           "detecteeLe",
           "traiteeLe"
+        ],
+        "type": "object"
+      },
+      "ApercuForcageMouvementDto": {
+        "properties": {
+          "reservations": {
+            "items": {
+              "$ref": "#/components/schemas/ReservationMenaceeParForcageDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "reservations"
         ],
         "type": "object"
       },
@@ -743,6 +758,61 @@
           "totalTvaCentimes",
           "totalTtcCentimes",
           "nombreDocuments"
+        ],
+        "type": "object"
+      },
+      "CibleReprisePointageDto": {
+        "properties": {
+          "cumulSecondesDuJour": {
+            "description": "Somme des durées brutes (secondes, jamais arrondies) de tous les segments productifs d’aujourd’hui sur cette même cible, segment en cours inclus. Entier, jamais une chaîne formatée.",
+            "type": "number"
+          },
+          "interrompuLe": {
+            "description": "Fin du dernier segment productif sur cette cible ; si ce segment est encore `en_cours` au moment de la requête, vaut l’instant de la requête (voir le commentaire du contrat pour cette interprétation).",
+            "format": "date-time",
+            "type": "string"
+          },
+          "libelle": {
+            "description": "Désignation de la ligne, ou à défaut le numéro de l’OR. Chaîne brute, jamais assemblée — le front compose.",
+            "type": "string"
+          },
+          "ligneOrId": {
+            "description": "`null` ⇔ `type === \"or\"`.",
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "numeroOr": {
+            "description": "Résolu par le serveur — jamais reconstruit côté client.",
+            "type": "string"
+          },
+          "ordreReparationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "siteId": {
+            "description": "Résolu depuis le pointage lui-même, jamais depuis un paramètre.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": {
+            "description": "Une cible `indirect` n’atteint jamais cette réponse.",
+            "enum": [
+              "ligne",
+              "or"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "ordreReparationId",
+          "numeroOr",
+          "ligneOrId",
+          "libelle",
+          "siteId",
+          "interrompuLe",
+          "cumulSecondesDuJour"
         ],
         "type": "object"
       },
@@ -3173,6 +3243,113 @@
         ],
         "type": "object"
       },
+      "MargeIndisponibleTableauBordDto": {
+        "properties": {
+          "disponible": {
+            "description": "Toujours `false` — jamais un montant fabriqué.",
+            "type": "boolean"
+          },
+          "raisonCle": {
+            "description": "Clé i18n (namespace `tableauBord`, `financier.marges.indisponible.<clé>`) — jamais de texte figé émis par l’API.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "disponible",
+          "raisonCle"
+        ],
+        "type": "object"
+      },
+      "MargesTableauBordDto": {
+        "properties": {
+          "mainOeuvre": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MargeIndisponibleTableauBordDto"
+              }
+            ],
+            "description": "Aucun taux horaire coûtant modélisé — toujours `disponible: false`."
+          },
+          "pieces": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MargeIndisponibleTableauBordDto"
+              }
+            ],
+            "description": "Coût de revient des pièces non fiable (`article.prixAchatCentimes` mutable, méthode de valorisation non tranchée) — toujours `disponible: false`."
+          },
+          "vehicules": {
+            "$ref": "#/components/schemas/MargeVehiculesPeriodeTableauBordDto"
+          }
+        },
+        "required": [
+          "vehicules",
+          "pieces",
+          "mainOeuvre"
+        ],
+        "type": "object"
+      },
+      "MargeVehiculesPeriodeTableauBordDto": {
+        "properties": {
+          "margeCentimes": {
+            "description": "Revenu HT des documents véhicule de la période, moins le coût d’acquisition verrouillé (`vehicule_stock.prixAchatCentimes`). Calculable même à 0 (aucune vente = vraie donnée).",
+            "type": "number"
+          },
+          "nombreVehiculesFactures": {
+            "description": "Nombre de véhicules FACTURÉS entrant dans le calcul.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "margeCentimes",
+          "nombreVehiculesFactures"
+        ],
+        "type": "object"
+      },
+      "MarqueVehiculeChDto": {
+        "properties": {
+          "aliasTrouve": {
+            "description": "`null` quand la marque a été trouvée directement (nom canonique ASTRA). Sinon, le terme d'alias qui a permis de la trouver (ex. « Volkswagen » pour la marque canonique « VW ») — un utilisateur qui tape le nom courant et voit le sigle ASTRA apparaître doit comprendre pourquoi.",
+            "example": "Volkswagen",
+            "nullable": true,
+            "type": "string"
+          },
+          "nom": {
+            "example": "VW",
+            "type": "string"
+          },
+          "nombreModeles": {
+            "description": "Nombre de modèles distincts du référentiel.",
+            "example": 959,
+            "type": "number"
+          }
+        },
+        "required": [
+          "nom",
+          "nombreModeles",
+          "aliasTrouve"
+        ],
+        "type": "object"
+      },
+      "ModeleVehiculeChDto": {
+        "properties": {
+          "codeTypeCh": {
+            "description": "Code type ASTRA, seulement quand ce nom de modèle correspond à un unique code type pour la marque demandée — `null` si plusieurs motorisations/variantes le partagent.",
+            "example": "1AA101",
+            "nullable": true,
+            "type": "string"
+          },
+          "nom": {
+            "example": "GOLF",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nom",
+          "codeTypeCh"
+        ],
+        "type": "object"
+      },
       "ModifieParDto": {
         "properties": {
           "nomAffiche": {
@@ -4128,6 +4305,30 @@
         ],
         "type": "object"
       },
+      "PageRelanceEnvoiDto": {
+        "properties": {
+          "curseurSuivant": {
+            "nullable": true,
+            "type": "string"
+          },
+          "donnees": {
+            "items": {
+              "$ref": "#/components/schemas/RelanceEnvoiDto"
+            },
+            "type": "array"
+          },
+          "limite": {
+            "example": 50,
+            "type": "number"
+          }
+        },
+        "required": [
+          "donnees",
+          "curseurSuivant",
+          "limite"
+        ],
+        "type": "object"
+      },
       "PageRendezVousDto": {
         "properties": {
           "curseurSuivant": {
@@ -4265,6 +4466,31 @@
             "type": "array"
           },
           "limite": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "donnees",
+          "curseurSuivant",
+          "limite"
+        ],
+        "type": "object"
+      },
+      "PageUtilisateurResumeDto": {
+        "properties": {
+          "curseurSuivant": {
+            "description": "Opaque base64url ; null = fin de liste.",
+            "nullable": true,
+            "type": "string"
+          },
+          "donnees": {
+            "items": {
+              "$ref": "#/components/schemas/UtilisateurResumeDto"
+            },
+            "type": "array"
+          },
+          "limite": {
+            "example": 50,
             "type": "number"
           }
         },
@@ -4989,6 +5215,71 @@
         ],
         "type": "object"
       },
+      "RelanceEnvoiDto": {
+        "properties": {
+          "canal": {
+            "enum": [
+              "sms",
+              "email"
+            ],
+            "type": "string"
+          },
+          "destinataire": {
+            "example": "client@exemple.ch",
+            "type": "string"
+          },
+          "envoyeLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "factureId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "factureNumero": {
+            "example": "F-2026-00042",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "palier": {
+            "example": 1,
+            "type": "number"
+          },
+          "raisonEchec": {
+            "enum": [
+              "destinataire_invalide",
+              "canal_non_supporte",
+              "contenu_refuse",
+              "quota_depasse"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "statutEnvoi": {
+            "enum": [
+              "envoye",
+              "echoue"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "factureId",
+          "factureNumero",
+          "palier",
+          "canal",
+          "destinataire",
+          "statutEnvoi",
+          "raisonEchec",
+          "envoyeLe"
+        ],
+        "type": "object"
+      },
       "RepartitionStatutOrdreReparationTableauBordDto": {
         "properties": {
           "nombre": {
@@ -5009,6 +5300,19 @@
         "required": [
           "statut",
           "nombre"
+        ],
+        "type": "object"
+      },
+      "ReponseAccesTemporaireDto": {
+        "properties": {
+          "motDePasseTemporaire": {
+            "description": "Mot de passe temporaire en clair, à transmettre oralement à l'employé — ne réapparaît plus jamais.",
+            "example": "k3f9Qz…",
+            "type": "string"
+          }
+        },
+        "required": [
+          "motDePasseTemporaire"
         ],
         "type": "object"
       },
@@ -5241,6 +5545,38 @@
           "alertesClient",
           "ordresReparationOuverts",
           "avertissements"
+        ],
+        "type": "object"
+      },
+      "ReponseCreationUtilisateurDto": {
+        "properties": {
+          "acces": {
+            "$ref": "#/components/schemas/ReponseAccesTemporaireDto"
+          },
+          "utilisateur": {
+            "$ref": "#/components/schemas/UtilisateurResumeDto"
+          }
+        },
+        "required": [
+          "utilisateur",
+          "acces"
+        ],
+        "type": "object"
+      },
+      "ReponseDernierPointageDuJourDto": {
+        "properties": {
+          "cible": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CibleReprisePointageDto"
+              }
+            ],
+            "nullable": true,
+            "type": "object"
+          }
+        },
+        "required": [
+          "cible"
         ],
         "type": "object"
       },
@@ -5871,6 +6207,16 @@
             "description": "ABSENT dans les mêmes conditions que `financements`.",
             "type": "boolean"
           },
+          "garantie": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SuiviGarantieDto"
+              }
+            ],
+            "description": "Garantie constructeur du véhicule associé (RM-33), jamais gatée par rôle (contrairement à reprise/financement) — voir GET /ventes/suivi pour le même calcul. null = pas de véhicule associé, ou garantieDebut non renseigné.",
+            "nullable": true,
+            "type": "object"
+          },
           "id": {
             "format": "uuid",
             "type": "string"
@@ -5980,6 +6326,7 @@
           "clientAcheteur",
           "clientFacture",
           "clientConducteur",
+          "garantie",
           "documents",
           "documentsTronques",
           "documentsRequis",
@@ -6318,6 +6665,9 @@
             "description": "Snapshot au moment de l’appel (PAS borné par `periode`) : créances ouvertes sur les factures encore au statut `emis`.",
             "type": "number"
           },
+          "marges": {
+            "$ref": "#/components/schemas/MargesTableauBordDto"
+          },
           "periode": {
             "$ref": "#/components/schemas/PeriodeResolueTableauBordDto"
           },
@@ -6325,6 +6675,9 @@
             "format": "uuid",
             "nullable": true,
             "type": "string"
+          },
+          "stockPieces": {
+            "$ref": "#/components/schemas/ValorisationStockPiecesTableauBordDto"
           }
         },
         "required": [
@@ -6332,7 +6685,9 @@
           "siteId",
           "chiffreAffaires",
           "encaissementsCentimes",
-          "encoursClientsCentimes"
+          "encoursClientsCentimes",
+          "marges",
+          "stockPieces"
         ],
         "type": "object"
       },
@@ -6346,6 +6701,11 @@
             "description": "Prénom, pour un accueil nominatif à l’écran.",
             "type": "string"
           },
+          "siteId": {
+            "description": "Site de la borne (résolu depuis `pin_pointage.site_id`, jamais depuis un paramètre de requête) — ajout rétrocompatible : permet à l’écran borne de ne plus jamais demander le site autrement que par cette identification.",
+            "format": "uuid",
+            "type": "string"
+          },
           "technicienId": {
             "description": "Identifiant du technicien reconnu.",
             "format": "uuid",
@@ -6355,7 +6715,8 @@
         "required": [
           "technicienId",
           "prenom",
-          "nom"
+          "nom",
+          "siteId"
         ],
         "type": "object"
       },
@@ -6800,6 +7161,34 @@
           "factureId",
           "creeLe",
           "modifieLe"
+        ],
+        "type": "object"
+      },
+      "ReponseMarquesVehiculesChDto": {
+        "properties": {
+          "marques": {
+            "items": {
+              "$ref": "#/components/schemas/MarqueVehiculeChDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "marques"
+        ],
+        "type": "object"
+      },
+      "ReponseModelesVehiculesChDto": {
+        "properties": {
+          "modeles": {
+            "items": {
+              "$ref": "#/components/schemas/ModeleVehiculeChDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "modeles"
         ],
         "type": "object"
       },
@@ -8854,6 +9243,36 @@
         ],
         "type": "object"
       },
+      "ReservationMenaceeParForcageDto": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "ligneOrId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "ordreReparationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "ordreReparationNumero": {
+            "type": "string"
+          },
+          "quantiteMillieme": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "ligneOrId",
+          "ordreReparationId",
+          "ordreReparationNumero",
+          "quantiteMillieme"
+        ],
+        "type": "object"
+      },
       "ReservationPieceAvecAvertissementsDto": {
         "properties": {
           "avertissements": {
@@ -8874,8 +9293,15 @@
       },
       "ReservationPieceDto": {
         "properties": {
+          "articleDesignation": {
+            "type": "string"
+          },
           "articleId": {
             "format": "uuid",
+            "type": "string"
+          },
+          "articleNumero": {
+            "description": "Désignation lisible de l'article (jointure de lecture).",
             "type": "string"
           },
           "creeLe": {
@@ -8921,6 +9347,10 @@
           },
           "ordreReparationId": {
             "format": "uuid",
+            "type": "string"
+          },
+          "ordreReparationNumero": {
+            "description": "Numéro lisible de l'ordre de réparation (jointure de lecture).",
             "type": "string"
           },
           "quantiteMillieme": {
@@ -8993,6 +9423,11 @@
             "description": "Fiable UNIQUEMENT si statutSuivi = 'suivi' ; sinon vaut 0 par convention et NE DOIT PAS être lu comme un stock nul — voir statutSuivi.",
             "type": "number"
           },
+          "rayon": {
+            "description": "Casier structuré (rayon, 0056), COMPLÉMENT de `emplacement`.",
+            "nullable": true,
+            "type": "string"
+          },
           "referencePrincipale": {
             "type": "string"
           },
@@ -9003,6 +9438,11 @@
               "nonSuiviSurCeSite",
               "nonSuiviNullePart"
             ],
+            "type": "string"
+          },
+          "tiroir": {
+            "description": "Casier structuré (tiroir, 0056).",
+            "nullable": true,
             "type": "string"
           }
         },
@@ -9015,6 +9455,8 @@
           "quantiteDisponibleMillieme",
           "statutSuivi",
           "emplacement",
+          "rayon",
+          "tiroir",
           "estEchangeStandard",
           "montantConsigneTtcCentimes"
         ],
@@ -9170,6 +9612,23 @@
         ],
         "type": "object"
       },
+      "SiteAffecteResumeDto": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "nom": {
+            "example": "Sion",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nom"
+        ],
+        "type": "object"
+      },
       "SiteResumeDto": {
         "properties": {
           "actif": {
@@ -9225,6 +9684,11 @@
           "quantiteReserveeMillieme": {
             "type": "number"
           },
+          "rayon": {
+            "description": "Casier structuré (rayon, 0056), COMPLÉMENT de `emplacement` — jamais un remplacement. Toujours normalisé (majuscules, sans espace) : \"B3\", \"b3\" et \"B 3\" saisis produisent la même valeur.",
+            "nullable": true,
+            "type": "string"
+          },
           "siteId": {
             "format": "uuid",
             "type": "string"
@@ -9232,6 +9696,11 @@
           "stockMinimumMillieme": {
             "nullable": true,
             "type": "number"
+          },
+          "tiroir": {
+            "description": "Casier structuré (tiroir, 0056) — mêmes règles de normalisation que `rayon`.",
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": [
@@ -9241,6 +9710,8 @@
           "quantiteReserveeMillieme",
           "quantiteDisponibleMillieme",
           "emplacement",
+          "rayon",
+          "tiroir",
           "stockMinimumMillieme",
           "quantiteCommandeStandardMillieme",
           "modifieLe"
@@ -9249,6 +9720,11 @@
       },
       "StockResumeArticleDto": {
         "properties": {
+          "emplacement": {
+            "description": "Texte libre (RP-11).",
+            "nullable": true,
+            "type": "string"
+          },
           "quantiteDisponibleMillieme": {
             "description": "quantitePhysiqueMillieme - quantiteReserveeMillieme (RP-14), dérivé.",
             "type": "number"
@@ -9256,15 +9732,28 @@
           "quantitePhysiqueMillieme": {
             "type": "number"
           },
+          "rayon": {
+            "description": "Casier structuré (rayon, 0056), COMPLÉMENT de `emplacement` — jamais un remplacement. Toujours normalisé (majuscules, sans espace) : \"B3\", \"b3\" et \"B 3\" saisis produisent la même valeur.",
+            "nullable": true,
+            "type": "string"
+          },
           "siteId": {
             "format": "uuid",
+            "type": "string"
+          },
+          "tiroir": {
+            "description": "Casier structuré (tiroir, 0056) — mêmes règles de normalisation que `rayon`.",
+            "nullable": true,
             "type": "string"
           }
         },
         "required": [
           "siteId",
           "quantitePhysiqueMillieme",
-          "quantiteDisponibleMillieme"
+          "quantiteDisponibleMillieme",
+          "emplacement",
+          "rayon",
+          "tiroir"
         ],
         "type": "object"
       },
@@ -9578,6 +10067,76 @@
         ],
         "type": "object"
       },
+      "UtilisateurResumeDto": {
+        "properties": {
+          "creeLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "derniereConnexionLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "email": {
+            "example": "julie.rey@garage-martin.ch",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "nom": {
+            "example": "Rey",
+            "type": "string"
+          },
+          "prenom": {
+            "example": "Julie",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "admin",
+              "direction",
+              "vendeur",
+              "receptionnaire",
+              "chef_atelier",
+              "technicien",
+              "magasinier",
+              "comptable"
+            ],
+            "example": "technicien",
+            "type": "string"
+          },
+          "sites": {
+            "items": {
+              "$ref": "#/components/schemas/SiteAffecteResumeDto"
+            },
+            "type": "array"
+          },
+          "statut": {
+            "enum": [
+              "invite",
+              "actif",
+              "suspendu"
+            ],
+            "example": "actif",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "prenom",
+          "nom",
+          "email",
+          "role",
+          "statut",
+          "sites",
+          "derniereConnexionLe",
+          "creeLe"
+        ],
+        "type": "object"
+      },
       "ValeursFigeesDocumentDto": {
         "properties": {
           "adresseFacturation": {
@@ -9650,6 +10209,23 @@
           "adresseFacturation",
           "plaque",
           "detenteurClientId"
+        ],
+        "type": "object"
+      },
+      "ValorisationStockPiecesTableauBordDto": {
+        "properties": {
+          "articlesValeurInconnueNombre": {
+            "description": "Nombre d’articles actifs en stock (quantité > 0) sans prix d’achat connu, EXCLUS de `totalCentimes` — jamais comptés à 0.",
+            "type": "number"
+          },
+          "totalCentimes": {
+            "description": "Snapshot (PAS borné par la période) : Σ quantité physique × prix d’achat courant, articles actifs à prix connu seulement.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "totalCentimes",
+          "articlesValeurInconnueNombre"
         ],
         "type": "object"
       },
@@ -9948,7 +10524,7 @@
     "contact": {},
     "description": "API du DMS (Dealer Management System) pour garages et concessions suisses. Contrat d'erreur unique application/problem+json (schéma ProblemeDetailCommunDto, code machine stable). Le tenant est toujours résolu depuis la session — aucun endpoint n'accepte de tenantId en paramètre.",
     "title": "API dmsforall (DFA)",
-    "version": "0.1.261+65ded3d"
+    "version": "0.1.325+a2bc8ee"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -10038,6 +10614,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "categorie": {
                     "enum": [
@@ -10285,6 +10862,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "categorie": {
                     "enum": [
@@ -10444,6 +11022,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "motif": {
                     "maxLength": 500,
@@ -10623,6 +11202,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "referenceRemplacementId": {
                     "format": "uuid",
@@ -10802,6 +11382,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "motif": {
                     "maxLength": 500,
@@ -10903,6 +11484,83 @@
         ]
       }
     },
+    "/articles/{articleId}/mouvements/apercu-forcage": {
+      "get": {
+        "operationId": "MouvementController_apercuForcage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "articleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApercuForcageMouvementDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Filtres invalides."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Article ou site introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Aperçu, en lecture seule, des réservations qu'un forçage (`casse`/`perte`, `forcer: true`) libérerait s’il était soumis maintenant — à interroger AVANT de cocher « Forcer » (RP-15 : avertissement spécifique et chiffré). Réservé à qui détient déjà le droit de forcer : `[]` si le forçage ne libérerait rien (stock déjà suffisant, ou aucune réservation active).",
+        "tags": [
+          "Pièces — Mouvements de stock"
+        ]
+      }
+    },
     "/articles/{articleId}/mouvements/casse": {
       "post": {
         "operationId": "MouvementController_casse",
@@ -10929,6 +11587,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "forcer": {
                     "default": false,
@@ -11072,6 +11731,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "forcer": {
                     "default": false,
@@ -11215,6 +11875,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "motif": {
                     "maxLength": 500,
@@ -11342,6 +12003,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "commandeFournisseurLigneId": {
                     "anyOf": [
@@ -11481,6 +12143,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "motif": {
                     "maxLength": 500,
@@ -11607,6 +12270,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "motif": {
                     "maxLength": 500,
@@ -11873,6 +12537,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "fournisseurId": {
                     "anyOf": [
@@ -12010,6 +12675,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "emplacement": {
                     "anyOf": [
@@ -12034,12 +12700,34 @@
                       }
                     ]
                   },
+                  "rayon": {
+                    "anyOf": [
+                      {
+                        "maxLength": 20,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "stockMinimumMillieme": {
                     "anyOf": [
                       {
                         "maximum": 9007199254740991,
                         "minimum": 1,
                         "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "tiroir": {
+                    "anyOf": [
+                      {
+                        "maxLength": 20,
+                        "type": "string"
                       },
                       {
                         "type": "null"
@@ -12110,7 +12798,7 @@
             "cookie": []
           }
         ],
-        "summary": "Réglages de stock d’un site (emplacement, seuils) — JAMAIS la quantité physique (RP-16→RP-18).",
+        "summary": "Réglages de stock d’un site (emplacement, rayon, tiroir, seuils) — JAMAIS la quantité physique (RP-16→RP-18).",
         "tags": [
           "Pièces — Stock"
         ]
@@ -12214,6 +12902,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "email": {
                     "format": "email",
@@ -12461,8 +13150,10 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "adressePrincipale": {
+                    "additionalProperties": false,
                     "properties": {
                       "complement": {
                         "anyOf": [
@@ -12517,6 +13208,7 @@
                     ]
                   },
                   "conditions": {
+                    "additionalProperties": false,
                     "properties": {
                       "delaiPaiementJours": {
                         "anyOf": [
@@ -12698,6 +13390,7 @@
                   "telephones": {
                     "default": [],
                     "items": {
+                      "additionalProperties": false,
                       "properties": {
                         "principal": {
                           "default": false,
@@ -12902,6 +13595,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "civilite": {
                     "anyOf": [
@@ -13194,6 +13888,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "complement": {
                     "anyOf": [
@@ -13347,6 +14042,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "actif": {
                     "type": "boolean"
@@ -13489,6 +14185,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "motif": {
                     "maxLength": 500,
@@ -13667,6 +14364,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "delaiPaiementJours": {
                     "anyOf": [
@@ -13916,6 +14614,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "accorde": {
                     "type": "boolean"
@@ -14118,6 +14817,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "email": {
                     "anyOf": [
@@ -14309,6 +15009,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "actif": {
                     "type": "boolean"
@@ -14491,6 +15192,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "motif": {
                     "maxLength": 500,
@@ -14671,6 +15373,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "nature": {
                     "enum": [
@@ -14862,6 +15565,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "motif": {
                     "maxLength": 500,
@@ -15091,6 +15795,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "dateCommande": {
                     "format": "date",
@@ -15104,6 +15809,7 @@
                   },
                   "lignes": {
                     "items": {
+                      "additionalProperties": false,
                       "properties": {
                         "articleId": {
                           "format": "uuid",
@@ -15355,6 +16061,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "motif": {
                     "maxLength": 500,
@@ -15625,6 +16332,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "motif": {
                     "maxLength": 500,
@@ -15740,9 +16448,11 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "lignes": {
                     "items": {
+                      "additionalProperties": false,
                       "properties": {
                         "articleRecuId": {
                           "anyOf": [
@@ -16029,6 +16739,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "ligneOrId": {
                     "anyOf": [
@@ -16140,6 +16851,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "codeCase": {
                     "anyOf": [
@@ -16250,6 +16962,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "motif": {
                     "enum": [
@@ -16505,6 +17218,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "clientId": {
                     "format": "uuid",
@@ -16566,6 +17280,7 @@
                   "lignes": {
                     "default": [],
                     "items": {
+                      "additionalProperties": false,
                       "properties": {
                         "articleId": {
                           "anyOf": [
@@ -16863,6 +17578,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "confirmations": {
                     "items": {
@@ -16882,6 +17598,7 @@
                   "lignes": {
                     "default": [],
                     "items": {
+                      "additionalProperties": false,
                       "properties": {
                         "ligneDocumentId": {
                           "format": "uuid",
@@ -17121,6 +17838,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "clientId": {
                     "format": "uuid",
@@ -17271,6 +17989,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "confirmations": {
                     "items": {
@@ -17392,6 +18111,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "motif": {
                     "maxLength": 4000,
@@ -17514,6 +18234,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "confirmations": {
                     "items": {
@@ -17650,6 +18371,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "articleId": {
                     "anyOf": [
@@ -17976,6 +18698,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "articleId": {
                     "anyOf": [
@@ -18272,6 +18995,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "motif": {
                     "maxLength": 4000,
@@ -18440,6 +19164,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "clientAcheteurId": {
                     "format": "uuid",
@@ -18691,6 +19416,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "clientConducteurId": {
                     "anyOf": [
@@ -18860,6 +19586,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "motif": {
                     "maxLength": 500,
@@ -18974,6 +19701,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "motif": {
                     "maxLength": 500,
@@ -19086,6 +19814,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "confirmations": {
                     "items": {
@@ -19198,6 +19927,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "code": {
                     "maxLength": 200,
@@ -19308,6 +20038,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "bonCommandeDocumentId": {
                     "format": "uuid",
@@ -19453,6 +20184,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "acompteCentimes": {
                     "anyOf": [
@@ -19661,6 +20393,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "confirmations": {
                     "items": {
@@ -19782,6 +20515,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "motif": {
                     "maxLength": 500,
@@ -19899,6 +20633,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "confirmations": {
                     "items": {
@@ -20040,6 +20775,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "confirmations": {
                     "items": {
@@ -20149,6 +20885,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "confirmations": {
                     "items": {
@@ -20328,6 +21065,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "detteFinancementOrganismeId": {
                     "anyOf": [
@@ -20484,6 +21222,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "detteFinancementOrganismeId": {
                     "anyOf": [
@@ -20641,6 +21380,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "confirmations": {
                     "items": {
@@ -20770,6 +21510,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "valeurNegocieeCentimes": {
                     "maximum": 9007199254740991,
@@ -20884,6 +21625,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "motif": {
                     "maxLength": 500,
@@ -21059,6 +21801,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "cible": {
                     "enum": [
@@ -21250,6 +21993,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "delaiHabituelJours": {
                     "anyOf": [
@@ -21448,6 +22192,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "delaiHabituelJours": {
                     "anyOf": [
@@ -21830,6 +22575,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "clientId": {
                     "format": "uuid",
@@ -21866,6 +22612,7 @@
                   "demandes": {
                     "default": [],
                     "items": {
+                      "additionalProperties": false,
                       "properties": {
                         "verbatim": {
                           "maxLength": 4000,
@@ -22208,6 +22955,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "conducteurPresentNom": {
                     "anyOf": [
@@ -22412,6 +23160,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "motif": {
                     "maxLength": 500,
@@ -22530,6 +23279,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "ligneIds": {
                     "items": {
@@ -22653,6 +23403,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "confirmations": {
                     "items": {
@@ -22832,6 +23583,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "verbatim": {
                     "maxLength": 4000,
@@ -22944,6 +23696,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "confirmations": {
                     "items": {
@@ -23145,6 +23898,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "canal": {
                     "enum": [
@@ -23328,6 +24082,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "canal": {
                     "enum": [
@@ -23354,6 +24109,7 @@
                   },
                   "lignes": {
                     "items": {
+                      "additionalProperties": false,
                       "properties": {
                         "decision": {
                           "enum": [
@@ -23519,6 +24275,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "confirmations": {
                     "items": {
@@ -23537,6 +24294,7 @@
                   },
                   "groupes": {
                     "items": {
+                      "additionalProperties": false,
                       "properties": {
                         "payeur": {
                           "enum": [
@@ -23577,6 +24335,7 @@
                     "items": {
                       "allOf": [
                         {
+                          "additionalProperties": false,
                           "properties": {
                             "payeur": {
                               "enum": [
@@ -23606,6 +24365,7 @@
                           "type": "object"
                         },
                         {
+                          "additionalProperties": false,
                           "properties": {
                             "motif": {
                               "maxLength": 500,
@@ -23899,6 +24659,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "articleId": {
                     "anyOf": [
@@ -24227,6 +24988,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "articleId": {
                     "anyOf": [
@@ -24537,6 +25299,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "tempsReelCentiemes": {
                     "maximum": 9007199254740991,
@@ -24646,6 +25409,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "confirmations": {
                     "items": {
@@ -24732,6 +25496,64 @@
         ]
       }
     },
+    "/ordres-reparation/{orId}/pdf": {
+      "get": {
+        "description": "RÉGÉNÉRÉE À CHAQUE APPEL, sans cache : contrairement au PDF de facture (immuable une fois émis), un OR est VIVANT — lignes, statut et restitution promise évoluent tant qu'il n'est pas clôturé. Imprimable quel que soit le statut de l’OR — ce document sert à travailler sur le véhicule, pas à l'engager. Document DE TRAVAIL, pas commercial : reste visible depuis l'extérieur d'un véhicule garé dehors, donc SANS nom de client, téléphone, prix, total ni signature, quel que soit le rôle qui imprime — distinct du masquage des montants par rôle (`atelier/mappeurs.ts::roleVoitLesMontants`), qui reste actif ailleurs sur `GET /ordres-reparation/{orId}` et non altéré ici.",
+        "operationId": "ImpressionOrController_telechargerPdf",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (rôle sans atelier.or.lire)."
+          },
+          "404": {
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Feuille d'atelier de l'ordre de réparation au format PDF (accrochée au rétroviseur).",
+        "tags": [
+          "Ordres de réparation"
+        ]
+      }
+    },
     "/ordres-reparation/{orId}/receptionner": {
       "post": {
         "operationId": "OrdreReparationTransitionsController_receptionner",
@@ -24759,6 +25581,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "confirmations": {
                     "items": {
@@ -24905,6 +25728,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "motif": {
                     "maxLength": 500,
@@ -25022,6 +25846,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "ligneIds": {
                     "items": {
@@ -25149,6 +25974,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "ligneIds": {
                     "items": {
@@ -25265,6 +26091,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "confirmations": {
                     "items": {
@@ -25419,6 +26246,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "motif": {
                     "maxLength": 500,
@@ -25536,6 +26364,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "ligneIds": {
                     "items": {
@@ -25657,6 +26486,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "confirmations": {
                     "items": {
@@ -25812,6 +26642,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "controleurId": {
                     "format": "uuid",
@@ -25821,6 +26652,7 @@
                   "pointsControles": {
                     "default": [],
                     "items": {
+                      "additionalProperties": false,
                       "properties": {
                         "code": {
                           "maxLength": 40,
@@ -25951,6 +26783,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "ligneIds": {
                     "items": {
@@ -26144,6 +26977,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "dateValeur": {
                     "format": "date",
@@ -26172,6 +27006,7 @@
                   "imputations": {
                     "default": [],
                     "items": {
+                      "additionalProperties": false,
                       "properties": {
                         "documentId": {
                           "format": "uuid",
@@ -26444,6 +27279,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "documentRegularisationId": {
                     "format": "uuid",
@@ -26582,6 +27418,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "documentId": {
                     "format": "uuid",
@@ -26724,6 +27561,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "montantCentimes": {
                     "maximum": 9007199254740991,
@@ -26877,6 +27715,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "delaiConsigneAcquisitionJours": {
                     "anyOf": [
@@ -27046,8 +27885,10 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "documents": {
+                    "additionalProperties": false,
                     "properties": {
                       "langue": {
                         "enum": [
@@ -27067,6 +27908,7 @@
                     "type": "object"
                   },
                   "facturation": {
+                    "additionalProperties": false,
                     "properties": {
                       "multiPayeursAutorise": {
                         "type": "boolean"
@@ -27083,6 +27925,7 @@
                         "type": "string"
                       },
                       "produitsAtelier": {
+                        "additionalProperties": false,
                         "properties": {
                           "mode": {
                             "enum": [
@@ -27142,6 +27985,7 @@
                     "type": "object"
                   },
                   "or": {
+                    "additionalProperties": false,
                     "properties": {
                       "deuxOrMemeVehicule": {
                         "enum": [
@@ -27179,6 +28023,7 @@
                     "type": "object"
                   },
                   "planning": {
+                    "additionalProperties": false,
                     "properties": {
                       "noShowSeuilAlerte": {
                         "maximum": 20,
@@ -27186,6 +28031,7 @@
                         "type": "integer"
                       },
                       "rappel": {
+                        "additionalProperties": false,
                         "properties": {
                           "canal": {
                             "enum": [
@@ -27216,6 +28062,7 @@
                     "type": "object"
                   },
                   "reception": {
+                    "additionalProperties": false,
                     "properties": {
                       "kmEntreeObligatoire": {
                         "type": "boolean"
@@ -27252,6 +28099,7 @@
                     "type": "object"
                   },
                   "travaux": {
+                    "additionalProperties": false,
                     "properties": {
                       "arrondiPointage": {
                         "enum": [
@@ -27292,6 +28140,7 @@
                     "type": "object"
                   },
                   "vehicule": {
+                    "additionalProperties": false,
                     "properties": {
                       "expertiseAlerteMois": {
                         "maximum": 24,
@@ -27431,6 +28280,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "iban": {
                     "anyOf": [
@@ -27662,6 +28512,7 @@
               "schema": {
                 "oneOf": [
                   {
+                    "additionalProperties": false,
                     "properties": {
                       "appareilId": {
                         "maxLength": 100,
@@ -27730,6 +28581,7 @@
                     "type": "object"
                   },
                   {
+                    "additionalProperties": false,
                     "properties": {
                       "appareilId": {
                         "maxLength": 100,
@@ -27792,6 +28644,7 @@
                     "type": "object"
                   },
                   {
+                    "additionalProperties": false,
                     "properties": {
                       "activiteIndirecte": {
                         "enum": [
@@ -28051,6 +28904,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "decalageHorlogeMs": {
                     "maximum": 9007199254740991,
@@ -28181,6 +29035,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "activiteIndirecte": {
                     "anyOf": [
@@ -28396,6 +29251,64 @@
         ]
       }
     },
+    "/pointages/dernier-du-jour": {
+      "get": {
+        "description": "Déclarée AVANT `GET /pointages/{id}` (même raison que `agregats-ligne` ci-dessus : ne doit jamais être capturée par `:id`). `technicienId` optionnel : absent, le technicien de la session ; présent, exige `atelier.pointage.pointer_autrui` (encadrement) ou un compte de service (`poste_atelier`, la borne) — MÊME garde que `demarrer`/`arreter` (`ServicePointage.exigerDroitCiblerAutrui`). Journée de travail courante = bornes calendaires UTC (même convention que le verrouillage de période RM-95). Une activité indirecte (pause, nettoyage…) ne devient jamais cette cible — elle masque seulement la dernière cible productive, jamais ne la remplace (RM-87).",
+        "operationId": "PointageController_dernierDuJour",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseDernierPointageDuJourDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "technicienId mal formé."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "technicienId désigne un tiers et l’appelant n’a ni le droit d’encadrement ni le statut de compte de service."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Dernière cible PRODUCTIVE pointée aujourd’hui (P-34) — remplace `dernierCible`, état local volatile côté écran, par une source de vérité serveur (nécessaire en particulier au mode borne).",
+        "tags": [
+          "Pointage"
+        ]
+      }
+    },
     "/pointages/deverrouiller-periode": {
       "post": {
         "operationId": "PointagePeriodeController_deverrouiller",
@@ -28413,6 +29326,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "jusquauLe": {
                     "format": "date",
@@ -28510,6 +29424,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "codePin": {
                     "pattern": "^\\d{4}$",
@@ -28825,6 +29740,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "jusquauLe": {
                     "format": "date",
@@ -29089,6 +30005,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "code": {
                     "maxLength": 40,
@@ -29262,6 +30179,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "actif": {
                     "type": "boolean"
@@ -29463,6 +30381,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "code": {
                     "maxLength": 40,
@@ -29578,6 +30497,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "libelle": {
                     "maxLength": 200,
@@ -29666,6 +30586,124 @@
         ]
       }
     },
+    "/referentiels/vehicules/marques": {
+      "get": {
+        "description": "`recherche` absent ou vide = les marques les plus fréquentes du référentiel (classées par nombre de modèles), jamais une erreur ni la liste complète non triée. Insensible à la casse, aux accents et aux séparateurs (`normaliser_recherche`). Résout aussi les alias de comptoir (ex. « Volkswagen » -> VW, « MB » -> Mercedes-Benz — table d'alias, migration 0051) : `aliasTrouve` sur chaque résultat indique le terme qui a permis de le trouver quand ce n'est pas le nom canonique ASTRA.",
+        "operationId": "ReferentielVehiculesChController_marques",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limite",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "recherche",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseMarquesVehiculesChDto"
+                }
+              }
+            },
+            "description": "Marques correspondantes."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "VALIDATION_ECHOUEE — paramètres de requête invalides."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Marques du référentiel véhicules suisse, par préfixe (autocomplétion).",
+        "tags": [
+          "Véhicules"
+        ]
+      }
+    },
+    "/referentiels/vehicules/modeles": {
+      "get": {
+        "description": "`marque` obligatoire (la marque est déjà choisie à l'étape précédente de la cascade). `codeTypeCh` renseigné seulement quand le nom de modèle correspond à un UNIQUE code type ASTRA pour cette marque — `null` si plusieurs motorisations/variantes le partagent.",
+        "operationId": "ReferentielVehiculesChController_modeles",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limite",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "recherche",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "marque",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseModelesVehiculesChDto"
+                }
+              }
+            },
+            "description": "Modèles correspondants."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "VALIDATION_ECHOUEE — paramètres de requête invalides (ex. `marque` absente)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Modèles du référentiel véhicules suisse pour une marque, par préfixe (autocomplétion).",
+        "tags": [
+          "Véhicules"
+        ]
+      }
+    },
     "/relances/facturation/envoyer": {
       "post": {
         "operationId": "RelancesController_envoyer",
@@ -29708,6 +30746,89 @@
           }
         ],
         "summary": "Envoie les rappels facture `prete` (un lot borné par appel), via le connecteur NotificationSender — sans connecteur actif, rend un lot vide (jamais une erreur).",
+        "tags": [
+          "Relances"
+        ]
+      }
+    },
+    "/relances/facturation/historique": {
+      "get": {
+        "description": "Pièce de dossier pour le comptable : date, palier, destinataire réellement touché (figé à l’envoi, jamais recalculé depuis la fiche client actuelle) et résultat. Le contenu du message envoyé n’est jamais exposé. `factureId` omis rend l’historique complet du tenant ; fourni, filtre sur cette seule facture.",
+        "operationId": "RelancesController_listerHistorique",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "curseur",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limite",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "factureId",
+            "required": false,
+            "schema": {
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageRelanceEnvoiDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Curseur de pagination invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (relances.facturation.regle.lire)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Historique d’envoi des relances de facture (issue #136) — une ligne par TENTATIVE réellement tracée dans `relance_envoi` (append-only), triée par date d’envoi décroissante.",
         "tags": [
           "Relances"
         ]
@@ -29839,6 +30960,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "actif": {
                     "type": "boolean"
@@ -29931,7 +31053,99 @@
     "/rendez-vous": {
       "get": {
         "operationId": "RendezVousController_lister",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "curseur",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limite",
+            "required": false,
+            "schema": {
+              "example": 50,
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tri",
+            "required": false,
+            "schema": {
+              "enum": [
+                "creeLe:desc",
+                "creeLe:asc"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Rendez-vous d'un véhicule précis (fiche véhicule), indépendant du détenteur courant.",
+            "in": "query",
+            "name": "vehiculeId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "clientId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "statut",
+            "required": false,
+            "schema": {
+              "enum": [
+                "confirme",
+                "honore",
+                "absent",
+                "annule"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "siteId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "au",
+            "required": true,
+            "schema": {
+              "example": "2026-08-31",
+              "format": "date",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "du",
+            "required": true,
+            "schema": {
+              "example": "2026-08-01",
+              "format": "date",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -30014,6 +31228,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "clientId": {
                     "format": "uuid",
@@ -30298,6 +31513,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "commentaire": {
                     "anyOf": [
@@ -30470,6 +31686,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "confirmations": {
                     "items": {
@@ -30581,6 +31798,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "motif": {
                     "maxLength": 500,
@@ -30706,6 +31924,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "conducteurPresentNom": {
                     "anyOf": [
@@ -30984,6 +32203,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "motif": {
                     "maxLength": 500,
@@ -31514,6 +32734,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "capaciteHeuresJourCentiemes": {
                     "anyOf": [
@@ -31890,6 +33111,555 @@
         ]
       }
     },
+    "/utilisateurs": {
+      "get": {
+        "description": "Pagination par curseur opaque, tri stable (creeLe desc, id desc). N'inclut jamais les comptes de service (bornes d'atelier) — voir POST /pointage/comptes-de-service pour ceux-ci.",
+        "operationId": "UtilisateurController_lister",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "curseur",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limite",
+            "required": false,
+            "schema": {
+              "example": 50,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageUtilisateurResumeDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Curseur illisible ou paramètres de pagination invalides."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (rôle sans socle.utilisateur.lire)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Liste des employés du tenant courant",
+        "tags": [
+          "Socle"
+        ]
+      },
+      "post": {
+        "description": "Le mot de passe n'est jamais choisi par l'appelant : le serveur en génère un et le rend UNE SEULE FOIS dans la réponse (acces.motDePasseTemporaire) — à transmettre oralement à l'employé. Un patron (direction) ne peut jamais créer de compte admin (403) — seul un compte admin le peut.",
+        "operationId": "UtilisateurController_creer",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "email": "julie.rey@garage-martin.ch",
+                    "nom": "Rey",
+                    "prenom": "Julie",
+                    "role": "technicien",
+                    "siteIds": [
+                      "11111111-1111-4111-8111-111111111111"
+                    ]
+                  }
+                }
+              },
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "email": {
+                    "format": "email",
+                    "maxLength": 320,
+                    "minLength": 3,
+                    "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                    "type": "string"
+                  },
+                  "nom": {
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "prenom": {
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "role": {
+                    "enum": [
+                      "admin",
+                      "direction",
+                      "vendeur",
+                      "receptionnaire",
+                      "chef_atelier",
+                      "technicien",
+                      "magasinier",
+                      "comptable"
+                    ],
+                    "type": "string"
+                  },
+                  "siteIds": {
+                    "items": {
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "type": "string"
+                    },
+                    "maxItems": 50,
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "prenom",
+                  "nom",
+                  "email",
+                  "role",
+                  "siteIds"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseCreationUtilisateurDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide, ou un ou plusieurs siteIds introuvables pour ce tenant."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (rôle sans socle.utilisateur.creer), ou tentative de créer un compte admin par un acteur non-admin."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Adresse email déjà utilisée par un autre compte."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Créer un employé",
+        "tags": [
+          "Socle"
+        ]
+      }
+    },
+    "/utilisateurs/{utilisateurId}": {
+      "patch": {
+        "description": "Au moins un des deux champs (role, siteIds) requis. Promouvoir vers admin est réservé à un acteur déjà admin (403 sinon), même avec le droit socle.utilisateur.modifier.",
+        "operationId": "UtilisateurController_modifier",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "utilisateurId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "role": "chef_atelier"
+                  }
+                }
+              },
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "role": {
+                    "enum": [
+                      "admin",
+                      "direction",
+                      "vendeur",
+                      "receptionnaire",
+                      "chef_atelier",
+                      "technicien",
+                      "magasinier",
+                      "comptable"
+                    ],
+                    "type": "string"
+                  },
+                  "siteIds": {
+                    "items": {
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "type": "string"
+                    },
+                    "maxItems": 50,
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UtilisateurResumeDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide, ou un ou plusieurs siteIds introuvables pour ce tenant."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant, ou tentative de promotion vers admin par un acteur non-admin."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Employé introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Modifier le rôle et/ou les sites d’un employé",
+        "tags": [
+          "Socle"
+        ]
+      }
+    },
+    "/utilisateurs/{utilisateurId}/desactiver": {
+      "post": {
+        "description": "L'historique (OR, factures, pointages) reste attribuable — le compte est suspendu, pas supprimé. Révoque immédiatement toute session active de cet employé.",
+        "operationId": "UtilisateurController_desactiver",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "utilisateurId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UtilisateurResumeDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (rôle sans socle.utilisateur.desactiver)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Employé introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Tentative de désactiver son propre compte."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Désactiver un employé (jamais une suppression)",
+        "tags": [
+          "Socle"
+        ]
+      }
+    },
+    "/utilisateurs/{utilisateurId}/reactiver": {
+      "post": {
+        "operationId": "UtilisateurController_reactiver",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "utilisateurId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UtilisateurResumeDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (rôle sans socle.utilisateur.desactiver)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Employé introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Réactiver un employé précédemment désactivé",
+        "tags": [
+          "Socle"
+        ]
+      }
+    },
+    "/utilisateurs/{utilisateurId}/reinitialiser-acces": {
+      "post": {
+        "description": "Nouveau mot de passe temporaire généré par le serveur, rendu UNE SEULE FOIS dans la réponse. Toute session active de l'employé est révoquée. Tracé dans l'audit — jamais la valeur du mot de passe.",
+        "operationId": "UtilisateurController_reinitialiserAcces",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "utilisateurId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseAccesTemporaireDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (rôle sans socle.utilisateur.reinitialiser_acces)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Employé introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Réinitialiser l'accès d'un employé (mot de passe perdu)",
+        "tags": [
+          "Socle"
+        ]
+      }
+    },
     "/vehicules": {
       "get": {
         "operationId": "VehiculeController_lister",
@@ -31980,6 +33750,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "boite": {
                     "anyOf": [
@@ -32438,6 +34209,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "batterie": {
                     "anyOf": [
@@ -32894,6 +34666,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "motif": {
                     "maxLength": 500,
@@ -33028,6 +34801,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "changementLe": {
                     "format": "date",
@@ -33050,6 +34824,7 @@
                     "type": "string"
                   },
                   "nouvellePlaque": {
+                    "additionalProperties": false,
                     "properties": {
                       "canton": {
                         "anyOf": [
@@ -33352,6 +35127,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "codeCase": {
                     "anyOf": [
@@ -33576,6 +35352,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "clientId": {
                     "format": "uuid",
@@ -33696,6 +35473,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "finLe": {
                     "format": "date",
@@ -33894,6 +35672,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "dateContreVisiteLe": {
                     "anyOf": [
@@ -34066,6 +35845,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "confirmationVin": {
                     "maxLength": 17,
@@ -34248,6 +36028,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "motifRegression": {
                     "anyOf": [
@@ -34489,6 +36270,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "canton": {
                     "anyOf": [
@@ -34644,6 +36426,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "finLe": {
                     "format": "date",
@@ -34826,6 +36609,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "dateEntreeStock": {
                     "format": "date",
@@ -34975,6 +36759,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "dateEntreeStock": {
                     "format": "date",
@@ -35130,6 +36915,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "motif": {
                     "maxLength": 4000,
@@ -35242,6 +37028,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "confirmations": {
                     "items": {
@@ -35354,6 +37141,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "motif": {
                     "maxLength": 4000,
@@ -35559,6 +37347,7 @@
                 }
               },
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "designation": {
                     "maxLength": 200,

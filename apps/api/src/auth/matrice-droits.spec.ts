@@ -323,6 +323,12 @@ describe('MATRICE_DROITS — RF-114, facturation/documents (étape 2)', () => {
     expect(MATRICE_DROITS.receptionnaire).toContain('facturation.document.emettre_avoir');
   });
 
+  it('« Corriger une facture émise » (facturation.document.corriger — annule par avoir ET recrée une facture dans la même opération, plus engageant qu’une simple émission d’avoir) : EXACTEMENT direction et comptable — PAS receptionnaire (qui détient pourtant facturation.document.emettre_avoir), PAS admin (RF-115), PAS vendeur, PAS chef d’atelier, PAS magasinier, PAS technicien. Endpoint serveur pas encore écrit à ce jour (contrat/écran l’appellent déjà, défaut ouvert par ailleurs) : ce droit est posé EN AVANCE de la route, voir `allowlist-actions-non-decorees.ts` (catégorie `action-inerte-anticipee`).', () => {
+    expect(rolesAyant('facturation.document.corriger')).toEqual(['comptable', 'direction']);
+    expect(MATRICE_DROITS.receptionnaire).not.toContain('facturation.document.corriger');
+    expect(MATRICE_DROITS.admin).not.toContain('facturation.document.corriger');
+  });
+
   it('la hiérarchie chef_atelier ⊇ receptionnaire, vraie sur tout le lot 1, est DÉLIBÉRÉMENT rompue par RF-114 pour les actions financières : chef_atelier ne détient NI l’émission de facture, NI l’émission d’avoir, NI l’encaissement/l’imputation de paiement, que receptionnaire détient tous les quatre — un test doit échouer si quelqu’un « corrige » cette asymétrie en la prenant pour un oubli de recopie', () => {
     const financiersReceptionnaireSansChefAtelier: Action[] = [
       'facturation.document.emettre_facture',
@@ -1259,6 +1265,8 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'facturation.document.emettre_facture',
       'facturation.document.emettre_avoir',
       'facturation.avoir.creer',
+      // Posée en avance de l'endpoint (voir le test dédié ci-dessus) : direction/comptable EXACTEMENT.
+      'facturation.document.corriger',
       // --- Étape 2 : facturation — paiements (RF-65 → RF-80, RF-114 → RF-116) ---
       'facturation.paiement.lire',
       'facturation.paiement.creer',
@@ -1699,6 +1707,9 @@ describe('MATRICE_DROITS — invariante structurelle : écrire une entité impli
         // Pas de `facturation.avoir.lire` dédié : un avoir est un type de document de vente,
         // consulté via `facturation.document.lire` comme tout autre document.
         'facturation.avoir.creer',
+        // Posée en avance de l'endpoint (voir le test dédié « Corriger une facture émise ») —
+        // direction/comptable détiennent déjà `facturation.document.lire`, l'invariant tient.
+        'facturation.document.corriger',
       ],
     },
     {

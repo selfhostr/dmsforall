@@ -7,7 +7,6 @@ import {
   type ReponseFournisseur,
 } from '@dfa/shared';
 
-import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -21,6 +20,8 @@ import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import { ChampTelephone } from '@/composants/comptoir/ChampTelephone';
 import { useCreerFournisseur } from '@/hooks/pieces/useCreerFournisseur';
 import { useModifierFournisseur } from '@/hooks/pieces/useTransitionsFournisseur';
+
+import { messageErreurMutation } from './messages-erreur-mutation';
 
 interface Props {
   readonly ouvert: boolean;
@@ -208,7 +209,7 @@ export function FormulaireFournisseur({ ouvert, onOuvertChange, fournisseur, onC
 
           {erreur ? (
             <p className="texte-libelle text-destructive" role="alert">
-              {messageErreur(erreur, t)}
+              {messageErreurMutation(erreur, t)}
             </p>
           ) : null}
 

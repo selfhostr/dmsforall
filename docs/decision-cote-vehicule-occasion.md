@@ -1,4 +1,5 @@
-# Cote de véhicule d'occasion — décision et trajectoire
+Cote de véhicule d'occasion — décision et trajectoire
+=====================================================
 
 **Statut** : étude métier, contrainte de départ : **zéro franc**. Pas d'abonnement, pas de licence
 payante, pas de « à partir de X CHF/mois ». Eurotax/JD Power est donc hors périmètre d'achat — gardé
@@ -11,7 +12,8 @@ sur `apps/api/src/db/schema/ventes/{reprise,vehicule-stock}.ts`,
 
 ---
 
-## Résumé (≤500 mots)
+Résumé (≤500 mots)
+-------------------
 
 Sous contrainte de gratuité, trois options existent, et une seule est actionnable.
 
@@ -60,7 +62,8 @@ lui-même.
 
 ---
 
-## 1. Ce que le zéro franc écarte : Eurotax / JD Power
+Ce que le zéro franc écarte : Eurotax / JD Power
+-------------------------------------------------
 
 Le groupe qui opère Eurotax/Schwacke en Suisse s'appelle aujourd'hui **JD Power** (Eurotax, Schwacke,
 Glass's, Autovista regroupés sous une seule marque). Les anciennes pages `eurotax.ch` et
@@ -91,34 +94,35 @@ zéro franc tient.
 
 ---
 
-## 2. La voie propriétaire — le cœur de l'étude
+La voie propriétaire — le cœur de l'étude
+-------------------------------------------
 
 C'est la seule option réellement gratuite, parce que la donnée existe déjà comme sous-produit du
 travail quotidien du garage. Ni AutoScout24 ni Comparis ne l'ont : ils voient des **prix demandés**
 (ce qu'un vendeur espère), jamais des **prix payés**. Un garage qui reprend et revend sait les deux.
 
-### 2.1 Ce que le modèle de données capture déjà
+**Ce que le modèle de données capture déjà**
 
 **Table `reprise`** (`apps/api/src/db/schema/ventes/reprise.ts`) — une reprise par dossier de vente :
 
-| Champ                                               | Rôle pour une future cote                                                                            |
-| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `valeurEstimeeCentimes`                             | Estimation initiale (RV-19) — utile pour mesurer l'écart estimation/négociation dans le temps        |
-| `valeurNegocieeCentimes`                            | **Le prix réellement accordé** — c'est la donnée que ni AutoScout24 ni Comparis n'ont                |
-| `statut` (estimee → negociee → confirmee / refusee) | Machine à états déjà posée, avec horodatages (`estimeeLe`, `negocieeLe`, `confirmeeLe`, `refuseeLe`) |
-| `detteFinancementResiduelleCentimes`                | Contexte de la négociation, pas un signal de valeur marché en soi                                    |
-| `motifRefus`                                        | Texte libre aujourd'hui — voir §2.2                                                                  |
+Champs de la table `reprise` pour une future cote :
+
+- `valeurEstimeeCentimes` — Estimation initiale (RV-19) ; utile pour mesurer l'écart estimation/négociation dans le temps
+- `valeurNegocieeCentimes` — **Le prix réellement accordé** — c'est la donnée que ni AutoScout24 ni Comparis n'ont
+- `statut` (estimee → negociee → confirmee / refusee) — Machine à états déjà posée, avec horodatages (`estimeeLe`, `negocieeLe`, `confirmeeLe`, `refuseeLe`)
+- `detteFinancementResiduelleCentimes` — Contexte de la négociation, pas un signal de valeur marché en soi
+- `motifRefus` — Texte libre aujourd'hui — voir §2.2
 
 **Table `vehicule_stock`** (`apps/api/src/db/schema/ventes/vehicule-stock.ts`) — extension 1:1 de
 `vehicule`, une ligne par véhicule mis en stock :
 
-| Champ                                   | Rôle                                                                                                                          |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `prixAchatCentimes`                     | Recopié de `reprise.valeurNegocieeCentimes` à l'entrée en stock (RV-24) — le prix d'achat réel, quelle que soit la provenance |
-| `prixVenteAfficheCentimes`              | **Prix demandé**, pas payé — équivalent interne de ce qu'AutoScout24 voit chez les autres                                     |
-| `dateEntreeStock`, `venduLe`, `livreLe` | Datation complète du cycle de stock                                                                                           |
-| `joursStock`                            | Dérivé — vitesse d'écoulement, un signal de marché à part entière                                                             |
-| `provenance`                            | Distingue reprise / achat particulier / neuf constructeur — essentiel pour ne pas mélanger les familles de prix               |
+Champs de la table `vehicule_stock` pour le cycle d'entrée-sortie :
+
+- `prixAchatCentimes` — Recopié de `reprise.valeurNegocieeCentimes` à l'entrée en stock (RV-24) ; le prix d'achat réel, quelle que soit la provenance
+- `prixVenteAfficheCentimes` — **Prix demandé**, pas payé — équivalent interne de ce qu'AutoScout24 voit chez les autres
+- `dateEntreeStock`, `venduLe`, `livreLe` — Datation complète du cycle de stock
+- `joursStock` — Dérivé ; vitesse d'écoulement, un signal de marché à part entière
+- `provenance` — Distingue reprise / achat particulier / neuf constructeur — essentiel pour ne pas mélanger les familles de prix
 
 **Documents de vente** (`packages/shared/src/contrats/facturation/document.ts`) — le **prix réellement
 encaissé** vit ici, sur la facture liée à `vehiculeId`, pas sur `vehicule_stock` (qui ne porte que le
@@ -136,7 +140,7 @@ atelier. Un véhicule repris chez un client qui n'a jamais fait entretenir sa vo
 n'avoir **aucun** relevé. Le lien entre « kilométrage au moment de la reprise » et cette table n'existe
 pas aujourd'hui.
 
-### 2.2 Ce qu'il manque d'enregistrer dès maintenant
+**Ce qu'il manque d'enregistrer dès maintenant**
 
 Champ par champ, par ordre de valeur pour une cote future. Chacun coûte une migration additive
 aujourd'hui ; aucun ne se reconstitue rétroactivement dans deux ans.
@@ -170,7 +174,8 @@ la distinction estimé/négocié, et la richesse de la fiche technique.
 
 ---
 
-## 3. Sources publiques gratuites — situer sans donner le prix
+Sources publiques gratuites — situer sans donner le prix
+---------------------------------------------------------
 
 - **TARGA (ASTRA/SIAC-Véhicules)** — déjà tranché dans DFA, déjà utilisé (`vehicule.codeTypeCh`).
   Donne les caractéristiques techniques exactes par code type, gratuitement, avec l'autorité d'une
@@ -187,7 +192,8 @@ soit une agrégation d'annonces tierces (fragile, voir §4).
 
 ---
 
-## 4. L'aspiration AutoScout24/Comparis — ce qui est techniquement vrai
+L'aspiration AutoScout24/Comparis — ce qui est techniquement vrai
+-----------------------------------------------------------------
 
 @laupernoe a tranché que la légalité n'est pas un blocage à ce stade ; ce qui suit ne porte que sur la
 faisabilité et le coût techniques.
@@ -225,7 +231,8 @@ clients en négociation, sauf à accepter d'y consacrer une charge de maintenanc
 
 ---
 
-## 5. Ce qu'on offre au vendeur en attendant
+Ce qu'on offre au vendeur en attendant
+---------------------------------------
 
 **Aujourd'hui : saisie manuelle de `valeurEstimeeCentimes`.** Tenable à très court terme (le vendeur
 sait généralement estimer un véhicule courant), intenable comme différenciateur : c'est exactement ce
@@ -250,7 +257,8 @@ externe, et s'améliore automatiquement à mesure que le volume de données (dix
 
 ---
 
-## 6. Le point d'honnêteté : une cote maison a-t-elle une autorité ?
+Le point d'honnêteté : une cote maison a-t-elle une autorité ?
+-------------------------------------------------------------
 
 Non, pas face au client. Un garagiste qui annonce « 12 400 selon Eurotax » cite un tiers que le client
 perçoit comme neutre, aussi imparfait que soit ce tiers en réalité (cote sur transactions, mais
@@ -273,7 +281,8 @@ vendeur, pas un argument de négociation externe.
 
 ---
 
-## 7. Trajectoire recommandée
+Trajectoire recommandée
+------------------------
 
 1. **Maintenant, coût nul** : garder la saisie manuelle, mais poser les champs manquants du §2.2
    (RM-COTE-01 à 06) dans les prochaines migrations du module ventes. Coût marginal aujourd'hui, non
@@ -291,7 +300,8 @@ vendeur, pas un argument de négociation externe.
 
 ---
 
-## Sources consultées
+Sources consultées
+-------------------
 
 - [Autovista API - JD Power](https://www.jdpower.com/business/autovista-api/)
 - [DMS integration portal - JD Power Schwacke](https://schwacke.de/dms-integration-portal-de-at/)

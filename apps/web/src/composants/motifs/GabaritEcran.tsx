@@ -1,23 +1,26 @@
 import type { ReactNode } from 'react';
 
+import { useLibellesNavigationAffiches } from '@/composants/layout/useNavigationActive';
 import { cn } from '@/lib/utils';
 
 interface Props {
   /**
-   * Titre de la tâche principale de l'écran — TOUJOURS fourni, même quand `titreVisible` vaut
-   * `false` : un lecteur d'écran doit toujours pouvoir nommer la page, y compris quand la barre
-   * d'onglets (`composants/layout/OngletsDomaine.tsx`) porte déjà ce même libellé à l'écran.
+   * Titre de la tâche principale de l'écran — TOUJOURS fourni, même quand le h1 finit `sr-only` :
+   * un lecteur d'écran doit toujours pouvoir nommer la page.
    */
   readonly titre: string;
   /**
-   * Faux quand `titre` RÉPÈTE À LA LETTRE l'onglet actif déjà affiché par `OngletsDomaine` (même
-   * doctrine que `EcranListeVehiculesStock`/`EcranListeArticles`/`EcranSuiviVentes`, déjà en place
-   * avant ce composant — capturée ici, pas réinventée). Le h1 reste alors dans le DOM (`sr-only`),
-   * jamais retiré : structure de document et lecteur d'écran d'abord.
-   *
-   * Vrai par défaut : la présence d'un titre VISIBLE est la norme du produit, pas l'exception —
-   * retour @laupernoe du 12.08.2026, citant `EcranListeClients` (« il y a écrit Clients, c'est mieux »).
-   * L'exception se déclare, elle ne se devine pas.
+   * Sous-titre optionnel — une phrase courte qui qualifie le titre, JAMAIS une consigne d'usage.
+   * Rendu SOUS le h1, jamais à côté. L'espacement (`space-y-1`) est imposé par le gabarit, un écran
+   * ne pose aucune marge locale dessus.
+   */
+  readonly sousTitre?: ReactNode;
+  /**
+   * Forçage EXPLICITE de la visibilité du h1. `undefined` (défaut, et de très loin le cas normal) =
+   * détection automatique du doublon avec la navigation (voir plus bas). Un écran ne pose cette
+   * prop que pour CONTREDIRE la détection — cas réel, mesuré, et qui doit alors s'expliquer en
+   * commentaire à l'appel : la détection couvre déjà toute la table de correspondance du produit,
+   * poser `titreVisible` « pour être sûr » n'a plus de raison d'être depuis ce composant.
    */
   readonly titreVisible?: boolean;
   /**
@@ -31,6 +34,43 @@ interface Props {
   readonly actions?: ReactNode;
   readonly children: ReactNode;
   readonly className?: string;
+}
+
+/**
+ * Normalise un libellé pour la comparaison de doublon : minuscules, accents retirés, `&` unifié
+ * avec « et », ponctuation et espaces multiples réduits à un espace simple. Volontairement PAS
+ * d'unification singulier/pluriel ni de retrait des mots vides — la table figée du contrat
+ * (§3, « titres doublés & espacements ») compte sur l'inclusion brute pour distinguer
+ * « Commandes fournisseur » (doublon de « Commandes ») de « Nouvelle commande fournisseur »
+ * (visible : « commande » singulier n'est pas « commandes »).
+ */
+function normaliserLibelle(valeur: string): string {
+  return valeur
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/&/g, ' et ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+/**
+ * Doublon si le titre normalisé contient un libellé de navigation normalisé, ou l'inverse —
+ * inclusion dans les deux sens, exactement la règle figée du contrat. Exportée pour un test unitaire
+ * direct de la table, en plus des tests de rendu route par route.
+ */
+export function estTitreDoublonNavigation(
+  titre: string,
+  libellesAffiches: readonly string[],
+): boolean {
+  const titreNormalise = normaliserLibelle(titre);
+  if (titreNormalise === '') return false;
+  return libellesAffiches.some((libelle) => {
+    const libelleNormalise = normaliserLibelle(libelle);
+    if (libelleNormalise === '') return false;
+    return titreNormalise.includes(libelleNormalise) || libelleNormalise.includes(titreNormalise);
+  });
 }
 
 /**
@@ -59,16 +99,68 @@ interface Props {
  *  - UN h1 TOUJOURS présent (visible ou `sr-only`, jamais absent) — hiérarchie de titres cohérente,
  *    un seul niveau 1 par écran (accessibilité, WCAG AA).
  *
+ * VERSION 2 (chantier « titres doublés & espacements », 17.08.2026) — DEUX changements de fond,
+ * qui SUPERSÈDENT la doctrine « titre toujours visible par défaut » de la version 1, elle-même
+ * fondée sur un retour @laupernoe du 12.08.2026 citant `EcranListeClients` (« il y a écrit Clients, c'est
+ * mieux »). @laupernoe a repassé les écrans en revue et RE-ARBITRÉ le 17.08.2026 dans l'autre sens : le
+ * défaut répété qu'il relève cette fois, ce sont des titres qui RÉPÈTENT un libellé de navigation
+ * déjà affiché (onglet actif, vue active, ou entrée de barre latérale — cas Facturation : « on sait
+ * qu'on est dans les factures, c'est écrit à gauche »).
+ *
+ *  1. `titreVisible` n'est plus un booléen à défaut `true` mais un FORÇAGE optionnel
+ *     (`boolean | undefined`, défaut `undefined`) : en son absence, le h1 devient `sr-only` dès que
+ *     `titre` fait doublon — normalisation puis inclusion dans les deux sens, voir
+ *     `estTitreDoublonNavigation` — avec un libellé de navigation EFFECTIVEMENT rendu à l'écran
+ *     pour la route courante (`useLibellesNavigationAffiches`, `composants/layout/
+ *     useNavigationActive.ts`, la même source que consomme `OngletsDomaine` : les deux ne peuvent
+ *     pas diverger sur « qu'est-ce qui est affiché »). Le h1 reste TOUJOURS dans le DOM, jamais
+ *     retiré : structure de document et lecteur d'écran d'abord. Les appels existants qui posaient
+ *     `titreVisible={false}` restent valides et gardent la priorité sur la détection.
+ *  2. `sousTitre` (nouveau) — une phrase courte rendue sous le h1, dans la même colonne
+ *     (`space-y-1`), jamais à côté.
+ *  3. RÈGLE ANTI-TROU — la plainte n°1 de @laupernoe (« ça fait un espace horrible », « tu peux enlever
+ *     l'espace aussi qui n'est pas très beau ») : quand le h1 finit `sr-only` ET qu'il n'y a NI
+ *     sous-titre NI actions, la ligne d'en-tête n'est PAS rendue du tout — seul le h1 `sr-only`
+ *     subsiste, HORS de la ligne (`flex flex-wrap items-start justify-between gap-3`) qui
+ *     autrement resterait un item vide de la colonne externe et continuerait à consommer un
+ *     `gap-6`. `sr-only` sort déjà l'élément du flux normal (`position: absolute`) : un h1
+ *     `sr-only` posé en enfant direct du conteneur `gap-6` ne compte pour aucun `gap`, contrairement
+ *     à une ligne d'en-tête vide qui l'engloberait.
+ *
  * Ce que ce composant NE fait PAS : la barre de filtres (`composants/comptoir/BarreFiltres.tsx`),
  * le tri (`composants/comptoir/SelecteurTri.tsx`) et le tableau (`composants/comptoir/
  * TableComptoir.tsx`) restent des composants séparés, déjà partagés et déjà corrects — ce gabarit
  * les encadre, il ne les remplace pas. Un écran les passe simplement en `children`, après le titre.
  */
-export function GabaritEcran({ titre, titreVisible = true, actions, children, className }: Props) {
+export function GabaritEcran({
+  titre,
+  sousTitre,
+  titreVisible,
+  actions,
+  children,
+  className,
+}: Props) {
+  const libellesAffiches = useLibellesNavigationAffiches();
+  const visible = titreVisible ?? !estTitreDoublonNavigation(titre, libellesAffiches);
+  const classeH1 = cn('texte-titre-page', !visible && 'sr-only');
+
+  // Règle anti-trou (§4 du contrat) : rien d'autre que le h1 sr-only ne doit occuper de rangée.
+  if (!visible && !sousTitre && !actions) {
+    return (
+      <div className={cn('flex w-full flex-col gap-6', className)}>
+        <h1 className={classeH1}>{titre}</h1>
+        {children}
+      </div>
+    );
+  }
+
   return (
     <div className={cn('flex w-full flex-col gap-6', className)}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className={cn('texte-titre-page', !titreVisible && 'sr-only')}>{titre}</h1>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <h1 className={classeH1}>{titre}</h1>
+          {sousTitre ? <p className="texte-corps text-muted-foreground">{sousTitre}</p> : null}
+        </div>
         {actions ? <div className="flex flex-wrap items-center gap-3">{actions}</div> : null}
       </div>
       {children}

@@ -226,6 +226,52 @@ export type EntreeCreationMouvementRetourClient = z.infer<
   typeof schemaCreationMouvementRetourClient
 >;
 
+/* ------------------------------------------------------------------ */
+/* Aperçu d'un forçage — GET /articles/{id}/mouvements/apercu-forcage  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * `GET /articles/{id}/mouvements/apercu-forcage?siteId=&quantiteMillieme=` — DÉFAUT CORRIGÉ (test
+ * manuel du 14.08.2026, défaut n°2) : un forçage (`casse`/`perte`, `forcer: true`) peut libérer en
+ * cascade des réservations `active` sans que le magasinier en soit prévenu AVANT de cocher
+ * « Forcer » — le journal (`ServiceMouvement.libererCascadeSiNecessaire`) trace l'événement APRÈS
+ * coup, ce qui ne suffit pas à un avertissement qui doit être « spécifique et chiffré » avant
+ * l'action. Cette route rend, EN LECTURE SEULE, l'aperçu de ce que le MÊME forçage libérerait s'il
+ * était soumis maintenant : simule le même calcul et le même ordre de sélection que
+ * `ServiceReservation.libererPourCascadeForcageTx` (RP-15), SANS écrire ni verrouiller quoi que ce
+ * soit — indicatif uniquement, l'action réelle reste la seule source de vérité (sous verrou).
+ *
+ * `siteId`/`quantiteMillieme` reprennent EXACTEMENT les champs que l'utilisateur s'apprête à
+ * soumettre à `POST .../casse` ou `.../perte` — l'écran interroge cet aperçu à chaque changement
+ * de site/quantité pendant que « Forcer » est coché, avant d'autoriser la soumission.
+ */
+export const schemaApercuForcageMouvement = z
+  .object({
+    siteId: schemaIdentifiant,
+    // `z.coerce.number()`, PAS `schemaQuantiteMillieme` nu : paramètre de QUERY STRING, jamais de
+    // corps JSON — une valeur numérique y arrive TOUJOURS en texte (même doctrine que
+    // `pagination.ts::limite`), `schemaQuantiteMillieme` refuserait systématiquement une chaîne.
+    quantiteMillieme: z.coerce.number().int().min(1),
+  })
+  .strict();
+export type EntreeApercuForcageMouvement = z.infer<typeof schemaApercuForcageMouvement>;
+
+/** Une réservation `active` que le forçage simulé libérerait — assez d'information pour l'afficher
+ *  SANS second appel (`RP-15` : avertissement spécifique et chiffré, jamais une phrase générale). */
+export interface ReservationMenaceeParForcage {
+  readonly id: string;
+  readonly ligneOrId: string;
+  readonly ordreReparationId: string;
+  readonly ordreReparationNumero: string;
+  readonly quantiteMillieme: number;
+}
+
+export interface ReponseApercuForcageMouvement {
+  /** `[]` : ce forçage ne libérerait aucune réservation (stock déjà suffisant pour la quantité
+   *  demandée, ou aucune réservation active sur cet article/site). */
+  readonly reservations: readonly ReservationMenaceeParForcage[];
+}
+
 /**
  * NOTE D'INTÉGRATION — pont vers la facturation (`RP-43`/`RP-46`), RÉSOLU EN PARTIE.
  *

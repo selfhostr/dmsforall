@@ -100,9 +100,18 @@ function accesFactice(tx: TransactionDfa): AccesBase {
  * complète (cascade RÉELLE, contrainte SQL relâchée par 0047) est prouvée par
  * `test/lot2/pieces/pont-atelier-pieces.spec.ts`, section `pieces.mouvement.forcer`.
  */
-function reservationFactice(): ServiceReservation {
+function reservationFactice(
+  apercu: ReadonlyArray<{
+    id: string;
+    ligneOrId: string;
+    ordreReparationId: string;
+    ordreReparationNumero: string;
+    quantiteMillieme: number;
+  }> = [],
+): ServiceReservation {
   return {
     libererPourCascadeForcageTx: vi.fn(async () => []),
+    apercuLiberationCascadeTx: vi.fn(async () => apercu),
   } as unknown as ServiceReservation;
 }
 
@@ -563,6 +572,102 @@ describe('ServiceMouvement — pieces.mouvement.forcer (audit sécurité, forcer
 
     expect(resultat.reponse.statutHttp).toBe(201);
     expect(insertValuesArgs).toHaveLength(1);
+  });
+});
+
+describe('ServiceMouvement.apercuForcage — défaut n°2 (test manuel du 14.08.2026), avertissement AVANT le forçage', () => {
+  it('stock disponible suffisant pour la quantité demandée : `reservations: []`, AUCUN appel à `apercuLiberationCascadeTx` (le forçage ne changerait rien)', async () => {
+    const { tx } = txFactice({
+      // 3e jeu (`stock_article`, lu par `.select().from(stockArticle)`, PAS `.execute()` — lecture
+      // NON verrouillante délibérée, voir la doc de `apercuForcage`) : physique=5000, reservee=0.
+      selects: [[{ id: 'a1' }], [{ id: 's1' }], [{ physique: 5000, reservee: 0 }]],
+    });
+    const reservation = reservationFactice();
+    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx), reservation);
+
+    const resultat = await service.apercuForcage(CTX, 'a1', {
+      siteId: 's1',
+      quantiteMillieme: 2000,
+    });
+
+    expect(resultat).toEqual({ reservations: [] });
+    expect(reservation.apercuLiberationCascadeTx).not.toHaveBeenCalled();
+  });
+
+  it('stock insuffisant, aucune réservation active à couvrir le déficit : `reservations: []`', async () => {
+    const { tx } = txFactice({
+      // disponible 1000 < 2000, mais reservee=0 -> rien à libérer.
+      selects: [[{ id: 'a1' }], [{ id: 's1' }], [{ physique: 1000, reservee: 0 }]],
+    });
+    const reservation = reservationFactice([]);
+    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx), reservation);
+
+    const resultat = await service.apercuForcage(CTX, 'a1', {
+      siteId: 's1',
+      quantiteMillieme: 2000,
+    });
+
+    expect(resultat).toEqual({ reservations: [] });
+    expect(reservation.apercuLiberationCascadeTx).not.toHaveBeenCalled();
+  });
+
+  it('stock insuffisant ET des réservations actives seraient libérées : rend la liste CHIFFRÉE (id, OR, numéro, quantité) — l’avertissement spécifique exigé par RP-15, AVANT toute soumission', async () => {
+    const { tx } = txFactice({
+      // physique=1000, reservee=800 -> disponible=200 < 2000 demandé -> physiqueApres = 1000-2000 =
+      // -1000 -> plafondReservee = max(-1000, 0) = 0 -> aLiberer = 800 - 0 = 800.
+      selects: [[{ id: 'a1' }], [{ id: 's1' }], [{ physique: 1000, reservee: 800 }]],
+    });
+    const reservation = reservationFactice([
+      {
+        id: 'resa-1',
+        ligneOrId: 'ligne-1',
+        ordreReparationId: 'or-1',
+        ordreReparationNumero: 'OR-2026-0042',
+        quantiteMillieme: 800,
+      },
+    ]);
+    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx), reservation);
+
+    const resultat = await service.apercuForcage(CTX, 'a1', {
+      siteId: 's1',
+      quantiteMillieme: 2000,
+    });
+
+    expect(resultat).toEqual({
+      reservations: [
+        {
+          id: 'resa-1',
+          ligneOrId: 'ligne-1',
+          ordreReparationId: 'or-1',
+          ordreReparationNumero: 'OR-2026-0042',
+          quantiteMillieme: 800,
+        },
+      ],
+    });
+    expect(reservation.apercuLiberationCascadeTx).toHaveBeenCalledWith(
+      expect.anything(),
+      CTX,
+      'a1',
+      's1',
+      800,
+    );
+  });
+
+  it('aucune ligne `stock_article` pour cet (article, site) : physique/réservé traités comme 0, jamais un accès base qui plante', async () => {
+    const { tx } = txFactice({
+      selects: [[{ id: 'a1' }], [{ id: 's1' }], []], // aucune ligne stock_article
+    });
+    const reservation = reservationFactice();
+    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx), reservation);
+
+    const resultat = await service.apercuForcage(CTX, 'a1', {
+      siteId: 's1',
+      quantiteMillieme: 1000,
+    });
+
+    // physique=0, reservee=0 -> disponible=0 < 1000 -> physiqueApres=-1000 -> plafond=0 -> aLiberer=0
+    // -> rien à couvrir, AUCUNE réservation à libérer (il n'y en a par définition aucune).
+    expect(resultat).toEqual({ reservations: [] });
   });
 });
 

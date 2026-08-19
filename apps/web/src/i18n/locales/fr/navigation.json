@@ -29,6 +29,7 @@
     "clientsTous": "Tous",
     "clientsDoublons": "Doublons",
     "vehicules": "Véhicules",
+    "scan": "Scanner",
     "piecesComptoir": "Comptoir",
     "piecesArticles": "Articles",
     "piecesArticlesTous": "Tous",
@@ -37,6 +38,7 @@
     "piecesACommander": "À commander",
     "piecesCommandes": "Commandes",
     "piecesFournisseurs": "Fournisseurs",
+    "piecesFacturesFournisseur": "Factures fournisseurs",
     "piecesConsignes": "Consignes",
     "facturationFactures": "Factures",
     "facturationEncaissements": "Encaissements",
@@ -80,6 +82,7 @@
     "agrandir": "Agrandir la barre latérale"
   },
   "pied": {
-    "version": "{branche} · {numero}"
+    "version": "Version {info}",
+    "versionInconnue": "inconnue"
   }
 }

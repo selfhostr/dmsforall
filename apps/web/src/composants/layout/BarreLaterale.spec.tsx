@@ -1,7 +1,7 @@
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query';
-import { render, screen, waitFor, within, type RenderResult } from '@testing-library/react';
+import { render, screen, waitFor, type RenderResult } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { delay, http, HttpResponse } from 'msw';
+import { http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -9,7 +9,6 @@ import '@/i18n';
 
 import type { RoleUtilisateur } from '@dfa/shared';
 
-import { clesQuery } from '@/api/cles';
 import { FournisseurSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
@@ -474,125 +473,6 @@ describe('BarreLaterale — masquage par rôle', () => {
 });
 
 /**
- * Numéro de version (support téléphonique) — repris tel quel d'avant le Lot D. Format demandé par
- * @laupernoe : « branche · version » (ex. « main · 0.1.234 »), le point médian étant le seul séparateur.
- * AUCUN état de chargement/erreur ne doit produire de texte (exception assumée à la règle
- * « chargement / vide / erreur », voir le commentaire dans `BarreLaterale.tsx`).
- *
- * ISSUE #85 — la version n'est plus VISIBLE pour un utilisateur ni pour un lecteur d'écran, mais
- * l'information reste RÉCUPÉRABLE dans le document (attributs `data-version` et `data-branche` sur
- * un élément masqué) pour que le support puisse répondre à « quelle version tournez-vous ? »
- * sans voir un nom de branche Git ou un hash à l'écran d'un client. Les tests passent de vérifier
- * l'affichage du texte à vérifier cette présence cachée.
- */
-describe('BarreLaterale — numéro de version', () => {
-  it('stocke branche et version dans le DOM masqué, récupérable mais invisible', async () => {
-    server.use(
-      http.get('/api/v1/sante', () =>
-        HttpResponse.json({ statut: 'ok', version: '3.4.5-verif', branche: 'main' }),
-      ),
-    );
-    const { container } = rendre('/');
-
-    // Attend que la sonde de vie soit résolue : le conteneur `hidden` doit être présent.
-    // Si `sante` reste undefined, le div ne s'affiche jamais (pas même masqué).
-    await waitFor(() => {
-      const divVersion = container.querySelector('[data-version="3.4.5-verif"]');
-      expect(divVersion).toBeInTheDocument();
-    });
-
-    const divVersion = container.querySelector('[data-version="3.4.5-verif"]');
-    expect(divVersion).toHaveAttribute('data-branche', 'main');
-    // Le titre ( `title` attribute) porte le texte formaté pour les requêtes support.
-    expect(divVersion).toHaveAttribute('title', 'main · 3.4.5-verif');
-    // Vérification cruciale : le texte n'est pas visible. Ni `screen.queryByText` ni
-    // un lecteur d'écran ne doivent trouver la version — le `hidden` suffit.
-    expect(screen.queryByText(/3\.4\.5-verif/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/main · /)).not.toBeInTheDocument();
-  });
-
-  it('n’affiche aucun texte de version tant que la sonde de vie n’a pas répondu (pas de squelette, pas de placeholder)', async () => {
-    server.use(
-      http.get('/api/v1/sante', async () => {
-        // Ne se résout jamais pendant la durée du test : la requête reste `isPending` à coup sûr,
-        // ce qui prouve que l'absence de texte observée ci-dessous vient bien de cet état-là (et
-        // non d'une simple coïncidence de timing).
-        await delay('infinite');
-        return HttpResponse.json({ statut: 'ok', version: 'jamais-affichee', branche: 'jamais' });
-      }),
-    );
-    const { queryClient } = rendre('/');
-
-    await waitFor(() => {
-      expect(queryClient.getQueryState(clesQuery.sante.version())?.status).toBe('pending');
-    });
-    expect(screen.queryByText(/·/)).not.toBeInTheDocument();
-  });
-
-  it('n’affiche aucun texte de version quand la sonde de vie échoue (pas de message d’erreur)', async () => {
-    server.use(
-      http.get('/api/v1/sante', () =>
-        HttpResponse.json(
-          {
-            type: 'https://docs.dmsforall.example/erreurs/ERREUR_INTERNE',
-            title: 'Erreur interne',
-            status: 500,
-            code: 'ERREUR_INTERNE',
-            instance: 'req-3',
-          },
-          { status: 500, headers: { 'content-type': 'application/problem+json' } },
-        ),
-      ),
-    );
-    const { queryClient } = rendre('/');
-
-    await waitFor(() => {
-      expect(queryClient.getQueryState(clesQuery.sante.version())?.status).toBe('error');
-    });
-    expect(screen.queryByText(/·/)).not.toBeInTheDocument();
-  });
-
-  /**
-   * Le pied (Réglages + version) vit dans un conteneur FRÈRE de la liste des six entrées, jamais
-   * un DESCENDANT — c'est cette séparation structurelle qui garde le filet et le pied ancrés en
-   * bas de colonne quelle que soit la hauteur disponible. jsdom ne calculant aucun layout, c'est
-   * la seule forme de preuve disponible ici (le rendu visuel, lui, se vérifie au navigateur).
-   *
-   * Le pied contient le `div[data-version]` masqué, qui n'est jamais visible textuel mais doit
-   * rester présent dans la structure DOM.
-   */
-  it('le pied de version reste hors de la liste des six entrées, jamais un descendant', async () => {
-    connecte('direction');
-    server.use(
-      http.get('/api/v1/sante', () =>
-        HttpResponse.json({ statut: 'ok', version: '9.9.9-pied', branche: 'main' }),
-      ),
-    );
-    const { container } = rendre('/');
-
-    const nav = screen.getByRole('navigation');
-    const listeDesSix = nav.firstElementChild;
-    const zonePied = nav.lastElementChild;
-
-    expect(listeDesSix).not.toBeNull();
-    expect(listeDesSix).not.toBe(zonePied);
-
-    // Attendre que le div[data-version] soit rendu (la sonde de vie doit répondre).
-    await waitFor(() => {
-      const divVersion = container.querySelector('[data-version="9.9.9-pied"]');
-      expect(divVersion).toBeInTheDocument();
-    });
-
-    const divVersion = container.querySelector('[data-version="9.9.9-pied"]');
-    // Le div masqué doit être dans le pied, jamais dans la liste des six entrées.
-    expect(listeDesSix?.contains(divVersion)).toBe(false);
-    expect(zonePied?.contains(divVersion)).toBe(true);
-    // Les six entrées sont bien dans la liste, et elles sont six.
-    expect(within(listeDesSix as HTMLElement).getAllByRole('link')).toHaveLength(6);
-  });
-});
-
-/**
  * REPLI DESKTOP (demande @laupernoe, revue webui du 10.08.2026) — un bouton réduit la colonne aux
  * icônes seules. Deux promesses testées, dans l'ordre du brief : rien ne casse quand `repli` est
  * fourni mais déplié (c'est ce que fait l'`aside` d'`AppShell.tsx` par défaut, avant tout clic), et
@@ -687,5 +567,88 @@ describe('BarreLaterale — repli desktop', () => {
 
     await screen.findByRole('link', { name: /^atelier$/i });
     expect(screen.queryByRole('button', { name: /barre latérale/i })).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Numéro de version (demande @laupernoe, 17.08.2026) — collé au bouton Réglages, jamais un pied de page
+ * détaché (précision explicite après une première implémentation ailleurs). Injecté par
+ * `vite.config.ts` (`define`) dans `import.meta.env.VITE_DFA_VERSION_INFO`, une config SÉPARÉE de
+ * `vitest.config.ts` qui ne porte pas ce `define` : ces tests stubbent donc explicitement la
+ * valeur (`vi.stubEnv`, qui met aussi à jour `import.meta.env` sous Vitest) plutôt que de dépendre
+ * d'un état par défaut.
+ */
+describe('BarreLaterale — numéro de version, collé à Réglages', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('affiche la version telle qu’injectée à la compilation, dans le même pied que Réglages', async () => {
+    vi.stubEnv('VITE_DFA_VERSION_INFO', '0.1.0+a1b2c3d');
+    connecte('direction');
+    rendre('/');
+
+    const reglages = await screen.findByRole('link', { name: /^réglages$/i });
+    const version = screen.getByText('0.1.0+a1b2c3d');
+    const nav = screen.getByRole('navigation');
+    const pied = nav.lastElementChild;
+
+    // Même conteneur que le lien Réglages, pas un pied détaché.
+    expect(pied?.contains(reglages)).toBe(true);
+    expect(pied?.contains(version)).toBe(true);
+    // Sélectionnable à la souris (copier-coller) : jamais `select-none`.
+    expect(version.className).toContain('select-text');
+    expect(version.className).not.toContain('select-none');
+    expect(version).toHaveAttribute('title', 'Version 0.1.0+a1b2c3d');
+  });
+
+  it('affiche le marqueur « +modifié » quand l’arbre était sale au moment du build', async () => {
+    vi.stubEnv('VITE_DFA_VERSION_INFO', '0.1.0+a1b2c3d+modifié');
+    connecte('direction');
+    rendre('/');
+
+    await screen.findByRole('link', { name: /^réglages$/i });
+    expect(screen.getByText('0.1.0+a1b2c3d+modifié')).toBeInTheDocument();
+  });
+
+  it('retombe sur « inconnue » (traduit) quand l’information n’est pas disponible — jamais une chaîne vide ni une exception', async () => {
+    vi.stubEnv('VITE_DFA_VERSION_INFO', undefined);
+    connecte('direction');
+    rendre('/');
+
+    await screen.findByRole('link', { name: /^réglages$/i });
+    expect(screen.getByText('inconnue')).toBeInTheDocument();
+  });
+
+  it('repliée : le texte de version est masqué entièrement (jamais tronqué), Réglages reste accessible en icône', async () => {
+    vi.stubEnv('VITE_DFA_VERSION_INFO', '0.1.0+a1b2c3d');
+    connecte('direction');
+    rendreAvecRepli('/', true);
+
+    const reglages = await screen.findByRole('link', { name: /^réglages$/i });
+    expect(reglages).toBeInTheDocument();
+    const version = screen.getByText('0.1.0+a1b2c3d');
+    expect(version.className).toContain('hidden');
+  });
+
+  it('déplié (repli fourni, `replie: false`) : le texte de version reste visible, comme sans prop `repli`', async () => {
+    vi.stubEnv('VITE_DFA_VERSION_INFO', '0.1.0+a1b2c3d');
+    connecte('direction');
+    rendreAvecRepli('/', false);
+
+    await screen.findByRole('link', { name: /^réglages$/i });
+    const version = screen.getByText('0.1.0+a1b2c3d');
+    expect(version.className).not.toContain('hidden');
+  });
+
+  it('poste_atelier (borne murale) : ni Réglages ni version — la colonne entière est absente (assumé)', async () => {
+    vi.stubEnv('VITE_DFA_VERSION_INFO', '0.1.0+a1b2c3d');
+    connecte('poste_atelier');
+    rendre('/pointage/borne');
+
+    await waitFor(() => {
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    });
+    expect(screen.queryByText('0.1.0+a1b2c3d')).not.toBeInTheDocument();
   });
 });

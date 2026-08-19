@@ -56,6 +56,32 @@ describe('EcranDoublonsClients', () => {
     expect(screen.queryByRole('list')).not.toBeInTheDocument();
   });
 
+  // Chantier « titres doublés & espacements » (17.08.2026) : cet écran est atteint comme VUE
+  // « Doublons » sous l'onglet Clients (`navigation-modele.ts`, ONGLETS_CLIENTS_VEHICULES) — la
+  // vue active affiche déjà ce libellé, `GabaritEcran` doit donc garder le h1 dans le DOM (lecteur
+  // d'écran) mais masqué visuellement. La description, elle, reste visible (`sousTitre`). La
+  // détection (`useLibellesNavigationAffiches`, `composants/layout/useNavigationActive.ts`) résout
+  // la vue/l'onglet actifs depuis le PATHNAME réel (`trouverCorrespondance`) — contrairement au
+  // reste de ce fichier (`rendreEcran()`, monté sur `/` par convention, sans rapport avec le
+  // routage réel), ce test-ci monte donc l'écran sur le VRAI chemin `/clients/doublons`
+  // (`routes/chemins.ts`, `navigation-modele.ts` : `motifs: ['/clients/doublons']`) pour prouver le
+  // comportement de PRODUCTION, pas un artefact du harnais. La classe `sr-only` est la preuve
+  // fiable ici — `toBeVisible()` (jest-dom) ne détecte pas la technique `position: absolute;
+  // clip: …` sans feuille de style chargée (jsdom, ces tests).
+  it('garde un h1 accessible « Doublons clients » dans le DOM, masqué via `sr-only` (doublon avec la vue active), description visible', () => {
+    renduAvecRoutes([{ path: '/clients/doublons', element: <EcranDoublonsClients /> }], {
+      routeInitiale: '/clients/doublons',
+    });
+
+    const titre = screen.getByRole('heading', { level: 1, name: 'Doublons clients' });
+    expect(titre.className).toMatch(/\bsr-only\b/);
+    expect(
+      screen.getByText(
+        "Recherchez un client par nom, NPA, e-mail, téléphone ou IDE avant d'en créer un nouveau, ou pour vérifier si deux fiches désignent la même personne.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('ne déclenche pas de recherche pour un nom trop court (min. 2 caractères, RM-05)', async () => {
     server.use(
       http.get('/api/v1/doublons-clients', () =>

@@ -41,10 +41,16 @@ import { chemins } from '@/routes/chemins';
 
 import { BadgeStatutVehiculeStock } from './BadgeStatutVehiculeStock';
 import {
+  BasculeAffichageStock,
+  lireAffichageStock,
+  type AffichageStock,
+} from './_composants/BasculeAffichageStock';
+import {
   BasculeVueStock,
   lireVueAffichageStock,
   type VueAffichageStock,
 } from './_composants/BasculeVueStock';
+import { PlanParcVehicules } from './_composants/PlanParcVehicules';
 import { peutEcrireVehiculeStock } from './droits';
 
 const DELAI_DEBOUNCE_MS = 300;
@@ -81,6 +87,7 @@ export function EcranListeVehiculesStock() {
   const [searchParams, setSearchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
   const vue = lireVueAffichageStock(searchParams);
+  const affichage = lireAffichageStock(searchParams);
 
   function definirVue(valeur: VueAffichageStock) {
     const parametres = new URLSearchParams(searchParams);
@@ -88,6 +95,18 @@ export function EcranListeVehiculesStock() {
       parametres.set('vue', 'client');
     } else {
       parametres.delete('vue');
+    }
+    setSearchParams(parametres);
+  }
+
+  // Orthogonal à `vue` (confidentialité) : celui-ci choisit la MISE EN FORME, jamais les données —
+  // voir la note d'en-tête de `BasculeAffichageStock`.
+  function definirAffichage(valeur: AffichageStock) {
+    const parametres = new URLSearchParams(searchParams);
+    if (valeur === 'plan') {
+      parametres.set('affichage', 'plan');
+    } else {
+      parametres.delete('affichage');
     }
     setSearchParams(parametres);
   }
@@ -152,6 +171,17 @@ export function EcranListeVehiculesStock() {
     isFetchingNextPage,
     fetchNextPage,
   } = useListeVehiculesStock(filtres);
+
+  // Vue Plan (issue #142) : « retrouver sa place exacte » exige TOUT le parc filtré, pas seulement
+  // la première page de 50 — un véhicule garé au fond, jamais chargé, serait invisible du plan sans
+  // qu'on sache qu'il manque. Récupère les pages restantes automatiquement tant que le mode Plan
+  // est actif ; la vue Liste garde `BoutonChargerPlus` (comportement inchangé).
+  useEffect(() => {
+    if (affichage === 'plan' && hasNextPage && !isFetchingNextPage) {
+      void fetchNextPage();
+    }
+  }, [affichage, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  const planEnChargementComplet = affichage === 'plan' && (isFetchingNextPage || hasNextPage);
 
   const filtresStructuresActifs =
     provenanceActive !== undefined || statutCommercial !== undefined || typeVehicule !== undefined;
@@ -261,27 +291,47 @@ export function EcranListeVehiculesStock() {
       ? toutesColonnes.filter((colonne) => !colonnesMasqueesVueClient.has(colonne.id))
       : toutesColonnes;
 
+  // Bascule vue vendeur/client (issue #84) + « Mettre en stock » — ACTIONS de l'en-tête d'écran
+  // (retour @laupernoe du 17.08.2026 : « Vue vendeur, Vue client, il faut le mettre ailleurs »). Construit
+  // AVANT les retours anticipés chargement/erreur pour que l'en-tête garde EXACTEMENT la même
+  // composition entre les trois états (même doctrine que `EcranSuiviVentes` pour ses onglets
+  // d'horizon) — ni la bascule ni le bouton ne dépendent des données de la requête, aucune raison
+  // de les faire apparaître/disparaître au chargement.
+  const actionsEnTete = (
+    <>
+      <BasculeAffichageStock affichage={affichage} onChangeAffichage={definirAffichage} />
+      <BasculeVueStock vue={vue} onChangeVue={definirVue} />
+      {peutEcrireVehiculeStock(role) && vue === 'vendeur' ? (
+        <Button onClick={() => navigate(chemins.ventes.stock.nouveau(site))}>
+          {t('ventes:stock.liste.actions.mettreEnStock')}
+        </Button>
+      ) : null}
+    </>
+  );
+
+  // Titres d'état vide nommant l'ABSENCE (jamais « Véhicules en parc », qui répéterait l'onglet
+  // actif/le menu — même défaut que celui corrigé le 17.08.2026 sur `EcranListeFactures.tsx`).
   let contenuVide: ReactNode;
   if (q.trim() !== '') {
     contenuVide = (
       <EtatVideRecherche
-        titre={t('ventes:stock.liste.titre')}
-        description={t('ventes:stock.liste.vide')}
+        titre={t('ventes:stock.liste.vide.recherche.titre')}
+        description={t('ventes:stock.liste.vide.recherche.description')}
       />
     );
   } else if (filtresStructuresActifs) {
     contenuVide = (
       <EtatVideFiltre
-        titre={t('ventes:stock.liste.titre')}
-        description={t('ventes:stock.liste.vide')}
+        titre={t('ventes:stock.liste.vide.filtre.titre')}
+        description={t('ventes:stock.liste.vide.filtre.description')}
         onEffacerFiltres={effacerFiltres}
       />
     );
   } else {
     contenuVide = (
       <EtatVidePremierUsage
-        titre={t('ventes:stock.liste.titre')}
-        description={t('ventes:stock.liste.vide')}
+        titre={t('ventes:stock.liste.vide.premierUsage.titre')}
+        description={t('ventes:stock.liste.vide.premierUsage.description')}
         action={
           peutEcrireVehiculeStock(role) && vue === 'vendeur' ? (
             <Button onClick={() => navigate(chemins.ventes.stock.nouveau(site))}>
@@ -295,7 +345,7 @@ export function EcranListeVehiculesStock() {
 
   if (isPending) {
     return (
-      <GabaritEcran titre={t('ventes:stock.liste.titre')} titreVisible={false}>
+      <GabaritEcran titre={t('ventes:stock.liste.titre')} actions={actionsEnTete}>
         <EtatChargement lignes={6} />
       </GabaritEcran>
     );
@@ -303,7 +353,7 @@ export function EcranListeVehiculesStock() {
 
   if (isError) {
     return (
-      <GabaritEcran titre={t('ventes:stock.liste.titre')} titreVisible={false}>
+      <GabaritEcran titre={t('ventes:stock.liste.titre')} actions={actionsEnTete}>
         <EtatErreur
           titre={t('ventes:stock.liste.erreur.titre')}
           description={messageErreur(error, t)}
@@ -314,25 +364,21 @@ export function EcranListeVehiculesStock() {
   }
 
   return (
-    // L'onglet de navigation « Véhicules en parc » (OngletsDomaine, actif sur cette route) porte
-    // déjà ce référent à l'écran : « Parc en stock » ne fait que le reformuler (mêmes deux mots,
-    // ordre inversé), sans qualificatif neuf (aucun compte, aucun filtre, aucun site) — titre gardé
-    // dans le DOM (`titreVisible={false}`, jamais retiré) pour la structure de document, même choix
-    // que `EcranListeFactures`/`EcranSuiviVentes`. `BasculeVueStock` n'est pas une ACTION de cet
-    // écran (elle ne crée ni ne modifie rien) — elle ne va donc pas dans le slot `actions` du
-    // gabarit, qui reste réservé à « Mettre en stock » ; elle garde sa propre ligne, comme avant ce
-    // gabarit (silhouette déjà jugée correcte par @laupernoe, seul son style a changé, voir
-    // `BasculeVueStock.tsx`).
-    <GabaritEcran titre={t('ventes:stock.liste.titre')} titreVisible={false}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <BasculeVueStock vue={vue} onChangeVue={definirVue} />
-        {peutEcrireVehiculeStock(role) && vue === 'vendeur' ? (
-          <Button onClick={() => navigate(chemins.ventes.stock.nouveau(site))}>
-            {t('ventes:stock.liste.actions.mettreEnStock')}
-          </Button>
-        ) : null}
-      </div>
-
+    // Titre MASQUÉ automatiquement — `ventes:stock.liste.titre` vaut désormais littéralement
+    // « Véhicules en parc », IDENTIQUE à l'onglet actif « Véhicules en parc » (`navigation-modele.ts`,
+    // `ONGLETS_VENTES`) une fois normalisé (§3 du contrat du chantier « titres doublés »,
+    // 17.08.2026) — avant ce correctif le libellé était « Parc en stock » (mêmes deux mots, ordre
+    // inversé), qui NE matchait PAS la règle mécanique d'inclusion du contrat et serait donc resté
+    // visible à tort. Renommé plutôt que de poser `titreVisible={false}` (interdit par le contrat
+    // §5.2, « ne jamais poser titreVisible pour être sûr ») : le texte, désormais identique à
+    // l'allemand `stock.liste.titre`/`Fahrzeugbestand` qui matchait déjà son onglet par coïncidence,
+    // fait tomber la détection automatique juste dans les trois langues.
+    //
+    // `BasculeVueStock` a quitté sa propre ligne pour le slot `actions` du gabarit, à droite du
+    // titre — retour @laupernoe du 17.08.2026 (« Vue vendeur, Vue client, il faut le mettre ailleurs »),
+    // voir `actionsEnTete` ci-dessus. Le contenu commence directement par la barre de filtres,
+    // remonté d'une rangée entière (retour @laupernoe du 17.08.2026, « tu peux mettre plus haut le truc »).
+    <GabaritEcran titre={t('ventes:stock.liste.titre')} actions={actionsEnTete}>
       <BarreFiltres
         q={qSaisie}
         onChangeQ={setQSaisie}
@@ -421,30 +467,50 @@ export function EcranListeVehiculesStock() {
         ) : null}
       </BarreFiltres>
 
-      <SelecteurTri
-        options={optionsTri.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
-        valeur={triActif}
-        onChangeValeur={setTri}
-        label={t('ventes:stock.liste.tri.label')}
-        className="max-w-xs"
-      />
+      {affichage === 'plan' ? (
+        // Vue Plan (issue #142) : pas de tri ni de pagination manuelle — le regroupement par zone
+        // remplace les deux (`planEnChargementComplet` couvre le chargement du reste des pages,
+        // voir l'effet ci-dessus).
+        planEnChargementComplet ? (
+          <EtatChargement lignes={4} />
+        ) : (
+          <PlanParcVehicules
+            vehiculesStock={vehiculesStock}
+            onOuvrirVehicule={(id) => navigate(chemins.vehicules.detail(id, site))}
+            libelleOuvrirVehicule={(ligne) =>
+              t('commun:actions.ouvrirElement', { nom: ligne.vehicule.designation })
+            }
+            contenuVide={contenuVide}
+          />
+        )
+      ) : (
+        <>
+          <SelecteurTri
+            options={optionsTri.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
+            valeur={triActif}
+            onChangeValeur={setTri}
+            label={t('ventes:stock.liste.tri.label')}
+            className="max-w-xs"
+          />
 
-      <TableComptoir
-        colonnes={colonnes}
-        lignes={vehiculesStock}
-        cleLigne={(ligne) => ligne.id}
-        onOuvrirLigne={(ligne) => navigate(chemins.vehicules.detail(ligne.id, site))}
-        libelleLigne={(ligne) =>
-          t('commun:actions.ouvrirElement', { nom: ligne.vehicule.designation })
-        }
-        contenuVide={contenuVide}
-      />
+          <TableComptoir
+            colonnes={colonnes}
+            lignes={vehiculesStock}
+            cleLigne={(ligne) => ligne.id}
+            onOuvrirLigne={(ligne) => navigate(chemins.vehicules.detail(ligne.id, site))}
+            libelleLigne={(ligne) =>
+              t('commun:actions.ouvrirElement', { nom: ligne.vehicule.designation })
+            }
+            contenuVide={contenuVide}
+          />
 
-      <BoutonChargerPlus
-        aChargerPlus={Boolean(hasNextPage)}
-        enChargement={isFetchingNextPage}
-        onChargerPlus={() => void fetchNextPage()}
-      />
+          <BoutonChargerPlus
+            aChargerPlus={Boolean(hasNextPage)}
+            enChargement={isFetchingNextPage}
+            onChargerPlus={() => void fetchNextPage()}
+          />
+        </>
+      )}
     </GabaritEcran>
   );
 }

@@ -13,6 +13,7 @@ import { schemaConfirmations } from '../atelier/avertissement';
 import type { DocumentVenteResume } from '../facturation/document';
 import { schemaListeQuery } from '../filtres';
 import { schemaParametresPage } from '../pagination';
+import type { SuiviGarantie } from './suivi';
 import {
   STATUTS_DOSSIER_VENTE,
   type ActionDossierVente,
@@ -145,6 +146,19 @@ export interface ReponseDossierVente {
   /** ABSENT dans les mêmes conditions que `financements` — un indicateur de troncature sur une
    *  collection elle-même masquée n'a aucun sens à exposer. */
   readonly financementsTronques?: boolean;
+  /**
+   * Garantie constructeur du véhicule associé (`vehicule.garantieDebut`/`garantieMois`/
+   * `garantieKm`, RM-33, `migrations/0007_vehicules.sql` — AUCUNE nouvelle colonne ici) — même
+   * type `SuiviGarantie` et même fonction de calcul serveur que `GET /ventes/suivi`
+   * (`suivi-mappers.ts::construireSuiviGarantie`/`vehicules/vehicule.mappers.ts::calculerGarantie`),
+   * jamais une seconde définition d'« encore valable ». `null` = pas de véhicule associé, ou
+   * véhicule associé sans `garantieDebut` renseigné — JAMAIS confondu avec une garantie échue (voir
+   * `SuiviGarantie.active`, qui distingue explicitement « inconnue » de « dépassée »).
+   *
+   * Contrairement à `reprise`/`financement` ci-dessus : TOUJOURS présent, jamais omis par rôle — la
+   * garantie n'est pas une donnée financière (même doctrine que `contrats/ventes/suivi.ts`).
+   */
+  readonly garantie: SuiviGarantie | null;
   /** Documents de la chaîne facturation liés à ce dossier (`dossierVenteId`, `MD-70`) — voir GAP
    *  CROISÉ SIGNALÉ en tête de fichier pour l'alternative paginée. */
   readonly documents: readonly DocumentVenteResume[];

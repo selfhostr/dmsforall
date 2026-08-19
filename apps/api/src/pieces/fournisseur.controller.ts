@@ -112,6 +112,7 @@ export class FournisseurController {
   }
 
   @Post(':id/desactiver')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('pieces.fournisseur.modifier')
   @ApiOperation({ summary: 'Désactive un fournisseur (RP-07/RM-12/RM-31) — pas de suppression.' })
   @ApiParam({ name: 'id', format: 'uuid' })
@@ -127,6 +128,7 @@ export class FournisseurController {
   }
 
   @Post(':id/reactiver')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('pieces.fournisseur.modifier')
   @ApiOperation({ summary: 'Réactive un fournisseur (retour à `actif`).' })
   @ApiParam({ name: 'id', format: 'uuid' })

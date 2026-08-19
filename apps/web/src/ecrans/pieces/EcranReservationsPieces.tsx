@@ -27,6 +27,7 @@ import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useReservations } from '@/hooks/pieces/useReservations';
 import { useSatisfaireReservation } from '@/hooks/pieces/useTransitionsReservation';
 import { useSession } from '@/hooks/useSession';
@@ -35,6 +36,7 @@ import { chemins } from '@/routes/chemins';
 
 import { DialogueLiberationReservation } from './DialogueLiberationReservation';
 import { peutLibererReservation, peutSatisfaireReservation } from './droits';
+import { messageErreurMutation } from './messages-erreur-mutation';
 import { formaterQuantiteMillieme } from './utils';
 
 const VARIANTE_BADGE_STATUT: Record<StatutReservationPiece, 'default' | 'secondary' | 'outline'> = {
@@ -45,10 +47,15 @@ const VARIANTE_BADGE_STATUT: Record<StatutReservationPiece, 'default' | 'seconda
 
 /**
  * Vue transverse des réservations (RP-19 → RP-25, priorité 4 du brief) — « qu'est-ce qui est
- * réservé, pour qui, depuis quand ». `ReponseReservationPiece` (@dfa/shared) ne porte AUCUN champ
- * de désignation d'affichage (ni `numeroArticle`, ni le numéro d'OR) — seulement des identifiants
- * bruts (`articleId`, `ordreReparationId`) : cette table les rend donc CLIQUABLES vers la fiche
- * article et l'OR plutôt que d'inventer un libellé que le contrat ne fournit pas.
+ * réservé, pour qui, depuis quand ».
+ *
+ * DÉFAUT CORRIGÉ (test manuel du 14.08.2026, défaut n°3) : avant ce correctif, `ReponseReservationPiece`
+ * ne portait aucun champ de désignation (ni `numeroArticle`, ni numéro d'OR) — seulement des
+ * identifiants bruts, ce qui forçait cette table à afficher des liens génériques (« Voir
+ * l'article »/« Voir l'ordre de réparation ») qu'il fallait ouvrir un par un pour savoir de quoi il
+ * s'agissait. `articleNumero`/`articleDesignation`/`ordreReparationNumero` (`@dfa/shared`,
+ * `service-reservation.ts`) rendent maintenant le contenu lisible directement dans la table — les
+ * colonnes restent CLIQUABLES (même destination qu'avant), seul le libellé change.
  */
 export function EcranReservationsPieces() {
   const { t } = useTranslation(['pieces', 'commun']);
@@ -86,7 +93,7 @@ export function EcranReservationsPieces() {
           className="texte-corps font-medium text-primary underline"
           onClick={(e) => e.stopPropagation()}
         >
-          {t('pieces:reservations.voirArticle')}
+          {reservation.articleDesignation ?? t('pieces:reservations.voirArticle')}
         </Link>
       ),
     },
@@ -99,7 +106,7 @@ export function EcranReservationsPieces() {
           className="texte-corps font-medium text-primary underline"
           onClick={(e) => e.stopPropagation()}
         >
-          {t('pieces:reservations.voirOr')}
+          {reservation.ordreReparationNumero ?? t('pieces:reservations.voirOr')}
         </Link>
       ),
     },
@@ -165,34 +172,29 @@ export function EcranReservationsPieces() {
 
   if (isPending) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('pieces:reservations.titre')}</h1>
+      <GabaritEcran titre={t('pieces:reservations.titre')}>
         <EtatChargement lignes={6} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (isError) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('pieces:reservations.titre')}</h1>
+      <GabaritEcran titre={t('pieces:reservations.titre')}>
         <EtatErreur
           titre={t('pieces:reservations.erreur.titre')}
           description={messageErreur(error, t)}
           onReessayer={() => void refetch()}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
+  // Titre MASQUÉ automatiquement — doublon strict du libellé de la vue active « Réservations »
+  // (`navigation-modele.ts`, `ONGLETS_PIECES`, vue « reservations » de l'onglet Articles) :
+  // `GabaritEcran` le détecte lui-même (§3 du contrat du chantier « titres doublés », 17.08.2026).
   return (
-    <div className="flex flex-col gap-6">
-      {/* Doublon strict du libellé de la vue active « Réservations » (`navigation-modele.ts`,
-          `ONGLETS_PIECES`, vue « reservations » de l'onglet Articles) : le h1 reste dans le DOM
-          pour le lecteur d'écran et la structure du document, sans répéter visuellement ce que la
-          barre d'onglets affiche déjà en surbrillance. */}
-      <h1 className="sr-only">{t('pieces:reservations.titre')}</h1>
-
+    <GabaritEcran titre={t('pieces:reservations.titre')}>
       <div className="flex flex-col gap-1.5 max-w-xs">
         <Label htmlFor="filtre-statut-reservation">{t('pieces:reservations.statut')}</Label>
         <Select
@@ -217,6 +219,12 @@ export function EcranReservationsPieces() {
           </SelectContent>
         </Select>
       </div>
+
+      {satisfaire.isError ? (
+        <p className="texte-libelle text-destructive" role="alert">
+          {messageErreurMutation(satisfaire.error, t)}
+        </p>
+      ) : null}
 
       <TableComptoir
         colonnes={colonnes}
@@ -248,6 +256,6 @@ export function EcranReservationsPieces() {
         reservationId={reservationALiberer}
         onFerme={() => setReservationALiberer(null)}
       />
-    </div>
+    </GabaritEcran>
   );
 }

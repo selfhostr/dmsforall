@@ -75,7 +75,8 @@
       "periodeVerrouillee": "Période verrouillée",
       "orFacture": "OR facturé",
       "ligneNonPointable": "Ligne non pointable",
-      "deriveHorloge": "Horloge décalée"
+      "deriveHorloge": "Horloge décalée",
+      "clotureFinJournee": "Clôturé en fin de journée"
     },
     "corbeille": "Afficher la corbeille",
     "corriger": "À corriger"
@@ -144,7 +145,14 @@
     },
     "pointageEnCours": {
       "titre": "Pointage en cours",
-      "depuis": "Depuis {heure}"
+      "depuis": "Depuis {heure}",
+      "cumulAujourdhui": "Aujourd'hui sur cette cible : {duree}"
+    },
+    "bandeauReprise": {
+      "titre": "Reprendre : {cible}",
+      "interrompuDepuis": "Interrompu il y a {duree}",
+      "cumulJour": "{cumul} déjà pointées aujourd'hui",
+      "libelleAccessible": "Reprendre le pointage sur {cible}"
     },
     "cible": {
       "ligne": "{numero} — {designation}",
@@ -165,10 +173,12 @@
     },
     "choisirCible": {
       "titre": "Que pointez-vous ?",
-      "description": "Choisissez une ligne qui vous est assignée, ou pointez sur l'OR entier.",
+      "retour": "Retour",
+      "description": "Choisissez une ligne de l'OR, ou pointez sur l'OR entier.",
       "orEntier": "OR entier (sans ligne précise)",
-      "lignesTitre": "Lignes qui vous sont assignées",
-      "aucuneLigne": "Aucune ligne ne vous est assignée sur cet OR — vous pouvez pointer sur l'OR entier."
+      "lignesTitre": "Lignes de l'OR",
+      "aucuneLigne": "Cet OR n'a aucune ligne pointable — vous pouvez pointer sur l'OR entier.",
+      "assigneeAutre": "Assignée à un autre technicien."
     },
     "erreur": {
       "titre": "Impossible de charger votre pointage"

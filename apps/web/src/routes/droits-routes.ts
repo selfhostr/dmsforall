@@ -298,3 +298,27 @@ export const ROLES_LECTURE_RENDEZ_VOUS: readonly RoleUtilisateur[] = [
   'admin',
   'technicien',
 ];
+
+/**
+ * Scanner de permis de circulation (mobile) — CAS DE FIGURE 1 CI-DESSUS (protection RÉELLE de
+ * route) : le scan ne fait qu'ouvrir un formulaire prérempli de création client/véhicule, il ne
+ * réussit donc que pour un rôle qui détient LES DEUX `client.creer` ET `vehicule.creer` côté API
+ * (`L958_CLIENT_ECRITURE`/`L960_VEHICULE_ECRITURE`, `apps/api/src/auth/matrice-droits.ts`) — sans
+ * quoi la soumission finale échoue systématiquement en `403`, un cul-de-sac après une photo prise
+ * et une saisie corrigée. MÊME LISTE, littéralement, que `ROLES_ECRITURE_VEHICULE`
+ * (`ecrans/vehicules/droits.ts`) : les deux droits sont accordés exactement aux mêmes cinq rôles
+ * dans la matrice API (`receptionnaire`/`chef_atelier`/`magasinier` explicitement, `direction`/
+ * `admin` par héritage de `chef_atelier`) — `technicien`, `comptable`, `vendeur` et `poste_atelier`
+ * n'ont NI l'un NI l'autre, jamais un seul des deux isolément dans ce dépôt.
+ *
+ * Consommée aussi par `composants/layout/useModeScanMobile.ts` (restriction mobile au scan seul,
+ * `composants/layout/` ne dépend pas d'`ecrans/*`, même doctrine que `ROLES_POINTAGE` ci-dessus) et
+ * par `navigation-modele.ts` pour l'onglet « Scanner » de l'entrée Clients & véhicules.
+ */
+export const ROLES_SCAN: readonly RoleUtilisateur[] = [
+  'admin',
+  'direction',
+  'receptionnaire',
+  'chef_atelier',
+  'magasinier',
+];

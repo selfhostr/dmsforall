@@ -23,16 +23,28 @@ import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { useDisponibiliteArticle } from '@/hooks/pieces/useDisponibiliteArticle';
 import { useModifierStockSite } from '@/hooks/pieces/useModifierStockSite';
+
+import { messageErreurMutation } from './messages-erreur-mutation';
 import { formaterDateHeure } from '@/lib/formats';
 
-import { formaterQuantiteMillieme, saisieVersSeuilMillieme } from './utils';
+import {
+  DialogueEmplacementStockArticle,
+  type CasierAModifier,
+} from './DialogueEmplacementStockArticle';
+import {
+  formaterQuantiteMillieme,
+  saisieVersSeuilMillieme,
+  texteEmplacementComplet,
+} from './utils';
 
 interface Props {
   readonly articleId: string;
   readonly stocksResume: readonly StockResumeArticle[];
   readonly sites: readonly SiteResume[];
-  /** `pieces.stock.modifier` (`ecrans/pieces/droits.ts::peutEcrireStockSite`) — sans ce droit,
-   *  aucun déclencheur de saisie du seuil (RP-12, #121), la colonne reste absente. */
+  /** `pieces.stock.modifier` (`ecrans/pieces/droits.ts::peutEcrireStockSite`) — sans ce droit, ni
+   *  la saisie du seuil de réapprovisionnement (RP-12, #121) ni celle du casier (0056) ne sont
+   *  proposées : MÊME droit sous-jacent, ces deux réglages de site partagent le même
+   *  `PATCH /articles/{id}/stock/{siteId}`. */
   readonly peutModifierStock: boolean;
 }
 
@@ -50,6 +62,7 @@ function nomSite(sites: readonly SiteResume[], siteId: string): string {
 export function PanneauStockArticle({ articleId, stocksResume, sites, peutModifierStock }: Props) {
   const { t } = useTranslation(['pieces', 'commun', 'erreurs']);
   const [siteDeplie, setSiteDeplie] = useState<string | null>(null);
+  const [casierOuvert, setCasierOuvert] = useState<CasierAModifier | null>(null);
 
   if (stocksResume.length === 0) {
     return (
@@ -76,40 +89,75 @@ export function PanneauStockArticle({ articleId, stocksResume, sites, peutModifi
               <TableHead>{t('pieces:stock.site')}</TableHead>
               <TableHead className="text-right">{t('pieces:stock.quantites.physique')}</TableHead>
               <TableHead className="text-right">{t('pieces:stock.quantites.disponible')}</TableHead>
+              <TableHead>{t('pieces:stock.quantites.emplacement')}</TableHead>
               {peutModifierStock ? <TableHead /> : null}
               <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
-            {stocksResume.map((stock) => (
-              <TableRow key={stock.siteId}>
-                <TableCell>{nomSite(sites, stock.siteId)}</TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formaterQuantiteMillieme(stock.quantitePhysiqueMillieme)}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formaterQuantiteMillieme(stock.quantiteDisponibleMillieme)}
-                </TableCell>
-                {peutModifierStock ? (
-                  <TableCell className="text-right">
-                    <ActionSeuilSite
-                      articleId={articleId}
-                      siteId={stock.siteId}
-                      nomSite={nomSite(sites, stock.siteId)}
-                    />
+            {stocksResume.map((stock) => {
+              const emplacementComplet = texteEmplacementComplet(t, stock);
+              return (
+                <TableRow key={stock.siteId}>
+                  <TableCell>{nomSite(sites, stock.siteId)}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formaterQuantiteMillieme(stock.quantitePhysiqueMillieme)}
                   </TableCell>
-                ) : null}
-                <TableCell className="text-right">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => setSiteDeplie(siteDeplie === stock.siteId ? null : stock.siteId)}
-                  >
-                    {t('pieces:reservations.disponibilite.titre')}
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+                  <TableCell className="text-right tabular-nums">
+                    {formaterQuantiteMillieme(stock.quantiteDisponibleMillieme)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-1">
+                      {emplacementComplet !== null ? (
+                        <span className="texte-libelle">{emplacementComplet}</span>
+                      ) : (
+                        <span className="texte-libelle text-muted-foreground">
+                          {t('pieces:emplacement.aucun')}
+                        </span>
+                      )}
+                      {peutModifierStock ? (
+                        <button
+                          type="button"
+                          className="w-fit texte-libelle text-primary underline-offset-2 hover:underline"
+                          onClick={() =>
+                            setCasierOuvert({
+                              articleId,
+                              siteId: stock.siteId,
+                              nomSite: nomSite(sites, stock.siteId),
+                              rayon: stock.rayon,
+                              tiroir: stock.tiroir,
+                              emplacement: stock.emplacement,
+                            })
+                          }
+                        >
+                          {t('pieces:emplacement.modifier')}
+                        </button>
+                      ) : null}
+                    </div>
+                  </TableCell>
+                  {peutModifierStock ? (
+                    <TableCell className="text-right">
+                      <ActionSeuilSite
+                        articleId={articleId}
+                        siteId={stock.siteId}
+                        nomSite={nomSite(sites, stock.siteId)}
+                      />
+                    </TableCell>
+                  ) : null}
+                  <TableCell className="text-right">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() =>
+                        setSiteDeplie(siteDeplie === stock.siteId ? null : stock.siteId)
+                      }
+                    >
+                      {t('pieces:reservations.disponibilite.titre')}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
 
@@ -121,6 +169,11 @@ export function PanneauStockArticle({ articleId, stocksResume, sites, peutModifi
           />
         ) : null}
       </CardContent>
+
+      <DialogueEmplacementStockArticle
+        casier={casierOuvert}
+        onFerme={() => setCasierOuvert(null)}
+      />
     </Card>
   );
 }
@@ -300,7 +353,7 @@ function ActionSeuilSite({ articleId, siteId, nomSite }: PropsActionSeuilSite) {
             ) : null}
             {modifier.isError ? (
               <p className="texte-libelle text-destructive" role="alert">
-                {messageErreur(modifier.error, t)}
+                {messageErreurMutation(modifier.error, t)}
               </p>
             ) : null}
 

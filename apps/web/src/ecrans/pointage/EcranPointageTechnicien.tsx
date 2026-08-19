@@ -19,15 +19,23 @@ import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useOrdreReparation } from '@/hooks/atelier/useOrdreReparation';
+import {
+  calculerCumulSecondesCible,
+  cibleCumulDepuisPointage,
+  useCumulsPointagesJour,
+} from '@/hooks/pointage/cumul-cible-jour';
 import { compterLignesAssigneesPointables } from '@/hooks/pointage/lignes-assignees';
 import { useArreterPointage } from '@/hooks/pointage/useArreterPointage';
 import { useDemarrerPointage } from '@/hooks/pointage/useDemarrerPointage';
+import { useDerniereCiblePointage } from '@/hooks/pointage/useDerniereCiblePointage';
 import { useMesOrdresAssignes } from '@/hooks/pointage/useMesOrdresAssignes';
 import { usePointageOuvertTechnicien } from '@/hooks/pointage/usePointageOuvertTechnicien';
 import { useSession } from '@/hooks/useSession';
 import { genererUuid } from '@/lib/uuid';
 
+import { BandeauReprisePointage } from './BandeauReprisePointage';
 import { CartePointageEnCours } from './CartePointageEnCours';
 import { DialogueChoixCiblePointage } from './DialogueChoixCiblePointage';
 import { peutDemarrerPointage } from './droits';
@@ -35,26 +43,27 @@ import { libelleActiviteIndirecte, libelleCiblePointageTechnicien } from './libe
 import { SelecteurOrOuvert } from './SelecteurOrOuvert';
 import { SelecteurSitePointage } from './SelecteurSitePointage';
 
-/** Cible productive mémorisée pour permettre une « reprise » directe après une pause (RM-116 : la
- *  pause est un arrêt + un nouveau départ ordinaire sur l'activité `pause`, PAS un troisième état —
- *  ce module retrouve la cible d'origine en la gardant côté client, le temps de l'onglet ouvert).
- *  Perdue au rechargement de la page : après un F5 pendant une pause, « Reprendre » n'est plus
- *  proposé et le technicien repasse par « Mes OR du jour », dégradation honnête plutôt qu'un état
- *  reconstruit à tort. */
-type CibleMemorisee =
-  | {
-      readonly type: 'ligne';
-      readonly ordreReparationId: string;
-      readonly ligneOrId: string;
-      readonly siteId: string;
-      readonly libelle: string;
-    }
-  | {
-      readonly type: 'or';
-      readonly ordreReparationId: string;
-      readonly siteId: string;
-      readonly libelle: string;
-    };
+/**
+ * Libellé RICHE (numéro d'OR + désignation de ligne) du geste qui vient TOUT JUSTE de démarrer ce
+ * pointage DEPUIS CET ÉCRAN — polish d'affichage UNIQUEMENT, à ne pas confondre avec la mémoire de
+ * reprise (voir `useDerniereCiblePointage` plus bas, désormais servie par le serveur, P-34).
+ *
+ * POURQUOI CE PETIT ÉTAT SURVIT à la bascule serveur : `useDemarrerPointage` pose un pointage
+ * OPTIMISTE dont `ordreReparationNumero`/`ligneOrDesignation` valent `null` (résolus par le serveur
+ * seulement — voir son en-tête), le temps que `requeteOrPointageActuel` (ou la vraie réponse
+ * `POST /pointages`) arrive. Sans repli, `libelleCiblePointageTechnicien` retomberait sur un texte
+ * générique (« OR (sans ligne précise) ») pendant cette fenêtre, un flash déjà corrigé (défaut 2)
+ * qu'il ne faut pas réintroduire. Ce repli est purement un choix d'AFFICHAGE synchrone connu du
+ * clic (`or.numero`/`ligne.designation` capturés par l'appelant) — il ne joue AUCUN rôle dans la
+ * reprise après une activité indirecte, qui vient maintenant exclusivement de
+ * `useDerniereCiblePointage`.
+ */
+interface CibleJusteChoisie {
+  readonly ordreReparationId: string;
+  /** `null` pour une cible « OR entier », même convention que `ReponsePointage.ligneOrId`. */
+  readonly ligneOrId: string | null;
+  readonly libelle: string;
+}
 
 function construireEntreeDemarrage(
   base: { readonly technicienId: string; readonly debutLe: string },
@@ -114,10 +123,33 @@ function construireEntreeDemarrage(
 /**
  * Écran de pointage du technicien — le plus important du module (voir le brief de livraison) :
  * voir ses OR du jour, démarrer/mettre en pause/reprendre/changer de cible/arrêter un pointage,
- * chrono qui défile. Pensé tablette d'atelier : peu de texte, cibles tactiles généreuses, un seul
- * état affiché à la fois (soit « en train de pointer », soit « à choisir quoi pointer », jamais
- * les deux mélangés — sauf pendant un « Changer », voir `changementCibleOuvert` plus bas, qui
- * superpose délibérément les deux le temps du choix).
+ * chrono qui défile. Pensé tablette d'atelier : peu de texte, cibles tactiles à 72 px minimum
+ * (RM-72tactile, voir la docstring de `CartePointageEnCours`), un seul état affiché à la fois
+ * (soit « en train de pointer », soit « à choisir quoi pointer », jamais les deux mélangés — sauf
+ * pendant un « Changer », voir `changementCibleOuvert` plus bas, qui superpose délibérément les
+ * deux le temps du choix ; « choisir quoi pointer » lui-même est désormais une vue PLEIN ÉCRAN,
+ * voir l'early return sur `orSelectionneId` plus bas, plus une modale flottante).
+ *
+ * REFONTE ERGONOMIQUE (14.08.2026, `docs/proposition-refonte-pointage.md`) : bandeau de reprise
+ * stationnaire en tête d'écran (`BandeauReprisePointage`) dès qu'une activité INDIRECTE
+ * QUELCONQUE est en cours (plus seulement `pause` — voir `reprisePossible` plus bas, partagé avec
+ * le bouton « Reprendre » de `CartePointageEnCours` : les deux ne divergent JAMAIS) ; cumul « deux
+ * nombres » du jour sur la cible affichée à côté du chrono (`hooks/pointage/cumul-cible-jour.ts`).
+ *
+ * MÉMOIRE DE LA CIBLE DE REPRISE — SOURCE SERVEUR (P-34, 14.08.2026) : la cible proposée par le
+ * bandeau/bouton « Reprendre » vient de `GET /pointages/dernier-du-jour`
+ * (`useDerniereCiblePointage`), plus d'un `useState` local. Cette bascule est le point structurant
+ * du module — voir `docs/proposition-refonte-pointage.md` §1.4/§7 : un état volatile ne pouvait
+ * JAMAIS fonctionner en mode borne (chaque identification PIN y recharge l'écran), et ne survivait
+ * pas non plus à un F5 en mode personnel. Trois états explicites de cette requête : en chargement
+ * (`derniereCible.isPending`, `cibleReprise` alors `undefined` -> `reprisePossible` reste `false`,
+ * le bandeau n'apparaît donc QU'UNE FOIS la réponse connue, jamais avant — aucun sursaut de mise en
+ * page) ; vide (`cibleReprise === null`, cas NORMAL, pas une erreur -> pas de bandeau) ; erreur
+ * (`derniereCible.isError`, `cibleReprise` reste `undefined` -> repli identique au chargement,
+ * SILENCIEUX : ne pas pouvoir reprendre n'empêche jamais de démarrer un nouveau pointage, aucun
+ * `EtatErreur` dédié pour ce complément non bloquant, même doctrine que `cumulsJour` ci-dessous).
+ * Invalidée après CHAQUE démarrage et arrêt (`useDemarrerPointage`/`useArreterPointage`,
+ * `onSettled`) — le bandeau reflète donc la réalité sans recharger la page.
  *
  * `technicienId` = l'utilisateur SESSION courant, jamais un paramètre de route ni de requête :
  * chaque technicien pointe pour lui-même (voir l'en-tête de `pointage.api.ts` — le PIN décrit par
@@ -154,7 +186,9 @@ export function EcranPointageTechnicien() {
   const siteId = siteParam ?? (sitesActifs.length === 1 ? sitesActifs[0]?.id : undefined);
 
   const [orSelectionneId, setOrSelectionneId] = useState<string | undefined>(undefined);
-  const [dernierCible, setDernierCible] = useState<CibleMemorisee | undefined>(undefined);
+  const [cibleJusteChoisie, setCibleJusteChoisie] = useState<CibleJusteChoisie | undefined>(
+    undefined,
+  );
   const [erreurAction, setErreurAction] = useState<string | undefined>(undefined);
   const [avertissementAction, setAvertissementAction] = useState<string | undefined>(undefined);
   const [enChainage, setEnChainage] = useState(false);
@@ -174,22 +208,30 @@ export function EcranPointageTechnicien() {
   const mesOrdres = useMesOrdresAssignes(technicien?.id);
   const requeteOrSelectionne = useOrdreReparation(orSelectionneId);
   // Défaut 2 (repli après F5) : le document OR de la cible du pointage OUVERT, dérivé du
-  // `ordreReparationId` renvoyé par l'API elle-même (`pointageOuvert.data`), jamais de la mémoire
-  // locale `dernierCible` — voir `libelleCiblePointageTechnicien` (`./libelles.ts`) pour le détail.
-  // `undefined` désactive la requête (activité indirecte, ou pointage pas encore chargé).
+  // `ordreReparationId` renvoyé par l'API elle-même (`pointageOuvert.data`), jamais d'un état
+  // client — voir `libelleCiblePointageTechnicien` (`./libelles.ts`) pour le détail. `undefined`
+  // désactive la requête (activité indirecte, ou pointage pas encore chargé).
   const requeteOrPointageActuel = useOrdreReparation(
     pointageOuvert.data?.ordreReparationId ?? undefined,
   );
+  // Point 6 (« deux nombres ») : cumul du jour sur la cible du SEGMENT COURANT (celui affiché par
+  // `CartePointageEnCours`, qui peut être `indirect`) — voir l'en-tête de `cumul-cible-jour.ts`.
+  // NE COUVRE PLUS le cumul de la cible de REPRISE (bandeau) : `GET /pointages/dernier-du-jour`
+  // rend désormais directement `cumulSecondesDuJour` sur sa cible, voir `derniereCible` ci-dessous
+  // — deux calculs distincts, jamais fusionnés en un seul par accident (source différente de
+  // chacun : liste de pointages ici, cible unique côté serveur là-bas).
+  const cumulsJour = useCumulsPointagesJour(technicien?.id);
+  // Mémoire de reprise SERVEUR (P-34) — voir la docstring de tête pour les trois états explicites.
+  const derniereCible = useDerniereCiblePointage(technicien?.id);
 
   const demarrer = useDemarrerPointage();
   const arreter = useArreterPointage();
 
   if (!technicien) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('pointage:technicien.titreEcran')}</h1>
+      <GabaritEcran titre={t('pointage:technicien.titreEcran')}>
         <EtatChargement lignes={4} />
-      </div>
+      </GabaritEcran>
     );
   }
 
@@ -249,25 +291,22 @@ export function EcranPointageTechnicien() {
       // Referme le sélecteur de changement de cible, s'il était ouvert — no-op sinon (flux normal
       // « Mes OR »/activités quand aucun pointage n'était en cours).
       setChangementCibleOuvert(false);
+      // Polish d'affichage UNIQUEMENT (voir la docstring de `CibleJusteChoisie`) — la mémoire de
+      // REPRISE, elle, vient désormais du serveur (`useDerniereCiblePointage`, invalidée par
+      // `useDemarrerPointage`/`useArreterPointage`), jamais posée ici.
       if (cible.nature === 'productif_ligne') {
-        setDernierCible({
-          type: 'ligne',
+        setCibleJusteChoisie({
           ordreReparationId: cible.ordreReparationId,
           ligneOrId: cible.ligneOrId,
-          siteId: cible.siteId,
           libelle: cible.libelle,
         });
       } else if (cible.nature === 'productif_or') {
-        setDernierCible({
-          type: 'or',
+        setCibleJusteChoisie({
           ordreReparationId: cible.ordreReparationId,
-          siteId: cible.siteId,
+          ligneOrId: null,
           libelle: cible.libelle,
         });
       }
-      // Une activité indirecte (y compris la pause) ne remplace JAMAIS `dernierCible` : c'est
-      // exactement la mémoire qui permet à « Reprendre » de retrouver la cible productive
-      // d'avant la pause.
     } catch (erreur) {
       setErreurAction(messageErreur(erreur, t));
       throw erreur;
@@ -315,7 +354,6 @@ export function EcranPointageTechnicien() {
         entree: { finLe: new Date().toISOString() },
         idempotencyKey: genererCleIdempotence(),
       });
-      setDernierCible(undefined);
       setAvertissementAction(undefined);
       // Un pointage « Changer » resté ouvert n'a plus de sens une fois qu'il n'y a plus AUCUN
       // pointage en cours — sans ce reset, un « Changer » démarré puis un « Arrêter » explicite
@@ -352,7 +390,8 @@ export function EcranPointageTechnicien() {
   }
 
   async function handleReprendre() {
-    if (!pointageOuvert.data || !dernierCible) return;
+    const cible = derniereCible.data;
+    if (!pointageOuvert.data || !cible) return;
     setErreurAction(undefined);
     setEnChainage(true);
     const p = pointageOuvert.data;
@@ -364,20 +403,24 @@ export function EcranPointageTechnicien() {
         entree: { finLe: new Date().toISOString() },
         idempotencyKey: genererCleIdempotence(),
       });
-      if (dernierCible.type === 'ligne') {
+      // `cible.ligneOrId` n'est `string | null` que par la forme du contrat (`null ⇔ type ===
+      // "or"", garanti côté serveur) — vérifié quand même à l'exécution plutôt que supposé : un
+      // contrat de LECTURE reste un contrat, pas une preuve (même doctrine que
+      // `libelleCiblePointage`, `./libelles.ts`), repli honnête sur « OR entier » si jamais démenti.
+      if (cible.type === 'ligne' && cible.ligneOrId) {
         await demarrerEtMemoriser({
           nature: 'productif_ligne',
-          ordreReparationId: dernierCible.ordreReparationId,
-          ligneOrId: dernierCible.ligneOrId,
-          siteId: dernierCible.siteId,
-          libelle: dernierCible.libelle,
+          ordreReparationId: cible.ordreReparationId,
+          ligneOrId: cible.ligneOrId,
+          siteId: cible.siteId,
+          libelle: cible.libelle,
         });
       } else {
         await demarrerEtMemoriser({
           nature: 'productif_or',
-          ordreReparationId: dernierCible.ordreReparationId,
-          siteId: dernierCible.siteId,
-          libelle: dernierCible.libelle,
+          ordreReparationId: cible.ordreReparationId,
+          siteId: cible.siteId,
+          libelle: cible.libelle,
         });
       }
     } catch (erreur) {
@@ -391,32 +434,51 @@ export function EcranPointageTechnicien() {
 
   if (pointageOuvert.isPending || mesOrdres.isPending) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="texte-titre-page">{t('pointage:technicien.titreEcran')}</h1>
+      <GabaritEcran titre={t('pointage:technicien.titreEcran')}>
         <EtatChargement lignes={5} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (pointageOuvert.isError) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="texte-titre-page">{t('pointage:technicien.titreEcran')}</h1>
+      <GabaritEcran titre={t('pointage:technicien.titreEcran')}>
         <EtatErreur
           titre={t('pointage:technicien.erreur.titre')}
           description={messageErreur(pointageOuvert.error, t)}
           onReessayer={() => void pointageOuvert.refetch()}
         />
-      </div>
+      </GabaritEcran>
+    );
+  }
+
+  // Vue plein écran « Que pointez-vous ? » (point 3) : remplace ENTIÈREMENT l'écran, qu'on vienne
+  // du flux normal (« Mes OR »/« Toutes les OR ouvertes ») ou du correctif #117 (« Changer »
+  // pendant un pointage en cours) — les deux chemins passent par le même `setOrSelectionneId`.
+  // Placé APRÈS les gardes de chargement/erreur ci-dessus (l'utilisateur ne peut matériellement
+  // choisir un OR qu'une fois l'écran normal déjà rendu), mais AVANT tout le reste du rendu.
+  // Titre porté par CE gabarit (pas par `DialogueChoixCiblePointage`, qui ne pose plus son propre
+  // `h1` — un seul niveau 1 par état d'écran, chantier « titres doublés »).
+  if (orSelectionneId) {
+    return (
+      <GabaritEcran titre={t('pointage:technicien.choisirCible.titre')}>
+        <DialogueChoixCiblePointage
+          onFermer={() => setOrSelectionneId(undefined)}
+          technicienId={technicienId}
+          requeteOr={requeteOrSelectionne}
+          onChoisirLigne={handleChoisirLigne}
+          onChoisirOrEntier={handleChoisirOrEntier}
+          enDemarrage={demarrer.isPending}
+        />
+      </GabaritEcran>
     );
   }
 
   const pointageActuel = pointageOuvert.data;
 
-  // Libellé de la cible EN COURS : la mémoire (`dernierCible`) si elle correspond exactement au
-  // pointage productif actuellement ouvert (le cas normal, démarré depuis CET écran — évite
-  // d'attendre l'aller-retour réseau de `requeteOrPointageActuel` alors que l'écran connaît déjà
-  // le numéro d'OR et la désignation de ligne) ; sinon dérivé de la RÉPONSE API du document OR
+  // Libellé de la cible EN COURS : le geste qui vient d'être fait DEPUIS CET ÉCRAN
+  // (`cibleJusteChoisie`, polish d'affichage — voir sa docstring) s'il correspond exactement au
+  // pointage productif actuellement ouvert ; sinon dérivé de la RÉPONSE API du document OR
   // (`requeteOrPointageActuel`, voir sa déclaration plus haut) — jamais un état local qui ne
   // survivrait pas à un F5 (défaut 2 : avant ce correctif, un rechargement pendant un pointage en
   // cours perdait la cible et retombait sur le texte générique « OR (sans ligne précise) » alors
@@ -424,15 +486,11 @@ export function EcranPointageTechnicien() {
   let libelleCibleActuelle = pointageActuel
     ? libelleCiblePointageTechnicien(pointageActuel, requeteOrPointageActuel.data, t)
     : '';
-  if (pointageActuel && dernierCible) {
+  if (pointageActuel && cibleJusteChoisie) {
     const memeCible =
-      (dernierCible.type === 'ligne' &&
-        pointageActuel.ordreReparationId === dernierCible.ordreReparationId &&
-        pointageActuel.ligneOrId === dernierCible.ligneOrId) ||
-      (dernierCible.type === 'or' &&
-        pointageActuel.nature === 'productif_or' &&
-        pointageActuel.ordreReparationId === dernierCible.ordreReparationId);
-    if (memeCible) libelleCibleActuelle = dernierCible.libelle;
+      pointageActuel.ordreReparationId === cibleJusteChoisie.ordreReparationId &&
+      pointageActuel.ligneOrId === cibleJusteChoisie.ligneOrId;
+    if (memeCible) libelleCibleActuelle = cibleJusteChoisie.libelle;
   }
 
   // Correctif #148 : repli automatique quand « Mes OR du jour » est chargée et vide, sauf choix
@@ -470,7 +528,7 @@ export function EcranPointageTechnicien() {
                   type="button"
                   disabled={!peutDemarrerPointage(role) || enTraitement}
                   onClick={() => setOrSelectionneId(or.id)}
-                  className="flex min-h-[64px] flex-col items-start gap-1 rounded-lg border p-4 text-left transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex min-h-[72px] flex-col items-start gap-1 rounded-lg border p-4 text-left transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="flex flex-col gap-1">
                     <span className="font-medium">{or.numero}</span>
@@ -501,7 +559,8 @@ export function EcranPointageTechnicien() {
           <Button
             type="button"
             variant="ghost"
-            size="sm"
+            size="lg"
+            className="min-h-[72px]"
             onClick={() => setToutesOrOuvertesManuel(!toutesOrOuvertesVisible)}
           >
             {toutesOrOuvertesVisible
@@ -540,7 +599,7 @@ export function EcranPointageTechnicien() {
                   key={activite}
                   size="lg"
                   variant="outline"
-                  className="h-16 text-base"
+                  className="min-h-[72px] text-base"
                   disabled={!peutDemarrerPointage(role) || enTraitement}
                   onClick={() => handleDemarrerActiviteIndirecte(activite)}
                 >
@@ -554,9 +613,37 @@ export function EcranPointageTechnicien() {
     </>
   );
 
+  // Point 5 (bandeau de reprise) : possible dès qu'une activité INDIRECTE quelconque est en cours
+  // ET qu'une cible productive est mémorisée CÔTÉ SERVEUR (`derniereCible`, P-34) — plus seulement
+  // `pause` (voir la docstring de tête, « étendue de la reprise »). `cible` reste `undefined` tant
+  // que la requête n'a pas abouti OU si elle échoue (repli silencieux, voir la docstring de tête) —
+  // dans les deux cas `reprisePossible` vaut `false`, jamais de bandeau prématuré ni d'erreur
+  // affichée pour ce complément non bloquant. Même condition que `onReprendre` de
+  // `CartePointageEnCours` plus bas : les deux affichages du même geste ne doivent JAMAIS diverger.
+  const cibleReprise = derniereCible.data;
+  const reprisePossible = pointageActuel?.nature === 'indirect' && Boolean(cibleReprise);
+
+  // Point 6 (« deux nombres ») : cumul du jour sur la cible du segment COURANT, dérivé de
+  // `cumulsJour` (une seule requête, voir sa déclaration). `undefined` tant que la requête n'a pas
+  // abouti ou que la nature du pointage ne se résout à aucune cible connue (repli défensif) —
+  // `CartePointageEnCours` traite déjà `undefined`/`0` comme « rien à afficher ».
+  const cibleSegmentCourant = pointageActuel ? cibleCumulDepuisPointage(pointageActuel) : undefined;
+  const cumulSegmentCourant =
+    cibleSegmentCourant && cumulsJour.pointages
+      ? calculerCumulSecondesCible(cumulsJour.pointages, cibleSegmentCourant)
+      : undefined;
+
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="texte-titre-page">{t('pointage:technicien.titreEcran')}</h1>
+    <GabaritEcran titre={t('pointage:technicien.titreEcran')}>
+      {reprisePossible && pointageActuel && cibleReprise ? (
+        <BandeauReprisePointage
+          cibleLibelle={cibleReprise.libelle}
+          interrompuDepuisLe={pointageActuel.debutLe}
+          cumulAujourdhuiSecondes={cibleReprise.cumulSecondesDuJour}
+          onReprendre={() => void handleReprendre()}
+          enTraitement={enTraitement}
+        />
+      ) : null}
 
       {pointageActuel ? (
         <CartePointageEnCours
@@ -568,13 +655,7 @@ export function EcranPointageTechnicien() {
               ? () => void handlePause()
               : undefined
           }
-          onReprendre={
-            pointageActuel.nature === 'indirect' &&
-            pointageActuel.activiteIndirecte === 'pause' &&
-            dernierCible
-              ? () => void handleReprendre()
-              : undefined
-          }
+          onReprendre={reprisePossible ? () => void handleReprendre() : undefined}
           onChanger={
             peutDemarrerPointage(role)
               ? () => setChangementCibleOuvert((valeur) => !valeur)
@@ -583,6 +664,7 @@ export function EcranPointageTechnicien() {
           enTraitement={enTraitement}
           messageErreur={erreurAction}
           avertissement={avertissementAction}
+          cumulAujourdhuiSecondes={cumulSegmentCourant}
         />
       ) : null}
 
@@ -601,16 +683,6 @@ export function EcranPointageTechnicien() {
           {blocChoixCible}
         </div>
       ) : null}
-
-      <DialogueChoixCiblePointage
-        ouvert={Boolean(orSelectionneId)}
-        onFermer={() => setOrSelectionneId(undefined)}
-        technicienId={technicien.id}
-        requeteOr={requeteOrSelectionne}
-        onChoisirLigne={handleChoisirLigne}
-        onChoisirOrEntier={handleChoisirOrEntier}
-        enDemarrage={demarrer.isPending}
-      />
-    </div>
+    </GabaritEcran>
   );
 }

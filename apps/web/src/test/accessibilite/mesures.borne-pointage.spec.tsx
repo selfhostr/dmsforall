@@ -49,6 +49,7 @@ const IDENTIFICATION_MARCO: ReponseIdentificationPin = {
   technicienId: 'technicien-marco',
   prenom: 'Marco',
   nom: 'Rossi',
+  siteId: 'site-1',
 };
 
 function pagePointages(donnees: readonly ReponsePointage[]): PageCurseur<ReponsePointage> {

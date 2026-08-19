@@ -110,6 +110,9 @@ export function versStockResumeArticle(ligne: LigneStockArticle): StockResumeArt
     siteId: ligne.siteId,
     quantitePhysiqueMillieme: ligne.quantitePhysiqueMillieme,
     quantiteDisponibleMillieme: ligne.quantitePhysiqueMillieme - ligne.quantiteReserveeMillieme,
+    emplacement: ligne.emplacement,
+    rayon: ligne.rayon,
+    tiroir: ligne.tiroir,
   };
 }
 
@@ -121,6 +124,8 @@ export function versStockResponse(ligne: LigneStockArticle): ReponseStockArticle
     quantiteReserveeMillieme: ligne.quantiteReserveeMillieme,
     quantiteDisponibleMillieme: ligne.quantitePhysiqueMillieme - ligne.quantiteReserveeMillieme,
     emplacement: ligne.emplacement,
+    rayon: ligne.rayon,
+    tiroir: ligne.tiroir,
     stockMinimumMillieme: ligne.stockMinimumMillieme,
     quantiteCommandeStandardMillieme: ligne.quantiteCommandeStandardMillieme,
     modifieLe: enDate(ligne.modifieLe).toISOString(),
@@ -230,13 +235,29 @@ export function versMouvementResponse(
   };
 }
 
-export function versReservationResponse(ligne: LigneReservationPiece): ReponseReservationPiece {
+/**
+ * `ligne` porte TOUJOURS `articleNumero`/`articleDesignation`/`ordreReparationNumero` en pratique
+ * (jointure posée par `service-reservation.ts::COLONNES_RESERVATION_ALIASEES`/
+ * `JOINTURES_RESERVATION`) — non modélisé dans `LigneReservationPiece` (Drizzle, `reservation_piece`
+ * seule) : un type structurel local plutôt qu'importer le type enrichi propre à `service-reservation.ts`
+ * évite un couplage mappers ↔ service qui n'existe nulle part ailleurs dans ce fichier.
+ */
+export function versReservationResponse(
+  ligne: LigneReservationPiece & {
+    readonly articleNumero: string;
+    readonly articleDesignation: string;
+    readonly ordreReparationNumero: string;
+  },
+): ReponseReservationPiece {
   return {
     id: ligne.id,
     articleId: ligne.articleId,
+    articleNumero: ligne.articleNumero,
+    articleDesignation: ligne.articleDesignation,
     siteId: ligne.siteId,
     ligneOrId: ligne.ligneOrId,
     ordreReparationId: ligne.ordreReparationId,
+    ordreReparationNumero: ligne.ordreReparationNumero,
     quantiteMillieme: ligne.quantiteMillieme,
     statut: ligne.statut,
     creeLe: enDate(ligne.creeLe).toISOString(),
@@ -268,6 +289,8 @@ export interface DonneesRechercheComptoir {
   readonly quantiteReserveeMillieme: number | null;
   readonly suiviQuelquePart: boolean;
   readonly emplacement: string | null;
+  readonly rayon: string | null;
+  readonly tiroir: string | null;
   readonly estEchangeStandard: boolean;
   readonly montantConsigneTtcCentimes: number | null;
 }
@@ -292,6 +315,8 @@ export function versRechercheComptoirResultat(
       : 0,
     statutSuivi,
     emplacement: donnees.emplacement,
+    rayon: donnees.rayon,
+    tiroir: donnees.tiroir,
     estEchangeStandard: donnees.estEchangeStandard,
     montantConsigneTtcCentimes: donnees.montantConsigneTtcCentimes,
   };

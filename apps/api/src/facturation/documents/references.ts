@@ -156,6 +156,36 @@ export async function chargerAdresseFacturationStructuree(
 }
 
 /**
+ * `id` de la ligne `client_adresse` que `chargerAdresseFacturationStructuree` retiendrait
+ * (`facturation` en priorité, sinon `principale`) — SANS l'exigence « champs complets » de cette
+ * dernière (une adresse encore incomplète reste une cible valide pour une CORRECTION qui vient
+ * justement la compléter). `null` si le client n'a encore AUCUNE adresse `facturation`/`principale`
+ * active : `ServiceCorrectionFacture.reporterAdresseSurFicheTx` n'écrase alors rien plutôt que
+ * d'inventer une ligne — geste volontairement absent (RF-14 ne le demande pas), signalé au rapport
+ * de livraison de la correction de facture (14.08.2026).
+ */
+export async function chargerIdAdresseFacturationActive(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  clientId: string,
+): Promise<string | null> {
+  const lignes = await tx
+    .select({ id: clientAdresse.id, type: clientAdresse.type })
+    .from(clientAdresse)
+    .where(
+      and(
+        eq(clientAdresse.tenantId, ctx.tenantId),
+        eq(clientAdresse.clientId, clientId),
+        eq(clientAdresse.actif, true),
+        or(eq(clientAdresse.type, 'facturation'), eq(clientAdresse.type, 'principale')),
+      ),
+    );
+  const retenue =
+    lignes.find((l) => l.type === 'facturation') ?? lignes.find((l) => l.type === 'principale');
+  return retenue?.id ?? null;
+}
+
+/**
  * Conditions commerciales du client EN VIGUEUR à la date `le` (RM-07/AC-12/PF-04) — copie locale
  * du patron `atelier/references.ts::chargerConditionsEnVigueur` (même anti-couplage inter-experts
  * que le reste de ce fichier : lecture directe du schéma Drizzle partagé, jamais un appel au

@@ -1,4 +1,5 @@
-# Déploiement en production
+Déploiement en production
+=========================
 
 Ce document décrit la mise en production de DFA avec `docker-compose.yml` (racine du
 dépôt) : première installation pas à pas, déploiements suivants, migrations, sauvegardes,
@@ -12,7 +13,9 @@ complexifie (haute disponibilité, orchestrateur, réplication, serveur dédié 
 quand un besoin réel l'impose — pas avant. Le §2 est franc sur ce que ce choix coûte et sur le
 moment où il faudra le reconsidérer : ce n'est pas gratuit, et le prétendre serait malhonnête.
 
-## 0. Décisions ouvertes — à trancher par @laupernoe avant la mise en production
+0. Décisions ouvertes — à trancher par @laupernoe avant la mise en production
+
+---
 
 Liste consolidée de tout ce qui, dans ce document, dépend d'un choix pas encore fait (matériel
 réel, nom de domaine, fournisseur) — pour ne pas avoir à le chasser dans les 800 lignes qui
@@ -48,7 +51,9 @@ suivent. À tenir à jour à chaque révision plutôt que laissé à dériver si
   retenu ; à vérifier explicitement avant le premier déploiement, jamais supposés actifs par
   défaut.
 
-## 1. Vue d'ensemble
+1. Vue d'ensemble
+
+---
 
 ```
 Internet
@@ -103,14 +108,16 @@ Points structurants, tous déjà actés dans le code livré et repris tels quels
   `docker-compose.yml` de dev. Il faut donc un checkout du dépôt sur le serveur (ex.
   `git clone --branch <tag> --depth 1`), pas seulement une copie de ce fichier — voir §4.
 
-## 2. Hébergement (nLPD) — auto-hébergement, ce que ça change vraiment
+2. Hébergement (nLPD) — auto-hébergement, ce que ça change vraiment
+
+---
 
 DFA traite des données de garages et de leurs clients (personnes physiques) : le nLPD impose des
 données hébergées en Suisse, chiffrées au repos et en transit. **Décision de @laupernoe : le ou les
 serveurs sont les siens**, pas une offre managée. Ce paragraphe est honnête sur ce que ça implique
 — pas seulement techniquement, mais opérationnellement pour une personne seule.
 
-### 2.1 Où placer les serveurs
+**2.1 Où placer les serveurs**
 
 « Ses propres serveurs » n'implique pas forcément « chez lui ». Deux variantes très différentes
 en pratique :
@@ -138,14 +145,14 @@ se négocient pas contre une économie d'hébergement. Le reste de ce document (
 identiquement dans les deux cas ; §5 (TLS) documente spécifiquement le risque supplémentaire de la
 seconde variante.
 
-### 2.2 Ce que @laupernoe gagne à ne plus dépendre d'un hébergeur
+**2.2 Ce que @laupernoe gagne à ne plus dépendre d'un hébergeur**
 
 - Coût prévisible et généralement plus bas qu'une base + un cache managés facturés séparément.
 - Contrôle total : versions exactes, réglages fins, pas de fenêtre de maintenance imposée par un
   tiers, pas de migration forcée vers une nouvelle génération d'offre.
 - Aucune dépendance à la disponibilité ou aux CGU d'un service tiers pour la donnée elle-même.
 
-### 2.3 Ce que @laupernoe perd — à dire sans détour
+**2.3 Ce que @laupernoe perd — à dire sans détour**
 
 - **Redondance et haute disponibilité.** Une base managée réplique en général vers un nœud de
   secours et bascule automatiquement en cas de panne matérielle. Ici, un seul conteneur
@@ -176,7 +183,7 @@ seconde variante.
   temps, même quand c'est automatisé, parce qu'un automatisme non supervisé qui échoue
   silencieusement équivaut à ne pas l'avoir fait.
 
-### 2.4 Chiffrement au repos — une responsabilité qui descend d'un cran
+**2.4 Chiffrement au repos — une responsabilité qui descend d'un cran**
 
 Un volume Docker nommé (`dfa_postgres_data`, `dfa_redis_data`, `caddy_data`) est un répertoire
 ordinaire sous `/var/lib/docker/volumes/` : **aucun chiffrement de son propre fait**. Le
@@ -193,9 +200,11 @@ chiffrement au repos exigé par le nLPD doit venir d'une couche **en dessous** d
   (courant chez les offres cloud sérieuses), le documenter explicitement plutôt que de supposer
   qu'il est actif — vérifier, ne jamais deviner.
 
-## 3. Prérequis avant la toute première mise en production
+3. Prérequis avant la toute première mise en production
 
-### 3.1 Publier des images taguées
+---
+
+**3.1 Publier des images taguées**
 
 `docker-compose.yml` exige `API_IMAGE`/`WEB_IMAGE` pointant vers des images déjà
 construites. **`.github/workflows/publier-images.yml` automatise cette publication** (une version
@@ -230,7 +239,8 @@ poussé de tag) : la même construction peut être reproduite à la main depuis 
 identique à ce que fait le workflow :
 
 ```bash
-# Depuis la racine du dépôt (contexte de build obligatoire, voir les Dockerfiles)
+Depuis la racine du dépôt (contexte de build obligatoire, voir les Dockerfiles)
+===============================================================================
 docker build -f apps/api/Dockerfile -t ghcr.io/<org>/dfa-api:v0.1.0 .
 docker build -f apps/web/Dockerfile -t ghcr.io/<org>/dfa-web:v0.1.0 .
 
@@ -239,7 +249,7 @@ docker push ghcr.io/<org>/dfa-api:v0.1.0
 docker push ghcr.io/<org>/dfa-web:v0.1.0
 ```
 
-### 3.2 PostgreSQL — rôles et mots de passe (auto-hébergé)
+**3.2 PostgreSQL — rôles et mots de passe (auto-hébergé)**
 
 Contrairement à une base managée, **il n'y a plus de compte admin d'hébergeur à qui parler** :
 Postgres tourne dans le conteneur `postgres` de `docker-compose.yml`, sur le même hôte.
@@ -304,7 +314,7 @@ Postgres tourne dans le conteneur `postgres` de `docker-compose.yml`, sur le mê
    de passe de dev vers des valeurs fortes, décrite ci-dessus. Voir aussi §8 (rotation
    périodique) et §11 (rejeu de `01-roles.sql` sur un volume déjà initialisé).
 
-### 3.3 Redis (auto-hébergé)
+**3.3 Redis (auto-hébergé)**
 
 Même principe : le conteneur `redis` de `docker-compose.yml` tourne avec `--requirepass`,
 mot de passe lu depuis `REDIS_PASSWORD` (`.env.production`) — à générer fort dès le premier
@@ -314,7 +324,7 @@ Compose). Une incohérence entre `REDIS_PASSWORD` et `REDIS_URL` fait échouer l
 l'API au démarrage avec une erreur claire dans `docker compose logs api`, jamais un échec
 silencieux.
 
-### 3.4 Serveur applicatif
+**3.4 Serveur applicatif**
 
 Un serveur (loué en datacenter suisse ou physique, voir §2.1) avec Docker Engine + le plugin
 Compose installés. Firewall : seuls les ports **80**, **443** (Caddy) et **22** (SSH, idéalement
@@ -343,14 +353,14 @@ déploiement, pas après :
   marge à `api`/`web`/`redis`/`reverse-proxy` sur le même hôte. À recalculer dès que le gabarit
   réel est connu — voir §3.7.
 
-### 3.5 DNS
+**3.5 DNS**
 
 Pointer l'enregistrement A (et AAAA si IPv6) du domaine choisi (ex. `app.dmsforall.example`) vers l'IP
 publique du serveur, **avant** de démarrer `reverse-proxy` : Caddy négocie un certificat Let's
 Encrypt au démarrage via le challenge HTTP-01, qui échoue si le DNS ne résout pas encore vers le
 serveur. Voir §5 pour tout ce qui peut empêcher ce challenge de réussir en auto-hébergement.
 
-### 3.6 Fichier `.env.production`
+**3.6 Fichier `.env.production`**
 
 Sur le serveur, à côté de `docker-compose.yml`, créer `.env.production` (jamais commité —
 déjà couvert par `.env.*` dans `.gitignore`) avec :
@@ -395,7 +405,7 @@ GUARD` d'authentification, voir le commentaire de la variable dans `.env.example
 Permissions du fichier sur le serveur : `chmod 600 .env.production`, lisible uniquement par
 l'utilisateur qui lance `docker compose`.
 
-### 3.7 Dimensionnement et montée de version majeure de Postgres
+**3.7 Dimensionnement et montée de version majeure de Postgres**
 
 Les réglages `command:` du service `postgres` (`shared_buffers`, `effective_cache_size`,
 `max_connections`, etc., voir `docker-compose.yml`) sont des valeurs de départ pour un
@@ -439,35 +449,49 @@ plus délicat à opérer correctement en conteneur). Procédure minimale sûre p
 6. Garder l'ancien volume intact jusqu'à confirmation que tout fonctionne en production sur la
    nouvelle version (au moins quelques jours), avant de le supprimer.
 
-## 4. Première mise en production, pas à pas
+7. Première mise en production, pas à pas
+
+---
 
 Une fois §2 et §3 complétés (serveur choisi et préparé, images publiées, DNS résolu,
 `.env.production` rempli avec des mots de passe _provisoires_ de dev pour Postgres/Redis à ce
 stade — ils seront changés à l'étape 2 ci-dessous) :
 
 ```bash
-# 1. Récupérer le dépôt sur le serveur — un `git clone` complet, pas seulement une copie de
-#    docker-compose.yml : ce fichier monte désormais docker/postgres/init/01-roles.sql.
+1. Récupérer le dépôt sur le serveur — un `git clone` complet, pas seulement une copie de
+=========================================================================================
+   docker-compose.yml : ce fichier monte désormais docker/postgres/init/01-roles.sql.
+==========================================================================================
 git clone --branch <tag> --depth 1 <url-du-depot> /opt/dfa
 cd /opt/dfa
-#    Créer .env.production ici (§3.6), chmod 600.
+   Créer .env.production ici (§3.6), chmod 600.
+===============================================
 
-# 2. Démarrer UNIQUEMENT postgres/redis d'abord (pas encore api/web/reverse-proxy), pour changer
-#    les mots de passe avant toute exposition — voir §3.2/§3.3 pour le détail des commandes.
+2. Démarrer UNIQUEMENT postgres/redis d'abord (pas encore api/web/reverse-proxy), pour changer
+==============================================================================================
+   les mots de passe avant toute exposition — voir §3.2/§3.3 pour le détail des commandes.
+==========================================================================================
 docker compose -f docker-compose.yml --env-file .env.production up -d postgres redis
-#    ... rotation des mots de passe dfa/dfa_migrator/dfa_app/redis (§3.2, §3.3) ...
-#    ... mettre à jour .env.production avec les valeurs fortes ...
+   ... rotation des mots de passe dfa/dfa_migrator/dfa_app/redis (§3.2, §3.3) ...
+=================================================================================
+   ... mettre à jour .env.production avec les valeurs fortes ...
+================================================================
 
-# 3. Appliquer les migrations AVANT de démarrer l'API — la base est vide au tout premier
-#    déploiement, l'API refuserait de démarrer (verifierPostureRls() exige des tables déjà
-#    migrées).
+3. Appliquer les migrations AVANT de démarrer l'API — la base est vide au tout premier
+======================================================================================
+   déploiement, l'API refuserait de démarrer (verifierPostureRls() exige des tables déjà
+========================================================================================
+   migrées).
+============
 docker compose -f docker-compose.yml --env-file .env.production \
   --profile migration run --rm migrate
 
-# 4. Démarrer le reste de la stack.
+4. Démarrer le reste de la stack.
+=================================
 docker compose -f docker-compose.yml --env-file .env.production up -d
 
-# 5. Vérifier.
+5. Vérifier.
+============
 docker compose -f docker-compose.yml --env-file .env.production ps
 curl -s https://<domaine>/api/v1/sante        # {"statut":"ok","version":"..."}
 curl -s https://<domaine>/api/v1/sante/pret   # {"base":"ok","redis":"ok"}
@@ -485,7 +509,9 @@ ferait cette erreur en production.
 Créer le premier compte réel (celui du premier garage) par un autre canal que le seed de démo —
 hors périmètre de ce document, voir la spécification métier de l'étape concernée.
 
-## 5. TLS et joignabilité publique
+5. TLS et joignabilité publique
+
+---
 
 Caddy (`reverse-proxy`) gère lui-même le certificat Let's Encrypt (HTTPS automatique, challenge
 HTTP-01) — ça n'a jamais changé, avec ou sans base managée. **Ce qui change réellement en
@@ -520,7 +546,9 @@ de sécurité navigateur sur le domaine — traiter ça comme un incident P1 (vo
 la joignabilité (les points ci-dessus) avant de suspecter Caddy lui-même, qui échoue rarement à
 tort quand les prérequis réseau sont réunis.
 
-## 6. Déploiements suivants et migrations
+6. Déploiements suivants et migrations
+
+---
 
 Workflow normal une fois la première mise en production faite :
 
@@ -587,7 +615,9 @@ Causes fréquentes d'échec à surveiller en priorité : verrou pris par une req
 sur la table concernée (`statement_timeout` n'est volontairement pas activé pour `migrate`), ou
 une contrainte (`UNIQUE`/`CHECK`/FK) violée par des données déjà en base.
 
-## 7. Sauvegardes PostgreSQL — chiffrées, hors site, testées en restauration
+7. Sauvegardes PostgreSQL — chiffrées, hors site, testées en restauration
+
+---
 
 **Une sauvegarde non testée n'existe pas.** Les données de 10+ garages ne se perdent pas. En
 auto-hébergement, ce paragraphe passe de « recommandé » à **seule ligne de défense** : il n'y a
@@ -609,7 +639,7 @@ Trois exigences non négociables, pas une seule :
    dans un lieu réellement distinct, sous le contrôle de @laupernoe.
 3. **Testée en restauration**, périodiquement et pas seulement une fois à la mise en place (§7.2).
 
-### 7.1 Production de la sauvegarde
+**7.1 Production de la sauvegarde**
 
 Sauvegarde logique quotidienne (`pg_dump` format custom, restaurable sélectivement et plus
 compact qu'un dump SQL brut), exécutée directement contre le conteneur `postgres` local (plus
@@ -641,10 +671,14 @@ lui-même, versionné ou non) :
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Échec immédiat et explicite si l'environnement du planificateur n'a pas exporté ces variables
-# (voir le paragraphe ci-dessus) — sans ce contrôle, `set -u` fait échouer le script au premier
-# usage de la variable manquante avec un message Bash générique ("unbound variable"), suffisant
-# pour arrêter le script mais pas pour orienter l'astreinte vers la cause en pleine nuit.
+Échec immédiat et explicite si l'environnement du planificateur n'a pas exporté ces variables
+=============================================================================================
+(voir le paragraphe ci-dessus) — sans ce contrôle, `set -u` fait échouer le script au premier
+=============================================================================================
+usage de la variable manquante avec un message Bash générique ("unbound variable"), suffisant
+=============================================================================================
+pour arrêter le script mais pas pour orienter l'astreinte vers la cause en pleine nuit.
+=======================================================================================
 : "${AGE_CLE_PUBLIQUE:?AGE_CLE_PUBLIQUE manquant — clé publique age, voir .env.production}"
 : "${S3_ENDPOINT:?S3_ENDPOINT manquant — voir .env.production}"
 : "${S3_BUCKET:?S3_BUCKET manquant — voir .env.production}"
@@ -653,16 +687,25 @@ DATE=$(date +%Y-%m-%dT%H%M%S)
 FICHIER="dfa_prod_${DATE}.dump.age"
 COMPOSE="docker compose -f /opt/dfa/docker-compose.yml --env-file /opt/dfa/.env.production"
 
-# Chiffrement asymétrique (age : plus simple à opérer sans trousseau GPG partagé — clé publique
-# stockée sur le serveur, clé privée UNIQUEMENT hors ligne, ex. gestionnaire de mots de passe de
-# @laupernoe). Le fichier chiffré seul, sans la clé privée séparée, ne révèle rien.
+Chiffrement asymétrique (age : plus simple à opérer sans trousseau GPG partagé — clé publique
+=============================================================================================
+stockée sur le serveur, clé privée UNIQUEMENT hors ligne, ex. gestionnaire de mots de passe de
+==============================================================================================
+@laupernoe). Le fichier chiffré seul, sans la clé privée séparée, ne révèle rien.
+==========================================================================
 #
-# Tout en un seul pipeline, jamais de fichier intermédiaire en clair : pg_dump (DANS le conteneur
-# postgres, pas besoin d'exposer le port sur l'hôte — voir §11 ; rôle dfa_migrator, propriétaire
-# du schéma) → age (chiffrement, sortie sur stdout par défaut) → aws s3 cp - (lit l'entrée
-# standard, upload en flux). Stockage objet suisse comme simple coffre chiffré (voir §7 point 2) ;
-# alternative sans intermédiaire tiers : remplacer la dernière étape par un `ssh ... "cat >
-# fichier"` vers un second serveur physique distinct sous contrôle de @laupernoe, même principe de flux.
+Tout en un seul pipeline, jamais de fichier intermédiaire en clair : pg_dump (DANS le conteneur
+===============================================================================================
+postgres, pas besoin d'exposer le port sur l'hôte — voir §11 ; rôle dfa_migrator, propriétaire
+==============================================================================================
+du schéma) → age (chiffrement, sortie sur stdout par défaut) → aws s3 cp - (lit l'entrée
+========================================================================================
+standard, upload en flux). Stockage objet suisse comme simple coffre chiffré (voir §7 point 2) ;
+================================================================================================
+alternative sans intermédiaire tiers : remplacer la dernière étape par un `ssh ... "cat >
+=========================================================================================
+fichier"` vers un second serveur physique distinct sous contrôle de @laupernoe, même principe de flux.
+===============================================================================================
 $COMPOSE exec -T postgres pg_dump -U dfa_migrator -d dfa_prod --format=custom \
   | age -r "$AGE_CLE_PUBLIQUE" \
   | aws --endpoint-url "$S3_ENDPOINT" s3 cp - "s3://${S3_BUCKET}/postgres/${FICHIER}"
@@ -677,7 +720,7 @@ pas avoir de sauvegarde du tout. Faire écrire au script un statut vérifiable (
 ou notification explicite en cas d'échec — même un simple envoi vers le canal de monitoring
 existant, voir §9) plutôt que de supposer que « ça a tourné » parce que le cron est configuré.
 
-### 7.2 Test de restauration (obligatoire, périodique)
+**7.2 Test de restauration (obligatoire, périodique)**
 
 Une fois par mois au minimum, et systématiquement après tout changement de version majeure de
 PostgreSQL (§3.7) ou de la procédure de sauvegarde :
@@ -698,7 +741,9 @@ PostgreSQL (§3.7) ou de la procédure de sauvegarde :
    la preuve que la sauvegarde a été testée doit survivre plus longtemps que l'instance de test
    elle-même.
 
-## 8. Rotation des secrets
+7. Rotation des secrets
+
+---
 
 Il n'y a pas de `SESSION_SECRET` à faire tourner : les jetons de session sont générés par CSPRNG
 côté serveur et stockés en base sous forme d'empreinte SHA-256, rien n'est signé (voir
@@ -750,7 +795,9 @@ inspect`, journal d'audit Docker). Ouvrir une session interactive et utiliser `\
 Aucun secret ne doit jamais être écrit dans `docker-compose.yml` (versionné) : tous
 transitent par `.env.production`, jamais commité.
 
-## 9. Monitoring
+9. Monitoring
+
+---
 
 @laupernoe est seul au support : la règle est de voir un problème avant qu'un client ne le signale. En
 auto-hébergement, cette règle s'étend à des couches qu'un hébergeur managé aurait surveillées à
@@ -789,17 +836,24 @@ api` (ou `web`, `postgres`, `redis`, `reverse-proxy`) reste la première command
   correspondre au tag d'image réellement déployé (§3.1, §6) — c'est ce qui permet de corréler une
   erreur Sentry ou une ligne de log à un déploiement précis.
 
-## 10. Retour arrière (rollback)
+10. Retour arrière (rollback)
+
+---
 
 Rollback = redéployer le tag d'image précédent, jamais une opération plus complexe :
 
 ```bash
-# 1. Remettre l'ancien tag dans .env.production
-#    API_IMAGE=ghcr.io/<org>/dfa-api:<tag-precedent>
-#    WEB_IMAGE=ghcr.io/<org>/dfa-web:<tag-precedent>
+1. Remettre l'ancien tag dans .env.production
+=============================================
+   API_IMAGE=ghcr.io/<org>/dfa-api:<tag-precedent>
+==================================================
+   WEB_IMAGE=ghcr.io/<org>/dfa-web:<tag-precedent>
+==================================================
 
-# 2. Redémarrer avec ces images (déjà présentes localement ou re-tirées du registre — d'où
-#    l'importance de ne jamais purger agressivement les anciens tags d'un registre, voir §6).
+2. Redémarrer avec ces images (déjà présentes localement ou re-tirées du registre — d'où
+========================================================================================
+   l'importance de ne jamais purger agressivement les anciens tags d'un registre, voir §6).
+===========================================================================================
 docker compose -f docker-compose.yml --env-file .env.production \
   up -d api web reverse-proxy
 ```
@@ -833,7 +887,9 @@ Cette procédure manuelle est délibérément plus lourde que le rollback applic
 signal, pas un oubli — un retour arrière de schéma est un événement rare qui mérite qu'on
 s'arrête et qu'on réfléchisse, pas une commande qu'on tape par réflexe à 2h du matin.
 
-## 11. Pièges connus
+11. Pièges connus
+
+---
 
 - **`env_file: .env.production` doit exister au moment du `docker compose ... config`/`up`**,
   même pour une simple validation de syntaxe — sans lui, Compose refuse de démarrer avec une

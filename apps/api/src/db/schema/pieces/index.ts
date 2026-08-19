@@ -12,3 +12,4 @@ export * from './stock';
 export * from './reservation';
 export * from './consigne';
 export * from './parametrage';
+export * from './facture-fournisseur';

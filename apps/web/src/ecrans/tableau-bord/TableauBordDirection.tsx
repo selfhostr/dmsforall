@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 
 import type { FiltreTableauBord } from '@dfa/shared';
 
-import { versDateIsoLocale } from '@/ecrans/accueil/semaine';
 import { useActiviteTableauBord } from '@/hooks/tableau-bord/useActiviteTableauBord';
 import { useFinancierTableauBord } from '@/hooks/tableau-bord/useFinancierTableauBord';
 import { formaterMontant } from '@/lib/formats';
@@ -19,14 +18,34 @@ interface Props {
 }
 
 /**
- * Direction — 4 blocs (`docs/design-tableau-bord-par-role.md` §3.1) : l'argent qui rentre, ce qui
- * sort ce soir, si l'atelier tourne. « Répartition par statut » et « articles sous seuil » sont
- * ÉCARTÉS ici (chiffre de pilotage voulu, pas un histogramme — c'est le geste du chef d'atelier).
+ * Direction — 6 blocs (`docs/design-tableau-bord-par-role.md` §3.1, ÉTENDU le 14.08.2026 : marge
+ * + stock pièces, défaut #2 du test manuel du même jour — l'écran promettait « chiffre d'affaires,
+ * marges, stock et activité » et ne rendait que le chiffre d'affaires) : l'argent qui rentre, la
+ * marge, l'état du stock, ce qui sort ce soir, si l'atelier tourne. « Répartition par statut » et
+ * « articles sous seuil » restent ÉCARTÉS ici (chiffre de pilotage voulu, pas un histogramme —
+ * c'est le geste du chef d'atelier).
  *
  * Deux fenêtres temporelles COEXISTENT, volontairement découplées : le sélecteur de période
- * (mois civil par défaut) ne pilote QUE le chiffre d'affaires ; « OR ouverts » et « sorties du
- * soir » restent figés sur AUJOURD'HUI quel que soit le réglage du sélecteur — un OR ouvert le
- * mois dernier n'est pas ce que la direction veut voir en travaillant sur le CA de l'an dernier.
+ * (mois civil par défaut) pilote le chiffre d'affaires ET la marge véhicules (toutes deux bornées
+ * par la période côté contrat) ; « OR actuellement en atelier », le stock pièces et « sorties du
+ * soir » restent des SNAPSHOTS (maintenant), indépendants du sélecteur — un OR ouvert le mois
+ * dernier mais toujours en cours, ou le stock physique actuel, ne sont pas ce que la période de CA
+ * doit faire disparaître de l'écran.
+ *
+ * « OR actuellement en atelier » — DÉFAUT CORRIGÉ (test manuel du 14.08.2026, défaut #1, le plus
+ * grave des trois signalés : un « 0 » affiché alors que l'atelier avait bien des OR ouvert/en
+ * cours/terminé/facturé). Cause RÉELLE, mesurée en relisant `ReponseActiviteTableauBord` (pas un
+ * bug de calcul SQL) : cette carte utilisait `ordresReparationOuvertsPeriode` (« combien d'OR ont
+ * été OUVERTS pendant AUJOURD'HUI », borné à la journée) sous un libellé qui laissait croire à
+ * « combien d'OR sont actuellement au garage » — deux questions différentes. Un atelier qui
+ * travaille normalement a la plupart de ses OR actifs ouverts un jour ANTÉRIEUR à aujourd'hui :
+ * `ordresReparationOuvertsPeriode` légitimement à 0 ce jour-là (aucun OR NOUVEAU), alors que
+ * `ordresReparationParStatut` (snapshot des 6 statuts encore « au garage », le même champ que le
+ * réceptionniste affiche dans « OR en cours par statut ») était loin de zéro. Corrigé en sommant
+ * `ordresReparationParStatut` plutôt qu'en lisant `ordresReparationOuvertsPeriode` — voir aussi
+ * `periode.spec.ts` côté API pour un second défaut, réel mais indépendant, corrigé dans la foulée
+ * (bornage de journée en UTC pur au lieu de l'heure suisse, qui affectait `ordresReparationOuvertsPeriode`
+ * lui-même sans être la cause du « 0 » observé ici).
  *
  * « Encours clients » n'est PAS un lien filtré : `EcranListeFactures` lit son onglet depuis un
  * état local, jamais depuis l'URL (voir `composants/CarteAccesRapide.tsx` pour le même constat,
@@ -42,13 +61,22 @@ export function TableauBordDirection({ site }: Props) {
     () => ({ siteId: site, du, au }),
     [site, du, au],
   );
-  const filtreAujourdhui = useMemo<FiltreTableauBord>(() => {
-    const iso = versDateIsoLocale(new Date());
-    return { siteId: site, du: iso, au: iso };
-  }, [site]);
+  // SNAPSHOT (ordresReparationParStatut ne dépend pas de la période, voir la doc du contrat) —
+  // aucun `du`/`au` transmis : un changement de période ne doit pas redéclencher cette requête,
+  // seul un changement de site le doit (même patron que `TableauBordChefAtelier`).
+  const filtreSite = useMemo<FiltreTableauBord>(() => ({ siteId: site }), [site]);
 
   const financier = useFinancierTableauBord(filtrePeriode, true);
-  const activiteAujourdhui = useActiviteTableauBord(filtreAujourdhui);
+  const activite = useActiviteTableauBord(filtreSite);
+
+  /** Résolution STATIQUE (clés `t()` littérales, vérifiées par `pnpm i18n:check`) de
+   *  `MargeIndisponibleTableauBord.raisonCle` — jamais `t(\`...${raisonCle}\`)`, qui échapperait à
+   *  l'extraction statique des clés (voir `scripts/verifier-i18n.mjs`). Une `raisonCle` que ce
+   *  dépôt ne connaît pas encore retombe sur un libellé générique plutôt qu'une clé brute affichée. */
+  const libellesRaisonMargeIndisponible: Record<string, string> = {
+    piecesCoutNonFiable: t('tableauBord:financier.marges.indisponible.piecesCoutNonFiable'),
+    mainOeuvreCoutAbsent: t('tableauBord:financier.marges.indisponible.mainOeuvreCoutAbsent'),
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -91,10 +119,69 @@ export function TableauBordDirection({ site }: Props) {
           />
         </div>
         <CarteChiffreRequete
-          titre={t('tableauBord:activite.ordresOuverts.libelleAujourdhui')}
-          resultat={activiteAujourdhui}
+          titre={t('tableauBord:activite.enAtelier.libelle')}
+          resultat={activite}
           libelleErreur={t('tableauBord:activite.erreur.titre')}
-          valeur={(donnees) => String(donnees.ordresReparationOuvertsPeriode)}
+          valeur={(donnees) =>
+            String(donnees.ordresReparationParStatut.reduce((total, e) => total + e.nombre, 0))
+          }
+          description={() => t('tableauBord:activite.enAtelier.description')}
+        />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <CarteChiffreRequete
+          titre={t('tableauBord:financier.marges.vehicules.libelle')}
+          resultat={financier}
+          libelleErreur={t('tableauBord:financier.erreur.titre')}
+          valeur={(donnees) => `CHF ${formaterMontant(donnees.marges.vehicules.margeCentimes)}`}
+          description={(donnees) =>
+            t('tableauBord:financier.marges.vehicules.detail', {
+              nombreVehiculesFactures: donnees.marges.vehicules.nombreVehiculesFactures,
+            })
+          }
+        />
+        <CarteChiffreRequete
+          titre={t('tableauBord:financier.marges.indisponible.titre')}
+          resultat={financier}
+          libelleErreur={t('tableauBord:financier.erreur.titre')}
+          // Jamais un montant (ni « CHF 0.00 », ni « 0 ») : un mot, distinct typographiquement
+          // d'un chiffre — voir la doc de `MargeIndisponibleTableauBord` (@dfa/shared).
+          valeur={() => t('tableauBord:financier.marges.indisponible.libelle')}
+          // `CarteChiffreRequete` enveloppe déjà `description(...)` dans un `<p>` (voir ce
+          // composant) : `<span className="block">` ici, JAMAIS `<p>` (imbrication de blocs
+          // invalide en HTML, avertissement d'hydratation React) — deux lignes visuellement
+          // distinctes sans enfreindre le contenu autorisé dans un `<p>`.
+          description={(donnees) => (
+            <>
+              <span className="block">
+                {libellesRaisonMargeIndisponible[donnees.marges.pieces.raisonCle] ??
+                  t('tableauBord:financier.marges.indisponible.raisonGenerique')}
+              </span>
+              <span className="block">
+                {libellesRaisonMargeIndisponible[donnees.marges.mainOeuvre.raisonCle] ??
+                  t('tableauBord:financier.marges.indisponible.raisonGenerique')}
+              </span>
+            </>
+          )}
+        />
+        <CarteChiffreRequete
+          titre={t('tableauBord:financier.stockPieces.libelle')}
+          resultat={financier}
+          libelleErreur={t('tableauBord:financier.erreur.titre')}
+          valeur={(donnees) => `CHF ${formaterMontant(donnees.stockPieces.totalCentimes)}`}
+          description={(donnees) => (
+            <>
+              <span className="block">{t('tableauBord:financier.stockPieces.definition')}</span>
+              {donnees.stockPieces.articlesValeurInconnueNombre > 0 ? (
+                <span className="block">
+                  {t('tableauBord:financier.stockPieces.articlesValeurInconnue', {
+                    count: donnees.stockPieces.articlesValeurInconnueNombre,
+                  })}
+                </span>
+              ) : null}
+            </>
+          )}
         />
       </div>
 

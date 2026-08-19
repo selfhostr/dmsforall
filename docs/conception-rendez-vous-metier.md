@@ -1,4 +1,5 @@
-# Conception métier — le rendez-vous d'atelier
+Conception métier — le rendez-vous d'atelier
+============================================
 
 Angle exclusif : le métier. Aucune table, aucun endpoint, aucun écran ici — deux autres
 chantiers couvrent ces angles en parallèle sur la même branche `feat/rendez-vous-atelier`. Ce
@@ -9,7 +10,9 @@ Déclencheur : un test d'utilisabilité a buté sur « la prise de rendez-vous v
 alors que la prise de RDV est 80 % du travail du comptoir dans un garage. @laupernoe a tranché : on le
 construit. Ce document sert de socle métier à cette construction.
 
-## 1. Ce qui est déjà tranché dans le code — point de départ, pas terrain vierge
+1. Ce qui est déjà tranché dans le code — point de départ, pas terrain vierge
+
+---
 
 Le module atelier existant anticipe déjà le rendez-vous à plusieurs endroits. Ce document
 construit SUR ces décisions, il ne les rouvre pas :
@@ -46,23 +49,25 @@ facture → restitue → cloture`, plus `annule`. Un OR peut donc déjà naître
   diagnostic. `parametre_site.capaciteHeuresJourCentiemes` existe déjà — la capacité d'un site,
   exprimée en heures/jour, pas en nombre de créneaux.
 
-## 2. Vocabulaire — à utiliser tel quel, sans synonyme flottant
+2. Vocabulaire — à utiliser tel quel, sans synonyme flottant
 
-| Terme                        | Définition                                                                                                                                                     | Ce qu'il n'est PAS                                             |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| **Rendez-vous (RDV)**        | Promesse d'un site à un client : « amenez le véhicule tel jour ». Existe **avant** que le véhicule soit là.                                                    | Pas un OR. Pas une réservation de pont ou de technicien nommé. |
-| **Motif de rendez-vous**     | Entrée du catalogue `motif_rendez_vous` (« service », « pneus », « expertise »…) portant une durée standard. Choisi par le réceptionniste à la prise de RDV.   | Pas le texte que le client a dit — voir demande verbatim.      |
-| **Demande verbatim**         | Ce que le client a dit, mot pour mot, jamais reformulé (« ça fait un bruit à l'avant droit »). Append-only.                                                    | Pas un diagnostic. Pas classé, pas structuré.                  |
-| **Créneau**                  | Plage horaire précise (ex. 08h00–08h30) — réservée seulement quand le motif l'exige (§3).                                                                      | Pas le mode par défaut d'un garage.                            |
-| **Capacité du jour**         | Volume d'heures atelier qu'un site peut absorber une journée donnée (`capaciteHeuresJourCentiemes`), consommé au fil des RDV confirmés et des OR ouverts.      | Pas un nombre de véhicules. Pas un nombre de créneaux.         |
-| **Réception / réceptionner** | Action déjà existante (`POST /ordres-reparation/:id/receptionner`, T-03) : le véhicule arrive physiquement, kilométrage saisi, l'OR passe `planifie → ouvert`. | Pas la prise de RDV. Pas la confirmation téléphonique.         |
-| **Restitution promise**      | Date/heure à laquelle le garage s'engage à rendre le véhicule — champ déjà existant sur l'OR, mutable, avec motif de report obligatoire.                       | Pas l'heure du RDV. Voir §8.                                   |
-| **Restitution initiale**     | Première valeur de restitution promise, **jamais réécrite** — sert à mesurer la fiabilité des promesses dans la durée.                                         | Pas affichée au client — un indicateur interne.                |
-| **No-show**                  | Le RDV arrive à son terme sans que le véhicule ne se présente et sans annulation préalable.                                                                    | Pas un retard. Pas une annulation.                             |
-| **Report**                   | Le client (ou le garage) déplace la date/heure d'un RDV **avant** son échéance.                                                                                | Pas un no-show. Pas une nouvelle demande.                      |
-| **Poste de travail**         | Ressource physique nommée d'un site (pont 3, baie carrosserie) — affectée par le chef d'atelier au jour le jour.                                               | Pas réservée à la prise de RDV (§3).                           |
+---
 
-## 3. Ce qu'on réserve réellement — RÈGLE STRUCTURANTE
+- ****Rendez-vous (RDV)**** — Promesse d'un site à un client : « amenez le véhicule tel jour ». Existe **avant** que le véhicule soit là. — Pas un OR. Pas une réservation de pont ou de technicien nommé.
+- ****Motif de rendez-vous**** — Entrée du catalogue `motif_rendez_vous` (« service », « pneus », « expertise »…) portant une durée standard. Choisi par le réceptionniste à la prise de RDV. — Pas le texte que le client a dit — voir demande verbatim.
+- ****Demande verbatim**** — Ce que le client a dit, mot pour mot, jamais reformulé (« ça fait un bruit à l'avant droit »). Append-only. — Pas un diagnostic. Pas classé, pas structuré.
+- ****Créneau**** — Plage horaire précise (ex. 08h00–08h30) — réservée seulement quand le motif l'exige (§3). — Pas le mode par défaut d'un garage.
+- ****Capacité du jour**** — Volume d'heures atelier qu'un site peut absorber une journée donnée (`capaciteHeuresJourCentiemes`), consommé au fil des RDV confirmés et des OR ouverts. — Pas un nombre de véhicules. Pas un nombre de créneaux.
+- ****Réception / réceptionner**** — Action déjà existante (`POST /ordres-reparation/:id/receptionner`, T-03) : le véhicule arrive physiquement, kilométrage saisi, l'OR passe `planifie → ouvert`. — Pas la prise de RDV. Pas la confirmation téléphonique.
+- ****Restitution promise**** — Date/heure à laquelle le garage s'engage à rendre le véhicule — champ déjà existant sur l'OR, mutable, avec motif de report obligatoire. — Pas l'heure du RDV. Voir §8.
+- ****Restitution initiale**** — Première valeur de restitution promise, **jamais réécrite** — sert à mesurer la fiabilité des promesses dans la durée. — Pas affichée au client — un indicateur interne.
+- ****No-show**** — Le RDV arrive à son terme sans que le véhicule ne se présente et sans annulation préalable. — Pas un retard. Pas une annulation.
+- ****Report**** — Le client (ou le garage) déplace la date/heure d'un RDV **avant** son échéance. — Pas un no-show. Pas une nouvelle demande.
+- ****Poste de travail**** — Ressource physique nommée d'un site (pont 3, baie carrosserie) — affectée par le chef d'atelier au jour le jour. — Pas réservée à la prise de RDV (§3).
+
+3. Ce qu'on réserve réellement — RÈGLE STRUCTURANTE
+
+---
 
 **Décision : on réserve de la capacité de journée, jamais un créneau horaire, sauf si le motif
 l'exige explicitement.**
@@ -91,7 +96,9 @@ sans code supplémentaire :
   climatisation) se traite comme une contrainte de MOTIF, pas de technicien : le motif porte
   l'exigence, le chef d'atelier choisit qui la couvre le jour venu.
 
-## 4. Comment le réceptionniste sait qu'il peut dire oui — le cœur du sujet
+4. Comment le réceptionniste sait qu'il peut dire oui — le cœur du sujet
+
+---
 
 Aujourd'hui, sans logiciel, la réponse tient en trois pratiques observées dans les garages
 suisses, à remplacer une par une :
@@ -124,7 +131,9 @@ en base :
   simplement avertie (contrairement à RV-07, ici deux véhicules au même expert MFK à la même
   minute est une impossibilité physique, pas une question de charge).
 
-## 5. Le lien rendez-vous → OR — décision structurante, à deux modes paramétrés
+5. Le lien rendez-vous → OR — décision structurante, à deux modes paramétrés
+
+---
 
 **Le rendez-vous et l'ordre de réparation sont deux objets distincts.** Un RDV porte la promesse
 d'ARRIVÉE (client, véhicule si connu, site, motif, jour ou créneau). L'OR porte tout le reste, y
@@ -156,9 +165,12 @@ la création automatique d'un RDV rétroactif marqué honoré à la volée, pour
 de charge et de no-show restent lisibles même dans un garage qui accepte largement le sans-RDV —
 signalé comme affinement, pas un prérequis du premier lot (§11).
 
-## 6. Parcours pas à pas
+6. Parcours pas à pas
 
-### 6.1 Prise de RDV par téléphone — client déjà connu
+---
+
+6.1 Prise de RDV par téléphone — client déjà connu
+--------------------------------------------------
 
 1. Le réceptionniste identifie le client (recherche déjà existante par nom/plaque/téléphone).
 2. Le véhicule concerné est choisi parmi ceux déjà rattachés au client — ou saisi si le client
@@ -176,21 +188,24 @@ signalé comme affinement, pas un prérequis du premier lot (§11).
    `planning.rappel.joursAvant`, déjà nommés), un rappel est programmé — hors périmètre RDV
    lui-même, simple consommateur du RDV confirmé.
 
-### 6.2 Prise de RDV — nouveau client
+6.2 Prise de RDV — nouveau client
+---------------------------------
 
 Même parcours, avec création de la fiche client minimale AVANT confirmation du RDV — jamais un
 RDV rattaché à un client fantôme « à identifier plus tard ». Un nom seul au téléphone n'est pas
 un client exploitable pour la facturation à venir ; le réceptionniste demande au moins nom et
 téléphone avant de confirmer.
 
-### 6.3 Arrivée du véhicule — jour J, ça correspond
+6.3 Arrivée du véhicule — jour J, ça correspond
+-----------------------------------------------
 
 Le client se présente au jour promis. Le réceptionniste retrouve le RDV (liste du jour, déjà
 filtrable par site), déclenche la réception : création de l'OR si mode RV-11, ou transition
 `planifie → ouvert` (T-03, `receptionner`) si mode RV-10. Kilométrage saisi (obligatoire par
 défaut, `kmEntreeObligatoire`). Le RDV passe à l'état `honore` (§7).
 
-### 6.4 Arrivée du véhicule — sans RDV (walk-in)
+6.4 Arrivée du véhicule — sans RDV (walk-in)
+--------------------------------------------
 
 Client sans rendez-vous. Si `orSansRdvAutorise = true` (défaut), l'OR se crée directement,
 `rendezVousId` NULL. Si `false`, la création déclenche la confirmation bloquante `OR_SANS_RDV`
@@ -198,7 +213,8 @@ déjà nommée en base — un rôle `chef_atelier` ou `direction` doit trancher,
 seul. **RV-14.** Un garage qui interdit le sans-RDV le fait pour piloter sa charge, pas pour
 fermer la porte au client — la confirmation reste un « oui, mais sciemment », jamais un refus.
 
-### 6.5 Expertise MFK — motif à créneau, délai réglementaire
+6.5 Expertise MFK — motif à créneau, délai réglementaire
+--------------------------------------------------------
 
 Le motif « expertise » porte une `dureeDefautMinutes` (RV-02) : créneau réel, souvent contraint
 par l'expert ou le mandataire externe. L'échéance légale du véhicule (déjà trackée,
@@ -206,7 +222,8 @@ par l'expert ou le mandataire externe. L'échéance légale du véhicule (déjà
 RDV, souvent via une relance déjà existante (module relances) — le RDV lui-même n'est que la
 concrétisation d'un appel réussi, pas un mécanisme de suivi d'échéance en soi.
 
-### 6.6 Pic pneus (octobre–décembre)
+6.6 Pic pneus (octobre–décembre)
+--------------------------------
 
 Aucune mécanique différente : le calcul de capacité (§4) absorbe le pic comme n'importe quel
 afflux — la capacité du jour se remplit plus vite, RV-07 propose plus systématiquement le jour
@@ -215,18 +232,18 @@ motifs pneus en pleine saison (éviter qu'un service urgent ne mange toute la pl
 paramétrage de répartition par motif — signalé comme affinement du lot 3 (§11), pas un
 prérequis pour débloquer le comptoir.
 
-## 7. Machine à états du rendez-vous
+7. Machine à états du rendez-vous
+
+---
 
 Le rendez-vous a son propre cycle de vie, séparé de celui — gelé — de l'OR. Il ne s'y substitue
 jamais, il le précède.
 
-| État       | Entrée                                                                                    | Sortie possible                                                                                                                                   | Ce qui autorise la transition                    |
-| ---------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| `confirme` | Création (RV : toujours créé confirmé, §6.1 point 6)                                      | `honore`, `reporte`, `annule`, `no_show`                                                                                                          | — état initial unique, pas de brouillon          |
-| `reporte`  | Le client ou le garage déplace la date/heure avant l'échéance                             | Reste `reporte` ou redevient effectivement `confirme` fonctionnellement (le champ date change, l'état logique de fond ne change pas — voir RV-16) | Date/heure future encore valide                  |
-| `honore`   | Le véhicule arrive et un OR est créé/réceptionné en référence à ce RDV                    | — état terminal                                                                                                                                   | Création ou réception de l'OR lié                |
-| `no_show`  | L'heure/le jour du RDV est dépassé, aucune arrivée, aucune annulation ni report préalable | — état terminal (peut donner lieu à un nouveau RDV, jamais à une réouverture)                                                                     | Job planifié ou constat manuel en fin de journée |
-| `annule`   | Le client ou le garage annule avant l'échéance, motif obligatoire                         | — état terminal                                                                                                                                   | Action explicite, jamais silencieuse             |
+- **État `confirme`** — Entrée : Création (RV : toujours créé confirmé, §6.1 point 6) · Sortie possible : `honore`, `reporte`, `annule`, `no_show` · Ce qui autorise la transition : — état initial unique, pas de brouillon
+- **État `reporte`** — Entrée : Le client ou le garage déplace la date/heure avant l'échéance · Sortie possible : Reste `reporte` ou redevient effectivement `confirme` fonctionnellement (le champ date change, l'état logique de fond ne change pas — voir RV-16) · Ce qui autorise la transition : Date/heure future encore valide
+- **État `honore`** — Entrée : Le véhicule arrive et un OR est créé/réceptionné en référence à ce RDV · Sortie possible : — état terminal · Ce qui autorise la transition : Création ou réception de l'OR lié
+- **État `no_show`** — Entrée : L'heure/le jour du RDV est dépassé, aucune arrivée, aucune annulation ni report préalable · Sortie possible : — état terminal (peut donner lieu à un nouveau RDV, jamais à une réouverture) · Ce qui autorise la transition : Job planifié ou constat manuel en fin de journée
+- **État `annule`** — Entrée : Le client ou le garage annule avant l'échéance, motif obligatoire · Sortie possible : — état terminal · Ce qui autorise la transition : Action explicite, jamais silencieuse
 
 **RV-16.** Un report n'est pas un changement d'état au sens machine — c'est une modification de
 date sur un RDV qui reste `confirme`, journalisée (qui/quoi/quand/avant-après, comme toute entité
@@ -245,7 +262,9 @@ diverger de la réalité de l'atelier.
 revient prend un nouveau RDV. L'historique du raté reste visible sur la fiche client (matière au
 compteur `noShowSeuilAlerte`, §9), jamais effacé.
 
-## 8. Restitution promise et heure de RDV — deux notions distinctes, pas une vue de deux bouts
+8. Restitution promise et heure de RDV — deux notions distinctes, pas une vue de deux bouts
+
+---
 
 Réponse explicite à la question posée : **ce sont deux notions différentes**, qui encadrent l'OR
 par les deux bouts, pas la même chose vue sous deux angles.
@@ -283,7 +302,9 @@ déplacement doit avertir de la collision potentielle (mécanisme déjà nommé 
 `PRET_CASCADE_RESTITUTION`) — hors périmètre de ce document, mais le comptoir doit savoir que
 reporter une sortie peut avoir un effet domino.
 
-## 9. Cas tordus — les cas normaux d'un garage, pas des exceptions
+9. Cas tordus — les cas normaux d'un garage, pas des exceptions
+
+---
 
 - **RV-24 — No-show.** Le RDV passe `no_show` après le délai de grâce (RV-17). Le compteur de
   no-show du client s'incrémente (fiche client). Au-delà de `noShowSeuilAlerte` (défaut 2, déjà
@@ -323,21 +344,23 @@ reporter une sortie peut avoir un effet domino.
   (`conducteurPresentNom`) et se saisit à la réception, jamais à la prise de RDV où le nom du
   conducteur du jour n'est souvent pas encore connu.
 
-## 10. Vocabulaire exact à l'écran (FR — source des traductions DE/IT)
+10. Vocabulaire exact à l'écran (FR — source des traductions DE/IT)
 
-| À utiliser                       | À ne jamais utiliser                                             |
-| -------------------------------- | ---------------------------------------------------------------- |
-| Rendez-vous, RDV                 | Réservation, booking, slot                                       |
-| Prendre un rendez-vous           | Créer un événement, ajouter au calendrier                        |
-| Motif du rendez-vous             | Catégorie, tag                                                   |
-| Créneau (uniquement pour RV-02)  | Horaire (ambigu avec les horaires d'ouverture du site)           |
-| Capacité du jour / de la journée | Charge, occupation (trop technique côté atelier)                 |
-| Client absent / non présenté     | No-show (jargon anglais à bannir à l'écran, réservé au code/API) |
-| Restitution promise              | Date de fin, date de livraison (confond avec la vente VN/VO)     |
-| Report                           | Déplacement, reprogrammation                                     |
-| Réceptionner le véhicule         | Check-in, enregistrement                                         |
+---
 
-## 11. Priorisation — ce qui débloque le comptoir en premier
+- **Rendez-vous, RDV** — Réservation, booking, slot
+- **Prendre un rendez-vous** — Créer un événement, ajouter au calendrier
+- **Motif du rendez-vous** — Catégorie, tag
+- **Créneau (uniquement pour RV-02)** — Horaire (ambigu avec les horaires d'ouverture du site)
+- **Capacité du jour / de la journée** — Charge, occupation (trop technique côté atelier)
+- **Client absent / non présenté** — No-show (jargon anglais à bannir à l'écran, réservé au code/API)
+- **Restitution promise** — Date de fin, date de livraison (confond avec la vente VN/VO)
+- **Report** — Déplacement, reprogrammation
+- **Réceptionner le véhicule** — Check-in, enregistrement
+
+11. Priorisation — ce qui débloque le comptoir en premier
+
+---
 
 Le risque nommé dans la commande : un module complet livré d'un bloc arrive trop tard, une
 version minimale qui ne sert à rien est pire. La ligne se trace sur une question simple : **est-ce

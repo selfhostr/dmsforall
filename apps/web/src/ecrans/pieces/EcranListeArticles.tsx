@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 
 import {
   CATEGORIES_ARTICLE,
@@ -33,6 +33,7 @@ import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
+import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { useSession } from '@/hooks/useSession';
 import { useListeArticles } from '@/hooks/pieces/useListeArticles';
 import { formaterMontant } from '@/lib/formats';
@@ -74,19 +75,32 @@ export function EcranListeArticles() {
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
 
   // Site dont la colonne « disponible » lit le stock — jamais deviné à plusieurs choix possibles
-  // (même doctrine que `SelecteurSiteRequis`) : auto-sélectionné UNIQUEMENT quand un seul site
-  // actif existe (aucune ambiguïté à deviner), sinon laissé au magasinier. Filtre d'affichage
-  // pur : ne change jamais la requête `/articles`, seulement la lecture de `stocksResume`.
+  // (même doctrine que `SelecteurSiteRequis`). Filtre d'affichage pur : ne change jamais la
+  // requête `/articles`, seulement la lecture de `stocksResume`.
+  //
+  // DÉFAUT CORRIGÉ (test manuel du 14.08.2026, défaut n°5) : avant ce correctif, ce filtre local
+  // ne s'auto-sélectionnait QUE quand un seul site actif existait — il ignorait totalement le site
+  // déjà choisi en haut de page (`?site=` de l'URL, ou la préférence mémorisée du poste,
+  // `useSiteCourant`, MÊME résolution que `EnTete.tsx`/`SelecteurSiteEntete.tsx`), forçant un
+  // magasinier à re-choisir un site déjà visible dans l'en-tête avant de voir la moindre quantité —
+  // « — » (inconnu) affiché à tort là où une vraie valeur (potentiellement zéro) était disponible.
+  // Piège maison : absence de donnée ≠ valeur — ce correctif répare la PROPAGATION du site choisi,
+  // jamais le rendu du tiret lui-même (qui reste correct pour un site RÉELLEMENT non choisi).
   const sitesActifs = useMemo(() => (session?.sites ?? []).filter((site) => site.actif), [session]);
+  const [searchParams] = useSearchParams();
+  const { preferenceSiteId } = useSiteCourant();
   const [site, setSite] = useState('');
   useEffect(() => {
-    if (site === '' && sitesActifs.length === 1) {
-      const siteUnique = sitesActifs[0];
-      if (siteUnique) {
-        setSite(siteUnique.id);
-      }
-    }
-  }, [site, sitesActifs]);
+    if (site !== '') return;
+    const siteUrlOuPreference = searchParams.get('site') ?? preferenceSiteId;
+    const siteDejaChoisi =
+      siteUrlOuPreference && sitesActifs.some((candidat) => candidat.id === siteUrlOuPreference)
+        ? siteUrlOuPreference
+        : undefined;
+    const siteUnique = sitesActifs.length === 1 ? sitesActifs[0]?.id : undefined;
+    const siteResolu = siteDejaChoisi ?? siteUnique;
+    if (siteResolu) setSite(siteResolu);
+  }, [site, sitesActifs, searchParams, preferenceSiteId]);
 
   useEffect(() => {
     const identifiant = window.setTimeout(() => setQ(qSaisie), DELAI_DEBOUNCE_MS);
@@ -201,27 +215,29 @@ export function EcranListeArticles() {
     },
   ];
 
+  // Titres d'état vide nommant l'ABSENCE (jamais « Articles », qui répéterait l'onglet actif/le
+  // menu Pièces — même défaut que celui corrigé le 17.08.2026 sur `EcranListeFactures.tsx`).
   let contenuVide: ReactNode;
   if (q.trim() !== '') {
     contenuVide = (
       <EtatVideRecherche
-        titre={t('pieces:articles.liste.titre')}
-        description={t('pieces:articles.vide')}
+        titre={t('pieces:articles.liste.vide.recherche.titre')}
+        description={t('pieces:articles.liste.vide.recherche.description')}
       />
     );
   } else if (filtresStructuresActifs) {
     contenuVide = (
       <EtatVideFiltre
-        titre={t('pieces:articles.liste.titre')}
-        description={t('pieces:articles.vide')}
+        titre={t('pieces:articles.liste.vide.filtre.titre')}
+        description={t('pieces:articles.liste.vide.filtre.description')}
         onEffacerFiltres={effacerFiltres}
       />
     );
   } else {
     contenuVide = (
       <EtatVidePremierUsage
-        titre={t('pieces:articles.liste.titre')}
-        description={t('pieces:articles.vide')}
+        titre={t('pieces:articles.liste.vide.premierUsage.titre')}
+        description={t('pieces:articles.liste.vide.premierUsage.description')}
         action={
           peutEcrireArticle(role) ? (
             <Button onClick={() => setFormulaireOuvert(true)}>
@@ -253,12 +269,14 @@ export function EcranListeArticles() {
     );
   }
 
-  // Titre TOUJOURS visible (retour @laupernoe du 13.08.2026 : « des fois il y a les titres de page, des
-  // fois il n'y en a pas » — sur Pièces précisément, « est-ce qu'on est dans le comptoir, ou dans
-  // le réapprovisionnement ? »). L'onglet actif « Articles » (`OngletsDomaine`) reste au-dessus,
-  // mais ne dit pas TOUJOURS ce qu'affiche l'écran (cf. Comptoir/Réapprovisionnement) — un titre
-  // dupliquant à la lettre son onglet reste préférable à son absence, doctrine tranchée par @laupernoe sur
-  // `EcranListeClients` (« il y a écrit Clients, c'est mieux ») puis reconduite ici pour Pièces.
+  // Titre MASQUÉ automatiquement — « Articles » (`pieces:articles.liste.titre`) est un doublon
+  // strict de l'onglet actif « Articles » (`navigation-modele.ts`, `ONGLETS_PIECES`) et de sa vue
+  // « Tous ». `GabaritEcran` le détecte lui-même (§3 du contrat du chantier « titres doublés »,
+  // 17.08.2026) — ne JAMAIS poser `titreVisible` ici pour forcer la visibilité : la doctrine
+  // « un titre dupliquant à la lettre son onglet reste préférable à son absence » (retour @laupernoe du
+  // 12.08.2026 sur `EcranListeClients`) a été explicitement RE-ARBITRÉE par @laupernoe le 17.08.2026 dans
+  // l'autre sens (voir le contrat du chantier, §3) — ce commentaire la corrigeait à tort ici avant
+  // ce correctif.
   //
   // « Créer un article » n'est PAS dans le slot `actions` du gabarit (qui siégerait alors juste
   // sous les onglets, seul sur sa ligne) — retour @laupernoe du 12.08.2026 : « le bouton "Créer un

@@ -1,13 +1,16 @@
-# Spécification métier — Plan du parc & Hangar à pneus
+Spécification métier — Plan du parc & Hangar à pneus
+====================================================
 
 Statut : proposition métier, avant tout contrat API/schéma définitif. Périmètre : deux
 fonctionnalités visuelles distinctes qui partagent une même mécanique (« une case = un objet »).
 
 ---
 
-## 1. Le métier
+1. Le métier
 
-### 1.1 Le parc, ce que c'est vraiment
+---
+
+**1.1 Le parc, ce que c'est vraiment**
 
 Un garage suisse n'a pas « un parking » : plusieurs zones hétérogènes, et un véhicule en change
 plusieurs fois par jour.
@@ -32,7 +35,7 @@ Conséquence directe : **une place n'est pas garantie unique à un véhicule** e
 contrainte UNIQUE sur la place occupée) — le garagiste doit pouvoir forcer une position sans que
 le système refuse. Le système peut _signaler_ un doublon, jamais le bloquer.
 
-### 1.2 Le hangar à pneus, ce que c'est vraiment
+**1.2 Le hangar à pneus, ce que c'est vraiment**
 
 Un vrai métier, indépendant du parc — plus rigoureux en pratique parce que l'argent et la
 responsabilité y sont engagés :
@@ -62,7 +65,7 @@ responsabilité y sont engagés :
   forfait annuel par jeu, ou gratuite tant que le client sert chez eux. Le module doit savoir
   déclencher une ligne facturable au changement de saison, jamais l'imposer.
 
-### 1.3 Le point de friction que @laupernoe soulève
+**1.3 Le point de friction que @laupernoe soulève**
 
 Véhicule vendu entre la prise de RDV et le passage à l'atelier, jeu de pneus dont le client ne
 revient jamais, véhicule qui change trois fois de place dans la journée — dans tous ces cas la
@@ -71,7 +74,9 @@ pas un système de vérité, c'est une aide à la mémoire visuelle (conséquenc
 
 ---
 
-## 2. Règles métier
+2. Règles métier
+
+---
 
 **Parc**
 
@@ -125,25 +130,27 @@ pas un système de vérité, c'est une aide à la mémoire visuelle (conséquenc
 
 ---
 
-## 3. Ce qui varie d'un garage à l'autre — paramétrage proposé
-
-| Point variable                                                                                      | Options observées sur le terrain                                                                               | Paramétrage proposé                                                                                                                                              |
-| --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Facturation du dépôt pneus                                                                          | Gratuit si entretien chez eux / forfait annuel fixe / inclus dans un abonnement pneus                          | Booléen `facturation_depot_active` + montant par défaut au niveau site, dérogeable par dépôt                                                                     |
-| Délai avant relance d'un jeu oublié                                                                 | 12 à 36 mois selon garage                                                                                      | `delai_relance_mois` paramètre site, défaut 24                                                                                                                   |
-| Rigueur du plan de parc                                                                             | Certains garages veulent un plan fidèle au centimètre (grandes concessions), d'autres juste 3 zones grossières | Le plan est une grille libre dimensionnée par le garage lui-même (voir §5) — pas de taille imposée                                                               |
-| Un jeu de pneus peut-il être rattaché à un client sans véhicule connu (VO pas encore repris en DMS) | Cas réel à la migration d'un DMS existant                                                                      | `vehicule_id` reste obligatoire mais le véhicule peut être un enregistrement minimal (`identificationIncomplete = true`, mécanisme déjà existant sur `vehicule`) |
+3. Ce qui varie d'un garage à l'autre — paramétrage proposé
 
 ---
 
-## 4. Modèle de données proposé
+- Facturation du dépôt pneus / Gratuit si entretien chez eux / forfait annuel fixe / inclus dans un abonnement pneus / Booléen `facturation_depot_active` + montant par défaut au niveau site, dérogeable par dépôt
+- Délai avant relance d'un jeu oublié / 12 à 36 mois selon garage / `delai_relance_mois` paramètre site, défaut 24
+- Rigueur du plan de parc / Certains garages veulent un plan fidèle au centimètre (grandes concessions), d'autres juste 3 zones grossières / Le plan est une grille libre dimensionnée par le garage lui-même (voir §5) — pas de taille imposée
+- Un jeu de pneus peut-il être rattaché à un client sans véhicule connu (VO pas encore repris en DMS) / Cas réel à la migration d'un DMS existant / `vehicule_id` reste obligatoire mais le véhicule peut être un enregistrement minimal (`identificationIncomplete = true`, mécanisme déjà existant sur `vehicule`)
+
+---
+
+4. Modèle de données proposé
+
+---
 
 Principe directeur : **réutiliser le patron `emplacement` texte libre** de `stock_article` plutôt
 que d'inventer une hiérarchie de zones. Le plan de parc a néanmoins besoin d'une notion de
 **disposition visuelle** (où dessiner la case) que `stock_article.emplacement` n'a pas — c'est la
 vraie nouveauté à modéliser, pas le rattachement lui-même.
 
-### 4.1 `emplacement_parc` — conditionnel, Lot D seulement (voir §7-8)
+**4.1 `emplacement_parc` — conditionnel, Lot D seulement (voir §7-8)**
 
 ```
 id, tenant_id (RLS), site_id → site(tenant_id, id)
@@ -156,7 +163,7 @@ UNIQUE (tenant_id, site_id, code)
 UNIQUE (tenant_id, site_id, position_colonne, position_ligne)  -- deux cases ne se superposent pas
 ```
 
-### 4.2 Extension de `vehicule` (colonnes, pas de nouvelle table) — Lot C
+**4.2 Extension de `vehicule` (colonnes, pas de nouvelle table) — Lot C**
 
 ```
 emplacement_parc_id   uuid NULL  → emplacement_parc(tenant_id, id)   -- rattachement structuré, optionnel
@@ -174,7 +181,7 @@ la détention, qui ont une vraie valeur d'historique métier) — à ajouter plu
 le rendu visuel du plan, le texte libre est le filet pour tout ce qui n'a pas (encore) de case
 définie — cour, place client nommée, « chez le carrossier en sous-traitance ».
 
-### 4.3 `depot_pneus` (nouvelle table, module `atelier` ou `pieces` — à trancher, Lot A prioritaire)
+**4.3 `depot_pneus` (nouvelle table, module `atelier` ou `pieces` — à trancher, Lot A prioritaire)**
 
 ```
 id, tenant_id (RLS), vehicule_id NOT NULL → vehicule(tenant_id, id)
@@ -202,7 +209,7 @@ réellement variable par marque ou tenant. Entité auditée (même mécanisme `a
 `vehicule_travail_reporte`/`vehicule_stock`) : un jeu de pneus engage la responsabilité du garage,
 tout changement de statut doit être reconstituable.
 
-### 4.4 Ce qui n'est PAS créé
+**4.4 Ce qui n'est PAS créé**
 
 - Pas de table `zone_hangar` séparée : le hangar est un `site` (un garage à plusieurs hangars
   physiques le note dans `code_case`, ex. « Hangar B / rack 3 »). Pas de sur-modélisation tant que
@@ -211,7 +218,9 @@ tout changement de statut doit être reconstituable.
 
 ---
 
-## 5. Endpoints et droits
+5. Endpoints et droits
+
+---
 
 Module `pneus` (ou sous-module `atelier`), prioritaire :
 
@@ -241,7 +250,9 @@ dupliquer un droit qui existe déjà).
 
 ---
 
-## 6. Les écrans, en deux phrases chacun
+6. Les écrans, en deux phrases chacun
+
+---
 
 **Hangar à pneus** : une grille de cases fixes de rack (disposition physique stable, pas de
 glisser-déposer libre), avec un code couleur été/hiver et un badge sur les jeux à relancer ;
@@ -263,7 +274,9 @@ seul, un après-midi, sans ticket support ni intervention de @laupernoe.
 
 ---
 
-## 7. Avis critique
+7. Avis critique
+
+---
 
 Les deux fonctionnalités viennent bien de la concurrence (Nextlane a un « plan parking » visuel ;
 plusieurs DMS pneus suisses vendent le hangar comme argument commercial), et elles n'ont pas la
@@ -302,7 +315,9 @@ grille visuelle en Lot 3 seulement.
 
 ---
 
-## 8. Découpage en lots implémentables
+8. Découpage en lots implémentables
+
+---
 
 **Lot A — Hangar à pneus, schéma + API** (`expert-database` puis `expert-nestjs`, périmètre
 `apps/api/src/db/schema/pneus/` ou sous-module atelier + `apps/api/src/pneus/`)

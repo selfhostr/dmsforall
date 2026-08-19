@@ -9,6 +9,7 @@ import {
   schemaArretPointage,
   schemaCorrectionPointage,
   schemaDemarragePointage,
+  schemaDernierPointageDuJourQuery,
   schemaFiltresPointages,
 } from '@dfa/shared';
 
@@ -58,6 +59,7 @@ describe('PointageController — droit exigé par route (câblage réel de @Exig
   const casAttendus: readonly [string, object, Action][] = [
     ['lister', PointageController.prototype.lister, 'atelier.pointage.lire'],
     ['agregatsLigne', PointageController.prototype.agregatsLigne, 'atelier.pointage.lire'],
+    ['dernierDuJour', PointageController.prototype.dernierDuJour, 'atelier.pointage.lire'],
     ['obtenir', PointageController.prototype.obtenir, 'atelier.pointage.lire'],
     ['demarrer', PointageController.prototype.demarrer, 'atelier.pointage.demarrer'],
     ['arreter', PointageController.prototype.arreter, 'atelier.pointage.arreter'],
@@ -150,5 +152,25 @@ describe('PointageController — isolation tenant (jamais un paramètre de requ�
   it('schemaArretPointage et schemaCorrectionPointage n’ont pas de clé tenantId', () => {
     expect(Object.keys(schemaArretPointage.shape)).not.toContain('tenantId');
     expect(Object.keys(schemaCorrectionPointage.shape)).not.toContain('tenantId');
+  });
+
+  it('schemaDernierPointageDuJourQuery n’a pas de clé tenantId — seul `technicienId` (optionnel) voyage en query', () => {
+    expect(Object.keys(schemaDernierPointageDuJourQuery.shape)).toEqual(['technicienId']);
+  });
+});
+
+describe('PointageController — GET /pointages/dernier-du-jour', () => {
+  it('schemaDernierPointageDuJourQuery accepte une entrée vide (technicienId optionnel)', () => {
+    expect(schemaDernierPointageDuJourQuery.safeParse({}).success).toBe(true);
+  });
+
+  it('schemaDernierPointageDuJourQuery rejette un technicienId mal formé (pas un uuid)', () => {
+    expect(
+      schemaDernierPointageDuJourQuery.safeParse({ technicienId: 'pas-un-uuid' }).success,
+    ).toBe(false);
+  });
+
+  it('schemaDernierPointageDuJourQuery rejette une clé étrangère (schéma strict)', () => {
+    expect(schemaDernierPointageDuJourQuery.safeParse({ siteId: 'x' }).success).toBe(false);
   });
 });

@@ -41,6 +41,7 @@ const DOSSIER: ReponseDossierVente = {
   financement: null,
   financements: [],
   financementsTronques: false,
+  garantie: null,
   documents: [],
   documentsTronques: false,
   documentsRequis: [],
@@ -103,7 +104,7 @@ describe('EcranListeDossiersVente', () => {
 
     rendre();
 
-    expect(await screen.findByText('Aucun dossier de vente.')).toBeInTheDocument();
+    expect(await screen.findByText('Aucun dossier de vente')).toBeInTheDocument();
   });
 
   it('état erreur : message actionnable avec retry', async () => {

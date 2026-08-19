@@ -15,6 +15,20 @@ export default tseslint.config(
       '**/*.config.js',
       'apps/web/src/api/schema.d.ts',
       'apps/web/src/components/ui/**',
+      // site/ : projet Astro autonome (vitrine + doc + légal, depuis le
+      // 17.08.2026 — remplace un socle Hugo+Blowfish construit puis écarté
+      // le même jour, voir site/README.md), hors du workspace pnpm racine
+      // (site/pnpm-workspace.yaml). Contient des fichiers .astro que ce
+      // parser ne sait pas lire (pas de plugin Astro ici) et du TypeScript
+      // React aux conventions volontairement différentes (composants
+      // .astro majoritaires, pas de tsconfig "project" partagé). A son
+      // PROPRE eslint.config.mjs, complet et vert (`pnpm --dir site lint`) —
+      // pas une exemption de qualité, juste un outillage séparé.
+      'site/**',
+      'ancien-site/public/**',
+      'ancien-site/resources/**',
+      'ancien-site/themes/**',
+      'ancien-site/static/**',
     ],
   },
   js.configs.recommended,

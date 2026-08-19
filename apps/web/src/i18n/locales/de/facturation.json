@@ -142,6 +142,9 @@
     "chargement": "Wird geladen…"
   },
   "fiche": {
+    "titre": "{type} {numero}",
+    "titreBrouillonFacture": "Neue Rechnung",
+    "titreBrouillonAvoir": "Neue Gutschrift",
     "issueDeOr": "aus einem Reparaturauftrag →",
     "emiseLe": "ausgestellt am {date}",
     "destinataire": {
@@ -202,6 +205,8 @@
     "documentsLies": {
       "titre": "Verknüpfte Dokumente",
       "or": "Verknüpfter Reparaturauftrag →",
+      "dossierVente": "Verknüpfter Verkaufsvorgang →",
+      "vehicule": "Verknüpftes Fahrzeug →",
       "facture": "Ursprüngliche Rechnung →",
       "avoir": "Verknüpfte Gutschrift →",
       "vide": "Kein verknüpftes Dokument."
@@ -290,6 +295,7 @@
     },
     "lignesInvalides": "Jede Zahlungsart muss einen Betrag über null aufweisen.",
     "resteAEncaisser": "Noch zu inkassieren",
+    "confirmationSucces": "Zahlungseingang erfasst",
     "confirmer": "Zahlungseingang erfassen",
     "enCours": "Wird erfasst…",
     "erreur": {
@@ -337,12 +343,27 @@
       "titre": "Die Rechnungen konnten nicht geladen werden"
     },
     "vide": {
-      "premierUsage": "Noch keine Rechnung ausgestellt. Rechnungen entstehen aus einem abgeschlossenen Reparaturauftrag.",
+      "premierUsage": {
+        "titre": "Keine ausgestellte Rechnung",
+        "description": "Rechnungen entstehen aus einem abgeschlossenen Reparaturauftrag."
+      },
       "voirOr": "Reparaturaufträge anzeigen →",
-      "nonReglees": "Keine unbezahlte Rechnung — alles ist aktuell.",
-      "enRetard": "Keine überfällige Rechnung — alles ist aktuell.",
-      "aRelancer": "Derzeit keine Rechnung zu mahnen.",
-      "recherche": "Keine Rechnung entspricht dieser Suche."
+      "nonReglees": {
+        "titre": "Nichts zu begleichen",
+        "description": "Alle Forderungen sind beglichen."
+      },
+      "enRetard": {
+        "titre": "Keine überfällige Rechnung",
+        "description": "Alle Zahlungsfristen sind eingehalten."
+      },
+      "aRelancer": {
+        "titre": "Keine zu mahnende Rechnung",
+        "description": "Keine Rechnung wartet auf eine Mahnung."
+      },
+      "recherche": {
+        "titre": "Keine Rechnung gefunden",
+        "description": "Keine Rechnung entspricht dieser Nummer oder diesem Kundennamen."
+      }
     }
   },
   "actions": {

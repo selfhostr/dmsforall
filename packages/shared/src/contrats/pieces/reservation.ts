@@ -29,9 +29,31 @@ import { schemaParametresPage } from '../pagination';
 export interface ReponseReservationPiece {
   readonly id: string;
   readonly articleId: string;
+  /**
+   * Désignation lisible de l'article — DÉFAUT CORRIGÉ (test manuel du 14.08.2026, défaut n°3) :
+   * avant ce champ, `GET /reservations` ne rendait que `articleId`/`ordreReparationId` bruts, et
+   * la vue transverse (`EcranReservationsPieces`) n'avait d'autre choix que d'afficher des liens
+   * génériques (« Voir l'article ») — il fallait ouvrir chaque lien pour savoir de quoi il
+   * s'agissait. Jointure ajoutée en base de lecture (`service-reservation.ts`), jamais recopiée ni
+   * dénormalisée : reflète TOUJOURS l'état actuel de l'article au moment de la lecture, pas celui
+   * au moment de la réservation.
+   *
+   * OPTIONNEL EN TYPE, TOUJOURS RENSEIGNÉ EN PRATIQUE (`versReservationResponse`, `pieces/mappers.ts`) —
+   * décision délibérée, PAS un oubli : `apps/api/src/atelier/service-ligne-or.spec.ts` construit des
+   * fixtures `ReponseReservationPiece` complètes hors du périmètre d'écriture de cette passe
+   * (`apps/api/src/pieces/**` seul) ; rendre ces trois champs obligatoires aurait cassé son
+   * typecheck sans pouvoir corriger le fichier fautif dans cette même passe. Signalé pour une
+   * passe `expert-correctif` qui ajoutera les trois champs à cette fixture et pourra alors durcir
+   * ce type en `readonly` (non optionnel) — voir le rapport de livraison de ce correctif.
+   */
+  readonly articleNumero?: string;
+  readonly articleDesignation?: string;
   readonly siteId: string;
   readonly ligneOrId: string;
   readonly ordreReparationId: string;
+  /** Numéro lisible de l'ordre de réparation — même correctif, même réserve d'optionalité que
+   *  `articleNumero`/`articleDesignation` ci-dessus. */
+  readonly ordreReparationNumero?: string;
   readonly quantiteMillieme: number;
   readonly statut: StatutReservationPiece;
   readonly creeLe: string;

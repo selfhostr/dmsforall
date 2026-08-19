@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 
 import type { SiteResume, TypeMouvementStock } from '@dfa/shared';
 
-import { messageErreur } from '@/api/erreurs';
 import { useCleIdempotence } from '@/api/idempotence';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -24,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useApercuForcage } from '@/hooks/pieces/useApercuForcage';
 import {
   useCreerAjustementInventaire,
   useCreerMouvementCasse,
@@ -32,6 +32,7 @@ import {
   useCreerRetourFournisseur,
 } from '@/hooks/pieces/useCreerMouvementStock';
 
+import { messageErreurMutation } from './messages-erreur-mutation';
 import { saisieVersQuantiteMillieme } from './utils';
 
 /** Les CINQ mouvements à déclenchement direct (RP-16 → RP-18) — voir `useCreerMouvementStock.ts`.
@@ -112,6 +113,19 @@ export function DialogueMouvementStock({
 
   const motifObligatoire = type !== 'transfert';
   const motifRequis = motif.trim().length >= 3;
+
+  // DÉFAUT CORRIGÉ (test manuel du 14.08.2026, défaut n°2) : « Forcer » libère potentiellement des
+  // réservations en cascade (RP-15) SANS que le dialogue n'en avertisse jusqu'ici. Interrogé
+  // UNIQUEMENT quand la case est cochée sur un type qui l'accepte (`casse`/`perte`) ET que
+  // site/quantité sont renseignés — jamais en arrière-plan pour un mouvement qui ne force pas.
+  const quantiteApercu = saisieVersQuantiteMillieme(quantiteSaisie);
+  const apercuForcage = useApercuForcage(
+    articleId,
+    siteId,
+    quantiteApercu,
+    forcer && (type === 'casse' || type === 'perte'),
+  );
+  const reservationsMenacees = apercuForcage.data?.reservations ?? [];
 
   function fermerApresSucces() {
     idempotence.regenerer();
@@ -354,6 +368,35 @@ export function DialogueMouvementStock({
             </label>
           ) : null}
 
+          {forcer && (type === 'casse' || type === 'perte') ? (
+            apercuForcage.isPending ? (
+              <p className="texte-libelle text-muted-foreground">
+                {t('pieces:stock.mouvements.nouveauMouvement.apercuForcage.chargement')}
+              </p>
+            ) : apercuForcage.isError ? (
+              <p className="texte-libelle text-destructive" role="alert">
+                {t('pieces:stock.mouvements.nouveauMouvement.apercuForcage.erreur')}
+              </p>
+            ) : reservationsMenacees.length > 0 ? (
+              <Alert variant="avertissement">
+                <AlertDescription>
+                  <p>
+                    {t('pieces:stock.mouvements.nouveauMouvement.apercuForcage.titre', {
+                      count: reservationsMenacees.length,
+                    })}
+                  </p>
+                  <p>
+                    {t('pieces:stock.mouvements.nouveauMouvement.apercuForcage.listeOrs', {
+                      numeros: reservationsMenacees
+                        .map((reservation) => reservation.ordreReparationNumero)
+                        .join(', '),
+                    })}
+                  </p>
+                </AlertDescription>
+              </Alert>
+            ) : null
+          ) : null}
+
           {aucunMouvementCree ? (
             <Alert variant="avertissement">
               <AlertDescription>
@@ -369,7 +412,7 @@ export function DialogueMouvementStock({
           ) : null}
           {erreur ? (
             <p className="texte-libelle text-destructive" role="alert">
-              {messageErreur(erreur, t)}
+              {messageErreurMutation(erreur, t)}
             </p>
           ) : null}
         </div>

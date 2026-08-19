@@ -22,6 +22,7 @@ import {
 import { ServiceMouvement } from '../../pieces/service-mouvement';
 
 import type {
+  Avertissement,
   EntreeCreationAvoir,
   ReponseAvecAvertissements,
   ReponseDocumentVente,
@@ -84,93 +85,174 @@ export class ServiceAvoir {
 
         const lignesFacture = await listerLignesDocument(tx, ctx, factureId);
         const lignesACrediter = this.resoudreLignesACrediter(facture, lignesFacture, entree);
-
         const maintenant = this.horloge.maintenant();
-        const [avoir] = await tx
-          .insert(documentVente)
-          .values({
-            tenantId: ctx.tenantId,
-            siteId: facture.siteId,
-            typeDocument: 'avoir',
-            clientId: facture.clientId,
-            vehiculeId: facture.vehiculeId,
-            ordreReparationId: facture.ordreReparationId,
-            factureAnnuleeId: factureId,
-            porteeAvoir: entree.portee,
-            motifAvoir: entree.motif,
-            motifAvoirLibre: entree.motifAutre ?? null,
-            clientDesignationFigee: facture.clientDesignationFigee,
-            clientIdeFige: facture.clientIdeFige,
-            langueFigee: facture.langueFigee,
-            adresseFacturationFigee: facture.adresseFacturationFigee,
-            conditionsPaiementFigees: facture.conditionsPaiementFigees,
-            dateDocument: maintenant.toISOString().slice(0, 10),
-            devise: facture.devise,
-          })
-          .returning();
-        if (!avoir)
-          throw new ErreurMetier(
-            'ERREUR_INTERNE',
-            "L'insertion de l'avoir n'a rendu aucune ligne.",
-          );
 
-        const collecteur = new CollecteurAvertissements();
-        let numeroOrdre = 1;
-        for (const source of lignesACrediter) {
-          const montants = calculerLigneDocument({
-            prixUnitaireTtcCentimes: -source.montantCentimes,
-            quantiteMillieme: 1000,
-            remisePourmille: null,
-            remiseMontantCentimes: null,
-            remiseGlobaleRepartieCentimes: 0,
-            tauxTvaPourmille: source.ligne.tauxTvaPourmille,
-          });
-          const [ligneAvoir] = await tx
-            .insert(ligneDocument)
-            .values({
-              tenantId: ctx.tenantId,
-              documentId: avoir.id,
-              numeroOrdre: numeroOrdre++,
-              typeLigne: source.ligne.typeLigne,
-              designation: source.ligne.designation,
-              referenceTexte: source.ligne.referenceTexte,
-              modeCalculTva: 'ttc',
-              regimeTva: source.ligne.regimeTva,
-              tauxTvaPourmille: source.ligne.tauxTvaPourmille,
-              datePrestation: source.ligne.datePrestation,
-              quantiteMillieme: 1000,
-              prixUnitaireCentimes: -source.montantCentimes,
-              remiseGlobaleRepartieCentimes: 0,
-              baseCentimes: montants.baseCentimes,
-              htCentimes: montants.htCentimes,
-              tvaCentimes: montants.tvaCentimes,
-              ttcCentimes: montants.ttcCentimes,
-            })
-            .returning();
-          if (!ligneAvoir)
-            throw new ErreurMetier(
-              'ERREUR_INTERNE',
-              "L'insertion d'une ligne d'avoir n'a rendu aucune ligne.",
-            );
+        const { avoirId, avertissements } = await this.construireAvoirTx(
+          tx,
+          ctx,
+          principal,
+          factureId,
+          facture,
+          lignesACrediter,
+          {
+            portee: entree.portee,
+            motif: entree.motif,
+            motifAutre: entree.motifAutre ?? null,
+            dateDocument: maintenant,
+            declencherRetourStock: true,
+          },
+        );
 
-          await this.retournerStockSiApplicable(
-            tx,
-            ctx,
-            principal,
-            facture.numero ?? factureId,
-            source,
-            ligneAvoir,
-            collecteur,
-          );
-        }
-
-        const document = await this.documents.assemblerDocument(tx, ctx, principal.role, avoir.id);
+        const document = await this.documents.assemblerDocument(tx, ctx, principal.role, avoirId);
         return {
           statutHttp: 201,
-          corps: { donnees: document, avertissements: collecteur.liste() },
+          corps: { donnees: document, avertissements },
         };
       },
     );
+  }
+
+  /**
+   * `RF-12`→`RF-14` (correction de facture, `ServiceCorrectionFacture.corriger`) : construit un
+   * avoir TOTAL créditant `factureId`, SANS déclencher de retour physique de stock — à la
+   * différence de `creer()`, une correction ne restitue RIEN : la facture de remplacement reprend
+   * IMMÉDIATEMENT le même contenu commercial, dans la MÊME transaction. Déclencher `RP-46`
+   * (`retour_client`) ici créerait un mouvement fantôme — rien ne repart jamais chez le client.
+   *
+   * Appelée UNIQUEMENT par `ServiceCorrectionFacture`, jamais par une route HTTP directe : pas
+   * d'enveloppe d'idempotence ici, l'appelant la porte pour l'opération entière (avoir + facture de
+   * remplacement). `lignesFacture` doit déjà être verrouillée par l'appelant (`FOR UPDATE`,
+   * `listerLignesDocumentPourEcriture`) — cette méthode ne relit rien.
+   */
+  async construireAvoirTotalPourCorrectionTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    factureId: string,
+    facture: LigneDocumentVente,
+    lignesFacture: readonly LigneLigneDocument[],
+    motif: EntreeCreationAvoir['motif'],
+    motifAutre: string | null,
+    dateDocument: Date,
+  ): Promise<{ readonly avoirId: string }> {
+    const lignesACrediter = lignesFacture.map((ligne) => ({
+      ligne,
+      montantCentimes: ligne.ttcCentimes,
+    }));
+    const { avoirId } = await this.construireAvoirTx(
+      tx,
+      ctx,
+      principal,
+      factureId,
+      facture,
+      lignesACrediter,
+      { portee: 'total', motif, motifAutre, dateDocument, declencherRetourStock: false },
+    );
+    return { avoirId };
+  }
+
+  /**
+   * Cœur d'écriture partagé — insère l'en-tête `document_vente` (`avoir`) et ses lignes créditées.
+   * Extrait de `creer()` (14.08.2026, blocage n°1) pour être réutilisé À L'IDENTIQUE par
+   * `construireAvoirTotalPourCorrectionTx`, seule `declencherRetourStock` variant entre les deux
+   * appelants (voir sa docstring).
+   */
+  private async construireAvoirTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    factureId: string,
+    facture: LigneDocumentVente,
+    lignesACrediter: readonly {
+      readonly ligne: LigneLigneDocument;
+      readonly montantCentimes: number;
+    }[],
+    params: {
+      readonly portee: EntreeCreationAvoir['portee'];
+      readonly motif: EntreeCreationAvoir['motif'];
+      readonly motifAutre: string | null;
+      readonly dateDocument: Date;
+      readonly declencherRetourStock: boolean;
+    },
+  ): Promise<{ readonly avoirId: string; readonly avertissements: readonly Avertissement[] }> {
+    const [avoir] = await tx
+      .insert(documentVente)
+      .values({
+        tenantId: ctx.tenantId,
+        siteId: facture.siteId,
+        typeDocument: 'avoir',
+        clientId: facture.clientId,
+        vehiculeId: facture.vehiculeId,
+        ordreReparationId: facture.ordreReparationId,
+        factureAnnuleeId: factureId,
+        porteeAvoir: params.portee,
+        motifAvoir: params.motif,
+        motifAvoirLibre: params.motifAutre,
+        clientDesignationFigee: facture.clientDesignationFigee,
+        clientIdeFige: facture.clientIdeFige,
+        langueFigee: facture.langueFigee,
+        adresseFacturationFigee: facture.adresseFacturationFigee,
+        conditionsPaiementFigees: facture.conditionsPaiementFigees,
+        dateDocument: params.dateDocument.toISOString().slice(0, 10),
+        devise: facture.devise,
+      })
+      .returning();
+    if (!avoir)
+      throw new ErreurMetier('ERREUR_INTERNE', "L'insertion de l'avoir n'a rendu aucune ligne.");
+
+    const collecteur = new CollecteurAvertissements();
+    let numeroOrdre = 1;
+    for (const source of lignesACrediter) {
+      const montants = calculerLigneDocument({
+        prixUnitaireTtcCentimes: -source.montantCentimes,
+        quantiteMillieme: 1000,
+        remisePourmille: null,
+        remiseMontantCentimes: null,
+        remiseGlobaleRepartieCentimes: 0,
+        tauxTvaPourmille: source.ligne.tauxTvaPourmille,
+      });
+      const [ligneAvoir] = await tx
+        .insert(ligneDocument)
+        .values({
+          tenantId: ctx.tenantId,
+          documentId: avoir.id,
+          numeroOrdre: numeroOrdre++,
+          typeLigne: source.ligne.typeLigne,
+          designation: source.ligne.designation,
+          referenceTexte: source.ligne.referenceTexte,
+          modeCalculTva: 'ttc',
+          regimeTva: source.ligne.regimeTva,
+          tauxTvaPourmille: source.ligne.tauxTvaPourmille,
+          datePrestation: source.ligne.datePrestation,
+          quantiteMillieme: 1000,
+          prixUnitaireCentimes: -source.montantCentimes,
+          remiseGlobaleRepartieCentimes: 0,
+          baseCentimes: montants.baseCentimes,
+          htCentimes: montants.htCentimes,
+          tvaCentimes: montants.tvaCentimes,
+          ttcCentimes: montants.ttcCentimes,
+        })
+        .returning();
+      if (!ligneAvoir)
+        throw new ErreurMetier(
+          'ERREUR_INTERNE',
+          "L'insertion d'une ligne d'avoir n'a rendu aucune ligne.",
+        );
+
+      if (params.declencherRetourStock) {
+        await this.retournerStockSiApplicable(
+          tx,
+          ctx,
+          principal,
+          facture.numero ?? factureId,
+          source,
+          ligneAvoir,
+          collecteur,
+        );
+      }
+    }
+
+    return { avoirId: avoir.id, avertissements: collecteur.liste() };
   }
 
   /**
@@ -236,7 +318,9 @@ export class ServiceAvoir {
     });
   }
 
-  private validerFactureCreditable(doc: LigneDocumentVente): void {
+  /** Publique : réutilisée telle quelle par `ServiceCorrectionFacture.corriger` (même contrôle
+   *  d'applicabilité — une correction, comme un avoir, n'agit que sur une facture ÉMISE). */
+  validerFactureCreditable(doc: LigneDocumentVente): void {
     if (doc.typeDocument !== 'facture') {
       throw new ErreurMetier('VALIDATION_ECHOUEE', "Un avoir ne peut créditer qu'une facture.", {
         erreurs: [

@@ -6,6 +6,7 @@ import { ErreurApi, messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useBlocCreancier } from '@/hooks/parametrage/useBlocCreancier';
 
 import { FormulaireBlocCreancier } from './FormulaireBlocCreancier';
@@ -37,9 +38,7 @@ export function EcranParametresFacturation() {
     requete.error instanceof ErreurApi && requete.error.probleme.code === 'DROIT_INSUFFISANT';
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="texte-titre-page">{t('parametrage:titre')}</h1>
-
+    <GabaritEcran titre={t('parametrage:titre')}>
       {requete.isPending ? (
         <EtatChargement lignes={8} />
       ) : requete.isError && estRefusDroit ? (
@@ -65,6 +64,6 @@ export function EcranParametresFacturation() {
       ) : (
         <FormulaireBlocCreancier blocCreancier={requete.data} />
       )}
-    </div>
+    </GabaritEcran>
   );
 }
