@@ -87,6 +87,7 @@
     "lignes": "Lavoro",
     "motif": "Motivo della correzione",
     "motifRequis": "Il motivo e obbligatorio",
+    "debutRequis": "L'ora di inizio e obbligatoria",
     "enregistrer": "Salva correzione",
     "debut": "Inizio",
     "fin": "Fine",
@@ -178,7 +179,8 @@
       "orEntier": "Ordine intero (senza lavoro preciso)",
       "lignesTitre": "Lavori dell'ordine",
       "aucuneLigne": "Questo ordine non ha alcun lavoro timbrabile — puoi timbrare sull'ordine intero.",
-      "assigneeAutre": "Assegnato a un altro tecnico."
+      "assigneeAutre": "Assegnato a un altro tecnico.",
+      "nonPointable": "Non ancora disponibile per la timbratura."
     },
     "erreur": {
       "titre": "Impossibile caricare la tua timbratura"

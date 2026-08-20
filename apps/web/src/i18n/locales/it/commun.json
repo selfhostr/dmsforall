@@ -52,6 +52,10 @@
   "formulaires": {
     "champsObligatoiresLegende": "I campi contrassegnati con un asterisco (*) sono obbligatori."
   },
+  "montants": {
+    "masque": "Non visibile",
+    "masqueDescription": "Questo importo esiste, ma il tuo ruolo non ha accesso agli importi."
+  },
   "roles": {
     "direction": "Direzione",
     "vendeur": "Consulente vendite",

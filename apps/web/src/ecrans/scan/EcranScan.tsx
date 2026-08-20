@@ -1,13 +1,15 @@
-import { AlertCircle, Camera, CheckCircle2, IdCard, Loader2, WifiOff } from 'lucide-react';
+import { AlertCircle, Camera, CheckCircle2, IdCard, Loader2, LogOut, WifiOff } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useSearchParams } from 'react-router';
+import { Link, Navigate, useSearchParams } from 'react-router';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { EtatChargement } from '@/composants/commun/EtatChargement';
+import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useModeScanMobile } from '@/composants/layout/useModeScanMobile';
-import { messageErreur, ErreurReseau } from '@/api/erreurs';
+import { messageErreur, ErreurApi, ErreurReseau } from '@/api/erreurs';
 import {
   useEvenementsTempsReel,
   type EtatFluxTempsReel,
@@ -60,6 +62,11 @@ type EtapeScan =
       readonly phase: 'erreur';
       readonly categorie: 'image' | 'reseau' | 'serveur';
       readonly message: string;
+      /** `true` UNIQUEMENT quand la cause exacte est une session expirée côté serveur
+       *  (`AUTH_SESSION_EXPIREE`, voir `envoyerPourAnalyse`) — remplace alors l'action « Reprendre
+       *  une photo » (qui échouerait de nouveau à l'identique, la session étant partie) par un
+       *  lien explicite vers la connexion. Voir la doc de tête, § SESSION. */
+      readonly sessionExpiree?: boolean;
     };
 
 /**
@@ -111,10 +118,50 @@ type EtapeScan =
  * l'état `resultat` n'est atteint qu'après une confirmation serveur réelle (ou l'absence
  * confirmée de toute création nécessaire), et toute panne — image illisible, réseau, serveur — a
  * son propre état d'erreur explicite, jamais un écran qui prétend avoir réussi.
+ *
+ * SESSION — défaut constaté sur DEUX écrans indépendants (celui-ci et la borne d'atelier, issue
+ * #159, `EcranBornePointage.tsx` — MÊME raisonnement, non répété en détail ici) : `useSession()`
+ * était appelé sans jamais lire `isPending`/`isError`, donc trois situations très différentes
+ * (plus de session, service injoignable, vérification en cours) retombaient sur le même rendu, ou
+ * pire, aucun. `RouteProtegee` (`routes/RouteProtegee.tsx`) garde déjà la route `/scan` — mais cet
+ * écran porte sa PROPRE requête `useSession()` (nécessaire à son propre squelette anti-flash), ce
+ * qui laisse une fenêtre réelle ouverte : la session peut s'éteindre PENDANT que cet écran est
+ * déjà monté (déconnexion, TTL dépassé), un instant avant que `RouteProtegee` ne démonte l'arbre.
+ *
+ * Trois états, jamais confondus : en cours de vérification -> squelette, jamais l'écran de
+ * capture affiché prématurément ; `session === null` (DONNÉE CONNUE, 401 propre confirmé par le
+ * serveur, jamais une panne) -> plus de session ; service injoignable (`isError`, PAS une absence
+ * de session) -> message actionnable, réessai possible.
+ *
+ * CE QUI DIFFÈRE DE LA BORNE, délibérément : la borne est un poste PARTAGÉ sans travail personnel
+ * en cours (le pointage vit côté serveur, reprenable) — un redirect immédiat vers `/login` n'y
+ * perd donc rien. Ici, un garagiste peut tenir en main une photo tout juste prise, un cadrage à
+ * confirmer, ou un formulaire déjà corrigé à la main : un redirect immédiat FERAIT DISPARAÎTRE ce
+ * travail SANS AUCUN AVERTISSEMENT. Donc : `session === null` À L'ÉTAPE `capture` (rien
+ * d'engagé) -> redirect direct, identique à la borne ; `session === null` À TOUTE AUTRE ÉTAPE ->
+ * l'écran continue de s'afficher NORMALEMENT (le travail en cours reste visible), avec une
+ * bannière explicite non bloquante en tête de page — le garagiste choisit LUI-MÊME le moment de se
+ * reconnecter, jamais un silence. Même logique pour `isError` : bloquant seulement à l'étape
+ * `capture` (rien à perdre) ; au-delà, ce contrôle redevient un simple confort, comme le canal
+ * temps réel (voir `PanneauRienACreer`) — jamais un blocage d'un parcours déjà engagé, dont les
+ * propres appels réseau (OCR, création) ont leur gestion d'erreur dédiée (voir juste en dessous).
+ *
+ * SESSION PERDUE PENDANT L'APPEL OCR LUI-MÊME (entre la prise de la photo et le retour du
+ * serveur, `envoyerPourAnalyse`) : un cas DISTINCT du précédent — ici c'est l'appel réseau du scan
+ * qui échoue en 401 `AUTH_SESSION_EXPIREE`, pas la requête `useSession()` de cet écran. Déjà non
+ * silencieux avant ce correctif (le message précis « Votre session a expiré » s'affichait déjà,
+ * via `messageErreur`/`erreurs:codes.AUTH_SESSION_EXPIREE`) — seule l'action proposée était fausse
+ * (« Reprendre une photo » aurait échoué à l'identique). `sessionExpiree` sur la phase `erreur`
+ * corrige CETTE action, rien d'autre.
  */
 export function EcranScan() {
   const { t } = useTranslation(['scan', 'commun', 'erreurs']);
-  const { data: session } = useSession();
+  const {
+    isPending: sessionEnAttente,
+    isError: sessionEnErreur,
+    data: session,
+    refetch: rafraichirSession,
+  } = useSession();
   const modeScan = useModeScanMobile(session?.utilisateur.role);
   const [searchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
@@ -268,6 +315,8 @@ export function EcranScan() {
         phase: 'erreur',
         categorie: cause instanceof ErreurReseau ? 'reseau' : 'serveur',
         message: messageErreur(cause, t),
+        sessionExpiree:
+          cause instanceof ErreurApi && cause.probleme.code === 'AUTH_SESSION_EXPIREE',
       });
     }
   }
@@ -295,9 +344,57 @@ export function EcranScan() {
     setEtape({ phase: 'capture' });
   }
 
+  // GESTION DE LA SESSION — voir la doc de tête, § SESSION, pour le raisonnement complet (pourquoi
+  // ce n'est PAS le même arbitrage que la borne d'atelier).
+  if (sessionEnAttente) {
+    return (
+      <GabaritEcran titre={t('scan:titre')} sousTitre={t('scan:sousTitre')}>
+        <EtatChargement lignes={4} />
+      </GabaritEcran>
+    );
+  }
+
+  // Rien d'engagé (aucune photo prise) -> redirect direct, identique à la borne (issue #159).
+  if (session === null && etape.phase === 'capture') {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Service injoignable ET rien d'engagé -> erreur actionnable classique. Au-delà de l'étape
+  // `capture`, `isError` redevient un simple confort (voir la doc de tête) : on laisse le parcours
+  // déjà lancé s'afficher normalement, sans jamais l'interrompre pour ce seul motif.
+  if (sessionEnErreur && etape.phase === 'capture') {
+    return (
+      <GabaritEcran titre={t('scan:titre')} sousTitre={t('scan:sousTitre')}>
+        <EtatErreur
+          titre={t('scan:session.erreur.titre')}
+          description={t('scan:session.erreur.description')}
+          onReessayer={() => void rafraichirSession()}
+        />
+      </GabaritEcran>
+    );
+  }
+
+  // Session partie APRÈS qu'une photo a été prise (ou pendant tout autre travail en cours) :
+  // JAMAIS un redirect silencieux qui l'effacerait — bannière explicite en tête du rendu normal
+  // ci-dessous, le travail en cours reste affiché tel quel.
+  const sessionPerdueEnCours = session === null && etape.phase !== 'capture';
+
   return (
     <GabaritEcran titre={t('scan:titre')} sousTitre={t('scan:sousTitre')}>
       <div className="flex flex-col gap-6">
+        {sessionPerdueEnCours ? (
+          <Alert variant="destructive">
+            <LogOut className="h-4 w-4" aria-hidden="true" />
+            <AlertTitle>{t('scan:session.perdueEnCours.titre')}</AlertTitle>
+            <AlertDescription className="flex flex-col items-start gap-2">
+              <span>{t('scan:session.perdueEnCours.description')}</span>
+              <Button type="button" variant="outline" size="sm" asChild>
+                <Link to="/login">{t('scan:session.seReconnecter')}</Link>
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
         {/* Échappatoire (voir `useModeScanMobile.ts`) — visible à CHAQUE étape du parcours, pas
             seulement à l'accueil : un utilisateur mal classé « mobile » ne doit jamais chercher
             comment sortir. Absente hors mode restreint (rien à quitter). */}
@@ -442,9 +539,18 @@ export function EcranScan() {
               <AlertTitle>{t('scan:erreurs.titre')}</AlertTitle>
               <AlertDescription>{etape.message}</AlertDescription>
             </Alert>
-            <Button type="button" onClick={recommencer}>
-              {t('scan:actions.reessayer')}
-            </Button>
+            {etape.sessionExpiree ? (
+              // Session partie ENTRE la prise de la photo et le retour du serveur — voir la doc
+              // de tête, § SESSION PERDUE PENDANT L'APPEL OCR. « Reprendre une photo » échouerait
+              // à l'identique : seule la reconnexion permet de continuer.
+              <Button type="button" asChild>
+                <Link to="/login">{t('scan:session.seReconnecter')}</Link>
+              </Button>
+            ) : (
+              <Button type="button" onClick={recommencer}>
+                {t('scan:actions.reessayer')}
+              </Button>
+            )}
           </div>
         ) : null}
 

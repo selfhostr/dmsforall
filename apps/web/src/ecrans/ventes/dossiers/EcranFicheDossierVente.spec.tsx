@@ -302,6 +302,52 @@ describe('EcranFicheDossierVente', () => {
     });
   });
 
+  // DÉFAUT CORRIGÉ (issue #162, 16.08.2026, testé en navigateur avec vendeur@garage-martin.ch) :
+  // le bloc « OR de ce véhicule » restait en squelette de chargement INDÉFINIMENT pour un rôle
+  // sans `atelier.or.lire` (`vendeur`, le rôle par défaut de `rendre()`) — la requête partait sans
+  // garde de droits ni politique de réessai, un 403 stable jamais transformé en état affichable.
+  // AUCUN handler `/api/v1/ordres-reparation` n'est enregistré ci-dessous : `onUnhandledRequest:
+  // 'error'` (`test/setup.ts`) fait échouer ce test si l'écran émettait malgré tout cette requête —
+  // la preuve la plus forte de « zéro requête », plus robuste qu'un compteur.
+  it(
+    'ne demande jamais les OR à un rôle sans droit (vendeur) : zéro requête, message honnête ' +
+      'plutôt qu’un chargement perpétuel',
+    async () => {
+      server.use(
+        http.get('/api/v1/dossiers-vente/dossier-1', () =>
+          HttpResponse.json({ ...DOSSIER, vehicule: construireVehiculeStock() }),
+        ),
+      );
+
+      rendre();
+
+      expect(
+        await screen.findByText("Vous n'avez pas le droit de consulter les OR de ce véhicule."),
+      ).toBeInTheDocument();
+    },
+  );
+
+  // Contre-épreuve du test précédent : un rôle AVEC `atelier.or.lire` (`direction`) voit bien le
+  // contenu réel de la section (pas le message de droit manquant) — la garde ne doit pas devenir
+  // trop large et priver un rôle légitime de cette information.
+  it('un rôle avec le droit (direction) voit le contenu réel de « OR de ce véhicule »', async () => {
+    server.use(
+      http.get('/api/v1/dossiers-vente/dossier-1', () =>
+        HttpResponse.json({ ...DOSSIER, vehicule: construireVehiculeStock() }),
+      ),
+      http.get('/api/v1/ordres-reparation', () =>
+        HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 10 }),
+      ),
+    );
+
+    rendre('direction');
+
+    expect(await screen.findByText('Aucun OR pour ce véhicule.')).toBeInTheDocument();
+    expect(
+      screen.queryByText("Vous n'avez pas le droit de consulter les OR de ce véhicule."),
+    ).not.toBeInTheDocument();
+  });
+
   // RÈGLE DURE (masquage par rôle, voir le brief de branchement) : un rôle qui lit le dossier de
   // vente (`chef_atelier` ∈ `ROLES_LECTURE_DOSSIER_VENTE`, `ecrans/ventes/dossiers/droits.ts`) mais
   // n'a AUCUN droit `ventes.reprise.*`/`ventes.financement.*` (`chef_atelier` absent des deux

@@ -87,6 +87,7 @@
     "lignes": "Ligne",
     "motif": "Motif de la correction",
     "motifRequis": "Le motif est obligatoire",
+    "debutRequis": "L'heure de début est obligatoire",
     "enregistrer": "Enregistrer la correction",
     "debut": "Début",
     "fin": "Fin",
@@ -178,7 +179,8 @@
       "orEntier": "OR entier (sans ligne précise)",
       "lignesTitre": "Lignes de l'OR",
       "aucuneLigne": "Cet OR n'a aucune ligne pointable — vous pouvez pointer sur l'OR entier.",
-      "assigneeAutre": "Assignée à un autre technicien."
+      "assigneeAutre": "Assignée à un autre technicien.",
+      "nonPointable": "Pas encore disponible pour le pointage."
     },
     "erreur": {
       "titre": "Impossible de charger votre pointage"

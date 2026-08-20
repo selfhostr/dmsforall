@@ -111,6 +111,29 @@ describe('ListeLignesOrdreReparation — sélection et actions groupées (valide
     ).not.toBeInTheDocument();
   });
 
+  it('un technicien (rôle sans droit aux montants, `ligne.montants` absent du DTO) voit « Non visible » sur la colonne Total TTC, jamais une cellule vide ni « 0.00 »', async () => {
+    // Issue #157 (rapport terrain) : le serveur masque correctement `ligne.montants` — aucune
+    // fuite — mais la cellule rendue jusqu'ici (`''`) était indiscernable d'une absence de
+    // donnée réelle (ex. la colonne « Temps pointé » avant le lot pointage). Ce test lit le texte
+    // réellement affiché, pas seulement l'existence d'une clé i18n (`i18n:check` reste vert même
+    // sur une clé inutilisable au rendu — voir CONTRIBUTING.md).
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({
+          ...SESSION_TEST,
+          utilisateur: { ...SESSION_TEST.utilisateur, role: 'technicien' },
+        }),
+      ),
+    );
+    rendre([construireLigne({ montants: undefined })]);
+
+    await screen.findByText('Remplacement disques avant (constaté au démontage)');
+    expect(screen.getByText('Non visible')).toBeInTheDocument();
+    expect(screen.queryByText('0.00')).not.toBeInTheDocument();
+    expect(screen.queryByText(/CHF\s*0/)).not.toBeInTheDocument();
+    expect(screen.queryByText('77.83')).not.toBeInTheDocument();
+  });
+
   it('« Valider » ferme le dialogue après un succès serveur et envoie `ligneIds` — dénoue le lien « Résoudre » de facturation, mort faute de sélection avant ce correctif', async () => {
     server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
     let corpsRequete: unknown;

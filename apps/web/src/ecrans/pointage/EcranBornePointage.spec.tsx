@@ -317,6 +317,76 @@ describe('EcranBornePointage', () => {
     },
   );
 
+  // Issue #152, volet CURE (borne) : deux techniciens qui cliquent au même instant sur une borne
+  // PARTAGÉE est le cas NORMAL, pas un cas rare. Avant ce correctif, `demarrerEtSuivre` relançait
+  // l'erreur APRÈS l'avoir déjà affichée via `setErreurAction`, alors que ses appelants
+  // (`handleChoisirLigne`/`handleChoisirOrEntier`/`handleDemarrerActiviteIndirecte`) l'invoquent en
+  // `void demarrerEtSuivre(...)` — la promesse rejetée n'était jamais observée -> rejet de promesse
+  // non rattrapé, constaté en test navigateur réel comme un écran de sélection cassé.
+  it(
+    'issue #152 : un refus serveur (409) au démarrage sur la borne ne casse jamais l’écran — ' +
+      'aucun rejet de promesse non rattrapé, le message d’erreur s’affiche',
+    async () => {
+      const orOuvertNonAssigne = construireOrDetail({ id: 'or-9', numero: 'OR-000999' });
+
+      poserHandlersSession();
+      server.use(
+        http.post('/api/v1/pointages/identification', () =>
+          HttpResponse.json(IDENTIFICATION_MARCO),
+        ),
+        http.get('/api/v1/ordres-reparation', ({ request }) => {
+          const url = new URL(request.url);
+          if (url.searchParams.has('technicienId')) {
+            return HttpResponse.json(pageOrdres([]));
+          }
+          return HttpResponse.json(pageOrdres([orOuvertNonAssigne]));
+        }),
+        http.get('/api/v1/ordres-reparation/or-9', () => HttpResponse.json(orOuvertNonAssigne)),
+        http.post('/api/v1/pointages', () =>
+          HttpResponse.json(
+            {
+              type: 'https://docs.dmsforall.example/erreurs/POINTAGE_OR_NON_MODIFIABLE',
+              title: 'OR non modifiable',
+              status: 409,
+              code: 'POINTAGE_OR_NON_MODIFIABLE',
+              instance: 'req-1',
+            },
+            { status: 409, headers: { 'content-type': 'application/problem+json' } },
+          ),
+        ),
+      );
+
+      // Voir `EcranPointageTechnicien.spec.tsx` pour la même vérification, même justification :
+      // le code React tourne directement dans le processus de test, `process.on
+      // ('unhandledRejection')` est ce qui observerait un rejet non rattrapé — jamais
+      // `window.onunhandledrejection`, propre aux scripts exécutés PAR jsdom.
+      const rejetsNonRattrapes: unknown[] = [];
+      const surRejetNonRattrape = (raison: unknown) => {
+        rejetsNonRattrapes.push(raison);
+      };
+      process.on('unhandledRejection', surRejetNonRattrape);
+
+      try {
+        const utilisateur = userEvent.setup();
+        rendre();
+
+        await taperCode(utilisateur, '4071');
+        expect(await screen.findByText('OR-000999')).toBeInTheDocument();
+        await utilisateur.click(screen.getByText('OR-000999'));
+        await utilisateur.click(await screen.findByRole('button', { name: 'Pointer sur cet OR' }));
+
+        // L'écran redevient utilisable : toujours le pavé/panneau normal, jamais vide ni figé.
+        expect(await screen.findByText('Bonjour Marco')).toBeInTheDocument();
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      } finally {
+        process.off('unhandledRejection', surRejetNonRattrape);
+      }
+
+      expect(rejetsNonRattrapes).toEqual([]);
+    },
+  );
+
   it(
     'correctif #117 : « Changer » de cible pendant un pointage en cours (borne) envoie UN SEUL ' +
       'appel `POST /pointages`, aucun `arreter` explicite, et affiche l’avertissement renvoyé',
@@ -627,6 +697,64 @@ describe('EcranBornePointage', () => {
           name: 'Reprendre le pointage sur OR-000123 — OR entier',
         }),
       ).toBeInTheDocument();
+    },
+  );
+
+  // Issue #159 : la borne restait bloquée, PIN oublié, sur une carte d'erreur statique quand la
+  // session devenait absente PENDANT que l'écran était déjà monté (déconnexion, TTL expiré) — sans
+  // bouton ni redirection. `RouteProtegee` (hors de ce fichier, testé séparément) couvre déjà le cas
+  // « navigation directe vers /pointage/borne sans session » ; celui-ci couvre le second, propre à
+  // CET écran : sa PROPRE requête `useSession()` (nécessaire à son spinner anti-flash) peut se
+  // résoudre à `null` avant que `RouteProtegee` n'ait démonté l'arbre. Reproduit ici SANS
+  // `RouteProtegee` (comme tous les autres tests de ce fichier), avec un `/login` voisin pour
+  // constater la redirection réelle plutôt que sa seule intention.
+  it(
+    'la session devient absente (null) pendant que l’écran est monté : redirige vers /login, ' +
+      'jamais un message figé sans action',
+    async () => {
+      let connecte = true;
+      server.use(
+        http.get('/api/v1/auth/moi', () =>
+          connecte
+            ? HttpResponse.json(SESSION_BORNE)
+            : HttpResponse.json(
+                {
+                  type: 'https://docs.dmsforall.example/erreurs/AUTH_SESSION_ABSENTE',
+                  title: 'Session absente',
+                  status: 401,
+                  code: 'AUTH_SESSION_ABSENTE',
+                  instance: 'req-1',
+                },
+                { status: 401, headers: { 'content-type': 'application/problem+json' } },
+              ),
+        ),
+      );
+
+      const queryClient = creerQueryClientTest();
+      render(
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter initialEntries={['/pointage/borne']}>
+            <Routes>
+              <Route path="/pointage/borne" element={<EcranBornePointage />} />
+              <Route path="/login" element={<div>Ecran de connexion</div>} />
+            </Routes>
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+
+      // Pavé neutre affiché normalement, session valide au premier chargement.
+      await screen.findByText('Saisissez le code PIN');
+
+      // La session expire côté serveur — le prochain refetch (focus, action, invalidation) le
+      // découvre, comme un vrai retour de fenêtre ou une action déclencherait un refetch réel.
+      connecte = false;
+      await waitFor(() => expect(queryClient.getQueryState(['auth', 'me'])).toBeDefined());
+      await queryClient.refetchQueries({ queryKey: ['auth', 'me'] });
+
+      expect(await screen.findByText('Ecran de connexion')).toBeInTheDocument();
+      expect(screen.queryByText('Saisissez le code PIN')).not.toBeInTheDocument();
+      // Jamais l'ancienne carte d'erreur statique, sans bouton ni redirection.
+      expect(screen.queryByText(/session/i)).not.toBeInTheDocument();
     },
   );
 });

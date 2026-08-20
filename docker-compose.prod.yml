@@ -428,7 +428,7 @@ services:
   # --- API (NestJS) --------------------------------------------------------------------------
   api:
     container_name: dfa-api
-    image: ${API_IMAGE:?Définir API_IMAGE (ex. ghcr.io/dmsforall/api:v0.4.2) dans .env.production}
+    image: ${API_IMAGE:?Définir API_IMAGE (ex. forge.example.org/owner/dfa-api:v0.4.2, voir .github/workflows/publier-images.yml) dans .env.production}
     restart: *restart-defaut
     # `.env.production` porte TOUTES les variables validées par apps/api/src/config (schéma
     # zod) : DATABASE_URL/DATABASE_URL_MIGRATION (rôles dfa_app/dfa_migrator, hôte `postgres` —
@@ -516,7 +516,7 @@ services:
   #   docker compose -f docker-compose.yml --env-file .env.production \
   #     --profile migration run --rm migrate
   migrate:
-    image: ${API_IMAGE:?Définir API_IMAGE (ex. ghcr.io/dmsforall/api:v0.4.2) dans .env.production}
+    image: ${API_IMAGE:?Définir API_IMAGE (ex. forge.example.org/owner/dfa-api:v0.4.2, voir .github/workflows/publier-images.yml) dans .env.production}
     profiles: ['migration']
     command: ['node', 'dist/db/migrer.js']
     env_file:
@@ -536,7 +536,7 @@ services:
   # --- Front (SPA statique servie par nginx) --------------------------------------------------
   web:
     container_name: dfa-web
-    image: ${WEB_IMAGE:?Définir WEB_IMAGE (ex. ghcr.io/dmsforall/web:v0.4.2) dans .env.production}
+    image: ${WEB_IMAGE:?Définir WEB_IMAGE (ex. forge.example.org/owner/dfa-web:v0.4.2, voir .github/workflows/publier-images.yml) dans .env.production}
     restart: *restart-defaut
     # Pas de `env_file:` : les variables `VITE_*` sont inlinées dans le bundle AU BUILD (voir
     # apps/web/Dockerfile, `ARG VITE_API_URL`), le conteneur nginx ne lit aucune variable

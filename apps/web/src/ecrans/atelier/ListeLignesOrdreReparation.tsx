@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { MontantMasque } from '@/composants/comptoir/MontantMasque';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import {
@@ -311,7 +312,9 @@ export function ListeLignesOrdreReparation({ orId, lignes, lignesTronquees }: Pr
       libelle: t('or:lignes.colonnes.totalTtc'),
       alignement: 'droite',
       // Absent (pas 0) pour un rôle sans droit aux montants : `ligne.montants` est alors omis en
-      // bloc par le serveur (§ contrat MontantsLigneOr), jamais substitué à « 0.00 ».
+      // bloc par le serveur (§ contrat MontantsLigneOr), jamais substitué à « 0.00 ». Issue #157 :
+      // ni substitué à une cellule vide non plus — `MontantMasque` (droit manquant) ne doit
+      // jamais se confondre avec une absence de donnée réelle.
       //
       // CORRECTIF issue #72 (rapport de test terrain) : « la ligne s'affiche à 156.75, d'où ça
       // sort ? Nulle part on ne me montre le tarif horaire ... pas un seul CHF ni TTC/HT ». Le
@@ -321,7 +324,7 @@ export function ListeLignesOrdreReparation({ orId, lignes, lignesTronquees }: Pr
       // taux a échoué côté serveur), le calcul « temps × taux/h » qui y mène — jamais recalculé
       // ici, seulement réaffiché depuis ce que le serveur a déjà figé.
       rendu: (ligne) => {
-        if (!ligne.montants) return '';
+        if (!ligne.montants) return <MontantMasque />;
         const estMainOeuvre = TYPES_MAIN_OEUVRE.has(ligne.type);
         const tempsCentiemes = ligne.tempsBaremeCentiemes ?? ligne.tempsReelCentiemes;
         return (

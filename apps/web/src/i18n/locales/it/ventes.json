@@ -225,7 +225,7 @@
         },
         "groupeLabel": "Piantina del parco per ubicazione",
         "sansEmplacement": "Senza ubicazione",
-        "nombreVehicules": "{n, plural, one {# veicolo} other {# veicoli}}"
+        "nombreVehicules": "{count, plural, one {# veicolo} other {# veicoli}}"
       }
     },
     "fiche": {
@@ -380,7 +380,8 @@
       },
       "ordresVehicule": {
         "titre": "Ordini di questo veicolo",
-        "vide": "Nessun ordine per questo veicolo."
+        "vide": "Nessun ordine per questo veicolo.",
+        "droitRequis": "Non ha il diritto di consultare gli ordini di questo veicolo."
       },
       "garantie": {
         "titre": "Garanzia",

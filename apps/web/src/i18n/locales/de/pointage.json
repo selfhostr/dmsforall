@@ -87,6 +87,7 @@
     "lignes": "Arbeit",
     "motif": "Grund der Änderung",
     "motifRequis": "Der Grund ist erforderlich",
+    "debutRequis": "Die Startzeit ist obligatorisch",
     "enregistrer": "Korrektur speichern",
     "debut": "Beginn",
     "fin": "Ende",
@@ -178,7 +179,8 @@
       "orEntier": "Ganzer RA (ohne genaue Arbeit)",
       "lignesTitre": "Arbeiten des RA",
       "aucuneLigne": "Dieser RA hat keine erfassbare Arbeit — Sie können auf dem ganzen RA erfassen.",
-      "assigneeAutre": "Einem anderen Techniker zugewiesen."
+      "assigneeAutre": "Einem anderen Techniker zugewiesen.",
+      "nonPointable": "Noch nicht für die Zeiterfassung verfügbar."
     },
     "erreur": {
       "titre": "Ihre Zeiterfassung konnte nicht geladen werden"

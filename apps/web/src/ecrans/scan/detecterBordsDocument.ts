@@ -50,6 +50,16 @@ import type { FractionsCadre } from './geometrieCadre';
  * livraison ; non mesuré sur téléphone réel dans cet environnement). Exécuté UNE SEULE FOIS par
  * photo fixe (capture ou dépôt de fichier) — jamais par image de flux vidéo, voir `CaptureLiveCadrage.tsx`
  * pour la cadence, volontairement bien plus économe, prévue pour la prise de vue en direct.
+ *
+ * SIGNAL BRUT FACTORISÉ (chantier « refus des photos structurellement illisibles », 20.08.2026) —
+ * les étapes 1 à 4 ci-dessus, SANS les portes de confiance, sont exposées séparément
+ * (`trouverPlusGrandComposantParContraste`) et la réduction DOM séparément aussi
+ * (`reduireSourcePourAnalyse`) : `detecterBordsDepuisPixels`/`detecterBordsDepuisSource`
+ * ci-dessous les enchaînent avec les portes de confiance (comportement inchangé, toujours couvert
+ * par `detecterBordsDocument.spec.ts`), et `detecterAnomaliesCadrage.ts` les enchaîne AUTREMENT pour
+ * repérer précisément les cas que ces portes rejettent (marge insuffisante, page non posée à plat) —
+ * voir sa doc de tête. Un seul algorithme, deux lectures du même signal, jamais deux implémentations
+ * qui pourraient diverger.
  */
 
 export const DIMENSION_ANALYSE_PX = 320;
@@ -71,8 +81,10 @@ const AIRE_MIN_FRAC = 0.12;
 /** Au-dessus de cette fraction, la boîte détectée couvre presque toute la photo : le fond ne s'est
  *  probablement pas assez distingué du document pour que la détection ait un sens (mieux vaut
  *  revenir au cadre fixe, généreux par construction, que d'affirmer avoir « détecté » le cadre
- *  entier de la photo). */
-const AIRE_MAX_FRAC = 0.9;
+ *  entier de la photo). EXPORTÉE : `detecterAnomaliesCadrage.ts` réutilise délibérément la MÊME
+ *  valeur comme porte d'entrée de son diagnostic « marge insuffisante / page non à plat » — c'est
+ *  précisément la zone que cette constante fait rejeter ici qui l'intéresse, voir sa doc de tête. */
+export const AIRE_MAX_FRAC = 0.9;
 
 /** Fraction minimale de la boîte englobante effectivement occupée par le composant connexe. Un vrai
  *  document rectangulaire remplit presque toute sa boîte englobante ; un blob troué/en L (un doigt
@@ -249,17 +261,35 @@ export function plusGrandComposantConnexe(
   return meilleur;
 }
 
+export interface ComposantParContraste {
+  readonly composant: ComposantConnexe;
+  /** Fraction de la boîte englobante réellement occupée par le composant — même définition que
+   *  `DetectionBords.remplissage`, calculée AVANT toute porte de confiance. */
+  readonly remplissage: number;
+  /** Fraction de l'aire totale du tampon couverte par la boîte — même définition que
+   *  `DetectionBords.aireFrac`, calculée AVANT toute porte de confiance. */
+  readonly aireFrac: number;
+}
+
 /**
- * Orchestre les quatre étapes (voir la doc de tête) sur un tampon de pixels DÉJÀ réduit à une
- * petite taille de travail. Fonction PURE — aucun DOM, testable avec des tampons littéraux (voir
- * `detecterBordsDocument.spec.ts`). Renvoie `null` dès que :
- *  - `tampon.data` n'a pas la longueur attendue (`largeur * hauteur * 4`) — jamais une lecture hors
- *    bornes silencieuse ;
- *  - aucun pixel de premier plan (photo entièrement uniforme, cas dégénéré) ;
- *  - la boîte détectée échoue l'un des trois gardes de confiance (`AIRE_MIN_FRAC`, `AIRE_MAX_FRAC`,
- *    `REMPLISSAGE_MIN`) — voir la doc de tête pour ce que chacun rejette concrètement.
+ * Étapes 1 à 4 de la doc de tête (fond -> distances -> seuil -> composant connexe), SANS AUCUNE des
+ * trois portes de confiance (`AIRE_MIN_FRAC`, `AIRE_MAX_FRAC`, `REMPLISSAGE_MIN`) : le plus grand
+ * composant connexe trouvé par contraste avec le fond, quelle que soit sa taille ou sa forme.
+ * Factorisée pour être lue par DEUX consommateurs qui veulent des choses opposées de ce même signal
+ * brut — voir la doc de tête du fichier :
+ *  - `detecterBordsDepuisPixels`, juste en dessous, qui applique les portes AVANT de s'en servir
+ *    comme cadrage (comportement inchangé, couvert par `detecterBordsDocument.spec.ts`) ;
+ *  - `detecterAnomaliesCadrage.ts`, qui s'en sert au contraire pour repérer les cas que CES portes
+ *    rejettent.
+ *
+ * Fonction PURE — aucun DOM, testable avec des tampons littéraux. Renvoie `null` dès que
+ * `tampon.data` n'a pas la longueur attendue (`largeur * hauteur * 4` — jamais une lecture hors
+ * bornes silencieuse) ou qu'aucun pixel de premier plan n'existe (photo entièrement uniforme, cas
+ * dégénéré).
  */
-export function detecterBordsDepuisPixels(tampon: TamponPixels): DetectionBords | null {
+export function trouverPlusGrandComposantParContraste(
+  tampon: TamponPixels,
+): ComposantParContraste | null {
   const { largeur, hauteur, data } = tampon;
   if (largeur <= 0 || hauteur <= 0) return null;
   if (data.length !== largeur * hauteur * 4) return null;
@@ -295,9 +325,29 @@ export function detecterBordsDepuisPixels(tampon: TamponPixels): DetectionBords 
   const remplissage = composant.nbPixels / (bboxLargeur * bboxHauteur);
   const aireFrac = (bboxLargeur * bboxHauteur) / (largeur * hauteur);
 
+  return { composant, remplissage, aireFrac };
+}
+
+/**
+ * Applique les trois portes de confiance (voir la doc de tête) au signal brut de
+ * `trouverPlusGrandComposantParContraste`, puis convertit la boîte englobante en fractions avec la
+ * marge de confort (`MARGE_PADDING_FRAC`). Fonction PURE, testable avec des tampons littéraux (voir
+ * `detecterBordsDocument.spec.ts`). Renvoie `null` dès que le signal brut est `null` (voir sa doc) OU
+ * que la boîte détectée échoue l'un des trois gardes de confiance (`AIRE_MIN_FRAC`, `AIRE_MAX_FRAC`,
+ * `REMPLISSAGE_MIN`) — voir la doc de tête pour ce que chacun rejette concrètement.
+ */
+export function detecterBordsDepuisPixels(tampon: TamponPixels): DetectionBords | null {
+  const trouve = trouverPlusGrandComposantParContraste(tampon);
+  if (!trouve) return null;
+  const { composant, remplissage, aireFrac } = trouve;
+
   if (aireFrac < AIRE_MIN_FRAC || aireFrac > AIRE_MAX_FRAC || remplissage < REMPLISSAGE_MIN) {
     return null;
   }
+
+  const { largeur, hauteur } = tampon;
+  const bboxLargeur = composant.maxX - composant.minX + 1;
+  const bboxHauteur = composant.maxY - composant.minY + 1;
 
   const xFrac0 = composant.minX / largeur;
   const yFrac0 = composant.minY / hauteur;
@@ -321,18 +371,17 @@ export function detecterBordsDepuisPixels(tampon: TamponPixels): DetectionBords 
  * `largeurNaturelle x hauteurNaturelle` — une `HTMLImageElement` DÉJÀ décodée pour une photo fixe,
  * voir `decoderImage` dans `reduireImage.ts`, OU une image de flux vidéo pour la prise de vue en
  * direct, voir `CaptureLiveCadrage.tsx`) sur un petit canevas de travail (`DIMENSION_ANALYSE_PX` de
- * plus grand côté) puis délègue à `detecterBordsDepuisPixels`. MÊME algorithme, MÊME calibration
- * pour les deux usages — jamais deux implémentations qui pourraient diverger. DÉGRADATION SANS
- * CANEVAS 2D : si `getContext('2d')` échoue (même cas documenté dans `analyserQualitePhoto.ts`),
- * renvoie `null` — jamais une détection fabriquée, l'appelant revient alors au cadre géométrique
- * fixe (photo fixe) ou au statut « recherche » (prise de vue en direct) exactement comme si aucune
- * détection n'avait été tentée.
+ * plus grand côté). Factorisée pour être appelée à la fois par `detecterBordsDepuisSource`
+ * ci-dessous ET par `detecterAnomaliesCadrage.ts` (MÊME réduction pour les deux, jamais deux
+ * implémentations qui pourraient diverger). DÉGRADATION SANS CANEVAS 2D : si `getContext('2d')`
+ * échoue (même cas documenté dans `analyserQualitePhoto.ts`), renvoie `null` — jamais un tampon
+ * fabriqué.
  */
-export function detecterBordsDepuisSource(
+export function reduireSourcePourAnalyse(
   source: CanvasImageSource,
   largeurNaturelle: number,
   hauteurNaturelle: number,
-): DetectionBords | null {
+): TamponPixels | null {
   if (largeurNaturelle <= 0 || hauteurNaturelle <= 0) return null;
 
   const echelle = Math.min(1, DIMENSION_ANALYSE_PX / Math.max(largeurNaturelle, hauteurNaturelle));
@@ -347,7 +396,25 @@ export function detecterBordsDepuisSource(
 
   contexte.drawImage(source, 0, 0, largeur, hauteur);
   const donnees = contexte.getImageData(0, 0, largeur, hauteur);
-  return detecterBordsDepuisPixels({ largeur, hauteur, data: donnees.data });
+  return { largeur, hauteur, data: donnees.data };
+}
+
+/**
+ * Enveloppe DOM PARTAGÉE : `reduireSourcePourAnalyse` puis délègue à `detecterBordsDepuisPixels`.
+ * MÊME algorithme, MÊME calibration pour la photo fixe et la prise de vue en direct — jamais deux
+ * implémentations qui pourraient diverger. `null` si la réduction échoue (pas de canevas 2D) ou si
+ * `detecterBordsDepuisPixels` renvoie `null` — l'appelant revient alors au cadre géométrique fixe
+ * (photo fixe) ou au statut « recherche » (prise de vue en direct) exactement comme si aucune
+ * détection n'avait été tentée.
+ */
+export function detecterBordsDepuisSource(
+  source: CanvasImageSource,
+  largeurNaturelle: number,
+  hauteurNaturelle: number,
+): DetectionBords | null {
+  const tampon = reduireSourcePourAnalyse(source, largeurNaturelle, hauteurNaturelle);
+  if (!tampon) return null;
+  return detecterBordsDepuisPixels(tampon);
 }
 
 /** Cas d'usage « photo fixe » de `detecterBordsDepuisSource` — voir sa doc pour le partage avec la

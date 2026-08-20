@@ -56,7 +56,8 @@
       "titre": "Ordini di riparazione",
       "vide": "Nessun ordine di riparazione per questo veicolo.",
       "designations": "{liste}",
-      "designationsTronquees": "{liste}…"
+      "designationsTronquees": "{liste}…",
+      "droitRequis": "Non ha il diritto di consultare gli ordini di riparazione di questo veicolo."
     },
     "factures": {
       "titre": "Fatture",
@@ -74,7 +75,8 @@
       "titre": "Prossimi appuntamenti",
       "prendre": "Fissa un appuntamento",
       "vide": "Nessun appuntamento previsto per questo veicolo.",
-      "creeTitre": "Appuntamento registrato"
+      "creeTitre": "Appuntamento registrato",
+      "droitRequis": "Non ha il diritto di consultare gli appuntamenti di questo veicolo."
     }
   },
   "archiver": {

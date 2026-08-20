@@ -15,7 +15,8 @@
       "titre": "Impossible d'afficher l'activité"
     },
     "repartitionStatuts": {
-      "titre": "OR en cours par statut"
+      "titre": "OR en cours par statut",
+      "valeurAccessible": "{count, plural, one {# ordre de réparation} other {# ordres de réparation}}"
     },
     "ordresOuverts": {
       "libelle": "OR ouverts sur la période",

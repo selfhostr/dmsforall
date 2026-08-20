@@ -52,6 +52,10 @@
   "formulaires": {
     "champsObligatoiresLegende": "Mit einem Stern (*) markierte Felder sind Pflichtfelder."
   },
+  "montants": {
+    "masque": "Nicht sichtbar",
+    "masqueDescription": "Dieser Betrag existiert, aber Ihre Rolle hat keinen Zugriff auf Beträge."
+  },
   "roles": {
     "direction": "Geschäftsführung",
     "vendeur": "Verkaufsberater",

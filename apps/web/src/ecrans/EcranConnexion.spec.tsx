@@ -60,6 +60,8 @@ describe('EcranConnexion', () => {
     // Le mot de passe est effacé après échec (hygiène) : le message ne désigne jamais lequel
     // des deux champs est en cause.
     expect(screen.getByLabelText('Mot de passe')).toHaveValue('');
+    // Titre propre à la catégorie « identifiants refusés », distinct de « service indisponible ».
+    expect(screen.getByText('Identifiants refusés')).toBeInTheDocument();
   });
 
   it('sur erreur réseau, affiche un message visuellement et textuellement distinct', async () => {
@@ -74,5 +76,33 @@ describe('EcranConnexion', () => {
     expect(screen.queryByText('Adresse e-mail ou mot de passe incorrect.')).not.toBeInTheDocument();
     // Titre distinct de l'alerte réseau vs l'alerte identifiants.
     expect(screen.getByText('Connexion impossible')).toBeInTheDocument();
+  });
+
+  it('sur 500, reste affiché (jamais un écran blanc) et distingue "service indisponible"', async () => {
+    server.use(
+      http.post(
+        '/api/v1/auth/connexion',
+        () => new HttpResponse('Internal Server Error', { status: 500 }),
+      ),
+    );
+
+    rendre();
+    await soumettre('jean.dupont@garage.ch', 'un-mot-de-passe');
+
+    // Preuve directe contre l'écran blanc : le formulaire (et donc #root) n'est pas vidé.
+    expect(await screen.findByLabelText('Adresse e-mail')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Se connecter' })).toBeInTheDocument();
+    // Message distinct de « identifiants invalides » et de « réseau » : le garagiste sait que
+    // ce n'est ni sa faute (mot de passe) ni son réseau, mais le service qui est indisponible.
+    expect(screen.queryByText('Adresse e-mail ou mot de passe incorrect.')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Vérifiez votre connexion internet, puis réessayez.'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Identifiants refusés')).not.toBeInTheDocument();
+    expect(screen.queryByText('Connexion impossible')).not.toBeInTheDocument();
+    // Titre propre à la panne serveur — même vocabulaire que le reste de l'app
+    // (`erreurs:serveur.titre`), pour que « service indisponible » veuille toujours dire la même
+    // chose, où qu'il apparaisse.
+    expect(screen.getByText('Service momentanément indisponible')).toBeInTheDocument();
   });
 });

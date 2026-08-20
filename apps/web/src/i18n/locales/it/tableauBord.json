@@ -15,7 +15,8 @@
       "titre": "Impossibile visualizzare l'attività"
     },
     "repartitionStatuts": {
-      "titre": "Ordini di riparazione in corso per stato"
+      "titre": "Ordini di riparazione in corso per stato",
+      "valeurAccessible": "{count, plural, one {# ordine di riparazione} other {# ordini di riparazione}}"
     },
     "ordresOuverts": {
       "libelle": "Ordini di riparazione aperti nel periodo",

@@ -772,6 +772,60 @@ describe('EcranFicheVehicule', () => {
   // `useFacturesOuvertesClient.ts`, `TableauBordComptable.tsx` — plutôt qu'inventer un second
   // filtre ad hoc. Un devis en cours reste visible ailleurs (carte « Dossier de vente »), donc pas
   // reproduit ici.
+  // DÉFAUT CORRIGÉ (issue #162, 16.08.2026, testé en navigateur avec vendeur@garage-martin.ch) :
+  // les blocs « Ordres de réparation » et « Prochains rendez-vous » restaient en squelette de
+  // chargement INDÉFINIMENT pour un rôle sans `atelier.or.lire`/`rendez_vous.lire` — les requêtes
+  // partaient sans garde de droits ni politique de réessai, un 403 stable jamais transformé en état
+  // affichable. AUCUN handler `/api/v1/ordres-reparation` ni `/api/v1/rendez-vous` n'est enregistré
+  // ci-dessous : `onUnhandledRequest: 'error'` (`test/setup.ts`) fait échouer ce test si l'écran
+  // émettait malgré tout l'une de ces deux requêtes — la preuve la plus forte de « zéro requête »,
+  // plus robuste qu'un compteur.
+  it(
+    'ne demande ni les OR ni les rendez-vous à un rôle sans droit (vendeur) : zéro requête, ' +
+      'message honnête plutôt qu’un chargement perpétuel',
+    async () => {
+      server.use(
+        http.get('/api/v1/auth/moi', () =>
+          HttpResponse.json({
+            ...SESSION_TEST,
+            utilisateur: { ...SESSION_TEST.utilisateur, role: 'vendeur' },
+          }),
+        ),
+        http.get('/api/v1/vehicules/v1', () => HttpResponse.json(VEHICULE)),
+        http.get('/api/v1/vehicules/v1/contexte-atelier', () => HttpResponse.json(CONTEXTE)),
+        http.get('/api/v1/vehicules/v1/kilometrages', () => HttpResponse.json(KILOMETRAGES)),
+        http.get('/api/v1/vehicules/v1/detentions', () => HttpResponse.json(DETENTIONS)),
+        http.get('/api/v1/vehicules/v1/travaux-reportes', () =>
+          HttpResponse.json(TRAVAUX_REPORTES),
+        ),
+        http.get('/api/v1/documents-vente', () =>
+          HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 20 }),
+        ),
+        http.get('/api/v1/vehicules/v1/depots-pneus', () =>
+          HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 10 }),
+        ),
+        // `vendeur` ∈ `ROLES_LECTURE_DOSSIER_VENTE` (`ecrans/ventes/dossiers/droits.ts`) : cette
+        // requête part normalement, contrairement aux deux gardées ci-dessus.
+        http.get('/api/v1/dossiers-vente', () =>
+          HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 }),
+        ),
+        // `SectionRendezVousVehicule` lit ce référentiel sans garde de rôle (nécessaire même sans
+        // droit de LECTURE, pour le dialogue de création) — sans rapport avec ce défaut.
+        http.get('/api/v1/motifs-rendez-vous', () => HttpResponse.json([])),
+      );
+      rendre();
+
+      expect(
+        await screen.findByText(
+          "Vous n'avez pas le droit de consulter les ordres de réparation de ce véhicule.",
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText("Vous n'avez pas le droit de consulter les rendez-vous de ce véhicule."),
+      ).toBeInTheDocument();
+    },
+  );
+
   it('ne demande que les factures (typeDocument=facture), jamais les devis/bons de commande, à « ses factures »', async () => {
     installerHandlersOk();
     const capture: { parametres: URLSearchParams | null } = { parametres: null };

@@ -56,7 +56,8 @@
       "titre": "Reparaturaufträge",
       "vide": "Kein Reparaturauftrag für dieses Fahrzeug.",
       "designations": "{liste}",
-      "designationsTronquees": "{liste}…"
+      "designationsTronquees": "{liste}…",
+      "droitRequis": "Sie sind nicht berechtigt, die Reparaturaufträge dieses Fahrzeugs einzusehen."
     },
     "factures": {
       "titre": "Rechnungen",
@@ -74,7 +75,8 @@
       "titre": "Nächste Termine",
       "prendre": "Termin vereinbaren",
       "vide": "Kein Termin für dieses Fahrzeug geplant.",
-      "creeTitre": "Termin gespeichert"
+      "creeTitre": "Termin gespeichert",
+      "droitRequis": "Sie sind nicht berechtigt, die Termine dieses Fahrzeugs einzusehen."
     }
   },
   "archiver": {

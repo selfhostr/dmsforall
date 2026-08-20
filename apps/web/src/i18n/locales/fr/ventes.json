@@ -225,7 +225,7 @@
         },
         "groupeLabel": "Plan du parc par emplacement",
         "sansEmplacement": "Sans emplacement",
-        "nombreVehicules": "{n, plural, one {# véhicule} other {# véhicules}}"
+        "nombreVehicules": "{count, plural, one {# véhicule} other {# véhicules}}"
       }
     },
     "fiche": {
@@ -380,7 +380,8 @@
       },
       "ordresVehicule": {
         "titre": "OR de ce véhicule",
-        "vide": "Aucun OR pour ce véhicule."
+        "vide": "Aucun OR pour ce véhicule.",
+        "droitRequis": "Vous n'avez pas le droit de consulter les OR de ce véhicule."
       },
       "garantie": {
         "titre": "Garantie",

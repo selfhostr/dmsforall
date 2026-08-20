@@ -137,8 +137,8 @@ describe('EcranListeOrdresReparation', () => {
     });
   });
 
-  describe('colonne « Total TTC » — jamais « 0.00 » pour un rôle sans droit aux montants', () => {
-    it('laisse la cellule vide quand `totalTtcCentimes` est absent du DTO (droit manquant), plutôt que de rendre un montant nul mensonger', async () => {
+  describe('colonne « Total TTC » — jamais « 0.00 », jamais une cellule vide, pour un rôle sans droit aux montants', () => {
+    it('affiche « Non visible » (pas un montant nul, pas une cellule vide indiscernable d’une absence de donnée) quand `totalTtcCentimes` est absent du DTO', async () => {
       repondreListe([
         construireResume({ id: 'or-avec-montant', numero: 'OR-000001', totalTtcCentimes: 24000 }),
         construireResume({
@@ -151,10 +151,12 @@ describe('EcranListeOrdresReparation', () => {
 
       expect(await screen.findByText('OR-000001')).toBeInTheDocument();
       expect(screen.getByText('240.00')).toBeInTheDocument();
-      // Le second OR n'affiche AUCUN montant — ni "0.00", ni "CHF 0.00", ni une chaîne vide
-      // rendue à la place d'un chiffre inventé.
+      // Le second OR n'affiche AUCUN montant — ni "0.00", ni "CHF 0.00" — mais porte le texte
+      // « Non visible » (issue #157) : une cellule vide se lisait exactement comme une absence de
+      // donnée réelle (ex. « aucune restitution promise »), jamais comme un droit manquant.
       expect(screen.queryByText('0.00')).not.toBeInTheDocument();
       expect(screen.queryByText(/CHF\s*0/)).not.toBeInTheDocument();
+      expect(screen.getByText('Non visible')).toBeInTheDocument();
     });
   });
 

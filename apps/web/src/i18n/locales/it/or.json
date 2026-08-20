@@ -418,10 +418,6 @@
     "totalValide": "Totale validato (controllo tetto di spesa)",
     "aideDistinction": "«Totale validato» segue il tetto di spesa dell'OR (righe già validate, tutti i pagatori insieme) — non è un importo da fatturare. Per comunicare un importo, usare la riga del pagatore interessato qui sopra."
   },
-  "impression": {
-    "enCours": "Stampa in corso…",
-    "erreur": "Impossibile stampare il foglio d'officina. {message}"
-  },
   "nouveau": {
     "titre": "Nuovo ordine di riparazione",
     "siteManquant": {

@@ -32,6 +32,8 @@
     "titre": "Cette photo ne convient pas",
     "motifs": {
       "resolutionInsuffisante": "La photo n'a pas assez de définition. Reprenez-la de plus près.",
+      "margeInsuffisante": "Le permis touche les bords de la photo. Éloignez un peu l'appareil et laissez de la marge tout autour.",
+      "pageNonAPlat": "Le permis n'est pas posé bien à plat. Dépliez-le entièrement avant de reprendre la photo.",
       "documentTropPetit": "Le permis est trop petit dans le cadre. Rapprochez-vous.",
       "photoFloue": "La photo est floue. Reprenez-la bien stable."
     },
@@ -49,6 +51,17 @@
     "titre": "La photo n'a pas pu être utilisée",
     "photoIllisible": "Cette photo n'a pas pu être ouverte. Reprenez-la avec l'appareil photo, bien à plat et bien éclairée.",
     "heicNonPrisEnCharge": "Ce format de photo n'est pas pris en charge sur cet appareil. Reprenez la photo avec le bouton « Prendre la photo » plutôt que depuis la pellicule."
+  },
+  "session": {
+    "erreur": {
+      "titre": "Connexion impossible",
+      "description": "Impossible de vérifier votre connexion pour le moment. Vérifiez votre réseau et réessayez."
+    },
+    "perdueEnCours": {
+      "titre": "Connexion perdue",
+      "description": "Votre session a expiré pendant ce scan. Ce que vous avez déjà photographié ou saisi reste affiché, mais ne pourra pas être enregistré tant que vous ne vous serez pas reconnecté."
+    },
+    "seReconnecter": "Se reconnecter"
   },
   "actions": {
     "reessayer": "Reprendre une photo",

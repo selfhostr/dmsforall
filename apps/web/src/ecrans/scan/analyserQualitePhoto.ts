@@ -1,4 +1,5 @@
 import { decoderImage } from './reduireImage';
+import { detecterAnomalieCadrage } from './detecterAnomaliesCadrage';
 import { detecterBordsDocument } from './detecterBordsDocument';
 import {
   RATIO_CADRE,
@@ -48,9 +49,18 @@ import {
  *     est nette, plus ses transitions de contraste sont marquées, plus la variance de sa dérivée
  *     seconde est élevée). Sous `VARIANCE_LAPLACIEN_MIN`, motif `photoFloue`.
  *
- * ORDRE DE PRIORITÉ quand plusieurs échouent à la fois : résolution -> couverture -> netteté (la
- * plus fondamentale d'abord, jamais plusieurs messages à la fois — un seul motif clair, jamais un
- * empilement qui noierait le garagiste).
+ * DEUX CONTRÔLES DE PLUS, STRUCTURELS PLUTÔT QUE PHOTOMÉTRIQUES (chantier « refus des photos
+ * structurellement illisibles », 20.08.2026) — `detecterAnomalieCadrage.ts` (`detecterAnomaliesCadrage.ts`)
+ * repère deux défauts de PRISE DE VUE qu'aucun réglage serveur ne rattrape après coup : le document
+ * qui remplit le cadre sans aucune marge (motif `margeInsuffisante`) et la page non posée à plat,
+ * repliée derrière (motif `pageNonAPlat`) — voir sa doc de tête pour la calibration détaillée sur le
+ * corpus de référence (17 photos réelles). Vérifiés tôt (juste après le premier contrôle de
+ * résolution, avant même de tenter la détection de bords) : un défaut structurel de la photo SOURCE
+ * rend la suite de l'analyse — cadrage, couverture, netteté — sans objet.
+ *
+ * ORDRE DE PRIORITÉ quand plusieurs échouent à la fois : résolution -> cadrage structurel (marge/à
+ * plat) -> couverture -> netteté (la plus fondamentale d'abord, jamais plusieurs messages à la fois —
+ * un seul motif clair, jamais un empilement qui noierait le garagiste).
  *
  * DÉGRADATION SANS CANEVAS 2D : si `getContext('2d')` échoue (constaté sous jsdom sans polyfill,
  * cf. `reduireImage.ts` — improbable en navigateur réel), les mesures 2 et 3 sont SAUTÉES plutôt
@@ -60,7 +70,12 @@ import {
  * n'a pas vérifié, seulement ce qu'elle a réellement pu observer.
  */
 
-export type MotifRefusPhoto = 'resolutionInsuffisante' | 'documentTropPetit' | 'photoFloue';
+export type MotifRefusPhoto =
+  | 'resolutionInsuffisante'
+  | 'margeInsuffisante'
+  | 'pageNonAPlat'
+  | 'documentTropPetit'
+  | 'photoFloue';
 
 export interface ResultatAnalyseQualite {
   readonly zone: RectanglePixels;
@@ -175,6 +190,21 @@ export async function analyserQualitePhoto(fichier: File): Promise<ResultatAnaly
         zone: zoneRepli,
         fractions: fractionsRepli,
         motifRefus: 'resolutionInsuffisante',
+        cadrageDetecte: false,
+      };
+    }
+
+    // Défaut STRUCTUREL de la photo source (marge insuffisante ou page non posée à plat) — voir
+    // `detecterAnomaliesCadrage.ts`. Vérifié AVANT la détection de bords : ces deux cas sont, par
+    // construction, hors de la fenêtre de confiance de `detecterBordsDocument` (même porte
+    // `AIRE_MAX_FRAC`, lue à l'envers), donc la détection de bords n'aurait de toute façon rien à
+    // proposer ici — refus immédiat, même économie que le contrôle de résolution ci-dessus.
+    const anomalieCadrage = detecterAnomalieCadrage(image);
+    if (anomalieCadrage) {
+      return {
+        zone: zoneRepli,
+        fractions: fractionsRepli,
+        motifRefus: anomalieCadrage.anomalie,
         cadrageDetecte: false,
       };
     }

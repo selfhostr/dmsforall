@@ -52,6 +52,10 @@
   "formulaires": {
     "champsObligatoiresLegende": "Les champs marqués d'une étoile (*) sont obligatoires."
   },
+  "montants": {
+    "masque": "Non visible",
+    "masqueDescription": "Ce montant existe, mais votre rôle ne donne pas accès aux montants."
+  },
   "roles": {
     "direction": "Direction",
     "vendeur": "Vendeur",

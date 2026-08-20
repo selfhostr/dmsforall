@@ -3,13 +3,38 @@ import { ArrowLeft } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { ReponseLigneOr, ReponseOrdreReparation } from '@dfa/shared';
+import type { ReponseLigneOr, ReponseOrdreReparation, StatutLigneOr } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { lignesPointables } from '@/hooks/pointage/lignes-assignees';
+
+/**
+ * Issue #152 — SIGNALÉ AU COORDINATEUR, PAS CORRIGÉ À LA SOURCE (hors du périmètre d'écriture de
+ * cet agent, `hooks/pointage/**` n'y est pas) : `lignesPointables()` (`hooks/pointage/
+ * lignes-assignees.ts`, `STATUTS_LIGNE_POINTABLE`) considère `'proposee'`/`'a_valider'`/`'realisee'`
+ * comme pointables — le SERVEUR, lui (`apps/api/src/pointage/regles-pointage.ts`,
+ * `STATUTS_LIGNE_POINTABLES`, RM-93), n'accepte de démarrer un pointage QUE sur `'validee'` ou
+ * `'en_cours'` ; toute autre valeur répond `409 POINTAGE_LIGNE_NON_POINTABLE`. Constat terrain (test
+ * navigateur réel) : une ligne dans un de ces trois états intermédiaires s'affichait normalement,
+ * PLEINEMENT cliquable, et le clic échouait systématiquement au serveur. Filtre CORRECTIF, LOCAL à
+ * ce composant, appliqué EN PLUS de `lignesPointables()` plutôt qu'à sa place (qui reste la source
+ * pour la liste elle-même) : verrouille sur la vérité SERVEUR pour décider quoi désactiver, sans
+ * toucher au fichier partagé. RM-121/CT-54 reste inchangé : une ligne `'en_cours'` PAR UN AUTRE
+ * technicien demeure cliquable (un second technicien peut rejoindre la même ligne) — seul le STATUT
+ * de la ligne compte ici, jamais `technicienId` (voir `assigneeAutre` plus bas, qui reste une simple
+ * information, jamais un blocage — arbitrage @laupernoe du 14.08.2026, INCHANGÉ).
+ */
+const STATUTS_LIGNE_REELLEMENT_POINTABLES: ReadonlySet<StatutLigneOr> = new Set([
+  'validee',
+  'en_cours',
+]);
+
+function ligneReellementPointable(ligne: ReponseLigneOr): boolean {
+  return STATUTS_LIGNE_REELLEMENT_POINTABLES.has(ligne.statut);
+}
 
 interface Props {
   readonly onFermer: () => void;
@@ -121,23 +146,39 @@ export function DialogueChoixCiblePointage({
               </p>
             ) : (
               <div className="flex flex-col gap-2">
-                {lignes.map((ligne) => (
-                  <Button
-                    key={ligne.id}
-                    size="lg"
-                    variant="outline"
-                    className="h-auto min-h-[72px] w-full flex-col items-start justify-center whitespace-normal break-words text-left text-base"
-                    disabled={enDemarrage}
-                    onClick={() => onChoisirLigne(requeteOr.data, ligne)}
-                  >
-                    <span>{ligne.designation}</span>
-                    {ligne.technicienId && ligne.technicienId !== technicienId ? (
-                      <span className="texte-libelle font-normal text-muted-foreground">
-                        {t('pointage:technicien.choisirCible.assigneeAutre')}
-                      </span>
-                    ) : null}
-                  </Button>
-                ))}
+                {lignes.map((ligne) => {
+                  // Issue #152 — voir la docstring de `ligneReellementPointable` ci-dessus : le
+                  // SERVEUR refuse `409 POINTAGE_LIGNE_NON_POINTABLE` sur toute ligne hors
+                  // `'validee'`/`'en_cours'`, quoi que propose `lignesPointables()`. Désactivée dès
+                  // l'affichage — visuellement (`disabled`, style atténué déjà porté par
+                  // `disabled:opacity-50` du bouton) ET pour un lecteur d'écran (`disabled` retire
+                  // le bouton de l'ordre de tabulation et l'annonce comme indisponible), AVEC la
+                  // raison en clair. `assigneeAutre` reste, elle, une simple INFORMATION (jamais un
+                  // blocage, RM-121/CT-54, arbitrage 14.08.2026 inchangé) : une ligne assignée à un
+                  // autre technicien mais `'validee'`/`'en_cours'` demeure pleinement cliquable.
+                  const pointable = ligneReellementPointable(ligne);
+                  return (
+                    <Button
+                      key={ligne.id}
+                      size="lg"
+                      variant="outline"
+                      className="h-auto min-h-[72px] w-full flex-col items-start justify-center whitespace-normal break-words text-left text-base"
+                      disabled={enDemarrage || !pointable}
+                      onClick={() => onChoisirLigne(requeteOr.data, ligne)}
+                    >
+                      <span>{ligne.designation}</span>
+                      {!pointable ? (
+                        <span className="texte-libelle font-normal text-muted-foreground">
+                          {t('pointage:technicien.choisirCible.nonPointable')}
+                        </span>
+                      ) : ligne.technicienId && ligne.technicienId !== technicienId ? (
+                        <span className="texte-libelle font-normal text-muted-foreground">
+                          {t('pointage:technicien.choisirCible.assigneeAutre')}
+                        </span>
+                      ) : null}
+                    </Button>
+                  );
+                })}
               </div>
             )}
           </div>

@@ -159,6 +159,31 @@ describe('analyserQualitePhoto', () => {
     expect(resultat.zone.largeur).toBeGreaterThan(0);
   });
 
+  it('un document qui remplit tout le cadre sans la moindre marge est refusé avec un motif structurel (marge/à-plat), AVANT la détection de bords', async () => {
+    // Même dimensions que le test « accepte... » ci-dessus (3000x2200) : le premier contrôle de
+    // résolution passe largement. `detecterAnomalieCadrage` réduit l'image à DIMENSION_ANALYSE_PX
+    // (320px de plus grand côté) -> ici 320x235 -- voir `detecterAnomaliesCadrage.ts`. Le tampon
+    // fourni (fond gris clair, 1px de marge tout autour) reproduit EXACTEMENT le cas synthétique
+    // vérifié dans `detecterAnomaliesCadrage.spec.ts` (« document qui remplit tout le cadre sans la
+    // moindre marge ») : sur ce cas extrême et parfaitement uniforme, le signal brut s'inverse et
+    // classe l'anomalie comme `pageNonAPlat` — voir la doc de tête de ce module pour pourquoi
+    // `margeInsuffisante`, elle, n'est reproductible qu'avec du vrai bruit de photo (couvert par les
+    // mesures réelles du corpus dans `detecterAnomaliesCadrage.spec.ts`, pas ici).
+    installerImageFactice('succes', { largeur: 3000, hauteur: 2200 });
+    const largeurReduite = 320;
+    const hauteurReduite = Math.round((2200 * 320) / 3000);
+    installerCanvasFactice(
+      creerDonneesPixels(largeurReduite, hauteurReduite, (x, y) =>
+        x >= 1 && x < largeurReduite - 1 && y >= 1 && y < hauteurReduite - 1 ? 20 : 200,
+      ),
+    );
+
+    const resultat = await analyserQualitePhoto(fichier());
+
+    expect(resultat.motifRefus).toBe('pageNonAPlat');
+    expect(resultat.cadrageDetecte).toBe(false);
+  });
+
   it('une photo dont la zone recadrée tombe sous le seuil de résolution est refusée SANS même toucher au canevas', async () => {
     installerImageFactice('succes', { largeur: 800, hauteur: 600 });
     const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext');

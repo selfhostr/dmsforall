@@ -32,6 +32,8 @@
     "titre": "Questa foto non va bene",
     "motifs": {
       "resolutionInsuffisante": "La foto non ha una definizione sufficiente. Rifatela più da vicino.",
+      "margeInsuffisante": "La licenza tocca i bordi della foto. Allontanate un po' l'apparecchio e lasciate un margine tutto intorno.",
+      "pageNonAPlat": "La licenza non è ben distesa. Apritela completamente e appoggiatela ben piatta prima di rifare la foto.",
       "documentTropPetit": "La licenza è troppo piccola nel riquadro. Avvicinatevi.",
       "photoFloue": "La foto è sfocata. Tenete l'apparecchio ben fermo."
     },
@@ -49,6 +51,17 @@
     "titre": "La foto non può essere utilizzata",
     "photoIllisible": "Questa foto non può essere aperta. Rifatela con la fotocamera, ben piatta e ben illuminata.",
     "heicNonPrisEnCharge": "Questo formato di foto non è supportato su questo dispositivo. Rifate la foto con il pulsante «Scatta la foto» invece che dal rullino."
+  },
+  "session": {
+    "erreur": {
+      "titre": "Connessione impossibile",
+      "description": "Al momento non è possibile verificare la vostra connessione. Controllate la rete e riprovate."
+    },
+    "perdueEnCours": {
+      "titre": "Connessione persa",
+      "description": "La vostra sessione è scaduta durante questa scansione. Ciò che avete già fotografato o inserito resta visibile, ma non potrà essere registrato finché non vi sarete ricollegati."
+    },
+    "seReconnecter": "Ricollegati"
   },
   "actions": {
     "reessayer": "Rifai la foto",

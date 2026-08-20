@@ -1,98 +1,45 @@
-import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
 
 import '@/i18n';
-
-import { server } from '@/test/msw/server';
-import { creerQueryClientTest } from '@/test/utils';
 
 import { BoutonImprimerOr } from './BoutonImprimerOr';
 
 /**
- * Preuve des trois états explicites exigés (déclenché / échec / succès) sur le bouton
- * d'impression de la feuille d'atelier — voir aussi `hooks/atelier/useImprimerOr.spec.tsx` pour
- * la mécanique fetch+blob elle-même, testée là séparément du rendu.
+ * Issue #155 (rapport terrain, reproduit en navigateur réel) : deux tentatives fetch+blob
+ * (URL d'objet, puis URL de données) laissaient l'onglet ouvert bloqué — la première parce
+ * qu'une URL d'objet n'est résoluble que dans le contexte de navigation qui l'a créée (Safari), la
+ * seconde parce que Chrome/Firefox refusent toute navigation de premier niveau vers une URL
+ * `data:` (depuis Chrome 60). Repris sur le motif éprouvé de `EcranFicheFacture.tsx` : un lien
+ * `<a>` SIMPLE vers l'URL réelle du PDF, target="_blank" — le navigateur gère l'ouverture et
+ * l'authentification (cookie de session) lui-même, sans code JS entre les deux. Ce test vérifie
+ * l'attribut `href` réellement posé, pas seulement qu'un clic ne lève pas d'exception.
  */
-
-function construireFenetreFactice() {
-  return { close: vi.fn(), location: { href: '' } } as unknown as Window;
-}
-
 describe('BoutonImprimerOr', () => {
-  beforeEach(() => {
-    Object.defineProperty(URL, 'createObjectURL', {
-      value: vi.fn(() => 'blob:objet-1'),
-      configurable: true,
-    });
-    Object.defineProperty(URL, 'revokeObjectURL', { value: vi.fn(), configurable: true });
-    vi.spyOn(window, 'open').mockImplementation(() => construireFenetreFactice());
+  it('propose un lien nommé « Imprimer l’OR », qui pointe directement vers le PDF réel (GET /ordres-reparation/{orId}/pdf), ouvert dans un nouvel onglet', () => {
+    render(<BoutonImprimerOr orId="or-1" />);
+
+    const lien = screen.getByRole('link', { name: "Imprimer l'OR" });
+    expect(lien).toHaveAttribute('href', '/api/v1/ordres-reparation/or-1/pdf');
+    expect(lien).toHaveAttribute('target', '_blank');
+    // `noopener` : l'onglet ouvert ne doit jamais pouvoir agir sur `window.opener` (l'écran de
+    // l'OR) — même règle que le lien d'impression de facture.
+    expect(lien).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
+  it("n'appelle jamais fetch — c'est une navigation native, pas un aller-retour JS", () => {
+    const fetchOriginal = globalThis.fetch;
+    let appele = false;
+    globalThis.fetch = (...args: Parameters<typeof fetch>) => {
+      appele = true;
+      return fetchOriginal(...args);
+    };
 
-  function rendre() {
-    const queryClient = creerQueryClientTest();
-    return render(
-      <QueryClientProvider client={queryClient}>
-        <BoutonImprimerOr orId="or-1" />
-      </QueryClientProvider>,
-    );
-  }
-
-  it('propose un bouton nommé « Imprimer l’OR », atteignable au clavier, qui ouvre le PDF au clic', async () => {
-    server.use(
-      http.get('/api/v1/ordres-reparation/or-1/pdf', () =>
-        HttpResponse.arrayBuffer(new TextEncoder().encode('%PDF-1.4').buffer, {
-          headers: { 'content-type': 'application/pdf' },
-        }),
-      ),
-    );
-
-    const utilisateur = userEvent.setup();
-    rendre();
-
-    const bouton = screen.getByRole('button', { name: "Imprimer l'OR" });
-    bouton.focus();
-    expect(bouton).toHaveFocus();
-
-    await utilisateur.keyboard('{Enter}');
-
-    await waitFor(() => expect(bouton).not.toHaveAttribute('aria-busy', 'true'));
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-  });
-
-  it('affiche une erreur actionnable (jamais un silence) sur un refus serveur, et laisse le bouton réessayable', async () => {
-    server.use(
-      http.get('/api/v1/ordres-reparation/or-1/pdf', () =>
-        HttpResponse.json(
-          {
-            type: 'https://docs.dmsforall.example/erreurs/ERREUR_INTERNE',
-            title: 'Erreur interne',
-            status: 500,
-            code: 'ERREUR_INTERNE',
-            instance: 'req-1',
-          },
-          { status: 500, headers: { 'content-type': 'application/problem+json' } },
-        ),
-      ),
-    );
-
-    const utilisateur = userEvent.setup();
-    rendre();
-
-    await utilisateur.click(screen.getByRole('button', { name: "Imprimer l'OR" }));
-
-    const alerte = await screen.findByRole('alert');
-    expect(alerte.textContent).toContain("Impossible d'imprimer la feuille d'atelier.");
-
-    // Le bouton redevient cliquable — même déclencheur sert de réessai (react-query efface
-    // l'erreur précédente dès qu'un nouveau `mutate()` démarre).
-    const bouton = screen.getByRole('button', { name: "Imprimer l'OR" });
-    expect(bouton).not.toBeDisabled();
+    try {
+      render(<BoutonImprimerOr orId="or-1" />);
+      expect(appele).toBe(false);
+    } finally {
+      globalThis.fetch = fetchOriginal;
+    }
   });
 });

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Navigate } from 'react-router';
 
 import {
   ACTIVITES_INDIRECTES,
@@ -421,8 +422,19 @@ export function EcranBornePointage() {
       }
       setChangementCibleOuvert(false);
     } catch (erreurCapturee) {
+      // Issue #152 : NE PLUS RE-LANCER ici. `handleChoisirLigne`/`handleChoisirOrEntier`/
+      // `handleDemarrerActiviteIndirecte` appellent cette fonction via `void demarrerEtSuivre(...)`
+      // (fire-and-forget délibéré — fermer immédiatement la vue « Que pointez-vous ? » sans
+      // attendre la réponse serveur, RM-115) : un appelant `void` n'observe JAMAIS la promesse
+      // rejetée qu'un `throw` ici produirait, ce qui la transforme en rejet de promesse NON
+      // RATTRAPÉ — constaté en test navigateur réel (deux techniciens qui cliquent au même instant
+      // sur une borne PARTAGÉE, cas normal, pas un cas rare) : l'écran de sélection « cassait ».
+      // `setErreurAction` ci-dessus AFFICHE déjà l'erreur à l'utilisateur — c'est la seule chose que
+      // ce correctif devait garantir. Les DEUX appelants qui `await` cette fonction
+      // (`handlePause`/`handleReprendre`) n'ont besoin d'aucune propagation supplémentaire : ils
+      // portent leur propre `finally` (nettoyage `enChainage`), inconditionnel qu'il y ait eu
+      // rethrow ou non.
       setErreurAction(messageErreur(erreurCapturee, t));
-      throw erreurCapturee;
     }
   }
 
@@ -563,6 +575,27 @@ export function EcranBornePointage() {
         <EtatChargement lignes={4} />
       </div>
     );
+  }
+
+  // Issue #159 — CORRECTIF, pas contournement : `RouteProtegee` (`routes/RouteProtegee.tsx`)
+  // garde déjà cette route et distingue explicitement DEUX états que cet écran, lui, confondait
+  // jusqu'ici sous un seul rendu (« session === null » ET « isError ») — exactement le genre de
+  // confusion que CONTRIBUTING.md interdit (« absence de donnée ≠ valeur : "inconnu", "aucun", "interdit"
+  // ne partagent jamais le même rendu »). `session === null` est une DONNÉE CONNUE — non connecté,
+  // confirmé par le serveur (401 propre) — jamais une panne : la seule action juste est de renvoyer
+  // vers `/login`, comme le fait `RouteProtegee` pour CHAQUE AUTRE route protégée. En pratique,
+  // `RouteProtegee` démonte déjà `AppShell` (donc cet écran) avant que ce rendu ne soit jamais
+  // atteint sur une navigation normale — mais cet écran a SA PROPRE requête `useSession()`
+  // (nécessaire pour son propre spinner anti-flash), donc un cas RÉEL reste ouvert : la session
+  // expire PENDANT qu'un technicien pointe (déconnexion serveur, TTL dépassé, ou l'action « Se
+  // déconnecter » elle-même) — la requête de CET écran peut se résoudre à `null` un instant avant
+  // que le démontage déclenché par `RouteProtegee` ne soit effectif. Avant ce correctif, cette
+  // fenêtre affichait une carte d'erreur statique, SANS bouton, SANS redirection — la borne restait
+  // bloquée sur un état mort tant que personne n'intervenait physiquement dessus (poste PARTAGÉ :
+  // aucun technicien suivant ne peut alors pointer). Le second cas (`isError`, service
+  // injoignable — PAS une session absente) garde son message dédié, inchangé.
+  if (session === null) {
+    return <Navigate to="/login" replace />;
   }
 
   if (sessionEnErreur || !session) {

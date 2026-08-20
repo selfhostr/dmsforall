@@ -26,9 +26,11 @@ import { useClient } from '@/hooks/clients/useClient';
 import { useCreationRendezVous } from '@/hooks/rendez-vous/useCreationRendezVous';
 import { useMotifsRendezVous } from '@/hooks/rendez-vous/useMotifsRendezVous';
 import { useLangue } from '@/hooks/useLangue';
+import { useSession } from '@/hooks/useSession';
 import { formaterDate } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
+import { peutLireRendezVous } from './droits';
 import { SelecteurClientVehicule } from './SelecteurClientVehicule';
 import {
   clesRendezVousAVenirVehicule,
@@ -96,7 +98,18 @@ export function SectionRendezVousVehicule({ vehicule, detenteur, site }: Props) 
   // toute façon pas (`localite`/`nombreVehicules`).
   const requeteDetenteurComplet = useClient(detenteur?.id);
 
-  const requeteRdv = useRendezVousAVenirVehicule(vehicule.id);
+  // DÉFAUT CORRIGÉ (issue #162, 16.08.2026) : un rôle sans `rendez_vous.lire` (ex. `vendeur`)
+  // voyait ce bloc rester en squelette de chargement indéfiniment — la requête partait sans garde
+  // de droits ni politique de réessai, `GET /rendez-vous` rendait un 403 stable jamais transformé
+  // en état affichable. Même doctrine que la section « Dossier de vente » d'`EcranFicheVehicule`
+  // (`peutVoirDossiersVente`) : gate via `enabled`, zéro requête pour un rôle qui n'a pas le
+  // droit, les trois états — chargement de la session, droit manquant, résultat — restent chacun
+  // DISTINCTS (« on ne sait pas », « il n'y en a pas » et « tu n'as pas le droit » ne partagent
+  // jamais le même rendu, doctrine du dépôt).
+  const session = useSession();
+  const peutVoirRendezVous = peutLireRendezVous(session.data?.utilisateur.role);
+
+  const requeteRdv = useRendezVousAVenirVehicule(vehicule.id, { enabled: peutVoirRendezVous });
   const requeteMotifs = useMotifsRendezVous();
   const creation = useCreationRendezVous();
 
@@ -162,7 +175,13 @@ export function SectionRendezVousVehicule({ vehicule, detenteur, site }: Props) 
           </Alert>
         ) : null}
 
-        {requeteRdv.isLoading ? (
+        {session.isLoading ? (
+          <EtatChargement lignes={2} />
+        ) : !peutVoirRendezVous ? (
+          <p className="texte-corps text-muted-foreground">
+            {t('vehicules:fiche.rendezVous.droitRequis')}
+          </p>
+        ) : requeteRdv.isLoading ? (
           <EtatChargement lignes={2} />
         ) : requeteRdv.isError ? (
           <EtatErreur

@@ -1074,4 +1074,143 @@ describe('EcranPointageTechnicien', () => {
       ).toBeInTheDocument();
     },
   );
+
+  // Issue #152, volet PRÉVENTION : le SERVEUR (`apps/api/src/pointage/regles-pointage.ts`,
+  // `STATUTS_LIGNE_POINTABLES`, RM-93) n'accepte de démarrer un pointage QUE sur une ligne
+  // `'validee'`/`'en_cours'` — toute autre valeur répond `409 POINTAGE_LIGNE_NON_POINTABLE`.
+  // Constaté en test navigateur réel : une ligne `'a_valider'` s'affichait pleinement cliquable
+  // dans « Que pointez-vous ? », sans aucun indice visuel ni pour lecteur d'écran, et le clic
+  // échouait systématiquement. La ligne doit désormais être désactivée DÈS L'AFFICHAGE, avec la
+  // raison en clair.
+  it(
+    'issue #152 : une ligne dans un statut que le serveur refuse au démarrage (« a_valider ») ' +
+      'est désactivée dès l’affichage, avec la raison en clair — jamais un clic silencieux qui ' +
+      'échoue au serveur',
+    async () => {
+      const ligneNonValidee = construireLigne({
+        id: 'ligne-a-valider',
+        statut: 'a_valider',
+        technicienId: null,
+        designation: 'Remplacement embrayage',
+      });
+      const or = construireOrDetail({ lignes: [ligneNonValidee], nombreLignes: 1 });
+
+      const appelsDemarrer: EntreeDemarragePointage[] = [];
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([]))),
+        http.get('/api/v1/ordres-reparation', () => HttpResponse.json(pageOrdres([or]))),
+        http.get('/api/v1/ordres-reparation/or-1', () => HttpResponse.json(or)),
+        http.post('/api/v1/pointages', async ({ request }) => {
+          appelsDemarrer.push((await request.json()) as EntreeDemarragePointage);
+          return HttpResponse.json(
+            {
+              type: 'https://docs.dmsforall.example/erreurs/POINTAGE_LIGNE_NON_POINTABLE',
+              title: 'Ligne non pointable',
+              status: 409,
+              code: 'POINTAGE_LIGNE_NON_POINTABLE',
+              instance: 'req-1',
+            },
+            { status: 409, headers: { 'content-type': 'application/problem+json' } },
+          );
+        }),
+      );
+
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      await utilisateur.click(await screen.findByText('OR-000123'));
+
+      const boutonLigne = (await screen.findByText('Remplacement embrayage')).closest(
+        'button',
+      ) as HTMLElement;
+      expect(boutonLigne).toBeDisabled();
+      expect(
+        within(boutonLigne).getByText('Pas encore disponible pour le pointage.'),
+      ).toBeInTheDocument();
+
+      // Un clic sur un bouton natif `disabled` ne déclenche AUCUN `onClick` — aucune requête ne
+      // doit jamais partir.
+      await utilisateur.click(boutonLigne);
+      expect(appelsDemarrer).toHaveLength(0);
+    },
+  );
+
+  // Issue #152, volet CURE : même sur une ligne autorisée à l'affichage, deux techniciens qui
+  // cliquent au même instant sur la borne PARTAGÉE (cas normal, pas un cas rare) peuvent tous les
+  // deux atteindre le serveur — l'un des deux essuie un refus. Avant ce correctif,
+  // `demarrerEtMemoriser` relançait l'erreur APRÈS l'avoir déjà affichée via `setErreurAction`,
+  // alors que ses appelants l'invoquent en `void demarrerEtMemoriser(...)` (fire-and-forget,
+  // RM-115) : la promesse rejetée n'était JAMAIS observée -> rejet de promesse non rattrapé,
+  // constaté en test navigateur réel comme un écran de sélection cassé. Ce test force ce refus
+  // serveur sur une ligne par ailleurs pointable et vérifie que l'écran reste utilisable.
+  it(
+    'issue #152 : un refus serveur (409) sur une ligne par ailleurs pointable ne casse jamais ' +
+      'l’écran — le message d’erreur s’affiche, le reste de l’écran reste utilisable',
+    async () => {
+      const ligne = construireLigne({
+        id: 'ligne-conflit',
+        statut: 'validee',
+        technicienId: null,
+        designation: 'Freins avant',
+      });
+      const or = construireOrDetail({ lignes: [ligne], nombreLignes: 1 });
+
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([]))),
+        http.get('/api/v1/ordres-reparation', () => HttpResponse.json(pageOrdres([or]))),
+        http.get('/api/v1/ordres-reparation/or-1', () => HttpResponse.json(or)),
+        http.post('/api/v1/pointages', () =>
+          HttpResponse.json(
+            {
+              type: 'https://docs.dmsforall.example/erreurs/POINTAGE_LIGNE_NON_POINTABLE',
+              title: 'Ligne non pointable',
+              status: 409,
+              code: 'POINTAGE_LIGNE_NON_POINTABLE',
+              instance: 'req-1',
+            },
+            { status: 409, headers: { 'content-type': 'application/problem+json' } },
+          ),
+        ),
+      );
+
+      // Un `throw` après `void demarrerEtMemoriser(...)` (non observé par l'appelant) devient un
+      // rejet de promesse NON RATTRAPÉ au niveau du PROCESSUS Node (le code React tourne
+      // directement dans le processus de test, pas dans un `<script>` sandboxé par jsdom — c'est
+      // `process.on('unhandledRejection')`, pas `window.onunhandledrejection`, qui l'observerait).
+      const rejetsNonRattrapes: unknown[] = [];
+      const surRejetNonRattrape = (raison: unknown) => {
+        rejetsNonRattrapes.push(raison);
+      };
+      process.on('unhandledRejection', surRejetNonRattrape);
+
+      try {
+        const utilisateur = userEvent.setup();
+        rendre();
+
+        await utilisateur.click(await screen.findByText('OR-000123'));
+        await utilisateur.click(await screen.findByRole('button', { name: 'Freins avant' }));
+
+        // `handleChoisirLigne` referme IMMÉDIATEMENT la vue « Que pointez-vous ? »
+        // (`setOrSelectionneId(undefined)`, avant même la réponse serveur — RM-115) : l'écran
+        // revient donc sur le panneau principal AVANT que l'erreur n'arrive. C'est CE panneau qui
+        // doit rester utilisable — jamais vide, jamais figé — pas la ligne cliquée, qui n'est plus
+        // affichée nulle part une fois la vue refermée.
+        expect(
+          await screen.findByText("Cette ligne n'est pas dans un état permettant un pointage.", {
+            exact: false,
+          }),
+        ).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /OR-000123/ })).toBeEnabled();
+
+        // Laisse une chance à un éventuel rejet différé de se manifester avant de conclure.
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      } finally {
+        process.off('unhandledRejection', surRejetNonRattrape);
+      }
+
+      expect(rejetsNonRattrapes).toEqual([]);
+    },
+  );
 });

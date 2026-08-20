@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 
 import type { ReponsePointage } from '@dfa/shared';
@@ -8,6 +8,7 @@ import { messageErreur } from '@/api/erreurs';
 import { genererCleIdempotence } from '@/api/idempotence';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { DatetimeInput } from '@/components/ui/datetime-input';
 import {
   Dialog,
   DialogContent,
@@ -15,7 +16,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useCorrigerPointage } from '@/hooks/pointage/useCorrigerPointage';
@@ -28,27 +28,23 @@ interface Props {
 }
 
 interface ValeursFormulaireCorrection {
-  /** `datetime-local` (`YYYY-MM-DDTHH:mm`, PAS `schemaHorodatage` ISO complet — c'est ce que le
-   *  navigateur produit) : converti en ISO à la soumission, `versEntreeCorrection` ci-dessous. */
-  readonly debutLe: string;
-  readonly finLe: string;
+  /** ISO (`aaaa-mm-jjThh:mm:ss.sssZ`), ou `undefined` si vide — contrat de `DatetimeInput`
+   *  (`components/ui/datetime-input.tsx`), jamais une chaîne `datetime-local` du navigateur.
+   *  Issue #153 : un `<input type="datetime-local">` natif suit le format du NAVIGATEUR (constaté
+   *  MM/JJ/AAAA + AM/PM en anglais US, seul endroit du produit hors du format suisse jj.mm.aaaa)
+   *  — même défaut, même correctif que l'issue #89 (`FormulaireNouvelOrdreReparation.tsx`,
+   *  `restitutionPromiseLe`). `DatetimeInput` affiche/saisit en jj.mm.aaaa HH:MM et rend
+   *  directement un ISO déjà correctement converti (`instantSuisseVersUtc`, fuseau Europe/Zurich
+   *  explicite) : aucune reconversion à la soumission, voir `soumettre` ci-dessous. */
+  readonly debutLe: string | undefined;
+  readonly finLe: string | undefined;
   readonly motif: string;
-}
-
-function versDatetimeLocal(iso: string | null): string {
-  if (!iso) return '';
-  // `Date#toISOString()` rend toujours UTC (`Z`) ; `datetime-local` attend l'heure LOCALE sans
-  // fuseau — on ôte les secondes/millisecondes/`Z` après conversion locale plutôt que de tronquer
-  // l'ISO brut, qui resterait en UTC et afficherait une heure fausse au technicien.
-  const date = new Date(iso);
-  const decalage = date.getTimezoneOffset() * 60000;
-  return new Date(date.getTime() - decalage).toISOString().slice(0, 16);
 }
 
 function versValeursFormulaire(pointage: ReponsePointage | undefined): ValeursFormulaireCorrection {
   return {
-    debutLe: versDatetimeLocal(pointage?.debutLe ?? null),
-    finLe: versDatetimeLocal(pointage?.finLe ?? null),
+    debutLe: pointage?.debutLe ?? undefined,
+    finLe: pointage?.finLe ?? undefined,
     motif: '',
   };
 }
@@ -80,13 +76,18 @@ export function DialogueCorrectionPointage({ ouvert, onOuvertChange, pointage, o
   }, [ouvert, pointage]);
 
   const soumettre = form.handleSubmit((valeurs) => {
-    if (!pointage) return;
+    if (!pointage || !valeurs.debutLe) return;
     corriger.mutate(
       {
         id: pointage.id,
         entree: {
-          debutLe: new Date(valeurs.debutLe).toISOString(),
-          finLe: valeurs.finLe.trim() === '' ? undefined : new Date(valeurs.finLe).toISOString(),
+          // Déjà des ISO valides ici — `DatetimeInput.onChange` (`components/ui/datetime-input.tsx`)
+          // les convertit lui-même en heure SUISSE explicite (`instantSuisseVersUtc`, fuseau
+          // Europe/Zurich) avant de les remonter. Repasser par `new Date(...).toISOString()`
+          // réintroduirait le décalage de fuseau que ce composant existe pour éliminer (voir sa
+          // docstring, et `FormulaireNouvelOrdreReparation.tsx` pour le même correctif, issue #89).
+          debutLe: valeurs.debutLe,
+          finLe: valeurs.finLe,
           motif: valeurs.motif.trim(),
         },
         idempotencyKey: genererCleIdempotence(),
@@ -111,15 +112,39 @@ export function DialogueCorrectionPointage({ ouvert, onOuvertChange, pointage, o
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="correction-debut">{t('pointage:correction.debut')}</Label>
-              <Input
-                id="correction-debut"
-                type="datetime-local"
-                {...form.register('debutLe', { required: true })}
+              <Controller
+                control={form.control}
+                name="debutLe"
+                rules={{ required: true }}
+                render={({ field }) => (
+                  <DatetimeInput
+                    id="correction-debut"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    erreur={
+                      form.formState.errors.debutLe
+                        ? t('pointage:correction.debutRequis')
+                        : undefined
+                    }
+                  />
+                )}
               />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="correction-fin">{t('pointage:correction.fin')}</Label>
-              <Input id="correction-fin" type="datetime-local" {...form.register('finLe')} />
+              <Controller
+                control={form.control}
+                name="finLe"
+                render={({ field }) => (
+                  <DatetimeInput
+                    id="correction-fin"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                  />
+                )}
+              />
             </div>
           </div>
 

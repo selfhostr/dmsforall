@@ -47,3 +47,55 @@ const ROLES_GESTION_PLAQUE_VEHICULE: ReadonlySet<RoleUtilisateur> = new Set([
 export function peutGererPlaqueVehicule(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && ROLES_GESTION_PLAQUE_VEHICULE.has(role);
 }
+
+/**
+ * Lecture des ordres de réparation (`GET /ordres-reparation`, action `atelier.or.lire`) —
+ * DUPLIQUÉE depuis `apps/api/src/auth/matrice-droits.ts` (`LECTURE_OR`, composée dans
+ * `DROITS_RECEPTIONNAIRE`, `DROITS_CHEF_ATELIER`/`DROITS_DIRECTION`/`DROITS_ADMIN` — qui
+ * l'étendent —, `DROITS_TECHNICIEN`, `DROITS_MAGASINIER`, `DROITS_COMPTABLE` et
+ * `DROITS_POSTE_ATELIER`), même doctrine que `peutModifierVehicule` ci-dessus.
+ *
+ * DÉFAUT CORRIGÉ (issue #162, 16.08.2026) : `vendeur` (ligne « vendeur : ... PAS de lecture OR »
+ * du fichier serveur, EXCLU ici littéralement) martelait `GET /ordres-reparation` en 403 sans que
+ * la section « Ordres de réparation » de la fiche véhicule ne le sache — TanStack Query réessayant
+ * par défaut un refus qui ne se résoudra jamais, la section restait en squelette de chargement
+ * indéfiniment au lieu d'expliquer le refus. Gate via `enabled` (zéro requête pour un rôle qui n'a
+ * pas le droit) : « on ne sait pas », « il n'y en a pas » et « tu n'as pas le droit » ne partagent
+ * jamais le même rendu (doctrine du dépôt).
+ */
+const ROLES_LECTURE_OR: ReadonlySet<RoleUtilisateur> = new Set([
+  'admin',
+  'direction',
+  'receptionnaire',
+  'chef_atelier',
+  'technicien',
+  'magasinier',
+  'comptable',
+  'poste_atelier',
+]);
+
+export function peutLireOrdresReparation(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_LECTURE_OR.has(role);
+}
+
+/**
+ * Lecture des rendez-vous (`GET /rendez-vous`, action `rendez_vous.lire`) — DUPLIQUÉE depuis
+ * `apps/api/src/auth/matrice-droits.ts` (`LECTURE_RDV`, composée dans
+ * `DROITS_RENDEZ_VOUS_PAR_ROLE.receptionnaire`/`.chef_atelier`/`.direction`/`.admin`/`.technicien`),
+ * même doctrine que `peutLireOrdresReparation` ci-dessus. `vendeur`, `magasinier`, `comptable` et
+ * `poste_atelier` reçoivent `[]` sur tout le domaine RDV côté serveur — EXCLUS ici littéralement.
+ *
+ * DÉFAUT CORRIGÉ (issue #162, 16.08.2026) : même symptôme que `peutLireOrdresReparation` ci-dessus,
+ * pour le bloc « Prochains rendez-vous » de la fiche véhicule.
+ */
+const ROLES_LECTURE_RENDEZ_VOUS: ReadonlySet<RoleUtilisateur> = new Set([
+  'admin',
+  'direction',
+  'receptionnaire',
+  'chef_atelier',
+  'technicien',
+]);
+
+export function peutLireRendezVous(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_LECTURE_RENDEZ_VOUS.has(role);
+}

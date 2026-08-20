@@ -225,7 +225,7 @@
         },
         "groupeLabel": "Standortplan des Bestands",
         "sansEmplacement": "Ohne Standort",
-        "nombreVehicules": "{n, plural, one {# Fahrzeug} other {# Fahrzeuge}}"
+        "nombreVehicules": "{count, plural, one {# Fahrzeug} other {# Fahrzeuge}}"
       }
     },
     "fiche": {
@@ -380,7 +380,8 @@
       },
       "ordresVehicule": {
         "titre": "Reparaturaufträge dieses Fahrzeugs",
-        "vide": "Kein Reparaturauftrag für dieses Fahrzeug."
+        "vide": "Kein Reparaturauftrag für dieses Fahrzeug.",
+        "droitRequis": "Sie sind nicht berechtigt, die Reparaturaufträge dieses Fahrzeugs einzusehen."
       },
       "garantie": {
         "titre": "Garantie",

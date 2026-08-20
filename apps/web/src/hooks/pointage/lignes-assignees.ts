@@ -1,10 +1,17 @@
-import type { ReponseLigneOr, ReponseOrdreReparation } from '@dfa/shared';
+import type { ReponseLigneOr, ReponseOrdreReparation, StatutLigneOr } from '@dfa/shared';
 
 /**
- * Lignes qu'un technicien peut raisonnablement pointer : jamais `refusee`/`annulee` (RM-93 les
- * refuse au démarrage, `409 POINTAGE_LIGNE_NON_POINTABLE`) ni `facturee` (déjà figée). Un filtrage
- * d'ERGONOMIE — le serveur reste l'arbitre final si l'état a changé entre le chargement de l'OR et
- * le clic (l'écran affiche alors l'erreur serveur normalement, via `messageErreur`).
+ * Lignes qu'un technicien peut raisonnablement pointer : un filtrage d'ERGONOMIE — le serveur
+ * reste l'arbitre final si l'état a changé entre le chargement de l'OR et le clic (l'écran
+ * affiche alors l'erreur serveur normalement, via `messageErreur`).
+ *
+ * ATTENTION — DÉCALAGE CONNU AVEC LE SERVEUR (RM-93) : cette constante accepte `'proposee'`,
+ * `'a_valider'` et `'realisee'` en plus des statuts que le serveur accepte réellement
+ * (`'validee'`/`'en_cours'`). Le serveur rejettera un pointage sur ces trois statuts avec `409
+ * POINTAGE_LIGNE_NON_POINTABLE`. Pour obtenir la liste des statuts RÉELLEMENT pointables selon
+ * la règle serveur (RM-93), voir `STATUTS_LIGNE_REELLEMENT_POINTABLES_RM93` et
+ * `ligneEstReellementPointableRM93()` ci-dessous. `DialogueChoixCiblePointage.tsx` applique un
+ * correctif local qui filtre davantage sur ces deux statuts uniquement.
  *
  * SOURCE UNIQUE pour ce critère : avant ce fichier, `DialogueChoixCiblePointage.tsx` définissait
  * son propre `STATUTS_LIGNE_POINTABLE`/`ligneEstPointable` localement, et « Mes OR du jour »
@@ -23,8 +30,28 @@ const STATUTS_LIGNE_POINTABLE = new Set([
   'realisee',
 ]);
 
+/**
+ * RM-93 (règle serveur, voir `apps/api/src/pointage/regles-pointage.ts::estLignePointable`) :
+ * UNIQUEMENT ces deux statuts sont acceptés au démarrage d'un pointage — tout autre statut
+ * entraîne un rejet `409 POINTAGE_LIGNE_NON_POINTABLE`. Cette constante CORRIGE le décalage
+ * documenté ci-dessus sur `STATUTS_LIGNE_POINTABLE`.
+ */
+const STATUTS_LIGNE_REELLEMENT_POINTABLES_RM93: ReadonlySet<StatutLigneOr> = new Set([
+  'validee',
+  'en_cours',
+]);
+
 export function ligneEstPointable(ligne: ReponseLigneOr): boolean {
   return STATUTS_LIGNE_POINTABLE.has(ligne.statut);
+}
+
+/**
+ * Vraie règle du serveur (RM-93, `apps/api/src/pointage/regles-pointage.ts::estLignePointable`) —
+ * à privilégier pour tout code nouveau. Le hook `lignesPointables()` reste plus permissif pour
+ * compatibilité avec l'affichage existant ; cette fonction expose la vérité serveur.
+ */
+export function ligneEstReellementPointableRM93(ligne: ReponseLigneOr): boolean {
+  return STATUTS_LIGNE_REELLEMENT_POINTABLES_RM93.has(ligne.statut);
 }
 
 /** Une ligne est « assignée » à un technicien = `ligne.technicienId` est ÉGAL à l'identifiant du

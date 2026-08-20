@@ -6,6 +6,7 @@ import {
   compterLignesAssigneesPointables,
   lignesAssigneesPointables,
   lignesPointables,
+  ligneEstReellementPointableRM93,
 } from './lignes-assignees';
 
 const TECHNICIEN_ID = 'tech-1';
@@ -129,6 +130,35 @@ describe('lignes-assignees', () => {
         const or = construireOr([construireLigne({ id: 'l1', technicienId: null, statut })]);
 
         expect(lignesPointables(or)).toEqual([]);
+      },
+    );
+
+    it.each(['proposee', 'a_valider', 'validee', 'en_cours', 'realisee'] as const)(
+      'inclut une ligne au statut pointable (large) (%s)',
+      (statut) => {
+        const or = construireOr([construireLigne({ id: 'l1', technicienId: null, statut })]);
+
+        expect(lignesPointables(or).map((l) => l.id)).toEqual(['l1']);
+      },
+    );
+  });
+
+  describe('ligneEstReellementPointableRM93 — vraie règle serveur (RM-93)', () => {
+    it.each(['validee', 'en_cours'] as const)(
+      'accepte UNIQUEMENT les statuts que le serveur accepte (%s)',
+      (statut) => {
+        const ligne = construireLigne({ id: 'l1', statut });
+
+        expect(ligneEstReellementPointableRM93(ligne)).toBe(true);
+      },
+    );
+
+    it.each(['proposee', 'a_valider', 'realisee', 'refusee', 'annulee', 'facturee'] as const)(
+      'refuse les autres statuts (%s)',
+      (statut) => {
+        const ligne = construireLigne({ id: 'l1', statut });
+
+        expect(ligneEstReellementPointableRM93(ligne)).toBe(false);
       },
     );
   });

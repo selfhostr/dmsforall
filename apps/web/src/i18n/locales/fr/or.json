@@ -418,10 +418,6 @@
     "totalValide": "Total validé (suivi plafond)",
     "aideDistinction": "« Total validé » suit le plafond de l'OR (lignes déjà validées, tous payeurs confondus) — ce n'est pas un montant à facturer. Pour annoncer un montant, utilisez la ligne du payeur concerné ci-dessus."
   },
-  "impression": {
-    "enCours": "Impression en cours…",
-    "erreur": "Impossible d'imprimer la feuille d'atelier. {message}"
-  },
   "nouveau": {
     "titre": "Nouvel ordre de réparation",
     "siteManquant": {

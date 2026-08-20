@@ -32,6 +32,8 @@
     "titre": "Dieses Foto ist nicht geeignet",
     "motifs": {
       "resolutionInsuffisante": "Das Foto hat nicht genug Auflösung. Nehmen Sie es näher auf.",
+      "margeInsuffisante": "Der Ausweis berührt die Bildränder. Gehen Sie mit dem Gerät etwas weiter weg und lassen Sie ringsum Rand.",
+      "pageNonAPlat": "Der Ausweis liegt nicht flach auf. Klappen Sie ihn vollständig auf und legen Sie ihn flach hin, bevor Sie das Foto erneut aufnehmen.",
       "documentTropPetit": "Der Ausweis ist zu klein im Rahmen. Gehen Sie näher heran.",
       "photoFloue": "Das Foto ist unscharf. Halten Sie das Gerät ruhig."
     },
@@ -49,6 +51,17 @@
     "titre": "Das Foto konnte nicht verwendet werden",
     "photoIllisible": "Dieses Foto konnte nicht geöffnet werden. Nehmen Sie es erneut mit der Kamera auf, flach hingelegt und gut beleuchtet.",
     "heicNonPrisEnCharge": "Dieses Fotoformat wird auf diesem Gerät nicht unterstützt. Nehmen Sie das Foto erneut über die Schaltfläche „Foto aufnehmen“ auf statt aus der Fotobibliothek."
+  },
+  "session": {
+    "erreur": {
+      "titre": "Verbindung nicht möglich",
+      "description": "Ihre Verbindung kann derzeit nicht überprüft werden. Prüfen Sie Ihr Netzwerk und versuchen Sie es erneut."
+    },
+    "perdueEnCours": {
+      "titre": "Verbindung unterbrochen",
+      "description": "Ihre Sitzung ist während dieses Scans abgelaufen. Was Sie bereits fotografiert oder eingegeben haben, bleibt sichtbar, kann aber erst nach erneuter Anmeldung gespeichert werden."
+    },
+    "seReconnecter": "Erneut anmelden"
   },
   "actions": {
     "reessayer": "Foto erneut aufnehmen",

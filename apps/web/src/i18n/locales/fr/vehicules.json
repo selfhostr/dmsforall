@@ -56,7 +56,8 @@
       "titre": "Ordres de réparation",
       "vide": "Aucun ordre de réparation pour ce véhicule.",
       "designations": "{liste}",
-      "designationsTronquees": "{liste}…"
+      "designationsTronquees": "{liste}…",
+      "droitRequis": "Vous n'avez pas le droit de consulter les ordres de réparation de ce véhicule."
     },
     "factures": {
       "titre": "Factures",
@@ -74,7 +75,8 @@
       "titre": "Prochains rendez-vous",
       "prendre": "Prendre un rendez-vous",
       "vide": "Aucun rendez-vous prévu pour ce véhicule.",
-      "creeTitre": "Rendez-vous enregistré"
+      "creeTitre": "Rendez-vous enregistré",
+      "droitRequis": "Vous n'avez pas le droit de consulter les rendez-vous de ce véhicule."
     }
   },
   "archiver": {

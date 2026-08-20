@@ -32,6 +32,7 @@ import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
+import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { useListeDossiersVente } from '@/hooks/ventes/dossiers/useListeDossiersVente';
 import { useSession } from '@/hooks/useSession';
 import { formaterDate } from '@/lib/formats';
@@ -105,7 +106,15 @@ export function EcranListeDossiersVente() {
   const { t } = useTranslation(['ventes', 'commun']);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const site = searchParams.get('site') ?? undefined;
+  const { preferenceSiteId } = useSiteCourant();
+  // Défaut CORRIGÉ (issue #161, 16.08.2026) : au premier chargement d'un onglet (arrivée directe,
+  // ou rechargement de la page), aucune navigation interne n'a encore écrit `?site=` dans l'URL —
+  // seule la PRÉFÉRENCE mémorisée du poste (`useSiteCourant`, même résolution que
+  // `SelecteurSiteEntete`/`EcranListeArticles`) sait quel site l'en-tête affiche. Sans ce repli,
+  // `site` valait `undefined` malgré un site actif visible en haut de page, et le bouton « Nouveau
+  // dossier de vente » héritait de cette absence (`chemins.ventes.dossiers.nouveau(site)` ci-dessous)
+  // jusqu'à ce que l'utilisateur rouvre le sélecteur — qui, lui, écrit `?site=` dans l'URL.
+  const site = searchParams.get('site') ?? preferenceSiteId;
   const { data: session } = useSession();
 
   const [qSaisie, setQSaisie] = useState('');

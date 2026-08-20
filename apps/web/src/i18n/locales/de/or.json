@@ -418,10 +418,6 @@
     "totalValide": "Validiertes Total (Kostengrenze-Überwachung)",
     "aideDistinction": "«Validiertes Total» überwacht die Kostengrenze des Auftrags (bereits validierte Positionen, alle Kostenträger zusammen) — kein zu fakturierender Betrag. Für einen Betrag an einen Kostenträger die entsprechende Zeile oben verwenden."
   },
-  "impression": {
-    "enCours": "Druckvorgang läuft…",
-    "erreur": "Werkstattblatt konnte nicht gedruckt werden. {message}"
-  },
   "nouveau": {
     "titre": "Neuer Reparaturauftrag",
     "siteManquant": {

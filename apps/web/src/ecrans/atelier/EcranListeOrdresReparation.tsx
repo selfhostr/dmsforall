@@ -27,6 +27,7 @@ import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { BarreFiltres } from '@/composants/comptoir/BarreFiltres';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
+import { MontantMasque } from '@/composants/comptoir/MontantMasque';
 import { SelecteurTri } from '@/composants/comptoir/SelecteurTri';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { BadgeStatutOr } from '@/composants/identite/BadgeStatutOr';
@@ -93,9 +94,10 @@ function cheminDetailOr(id: string, site: string | undefined): string {
  * (chargement/vide/erreur), plus les trois variantes de vide établies par le comptoir
  * (recherche/filtre/premier usage — docs/design-comptoir.md §4).
  *
- * Colonne « Total TTC » absente pour un rôle sans droit aux montants (`totalTtcCentimes` est
- * alors absent du DTO, jamais `0`) : `formaterMontant` n'est appelé QUE si le champ est présent,
- * jamais substitué par un texte inventé qui laisserait croire à un montant nul.
+ * Colonne « Total TTC » : cellule masquée (`MontantMasque`, jamais une cellule vide ni « 0.00 »)
+ * pour un rôle sans droit aux montants — `totalTtcCentimes` est alors absent du DTO, `formaterMontant`
+ * n'est appelé QUE si le champ est présent (issue #157, une cellule vide se lisait comme une
+ * absence de donnée réelle, indiscernable d'un droit manquant).
  */
 export function EcranListeOrdresReparation() {
   const { t } = useTranslation(['or', 'commun']);
@@ -191,9 +193,15 @@ export function EcranListeOrdresReparation() {
       alignement: 'droite',
       // Absent (pas 0) pour un rôle sans droit aux montants (`ROLES_SANS_MONTANT`) — ne jamais
       // afficher « 0.00 », qui serait un mensonge (le total existe, seul le droit de le voir manque).
+      // Issue #157 : une cellule VIDE se lit comme une absence de donnée, pas comme un droit
+      // manquant — `MontantMasque` porte cette troisième signification distincte.
       rendu: (or) => (
         <span className="tabular-nums">
-          {or.totalTtcCentimes !== undefined ? formaterMontant(or.totalTtcCentimes) : ''}
+          {or.totalTtcCentimes !== undefined ? (
+            formaterMontant(or.totalTtcCentimes)
+          ) : (
+            <MontantMasque />
+          )}
         </span>
       ),
     },

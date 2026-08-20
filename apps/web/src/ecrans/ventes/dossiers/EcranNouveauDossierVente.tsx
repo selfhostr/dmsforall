@@ -19,6 +19,7 @@ import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfi
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { RefusBloquant } from '@/composants/motifs/RefusBloquant';
 import { useClient } from '@/hooks/clients/useClient';
+import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { useCreationDossierVente } from '@/hooks/ventes/dossiers/useCreationDossierVente';
 import { useVehiculeStockParId } from '@/hooks/ventes/dossiers/useVehiculeStockParId';
 import { chemins } from '@/routes/chemins';
@@ -85,7 +86,12 @@ export function EcranNouveauDossierVente() {
   const { t } = useTranslation(['ventes', 'commun', 'erreurs']);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const site = searchParams.get('site') ?? undefined;
+  const { preferenceSiteId } = useSiteCourant();
+  // Défaut CORRIGÉ (issue #161, 16.08.2026) : voir le commentaire jumeau dans
+  // `EcranListeDossiersVente.tsx` — sans ce repli, un rechargement de page affichait « Aucun site
+  // sélectionné » alors que l'en-tête montrait bien un site actif, tant que l'utilisateur ne
+  // rouvrait pas le sélecteur (seul geste qui écrivait `?site=` dans l'URL).
+  const site = searchParams.get('site') ?? preferenceSiteId;
   const clientIdPrefilled = searchParams.get('clientId') ?? undefined;
   const vehiculeIdPrefilled = searchParams.get('vehiculeId') ?? undefined;
 

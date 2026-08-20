@@ -6,7 +6,7 @@ import { ErreurReductionImage, ratioDeReduction, reduireImagePourEnvoi } from '.
  * jsdom (26.1) n'implémente ni le décodage réel d'`<img>` ni `HTMLCanvasElement.getContext` (ce
  * dernier renvoie toujours `null` sans polyfill `canvas`, absent de ce dépôt — voir
  * `package.json`) : chaque comportement est donc simulé explicitement ici, jamais supposé. Même
- * patron de stub que `useImprimerOr.spec.tsx` pour `URL.createObjectURL`/`revokeObjectURL`
+ * patron de stub que dans `EcranScan.spec.tsx` pour `URL.createObjectURL`/`revokeObjectURL`
  * (absents de jsdom).
  */
 

@@ -31,14 +31,18 @@ concurrency:
   cancel-in-progress: true
 
 # Permission par défaut du workflow : lecture seule. Chaque job qui a réellement besoin de plus
-# (ici uniquement `construire-publier`, pour pousser sur ghcr.io et signer une attestation)
-# déclare son propre bloc `permissions:`, qui remplace celui-ci pour ce job — jamais l'inverse.
+# (ici uniquement `construire-publier`, pour cloner avec l'historique complet) déclare son propre
+# bloc `permissions:`, qui remplace celui-ci pour ce job — jamais l'inverse.
 permissions:
   contents: read
 
 env:
   NODE_VERSION: '22'
-  REGISTRY: ghcr.io
+  # Pas de REGISTRY statique ici (c'était `ghcr.io` du temps de GitHub) : depuis la migration vers
+  # forge auto-hébergé, l'hôte du registre de conteneurs est dérivé à l'exécution de
+  # `github.server_url` (ROOT_URL de l'instance, ex. http://192.168.1.10:3300) par l'étape
+  # "Hôte du registre de conteneurs" ci-dessous — jamais codé en dur ici, pour ne pas avoir à
+  # retoucher ce fichier si l'instance change un jour d'adresse. Voir `steps.registre.outputs.hote`.
 
 jobs:
   # --- Porte de qualité : les trois jobs de ci.yml, invoqués via `workflow_call` -------------
@@ -65,18 +69,19 @@ jobs:
   # `uses:` attend la réussite de TOUS les jobs qu'il contient, pas seulement du premier en échec :
   # un job de ci.yml qui échoue fait échouer `verification-qualite` dans son ensemble.
   construire-publier:
-    name: Construire et publier dfa-${{ matrix.image }} (ghcr.io)
+    name: Construire et publier dfa-${{ matrix.image }} (registre forge)
     needs: [verification-qualite]
     runs-on: ubuntu-latest
-    # Permissions minimales pour CE job seulement : `packages: write` pour pousser sur ghcr.io,
-    # `id-token`/`attestations: write` pour la signature Sigstore de la provenance (voir plus bas).
-    # `contents: read` est répété explicitement car déclarer `permissions:` sur un job remplace
-    # entièrement le bloc du workflow, il n'y a pas d'addition implicite.
+    # `contents: read` seulement : ce job clone le dépôt (historique complet, voir plus bas) et
+    # pousse vers le registre de conteneurs avec un jeton personnel dédié (secret
+    # FORGE_REGISTRY_TOKEN, voir l'étape d'authentification plus bas), jamais avec le jeton
+    # d'exécution automatique du workflow. Sur forge, ce jeton automatique (l'équivalent de
+    # GITHUB_TOKEN) n'obtient PAS l'accès en écriture au registre de paquets même avec
+    # `packages: write` déclaré ici — limitation connue du runner (forge/forge#1296) — donc ce
+    # bloc ne déclare que ce qui sert réellement. Pas d'`id-token`/`attestations: write` non plus :
+    # l'étape de signature Sigstore a été retirée, voir son remplacement plus bas.
     permissions:
       contents: read
-      packages: write
-      attestations: write
-      id-token: write
     strategy:
       # Un échec sur l'image web ne doit pas empêcher de savoir si l'image api, elle, est publiable
       # (et inversement) : les deux builds sont indépendants.
@@ -99,9 +104,28 @@ jobs:
         with:
           fetch-depth: 0
 
-      # ghcr.io exige un chemin d'image strictement en minuscules ; `github.repository_owner`
-      # peut contenir des majuscules (nom d'utilisateur/organisation GitHub).
-      - name: Nom du propriétaire en minuscule (exigence ghcr.io)
+      # Un registre de conteneurs OCI s'adresse par host[:port], jamais par une URL avec schéma.
+      # `github.server_url` est le ROOT_URL de l'instance forge (ex. http://192.168.1.10:3300,
+      # déjà ce que le label `org.opencontainers.image.source` utilise plus bas) : on le réutilise
+      # ici plutôt que de coder l'hôte en dur, pour que ce fichier survive sans modification à un
+      # changement d'adresse de l'instance (ex. le jour où elle passe derrière un vrai nom de
+      # domaine). Le registre de paquets de forge vit sous le MÊME hôte que le reste de
+      # l'instance (`/v2/…`, distinct de l'API REST `/api/v1/…`), contrairement à GitHub où
+      # ghcr.io est un hôte séparé de github.com.
+      - name: Hôte du registre de conteneurs
+        id: registre
+        env:
+          SERVER_URL: ${{ github.server_url }}
+        run: |
+          set -euo pipefail
+          HOTE="${SERVER_URL#http://}"
+          HOTE="${HOTE#https://}"
+          HOTE="${HOTE%/}"
+          echo "hote=${HOTE}" >> "$GITHUB_OUTPUT"
+
+      # Le registre de conteneurs exige un chemin d'image strictement en minuscules (comme
+      # ghcr.io en son temps) ; `github.repository_owner` peut contenir des majuscules.
+      - name: Nom du propriétaire en minuscule (exigence du registre)
         id: repo
         env:
           OWNER: ${{ github.repository_owner }}
@@ -152,14 +176,22 @@ jobs:
       - name: Préparer Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Authentification ghcr.io
+      - name: Authentification au registre de conteneurs
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ${{ steps.registre.outputs.hote }}
           username: ${{ github.actor }}
-          # GITHUB_TOKEN suffit (permissions du job ci-dessus) : aucun secret supplémentaire à
-          # créer ou faire tourner pour publier sur GitHub Container Registry.
-          password: ${{ secrets.GITHUB_TOKEN }}
+          # PAS secrets.GITHUB_TOKEN : sur forge, le jeton d'exécution automatique du workflow
+          # n'a pas accès en écriture au registre de paquets, quel que soit le bloc `permissions:`
+          # du job — limitation connue et documentée du runner (forge/forge#1296), pas encore
+          # vérifiée par un run réel sur CE dépôt (aucun accès CI/CD disponible pour le faire
+          # pendant la préparation de ce correctif — à confirmer à la première publication réelle,
+          # voir le rapport de ce correctif). Il faut donc un jeton d'accès PERSONNEL
+          # forge (Paramètres du compte @laupernoe → Applications → Générer un nouveau jeton — PAS un
+          # jeton limité à ce dépôt : la portée « package » n'existe que sur les jetons personnels
+          # classiques), avec la portée « package » en Lecture et écriture, déposé comme secret du
+          # DÉPÔT (Réglages du dépôt → Actions → Secrets) sous le nom FORGE_REGISTRY_TOKEN.
+          password: ${{ secrets.FORGE_REGISTRY_TOKEN }}
 
       # Contexte de build = racine du dépôt (`.`), jamais apps/api ou apps/web : les deux
       # Dockerfiles l'exigent (pnpm workspaces + packages/shared, voir leurs en-têtes). Un
@@ -175,10 +207,11 @@ jobs:
       #
       # `provenance: false` : désactive l'attestation de provenance interne (non signée) que
       # buildx attache par défaut au manifeste lors d'un push, qui transformerait chaque image en
-      # manifeste multi-plateforme même en single-arch. On préfère UNE attestation, signée via
-      # Sigstore/GitHub OIDC (étape suivante), plutôt que deux mécanismes qui se chevauchent — et
-      # cela garde `docker-compose.yml` face à un manifeste d'image simple, sans surprise
-      # pour la version de Docker Engine installée sur le serveur.
+      # manifeste multi-plateforme même en single-arch. Anciennement gardé à `false` pour laisser
+      # la place à UNE attestation signée via Sigstore/GitHub OIDC (étape qui suivait ce job) —
+      # cette étape a disparu (voir plus bas pourquoi), mais la valeur reste : elle garde
+      # `docker-compose.yml` face à un manifeste d'image simple, sans surprise pour la version
+      # de Docker Engine installée sur le serveur.
       - name: Construire et publier l'image
         id: build
         uses: docker/build-push-action@v6
@@ -198,45 +231,43 @@ jobs:
             ${{ matrix.image == 'api' && format('VERSION_APP={0}', steps.image-tag.outputs.version_app) || '' }}
             ${{ matrix.image == 'api' && format('VERSION_APP_BRANCHE={0}', steps.image-tag.outputs.version_app_branche) || '' }}
           tags: |
-            ${{ env.REGISTRY }}/${{ steps.repo.outputs.owner }}/dfa-${{ matrix.image }}:${{ steps.image-tag.outputs.tag }}
-            ${{ env.REGISTRY }}/${{ steps.repo.outputs.owner }}/dfa-${{ matrix.image }}:sha-${{ steps.image-tag.outputs.sha_court }}
+            ${{ steps.registre.outputs.hote }}/${{ steps.repo.outputs.owner }}/dfa-${{ matrix.image }}:${{ steps.image-tag.outputs.tag }}
+            ${{ steps.registre.outputs.hote }}/${{ steps.repo.outputs.owner }}/dfa-${{ matrix.image }}:sha-${{ steps.image-tag.outputs.sha_court }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.version=${{ steps.image-tag.outputs.tag }}
-          # Cache GitHub Actions (gratuit, pas d'infrastructure supplémentaire), une portée par
-          # image : api et web ne partagent pas les mêmes couches (Dockerfiles différents), un
-          # cache commun écraserait alternativement l'un puis l'autre à chaque run.
-          cache-from: type=gha,scope=${{ matrix.image }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+          # Cache en cache=registre plutôt que `type=gha` : le backend `gha` de buildx dépend d'un
+          # service de cache compatible `actions/cache` exposé par le runner via les variables
+          # d'environnement ACTIONS_CACHE_URL/ACTIONS_RUNTIME_TOKEN — sur forge, ce service est
+          # une fonctionnalité serveur à activer explicitement par l'administrateur du runner
+          # (bloc `[cache]` de sa config), pas garantie active ici et pas vérifiable depuis ce
+          # fichier. `type=registry` ne dépend que du registre de conteneurs lui-même (déjà
+          # nécessaire pour publier l'image), donc aucune dépendance supplémentaire à vérifier.
+          # Tag `:cache` séparé du tag immuable de l'image (voir `tags:` ci-dessus) : PUREMENT
+          # interne au build, JAMAIS référencé par docker-compose.yml ni par un déploiement —
+          # il peut donc rester mutable sans contredire la règle « jamais de tag mouvant » du
+          # commentaire d'en-tête, qui porte sur les images déployables. Une portée par image (api
+          # et web ne partagent pas les mêmes couches, Dockerfiles différents) : chacune son propre
+          # tag `:cache`, sinon l'une écraserait le cache de l'autre à chaque run.
+          cache-from: type=registry,ref=${{ steps.registre.outputs.hote }}/${{ steps.repo.outputs.owner }}/dfa-${{ matrix.image }}:cache
+          cache-to: type=registry,ref=${{ steps.registre.outputs.hote }}/${{ steps.repo.outputs.owner }}/dfa-${{ matrix.image }}:cache,mode=max,image-manifest=true
 
-      # Attestation de provenance SLSA, signée keylessly via l'identité OIDC de ce workflow
-      # (Sigstore), enregistrée sur ghcr.io à côté de l'image. Coût marginal (quelques secondes,
-      # aucune infrastructure à opérer) pour une garantie vérifiable après coup : quelle définition
-      # de workflow, quel commit, sur quel dépôt, a produit exactement cette image. Se vérifie avec
-      # `gh attestation verify oci://<image>@<digest> --owner <org>`.
-      #
-      # NEUTRALISÉE (10.08.2026) : `actions/attest-build-provenance` échoue systématiquement ici
-      # avec « Feature not available for user-owned private repositories. To enable this feature,
-      # please make this repository public. » — GitHub réserve l'attestation d'artefact aux dépôts
-      # publics et aux dépôts d'organisation sur un plan Team/Enterprise. Ce dépôt est privé et
-      # détenu par un compte personnel : l'étape ne PEUT PAS réussir dans cet état, quel que soit le
-      # code ou le workflow — ce n'est donc pas une vérification qui échoue à juste titre (les
-      # images sont déjà poussées à l'étape précédente). On la fait SAUTER plutôt que la laisser
-      # échouer : un `if:` évalué à faux donne un statut « ignorée » dans le journal, pas un rouge
-      # permanent sur `main` qui se lirait à tort comme « quelque chose ne va pas ». Un
-      # `continue-on-error: true` masquerait la même absence de problème derrière un vrai échec.
-      #
-      # Déblocage : dès que ce dépôt passe en public, `repository.private` devient `false` et
-      # l'étape se remet à tourner d'elle-même, sans toucher ce fichier. Un dépôt qui reste privé
-      # mais rejoint une organisation sur plan Team/Enterprise débloquerait aussi la fonctionnalité
-      # côté GitHub — mais aucun champ de plan de facturation n'est exposé dans le contexte d'un
-      # workflow, donc CE cas-là ne peut pas s'auto-détecter : il faudra alors ajuster la condition
-      # ci-dessous à la main.
-      - name: Attestation de provenance
-        if: ${{ github.event.repository.private == false }}
-        uses: actions/attest-build-provenance@v2
-        with:
-          subject-name: ${{ env.REGISTRY }}/${{ steps.repo.outputs.owner }}/dfa-${{ matrix.image }}
-          subject-digest: ${{ steps.build.outputs.digest }}
-          push-to-registry: true
+      # Attestation de provenance SLSA (Sigstore) — RETIRÉE (20.08.2026), pas seulement
+      # neutralisée par un `if:`, cette fois : `actions/attest-build-provenance` n'a plus de sens
+      # possible hors GitHub, pour deux raisons structurelles, pas une panne temporaire :
+      #   1. L'action appelle en dur l'API REST de GitHub (`POST /repos/.../attestations`,
+      #      api.github.com) pour enregistrer l'attestation — il n'existe aucune option pour
+      #      pointer cet appel vers une autre forge. forge n'expose pas d'API équivalente.
+      #   2. La signature keyless Sigstore repose sur la fédération OIDC GitHub Actions ↔ Fulcio
+      #      (Sigstore) : Fulcio ne fait confiance qu'à l'émetteur OIDC de GitHub pour délivrer un
+      #      certificat de signature. Le jeton OIDC d'un run forge Actions (même avec
+      #      `id-token: write`) n'est pas cet émetteur — Fulcio le rejetterait.
+      # Contrairement à l'obstacle précédent (dépôt privé, potentiellement levable un jour sans
+      # toucher ce fichier), celui-ci ne se lève pas de lui-même : il faudrait une infrastructure
+      # de signature séparée (ex. cosign avec une paire de clés auto-hébergée, ou un Rekor privé)
+      # — un nouveau projet en soi, pas demandé ici, donc pas fait. Un `if:` à `false` aurait
+      # laissé une étape durablement grisée dans chaque run, pour une fonctionnalité qui ne
+      # reviendra pas sans décision explicite : la supprimer est plus honnête que la neutraliser.
+      # Les images restent publiées, taguées et immuables (voir l'étape précédente) — seule la
+      # signature de provenance disparaît.

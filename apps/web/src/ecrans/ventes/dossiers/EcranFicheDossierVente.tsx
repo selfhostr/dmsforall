@@ -18,6 +18,8 @@ import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { CarteFinancement } from '@/ecrans/ventes/financements/CarteFinancement';
 import { peutLireFinancement } from '@/ecrans/ventes/financements/droits';
 import { CarteReprise } from '@/ecrans/ventes/reprises/CarteReprise';
+import { peutLireOrdresReparation } from '@/ecrans/vehicules/droits';
+import { useDoitReessayer } from '@/hooks/pagination-curseur';
 import { useSession } from '@/hooks/useSession';
 import { useDossierVente } from '@/hooks/ventes/dossiers/useDossierVente';
 import { formaterDate } from '@/lib/formats';
@@ -64,9 +66,19 @@ export function EcranFicheDossierVente() {
   const [modificationOuverte, setModificationOuverte] = useState(false);
 
   const requete = useDossierVente(id);
-  const { data: session } = useSession();
-  const role = session?.utilisateur.role;
+  const session = useSession();
+  const role = session.data?.utilisateur.role;
   const vehiculeId = requete.data?.vehicule?.id;
+
+  // DÉFAUT CORRIGÉ (issue #162, 16.08.2026) : un rôle sans `atelier.or.lire` (ex. `vendeur`)
+  // laissait ce bloc « OR de ce véhicule » en squelette de chargement indéfiniment — la requête
+  // partait sans garde de droits ni politique de réessai, un 403 stable jamais transformé en état
+  // affichable. Même doctrine que `EcranFicheVehicule.tsx` (`peutVoirOrdresReparation`) :
+  // `peutLireOrdresReparation` DUPLIQUÉE dans `ecrans/vehicules/droits.ts` (matrice serveur), gate
+  // via `enabled`, les trois états — chargement de la session, droit manquant, résultat — restent
+  // chacun DISTINCTS.
+  const peutVoirOrdresReparation = peutLireOrdresReparation(role);
+  const reessayerOr = useDoitReessayer();
 
   // Lot B — « l'OR de préparation ». SIGNALÉ : `ReponseDossierVente` (contrat gelé,
   // `packages/shared/src/contrats/ventes/dossier-vente.ts`) ne porte AUCUN champ reliant un OR
@@ -91,7 +103,8 @@ export function EcranFicheDossierVente() {
       );
       return page?.donnees ?? [];
     },
-    enabled: vehiculeId !== undefined,
+    enabled: vehiculeId !== undefined && peutVoirOrdresReparation,
+    retry: reessayerOr,
   });
 
   if (requete.isPending) {
@@ -219,7 +232,13 @@ export function EcranFicheDossierVente() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {requeteOr.isPending ? (
+            {session.isLoading ? (
+              <EtatChargement lignes={2} />
+            ) : !peutVoirOrdresReparation ? (
+              <p className="texte-corps text-muted-foreground">
+                {t('ventes:dossier.fiche.ordresVehicule.droitRequis')}
+              </p>
+            ) : requeteOr.isPending ? (
               <EtatChargement lignes={2} />
             ) : requeteOr.isError ? (
               <EtatErreur

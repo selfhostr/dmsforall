@@ -308,8 +308,14 @@ export function EcranPointageTechnicien() {
         });
       }
     } catch (erreur) {
+      // Issue #152 : NE PLUS RE-LANCER ici — même correctif, même cause qu'`EcranBornePointage.
+      // demarrerEtSuivre` (voir sa docstring pour l'investigation complète, non répétée ici) :
+      // `handleChoisirLigne`/`handleChoisirOrEntier`/`handleDemarrerActiviteIndirecte` invoquent
+      // cette fonction via `void demarrerEtMemoriser(...)`, qui n'observe jamais un rejet — un
+      // `throw` ici devenait un rejet de promesse NON RATTRAPÉ, cassant l'écran de sélection.
+      // `setErreurAction` ci-dessus reste la seule garantie utile ; `handlePause`/`handleReprendre`
+      // (les deux appelants qui `await`) portent leur propre `finally` inconditionnel.
       setErreurAction(messageErreur(erreur, t));
-      throw erreur;
     }
   }
 

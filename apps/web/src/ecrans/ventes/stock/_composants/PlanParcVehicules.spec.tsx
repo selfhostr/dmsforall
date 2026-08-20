@@ -117,6 +117,46 @@ describe('<PlanParcVehicules />', () => {
     expect(within(zones[1]!).getByText('Sans emplacement')).toBeInTheDocument();
   });
 
+  it('affiche le NOMBRE de véhicules du groupe, pas la formule ICU brute (issue #160)', () => {
+    // Défaut corrigé : la clé `ventes:stock.liste.plan.nombreVehicules` attend une variable ICU
+    // `count` (voir les 3 locales) mais l'appelant passait `count` sous un autre nom de variable
+    // (`n`) que la formule elle-même — i18next-icu, faute de variable résolue, rendait la formule
+    // ICU telle quelle au lieu de l'interpoler. Ce test lit le TEXTE RENDU (pas juste l'existence de
+    // la clé, que `i18n:check` valide déjà et laisserait passer même cassé).
+    const vehicules = [
+      creerVehiculeStock({
+        id: 'v1',
+        vehicule: { ...creerVehiculeStock().vehicule, emplacementLibre: 'Devant', plaque: '1' },
+      }),
+      creerVehiculeStock({
+        id: 'v2',
+        vehicule: { ...creerVehiculeStock().vehicule, emplacementLibre: 'Devant', plaque: '2' },
+      }),
+      creerVehiculeStock({
+        id: 'v3',
+        vehicule: { ...creerVehiculeStock().vehicule, emplacementLibre: 'Devant', plaque: '3' },
+      }),
+      creerVehiculeStock({
+        id: 'v4',
+        vehicule: { ...creerVehiculeStock().vehicule, emplacementLibre: null, plaque: '4' },
+      }),
+    ];
+
+    render(
+      <PlanParcVehicules
+        vehiculesStock={vehicules}
+        onOuvrirVehicule={vi.fn()}
+        libelleOuvrirVehicule={() => 'ouvrir'}
+        contenuVide={<p>vide</p>}
+      />,
+    );
+
+    const zones = screen.getAllByRole('listitem');
+    expect(within(zones[0]!).getByText('3 véhicules')).toBeInTheDocument();
+    expect(within(zones[1]!).getByText('1 véhicule')).toBeInTheDocument();
+    expect(screen.queryByText(/{.*plural.*}/)).not.toBeInTheDocument();
+  });
+
   it('ouvre le véhicule cliqué', async () => {
     const onOuvrirVehicule = vi.fn();
     const vehicules = [

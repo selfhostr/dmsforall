@@ -15,7 +15,8 @@
       "titre": "Aktivität kann nicht angezeigt werden"
     },
     "repartitionStatuts": {
-      "titre": "Laufende Reparaturaufträge nach Status"
+      "titre": "Laufende Reparaturaufträge nach Status",
+      "valeurAccessible": "{count, plural, one {# Reparaturauftrag} other {# Reparaturaufträge}}"
     },
     "ordresOuverts": {
       "libelle": "Eröffnete Reparaturaufträge im Zeitraum",

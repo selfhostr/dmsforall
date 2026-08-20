@@ -28,6 +28,7 @@ import { FriseKilometrage } from '@/composants/vehicule/FriseKilometrage';
 import { BadgeStatutDossierVente } from '@/ecrans/ventes/dossiers/BadgeStatutDossierVente';
 import { peutLireDossierVente } from '@/ecrans/ventes/dossiers/droits';
 import { listerDocumentsVente } from '@/hooks/facturation/documents-vente.api';
+import { useDoitReessayer } from '@/hooks/pagination-curseur';
 import { listerDepotsPneusVehicule } from '@/hooks/pneus/depot-pneus.api';
 import { useSession } from '@/hooks/useSession';
 import { useContexteAtelier } from '@/hooks/vehicules/useContexteAtelier';
@@ -39,6 +40,7 @@ import { formaterDate } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
 import { DialogueRattacherClient } from './DialogueRattacherClient';
+import { peutLireOrdresReparation } from './droits';
 import { EnTeteFicheVehicule } from './EnTeteFicheVehicule';
 import { FormulaireKilometrage } from './FormulaireKilometrage';
 import { PanneauTravauxReportes } from './PanneauTravauxReportes';
@@ -90,6 +92,13 @@ export function EcranFicheVehicule() {
   // message de refus avant de savoir — voir le rendu de la section plus bas.
   const session = useSession();
   const peutVoirDossiersVente = peutLireDossierVente(session.data?.utilisateur.role);
+  // DÉFAUT CORRIGÉ (issue #162, 16.08.2026) : même motif que `peutVoirDossiersVente` ci-dessus,
+  // repéré ici en cherchant s'il se répétait ailleurs dans cet écran — il se répétait. Un rôle
+  // sans `atelier.or.lire` (ex. `vendeur`) laissait cette section « Ordres de réparation » en
+  // squelette de chargement indéfiniment (403 stable, réessayé par défaut, jamais transformé en
+  // état affichable).
+  const peutVoirOrdresReparation = peutLireOrdresReparation(session.data?.utilisateur.role);
+  const reessayerOr = useDoitReessayer();
 
   // Lot B (`docs/plan-refonte-navigation.md`) — « ses OR ». `listerOrdresReparation`
   // (hooks/atelier/ordres-reparation.api.ts, hors périmètre) ne sérialise QUE `q`/`statut`/
@@ -110,7 +119,8 @@ export function EcranFicheVehicule() {
       );
       return page?.donnees ?? [];
     },
-    enabled: vehiculeId !== undefined,
+    enabled: vehiculeId !== undefined && peutVoirOrdresReparation,
+    retry: reessayerOr,
   });
 
   // « ses factures » — `listerDocumentsVente` (hooks/facturation/) sérialise déjà `vehiculeId`
@@ -491,7 +501,13 @@ export function EcranFicheVehicule() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {requeteOr.isPending ? (
+          {session.isLoading ? (
+            <EtatChargement lignes={2} />
+          ) : !peutVoirOrdresReparation ? (
+            <p className="texte-corps text-muted-foreground">
+              {t('vehicules:fiche.ordresReparation.droitRequis')}
+            </p>
+          ) : requeteOr.isPending ? (
             <EtatChargement lignes={2} />
           ) : requeteOr.isError ? (
             <EtatErreur

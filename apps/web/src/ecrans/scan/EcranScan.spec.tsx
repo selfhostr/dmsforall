@@ -5,8 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { EvenementTempsReel } from '@dfa/shared';
 
+import { clesQuery } from '@/api/cles';
+import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
-import { renduAvecRoutes } from '@/test/utils';
+import { creerQueryClientTest, renduAvecRoutes } from '@/test/utils';
 
 import type { DonneesPermisScanne, ReponseScanPermisCirculation } from './contrat-ocr.temporaire';
 import { EcranScan } from './EcranScan';
@@ -48,10 +50,17 @@ class FauxEventSource {
  *  2. `<input type="file">` ne peut pas recevoir de fichier par un vrai clic utilisateur sous
  *     jsdom : on cible directement l'`<input>` caché (`sr-only`) via son `aria-label` et on
  *     déclenche `userEvent.upload`, qui simule fidèlement l'événement `change` du navigateur.
- *  3. `useSession()` (mode scan mobile) répond `401` par défaut (`src/test/msw/handlers.ts`) :
- *     aucun rôle résolu, donc `useModeScanMobile` reste inactif — cohérent avec ces tests, qui
- *     portent sur le PARCOURS de scan lui-même, pas sur la restriction mobile (couverte à part par
- *     `composants/layout/useModeScanMobile.spec.ts`).
+ *  3. `rendre()` (plus bas) pré-remplit le cache de `useSession()` avec `SESSION_TEST`
+ *     (`role: 'chef_atelier'`, dans `ROLES_SCAN`) AVANT le premier rendu — nécessaire depuis que
+ *     l'écran distingue explicitement session en cours/absente/en erreur (voir la doc de tête
+ *     d'`EcranScan.tsx`, § SESSION) : sans ce pré-remplissage, chaque test devrait attendre la
+ *     résolution asynchrone de la session avant de voir l'étape de capture. `useModeScanMobile`
+ *     reste malgré tout inactif dans cette suite : `window.matchMedia` n'est pas polyfillé sous
+ *     jsdom ici (voir sa propre doc de tête, repli sur `false`), ce qui suffit à neutraliser la
+ *     restriction indépendamment du rôle — cohérent avec ces tests, qui portent sur le PARCOURS de
+ *     scan lui-même, pas sur la restriction mobile (couverte à part par
+ *     `composants/layout/useModeScanMobile.spec.ts`). La gestion de session elle-même a sa PROPRE
+ *     suite dédiée, tout en bas de ce fichier (`describe('session', ...)`).
  *  4. Les dimensions par défaut de la photo factice (3000x2000) sont volontairement AU-DESSUS du
  *     seuil de résolution (`RESOLUTION_MIN_PX` dans `analyserQualitePhoto.ts`) : les tests qui ne
  *     portent pas sur le contrôle qualité lui-même passent le contrôle sans y penser (`qualite`
@@ -158,7 +167,15 @@ function reponseScan(correspondances: ReponseScanPermisCirculation['correspondan
 }
 
 function rendre() {
-  return renduAvecRoutes([{ path: '/scan', element: <EcranScan /> }], { routeInitiale: '/scan' });
+  // Session déjà résolue AVANT le premier rendu (voir le point 3 ci-dessus) — sinon toute cette
+  // suite devrait attendre `screen.findBy...` au lieu de `screen.getBy...` pour la toute première
+  // assertion de chaque test, ce qui n'a rien à voir avec ce qu'elle vérifie (le parcours de scan).
+  const queryClient = creerQueryClientTest();
+  queryClient.setQueryData(clesQuery.session(), SESSION_TEST);
+  return renduAvecRoutes([{ path: '/scan', element: <EcranScan /> }], {
+    routeInitiale: '/scan',
+    queryClient,
+  });
 }
 
 async function photographier(
@@ -179,6 +196,10 @@ describe('EcranScan', () => {
     Object.defineProperty(URL, 'revokeObjectURL', { value: vi.fn(), configurable: true });
     FauxEventSource.instances = [];
     vi.stubGlobal('EventSource', FauxEventSource);
+    // Filet de sécurité au cas où quelque chose déclencherait un refetch de la session (le cache
+    // pré-rempli par `rendre()` suffit normalement) : jamais un 401 par défaut ici, contrairement
+    // au reste du dépôt — cette suite porte sur le parcours de scan, pas sur la session.
+    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
   });
 
   afterEach(() => {
@@ -518,6 +539,39 @@ describe('EcranScan', () => {
       expect(screen.getByRole('button', { name: 'Prendre la photo' })).toBeInTheDocument(),
     );
   });
+
+  // La session peut s'éteindre ENTRE la prise de la photo et le retour du serveur : un cas
+  // DISTINCT de la suite `describe('session', ...)` tout en bas (qui porte sur la requête
+  // `useSession()` de cet écran) — ici, c'est l'appel réseau du scan lui-même qui échoue en 401
+  // `AUTH_SESSION_EXPIREE`. Voir la doc de tête d'`EcranScan.tsx`, § SESSION PERDUE PENDANT
+  // L'APPEL OCR.
+  it('la session expire pendant l’envoi de la photo au serveur : propose de se reconnecter, jamais de reprendre une photo qui échouerait à l’identique', async () => {
+    installerImageEtCanvasFactices('succes');
+    server.use(
+      http.post('/api/v1/scan/permis-circulation', () =>
+        HttpResponse.json(
+          {
+            type: 'https://docs.dmsforall.example/erreurs/AUTH_SESSION_EXPIREE',
+            title: 'Session expirée',
+            status: 401,
+            code: 'AUTH_SESSION_EXPIREE',
+            instance: 'req-1',
+          },
+          { status: 401, headers: { 'content-type': 'application/problem+json' } },
+        ),
+      ),
+    );
+    const utilisateur = userEvent.setup();
+    rendre();
+
+    await photographier(utilisateur);
+
+    expect(
+      await screen.findByText('Votre session a expiré. Veuillez vous reconnecter.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Se reconnecter' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reprendre une photo' })).not.toBeInTheDocument();
+  });
 });
 
 /**
@@ -676,4 +730,137 @@ describe('cadrage automatique détecté', () => {
 
     expect(revoquer).toHaveBeenCalledWith('blob:objet-1');
   });
+});
+
+/**
+ * SESSION — trois situations que la requête `useSession()` de CET écran doit distinguer (voir la
+ * doc de tête d'`EcranScan.tsx`, § SESSION, pour le raisonnement complet et pourquoi il diffère de
+ * la borne d'atelier). Ces tests utilisent SCIEMMENT `renduAvecRoutes` directement (pas la
+ * fonction `rendre()` du haut de ce fichier, qui pré-remplit le cache pour éviter cette
+ * vérification dans le reste de la suite) : ici, c'est précisément la résolution de la session
+ * qui est sous test.
+ */
+describe('session', () => {
+  beforeEach(() => {
+    Object.defineProperty(URL, 'createObjectURL', {
+      value: vi.fn(() => 'blob:objet-1'),
+      configurable: true,
+    });
+    Object.defineProperty(URL, 'revokeObjectURL', { value: vi.fn(), configurable: true });
+    FauxEventSource.instances = [];
+    vi.stubGlobal('EventSource', FauxEventSource);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  function reponseSessionAbsente() {
+    return HttpResponse.json(
+      {
+        type: 'https://docs.dmsforall.example/erreurs/AUTH_SESSION_ABSENTE',
+        title: 'Session absente',
+        status: 401,
+        code: 'AUTH_SESSION_ABSENTE',
+        instance: 'req-1',
+      },
+      { status: 401, headers: { 'content-type': 'application/problem+json' } },
+    );
+  }
+
+  it('session en cours de vérification : squelette de chargement, jamais l’écran de capture affiché avant résolution', async () => {
+    let laisserPasser: (() => void) | undefined;
+    server.use(
+      http.get('/api/v1/auth/moi', async () => {
+        await new Promise<void>((resolve) => {
+          laisserPasser = resolve;
+        });
+        return HttpResponse.json(SESSION_TEST);
+      }),
+    );
+
+    renduAvecRoutes([{ path: '/scan', element: <EcranScan /> }], { routeInitiale: '/scan' });
+
+    expect(screen.queryByRole('button', { name: 'Prendre la photo' })).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toBeInTheDocument();
+
+    // La requête doit avoir effectivement démarré (le handler MSW exécuté au moins jusqu'à sa
+    // promesse en attente) avant de la laisser passer — sinon `laisserPasser` peut encore valoir
+    // `undefined` à ce stade (le `fetch` n'a pas eu le temps d'atteindre le handler dans le même
+    // tick que ce rendu synchrone).
+    await waitFor(() => expect(laisserPasser).toBeDefined());
+    laisserPasser?.();
+
+    expect(await screen.findByRole('button', { name: 'Prendre la photo' })).toBeInTheDocument();
+  });
+
+  it('session absente (401) à l’étape neutre : redirige directement vers la connexion, rien n’étant engagé', async () => {
+    server.use(http.get('/api/v1/auth/moi', () => reponseSessionAbsente()));
+
+    renduAvecRoutes(
+      [
+        { path: '/scan', element: <EcranScan /> },
+        { path: '/login', element: <div>Ecran de connexion</div> },
+      ],
+      { routeInitiale: '/scan' },
+    );
+
+    expect(await screen.findByText('Ecran de connexion')).toBeInTheDocument();
+  });
+
+  it('service de session injoignable à l’étape neutre : message actionnable avec réessai, jamais l’écran de connexion', async () => {
+    let compteurAppels = 0;
+    server.use(
+      http.get('/api/v1/auth/moi', () => {
+        compteurAppels += 1;
+        return compteurAppels === 1
+          ? HttpResponse.json({}, { status: 500 })
+          : HttpResponse.json(SESSION_TEST);
+      }),
+    );
+    const utilisateur = userEvent.setup();
+
+    renduAvecRoutes([{ path: '/scan', element: <EcranScan /> }], { routeInitiale: '/scan' });
+
+    const boutonReessayer = await screen.findByRole('button', { name: 'Réessayer' });
+    expect(screen.queryByRole('button', { name: 'Prendre la photo' })).not.toBeInTheDocument();
+
+    await utilisateur.click(boutonReessayer);
+
+    expect(await screen.findByRole('button', { name: 'Prendre la photo' })).toBeInTheDocument();
+  });
+
+  it(
+    'la session devient absente pendant qu’une photo est déjà engagée (formulaire à corriger) : ' +
+      'le travail reste affiché, une bannière explicite propose de se reconnecter, aucun redirect silencieux',
+    async () => {
+      installerImageEtCanvasFactices('succes');
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.post('/api/v1/scan/permis-circulation', () => HttpResponse.json(reponseScan())),
+      );
+      const utilisateur = userEvent.setup();
+      const queryClient = creerQueryClientTest();
+      queryClient.setQueryData(clesQuery.session(), SESSION_TEST);
+      renduAvecRoutes([{ path: '/scan', element: <EcranScan /> }], {
+        routeInitiale: '/scan',
+        queryClient,
+      });
+
+      await photographier(utilisateur);
+      expect(await screen.findByLabelText('Nom')).toHaveValue('Rossier');
+
+      // La session s'éteint (déconnexion serveur, TTL dépassé) — reproduit ici par un refetch
+      // explicite, comme un vrai retour de fenêtre ou une action déclencherait en pratique.
+      server.use(http.get('/api/v1/auth/moi', () => reponseSessionAbsente()));
+      await queryClient.refetchQueries({ queryKey: clesQuery.session() });
+
+      // Le formulaire déjà rempli par l'OCR reste affiché tel quel — rien n'a disparu.
+      expect(await screen.findByLabelText('Nom')).toHaveValue('Rossier');
+      // La déconnexion est dite EN CLAIR, jamais un silence.
+      expect(screen.getByText('Connexion perdue')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Se reconnecter' })).toBeInTheDocument();
+    },
+  );
 });
