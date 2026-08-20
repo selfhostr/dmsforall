@@ -101,6 +101,8 @@ export const CODES_ERREUR = [
   // --- Étape 1 : clients ---
   'CLIENT_TYPE_IMMUABLE',
   'CLIENT_DESACTIVATION_IMPOSSIBLE',
+  // Droit à l'effacement nLPD (migration 0061) : geste irréversible, un seul par client.
+  'CLIENT_DEJA_ANONYMISE',
   // --- Étape 1 : prêts / véhicules de courtoisie (déclarés au lot 1, émis au lot 5) ---
   'PRET_VEHICULE_INDISPONIBLE',
   'PRET_CONDUCTEUR_REQUIS',
@@ -283,6 +285,28 @@ export const CODES_ERREUR = [
   // au CONSOMMATEUR de recombiner `statut` et `statut_reglement`, jamais à `statut_reglement` de
   // porter l'information d'annulation.
   'IMPUTATION_DOCUMENT_NON_REGLABLE',
+  // --- Cycle de vie de sortie du garage (offboarding tenant, 20.08.2026, migration 0062) ---
+  // Dossier de résiliation absent pour ce tenant (ex. tentative de consulter un statut d'export
+  // avant toute demande de résiliation).
+  'RESILIATION_TENANT_INTROUVABLE',
+  // Miroir applicatif du SQLSTATE ZDFA1 posé par le trigger
+  // `verifier_transition_resiliation_tenant()` (0062) — machine à états LOCALE à cette migration,
+  // pas le dispositif partagé `transition_autorisee` (voir son en-tête, §A, pour pourquoi).
+  'RESILIATION_TENANT_TRANSITION_INTERDITE',
+  // Au plus UN dossier de résiliation par tenant (contrainte `resiliation_tenant_tenant_uk`,
+  // 0062) : une seconde demande sur un tenant déjà engagé dans le cycle est un conflit, jamais un
+  // second dossier silencieusement créé.
+  'RESILIATION_TENANT_DEJA_EN_COURS',
+  // L'export n'est pas encore au statut `export_pret`/`export_remis` — rien à remettre ou à
+  // télécharger pour l'instant.
+  'RESILIATION_TENANT_EXPORT_INDISPONIBLE',
+  // `purger_donnees_tenant` (0062) a refusé : statut différent de `en_conservation`, ou
+  // `purge_prevue_le` pas encore atteinte. Miroir applicatif de son SQLSTATE ZDFA1.
+  'RESILIATION_TENANT_PURGE_PREMATUREE',
+  // La re-saisie de confirmation (raison sociale du tenant) ne correspond pas — geste PAS assez
+  // sans ambiguïté pour déclencher un export intégral de toute la base du garage (arbitrage
+  // 20.08.2026, sur le modèle de `docker/postgres/sauvegarde/restaurer.sh`).
+  'RESILIATION_TENANT_CONFIRMATION_INVALIDE',
 ] as const;
 export type CodeErreur = (typeof CODES_ERREUR)[number];
 
@@ -355,6 +379,7 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   VEHICULE_ARCHIVAGE_IMPOSSIBLE: 409,
   CLIENT_TYPE_IMMUABLE: 409,
   CLIENT_DESACTIVATION_IMPOSSIBLE: 409,
+  CLIENT_DEJA_ANONYMISE: 409,
   PRET_VEHICULE_INDISPONIBLE: 409,
   PRET_CONDUCTEUR_REQUIS: 400,
   CONFIRMATION_REQUISE: 409,
@@ -414,6 +439,12 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   LIGNE_DOCUMENT_STOCK_LIEE: 409,
   IMPUTATION_DEVISE_INCOHERENTE: 409,
   IMPUTATION_DOCUMENT_NON_REGLABLE: 409,
+  RESILIATION_TENANT_INTROUVABLE: 404,
+  RESILIATION_TENANT_TRANSITION_INTERDITE: 409,
+  RESILIATION_TENANT_DEJA_EN_COURS: 409,
+  RESILIATION_TENANT_EXPORT_INDISPONIBLE: 409,
+  RESILIATION_TENANT_PURGE_PREMATUREE: 409,
+  RESILIATION_TENANT_CONFIRMATION_INVALIDE: 400,
 };
 
 /**
@@ -472,6 +503,7 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   VEHICULE_ARCHIVAGE_IMPOSSIBLE: 'Archivage de véhicule impossible',
   CLIENT_TYPE_IMMUABLE: 'Type de client immuable',
   CLIENT_DESACTIVATION_IMPOSSIBLE: 'Désactivation de client impossible',
+  CLIENT_DEJA_ANONYMISE: 'Client déjà anonymisé',
   PRET_VEHICULE_INDISPONIBLE: 'Véhicule de prêt indisponible',
   PRET_CONDUCTEUR_REQUIS: 'Conducteur requis',
   CONFIRMATION_REQUISE: 'Confirmation requise',
@@ -531,6 +563,12 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   LIGNE_DOCUMENT_STOCK_LIEE: 'Ligne liée à un mouvement de stock, immuable',
   IMPUTATION_DEVISE_INCOHERENTE: 'Devise incohérente entre le paiement et le document',
   IMPUTATION_DOCUMENT_NON_REGLABLE: 'Document non réglable',
+  RESILIATION_TENANT_INTROUVABLE: 'Dossier de résiliation introuvable',
+  RESILIATION_TENANT_TRANSITION_INTERDITE: 'Transition interdite pour ce dossier de résiliation',
+  RESILIATION_TENANT_DEJA_EN_COURS: 'Résiliation déjà en cours pour ce garage',
+  RESILIATION_TENANT_EXPORT_INDISPONIBLE: 'Export pas encore disponible',
+  RESILIATION_TENANT_PURGE_PREMATUREE: 'Période de conservation non écoulée',
+  RESILIATION_TENANT_CONFIRMATION_INVALIDE: 'Confirmation invalide',
 };
 
 /**

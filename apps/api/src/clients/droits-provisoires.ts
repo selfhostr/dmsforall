@@ -49,6 +49,45 @@ export const ROLES_CLIENT_CONTACT: readonly RoleUtilisateur[] = [
   'chef_atelier',
 ];
 
+/**
+ * PALLIATIF TEMPORAIRE (même mécanisme, même en-tête que ci-dessus) — droit d'effacement nLPD
+ * (tâche « effacement nLPD », migration 0061) :
+ *   - `client.anonymiser`      (POST /clients/{id}/anonymiser)
+ *   - `client.export.generer`  (GET  /clients/{id}/export)
+ *
+ * À FAIRE PAR expert-auth quand `matrice-droits.ts` est accessible à cette tâche : ajouter les
+ * deux actions à `Action`, deux entrées de rôles ci-dessous fusionnées dans `MATRICE_DROITS`, puis
+ * remplacer `@AucunDroitRequis()` par `@ExigerDroit(...)` sur `client-rgpd.controller.ts`, retirer
+ * les appels à `verifierRoleAutorise` (redondants avec `GardeDroit`), et supprimer ce bloc.
+ */
+
+/**
+ * Anonymiser un client (droit à l'effacement, art. 32 nLPD) : geste IRRÉVERSIBLE sur des données
+ * réelles, PAS une action de comptoir (brief de tâche, littéral). Restreint à `admin`/`direction`
+ * — même palier que la gouvernance la plus haute déjà posée ailleurs dans ce dépôt pour un geste
+ * unilatéral et sans retour (bloc créancier, export fiduciaire : `direction` + rôle de gouvernance
+ * SEULS), MAIS sans `comptable` ici : ce n'est pas une décision comptable, c'est une décision de
+ * conformité/protection des données, qui n'a pas de raison métier de passer par la comptabilité.
+ * `admin` INCLUS (contrairement à RF-115 sur les gestes financiers) : ce lot (atelier/clients)
+ * suit la doctrine « admin = même périmètre que direction sauf geste financier » (voir
+ * `auth/matrice-droits.ts`, tête de fichier) — anonymiser un client ne touche aucun montant.
+ */
+export const ROLES_CLIENT_ANONYMISATION: readonly RoleUtilisateur[] = ['admin', 'direction'];
+
+/**
+ * Générer l'export des données détenues sur un client (droit d'accès nLPD, art. 25). Geste LISIBLE
+ * et réversible (aucune écriture) : même périmètre que `ROLES_CLIENT_CONTACT` (contact opérationnel
+ * courant avec la fiche) plutôt que le palier `ROLES_CLIENT_ANONYMISATION` — un client qui demande
+ * ce que le garage détient sur lui n'a pas besoin d'attendre la direction, à la différence de
+ * l'effacement, qui lui est irréversible.
+ */
+export const ROLES_CLIENT_EXPORT: readonly RoleUtilisateur[] = [
+  'admin',
+  'direction',
+  'receptionnaire',
+  'chef_atelier',
+];
+
 /** Lève `403 DROIT_INSUFFISANT` si `role` n'est pas dans `rolesAutorises` — voir l'en-tête de ce
  *  fichier : appelée en tout début de service, AVANT tout accès base. */
 export function verifierRoleAutorise(

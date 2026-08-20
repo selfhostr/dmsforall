@@ -152,7 +152,14 @@
     "IMPUTATION_DOCUMENT_NON_REGLABLE": "Dieses Dokument ist nicht in einem Zustand, der eine Zahlung erlaubt.",
     "AVOIR_RETOUR_STOCK_NON_DECLENCHE": "Das Guthaben wurde für einen Teilbetrag verbucht. Die Teilerückgabe konnte nicht automatisch erfasst werden. Wenn Sie das Teil zurückerhalten haben, erfassen Sie die Rückgabe manuell.",
     "VEHICULE_DEPOTS_PNEUS_OUVERTS": "An diesem Fahrzeug sind noch Reifenlagerplätze angebracht. Entscheiden Sie, ob Sie diese mit dem Fahrzeug abgeben, zurückbehalten oder an den Kunden übertragen.",
-    "VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE": "Die Rechnung wurde erfolgreich ausgestellt. Das Markieren des Fahrzeugs als verkauft konnte nicht finalisiert werden. Korrigieren Sie es manuell, falls notwendig."
+    "VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE": "Die Rechnung wurde erfolgreich ausgestellt. Das Markieren des Fahrzeugs als verkauft konnte nicht finalisiert werden. Korrigieren Sie es manuell, falls notwendig.",
+    "CLIENT_DEJA_ANONYMISE": "Dieser Kunde wurde bereits gemäss seines Löschrechts anonymisiert. Sie können diesen Vorgang nicht wiederholen.",
+    "RESILIATION_TENANT_INTROUVABLE": "Es existiert noch keine Künderungsdatei für dieses Garage. Starten Sie zuerst eine Kündigungsanfrage.",
+    "RESILIATION_TENANT_TRANSITION_INTERDITE": "Diese Aktion ist für diesen Kündigungsstatus nicht zulässig. Überprüfen Sie den aktuellen Status und kontaktieren Sie den Support, falls das Problem weiterhin besteht.",
+    "RESILIATION_TENANT_DEJA_EN_COURS": "Eine Künderung läuft bereits für dieses Garage. Sie können nur eine gleichzeitig ausführen.",
+    "RESILIATION_TENANT_EXPORT_INDISPONIBLE": "Der Export ist noch nicht bereit. Bitte warten Sie oder versuchen Sie es in wenigen Minuten erneut.",
+    "RESILIATION_TENANT_PURGE_PREMATUREE": "Daten können nur 180 Tage nach der Aushändigung des Exports gelöscht werden. Sie können die Löschung zu diesem Termin erneut versuchen.",
+    "RESILIATION_TENANT_CONFIRMATION_INVALIDE": "Die Bestätigung ist nicht korrekt. Geben Sie bitte die Unternehmensbezeichnung Ihres Garages Zeichen für Zeichen erneut ein und versuchen Sie es dann erneut."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Nachtragsofferte erstellen",

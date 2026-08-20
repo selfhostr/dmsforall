@@ -5,6 +5,20 @@ import {
   schemaParametresPage,
 } from '@dfa/shared';
 import { STATUTS_ORDRE_REPARATION } from '@dfa/shared';
+import { schemaMotif } from '@dfa/shared';
+
+/**
+ * `POST /clients/{id}/anonymiser` (droit à l'effacement nLPD, art. 32 — tâche « effacement nLPD »,
+ * migration 0061). Contrat gardé LOCAL (`apps/api/src/clients/**`, jamais `@dfa/shared`) : aucun
+ * écran ne consomme encore ce geste (hors périmètre de cette tâche, signalé en réponse) — le
+ * promouvoir en contrat gelé revient à l'agent qui construira l'écran. `motif` réutilise
+ * `schemaMotif` (`@dfa/shared`, déjà la forme de tout motif STAFF dans ce dépôt — désactivation,
+ * arrêt de contact…) : c'est la raison de la DEMANDE d'effacement (« demande écrite du client, reçue
+ * le… »), jamais une donnée du client lui-même — conservée dans `client_anonymisation.motif`, hors
+ * de portée d'un futur export (voir le service).
+ */
+export const schemaAnonymisationClient = z.object({ motif: schemaMotif }).strict();
+export type EntreeAnonymisationClient = z.infer<typeof schemaAnonymisationClient>;
 
 /**
  * Schémas de requête composés localement à `apps/api/src/clients/**` — jamais dans

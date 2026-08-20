@@ -152,7 +152,14 @@
     "IMPUTATION_DOCUMENT_NON_REGLABLE": "Questo documento non è in uno stato che consente il pagamento.",
     "AVOIR_RETOUR_STOCK_NON_DECLENCHE": "Il credito è stato registrato per un importo parziale. Il reso parziale non ha potuto essere registrato automaticamente. Se hai ricevuto il pezzo, registra il reso manualmente.",
     "VEHICULE_DEPOTS_PNEUS_OUVERTS": "I depositi di pneumatici sono ancora collegati a questo veicolo. Decidi se cederli con il veicolo, riprenderli o trasferirli al cliente.",
-    "VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE": "La fattura è stata emessa con successo. La marcatura del veicolo come venduto non ha potuto essere finalizzata. Correggila manualmente se necessario."
+    "VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE": "La fattura è stata emessa con successo. La marcatura del veicolo come venduto non ha potuto essere finalizzata. Correggila manualmente se necessario.",
+    "CLIENT_DEJA_ANONYMISE": "Questo cliente è già stato anonimizzato in conformità al suo diritto di cancellazione. Non è possibile ripetere questa operazione.",
+    "RESILIATION_TENANT_INTROUVABLE": "Ancora non esiste un fascicolo di risoluzione per questa autofficina. Avviare prima una richiesta di risoluzione.",
+    "RESILIATION_TENANT_TRANSITION_INTERDITE": "Questa azione non è consentita per questo stato di risoluzione. Verificare lo stato attuale e contattare l'assistenza se il problema persiste.",
+    "RESILIATION_TENANT_DEJA_EN_COURS": "Una risoluzione è già in corso per questa autofficina. È possibile avviarne solo una contemporaneamente.",
+    "RESILIATION_TENANT_EXPORT_INDISPONIBLE": "L'esportazione non è ancora pronta. Attendere o riprovare tra pochi istanti.",
+    "RESILIATION_TENANT_PURGE_PREMATUREE": "I dati possono essere cancellati solo 180 giorni dopo la consegna dell'esportazione. Potrai riprovare la cancellazione in questa data.",
+    "RESILIATION_TENANT_CONFIRMATION_INVALIDE": "La conferma non è corretta. Reinserire la denominazione sociale della vostra autofficina, carattere per carattere, e poi riprovare."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Crea preventivo supplementare",

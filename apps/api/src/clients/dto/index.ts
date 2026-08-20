@@ -7,4 +7,5 @@ export * from './client-contact.dto';
 export * from './client-note.dto';
 export * from './doublons-clients.dto';
 export * from './ordre-reparation-resume.dto';
+export * from './rgpd-client.dto';
 export * from './vehicule-resume.dto';

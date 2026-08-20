@@ -152,7 +152,14 @@
     "IMPUTATION_DOCUMENT_NON_REGLABLE": "Ce document n'est pas dans un état permettant le règlement.",
     "AVOIR_RETOUR_STOCK_NON_DECLENCHE": "L'avoir a été crédité pour un montant partiel. Le retour de pièce n'a pas pu être enregistré automatiquement. Si vous avez récupéré la pièce, enregistrez le retour manuellement.",
     "VEHICULE_DEPOTS_PNEUS_OUVERTS": "Des dépôts de pneus sont encore attachés à ce véhicule. Décidez si vous les cédez avec le véhicule, les reprenez ou les transférez au client.",
-    "VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE": "La facture a été émise avec succès. Le marquage du véhicule comme vendu n'a pas pu être finalisé. Corrigez-le manuellement si nécessaire."
+    "VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE": "La facture a été émise avec succès. Le marquage du véhicule comme vendu n'a pas pu être finalisé. Corrigez-le manuellement si nécessaire.",
+    "CLIENT_DEJA_ANONYMISE": "Ce client a déjà été anonymisé conformément à son droit à l'effacement. Vous ne pouvez pas répéter cette opération.",
+    "RESILIATION_TENANT_INTROUVABLE": "Aucun dossier de résiliation n'existe encore pour ce garage. Initiez d'abord une demande de résiliation.",
+    "RESILIATION_TENANT_TRANSITION_INTERDITE": "Cette action n'est pas autorisée pour ce statut de résiliation. Vérifiez l'étape actuelle et contactez le support si le problème persiste.",
+    "RESILIATION_TENANT_DEJA_EN_COURS": "Une résiliation est déjà en cours pour ce garage. Vous ne pouvez en initier qu'une.",
+    "RESILIATION_TENANT_EXPORT_INDISPONIBLE": "L'export n'est pas encore prêt. Patientez ou réessayez dans quelques instants.",
+    "RESILIATION_TENANT_PURGE_PREMATUREE": "Les données ne peuvent être effacées que 180 jours après la remise de l'export. Vous pourrez relancer l'effacement à cette date.",
+    "RESILIATION_TENANT_CONFIRMATION_INVALIDE": "La confirmation n'est pas correcte. Veuillez ressaisir la raison sociale de votre garage, caractère par caractère, puis réessayer."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Créer un devis complémentaire",

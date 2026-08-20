@@ -11,19 +11,23 @@ import {
   ClientOrdresReparationController,
   ClientVehiculesController,
 } from './client-projections.controller';
+import { ClientRgpdController } from './client-rgpd.controller';
 import { ClientController } from './client.controller';
 import { DoublonsClientsController } from './doublons-clients.controller';
 import { ServiceClient } from './service-client';
 import { ServiceClientOrdresReparation } from './service-client-ordres-reparation';
+import { ServiceClientRgpd } from './service-client-rgpd';
 import { ServiceClientSousCollections } from './service-client-sous-collections';
 import { ServiceClientVehicules } from './service-client-vehicules';
 
 /**
  * Couche HTTP du domaine clients (contrat gelé désormais disponible, `@dfa/shared`,
  * `contrats-api-etape-1.md` §7.3 — le blocage documenté dans une version antérieure de ce fichier
- * n'a plus lieu d'être). Six contrôleurs, chacun sur son périmètre disjoint de routes :
+ * n'a plus lieu d'être). Sept contrôleurs, chacun sur son périmètre disjoint de routes :
  *
  *  - `ClientController` : CRUD cœur de la fiche (`/clients`, `/clients/{id}`, désactivation).
+ *  - `ClientRgpdController` : droits nLPD (`.../export`, `.../anonymiser` — tâche « effacement
+ *    nLPD », migration 0061).
  *  - `DoublonsClientsController` : `/doublons-clients`, à la RACINE (RM-05).
  *  - `ClientAdresseController` / `ClientContactController` / `ClientConditionController` /
  *    `ClientConsentementController` / `ClientNoteController` : sous-collections de la fiche.
@@ -36,6 +40,7 @@ import { ServiceClientVehicules } from './service-client-vehicules';
 @Module({
   controllers: [
     ClientController,
+    ClientRgpdController,
     DoublonsClientsController,
     ClientAdresseController,
     ClientContactController,
@@ -48,12 +53,14 @@ import { ServiceClientVehicules } from './service-client-vehicules';
   providers: [
     ServiceClient,
     ServiceClientOrdresReparation,
+    ServiceClientRgpd,
     ServiceClientSousCollections,
     ServiceClientVehicules,
   ],
   exports: [
     ServiceClient,
     ServiceClientOrdresReparation,
+    ServiceClientRgpd,
     ServiceClientSousCollections,
     ServiceClientVehicules,
   ],
