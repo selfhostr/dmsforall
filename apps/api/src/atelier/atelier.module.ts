@@ -14,6 +14,8 @@ import {
 } from './atelier.jetons';
 import { CalculLigneSimple } from './calcul-ligne';
 import { DevisComplementaireController } from './devis-complementaire.controller';
+import { ImpressionDevisController } from './impression/impression-devis.controller';
+import { ServiceImpressionDevis } from './impression/service-impression-devis';
 import { LigneOrController } from './ligne-or.controller';
 import { OrdreReparationController } from './ordre-reparation.controller';
 import { OrdreReparationTransitionsController } from './ordre-reparation-transitions.controller';
@@ -70,6 +72,14 @@ import { ServiceTransitions } from './service-transitions';
  * `PiecesModule` n'importe jamais `AtelierModule` (vérifié : aucune référence, même en
  * commentaire) — aucun cycle. Même précédent que `PneusModule`/`VentesModule`, qui importent déjà
  * `PiecesModule`.
+ *
+ * `ImpressionDevisController`/`ServiceImpressionDevis` (`impression/`, PDF du devis complémentaire)
+ * déclarés ICI plutôt que dans un module séparé du type `impression/impression-or.module.ts` :
+ * ce dernier n'existe qu'en sibling d'`AtelierModule` dans `apps/api/src/app.module.ts`, HORS du
+ * périmètre d'écriture de la tâche qui a introduit l'impression du devis. Les câbler directement
+ * dans `AtelierModule` (déjà importé par `app.module.ts`) évite d'y toucher tout en produisant la
+ * même route servie — signalé au coordinateur : un `ImpressionDevisModule` séparé, symétrique à
+ * `ImpressionOrModule`, resterait un refactor cosmétique sans risque si la symétrie est préférée.
  */
 @Module({
   imports: [FacturationModule, VehiculesModule, PointageModule, PiecesModule],
@@ -78,6 +88,7 @@ import { ServiceTransitions } from './service-transitions';
     OrdreReparationTransitionsController,
     LigneOrController,
     DevisComplementaireController,
+    ImpressionDevisController,
   ],
   providers: [
     ServiceOr,
@@ -86,6 +97,7 @@ import { ServiceTransitions } from './service-transitions';
     ServiceLigneOr,
     ServiceDevis,
     ServiceFacturationOr,
+    ServiceImpressionDevis,
     { provide: JETON_LECTURE_POINTAGE, useExisting: ServiceLecturePointage },
     { provide: JETON_CALCUL_LIGNE, useClass: CalculLigneSimple },
     { provide: JETON_CREATION_TRAVAIL_REPORTE, useExisting: ServiceVehiculeTravailReporte },

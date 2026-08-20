@@ -188,6 +188,12 @@ export interface ReponseDocumentVente {
   readonly annuleParAvoirId: string | null;
   /** `devis` v1 ← `devis` v2 (`MD-14`). */
   readonly remplaceId: string | null;
+  /** Issue #156 : posé UNIQUEMENT sur une facture de REMPLACEMENT (`ServiceCorrectionFacture.corriger`)
+   *  — pointe vers la facture ORIGINALE qu'elle corrige. `null` sur tout document qui ne provient pas
+   *  d'une correction. Distinct de `documentSourceId` (MD-14, chaîne devis→bon_commande→facture) et
+   *  de `remplaceId` (RF-8, réservé aux devis) — voir migration `0063_report_reglement_correction.sql`
+   *  §2 pour le raisonnement complet. */
+  readonly factureCorrigeeId?: string | null;
   readonly figees: ValeursFigeesDocument;
   /**
    * Date MÉTIER/LÉGALE du document (`MD-27`/`MD-33`), jamais un horodatage serveur — à distinguer

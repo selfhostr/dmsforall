@@ -306,3 +306,98 @@ describe('mapperDocument — dateEcheance/enRetard/joursRetard', () => {
     });
   }
 });
+
+describe('mapperDocument — factureCorrigeeId (issue #156)', () => {
+  const MAINTENANT = new Date('2026-08-04T10:00:00.000Z');
+
+  function documentFixture(overrides: Partial<LigneDocumentVente> = {}): LigneDocumentVente {
+    return {
+      id: 'doc-1',
+      tenantId: 'tenant-a',
+      siteId: 'site-1',
+      typeDocument: 'facture',
+      natureFacture: 'ordinaire',
+      origine: 'dfa',
+      numero: '2026-00042',
+      numeroSequence: 42,
+      numeroOrigine: null,
+      exercice: 2026,
+      statut: 'emis',
+      statutReglement: 'non_regle',
+      clientId: 'client-1',
+      vehiculeId: null,
+      ordreReparationId: null,
+      dossierVenteId: null,
+      documentSourceId: null,
+      factureAnnuleeId: null,
+      annuleParAvoirId: null,
+      remplaceId: null,
+      factureCorrigeeId: null,
+      clientDesignationFigee: 'Jean Dupont',
+      clientIdeFige: null,
+      langueFigee: 'fr',
+      conditionsPaiementFigees: { delaiPaiementJours: 30 },
+      dateDocument: '2026-07-01',
+      dateEcheance: '2026-07-31',
+      devise: 'CHF',
+      tvaNonVentilee: false,
+      tauxTvaPourmille: null,
+      mentionTvaInterdite: false,
+      remiseGlobaleSaisieCentimes: null,
+      remiseGlobalePourmille: null,
+      montantRegleCentimes: 0n,
+      soldeCentimes: 12_000n,
+      relanceNiveau: 0,
+      relanceLe: null,
+      motifAvoir: null,
+      motifAvoirLibre: null,
+      porteeAvoir: null,
+      qrPayload: null,
+      pdfCle: null,
+      pdfSha256: null,
+      exporteLe: null,
+      exportId: null,
+      contentieux: false,
+      creeLe: MAINTENANT,
+      modifieLe: MAINTENANT,
+      ...overrides,
+    } as unknown as LigneDocumentVente;
+  }
+
+  function entreeFixture(
+    role: RoleUtilisateur,
+    docOverrides: Partial<LigneDocumentVente> = {},
+  ): EntreeMapperDocument {
+    return {
+      doc: documentFixture(docOverrides),
+      lignesToutes: [],
+      ventilationTva: [],
+      role,
+      figeesAdresse: null,
+      figeesPlaque: null,
+      emisPar: null,
+      modifiePar: null,
+      totaux: {
+        totalHtCentimes: 0,
+        totalTvaCentimes: 0,
+        totalTtcCentimes: 0,
+        ecartRepriseCentimes: 0,
+      },
+      version: 1,
+      maintenant: MAINTENANT,
+    };
+  }
+
+  it('facture ordinaire (sans correction) : factureCorrigeeId = null', () => {
+    const reponse = mapperDocument(entreeFixture('comptable'));
+    expect(reponse.factureCorrigeeId).toBeNull();
+  });
+
+  it("facture de remplacement (issue d'une correction, issue #156) : factureCorrigeeId pointe vers la facture annulée", () => {
+    const idFactureAnnulee = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const reponse = mapperDocument(
+      entreeFixture('comptable', { factureCorrigeeId: idFactureAnnulee }),
+    );
+    expect(reponse.factureCorrigeeId).toBe(idFactureAnnulee);
+  });
+});

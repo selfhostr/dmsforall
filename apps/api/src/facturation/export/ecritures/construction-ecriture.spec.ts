@@ -47,6 +47,7 @@ function document(champs: Partial<LigneDocumentVente>): LigneDocumentVente {
     factureAnnuleeId: null,
     annuleParAvoirId: null,
     remplaceId: null,
+    factureCorrigeeId: null,
     porteeAvoir: null,
     motifAvoir: null,
     motifAvoirLibre: null,

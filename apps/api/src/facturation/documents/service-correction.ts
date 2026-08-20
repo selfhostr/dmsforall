@@ -4,6 +4,7 @@ import type {
   EntreeCorrectionFacture,
   ReponseAvecAvertissements,
   ReponseCorrectionFacture,
+  ReponseDocumentVente,
 } from '@dfa/shared';
 
 /** Forme EXACTE inférée par `schemaCorrectionFacture` pour `champsCorriges.adresseFacturation`
@@ -19,6 +20,7 @@ import {
   clientAdresse,
   documentVente,
   ligneDocument,
+  reportReglementCorrection,
   type LigneDocumentVente,
   type LigneLigneDocument,
 } from '../../db/schema';
@@ -31,9 +33,11 @@ import {
   type ResultatIdempotent,
   type ServiceIdempotence,
 } from '../../common/idempotence';
+import { calculerStatutReglement } from '../paiements/imputations';
 
 import { calculerLigneDocument } from './calcul-document';
 import { chargerDocumentPourEcriture, listerLignesDocumentPourEcriture } from './document-requetes';
+import { calculerRetardDocument } from './echeance';
 import { chargerIdAdresseFacturationActive } from './references';
 import { ServiceAvoir } from './service-avoir';
 import { ServiceEmissionDocument } from './service-emission';
@@ -53,8 +57,16 @@ import { ServiceEmissionDocument } from './service-emission';
  * `('facture','emis','annule_par_avoir', false)`, jamais un statut `remplace` — cette colonne/statut
  * (`document_vente.remplace_id`) est réservée aux DEVIS (`RF-8`, une seule occurrence dans la table
  * de transitions : `('devis','emis','remplace', false)`). La facture de remplacement n'est donc PAS
- * reliée à l'originale par `remplace_id` — l'association vit uniquement dans la réponse HTTP
- * (`{avoir, factureRemplacement}`) et, transitivement, via `avoir.factureAnnuleeId`.
+ * reliée à l'originale par `remplace_id`, ni par `document_source_id` (MD-14, réservé à la chaîne
+ * devis→bon_commande→facture — une correction relie deux FACTURES, pas une progression).
+ *
+ * Issue #156 : `document_vente.facture_corrigee_id` (migration 0063 §2), posé UNIQUEMENT sur la
+ * facture de REMPLACEMENT, pointe vers l'ORIGINALE qu'elle corrige — traçabilité EN BASE, pas
+ * seulement dans la réponse HTTP (`{avoir, factureRemplacement}`) ou via `avoir.factureAnnuleeId`
+ * (qui pointe déjà vers l'originale mais ne dit rien de la facture de remplacement). Voir
+ * `creerFactureRemplacementTx` ci-dessous et l'en-tête de `0063_report_reglement_correction.sql`
+ * §2 pour le raisonnement complet (pourquoi une colonne dédiée plutôt que réutiliser les deux
+ * existantes).
  */
 @Injectable()
 export class ServiceCorrectionFacture {
@@ -137,11 +149,23 @@ export class ServiceCorrectionFacture {
         //    `marquerVehiculeVenduSiApplicable` (effet RV-37 de `emettre()`, hors `emettreCoeurTx`
         //    précisément pour cette raison) : le véhicule est déjà `vendu` depuis l'émission
         //    ORIGINALE, qu'une correction de désignation/adresse ne remet jamais en cause.
-        const factureRemplacement = await this.emission.emettreCoeurTx(
+        const factureRemplacementEmise = await this.emission.emettreCoeurTx(
           tx,
           ctx,
           principal,
           nouvelleFactureId,
+        );
+
+        // 4bis. Issue #154 : le paiement suit la facture de remplacement. `facture` est le
+        //    document chargé AVANT toute écriture (étape 0) — l'avoir/l'émission ne touchent
+        //    jamais `montant_regle_centimes` (RF-32 ne porte que sur `statut`/`annule_par_avoir_id`),
+        //    donc sa valeur reste celle du règlement réellement encaissé sur la facture d'origine.
+        const factureRemplacement = await this.reporterReglementSiNecessaireTx(
+          tx,
+          ctx,
+          facture,
+          nouvelleFactureId,
+          factureRemplacementEmise,
         );
 
         // 5. RF-14 : report DÉCOCHABLE sur la fiche client — seule `adresseFacturation` a une cible
@@ -207,6 +231,10 @@ export class ServiceCorrectionFacture {
         devise: facture.devise,
         remiseGlobaleSaisieCentimes: facture.remiseGlobaleSaisieCentimes,
         remiseGlobalePourmille: facture.remiseGlobalePourmille,
+        // Issue #156 : traçabilité EN BASE de la facture corrigée — voir la docstring de tête de
+        // ce fichier (pourquoi ni `documentSourceId` ni `remplaceId` ne conviennent) et l'en-tête
+        // de `0063_report_reglement_correction.sql` §2 pour le raisonnement complet.
+        factureCorrigeeId: facture.id,
       })
       .returning();
     if (!nouvelle)
@@ -262,6 +290,120 @@ export class ServiceCorrectionFacture {
     }
 
     return nouvelle.id;
+  }
+
+  /**
+   * Issue #154 — arbitrage de @laupernoe : « le paiement suit la facture de remplacement ». `facture`
+   * (chargée à l'étape 0, AVANT toute écriture) porte encore `montant_regle_centimes` tel qu'il
+   * était sur la facture d'origine — l'avoir/l'émission ne le touchent jamais (RF-32 ne porte que
+   * sur `statut`/`annule_par_avoir_id`). Ne fait RIEN si aucun règlement n'était encaissé
+   * (`montantRegleCentimes <= 0n`) : la facture de remplacement garde alors ses compteurs à zéro,
+   * exactement ceux posés par `emettreCoeurTx` — pas de ligne `report_reglement_correction`
+   * inutile.
+   *
+   * NE TOUCHE JAMAIS `imputation_paiement` (immuable, MD-51/MD-52 — voir l'en-tête de
+   * `0063_report_reglement_correction.sql` pour le détail des trois pistes écartées) : le report
+   * est un événement séparé, tracé dans `report_reglement_correction`, qui ne fait bouger que les
+   * compteurs DÉRIVÉS du document (`montant_regle_centimes`/`solde_centimes`/`statut_reglement`,
+   * MD-53) — même famille d'écriture que `recalculerDocumentApresImputation`
+   * (`paiements/imputations.ts`), en dehors du lettrage.
+   *
+   * Recharge la facture de remplacement DEPUIS LA BASE (`chargerDocumentPourEcriture`, `FOR
+   * UPDATE`) plutôt que de faire confiance à `totalTtcCentimes` de `factureRemplacementEmise` :
+   * ce dernier est un DTO filtré par rôle (`ReponseDocumentVente.totalTtcCentimes` est absent pour
+   * un rôle sans droit aux montants, `mappeurs.ts::roleVoitLesMontants`) — l'exactitude de
+   * l'écriture financière ne peut jamais dépendre de ce que l'appelant a le droit de VOIR.
+   */
+  private async reporterReglementSiNecessaireTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    facture: LigneDocumentVente,
+    nouvelleFactureId: string,
+    factureRemplacementEmise: ReponseDocumentVente,
+  ): Promise<ReponseDocumentVente> {
+    const montantRegleOrigine = facture.montantRegleCentimes;
+    if (montantRegleOrigine <= 0n) return factureRemplacementEmise;
+
+    const nouvelle = await chargerDocumentPourEcriture(tx, ctx, nouvelleFactureId);
+    const totalNouvelleFacture =
+      nouvelle.totalTtcCentimes < 0n ? -nouvelle.totalTtcCentimes : nouvelle.totalTtcCentimes;
+
+    // Défensif : GARANTI égal aujourd'hui — `schemaCorrectionFacture` (`@dfa/shared`) ne permet de
+    // corriger que `clientDesignation`/`adresseFacturation`, jamais les lignes, et
+    // `creerFactureRemplacementTx` ci-dessus recopie TOUJOURS les mêmes lignes que l'origine à
+    // l'identique. Clampé quand même : si le contrat évoluait un jour pour permettre de corriger
+    // des lignes, le report ne doit JAMAIS excéder ce qui est réellement dû sur la nouvelle
+    // facture (MD-51.a) — un report qui romprait cet invariant est un bug de conception à
+    // corriger, pas une valeur à faire disparaître en silence.
+    const montantAReporter =
+      montantRegleOrigine <= totalNouvelleFacture ? montantRegleOrigine : totalNouvelleFacture;
+
+    const [report] = await tx
+      .insert(reportReglementCorrection)
+      .values({
+        tenantId: ctx.tenantId,
+        factureOrigineId: facture.id,
+        factureRemplacementId: nouvelleFactureId,
+        montantCentimes: montantAReporter,
+        creeParId: ctx.utilisateurId,
+      })
+      .returning();
+    if (!report)
+      throw new ErreurMetier(
+        'ERREUR_INTERNE',
+        "L'insertion du report de règlement n'a rendu aucune ligne.",
+      );
+
+    // Facture ANNULÉE : sa dette réelle est nulle (même doctrine que
+    // `paiements/imputations.ts::verifierDocumentImputable`) — le règlement ne lui appartient
+    // plus après le report, ses compteurs reviennent donc à zéro. Rien n'est perdu : le trigger
+    // générique `auditer_atelier('document_vente')` (0010 §7, inchangé) capture la ligne ENTIÈRE
+    // avant/après sur cet UPDATE, et la ligne `report_reglement_correction` ci-dessus dit
+    // explicitement où le montant est parti.
+    await tx
+      .update(documentVente)
+      .set({ montantRegleCentimes: 0n, soldeCentimes: 0n, statutReglement: 'non_regle' })
+      .where(and(eq(documentVente.tenantId, ctx.tenantId), eq(documentVente.id, facture.id)));
+
+    // Facture de REMPLACEMENT : reçoit le montant reporté. Même formule que
+    // `recalculerDocumentApresImputation` (`paiements/imputations.ts`) — soldeCentimes jamais
+    // négatif (RF-67), statutReglement dérivé par la MÊME fonction qu'un lettrage ordinaire.
+    const nouveauSolde = totalNouvelleFacture - montantAReporter;
+    const soldeCentimesFinal = nouveauSolde > 0n ? nouveauSolde : 0n;
+    const statutReglementFinal = calculerStatutReglement(montantAReporter, totalNouvelleFacture);
+
+    await tx
+      .update(documentVente)
+      .set({
+        montantRegleCentimes: montantAReporter,
+        soldeCentimes: soldeCentimesFinal,
+        statutReglement: statutReglementFinal,
+      })
+      .where(
+        and(eq(documentVente.tenantId, ctx.tenantId), eq(documentVente.id, nouvelleFactureId)),
+      );
+
+    // Réponse HTTP : patchée SEULEMENT si le rôle voit les montants (même garde que
+    // `mappeurs.ts::mapperDocument` — la clé est simplement ABSENTE du DTO sinon, jamais
+    // `undefined` en valeur). `enRetard`/`joursRetard` recalculés avec le NOUVEAU solde plutôt que
+    // recopiés : `calculerRetardDocument` est la seule porte de cette règle (MD-94), pas une
+    // deuxième copie de sa logique ici.
+    if (!('montantRegleCentimes' in factureRemplacementEmise)) return factureRemplacementEmise;
+
+    const retard = calculerRetardDocument({
+      statut: factureRemplacementEmise.statut,
+      dateEcheance: factureRemplacementEmise.dateEcheance ?? null,
+      soldeCentimes: Number(soldeCentimesFinal),
+      maintenant: this.horloge.maintenant(),
+    });
+
+    return {
+      ...factureRemplacementEmise,
+      statutReglement: statutReglementFinal,
+      montantRegleCentimes: Number(montantAReporter),
+      soldeCentimes: Number(soldeCentimesFinal),
+      ...retard,
+    };
   }
 
   /** RF-14 : écrase l'adresse `facturation`/`principale` active du client avec l'overlay soumis —

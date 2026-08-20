@@ -54,8 +54,12 @@ const NATURES_LETTRAGE_GENERIQUE: ReadonlySet<NatureImputation> = new Set(['regl
  *  trigger, voir le commentaire de `chargerDocumentPourEcriture`). `trop_percu`/`irrecouvrable` ne
  *  sont jamais produits par ce module : le premier est structurellement inatteignable tant que
  *  MD-51.a (Σ imputations ≤ total) est respecté ; le second appartient à l'action dédiée
- *  `marquer-irrecouvrable`, hors périmètre. */
-function calculerStatutReglement(
+ *  `marquer-irrecouvrable`, hors périmètre.
+ *
+ *  EXPORTÉE (issue #154) : réutilisée telle quelle par `documents/service-correction.ts` pour
+ *  dériver `statut_reglement` de la facture de remplacement après report d'un règlement — même
+ *  règle MD-16, un seul endroit qui la calcule. */
+export function calculerStatutReglement(
   montantRegleCentimes: bigint,
   totalDocumentCentimes: bigint,
 ): StatutReglementDocument {

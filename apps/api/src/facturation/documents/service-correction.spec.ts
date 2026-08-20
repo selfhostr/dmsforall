@@ -5,6 +5,7 @@ import {
   clientAdresse,
   documentVente,
   ligneDocument,
+  reportReglementCorrection,
   type LigneDocumentVente,
 } from '../../db/schema';
 import type { PrincipalAuthentifie } from '../../common/contexte/contexte-requete.types';
@@ -74,6 +75,11 @@ function factureFixture(overrides: Partial<LigneDocumentVente> = {}): LigneDocum
     devise: 'CHF',
     remiseGlobaleSaisieCentimes: null,
     remiseGlobalePourmille: null,
+    // Issue #154 : 0n par défaut — la plupart des tests de ce fichier ne concernent PAS le report
+    // de règlement, ce défaut leur garde le comportement d'avant (aucune écriture supplémentaire).
+    // Les tests dédiés au report (describe séparé, plus bas) le surchargent explicitement.
+    montantRegleCentimes: 0n,
+    totalTtcCentimes: 25_944n,
     ...overrides,
   } as unknown as LigneDocumentVente;
 }
@@ -119,8 +125,11 @@ function txFactice() {
   const lignesInserees: Record<string, unknown>[] = [];
   const facturesInserees: Record<string, unknown>[] = [];
   const adressesMisesAJour: { valeurs: Record<string, unknown>; where: unknown }[] = [];
+  const documentsMisAJour: { valeurs: Record<string, unknown>; where: unknown }[] = [];
+  const reportsInseres: Record<string, unknown>[] = [];
   let compteurFacture = 0;
   let compteurLigne = 0;
+  let compteurReport = 0;
 
   const insert = vi.fn((table: unknown) => ({
     values: (val: Record<string, unknown>) => ({
@@ -135,6 +144,11 @@ function txFactice() {
           lignesInserees.push(row);
           return [row];
         }
+        if (table === reportReglementCorrection) {
+          const row = { id: `report-${++compteurReport}`, ...val };
+          reportsInseres.push(row);
+          return [row];
+        }
         throw new Error('table insert inattendue dans le test');
       }),
     }),
@@ -144,6 +158,7 @@ function txFactice() {
     set: (valeurs: Record<string, unknown>) => ({
       where: vi.fn(async (condition: unknown) => {
         if (table === clientAdresse) adressesMisesAJour.push({ valeurs, where: condition });
+        if (table === documentVente) documentsMisAJour.push({ valeurs, where: condition });
         return undefined;
       }),
     }),
@@ -154,6 +169,8 @@ function txFactice() {
     lignesInserees,
     facturesInserees,
     adressesMisesAJour,
+    documentsMisAJour,
+    reportsInseres,
   };
 }
 
@@ -177,7 +194,17 @@ function serviceFactice(tx: TransactionDfa) {
     emettreCoeurTx: vi.fn(async (_tx: unknown, _ctx: unknown, _p: unknown, documentId: string) =>
       documentId === 'avoir-1'
         ? avoirEmis
-        : ({ id: documentId, typeDocument: 'facture' } as unknown as ReponseDocumentVente),
+        : ({
+            id: documentId,
+            typeDocument: 'facture',
+            statut: 'emis',
+            dateEcheance: null,
+            // Issue #154 : valeurs « fraîches » posées par une émission normale — le report de
+            // règlement (s'il a lieu) les PATCHE ensuite, voir les tests dédiés plus bas.
+            montantRegleCentimes: 0,
+            soldeCentimes: 0,
+            statutReglement: 'non_regle',
+          } as unknown as ReponseDocumentVente),
     ),
   };
   const service = new ServiceCorrectionFacture(
@@ -258,7 +285,7 @@ describe('ServiceCorrectionFacture.corriger — orchestration', () => {
     expect(resultat.reponse.corps.donnees.factureRemplacement.id).toBe(idFactureRemplacement);
   });
 
-  it("la facture de remplacement recopie l'en-tête (overlay champsCorriges) SANS remplace_id — clientDesignationFigee/adresse écrasées, tout le reste identique", async () => {
+  it("la facture de remplacement recopie l'en-tête (overlay champsCorriges) SANS remplace_id, AVEC factureCorrigeeId (issue #156) — clientDesignationFigee/adresse écrasées, tout le reste identique", async () => {
     vi.mocked(documentRequetes.chargerDocumentPourEcriture).mockResolvedValue(
       factureFixture({ natureFacture: 'acompte' as never, dossierVenteId: 'dossier-9' } as never),
     );
@@ -292,6 +319,7 @@ describe('ServiceCorrectionFacture.corriger — orchestration', () => {
     expect(facture['dossierVenteId']).toBe('dossier-9'); // recopié
     expect(facture).not.toHaveProperty('remplaceId'); // MD-15 : remplace_id est réservé au devis (RF-8)
     expect(facture).not.toHaveProperty('documentSourceId');
+    expect(facture['factureCorrigeeId']).toBe(FACTURE_ID); // issue #156 : traçabilité en base
   });
 
   it('lignes recopiées : montants TTC/HT/TVA EXACTS (arrondi commercial MD-40), remise globale à 0 (ventilée à l’émission)', async () => {
@@ -487,5 +515,185 @@ describe('ServiceCorrectionFacture.corriger — orchestration', () => {
 
     expect(avoirs.construireAvoirTotalPourCorrectionTx).not.toHaveBeenCalled();
     expect(emission.emettreCoeurTx).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Issue #154 — « le paiement suit la facture de remplacement » (arbitrage de @laupernoe). Scénario mesuré
+ * qui a ouvert l'issue : facture CHF 259.44 (25'944 ct), encaissement CHF 150.00 (15'000 ct),
+ * correction → la facture de remplacement doit afficher exactement CHF 109.44 (10'944 ct) de
+ * reste dû, pas CHF 259.44.
+ *
+ * `chargerDocumentPourEcriture` est appelée DEUX FOIS par `corriger()` dès qu'un règlement existe
+ * (la facture d'origine, puis la facture de remplacement rechargée pour son total) — le mock
+ * distingue les deux par `documentId` plutôt que par ordre d'appel, plus robuste.
+ */
+describe('ServiceCorrectionFacture.corriger — report du règlement (issue #154)', () => {
+  const TOTAL_FACTURE_CENTIMES = 25_944n; // CHF 259.44
+
+  function configurerChargement(montantRegleOrigineCentimes: bigint) {
+    vi.mocked(documentRequetes.chargerDocumentPourEcriture).mockImplementation(
+      async (_tx, _ctx, documentId) => {
+        if (documentId === FACTURE_ID) {
+          return factureFixture({
+            montantRegleCentimes: montantRegleOrigineCentimes,
+            totalTtcCentimes: TOTAL_FACTURE_CENTIMES,
+          } as never);
+        }
+        // Rechargement de la facture de remplacement (`reporterReglementSiNecessaireTx`) : seul
+        // `totalTtcCentimes` est lu par le service, le reste n'a pas besoin d'être réaliste.
+        return {
+          id: documentId,
+          totalTtcCentimes: TOTAL_FACTURE_CENTIMES,
+        } as unknown as LigneDocumentVente;
+      },
+    );
+    vi.mocked(documentRequetes.listerLignesDocumentPourEcriture).mockResolvedValue([
+      LIGNE_1,
+    ] as never);
+  }
+
+  async function corriger(tx: TransactionDfa, service: ServiceCorrectionFacture) {
+    return service.corriger(
+      CTX,
+      principal('comptable'),
+      FACTURE_ID,
+      {
+        motif: 'erreur_adresse',
+        corrigerFicheClient: false,
+        champsCorriges: { clientDesignation: 'Nouvelle Raison SA' },
+        confirmations: [],
+      } as never,
+      CLE_IDEMPOTENCE,
+    );
+  }
+
+  it("aucun paiement encaissé — aucune ligne de report, aucun UPDATE document_vente au-delà de ce que l'émission fait déjà", async () => {
+    configurerChargement(0n);
+    const { tx, reportsInseres, documentsMisAJour } = txFactice();
+    const { service } = serviceFactice(tx);
+
+    await corriger(tx, service);
+
+    expect(reportsInseres).toHaveLength(0);
+    expect(documentsMisAJour).toHaveLength(0);
+    // Une seule lecture (la facture d'origine) — aucun rechargement de la facture de remplacement
+    // puisqu'il n'y a rien à reporter.
+    expect(documentRequetes.chargerDocumentPourEcriture).toHaveBeenCalledTimes(1);
+  });
+
+  it('paiement PARTIEL (CHF 150.00 encaissés sur CHF 259.44) — la facture de remplacement porte exactement CHF 109.44 de solde, statut « partiel »', async () => {
+    configurerChargement(15_000n); // CHF 150.00
+    const { tx, reportsInseres, documentsMisAJour, facturesInserees } = txFactice();
+    const { service } = serviceFactice(tx);
+
+    const resultat = await corriger(tx, service);
+
+    const idNouvelleFacture = facturesInserees[0]?.id as string;
+
+    // 1. Le report est tracé, EXACTEMENT le montant encaissé, tenant/facture source/facture cible
+    //    corrects.
+    expect(reportsInseres).toHaveLength(1);
+    expect(reportsInseres[0]).toMatchObject({
+      tenantId: 'tenant-a',
+      factureOrigineId: FACTURE_ID,
+      factureRemplacementId: idNouvelleFacture,
+      montantCentimes: 15_000n,
+      creeParId: 'user-1',
+    });
+
+    // 2. Facture ANNULÉE : compteurs remis à zéro (sa dette réelle est nulle — voir la docstring
+    //    du service).
+    expect(documentsMisAJour).toHaveLength(2);
+    expect(documentsMisAJour[0]?.valeurs).toEqual({
+      montantRegleCentimes: 0n,
+      soldeCentimes: 0n,
+      statutReglement: 'non_regle',
+    });
+
+    // 3. Facture de REMPLACEMENT : CHF 150.00 réglés, CHF 109.44 de solde EXACT — le chiffre au
+    //    cœur de l'issue #154.
+    expect(documentsMisAJour[1]?.valeurs).toEqual({
+      montantRegleCentimes: 15_000n,
+      soldeCentimes: 10_944n, // CHF 109.44, EXACT
+      statutReglement: 'partiel',
+    });
+
+    // 4. La réponse HTTP reflète déjà le bon reste à payer, sans relecture supplémentaire.
+    expect(resultat.reponse.corps.donnees.factureRemplacement).toMatchObject({
+      montantRegleCentimes: 15_000,
+      soldeCentimes: 10_944,
+      statutReglement: 'partiel',
+    });
+  });
+
+  it('paiement INTÉGRAL (CHF 259.44) — la facture de remplacement est immédiatement soldée, statut « regle »', async () => {
+    configurerChargement(TOTAL_FACTURE_CENTIMES);
+    const { tx, documentsMisAJour } = txFactice();
+    const { service } = serviceFactice(tx);
+
+    const resultat = await corriger(tx, service);
+
+    expect(documentsMisAJour[1]?.valeurs).toEqual({
+      montantRegleCentimes: TOTAL_FACTURE_CENTIMES,
+      soldeCentimes: 0n,
+      statutReglement: 'regle',
+    });
+    expect(resultat.reponse.corps.donnees.factureRemplacement).toMatchObject({
+      montantRegleCentimes: Number(TOTAL_FACTURE_CENTIMES),
+      soldeCentimes: 0,
+      statutReglement: 'regle',
+    });
+  });
+
+  it('plusieurs paiements successifs (CHF 50 + CHF 40 + CHF 60 = CHF 150.00 agrégés) — reportés en UN SEUL mouvement, montant agrégé exact', async () => {
+    // `document_vente.montant_regle_centimes` est déjà l'AGRÉGAT des imputations successives
+    // (MD-53, maintenu par `paiements/imputations.ts` à chaque encaissement) — le service de
+    // correction n'a connaissance que de cet agrégat, jamais des paiements individuels qui l'ont
+    // constitué. Ce test documente explicitement que 3 encaissements de CHF 50/40/60 se
+    // traduisent par UNE seule ligne de report de CHF 150.00, pas trois.
+    const AGREGAT_TROIS_PAIEMENTS = 5_000n + 4_000n + 6_000n; // CHF 150.00
+    configurerChargement(AGREGAT_TROIS_PAIEMENTS);
+    const { tx, reportsInseres } = txFactice();
+    const { service } = serviceFactice(tx);
+
+    await corriger(tx, service);
+
+    expect(reportsInseres).toHaveLength(1);
+    expect(reportsInseres[0]?.['montantCentimes']).toBe(15_000n);
+  });
+
+  it('défensif : si la facture de remplacement avait un total INFÉRIEUR au montant réglé d’origine, le report est plafonné — jamais de solde négatif', async () => {
+    // Cas structurellement inatteignable aujourd'hui (`schemaCorrectionFacture` ne permet de
+    // corriger que `clientDesignation`/`adresseFacturation`, jamais les lignes — la facture de
+    // remplacement a TOUJOURS le même total que l'origine, voir `creerFactureRemplacementTx`).
+    // Test de RÉGRESSION pour le clamp défensif documenté dans le service : si ce contrat évoluait
+    // un jour, le report ne doit jamais dépasser ce qui est réellement dû sur la nouvelle facture.
+    vi.mocked(documentRequetes.chargerDocumentPourEcriture).mockImplementation(
+      async (_tx, _ctx, documentId) => {
+        if (documentId === FACTURE_ID) {
+          return factureFixture({
+            montantRegleCentimes: 15_000n,
+            totalTtcCentimes: TOTAL_FACTURE_CENTIMES,
+          } as never);
+        }
+        return { id: documentId, totalTtcCentimes: 10_000n } as unknown as LigneDocumentVente; // CHF 100.00, < 150.00 réglés
+      },
+    );
+    vi.mocked(documentRequetes.listerLignesDocumentPourEcriture).mockResolvedValue([
+      LIGNE_1,
+    ] as never);
+
+    const { tx, reportsInseres, documentsMisAJour } = txFactice();
+    const { service } = serviceFactice(tx);
+
+    await corriger(tx, service);
+
+    expect(reportsInseres[0]?.['montantCentimes']).toBe(10_000n); // plafonné, pas 15'000n
+    expect(documentsMisAJour[1]?.valeurs).toEqual({
+      montantRegleCentimes: 10_000n,
+      soldeCentimes: 0n, // jamais négatif
+      statutReglement: 'regle',
+    });
   });
 });

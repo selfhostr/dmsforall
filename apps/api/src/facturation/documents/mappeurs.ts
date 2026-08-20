@@ -318,6 +318,7 @@ export function mapperDocument(e: EntreeMapperDocument): ReponseDocumentVente {
     factureAnnuleeId: doc.factureAnnuleeId,
     annuleParAvoirId: doc.annuleParAvoirId,
     remplaceId: doc.remplaceId,
+    factureCorrigeeId: doc.factureCorrigeeId,
     figees,
     dateDocument: doc.dateDocument ?? '',
     devise: deviseFacturationDepuisBase(doc.devise, `document ${doc.id}`),
