@@ -239,6 +239,122 @@ services:
           cpus: '0.1'
           memory: 128M
 
+  # --- Initialisation des permissions du volume de sauvegardes (job ponctuel, idempotent) ----
+  # Même besoin, même solution que `init-uploads-pdf` plus bas : un volume Docker NOMMÉ fraîchement
+  # créé appartient à root:root par défaut, et le service `backup` tourne en utilisateur non-root
+  # DÉDIÉ (uid/gid 10001, fixés explicitement dans docker/postgres/sauvegarde/Dockerfile — voir son
+  # commentaire) qui ne peut alors pas y écrire sans ce correctif préalable.
+  init-sauvegardes:
+    container_name: dfa-init-sauvegardes
+    image: busybox:1.36
+    command: ['sh', '-c', 'chown -R 10001:10001 /sauvegardes && chmod -R u+rwX /sauvegardes']
+    volumes:
+      - dfa_postgres_backups:/sauvegardes
+    restart: 'no'
+    security_opt: *securite-defaut
+    logging: *logging-defaut
+
+  # --- Sauvegarde nocturne de PostgreSQL (locale, chiffrée, vérifiée, tournante) --------------
+  # Sauvegarde logique quotidienne (`pg_dump --format=custom`, plus compacte et plus fiable à
+  # restaurer sélectivement qu'un dump SQL brut : restauration table par table possible,
+  # compression zlib intégrée, ordre de restauration résolu automatiquement par pg_restore même si
+  # des contraintes se référencent entre elles) — exécutée par un service DÉDIÉ (image construite
+  # depuis docker/postgres/sauvegarde/, voir son Dockerfile pour le détail de chaque paquet
+  # installé) qui se planifie LUI-MÊME (docker/postgres/sauvegarde/planifier.sh, une boucle bash,
+  # pas un cron/systemd — cohérent avec le choix « TOUT en conteneurs » de ce fichier).
+  #
+  # DÉCISION ACTÉE (@laupernoe) : sauvegarde LOCALE uniquement, sur le volume `dfa_postgres_backups`
+  # ci-dessous. Aucun envoi hors site n'est fait par ce service — c'est @laupernoe qui recopie
+  # périodiquement ce volume ailleurs, par le moyen de son choix (rsync, disque externe, etc.).
+  # Une seule sauvegarde par nuit (pas de PITR/archivage continu du WAL à ce stade) : le compromis
+  # accepté aujourd'hui est de perdre au pire une journée de travail — à revoir en chantier séparé
+  # quand plusieurs garages réels factureront sur cette base.
+  #
+  # CHIFFREMENT AU REPOS (nLPD, données personnelles de clients suisses) : asymétrique via `age`
+  # (déjà l'outil retenu par ce dépôt avant ce chantier, voir l'historique Git de
+  # docker/postgres/sauvegarde/). Seule la clé PUBLIQUE (AGE_CLE_PUBLIQUE) vit sur ce serveur, dans
+  # .env.production — la clé PRIVÉE correspondante ne s'y trouve JAMAIS : sans elle, un fichier de
+  # ce volume ne révèle rien, y compris si le serveur entier était compromis. Elle doit être
+  # générée hors de ce serveur (`age-keygen`) et conservée par @laupernoe dans un endroit qui n'est PAS ce
+  # volume ni ce serveur (gestionnaire de mots de passe, clé USB hors ligne) — sortie uniquement le
+  # temps d'une restauration réelle (docker/postgres/sauvegarde/restaurer.sh) ou d'un test mensuel
+  # (docker/postgres/sauvegarde/restaurer-test.sh).
+  #
+  # POSTGRES_MIGRATOR_PASSWORD : variable DÉDIÉE plutôt que de réutiliser `DATABASE_URL_MIGRATION`
+  # tel quel — `pg_dump`/`pg_restore` prennent un mot de passe via la variable d'environnement
+  # `PGPASSWORD` (jamais un argument de commande, invisible de `ps aux`/`docker inspect`), pas une
+  # URL de connexion complète. Même mot de passe que celui déjà encodé dans
+  # `DATABASE_URL_MIGRATION` (rôle `dfa_migrator`) — à garder synchronisé en cas de rotation,
+  # exactement comme `REDIS_PASSWORD` est déjà à la fois une variable autonome (service `redis`
+  # ci-dessus) ET un composant de `REDIS_URL` utilisé par `api`.
+  backup:
+    container_name: dfa-backup
+    build:
+      context: ./docker/postgres/sauvegarde
+      dockerfile: Dockerfile
+    restart: *restart-defaut
+    environment:
+      TZ: Europe/Zurich
+      PGHOST: postgres
+      PGPORT: '5432'
+      PGDATABASE: dfa_prod
+      PGUSER: dfa_migrator
+      PGPASSWORD: ${POSTGRES_MIGRATOR_PASSWORD:?Définir POSTGRES_MIGRATOR_PASSWORD (mot de passe du rôle dfa_migrator — même valeur que celle encodée dans DATABASE_URL_MIGRATION) dans .env.production}
+      AGE_CLE_PUBLIQUE: ${AGE_CLE_PUBLIQUE:?Définir AGE_CLE_PUBLIQUE (clé PUBLIQUE age, générée hors serveur avec age-keygen — jamais la clé privée ici) dans .env.production}
+      HEURE_SAUVEGARDE: ${HEURE_SAUVEGARDE:-03:15}
+      SEUIL_TAILLE_MIN_POURCENT: ${SEUIL_TAILLE_MIN_POURCENT:-50}
+    volumes:
+      - dfa_postgres_backups:/sauvegardes
+    # `tmpfs` (mémoire, jamais le disque) plutôt qu'un volume ordinaire : c'est ici, et
+    # SEULEMENT ici, que le dump PostgreSQL existe en clair le temps de sa vérification
+    # structurelle avant chiffrement — voir docker/postgres/sauvegarde/sauvegarder.sh pour le
+    # raisonnement complet. Mode 1777 (comme /tmp) plutôt que restreint à l'utilisateur du
+    # conteneur : Docker crée un `tmpfs:` appartenant à root, qu'un conteneur non-root ne peut
+    # sinon pas écrire sans un service d'initialisation supplémentaire — périmètre de confiance
+    # inchangé, ce tmpfs n'est accessible qu'à l'intérieur de CE conteneur, à aucun autre.
+    # Taille à ajuster (variable ci-dessous) si la base applicative grossit sensiblement : le
+    # dump `--format=custom` est déjà compressé, donc proche en taille du fichier chiffré final,
+    # PAS de la taille de la base en clair.
+    tmpfs:
+      - /scratch:mode=1777,size=${BACKUP_TMPFS_TAILLE:-1g}
+    networks:
+      - interne
+    depends_on:
+      postgres:
+        condition: service_healthy
+      init-sauvegardes:
+        condition: service_completed_successfully
+    healthcheck:
+      # Sonde de vie du planificateur (voir docker/postgres/sauvegarde/verifier-vivant.sh) — ne
+      # prouve PAS qu'une sauvegarde a réussi cette nuit, seulement que le service tourne. Le
+      # verdict sur la dernière sauvegarde est dans /sauvegardes/dernier-statut.txt et
+      # /sauvegardes/journal.log, sur le volume `dfa_postgres_backups` — à consulter directement
+      # (`docker compose ... exec backup cat /sauvegardes/dernier-statut.txt`), volontairement
+      # séparé du healthcheck Docker (un échec de sauvegarde n'est pas résolu par un redémarrage
+      # de conteneur, ça ne doit donc pas en déclencher un).
+      test: ['CMD', '/scripts/verifier-vivant.sh']
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    security_opt: *securite-defaut
+    # Utilisateur non-root dédié de bout en bout (voir docker/postgres/sauvegarde/Dockerfile) ;
+    # aucune capacité Linux particulière requise (pas de port, pas de chown au runtime).
+    cap_drop:
+      - ALL
+    logging: *logging-defaut
+    deploy:
+      resources:
+        # La limite mémoire doit rester AU-DESSUS de la taille du tmpfs ci-dessus (`/scratch`
+        # compte dans la mémoire du cgroup du conteneur, comme tout tmpfs Linux) — sinon le
+        # conteneur serait tué par l'OOM killer au premier dump qui approche cette taille.
+        limits:
+          cpus: '1.0'
+          memory: 1536M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
   # --- Initialisation des permissions du volume PDF (job ponctuel, idempotent) ---------------
   # `api` génère et met en cache les PDF de facture sur disque (`StockagePdfDisqueLocal`,
   # apps/api/src/facturation/impression/stockage-pdf.ts) sous `<cwd>/uploads/documents-pdf`, soit
@@ -591,3 +707,11 @@ volumes:
   # `init-uploads-pdf` (ci-dessus, section `services:`) pour ce que ce volume couvre, ce qu'il n'a
   # PAS besoin de couvrir (sauvegarde) et sa limite connue (une seule instance `api`).
   dfa_api_uploads:
+  # Sauvegardes PostgreSQL chiffrées (voir le service `backup` ci-dessus). Volume Docker nommé
+  # ORDINAIRE — comme `dfa_postgres_data` plus haut, AUCUN chiffrement au repos de son propre fait :
+  # celui exigé par le nLPD vient de `age` (contenu déjà chiffré avant d'atteindre ce volume, voir
+  # `backup`), pas d'une couche de chiffrement disque ici. Local à CE serveur : @laupernoe est responsable
+  # de recopier périodiquement son contenu hors site (décision actée, voir le commentaire du
+  # service `backup`) — un incendie/vol/dégât des eaux qui détruit ce serveur détruit aussi ce
+  # volume, la copie hors site est ce qui protège de CE scénario précis, pas ce volume lui-même.
+  dfa_postgres_backups:
