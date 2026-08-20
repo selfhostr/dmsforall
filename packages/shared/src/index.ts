@@ -16,3 +16,4 @@ export * from './contrats/exploitation';
 export * from './contrats/rendezvous';
 export * from './contrats/vehicules';
 export * from './contrats/temps-reel';
+export * from './contrats/cycle-vie-tenant';

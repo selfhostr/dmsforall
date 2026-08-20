@@ -20,6 +20,7 @@ import { ConnecteursModule } from './connecteurs/connecteurs.module';
 import { CourrielModule } from './courriel';
 import { DbModule } from './db/db.module';
 import { ExploitationModule } from './exploitation';
+import { CycleVieTenantModule } from './exploitation/cycle-vie-tenant/cycle-vie-tenant.module';
 import { FacturationModule } from './facturation/facturation.module';
 import { ImpressionModule } from './facturation/impression/impression.module';
 import { OrdonnancementModule } from './ordonnancement';
@@ -142,6 +143,15 @@ export class AppModule implements NestModule {
         // — voir la tête de fichier d'`exploitation.module.ts` pour pourquoi aucun module métier
         // ne doit pouvoir injecter le plan console.
         ExploitationModule.pourConfig(config),
+        // `CycleVieTenantModule` (offboarding — export intégral, conservation limitée, effacement
+        // automatique, mandat 20.08.2026, migration 0062) — droit MÉTIER ORDINAIRE déclenché par
+        // le garage lui-même (`GardeDroit`, jamais `GardeExploitant`), aucun rapport avec
+        // `ExploitationModule` juste au-dessus malgré le nom du répertoire qui l'héberge
+        // (`exploitation/cycle-vie-tenant/`) : PAS de dépendance de compilation entre les deux,
+        // PAS soumis à l'extinction par défaut d'`ExploitationModule.pourConfig`. Placé en toute
+        // fin, comme `ConnecteursModule`/`RelancesModule`/`TempsReelModule` plus haut : aucune
+        // contrainte d'ordre réelle.
+        CycleVieTenantModule,
       ],
     };
   }

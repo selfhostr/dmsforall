@@ -27,3 +27,5 @@ export * from './ventes';
 export * from './pneus';
 export * from './relances';
 export * from './referentiel';
+export * from './resiliation-tenant';
+export * from './resiliation-tenant-evenement';

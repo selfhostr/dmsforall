@@ -98,6 +98,12 @@ export const documentVente = pgTable(
     /** RF-32 : posé sur la FACTURE annulée — sens inverse de `factureAnnuleeId`. */
     annuleParAvoirId: uuid('annule_par_avoir_id'),
     remplaceId: uuid('remplace_id'),
+    /** Issue #156, migration 0063 §2 : posé UNIQUEMENT sur une facture de REMPLACEMENT
+     *  (`ServiceCorrectionFacture.corriger`) — pointe vers la facture ORIGINALE qu'elle corrige.
+     *  Symétrique de `factureAnnuleeId` (posé sur l'avoir) mais pour facture-corrige-facture,
+     *  jamais avoir-annule-facture. Distinct de `documentSourceId` (MD-14) et `remplaceId` (RF-8,
+     *  devis uniquement) — voir l'en-tête de `0063_report_reglement_correction.sql` §2. */
+    factureCorrigeeId: uuid('facture_corrigee_id'),
 
     porteeAvoir: porteeAvoirEnum('portee_avoir'),
     motifAvoir: motifAvoirEnum('motif_avoir'),
@@ -197,6 +203,11 @@ export const documentVente = pgTable(
     foreignKey({
       name: 'document_vente_fk_remplace',
       columns: [t.tenantId, t.remplaceId],
+      foreignColumns: [t.tenantId, t.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'document_vente_fk_facture_corrigee',
+      columns: [t.tenantId, t.factureCorrigeeId],
       foreignColumns: [t.tenantId, t.id],
     }).onDelete('restrict'),
     index('document_vente_client_idx').on(t.tenantId, t.clientId, t.dateDocument),

@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { schemaConfigCourriel } from '../courriel/config-courriel';
 import { schemaConfigConsole } from '../exploitation/config-console';
+import { schemaConfigJobPurgeAutomatiqueTenant } from '../exploitation/cycle-vie-tenant/config-job-purge-automatique-tenant';
 import { schemaConfigJobClotureAutomatiquePointage } from '../pointage/config-job-cloture-automatique-pointage';
 import { schemaConfigJobReferentielVehiculesCh } from '../vehicules/referentiel/config-job-referentiel-vehicules-ch';
 import { schemaConfigOcrPermis } from '../vehicules/ocr/config-ocr';
@@ -241,6 +242,17 @@ export const schemaConfig = z
     // Bloc défini une seule fois dans `vehicules/ocr/config-ocr.ts` et fusionné ici via `.shape`,
     // même patron que les blocs ci-dessus.
     ...schemaConfigOcrPermis.shape,
+    // --- Job quotidien de purge automatique de sortie du garage (offboarding, mandat 20.08.2026,
+    // migration 0062) ---
+    // Bloc défini une seule fois dans
+    // `exploitation/cycle-vie-tenant/config-job-purge-automatique-tenant.ts` et fusionné ici via
+    // `.shape`, même patron que le bloc de clôture automatique du pointage ci-dessus. Urgent :
+    // sans cette fusion, RESILIATION_PURGE_AUTOMATIQUE_JOB_ACTIF/_CRON restent silencieusement
+    // `undefined` au runtime même posées dans `.env` — en production, NODE_ENV suffit à faire
+    // franchir au job la porte « actif » (voir `purgeAutomatiqueTenantJobDoitEtreActif`), avec un
+    // motif de planification `undefined` : l'inscription du planificateur échouerait probablement
+    // au démarrage de l'API.
+    ...schemaConfigJobPurgeAutomatiqueTenant.shape,
   })
   .superRefine((c, ctx) => {
     if (c.NODE_ENV === 'production' && !c.COOKIE_SECURE) {
