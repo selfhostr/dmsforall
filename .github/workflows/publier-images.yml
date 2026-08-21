@@ -74,7 +74,7 @@ jobs:
     runs-on: ubuntu-latest
     # `contents: read` seulement : ce job clone le dépôt (historique complet, voir plus bas) et
     # pousse vers le registre de conteneurs avec un jeton personnel dédié (secret
-    # FORGE_REGISTRY_TOKEN, voir l'étape d'authentification plus bas), jamais avec le jeton
+    # REGISTRE_IMAGES_TOKEN, voir l'étape d'authentification plus bas), jamais avec le jeton
     # d'exécution automatique du workflow. Sur forge, ce jeton automatique (l'équivalent de
     # GITHUB_TOKEN) n'obtient PAS l'accès en écriture au registre de paquets même avec
     # `packages: write` déclaré ici — limitation connue du runner (forge/forge#1296) — donc ce
@@ -190,8 +190,11 @@ jobs:
           # forge (Paramètres du compte @laupernoe → Applications → Générer un nouveau jeton — PAS un
           # jeton limité à ce dépôt : la portée « package » n'existe que sur les jetons personnels
           # classiques), avec la portée « package » en Lecture et écriture, déposé comme secret du
-          # DÉPÔT (Réglages du dépôt → Actions → Secrets) sous le nom FORGE_REGISTRY_TOKEN.
-          password: ${{ secrets.FORGE_REGISTRY_TOKEN }}
+          # DÉPÔT (Réglages du dépôt → Actions → Secrets) sous le nom REGISTRE_IMAGES_TOKEN.
+          # Nom contraint par forge : lettres/chiffres/underscores uniquement, jamais un préfixe
+          # réservé (FORGE_/GITEA_/GITHUB_) ni un chiffre en tête — d'où ce nom en français plutôt
+          # qu'un nom calqué sur « forge » ou « GitHub ».
+          password: ${{ secrets.REGISTRE_IMAGES_TOKEN }}
 
       # Contexte de build = racine du dépôt (`.`), jamais apps/api ou apps/web : les deux
       # Dockerfiles l'exigent (pnpm workspaces + packages/shared, voir leurs en-têtes). Un
