@@ -75,34 +75,65 @@
 #   scripts/verifier-reversibilite-migrations.sh
 #
 # VARIABLES D'ENVIRONNEMENT (toutes optionnelles) :
-#   DFA_VERIF_PG_HOTE_DEPUIS_PNPM   Hôte utilisé par `pnpm db:migrate` pour joindre le Postgres
-#                                   éphémère (dont le port est publié sur l'hôte Docker).
-#                                   Défaut '127.0.0.1' — correct quand pnpm tourne NATIVEMENT sur
-#                                   le même hôte que le démon Docker (le cas en CI). À positionner
-#                                   à 'host.docker.internal' si `pnpm` tourne lui-même DANS un
-#                                   conteneur (cas d'un hôte sans Node — voir le README, section
-#                                   « Dev sans Node ni pnpm sur l'hôte », même contrainte).
+#   DFA_VERIF_PG_HOTE_DEPUIS_PNPM   Force l'hôte utilisé par `pnpm db:migrate` pour joindre le
+#                                   Postgres éphémère, à la place de la détection automatique
+#                                   décrite plus bas (« JOINDRE PNPM AU POSTGRES ÉPHÉMÈRE »). Cas
+#                                   d'usage documenté : `pnpm` tourne lui-même DANS un conteneur
+#                                   SÉPARÉ de celui où bash exécute CE script (hôte sans Node — voir
+#                                   le README, section « Dev sans Node ni pnpm sur l'hôte ») —
+#                                   positionner alors 'host.docker.internal'. Sans cette variable,
+#                                   la détection automatique choisit déjà la bonne adresse dans les
+#                                   deux cas usuels (poste de dev nu, conteneur de job CI) ; ne la
+#                                   positionner que pour CE troisième cas, plus rare.
 #   DFA_VERIF_GARDER_CONTENEURS    Si non vide, ne détruit pas le conteneur/réseau en fin de
 #                                   script (diagnostic manuel après un échec).
-#   DFA_VERIF_RACINE_HOTE           Chemin du dépôt tel que VU PAR LE DÉMON DOCKER, pour le seul
-#                                   montage `-v` du Postgres éphémère (01-roles.sql). Défaut : le
-#                                   chemin calculé par ce script. À positionner explicitement quand
-#                                   ce script tourne LUI-MÊME dans un conteneur qui parle au démon
-#                                   Docker de l'hôte (Docker-outside-of-Docker, socket monté) : le
-#                                   démon ne connaît que les chemins de l'hôte réel, jamais ceux du
-#                                   conteneur appelant.
+#
+# JOINDRE PNPM AU POSTGRES ÉPHÉMÈRE : `pnpm db:migrate` (donc `migrer.ts`) se connecte par TCP réel
+# — contrairement au provisionnement des rôles ci-dessous, aucune astuce à la `docker cp` n'existe
+# ici, il faut une adresse effectivement joignable DEPUIS LÀ OÙ TOURNE `pnpm`.
+#   - Poste de dev nu (bash tourne NATIVEMENT sur la machine, comme le démon Docker rootless qui
+#     publie le port) : 127.0.0.1:<port publié> fonctionne directement — comportement historique,
+#     inchangé.
+#   - Conteneur de job CI (bash tourne LUI-MÊME dans un conteneur qui parle au démon via son socket
+#     monté, Docker-outside-of-Docker) : 127.0.0.1 y désigne la boucle locale DE CE CONTENEUR, pas
+#     celle où le démon publie le port (chaque conteneur a la sienne, même en partageant le même
+#     démon) — vérifié en le reproduisant : `pg_isready` interne réussit, mais la sonde qui suit
+#     échoue purement et simplement, ce que reflète le message d'erreur qu'elle produit. La détection
+#     (`EN_CONTENEUR`, sur l'existence de `/.dockerenv`) rattache alors CE conteneur au réseau Docker
+#     éphémère (`docker network connect`) et adresse Postgres par son NOM sur ce réseau, au port
+#     INTERNE 5432 — le résolveur DNS intégré de Docker (disponible sur tout réseau bridge défini par
+#     l'utilisateur, celui créé plus bas) fait le reste, sans jamais dépendre d'un port publié ni
+#     d'aucune correspondance de chemin hôte.
+#
+# PROVISIONNEMENT DES RÔLES (docker/postgres/init/01-roles.sql) : posé via `docker cp` puis exécuté
+# manuellement par `docker exec ... psql -f`, PAS via le hook `/docker-entrypoint-initdb.d/`
+# habituel. Une ancienne version montait ce fichier par CHEMIN HÔTE (`-v`) — correct sur le poste de
+# développement, où `$RACINE_DEPOT` est un vrai chemin de la machine, mais cassé en CI forge :
+# l'espace de travail du job y est un VOLUME Docker NOMMÉ régénéré à chaque tâche, jamais un chemin
+# de l'hôte réel. Le démon, qui reçoit un chemin résolu depuis L'INTÉRIEUR du conteneur de job, ne le
+# trouve pas et refuse de le créer (« mkdir /workspace: permission denied ») — et aucun chemin fixe
+# ne peut réparer ça, l'identifiant du volume change à chaque exécution.
+# `docker cp` ne demande JAMAIS au démon de résoudre le chemin source : c'est le CLIENT docker (ce
+# script, où qu'il tourne) qui lit lui-même les octets du fichier sur SA PROPRE vue du système de
+# fichiers — celle où `$RACINE_DEPOT` est toujours correct, que ce script tourne nativement sur le
+# poste de @laupernoe ou à l'intérieur d'un conteneur de job dont l'espace de travail est un volume nommé —
+# puis les transmet au démon via l'API. Fonctionne donc à l'identique sur le poste de dev, en CI, et
+# en Docker-outside-of-Docker, SANS détection de contexte ni variable d'échappatoire : l'ancienne
+# `DFA_VERIF_RACINE_HOTE` (un chemin hôte fixe) est retirée, elle ne pouvait de toute façon rien pour
+# un volume dont l'identifiant change à chaque tâche.
 # =================================================================================================
 
 set -euo pipefail
 
-# --- Garde de portabilité : ce script doit tourner sous bash 3.2 (défaut sur macOS, la machine de
-# développement de @laupernoe) SANS invocation particulière. Toute la suite du script est écrite pour
-# rester compatible bash 3.2 (aucun tableau associatif, aucun `mapfile`, aucun index négatif de
-# tableau — ces trois constructions n'existent qu'à partir de bash 4). Cette garde ne sert donc
-# QUE de filet pour un interpréteur encore plus ancien/différent (ex. lancé par erreur via `sh` :
-# `BASH_VERSION` y est alors absent) : un refus explicite qui dit quoi faire vaut mieux qu'un
-# échec obscur au milieu du script (`declare: not found`, `[: -eq: unary operator expected`, etc.
-# — c'est exactement ce qui s'est produit avant ce correctif).
+# --- Garde de portabilité : aucune machine de ce projet n'impose bash 3.2 aujourd'hui (le poste de
+# dev est Fedora avec bash 5, l'image CI ghcr.io/catthehacker/ubuntu:act-latest aussi) — mais tout le
+# corps du script est déjà écrit SANS les constructions apparues en bash 4 (aucun tableau associatif,
+# aucun `mapfile`, aucun index négatif de tableau — voir par exemple obtenir_exception_down_partiel
+# plus bas, qui documente ce même choix). Ce plancher ne coûte donc rien à maintenir et sert de filet
+# pour un interpréteur non-bash invoqué par erreur (`sh`/dash : `BASH_VERSION` y est absent) ou une
+# version de bash antérieure à celle testée sur une machine future non encore connue de ce script —
+# un refus explicite qui dit quoi faire vaut mieux qu'un échec obscur au milieu du script
+# (`declare: not found`, `[: -eq: unary operator expected`, etc.).
 if [[ -z "${BASH_VERSION:-}" ]]; then
   echo "ÉCHEC : ce script doit être exécuté par bash, pas par sh/dash. Lancez-le en" >&2
   echo "        './scripts/verifier-reversibilite-migrations.sh' ou 'bash scripts/verifier-reversibilite-migrations.sh'." >&2
@@ -110,7 +141,6 @@ if [[ -z "${BASH_VERSION:-}" ]]; then
 fi
 if [[ "${BASH_VERSINFO[0]}" -lt 3 ]]; then
   echo "ÉCHEC : bash ${BASH_VERSION} détecté, ce script requiert au moins bash 3.2." >&2
-  echo "        macOS : bash système (/bin/bash) convient déjà. Sinon : brew install bash." >&2
   exit 1
 fi
 
@@ -126,8 +156,20 @@ readonly SUPERUSER_PG="dfa_verif"
 readonly SUPERUSER_MDP_PG="dfa_verif_mdp_ephemere"
 readonly ROLE_MIGRATOR="dfa_migrator"
 readonly MDP_MIGRATOR="dfa_migrator_dev" # posé par docker/postgres/init/01-roles.sql, pas un secret prod.
-readonly HOTE_PNPM="${DFA_VERIF_PG_HOTE_DEPUIS_PNPM:-127.0.0.1}"
-readonly RACINE_DEPOT_POUR_DOCKER="${DFA_VERIF_RACINE_HOTE:-$RACINE_DEPOT}"
+readonly HOTE_PNPM_FORCE="${DFA_VERIF_PG_HOTE_DEPUIS_PNPM:-}"
+
+# EN_CONTENEUR : ce script tourne-t-il LUI-MÊME dans un conteneur (Docker-outside-of-Docker, comme
+# un job CI dont le socket Docker de l'hôte est monté) ? `/.dockerenv` est posé par le runtime Docker
+# à la racine de tout conteneur qu'il démarre, jamais sur un hôte nu — vérifié dans les deux sens sur
+# ce dépôt (absent sur le poste de dev, présent dans un conteneur monté comme le sont les conteneurs
+# de job forge). Sert UNIQUEMENT à choisir comment joindre le Postgres éphémère depuis `pnpm`, voir
+# « JOINDRE PNPM AU POSTGRES ÉPHÉMÈRE » en tête de script — jamais pour le provisionnement des
+# rôles (`docker cp`), qui n'en a besoin dans aucun cas.
+if [[ -f /.dockerenv ]]; then
+  readonly EN_CONTENEUR=1
+else
+  readonly EN_CONTENEUR=0
+fi
 
 REPERTOIRE_TRAVAIL="$(mktemp -d "${TMPDIR:-/tmp}/dfa-verif-migrations.XXXXXX")"
 PORT_PUBLIE=""
@@ -141,18 +183,35 @@ nettoyer() {
     return
   fi
   docker rm -f "$NOM_CONTENEUR_PG" >/dev/null 2>&1 || true
+  # Détache CE conteneur (si `docker network connect` l'y a rattaché, voir plus bas) avant de
+  # supprimer le réseau : un réseau avec un endpoint encore actif refuse `docker network rm`.
+  # Inoffensif et silencieux si on n'a jamais rejoint ce réseau (poste de dev nu) ou si `hostname` ne
+  # désigne aucun conteneur réel — `|| true` couvre les deux.
+  docker network disconnect "$NOM_RESEAU" "$(hostname)" >/dev/null 2>&1 || true
   docker network rm "$NOM_RESEAU" >/dev/null 2>&1 || true
   rm -rf "$REPERTOIRE_TRAVAIL"
 }
 trap nettoyer EXIT
 
 # --- Démarrage du Postgres éphémère -------------------------------------------------------------
-# Même mécanisme que docker-compose.yml (dev) et docker-compose.yml : POSTGRES_DB déclenche
-# la création de la base au tout premier démarrage, et le fichier monté dans
-# /docker-entrypoint-initdb.d/ (le VRAI docker/postgres/init/01-roles.sql du dépôt, pas une copie)
-# tourne automatiquement dessus — mêmes rôles, mêmes GRANT, aucune divergence avec dev/prod.
+# Contrairement à docker-compose.yml (dev) et docker-compose.yml, AUCUN fichier n'est monté
+# dans /docker-entrypoint-initdb.d/ ici : le hook d'init automatique de l'image officielle exige un
+# CHEMIN HÔTE que le démon puisse résoudir, ce qui casse dès que ce script tourne dans un conteneur
+# de job dont l'espace de travail est un volume Docker nommé (voir l'en-tête du script,
+# « PROVISIONNEMENT DES RÔLES »). docker/postgres/init/01-roles.sql — le VRAI fichier du dépôt, pas
+# une copie — est donc posé par `docker cp` puis exécuté manuellement une fois Postgres prêt,
+# plus bas : mêmes rôles, mêmes GRANT, aucune divergence avec dev/prod, juste un déclenchement
+# différent (manuel, après readiness, au lieu du hook d'init automatique).
 journaliser "Démarrage du Postgres éphémère (${NOM_CONTENEUR_PG})…"
 docker network create "$NOM_RESEAU" >/dev/null
+
+# Rattache CE conteneur (si EN_CONTENEUR) au réseau éphémère : voir « JOINDRE PNPM AU POSTGRES
+# ÉPHÉMÈRE » en tête de script. Uniquement quand rien n'est forcé explicitement (HOTE_PNPM_FORCE) —
+# cette variable documente un besoin différent (pnpm dans un AUTRE conteneur que celui-ci), auquel
+# le rattachement réseau ne répondrait pas.
+if [[ "$EN_CONTENEUR" -eq 1 && -z "$HOTE_PNPM_FORCE" ]]; then
+  docker network connect "$NOM_RESEAU" "$(hostname)"
+fi
 
 # Trouve un port hôte FIXE libre (nécessaire pour Docker rootless qui ne supporte pas les
 # ports éphémères mappés). Boucle sur la plage 25432–25442 et teste la disponibilité côté
@@ -169,6 +228,24 @@ if [[ -z "$PORT_PUBLIE" ]]; then
   exit 1
 fi
 
+# Adresse effective pour `pnpm` (voir « JOINDRE PNPM AU POSTGRES ÉPHÉMÈRE » en tête de script) :
+# calculée ici, une fois PORT_PUBLIE connu et le rattachement réseau ci-dessus déjà fait s'il devait
+# avoir lieu. Ordre de priorité : override explicite, puis détection EN_CONTENEUR (nom du conteneur
+# sur le réseau éphémère, port INTERNE 5432 — jamais le port publié, inutile dans ce cas), puis le
+# comportement historique (127.0.0.1 + port publié).
+if [[ -n "$HOTE_PNPM_FORCE" ]]; then
+  HOTE_PNPM="$HOTE_PNPM_FORCE"
+  PORT_PNPM="$PORT_PUBLIE"
+elif [[ "$EN_CONTENEUR" -eq 1 ]]; then
+  HOTE_PNPM="$NOM_CONTENEUR_PG"
+  PORT_PNPM="5432"
+else
+  HOTE_PNPM="127.0.0.1"
+  PORT_PNPM="$PORT_PUBLIE"
+fi
+readonly HOTE_PNPM
+readonly PORT_PNPM
+
 docker run -d \
   --name "$NOM_CONTENEUR_PG" \
   --network "$NOM_RESEAU" \
@@ -177,7 +254,6 @@ docker run -d \
   -e POSTGRES_PASSWORD="$SUPERUSER_MDP_PG" \
   -e POSTGRES_DB="$BASE_EPHEMERE" \
   -e POSTGRES_INITDB_ARGS="--encoding=UTF8 --locale=C.UTF-8" \
-  -v "$RACINE_DEPOT_POUR_DOCKER/docker/postgres/init/01-roles.sql:/docker-entrypoint-initdb.d/01-roles.sql:ro" \
   postgres:16-alpine >/dev/null
 
 # Sonde que Postgres répond réellement. L'image postgres officielle démarre d'abord un
@@ -189,9 +265,11 @@ DEBUT_READINESS=$(date +%s)
 SUCCES_CONSECUTIFS=0
 for i in $(seq 1 120); do
   # pg_isready -h 127.0.0.1 -p 5432 force TCP dans le conteneur — teste si Postgres
-  # répond réellement au protocole Postgres. Le rôle SUPERUSER_PG est créé par 01-roles.sql
-  # au démarrage, donc cette commande réussit seulement quand Postgres est ENTIÈREMENT
-  # prêt (phase initdb complète, serveur final en marche).
+  # répond réellement au protocole Postgres. Le rôle SUPERUSER_PG est créé DIRECTEMENT par
+  # l'image officielle (POSTGRES_USER ci-dessus), indépendamment de 01-roles.sql — cette
+  # commande réussit donc seulement quand Postgres est ENTIÈREMENT prêt (phase initdb
+  # complète, serveur final en marche), mais AVANT le provisionnement des rôles applicatifs
+  # (dfa_migrator/dfa_app/dfa_console), qui n'intervient qu'après, plus bas.
   if docker exec "$NOM_CONTENEUR_PG" pg_isready -h 127.0.0.1 -p 5432 -U "$SUPERUSER_PG" -d "$BASE_EPHEMERE" >/dev/null 2>&1; then
     SUCCES_CONSECUTIFS=$(( SUCCES_CONSECUTIFS + 1 ))
     if [[ $SUCCES_CONSECUTIFS -ge 2 ]]; then
@@ -209,13 +287,35 @@ if [[ $SUCCES_CONSECUTIFS -lt 2 ]]; then
   exit 1
 fi
 
-# Vérifie une dernière fois que le port publié fixe fonctionne vraiment (la connexion TCP
-# depuis l'hôte — c'est celle que pnpm utilisera). Demande 2 succès consécutifs (espacés
-# d'1s) pour confirmer. Timeout court (≤15s) : si pg_isready a réussi, TCP depuis l'hôte
-# devrait fonctionner immédiatement avec un port fixe.
+# --- Provisionnement des rôles applicatifs (docker/postgres/init/01-roles.sql) -------------------
+# Voir l'en-tête du script (« PROVISIONNEMENT DES RÔLES ») pour le pourquoi : `docker cp` plutôt
+# qu'un montage `-v` par chemin hôte, pour que ce script fonctionne aussi bien sur le poste de dev
+# qu'en CI (espace de travail = volume Docker nommé, sans chemin hôte fixe). `docker cp` lit le
+# fichier depuis LA VUE LOCALE de ce script (toujours correcte, où qu'il tourne) et transmet les
+# octets au démon — celui-ci n'a plus aucun chemin à résoudre lui-même.
+#
+# Exécuté en tant que SUPERUSER_PG (le rôle POSTGRES_USER, superuser sur l'image officielle) :
+# exactement le rôle qui exécutait ce fichier via le hook /docker-entrypoint-initdb.d/ avant ce
+# changement, donc mêmes privilèges effectifs. DOIT précéder l'amorçage plus bas
+# (appliquer_migrations_montantes), qui se connecte en dfa_migrator — un rôle que CE fichier crée.
+journaliser "Provisionnement des rôles applicatifs (01-roles.sql)…"
+docker cp "$RACINE_DEPOT/docker/postgres/init/01-roles.sql" "$NOM_CONTENEUR_PG:/tmp/01-roles.sql"
+if ! docker exec -e PGPASSWORD="$SUPERUSER_MDP_PG" "$NOM_CONTENEUR_PG" \
+    psql -v ON_ERROR_STOP=1 -q -U "$SUPERUSER_PG" -d "$BASE_EPHEMERE" -f /tmp/01-roles.sql \
+    >"$REPERTOIRE_TRAVAIL/roles.log" 2>&1; then
+  journaliser "ÉCHEC du provisionnement des rôles (01-roles.sql) — sortie :"
+  cat "$REPERTOIRE_TRAVAIL/roles.log" >&2
+  exit 1
+fi
+
+# Vérifie une dernière fois que Postgres est vraiment joignable EXACTEMENT comme `pnpm` le fera —
+# HOTE_PNPM:PORT_PNPM, calculés plus haut (127.0.0.1 + port publié sur le poste de dev nu ; nom du
+# conteneur + port interne 5432 en conteneur de job CI, voir « JOINDRE PNPM AU POSTGRES ÉPHÉMÈRE » en
+# tête de script). Demande 2 succès consécutifs (espacés d'1s) pour confirmer. Timeout court (≤15s) :
+# si pg_isready a réussi, cette connexion devrait fonctionner immédiatement.
 SUCCES_TCP_HOTE=0
 for i in $(seq 1 15); do
-  if (exec 3<>/dev/tcp/127.0.0.1/"$PORT_PUBLIE") 2>/dev/null; then
+  if (exec 3<>/dev/tcp/"$HOTE_PNPM"/"$PORT_PNPM") 2>/dev/null; then
     SUCCES_TCP_HOTE=$(( SUCCES_TCP_HOTE + 1 ))
     if [[ $SUCCES_TCP_HOTE -ge 2 ]]; then
       break
@@ -226,20 +326,22 @@ for i in $(seq 1 15); do
   sleep 1
 done
 if [[ $SUCCES_TCP_HOTE -lt 2 ]]; then
-  journaliser "ÉCHEC : le port publié 127.0.0.1:${PORT_PUBLIE} n'a jamais répondu en TCP."
+  journaliser "ÉCHEC : ${HOTE_PNPM}:${PORT_PNPM} n'a jamais répondu en TCP (c'est l'adresse que pnpm utiliserait)."
   exit 1
 fi
 
-journaliser "Postgres éphémère prêt sur 127.0.0.1:${PORT_PUBLIE} (conteneur ${NOM_CONTENEUR_PG})."
+journaliser "Postgres éphémère prêt sur ${HOTE_PNPM}:${PORT_PNPM} (conteneur ${NOM_CONTENEUR_PG})."
 
 export NODE_ENV=test
 export API_URL_PUBLIQUE="http://localhost:3000"
 export WEB_URL_PUBLIQUE="http://localhost:5173"
 export REDIS_URL="redis://localhost:6379"
 # Jamais utilisée pour une vraie connexion (migrer.ts ne lit que DATABASE_URL_MIGRATION) : sert
-# uniquement à satisfaire `DATABASE_URL !== DATABASE_URL_MIGRATION` dans le schéma zod.
-export DATABASE_URL="postgresql://dfa_app:dfa_app_dev@${HOTE_PNPM}:${PORT_PUBLIE}/${BASE_EPHEMERE}_jamais_utilisee"
-export DATABASE_URL_MIGRATION="postgresql://${ROLE_MIGRATOR}:${MDP_MIGRATOR}@${HOTE_PNPM}:${PORT_PUBLIE}/${BASE_EPHEMERE}"
+# uniquement à satisfaire `DATABASE_URL !== DATABASE_URL_MIGRATION` dans le schéma zod — sa cible
+# n'a donc pas besoin d'être joignable, HOTE_PNPM/PORT_PNPM (l'adresse réellement testée ci-dessus)
+# convient aussi bien que n'importe quelle autre valeur syntaxiquement valide.
+export DATABASE_URL="postgresql://dfa_app:dfa_app_dev@${HOTE_PNPM}:${PORT_PNPM}/${BASE_EPHEMERE}_jamais_utilisee"
+export DATABASE_URL_MIGRATION="postgresql://${ROLE_MIGRATOR}:${MDP_MIGRATOR}@${HOTE_PNPM}:${PORT_PNPM}/${BASE_EPHEMERE}"
 
 # --- Fonctions SQL : tout passe par `docker exec` dans le conteneur Postgres --------------------
 
