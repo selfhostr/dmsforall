@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import { extraireImagesPdf, extraireTextePdf } from './lecteur-pdf';
 import { construirePdfPourTest, construirePdfVidePourTest } from './test-fixtures';
@@ -17,23 +17,24 @@ import { construirePdfPourTest, construirePdfVidePourTest } from './test-fixture
 // TOUTE la collecte du fichier (les 4 `it()` ci-dessous, jamais exécutés) avec un message Vitest
 // générique de collecte. En cas de régression réelle dans la chaîne, ce message pointe
 // explicitement vers le préchauffage plutôt que de laisser croire qu'un des tests a échoué.
-try {
-  await extraireTextePdf(await construirePdfPourTest({ lignesTexte: ['PRECHAUFFAGE'] }));
-} catch (cause) {
-  throw new Error(
-    'Préchauffage de extraireTextePdf (hors test, à la collecte du fichier) en échec — aucun ' +
-      'des `it()` de ce fichier n’a encore tourné, voir la cause enchaînée.',
-    { cause },
-  );
-}
-
 describe('extraireTextePdf', () => {
+  beforeAll(async () => {
+    try {
+      await extraireTextePdf(await construirePdfPourTest({ lignesTexte: ['PRECHAUFFAGE'] }));
+    } catch (cause) {
+      throw new Error(
+        'Préchauffage de extraireTextePdf (hors test, dans beforeAll) en échec — aucun ' +
+          "des `it()` de ce fichier n'a encore tourné, voir la cause enchaînée.",
+        { cause },
+      );
+    }
+  }, 60_000);
   // Le préchauffage ci-dessus (hors chronomètre) ramène ce test à ~100ms au repos, mais sous
   // forte contention CI (mesuré ailleurs sur ce dépôt : un fichier de test à 84s au lieu de
   // quelques secondes, ressources partagées avec d'autres processus) une chaîne « chaude » peut
   // quand même dépasser les 5000ms par défaut sans qu'aucune régression réelle ne soit en cause
   // — délai généreux pour ce test précis uniquement, pas un affaiblissement de ce qu'il vérifie.
-  it('extrait le texte déjà présent dans le PDF, ligne par ligne, dans l’ordre visuel', async () => {
+  it("extrait le texte déjà présent dans le PDF, ligne par ligne, dans l'ordre visuel", async () => {
     const pdf = await construirePdfPourTest({
       lignesTexte: ['Facture fournisseur N° 2026-4471', 'ABC-123 Filtre à huile 4 12.50 50.00'],
     });

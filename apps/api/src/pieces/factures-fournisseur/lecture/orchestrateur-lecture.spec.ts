@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { encoderChargeUtileQr, type DonneesQrFacture } from '../../../facturation/qr';
 
@@ -41,22 +41,23 @@ function ocrJamaisAppele(): PortOcrTexteFacture {
 // TOUTE la collecte du fichier (les 4 `it()` ci-dessous, jamais exécutés) avec un message Vitest
 // générique de collecte. En cas de régression réelle dans la chaîne, ce message pointe
 // explicitement vers le préchauffage plutôt que de laisser croire qu'un des tests a échoué.
-try {
-  await new ServiceOrchestrateurLectureFacture(ocrJamaisAppele()).lire(
-    await construirePdfPourTest({
-      lignesTexte: ['PRECHAUFFAGE_HORS_TEST_NE_PAS_ASSERTER'],
-      payloadQr: encoderChargeUtileQr(DONNEES_QR).payload,
-    }),
-  );
-} catch (cause) {
-  throw new Error(
-    'Préchauffage de ServiceOrchestrateurLectureFacture.lire (hors test, à la collecte du ' +
-      'fichier) en échec — aucun des `it()` de ce fichier n’a encore tourné, voir la cause enchaînée.',
-    { cause },
-  );
-}
-
 describe('ServiceOrchestrateurLectureFacture', () => {
+  beforeAll(async () => {
+    try {
+      await new ServiceOrchestrateurLectureFacture(ocrJamaisAppele()).lire(
+        await construirePdfPourTest({
+          lignesTexte: ['PRECHAUFFAGE_HORS_TEST_NE_PAS_ASSERTER'],
+          payloadQr: encoderChargeUtileQr(DONNEES_QR).payload,
+        }),
+      );
+    } catch (cause) {
+      throw new Error(
+        'Préchauffage de ServiceOrchestrateurLectureFacture.lire (hors test, dans beforeAll) ' +
+          "en échec — aucun des `it()` de ce fichier n'a encore tourné, voir la cause enchaînée.",
+        { cause },
+      );
+    }
+  }, 60_000);
   // Le préchauffage ci-dessus (hors chronomètre) ramène ce test à ~600ms au repos, mais sous
   // forte contention CI (mesuré ailleurs sur ce dépôt : un fichier de test à 84s au lieu de
   // quelques secondes, ressources partagées avec d'autres processus) une chaîne « chaude » peut
@@ -112,7 +113,7 @@ describe('ServiceOrchestrateurLectureFacture', () => {
     expect(resultat.diagnostics.some((d) => d.includes('MOTEUR_NON_CONFIGURE'))).toBe(true);
   });
 
-  it('le QR (certain) n’est jamais écrasé par une valeur ultérieure moins certaine', async () => {
+  it("le QR (certain) n'est jamais écrasé par une valeur ultérieure moins certaine", async () => {
     const { payload } = encoderChargeUtileQr(DONNEES_QR);
     const pdf = await construirePdfPourTest({
       lignesTexte: ['Rien qui ressemble à une ligne de facture.'],

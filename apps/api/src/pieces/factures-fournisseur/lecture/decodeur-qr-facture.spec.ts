@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import { encoderChargeUtileQr, type DonneesQrFacture } from '../../../facturation/qr';
 
@@ -37,19 +37,20 @@ const DONNEES: DonneesQrFacture = {
 // TOUTE la collecte du fichier (les 3 `it()` ci-dessous, jamais exécutés) avec un message Vitest
 // générique de collecte. En cas de régression réelle dans la chaîne, ce message pointe
 // explicitement vers le préchauffage plutôt que de laisser croire qu'un des tests a échoué.
-try {
-  await decoderQrFacturePdf(
-    await construirePdfPourTest({ payloadQr: encoderChargeUtileQr(DONNEES).payload }),
-  );
-} catch (cause) {
-  throw new Error(
-    'Préchauffage de decoderQrFacturePdf (hors test, à la collecte du fichier) en échec — ' +
-      'aucun des `it()` de ce fichier n’a encore tourné, voir la cause enchaînée.',
-    { cause },
-  );
-}
-
 describe('decoderQrFacturePdf — chaîne complète PDF -> image -> jsQR -> payload SPC', () => {
+  beforeAll(async () => {
+    try {
+      await decoderQrFacturePdf(
+        await construirePdfPourTest({ payloadQr: encoderChargeUtileQr(DONNEES).payload }),
+      );
+    } catch (cause) {
+      throw new Error(
+        'Préchauffage de decoderQrFacturePdf (hors test, dans beforeAll) en échec — ' +
+          "aucun des `it()` de ce fichier n'a encore tourné, voir la cause enchaînée.",
+        { cause },
+      );
+    }
+  }, 60_000);
   // Le préchauffage ci-dessus (hors chronomètre) ramène ce test à ~600ms au repos, mais sous
   // forte contention CI (mesuré ailleurs sur ce dépôt : un fichier de test à 84s au lieu de
   // quelques secondes, ressources partagées avec d'autres processus) une chaîne « chaude » peut
