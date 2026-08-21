@@ -144,8 +144,20 @@ jobs:
       - name: Vérification des types (TypeScript)
         run: pnpm typecheck
 
+      # `pnpm -r --sequential` plutôt que `pnpm test` (= `pnpm -r test`, parallèle par défaut) :
+      # mesuré sur ce runner (voir capacity:1 dans runner_data/config.yml) que apps/api et apps/web
+      # tournent déjà en concurrence l'un de l'autre au sein de CE SEUL job, chacun avec
+      # VITEST_MAX_THREADS=3 — pic de 6 fils sur une machine à 8, déjà chargée par un mineur et les
+      # services personnels de @laupernoe (charge de base 8-10 hors CI). Conséquence observée : 4 fichiers
+      # web en échec par dépassement de testTimeout (apps/web/vitest.config.ts, 15000ms), jamais une
+      # assertion cassée — signature de contention, pas de régression (1790/1790 sur poste de dev le
+      # même jour). Sérialiser divise le pic par deux (3 fils max) sans changer le temps total de
+      # façon notable : les fils sont de toute façon le facteur limitant, pas l'ordre d'exécution
+      # (mesuré : 7m58 en série contre un run parallèle qui dépassait déjà 8m20 avant même de finir).
+      # Seul `--sequential` change ici ; `pnpm test` en local reste inchangé (packages/shared,
+      # apps/api, apps/web tous les trois via `-r --sequential`).
       - name: Tests unitaires
-        run: pnpm test
+        run: pnpm -r --sequential run test
 
       - name: Build
         run: pnpm build
