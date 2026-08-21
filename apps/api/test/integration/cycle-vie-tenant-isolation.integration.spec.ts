@@ -6,9 +6,16 @@
  * services (`ServiceCycleVieResiliation`/`ServiceExportTenant`), sur la vraie base éphémère
  * (testcontainers, migrations réellement appliquées — 0000 → dernière, 0062 comprise).
  *
- * NON EXÉCUTÉ par cet agent (consigne : `pnpm test:integration` interdit sans demande explicite,
- * coûteux, Docker) — fichier écrit et prêt, à faire tourner par la suite. Voir le rapport de
- * livraison.
+ * EXÉCUTÉ EN CI (forge) le 21.08.2026 — a trouvé un vrai défaut au premier passage : une FK
+ * `on delete restrict` de `resiliation_tenant` vers `public.utilisateur` bloquait
+ * `purger_donnees_tenant()` en PERMANENCE (elle ne pouvait jamais supprimer la ligne `utilisateur`
+ * référencée, puisque `resiliation_tenant` survit toujours à la purge) — corrigé dans
+ * `db/migrations/0062_cycle_vie_resiliation_tenant.sql` (colonnes `..._utilisateur_id` sans FK,
+ * voir le commentaire à leur définition). Ce fichier a lui-même été corrigé sur deux points qui
+ * n'avaient rien à voir avec ce défaut : le test d'exhaustivité comparait `listerTablesTenant()`
+ * en mode PURGE (qui exclut `resiliation_tenant`/`_evenement`, §B de 0062) au registre complet
+ * (qui les inclut depuis leur ajout aux fichiers Drizzle), et le test d'export appelait
+ * `genererExport` sans avoir d'abord créé le dossier de résiliation via `cycleVie.demander(...)`.
  */
 
 import { randomUUID } from 'node:crypto';
@@ -25,8 +32,14 @@ import { creerAccesBaseTest, demarrerRedisEphemere, type RedisEphemere } from '.
 import { ServiceCycleVieResiliation } from '../../src/exploitation/cycle-vie-tenant/service-cycle-vie-resiliation';
 import { ServiceExportTenant } from '../../src/exploitation/cycle-vie-tenant/service-export-tenant';
 import { StockageExportTenantDisqueLocal } from '../../src/exploitation/cycle-vie-tenant/service-stockage-export-tenant';
-import { listerTablesTenant } from '../../src/exploitation/cycle-vie-tenant/service-catalogue-tables-tenant';
-import { TABLES_TENANT_CONNUES } from '../../src/exploitation/cycle-vie-tenant/registre-tables-tenant';
+import {
+  listerTablesTenant,
+  TABLES_CYCLE_VIE_TENANT,
+} from '../../src/exploitation/cycle-vie-tenant/service-catalogue-tables-tenant';
+import {
+  TABLES_TENANT_CONNUES,
+  TABLES_TENANT_SANS_DRIZZLE,
+} from '../../src/exploitation/cycle-vie-tenant/registre-tables-tenant';
 
 let bdd: BaseEphemere;
 let redis: RedisEphemere;
@@ -69,40 +82,108 @@ async function construireServices() {
   return { accesBase, stockage, cycleVie, exportTenant, fermer };
 }
 
+/**
+ * Tenant jetable, SITE + UTILISATEUR compris — `resiliation_tenant_tenant_uk` (0062) autorise AU
+ * PLUS UN dossier de résiliation par tenant, POUR TOUJOURS : réutiliser `demo.tenantA` à la fois
+ * pour le test d'export ET le test de purge (chacun ouvrant son propre dossier via
+ * `cycleVie.demander`) collisionnerait sur cette contrainte. Même patron d'insertion que
+ * `fixtures/garage-demo.ts::semerTenant` (`poolSuperutilisateur` — `tenant`/`site` sont FORCE ROW
+ * LEVEL SECURITY, même le propriétaire ne peut pas y écrire sans contourner le RLS).
+ */
+async function semerTenantJetable(prefixe: string): Promise<{
+  readonly tenantId: string;
+  readonly siteId: string;
+  readonly utilisateurDirectionId: string;
+}> {
+  const tenantId = randomUUID();
+  const siteId = randomUUID();
+  const utilisateurId = randomUUID();
+  const suffixe = randomUUID().slice(0, 8);
+
+  await bdd.poolSuperutilisateur.query(
+    `insert into tenant (id, slug, raison_sociale, numero_tva, pays, langue_defaut, statut)
+     values ($1, $2, $3, null, 'CH', 'fr', 'actif')`,
+    [tenantId, `${prefixe}-${suffixe}`, `Garage jetable ${suffixe} SA`],
+  );
+  await bdd.poolSuperutilisateur.query(
+    `insert into site (id, tenant_id, code, nom, rue, npa, localite, pays, actif)
+     values ($1, $2, 'S1', 'Site unique', null, null, null, 'CH', true)`,
+    [siteId, tenantId],
+  );
+  await bdd.poolSuperutilisateur.query(
+    `insert into utilisateur
+       (id, tenant_id, email, mot_de_passe_hash, prenom, nom, langue, role, statut, echecs_connexion, verrouille_jusqu_a)
+     values ($1, $2, $3, 'placeholder-hash-non-utilise-en-test', 'Test', 'Direction', 'fr', 'direction', 'actif', 0, null)`,
+    [utilisateurId, tenantId, `direction-${suffixe}@garage-jetable.test`],
+  );
+
+  return { tenantId, siteId, utilisateurDirectionId: utilisateurId };
+}
+
 describe('cycle de vie de sortie du garage — isolation stricte (règle n°1)', () => {
   it('listerTablesTenant() (catalogue réel) retrouve exactement les tables du registre statique', async () => {
     const { accesBase, fermer } = await construireServices();
     try {
-      const tables = await accesBase.enTenant(ctxPour(demo.tenantA.id, 'test'), (tx) =>
+      // Mode PURGE (défaut, sans `inclureCycleVie`) : exclut `resiliation_tenant`/
+      // `resiliation_tenant_evenement` (§B de 0062 — elles doivent survivre à la purge), mais
+      // trouve bien les tables SANS fichier Drizzle (`vehicule_ocr_scan_journal`,
+      // `client_anonymisation`) puisque la découverte porte sur le catalogue Postgres réel, pas
+      // sur le schéma Drizzle — voir `registre-tables-tenant.ts`.
+      const tablesPurge = await accesBase.enTenant(ctxPour(demo.tenantA.id, 'test'), (tx) =>
         listerTablesTenant(tx),
       );
-      const attendues = new Set(TABLES_TENANT_CONNUES.map((e) => e.table));
-      expect(new Set(tables)).toEqual(attendues);
+      const exclusCycleVie = new Set<string>(TABLES_CYCLE_VIE_TENANT);
+      const attenduesPurge = new Set([
+        ...TABLES_TENANT_CONNUES.map((e) => e.table).filter((t) => !exclusCycleVie.has(t)),
+        ...TABLES_TENANT_SANS_DRIZZLE.map((e) => e.table),
+      ]);
+      expect(new Set(tablesPurge)).toEqual(attenduesPurge);
+
+      // Mode EXPORT (`inclureCycleVie: true`) : le registre COMPLET, cycle-vie tenant compris.
+      const tablesExport = await accesBase.enTenant(ctxPour(demo.tenantA.id, 'test'), (tx) =>
+        listerTablesTenant(tx, { inclureCycleVie: true }),
+      );
+      const attenduesExport = new Set([
+        ...TABLES_TENANT_CONNUES.map((e) => e.table),
+        ...TABLES_TENANT_SANS_DRIZZLE.map((e) => e.table),
+      ]);
+      expect(new Set(tablesExport)).toEqual(attenduesExport);
     } finally {
       await fermer();
     }
   }, 60_000);
 
-  it('un export du tenant A ne contient AUCUNE ligne du tenant B (site.csv, utilisateur.csv)', async () => {
-    const { exportTenant, fermer } = await construireServices();
+  it('un export du tenant sujet ne contient AUCUNE ligne du tenant B (site.csv, utilisateur.csv)', async () => {
+    const { cycleVie, exportTenant, fermer } = await construireServices();
     try {
-      const exportId = randomUUID();
-      await exportTenant.genererExport(ctxPour(demo.tenantA.id, 'test'), demo.tenantA.id, exportId);
+      // Tenant JETABLE, pas `demo.tenantA` : `resiliation_tenant_tenant_uk` (0062) autorise AU
+      // PLUS UN dossier par tenant pour toujours — réutiliser `demo.tenantA` collisionnerait avec
+      // le test de purge ci-dessous, qui ouvre lui aussi un dossier sur SON tenant. `demo.tenantB`
+      // reste la cible de comparaison « jamais touchée », commune aux deux tests.
+      const sujet = await semerTenantJetable('export-test');
 
-      const repertoire = `${demo.tenantA.id}/${exportId}`;
+      // `genererExport` exige un dossier de résiliation déjà ouvert (`marquerExportEnCours`
+      // relit la ligne existante) — le créer d'abord, comme le fait réellement
+      // `ServiceDemandeResiliationTenant.demander` avant d'enqueuer le job d'export.
+      await cycleVie.demander(
+        ctxUtilisateurPour(sujet.tenantId, sujet.utilisateurDirectionId, 'test-export'),
+        sujet.tenantId,
+        'Test intégration — export',
+      );
+
+      const exportId = randomUUID();
+      await exportTenant.genererExport(ctxPour(sujet.tenantId, 'test'), sujet.tenantId, exportId);
+
+      const repertoire = `${sujet.tenantId}/${exportId}`;
       const csvSite = await readFile(join(racineExports, repertoire, 'tables', 'site.csv'), 'utf8');
       const csvUtilisateur = await readFile(
         join(racineExports, repertoire, 'tables', 'utilisateur.csv'),
         'utf8',
       );
 
-      // Positif : les propres lignes du tenant A sont bien présentes.
-      for (const site of demo.tenantA.sites) {
-        expect(csvSite).toContain(site.id);
-      }
-      for (const utilisateur of demo.tenantA.utilisateurs) {
-        expect(csvUtilisateur).toContain(utilisateur.id);
-      }
+      // Positif : les propres lignes du tenant sujet sont bien présentes.
+      expect(csvSite).toContain(sujet.siteId);
+      expect(csvUtilisateur).toContain(sujet.utilisateurDirectionId);
 
       // Négatif — LA preuve d'isolation : aucune ligne du tenant B, nulle part.
       for (const site of demo.tenantB.sites) {
