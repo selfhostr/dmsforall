@@ -10,6 +10,7 @@ import { chemins } from '@/routes/chemins';
 
 import { BandeauSansNavigation } from './BandeauSansNavigation';
 import { BarreLaterale } from './BarreLaterale';
+import { BarreOngletsBasse } from './BarreOngletsBasse';
 import { BarreOutilsSuperieure } from './BarreOutilsSuperieure';
 import { LimiteErreurEcran } from './LimiteErreurEcran';
 import { entreesVisibles } from './navigation-modele';
@@ -18,8 +19,22 @@ import { useModeScanMobile } from './useModeScanMobile';
 import { useRepliBarreLaterale } from './useRepliBarreLaterale';
 
 /**
- * >=1024px : barre latérale fixe 240px. En dessous : Sheet (tiroir) déclenché par un bouton
- * hamburger dans le bandeau supérieur mobile (`BarreOutilsSuperieure.tsx`).
+ * TROIS PALIERS (refonte navigation mobile, 24.08.2026 — voir aussi `BarreOngletsBasse.tsx`) :
+ *
+ *  - `>= lg` (1024px) — bureau : barre latérale fixe (240/64px repliée).
+ *  - `md`..`lg` (768-1023px) — tablette portrait : ni barre latérale ni barre basse, la
+ *    navigation passe par le tiroir (`Sheet`) déclenché depuis le hamburger de
+ *    `BarreOutilsSuperieure.tsx`. Même mécanisme qu'avant ce lot, borné à cette plage.
+ *  - `< md` (téléphone) — barre d'onglets basse (`BarreOngletsBasse.tsx`), fixée en bas,
+ *    zone sûre respectée. Le hamburger de `BarreOutilsSuperieure` disparaît à ce palier
+ *    (`hidden md:flex lg:hidden`) : il ferait doublon avec le bouton « Plus » de la barre
+ *    basse, qui ouvre le MÊME tiroir via l'état `ouvert`/`setOuvert` ci-dessous, partagé
+ *    entre les deux déclencheurs. La barre haute (recherche) et le tiroir ne disparaissent
+ *    PAS pour autant : la barre basse est un mode téléphone, pas un remplacement (voir sa
+ *    doc de tête) — la recherche reste accessible à tous les paliers.
+ *  - Palier repris de `md` (768px, Tailwind par défaut) : c'est aussi celui du repli des
+ *    tableaux en cartes traité en parallèle ailleurs dans ce lot — même seuil partout,
+ *    jamais deux paliers différents pour une seule bascule téléphone/tablette.
  *
  * Lot D — DEUX ajouts. (1) `OngletsDomaine` est monté ICI, une fois, entre le bandeau supérieur et
  * le contenu : le second niveau de l'arborescence existe donc pour toute route qui appartient au
@@ -59,6 +74,10 @@ export function AppShell() {
   // toujours déplié quelle que soit cette préférence — déjà en surimpression, déjà refermable d'un
   // geste, un repli y ferait double emploi.
   const repliBarreLaterale = useRepliBarreLaterale();
+  // Barre basse : même garde que la rangée d'onglets ci-dessous (`modeScan.actif` la retire
+  // aussi), plus explicite ici parce que `BarreOngletsBasse` a en plus besoin de savoir si le
+  // tiroir qu'ouvre son bouton « Plus » est déjà ouvert (`plusOuvert`, pour `aria-expanded`).
+  const afficheBarreBasse = afficheNavigation && !modeScan.actif;
 
   return (
     // Porte la préférence de site (issue #91) pour toute la coquille et l'écran routé — voir
@@ -67,7 +86,14 @@ export function AppShell() {
     // synchronisés, et la route index (`routeur.tsx`) peut s'en servir pour atterrir directement
     // sur le dernier site connu plutôt que sur « aucun site ».
     <FournisseurSiteCourant>
-      <div className="min-h-dvh lg:flex">
+      {/* `pt-zone-sure-haut`/`pl-zone-sure-gauche`/`pr-zone-sure-droite` : depuis que
+          `index.html` porte `viewport-fit=cover` (voir `BarreOngletsBasse.tsx`), la page peut
+          s'étendre sous l'encoche/le coin arrondi sur TOUS les côtés, pas seulement en bas —
+          sans cette marge, un appareil à encoche ferait passer le haut de la barre latérale ou
+          de la barre d'outils supérieure dessous. Zéro sur tout appareil qui n'expose pas
+          `env(safe-area-inset-*)` (desktop, la plupart des tablettes Android) : jetons déjà
+          repliés à `0px`, voir `index.css`. */}
+      <div className="min-h-dvh pt-zone-sure-haut pl-zone-sure-gauche pr-zone-sure-droite lg:flex">
         {/* Lien d'évitement — première cible du clavier sur chaque écran. Avec une barre latérale à
             six entrées et une rangée d'onglets, atteindre le contenu au clavier coûtait jusqu'à une
             dizaine de tabulations ; ce lien le fait en une. Invisible tant qu'il n'a pas le focus,
@@ -128,7 +154,18 @@ export function AppShell() {
           {/* Limite d'erreur SCOPÉE à l'écran routé (issue #77, axe 1) — un crash de rendu dans
               l'écran affiché ne démonte plus la coquille entière (barre latérale, en-tête,
               onglets) : voir la justification complète dans `LimiteErreurEcran.tsx`. */}
-          <main id="contenu-principal" className="flex-1 p-4 sm:p-6">
+          <main
+            id="contenu-principal"
+            className={cn(
+              'flex-1 p-4 sm:p-6',
+              // Dégagement pour la barre basse (56px + zone sûre) — SEULEMENT quand elle est
+              // montée (`afficheBarreBasse`) et seulement `< md`, palier où elle est visible
+              // (`md:hidden` sur `BarreOngletsBasse`) : au-delà, `md:pb-6` reprend le rembourrage
+              // ordinaire. Défaut classique évité ici (voir la doc de tête du composant) : sans
+              // ce padding, la barre recouvre la dernière ligne de chaque écran qui défile.
+              afficheBarreBasse && 'pb-barre-onglets-degagement md:pb-6',
+            )}
+          >
             <LimiteErreurEcran>
               {/* Toute route hors `/scan` redirige vers `/scan` en mode scan mobile — c'est ce qui
                   rend la restriction « stricte » (pas seulement une navigation masquée qu'une URL
@@ -144,6 +181,16 @@ export function AppShell() {
             </LimiteErreurEcran>
           </main>
         </div>
+
+        {/* Barre basse — mode téléphone seul (`md:hidden`, voir sa doc de tête). Son bouton
+            « Plus » ouvre le MÊME `Sheet` que le hamburger de `BarreOutilsSuperieure` ci-dessus :
+            état `ouvert`/`setOuvert` partagé, pas un second tiroir à maintenir. Placée hors de la
+            colonne de droite (position `fixed`, indifférente à l'endroit du DOM) mais toujours
+            sous `FournisseurSiteCourant`, dont elle a besoin pour résoudre le site courant des
+            liens qu'elle pose. */}
+        {afficheBarreBasse ? (
+          <BarreOngletsBasse ouvrirPlus={() => setOuvert(true)} plusOuvert={ouvert} />
+        ) : null}
       </div>
     </FournisseurSiteCourant>
   );

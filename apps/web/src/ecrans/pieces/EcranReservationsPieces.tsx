@@ -195,7 +195,7 @@ export function EcranReservationsPieces() {
   // `GabaritEcran` le détecte lui-même (§3 du contrat du chantier « titres doublés », 17.08.2026).
   return (
     <GabaritEcran titre={t('pieces:reservations.titre')}>
-      <div className="flex flex-col gap-1.5 max-w-xs">
+      <div className="flex flex-col gap-champ max-w-xs">
         <Label htmlFor="filtre-statut-reservation">{t('pieces:reservations.statut')}</Label>
         <Select
           value={statut ?? 'toutes'}

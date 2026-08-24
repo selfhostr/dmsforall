@@ -123,7 +123,7 @@ export function CartePointageEnCours({
           {onReprendre ? (
             <Button
               size="lg"
-              className="min-h-[72px] text-lg"
+              className="min-h-[72px] texte-annexe"
               disabled={enTraitement}
               onClick={onReprendre}
             >
@@ -133,7 +133,7 @@ export function CartePointageEnCours({
           {onPause ? (
             <Button
               size="lg"
-              className="min-h-[72px] text-lg"
+              className="min-h-[72px] texte-annexe"
               disabled={enTraitement}
               onClick={onPause}
             >
@@ -144,7 +144,7 @@ export function CartePointageEnCours({
             <Button
               size="lg"
               variant="outline"
-              className="min-h-[72px] text-lg"
+              className="min-h-[72px] texte-annexe"
               disabled={enTraitement}
               onClick={onChanger}
             >
@@ -154,7 +154,7 @@ export function CartePointageEnCours({
           <Button
             size="lg"
             variant="outline"
-            className="min-h-[72px] text-lg"
+            className="min-h-[72px] texte-annexe"
             disabled={enTraitement}
             onClick={onArreter}
           >

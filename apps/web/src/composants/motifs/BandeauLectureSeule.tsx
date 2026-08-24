@@ -23,7 +23,7 @@ export function BandeauLectureSeule({ motif, className }: Props) {
   return (
     <div
       className={cn(
-        'flex items-center gap-3 rounded-md border bg-muted px-4 py-3 texte-corps text-muted-foreground',
+        'flex items-center gap-3 rounded-md border bg-muted p-carte texte-corps text-muted-foreground',
         className,
       )}
     >

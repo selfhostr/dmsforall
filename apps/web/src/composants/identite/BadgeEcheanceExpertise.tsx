@@ -1,8 +1,9 @@
 import { CalendarClock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { cn } from '@/lib/utils';
 import { formaterDate } from '@/lib/formats';
+
+import { BadgeAttribut } from './BadgeAttribut';
 
 interface Props {
   /** `ReponseVehiculeExpertise.prochaineEcheanceLe` / `ReponseContexteAtelier.expertise.prochaineLe`.
@@ -48,15 +49,12 @@ export function BadgeEcheanceExpertise({ prochaineLe, echue, className }: Props)
     : t('vehicules:expertise.eche', { mois: moisRestants(prochaineLe, new Date()) });
 
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 rounded-full border border-input bg-background px-2.5 py-0.5 texte-libelle font-medium',
-        echue ? 'font-semibold text-foreground' : 'text-muted-foreground',
-        className,
-      )}
+    <BadgeAttribut
+      icone={<CalendarClock aria-hidden className="h-3.5 w-3.5 shrink-0" />}
+      accentue={echue}
+      className={className}
     >
-      <CalendarClock aria-hidden className="h-3.5 w-3.5 shrink-0" />
       {mot} · {formaterDate(prochaineLe)}
-    </span>
+    </BadgeAttribut>
   );
 }

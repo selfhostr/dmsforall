@@ -64,7 +64,7 @@ export function DialogueMotifCommandeFournisseur({
           {t('commun:formulaires.champsObligatoiresLegende')}
         </LegendeChampsObligatoires>
 
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-champ">
           <Label htmlFor="cmd-motif" requis>
             {t('pieces:commandes.lignes.motif')}
           </Label>

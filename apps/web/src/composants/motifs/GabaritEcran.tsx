@@ -11,8 +11,8 @@ interface Props {
   readonly titre: string;
   /**
    * Sous-titre optionnel — une phrase courte qui qualifie le titre, JAMAIS une consigne d'usage.
-   * Rendu SOUS le h1, jamais à côté. L'espacement (`space-y-1`) est imposé par le gabarit, un écran
-   * ne pose aucune marge locale dessus.
+   * Rendu SOUS le h1, jamais à côté. L'espacement (`space-y-champ`) est imposé par le gabarit, un
+   * écran ne pose aucune marge locale dessus.
    */
   readonly sousTitre?: ReactNode;
   /**
@@ -117,15 +117,15 @@ export function estTitreDoublonNavigation(
  *     retiré : structure de document et lecteur d'écran d'abord. Les appels existants qui posaient
  *     `titreVisible={false}` restent valides et gardent la priorité sur la détection.
  *  2. `sousTitre` (nouveau) — une phrase courte rendue sous le h1, dans la même colonne
- *     (`space-y-1`), jamais à côté.
+ *     (`space-y-champ`), jamais à côté.
  *  3. RÈGLE ANTI-TROU — la plainte n°1 de @laupernoe (« ça fait un espace horrible », « tu peux enlever
  *     l'espace aussi qui n'est pas très beau ») : quand le h1 finit `sr-only` ET qu'il n'y a NI
  *     sous-titre NI actions, la ligne d'en-tête n'est PAS rendue du tout — seul le h1 `sr-only`
- *     subsiste, HORS de la ligne (`flex flex-wrap items-start justify-between gap-3`) qui
+ *     subsiste, HORS de la ligne (`flex flex-wrap items-start justify-between gap-groupe`) qui
  *     autrement resterait un item vide de la colonne externe et continuerait à consommer un
- *     `gap-6`. `sr-only` sort déjà l'élément du flux normal (`position: absolute`) : un h1
- *     `sr-only` posé en enfant direct du conteneur `gap-6` ne compte pour aucun `gap`, contrairement
- *     à une ligne d'en-tête vide qui l'engloberait.
+ *     `gap-section`. `sr-only` sort déjà l'élément du flux normal (`position: absolute`) : un h1
+ *     `sr-only` posé en enfant direct du conteneur `gap-section` ne compte pour aucun `gap`,
+ *     contrairement à une ligne d'en-tête vide qui l'engloberait.
  *
  * Ce que ce composant NE fait PAS : la barre de filtres (`composants/comptoir/BarreFiltres.tsx`),
  * le tri (`composants/comptoir/SelecteurTri.tsx`) et le tableau (`composants/comptoir/
@@ -147,7 +147,7 @@ export function GabaritEcran({
   // Règle anti-trou (§4 du contrat) : rien d'autre que le h1 sr-only ne doit occuper de rangée.
   if (!visible && !sousTitre && !actions) {
     return (
-      <div className={cn('flex w-full flex-col gap-6', className)}>
+      <div className={cn('flex w-full flex-col gap-section', className)}>
         <h1 className={classeH1}>{titre}</h1>
         {children}
       </div>
@@ -155,13 +155,15 @@ export function GabaritEcran({
   }
 
   return (
-    <div className={cn('flex w-full flex-col gap-6', className)}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="space-y-1">
+    <div className={cn('flex w-full flex-col gap-section', className)}>
+      <div className="flex flex-wrap items-start justify-between gap-groupe">
+        <div className="space-y-champ">
           <h1 className={classeH1}>{titre}</h1>
           {sousTitre ? <p className="texte-corps text-muted-foreground">{sousTitre}</p> : null}
         </div>
-        {actions ? <div className="flex flex-wrap items-center gap-3">{actions}</div> : null}
+        {actions ? (
+          <div className="flex flex-wrap items-center gap-controles">{actions}</div>
+        ) : null}
       </div>
       {children}
     </div>

@@ -1,6 +1,10 @@
 {
   "titre": "Solleciti automatici",
-  "sousTitre": "Promemoria per fatture non pagate: imposta i livelli, avvia la pianificazione e l'invio.",
+  "sousTitre": "Promemoria per fatture non pagate: avvia la pianificazione e l'invio, consulta lo storico.",
+  "reglages": {
+    "titre": "Livelli di sollecito",
+    "sousTitre": "Imposta i termini e i canali di invio dei promemoria per fatture non pagate di questo garage."
+  },
   "navigation": {
     "lien": "Solleciti"
   },

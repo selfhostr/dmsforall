@@ -133,7 +133,7 @@ export function GrilleAgendaSemaine({ jours, onCliquerJour, onOuvrirRendezVous }
               />
             </button>
 
-            <div className="flex flex-col gap-1.5" aria-label={t('planning:titre')}>
+            <div className="flex flex-col gap-champ" aria-label={t('planning:titre')}>
               {[...jour.rendezVous].sort(comparerRendezVous).map((rendezVous) => (
                 <CarteRendezVous
                   key={rendezVous.id}

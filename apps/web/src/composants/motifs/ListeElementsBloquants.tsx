@@ -154,7 +154,7 @@ export function ListeElementsBloquants({ blocages, onElementClic, className }: P
           <li key={`${element.type}-${element.id}`}>
             <button
               type="button"
-              className="flex w-full min-h-11 items-center gap-2 px-3 py-2 text-left texte-corps hover:bg-muted anneau-focus-interne"
+              className="flex w-full min-h-11 items-center gap-2 px-[var(--densite-padding-x,0.75rem)] py-[var(--densite-padding-y,0.5rem)] text-left texte-corps hover:bg-muted anneau-focus-interne"
               onClick={() => onElementClic?.(element)}
             >
               <Icone aria-hidden className="h-4 w-4 shrink-0 text-muted-foreground" />

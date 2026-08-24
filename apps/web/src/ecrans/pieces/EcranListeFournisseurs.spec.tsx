@@ -99,7 +99,7 @@ describe('EcranListeFournisseurs', () => {
 
     rendre();
 
-    expect(await screen.findByText('Aucun fournisseur.')).toBeInTheDocument();
+    expect(await screen.findByText('Aucun fournisseur avec ce statut')).toBeInTheDocument();
     await waitFor(() =>
       expect(
         screen.getAllByRole('button', { name: 'Créer un fournisseur' }).length,

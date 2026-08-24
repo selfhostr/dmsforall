@@ -605,7 +605,7 @@ export function EcranPointageTechnicien() {
                   key={activite}
                   size="lg"
                   variant="outline"
-                  className="min-h-[72px] text-base"
+                  className="min-h-[72px] texte-annexe"
                   disabled={!peutDemarrerPointage(role) || enTraitement}
                   onClick={() => handleDemarrerActiviteIndirecte(activite)}
                 >

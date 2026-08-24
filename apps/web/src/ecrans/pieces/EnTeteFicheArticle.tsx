@@ -78,11 +78,11 @@ export function EnTeteFicheArticle({
         ];
 
   return (
-    <div className="flex flex-col gap-4 rounded-lg border p-4">
+    <div className="flex flex-col gap-groupe rounded-lg border p-carte">
       <FilAriane segments={segmentsFilAriane} pageCourante={article.designation} />
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-groupe sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-champ">
           <div className="flex flex-wrap items-center gap-2">
             {/* `<h2>`, jamais `<h1>` — `EcranFicheArticle` pose déjà l'unique `<h1>` de la page via
                 `GabaritEcran` (générique, masqué par doublon avec l'onglet « Articles »). Deux
@@ -96,7 +96,7 @@ export function EnTeteFicheArticle({
           <p className="texte-corps text-muted-foreground">
             {t('pieces:articles.numero', { numero: article.numeroArticle })}
           </p>
-          <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1.5 texte-corps sm:grid-cols-3">
+          <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-champ texte-corps sm:grid-cols-3">
             <div>
               <dt className="texte-libelle text-muted-foreground">
                 {t('pieces:articles.reference')}

@@ -129,7 +129,7 @@ export function DialogueChoixCiblePointage({
           <Button
             size="lg"
             variant="secondary"
-            className="h-auto min-h-[72px] w-full justify-start whitespace-normal break-words text-base"
+            className="h-auto min-h-[72px] w-full justify-start whitespace-normal break-words texte-annexe"
             disabled={enDemarrage}
             onClick={() => onChoisirOrEntier(requeteOr.data)}
           >
@@ -162,7 +162,7 @@ export function DialogueChoixCiblePointage({
                       key={ligne.id}
                       size="lg"
                       variant="outline"
-                      className="h-auto min-h-[72px] w-full flex-col items-start justify-center whitespace-normal break-words text-left text-base"
+                      className="h-auto min-h-[72px] w-full flex-col items-start justify-center whitespace-normal break-words text-left texte-annexe"
                       disabled={enDemarrage || !pointable}
                       onClick={() => onChoisirLigne(requeteOr.data, ligne)}
                     >

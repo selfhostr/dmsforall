@@ -398,7 +398,8 @@
     },
     "filtres": {
       "statutTous": "Tous les statuts",
-      "avecReliquat": "Avec reliquat uniquement"
+      "avecReliquat": "Avec reliquat uniquement",
+      "rechercherPlaceholder": "Rechercher par référence"
     },
     "confirmations": {
       "annulerTitre": "Annuler cette commande ?",
@@ -415,7 +416,20 @@
       },
       "droitRequis": "Vous n'avez pas le droit de consulter les commandes fournisseur."
     },
-    "vide": "Aucune commande."
+    "vide": {
+      "recherche": {
+        "titre": "Aucune commande trouvée",
+        "description": "Aucune commande ne correspond à cette recherche."
+      },
+      "filtre": {
+        "titre": "Aucune commande avec ces filtres",
+        "description": "Aucune commande ne correspond aux filtres choisis."
+      },
+      "premierUsage": {
+        "titre": "Aucune commande fournisseur",
+        "description": "Créez une commande pour réapprovisionner un fournisseur."
+      }
+    }
   },
   "consignes": {
     "titre": "Consignes d'échange standard",
@@ -469,7 +483,8 @@
       "reactiver": "Réactiver"
     },
     "filtres": {
-      "statutTous": "Tous les statuts"
+      "statutTous": "Tous les statuts",
+      "rechercherPlaceholder": "Rechercher un fournisseur"
     },
     "confirmations": {
       "desactiverTitre": "Désactiver ce fournisseur ?",
@@ -486,7 +501,20 @@
       },
       "droitRequis": "Vous n'avez pas le droit de consulter les fournisseurs."
     },
-    "vide": "Aucun fournisseur."
+    "vide": {
+      "recherche": {
+        "titre": "Aucun fournisseur trouvé",
+        "description": "Aucun fournisseur ne correspond à cette recherche."
+      },
+      "filtre": {
+        "titre": "Aucun fournisseur avec ce statut",
+        "description": "Aucun fournisseur ne correspond au filtre choisi."
+      },
+      "premierUsage": {
+        "titre": "Aucun fournisseur",
+        "description": "Créez le premier fournisseur pour commencer à passer des commandes."
+      }
+    }
   },
   "comptoirVente": {
     "actions": {
@@ -519,7 +547,20 @@
     "sousTitreDepot": "Déposez le PDF reçu du fournisseur : il est lu automatiquement et rapproché à la commande correspondante.",
     "deposeeLe": "Déposée le {date}",
     "sansNumero": "Facture sans numéro lu",
-    "vide": "Aucune facture fournisseur déposée.",
+    "vide": {
+      "recherche": {
+        "titre": "Aucune facture trouvée",
+        "description": "Aucune facture ne correspond à cette recherche."
+      },
+      "filtre": {
+        "titre": "Aucune facture avec ces filtres",
+        "description": "Aucune facture ne correspond aux filtres choisis."
+      },
+      "premierUsage": {
+        "titre": "Aucune facture fournisseur déposée",
+        "description": "Déposez une facture pour démarrer le rapprochement."
+      }
+    },
     "erreur": {
       "titre": "Impossible d'afficher les factures fournisseur"
     },
@@ -528,7 +569,8 @@
       "depot": "Vous n'avez pas le droit de déposer une facture fournisseur."
     },
     "filtres": {
-      "statutTous": "Tous les statuts"
+      "statutTous": "Tous les statuts",
+      "rechercherPlaceholder": "Rechercher par fournisseur ou numéro"
     },
     "colonnes": {
       "fichier": "Facture",

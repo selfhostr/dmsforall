@@ -17,6 +17,17 @@ export interface TableProps extends HTMLAttributes<HTMLTableElement> {
 
 // La classe `densite-*` pose les variables --densite-*/--texte-* (index.css) sur le wrapper ;
 // TableRow/TableHead/TableCell les consomment sans jamais coder 40px/56px/72px en dur.
+//
+// `overflow-auto` reste volontaire ICI : une table HTML brute (colonnes fixes) reste le meilleur
+// rendu tant qu'elle tient à l'écran, et un défilement horizontal est un repli correct pour un
+// tableau ÉTROIT en contexte bureau/tablette qui déborde de peu. Le vrai défaut mobile (une table
+// à 8 colonnes qui se fait défiler au doigt sur téléphone, mesuré sur la liste des véhicules en
+// stock) est corrigé en amont, dans `TableComptoir` (composants/comptoir/) : sous 767px, ce
+// composant partagé ne rend plus DU TOUT de `<Table>` — il bascule sur un repli en cartes piloté
+// par la définition de colonnes, pour les dix écrans de liste qui passent par lui. Cette primitive
+// reste volontairement une table HTML classique, sans logique responsive : les quelques écrans qui
+// l'utilisent directement (hors `TableComptoir`) portent des tables de détail à peu de colonnes,
+// hors périmètre de ce chantier.
 export const Table = forwardRef<HTMLTableElement, TableProps>(
   ({ className, densite = 'dense', ...props }, ref) => (
     <div className={cn('densite-' + densite, 'relative w-full overflow-auto')}>

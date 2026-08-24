@@ -250,14 +250,14 @@ export function PanneauRapprochementFacture({
   ];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-section">
       {avecTitre ? (
         <h2 className="texte-titre-section">
           {t('pieces:facturesFournisseur.rapprochement.titre')}
         </h2>
       ) : null}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3">
+      <div className="flex flex-wrap items-center justify-between gap-controles rounded-md border p-3">
         <div className="flex flex-wrap items-center gap-2 texte-corps font-medium">
           <FileText className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
           {facture.numeroFacture ?? t('pieces:facturesFournisseur.sansNumero')}
@@ -277,7 +277,7 @@ export function PanneauRapprochementFacture({
         </Button>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row">
+      <div className="flex flex-col gap-controles sm:flex-row">
         {facture.fournisseurId ? (
           <Alert className="flex-1">
             <AlertTitle>
@@ -331,9 +331,9 @@ export function PanneauRapprochementFacture({
         )}
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-controles">
         <h3 className="texte-titre-section">{t('pieces:facturesFournisseur.enTete.titre')}</h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-groupe sm:grid-cols-2 lg:grid-cols-3">
           <ChampEnTete
             libelle={t('pieces:facturesFournisseur.enTete.numeroFacture')}
             valeur={facture.numeroFacture}

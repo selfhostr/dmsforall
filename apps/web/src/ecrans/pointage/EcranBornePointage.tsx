@@ -716,7 +716,7 @@ export function EcranBornePointage() {
                 key={activite}
                 size="lg"
                 variant="outline"
-                className="min-h-[72px] text-base"
+                className="min-h-[72px] texte-annexe"
                 disabled={enTraitement}
                 onClick={() => handleDemarrerActiviteIndirecte(activite)}
               >
@@ -810,7 +810,7 @@ export function EcranBornePointage() {
               type="button"
               variant="outline"
               size="lg"
-              className="min-h-[72px] text-base"
+              className="min-h-[72px] texte-annexe"
               onClick={revenirEcranNeutre}
             >
               {t('pointage:identification.terminer')}

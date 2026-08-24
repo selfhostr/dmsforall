@@ -93,7 +93,7 @@ export function ChampConfiance({ id, label, etat, children, aide, erreur, classN
         {enfant}
       </div>
       {aide ? <p className="texte-libelle text-muted-foreground">{aide}</p> : null}
-      {erreur ? <p className="text-sm text-destructive">{erreur}</p> : null}
+      {erreur ? <p className="texte-corps text-destructive">{erreur}</p> : null}
     </div>
   );
 }

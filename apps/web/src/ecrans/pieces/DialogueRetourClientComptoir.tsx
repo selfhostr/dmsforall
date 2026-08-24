@@ -83,7 +83,7 @@ export function DialogueRetourClientComptoir({ ouvert, onOuvertChange, siteId, a
           <DialogTitle>{t('pieces:comptoirVente.retour.titre')}</DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-groupe">
           <LegendeChampsObligatoires>
             {t('commun:formulaires.champsObligatoiresLegende')}
           </LegendeChampsObligatoires>
@@ -95,7 +95,7 @@ export function DialogueRetourClientComptoir({ ouvert, onOuvertChange, siteId, a
             </span>
           </div>
 
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-champ">
             <Label htmlFor="retour-quantite" requis>
               {t('pieces:comptoirVente.retour.quantite')}
             </Label>
@@ -116,7 +116,7 @@ export function DialogueRetourClientComptoir({ ouvert, onOuvertChange, siteId, a
             </span>
           </div>
 
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-champ">
             <Label htmlFor="retour-motif" requis>
               {t('pieces:comptoirVente.retour.motif')}
             </Label>

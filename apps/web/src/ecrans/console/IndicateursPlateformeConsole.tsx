@@ -70,7 +70,7 @@ export function IndicateursPlateformeConsole({
                   aria-hidden="true"
                 />
               </span>
-              <span className="text-sm text-muted-foreground">
+              <span className="texte-corps text-muted-foreground">
                 {t(`console:plateforme.indicateurs.${id}.libelle`)}
               </span>
             </button>

@@ -53,6 +53,10 @@ describe('chemins.parametrage', () => {
     expect(chemins.parametrage.sites()).toBe('/parametrage/sites');
     expect(chemins.parametrage.sites('site-1')).toBe('/parametrage/sites?site=site-1');
   });
+
+  it('construit le chemin des paliers de relance (scission de l’ancien écran unique), singleton par tenant', () => {
+    expect(chemins.parametrage.relances()).toBe('/parametrage/relances');
+  });
 });
 
 /**

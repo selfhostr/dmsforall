@@ -52,7 +52,7 @@ export function PanneauRefusPhoto({
       </Alert>
 
       {/* h-14, action PRIMAIRE unique de cet écran — même doctrine que le bouton de capture. */}
-      <Button type="button" className="h-14 w-full gap-2 text-base" onClick={onReprendre}>
+      <Button type="button" className="h-14 w-full gap-2 texte-annexe" onClick={onReprendre}>
         {t('scan:actions.reessayer')}
       </Button>
 

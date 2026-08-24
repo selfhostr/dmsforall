@@ -100,7 +100,7 @@ export function CarteJeuPneu({
     >
       <CardContent className="flex flex-col gap-3 p-4">
         <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-1.5 texte-corps font-mono text-lg font-semibold text-foreground">
+          <div className="flex items-center gap-1.5 font-mono texte-annexe font-semibold text-foreground">
             <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
             {depot.codeCase ?? (
               <span className="texte-corps font-sans italic text-muted-foreground">

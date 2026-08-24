@@ -223,12 +223,12 @@ export function DialogueMouvementStock({
           <DialogTitle>{t('pieces:stock.mouvements.nouveauMouvement.titre')}</DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-groupe">
           <LegendeChampsObligatoires>
             {t('commun:formulaires.champsObligatoiresLegende')}
           </LegendeChampsObligatoires>
 
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-champ">
             <Label htmlFor="mvt-type">
               {t('pieces:stock.mouvements.nouveauMouvement.champType')}
             </Label>
@@ -254,8 +254,8 @@ export function DialogueMouvementStock({
           </div>
 
           {type === 'transfert' ? (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1.5">
+            <div className="grid grid-cols-2 gap-controles">
+              <div className="flex flex-col gap-champ">
                 <Label htmlFor="mvt-site-source" requis>
                   {t('pieces:stock.mouvements.siteSource')}
                 </Label>
@@ -276,7 +276,7 @@ export function DialogueMouvementStock({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-champ">
                 <Label htmlFor="mvt-site-destination" requis>
                   {t('pieces:stock.mouvements.siteDestination')}
                 </Label>
@@ -303,7 +303,7 @@ export function DialogueMouvementStock({
               </div>
             </div>
           ) : (
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-champ">
               <Label htmlFor="mvt-site" requis>
                 {t('pieces:stock.site')}
               </Label>
@@ -326,7 +326,7 @@ export function DialogueMouvementStock({
             </div>
           )}
 
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-champ">
             <Label htmlFor="mvt-quantite" requis>
               {type === 'ajustement_inventaire'
                 ? t('pieces:stock.mouvements.nouveauMouvement.champQuantiteComptee')
@@ -343,7 +343,7 @@ export function DialogueMouvementStock({
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-champ">
             <Label htmlFor="mvt-motif" requis={motifObligatoire}>
               {t('pieces:stock.mouvements.motif')}
             </Label>

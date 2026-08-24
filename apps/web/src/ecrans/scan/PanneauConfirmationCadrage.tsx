@@ -62,7 +62,7 @@ export function PanneauConfirmationCadrage({
 
       {/* h-14, action PRIMAIRE unique de cet écran — même doctrine que le bouton de capture et
           celui de reprise du panneau de refus. */}
-      <Button type="button" className="h-14 w-full gap-2 text-base" onClick={onContinuer}>
+      <Button type="button" className="h-14 w-full gap-2 texte-annexe" onClick={onContinuer}>
         {t('scan:cadrage.continuer')}
       </Button>
 

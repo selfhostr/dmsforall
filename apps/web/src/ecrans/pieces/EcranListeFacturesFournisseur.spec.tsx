@@ -140,7 +140,7 @@ describe('EcranListeFacturesFournisseur', () => {
 
     rendre();
 
-    expect(await screen.findByText('Aucune facture fournisseur déposée.')).toBeInTheDocument();
+    expect(await screen.findByText('Aucune facture fournisseur déposée')).toBeInTheDocument();
   });
 
   it('état erreur : message actionnable avec retry', async () => {

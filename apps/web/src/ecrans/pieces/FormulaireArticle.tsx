@@ -186,13 +186,13 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={soumettre} noValidate className="flex flex-col gap-4">
+        <form onSubmit={soumettre} noValidate className="flex flex-col gap-groupe">
           <LegendeChampsObligatoires>
             {t('commun:formulaires.champsObligatoiresLegende')}
           </LegendeChampsObligatoires>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
+          <div className="grid grid-cols-2 gap-controles">
+            <div className="flex flex-col gap-champ">
               <Label htmlFor="art-designation" requis>
                 {t('pieces:articles.designation')}
               </Label>
@@ -212,14 +212,14 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
                 </p>
               ) : null}
             </div>
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-champ">
               <Label htmlFor="art-marque">{t('pieces:articles.marque')}</Label>
               <Input id="art-marque" readOnly={enCours} {...form.register('marque')} />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
+          <div className="grid grid-cols-2 gap-controles">
+            <div className="flex flex-col gap-champ">
               <Label htmlFor="art-reference" requis>
                 {t('pieces:articles.reference')}
               </Label>
@@ -239,13 +239,13 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
                 </p>
               ) : null}
             </div>
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-champ">
               <Label htmlFor="art-code-barres">{t('pieces:articles.codeBarres')}</Label>
               <Input id="art-code-barres" readOnly={enCours} {...form.register('codeBarres')} />
             </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-champ">
             <Label htmlFor="art-categorie" requis>
               {t('pieces:articles.categorie')}
             </Label>
@@ -277,7 +277,7 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-controles">
             <Controller
               control={form.control}
               name="prixVenteTtcCentimes"
@@ -295,7 +295,7 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
                 />
               )}
             />
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-champ">
               <Label htmlFor="art-tva" requis>
                 {t('pieces:articles.tva')}
               </Label>
@@ -331,7 +331,7 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
             {t('pieces:articles.prix.aideTvaComprise')}
           </p>
 
-          <div className="flex flex-col gap-3 rounded-md border p-3">
+          <div className="flex flex-col gap-controles rounded-md border p-3">
             <label
               htmlFor="article-echange-standard"
               className="flex items-center gap-2 texte-corps"

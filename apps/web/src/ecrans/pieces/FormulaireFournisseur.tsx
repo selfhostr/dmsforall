@@ -146,13 +146,13 @@ export function FormulaireFournisseur({ ouvert, onOuvertChange, fournisseur, onC
             soumettre();
           }}
           noValidate
-          className="flex flex-col gap-4"
+          className="flex flex-col gap-groupe"
         >
           <LegendeChampsObligatoires>
             {t('commun:formulaires.champsObligatoiresLegende')}
           </LegendeChampsObligatoires>
 
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-champ">
             <Label htmlFor="fourn-nom" requis>
               {t('pieces:fournisseurs.nom')}
             </Label>
@@ -169,7 +169,7 @@ export function FormulaireFournisseur({ ouvert, onOuvertChange, fournisseur, onC
             ) : null}
           </div>
 
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-champ">
             <Label htmlFor="fourn-email">{t('pieces:fournisseurs.email')}</Label>
             <Input
               id="fourn-email"
@@ -188,7 +188,7 @@ export function FormulaireFournisseur({ ouvert, onOuvertChange, fournisseur, onC
             onChangeValeur={(valeur) => setValeurs((v) => ({ ...v, telephone: valeur }))}
           />
 
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-champ">
             <Label htmlFor="fourn-delai">{t('pieces:fournisseurs.delaiHabituelJours')}</Label>
             <Input
               id="fourn-delai"

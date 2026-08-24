@@ -145,7 +145,10 @@ describe('EcranFicheClient', () => {
     repondreFicheOk();
     rendreEcran();
 
-    expect(await screen.findByText('Jean Dupont')).toBeInTheDocument();
+    // Convergence patron de fiche (24.08.2026) : le nom apparaît désormais DEUX fois — l'identité
+    // (`IdentiteClient`) et la page courante du fil d'Ariane (`FilAriane`) — `findAllByText`
+    // plutôt qu'un match unique, sans affaiblir l'assertion (toujours « le nom est bien affiché »).
+    expect((await screen.findAllByText('Jean Dupont')).length).toBeGreaterThan(0);
     expect(screen.getByRole('tab', { name: 'Contacts' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Adresses' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Consentements' })).toBeInTheDocument();
@@ -192,7 +195,8 @@ describe('EcranFicheClient', () => {
     const { container } = rendreEcran();
 
     expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
-    expect(await screen.findByText('Jean Dupont')).toBeInTheDocument();
+    // Voir le commentaire jumeau plus haut (fil d'Ariane, 24.08.2026) : deux occurrences légitimes.
+    expect((await screen.findAllByText('Jean Dupont')).length).toBeGreaterThan(0);
   });
 
   it("affiche un état d'erreur actionnable si la fiche ne charge pas", async () => {

@@ -210,7 +210,7 @@ export function EcranReapprovisionnement() {
 
   const actionCommander =
     peutCommander && selection.size > 0 ? (
-      <div className="flex items-center gap-3 rounded-md border bg-muted/50 px-3 py-2">
+      <div className="flex items-center gap-controles rounded-md border bg-muted/50 px-3 py-2">
         <span className="texte-corps text-foreground">
           {t('pieces:stock.reapprovisionnement.selection.nombreSelectionnes', {
             count: selection.size,
@@ -318,7 +318,7 @@ function CelluleSeuil({ ligne, peutModifier }: PropsCelluleSeuil) {
           type="button"
           variant="ghost"
           size="sm"
-          className="gap-1.5 tabular-nums"
+          className="gap-champ tabular-nums"
           aria-label={t('pieces:stock.reapprovisionnement.seuil.modifierAria', {
             designation: ligne.designation,
           })}
@@ -328,8 +328,8 @@ function CelluleSeuil({ ligne, peutModifier }: PropsCelluleSeuil) {
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80">
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-controles">
+          <div className="flex flex-col gap-champ">
             <Label htmlFor={champId}>{t('pieces:stock.reapprovisionnement.seuil.champ')}</Label>
             <Input
               id={champId}

@@ -39,11 +39,11 @@ export function ConsoleShell({ identite, onDeconnexion, children }: Props) {
   return (
     <div className="flex min-h-dvh flex-col bg-background">
       <header className="flex h-16 shrink-0 items-center gap-4 border-b bg-background px-4">
-        <p className="text-lg font-semibold text-foreground">{t('console:titre')}</p>
+        <p className="texte-annexe font-semibold text-foreground">{t('console:titre')}</p>
         <div className="min-w-0 flex-1" />
         <div className="flex shrink-0 items-center gap-3">
           {identite ? (
-            <div className="hidden text-right text-sm leading-tight sm:block">
+            <div className="hidden text-right texte-corps leading-tight sm:block">
               <p className="font-medium text-foreground">
                 {identite.prenom} {identite.nom}
               </p>

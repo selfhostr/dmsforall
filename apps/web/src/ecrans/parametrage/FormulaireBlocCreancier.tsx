@@ -199,7 +199,7 @@ export function FormulaireBlocCreancier({ blocCreancier }: Props) {
               readOnly={modifier.isPending}
               {...form.register('numero')}
             />
-            <p className="text-sm text-muted-foreground">
+            <p className="texte-corps text-muted-foreground">
               {t('parametrage:creancier.adresse.numeroAide')}
             </p>
           </div>
@@ -361,9 +361,9 @@ function ChampCompte({
         aria-describedby={erreur ? idErreur : undefined}
         {...register}
       />
-      <p className="text-sm text-muted-foreground">{aide}</p>
+      <p className="texte-corps text-muted-foreground">{aide}</p>
       {erreur ? (
-        <p id={idErreur} className="text-sm text-destructive" role="alert">
+        <p id={idErreur} className="texte-corps text-destructive" role="alert">
           {t(`erreurs:codes.${erreur.code}`, {
             defaultValue: t('erreurs:codes.VALIDATION_ECHOUEE'),
           })}

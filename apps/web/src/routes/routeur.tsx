@@ -39,6 +39,7 @@ import { EcranBornePointage } from '@/ecrans/pointage/EcranBornePointage';
 import { EcranPointage } from '@/ecrans/pointage/EcranPointage';
 import { EcranPointageTechnicien } from '@/ecrans/pointage/EcranPointageTechnicien';
 import { EcranRecherche } from '@/ecrans/recherche/EcranRecherche';
+import { EcranReglagesRelances } from '@/ecrans/relances/EcranReglagesRelances';
 import { EcranRelances } from '@/ecrans/relances/EcranRelances';
 import { EcranScan } from '@/ecrans/scan/EcranScan';
 // `EcranRendezVous` (routé ci-dessous) est le CONTENEUR réseau ; il rend `EcranAgendaRendezVous`
@@ -469,6 +470,19 @@ export const routesConfig: RouteObject[] = [
           </RouteProtegee>
         ),
       },
+      // Paliers de relance (scission de l'ancien `EcranRelances`, §4.5 : « paliers -> Réglages ») —
+      // `rolesAutorises={ROLES_RELANCES}` reflète la même restriction RÉELLE que `relances`
+      // ci-dessous (`relances.facturation.regle.lire`, direction/comptable seuls côté API) : lire
+      // la règle expose une politique de recouvrement, réservée à la gouvernance/comptabilité.
+      // Chemin littéral `parametrage/relances`, même famille que `parametrage/pieces` ci-dessus.
+      {
+        path: 'parametrage/relances',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_RELANCES}>
+            <EcranReglagesRelances />
+          </RouteProtegee>
+        ),
+      },
       // Module pointage (lot 2, fusion Lot D) — `/pointage` reste l'écran individuel
       // (« Mon travail », `EcranPointageTechnicien`, inchangé). `pointage/jour`, `pointage/equipe`
       // ET `pointage/cloture` pointent maintenant TOUS les trois sur le même écran fusionné
@@ -637,15 +651,14 @@ export const routesConfig: RouteObject[] = [
           </RouteProtegee>
         ),
       },
-      // Relances automatiques (rappels de facture impayée, lot 1) — SEULE route du module,
-      // sous `rolesAutorises={ROLES_RELANCES}` (`droits-routes.ts`) : `relances.facturation.
-      // regle.lire` ferme la LECTURE elle-même à tout rôle hors `direction`/`comptable`
-      // (`apps/api/src/relances/relances.controller.ts`), même raisonnement que `ROLES_PIECES`/
-      // `ROLES_VENTES`/`ROLES_PNEUS` plus haut — cette garde reflète une restriction RÉELLE, elle
-      // ne l'invente pas. Même lire la configuration d'un rappel (paliers, canaux, préréglage
-      // appliqué) expose une politique de recouvrement que ce lot réserve à la gouvernance/
-      // comptabilité, contrairement à `parametrage/referentiels` (lecture ouverte à tous, voir son
-      // propre commentaire plus haut).
+      // Déclenchement des relances automatiques (rappels de facture impayée) — écran opérationnel
+      // (planifier/envoyer/historique), sous Facturation depuis la scission de l'ancien
+      // `EcranRelances` (§4.5, voir `parametrage/relances` ci-dessus pour le pendant réglage des
+      // paliers, passé sous Réglages). `rolesAutorises={ROLES_RELANCES}` (`droits-routes.ts`)
+      // reflète une restriction RÉELLE, même raisonnement que `ROLES_PIECES`/`ROLES_VENTES`/
+      // `ROLES_PNEUS` plus haut : `relances.facturation.planifier`/`.envoyer`/`.regle.lire`
+      // (historique) ferment ces trois opérations à tout rôle hors `direction`/`comptable`
+      // (`apps/api/src/relances/relances.controller.ts`) — cette garde ne l'invente pas.
       {
         path: 'relances',
         element: (

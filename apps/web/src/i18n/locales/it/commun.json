@@ -56,6 +56,9 @@
     "masque": "Non visibile",
     "masqueDescription": "Questo importo esiste, ma il tuo ruolo non ha accesso agli importi."
   },
+  "tableComptoir": {
+    "trierPar": "Ordina per"
+  },
   "roles": {
     "direction": "Direzione",
     "vendeur": "Consulente vendite",

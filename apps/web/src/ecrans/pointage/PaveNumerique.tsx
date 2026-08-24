@@ -77,7 +77,7 @@ export function PaveNumerique({
         <Button
           type="button"
           variant="secondary"
-          className="h-20 w-20 text-sm font-medium"
+          className="h-20 w-20 texte-corps font-medium"
           disabled={desactive}
           onClick={onEffacer}
         >
@@ -98,7 +98,7 @@ export function PaveNumerique({
         <Button
           type="button"
           variant="default"
-          className="h-20 w-20 text-sm font-medium"
+          className="h-20 w-20 texte-corps font-medium"
           disabled={desactive || !peutValider}
           onClick={onValider}
         >

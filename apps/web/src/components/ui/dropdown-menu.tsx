@@ -6,6 +6,7 @@ import {
   type HTMLAttributes,
 } from 'react';
 
+import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
 export const DropdownMenu = DropdownMenuPrimitive.Root;
@@ -79,17 +80,15 @@ export const DropdownMenuLabel = forwardRef<
 ));
 DropdownMenuLabel.displayName = DropdownMenuPrimitive.Label.displayName;
 
+// Composé sur le `Separator` partagé (`components/ui/separator.tsx`) plutôt que sur
+// `DropdownMenuPrimitive.Separator` — voir le commentaire de tête de `separator.tsx`.
 export const DropdownMenuSeparator = forwardRef<
-  ElementRef<typeof DropdownMenuPrimitive.Separator>,
-  ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Separator>
+  ElementRef<typeof Separator>,
+  ComponentPropsWithoutRef<typeof Separator>
 >(({ className, ...props }, ref) => (
-  <DropdownMenuPrimitive.Separator
-    ref={ref}
-    className={cn('-mx-1 my-1 h-px bg-border', className)}
-    {...props}
-  />
+  <Separator ref={ref} className={cn('-mx-1 my-1', className)} {...props} />
 ));
-DropdownMenuSeparator.displayName = DropdownMenuPrimitive.Separator.displayName;
+DropdownMenuSeparator.displayName = 'DropdownMenuSeparator';
 
 export function DropdownMenuShortcut({ className, ...props }: HTMLAttributes<HTMLSpanElement>) {
   return (

@@ -219,7 +219,7 @@ export function CaptureLiveCadrage({ onCapture, onIndisponible }: Props) {
 
       {/* Déclenchement MANUEL, toujours atteignable — indépendant de tout ce qui précède, ne touche
           jamais `declencheRef` (réservé à l'anti-double-déclenchement AUTOMATIQUE). */}
-      <Button type="button" className="h-14 w-full gap-2 text-base" onClick={capturer}>
+      <Button type="button" className="h-14 w-full gap-2 texte-annexe" onClick={capturer}>
         <Camera className="h-5 w-5" aria-hidden="true" />
         {t('scan:captureLive.declencherManuel')}
       </Button>

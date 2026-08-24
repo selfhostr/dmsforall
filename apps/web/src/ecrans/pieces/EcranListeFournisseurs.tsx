@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
@@ -23,10 +23,12 @@ import {
 } from '@/components/ui/select';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
+import { BarreFiltres } from '@/composants/comptoir/BarreFiltres';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
+import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useListeFournisseurs } from '@/hooks/pieces/useListeFournisseurs';
 import { useSession } from '@/hooks/useSession';
@@ -35,6 +37,8 @@ import { peutEcrireFournisseur } from './droits';
 import { FormulaireFournisseur } from './FormulaireFournisseur';
 import { texteOuVide } from './utils';
 
+const DELAI_DEBOUNCE_MS = 300;
+
 const VARIANTE_BADGE_STATUT: Record<StatutFournisseur, 'default' | 'secondary'> = {
   actif: 'default',
   inactif: 'secondary',
@@ -42,8 +46,14 @@ const VARIANTE_BADGE_STATUT: Record<StatutFournisseur, 'default' | 'secondary'> 
 
 /**
  * Liste des fournisseurs (RP-26, §1) — référentiel minimal (nom, coordonnées, délai habituel).
- * `schemaFiltresFournisseurs` ne porte AUCUN `q` (pas de recherche texte, contrairement à
- * `articles`) : seul un filtre statut est proposé, honnête sur ce que le contrat permet.
+ * `schemaFiltresFournisseurs` ne porte AUCUN `q` (pas de recherche texte côté serveur,
+ * contrairement à `articles`) : la recherche ci-dessous filtre donc CÔTÉ CLIENT, sur les lignes
+ * déjà chargées (`nom`) — même limite documentée que `EcranListeCommandesFournisseur`/
+ * `EcranListeFacturesFournisseur`, alignés sur `BarreFiltres` pour la même raison. Un fournisseur
+ * qui ne correspond pas à la recherche mais se trouve sur une page pas encore chargée
+ * (« Charger plus ») n'apparaît qu'une fois cette page récupérée — acceptable pour un référentiel
+ * de cette taille (quelques dizaines de fournisseurs par garage en pratique), documenté plutôt que
+ * caché.
  */
 export function EcranListeFournisseurs() {
   const { t } = useTranslation(['pieces', 'commun']);
@@ -53,6 +63,13 @@ export function EcranListeFournisseurs() {
 
   const [statut, setStatut] = useState<StatutFournisseur | undefined>('actif');
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
+
+  const [qSaisie, setQSaisie] = useState('');
+  const [q, setQ] = useState('');
+  useEffect(() => {
+    const identifiant = window.setTimeout(() => setQ(qSaisie), DELAI_DEBOUNCE_MS);
+    return () => window.clearTimeout(identifiant);
+  }, [qSaisie]);
 
   const filtres: FiltresFournisseurs = {
     statut: statut ? [statut] : undefined,
@@ -69,6 +86,23 @@ export function EcranListeFournisseurs() {
     isFetchingNextPage,
     fetchNextPage,
   } = useListeFournisseurs(filtres);
+
+  const qNormalise = q.trim().toLocaleLowerCase();
+  const fournisseursAffiches = useMemo(
+    () =>
+      qNormalise === ''
+        ? fournisseurs
+        : fournisseurs.filter((fournisseur) =>
+            fournisseur.nom.toLocaleLowerCase().includes(qNormalise),
+          ),
+    [fournisseurs, qNormalise],
+  );
+
+  function effacerFiltres() {
+    setQSaisie('');
+    setQ('');
+    setStatut(undefined);
+  }
 
   const colonnes: ColonneComptoir<ReponseFournisseur>[] = [
     {
@@ -135,60 +169,74 @@ export function EcranListeFournisseurs() {
     </Button>
   ) : undefined;
 
+  let contenuVide: ReactNode;
+  if (q.trim() !== '') {
+    contenuVide = (
+      <EtatVideRecherche
+        titre={t('pieces:fournisseurs.vide.recherche.titre')}
+        description={t('pieces:fournisseurs.vide.recherche.description')}
+      />
+    );
+  } else if (statut !== undefined) {
+    contenuVide = (
+      <EtatVideFiltre
+        titre={t('pieces:fournisseurs.vide.filtre.titre')}
+        description={t('pieces:fournisseurs.vide.filtre.description')}
+        onEffacerFiltres={effacerFiltres}
+      />
+    );
+  } else {
+    contenuVide = (
+      <EtatVidePremierUsage
+        titre={t('pieces:fournisseurs.vide.premierUsage.titre')}
+        description={t('pieces:fournisseurs.vide.premierUsage.description')}
+        action={boutonAjouter}
+      />
+    );
+  }
+
   return (
     <GabaritEcran titre={t('pieces:fournisseurs.titre')} actions={boutonAjouter}>
-      <div className="flex flex-col gap-1.5 max-w-xs">
-        <Label htmlFor="filtre-statut-fournisseur">{t('pieces:fournisseurs.statut')}</Label>
-        <Select
-          value={statut ?? 'tous'}
-          onValueChange={(valeur) =>
-            setStatut(valeur === 'tous' ? undefined : (valeur as StatutFournisseur))
-          }
-        >
-          <SelectTrigger
-            id="filtre-statut-fournisseur"
-            aria-label={t('pieces:fournisseurs.statut')}
+      <BarreFiltres
+        q={qSaisie}
+        onChangeQ={setQSaisie}
+        placeholderRecherche={t('pieces:fournisseurs.filtres.rechercherPlaceholder')}
+        filtresActifs={q.trim() !== '' || statut !== undefined}
+        onEffacerFiltres={effacerFiltres}
+      >
+        <div className="flex flex-col gap-champ">
+          <Label htmlFor="filtre-statut-fournisseur">{t('pieces:fournisseurs.statut')}</Label>
+          <Select
+            value={statut ?? 'tous'}
+            onValueChange={(valeur) =>
+              setStatut(valeur === 'tous' ? undefined : (valeur as StatutFournisseur))
+            }
           >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="tous">{t('pieces:fournisseurs.filtres.statutTous')}</SelectItem>
-            {STATUTS_FOURNISSEUR.map((valeur) => (
-              <SelectItem key={valeur} value={valeur}>
-                {t(`pieces:fournisseurs.statuts.${valeur}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+            <SelectTrigger
+              id="filtre-statut-fournisseur"
+              aria-label={t('pieces:fournisseurs.statut')}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="tous">{t('pieces:fournisseurs.filtres.statutTous')}</SelectItem>
+              {STATUTS_FOURNISSEUR.map((valeur) => (
+                <SelectItem key={valeur} value={valeur}>
+                  {t(`pieces:fournisseurs.statuts.${valeur}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </BarreFiltres>
 
       <TableComptoir
         colonnes={colonnes}
-        lignes={fournisseurs}
+        lignes={fournisseursAffiches}
         cleLigne={(fournisseur) => fournisseur.id}
         onOuvrirLigne={(fournisseur) => navigate(`/pieces/fournisseurs/${fournisseur.id}`)}
         libelleLigne={(fournisseur) => t('commun:actions.ouvrirElement', { nom: fournisseur.nom })}
-        contenuVide={
-          statut ? (
-            <EtatVideFiltre
-              titre={t('pieces:fournisseurs.titre')}
-              description={t('pieces:fournisseurs.vide')}
-              onEffacerFiltres={() => setStatut(undefined)}
-            />
-          ) : (
-            <EtatVidePremierUsage
-              titre={t('pieces:fournisseurs.titre')}
-              description={t('pieces:fournisseurs.vide')}
-              action={
-                peutEcrireFournisseur(role) ? (
-                  <Button onClick={() => setFormulaireOuvert(true)}>
-                    {t('pieces:fournisseurs.actions.ajouter')}
-                  </Button>
-                ) : undefined
-              }
-            />
-          )
-        }
+        contenuVide={contenuVide}
       />
 
       <BoutonChargerPlus

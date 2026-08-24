@@ -138,7 +138,7 @@ export function PanneauResultatsRecherche({
       {/* RM-18 / §6.9 : rendu HORS de la liste `cmdk` — ni ordonnancement par score, ni
           surlignage automatique du premier élément (voir ChoixPlaqueInterchangeable). */}
       {plaqueInterchangeable && vehicules.length > 0 ? (
-        <div className="mb-3">
+        <div className="mb-groupe">
           <ChoixPlaqueInterchangeable vehicules={vehicules} onChoisir={onSelectionner} />
         </div>
       ) : null}

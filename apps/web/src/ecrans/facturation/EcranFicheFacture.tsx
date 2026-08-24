@@ -34,6 +34,7 @@ import {
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
+import { FilAriane, type SegmentFilAriane } from '@/composants/layout/FilAriane';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { obtenirEnv } from '@/config/env';
 import { useDocumentVente } from '@/hooks/facturation/useDocumentVente';
@@ -294,8 +295,20 @@ export function EcranFicheFacture() {
     </div>
   );
 
+  // Fil d'Ariane contextuel (chantier « un seul patron », 24.08.2026) — même dispositif que
+  // `EnTeteOrdreReparation.tsx` (pris comme modèle). Un seul ancêtre certain : le contrat ne
+  // porte qu'un `vehiculeId` (pas de plaque/désignation en clair sur `ReponseDocumentVente`,
+  // voir `document.ts`) — inventer un libellé véhicule depuis le seul id violerait la doctrine
+  // « absence de donnée ≠ valeur » ; le lien déjà offert par la Card « Documents liés »
+  // (ci-dessous) reste le seul accès à ce véhicule depuis cette fiche.
+  const segmentsFilAriane: readonly SegmentFilAriane[] = [
+    { cle: 'client', libelle: destinataireNom, href: `/clients/${document_.clientId}` },
+  ];
+
   return (
     <GabaritEcran titre={titreDocument} actions={actionsEnTete}>
+      <FilAriane segments={segmentsFilAriane} pageCourante={titreDocument} />
+
       <div className="flex flex-wrap items-center gap-3">
         <BadgeEtatDocument etat={etatAffiche} />
         {/* Défaut corrigé (issue #80, testeur novice) : cette fiche n'affichait QUE l'état du

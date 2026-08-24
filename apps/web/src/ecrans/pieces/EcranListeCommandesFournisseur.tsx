@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
 
@@ -24,16 +24,20 @@ import {
 } from '@/components/ui/select';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
+import { BarreFiltres } from '@/composants/comptoir/BarreFiltres';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
+import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useListeCommandesFournisseur } from '@/hooks/pieces/useListeCommandesFournisseur';
 import { useSession } from '@/hooks/useSession';
 import { formaterDate } from '@/lib/formats';
 
 import { peutEcrireCommandeFournisseur } from './droits';
+
+const DELAI_DEBOUNCE_MS = 300;
 
 const VARIANTE_BADGE_STATUT: Record<
   StatutCommandeFournisseur,
@@ -54,6 +58,13 @@ const VARIANTE_BADGE_STATUT: Record<
  * `ReponseCommandeFournisseur` ne porte aucun libellé de fournisseur/site embarqué — même remarque
  * que `EcranReservationsPieces` : le fournisseur est un lien cliquable, le site est résolu depuis
  * la session (liste COMPLÈTE, contrairement aux fournisseurs qui peuvent être paginés).
+ *
+ * `schemaFiltresCommandesFournisseur` ne porte AUCUN `q` (pas de recherche texte côté serveur) :
+ * la recherche ci-dessous filtre CÔTÉ CLIENT, sur `reference` des commandes déjà chargées — même
+ * limite documentée que `EcranListeFournisseurs`/`EcranListeFacturesFournisseur`. `reference` est
+ * optionnelle (une commande d'origine `reapprovisionnement_auto` n'en porte pas forcément) : la
+ * recherche ne retrouve donc que les commandes qui en portent une, honnêtement annoncé par le
+ * texte du champ (« Rechercher par référence »), jamais présenté comme une recherche universelle.
  */
 export function EcranListeCommandesFournisseur() {
   const { t } = useTranslation(['pieces', 'commun']);
@@ -64,6 +75,13 @@ export function EcranListeCommandesFournisseur() {
 
   const [statut, setStatut] = useState<StatutCommandeFournisseur | undefined>(undefined);
   const [avecReliquat, setAvecReliquat] = useState(false);
+
+  const [qSaisie, setQSaisie] = useState('');
+  const [q, setQ] = useState('');
+  useEffect(() => {
+    const identifiant = window.setTimeout(() => setQ(qSaisie), DELAI_DEBOUNCE_MS);
+    return () => window.clearTimeout(identifiant);
+  }, [qSaisie]);
 
   const filtres: FiltresCommandesFournisseur = useMemo(
     () => ({
@@ -88,8 +106,22 @@ export function EcranListeCommandesFournisseur() {
 
   const nomSite = (siteId: string) => sites.find((site) => site.id === siteId)?.nom ?? siteId;
 
-  const filtresActifs = statut !== undefined || avecReliquat;
+  const qNormalise = q.trim().toLocaleLowerCase();
+  const commandesAffichees = useMemo(
+    () =>
+      qNormalise === ''
+        ? commandes
+        : commandes.filter((commande) =>
+            (commande.reference ?? '').toLocaleLowerCase().includes(qNormalise),
+          ),
+    [commandes, qNormalise],
+  );
+
+  const filtresStructuresActifs = statut !== undefined || avecReliquat;
+  const filtresActifs = q.trim() !== '' || filtresStructuresActifs;
   function effacerFiltres() {
+    setQSaisie('');
+    setQ('');
     setStatut(undefined);
     setAvecReliquat(false);
   }
@@ -173,10 +205,42 @@ export function EcranListeCommandesFournisseur() {
     </Button>
   ) : undefined;
 
+  let contenuVide: ReactNode;
+  if (q.trim() !== '') {
+    contenuVide = (
+      <EtatVideRecherche
+        titre={t('pieces:commandes.vide.recherche.titre')}
+        description={t('pieces:commandes.vide.recherche.description')}
+      />
+    );
+  } else if (filtresStructuresActifs) {
+    contenuVide = (
+      <EtatVideFiltre
+        titre={t('pieces:commandes.vide.filtre.titre')}
+        description={t('pieces:commandes.vide.filtre.description')}
+        onEffacerFiltres={effacerFiltres}
+      />
+    );
+  } else {
+    contenuVide = (
+      <EtatVidePremierUsage
+        titre={t('pieces:commandes.vide.premierUsage.titre')}
+        description={t('pieces:commandes.vide.premierUsage.description')}
+        action={boutonCreer}
+      />
+    );
+  }
+
   return (
     <GabaritEcran titre={t('pieces:commandes.titre')} actions={boutonCreer}>
-      <div className="flex flex-wrap items-end gap-4">
-        <div className="flex flex-col gap-1.5 max-w-xs">
+      <BarreFiltres
+        q={qSaisie}
+        onChangeQ={setQSaisie}
+        placeholderRecherche={t('pieces:commandes.filtres.rechercherPlaceholder')}
+        filtresActifs={filtresActifs}
+        onEffacerFiltres={effacerFiltres}
+      >
+        <div className="flex flex-col gap-champ">
           <Label htmlFor="filtre-statut-commande">{t('pieces:commandes.statut')}</Label>
           <Select
             value={statut ?? 'tous'}
@@ -200,7 +264,7 @@ export function EcranListeCommandesFournisseur() {
 
         <label
           htmlFor="commandes-avec-reliquat"
-          className="flex items-center gap-2 texte-corps pb-2"
+          className="flex items-center gap-champ texte-corps pb-2"
         >
           <Checkbox
             id="commandes-avec-reliquat"
@@ -209,11 +273,11 @@ export function EcranListeCommandesFournisseur() {
           />
           {t('pieces:commandes.filtres.avecReliquat')}
         </label>
-      </div>
+      </BarreFiltres>
 
       <TableComptoir
         colonnes={colonnes}
-        lignes={commandes}
+        lignes={commandesAffichees}
         cleLigne={(commande) => commande.id}
         onOuvrirLigne={(commande) => navigate(`/pieces/commandes-fournisseur/${commande.id}`)}
         libelleLigne={(commande) =>
@@ -221,27 +285,7 @@ export function EcranListeCommandesFournisseur() {
             nom: commande.reference ?? formaterDate(commande.dateCommande),
           })
         }
-        contenuVide={
-          filtresActifs ? (
-            <EtatVideFiltre
-              titre={t('pieces:commandes.titre')}
-              description={t('pieces:commandes.vide')}
-              onEffacerFiltres={effacerFiltres}
-            />
-          ) : (
-            <EtatVidePremierUsage
-              titre={t('pieces:commandes.titre')}
-              description={t('pieces:commandes.vide')}
-              action={
-                peutEcrireCommandeFournisseur(role) ? (
-                  <Button onClick={() => navigate('/pieces/commandes-fournisseur/nouvelle')}>
-                    {t('pieces:commandes.actions.creer')}
-                  </Button>
-                ) : undefined
-              }
-            />
-          )
-        }
+        contenuVide={contenuVide}
       />
 
       <BoutonChargerPlus

@@ -194,8 +194,8 @@ export function EcranConsignesPieces() {
 
   return (
     <GabaritEcran titre={t('pieces:consignes.titre')}>
-      <div className="flex flex-wrap items-end gap-4">
-        <div className="flex flex-col gap-1.5 max-w-xs">
+      <div className="flex flex-wrap items-end gap-groupe">
+        <div className="flex flex-col gap-champ max-w-xs">
           <Label htmlFor="filtre-statut-consigne">{t('pieces:consignes.statut')}</Label>
           <Select
             value={statut ?? 'toutes'}
@@ -219,7 +219,7 @@ export function EcranConsignesPieces() {
           </Select>
         </div>
 
-        <div className="flex flex-col gap-1.5 max-w-[220px]">
+        <div className="flex flex-col gap-champ max-w-[220px]">
           <Label htmlFor="filtre-anciennete-consigne">
             {t('pieces:consignes.anciennes.anciennete')}
           </Label>

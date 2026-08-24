@@ -292,7 +292,7 @@ export function EcranListeArticles() {
         filtresActifs={filtresActifs}
         onEffacerFiltres={effacerFiltres}
       >
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-champ">
           <Label htmlFor="filtre-categorie">{t('pieces:articles.categorie')}</Label>
           <Select
             value={categorie ?? 'toutes'}
@@ -317,7 +317,7 @@ export function EcranListeArticles() {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-champ">
           <Label htmlFor="filtre-statut">{t('pieces:articles.statut')}</Label>
           <Select
             value={statut ?? 'tous'}
@@ -343,7 +343,7 @@ export function EcranListeArticles() {
           </Select>
         </div>
         {sitesActifs.length > 1 ? (
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-champ">
             <Label htmlFor="filtre-site">{t('pieces:siteRequis.label')}</Label>
             <Select value={site} onValueChange={setSite}>
               <SelectTrigger
@@ -365,7 +365,7 @@ export function EcranListeArticles() {
         ) : null}
       </BarreFiltres>
 
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-controles">
         <SelecteurTri
           options={TRIS_ARTICLES.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
           valeur={tri}

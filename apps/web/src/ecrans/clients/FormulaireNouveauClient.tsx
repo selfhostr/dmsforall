@@ -455,7 +455,7 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
   const estErreurReseau = erreur instanceof ErreurReseau;
 
   return (
-    <form onSubmit={soumettre} noValidate className="mt-6 space-y-5">
+    <form onSubmit={soumettre} noValidate className="mt-6 space-y-groupe">
       {/* Issue #78 : signale ET permet de rejeter une saisie restaurée — un formulaire qui se
        *  remplit tout seul sans le dire ferait douter de ce qu'on est en train d'envoyer.
        *  `BandeauBrouillon` (partagé) ne porte pas de bouton de rejet lui-même (présentation
@@ -497,7 +497,7 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
         </Alert>
       ) : null}
 
-      <div className="space-y-2">
+      <div className="space-y-champ">
         <Label>{t('clients:liste.filtres.type')}</Label>
         <div role="group" className="inline-flex overflow-hidden rounded-md border">
           {(['particulier', 'entreprise'] as const satisfies readonly TypeClient[]).map(
@@ -530,8 +530,8 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
         // d'un champ non contrôlé lors d'une simple mise à jour de props). Constaté en écrivant le
         // test de non-régression du défaut 1 : sans ce `key`, il échouait avec exactement ce
         // symptôme, sur un champ pourtant déjà vidé par `form.reset()`.
-        <div key="identite-particulier" className="grid grid-cols-2 gap-3">
-          <div className="space-y-2">
+        <div key="identite-particulier" className="grid grid-cols-2 gap-groupe">
+          <div className="space-y-champ">
             <Label htmlFor="nc-nom">{t('clients:identite.nom')}</Label>
             <Input
               id="nc-nom"
@@ -541,14 +541,14 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
               {...form.register('nom', { setValueAs: videVersIndefini })}
             />
             {form.formState.errors.nom ? (
-              <p id="nc-nom-erreur" className="text-sm text-destructive">
+              <p id="nc-nom-erreur" className="texte-corps text-destructive">
                 {form.formState.errors.nom.type === 'server'
                   ? form.formState.errors.nom.message
                   : t('validation:requis')}
               </p>
             ) : null}
           </div>
-          <div className="space-y-2">
+          <div className="space-y-champ">
             <Label htmlFor="nc-prenom">{t('clients:identite.prenom')}</Label>
             <Input
               id="nc-prenom"
@@ -558,8 +558,8 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
           </div>
         </div>
       ) : (
-        <div key="identite-entreprise" className="grid grid-cols-2 gap-3">
-          <div className="space-y-2">
+        <div key="identite-entreprise" className="grid grid-cols-2 gap-groupe">
+          <div className="space-y-champ">
             <Label htmlFor="nc-raison-sociale">{t('clients:identite.raisonSociale')}</Label>
             <Input
               id="nc-raison-sociale"
@@ -571,14 +571,14 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
               {...form.register('raisonSociale', { setValueAs: videVersIndefini })}
             />
             {form.formState.errors.raisonSociale ? (
-              <p id="nc-raison-sociale-erreur" className="text-sm text-destructive">
+              <p id="nc-raison-sociale-erreur" className="texte-corps text-destructive">
                 {form.formState.errors.raisonSociale.type === 'server'
                   ? form.formState.errors.raisonSociale.message
                   : t('validation:requis')}
               </p>
             ) : null}
           </div>
-          <div className="space-y-2">
+          <div className="space-y-champ">
             <Label htmlFor="nc-ide">{t('clients:identite.ide')}</Label>
             <Input
               id="nc-ide"
@@ -594,7 +594,7 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
               // de soumettre (aucune requête réseau), et rien ne le montre au garagiste. Le message
               // zod natif n'étant pas traduit (§ commentaire de `messageErreurChamp`), on retombe
               // sur le générique existant plutôt que d'afficher un texte anglais brut.
-              <p id="nc-ide-erreur" className="text-sm text-destructive">
+              <p id="nc-ide-erreur" className="texte-corps text-destructive">
                 {form.formState.errors.ide.type === 'server'
                   ? form.formState.errors.ide.message
                   : t('erreurs:codes.VALIDATION_ECHOUEE')}
@@ -604,7 +604,7 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
         </div>
       )}
 
-      <div className="space-y-2">
+      <div className="space-y-champ">
         <Label htmlFor="nc-langue">{t('clients:identite.langue')}</Label>
         <Select
           value={form.watch('langueCorrespondance')}
@@ -628,8 +628,8 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
         </Select>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-groupe">
+        <div className="space-y-champ">
           <Label htmlFor="nc-telephone">{t('clients:identite.telephone')}</Label>
           <Input
             id="nc-telephone"
@@ -639,7 +639,7 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
             onChange={(evenement) => setTelephoneSaisi(evenement.target.value)}
           />
         </div>
-        <div className="space-y-2">
+        <div className="space-y-champ">
           <Label htmlFor="nc-email">{t('clients:identite.email')}</Label>
           <Input
             id="nc-email"
@@ -650,7 +650,7 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
             {...form.register('email', { setValueAs: videVersIndefini })}
           />
           {form.formState.errors.email ? (
-            <p id="nc-email-erreur" className="text-sm text-destructive">
+            <p id="nc-email-erreur" className="texte-corps text-destructive">
               {form.formState.errors.email.type === 'server'
                 ? form.formState.errors.email.message
                 : t('validation:email.invalide')}
@@ -659,11 +659,11 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
         </div>
       </div>
 
-      <fieldset className="space-y-3 rounded-md border p-3">
+      <fieldset className="space-y-groupe rounded-md border p-carte">
         <legend className="px-1 texte-libelle font-medium text-foreground">
           {t('clients:adresses.types.principale')}
         </legend>
-        <div className="space-y-2">
+        <div className="space-y-champ">
           <Label htmlFor="nc-rue">{t('clients:adresses.champs.rue')}</Label>
           <Input
             id="nc-rue"
@@ -675,15 +675,15 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
             {...form.register('adressePrincipale.rue')}
           />
           {form.formState.errors.adressePrincipale?.rue ? (
-            <p id="nc-rue-erreur" className="text-sm text-destructive">
+            <p id="nc-rue-erreur" className="texte-corps text-destructive">
               {form.formState.errors.adressePrincipale.rue.type === 'server'
                 ? form.formState.errors.adressePrincipale.rue.message
                 : t('validation:requis')}
             </p>
           ) : null}
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-2">
+        <div className="grid grid-cols-2 gap-groupe">
+          <div className="space-y-champ">
             <Label htmlFor="nc-npa">{t('clients:adresses.champs.npa')}</Label>
             <Input
               id="nc-npa"
@@ -695,14 +695,14 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
               {...form.register('adressePrincipale.npa')}
             />
             {form.formState.errors.adressePrincipale?.npa ? (
-              <p id="nc-npa-erreur" className="text-sm text-destructive">
+              <p id="nc-npa-erreur" className="texte-corps text-destructive">
                 {form.formState.errors.adressePrincipale.npa.type === 'server'
                   ? form.formState.errors.adressePrincipale.npa.message
                   : t('validation:requis')}
               </p>
             ) : null}
           </div>
-          <div className="space-y-2">
+          <div className="space-y-champ">
             <Label htmlFor="nc-localite">{t('clients:adresses.champs.localite')}</Label>
             <Input
               id="nc-localite"
@@ -714,7 +714,7 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
               {...form.register('adressePrincipale.localite')}
             />
             {form.formState.errors.adressePrincipale?.localite ? (
-              <p id="nc-localite-erreur" className="text-sm text-destructive">
+              <p id="nc-localite-erreur" className="texte-corps text-destructive">
                 {form.formState.errors.adressePrincipale.localite.type === 'server'
                   ? form.formState.errors.adressePrincipale.localite.message
                   : t('validation:requis')}
@@ -725,11 +725,11 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
       </fieldset>
 
       {candidats.length > 0 ? (
-        <div className="space-y-2 rounded-md border border-statut-attention bg-statut-attention-fond p-3">
+        <div className="space-y-groupe rounded-md border border-statut-attention bg-statut-attention-fond p-carte">
           <p className="texte-libelle font-semibold text-foreground">
             {t('clients:doublons.titre')}
           </p>
-          <ul className="space-y-2">
+          <ul className="space-y-groupe">
             {candidats.map((candidat) => (
               <li
                 key={candidat.clientId}

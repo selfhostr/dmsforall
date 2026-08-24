@@ -43,9 +43,9 @@ export function BlocEcheances({
       <CardHeader>
         <CardTitle className="texte-titre-section">{t('expertise.titre')}</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+      <CardContent className="flex flex-col gap-groupe">
         <LigneEcheanceExpertise expertise={expertise} />
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-groupe sm:grid-cols-2">
           <LigneGarantie titre={t('garantie.constructeur')} garantie={garantieConstructeur} />
           <LigneGarantie titre={t('garantie.garage')} garantie={garantieGarage} />
         </div>
@@ -102,7 +102,7 @@ function LigneGarantie({
   // qui n'a simplement jamais reçu de garantie : état neutre, jamais d'icône d'alarme ici.
   if (!garantie) {
     return (
-      <div className="flex flex-col gap-1 rounded-md border border-dashed p-3">
+      <div className="flex flex-col gap-champ rounded-md border border-dashed p-carte">
         <p className="texte-libelle text-muted-foreground">{titre}</p>
         <p className="texte-corps text-muted-foreground">{t('garantie.nonRenseignee')}</p>
       </div>
@@ -115,7 +115,7 @@ function LigneGarantie({
   const Icone = active ? ShieldCheck : ShieldOff;
 
   return (
-    <div className="flex flex-col gap-1 rounded-md border p-3">
+    <div className="flex flex-col gap-champ rounded-md border p-carte">
       <div className="flex items-center gap-2">
         <Icone
           aria-hidden

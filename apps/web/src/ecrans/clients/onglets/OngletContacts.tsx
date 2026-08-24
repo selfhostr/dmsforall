@@ -119,7 +119,7 @@ export function OngletContacts({ clientId }: Props) {
                   required
                 />
                 {erreurServeur?.champErreur('nom') ? (
-                  <p className="text-sm text-destructive">
+                  <p className="texte-corps text-destructive">
                     {messageErreurChamp(erreurServeur.champErreur('nom')!, t)}
                   </p>
                 ) : null}
@@ -142,7 +142,7 @@ export function OngletContacts({ clientId }: Props) {
                   aria-invalid={erreurServeur?.champErreur('telephone') ? true : undefined}
                 />
                 {erreurServeur?.champErreur('telephone') ? (
-                  <p className="text-sm text-destructive">
+                  <p className="texte-corps text-destructive">
                     {messageErreurChamp(erreurServeur.champErreur('telephone')!, t)}
                   </p>
                 ) : null}
@@ -162,7 +162,7 @@ export function OngletContacts({ clientId }: Props) {
                     `email`) et retombe sur la clé i18n existante plutôt que le message anglais
                     brut de zod. */}
                 {erreurServeur?.champErreur('email') ? (
-                  <p className="text-sm text-destructive">
+                  <p className="texte-corps text-destructive">
                     {messageErreurChamp(erreurServeur.champErreur('email')!, t)}
                   </p>
                 ) : null}

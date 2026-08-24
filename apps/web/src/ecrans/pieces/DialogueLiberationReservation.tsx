@@ -51,7 +51,7 @@ export function DialogueLiberationReservation({ reservationId, onFerme }: Props)
           {t('commun:formulaires.champsObligatoiresLegende')}
         </LegendeChampsObligatoires>
 
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-champ">
           <Label htmlFor="resa-motif" requis>
             {t('pieces:reservations.liberation.champMotif')}
           </Label>

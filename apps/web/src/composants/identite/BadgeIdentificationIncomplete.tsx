@@ -1,7 +1,7 @@
 import { HelpCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { cn } from '@/lib/utils';
+import { BadgeAttribut } from './BadgeAttribut';
 
 interface Props {
   /** `ReponseVehicule.identificationIncomplete` / `VehiculeResume.identificationIncomplete`
@@ -29,14 +29,11 @@ export function BadgeIdentificationIncomplete({ identificationIncomplete, classN
   }
 
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 rounded-full border border-input bg-background px-2.5 py-0.5 texte-libelle font-medium text-muted-foreground',
-        className,
-      )}
+    <BadgeAttribut
+      icone={<HelpCircle aria-hidden className="h-3.5 w-3.5 shrink-0" />}
+      className={className}
     >
-      <HelpCircle aria-hidden className="h-3.5 w-3.5 shrink-0" />
       {t('vehicules:badges.identificationIncomplete')}
-    </span>
+    </BadgeAttribut>
   );
 }

@@ -2,7 +2,15 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <!-- `viewport-fit=cover` : sans lui, `env(safe-area-inset-*)` (`--zone-sure-*`,
+         `index.css`) reste à 0 sur tout appareil à encoche/coin arrondi/indicateur
+         d'accueil — la barre d'onglets basse et son dégagement en dépendent
+         entièrement (voir `composants/layout/BarreOngletsBasse.tsx`).
+         `maximum-scale=1` RETIRÉ (24.08.2026, revue @laupernoe) : il bloque le pincer-zoomer,
+         défaut WCAG 1.4.4 classique (redimensionnement du texte jusqu'à 200 % empêché) —
+         aucune raison métier ne le justifiait ici, un garagiste doit pouvoir zoomer un
+         écran dense sur tablette comme n'importe qui. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>dmsforall</title>
   </head>
   <body>

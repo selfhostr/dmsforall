@@ -87,7 +87,7 @@ export function PanneauMouvementsArticle({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
+      <CardHeader className="flex flex-row items-center justify-between gap-controles space-y-0">
         <CardTitle className="texte-titre-section">{t('pieces:stock.mouvements.titre')}</CardTitle>
         {peutCreerMouvement ? (
           <Button type="button" variant="outline" onClick={() => setDialogueOuvert(true)}>
@@ -95,7 +95,7 @@ export function PanneauMouvementsArticle({
           </Button>
         ) : null}
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+      <CardContent className="flex flex-col gap-groupe">
         {isPending ? (
           <EtatChargement lignes={4} />
         ) : isError ? (

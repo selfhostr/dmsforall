@@ -1,6 +1,10 @@
 {
   "titre": "Relances automatiques",
-  "sousTitre": "Rappels de factures impayées : réglez les paliers, déclenchez la planification et l'envoi.",
+  "sousTitre": "Rappels de factures impayées : déclenchez la planification et l'envoi, consultez l'historique.",
+  "reglages": {
+    "titre": "Paliers de relance",
+    "sousTitre": "Réglez les délais et les canaux d'envoi des rappels de facture impayée pour ce garage."
+  },
   "navigation": {
     "lien": "Relances"
   },

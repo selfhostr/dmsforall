@@ -110,7 +110,7 @@ describe('EcranListeCommandesFournisseur', () => {
 
     rendre();
 
-    expect(await screen.findByText('Aucune commande.')).toBeInTheDocument();
+    expect(await screen.findByText('Aucune commande fournisseur')).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Créer une commande' }).length).toBeGreaterThan(0);
   });
 

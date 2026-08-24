@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { ImportationVehicule } from '@dfa/shared';
 
-import { cn } from '@/lib/utils';
+import { BadgeAttribut } from './BadgeAttribut';
 
 interface Props {
   readonly importation: ImportationVehicule;
@@ -28,14 +28,11 @@ export function BadgeImporte({ importation, className }: Props) {
   }
 
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 rounded-full border border-input bg-background px-2.5 py-0.5 texte-libelle font-medium text-muted-foreground',
-        className,
-      )}
+    <BadgeAttribut
+      icone={<Globe aria-hidden className="h-3.5 w-3.5 shrink-0" />}
+      className={className}
     >
-      <Globe aria-hidden className="h-3.5 w-3.5 shrink-0" />
       {t('vehicules:importation.importe')}
-    </span>
+    </BadgeAttribut>
   );
 }

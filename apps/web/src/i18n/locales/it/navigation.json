@@ -63,6 +63,10 @@
   "menu": {
     "ouvrir": "Apri menu"
   },
+  "barreBasse": {
+    "aria": "Navigazione inferiore",
+    "plus": "Altro"
+  },
   "evitement": {
     "contenu": "Vai al contenuto"
   },

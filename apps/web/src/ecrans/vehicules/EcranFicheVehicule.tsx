@@ -15,10 +15,12 @@ import { requeteApi } from '@/api/client';
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { BadgeStatutOr } from '@/composants/identite/BadgeStatutOr';
+import { FilAriane, type SegmentFilAriane } from '@/composants/layout/FilAriane';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { BlocDonneesAtelier } from '@/composants/vehicule/BlocDonneesAtelier';
 import { BlocEcheances } from '@/composants/vehicule/BlocEcheances';
@@ -271,8 +273,28 @@ export function EcranFicheVehicule() {
     return `${base}${base.includes('?') ? '&' : '?'}depot=${encodeURIComponent(depotId)}`;
   }
 
+  // Fil d'Ariane contextuel (chantier « un seul patron », 24.08.2026) — même dispositif que
+  // `EnTeteOrdreReparation.tsx` (« client › véhicule »), pris ici comme modèle : « pour un
+  // véhicule, la chaîne client › véhicule a un sens réel ». Un véhicule SANS détenteur courant
+  // (occasion pas encore rattachée, cas réel couvert par `DialogueRattacherClient`) n'a aucun
+  // ancêtre cliquable — jamais un client inventé, le fil se réduit alors à la seule page courante.
+  const libellePageVehicule = vehicule.plaque
+    ? `${vehicule.plaque} · ${vehicule.designation}`
+    : vehicule.designation;
+  const segmentsFilAriane: readonly SegmentFilAriane[] = proprietaireActuel
+    ? [
+        {
+          cle: 'client',
+          libelle: proprietaireActuel.client.nomAffiche,
+          href: chemins.clients.detail(proprietaireActuel.client.id, site),
+        },
+      ]
+    : [];
+
   return (
     <GabaritEcran titre={t('commun:titres.vehiculeDetail')} titreVisible={false}>
+      <FilAriane segments={segmentsFilAriane} pageCourante={libellePageVehicule} />
+
       <div className="flex flex-wrap items-start justify-between gap-3">
         <EnTeteFicheVehicule vehicule={vehicule} dernierKilometrage={contexte.dernierKilometrage} />
         {/* Lot B — action primaire « nouvel OR » depuis la fiche véhicule. CORRECTIF issue #48 :
@@ -364,26 +386,32 @@ export function EcranFicheVehicule() {
         site={siteRendezVous}
       />
 
-      {/* Lot B (correction 6, vendeur) — dossier de vente en cours ou passé, si ce véhicule est ou
-       *  a été en stock. Le contrat ne porte pas de numéro court identifiable à l'oral pour un
-       *  dossier (`EnTeteDossierVente.tsx`, même constat) : le lien s'appuie donc sur le statut et
-       *  le client, pas sur un « dossier n°x » qui n'existe pas côté serveur.
+      {/* Convergence patron de fiche (chantier « un seul patron », 24.08.2026) : les QUATRE
+       *  listes d'activité du véhicule (dossier de vente, pneus, OR, factures) rejoignent un
+       *  onglets unique — même dispositif que `EcranFicheClient.tsx` (contacts/adresses/
+       *  consentements/notes), désormais convergé plutôt que « quatre onglets ici, zéro onglet
+       *  là ». Restent SCINDÉS de ce groupe (panneaux empilés, jamais un clic requis) :
+       *  propriétaire, rendez-vous, échéances/données d'atelier, travaux reportés, kilométrage,
+       *  détentions — la doctrine « SANS CLIQUER » du comptoir (voir l'en-tête de ce fichier)
+       *  s'applique précisément à eux, aucun de ces quatre-là n'en fait partie.
        *
        *  Défaut corrigé (mesuré en navigateur, connecté `admin` — rôle SANS `ventes.dossier.lire`,
-       *  RF-115) : la requête partait sans garde de droits ni politique de réessai — six requêtes
-       *  `GET /dossiers-vente` en moins de dix secondes, toutes en 403, jamais arrêtées, puis la
-       *  section entière disparaissait en silence (un refus de droit rendu comme une absence de
-       *  donnée). `peutVoirDossiersVente` gate désormais la requête elle-même (voir sa définition
-       *  plus haut) : zéro requête pour un rôle qui n'a pas le droit, et les trois états —
-       *  chargement de la session, droit manquant, résultat — restent chacun DISTINCTS, même
-       *  doctrine que les sections « Pneus »/« OR »/« Factures » ci-dessous. */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="texte-titre-section">
-            {t('vehicules:fiche.dossierVente.titre')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+       *  RF-115) : la requête « dossier de vente » partait sans garde de droits ni politique de
+       *  réessai — six requêtes `GET /dossiers-vente` en moins de dix secondes, toutes en 403,
+       *  jamais arrêtées, puis la section entière disparaissait en silence (un refus de droit
+       *  rendu comme une absence de donnée). `peutVoirDossiersVente` gate désormais la requête
+       *  elle-même (voir sa définition plus haut) : zéro requête pour un rôle qui n'a pas le
+       *  droit, et les trois états — chargement de la session, droit manquant, résultat — restent
+       *  chacun DISTINCTS, même doctrine que « OR » ci-dessous. */}
+      <Tabs defaultValue="dossierVente">
+        <TabsList>
+          <TabsTrigger value="dossierVente">{t('vehicules:fiche.dossierVente.titre')}</TabsTrigger>
+          <TabsTrigger value="pneus">{t('vehicules:fiche.pneus.titre')}</TabsTrigger>
+          <TabsTrigger value="or">{t('vehicules:fiche.ordresReparation.titre')}</TabsTrigger>
+          <TabsTrigger value="factures">{t('vehicules:fiche.factures.titre')}</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="dossierVente" className="pt-4">
           {session.isLoading ? (
             <EtatChargement lignes={2} />
           ) : !peutVoirDossiersVente ? (
@@ -419,37 +447,12 @@ export function EcranFicheVehicule() {
               ))}
             </ul>
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <BlocEcheances
-          expertise={contexte.expertise}
-          garantieConstructeur={contexte.garantie.constructeur}
-          garantieGarage={contexte.garantie.garage}
-        />
-        <BlocDonneesAtelier donnees={vehicule} />
-      </div>
-
-      {/* Panneau de GESTION (RM-73) — remplace l'ancienne liste en lecture seule alimentée par la
-       *  projection bornée de `contexte-atelier` : `EncartAlertesVehicule` ci-dessus couvre déjà le
-       *  « sans cliquer » pour les travaux OUVERTS, ce panneau ajoute la correction/clôture/abandon
-       *  et l'historique complet (non bornés), depuis la ressource dédiée.
-       *  SIGNALÉ, PAS CORRIGÉ (Lot B, hors périmètre exclusif de cet agent) : le plan demande
-       *  « travaux reportés avec ouvrir un OR à partir de ces travaux » — `PanneauTravauxReportes.tsx`
-       *  n'a aujourd'hui aucun tel geste et vit hors de la liste de fichiers confiée à cet agent
-       *  (seul `EcranFicheVehicule.tsx` y figure). À ajouter par l'agent propriétaire de ce
-       *  composant. */}
-      {vehiculeId ? <PanneauTravauxReportes vehiculeId={vehiculeId} /> : null}
-
-      {/* Lot B — jeu de pneus au dépôt et son emplacement (magasinier : « le lien qui manque le
-       *  plus tous les jours », condition posée pour accepter le déménagement du dépôt pneus vers
-       *  Atelier). Lien vers le hangar (aucune fiche par jeu dédiée à ce jour). */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="texte-titre-section">{t('vehicules:fiche.pneus.titre')}</CardTitle>
-        </CardHeader>
-        <CardContent>
+        {/* Lot B — jeu de pneus au dépôt et son emplacement (magasinier : « le lien qui manque le
+         *  plus tous les jours », condition posée pour accepter le déménagement du dépôt pneus
+         *  vers Atelier). Lien vers le hangar (aucune fiche par jeu dédiée à ce jour). */}
+        <TabsContent value="pneus" className="pt-4">
           {requeteDepotsPneus.isPending ? (
             <EtatChargement lignes={2} />
           ) : requeteDepotsPneus.isError ? (
@@ -490,17 +493,10 @@ export function EcranFicheVehicule() {
               ))}
             </ul>
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
 
-      {/* Lot B — ses OR. */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="texte-titre-section">
-            {t('vehicules:fiche.ordresReparation.titre')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+        {/* Lot B — ses OR. */}
+        <TabsContent value="or" className="pt-4">
           {session.isLoading ? (
             <EtatChargement lignes={2} />
           ) : !peutVoirOrdresReparation ? (
@@ -562,17 +558,10 @@ export function EcranFicheVehicule() {
               ))}
             </ul>
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
 
-      {/* Lot B — ses factures. */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="texte-titre-section">
-            {t('vehicules:fiche.factures.titre')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+        {/* Lot B — ses factures. */}
+        <TabsContent value="factures" className="pt-4">
           {requeteFactures.isPending ? (
             <EtatChargement lignes={2} />
           ) : requeteFactures.isError ? (
@@ -604,8 +593,28 @@ export function EcranFicheVehicule() {
               ))}
             </ul>
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
+      </Tabs>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <BlocEcheances
+          expertise={contexte.expertise}
+          garantieConstructeur={contexte.garantie.constructeur}
+          garantieGarage={contexte.garantie.garage}
+        />
+        <BlocDonneesAtelier donnees={vehicule} />
+      </div>
+
+      {/* Panneau de GESTION (RM-73) — remplace l'ancienne liste en lecture seule alimentée par la
+       *  projection bornée de `contexte-atelier` : `EncartAlertesVehicule` ci-dessus couvre déjà le
+       *  « sans cliquer » pour les travaux OUVERTS, ce panneau ajoute la correction/clôture/abandon
+       *  et l'historique complet (non bornés), depuis la ressource dédiée.
+       *  SIGNALÉ, PAS CORRIGÉ (Lot B, hors périmètre exclusif de cet agent) : le plan demande
+       *  « travaux reportés avec ouvrir un OR à partir de ces travaux » — `PanneauTravauxReportes.tsx`
+       *  n'a aujourd'hui aucun tel geste et vit hors de la liste de fichiers confiée à cet agent
+       *  (seul `EcranFicheVehicule.tsx` y figure). À ajouter par l'agent propriétaire de ce
+       *  composant. */}
+      {vehiculeId ? <PanneauTravauxReportes vehiculeId={vehiculeId} /> : null}
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">

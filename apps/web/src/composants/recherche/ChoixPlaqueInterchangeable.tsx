@@ -26,17 +26,17 @@ export function ChoixPlaqueInterchangeable({
   const { t } = useTranslation('recherche');
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-champ">
       <p className="texte-libelle font-medium text-muted-foreground">
         {t('details.plaqueInterchangeable', { count: vehicules.length })}
       </p>
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-groupe">
         {vehicules.map((vehicule) => (
           <button
             key={vehicule.id}
             type="button"
             onClick={() => onChoisir(vehicule)}
-            className="flex min-h-11 items-center rounded-md border border-input p-3 text-left transition-colors hover:bg-muted anneau-focus"
+            className="flex min-h-11 items-center rounded-md border border-input p-carte text-left transition-colors hover:bg-muted anneau-focus"
           >
             <ResultatVehicule resultat={vehicule} />
           </button>

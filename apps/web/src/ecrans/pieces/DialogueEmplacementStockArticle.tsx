@@ -75,8 +75,8 @@ export function DialogueEmplacementStockArticle({ casier, onFerme }: Props) {
           <DialogDescription>{t('pieces:emplacement.dialogue.description')}</DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-controles">
+          <div className="flex flex-col gap-champ">
             <Label htmlFor="casier-rayon">{t('pieces:emplacement.dialogue.rayon')}</Label>
             <Input
               id="casier-rayon"
@@ -86,7 +86,7 @@ export function DialogueEmplacementStockArticle({ casier, onFerme }: Props) {
               maxLength={20}
             />
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-champ">
             <Label htmlFor="casier-tiroir">{t('pieces:emplacement.dialogue.tiroir')}</Label>
             <Input
               id="casier-tiroir"

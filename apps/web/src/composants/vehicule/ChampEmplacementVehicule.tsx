@@ -115,8 +115,8 @@ export function ChampEmplacementVehicule({
   }
 
   return (
-    <div className={cn('flex flex-col gap-1', className)}>
-      <div className="flex items-center gap-1.5">
+    <div className={cn('flex flex-col gap-champ', className)}>
+      <div className="flex items-center gap-controles">
         <Input
           ref={champRef}
           value={valeur}

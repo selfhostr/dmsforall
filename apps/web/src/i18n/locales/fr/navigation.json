@@ -63,6 +63,10 @@
   "menu": {
     "ouvrir": "Ouvrir le menu"
   },
+  "barreBasse": {
+    "aria": "Navigation basse",
+    "plus": "Plus"
+  },
   "evitement": {
     "contenu": "Aller au contenu"
   },

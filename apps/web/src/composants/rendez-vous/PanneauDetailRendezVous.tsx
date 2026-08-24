@@ -112,8 +112,8 @@ export function PanneauDetailRendezVous({
           <SheetTitle>{t('planning:detail.titre')}</SheetTitle>
         </SheetHeader>
 
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-col gap-section">
+          <div className="flex items-center justify-between gap-controles">
             <BadgeStatutRendezVous statut={rendezVous.statut} />
             {estArrive && rendezVous.ordreReparationId ? (
               <Button asChild variant="outline" size="sm">
@@ -137,7 +137,7 @@ export function PanneauDetailRendezVous({
             </p>
           ) : null}
 
-          <dl className="grid grid-cols-2 gap-3 texte-corps">
+          <dl className="grid grid-cols-2 gap-groupe texte-corps">
             <div>
               <dt className="text-muted-foreground">{t('planning:champs.client')}</dt>
               <dd className="text-foreground">{rendezVous.clientNom}</dd>
@@ -176,7 +176,7 @@ export function PanneauDetailRendezVous({
 
           {!lectureSeule && !estArrive && !estJourJOuApres ? (
             <div
-              className="rounded-md border border-info/40 bg-info/5 p-3"
+              className="rounded-md border border-info/40 bg-info/5 p-carte"
               role="status"
               aria-live="polite"
             >
@@ -188,7 +188,7 @@ export function PanneauDetailRendezVous({
 
           {!lectureSeule && !estArrive && peutAgir ? (
             <div
-              className="flex flex-wrap items-center gap-2"
+              className="flex flex-wrap items-center gap-controles"
               role="group"
               aria-label={t('planning:detail.titre')}
             >
@@ -222,7 +222,7 @@ export function PanneauDetailRendezVous({
             <div
               role="alertdialog"
               aria-label={t('planning:detail.annulation.titre')}
-              className="flex flex-col gap-3 rounded-md border border-destructive/40 bg-destructive/5 p-3"
+              className="flex flex-col gap-groupe rounded-md border border-destructive/40 bg-destructive/5 p-carte"
             >
               <p className="texte-corps font-semibold text-foreground">
                 {t('planning:detail.annulation.titre')}
@@ -231,7 +231,7 @@ export function PanneauDetailRendezVous({
               <p className="texte-corps text-muted-foreground">
                 {t('planning:detail.annulation.description')}
               </p>
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-champ">
                 <Label htmlFor="rdv-motif-annulation">
                   {t('planning:detail.annulation.motifLabel')}
                 </Label>
@@ -242,12 +242,12 @@ export function PanneauDetailRendezVous({
                   aria-invalid={erreurMotif}
                 />
                 {erreurMotif ? (
-                  <p className="text-xs text-destructive">
+                  <p className="texte-petit text-destructive">
                     {t('planning:detail.annulation.motifRequis')}
                   </p>
                 ) : null}
               </div>
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-controles">
                 <Button
                   type="button"
                   variant="outline"
@@ -268,7 +268,7 @@ export function PanneauDetailRendezVous({
           ) : null}
 
           {rendezVous.historique.length > 0 ? (
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-champ">
               <p className="texte-corps font-semibold text-foreground">
                 {t('planning:detail.historique.titre')}
               </p>

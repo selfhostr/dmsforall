@@ -63,7 +63,7 @@ export function BasculeVueStock({ vue, onChangeVue }: Props) {
             key={valeur}
             value={valeur}
             className={cn(
-              'flex h-9 items-center whitespace-nowrap rounded-sm px-3 text-sm font-medium transition-colors',
+              'flex h-9 items-center whitespace-nowrap rounded-sm px-3 texte-corps font-medium transition-colors',
               'anneau-focus',
               'text-muted-foreground hover:text-foreground',
               'data-[state=active]:bg-background data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-sm',

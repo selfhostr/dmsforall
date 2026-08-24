@@ -223,7 +223,7 @@ export function EcranNouveauVehicule() {
                 )}
               />
               {form.formState.errors.marque ? (
-                <p className="text-sm text-destructive">{t('validation:requis')}</p>
+                <p className="texte-corps text-destructive">{t('validation:requis')}</p>
               ) : null}
             </div>
             <div className="flex flex-col gap-1.5">
@@ -247,7 +247,7 @@ export function EcranNouveauVehicule() {
                 )}
               />
               {form.formState.errors.modele ? (
-                <p className="text-sm text-destructive">{t('validation:requis')}</p>
+                <p className="texte-corps text-destructive">{t('validation:requis')}</p>
               ) : null}
             </div>
           </div>
@@ -281,7 +281,7 @@ export function EcranNouveauVehicule() {
                 {...form.register('vin', { setValueAs: videVersIndefini })}
               />
               {form.formState.errors.vin ? (
-                <p className="text-sm text-destructive">
+                <p className="texte-corps text-destructive">
                   {t('validation:longueurMin', { min: 5 })}
                 </p>
               ) : null}
@@ -353,7 +353,7 @@ export function EcranNouveauVehicule() {
                 {...form.register('canton', { setValueAs: videVersIndefini })}
               />
               {form.formState.errors.canton ? (
-                <p className="text-sm text-destructive">
+                <p className="texte-corps text-destructive">
                   {t('validation:longueurMin', { min: 2 })}
                 </p>
               ) : null}

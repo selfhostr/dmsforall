@@ -207,7 +207,7 @@ export function EcranFicheArticle() {
               {article.references.map((reference) => (
                 <li
                   key={reference.id}
-                  className="flex items-center justify-between gap-3 texte-corps"
+                  className="flex items-center justify-between gap-controles texte-corps"
                 >
                   <span className="font-mono">{reference.reference}</span>
                   <span className="texte-libelle text-muted-foreground">
@@ -294,7 +294,10 @@ export function EcranFicheArticle() {
           ) : (
             <ul className="flex flex-col divide-y">
               {commandesAvecArticle.map((commande) => (
-                <li key={commande.id} className="flex items-center justify-between gap-3 py-2">
+                <li
+                  key={commande.id}
+                  className="flex items-center justify-between gap-controles py-2"
+                >
                   <button
                     type="button"
                     className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -338,7 +341,10 @@ export function EcranFicheArticle() {
           ) : (
             <ul className="flex flex-col divide-y">
               {reservationsActives.map((reservation) => (
-                <li key={reservation.id} className="flex items-center justify-between gap-3 py-2">
+                <li
+                  key={reservation.id}
+                  className="flex items-center justify-between gap-controles py-2"
+                >
                   <button
                     type="button"
                     className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -388,7 +394,10 @@ export function EcranFicheArticle() {
           ) : (
             <ul className="flex flex-col divide-y">
               {consommations.map((reservation) => (
-                <li key={reservation.id} className="flex items-center justify-between gap-3 py-2">
+                <li
+                  key={reservation.id}
+                  className="flex items-center justify-between gap-controles py-2"
+                >
                   <button
                     type="button"
                     className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
