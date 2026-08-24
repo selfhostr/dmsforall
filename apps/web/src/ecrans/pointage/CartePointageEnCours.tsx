@@ -89,7 +89,7 @@ export function CartePointageEnCours({
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
         <div className="flex flex-col items-center gap-2 py-4">
-          <span className="tabular-nums text-6xl font-bold tracking-tight" aria-live="off">
+          <span className="tabular-nums text-5xl font-bold tracking-tight" aria-live="off">
             {chrono.libelle}
           </span>
           <span className="texte-corps text-muted-foreground">{libelleCible}</span>

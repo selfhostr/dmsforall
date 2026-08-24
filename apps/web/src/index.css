@@ -110,35 +110,48 @@
   --popover-foreground: 240 10% 3.9%;
 
   /* ── Couleur de marque ────────────────────────────────────────────────────
-     GRIS FONCÉ NEUTRE `240 6% 24%`. Décision de @laupernoe, revenue sur le violet
-     d'encre du Lot K (`288 58% 36%`) : le produit reste dans les nuances de
-     gris déjà posées par `--foreground`/`--border`/`--muted` (même teinte
-     240°), sans couleur d'accueil dédiée.
+     SARCELLE PROFONDE, teinte 186°. Décision de @laupernoe, revenue sur le gris
+     neutre `240 6% 24%` du Lot K (lui-même un retour sur le violet d'encre du
+     Lot K d'origine, `288 58% 36%`) : le produit a maintenant une vraie
+     couleur d'accueil, pas un gris de plus dans la famille de `--foreground`/
+     `--border`/`--muted`.
 
-     Conséquence assumée sur le critère qui justifiait le violet (« aucune
-     confusion possible avec une pastille de statut ») : avec une saturation
-     quasi nulle (6 %), `--marque` n'a plus de teinte à comparer aux six
-     `--statut-*`, qui restent eux saturés (38° à 217°). La distinction ne
-     tient donc plus à un écart de teinte calculé mais à la valeur : `--marque`
-     est nettement plus sombre (24 % de luminosité) que les fonds clairs des
-     statuts (91-97 %, voir plus bas) et nettement plus clair que le texte
-     `--foreground` (3.9 %) — un bouton d'action reste identifiable au premier
-     coup d'œil, jamais par sa seule couleur.
+     Teinte choisie pour son écart aux quatre teintes déjà prises par les
+     statuts d'OR (`--statut-*` plus bas, §Statuts métier) — une couleur ne
+     dit jamais deux choses dans ce produit :
+       écart à --statut-info      (217°, « en cours »)  : 31°
+       écart à --statut-attention (38°,  « attention »)  : 148°
+       écart à --statut-succes    (142°, « terminé »)    : 44°
+       écart à --statut-danger    (0°,   « annulé/sécu ») : 174°
+     Les deux écarts qui comptent (bleu/vert, les teintes les plus proches sur
+     le cercle chromatique) restent chacun > 30°, largement au-delà du seuil
+     de confusion à l'œil — et l'écart de LUMINOSITÉ fait le reste : la marque
+     reste nettement plus sombre que les fonds `--statut-*-fond` (91-97 % de
+     luminosité, voir plus bas).
+
+     Clarté/saturation ajustées par rapport à la valeur de départ proposée
+     (`186 82% 27%`, 5.65:1 sur fond blanc) : ce triplet ne tenait PAS le
+     plancher fixé par @laupernoe (« ne jamais descendre sous les ratios actuels,
+     documentés jusqu'à 11.28:1 AAA »). Assombrie à L 15 % (au lieu de 27 %) en
+     gardant une saturation élevée (S 80 %, contre 82 % proposé) pour rester
+     une vraie couleur perçue et pas un gris teinté : la sarcelle qui en
+     résulte est profonde et saturée, jamais un pastel.
 
      Contraste mesuré (méthode de docs/design-comptoir.md — luminance relative
      WCAG 2.1, calcul programmatique, rejoué par
-     `src/test/accessibilite/contraste-jetons.spec.ts`) :
-       --marque sur --background ......... 11.28:1 (AAA)
-       --marque sur --muted .............. 10.26:1 (AAA)
-       blanc sur --marque (bouton plein) . 11.28:1 (AAA)
-       blanc sur --marque-fort (survol) .. 15.04:1 (AAA)
-       --marque sur --marque-doux ........ 10.00:1 (AAA)
-       --marque-doux-foreground sur --marque-doux .. 10.80:1 (AAA)
+     `src/test/accessibilite/contraste-jetons.spec.ts`) — chaque ligne reste
+     ≥ à la valeur Lot K qu'elle remplace (rappelée entre parenthèses) :
+       --marque sur --background ......... 11.62:1 AAA (Lot K : 11.28:1)
+       --marque sur --muted .............. 10.57:1 AAA (Lot K : 10.26:1)
+       blanc sur --marque (bouton plein) . 11.62:1 AAA (Lot K : 11.28:1)
+       blanc sur --marque-fort (survol) .. 15.25:1 AAA (Lot K : 15.04:1)
+       --marque sur --marque-doux ........ 10.58:1 AAA (Lot K : 10.00:1)
+       --marque-doux-foreground sur --marque-doux .. 13.89:1 AAA (Lot K : 10.80:1)
      ─────────────────────────────────────────────────────────────────────── */
-  --marque: 240 6% 24%;
-  --marque-fort: 240 8% 16%; /* survol / appui d'une surface pleine de marque */
-  --marque-doux: 240 6% 95%; /* surface de surlignage (élément de menu actif) */
-  --marque-doux-foreground: 240 6% 22%;
+  --marque: 186 80% 15%; /* #083f45 */
+  --marque-fort: 186 80% 10%; /* survol / appui d'une surface pleine de marque, #052a2e */
+  --marque-doux: 186 40% 95%; /* surface de surlignage (élément de menu actif), #edf6f7 */
+  --marque-doux-foreground: 186 80% 12%; /* #063237 */
 
   /* `--primary` EST la couleur de marque. Une seule source de vérité : il n'existe
      pas d'un côté un « gris primaire » et de l'autre une marque décorative, sans quoi
@@ -240,9 +253,45 @@
   --espace-champ: 0.375rem; /* libellé <-> champ qu'il désigne */
   --espace-controles: 0.75rem; /* entre deux boutons d'une barre d'actions */
   --espace-groupe: 1rem; /* entre deux champs d'un même groupe */
-  --espace-carte: 1.5rem; /* rembourrage intérieur d'une carte */
-  --espace-section: 2rem; /* entre deux sections d'un écran */
-  --espace-ecran: 1.5rem; /* marge d'un écran par rapport au cadre */
+  /* Les trois valeurs ci-dessous sont resserrées par rapport au Lot K — voir le
+     détail chiffré (avant/après/raison) dans les blocs `.densite-*` plus bas, qui
+     restent la source de vérité par densité. Ce bloc `:root` n'est que le gabarit
+     `aeree` de dégradation sûre : il doit rester identique à `.densite-aeree`. */
+  --espace-carte: 1.25rem; /* rembourrage intérieur d'une carte (était 1.5rem) */
+  --espace-section: 1.75rem; /* entre deux sections d'un écran (était 2rem) */
+  --espace-ecran: 1.25rem; /* marge d'un écran par rapport au cadre (était 1.5rem) */
+}
+
+/* ── Zone sûre & barre d'onglets basse ────────────────────────────────────────
+   Lot en cours : la barre d'onglets basse mobile elle-même n'est PAS écrite ici
+   (autre lot) — seuls les jetons dont elle aura besoin le sont, pour que ce lot
+   n'ait aucune valeur à inventer.
+
+   `--zone-sure-*` reprend `env(safe-area-inset-*)` (encoche, coin arrondi,
+   home indicator iOS/Android) avec un repli à 0px sur tout appareil qui ne
+   l'expose pas (desktop, la plupart des tablettes Android). Ces jetons ne
+   produisent une valeur non nulle que si `<meta name="viewport">` porte
+   `viewport-fit=cover` dans `apps/web/index.html` — PAS encore le cas
+   aujourd'hui (vérifié : seul `width=device-width, initial-scale=1.0,
+   maximum-scale=1` y est déclaré). Câbler ce `viewport-fit=cover` fait partie
+   du lot qui posera la barre d'onglets, pas de celui-ci — `index.html` est hors
+   périmètre d'écriture de ce lot.
+
+   `--barre-onglets-hauteur` est le corps de la barre SEUL, hors zone sûre :
+   56px de contenu (icône + libellé court), au-delà du plancher de cible
+   tactile de 44px pour laisser de la place à l'étiquette sans que la zone
+   cliquable ne colle au bord. `--barre-onglets-degagement` additionne la zone
+   sûre basse : c'est la valeur à utiliser en `padding-bottom`/`margin-bottom`
+   du CONTENU scrollable qui vit au-dessus de la barre, pour qu'elle ne
+   recouvre jamais la dernière ligne d'une liste. */
+:root {
+  --zone-sure-haut: env(safe-area-inset-top, 0px);
+  --zone-sure-bas: env(safe-area-inset-bottom, 0px);
+  --zone-sure-gauche: env(safe-area-inset-left, 0px);
+  --zone-sure-droite: env(safe-area-inset-right, 0px);
+
+  --barre-onglets-hauteur: 56px;
+  --barre-onglets-degagement: calc(var(--barre-onglets-hauteur) + var(--zone-sure-bas));
 }
 
 @theme inline {
@@ -294,6 +343,17 @@
   --spacing-carte: var(--espace-carte);
   --spacing-section: var(--espace-section);
   --spacing-ecran: var(--espace-ecran);
+
+  /* Zone sûre & barre d'onglets basse, en utilitaires : `pb-zone-sure-bas`,
+     `pt-zone-sure-haut`, `h-barre-onglets-hauteur`, `pb-barre-onglets-degagement`…
+     Non consommés par un écran aujourd'hui — posés pour le lot qui écrira la barre
+     d'onglets mobile, voir le commentaire au-dessus des déclarations `:root`. */
+  --spacing-zone-sure-haut: var(--zone-sure-haut);
+  --spacing-zone-sure-bas: var(--zone-sure-bas);
+  --spacing-zone-sure-gauche: var(--zone-sure-gauche);
+  --spacing-zone-sure-droite: var(--zone-sure-droite);
+  --spacing-barre-onglets-hauteur: var(--barre-onglets-hauteur);
+  --spacing-barre-onglets-degagement: var(--barre-onglets-degagement);
 
   /* Durée de transition par défaut du produit (`transition-colors` et consorts). */
   --default-transition-duration: var(--duree-rapide);
@@ -411,23 +471,69 @@
    `dense` : un composant qui oublie de se nicher sous une classe
    `.densite-*` dégrade sur le gabarit bureau plutôt que de casser.
 
-   ÉCHELLE TYPOGRAPHIQUE COMPLÈTE (Lot K) — six rôles, un par intention :
+   ÉCHELLE TYPOGRAPHIQUE COMPLÈTE — huit rôles, un par intention. `.texte-petit`
+   et `.texte-annexe` sont NEUFS dans ce lot (voir plus bas, `@layer utilities`) :
+   ils comblent les deux trous qui poussaient 88 endroits du produit à écrire
+   `text-xs`/`text-sm`/`text-base`/`text-lg`/`text-xl`/`text-2xl` en dur plutôt
+   qu'un rôle sémantique. Les DEUX sont volontairement des ALIAS d'un rôle
+   existant (mêmes variables `--texte-libelle-*`/`--texte-titre-*`) : le
+   produit ne gagne aucun palier de taille supplémentaire, seulement deux
+   façons de poser une taille existante SANS la couleur (`.texte-petit`) ou le
+   gras (`.texte-annexe`) que leur rôle d'origine impose. Table de
+   correspondance classe brute → rôle : voir `docs/design-comptoir.md` et le
+   rapport du lot qui a introduit ces deux rôles.
 
      rôle                     classe                      dense   aérée  très aérée
      ─────────────────────────────────────────────────────────────────────────────
      libellé (en-tête, méta)  .texte-libelle              12/16   14/20   16/24
+     petit (texte-xs, ss.     .texte-petit                12/16   14/20   16/24
+       couleur imposée)
      corps (tout le reste)    .texte-corps                14/20   16/24   18/28
+     annexe (paragraphe       .texte-annexe               16/24   18/28   20/28
+       secondaire, ss. gras)
      titre de section         .texte-titre-section        16/24   18/28   20/28
-     titre d'écran            .texte-titre-page           20/28   24/32   28/36
-     donnée proéminente       .texte-donnee-proeminente   20      24      28
-     chiffre à distance       .texte-chiffre-geant        36      48      60
+     titre d'écran            .texte-titre-page           20/28   22/28   24/32
+     donnée proéminente       .texte-donnee-proeminente   20      22      24
+     chiffre à distance       .texte-chiffre-geant        32      40      48
 
-   Trois trous du Lot 1 comblés ici : `--texte-titre-page-*` n'existait pas
-   (les écrans posaient un `text-xl`/`text-2xl` au jugé) ; `--texte-donnee-taille`
-   était absent de `.densite-tres-aeree`, où la donnée proéminente retombait à
-   20 px alors que le corps y fait 18 px — deux pixels d'écart pour ce qui doit
-   se lire en premier ; `--texte-chiffre-geant-taille` n'était défini que pour
-   `tres-aeree`. ────────────────────────────────────────────────────────── */
+   PLAFONNÉ dans ce lot — demande explicite de @laupernoe (« un titre de page n'a pas
+   besoin d'être spectaculaire », « comme si Apple le faisait ») : titre d'écran,
+   donnée proéminente et chiffre géant montaient jusqu'à 28/28/60px en très
+   aérée. Deux défauts corrigés en même temps :
+     1. le pas titre-section → titre-page CROISSAIT avec la densité (+4, +6,
+        +8) — une différence d'espacement/taille doit signifier un niveau de
+        hiérarchie, jamais un choix local (règle appliquée aussi à l'espacement
+        sémantique plus bas). Le pas est maintenant fixe : +4px dans les trois
+        densités (20/22/24, contre 20/24/28 avant).
+     2. les trois rôles plafonnaient à des tailles que @laupernoe a jugées
+        spectaculaires pour un DMS consulté des centaines de fois par jour.
+        Nouveaux maximums (très aérée) : titre-page 28→24px, donnée
+        proéminente 28→24px, chiffre géant 60→48px — chiffre géant garde un
+        rythme régulier (+8px par densité, contre +12 avant) et reste
+        nettement le plus grand rôle du produit, comme son nom l'exige.
+
+   Trois trous du Lot 1, déjà comblés avant ce lot : `--texte-titre-page-*`
+   n'existait pas (les écrans posaient un `text-xl`/`text-2xl` au jugé) ;
+   `--texte-donnee-taille` était absent de `.densite-tres-aeree` ;
+   `--texte-chiffre-geant-taille` n'était défini que pour `tres-aeree`.
+
+   SUPPRIMÉ dans ce lot : `--densite-cible-tactile` (32/48/72px selon densité).
+   Une seule occurrence dans tout le front en dehors de ce fichier, et c'est un
+   COMMENTAIRE (`ecrans/pointage/CartePointageEnCours.tsx`) qui explique
+   pourquoi ce composant NE l'utilise PAS : il a besoin d'un plancher de 72px
+   INDÉPENDANT de la densité ambiante (partagé par un écran en `.densite-tres-
+   aeree` et un écran qui ne porte aucune classe de densité), ce qu'une
+   variable qui varie justement PAR densité ne peut pas exprimer. Le vrai
+   mécanisme de cible tactile du produit est déjà ailleurs, et il fonctionne :
+   `components/ui/button.tsx` (h-11 = 44px, plus le pseudo-élément de la
+   variante `sm`) fixe sa cible EN DUR, par composant, pas en cascade de
+   densité. Câbler ce jeton avec un plancher de 44px « dans les trois
+   densités » aurait par ailleurs été FAUX pour `.densite-dense` : c'est le
+   gabarit bureau (souris, pas de doigt — voir CONTRIBUTING.md, « tablette d'abord
+   pour l'atelier, desktop d'abord pour le bureau »), qui n'a aucune raison de
+   respecter un plancher tactile. Un jeton mort documente un besoin réel mais
+   au mauvais niveau d'abstraction ; il est supprimé plutôt que câblé sur une
+   fausse promesse. ────────────────────────────────────────────────────── */
 .densite-dense,
 .densite-aeree,
 .densite-tres-aeree {
@@ -439,7 +545,6 @@
   --densite-hauteur-ligne: 40px;
   --densite-padding-x: 0.75rem; /* px-3 */
   --densite-padding-y: 0.5rem; /* py-2 */
-  --densite-cible-tactile: 32px;
 
   --texte-corps-taille: 0.875rem; /* 14px */
   --texte-corps-hauteur: 1.25rem; /* 20px */
@@ -450,13 +555,21 @@
   --texte-titre-page-taille: 1.25rem; /* 20px */
   --texte-titre-page-hauteur: 1.75rem; /* 28px */
   --texte-donnee-taille: 1.25rem; /* 20px */
-  --texte-chiffre-geant-taille: 2.25rem; /* 36px */
+  --texte-chiffre-geant-taille: 2rem; /* 32px, était 2.25rem/36px — plafonné, voir table plus haut */
 
   --espace-champ: 0.25rem;
-  --espace-controles: 0.5rem;
+  /* RELEVÉ de 0.5rem (8px) : c'était SOUS le plancher d'accessibilité de ce lot
+     (~12px de respiration autour d'un contrôle à bordure) pour l'espace entre
+     deux boutons d'une barre d'actions — deux boutons contigus à 8px collaient
+     visuellement. Ce n'est pas un choix de densité, c'est un plancher. */
+  --espace-controles: 0.75rem;
   --espace-groupe: 0.75rem;
   --espace-carte: 1rem;
-  --espace-section: 1.5rem;
+  /* RESSERRÉ de 1.5rem (24px) à 1.25rem (20px) : translation uniforme de -4px sur
+     les trois densités (voir `.densite-aeree`/`.densite-tres-aeree`), le pas de
+     +8px entre densités était déjà correct et est conservé — seule l'ampleur
+     baisse, pour « moins d'espace vide » sans casser le rythme. */
+  --espace-section: 1.25rem;
   --espace-ecran: 1rem;
 }
 
@@ -464,7 +577,6 @@
   --densite-hauteur-ligne: 56px;
   --densite-padding-x: 1rem; /* px-4 */
   --densite-padding-y: 0.75rem; /* py-3 */
-  --densite-cible-tactile: 48px;
 
   --texte-corps-taille: 1rem; /* 16px */
   --texte-corps-hauteur: 1.5rem; /* 24px */
@@ -472,24 +584,35 @@
   --texte-libelle-hauteur: 1.25rem; /* 20px */
   --texte-titre-taille: 1.125rem; /* 18px */
   --texte-titre-hauteur: 1.75rem; /* 28px */
-  --texte-titre-page-taille: 1.5rem; /* 24px */
-  --texte-titre-page-hauteur: 2rem; /* 32px */
-  --texte-donnee-taille: 1.5rem; /* 24px */
-  --texte-chiffre-geant-taille: 3rem; /* 48px */
+  /* PLAFONNÉ : 1.5rem/2rem (24/32px) → 1.375rem/1.75rem (22/28px). Le pas
+     titre-section → titre-page passe de +6px à +4px, identique aux deux autres
+     densités (voir table plus haut) : un titre d'écran n'a plus besoin d'être
+     spectaculaire pour rester identifiable. */
+  --texte-titre-page-taille: 1.375rem; /* 22px, était 1.5rem/24px */
+  --texte-titre-page-hauteur: 1.75rem; /* 28px, était 2rem/32px */
+  --texte-donnee-taille: 1.375rem; /* 22px, était 1.5rem/24px — même plafonnage */
+  --texte-chiffre-geant-taille: 2.5rem; /* 40px, était 3rem/48px — plafonnage, rythme +8px conservé */
 
   --espace-champ: 0.375rem;
   --espace-controles: 0.75rem;
   --espace-groupe: 1rem;
-  --espace-carte: 1.5rem;
-  --espace-section: 2rem;
-  --espace-ecran: 1.5rem;
+  /* RESSERRÉ de 1.5rem (24px) à 1.25rem (20px) : à 24px, cette valeur était
+     IDENTIQUE à celle de `.densite-tres-aeree` — un palier plat entre deux
+     densités adjacentes ne signifie aucune différence de niveau, c'est un
+     accident, pas une intention. Rétablit un pas de +4px partout (16/20/24). */
+  --espace-carte: 1.25rem;
+  --espace-section: 1.75rem; /* était 2rem/32px, translation -4px, voir `.densite-dense` */
+  /* Même défaut que `--espace-carte` ci-dessus : 24px était identique à
+     `.densite-tres-aeree`. Resserré à 20px, aligné sur `--espace-carte` — les
+     deux jetons partagent le même rôle (« espace au bord d'un conteneur »),
+     ils partagent maintenant la même valeur à chaque densité par construction. */
+  --espace-ecran: 1.25rem;
 }
 
 .densite-tres-aeree {
   --densite-hauteur-ligne: 72px;
   --densite-padding-x: 1rem; /* px-4 */
   --densite-padding-y: 1rem; /* py-4 */
-  --densite-cible-tactile: 72px;
 
   --texte-corps-taille: 1.125rem; /* 18px */
   --texte-corps-hauteur: 1.75rem; /* 28px */
@@ -497,16 +620,16 @@
   --texte-libelle-hauteur: 1.5rem; /* 24px */
   --texte-titre-taille: 1.25rem; /* 20px */
   --texte-titre-hauteur: 1.75rem; /* 28px */
-  --texte-titre-page-taille: 1.75rem; /* 28px */
-  --texte-titre-page-hauteur: 2.25rem; /* 36px */
-  --texte-donnee-taille: 1.75rem; /* 28px */
-  --texte-chiffre-geant-taille: 3.75rem; /* 60px, entre les 56–64px demandés */
+  --texte-titre-page-taille: 1.5rem; /* 24px, était 1.75rem/28px — plafonnage, pas +4px conservé */
+  --texte-titre-page-hauteur: 2rem; /* 32px, était 2.25rem/36px */
+  --texte-donnee-taille: 1.5rem; /* 24px, était 1.75rem/28px — même plafonnage */
+  --texte-chiffre-geant-taille: 3rem; /* 48px, était 3.75rem/60px — plafonnage, rythme +8px conservé */
 
   --espace-champ: 0.5rem;
   --espace-controles: 1rem;
   --espace-groupe: 1.25rem;
   --espace-carte: 1.5rem;
-  --espace-section: 2.5rem;
+  --espace-section: 2.25rem; /* était 2.5rem/40px, translation -4px, voir `.densite-dense` */
   --espace-ecran: 1.5rem;
 }
 
@@ -527,10 +650,33 @@
     line-height: var(--texte-libelle-hauteur, 1rem);
     color: hsl(var(--muted-foreground));
   }
+  /* NEUF — comble le trou « petit » repéré dans l'audit des 88 occurrences de tailles
+     Tailwind brutes (`text-xs` × 14). ALIAS DÉLIBÉRÉ des variables de `.texte-libelle` :
+     même taille, mais SANS la couleur imposée — exactement ce qui manquait pour remplacer
+     un `text-xs` mécaniquement sans reproduire le bug documenté juste au-dessus
+     (`.texte-libelle` + une couleur voisine = la couleur voisine perd). Réservé au texte
+     véritablement secondaire qui a besoin de sa propre couleur (erreur, statut, accent) à
+     la plus petite taille du produit ; `.texte-libelle` reste le choix par défaut pour un
+     libellé/méta qui n'a besoin d'aucune couleur particulière. */
+  .texte-petit {
+    font-size: var(--texte-libelle-taille, 0.75rem);
+    line-height: var(--texte-libelle-hauteur, 1rem);
+  }
   .texte-titre-section {
     font-size: var(--texte-titre-taille, 1rem);
     line-height: var(--texte-titre-hauteur, 1.5rem);
     font-weight: 600;
+  }
+  /* NEUF — comble le trou « annexe » : un paragraphe secondaire (note, complément
+     d'information) légèrement plus grand que le corps, mais qui ne doit pas prendre le
+     gras d'un titre. ALIAS des variables de `.texte-titre-section` (même taille à chaque
+     densité), `font-weight: 400` explicite pour ne jamais hériter d'un gras ambiant. Cible
+     de remplacement mécanique pour `text-base` (×11) et `text-lg` (×7) : les deux
+     retombent sur ce même rôle, la précision du pixel d'origine n'était pas intentionnelle. */
+  .texte-annexe {
+    font-size: var(--texte-titre-taille, 1rem);
+    line-height: var(--texte-titre-hauteur, 1.5rem);
+    font-weight: 400;
   }
   /* Titre d'écran — un seul par écran, celui qui répond à « où suis-je ». */
   .texte-titre-page {
@@ -545,7 +691,7 @@
     font-variant-numeric: tabular-nums;
   }
   .texte-chiffre-geant {
-    font-size: var(--texte-chiffre-geant-taille, 2.25rem);
+    font-size: var(--texte-chiffre-geant-taille, 2rem);
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.02em;
