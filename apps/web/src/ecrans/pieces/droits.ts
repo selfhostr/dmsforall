@@ -111,13 +111,20 @@ const ROLES_ECRITURE_PARAMETRAGE_PIECES: ReadonlySet<RoleUtilisateur> = new Set(
 ]);
 
 /**
- * Factures fournisseur (dépôt/rapprochement) — INFÉRÉ (pas encore de `matrice-droits.ts` côté
- * serveur, le service est écrit EN PARALLÈLE par un autre agent, voir
- * `hooks/pieces/factures-fournisseur.temporaire.ts`). Lecture élargie à `comptable` (pièce
- * comptable, RF-115 mise à part `admin` reste `[]`) — même périmètre que `ROLES_LECTURE_CONSIGNE`
- * ci-dessus, même raisonnement (« une créance/dépense qui dort »). Dépôt et validation réservés à
- * `magasinier` SEUL (« le magasinier confirme », brief) — même périmètre que
- * `ROLES_ECRITURE_MOUVEMENT`. À confronter à la matrice réelle dès qu'elle existe côté serveur.
+ * Factures fournisseur (dépôt/rapprochement) — INFÉRÉ (toujours PAS d'entrée dans
+ * `matrice-droits.ts` côté serveur : le contrôleur, `facture-fournisseur.controller.ts`, porte
+ * `@AucunDroitRequis()` partout et vérifie le rôle DANS le service, voir
+ * `apps/api/src/pieces/factures-fournisseur/droits-provisoires.ts`, hors périmètre d'écriture de
+ * ce fichier). Lecture élargie à `comptable` (pièce comptable, RF-115 mise à part `admin` reste
+ * `[]`) — même périmètre que `ROLES_LECTURE_CONSIGNE` ci-dessus, même raisonnement (« une
+ * créance/dépense qui dort »). Dépôt et validation réservés à `magasinier` SEUL (« le magasinier
+ * confirme », brief) — même périmètre que `ROLES_ECRITURE_MOUVEMENT`.
+ *
+ * DIVERGENCE CONSTATÉE, NON CORRIGÉE (hors périmètre de cette passe — transport uniquement, voir
+ * `hooks/pieces/factures-fournisseur.api.ts`) : `droits-provisoires.ts` autorise aussi `direction`
+ * (ET `admin`, exclu ici par choix délibéré, voir ci-dessus) en ÉCRITURE, et exclut `chef_atelier`
+ * de la LECTURE — les deux ensembles ci-dessous divergent du serveur sur ces deux points. Signalé
+ * pour arbitrage (expert-auth / @laupernoe), pas tranché ici.
  */
 const ROLES_LECTURE_FACTURE_FOURNISSEUR: ReadonlySet<RoleUtilisateur> = new Set([
   'direction',

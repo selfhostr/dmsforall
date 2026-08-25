@@ -105,7 +105,12 @@ export const TRIS_COMMANDES_FOURNISSEUR = [
 ] as const;
 export const TRI_DEFAUT_COMMANDES_FOURNISSEUR = 'creeLe:desc';
 
+/** `q` cherche dans `reference` — même convention que `pieces/article.ts::schemaFiltresArticles`
+ *  (longueur, normalisation, optionalité identiques). `reference` est optionnelle sur la commande
+ *  elle-même (une commande d'origine `reapprovisionnement_auto` n'en porte pas forcément) : `q` ne
+ *  retrouve donc que les commandes qui en portent une. */
 export const schemaFiltresCommandesFournisseur = schemaParametresPage.extend({
+  q: z.string().trim().min(1).max(120).optional(),
   statut: schemaListeQuery(z.enum(STATUTS_COMMANDE_FOURNISSEUR)).optional(),
   fournisseurId: schemaIdentifiant.optional(),
   siteId: schemaIdentifiant.optional(),

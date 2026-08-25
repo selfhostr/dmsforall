@@ -3,7 +3,7 @@ import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/r
 import type { ReponseFactureFournisseur } from '@dfa/shared';
 
 import { clesPieces } from './cles';
-import { deposerFactureFournisseur } from './factures-fournisseur.temporaire';
+import { deposerFactureFournisseur } from './factures-fournisseur.api';
 
 export interface VariablesDepotFactureFournisseur {
   readonly fichier: File;
@@ -15,10 +15,11 @@ export interface VariablesDepotFactureFournisseur {
   readonly signal: AbortSignal;
 }
 
-/** `POST /factures-fournisseur` (contrat temporaire, `Idempotency-Key` obligatoire — voir la doc
- *  de tête de `factures-fournisseur.temporaire.ts`). Pose directement la fiche complète dans le
- *  cache (`detail`) et invalide la liste par préfixe, même patron que
- *  `useTransitionsCommandeFournisseur`. */
+/** `POST /factures-fournisseur` — `Idempotency-Key` portée par cohérence avec les autres créations
+ *  (voir la réserve en tête de `factures-fournisseur.api.ts` : le serveur ne la lit pas pour CET
+ *  endpoint, la déduplication d'un dépôt en double se fait par empreinte SHA-256 du fichier). Pose
+ *  directement la fiche complète dans le cache (`detail`) et invalide la liste par préfixe, même
+ *  patron que `useTransitionsCommandeFournisseur`. */
 export function useDeposerFactureFournisseur(): UseMutationResult<
   ReponseFactureFournisseur,
   unknown,

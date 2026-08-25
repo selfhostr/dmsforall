@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
+import { FilAriane, type SegmentFilAriane } from '@/composants/layout/FilAriane';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useCommandeFournisseur } from '@/hooks/pieces/useCommandeFournisseur';
 import { useFournisseur } from '@/hooks/pieces/useFournisseur';
@@ -25,6 +26,7 @@ import {
 } from '@/hooks/pieces/useTransitionsCommandeFournisseur';
 import { useSession } from '@/hooks/useSession';
 import { formaterDate, formaterDateHeure, formaterMontant } from '@/lib/formats';
+import { chemins } from '@/routes/chemins';
 
 import { DialogueMotifCommandeFournisseur } from './DialogueMotifCommandeFournisseur';
 import { DialogueReceptionCommande } from './DialogueReceptionCommande';
@@ -146,117 +148,139 @@ export function EcranFicheCommandeFournisseur() {
   }, null);
   const totalIncomplet = commande.lignes.some((ligne) => ligne.prixAchatAttenduCentimes === null);
 
+  // Fil d'Ariane contextuel (même doctrine que `EnTeteFicheArticle`, Lot C) — un seul ancêtre
+  // honnête : la liste des commandes fournisseur dont cette fiche vient. Ressource par TENANT
+  // (pas de `?site=`, voir `chemins.pieces.commandesFournisseur`). Identité affichée = celle du
+  // `<h2>` ci-dessous (référence si connue, sinon la date), même règle que `libelleLigne` de
+  // `EcranListeCommandesFournisseur`.
+  const segmentsFilAriane: readonly SegmentFilAriane[] = [
+    {
+      cle: 'commandes',
+      libelle: t('pieces:commandes.titre'),
+      href: chemins.pieces.commandesFournisseur.liste(),
+    },
+  ];
+
   // Titre MASQUÉ automatiquement — « Commandes fournisseur » (titre générique de la fiche,
   // identité RÉELLE portée par le `<h2>` visible ci-dessous, la date de la commande) est un
   // doublon de la vue active « Commandes » : `GabaritEcran` le détecte lui-même. Un seul `<h1>`
   // par page (accessibilité) — jamais deux niveaux 1 en compétition.
   return (
     <GabaritEcran titre={t('pieces:commandes.titre')}>
-      <div className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex flex-col gap-1.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="texte-titre-page">{formaterDate(commande.dateCommande)}</h2>
-            <Badge variant={VARIANTE_BADGE_STATUT[commande.statut]}>
-              {t(`pieces:commandes.statuts.${commande.statut}`)}
-            </Badge>
-          </div>
-          <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1.5 texte-corps sm:grid-cols-3">
-            <div>
-              <dt className="texte-libelle text-muted-foreground">
-                {t('pieces:commandes.fournisseur')}
-              </dt>
-              <dd>
-                {nomFournisseur ? (
-                  <Link
-                    to={`/pieces/fournisseurs/${commande.fournisseurId}`}
-                    className="text-primary underline"
-                  >
-                    {nomFournisseur}
-                  </Link>
-                ) : (
-                  '—'
-                )}
-              </dd>
+      <div className="flex flex-col gap-groupe rounded-lg border p-carte">
+        <FilAriane
+          segments={segmentsFilAriane}
+          pageCourante={commande.reference ?? formaterDate(commande.dateCommande)}
+        />
+
+        <div className="flex flex-col gap-groupe sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-champ">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="texte-titre-page">{formaterDate(commande.dateCommande)}</h2>
+              <Badge variant={VARIANTE_BADGE_STATUT[commande.statut]}>
+                {t(`pieces:commandes.statuts.${commande.statut}`)}
+              </Badge>
             </div>
-            <div>
-              <dt className="texte-libelle text-muted-foreground">{t('pieces:commandes.site')}</dt>
-              <dd>{nomSite}</dd>
-            </div>
-            <div>
-              <dt className="texte-libelle text-muted-foreground">
-                {t('pieces:commandes.origine')}
-              </dt>
-              <dd>{t(`pieces:commandes.origines.${commande.origine}`)}</dd>
-            </div>
-            <div>
-              <dt className="texte-libelle text-muted-foreground">
-                {t('pieces:commandes.reference')}
-              </dt>
-              <dd>{texteOuVide(commande.reference)}</dd>
-            </div>
-            {commande.envoyeeLe ? (
+            <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-champ texte-corps sm:grid-cols-3">
               <div>
                 <dt className="texte-libelle text-muted-foreground">
-                  {t('pieces:commandes.envoyeeLe')}
+                  {t('pieces:commandes.fournisseur')}
                 </dt>
-                <dd>{formaterDateHeure(commande.envoyeeLe)}</dd>
-              </div>
-            ) : null}
-            {totalAttenduCentimes !== null ? (
-              <div>
-                <dt className="texte-libelle text-muted-foreground">
-                  {t('pieces:commandes.montantAttendu')}
-                </dt>
-                <dd className="tabular-nums font-medium">
-                  {formaterMontant(totalAttenduCentimes)}
-                  {totalIncomplet ? (
-                    <span className="ml-1 texte-libelle text-muted-foreground">
-                      {t('pieces:commandes.montantPartiel')}
-                    </span>
-                  ) : null}
+                <dd>
+                  {nomFournisseur ? (
+                    <Link
+                      to={`/pieces/fournisseurs/${commande.fournisseurId}`}
+                      className="text-primary underline"
+                    >
+                      {nomFournisseur}
+                    </Link>
+                  ) : (
+                    '—'
+                  )}
                 </dd>
               </div>
+              <div>
+                <dt className="texte-libelle text-muted-foreground">
+                  {t('pieces:commandes.site')}
+                </dt>
+                <dd>{nomSite}</dd>
+              </div>
+              <div>
+                <dt className="texte-libelle text-muted-foreground">
+                  {t('pieces:commandes.origine')}
+                </dt>
+                <dd>{t(`pieces:commandes.origines.${commande.origine}`)}</dd>
+              </div>
+              <div>
+                <dt className="texte-libelle text-muted-foreground">
+                  {t('pieces:commandes.reference')}
+                </dt>
+                <dd>{texteOuVide(commande.reference)}</dd>
+              </div>
+              {commande.envoyeeLe ? (
+                <div>
+                  <dt className="texte-libelle text-muted-foreground">
+                    {t('pieces:commandes.envoyeeLe')}
+                  </dt>
+                  <dd>{formaterDateHeure(commande.envoyeeLe)}</dd>
+                </div>
+              ) : null}
+              {totalAttenduCentimes !== null ? (
+                <div>
+                  <dt className="texte-libelle text-muted-foreground">
+                    {t('pieces:commandes.montantAttendu')}
+                  </dt>
+                  <dd className="tabular-nums font-medium">
+                    {formaterMontant(totalAttenduCentimes)}
+                    {totalIncomplet ? (
+                      <span className="ml-1 texte-libelle text-muted-foreground">
+                        {t('pieces:commandes.montantPartiel')}
+                      </span>
+                    ) : null}
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
+            {commande.statut === 'annulee' && commande.motifAnnulation ? (
+              <p className="mt-2 texte-corps text-destructive">
+                {t('pieces:commandes.motifAnnulation')} : {commande.motifAnnulation}
+              </p>
             ) : null}
-          </dl>
-          {commande.statut === 'annulee' && commande.motifAnnulation ? (
-            <p className="mt-2 texte-corps text-destructive">
-              {t('pieces:commandes.motifAnnulation')} : {commande.motifAnnulation}
-            </p>
+          </div>
+
+          {peutEnvoyer || peutOuvrirReception || peutAnnulerCommande ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  {t('commun:actions.modifier')}
+                  <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {peutEnvoyer ? (
+                  <DropdownMenuItem
+                    disabled={envoyer.isPending}
+                    onSelect={() => envoyer.mutate(undefined)}
+                  >
+                    {envoyer.isPending
+                      ? t('commun:chargement.enCours')
+                      : t('pieces:commandes.actions.envoyer')}
+                  </DropdownMenuItem>
+                ) : null}
+                {peutOuvrirReception ? (
+                  <DropdownMenuItem onSelect={() => setReceptionOuverte(true)}>
+                    {t('pieces:commandes.actions.receptionner')}
+                  </DropdownMenuItem>
+                ) : null}
+                {peutAnnulerCommande ? (
+                  <DropdownMenuItem onSelect={() => setConfirmation({ type: 'annuler' })}>
+                    {t('pieces:commandes.actions.annuler')}
+                  </DropdownMenuItem>
+                ) : null}
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : null}
         </div>
-
-        {peutEnvoyer || peutOuvrirReception || peutAnnulerCommande ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                {t('commun:actions.modifier')}
-                <ChevronDown className="h-4 w-4" aria-hidden="true" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {peutEnvoyer ? (
-                <DropdownMenuItem
-                  disabled={envoyer.isPending}
-                  onSelect={() => envoyer.mutate(undefined)}
-                >
-                  {envoyer.isPending
-                    ? t('commun:chargement.enCours')
-                    : t('pieces:commandes.actions.envoyer')}
-                </DropdownMenuItem>
-              ) : null}
-              {peutOuvrirReception ? (
-                <DropdownMenuItem onSelect={() => setReceptionOuverte(true)}>
-                  {t('pieces:commandes.actions.receptionner')}
-                </DropdownMenuItem>
-              ) : null}
-              {peutAnnulerCommande ? (
-                <DropdownMenuItem onSelect={() => setConfirmation({ type: 'annuler' })}>
-                  {t('pieces:commandes.actions.annuler')}
-                </DropdownMenuItem>
-              ) : null}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : null}
       </div>
 
       {erreurTransition ? (
@@ -271,7 +295,7 @@ export function EcranFicheCommandeFournisseur() {
             {t('pieces:commandes.lignes.titre')}
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3">
+        <CardContent className="flex flex-col gap-controles">
           {commande.lignes.map((ligne) => (
             <div key={ligne.id} className="flex flex-col gap-2 rounded-md border p-3 texte-corps">
               <div className="flex flex-wrap items-center justify-between gap-2">

@@ -22,6 +22,7 @@ export interface PageFournisseurs {
 
 function construireParametresListe(filtres: FiltresFournisseurs, page: PageFournisseurs): string {
   const parametres = new URLSearchParams();
+  if (filtres.q && filtres.q.trim() !== '') parametres.set('q', filtres.q.trim());
   for (const valeur of filtres.statut ?? []) parametres.append('statut', valeur);
   parametres.set('tri', filtres.tri);
   parametres.set('limite', String(page.limite));

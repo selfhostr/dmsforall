@@ -8,7 +8,7 @@ import { clesPieces } from './cles';
 import {
   listerFacturesFournisseur,
   type FiltresEcranFacturesFournisseur,
-} from './factures-fournisseur.temporaire';
+} from './factures-fournisseur.api';
 
 const LIMITE_PAGE = 50;
 
@@ -19,8 +19,8 @@ export type ResultatListeFacturesFournisseur = UseInfiniteQueryResult<
   readonly factures: readonly ReponseFactureFournisseur[];
 };
 
-/** `GET /factures-fournisseur` (transport temporaire, voir `factures-fournisseur.temporaire.ts`) —
- *  pagination par curseur, même architecture que `useListeCommandesFournisseur`.
+/** `GET /factures-fournisseur`, pagination par curseur, même architecture que
+ *  `useListeCommandesFournisseur`.
  *
  *  `actif` (défaut `true`) : à poser explicitement à `false` tant que le droit de lecture n'est pas
  *  acquis (session en cours de résolution, ou rôle sans `pieces.facture_fournisseur.lire`) — même

@@ -91,6 +91,18 @@ export class ServiceReservation {
 
     return this.acces.enTenant(ctx, async (tx) => {
       const conditions = [sql`r.tenant_id = ${ctx.tenantId}`];
+      if (params.q) {
+        // `public.normaliser_recherche(...)` des deux côtés — même idiome que
+        // `pieces/service-fournisseur.ts`/`service-facture-fournisseur.ts`. `articleDesignation`/
+        // `ordreReparationNumero` viennent des tables JOINTES (`JOINTURES_RESERVATION`), jamais
+        // `null` en pratique (jointure `join`, pas `left join`) — pas besoin de tolérer un `null`
+        // ici contrairement à `nom_creancier`/`numero_facture` des factures fournisseur.
+        const motif = `%${params.q}%`;
+        conditions.push(sql`(
+          public.normaliser_recherche(a.designation) like public.normaliser_recherche(${motif})
+          or public.normaliser_recherche(o.numero) like public.normaliser_recherche(${motif})
+        )`);
+      }
       if (params.articleId) conditions.push(sql`r.article_id = ${params.articleId}`);
       if (params.siteId) conditions.push(sql`r.site_id = ${params.siteId}`);
       if (params.ordreReparationId)

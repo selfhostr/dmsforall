@@ -62,7 +62,7 @@ export function FiletErreurMutation() {
 
   return (
     <div
-      className="fixed inset-x-4 bottom-4 z-[100] flex flex-col gap-2 sm:inset-x-auto sm:right-4 sm:w-96"
+      className="fixed inset-x-4 bottom-4 z-[100] flex flex-col gap-groupe sm:inset-x-auto sm:right-4 sm:w-96"
       aria-live="assertive"
     >
       {toasts.map((toast) => {
@@ -72,7 +72,7 @@ export function FiletErreurMutation() {
             key={toast.id}
             role="alert"
             className={cn(
-              'flex items-start gap-3 rounded-md border p-4 shadow-lg',
+              'flex items-start gap-3 rounded-md border p-carte shadow-lg',
               STYLE_PAR_GRAVITE[toast.gravite],
             )}
           >

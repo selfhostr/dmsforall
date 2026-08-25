@@ -2,6 +2,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { ArrowUpDown } from 'lucide-react';
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 
 import type { SensTri } from '@dfa/shared';
 
@@ -16,6 +17,8 @@ import {
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+
+import { useModeCarteComptoir } from './useModeCarteComptoir';
 
 /** Au-delà de ce nombre de lignes, `TableComptoir` bascule en rendu virtualisé (issue #92 —
  *  fiche d'OR figée 1-2s avec 200 lignes / ~5700 nœuds DOM). En-deçà, comportement 100%
@@ -42,6 +45,19 @@ const HAUTEUR_ESTIMEE_PAR_DENSITE: Record<Densite, number> = {
   'tres-aeree': 72,
 };
 
+/** Même rôle que `HAUTEUR_ESTIMEE_PAR_DENSITE`, pour le repli en cartes (`useModeCarteComptoir`)
+ *  sous le palier `md` (767px) : une carte empile au moins un titre + une grille de deux colonnes
+ *  de valeurs, donc nettement plus haute qu'une ligne de table — simple point de départ,
+ *  `measureElement` corrige à la hauteur réelle dès le premier rendu mesuré. */
+const HAUTEUR_ESTIMEE_CARTE_PAR_DENSITE: Record<Densite, number> = {
+  dense: 96,
+  aeree: 120,
+  'tres-aeree': 144,
+};
+
+/** Importance d'une colonne pour le repli en cartes — voir `ColonneComptoir.importance`. */
+export type ImportanceColonneComptoir = 'principale' | 'secondaire' | 'discrete';
+
 /** Une colonne de `TableComptoir`. `libelle` et le contenu de `rendu` sont fournis par
  *  l'écran appelant — déjà traduits (namespace du domaine, ex. `clients:liste.colonnes.*`) :
  *  ce composant ne porte aucun texte métier en dur. */
@@ -57,6 +73,14 @@ export interface ColonneComptoir<T> {
   readonly actions?: boolean;
   readonly className?: string;
   readonly rendu: (ligne: T) => ReactNode;
+  /** Priorité de la colonne en mode carte (repli sous 767px, `useModeCarteComptoir`) :
+   *  `principale` compose l'en-tête de la carte (ce qui identifie la ligne et/ou décide de
+   *  l'action — un écran peut en marquer plusieurs, ex. le titre ET le statut/prix),
+   *  `secondaire` (DÉFAUT) rejoint la grille de valeurs du corps de carte, `discrete` est
+   *  reléguée en pied de carte, en plus petit. Sans déclaration sur AUCUNE colonne (cas des dix
+   *  écrans existants), la PREMIÈRE colonne de contenu (hors colonne `actions`) devient
+   *  `principale` par défaut — un titre de carte raisonnable sans rien redéclarer. */
+  readonly importance?: ImportanceColonneComptoir;
 }
 
 export interface EtatTriComptoir {
@@ -94,6 +118,14 @@ function classeAlignement(alignement: 'gauche' | 'droite' | undefined): string |
   return alignement === 'droite' ? 'text-right' : undefined;
 }
 
+function importanceEffective<T>(
+  colonne: ColonneComptoir<T>,
+  indexParmiContenu: number,
+): ImportanceColonneComptoir {
+  if (colonne.importance) return colonne.importance;
+  return indexParmiContenu === 0 ? 'principale' : 'secondaire';
+}
+
 /**
  * Table dense du comptoir : en-têtes triables (`aria-sort`), lignes cliquables navigables au
  * clavier, colonne d'actions qui n'active pas la navigation. Densité `dense` par défaut
@@ -102,6 +134,19 @@ function classeAlignement(alignement: 'gauche' | 'droite' | undefined): string |
  * Ligne cliquable = `role="link"` : sans nom accessible, un lecteur d'écran annonce « lien »
  * sans dire lequel. `libelleLigne` porte ce nom (`aria-label`) — à fournir par tout appelant qui
  * passe `onOuvrirLigne`.
+ *
+ * REPLI EN CARTES (sous 767px, `useModeCarteComptoir`) — une table à plusieurs colonnes déborde
+ * et se fait défiler au doigt sur téléphone (pire défaut mobile mesuré de l'appli, huit colonnes
+ * sur la liste des véhicules en stock notamment). Sous ce palier, le rendu change ENTIÈREMENT de
+ * structure (liste de cartes, pas une table maquillée en CSS) : la sémantique change réellement
+ * (table -> liste), donc les rôles ARIA changent aussi plutôt que de garder `role="table"` sur du
+ * contenu qui n'en est plus une. Piloté par LA MÊME définition de colonnes que la table (aucun
+ * écran n'a besoin d'ajouter quoi que ce soit) : `colonne.importance` choisit la mise en avant,
+ * `colonne.triable`/`onTrier` alimentent une rangée de puces de tri (équivalent tactile des
+ * en-têtes cliquables, qui disparaissent avec les en-têtes), `colonne.actions` reste la zone
+ * d'actions qui n'active pas la navigation de la carte. La virtualisation (au-delà de
+ * `SEUIL_VIRTUALISATION`) s'applique aux DEUX rendus, avec une estimation de hauteur propre à
+ * chacun (`HAUTEUR_ESTIMEE_PAR_DENSITE` / `HAUTEUR_ESTIMEE_CARTE_PAR_DENSITE`).
  */
 export function TableComptoir<T>({
   colonnes,
@@ -117,11 +162,18 @@ export function TableComptoir<T>({
   contenuVide,
   className,
 }: ProprietesTableComptoir<T>) {
+  const { t } = useTranslation('commun');
+  const enModeCarte = useModeCarteComptoir();
+
   const gererClicLigne = (ligne: T) => {
     onOuvrirLigne?.(ligne);
   };
 
-  const gererClavierLigne = (evenement: KeyboardEvent<HTMLTableRowElement>, ligne: T) => {
+  // `HTMLElement` plutôt que `HTMLTableRowElement` : `proprietesLigneCliquable` est repris tel
+  // quel sur la carte (un `<div>`, mode repli) ET sur la ligne de table (`<tr>`) — un type
+  // commun aux deux évite de dupliquer ce patron d'accessibilité (rôle/nom accessible/clavier)
+  // entre les deux rendus.
+  const gererClavierLigne = (evenement: KeyboardEvent<HTMLElement>, ligne: T) => {
     if (!onOuvrirLigne) return;
     if (evenement.key === 'Enter' || evenement.key === ' ') {
       evenement.preventDefault();
@@ -177,7 +229,8 @@ export function TableComptoir<T>({
   const virtualiseur = useVirtualizer({
     count: estVirtualise ? lignes.length : 0,
     getScrollElement: () => conteneurDefilementRef.current,
-    estimateSize: () => HAUTEUR_ESTIMEE_PAR_DENSITE[densite],
+    estimateSize: () =>
+      (enModeCarte ? HAUTEUR_ESTIMEE_CARTE_PAR_DENSITE : HAUTEUR_ESTIMEE_PAR_DENSITE)[densite],
     overscan: SURVOL_VIRTUALISATION,
   });
 
@@ -202,7 +255,7 @@ export function TableComptoir<T>({
       className: onOuvrirLigne ? 'cursor-pointer' : undefined,
       onClick: onOuvrirLigne ? () => gererClicLigne(ligne) : undefined,
       onKeyDown: onOuvrirLigne
-        ? (evenement: KeyboardEvent<HTMLTableRowElement>) => gererClavierLigne(evenement, ligne)
+        ? (evenement: KeyboardEvent<HTMLElement>) => gererClavierLigne(evenement, ligne)
         : undefined,
     };
   }
@@ -214,6 +267,187 @@ export function TableComptoir<T>({
       ? virtualiseur.getTotalSize() - (elementsVirtuels[elementsVirtuels.length - 1]?.end ?? 0)
       : 0;
 
+  // ── Mode carte (repli sous 767px) ────────────────────────────────────────────────────────
+  const colonnesActions = colonnes.filter((colonne) => colonne.actions);
+  const colonnesContenu = colonnes.filter((colonne) => !colonne.actions);
+  const colonnesPrincipales = colonnesContenu.filter(
+    (colonne, index) => importanceEffective(colonne, index) === 'principale',
+  );
+  const colonnesSecondaires = colonnesContenu.filter(
+    (colonne, index) => importanceEffective(colonne, index) === 'secondaire',
+  );
+  const colonnesDiscretes = colonnesContenu.filter(
+    (colonne, index) => importanceEffective(colonne, index) === 'discrete',
+  );
+  const colonnesTriables = colonnes.filter((colonne) => colonne.triable);
+
+  function rendreCarte(ligne: T) {
+    const proprietesClic = proprietesLigneCliquable(ligne);
+    return (
+      <div
+        {...proprietesClic}
+        className={cn(
+          'anneau-focus flex min-h-11 flex-col gap-2 rounded-lg border bg-card p-3 texte-corps transition-colors',
+          proprietesClic.className,
+          onOuvrirLigne ? 'hover:bg-muted/50' : undefined,
+        )}
+      >
+        {colonnesPrincipales.length > 0 ? (
+          <div className="flex flex-col gap-0.5">
+            {colonnesPrincipales.map((colonne) => (
+              <div
+                key={colonne.id}
+                className={cn('font-medium', classeAlignement(colonne.alignement))}
+              >
+                {colonne.rendu(ligne)}
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        {colonnesSecondaires.length > 0 ? (
+          <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+            {colonnesSecondaires.map((colonne) => (
+              <div key={colonne.id} className="flex min-w-0 flex-col">
+                <dt className="texte-petit truncate text-muted-foreground">{colonne.libelle}</dt>
+                <dd className={cn('truncate', classeAlignement(colonne.alignement))}>
+                  {colonne.rendu(ligne)}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
+
+        {colonnesDiscretes.length > 0 ? (
+          <div className="texte-petit flex flex-wrap gap-x-3 gap-y-0.5 text-muted-foreground">
+            {colonnesDiscretes.map((colonne) => (
+              // Séparateur TEXTUEL (` : `), pas un `gap` flex entre deux `<span>` : vérifié au
+              // rendu réel (390px) — le `gap` entre deux éléments flex ne garantit pas un espace
+              // visuellement net une fois le texte compressé, alors qu'un espace dans le flux de
+              // texte, si.
+              <span key={colonne.id}>
+                {colonne.libelle} : {colonne.rendu(ligne)}
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        {colonnesActions.length > 0 ? (
+          // Même garde que `rendreCellules` (table) : le clic/`Entrée` dans la zone d'actions
+          // n'active jamais l'ouverture de la carte. `[&_button]:min-h-11` : plancher de cible
+          // tactile 44px NON garanti par `Button size="sm"` (primitive hors périmètre de ce
+          // composant) — posé ici en ceinture de sécurité pour toute action rendue en carte.
+          <div
+            className="flex flex-wrap items-center gap-2 [&_button]:min-h-11"
+            onClick={(evenement) => evenement.stopPropagation()}
+            onKeyDown={(evenement) => evenement.stopPropagation()}
+          >
+            {colonnesActions.map((colonne) => (
+              <span key={colonne.id}>{colonne.rendu(ligne)}</span>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (enModeCarte) {
+    // Équivalent tactile des en-têtes triables : disparus avec les en-têtes de table, remplacés
+    // par une rangée de puces (mêmes `colonne.id`/`onTrier` que le clic sur un en-tête — un
+    // écran qui trie déjà via `TableComptoir` n'a rien à ajouter).
+    const controleTri =
+      onTrier && colonnesTriables.length > 0 ? (
+        <div
+          role="group"
+          aria-label={t('commun:tableComptoir.trierPar')}
+          className="flex flex-wrap gap-2"
+        >
+          {colonnesTriables.map((colonne) => {
+            const estTriee = tri?.colonneId === colonne.id;
+            return (
+              <button
+                key={colonne.id}
+                type="button"
+                aria-pressed={estTriee}
+                onClick={() => onTrier(colonne.id)}
+                className={cn(
+                  'anneau-focus texte-corps inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 transition-colors',
+                  estTriee
+                    ? 'border-primary bg-primary/10 font-medium text-primary'
+                    : 'border-input text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {colonne.libelle}
+                <ArrowUpDown aria-hidden className="h-3.5 w-3.5" />
+              </button>
+            );
+          })}
+        </div>
+      ) : null;
+
+    let corps: ReactNode;
+    if (enChargement) {
+      corps = (
+        <ul role="list" className="flex flex-col gap-2">
+          {Array.from({ length: lignesSquelette }, (_, index) => (
+            <li key={`squelette-carte-${index}`} className="rounded-lg border bg-card p-3">
+              <div className="flex flex-col gap-2">
+                <Skeleton className="h-4 w-2/3" aria-hidden="true" />
+                <Skeleton className="h-3 w-1/2" aria-hidden="true" />
+                <Skeleton className="h-3 w-1/3" aria-hidden="true" />
+              </div>
+            </li>
+          ))}
+        </ul>
+      );
+    } else if (lignes.length === 0) {
+      corps = contenuVide;
+    } else if (estVirtualise) {
+      corps = (
+        <div ref={conteneurDefilementRef} className="max-h-[70dvh] overflow-auto">
+          <ul role="list">
+            {paddingHaut > 0 ? <li aria-hidden="true" style={{ height: paddingHaut }} /> : null}
+            {elementsVirtuels.map((elementVirtuel) => {
+              const ligne = lignes[elementVirtuel.index];
+              if (!ligne) return null;
+              return (
+                <li
+                  key={cleLigne(ligne)}
+                  data-index={elementVirtuel.index}
+                  ref={virtualiseur.measureElement}
+                  aria-setsize={lignes.length}
+                  aria-posinset={elementVirtuel.index + 1}
+                  className="pb-2"
+                >
+                  {rendreCarte(ligne)}
+                </li>
+              );
+            })}
+            {paddingBas > 0 ? <li aria-hidden="true" style={{ height: paddingBas }} /> : null}
+          </ul>
+        </div>
+      );
+    } else {
+      corps = (
+        <ul role="list">
+          {lignes.map((ligne) => (
+            <li key={cleLigne(ligne)} className="pb-2">
+              {rendreCarte(ligne)}
+            </li>
+          ))}
+        </ul>
+      );
+    }
+
+    return (
+      <div className={cn('flex flex-col gap-2', className)}>
+        {controleTri}
+        {corps}
+      </div>
+    );
+  }
+
+  // ── Table (767px et au-delà) ─────────────────────────────────────────────────────────────
   const table = (
     <Table
       densite={densite}

@@ -244,7 +244,7 @@ export function BarreLaterale({ className, repli }: Props) {
             // ce soit la même chose que les autres boutons ». Remplacement par `rounded-md`, seul
             // rayon d'arrondi utilisé ailleurs dans l'interface (boutons, `Select`, `Input`, cartes) :
             // l'indicateur d'écran actif rejoint ce vocabulaire au lieu d'en inventer un second.
-            'flex h-11 items-center rounded-md text-sm font-medium transition-colors',
+            'flex h-11 items-center rounded-md texte-corps font-medium transition-colors',
             replie ? 'justify-center px-2' : 'gap-3 px-3',
             'anneau-focus',
             actif
@@ -295,7 +295,7 @@ export function BarreLaterale({ className, repli }: Props) {
           >
             {session && !replie ? (
               <p
-                className="min-w-0 flex-1 truncate text-sm font-semibold tracking-tight"
+                className="min-w-0 flex-1 truncate texte-corps font-semibold tracking-tight"
                 title={session.tenant.raisonSociale}
               >
                 {session.tenant.raisonSociale}
@@ -379,14 +379,14 @@ export function BarreLaterale({ className, repli }: Props) {
               <button
                 type="button"
                 className={cn(
-                  'anneau-focus flex h-11 w-full items-center rounded-md text-sm font-medium transition-colors hover:bg-muted',
+                  'anneau-focus flex h-11 w-full items-center rounded-md texte-corps font-medium transition-colors hover:bg-muted',
                   replie ? 'justify-center px-2' : 'gap-3 px-3',
                 )}
                 aria-label={`${libelleCompte} — ${libelleRole}`}
                 title={replie ? `${libelleCompte} — ${libelleRole}` : undefined}
               >
                 <span
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary texte-petit font-semibold text-primary-foreground"
                   aria-hidden="true"
                 >
                   {initiales}

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { TypeClient } from '@dfa/shared';
 
-import { cn } from '@/lib/utils';
+import { BadgeAttribut } from './BadgeAttribut';
 
 /** Mapping exhaustif et type-safe : ajouter une valeur à `TYPES_CLIENT` fait échouer `tsc`. */
 const ICONE_TYPE_CLIENT: Readonly<Record<TypeClient, LucideIcon>> = {
@@ -18,20 +18,18 @@ interface Props {
 
 /** Type de client (particulier/entreprise, RM-01, **immuable après création**) — forme + mot,
  *  jamais de couleur de la palette statut (§5.4 du document atelier : le budget couleur est
- *  réservé au statut d'OR/de ligne). */
+ *  réservé au statut d'OR/de ligne). Compose `BadgeAttribut`, base partagée de la famille des
+ *  badges d'attribut métier. */
 export function BadgeTypeClient({ type, className }: Props) {
   const { t } = useTranslation('clients');
   const Icone = ICONE_TYPE_CLIENT[type];
 
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 rounded-full border border-input bg-background px-2.5 py-0.5 texte-libelle font-medium text-muted-foreground',
-        className,
-      )}
+    <BadgeAttribut
+      icone={<Icone aria-hidden className="h-3.5 w-3.5 shrink-0" />}
+      className={className}
     >
-      <Icone aria-hidden className="h-3.5 w-3.5 shrink-0" />
       {t(`clients:liste.types.${type}`)}
-    </span>
+    </BadgeAttribut>
   );
 }

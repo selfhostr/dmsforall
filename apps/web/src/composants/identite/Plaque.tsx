@@ -7,9 +7,12 @@ const variantesPlaque = cva(
   {
     variants: {
       taille: {
-        sm: 'h-5 px-1 text-xs',
-        md: 'h-6 px-1.5 text-sm',
-        xl: 'h-10 px-3 text-2xl',
+        sm: 'h-5 px-1 texte-petit',
+        md: 'h-6 px-1.5 texte-corps',
+        // `.texte-donnee-proeminente` et non `.texte-titre-page` : une plaque n'est ni un titre
+        // ni un libellé, mais à cette taille c'est la donnée mise en avant sur l'écran (fiche
+        // véhicule) — exactement le rôle que la table décrit, tabular-nums et poids inclus.
+        xl: 'h-10 px-3 texte-donnee-proeminente',
       },
     },
     defaultVariants: { taille: 'md' },

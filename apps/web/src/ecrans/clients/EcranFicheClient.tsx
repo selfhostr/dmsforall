@@ -12,6 +12,7 @@ import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { BadgeStatutOr } from '@/composants/identite/BadgeStatutOr';
+import { FilAriane, type SegmentFilAriane } from '@/composants/layout/FilAriane';
 import { BandeauAlerteClient } from '@/composants/motifs/BandeauAlerteClient';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { BadgeStatutDossierVente } from '@/ecrans/ventes/dossiers/BadgeStatutDossierVente';
@@ -223,8 +224,17 @@ export function EcranFicheClient() {
     dernierPassageLe: client.dernierPassageLe,
   };
 
+  // Fil d'Ariane contextuel (chantier « un seul patron », 24.08.2026) — même dispositif que
+  // `EnTeteOrdreReparation.tsx` (pris comme modèle) : le client est en tête de hiérarchie
+  // (aucune ressource au-dessus dans ce produit), un seul ancêtre — la liste dont il vient.
+  const segmentsFilAriane: readonly SegmentFilAriane[] = [
+    { cle: 'clients', libelle: t('clients:titre'), href: chemins.clients.liste(site) },
+  ];
+
   return (
     <GabaritEcran titre={t('clients:fiche.titre')} titreVisible={false}>
+      <FilAriane segments={segmentsFilAriane} pageCourante={client.nomAffiche} />
+
       <BandeauAlerteClient
         bloque={client.statut === 'bloque'}
         alertes={client.notesAlerte.map((note) => ({ id: note.id, texte: note.texte }))}

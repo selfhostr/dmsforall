@@ -148,7 +148,7 @@ export function EcranConnexion() {
                     {...form.register('email')}
                   />
                   {form.formState.errors.email ? (
-                    <p id="email-erreur" className="text-sm text-destructive">
+                    <p id="email-erreur" className="texte-corps text-destructive">
                       {t('validation:email.invalide')}
                     </p>
                   ) : null}
@@ -189,7 +189,7 @@ export function EcranConnexion() {
                     </button>
                   </div>
                   {form.formState.errors.motDePasse ? (
-                    <p id="motDePasse-erreur" className="text-sm text-destructive">
+                    <p id="motDePasse-erreur" className="texte-corps text-destructive">
                       {t('validation:requis')}
                     </p>
                   ) : null}
@@ -201,7 +201,7 @@ export function EcranConnexion() {
                     : t('auth:connexion.actions.seConnecter')}
                 </Button>
 
-                <p className="text-center text-sm text-muted-foreground">
+                <p className="text-center texte-corps text-muted-foreground">
                   {t('auth:connexion.aide.motDePasseOublie')}
                 </p>
               </form>

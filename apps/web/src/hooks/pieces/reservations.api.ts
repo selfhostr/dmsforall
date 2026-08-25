@@ -22,6 +22,7 @@ function construireParametresReservations(
   page: PageReservations,
 ): string {
   const parametres = new URLSearchParams();
+  if (filtres.q && filtres.q.trim() !== '') parametres.set('q', filtres.q.trim());
   if (filtres.articleId) parametres.set('articleId', filtres.articleId);
   if (filtres.siteId) parametres.set('siteId', filtres.siteId);
   if (filtres.ordreReparationId) parametres.set('ordreReparationId', filtres.ordreReparationId);

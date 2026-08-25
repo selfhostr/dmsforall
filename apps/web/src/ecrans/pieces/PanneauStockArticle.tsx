@@ -82,7 +82,7 @@ export function PanneauStockArticle({ articleId, stocksResume, sites, peutModifi
       <CardHeader>
         <CardTitle className="texte-titre-section">{t('pieces:stock.titre')}</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+      <CardContent className="flex flex-col gap-groupe">
         <Table>
           <TableHeader>
             <TableRow>
@@ -210,13 +210,15 @@ function DetailDisponibilite({ articleId, siteId, nomSite: nom }: PropsDetail) {
         {t('pieces:reservations.disponibilite.titre')} — {nom}
       </h3>
       {disponibilite.reservationsActives.length === 0 ? (
-        <p className="mt-2 texte-corps text-muted-foreground">{t('pieces:reservations.vide')}</p>
+        <p className="mt-2 texte-corps text-muted-foreground">
+          {t('pieces:reservations.disponibilite.aucuneActive')}
+        </p>
       ) : (
         <ul className="mt-2 flex flex-col gap-2">
           {disponibilite.reservationsActives.map((reservation) => (
             <li
               key={reservation.reservationId}
-              className="flex items-center justify-between gap-3 texte-corps"
+              className="flex items-center justify-between gap-controles texte-corps"
             >
               <span>
                 {reservation.numeroOrdreReparation} · {reservation.clientNomAffichage}
@@ -313,7 +315,7 @@ function ActionSeuilSite({ articleId, siteId, nomSite }: PropsActionSeuilSite) {
       </PopoverTrigger>
       <PopoverContent className="w-80">
         {modifier.isSuccess ? (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-controles">
             <p className="texte-corps text-foreground">
               {succes === null
                 ? t('pieces:stock.seuilSite.confirmationRetiree')
@@ -328,8 +330,8 @@ function ActionSeuilSite({ articleId, siteId, nomSite }: PropsActionSeuilSite) {
             </div>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-controles">
+            <div className="flex flex-col gap-champ">
               <Label htmlFor={champId}>{t('pieces:stock.seuilSite.champ')}</Label>
               <Input
                 id={champId}

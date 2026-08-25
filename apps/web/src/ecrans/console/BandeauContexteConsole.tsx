@@ -53,11 +53,11 @@ export function BandeauContexteConsole({
   return (
     <div className="sticky top-0 z-40 flex flex-wrap items-center gap-3 border-b border-amber-700/30 bg-amber-400 px-4 py-2 text-amber-950 dark:bg-amber-600 dark:text-amber-50">
       <AlertTriangle className="h-5 w-5 shrink-0" aria-hidden="true" />
-      <p className="min-w-0 flex-1 text-sm font-medium">
+      <p className="min-w-0 flex-1 texte-corps font-medium">
         {t('console:bandeauContexte.contenu', { nomGarage })}
         {motif ? ` — ${motif}` : null}
       </p>
-      <span className="whitespace-nowrap text-sm font-medium tabular-nums" aria-hidden="true">
+      <span className="whitespace-nowrap texte-corps font-medium tabular-nums" aria-hidden="true">
         {dureeVisible}
       </span>
       {/* Équivalent lecteur d'écran, statique — §9 : ne pas forcer une re-annonce chaque seconde. */}

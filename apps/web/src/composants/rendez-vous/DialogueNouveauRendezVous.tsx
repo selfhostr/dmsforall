@@ -200,14 +200,14 @@ export function DialogueNouveauRendezVous({
         ) : null}
 
         {client === null ? (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-champ">
             <Label>{t('planning:champs.client')}</Label>
             {slotSelecteurClient}
           </div>
         ) : vehicule === null && slotSelecteurVehicule ? (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-groupe">
             <IdentiteClient client={client} />
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-champ">
               <Label>{t('planning:champs.vehicule')}</Label>
               {slotSelecteurVehicule}
               {onIgnorerVehicule ? (
@@ -224,8 +224,8 @@ export function DialogueNouveauRendezVous({
             </div>
           </div>
         ) : (
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-col gap-groupe">
+            <div className="flex items-center justify-between gap-controles">
               <IdentiteClient client={client} />
               {onChangerClient ? (
                 <Button type="button" variant="ghost" size="sm" onClick={onChangerClient}>
@@ -234,7 +234,7 @@ export function DialogueNouveauRendezVous({
               ) : null}
             </div>
             {vehicule ? (
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center justify-between gap-controles">
                 <IdentiteVehicule vehicule={vehicule} />
                 {onChangerVehicule ? (
                   <Button type="button" variant="ghost" size="sm" onClick={onChangerVehicule}>
@@ -244,13 +244,13 @@ export function DialogueNouveauRendezVous({
               </div>
             ) : null}
 
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-champ">
               <Label>{t('planning:champs.site')}</Label>
               <p className="texte-corps text-foreground">{site.nom}</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1.5">
+            <div className="grid grid-cols-2 gap-groupe">
+              <div className="flex flex-col gap-champ">
                 <Label htmlFor="rdv-date">{t('planning:champs.date')}</Label>
                 <DateInput
                   id="rdv-date"
@@ -258,10 +258,10 @@ export function DialogueNouveauRendezVous({
                   onChange={(valeur) => setDateLe(valeur ?? '')}
                 />
                 {erreursChamps.dateLe ? (
-                  <p className="text-xs text-destructive">{erreursChamps.dateLe}</p>
+                  <p className="texte-petit text-destructive">{erreursChamps.dateLe}</p>
                 ) : null}
               </div>
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-champ">
                 <Label htmlFor="rdv-moment">{t('planning:champs.moment')}</Label>
                 <Select
                   value={moment}
@@ -279,12 +279,12 @@ export function DialogueNouveauRendezVous({
                   </SelectContent>
                 </Select>
                 {erreursChamps.moment ? (
-                  <p className="text-xs text-destructive">{erreursChamps.moment}</p>
+                  <p className="texte-petit text-destructive">{erreursChamps.moment}</p>
                 ) : null}
               </div>
             </div>
 
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-champ">
               <Label htmlFor="rdv-heure">{t('planning:champs.heureSouhaitee')}</Label>
               <Input
                 id="rdv-heure"
@@ -295,7 +295,7 @@ export function DialogueNouveauRendezVous({
               />
             </div>
 
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-champ">
               <Label htmlFor="rdv-motif">{t('planning:champs.motif')}</Label>
               <Select value={motifId} onValueChange={gererChoixMotif}>
                 <SelectTrigger id="rdv-motif" aria-invalid={Boolean(erreursChamps.motifId)}>
@@ -310,11 +310,11 @@ export function DialogueNouveauRendezVous({
                 </SelectContent>
               </Select>
               {erreursChamps.motifId ? (
-                <p className="text-xs text-destructive">{erreursChamps.motifId}</p>
+                <p className="texte-petit text-destructive">{erreursChamps.motifId}</p>
               ) : null}
             </div>
 
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-champ">
               <Label htmlFor="rdv-duree">{t('planning:champs.duree')}</Label>
               <Input
                 id="rdv-duree"
@@ -326,7 +326,7 @@ export function DialogueNouveauRendezVous({
               />
             </div>
 
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-champ">
               <Label htmlFor="rdv-remarque">{t('planning:champs.remarque')}</Label>
               <Textarea
                 id="rdv-remarque"

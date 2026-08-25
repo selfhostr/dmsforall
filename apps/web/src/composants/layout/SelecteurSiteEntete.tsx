@@ -93,7 +93,7 @@ export function SelecteurSiteEntete({ sites, siteIdActif, libelle, compact = fal
           <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           <span
             aria-hidden="true"
-            className="max-w-full truncate text-xs font-semibold leading-none"
+            className="max-w-full truncate texte-petit font-semibold leading-none"
           >
             {codeCourt ?? '—'}
           </span>
@@ -104,7 +104,7 @@ export function SelecteurSiteEntete({ sites, siteIdActif, libelle, compact = fal
     return (
       <p
         className={cn(
-          'flex items-center gap-1 truncate text-sm',
+          'flex items-center gap-1 truncate texte-corps',
           nonChoisi ? 'font-medium text-foreground' : 'text-muted-foreground',
         )}
         title={libelle}
@@ -133,7 +133,7 @@ export function SelecteurSiteEntete({ sites, siteIdActif, libelle, compact = fal
             <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
             <span
               aria-hidden="true"
-              className="max-w-full truncate text-xs font-semibold leading-none"
+              className="max-w-full truncate texte-petit font-semibold leading-none"
             >
               {codeCourt ?? '—'}
             </span>
@@ -167,7 +167,7 @@ export function SelecteurSiteEntete({ sites, siteIdActif, libelle, compact = fal
           type="button"
           title={libelle}
           className={cn(
-            "anneau-focus relative flex max-w-full items-center gap-1 truncate text-sm transition-colors after:absolute after:-inset-x-1 after:-inset-y-3 after:content-[''] hover:text-foreground",
+            "anneau-focus relative flex max-w-full items-center gap-1 truncate texte-corps transition-colors after:absolute after:-inset-x-1 after:-inset-y-3 after:content-[''] hover:text-foreground",
             nonChoisi ? 'font-medium text-foreground' : 'text-muted-foreground',
           )}
         >

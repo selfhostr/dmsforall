@@ -11,7 +11,7 @@ export function EtatChargement({ lignes = 3 }: Props) {
   const { t } = useTranslation('commun');
 
   return (
-    <div className="space-y-3" role="status" aria-live="polite">
+    <div className="space-y-groupe" role="status" aria-live="polite">
       <span className="sr-only">{t('commun:chargement.enCours')}</span>
       {Array.from({ length: lignes }, (_, index) => (
         <Skeleton key={index} className="h-11 w-full" aria-hidden="true" />

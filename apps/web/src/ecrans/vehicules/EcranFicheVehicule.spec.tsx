@@ -348,7 +348,10 @@ describe('EcranFicheVehicule', () => {
     // Identité, données d'atelier et historiques rendus depuis les fixtures dédiées.
     expect(screen.getByText('WVGZZZ1TZ8W123456')).toBeInTheDocument();
     expect(screen.getByText('1234')).toBeInTheDocument(); // code radio (BlocDonneesAtelier)
-    expect(screen.getByText('Jean Dupont')).toBeInTheDocument(); // FriseDetentions
+    // Convergence patron de fiche (24.08.2026) : « Jean Dupont » apparaît désormais aussi dans le
+    // fil d'Ariane (`FilAriane`, ancêtre « client ») en plus de `FriseDetentions` — `getAllByText`
+    // plutôt qu'un match unique, sans affaiblir l'assertion.
+    expect(screen.getAllByText('Jean Dupont').length).toBeGreaterThan(0);
   });
 
   it('relève un kilométrage en progression sans confirmation supplémentaire', async () => {
@@ -632,6 +635,9 @@ describe('EcranFicheVehicule', () => {
     );
     rendre();
 
+    // Convergence patron de fiche (24.08.2026) : « Pneus au dépôt » a rejoint le groupe
+    // d'onglets dossier de vente/pneus/OR/factures — plus une carte toujours visible.
+    await userEvent.click(await screen.findByRole('tab', { name: 'Pneus au dépôt' }));
     expect(await screen.findByText('H-014', { exact: false })).toBeInTheDocument();
     const lien = screen.getByRole('link', { name: 'Voir dans le hangar à pneus' });
     expect(lien).toHaveAttribute('href', '/pneus?depot=depot-1');
@@ -815,6 +821,10 @@ describe('EcranFicheVehicule', () => {
       );
       rendre();
 
+      // Convergence patron de fiche (24.08.2026) : « Ordres de réparation » a rejoint le groupe
+      // d'onglets dossier de vente/pneus/OR/factures — plus une carte toujours visible. Les
+      // rendez-vous, eux, restent une carte hors onglets (doctrine « SANS CLIQUER »).
+      await userEvent.click(await screen.findByRole('tab', { name: 'Ordres de réparation' }));
       expect(
         await screen.findByText(
           "Vous n'avez pas le droit de consulter les ordres de réparation de ce véhicule.",
@@ -837,6 +847,9 @@ describe('EcranFicheVehicule', () => {
     );
     rendre();
 
+    // Convergence patron de fiche (24.08.2026) : « Factures » a rejoint le groupe d'onglets
+    // dossier de vente/pneus/OR/factures — plus une carte toujours visible.
+    await userEvent.click(await screen.findByRole('tab', { name: 'Factures' }));
     await screen.findByText('Aucune facture pour ce véhicule.');
     expect(capture.parametres?.getAll('typeDocument')).toEqual(['facture']);
   });

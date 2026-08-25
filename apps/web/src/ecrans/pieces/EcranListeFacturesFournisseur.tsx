@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
@@ -22,12 +22,14 @@ import {
 } from '@/components/ui/select';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
+import { BarreFiltres } from '@/composants/comptoir/BarreFiltres';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
+import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
-import type { FiltresEcranFacturesFournisseur } from '@/hooks/pieces/factures-fournisseur.temporaire';
+import type { FiltresEcranFacturesFournisseur } from '@/hooks/pieces/factures-fournisseur.api';
 import { useListeFacturesFournisseur } from '@/hooks/pieces/useListeFacturesFournisseur';
 import { useSession } from '@/hooks/useSession';
 import { formaterDate, formaterMontant } from '@/lib/formats';
@@ -35,6 +37,8 @@ import { formaterDate, formaterMontant } from '@/lib/formats';
 import { peutDeposerFactureFournisseur, peutLireFactureFournisseur } from './droits';
 import { IndicateurCertitude } from './IndicateurCertitude';
 import { calculerSyntheseEcarts, certitudeChampEnTete } from './utils-factures-fournisseur';
+
+const DELAI_DEBOUNCE_MS = 300;
 
 const VARIANTE_BADGE_STATUT: Record<
   StatutFactureFournisseur,
@@ -52,8 +56,14 @@ const VARIANTE_BADGE_STATUT: Record<
  * `TableComptoir` paginée par curseur, trois états explicites (chargement/vide/erreur).
  *
  * PAS de forme « résumé » séparée dans le contrat partagé (`ReponseFactureFournisseur` porte les
- * lignes complètes même en liste, voir `factures-fournisseur.temporaire.ts`) : `presenceEcarts`
+ * lignes complètes même en liste, voir `factures-fournisseur.api.ts`) : `presenceEcarts`
  * est donc calculé ICI, par ligne de tableau, via `calculerSyntheseEcarts` — pas envoyé tout fait.
+ *
+ * `schemaFiltresFacturesFournisseur` porte `q` (recherche serveur sur `nomCreancier`/
+ * `numeroFacture`, `pieces/facture-fournisseur.ts`) — même architecture que `EcranListeArticles` :
+ * la recherche est appliquée au SQL, jamais filtrée sur les lignes déjà chargées. Les deux champs
+ * sont issus d'une lecture QR/OCR incertaine (`champsOrigine`) et peuvent être `null` : une facture
+ * sans l'un ou l'autre reste cherchable par le champ qui lui reste.
  */
 export function EcranListeFacturesFournisseur() {
   const { t } = useTranslation(['pieces', 'commun']);
@@ -64,9 +74,20 @@ export function EcranListeFacturesFournisseur() {
 
   const [statut, setStatut] = useState<StatutFactureFournisseur | undefined>(undefined);
 
+  const [qSaisie, setQSaisie] = useState('');
+  const [q, setQ] = useState('');
+  useEffect(() => {
+    const identifiant = window.setTimeout(() => setQ(qSaisie), DELAI_DEBOUNCE_MS);
+    return () => window.clearTimeout(identifiant);
+  }, [qSaisie]);
+
   const filtres: FiltresEcranFacturesFournisseur = useMemo(
-    () => ({ statut: statut ? [statut] : undefined, tri: TRI_DEFAUT_FACTURES_FOURNISSEUR }),
-    [statut],
+    () => ({
+      q: q.trim() === '' ? undefined : q.trim(),
+      statut: statut ? [statut] : undefined,
+      tri: TRI_DEFAUT_FACTURES_FOURNISSEUR,
+    }),
+    [q, statut],
   );
 
   // Gardé par le droit AVANT de partir (même correctif que `EcranFicheCommandeFournisseur`,
@@ -84,8 +105,10 @@ export function EcranListeFacturesFournisseur() {
     fetchNextPage,
   } = useListeFacturesFournisseur(filtres, !session.isLoading && peutLire);
 
-  const filtresActifs = statut !== undefined;
+  const filtresActifs = q.trim() !== '' || statut !== undefined;
   function effacerFiltres() {
+    setQSaisie('');
+    setQ('');
     setStatut(undefined);
   }
 
@@ -200,10 +223,42 @@ export function EcranListeFacturesFournisseur() {
     );
   }
 
+  let contenuVide: ReactNode;
+  if (q.trim() !== '') {
+    contenuVide = (
+      <EtatVideRecherche
+        titre={t('pieces:facturesFournisseur.vide.recherche.titre')}
+        description={t('pieces:facturesFournisseur.vide.recherche.description')}
+      />
+    );
+  } else if (statut !== undefined) {
+    contenuVide = (
+      <EtatVideFiltre
+        titre={t('pieces:facturesFournisseur.vide.filtre.titre')}
+        description={t('pieces:facturesFournisseur.vide.filtre.description')}
+        onEffacerFiltres={effacerFiltres}
+      />
+    );
+  } else {
+    contenuVide = (
+      <EtatVidePremierUsage
+        titre={t('pieces:facturesFournisseur.vide.premierUsage.titre')}
+        description={t('pieces:facturesFournisseur.vide.premierUsage.description')}
+        action={boutonDeposer}
+      />
+    );
+  }
+
   return (
     <GabaritEcran titre={t('pieces:facturesFournisseur.titre')} actions={boutonDeposer}>
-      <div className="flex flex-wrap items-end gap-4">
-        <div className="flex flex-col gap-1.5 max-w-xs">
+      <BarreFiltres
+        q={qSaisie}
+        onChangeQ={setQSaisie}
+        placeholderRecherche={t('pieces:facturesFournisseur.filtres.rechercherPlaceholder')}
+        filtresActifs={filtresActifs}
+        onEffacerFiltres={effacerFiltres}
+      >
+        <div className="flex flex-col gap-champ">
           <Label htmlFor="filtre-statut-facture">
             {t('pieces:facturesFournisseur.colonnes.statut')}
           </Label>
@@ -231,7 +286,7 @@ export function EcranListeFacturesFournisseur() {
             </SelectContent>
           </Select>
         </div>
-      </div>
+      </BarreFiltres>
 
       <TableComptoir
         colonnes={colonnes}
@@ -243,21 +298,7 @@ export function EcranListeFacturesFournisseur() {
             nom: facture.numeroFacture ?? t('pieces:facturesFournisseur.sansNumero'),
           })
         }
-        contenuVide={
-          filtresActifs ? (
-            <EtatVideFiltre
-              titre={t('pieces:facturesFournisseur.titre')}
-              description={t('pieces:facturesFournisseur.vide')}
-              onEffacerFiltres={effacerFiltres}
-            />
-          ) : (
-            <EtatVidePremierUsage
-              titre={t('pieces:facturesFournisseur.titre')}
-              description={t('pieces:facturesFournisseur.vide')}
-              action={boutonDeposer}
-            />
-          )
-        }
+        contenuVide={contenuVide}
       />
 
       <BoutonChargerPlus

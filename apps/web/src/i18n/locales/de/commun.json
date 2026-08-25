@@ -56,6 +56,9 @@
     "masque": "Nicht sichtbar",
     "masqueDescription": "Dieser Betrag existiert, aber Ihre Rolle hat keinen Zugriff auf Beträge."
   },
+  "tableComptoir": {
+    "trierPar": "Sortieren nach"
+  },
   "roles": {
     "direction": "Geschäftsführung",
     "vendeur": "Verkaufsberater",

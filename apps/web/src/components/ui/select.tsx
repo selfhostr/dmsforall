@@ -1,8 +1,9 @@
 import * as SelectPrimitive from '@radix-ui/react-select';
-import { Check, ChevronDown } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { forwardRef, type ComponentPropsWithoutRef, type ElementRef } from 'react';
 
 import { CLASSES_CHAMP } from '@/components/ui/classes-champ';
+import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
 // API composée standard shadcn (Select/SelectTrigger/SelectValue/SelectContent/SelectItem),
@@ -55,6 +56,7 @@ export const SelectContent = forwardRef<
       )}
       {...props}
     >
+      <SelectScrollUpButton />
       <SelectPrimitive.Viewport
         className={cn(
           'p-1',
@@ -64,10 +66,53 @@ export const SelectContent = forwardRef<
       >
         {children}
       </SelectPrimitive.Viewport>
+      <SelectScrollDownButton />
     </SelectPrimitive.Content>
   </SelectPrimitive.Portal>
 ));
 SelectContent.displayName = SelectPrimitive.Content.displayName;
+
+// Repris de https://github.com/cosscom/coss (apps/origin, Origin UI historique — licence MIT) —
+// absents de l'implémentation précédente. Sur une longue liste (marques/modèles, sites,
+// techniciens), le `Viewport` ci-dessus défile déjà à la molette/au doigt, mais sans indice
+// visuel qu'il y a plus d'options au-delà du cadre visible ; la navigation clavier (flèches) peut
+// aussi pousser la sélection hors du viewport visible sans bouton pour y revenir explicitement.
+// Ces deux boutons apparaissent uniquement quand Radix détecte un débordement réel
+// (`SelectPrimitive.Scroll*Button` ne se monte que si nécessaire) : rien de visible sur les
+// listes courtes qui composent la majorité des `<Select>` du produit.
+export const SelectScrollUpButton = forwardRef<
+  ElementRef<typeof SelectPrimitive.ScrollUpButton>,
+  ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollUpButton>
+>(({ className, ...props }, ref) => (
+  <SelectPrimitive.ScrollUpButton
+    ref={ref}
+    className={cn(
+      'flex cursor-default items-center justify-center py-1 text-muted-foreground',
+      className,
+    )}
+    {...props}
+  >
+    <ChevronUp aria-hidden="true" className="h-4 w-4" />
+  </SelectPrimitive.ScrollUpButton>
+));
+SelectScrollUpButton.displayName = SelectPrimitive.ScrollUpButton.displayName;
+
+export const SelectScrollDownButton = forwardRef<
+  ElementRef<typeof SelectPrimitive.ScrollDownButton>,
+  ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollDownButton>
+>(({ className, ...props }, ref) => (
+  <SelectPrimitive.ScrollDownButton
+    ref={ref}
+    className={cn(
+      'flex cursor-default items-center justify-center py-1 text-muted-foreground',
+      className,
+    )}
+    {...props}
+  >
+    <ChevronDown aria-hidden="true" className="h-4 w-4" />
+  </SelectPrimitive.ScrollDownButton>
+));
+SelectScrollDownButton.displayName = SelectPrimitive.ScrollDownButton.displayName;
 
 export const SelectLabel = forwardRef<
   ElementRef<typeof SelectPrimitive.Label>,
@@ -110,14 +155,14 @@ export const SelectItem = forwardRef<
 ));
 SelectItem.displayName = SelectPrimitive.Item.displayName;
 
+// Composé sur le `Separator` partagé (`components/ui/separator.tsx`) plutôt que sur
+// `SelectPrimitive.Separator` : ce dernier n'apporte rien de plus (même rôle ARIA décoratif,
+// aucune inscription dans la navigation clavier des `SelectItem`) et dupliquait la même classe
+// que `DropdownMenuSeparator` — voir le commentaire de tête de `separator.tsx`.
 export const SelectSeparator = forwardRef<
-  ElementRef<typeof SelectPrimitive.Separator>,
-  ComponentPropsWithoutRef<typeof SelectPrimitive.Separator>
+  ElementRef<typeof Separator>,
+  ComponentPropsWithoutRef<typeof Separator>
 >(({ className, ...props }, ref) => (
-  <SelectPrimitive.Separator
-    ref={ref}
-    className={cn('-mx-1 my-1 h-px bg-border', className)}
-    {...props}
-  />
+  <Separator ref={ref} className={cn('-mx-1 my-1', className)} {...props} />
 ));
-SelectSeparator.displayName = SelectPrimitive.Separator.displayName;
+SelectSeparator.displayName = 'SelectSeparator';

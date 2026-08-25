@@ -4,11 +4,13 @@ import { useTranslation } from 'react-i18next';
 import { messageErreur } from '@/api/erreurs';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
+import { FilAriane, type SegmentFilAriane } from '@/composants/layout/FilAriane';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useFactureFournisseur } from '@/hooks/pieces/useFactureFournisseur';
 import { useRejeterFactureFournisseur } from '@/hooks/pieces/useRejeterFactureFournisseur';
 import { useValiderRapprochementFactureFournisseur } from '@/hooks/pieces/useValiderRapprochementFactureFournisseur';
 import { useSession } from '@/hooks/useSession';
+import { chemins } from '@/routes/chemins';
 
 import { peutDeciderFactureFournisseur, peutLireFactureFournisseur } from './droits';
 import { PanneauRapprochementFacture } from './PanneauRapprochementFacture';
@@ -75,11 +77,27 @@ export function EcranFactureFournisseur() {
 
   const facture = requeteFacture.data;
 
+  // Fil d'Ariane contextuel (même doctrine que `EnTeteFicheArticle`, Lot C) — un seul ancêtre
+  // honnête : la liste des factures fournisseur dont cette fiche vient. Ressource par TENANT
+  // (pas de `?site=`, voir `chemins.pieces.facturesFournisseur`).
+  const segmentsFilAriane: readonly SegmentFilAriane[] = [
+    {
+      cle: 'facturesFournisseur',
+      libelle: t('pieces:facturesFournisseur.titre'),
+      href: chemins.pieces.facturesFournisseur.liste(),
+    },
+  ];
+
   return (
     <GabaritEcran
       titre={t('pieces:facturesFournisseur.titre')}
       sousTitre={facture.numeroFacture ?? t('pieces:facturesFournisseur.sansNumero')}
     >
+      <FilAriane
+        segments={segmentsFilAriane}
+        pageCourante={facture.numeroFacture ?? t('pieces:facturesFournisseur.sansNumero')}
+      />
+
       <PanneauRapprochementFacture
         facture={facture}
         peutDecider={peutDeciderFactureFournisseur(role)}

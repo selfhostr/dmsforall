@@ -64,7 +64,7 @@ export function RefusBloquant({
     <div
       role="alert"
       className={cn(
-        'flex flex-col gap-3 rounded-md border border-statut-danger bg-statut-danger-fond p-4',
+        'flex flex-col gap-groupe rounded-md border border-statut-danger bg-statut-danger-fond p-carte',
         className,
       )}
     >
@@ -80,7 +80,7 @@ export function RefusBloquant({
       ) : null}
 
       {actionsProposees.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-controles">
           {actionsProposees.map((action) => (
             <Button key={action.code} variant="outline" onClick={() => onActionProposee?.(action)}>
               {t(`erreurs:actions.${action.code}`)}

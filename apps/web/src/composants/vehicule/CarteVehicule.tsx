@@ -47,7 +47,7 @@ export function CarteVehicule({ vehicule, onOuvrir, className }: ProprietesCarte
       onClick={onOuvrir}
       onKeyDown={gererClavier}
       className={cn(
-        'flex flex-col gap-2 rounded-lg border bg-card p-4 text-card-foreground',
+        'flex flex-col gap-2 rounded-lg border bg-card p-carte text-card-foreground',
         onOuvrir &&
           'cursor-pointer transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
         className,

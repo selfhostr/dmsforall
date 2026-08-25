@@ -3,7 +3,7 @@ import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/r
 import type { EntreeRejetFactureFournisseur, ReponseFactureFournisseur } from '@dfa/shared';
 
 import { clesPieces } from './cles';
-import { rejeterFactureFournisseur } from './factures-fournisseur.temporaire';
+import { rejeterFactureFournisseur } from './factures-fournisseur.api';
 
 /** `POST /factures-fournisseur/{id}/rejeter` — motif obligatoire (`EntreeRejetFactureFournisseur`,
  *  `schemaMotif`, ≥ 3 caractères, `@dfa/shared`). TERMINAL (`statut: 'rejetee'`) : le document

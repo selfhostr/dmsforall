@@ -320,11 +320,12 @@
       "titre": "Verfügbarkeit",
       "quantitePhysique": "Physischer Bestand",
       "quantiteDisponible": "Verfügbare Menge",
-      "reservationsActives": "Aktive Reservierungen"
+      "reservationsActives": "Aktive Reservierungen",
+      "aucuneActive": "Keine Reservierungen."
     },
-    "vide": "Keine Reservierungen.",
     "filtres": {
-      "statutToutes": "Alle Status"
+      "statutToutes": "Alle Status",
+      "rechercherPlaceholder": "Nach Artikel oder Auftragsnummer suchen"
     },
     "voirArticle": "Artikel ansehen",
     "voirOr": "Reparaturauftrag ansehen",
@@ -335,6 +336,20 @@
       "titre": "Diese Reservierung freigeben?",
       "description": "Das Teil wird wieder für einen anderen Reparaturauftrag verfügbar. Grund angeben.",
       "champMotif": "Grund"
+    },
+    "vide": {
+      "recherche": {
+        "titre": "Keine Reservierung gefunden",
+        "description": "Keine Reservierung entspricht dieser Suche."
+      },
+      "filtre": {
+        "titre": "Keine Reservierung mit diesem Status",
+        "description": "Keine Reservierung entspricht dem gewählten Filter."
+      },
+      "premierUsage": {
+        "titre": "Keine Reservierungen",
+        "description": "Derzeit ist keine Reservierung erfasst."
+      }
     }
   },
   "commandes": {
@@ -398,7 +413,8 @@
     },
     "filtres": {
       "statutTous": "Alle Status",
-      "avecReliquat": "Nur mit offener Menge"
+      "avecReliquat": "Nur mit offener Menge",
+      "rechercherPlaceholder": "Nach Referenz suchen"
     },
     "confirmations": {
       "annulerTitre": "Diese Bestellung stornieren?",
@@ -415,7 +431,20 @@
       },
       "droitRequis": "Sie sind nicht berechtigt, Lieferantenbestellungen einzusehen."
     },
-    "vide": "Keine Bestellungen."
+    "vide": {
+      "recherche": {
+        "titre": "Keine Bestellung gefunden",
+        "description": "Keine Bestellung entspricht dieser Suche."
+      },
+      "filtre": {
+        "titre": "Keine Bestellung mit diesen Filtern",
+        "description": "Keine Bestellung entspricht den gewählten Filtern."
+      },
+      "premierUsage": {
+        "titre": "Keine Lieferantenbestellung",
+        "description": "Erstellen Sie eine Bestellung, um einen Lieferanten nachzubestellen."
+      }
+    }
   },
   "consignes": {
     "titre": "Austausch-Pfänder",
@@ -469,7 +498,8 @@
       "reactiver": "Reaktivieren"
     },
     "filtres": {
-      "statutTous": "Alle Status"
+      "statutTous": "Alle Status",
+      "rechercherPlaceholder": "Lieferant suchen"
     },
     "confirmations": {
       "desactiverTitre": "Diesen Lieferanten deaktivieren?",
@@ -486,7 +516,20 @@
       },
       "droitRequis": "Sie sind nicht berechtigt, Lieferanten einzusehen."
     },
-    "vide": "Keine Lieferanten."
+    "vide": {
+      "recherche": {
+        "titre": "Kein Lieferant gefunden",
+        "description": "Kein Lieferant entspricht dieser Suche."
+      },
+      "filtre": {
+        "titre": "Kein Lieferant mit diesem Status",
+        "description": "Kein Lieferant entspricht dem gewählten Filter."
+      },
+      "premierUsage": {
+        "titre": "Kein Lieferant",
+        "description": "Erfassen Sie den ersten Lieferanten, um Bestellungen aufzugeben."
+      }
+    }
   },
   "comptoirVente": {
     "actions": {
@@ -519,7 +562,20 @@
     "sousTitreDepot": "Laden Sie das vom Lieferanten erhaltene PDF hoch: Es wird automatisch gelesen und der passenden Bestellung zugeordnet.",
     "deposeeLe": "Hochgeladen am {date}",
     "sansNumero": "Rechnung ohne gelesene Nummer",
-    "vide": "Keine Lieferantenrechnung hochgeladen.",
+    "vide": {
+      "recherche": {
+        "titre": "Keine Rechnung gefunden",
+        "description": "Keine Rechnung entspricht dieser Suche."
+      },
+      "filtre": {
+        "titre": "Keine Rechnung mit diesen Filtern",
+        "description": "Keine Rechnung entspricht den gewählten Filtern."
+      },
+      "premierUsage": {
+        "titre": "Keine Lieferantenrechnung hochgeladen",
+        "description": "Laden Sie eine Rechnung hoch, um den Abgleich zu starten."
+      }
+    },
     "erreur": {
       "titre": "Lieferantenrechnungen können nicht angezeigt werden"
     },
@@ -528,7 +584,8 @@
       "depot": "Sie haben keine Berechtigung, eine Lieferantenrechnung hochzuladen."
     },
     "filtres": {
-      "statutTous": "Alle Status"
+      "statutTous": "Alle Status",
+      "rechercherPlaceholder": "Nach Lieferant oder Nummer suchen"
     },
     "colonnes": {
       "fichier": "Rechnung",

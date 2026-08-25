@@ -79,7 +79,7 @@ export function BlocDonneesAtelier({ donnees, className }: ProprietesBlocDonnees
         {champs.length === 0 ? (
           <EtatVide titre={t('donnees.titre')} description={t('donnees.vide')} />
         ) : (
-          <dl className="densite-dense grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+          <dl className="densite-dense grid grid-cols-1 gap-x-6 gap-y-groupe sm:grid-cols-2">
             {champs.map((champ) => (
               <div
                 key={champ.libelle}

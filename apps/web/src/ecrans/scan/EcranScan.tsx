@@ -467,7 +467,7 @@ export function EcranScan() {
                   </p>
                   <Button
                     type="button"
-                    className="h-14 w-full gap-2 text-base"
+                    className="h-14 w-full gap-2 texte-annexe"
                     onClick={() => inputRef.current?.click()}
                   >
                     <Camera className="h-5 w-5" aria-hidden="true" />

@@ -28,9 +28,12 @@ import { RechercheGlobale } from './RechercheGlobale';
  *    respiration de chaque côté.
  *  - La ligne « bouton hamburger seul » du tiroir mobile, qui vivait EMPILÉE au-dessus de
  *    l'ancienne `EnTete` (`AppShell.tsx`, avant ce lot), est FUSIONNÉE ici plutôt que dupliquée à
- *    côté : sur téléphone, un garagiste gagne donc une rangée ENTIÈRE en plus des 16 px gagnés sur
+ *    côté : sur tablette, un garagiste gagne donc une rangée ENTIÈRE en plus des 16 px gagnés sur
  *    la hauteur du bandeau lui-même. Le bouton reste `lg:hidden` (le tiroir n'existe pas au-delà
- *    de ce seuil, `BarreLaterale` reste visible en `aside`).
+ *    de ce seuil, `BarreLaterale` reste visible en `aside`) — et devient EN PLUS `hidden md:flex`
+ *    depuis le lot barre basse (24.08.2026, `AppShell.tsx`) : sous `md` (téléphone), le bouton
+ *    « Plus » de `BarreOngletsBasse.tsx` ouvre déjà le même tiroir, un second déclencheur ici
+ *    ferait doublon (doctrine anti-doublon du dépôt, `GabaritEcran.tsx`).
  *
  * `SheetTrigger` (pas un `onClick` manuel) : ce composant est monté comme enfant direct d'un
  * `<Sheet>` par `AppShell.tsx` — Radix relie le déclencheur au tiroir par le contexte, sans props à
@@ -51,7 +54,7 @@ export function BarreOutilsSuperieure() {
           type="button"
           variant="ghost"
           size="icon"
-          className="shrink-0 lg:hidden"
+          className="hidden shrink-0 md:flex lg:hidden"
           aria-label={t('navigation:menu.ouvrir')}
         >
           <Menu className="h-5 w-5" aria-hidden="true" />

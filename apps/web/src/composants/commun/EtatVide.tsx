@@ -33,7 +33,7 @@ export function EtatVide({ titre, description, note, action }: Props) {
     <div className="flex flex-col items-center gap-groupe rounded-lg border border-dashed p-carte text-center">
       <h2 className="texte-titre-section">{titre}</h2>
       <p className="max-w-md text-muted-foreground">{description}</p>
-      {note ? <p className="text-sm text-muted-foreground">{note}</p> : null}
+      {note ? <p className="texte-corps text-muted-foreground">{note}</p> : null}
       {action}
     </div>
   );

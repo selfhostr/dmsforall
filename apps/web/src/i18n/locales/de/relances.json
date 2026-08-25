@@ -1,6 +1,10 @@
 {
   "titre": "Automatische Mahnungen",
-  "sousTitre": "Erinnerungen für offene Rechnungen: Stufen einstellen, Planung und Versand auslösen.",
+  "sousTitre": "Erinnerungen für offene Rechnungen: Planung und Versand auslösen, Verlauf einsehen.",
+  "reglages": {
+    "titre": "Mahnstufen",
+    "sousTitre": "Fristen und Versandkanäle der Mahnungen für offene Rechnungen dieses Betriebs einstellen."
+  },
   "navigation": {
     "lien": "Mahnungen"
   },

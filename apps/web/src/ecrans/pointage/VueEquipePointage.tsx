@@ -76,7 +76,7 @@ function CarteParOr({ orId }: { readonly orId: string }) {
           <p className="texte-libelle text-muted-foreground">
             {t('pointage:equipe.parOr.tempsReel')}
           </p>
-          <p className="text-xl font-semibold tabular-nums">
+          <p className="texte-titre-page font-semibold tabular-nums">
             {formaterDureeLisible(centiemesHeureEnSecondes(tempsReelCentiemes))}
           </p>
         </div>
@@ -84,14 +84,14 @@ function CarteParOr({ orId }: { readonly orId: string }) {
           <p className="texte-libelle text-muted-foreground">
             {t('pointage:equipe.parOr.tempsFacture')}
           </p>
-          <p className="text-xl font-semibold tabular-nums">
+          <p className="texte-titre-page font-semibold tabular-nums">
             {formaterDureeLisible(centiemesHeureEnSecondes(tempsFactureCentiemes))}
           </p>
         </div>
         <div className="rounded-lg border p-4">
           <p className="texte-libelle text-muted-foreground">{t('pointage:equipe.parOr.ecart')}</p>
           <p
-            className={`text-xl font-semibold tabular-nums ${ecartCentiemes > 0 ? 'text-destructive' : ''}`}
+            className={`texte-titre-page font-semibold tabular-nums ${ecartCentiemes > 0 ? 'text-destructive' : ''}`}
           >
             {ecartCentiemes >= 0 ? '+' : ''}
             {formaterDureeLisible(centiemesHeureEnSecondes(Math.abs(ecartCentiemes)))}

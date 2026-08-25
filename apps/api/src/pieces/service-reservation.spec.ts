@@ -401,3 +401,56 @@ describe('ServiceReservation.apercuLiberationCascadeTx — aperçu EN LECTURE SE
     expect(texte).not.toContain('for update');
   });
 });
+
+/**
+ * Chantier « uniformisation pièces » (25.08.2026, en écho au correctif fournisseurs du même jour,
+ * `service-fournisseur.spec.ts`) : `EcranReservationsPieces` passe sur `BarreFiltres`, qui exige
+ * une recherche SERVEUR (`q`) — jamais un filtre côté client sur les lignes déjà chargées (le piège
+ * maison déjà commis une fois sur les écrans fournisseurs). `q` cherche dans les deux colonnes
+ * JOINTES déjà affichées par la table (`articleDesignation`, `ordreReparationNumero`).
+ */
+describe('ServiceReservation.lister — filtre `q` tolérant à la casse ET aux accents', () => {
+  const FILTRES: FiltresReservations = { tri: 'creeLe:desc', limite: 50 };
+
+  it('enveloppe `articleDesignation` ET `ordreReparationNumero` dans public.normaliser_recherche(...), jamais un `ilike` nu', async () => {
+    const tx = txFactice([{ rows: [] }]);
+    const service = new ServiceReservation(accesFactice(tx));
+
+    await service.lister(CTX, { ...FILTRES, q: 'plaquettes' });
+
+    const appel = (tx.execute as unknown as ReturnType<typeof vi.fn>).mock.calls[0];
+    const { sql: texte } = dialect.sqlToQuery(appel?.[0] as SQL);
+    expect(texte).toContain(
+      'public.normaliser_recherche(a.designation) like public.normaliser_recherche(',
+    );
+    expect(texte).toContain(
+      'public.normaliser_recherche(o.numero) like public.normaliser_recherche(',
+    );
+    expect(texte).not.toContain('ilike');
+  });
+
+  // Test décisif : un `q` accepté par le contrat mais ignoré par le service est le piège maison —
+  // un terme inexistant DOIT rendre une liste vide, jamais toutes les réservations.
+  it('un terme qui ne correspond à aucune réservation rend une liste VIDE, jamais tout le référentiel', async () => {
+    const tx = txFactice([{ rows: [] }]);
+    const service = new ServiceReservation(accesFactice(tx));
+
+    const page = await service.lister(CTX, { ...FILTRES, q: 'introuvable-xyz' });
+
+    expect(page.donnees).toEqual([]);
+    expect(page.curseurSuivant).toBeNull();
+  });
+
+  // Piège du zéro/vide : `q` absent (`undefined`) ne doit JAMAIS ajouter la condition — un client
+  // qui n'envoie pas `q` doit se comporter EXACTEMENT comme avant (rétrocompatibilité).
+  it('sans `q`, aucune condition de recherche n’est ajoutée au SQL', async () => {
+    const tx = txFactice([{ rows: [] }]);
+    const service = new ServiceReservation(accesFactice(tx));
+
+    await service.lister(CTX, FILTRES);
+
+    const appel = (tx.execute as unknown as ReturnType<typeof vi.fn>).mock.calls[0];
+    const { sql: texte } = dialect.sqlToQuery(appel?.[0] as SQL);
+    expect(texte).not.toContain('normaliser_recherche');
+  });
+});

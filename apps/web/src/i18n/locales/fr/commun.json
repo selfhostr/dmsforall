@@ -56,6 +56,9 @@
     "masque": "Non visible",
     "masqueDescription": "Ce montant existe, mais votre rôle ne donne pas accès aux montants."
   },
+  "tableComptoir": {
+    "trierPar": "Trier par"
+  },
   "roles": {
     "direction": "Direction",
     "vendeur": "Vendeur",

@@ -276,8 +276,8 @@ export function EcranNouvelleCommandeFournisseur() {
           {t('commun:formulaires.champsObligatoiresLegende')}
         </LegendeChampsObligatoires>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1.5">
+        <div className="grid grid-cols-2 gap-controles">
+          <div className="flex flex-col gap-champ">
             <Label htmlFor="cmd-fournisseur" requis>
               {t('pieces:commandes.fournisseur')}
             </Label>
@@ -308,7 +308,7 @@ export function EcranNouvelleCommandeFournisseur() {
               </Select>
             )}
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-champ">
             <Label htmlFor="cmd-site" requis>
               {t('pieces:commandes.site')}
             </Label>
@@ -331,8 +331,8 @@ export function EcranNouvelleCommandeFournisseur() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1.5">
+        <div className="grid grid-cols-2 gap-controles">
+          <div className="flex flex-col gap-champ">
             <Label htmlFor="cmd-date">{t('pieces:commandes.dateCommande')}</Label>
             <DateInput
               id="cmd-date"
@@ -341,7 +341,7 @@ export function EcranNouvelleCommandeFournisseur() {
               onChange={(valeurISO: string | undefined) => setDateCommande(valeurISO ?? '')}
             />
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-champ">
             <Label htmlFor="cmd-reference">{t('pieces:commandes.reference')}</Label>
             <Input
               id="cmd-reference"
@@ -352,7 +352,7 @@ export function EcranNouvelleCommandeFournisseur() {
           </div>
         </div>
 
-        <fieldset className="flex flex-col gap-3 rounded-md border p-3">
+        <fieldset className="flex flex-col gap-controles rounded-md border p-3">
           <legend className="px-1 texte-libelle font-medium text-foreground">
             {t('pieces:commandes.lignes.titre')}
           </legend>
@@ -370,7 +370,7 @@ export function EcranNouvelleCommandeFournisseur() {
                 disabled={enCours}
               />
               {recherche.resultats && recherche.resultats.length > 0 ? (
-                <ul className="flex flex-col gap-1.5">
+                <ul className="flex flex-col gap-champ">
                   {recherche.resultats.map((resultat) => (
                     <li key={resultat.articleId}>
                       <button
@@ -419,8 +419,8 @@ export function EcranNouvelleCommandeFournisseur() {
                       <X className="h-4 w-4" aria-hidden="true" />
                     </button>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="flex flex-col gap-1.5">
+                  <div className="grid grid-cols-2 gap-controles">
+                    <div className="flex flex-col gap-champ">
                       <Label htmlFor={`cmd-qte-${ligne.articleId}`} requis>
                         {t('pieces:commandes.lignes.quantiteCommandee')}
                       </Label>

@@ -89,7 +89,7 @@ export function CartePointageEnCours({
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
         <div className="flex flex-col items-center gap-2 py-4">
-          <span className="tabular-nums text-6xl font-bold tracking-tight" aria-live="off">
+          <span className="tabular-nums text-5xl font-bold tracking-tight" aria-live="off">
             {chrono.libelle}
           </span>
           <span className="texte-corps text-muted-foreground">{libelleCible}</span>
@@ -123,7 +123,7 @@ export function CartePointageEnCours({
           {onReprendre ? (
             <Button
               size="lg"
-              className="min-h-[72px] text-lg"
+              className="min-h-[72px] texte-annexe"
               disabled={enTraitement}
               onClick={onReprendre}
             >
@@ -133,7 +133,7 @@ export function CartePointageEnCours({
           {onPause ? (
             <Button
               size="lg"
-              className="min-h-[72px] text-lg"
+              className="min-h-[72px] texte-annexe"
               disabled={enTraitement}
               onClick={onPause}
             >
@@ -144,7 +144,7 @@ export function CartePointageEnCours({
             <Button
               size="lg"
               variant="outline"
-              className="min-h-[72px] text-lg"
+              className="min-h-[72px] texte-annexe"
               disabled={enTraitement}
               onClick={onChanger}
             >
@@ -154,7 +154,7 @@ export function CartePointageEnCours({
           <Button
             size="lg"
             variant="outline"
-            className="min-h-[72px] text-lg"
+            className="min-h-[72px] texte-annexe"
             disabled={enTraitement}
             onClick={onArreter}
           >

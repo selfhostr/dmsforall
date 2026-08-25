@@ -39,7 +39,11 @@ export function BasculeAffichageStock({ affichage, onChangeAffichage }: Props) {
             key={valeur}
             value={valeur}
             className={cn(
-              'flex h-9 items-center whitespace-nowrap rounded-sm px-3 text-sm font-medium transition-colors',
+              // 36 px visibles, 44 px cliquables : même technique que `Button` `size="sm"`
+              // (`components/ui/button.tsx`) — le pseudo-élément déborde de 4 px en haut et en
+              // bas pour tenir la règle des 44 px sans imposer une bascule plus haute dans une
+              // barre d'outils dense. Zone étendue invisible, hors du flux, ne décale rien.
+              'relative flex h-9 items-center whitespace-nowrap rounded-sm px-3 texte-corps font-medium transition-colors after:absolute after:inset-x-0 after:-inset-y-1 after:content-[""]',
               'anneau-focus',
               'text-muted-foreground hover:text-foreground',
               'data-[state=active]:bg-background data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-sm',

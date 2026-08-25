@@ -1,3 +1,4 @@
+import { X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -53,6 +54,17 @@ const VARIANTE_BADGE_STATUT: Record<
  * qui appelle une action, contrairement à `EcranReservationsPieces` où `active` est le défaut pour
  * la même raison. Ne solde JAMAIS une consigne automatiquement (RP-41) : la seule action possible
  * ici est le geste EXPLICITE du magasinier constatant le retour physique chez le fournisseur.
+ *
+ * Chantier « uniformisation pièces » (25.08.2026) : PAS de passage sur `BarreFiltres`, décision
+ * DÉLIBÉRÉE — `ReponseConsigneEchangeStandard` (`pieces/consigne.ts`) ne porte QUE des identifiants
+ * bruts (`articleId`, `ordreReparationId`, `ligneOrId`), aucun champ textuel joint (contrairement à
+ * `ReponseReservationPiece`, qui expose `articleDesignation`/`ordreReparationNumero` — voir
+ * `EcranReservationsPieces`, migré lui). Un montant et deux dates ne sont pas des cibles de
+ * recherche texte pertinentes. Ajouter `q` ici exigerait donc de joindre `article`/`ordre_reparation`
+ * au SQL sans aucun besoin garagiste identifié — une recherche qui ne cherche rien de plus que les
+ * deux filtres déjà exacts (`statut`, `ancienneteJoursMin`) serait pire qu'une absence de
+ * recherche. Le bouton « Effacer les filtres » reste aligné visuellement sur `BarreFiltres` (même
+ * icône, même style) pour la cohérence du comptoir, sans le champ de recherche.
  */
 export function EcranConsignesPieces() {
   const { t } = useTranslation(['pieces', 'commun']);
@@ -194,8 +206,8 @@ export function EcranConsignesPieces() {
 
   return (
     <GabaritEcran titre={t('pieces:consignes.titre')}>
-      <div className="flex flex-wrap items-end gap-4">
-        <div className="flex flex-col gap-1.5 max-w-xs">
+      <div className="flex flex-wrap items-end gap-groupe">
+        <div className="flex flex-col gap-champ max-w-xs">
           <Label htmlFor="filtre-statut-consigne">{t('pieces:consignes.statut')}</Label>
           <Select
             value={statut ?? 'toutes'}
@@ -219,7 +231,7 @@ export function EcranConsignesPieces() {
           </Select>
         </div>
 
-        <div className="flex flex-col gap-1.5 max-w-[220px]">
+        <div className="flex flex-col gap-champ max-w-[220px]">
           <Label htmlFor="filtre-anciennete-consigne">
             {t('pieces:consignes.anciennes.anciennete')}
           </Label>
@@ -232,6 +244,11 @@ export function EcranConsignesPieces() {
             onChange={(evenement) => setAncienneteSaisie(evenement.target.value)}
           />
         </div>
+
+        <Button type="button" variant="ghost" disabled={!filtresActifs} onClick={effacerFiltres}>
+          <X aria-hidden className="h-4 w-4" />
+          {t('commun:actions.effacerFiltres')}
+        </Button>
       </div>
 
       <TableComptoir

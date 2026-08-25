@@ -133,7 +133,7 @@ export function DialogueReceptionCommande({ ouvert, onOuvertChange, commande }: 
           <DialogDescription>{t('pieces:commandes.reception.description')}</DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-groupe">
           <LegendeChampsObligatoires>
             {t('commun:formulaires.champsObligatoiresLegende')}
           </LegendeChampsObligatoires>
@@ -142,7 +142,7 @@ export function DialogueReceptionCommande({ ouvert, onOuvertChange, commande }: 
             const saisie = lignes[ligne.id];
             if (!saisie) return null;
             return (
-              <div key={ligne.id} className="flex flex-col gap-3 rounded-md border p-3">
+              <div key={ligne.id} className="flex flex-col gap-controles rounded-md border p-3">
                 <label
                   htmlFor={`reception-ligne-${ligne.id}`}
                   className="flex items-center gap-2 texte-corps font-medium"
@@ -163,8 +163,8 @@ export function DialogueReceptionCommande({ ouvert, onOuvertChange, commande }: 
                 </label>
 
                 {saisie.selectionnee ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="flex flex-col gap-1.5">
+                  <div className="grid grid-cols-2 gap-controles">
+                    <div className="flex flex-col gap-champ">
                       <Label htmlFor={`recep-qte-${ligne.id}`} requis>
                         {t('pieces:commandes.lignes.quantiteRecue')}
                       </Label>
@@ -189,7 +189,7 @@ export function DialogueReceptionCommande({ ouvert, onOuvertChange, commande }: 
                         majLigne(ligne.id, { prixReelCentimes: centimes })
                       }
                     />
-                    <div className="col-span-2 flex flex-col gap-1.5">
+                    <div className="col-span-2 flex flex-col gap-champ">
                       <Label htmlFor={`recep-motif-${ligne.id}`}>
                         {t('pieces:commandes.lignes.motif')}
                       </Label>

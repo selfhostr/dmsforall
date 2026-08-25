@@ -545,13 +545,12 @@ const ONGLETS_FACTURATION: readonly OngletDomaine[] = [
     roles: ROLES_MENU_FACTURATION,
   },
   /**
-   * Relances sous FACTURATION, pas sous Réglages. §4.5 sépare « paliers -> Réglages » et
-   * « déclenchement -> Factures » ; `EcranRelances` fait aujourd'hui LES DEUX dans un seul écran
-   * (règles ET planification/envoi à la demande). Entre les deux rangements possibles, celui qui
-   * décrit l'écran réel est Facturation : ce n'est pas un réglage qu'on pose une fois puis qu'on
+   * Déclenchement des relances sous FACTURATION, pas sous Réglages (§4.5 : « déclenchement ->
+   * Factures »). Scindé de l'ancien `EcranRelances` (qui portait AUSSI les paliers) : voir l'onglet
+   * `relances` d'`ONGLETS_REGLAGES` ci-dessous pour le réglage des paliers, désormais séparé. Ce qui
+   * reste ici (planifier/envoyer/historique) n'est pas un réglage qu'on pose une fois puis qu'on
    * oublie, c'est un écran actionné régulièrement — et le `comptable`, dont c'est l'outil, atterrit
-   * précisément sur Facturation. Un emplacement reste RÉSERVÉ dans Réglages (voir
-   * `EMPLACEMENTS_RESERVES`) pour le jour où les paliers s'en détacheront.
+   * précisément sur Facturation.
    */
   {
     id: 'relances',
@@ -652,6 +651,21 @@ const ONGLETS_REGLAGES: readonly OngletDomaine[] = [
     motifs: ['/parametrage/utilisateurs'],
     roles: ROLES_GESTION_UTILISATEURS,
   },
+  /**
+   * Paliers de relance (scission de l'ancien `EcranRelances`, §4.5 : « paliers -> Réglages »).
+   * DERNIER onglet de Réglages — l'emplacement était RÉSERVÉ ici depuis le lot D
+   * (voir l'historique d'`EMPLACEMENTS_RESERVES` ci-dessous), le temps que l'écran mixte se scinde.
+   * `roles: ROLES_RELANCES` reflète la même restriction RÉELLE que l'onglet `relances` de
+   * Facturation ci-dessus : `relances.facturation.regle.lire` ferme la LECTURE elle-même à tout
+   * rôle hors `direction`/`comptable` côté API.
+   */
+  {
+    id: 'relances',
+    cleLibelle: 'navigation:onglets.reglagesRelances',
+    chemin: (site) => chemins.parametrage.relances(site),
+    motifs: ['/parametrage/relances'],
+    roles: ROLES_RELANCES,
+  },
 ];
 
 /** Les SIX entrées, dans l'ordre de la journée. Réglages n'en fait pas partie : il vit en pied. */
@@ -747,15 +761,6 @@ export const EMPLACEMENTS_RESERVES: readonly {
       "§4.2 prévoit « Factures · Encaissements » ; les opérations d'encaissement et de lettrage " +
       "existent côté API (étape 2) mais n'ont aucun écran de liste autonome — elles se pratiquent " +
       'depuis la fiche facture. Emplacement tenu en DEUXIÈME onglet de Facturation.',
-  },
-  {
-    entree: 'reglages',
-    onglet: 'relances',
-    cleLibelle: 'navigation:onglets.reglagesRelances',
-    motif:
-      'Paliers de relance (§4.5 : « paliers -> Réglages »). Tant que `EcranRelances` mélange les ' +
-      "règles et le déclenchement, l'écran vit en onglet de Facturation (voir ONGLETS_FACTURATION). " +
-      "Le jour où les paliers s'en détachent, ils viennent ici en DERNIER onglet de Réglages.",
   },
 ];
 

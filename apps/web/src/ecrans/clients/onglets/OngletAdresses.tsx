@@ -161,7 +161,7 @@ function ChampsAdresse({
             ci-dessous. Affiché ici, sur le champ que le serveur désigne
             (`erreurs[].champ === 'type'`). */}
         {erreurServeur?.champErreur('type') ? (
-          <p className="text-sm text-destructive">
+          <p className="texte-corps text-destructive">
             {messageErreurChamp(erreurServeur.champErreur('type')!, t)}
           </p>
         ) : null}
@@ -179,7 +179,7 @@ function ChampsAdresse({
           required
         />
         {erreurServeur?.champErreur('rue') ? (
-          <p className="text-sm text-destructive">
+          <p className="texte-corps text-destructive">
             {messageErreurChamp(erreurServeur.champErreur('rue')!, t)}
           </p>
         ) : null}
@@ -201,11 +201,11 @@ function ChampsAdresse({
             required
           />
           {erreurNpaServeur ? (
-            <p id={`${idPrefixe}-npa-erreur`} className="text-sm text-destructive">
+            <p id={`${idPrefixe}-npa-erreur`} className="texte-corps text-destructive">
               {messageErreurChamp(erreurNpaServeur, t)}
             </p>
           ) : npaInvalide ? (
-            <p id={`${idPrefixe}-npa-erreur`} className="text-sm text-destructive">
+            <p id={`${idPrefixe}-npa-erreur`} className="texte-corps text-destructive">
               {t('clients:adresses.npaFormatInvalide')}
             </p>
           ) : null}
@@ -223,7 +223,7 @@ function ChampsAdresse({
             required
           />
           {erreurServeur?.champErreur('localite') ? (
-            <p className="text-sm text-destructive">
+            <p className="texte-corps text-destructive">
               {messageErreurChamp(erreurServeur.champErreur('localite')!, t)}
             </p>
           ) : null}
@@ -252,7 +252,7 @@ function ChampsAdresse({
           </SelectContent>
         </Select>
         {erreurServeur?.champErreur('pays') ? (
-          <p className="text-sm text-destructive">
+          <p className="texte-corps text-destructive">
             {messageErreurChamp(erreurServeur.champErreur('pays')!, t)}
           </p>
         ) : null}

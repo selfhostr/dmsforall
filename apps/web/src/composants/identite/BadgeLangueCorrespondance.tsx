@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { Langue } from '@dfa/shared';
 
-import { cn } from '@/lib/utils';
+import { BadgeAttribut } from './BadgeAttribut';
 
 /**
  * Drapeau **et** mot (RM-02) : la langue de correspondance détermine la langue des documents
@@ -26,14 +26,11 @@ export function BadgeLangueCorrespondance({ langue, className }: Props) {
   const { t } = useTranslation('commun');
 
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 rounded-full border border-input bg-background px-2.5 py-0.5 texte-libelle font-medium text-muted-foreground',
-        className,
-      )}
+    <BadgeAttribut
+      icone={<span aria-hidden>{DRAPEAU_PAR_LANGUE[langue]}</span>}
+      className={className}
     >
-      <span aria-hidden>{DRAPEAU_PAR_LANGUE[langue]}</span>
       {t(`commun:langues.${langue}`)}
-    </span>
+    </BadgeAttribut>
   );
 }

@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { ChampKilometrage } from '@/composants/comptoir/ChampKilometrage';
+import { ActionPrimaire, type ActionSecondaireMenu } from '@/composants/layout/ActionPrimaire';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
 import { RefusBloquant } from '@/composants/motifs/RefusBloquant';
 import { clesVentesDossiers } from '@/hooks/ventes/dossiers/cles';
@@ -78,14 +79,42 @@ const IDENTITES_USUELLES = [
   'titre_sejour',
 ] as const;
 
+/**
+ * Actions jamais retenues comme PRIMAIRE (même doctrine que `PanneauActionsOr::RESERVEES_SECONDAIRES`,
+ * atelier) : `annuler` et `abandonner` mettent fin au dossier — irréversibles (RV-38 : au-delà de
+ * `pret_a_livrer`, plus aucune des deux n'est même proposée), jamais le geste attendu par défaut
+ * même quand le serveur les liste comme structurellement possibles. Toutes deux restent accessibles
+ * derrière le « … », chacune avec sa propre confirmation qui nomme la conséquence (texte
+ * `annulerConfirmationVehicule`, déjà présent plus bas — inchangé par ce lot).
+ */
+const RESERVEES_SECONDAIRES: ReadonlySet<ActionDossierVente> = new Set(['annuler', 'abandonner']);
+
 interface Props {
   readonly dossier: ReponseDossierVente;
 }
 
 /**
- * Barre d'actions du dossier de vente (§6.2, §7.3 du design) — copie conforme de `PanneauActionsOr`
- * (atelier) : LES actions listées par `dossier.actionsDisponibles`, jamais devinées depuis
- * `dossier.statut`. Chaque clic ouvre une confirmation, jamais une exécution directe.
+ * Barre d'actions du dossier de vente (§6.2, §7.3 du design) — même patron que `PanneauActionsOr`
+ * (atelier, Lot C `docs/plan-refonte-navigation.md`) : une seule action mise en couleur, le reste
+ * derrière un « … » — jamais plusieurs boutons à plat de poids visuel égal. LES actions listées par
+ * `dossier.actionsDisponibles`, jamais devinées depuis `dossier.statut`. Chaque clic ouvre une
+ * confirmation, jamais une exécution directe.
+ *
+ * PRIMAIRE : la première action non réservée (`RESERVEES_SECONDAIRES`) dans l'ordre déjà décidé par
+ * le serveur — `engager`/`preparer`/`marquer_pret_a_livrer`/`livrer`/`cloturer` selon le statut, la
+ * progression normale du dossier. Repli sur la première tout court si l'appelant n'a droit qu'à des
+ * actions réservées (aucun statut ne produit ce cas aujourd'hui, la table `ACTIONS_DEPUIS_STATUT_DOSSIER`
+ * associe toujours au moins une action de progression à `annuler`/`abandonner` — le repli couvre une
+ * évolution future de la matrice de droits sans jamais laisser ce panneau sans aucune action mise en
+ * avant).
+ *
+ * Doublon supprimé (chantier réduction de densité, 24.08.2026) : `EnTeteDossierVente` proposait
+ * jusqu'ici sa PROPRE copie en couleur de `preparer`/`marquer_pret_a_livrer`/`cloturer` — même
+ * transition, même libellé, rendue juste au-dessus de CE panneau sur le même écran (voir le
+ * commentaire de tête de `composants/motifs/GabaritEcran.tsx`, « deux commandes vers la même
+ * destination sur le même écran »). Ce panneau reste désormais le SEUL point d'entrée des
+ * transitions ; `EnTeteDossierVente` ne garde que « Assigner un véhicule », qui n'a pas d'équivalent
+ * ici.
  *
  * Exception documentée : `livrer` compose sa description de confirmation DYNAMIQUEMENT (design
  * §10.1) — les effets de bord de cette transition (détention transférée, garantie VN, reprise qui
@@ -207,6 +236,23 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
   const cleTitre = actionOuverte ? CLES_TRANSITION[actionOuverte] : undefined;
   const titreDialogue = cleTitre ? t(`ventes:dossier.transitions.${cleTitre}`) : '';
 
+  function libelleTransition(action: ActionDossierVente): string {
+    const cle = CLES_TRANSITION[action];
+    return cle ? t(`ventes:dossier.transitions.${cle}`) : action;
+  }
+
+  // PRIMAIRE — voir le commentaire de tête de ce composant.
+  const actionPrimaire =
+    actionsTransition.find((action) => !RESERVEES_SECONDAIRES.has(action)) ??
+    actionsTransition[0] ??
+    null;
+  const actionsSecondaires = actionsTransition.filter((action) => action !== actionPrimaire);
+  const menuSecondaire: ActionSecondaireMenu[] = actionsSecondaires.map((action) => ({
+    cle: action,
+    libelle: libelleTransition(action),
+    onSelect: () => ouvrir(action),
+  }));
+
   const bonsCommande = dossier.documents.filter((d) => d.typeDocument === 'bon_commande');
   // #124 : au moins une facture rattachée (peu importe son statut — même un brouillon confirme
   // que le lien `/factures/{id}` existe déjà et évite d'en recréer une seconde). L'union avec
@@ -231,21 +277,24 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
   return (
     <>
       <div
-        className="flex flex-wrap gap-2"
+        className="flex flex-wrap items-center gap-2"
         role="group"
         aria-label={t('ventes:dossier.fiche.titre')}
       >
-        {actionsTransition.map((action) => {
-          const cle = CLES_TRANSITION[action];
-          if (!cle) return null;
-          const variant =
-            action === 'annuler' ? 'destructive' : action === 'engager' ? 'default' : 'outline';
-          return (
-            <Button key={action} type="button" variant={variant} onClick={() => ouvrir(action)}>
-              {t(`ventes:dossier.transitions.${cle}`)}
+        {actionPrimaire ? (
+          <ActionPrimaire
+            actionsSecondaires={menuSecondaire}
+            libelleMenuSecondaire={t('ventes:dossier.transitions.autresActions')}
+          >
+            <Button
+              type="button"
+              variant={actionPrimaire === 'annuler' ? 'destructive' : 'default'}
+              onClick={() => ouvrir(actionPrimaire)}
+            >
+              {libelleTransition(actionPrimaire)}
             </Button>
-          );
-        })}
+          </ActionPrimaire>
+        ) : null}
       </div>
 
       <Dialog

@@ -1,3 +1,5 @@
+import { PgDialect } from 'drizzle-orm/pg-core';
+import type { SQL } from 'drizzle-orm';
 import { describe, expect, it, vi } from 'vitest';
 import type { EntreeCreationFournisseur } from '@dfa/shared';
 
@@ -6,6 +8,7 @@ import type { LigneFournisseur } from '../db/schema';
 import { ServiceFournisseur } from './service-fournisseur';
 
 const CTX: ContexteTenant = { tenantId: 'tid-1', utilisateurId: 'u1', requeteId: null };
+const dialect = new PgDialect();
 
 function ligneFournisseur(champs: Partial<LigneFournisseur> = {}): LigneFournisseur {
   return {
@@ -22,8 +25,14 @@ function ligneFournisseur(champs: Partial<LigneFournisseur> = {}): LigneFourniss
   } as LigneFournisseur;
 }
 
-function txFactice(plan: { selects?: readonly unknown[][] } = {}) {
+function txFactice(
+  plan: {
+    selects?: readonly unknown[][];
+    executes?: ReadonlyArray<{ rows: readonly unknown[] }>;
+  } = {},
+) {
   const selects = [...(plan.selects ?? [])];
+  const executes = [...(plan.executes ?? [])];
   const setArgs: unknown[] = [];
   const insertValuesArgs: Array<Record<string, unknown>> = [];
 
@@ -50,9 +59,10 @@ function txFactice(plan: { selects?: readonly unknown[][] } = {}) {
         return { returning: () => Promise.resolve([ligneFournisseur(vals)]) };
       },
     }),
+    execute: vi.fn((_requete: unknown) => Promise.resolve(executes.shift() ?? { rows: [] })),
   };
 
-  return { tx: tx as unknown as TransactionDfa, setArgs, insertValuesArgs };
+  return { tx: tx as unknown as TransactionDfa, setArgs, insertValuesArgs, execute: tx.execute };
 }
 
 function accesFactice(tx: TransactionDfa): AccesBase {
@@ -109,5 +119,44 @@ describe('ServiceFournisseur — RP-26/§1 : référentiel minimal, pas de suppr
     await service.modifier(CTX, 'f1', {});
 
     expect(setArgs).toHaveLength(0);
+  });
+});
+
+describe('ServiceFournisseur.lister — filtre `q` tolérant à la casse ET aux accents', () => {
+  it('enveloppe `nom` dans public.normaliser_recherche(...) des deux côtés du `like`, jamais un `ilike` nu', async () => {
+    const { tx, execute } = txFactice({ executes: [{ rows: [] }] });
+    const service = new ServiceFournisseur(accesFactice(tx));
+
+    await service.lister(CTX, { limite: 50, tri: 'nom:asc', q: 'bösch' });
+
+    const appel = execute.mock.calls[0]?.[0] as SQL;
+    const { sql: texte } = dialect.sqlToQuery(appel);
+    expect(texte).toContain('public.normaliser_recherche(f.nom) like public.normaliser_recherche(');
+    expect(texte).not.toContain('ilike');
+  });
+
+  // Test décisif : un `q` accepté par le contrat mais ignoré par le service est le piège maison —
+  // un ID/terme inexistant DOIT rendre une liste vide, jamais le référentiel entier.
+  it('un terme qui ne correspond à aucun fournisseur rend une liste VIDE, jamais le référentiel entier', async () => {
+    const { tx } = txFactice({ executes: [{ rows: [] }] });
+    const service = new ServiceFournisseur(accesFactice(tx));
+
+    const page = await service.lister(CTX, { limite: 50, tri: 'nom:asc', q: 'introuvable-xyz' });
+
+    expect(page.donnees).toEqual([]);
+    expect(page.curseurSuivant).toBeNull();
+  });
+
+  // Piège du zéro/vide : `q` absent (`undefined`) ne doit JAMAIS ajouter la condition — un client
+  // qui n'envoie pas `q` doit se comporter EXACTEMENT comme avant (rétrocompatibilité).
+  it('sans `q`, aucune condition de recherche n’est ajoutée au SQL', async () => {
+    const { tx, execute } = txFactice({ executes: [{ rows: [] }] });
+    const service = new ServiceFournisseur(accesFactice(tx));
+
+    await service.lister(CTX, { limite: 50, tri: 'nom:asc' });
+
+    const appel = execute.mock.calls[0]?.[0] as SQL;
+    const { sql: texte } = dialect.sqlToQuery(appel);
+    expect(texte).not.toContain('normaliser_recherche');
   });
 });

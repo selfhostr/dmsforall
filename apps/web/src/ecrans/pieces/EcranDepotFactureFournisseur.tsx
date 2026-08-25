@@ -21,7 +21,7 @@ import { peutDeciderFactureFournisseur, peutDeposerFactureFournisseur } from './
 import { PanneauRapprochementFacture } from './PanneauRapprochementFacture';
 
 /** 15 Mo — garde CLIENT avant envoi (un PDF ne se réduit pas côté client comme une photo, voir
- *  `factures-fournisseur.temporaire.ts` : la garde serveur, 413, reste la seule fiable, celle-ci
+ *  `factures-fournisseur.api.ts` : la garde serveur, 413, reste la seule fiable, celle-ci
  *  n'évite qu'un aller-retour réseau inutile pour un fichier manifestement trop lourd). */
 const TAILLE_MAX_OCTETS = 15 * 1024 * 1024;
 
@@ -142,7 +142,7 @@ export function EcranDepotFactureFournisseur() {
       titre={t('pieces:facturesFournisseur.titreDepot')}
       sousTitre={t('pieces:facturesFournisseur.sousTitreDepot')}
     >
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-section">
         {etape.phase === 'depot' ? (
           // Pas de sémantique `role="button"`/clic sur le conteneur : le SEUL affordance
           // clic/clavier est le bouton « Choisir un fichier » ci-dessous — deux éléments
@@ -158,7 +158,7 @@ export function EcranDepotFactureFournisseur() {
             onDragLeave={() => setSurvolDropzone(false)}
             onDrop={surDepot}
             className={cn(
-              'flex flex-col items-center gap-4 rounded-lg border-2 border-dashed p-12 text-center transition-colors',
+              'flex flex-col items-center gap-groupe rounded-lg border-2 border-dashed p-12 text-center transition-colors',
               survolDropzone ? 'border-primary bg-muted/40' : 'border-input',
             )}
           >
@@ -207,7 +207,7 @@ export function EcranDepotFactureFournisseur() {
         ) : null}
 
         {etape.phase === 'erreur' ? (
-          <div className="mx-auto flex w-full max-w-md flex-col gap-4">
+          <div className="mx-auto flex w-full max-w-md flex-col gap-groupe">
             <Alert variant={etape.categorie === 'reseau' ? 'avertissement' : 'destructive'}>
               {etape.categorie === 'reseau' ? (
                 <WifiOff className="h-4 w-4" aria-hidden="true" />
@@ -232,7 +232,7 @@ export function EcranDepotFactureFournisseur() {
         ) : null}
 
         {etape.phase === 'decidee' ? (
-          <div className="mx-auto flex w-full max-w-md flex-col gap-4">
+          <div className="mx-auto flex w-full max-w-md flex-col gap-groupe">
             <Alert variant={etape.facture.statut === 'rejetee' ? 'destructive' : 'default'}>
               {etape.facture.statut === 'rejetee' ? (
                 <XCircle className="h-4 w-4" aria-hidden="true" />

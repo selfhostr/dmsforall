@@ -34,7 +34,7 @@ export function ResultatDepotPneu({ resultat }: ProprietesResultatDepotPneu) {
   return (
     <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-1">
       {codeCase ? (
-        <span className="inline-flex h-6 w-fit items-center rounded border border-input bg-muted px-1.5 font-mono text-sm font-semibold text-foreground">
+        <span className="inline-flex h-6 w-fit items-center rounded border border-input bg-muted px-1.5 font-mono texte-corps font-semibold text-foreground">
           {codeCase}
         </span>
       ) : null}

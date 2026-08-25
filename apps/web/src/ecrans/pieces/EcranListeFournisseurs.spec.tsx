@@ -1,5 +1,6 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
@@ -99,7 +100,7 @@ describe('EcranListeFournisseurs', () => {
 
     rendre();
 
-    expect(await screen.findByText('Aucun fournisseur.')).toBeInTheDocument();
+    expect(await screen.findByText('Aucun fournisseur avec ce statut')).toBeInTheDocument();
     await waitFor(() =>
       expect(
         screen.getAllByRole('button', { name: 'Créer un fournisseur' }).length,
@@ -128,5 +129,27 @@ describe('EcranListeFournisseurs', () => {
 
     expect(await screen.findByText("Impossible d'afficher les fournisseurs")).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Réessayer' })).toBeInTheDocument();
+  });
+
+  // Preuve que la recherche atteint le SERVEUR (`q`), plus jamais un filtrage sur les lignes déjà
+  // chargées : le mock ne renvoie un fournisseur QUE si `q` est absent de la requête.
+  it('la recherche envoie `q` au serveur — un terme inexistant rend la liste vide, pas un filtrage local', async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      http.get('/api/v1/fournisseurs', ({ request }) => {
+        const q = new URL(request.url).searchParams.get('q');
+        return HttpResponse.json(pageDe(q ? [] : [FOURNISSEUR]));
+      }),
+    );
+    const utilisateur = userEvent.setup();
+    rendre();
+
+    expect(await screen.findByText('Bosch Service SA')).toBeInTheDocument();
+
+    await utilisateur.type(screen.getByRole('searchbox'), 'introuvable');
+
+    expect(
+      await screen.findByText('Aucun fournisseur trouvé', {}, { timeout: 2000 }),
+    ).toBeInTheDocument();
   });
 });

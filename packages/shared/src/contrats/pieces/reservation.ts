@@ -82,6 +82,12 @@ export const TRI_DEFAUT_RESERVATIONS = 'creeLe:desc';
  *  un usage raisonnable, mais non imposé par le contrat (un magasinier peut vouloir voir TOUT ce
  *  qui est `active` sur son site un matin donné). */
 export const schemaFiltresReservations = schemaParametresPage.extend({
+  /** `q` cherche dans `articleDesignation` ET `ordreReparationNumero` (les deux colonnes JOINTES
+   *  affichées par cette même vue, `service-reservation.ts::COLONNES_RESERVATION_ALIASEES`) —
+   *  même convention que `pieces/article.ts::schemaFiltresArticles` (longueur, normalisation,
+   *  optionalité identiques). Un magasinier tape un nom de pièce ou un numéro d'OR, jamais un
+   *  `articleId`/`ordreReparationId` bruts (déjà couverts, eux, par les filtres exacts ci-dessous). */
+  q: z.string().trim().min(1).max(120).optional(),
   articleId: schemaIdentifiant.optional(),
   siteId: schemaIdentifiant.optional(),
   ordreReparationId: schemaIdentifiant.optional(),

@@ -273,6 +273,16 @@ export class ServiceFactureFournisseur {
 
     return this.acces.enTenant(ctx, async (tx) => {
       const conditions = [sql`ff.tenant_id = ${ctx.tenantId}`];
+      if (params.q) {
+        // `public.normaliser_recherche(...)` des deux côtés — même idiome que
+        // `pieces/service-article.ts`. `nom_creancier`/`numero_facture` sont nullables (lecture
+        // QR/OCR incertaine) : une facture sans l'un reste trouvable par l'autre.
+        const motif = `%${params.q}%`;
+        conditions.push(sql`(
+          public.normaliser_recherche(ff.nom_creancier) like public.normaliser_recherche(${motif})
+          or public.normaliser_recherche(ff.numero_facture) like public.normaliser_recherche(${motif})
+        )`);
+      }
       if (params.statut && params.statut.length > 0) {
         conditions.push(
           sql`ff.statut::text in (${sql.join(

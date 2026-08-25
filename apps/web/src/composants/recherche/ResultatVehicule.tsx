@@ -33,7 +33,7 @@ export function ResultatVehicule({ resultat }: ProprietesResultatVehicule) {
         // Style aligné sur `composants/identite/Plaque.tsx` (taille `md`) : le résumé de
         // recherche livre une chaîne déjà composée ("VD 123456"), sans canton/numéro séparés
         // comme `VehiculeResume` — `Plaque` ne peut donc pas être réutilisé tel quel ici.
-        <span className="inline-flex h-6 w-fit items-center rounded border border-input bg-muted px-1.5 text-sm font-semibold tabular-nums text-foreground">
+        <span className="inline-flex h-6 w-fit items-center rounded border border-input bg-muted px-1.5 texte-corps font-semibold tabular-nums text-foreground">
           {formaterPlaque(plaque)}
         </span>
       ) : null}

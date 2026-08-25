@@ -123,7 +123,7 @@ export function DialogueVenteComptoir({ ouvert, onOuvertChange, siteId, article 
           <DialogTitle>{t('pieces:comptoirVente.vente.titre')}</DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-groupe">
           <LegendeChampsObligatoires>
             {t('commun:formulaires.champsObligatoiresLegende')}
           </LegendeChampsObligatoires>
@@ -139,7 +139,7 @@ export function DialogueVenteComptoir({ ouvert, onOuvertChange, siteId, article 
             <AlertDescription>{t('pieces:comptoirVente.vente.avisSansFacture')}</AlertDescription>
           </Alert>
 
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-champ">
             <Label htmlFor="vente-quantite" requis>
               {t('pieces:comptoirVente.vente.quantite')}
             </Label>

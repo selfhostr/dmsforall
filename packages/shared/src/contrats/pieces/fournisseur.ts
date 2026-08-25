@@ -28,7 +28,10 @@ export interface ReponseFournisseur {
 export const TRIS_FOURNISSEURS = ['nom:asc', 'nom:desc', 'creeLe:desc'] as const;
 export const TRI_DEFAUT_FOURNISSEURS = 'nom:asc';
 
+/** `q` cherche dans `nom` — même convention que `pieces/article.ts::schemaFiltresArticles` (longueur,
+ *  normalisation, optionalité identiques), seul champ pertinent pour un référentiel aussi minimal. */
 export const schemaFiltresFournisseurs = schemaParametresPage.extend({
+  q: z.string().trim().min(1).max(120).optional(),
   statut: schemaListeQuery(z.enum(STATUTS_FOURNISSEUR)).optional(),
   tri: z.enum(TRIS_FOURNISSEURS).default(TRI_DEFAUT_FOURNISSEURS),
 });

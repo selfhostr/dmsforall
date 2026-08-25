@@ -32,11 +32,11 @@ export function BandeauAlerteClient({ bloque = false, alertes = [], className }:
   }
 
   return (
-    <div className={cn('sticky top-0 z-10 flex flex-col gap-2 bg-background', className)}>
+    <div className={cn('sticky top-0 z-10 flex flex-col gap-groupe bg-background', className)}>
       {bloque ? (
         <div
           role="alert"
-          className="flex items-start gap-3 rounded-md border border-statut-danger bg-statut-danger-fond p-4"
+          className="flex items-start gap-3 rounded-md border border-statut-danger bg-statut-danger-fond p-carte"
         >
           <Ban aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-statut-danger" />
           <p className="flex-1 texte-corps font-medium text-foreground">
@@ -48,7 +48,7 @@ export function BandeauAlerteClient({ bloque = false, alertes = [], className }:
         <div
           key={alerte.id}
           role="alert"
-          className="flex items-start gap-3 rounded-md border border-statut-attention bg-statut-attention-fond p-4"
+          className="flex items-start gap-3 rounded-md border border-statut-attention bg-statut-attention-fond p-carte"
         >
           <TriangleAlert aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-statut-attention" />
           <div className="flex-1 texte-corps">

@@ -239,8 +239,11 @@ describe('EcranFicheFacture — action Imprimer / télécharger le PDF', () => {
     rendre('avoir-1');
 
     // Le document est bien chargé (le reste de l'écran s'affiche) — seule l'option d'impression
-    // est absente, pas l'écran entier.
-    await screen.findByText('Jean Dupont');
+    // est absente, pas l'écran entier. `findAllByText` (partout dans ce fichier, chantier
+    // « un seul patron » 24.08.2026) plutôt que `findByText` — le fil d'Ariane (`FilAriane`,
+    // nouvellement monté) répète désormais le nom du destinataire en ancêtre cliquable, un second
+    // nœud de texte légitime que ce simple garde d'attente n'a pas besoin de distinguer du premier.
+    await screen.findAllByText('Jean Dupont');
     expect(screen.queryByText('Imprimer / télécharger le PDF')).not.toBeInTheDocument();
   });
 
@@ -258,7 +261,7 @@ describe('EcranFicheFacture — action Imprimer / télécharger le PDF', () => {
     );
     rendre();
 
-    await screen.findByText('Jean Dupont');
+    await screen.findAllByText('Jean Dupont');
     // Ni le menu « Autres actions » (aucun autre item ne s'applique à un brouillon), ni l'item.
     expect(screen.queryByRole('button', { name: 'Autres actions' })).not.toBeInTheDocument();
     expect(screen.queryByText('Imprimer / télécharger le PDF')).not.toBeInTheDocument();
@@ -345,7 +348,7 @@ describe('EcranFicheFacture — « Corriger cette facture » / « Corriger par u
       const utilisateur = userEvent.setup();
       rendre();
 
-      await screen.findByText('Jean Dupont');
+      await screen.findAllByText('Jean Dupont');
 
       // Lien sous les lignes — un vrai bouton cliquable, pas seulement le texte informatif.
       expect(
@@ -379,7 +382,7 @@ describe('EcranFicheFacture — « Corriger cette facture » / « Corriger par u
       const utilisateur = userEvent.setup();
       rendre();
 
-      await screen.findByText('Jean Dupont');
+      await screen.findAllByText('Jean Dupont');
 
       // Le message reste visible (pourquoi c'est verrouillé) — jamais un bouton menant au dialogue.
       expect(
@@ -411,7 +414,7 @@ describe('EcranFicheFacture — bulletin de versement (qr)', () => {
 
     // L'écran se charge et affiche son contenu normalement — pas d'exception, pas de zone
     // fantôme laissée par un rendu qui aurait planté sur `qr === null`.
-    await screen.findByText('Jean Dupont');
+    await screen.findAllByText('Jean Dupont');
     expect(screen.getAllByText('Total TTC').length).toBeGreaterThan(0);
     // Aucune trace du titre du bulletin : la carte est absente en bloc, pas vide-et-expliquée.
     expect(screen.queryByText('Bulletin de versement')).not.toBeInTheDocument();
@@ -421,7 +424,7 @@ describe('EcranFicheFacture — bulletin de versement (qr)', () => {
     installerHandlerDocument(construireDocumentSansMontants());
     rendre();
 
-    await screen.findByText('Jean Dupont');
+    await screen.findAllByText('Jean Dupont');
     await waitFor(() =>
       expect(screen.queryByText('Bulletin de versement')).not.toBeInTheDocument(),
     );
@@ -439,7 +442,7 @@ describe('EcranFicheFacture — échéance / retard (IndicateurRetard, en-tête)
     );
     rendre();
 
-    await screen.findByText('Jean Dupont');
+    await screen.findAllByText('Jean Dupont');
     expect(await screen.findByText('en retard de 20 jours')).toBeInTheDocument();
     // Défaut corrigé (issue #134) : l'échéance doit rester VISIBLE (pas seulement dans un
     // attribut `title`, invisible au clavier/lecteur d'écran/tablette) même quand la facture
@@ -453,7 +456,7 @@ describe('EcranFicheFacture — échéance / retard (IndicateurRetard, en-tête)
     );
     rendre();
 
-    await screen.findByText('Jean Dupont');
+    await screen.findAllByText('Jean Dupont');
     expect(await screen.findByText('Échéance : 01.09.2026')).toBeInTheDocument();
     expect(screen.queryByText(/en retard/)).not.toBeInTheDocument();
   });
@@ -464,7 +467,7 @@ describe('EcranFicheFacture — échéance / retard (IndicateurRetard, en-tête)
     );
     rendre();
 
-    await screen.findByText('Jean Dupont');
+    await screen.findAllByText('Jean Dupont');
     expect(await screen.findByText('Échéance inconnue')).toBeInTheDocument();
     expect(screen.queryByText(/en retard/)).not.toBeInTheDocument();
   });
@@ -479,7 +482,7 @@ describe('EcranFicheFacture — échéance / retard (IndicateurRetard, en-tête)
     );
     rendre();
 
-    await screen.findByText('Jean Dupont');
+    await screen.findAllByText('Jean Dupont');
     expect(screen.queryByText(/en retard/)).not.toBeInTheDocument();
     expect(screen.queryByText('Échéance inconnue')).not.toBeInTheDocument();
   });
@@ -501,7 +504,7 @@ describe('EcranFicheFacture — échéance / retard (IndicateurRetard, en-tête)
     );
     rendre('avoir-echeance');
 
-    await screen.findByText('Jean Dupont');
+    await screen.findAllByText('Jean Dupont');
     expect(screen.queryByText('Échéance inconnue')).not.toBeInTheDocument();
   });
 });
@@ -529,7 +532,7 @@ describe('EcranFicheFacture — vocabulaire du badge de règlement sur un avoir 
     );
     rendre('avoir-vocabulaire');
 
-    await screen.findByText('Jean Dupont');
+    await screen.findAllByText('Jean Dupont');
     expect(await screen.findByText('Non imputé')).toBeInTheDocument();
     expect(screen.queryByText('Non réglée')).not.toBeInTheDocument();
   });
@@ -538,7 +541,7 @@ describe('EcranFicheFacture — vocabulaire du badge de règlement sur un avoir 
     installerHandlerDocument(construireDocument({ statutReglement: 'non_regle' }));
     rendre();
 
-    await screen.findByText('Jean Dupont');
+    await screen.findAllByText('Jean Dupont');
     expect(await screen.findByText('Non réglée')).toBeInTheDocument();
   });
 });
@@ -659,7 +662,7 @@ describe('EcranFicheFacture — remise globale : ne perd pas la saisie en cours'
     // l'ancienne remise de la facture 1.
     await utilisateur.click(screen.getByRole('button', { name: 'Aller à la facture 2' }));
 
-    await screen.findByText('Marie Rossi');
+    await screen.findAllByText('Marie Rossi');
     const nouveauChampRemise = await screen.findByLabelText('Montant');
     await waitFor(() => expect(nouveauChampRemise).toHaveValue('50.00'));
   });
@@ -702,7 +705,7 @@ describe('EcranFicheFacture — droits par geste (émettre / encaisser / créer 
       installerHandlerDocument(documentBrouillon());
       connecterSession('chef_atelier');
       const rendu1 = rendre();
-      await screen.findByText('Jean Dupont');
+      await screen.findAllByText('Jean Dupont');
       expect(screen.queryByRole('button', { name: 'Émettre' })).not.toBeInTheDocument();
       rendu1.unmount();
 
@@ -720,7 +723,7 @@ describe('EcranFicheFacture — droits par geste (émettre / encaisser / créer 
       installerHandlerDocument(construireDocument());
       connecterSession('admin');
       const rendu1 = rendre();
-      await screen.findByText('Jean Dupont');
+      await screen.findAllByText('Jean Dupont');
       expect(screen.queryByRole('button', { name: 'Encaisser' })).not.toBeInTheDocument();
       rendu1.unmount();
 
@@ -748,7 +751,7 @@ describe('EcranFicheFacture — droits par geste (émettre / encaisser / créer 
       connecterSession('magasinier');
       rendre();
 
-      await screen.findByText('Jean Dupont');
+      await screen.findAllByText('Jean Dupont');
       expect(screen.getByText('Émise')).toBeInTheDocument();
       expect(screen.getByText('Réglée')).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Encaisser' })).not.toBeInTheDocument();
@@ -984,7 +987,7 @@ describe('EcranFicheFacture — carte « Documents liés » (dossier de vente / 
       );
       rendreAvecRoutesLiees();
 
-      await screen.findByText('Jean Dupont');
+      await screen.findAllByText('Jean Dupont');
       expect(
         screen.queryByRole('button', { name: 'Dossier de vente lié →' }),
       ).not.toBeInTheDocument();

@@ -320,11 +320,12 @@
       "titre": "Disponibilita",
       "quantitePhysique": "Quantita fisica",
       "quantiteDisponible": "Quantita disponibile",
-      "reservationsActives": "Prenotazioni attive"
+      "reservationsActives": "Prenotazioni attive",
+      "aucuneActive": "Nessuna prenotazione."
     },
-    "vide": "Nessuna prenotazione.",
     "filtres": {
-      "statutToutes": "Tutti gli stati"
+      "statutToutes": "Tutti gli stati",
+      "rechercherPlaceholder": "Cerca per articolo o n. OR"
     },
     "voirArticle": "Vedi articolo",
     "voirOr": "Vedi ordine di riparazione",
@@ -335,6 +336,20 @@
       "titre": "Liberare questa prenotazione?",
       "description": "Il pezzo torna disponibile per un altro ordine di riparazione. Indicare il motivo.",
       "champMotif": "Motivo"
+    },
+    "vide": {
+      "recherche": {
+        "titre": "Nessuna prenotazione trovata",
+        "description": "Nessuna prenotazione corrisponde a questa ricerca."
+      },
+      "filtre": {
+        "titre": "Nessuna prenotazione con questo stato",
+        "description": "Nessuna prenotazione corrisponde al filtro selezionato."
+      },
+      "premierUsage": {
+        "titre": "Nessuna prenotazione",
+        "description": "Al momento non è registrata alcuna prenotazione."
+      }
     }
   },
   "commandes": {
@@ -398,7 +413,8 @@
     },
     "filtres": {
       "statutTous": "Tutti gli stati",
-      "avecReliquat": "Solo con importo in sospeso"
+      "avecReliquat": "Solo con importo in sospeso",
+      "rechercherPlaceholder": "Cerca per riferimento"
     },
     "confirmations": {
       "annulerTitre": "Annullare questo ordine?",
@@ -415,7 +431,20 @@
       },
       "droitRequis": "Non ha il diritto di consultare gli ordini fornitore."
     },
-    "vide": "Nessun ordine."
+    "vide": {
+      "recherche": {
+        "titre": "Nessun ordine trovato",
+        "description": "Nessun ordine corrisponde a questa ricerca."
+      },
+      "filtre": {
+        "titre": "Nessun ordine con questi filtri",
+        "description": "Nessun ordine corrisponde ai filtri selezionati."
+      },
+      "premierUsage": {
+        "titre": "Nessun ordine fornitore",
+        "description": "Create un ordine per riapprovvigionare un fornitore."
+      }
+    }
   },
   "consignes": {
     "titre": "Cauzioni di scambio",
@@ -469,7 +498,8 @@
       "reactiver": "Riattiva"
     },
     "filtres": {
-      "statutTous": "Tutti gli stati"
+      "statutTous": "Tutti gli stati",
+      "rechercherPlaceholder": "Cerca un fornitore"
     },
     "confirmations": {
       "desactiverTitre": "Disattivare questo fornitore?",
@@ -486,7 +516,20 @@
       },
       "droitRequis": "Non ha il diritto di consultare i fornitori."
     },
-    "vide": "Nessun fornitore."
+    "vide": {
+      "recherche": {
+        "titre": "Nessun fornitore trovato",
+        "description": "Nessun fornitore corrisponde a questa ricerca."
+      },
+      "filtre": {
+        "titre": "Nessun fornitore con questo stato",
+        "description": "Nessun fornitore corrisponde al filtro selezionato."
+      },
+      "premierUsage": {
+        "titre": "Nessun fornitore",
+        "description": "Create il primo fornitore per iniziare a passare ordini."
+      }
+    }
   },
   "comptoirVente": {
     "actions": {
@@ -519,7 +562,20 @@
     "sousTitreDepot": "Carica il PDF ricevuto dal fornitore: viene letto automaticamente e riconciliato con l'ordine corrispondente.",
     "deposeeLe": "Caricata il {date}",
     "sansNumero": "Fattura senza numero letto",
-    "vide": "Nessuna fattura fornitore caricata.",
+    "vide": {
+      "recherche": {
+        "titre": "Nessuna fattura trovata",
+        "description": "Nessuna fattura corrisponde a questa ricerca."
+      },
+      "filtre": {
+        "titre": "Nessuna fattura con questi filtri",
+        "description": "Nessuna fattura corrisponde ai filtri selezionati."
+      },
+      "premierUsage": {
+        "titre": "Nessuna fattura fornitore caricata",
+        "description": "Carica una fattura per avviare la riconciliazione."
+      }
+    },
     "erreur": {
       "titre": "Impossibile visualizzare le fatture fornitore"
     },
@@ -528,7 +584,8 @@
       "depot": "Non hai il diritto di caricare una fattura fornitore."
     },
     "filtres": {
-      "statutTous": "Tutti gli stati"
+      "statutTous": "Tutti gli stati",
+      "rechercherPlaceholder": "Cerca per fornitore o numero"
     },
     "colonnes": {
       "fichier": "Fattura",

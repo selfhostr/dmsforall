@@ -48,6 +48,17 @@ describe('jetons de base — texte sur fond, seuil AA texte normal (4.5:1)', () 
       'marque-doux',
       'texte sur surlignage de marque (élément de menu actif)',
     ],
+    // Sarcelle 186° (voir index.css, §Couleur de marque) : `text-primary`/`text-marque` est posé
+    // directement sur `--background` et `--muted` à 56+24 endroits réels du produit (grep
+    // `text-primary`), pas seulement à travers `--primary-foreground`/`--primary` (le bouton
+    // plein) déjà couvert ci-dessus — ces deux paires manquaient.
+    ['marque', 'background', 'texte de marque directement sur fond de page (text-primary)'],
+    ['marque', 'muted', 'texte de marque directement sur fond atténué (text-primary)'],
+    [
+      'primary-foreground',
+      'primary-fort',
+      'texte blanc sur un bouton plein au survol/appui (bg-primary-fort)',
+    ],
   ];
 
   it.each(paires)('%s sur %s (%s) atteint 4.5:1', (nomA, nomB) => {
@@ -179,5 +190,35 @@ describe('famille avertissement (bandeaux/encarts — distincte des statuts et d
     expect(ratio('avertissement', 'avertissement-fond')).toBeGreaterThanOrEqual(
       SEUIL_AA_TEXTE_NORMAL,
     );
+  });
+});
+
+describe("marque (sarcelle 186°) — écart de teinte avec les statuts d'OR, une couleur = une seule signification", () => {
+  // Écart angulaire sur le cercle chromatique (0-360°), plus court des deux sens.
+  function ecartTeinte(h1: number, h2: number): number {
+    const d = Math.abs(h1 - h2) % 360;
+    return d > 180 ? 360 - d : d;
+  }
+
+  // Sentinelle de régression : si `--marque` ou un `--statut-*` change de teinte sans que
+  // personne ne revérifie l'écart, ce test précis doit rougir avant qu'un badge de statut et un
+  // bouton de marque ne deviennent confondables à l'œil. Seuil à 30° — pris directement de la
+  // décision de @laupernoe (« vérifie cet écart sur les valeurs finales »), sous les écarts mesurés
+  // (31° au bleu, 44° au vert) mais assez haut pour capter une dérive accidentelle.
+  const SEUIL_ECART_MIN = 30;
+
+  it.each(['statut-info', 'statut-attention', 'statut-succes', 'statut-danger'])(
+    'la teinte de --marque reste à ≥ 30° de --%s',
+    (statut) => {
+      const teinteMarque = analyserHsl(valeurHslJeton('marque')).h;
+      const teinteStatut = analyserHsl(valeurHslJeton(statut)).h;
+      expect(ecartTeinte(teinteMarque, teinteStatut)).toBeGreaterThanOrEqual(SEUIL_ECART_MIN);
+    },
+  );
+
+  it('la teinte de --marque reste dans la fourchette 182–190° fixée par @laupernoe', () => {
+    const teinteMarque = analyserHsl(valeurHslJeton('marque')).h;
+    expect(teinteMarque).toBeGreaterThanOrEqual(182);
+    expect(teinteMarque).toBeLessThanOrEqual(190);
   });
 });

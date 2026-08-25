@@ -133,6 +133,13 @@ export const chemins = {
     /** Gestion des employés (issue #137) — jamais scopé par site (le rôle vaut sur tout le
      *  tenant), `site` reçu pour la seule cohérence de sélecteur avec les autres onglets. */
     utilisateurs: (site?: string) => construireChemin('/parametrage/utilisateurs', { site }),
+    /** Paliers de relance (scission de l'ancien `EcranRelances`, §4.5 : « paliers -> Réglages »).
+     *  Singleton par TENANT comme `facturation`/`atelier` ci-dessus (`regle_relance` n'est jamais
+     *  scopée par site) : `?site=` conservé uniquement pour la continuité du site affiché dans
+     *  l'en-tête en passant par cet onglet, même mécanique que ses voisins. Gardée par
+     *  `rolesAutorises={ROLES_RELANCES}` (`routes/droits-routes.ts`), comme `relances` ci-dessous :
+     *  la lecture de la règle est restreinte à `direction`/`comptable` côté API. */
+    relances: (site?: string) => construireChemin('/parametrage/relances', { site }),
   },
   /** Module pièces (étape 3). Même mécanique `?site=` que `clients`/`vehicules` : la recherche
    *  comptoir et le réapprovisionnement sont scopés par site (RP-03/RP-12), la fiche et la liste

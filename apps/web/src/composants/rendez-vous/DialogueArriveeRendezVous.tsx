@@ -111,7 +111,7 @@ export function DialogueArriveeRendezVous({
           </p>
         ) : null}
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-groupe">
           <ChampKilometrage
             valeur={kilometrage}
             onChangeValeur={setKilometrage}
@@ -131,7 +131,7 @@ export function DialogueArriveeRendezVous({
             {t('or:actions.signatureDifferee')}
           </label>
           {signatureDifferee ? (
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-champ">
               <Label htmlFor="rdv-arrivee-motif-differee">
                 {t('or:actions.motifSignatureDifferee')}
               </Label>

@@ -24,7 +24,7 @@ export function SelecteurLangue() {
           title={t(`commun:langues.${code}`)}
           onClick={() => changerLangue(code)}
           className={cn(
-            'h-11 min-w-11 px-3 text-sm font-medium uppercase transition-colors',
+            'h-11 min-w-11 px-3 texte-corps font-medium uppercase transition-colors',
             langue === code
               ? 'bg-primary text-primary-foreground'
               : 'bg-background text-foreground hover:bg-muted',

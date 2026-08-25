@@ -1,28 +1,14 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router';
 
-import {
-  schemaActionCloturerDossierVente,
-  schemaActionMarquerPretALivrer,
-  schemaActionPreparer,
-  type ActionDossierVente,
-  type ReponseDossierVente,
-} from '@dfa/shared';
+import { type ReponseDossierVente } from '@dfa/shared';
 
-import { ErreurApi, messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { ActionPrimaire } from '@/composants/layout/ActionPrimaire';
 import { FilAriane, type SegmentFilAriane } from '@/composants/layout/FilAriane';
-import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
-import {
-  useCloturerDossierVente,
-  useMarquerDossierPretALivrer,
-  usePreparerDossierVente,
-} from '@/hooks/ventes/dossiers/useTransitionsDossierVente';
 import { formaterDate, formaterMontant } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
@@ -35,28 +21,6 @@ interface Props {
   readonly onAssignerVehicule: () => void;
 }
 
-// Lot C (`docs/plan-refonte-navigation.md`) — sous-ensemble de `ACTIONS_DOSSIER_VENTE` que cet
-// en-tête peut proposer comme action PRIMAIRE sans dupliquer le formulaire complet de
-// `PanneauActionsDossierVente` (hors périmètre de ce lot, fiche-hors-en-tête) : `preparer`,
-// `marquer_pret_a_livrer` et `cloturer` n'y prennent AUCUN champ (même confirmation nue que
-// `PanneauActionsDossierVente`, `ventes:dossier.transitions.confirmerAction`/`cloturerDescription`,
-// mêmes hooks de mutation qu'elle) — `engager` (bon de commande + pièce d'identité) et `livrer`
-// (date + kilométrage) exigent une saisie que ce lot ne reproduit pas ici : signalé, ces deux états
-// n'affichent donc aucune action primaire dans ce lot (l'écran garde `PanneauActionsDossierVente`,
-// inchangé, pour les couvrir).
-const ACTIONS_PRIMAIRES_SIMPLES = ['preparer', 'marquer_pret_a_livrer', 'cloturer'] as const;
-type ActionPrimaireSimple = (typeof ACTIONS_PRIMAIRES_SIMPLES)[number];
-
-const CLES_ACTION_PRIMAIRE_SIMPLE: Record<ActionPrimaireSimple, string> = {
-  preparer: 'preparer',
-  marquer_pret_a_livrer: 'marquerPretALivrer',
-  cloturer: 'cloturer',
-};
-
-function estActionPrimaireSimple(action: ActionDossierVente): action is ActionPrimaireSimple {
-  return (ACTIONS_PRIMAIRES_SIMPLES as readonly ActionDossierVente[]).includes(action);
-}
-
 /**
  * En-tête de fiche dossier de vente (design §7.1), sur le modèle de `EnTeteOrdreReparation` :
  * fil d'Ariane contextuel (Lot C) + statut + action primaire (Lot C) + identités (acheteur,
@@ -67,9 +31,17 @@ function estActionPrimaireSimple(action: ActionDossierVente): action is ActionPr
  * du contrat lui-même (§13 question 1 du design), pas une omission de cet écran : le titre
  * s'appuie donc sur client + véhicule, et le fil d'Ariane clôt sur un libellé générique plutôt
  * qu'un numéro qui n'existe pas.
+ *
+ * Doublon supprimé (chantier réduction de densité, 24.08.2026) : cet en-tête proposait jusqu'ici sa
+ * PROPRE copie en couleur de `preparer`/`marquer_pret_a_livrer`/`cloturer` — même transition, même
+ * libellé, que `PanneauActionsDossierVente` rendait déjà juste en dessous sur ce même écran (voir le
+ * commentaire de tête de `composants/motifs/GabaritEcran.tsx`, « deux commandes vers la même
+ * destination sur le même écran »). `PanneauActionsDossierVente` reste désormais le SEUL point
+ * d'entrée des transitions de statut ; la seule action PRIMAIRE que cet en-tête garde est
+ * « Assigner un véhicule », qui n'a pas d'équivalent ailleurs sur l'écran.
  */
 export function EnTeteDossierVente({ dossier, peutAssignerVehicule, onAssignerVehicule }: Props) {
-  const { t } = useTranslation(['ventes', 'commun', 'navigation']);
+  const { t } = useTranslation(['ventes', 'commun']);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
@@ -96,53 +68,12 @@ export function EnTeteDossierVente({ dossier, peutAssignerVehicule, onAssignerVe
     });
   }
 
-  // Lot C — action primaire. Priorité 1 : aucun véhicule assigné, c'est la seule chose qui compte
-  // tant que ce n'est pas fait (même geste que l'encart d'assignation ci-dessous, déplacé ici en
-  // emplacement constant). Priorité 2 : la première transition SIMPLE disponible parmi
-  // `dossier.actionsDisponibles` (même signal serveur que `PanneauActionsDossierVente`, non
-  // deviné ici).
+  // Lot C — action primaire de cet en-tête : « Assigner un véhicule » tant qu'aucun n'est assigné,
+  // même geste que l'encart d'assignation ci-dessous, déplacé ici en emplacement constant. Les
+  // transitions de statut (`preparer`/`marquer_pret_a_livrer`/`cloturer`/…) ne sont plus dupliquées
+  // ici — voir le commentaire de tête du composant : `PanneauActionsDossierVente` en est désormais
+  // le SEUL point d'entrée.
   const peutAssignerMaintenant = !vehiculeStock && peutAssignerVehicule;
-  const actionPrimaireSimple = peutAssignerMaintenant
-    ? null
-    : (dossier.actionsDisponibles.find(estActionPrimaireSimple) ?? null);
-
-  const preparer = usePreparerDossierVente(dossier.id);
-  const marquerPretALivrer = useMarquerDossierPretALivrer(dossier.id);
-  const cloturer = useCloturerDossierVente(dossier.id);
-  const [confirmationOuverte, setConfirmationOuverte] = useState(false);
-
-  const mutationPrimaire =
-    actionPrimaireSimple === 'preparer'
-      ? preparer
-      : actionPrimaireSimple === 'marquer_pret_a_livrer'
-        ? marquerPretALivrer
-        : actionPrimaireSimple === 'cloturer'
-          ? cloturer
-          : null;
-  const erreurPrimaire =
-    mutationPrimaire?.error instanceof ErreurApi ? mutationPrimaire.error : null;
-  const libelleActionPrimaire = actionPrimaireSimple
-    ? t(`ventes:dossier.transitions.${CLES_ACTION_PRIMAIRE_SIMPLE[actionPrimaireSimple]}`)
-    : '';
-
-  function confirmerActionPrimaire() {
-    if (!actionPrimaireSimple || !mutationPrimaire) return;
-    const schema =
-      actionPrimaireSimple === 'preparer'
-        ? schemaActionPreparer
-        : actionPrimaireSimple === 'marquer_pret_a_livrer'
-          ? schemaActionMarquerPretALivrer
-          : schemaActionCloturerDossierVente;
-    const resultat = schema.safeParse({});
-    if (!resultat.success) return;
-    // Même cast délibéré et borné à cette ligne que `PanneauActionsDossierVente::soumettre` :
-    // router l'une des trois transitions simples vers sa mutation typée dépasse ce que TypeScript
-    // peut vérifier sans dupliquer trois fois ce bloc.
-    (mutationPrimaire.mutate as (valeur: unknown, options?: { onSuccess?: () => void }) => void)(
-      resultat.data,
-      { onSuccess: () => setConfirmationOuverte(false) },
-    );
-  }
 
   return (
     <Card>
@@ -155,21 +86,6 @@ export function EnTeteDossierVente({ dossier, peutAssignerVehicule, onAssignerVe
             <ActionPrimaire>
               <Button type="button" variant="default" onClick={onAssignerVehicule}>
                 {t('ventes:dossier.fiche.assignerVehicule')}
-              </Button>
-            </ActionPrimaire>
-          ) : actionPrimaireSimple ? (
-            <ActionPrimaire>
-              <Button
-                type="button"
-                variant="default"
-                // Distinct de `PanneauActionsDossierVente` (même libellé visible, rendu juste en
-                // dessous de cet en-tête — WCAG 2.5.3, même doctrine que `EnTeteOrdreReparation`
-                // pour « Facturer ») : les deux DÉCLENCHENT la même transition, celui-ci est
-                // seulement mis en avant.
-                aria-label={t('navigation:actionPrimaire.aria', { action: libelleActionPrimaire })}
-                onClick={() => setConfirmationOuverte(true)}
-              >
-                {libelleActionPrimaire}
               </Button>
             </ActionPrimaire>
           ) : null}
@@ -246,29 +162,7 @@ export function EnTeteDossierVente({ dossier, peutAssignerVehicule, onAssignerVe
             {dossier.dateLivraisonEstimee ? formaterDate(dossier.dateLivraisonEstimee) : ''}
           </dd>
         </dl>
-
-        {erreurPrimaire ? (
-          <p role="alert" className="texte-libelle text-destructive">
-            {messageErreur(erreurPrimaire, t)}
-          </p>
-        ) : null}
       </CardContent>
-
-      {actionPrimaireSimple ? (
-        <AvertissementConfirmable
-          ouvert={confirmationOuverte}
-          onOuvertChange={setConfirmationOuverte}
-          titre={libelleActionPrimaire}
-          description={
-            actionPrimaireSimple === 'cloturer'
-              ? t('ventes:dossier.transitions.cloturerDescription')
-              : t('ventes:dossier.transitions.confirmerAction')
-          }
-          libelleConfirmation={t('ventes:dossier.transitions.confirmer')}
-          onConfirmer={confirmerActionPrimaire}
-          enCours={mutationPrimaire?.isPending}
-        />
-      ) : null}
     </Card>
   );
 }

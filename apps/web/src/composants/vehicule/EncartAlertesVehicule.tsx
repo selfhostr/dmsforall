@@ -219,13 +219,13 @@ export function EncartAlertesVehicule({
   }
 
   return (
-    <div className={cn('densite-aeree flex flex-col gap-3', className)}>
+    <div className={cn('densite-aeree flex flex-col gap-groupe', className)}>
       <h2 className="texte-titre-section font-semibold">{t('alertes.titre')}</h2>
       {lignes.map((ligne) => (
         <div
           key={ligne.cle}
           className={cn(
-            'flex items-start gap-3 rounded-md border p-4 texte-corps',
+            'flex items-start gap-3 rounded-md border p-carte texte-corps',
             TOKEN_CLASSES[ligne.token],
           )}
         >

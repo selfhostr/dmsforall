@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
+import { FilAriane, type SegmentFilAriane } from '@/composants/layout/FilAriane';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useFournisseur } from '@/hooks/pieces/useFournisseur';
@@ -17,6 +18,7 @@ import {
   useReactiverFournisseur,
 } from '@/hooks/pieces/useTransitionsFournisseur';
 import { useSession } from '@/hooks/useSession';
+import { chemins } from '@/routes/chemins';
 
 import { peutEcrireFournisseur, peutLireFournisseur } from './droits';
 import { FormulaireFournisseur } from './FormulaireFournisseur';
@@ -97,6 +99,17 @@ export function EcranFicheFournisseur() {
   const fournisseur = requeteFournisseur.data;
   const peutEcrire = peutEcrireFournisseur(role);
 
+  // Fil d'Ariane contextuel (même doctrine que `EnTeteFicheArticle`, Lot C) — un seul ancêtre
+  // honnête ici : la liste des fournisseurs dont cette fiche vient. Ressource par TENANT (pas de
+  // `?site=`, voir `chemins.pieces.fournisseurs`).
+  const segmentsFilAriane: readonly SegmentFilAriane[] = [
+    {
+      cle: 'fournisseurs',
+      libelle: t('pieces:fournisseurs.titre'),
+      href: chemins.pieces.fournisseurs.liste(),
+    },
+  ];
+
   // Ferme la modale seulement sur succès (issue #63, correctif de cause racine) : un échec la
   // laisse ouverte, `AvertissementConfirmable` affiche `erreurTransition` DANS la modale via sa
   // prop `messageErreur` plutôt que dans l'écran, sous l'overlay où il restait invisible.
@@ -117,52 +130,56 @@ export function EcranFicheFournisseur() {
   // jamais deux niveaux 1 en compétition avec `fournisseur.nom`.
   return (
     <GabaritEcran titre={t('pieces:fournisseurs.titre')}>
-      <div className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex flex-col gap-1.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="texte-titre-page">{fournisseur.nom}</h2>
-            <Badge variant={VARIANTE_BADGE_STATUT[fournisseur.statut]}>
-              {t(`pieces:fournisseurs.statuts.${fournisseur.statut}`)}
-            </Badge>
-          </div>
-          <dl className="mt-2 grid grid-cols-1 gap-x-6 gap-y-1.5 texte-corps sm:grid-cols-3">
-            <div>
-              <dt className="texte-libelle text-muted-foreground">
-                {t('pieces:fournisseurs.email')}
-              </dt>
-              <dd>{texteOuVide(fournisseur.email)}</dd>
-            </div>
-            <div>
-              <dt className="texte-libelle text-muted-foreground">
-                {t('pieces:fournisseurs.telephone')}
-              </dt>
-              <dd>{texteOuVide(fournisseur.telephone)}</dd>
-            </div>
-            <div>
-              <dt className="texte-libelle text-muted-foreground">
-                {t('pieces:fournisseurs.delaiHabituelJours')}
-              </dt>
-              <dd className="tabular-nums">{texteOuVide(fournisseur.delaiHabituelJours)}</dd>
-            </div>
-          </dl>
-        </div>
+      <div className="flex flex-col gap-groupe rounded-lg border p-carte">
+        <FilAriane segments={segmentsFilAriane} pageCourante={fournisseur.nom} />
 
-        {peutEcrire ? (
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => setFormulaireOuvert(true)}>
-              {t('pieces:fournisseurs.actions.modifier')}
-            </Button>
-            {fournisseur.statut === 'actif' ? (
-              <Button variant="outline" onClick={() => setConfirmation('desactiver')}>
-                {t('pieces:fournisseurs.actions.desactiver')}
-              </Button>
-            ) : (
-              <Button variant="outline" onClick={() => setConfirmation('reactiver')}>
-                {t('pieces:fournisseurs.actions.reactiver')}
-              </Button>
-            )}
+        <div className="flex flex-col gap-groupe sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-champ">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="texte-titre-page">{fournisseur.nom}</h2>
+              <Badge variant={VARIANTE_BADGE_STATUT[fournisseur.statut]}>
+                {t(`pieces:fournisseurs.statuts.${fournisseur.statut}`)}
+              </Badge>
+            </div>
+            <dl className="mt-2 grid grid-cols-1 gap-x-6 gap-y-champ texte-corps sm:grid-cols-3">
+              <div>
+                <dt className="texte-libelle text-muted-foreground">
+                  {t('pieces:fournisseurs.email')}
+                </dt>
+                <dd>{texteOuVide(fournisseur.email)}</dd>
+              </div>
+              <div>
+                <dt className="texte-libelle text-muted-foreground">
+                  {t('pieces:fournisseurs.telephone')}
+                </dt>
+                <dd>{texteOuVide(fournisseur.telephone)}</dd>
+              </div>
+              <div>
+                <dt className="texte-libelle text-muted-foreground">
+                  {t('pieces:fournisseurs.delaiHabituelJours')}
+                </dt>
+                <dd className="tabular-nums">{texteOuVide(fournisseur.delaiHabituelJours)}</dd>
+              </div>
+            </dl>
           </div>
-        ) : null}
+
+          {peutEcrire ? (
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => setFormulaireOuvert(true)}>
+                {t('pieces:fournisseurs.actions.modifier')}
+              </Button>
+              {fournisseur.statut === 'actif' ? (
+                <Button variant="outline" onClick={() => setConfirmation('desactiver')}>
+                  {t('pieces:fournisseurs.actions.desactiver')}
+                </Button>
+              ) : (
+                <Button variant="outline" onClick={() => setConfirmation('reactiver')}>
+                  {t('pieces:fournisseurs.actions.reactiver')}
+                </Button>
+              )}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {peutEcrire ? (

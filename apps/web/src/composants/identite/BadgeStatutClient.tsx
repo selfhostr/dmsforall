@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { StatutClient } from '@dfa/shared';
 
-import { cn } from '@/lib/utils';
+import { BadgeAttribut } from './BadgeAttribut';
 
 interface EntreeStatutClient {
   readonly icone: LucideIcon;
@@ -28,22 +28,21 @@ interface Props {
 
 /** Statut client — forme + mot, jamais de couleur de la palette statut (réservée au statut
  *  d'OR/de ligne). `bloque` (impayés, RM-08) se distingue par le poids du texte et l'icône `Ban`,
- *  pas par une teinte. */
+ *  pas par une teinte. Compose `BadgeAttribut`, base partagée de la famille des badges
+ *  d'attribut métier (voir son en-tête) — seul le mapping `StatutClient -> {icone, accentue}`
+ *  reste local à ce fichier. */
 export function BadgeStatutClient({ statut, className }: Props) {
   const { t } = useTranslation('clients');
   const config = CONFIG_STATUT_CLIENT[statut];
   const Icone = config.icone;
 
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 rounded-full border border-input bg-background px-2.5 py-0.5 texte-libelle font-medium',
-        config.accentue ? 'font-semibold text-foreground' : 'text-muted-foreground',
-        className,
-      )}
+    <BadgeAttribut
+      icone={<Icone aria-hidden className="h-3.5 w-3.5 shrink-0" />}
+      accentue={config.accentue}
+      className={className}
     >
-      <Icone aria-hidden className="h-3.5 w-3.5 shrink-0" />
       {t(`clients:liste.statuts.${statut}`)}
-    </span>
+    </BadgeAttribut>
   );
 }
