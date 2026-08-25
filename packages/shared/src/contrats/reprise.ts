@@ -430,6 +430,12 @@ export const TYPES_ANOMALIE_ANALYSE_REPRISE = [
   'moteur_non_reconnu',
   'archive_partiellement_corrompue',
   'mot_de_passe_requis',
+  /** Une fois DÉCOMPRESSÉE, l'archive dépasse un volume ou un nombre de fichiers jugés
+   *  raisonnables (garde-fou sécurité contre une bombe de décompression, finding audit
+   *  25.08.2026) — DISTINCT de `archive_partiellement_corrompue` : le fichier déposé n'est pas
+   *  forcément corrompu, il est simplement refusé tel quel. `donnees` porte `limiteType`
+   *  (`'octets_extraits' | 'nombre_entrees'`), jamais un texte technique affiché tel quel. */
+  'archive_volume_extrait_excessif',
 ] as const;
 export type TypeAnomalieAnalyseReprise = (typeof TYPES_ANOMALIE_ANALYSE_REPRISE)[number];
 

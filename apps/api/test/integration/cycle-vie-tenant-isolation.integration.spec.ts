@@ -35,6 +35,10 @@ import { ServiceExportTenant } from '../../src/exploitation/cycle-vie-tenant/ser
 import { StockageExportTenantDisqueLocal } from '../../src/exploitation/cycle-vie-tenant/service-stockage-export-tenant';
 import { StockageArchiveRepriseDisqueLocal } from '../../src/reprise/depot/stockage-archive-reprise';
 import {
+  StockagePdfDisqueLocal,
+  cleePdfDocument,
+} from '../../src/facturation/impression/stockage-pdf';
+import {
   listerTablesTenant,
   TABLES_CYCLE_VIE_TENANT,
 } from '../../src/exploitation/cycle-vie-tenant/service-catalogue-tables-tenant';
@@ -48,6 +52,7 @@ let redis: RedisEphemere;
 let demo: GarageDemoFixture;
 let racineExports: string;
 let racineReprise: string;
+let racinePdf: string;
 
 beforeAll(async () => {
   bdd = await demarrerBaseEphemere();
@@ -55,6 +60,7 @@ beforeAll(async () => {
   redis = await demarrerRedisEphemere();
   racineExports = await mkdtemp(join(tmpdir(), 'dfa-test-export-'));
   racineReprise = await mkdtemp(join(tmpdir(), 'dfa-test-reprise-'));
+  racinePdf = await mkdtemp(join(tmpdir(), 'dfa-test-pdf-'));
 }, 180_000);
 
 afterAll(async () => {
@@ -62,6 +68,7 @@ afterAll(async () => {
   await bdd?.fermer();
   if (racineExports) await rm(racineExports, { recursive: true, force: true });
   if (racineReprise) await rm(racineReprise, { recursive: true, force: true });
+  if (racinePdf) await rm(racinePdf, { recursive: true, force: true });
 });
 
 /** Contexte SYSTÈME (job) — `utilisateurId: null`. */
@@ -83,9 +90,15 @@ async function construireServices() {
   const { accesBase, fermer } = await creerAccesBaseTest(bdd, redis.url);
   const stockage = new StockageExportTenantDisqueLocal(racineExports);
   const stockageReprise = new StockageArchiveRepriseDisqueLocal(racineReprise);
-  const cycleVie = new ServiceCycleVieResiliation(accesBase, stockageReprise);
+  const stockagePdf = new StockagePdfDisqueLocal(racinePdf);
+  const cycleVie = new ServiceCycleVieResiliation(
+    accesBase,
+    stockageReprise,
+    stockagePdf,
+    stockage,
+  );
   const exportTenant = new ServiceExportTenant(accesBase, stockage, cycleVie);
-  return { accesBase, stockage, stockageReprise, cycleVie, exportTenant, fermer };
+  return { accesBase, stockage, stockageReprise, stockagePdf, cycleVie, exportTenant, fermer };
 }
 
 /**
@@ -206,7 +219,8 @@ describe('cycle de vie de sortie du garage — isolation stricte (règle n°1)',
   }, 60_000);
 
   it('la purge du tenant A supprime ses lignes (site, utilisateur) sans toucher au tenant B', async () => {
-    const { accesBase, cycleVie, stockageReprise, fermer } = await construireServices();
+    const { accesBase, cycleVie, stockageReprise, stockage, stockagePdf, fermer } =
+      await construireServices();
     try {
       const ctxA = ctxPour(demo.tenantA.id, 'test-purge');
       const utilisateurDirectionA = demo.tenantA.utilisateurs[0]!.id;
@@ -232,6 +246,28 @@ describe('cycle de vie de sortie du garage — isolation stricte (règle n°1)',
       const racineDossierB = stockageReprise.racineDossier(demo.tenantB.id, dossierRepriseIdB);
       await stockageReprise.ecrireTranche(racineDossierB, 0, Buffer.from('archive-tenant-b-test'));
       expect(await stockageReprise.trancheExiste(racineDossierB, 0)).toBe(true);
+
+      // DEUXIÈME CORRECTIF nLPD (mandat 24/25.08.2026) : mêmes preuves, deux fuites de plus — un
+      // VRAI PDF de facture et un VRAI export de résiliation, pour tenant A ET tenant B. Le
+      // répertoire d'export du tenant A ci-dessous est délibérément DIFFÉRENT de celui écrit par
+      // `marquerExportPret` plus bas (`test/export`, un placeholder qui ne préfixe même pas
+      // `tenantId`) — une tentative « orpheline », jamais référencée par
+      // `resiliation_tenant.export_repertoire` (voir la doc de `StockageExportTenant.purgerTenant`
+      // : `exportId` régénéré à chaque déclenchement). Elle doit disparaître QUAND MÊME : la purge
+      // vise le répertoire ENTIER du tenant, pas la seule colonne.
+      const clePdfA = cleePdfDocument(demo.tenantA.id, randomUUID());
+      await stockagePdf.ecrire(clePdfA, Buffer.from('%PDF facture tenant A'));
+      const clePdfB = cleePdfDocument(demo.tenantB.id, randomUUID());
+      await stockagePdf.ecrire(clePdfB, Buffer.from('%PDF facture tenant B'));
+
+      await stockage.ecrire(
+        `${demo.tenantA.id}/export-orphelin/tables/client.csv`,
+        'export orphelin tenant A',
+      );
+      await stockage.ecrire(
+        `${demo.tenantB.id}/export-1/tables/client.csv`,
+        'export tenant B — ne doit jamais disparaître',
+      );
 
       const empreinteA = createHash('sha256').update('archive-tenant-a-test').digest();
       await accesBase.enTenant(ctxAUtilisateur, (tx) =>
@@ -274,6 +310,19 @@ describe('cycle de vie de sortie du garage — isolation stricte (règle n°1)',
       // … et LE PLUS IMPORTANT : le répertoire d'un AUTRE tenant, jamais visé par cette purge,
       // reste intact — aucune traversée, aucune purge à la racine.
       expect(await stockageReprise.trancheExiste(racineDossierB, 0)).toBe(true);
+
+      // DEUXIÈME CORRECTIF nLPD : le PDF de facture du tenant A a disparu…
+      await expect(stockagePdf.lire(clePdfA)).rejects.toThrow();
+      // … celui du tenant B est INTACT, mêmes octets.
+      expect((await stockagePdf.lire(clePdfB)).toString()).toBe('%PDF facture tenant B');
+
+      // … l'export de résiliation du tenant A (y compris la tentative « orpheline ») a disparu…
+      await expect(stockage.listerFichiers(`${demo.tenantA.id}/export-orphelin`)).resolves.toEqual(
+        [],
+      );
+      // … celui du tenant B — jamais visé par la purge du tenant A — est INTACT.
+      const fichiersExportB = await stockage.listerFichiers(`${demo.tenantB.id}/export-1`);
+      expect(fichiersExportB.map((f) => f.chemin)).toEqual(['tables/client.csv']);
 
       const restantA = await accesBase.enTenant(ctxA, (tx) =>
         tx.execute('select count(*) as n from public.site'),

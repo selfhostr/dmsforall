@@ -8,7 +8,7 @@
  */
 
 import { createWriteStream } from 'node:fs';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm, stat, utimes } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -18,7 +18,9 @@ import { construireDbf, type OptionsConstructionDbf } from '../lecteurs/fixtures
 import {
   AdaptateurLecteurArchiveReprise,
   estCheminZipDangereux,
+  type LimitesExtractionArchiveReprise,
 } from './adaptateur-lecteur-archive-reprise';
+import { ErreurLimiteExtractionDepassee } from './port-lecteur-archive-reprise';
 
 async function construireZip(
   entrees: readonly { chemin: string; contenu: Buffer }[],
@@ -59,6 +61,31 @@ async function nouvelAdaptateur(): Promise<AdaptateurLecteurArchiveReprise> {
   const racineTravail = await mkdtemp(join(tmpdir(), 'dfa-reprise-travail-'));
   racinesAEffacer.push(racineTravail);
   return new AdaptateurLecteurArchiveReprise(racineTravail);
+}
+
+/** Variante qui rend AUSSI `racineTravail` — nécessaire aux tests de purge (finding sécurité
+ *  HAUTE) qui doivent inspecter/manipuler directement le disque sous la racine. */
+async function nouvelAdaptateurAvecRacine(
+  limites: LimitesExtractionArchiveReprise = {},
+): Promise<{ adaptateur: AdaptateurLecteurArchiveReprise; racineTravail: string }> {
+  const racineTravail = await mkdtemp(join(tmpdir(), 'dfa-reprise-travail-'));
+  racinesAEffacer.push(racineTravail);
+  return { adaptateur: new AdaptateurLecteurArchiveReprise(racineTravail, limites), racineTravail };
+}
+
+async function existe(chemin: string): Promise<boolean> {
+  try {
+    await stat(chemin);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Un buffer très compressible (répétition d'un seul octet) — utile pour dépasser une limite
+ *  d'octets EXTRAITS avec une archive COMPRESSÉE minuscule. */
+function bufferCompressible(tailleOctets: number): Buffer {
+  return Buffer.alloc(tailleOctets, 'A');
 }
 
 beforeEach(() => {
@@ -179,5 +206,153 @@ describe('AdaptateurLecteurArchiveReprise — extraction ZIP réelle + lecture D
     const adaptateur = await nouvelAdaptateur();
     expect(await adaptateur.choisirCopieFaisantFoi(['/x/y.dbf'])).toBe('/x/y.dbf');
     expect(await adaptateur.choisirCopieFaisantFoi([])).toBeNull();
+  });
+});
+
+describe('purgerRepertoireExtrait — nettoyage immédiat (finding sécurité HAUTE, nLPD)', () => {
+  it("supprime réellement le répertoire d'extraction du disque", async () => {
+    const cheminZip = await construireZip([{ chemin: 'CLIENTS.DBF', contenu: dbfClients(3) }]);
+    const { adaptateur } = await nouvelAdaptateurAvecRacine();
+    const { repertoire } = await adaptateur.extraireEtInventorier(cheminZip);
+
+    expect(await existe(repertoire)).toBe(true);
+    await adaptateur.purgerRepertoireExtrait(repertoire);
+    expect(await existe(repertoire)).toBe(false);
+  });
+
+  it('est idempotente — un second appel sur un répertoire déjà purgé ne lève pas', async () => {
+    const cheminZip = await construireZip([{ chemin: 'CLIENTS.DBF', contenu: dbfClients(1) }]);
+    const { adaptateur } = await nouvelAdaptateurAvecRacine();
+    const { repertoire } = await adaptateur.extraireEtInventorier(cheminZip);
+
+    await adaptateur.purgerRepertoireExtrait(repertoire);
+    await expect(adaptateur.purgerRepertoireExtrait(repertoire)).resolves.not.toThrow();
+  });
+
+  it('refuse (et ne supprime jamais) un chemin hors de la racine de travail — même garde que le zip-slip', async () => {
+    const { adaptateur, racineTravail } = await nouvelAdaptateurAvecRacine();
+    const cheminHorsRacine = join(tmpdir(), 'dfa-reprise-jamais-touche');
+    await expect(adaptateur.purgerRepertoireExtrait(cheminHorsRacine)).rejects.toThrow();
+    // Le répertoire ne doit même pas avoir été TENTÉ de création/suppression — vérifie l'absence
+    // de tout effet de bord sous la racine légitime.
+    expect(await existe(racineTravail)).toBe(true);
+  });
+});
+
+describe('extraireEtInventorier — bombe de décompression (finding sécurité HAUTE) : abandon propre + nettoyage du résidu partiel', () => {
+  it('dépasse la limite d\'OCTETS EXTRAITS (archive compressée minuscule, sortie décompressée énorme relativement au seuil de test) : ErreurLimiteExtractionDepassee, type "octets_extraits", répertoire nettoyé', async () => {
+    const cheminZip = await construireZip([
+      { chemin: 'GROS.BIN', contenu: bufferCompressible(200_000) },
+    ]);
+    const { adaptateur, racineTravail } = await nouvelAdaptateurAvecRacine({
+      octetsExtraitsMax: 1_000,
+    });
+
+    let erreurCapturee: unknown;
+    try {
+      await adaptateur.extraireEtInventorier(cheminZip);
+    } catch (erreur) {
+      erreurCapturee = erreur;
+    }
+
+    expect(erreurCapturee).toBeInstanceOf(ErreurLimiteExtractionDepassee);
+    expect((erreurCapturee as ErreurLimiteExtractionDepassee).type).toBe('octets_extraits');
+
+    // Aucun résidu — ni le répertoire d'extraction partiel, ni rien d'autre sous la racine.
+    expect(await readdir(racineTravail)).toEqual([]);
+  });
+
+  it('dépasse la limite du NOMBRE D\'ENTRÉES : ErreurLimiteExtractionDepassee, type "nombre_entrees", répertoire nettoyé', async () => {
+    const entrees = Array.from({ length: 6 }, (_, i) => ({
+      chemin: `FICHIER_${i}.TXT`,
+      contenu: Buffer.from('x', 'utf-8'),
+    }));
+    const cheminZip = await construireZip(entrees);
+    const { adaptateur, racineTravail } = await nouvelAdaptateurAvecRacine({ entreesMax: 3 });
+
+    let erreurCapturee: unknown;
+    try {
+      await adaptateur.extraireEtInventorier(cheminZip);
+    } catch (erreur) {
+      erreurCapturee = erreur;
+    }
+
+    expect(erreurCapturee).toBeInstanceOf(ErreurLimiteExtractionDepassee);
+    expect((erreurCapturee as ErreurLimiteExtractionDepassee).type).toBe('nombre_entrees');
+
+    expect(await readdir(racineTravail)).toEqual([]);
+  });
+
+  it('une archive légitime, sous les deux seuils, extrait normalement (pas de faux positif)', async () => {
+    const cheminZip = await construireZip([{ chemin: 'CLIENTS.DBF', contenu: dbfClients(5) }]);
+    const { adaptateur } = await nouvelAdaptateurAvecRacine({
+      octetsExtraitsMax: 10_000_000,
+      entreesMax: 100,
+    });
+
+    const { fichiers } = await adaptateur.extraireEtInventorier(cheminZip);
+    expect(fichiers).toHaveLength(1);
+    expect(fichiers[0]!.lisible).toBe(true);
+  });
+});
+
+describe('extraireEtInventorier / purgerRepertoireExtrait — cycle complet succès ET échec (preuve du `finally` des appelants)', () => {
+  it("un traitement RÉUSSI : le répertoire n'existe plus une fois purgerRepertoireExtrait appelé", async () => {
+    const cheminZip = await construireZip([{ chemin: 'CLIENTS.DBF', contenu: dbfClients(2) }]);
+    const { adaptateur } = await nouvelAdaptateurAvecRacine();
+
+    const { repertoire } = await adaptateur.extraireEtInventorier(cheminZip);
+    try {
+      // "traitement" quelconque réussi — même patron que service-analyse-reprise.ts/
+      // service-import-reprise.ts : le répertoire est utilisé PUIS purgé dans un `finally`.
+      await readFile(join(repertoire, 'CLIENTS.DBF'));
+    } finally {
+      await adaptateur.purgerRepertoireExtrait(repertoire);
+    }
+
+    expect(await existe(repertoire)).toBe(false);
+  });
+
+  it("un traitement en ÉCHEC (exception levée après extraction) : le répertoire n'existe plus non plus — le `finally` purge dans les deux cas", async () => {
+    const cheminZip = await construireZip([{ chemin: 'CLIENTS.DBF', contenu: dbfClients(2) }]);
+    const { adaptateur } = await nouvelAdaptateurAvecRacine();
+
+    const { repertoire } = await adaptateur.extraireEtInventorier(cheminZip);
+    await expect(
+      (async () => {
+        try {
+          throw new Error('panne simulée pendant le traitement (analyse/import)');
+        } finally {
+          await adaptateur.purgerRepertoireExtrait(repertoire);
+        }
+      })(),
+    ).rejects.toThrow('panne simulée');
+
+    expect(await existe(repertoire)).toBe(false);
+  });
+});
+
+describe('Balayage des résidus de PLANTAGE (purgerResidusAnciens, appelée en tête de chaque extraireEtInventorier)', () => {
+  it('un résidu plus vieux que le seuil est supprimé au passage suivant ; un résidu récent est conservé', async () => {
+    const cheminZip = await construireZip([{ chemin: 'CLIENTS.DBF', contenu: dbfClients(1) }]);
+    const { adaptateur } = await nouvelAdaptateurAvecRacine({
+      dureeMaxResiduMs: 50,
+    });
+
+    // Premier « plantage » : extraction jamais purgée (simule une mort du process worker).
+    const { repertoire: repertoireOrphelin } = await adaptateur.extraireEtInventorier(cheminZip);
+    // Vieillit artificiellement le répertoire au-delà du seuil (50 ms) — sans dépendre d'un vrai
+    // `sleep` dans le test.
+    const dateAncienne = new Date(Date.now() - 10_000);
+    await utimes(repertoireOrphelin, dateAncienne, dateAncienne);
+
+    // Une activité normale, plus tard : le balayage en tête d'extraireEtInventorier doit
+    // supprimer le résidu orphelin AVANT de créer le nouveau répertoire.
+    const { repertoire: repertoireFrais } = await adaptateur.extraireEtInventorier(cheminZip);
+
+    expect(await existe(repertoireOrphelin)).toBe(false);
+    expect(await existe(repertoireFrais)).toBe(true);
+
+    await adaptateur.purgerRepertoireExtrait(repertoireFrais);
   });
 });

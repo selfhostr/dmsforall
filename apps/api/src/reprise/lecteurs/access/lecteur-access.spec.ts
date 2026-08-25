@@ -1,13 +1,17 @@
 import { EventEmitter } from 'node:events';
 import { Readable } from 'node:stream';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   lireLignesAccess,
   listerColonnesAccess,
   listerTablesAccess,
   verifierMdbToolsDisponible,
 } from './lecteur-access';
-import { ErreurLectureAccess, ErreurOutilAccesIndisponible } from '../erreurs';
+import {
+  ErreurDelaiDepasseProcessus,
+  ErreurLectureAccess,
+  ErreurOutilAccesIndisponible,
+} from '../erreurs';
 import type { FabriqueProcessus, ProcessusExecute } from './executeur-processus';
 
 /** Sous-processus factice piloté par test — ne lance jamais un vrai `mdbtools`. */
@@ -195,5 +199,116 @@ describe('lireLignesAccess', () => {
         // ne devrait jamais y arriver
       }
     }).rejects.toThrow(ErreurLectureAccess);
+  });
+
+  it('passe le nom de table en position finale précédée de « -- » (finding sécurité : un nom commençant par « - » ne doit jamais être repris comme option)', async () => {
+    let argsCaptures: string[] = [];
+    const fabriqueProcessus: FabriqueProcessus = (_commande, args) => {
+      argsCaptures = args;
+      return creerProcessusFactice({ stdout: 'Nom\n', codeSortie: 0 });
+    };
+
+    for await (const _ of lireLignesAccess('/chemin/base.mdb', '-TableSuspecte', {
+      fabriqueProcessus,
+    })) {
+      // consomme le flux pour laisser le temps à l'appel d'être capturé
+    }
+
+    const indexSeparateur = argsCaptures.indexOf('--');
+    expect(indexSeparateur).toBeGreaterThan(-1);
+    expect(argsCaptures[indexSeparateur + 1]).toBe('-TableSuspecte');
+    expect(argsCaptures.at(-1)).toBe('-TableSuspecte');
+  });
+});
+
+describe('listerColonnesAccess — nom de table (finding sécurité)', () => {
+  it('passe le nom de table sous la forme --table=<valeur> (un seul token, jamais deux)', async () => {
+    let argsCaptures: string[] = [];
+    const fabriqueProcessus: FabriqueProcessus = (_commande, args) => {
+      argsCaptures = args;
+      return creerProcessusFactice({
+        stdout: 'CREATE TABLE [T]\n (\n\t[Id]\t\tLong Integer\n);',
+        codeSortie: 0,
+      });
+    };
+
+    await listerColonnesAccess('/chemin/base.mdb', '-TableSuspecte', { fabriqueProcessus });
+
+    expect(argsCaptures).toContain('--table=-TableSuspecte');
+    expect(argsCaptures).not.toContain('-TableSuspecte');
+  });
+});
+
+describe('lireLignesAccess — délai dur (finding sécurité MOYENNE)', () => {
+  beforeEach(() => {
+    // Seuls `setTimeout`/`clearTimeout` sont simulés — laisser `process.nextTick`/`setImmediate`
+    // réels, dont dépendent les flux Node (`Readable`, `csv-parse`) de `lireLignesAccess`.
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** Sous-processus factice qui ne produit JAMAIS le moindre octet et ne ferme jamais — simule
+   *  un `.mdb` forgé qui fait boucler `mdbtools` (le scénario mesuré par l'audit). */
+  function creerProcessusMuet(): { processus: ProcessusExecute; kill: ReturnType<typeof vi.fn> } {
+    const emetteur = new EventEmitter();
+    const kill = vi.fn();
+    const stdout = new Readable({ read: () => undefined });
+    const stderr = new Readable({ read: () => undefined });
+    const processus: ProcessusExecute = {
+      stdout,
+      stderr,
+      on: emetteur.on.bind(emetteur),
+      kill,
+    };
+    return { processus, kill };
+  }
+
+  it("tue le sous-processus et lève ErreurDelaiDepasseProcessus après le délai d'inactivité — le worker n'est plus jamais occupé indéfiniment", async () => {
+    const { processus, kill } = creerProcessusMuet();
+    const fabriqueProcessus: FabriqueProcessus = () => processus;
+
+    const consommer = (async () => {
+      const lignes = [];
+      for await (const ligne of lireLignesAccess('/chemin/forge.mdb', 'Clients', {
+        fabriqueProcessus,
+        delaiInactiviteExportMs: 1_000,
+        delaiAbsoluExportMs: 60_000,
+      })) {
+        lignes.push(ligne);
+      }
+      return lignes;
+    })();
+    consommer.catch(() => undefined); // évite un unhandledRejection pendant l'avance des timers
+
+    await vi.advanceTimersByTimeAsync(1_000);
+
+    expect(kill).toHaveBeenCalledWith('SIGTERM');
+    await expect(consommer).rejects.toThrow(ErreurDelaiDepasseProcessus);
+  });
+
+  it('tue le sous-processus et lève ErreurDelaiDepasseProcessus au plafond ABSOLU (déclenchement indépendant de la garde inactivité)', async () => {
+    const { processus, kill } = creerProcessusMuet();
+    const fabriqueProcessus: FabriqueProcessus = () => processus;
+
+    const consommer = (async () => {
+      const lignes = [];
+      for await (const ligne of lireLignesAccess('/chemin/forge.mdb', 'Clients', {
+        fabriqueProcessus,
+        delaiInactiviteExportMs: 60_000, // ne doit jamais se déclencher le premier ici
+        delaiAbsoluExportMs: 3_000,
+      })) {
+        lignes.push(ligne);
+      }
+      return lignes;
+    })();
+    consommer.catch(() => undefined);
+
+    await vi.advanceTimersByTimeAsync(3_000);
+
+    expect(kill).toHaveBeenCalledWith('SIGTERM');
+    await expect(consommer).rejects.toThrow(ErreurDelaiDepasseProcessus);
   });
 });

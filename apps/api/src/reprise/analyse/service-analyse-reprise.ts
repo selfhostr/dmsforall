@@ -14,7 +14,7 @@
  * transition, défensivement.
  */
 
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import type { Queue } from 'bullmq';
 import { sql } from 'drizzle-orm';
@@ -33,7 +33,10 @@ import { ErreurMetier } from '../../common/erreurs';
 
 import { JETON_LECTEUR_ARCHIVE_REPRISE, JETON_STOCKAGE_ARCHIVE_REPRISE } from '../reprise.jetons';
 import { NOM_FILE_ANALYSE_REPRISE, NOM_JOB_ANALYSE_REPRISE } from '../reprise.jetons';
-import type { PortLecteurArchiveReprise } from '../lecture/port-lecteur-archive-reprise';
+import {
+  ErreurLimiteExtractionDepassee,
+  type PortLecteurArchiveReprise,
+} from '../lecture/port-lecteur-archive-reprise';
 import type { PortStockageArchiveReprise } from '../depot/stockage-archive-reprise';
 import { type LigneRepriseAnalyseBrute, projeterAnalyseReprise } from '../db-reprise.types';
 import { ServiceCycleVieDossierReprise } from '../service-cycle-vie-dossier-reprise';
@@ -43,6 +46,8 @@ import { projeterFichierArchive, projeterTableDetectee } from './projection-anal
 function messageErreur(erreur: unknown): string {
   return erreur instanceof Error ? erreur.message : String(erreur);
 }
+
+const journal = new Logger('ServiceAnalyseReprise');
 
 @Injectable()
 export class ServiceAnalyseReprise {
@@ -107,11 +112,17 @@ export class ServiceAnalyseReprise {
       let partielle = false;
       let echecTotal = false;
       const tablesRattacheesParIndex = new Set<string>();
+      // Nettoyé dans le `finally` ci-dessous, succès ou échec — voir « PURGE DU RÉPERTOIRE
+      // D'EXTRACTION » (`lecture/adaptateur-lecteur-archive-reprise.ts`, en-tête de fichier).
+      // `undefined` tant que l'extraction elle-même n'a pas produit de répertoire (rien à purger
+      // dans ce cas — un échec DANS `extraireEtInventorier` nettoie déjà son propre résidu).
+      let repertoireExtrait: string | undefined;
 
       try {
         const cheminArchive = await this.stockage.cheminAbsoluArchive(dossier.stockage_chemin);
         const { repertoire, fichiers: fichiersSource } =
           await this.lecteur.extraireEtInventorier(cheminArchive);
+        repertoireExtrait = repertoire;
         const familleResultat = await this.lecteur.detecterFamille(repertoire);
         moteurDetecte = {
           // Déjà le type du contrat (`FamilleMoteurSourceReprise`) : la conversion depuis le
@@ -206,15 +217,43 @@ export class ServiceAnalyseReprise {
       } catch (erreur) {
         echecTotal = true;
         moteurDetecte = { famille: 'inconnu', indiceConfiance: 0 };
-        anomalies = [
-          {
-            type: 'archive_partiellement_corrompue',
-            fichierChemin: null,
-            tableDetecteeId: null,
-            gravite: 'bloquante',
-            donnees: { message: messageErreur(erreur) },
-          },
-        ];
+        anomalies =
+          erreur instanceof ErreurLimiteExtractionDepassee
+            ? [
+                // Anomalie DÉDIÉE, distincte de la corruption générique — le garagiste a déposé
+                // le fichier de son ancien logiciel, jamais parlé de « bombe zip »/« ratio de
+                // compression » (finding sécurité, vocabulaire garagiste). `donnees` reste un sac
+                // STRUCTURÉ (doctrine de tête de `contrats/reprise.ts`), jamais un texte affiché
+                // tel quel.
+                {
+                  type: 'archive_volume_extrait_excessif',
+                  fichierChemin: null,
+                  tableDetecteeId: null,
+                  gravite: 'bloquante',
+                  donnees: {
+                    limiteType: erreur.type,
+                    mesure: erreur.mesure,
+                    limite: erreur.limite,
+                  },
+                },
+              ]
+            : [
+                {
+                  type: 'archive_partiellement_corrompue',
+                  fichierChemin: null,
+                  tableDetecteeId: null,
+                  gravite: 'bloquante',
+                  donnees: { message: messageErreur(erreur) },
+                },
+              ];
+      } finally {
+        if (repertoireExtrait) {
+          await this.lecteur.purgerRepertoireExtrait(repertoireExtrait).catch((erreurPurge) => {
+            journal.warn(
+              `Nettoyage du répertoire d'extraction en échec (dossier ${dossierId}) : ${messageErreur(erreurPurge)}`,
+            );
+          });
+        }
       }
 
       const statutFinal = echecTotal ? 'echouee' : 'terminee';

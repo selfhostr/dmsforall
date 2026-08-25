@@ -36,10 +36,18 @@ export interface ArchiveSynthetiqueReprise {
 export class AdaptateurLecteurArchiveRepriseFactice implements PortLecteurArchiveReprise {
   constructor(private readonly archive: ArchiveSynthetiqueReprise) {}
 
+  /** Chemins/appels de purge enregistrés — permet à un test d'affirmer que l'appelant nettoie
+   *  bien dans un `finally` (succès ET échec), sans dépendance à un vrai système de fichiers. */
+  readonly repertoiresPurges: string[] = [];
+
   async extraireEtInventorier(
     _cheminArchive: string,
   ): Promise<{ readonly repertoire: string; readonly fichiers: readonly FichierArchiveSource[] }> {
     return { repertoire: '/factice/extrait', fichiers: this.archive.fichiers };
+  }
+
+  async purgerRepertoireExtrait(repertoire: string): Promise<void> {
+    this.repertoiresPurges.push(repertoire);
   }
 
   async detecterFamille(

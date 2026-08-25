@@ -13,7 +13,7 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import type { Queue } from 'bullmq';
 import { sql } from 'drizzle-orm';
@@ -64,6 +64,8 @@ interface AccumulateurRapport {
   readonly anomalies: AnomalieImportReprise[];
   readonly reconciliationParAnnee: Map<number, { documents: number; totalCentimes: number }>;
 }
+
+const journal = new Logger('ServiceImportReprise');
 
 @Injectable()
 export class ServiceImportReprise {
@@ -160,13 +162,14 @@ export class ServiceImportReprise {
       };
 
       let echecTotal = false;
+      // Nettoyé dans le `finally` ci-dessous, succès ou échec — voir « PURGE DU RÉPERTOIRE
+      // D'EXTRACTION » (`lecture/adaptateur-lecteur-archive-reprise.ts`, en-tête de fichier).
+      let repertoireExtrait: string | undefined;
       try {
         const cheminArchive = await this.stockage.cheminAbsoluArchive(dossier.stockage_chemin);
-        const famille = (
-          await this.lecteur.detecterFamille(
-            (await this.lecteur.extraireEtInventorier(cheminArchive)).repertoire,
-          )
-        ).famille;
+        const { repertoire } = await this.lecteur.extraireEtInventorier(cheminArchive);
+        repertoireExtrait = repertoire;
+        const famille = (await this.lecteur.detecterFamille(repertoire)).famille;
 
         const clientIdParNumeroOrigine = new Map<string, string>();
         const domainesConcrets = new Set<DomaineReprise>([
@@ -242,6 +245,14 @@ export class ServiceImportReprise {
           ligneSource: null,
           donnees: { message: erreur instanceof Error ? erreur.message : String(erreur) },
         });
+      } finally {
+        if (repertoireExtrait) {
+          await this.lecteur.purgerRepertoireExtrait(repertoireExtrait).catch((erreurPurge) => {
+            journal.warn(
+              `Nettoyage du répertoire d'extraction en échec (dossier ${dossierId}) : ${erreurPurge instanceof Error ? erreurPurge.message : String(erreurPurge)}`,
+            );
+          });
+        }
       }
 
       const reconciliation: ReconciliationAnneeReprise[] = [

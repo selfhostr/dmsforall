@@ -60,6 +60,27 @@ export interface FichierArchiveSource {
   readonly empreinteSha256: string | null;
 }
 
+/**
+ * Bombe de décompression (finding sécurité HAUTE) OU trop d'entrées dans l'archive — abandon
+ * explicite par `extraireEtInventorier`, jamais un crash silencieux ou un remplissage de disque
+ * non borné. Définie ICI (le PORT), pas dans l'adaptateur concret : les appelants
+ * (`analyse/service-analyse-reprise.ts`) doivent pouvoir la distinguer d'une corruption
+ * générique SANS dépendre du type interne de l'adaptateur — même doctrine que le reste de ce
+ * fichier (codé contre le port, jamais contre l'implémentation).
+ */
+export class ErreurLimiteExtractionDepassee extends Error {
+  constructor(
+    readonly type: 'octets_extraits' | 'nombre_entrees',
+    readonly mesure: number,
+    readonly limite: number,
+  ) {
+    super(
+      `limite d'extraction dépassée (${type} : ${mesure} > ${limite}) — archive abandonnée, résidu nettoyé`,
+    );
+    this.name = 'ErreurLimiteExtractionDepassee';
+  }
+}
+
 export interface PortLecteurArchiveReprise {
   /**
    * Décompresse l'archive déposée (voir `depot/stockage-archive-reprise.ts` pour le chemin
@@ -71,6 +92,14 @@ export interface PortLecteurArchiveReprise {
     readonly repertoire: string;
     readonly fichiers: readonly FichierArchiveSource[];
   }>;
+
+  /**
+   * Nettoyage IMMÉDIAT du répertoire rendu par `extraireEtInventorier` — à appeler par TOUT
+   * appelant dans un `finally`, que le traitement de l'archive réussisse ou échoue (finding
+   * sécurité nLPD : des données personnelles en clair ne doivent JAMAIS survivre au traitement
+   * qui les a extraites). Idempotente : ne lève pas si le répertoire est déjà absent.
+   */
+  purgerRepertoireExtrait(repertoire: string): Promise<void>;
 
   /** Reconnaissance de la famille de moteur sur les fichiers extraits (en-tête binaire). */
   detecterFamille(cheminRepertoireExtrait: string): Promise<ResultatDetectionFamilleReprise>;

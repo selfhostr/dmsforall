@@ -43,12 +43,50 @@
  * (aucun `mdb-tables -S`/équivalent exposé) : ce fichier compte en consommant `lireLignesAccess`
  * jusqu'au bout (flux, jamais bufférisé, mais O(n) sur la table entière — plus coûteux que le
  * comptage DBF qui ne lit qu'un octet de statut par enregistrement). Documenté, pas caché.
+ *
+ * PURGE DU RÉPERTOIRE D'EXTRACTION (finding sécurité HAUTE, nLPD) — `extraireEtInventorier`
+ * décompresse des données personnelles EN CLAIR (clients, immatriculations, montants, parfois des
+ * dossiers de solvabilité) sous `racineTravail`. Deux mécanismes, DÉLIBÉRÉMENT DISTINCTS :
+ *
+ *   1. Nettoyage IMMÉDIAT — `purgerRepertoireExtrait` (méthode du port), appelée par les DEUX
+ *      appelants (`analyse/service-analyse-reprise.ts`, `import/service-import-reprise.ts`) dans
+ *      un `finally`, que le traitement de l'archive réussisse ou échoue. C'est le chemin NORMAL :
+ *      un répertoire d'extraction ne doit JAMAIS survivre au traitement qui l'a créé.
+ *
+ *   2. Balayage des RÉSIDUS DE PLANTAGE — `purgerResidusAnciens`, appelée en tête de CHAQUE
+ *      `extraireEtInventorier` (donc à chaque analyse/import, tous tenants confondus). SEUL le
+ *      `finally` des appelants ne peut PAS couvrir une mort du PROCESSUS worker lui-même
+ *      (SIGKILL, OOM) : le répertoire créé par le `mkdtemp` en cours reste alors orphelin, sans
+ *      qu'aucun code applicatif n'ait la main pour le nettoyer.
+ *
+ *      DEUX OPTIONS PESÉES (brief) : (a) rendre le chemin DÉRIVABLE du tenant/dossier pour le
+ *      rattacher au même geste que `ServiceCycleVieResiliation.purger` (commit `8970bbb`,
+ *      `dossier_reprise.stockage_chemin`) ; (b) un balayage des résidus, indépendant de la
+ *      résiliation. CHOIX RETENU : (b), pour trois raisons pesées explicitement.
+ *        - PÉRIMÈTRE : (a) exigerait de modifier `exploitation/cycle-vie-tenant/` — un AUTRE
+ *          agent y écrit EN CE MOMENT MÊME sur cette même branche ; y toucher serait soit une
+ *          collision d'écriture, soit un couplage figé par écrit sans l'accord de son
+ *          propriétaire.
+ *        - COUVERTURE RÉELLEMENT PLUS LARGE : (a) ne protège qu'au moment de la RÉSILIATION d'un
+ *          tenant — un plantage en pleine analyse d'un tenant ACTIF (le cas de loin le plus
+ *          fréquent, aucun rapport avec une résiliation) laisserait le résidu prospérer jusqu'à
+ *          la résiliation, potentiellement des mois plus tard. (b) borne l'exposition à
+ *          `DUREE_MAX_RESIDU_EXTRACTION_MS` pour TOUT résidu, de tout tenant, quel que soit son
+ *          statut.
+ *        - ROBUSTESSE : `racineTravail` est déjà une racine PARTAGÉE (singleton Nest, tous
+ *          tenants confondus, voir plus bas) — un balayage à cet endroit n'a besoin d'aucune
+ *          information tenant/dossier pour être correct, contrairement à une dérivation de
+ *          chemin qui devrait rester cohérente avec la construction ET la purge de résiliation.
+ *
+ *      SEUIL (`DUREE_MAX_RESIDU_EXTRACTION_MS`, 24 h) : voir sa justification propre ci-dessous,
+ *      ancrée sur le débit d'export MESURÉ (`lecteurs/access/lecteur-access.ts`).
  */
 
 import { createHash } from 'node:crypto';
-import { createWriteStream } from 'node:fs';
-import { mkdir, mkdtemp, open as ouvrirFichier } from 'node:fs/promises';
+import { createWriteStream, type Dirent } from 'node:fs';
+import { mkdir, mkdtemp, open as ouvrirFichier, readdir, rm, stat } from 'node:fs/promises';
 import { dirname, extname, join, resolve, sep } from 'node:path';
+import { Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { openPromise, type Entry } from 'yauzl';
 
@@ -71,19 +109,94 @@ import {
 import type { FamilleMoteur as FamilleMoteurLecteurs, LigneTable } from '../lecteurs/types';
 import type { TableEchantillonnee } from '../lecteurs/liens';
 
-import type {
-  FichierArchiveSource,
-  LienCandidat,
-  OptionsLectureDbf,
-  PortLecteurArchiveReprise,
-  ProfilColonne,
-  RapportTable,
-  ResultatDetectionFamilleReprise,
+import {
+  ErreurLimiteExtractionDepassee,
+  type FichierArchiveSource,
+  type LienCandidat,
+  type OptionsLectureDbf,
+  type PortLecteurArchiveReprise,
+  type ProfilColonne,
+  type RapportTable,
+  type ResultatDetectionFamilleReprise,
 } from './port-lecteur-archive-reprise';
 
 const LIMITE_ECHANTILLON_DEFAUT = 500;
 const MAX_ENTREES_CACHE_ECHANTILLONS = 500;
 const TAILLE_SONDE_FAMILLE_OCTETS = 8192;
+
+/**
+ * 80 Go — MESURÉ, pas deviné. Les deux archives réelles analysées par l'audit sécurité pèsent
+ * 2,3 Go et 43,5 Go COMPRESSÉES (`TAILLE_MAX_ARCHIVE_REPRISE_OCTETS` = 60 Go, `contrats/
+ * reprise.ts`, plafond déjà posé avec marge sur ce maximum). 80 Go de sortie DÉCOMPRESSÉE couvre
+ * un ratio d'expansion jusqu'à ~1,8× le plus gros dépôt compressé AUTORISÉ — largement suffisant
+ * pour du contenu Access/FoxPro (binaire, peu compressible, ratios réels mesurés très inférieurs
+ * à 2×) — mais à des ordres de grandeur des ratios caractéristiques d'une bombe de décompression
+ * (centaines à milliers de fois le poids compressé). Toute extraction qui franchit ce seuil est
+ * donc, par construction, soit un bug soit une attaque — jamais un dépôt légitime.
+ */
+const LIMITE_OCTETS_EXTRAITS_TOTAL = 80_000_000_000;
+
+/**
+ * 200 000 entrées — aucune archive réelle mesurée n'approche quelques milliers de fichiers (une
+ * base Access/FoxPro compte quelques dizaines à quelques centaines de fichiers/tables). Ce
+ * plafond, large mais FINI, borne le travail syscall (mkdir/open/write) même si chaque entrée
+ * pèse 0 octet — la variante de bombe qui vise le NOMBRE d'entrées plutôt que leur poids
+ * individuel (que `LIMITE_OCTETS_EXTRAITS_TOTAL` seul ne bornerait pas).
+ */
+const LIMITE_ENTREES_ARCHIVE = 200_000;
+
+/**
+ * 24 h — bombe/plantage EXCLUS. Le débit d'export MESURÉ (`lecteurs/access/lecteur-access.ts`,
+ * ~68 000 lignes/s soutenu sur une base Access réelle de 1,4 Go) borne chaque appel individuel à
+ * 2 h maximum (`DELAI_ABSOLU_EXPORT_MS`) ; une analyse/import complet enchaîne plusieurs tables
+ * mais reste de l'ordre de l'heure sur les plus gros dossiers réels connus. 24 h laisse une marge
+ * large sur tout traitement légitime tout en garantissant qu'un résidu de PLANTAGE (le seul cas
+ * que le nettoyage immédiat des appelants ne peut pas couvrir — voir « PURGE DU RÉPERTOIRE
+ * D'EXTRACTION » en tête de fichier) ne survit jamais plus d'un jour à la prochaine activité de
+ * reprise, de N'IMPORTE QUEL tenant.
+ */
+const DUREE_MAX_RESIDU_EXTRACTION_MS = 24 * 60 * 60 * 1000;
+
+/** Transforme le flux d'une entrée ZIP en comptant les octets réellement écrits sur disque dans
+ *  `budget` (CUMULÉ sur TOUTE l'extraction, pas seulement l'entrée courante — une bombe peut
+ *  aussi bien être UNE entrée énorme que des milliers de petites) ; interrompt le flux dès que
+ *  `LIMITE_OCTETS_EXTRAITS_TOTAL` est franchi. `pipeline()` (node:stream/promises) détruit alors
+ *  TOUS les flux de la chaîne (lecture zip + écriture disque) — jamais un flux abandonné à
+ *  moitié ouvert. */
+function creerLimiteurOctetsExtraits(
+  budget: { octetsExtraits: number },
+  limiteOctets: number,
+): Transform {
+  return new Transform({
+    transform(morceau: Buffer, _encodage, rappel) {
+      budget.octetsExtraits += morceau.length;
+      if (budget.octetsExtraits > limiteOctets) {
+        rappel(
+          new ErreurLimiteExtractionDepassee(
+            'octets_extraits',
+            budget.octetsExtraits,
+            limiteOctets,
+          ),
+        );
+        return;
+      }
+      rappel(null, morceau);
+    },
+  });
+}
+
+function estSousRacine(racine: string, cheminAbs: string): boolean {
+  const racineAbs = resolve(racine) + sep;
+  return cheminAbs === resolve(racine) || (resolve(cheminAbs) + sep).startsWith(racineAbs);
+}
+
+/** Overrides de test pour les trois seuils de sécurité — voir le constructeur de
+ *  `AdaptateurLecteurArchiveReprise`. */
+export interface LimitesExtractionArchiveReprise {
+  readonly octetsExtraitsMax?: number;
+  readonly entreesMax?: number;
+  readonly dureeMaxResiduMs?: number;
+}
 
 const FAMILLE_VERS_CONTRAT: Readonly<Record<FamilleMoteurLecteurs, FamilleMoteurSourceReprise>> = {
   access: 'access_jet',
@@ -167,9 +280,25 @@ class CacheEchantillons {
 export class AdaptateurLecteurArchiveReprise implements PortLecteurArchiveReprise {
   private readonly racineTravail: string;
   private readonly cache = new CacheEchantillons();
+  private readonly limiteOctetsExtraitsTotal: number;
+  private readonly limiteEntreesArchive: number;
+  private readonly dureeMaxResiduMs: number;
 
-  constructor(racineTravail: string = join(process.cwd(), 'uploads', 'reprise-extraction')) {
+  /**
+   * Second paramètre RÉSERVÉ AUX TESTS (`LimitesExtractionArchiveReprise`) — les seuils réels
+   * (80 Go / 200 000 entrées / 24 h) ne sont JAMAIS testables tels quels sans construire une
+   * archive de plusieurs dizaines de Go ou des centaines de milliers d'entrées. Défauts identiques
+   * aux constantes de production — un appel `new AdaptateurLecteurArchiveReprise()` (le seul
+   * utilisé par `reprise.module.ts`, DI réelle) se comporte exactement comme avant ce paramètre.
+   */
+  constructor(
+    racineTravail: string = join(process.cwd(), 'uploads', 'reprise-extraction'),
+    limites: LimitesExtractionArchiveReprise = {},
+  ) {
     this.racineTravail = racineTravail;
+    this.limiteOctetsExtraitsTotal = limites.octetsExtraitsMax ?? LIMITE_OCTETS_EXTRAITS_TOTAL;
+    this.limiteEntreesArchive = limites.entreesMax ?? LIMITE_ENTREES_ARCHIVE;
+    this.dureeMaxResiduMs = limites.dureeMaxResiduMs ?? DUREE_MAX_RESIDU_EXTRACTION_MS;
   }
 
   // --- Décompression + inventaire ---------------------------------------------------------------
@@ -177,10 +306,60 @@ export class AdaptateurLecteurArchiveReprise implements PortLecteurArchiveRepris
   async extraireEtInventorier(
     cheminArchive: string,
   ): Promise<{ readonly repertoire: string; readonly fichiers: readonly FichierArchiveSource[] }> {
+    await this.purgerResidusAnciens();
     await mkdir(this.racineTravail, { recursive: true });
     const repertoire = await mkdtemp(join(this.racineTravail, 'extrait-'));
-    const fichiers = await this.extraireZip(cheminArchive, repertoire);
-    return { repertoire, fichiers };
+    try {
+      const fichiers = await this.extraireZip(cheminArchive, repertoire);
+      return { repertoire, fichiers };
+    } catch (erreur) {
+      // Nettoyage du résidu PARTIEL avant de propager — une extraction abandonnée (bombe de
+      // décompression stoppée en cours de route, entrée fatale...) ne doit jamais laisser de
+      // données personnelles en clair sur disque, même incomplètes.
+      await rm(repertoire, { recursive: true, force: true }).catch(() => undefined);
+      throw erreur;
+    }
+  }
+
+  /** Nettoyage IMMÉDIAT après usage — appelé par les appelants dans un `finally`, succès ou échec.
+   *  Voir « PURGE DU RÉPERTOIRE D'EXTRACTION » en tête de fichier pour la doctrine complète.
+   *  Reprend la garde anti-évasion `estSousRacine` (même patron que `StockageArchiveRepriseDisque
+   *  Local.purgerDossier`) : un chemin hors de `racineTravail` n'est JAMAIS supprimé, même si
+   *  `repertoire` était corrompu. */
+  async purgerRepertoireExtrait(repertoire: string): Promise<void> {
+    const cheminAbsolu = resolve(repertoire);
+    if (!estSousRacine(this.racineTravail, cheminAbsolu)) {
+      throw new Error(
+        `AdaptateurLecteurArchiveReprise.purgerRepertoireExtrait : chemin hors racine refusé (« ${repertoire} »).`,
+      );
+    }
+    await rm(cheminAbsolu, { recursive: true, force: true });
+  }
+
+  /** Balayage des résidus de PLANTAGE — voir « PURGE DU RÉPERTOIRE D'EXTRACTION » en tête de
+   *  fichier. Best-effort délibéré : un résidu manqué ici (permission, course avec une extraction
+   *  concurrente légitime) est retenté au prochain passage, jamais une raison de faire échouer
+   *  l'extraction EN COURS. */
+  private async purgerResidusAnciens(): Promise<void> {
+    let entrees: Dirent[];
+    try {
+      entrees = await readdir(this.racineTravail, { withFileTypes: true });
+    } catch {
+      return; // racine pas encore créée (premier passage) — rien à purger
+    }
+    const seuilMs = Date.now() - this.dureeMaxResiduMs;
+    for (const entree of entrees) {
+      if (!entree.isDirectory()) continue;
+      const chemin = join(this.racineTravail, entree.name);
+      try {
+        const infos = await stat(chemin);
+        if (infos.mtimeMs < seuilMs) {
+          await rm(chemin, { recursive: true, force: true });
+        }
+      } catch {
+        // best-effort — voir la doc de la méthode
+      }
+    }
   }
 
   private async extraireZip(
@@ -188,9 +367,19 @@ export class AdaptateurLecteurArchiveReprise implements PortLecteurArchiveRepris
     repertoireDestination: string,
   ): Promise<FichierArchiveSource[]> {
     const fichiers: FichierArchiveSource[] = [];
+    const budget = { octetsExtraits: 0, entrees: 0 };
     const zipfile = await openPromise(cheminArchive, { lazyEntries: true, autoClose: true });
     try {
       for await (const entree of zipfile.eachEntry()) {
+        budget.entrees += 1;
+        if (budget.entrees > this.limiteEntreesArchive) {
+          throw new ErreurLimiteExtractionDepassee(
+            'nombre_entrees',
+            budget.entrees,
+            this.limiteEntreesArchive,
+          );
+        }
+
         if (estCheminZipDangereux(entree.fileName)) {
           // Entrée hors de la racine d'extraction (zip-slip) ou chemin absolu : ignorée, jamais
           // écrite sur disque — signalée comme fichier illisible plutôt que silencieusement omise.
@@ -211,7 +400,7 @@ export class AdaptateurLecteurArchiveReprise implements PortLecteurArchiveRepris
         }
 
         await mkdir(dirname(cheminDestination), { recursive: true });
-        fichiers.push(await this.ecrireEntreeZip(zipfile, entree, cheminDestination));
+        fichiers.push(await this.ecrireEntreeZip(zipfile, entree, cheminDestination, budget));
       }
     } finally {
       zipfile.close();
@@ -223,6 +412,7 @@ export class AdaptateurLecteurArchiveReprise implements PortLecteurArchiveRepris
     zipfile: Awaited<ReturnType<typeof openPromise>>,
     entree: Entry,
     cheminDestination: string,
+    budget: { octetsExtraits: number },
   ): Promise<FichierArchiveSource> {
     try {
       const flux = await zipfile.openReadStreamPromise(entree);
@@ -232,14 +422,19 @@ export class AdaptateurLecteurArchiveReprise implements PortLecteurArchiveRepris
         hash.update(morceau);
         taille += morceau.length;
       });
-      await pipeline(flux, createWriteStream(cheminDestination));
+      const limiteur = creerLimiteurOctetsExtraits(budget, this.limiteOctetsExtraitsTotal);
+      await pipeline(flux, limiteur, createWriteStream(cheminDestination));
       return {
         chemin: cheminDestination,
         tailleOctets: taille,
         lisible: true,
         empreinteSha256: hash.digest('hex'),
       };
-    } catch {
+    } catch (erreur) {
+      // Dépassement de budget : FATAL pour toute l'extraction, jamais absorbé comme une simple
+      // entrée illisible — propagé tel quel pour que `extraireZip`/`extraireEtInventorier`
+      // abandonnent et nettoient.
+      if (erreur instanceof ErreurLimiteExtractionDepassee) throw erreur;
       // Entrée corrompue (CRC invalide, flux tronqué...) : fichier illisible, jamais fatal pour
       // le reste de l'archive — voir la doctrine identique de `lecteurs/detection-famille.ts`.
       return { chemin: cheminDestination, tailleOctets: 0, lisible: false, empreinteSha256: null };

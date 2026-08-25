@@ -44,7 +44,10 @@
     "echouee": {
       "titre": "L'analisi non è riuscita",
       "description": "Non siamo riusciti a esaminare il vostro archivio. Non serve ricaricarlo — riprovate semplicemente l'analisi.",
-      "reessayer": "Riprovare l'analisi"
+      "reessayer": "Riprovare l'analisi",
+      "motif": {
+        "archive_volume_extrait_excessif": "Una volta aperto, il vostro archivio è troppo voluminoso per essere elaborato. Contattate il nostro supporto: prepareremo un caricamento adatto alle dimensioni dei vostri dati."
+      }
     },
     "partielle": "Alcuni file dell'archivio non hanno potuto essere letti, ma il resto è stato esaminato normalmente.",
     "moteur": {

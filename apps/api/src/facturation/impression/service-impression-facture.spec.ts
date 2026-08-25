@@ -117,6 +117,14 @@ class StockagePdfMemoire implements StockagePdf {
     if (!b) throw new Error(`clé absente : ${cle}`);
     return b;
   }
+  // Non exercée par ces tests (impression, pas résiliation) — voir
+  // `exploitation/cycle-vie-tenant/service-cycle-vie-resiliation.spec.ts` pour la couverture réelle
+  // de `purgerTenant` (correctif nLPD, mandat 24/25.08.2026).
+  async purgerTenant(tenantId: string): Promise<void> {
+    for (const cle of [...this.contenu.keys()]) {
+      if (cle.startsWith(`${tenantId}/`)) this.contenu.delete(cle);
+    }
+  }
 }
 
 function accesBaseFake(): AccesBase & { readonly misAJour: { cle: string; sha256: string }[] } {

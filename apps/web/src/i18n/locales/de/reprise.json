@@ -44,7 +44,10 @@
     "echouee": {
       "titre": "Die Analyse ist fehlgeschlagen",
       "description": "Ihr Archiv konnte nicht geprüft werden. Sie müssen es nicht erneut hochladen — versuchen Sie einfach die Analyse erneut.",
-      "reessayer": "Analyse erneut versuchen"
+      "reessayer": "Analyse erneut versuchen",
+      "motif": {
+        "archive_volume_extrait_excessif": "Ihr Archiv ist nach dem Entpacken zu umfangreich, um verarbeitet zu werden. Kontaktieren Sie unseren Support: Wir bereiten einen für die Grösse Ihrer Daten passenden Upload vor."
+      }
     },
     "partielle": "Einige Dateien im Archiv konnten nicht gelesen werden, der Rest wurde aber normal geprüft.",
     "moteur": {

@@ -44,7 +44,10 @@
     "echouee": {
       "titre": "L'analyse n'a pas abouti",
       "description": "Nous n'avons pas pu examiner votre archive. Vous n'avez pas besoin de la redéposer — réessayez simplement l'analyse.",
-      "reessayer": "Réessayer l'analyse"
+      "reessayer": "Réessayer l'analyse",
+      "motif": {
+        "archive_volume_extrait_excessif": "Une fois ouverte, votre archive est trop volumineuse pour être traitée. Contactez notre support : nous préparerons un dépôt adapté à la taille de vos données."
+      }
     },
     "partielle": "Certains fichiers de l'archive n'ont pas pu être lus, mais le reste a été examiné normalement.",
     "moteur": {
