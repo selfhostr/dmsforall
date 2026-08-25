@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { foisArrondiCommercial } from '@dfa/shared';
 
 import type { CalculLigne, EntreeCalculLigne, MontantsLigne } from './atelier.jetons';
 
@@ -34,14 +35,20 @@ export class CalculLigneSimple implements CalculLigne {
    * arrondi -> arrondi au centime -> `montantTtc = montantHt + montantTva` (invariant de base,
    * `ligne_or_montant_coherent_chk`). Aucun arrondi au 5 centimes ici : c'est une règle de paiement
    * en ESPÈCES (CONTRIBUTING.md), donc étape 2, appliquée à l'agrégat de la facture, jamais à la ligne.
+   *
+   * Arrondi via `foisArrondiCommercial` (`@dfa/shared`) — SEULE fonction d'arrondi financier du
+   * dépôt (`MD-40`), bigint, « demi éloigné de zéro ». Anciennement `Math.round` (flottant) : sur
+   * un montant négatif (ligne `remise`, correction), `Math.round` arrondit les demis vers +∞ et
+   * divergeait d'un centime d'avec `facturation/documents/calcul-document.ts` — c'était le défaut
+   * corrigé par `fix/arrondi-unique` (voir `calcul-ligne.spec.ts`, cas -250 centimes à 2.6 %).
    */
   calculer(e: EntreeCalculLigne): MontantsLigne {
     const brut = TYPES_MAIN_OEUVRE.has(e.type)
-      ? Math.round(((e.tempsBaremeCentiemes ?? 0) * (e.tauxHoraireCentimes ?? 0)) / 100)
-      : Math.round(((e.prixUnitaireCentimes ?? 0) * e.quantiteMillieme) / 1000);
+      ? foisArrondiCommercial(e.tempsBaremeCentiemes ?? 0, e.tauxHoraireCentimes ?? 0, 100)
+      : foisArrondiCommercial(e.prixUnitaireCentimes ?? 0, e.quantiteMillieme, 1000);
 
-    const montantHtCentimes = Math.round((brut * (1000 - e.rabaisPourmille)) / 1000);
-    const montantTvaCentimes = Math.round((montantHtCentimes * e.tauxTvaPourmille) / 1000);
+    const montantHtCentimes = foisArrondiCommercial(brut, 1000 - e.rabaisPourmille, 1000);
+    const montantTvaCentimes = foisArrondiCommercial(montantHtCentimes, e.tauxTvaPourmille, 1000);
 
     return {
       montantHtCentimes,

@@ -59,6 +59,43 @@ describe('CalculLigneSimple', () => {
     expect(m.montantTtcCentimes).toBeLessThan(0);
   });
 
+  it(
+    'PREMIER cas de fix/arrondi-unique : un montant négatif à la demie exacte arrondit ' +
+      'comme le pipeline TTC-ancré de la facturation (arrondi commercial, PAS Math.round) — ' +
+      'HT = -250 (2.6 %), TVA avant arrondi = -6.5 centimes pile : Math.round rendait -6, la ' +
+      'règle commerciale rend -7',
+    () => {
+      const m = calcul.calculer(
+        entree({
+          type: 'remise',
+          prixUnitaireCentimes: -250,
+          quantiteMillieme: 1000,
+          tauxTvaPourmille: 26,
+        }),
+      );
+      expect(m.montantHtCentimes).toBe(-250);
+      expect(m.montantTvaCentimes).toBe(-7); // PAS -6 (ancien Math.round, asymétrique)
+      expect(m.montantTtcCentimes).toBe(-257);
+    },
+  );
+
+  it('cas à la demie exacte (x.005 CHF), dans les deux sens de signe — symétrique', () => {
+    const positif = calcul.calculer(
+      entree({ prixUnitaireCentimes: 250, quantiteMillieme: 1000, tauxTvaPourmille: 26 }),
+    );
+    const negatif = calcul.calculer(
+      entree({
+        type: 'remise',
+        prixUnitaireCentimes: -250,
+        quantiteMillieme: 1000,
+        tauxTvaPourmille: 26,
+      }),
+    );
+    expect(positif.montantTvaCentimes).toBe(7); // 6.5 -> 7, loin de zéro (déjà correct avant)
+    expect(negatif.montantTvaCentimes).toBe(-7); // -6.5 -> -7, même distance, signe opposé
+    expect(negatif.montantTvaCentimes).toBe(-positif.montantTvaCentimes);
+  });
+
   it('garantit montantTtc = montantHt + montantTva (invariant de base)', () => {
     const m = calcul.calculer(
       entree({

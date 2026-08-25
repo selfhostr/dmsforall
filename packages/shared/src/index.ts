@@ -1,3 +1,5 @@
+export * from './arithmetique/arrondi-commercial';
+
 export * from './contrats/enums';
 export * from './contrats/probleme';
 export * from './contrats/pagination';

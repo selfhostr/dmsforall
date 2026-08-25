@@ -240,4 +240,72 @@ describe('calculerTotauxDocument', () => {
     expect(totaux.totalHtCentimes + totaux.totalTvaCentimes).toBe(totaux.totalTtcCentimes);
     expect(totaux.totalTtcCentimes).toBe(7000 + 2_450_000);
   });
+
+  it('au centime près sur un jeu mêlant remise de ligne, remise globale répartie et avoir (ligne négative)', () => {
+    const lignes = [
+      // Forfait CHF 250.00 TTC, remise de ligne 15 %, taux normal.
+      calculerLigneDocument({
+        prixUnitaireTtcCentimes: 25_000,
+        quantiteMillieme: 1000,
+        remisePourmille: 150,
+        remiseMontantCentimes: null,
+        remiseGlobaleRepartieCentimes: 0,
+        tauxTvaPourmille: 81,
+      }),
+      // Pièce CHF 42.50 TTC, taux réduit, avec une part de remise globale déjà ventilée (CHF 2.00).
+      calculerLigneDocument({
+        prixUnitaireTtcCentimes: 4_250,
+        quantiteMillieme: 1000,
+        remisePourmille: null,
+        remiseMontantCentimes: null,
+        remiseGlobaleRepartieCentimes: 200,
+        tauxTvaPourmille: 26,
+      }),
+      // Avoir : reprise d'une prestation à CHF -70.00 TTC, taux hébergement.
+      calculerLigneDocument({
+        prixUnitaireTtcCentimes: -7_000,
+        quantiteMillieme: 1000,
+        remisePourmille: null,
+        remiseMontantCentimes: null,
+        remiseGlobaleRepartieCentimes: 0,
+        tauxTvaPourmille: 38,
+      }),
+    ];
+
+    // Valeurs exactes attendues (vérifiées par calcul indépendant, jamais estimées à la main) :
+    // L1 : base 25'000, remise 150‰ -> 3'750, ttc 21'250, tva = arrondiCommercial(21'250×81,1081) = 1'592, ht = 19'658.
+    expect(lignes[0]).toEqual({
+      baseCentimes: 25_000,
+      htCentimes: 19_658,
+      tvaCentimes: 1_592,
+      ttcCentimes: 21_250,
+    });
+    // L2 : base 4'250, ttc 4'250-200=4'050, tva = arrondiCommercial(4'050×26,1026) = 103, ht = 3'947.
+    expect(lignes[1]).toEqual({
+      baseCentimes: 4_250,
+      htCentimes: 3_947,
+      tvaCentimes: 103,
+      ttcCentimes: 4_050,
+    });
+    // L3 : base -7'000, ttc -7'000, tva = arrondiCommercial(-7'000×38,1038) = -256, ht = -6'744.
+    expect(lignes[2]).toEqual({
+      baseCentimes: -7_000,
+      htCentimes: -6_744,
+      tvaCentimes: -256,
+      ttcCentimes: -7_000,
+    });
+
+    for (const l of lignes) {
+      expect(l.htCentimes + l.tvaCentimes).toBe(l.ttcCentimes); // invariant PAR ligne
+    }
+
+    const totaux = calculerTotauxDocument(lignes);
+    expect(totaux).toEqual({
+      totalHtCentimes: 19_658 + 3_947 - 6_744,
+      totalTvaCentimes: 1_592 + 103 - 256,
+      totalTtcCentimes: 21_250 + 4_050 - 7_000,
+    });
+    expect(totaux.totalHtCentimes + totaux.totalTvaCentimes).toBe(totaux.totalTtcCentimes);
+    expect(totaux.totalTtcCentimes).toBe(18_300); // 21'250 + 4'050 - 7'000, vérifié au centime
+  });
 });
