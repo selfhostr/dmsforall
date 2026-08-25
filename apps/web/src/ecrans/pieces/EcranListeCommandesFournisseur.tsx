@@ -59,12 +59,12 @@ const VARIANTE_BADGE_STATUT: Record<
  * que `EcranReservationsPieces` : le fournisseur est un lien cliquable, le site est résolu depuis
  * la session (liste COMPLÈTE, contrairement aux fournisseurs qui peuvent être paginés).
  *
- * `schemaFiltresCommandesFournisseur` ne porte AUCUN `q` (pas de recherche texte côté serveur) :
- * la recherche ci-dessous filtre CÔTÉ CLIENT, sur `reference` des commandes déjà chargées — même
- * limite documentée que `EcranListeFournisseurs`/`EcranListeFacturesFournisseur`. `reference` est
- * optionnelle (une commande d'origine `reapprovisionnement_auto` n'en porte pas forcément) : la
- * recherche ne retrouve donc que les commandes qui en portent une, honnêtement annoncé par le
- * texte du champ (« Rechercher par référence »), jamais présenté comme une recherche universelle.
+ * `schemaFiltresCommandesFournisseur` porte `q` (recherche serveur sur `reference`,
+ * `pieces/commande-fournisseur.ts`) — même architecture que `EcranListeArticles` : la recherche est
+ * appliquée au SQL, jamais filtrée sur les lignes déjà chargées. `reference` est optionnelle (une
+ * commande d'origine `reapprovisionnement_auto` n'en porte pas forcément) : la recherche ne
+ * retrouve donc que les commandes qui en portent une, honnêtement annoncé par le texte du champ
+ * (« Rechercher par référence »), jamais présenté comme une recherche universelle.
  */
 export function EcranListeCommandesFournisseur() {
   const { t } = useTranslation(['pieces', 'commun']);
@@ -85,12 +85,13 @@ export function EcranListeCommandesFournisseur() {
 
   const filtres: FiltresCommandesFournisseur = useMemo(
     () => ({
+      q: q.trim() === '' ? undefined : q.trim(),
       statut: statut ? [statut] : undefined,
       avecReliquat: avecReliquat ? true : undefined,
       tri: TRI_DEFAUT_COMMANDES_FOURNISSEUR,
       limite: 50,
     }),
-    [statut, avecReliquat],
+    [q, statut, avecReliquat],
   );
 
   const {
@@ -105,17 +106,6 @@ export function EcranListeCommandesFournisseur() {
   } = useListeCommandesFournisseur(filtres);
 
   const nomSite = (siteId: string) => sites.find((site) => site.id === siteId)?.nom ?? siteId;
-
-  const qNormalise = q.trim().toLocaleLowerCase();
-  const commandesAffichees = useMemo(
-    () =>
-      qNormalise === ''
-        ? commandes
-        : commandes.filter((commande) =>
-            (commande.reference ?? '').toLocaleLowerCase().includes(qNormalise),
-          ),
-    [commandes, qNormalise],
-  );
 
   const filtresStructuresActifs = statut !== undefined || avecReliquat;
   const filtresActifs = q.trim() !== '' || filtresStructuresActifs;
@@ -277,7 +267,7 @@ export function EcranListeCommandesFournisseur() {
 
       <TableComptoir
         colonnes={colonnes}
-        lignes={commandesAffichees}
+        lignes={commandes}
         cleLigne={(commande) => commande.id}
         onOuvrirLigne={(commande) => navigate(`/pieces/commandes-fournisseur/${commande.id}`)}
         libelleLigne={(commande) =>

@@ -62,6 +62,15 @@ export class ServiceFournisseur {
 
     return this.acces.enTenant(ctx, async (tx) => {
       const conditions = [sql`f.tenant_id = ${ctx.tenantId}`];
+      if (params.q) {
+        // `public.normaliser_recherche(...)` des deux côtés — même idiome que
+        // `pieces/service-article.ts`, `recherche/service-recherche.ts`, `clients/service-client.ts` :
+        // un `ilike` nu ne gomme QUE la casse, jamais les accents.
+        const motif = `%${params.q}%`;
+        conditions.push(
+          sql`public.normaliser_recherche(f.nom) like public.normaliser_recherche(${motif})`,
+        );
+      }
       if (params.statut && params.statut.length > 0) {
         conditions.push(
           sql`f.statut::text in (${sql.join(

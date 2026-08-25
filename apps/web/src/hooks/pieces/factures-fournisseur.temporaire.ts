@@ -90,6 +90,7 @@ export type FiltresEcranFacturesFournisseur = Omit<
 
 function construireParametresListe(filtres: FiltresFacturesFournisseur): string {
   const parametres = new URLSearchParams();
+  if (filtres.q && filtres.q.trim() !== '') parametres.set('q', filtres.q.trim());
   // `statut` est une LISTE (`schemaListeQuery`, `@dfa/shared`) — même patron que
   // `FiltresCommandesFournisseur.statut` (`commandes-fournisseur.api.ts`).
   for (const valeur of filtres.statut ?? []) parametres.append('statut', valeur);

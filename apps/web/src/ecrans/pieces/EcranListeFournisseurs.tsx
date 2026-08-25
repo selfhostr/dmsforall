@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
@@ -46,14 +46,9 @@ const VARIANTE_BADGE_STATUT: Record<StatutFournisseur, 'default' | 'secondary'> 
 
 /**
  * Liste des fournisseurs (RP-26, §1) — référentiel minimal (nom, coordonnées, délai habituel).
- * `schemaFiltresFournisseurs` ne porte AUCUN `q` (pas de recherche texte côté serveur,
- * contrairement à `articles`) : la recherche ci-dessous filtre donc CÔTÉ CLIENT, sur les lignes
- * déjà chargées (`nom`) — même limite documentée que `EcranListeCommandesFournisseur`/
- * `EcranListeFacturesFournisseur`, alignés sur `BarreFiltres` pour la même raison. Un fournisseur
- * qui ne correspond pas à la recherche mais se trouve sur une page pas encore chargée
- * (« Charger plus ») n'apparaît qu'une fois cette page récupérée — acceptable pour un référentiel
- * de cette taille (quelques dizaines de fournisseurs par garage en pratique), documenté plutôt que
- * caché.
+ * `schemaFiltresFournisseurs` porte `q` (recherche serveur sur `nom`, `pieces/fournisseur.ts`) —
+ * même architecture que `EcranListeArticles` : la recherche est appliquée au SQL, jamais filtrée
+ * sur les lignes déjà chargées.
  */
 export function EcranListeFournisseurs() {
   const { t } = useTranslation(['pieces', 'commun']);
@@ -72,6 +67,7 @@ export function EcranListeFournisseurs() {
   }, [qSaisie]);
 
   const filtres: FiltresFournisseurs = {
+    q: q.trim() === '' ? undefined : q.trim(),
     statut: statut ? [statut] : undefined,
     tri: TRI_DEFAUT_FOURNISSEURS,
     limite: 50,
@@ -86,17 +82,6 @@ export function EcranListeFournisseurs() {
     isFetchingNextPage,
     fetchNextPage,
   } = useListeFournisseurs(filtres);
-
-  const qNormalise = q.trim().toLocaleLowerCase();
-  const fournisseursAffiches = useMemo(
-    () =>
-      qNormalise === ''
-        ? fournisseurs
-        : fournisseurs.filter((fournisseur) =>
-            fournisseur.nom.toLocaleLowerCase().includes(qNormalise),
-          ),
-    [fournisseurs, qNormalise],
-  );
 
   function effacerFiltres() {
     setQSaisie('');
@@ -232,7 +217,7 @@ export function EcranListeFournisseurs() {
 
       <TableComptoir
         colonnes={colonnes}
-        lignes={fournisseursAffiches}
+        lignes={fournisseurs}
         cleLigne={(fournisseur) => fournisseur.id}
         onOuvrirLigne={(fournisseur) => navigate(`/pieces/fournisseurs/${fournisseur.id}`)}
         libelleLigne={(fournisseur) => t('commun:actions.ouvrirElement', { nom: fournisseur.nom })}

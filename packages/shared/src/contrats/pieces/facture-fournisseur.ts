@@ -140,7 +140,12 @@ export interface ReponseFactureFournisseur {
 export const TRIS_FACTURES_FOURNISSEUR = ['creeLe:desc', 'creeLe:asc'] as const;
 export const TRI_DEFAUT_FACTURES_FOURNISSEUR = 'creeLe:desc';
 
+/** `q` cherche dans `nomCreancier` ET `numeroFacture` — même convention que
+ *  `pieces/article.ts::schemaFiltresArticles` (longueur, normalisation, optionalité identiques).
+ *  Les deux champs sont issus d'une lecture QR/OCR incertaine et peuvent être `null` : une facture
+ *  sans l'un ou l'autre reste cherchable par le champ qui lui reste. */
 export const schemaFiltresFacturesFournisseur = schemaParametresPage.extend({
+  q: z.string().trim().min(1).max(120).optional(),
   statut: schemaListeQuery(z.enum(STATUTS_FACTURE_FOURNISSEUR)).optional(),
   fournisseurId: schemaIdentifiant.optional(),
   commandeFournisseurId: schemaIdentifiant.optional(),

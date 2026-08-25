@@ -59,11 +59,11 @@ const VARIANTE_BADGE_STATUT: Record<
  * lignes complètes même en liste, voir `factures-fournisseur.temporaire.ts`) : `presenceEcarts`
  * est donc calculé ICI, par ligne de tableau, via `calculerSyntheseEcarts` — pas envoyé tout fait.
  *
- * `schemaFiltresFacturesFournisseur` ne porte AUCUN `q` (pas de recherche texte côté serveur) : la
- * recherche ci-dessous filtre CÔTÉ CLIENT sur `nomCreancier`/`numeroFacture` des factures déjà
- * chargées — même limite documentée que `EcranListeFournisseurs`/`EcranListeCommandesFournisseur`.
- * Les deux champs sont issus d'une lecture QR/OCR incertaine (`champsOrigine`) et peuvent être
- * `null` : une facture sans l'un ou l'autre reste cherchable par le champ qui lui reste.
+ * `schemaFiltresFacturesFournisseur` porte `q` (recherche serveur sur `nomCreancier`/
+ * `numeroFacture`, `pieces/facture-fournisseur.ts`) — même architecture que `EcranListeArticles` :
+ * la recherche est appliquée au SQL, jamais filtrée sur les lignes déjà chargées. Les deux champs
+ * sont issus d'une lecture QR/OCR incertaine (`champsOrigine`) et peuvent être `null` : une facture
+ * sans l'un ou l'autre reste cherchable par le champ qui lui reste.
  */
 export function EcranListeFacturesFournisseur() {
   const { t } = useTranslation(['pieces', 'commun']);
@@ -82,8 +82,12 @@ export function EcranListeFacturesFournisseur() {
   }, [qSaisie]);
 
   const filtres: FiltresEcranFacturesFournisseur = useMemo(
-    () => ({ statut: statut ? [statut] : undefined, tri: TRI_DEFAUT_FACTURES_FOURNISSEUR }),
-    [statut],
+    () => ({
+      q: q.trim() === '' ? undefined : q.trim(),
+      statut: statut ? [statut] : undefined,
+      tri: TRI_DEFAUT_FACTURES_FOURNISSEUR,
+    }),
+    [q, statut],
   );
 
   // Gardé par le droit AVANT de partir (même correctif que `EcranFicheCommandeFournisseur`,
@@ -100,19 +104,6 @@ export function EcranListeFacturesFournisseur() {
     isFetchingNextPage,
     fetchNextPage,
   } = useListeFacturesFournisseur(filtres, !session.isLoading && peutLire);
-
-  const qNormalise = q.trim().toLocaleLowerCase();
-  const facturesAffichees = useMemo(
-    () =>
-      qNormalise === ''
-        ? factures
-        : factures.filter(
-            (facture) =>
-              (facture.nomCreancier ?? '').toLocaleLowerCase().includes(qNormalise) ||
-              (facture.numeroFacture ?? '').toLocaleLowerCase().includes(qNormalise),
-          ),
-    [factures, qNormalise],
-  );
 
   const filtresActifs = q.trim() !== '' || statut !== undefined;
   function effacerFiltres() {
@@ -299,7 +290,7 @@ export function EcranListeFacturesFournisseur() {
 
       <TableComptoir
         colonnes={colonnes}
-        lignes={facturesAffichees}
+        lignes={factures}
         cleLigne={(facture) => facture.id}
         onOuvrirLigne={(facture) => navigate(`/pieces/factures-fournisseur/${facture.id}`)}
         libelleLigne={(facture) =>

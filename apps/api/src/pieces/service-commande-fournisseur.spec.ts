@@ -475,3 +475,48 @@ describe('ServiceCommandeFournisseur.listerLignes — GET /commandes-fournisseur
     expect(texte).not.toContain('numero_ordre::text');
   });
 });
+
+describe('ServiceCommandeFournisseur.lister — filtre `q` tolérant à la casse ET aux accents', () => {
+  it('enveloppe `reference` dans public.normaliser_recherche(...) des deux côtés du `like`, jamais un `ilike` nu', async () => {
+    const { tx, executeAppels } = txFactice({ executes: [{ rows: [] }] });
+    const service = new ServiceCommandeFournisseur(accesFactice(tx), idempotenceFactice(tx));
+
+    await service.lister(CTX, { limite: 50, tri: 'creeLe:desc', q: 'CMD-2026-014' });
+
+    const appel = executeAppels[0] as SQL;
+    const { sql: texte } = dialect.sqlToQuery(appel);
+    expect(texte).toContain(
+      'public.normaliser_recherche(cf.reference) like public.normaliser_recherche(',
+    );
+    expect(texte).not.toContain('ilike');
+  });
+
+  // Test décisif : un `q` accepté par le contrat mais ignoré par le service est le piège maison —
+  // un terme inexistant DOIT rendre une liste vide, jamais toutes les commandes.
+  it('un terme qui ne correspond à aucune commande rend une liste VIDE, jamais toutes les commandes', async () => {
+    const { tx } = txFactice({ executes: [{ rows: [] }] });
+    const service = new ServiceCommandeFournisseur(accesFactice(tx), idempotenceFactice(tx));
+
+    const page = await service.lister(CTX, {
+      limite: 50,
+      tri: 'creeLe:desc',
+      q: 'introuvable-xyz',
+    });
+
+    expect(page.donnees).toEqual([]);
+    expect(page.curseurSuivant).toBeNull();
+  });
+
+  // Piège du zéro/vide : `q` absent (`undefined`) ne doit JAMAIS ajouter la condition —
+  // rétrocompatibilité pour un client qui n'envoie pas `q`.
+  it('sans `q`, aucune condition de recherche n’est ajoutée au SQL', async () => {
+    const { tx, executeAppels } = txFactice({ executes: [{ rows: [] }] });
+    const service = new ServiceCommandeFournisseur(accesFactice(tx), idempotenceFactice(tx));
+
+    await service.lister(CTX, { limite: 50, tri: 'creeLe:desc' });
+
+    const appel = executeAppels[0] as SQL;
+    const { sql: texte } = dialect.sqlToQuery(appel);
+    expect(texte).not.toContain('normaliser_recherche');
+  });
+});

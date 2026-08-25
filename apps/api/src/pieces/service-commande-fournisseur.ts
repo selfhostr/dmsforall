@@ -168,6 +168,16 @@ export class ServiceCommandeFournisseur {
 
     return this.acces.enTenant(ctx, async (tx) => {
       const conditions = [sql`cf.tenant_id = ${ctx.tenantId}`];
+      if (params.q) {
+        // `public.normaliser_recherche(...)` des deux côtés — même idiome que
+        // `pieces/service-article.ts`. `reference` est nullable (`reapprovisionnement_auto`) : un
+        // `like` contre `null` vaut `null` (faux), la ligne est simplement exclue, jamais une
+        // erreur.
+        const motif = `%${params.q}%`;
+        conditions.push(
+          sql`public.normaliser_recherche(cf.reference) like public.normaliser_recherche(${motif})`,
+        );
+      }
       if (params.statut && params.statut.length > 0) {
         conditions.push(
           sql`cf.statut::text in (${sql.join(

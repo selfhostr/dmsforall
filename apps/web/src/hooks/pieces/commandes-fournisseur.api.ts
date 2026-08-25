@@ -32,6 +32,7 @@ function construireParametresListe(
   page: PageCommandesFournisseur,
 ): string {
   const parametres = new URLSearchParams();
+  if (filtres.q && filtres.q.trim() !== '') parametres.set('q', filtres.q.trim());
   for (const valeur of filtres.statut ?? []) parametres.append('statut', valeur);
   if (filtres.fournisseurId) parametres.set('fournisseurId', filtres.fournisseurId);
   if (filtres.siteId) parametres.set('siteId', filtres.siteId);
