@@ -49,7 +49,7 @@ describe('ServiceFactureFournisseur.lister — filtre `q` tolérant à la casse 
       const { tx, executeAppels } = txFactice({ executes: [{ rows: [] }] });
       const service = new ServiceFactureFournisseur(accesFactice(tx), ORCHESTRATEUR_FACTICE);
 
-      await service.lister(CTX, 'magasinier', { limite: 50, tri: 'creeLe:desc', q: 'crédit sa' });
+      await service.lister(CTX, { limite: 50, tri: 'creeLe:desc', q: 'crédit sa' });
 
       const appel = executeAppels[0] as SQL;
       const { sql: texte } = dialect.sqlToQuery(appel);
@@ -69,7 +69,7 @@ describe('ServiceFactureFournisseur.lister — filtre `q` tolérant à la casse 
     const { tx } = txFactice({ executes: [{ rows: [] }] });
     const service = new ServiceFactureFournisseur(accesFactice(tx), ORCHESTRATEUR_FACTICE);
 
-    const page = await service.lister(CTX, 'magasinier', {
+    const page = await service.lister(CTX, {
       limite: 50,
       tri: 'creeLe:desc',
       q: 'introuvable-xyz',
@@ -85,20 +85,14 @@ describe('ServiceFactureFournisseur.lister — filtre `q` tolérant à la casse 
     const { tx, executeAppels } = txFactice({ executes: [{ rows: [] }] });
     const service = new ServiceFactureFournisseur(accesFactice(tx), ORCHESTRATEUR_FACTICE);
 
-    await service.lister(CTX, 'magasinier', { limite: 50, tri: 'creeLe:desc' });
+    await service.lister(CTX, { limite: 50, tri: 'creeLe:desc' });
 
     const appel = executeAppels[0] as SQL;
     const { sql: texte } = dialect.sqlToQuery(appel);
     expect(texte).not.toContain('normaliser_recherche');
   });
 
-  it('rôle sans droit de lecture (RF-115, vendeur exclu) : 403 DROIT_INSUFFISANT avant tout accès base', async () => {
-    const { tx, executeAppels } = txFactice();
-    const service = new ServiceFactureFournisseur(accesFactice(tx), ORCHESTRATEUR_FACTICE);
-
-    await expect(
-      service.lister(CTX, 'vendeur', { limite: 50, tri: 'creeLe:desc', q: 'x' }),
-    ).rejects.toMatchObject({ code: 'DROIT_INSUFFISANT', status: 403 });
-    expect(executeAppels).toHaveLength(0);
-  });
+  // Le contrôle par rôle (RF-115, vendeur exclu) n'est plus vérifié ICI : GardeDroit sur
+  // @ExigerDroit('pieces.facture_fournisseur.lire') (facture-fournisseur.controller.ts), prouvé
+  // par la table de vérité auth/matrice-droits.spec.ts (bloc ROLES_SANS_LECTURE, lignes ~651-686).
 });

@@ -6,7 +6,6 @@ import { Link } from 'react-router';
 import type { ReponseFactureFournisseur, RoleUtilisateur } from '@dfa/shared';
 
 import { ErreurReseau, messageErreur } from '@/api/erreurs';
-import { useCleIdempotence } from '@/api/idempotence';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
@@ -57,7 +56,6 @@ export function EcranDepotFactureFournisseur() {
   const { t } = useTranslation(['pieces', 'commun', 'erreurs']);
   const session = useSession();
   const role = session.data?.utilisateur.role;
-  const idempotence = useCleIdempotence();
   const deposer = useDeposerFactureFournisseur();
 
   const [etape, setEtape] = useState<EtapeDepot>({ phase: 'depot' });
@@ -65,7 +63,6 @@ export function EcranDepotFactureFournisseur() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   function recommencer() {
-    idempotence.regenerer();
     setEtape({ phase: 'depot' });
   }
 
@@ -89,12 +86,7 @@ export function EcranDepotFactureFournisseur() {
     const controleur = new AbortController();
     setEtape({ phase: 'analyse', controleur });
     try {
-      const facture = await deposer.mutateAsync({
-        fichier,
-        idempotencyKey: idempotence.cle,
-        signal: controleur.signal,
-      });
-      idempotence.regenerer();
+      const facture = await deposer.mutateAsync({ fichier, signal: controleur.signal });
       setEtape({ phase: 'rapprochement', facture });
     } catch (cause) {
       if (controleur.signal.aborted) return; // annulation explicite — déjà revenu à 'depot'

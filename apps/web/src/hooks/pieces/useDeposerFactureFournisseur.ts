@@ -7,7 +7,6 @@ import { deposerFactureFournisseur } from './factures-fournisseur.api';
 
 export interface VariablesDepotFactureFournisseur {
   readonly fichier: File;
-  readonly idempotencyKey: string;
   /** Porté par l'écran (`AbortController` propre à CE dépôt) — permet l'annulation explicite
    *  pendant la lecture (brief : « la possibilité d'annuler »). L'écran appelant DOIT vérifier
    *  `signal.aborted` avant de traiter un rejet comme une vraie erreur (même patron que
@@ -15,11 +14,12 @@ export interface VariablesDepotFactureFournisseur {
   readonly signal: AbortSignal;
 }
 
-/** `POST /factures-fournisseur` — `Idempotency-Key` portée par cohérence avec les autres créations
- *  (voir la réserve en tête de `factures-fournisseur.api.ts` : le serveur ne la lit pas pour CET
- *  endpoint, la déduplication d'un dépôt en double se fait par empreinte SHA-256 du fichier). Pose
- *  directement la fiche complète dans le cache (`detail`) et invalide la liste par préfixe, même
- *  patron que `useTransitionsCommandeFournisseur`. */
+/** `POST /factures-fournisseur` (voir `factures-fournisseur.api.ts`). Aucune `Idempotency-Key` :
+ *  la déduplication d'un dépôt répété se fait CÔTÉ SERVEUR par empreinte SHA-256 du fichier
+ *  (`ServiceFactureFournisseur.deposer`, 409 CONFLIT sur un fichier déjà déposé) — le service ne
+ *  lit de toute façon aucune clé d'idempotence pour cette route. Pose directement la fiche complète
+ *  dans le cache (`detail`) et invalide la liste par préfixe, même patron que
+ *  `useTransitionsCommandeFournisseur`. */
 export function useDeposerFactureFournisseur(): UseMutationResult<
   ReponseFactureFournisseur,
   unknown,
@@ -28,8 +28,8 @@ export function useDeposerFactureFournisseur(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ fichier, idempotencyKey, signal }: VariablesDepotFactureFournisseur) =>
-      deposerFactureFournisseur(fichier, idempotencyKey, signal),
+    mutationFn: ({ fichier, signal }: VariablesDepotFactureFournisseur) =>
+      deposerFactureFournisseur(fichier, signal),
     onSuccess: (facture) => {
       queryClient.setQueryData(clesPieces.facturesFournisseur.detail(facture.id), facture);
       void queryClient.invalidateQueries({ queryKey: ['pieces', 'facturesFournisseur', 'liste'] });

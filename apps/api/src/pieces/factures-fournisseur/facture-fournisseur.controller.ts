@@ -28,7 +28,7 @@ import type { Response } from 'express';
 import type { FiltresFacturesFournisseur } from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../../common/contexte';
-import { AucunDroitRequis, GardeDroit } from '../../common/droits';
+import { ExigerDroit, GardeDroit } from '../../common/droits';
 import { ApiReponseProbleme, ErreurMetier } from '../../common/erreurs';
 import { PipeZod } from '../../common/validation';
 
@@ -51,10 +51,13 @@ import {
  * validation automatique : la réponse est une PROPOSITION, `POST /{id}/valider` reste un geste
  * humain distinct (même doctrine que `vehicule-ocr.controller.ts` pour le scan de permis).
  *
- * `@AucunDroitRequis()` PARTOUT sur ce contrôleur : voir `droits-provisoires.ts` — la matrice
- * centrale des droits (`auth/matrice-droits.ts`) est hors périmètre d'écriture de ce lot, la
- * vérification RÉELLE du rôle se fait dans `ServiceFactureFournisseur` (`verifierRoleAutorise`,
- * appelée en tout début de chaque méthode, AVANT tout accès base).
+ * `@ExigerDroit(...)` sur chaque route, vérifié contre `MATRICE_DROITS` (`auth/matrice-droits.ts`,
+ * bloc `pieces.facture_fournisseur.*`) par `GardeDroit` — plus de vérification de rôle en service
+ * (bascule depuis le palliatif `droits-provisoires.ts`, retiré, qui portait la vérification RÉELLE
+ * dans `ServiceFactureFournisseur` faute d'accès à la matrice centrale). Lecture (`lister`,
+ * `obtenir`, `telechargerDocument`) sous `pieces.facture_fournisseur.lire` ; écriture (`deposer`,
+ * `valider`, `rejeter`) chacune sous sa propre action, magasinier seul (« le magasinier confirme »
+ * — voir la table de vérité rôle par rôle dans `matrice-droits.spec.ts`).
  */
 @ApiTags('Pièces — Factures fournisseur')
 @ApiCookieAuth()
@@ -68,7 +71,7 @@ export class FactureFournisseurController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @AucunDroitRequis()
+  @ExigerDroit('pieces.facture_fournisseur.deposer')
   @UseInterceptors(
     FileInterceptor('fichier', {
       limits: { fileSize: LIMITE_TAILLE_FACTURE_FOURNISSEUR_OCTETS, files: 1 },
@@ -113,12 +116,11 @@ export class FactureFournisseurController {
       );
     }
     const ctx = this.contexte.contexteTenant();
-    const { role } = this.contexte.exigerPrincipal();
-    return this.service.deposer(ctx, role, fichier.buffer);
+    return this.service.deposer(ctx, fichier.buffer);
   }
 
   @Get()
-  @AucunDroitRequis()
+  @ExigerDroit('pieces.facture_fournisseur.lire')
   @ApiOperation({ summary: 'Liste paginée des factures fournisseurs déposées (sans le binaire).' })
   @ApiOkResponse({ type: PageFactureFournisseurDto })
   @ApiReponseProbleme(400, 'Filtres, tri ou curseur invalides.')
@@ -128,12 +130,11 @@ export class FactureFournisseurController {
     @Query(new PipeZod(schemaFiltresFacturesFournisseur)) query: FiltresFacturesFournisseur,
   ): Promise<PageFactureFournisseurDto> {
     const ctx = this.contexte.contexteTenant();
-    const { role } = this.contexte.exigerPrincipal();
-    return this.service.lister(ctx, role, query);
+    return this.service.lister(ctx, query);
   }
 
   @Get(':id')
-  @AucunDroitRequis()
+  @ExigerDroit('pieces.facture_fournisseur.lire')
   @ApiOperation({ summary: 'Détail d’une facture fournisseur — lignes et écarts.' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ type: FactureFournisseurDto })
@@ -142,12 +143,11 @@ export class FactureFournisseurController {
   @ApiReponseProbleme(404, 'Facture introuvable pour ce tenant.')
   async obtenir(@Param('id', new PipeZod(schemaUuid)) id: string): Promise<FactureFournisseurDto> {
     const ctx = this.contexte.contexteTenant();
-    const { role } = this.contexte.exigerPrincipal();
-    return this.service.obtenir(ctx, role, id);
+    return this.service.obtenir(ctx, id);
   }
 
   @Get(':id/document')
-  @AucunDroitRequis()
+  @ExigerDroit('pieces.facture_fournisseur.lire')
   @ApiOperation({
     summary: 'Le PDF déposé, tel quel — jamais chargé par `GET /{id}` ni par la liste.',
   })
@@ -161,8 +161,7 @@ export class FactureFournisseurController {
     @Res() res: Response,
   ): Promise<void> {
     const ctx = this.contexte.contexteTenant();
-    const { role } = this.contexte.exigerPrincipal();
-    const { contenu, typeMime } = await this.service.obtenirDocument(ctx, role, id);
+    const { contenu, typeMime } = await this.service.obtenirDocument(ctx, id);
 
     // `nosniff` + `inline` avec un nom de fichier FIXE, jamais dérivé d'une entrée utilisateur
     // (aucun nom de fichier n'est conservé — voir la migration 0059) : un PDF ne doit jamais
@@ -176,7 +175,7 @@ export class FactureFournisseurController {
 
   @Post(':id/valider')
   @HttpCode(HttpStatus.OK)
-  @AucunDroitRequis()
+  @ExigerDroit('pieces.facture_fournisseur.valider')
   @ApiOperation({
     summary: 'Le magasinier confirme la facture (aucune validation automatique).',
   })
@@ -188,13 +187,12 @@ export class FactureFournisseurController {
   @ApiReponseProbleme(409, 'CONFLIT — déjà validée ou rejetée (décision terminale).')
   async valider(@Param('id', new PipeZod(schemaUuid)) id: string): Promise<FactureFournisseurDto> {
     const ctx = this.contexte.contexteTenant();
-    const { role } = this.contexte.exigerPrincipal();
-    return this.service.valider(ctx, role, id);
+    return this.service.valider(ctx, id);
   }
 
   @Post(':id/rejeter')
   @HttpCode(HttpStatus.OK)
-  @AucunDroitRequis()
+  @ExigerDroit('pieces.facture_fournisseur.rejeter')
   @ApiOperation({ summary: 'Refuse la facture (mauvais dépôt, doublon manuel…) — motif exigé.' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ type: FactureFournisseurDto })
@@ -208,7 +206,6 @@ export class FactureFournisseurController {
     @Body(new PipeZod(schemaRejetFactureFournisseur)) corps: EntreeRejetFactureFournisseur,
   ): Promise<FactureFournisseurDto> {
     const ctx = this.contexte.contexteTenant();
-    const { role } = this.contexte.exigerPrincipal();
-    return this.service.rejeter(ctx, role, id, corps.motif);
+    return this.service.rejeter(ctx, id, corps.motif);
   }
 }

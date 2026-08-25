@@ -20,12 +20,10 @@ import type {
  * DIVERGENCE CORRIGÉE par rapport à l'hypothèse d'origine : le POST n'exige PAS d'en-tête
  * `Idempotency-Key` (`service-facture-fournisseur.ts` ne le lit ni ne le vérifie nulle part) — la
  * déduplication d'un dépôt en double se fait côté serveur par EMPREINTE SHA-256 du fichier
- * (`409 CONFLIT` si déjà déposé), pas par clé côté client. Signalé plutôt que corrigé plus loin :
- * `deposerFactureFournisseur` continue de PORTER l'en-tête (l'appelant, `useDeposerFactureFournisseur`/
- * `EcranDepotFactureFournisseur.tsx`, reste hors du périmètre d'écriture de cette passe) — un
- * en-tête surnuméraire que le serveur ignore silencieusement, sans risque, mais à trancher : soit
- * documenter `Idempotency-Key` comme garde CLIENT contre le double-clic (défense en profondeur,
- * même sans lecture serveur), soit retirer `idempotencyKey` de la chaîne d'appel.
+ * (`409 CONFLIT` si déjà déposé), pas par clé côté client. Tranché : `deposerFactureFournisseur`
+ * ne PORTE plus l'en-tête — retiré de la chaîne d'appel (`useDeposerFactureFournisseur.ts`,
+ * `EcranDepotFactureFournisseur.tsx`), un en-tête surnuméraire que le serveur ignorait sans risque
+ * mais qui n'avait aucune raison d'exister.
  *
  * DOCUMENT D'ORIGINE — même patron que `EcranFicheFacture.tsx#urlPdf` : construit directement
  * `${obtenirEnv().VITE_API_URL}/factures-fournisseur/{id}/document`, ouvert via
@@ -63,12 +61,11 @@ function construireParametresListe(filtres: FiltresFacturesFournisseur): string 
  * pose systématiquement `Content-Type: application/json` dès qu'un corps est fourni, ce qui
  * casserait une requête `multipart/form-data` — même contrainte que
  * `appellerScanPermisCirculation` (`ecrans/scan/contrat-ocr.temporaire.ts`), même réplique manuelle
- * des conventions de `requeteApi` (`credentials: 'include'`, `Accept-Language`, `Idempotency-Key`
- * — voir la réserve sur ce dernier en tête de fichier).
+ * des conventions de `requeteApi` (`credentials: 'include'`, `Accept-Language` — voir la réserve
+ * sur `Idempotency-Key` en tête de fichier, volontairement absente ici).
  */
 export async function deposerFactureFournisseur(
   fichier: File,
-  idempotencyKey: string,
   signal: AbortSignal,
 ): Promise<ReponseFactureFournisseur> {
   const url = `${obtenirEnv().VITE_API_URL}/factures-fournisseur`;
@@ -82,7 +79,6 @@ export async function deposerFactureFournisseur(
       credentials: 'include',
       headers: {
         'Accept-Language': i18n.language,
-        'Idempotency-Key': idempotencyKey,
       },
       body: corps,
       signal,

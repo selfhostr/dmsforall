@@ -7,7 +7,6 @@ import type {
   FiltresFacturesFournisseur,
   PageCurseur,
   ReponseFactureFournisseur,
-  RoleUtilisateur,
 } from '@dfa/shared';
 
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../../db';
@@ -42,11 +41,6 @@ import {
   type DefinitionTri,
 } from '../pagination-triee';
 
-import {
-  ROLES_FACTURE_FOURNISSEUR_ECRITURE,
-  ROLES_FACTURE_FOURNISSEUR_LECTURE,
-  verifierRoleAutorise,
-} from './droits-provisoires';
 import { ServiceOrchestrateurLectureFacture } from './lecture/orchestrateur-lecture';
 import type { DonneesFactureExtraites, EnTeteFactureExtrait } from './lecture/types';
 import { versFactureFournisseurResponse } from './mappers';
@@ -95,8 +89,10 @@ const COLONNES_FACTURE_ALIASEES = sql`
  * Lecture automatique des factures fournisseurs — dépôt, chaîne QR → texte PDF → OCR,
  * rapprochement, validation/rejet. Voir le rapport de livraison pour le détail de chaque étape.
  *
- * `verifierRoleAutorise` en tout DÉBUT de chaque méthode publique, AVANT tout accès base — voir
- * `droits-provisoires.ts` (matrice des droits centrale hors périmètre d'écriture de ce lot).
+ * Le rôle n'est plus vérifié ICI : `@ExigerDroit(...)` posé sur chaque route de
+ * `FactureFournisseurController`, contrôlé par `GardeDroit` contre `MATRICE_DROITS`
+ * (`auth/matrice-droits.ts`) — bascule depuis le palliatif `droits-provisoires.ts` (retiré), qui
+ * portait la vérification réelle ici faute d'accès à la matrice centrale.
  */
 @Injectable()
 export class ServiceFactureFournisseur {
@@ -125,16 +121,7 @@ export class ServiceFactureFournisseur {
     return ctx.utilisateurId;
   }
 
-  async deposer(
-    ctx: ContexteTenant,
-    role: RoleUtilisateur,
-    fichier: Buffer,
-  ): Promise<ReponseFactureFournisseur> {
-    verifierRoleAutorise(
-      role,
-      ROLES_FACTURE_FOURNISSEUR_ECRITURE,
-      'pieces.facture_fournisseur.deposer',
-    );
+  async deposer(ctx: ContexteTenant, fichier: Buffer): Promise<ReponseFactureFournisseur> {
     const utilisateurId = this.exigerUtilisateurId(ctx);
 
     if (!estUnPdfValide(fichier)) {
@@ -254,15 +241,8 @@ export class ServiceFactureFournisseur {
 
   async lister(
     ctx: ContexteTenant,
-    role: RoleUtilisateur,
     params: FiltresFacturesFournisseur,
   ): Promise<PageCurseur<ReponseFactureFournisseur>> {
-    verifierRoleAutorise(
-      role,
-      ROLES_FACTURE_FOURNISSEUR_LECTURE,
-      'pieces.facture_fournisseur.lire',
-    );
-
     const definition = DEFINITIONS_TRI_FACTURES_FOURNISSEUR[params.tri];
     const idExpr = sql`ff.id`;
     const curseurDecode = decoderCurseurPourTri(
@@ -367,16 +347,7 @@ export class ServiceFactureFournisseur {
     });
   }
 
-  async obtenir(
-    ctx: ContexteTenant,
-    role: RoleUtilisateur,
-    id: string,
-  ): Promise<ReponseFactureFournisseur> {
-    verifierRoleAutorise(
-      role,
-      ROLES_FACTURE_FOURNISSEUR_LECTURE,
-      'pieces.facture_fournisseur.lire',
-    );
+  async obtenir(ctx: ContexteTenant, id: string): Promise<ReponseFactureFournisseur> {
     return this.acces.enTenant(ctx, async (tx) => {
       const { facture, document } = await this.chargerFactureEtDocumentOu404Tx(tx, ctx, id);
       const lignes = await tx
@@ -395,30 +366,15 @@ export class ServiceFactureFournisseur {
   /** `GET /{id}/document` — le binaire, uniquement ici (jamais dans `obtenir`/`lister`). */
   async obtenirDocument(
     ctx: ContexteTenant,
-    role: RoleUtilisateur,
     id: string,
   ): Promise<{ readonly contenu: Buffer; readonly typeMime: string }> {
-    verifierRoleAutorise(
-      role,
-      ROLES_FACTURE_FOURNISSEUR_LECTURE,
-      'pieces.facture_fournisseur.lire',
-    );
     return this.acces.enTenant(ctx, async (tx) => {
       const { document } = await this.chargerFactureEtDocumentOu404Tx(tx, ctx, id);
       return { contenu: document.contenu, typeMime: document.typeMime };
     });
   }
 
-  async valider(
-    ctx: ContexteTenant,
-    role: RoleUtilisateur,
-    id: string,
-  ): Promise<ReponseFactureFournisseur> {
-    verifierRoleAutorise(
-      role,
-      ROLES_FACTURE_FOURNISSEUR_ECRITURE,
-      'pieces.facture_fournisseur.valider',
-    );
+  async valider(ctx: ContexteTenant, id: string): Promise<ReponseFactureFournisseur> {
     const utilisateurId = this.exigerUtilisateurId(ctx);
     return this.acces.enTenant(ctx, async (tx) => {
       const { facture, document } = await this.chargerFactureEtDocumentOu404Tx(tx, ctx, id);
@@ -460,15 +416,9 @@ export class ServiceFactureFournisseur {
 
   async rejeter(
     ctx: ContexteTenant,
-    role: RoleUtilisateur,
     id: string,
     motif: string,
   ): Promise<ReponseFactureFournisseur> {
-    verifierRoleAutorise(
-      role,
-      ROLES_FACTURE_FOURNISSEUR_ECRITURE,
-      'pieces.facture_fournisseur.rejeter',
-    );
     const utilisateurId = this.exigerUtilisateurId(ctx);
     return this.acces.enTenant(ctx, async (tx) => {
       const { facture, document } = await this.chargerFactureEtDocumentOu404Tx(tx, ctx, id);
