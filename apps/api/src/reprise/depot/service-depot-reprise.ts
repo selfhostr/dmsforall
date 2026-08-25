@@ -158,6 +158,22 @@ export class ServiceDepotReprise {
       }
 
       const apres = await this.cycleVie.transiter(tx, ctx.tenantId, dossierId, 'depot_receptionne');
+
+      // Défaut 2 (mandat reprise) : les tranches n'ont plus d'utilité une fois l'archive assemblée
+      // ET son intégrité vérifiée (ci-dessus) — la reprise après interruption ne s'applique qu'à
+      // un dépôt encore `depot_en_cours` ; passé ce point, seule `archive.bin` sert (relance
+      // d'analyse comprise, `ServiceAnalyseReprise.executer` ne lit que
+      // `stockage.cheminAbsoluArchive`, jamais les tranches). Sans cette purge, l'archive assemblée
+      // ET ses tranches d'origine coexistaient indéfiniment sur le disque (mesuré : 4,5 Go pour une
+      // archive de 2,3 Go). Ligne base d'abord (source de vérité, `reprise_tranche` porte
+      // `[dfa:suppression-physique]` depuis 0067), puis disque en best-effort — même patron que
+      // `ServiceCycleVieDossierReprise.annuler` : un échec disque ne doit jamais faire échouer une
+      // finalisation par ailleurs réussie, rattrapable par un job de purge ultérieur.
+      await tx.execute(sql`
+        delete from public.reprise_tranche where tenant_id = ${ctx.tenantId} and dossier_reprise_id = ${dossierId}
+      `);
+      await this.stockage.purgerTranches(ligne.stockage_chemin).catch(() => undefined);
+
       return projeterDossierReprise(apres, octetsRecus);
     });
   }
@@ -166,15 +182,26 @@ export class ServiceDepotReprise {
   // Interne
   // -----------------------------------------------------------------------------------------
 
+  /**
+   * Octets reçus. Une fois l'intégrité vérifiée par `finaliser()`, les tranches sont purgées
+   * (défaut 2) — sommer `reprise_tranche` rendrait alors 0 pour un dossier pourtant COMPLET. Le
+   * repli sur `taille_octets_annoncee` est exact, pas une approximation : `finaliser()` exige déjà
+   * `octetsRecus === tailleAnnoncee` avant de valider l'intégrité (voir plus haut), donc les deux
+   * valeurs sont garanties égales au moment où `integrite_validee` passe à `true`.
+   */
   private async sommeOctets(
     tx: TransactionDfa,
     tenantId: string,
     dossierId: string,
   ): Promise<number> {
     const resultat = await tx.execute<{ readonly total: string }>(sql`
-      select coalesce(sum(taille_octets), 0)::text as total
-        from public.reprise_tranche
-       where tenant_id = ${tenantId} and dossier_reprise_id = ${dossierId}
+      select coalesce(
+               case when d.integrite_validee then d.taille_octets_annoncee
+                    else (select sum(t.taille_octets) from public.reprise_tranche t
+                           where t.tenant_id = d.tenant_id and t.dossier_reprise_id = d.id)
+               end, 0)::text as total
+        from public.dossier_reprise d
+       where d.tenant_id = ${tenantId} and d.id = ${dossierId}
     `);
     return Number(resultat.rows[0]?.total ?? '0');
   }

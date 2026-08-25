@@ -49,8 +49,15 @@ async function lireLigneDossier(
       d.cree_le::text as cree_le, d.modifie_le::text as modifie_le,
       d.purgee_le::text as purgee_le, d.annule_le::text as annule_le,
       a.id as analyse_id, p.id as plan_id, i.id as import_id,
-      coalesce((select sum(t.taille_octets) from public.reprise_tranche t
-                 where t.tenant_id = ${tenantId} and t.dossier_reprise_id = d.id), 0)::text as octets_recus
+      -- Une fois l'intégrité vérifiée (ServiceDepotReprise.finaliser), les tranches sont purgées
+      -- (défaut 2) : sommer reprise_tranche rendrait alors 0 pour un dossier pourtant COMPLET.
+      -- finaliser() exige déjà octets_recus = taille_octets_annoncee avant de valider l'intégrité,
+      -- donc ce repli est exact, pas une approximation — voir ServiceDepotReprise.sommeOctets.
+      coalesce(
+        case when d.integrite_validee then d.taille_octets_annoncee
+             else (select sum(t.taille_octets) from public.reprise_tranche t
+                    where t.tenant_id = ${tenantId} and t.dossier_reprise_id = d.id)
+        end, 0)::text as octets_recus
     from public.dossier_reprise d
     left join public.reprise_analyse a on a.tenant_id = d.tenant_id and a.dossier_reprise_id = d.id
     left join public.reprise_plan    p on p.tenant_id = d.tenant_id and p.dossier_reprise_id = d.id
@@ -166,8 +173,12 @@ export class ServiceCycleVieDossierReprise {
         select d.*, d.cree_le::text as cree_le, d.modifie_le::text as modifie_le,
                d.purgee_le::text as purgee_le, d.annule_le::text as annule_le,
                a.id as analyse_id, p.id as plan_id, i.id as import_id,
-               coalesce((select sum(t.taille_octets) from public.reprise_tranche t
-                          where t.tenant_id = d.tenant_id and t.dossier_reprise_id = d.id), 0)::text as octets_recus
+               -- Voir le commentaire équivalent de lireLigneDossier ci-dessus.
+               coalesce(
+                 case when d.integrite_validee then d.taille_octets_annoncee
+                      else (select sum(t.taille_octets) from public.reprise_tranche t
+                             where t.tenant_id = d.tenant_id and t.dossier_reprise_id = d.id)
+                 end, 0)::text as octets_recus
           from public.dossier_reprise d
           left join public.reprise_analyse a on a.tenant_id = d.tenant_id and a.dossier_reprise_id = d.id
           left join public.reprise_plan    p on p.tenant_id = d.tenant_id and p.dossier_reprise_id = d.id
@@ -211,7 +222,18 @@ export class ServiceCycleVieDossierReprise {
 
       const resultat = await tx.execute<LigneDossierRepriseBrute>(sql`
         update public.dossier_reprise
-           set statut = 'annule', annule_le = now(), annule_motif = ${motif}
+           set statut = 'annule', annule_le = now(), annule_motif = ${motif},
+               -- Défaut 3 (mandat reprise) : les tranches vont être purgées ci-dessous (RGPD/nLPD).
+               -- Si l'archive n'avait JAMAIS été intégralement vérifiée (integrite_validee pas
+               -- true), dernier_numero_tranche_recu_contigu devient trompeur une fois les tranches
+               -- disparues — un instantané qui affiche encore « 142 » alors qu'aucune tranche n'est
+               -- plus retenue nulle part. On l'aligne sur octets_recus (qui retombera à 0, voir
+               -- lireLigneDossier/lister ci-dessus). Si l'archive AVAIT été vérifiée avant
+               -- l'annulation, integrite_validee reste true et octets_recus continue de rendre
+               -- taille_octets_annoncee : ce champ reste alors une métadonnée cohérente, inutile de
+               -- l'effacer.
+               dernier_numero_tranche_recu_contigu =
+                 case when integrite_validee then dernier_numero_tranche_recu_contigu else null end
          where tenant_id = ${ctx.tenantId} and id = ${dossierId}
         returning *, cree_le::text as cree_le, modifie_le::text as modifie_le,
                   purgee_le::text as purgee_le, annule_le::text as annule_le
@@ -233,7 +255,13 @@ export class ServiceCycleVieDossierReprise {
          where tenant_id = ${ctx.tenantId} and id = ${dossierId}
       `);
 
-      return projeterDossierReprise(apres, 0);
+      // Défaut 3 (suite) : après purge, octets_recus doit suivre EXACTEMENT la même règle que
+      // lireLigneDossier/lister (sinon la réponse de CET appel contredirait le prochain GET) —
+      // taille_octets_annoncee si l'archive avait été intégralement vérifiée avant l'annulation
+      // (métadonnée encore significative), 0 sinon (rien n'est plus retenu, cohérent avec
+      // dernier_numero_tranche_recu_contigu remis à null juste au-dessus).
+      const octetsRecusApres = apres.integrite_validee ? Number(apres.taille_octets_annoncee) : 0;
+      return projeterDossierReprise(apres, octetsRecusApres);
     });
   }
 

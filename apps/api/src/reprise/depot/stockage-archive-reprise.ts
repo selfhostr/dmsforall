@@ -49,6 +49,18 @@ export interface PortStockageArchiveReprise {
   cheminAbsoluArchive(racineDossier: string): Promise<string>;
 
   /**
+   * Purge SEULEMENT les tranches d'origine (`tranches/`), PAS l'archive assemblée
+   * (`archive.bin`) — appelée par `ServiceDepotReprise.finaliser()` juste après que l'intégrité
+   * de l'archive assemblée a été vérifiée : les tranches n'ont alors plus aucune utilité (la
+   * reprise après interruption ne s'applique qu'à un dépôt encore `depot_en_cours` ; passé ce
+   * point, seule `archive.bin` sert — analyse, relance d'analyse et import ne lisent jamais les
+   * tranches). Sans cette purge, une archive de reprise assemblée ET ses tranches d'origine
+   * coexistent indéfiniment sur le disque (mesuré : +~2x la taille de l'archive tant que le
+   * dossier reste actif). Idempotente : ne lève pas si `tranches/` est déjà absent.
+   */
+  purgerTranches(racineDossier: string): Promise<void>;
+
+  /**
    * Purge intégrale (tranches + archive assemblée) — RGPD/nLPD : données personnelles de clients
    * d'un garage tiers, jamais conservées indéfiniment après un import terminé ou un dossier
    * annulé. Idempotente : ne lève pas si le répertoire est déjà absent.
@@ -124,6 +136,18 @@ export class StockageArchiveRepriseDisqueLocal implements PortStockageArchiveRep
     return chemin;
   }
 
+  async purgerTranches(racineDossier: string): Promise<void> {
+    const cheminTranches = join(this.racine, racineDossier, 'tranches');
+    // Même garde-fou que `purgerDossier` ci-dessous — ne jamais supprimer hors de la racine de
+    // stockage, même si `racineDossier` était corrompu.
+    if (!estSousRacine(this.racine, cheminTranches)) {
+      throw new Error(
+        `StockageArchiveRepriseDisqueLocal.purgerTranches : chemin hors racine refusé (« ${racineDossier} »).`,
+      );
+    }
+    await rm(cheminTranches, { recursive: true, force: true });
+  }
+
   async purgerDossier(racineDossier: string): Promise<void> {
     const cheminRacineDossier = resolve(this.racine, racineDossier);
     // Garde-fou identique à `StockageExportTenantDisqueLocal.resoudreDansRepertoire` : ne jamais
@@ -134,6 +158,28 @@ export class StockageArchiveRepriseDisqueLocal implements PortStockageArchiveRep
       );
     }
     await rm(cheminRacineDossier, { recursive: true, force: true });
+
+    // Défaut 4 (mandat reprise) : sans ce nettoyage, `uploads/reprise/<tenantId>/` reste sur le
+    // disque, vide, après la purge du dernier dossier d'un tenant — un répertoire par tenant qui
+    // s'accumule indéfiniment. Best-effort, jamais bloquant : une erreur (répertoire déjà absent,
+    // ou un AUTRE dossier de ce tenant vient d'y écrire en même temps) ne doit jamais faire
+    // échouer la purge elle-même, qui est ce qui compte réellement (RGPD/nLPD).
+    const cheminRepertoireTenant = dirname(cheminRacineDossier);
+    const racineAbs = resolve(this.racine);
+    if (
+      cheminRepertoireTenant !== racineAbs &&
+      estSousRacine(this.racine, cheminRepertoireTenant)
+    ) {
+      try {
+        const entrees = await readdir(cheminRepertoireTenant);
+        if (entrees.length === 0) {
+          await rm(cheminRepertoireTenant, { recursive: false, force: true });
+        }
+      } catch {
+        // Répertoire déjà absent, ou non-vide entre-temps (autre dossier du même tenant en
+        // cours de dépôt) — sans conséquence, cette purge annexe est best-effort.
+      }
+    }
   }
 
   private cheminTranche(racineDossier: string, numero: number): string {
