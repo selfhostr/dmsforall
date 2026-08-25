@@ -100,7 +100,7 @@ export function AppShell() {
             jamais retiré du DOM (`sr-only` seul le cacherait aussi au focus). */}
         <a
           href="#contenu-principal"
-          className="sr-only rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50"
+          className="sr-only rounded-md bg-primary px-4 py-2 texte-corps font-medium text-primary-foreground focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50"
         >
           {t('navigation:evitement.contenu')}
         </a>

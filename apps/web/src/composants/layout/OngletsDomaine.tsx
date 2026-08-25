@@ -89,7 +89,7 @@ export function OngletsDomaine({ className }: Props) {
                     className={cn(
                       // h-11 = 44 px, plancher tactile du produit (postes de comptoir tactiles,
                       // §4.6) — jamais réduit sur desktop, la souris n'est pas la seule entrée.
-                      'flex h-11 items-center whitespace-nowrap rounded-t-md border-b-2 px-4 text-sm transition-colors',
+                      'flex h-11 items-center whitespace-nowrap rounded-t-md border-b-2 px-4 texte-corps transition-colors',
                       'anneau-focus',
                       actif
                         ? 'border-primary font-semibold text-foreground'
@@ -126,7 +126,7 @@ export function OngletsDomaine({ className }: Props) {
                     to={vue.chemin(site)}
                     aria-current={actif ? 'page' : undefined}
                     className={cn(
-                      'flex h-11 items-center whitespace-nowrap rounded-md px-3 text-sm transition-colors',
+                      'flex h-11 items-center whitespace-nowrap rounded-md px-3 texte-corps transition-colors',
                       'anneau-focus',
                       actif
                         ? 'bg-secondary font-semibold text-secondary-foreground'
