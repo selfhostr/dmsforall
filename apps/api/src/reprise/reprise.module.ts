@@ -57,7 +57,11 @@ import { ServiceCycleVieDossierReprise } from './service-cycle-vie-dossier-repri
     { provide: JETON_STOCKAGE_ARCHIVE_REPRISE, useClass: StockageArchiveRepriseDisqueLocal },
     { provide: JETON_LECTEUR_ARCHIVE_REPRISE, useClass: AdaptateurLecteurArchiveReprise },
   ],
-  exports: [ServiceCycleVieDossierReprise],
+  // `JETON_STOCKAGE_ARCHIVE_REPRISE` : exporté pour `CycleVieTenantModule` — la purge de
+  // résiliation (`ServiceCycleVieResiliation.purger`, mandat nLPD 24/25.08.2026) doit effacer les
+  // archives binaires déposées sur disque pour le tenant, via CETTE MÊME abstraction (jamais un
+  // accès disque en dur dans le service de résiliation). Voir `stockage-archive-reprise.ts`.
+  exports: [ServiceCycleVieDossierReprise, JETON_STOCKAGE_ARCHIVE_REPRISE],
 })
 export class RepriseModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {

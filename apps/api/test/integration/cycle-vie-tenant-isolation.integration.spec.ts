@@ -18,12 +18,13 @@
  * `genererExport` sans avoir d'abord créé le dossier de résiliation via `cycleVie.demander(...)`.
  */
 
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { sql } from 'drizzle-orm';
 import type { ContexteTenant } from '../../src/db';
 import { demarrerBaseEphemere, type BaseEphemere } from '../setup/postgres-ephemere';
 import { semerGarageDemo, type GarageDemoFixture } from '../fixtures/garage-demo';
@@ -32,6 +33,7 @@ import { creerAccesBaseTest, demarrerRedisEphemere, type RedisEphemere } from '.
 import { ServiceCycleVieResiliation } from '../../src/exploitation/cycle-vie-tenant/service-cycle-vie-resiliation';
 import { ServiceExportTenant } from '../../src/exploitation/cycle-vie-tenant/service-export-tenant';
 import { StockageExportTenantDisqueLocal } from '../../src/exploitation/cycle-vie-tenant/service-stockage-export-tenant';
+import { StockageArchiveRepriseDisqueLocal } from '../../src/reprise/depot/stockage-archive-reprise';
 import {
   listerTablesTenant,
   TABLES_CYCLE_VIE_TENANT,
@@ -45,18 +47,21 @@ let bdd: BaseEphemere;
 let redis: RedisEphemere;
 let demo: GarageDemoFixture;
 let racineExports: string;
+let racineReprise: string;
 
 beforeAll(async () => {
   bdd = await demarrerBaseEphemere();
   demo = await semerGarageDemo(bdd);
   redis = await demarrerRedisEphemere();
   racineExports = await mkdtemp(join(tmpdir(), 'dfa-test-export-'));
+  racineReprise = await mkdtemp(join(tmpdir(), 'dfa-test-reprise-'));
 }, 180_000);
 
 afterAll(async () => {
   await redis?.fermer();
   await bdd?.fermer();
   if (racineExports) await rm(racineExports, { recursive: true, force: true });
+  if (racineReprise) await rm(racineReprise, { recursive: true, force: true });
 });
 
 /** Contexte SYSTÈME (job) — `utilisateurId: null`. */
@@ -77,9 +82,10 @@ function ctxUtilisateurPour(
 async function construireServices() {
   const { accesBase, fermer } = await creerAccesBaseTest(bdd, redis.url);
   const stockage = new StockageExportTenantDisqueLocal(racineExports);
-  const cycleVie = new ServiceCycleVieResiliation(accesBase);
+  const stockageReprise = new StockageArchiveRepriseDisqueLocal(racineReprise);
+  const cycleVie = new ServiceCycleVieResiliation(accesBase, stockageReprise);
   const exportTenant = new ServiceExportTenant(accesBase, stockage, cycleVie);
-  return { accesBase, stockage, cycleVie, exportTenant, fermer };
+  return { accesBase, stockage, stockageReprise, cycleVie, exportTenant, fermer };
 }
 
 /**
@@ -200,7 +206,7 @@ describe('cycle de vie de sortie du garage — isolation stricte (règle n°1)',
   }, 60_000);
 
   it('la purge du tenant A supprime ses lignes (site, utilisateur) sans toucher au tenant B', async () => {
-    const { accesBase, cycleVie, fermer } = await construireServices();
+    const { accesBase, cycleVie, stockageReprise, fermer } = await construireServices();
     try {
       const ctxA = ctxPour(demo.tenantA.id, 'test-purge');
       const utilisateurDirectionA = demo.tenantA.utilisateurs[0]!.id;
@@ -208,6 +214,35 @@ describe('cycle de vie de sortie du garage — isolation stricte (règle n°1)',
         demo.tenantA.id,
         utilisateurDirectionA,
         'test-purge-utilisateur',
+      );
+
+      // CORRECTIF nLPD (mandat 24/25.08.2026) : dépôt d'une VRAIE archive de reprise sur disque
+      // pour le tenant A (dossier_reprise + tranche réelle écrite via `PortStockageArchiveReprise`
+      // — même adaptateur que la production, pas un mock), ET une archive pour le tenant B —
+      // JAMAIS référencée par un dossier de résiliation, elle ne doit survivre QUE parce que la
+      // purge du tenant A ne doit RIEN toucher hors de son propre répertoire. C'est la preuve
+      // décisive (voir le rapport de livraison) : sans cette assertion, une purge qui se tromperait
+      // de racine passerait inaperçue.
+      const dossierRepriseIdA = randomUUID();
+      const racineDossierA = stockageReprise.racineDossier(demo.tenantA.id, dossierRepriseIdA);
+      await stockageReprise.ecrireTranche(racineDossierA, 0, Buffer.from('archive-tenant-a-test'));
+      expect(await stockageReprise.trancheExiste(racineDossierA, 0)).toBe(true);
+
+      const dossierRepriseIdB = randomUUID();
+      const racineDossierB = stockageReprise.racineDossier(demo.tenantB.id, dossierRepriseIdB);
+      await stockageReprise.ecrireTranche(racineDossierB, 0, Buffer.from('archive-tenant-b-test'));
+      expect(await stockageReprise.trancheExiste(racineDossierB, 0)).toBe(true);
+
+      const empreinteA = createHash('sha256').update('archive-tenant-a-test').digest();
+      await accesBase.enTenant(ctxAUtilisateur, (tx) =>
+        tx.execute(sql`
+          insert into public.dossier_reprise
+            (id, tenant_id, statut, taille_octets_annoncee, empreinte_sha256_annoncee,
+             stockage_chemin, cree_par_id)
+          values
+            (${dossierRepriseIdA}, ${demo.tenantA.id}, 'depot_en_cours', 21, ${empreinteA},
+             ${racineDossierA}, ${utilisateurDirectionA})
+        `),
       );
 
       await cycleVie.demander(ctxAUtilisateur, demo.tenantA.id, 'Test intégration — purge');
@@ -233,6 +268,12 @@ describe('cycle de vie de sortie du garage — isolation stricte (règle n°1)',
 
       const resultat = await cycleVie.purger(ctxA, demo.tenantA.id);
       expect(resultat.length).toBeGreaterThan(0);
+
+      // La preuve du correctif : le fichier réel du tenant A a disparu du disque…
+      expect(await stockageReprise.trancheExiste(racineDossierA, 0)).toBe(false);
+      // … et LE PLUS IMPORTANT : le répertoire d'un AUTRE tenant, jamais visé par cette purge,
+      // reste intact — aucune traversée, aucune purge à la racine.
+      expect(await stockageReprise.trancheExiste(racineDossierB, 0)).toBe(true);
 
       const restantA = await accesBase.enTenant(ctxA, (tx) =>
         tx.execute('select count(*) as n from public.site'),
