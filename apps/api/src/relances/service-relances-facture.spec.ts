@@ -125,7 +125,12 @@ function accesFactice(tx: TransactionDfa): { acces: AccesBase; appels: ContexteT
 }
 
 function journalFactice(): ServiceJournal {
-  return { info: vi.fn(), warn: vi.fn(), error: vi.fn() } as unknown as ServiceJournal;
+  return {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  } as unknown as ServiceJournal;
 }
 
 function horlogeFixe(date: string): Horloge {
