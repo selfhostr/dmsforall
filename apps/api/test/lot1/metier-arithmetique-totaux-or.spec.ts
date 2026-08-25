@@ -153,7 +153,7 @@ describe('calcul de ligne — valeurs EXACTES en centimes (taux légal suisse 8.
     expect(montants.montantTtcCentimes).toBe(900);
   });
 
-  it('ligne de type remise (montant négatif) : HT=-500, TVA=round(-500*81/1000)=round(-40.5)=-40 (Math.round arrondit les .5 vers +Infini, y compris négatifs — PAS vers zéro), TTC=-540', async () => {
+  it('ligne de type remise (montant négatif), TVA à la demie exacte : HT=-500, TVA=arrondiCommercial(-500*81,1000)=arrondiCommercial(-40.5)=-41 (demi éloigné de zéro, symétrique — RF-33/MD-40), TTC=-541', async () => {
     const or = await nouvelOr();
     const montants = await creerLigne(or.id, {
       type: 'remise',
@@ -161,10 +161,12 @@ describe('calcul de ligne — valeurs EXACTES en centimes (taux légal suisse 8.
       quantiteMillieme: 1000,
     });
     expect(montants.montantHtCentimes).toBe(-500);
-    // -500 * 81 / 1000 = -40.5 ; Math.round(-40.5) = -40 en JavaScript (arrondi vers +Infini, pas
-    // vers zéro) — valeur EXACTE attendue, jamais approximative.
-    expect(montants.montantTvaCentimes).toBe(-40);
-    expect(montants.montantTtcCentimes).toBe(-540);
+    // -500 * 81 / 1000 = -40.5, pile sur la demie. Règle du dépôt (arrondiCommercial,
+    // packages/shared/src/arithmetique/arrondi-commercial.ts) : demi éloigné de zéro, valable côté
+    // positif ET négatif — PAS Math.round (qui arrondit tous les .5 vers +Infini, donc -40.5 → -40,
+    // asymétrique). Valeur EXACTE attendue, jamais approximative.
+    expect(montants.montantTvaCentimes).toBe(-41);
+    expect(montants.montantTtcCentimes).toBe(-541);
   });
 });
 
