@@ -1,0 +1,168 @@
+{
+  "titre": "Datenübernahme",
+  "etapes": {
+    "depot": "Hochladen",
+    "analyse": "Analyse",
+    "validation": "Bestätigung",
+    "import": "Import"
+  },
+  "depot": {
+    "titre": "Laden Sie das Archiv Ihrer bisherigen Software hoch",
+    "description": "Ziehen Sie die Datei hierher oder wählen Sie sie auf Ihrem Computer aus. Das ist der einzige Schritt, den wir von Ihnen brauchen — den Rest erledigen wir automatisch.",
+    "zone": {
+      "instruction": "Datei hierher ziehen oder Eingabetaste drücken, um sie auszuwählen",
+      "survol": "Datei hier ablegen",
+      "boutonChoisir": "Datei auswählen"
+    },
+    "reprise": {
+      "titre": "Unterbrochener Upload",
+      "description": "Ein Upload wurde bei {pourcent, number, ::percent} unterbrochen. Laden Sie dieselbe Datei erneut hoch, um dort weiterzumachen, wo es aufgehört hat — nichts wird unnötig erneut gesendet.",
+      "fichierDifferent": "Diese Datei entspricht nicht dem laufenden Upload. Laden Sie dieselbe Datei wie zuvor hoch, oder brechen Sie diesen Vorgang ab, um neu zu beginnen."
+    },
+    "phase": {
+      "verification": "Archiv wird vor dem Senden geprüft…",
+      "verificationProgression": "{pourcent, number, ::percent} geprüft",
+      "creation": "Upload wird vorbereitet…",
+      "envoi": "Wird gesendet…",
+      "envoiProgression": "{envoyeMo} von {totalMo} MB gesendet ({pourcent, number, ::percent})",
+      "finalisation": "Abschliessende Prüfung des Archivs…"
+    },
+    "erreur": {
+      "titre": "Der Upload konnte nicht fortgesetzt werden",
+      "reseau": "Die Verbindung wurde unterbrochen. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut — der Upload wird dort fortgesetzt, wo er aufgehört hat.",
+      "integrite": "Das empfangene Archiv stimmt nicht mit dem gesendeten überein. Laden Sie es erneut hoch.",
+      "tailleInattendue": "Diese Datei hat nicht dieselbe Grösse wie die des laufenden Uploads.",
+      "generique": "Der Upload konnte nicht abgeschlossen werden. Versuchen Sie es erneut — bereits gesendete Daten gehen nicht verloren.",
+      "reessayer": "Erneut versuchen"
+    },
+    "aideFormat": "Erwartet wird das vollständige Archiv (ZIP) Ihrer bisherigen Garagenverwaltungssoftware."
+  },
+  "analyse": {
+    "titre": "Wir prüfen Ihr Archiv",
+    "description": "Dieser Schritt läuft automatisch und kann je nach Grösse Ihres Archivs mehrere Minuten dauern. Sie müssen nichts tun — Sie können diese Seite schliessen und später zurückkehren, die Übernahme läuft weiter.",
+    "enCours": "Analyse läuft…",
+    "echouee": {
+      "titre": "Die Analyse ist fehlgeschlagen",
+      "description": "Ihr Archiv konnte nicht geprüft werden. Sie müssen es nicht erneut hochladen — versuchen Sie einfach die Analyse erneut.",
+      "reessayer": "Analyse erneut versuchen",
+      "motif": {
+        "archive_volume_extrait_excessif": "Ihr Archiv ist nach dem Entpacken zu umfangreich, um verarbeitet zu werden. Kontaktieren Sie unseren Support: Wir bereiten einen für die Grösse Ihrer Daten passenden Upload vor."
+      }
+    },
+    "partielle": "Einige Dateien im Archiv konnten nicht gelesen werden, der Rest wurde aber normal geprüft.",
+    "moteur": {
+      "reconnu": "Ihre bisherige Software wurde erkannt.",
+      "inconnu": "Die Art Ihrer bisherigen Software konnte nicht mit Sicherheit bestimmt werden, die Analyse wurde aber trotzdem durchgeführt."
+    }
+  },
+  "plan": {
+    "titre": "Was übernommen wird",
+    "description": "Das haben wir in Ihrem Archiv gefunden. Deaktivieren Sie einen Bereich, wenn Sie ihn nicht übernehmen möchten — alles Übrige startet danach automatisch.",
+    "volumeAttendu": "{count, plural, one {ca. # Zeile} other {ca. # Zeilen}}",
+    "inclure": "{domaine} übernehmen",
+    "exclu": {
+      "titre": "Nicht übernommen",
+      "motif": {
+        "referentiel_constructeur_jamais_repris": "Herstellerreferenzdaten — werden nie übernommen, unabhängig von der Ursprungssoftware.",
+        "comptabilite_non_reprise": "Finanzbuchhaltung — nicht übernommen, nur offene Saldi werden übernommen.",
+        "hors_perimetre_temporel": "Ausserhalb des übernommenen Zeitraums.",
+        "role_indetermine": "Wir konnten nicht mit ausreichender Sicherheit bestimmen, was diese Daten enthalten.",
+        "table_vide": "Diese Daten sind in Ihrem Archiv leer.",
+        "document_non_rattachable": "Diese gescannten Dokumente konnten keiner Rechnung oder keinem Reparaturauftrag zugeordnet werden.",
+        "doublon_table_meme_role": "Diese Daten sind an anderer Stelle im Archiv doppelt vorhanden — nur die zuverlässigste Version wird übernommen.",
+        "exclusion_manuelle": "Sie haben sich entschieden, diesen Bereich nicht zu übernehmen."
+      }
+    },
+    "action": {
+      "lancer": "Import starten",
+      "confirmation": "Der Import startet, sobald Sie bestätigen — Sie müssen nichts weiter tun."
+    },
+    "vide": {
+      "titre": "Nichts zu übernehmen",
+      "description": "Die Analyse hat keine übernehmbaren Daten in diesem Archiv gefunden."
+    }
+  },
+  "domaines": {
+    "clients": "Ihre Kunden",
+    "vehicules": "Ihre Fahrzeuge",
+    "ordres_reparation": "Ihre Werkstatthistorie (Reparaturaufträge)",
+    "documents_vente": "Ihre Rechnungen und Offerten",
+    "paiements": "Ihre Zahlungen",
+    "articles_stock": "Ihr Ersatzteillager",
+    "fournisseurs": "Ihre Lieferanten",
+    "documents_scannes": "Ihre gescannten Dokumente"
+  },
+  "import": {
+    "titre": "Import läuft",
+    "description": "Ihre Daten werden gerade übernommen. Dieser Schritt kann dauern — Sie können diese Seite schliessen und später zurückkehren.",
+    "domaineCourant": "Aktuell: {domaine}",
+    "progression": "{traites} von {total} Elementen übernommen ({pourcent, number, ::percent})",
+    "echoue": {
+      "titre": "Der Import wurde unterbrochen",
+      "description": "Ein Teil Ihrer Daten wurde bereits übernommen (siehe Details unten). Sie können den Import erneut starten — bereits übernommene Daten werden nie doppelt angelegt.",
+      "relancer": "Import erneut starten",
+      "tentative": "Versuch Nr. {numero}"
+    },
+    "termine": {
+      "titre": "Übernahme abgeschlossen",
+      "description": "Alle Ihre Daten wurden übernommen."
+    }
+  },
+  "rapport": {
+    "titre": "Bilanz der Übernahme",
+    "insere": {
+      "titre": "Übernommen",
+      "compte": "{count, plural, one {# Element} other {# Elemente}}"
+    },
+    "ecarte": {
+      "titre": "Nicht übernommen",
+      "compte": "{count, plural, one {# Element} other {# Elemente}}",
+      "motif": {
+        "ligne_invalide": "Unlesbare oder unvollständige Daten in Ihrer bisherigen Software.",
+        "reference_manquante": "Eine erforderliche Angabe (Kunde, Fahrzeug…) hat gefehlt.",
+        "doublon_deja_importe": "Bereits bei einem früheren Versuch übernommen.",
+        "hors_perimetre_temporel": "Ausserhalb des übernommenen Zeitraums.",
+        "contrainte_metier_refusee": "Diese Daten konnten nicht wie vorliegend gespeichert werden."
+      }
+    },
+    "anomaliesTronquees": "Es gibt weitere Abweichungen, die hier nicht im Detail aufgeführt sind — die obigen Summen bleiben korrekt.",
+    "reconciliation": {
+      "titre": "Prüfung pro Jahr",
+      "description": "Anzahl Dokumente und Beträge aus Ihrer bisherigen Software, verglichen mit dem, was übernommen wurde. Eine Abweichung von null bestätigt, dass nichts verloren gegangen ist.",
+      "annee": "Jahr {annee}",
+      "colonneAnnee": "Jahr",
+      "documentsSource": "Dokumente in der bisherigen Software",
+      "documentsCible": "Übernommene Dokumente",
+      "totalSource": "Betrag in der bisherigen Software",
+      "totalCible": "Übernommener Betrag",
+      "ecart": "Abweichung",
+      "ecartNul": "Keine Abweichung",
+      "vide": "Keine Daten für diese Übernahme zu prüfen."
+    },
+    "genereLe": "Bilanz erstellt am {date}"
+  },
+  "annulation": {
+    "bouton": "Übernahme abbrechen",
+    "titre": "Diese Übernahme abbrechen",
+    "description": "Diese Aktion stoppt die laufende Übernahme. Sie bleibt nachvollziehbar dokumentiert und löscht keine bereits in dmsforall erfassten Daten.",
+    "motif": {
+      "libelle": "Warum brechen Sie ab?",
+      "aide": "Mindestens 3 Zeichen."
+    },
+    "confirmer": "Abbruch bestätigen",
+    "renoncer": "Verzichten"
+  },
+  "dossierAnnule": {
+    "titre": "Übernahme abgebrochen",
+    "description": "Diese Übernahme wurde abgebrochen. Sie können jederzeit ein neues Archiv hochladen.",
+    "nouveau": "Neues Archiv hochladen"
+  },
+  "vide": {
+    "titre": "Keine laufende Übernahme",
+    "description": "Sie haben noch keine Datenübernahme gestartet."
+  },
+  "erreurChargement": {
+    "titre": "Übernahme kann nicht angezeigt werden",
+    "description": "Beim Abrufen des Status Ihrer Datenübernahme ist ein Fehler aufgetreten."
+  }
+}

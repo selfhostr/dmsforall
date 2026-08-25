@@ -159,7 +159,13 @@
     "RESILIATION_TENANT_DEJA_EN_COURS": "Una risoluzione è già in corso per questa autofficina. È possibile avviarne solo una contemporaneamente.",
     "RESILIATION_TENANT_EXPORT_INDISPONIBLE": "L'esportazione non è ancora pronta. Attendere o riprovare tra pochi istanti.",
     "RESILIATION_TENANT_PURGE_PREMATUREE": "I dati possono essere cancellati solo 180 giorni dopo la consegna dell'esportazione. Potrai riprovare la cancellazione in questa data.",
-    "RESILIATION_TENANT_CONFIRMATION_INVALIDE": "La conferma non è corretta. Reinserire la denominazione sociale della vostra autofficina, carattere per carattere, e poi riprovare."
+    "RESILIATION_TENANT_CONFIRMATION_INVALIDE": "La conferma non è corretta. Reinserire la denominazione sociale della vostra autofficina, carattere per carattere, e poi riprovare.",
+    "REPRISE_DOSSIER_TRANSITION_INTERDITE": "Questa azione non è possibile in questa fase della ripresa del tuo vecchio programma. Ricarica la pagina per vedere lo stato attuale.",
+    "REPRISE_ARCHIVE_INCOMPLETE": "Il caricamento del file non è ancora terminato. Attendi la fine dell'invio, poi riprova.",
+    "REPRISE_EMPREINTE_INVALIDE": "L'archivio ricevuto non corrisponde a quello inviato. Riprova il caricamento.",
+    "REPRISE_TRANCHE_HORS_SEQUENCE": "L'invio del file si è interrotto. Riprova: ripartirà da dove si è fermato, nulla è andato perso.",
+    "REPRISE_PLAN_NON_VALIDABLE": "Ciò che verrà ripreso non può più essere convalidato in questa fase. Ricarica la pagina per vedere lo stato attuale.",
+    "REPRISE_AJUSTEMENT_ELEMENT_INCONNU": "Questa modifica riguarda un ambito che non esiste nel piano attuale. Contatta il supporto se il problema persiste."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Crea preventivo supplementare",

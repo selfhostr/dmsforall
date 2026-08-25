@@ -30,6 +30,7 @@
     "cookie-parser": "^1.4.7",
     "csv-parse": "^7.0.2",
     "drizzle-orm": "^0.45.2",
+    "express": "^5.2.1",
     "ioredis": "^5.4.1",
     "jsqr": "^1.4.0",
     "nodemailer": "^9.0.5",
@@ -41,6 +42,7 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "swissqrbill": "4.4.0",
+    "yauzl": "^3.4.0",
     "zod": "^4.1.12"
   },
   "devDependencies": {
@@ -58,6 +60,8 @@
     "@types/pg": "^8.11.10",
     "@types/qrcode": "^1.5.5",
     "@types/supertest": "^6.0.2",
+    "@types/yauzl": "^3.4.0",
+    "@types/yazl": "^3.3.1",
     "drizzle-kit": "^0.31.0",
     "qrcode": "^1.5.4",
     "supertest": "^7.0.0",
@@ -65,6 +69,7 @@
     "tsx": "^4.19.2",
     "typescript": "^5.9.3",
     "unplugin-swc": "^1.5.9",
-    "vitest": "^3.0.5"
+    "vitest": "^3.0.5",
+    "yazl": "^3.3.1"
   }
 }

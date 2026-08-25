@@ -117,6 +117,16 @@ const HORS_MENU: Readonly<Record<string, string>> = {
   '/recherche':
     "Doublon de la recherche permanente d'en-tête (Lot A). Retiré du menu par §4.5. Reste " +
     "atteignable depuis l'accueil et l'état vide de la création d'OR ; à supprimer au Lot F.",
+
+  '/reprise-donnees':
+    "Reprise de données (dépôt de l'archive d'un ancien logiciel, `packages/shared/src/contrats/" +
+    "reprise.ts`) — geste d'ONBOARDING EXCEPTIONNEL, pas un usage quotidien de garage : au plus " +
+    "une poignée de fois dans la vie d'un tenant (la mise en route). Une entrée de menu permanente " +
+    "pour un écran qu'un garage ne rouvre normalement plus une fois la reprise terminée serait " +
+    "exactement le bruit que §4.1/§4.5 de l'arbitrage de navigation retirent ailleurs. Reste " +
+    'routée sous la coquille métier normale (`RouteProtegee` + `AppShell`, contrairement à ' +
+    '`/console` ci-dessus) : atteinte par un lien direct communiqué pendant la mise en route du ' +
+    'garage — pas par le menu.',
 };
 
 describe('atteignabilité — aucun écran livré ne devient inatteignable', () => {

@@ -27,6 +27,10 @@ import {
   colonneTenantId,
 } from '../colonnes-communes';
 import { langueEnum } from '../enums';
+// Import direct du fichier (pas du barrel '../facturation') : même précaution que
+// atelier/ordre-reparation.ts (Z-17, 0011) — enums.ts n'importe rien d'atelier, ce chemin
+// direct est sûr et évite tout risque de cycle avec le barrel facturation/index.ts.
+import { origineDocumentEnum } from '../facturation/enums';
 import { tenant } from '../tenant';
 import { utilisateur } from '../utilisateur';
 import {
@@ -44,6 +48,15 @@ export const client = pgTable(
     id: colonneId(),
     tenantId: colonneTenantId().references(() => tenant.id, { onDelete: 'restrict' }),
     numero: text('numero').notNull(),
+    /**
+     * Reprise (migrations/0066_ancrages_origine_reprise.sql) : même enum et même sémantique que
+     * documentVente.origine (0010) et ordreReparation.origine (0011) — dfa (créé par DFA) ou
+     * reprise (importé).
+     */
+    origine: origineDocumentEnum('origine').notNull().default('dfa'),
+    /** Reprise (0066) : numéro/identifiant client source verbatim, jamais retouché. NULL si
+     * origine=dfa. */
+    numeroOrigine: text('numero_origine'),
     type: typeClientEnum('type').notNull(),
     civilite: text('civilite'),
     nom: text('nom'),
@@ -117,6 +130,14 @@ export const client = pgTable(
       'client_plus_aucun_contact_motif_chk',
       sql`not ${t.plusAucunContact} or ${t.motif} is not null`,
     ),
+    // Reprise (0066) : même patron que ordre_reparation_origine_numero_origine_chk (0011).
+    check(
+      'client_origine_numero_origine_chk',
+      sql`(${t.origine} = 'dfa') = (${t.numeroOrigine} is null)`,
+    ),
+    // client_numero_origine_uk (index unique PARTIEL, where numero_origine is not null — 0066)
+    // n'est pas modélisable via `unique()` de pg-core (pas de clause WHERE) : posé en SQL brut,
+    // même limite que ordre_reparation_numero_origine_uk (0011).
   ],
 );
 

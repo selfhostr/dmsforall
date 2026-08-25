@@ -30,6 +30,7 @@ import { PneusModule } from './pneus/pneus.module';
 import { PointageModule } from './pointage/pointage.module';
 import { RechercheModule } from './recherche/recherche.module';
 import { RelancesModule } from './relances/relances.module';
+import { RepriseModule } from './reprise/reprise.module';
 import { RendezVousModule } from './rendezvous/rendezvous.module';
 import { SanteModule } from './sante';
 import { SocleModule } from './socle';
@@ -127,6 +128,12 @@ export class AppModule implements NestModule {
         // même raisonnement que `PneusModule`/`RelancesModule` ci-dessus (aucune contrainte
         // d'ordre réelle, `AtelierModule` n'importe jamais ce module — sens unique).
         RendezVousModule,
+        // `RepriseModule` (reprise de données par dépôt d'archive, `contrats/reprise.ts`,
+        // migrations 0066/0067) — aucune dépendance de compilation avec un autre module métier
+        // (lit/écrit `client`/`vehicule`/`document_vente` en SQL brut, comme `TableauBordModule`
+        // plus haut). ÉTAIT NON ENREGISTRÉ ici jusqu'à cet agent — piège vérifié n°1 du projet
+        // (contrôleur non déclaré = 404 silencieux), refermé : voir la tête de `reprise.module.ts`.
+        RepriseModule,
         // `TempsReelModule` (canal SSE générique de notification poste fixe, socle) — importe
         // `AuthModule` lui-même (`JETON_SERVICE_SESSION`, revalidation de session sur une
         // connexion longue) ; aucun module métier ne l'importe encore, il est enregistré ici pour

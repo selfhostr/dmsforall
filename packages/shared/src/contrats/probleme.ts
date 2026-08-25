@@ -307,6 +307,22 @@ export const CODES_ERREUR = [
   // sans ambiguïté pour déclencher un export intégral de toute la base du garage (arbitrage
   // 20.08.2026, sur le modèle de `docker/postgres/sauvegarde/restaurer.sh`).
   'RESILIATION_TENANT_CONFIRMATION_INVALIDE',
+  // --- Reprise de données par dépôt d'archive (contrats/reprise.ts, migration 0067) ---
+  // Même patron qu'OR_TRANSITION_INTERDITE : transition hors de la machine à états gelée
+  // (STATUTS_DOSSIER_REPRISE, commentaire de tête de contrats/reprise.ts).
+  'REPRISE_DOSSIER_TRANSITION_INTERDITE',
+  // `POST .../finaliser` appelé avant réception de toutes les tranches déclarées
+  // (octetsRecus < tailleOctetsAnnoncee) — le dossier reste depot_en_cours.
+  'REPRISE_ARCHIVE_INCOMPLETE',
+  // L'empreinte SHA-256 assemblée par le serveur ne correspond pas à celle annoncée à
+  // POST /reprise/dossiers — archive corrompue en transit, redépôt requis.
+  'REPRISE_EMPREINTE_INVALIDE',
+  // Numéro de tranche hors des bornes déclarées par schemaNumeroTranche.
+  'REPRISE_TRANCHE_HORS_SEQUENCE',
+  // Validation tentée hors de l'état `propose` du plan (immuable dès `valide`).
+  'REPRISE_PLAN_NON_VALIDABLE',
+  // `elementId` d'un ajustement (PATCH .../plan) absent du plan courant.
+  'REPRISE_AJUSTEMENT_ELEMENT_INCONNU',
 ] as const;
 export type CodeErreur = (typeof CODES_ERREUR)[number];
 
@@ -445,6 +461,12 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   RESILIATION_TENANT_EXPORT_INDISPONIBLE: 409,
   RESILIATION_TENANT_PURGE_PREMATUREE: 409,
   RESILIATION_TENANT_CONFIRMATION_INVALIDE: 400,
+  REPRISE_DOSSIER_TRANSITION_INTERDITE: 409,
+  REPRISE_ARCHIVE_INCOMPLETE: 409,
+  REPRISE_EMPREINTE_INVALIDE: 409,
+  REPRISE_TRANCHE_HORS_SEQUENCE: 400,
+  REPRISE_PLAN_NON_VALIDABLE: 409,
+  REPRISE_AJUSTEMENT_ELEMENT_INCONNU: 400,
 };
 
 /**
@@ -569,6 +591,12 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   RESILIATION_TENANT_EXPORT_INDISPONIBLE: 'Export pas encore disponible',
   RESILIATION_TENANT_PURGE_PREMATUREE: 'Période de conservation non écoulée',
   RESILIATION_TENANT_CONFIRMATION_INVALIDE: 'Confirmation invalide',
+  REPRISE_DOSSIER_TRANSITION_INTERDITE: 'Transition interdite pour ce dossier de reprise',
+  REPRISE_ARCHIVE_INCOMPLETE: 'Archive incomplète',
+  REPRISE_EMPREINTE_INVALIDE: "Empreinte de l'archive invalide",
+  REPRISE_TRANCHE_HORS_SEQUENCE: 'Numéro de tranche hors séquence',
+  REPRISE_PLAN_NON_VALIDABLE: 'Plan de reprise non validable',
+  REPRISE_AJUSTEMENT_ELEMENT_INCONNU: 'Élément de plan inconnu',
 };
 
 /**

@@ -46,6 +46,12 @@ import { StockagePdfDisqueLocal } from './stockage-pdf';
  * développement et un premier pilote mono-instance (voir `stockage-pdf.ts`). Un adaptateur de
  * production (S3-compatible) remplacerait cette seule ligne, décision `expert-devops` hors du
  * périmètre de cette tâche.
+ *
+ * CORRECTIF nLPD (mandat 24/25.08.2026) : `JETON_STOCKAGE_PDF` désormais aussi dans `exports` —
+ * `CycleVieTenantModule` (`exploitation/cycle-vie-tenant/`) importe ce module pour que
+ * `ServiceCycleVieResiliation.purger` puisse purger les PDF de facture d'un tenant résilié
+ * (`StockagePdf.purgerTenant`) via l'abstraction de stockage, jamais un accès disque en dur.
+ * Aucun cycle : `ImpressionModule`/`FacturationModule` n'importent jamais `CycleVieTenantModule`.
  */
 @Module({
   imports: [FacturationModule],
@@ -54,6 +60,6 @@ import { StockagePdfDisqueLocal } from './stockage-pdf';
     ServiceImpressionFacture,
     { provide: JETON_STOCKAGE_PDF, useClass: StockagePdfDisqueLocal },
   ],
-  exports: [ServiceImpressionFacture],
+  exports: [ServiceImpressionFacture, JETON_STOCKAGE_PDF],
 })
 export class ImpressionModule {}

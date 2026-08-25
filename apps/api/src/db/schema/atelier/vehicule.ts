@@ -31,6 +31,10 @@ import {
 } from '../colonnes-communes';
 import { tenant } from '../tenant';
 import { utilisateur } from '../utilisateur';
+// Import direct du fichier (pas du barrel '../facturation') : même précaution que
+// atelier/ordre-reparation.ts (Z-17, 0011) et atelier/client.ts (0066) — enums.ts n'importe rien
+// d'atelier, ce chemin direct est sûr.
+import { origineDocumentEnum } from '../facturation/enums';
 import { typeApprobationCh } from '../referentiel/type-approbation-ch';
 import { client } from './client';
 import {
@@ -52,6 +56,17 @@ export const vehicule = pgTable(
   {
     id: colonneId(),
     tenantId: colonneTenantId().references(() => tenant.id, { onDelete: 'restrict' }),
+    /**
+     * Reprise (migrations/0066_ancrages_origine_reprise.sql) : même enum et même sémantique que
+     * documentVente.origine (0010) et ordreReparation.origine (0011) — dfa (créé par DFA) ou
+     * reprise (importé). Revient sur l'exclusion explicite de 0011 (« vehicule N'EST PAS
+     * aligné ») : voir l'en-tête de 0066 pour la justification et le commentaire sur
+     * numeroOrigine ci-dessous.
+     */
+    origine: origineDocumentEnum('origine').notNull().default('dfa'),
+    /** Reprise (0066) : identifiant véhicule source verbatim, jamais retouché. NULL si
+     * origine=dfa. Distinct de vin/vehiculePlaque, qui restent les identifiants métier stables. */
+    numeroOrigine: text('numero_origine'),
     vin: text('vin'),
     marque: text('marque').notNull(),
     modele: text('modele').notNull(),
@@ -152,7 +167,15 @@ export const vehicule = pgTable(
       'vehicule_archivage_coherent_chk',
       sql`(${t.statut} = 'archive') = (${t.motifArchivage} is not null)`,
     ),
+    // Reprise (0066) : même patron que ordre_reparation_origine_numero_origine_chk (0011).
+    check(
+      'vehicule_origine_numero_origine_chk',
+      sql`(${t.origine} = 'dfa') = (${t.numeroOrigine} is null)`,
+    ),
     index('vehicule_pagination_idx').on(t.tenantId, t.creeLe.desc(), t.id.desc()),
+    // vehicule_numero_origine_uk (index unique PARTIEL, where numero_origine is not null — 0066)
+    // n'est pas modélisable via `unique()` de pg-core (pas de clause WHERE) : posé en SQL brut,
+    // même limite que ordre_reparation_numero_origine_uk (0011).
     /**
      * Sert le `on delete set null` du référentiel (0050) : sans cet index, un réimport qui
      * retire une ligne obsolète de `type_approbation_ch` balaierait `vehicule` en entier — sur

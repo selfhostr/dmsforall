@@ -148,3 +148,15 @@ describe('chemins.pneus', () => {
     expect(chemins.pneus.aRelancer('site-1')).toBe('/pneus?onglet=a_relancer&site=site-1');
   });
 });
+
+/**
+ * Reprise de données — SEUL chemin du produit sans `?site=` conservé (`DossierReprise` n'a aucune
+ * notion de site dans le contrat, voir le commentaire de tête dans `chemins.ts`). Ce test verrouille
+ * l'absence délibérée de paramètre `site` : un futur appel `chemins.reprise.accueil('site-1')`
+ * échouerait à la compilation (le constructeur n'accepte aucun argument), pas seulement au rendu.
+ */
+describe('chemins.reprise', () => {
+  it('construit /reprise-donnees sans aucun paramètre', () => {
+    expect(chemins.reprise.accueil()).toBe('/reprise-donnees');
+  });
+});

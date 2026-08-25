@@ -43,6 +43,36 @@ describe('StockagePdfDisqueLocal', () => {
     const stockage = new StockagePdfDisqueLocal(racine);
     await expect(stockage.lire('inconnu/inconnu.pdf')).rejects.toThrow();
   });
+
+  describe('purgerTenant — correctif nLPD (résiliation)', () => {
+    it('efface les PDF du tenant visé sans toucher à ceux d’un autre tenant', async () => {
+      const stockage = new StockagePdfDisqueLocal(racine);
+      const cleA = cleePdfDocument('tenant-a', 'doc-1');
+      const cleB = cleePdfDocument('tenant-b', 'doc-1');
+      await stockage.ecrire(cleA, Buffer.from('facture A'));
+      await stockage.ecrire(cleB, Buffer.from('facture B'));
+
+      await stockage.purgerTenant('tenant-a');
+
+      await expect(stockage.lire(cleA)).rejects.toThrow();
+      expect((await stockage.lire(cleB)).toString()).toBe('facture B');
+    });
+
+    it('idempotente : purger un tenant qui n’a jamais rien déposé ne lève pas', async () => {
+      const stockage = new StockagePdfDisqueLocal(racine);
+      await expect(stockage.purgerTenant('tenant-jamais-vu')).resolves.toBeUndefined();
+    });
+
+    it('refuse un tenantId qui s’évaderait de la racine de stockage', async () => {
+      const stockage = new StockagePdfDisqueLocal(racine);
+      await expect(stockage.purgerTenant('../evasion')).rejects.toThrow(/hors racine/);
+    });
+
+    it('refuse un tenantId vide (éviterait de purger la racine entière)', async () => {
+      const stockage = new StockagePdfDisqueLocal(racine);
+      await expect(stockage.purgerTenant('')).rejects.toThrow(/vide/);
+    });
+  });
 });
 
 describe('cleePdfDocument', () => {

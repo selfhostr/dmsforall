@@ -13,7 +13,6 @@ import {
   appliquerMigrationsDown,
   listerFichiersMigrationsUp,
   listerFichiersMigrationsDown,
-  dumperSchema,
   type BaseEphemere,
 } from '../setup/postgres-ephemere';
 
@@ -48,7 +47,7 @@ describe('réversibilité des migrations', () => {
     await client.connect();
     try {
       await appliquerMigrationsUp(client);
-      const schemaApresPremiereMontee = await dumperSchema(bdd.conteneur, bdd.migrateur);
+      const schemaApresPremiereMontee = await bdd.dumperSchema(bdd.migrateur);
 
       await appliquerMigrationsDown(client);
 
@@ -63,7 +62,7 @@ describe('réversibilité des migrations', () => {
       ).toEqual([]);
 
       await appliquerMigrationsUp(client);
-      const schemaApresSecondeMontee = await dumperSchema(bdd.conteneur, bdd.migrateur);
+      const schemaApresSecondeMontee = await bdd.dumperSchema(bdd.migrateur);
 
       expect(schemaApresSecondeMontee).toBe(schemaApresPremiereMontee);
     } finally {

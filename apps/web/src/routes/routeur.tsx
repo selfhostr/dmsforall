@@ -40,6 +40,7 @@ import { EcranPointage } from '@/ecrans/pointage/EcranPointage';
 import { EcranPointageTechnicien } from '@/ecrans/pointage/EcranPointageTechnicien';
 import { EcranRecherche } from '@/ecrans/recherche/EcranRecherche';
 import { EcranRelances } from '@/ecrans/relances/EcranRelances';
+import { EcranReprise } from '@/ecrans/reprise/EcranReprise';
 import { EcranScan } from '@/ecrans/scan/EcranScan';
 // `EcranRendezVous` (routé ci-dessous) est le CONTENEUR réseau ; il rend `EcranAgendaRendezVous`
 // (présentation pure, testée séparément par fixtures locales) — l'écran métier existe donc bien
@@ -651,6 +652,26 @@ export const routesConfig: RouteObject[] = [
         element: (
           <RouteProtegee rolesAutorises={ROLES_RELANCES}>
             <EcranRelances />
+          </RouteProtegee>
+        ),
+      },
+      // Reprise de données (dépôt de l'archive d'un ancien logiciel, `packages/shared/src/
+      // contrats/reprise.ts`) — geste d'onboarding exceptionnel, hors du menu au même titre que
+      // `/console` (`routes/atteignabilite.spec.ts`, `HORS_MENU`), mais routée normalement sous
+      // la coquille métier (`RouteProtegee` + `AppShell`), contrairement à `/console` : c'est un
+      // écran de GARAGE (données du tenant), pas un poste d'exploitation plateforme.
+      //
+      // PAS de `rolesAutorises` ici — SIGNALÉ plutôt qu'inventé : le module API correspondant est
+      // écrit en parallèle par un autre agent et le contrat ne documente aucune restriction de
+      // rôle sur ce domaine. Poser une garde de route sans preuve qu'elle reflète une restriction
+      // RÉELLE côté API serait exactement la « sécurité de façade » que ce fichier interdit
+      // ailleurs (voir `droits-routes.ts`, cas de figure 1). À revisiter (expert-auth/expert-
+      // react) une fois le module API fusionné et sa matrice de droits connue.
+      {
+        path: 'reprise-donnees',
+        element: (
+          <RouteProtegee>
+            <EcranReprise />
           </RouteProtegee>
         ),
       },

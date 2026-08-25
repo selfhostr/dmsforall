@@ -84,6 +84,8 @@ type LignePaiementBrute = {
   readonly cree_par_id: string | null;
   readonly cree_le: Date | string;
   readonly somme_reglement: string;
+  readonly origine: LignePaiement['origine'];
+  readonly numero_origine: string | null;
 };
 
 function ligneDepuisBrute(brute: LignePaiementBrute): LignePaiement {
@@ -105,6 +107,8 @@ function ligneDepuisBrute(brute: LignePaiementBrute): LignePaiement {
     identifiantTransactionBanque: brute.identifiant_transaction_banque,
     source: brute.source,
     contrePasseId: brute.contre_passe_id,
+    origine: brute.origine,
+    numeroOrigine: brute.numero_origine,
     exporteLe: null,
     exportId: null,
     creeParId: brute.cree_par_id,
