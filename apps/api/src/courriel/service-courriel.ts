@@ -52,17 +52,34 @@ export class ServiceCourriel {
 
     // Journalisation structurée du RÉSULTAT — jamais le corps complet, jamais le mot de passe
     // (qui ne transite de toute façon jamais jusqu'ici, voir `resoudreConfigSmtp`).
+    //
+    // Les adresses des destinataires et le sujet sont des données personnelles de clients de
+    // garage : jamais à hauteur `info`/`warn` (niveau actif par défaut en production, voir
+    // `LOG_NIVEAU`). Ce qui reste au niveau `info`/`warn` — succès/échec, identifiant du message,
+    // nombre de destinataires — suffit à diagnostiquer un incident d'envoi sans exposer QUI a été
+    // contacté ni À PROPOS DE QUOI. Le détail complet est journalisé une seconde fois en `debug`,
+    // désactivé par défaut en production, pour l'investigation locale/dev quand il faut vraiment
+    // relire l'adresse ou le sujet exact. `ServiceJournal` redacte aussi ces champs par défense en
+    // profondeur (voir `CHAMPS_DONNEES_PERSONNELLES`), mais ne pas s'y fier comme unique garde ici
+    // — le détail complet doit rester réservé à `debug`, pas juste redacté à `info`.
     if (resultat.succes) {
       this.journal.info('Courriel envoyé', {
+        idMessage: resultat.idMessage,
+        nombreDestinataires: message.destinataires.length,
+      });
+      this.journal.debug('Courriel envoyé — détail', {
         idMessage: resultat.idMessage,
         destinataires: message.destinataires,
         sujet: message.sujet,
       });
     } else {
       this.journal.warn('Échec d’envoi de courriel', {
+        nombreDestinataires: message.destinataires.length,
+        erreur: resultat.erreur,
+      });
+      this.journal.debug('Échec d’envoi de courriel — détail', {
         destinataires: message.destinataires,
         sujet: message.sujet,
-        erreur: resultat.erreur,
       });
     }
 

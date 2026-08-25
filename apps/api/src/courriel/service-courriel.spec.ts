@@ -101,3 +101,78 @@ describe('ServiceCourriel — construction de l’enveloppe', () => {
     expect(resultat).toEqual({ succes: true, idMessage: 'msg-1' });
   });
 });
+
+describe('ServiceCourriel — journalisation, sans données personnelles au niveau info/warn', () => {
+  it("le succès n'écrit ni l'adresse du destinataire ni le sujet au niveau info — seul le compte", async () => {
+    const { transport } = transportEspion();
+    const config = { SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' } as Config;
+    const journal = journalFactice();
+    const service = new ServiceCourriel(transport, config, journal);
+
+    await service.envoyer({
+      destinataires: ['client-un@example.ch', 'client-deux@example.ch'],
+      sujet: 'Rappel facture 2026-042',
+      nomGarage: 'Garage Martin',
+      adresseReponseGarage: 'contact@garage-martin.ch',
+    });
+
+    expect(journal.info).toHaveBeenCalledTimes(1);
+    const [, donnees] = (journal.info as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      Record<string, unknown>,
+    ];
+    expect(donnees.destinataires).toBeUndefined();
+    expect(donnees.sujet).toBeUndefined();
+    expect(donnees.nombreDestinataires).toBe(2);
+    expect(JSON.stringify(donnees)).not.toContain('client-un@example.ch');
+    expect(JSON.stringify(donnees)).not.toContain('Rappel facture 2026-042');
+  });
+
+  it("l'échec n'écrit ni l'adresse du destinataire ni le sujet au niveau warn — seul le compte et l'erreur de transport", async () => {
+    const transport: TransportCourriel = {
+      envoyer: vi.fn(async () => ({ succes: false, erreur: 'boîte pleine' })),
+    };
+    const config = { SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' } as Config;
+    const journal = journalFactice();
+    const service = new ServiceCourriel(transport, config, journal);
+
+    await service.envoyer({
+      destinataires: ['client@example.ch'],
+      sujet: 'Rappel facture 2026-042',
+      nomGarage: 'Garage Martin',
+      adresseReponseGarage: 'contact@garage-martin.ch',
+    });
+
+    expect(journal.warn).toHaveBeenCalledTimes(1);
+    const [, donnees] = (journal.warn as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      Record<string, unknown>,
+    ];
+    expect(donnees.destinataires).toBeUndefined();
+    expect(donnees.sujet).toBeUndefined();
+    expect(donnees.nombreDestinataires).toBe(1);
+    expect(donnees.erreur).toBe('boîte pleine');
+  });
+
+  it('conserve le détail (destinataires, sujet) au niveau debug — désactivé par défaut en production', async () => {
+    const { transport } = transportEspion();
+    const config = { SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' } as Config;
+    const journal = journalFactice();
+    const service = new ServiceCourriel(transport, config, journal);
+
+    await service.envoyer({
+      destinataires: ['client@example.ch'],
+      sujet: 'Rappel facture 2026-042',
+      nomGarage: 'Garage Martin',
+      adresseReponseGarage: 'contact@garage-martin.ch',
+    });
+
+    expect(journal.debug).toHaveBeenCalledTimes(1);
+    const [, donnees] = (journal.debug as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      Record<string, unknown>,
+    ];
+    expect(donnees.destinataires).toEqual(['client@example.ch']);
+    expect(donnees.sujet).toBe('Rappel facture 2026-042');
+  });
+});
