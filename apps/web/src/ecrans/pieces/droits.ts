@@ -111,13 +111,29 @@ const ROLES_ECRITURE_PARAMETRAGE_PIECES: ReadonlySet<RoleUtilisateur> = new Set(
 ]);
 
 /**
- * Factures fournisseur (dépôt/rapprochement) — INFÉRÉ (pas encore de `matrice-droits.ts` côté
- * serveur, le service est écrit EN PARALLÈLE par un autre agent, voir
- * `hooks/pieces/factures-fournisseur.temporaire.ts`). Lecture élargie à `comptable` (pièce
- * comptable, RF-115 mise à part `admin` reste `[]`) — même périmètre que `ROLES_LECTURE_CONSIGNE`
- * ci-dessus, même raisonnement (« une créance/dépense qui dort »). Dépôt et validation réservés à
- * `magasinier` SEUL (« le magasinier confirme », brief) — même périmètre que
- * `ROLES_ECRITURE_MOUVEMENT`. À confronter à la matrice réelle dès qu'elle existe côté serveur.
+ * Factures fournisseur (dépôt/rapprochement) — CONFRONTÉ à la matrice réelle côté serveur
+ * (`auth/matrice-droits.ts`, bloc `pieces.facture_fournisseur.*`, ajouté à l'occasion de cette
+ * confrontation) : ce périmètre était déjà exact ici, l'écart trouvé était côté serveur (le
+ * palliatif alors en place, `droits-provisoires.ts`, retiré depuis, accordait à tort `admin`/
+ * `direction` en écriture et refusait à tort `chef_atelier` en lecture — voir
+ * `matrice-droits.spec.ts`, describe dédié, pour la table de vérité).
+ *
+ * Lecture élargie à `chef_atelier` — même trio que `ROLES_LECTURE_FOURNISSEUR` ci-dessus (consulter
+ * la facture qui règle ce qu'il a commandé prolonge son périmètre fournisseur/commande fournisseur,
+ * ce n'est pas un droit nouveau) — et à `comptable` (pièce comptable, RF-115 mise à part `admin`
+ * reste `[]`), même périmètre que `ROLES_LECTURE_CONSIGNE` ci-dessus, même raisonnement (« une
+ * créance/dépense qui dort »). Dépôt, validation ET rejet réservés à `magasinier` SEUL (« le
+ * magasinier confirme », brief) — même périmètre que `ROLES_RECEPTION_COMMANDE_FOURNISSEUR` (geste
+ * physique de confirmation), délibérément PAS `ROLES_ECRITURE_FOURNISSEUR`/
+ * `ROLES_ECRITURE_COMMANDE_FOURNISSEUR` : direction/chef_atelier gèrent la relation fournisseur et
+ * la commande, mais ne détiennent pas la réception physique — le dépôt/rapprochement d'une facture
+ * est le même geste, pas un acte de gestion.
+ *
+ * DÉFENSIF D'ERGONOMIE SEULEMENT (voir l'en-tête de ce fichier) : rien ne garantit MÉCANIQUEMENT
+ * que ces deux constantes restent alignées avec `MATRICE_DROITS` côté serveur si l'une des deux
+ * bouge sans que l'autre suive — la frontière tenant/serveur (jamais franchie par un import
+ * `apps/web` → `apps/api`) empêche une source unique littérale. Un écart resterait donc INVISIBLE
+ * ici jusqu'à la prochaine confrontation manuelle, comme celle qui a produit ce commentaire.
  */
 const ROLES_LECTURE_FACTURE_FOURNISSEUR: ReadonlySet<RoleUtilisateur> = new Set([
   'direction',

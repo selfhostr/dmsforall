@@ -642,6 +642,74 @@ describe('MATRICE_DROITS — admin et direction (superset SAUF droits financiers
     expect(MATRICE_DROITS.direction.some((a) => a.startsWith('pieces.'))).toBe(true);
   });
 
+  const ROLES_LECTURE_ATTENDUS = ['direction', 'chef_atelier', 'magasinier', 'comptable'] as const;
+  const ROLES_SANS_LECTURE = [
+    'admin',
+    'poste_atelier',
+    'vendeur',
+    'receptionnaire',
+    'technicien',
+  ] as const;
+  const ACTIONS_ECRITURE = [
+    'pieces.facture_fournisseur.deposer',
+    'pieces.facture_fournisseur.valider',
+    'pieces.facture_fournisseur.rejeter',
+  ] as const;
+  const ROLES_SANS_ECRITURE = [
+    'admin',
+    'direction',
+    'chef_atelier',
+    'comptable',
+    'poste_atelier',
+    'vendeur',
+    'receptionnaire',
+    'technicien',
+  ] as const;
+
+  it('lecture accordée EXACTEMENT à direction, chef_atelier, magasinier, comptable', () => {
+    for (const role of ROLES_LECTURE_ATTENDUS) {
+      expect(MATRICE_DROITS[role]).toContain('pieces.facture_fournisseur.lire');
+    }
+    for (const role of ROLES_SANS_LECTURE) {
+      expect(MATRICE_DROITS[role]).not.toContain('pieces.facture_fournisseur.lire');
+    }
+  });
+
+  it('admin exclu même de la lecture (RF-115) — le palliatif remplacé l’accordait à tort', () => {
+    expect(MATRICE_DROITS.admin).not.toContain('pieces.facture_fournisseur.lire');
+  });
+
+  it('chef_atelier a la lecture, même périmètre que la lecture fournisseur/commande fournisseur — le palliatif remplacé l’excluait à tort', () => {
+    expect(MATRICE_DROITS.chef_atelier).toContain('pieces.facture_fournisseur.lire');
+    expect(MATRICE_DROITS.chef_atelier).toContain('pieces.fournisseur.lire');
+    expect(MATRICE_DROITS.chef_atelier).toContain('pieces.commande_fournisseur.lire');
+  });
+
+  it('déposer/valider/rejeter accordés à magasinier SEUL — même périmètre que pieces.commande_fournisseur.reception', () => {
+    for (const action of ACTIONS_ECRITURE) {
+      expect(MATRICE_DROITS.magasinier).toContain(action);
+      for (const role of ROLES_SANS_ECRITURE) {
+        expect(MATRICE_DROITS[role]).not.toContain(action);
+      }
+    }
+    // Même trio EXACT que la réception de commande fournisseur (geste physique de confirmation).
+    expect(MATRICE_DROITS.magasinier).toContain('pieces.commande_fournisseur.reception');
+  });
+
+  it('direction et admin N’ONT PAS l’écriture — le palliatif remplacé la leur accordait à tort (direction : aucun geste de confirmation physique dans ce cluster ; admin : RF-115)', () => {
+    for (const action of ACTIONS_ECRITURE) {
+      expect(MATRICE_DROITS.direction).not.toContain(action);
+      expect(MATRICE_DROITS.admin).not.toContain(action);
+    }
+  });
+
+  it('comptable reste lecture-seule (invariant « comptable = lecture-seule hors facturation/ventes », vérifié aussi côté pointage)', () => {
+    expect(MATRICE_DROITS.comptable).toContain('pieces.facture_fournisseur.lire');
+    for (const action of ACTIONS_ECRITURE) {
+      expect(MATRICE_DROITS.comptable).not.toContain(action);
+    }
+  });
+
   it('RF-115 — admin n’a AUCUN droit financier D’ÉCRITURE NI D’ENCAISSEMENT (aucune action facturation.paiement.*, aucune écriture/émission facturation.document.*), contrairement à direction : séparation des pouvoirs explicite dès l’étape 2. SEULE exception, volontaire et distincte : facturation.document.lire (RF-116, visibilité des MONTANTS, est filtré ailleurs — facturation/documents/mappeurs.ts — jamais en cachant la ligne de document elle-même à admin) — documenté ici pour que ce ne soit jamais lu comme un oubli.', () => {
     expect(MATRICE_DROITS.admin.filter((a) => a.startsWith('facturation.'))).toEqual([
       'facturation.document.lire',
@@ -672,6 +740,97 @@ describe('MATRICE_DROITS — admin et direction (superset SAUF droits financiers
       if (action.startsWith('facturation.') || action.startsWith('ventes.')) continue;
       if (action === 'rendez_vous.creer') continue;
       expect(MATRICE_DROITS.chef_atelier).toContain(action);
+    }
+  });
+});
+
+/**
+ * Factures fournisseur — bascule depuis le palliatif `pieces/factures-fournisseur/droits-
+ * provisoires.ts` (retiré). Table de vérité mesurée à l'origine de cette bascule, croisant le
+ * palliatif serveur ET `apps/web/src/ecrans/pieces/droits.ts` :
+ *
+ *   Lecture      | serveur (palliatif) | front (déjà) | retenu ici
+ *   direction    | oui                  | oui          | oui
+ *   chef_atelier | NON (bug)            | oui          | oui  ← palliatif trop restrictif
+ *   magasinier   | oui                  | oui          | oui
+ *   comptable    | oui                  | oui          | oui
+ *   admin        | oui (bug, RF-115)    | non          | NON  ← palliatif trop permissif
+ *
+ *   Écriture (déposer/valider/rejeter) | serveur (palliatif) | front (déjà) | retenu ici
+ *   magasinier | oui               | oui | oui
+ *   direction  | oui (bug)         | non | NON  ← palliatif trop permissif
+ *   admin      | oui (bug, RF-115) | non | NON  ← palliatif trop permissif
+ *
+ * Le front avait donc déjà la bonne réponse sur les deux points ; seul le palliatif serveur était
+ * fautif — dans les DEUX sens à la fois (trop permissif pour admin/direction en écriture et pour
+ * admin en lecture, trop restrictif pour chef_atelier en lecture).
+ */
+describe('MATRICE_DROITS — factures fournisseur (RP-26/RF-conservation, bascule du palliatif droits-provisoires.ts)', () => {
+  const ROLES_LECTURE_ATTENDUS = ['direction', 'chef_atelier', 'magasinier', 'comptable'] as const;
+  const ROLES_SANS_LECTURE = [
+    'admin',
+    'poste_atelier',
+    'vendeur',
+    'receptionnaire',
+    'technicien',
+  ] as const;
+  const ACTIONS_ECRITURE = [
+    'pieces.facture_fournisseur.deposer',
+    'pieces.facture_fournisseur.valider',
+    'pieces.facture_fournisseur.rejeter',
+  ] as const;
+  const ROLES_SANS_ECRITURE = [
+    'admin',
+    'direction',
+    'chef_atelier',
+    'comptable',
+    'poste_atelier',
+    'vendeur',
+    'receptionnaire',
+    'technicien',
+  ] as const;
+
+  it('lecture accordée EXACTEMENT à direction, chef_atelier, magasinier, comptable', () => {
+    for (const role of ROLES_LECTURE_ATTENDUS) {
+      expect(MATRICE_DROITS[role]).toContain('pieces.facture_fournisseur.lire');
+    }
+    for (const role of ROLES_SANS_LECTURE) {
+      expect(MATRICE_DROITS[role]).not.toContain('pieces.facture_fournisseur.lire');
+    }
+  });
+
+  it('admin exclu même de la lecture (RF-115) — le palliatif remplacé l’accordait à tort', () => {
+    expect(MATRICE_DROITS.admin).not.toContain('pieces.facture_fournisseur.lire');
+  });
+
+  it('chef_atelier a la lecture, même périmètre que la lecture fournisseur/commande fournisseur — le palliatif remplacé l’excluait à tort', () => {
+    expect(MATRICE_DROITS.chef_atelier).toContain('pieces.facture_fournisseur.lire');
+    expect(MATRICE_DROITS.chef_atelier).toContain('pieces.fournisseur.lire');
+    expect(MATRICE_DROITS.chef_atelier).toContain('pieces.commande_fournisseur.lire');
+  });
+
+  it('déposer/valider/rejeter accordés à magasinier SEUL — même périmètre que pieces.commande_fournisseur.reception', () => {
+    for (const action of ACTIONS_ECRITURE) {
+      expect(MATRICE_DROITS.magasinier).toContain(action);
+      for (const role of ROLES_SANS_ECRITURE) {
+        expect(MATRICE_DROITS[role]).not.toContain(action);
+      }
+    }
+    // Même trio EXACT que la réception de commande fournisseur (geste physique de confirmation).
+    expect(MATRICE_DROITS.magasinier).toContain('pieces.commande_fournisseur.reception');
+  });
+
+  it('direction et admin N’ONT PAS l’écriture — le palliatif remplacé la leur accordait à tort (direction : aucun geste de confirmation physique dans ce cluster ; admin : RF-115)', () => {
+    for (const action of ACTIONS_ECRITURE) {
+      expect(MATRICE_DROITS.direction).not.toContain(action);
+      expect(MATRICE_DROITS.admin).not.toContain(action);
+    }
+  });
+
+  it('comptable reste lecture-seule (invariant « comptable = lecture-seule hors facturation/ventes », vérifié aussi côté pointage)', () => {
+    expect(MATRICE_DROITS.comptable).toContain('pieces.facture_fournisseur.lire');
+    for (const action of ACTIONS_ECRITURE) {
+      expect(MATRICE_DROITS.comptable).not.toContain(action);
     }
   });
 });
@@ -1184,7 +1343,7 @@ describe('MATRICE_DROITS — gestion des employés (issue #137)', () => {
 });
 
 describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste close du lot 1 + facturation/paiements + facturation/documents + bloc créancier + export fiduciaire + impression PDF étape 2 + pièces étape 3 + ventes étape 4 + pointage lot 2 + tableau de bord + rendez-vous lot RDV-1 + gestion des employés issue #137)', () => {
-  it('l’union de toutes les actions accordées ne contient QUE les actions du socle + les actions closes du lot 1 + les 5 actions facturation.paiement.* (agent paiements) + les 9 actions facturation.document.*/facturation.avoir.creer (agent documents) + les 2 actions facturation.parametrage.creancier.* + facturation.export.creer + facturation.document.imprimer (arbitrages coordinateur) + les 9 actions pieces.* (étape 3) + les 5 actions socle.utilisateur.* (issue #137)', () => {
+  it('l’union de toutes les actions accordées ne contient QUE les actions du socle + les actions closes du lot 1 + les 5 actions facturation.paiement.* (agent paiements) + les 9 actions facturation.document.*/facturation.avoir.creer (agent documents) + les 2 actions facturation.parametrage.creancier.* + facturation.export.creer + facturation.document.imprimer (arbitrages coordinateur) + les 13 actions pieces.* (étape 3 + les 4 pieces.facture_fournisseur.*, bascule du palliatif droits-provisoires.ts) + les 5 actions socle.utilisateur.* (issue #137)', () => {
     const actionsAttendues: Action[] = [
       'socle.tenant.lire',
       'socle.site.lire',
@@ -1302,6 +1461,12 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'pieces.consigne.retourner',
       'pieces.parametrage.lire',
       'pieces.parametrage.modifier',
+      // Factures fournisseur — bascule depuis le palliatif droits-provisoires.ts, voir le describe
+      // dédié plus bas pour la table de vérité rôle par rôle.
+      'pieces.facture_fournisseur.lire',
+      'pieces.facture_fournisseur.deposer',
+      'pieces.facture_fournisseur.valider',
+      'pieces.facture_fournisseur.rejeter',
       // --- Étape 4 : ventes VN/VO (RV-01→RV-62, matrice §11 de docs/specification-etape-4-ventes.md) ---
       'ventes.vehicule_stock.lire',
       'ventes.vehicule_stock.creer',
@@ -1751,6 +1916,14 @@ describe('MATRICE_DROITS — invariante structurelle : écrire une entité impli
     {
       lire: 'pieces.parametrage.lire',
       ecriture: ['pieces.parametrage.modifier'],
+    },
+    {
+      lire: 'pieces.facture_fournisseur.lire',
+      ecriture: [
+        'pieces.facture_fournisseur.deposer',
+        'pieces.facture_fournisseur.valider',
+        'pieces.facture_fournisseur.rejeter',
+      ],
     },
     {
       lire: 'ventes.vehicule_stock.lire',

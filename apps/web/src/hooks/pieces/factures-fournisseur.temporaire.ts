@@ -27,9 +27,13 @@ import type {
  * ENDPOINTS ATTENDUS (6) — hypothèse de transport uniquement, formes déjà réelles
  * ===========================================================================================
  *
- * 1. `POST /factures-fournisseur` — `multipart/form-data`, champ `fichier` (PDF). En-tête
- *    `Idempotency-Key` OBLIGATOIRE (persiste immédiatement `facture_fournisseur`, statut `deposee`
- *    au minimum). Lecture (QR → texte PDF → OCR, `lecture/orchestrateur-lecture.ts`) ET tentative
+ * 1. `POST /factures-fournisseur` — `multipart/form-data`, champ `fichier` (PDF). AUCUN en-tête
+ *    `Idempotency-Key` : la déduplication d'un dépôt répété (double-clic, retry réseau) se fait
+ *    CÔTÉ SERVEUR par empreinte SHA-256 du fichier (`ServiceFactureFournisseur.deposer`, 409
+ *    CONFLIT sur le même contenu déjà déposé) — le service ne lit aucune clé d'idempotence pour
+ *    cette route, contrairement au patron `Idempotency-Key` des autres créations sensibles du
+ *    produit (client, OR…). Persiste immédiatement `facture_fournisseur`, statut `deposee`
+ *    au minimum. Lecture (QR → texte PDF → OCR, `lecture/orchestrateur-lecture.ts`) ET tentative
  *    de rapprochement faites SYNCHRONE (l'attente de quelques secondes du brief) : la réponse porte
  *    déjà `statut: 'rapprochee'` si un match a été trouvé, `'deposee'` sinon — jamais `'validee'`/
  *    `'rejetee'` fraîchement déposée (États GELÉS, `STATUTS_FACTURE_FOURNISSEUR`).
@@ -108,12 +112,12 @@ function construireParametresListe(filtres: FiltresFacturesFournisseur): string 
  * pose systématiquement `Content-Type: application/json` dès qu'un corps est fourni, ce qui
  * casserait une requête `multipart/form-data` — même contrainte que
  * `appellerScanPermisCirculation` (`ecrans/scan/contrat-ocr.temporaire.ts`), même réplique manuelle
- * des conventions de `requeteApi` (`credentials: 'include'`, `Accept-Language`, `Idempotency-Key`,
- * mêmes classes d'erreur).
+ * des conventions de `requeteApi` (`credentials: 'include'`, `Accept-Language`, mêmes classes
+ * d'erreur). PAS d'`Idempotency-Key` — voir le commentaire de tête de ce fichier, endpoint 1 : le
+ * serveur ne lit aucune clé pour cette route, la déduplication se fait par empreinte du fichier.
  */
 export async function deposerFactureFournisseur(
   fichier: File,
-  idempotencyKey: string,
   signal: AbortSignal,
 ): Promise<ReponseFactureFournisseur> {
   const url = `${obtenirEnv().VITE_API_URL}/factures-fournisseur`;
@@ -127,7 +131,6 @@ export async function deposerFactureFournisseur(
       credentials: 'include',
       headers: {
         'Accept-Language': i18n.language,
-        'Idempotency-Key': idempotencyKey,
       },
       body: corps,
       signal,

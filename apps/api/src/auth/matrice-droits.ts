@@ -346,6 +346,17 @@ export const TOUTES_ACTIONS = [
   'pieces.consigne.retourner',
   'pieces.parametrage.lire',
   'pieces.parametrage.modifier',
+  // Factures fournisseur (dépôt/rapprochement) — bascule depuis le palliatif
+  // `pieces/factures-fournisseur/droits-provisoires.ts` (retiré, voir `DROITS_PIECES_PAR_ROLE`
+  // ci-dessous pour le détail rôle par rôle). Divergence corrigée avec le front au passage : le
+  // palliatif accordait admin (violait RF-115) et direction (aucun geste de confirmation physique,
+  // contrairement au front qui les excluait déjà tous les deux) en écriture, et excluait
+  // chef_atelier en lecture (que le front accordait déjà) — voir `matrice-droits.spec.ts`, describe
+  // dédié, pour la table de vérité.
+  'pieces.facture_fournisseur.lire',
+  'pieces.facture_fournisseur.deposer',
+  'pieces.facture_fournisseur.valider',
+  'pieces.facture_fournisseur.rejeter',
   // ---- Ventes VN/VO (étape 4, RV-01→RV-62) — bloc ADDITIF PUR, calé sur la matrice §11 de
   // docs/specification-etape-4-ventes.md (4 colonnes SEULEMENT : vendeur, direction, comptable,
   // receptionnaire — chef_atelier/technicien/magasinier/admin n'y apparaissent dans AUCUNE
@@ -1416,6 +1427,44 @@ const RETOUR_CONSIGNE_PIECES: readonly Action[] = ['pieces.consigne.retourner'];
 const LECTURE_PARAMETRAGE_PIECES: readonly Action[] = ['pieces.parametrage.lire'];
 const ECRITURE_PARAMETRAGE_PIECES: readonly Action[] = ['pieces.parametrage.modifier'];
 
+/**
+ * Factures fournisseur — bascule depuis le palliatif `droits-provisoires.ts` du module
+ * (`pieces/factures-fournisseur/`), retiré. Décision métier, PAS une reconduction mécanique du
+ * palliatif ni du front : les deux ont été confrontés à la matrice §11 pièces déjà tranchée
+ * ci-dessus, et à trois traits propres à une facture fournisseur (engage de l'argent, pièce
+ * comptable soumise à conservation art. 958f CO, rapprochement = acte de contrôle) :
+ *
+ *  - LECTURE : `direction`, `chef_atelier`, `magasinier` — même trio EXACT que
+ *    `LECTURE_FOURNISSEUR_PIECES`/`LECTURE_COMMANDE_FOURNISSEUR_PIECES` ci-dessus (`chef_atelier`
+ *    y est déjà traité à l'identique de `direction` sur tout le cluster fournisseur/commande —
+ *    consulter la facture qui règle CE QU'IL a commandé n'est pas un droit nouveau, c'est la
+ *    continuation du même périmètre). `comptable` AJOUTÉ, même raisonnement que
+ *    `LECTURE_CONSIGNE_PIECES` (« une créance/dépense qui dort », pièce comptable RF-conservation) —
+ *    PAS `admin` (RF-115, §11 littéral « non, aucun droit métier », déjà appliqué à TOUT le domaine
+ *    pièces, une facture fournisseur est financière au même titre qu'un article/une consigne).
+ *  - ÉCRITURE (déposer, valider/rejeter le rapprochement) : `magasinier` SEUL — même périmètre
+ *    EXACT que `RECEPTION_COMMANDE_FOURNISSEUR_PIECES` ci-dessus, pas `ECRITURE_FOURNISSEUR_PIECES`/
+ *    `ECRITURE_COMMANDE_FOURNISSEUR_PIECES` (direction/chef_atelier créent/gèrent la RELATION
+ *    fournisseur et la commande, mais ni l'un ni l'autre ne détient la réception physique — le
+ *    dépôt/rapprochement d'une facture est le même geste de confirmation, pas un acte de gestion).
+ *    `comptable` explicitement EXCLU de l'écriture malgré la lecture : hors des domaines
+ *    `facturation.`/`ventes.`, `comptable` ne détient QUE des actions `.lire` dans cette matrice
+ *    (invariant vérifié par `matrice-droits.spec.ts`, section pointage) — rapprocher une facture
+ *    fournisseur reste un contrôle terrain (comparer livraison/commande), pas un geste comptable au
+ *    sens de cette matrice.
+ *
+ * Corrige une divergence RÉELLE trouvée entre ce palliatif et `apps/web/src/ecrans/pieces/
+ * droits.ts` : le front avait déjà ce périmètre EXACT (jamais modifié par cette bascule), le
+ * palliatif serveur accordait à tort `admin`/`direction` en écriture et refusait à tort
+ * `chef_atelier` en lecture — voir le rapport de livraison pour le détail du sens de la divergence.
+ */
+const LECTURE_FACTURE_FOURNISSEUR_PIECES: readonly Action[] = ['pieces.facture_fournisseur.lire'];
+const ECRITURE_FACTURE_FOURNISSEUR_PIECES: readonly Action[] = [
+  'pieces.facture_fournisseur.deposer',
+  'pieces.facture_fournisseur.valider',
+  'pieces.facture_fournisseur.rejeter',
+];
+
 const DROITS_PIECES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
   direction: [
     ...LECTURE_PIECES,
@@ -1429,10 +1478,13 @@ const DROITS_PIECES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]
     ...LECTURE_CONSIGNE_PIECES,
     ...LECTURE_PARAMETRAGE_PIECES,
     ...ECRITURE_PARAMETRAGE_PIECES,
+    ...LECTURE_FACTURE_FOURNISSEUR_PIECES,
   ],
   // Consigne : une consigne d'échange standard jamais rendue est une créance qui dort — donnée
   // financière, INFÉRÉ par l'agent qui a livré ce bloc (pas une ligne littérale de la matrice §11).
-  comptable: [...LECTURE_PIECES, ...LECTURE_CONSIGNE_PIECES],
+  // Facture fournisseur : même raisonnement — voir le commentaire de tête de
+  // `LECTURE_FACTURE_FOURNISSEUR_PIECES` ci-dessus.
+  comptable: [...LECTURE_PIECES, ...LECTURE_CONSIGNE_PIECES, ...LECTURE_FACTURE_FOURNISSEUR_PIECES],
   vendeur: [...LECTURE_PIECES],
   receptionnaire: [...LECTURE_PIECES],
   chef_atelier: [
@@ -1447,6 +1499,7 @@ const DROITS_PIECES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]
     ...LECTURE_CONSIGNE_PIECES,
     ...LECTURE_PARAMETRAGE_PIECES,
     ...ECRITURE_PARAMETRAGE_PIECES,
+    ...LECTURE_FACTURE_FOURNISSEUR_PIECES,
   ],
   magasinier: [
     ...LECTURE_PIECES,
@@ -1465,6 +1518,8 @@ const DROITS_PIECES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]
     ...RETOUR_CONSIGNE_PIECES,
     // Exécute la politique de stock, ne la fixe pas : lecture seule du paramétrage.
     ...LECTURE_PARAMETRAGE_PIECES,
+    ...LECTURE_FACTURE_FOURNISSEUR_PIECES,
+    ...ECRITURE_FACTURE_FOURNISSEUR_PIECES,
   ],
   technicien: [...LECTURE_PIECES],
   // RF-115, littéral sur TOUTE la matrice §11 (y compris la lecture) — voir la note de tête de
