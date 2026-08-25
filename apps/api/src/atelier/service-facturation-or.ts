@@ -29,7 +29,7 @@ import {
   type ServiceIdempotence,
 } from '../common/idempotence';
 
-import { calculerLigneDocument } from '../facturation/documents/calcul-document';
+import type { MontantsLigneDocumentCalcules } from '../facturation/documents/calcul-document';
 import {
   chargerAdresseFacturationStructuree,
   chargerConditionsPaiementEnVigueur,
@@ -95,6 +95,42 @@ export function ligneAppartientAuGroupe(
 export function typeLigneDocumentDepuisOr(type: LigneLigneOr['type']): TypeLigneDocumentVente {
   if (type === 'remise') return 'repartition';
   return type;
+}
+
+/**
+ * Montants de la ligne de document recopiée depuis une ligne d'OR déjà FIGÉE (`RM-50`/`RM-65` :
+ * `montantHtCentimes`/`montantTvaCentimes`/`montantTtcCentimes` sont le résultat FINAL de
+ * `CalculLigneSimple`, calculés et verrouillés à la création/validation de la ligne d'OR). AUCUN
+ * recalcul ici — c'est délibéré, PAS un oubli : recalculer via `calculerLigneDocument` (pipeline
+ * TTC-ancré de `facturation/documents/calcul-document.ts`) appliquerait une SECONDE règle d'arrondi
+ * à un montant déjà arrondi une première fois côté atelier — la cascade corrigée par
+ * `fix/arrondi-unique` (voir l'en-tête de `calcul-document.ts` et `service-facturation-or.spec.ts`).
+ * La signature ne prend même pas de taux de TVA : structurellement, elle ne PEUT pas recalculer la
+ * TVA, seulement recopier.
+ *
+ * `baseCentimes = ttcCentimes` : aucune remise n'est appliquée à cette étape (`remisePourmille`,
+ * `remiseMontantCentimes` et `remiseGlobaleRepartieCentimes` valent toujours `null`/`0` pour une
+ * ligne recopiée d'un OR — les remises de pied de document, elles, sont ventilées ailleurs,
+ * `MD-59`/`MD-60`), donc « brut avant remise » et TTC final coïncident.
+ *
+ * `payeur = 'garage'` (RM-70, RF-92, MD-66, AC-07) : facturable posé à 0 sur les trois axes, le
+ * coût réel restant porté par `montantValoriseCentimes` côté appelant.
+ */
+export function montantsLigneDocumentDepuisLigneOr(
+  ligne: Pick<
+    LigneLigneOr,
+    'payeur' | 'montantHtCentimes' | 'montantTvaCentimes' | 'montantTtcCentimes'
+  >,
+): MontantsLigneDocumentCalcules {
+  if (ligne.payeur === 'garage') {
+    return { baseCentimes: 0, htCentimes: 0, tvaCentimes: 0, ttcCentimes: 0 };
+  }
+  return {
+    baseCentimes: ligne.montantTtcCentimes,
+    htCentimes: ligne.montantHtCentimes,
+    tvaCentimes: ligne.montantTvaCentimes,
+    ttcCentimes: ligne.montantTtcCentimes,
+  };
 }
 
 @Injectable()
@@ -351,12 +387,15 @@ export class ServiceFacturationOr {
 
   /**
    * Recopie UNE ligne d'OR `realisee` en ligne de document (`RF-81`, `MD-24` : figée, indépendante
-   * de sa source dès l'instant où elle est écrite). Pipeline TTC-ancré obligatoire
-   * (`ligne_document_mode_ttc_lot_pilote_chk`, migration 0010 §8) : `ligne_or.montantTtcCentimes`
-   * (déjà figé à la création de la ligne d'OR, RM-65) devient le prix unitaire TTC d'une ligne de
-   * quantité 1 — le TTC recopié est donc EXACT, la répartition HT/TVA peut différer d'un centime de
-   * celle de l'OR (arrondi HT-ancré côté atelier vs TTC-ancré côté facturation, §0.2, décision de
-   * @laupernoe du 29.07.2026) : c'est le TTC qui fait foi en cas d'écart, jamais l'inverse.
+   * de sa source dès l'instant où elle est écrite). `ligne_or.{montantHt,montantTva,montantTtc}
+   * Centimes` (déjà figés à la création de la ligne d'OR, RM-65) sont recopiés TELS QUELS via
+   * `montantsLigneDocumentDepuisLigneOr` — PAS recalculés via le pipeline TTC-ancré de
+   * `calculerLigneDocument` (défaut corrigé par `fix/arrondi-unique` : appliquer une seconde règle
+   * d'arrondi à une ligne déjà arrondie par `CalculLigneSimple` est la cascade qui divergeait d'un
+   * centime sur un montant négatif). `modeCalculTva` reste posé à `'ttc'` : contrainte de base
+   * `ligne_document_mode_ttc_lot_pilote_chk` (migration 0010, lot pilote), qui n'admet aucune autre
+   * valeur aujourd'hui — l'étiquette de stockage, pas le calcul, qui lui reste HT-ancré et gelé côté
+   * atelier.
    *
    * `payeur = 'garage'` (RM-70, RF-92, MD-66, AC-07) : facturable posé à 0 sur les trois axes,
    * `montantValoriseCentimes` porte le coût réel — `mapperLigneDocument` (déjà posé,
@@ -372,15 +411,7 @@ export class ServiceFacturationOr {
   ): Promise<void> {
     const estLigneGarage = ligne.payeur === 'garage';
     const prixUnitaireTtcCentimes = estLigneGarage ? 0 : ligne.montantTtcCentimes;
-
-    const montants = calculerLigneDocument({
-      prixUnitaireTtcCentimes,
-      quantiteMillieme: 1000,
-      remisePourmille: null,
-      remiseMontantCentimes: null,
-      remiseGlobaleRepartieCentimes: 0,
-      tauxTvaPourmille: ligne.tauxTvaPourmille,
-    });
+    const montants = montantsLigneDocumentDepuisLigneOr(ligne);
 
     await tx.insert(ligneDocument).values({
       tenantId: ctx.tenantId,

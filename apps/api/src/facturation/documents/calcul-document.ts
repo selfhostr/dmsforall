@@ -1,48 +1,27 @@
 /**
  * Arithmétique de la chaîne documentaire — TOUT est TTC (§0.2 de `migrations/0010_facturation.sql`,
  * décision de @laupernoe du 29.07.2026, RF-40 révisée). Aucune autre fonction du module `facturation` ne
- * doit arrondir un montant : celle-ci est la SEULE porte d'entrée.
+ * doit arrondir un montant : `arrondiCommercial`/`foisArrondiCommercial` sont la SEULE porte
+ * d'entrée — et vivent maintenant dans `@dfa/shared` (`arithmetique/arrondi-commercial.ts`),
+ * réexportées ici pour ne pas casser les imports existants (`export/ecritures/
+ * construction-ecriture-paiement.ts`, ce fichier lui-même, leurs tests).
  *
- * ÉCART SIGNALÉ (à faire remonter à expert-facturation/expert-nestjs qui livrera `paiements/` et
- * `export/`) : `docs/modele-documentaire-facturation.md` §3.2 et la spec étape 2 (`RF-33`) affirment
- * que `arrondiCommercial` doit vivre dans `@dfa/shared`, être la SEULE fonction d'arrondi de tout le
- * dépôt, et être appliquée aussi par `paiements/` (escompte, arrondi 5 centimes) et par `export/`
- * (agrégats). Au moment d'écrire ce fichier, `packages/shared/src/` ne contient AUCUN module hors
- * `contrats/` (vérifié : `find packages/shared/src -type f | grep -v contrats` ne rend rien), et mon
- * périmètre d'écriture pour cette tâche est EXCLUSIVEMENT `apps/api/src/facturation/{racine,
- * documents/}` — je n'ai pas le droit d'ajouter un fichier dans `packages/shared`. La fonction est
- * donc implémentée ICI, locale au sous-module `documents/`, sur le MÊME modèle que
- * `atelier/calcul-ligne.ts` (`CalculLigneSimple`, « implémentation intérimaire, à retirer le jour où
- * le vrai module est livré »). Si `paiements/` ou `export/` ont besoin de la même fonction, il faut
- * soit qu'ils importent `arrondiCommercial` d'ici (couplage entre sous-modules `facturation/`,
- * tolérable car même domaine et même agent à l'origine), soit — mieux — qu'un futur geste
- * d'orchestration la déplace vers `@dfa/shared` et que les trois points d'usage soient réalignés en
- * une fois. À ARBITRER PAR L'ORCHESTRATEUR, pas décidé unilatéralement ici.
+ * ÉCART RÉSOLU (`fix/arrondi-unique`) : `docs/modele-documentaire-facturation.md` §3.2 et `RF-33`
+ * demandaient déjà cette fonction unique dans `@dfa/shared` — c'est fait. Ce qui restait, et qui a
+ * réellement causé un écart d'un centime en production potentielle, c'est que
+ * `atelier/calcul-ligne.ts` (`CalculLigneSimple`) implémentait la MÊME règle avec `Math.round`
+ * (flottant, arrondit les demis vers +∞, donc ASYMÉTRIQUE sur un montant négatif) au lieu
+ * d'`arrondiCommercial` (bigint, demi éloigné de zéro, symétrique) — et que
+ * `atelier/service-facturation-or.ts::inserterLigneDepuisOr` RECALCULAIT via
+ * `calculerLigneDocument` une ligne déjà arrondie par `CalculLigneSimple`, appliquant deux règles
+ * d'arrondi en cascade au même montant. Les deux sont corrigés : `calcul-ligne.ts` utilise
+ * désormais `foisArrondiCommercial`, et `inserterLigneDepuisOr` copie les montants déjà figés de
+ * `ligne_or` au lieu de les recalculer (voir `montantsLigneDocumentDepuisLigneOr` dans
+ * `service-facturation-or.ts`).
  */
+import { arrondiCommercial, foisArrondiCommercial } from '@dfa/shared';
 
-/**
- * Arrondit `num / den` au plus proche entier ; à égalité, s'éloigne de zéro (« demi éloigné de
- * zéro », `MD-40`). Arithmétique entière exclusivement (`bigint`) — jamais de flottant. `den` DOIT
- * être strictement positif (le signe porté par `num` seul, cohérent avec l'usage : les
- * dénominateurs de ce module sont toujours `1000` ou `1000 + taux`).
- *
- * Copié à l'identique de `docs/modele-documentaire-facturation.md` §3.2 (MD-40) — ne pas réécrire
- * « pour simplifier », la démonstration de correction (CF-02) porte sur CETTE forme précise.
- */
-export function arrondiCommercial(num: bigint, den: bigint): bigint {
-  if (den <= 0n) {
-    throw new Error('arrondiCommercial : le dénominateur doit être strictement positif.');
-  }
-  return num >= 0n ? (num + den / 2n) / den : -((-num + den / 2n) / den);
-}
-
-/** `arrondiCommercial(a × b, den)`, en `bigint` de bout en bout — évite toute perte de précision
- *  d'un produit intermédiaire en `number` (MD-40 : `quantite_millieme × prix_unitaire_centimes` peut
- *  atteindre 10¹⁴ sur une ligne extrême). Rend un `number` : les montants de ligne restent plafonnés
- *  à ±CHF 1'000'000 par `ligne_document_montant_*_chk` (migration §8), très en-deçà de 2⁵³. */
-export function foisArrondiCommercial(a: number, b: number, den: number): number {
-  return Number(arrondiCommercial(BigInt(a) * BigInt(b), BigInt(den)));
-}
+export { arrondiCommercial, foisArrondiCommercial };
 
 /* ------------------------------------------------------------------ */
 /* Calcul d'une ligne — pipeline gelé (migration 0010 §8, §0.2)        */

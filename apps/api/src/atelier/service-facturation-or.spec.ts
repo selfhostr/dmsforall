@@ -40,6 +40,7 @@ vi.mock('../facturation/documents/references', () => ({
 import type { EntreeFacturationOrdreReparation } from '@dfa/shared';
 import {
   ligneAppartientAuGroupe,
+  montantsLigneDocumentDepuisLigneOr,
   ServiceFacturationOr,
   typeLigneDocumentDepuisOr,
 } from './service-facturation-or';
@@ -156,6 +157,64 @@ describe('typeLigneDocumentDepuisOr', () => {
     expect(typeLigneDocumentDepuisOr('remise')).toBe('repartition');
   });
 });
+
+describe(
+  'montantsLigneDocumentDepuisLigneOr (fix/arrondi-unique) — copie, JAMAIS de recalcul : ' +
+    'une ligne déjà arrondie par CalculLigneSimple ne doit pas être ré-arrondie',
+  () => {
+    it('recopie HT/TVA/TTC de la ligne_or à l’identique — cas du centime négatif divergent (2.6 %, ht=-250)', () => {
+      // Valeurs produites par CalculLigneSimple (calcul-ligne.spec.ts) pour prixUnitaireCentimes
+      // -250, tauxTvaPourmille 26 : ht=-250, tva=-7 (arrondi commercial), ttc=-257.
+      const l = ligne({
+        montantHtCentimes: -250,
+        montantTvaCentimes: -7,
+        montantTtcCentimes: -257,
+      });
+      const m = montantsLigneDocumentDepuisLigneOr(l);
+      expect(m).toEqual({
+        baseCentimes: -257,
+        htCentimes: -250,
+        tvaCentimes: -7,
+        ttcCentimes: -257,
+      });
+    });
+
+    it(
+      "AUCUN recalcul : des montants qu'un recalcul TTC-ancré changerait (tva=1 pour un ttc=101 " +
+        'à 8.1 %, alors qu’une extraction rendrait 8) ressortent identiques — preuve que ce n’est ' +
+        'pas juste une coïncidence numérique, la fonction ne recalcule structurellement rien ' +
+        '(elle ne prend même pas de taux de TVA en entrée)',
+      () => {
+        const l = ligne({ montantHtCentimes: 100, montantTvaCentimes: 1, montantTtcCentimes: 101 });
+        const m = montantsLigneDocumentDepuisLigneOr(l);
+        expect(m).toEqual({ baseCentimes: 101, htCentimes: 100, tvaCentimes: 1, ttcCentimes: 101 });
+      },
+    );
+
+    it("payeur = 'garage' (RM-70/MD-66) : facturable à 0 sur les trois axes, quels que soient les montants de la ligne d'OR", () => {
+      const l = ligne({
+        payeur: 'garage',
+        montantHtCentimes: 5000,
+        montantTvaCentimes: 405,
+        montantTtcCentimes: 5405,
+      });
+      const m = montantsLigneDocumentDepuisLigneOr(l);
+      expect(m).toEqual({ baseCentimes: 0, htCentimes: 0, tvaCentimes: 0, ttcCentimes: 0 });
+    });
+
+    it('invariant ttc = ht + tva (ligne_document_montant_coherent_chk) préservé pour un jeu de cas signés', () => {
+      const cas = [
+        { montantHtCentimes: 20_000, montantTvaCentimes: 1_620, montantTtcCentimes: 21_620 },
+        { montantHtCentimes: -20_000, montantTvaCentimes: -1_620, montantTtcCentimes: -21_620 },
+        { montantHtCentimes: 0, montantTvaCentimes: 0, montantTtcCentimes: 0 },
+      ];
+      for (const c of cas) {
+        const m = montantsLigneDocumentDepuisLigneOr(ligne(c));
+        expect(m.htCentimes + m.tvaCentimes).toBe(m.ttcCentimes);
+      }
+    });
+  },
+);
 
 /* ------------------------------------------------------------------------------------------- */
 /* RM-07/RF-04/PF-04 : conditions de paiement figées à l'insertion du document_vente             */
