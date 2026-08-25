@@ -210,7 +210,9 @@ function DetailDisponibilite({ articleId, siteId, nomSite: nom }: PropsDetail) {
         {t('pieces:reservations.disponibilite.titre')} — {nom}
       </h3>
       {disponibilite.reservationsActives.length === 0 ? (
-        <p className="mt-2 texte-corps text-muted-foreground">{t('pieces:reservations.vide')}</p>
+        <p className="mt-2 texte-corps text-muted-foreground">
+          {t('pieces:reservations.disponibilite.aucuneActive')}
+        </p>
       ) : (
         <ul className="mt-2 flex flex-col gap-2">
           {disponibilite.reservationsActives.map((reservation) => (

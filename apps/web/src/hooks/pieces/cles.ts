@@ -8,7 +8,7 @@ import type {
 } from '@dfa/shared';
 
 import type { FiltresListeArticles } from './articles.api';
-import type { FiltresEcranFacturesFournisseur } from './factures-fournisseur.temporaire';
+import type { FiltresEcranFacturesFournisseur } from './factures-fournisseur.api';
 
 /**
  * Clés TanStack Query du domaine pièces — même convention que `clesFacturation`
@@ -66,10 +66,8 @@ export const clesPieces = {
   /** Singleton du tenant (`GET|PATCH /parametrage/pieces`) — aucun filtre, une seule clé. */
   parametrage: () => ['pieces', 'parametrage'] as const,
 
-  /** Dépôt/rapprochement des factures fournisseur — contrat TEMPORAIRE tant que
-   *  `factures-fournisseur.temporaire.ts` n'a pas été remplacé par les types générés (voir sa
-   *  doc de tête). Même convention que `commandesFournisseur` ci-dessus (tuple plat, filtres
-   *  complets). */
+  /** Dépôt/rapprochement des factures fournisseur (`factures-fournisseur.api.ts`). Même
+   *  convention que `commandesFournisseur` ci-dessus (tuple plat, filtres complets). */
   facturesFournisseur: {
     liste: (filtres: FiltresEcranFacturesFournisseur) =>
       ['pieces', 'facturesFournisseur', 'liste', filtres] as const,

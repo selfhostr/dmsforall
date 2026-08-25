@@ -320,11 +320,12 @@
       "titre": "Disponibilité",
       "quantitePhysique": "Quantité physique",
       "quantiteDisponible": "Quantité disponible",
-      "reservationsActives": "Réservations actives"
+      "reservationsActives": "Réservations actives",
+      "aucuneActive": "Aucune réservation."
     },
-    "vide": "Aucune réservation.",
     "filtres": {
-      "statutToutes": "Tous les statuts"
+      "statutToutes": "Tous les statuts",
+      "rechercherPlaceholder": "Rechercher par article ou n° d'OR"
     },
     "voirArticle": "Voir l'article",
     "voirOr": "Voir l'ordre de réparation",
@@ -335,6 +336,20 @@
       "titre": "Libérer cette réservation ?",
       "description": "La pièce redevient disponible pour un autre ordre de réparation. Indiquez le motif.",
       "champMotif": "Motif"
+    },
+    "vide": {
+      "recherche": {
+        "titre": "Aucune réservation trouvée",
+        "description": "Aucune réservation ne correspond à cette recherche."
+      },
+      "filtre": {
+        "titre": "Aucune réservation avec ce statut",
+        "description": "Aucune réservation ne correspond au filtre choisi."
+      },
+      "premierUsage": {
+        "titre": "Aucune réservation",
+        "description": "Aucune réservation n'est enregistrée pour l'instant."
+      }
     }
   },
   "commandes": {

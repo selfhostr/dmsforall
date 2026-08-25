@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
@@ -23,10 +23,12 @@ import {
 } from '@/components/ui/select';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
+import { BarreFiltres } from '@/composants/comptoir/BarreFiltres';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
+import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useReservations } from '@/hooks/pieces/useReservations';
 import { useSatisfaireReservation } from '@/hooks/pieces/useTransitionsReservation';
@@ -38,6 +40,8 @@ import { DialogueLiberationReservation } from './DialogueLiberationReservation';
 import { peutLibererReservation, peutSatisfaireReservation } from './droits';
 import { messageErreurMutation } from './messages-erreur-mutation';
 import { formaterQuantiteMillieme } from './utils';
+
+const DELAI_DEBOUNCE_MS = 300;
 
 const VARIANTE_BADGE_STATUT: Record<StatutReservationPiece, 'default' | 'secondary' | 'outline'> = {
   active: 'default',
@@ -56,6 +60,14 @@ const VARIANTE_BADGE_STATUT: Record<StatutReservationPiece, 'default' | 'seconda
  * s'agissait. `articleNumero`/`articleDesignation`/`ordreReparationNumero` (`@dfa/shared`,
  * `service-reservation.ts`) rendent maintenant le contenu lisible directement dans la table — les
  * colonnes restent CLIQUABLES (même destination qu'avant), seul le libellé change.
+ *
+ * Chantier « uniformisation pièces » (25.08.2026) : passe sur `BarreFiltres`, même architecture que
+ * `EcranListeFournisseurs` — `schemaFiltresReservations` porte `q` (recherche serveur sur
+ * `articleDesignation`/`ordreReparationNumero`, `pieces/reservation.ts`), appliquée au SQL, jamais
+ * filtrée sur les lignes déjà chargées. Recherche jugée pertinente ICI (contrairement à
+ * `EcranConsignesPieces`, restée sans recherche) : les deux colonnes cherchées sont déjà les deux
+ * colonnes AFFICHÉES par cette table (« Article », « Ordre de réparation ») — un magasinier qui
+ * lit la liste peut chercher exactement ce qu'il y voit.
  */
 export function EcranReservationsPieces() {
   const { t } = useTranslation(['pieces', 'commun']);
@@ -65,9 +77,17 @@ export function EcranReservationsPieces() {
   const [statut, setStatut] = useState<StatutReservationPiece | undefined>('active');
   const [reservationALiberer, setReservationALiberer] = useState<string | null>(null);
 
+  const [qSaisie, setQSaisie] = useState('');
+  const [q, setQ] = useState('');
+  useEffect(() => {
+    const identifiant = window.setTimeout(() => setQ(qSaisie), DELAI_DEBOUNCE_MS);
+    return () => window.clearTimeout(identifiant);
+  }, [qSaisie]);
+
   const satisfaire = useSatisfaireReservation();
 
   const filtres: FiltresReservations = {
+    q: q.trim() === '' ? undefined : q.trim(),
     statut: statut ? [statut] : undefined,
     tri: TRI_DEFAUT_RESERVATIONS,
     limite: 50,
@@ -82,6 +102,13 @@ export function EcranReservationsPieces() {
     isFetchingNextPage,
     fetchNextPage,
   } = useReservations(filtres);
+
+  const filtresActifs = q.trim() !== '' || statut !== undefined;
+  function effacerFiltres() {
+    setQSaisie('');
+    setQ('');
+    setStatut(undefined);
+  }
 
   const colonnes: ColonneComptoir<ReponseReservationPiece>[] = [
     {
@@ -190,35 +217,70 @@ export function EcranReservationsPieces() {
     );
   }
 
+  let contenuVide: ReactNode;
+  if (q.trim() !== '') {
+    contenuVide = (
+      <EtatVideRecherche
+        titre={t('pieces:reservations.vide.recherche.titre')}
+        description={t('pieces:reservations.vide.recherche.description')}
+      />
+    );
+  } else if (statut !== undefined) {
+    contenuVide = (
+      <EtatVideFiltre
+        titre={t('pieces:reservations.vide.filtre.titre')}
+        description={t('pieces:reservations.vide.filtre.description')}
+        onEffacerFiltres={effacerFiltres}
+      />
+    );
+  } else {
+    contenuVide = (
+      <EtatVidePremierUsage
+        titre={t('pieces:reservations.vide.premierUsage.titre')}
+        description={t('pieces:reservations.vide.premierUsage.description')}
+      />
+    );
+  }
+
   // Titre MASQUÉ automatiquement — doublon strict du libellé de la vue active « Réservations »
   // (`navigation-modele.ts`, `ONGLETS_PIECES`, vue « reservations » de l'onglet Articles) :
   // `GabaritEcran` le détecte lui-même (§3 du contrat du chantier « titres doublés », 17.08.2026).
   return (
     <GabaritEcran titre={t('pieces:reservations.titre')}>
-      <div className="flex flex-col gap-champ max-w-xs">
-        <Label htmlFor="filtre-statut-reservation">{t('pieces:reservations.statut')}</Label>
-        <Select
-          value={statut ?? 'toutes'}
-          onValueChange={(valeur) =>
-            setStatut(valeur === 'toutes' ? undefined : (valeur as StatutReservationPiece))
-          }
-        >
-          <SelectTrigger
-            id="filtre-statut-reservation"
-            aria-label={t('pieces:reservations.statut')}
+      <BarreFiltres
+        q={qSaisie}
+        onChangeQ={setQSaisie}
+        placeholderRecherche={t('pieces:reservations.filtres.rechercherPlaceholder')}
+        filtresActifs={filtresActifs}
+        onEffacerFiltres={effacerFiltres}
+      >
+        <div className="flex flex-col gap-champ">
+          <Label htmlFor="filtre-statut-reservation">{t('pieces:reservations.statut')}</Label>
+          <Select
+            value={statut ?? 'toutes'}
+            onValueChange={(valeur) =>
+              setStatut(valeur === 'toutes' ? undefined : (valeur as StatutReservationPiece))
+            }
           >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="toutes">{t('pieces:reservations.filtres.statutToutes')}</SelectItem>
-            {STATUTS_RESERVATION_PIECE.map((valeur) => (
-              <SelectItem key={valeur} value={valeur}>
-                {t(`pieces:reservations.statuts.${valeur}`)}
+            <SelectTrigger
+              id="filtre-statut-reservation"
+              aria-label={t('pieces:reservations.statut')}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="toutes">
+                {t('pieces:reservations.filtres.statutToutes')}
               </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+              {STATUTS_RESERVATION_PIECE.map((valeur) => (
+                <SelectItem key={valeur} value={valeur}>
+                  {t(`pieces:reservations.statuts.${valeur}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </BarreFiltres>
 
       {satisfaire.isError ? (
         <p className="texte-libelle text-destructive" role="alert">
@@ -230,20 +292,7 @@ export function EcranReservationsPieces() {
         colonnes={colonnes}
         lignes={reservations}
         cleLigne={(reservation) => reservation.id}
-        contenuVide={
-          statut ? (
-            <EtatVideFiltre
-              titre={t('pieces:reservations.titre')}
-              description={t('pieces:reservations.vide')}
-              onEffacerFiltres={() => setStatut(undefined)}
-            />
-          ) : (
-            <EtatVidePremierUsage
-              titre={t('pieces:reservations.titre')}
-              description={t('pieces:reservations.vide')}
-            />
-          )
-        }
+        contenuVide={contenuVide}
       />
 
       <BoutonChargerPlus

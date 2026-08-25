@@ -320,11 +320,12 @@
       "titre": "Verfügbarkeit",
       "quantitePhysique": "Physischer Bestand",
       "quantiteDisponible": "Verfügbare Menge",
-      "reservationsActives": "Aktive Reservierungen"
+      "reservationsActives": "Aktive Reservierungen",
+      "aucuneActive": "Keine Reservierungen."
     },
-    "vide": "Keine Reservierungen.",
     "filtres": {
-      "statutToutes": "Alle Status"
+      "statutToutes": "Alle Status",
+      "rechercherPlaceholder": "Nach Artikel oder Auftragsnummer suchen"
     },
     "voirArticle": "Artikel ansehen",
     "voirOr": "Reparaturauftrag ansehen",
@@ -335,6 +336,20 @@
       "titre": "Diese Reservierung freigeben?",
       "description": "Das Teil wird wieder für einen anderen Reparaturauftrag verfügbar. Grund angeben.",
       "champMotif": "Grund"
+    },
+    "vide": {
+      "recherche": {
+        "titre": "Keine Reservierung gefunden",
+        "description": "Keine Reservierung entspricht dieser Suche."
+      },
+      "filtre": {
+        "titre": "Keine Reservierung mit diesem Status",
+        "description": "Keine Reservierung entspricht dem gewählten Filter."
+      },
+      "premierUsage": {
+        "titre": "Keine Reservierungen",
+        "description": "Derzeit ist keine Reservierung erfasst."
+      }
     }
   },
   "commandes": {

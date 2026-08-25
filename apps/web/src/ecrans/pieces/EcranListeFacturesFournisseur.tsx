@@ -29,7 +29,7 @@ import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
-import type { FiltresEcranFacturesFournisseur } from '@/hooks/pieces/factures-fournisseur.temporaire';
+import type { FiltresEcranFacturesFournisseur } from '@/hooks/pieces/factures-fournisseur.api';
 import { useListeFacturesFournisseur } from '@/hooks/pieces/useListeFacturesFournisseur';
 import { useSession } from '@/hooks/useSession';
 import { formaterDate, formaterMontant } from '@/lib/formats';
@@ -56,7 +56,7 @@ const VARIANTE_BADGE_STATUT: Record<
  * `TableComptoir` paginée par curseur, trois états explicites (chargement/vide/erreur).
  *
  * PAS de forme « résumé » séparée dans le contrat partagé (`ReponseFactureFournisseur` porte les
- * lignes complètes même en liste, voir `factures-fournisseur.temporaire.ts`) : `presenceEcarts`
+ * lignes complètes même en liste, voir `factures-fournisseur.api.ts`) : `presenceEcarts`
  * est donc calculé ICI, par ligne de tableau, via `calculerSyntheseEcarts` — pas envoyé tout fait.
  *
  * `schemaFiltresFacturesFournisseur` porte `q` (recherche serveur sur `nomCreancier`/

@@ -15,9 +15,7 @@ import { formaterQuantiteMillieme } from './utils';
  * `enums.ts`) : le contrat lui-même ne porte ni certitude à trois états, ni « nature d'écart », ni
  * pourcentage — seulement une origine par champ d'en-tête (`OrigineDonneeFacture`, un des trois
  * moyens de lecture) et un écart CHIFFRÉ par ligne (`EcartLigneFactureFournisseur`, trois deltas en
- * centimes/millièmes). Voir `factures-fournisseur.temporaire.ts` pour ce qui reste une hypothèse de
- * transport — RIEN ici n'en est une, ce fichier n'a plus besoin d'être remplacé quand le contrôleur
- * serveur existera.
+ * centimes/millièmes). Voir `factures-fournisseur.api.ts` pour la couche transport.
  */
 
 /** État UI à trois valeurs, jamais confondues (brief) — dérivé, PAS envoyé par le serveur : le

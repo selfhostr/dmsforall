@@ -21,7 +21,7 @@ import { peutDeciderFactureFournisseur, peutDeposerFactureFournisseur } from './
 import { PanneauRapprochementFacture } from './PanneauRapprochementFacture';
 
 /** 15 Mo — garde CLIENT avant envoi (un PDF ne se réduit pas côté client comme une photo, voir
- *  `factures-fournisseur.temporaire.ts` : la garde serveur, 413, reste la seule fiable, celle-ci
+ *  `factures-fournisseur.api.ts` : la garde serveur, 413, reste la seule fiable, celle-ci
  *  n'évite qu'un aller-retour réseau inutile pour un fichier manifestement trop lourd). */
 const TAILLE_MAX_OCTETS = 15 * 1024 * 1024;
 
