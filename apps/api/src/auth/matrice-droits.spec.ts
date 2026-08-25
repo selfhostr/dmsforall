@@ -620,6 +620,11 @@ describe('MATRICE_DROITS — admin et direction (superset SAUF droits financiers
     // action du domaine paramétrage qui diverge entre admin ([]) et direction — le reste de
     // `parametrage.*` (lecture, écriture générique atelier/référentiels) NE diverge PAS et continue
     // d'être couvert par ce test comme avant issue #45.
+    // `reprise.` EXCLU ICI pour la MÊME raison que `facturation.` : `reprise.plan.valider`/
+    // `reprise.import.lancer` (l'acte lourd — écriture réelle de clients/véhicules/documents de
+    // vente dans le tenant) divergent entre admin ([]) et direction (les deux) — voir
+    // `DROITS_REPRISE_PAR_ROLE` et le test dédié « MATRICE_DROITS — reprise de données » plus bas ;
+    // les huit autres actions `reprise.*` NE divergent PAS (admin = direction).
     const sansFacturationNiPiecesNiVentesNiTableauBordNiRelances = (actions: readonly Action[]) =>
       actions.filter(
         (a) =>
@@ -628,6 +633,7 @@ describe('MATRICE_DROITS — admin et direction (superset SAUF droits financiers
           !a.startsWith('ventes.') &&
           !a.startsWith('tableau_bord.') &&
           !a.startsWith('relances.') &&
+          !a.startsWith('reprise.') &&
           a !== 'parametrage.atelier.plafond_avoir.modifier',
       );
     expect(
@@ -1183,6 +1189,59 @@ describe('MATRICE_DROITS — gestion des employés (issue #137)', () => {
   });
 });
 
+describe('MATRICE_DROITS — reprise de données (assemblage RepriseModule)', () => {
+  const actionsPreparation: Action[] = [
+    'reprise.dossier.lire',
+    'reprise.dossier.deposer',
+    'reprise.dossier.annuler',
+    'reprise.analyse.lire',
+    'reprise.analyse.lancer',
+    'reprise.plan.lire',
+    'reprise.plan.modifier',
+    'reprise.import.lire',
+  ];
+  const actionsDeclenchementImport: Action[] = ['reprise.plan.valider', 'reprise.import.lancer'];
+
+  it('direction détient les DIX actions reprise.* — préparation ET acte lourd', () => {
+    for (const action of [...actionsPreparation, ...actionsDeclenchementImport]) {
+      expect(MATRICE_DROITS.direction).toContain(action);
+    }
+  });
+
+  it('admin détient les HUIT actions de préparation, comme direction — préparer un dossier ne crée encore aucune donnée dans le tenant', () => {
+    for (const action of actionsPreparation) {
+      expect(MATRICE_DROITS.admin).toContain(action);
+    }
+  });
+
+  it('admin N’A PAS l’acte lourd (RF-115 : écrire en bloc des documents de vente dans le tenant est un geste financier, jamais comblé par copier-coller de direction) — un test doit échouer si reprise.plan.valider/reprise.import.lancer sont un jour ajoutées à DROITS_REPRISE_PAR_ROLE.admin', () => {
+    for (const action of actionsDeclenchementImport) {
+      expect(MATRICE_DROITS.admin).not.toContain(action);
+    }
+  });
+
+  it('reprise.plan.valider et reprise.import.lancer sont réservées à direction SEULE — pas même comptable (à la différence du bloc créancier/export comptable), l’acte est technique, pas une décision de gestion financière courante', () => {
+    for (const action of actionsDeclenchementImport) {
+      expect(rolesAyant(action)).toEqual(['direction']);
+    }
+  });
+
+  it('aucun rôle opérationnel (vendeur, receptionnaire, chef_atelier, technicien, magasinier, comptable, poste_atelier) ne détient la moindre action reprise.*, pas même la lecture — onboarding technique, pas un outil du quotidien atelier/comptoir', () => {
+    const rolesExclus: RoleUtilisateur[] = [
+      'vendeur',
+      'receptionnaire',
+      'chef_atelier',
+      'technicien',
+      'magasinier',
+      'comptable',
+      'poste_atelier',
+    ];
+    for (const role of rolesExclus) {
+      expect(MATRICE_DROITS[role].filter((a) => a.startsWith('reprise.'))).toEqual([]);
+    }
+  });
+});
+
 describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste close du lot 1 + facturation/paiements + facturation/documents + bloc créancier + export fiduciaire + impression PDF étape 2 + pièces étape 3 + ventes étape 4 + pointage lot 2 + tableau de bord + rendez-vous lot RDV-1 + gestion des employés issue #137)', () => {
   it('l’union de toutes les actions accordées ne contient QUE les actions du socle + les actions closes du lot 1 + les 5 actions facturation.paiement.* (agent paiements) + les 9 actions facturation.document.*/facturation.avoir.creer (agent documents) + les 2 actions facturation.parametrage.creancier.* + facturation.export.creer + facturation.document.imprimer (arbitrages coordinateur) + les 9 actions pieces.* (étape 3) + les 5 actions socle.utilisateur.* (issue #137)', () => {
     const actionsAttendues: Action[] = [
@@ -1357,6 +1416,17 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'relances.facturation.regle.ecrire',
       'relances.facturation.planifier',
       'relances.facturation.envoyer',
+      // --- Reprise de données (assemblage RepriseModule) — voir le describe dédié plus haut ---
+      'reprise.dossier.lire',
+      'reprise.dossier.deposer',
+      'reprise.dossier.annuler',
+      'reprise.analyse.lire',
+      'reprise.analyse.lancer',
+      'reprise.plan.lire',
+      'reprise.plan.modifier',
+      'reprise.plan.valider',
+      'reprise.import.lire',
+      'reprise.import.lancer',
     ];
 
     const actionsAccordees = new Set(Object.values(MATRICE_DROITS).flat());

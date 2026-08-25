@@ -48,6 +48,22 @@ curl http://localhost:3000/api/docs    # Documentation OpenAPI (Swagger)
 
 Interface web : ouvrir http://localhost:5173 dans le navigateur.
 
+Prérequis système — reprise de données Access
+----------------------------------------------
+
+mdbtools (lecture des archives .mdb/.accdb) : sous-processus invoqué par la
+reprise de données, absent par défaut sur un poste neuf.
+
+```bash
+sudo dnf install mdbtools     # Fedora
+sudo apt install mdbtools     # Debian/Ubuntu
+brew install mdbtools         # macOS
+```
+
+Sans lui : échec propre (ErreurOutilAccesIndisponible), jamais un plantage
+silencieux. Déjà présent en image Docker (apps/api/Dockerfile) et en CI
+(.github/workflows/ci.yml, job « Tests d'intégration »).
+
 Avant de conclure ou pousser
 -----------------------------
 

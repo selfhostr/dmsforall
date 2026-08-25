@@ -1,0 +1,165 @@
+{
+  "titre": "Reprise de données",
+  "etapes": {
+    "depot": "Dépôt",
+    "analyse": "Analyse",
+    "validation": "Validation",
+    "import": "Import"
+  },
+  "depot": {
+    "titre": "Déposez l'archive de votre ancien logiciel",
+    "description": "Glissez le fichier ici, ou choisissez-le sur votre ordinateur. C'est la seule chose que nous vous demandons — le reste se fait tout seul.",
+    "zone": {
+      "instruction": "Glissez votre fichier ici, ou appuyez sur Entrée pour le choisir",
+      "survol": "Déposez le fichier ici",
+      "boutonChoisir": "Choisir un fichier"
+    },
+    "reprise": {
+      "titre": "Dépôt interrompu",
+      "description": "Un dépôt a été interrompu à {pourcent, number, ::percent}. Redéposez le même fichier pour continuer là où il s'était arrêté — rien ne sera renvoyé inutilement.",
+      "fichierDifferent": "Ce fichier n'est pas celui du dépôt en cours. Redéposez le même fichier que la dernière fois, ou annulez ce dépôt pour en commencer un nouveau."
+    },
+    "phase": {
+      "verification": "Vérification de l'archive avant l'envoi…",
+      "verificationProgression": "{pourcent, number, ::percent} vérifié",
+      "creation": "Préparation du dépôt…",
+      "envoi": "Envoi en cours…",
+      "envoiProgression": "{envoyeMo} Mo sur {totalMo} Mo envoyés ({pourcent, number, ::percent})",
+      "finalisation": "Vérification finale de l'archive…"
+    },
+    "erreur": {
+      "titre": "L'envoi n'a pas pu continuer",
+      "reseau": "La connexion a été interrompue. Vérifiez votre connexion internet, puis réessayez — l'envoi reprendra là où il s'était arrêté.",
+      "integrite": "L'archive reçue ne correspond pas à celle envoyée. Réessayez le dépôt.",
+      "tailleInattendue": "Ce fichier n'a pas la même taille que celui du dépôt en cours.",
+      "generique": "Le dépôt n'a pas pu aboutir. Réessayez — rien de ce qui a déjà été envoyé n'est perdu.",
+      "reessayer": "Réessayer"
+    },
+    "aideFormat": "Le fichier attendu est l'archive complète (ZIP) de votre ancien logiciel de gestion de garage."
+  },
+  "analyse": {
+    "titre": "Nous examinons votre archive",
+    "description": "Cette étape est automatique et peut prendre plusieurs minutes selon la taille de votre archive. Vous n'avez rien à faire — vous pouvez fermer cette page et revenir plus tard, la reprise continue.",
+    "enCours": "Analyse en cours…",
+    "echouee": {
+      "titre": "L'analyse n'a pas abouti",
+      "description": "Nous n'avons pas pu examiner votre archive. Vous n'avez pas besoin de la redéposer — réessayez simplement l'analyse.",
+      "reessayer": "Réessayer l'analyse"
+    },
+    "partielle": "Certains fichiers de l'archive n'ont pas pu être lus, mais le reste a été examiné normalement.",
+    "moteur": {
+      "reconnu": "Votre ancien logiciel a été reconnu.",
+      "inconnu": "Le type de votre ancien logiciel n'a pas pu être identifié avec certitude, mais l'analyse s'est tout de même déroulée."
+    }
+  },
+  "plan": {
+    "titre": "Ce qui sera repris",
+    "description": "Voici ce que nous avons trouvé dans votre archive. Décochez un domaine si vous ne souhaitez pas le reprendre — tout le reste se lance ensuite automatiquement.",
+    "volumeAttendu": "{count, plural, one {environ # ligne} other {environ # lignes}}",
+    "inclure": "Reprendre {domaine}",
+    "exclu": {
+      "titre": "Non repris",
+      "motif": {
+        "referentiel_constructeur_jamais_repris": "Données de référence du constructeur — jamais reprises, quel que soit le logiciel d'origine.",
+        "comptabilite_non_reprise": "Comptabilité générale — non reprise, seuls les soldes ouverts le sont.",
+        "hors_perimetre_temporel": "Hors de la période reprise.",
+        "role_indetermine": "Nous n'avons pas pu déterminer ce que contenaient ces données avec assez de certitude.",
+        "table_vide": "Ces données sont vides dans votre archive.",
+        "document_non_rattachable": "Ces documents scannés n'ont pas pu être rattachés à une facture ou un ordre de réparation.",
+        "doublon_table_meme_role": "Ces données sont doublées ailleurs dans l'archive — seule la version la plus fiable est reprise.",
+        "exclusion_manuelle": "Vous avez choisi de ne pas reprendre ce domaine."
+      }
+    },
+    "action": {
+      "lancer": "Lancer l'import",
+      "confirmation": "L'import démarre dès que vous validez — vous n'aurez rien d'autre à faire."
+    },
+    "vide": {
+      "titre": "Rien à reprendre",
+      "description": "L'analyse n'a trouvé aucune donnée reprenable dans cette archive."
+    }
+  },
+  "domaines": {
+    "clients": "Vos clients",
+    "vehicules": "Vos véhicules",
+    "ordres_reparation": "Votre historique d'atelier (OR)",
+    "documents_vente": "Vos factures et devis",
+    "paiements": "Vos paiements",
+    "articles_stock": "Votre stock de pièces",
+    "fournisseurs": "Vos fournisseurs",
+    "documents_scannes": "Vos documents scannés"
+  },
+  "import": {
+    "titre": "Import en cours",
+    "description": "Vos données sont en train d'être reprises. Cette étape peut prendre du temps — vous pouvez fermer cette page et revenir plus tard.",
+    "domaineCourant": "En cours : {domaine}",
+    "progression": "{traites} sur {total} éléments repris ({pourcent, number, ::percent})",
+    "echoue": {
+      "titre": "L'import s'est interrompu",
+      "description": "Une partie de vos données a déjà été reprise (voir le détail ci-dessous). Vous pouvez relancer l'import — les données déjà reprises ne seront jamais dupliquées.",
+      "relancer": "Relancer l'import",
+      "tentative": "Tentative n° {numero}"
+    },
+    "termine": {
+      "titre": "Reprise terminée",
+      "description": "Toutes vos données ont été reprises."
+    }
+  },
+  "rapport": {
+    "titre": "Bilan de la reprise",
+    "insere": {
+      "titre": "Repris",
+      "compte": "{count, plural, one {# élément} other {# éléments}}"
+    },
+    "ecarte": {
+      "titre": "Écarté",
+      "compte": "{count, plural, one {# élément} other {# éléments}}",
+      "motif": {
+        "ligne_invalide": "Donnée illisible ou incomplète dans votre ancien logiciel.",
+        "reference_manquante": "Une information nécessaire (client, véhicule…) était manquante.",
+        "doublon_deja_importe": "Déjà repris lors d'une tentative précédente.",
+        "hors_perimetre_temporel": "Hors de la période reprise.",
+        "contrainte_metier_refusee": "Cette donnée n'a pas pu être enregistrée telle quelle."
+      }
+    },
+    "anomaliesTronquees": "D'autres écarts existent, non détaillés ici — les totaux ci-dessus restent exacts.",
+    "reconciliation": {
+      "titre": "Vérification par année",
+      "description": "Le nombre de documents et les montants trouvés dans votre ancien logiciel, comparés à ce qui a été repris. Un écart à zéro confirme que rien ne s'est perdu.",
+      "annee": "Année {annee}",
+      "colonneAnnee": "Année",
+      "documentsSource": "Documents dans l'ancien logiciel",
+      "documentsCible": "Documents repris",
+      "totalSource": "Montant dans l'ancien logiciel",
+      "totalCible": "Montant repris",
+      "ecart": "Écart",
+      "ecartNul": "Aucun écart",
+      "vide": "Aucune donnée à réconcilier pour cette reprise."
+    },
+    "genereLe": "Bilan généré le {date}"
+  },
+  "annulation": {
+    "bouton": "Annuler la reprise",
+    "titre": "Annuler cette reprise",
+    "description": "Cette action arrête la reprise en cours. Elle reste tracée et n'efface aucune donnée déjà entrée dans dmsforall.",
+    "motif": {
+      "libelle": "Pourquoi annulez-vous ?",
+      "aide": "Au moins 3 caractères."
+    },
+    "confirmer": "Confirmer l'annulation",
+    "renoncer": "Renoncer"
+  },
+  "dossierAnnule": {
+    "titre": "Reprise annulée",
+    "description": "Cette reprise a été annulée. Vous pouvez déposer une nouvelle archive à tout moment.",
+    "nouveau": "Déposer une nouvelle archive"
+  },
+  "vide": {
+    "titre": "Aucune reprise en cours",
+    "description": "Vous n'avez pas encore commencé de reprise de données."
+  },
+  "erreurChargement": {
+    "titre": "Impossible d'afficher la reprise",
+    "description": "Une erreur est survenue en récupérant l'état de votre reprise de données."
+  }
+}

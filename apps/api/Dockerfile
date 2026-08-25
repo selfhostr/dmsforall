@@ -80,6 +80,29 @@ FROM node:${NODE_VERSION} AS runtime
 ENV NODE_ENV=production
 WORKDIR /repo
 
+# mdbtools : lecture des archives Microsoft Access (.mdb/.accdb, format Jet) invoquée en
+# sous-processus par apps/api/src/reprise/lecteurs/access/ (spawn de mdb-tables, mdb-schema,
+# mdb-export — voir executeur-processus.ts). DEUX paquets Alpine distincts, pas un seul : mesuré en
+# exécution (`apk info -L mdbtools` ne contient QUE libmdb*.so/libmdbsql*.so, les binaires mdb-*
+# vivent dans `mdbtools-utils`) — piège classique de split lib/CLI sur Alpine, vérifié plutôt que
+# supposé. Installé dans L'ÉTAPE RUNTIME, jamais seulement build/deps : un outil système ajouté au
+# stage de compilation mais absent de l'image finale ne se voit qu'en production, au premier import
+# qui tente de lire une base Access — erreur classique. `--no-cache` : aucun index apk résiduel
+# dans la couche, cohérent avec l'image minimale déjà visée par ce Dockerfile. Placé avant la
+# création de l'utilisateur applicatif ci-dessous : couche stable, invalidée seulement si la liste
+# de paquets change, jamais par le reste de cette étape.
+#
+# Coût mesuré (docker history, build local node:22-alpine) : +410 kB de couche, 582 Mo -> 583 Mo
+# sur l'image totale.
+#
+# Encodage des bases Access 97/Jet3 héritées (texte mono-octet, ex. CP1252) : `MDB_JET3_CHARSET`,
+# lu par libmdb via getenv (mesuré : `strings libmdb.so.3` le montre littéralement, aucune option
+# --charset en CLI dans cette version 1.0.1). Sans effet sur Jet4+/.accdb (Access 2000+), qui
+# stocke déjà en UTF-16 — la variable est fixée par apps/api/src/reprise/lecteurs/access/
+# lecteur-access.ts (CHARSET_JET3_PAR_DEFAUT), pas ici : ce Dockerfile ne fait qu'installer
+# l'outil, jamais sa configuration d'appel.
+RUN apk add --no-cache mdbtools mdbtools-utils
+
 # Utilisateur applicatif dédié plutôt que `node` (uid 1000 partagé avec l'hôte sur certaines
 # distros) : groupe et utilisateur système, sans shell de login, home réduit au strict besoin.
 #

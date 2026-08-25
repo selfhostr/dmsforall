@@ -25,6 +25,10 @@ import {
   colonneTenantId,
 } from '../colonnes-communes';
 import { tenant } from '../tenant';
+// Import direct du fichier (pas du barrel '../facturation') : même précaution que
+// atelier/ordre-reparation.ts (Z-17, 0011) — enums.ts n'importe rien de pieces, ce chemin direct
+// est sûr.
+import { origineDocumentEnum } from '../facturation/enums';
 import { categorieArticleEnum, statutArticleEnum, typeReferenceArticleEnum } from './enums';
 import { fournisseur } from './fournisseur';
 
@@ -52,6 +56,16 @@ export const article = pgTable(
     id: colonneId(),
     tenantId: colonneTenantId().references(() => tenant.id, { onDelete: 'restrict' }),
     numeroArticle: text('numero_article'),
+    /**
+     * Reprise (migrations/0066_ancrages_origine_reprise.sql) : même enum et même sémantique que
+     * documentVente.origine (0010) et ordreReparation.origine (0011) — dfa (créé par DFA) ou
+     * reprise (importé). Orthogonal à numeroArticle (0022, numéro AFFICHÉ attribué par le
+     * trigger si absent) : voir l'en-tête de 0066 pour la distinction.
+     */
+    origine: origineDocumentEnum('origine').notNull().default('dfa'),
+    /** Reprise (0066) : référence article source verbatim, jamais retouchée. NULL si
+     * origine=dfa. numeroArticle (0022) reste le numéro DFA affiché, distinct de cette colonne. */
+    numeroOrigine: text('numero_origine'),
     designation: text('designation').notNull(),
     marque: text('marque'),
     categorie: categorieArticleEnum('categorie').notNull(),
@@ -93,6 +107,15 @@ export const article = pgTable(
       'article_montant_consigne_chk',
       sql`${t.montantConsigneTtcCentimes} is null or ${t.montantConsigneTtcCentimes} >= 0`,
     ),
+    // Reprise (0066) : même patron que ordre_reparation_origine_numero_origine_chk (0011).
+    check(
+      'article_origine_numero_origine_chk',
+      sql`(${t.origine} = 'dfa') = (${t.numeroOrigine} is null)`,
+    ),
+    // article_numero_origine_uk (index unique PARTIEL, where numero_origine is not null — 0066)
+    // n'est pas modélisable via `unique()` de pg-core (pas de clause WHERE) : posé en SQL brut,
+    // même limite que article_tenant_numero_uk (0022) et ordre_reparation_numero_origine_uk
+    // (0011).
     index('article_designation_idx').on(t.tenantId, t.designation),
     index('article_reference_principale_idx').on(t.tenantId, t.referencePrincipale),
     index('article_statut_idx').on(t.tenantId, t.statut),

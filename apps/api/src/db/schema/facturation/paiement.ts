@@ -42,6 +42,7 @@ import {
   moyenPaiementEnum,
   motifBulletinPaiementEnum,
   natureImputationEnum,
+  origineDocumentEnum,
   paiementSourceEnum,
 } from './enums';
 
@@ -52,6 +53,18 @@ export const paiement = pgTable(
     id: colonneId(),
     tenantId: colonneTenantId(),
     siteId: uuid('site_id').notNull(),
+
+    /**
+     * Reprise (migrations/0066_ancrages_origine_reprise.sql) : même enum et même sémantique que
+     * documentVente.origine (0010) et ordreReparation.origine (0011) — dfa (créé par DFA) ou
+     * reprise (importé). Couverte par paiementVerrouiller (MD-52) : immuable comme le reste de la
+     * ligne dès l'INSERT, hors liste blanche exporteLe/exportId/modifieLe.
+     */
+    origine: origineDocumentEnum('origine').notNull().default('dfa'),
+    /** Reprise (0066) : identifiant de paiement/transaction source verbatim, jamais retouché.
+     * NULL si origine=dfa. Distinct de identifiantTransactionBanque (camt.054, vient de la
+     * banque) : numeroOrigine vient de l'ancien DMS. */
+    numeroOrigine: text('numero_origine'),
 
     dateValeur: date('date_valeur').notNull(),
     moyen: moyenPaiementEnum('moyen').notNull(),
@@ -101,6 +114,14 @@ export const paiement = pgTable(
     index('paiement_payeur_idx').on(t.tenantId, t.payeurClientId, t.dateValeur),
     index('paiement_date_idx').on(t.tenantId, t.dateValeur),
     check('paiement_montant_non_nul_chk', sql`${t.montantCentimes} <> 0`),
+    // Reprise (0066) : même patron que ordre_reparation_origine_numero_origine_chk (0011).
+    check(
+      'paiement_origine_numero_origine_chk',
+      sql`(${t.origine} = 'dfa') = (${t.numeroOrigine} is null)`,
+    ),
+    // paiement_numero_origine_uk (index unique PARTIEL, where numero_origine is not null — 0066)
+    // n'est pas modélisable via `unique()` de pg-core (pas de clause WHERE) : posé en SQL brut,
+    // même limite que ordre_reparation_numero_origine_uk (0011).
   ],
 );
 

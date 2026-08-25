@@ -260,4 +260,13 @@ export const chemins = {
    *  qu'aucune soumission ne peut jamais faire aboutir). Voir aussi `composants/layout/
    *  useModeScanMobile.ts` : sur téléphone, ces mêmes rôles y sont redirigés automatiquement. */
   scan: (site?: string) => construireChemin('/scan', { site }),
+  /** Reprise de données (dépôt de l'archive d'un ancien logiciel, `packages/shared/src/contrats/
+   *  reprise.ts`) — PAS de `?site=`, à la différence de tout ce qui précède : `DossierReprise`
+   *  n'a aucune notion de site dans le contrat (`ReponseDossierReprise` ne porte aucun champ
+   *  `siteId`), c'est une opération globale au TENANT entier, comme `parametrage.facturation`/
+   *  `relances` ci-dessus. Hors du menu (`routes/atteignabilite.spec.ts`, `HORS_MENU`) : geste
+   *  d'onboarding exceptionnel, pas un usage quotidien de garage. */
+  reprise: {
+    accueil: () => '/reprise-donnees',
+  },
 } as const;

@@ -514,6 +514,49 @@ export const TOUTES_ACTIONS = [
   'rendez_vous.arrivee',
   'rendez_vous.absence',
   'rendez_vous.annuler',
+  // ---- Reprise de données (`apps/api/src/reprise/`, contrats/reprise.ts, migrations 0066/0067) —
+  // bloc ADDITIF PUR, ajouté par l'agent d'assemblage qui a câblé `RepriseModule` dans
+  // `app.module.ts` (périmètre disjoint autorisé à toucher ce fichier pour cette tâche précise —
+  // même situation que `rendez_vous.*` ci-dessus, PAS un palliatif : les cinq contrôleurs du
+  // module portaient `@AucunDroitRequis()` sur TOUTES leurs routes, remplacé ici).
+  //
+  // GRANULARITÉ, calée sur ce que fait ce fichier pour des opérations comparables (§ tête de
+  // fichier, RF-115, bloc créancier/export comptable) : la reprise crée en bloc des clients, des
+  // véhicules et des documents de vente dans le tenant — un geste d'ONBOARDING technique
+  // (rare, un garage qui bascule depuis Auto-i/Nextlane), pas un geste commercial courant.
+  //
+  //  - `reprise.dossier.*`/`reprise.analyse.*`/`reprise.plan.lire`/`reprise.plan.modifier`/
+  //    `reprise.import.lire` : périmètre « administration système » (RF-115 : « admin administre
+  //    le système pour le compte du garage — tenants, sites, utilisateurs, paramètres »), MÊME
+  //    DOCTRINE que `DROITS_UTILISATEUR_PAR_ROLE` (gestion des employés) et
+  //    `DROITS_RENDEZ_VOUS_PAR_ROLE.admin` ci-dessus : `admin` reçoit le MÊME périmètre que
+  //    `direction` ici, parce que déposer une archive, lancer une analyse ou ajuster le plan
+  //    proposé NE CRÉE ENCORE AUCUNE donnée dans les tables métier du tenant — c'est de la
+  //    préparation technique, exactement le type de tâche que RF-115 confie à `admin`.
+  //  - `reprise.plan.valider`/`reprise.import.lancer` : L'ACTE LOURD — celui-ci, et lui seul,
+  //    déclenche l'écriture RÉELLE de clients/véhicules/documents de vente dans le tenant
+  //    (`import/service-import-reprise.ts`), en bloc et de façon quasi irréversible (pas
+  //    d'annulation automatique, seule une purge manuelle du dossier). Struturellement plus
+  //    engageant qu'une simple préparation — ALIGNÉ SUR LE PALIER DE GOUVERNANCE LE PLUS ÉLEVÉ
+  //    déjà posé dans ce fichier (bloc créancier, export comptable, disposition d'une avance de
+  //    paiement) : `admin` EXCLU, littéralement, JAMAIS comblé par copier-coller de `direction`
+  //    (RF-115 : « admin n'a aucun droit financier » — importer en bloc des documents de vente
+  //    EST un geste financier, même quand la donnée est historique). Restreint à `direction`
+  //    SEULE ici (pas même `comptable`, à la différence du bloc créancier/export comptable) :
+  //    `reprise.import.lancer` déclenche une opération technique de bascule de données, pas une
+  //    décision de gestion financière courante — `comptable` n'a pas vocation à la piloter.
+  //    ARBITRAGE PRUDENT, PAS UNE SPEC ÉCRITE : à confirmer avec @laupernoe si un rôle plus large
+  //    s'avère nécessaire en pratique (signalé au rapport de livraison).
+  'reprise.dossier.lire',
+  'reprise.dossier.deposer',
+  'reprise.dossier.annuler',
+  'reprise.analyse.lire',
+  'reprise.analyse.lancer',
+  'reprise.plan.lire',
+  'reprise.plan.modifier',
+  'reprise.plan.valider',
+  'reprise.import.lire',
+  'reprise.import.lancer',
 ] as const;
 
 /**
@@ -1989,6 +2032,41 @@ const DROITS_UTILISATEUR_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Act
   poste_atelier: [],
 };
 
+// =================================================================================================
+// Reprise de données (lot d'assemblage) — voir le commentaire des dix entrées `reprise.*` de
+// `TOUTES_ACTIONS` ci-dessus pour la justification complète de la répartition.
+// =================================================================================================
+const REPRISE_PREPARATION: readonly Action[] = [
+  'reprise.dossier.lire',
+  'reprise.dossier.deposer',
+  'reprise.dossier.annuler',
+  'reprise.analyse.lire',
+  'reprise.analyse.lancer',
+  'reprise.plan.lire',
+  'reprise.plan.modifier',
+  'reprise.import.lire',
+];
+/** L'acte lourd — écriture réelle des données dans le tenant. `direction` SEULE. */
+const REPRISE_DECLENCHEMENT_IMPORT: readonly Action[] = [
+  'reprise.plan.valider',
+  'reprise.import.lancer',
+];
+
+const DROITS_REPRISE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
+  direction: [...REPRISE_PREPARATION, ...REPRISE_DECLENCHEMENT_IMPORT],
+  // `admin` = superset de `direction` SAUF `REPRISE_DECLENCHEMENT_IMPORT` (RF-115 : aucun droit
+  // financier) — seul bloc de ce fichier où `admin` n'est ni `[...direction]` (comme `rendez_vous`/
+  // gestion des employés) ni `[]` (comme facturation) : un mélange délibéré, documenté à la source.
+  admin: [...REPRISE_PREPARATION],
+  vendeur: [],
+  receptionnaire: [],
+  chef_atelier: [],
+  technicien: [],
+  magasinier: [],
+  comptable: [],
+  poste_atelier: [],
+};
+
 export const MATRICE_DROITS = {
   admin: [
     ...DROITS_ADMIN,
@@ -2007,6 +2085,7 @@ export const MATRICE_DROITS = {
     ...DROITS_RELANCES_PAR_ROLE.admin,
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.admin,
     ...DROITS_UTILISATEUR_PAR_ROLE.admin,
+    ...DROITS_REPRISE_PAR_ROLE.admin,
   ],
   direction: [
     ...DROITS_DIRECTION,
@@ -2025,6 +2104,7 @@ export const MATRICE_DROITS = {
     ...DROITS_RELANCES_PAR_ROLE.direction,
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.direction,
     ...DROITS_UTILISATEUR_PAR_ROLE.direction,
+    ...DROITS_REPRISE_PAR_ROLE.direction,
   ],
   vendeur: [
     ...DROITS_VENDEUR,
@@ -2043,6 +2123,7 @@ export const MATRICE_DROITS = {
     ...DROITS_RELANCES_PAR_ROLE.vendeur,
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.vendeur,
     ...DROITS_UTILISATEUR_PAR_ROLE.vendeur,
+    ...DROITS_REPRISE_PAR_ROLE.vendeur,
   ],
   receptionnaire: [
     ...DROITS_RECEPTIONNAIRE,
@@ -2061,6 +2142,7 @@ export const MATRICE_DROITS = {
     ...DROITS_RELANCES_PAR_ROLE.receptionnaire,
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.receptionnaire,
     ...DROITS_UTILISATEUR_PAR_ROLE.receptionnaire,
+    ...DROITS_REPRISE_PAR_ROLE.receptionnaire,
   ],
   chef_atelier: [
     ...DROITS_CHEF_ATELIER,
@@ -2079,6 +2161,7 @@ export const MATRICE_DROITS = {
     ...DROITS_RELANCES_PAR_ROLE.chef_atelier,
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.chef_atelier,
     ...DROITS_UTILISATEUR_PAR_ROLE.chef_atelier,
+    ...DROITS_REPRISE_PAR_ROLE.chef_atelier,
   ],
   technicien: [
     ...DROITS_TECHNICIEN,
@@ -2097,6 +2180,7 @@ export const MATRICE_DROITS = {
     ...DROITS_RELANCES_PAR_ROLE.technicien,
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.technicien,
     ...DROITS_UTILISATEUR_PAR_ROLE.technicien,
+    ...DROITS_REPRISE_PAR_ROLE.technicien,
   ],
   magasinier: [
     ...DROITS_MAGASINIER,
@@ -2115,6 +2199,7 @@ export const MATRICE_DROITS = {
     ...DROITS_RELANCES_PAR_ROLE.magasinier,
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.magasinier,
     ...DROITS_UTILISATEUR_PAR_ROLE.magasinier,
+    ...DROITS_REPRISE_PAR_ROLE.magasinier,
   ],
   comptable: [
     ...DROITS_COMPTABLE,
@@ -2133,6 +2218,7 @@ export const MATRICE_DROITS = {
     ...DROITS_RELANCES_PAR_ROLE.comptable,
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.comptable,
     ...DROITS_UTILISATEUR_PAR_ROLE.comptable,
+    ...DROITS_REPRISE_PAR_ROLE.comptable,
   ],
   poste_atelier: [
     ...DROITS_POSTE_ATELIER,
@@ -2151,6 +2237,7 @@ export const MATRICE_DROITS = {
     ...DROITS_RELANCES_PAR_ROLE.poste_atelier,
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.poste_atelier,
     ...DROITS_UTILISATEUR_PAR_ROLE.poste_atelier,
+    ...DROITS_REPRISE_PAR_ROLE.poste_atelier,
   ],
 } as const satisfies Readonly<Record<RoleUtilisateur, readonly Action[]>>;
 

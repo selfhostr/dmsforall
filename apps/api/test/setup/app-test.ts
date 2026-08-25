@@ -21,6 +21,7 @@
 
 import cookieParser from 'cookie-parser';
 import { GenericContainer, type StartedTestContainer } from 'testcontainers';
+import Redis from 'ioredis';
 import { Test } from '@nestjs/testing';
 import { INestApplication, VersioningType } from '@nestjs/common';
 import type { Pool } from 'pg';
@@ -32,6 +33,7 @@ import { FiltreProbleme } from '../../src/common/erreurs';
 import { AppModule } from '../../src/app.module';
 import { initialiserSentry } from '../../src/observabilite';
 import type { BaseEphemere } from './postgres-ephemere';
+import { determinerModeEphemere } from './mode-ephemere';
 
 // -----------------------------------------------------------------------------------------
 // Horloge de test
@@ -83,12 +85,21 @@ export class Horloge {
 // -----------------------------------------------------------------------------------------
 
 export interface RedisEphemere {
-  readonly conteneur: StartedTestContainer;
+  /** Présent UNIQUEMENT en mode testcontainers (voir mode-ephemere.ts) — `undefined` en mode
+   *  jetable, qui réutilise la base logique d'un Redis déjà en marche (`pnpm docker:up`,
+   *  conteneur `dfa-redis`) au lieu d'en démarrer un à lui. */
+  readonly conteneur: StartedTestContainer | undefined;
   readonly url: string;
   fermer(): Promise<void>;
 }
 
 export async function demarrerRedisEphemere(): Promise<RedisEphemere> {
+  return determinerModeEphemere() === 'jetable'
+    ? demarrerRedisEphemereJetable()
+    : demarrerRedisEphemereTestcontainers();
+}
+
+async function demarrerRedisEphemereTestcontainers(): Promise<RedisEphemere> {
   const conteneur = await new GenericContainer('redis:7-alpine').withExposedPorts(6379).start();
   const url = `redis://${conteneur.getHost()}:${conteneur.getMappedPort(6379)}`;
   return {
@@ -96,6 +107,91 @@ export async function demarrerRedisEphemere(): Promise<RedisEphemere> {
     url,
     async fermer(): Promise<void> {
       await conteneur.stop();
+    },
+  };
+}
+
+// -----------------------------------------------------------------------------------------
+// Redis jetable : le conteneur `dfa-redis` de `pnpm docker:up` est déjà en marche
+// (localhost:6379, sans mot de passe, comme .env). Contrairement à Postgres, il n'y a rien à
+// "créer" — Redis expose nativement 16 bases logiques numérotées (SELECT 0-15, `save
+// databases 16` par défaut, jamais changé ici). L'isolation entre exécutions concurrentes
+// passe donc par la RÉSERVATION d'un numéro de base via un verrou `SET ... NX PX` posé dans la
+// base 0 (le verrou lui-même n'a pas besoin d'isolation : sa clé est unique par index convoité,
+// deux exécutions ne peuvent jamais réserver le MÊME index en même temps). `FLUSHDB` avant usage
+// (au cas où un run précédent aurait planté sans nettoyer) et après (propreté, pas une garantie
+// absolue si le process est tué brutalement — mêmes limites que testcontainers, qui ne survit
+// pas non plus à un `kill -9` du process de test).
+// -----------------------------------------------------------------------------------------
+
+const NB_BASES_REDIS_LOGIQUES = 16; // 0 réservée par convention pour l'usage manuel (redis-cli).
+
+function cleVerrouRedisJetable(indice: number): string {
+  return `dfa:test:redis-jetable:verrou:${indice}`;
+}
+
+async function reserverBaseRedisLogique(admin: Redis): Promise<number> {
+  for (let indice = 1; indice < NB_BASES_REDIS_LOGIQUES; indice += 1) {
+    // PX 600000 (10 min) : filet en cas de process de test tué sans passer par `fermer()` — le
+    // verrou finit par expirer de lui-même plutôt que de condamner l'index pour toujours.
+    const obtenu = await admin.set(
+      cleVerrouRedisJetable(indice),
+      String(process.pid),
+      'PX',
+      600_000,
+      'NX',
+    );
+    if (obtenu === 'OK') return indice;
+  }
+  throw new Error(
+    `[app-test][jetable] aucune des ${NB_BASES_REDIS_LOGIQUES - 1} bases Redis logiques n'est ` +
+      `libre — soit un run précédent a laissé un verrou en attente d'expiration (jusqu'à 10 min), ` +
+      `soit ${NB_BASES_REDIS_LOGIQUES - 1} exécutions tournent déjà en parallèle sur cette instance.`,
+  );
+}
+
+async function demarrerRedisEphemereJetable(): Promise<RedisEphemere> {
+  const hote = process.env.DFA_TEST_REDIS_HOTE ?? 'localhost';
+  const port = Number(process.env.DFA_TEST_REDIS_PORT ?? 6379);
+
+  const admin = new Redis({ host: hote, port, lazyConnect: true, maxRetriesPerRequest: 1 });
+  try {
+    await admin.connect();
+  } catch (erreur) {
+    admin.disconnect();
+    throw new Error(
+      `[app-test][jetable] impossible de joindre Redis (${hote}:${port}). \`pnpm docker:up\` ` +
+        `a-t-il été lancé ? Cause : ${erreur instanceof Error ? erreur.message : String(erreur)}`,
+    );
+  }
+
+  let indice: number;
+  try {
+    indice = await reserverBaseRedisLogique(admin);
+  } catch (erreur) {
+    admin.disconnect();
+    throw erreur;
+  }
+
+  const url = `redis://${hote}:${port}/${indice}`;
+  const cible = new Redis(url, { lazyConnect: true, maxRetriesPerRequest: 1 });
+  await cible.connect();
+  await cible.flushdb();
+  await cible.quit();
+
+  return {
+    conteneur: undefined,
+    url,
+    async fermer(): Promise<void> {
+      const cibleFermeture = new Redis(url, { lazyConnect: true, maxRetriesPerRequest: 1 });
+      try {
+        await cibleFermeture.connect();
+        await cibleFermeture.flushdb();
+      } finally {
+        cibleFermeture.disconnect();
+      }
+      await admin.del(cleVerrouRedisJetable(indice)).catch(() => undefined);
+      admin.disconnect();
     },
   };
 }

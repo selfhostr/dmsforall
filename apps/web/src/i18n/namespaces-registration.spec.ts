@@ -131,4 +131,43 @@ describe('Enregistrement des namespaces dans i18next', () => {
     const resultat = i18next.t(cle, { lng: 'it' });
     expect(resultat).toBe('Ricambio motore');
   });
+
+  /**
+   * Namespace "reprise" (écran de reprise de données) — mêmes trois preuves de charge RÉELLE
+   * que les namespaces ci-dessus, pas seulement `i18n:check` (piège documenté en CONTRIBUTING.md : un
+   * namespace peut exister sur disque à parité stricte et rester totalement inutilisable si
+   * l'enregistrement dans `index.ts` a été oublié).
+   */
+  it('le namespace "reprise" est chargeable et traduit en FR', () => {
+    const cle = 'reprise:titre';
+    const resultat = i18next.t(cle, { lng: 'fr' });
+    expect(resultat).toBe('Reprise de données');
+    expect(resultat).not.toBe(cle);
+  });
+
+  it('le namespace "reprise" est chargeable et traduit en DE', () => {
+    const cle = 'reprise:titre';
+    const resultat = i18next.t(cle, { lng: 'de' });
+    expect(resultat).toBe('Datenübernahme');
+    expect(resultat).not.toBe(cle);
+  });
+
+  it('le namespace "reprise" est chargeable et traduit en IT', () => {
+    const cle = 'reprise:titre';
+    const resultat = i18next.t(cle, { lng: 'it' });
+    expect(resultat).toBe('Ripresa dati');
+    expect(resultat).not.toBe(cle);
+  });
+
+  it('reprise:domaines.clients (vocabulaire métier du plan) est traduit en FR', () => {
+    const cle = 'reprise:domaines.clients';
+    const resultat = i18next.t(cle, { lng: 'fr' });
+    expect(resultat).toBe('Vos clients');
+  });
+
+  it('reprise:plan.volumeAttendu gère le pluriel ICU en FR', () => {
+    const cle = 'reprise:plan.volumeAttendu';
+    expect(i18next.t(cle, { lng: 'fr', count: 1 })).toBe('environ 1 ligne');
+    expect(i18next.t(cle, { lng: 'fr', count: 3 })).toBe('environ 3 lignes');
+  });
 });

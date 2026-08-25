@@ -20,11 +20,18 @@
  */
 
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { randomBytes } from 'node:crypto';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import path from 'node:path';
 import { Client, Pool, type PoolClient } from 'pg';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 
+import { determinerModeEphemere } from './mode-ephemere';
+
 // Module CommonJS : `__dirname` est fourni par le runtime, pas besoin de `import.meta.url`.
+
+const execFileAsync = promisify(execFile);
 
 // ---------------------------------------------------------------------------------------------
 // Constantes de convention. Deux d'entre elles sont des HYPOTHÈSES documentées, à confirmer par
@@ -56,6 +63,53 @@ const SUPERUTILISATEUR_MDP = 'dfa_superutilisateur_test_mdp';
 // explicitement documentées comme non sensibles dans ce fichier — jamais utilisées en prod).
 const MDP_MIGRATEUR = 'dfa_migrator_dev';
 const MDP_APP = 'dfa_app_dev';
+const MDP_CONSOLE = 'dfa_console_dev';
+
+// ---------------------------------------------------------------------------------------------
+// Mode "base jetable" (voir mode-ephemere.ts) : au lieu d'un conteneur testcontainers, une base
+// jetable est créée sur l'instance Postgres DÉJÀ EN MARCHE de `pnpm docker:up`
+// (docker-compose.yml : conteneur `dfa-postgres`, superuser `dfa`, port 5432 — hors de la plage
+// éphémère morte en Docker rootless sur ce poste). Identifiants et hôte repris tels quels de
+// docker-compose.yml (POSTGRES_USER/POSTGRES_PASSWORD), overridables par variable d'env pour un
+// poste dont la config locale diverge.
+// ---------------------------------------------------------------------------------------------
+
+/** Jamais touchée par ce harnais — c'est la base de développement de @laupernoe. Garde-fou dur, pas une
+ *  simple convention : voir `refuserBaseInterdite`. */
+const NOM_BASE_DEV_INTERDITE = 'dfa_dev';
+
+const HOTE_JETABLE = process.env.DFA_TEST_PG_HOTE ?? 'localhost';
+const PORT_JETABLE = Number(process.env.DFA_TEST_PG_PORT ?? 5432);
+const ADMIN_JETABLE_UTILISATEUR = process.env.DFA_TEST_PG_ADMIN_UTILISATEUR ?? 'dfa';
+const ADMIN_JETABLE_MDP = process.env.DFA_TEST_PG_ADMIN_MDP ?? 'dfa_dev_local';
+/** Base de maintenance PostgreSQL, toujours présente, utilisée uniquement pour se connecter le
+ *  temps de CREATE DATABASE / DROP DATABASE — jamais pour y écrire quoi que ce soit d'autre. */
+const BASE_MAINTENANCE = 'postgres';
+/** `container_name` de docker-compose.yml — seul repère fiable pour shell `pg_dump` DEDANS
+ *  plutôt que d'exiger un client Postgres sur l'hôte (voir `dumperSchemaViaDockerExec`). */
+const CONTENEUR_DEV_POSTGRES = 'dfa-postgres';
+
+/** Refuse de démarrer si le nom de base cible est la base de développement. Appelé sur le nom
+ *  généré (jamais choisi par l'appelant — ce harnais ne prend aucun paramètre de nom en entrée),
+ *  en garde-fou dur : si cette fonction se déclenchait un jour, ce serait un bug de génération
+ *  de nom, jamais une situation à contourner. */
+function refuserBaseInterdite(nomBase: string): void {
+  if (nomBase === NOM_BASE_DEV_INTERDITE) {
+    throw new Error(
+      `[postgres-ephemere] refus de démarrer : le nom de base cible est "${NOM_BASE_DEV_INTERDITE}"` +
+        ` — la base de développement. Le harnais de test ne doit JAMAIS la créer, migrer ni la ` +
+        `supprimer. Ceci indique un bug dans la génération du nom de base éphémère.`,
+    );
+  }
+}
+
+function genererNomBaseJetable(): string {
+  const horodatage = Date.now().toString(36);
+  const alea = randomBytes(4).toString('hex');
+  // Préfixe distinct de NOM_BASE (mode testcontainers) : les deux modes ne doivent jamais être
+  // confondus en lisant un nom de base dans un journal.
+  return `dfa_test_jetable_${horodatage}_${alea}`;
+}
 
 export interface IdentifiantsRole {
   readonly utilisateur: string;
@@ -64,7 +118,11 @@ export interface IdentifiantsRole {
 }
 
 export interface BaseEphemere {
-  readonly conteneur: StartedPostgreSqlContainer;
+  /** Présent UNIQUEMENT en mode testcontainers (voir mode-ephemere.ts) — `undefined` en mode
+   *  base jetable, qui n'a pas de conteneur à lui : la base vit sur l'instance `dfa-postgres`
+   *  déjà en marche. Aucun test métier ne doit dépendre de ce champ ; seul `dumperSchema`
+   *  ci-dessous (posé sur CETTE interface, pas sur `conteneur`) doit être utilisé. */
+  readonly conteneur: StartedPostgreSqlContainer | undefined;
   readonly nomBase: string;
   readonly migrateur: IdentifiantsRole;
   readonly app: IdentifiantsRole;
@@ -89,6 +147,12 @@ export interface BaseEphemere {
    *  indépendamment de tout contexte tenant. JAMAIS utilisé pour une assertion métier : ce
    *  serait tester avec un rôle qui n'existe pas en production. */
   readonly poolSuperutilisateur: Pool;
+  /** Dump `--schema-only` du schéma courant, normalisé (voir `normaliserDumpSchema`). Remplace
+   *  l'ancien export libre `dumperSchema(conteneur, role)` : chaque backend (testcontainers /
+   *  jetable) sait comment shell `pg_dump` pour SA base — testcontainers l'exécute dans son
+   *  propre conteneur éphémère, la base jetable réutilise le conteneur `dfa-postgres` de
+   *  `pnpm docker:up` (voir `dumperSchemaViaDockerExec`). Seul `migrations.spec.ts` s'en sert. */
+  dumperSchema(roleMigrateur: IdentifiantsRole): Promise<string>;
   fermer(): Promise<void>;
 }
 
@@ -99,8 +163,65 @@ export interface OptionsBaseEphemere {
   readonly appliquerMigrations?: boolean;
 }
 
+/**
+ * Point d'entrée unique, utilisé par TOUS les specs d'intégration : bascule entre les deux
+ * mécanismes selon `determinerModeEphemere()` (voir mode-ephemere.ts). La forme rendue
+ * (`BaseEphemere`) est identique dans les deux cas — aucun spec n'a besoin de savoir lequel a
+ * tourné, sauf `migrations.spec.ts` via la méthode `dumperSchema` ci-dessus.
+ */
 export async function demarrerBaseEphemere(
   options: OptionsBaseEphemere = {},
+): Promise<BaseEphemere> {
+  const mode = determinerModeEphemere();
+  return mode === 'jetable'
+    ? demarrerBaseEphemereJetable(options)
+    : demarrerBaseEphemereTestcontainers(options);
+}
+
+/** Attache un écouteur d'erreur sur chacun des trois pools applicatifs (voir la note détaillée
+ *  ci-dessous, reprise à l'identique des deux backends) puis vérifie la connectivité via
+ *  `poolApp`. Factorisé : c'était dupliqué mot pour mot entre les deux implémentations. */
+async function finaliserPools(
+  poolApp: Pool,
+  poolMigrateur: Pool,
+  poolSuperutilisateur: Pool,
+): Promise<void> {
+  // Sans ce gestionnaire, une erreur sur une connexion INACTIVE de l'un de ces trois pools —
+  // le conteneur/la base qui reçoit un admin_shutdown (57P01) pendant qu'une connexion reste
+  // ouverte, un démon Docker à court de mémoire, ... — remonte en `unhandledError`
+  // d'EventEmitter et tue tout le PROCESSUS de test, y compris les suites d'autres fichiers qui
+  // n'ont rien à voir. Même raisonnement, même correctif que `ServiceAccesBase`/
+  // `ServiceAccesAmorcage` (apps/api/src/db/acces-base.service.ts, acces-amorcage.service.ts) et
+  // le client Redis partagé (apps/api/src/common/limitation/redis.provider.ts) : ces pools
+  // applicatifs ont déjà l'écouteur, mais poolApp/poolMigrateur/poolSuperutilisateur sont
+  // ouverts DIRECTEMENT par ce harnais, en dehors de tout cycle de vie NestJS, et n'en héritent
+  // donc pas. On journalise fort (console.error, pas un `debug` silencieux) : perdre la trace
+  // d'une base morte en cours de suite serait presque aussi grave que l'absence d'écouteur.
+  for (const [nom, pool] of [
+    ['app', poolApp],
+    ['migrateur', poolMigrateur],
+    ['superutilisateur', poolSuperutilisateur],
+  ] as const) {
+    pool.on('error', (erreur) => {
+      console.error(
+        `[postgres-ephemere] erreur sur une connexion inactive du pool ${nom} : ${erreur.message}`,
+      );
+    });
+  }
+
+  // Vérification de connectivité immédiate : mieux vaut un échec clair ici qu'un timeout
+  // mystérieux 100 lignes plus loin dans le premier test qui s'en sert.
+  await poolApp.query('select 1');
+}
+
+// ---------------------------------------------------------------------------------------------
+// Backend 1/2 : testcontainers (comportement historique, inchangé). Conteneur Postgres neuf à
+// chaque appel, rôles amorcés en rejouant `01-roles.sql` TEL QUEL (cluster vide, rien n'existe
+// encore) — voir le commentaire d'en-tête du fichier pour la séquence complète.
+// ---------------------------------------------------------------------------------------------
+
+async function demarrerBaseEphemereTestcontainers(
+  options: OptionsBaseEphemere,
 ): Promise<BaseEphemere> {
   const appliquerMigrations = options.appliquerMigrations ?? true;
 
@@ -162,33 +283,7 @@ export async function demarrerBaseEphemere(
   const poolApp = new Pool({ connectionString: app.url, max: 5 });
   const poolMigrateur = new Pool({ connectionString: migrateur.url, max: 3 });
   const poolSuperutilisateur = new Pool({ connectionString: superutilisateur.url, max: 3 });
-
-  // Sans ce gestionnaire, une erreur sur une connexion INACTIVE de l'un de ces trois pools —
-  // le conteneur qui reçoit un admin_shutdown (57P01) pendant qu'une connexion reste ouverte,
-  // un démon Docker à court de mémoire, ... — remonte en `unhandledError` d'EventEmitter et
-  // tue tout le PROCESSUS de test, y compris les suites d'autres fichiers qui n'ont rien à
-  // voir. Même raisonnement, même correctif que `ServiceAccesBase`/`ServiceAccesAmorcage`
-  // (apps/api/src/db/acces-base.service.ts, acces-amorcage.service.ts) et le client Redis
-  // partagé (apps/api/src/common/limitation/redis.provider.ts) : ces pools applicatifs ont
-  // déjà l'écouteur, mais poolApp/poolMigrateur/poolSuperutilisateur sont ouverts DIRECTEMENT
-  // par ce harnais, en dehors de tout cycle de vie NestJS, et n'en héritent donc pas. On
-  // journalise fort (console.error, pas un `debug` silencieux) : perdre la trace d'un
-  // conteneur mort en cours de suite serait presque aussi grave que l'absence d'écouteur.
-  for (const [nom, pool] of [
-    ['app', poolApp],
-    ['migrateur', poolMigrateur],
-    ['superutilisateur', poolSuperutilisateur],
-  ] as const) {
-    pool.on('error', (erreur) => {
-      console.error(
-        `[postgres-ephemere] erreur sur une connexion inactive du pool ${nom} : ${erreur.message}`,
-      );
-    });
-  }
-
-  // Vérification de connectivité immédiate : mieux vaut un échec clair ici qu'un timeout
-  // mystérieux 100 lignes plus loin dans le premier test qui s'en sert.
-  await poolApp.query('select 1');
+  await finaliserPools(poolApp, poolMigrateur, poolSuperutilisateur);
 
   return {
     conteneur,
@@ -199,9 +294,176 @@ export async function demarrerBaseEphemere(
     poolApp,
     poolMigrateur,
     poolSuperutilisateur,
+    dumperSchema: (roleMigrateur) => dumperSchemaViaConteneur(conteneur, roleMigrateur),
     async fermer(): Promise<void> {
       await Promise.all([poolApp.end(), poolMigrateur.end(), poolSuperutilisateur.end()]);
       await conteneur.stop();
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Backend 2/2 : base jetable, sur l'instance Postgres déjà en marche (`pnpm docker:up`). Le
+// CLUSTER existe déjà (rôles créés une fois pour toutes par 01-roles.sql à l'init du volume) ;
+// seule la BASE est nouvelle à chaque appel — donc seuls les droits PAR BASE (propriété du
+// schéma `public`, USAGE, CREATE ON DATABASE) doivent être reposés ici, jamais les rôles
+// eux-mêmes (voir `assurerRolesTestExistent`, qui vérifie plutôt que suppose, et ne recrée QUE
+// ce qui manque vraiment).
+// ---------------------------------------------------------------------------------------------
+
+function urlAdmin(nomBase: string): string {
+  return `postgresql://${ADMIN_JETABLE_UTILISATEUR}:${ADMIN_JETABLE_MDP}@${HOTE_JETABLE}:${PORT_JETABLE}/${nomBase}`;
+}
+
+function construireUrlJetable(nomBase: string, utilisateur: string, motDePasse: string): string {
+  return `postgresql://${utilisateur}:${motDePasse}@${HOTE_JETABLE}:${PORT_JETABLE}/${nomBase}`;
+}
+
+/** Vérifie l'existence des trois rôles applicatifs au niveau du CLUSTER (visibles depuis
+ *  n'importe quelle base, `pg_roles` n'est pas scopé par base) et ne crée que ceux qui manquent
+ *  réellement — jamais un aveugle "recrée tout", qui échouerait sur les rôles déjà là (already
+ *  exists) et qui, plus grave, ne doit JAMAIS toucher aux attributs d'un rôle partagé par le
+ *  cluster de dev (aucun ALTER ROLE ici, contrairement à `01-roles.sql` qui ne le fait que sur
+ *  `dfa_prod`). Mêmes attributs que 01-roles.sql : NOSUPERUSER NOCREATEDB NOCREATEROLE
+ *  NOBYPASSRLS — un rôle recréé ici avec une posture plus permissive rendrait `verifierPostureRls`
+ *  inutile sans qu'aucun test ne le remarque. */
+async function assurerRolesTestExistent(clientAdmin: Client): Promise<void> {
+  const attendus: ReadonlyArray<readonly [string, string]> = [
+    ['dfa_migrator', MDP_MIGRATEUR],
+    ['dfa_app', MDP_APP],
+    ['dfa_console', MDP_CONSOLE],
+  ];
+  const resultat = await clientAdmin.query<{ rolname: string }>(
+    `select rolname from pg_roles where rolname = any($1::text[])`,
+    [attendus.map(([nom]) => nom)],
+  );
+  const existants = new Set(resultat.rows.map((ligne) => ligne.rolname));
+  for (const [nom, motDePasse] of attendus) {
+    if (existants.has(nom)) continue;
+    console.warn(
+      `[postgres-ephemere][jetable] rôle "${nom}" absent du cluster local — création idempotente. ` +
+        `Attendu : déjà créé par docker/postgres/init/01-roles.sql via \`pnpm docker:up\` sur un ` +
+        `volume neuf. Si ce message apparaît en routine, le volume dfa_postgres_data a peut-être ` +
+        `été recréé sans rejouer l'init (voir docker-compose.yml, piège documenté).`,
+    );
+    // Mots de passe fixes issus de nos propres constantes (jamais une entrée utilisateur) :
+    // interpolation directe sans risque d'injection ici, DDL de rôle non paramétrable par le
+    // pilote `pg` de toute façon.
+    await clientAdmin.query(
+      `create role ${nom} with login password '${motDePasse}' nosuperuser nocreatedb nocreaterole nobypassrls`,
+    );
+  }
+}
+
+async function demarrerBaseEphemereJetable(options: OptionsBaseEphemere): Promise<BaseEphemere> {
+  const appliquerMigrations = options.appliquerMigrations ?? true;
+
+  const nomBase = genererNomBaseJetable();
+  refuserBaseInterdite(nomBase);
+
+  // Étape 1 : connexion de maintenance (base `postgres`, toujours présente) pour vérifier/créer
+  // les rôles manquants puis créer la base jetable elle-même.
+  const clientMaintenance = new Client({ connectionString: urlAdmin(BASE_MAINTENANCE) });
+  try {
+    await clientMaintenance.connect();
+  } catch (erreur) {
+    await clientMaintenance.end().catch(() => undefined);
+    throw new Error(
+      `[postgres-ephemere][jetable] impossible de joindre l'instance Postgres locale ` +
+        `(${HOTE_JETABLE}:${PORT_JETABLE}). \`pnpm docker:up\` a-t-il été lancé ? Cause : ` +
+        `${erreur instanceof Error ? erreur.message : String(erreur)}`,
+    );
+  }
+  try {
+    await assurerRolesTestExistent(clientMaintenance);
+    // Identifiant entre guillemets doubles : un nom généré par `genererNomBaseJetable` ne
+    // contient jamais de caractère spécial (alphanumérique + underscore), mais on cite quand
+    // même par discipline — jamais de nom de base interpolé sans guillemets dans du DDL.
+    await clientMaintenance.query(`create database "${nomBase}" encoding 'UTF8'`);
+  } finally {
+    await clientMaintenance.end();
+  }
+
+  const superutilisateur: IdentifiantsRole = {
+    utilisateur: ADMIN_JETABLE_UTILISATEUR,
+    motDePasse: ADMIN_JETABLE_MDP,
+    url: urlAdmin(nomBase),
+  };
+  const migrateur: IdentifiantsRole = {
+    utilisateur: 'dfa_migrator',
+    motDePasse: MDP_MIGRATEUR,
+    url: construireUrlJetable(nomBase, 'dfa_migrator', MDP_MIGRATEUR),
+  };
+  const app: IdentifiantsRole = {
+    utilisateur: 'dfa_app',
+    motDePasse: MDP_APP,
+    url: construireUrlJetable(nomBase, 'dfa_app', MDP_APP),
+  };
+
+  // Étape 2 : droits PAR BASE — équivalents des mêmes instructions de 01-roles.sql, rejouées ici
+  // parce qu'une base neuve hérite de `template1` (donc du superuser `dfa` comme propriétaire de
+  // `public`), jamais des GRANT que 01-roles.sql avait posés sur `dfa_dev` spécifiquement. Sans
+  // cette étape, `dfa_migrator` ne pourrait ni créer les tables des migrations ni devenir
+  // propriétaire de `public` : la posture RLS attendue par `verifierPostureRls()` ne serait
+  // jamais atteinte.
+  const clientPosture = new Client({ connectionString: superutilisateur.url });
+  await clientPosture.connect();
+  try {
+    await clientPosture.query(`
+      alter schema public owner to dfa_migrator;
+      revoke all on schema public from public;
+      grant usage on schema public to dfa_migrator;
+      grant usage on schema public to dfa_app;
+    `);
+    await clientPosture.query(`grant create on database "${nomBase}" to dfa_migrator`);
+  } finally {
+    await clientPosture.end();
+  }
+
+  // Étape 3 : migrations avec dfa_migrator, comme en production.
+  if (appliquerMigrations) {
+    const clientMigrateur = new Client({ connectionString: migrateur.url });
+    await clientMigrateur.connect();
+    try {
+      await appliquerMigrationsUp(clientMigrateur);
+    } finally {
+      await clientMigrateur.end();
+    }
+  }
+
+  // Étape 4 : seuls des accès dfa_app / dfa_migrator / superutilisateur sont rendus à l'appelant
+  // — même contrat que le backend testcontainers.
+  const poolApp = new Pool({ connectionString: app.url, max: 5 });
+  const poolMigrateur = new Pool({ connectionString: migrateur.url, max: 3 });
+  const poolSuperutilisateur = new Pool({ connectionString: superutilisateur.url, max: 3 });
+  await finaliserPools(poolApp, poolMigrateur, poolSuperutilisateur);
+
+  return {
+    conteneur: undefined,
+    nomBase,
+    migrateur,
+    app,
+    superutilisateur,
+    poolApp,
+    poolMigrateur,
+    poolSuperutilisateur,
+    dumperSchema: (roleMigrateur) => dumperSchemaViaDockerExec(nomBase, roleMigrateur),
+    async fermer(): Promise<void> {
+      // Les pools DOIVENT être fermés avant le DROP DATABASE : une connexion `dfa_app`/
+      // `dfa_migrator` encore ouverte empêcherait un DROP ordinaire (« base utilisée par
+      // d'autres utilisateurs ») — `WITH (FORCE)` ci-dessous couvre ce cas de toute façon
+      // (PostgreSQL 13+, termine les sessions restantes), mais fermer proprement d'abord reste
+      // la voie normale, `FORCE` n'est qu'un filet pour un test qui aurait laissé fuiter une
+      // connexion.
+      await Promise.all([poolApp.end(), poolMigrateur.end(), poolSuperutilisateur.end()]);
+      const clientSuppression = new Client({ connectionString: urlAdmin(BASE_MAINTENANCE) });
+      await clientSuppression.connect();
+      try {
+        refuserBaseInterdite(nomBase); // filet ultime, juste avant le DROP effectif.
+        await clientSuppression.query(`drop database if exists "${nomBase}" with (force)`);
+      } finally {
+        await clientSuppression.end();
+      }
     },
   };
 }
@@ -264,7 +526,7 @@ export async function appliquerMigrationsDown(client: Client): Promise<void> {
  *  appelle `dumperSchema` deux fois, jamais en parallèle) — chaque appel écrase le précédent. */
 const CHEMIN_DUMP_DANS_CONTENEUR = '/tmp/dfa-schema-dump.sql';
 
-export async function dumperSchema(
+async function dumperSchemaViaConteneur(
   conteneur: StartedPostgreSqlContainer,
   roleMigrateur: IdentifiantsRole,
 ): Promise<string> {
@@ -296,6 +558,47 @@ export async function dumperSchema(
   }
   const contenuBrut = await lireFichierDepuisConteneur(conteneur, CHEMIN_DUMP_DANS_CONTENEUR);
   return normaliserDumpSchema(contenuBrut.toString('utf8'));
+}
+
+/**
+ * Équivalent de `dumperSchemaViaConteneur` pour le backend base jetable : pas de conteneur à
+ * nous (`docker exec` directement, DEDANS `dfa-postgres`, celui de `pnpm docker:up`) plutôt que
+ * l'API `exec()` de testcontainers. Le bug de découpage multi-octets documenté ci-dessous
+ * n'existe pas ici : `child_process.execFile` accumule tout `stdout` en interne et ne décode
+ * qu'UNE SEULE FOIS sur le buffer complet — jamais chunk par chunk — donc pas besoin du
+ * détour par fichier + `copyArchiveFromContainer` + parseur tar. `pg_dump` écrit directement
+ * sur stdout ici (`-f` omis), capturé par `execFileAsync`.
+ */
+async function dumperSchemaViaDockerExec(
+  nomBase: string,
+  roleMigrateur: IdentifiantsRole,
+): Promise<string> {
+  try {
+    const { stdout } = await execFileAsync(
+      'docker',
+      [
+        'exec',
+        '-e',
+        `PGPASSWORD=${roleMigrateur.motDePasse}`,
+        CONTENEUR_DEV_POSTGRES,
+        'pg_dump',
+        '--schema-only',
+        '--no-owner',
+        '--no-privileges',
+        '-U',
+        roleMigrateur.utilisateur,
+        '-d',
+        nomBase,
+      ],
+      { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 },
+    );
+    return normaliserDumpSchema(stdout);
+  } catch (erreur) {
+    throw new Error(
+      `[postgres-ephemere][jetable] pg_dump a échoué via \`docker exec ${CONTENEUR_DEV_POSTGRES}\` ` +
+        `(pnpm docker:up est-il lancé ?) : ${erreur instanceof Error ? erreur.message : String(erreur)}`,
+    );
+  }
 }
 
 /**

@@ -198,6 +198,21 @@ jobs:
       - name: Construire @dfa/shared
         run: pnpm --filter @dfa/shared build
 
+      # apps/api/src/reprise/lecteurs/access/ shelle un vrai sous-processus mdb-tables/mdb-schema/
+      # mdb-export pour lire les archives Access (.mdb/.accdb, format Jet) — voir
+      # executeur-processus.ts. Les specs UNITAIRES (job « Vérifier » ci-dessus) substituent
+      # toujours ce sous-processus par une fabrique fictive (FabriqueProcessus, voir
+      # lecteur-access.ts : « assez étroit pour être substitué en test sans dépendre d'un vrai
+      # sous-processus mdbtools ») — elles n'ont donc jamais besoin du binaire. Seuls les futurs
+      # tests d'intégration de reprise (test/integration/**, ce job) peuvent vouloir prouver la
+      # lecture en exécution réelle, cohérent avec la règle du dépôt (« un mock ne prouve rien sur
+      # la requête réelle », CONTRIBUTING.md) — d'où l'installation ICI seulement, jamais dans « Vérifier »
+      # ni dans le job de réversibilité des migrations (aucun rapport). `mdbtools` sur
+      # Debian/Ubuntu fournit à la fois la lib et les binaires mdb-* (pas de split comme sur
+      # Alpine, voir apps/api/Dockerfile pour ce piège-là).
+      - name: Installer mdbtools (lecture des archives Access, test/integration/**)
+        run: sudo apt-get update && sudo apt-get install -y mdbtools
+
       - name: Tests d'intégration
         run: pnpm test:integration
         env:
