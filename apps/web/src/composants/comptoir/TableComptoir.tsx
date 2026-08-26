@@ -284,6 +284,9 @@ export function TableComptoir<T>({
   function rendreCarte(ligne: T) {
     const proprietesClic = proprietesLigneCliquable(ligne);
     return (
+      // BORDURE CONSERVÉE (DESIGN.md « Bordure structurelle uniquement », exception explicite :
+      // « carte cliquable d'un repli mobile de tableau ») — ce `<div>` EST la ligne de table une
+      // fois repliée sous 767px, pas un simple groupe de contenu.
       <div
         {...proprietesClic}
         className={cn(
@@ -390,6 +393,8 @@ export function TableComptoir<T>({
       corps = (
         <ul role="list" className="flex flex-col gap-2">
           {Array.from({ length: lignesSquelette }, (_, index) => (
+            // Même bordure que `rendreCarte` ci-dessus (repli mobile) : le squelette de
+            // chargement doit occuper exactement la silhouette de la carte qu'il précède.
             <li key={`squelette-carte-${index}`} className="rounded-lg border bg-card p-3">
               <div className="flex flex-col gap-2">
                 <Skeleton className="h-4 w-2/3" aria-hidden="true" />

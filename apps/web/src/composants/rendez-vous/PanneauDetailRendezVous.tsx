@@ -175,11 +175,12 @@ export function PanneauDetailRendezVous({
           </dl>
 
           {!lectureSeule && !estArrive && !estJourJOuApres ? (
-            <div
-              className="rounded-md border border-info/40 bg-info/5 p-carte"
-              role="status"
-              aria-live="polite"
-            >
+            // DÉFAUT CORRIGÉ (refonte visuelle) : `border-info`/`bg-info` n'a jamais existé comme
+            // jeton Tailwind (DESIGN.md ne définit que `--statut-info`, réservé au statut d'OR/de
+            // ligne — jamais utilisable ici, ce message n'est pas un statut d'OR) — l'encart
+            // rendait donc SANS bordure ni fond, classes mortes. Remplacé par le même traitement
+            // neutre que `BandeauLectureSeule` (information de contexte, ni alerte ni refus).
+            <div className="rounded-md border bg-muted p-carte" role="status" aria-live="polite">
               <p className="texte-corps text-muted-foreground">
                 {t('planning:detail.attenteBouton')}
               </p>

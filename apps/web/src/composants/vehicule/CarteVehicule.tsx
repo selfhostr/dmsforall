@@ -47,9 +47,14 @@ export function CarteVehicule({ vehicule, onOuvrir, className }: ProprietesCarte
       onClick={onOuvrir}
       onKeyDown={gererClavier}
       className={cn(
+        // BORDURE CONSERVÉE (DESIGN.md « Bordure structurelle uniquement ») : contrairement à
+        // `Card` (components/ui/), cette carte est un vrai contrôle de navigation quand `onOuvrir`
+        // est fourni — zone d'action réelle, pas un simple groupe de contenu (même exception que
+        // « carte cliquable d'un repli mobile de tableau », voir `TableComptoir.rendreCarte`).
         'flex flex-col gap-2 rounded-lg border bg-card p-carte text-card-foreground',
-        onOuvrir &&
-          'cursor-pointer transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+        // `anneau-focus` (utilitaire partagé, index.css) plutôt qu'un `ring`/`outline` refait à la
+        // main : même mécanisme de focus que le reste du produit, dans les deux thèmes.
+        onOuvrir && 'anneau-focus cursor-pointer transition-colors hover:bg-muted/50',
         className,
       )}
     >

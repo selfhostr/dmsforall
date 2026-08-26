@@ -139,11 +139,15 @@ export function ListeElementsBloquants({ blocages, onElementClic, className }: P
   }
 
   return (
+    // BORDURE RETIRÉE (refonte visuelle) : ce composant n'est aujourd'hui consommé que par
+    // `RefusBloquant`, où il vit DÉJÀ dans un encart bordé/coloré (`border-statut-danger`) — une
+    // seconde bordure autour de la liste aurait recréé le motif « carte dans une carte » (grief
+    // visuel d'origine). `divide-y` (filet horizontal entre lignes, même patron que
+    // `components/ui/table.tsx`) suffit à séparer les éléments ; `rounded-md overflow-hidden`
+    // reste pour que le survol (`hover:bg-muted`) de la première/dernière ligne suive les coins
+    // arrondis de l'encart englobant plutôt que de les déborder en carré.
     <ul
-      className={cn(
-        'flex flex-col divide-y divide-border overflow-hidden rounded-md border',
-        className,
-      )}
+      className={cn('flex flex-col divide-y divide-border overflow-hidden rounded-md', className)}
     >
       {blocages.map((element) => {
         const Icone = ICONE_PAR_TYPE[element.type];

@@ -5,8 +5,8 @@ import type { ReponseTravailReporte, UrgenceTravail } from '@dfa/shared';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EtatVide } from '@/composants/commun/EtatVide';
+import { BadgeAttribut } from '@/composants/identite/BadgeAttribut';
 import { formaterDate, formaterKilometrage, formaterMontant } from '@/lib/formats';
-import { cn } from '@/lib/utils';
 
 export interface ProprietesListeTravauxReportes {
   readonly travaux: readonly ReponseTravailReporte[];
@@ -50,15 +50,15 @@ export function ListeTravauxReportes({ travaux, className }: ProprietesListeTrav
               const IconeUrgence = urgence.icone;
               return (
                 <li key={travail.id} className="flex flex-wrap items-center gap-3 py-3">
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1 rounded-full border border-input bg-background px-2.5 py-0.5 texte-libelle font-medium',
-                      urgence.accentue ? 'font-semibold text-foreground' : 'text-muted-foreground',
-                    )}
+                  {/* Refonte visuelle : recomposait à la main les classes de `BadgeAttribut`
+                      (composants/identite/) au lieu de le composer — même défaut que celui que
+                      `BadgeAttribut` a été écrit pour éliminer (six copies verbatim avant lui). */}
+                  <BadgeAttribut
+                    icone={<IconeUrgence aria-hidden className="h-3.5 w-3.5 shrink-0" />}
+                    accentue={urgence.accentue}
                   >
-                    <IconeUrgence aria-hidden className="h-3.5 w-3.5 shrink-0" />
                     {t(`travauxReportes.urgences.${urgence.cle}`)}
-                  </span>
+                  </BadgeAttribut>
                   {travail.securite ? (
                     <ShieldAlert aria-hidden className="h-4 w-4 shrink-0 text-foreground" />
                   ) : null}

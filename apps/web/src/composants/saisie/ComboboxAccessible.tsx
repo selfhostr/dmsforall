@@ -279,6 +279,15 @@ export function OptionCombobox({
       id={id}
       role="option"
       aria-selected={actif}
+      // `data-highlighted` (pas `bg-accent`/`text-accent-foreground` posés à la main, défaut
+      // corrigé refonte visuelle) : `.element-menu[data-highlighted]` (index.css) est LE mécanisme
+      // partagé de surlignage de menu du produit (Radix/cmdk le posent eux-mêmes) — il apporte,
+      // en plus de la teinte de marque douce, l'anneau intérieur WCAG 1.4.11 (3:1) que `bg-accent`
+      // seul ne tient pas ici (`--accent` ≈ `--card`, ~1.1:1). Cette option ne reçoit jamais le
+      // focus DOM réel (`aria-activedescendant` sur le champ, voir `ChampCombobox`) : `outline-none`
+      // au repos est donc inerte, pas un focus perdu — même contrat que documenté en tête
+      // d'index.css pour `.anneau-focus`.
+      data-highlighted={actif ? '' : undefined}
       // `onMouseDown`+`preventDefault` : empêche le `blur` du champ de se déclencher AVANT le
       // `onClick` de l'option — sinon la liste se ferme (voir `gererPerteFocus`) avant même que
       // la sélection ne soit prise en compte.
@@ -286,7 +295,6 @@ export function OptionCombobox({
       onClick={onClick}
       className={cn(
         'element-menu cursor-pointer select-none rounded-sm px-2 py-2 outline-none',
-        actif ? 'bg-accent text-accent-foreground' : undefined,
         className,
       )}
     >

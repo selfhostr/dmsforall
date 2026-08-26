@@ -101,6 +101,10 @@ function LigneGarantie({
   // une garantie expirée. Confondre les deux (défaut constaté) fait dire « Échue » à un véhicule
   // qui n'a simplement jamais reçu de garantie : état neutre, jamais d'icône d'alarme ici.
   if (!garantie) {
+    // BORDURE POINTILLÉE CONSERVÉE — même convention que `EtatVide` (composants/commun/) : le
+    // signal visuel « rien à voir ici », pas une décoration. Les deux garanties (constructeur/
+    // garage) sont comparées côte à côte (grille 2 colonnes du parent) ; sans cadre, une case
+    // « non renseignée » se distinguerait mal d'une case renseignée simplement plus courte.
     return (
       <div className="flex flex-col gap-champ rounded-md border border-dashed p-carte">
         <p className="texte-libelle text-muted-foreground">{titre}</p>
@@ -115,6 +119,9 @@ function LigneGarantie({
   const Icone = active ? ShieldCheck : ShieldOff;
 
   return (
+    // BORDURE CONSERVÉE — même raison que le repli « non renseignée » ci-dessus : ce cadre est
+    // l'unité de comparaison de la grille 2 colonnes (garantie constructeur / garage), pas un
+    // simple groupe de contenu.
     <div className="flex flex-col gap-champ rounded-md border p-carte">
       <div className="flex items-center gap-2">
         <Icone

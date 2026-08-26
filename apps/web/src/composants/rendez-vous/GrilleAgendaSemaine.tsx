@@ -106,6 +106,11 @@ export function GrilleAgendaSemaine({ jours, onCliquerJour, onOuvrirRendezVous }
               });
 
         return (
+          // BORDURE CONSERVÉE (DESIGN.md « bordure structurelle... le filet du cadre applicatif ») :
+          // ce `<div>` est une cellule d'une vraie grille de données (`role="grid"`/`role="gridcell"`
+          // ci-dessus), pas un groupement décoratif de contenu — même famille que le filet des
+          // tableaux, appliqué ici en cadre complet parce que la cellule est un jour entier, pas
+          // une simple ligne.
           <div
             key={jour.dateIso}
             role="gridcell"

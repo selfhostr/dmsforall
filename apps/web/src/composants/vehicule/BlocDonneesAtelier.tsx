@@ -79,7 +79,11 @@ export function BlocDonneesAtelier({ donnees, className }: ProprietesBlocDonnees
         {champs.length === 0 ? (
           <EtatVide titre={t('donnees.titre')} description={t('donnees.vide')} />
         ) : (
-          <dl className="densite-dense grid grid-cols-1 gap-x-6 gap-y-groupe sm:grid-cols-2">
+          // `items-start` (leçon des lots d'écrans précédents) : sans lui, CSS Grid étire chaque
+          // cellule à la hauteur de la plus haute de sa rangée — le `border-b` de chaque champ se
+          // retrouverait sous un vide plutôt que collé à son contenu dès qu'un libellé/valeur
+          // voisin passe sur deux lignes.
+          <dl className="densite-dense grid grid-cols-1 items-start gap-x-6 gap-y-groupe sm:grid-cols-2">
             {champs.map((champ) => (
               <div
                 key={champ.libelle}
