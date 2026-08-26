@@ -343,6 +343,19 @@ export class ServiceRelancesFacture {
       if (!ligne) {
         return { statut: 'ignoree' as const };
       }
+      // `palier` n'est nullable en base que pour un marqueur de reprise (0072,
+      // relance_planifiee_palier_requis_actif_chk : palier is null => statut = 'annulee'). La
+      // réclamation ci-dessus vient de faire passer CETTE ligne de 'prete' à 'en_cours_envoi' —
+      // 'prete' <> 'annulee', donc l'invariant garantit palier non NULL ici. Assertion défensive
+      // (même patron que le contrôle `tenant introuvable` ci-dessus) plutôt qu'un `as number` :
+      // si l'invariant se rompt un jour, ce doit être une erreur explicite, pas un `undefined`
+      // silencieux dans le message envoyé au client.
+      if (ligne.palier === null) {
+        throw new Error(
+          `relance_planifiee ${ligne.id} : palier NULL sur une ligne 'en_cours_envoi' — ` +
+            `invariant relance_planifiee_palier_requis_actif_chk rompu.`,
+        );
+      }
 
       const resultat = await tx.execute<LigneFactureEtClientFraiche>(sql`
         select
