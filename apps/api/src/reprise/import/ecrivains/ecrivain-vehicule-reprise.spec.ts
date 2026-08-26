@@ -113,3 +113,106 @@ describe('ecrireVehiculesReprise — cession de l’event loop (boucle CPU + rec
     expect(appels()).toBe(lignes.length + CESSIONS_CONSTANTES);
   });
 });
+
+/**
+ * Défaut réel du 26.08.2026 (archive Auto-i complète de @laupernoe, table "Lager") : la casse était déjà
+ * corrigée (alias insensibles à la casse), mais AUCUN alias générique ne couvrait les noms de
+ * colonnes RÉELS de cette source — 6874 lignes détectées, 0 écrites, 100% `reference_manquante`.
+ * Schéma vérifié via `mdb-schema` (métadonnées de colonnes, jamais de donnée personnelle) :
+ * `LagerNr`/`ReferenzNr`/`FzKey` pour l'identifiant propre, `ChassisNr` pour le VIN, `KundenNr`
+ * pour le rattachement client — aucun ne matchait les alias d'avant ce correctif.
+ */
+describe('ecrireVehiculesReprise — alias de colonnes Auto-i réels (défaut du 26.08.2026)', () => {
+  it('résout `LagerNr` comme identifiant propre (aucun alias générique ne le couvrait)', async () => {
+    const lignes: LigneTable[] = [ligne(0, { LagerNr: 'L-001', Marke: 'VW', Modell: 'Golf' })];
+    const resultat = await ecrireVehiculesReprise(
+      txFactice(),
+      'tenant-1',
+      lignes,
+      new Map(),
+      cedeurEspion().cedeur,
+    );
+    expect(resultat.insere).toBe(1);
+    expect(resultat.anomalies).toEqual([]);
+  });
+
+  it('résout `ReferenzNr` et `FzKey` comme repli, dans cet ordre après `LagerNr`', async () => {
+    const lignes: LigneTable[] = [
+      ligne(0, { ReferenzNr: 'REF-1', Marke: 'VW', Modell: 'Polo' }),
+      ligne(1, { FzKey: 'FZ-2', Marke: 'Audi', Modell: 'A3' }),
+    ];
+    const resultat = await ecrireVehiculesReprise(
+      txFactice(),
+      'tenant-1',
+      lignes,
+      new Map(),
+      cedeurEspion().cedeur,
+    );
+    expect(resultat.insere).toBe(2);
+    expect(resultat.anomalies).toEqual([]);
+  });
+
+  it('résout `ChassisNr` comme VIN (`chassis` seul ne matchait pas `chassisnr` normalisé)', async () => {
+    const vin = '1M8GDM9AXKP042788'; // 17 caractères, alphabet VIN valide
+    const lignes: LigneTable[] = [
+      ligne(0, { LagerNr: 'L-001', Marke: 'VW', Modell: 'Golf', ChassisNr: vin }),
+    ];
+    const resultat = await ecrireVehiculesReprise(
+      txFactice(),
+      'tenant-1',
+      lignes,
+      new Map(),
+      cedeurEspion().cedeur,
+    );
+    expect(resultat.insere).toBe(1);
+    expect(resultat.anomalies).toEqual([]);
+  });
+
+  it('résout `KundenNr` comme référence client (rattachement du véhicule à sa fiche déjà écrite)', async () => {
+    const lignes: LigneTable[] = [
+      ligne(0, {
+        LagerNr: 'L-001',
+        Marke: 'VW',
+        Modell: 'Golf',
+        KundenNr: 'K-1',
+        Kontrollschild: 'VD 123456',
+        plaque_du: '2021-06-15',
+      }),
+    ];
+    const clientIdParNumeroOrigine = new Map([['K-1', 'client-existant']]);
+    const resultat = await ecrireVehiculesReprise(
+      txFactice(),
+      'tenant-1',
+      lignes,
+      clientIdParNumeroOrigine,
+      cedeurEspion().cedeur,
+    );
+    expect(resultat.insere).toBe(1);
+    // Aucune anomalie `reference_manquante` "client référencé introuvable" : le rattachement a
+    // réussi grâce à l'alias `kundennr`.
+    expect(resultat.anomalies).toEqual([]);
+  });
+
+  it('résout `ErstIV` (jj.mm.aaaa) comme date de plaque — sans lui, AUCUN véhicule ne pouvait jamais être rattaché (défaut réel du 26.08.2026 : 6823 véhicules écrits, 0 plaque/détention)', async () => {
+    const lignes: LigneTable[] = [
+      ligne(0, {
+        LagerNr: 'L-001',
+        Marke: 'VW',
+        Modell: 'Golf',
+        KundenNr: 'K-1',
+        Kontrollschild: 'VD 123456',
+        ErstIV: '15.03.2019',
+      }),
+    ];
+    const clientIdParNumeroOrigine = new Map([['K-1', 'client-existant']]);
+    const resultat = await ecrireVehiculesReprise(
+      txFactice(),
+      'tenant-1',
+      lignes,
+      clientIdParNumeroOrigine,
+      cedeurEspion().cedeur,
+    );
+    expect(resultat.insere).toBe(1);
+    expect(resultat.anomalies).toEqual([]);
+  });
+});

@@ -80,6 +80,44 @@ describe('genererPlanDepuisTables', () => {
     ]);
   });
 
+  it('confiance ÉGALE (arrondie) entre deux copies rivales -> la plus VOLUMINEUSE gagne, jamais celle vue en premier (défaut réel du 26.08.2026, archive Auto-i)', () => {
+    const petite = table({
+      id: 'petite',
+      fichierChemin: 'AutoI/Anwender_corrompu.mdb',
+      indiceConfiance: 90,
+      nombreLignes: 7143,
+    });
+    const grosse = table({
+      id: 'grosse',
+      fichierChemin: 'AutoI/RepAw.backup',
+      indiceConfiance: 90,
+      nombreLignes: 9977,
+    });
+
+    // Ordre du tableau = la copie la PLUS PETITE arrive EN PREMIER (exactement le cas qui faisait
+    // gagner l'ordre du zip avant ce correctif) : la plus volumineuse doit gagner malgré tout.
+    const { elements } = genererPlanDepuisTables([petite, grosse]);
+    expect(elements).toHaveLength(1);
+    expect(elements[0]!.tableDetecteeId).toBe('grosse');
+
+    // Preuve que ce n'est PAS un artefact d'ordre de tableau : même résultat, ordre inversé.
+    const inverse = genererPlanDepuisTables([grosse, petite]);
+    expect(inverse.elements[0]!.tableDetecteeId).toBe('grosse');
+  });
+
+  it('confiance ET volume STRICTEMENT égaux -> départage déterministe par chemin de fichier (jamais un hasard d’ordre)', () => {
+    const a = table({ id: 'a', fichierChemin: 'AutoI/Anwender20100107.mdb', indiceConfiance: 90 });
+    const b = table({ id: 'b', fichierChemin: 'AutoI/Anwender20100408.mdb', indiceConfiance: 90 });
+
+    const dansUnSens = genererPlanDepuisTables([b, a]);
+    const dansLAutreSens = genererPlanDepuisTables([a, b]);
+
+    // Même résultat quel que soit l'ordre d'entrée : "Anwender20100107.mdb" < "Anwender20100408.mdb"
+    // lexicographiquement — un choix arbitraire mais STABLE, jamais une lecture du nom du fichier.
+    expect(dansUnSens.elements[0]!.tableDetecteeId).toBe('a');
+    expect(dansLAutreSens.elements[0]!.tableDetecteeId).toBe('a');
+  });
+
   it('index_documents_scannes SANS rattachement (index source) -> exclu, document_non_rattachable (D-32)', () => {
     const { exclusions } = genererPlanDepuisTables([
       table({ id: 't1', roleDeduit: 'index_documents_scannes' }),

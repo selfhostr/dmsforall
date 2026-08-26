@@ -30,10 +30,15 @@ import type { AnomalieImportReprise } from '@dfa/shared';
 
 import type { TransactionDfa } from '../../../db';
 import type { CedeurEventLoop } from '../../../common/concurrence';
-import type { LigneTable, ValeurChamp } from '../../lecteurs/types';
+import type { LigneTable } from '../../lecteurs/types';
 import { CORRESPONDANCE_TYPE_CLIENT } from '../correspondance-enum-reprise';
 import { convertirVersEnum } from '../correspondance-enum-reprise';
 import { CandidatDedupLot, dedupliquerLot } from '../deduplication-lot-reprise';
+import { indexerColonnesLigne, texteParAlias } from '../resolution-alias-colonne-reprise';
+import {
+  creerCompteurProgresEcriture,
+  type CallbackProgresEcritureReprise,
+} from '../progression-ecriture-reprise';
 
 export interface ResultatEcritureClients {
   readonly insere: number;
@@ -65,14 +70,6 @@ export interface ResultatEcritureClientsPreparesReprise {
   readonly idParNumeroOrigine: ReadonlyMap<string, string>;
 }
 
-function texte(valeurs: Record<string, ValeurChamp>, ...aliases: readonly string[]): string | null {
-  for (const alias of aliases) {
-    const valeur = valeurs[alias];
-    if (typeof valeur === 'string' && valeur.trim() !== '') return valeur.trim();
-  }
-  return null;
-}
-
 /**
  * Phase 1 — CPU pur, AUCUN accès base : construit les candidats (mapping par alias, conversion
  * d'enum, validation) puis déduplique le lot. À appeler HORS de toute transaction — voir l'en-tête
@@ -92,8 +89,12 @@ export async function preparerCandidatsClientsReprise(
   // affamant la boucle d'événements sans cession explicite.
   for (const ligne of lignes) {
     await cedeurEventLoop.cederSiNecessaire();
-    const numeroOrigine = texte(
-      ligne.valeurs,
+    // Index insensible à la casse — voir `resolution-alias-colonne-reprise.ts` (défaut réel du
+    // 26.08.2026 : la casse d'origine des colonnes Access, ex. `KundenNr`, faisait échouer 100%
+    // des lignes ici, jamais résolues contre les alias en minuscules ci-dessous).
+    const index = indexerColonnesLigne(ligne);
+    const numeroOrigine = texteParAlias(
+      index,
       'id',
       'numero',
       'client_id',
@@ -110,9 +111,9 @@ export async function preparerCandidatsClientsReprise(
       continue;
     }
 
-    const typeSource = texte(ligne.valeurs, 'type', 'type_client', 'kundentyp');
-    const nom = texte(ligne.valeurs, 'nom', 'name', 'nachname');
-    const raisonSociale = texte(ligne.valeurs, 'raison_sociale', 'entreprise', 'firma', 'societe');
+    const typeSource = texteParAlias(index, 'type', 'type_client', 'kundentyp');
+    const nom = texteParAlias(index, 'nom', 'name', 'nachname');
+    const raisonSociale = texteParAlias(index, 'raison_sociale', 'entreprise', 'firma', 'societe');
     const conversionType = convertirVersEnum(typeSource, CORRESPONDANCE_TYPE_CLIENT);
     if (conversionType.inconnue) {
       anomalies.push({
@@ -143,7 +144,7 @@ export async function preparerCandidatsClientsReprise(
       continue;
     }
 
-    const conversionLangue = convertirVersEnum(texte(ligne.valeurs, 'langue', 'sprache'), {
+    const conversionLangue = convertirVersEnum(texteParAlias(index, 'langue', 'sprache'), {
       correspondances: { fr: 'fr', de: 'de', it: 'it' },
     });
     const langue = conversionLangue.valeur ?? langueTenantParDefaut;
@@ -190,9 +191,14 @@ export async function ecrireClientsPreparesReprise(
   tx: TransactionDfa,
   tenantId: string,
   candidatsRetenus: readonly CandidatClientRepriseRetenu[],
+  onProgres?: CallbackProgresEcritureReprise,
 ): Promise<ResultatEcritureClientsPreparesReprise> {
   const idParNumeroOrigine = new Map<string, string>();
   let insere = 0;
+  // Progression VISIBLE en cours d'écriture, jamais seulement en fin de domaine — voir l'en-tête
+  // de `progression-ecriture-reprise.ts` (défaut réel du 26.08.2026). Même transaction déjà
+  // ouverte pour cette écriture, aucun allongement mesurable.
+  const compteurProgres = creerCompteurProgresEcriture(onProgres);
 
   for (const candidat of candidatsRetenus) {
     const { numeroOrigine, type, nom, raisonSociale, langue } = candidat;
@@ -211,6 +217,7 @@ export async function ecrireClientsPreparesReprise(
       idParNumeroOrigine.set(numeroOrigine, id);
       insere += 1;
     }
+    await compteurProgres.incrementer();
   }
 
   return { insere, idParNumeroOrigine };

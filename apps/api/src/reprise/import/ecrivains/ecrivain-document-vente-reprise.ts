@@ -47,6 +47,15 @@ import {
   accumulerDocumentReconciliation,
   type AccumulateurAnneeReprise,
 } from '../reconciliation-annee-reprise';
+import {
+  indexerColonnesLigne,
+  texteParAlias,
+  valeurParAlias,
+} from '../resolution-alias-colonne-reprise';
+import {
+  creerCompteurProgresEcriture,
+  type CallbackProgresEcritureReprise,
+} from '../progression-ecriture-reprise';
 
 export interface EntreeDocumentVenteReprise {
   readonly tenantId: string;
@@ -154,10 +163,14 @@ export async function preparerCandidatsDocumentsVenteReprise(
   // itération, exactement comme les autres écrivains de domaine.
   for (const ligne of lignes) {
     await cedeurEventLoop.cederSiNecessaire();
-    const numeroOrigine = String(ligne.valeurs['id'] ?? ligne.valeurs['numero'] ?? '').trim();
-    const clientRef = String(ligne.valeurs['client_id'] ?? '').trim();
+    // Index insensible à la casse — voir `resolution-alias-colonne-reprise.ts` (même défaut réel
+    // du 26.08.2026 que `ecrivain-client-reprise.ts`/`ecrivain-vehicule-reprise.ts` : casse
+    // d'origine Access sur les colonnes source).
+    const index = indexerColonnesLigne(ligne);
+    const numeroOrigine = texteParAlias(index, 'id', 'numero') ?? '';
+    const clientRef = texteParAlias(index, 'client_id') ?? '';
     const clientId = clientIdParNumeroOrigine.get(clientRef);
-    const totalTtc = Number(ligne.valeurs['total_ttc'] ?? ligne.valeurs['montant'] ?? 0);
+    const totalTtc = Number(valeurParAlias(index, 'total_ttc', 'montant') ?? 0);
     if (!numeroOrigine || !clientId || !Number.isFinite(totalTtc)) {
       anomalies.push({
         type: 'reference_manquante',
@@ -167,11 +180,12 @@ export async function preparerCandidatsDocumentsVenteReprise(
       });
       continue;
     }
+    const dateBrute = valeurParAlias(index, 'date');
     const dateDocument =
-      ligne.valeurs['date'] instanceof Date
-        ? (ligne.valeurs['date'] as Date).toISOString().slice(0, 10)
-        : typeof ligne.valeurs['date'] === 'string'
-          ? ligne.valeurs['date']
+      dateBrute instanceof Date
+        ? dateBrute.toISOString().slice(0, 10)
+        : typeof dateBrute === 'string'
+          ? dateBrute
           : null;
 
     candidatsRetenus.push({
@@ -210,8 +224,12 @@ export async function ecrireDocumentsVenteRepriseParLot(
   params: ParametresEcritureDocumentsVenteReprise,
   candidatsRetenus: readonly CandidatDocumentVenteRepriseRetenu[],
   reconciliationParAnnee: Map<number, AccumulateurAnneeReprise>,
+  onProgres?: CallbackProgresEcritureReprise,
 ): Promise<ResultatEcritureDocumentsVenteRepriseParLot> {
   let insere = 0;
+  // Progression VISIBLE en cours d'écriture — voir l'en-tête de `progression-ecriture-reprise.ts`
+  // (défaut réel du 26.08.2026).
+  const compteurProgres = creerCompteurProgresEcriture(onProgres);
   for (const candidat of candidatsRetenus) {
     const resultat = await ecrireDocumentVenteReprise(tx, {
       tenantId: params.tenantId,
@@ -237,6 +255,7 @@ export async function ecrireDocumentsVenteRepriseParLot(
       );
       reconciliationParAnnee.set(annee, suivant.get(annee)!);
     }
+    await compteurProgres.incrementer();
   }
   return { insere };
 }

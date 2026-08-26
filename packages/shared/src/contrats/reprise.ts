@@ -697,6 +697,14 @@ export const MOTIFS_ECART_IMPORT_REPRISE = [
   'doublon_deja_importe',
   'hors_perimetre_temporel',
   'contrainte_metier_refusee',
+  // Défaut réel du 26.08.2026 : un domaine du plan SANS écrivain concret (`articles_stock`,
+  // `documents_scannes`...) était étiqueté `contrainte_metier_refusee` — message MENSONGER
+  // ("vos données violent une règle") pour une situation qui n'a rien à voir ("ce domaine n'est
+  // pas encore pris en charge par l'outil"). Même famille de défaut que `doublon_deja_importe`
+  // posé à tort sur des lignes jamais importées (import/service-import-reprise.ts, corrigé plus
+  // tôt le même jour) : un motif faux est pire qu'un motif absent, il accuse les données du
+  // garagiste d'un tort qui n'existe pas.
+  'domaine_non_pris_en_charge',
 ] as const;
 export type MotifEcartImportReprise = (typeof MOTIFS_ECART_IMPORT_REPRISE)[number];
 
@@ -721,6 +729,9 @@ export const TYPES_ANOMALIE_IMPORT_REPRISE = [
   'reference_manquante',
   'doublon_deja_importe',
   'contrainte_metier_refusee',
+  // Voir la doctrine complète en tête de `MOTIFS_ECART_IMPORT_REPRISE` ci-dessus — même motif,
+  // même raison, les deux enums restent en phase.
+  'domaine_non_pris_en_charge',
 ] as const;
 export type TypeAnomalieImportReprise = (typeof TYPES_ANOMALIE_IMPORT_REPRISE)[number];
 

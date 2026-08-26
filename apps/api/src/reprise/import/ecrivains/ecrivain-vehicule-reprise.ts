@@ -52,13 +52,22 @@ import type { AnomalieImportReprise } from '@dfa/shared';
 
 import type { TransactionDfa } from '../../../db';
 import type { CedeurEventLoop } from '../../../common/concurrence';
-import type { LigneTable, ValeurChamp } from '../../lecteurs/types';
+import type { LigneTable } from '../../lecteurs/types';
 import { calculerCleVehicule, normaliserVin } from '../cle-vehicule-reprise';
 import { dedupliquerLot, type CandidatDedupLot } from '../deduplication-lot-reprise';
 import {
   reconstituerIntervallesSansChevauchement,
   type EnregistrementIntervalle,
 } from '../reconstruction-intervalles';
+import {
+  dateIsoParAlias,
+  indexerColonnesLigne,
+  texteParAlias,
+} from '../resolution-alias-colonne-reprise';
+import {
+  creerCompteurProgresEcriture,
+  type CallbackProgresEcritureReprise,
+} from '../progression-ecriture-reprise';
 
 export interface ResultatEcritureVehicules {
   readonly insere: number;
@@ -113,25 +122,6 @@ interface EnregistrementReconstitueDetention {
   readonly donnees: { readonly vehiculeId: string; readonly clientId: string };
 }
 
-function texte(valeurs: Record<string, ValeurChamp>, ...aliases: readonly string[]): string | null {
-  for (const v of aliases.map((a) => valeurs[a])) {
-    if (typeof v === 'string' && v.trim() !== '') return v.trim();
-  }
-  return null;
-}
-
-function dateIso(
-  valeurs: Record<string, ValeurChamp>,
-  ...aliases: readonly string[]
-): string | null {
-  for (const alias of aliases) {
-    const v = valeurs[alias];
-    if (v instanceof Date) return v.toISOString().slice(0, 10);
-    if (typeof v === 'string' && v.trim() !== '') return v.trim();
-  }
-  return null;
-}
-
 /**
  * Phase 1 — CPU pur, AUCUN accès base. À appeler HORS de toute transaction — voir l'en-tête de
  * fichier.
@@ -147,7 +137,23 @@ export async function preparerCandidatsVehiculesReprise(
   // gabarit affamant que `ecrivain-client-reprise.ts`.
   for (const ligne of lignes) {
     await cedeurEventLoop.cederSiNecessaire();
-    const numeroOrigine = texte(ligne.valeurs, 'id', 'numero', 'vehicule_id', 'fahrzeug_id');
+    // Index insensible à la casse — voir `resolution-alias-colonne-reprise.ts` (même défaut réel
+    // du 26.08.2026 que `ecrivain-client-reprise.ts` : casse d'origine Access, ex. `ChassisNr`).
+    const index = indexerColonnesLigne(ligne);
+    const numeroOrigine = texteParAlias(
+      index,
+      'id',
+      'numero',
+      'vehicule_id',
+      'fahrzeug_id',
+      // Auto-i ("Lager" = stock/fiche véhicule) : identifiant propre à cette table, aucun des
+      // alias génériques ci-dessus ne le couvrait — défaut réel mesuré le 26.08.2026, import
+      // Auto-i complet de @laupernoe (6874 lignes détectées, 0 écrites, 100% `reference_manquante`,
+      // schéma réel vérifié via `mdb-schema` : `LagerNr`/`ReferenzNr`/`FzKey`, jamais `id`).
+      'lagernr',
+      'referenznr',
+      'fzkey',
+    );
     if (!numeroOrigine) {
       anomalies.push({
         type: 'reference_manquante',
@@ -157,8 +163,8 @@ export async function preparerCandidatsVehiculesReprise(
       });
       continue;
     }
-    const marque = texte(ligne.valeurs, 'marque', 'marke', 'make');
-    const modele = texte(ligne.valeurs, 'modele', 'modell', 'model');
+    const marque = texteParAlias(index, 'marque', 'marke', 'make');
+    const modele = texteParAlias(index, 'modele', 'modell', 'model');
     if (!marque || !modele) {
       anomalies.push({
         type: 'ligne_invalide',
@@ -169,7 +175,9 @@ export async function preparerCandidatsVehiculesReprise(
       continue;
     }
 
-    const vinBrut = texte(ligne.valeurs, 'vin', 'chassis', 'fahrgestellnummer');
+    // `chassis` seul ne matchait jamais "ChassisNr" (Auto-i) une fois normalisé (`chassisnr` !=
+    // `chassis`) — ajouté au même titre que `lagernr` ci-dessus, même défaut mesuré.
+    const vinBrut = texteParAlias(index, 'vin', 'chassis', 'chassisnr', 'fahrgestellnummer');
     const { cle } = calculerCleVehicule(vinBrut, numeroOrigine);
 
     candidats.push({
@@ -180,13 +188,40 @@ export async function preparerCandidatsVehiculesReprise(
         vin: normaliserVin(vinBrut),
         marque,
         modele,
-        clientNumeroOrigine: texte(ligne.valeurs, 'client_id', 'proprietaire_id', 'halter_id'),
-        plaqueValeur: texte(ligne.valeurs, 'plaque', 'immatriculation', 'kennzeichen'),
-        plaqueDu: dateIso(
-          ligne.valeurs,
+        // `kundennr` (Auto-i, "Lager.KundenNr") absent avant ce correctif : le rattachement au
+        // client échouait silencieusement (anomalie `reference_manquante` distincte, sans bloquer
+        // l'écriture du véhicule lui-même) — même défaut de couverture d'alias, sur une colonne
+        // différente.
+        clientNumeroOrigine: texteParAlias(
+          index,
+          'client_id',
+          'proprietaire_id',
+          'halter_id',
+          'kundennr',
+        ),
+        // `kontrollschild` : terme suisse-allemand standard (Auto-i) pour la plaque de contrôle —
+        // absent avant ce correctif (défaut réel mesuré le 26.08.2026, en plus de la casse).
+        plaqueValeur: texteParAlias(
+          index,
+          'plaque',
+          'immatriculation',
+          'kennzeichen',
+          'kontrollschild',
+        ),
+        // `erstiv` (Auto-i, "Lager.ErstIV" = Erst-Inverkehrsetzung, première mise en
+        // circulation) : défaut réel mesuré le 26.08.2026 — sans cet alias, AUCUN véhicule
+        // n'obtenait jamais de plaque/détention (les deux exigent `plaqueDu`), quand bien même le
+        // client et la plaque eux-mêmes résolvaient correctement : 6823 véhicules écrits, 0
+        // rattachés à leur propriétaire. Vérifié sur l'archive réelle (comptage seul, aucune
+        // donnée personnelle) : `KundenNr` rempli à 100% (6874/6874), `ErstIV` à 82% (5630/6874,
+        // format `jj.mm.aaaa` — voir `normaliserDateTexteVersIso`,
+        // `resolution-alias-colonne-reprise.ts`).
+        plaqueDu: dateIsoParAlias(
+          index,
           'plaque_du',
           'date_immatriculation',
           'date_1re_circulation',
+          'erstiv',
         ),
       },
     });
@@ -227,6 +262,7 @@ export async function ecrireVehiculesBaseReprise(
   tenantId: string,
   candidatsRetenus: readonly CandidatVehiculeRepriseRetenu[],
   clientIdParNumeroOrigine: ReadonlyMap<string, string>,
+  onProgres?: CallbackProgresEcritureReprise,
 ): Promise<ResultatEcritureVehiculesBaseReprise> {
   const anomalies: AnomalieImportReprise[] = [];
   const idParNumeroOrigine = new Map<string, string>();
@@ -234,6 +270,10 @@ export async function ecrireVehiculesBaseReprise(
   const plaquesAInserer: EnregistrementIntervalle<{ vehiculeId: string }>[] = [];
   const detentionsAInserer: EnregistrementIntervalle<{ vehiculeId: string; clientId: string }>[] =
     [];
+  // Progression VISIBLE en cours d'écriture — voir l'en-tête de `progression-ecriture-reprise.ts`
+  // (défaut réel du 26.08.2026, mesuré précisément sur CE domaine : 6874 véhicules, jusqu'à
+  // ~20-30 minutes d'écriture réelle, compteur figé tout ce temps avant ce correctif).
+  const compteurProgres = creerCompteurProgresEcriture(onProgres);
 
   for (const d of candidatsRetenus) {
     const resultat = await tx.execute<{ readonly id: string }>(sql`
@@ -271,6 +311,7 @@ export async function ecrireVehiculesBaseReprise(
         },
       });
     }
+    await compteurProgres.incrementer();
   }
 
   return { insere, idParNumeroOrigine, anomalies, plaquesAInserer, detentionsAInserer };

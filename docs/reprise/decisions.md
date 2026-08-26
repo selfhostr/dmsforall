@@ -448,3 +448,61 @@ VN/VO, relances — n'y figurent pas. Tant que ce contrat n'est pas étendu, le 
 le garagiste valide à l'écran ne peut proposer ni inclure ni exclure ces trois domaines : ils
 resteraient hors reprise de fait, quelle que soit la décision `D-41`/`D-42`/`D-45` prise
 ci-dessus.
+
+### D-46 — Motif d'écart dédié pour un domaine sans écrivain
+
+Un élément de plan visant un domaine **sans écrivain concret** (`articles_stock` et
+`documents_scannes` à ce jour) était étiqueté `contrainte_metier_refusee` dans le rapport
+d'import. Ce motif accuse les **données** du garagiste — « vos données violent une règle » —
+alors que la cause réelle est une **limite de l'outil** : ce domaine n'est pas encore pris en
+charge. Mesuré sur import réel le 26.08.2026 : **35 846 lignes `articles_stock` et 6 930
+`documents_scannes`** faussement accusées. C'est le pire mensonge possible dans une reprise,
+parce qu'il est plausible : un garagiste y passerait des heures à nettoyer un stock qui n'a rien.
+
+**Décision.** Motif dédié `domaine_non_pris_en_charge`, ajouté de façon **additive** à
+`MotifEcartImportReprise` et `TypeAnomalieImportReprise`
+(`packages/shared/src/contrats/reprise.ts`). Aucun consommateur front sur ces deux énumérations
+à la date de la décision (relevé exhaustif sur `apps/web/src`) : changement sans rupture.
+
+`contrainte_metier_refusee` reste réservé aux **échecs techniques réels**, par exemple un fichier
+source introuvable après extraction.
+
+Même famille que le défaut corrigé le matin du 26.08.2026, où des lignes jamais importées étaient
+étiquetées `doublon_deja_importe`. Règle générale qui s'en dégage : **un motif d'écart nomme la
+cause réelle, jamais la plus proche disponible dans l'énumération.**
+
+### D-47 — Durée de verrou mesurée, et écouteur d'erreur sur les connexions actives du pool
+
+Défaut réel du 26.08.2026, chaîne complète confirmée **en exécution**, pas seulement par lecture
+de code. `lockDuration` valait 2 minutes — choisi comme filet contre le calage BullMQ, sans jamais
+mesurer la durée réelle d'un job. Or sur l'archive complète d'un garage, les durées mesurées le
+jour même vont de 11 min 41 à 19 min 50 pour l'analyse, et de 5 min 24 à **29 min 13** pour
+l'import (pire cas : rejeu idempotent sur des données déjà présentes).
+
+**L'enchaînement.** BullMQ déclare le job calé et le réassigne → la promesse de la première
+tentative **n'est pas interrompue** (JavaScript ne tue pas une promesse en vol) et continue en
+orpheline → l'orpheline et le nouveau job partagent la même boucle d'événements, car
+`concurrency: 1` vaut **par processeur BullMQ**, jamais globalement pour le processus → l'écart
+entre deux requêtes d'une transaction par ailleurs correcte finit par dépasser
+`idle_in_transaction_session_timeout` → PostgreSQL tue la connexion → **et l'erreur n'a aucun
+écouteur**, parce que `pg-pool` retire le sien pendant qu'une connexion est empruntée et ne le
+rattache qu'à la libération → `uncaughtException` à l'échelle du processus → **tout le produit hors
+service pour l'échec d'un seul job d'un seul garage.**
+
+**Décision.**
+
+- `lockDuration` porté à **30 minutes**, dimensionné sur les durées réellement observées, avec
+  environ 54 % de marge sur le pire cas — jamais un chiffre arbitraire, et jamais illimité.
+- Écouteur `error` posé sur **chaque connexion physique du pool à sa création**
+  (`pool.on('connect', …)`), jamais retiré : il comble exactement la fenêtre où celui de
+  `pg-pool` est absent. L'erreur est **journalisée, jamais avalée en silence** — un incident
+  invisible serait pire que le plantage, qui au moins se voit.
+
+**Preuve en exécution réelle**, deux scénarios contre la vraie base, chacun dans un processus
+enfant isolé : sans l'écouteur, le plantage est reproduit à l'identique, même trace, processus
+mort ; avec l'écouteur, l'erreur est capturée, journalisée, et le processus survit.
+
+`observabilite/installer-gestionnaires-crash.ts` reste **inchangé**. Sa doctrine — toute
+`uncaughtException` non interceptée en amont reste fatale — était déjà la bonne : un processus
+dont l'état n'est plus fiable ne doit pas continuer à servir des requêtes. Le trou était
+l'absence d'écouteur en amont, pas le comportement du filet de dernier recours.

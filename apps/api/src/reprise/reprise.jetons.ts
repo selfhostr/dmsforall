@@ -32,11 +32,28 @@ export const NOM_JOB_IMPORT_REPRISE = 'importer-dossier-reprise';
  * les deux sont des minuteurs, la cession de l'event loop les débloque tous les deux à la fois,
  * un appel manuel n'aurait rien réglé de plus). Ce qui suit n'est que le FILET, pas le correctif :
  *
- *   - `lockDuration` : 2 minutes — très généreux comparé au budget de cession (20 ms, voir
- *     `SEUIL_CESSION_EVENT_LOOP_MS_DEFAUT`) et à la marge d'exécution réelle d'un `setImmediate`
- *     sous charge (quelques dizaines de ms mesurées, jamais des secondes), mais reste BORNÉ : un
- *     worker réellement mort (SIGKILL, OOM — le seul cas que la cession ne peut pas couvrir) libère
- *     le job pour un autre worker en 2 minutes maximum, pas indéfiniment. `stalledInterval` reste
+ *   - `lockDuration` : 30 minutes (RÉVISÉ le 26.08.2026, mesuré — voir plus bas ; 2 minutes
+ *     jusque-là). Le calcul d'origine ("très généreux comparé au budget de cession de 20 ms")
+ *     était juste EN ISOLATION mais ratait un enchaînement mesuré le jour même : un job dont le
+ *     verrou expire à tort N'EST PAS INTERROMPU — sa Promise JS continue de tourner, orpheline,
+ *     BullMQ se contentant de la réassigner à un second worker (voir plus haut, § « pas
+ *     interrompue »). Cet orphelin partage la MÊME boucle d'événements Node que TOUT AUTRE job en
+ *     cours, y compris d'une AUTRE file de reprise (`concurrency: 1` est PAR PROCESSEUR, pas
+ *     global au processus). Résultat mesuré en production ce jour : l'orphelin affame assez la
+ *     boucle pour retarder de plusieurs minutes le prochain `tx.execute` d'une transaction PAR
+ *     AILLEURS irréprochable — assez pour dépasser `idle_in_transaction_session_timeout`
+ *     (`db/acces-base.service.ts`), PostgreSQL tue la connexion, et SANS l'écouteur `error` posé
+ *     à la connexion (même chantier, même fichier) l'erreur remontait en `uncaughtException`
+ *     PROCESS-WIDE — tout le produit hors service pour l'échec d'un seul job de reprise d'un seul
+ *     garage. Un `lockDuration` mal dimensionné n'est donc pas ici un simple confort : c'est le
+ *     PREMIER maillon de cette chaîne — il CRÉE l'orphelin qui affame tout le reste. Durées
+ *     réelles observées le 26.08.2026 sur l'archive complète de @laupernoe (552 tables, 2,3 Go) :
+ *     analyse 11 min 41 à 19 min 50 ; import 5 min 24 à 29 min 13 (le plus long, rejeu idempotent
+ *     contre ~16 800 lignes déjà en base). 30 minutes couvre le pire cas mesuré (29 min 13) avec
+ *     une marge réelle (~54 %, comparable à la croissance déjà observée du nombre de tables
+ *     détectées sur cette même archive après un correctif distinct), tout en restant BORNÉ : un
+ *     worker réellement mort (SIGKILL, OOM — le seul cas qu'aucune cession ne peut couvrir) libère
+ *     le job pour un autre worker en 30 minutes maximum, pas indéfiniment. `stalledInterval` reste
  *     au défaut BullMQ (30s) — inchangé, aucune raison mesurée de le repousser.
  *   - `concurrency` : 1 — un seul job de reprise à la fois PAR PROCESSUS worker. Le goulot mesuré
  *     est le disque/sous-processus (`mdb-export`), pas le nombre de jobs en vol : en paralléliser
@@ -52,7 +69,7 @@ export const NOM_JOB_IMPORT_REPRISE = 'importer-dossier-reprise';
  * de itérer, lui aussi, sur un flux local volumineux.
  */
 export const OPTIONS_WORKER_REPRISE: Partial<WorkerOptions> = {
-  lockDuration: 2 * 60 * 1000,
+  lockDuration: 30 * 60 * 1000,
   concurrency: 1,
 };
 

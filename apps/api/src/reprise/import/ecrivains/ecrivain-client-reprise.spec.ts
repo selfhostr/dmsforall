@@ -3,7 +3,12 @@ import { describe, expect, it, vi } from 'vitest';
 import type { TransactionDfa } from '../../../db';
 import type { CedeurEventLoop } from '../../../common/concurrence';
 import type { LigneTable } from '../../lecteurs/types';
-import { ecrireClientsReprise } from './ecrivain-client-reprise';
+import {
+  ecrireClientsReprise,
+  ecrireClientsPreparesReprise,
+  type CandidatClientRepriseRetenu,
+} from './ecrivain-client-reprise';
+import { SEUIL_LOT_PROGRESSION_REPRISE } from '../progression-ecriture-reprise';
 
 /**
  * Preuve de la cession de l'event loop (défaut réel du 26.08.2026, § `ceder-controle-event-loop.
@@ -80,5 +85,49 @@ describe('ecrireClientsReprise — cession de l’event loop (boucle CPU dépend
     expect(resultat.insere).toBe(2);
     expect(resultat.ecarte).toBe(1);
     expect(appels()).toBe(lignes.length + 1);
+  });
+});
+
+describe('ecrireClientsPreparesReprise — progression visible en cours d’écriture (défaut réel du 26.08.2026)', () => {
+  it('signale un lot dès que le seuil est atteint, avec le bon delta, jamais avant', async () => {
+    const candidats: CandidatClientRepriseRetenu[] = Array.from(
+      { length: SEUIL_LOT_PROGRESSION_REPRISE + 3 },
+      (_, i) => ({
+        numeroOrigine: `K-${i}`,
+        type: 'particulier' as const,
+        nom: `Client ${i}`,
+        raisonSociale: null,
+        langue: 'fr' as const,
+      }),
+    );
+    const onProgres = vi.fn(async () => undefined);
+
+    const resultat = await ecrireClientsPreparesReprise(
+      txFactice(),
+      'tenant-1',
+      candidats,
+      onProgres,
+    );
+
+    expect(resultat.insere).toBe(SEUIL_LOT_PROGRESSION_REPRISE + 3);
+    // Un seul flush au seuil ; les 3 lignes restantes ne sont PAS signalées ici — comptabilisées
+    // par le "reste" final côté orchestrateur (`service-import-reprise.ts`), jamais devinées par
+    // l'écrivain.
+    expect(onProgres).toHaveBeenCalledTimes(1);
+    expect(onProgres).toHaveBeenCalledWith(SEUIL_LOT_PROGRESSION_REPRISE);
+  });
+
+  it('sans callback, écrit normalement (le paramètre reste optionnel)', async () => {
+    const candidats: CandidatClientRepriseRetenu[] = [
+      {
+        numeroOrigine: 'K-1',
+        type: 'particulier',
+        nom: 'Dupont',
+        raisonSociale: null,
+        langue: 'fr',
+      },
+    ];
+    const resultat = await ecrireClientsPreparesReprise(txFactice(), 'tenant-1', candidats);
+    expect(resultat.insere).toBe(1);
   });
 });

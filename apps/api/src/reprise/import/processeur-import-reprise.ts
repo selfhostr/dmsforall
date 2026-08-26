@@ -14,19 +14,22 @@ interface DonneesJobImport {
 /**
  * Worker BullMQ de la file `reprise-import` — même patron que `ProcesseurAnalyseReprise`, y
  * compris `OPTIONS_WORKER_REPRISE` (`lockDuration`/`concurrency` explicites — voir sa doc dans
- * `reprise.jetons.ts` pour la justification, défaut réel du 26.08.2026). L'import lit/écrit AU
- * MOINS autant de lignes que l'analyse (plus, en fait — pas seulement un échantillon) : même
- * exposition mesurée à la famine d'event loop, même filet. Cession explicite de l'event loop DANS
- * la boucle d'import elle-même — traitée dans `service-import-reprise.ts::ecrireDomaine` (lecture
- * des lignes source) et les écrivains de domaine (`ecrireClientsReprise`/`ecrireVehiculesReprise`,
- * boucle de construction des candidats), même mécanisme que l'analyse (`creerCedeurEventLoop`,
- * `common/concurrence/`). Point encore ouvert, signalé au rapport de livraison : `executer()`
- * garde TOUT le traitement (lecture des lignes source incluse, disque/sous-processus, sans requête
- * SQL pendant ce temps) dans UNE SEULE transaction Postgres — le défaut structurel que
- * `service-analyse-reprise.ts` vient d'éliminer (extraction hors transaction) n'a PAS été reproduit
- * ici ; la cession de l'event loop ne le corrige pas (elle ne fait qu'éviter la famine du
- * renouvellement de verrou BullMQ), une restructuration équivalente à celle de l'analyse reste à
- * décider séparément.
+ * `reprise.jetons.ts` pour la justification, défaut réel du 26.08.2026, RÉVISÉ le même jour avec
+ * les durées réelles mesurées). L'import lit/écrit AU MOINS autant de lignes que l'analyse (plus,
+ * en fait — pas seulement un échantillon) : même exposition mesurée à la famine d'event loop,
+ * même filet. Cession explicite de l'event loop DANS la boucle d'import elle-même — traitée dans
+ * `service-import-reprise.ts::executer` (lecture des lignes source) et les écrivains de domaine
+ * (`ecrireClientsPreparesReprise`/`preparerCandidatsVehiculesReprise`, boucle de construction des
+ * candidats), même mécanisme que l'analyse (`creerCedeurEventLoop`, `common/concurrence/`).
+ *
+ * COMMENTAIRE PÉRIMÉ CORRIGÉ ICI le 26.08.2026 : cette note affirmait auparavant qu'`executer()`
+ * gardait TOUT le traitement (lecture des lignes source incluse) dans UNE SEULE transaction
+ * Postgres — FAUX depuis le découpage « TROIS PHASES » documenté en tête de `service-import-
+ * reprise.ts` (lecture de source HORS transaction, écriture par domaine dans des transactions
+ * COURTES et SÉPARÉES) : ce point-là est réglé. Un commentaire qui décrit un défaut déjà corrigé
+ * envoie le prochain lecteur chercher au mauvais endroit — mesuré en vrai le jour même, en
+ * cherchant (à tort) ce défaut ici pendant l'investigation d'un crash process qui avait en réalité
+ * une tout autre cause (voir `db/acces-base.service.ts`, écouteur `error` posé à la connexion).
  */
 @Processor(NOM_FILE_IMPORT_REPRISE, OPTIONS_WORKER_REPRISE)
 export class ProcesseurImportReprise extends WorkerHost {

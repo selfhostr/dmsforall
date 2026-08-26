@@ -225,6 +225,49 @@ export class ServiceAccesBase implements AccesBase, OnModuleInit, OnModuleDestro
       this.journal.error(`Erreur sur une connexion inactive du pool : ${erreur.message}`);
     });
 
+    // TROU DISTINCT du gestionnaire ci-dessus, comblé ici — défaut réel du 26.08.2026, reproduit
+    // en exécution (import de reprise, archive Auto-i complète de @laupernoe) : `pool.on('error', ...)`
+    // ne couvre QUE les connexions INACTIVES DANS LE POOL. Dès qu'une connexion est retirée du
+    // pool pour une transaction (`pg-pool/index.js::_acquireClient`), `pg-pool` détache SA PROPRE
+    // écoute `error` de ce client précis — ré-attachée seulement à la RELEASE — pour laisser
+    // l'appelant (nous) responsable des erreurs PENDANT l'usage actif. Si PostgreSQL termine
+    // cette connexion pendant qu'AUCUNE requête n'est en vol dessus (`idle_in_transaction_
+    // session_timeout` ci-dessus, ex. un `await tx.execute(...)` qui tarde à être RELANCÉ côté
+    // JS entre deux requêtes d'une même transaction) — vérifié dans `pg/lib/client.js::
+    // _handleErrorMessage` : SANS requête active, l'erreur part en `_handleErrorEvent` ->
+    // `this.emit('error', err)`, un `EventEmitter.emit` NORMAL, jamais une exception — SANS
+    // écouteur dessus à cet instant précis, Node la traite comme un événement non géré, promu en
+    // `uncaughtException` PROCESS-WIDE : toute l'API meurt, tous tenants confondus, pour l'échec
+    // d'un seul job.
+    //
+    // CORRECTIF : un écouteur `error` posé UNE FOIS PAR CONNEXION PHYSIQUE, à la création
+    // (`pool.on('connect', ...)`), jamais retiré — `pg-pool` ne gère QUE SON PROPRE écouteur
+    // interne (ajout/retrait à chaque cycle acquire/release), un `EventEmitter` accepte
+    // plusieurs écouteurs simultanés sans conflit : le nôtre reste actif PENDANT la fenêtre où
+    // celui de `pg-pool` est justement absent, fermant exactement le trou.
+    //
+    // PROUVÉ SANS RISQUE DE PROMESSE BLOQUÉE (relu `pg/lib/client.js` avant d'écrire ceci) : si
+    // une requête ÉTAIT en vol au moment de la coupure, `pg` la fait déjà échouer proprement
+    // (`activeQuery.handleError(...)`) — ce nouvel écouteur ne change rien à CE chemin. S'il n'y
+    // en avait AUCUNE (notre cas mesuré), il n'y a RIEN à débloquer : le client est simplement
+    // marqué non-utilisable (`_queryable = false`), et le PROCHAIN `tx.execute` de la transaction
+    // en cours échoue avec un message clair (`Client has encountered a connection error and is
+    // not queryable`) — une Promise REJETÉE, normale, que `enTenant`/l'appelant (ex.
+    // `ServiceImportReprise.executer`, déjà doté d'un `try/catch` autour de toute la phase
+    // d'écriture) rattrape et transforme en échec DE CE SEUL DOSSIER, jamais un crash process.
+    //
+    // Journalisé, jamais avalé en silence : un incident invisible serait pire que le crash qu'il
+    // remplace — voir la doctrine de `observabilite/installer-gestionnaires-crash.ts`, INCHANGÉE
+    // ici (elle reste le filet légitime pour tout ce qui n'est PAS cette classe précise d'erreur
+    // de connexion récupérable).
+    this.pool.on('connect', (client) => {
+      client.on('error', (erreur) => {
+        this.journal.error(
+          `Erreur sur une connexion ACTIVE du pool (transaction en cours) : ${erreur.message}`,
+        );
+      });
+    });
+
     this.base = drizzle(this.pool, { schema });
   }
 

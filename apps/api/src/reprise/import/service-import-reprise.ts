@@ -96,6 +96,7 @@ import type {
   EcarteParDomaineReprise,
   ElementPlanReprise,
   InsereParDomaineReprise,
+  MotifEcartImportReprise,
   ReconciliationAnneeReprise,
   ReponseImportReprise,
   TableDetecteeReprise,
@@ -355,17 +356,26 @@ export class ServiceImportReprise {
       }
 
       // Domaines demandés mais sans écrivain concret : signalés, jamais un succès simulé.
+      //
+      // MOTIF DÉDIÉ (`domaine_non_pris_en_charge`), PAS `contrainte_metier_refusee` — défaut réel
+      // corrigé le 26.08.2026 : « contrainte métier refusée » dit au garagiste « vos données
+      // violent une règle » ; la vérité ici est « ce domaine n'est pas encore pris en charge par
+      // l'outil », un message qui accuse le LOGICIEL, jamais les données. Mesuré : un import réel
+      // (archive Auto-i complète de @laupernoe) rendait ce faux motif sur 35 846 lignes `articles_stock`
+      // et 6 930 lignes `documents_scannes` — de quoi laisser croire à un stock corrompu à
+      // nettoyer, alors qu'il n'y a rien à nettoyer. Voir la doctrine complète en tête de
+      // `MOTIFS_ECART_IMPORT_REPRISE` (`@dfa/shared`).
       const domainesCouverts = new Set<DomaineReprise>(['clients', 'vehicules', 'documents_vente']);
       for (const element of elementsInclus) {
         if (!domainesCouverts.has(element.domaine)) {
           accumulateur.ecarte.push({
             domaine: element.domaine,
             elementPlanId: element.id,
-            motif: 'contrainte_metier_refusee',
+            motif: 'domaine_non_pris_en_charge',
             nombre: element.volumeAttenduLignes,
           });
           accumulateur.anomalies.push({
-            type: 'contrainte_metier_refusee',
+            type: 'domaine_non_pris_en_charge',
             domaine: element.domaine,
             ligneSource: null,
             donnees: {
@@ -503,36 +513,64 @@ export class ServiceImportReprise {
     clientIdParNumeroOrigine: Map<string, string>,
     cedeurEventLoop: CedeurEventLoop,
   ): Promise<void> {
+    // Signal de démarrage IMMÉDIAT — `domaine_courant` visible dès que ce domaine commence,
+    // jamais seulement à sa fin. Incrément à 0 : `avancerProgression` pose déjà `domaine_courant`
+    // à CHAQUE appel, un incrément nul le réutilise sans dupliquer sa logique. Défaut réel du
+    // 26.08.2026 : `domaine_courant` restait VIDE (dernière valeur du domaine PRÉCÉDENT) pendant
+    // toute la durée d'écriture d'un domaine volumineux — impossible de savoir même QUEL domaine
+    // était en cours, encore moins s'il avançait.
+    await this.acces.enTenant(ctx, (tx) =>
+      this.avancerProgression(tx, ctx.tenantId, dossierId, 0, domaine),
+    );
+
+    // Cumul de ce qui a déjà été SIGNALÉ en cours de route (voir `onProgres` ci-dessous), pour
+    // que l'incrément FINAL n'ajoute que le RESTE — jamais compter deux fois les mêmes lignes.
+    let dejaSignale = 0;
+
     if (domaine === 'clients') {
       const preparation = await preparerCandidatsClientsReprise(lignes, 'fr', cedeurEventLoop);
-      const ecriture = await this.acces.enTenant(ctx, (tx) =>
-        ecrireClientsPreparesReprise(tx, ctx.tenantId, preparation.candidatsRetenus),
-      );
+      const ecriture = await this.acces.enTenant(ctx, async (tx) => {
+        // Progression VISIBLE en cours d'écriture (défaut réel du 26.08.2026, § `progression-
+        // ecriture-reprise.ts`) — MÊME transaction déjà ouverte pour cette écriture, jamais une
+        // transaction supplémentaire, jamais rallongée de façon mesurable (voir sa doc).
+        const onProgres = async (delta: number): Promise<void> => {
+          dejaSignale += delta;
+          await this.avancerProgression(tx, ctx.tenantId, dossierId, delta, domaine);
+        };
+        return ecrireClientsPreparesReprise(
+          tx,
+          ctx.tenantId,
+          preparation.candidatsRetenus,
+          onProgres,
+        );
+      });
       for (const [k, v] of ecriture.idParNumeroOrigine) clientIdParNumeroOrigine.set(k, v);
       accumulateur.insere.push({
         domaine: 'clients',
         elementPlanId: element.id,
         nombre: ecriture.insere,
       });
-      if (preparation.ecarte > 0) {
-        accumulateur.ecarte.push({
-          domaine: 'clients',
-          elementPlanId: element.id,
-          motif: 'doublon_deja_importe',
-          nombre: preparation.ecarte,
-        });
-      }
+      this.pousserEcartsParMotif('clients', element.id, preparation.anomalies, accumulateur);
       accumulateur.anomalies.push(...preparation.anomalies);
     } else if (domaine === 'vehicules') {
       const preparation = await preparerCandidatsVehiculesReprise(lignes, cedeurEventLoop);
-      const base = await this.acces.enTenant(ctx, (tx) =>
-        ecrireVehiculesBaseReprise(
+      const base = await this.acces.enTenant(ctx, async (tx) => {
+        // Progression VISIBLE — voir la même doctrine juste au-dessus (domaine `clients`). Les
+        // intervalles reconstruits (`vehicule_plaque`/`vehicule_detention`, ci-dessous) ne sont
+        // PAS des lignes source supplémentaires — DÉLIBÉRÉMENT hors de ce compteur, qui ne suit
+        // QUE le volume de la table source (`table.nombreLignes`, unité déjà établie).
+        const onProgres = async (delta: number): Promise<void> => {
+          dejaSignale += delta;
+          await this.avancerProgression(tx, ctx.tenantId, dossierId, delta, domaine);
+        };
+        return ecrireVehiculesBaseReprise(
           tx,
           ctx.tenantId,
           preparation.candidatsRetenus,
           clientIdParNumeroOrigine,
-        ),
-      );
+          onProgres,
+        );
+      });
       // Reconstruction d'intervalles (CPU pur) HORS transaction, entre les deux écritures courtes
       // — voir l'en-tête de `ecrivain-vehicule-reprise.ts`.
       const { plaquesReconstituees, detentionsReconstituees } =
@@ -554,14 +592,7 @@ export class ServiceImportReprise {
         elementPlanId: element.id,
         nombre: base.insere,
       });
-      if (preparation.ecarte > 0) {
-        accumulateur.ecarte.push({
-          domaine: 'vehicules',
-          elementPlanId: element.id,
-          motif: 'doublon_deja_importe',
-          nombre: preparation.ecarte,
-        });
-      }
+      this.pousserEcartsParMotif('vehicules', element.id, preparation.anomalies, accumulateur);
       accumulateur.anomalies.push(...preparation.anomalies, ...base.anomalies);
     } else if (domaine === 'documents_vente') {
       const preparation = await preparerCandidatsDocumentsVenteReprise(
@@ -579,11 +610,17 @@ export class ServiceImportReprise {
           )
         ).rows[0];
         if (!siteLigne) return null;
+        // Progression VISIBLE — même doctrine que ci-dessus.
+        const onProgres = async (delta: number): Promise<void> => {
+          dejaSignale += delta;
+          await this.avancerProgression(tx, ctx.tenantId, dossierId, delta, domaine);
+        };
         return ecrireDocumentsVenteRepriseParLot(
           tx,
           { tenantId: ctx.tenantId, siteId: siteLigne.id, langueFigee: 'fr' },
           preparation.candidatsRetenus,
           accumulateur.reconciliationParAnnee,
+          onProgres,
         );
       });
       if (ecriture === null) {
@@ -603,9 +640,51 @@ export class ServiceImportReprise {
       accumulateur.anomalies.push(...preparation.anomalies);
     }
 
+    // Le RESTE, jamais le total : les lots déjà signalés en cours de route (`dejaSignale`) ne
+    // doivent pas être comptés deux fois. Couvre aussi, par construction, les domaines SANS
+    // écrivain concret (`dejaSignale` reste à 0, cette ligne ajoute alors `table.nombreLignes`
+    // en un seul incrément — comportement inchangé pour ce cas).
     await this.acces.enTenant(ctx, (tx) =>
-      this.avancerProgression(tx, ctx.tenantId, dossierId, table.nombreLignes, domaine),
+      this.avancerProgression(
+        tx,
+        ctx.tenantId,
+        dossierId,
+        table.nombreLignes - dejaSignale,
+        domaine,
+      ),
     );
+  }
+
+  /**
+   * Résume `anomalies` (une entrée PAR LIGNE écartée, déjà typée par sa vraie cause —
+   * `preparerCandidatsClientsReprise`/`preparerCandidatsVehiculesReprise`) en agrégats
+   * `EcarteParDomaineReprise`, UN PAR MOTIF RÉELLEMENT RENCONTRÉ.
+   *
+   * DÉFAUT RÉEL corrigé ici (26.08.2026) : avant ce correctif, `preparation.ecarte` (le TOTAL de
+   * lignes écartées, dedup ET échecs de validation confondus) était poussé en UN SEUL agrégat
+   * étiqueté EN DUR `motif: 'doublon_deja_importe'` — un échec de résolution d'identifiant
+   * (`reference_manquante`) ou une ligne invalide (`ligne_invalide`) apparaissait donc au
+   * garagiste comme « déjà importé », alors que RIEN n'avait jamais été importé (import à 0 ligne,
+   * import Auto-i réel de @laupernoe). Un rapport qui donne un faux motif est pire qu'un rapport muet.
+   *
+   * `anomalies.length === preparation.ecarte` PAR CONSTRUCTION dans les deux écrivains ci-dessus
+   * (chaque ligne qui ne devient pas un candidat retenu pousse exactement une anomalie, avec son
+   * VRAI `type`) : regrouper `anomalies` par `type` reconstitue donc l'agrégat exact, motif par
+   * motif, sans recalculer le compte séparément.
+   */
+  private pousserEcartsParMotif(
+    domaine: DomaineReprise,
+    elementPlanId: string,
+    anomalies: readonly AnomalieImportReprise[],
+    accumulateur: AccumulateurRapport,
+  ): void {
+    const nombreParMotif = new Map<MotifEcartImportReprise, number>();
+    for (const anomalie of anomalies) {
+      nombreParMotif.set(anomalie.type, (nombreParMotif.get(anomalie.type) ?? 0) + 1);
+    }
+    for (const [motif, nombre] of nombreParMotif) {
+      accumulateur.ecarte.push({ domaine, elementPlanId, motif, nombre });
+    }
   }
 
   private async avancerProgression(

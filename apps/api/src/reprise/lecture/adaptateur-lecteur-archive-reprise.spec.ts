@@ -401,8 +401,56 @@ describe('Balayage des résidus de PLANTAGE (purgerResidusAnciens, appelée en t
   });
 });
 
+describe('purgerRepertoireExtrait — balayage des résidus AUSSI en fin de job (défaut réel du 26.08.2026)', () => {
+  it('supprime aussi un AUTRE résidu de plantage plus vieux que le seuil, pas seulement son propre répertoire', async () => {
+    const cheminZip = await construireZip([{ chemin: 'CLIENTS.DBF', contenu: dbfClients(1) }]);
+    const { adaptateur } = await nouvelAdaptateurAvecRacine({
+      dureeMaxResiduMs: 50,
+    });
+
+    // Un résidu de plantage ANTÉRIEUR, jamais purgé (mort du process AVANT ce job) — vieilli
+    // artificiellement au-delà du seuil, sans dépendre d'un vrai `sleep`.
+    const { repertoire: residuAncien } = await adaptateur.extraireEtInventorier(cheminZip);
+    const dateAncienne = new Date(Date.now() - 10_000);
+    await utimes(residuAncien, dateAncienne, dateAncienne);
+
+    // Un job NORMAL, complet, qui purge son PROPRE répertoire en fin de traitement.
+    const { repertoire: repertoireDuJob } = await adaptateur.extraireEtInventorier(cheminZip);
+    await adaptateur.purgerRepertoireExtrait(repertoireDuJob);
+
+    // Le résidu ANTÉRIEUR est balayé au passage — pas seulement au prochain `extraireEtInventorier`
+    // ni au prochain redémarrage : un serveur qui ne redémarre jamais et n'a plus de nouvelle
+    // reprise à traiter aurait sinon laissé ce résidu (données personnelles réelles) traîner sans
+    // seconde chance de balayage.
+    expect(await existe(residuAncien)).toBe(false);
+    expect(await existe(repertoireDuJob)).toBe(false);
+  });
+
+  it("NE touche PAS un répertoire récent (garde-fou : ne jamais supprimer le répertoire d'un job légitimement en cours)", async () => {
+    const cheminZip = await construireZip([{ chemin: 'CLIENTS.DBF', contenu: dbfClients(1) }]);
+    const { adaptateur } = await nouvelAdaptateurAvecRacine({
+      dureeMaxResiduMs: 60_000, // 1 minute — largement au-dessus de la durée de ce test
+    });
+
+    // Un AUTRE job, TOUT FRAIS — simule une extraction légitimement en cours au moment où CE job
+    // termine et purge son propre répertoire.
+    const { repertoire: repertoireAutreJobEnCours } =
+      await adaptateur.extraireEtInventorier(cheminZip);
+
+    const { repertoire: repertoireDuJob } = await adaptateur.extraireEtInventorier(cheminZip);
+    await adaptateur.purgerRepertoireExtrait(repertoireDuJob);
+
+    // Le job en cours, récent, n'a JAMAIS été touché — seul le seuil d'ÂGE protège cette
+    // invariante (aucune corrélation dossier/tenant n'existe sur ces noms de répertoire opaques).
+    expect(await existe(repertoireAutreJobEnCours)).toBe(true);
+    expect(await existe(repertoireDuJob)).toBe(false);
+
+    await adaptateur.purgerRepertoireExtrait(repertoireAutreJobEnCours);
+  });
+});
+
 describe('onModuleInit (purge INCONDITIONNELLE au redémarrage, défaut 25.08.2026)', () => {
-  it('un résidu TOUT FRAIS (donc jamais atteint par le seuil de 24h) est quand même purgé au redémarrage', async () => {
+  it('un résidu TOUT FRAIS (donc jamais atteint par le seuil de 3 h) est quand même purgé au redémarrage', async () => {
     const cheminZip = await construireZip([{ chemin: 'CLIENTS.DBF', contenu: dbfClients(1) }]);
     const { adaptateur, racineTravail } = await nouvelAdaptateurAvecRacine();
 

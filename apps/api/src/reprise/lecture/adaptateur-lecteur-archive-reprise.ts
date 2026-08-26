@@ -54,8 +54,11 @@
  *      un répertoire d'extraction ne doit JAMAIS survivre au traitement qui l'a créé.
  *
  *   2. Balayage des RÉSIDUS DE PLANTAGE — `purgerResidusAnciens`, appelée en tête de CHAQUE
- *      `extraireEtInventorier` (donc à chaque analyse/import, tous tenants confondus). SEUL le
- *      `finally` des appelants ne peut PAS couvrir une mort du PROCESSUS worker lui-même
+ *      `extraireEtInventorier` (donc à chaque analyse/import, tous tenants confondus), ET (défaut
+ *      réel du 26.08.2026, ajouté ici : un serveur qui ne redémarre jamais et n'enchaîne aucune
+ *      nouvelle reprise ne bénéficiait sinon d'AUCUNE seconde chance de balayage) en FIN de CHAQUE
+ *      `purgerRepertoireExtrait` — donc aussi à la fin de CHAQUE job, succès ou échec, best-effort.
+ *      SEUL le `finally` des appelants ne peut PAS couvrir une mort du PROCESSUS worker lui-même
  *      (SIGKILL, OOM) : le répertoire créé par le `mkdtemp` en cours reste alors orphelin, sans
  *      qu'aucun code applicatif n'ait la main pour le nettoyer.
  *
@@ -78,11 +81,11 @@
  *          information tenant/dossier pour être correct, contrairement à une dérivation de
  *          chemin qui devrait rester cohérente avec la construction ET la purge de résiliation.
  *
- *      SEUIL (`DUREE_MAX_RESIDU_EXTRACTION_MS`, 24 h) : voir sa justification propre ci-dessous,
+ *      SEUIL (`DUREE_MAX_RESIDU_EXTRACTION_MS`, 3 h) : voir sa justification propre ci-dessous,
  *      ancrée sur le débit d'export MESURÉ (`lecteurs/access/lecteur-access.ts`).
  *
  *   3. Balayage INCONDITIONNEL au DÉMARRAGE du process (`onModuleInit`, défaut réel du 25.08.2026)
- *      — le mécanisme (2) borne l'exposition à 24 h, mais seulement en tête du PROCHAIN
+ *      — le mécanisme (2) borne l'exposition à 3 h, mais seulement en tête du PROCHAIN
  *      `extraireEtInventorier` : sans nouvelle analyse/import (n'importe quel tenant), un résidu
  *      de plantage — précisément le scénario mesuré ce jour-là (transaction Postgres tuée en
  *      cours d'extraction, `uncaughtException` -> `process.exit(1)`, `finally` de l'appelant
@@ -160,16 +163,23 @@ const LIMITE_OCTETS_EXTRAITS_TOTAL = 80_000_000_000;
 const LIMITE_ENTREES_ARCHIVE = 200_000;
 
 /**
- * 24 h — bombe/plantage EXCLUS. Le débit d'export MESURÉ (`lecteurs/access/lecteur-access.ts`,
- * ~68 000 lignes/s soutenu sur une base Access réelle de 1,4 Go) borne chaque appel individuel à
- * 2 h maximum (`DELAI_ABSOLU_EXPORT_MS`) ; une analyse/import complet enchaîne plusieurs tables
- * mais reste de l'ordre de l'heure sur les plus gros dossiers réels connus. 24 h laisse une marge
- * large sur tout traitement légitime tout en garantissant qu'un résidu de PLANTAGE (le seul cas
- * que le nettoyage immédiat des appelants ne peut pas couvrir — voir « PURGE DU RÉPERTOIRE
- * D'EXTRACTION » en tête de fichier) ne survit jamais plus d'un jour à la prochaine activité de
- * reprise, de N'IMPORTE QUEL tenant.
+ * 3 h (RÉVISÉ le 26.08.2026, mesuré — voir plus bas ; 24 h jusque-là). Ces répertoires contiennent
+ * des DONNÉES PERSONNELLES RÉELLES en clair (clients, immatriculations, parfois des dossiers de
+ * solvabilité) — un résidu qui traîne 24 h après un plantage sans nécessité est un problème nLPD
+ * réel, pas un détail de ménage disque (mesuré : deux répertoires `extrait-*` coexistaient,
+ * l'un orphelin, après les plantages du jour). Deux bornes mesurées encadrent ce choix, aucune
+ * devinée : la durée RÉELLE la plus longue observée sur l'archive complète de @laupernoe (552 tables,
+ * 2,3 Go) le 26.08.2026 — 29 min 13 (import, pire cas, rejeu idempotent) — et le plafond ABSOLU
+ * documenté d'un SEUL appel `mdb-export` (`DELAI_ABSOLU_EXPORT_MS`, `lecteurs/access/
+ * lecteur-access.ts`) — 2 h, jamais mesuré en pratique mais la garde dure du dépôt contre un
+ * export qui ne se termine jamais. 3 h dépasse le pire cas RÉEL d'un facteur ~6 et le plafond
+ * ABSOLU documenté d'une marge d'1 h — un résidu de PLANTAGE (le seul cas que le nettoyage
+ * immédiat des appelants ne peut pas couvrir — voir « PURGE DU RÉPERTOIRE D'EXTRACTION » en tête
+ * de fichier) ne survit donc plus qu'à la prochaine activité de reprise dans les 3 h, de N'IMPORTE
+ * QUEL tenant, jamais un résidu actif : aucun job mesuré ce jour, ni même le plafond absolu
+ * documenté du dépôt, n'approche cette durée.
  */
-const DUREE_MAX_RESIDU_EXTRACTION_MS = 24 * 60 * 60 * 1000;
+const DUREE_MAX_RESIDU_EXTRACTION_MS = 3 * 60 * 60 * 1000;
 
 /** Transforme le flux d'une entrée ZIP en comptant les octets réellement écrits sur disque dans
  *  `budget` (CUMULÉ sur TOUTE l'extraction, pas seulement l'entrée courante — une bombe peut
@@ -300,7 +310,7 @@ export class AdaptateurLecteurArchiveReprise implements PortLecteurArchiveRepris
 
   /**
    * Second paramètre RÉSERVÉ AUX TESTS (`LimitesExtractionArchiveReprise`) — les seuils réels
-   * (80 Go / 200 000 entrées / 24 h) ne sont JAMAIS testables tels quels sans construire une
+   * (80 Go / 200 000 entrées / 3 h) ne sont JAMAIS testables tels quels sans construire une
    * archive de plusieurs dizaines de Go ou des centaines de milliers d'entrées. Défauts identiques
    * aux constantes de production — un appel `new AdaptateurLecteurArchiveReprise()` (le seul
    * utilisé par `reprise.module.ts`, DI réelle) se comporte exactement comme avant ce paramètre.
@@ -318,7 +328,7 @@ export class AdaptateurLecteurArchiveReprise implements PortLecteurArchiveRepris
   /**
    * Purge INCONDITIONNELLE, au démarrage du process (défaut réel du 25.08.2026 — voir « PURGE DU
    * RÉPERTOIRE D'EXTRACTION », mécanisme 3, en tête de fichier). Best-effort, jamais bloquant pour
-   * le démarrage de l'API : une purge manquée ici est retentée par `purgerResidusAnciens` (24 h)
+   * le démarrage de l'API : une purge manquée ici est retentée par `purgerResidusAnciens` (3 h)
    * au prochain passage, jamais une raison d'empêcher l'API de démarrer.
    */
   async onModuleInit(): Promise<void> {
@@ -373,6 +383,18 @@ export class AdaptateurLecteurArchiveReprise implements PortLecteurArchiveRepris
       );
     }
     await rm(cheminAbsolu, { recursive: true, force: true });
+
+    // Second point de balayage des résidus de PLANTAGE, EN PLUS de celui déjà posé en tête de
+    // `extraireEtInventorier` — défaut réel du 26.08.2026 : le seul balayage au DÉMARRAGE d'une
+    // extraction attend la PROCHAINE activité de reprise pour rattraper un résidu laissé par un
+    // plantage antérieur ; sur un serveur qui tourne longtemps sans nouvelle reprise, ce résidu de
+    // données personnelles patiente sans nécessité. Appelé ICI, à la FIN de CHAQUE job (succès ou
+    // échec — ce point est dans le `finally` des deux appelants), la fenêtre entre « un résidu
+    // apparaît » et « il est balayé » se referme dès le PROCHAIN job COMPLET, jamais seulement au
+    // prochain DÉMARRAGE. Best-effort, même garantie que `purgerResidusAnciens` elle-même : un
+    // échec de balayage ne doit jamais faire remonter d'erreur depuis LE NETTOYAGE DE CE job, qui
+    // vient de réussir.
+    await this.purgerResidusAnciens().catch(() => undefined);
   }
 
   /** Balayage des résidus de PLANTAGE — voir « PURGE DU RÉPERTOIRE D'EXTRACTION » en tête de
