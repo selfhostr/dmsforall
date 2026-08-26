@@ -15,9 +15,11 @@ export async function forcerThemeAvantChargement(
   theme: 'light' | 'dark',
 ): Promise<void> {
   await page.addInitScript(
-    (cle, valeur) => window.localStorage.setItem(cle, valeur),
-    CLE_THEME_LOCALSTORAGE,
-    theme,
+    // `addInitScript` n'accepte qu'UN SEUL argument à transmettre à la fonction (contrairement à
+    // `page.evaluate`, qui accepte plusieurs positionnels dans certaines signatures) — un objet
+    // unique est obligatoire dès qu'on a plus d'une valeur à passer.
+    ({ cle, valeur }: { cle: string; valeur: string }) => window.localStorage.setItem(cle, valeur),
+    { cle: CLE_THEME_LOCALSTORAGE, valeur: theme },
   );
 }
 

@@ -63,6 +63,17 @@ case "$CIBLE" in
     echo "Build du front (pnpm --filter @dfa/web build)…"
     (cd "$RACINE" && pnpm --filter @dfa/web build)
 
+    # `vite preview --config` bundle sa config dans le node_modules le plus proche du FICHIER de
+    # config (Vite : `findNearestNodeModules`, voir e2e/README.md « Pourquoi ce symlink »)  — pas
+    # du cwd. `e2e/` est volontairement hors du workspace pnpm (e2e/package.json), donc sans ce
+    # symlink cette remontée atterrit sur node_modules RACINE, qui n'a aucun paquet `vite` hissé
+    # (isolé sous apps/web/node_modules) : `ERR_MODULE_NOT_FOUND` à l'import de la config bundlée.
+    # Recréé à chaque run (idempotent, jamais commité — /e2e/node_modules via la règle générique
+    # node_modules/ du .gitignore) pour rester aligné sur la version que pnpm a réellement résolue
+    # pour apps/web, quelle que soit l'évolution de cette version.
+    mkdir -p "$RACINE/e2e/node_modules"
+    ln -sfn "$(readlink -f "$RACINE/apps/web/node_modules/vite")" "$RACINE/e2e/node_modules/vite"
+
     echo "Démarrage de la prévisualisation (port $PORT_PREVIEW, proxy /api -> :$PORT_API_AMBIANTE)…"
     JOURNAL_PREVIEW="$(mktemp)"
     (

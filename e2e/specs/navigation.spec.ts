@@ -46,6 +46,13 @@ test.describe('Navigation — barre latérale', () => {
   test('un seul lien porte aria-current="page" à la fois', async ({ page }) => {
     await navPrincipale(page).getByRole('link', { name: 'Facturation', exact: true }).click();
     await expect(page).toHaveURL(/\/factures/);
-    await expect(navPrincipale(page).getByRole('link', { current: 'page' })).toHaveCount(1);
+    // `getByRole(role, { current })` N'EXISTE PAS dans l'API Playwright 1.62.1 (vérifié dans
+    // playwright-core/types/types.d.ts : seuls `checked`/`disabled`/`expanded`/`exact`/
+    // `includeHidden`/`level`/`name`/`pressed`/`selected` sont des options reconnues) — une
+    // option inconnue est silencieusement ignorée, pas rejetée : la requête matchait les 6 liens
+    // sans jamais filtrer, jamais 1 seul, quel que soit l'état réel de l'app (bug de harnais,
+    // confirmé par un snapshot ARIA où seul `Facturation` porte réellement `aria-current`).
+    // Sélecteur d'attribut direct : la seule façon de filtrer sur `aria-current` avec cette API.
+    await expect(navPrincipale(page).locator('a[aria-current="page"]')).toHaveCount(1);
   });
 });

@@ -56,10 +56,18 @@ test.describe('États d’écran — Ordres de réparation', () => {
   test('erreur : alerte actionnable (role=alert + Réessayer), la reprise fonctionne', async ({
     page,
   }) => {
-    let premierAppel = true;
+    // Grille sur le CLIC de « Réessayer », jamais sur un compteur du premier appel : contre la
+    // cible dev (`React.StrictMode`, `apps/web/src/main.tsx`), React invoque les effets deux fois
+    // au montage — TanStack Query émet donc DEUX requêtes initiales, pas une. Un compteur
+    // « premier appel = échec » consommait le mock 500 sur l'appel surnuméraire de StrictMode ; le
+    // rendu affiché venait alors du second appel, déjà réussi — l'alerte n'apparaissait jamais
+    // (mesuré : `getByRole('alert')` introuvable, capture montrant la liste réelle chargée avec
+    // succès). Ce comportement est spécifique au DEV (StrictMode ne double pas les effets en
+    // build de production) — grille sur la reprise explicite rend le test correct dans les deux
+    // cibles.
+    let reessaiDemande = false;
     await page.route(MOTIF_ENDPOINT_OR, async (route) => {
-      if (premierAppel) {
-        premierAppel = false;
+      if (!reessaiDemande) {
         await route.fulfill({
           status: 500,
           contentType: 'application/problem+json',
@@ -79,7 +87,13 @@ test.describe('États d’écran — Ordres de réparation', () => {
     await page.goto('/ordres-reparation');
 
     const alerte = page.getByRole('alert');
-    await expect(alerte).toBeVisible();
+    // Délai généreux, pas arbitraire : `App.tsx` ne redéfinit pas `retry` sur le `QueryClient` —
+    // défaut TanStack Query `retry: 3` + `retryDelay` exponentiel (~1s/2s/4s, ~7s cumulés) avant
+    // que la requête passe réellement en erreur. Un timeout par défaut (10s) peut ne pas suffire
+    // une fois ajoutés les aller-retours réseau eux-mêmes — mesuré : la capture d'un run en échec
+    // montre le squelette de chargement encore affiché à 10s, jamais l'alerte. Champ toujours
+    // observable (l'assertion réussit dès que l'alerte apparaît, pas de sommeil fixe).
+    await expect(alerte).toBeVisible({ timeout: 20_000 });
     await expect(
       alerte.getByRole('heading', {
         level: 2,
@@ -89,8 +103,9 @@ test.describe('États d’écran — Ordres de réparation', () => {
     const boutonReessayer = alerte.getByRole('button', { name: 'Réessayer' });
     await expect(boutonReessayer).toBeVisible();
 
-    // La reprise doit vraiment fonctionner, pas seulement afficher un bouton : le deuxième appel
-    // passe par `route.continue()` ci-dessus (vraie requête vers l'API réelle).
+    // La reprise doit vraiment fonctionner, pas seulement afficher un bouton : à partir d'ici,
+    // toute requête passe par `route.continue()` ci-dessus (vraie requête vers l'API réelle).
+    reessaiDemande = true;
     await boutonReessayer.click();
     await expect(alerte).toBeHidden({ timeout: 10_000 });
   });
