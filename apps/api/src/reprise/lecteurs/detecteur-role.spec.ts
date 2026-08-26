@@ -88,6 +88,53 @@ describe('evaluerRoleTable', () => {
     expect(rapport.evaluations[0]!.role).toBe('article');
   });
 
+  it(
+    'classe en document_vente une table de factures pauvre en colonnes (identifiant, ' +
+      'référence client, date, montant) — régression : partait en "article" à cause du bonus ' +
+      '"identifiant" sans équivalent côté document sur une table à si peu de signaux',
+    () => {
+      // Pool de références client volontairement peu répétitif (18 distinctes sur 25 lignes) pour
+      // ne pas se faire happer par le signal "énumération" (mode de paiement) : reproduit le cas
+      // mesuré en campagne, une facture réduite à son strict minimum de colonnes.
+      const references = Array.from({ length: 18 }, (_, i) => 5000 + i);
+      const lignes = construireLignes(
+        Array.from({ length: 25 }, (_, i) => ({
+          ID: i + 1,
+          REF_CLIENT: references[i % references.length],
+          DATE_FACTURE: new Date(Date.UTC(2023, i % 12, 1 + (i % 27))),
+          MONTANT: Math.round((50 + i * 13.7) * 100) / 100,
+        })),
+      );
+      const rapport = evaluerRoleTable({
+        table: 'Factures',
+        nomsColonnes: ['ID', 'REF_CLIENT', 'DATE_FACTURE', 'MONTANT'],
+        lignesActives: lignes,
+      });
+      expect(rapport.evaluations[0]!.role).toBe('document_vente');
+    },
+  );
+
+  it(
+    "ne bascule pas une vraie table d'articles vers document_vente sous prétexte qu'elle porte " +
+      'aussi une date (ex: date de dernière mise à jour tarif) — garde-fou du bonus ajouté',
+    () => {
+      const lignes = construireLignes(
+        Array.from({ length: 20 }, (_, i) => ({
+          CODE_ART: `ART-${1000 + i}`,
+          PRIX: 12.5 + i,
+          DESIGNATION: `Plaquette de frein avant référence ${i} pour véhicule utilitaire léger`,
+          DATE_MAJ_TARIF: new Date(Date.UTC(2023, i % 12, 1 + (i % 27))),
+        })),
+      );
+      const rapport = evaluerRoleTable({
+        table: 'Articles',
+        nomsColonnes: ['CODE_ART', 'PRIX', 'DESIGNATION', 'DATE_MAJ_TARIF'],
+        lignesActives: lignes,
+      });
+      expect(rapport.evaluations[0]!.role).toBe('article');
+    },
+  );
+
   it('classe une table de paiements plausible (montant + date + mode répété)', () => {
     const modes = ['CB', 'ESP', 'VIR'];
     const lignes = construireLignes(

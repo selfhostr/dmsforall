@@ -1,6 +1,7 @@
 export * from './audit';
 export * from './avertissements';
 export * from './common.module';
+export * from './concurrence';
 export * from './contexte';
 export * from './documentation';
 export * from './droits';

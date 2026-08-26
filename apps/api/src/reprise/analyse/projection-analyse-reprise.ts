@@ -70,7 +70,19 @@ export function projeterTableDetectee(
   const roleDeduit: RoleTableReprise = meilleure
     ? (ROLE_METIER_VERS_ROLE_TABLE_REPRISE[meilleure.role] ?? 'inconnu')
     : 'inconnu';
-  const indiceConfiance = meilleure ? Math.round(meilleure.confiance) : 0;
+  // SEUL point de conversion d'échelle de tout le module : `meilleure.confiance` est la confiance
+  // FRACTIONNAIRE 0-1 propre à `lecteurs/` (doctrine de `lecteurs/types.ts::EvaluationRole`,
+  // jamais changée ici) ; `TableDetecteeReprise.indiceConfiance` (contrat, doc sur le champ) est
+  // GELÉ sur l'échelle 0-100. Défaut réel corrigé le 25.08.2026 : un `Math.round(meilleure.
+  // confiance)` SANS le `* 100` ne pouvait rendre que 0 ou 1, faisant tomber CHAQUE table sous
+  // `SEUIL_CONFIANCE_MINIMUM` (`plan/generation-plan-reprise.ts`, échelle 0-100) — plan toujours
+  // vide, quelle que soit la qualité réelle de la détection. `clamp` défensif : `confiance` est
+  // déjà garantie dans [0, 1] par `clamp01()` (lecteurs/detecteur-role.ts), mais un futur
+  // producteur qui l'oublierait ne doit jamais faire déborder le contrat hors de son intervalle
+  // documenté.
+  const indiceConfiance = meilleure
+    ? Math.max(0, Math.min(100, Math.round(meilleure.confiance * 100)))
+    : 0;
 
   const motifsDeduction: MotifDeductionRoleTable[] = meilleure
     ? meilleure.signaux.length > 0

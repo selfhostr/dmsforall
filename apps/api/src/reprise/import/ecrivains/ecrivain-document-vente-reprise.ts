@@ -22,12 +22,31 @@
  * transaction Postgres (`pnpm test:integration` non lancé pour ce chantier, voir rapport de
  * livraison) — les tests de ce module mockent `tx.execute`, qui prouve la SÉQUENCE d'appels
  * (brouillon -> émission) mais rien sur les contraintes réelles (CHECK, trigger) de 0010.
+ *
+ * DEUX PHASES SÉPARÉES, DÉLIBÉRÉMENT (même doctrine que `ecrivain-client-reprise.ts`, § tête de
+ * `service-import-reprise.ts::executer`) : `preparerCandidatsDocumentsVenteReprise` (CPU pur —
+ * extraction/validation des champs source, cessions d'event loop comprises) tourne HORS de toute
+ * transaction ; `ecrireDocumentsVenteRepriseParLot` (I/O socket réelle, protocole brouillon ->
+ * émission par candidat via `ecrireDocumentVenteReprise` ci-dessous) tourne DANS la transaction
+ * COURTE ouverte par l'appelant pour cette écriture — AUCUNE cession d'event loop là-dedans, voir
+ * la doctrine complète côté orchestrateur (`service-import-reprise.ts`). Avant ce découpage, les
+ * DEUX étaient mêlées dans UNE SEULE boucle (`service-import-reprise.ts::ecrireDomaine`) qui cédait
+ * la main À CHAQUE itération TOUT EN restant dans la transaction ouverte pour tout `executer()` —
+ * exactement le défaut structurel que ce chantier élimine.
  */
 
 import { sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 
 import type { TransactionDfa } from '../../../db';
+import type { AnomalieImportReprise } from '@dfa/shared';
+
+import type { CedeurEventLoop } from '../../../common/concurrence';
+import type { LigneTable } from '../../lecteurs/types';
+import {
+  accumulerDocumentReconciliation,
+  type AccumulateurAnneeReprise,
+} from '../reconciliation-annee-reprise';
 
 export interface EntreeDocumentVenteReprise {
   readonly tenantId: string;
@@ -96,4 +115,128 @@ export async function ecrireDocumentVenteReprise(
   if (id === null) return { cree: false, id: null };
   await emettre(tx, id, entree);
   return { cree: true, id };
+}
+
+// -------------------------------------------------------------------------------------------
+// Préparation (CPU pur, hors transaction) + écriture par lot (I/O réelle, transaction courte) —
+// voir « DEUX PHASES SÉPARÉES » en tête de fichier.
+// -------------------------------------------------------------------------------------------
+
+export interface CandidatDocumentVenteRepriseRetenu {
+  readonly numeroOrigine: string;
+  readonly clientId: string;
+  /** Désignation du client TELLE QUE VUE dans la source (`client_id`/référence brute) — figée sur
+   *  le document, comme son nom l'indique (`clientDesignationFigee`, EntreeDocumentVenteReprise). */
+  readonly clientDesignationFigee: string;
+  readonly totalTtcCentimes: number;
+  readonly dateDocument: string | null;
+}
+
+export interface ResultatPreparationDocumentsVenteReprise {
+  readonly candidatsRetenus: readonly CandidatDocumentVenteRepriseRetenu[];
+  readonly anomalies: readonly AnomalieImportReprise[];
+}
+
+/**
+ * Phase 1 — CPU pur, AUCUN accès base : extraction/validation par ligne (référence, client déjà
+ * résolu via `clientIdParNumeroOrigine`, montant). À appeler HORS de toute transaction.
+ */
+export async function preparerCandidatsDocumentsVenteReprise(
+  lignes: readonly LigneTable[],
+  clientIdParNumeroOrigine: ReadonlyMap<string, string>,
+  cedeurEventLoop: CedeurEventLoop,
+): Promise<ResultatPreparationDocumentsVenteReprise> {
+  const anomalies: AnomalieImportReprise[] = [];
+  const candidatsRetenus: CandidatDocumentVenteRepriseRetenu[] = [];
+
+  // Rejets précoces (référence/montant manquants, `continue` ci-dessous) n'exécutent AUCUNE
+  // requête — pur CPU sur une archive de mauvaise qualité — d'où la cession explicite à CHAQUE
+  // itération, exactement comme les autres écrivains de domaine.
+  for (const ligne of lignes) {
+    await cedeurEventLoop.cederSiNecessaire();
+    const numeroOrigine = String(ligne.valeurs['id'] ?? ligne.valeurs['numero'] ?? '').trim();
+    const clientRef = String(ligne.valeurs['client_id'] ?? '').trim();
+    const clientId = clientIdParNumeroOrigine.get(clientRef);
+    const totalTtc = Number(ligne.valeurs['total_ttc'] ?? ligne.valeurs['montant'] ?? 0);
+    if (!numeroOrigine || !clientId || !Number.isFinite(totalTtc)) {
+      anomalies.push({
+        type: 'reference_manquante',
+        domaine: 'documents_vente',
+        ligneSource: ligne.index,
+        donnees: { raison: 'client ou identifiant/montant source manquant' },
+      });
+      continue;
+    }
+    const dateDocument =
+      ligne.valeurs['date'] instanceof Date
+        ? (ligne.valeurs['date'] as Date).toISOString().slice(0, 10)
+        : typeof ligne.valeurs['date'] === 'string'
+          ? ligne.valeurs['date']
+          : null;
+
+    candidatsRetenus.push({
+      numeroOrigine,
+      clientId,
+      clientDesignationFigee: clientRef,
+      totalTtcCentimes: Math.round(totalTtc),
+      dateDocument,
+    });
+  }
+
+  return { candidatsRetenus, anomalies };
+}
+
+export interface ParametresEcritureDocumentsVenteReprise {
+  readonly tenantId: string;
+  readonly siteId: string;
+  readonly langueFigee: 'fr' | 'de' | 'it';
+}
+
+export interface ResultatEcritureDocumentsVenteRepriseParLot {
+  readonly insere: number;
+}
+
+/**
+ * Phase 2 — écriture réelle (protocole brouillon -> émission par candidat retenu), dans la
+ * transaction COURTE fournie par l'appelant. AUCUNE cession d'event loop ici : `ecrireDocument
+ * VenteReprise` fait déjà plusieurs `tx.execute` réels par candidat, un aller-retour socket qui
+ * cède naturellement la boucle d'événements. Mute `reconciliationParAnnee` EN PLACE (même patron
+ * que l'appelant historique, `service-import-reprise.ts` avant ce découpage) plutôt que de
+ * réassigner — `accumulerDocumentReconciliation` reste pure, seul CE point applique son résultat à
+ * l'accumulateur mutable partagé par tout `executer()`.
+ */
+export async function ecrireDocumentsVenteRepriseParLot(
+  tx: TransactionDfa,
+  params: ParametresEcritureDocumentsVenteReprise,
+  candidatsRetenus: readonly CandidatDocumentVenteRepriseRetenu[],
+  reconciliationParAnnee: Map<number, AccumulateurAnneeReprise>,
+): Promise<ResultatEcritureDocumentsVenteRepriseParLot> {
+  let insere = 0;
+  for (const candidat of candidatsRetenus) {
+    const resultat = await ecrireDocumentVenteReprise(tx, {
+      tenantId: params.tenantId,
+      siteId: params.siteId,
+      clientId: candidat.clientId,
+      clientDesignationFigee: candidat.clientDesignationFigee,
+      langueFigee: params.langueFigee,
+      numeroOrigine: candidat.numeroOrigine,
+      dateDocument: candidat.dateDocument,
+      totalTtcCentimes: candidat.totalTtcCentimes,
+      totalTvaCentimes: 0,
+      tauxTvaPourmille: null,
+    });
+    if (resultat.cree) {
+      insere += 1;
+      const annee = candidat.dateDocument
+        ? Number(candidat.dateDocument.slice(0, 4))
+        : new Date().getUTCFullYear();
+      const suivant = accumulerDocumentReconciliation(
+        reconciliationParAnnee,
+        annee,
+        candidat.totalTtcCentimes,
+      );
+      reconciliationParAnnee.set(annee, suivant.get(annee)!);
+    }
+  }
+  return { insere };
 }

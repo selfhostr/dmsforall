@@ -125,6 +125,20 @@ export function genererPlanDepuisTables(
   return { elements, exclusions };
 }
 
+/**
+ * Garde-fou de bon sens (défaut réel du 25.08.2026) : un plan sans AUCUN élément inclus ne doit
+ * jamais être validé silencieusement — `ServicePlanReprise.valider()` transitionne dans le MÊME
+ * GESTE vers `import_en_cours` (§ tête de `contrats/reprise.ts`), et un import qui ne traite aucun
+ * élément inclus se termine « avec succès » sans avoir rien écrit : le pire des retours pour un
+ * garagiste qui vient de confier son archive. Couvre les DEUX origines possibles d'un plan vide :
+ * aucun élément généré par l'analyse (0 table exploitable, ou — précisément le défaut du
+ * 25.08.2026 — un bug d'échelle qui exclut tout), ET un plan dont le garagiste a manuellement
+ * décoché tous les éléments via `PATCH .../plan` avant de valider.
+ */
+export function planSansElementInclus(elements: readonly ElementPlanReprise[]): boolean {
+  return !elements.some((e) => e.inclus);
+}
+
 function motifExclusionFixe(table: TableDetecteeReprise): MotifExclusionPlanReprise | null {
   if (table.roleDeduit === 'referentiel_constructeur')
     return 'referentiel_constructeur_jamais_repris';

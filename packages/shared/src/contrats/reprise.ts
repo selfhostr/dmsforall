@@ -415,6 +415,22 @@ export interface TableDetecteeReprise {
    *  sur l'écran de validation (`ElementPlanReprise` porte le vocabulaire métier). */
   readonly nomTechnique: string;
   readonly roleDeduit: RoleTableReprise;
+  /** ÉCHELLE CANONIQUE **0-100**, entier — même échelle que `MoteurSourceDetecte.indiceConfiance`
+   *  (les DEUX seuls champs `indiceConfiance` de ce fichier partagent délibérément cette échelle,
+   *  pour n'en retenir qu'une seule dans tout le module reprise). Un ORDRE DE GRANDEUR pour
+   *  trier/filtrer/comparer à un seuil (`plan/generation-plan-reprise.ts::SEUIL_CONFIANCE_MINIMUM`
+   *  côté API) — jamais une probabilité statistique exacte, jamais une fraction 0-1.
+   *
+   *  PRODUCTEUR UNIQUE : `analyse/projection-analyse-reprise.ts::projeterTableDetectee` — c'est LE
+   *  seul point du code où la confiance FRACTIONNAIRE 0-1 interne à `reprise/lecteurs/`
+   *  (`EvaluationRole.confiance`, doctrine propre à cette bibliothèque, jamais exposée telle
+   *  quelle au contrat) est convertie vers cette échelle 0-100 (`Math.round(confiance * 100)`).
+   *  Un défaut réel (25.08.2026) a laissé cette conversion `* 100` de côté : la confiance interne
+   *  0-1 arrondie directement ne pouvait plus rendre que 0 ou 1, sous le seuil de tout consommateur
+   *  gradué sur 0-100 — TOUTE table de TOUTE archive se retrouvait exclue avec `role_indetermine`,
+   *  y compris une table correctement classée à forte confiance. Voir le test de bout en bout
+   *  `apps/api/src/reprise/analyse/detection-vers-plan.spec.ts` : une table bien détectée doit se
+   *  retrouver INCLUSE dans le plan, pas seulement bien classée en isolation. */
   readonly indiceConfiance: number;
   readonly motifsDeduction: readonly MotifDeductionRoleTable[];
   readonly nombreLignes: number;

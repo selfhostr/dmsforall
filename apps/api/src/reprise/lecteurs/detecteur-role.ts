@@ -202,6 +202,23 @@ function evaluerDocument(
       ),
     );
   }
+  // Combinaison distinctive, pas juste la somme des deux signaux isolés : une date ET un montant
+  // plausibles À LA FOIS sur la même table forment un en-tête de document (date d'émission +
+  // total), une combinaison qu'une table d'articles/stock n'a normalement pas (un article a un
+  // prix mais pas de date propre). Sans ce bonus, une table pauvre en colonnes (typiquement une
+  // facture réduite à identifiant/référence client/date/montant) perdait face à `evaluerArticle`,
+  // qui dispose lui d'un bonus "identifiant" sans équivalent ici — mesuré : 0.65 contre 0.76.
+  if (date && date.taux >= 0.6 && montant && montant.taux >= 0.5) {
+    const bonus = 0.15 * Math.min(date.taux, montant.taux);
+    score += bonus;
+    signaux.push(
+      signal(
+        date,
+        'entete_document',
+        `date ("${date.colonne}") et montant ("${montant.colonne}") plausibles ensemble : combinaison typique d'un en-tête de document, absente d'une table d'articles.`,
+      ),
+    );
+  }
   const chassisFort = chassis !== null && chassis.taux >= 0.3;
   const plaqueFort = plaque !== null && plaque.taux >= 0.3;
   const aUnLienVehicule = chassisFort || plaqueFort;

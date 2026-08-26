@@ -29,7 +29,7 @@ import {
 import { type LigneReprisePlanBrute, projeterPlanReprise } from '../db-reprise.types';
 import { NOM_FILE_IMPORT_REPRISE, NOM_JOB_IMPORT_REPRISE } from '../reprise.jetons';
 import { ServiceCycleVieDossierReprise } from '../service-cycle-vie-dossier-reprise';
-import { genererPlanDepuisTables } from './generation-plan-reprise';
+import { genererPlanDepuisTables, planSansElementInclus } from './generation-plan-reprise';
 
 export interface DonneesJobImportReprise {
   readonly tenantId: string;
@@ -172,6 +172,20 @@ export class ServicePlanReprise {
           throw new ErreurMetier(
             'REPRISE_PLAN_NON_VALIDABLE',
             `Validation refusée : plan du dossier ${dossierId} au statut « ${ligne.statut} » (attendu propose).`,
+          );
+        }
+
+        // Garde-fou de bon sens (défaut réel du 25.08.2026, cf. `generation-plan-reprise.ts::
+        // planSansElementInclus`) : valider un plan qui n'inclut RIEN déclencherait, dans le MÊME
+        // GESTE, un import « réussi » qui n'écrit pas une seule ligne — le pire des retours pour
+        // le garagiste. Refusé plutôt qu'un avertissement silencieux : l'issue normale d'un plan
+        // vide est `POST .../annuler`, jamais une validation qui simule un import.
+        if (planSansElementInclus(ligne.elements)) {
+          throw new ErreurMetier(
+            'REPRISE_PLAN_NON_VALIDABLE',
+            `Validation refusée : le plan du dossier ${dossierId} n'inclut aucun élément — valider ` +
+              `déclencherait un import qui n'écrirait rien. Vérifier les exclusions de l'analyse ` +
+              `(GET .../analyse) ou annuler ce dossier (POST .../annuler).`,
           );
         }
 

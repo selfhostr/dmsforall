@@ -8,6 +8,7 @@ import {
   signalNomFichier,
   signalNpaSuisse,
   signalPlaqueSuisse,
+  signalTexteLibre,
 } from './signaux-contenu';
 import type { LigneTable } from './types';
 
@@ -102,6 +103,30 @@ describe('signalIdentifiant', () => {
   it('taux faible pour une colonne très répétitive (pas une clé)', () => {
     const r = signalIdentifiant(lignes(['X', 'X', 'X', 'X', 'Y']), 'COL');
     expect(r.taux).toBeLessThan(0.5);
+  });
+});
+
+describe('signalTexteLibre', () => {
+  it('reconnaît un texte de désignation assez long', () => {
+    const r = signalTexteLibre(
+      lignes(['Plaquette de frein avant référence pour véhicule utilitaire léger']),
+      'COL',
+    );
+    expect(r.taux).toBe(1);
+  });
+
+  it("ignore les valeurs Date : leur sérialisation ISO (24 caractères) n'est pas un texte libre", () => {
+    // Régression : `valeursTexteColonne` sérialise une Date en ISO 8601 (24 caractères) pour
+    // d'autres signaux ; sans exclusion explicite, cette longueur suffisait à faire passer une
+    // colonne date pour une désignation plausible (bonus indu pour `evaluerArticle` sur une table
+    // de factures pauvre en colonnes — cf. detecteur-role.spec.ts).
+    const r = signalTexteLibre(lignes([new Date('2024-01-15T00:00:00Z')]), 'COL');
+    expect(r).toEqual({ taux: 0, effectif: 0 });
+  });
+
+  it('rejette un texte court (code, sigle)', () => {
+    const r = signalTexteLibre(lignes(['AB12']), 'COL');
+    expect(r.taux).toBe(0);
   });
 });
 

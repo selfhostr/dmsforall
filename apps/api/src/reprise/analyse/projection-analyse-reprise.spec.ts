@@ -7,13 +7,18 @@ import {
   projeterTableDetectee,
 } from './projection-analyse-reprise';
 
+// `confiance` : échelle FRACTIONNAIRE 0-1, la seule que `lecteurs/` produit réellement
+// (`EvaluationRole.confiance`, doctrine de `lecteurs/types.ts`) — jamais 0-100 ici. Un fixture
+// écrit sur l'échelle 0-100 masquerait exactement le défaut réel du 25.08.2026 (conversion `* 100`
+// oubliée dans `projeterTableDetectee`) : `Math.round(87.4)` passe silencieusement, alors que
+// `Math.round(0.874)` révèle immédiatement l'absence du `* 100`.
 function rapport(partiel: Partial<RapportTable>): RapportTable {
   return {
     table: 'CLIENTS',
     lignesActives: 42,
     lignesSupprimees: 3,
     evaluations: [
-      { role: 'client', confiance: 87.4, raison: 'colonnes correspondantes', signaux: [] },
+      { role: 'client', confiance: 0.874, raison: 'colonnes correspondantes', signaux: [] },
     ],
     ...partiel,
   };
@@ -51,7 +56,7 @@ describe('projeterTableDetectee', () => {
     const detectee = projeterTableDetectee(
       'DATA/X.DBF',
       rapport({
-        evaluations: [{ role: 'inconnu', confiance: 5, raison: 'aucun signal', signaux: [] }],
+        evaluations: [{ role: 'inconnu', confiance: 0.05, raison: 'aucun signal', signaux: [] }],
       }),
       [],
     );
@@ -72,19 +77,19 @@ describe('projeterTableDetectee', () => {
         evaluations: [
           {
             role: 'client',
-            confiance: 80,
+            confiance: 0.8,
             raison: 'x',
             signaux: [
               {
                 colonne: 'NOM',
                 motif: 'nom_colonne',
-                confiance: 80,
+                confiance: 0.8,
                 raison: 'colonne NOM présente',
               },
               {
                 colonne: 'EMAIL',
                 motif: 'nom_colonne',
-                confiance: 60,
+                confiance: 0.6,
                 raison: 'colonne EMAIL présente',
               },
             ],
@@ -104,7 +109,7 @@ describe('projeterTableDetectee', () => {
     const detectee = projeterTableDetectee(
       'DATA/X.DBF',
       rapport({
-        evaluations: [{ role: 'client', confiance: 45, raison: 'volume seul', signaux: [] }],
+        evaluations: [{ role: 'client', confiance: 0.45, raison: 'volume seul', signaux: [] }],
       }),
       [],
     );

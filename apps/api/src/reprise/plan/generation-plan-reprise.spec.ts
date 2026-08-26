@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { TableDetecteeReprise } from '@dfa/shared';
+import type { ElementPlanReprise, TableDetecteeReprise } from '@dfa/shared';
 
-import { genererPlanDepuisTables } from './generation-plan-reprise';
+import { genererPlanDepuisTables, planSansElementInclus } from './generation-plan-reprise';
 
 function table(partiel: Partial<TableDetecteeReprise>): TableDetecteeReprise {
   return {
@@ -114,5 +114,42 @@ describe('genererPlanDepuisTables', () => {
 
   it('liste vide -> plan vide des deux côtés', () => {
     expect(genererPlanDepuisTables([])).toEqual({ elements: [], exclusions: [] });
+  });
+});
+
+function element(partiel: Partial<ElementPlanReprise>): ElementPlanReprise {
+  return {
+    id: 'e1',
+    domaine: 'clients',
+    tableDetecteeId: 'table-1',
+    perimetre: 'entetes_totaux_tva_10_ans',
+    volumeAttenduLignes: 10,
+    inclus: true,
+    ajustable: true,
+    ...partiel,
+  };
+}
+
+describe('planSansElementInclus (garde-fou validation, défaut 25.08.2026)', () => {
+  it('aucun élément du tout -> vide', () => {
+    expect(planSansElementInclus([])).toBe(true);
+  });
+
+  it('tous les éléments décochés (exclusion_manuelle via PATCH) -> vide', () => {
+    expect(
+      planSansElementInclus([
+        element({ id: 'a', inclus: false }),
+        element({ id: 'b', inclus: false }),
+      ]),
+    ).toBe(true);
+  });
+
+  it('au moins un élément inclus -> pas vide', () => {
+    expect(
+      planSansElementInclus([
+        element({ id: 'a', inclus: false }),
+        element({ id: 'b', inclus: true }),
+      ]),
+    ).toBe(false);
   });
 });

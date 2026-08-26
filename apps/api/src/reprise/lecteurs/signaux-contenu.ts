@@ -129,9 +129,20 @@ export function signalIdentifiant(lignes: readonly LigneTable[], colonne: string
   return { taux: distinctes / valeurs.length, effectif: valeurs.length };
 }
 
-/** Texte libre : longueur moyenne significative (désignation, remarque...), peu de répétition. */
+/** Texte libre : longueur moyenne significative (désignation, remarque...), peu de répétition.
+ * Exclut explicitement les valeurs `Date` : `valeursTexteColonne` les sérialise en ISO 8601
+ * (24 caractères) pour d'autres signaux, ce qui les ferait sinon passer pour de la désignation
+ * (mesuré : une colonne date suffisait à faire gagner un bonus "texte libre" à `evaluerArticle`
+ * sur une table de factures pauvre en colonnes — une date n'est pas un texte libre). */
 export function signalTexteLibre(lignes: readonly LigneTable[], colonne: string): ResultatSignal {
-  const valeurs = valeursTexteColonne(lignes, colonne);
+  const valeurs: string[] = [];
+  for (const ligne of lignes) {
+    const v = ligne.valeurs[colonne];
+    if (v === null || v === undefined || v instanceof Buffer || v instanceof Date) continue;
+    const texte = String(v).trim();
+    if (texte.length === 0) continue;
+    valeurs.push(texte);
+  }
   if (valeurs.length === 0) return RESULTAT_VIDE;
   const longueurMoyenne = valeurs.reduce((s, v) => s + v.length, 0) / valeurs.length;
   const taux = Math.max(0, Math.min(1, (longueurMoyenne - 8) / 30));

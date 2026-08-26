@@ -80,8 +80,20 @@
  *
  *      SEUIL (`DUREE_MAX_RESIDU_EXTRACTION_MS`, 24 h) : voir sa justification propre ci-dessous,
  *      ancrée sur le débit d'export MESURÉ (`lecteurs/access/lecteur-access.ts`).
+ *
+ *   3. Balayage INCONDITIONNEL au DÉMARRAGE du process (`onModuleInit`, défaut réel du 25.08.2026)
+ *      — le mécanisme (2) borne l'exposition à 24 h, mais seulement en tête du PROCHAIN
+ *      `extraireEtInventorier` : sans nouvelle analyse/import (n'importe quel tenant), un résidu
+ *      de plantage — précisément le scénario mesuré ce jour-là (transaction Postgres tuée en
+ *      cours d'extraction, `uncaughtException` -> `process.exit(1)`, `finally` de l'appelant
+ *      jamais exécuté) — pouvait survivre INDÉFINIMENT sur disque, données personnelles en clair
+ *      comprises (4,6 Go mesurés, deux copies complètes de l'archive, supprimées à la main faute
+ *      de ce mécanisme). Au redémarrage du process, AUCUNE extraction de CE process n'est encore
+ *      en cours : tout répertoire déjà présent sous `racineTravail` est nécessairement un résidu
+ *      d'une exécution PRÉCÉDENTE, purgé sans condition d'âge — voir `purgerResidusOrphelinsAuDemarrage`.
  */
 
+import type { OnModuleInit } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { createWriteStream, type Dirent } from 'node:fs';
 import { mkdir, mkdtemp, open as ouvrirFichier, readdir, rm, stat } from 'node:fs/promises';
@@ -91,6 +103,8 @@ import { pipeline } from 'node:stream/promises';
 import { openPromise, type Entry } from 'yauzl';
 
 import type { FamilleMoteurSourceReprise } from '@dfa/shared';
+
+import { creerCedeurEventLoop } from '../../common/concurrence';
 
 import {
   analyserEnTeteDbf,
@@ -277,7 +291,7 @@ class CacheEchantillons {
 // s'applique normalement — MÊME PATRON que `StockageArchiveRepriseDisqueLocal`
 // (`depot/stockage-archive-reprise.ts`), déjà posé sans `@Injectable()` pour la même raison,
 // enregistré via `useClass` dans `reprise.module.ts` exactement comme cette classe.
-export class AdaptateurLecteurArchiveReprise implements PortLecteurArchiveReprise {
+export class AdaptateurLecteurArchiveReprise implements PortLecteurArchiveReprise, OnModuleInit {
   private readonly racineTravail: string;
   private readonly cache = new CacheEchantillons();
   private readonly limiteOctetsExtraitsTotal: number;
@@ -299,6 +313,31 @@ export class AdaptateurLecteurArchiveReprise implements PortLecteurArchiveRepris
     this.limiteOctetsExtraitsTotal = limites.octetsExtraitsMax ?? LIMITE_OCTETS_EXTRAITS_TOTAL;
     this.limiteEntreesArchive = limites.entreesMax ?? LIMITE_ENTREES_ARCHIVE;
     this.dureeMaxResiduMs = limites.dureeMaxResiduMs ?? DUREE_MAX_RESIDU_EXTRACTION_MS;
+  }
+
+  /**
+   * Purge INCONDITIONNELLE, au démarrage du process (défaut réel du 25.08.2026 — voir « PURGE DU
+   * RÉPERTOIRE D'EXTRACTION », mécanisme 3, en tête de fichier). Best-effort, jamais bloquant pour
+   * le démarrage de l'API : une purge manquée ici est retentée par `purgerResidusAnciens` (24 h)
+   * au prochain passage, jamais une raison d'empêcher l'API de démarrer.
+   */
+  async onModuleInit(): Promise<void> {
+    await this.purgerResidusOrphelinsAuDemarrage().catch(() => undefined);
+  }
+
+  private async purgerResidusOrphelinsAuDemarrage(): Promise<void> {
+    let entrees: Dirent[];
+    try {
+      entrees = await readdir(this.racineTravail, { withFileTypes: true });
+    } catch {
+      return; // racine pas encore créée — rien à purger
+    }
+    for (const entree of entrees) {
+      if (!entree.isDirectory()) continue;
+      await rm(join(this.racineTravail, entree.name), { recursive: true, force: true }).catch(
+        () => undefined,
+      );
+    }
   }
 
   // --- Décompression + inventaire ---------------------------------------------------------------
@@ -497,13 +536,43 @@ export class AdaptateurLecteurArchiveReprise implements PortLecteurArchiveRepris
 
   // --- Tables --------------------------------------------------------------------------------
 
+  /**
+   * ANOMALIE MESURÉE le 26.08.2026 (`RepAw.backup`, archive réelle Auto-i de @laupernoe) : la branche
+   * 'access' filtrait ICI sur l'EXTENSION du fichier (`/\.(mdb|accdb)$/i`) avant même de sonder son
+   * contenu — alors que `lecteurs/detection-famille.ts` documente EXPLICITEMENT, dans son propre
+   * en-tête, que ce chantier a choisi de reconnaître la famille « toujours sur le contenu binaire,
+   * jamais sur l'extension du fichier », en citant CE MÊME fichier comme cas ayant guidé ce choix
+   * (« un fichier nommé `RepAw.backup` était une base Access parfaitement valide »). Cette branche
+   * violait sa propre doctrine documentée un étage plus bas : un fichier Access réel sans extension
+   * `.mdb`/`.accdb` rendait `[]` SANS jamais appeler `mdb-tables`, donc SANS lever d'erreur ni
+   * remonter d'anomalie — `service-analyse-reprise.executer` classait alors ce fichier `ignore`
+   * (jamais `fichier_illisible`), et si c'était le SEUL fichier de l'archive, `tables.length === 0`
+   * faisait échouer l'analyse ENTIÈRE (`echecTotal`), sans aucun indice sur la cause réelle.
+   *
+   * PREUVE que ceci n'a jamais été détecté sur l'archive complète (781 entrées) : `RepAw.backup` y
+   * était SILENCIEUSEMENT ignoré exactement de la même façon (même code, même garde) — mais
+   * plusieurs AUTRES fichiers de cette archive (`AutoI/Backups/Anwender20100107.mdb`,
+   * `Anwender20100408.mdb`, `Anwender_corrompu.mdb`) portent, eux, l'extension `.mdb` ET contiennent
+   * chacun une table `Kunden` (mesuré : `mdb-tables -1` en direct sur ces trois fichiers). Le succès
+   * antérieur rapporté sur l'archive complète (« Kunden » trouvée) venait de l'un de CES fichiers,
+   * jamais de `RepAw.backup` — l'échec de ce dernier était simplement invisible au milieu de
+   * centaines d'autres tables trouvées ailleurs, jamais reproduit isolément avant que ce fichier ne
+   * soit seul dans l'archive.
+   *
+   * CORRECTIF : sonder le CONTENU (`detecterFamilleFichier`, même sonde 8 Ko que
+   * `detecterFamilleRepertoire`) au lieu de l'extension — aligné sur la doctrine déjà posée par
+   * `lecteurs/detection-famille.ts`. Un fichier sans signature Jet/ACE valide (`.exe`, `.dll`, note
+   * texte, `.mdb` réellement vide/corrompu) continue de rendre `[]` sans appeler `mdb-tables` —
+   * comportement inchangé pour ce cas ; seul le fichier `.backup`/`.bak`/sans extension qui EST une
+   * vraie base Access cesse désormais d'être ignoré à tort.
+   */
   async listerTables(
     cheminFichier: string,
     famille: FamilleMoteurSourceReprise,
   ): Promise<readonly string[]> {
     const familleLecteurs = versLecteurs(famille);
     if (familleLecteurs === 'access') {
-      if (!/\.(mdb|accdb)$/i.test(cheminFichier)) return [];
+      if ((await this.detecterFamilleFichier(cheminFichier)) !== 'access') return [];
       return listerTablesAccess(cheminFichier);
     }
     if (familleLecteurs === 'foxpro-dbase') {
@@ -570,6 +639,17 @@ export class AdaptateurLecteurArchiveReprise implements PortLecteurArchiveRepris
     }
   }
 
+  /**
+   * O(n) sur la table entière (voir « COMPTAGE ACCESS » en tête de fichier) — donc le SEUL point
+   * de ce module capable, à lui seul, de tenir le fil plusieurs secondes/minutes d'affilée sur une
+   * table de plusieurs millions de lignes (mesuré : `lireLignesAccess` restitue chaque ligne via
+   * un flux dont le tampon est souvent déjà rempli, donc un `for await` nu résout ses itérations
+   * en microtâches — voir `common/concurrence/ceder-controle-event-loop.ts` pour la mesure). Cède
+   * la main régulièrement PENDANT ce comptage, indépendamment de la cession déjà posée par
+   * l'appelant entre deux tables (`analyse/service-analyse-reprise.ts`) : celle-ci ne peut agir
+   * qu'ENTRE deux `await`, jamais À L'INTÉRIEUR d'un seul appel `compterLignes` déjà en cours sur
+   * UNE table volumineuse.
+   */
   async compterLignes(
     cheminFichier: string,
     famille: FamilleMoteurSourceReprise,
@@ -580,8 +660,12 @@ export class AdaptateurLecteurArchiveReprise implements PortLecteurArchiveRepris
       return compterLignesActivesDbf(cheminFichier);
     }
     if (familleLecteurs === 'access') {
+      const cedeurEventLoop = creerCedeurEventLoop();
       let n = 0;
-      for await (const _ligne of lireLignesAccess(cheminFichier, table)) n++;
+      for await (const _ligne of lireLignesAccess(cheminFichier, table)) {
+        n++;
+        await cedeurEventLoop.cederSiNecessaire();
+      }
       return n;
     }
     return 0;

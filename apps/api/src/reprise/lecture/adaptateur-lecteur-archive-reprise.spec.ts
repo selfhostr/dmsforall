@@ -143,6 +143,50 @@ describe('AdaptateurLecteurArchiveReprise — extraction ZIP réelle + lecture D
     expect(await adaptateur.listerTables(txt.chemin, 'foxpro_dbf')).toEqual([]);
   });
 
+  /**
+   * ANOMALIE RÉELLE mesurée le 26.08.2026 sur l'archive Auto-i de @laupernoe (`RepAw.backup`, base Access
+   * valide de 242 Mo SANS extension `.mdb`/`.accdb`) : la branche 'access' de `listerTables`
+   * gardait sur l'EXTENSION du fichier avant même de sonder son contenu — violant la doctrine
+   * documentée juste à côté (`lecteurs/detection-famille.ts`, qui cite EXPLICITEMENT ce même
+   * fichier comme raison de reconnaître la famille « toujours sur le contenu, jamais sur
+   * l'extension »). Conséquence mesurée en conditions réelles : `listerTables` rendait `[]` SANS
+   * jamais invoquer `mdb-tables`, donc sans la moindre erreur remontée — un fichier Access
+   * parfaitement lisible disparaissait silencieusement de l'analyse (et faisait échouer le dossier
+   * entier si c'était le seul fichier de l'archive).
+   *
+   * `mdb-tables` (RÉEL, aucun mock — comme le reste de ce fichier) sert ici de sonde indirecte :
+   * un en-tête Jet valide mais un corps délibérément invalide fait ÉCHOUER `mdb-tables` (code de
+   * sortie non nul, prouvé en exécution) plutôt que de rendre une liste vide — la seule façon
+   * d'observer, sans mock, que le contenu a bien été SONDÉ ET SOUMIS à `mdb-tables` malgré une
+   * extension qui n'est ni `.mdb` ni `.accdb`.
+   */
+  it("listerTables (famille access_jet) : sonde le CONTENU, jamais l'extension — un en-tête Jet valide sous une extension quelconque atteint mdb-tables (erreur RÉELLE remontée, jamais un [] silencieux) ; un .mdb sans signature Jet reste ignoré ([])", async () => {
+    const enteteJetValide = Buffer.alloc(4096);
+    enteteJetValide.write('Standard Jet DB', 4, 'latin1'); // signature seule — corps délibérément invalide
+
+    const cheminZip = await construireZip([
+      { chemin: 'AutoI/RepAw.backup', contenu: enteteJetValide },
+      {
+        chemin: 'AutoI/FAUX.mdb',
+        contenu: Buffer.from('ceci ne contient aucune signature Jet/ACE'),
+      },
+    ]);
+    const adaptateur = await nouvelAdaptateur();
+    const { repertoire, fichiers } = await adaptateur.extraireEtInventorier(cheminZip);
+    racinesAEffacer.push(repertoire);
+
+    const backup = fichiers.find((f) => f.chemin.endsWith('RepAw.backup'))!;
+    const fauxMdb = fichiers.find((f) => f.chemin.endsWith('FAUX.mdb'))!;
+
+    // Extension .backup, signature Jet valide : le contenu est sondé, mdb-tables est RÉELLEMENT
+    // invoqué, son échec (corps invalide) remonte comme une erreur explicite — jamais un [] muet.
+    await expect(adaptateur.listerTables(backup.chemin, 'access_jet')).rejects.toThrow();
+
+    // Extension .mdb, aucune signature Jet : toujours ignoré sans appeler mdb-tables — la garde
+    // par contenu ne fait pas régresser le cas où l'extension trompeuse ne suffit pas non plus.
+    expect(await adaptateur.listerTables(fauxMdb.chemin, 'access_jet')).toEqual([]);
+  });
+
   it('evaluerRole rend le total RÉEL de lignes actives, pas la taille de l’échantillon', async () => {
     const cheminZip = await construireZip([{ chemin: 'CLIENTS.DBF', contenu: dbfClients(7) }]);
     const adaptateur = await nouvelAdaptateur();
@@ -354,5 +398,33 @@ describe('Balayage des résidus de PLANTAGE (purgerResidusAnciens, appelée en t
     expect(await existe(repertoireFrais)).toBe(true);
 
     await adaptateur.purgerRepertoireExtrait(repertoireFrais);
+  });
+});
+
+describe('onModuleInit (purge INCONDITIONNELLE au redémarrage, défaut 25.08.2026)', () => {
+  it('un résidu TOUT FRAIS (donc jamais atteint par le seuil de 24h) est quand même purgé au redémarrage', async () => {
+    const cheminZip = await construireZip([{ chemin: 'CLIENTS.DBF', contenu: dbfClients(1) }]);
+    const { adaptateur, racineTravail } = await nouvelAdaptateurAvecRacine();
+
+    // Simule un plantage : extraction jamais purgée par le `finally` de l'appelant (mort du
+    // process). AUCUN vieillissement artificiel ici — contrairement au test précédent, cette
+    // purge doit fonctionner MÊME pour un résidu créé il y a quelques secondes : au redémarrage,
+    // aucune extraction n'est légitimement en cours pour CE process.
+    const { repertoire: repertoireOrphelin } = await adaptateur.extraireEtInventorier(cheminZip);
+
+    // Nouvelle instance sur la MÊME racine disque — simule le redémarrage du process (racine
+    // partagée entre deux "vies" du process, pas une racine isolée).
+    const adaptateurRedemarre = new AdaptateurLecteurArchiveReprise(racineTravail);
+    await adaptateurRedemarre.onModuleInit();
+
+    expect(await existe(repertoireOrphelin)).toBe(false);
+  });
+
+  it("racine d'extraction pas encore créée (premier démarrage) -> ne plante jamais", async () => {
+    const racineParente = await mkdtemp(join(tmpdir(), 'dfa-reprise-travail-'));
+    racinesAEffacer.push(racineParente);
+    const racineTravail = join(racineParente, 'jamais-cree');
+    const adaptateur = new AdaptateurLecteurArchiveReprise(racineTravail);
+    await expect(adaptateur.onModuleInit()).resolves.toBeUndefined();
   });
 });

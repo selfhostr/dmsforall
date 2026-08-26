@@ -11,12 +11,25 @@
  * liste de noms plausibles (français/allemand, la Suisse romande et alémanique) et rend le premier
  * trouvé — DEFENSIBLE, PAS PROUVÉ sur une archive réelle : signalé au rapport de livraison comme
  * le point à affiner en premier une fois une vraie archive Auto-i/Stieger disponible.
+ *
+ * DEUX PHASES SÉPARÉES, DÉLIBÉRÉMENT (défaut structurel réel du 26.08.2026, § tête de
+ * `service-import-reprise.ts::executer`) : `preparerCandidatsClientsReprise` (CPU pur — construction
+ * des candidats + déduplication de lot, cessions d'event loop comprises) doit tourner HORS de toute
+ * transaction Postgres ; `ecrireClientsPreparesReprise` (I/O socket réelle, `tx.execute` par
+ * candidat) tourne DANS une transaction COURTE ouverte par l'appelant (`service-import-reprise.ts`)
+ * juste pour cette écriture — jamais une cession d'event loop À L'INTÉRIEUR de cette transaction,
+ * voir la doctrine complète côté orchestrateur. `ecrireClientsReprise` reste exportée comme
+ * COMPOSITION des deux (mêmes cessions, même séquence qu'avant ce découpage) — c'est elle
+ * qu'exerce `ecrivain-client-reprise.spec.ts`, volontairement inchangé : le comportement observable
+ * de CETTE fonction ne change pas, seul l'appelant réel (`service-import-reprise.ts`) a changé de
+ * façon de l'invoquer (phases séparées, transaction propre à l'écriture).
  */
 
 import { sql } from 'drizzle-orm';
 import type { AnomalieImportReprise } from '@dfa/shared';
 
 import type { TransactionDfa } from '../../../db';
+import type { CedeurEventLoop } from '../../../common/concurrence';
 import type { LigneTable, ValeurChamp } from '../../lecteurs/types';
 import { CORRESPONDANCE_TYPE_CLIENT } from '../correspondance-enum-reprise';
 import { convertirVersEnum } from '../correspondance-enum-reprise';
@@ -31,6 +44,27 @@ export interface ResultatEcritureClients {
   readonly idParNumeroOrigine: ReadonlyMap<string, string>;
 }
 
+/** Un candidat client RETENU après déduplication de lot — plus de `ligneSource` (n'a plus
+ *  d'utilité une fois la préparation terminée, seules les anomalies en gardent trace). */
+export interface CandidatClientRepriseRetenu {
+  readonly numeroOrigine: string;
+  readonly type: 'particulier' | 'entreprise';
+  readonly nom: string | null;
+  readonly raisonSociale: string | null;
+  readonly langue: 'fr' | 'de' | 'it';
+}
+
+export interface ResultatPreparationClientsReprise {
+  readonly candidatsRetenus: readonly CandidatClientRepriseRetenu[];
+  readonly ecarte: number;
+  readonly anomalies: readonly AnomalieImportReprise[];
+}
+
+export interface ResultatEcritureClientsPreparesReprise {
+  readonly insere: number;
+  readonly idParNumeroOrigine: ReadonlyMap<string, string>;
+}
+
 function texte(valeurs: Record<string, ValeurChamp>, ...aliases: readonly string[]): string | null {
   for (const alias of aliases) {
     const valeur = valeurs[alias];
@@ -39,24 +73,25 @@ function texte(valeurs: Record<string, ValeurChamp>, ...aliases: readonly string
   return null;
 }
 
-export async function ecrireClientsReprise(
-  tx: TransactionDfa,
-  tenantId: string,
+/**
+ * Phase 1 — CPU pur, AUCUN accès base : construit les candidats (mapping par alias, conversion
+ * d'enum, validation) puis déduplique le lot. À appeler HORS de toute transaction — voir l'en-tête
+ * de fichier.
+ */
+export async function preparerCandidatsClientsReprise(
   lignes: readonly LigneTable[],
   langueTenantParDefaut: 'fr' | 'de' | 'it',
-): Promise<ResultatEcritureClients> {
+  cedeurEventLoop: CedeurEventLoop,
+): Promise<ResultatPreparationClientsReprise> {
   const anomalies: AnomalieImportReprise[] = [];
 
-  const candidats: CandidatDedupLot<{
-    readonly numeroOrigine: string;
-    readonly type: 'particulier' | 'entreprise';
-    readonly nom: string | null;
-    readonly raisonSociale: string | null;
-    readonly langue: 'fr' | 'de' | 'it';
-    readonly ligneSource: number;
-  }>[] = [];
+  const candidats: CandidatDedupLot<CandidatClientRepriseRetenu>[] = [];
 
+  // Boucle CPU pure (aucun accès base) — nombre d'itérations = volume de la table source. Voir
+  // `common/concurrence/ceder-controle-event-loop.ts` : c'est exactement le gabarit mesuré comme
+  // affamant la boucle d'événements sans cession explicite.
   for (const ligne of lignes) {
+    await cedeurEventLoop.cederSiNecessaire();
     const numeroOrigine = texte(
       ligne.valeurs,
       'id',
@@ -116,7 +151,7 @@ export async function ecrireClientsReprise(
     candidats.push({
       cle: numeroOrigine,
       ligneSource: ligne.index,
-      donnees: { numeroOrigine, type, nom, raisonSociale, langue, ligneSource: ligne.index },
+      donnees: { numeroOrigine, type, nom, raisonSociale, langue },
     });
   }
 
@@ -133,11 +168,34 @@ export async function ecrireClientsReprise(
     });
   }
 
+  // Cession absorbant le CPU de `dedupliquerLot` ci-dessus (fonction pure, un seul passage
+  // synchrone, aucun point de cession interne possible) — dernière cession de la phase de
+  // préparation, ENCORE hors de toute transaction.
+  await cedeurEventLoop.cederSiNecessaire();
+
+  return {
+    candidatsRetenus: retenus.map((r) => r.donnees),
+    ecarte: candidats.length - retenus.length + (lignes.length - candidats.length),
+    anomalies,
+  };
+}
+
+/**
+ * Phase 2 — écriture réelle (`tx.execute` par candidat retenu), dans la transaction COURTE fournie
+ * par l'appelant. AUCUNE cession d'event loop ici : chaque itération fait déjà un aller-retour
+ * socket réel, qui cède naturellement la boucle d'événements — une cession `setImmediate`
+ * supplémentaire n'apporterait rien, seulement une transaction inutilement plus longue.
+ */
+export async function ecrireClientsPreparesReprise(
+  tx: TransactionDfa,
+  tenantId: string,
+  candidatsRetenus: readonly CandidatClientRepriseRetenu[],
+): Promise<ResultatEcritureClientsPreparesReprise> {
   const idParNumeroOrigine = new Map<string, string>();
   let insere = 0;
 
-  for (const candidat of retenus) {
-    const { numeroOrigine, type, nom, raisonSociale, langue } = candidat.donnees;
+  for (const candidat of candidatsRetenus) {
+    const { numeroOrigine, type, nom, raisonSociale, langue } = candidat;
     const resultat = await tx.execute<{ readonly id: string }>(sql`
       insert into public.client (tenant_id, numero, type, nom, raison_sociale, langue, origine, numero_origine)
       values (
@@ -155,10 +213,33 @@ export async function ecrireClientsReprise(
     }
   }
 
+  return { insere, idParNumeroOrigine };
+}
+
+/**
+ * Composition des deux phases ci-dessus, MÊME séquence/cessions qu'avant le découpage — réservée
+ * aux appelants qui n'ont pas besoin de séparer préparation et écriture (tests, notamment). Le
+ * VRAI appelant de production (`service-import-reprise.ts`) n'utilise plus cette fonction : il
+ * appelle `preparerCandidatsClientsReprise` hors transaction puis `ecrireClientsPreparesReprise`
+ * dans une transaction courte ouverte pour l'occasion — voir l'en-tête de fichier.
+ */
+export async function ecrireClientsReprise(
+  tx: TransactionDfa,
+  tenantId: string,
+  lignes: readonly LigneTable[],
+  langueTenantParDefaut: 'fr' | 'de' | 'it',
+  cedeurEventLoop: CedeurEventLoop,
+): Promise<ResultatEcritureClients> {
+  const preparation = await preparerCandidatsClientsReprise(
+    lignes,
+    langueTenantParDefaut,
+    cedeurEventLoop,
+  );
+  const ecriture = await ecrireClientsPreparesReprise(tx, tenantId, preparation.candidatsRetenus);
   return {
-    insere,
-    ecarte: candidats.length - retenus.length + (lignes.length - candidats.length),
-    anomalies,
-    idParNumeroOrigine,
+    insere: ecriture.insere,
+    ecarte: preparation.ecarte,
+    anomalies: preparation.anomalies,
+    idParNumeroOrigine: ecriture.idParNumeroOrigine,
   };
 }
