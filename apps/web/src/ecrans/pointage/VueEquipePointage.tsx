@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { ReponsePointage, RoleUtilisateur } from '@dfa/shared';
@@ -17,6 +17,7 @@ import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { useOrdreReparation } from '@/hooks/atelier/useOrdreReparation';
 import { useListeOrdresReparation } from '@/hooks/atelier/useListeOrdresReparation';
+import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import {
   centiemesHeureEnSecondes,
   dateJourLocale,
@@ -158,13 +159,8 @@ export function VueEquipePointage({ siteId, role }: Props) {
   const [cloturePeriodeOuverte, setCloturePeriodeOuverte] = useState(false);
 
   const [qSaisie, setQSaisie] = useState('');
-  const [q, setQ] = useState('');
+  const [q] = useValeurDebouncee(qSaisie, DELAI_DEBOUNCE_MS);
   const [orSelectionneId, setOrSelectionneId] = useState<string | undefined>(undefined);
-
-  useEffect(() => {
-    const identifiant = window.setTimeout(() => setQ(qSaisie), DELAI_DEBOUNCE_MS);
-    return () => window.clearTimeout(identifiant);
-  }, [qSaisie]);
 
   const bornes = useMemo(() => bornesJourneeLocale(dateJourLocale()), []);
   const filtresListe = useMemo(

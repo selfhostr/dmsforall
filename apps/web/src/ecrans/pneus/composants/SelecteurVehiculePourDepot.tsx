@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { VehiculeResume } from '@dfa/shared';
@@ -10,6 +10,7 @@ import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
+import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { useListeVehicules } from '@/hooks/vehicules/useListeVehicules';
 import { cn } from '@/lib/utils';
 
@@ -29,15 +30,11 @@ interface Props {
 export function SelecteurVehiculePourDepot({ valeur, onChangeValeur }: Props) {
   const { t } = useTranslation(['pneus', 'commun', 'erreurs']);
   const [saisie, setSaisie] = useState('');
-  const [termeDebounce, setTermeDebounce] = useState('');
-
-  useEffect(() => {
-    const identifiant = window.setTimeout(
-      () => setTermeDebounce(saisie.trim()),
-      DELAI_ANTI_REBOND_MS,
-    );
-    return () => window.clearTimeout(identifiant);
-  }, [saisie]);
+  // `.trim()` appliqué APRÈS la temporisation (jamais avant) : reproduit exactement le
+  // comportement d'origine, où le minuteur se réarmait sur CHAQUE changement de `saisie` brute,
+  // espaces compris — un dénominateur commun aux espaces en tête/fin n'écourtait jamais l'attente.
+  const [saisieTemporisee] = useValeurDebouncee(saisie, DELAI_ANTI_REBOND_MS);
+  const termeDebounce = saisieTemporisee.trim();
 
   const rechercheActive = termeDebounce.length > 0;
   const requete = useListeVehicules(

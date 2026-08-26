@@ -273,18 +273,25 @@ export function EcranListeDossiersVente() {
   // le contrat du chantier, §3, qui liste ce couple titre/onglet à la lettre). Seule action du
   // titre : « Nouveau dossier de vente » — le bouton « Suivi financement & garantie » qui siégeait
   // ici a été retiré, voir la note de l'en-tête de fichier.
+  //
+  // « Nouveau dossier de vente » a QUITTÉ le slot `actions` de `GabaritEcran` (chantier
+  // d'unification inter-écrans, 25.08.2026 : `actions=` pour un bouton « Nouveau X » est le motif
+  // PÉRIMÉ, `GabaritEcran` le placerait seul sur sa propre rangée pleine largeur sous le titre) —
+  // aligné sur `EcranListeOrdresReparation`/`EcranListeClients`/`EcranListeVehicules` (référence du
+  // chantier) : rejoint la rangée filtres + tri ci-dessous, à sa suite, plutôt que de rester isolé.
   return (
-    <GabaritEcran titre={t('ventes:dossier.liste.titre')} actions={boutonNouveauDossier}>
-      {/* Rangée UNIQUE filtres + tri (correctif « mise en page ventes », 19.08.2026 : « grands
+    <GabaritEcran titre={t('ventes:dossier.liste.titre')}>
+      {/* Rangée UNIQUE filtres + tri + action (correctif « mise en page ventes », 19.08.2026 : « grands
           espaces vides entre le titre et le premier contenu ») — `SelecteurTri` tenait auparavant
           toute une rangée pleine largeur à lui seul sous la barre de filtres, un `gap-6` (24px)
-          de plus rien que pour l'espacer. `BarreFiltres` grandit (`flex-1`), le tri vient à sa
-          suite dans le même `flex-wrap` : sur un écran étroit il repasse sous les filtres comme
-          avant, sur un poste large il vient s'aligner à côté au lieu de laisser filer une ligne
-          quasi vide. Le libellé « Statut » retiré au-dessus du sélecteur de statut (defect
-          signalé : le bouton affiche déjà « Tous les statuts », `aria-label` déjà porté par
-          `SelectTrigger` — même correctif que les trois filtres de `EcranListeVehiculesStock`). */}
-      <div className="flex flex-wrap items-end gap-3">
+          de plus rien que pour l'espacer. `BarreFiltres` grandit (`flex-1`), le tri puis le bouton
+          « Nouveau dossier de vente » viennent à sa suite dans le même `flex-wrap` : sur un écran
+          étroit ils repassent sous les filtres comme avant, sur un poste large ils s'alignent à
+          droite au lieu de laisser filer une ligne quasi vide. Le libellé « Statut » retiré
+          au-dessus du sélecteur de statut (defect signalé : le bouton affiche déjà « Tous les
+          statuts », `aria-label` déjà porté par `SelectTrigger` — même correctif que les trois
+          filtres de `EcranListeVehiculesStock`). */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <BarreFiltres
           q={qSaisie}
           onChangeQ={setQSaisie}
@@ -336,6 +343,8 @@ export function EcranListeDossiersVente() {
           label={t('ventes:dossier.liste.tri.label')}
           className="w-[220px] shrink-0"
         />
+
+        {boutonNouveauDossier}
       </div>
 
       <TableComptoir

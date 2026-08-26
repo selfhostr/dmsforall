@@ -19,6 +19,7 @@ export default tseslint.config(
       'e2e/test-results/**',
       'e2e/.auth/**',
       'e2e/captures-apres-refonte/**',
+      'apps/api/uploads/**',
     ],
   },
   js.configs.recommended,

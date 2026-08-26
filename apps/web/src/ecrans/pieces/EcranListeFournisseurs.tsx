@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
@@ -29,6 +29,7 @@ import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
+import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { useListeFournisseurs } from '@/hooks/pieces/useListeFournisseurs';
 import { useSession } from '@/hooks/useSession';
 
@@ -55,11 +56,7 @@ export function EcranListeFournisseurs() {
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
 
   const [qSaisie, setQSaisie] = useState('');
-  const [q, setQ] = useState('');
-  useEffect(() => {
-    const identifiant = window.setTimeout(() => setQ(qSaisie), DELAI_DEBOUNCE_MS);
-    return () => window.clearTimeout(identifiant);
-  }, [qSaisie]);
+  const [q, reinitialiserQ] = useValeurDebouncee(qSaisie, DELAI_DEBOUNCE_MS);
 
   const filtres: FiltresFournisseurs = {
     q: q.trim() === '' ? undefined : q.trim(),
@@ -79,8 +76,11 @@ export function EcranListeFournisseurs() {
   } = useListeFournisseurs(filtres);
 
   function effacerFiltres() {
+    // Levier de reset (arbitrage @laupernoe 26.08.2026) : `effacerFiltres` est un geste de reprise en
+    // main, pas une frappe — `q` doit refléter la case vide immédiatement, pas après le même
+    // délai qu'une recherche (voir le commentaire de `useValeurDebouncee`, `hooks/commun/`).
     setQSaisie('');
-    setQ('');
+    reinitialiserQ();
     setStatut(undefined);
   }
 

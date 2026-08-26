@@ -18,3 +18,6 @@ packages/shared/openapi/dfa-openapi.json
 # chantiers en parallèle de celui-ci. Pas du code, pas notre périmètre de rédaction — la largeur
 # de ligne éditoriale (listes, tableaux, citations) n'a pas à suivre les 100 colonnes de ce dépôt.
 contenu/
+
+# Répertoire de données locales (uploads clients, données éphémères), jamais du code.
+apps/api/uploads/

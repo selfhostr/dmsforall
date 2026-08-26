@@ -598,6 +598,56 @@ describe('EcranHangarPneus', () => {
       ).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Réessayer' })).toBeInTheDocument();
     });
+
+    /**
+     * RÉGRESSION CORRIGÉE (chantier d'unification inter-écrans, 25.08.2026) : cet onglet
+     * réimplémentait son propre sélecteur de site à la main, hors `BarreFiltres` — sans bouton
+     * « Effacer les filtres », contrairement à tous les autres écrans à liste du produit. Migré
+     * sur `BarreFiltres` : `q` porte désormais un filtre repère local (même mécanisme que l'onglet
+     * « Actifs »), effaçable en un geste.
+     */
+    it(
+      'filtre localement par repère (`codeCase`) et « Effacer les filtres » le vide, sans perdre ' +
+        'les jeux qui ne correspondaient plus',
+      async () => {
+        const utilisateur = userEvent.setup();
+        const AUTRE_DEPOT_A_RELANCER: ReponseDepotPneus = {
+          ...DEPOT_A_RELANCER,
+          id: 'depot-8',
+          vehiculeId: 'vehicule-8',
+          codeCase: 'Rack 12',
+        };
+        server.use(
+          http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+          http.get('/api/v1/sites/site-1/hangar-pneus', () => HttpResponse.json(pageDe([]))),
+          http.get('/api/v1/depots-pneus/a-relancer', () =>
+            HttpResponse.json(pageDe([DEPOT_A_RELANCER, AUTRE_DEPOT_A_RELANCER])),
+          ),
+        );
+
+        rendre();
+
+        await utilisateur.click(await screen.findByRole('tab', { name: 'À relancer' }));
+
+        expect(await screen.findByText('Rack 7')).toBeInTheDocument();
+        expect(screen.getByText('Rack 12')).toBeInTheDocument();
+
+        const boutonEffacer = screen.getByRole('button', { name: 'Effacer les filtres' });
+        expect(boutonEffacer).toBeDisabled();
+
+        await utilisateur.type(screen.getByRole('searchbox'), 'Rack 7');
+
+        expect(screen.getByText('Rack 7')).toBeInTheDocument();
+        expect(screen.queryByText('Rack 12')).not.toBeInTheDocument();
+        expect(boutonEffacer).toBeEnabled();
+
+        await utilisateur.click(boutonEffacer);
+
+        expect(await screen.findByText('Rack 12')).toBeInTheDocument();
+        expect(screen.getByText('Rack 7')).toBeInTheDocument();
+        expect(boutonEffacer).toBeDisabled();
+      },
+    );
   });
 
   /**

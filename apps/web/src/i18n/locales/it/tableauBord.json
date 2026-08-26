@@ -169,6 +169,15 @@
       "lien": "Vai alle mie pratiche"
     }
   },
+  "bandeauPriorite": {
+    "titre": "Da fare oggi",
+    "orEnRetard": {
+      "libelle": "{count, plural, one {# ordine di riparazione in ritardo} other {# ordini di riparazione in ritardo}}"
+    },
+    "facturesImpayees": {
+      "libelle": "{montant} di fatture non pagate"
+    }
+  },
   "receptionnaire": {
     "rendezVousJour": {
       "titre": "Appuntamenti di oggi",

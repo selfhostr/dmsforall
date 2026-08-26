@@ -1,5 +1,5 @@
 import { CheckCircle2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router';
 
@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
+import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import {
   useDoublonsClients,
@@ -85,21 +86,23 @@ export function EcranDoublonsClients() {
   const [telephone, setTelephone] = useState('');
   const [ide, setIde] = useState('');
 
-  const [criteres, setCriteres] = useState<CriteresDoublonsClients>({});
-
-  useEffect(() => {
-    const identifiant = setTimeout(() => {
-      setCriteres({
-        nom: critereNom(nom),
-        npa: critereSimple(npa),
-        email: critereEmail(email),
-        telephoneMobile: critereSimple(telephone),
-        ide: critereIde(ide),
-        exclureClientId,
-      });
-    }, DELAI_DEBOUNCE_MS);
-    return () => clearTimeout(identifiant);
-  }, [nom, npa, email, telephone, ide, exclureClientId]);
+  // `useMemo` donne une référence STABLE tant qu'aucun des champs primitifs ne change — condition
+  // dont dépend `useValeurDebouncee` (générique, `hooks/commun/`) : sans elle, un objet reconstruit
+  // à chaque rendu réarmerait le minuteur à chaque rendu, jamais seulement à chaque frappe. Les
+  // valeurs candidates restent identiques à l'ancien `setCriteres({...})`, juste calculées à CHAQUE
+  // rendu (pur, bon marché) plutôt qu'une seule fois au moment où le minuteur s'exécutait.
+  const critereCandidat = useMemo<CriteresDoublonsClients>(
+    () => ({
+      nom: critereNom(nom),
+      npa: critereSimple(npa),
+      email: critereEmail(email),
+      telephoneMobile: critereSimple(telephone),
+      ide: critereIde(ide),
+      exclureClientId,
+    }),
+    [nom, npa, email, telephone, ide, exclureClientId],
+  );
+  const [criteres] = useValeurDebouncee(critereCandidat, DELAI_DEBOUNCE_MS);
 
   const requete = useDoublonsClients(criteres);
   const candidats = requete.data?.candidats ?? [];

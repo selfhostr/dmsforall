@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle, WifiOff } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm, type DefaultValues, type FieldPath, type Resolver } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router';
@@ -31,7 +31,11 @@ import { BandeauBrouillon } from '@/composants/motifs/BandeauBrouillon';
 import { effacerBrouillon, lireBrouillon } from '@/hooks/brouillon/brouillon';
 import { useSauvegardeBrouillon } from '@/hooks/brouillon/useSauvegardeBrouillon';
 import { useCreerClient } from '@/hooks/clients/useCreerClient';
-import { useDoublonsClients } from '@/hooks/clients/useDoublonsClients';
+import {
+  useDoublonsClients,
+  type CriteresDoublonsClients,
+} from '@/hooks/clients/useDoublonsClients';
+import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { useLangue } from '@/hooks/useLangue';
 import { cn } from '@/lib/utils';
 import { chemins } from '@/routes/chemins';
@@ -287,13 +291,6 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
 
   const [telephoneSaisi, setTelephoneSaisi] = useState('');
   const [entreeEnAttente, setEntreeEnAttente] = useState<EntreeCreationClient | null>(null);
-  const [criteres, setCriteres] = useState<{
-    nom?: string;
-    npa?: string;
-    email?: string;
-    telephoneMobile?: string;
-    ide?: string;
-  }>({});
   // Issue #78 : horodatage du brouillon restauré, `null` tant qu'aucun brouillon non vide n'a été
   // repris — pilote UNIQUEMENT `BandeauBrouillon` ci-dessous, jamais la validation. Posé par
   // l'effet de réinitialisation ci-dessous (qui relit `sessionStorage` à CHAQUE ouverture, y
@@ -309,6 +306,32 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
     resolver: resolverClient,
     defaultValues: valeursParDefaut(langueCourante),
   });
+
+  const type = form.watch('type');
+  const nom = form.watch('nom');
+  const prenom = form.watch('prenom');
+  const raisonSociale = form.watch('raisonSociale');
+  const ide = form.watch('ide');
+  const email = form.watch('email');
+  const langueCorrespondance = form.watch('langueCorrespondance');
+  const adressePrincipale = form.watch('adressePrincipale');
+  const npa = adressePrincipale?.npa;
+
+  // Aperçu live de doublon (RM-05, CT-01) — même hook que `EcranDoublonsClients.tsx`, même
+  // patron `useMemo` (référence stable) + `useValeurDebouncee` (hooks/commun/). 400ms, PLUS LENT
+  // que la recherche standard (300ms) : un avertissement de doublon qui clignote à chaque frappe
+  // serait plus gênant qu'utile — délai conservé tel quel, jamais uniformisé sur 300ms.
+  const critereCandidat = useMemo<CriteresDoublonsClients>(
+    () => ({
+      nom: (type === 'entreprise' ? raisonSociale : nom) || undefined,
+      npa: npa || undefined,
+      email: email || undefined,
+      telephoneMobile: telephoneSaisi || undefined,
+      ide: ide || undefined,
+    }),
+    [type, nom, raisonSociale, npa, email, telephoneSaisi, ide],
+  );
+  const [criteres, reinitialiserCriteres] = useValeurDebouncee(critereCandidat, 400);
 
   useEffect(() => {
     if (!ouvert) return;
@@ -328,7 +351,10 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
     setTelephoneSaisi(aBrouillon ? brouillon.valeurs.telephoneSaisi : '');
     setBrouillonRepriseLe(aBrouillon ? brouillon.enregistreLe : null);
     setEntreeEnAttente(null);
-    setCriteres({});
+    // Levier de reset (`hooks/commun/useValeurDebouncee`) : sans lui, l'aperçu de doublon de la
+    // tentative PRÉCÉDENTE resterait affiché jusqu'à 400ms après la réouverture du tiroir — un
+    // avertissement périmé pour un client qui n'a plus rien à voir avec la nouvelle saisie.
+    reinitialiserCriteres();
     creerClient.reset();
     idempotence.regenerer();
     // Réinitialise à CHAQUE ouverture (pas seulement au montage) : même patron que
@@ -343,29 +369,6 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
     // clé et le serveur la refuserait comme `IDEMPOTENCE_CONFLIT`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ouvert]);
-
-  const type = form.watch('type');
-  const nom = form.watch('nom');
-  const prenom = form.watch('prenom');
-  const raisonSociale = form.watch('raisonSociale');
-  const ide = form.watch('ide');
-  const email = form.watch('email');
-  const langueCorrespondance = form.watch('langueCorrespondance');
-  const adressePrincipale = form.watch('adressePrincipale');
-  const npa = adressePrincipale?.npa;
-
-  useEffect(() => {
-    const identifiant = setTimeout(() => {
-      setCriteres({
-        nom: (type === 'entreprise' ? raisonSociale : nom) || undefined,
-        npa: npa || undefined,
-        email: email || undefined,
-        telephoneMobile: telephoneSaisi || undefined,
-        ide: ide || undefined,
-      });
-    }, 400);
-    return () => clearTimeout(identifiant);
-  }, [type, nom, raisonSociale, npa, email, telephoneSaisi, ide]);
 
   // Sauvegarde AUTOMATIQUE à chaque changement de l'un des champs couverts (issue #78) — voir
   // `ValeursBrouillonNouveauClient` pour la justification de cette portée précise. Actif dès le

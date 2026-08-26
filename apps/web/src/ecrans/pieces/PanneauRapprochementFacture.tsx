@@ -257,6 +257,26 @@ export function PanneauRapprochementFacture({
             })}
           </span>
         </div>
+        {/* PAS `BoutonImprimerDocument` (`composants/motifs/`) ici — mesuré, chantier
+            d'unification inter-écrans, 25.08.2026 : deux divergences réelles, pas de la
+            paresse à absorber dans le générique.
+            1. TAILLE — ce bouton vit dans un bandeau d'identité DENSE (icône `h-4 w-4`, badge,
+               texte `texte-corps`, `p-3`), pas dans une rangée d'actions d'en-tête ; `size="sm"`
+               aligne sa hauteur sur celle des autres éléments de CE bandeau. `BoutonImprimerOr`
+               (atelier) et le branchement facturation vivent, eux, dans une vraie rangée
+               d'actions à côté de boutons `size="default"` — même raisonnement, tailles
+               opposées : les deux contextes ont chacun raison pour leur propre rangée.
+            2. LIBELLÉ/ICÔNE — « Voir le document » (geste de VÉRIFICATION du rapprochement,
+               pas d'impression) n'est volontairement pas doublé d'une icône `Printer` : les
+               deux AUTRES points de branchement disent « Imprimer » et portent cette icône à
+               dessein (le mot ET le pictogramme promettent la même chose). Un pictogramme
+               d'imprimante à côté du mot « voir » promettrait un geste que ce bouton ne fait
+               pas — vocabulaire garagiste, jamais un mot pour un autre (consigne du chantier).
+            `BoutonImprimerDocument` fixe l'icône ET la taille par construction (voir son
+            en-tête) : lui ajouter une variante de taille/icône pour ce seul appelant aurait
+            paramétré le générique pour une divergence qui ne s'y prête pas proprement — mêmes
+            `<a href target="_blank" rel="noopener noreferrer">`/mêmes garanties issue #155,
+            habillage local délibérément conservé. */}
         <Button type="button" variant="outline" size="sm" asChild>
           <a href={urlDocument} target="_blank" rel="noopener noreferrer">
             {t('pieces:facturesFournisseur.actions.voirDocument')}

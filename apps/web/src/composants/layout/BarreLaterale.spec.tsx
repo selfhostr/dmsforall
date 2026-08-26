@@ -27,9 +27,11 @@ import { BarreLaterale } from './BarreLaterale';
  *  3. Chaque entrée ouvre sur son PREMIER ONGLET VISIBLE pour le rôle, jamais sur un écran refusé.
  *
  * Lot « cadre applicatif » (19.08.2026) — TROIS groupes de tests EN PLUS, à la fin du fichier :
- * le bloc tenant + site en tête de colonne, le pied compte (identité + Réglages + déconnexion,
- * regroupés dans un menu qui se déplie — Réglages n'est donc plus un `role=link` direct, voir la
- * doc de tête de `BarreLaterale.tsx` §2), et leur rendu repliée.
+ * le bloc tenant en tête de colonne, le pied compte (identité + Réglages + déconnexion, regroupés
+ * dans un menu qui se déplie — Réglages n'est donc plus un `role=link` direct, voir la doc de tête
+ * de `BarreLaterale.tsx` §2), et leur rendu repliée. Le SITE et le THÈME, qui vivaient dans ces
+ * deux blocs, ont déménagé vers `BarreOutilsSuperieure.tsx` au lot « bandeau haut » (26.08.2026) —
+ * leurs tests vivent désormais dans `BarreOutilsSuperieure.spec.tsx`.
  *
  * `SESSION_TEST` porte le rôle `chef_atelier`.
  */
@@ -540,7 +542,7 @@ describe('BarreLaterale — repli desktop', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('sans prop `repli` (tiroir mobile) : aucun bouton de repli n’est rendu, tenant + site restent affichés', async () => {
+  it('sans prop `repli` (tiroir mobile) : aucun bouton de repli n’est rendu, le tenant reste affiché', async () => {
     connecte('direction');
     rendre('/');
 
@@ -576,11 +578,10 @@ describe('BarreLaterale — numéro de version, collé au pied compte', () => {
     const version = screen.getByText('0.1.0+a1b2c3d');
     // Même pied que le déclencheur du compte, pas un pied détaché — ancré sur `.border-t`
     // (le filet qui délimite VISUELLEMENT le pied compte, `BarreLaterale.tsx`) plutôt que sur
-    // `closest('div')` : depuis la refonte visuelle (bascule clair/sombre posée à côté du
-    // déclencheur, voir `BasculeTheme.tsx`), le déclencheur est nichée sous un `div` de mise en
-    // page supplémentaire (rangée bouton + déclencheur) — un `div` intermédiaire légitime, pas un
-    // pied détaché. `closest('.border-t')` reste vrai quelle que soit la profondeur de nichage
-    // interne, tant que la version reste dans LE pied compte.
+    // `closest('div')` : le déclencheur est nichée sous un `div` de mise en page intermédiaire
+    // (`min-w-0`, contrainte de troncature) — un `div` intermédiaire légitime, pas un pied détaché.
+    // `closest('.border-t')` reste vrai quelle que soit la profondeur de nichage interne, tant que
+    // la version reste dans LE pied compte.
     expect(compte.closest('.border-t')?.contains(version)).toBe(true);
     // Sélectionnable à la souris (copier-coller) : jamais `select-none`.
     expect(version.className).toContain('select-text');
@@ -652,40 +653,33 @@ describe('BarreLaterale — numéro de version, collé au pied compte', () => {
 });
 
 /**
- * BLOC TENANT + SITE — Lot « cadre applicatif » (19.08.2026), en tête de colonne, à la place de
- * l'ancien mot-symbole « dmsforall » (voir la doc de tête du fichier, §1). `SESSION_TEST` ne porte
- * qu'un seul site actif (`Site principal`) : ces tests couvrent le rendu à un site ; le
- * multi-site est déjà couvert par `SelecteurSiteEntete.spec.tsx` (composant réutilisé tel quel).
+ * BLOC TENANT — Lot « cadre applicatif » (19.08.2026), en tête de colonne, à la place de l'ancien
+ * mot-symbole « dmsforall » (voir la doc de tête du fichier, §1). Le SITE, qui vivait dans ce même
+ * bloc, a déménagé vers `BarreOutilsSuperieure.tsx` au lot « bandeau haut » (26.08.2026) — ses
+ * tests (rendu à un site, multi-site, code court replié, « Tous les sites »/« Aucun site choisi »)
+ * vivent désormais dans `BarreOutilsSuperieure.spec.tsx` et `SelecteurSiteEntete.spec.tsx`.
  */
-describe('BarreLaterale — bloc tenant + site', () => {
-  it('affiche le nom du tenant et le site courant, jamais le mot-symbole du produit', async () => {
+describe('BarreLaterale — bloc tenant', () => {
+  it('affiche le nom du tenant, jamais le mot-symbole du produit', async () => {
     connecte('direction');
-    // `?site=site-1` explicite : sans lui, aucun site n'est résolu (doctrine « absence de donnée
-    // ≠ valeur », issue #91) — même mécanisme que `BarreLaterale — conservation du site courant`
-    // plus haut dans ce fichier.
     rendre('/?site=site-1');
 
     expect(await screen.findByText('Garage Test SA')).toBeInTheDocument();
-    expect(screen.getByText('Site principal')).toBeInTheDocument();
     expect(screen.queryByText('dmsforall')).not.toBeInTheDocument();
   });
 
-  it('sans session résolue, n’affirme aucun tenant ni site', () => {
+  it('sans session résolue, n’affirme aucun tenant', () => {
     rendre('/');
 
     expect(screen.queryByText('Garage Test SA')).not.toBeInTheDocument();
-    expect(screen.queryByText('Site principal')).not.toBeInTheDocument();
   });
 
-  it('repliée : le nom du tenant est masqué (jamais tronqué), le site reste identifiable par son code court', async () => {
+  it('repliée : le nom du tenant est masqué (jamais tronqué)', async () => {
     connecte('direction');
     rendreAvecRepli('/?site=site-1', true);
 
     await screen.findByRole('link', { name: /^pièces$/i });
     expect(screen.queryByText('Garage Test SA')).not.toBeInTheDocument();
-    // Site unique + repliée : rendu non interactif (`<p>`), code court visible, nom complet porté
-    // par le texte `sr-only` — voir `SelecteurSiteEntete.tsx`, § rendu compact.
-    expect(screen.getByText('PRINCIPAL')).toBeInTheDocument();
   });
 });
 

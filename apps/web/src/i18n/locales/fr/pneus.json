@@ -117,6 +117,7 @@
       "titre": "Impossible d'afficher les jeux à relancer"
     },
     "vide": "Aucun jeu n'est en retard de mouvement.",
+    "videFiltre": "Aucun jeu ne correspond à ce repère.",
     "filtreSite": "Site",
     "filtreSiteTous": "Tous les sites",
     "colonnes": {

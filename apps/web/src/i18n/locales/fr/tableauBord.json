@@ -169,6 +169,15 @@
       "lien": "Aller à mes dossiers"
     }
   },
+  "bandeauPriorite": {
+    "titre": "Action requise aujourd'hui",
+    "orEnRetard": {
+      "libelle": "{count, plural, one {# OR en retard} other {# OR en retard}}"
+    },
+    "facturesImpayees": {
+      "libelle": "{montant} de factures impayées"
+    }
+  },
   "receptionnaire": {
     "rendezVousJour": {
       "titre": "Rendez-vous du jour",

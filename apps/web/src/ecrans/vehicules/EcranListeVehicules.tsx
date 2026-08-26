@@ -1,5 +1,5 @@
 import { Plus } from 'lucide-react';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 
@@ -33,6 +33,7 @@ import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { BoutonCopier } from '@/composants/vehicule/BoutonCopier';
+import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { useListeVehicules } from '@/hooks/vehicules/useListeVehicules';
 import { chemins } from '@/routes/chemins';
 
@@ -59,15 +60,10 @@ export function EcranListeVehicules() {
   const site = searchParams.get('site') ?? undefined;
 
   const [qSaisie, setQSaisie] = useState('');
-  const [q, setQ] = useState('');
+  const [q, reinitialiserQ] = useValeurDebouncee(qSaisie, DELAI_DEBOUNCE_MS);
   const [statut, setStatut] = useState<StatutVehicule | undefined>(undefined);
   const [importe, setImporte] = useState(false);
   const [tri, setTri] = useState<string>(TRI_DEFAUT_VEHICULES);
-
-  useEffect(() => {
-    const identifiant = window.setTimeout(() => setQ(qSaisie), DELAI_DEBOUNCE_MS);
-    return () => window.clearTimeout(identifiant);
-  }, [qSaisie]);
 
   const filtres = useMemo(
     () => ({
@@ -95,8 +91,11 @@ export function EcranListeVehicules() {
   const filtresActifs = q.trim() !== '' || filtresStructuresActifs;
 
   function effacerFiltres() {
+    // Levier de reset (arbitrage @laupernoe 26.08.2026) : `effacerFiltres` est un geste de reprise en
+    // main, pas une frappe — `q` doit refléter la case vide immédiatement, pas après le même
+    // délai qu'une recherche (voir le commentaire de `useValeurDebouncee`, `hooks/commun/`).
     setQSaisie('');
-    setQ('');
+    reinitialiserQ();
     setStatut(undefined);
     setImporte(false);
   }

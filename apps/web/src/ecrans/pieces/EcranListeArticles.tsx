@@ -32,9 +32,10 @@ import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
+import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
+import { useListeArticles } from '@/hooks/pieces/useListeArticles';
 import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { useSession } from '@/hooks/useSession';
-import { useListeArticles } from '@/hooks/pieces/useListeArticles';
 import { formaterMontant } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
@@ -62,7 +63,7 @@ export function EcranListeArticles() {
   const role = session?.utilisateur.role;
 
   const [qSaisie, setQSaisie] = useState('');
-  const [q, setQ] = useState('');
+  const [q, reinitialiserQ] = useValeurDebouncee(qSaisie, DELAI_DEBOUNCE_MS);
   const [categorie, setCategorie] = useState<CategorieArticle | undefined>(undefined);
   const [statut, setStatut] = useState<StatutArticle | undefined>(undefined);
   const [tri, setTri] = useState<string>(TRI_DEFAUT_ARTICLES);
@@ -96,11 +97,6 @@ export function EcranListeArticles() {
     if (siteResolu) setSite(siteResolu);
   }, [site, sitesActifs, searchParams, preferenceSiteId]);
 
-  useEffect(() => {
-    const identifiant = window.setTimeout(() => setQ(qSaisie), DELAI_DEBOUNCE_MS);
-    return () => window.clearTimeout(identifiant);
-  }, [qSaisie]);
-
   const filtres = useMemo(
     () => ({ q: q.trim() === '' ? undefined : q.trim(), categorie, statut, tri }),
     [q, categorie, statut, tri],
@@ -121,8 +117,11 @@ export function EcranListeArticles() {
   const filtresActifs = q.trim() !== '' || filtresStructuresActifs;
 
   function effacerFiltres() {
+    // Levier de reset (arbitrage @laupernoe 26.08.2026) : `effacerFiltres` est un geste de reprise en
+    // main, pas une frappe — `q` doit refléter la case vide immédiatement, pas après le même
+    // délai qu'une recherche (voir le commentaire de `useValeurDebouncee`, `hooks/commun/`).
     setQSaisie('');
-    setQ('');
+    reinitialiserQ();
     setCategorie(undefined);
     setStatut(undefined);
   }

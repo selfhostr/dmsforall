@@ -28,7 +28,7 @@ export interface ProprietesChampAutocompletionVehicule {
   readonly valeur: string;
   readonly onValeurChange: (valeur: string) => void;
   /** Suggestions déjà résolues par l'appelant (recherche serveur, tri, limite) — ce composant ne
-   *  fait aucune requête et ne filtre rien lui-même : voir `hooks/vehicules/useValeurDebouncee`
+   *  fait aucune requête et ne filtre rien lui-même : voir `hooks/commun/useValeurDebouncee`
    *  et la couche transport pour la temporisation/l'annulation des requêtes obsolètes. */
   readonly options: readonly OptionAutocompletionVehicule[];
   readonly enChargement: boolean;

@@ -21,10 +21,10 @@ import {
   type OptionAutocompletionVehicule,
 } from '@/composants/vehicules/ChampAutocompletionVehicule';
 import { useClient } from '@/hooks/clients/useClient';
+import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { useCreerVehicule } from '@/hooks/vehicules/useCreerVehicule';
 import { useMarquesVehicule } from '@/hooks/vehicules/useMarquesVehicule';
 import { useModelesVehicule } from '@/hooks/vehicules/useModelesVehicule';
-import { useValeurDebouncee } from '@/hooks/vehicules/useValeurDebouncee';
 import { formaterDate } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
@@ -95,8 +95,8 @@ export function EcranNouveauVehicule() {
   // (`schemaCreationVehicule`), l'autocomplétion ne fait que suggérer.
   const marqueSaisie = form.watch('marque');
   const modeleSaisie = form.watch('modele');
-  const marqueTemporisee = useValeurDebouncee(marqueSaisie);
-  const rechercheModeleTemporisee = useValeurDebouncee(modeleSaisie);
+  const [marqueTemporisee] = useValeurDebouncee(marqueSaisie);
+  const [rechercheModeleTemporisee] = useValeurDebouncee(modeleSaisie);
 
   const marquesQuery = useMarquesVehicule(marqueTemporisee, {
     enabled: marqueTemporisee.trim() !== '',

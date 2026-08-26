@@ -64,6 +64,37 @@ describe('EcranSuiviVentes', () => {
     expect(screen.getByText('Leasing SA')).toBeInTheDocument();
   });
 
+  /**
+   * WCAG 4.1.2 : les onglets d'horizon ne montent jamais de `TabsPrimitive.Panel` (ils filtrent
+   * l'affichage d'une table unique, hors `Tabs`) — Base UI (`@base-ui/react/tabs`, chantier
+   * d'unification inter-écrans, 25.08.2026) calcule `aria-controls` depuis les panneaux RÉELLEMENT
+   * montés (`TabsRoot.js`, `getTabPanelIdByValue`/`registerMountedTabPanel`, source vérifiée) :
+   * sans `Panel`, l'attribut est simplement OMIS, sur les quatre onglets, dans tous leurs états.
+   */
+  it('aucun `aria-controls` cassé sur les onglets d’horizon (WCAG 4.1.2)', async () => {
+    server.use(http.get('/api/v1/ventes/suivi', () => HttpResponse.json(page([LIGNE_NOMINALE]))));
+
+    rendre();
+
+    expect(await screen.findByText('Jean Dupont')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '30 prochains jours' })).not.toHaveAttribute(
+      'aria-controls',
+    );
+    expect(screen.getByRole('tab', { name: '90 prochains jours' })).not.toHaveAttribute(
+      'aria-controls',
+    );
+
+    const utilisateur = userEvent.setup();
+    await utilisateur.click(screen.getByRole('tab', { name: '90 prochains jours' }));
+
+    expect(screen.getByRole('tab', { name: '30 prochains jours' })).not.toHaveAttribute(
+      'aria-controls',
+    );
+    expect(screen.getByRole('tab', { name: '90 prochains jours' })).not.toHaveAttribute(
+      'aria-controls',
+    );
+  });
+
   it('liste vide : formulée comme une bonne nouvelle, jamais comme un échec', async () => {
     server.use(http.get('/api/v1/ventes/suivi', () => HttpResponse.json(page([]))));
 

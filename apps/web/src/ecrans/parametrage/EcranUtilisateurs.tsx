@@ -100,15 +100,22 @@ export function EcranUtilisateurs() {
         : reinitialiserAcces;
 
   return (
-    <GabaritEcran
-      titre={t('parametrage:utilisateurs.titre')}
-      actions={
+    <GabaritEcran titre={t('parametrage:utilisateurs.titre')}>
+      {/* « Nouvel utilisateur » a QUITTÉ le slot `actions` de `GabaritEcran` (chantier
+          d'unification inter-écrans, 25.08.2026 : `actions=` pour un bouton « Nouveau X » est le
+          motif PÉRIMÉ — `GabaritEcran` le placerait seul sur sa propre rangée pleine largeur sous
+          le titre) — aligné sur `EcranListeOrdresReparation`/`EcranListeClients`/
+          `EcranListeVehicules` (référence du chantier). Cet écran n'a ni recherche ni filtre ni
+          tri (juste une table + une action) : pas de `BarreFiltres`/`SelecteurTri` pour partager
+          la rangée, le bouton reste seul, mais dans le flux du contenu — jamais dans le slot
+          d'en-tête réservé aux actions. */}
+      <div className="flex justify-end">
         <Button type="button" onClick={() => setDialogueOuvert(true)}>
           <Plus className="h-4 w-4" aria-hidden="true" />
           {t('parametrage:utilisateurs.nouveau')}
         </Button>
-      }
-    >
+      </div>
+
       {requete.isPending ? <EtatChargement lignes={6} /> : null}
 
       {requete.isError ? (

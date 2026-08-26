@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { VehiculeStockResume } from '@dfa/shared';
@@ -9,6 +9,7 @@ import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
+import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { useVehiculesStockDisponibles } from '@/hooks/ventes/dossiers/useVehiculesStockDisponibles';
 import { formaterMontant } from '@/lib/formats';
 import { cn } from '@/lib/utils';
@@ -34,12 +35,7 @@ interface Props {
 export function SelecteurVehiculeStockDossier({ valeur, onChangeValeur, libelle }: Props) {
   const { t } = useTranslation(['ventes', 'commun', 'erreurs']);
   const [qSaisie, setQSaisie] = useState('');
-  const [q, setQ] = useState('');
-
-  useEffect(() => {
-    const identifiant = window.setTimeout(() => setQ(qSaisie), DELAI_DEBOUNCE_MS);
-    return () => window.clearTimeout(identifiant);
-  }, [qSaisie]);
+  const [q] = useValeurDebouncee(qSaisie, DELAI_DEBOUNCE_MS);
 
   const requete = useVehiculesStockDisponibles(q);
   const vehicules = requete.data ?? [];

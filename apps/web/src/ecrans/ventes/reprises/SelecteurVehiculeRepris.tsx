@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { VehiculeResume } from '@dfa/shared';
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCleIdempotence } from '@/api/idempotence';
+import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { useCreerVehicule } from '@/hooks/vehicules/useCreerVehicule';
 import { useListeVehicules } from '@/hooks/vehicules/useListeVehicules';
 import { messageErreur } from '@/api/erreurs';
@@ -41,15 +42,10 @@ interface Props {
 export function SelecteurVehiculeRepris({ valeur, onChangeValeur, erreur }: Props) {
   const { t } = useTranslation(['ventes', 'commun', 'erreurs', 'vehicules', 'validation']);
   const [saisie, setSaisie] = useState('');
-  const [termeDebounce, setTermeDebounce] = useState('');
-
-  useEffect(() => {
-    const identifiant = window.setTimeout(
-      () => setTermeDebounce(saisie.trim()),
-      DELAI_ANTI_REBOND_MS,
-    );
-    return () => window.clearTimeout(identifiant);
-  }, [saisie]);
+  // `.trim()` après la temporisation — même patron que `SelecteurOrganismeVente`/
+  // `SelecteurVehiculePourDepot` (voir leur commentaire), même raison.
+  const [saisieTemporisee] = useValeurDebouncee(saisie, DELAI_ANTI_REBOND_MS);
+  const termeDebounce = saisieTemporisee.trim();
 
   const rechercheActive = termeDebounce.length > 0;
   // `enabled: rechercheActive` — pas de requête pour toute la première page au montage tant que la

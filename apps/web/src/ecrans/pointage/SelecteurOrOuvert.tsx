@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { messageErreur } from '@/api/erreurs';
@@ -10,6 +10,7 @@ import { EtatVide } from '@/composants/commun/EtatVide';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { useListeOrdresReparation } from '@/hooks/atelier/useListeOrdresReparation';
+import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { statutOrPointable } from '@/hooks/pointage/statuts-or-pointables';
 
 const DELAI_DEBOUNCE_MS = 300;
@@ -49,12 +50,7 @@ interface Props {
 export function SelecteurOrOuvert({ siteId, onChoisirOr, disabled = false }: Props) {
   const { t } = useTranslation(['pointage', 'commun']);
   const [qSaisie, setQSaisie] = useState('');
-  const [q, setQ] = useState('');
-
-  useEffect(() => {
-    const identifiant = window.setTimeout(() => setQ(qSaisie), DELAI_DEBOUNCE_MS);
-    return () => window.clearTimeout(identifiant);
-  }, [qSaisie]);
+  const [q] = useValeurDebouncee(qSaisie, DELAI_DEBOUNCE_MS);
 
   const requete = useListeOrdresReparation({ q, siteId, tri: 'ouvertLe:desc' });
   // Filtre CÔTÉ CLIENT — voir la docstring de tête, § « AUCUN filtre `statut` sur la requête ».

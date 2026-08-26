@@ -6,14 +6,12 @@ import '@/i18n';
 import { BoutonImprimerOr } from './BoutonImprimerOr';
 
 /**
- * Issue #155 (rapport terrain, reproduit en navigateur réel) : deux tentatives fetch+blob
- * (URL d'objet, puis URL de données) laissaient l'onglet ouvert bloqué — la première parce
- * qu'une URL d'objet n'est résoluble que dans le contexte de navigation qui l'a créée (Safari), la
- * seconde parce que Chrome/Firefox refusent toute navigation de premier niveau vers une URL
- * `data:` (depuis Chrome 60). Repris sur le motif éprouvé de `EcranFicheFacture.tsx` : un lien
- * `<a>` SIMPLE vers l'URL réelle du PDF, target="_blank" — le navigateur gère l'ouverture et
- * l'authentification (cookie de session) lui-même, sans code JS entre les deux. Ce test vérifie
- * l'attribut `href` réellement posé, pas seulement qu'un clic ne lève pas d'exception.
+ * `BoutonImprimerOr` n'est plus qu'un appelant de `BoutonImprimerDocument`
+ * (`composants/motifs/`, chantier d'unification inter-écrans, 25.08.2026) — le raisonnement
+ * complet (issue #155, pourquoi un `<a href target="_blank">` plutôt qu'un fetch+blob) est
+ * couvert par `BoutonImprimerDocument.spec.tsx`, pas répété ici. Ce fichier prouve UNIQUEMENT la
+ * partie propre à l'OR : `orId` produit bien la bonne URL (`GET /ordres-reparation/{orId}/pdf`)
+ * et le bon libellé traduit — la composition, pas le mécanisme sous-jacent.
  */
 describe('BoutonImprimerOr', () => {
   it('propose un lien nommé « Imprimer l’OR », qui pointe directement vers le PDF réel (GET /ordres-reparation/{orId}/pdf), ouvert dans un nouvel onglet', () => {

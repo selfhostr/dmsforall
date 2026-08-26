@@ -18,10 +18,10 @@ const cleMarquesVehicule = (recherche: string) =>
 /**
  * `GET /referentiels/vehicules/marques` — suggestions pour l'autocomplétion de la marque
  * (`ChampAutocompletionVehicule`, composants/vehicules/). `recherche` est déjà temporisée par
- * l'appelant (`useValeurDebouncee`) : ce hook ne fait qu'émettre la requête pour la valeur reçue,
- * TanStack Query annule lui-même la requête en vol dès que `recherche` change à nouveau (signal
- * transmis à `queryFn`, voir `referentiel-vehicules.api.ts`) — pas de requête obsolète qui
- * écraserait une réponse plus récente.
+ * l'appelant (`useValeurDebouncee`, `hooks/commun/`) : ce hook ne fait qu'émettre la requête pour
+ * la valeur reçue, TanStack Query annule lui-même la requête en vol dès que `recherche` change à
+ * nouveau (signal transmis à `queryFn`, voir `referentiel-vehicules.api.ts`) — pas de requête
+ * obsolète qui écraserait une réponse plus récente.
  */
 export function useMarquesVehicule(
   recherche: string,

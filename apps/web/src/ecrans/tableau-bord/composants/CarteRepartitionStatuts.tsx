@@ -50,7 +50,14 @@ export function CarteRepartitionStatuts({ resultat }: Props) {
         ) : (
           (() => {
             const lignes = (data as ReponseActiviteTableauBord).ordresReparationParStatut;
-            const maxParStatut = Math.max(1, ...lignes.map((ligne) => ligne.nombre));
+            // Dénominateur = somme de TOUS les statuts, pas le plus chargé d'entre eux — sinon le
+            // statut majoritaire affiche toujours 100 % quelle que soit la réalité (bug mesuré :
+            // `Math.max(...valeurs)` au lieu d'un total). `Math.max(1, total)` protège seulement le
+            // cas total nul : la somme de comptages non-négatifs ne peut être nulle que si CHAQUE
+            // statut l'est déjà, donc `valeur / 1 = 0` pour tous — aucune barre à 100 %, aucun
+            // `NaN` (voir CarteRepartitionStatuts.spec.tsx, cas « total nul »).
+            const total = lignes.reduce((somme, ligne) => somme + ligne.nombre, 0);
+            const totalPourJauge = Math.max(1, total);
             return lignes.map((ligne) => {
               const libelleStatut = t(
                 `or:statuts.${ligne.statut === 'en_cours' ? 'enCours' : ligne.statut}`,
@@ -64,7 +71,7 @@ export function CarteRepartitionStatuts({ resultat }: Props) {
                     className="flex-1"
                     value={ligne.nombre}
                     min={0}
-                    max={maxParStatut}
+                    max={totalPourJauge}
                     aria-label={libelleStatut}
                     getAriaValueText={() =>
                       t('tableauBord:activite.repartitionStatuts.valeurAccessible', {

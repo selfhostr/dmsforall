@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { keepPreviousData, useQuery, type UseQueryResult } from '@tanstack/react-query';
 
 import type {
@@ -7,6 +7,7 @@ import type {
   StatutSuiviStockArticle,
 } from '@dfa/shared';
 
+import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { useDoitReessayer, useListeCurseur } from '@/hooks/pagination-curseur';
 
 import { clesPieces } from './cles';
@@ -123,13 +124,10 @@ export function useRechercheComptoirPieces(
   siteId: string | undefined,
 ): EtatRechercheComptoirPieces {
   const [saisie, setSaisie] = useState('');
-  const [termeDebounce, setTermeDebounce] = useState('');
-
-  useEffect(() => {
-    const termeCible = saisie.trim();
-    const identifiant = window.setTimeout(() => setTermeDebounce(termeCible), DELAI_ANTI_REBOND_MS);
-    return () => window.clearTimeout(identifiant);
-  }, [saisie]);
+  // `.trim()` après la temporisation — même doctrine que `useRechercheComptoir` (voir son
+  // commentaire) : le réarmement suit la saisie brute, la réduction est un simple calcul pur.
+  const [saisieTemporisee] = useValeurDebouncee(saisie, DELAI_ANTI_REBOND_MS);
+  const termeDebounce = saisieTemporisee.trim();
 
   const enParcours = termeDebounce === '';
   const reessayer = useDoitReessayer();

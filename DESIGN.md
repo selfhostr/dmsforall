@@ -62,6 +62,26 @@ Le clair actuel est donc plus strict que Radix. Il reste tel quel. Radix sert **
 sombre et aux gris — un futur agent qui voudrait « harmoniser » en migrant le clair sur Radix
 romprait ces quatre garanties : ne le fais pas sans re-mesurer les quatre paires ci-dessus.
 
+### Trois familles nommées
+
+Le produit a trois familles de couleur, chacune avec un rôle exclusif — aucune quatrième teinte
+n'existe ni ne doit être ajoutée, le travail restant est d'employer ces trois-là partout où elles
+manquent, pas d'en inventer une nouvelle :
+
+- **Sapin** — la marque (`--marque`/`--marque-fort`/`--marque-doux`, valeurs dans les tables
+  « Jetons clairs »/« Jetons sombres » ci-dessous). `#083f45` en clair, `#4ccce6` en sombre : même
+  jeton, valeur adaptée par thème (voir « La marque en sombre casse une doctrine » plus bas). Rôle :
+  bouton principal, lien, élément de menu actif, anneau de focus. Jamais sur un badge de statut ni
+  pour distinguer un état — Sapin dit « ceci est une action ou l'identité du produit », jamais
+  « voici où en est ce dossier ».
+- **Ardoise** — les neutres (`--foreground`, `--border`, `--input`, `--muted`/`--secondary`/
+  `--accent`, `--card`/`--popover`), gris shadcn en clair, Radix `slate` en sombre (valeurs dans les
+  mêmes tables). Rôle : texte, structure (bordure de contrôle, filet de tableau), surfaces neutres
+  (carte, popover, survol). Jamais pour porter un sens : une carte, une bordure ou un texte en
+  Ardoise ne dit ni « urgent » ni « terminé » — c'est le rôle des six feux d'atelier ci-dessous.
+- **Six feux d'atelier** — les six `--statut-*`/`--statut-*-fond` (neutre, info, attention, succès,
+  danger, terminal). Palette de sévérité générale, détaillée dans la section dédiée plus bas.
+
 ### Jetons clairs
 
 Seul `--background` change dans ce lot ; tout le reste de la colonne « clair » est identique à avant
@@ -173,9 +193,10 @@ jamais du fond de page — la même paire vaut dans les deux thèmes, vérifiée
 
 ### La marque en sombre casse une doctrine — c'est un arbitrage écrit, pas un oubli
 
-Le produit applique la règle « une couleur ne dit jamais deux choses » : la teinte de marque doit
-rester à plus de 30° d'écart de chaque statut d'OR sur le cercle chromatique, pour qu'un badge de
-statut et un bouton de marque ne soient jamais confondables à l'œil. En clair, cette règle tient
+Le produit applique la règle « une couleur ne dit jamais deux choses » : la teinte de marque (Sapin)
+doit rester à plus de 30° d'écart de chaque jeton de sévérité (`--statut-*`, les « six feux
+d'atelier ») sur le cercle chromatique, pour qu'un badge de statut et un bouton de marque ne soient
+jamais confondables à l'œil. En clair, cette règle tient
 (écarts de 31° à 174°). **En sombre, elle ne tient plus complètement** : la seule famille
 sarcelle/cyan qui offre un contraste texte suffisant sur fond sombre (`cyan-11`, 190°) n'est qu'à
 20° de `--statut-info` (210°, « en cours »). L'alternative testée (`teal-11`, 172°) ne fait que
@@ -191,14 +212,45 @@ transforme en **contrainte de conformité** : un badge qui s'appuierait sur la s
 distinguer « en cours » de la marque ne serait plus seulement un défaut d'ergonomie, il romprait la
 condition qui rend le choix de la marque sombre défendable.
 
-Statuts d'OR — six statuts, deux thèmes
------------------------------------------
+Six feux d'atelier — palette de sévérité, deux thèmes
+---------------------------------------------------------
 
-Six statuts (Planifié, Ouvert/En cours, Contrôlé, Terminé, Facturé, Clôturé), chacun avec un jeton
-texte (`--statut-*`, contour de badge) et un jeton fond (`--statut-*-fond`, badge « plein »). Réservés
-**exclusivement** au statut d'un OR ou d'une ligne d'OR — jamais à une autre dimension (payeur,
-origine, urgence…), et jamais la couleur de marque ni la famille `--avertissement` sur un badge de
-statut.
+Six jetons de sévérité, chacun avec une teinte texte (`--statut-*`, contour de badge) et une teinte
+fond (`--statut-*-fond`, badge « plein ») : neutre, info, attention, succès, danger, terminal.
+Nommés à l'origine pour les six statuts d'un OR (Planifié, Ouvert/En cours, Contrôlé, Terminé,
+Facturé, Clôturé) — c'est encore leur usage le plus visible, mais ce n'est plus le seul. Mesuré
+dans le code : 54 fichiers les emploient en dehors du badge de statut d'OR lui-même, pour la
+disponibilité d'une pièce, l'échéance d'un rendez-vous ou d'une relance, le statut d'un dossier de
+vente, d'une reprise, d'un financement, d'une commande fournisseur, d'un règlement, d'un article, ou
+la gravité d'un encart d'avertissement bloquant. Le texte normatif suit désormais cet usage réel.
+
+Ces six jetons forment une **palette de sévérité générale**, pas un vocabulaire réservé à l'OR :
+
+| Jeton       | Lecture                                   |
+| ----------- | ----------------------------------------- |
+| `neutre`    | état par défaut, sans urgence ni jugement |
+| `info`      | en cours, transitoire, ne bloque rien     |
+| `attention` | à traiter, en attente, demande une action |
+| `succes`    | terminé, validé, disponible               |
+| `danger`    | bloquant, en retard, refusé               |
+| `terminal`  | clos, définitif, sans suite possible      |
+
+N'importe quel écran peut réutiliser ces six teintes pour n'importe quelle dimension qui se lit
+comme un degré de sévérité — statut d'une entité, urgence d'une échéance, disponibilité d'un stock,
+gravité d'un message d'erreur.
+
+**Ce qui reste interdit, sans exception :**
+
+- Aucun jeton `--urgence-*` (ni aucune autre septième famille) : décision tranchée, l'urgence se lit
+  avec ces six teintes, jamais avec une famille séparée.
+- La couleur de marque (`--marque`/Sapin) et la famille `--avertissement` ne se posent jamais sur
+  ces six jetons, et l'inverse n'est pas permis non plus — deux familles, deux rôles, jamais
+  mélangées sur un même badge (voir « La marque en sombre casse une doctrine » ci-dessus).
+- **Forme + icône + mot, toujours, sur tout badge ou pastille qui porte un de ces jetons — jamais la
+  couleur seule.** Élargir le domaine d'emploi de la couleur renforce cette règle, il ne l'assouplit
+  pas : le même bleu peut désormais signifier « OR en cours », « rendez-vous confirmé » ou
+  « facture au statut info » selon l'écran. Seule la forme, l'icône et le mot lèvent l'ambiguïté —
+  pour un utilisateur daltonien comme pour quiconque regarde l'écran à la volée.
 
 Le clair est inchangé. Le sombre suit le même modèle produit, retourné : en clair, fond pâle + texte
 foncé ; en sombre, fond profond + texte clair — exactement le modèle Radix (étape 3 = fond de
@@ -210,7 +262,7 @@ valeurs ci-dessous sont les ratios RÉELS calculés sur les triplets HSL stocké
 (arrondis à l'entier comme toute déclaration du fichier), pas des valeurs à hex exact non arrondi —
 c'est exactement ce que `contraste-jetons.spec.ts` vérifie.
 
-| Statut d'OR               | Clair : texte/fond | Clair : texte/page | Sombre : hex texte + fond | Sombre : texte/fond | Sombre : texte/page |
+| Jeton (exemple OR)        | Clair : texte/fond | Clair : texte/page | Sombre : hex texte + fond | Sombre : texte/fond | Sombre : texte/page |
 | ------------------------- | ------------------ | ------------------ | ------------------------- | ------------------- | ------------------- |
 | Planifié (neutre)         | 4.86:1             | 4.61:1             | `#b0b4ba` sur `#212225`   | 7.55:1              | 9.06:1              |
 | Ouvert / En cours (info)  | 5.23:1             | 5.33:1             | `#70b8ff` sur `#0d2847`   | 7.17:1              | 8.97:1              |
@@ -225,13 +277,15 @@ basse, « planifié » à 4.61:1, ne garde que 2 % de marge au-dessus du seuil :
 de `--background`, même léger, devrait revérifier cette ligne précisément. En sombre, la marge reste
 large — la plus basse (« en cours », 7.17:1 sur son propre fond) reste 59 % au-dessus du seuil.
 
-**Réserve mesurée, à ne jamais passer sous silence : « planifié » et « clôturé » se rapprochent en
-sombre.** Ce sont les deux seuls statuts sans teinte saturée (achromatiques). L'écart entre leurs
-deux textes vaut 1.81:1 en sombre contre un écart plus large en clair ; l'écart entre leurs deux
-fonds vaut 1.37:1. Conséquence directe de l'arbitrage 1 ci-dessus : la distinction planifié/clôturé
-repose **encore plus** qu'en clair sur la forme, l'icône et le mot du badge — jamais uniquement sur
-la teinte de gris. Un futur badge qui afficherait ces deux statuts sans icône distincte serait
-illisible en sombre, même si le contraste texte mesure large.
+**Réserve mesurée, à ne jamais passer sous silence : `neutre` et `terminal` se rapprochent en
+sombre.** Ce sont les deux seuls jetons sans teinte saturée (achromatiques) — vrai partout où ils
+sont employés, pas seulement pour « planifié »/« clôturé » sur un OR. L'écart entre leurs deux
+textes vaut 1.81:1 en sombre contre un écart plus large en clair ; l'écart entre leurs deux fonds
+vaut 1.37:1. Conséquence directe de l'arbitrage décrit dans « La marque en sombre casse une
+doctrine » ci-dessus : la distinction `neutre`/`terminal` repose **encore plus** qu'en clair sur la
+forme, l'icône et le mot du badge — jamais uniquement sur la teinte de gris. Un badge qui
+afficherait ces deux jetons sans icône distincte serait illisible en sombre, même si le contraste
+texte mesure large.
 
 Typographie
 ------------

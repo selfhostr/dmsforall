@@ -117,6 +117,7 @@
       "titre": "Die Sätze zum Nachfassen können nicht angezeigt werden"
     },
     "vide": "Kein Satz ist überfällig.",
+    "videFiltre": "Kein Satz entspricht diesem Standort.",
     "filtreSite": "Standort",
     "filtreSiteTous": "Alle Standorte",
     "colonnes": {

@@ -4,8 +4,10 @@ import { useSearchParams } from 'react-router';
 import type { RoleUtilisateur } from '@dfa/shared';
 
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
+import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { useSession } from '@/hooks/useSession';
 
+import { BandeauPrioriteTableauBord } from './composants/BandeauPrioriteTableauBord';
 import { SelecteurSiteTableauBord } from './SelecteurSiteTableauBord';
 import { TableauBordAdmin } from './TableauBordAdmin';
 import { TableauBordChefAtelier } from './TableauBordChefAtelier';
@@ -45,11 +47,25 @@ export function EcranTableauBord() {
   const { data: session } = useSession();
   const [searchParams, setSearchParams] = useSearchParams();
   const siteId = searchParams.get('site') ?? undefined;
+  const { definirPreferenceSite } = useSiteCourant();
 
+  // DÉFAUT MESURÉ CORRIGÉ (lot « bandeau haut », 26.08.2026) : avant ce lot, AUCUN choix fait ici
+  // — site précis ou « Tous les sites » — ne synchronisait `ContexteSiteCourant`, contrairement à
+  // `SelecteurSiteEntete.tsx` (le sélecteur global du chrome), seul autre point d'écriture de la
+  // préférence. Conséquence observée : choisir un site B ici pendant que la préférence globale
+  // valait encore A, puis revenir à « Tous les sites » (qui retire `?site=` de l'URL), faisait
+  // retomber le CHROME (et donc la navigation suivante d'un clic de menu) sur l'ANCIEN site A —
+  // jamais B, jamais signalé. Corrigé en synchronisant la préférence dès qu'un site PRÉCIS est
+  // choisi ICI, exactement comme le fait déjà le sélecteur global. « Tous les sites » reste
+  // volontairement NON persisté (doctrine inchangée de `ContexteSiteCourant.tsx`) : un survol
+  // furtif sur l'agrégat ne doit pas écraser le dernier site réel de travail, dont dépendent des
+  // écrans qui EXIGENT un site (pièces, ventes) — seul un choix EXPLICITE d'un site précis doit
+  // devenir le nouveau défaut.
   function changerSite(nouveauSiteId: string | undefined) {
     const parametres = new URLSearchParams(searchParams);
     if (nouveauSiteId) {
       parametres.set('site', nouveauSiteId);
+      definirPreferenceSite(nouveauSiteId);
     } else {
       parametres.delete('site');
     }
@@ -74,6 +90,14 @@ export function EcranTableauBord() {
         siteId={siteId}
         onChange={changerSite}
       />
+
+      {/* Bandeau de priorité (lot « bandeau haut », 26.08.2026) — PLEINE LARGEUR, commun à tous les
+          rôles, posé AVANT le contenu par rôle ci-dessous (donc avant lui à la tabulation). Absent
+          de lui-même (`null`) tant qu'aucun OR en retard ni aucune facture impayée n'est confirmé
+          pour le rôle courant — voir la doc de tête de `BandeauPrioriteTableauBord.tsx` pour le
+          détail du choix des deux compteurs (zéro nouvel appel réseau : réutilise à l'identique des
+          requêtes déjà déclenchées plus bas dans l'arbre par rôle). */}
+      <BandeauPrioriteTableauBord role={role} site={siteId} />
 
       {(() => {
         switch (role) {

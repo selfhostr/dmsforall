@@ -1,5 +1,5 @@
 import { Plus } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router';
 
@@ -32,6 +32,7 @@ import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useListeClients, type TriClients } from '@/hooks/clients/useListeClients';
+import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { formaterDate } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
@@ -65,18 +66,16 @@ export function EcranListeClients() {
   const site = searchParams.get('site') ?? undefined;
 
   const [qSaisi, setQSaisi] = useState('');
-  const [qEffectif, setQEffectif] = useState('');
+  // Debounce de la recherche libre : `BarreFiltres` est un composant purement contrôlé (aucun
+  // debounce interne, par contrat), la responsabilité revient donc à l'écran (F1-R2). `.trim()`
+  // après la temporisation — même valeur finale que l'ancien `setQEffectif(qSaisi.trim())` évalué
+  // à l'échéance du minuteur, réarmé sur la saisie BRUTE comme avant.
+  const [qSaisiTemporise] = useValeurDebouncee(qSaisi, 300);
+  const qEffectif = qSaisiTemporise.trim();
   const [type, setType] = useState<TypeClient | undefined>(undefined);
   const [inclureInactifs, setInclureInactifs] = useState(false);
   const [tri, setTri] = useState<TriClients>('nom:asc');
   const [sheetOuvert, setSheetOuvert] = useState(false);
-
-  // Debounce de la recherche libre : `BarreFiltres` est un composant purement contrôlé (aucun
-  // debounce interne, par contrat), la responsabilité revient donc à l'écran (F1-R2).
-  useEffect(() => {
-    const identifiant = setTimeout(() => setQEffectif(qSaisi.trim()), 300);
-    return () => clearTimeout(identifiant);
-  }, [qSaisi]);
 
   const requete = useListeClients({
     q: qEffectif || undefined,

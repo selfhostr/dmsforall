@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
+import { BarreFiltres } from '@/composants/comptoir/BarreFiltres';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
@@ -190,6 +191,15 @@ export function EcranHangarPneus() {
 
   const [filtreSaison, setFiltreSaison] = useState<SaisonPneu | 'toutes'>('toutes');
   const [filtreRepere, setFiltreRepere] = useState('');
+  // Onglet « À relancer » — DÉFAUT CORRIGÉ (chantier d'unification inter-écrans, 25.08.2026) :
+  // cet onglet réimplémentait son propre sélecteur de site à la main, hors de `BarreFiltres`
+  // (`composants/comptoir/`), motif utilisé partout ailleurs dans le produit — régression réelle :
+  // aucun bouton « Effacer les filtres », contrairement à tous les autres écrans à liste. `q` de
+  // `BarreFiltres` porte ici le MÊME filtre repère (`codeCase`, local, instantané) que l'onglet
+  // « Actifs » ci-dessus (voir `filtreRepere`/`depotsFiltres`) — état SÉPARÉ, volontairement : les
+  // deux onglets filtrent deux listes différentes (`hangar.depots`/`aRelancer.depots`), un seul
+  // état partagé les aurait fait se contredire en changeant d'onglet.
+  const [filtreRepereARelancer, setFiltreRepereARelancer] = useState('');
   const [depotChangementSaison, setDepotChangementSaison] = useState<ReponseDepotPneus | null>(
     null,
   );
@@ -215,6 +225,13 @@ export function EcranHangarPneus() {
       ? hangar.depots
       : hangar.depots.filter((depot) =>
           (depot.codeCase ?? '').toLowerCase().includes(filtreRepere.trim().toLowerCase()),
+        );
+
+  const depotsARelancerFiltres =
+    filtreRepereARelancer.trim() === ''
+      ? aRelancer.depots
+      : aRelancer.depots.filter((depot) =>
+          (depot.codeCase ?? '').toLowerCase().includes(filtreRepereARelancer.trim().toLowerCase()),
         );
 
   function changerParametre(cle: string, valeur: string | undefined) {
@@ -575,29 +592,45 @@ export function EcranHangarPneus() {
         <TabsContent value="a_relancer" className="flex flex-col gap-6">
           <p className="texte-corps text-muted-foreground">{t('pneus:aRelancer.description')}</p>
 
-          {sites.length > 0 ? (
-            <div className="flex max-w-xs flex-col gap-1.5">
-              <Label htmlFor="pneus-a-relancer-site">{t('pneus:aRelancer.filtreSite')}</Label>
-              <Select
-                value={site ?? 'tous'}
-                onValueChange={(valeur) =>
-                  changerParametre('site', valeur === 'tous' ? undefined : valeur)
-                }
-              >
-                <SelectTrigger id="pneus-a-relancer-site">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="tous">{t('pneus:aRelancer.filtreSiteTous')}</SelectItem>
-                  {sites.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.nom}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : null}
+          {/* `BarreFiltres` (`composants/comptoir/`) — même motif que partout ailleurs dans le
+              produit, voir la note au-dessus de `filtreRepereARelancer`. `q` porte le filtre
+              repère local (même mécanisme que `filtreRepere` sur l'onglet « Actifs », voir
+              `depotsARelancerFiltres`) ; le sélecteur de site rejoint les contrôles de domaine via
+              `children`, `sites.length > 0` gardé à l'identique (aucun sélecteur à afficher pour
+              un tenant mono-site). `site` n'est PAS remis à zéro par « Effacer les filtres » —
+              même doctrine que les autres écrans à liste (`EcranListeVehiculesStock` notamment) :
+              le site reste un réglage de poste, pas un filtre de recherche. */}
+          <BarreFiltres
+            q={filtreRepereARelancer}
+            onChangeQ={setFiltreRepereARelancer}
+            placeholderRecherche={t('pneus:hangar.filtres.reperePlaceholder')}
+            filtresActifs={filtreRepereARelancer.trim() !== ''}
+            onEffacerFiltres={() => setFiltreRepereARelancer('')}
+          >
+            {sites.length > 0 ? (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="pneus-a-relancer-site">{t('pneus:aRelancer.filtreSite')}</Label>
+                <Select
+                  value={site ?? 'tous'}
+                  onValueChange={(valeur) =>
+                    changerParametre('site', valeur === 'tous' ? undefined : valeur)
+                  }
+                >
+                  <SelectTrigger id="pneus-a-relancer-site" className="w-44">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tous">{t('pneus:aRelancer.filtreSiteTous')}</SelectItem>
+                    {sites.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.nom}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+          </BarreFiltres>
 
           {aRelancer.isError ? (
             <EtatErreur
@@ -609,14 +642,22 @@ export function EcranHangarPneus() {
             <>
               <TableComptoir
                 colonnes={colonnesARelancer}
-                lignes={aRelancer.depots}
+                lignes={depotsARelancerFiltres}
                 cleLigne={(depot) => depot.id}
                 enChargement={aRelancer.isPending}
                 contenuVide={
-                  <EtatVidePremierUsage
-                    titre={t('pneus:aRelancer.titre')}
-                    description={t('pneus:aRelancer.vide')}
-                  />
+                  filtreRepereARelancer.trim() !== '' ? (
+                    <EtatVideFiltre
+                      titre={t('pneus:aRelancer.titre')}
+                      description={t('pneus:aRelancer.videFiltre')}
+                      onEffacerFiltres={() => setFiltreRepereARelancer('')}
+                    />
+                  ) : (
+                    <EtatVidePremierUsage
+                      titre={t('pneus:aRelancer.titre')}
+                      description={t('pneus:aRelancer.vide')}
+                    />
+                  )
                 }
               />
 

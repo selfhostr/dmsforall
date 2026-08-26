@@ -117,6 +117,7 @@
       "titre": "Impossibile visualizzare i set da richiamare"
     },
     "vide": "Nessun set è in ritardo di movimento.",
+    "videFiltre": "Nessun set corrisponde a questa ubicazione.",
     "filtreSite": "Sede",
     "filtreSiteTous": "Tutte le sedi",
     "colonnes": {

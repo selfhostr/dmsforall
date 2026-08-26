@@ -1,4 +1,4 @@
-import * as TabsPrimitive from '@radix-ui/react-tabs';
+import { Tabs as TabsPrimitive } from '@base-ui/react/tabs';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -151,11 +151,17 @@ export function EcranSuiviVentes() {
           classes que `BasculeVueStock` (issue #84, déjà approuvée par @laupernoe pour EXACTEMENT ce
           distinguo) — fond plein compact plutôt que soulignement, alignée sur le gabarit de poids
           visuel de la barre de filtres (`BarreFiltres`) plutôt que sur la navigation de premier
-          niveau. Rôles ARIA (`tablist`/`tab`) et clavier inchangés : `@radix-ui/react-tabs`
-          directement, même contrat de test (`getByRole('tab', …)`). */}
+          niveau. Rôles ARIA (`tablist`/`tab`) et clavier inchangés, même contrat de test
+          (`getByRole('tab', …)`) — `@base-ui/react/tabs` directement (chantier d'unification
+          inter-écrans, 25.08.2026, même motif que `BasculeVueStock`/`EcranListeFactures.tsx` :
+          Tabs n'est pas un composant à portail, la frontière Radix/Base UI de CONTRIBUTING.md ne s'y
+          applique pas ; ces onglets FILTRENT la même table, aucun `TabsPrimitive.Panel` n'est
+          jamais rendu, donc Base UI omet `aria-controls` — WCAG 4.1.2, voir `BasculeVueStock.tsx`
+          pour le détail vérifié dans le code source, et `EcranSuiviVentes.spec.tsx` pour la preuve
+          ici). */}
       <TabsPrimitive.Root value={horizon} onValueChange={(valeur) => setHorizon(valeur as Horizon)}>
         {/* DESIGN.md « bordure structurelle uniquement » — bordure CONSERVÉE : elle dessine le
-            contour d'un CONTRÔLE (`role="tablist"` Radix, un segmented control), pas d'un groupe
+            contour d'un CONTRÔLE (`role="tablist"`, un segmented control), pas d'un groupe
             de contenu. C'est le cas explicitement autorisé par la règle (« contour d'un contrôle
             de saisie ») : sans elle, les trois horizons flotteraient au-dessus du fond sans
             frontière commune et cesseraient de se lire comme un seul sélecteur. */}
@@ -164,18 +170,18 @@ export function EcranSuiviVentes() {
           className="inline-flex items-stretch gap-1 rounded-md border bg-muted/40 p-1"
         >
           {OPTIONS_HORIZON.map((valeur) => (
-            <TabsPrimitive.Trigger
+            <TabsPrimitive.Tab
               key={valeur}
               value={valeur}
               className={cn(
                 'flex h-9 items-center whitespace-nowrap rounded-sm px-3 texte-corps font-medium transition-colors',
                 'anneau-focus',
                 'text-muted-foreground hover:text-foreground',
-                'data-[state=active]:bg-background data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-sm',
+                'data-active:bg-background data-active:font-semibold data-active:text-foreground data-active:shadow-sm',
               )}
             >
               {t(`ventes:suivi.filtres.horizon.${valeur}`)}
-            </TabsPrimitive.Trigger>
+            </TabsPrimitive.Tab>
           ))}
         </TabsPrimitive.List>
       </TabsPrimitive.Root>

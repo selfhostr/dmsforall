@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
+import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { listerVehicules } from '@/hooks/vehicules/vehicules.api';
 import { chemins } from '@/routes/chemins';
 
@@ -35,12 +36,7 @@ interface Props {
 export function SelecteurVehiculeExistant({ onChoisir }: Props) {
   const { t } = useTranslation(['ventes', 'commun']);
   const [qSaisie, setQSaisie] = useState('');
-  const [q, setQ] = useState('');
-
-  useEffect(() => {
-    const identifiant = window.setTimeout(() => setQ(qSaisie), DELAI_DEBOUNCE_MS);
-    return () => window.clearTimeout(identifiant);
-  }, [qSaisie]);
+  const [q] = useValeurDebouncee(qSaisie, DELAI_DEBOUNCE_MS);
 
   const requete = useQuery({
     queryKey: ['ventes', 'stock', 'rechercheVehiculeExistant', q],

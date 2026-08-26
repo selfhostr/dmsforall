@@ -169,6 +169,15 @@
       "lien": "Zu meinen Dossiers"
     }
   },
+  "bandeauPriorite": {
+    "titre": "Heute zu erledigen",
+    "orEnRetard": {
+      "libelle": "{count, plural, one {# überfälliger Reparaturauftrag} other {# überfällige Reparaturaufträge}}"
+    },
+    "facturesImpayees": {
+      "libelle": "{montant} an unbezahlten Rechnungen"
+    }
+  },
   "receptionnaire": {
     "rendezVousJour": {
       "titre": "Heutige Termine",

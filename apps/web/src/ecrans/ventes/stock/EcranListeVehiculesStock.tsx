@@ -296,15 +296,19 @@ export function EcranListeVehiculesStock() {
   // états (même doctrine que `EcranSuiviVentes` pour ses onglets d'horizon) — le bouton ne dépend
   // pas des données de la requête, aucune raison de le faire apparaître/disparaître au chargement.
   // `undefined` (jamais un fragment vide) quand aucun bouton n'est proposé : un fragment vide
-  // resterait un `actions` « vrai » pour `GabaritEcran`, qui rendrait alors une rangée d'en-tête
-  // sans rien dedans — exactement la règle anti-trou de ce gabarit (voir son en-tête).
+  // rendrait quand même un élément dans la rangée ci-dessous — React n'affiche rien pour un enfant
+  // `undefined`, contrairement à un fragment vide qui laisserait un espace `gap` fantôme.
   //
-  // `BasculeAffichageStock` (Liste/Plan) et `BasculeVueStock` (Vendeur/Client) ont QUITTÉ ce slot
-  // (correctif « mise en page ventes », 19.08.2026 : « deux petits contrôles à droite créent un
-  // grand bandeau blanc sur toute la largeur restante » — cette fiche n'a pas de titre visible,
-  // « Véhicules en parc » doublonnant l'onglet actif, donc `actions` seul occupait toute la
-  // rangée). Rejointes à la barre de filtres, où elles partagent la largeur avec les filtres et le
-  // champ de recherche plutôt que de rester seules sur leur rangée — voir plus bas.
+  // `BasculeAffichageStock` (Liste/Plan), `BasculeVueStock` (Vendeur/Client) ET, depuis le chantier
+  // d'unification inter-écrans du 25.08.2026, ce bouton lui-même ont QUITTÉ le slot `actions` de
+  // `GabaritEcran` (correctif « mise en page ventes », 19.08.2026, pour les deux bascules : « deux
+  // petits contrôles à droite créent un grand bandeau blanc sur toute la largeur restante » — cette
+  // fiche n'a pas de titre visible, « Véhicules en parc » doublonnant l'onglet actif, donc `actions`
+  // seul occupait toute la rangée ; `actions=` pour un bouton « Nouveau X » est par ailleurs
+  // lui-même le motif PÉRIMÉ, voir `EcranListeOrdresReparation`/`EcranListeClients`/
+  // `EcranListeVehicules`). Les trois contrôles rejoignent la barre de filtres, où ils partagent la
+  // largeur avec les filtres et le champ de recherche plutôt que de rester seuls sur leur rangée —
+  // voir plus bas.
   const boutonMettreEnStock =
     peutEcrireVehiculeStock(role) && vue === 'vendeur' ? (
       <Button onClick={() => navigate(chemins.ventes.stock.nouveau(site))}>
@@ -346,26 +350,17 @@ export function EcranListeVehiculesStock() {
     );
   }
 
-  if (isPending) {
-    return (
-      <GabaritEcran titre={t('ventes:stock.liste.titre')} actions={boutonMettreEnStock}>
-        <EtatChargement lignes={6} />
-      </GabaritEcran>
-    );
-  }
-
-  if (isError) {
-    return (
-      <GabaritEcran titre={t('ventes:stock.liste.titre')} actions={boutonMettreEnStock}>
-        <EtatErreur
-          titre={t('ventes:stock.liste.erreur.titre')}
-          description={messageErreur(error, t)}
-          onReessayer={() => void refetch()}
-        />
-      </GabaritEcran>
-    );
-  }
-
+  // « Mettre en stock » quitte le slot `actions` de `GabaritEcran` (chantier d'unification
+  // inter-écrans, 25.08.2026 : `actions=` pour un bouton « Nouveau X » est le motif PÉRIMÉ, aligné
+  // sur `EcranListeOrdresReparation`/`EcranListeClients`/`EcranListeVehicules`). Conséquence directe
+  // du commentaire ci-dessus (« Construite AVANT les retours anticipés ... pour que l'en-tête garde
+  // EXACTEMENT la même composition entre les trois états ») : les trois retours anticipés séparés
+  // (chargement/erreur/contenu), chacun avec son propre `<GabaritEcran actions={...}>`, sont donc
+  // remplacés par UN SEUL retour — même patron que `EcranSuiviVentes` pour ses onglets d'horizon
+  // (« les onglets sont rendus INCONDITIONNELLEMENT, AVANT tout retour anticipé ») : la rangée
+  // filtres + bascules + bouton ne dépend d'aucune donnée de la requête, elle ne doit plus
+  // apparaître/disparaître selon `isPending`/`isError`. Seul le contenu SOUS cette rangée
+  // (chargement / erreur / plan / table) varie encore selon l'état de la requête.
   return (
     // Titre MASQUÉ automatiquement — `ventes:stock.liste.titre` vaut désormais littéralement
     // « Véhicules en parc », IDENTIQUE à l'onglet actif « Véhicules en parc » (`navigation-modele.ts`,
@@ -383,7 +378,7 @@ export function EcranListeVehiculesStock() {
     // posées à côté de `BarreFiltres`, qui elle non plus ne dépend pas du mode. Le contenu commence
     // directement par cette rangée, remonté d'une rangée entière (retour @laupernoe du 17.08.2026,
     // « tu peux mettre plus haut le truc »).
-    <GabaritEcran titre={t('ventes:stock.liste.titre')} actions={boutonMettreEnStock}>
+    <GabaritEcran titre={t('ventes:stock.liste.titre')}>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <BarreFiltres
           q={qSaisie}
@@ -479,9 +474,19 @@ export function EcranListeVehiculesStock() {
           <BasculeAffichageStock affichage={affichage} onChangeAffichage={definirAffichage} />
           <BasculeVueStock vue={vue} onChangeVue={definirVue} />
         </div>
+
+        {boutonMettreEnStock}
       </div>
 
-      {affichage === 'plan' ? (
+      {isPending ? (
+        <EtatChargement lignes={6} />
+      ) : isError ? (
+        <EtatErreur
+          titre={t('ventes:stock.liste.erreur.titre')}
+          description={messageErreur(error, t)}
+          onReessayer={() => void refetch()}
+        />
+      ) : affichage === 'plan' ? (
         // Vue Plan (issue #142) : pas de tri ni de pagination manuelle — le regroupement par zone
         // remplace les deux (`planEnChargementComplet` couvre le chargement du reste des pages,
         // voir l'effet ci-dessus).

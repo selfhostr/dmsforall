@@ -1,5 +1,5 @@
 import { Tabs as TabsPrimitive } from '@base-ui/react/tabs';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
@@ -14,6 +14,7 @@ import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
+import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { useListeDocumentsVente } from '@/hooks/facturation/useListeDocumentsVente';
 import { useSession } from '@/hooks/useSession';
 import { formaterDate, formaterMontant } from '@/lib/formats';
@@ -80,15 +81,10 @@ export function EcranListeFactures() {
   const voitMontantsFacturation = peutVoirMontantsFacturation(role);
 
   const [qSaisie, setQSaisie] = useState('');
-  const [q, setQ] = useState('');
+  const [q, reinitialiserQ] = useValeurDebouncee(qSaisie, DELAI_DEBOUNCE_MS);
   // Onglet par défaut : « Non réglées » (§7.1) — reste un badge neutre, l'onglet organise le
   // travail du patron sans l'alarmer.
   const [onglet, setOnglet] = useState<OngletListeFactures>('nonReglees');
-
-  useEffect(() => {
-    const identifiant = window.setTimeout(() => setQ(qSaisie), DELAI_DEBOUNCE_MS);
-    return () => window.clearTimeout(identifiant);
-  }, [qSaisie]);
 
   const filtres: FiltresDocumentsVente = useMemo(() => {
     const base: FiltresDocumentsVente = {
@@ -127,8 +123,11 @@ export function EcranListeFactures() {
   } = useListeDocumentsVente(filtres);
 
   function effacerFiltres() {
+    // Levier de reset (arbitrage @laupernoe 26.08.2026) : `effacerFiltres` est un geste de reprise en
+    // main, pas une frappe — `q` doit refléter la case vide immédiatement, pas après le même
+    // délai qu'une recherche (voir le commentaire de `useValeurDebouncee`, `hooks/commun/`).
     setQSaisie('');
-    setQ('');
+    reinitialiserQ();
   }
 
   const colonnes: ColonneComptoir<DocumentVenteResume>[] = [

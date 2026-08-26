@@ -1,4 +1,4 @@
-import { MoreHorizontal, Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
@@ -18,12 +18,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
   Table,
   TableBody,
   TableCell,
@@ -34,7 +28,9 @@ import {
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
+import { ActionPrimaire, type ActionSecondaireMenu } from '@/composants/layout/ActionPrimaire';
 import { FilAriane, type SegmentFilAriane } from '@/composants/layout/FilAriane';
+import { BoutonImprimerDocument } from '@/composants/motifs/BoutonImprimerDocument';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { obtenirEnv } from '@/config/env';
 import { useDocumentVente } from '@/hooks/facturation/useDocumentVente';
@@ -247,53 +243,71 @@ export function EcranFicheFacture() {
   // Actions de l'écran (chantier « titres doublés & espacements », 17.08.2026) — définies avant le
   // retour pour être passées à `GabaritEcran` plutôt qu'imbriquées dans un second bloc `justify-
   // between` local, désormais porté par le gabarit.
-  const actionsEnTete = (
-    <div className="flex items-center gap-2">
-      {proposeEmettre ? (
-        <Button type="button" onClick={() => setDialogueEmissionOuvert(true)}>
-          {t('facturation:fiche.actions.emettre')}
-        </Button>
-      ) : null}
-      {proposeEncaisser ? (
-        <Button type="button" onClick={() => setEncaissementOuvert(true)}>
-          {t('facturation:fiche.actions.encaisser')}
-        </Button>
-      ) : null}
-      {peutImprimer || proposeCorriger || proposeCreerAvoir ? (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              aria-label={t('facturation:fiche.actions.autresActions')}
-            >
-              <MoreHorizontal className="h-4 w-4" aria-hidden />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {peutImprimer ? (
-              <DropdownMenuItem asChild>
-                <a href={urlPdf} target="_blank" rel="noopener noreferrer">
-                  {t('facturation:fiche.actions.menu.imprimer')}
-                </a>
-              </DropdownMenuItem>
-            ) : null}
-            {proposeCorriger ? (
-              <DropdownMenuItem onSelect={ouvrirCorrection}>
-                {t('facturation:fiche.actions.menu.corriger')}
-              </DropdownMenuItem>
-            ) : null}
-            {proposeCreerAvoir ? (
-              <DropdownMenuItem onSelect={() => navigate(`/factures/${document_.id}/avoir`)}>
-                {t('facturation:fiche.actions.menu.creerAvoir')}
-              </DropdownMenuItem>
-            ) : null}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ) : null}
-    </div>
-  );
+  //
+  // CHANTIER D'UNIFICATION INTER-ÉCRANS (25.08.2026) — deux défauts corrigés ici en même temps :
+  //  1. Le menu « … » était un clone à la main du composant partagé `ActionPrimaire`
+  //     (`composants/layout/ActionPrimaire.tsx`, déjà utilisé par `EnTeteOrdreReparation`/
+  //     `EnTeteDossierVente`/`EcranFicheVehiculeStock`) — même déclencheur `MoreHorizontal`, même
+  //     rôle, réimplémenté ici plutôt que réutilisé. `proposeEmettre`/`proposeEncaisser` sont
+  //     mutuellement exclusifs (le premier exige `estBrouillon`, le second exige `peutGererFacture
+  //     = !estBrouillon && ...`) : AU PLUS UNE action primaire à la fois, exactement le contrat
+  //     d'`ActionPrimaire` (« UN SEUL élément interactif », voir son en-tête).
+  //  2. « Imprimer » vivait dans ce même menu « … », sous une troisième forme locale (lien `<a>`
+  //     enveloppé dans un `DropdownMenuItem asChild`) — troisième variante du même mécanisme déjà
+  //     dupliqué en atelier (`BoutonImprimerOr`, bouton autonome) et en pièces
+  //     (`PanneauRapprochementFacture`, bouton autonome de taille différente). Remplacé par
+  //     `BoutonImprimerDocument` (`composants/motifs/`, extrait de `BoutonImprimerOr` — même motif
+  //     partout), rendu en bouton AUTONOME à côté d'`ActionPrimaire`, pas dans son menu : `peutImprimer`
+  //     est un droit de CONSULTATION, décorrélé de `peutGererFacture` (voir sa définition ci-dessus)
+  //     — le sortir du menu « … » (qui ne gouverne plus que Corriger/Créer un avoir, les deux
+  //     seuls gestes vraiment secondaires) évite qu'un rôle sans aucun droit de gestion, mais qui
+  //     PEUT imprimer, se retrouve avec un menu qui n'aurait affiché que cet unique item.
+  const actionsSecondairesFacture: ActionSecondaireMenu[] = [
+    proposeCorriger
+      ? {
+          cle: 'corriger',
+          libelle: t('facturation:fiche.actions.menu.corriger'),
+          onSelect: ouvrirCorrection,
+        }
+      : null,
+    proposeCreerAvoir
+      ? {
+          cle: 'creerAvoir',
+          libelle: t('facturation:fiche.actions.menu.creerAvoir'),
+          onSelect: () => navigate(`/factures/${document_.id}/avoir`),
+        }
+      : null,
+  ].filter((action): action is ActionSecondaireMenu => action !== null);
+
+  const boutonActionPrimaire = proposeEmettre ? (
+    <Button type="button" onClick={() => setDialogueEmissionOuvert(true)}>
+      {t('facturation:fiche.actions.emettre')}
+    </Button>
+  ) : proposeEncaisser ? (
+    <Button type="button" onClick={() => setEncaissementOuvert(true)}>
+      {t('facturation:fiche.actions.encaisser')}
+    </Button>
+  ) : null;
+
+  const actionsEnTete =
+    peutImprimer || boutonActionPrimaire || actionsSecondairesFacture.length > 0 ? (
+      <div className="flex items-center gap-controles">
+        {peutImprimer ? (
+          <BoutonImprimerDocument
+            url={urlPdf}
+            libelle={t('facturation:fiche.actions.menu.imprimer')}
+          />
+        ) : null}
+        {boutonActionPrimaire || actionsSecondairesFacture.length > 0 ? (
+          <ActionPrimaire
+            actionsSecondaires={actionsSecondairesFacture}
+            libelleMenuSecondaire={t('facturation:fiche.actions.autresActions')}
+          >
+            {boutonActionPrimaire}
+          </ActionPrimaire>
+        ) : null}
+      </div>
+    ) : undefined;
 
   // Fil d'Ariane contextuel (chantier « un seul patron », 24.08.2026) — même dispositif que
   // `EnTeteOrdreReparation.tsx` (pris comme modèle). Un seul ancêtre certain : le contrat ne

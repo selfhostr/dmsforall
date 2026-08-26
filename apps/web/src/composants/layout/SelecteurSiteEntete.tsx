@@ -16,22 +16,26 @@ import { cn } from '@/lib/utils';
 
 interface Props {
   readonly sites: SessionCourante['sites'];
-  /** Site COURANT, résolu par l'appelant (`BarreLaterale.tsx` — URL puis préférence mémorisée, voir
-   *  `hooks/site/ContexteSiteCourant.tsx`) — jamais recalculé ici. */
+  /** Site COURANT, résolu par l'appelant (`BarreOutilsSuperieure.tsx` — URL puis préférence
+   *  mémorisée, voir `hooks/site/ContexteSiteCourant.tsx`) — jamais recalculé ici. */
   readonly siteIdActif: string | undefined;
-  /** Libellé déjà résolu par l'appelant (nom du site ou « Aucun site choisi »), affiché tel quel. */
+  /** Libellé déjà résolu par l'appelant (`BarreOutilsSuperieure.tsx`, `resoudreLibelleSite` : nom
+   *  du site, « Tous les sites » si `siteIdActif` est `undefined`, « Aucun site choisi » si défini
+   *  mais inconnu de la session), affiché tel quel. */
   readonly libelle: string;
   /**
-   * Rendu compact ICÔNE SEULE — barre latérale desktop REPLIÉE (Lot « cadre applicatif »,
-   * 19.08.2026 : le sélecteur de site descend de l'en-tête vers la barre latérale, voir
-   * `BarreLaterale.tsx`). `undefined`/`false` (défaut) = rendu texte plein, identique à avant ce
-   * lot. `true` = pastille carrée 44×44 px (plancher tactile, même gabarit qu'une entrée de menu
-   * repliée) portant l'ICÔNE + le CODE COURT du site (`site.code`, ex. « MTG ») plutôt que rien :
-   * une colonne à 64 px ne peut pas afficher un nom de site en toutes lettres, mais le code tient
-   * et reste un repère réel (« je suis sur MTG ») là où l'ancien mot-symbole affiché replié
-   * n'apportait aucune information utile au garagiste — voir la justification complète en tête de
-   * `BarreLaterale.tsx`. Le nom complet reste porté par `aria-label`/`title`, jamais raccourci pour
-   * un lecteur d'écran ou une infobulle.
+   * Rendu compact ICÔNE SEULE — TOUJOURS actif depuis le lot « bandeau haut » (26.08.2026) :
+   * `BarreOutilsSuperieure.tsx` est le seul appelant restant (le sélecteur y a été déménagé
+   * depuis `BarreLaterale.tsx`, dont la colonne repliable motivait à l'origine ce mode compact),
+   * et son bandeau de 48 px de haut n'a la place que pour cette forme. `undefined`/`false` reste
+   * le défaut du composant (rendu texte plein) pour ne pas casser un futur appelant qui aurait
+   * besoin de l'autre variante, mais aucun appelant actuel ne l'utilise. Pastille carrée 44×44 px
+   * (plancher tactile) portant l'ICÔNE + le CODE COURT du site (`site.code`, ex. « MTG ») plutôt
+   * que rien : le bandeau ne peut pas afficher un nom de site en toutes lettres, mais le code
+   * tient et reste un repère réel (« je suis sur MTG »). Le nom complet reste porté par
+   * `aria-label`/`title`, jamais raccourci pour un lecteur d'écran ou une infobulle — et surtout
+   * jamais RÉSERVÉ au survol (défaut mesuré de l'ancien emplacement replié, voir
+   * `BarreOutilsSuperieure.tsx`).
    */
   readonly compact?: boolean;
 }
@@ -52,16 +56,18 @@ function construireHrefSite(
 }
 
 /**
- * Changeur de site de l'en-tête (demande @laupernoe, revue webui du 10.08.2026). Jusqu'ici `EnTete.tsx`
- * n'affichait qu'un texte : ce composant en fait le SEUL sélecteur de site de l'en-tête, il n'en
- * existait aucun autre à fusionner (`SelecteurSiteTableauBord`/`SelecteurSitePointage` sont des
- * filtres LOCAUX à leur écran, pas des composants de coquille).
+ * Changeur de site GLOBAL du chrome (demande @laupernoe, revue webui du 10.08.2026 ; déménagé de l'ancien
+ * `EnTete.tsx` vers `BarreLaterale.tsx` le 19.08.2026, puis vers `BarreOutilsSuperieure.tsx` le
+ * 26.08.2026 — voir la doc de tête de ce dernier pour la justification mesurée du déménagement).
+ * Ce composant reste le SEUL sélecteur de site du chrome applicatif, il n'en existe aucun autre à
+ * fusionner (`SelecteurSiteTableauBord`/`SelecteurSitePointage` sont des filtres LOCAUX à leur
+ * écran, pas des composants de coquille).
  *
  * Le site actif est reçu de l'appelant, lu DEPUIS L'URL (`?site=`) — jamais depuis la session,
- * même mécanisme que `BarreLaterale.tsx`/`EnTete.tsx` (`routes/chemins.ts`). Ne liste que les
- * sites ACTIFS, et seulement ceux DIFFÉRENTS du site courant (« changer de site », pas se
- * reconfirmer sur le même). Un seul site actif (ou moins) -> aucun sélecteur : un menu à une
- * seule option est du bruit, l'ancien texte simple reste affiché.
+ * même mécanisme que `BarreLaterale.tsx`/`BarreOutilsSuperieure.tsx` (`routes/chemins.ts`). Ne
+ * liste que les sites ACTIFS, et seulement ceux DIFFÉRENTS du site courant (« changer de site »,
+ * pas se reconfirmer sur le même). Un seul site actif (ou moins) -> aucun sélecteur : un menu à
+ * une seule option est du bruit, l'ancien texte simple reste affiché.
  */
 export function SelecteurSiteEntete({ sites, siteIdActif, libelle, compact = false }: Props) {
   const { t } = useTranslation('navigation');
@@ -70,15 +76,24 @@ export function SelecteurSiteEntete({ sites, siteIdActif, libelle, compact = fal
   const { definirPreferenceSite } = useSiteCourant();
 
   const sitesActifs = sites.filter((site) => site.actif);
-  // Aucun site RÉSOLU (ni l'URL ni la préférence mémorisée, `BarreLaterale.tsx`) : c'est l'état
-  // « absence » que la doctrine du dépôt interdit de rendre comme « Tous les sites » (issue #91).
-  // Distingué visuellement — icône + texte de la couleur normale du contenu plutôt que la couleur
-  // atténuée habituelle du chrome — pour que ce petit repère reste VISIBLE sans avoir à le
-  // chercher, plutôt que de se fondre dans le reste de la barre latérale.
-  const nonChoisi = siteIdActif === undefined;
+  // Lot « bandeau haut » (26.08.2026) — DÉFAUT MESURÉ CORRIGÉ ICI : avant ce lot, `nonChoisi`
+  // valait `siteIdActif === undefined` et recevait la même mise en avant visuelle que l'unique
+  // libellé « Aucun site choisi », alors que ce composant affiche désormais (`libelle`, résolu par
+  // l'appelant — `BarreOutilsSuperieure.tsx`, `resoudreLibelleSite`) « Tous les sites » pour cet
+  // état : la couleur et le mot se contredisaient. `siteIdActif === undefined` n'est PAS une
+  // anomalie — c'est le MÊME état légitime que celui du filtre local du tableau de bord
+  // (`SelecteurSiteTableauBord.tsx`, « Tous les sites » comme option explicite), pas une absence à
+  // signaler avec insistance. Seul un identifiant PRÉSENT mais qui ne correspond à AUCUN site
+  // connu de la session (lien obsolète, site renommé/supprimé) reste une VRAIE anomalie — c'est CE
+  // cas-là, seul, qui garde la mise en avant (couleur normale du contenu plutôt que la couleur
+  // atténuée habituelle du chrome), pour rester visible sans avoir à le chercher.
+  const siteConnu = sites.find((candidat) => candidat.id === siteIdActif);
+  const siteInconnu = siteIdActif !== undefined && siteConnu === undefined;
   // Code court (« MTG ») pour le rendu compact — voir la doc de `compact` ci-dessus. `undefined`
-  // si `siteIdActif` ne correspond à aucun site connu (même absence que `nonChoisi`).
-  const codeCourt = sites.find((site) => site.id === siteIdActif)?.code;
+  // si `siteIdActif` ne correspond à aucun site connu (« tous » ou référence inconnue, mêmes deux
+  // cas ci-dessus) : l'em-dash de repli plus bas couvre les deux identiquement, seul le
+  // `aria-label`/`title` (porté par `libelle`) les distingue en toutes lettres.
+  const codeCourt = siteConnu?.code;
 
   if (sitesActifs.length < 2) {
     if (compact) {
@@ -86,7 +101,7 @@ export function SelecteurSiteEntete({ sites, siteIdActif, libelle, compact = fal
         <p
           className={cn(
             'flex h-11 w-11 flex-col items-center justify-center gap-0.5 rounded-md',
-            nonChoisi ? 'text-foreground' : 'text-muted-foreground',
+            siteInconnu ? 'text-foreground' : 'text-muted-foreground',
           )}
           title={libelle}
         >
@@ -105,7 +120,7 @@ export function SelecteurSiteEntete({ sites, siteIdActif, libelle, compact = fal
       <p
         className={cn(
           'flex items-center gap-1 truncate texte-corps',
-          nonChoisi ? 'font-medium text-foreground' : 'text-muted-foreground',
+          siteInconnu ? 'font-medium text-foreground' : 'text-muted-foreground',
         )}
         title={libelle}
       >
@@ -127,7 +142,7 @@ export function SelecteurSiteEntete({ sites, siteIdActif, libelle, compact = fal
             aria-label={libelle}
             className={cn(
               'anneau-focus flex h-11 w-11 flex-col items-center justify-center gap-0.5 rounded-md transition-colors hover:bg-muted',
-              nonChoisi ? 'text-foreground' : 'text-muted-foreground',
+              siteInconnu ? 'text-foreground' : 'text-muted-foreground',
             )}
           >
             <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
@@ -168,7 +183,7 @@ export function SelecteurSiteEntete({ sites, siteIdActif, libelle, compact = fal
           title={libelle}
           className={cn(
             "anneau-focus relative flex max-w-full items-center gap-1 truncate texte-corps transition-colors after:absolute after:-inset-x-1 after:-inset-y-3 after:content-[''] hover:text-foreground",
-            nonChoisi ? 'font-medium text-foreground' : 'text-muted-foreground',
+            siteInconnu ? 'font-medium text-foreground' : 'text-muted-foreground',
           )}
         >
           <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />

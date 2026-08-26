@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { ClientResume } from '@dfa/shared';
@@ -11,6 +11,7 @@ import { EtatVide } from '@/composants/commun/EtatVide';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { useListeClients } from '@/hooks/clients/useListeClients';
+import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { cn } from '@/lib/utils';
 
 const DELAI_ANTI_REBOND_MS = 300;
@@ -50,15 +51,10 @@ export function SelecteurOrganismeVente({
 }: Props) {
   const { t } = useTranslation(['ventes', 'commun', 'erreurs']);
   const [saisie, setSaisie] = useState('');
-  const [termeDebounce, setTermeDebounce] = useState('');
-
-  useEffect(() => {
-    const identifiant = window.setTimeout(
-      () => setTermeDebounce(saisie.trim()),
-      DELAI_ANTI_REBOND_MS,
-    );
-    return () => window.clearTimeout(identifiant);
-  }, [saisie]);
+  // `.trim()` après la temporisation — même raison qu'`SelecteurVehiculePourDepot`, même patron :
+  // le minuteur se réarme sur la saisie brute, jamais raccourci par un espace en tête/fin.
+  const [saisieTemporisee] = useValeurDebouncee(saisie, DELAI_ANTI_REBOND_MS);
+  const termeDebounce = saisieTemporisee.trim();
 
   const requete = useListeClients({ q: termeDebounce, tri: 'nom:asc' });
   const clients = requete.data?.pages.flatMap((page) => page.donnees) ?? [];

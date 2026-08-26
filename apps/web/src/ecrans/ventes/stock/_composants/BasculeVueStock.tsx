@@ -1,4 +1,4 @@
-import * as TabsPrimitive from '@radix-ui/react-tabs';
+import { Tabs as TabsPrimitive } from '@base-ui/react/tabs';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/lib/utils';
@@ -30,10 +30,21 @@ import { cn } from '@/lib/utils';
  * change la façon dont CET écran affiche les mêmes lignes, exactement le rôle des « vues » de
  * second niveau qu'`OngletsDomaine` sait déjà distinguer visuellement des onglets (fond plein
  * `bg-secondary`/`rounded-md`, jamais un soulignement). Ce composant reprend CE style déjà établi
- * — pas une nouvelle convention — via `@radix-ui/react-tabs` directement plutôt que le wrapper
+ * — pas une nouvelle convention — via `@base-ui/react/tabs` directement plutôt que le wrapper
  * `components/ui/tabs.tsx` (dont le style de premier niveau ne convient pas ici) : mêmes rôles
  * ARIA (`tablist`/`tab`), même clavier (flèches, `Home`/`End`), même contrat de test
  * (`getByRole('tab', …)`, voir `EcranListeVehiculesStock.spec.tsx`), seule l'habillage change.
+ *
+ * `@base-ui/react/tabs` plutôt que `@radix-ui/react-tabs` (chantier d'unification inter-écrans,
+ * 25.08.2026) : même bibliothèque, même motif que `EcranListeFactures.tsx` et
+ * `components/ui/tabs.tsx` — Tabs n'est pas un composant à portail/superposition, la frontière
+ * Radix/Base UI de CONTRIBUTING.md ne s'y applique pas. WCAG 4.1.2 (`aria-controls` de référence brisée,
+ * déjà mesuré en e2e sur `EcranListeFactures.tsx`) : ces onglets FILTRENT l'affichage de la même
+ * liste, ils n'ouvrent jamais de panneau dédié (aucun `TabsPrimitive.Panel` n'est jamais rendu) —
+ * Base UI calcule `aria-controls` depuis les panneaux RÉELLEMENT montés (`TabsRoot.js`,
+ * `getTabPanelIdByValue` lit une `Map` alimentée par `registerMountedTabPanel`, jamais appelé ici)
+ * : sans `Panel`, l'attribut est simplement OMIS (React n'écrit jamais un attribut `undefined`),
+ * vérifié dans `BasculeVueStock.spec.tsx`.
  */
 export type VueAffichageStock = 'vendeur' | 'client';
 
@@ -59,7 +70,7 @@ export function BasculeVueStock({ vue, onChangeVue }: Props) {
         className="inline-flex items-stretch gap-1 rounded-md border bg-muted/40 p-1"
       >
         {(['vendeur', 'client'] as const).map((valeur) => (
-          <TabsPrimitive.Trigger
+          <TabsPrimitive.Tab
             key={valeur}
             value={valeur}
             className={cn(
@@ -70,11 +81,11 @@ export function BasculeVueStock({ vue, onChangeVue }: Props) {
               'relative flex h-9 items-center whitespace-nowrap rounded-sm px-3 texte-corps font-medium transition-colors after:absolute after:inset-x-0 after:-inset-y-1 after:content-[""]',
               'anneau-focus',
               'text-muted-foreground hover:text-foreground',
-              'data-[state=active]:bg-background data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-sm',
+              'data-active:bg-background data-active:font-semibold data-active:text-foreground data-active:shadow-sm',
             )}
           >
             {t(`ventes:stock.vue.${valeur}`)}
-          </TabsPrimitive.Trigger>
+          </TabsPrimitive.Tab>
         ))}
       </TabsPrimitive.List>
     </TabsPrimitive.Root>

@@ -133,6 +133,52 @@ describe('EcranListeVehiculesStock', () => {
     expect(screen.getByText("1'890.00")).toBeInTheDocument();
   });
 
+  /**
+   * WCAG 4.1.2 : `BasculeVueStock`/`BasculeAffichageStock` ne montent jamais de
+   * `TabsPrimitive.Panel` (elles filtrent l'affichage d'une liste unique, hors `Tabs`) — Base UI
+   * (`@base-ui/react/tabs`, chantier d'unification inter-écrans, 25.08.2026) calcule
+   * `aria-controls` depuis les panneaux RÉELLEMENT montés (`TabsRoot.js`,
+   * `getTabPanelIdByValue`/`registerMountedTabPanel`, source vérifiée) : sans `Panel`, l'attribut
+   * est simplement OMIS, sur les deux bascules, dans tous leurs états.
+   */
+  it('vue vendeur/client : aucun `aria-controls` cassé sur les onglets de bascule (WCAG 4.1.2)', async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      http.get('/api/v1/vehicules-stock', () => HttpResponse.json(pageDe([VEHICULE_STOCK]))),
+    );
+
+    rendre();
+
+    expect(await screen.findByText('VW Touran 2.0 TDI')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Vue vendeur' })).not.toHaveAttribute('aria-controls');
+    expect(screen.getByRole('tab', { name: 'Vue client' })).not.toHaveAttribute('aria-controls');
+
+    const utilisateur = userEvent.setup();
+    await utilisateur.click(screen.getByRole('tab', { name: 'Vue client' }));
+
+    expect(screen.getByRole('tab', { name: 'Vue vendeur' })).not.toHaveAttribute('aria-controls');
+    expect(screen.getByRole('tab', { name: 'Vue client' })).not.toHaveAttribute('aria-controls');
+  });
+
+  it('liste/plan : aucun `aria-controls` cassé sur les onglets de bascule (WCAG 4.1.2)', async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      http.get('/api/v1/vehicules-stock', () => HttpResponse.json(pageDe([VEHICULE_STOCK]))),
+    );
+
+    rendre();
+
+    expect(await screen.findByText('VW Touran 2.0 TDI')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Liste' })).not.toHaveAttribute('aria-controls');
+    expect(screen.getByRole('tab', { name: 'Plan' })).not.toHaveAttribute('aria-controls');
+
+    const utilisateur = userEvent.setup();
+    await utilisateur.click(screen.getByRole('tab', { name: 'Plan' }));
+
+    expect(screen.getByRole('tab', { name: 'Liste' })).not.toHaveAttribute('aria-controls');
+    expect(screen.getByRole('tab', { name: 'Plan' })).not.toHaveAttribute('aria-controls');
+  });
+
   it('état vide : invite à mettre un véhicule en stock', async () => {
     server.use(
       http.get('/api/v1/auth/moi', () =>

@@ -14,9 +14,10 @@ const cleModelesVehicule = (marque: string, recherche: string) =>
 /**
  * `GET /referentiels/vehicules/modeles` — suggestions pour l'autocomplétion du modèle, conditionnées
  * par la marque (mode 2 de la doctrine de saisie, cascade marque → modèle). `marque` ET `recherche`
- * sont déjà temporisées par l'appelant (`useValeurDebouncee`, sur les DEUX champs) — la marque
- * temporisée pilote aussi bien l'activation de la requête que son paramètre `marque`, jamais la
- * valeur brute en cours de frappe (§ contrat : `marque` obligatoire côté serveur).
+ * sont déjà temporisées par l'appelant (`useValeurDebouncee`, `hooks/commun/`, sur les DEUX
+ * champs) — la marque temporisée pilote aussi bien l'activation de la requête que son paramètre
+ * `marque`, jamais la valeur brute en cours de frappe (§ contrat : `marque` obligatoire côté
+ * serveur).
  */
 export function useModelesVehicule(
   marque: string,

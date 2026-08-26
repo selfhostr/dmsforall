@@ -524,17 +524,18 @@
 
 /* ─────────────────────────────────────────────────────────────────────────
    Statuts métier — docs/design-etape-1-atelier.md §8.1 et §5.
-   Réservés EXCLUSIVEMENT au statut d'OR et au statut de ligne (§5.1). Toute
-   autre dimension (payeur, origine, localisation, urgence, marqueurs — sauf
-   l'exception documentée « sécurité ») se rend en foreground/muted-foreground
-   + forme + mot, jamais avec un de ces tokens. La couleur de marque
-   (`--marque`) et la famille `--avertissement` sont elles aussi interdites sur
-   un badge de statut, pour la même raison.
+   Palette de SÉVÉRITÉ GÉNÉRALE, pas un vocabulaire réservé à l'OR — voir
+   DESIGN.md « Six feux d'atelier ». Nommée à l'origine pour le statut d'OR/
+   de ligne (§5.1), mesurée dans le code bien au-delà (54 fichiers : dispo-
+   nibilité pièce, échéances, statuts d'autres domaines…) ; le texte normatif
+   suit cet usage réel. Toujours interdits sur ces six tokens, sans exception :
+   la couleur de marque (`--marque`) et la famille `--avertissement`.
 
-   La sémantique de statut ne repose jamais sur la couleur seule : chaque
+   La sémantique de sévérité ne repose jamais sur la couleur seule : chaque
    badge associe forme + icône lucide + mot (clé i18n `or:statuts.*` /
-   `or:lignes.statuts.*`), voir docs/design-comptoir.md « Vérification
-   daltonisme » pour la méthode.
+   `or:lignes.statuts.*` pour l'OR, propre à chaque domaine ailleurs), voir
+   docs/design-comptoir.md « Vérification daltonisme » pour la méthode —
+   contrainte renforcée, pas assouplie, par l'élargissement de la couleur.
 
    Valeurs de L (luminosité) ajustées par rapport au design doc pour les
    deux tokens qui échouaient la mesure de contraste — voir le tableau

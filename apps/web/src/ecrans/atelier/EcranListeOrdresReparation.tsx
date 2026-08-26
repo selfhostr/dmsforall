@@ -1,5 +1,5 @@
 import { Plus } from 'lucide-react';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 
@@ -39,6 +39,7 @@ import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { peutCreerOrdreReparation } from '@/ecrans/atelier/droits';
 import { useListeOrdresReparation } from '@/hooks/atelier/useListeOrdresReparation';
+import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { useSession } from '@/hooks/useSession';
 import { formaterDate, formaterMontant } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
@@ -118,18 +119,13 @@ export function EcranListeOrdresReparation() {
   const peutCreer = peutCreerOrdreReparation(session.data?.utilisateur.role);
 
   const [qSaisie, setQSaisie] = useState('');
-  const [q, setQ] = useState('');
+  const [q, reinitialiserQ] = useValeurDebouncee(qSaisie, DELAI_DEBOUNCE_MS);
   const [statut, setStatut] = useState<StatutOrdreReparation | undefined>(undefined);
   // Issue #111 — filtre ORTHOGONAL au statut (voir `CLES_ATTENTE` ci-dessus), jamais fusionné dans
   // le même `<Select>` : un OR « attente pièces » a par ailleurs un statut réel (`en_cours` le
   // plus souvent) que ce second filtre ne doit jamais masquer.
   const [attente, setAttente] = useState<AttenteOrdreReparation | undefined>(undefined);
   const [tri, setTri] = useState<string>(TRI_DEFAUT_ORDRES_REPARATION);
-
-  useEffect(() => {
-    const identifiant = window.setTimeout(() => setQ(qSaisie), DELAI_DEBOUNCE_MS);
-    return () => window.clearTimeout(identifiant);
-  }, [qSaisie]);
 
   const filtres = useMemo(
     () => ({ q: q.trim() === '' ? undefined : q.trim(), statut, attente, siteId: site, tri }),
@@ -151,8 +147,11 @@ export function EcranListeOrdresReparation() {
   const filtresActifs = q.trim() !== '' || filtresStructuresActifs;
 
   function effacerFiltres() {
+    // Levier de reset (arbitrage @laupernoe 26.08.2026) : `effacerFiltres` est un geste de reprise en
+    // main, pas une frappe — `q` doit refléter la case vide immédiatement, pas après le même
+    // délai qu'une recherche (voir le commentaire de `useValeurDebouncee`, `hooks/commun/`).
     setQSaisie('');
-    setQ('');
+    reinitialiserQ();
     setStatut(undefined);
     setAttente(undefined);
   }

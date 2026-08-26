@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
 
@@ -30,6 +30,7 @@ import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
+import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { useListeCommandesFournisseur } from '@/hooks/pieces/useListeCommandesFournisseur';
 import { useSession } from '@/hooks/useSession';
 import { formaterDate } from '@/lib/formats';
@@ -65,11 +66,7 @@ export function EcranListeCommandesFournisseur() {
   const [avecReliquat, setAvecReliquat] = useState(false);
 
   const [qSaisie, setQSaisie] = useState('');
-  const [q, setQ] = useState('');
-  useEffect(() => {
-    const identifiant = window.setTimeout(() => setQ(qSaisie), DELAI_DEBOUNCE_MS);
-    return () => window.clearTimeout(identifiant);
-  }, [qSaisie]);
+  const [q, reinitialiserQ] = useValeurDebouncee(qSaisie, DELAI_DEBOUNCE_MS);
 
   const filtres: FiltresCommandesFournisseur = useMemo(
     () => ({
@@ -98,8 +95,11 @@ export function EcranListeCommandesFournisseur() {
   const filtresStructuresActifs = statut !== undefined || avecReliquat;
   const filtresActifs = q.trim() !== '' || filtresStructuresActifs;
   function effacerFiltres() {
+    // Levier de reset (arbitrage @laupernoe 26.08.2026) : `effacerFiltres` est un geste de reprise en
+    // main, pas une frappe — `q` doit refléter la case vide immédiatement, pas après le même
+    // délai qu'une recherche (voir le commentaire de `useValeurDebouncee`, `hooks/commun/`).
     setQSaisie('');
-    setQ('');
+    reinitialiserQ();
     setStatut(undefined);
     setAvecReliquat(false);
   }

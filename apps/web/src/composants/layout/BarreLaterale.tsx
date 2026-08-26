@@ -16,7 +16,6 @@ import { useSession } from '@/hooks/useSession';
 import { cleTraductionRole } from '@/lib/roles';
 import { cn } from '@/lib/utils';
 
-import { BasculeTheme } from './BasculeTheme';
 import {
   cheminEntree,
   ENTREE_REGLAGES,
@@ -25,7 +24,6 @@ import {
   trouverCorrespondance,
   type EntreeMenu,
 } from './navigation-modele';
-import { SelecteurSiteEntete } from './SelecteurSiteEntete';
 import type { UtiliserRepliBarreLaterale } from './useRepliBarreLaterale';
 
 /**
@@ -120,18 +118,16 @@ interface Props {
  * un métier où « un écran est plus large que haut ». Ce contexte appartient au CADRE, pas à une
  * bande qui se répète en haut de chaque page :
  *
- *  1. BLOC TENANT + SITE en tête de colonne, à la place de l'ancien mot-symbole « dmsforall ».
- *     Repris de @laupernoe SANS détour : le mot-symbole ne ressemblait à rien du reste de la barre (taille
- *     de police différente, corps étranger) et, pire, faisait de la publicité pour le produit une
- *     fois DANS l'application — personne ne le regarde, le nom du produit est déjà dans l'onglet du
- *     navigateur et dans l'URL. Le nom du TENANT, lui, est une information utile en permanence
- *     (« je travaille pour quel garage »), donc la marque est SUPPRIMÉE (pas réduite à un
- *     pictogramme — un pictogramme resterait la même publicité, juste plus petite) et sa place
- *     revient entièrement au tenant + au sélecteur de site (`SelecteurSiteEntete`, déplacé tel quel
- *     depuis `EnTete.tsx`, dont la résolution URL -> préférence mémorisée est reprise ICI à
- *     l'identique — voir `site` ci-dessous, seule source pour toute la colonne). La marque reste
- *     l'affaire de l'écran de connexion (`EcranConnexion.tsx`, hors périmètre), pas du cadre
- *     applicatif une fois authentifié.
+ *  1. BLOC TENANT (+ SITE À L'ORIGINE, voir la note du 26.08.2026 plus bas) en tête de colonne, à
+ *     la place de l'ancien mot-symbole « dmsforall ». Repris de @laupernoe SANS détour : le mot-symbole ne
+ *     ressemblait à rien du reste de la barre (taille de police différente, corps étranger) et,
+ *     pire, faisait de la publicité pour le produit une fois DANS l'application — personne ne le
+ *     regarde, le nom du produit est déjà dans l'onglet du navigateur et dans l'URL. Le nom du
+ *     TENANT, lui, est une information utile en permanence (« je travaille pour quel garage »), donc
+ *     la marque est SUPPRIMÉE (pas réduite à un pictogramme — un pictogramme resterait la même
+ *     publicité, juste plus petite) et sa place revient au tenant. La marque reste l'affaire de
+ *     l'écran de connexion (`EcranConnexion.tsx`, hors périmètre), pas du cadre applicatif une fois
+ *     authentifié.
  *  2. PIED COMPTE — identité + Réglages + déconnexion regroupés en UN SEUL déclencheur adjacent au
  *     filet du pied (§4.2 déjà en place), qui déplie un menu (`DropdownMenu`) au lieu de trois
  *     éléments dispersés. RE-ARBITRAGE ASSUMÉ de la doctrine « Se déconnecter jamais enfoui »
@@ -149,6 +145,16 @@ interface Props {
  *     dessus) ; le seul besoin qui restait — la déconnexion pour un poste SANS colonne
  *     (`poste_atelier`, mode scan mobile) — devient `BandeauSansNavigation.tsx`. Voir leurs en-têtes
  *     respectifs pour le chiffrage de hauteur gagnée et le détail de cette scission.
+ *
+ * LOT « BANDEAU HAUT » (26.08.2026, demande @laupernoe) — le SÉLECTEUR DE SITE (point 1 ci-dessus) et la
+ * BASCULE DE THÈME (point 2 ci-dessus, `BasculeTheme`) REPARTENT tous deux vers
+ * `BarreOutilsSuperieure.tsx` — voir sa doc de tête pour la justification mesurée complète (ce
+ * contrôle change le contexte de toute la page, cette colonne se replie ou se ferme selon le
+ * palier, son nom complet n'était accessible qu'au survol une fois repliée — inatteignable au
+ * tactile). Deux défauts mesurés du sélecteur ont été corrigés au passage (désynchronisation de la
+ * préférence de site, collision de libellé « Aucun site choisi » / « Tous les sites » pour le même
+ * état `undefined` — détail dans `BarreOutilsSuperieure.tsx` et `SelecteurSiteEntete.tsx`). Le PIED
+ * COMPTE (point 2), lui, NE BOUGE PAS — @laupernoe l'a tranché explicitement, il reste ici.
  */
 export function BarreLaterale({ className, repli }: Props) {
   const { t } = useTranslation(['navigation', 'auth']);
@@ -170,16 +176,6 @@ export function BarreLaterale({ className, repli }: Props) {
   // (« inconnue ») posé ICI, pas dans `infoVersionBrute`, pour rester une fonction pure sans
   // dépendance à `t`.
   const infoVersion = infoVersionBrute() || t('navigation:pied.versionInconnue');
-
-  // Résolution du nom de site affiché — reprise À L'IDENTIQUE de l'ancienne `EnTete.tsx` (même
-  // doctrine « absence de donnée ≠ valeur », issue #91) : un `site` qui ne correspond à AUCUN site
-  // de la session (lien obsolète, site renommé/supprimé) est une ABSENCE, jamais la valeur brute de
-  // l'URL ni « tous les sites » deviné. `SelecteurSiteEntete` REÇOIT ce libellé déjà résolu, il ne
-  // le recalcule pas — un seul endroit qui décide, comme avant ce lot.
-  const libelleSite = session
-    ? (session.sites.find((candidat) => candidat.id === site)?.nom ??
-      t('navigation:entete.siteNonChoisi'))
-    : '';
 
   // Identité du pied compte (§2 du lot ci-dessus) — repris à l'identique de l'ancien
   // `MenuUtilisateur.tsx` (initiales, nom complet, libellé de rôle traduit).
@@ -322,14 +318,6 @@ export function BarreLaterale({ className, repli }: Props) {
               </Button>
             ) : null}
           </div>
-          {session ? (
-            <SelecteurSiteEntete
-              sites={session.sites}
-              siteIdActif={site}
-              libelle={libelleSite}
-              compact={replie}
-            />
-          ) : null}
         </div>
       ) : null}
 
@@ -375,73 +363,64 @@ export function BarreLaterale({ className, repli }: Props) {
        */}
       {session ? (
         <div className={cn('shrink-0 border-t', replie ? 'p-2' : 'p-3')}>
-          {/* Refonte visuelle (mode sombre, voir DESIGN.md) — bascule clair/sombre POSÉE ICI,
-              « près du profil » (demande explicite de @laupernoe) : juste au-dessus du déclencheur de
-              compte, dans le même bloc que lui, plutôt qu'enfouie dans le menu qui se déplie (elle
-              resterait alors à un clic de plus, pour un réglage qu'un garagiste ajuste une fois et
-              rarement ensuite — pas la même fréquence que Réglages/Déconnexion). Repliée en colonne
-              (`flex-col`, centrée) quand la barre est repliée : même idiome que le reste de la
-              colonne repliée (icône seule, centrée), voir `rendreEntree` plus haut. */}
-          <div
-            className={cn('flex', replie ? 'flex-col items-center gap-1' : 'items-center gap-2')}
-          >
-            <BasculeTheme />
-            <div className="min-w-0 flex-1">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    className={cn(
-                      'anneau-focus flex h-11 w-full items-center rounded-md texte-corps font-medium transition-colors hover:bg-muted',
-                      replie ? 'justify-center px-2' : 'gap-3 px-3',
-                    )}
-                    aria-label={`${libelleCompte} — ${libelleRole}`}
-                    title={replie ? `${libelleCompte} — ${libelleRole}` : undefined}
+          {/* Lot « bandeau haut » (26.08.2026) — la bascule clair/sombre, posée ICI depuis la
+              refonte visuelle (voir DESIGN.md), a DÉMÉNAGÉ vers `BarreOutilsSuperieure.tsx` :
+              même besoin que le sélecteur de site (atteignable SANS ouvrir le tiroir sur
+              tablette), tranché explicitement par @laupernoe. Le pied compte, lui, NE bouge PAS — seul
+              déclencheur restant ici. */}
+          <div className="min-w-0">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className={cn(
+                    'anneau-focus flex h-11 w-full items-center rounded-md texte-corps font-medium transition-colors hover:bg-muted',
+                    replie ? 'justify-center px-2' : 'gap-3 px-3',
+                  )}
+                  aria-label={`${libelleCompte} — ${libelleRole}`}
+                  title={replie ? `${libelleCompte} — ${libelleRole}` : undefined}
+                >
+                  <span
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary texte-petit font-semibold text-primary-foreground"
+                    aria-hidden="true"
                   >
-                    <span
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary texte-petit font-semibold text-primary-foreground"
-                      aria-hidden="true"
-                    >
-                      {initiales}
-                    </span>
-                    {!replie ? (
-                      <>
-                        <span className="min-w-0 flex-1 text-left leading-tight">
-                          <span className="block truncate text-foreground">{libelleCompte}</span>
-                          <span className="block truncate text-muted-foreground">
-                            {libelleRole}
-                          </span>
-                        </span>
-                        <ChevronsUpDown
-                          className="h-4 w-4 shrink-0 text-muted-foreground"
-                          aria-hidden="true"
-                        />
-                      </>
-                    ) : null}
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" side="top" className="w-56">
-                  <DropdownMenuLabel className="truncate font-normal text-muted-foreground">
-                    {libelleCompte} — {libelleRole}
-                  </DropdownMenuLabel>
-                  {reglagesVisibles(role) ? (
-                    <DropdownMenuItem asChild>
-                      <Link to={cheminEntree(ENTREE_REGLAGES, role, site) ?? ''}>
-                        <Settings className="h-4 w-4" aria-hidden="true" />
-                        {t('navigation:entrees.reglages')}
-                      </Link>
-                    </DropdownMenuItem>
+                    {initiales}
+                  </span>
+                  {!replie ? (
+                    <>
+                      <span className="min-w-0 flex-1 text-left leading-tight">
+                        <span className="block truncate text-foreground">{libelleCompte}</span>
+                        <span className="block truncate text-muted-foreground">{libelleRole}</span>
+                      </span>
+                      <ChevronsUpDown
+                        className="h-4 w-4 shrink-0 text-muted-foreground"
+                        aria-hidden="true"
+                      />
+                    </>
                   ) : null}
-                  <DropdownMenuItem
-                    onSelect={() => deconnexion.mutate()}
-                    disabled={deconnexion.isPending}
-                  >
-                    <LogOut className="h-4 w-4" aria-hidden="true" />
-                    {t('auth:deconnexion.action')}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" side="top" className="w-56">
+                <DropdownMenuLabel className="truncate font-normal text-muted-foreground">
+                  {libelleCompte} — {libelleRole}
+                </DropdownMenuLabel>
+                {reglagesVisibles(role) ? (
+                  <DropdownMenuItem asChild>
+                    <Link to={cheminEntree(ENTREE_REGLAGES, role, site) ?? ''}>
+                      <Settings className="h-4 w-4" aria-hidden="true" />
+                      {t('navigation:entrees.reglages')}
+                    </Link>
                   </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+                ) : null}
+                <DropdownMenuItem
+                  onSelect={() => deconnexion.mutate()}
+                  disabled={deconnexion.isPending}
+                >
+                  <LogOut className="h-4 w-4" aria-hidden="true" />
+                  {t('auth:deconnexion.action')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
           <p
             className={cn(

@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type {
   ClientResume,
@@ -20,11 +20,25 @@ import type {
 import '@/i18n';
 import i18n from '@/i18n';
 
+import { FournisseurSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
 
 import { EcranTableauBord } from './EcranTableauBord';
+
+// Radix Select (`@radix-ui/react-select`, sous `SelecteurSiteTableauBord`) appelle
+// `hasPointerCapture`/`scrollIntoView`, absents de jsdom — même stub local que
+// `composants/comptoir/SelecteurTri.spec.tsx` et
+// `composants/recherche/PanneauResultatsRecherche.spec.tsx` (cmdk), posé ici pour le seul
+// describe de ce fichier qui ouvre réellement le sélecteur (« synchronisation de la préférence de
+// site »), sans affecter les specs qui se contentent de lire sa valeur affichée.
+beforeAll(() => {
+  Element.prototype.hasPointerCapture = vi.fn().mockReturnValue(false);
+  Element.prototype.setPointerCapture = vi.fn();
+  Element.prototype.releasePointerCapture = vi.fn();
+  Element.prototype.scrollIntoView = vi.fn();
+});
 
 const CHEMIN_ACTIVITE = '/api/v1/tableau-bord/activite';
 const CHEMIN_FINANCIER = '/api/v1/tableau-bord/financier';
@@ -795,5 +809,73 @@ describe('EcranTableauBord — sélecteur de site commun', () => {
     expect(
       within(document.body).getByText(i18n.t('navigation:entete.tousLesSites')),
     ).toBeInTheDocument();
+  });
+});
+
+/**
+ * DÉFAUT MESURÉ n°1, corrigé au lot « bandeau haut » (26.08.2026) : avant ce lot, AUCUN choix fait
+ * dans ce sélecteur — site précis ou « Tous les sites » — ne synchronisait
+ * `ContexteSiteCourant.tsx`, seul mécanisme lu par le CHROME (`BarreOutilsSuperieure.tsx`,
+ * `BarreLaterale.tsx`) pour résoudre le site de la navigation suivante. Conséquence : un clic de
+ * menu APRÈS un passage par « Tous les sites » ici pouvait ramener sur un site jamais choisi dans
+ * cette session, sans le moindre signal. `rendreAvecPreferenceSite` monte `FournisseurSiteCourant`
+ * (absent de `rendre()` ci-dessus, comme en usage réel hors d'`AppShell.tsx`) — seul moyen
+ * d'observer cette synchronisation.
+ */
+describe('EcranTableauBord — synchronisation de la préférence de site (défaut mesuré n°1)', () => {
+  function rendreAvecPreferenceSite(cheminInitial = '/tableau-bord'): void {
+    const queryClient = creerQueryClientTest();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[cheminInitial]}>
+          <FournisseurSiteCourant>
+            <Routes>
+              <Route path="/tableau-bord" element={<EcranTableauBord />} />
+            </Routes>
+          </FournisseurSiteCourant>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  }
+
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('choisir un site PRÉCIS mémorise ce site comme préférence globale', async () => {
+    connecterSession('comptable');
+    server.use(
+      http.get(CHEMIN_FINANCIER, () => HttpResponse.json(FINANCIER_NOMINAL)),
+      http.get(CHEMIN_DOCUMENTS_VENTE, () => HttpResponse.json(PAGE_VIDE)),
+    );
+    const utilisateur = userEvent.setup();
+    rendreAvecPreferenceSite();
+
+    await screen.findByText('CHF 456.00');
+    await utilisateur.click(screen.getByRole('combobox'));
+    await utilisateur.click(await screen.findByText('Site principal'));
+
+    expect(window.localStorage.getItem('dfa.site-courant.tenant-1')).toBe('site-1');
+  });
+
+  it('« Tous les sites » NE touche PAS la préférence mémorisée — le dernier site réel reste le défaut', async () => {
+    window.localStorage.setItem('dfa.site-courant.tenant-1', 'site-1');
+    connecterSession('comptable');
+    server.use(
+      http.get(CHEMIN_FINANCIER, () => HttpResponse.json(FINANCIER_NOMINAL)),
+      http.get(CHEMIN_DOCUMENTS_VENTE, () => HttpResponse.json(PAGE_VIDE)),
+    );
+    const utilisateur = userEvent.setup();
+    // Départ sur `?site=site-1` (le trigger affiche donc « Site principal », jamais « Tous les
+    // sites » comme celui de l'autre test ci-dessus) : ce texte cible SANS AMBIGUÏTÉ l'option
+    // « Tous les sites » du menu déroulant, qui ne duplique alors le libellé d'aucun autre élément
+    // déjà visible à l'écran.
+    rendreAvecPreferenceSite('/tableau-bord?site=site-1');
+
+    await screen.findByText('CHF 456.00');
+    await utilisateur.click(screen.getByRole('combobox'));
+    await utilisateur.click(await screen.findByText(i18n.t('navigation:entete.tousLesSites')));
+
+    expect(window.localStorage.getItem('dfa.site-courant.tenant-1')).toBe('site-1');
   });
 });

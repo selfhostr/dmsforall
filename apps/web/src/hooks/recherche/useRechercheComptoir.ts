@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { keepPreviousData, useQuery, type UseQueryResult } from '@tanstack/react-query';
 
 import type { ReponseRecherche } from '@dfa/shared';
 
 import { clesQuery } from '@/api/cles';
 import { requeteApi } from '@/api/client';
+import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 
 /** Anti-rebond de la frappe (D-08, RM-112) : le garagiste tape une plaque pendant que le client
  *  attend au comptoir — on n'interroge le serveur qu'une fois la frappe stabilisée, jamais à
@@ -51,13 +52,11 @@ export interface EtatRechercheComptoir {
  */
 export function useRechercheComptoir(): EtatRechercheComptoir {
   const [saisie, setSaisie] = useState('');
-  const [termeDebounce, setTermeDebounce] = useState('');
-
-  useEffect(() => {
-    const termeCible = saisie.trim();
-    const identifiant = window.setTimeout(() => setTermeDebounce(termeCible), DELAI_ANTI_REBOND_MS);
-    return () => window.clearTimeout(identifiant);
-  }, [saisie]);
+  // `.trim()` après la temporisation — même valeur finale que l'ancien `termeCible = saisie.trim()`
+  // évalué à l'armement du minuteur (le `.trim()` est pur et `saisie` ne change plus entre-temps),
+  // mais le réarmement reste piloté par la saisie BRUTE (comme avant), pas par sa forme réduite.
+  const [saisieTemporisee] = useValeurDebouncee(saisie, DELAI_ANTI_REBOND_MS);
+  const termeDebounce = saisieTemporisee.trim();
 
   const requete: UseQueryResult<ReponseRecherche> = useQuery({
     queryKey: clesQuery.recherche.globale(termeDebounce),

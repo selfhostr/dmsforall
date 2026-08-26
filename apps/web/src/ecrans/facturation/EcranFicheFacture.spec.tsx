@@ -209,15 +209,17 @@ describe('EcranFicheFacture — action Imprimer / télécharger le PDF', () => {
     await i18n.changeLanguage('fr');
   });
 
+  // « Imprimer » a QUITTÉ le menu « Autres actions » (chantier d'unification inter-écrans,
+  // 25.08.2026) — bouton AUTONOME (`BoutonImprimerDocument`, `composants/motifs/`), au même titre
+  // qu'en atelier (`BoutonImprimerOr`) : `peutImprimer` est un droit de CONSULTATION, décorrélé de
+  // `peutGererFacture` (voir la note de tête de `EcranFicheFacture.tsx`), il n'a plus sa place
+  // derrière un « … » qui ne gouverne plus que Corriger/Créer un avoir. `getByRole('link', …)`
+  // remplace `getByRole('menuitem', …)` : c'est maintenant un lien, plus un item de menu.
   it('apparaît sur une facture émise pour un rôle qui voit les montants', async () => {
     installerHandlerDocument(construireDocument());
-    const utilisateur = userEvent.setup();
     rendre();
 
-    const boutonAutresActions = await screen.findByRole('button', { name: 'Autres actions' });
-    await utilisateur.click(boutonAutresActions);
-
-    const lienImprimer = await screen.findByRole('menuitem', {
+    const lienImprimer = await screen.findByRole('link', {
       name: 'Imprimer / télécharger le PDF',
     });
     expect(lienImprimer).toHaveAttribute('href', '/api/v1/documents-vente/facture-1/pdf');
@@ -278,14 +280,17 @@ describe('EcranFicheFacture — action Imprimer / télécharger le PDF', () => {
       rendre();
 
       const boutonAutresActions = await screen.findByRole('button', { name: 'Autres actions' });
-      await utilisateur.click(boutonAutresActions);
+      // Imprimer ne dépend plus du menu « Autres actions » (bouton autonome depuis le chantier
+      // d'unification inter-écrans, 25.08.2026) — absent directement, plus seulement absent une
+      // fois le menu ouvert.
+      expect(
+        screen.queryByRole('link', { name: 'Imprimer / télécharger le PDF' }),
+      ).not.toBeInTheDocument();
 
+      await utilisateur.click(boutonAutresActions);
       expect(
         await screen.findByRole('menuitem', { name: 'Corriger cette facture' }),
       ).toBeInTheDocument();
-      expect(
-        screen.queryByRole('menuitem', { name: 'Imprimer / télécharger le PDF' }),
-      ).not.toBeInTheDocument();
     },
   );
 
@@ -297,19 +302,16 @@ describe('EcranFicheFacture — action Imprimer / télécharger le PDF', () => {
       installerHandlerDocument(
         construireDocument({ statut: 'annule_par_avoir', annuleParAvoirId: 'avoir-2' }),
       );
-      const utilisateur = userEvent.setup();
       rendre();
 
-      const boutonAutresActions = await screen.findByRole('button', { name: 'Autres actions' });
-      await utilisateur.click(boutonAutresActions);
-
       expect(
-        await screen.findByRole('menuitem', { name: 'Imprimer / télécharger le PDF' }),
+        await screen.findByRole('link', { name: 'Imprimer / télécharger le PDF' }),
       ).toBeInTheDocument();
-      // « Corriger »/« Créer un avoir » n'ont en revanche plus de sens sur une facture déjà annulée.
-      expect(
-        screen.queryByRole('menuitem', { name: 'Corriger cette facture' }),
-      ).not.toBeInTheDocument();
+      // « Corriger »/« Créer un avoir » n'ont en revanche plus de sens sur une facture déjà
+      // annulée : le menu « Autres actions » lui-même n'a donc plus rien à y proposer et
+      // disparaît entièrement (Imprimer, désormais autonome, ne le maintenait plus en vie qu'à
+      // lui seul — voir la note ci-dessus).
+      expect(screen.queryByRole('button', { name: 'Autres actions' })).not.toBeInTheDocument();
     },
   );
 });
@@ -392,8 +394,15 @@ describe('EcranFicheFacture — « Corriger cette facture » / « Corriger par u
         screen.queryByRole('button', { name: /Corriger par un avoir/ }),
       ).not.toBeInTheDocument();
 
-      const boutonAutresActions = await screen.findByRole('button', { name: 'Autres actions' });
-      await utilisateur.click(boutonAutresActions);
+      // Le menu « Autres actions » ne gouverne plus que Corriger/Créer un avoir (Imprimer en est
+      // sorti, chantier d'unification inter-écrans du 25.08.2026) : pour un rôle refusé sur les
+      // DEUX (ex. `chef_atelier`), le menu peut être totalement absent, pas seulement vide une
+      // fois ouvert — seul `receptionnaire` (autorisé pour créer un avoir, refusé pour corriger)
+      // garde ici un menu à ouvrir.
+      const boutonAutresActions = screen.queryByRole('button', { name: 'Autres actions' });
+      if (boutonAutresActions) {
+        await utilisateur.click(boutonAutresActions);
+      }
       expect(
         screen.queryByRole('menuitem', { name: 'Corriger cette facture' }),
       ).not.toBeInTheDocument();
@@ -766,10 +775,13 @@ describe('EcranFicheFacture — droits par geste (émettre / encaisser / créer 
       connecterSession('vendeur');
       const utilisateur = userEvent.setup();
       const rendu1 = rendre();
-      const boutonAutresActionsVendeur = await screen.findByRole('button', {
-        name: 'Autres actions',
-      });
-      await utilisateur.click(boutonAutresActionsVendeur);
+      // vendeur n'a ni `peutCorrigerFacture` ni `peutEmettreAvoir` : aucune action secondaire,
+      // donc le menu « Autres actions » lui-même ne s'affiche plus (Imprimer, qui le maintenait en
+      // vie à lui seul avant le chantier d'unification inter-écrans du 25.08.2026, est désormais un
+      // bouton autonome) — seul le bouton primaire « Encaisser » (droit distinct, voir
+      // `peutEncaisser`, qui inclut `vendeur`) reste visible.
+      await screen.findByRole('button', { name: 'Encaisser' });
+      expect(screen.queryByRole('button', { name: 'Autres actions' })).not.toBeInTheDocument();
       expect(screen.queryByRole('menuitem', { name: 'Créer un avoir' })).not.toBeInTheDocument();
       rendu1.unmount();
 

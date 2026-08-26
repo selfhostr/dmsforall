@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { ClientResume } from '@dfa/shared';
@@ -10,6 +10,7 @@ import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { useListeClients } from '@/hooks/clients/useListeClients';
+import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { cn } from '@/lib/utils';
 
 const DELAI_DEBOUNCE_MS = 300;
@@ -37,12 +38,7 @@ interface Props {
 export function SelecteurClientVehicule({ valeur, onChangeValeur, libelle, requis }: Props) {
   const { t } = useTranslation(['vehicules', 'commun', 'erreurs']);
   const [qSaisie, setQSaisie] = useState('');
-  const [q, setQ] = useState('');
-
-  useEffect(() => {
-    const identifiant = window.setTimeout(() => setQ(qSaisie), DELAI_DEBOUNCE_MS);
-    return () => window.clearTimeout(identifiant);
-  }, [qSaisie]);
+  const [q] = useValeurDebouncee(qSaisie, DELAI_DEBOUNCE_MS);
 
   const rechercheActive = q.trim() !== '';
   // `enabled: rechercheActive` — pas de requête pour toute la première page au montage tant que la

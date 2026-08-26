@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -157,6 +157,44 @@ describe('EcranListeOrdresReparation', () => {
       expect(screen.queryByText('0.00')).not.toBeInTheDocument();
       expect(screen.queryByText(/CHF\s*0/)).not.toBeInTheDocument();
       expect(screen.getByText('Non visible')).toBeInTheDocument();
+    });
+  });
+
+  describe('« Effacer les filtres » — geste de reprise en main (arbitrage @laupernoe 26.08.2026)', () => {
+    it('redevient inactif IMMÉDIATEMENT au clic, sans attendre le délai de la recherche', async () => {
+      repondreListe([construireResume()]);
+      const utilisateur = userEvent.setup();
+      rendreEcran();
+
+      await screen.findByText('OR-000123');
+
+      const champRecherche = screen.getByRole('searchbox', { name: 'Rechercher' });
+      expect(screen.getByRole('button', { name: 'Effacer les filtres' })).toBeDisabled();
+
+      await utilisateur.type(champRecherche, 'abc');
+
+      // Le bouton ne s'active qu'une fois l'anti-rebond écoulé — comportement INCHANGÉ, la
+      // recherche reste temporisée. `waitFor` interroge le DOM à CHAQUE tentative (jamais une
+      // référence capturée à l'avance) : `q='abc'` déclenche une requête `?q=abc` inédite pour
+      // TanStack Query, qui démonte brièvement `BarreFiltres` derrière `EtatChargement` — une
+      // référence figée sur l'ancien bouton resterait bloquée sur son état gelé au démontage.
+      await waitFor(
+        () => expect(screen.getByRole('button', { name: 'Effacer les filtres' })).toBeEnabled(),
+        { timeout: 5000 },
+      );
+
+      await utilisateur.click(screen.getByRole('button', { name: 'Effacer les filtres' }));
+
+      // Assertion SYNCHRONE (juste après le clic, jamais `waitFor`) : `q=''` (filtres.q devient
+      // `undefined`) correspond exactement à la requête déjà servie au montage — TanStack Query
+      // la sert du cache SANS passer par `isPending`, `BarreFiltres` ne se démonte donc pas ici,
+      // contrairement à la frappe « abc » ci-dessus. Avant le levier de reset (`reinitialiserQ`,
+      // `hooks/commun/useValeurDebouncee`), `q` aurait mis le même délai que la frappe à retomber
+      // à `''` — le bouton serait resté actif ici, exactement la régression que @laupernoe a refusée
+      // (26.08.2026). Un « Effacer les filtres » est un geste de reprise en main, pas une
+      // recherche : il ne doit jamais sembler ignoré.
+      expect(screen.getByRole('button', { name: 'Effacer les filtres' })).toBeDisabled();
+      expect(screen.getByRole('searchbox', { name: 'Rechercher' })).toHaveValue('');
     });
   });
 
