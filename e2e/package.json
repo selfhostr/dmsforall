@@ -1,0 +1,6 @@
+{
+  "name": "@dfa/e2e",
+  "private": true,
+  "type": "module",
+  "description": "Résout ce sous-arbre en ESM (import.meta.url) sans changer le reste du monorepo — pas un membre du workspace pnpm, voir e2e/README.md."
+}

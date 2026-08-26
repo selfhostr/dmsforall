@@ -34,6 +34,12 @@ playwright-report/
 test-results/
 blob-report/
 
+# e2e (e2e/playwright.config.ts) — état d'authentification rejouable (cookie de session RÉEL,
+# jamais commité) et captures produites par une exécution locale du harnais (livrées à @laupernoe hors
+# dépôt, voir e2e/README.md « Captures »).
+/e2e/.auth/
+/e2e/captures-apres-refonte/
+
 # Caches outils
 .eslintcache
 .turbo/
