@@ -83,8 +83,32 @@ export function TableauBordDirection({ site }: Props) {
     // posé sur `EcranTableauBord` — remplacent les `gap-6`/`gap-4` fixes d'origine, mêmes valeurs en
     // mode aéré (dégradation sûre hors de ce contexte), plus petites ici.
     <div className="flex flex-col gap-section">
-      <div className="grid gap-groupe sm:grid-cols-2 lg:grid-cols-4">
+      {/* DESIGN.md « carte dans une carte » (grief n°1, capture `light-dashboard.png`) — le
+       *  sélecteur vivait auparavant DANS la même cellule de grille qu'une `Card` (« Chiffre
+       *  d'affaires TTC »), lui-même coincé entre deux autres `Card` pleines (Encours clients, OR
+       *  en atelier) sur la même ligne : la zone de contrôle non encartée, posée juste au-dessus
+       *  d'une carte, à l'intérieur d'une cellule flanquée de deux cartes entières, se lisait comme
+       *  un rectangle inséré dans un autre. Sorti ici en bandeau de contrôle PLEINE LARGEUR, jamais
+       *  encarté (règle « bordure structurelle uniquement » : un filtre de période n'est pas une
+       *  zone d'action à isoler dans sa propre boîte) — même patron que `TableauBordComptable`, où
+       *  ce sélecteur a toujours vécu au-dessus de sa grille, jamais imbriqué dans une cellule.
+       *  Portée du filtre : `financier` (donc CA ET Encours clients, qui partagent la même requête,
+       *  voir plus bas) — jamais « OR actuellement en atelier », toujours un SNAPSHOT (`activite`).
+       */}
+      <SelecteurPeriodeTableauBord
+        du={du}
+        au={au}
+        onChangeDu={setDu}
+        onChangeAu={setAu}
+        periodeAppliquee={financier.data?.periode}
+      />
+
+      {/* DESIGN.md grief n°2 — `items-start` : les trois cartes `compact` ci-dessous ont des
+          descriptions de longueur différente (1 à 3 lignes) ; sans lui, la grille CSS étire
+          chacune à la hauteur de la plus haute, rouvrant le même vide que sans `compact`. */}
+      <div className="grid items-start gap-groupe sm:grid-cols-2 lg:grid-cols-4">
         <CarteChiffreRequete
+          compact
           titre={t('tableauBord:financier.encoursClients.libelle')}
           resultat={financier}
           libelleErreur={t('tableauBord:financier.erreur.titre')}
@@ -99,29 +123,23 @@ export function TableauBordDirection({ site }: Props) {
             texte: t('tableauBord:communs.voirFactures'),
           }}
         />
-        <div className="flex flex-col gap-2 sm:col-span-2 sm:row-span-1">
-          <SelecteurPeriodeTableauBord
-            du={du}
-            au={au}
-            onChangeDu={setDu}
-            onChangeAu={setAu}
-            periodeAppliquee={financier.data?.periode}
-          />
-          <CarteChiffreRequete
-            titre={t('tableauBord:financier.chiffreAffaires.libelle')}
-            resultat={financier}
-            libelleErreur={t('tableauBord:financier.erreur.titre')}
-            valeur={(donnees) => `CHF ${formaterMontant(donnees.chiffreAffaires.totalTtcCentimes)}`}
-            description={(donnees) =>
-              t('tableauBord:financier.chiffreAffaires.detail', {
-                ht: formaterMontant(donnees.chiffreAffaires.totalHtCentimes),
-                tva: formaterMontant(donnees.chiffreAffaires.totalTvaCentimes),
-                nombreDocuments: donnees.chiffreAffaires.nombreDocuments,
-              })
-            }
-          />
-        </div>
         <CarteChiffreRequete
+          compact
+          className="sm:col-span-2"
+          titre={t('tableauBord:financier.chiffreAffaires.libelle')}
+          resultat={financier}
+          libelleErreur={t('tableauBord:financier.erreur.titre')}
+          valeur={(donnees) => `CHF ${formaterMontant(donnees.chiffreAffaires.totalTtcCentimes)}`}
+          description={(donnees) =>
+            t('tableauBord:financier.chiffreAffaires.detail', {
+              ht: formaterMontant(donnees.chiffreAffaires.totalHtCentimes),
+              tva: formaterMontant(donnees.chiffreAffaires.totalTvaCentimes),
+              nombreDocuments: donnees.chiffreAffaires.nombreDocuments,
+            })
+          }
+        />
+        <CarteChiffreRequete
+          compact
           titre={t('tableauBord:activite.enAtelier.libelle')}
           resultat={activite}
           libelleErreur={t('tableauBord:activite.erreur.titre')}
@@ -132,8 +150,11 @@ export function TableauBordDirection({ site }: Props) {
         />
       </div>
 
-      <div className="grid gap-groupe sm:grid-cols-2 lg:grid-cols-3">
+      {/* DESIGN.md grief n°2 — `items-start` : « marge indisponible » (deux lignes de motif) est
+          structurellement plus haute que ses deux voisines, mêmes raisons que la grille ci-dessus. */}
+      <div className="grid items-start gap-groupe sm:grid-cols-2 lg:grid-cols-3">
         <CarteChiffreRequete
+          compact
           titre={t('tableauBord:financier.marges.vehicules.libelle')}
           resultat={financier}
           libelleErreur={t('tableauBord:financier.erreur.titre')}
@@ -145,6 +166,7 @@ export function TableauBordDirection({ site }: Props) {
           }
         />
         <CarteChiffreRequete
+          compact
           titre={t('tableauBord:financier.marges.indisponible.titre')}
           resultat={financier}
           libelleErreur={t('tableauBord:financier.erreur.titre')}
@@ -169,6 +191,7 @@ export function TableauBordDirection({ site }: Props) {
           )}
         />
         <CarteChiffreRequete
+          compact
           titre={t('tableauBord:financier.stockPieces.libelle')}
           resultat={financier}
           libelleErreur={t('tableauBord:financier.erreur.titre')}

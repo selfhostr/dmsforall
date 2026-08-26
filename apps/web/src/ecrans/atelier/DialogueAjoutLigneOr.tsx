@@ -437,7 +437,10 @@ export function DialogueAjoutLigneOr({ orId, siteId }: Props) {
             ) : null}
 
             {estPiece && etat.articleId ? (
-              <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-3 py-2">
+              // DESIGN.md « bordure structurelle uniquement » — `border` + `bg-muted/40` cumulait
+              // deux techniques pour la même frontière (même défaut que `Card` avant le socle) ;
+              // la surface tonale seule suffit à distinguer ce résumé du reste du formulaire.
+              <div className="flex items-center justify-between gap-3 rounded-md bg-muted/40 px-3 py-2">
                 <span className="texte-libelle text-muted-foreground">
                   {t('or:lignes.selecteurArticle.choisi')}
                 </span>

@@ -226,7 +226,11 @@ export function EnTeteOrdreReparation({ or }: Props) {
           </button>
         ) : null}
 
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-md border p-3 texte-corps sm:grid-cols-3">
+        {/* DESIGN.md « bordure structurelle uniquement » — ce bandeau (km entrée/sortie,
+         *  localisation, restitution, plafond) est un simple groupe de contenu (paires dt/dd en
+         *  lecture seule, aucun comportement propre) : `border` retiré, remplacé par une surface
+         *  tonale (même mécanisme que `Card`, jamais cumulée avec un trait). */}
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-md bg-muted/40 p-3 texte-corps sm:grid-cols-3">
           <dt className="text-muted-foreground">{t('or:bandeau.kmEntree')}</dt>
           <dd className="col-span-2 sm:col-span-1">
             {or.kilometrageEntree !== null ? formaterKilometrage(or.kilometrageEntree, 'km') : ''}

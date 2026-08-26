@@ -97,8 +97,11 @@ export function TableauBordComptable({ site }: Props) {
         periodeAppliquee={financier.data?.periode}
       />
 
-      <div className="grid gap-groupe sm:grid-cols-3">
+      {/* DESIGN.md grief n°2 — `items-start` : « encaissements » n'a pas de description (contre
+          une phrase pour ses deux voisines) ; sans lui, la grille CSS l'étirerait à leur hauteur. */}
+      <div className="grid items-start gap-groupe sm:grid-cols-3">
         <CarteChiffreRequete
+          compact
           titre={t('tableauBord:financier.encoursClients.libelle')}
           resultat={financier}
           libelleErreur={t('tableauBord:financier.erreur.titre')}
@@ -110,12 +113,14 @@ export function TableauBordComptable({ site }: Props) {
           }}
         />
         <CarteChiffreRequete
+          compact
           titre={t('tableauBord:financier.encaissements.libelle')}
           resultat={financier}
           libelleErreur={t('tableauBord:financier.erreur.titre')}
           valeur={(donnees) => `CHF ${formaterMontant(donnees.encaissementsCentimes)}`}
         />
         <CarteChiffreRequete
+          compact
           titre={t('tableauBord:comptable.aRelancer.titre')}
           resultat={resultatARelancer}
           libelleErreur={t('tableauBord:comptable.aRelancer.erreur')}

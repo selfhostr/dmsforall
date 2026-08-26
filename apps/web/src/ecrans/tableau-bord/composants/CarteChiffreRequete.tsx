@@ -29,6 +29,15 @@ interface Props<T> {
   readonly valeur: (donnees: T) => string;
   readonly description?: (donnees: T) => ReactNode;
   readonly lien?: { readonly to: string; readonly texte: string };
+  /** DESIGN.md « densité » — rembourrage réduit (`--espace-carte-compacte`), réservé au contenu
+   *  minimal que cette carte porte par nature (un chiffre, un titre, un libellé) : candidat
+   *  explicitement cité par le socle. `false` par défaut, jamais activé pour ne pas changer le
+   *  rendu des appelants existants sans le vouloir. */
+  readonly compact?: boolean;
+  /** Positionnement dans la grille de l'appelant (ex. `sm:col-span-2`) — jamais un style visuel,
+   *  seulement du placement, cohérent avec la Card qui reste par ailleurs sans classe imposée par
+   *  cet appelant. */
+  readonly className?: string;
 }
 
 /**
@@ -50,11 +59,13 @@ export function CarteChiffreRequete<T>({
   valeur,
   description,
   lien,
+  compact = false,
+  className,
 }: Props<T>) {
   const { t } = useTranslation('commun');
 
   return (
-    <Card>
+    <Card compact={compact} className={className}>
       <CardHeader>
         <CardTitle>{titre}</CardTitle>
       </CardHeader>

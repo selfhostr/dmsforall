@@ -58,8 +58,12 @@ export function TableauBordChefAtelier({ site }: Props) {
         <CarteOrEnRetard site={site} />
       </div>
 
-      <div className="grid gap-groupe sm:grid-cols-3">
+      {/* DESIGN.md grief n°2 — `items-start` : `CarteEquipeEnCours` (liste jusqu'à 6 techniciens)
+          est structurellement plus haute que ses deux voisines `compact`, mêmes raisons que
+          `TableauBordDirection`. */}
+      <div className="grid items-start gap-groupe sm:grid-cols-3">
         <CarteChiffreRequete
+          compact
           titre={t('tableauBord:activite.orEnAttentePieces.libelle')}
           resultat={orEnAttentePieces}
           libelleErreur={t('tableauBord:activite.orEnAttentePieces.erreur')}
@@ -67,6 +71,7 @@ export function TableauBordChefAtelier({ site }: Props) {
           description={() => t('tableauBord:activite.orEnAttentePieces.description')}
         />
         <CarteChiffreRequete
+          compact
           titre={t('tableauBord:activite.lignesEnAttenteValidation.libelle')}
           resultat={activite}
           libelleErreur={t('tableauBord:activite.erreur.titre')}

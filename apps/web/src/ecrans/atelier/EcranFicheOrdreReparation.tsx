@@ -167,8 +167,17 @@ export function EcranFicheOrdreReparation() {
        *  contenu qui a besoin de toute la largeur de page comme le tableau de lignes ci-dessus —
        *  les empiler en pleine largeur ne faisait que gaspiller du défilement vertical. Chacune
        *  reste conditionnelle comme avant (contenu inchangé), la grille absorbe simplement
-       *  1 à 4 d'entre elles selon ce que ce document précis porte. */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+       *  1 à 4 d'entre elles selon ce que ce document précis porte.
+       *
+       *  DESIGN.md grief n°2 (« vide en bas des cartes ») — `items-start` AJOUTÉ : sans lui, la
+       *  grille CSS étire par défaut chaque carte d'une même ligne à la hauteur de sa voisine la
+       *  plus haute (ex. « Documents de vente », une ligne, forcée à la hauteur de « Totaux »,
+       *  plusieurs lignes) — exactement le vide que `compact` seul ne peut pas corriger, un
+       *  problème d'étirement de grille, pas de rembourrage. Même patron déjà en place dans
+       *  `TableauBordDirection.tsx`/`TableauBordReceptionnaire.tsx`. `gap-4` -> `gap-groupe` :
+       *  jeton de densité (index.css) plutôt qu'une valeur brute, même règle que le reste de
+       *  l'écran. */}
+      <div className="grid grid-cols-1 gap-groupe lg:grid-cols-2 lg:items-start">
         {/* Lot B — pièces utilisées, vers la fiche article (magasinier : « depuis une fiche
          *  article, voir sur quel OR elle a été posée » — ici le sens inverse, tout aussi demandé
          *  par le chef d'atelier). */}

@@ -32,7 +32,9 @@ interface Props {
  */
 export function CarteAccesRapide({ titre, description, lien }: Props) {
   return (
-    <Card>
+    // DESIGN.md « densité » — titre + description + un seul bouton : contenu minimal, même
+    // candidat que `CarteChiffreRequete` pour `--espace-carte-compacte`.
+    <Card compact>
       <CardHeader>
         <CardTitle>{titre}</CardTitle>
         <CardDescription>{description}</CardDescription>

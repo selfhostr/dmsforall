@@ -41,8 +41,9 @@ export function TableauBordAdmin({ site }: Props) {
     // plutôt que défilement ») — les raccourcis rejoignent les deux chiffres au lieu de rester
     // empilés en dessous. `items-start` : la carte raccourcis (deux liens) ne s'étire pas à la
     // hauteur d'une carte chiffre+description.
-    <div className="grid gap-groupe sm:grid-cols-2 lg:grid-cols-3 lg:items-start">
+    <div className="grid items-start gap-groupe sm:grid-cols-2 lg:grid-cols-3">
       <CarteChiffreRequete
+        compact
         titre={t('tableauBord:activite.enAtelier.libelle')}
         resultat={activite}
         libelleErreur={t('tableauBord:activite.erreur.titre')}
@@ -52,6 +53,7 @@ export function TableauBordAdmin({ site }: Props) {
         description={() => t('tableauBord:activite.enAtelier.description')}
       />
       <CarteChiffreRequete
+        compact
         titre={t('tableauBord:activite.articlesSousSeuil.libelle')}
         resultat={activite}
         libelleErreur={t('tableauBord:activite.erreur.titre')}
@@ -62,13 +64,18 @@ export function TableauBordAdmin({ site }: Props) {
           des utilisateurs n'existe encore dans ce dépôt (vérifié : `routeur.tsx`/`chemins.ts`
           n'ont aucune entrée `utilisateurs`) ; omis plutôt qu'un lien mort. Les deux raccourcis
           ci-dessous pointent vers des écrans RÉELS. */}
-      <Card>
+      {/* DESIGN.md « densité » — titre + deux liens : contenu minimal, `compact` comme
+          `CarteChiffreRequete`/`CarteAccesRapide`. `<nav>` reste un élément brut (jamais
+          `CardContent`, qui rendrait un `<div>` — la sémantique de navigation prime) : le
+          rembourrage compact est donc répété ici en dur plutôt que lu depuis le contexte React de
+          `Card` (réservé à `CardHeader`/`CardContent`/`CardFooter`). */}
+      <Card compact>
         <CardHeader>
           <CardTitle>{t('tableauBord:admin.raccourcis.titre')}</CardTitle>
         </CardHeader>
         <nav
           aria-label={t('tableauBord:admin.raccourcis.titre')}
-          className="flex flex-col gap-2 px-carte pb-carte"
+          className="flex flex-col gap-2 px-carte-compacte pb-carte-compacte"
         >
           <Link
             to={chemins.parametrage.sites(site)}

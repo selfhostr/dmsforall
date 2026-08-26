@@ -306,7 +306,10 @@ export function FormulaireNouvelOrdreReparation({
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex items-center justify-between gap-3 rounded-md border p-3">
+      {/* DESIGN.md « bordure structurelle uniquement » — résumé de lecture (véhicule + bouton
+       *  « Modifier »), pas une zone d'action à isoler : `border` remplacé par une surface tonale,
+       *  même mécanisme que `Card`. */}
+      <div className="flex items-center justify-between gap-3 rounded-md bg-muted/40 p-3">
         <div className="flex min-w-0 flex-col gap-1">
           <span className="texte-libelle text-muted-foreground">
             {t('or:nouveau.vehicule.titre')}
@@ -410,6 +413,10 @@ export function FormulaireNouvelOrdreReparation({
         </div>
       ) : null}
 
+      {/* DESIGN.md « bordure structurelle uniquement » — CONSERVÉE ici, à la différence des
+       *  fieldsets voisins retirés ci-dessus/dessous : ce groupe porte son propre comportement
+       *  (ajouter/retirer une demande, une mini-liste éditable), pas un simple regroupement de
+       *  champs statiques — la bordure sépare une zone dont le comportement diffère réellement. */}
       <fieldset className="space-y-2 rounded-md border p-3">
         <legend className="px-1 texte-libelle font-medium text-foreground">
           {t('or:demandes.titre')}
@@ -472,7 +479,11 @@ export function FormulaireNouvelOrdreReparation({
         disabled={enCours}
       />
 
-      <fieldset className="space-y-3 rounded-md border p-3">
+      {/* DESIGN.md « bordure structurelle uniquement » — champs indépendants sans action propre
+       *  (contrairement au fieldset « demandes » ci-dessus, qui gère son propre ajout/retrait de
+       *  liste) : `border` remplacé par une surface tonale, `legend` porte déjà le titre du
+       *  groupe. */}
+      <fieldset className="space-y-3 rounded-md bg-muted/40 p-3">
         <legend className="px-1 texte-libelle font-medium text-foreground">
           {t('or:nouveau.champs.avance')}
         </legend>

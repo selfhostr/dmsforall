@@ -36,7 +36,10 @@ export function TableauBordMagasinier({ site, sites }: Props) {
 
   return (
     <div className="flex flex-col gap-section">
-      <div className="grid gap-groupe sm:grid-cols-2">
+      {/* DESIGN.md grief n°2 — `items-start` : `CarteAccesRapide` (`compact`, titre+description+
+          bouton) est structurellement plus courte que `CarteReapprovisionnement` (liste jusqu'à 5
+          lignes) ; sans lui, la grille CSS l'étirerait à la hauteur de sa voisine. */}
+      <div className="grid items-start gap-groupe sm:grid-cols-2">
         <CarteAccesRapide
           titre={t('tableauBord:magasinier.reservations.titre')}
           description={t('tableauBord:magasinier.reservations.description')}
