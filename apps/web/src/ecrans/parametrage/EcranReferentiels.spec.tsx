@@ -132,8 +132,20 @@ describe('EcranReferentiels — taux horaires', () => {
     );
     rendre();
 
-    expect(await screen.findByText('MEC')).toBeInTheDocument();
-    expect(screen.getByText('Mécanique générale')).toBeInTheDocument();
+    // Attente sur la colonne « libellé », PAS sur la colonne « code » (`findByText('MEC')`) :
+    // `role` (chef_atelier) vient d'une session asynchrone (`useSession`), résolue APRÈS le
+    // premier rendu de la ligne — `onOuvrirLigne` passe donc de `undefined` à défini en cours de
+    // montage (`peutEcrire ? ouvrirEdition : undefined`, `OngletTauxHoraires.tsx`). La colonne
+    // identifiante (« code ») est la seule à changer de FORME selon `onOuvrirLigne` (texte nu ->
+    // `<button>`, voir JSDoc `TableComptoir`) : React démonte l'ancien nœud « MEC » pour en
+    // remonter un nouveau au lieu de le mettre à jour en place. `findByText('MEC')` peut donc
+    // résoudre sur la RÉFÉRENCE PÉRIMÉE du premier rendu et échouer à `toBeInTheDocument()`
+    // (mesuré : échec systématique ~450ms, sans rapport avec `asyncUtilTimeout`). La colonne
+    // « libellé » ne porte jamais ce bouton (jamais la colonne identifiante ici) : sa structure ne
+    // bouge pas quand `role` se résout, `findByText` y est donc fiable — une fois elle affichée,
+    // la même passe de rendu a déjà réglé la colonne « code » : vérification synchrone ensuite.
+    expect(await screen.findByText('Mécanique générale')).toBeInTheDocument();
+    expect(screen.getByText('MEC')).toBeInTheDocument();
     expect(screen.getByText('145.00')).toBeInTheDocument();
   });
 

@@ -33,7 +33,12 @@ describe('VueListeRendezVous', () => {
     expect(screen.getByText('Jean Dupont')).toBeInTheDocument();
     expect(screen.getByText('Entretien / service courant')).toBeInTheDocument();
     expect(screen.getByText('Confirmé')).toBeInTheDocument();
-    const ligne = screen.getByRole('link');
+    // `role: 'button'`, pas `'link'` : correctif e2e `TableComptoir` (WCAG 1.3.1) — poser
+    // `role="link"` sur le `<tr>` de la ligne remplaçait son rôle `row` implicite au lieu de s'y
+    // ajouter, rendant la table imparcourable en navigation par tableau au lecteur d'écran (non
+    // détecté par axe-core). Le clavier/nom accessible vivent maintenant sur un vrai `<button>`
+    // dans la colonne identifiante (« heure »), le `<tr>` garde son rôle `row` natif intact.
+    const ligne = screen.getByRole('button');
     ligne.focus();
     await utilisateur.keyboard('{Enter}');
     expect(onOuvrir).toHaveBeenCalledWith(rendezVous);

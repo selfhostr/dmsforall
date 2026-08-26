@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -52,7 +52,10 @@ describe('TableComptoir', () => {
       />,
     );
 
-    const lignes = screen.getAllByRole('link');
+    // Le clavier passe par le vrai `<button>` de la colonne identifiante (rendu table), PAS par
+    // le `<tr>` — voir JSDoc de `TableComptoir` : poser `role="link"`/`tabIndex` sur le `<tr>`
+    // écraserait son rôle `row` implicite (bug e2e mesuré, WCAG 1.3.1, non détecté par axe-core).
+    const lignes = screen.getAllByRole('button');
     lignes[1]?.focus();
     await utilisateur.keyboard('{Enter}');
     expect(onOuvrirLigne).toHaveBeenCalledWith(LIGNES[1]);
@@ -69,14 +72,33 @@ describe('TableComptoir', () => {
       />,
     );
 
-    expect(screen.getByRole('link', { name: 'Ouvrir Alice' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Ouvrir Bob' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ouvrir Alice' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ouvrir Bob' })).toBeInTheDocument();
   });
 
-  it('ne pose pas de rôle « link » quand les lignes ne sont pas cliquables', () => {
+  it('ne pose ni rôle « link » ni bouton de ligne quand les lignes ne sont pas cliquables', () => {
     render(<TableComptoir colonnes={COLONNES} lignes={LIGNES} cleLigne={(l) => l.id} />);
 
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('table cliquable : `<tr>` garde son rôle `row` natif, ligne d’en-tête comprise (régression e2e — un `role` réassigné sur le `<tr>` remplace `row` au lieu de s’y ajouter, la table devenait imparcourable en navigation par tableau au lecteur d’écran)', () => {
+    render(
+      <TableComptoir
+        colonnes={COLONNES}
+        lignes={LIGNES}
+        cleLigne={(l) => l.id}
+        onOuvrirLigne={vi.fn()}
+        libelleLigne={(l) => `Ouvrir ${l.nom}`}
+      />,
+    );
+
+    const table = screen.getByRole('table');
+    // 1 ligne d'en-tête + 2 lignes de données — AUCUNE n'est masquée par un `role` réassigné.
+    expect(within(table).getAllByRole('row')).toHaveLength(3);
+    expect(within(table).getAllByRole('columnheader')).toHaveLength(1);
+    expect(within(table).getAllByRole('cell')).toHaveLength(2);
   });
 
   it('pose aria-sort sur la colonne triée et appelle onTrier au clic sur l’en-tête', async () => {
@@ -233,9 +255,13 @@ describe('TableComptoir — virtualisation (issue #92)', () => {
         libelleLigne={(l) => `Ouvrir ${l.nom}`}
       />,
     );
-    const premiereLigne = container.querySelector<HTMLTableRowElement>('tbody tr[data-index]');
-    expect(premiereLigne).not.toBeNull();
-    premiereLigne?.focus();
+    // Le `<tr>` n'est plus le point d'entrée clavier (voir JSDoc `TableComptoir`) : c'est le vrai
+    // `<button>` de la colonne identifiante qui porte le focus/Entrée, y compris en virtualisé.
+    const premiereLigneBouton = container.querySelector<HTMLButtonElement>(
+      'tbody tr[data-index] button',
+    );
+    expect(premiereLigneBouton).not.toBeNull();
+    premiereLigneBouton?.focus();
     await utilisateur.keyboard('{Enter}');
     expect(onOuvrirLigne).toHaveBeenCalledWith(lignes[0]);
   });

@@ -99,9 +99,11 @@ export interface ProprietesTableComptoir<T> {
   /** Navigation au clic/`Entrée` sur la ligne. Omis => lignes non cliquables (table de
    *  résumé, pas de fiche à ouvrir). */
   readonly onOuvrirLigne?: (ligne: T) => void;
-  /** Nom accessible de la ligne quand `onOuvrirLigne` est fourni — posé en `aria-label` sur le
-   *  `role="link"` de la ligne. Sans lui, un lecteur d'écran annonce « lien » sans dire lequel :
-   *  À FOURNIR dès que `onOuvrirLigne` l'est (déjà traduit par l'appelant, ex.
+  /** Nom accessible de la ligne quand `onOuvrirLigne` est fourni — posé en `aria-label` sur la
+   *  carte (`role="link"`, repli mobile) et sur le `<button>` de la colonne identifiante (rendu
+   *  table, 767px et au-delà, voir JSDoc du composant). Sans lui : la carte annonce « lien » sans
+   *  dire lequel, le bouton de table retombe sur le texte visible de la colonne (moins précis mais
+   *  jamais muet) — À FOURNIR dès que `onOuvrirLigne` l'est (déjà traduit par l'appelant, ex.
    *  `t('commun:actions.ouvrirElement', { nom: ligne.numero })`). */
   readonly libelleLigne?: (ligne: T) => string;
   /** `true` pendant le chargement initial : rend des lignes squelette au lieu du corps. */
@@ -131,9 +133,23 @@ function importanceEffective<T>(
  * clavier, colonne d'actions qui n'active pas la navigation. Densité `dense` par défaut
  * (contexte bureau/comptoir — docs/design-comptoir.md §1 et §4).
  *
- * Ligne cliquable = `role="link"` : sans nom accessible, un lecteur d'écran annonce « lien »
- * sans dire lequel. `libelleLigne` porte ce nom (`aria-label`) — à fournir par tout appelant qui
- * passe `onOuvrirLigne`.
+ * LIGNE CLIQUABLE, RENDU TABLE (767px et au-delà) — PAS de `role` réassigné sur le `<tr>` : poser
+ * `role="link"`/`role="button"` sur un `<tr>` REMPLACE son rôle implicite `row` (un `role` ne
+ * s'ajoute jamais, il écrase), ce qui rend la table entière imparcourable en navigation par
+ * tableau au lecteur d'écran (measuré par le harnais e2e — `getByRole('table').getByRole('row')`
+ * ne trouvait plus que l'en-tête sur une table de 5 lignes, WCAG 1.3.1 ; `axe-core` ne détecte PAS
+ * ce défaut). À la place : la ligne garde son rôle `row` natif et un `onClick` qui couvre le clic
+ * souris n'importe où sur la ligne (`proprietesLigneTable`) ; la cellule de la première colonne de
+ * contenu (hors colonne `actions` — celle que le mode carte désigne déjà `principale` par défaut,
+ * voir `importanceEffective`) porte un vrai `<button>` autour de son contenu, qui capte le clavier
+ * (Entrée/Espace natifs, pas de `onKeyDown` à réimplémenter) et le lecteur d'écran (annoncé comme
+ * un bouton nommé, jamais un `<tr>` muet avec juste un `tabIndex`). `libelleLigne` porte ce nom
+ * (`aria-label` du bouton) — à fournir par tout appelant qui passe `onOuvrirLigne`, sinon le
+ * bouton retombe sur le texte visible de la colonne comme nom accessible.
+ *
+ * RENDU CARTE (repli sous 767px, `rendreCarte` plus bas) — `role="link"` sur la carte (`<div>`)
+ * reste le bon patron : un `<div>` n'a pas de rôle implicite à écraser, donc rien à perdre ici
+ * (`proprietesCarteCliquable`).
  *
  * REPLI EN CARTES (sous 767px, `useModeCarteComptoir`) — une table à plusieurs colonnes déborde
  * et se fait défiler au doigt sur téléphone (pire défaut mobile mesuré de l'appli, huit colonnes
@@ -169,11 +185,10 @@ export function TableComptoir<T>({
     onOuvrirLigne?.(ligne);
   };
 
-  // `HTMLElement` plutôt que `HTMLTableRowElement` : `proprietesLigneCliquable` est repris tel
-  // quel sur la carte (un `<div>`, mode repli) ET sur la ligne de table (`<tr>`) — un type
-  // commun aux deux évite de dupliquer ce patron d'accessibilité (rôle/nom accessible/clavier)
-  // entre les deux rendus.
-  const gererClavierLigne = (evenement: KeyboardEvent<HTMLElement>, ligne: T) => {
+  // Seul le mode carte (`rendreCarte`, `<div role="link">`) s'appuie encore sur ce clavier
+  // manuel : en rendu table, le `<button>` natif de `rendreCellules` gère Entrée/Espace tout
+  // seul, rien à réimplémenter (voir JSDoc du composant).
+  const gererClavierLigne = (evenement: KeyboardEvent<HTMLDivElement>, ligne: T) => {
     if (!onOuvrirLigne) return;
     if (evenement.key === 'Enter' || evenement.key === ' ') {
       evenement.preventDefault();
@@ -234,20 +249,47 @@ export function TableComptoir<T>({
     overscan: SURVOL_VIRTUALISATION,
   });
 
+  // Colonne « identifiante » de la ligne en rendu table : même choix par défaut que le mode carte
+  // (`importanceEffective` — première colonne de contenu, hors `actions`), réutilisé ici comme
+  // ancrage du vrai `<button>` clavier/lecteur d'écran de la ligne (voir JSDoc du composant).
+  const colonneIdentifianteLigne = colonnes.find((colonne) => !colonne.actions);
+
   function rendreCellules(ligne: T) {
-    return colonnes.map((colonne) => (
-      <TableCell
-        key={colonne.id}
-        className={cn(classeAlignement(colonne.alignement), colonne.className)}
-        onClick={colonne.actions ? (evenement) => evenement.stopPropagation() : undefined}
-        onKeyDown={colonne.actions ? (evenement) => evenement.stopPropagation() : undefined}
-      >
-        {colonne.rendu(ligne)}
-      </TableCell>
-    ));
+    return colonnes.map((colonne) => {
+      const estColonneIdentifiante =
+        Boolean(onOuvrirLigne) && colonneIdentifianteLigne?.id === colonne.id;
+      return (
+        <TableCell
+          key={colonne.id}
+          className={cn(classeAlignement(colonne.alignement), colonne.className)}
+          onClick={colonne.actions ? (evenement) => evenement.stopPropagation() : undefined}
+          onKeyDown={colonne.actions ? (evenement) => evenement.stopPropagation() : undefined}
+        >
+          {estColonneIdentifiante ? (
+            // `stopPropagation` : sans lui, le clic bulle jusqu'au `onClick` du `<tr>`
+            // (`proprietesLigneTable`) et `onOuvrirLigne` serait appelé deux fois pour un seul
+            // clic sur ce bouton — même garde que la colonne `actions` juste au-dessus.
+            <button
+              type="button"
+              className="anneau-focus-interne block w-full rounded-sm"
+              onClick={(evenement) => {
+                evenement.stopPropagation();
+                gererClicLigne(ligne);
+              }}
+              aria-label={libelleLigne?.(ligne)}
+            >
+              {colonne.rendu(ligne)}
+            </button>
+          ) : (
+            colonne.rendu(ligne)
+          )}
+        </TableCell>
+      );
+    });
   }
 
-  function proprietesLigneCliquable(ligne: T) {
+  /** Rendu carte (repli mobile, `<div>`) : `role="link"` valide ici, rien à écraser. */
+  function proprietesCarteCliquable(ligne: T) {
     return {
       role: onOuvrirLigne ? ('link' as const) : undefined,
       'aria-label': onOuvrirLigne ? libelleLigne?.(ligne) : undefined,
@@ -255,8 +297,18 @@ export function TableComptoir<T>({
       className: onOuvrirLigne ? 'cursor-pointer' : undefined,
       onClick: onOuvrirLigne ? () => gererClicLigne(ligne) : undefined,
       onKeyDown: onOuvrirLigne
-        ? (evenement: KeyboardEvent<HTMLElement>) => gererClavierLigne(evenement, ligne)
+        ? (evenement: KeyboardEvent<HTMLDivElement>) => gererClavierLigne(evenement, ligne)
         : undefined,
+    };
+  }
+
+  /** Rendu table (`<tr>`) : clic souris n'importe où sur la ligne, SANS `role`/`tabIndex` — le
+   *  rôle `row` natif reste intact, le clavier/lecteur d'écran passent par le `<button>` de
+   *  `rendreCellules` (colonne identifiante). */
+  function proprietesLigneTable(ligne: T) {
+    return {
+      className: onOuvrirLigne ? 'cursor-pointer' : undefined,
+      onClick: onOuvrirLigne ? () => gererClicLigne(ligne) : undefined,
     };
   }
 
@@ -282,7 +334,7 @@ export function TableComptoir<T>({
   const colonnesTriables = colonnes.filter((colonne) => colonne.triable);
 
   function rendreCarte(ligne: T) {
-    const proprietesClic = proprietesLigneCliquable(ligne);
+    const proprietesClic = proprietesCarteCliquable(ligne);
     return (
       // BORDURE CONSERVÉE (DESIGN.md « Bordure structurelle uniquement », exception explicite :
       // « carte cliquable d'un repli mobile de tableau ») — ce `<div>` EST la ligne de table une
@@ -533,7 +585,7 @@ export function TableComptoir<T>({
                   data-index={elementVirtuel.index}
                   ref={virtualiseur.measureElement}
                   aria-rowindex={elementVirtuel.index + 2}
-                  {...proprietesLigneCliquable(ligne)}
+                  {...proprietesLigneTable(ligne)}
                 >
                   {rendreCellules(ligne)}
                 </TableRow>
@@ -550,7 +602,7 @@ export function TableComptoir<T>({
           </>
         ) : (
           lignes.map((ligne) => (
-            <TableRow key={cleLigne(ligne)} {...proprietesLigneCliquable(ligne)}>
+            <TableRow key={cleLigne(ligne)} {...proprietesLigneTable(ligne)}>
               {rendreCellules(ligne)}
             </TableRow>
           ))

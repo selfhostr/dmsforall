@@ -173,10 +173,13 @@ describe('EcranConsolePlateforme — nominal', () => {
     expect(screen.getByText("Non mesuré pour l'instant :")).toBeInTheDocument();
     expect(screen.getByText('Erreurs serveur (24 h)')).toBeInTheDocument();
 
-    // Les lignes de données portent `role="link"` (TableComptoir, ligne cliquable) — le tri par
-    // défaut (statut décroissant) doit remonter Martin (critique), puis Auto Center (attention),
-    // puis Rossi (ok), dans cet ordre exact.
-    const lignes = screen.getAllByRole('link');
+    // Chaque ligne de données porte un vrai `<button>` (nom accessible) dans sa colonne
+    // identifiante — PAS `role="link"` sur le `<tr>` (correctif e2e, WCAG 1.3.1 : un `role`
+    // réassigné sur le `<tr>` remplace son rôle `row` implicite au lieu de s'y ajouter, rendant la
+    // table imparcourable en navigation par tableau au lecteur d'écran, non détecté par
+    // axe-core — voir JSDoc `TableComptoir`). Le tri par défaut (statut décroissant) doit remonter
+    // Martin (critique), puis Auto Center (attention), puis Rossi (ok), dans cet ordre exact.
+    const lignes = screen.getAllByRole('button', { name: /^Entrer dans / });
     expect(lignes).toHaveLength(3);
     expect(lignes[0]).toHaveAccessibleName('Entrer dans Garage Martin SA');
     expect(lignes[1]).toHaveAccessibleName('Entrer dans Auto Center SA');

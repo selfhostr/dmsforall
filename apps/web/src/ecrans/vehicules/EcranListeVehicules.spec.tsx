@@ -118,17 +118,23 @@ describe('EcranListeVehicules', () => {
   });
 
   // DÉFAUT AUDIT — seul appelant de `TableComptoir` (sur treize) oublié lors du chantier
-  // d'accessibilité : `onOuvrirLigne` sans `libelleLigne` pose un `role="link"` sans nom
-  // accessible, un lecteur d'écran annonce alors « lien » cinquante fois sans jamais dire quelle
-  // plaque. Preuve directe via `getByRole` + nom, pas une classe CSS.
-  it('donne un nom accessible à chaque ligne (plaque), jamais un lien anonyme', async () => {
+  // d'accessibilité : `onOuvrirLigne` sans `libelleLigne` pose un nom accessible vide sur le
+  // `<button>` de la colonne identifiante, un lecteur d'écran annonce alors « bouton » cinquante
+  // fois sans jamais dire quelle plaque. Preuve directe via `getByRole` + nom, pas une classe CSS.
+  //
+  // `role: 'button'`, pas `'link'` : correctif e2e (`TableComptoir`, WCAG 1.3.1) — poser
+  // `role="link"` sur le `<tr>` de la ligne remplaçait son rôle `row` implicite au lieu de s'y
+  // ajouter, rendant la table imparcourable en navigation par tableau au lecteur d'écran (non
+  // détecté par axe-core). Le nom accessible de la ligne vit maintenant sur un vrai `<button>`
+  // dans la cellule identifiante, le `<tr>` garde son rôle `row` natif intact.
+  it('donne un nom accessible à chaque ligne (plaque), jamais un bouton anonyme', async () => {
     server.use(
       http.get('/api/v1/vehicules', () => HttpResponse.json(pageDe([VEHICULE_1, VEHICULE_2]))),
     );
     rendre();
 
-    expect(await screen.findByRole('link', { name: 'Ouvrir 123456' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Ouvrir 654321' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Ouvrir 123456' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ouvrir 654321' })).toBeInTheDocument();
   });
 
   it('replie le nom accessible de la ligne sur la désignation quand la plaque est absente', async () => {
@@ -138,7 +144,7 @@ describe('EcranListeVehicules', () => {
     );
     rendre();
 
-    expect(await screen.findByRole('link', { name: 'Ouvrir Renault Clio' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Ouvrir Renault Clio' })).toBeInTheDocument();
   });
 
   it('affiche l’état vide « recherche » quand une recherche texte ne remonte aucun résultat', async () => {

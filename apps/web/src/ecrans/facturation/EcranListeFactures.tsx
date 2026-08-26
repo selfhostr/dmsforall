@@ -1,4 +1,4 @@
-import * as TabsPrimitive from '@radix-ui/react-tabs';
+import { Tabs as TabsPrimitive } from '@base-ui/react/tabs';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -296,11 +296,31 @@ export function EcranListeFactures() {
           factures la même liste affiche), pas un second niveau de NAVIGATION : empilée sous la
           rangée d'onglets d'`OngletsDomaine` (soulignement, `components/ui/tabs.tsx`), une même
           apparence soulignée lisait comme une double barre de navigation ambiguë (retour @laupernoe du
-          13.08.2026). Reconstruite sur `@radix-ui/react-tabs` directement, avec le style déjà
+          13.08.2026). Reconstruite sur `@base-ui/react/tabs` directement, avec le style déjà
           retenu pour ce rôle — fond `bg-muted/40`, onglet actif en `bg-background` — même modèle
-          que `BasculeVueStock` (`ecrans/ventes/stock/_composants/BasculeVueStock.tsx`). Rôles ARIA
-          et clavier Radix inchangés (`tablist`/`tab`, flèches, Home/End, `getByRole('tab', …)`) —
-          seul l'habillage change. */}
+          que `BasculeVueStock` (`ecrans/ventes/stock/_composants/BasculeVueStock.tsx`, PAS encore
+          repris sur cette bibliothèque — signalé hors périmètre de ce correctif). Rôles ARIA et
+          clavier inchangés (`tablist`/`tab`, flèches, Home/End, `getByRole('tab', …)`) — seul
+          l'habillage change.
+          `@base-ui/react/tabs` plutôt que `@radix-ui/react-tabs` (bug e2e mesuré, `aria-valid-
+          attr-value` critique WCAG 4.1.2, axe-core, clair ET sombre) : ces onglets FILTRENT une
+          liste unique en dessous, ils n'ouvrent jamais un panneau dédié par onglet (aucun
+          `TabsContent`/`TabsPanel` — la liste + ses états chargement/vide/erreur restent rendus
+          UNE fois, hors `Tabs`, filtrés par `onglet`). Radix calcule `aria-controls` sur chaque
+          `Trigger` à partir d'un id DÉTERMINISTE (`<base>-content-<value>`) qu'aucun panneau ne
+          porte jamais ici — référence cassée dans les quatre onglets, en permanence. Base UI
+          calcule `aria-controls` à partir des panneaux RÉELLEMENT montés (`TabsRoot.js`,
+          `getTabPanelIdByValue`/`registerMountedTabPanel`) : sans `TabsPanel` du tout, l'attribut
+          est simplement OMIS (React n'écrit jamais un attribut `undefined`) — rien à référencer,
+          rien d'invalide, sans avoir à fabriquer un panneau qui n'existerait que pour satisfaire
+          l'attribut. Piste « un vrai `TabsPanel` par onglet » écartée : forcerait `forceMount`
+          sur les quatre pour que les `aria-controls` des onglets INACTIFS restent valides en
+          permanence (Radix/Base UI ne montent QUE le panneau actif sans lui), donc quatre
+          `<div role="tabpanel">` montés en clavier/lecteur d'écran en permanence à masquer
+          soi-même en CSS — plus de code, plus de risque, pour un problème que l'absence de
+          panneau évite structurellement. Piste « radiogroup » écartée aussi : chaque onglet change
+          RÉELLEMENT quel jeu de factures s'affiche (pas un simple tri) — la sémantique « tabs »
+          reste honnête, seule la bibliothèque posait un attribut invalide. */}
       <TabsPrimitive.Root
         value={onglet}
         onValueChange={(valeur) => setOnglet(valeur as OngletListeFactures)}
@@ -310,18 +330,18 @@ export function EcranListeFactures() {
           className="inline-flex items-stretch gap-1 rounded-md border bg-muted/40 p-1"
         >
           {ONGLETS_LISTE_FACTURES.map((valeur) => (
-            <TabsPrimitive.Trigger
+            <TabsPrimitive.Tab
               key={valeur}
               value={valeur}
               className={cn(
                 'flex h-9 items-center whitespace-nowrap rounded-sm px-3 texte-corps font-medium transition-colors',
                 'anneau-focus',
                 'text-muted-foreground hover:text-foreground',
-                'data-[state=active]:bg-background data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-sm',
+                'data-active:bg-background data-active:font-semibold data-active:text-foreground data-active:shadow-sm',
               )}
             >
               {t(`facturation:liste.onglets.${valeur}`)}
-            </TabsPrimitive.Trigger>
+            </TabsPrimitive.Tab>
           ))}
         </TabsPrimitive.List>
       </TabsPrimitive.Root>
