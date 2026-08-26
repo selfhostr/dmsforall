@@ -5,6 +5,7 @@ import type { ClientResume } from '@dfa/shared';
 
 import { cn } from '@/lib/utils';
 
+import { BadgeAttribut } from './BadgeAttribut';
 import { BadgeStatutClient } from './BadgeStatutClient';
 
 interface Props {
@@ -41,11 +42,18 @@ export function IdentiteClient({ client, alerte = false, className, onClick }: P
       <span className="truncate texte-corps font-medium text-foreground">{client.nomAffiche}</span>
       <span className="texte-libelle">{client.numeroClient}</span>
       {client.statut !== 'actif' ? <BadgeStatutClient statut={client.statut} /> : null}
+      {/* Simplification (audit refonte visuelle, `composants/identite/`) : reproduisait à la main
+       *  exactement les classes que `BadgeAttribut` factorise déjà (border-input/bg-background/
+       *  texte-libelle, voir son en-tête) — septième doublon que sa propre note de tête n'avait
+       *  pas recensé. `accentue` (gras + `text-foreground`) reproduit fidèlement le
+       *  `font-semibold text-foreground` déjà posé ici, rendu inchangé. */}
       {alerte ? (
-        <span className="inline-flex items-center gap-1 rounded-full border border-input bg-background px-2.5 py-0.5 texte-libelle font-semibold text-foreground">
-          <TriangleAlert aria-hidden className="h-3.5 w-3.5 shrink-0" />
+        <BadgeAttribut
+          icone={<TriangleAlert aria-hidden className="h-3.5 w-3.5 shrink-0" />}
+          accentue
+        >
           {t('clients:alertes.alerte')}
-        </span>
+        </BadgeAttribut>
       ) : null}
     </>
   );
