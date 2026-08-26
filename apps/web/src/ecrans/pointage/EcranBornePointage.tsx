@@ -654,7 +654,10 @@ export function EcranBornePointage() {
                     reinitialiserInactivite();
                     setOrSelectionneId(or.id);
                   }}
-                  className="flex min-h-[72px] flex-col items-start gap-1 rounded-lg border p-4 text-left transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50 sm:flex-row sm:items-center sm:justify-between"
+                  // Bordure conservée : carte cliquable de sélection d'OR, zone d'action réelle
+                  // (DESIGN.md). `anneau-focus` (dépôt) plutôt que l'anneau natif du navigateur —
+                  // rôle accru ici (mode borne : gants, plein jour, contraste prioritaire).
+                  className="flex min-h-[72px] flex-col items-start gap-1 rounded-lg border p-4 text-left transition-colors hover:bg-muted anneau-focus disabled:pointer-events-none disabled:opacity-50 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="flex flex-col gap-1">
                     <span className="font-medium">{or.numero}</span>

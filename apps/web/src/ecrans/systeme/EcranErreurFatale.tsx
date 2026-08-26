@@ -23,7 +23,7 @@ export function EcranErreurFatale() {
     <div className="flex min-h-dvh items-center justify-center p-6">
       <div className="max-w-sm space-y-4 text-center">
         <h1 className="texte-titre-page">{t('erreurs:fatale.titre')}</h1>
-        <p className="text-muted-foreground">{t('erreurs:fatale.description')}</p>
+        <p className="texte-corps text-muted-foreground">{t('erreurs:fatale.description')}</p>
         <Button onClick={() => window.location.reload()}>
           {t('commun:actions.rechargerApplication')}
         </Button>

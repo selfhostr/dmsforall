@@ -29,7 +29,7 @@ export function EtapeAnalyse({ dossier }: Props) {
       <h2 id="reprise-etape-titre" tabIndex={-1} className="texte-titre-section">
         {t('reprise:analyse.titre')}
       </h2>
-      <p className="text-muted-foreground">{t('reprise:analyse.description')}</p>
+      <p className="texte-corps text-muted-foreground">{t('reprise:analyse.description')}</p>
 
       {!analyseDisponible || requete.isLoading ? (
         <EtatChargement lignes={2} />
@@ -42,19 +42,24 @@ export function EtapeAnalyse({ dossier }: Props) {
       ) : requete.data ? (
         <div aria-live="polite" className="flex flex-col gap-champ">
           {requete.data.statut === 'en_cours' ? (
-            <div className="flex items-center gap-2 text-muted-foreground">
+            <div className="flex items-center gap-2 texte-corps text-muted-foreground">
               <LoaderCircle aria-hidden="true" className="indicateur-chargement h-5 w-5" />
               <span>{t('reprise:analyse.enCours')}</span>
             </div>
           ) : null}
 
           {requete.data.statut === 'echouee' ? (
+            // DESIGN.md « bordure structurelle uniquement » — CONSERVÉE : encart d'alerte
+            // (`role="alert"`) qui porte sa propre action (« Réessayer »), pas un simple groupe
+            // de contenu.
             <div
               role="alert"
               className="flex flex-col gap-champ rounded-lg border border-destructive p-carte"
             >
-              <p className="font-medium text-destructive">{t('reprise:analyse.echouee.titre')}</p>
-              <p>{t('reprise:analyse.echouee.description')}</p>
+              <p className="texte-corps font-medium text-destructive">
+                {t('reprise:analyse.echouee.titre')}
+              </p>
+              <p className="texte-corps">{t('reprise:analyse.echouee.description')}</p>
               <Button
                 onClick={() => relancer.mutate()}
                 enChargement={relancer.isPending}
@@ -66,7 +71,7 @@ export function EtapeAnalyse({ dossier }: Props) {
           ) : null}
 
           {requete.data.partielle ? (
-            <p className="text-sm text-muted-foreground">{t('reprise:analyse.partielle')}</p>
+            <p className="texte-libelle">{t('reprise:analyse.partielle')}</p>
           ) : null}
         </div>
       ) : null}

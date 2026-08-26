@@ -109,6 +109,9 @@ export function EcheancesAVenir({ site }: Props) {
           </ul>
         )}
         {peutLire && !requete.isPending && !requete.isError && jeux.length > 0 ? (
+          // DESIGN.md « bordure structurelle uniquement » — CONSERVÉE : ce filet sépare la
+          // liste des échéances (données) du pied de carte (lien « voir tout »), même rôle
+          // qu'un filet de pied de tableau, pas un simple regroupement de contenu.
           <div className="mt-3 flex flex-col gap-1 border-t pt-3">
             {surplus > 0 ? (
               <span className="texte-libelle text-muted-foreground">

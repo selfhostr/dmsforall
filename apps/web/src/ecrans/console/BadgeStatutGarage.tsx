@@ -27,6 +27,11 @@ const CONFIG_STATUT_GARAGE: Readonly<Record<NiveauSanteGarage, EntreeStatutGarag
     classes: 'border-transparent bg-destructive text-destructive-foreground',
   },
   attention: {
+    // Résidu `dark:` du socle — code mort tant qu'aucun mode sombre réel n'existait, devenu
+    // vivant depuis la refonte visuelle (voir DESIGN.md). MESURÉ (formule WCAG 2.1) : sombre
+    // `bg-amber-500`/`text-amber-950` = 6.98:1, passe large le seuil AA texte (4.5:1) — aucun
+    // correctif nécessaire ici, contrairement au même résidu de `BandeauContexteConsole.tsx`
+    // (celui-là échouait à 3.07:1, corrigé).
     icone: AlertTriangle,
     classes: 'border-transparent bg-amber-600 text-white dark:bg-amber-500 dark:text-amber-950',
   },

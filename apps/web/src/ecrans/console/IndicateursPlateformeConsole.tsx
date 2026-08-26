@@ -52,9 +52,12 @@ export function IndicateursPlateformeConsole({
               aria-pressed={actif}
               onClick={() => onBasculerFiltre(id)}
               className={cn(
-                'flex min-h-[44px] flex-col items-start gap-1 rounded-lg border bg-card p-4 text-left shadow-sm transition-colors',
+                // DESIGN.md « bordure structurelle uniquement » — CONSERVÉE : vrai bouton
+                // filtrant (`role="group"`, `aria-pressed`), pas un groupe de contenu.
+                // `shadow-sm` retiré : cumulait avec `border` sur la même frontière (M3 « outline
+                // vs elevation, jamais les deux » — même correctif que `Card`, voir card.tsx).
+                'flex min-h-[44px] flex-col items-start gap-1 rounded-lg border bg-card p-4 text-left anneau-focus transition-colors',
                 'hover:border-primary/50 hover:bg-muted/50',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                 actif && 'border-primary bg-primary/5 ring-1 ring-primary',
               )}
             >

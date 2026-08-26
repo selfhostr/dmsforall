@@ -1,3 +1,4 @@
+import { CheckCircle2, Circle } from 'lucide-react';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -12,6 +13,7 @@ import {
 import { messageErreur } from '@/api/erreurs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
@@ -106,92 +108,102 @@ function BlocRegleFactureEchue({ regle }: PropsBlocRegle) {
   );
 
   return (
-    <section className="flex flex-col gap-4 rounded-lg border p-4">
-      <div className="flex flex-col gap-1">
-        <h2 className="texte-titre-section">{t('relances:regles.titre')}</h2>
-        <p className="texte-corps text-muted-foreground">{t('relances:regles.description')}</p>
-      </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="texte-titre-section">{t('relances:regles.titre')}</CardTitle>
+        <CardDescription>{t('relances:regles.description')}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        {regle === undefined ? (
+          <EtatVidePremierUsage
+            titre={t('relances:regles.nonConfiguree.titre')}
+            description={t('relances:regles.nonConfiguree.description')}
+            action={boutonPrereglage}
+          />
+        ) : (
+          <div className="flex flex-col gap-3">
+            {/* `variant="secondary"`/`"outline"` (Badge générique), jamais `"default"` (bg-primary,
+                couleur de MARQUE) : un badge de statut ne réutilise jamais la teinte de marque
+                comme signal (même doctrine que `BadgeStatutEnvoiRelance.tsx`). Icône ajoutée
+                (forme + icône + mot, DESIGN.md) — ce badge était jusqu'ici couleur seule. */}
+            <Badge variant={regle.actif ? 'secondary' : 'outline'} className="w-fit">
+              {regle.actif ? (
+                <CheckCircle2 aria-hidden className="h-3.5 w-3.5 shrink-0" />
+              ) : (
+                <Circle aria-hidden className="h-3.5 w-3.5 shrink-0" />
+              )}
+              {regle.actif
+                ? t('relances:regles.statut.active')
+                : t('relances:regles.statut.inactive')}
+            </Badge>
 
-      {regle === undefined ? (
-        <EtatVidePremierUsage
-          titre={t('relances:regles.nonConfiguree.titre')}
-          description={t('relances:regles.nonConfiguree.description')}
-          action={boutonPrereglage}
-        />
-      ) : (
-        <div className="flex flex-col gap-3">
-          <Badge variant={regle.actif ? 'default' : 'secondary'} className="w-fit">
-            {regle.actif
-              ? t('relances:regles.statut.active')
-              : t('relances:regles.statut.inactive')}
-          </Badge>
+            <div>
+              <h3 className="texte-libelle font-medium text-foreground">
+                {t('relances:regles.paliers.titre')}
+              </h3>
+              {regle.delaisJours.length === 0 ? (
+                <p className="texte-corps text-muted-foreground">
+                  {t('relances:regles.paliers.vide')}
+                </p>
+              ) : (
+                <ul className="flex flex-col gap-1">
+                  {regle.delaisJours.map((jours, index) => (
+                    <li key={index} className="texte-corps">
+                      {t('relances:regles.paliers.libelle', { n: index + 1 })} —{' '}
+                      {t('relances:regles.paliers.jours', { n: jours })}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
 
-          <div>
-            <h3 className="texte-libelle font-medium text-foreground">
-              {t('relances:regles.paliers.titre')}
-            </h3>
-            {regle.delaisJours.length === 0 ? (
-              <p className="texte-corps text-muted-foreground">
-                {t('relances:regles.paliers.vide')}
-              </p>
-            ) : (
-              <ul className="flex flex-col gap-1">
-                {regle.delaisJours.map((jours, index) => (
-                  <li key={index} className="texte-corps">
-                    {t('relances:regles.paliers.libelle', { n: index + 1 })} —{' '}
-                    {t('relances:regles.paliers.jours', { n: jours })}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+            <div>
+              <h3 className="texte-libelle font-medium text-foreground">
+                {t('relances:regles.canaux.titre')}
+              </h3>
+              {regle.canaux.length === 0 ? (
+                <p className="texte-corps text-muted-foreground">
+                  {t('relances:regles.canaux.vide')}
+                </p>
+              ) : (
+                <p className="texte-corps">
+                  {regle.canaux.map((canal) => t(`relances:regles.canaux.${canal}`)).join(', ')}
+                </p>
+              )}
+            </div>
 
-          <div>
-            <h3 className="texte-libelle font-medium text-foreground">
-              {t('relances:regles.canaux.titre')}
-            </h3>
-            {regle.canaux.length === 0 ? (
-              <p className="texte-corps text-muted-foreground">
-                {t('relances:regles.canaux.vide')}
-              </p>
-            ) : (
-              <p className="texte-corps">
-                {regle.canaux.map((canal) => t(`relances:regles.canaux.${canal}`)).join(', ')}
-              </p>
-            )}
-          </div>
-
-          {/* Une absence n'est jamais affichée comme une valeur : `null` -> rien, pas de date
+            {/* Une absence n'est jamais affichée comme une valeur : `null` -> rien, pas de date
               bidon ni de « jamais ». */}
-          {regle.prereglageAppliqueLe !== null ? (
-            <p className="texte-libelle text-muted-foreground">
-              {t('relances:regles.prereglage.applique', {
-                date: formaterDate(regle.prereglageAppliqueLe),
-              })}
-            </p>
-          ) : null}
+            {regle.prereglageAppliqueLe !== null ? (
+              <p className="texte-libelle text-muted-foreground">
+                {t('relances:regles.prereglage.applique', {
+                  date: formaterDate(regle.prereglageAppliqueLe),
+                })}
+              </p>
+            ) : null}
 
-          {boutonPrereglage}
-        </div>
-      )}
+            {boutonPrereglage}
+          </div>
+        )}
 
-      {modeEdition ? (
-        <FormulaireRegleFactureEchue
-          regle={regle}
-          onAnnuler={() => setModeEdition(false)}
-          onEnregistre={() => setModeEdition(false)}
-        />
-      ) : (
-        <Button
-          type="button"
-          variant="secondary"
-          className="self-start"
-          onClick={() => setModeEdition(true)}
-        >
-          {t('relances:regles.actions.modifier')}
-        </Button>
-      )}
-    </section>
+        {modeEdition ? (
+          <FormulaireRegleFactureEchue
+            regle={regle}
+            onAnnuler={() => setModeEdition(false)}
+            onEnregistre={() => setModeEdition(false)}
+          />
+        ) : (
+          <Button
+            type="button"
+            variant="secondary"
+            className="self-start"
+            onClick={() => setModeEdition(true)}
+          >
+            {t('relances:regles.actions.modifier')}
+          </Button>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

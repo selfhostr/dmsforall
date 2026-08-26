@@ -81,6 +81,11 @@ export function CartePointageEnCours({
   const chrono = useChronoPointage(pointage.debutLe);
 
   return (
+    // Bordure conservée (DESIGN.md « bordure structurelle uniquement ») : ce n'est pas un simple
+    // groupe de contenu mais l'indicateur visuel d'un état LIVE (un pointage tourne, le chrono
+    // défile) — le seul bloc de l'écran dont le comportement diffère réellement des autres cartes
+    // statiques (Mes OR, Activités). Le contour de marque distingue ce statut « en cours » d'un
+    // coup d'œil, en plus du chrono lui-même.
     <Card className="border-2 border-primary/40">
       <CardHeader>
         <CardTitle className="texte-titre-section">
@@ -89,7 +94,11 @@ export function CartePointageEnCours({
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
         <div className="flex flex-col items-center gap-2 py-4">
-          <span className="tabular-nums text-5xl font-bold tracking-tight" aria-live="off">
+          {/* Taille brute retirée (`text-5xl` était fixe, 48px partout) : `.texte-chiffre-geant`
+              suit le palier "chiffre à distance" de DESIGN.md — 40px sur EcranPointageTechnicien
+              (aucune classe .densite-*, repli aéré), 48px sur EcranBornePointage
+              (.densite-tres-aeree, lecture à distance sur un mur d'atelier). */}
+          <span className="texte-chiffre-geant tabular-nums" aria-live="off">
             {chrono.libelle}
           </span>
           <span className="texte-corps text-muted-foreground">{libelleCible}</span>

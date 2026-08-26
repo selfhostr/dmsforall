@@ -58,7 +58,11 @@ export function BandeauReprisePointage({
       aria-label={t('pointage:technicien.bandeauReprise.libelleAccessible', {
         cible: cibleLibelle,
       })}
-      className="flex min-h-[80px] w-full items-center gap-4 rounded-lg border-2 border-primary bg-primary/10 px-4 py-3 text-left transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+      // Bordure conservée (border-2 border-primary) : ce bandeau EST la zone d'action de reprise
+      // (DESIGN.md « bordure structurelle uniquement » — une bordure qui délimite une vraie zone
+      // d'action se garde). `anneau-focus` remplace l'ancien `ring`/`outline-none` manuel pour
+      // rester sur le mécanisme de focus standard du dépôt (anneau extérieur, jamais nu).
+      className="flex min-h-[80px] w-full items-center gap-4 rounded-lg border-2 border-primary bg-primary/10 px-4 py-3 text-left transition-colors hover:bg-primary/15 anneau-focus disabled:pointer-events-none disabled:opacity-50"
     >
       <RotateCcw aria-hidden="true" className="h-8 w-8 shrink-0 text-primary" />
       <span className="flex min-w-0 flex-col gap-0.5">

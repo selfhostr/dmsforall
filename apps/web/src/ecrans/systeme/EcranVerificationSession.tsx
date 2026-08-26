@@ -24,7 +24,7 @@ export function EcranVerificationSession() {
             className="h-8 w-8 animate-spin rounded-full border-2 border-current border-t-transparent"
             aria-hidden="true"
           />
-          <p>{t('auth:session.verification')}</p>
+          <p className="texte-corps">{t('auth:session.verification')}</p>
         </div>
       ) : (
         <span className="sr-only">{t('auth:session.verification')}</span>

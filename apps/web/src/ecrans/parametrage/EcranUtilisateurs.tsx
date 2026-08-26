@@ -127,7 +127,14 @@ export function EcranUtilisateurs() {
       ) : null}
 
       {!requete.isPending && !requete.isError && lignes.length > 0 ? (
-        <div className="overflow-x-auto rounded-lg border">
+        // DESIGN.md « bordure structurelle uniquement » — `rounded-lg border` retiré : ne
+        // délimitait qu'un groupe de contenu (la table elle-même, seul contenu de cet écran, déjà
+        // séparée du titre par l'espacement du gabarit), pas une zone d'action distincte. `Table`
+        // pose déjà son propre filet horizontal entre les lignes (`table.tsx`, `border-b`) — même
+        // pattern que `EcranListeFactures.tsx`/`TableComptoir`, qui n'ajoutent aucun cadre autour
+        // de leur table desktop. `overflow-x-auto` reste nécessaire (repli défensif sous 6
+        // colonnes, cet écran n'a pas de repli mobile en cartes).
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

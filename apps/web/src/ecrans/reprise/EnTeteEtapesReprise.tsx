@@ -27,6 +27,9 @@ export function EnTeteEtapesReprise({ etapeActive }: Props) {
       {ORDRE_ETAPES.map((etape, index) => {
         const estActive = etape === etapeActive;
         const estPassee = index < indexActif;
+        /* DESIGN.md « bordure structurelle uniquement » — CONSERVÉE : ce `li` EST un badge
+         *  d'état (étape active/passée/à venir), même langage visuel qu'un `Badge` (pilule +
+         *  contour), jamais un simple groupe de contenu. */
         return (
           <li
             key={etape}
@@ -41,7 +44,11 @@ export function EnTeteEtapesReprise({ etapeActive }: Props) {
             <span
               aria-hidden="true"
               className={cn(
-                'flex h-5 w-5 items-center justify-center rounded-full text-xs',
+                // `texte-petit`, pas `texte-libelle` : ce badge a besoin de SA PROPRE couleur par
+                // état (primary/foreground/muted-foreground) — `texte-libelle` imposerait
+                // `muted-foreground` et écraserait les trois couleurs conditionnelles ci-dessous
+                // (piège documenté dans `index.css`, juste au-dessus de `.texte-libelle`).
+                'flex h-5 w-5 items-center justify-center rounded-full texte-petit',
                 estActive && 'bg-primary text-primary-foreground',
                 estPassee && !estActive && 'bg-muted text-foreground',
                 !estActive && !estPassee && 'bg-muted text-muted-foreground',

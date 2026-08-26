@@ -207,6 +207,9 @@ export function DialoguePrestation({
             </div>
           </div>
 
+          {/* DESIGN.md « bordure structurelle » — conservée : `fieldset` regroupant trois VRAIS
+              champs de saisie (désignation FR/DE/IT), le contour rend visible le groupe de
+              contrôles qu'un `<legend>` seul ne délimiterait pas. */}
           <fieldset className="grid grid-cols-1 gap-3 rounded-md border p-3 sm:grid-cols-3">
             <legend className="px-1 texte-libelle font-medium text-foreground">
               {t('parametrage:referentiels.prestations.champs.designation')}

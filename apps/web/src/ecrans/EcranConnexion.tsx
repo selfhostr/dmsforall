@@ -10,7 +10,7 @@ import { schemaConnexion, type EntreeConnexion } from '@dfa/shared';
 import { ErreurApi, ErreurReseau, messageErreur } from '@/api/erreurs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 // Réutilisé tel quel (pas de copie) : limite d'erreur de rendu générique, déjà éprouvée par
@@ -106,7 +106,17 @@ export function EcranConnexion() {
     <GabaritEcran
       titre={t('auth:connexion.titre')}
       titreVisible={false}
-      className="min-h-dvh items-center justify-center bg-muted/30 p-4"
+      // DESIGN.md « Bordure structurelle uniquement » — `bg-muted/30` RETIRÉ. Depuis que `Card`
+      // a perdu `border` ET `shadow-sm`, le delta de surface `--card` vs `--background` est le
+      // SEUL mécanisme qui détache la carte du fond ; or cet écran est le cas limite que DESIGN.md
+      // signale (une carte SEULE, sans voisine ni espacement pour porter la séparation à sa place).
+      // Mesuré sur les jetons réels d'`index.css` (formule WCAG 2.1, composition alpha sRGB) : le
+      // voile `muted/30` éclaircit le fond VERS la carte et fait tomber ce delta de 1.072:1 à
+      // 1.027:1 en sombre — 63 % de la séparation perdue là où elle est déjà la plus fragile (en
+      // clair, l'écart reste sous le point d'arrondi). Fond de page nu = delta nominal restauré
+      // (celui que DESIGN.md documente), sans réintroduire ni trait ni ombre —
+      // exactement le « fond de page plus franc » que DESIGN.md préconise plutôt qu'une bordure.
+      className="min-h-dvh items-center justify-center p-4"
     >
       <div className="w-full max-w-[420px] space-y-4">
         <div className="flex justify-end">
@@ -116,7 +126,20 @@ export function EcranConnexion() {
         <LimiteErreurEcran>
           <Card>
             <CardHeader>
-              <div className="texte-titre-section leading-none">{t('auth:connexion.titre')}</div>
+              {/* `CardTitle` (h2, `texte-titre-section`) plutôt qu'un `div` stylé à la main : le h1
+                  de `GabaritEcran` reste `sr-only` (voir la note ci-dessus), un vrai titre de
+                  section ici donne un point d'ancrage réel à la navigation par landmarks/en-têtes
+                  d'un lecteur d'écran — h2 après un h1 masqué reste une hiérarchie valide.
+                  Clé DÉDIÉE (`carte.titre`, pas `connexion.titre` réutilisé) : le h1 sr-only porte
+                  déjà « Connexion » (nom de la PAGE — c'est ce nom que `routeur.spec.tsx` vérifie
+                  pour prouver qu'une route protégée sans session redirige bien vers `/login`, sans
+                  jamais rendre le contenu de la carte). Donner au h2 le même nom produirait deux
+                  en-têtes de même nom accessible sur un même écran — un lecteur d'écran annoncerait
+                  « Connexion » deux fois sans que l'utilisateur sache lequel désigne quoi (défaut
+                  mesuré : `getByRole('heading', { name: 'Connexion' })` en trouvait deux). Le h2
+                  nomme donc ce que la carte demande RÉELLEMENT — les identifiants — plutôt que de
+                  répéter le nom de l'écran. */}
+              <CardTitle>{t('auth:connexion.carte.titre')}</CardTitle>
               <CardDescription>{t('auth:connexion.sousTitre')}</CardDescription>
             </CardHeader>
             <CardContent>
@@ -141,6 +164,7 @@ export function EcranConnexion() {
                     id="email"
                     type="email"
                     autoComplete="username"
+                    spellCheck={false}
                     placeholder={t('auth:connexion.champs.email.exemple')}
                     readOnly={enCours}
                     aria-invalid={form.formState.errors.email ? true : undefined}
@@ -174,7 +198,7 @@ export function EcranConnexion() {
                     <button
                       type="button"
                       onClick={() => setMotDePasseVisible((valeur) => !valeur)}
-                      className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted-foreground"
+                      className="anneau-focus absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
                       aria-label={
                         motDePasseVisible
                           ? t('auth:connexion.champs.motDePasse.masquer')

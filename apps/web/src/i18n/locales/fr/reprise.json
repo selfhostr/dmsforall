@@ -90,7 +90,10 @@
     "paiements": "Vos paiements",
     "articles_stock": "Votre stock de pièces",
     "fournisseurs": "Vos fournisseurs",
-    "documents_scannes": "Vos documents scannés"
+    "documents_scannes": "Vos documents scannés",
+    "pneus": "Vos dépôts de pneus",
+    "ventes_vn_vo": "Vos dossiers de vente VN/VO",
+    "relances": "Vos relances"
   },
   "import": {
     "titre": "Import en cours",

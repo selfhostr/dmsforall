@@ -71,50 +71,62 @@ function CarteParOr({ orId }: { readonly orId: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-lg border p-4">
-          <p className="texte-libelle text-muted-foreground">
-            {t('pointage:equipe.parOr.tempsReel')}
-          </p>
-          <p className="texte-titre-page font-semibold tabular-nums">
-            {formaterDureeLisible(centiemesHeureEnSecondes(tempsReelCentiemes))}
-          </p>
-        </div>
-        <div className="rounded-lg border p-4">
-          <p className="texte-libelle text-muted-foreground">
-            {t('pointage:equipe.parOr.tempsFacture')}
-          </p>
-          <p className="texte-titre-page font-semibold tabular-nums">
-            {formaterDureeLisible(centiemesHeureEnSecondes(tempsFactureCentiemes))}
-          </p>
-        </div>
-        <div className="rounded-lg border p-4">
-          <p className="texte-libelle text-muted-foreground">{t('pointage:equipe.parOr.ecart')}</p>
-          <p
-            className={`texte-titre-page font-semibold tabular-nums ${ecartCentiemes > 0 ? 'text-destructive' : ''}`}
-          >
-            {ecartCentiemes >= 0 ? '+' : ''}
-            {formaterDureeLisible(centiemesHeureEnSecondes(Math.abs(ecartCentiemes)))}
-          </p>
-        </div>
+      {/* `items-start` obligatoire avec `compact` (DESIGN.md) : sans lui, CSS Grid étire chaque
+          carte à la hauteur de la plus haute et le padding réduit ne se voit plus. Trois cartes
+          chiffrées (un chiffre, un libellé) — candidat exact du levier `compact` (DESIGN.md
+          « candidats évidents… une carte, un chiffre, un libellé »). */}
+      <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-3">
+        <Card compact>
+          <CardContent>
+            <p className="texte-libelle text-muted-foreground">
+              {t('pointage:equipe.parOr.tempsReel')}
+            </p>
+            <p className="texte-titre-page font-semibold tabular-nums">
+              {formaterDureeLisible(centiemesHeureEnSecondes(tempsReelCentiemes))}
+            </p>
+          </CardContent>
+        </Card>
+        <Card compact>
+          <CardContent>
+            <p className="texte-libelle text-muted-foreground">
+              {t('pointage:equipe.parOr.tempsFacture')}
+            </p>
+            <p className="texte-titre-page font-semibold tabular-nums">
+              {formaterDureeLisible(centiemesHeureEnSecondes(tempsFactureCentiemes))}
+            </p>
+          </CardContent>
+        </Card>
+        <Card compact>
+          <CardContent>
+            <p className="texte-libelle text-muted-foreground">
+              {t('pointage:equipe.parOr.ecart')}
+            </p>
+            <p
+              className={`texte-titre-page font-semibold tabular-nums ${ecartCentiemes > 0 ? 'text-destructive' : ''}`}
+            >
+              {ecartCentiemes >= 0 ? '+' : ''}
+              {formaterDureeLisible(centiemesHeureEnSecondes(Math.abs(ecartCentiemes)))}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {or.cumulsPointage.parTechnicien.length > 0 ? (
         <div>
           <h3 className="mb-2 texte-titre-section">{t('pointage:equipe.parOr.parTechnicien')}</h3>
-          <div className="flex flex-col gap-2">
+          {/* Filet seul entre les lignes (pattern Carbon, comme le tableau `contenuListe` plus bas)
+              plutôt qu'un contour complet par ligne : un seul cadre (`rounded-lg border`) porte la
+              séparation avec le fond, `divide-y` sépare les lignes entre elles. */}
+          <ul className="flex flex-col divide-y divide-border rounded-lg border">
             {or.cumulsPointage.parTechnicien.map((ligne) => (
-              <div
-                key={ligne.technicienId}
-                className="flex items-center justify-between rounded-md border p-3"
-              >
+              <li key={ligne.technicienId} className="flex items-center justify-between p-3">
                 <span>{ligne.nomAffiche}</span>
                 <span className="tabular-nums">
                   {formaterDureeLisible(centiemesHeureEnSecondes(ligne.centiemes))}
                 </span>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       ) : null}
     </div>
@@ -279,7 +291,10 @@ export function VueEquipePointage({ siteId, role }: Props) {
                 key={or.id}
                 type="button"
                 onClick={() => setOrSelectionneId(or.id)}
-                className="flex items-center justify-between rounded-md border p-3 text-left hover:bg-muted"
+                // Bordure conservée : carte cliquable d'une liste de sélection (choisir un OR),
+                // zone d'action réelle (DESIGN.md). `anneau-focus` remplace l'anneau natif du
+                // navigateur pour rester sur le mécanisme de focus standard du dépôt.
+                className="flex items-center justify-between rounded-md border p-3 text-left hover:bg-muted anneau-focus"
               >
                 <span className="font-medium">{or.numero}</span>
                 <IdentiteVehicule vehicule={or.vehicule} taillePlaque="sm" />

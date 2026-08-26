@@ -90,7 +90,10 @@
     "paiements": "I vostri pagamenti",
     "articles_stock": "Il vostro magazzino ricambi",
     "fournisseurs": "I vostri fornitori",
-    "documents_scannes": "I vostri documenti scansionati"
+    "documents_scannes": "I vostri documenti scansionati",
+    "pneus": "Il vostro deposito pneumatici",
+    "ventes_vn_vo": "Le vostre pratiche di vendita (nuovo/usato)",
+    "relances": "I vostri solleciti"
   },
   "import": {
     "titre": "Importazione in corso",

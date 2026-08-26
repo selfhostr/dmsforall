@@ -16,7 +16,9 @@ export function EcranPageIntrouvable() {
       className="min-h-dvh items-center justify-center p-6"
     >
       <div className="max-w-sm space-y-4 text-center">
-        <p className="text-muted-foreground">{t('erreurs:pageIntrouvable.description')}</p>
+        <p className="texte-corps text-muted-foreground">
+          {t('erreurs:pageIntrouvable.description')}
+        </p>
         <Button asChild>
           <Link to="/">{t('commun:actions.retourAccueil')}</Link>
         </Button>

@@ -197,7 +197,7 @@ export function EcranFicheOrdreReparation() {
                   >
                     <button
                       type="button"
-                      className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      className="text-left texte-corps text-primary underline-offset-4 hover:underline anneau-focus"
                       onClick={() => navigate(chemins.pieces.articleDetail(piece.articleId, site))}
                     >
                       {piece.designation}
@@ -257,7 +257,7 @@ export function EcranFicheOrdreReparation() {
                   <li key={document_.id} className="flex items-center justify-between gap-3 py-2">
                     <button
                       type="button"
-                      className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      className="text-left texte-corps text-primary underline-offset-4 hover:underline anneau-focus"
                       onClick={() => navigate(`/factures/${document_.id}`)}
                     >
                       {t(

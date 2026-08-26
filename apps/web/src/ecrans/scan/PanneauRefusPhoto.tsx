@@ -40,6 +40,11 @@ export function PanneauRefusPhoto({
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-4">
+      {/* DESIGN.md « bordure structurelle uniquement » — CONSERVÉE : une photo n'a pas de
+          fond de carte fixe comme `Card` (`bg-card`), sa couleur réelle est imprévisible (un
+          permis peut être clair, sombre, en gros plan) ; sans trait, son bord se fondrait
+          parfois dans le fond de page. Le filet ici délimite le bord RÉEL de la photo, pas un
+          simple regroupement de contenu. */}
       <div className="relative overflow-hidden rounded-lg border">
         <img src={urlApercu} alt={t('scan:refus.apercuAlt')} className="block w-full" />
         <CadrePermis fractions={fractions} />

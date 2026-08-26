@@ -43,7 +43,12 @@ export function EcranParametresFacturation() {
         <EtatChargement lignes={8} />
       ) : requete.isError && estRefusDroit ? (
         <div
-          className="flex flex-col items-center gap-3 rounded-lg border p-10 text-center"
+          // Rembourrage relié à la densité (même correctif que `EtatErreur`/`EtatVide`,
+          // `composants/commun/`, 19.08.2026) — `p-10`/`gap-3` fixes ne suivaient aucun jeu de
+          // densité (`.densite-dense`/`aeree`/`tres-aeree`) : sous `densite-dense`, ce bloc restait
+          // un pavé de 40 px alors que le reste de l'écran s'était resserré. `p-carte`/`gap-groupe`
+          // reprennent exactement le même mécanisme que les deux états partagés ci-dessus.
+          className="flex flex-col items-center gap-groupe rounded-lg border p-carte text-center"
           role="alert"
         >
           <ShieldAlert className="h-8 w-8 text-muted-foreground" aria-hidden="true" />

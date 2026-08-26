@@ -38,6 +38,9 @@ export function ConsoleShell({ identite, onDeconnexion, children }: Props) {
 
   return (
     <div className="flex min-h-dvh flex-col bg-background">
+      {/* DESIGN.md « bordure structurelle uniquement » — CONSERVÉE : filet du cadre applicatif
+       *  (en-tête fixe qui sépare le chrome du contenu défilant), exactement l'exemple cité par
+       *  DESIGN.md pour garder une bordure. */}
       <header className="flex h-16 shrink-0 items-center gap-4 border-b bg-background px-4">
         <p className="texte-annexe font-semibold text-foreground">{t('console:titre')}</p>
         <div className="min-w-0 flex-1" />

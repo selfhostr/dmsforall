@@ -90,7 +90,10 @@
     "paiements": "Ihre Zahlungen",
     "articles_stock": "Ihr Ersatzteillager",
     "fournisseurs": "Ihre Lieferanten",
-    "documents_scannes": "Ihre gescannten Dokumente"
+    "documents_scannes": "Ihre gescannten Dokumente",
+    "pneus": "Ihr Reifenhotel",
+    "ventes_vn_vo": "Ihre Verkaufsdossiers (VN/VO)",
+    "relances": "Ihre Mahnungen"
   },
   "import": {
     "titre": "Import läuft",

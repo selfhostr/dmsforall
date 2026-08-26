@@ -30,9 +30,20 @@ export interface ProprietesBandeauContexteConsole {
  *    (§11 Q1/Q2 de la conception restent ouvertes — `motif` est déjà optionnel pour cette raison).
  *
  * Couleur délibérément hors palette métier normale de DFA (jamais le bleu/vert primaire) — ambre
- * soutenu, contraste AA vérifié dans les deux thèmes. Pas rouge : ce n'est pas une alerte, c'est
- * un ÉTAT qu'on signale en continu (le rouge reste réservé aux alertes réelles de la table/des
- * cartes).
+ * soutenu. Pas rouge : ce n'est pas une alerte, c'est un ÉTAT qu'on signale en continu (le rouge
+ * reste réservé aux alertes réelles de la table/des cartes).
+ *
+ * DÉFAUT CORRIGÉ (refonte visuelle, mode sombre réel) — ce composant est PRÉPARÉ MAIS NON MONTÉ
+ * (voir plus haut), donc jamais rendu à l'écran jusqu'ici : le commentaire d'origine affirmait
+ * « contraste AA vérifié dans les deux thèmes », affirmation jamais vérifiée en exécution puisque
+ * le produit n'avait aucun mode sombre réel à ce moment. Mesuré maintenant (formule WCAG 2.1,
+ * même méthode que `test/accessibilite/contraste.ts`) sur les couleurs Tailwind RÉELLEMENT
+ * utilisées :
+ *  - Clair (`bg-amber-400` / `text-amber-950`) : 8.97:1 — passe large.
+ *  - Sombre, AVANT correctif (`dark:bg-amber-600` / `dark:text-amber-50`) : 3.07:1 — ÉCHEC AA
+ *    texte (seuil 4.5:1), le residu `dark:` était donc un défaut réel, pas seulement mort.
+ *  - Sombre, APRÈS correctif (`dark:bg-amber-500` / `dark:text-amber-950`, alignée sur la même
+ *    paire déjà validée par `BadgeStatutGarage.tsx`) : 6.98:1 — passe large, même famille ambre.
  */
 export function BandeauContexteConsole({
   nomGarage,
@@ -51,7 +62,7 @@ export function BandeauContexteConsole({
   const palier = palierAccessibleDureeConsole(secondes);
 
   return (
-    <div className="sticky top-0 z-40 flex flex-wrap items-center gap-3 border-b border-amber-700/30 bg-amber-400 px-4 py-2 text-amber-950 dark:bg-amber-600 dark:text-amber-50">
+    <div className="sticky top-0 z-40 flex flex-wrap items-center gap-3 border-b border-amber-700/30 bg-amber-400 px-4 py-2 text-amber-950 dark:bg-amber-500 dark:text-amber-950">
       <AlertTriangle className="h-5 w-5 shrink-0" aria-hidden="true" />
       <p className="min-w-0 flex-1 texte-corps font-medium">
         {t('console:bandeauContexte.contenu', { nomGarage })}

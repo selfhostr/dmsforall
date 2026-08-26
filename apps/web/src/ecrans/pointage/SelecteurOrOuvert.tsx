@@ -96,7 +96,9 @@ export function SelecteurOrOuvert({ siteId, onChoisirOr, disabled = false }: Pro
               type="button"
               disabled={disabled}
               onClick={() => onChoisirOr(or.id)}
-              className="flex min-h-[56px] flex-col items-start gap-1 rounded-lg border p-3 text-left transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50 sm:flex-row sm:items-center sm:justify-between"
+              // Bordure conservée : carte cliquable de sélection d'OR, zone d'action réelle
+              // (DESIGN.md). `anneau-focus` (dépôt) plutôt que l'anneau natif du navigateur.
+              className="flex min-h-[56px] flex-col items-start gap-1 rounded-lg border p-3 text-left transition-colors hover:bg-muted anneau-focus disabled:pointer-events-none disabled:opacity-50 sm:flex-row sm:items-center sm:justify-between"
             >
               <span className="font-medium">{or.numero}</span>
               <div className="flex flex-col items-start gap-0.5 sm:items-end">

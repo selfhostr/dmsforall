@@ -50,13 +50,15 @@ interface Props {
  *  4. DÉCLENCHEMENT MANUEL TOUJOURS ATTEIGNABLE — le bouton `h-14` en bas ignore complètement
  *     l'état de la détection automatique, capture immédiatement sur simple appui.
  *
- * EXCEPTION DE COULEUR ASSUMÉE, À REVOIR AVEC LA CONCEPTION : la bordure verte utilise la teinte
- * Tailwind `emerald` (couleur codée en dur), PAS un token `--statut-*` du système de design
- * (`index.css`) — ces six tokens sont explicitement RÉSERVÉS au statut d'OR/de ligne (voir leur
- * doc de tête), et un viseur de caméra n'est ni l'un ni l'autre. Aucun token équivalent n'existe
- * aujourd'hui pour cet usage (affordance de viseur, pas un badge de statut métier) ; à formaliser
- * en un vrai token si ce composant passe en production, plutôt qu'à laisser cette exception se
- * propager ailleurs.
+ * DESIGN.md « mode sombre par jetons uniquement » — la bordure/le remplissage « cadrage bon »
+ * utilisaient la teinte Tailwind `emerald` codée en dur (fixe dans les deux thèmes, hors mesure de
+ * contraste). Corrigé en réutilisant `--statut-succes` : les six jetons `--statut-*` sont réservés
+ * au STATUT D'UN BADGE D'OR/DE LIGNE (rien à voir ici, ceci n'est pas un badge), mais rien
+ * n'interdit de réutiliser leur VALEUR DE COULEUR pour une autre affordance « état bon/prêt » —
+ * même réutilisation déjà en place pour l'urgence d'échéance de `BadgeEcheanceSuivi.tsx`
+ * (`ecrans/ventes/suivi/`, dimension « urgence », pas un statut d'OR non plus). Reste la seule
+ * indication : icône + mot toujours répétés (voir plus bas), la couleur n'est jamais seule à
+ * porter le sens.
  */
 export function CaptureLiveCadrage({ onCapture, onIndisponible }: Props) {
   const { t } = useTranslation('scan');
@@ -176,8 +178,7 @@ export function CaptureLiveCadrage({ onCapture, onIndisponible }: Props) {
       <div
         className={cn(
           'relative overflow-hidden rounded-lg border-4 transition-colors',
-          // Couleur codée en dur assumée — voir l'exception documentée en tête de fichier.
-          cadrageBon ? 'border-emerald-600' : 'border-muted',
+          cadrageBon ? 'border-statut-succes' : 'border-muted',
         )}
       >
         <video
@@ -192,7 +193,7 @@ export function CaptureLiveCadrage({ onCapture, onIndisponible }: Props) {
           <div className="absolute inset-x-0 bottom-0 bg-background/80 p-2" aria-hidden="true">
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
               <div
-                className="h-full bg-emerald-600 transition-[width]"
+                className="h-full bg-statut-succes transition-[width]"
                 style={{ width: `${progressionPourcent}%` }}
               />
             </div>
@@ -204,7 +205,7 @@ export function CaptureLiveCadrage({ onCapture, onIndisponible }: Props) {
       <p role="status" className="flex items-center justify-center gap-2 texte-libelle">
         {cadrageBon ? (
           <>
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-statut-succes" aria-hidden="true" />
             {etatStabilite.stable
               ? t('scan:captureLive.captureAutomatiqueImminente')
               : t('scan:captureLive.cadrageBon')}

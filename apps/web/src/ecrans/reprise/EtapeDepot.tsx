@@ -58,11 +58,14 @@ export function EtapeDepot({ dossierEnCours }: Props) {
         <h2 id="reprise-etape-titre" tabIndex={-1} className="texte-titre-section">
           {t('reprise:depot.titre')}
         </h2>
-        <p className="text-muted-foreground">{t('reprise:depot.description')}</p>
+        <p className="texte-corps text-muted-foreground">{t('reprise:depot.description')}</p>
       </div>
 
       {depotInterrompuNonRepris ? (
-        <div role="status" className="rounded-lg border border-dashed bg-muted p-carte text-sm">
+        // DESIGN.md « bordure structurelle uniquement » — retirée : notice d'état
+        // (`role="status"`), aucune action, aucun comportement propre — surface tonale
+        // (`bg-muted`, déjà en place) suffit à la séparer du flux.
+        <div role="status" className="rounded-lg bg-muted p-carte texte-corps">
           <p className="font-medium">{t('reprise:depot.reprise.titre')}</p>
           <p>{t('reprise:depot.reprise.description', { pourcent: pourcentInterrompu })}</p>
         </div>
@@ -87,7 +90,9 @@ export function EtapeDepot({ dossierEnCours }: Props) {
           </Meter>
         ) : null}
 
-        {etat.phase === 'creation' ? <p>{t('reprise:depot.phase.creation')}</p> : null}
+        {etat.phase === 'creation' ? (
+          <p className="texte-corps">{t('reprise:depot.phase.creation')}</p>
+        ) : null}
 
         {etat.phase === 'envoi' ? (
           <Meter value={etat.octetsTraites} max={Math.max(etat.octetsTotal, 1)}>
@@ -107,15 +112,22 @@ export function EtapeDepot({ dossierEnCours }: Props) {
           </Meter>
         ) : null}
 
-        {etat.phase === 'finalisation' ? <p>{t('reprise:depot.phase.finalisation')}</p> : null}
+        {etat.phase === 'finalisation' ? (
+          <p className="texte-corps">{t('reprise:depot.phase.finalisation')}</p>
+        ) : null}
 
         {etat.phase === 'erreur' ? (
+          // DESIGN.md « bordure structurelle uniquement » — CONSERVÉE : encart d'alerte
+          // (`role="alert"`), état d'erreur actionnable (bouton « Réessayer » dans les cas où le
+          // serveur le permet), pas un simple groupe de contenu.
           <div
             role="alert"
             className="flex flex-col gap-champ rounded-lg border border-destructive p-carte"
           >
-            <p className="font-medium text-destructive">{t('reprise:depot.erreur.titre')}</p>
-            <p>{t(CLES_ERREUR[etat.erreur ?? 'generique'])}</p>
+            <p className="texte-corps font-medium text-destructive">
+              {t('reprise:depot.erreur.titre')}
+            </p>
+            <p className="texte-corps">{t(CLES_ERREUR[etat.erreur ?? 'generique'])}</p>
             {etat.erreur !== 'fichierDifferent' && etat.erreur !== 'tailleInattendue' ? (
               <Button onClick={reessayer} className="self-start">
                 {t('reprise:depot.erreur.reessayer')}

@@ -219,7 +219,7 @@ export function EnTeteOrdreReparation({ or }: Props) {
         {orPrecedent ? (
           <button
             type="button"
-            className="w-fit texte-libelle text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="w-fit texte-libelle text-primary underline-offset-4 hover:underline anneau-focus"
             onClick={() => navigate(chemins.atelier.ordresReparation.detail(orPrecedent.id, site))}
           >
             {t('or:bandeau.orPrecedent', { numero: orPrecedent.numero })}

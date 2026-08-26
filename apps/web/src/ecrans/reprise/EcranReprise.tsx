@@ -111,11 +111,16 @@ export function EcranReprise() {
             onReessayer={() => void requete.refetch()}
           />
         ) : estAnnule && dossier ? (
+          // DESIGN.md « bordure structurelle uniquement » — CONSERVÉE : encart d'état (dossier
+          // annulé) qui porte sa propre action (« Nouveau dépôt »), pas un simple groupe de
+          // contenu.
           <div className="flex flex-col items-start gap-groupe rounded-lg border border-dashed p-carte">
             <h2 id="reprise-etape-titre" tabIndex={-1} className="texte-titre-section">
               {t('reprise:dossierAnnule.titre')}
             </h2>
-            <p className="text-muted-foreground">{t('reprise:dossierAnnule.description')}</p>
+            <p className="texte-corps text-muted-foreground">
+              {t('reprise:dossierAnnule.description')}
+            </p>
             <Button onClick={() => setDepotForce(true)}>
               {t('reprise:dossierAnnule.nouveau')}
             </Button>

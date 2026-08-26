@@ -4,8 +4,8 @@ import { useTranslation } from 'react-i18next';
 import type { ReponseEnvoiRelances, ReponsePlanificationRelances } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
@@ -15,6 +15,8 @@ import { useEnvoyerRelances } from '@/hooks/relances/useEnvoyerRelances';
 import { useHistoriqueRelances } from '@/hooks/relances/useHistoriqueRelances';
 import { usePlanifierRelances } from '@/hooks/relances/usePlanifierRelances';
 import { formaterDate } from '@/lib/formats';
+
+import { BadgeStatutEnvoiRelance } from './BadgeStatutEnvoiRelance';
 
 /**
  * Écran de DÉCLENCHEMENT des relances automatiques (rappels de facture impayée) — planification,
@@ -64,15 +66,17 @@ function BlocDeclenchementManuel() {
   const [bilanEnvoi, setBilanEnvoi] = useState<ReponseEnvoiRelances | null>(null);
 
   return (
-    <section className="flex flex-col gap-4 rounded-lg border p-4">
-      <div className="flex flex-col gap-1">
-        <h2 className="texte-titre-section">{t('relances:declenchement.titre')}</h2>
-        <p className="texte-corps text-muted-foreground">
-          {t('relances:declenchement.description')}
-        </p>
-      </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="texte-titre-section">{t('relances:declenchement.titre')}</CardTitle>
+        <CardDescription>{t('relances:declenchement.description')}</CardDescription>
+      </CardHeader>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      {/* Bordures conservées sur les deux panneaux (DESIGN.md) : ce ne sont pas de simples groupes
+          de contenu mais deux zones d'action RÉELLES et distinctes (chacune déclenche son propre
+          appel serveur, planifier vs envoyer) — les distinguer visuellement évite qu'un bilan
+          affiché sous l'un se lise comme appartenant à l'autre. */}
+      <CardContent className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col items-start gap-2 rounded-md border p-3">
           <h3 className="texte-libelle font-medium text-foreground">
             {t('relances:declenchement.planifier.titre')}
@@ -151,8 +155,8 @@ function BlocDeclenchementManuel() {
             </div>
           ) : null}
         </div>
-      </div>
-    </section>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -167,7 +171,11 @@ function BlocTracabilite() {
   const { resultat, elements } = useHistoriqueRelances();
 
   return (
-    <section className="flex flex-col gap-4 rounded-lg border p-4">
+    // Pas de `Card` ici (DESIGN.md « Application aux tableaux ») : même patron que
+    // `ecrans/pointage/VueJournalPointage.tsx`/`VueEquipePointage.tsx` — un tableau porte son
+    // propre cadre (`rounded-lg border` sur le wrapper `overflow-x-auto`, filet seul entre les
+    // lignes), pas de carte qui l'enveloppe en plus.
+    <section className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
         <h2 className="texte-titre-section">{t('relances:tracabilite.titre')}</h2>
         <p className="texte-corps text-muted-foreground">{t('relances:tracabilite.description')}</p>
@@ -188,7 +196,7 @@ function BlocTracabilite() {
         />
       ) : (
         <>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-lg border">
             <table className="w-full texte-corps">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
@@ -224,9 +232,7 @@ function BlocTracabilite() {
                     <td className="py-2 pr-4">{t(`relances:regles.canaux.${envoi.canal}`)}</td>
                     <td className="py-2">
                       <div className="flex flex-col items-start gap-0.5">
-                        <Badge variant={envoi.statutEnvoi === 'envoye' ? 'default' : 'destructive'}>
-                          {t(`relances:tracabilite.statut.${envoi.statutEnvoi}`)}
-                        </Badge>
+                        <BadgeStatutEnvoiRelance statut={envoi.statutEnvoi} />
                         {envoi.statutEnvoi === 'echoue' ? (
                           <span className="texte-libelle text-muted-foreground">
                             {t(`relances:tracabilite.raisons.${envoi.raisonEchec ?? 'inconnue'}`)}
@@ -238,12 +244,13 @@ function BlocTracabilite() {
                 ))}
               </tbody>
             </table>
+            <BoutonChargerPlus
+              aChargerPlus={resultat.hasNextPage ?? false}
+              enChargement={resultat.isFetchingNextPage}
+              onChargerPlus={() => void resultat.fetchNextPage()}
+              className="border-t"
+            />
           </div>
-          <BoutonChargerPlus
-            aChargerPlus={resultat.hasNextPage ?? false}
-            enChargement={resultat.isFetchingNextPage}
-            onChargerPlus={() => void resultat.fetchNextPage()}
-          />
         </>
       )}
     </section>
