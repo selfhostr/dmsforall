@@ -24,6 +24,9 @@ import { colonnesHorodatage, colonneId } from '../colonnes-communes';
 import { site } from '../site';
 import { tenant } from '../tenant';
 import { ligneOr } from '../atelier/ordre-reparation';
+// Import direct du fichier (pas du barrel '../facturation') : même précaution que
+// atelier/client.ts (0066) — enums.ts n'importe rien de pieces, ce chemin direct est sûr.
+import { origineDocumentEnum } from '../facturation/enums';
 import { article } from './article';
 import { origineCommandeFournisseurEnum, statutCommandeFournisseurEnum } from './enums';
 import { fournisseur } from './fournisseur';
@@ -39,6 +42,16 @@ export const commandeFournisseur = pgTable(
     siteId: uuid('site_id').notNull(),
     statut: statutCommandeFournisseurEnum('statut').notNull().default('brouillon'),
     origine: origineCommandeFournisseurEnum('origine').notNull().default('manuelle'),
+    /**
+     * Reprise (migrations/0070_ancrages_origine_reprise_pneus_ventes_relances.sql) : dfa (créé
+     * par DFA) ou reprise (importé) — nommée `origineReprise` (pas `origine`) car cette table
+     * porte déjà `origine` (ci-dessus, RP-26 : pourquoi la commande est née dans DFA), sans
+     * rapport avec la provenance DFA/import. Même enum/sémantique que client.origine (0066).
+     */
+    origineReprise: origineDocumentEnum('origine_reprise').notNull().default('dfa'),
+    /** Reprise (0070) : référence de commande source verbatim, jamais retouchée. NULL si
+     *  origineReprise=dfa. */
+    numeroOrigine: text('numero_origine'),
     dateCommande: date('date_commande').notNull().defaultNow(),
     envoyeeLe: timestamp('envoyee_le', { withTimezone: true, mode: 'date' }),
     reference: text('reference'),
@@ -68,6 +81,15 @@ export const commandeFournisseur = pgTable(
       'commande_fournisseur_annulation_coherente_chk',
       sql`${t.statut} <> 'annulee' or ${t.motifAnnulation} is not null`,
     ),
+    // Reprise (0070) : même patron que ordre_reparation_origine_numero_origine_chk (0011),
+    // colonne origineReprise (pas origine, déjà prise) — voir en-tête de la colonne ci-dessus.
+    check(
+      'commande_fournisseur_origine_numero_origine_chk',
+      sql`(${t.origineReprise} = 'dfa') = (${t.numeroOrigine} is null)`,
+    ),
+    // commande_fournisseur_numero_origine_uk (index unique PARTIEL, where numero_origine is not
+    // null — 0070) n'est pas modélisable via `unique()` de pg-core (pas de clause WHERE) : posé
+    // en SQL brut, même limite que ordre_reparation_numero_origine_uk (0011).
     index('commande_fournisseur_pagination_idx').on(t.tenantId, t.creeLe.desc(), t.id.desc()),
     index('commande_fournisseur_fournisseur_idx').on(t.tenantId, t.fournisseurId),
     index('commande_fournisseur_site_statut_idx').on(t.tenantId, t.siteId, t.statut),

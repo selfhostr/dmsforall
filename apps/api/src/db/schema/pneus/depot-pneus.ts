@@ -23,6 +23,9 @@ import { colonneId, colonnesHorodatage } from '../colonnes-communes';
 import { site } from '../site';
 import { vehicule } from '../atelier/vehicule';
 import { ligneOr } from '../atelier/ordre-reparation';
+// Import direct du fichier (pas du barrel '../facturation') : même précaution que
+// atelier/client.ts (0066) — enums.ts n'importe rien de pneus, ce chemin direct est sûr.
+import { origineDocumentEnum } from '../facturation/enums';
 import { motifSortieDepotPneusEnum, saisonPneuEnum, statutDepotPneusEnum } from './enums';
 
 /**
@@ -41,6 +44,15 @@ export const depotPneus = pgTable(
     tenantId: uuid('tenant_id').notNull(),
     vehiculeId: uuid('vehicule_id').notNull(),
     siteId: uuid('site_id').notNull(),
+
+    /**
+     * Reprise (migrations/0070_ancrages_origine_reprise_pneus_ventes_relances.sql) : même enum et
+     * même sémantique que client.origine (0066) — dfa (créé par DFA) ou reprise (importé).
+     */
+    origine: origineDocumentEnum('origine').notNull().default('dfa'),
+    /** Reprise (0070) : identifiant du dépôt source verbatim, jamais retouché. NULL si
+     *  origine=dfa. */
+    numeroOrigine: text('numero_origine'),
 
     saison: saisonPneuEnum('saison').notNull(),
     // Un jeu entre en dépôt par défaut — `changer-saison`/`sortir` (API, hors périmètre schéma)
@@ -93,6 +105,15 @@ export const depotPneus = pgTable(
       'depot_pneus_sorti_motif_chk',
       sql`(${t.statut} = 'sorti') = (${t.motifSortie} is not null)`,
     ),
+
+    // Reprise (0070) : même patron que ordre_reparation_origine_numero_origine_chk (0011).
+    check(
+      'depot_pneus_origine_numero_origine_chk',
+      sql`(${t.origine} = 'dfa') = (${t.numeroOrigine} is null)`,
+    ),
+    // depot_pneus_numero_origine_uk (index unique PARTIEL, where numero_origine is not null —
+    // 0070) n'est pas modélisable via `unique()` de pg-core (pas de clause WHERE) : posé en SQL
+    // brut, même limite que ordre_reparation_numero_origine_uk (0011).
 
     // RPP-02 : à un instant T, au plus un jeu ACTIF (en_depot ou monté) par véhicule et par
     // saison. Ne peut pas être une contrainte UNIQUE de table (la clause WHERE n'existe que sur

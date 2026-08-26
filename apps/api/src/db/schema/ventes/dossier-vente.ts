@@ -40,6 +40,9 @@ import { colonneId, colonnesHorodatage } from '../colonnes-communes';
 import { tenant } from '../tenant';
 import { site } from '../site';
 import { client } from '../atelier/client';
+// Import direct du fichier (pas du barrel '../facturation') : même précaution que
+// atelier/client.ts (0066) — enums.ts n'importe rien de ventes, ce chemin direct est sûr.
+import { origineDocumentEnum } from '../facturation/enums';
 import { statutDossierVenteEnum } from './enums';
 import { vehiculeStock } from './vehicule-stock';
 
@@ -58,6 +61,14 @@ export const dossierVente = pgTable(
       .notNull()
       .references(() => tenant.id, { onDelete: 'restrict' }),
     siteId: uuid('site_id').notNull(),
+    /**
+     * Reprise (migrations/0070_ancrages_origine_reprise_pneus_ventes_relances.sql) : même enum
+     * et même sémantique que client.origine (0066) — dfa (créé par DFA) ou reprise (importé).
+     */
+    origine: origineDocumentEnum('origine').notNull().default('dfa'),
+    /** Reprise (0070) : identifiant de dossier source verbatim, jamais retouché. NULL si
+     *  origine=dfa. */
+    numeroOrigine: text('numero_origine'),
     /** Colonne SQL nommée `statut` (dispositif générique `verifier_transition()`, voir le
      *  commentaire équivalent sur `vehicule_stock.statutCommercial`). */
     statut: statutDossierVenteEnum('statut').notNull().default('prospection'),
@@ -139,6 +150,14 @@ export const dossierVente = pgTable(
       'dossier_vente_motif_cloture_chk',
       sql`${t.statut} not in ('annule', 'abandonne') or ${t.motifCloture} is not null`,
     ),
+    // Reprise (0070) : même patron que ordre_reparation_origine_numero_origine_chk (0011).
+    check(
+      'dossier_vente_origine_numero_origine_chk',
+      sql`(${t.origine} = 'dfa') = (${t.numeroOrigine} is null)`,
+    ),
+    // dossier_vente_numero_origine_uk (index unique PARTIEL, where numero_origine is not null —
+    // 0070) n'est pas modélisable via `unique()` de pg-core (pas de clause WHERE) : posé en SQL
+    // brut, même limite que ordre_reparation_numero_origine_uk (0011).
     // RV-10 : un véhicule engagé (bon de commande signé ou au-delà, avant facturation) ne peut
     // pas être engagé par un second dossier en même temps — verrou de concurrence en base, pas
     // seulement une règle de service (CV-01). `prospection` (simple devis) et les états

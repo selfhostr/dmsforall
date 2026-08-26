@@ -20,6 +20,9 @@ import { sql } from 'drizzle-orm';
 import { colonneId, colonnesHorodatage } from '../colonnes-communes';
 import { client } from '../atelier/client';
 import { vehicule } from '../atelier/vehicule';
+// Import direct du fichier (pas du barrel '../facturation') : même précaution que
+// atelier/client.ts (0066) — enums.ts n'importe rien de ventes, ce chemin direct est sûr.
+import { origineDocumentEnum } from '../facturation/enums';
 import { statutRepriseEnum } from './enums';
 import { dossierVente } from './dossier-vente';
 
@@ -41,6 +44,17 @@ export const reprise = pgTable(
   {
     id: colonneId(),
     tenantId: uuid('tenant_id').notNull(),
+    /**
+     * Reprise de DONNÉES (migrations/0070_ancrages_origine_reprise_pneus_ventes_relances.sql) :
+     * dfa (créé par DFA) ou reprise (importé). Même enum/sémantique que client.origine (0066).
+     * Nom de colonne identique au nom de cette table (reprise-véhicule des ventes VN/VO) : sans
+     * lien avec le chantier de reprise de données lui-même — deux notions homonymes, voir la
+     * migration pour le détail.
+     */
+    origine: origineDocumentEnum('origine').notNull().default('dfa'),
+    /** Reprise (0070) : identifiant de la reprise-véhicule source verbatim, jamais retouché. NULL
+     *  si origine=dfa. */
+    numeroOrigine: text('numero_origine'),
     dossierVenteId: uuid('dossier_vente_id').notNull(),
     vehiculeRepriseId: uuid('vehicule_reprise_id').notNull(),
     /** Colonne SQL nommée `statut` (dispositif générique `verifier_transition()`, voir le
@@ -117,6 +131,15 @@ export const reprise = pgTable(
       'reprise_dette_organisme_coherent_chk',
       sql`${t.detteFinancementResiduelleCentimes} is null or ${t.detteFinancementOrganismeId} is not null or ${t.detteFinancementOrganismeNom} is not null`,
     ),
+    // Reprise de données (0070) : même patron que ordre_reparation_origine_numero_origine_chk
+    // (0011).
+    check(
+      'reprise_origine_numero_origine_chk',
+      sql`(${t.origine} = 'dfa') = (${t.numeroOrigine} is null)`,
+    ),
+    // reprise_numero_origine_uk (index unique PARTIEL, where numero_origine is not null — 0070)
+    // n'est pas modélisable via `unique()` de pg-core (pas de clause WHERE) : posé en SQL brut,
+    // même limite que ordre_reparation_numero_origine_uk (0011).
     index('reprise_vehicule_reprise_idx').on(t.tenantId, t.vehiculeRepriseId),
   ],
 );

@@ -20,6 +20,9 @@ import { sql } from 'drizzle-orm';
 
 import { colonneId, colonnesHorodatage } from '../colonnes-communes';
 import { client } from '../atelier/client';
+// Import direct du fichier (pas du barrel '../facturation') : même précaution que
+// atelier/client.ts (0066) — enums.ts n'importe rien de ventes, ce chemin direct est sûr.
+import { origineDocumentEnum } from '../facturation/enums';
 import { statutConfirmationFinancementEnum, typeFinancementVenteEnum } from './enums';
 import { dossierVente } from './dossier-vente';
 
@@ -40,6 +43,14 @@ export const financementVente = pgTable(
   {
     id: colonneId(),
     tenantId: uuid('tenant_id').notNull(),
+    /**
+     * Reprise (migrations/0070_ancrages_origine_reprise_pneus_ventes_relances.sql) : dfa (créé
+     * par DFA) ou reprise (importé). Même enum/sémantique que client.origine (0066).
+     */
+    origine: origineDocumentEnum('origine').notNull().default('dfa'),
+    /** Reprise (0070) : identifiant de financement/contrat source verbatim, jamais retouché. NULL
+     *  si origine=dfa. */
+    numeroOrigine: text('numero_origine'),
     dossierVenteId: uuid('dossier_vente_id').notNull(),
     /** RV-39/RV-44 : `comptant`/`credit`/`leasing`, extensible (voir `enums.ts`). */
     type: typeFinancementVenteEnum('type').notNull(),
@@ -47,8 +58,21 @@ export const financementVente = pgTable(
      *  « obligatoire côté serveur pour credit/leasing » — CHECK ci-dessous couvre les DEUX types,
      *  pas seulement `leasing` (correction par rapport à une première lecture de RV-44 seule, la
      *  spécification de contrat étant plus précise que la règle métier prise isolément).
-     *  `null` UNIQUEMENT pour `comptant`. */
+     *  `null` UNIQUEMENT pour `comptant`, OU quand `organismeNom` (texte libre) le remplace —
+     *  voir `financement_vente_organisme_requis_chk` (0071, D-42). */
     organismeId: uuid('organisme_id'),
+    /** 0071 (D-42, docs/reprise/decisions.md) : texte libre si l'organisme de financement n'est
+     *  pas (encore) une fiche client DFA — même doctrine que
+     *  `reprise.detteFinancementOrganismeNom` (0032). Au moins l'un de `organismeId`/
+     *  `organismeNom` est renseigné dès que `type <> 'comptant'`
+     *  (`financement_vente_organisme_requis_chk`). AVERTISSEMENT : le contrat gelé
+     *  (`packages/shared/src/contrats/ventes/financement.ts::ReponseFinancement`) n'expose pas
+     *  encore ce champ — hors périmètre de cette colonne, à faire évoluer avant tout écrivain
+     *  d'import D-42 pour `ventes_vn_vo` (qui n'existe pas encore, voir 0070). La résolution en
+     *  fiche client se fait après coup, à la main : `organismeId` se renseigne alors EN PLUS,
+     *  `organismeNom` reste tel quel (verbatim, jamais retouché, même doctrine que
+     *  `numeroOrigine`). */
+    organismeNom: text('organisme_nom'),
     /** RV-42 : traçabilité (numéro de contrat). RV-42 dit littéralement que le détail financier
      *  « reste dans le système de l'organisme » — TENSION SIGNALÉE (voir `montantFinanceCentimes`
      *  et le commentaire de tête de `contrats/ventes/financement.ts`, migration 0042) : un audit a
@@ -102,9 +126,16 @@ export const financementVente = pgTable(
       columns: [t.tenantId, t.organismeId],
       foreignColumns: [client.tenantId, client.id],
     }).onDelete('restrict'),
+    // 0071 (D-42) : relâchée par rapport à 0032 — organismeId (fiche résolue) OU organismeNom
+    // (texte libre) suffit, même disjonction que reprise_dette_organisme_coherent_chk.
     check(
       'financement_vente_organisme_requis_chk',
-      sql`${t.type} = 'comptant' or ${t.organismeId} is not null`,
+      sql`${t.type} = 'comptant' or ${t.organismeId} is not null or ${t.organismeNom} is not null`,
+    ),
+    // 0071 : même patron que reprise_dette_organisme_nom_non_vide_chk (0032).
+    check(
+      'financement_vente_organisme_nom_non_vide_chk',
+      sql`${t.organismeNom} is null or length(btrim(${t.organismeNom})) > 0`,
     ),
     check(
       'financement_vente_motif_refus_chk',
@@ -144,6 +175,14 @@ export const financementVente = pgTable(
               and ${t.tauxInteretPourmille} is null
               and ${t.dureeMois} is null)`,
     ),
+    // Reprise (0070) : même patron que ordre_reparation_origine_numero_origine_chk (0011).
+    check(
+      'financement_vente_origine_numero_origine_chk',
+      sql`(${t.origine} = 'dfa') = (${t.numeroOrigine} is null)`,
+    ),
+    // financement_vente_numero_origine_uk (index unique PARTIEL, where numero_origine is not
+    // null — 0070) n'est pas modélisable via `unique()` de pg-core (pas de clause WHERE) : posé
+    // en SQL brut, même limite que ordre_reparation_numero_origine_uk (0011).
     // Le tri par (tenant_id, dossier_vente_id, cree_le desc) sert directement la dérivation en
     // lecture du « financement courant » (voir le commentaire de tête).
     index('financement_vente_dossier_idx').on(t.tenantId, t.dossierVenteId, t.creeLe.desc()),

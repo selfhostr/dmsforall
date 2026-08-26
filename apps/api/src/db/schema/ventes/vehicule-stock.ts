@@ -23,6 +23,9 @@ import { colonnesHorodatage } from '../colonnes-communes';
 import { tenant } from '../tenant';
 import { site } from '../site';
 import { vehicule } from '../atelier/vehicule';
+// Import direct du fichier (pas du barrel '../facturation') : même précaution que
+// atelier/client.ts (0066) — enums.ts n'importe rien de ventes, ce chemin direct est sûr.
+import { origineDocumentEnum } from '../facturation/enums';
 import { statutCommercialVehiculeEnum } from './enums';
 
 /**
@@ -61,6 +64,16 @@ export const vehiculeStock = pgTable(
       .notNull()
       .references(() => tenant.id, { onDelete: 'restrict' }),
     siteId: uuid('site_id').notNull(),
+    /**
+     * Reprise (migrations/0070_ancrages_origine_reprise_pneus_ventes_relances.sql) : dfa (créé
+     * par DFA) ou reprise (importé). Même enum/sémantique que client.origine (0066) — à ne pas
+     * confondre avec `provenance` (ci-dessous) ni `origineRepriseDossierVenteId` (RV-24, une
+     * reprise-véhicule au sens commercial, sans rapport avec cette reprise de DONNÉES).
+     */
+    origine: origineDocumentEnum('origine').notNull().default('dfa'),
+    /** Reprise (0070) : identifiant de la fiche stock source verbatim, jamais retouché. NULL si
+     *  origine=dfa. Distinct de vehicule.numeroOrigine (0066) malgré id partagé — voir migration. */
+    numeroOrigine: text('numero_origine'),
     /** RV-02, PV-05 : liste EXTENSIBLE **par tenant** (pas seulement par migration produit) — texte
      *  libre plutôt qu'un enum PG partagé par tous les tenants, même choix que
      *  `contrats/ventes/vehicule-stock.ts::schemaMiseEnStock` (`z.string()`, jamais
@@ -131,6 +144,14 @@ export const vehiculeStock = pgTable(
       'vehicule_stock_en_commande_provenance_chk',
       sql`${t.statutCommercial} <> 'en_commande' or ${t.provenance} = 'neuf_constructeur'`,
     ),
+    // Reprise (0070) : même patron que ordre_reparation_origine_numero_origine_chk (0011).
+    check(
+      'vehicule_stock_origine_numero_origine_chk',
+      sql`(${t.origine} = 'dfa') = (${t.numeroOrigine} is null)`,
+    ),
+    // vehicule_stock_numero_origine_uk (index unique PARTIEL, where numero_origine is not null —
+    // 0070) n'est pas modélisable via `unique()` de pg-core (pas de clause WHERE) : posé en SQL
+    // brut, même limite que ordre_reparation_numero_origine_uk (0011).
     index('vehicule_stock_site_statut_idx').on(t.tenantId, t.siteId, t.statutCommercial),
     index('vehicule_stock_date_entree_idx').on(t.tenantId, t.dateEntreeStock.desc()),
     index('vehicule_stock_prix_vente_idx')

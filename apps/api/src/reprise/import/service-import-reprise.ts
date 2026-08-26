@@ -46,16 +46,30 @@ import { ecrireVehiculesReprise } from './ecrivains/ecrivain-vehicule-reprise';
 import { ecrireDocumentVenteReprise } from './ecrivains/ecrivain-document-vente-reprise';
 import { accumulerDocumentReconciliation } from './reconciliation-annee-reprise';
 
-/** Ordre FK — voir en-tête. */
+/**
+ * Ordre FK — voir en-tête. `pneus`/`ventes_vn_vo`/`relances` (D-41/D-42/D-45,
+ * `docs/reprise/decisions.md`) ajoutés à leur place FK, SANS écrivain concret à ce stade — voir
+ * `rolePrincipalPourDomaine`/`domainesConcrets` ci-dessous : ils ne font actuellement rien gagner
+ * à cette boucle, seulement documenter où ils s'inséreront. `pneus` (`depot_pneus`) dépend d'un
+ * véhicule déjà repris (D-41) : après `vehicules`. `ventes_vn_vo` (`dossier_vente`,
+ * `vehicule_stock`, `reprise`, `financement_vente`) dépend d'un véhicule et, pour le financement,
+ * potentiellement d'un client organisme (D-42) : après `vehicules`, avant `documents_vente` (qui
+ * peut référencer `dossier_vente_id`, jamais l'inverse). `relances` dépend d'une créance
+ * (facture/OR) déjà reprise (D-45, dernier de l'« Ordre dans lequel exécuter » du document de
+ * décisions) : en dernier.
+ */
 const ORDRE_DOMAINES: readonly DomaineReprise[] = [
   'clients',
   'fournisseurs',
   'articles_stock',
   'vehicules',
+  'pneus',
+  'ventes_vn_vo',
   'ordres_reparation',
   'documents_vente',
   'paiements',
   'documents_scannes',
+  'relances',
 ];
 
 interface AccumulateurRapport {
@@ -316,6 +330,18 @@ export class ServiceImportReprise {
     await this.cycleVie.transiter(tx, tenantId, dossierId, 'import_echoue');
   }
 
+  /**
+   * `pneus`/`ventes_vn_vo`/`relances` (D-41/D-42/D-45, `docs/reprise/decisions.md`) : mappées sur
+   * `'inconnu'` — AUCUN rôle heuristique n'existe encore dans `ROLES_TABLE_REPRISE` pour détecter
+   * ces trois domaines depuis une archive source (contrairement aux cinq domaines ci-dessus, tous
+   * détectables depuis 0067). `'inconnu'` ne matche structurellement AUCUNE table détectée avec
+   * confiance (le générateur de plan écarte déjà tout rôle `inconnu` avec le motif
+   * `role_indetermine`, voir `plan/generation-plan-reprise.ts::motifExclusionFixe`) — ce mapping
+   * ne fait donc jamais gagner de ligne à `domainesConcrets` (qui ne les liste pas non plus, voir
+   * `lancer()` ci-dessus) : ces trois domaines rejoignent honnêtement le sort déjà réservé à
+   * `fournisseurs`/`articles_stock`/`paiements`/`ordres_reparation`/`documents_scannes` — signalés
+   * en anomalie `contrainte_metier_refusee`, jamais un succès simulé.
+   */
   private rolePrincipalPourDomaine(domaine: DomaineReprise): string {
     const table: Record<DomaineReprise, string> = {
       clients: 'clients',
@@ -326,6 +352,9 @@ export class ServiceImportReprise {
       articles_stock: 'articles_stock',
       fournisseurs: 'fournisseurs',
       documents_scannes: 'index_documents_scannes',
+      pneus: 'inconnu',
+      ventes_vn_vo: 'inconnu',
+      relances: 'inconnu',
     };
     return table[domaine];
   }

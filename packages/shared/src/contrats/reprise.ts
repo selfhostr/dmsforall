@@ -515,6 +515,20 @@ export const DOMAINES_REPRISE = [
   'articles_stock',
   'fournisseurs',
   'documents_scannes',
+  /** Dépôts pneus en cours (D-41, `docs/reprise/decisions.md`) — jamais un dépôt déjà sorti, ni
+   *  l'état d'usure, ni l'emplacement de stockage. Sans écrivain concret à ce stade (extension
+   *  seam, même statut que `fournisseurs`/`articles_stock`/`paiements`/`ordres_reparation`/
+   *  `documents_scannes` ci-dessus). */
+  'pneus',
+  /** Dossiers de vente VN/VO ouverts (D-42) — véhicule stock, reprise-véhicule et financement
+   *  associés, tout sauf `livre`/`clos`/`annule`/`abandonne`. Organisme de financement en nom
+   *  libre par défaut (D-42), sans résolution forcée vers une fiche client à l'import. Sans
+   *  écrivain concret à ce stade (même statut que ci-dessus). */
+  'ventes_vn_vo',
+  /** Aucune relance active reprise (D-45) : ce domaine sert uniquement à porter le signalement
+   *  « déjà relancée N fois côté ancien système » sur la créance reprise — jamais à réactiver un
+   *  historique. Sans écrivain concret à ce stade (même statut que ci-dessus). */
+  'relances',
 ] as const;
 export type DomaineReprise = (typeof DOMAINES_REPRISE)[number];
 
