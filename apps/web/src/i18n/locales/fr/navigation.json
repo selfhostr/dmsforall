@@ -85,6 +85,10 @@
     "reduire": "Réduire la barre latérale",
     "agrandir": "Agrandir la barre latérale"
   },
+  "theme": {
+    "passerClair": "Passer en thème clair",
+    "passerSombre": "Passer en thème sombre"
+  },
   "pied": {
     "version": "Version {info}",
     "versionInconnue": "inconnue"

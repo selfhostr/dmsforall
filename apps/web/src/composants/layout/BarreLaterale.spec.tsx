@@ -574,8 +574,14 @@ describe('BarreLaterale — numéro de version, collé au pied compte', () => {
 
     const compte = await screen.findByRole('button', { name: /jean dupont/i });
     const version = screen.getByText('0.1.0+a1b2c3d');
-    // Même conteneur que le déclencheur du pied compte, pas un pied détaché.
-    expect(compte.closest('div')?.contains(version)).toBe(true);
+    // Même pied que le déclencheur du compte, pas un pied détaché — ancré sur `.border-t`
+    // (le filet qui délimite VISUELLEMENT le pied compte, `BarreLaterale.tsx`) plutôt que sur
+    // `closest('div')` : depuis la refonte visuelle (bascule clair/sombre posée à côté du
+    // déclencheur, voir `BasculeTheme.tsx`), le déclencheur est nichée sous un `div` de mise en
+    // page supplémentaire (rangée bouton + déclencheur) — un `div` intermédiaire légitime, pas un
+    // pied détaché. `closest('.border-t')` reste vrai quelle que soit la profondeur de nichage
+    // interne, tant que la version reste dans LE pied compte.
+    expect(compte.closest('.border-t')?.contains(version)).toBe(true);
     // Sélectionnable à la souris (copier-coller) : jamais `select-none`.
     expect(version.className).toContain('select-text');
     expect(version.className).not.toContain('select-none');

@@ -1,5 +1,15 @@
 @import 'tailwindcss';
 
+/* Bascule le variant `dark:` de Tailwind sur une classe plutôt que sur la préférence système
+   (`@media (prefers-color-scheme: dark)`, comportement par défaut de Tailwind v4). Nécessaire pour
+   que `next-themes` (bascule manuelle + persistance `localStorage` + suivi système, voir
+   `App.tsx`/`index.html`) gouverne réellement le rendu : sans ce variant, un utilisateur qui choisit
+   le sombre alors que son système est en clair ne verrait AUCUNE classe `dark:` s'appliquer.
+   `&:where(.dark, .dark *)` (pas juste `.dark &`) : la spécificité de `:where()` est nulle, donc les
+   classes `dark:*` ne gagnent jamais en spécificité sur un utilitaire équivalent posé à côté —
+   même règle de poids que le reste des variants natifs de Tailwind. Documenté dans DESIGN.md. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ═════════════════════════════════════════════════════════════════════════════
    TYPOGRAPHIE — IBM Plex Sans (lecture) + IBM Plex Mono (identifiants)
    Lot K. Avant ce lot, aucune `font-family` n'était déclarée : le produit
@@ -81,28 +91,44 @@
 /* ═════════════════════════════════════════════════════════════════════════════
    COULEURS — palette shadcn (new-york, base neutral) + couleur de marque DFA.
 
-   THÈME CLAIR UNIQUEMENT — décision confirmée au Lot K, pas un oubli.
-   Un atelier et un comptoir de garage sont des environnements très éclairés
-   (néons, LED, portes de hall ouvertes) : le problème d'une tablette posée sur
-   un établi est le reflet et l'éblouissement, que résout la luminance élevée
-   d'une interface claire, pas l'inverse. Un thème sombre obligerait par
-   ailleurs à re-mesurer les six tokens `--statut-*`, la marque et les bordures
-   sur un second fond (les ratios ci-dessous ne valent que sur fond clair), soit
-   le double de surface de contraste à tenir pour un besoin jamais exprimé par
-   un garage. CONTRIBUTING.md : pas de complexité non démontrée.
+   DÉCISION DU LOT K (« thème clair uniquement ») ANNULÉE PAR @laupernoe — refonte visuelle, voir
+   DESIGN.md. Ce commentaire documentait jusque-là un refus assumé du mode sombre ; il documente
+   maintenant la décision inverse, et pourquoi elle a changé. Ce n'est pas un oubli qui se corrige
+   en silence : un futur lecteur qui tomberait sur une trace de l'ancien raisonnement (issue,
+   commit, doc externe) doit comprendre que c'est une décision REVUE, pas une règle qu'on aurait
+   négligée. Le raisonnement du Lot K restait correct pour ce qu'il couvrait — l'éblouissement d'un
+   atelier très éclairé justifie un DÉFAUT clair — mais il concluait à tort qu'un thème sombre
+   n'avait aucun usage : un bureau ou un poste de nuit (astreinte, rapprochement bancaire tardif) est
+   un contexte réel où le sombre repose l'œil, et rien n'empêche de garder `system`/`light` comme
+   réglage par défaut du produit tout en offrant le choix. Le coût que le Lot K redoutait (re-mesurer
+   les six `--statut-*`, la marque et les bordures sur un second fond) a été payé une fois pour
+   toutes ci-dessous et dans `.dark` plus bas — voir DESIGN.md pour le tableau complet des ratios.
 
-   CONSÉQUENCE OPÉRATIONNELLE : aucune variante `dark:` ne doit exister dans le
-   produit. Une variante `dark:` posée « par anticipation » n'est jamais rendue
-   (aucune classe `.dark` n'est appliquée nulle part) : c'est du code mort qui
-   donne l'illusion d'un support, et qui produira un rendu jamais mesuré le jour
-   où quelqu'un activera le mode sombre. `color-scheme: light` ci-dessous verrouille
-   aussi le rendu des contrôles natifs et des barres de défilement sur un poste
-   dont le système est réglé en sombre.
+   CONSÉQUENCE OPÉRATIONNELLE (INVERSÉE) : les variantes `dark:` sont maintenant VIVANTES —
+   `@custom-variant dark` ci-dessus les fait correspondre à un ancêtre `.dark`, que `next-themes`
+   pose sur `<html>` (voir `App.tsx`). Un futur `dark:` posé dans un écran est donc du code RÉEL,
+   rendu et mesurable dès qu'un utilisateur choisit le thème sombre — plus une anticipation morte.
+   `color-scheme` suit désormais le thème actif (`light` ici, `dark` dans le bloc `.dark` plus bas)
+   au lieu d'être verrouillé sur `light` : les contrôles natifs (case à cocher, ascenseur, sélecteur
+   de date) et les barres de défilement rendent la bonne palette système dans les deux thèmes.
    ══════════════════════════════════════════════════════════════════════════ */
 :root {
   color-scheme: light;
 
-  --background: 0 0% 100%;
+  /* Fond de page — PAS blanc pur (`#fcfcfd`, quasi-blanc, aurait été le choix « sobre » : delta de
+     1.03:1 avec une carte blanche, presque imperceptible). @laupernoe a tranché `#f0f0f3` : delta réel de
+     1.14:1 avec une carte blanche — c'est le mécanisme d'« elevation par contraste de surface »
+     que M3 recommande pour une carte SANS bordure ni ombre (voir la règle « bordure structurelle
+     uniquement », DESIGN.md, et `components/ui/card.tsx`) — et plus lisible sur une tablette
+     d'atelier en plein jour, où un delta de 1.03:1 se perd dans le reflet. Conséquence à surveiller
+     mesurée, pas silencieuse : `--muted`/`--secondary`/`--accent` (95.9% L, inchangés) sont
+     maintenant très proches en luminosité de ce fond de page (94.7% L visuel) plutôt que
+     nettement en dessous du blanc pur — l'ordre reste correct (fond < muted < carte, une échelle
+     à trois paliers), mais l'écart fond/muted s'est resserré. Aucun jeton texte n'en souffre : voir
+     `contraste-jetons.spec.ts`, toutes les paires « sur background » redemeurent ≥ 4.5:1/3:1 avec
+     ce nouveau fond (input : 3.49:1 → 3.10:1, statut-neutre : 4.86:1 → 4.61:1 — marge réduite mais
+     jamais sous le seuil). */
+  --background: 240 11% 95%; /* #f0f0f3 */
   --foreground: 240 10% 3.9%;
   --card: 0 0% 100%;
   --card-foreground: 240 10% 3.9%;
@@ -141,12 +167,22 @@
      WCAG 2.1, calcul programmatique, rejoué par
      `src/test/accessibilite/contraste-jetons.spec.ts`) — chaque ligne reste
      ≥ à la valeur Lot K qu'elle remplace (rappelée entre parenthèses) :
-       --marque sur --background ......... 11.62:1 AAA (Lot K : 11.28:1)
+       --marque sur --background ......... 10.31:1 AAA (Lot K : 11.28:1 — voir NOTE ci-dessous)
        --marque sur --muted .............. 10.57:1 AAA (Lot K : 10.26:1)
        blanc sur --marque (bouton plein) . 11.62:1 AAA (Lot K : 11.28:1)
        blanc sur --marque-fort (survol) .. 15.25:1 AAA (Lot K : 15.04:1)
        --marque sur --marque-doux ........ 10.58:1 AAA (Lot K : 10.00:1)
-       --marque-doux-foreground sur --marque-doux .. 13.89:1 AAA (Lot K : 10.80:1)
+       --marque-doux-foreground sur --marque-doux .. 12.59:1 AAA (Lot K : 10.80:1)
+     NOTE (refonte visuelle) : la seule ligne qui ne tient plus STRICTEMENT le plancher Lot K est
+     « --marque sur --background », et c'est attendu — `--background` lui-même est passé de blanc
+     pur à `#f0f0f3` dans cette refonte (voir plus bas), ce qui baisse mécaniquement CE ratio précis
+     sans toucher à la couleur de marque. 10.31:1 reste très largement AAA (seuil AAA texte normal :
+     7:1) et loin au-dessus du seuil AA (4.5:1) qui gouverne réellement l'accessibilité : le
+     plancher Lot K protégeait un choix de TEINTE, pas une promesse que plus aucun autre jeton ne
+     bougerait jamais. La ligne `--marque-doux-foreground sur --marque-doux` était déjà légèrement
+     sur-documentée avant ce lot (13.89 écrit, 12.59 mesuré) — ni `--marque-doux` ni
+     `--marque-doux-foreground` n'ont changé dans cette refonte, le chiffre corrigé ici documente
+     simplement la valeur réelle, jamais mesurée avant.
      ─────────────────────────────────────────────────────────────────────── */
   --marque: 186 80% 15%; /* #083f45 */
   --marque-fort: 186 80% 10%; /* survol / appui d'une surface pleine de marque, #052a2e */
@@ -186,8 +222,12 @@
 
   /* Deux tokens de trait, deux rôles distincts — ils étaient confondus avant le Lot K :
      - `--border` : trait DÉCORATIF (séparateur, filet de tableau, bord de carte). Exempté
-       du seuil 3:1 de WCAG 1.4.11, mais relevé de 90% à 86% (1.27:1 -> 1.40:1) parce
-       qu'un filet de ligne à 1.27:1 est quasi invisible sur un tableau dense de 24 pouces.
+       du seuil 3:1 de WCAG 1.4.11, mais relevé de 90% à 86% (1.27:1 -> 1.40:1 sur le fond blanc
+       pur d'alors) parce qu'un filet de ligne à 1.27:1 est quasi invisible sur un tableau dense
+       de 24 pouces. Ce 1.40:1 datait d'un `--background` blanc pur : depuis le passage à
+       `#f0f0f3` (refonte visuelle, voir plus haut), le ratio RÉEL sur la page vaut 1.24:1 — voir
+       `contraste-jetons.spec.ts` pour la valeur vivante, ce commentaire ne documente que
+       l'écart voulu à l'origine (90% -> 86%), pas la valeur courante contre `--background`.
      - `--input` : CONTOUR D'UN CONTRÔLE (champ de saisie, case à cocher). C'est la seule
        chose qui dit à l'utilisateur où commence la zone cliquable : WCAG 1.4.11 impose 3:1.
        Le défaut shadcn mesurait 1.27:1 — échec. Relevé à `240 6% 56%` : 3.49:1 sur blanc,
@@ -258,8 +298,108 @@
      restent la source de vérité par densité. Ce bloc `:root` n'est que le gabarit
      `aeree` de dégradation sûre : il doit rester identique à `.densite-aeree`. */
   --espace-carte: 1.25rem; /* rembourrage intérieur d'une carte (était 1.5rem) */
+  --espace-carte-compacte: 1rem; /* rembourrage réduit, cartes à contenu minimal — voir `.densite-dense` */
   --espace-section: 1.75rem; /* entre deux sections d'un écran (était 2rem) */
   --espace-ecran: 1.25rem; /* marge d'un écran par rapport au cadre (était 1.5rem) */
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   THÈME SOMBRE — mêmes rôles de jetons que `:root` ci-dessus, valeurs différentes UNIQUEMENT là où
+   ça change (`.dark` et `:root` ciblent le même élément, `<html>` : un jeton non redéclaré ici hérite
+   simplement de sa valeur `:root` — inutile de recopier `--destructive`, l'échelle d'espacement,
+   les durées d'animation ou `--avertissement-fond`… quand la valeur claire reste juste).
+
+   MÉTHODE — luminance relative WCAG 2.1, calcul programmatique (même méthode que le bloc couleurs
+   ci-dessus), rejouée par `contraste-jetons.spec.ts` (bloc « sombre », voir `jetons-css.ts`). Base :
+   Radix Colors `slate` dark pour les gris/surfaces (le clair, lui, N'EST PAS migré sur Radix — voir
+   DESIGN.md, quatre régressions mesurées, dont `slate-8`/blanc à 1.91:1 contre 3:1 requis). Radix
+   sert ICI au sombre et aux gris, jamais de moitié : c'est la règle, pas une exception ponctuelle.
+
+   SURFACES — trois paliers croissants (M3 : plus un bloc est « élevé », plus sa surface est CLAIRE
+   sur fond sombre, l'inverse du clair) :
+     --background 7% L (base) < --card 10% L (carte, panneau) < --popover 14% L (menu, popover).
+   Delta carte/fond mesuré : 1.07:1 — un RENFORT, jamais un séparateur (comme en clair, 1.14:1) :
+   ce qui sépare réellement les blocs reste l'espacement et le titre de section, voir
+   `components/ui/card.tsx` et DESIGN.md.
+
+   CONTOUR DE CONTRÔLE — `--input` prend `slate-9` (`#696e77`), PAS `slate-8` : `slate-8` mesure
+   3.01:1 sur `--background` mais seulement 2.81:1 sur une CARTE (`--card`) — échec de WCAG 1.4.11
+   dès qu'un champ de saisie est posé dans une carte, ce qui est le cas partout dans ce produit.
+   Même piège que celui déjà corrigé au Lot K côté clair (`--input` y avait le même problème avec
+   la valeur par défaut de shadcn). Mesuré : 3.68:1 sur fond, 3.43:1 sur carte, 3.10:1 sur
+   `--muted`/`--secondary`/`--accent` (`.dark` plus bas) — les trois au-dessus du seuil 3:1.
+
+   MARQUE — la sarcelle claire (`#083f45`) mesure 1.37:1 sur fond sombre : invisible, un jeton par
+   thème est donc obligatoire ici (contrairement à `--destructive`, sa luminance ne dépend pas du
+   fond). Remplacée par `cyan-11` dark de Radix (`#4ccce6`, 190°) : 9.96:1 sur `--background`,
+   9.29:1 sur `--card`, et 9.96:1 pour DU TEXTE SOMBRE posé sur un bouton plein de marque — inversé
+   par rapport au clair (texte blanc sur marque foncée) parce qu'aucune sarcelle/cyan de la famille
+   ne tient un contraste ≥ 4.5:1 en texte BLANC sur fond sombre : vérifié séparément, le pas
+   « solid » standard de la famille (`#12a594`) ne mesure que 3.07:1 en blanc, clair comme sombre.
+   `--primary-foreground` prend donc ici la couleur du FOND (`#111113`) plutôt que du blanc — c'est
+   ce qui donne exactement 9.96:1, la même paire que marque/fond puisque c'est littéralement la
+   même seconde couleur.
+
+   MAIS — ARBITRAGE DE @laupernoe, ÉCRIT ICI PARCE QU'IL DEVIENT UNE CONTRAINTE, PAS UNE PRÉFÉRENCE :
+   cette sarcelle sombre CASSE la doctrine « une couleur ne dit jamais deux choses » (écart de
+   teinte > 30° entre la marque et chaque statut, voir le commentaire de `--marque` en clair
+   ci-dessus). Mesuré : `cyan-11` (190°) n'est qu'à 20° de `--statut-info` (210°, « en cours ») —
+   sous le seuil de 30°. Aucune teinte de la famille sarcelle/cyan ne tient l'écart avec les SIX
+   statuts en sombre (l'alternative `teal-11` en serait à 21° de `--statut-succes`). @laupernoe a choisi
+   d'ASSUMER cet écart réduit plutôt que de désaturer la marque ou de la faire changer de famille
+   selon le thème — À LA CONDITION EXPLICITE que forme + icône + mot restent TOUJOURS les trois
+   signaux d'un badge de statut, jamais la couleur seule. Ce n'était déjà qu'une bonne pratique
+   documentée (`BadgeStatutOr`) ; l'arbitrage de @laupernoe la transforme en CONTRAINTE NON NÉGOCIABLE,
+   parce que c'est elle — et elle seule — qui rend cet écart de 20° acceptable. Voir DESIGN.md,
+   section statuts, et `contraste-jetons.spec.ts` (sentinelle dédiée à cet écart réduit).
+   ══════════════════════════════════════════════════════════════════════════ */
+.dark {
+  color-scheme: dark;
+
+  --background: 240 6% 7%; /* #111113 */
+  --foreground: 220 9% 94%; /* #edeef0 — 16.25:1 sur --background */
+  --card: 220 6% 10%; /* #18191b — surface, 1.07:1 sur --background (renfort, pas séparateur) */
+  --card-foreground: 220 9% 94%;
+  --popover: 225 6% 14%; /* #212225 — surface « haute » (menu, popover), 1.19:1 sur --background */
+  --popover-foreground: 220 9% 94%;
+
+  --marque: 190 75% 60%; /* #4ccce6 — Radix cyan-11 dark, voir le commentaire de tête */
+  --marque-fort: 190 75% 66%; /* #67d4e9 — survol/appui : ÉCLAIRCIE (pas assombrie comme en clair),
+    la direction « plus d'emphase » s'inverse avec le fond ; 10.93:1 sur --background */
+  --marque-doux: 190 35% 18%; /* #1e393e — surlignage d'un élément de menu actif, tonalité sombre
+    de la marque plutôt que la marque elle-même en fond (qui serait éblouissante en pleine surface) */
+  --marque-doux-foreground: 190 75% 60%; /* = --marque : 6.48:1 sur --marque-doux */
+
+  /* `--primary` reste l'alias de `--marque` (voir :root) : hérite automatiquement de la valeur
+     ci-dessus, aucune redéclaration nécessaire — c'est tout l'intérêt de l'alias. */
+  --primary-foreground: 240 6% 7%; /* = --background : texte SOMBRE sur bouton plein clair, voir le
+    commentaire de tête (« MARQUE ») — 9.96:1 */
+
+  /* `--secondary`/`--muted`/`--accent` partagent une seule surface, comme en clair (`--muted` et
+     `--secondary` y valent déjà la même chose) : le palier « surface haute » (`--popover`),
+     suffisamment distinct de `--card` pour qu'un survol/une zone atténuée se voie sur une carte. */
+  --secondary: 225 6% 14%;
+  --secondary-foreground: 220 9% 94%;
+  --muted: 225 6% 14%;
+  --muted-foreground: 216 7% 71%; /* #b0b4ba — 9.06:1 sur fond, 7.64:1 sur surface haute */
+  --accent: 225 6% 14%;
+  --accent-foreground: 220 9% 94%;
+
+  /* `--destructive`/`-fort`/`-foreground` : PAS redéclarés — leur contraste (texte blanc sur rouge
+     plein, 6.47:1) ne dépend que de leurs deux propres couleurs, jamais du fond de page. La même
+     paire vaut donc dans les deux thèmes, vérifié dans `contraste-jetons.spec.ts` (bloc sombre). */
+
+  --border: 213 8% 23%; /* #363a3f — décoratif, exempté de 3:1 (même statut qu'en clair) */
+  --input: 219 6% 44%; /* #696e77 — Radix slate-9, PAS slate-8, voir le commentaire de tête */
+
+  /* `--ring` reste l'alias de `--marque` (voir :root) : hérite de la valeur sombre ci-dessus sans
+     redéclaration, ≥ 8.4:1 sur les trois surfaces (fond, carte, popover). */
+
+  /* Avertissement (bandeaux/encarts) — même principe que les statuts : fond sombre + texte clair,
+     teinte gardée distincte de `--statut-attention` (46° en sombre) pour rester une famille à part. */
+  --avertissement: 34 95% 52%; /* #f99410 — 7.29:1 sur --avertissement-fond, 8.33:1 sur --background */
+  --avertissement-fond: 32 75% 10%; /* #2d1b06 */
+  --avertissement-bordure: 34 85% 40%; /* #bd720f — 5.01:1 sur --background (non-texte, ≥ 3:1) */
 }
 
 /* ── Zone sûre & barre d'onglets basse ────────────────────────────────────────
@@ -341,6 +481,7 @@
   --spacing-controles: var(--espace-controles);
   --spacing-groupe: var(--espace-groupe);
   --spacing-carte: var(--espace-carte);
+  --spacing-carte-compacte: var(--espace-carte-compacte);
   --spacing-section: var(--espace-section);
   --spacing-ecran: var(--espace-ecran);
 
@@ -438,6 +579,35 @@
   --statut-succes-fond: 142 55% 94%;
   --statut-danger-fond: 0 80% 96%;
   --statut-terminal-fond: 240 7% 91%;
+}
+
+/* Six statuts d'OR en sombre — MODÈLE RETOURNÉ (comme le reste du produit en `.dark` ci-dessus) :
+   en clair, fond pâle + texte foncé ; en sombre, fond profond + texte clair. Chaque paire mesurée
+   ≥ 7.6:1 (marge large au-dessus du seuil AA 4.5:1) sur son propre fond ET sur `--background` —
+   voir `contraste-jetons.spec.ts` (bloc sombre) pour les douze valeurs exactes.
+
+   RÉSERVE MESURÉE, PAS PASSÉE SOUS SILENCE (héritée du commentaire équivalent en clair ci-dessus) :
+   `--statut-neutre` et `--statut-terminal` restent les deux seuls tokens sans teinte saturée
+   (achromatiques), donc les deux qui risquent de devenir des gris indiscernables. En SOMBRE, cet
+   écart SE RESSERRE plutôt que de s'élargir : 1.79:1 entre les deux TEXTES (contre un écart plus
+   large en clair), 1.39:1 entre les deux FONDS. Conclusion opérationnelle, non négociable (arbitrage
+   de @laupernoe, voir le commentaire de tête du bloc `.dark` des couleurs de base) : la distinction
+   planifié/clôturé s'appuie ENCORE PLUS qu'en clair sur la forme + l'icône + le mot du badge — ça ne
+   bloque rien, mais ça interdit d'alléger cette règle un jour pour ces deux statuts précis. */
+.dark {
+  --statut-neutre: 216 7% 71%; /* #b0b4ba — = --muted-foreground, réutilisé à dessein */
+  --statut-info: 210 100% 72%; /* #70b8ff */
+  --statut-attention: 46 100% 54%; /* #ffca16 */
+  --statut-succes: 151 65% 54%; /* #3dd68c */
+  --statut-danger: 2 100% 79%; /* #ff9592 */
+  --statut-terminal: 220 9% 94%; /* #edeef0 — = --foreground, réutilisé à dessein */
+
+  --statut-neutre-fond: 225 6% 14%; /* #212225 — = --popover */
+  --statut-info-fond: 212 69% 16%; /* #0d2847 */
+  --statut-attention-fond: 36 71% 11%; /* #302008 */
+  --statut-succes-fond: 152 41% 13%; /* #132d21 */
+  --statut-danger-fond: 350 53% 15%; /* #3b1219 */
+  --statut-terminal-fond: 213 8% 23%; /* #363a3f — = --border, réutilisé à dessein */
 }
 
 @theme inline {
@@ -565,6 +735,15 @@
   --espace-controles: 0.75rem;
   --espace-groupe: 0.75rem;
   --espace-carte: 1rem;
+  /* NOUVEAU (refonte visuelle) — deuxième jeton de rembourrage, réservé aux cartes à contenu
+     minimal (un chiffre, un titre, un libellé — `CarteChiffreRequete` et consorts) : `--espace-carte`
+     seul obligeait un bloc de deux lignes à payer le même rembourrage qu'une fiche d'OR à quinze
+     champs. Écart de 4px avec `--espace-carte` dans les trois densités — la maille de l'échelle du
+     dépôt (base 4, `--espace-N` plus haut), jamais une valeur inventée au jugé. Appliqué via
+     `Card`/`CardHeader`/`CardContent`/`CardFooter` avec la prop `compact` (`components/ui/card.tsx`) ;
+     AUCUN écran ne l'utilise encore — voir DESIGN.md, ce lot pose le jeton et le levier, pas son
+     application (hors périmètre : `apps/web/src/ecrans/`). */
+  --espace-carte-compacte: 0.75rem; /* 12px */
   /* RESSERRÉ de 1.5rem (24px) à 1.25rem (20px) : translation uniforme de -4px sur
      les trois densités (voir `.densite-aeree`/`.densite-tres-aeree`), le pas de
      +8px entre densités était déjà correct et est conservé — seule l'ampleur
@@ -601,6 +780,7 @@
      densités adjacentes ne signifie aucune différence de niveau, c'est un
      accident, pas une intention. Rétablit un pas de +4px partout (16/20/24). */
   --espace-carte: 1.25rem;
+  --espace-carte-compacte: 1rem; /* 16px — voir `.densite-dense` pour la justification du jeton */
   --espace-section: 1.75rem; /* était 2rem/32px, translation -4px, voir `.densite-dense` */
   /* Même défaut que `--espace-carte` ci-dessus : 24px était identique à
      `.densite-tres-aeree`. Resserré à 20px, aligné sur `--espace-carte` — les
@@ -629,6 +809,7 @@
   --espace-controles: 1rem;
   --espace-groupe: 1.25rem;
   --espace-carte: 1.5rem;
+  --espace-carte-compacte: 1.25rem; /* 20px — voir `.densite-dense` pour la justification du jeton */
   --espace-section: 2.25rem; /* était 2.5rem/40px, translation -4px, voir `.densite-dense` */
   --espace-ecran: 1.5rem;
 }

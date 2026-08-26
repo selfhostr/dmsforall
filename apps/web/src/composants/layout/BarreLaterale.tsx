@@ -16,6 +16,7 @@ import { useSession } from '@/hooks/useSession';
 import { cleTraductionRole } from '@/lib/roles';
 import { cn } from '@/lib/utils';
 
+import { BasculeTheme } from './BasculeTheme';
 import {
   cheminEntree,
   ENTREE_REGLAGES,
@@ -374,58 +375,74 @@ export function BarreLaterale({ className, repli }: Props) {
        */}
       {session ? (
         <div className={cn('shrink-0 border-t', replie ? 'p-2' : 'p-3')}>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className={cn(
-                  'anneau-focus flex h-11 w-full items-center rounded-md texte-corps font-medium transition-colors hover:bg-muted',
-                  replie ? 'justify-center px-2' : 'gap-3 px-3',
-                )}
-                aria-label={`${libelleCompte} — ${libelleRole}`}
-                title={replie ? `${libelleCompte} — ${libelleRole}` : undefined}
-              >
-                <span
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary texte-petit font-semibold text-primary-foreground"
-                  aria-hidden="true"
-                >
-                  {initiales}
-                </span>
-                {!replie ? (
-                  <>
-                    <span className="min-w-0 flex-1 text-left leading-tight">
-                      <span className="block truncate text-foreground">{libelleCompte}</span>
-                      <span className="block truncate text-muted-foreground">{libelleRole}</span>
-                    </span>
-                    <ChevronsUpDown
-                      className="h-4 w-4 shrink-0 text-muted-foreground"
+          {/* Refonte visuelle (mode sombre, voir DESIGN.md) — bascule clair/sombre POSÉE ICI,
+              « près du profil » (demande explicite de @laupernoe) : juste au-dessus du déclencheur de
+              compte, dans le même bloc que lui, plutôt qu'enfouie dans le menu qui se déplie (elle
+              resterait alors à un clic de plus, pour un réglage qu'un garagiste ajuste une fois et
+              rarement ensuite — pas la même fréquence que Réglages/Déconnexion). Repliée en colonne
+              (`flex-col`, centrée) quand la barre est repliée : même idiome que le reste de la
+              colonne repliée (icône seule, centrée), voir `rendreEntree` plus haut. */}
+          <div
+            className={cn('flex', replie ? 'flex-col items-center gap-1' : 'items-center gap-2')}
+          >
+            <BasculeTheme />
+            <div className="min-w-0 flex-1">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className={cn(
+                      'anneau-focus flex h-11 w-full items-center rounded-md texte-corps font-medium transition-colors hover:bg-muted',
+                      replie ? 'justify-center px-2' : 'gap-3 px-3',
+                    )}
+                    aria-label={`${libelleCompte} — ${libelleRole}`}
+                    title={replie ? `${libelleCompte} — ${libelleRole}` : undefined}
+                  >
+                    <span
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary texte-petit font-semibold text-primary-foreground"
                       aria-hidden="true"
-                    />
-                  </>
-                ) : null}
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" side="top" className="w-56">
-              <DropdownMenuLabel className="truncate font-normal text-muted-foreground">
-                {libelleCompte} — {libelleRole}
-              </DropdownMenuLabel>
-              {reglagesVisibles(role) ? (
-                <DropdownMenuItem asChild>
-                  <Link to={cheminEntree(ENTREE_REGLAGES, role, site) ?? ''}>
-                    <Settings className="h-4 w-4" aria-hidden="true" />
-                    {t('navigation:entrees.reglages')}
-                  </Link>
-                </DropdownMenuItem>
-              ) : null}
-              <DropdownMenuItem
-                onSelect={() => deconnexion.mutate()}
-                disabled={deconnexion.isPending}
-              >
-                <LogOut className="h-4 w-4" aria-hidden="true" />
-                {t('auth:deconnexion.action')}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                    >
+                      {initiales}
+                    </span>
+                    {!replie ? (
+                      <>
+                        <span className="min-w-0 flex-1 text-left leading-tight">
+                          <span className="block truncate text-foreground">{libelleCompte}</span>
+                          <span className="block truncate text-muted-foreground">
+                            {libelleRole}
+                          </span>
+                        </span>
+                        <ChevronsUpDown
+                          className="h-4 w-4 shrink-0 text-muted-foreground"
+                          aria-hidden="true"
+                        />
+                      </>
+                    ) : null}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" side="top" className="w-56">
+                  <DropdownMenuLabel className="truncate font-normal text-muted-foreground">
+                    {libelleCompte} — {libelleRole}
+                  </DropdownMenuLabel>
+                  {reglagesVisibles(role) ? (
+                    <DropdownMenuItem asChild>
+                      <Link to={cheminEntree(ENTREE_REGLAGES, role, site) ?? ''}>
+                        <Settings className="h-4 w-4" aria-hidden="true" />
+                        {t('navigation:entrees.reglages')}
+                      </Link>
+                    </DropdownMenuItem>
+                  ) : null}
+                  <DropdownMenuItem
+                    onSelect={() => deconnexion.mutate()}
+                    disabled={deconnexion.isPending}
+                  >
+                    <LogOut className="h-4 w-4" aria-hidden="true" />
+                    {t('auth:deconnexion.action')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
           <p
             className={cn(
               'texte-libelle select-text text-muted-foreground',

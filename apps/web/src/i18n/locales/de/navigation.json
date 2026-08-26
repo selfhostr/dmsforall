@@ -85,6 +85,10 @@
     "reduire": "Seitenleiste einklappen",
     "agrandir": "Seitenleiste ausklappen"
   },
+  "theme": {
+    "passerClair": "Zu hellem Design wechseln",
+    "passerSombre": "Zu dunklem Design wechseln"
+  },
   "pied": {
     "version": "Version {info}",
     "versionInconnue": "unbekannt"

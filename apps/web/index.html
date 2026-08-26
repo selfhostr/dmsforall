@@ -11,7 +11,46 @@
          aucune raison métier ne le justifiait ici, un garagiste doit pouvoir zoomer un
          écran dense sur tablette comme n'importe qui. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- Couleur de la barre système (mobile) — DOIT suivre le thème actif, sinon un utilisateur en
+         thème sombre garde une barre d'état claire au-dessus d'une page sombre. Valeur par défaut
+         ici = `--background` clair (`#f0f0f3`, `index.css`) ; mise à jour AVANT tout rendu par le
+         script anti-flash ci-dessous (thème sombre au chargement), et tenue à jour ensuite par
+         `App.tsx` (`SynchroniseCouleurBarreSysteme`) à chaque bascule manuelle. -->
+    <meta name="theme-color" content="#f0f0f3" />
     <title>dmsforall</title>
+    <!-- Anti-flash du thème (refonte visuelle, mode sombre) — écrit à la main, PAS le script fourni
+         par `next-themes` : cette librairie n'injecte son propre script anti-flash que via son
+         intégration Next.js (`ThemeProvider` posé dans un Server Component, HTML déjà correct au
+         premier octet envoyé par le serveur). En React + Vite pur, tout le rendu est côté client :
+         sans ce script, `<html>` resterait sans classe `dark`/`light` jusqu'à ce que React monte et
+         qu'un `useEffect` de `next-themes` la pose — assez tard pour qu'un utilisateur en thème
+         sombre voie un flash de fond CLAIR (`--background` de `:root`) avant que `.dark` ne
+         s'applique. Doit s'exécuter AVANT tout rendu : d'où sa position ici (début de `<head>`),
+         synchrone (pas de `type="module"`, ni `async`/`defer`), avant même le CSS compilé par Vite
+         (chargé plus tard via l'import de `main.tsx`).
+         Clé `dfa-theme` : DOIT rester identique à `storageKey` du `<ThemeProvider>` (`App.tsx`) —
+         `next-themes` y écrit exactement la chaîne 'light' | 'dark' | 'system' via
+         `localStorage.setItem`, jamais du JSON. Toute erreur (stockage bloqué, valeur invalide)
+         est avalée : ce script ne doit JAMAIS faire échouer le premier rendu de l'application. -->
+    <script>
+      (function () {
+        try {
+          var cleStockage = 'dfa-theme';
+          var themeStocke = localStorage.getItem(cleStockage);
+          var systemeSombre = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var sombre = themeStocke === 'dark' || (themeStocke !== 'light' && systemeSombre);
+          var racine = document.documentElement;
+          racine.classList.add(sombre ? 'dark' : 'light');
+          racine.style.colorScheme = sombre ? 'dark' : 'light';
+          var metaCouleur = document.querySelector('meta[name="theme-color"]');
+          if (metaCouleur) metaCouleur.setAttribute('content', sombre ? '#111113' : '#f0f0f3');
+        } catch (erreur) {
+          // Stockage indisponible (navigation privée stricte, quota, etc.) : le produit démarre en
+          // clair, le comportement d'avant ce lot — jamais un premier rendu cassé pour un réglage
+          // de confort.
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
