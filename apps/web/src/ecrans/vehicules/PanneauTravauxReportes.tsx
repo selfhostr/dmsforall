@@ -13,7 +13,6 @@ import {
 
 import { ErreurReseau, messageErreur } from '@/api/erreurs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -44,6 +43,7 @@ import { useSession } from '@/hooks/useSession';
 import { formaterDate, formaterKilometrage, formaterMontant } from '@/lib/formats';
 import { cn } from '@/lib/utils';
 
+import { BadgeStatutTravailReporte } from './BadgeStatutTravailReporte';
 import { useModifierTravailReporte } from './useModifierTravailReporte';
 import { useTravauxReportesVehicule } from './useTravauxReportesVehicule';
 
@@ -80,12 +80,6 @@ const CLES_ONGLET: Record<Onglet, string> = {
   repris: 'repris',
   abandonne: 'abandonnes',
   tous: 'tous',
-};
-
-const CLES_STATUT: Record<StatutTravailReporte, string> = {
-  ouvert: 'ouvert',
-  repris: 'repris',
-  abandonne: 'abandonne',
 };
 
 interface Props {
@@ -365,11 +359,7 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
                             </p>
                           ) : null}
                           {onglet === 'tous' ? (
-                            <Badge variant="outline">
-                              {t(
-                                `vehicules:travauxReportes.statuts.${CLES_STATUT[travail.statut]}`,
-                              )}
-                            </Badge>
+                            <BadgeStatutTravailReporte statut={travail.statut} />
                           ) : null}
                           {peutGerer ? (
                             <div className="flex shrink-0 flex-wrap gap-2">

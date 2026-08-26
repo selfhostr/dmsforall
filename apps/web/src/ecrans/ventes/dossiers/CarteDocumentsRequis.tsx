@@ -26,6 +26,10 @@ interface Props {
  * `service-dossier-vente.ts` : « check-list non paramétrée, PV-03 ») — état vide informatif, pas
  * une erreur.
  */
+// DESIGN.md « densité » — PAS de `compact` : la check-list peut porter un nombre variable de
+// lignes (une par document requis, chacune avec case + libellé + date), un contenu qui dépasse le
+// profil « chiffre/titre/libellé » réservé à `--espace-carte-compacte` (même doctrine que la carte
+// « repère/statuts » écartée dans `EcranHangarPneus.tsx`).
 export function CarteDocumentsRequis({ dossierVenteId, documentsRequis, peutModifier }: Props) {
   const { t } = useTranslation(['ventes']);
   const mutation = useMarquerDocumentRequisDossierVente(dossierVenteId);

@@ -2,11 +2,9 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router';
 
-import type { StatutFournisseur } from '@dfa/shared';
-
 import { messageErreur } from '@/api/erreurs';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { FilAriane, type SegmentFilAriane } from '@/composants/layout/FilAriane';
@@ -20,17 +18,13 @@ import {
 import { useSession } from '@/hooks/useSession';
 import { chemins } from '@/routes/chemins';
 
+import { BadgeStatutFournisseur } from './BadgeStatutFournisseur';
 import { peutEcrireFournisseur, peutLireFournisseur } from './droits';
 import { FormulaireFournisseur } from './FormulaireFournisseur';
 import { messageErreurMutation } from './messages-erreur-mutation';
 import { texteOuVide } from './utils';
 
 type Confirmation = 'desactiver' | 'reactiver' | null;
-
-const VARIANTE_BADGE_STATUT: Record<StatutFournisseur, 'default' | 'secondary'> = {
-  actif: 'default',
-  inactif: 'secondary',
-};
 
 /**
  * Fiche fournisseur (RP-26, §1) — identité, coordonnées, délai habituel, transitions de statut.
@@ -130,57 +124,60 @@ export function EcranFicheFournisseur() {
   // jamais deux niveaux 1 en compétition avec `fournisseur.nom`.
   return (
     <GabaritEcran titre={t('pieces:fournisseurs.titre')}>
-      <div className="flex flex-col gap-groupe rounded-lg border p-carte">
-        <FilAriane segments={segmentsFilAriane} pageCourante={fournisseur.nom} />
+      {/* Bordure décorative retirée (DESIGN.md « bordure structurelle uniquement ») — simple
+          groupe de contenu (identité + statut + coordonnées), sans comportement propre. Devient
+          une vraie `Card` (surface seule), même traitement que `EnTeteFicheArticle.tsx`. */}
+      <Card>
+        <CardContent className="flex flex-col gap-groupe pt-carte">
+          <FilAriane segments={segmentsFilAriane} pageCourante={fournisseur.nom} />
 
-        <div className="flex flex-col gap-groupe sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex flex-col gap-champ">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="texte-titre-page">{fournisseur.nom}</h2>
-              <Badge variant={VARIANTE_BADGE_STATUT[fournisseur.statut]}>
-                {t(`pieces:fournisseurs.statuts.${fournisseur.statut}`)}
-              </Badge>
+          <div className="flex flex-col gap-groupe sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex flex-col gap-champ">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="texte-titre-page">{fournisseur.nom}</h2>
+                <BadgeStatutFournisseur statut={fournisseur.statut} />
+              </div>
+              <dl className="mt-2 grid grid-cols-1 gap-x-6 gap-y-champ texte-corps sm:grid-cols-3">
+                <div>
+                  <dt className="texte-libelle text-muted-foreground">
+                    {t('pieces:fournisseurs.email')}
+                  </dt>
+                  <dd>{texteOuVide(fournisseur.email)}</dd>
+                </div>
+                <div>
+                  <dt className="texte-libelle text-muted-foreground">
+                    {t('pieces:fournisseurs.telephone')}
+                  </dt>
+                  <dd>{texteOuVide(fournisseur.telephone)}</dd>
+                </div>
+                <div>
+                  <dt className="texte-libelle text-muted-foreground">
+                    {t('pieces:fournisseurs.delaiHabituelJours')}
+                  </dt>
+                  <dd className="tabular-nums">{texteOuVide(fournisseur.delaiHabituelJours)}</dd>
+                </div>
+              </dl>
             </div>
-            <dl className="mt-2 grid grid-cols-1 gap-x-6 gap-y-champ texte-corps sm:grid-cols-3">
-              <div>
-                <dt className="texte-libelle text-muted-foreground">
-                  {t('pieces:fournisseurs.email')}
-                </dt>
-                <dd>{texteOuVide(fournisseur.email)}</dd>
+
+            {peutEcrire ? (
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={() => setFormulaireOuvert(true)}>
+                  {t('pieces:fournisseurs.actions.modifier')}
+                </Button>
+                {fournisseur.statut === 'actif' ? (
+                  <Button variant="outline" onClick={() => setConfirmation('desactiver')}>
+                    {t('pieces:fournisseurs.actions.desactiver')}
+                  </Button>
+                ) : (
+                  <Button variant="outline" onClick={() => setConfirmation('reactiver')}>
+                    {t('pieces:fournisseurs.actions.reactiver')}
+                  </Button>
+                )}
               </div>
-              <div>
-                <dt className="texte-libelle text-muted-foreground">
-                  {t('pieces:fournisseurs.telephone')}
-                </dt>
-                <dd>{texteOuVide(fournisseur.telephone)}</dd>
-              </div>
-              <div>
-                <dt className="texte-libelle text-muted-foreground">
-                  {t('pieces:fournisseurs.delaiHabituelJours')}
-                </dt>
-                <dd className="tabular-nums">{texteOuVide(fournisseur.delaiHabituelJours)}</dd>
-              </div>
-            </dl>
+            ) : null}
           </div>
-
-          {peutEcrire ? (
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={() => setFormulaireOuvert(true)}>
-                {t('pieces:fournisseurs.actions.modifier')}
-              </Button>
-              {fournisseur.statut === 'actif' ? (
-                <Button variant="outline" onClick={() => setConfirmation('desactiver')}>
-                  {t('pieces:fournisseurs.actions.desactiver')}
-                </Button>
-              ) : (
-                <Button variant="outline" onClick={() => setConfirmation('reactiver')}>
-                  {t('pieces:fournisseurs.actions.reactiver')}
-                </Button>
-              )}
-            </div>
-          ) : null}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {peutEcrire ? (
         <FormulaireFournisseur

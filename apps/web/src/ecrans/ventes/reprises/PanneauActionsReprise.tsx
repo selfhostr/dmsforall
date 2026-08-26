@@ -211,6 +211,10 @@ export function PanneauActionsReprise({
             />
           ) : null}
 
+          {/* DESIGN.md « bordure structurelle uniquement » — CONSERVÉE : encart d'alerte
+           *  (`role="alert"`, jetons `--statut-attention`), même patron que
+           *  `PanneauActionsDossierVente.tsx`/`PanneauActionsFinancement.tsx` — voir son
+           *  commentaire. */}
           {confirmationsRequises.length > 0 ? (
             <div
               role="alert"

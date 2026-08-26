@@ -252,7 +252,7 @@ export function EcranFicheClient() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="min-w-0 space-y-4">
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-md border p-3 texte-corps">
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-1 texte-corps">
             <dt className="text-muted-foreground">{t('clients:identite.ide')}</dt>
             <dd>{texteOuVide(client.ide)}</dd>
             <dt className="text-muted-foreground">{t('clients:identite.langue')}</dt>
@@ -339,10 +339,12 @@ export function EcranFicheClient() {
               <ul className="space-y-2">
                 {lignesVehicules.map((vehicule) => (
                   <li key={vehicule.id}>
+                    {/* Bordure structurelle : carte cliquable de navigation (repli mobile de
+                     *  tableau). */}
                     <button
                       type="button"
                       onClick={() => navigate(chemins.vehicules.detail(vehicule.id, site))}
-                      className="w-full rounded-md border p-3 text-left hover:bg-muted"
+                      className="w-full rounded-md border p-3 text-left hover:bg-muted anneau-focus"
                     >
                       <IdentiteVehicule vehicule={vehicule} taillePlaque="sm" />
                     </button>
@@ -369,10 +371,12 @@ export function EcranFicheClient() {
               <ul className="space-y-2">
                 {lignesOrdres.map((or) => (
                   <li key={or.id}>
+                    {/* Bordure structurelle : carte cliquable de navigation, même motif que la
+                     *  liste « véhicules » ci-dessus. */}
                     <button
                       type="button"
                       onClick={() => navigate(cheminOr(or.id, site))}
-                      className="w-full space-y-1 rounded-md border p-3 text-left hover:bg-muted"
+                      className="w-full space-y-1 rounded-md border p-3 text-left hover:bg-muted anneau-focus"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="texte-corps font-medium text-foreground">{or.numero}</span>
@@ -425,10 +429,12 @@ export function EcranFicheClient() {
                 <ul className="space-y-2">
                   {dossiersVente.dossiers.map((dossier) => (
                     <li key={dossier.id}>
+                      {/* Bordure structurelle : carte cliquable de navigation, même motif que
+                       *  les deux listes ci-dessus. */}
                       <button
                         type="button"
                         onClick={() => navigate(chemins.ventes.dossiers.detail(dossier.id, site))}
-                        className="w-full space-y-1 rounded-md border p-3 text-left hover:bg-muted"
+                        className="w-full space-y-1 rounded-md border p-3 text-left hover:bg-muted anneau-focus"
                       >
                         <div className="flex items-center justify-between gap-2">
                           <span className="texte-corps font-medium text-foreground">

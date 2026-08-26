@@ -83,8 +83,13 @@ export function PlanParcVehicules({
   const groupes = grouperVehiculesParEmplacement(vehiculesStock);
 
   return (
+    // DESIGN.md grief n°2 (« vide en bas des cartes ») — `items-start` AJOUTÉ : sans lui, cette
+    // grille étire chaque zone à la hauteur de sa voisine la plus haute (une zone à un véhicule
+    // collée à une zone à dix) — même vide que `compact` seul ne corrige pas ailleurs
+    // (`EcranFicheOrdreReparation.tsx`), ici sur une grille de zones à contenu variable plutôt que
+    // de cartes `compact`.
     <div
-      className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
+      className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:items-start xl:grid-cols-3"
       role="list"
       aria-label={t('ventes:stock.liste.plan.groupeLabel')}
     >
@@ -97,7 +102,13 @@ export function PlanParcVehicules({
           <section
             key={groupe.cle === CLE_SANS_EMPLACEMENT ? '__sans_emplacement__' : groupe.cle}
             role="listitem"
-            className="flex flex-col gap-2 rounded-lg border bg-card p-3"
+            // DESIGN.md « bordure structurelle uniquement » — `border` retiré : cette zone est un
+            // simple groupe de contenu (titre + liste de véhicules), le contour de chaque véhicule
+            // ci-dessous reste (bouton réellement cliquable). `bg-card` seul suffit à la séparer du
+            // fond (même mécanisme que `Card`, jamais cumulé avec un trait) ; la grille `gap-4`
+            // ci-dessus et le poids du titre font le reste — même doctrine que le bandeau retiré
+            // d'`EnTeteOrdreReparation.tsx` (atelier, lot déjà livré).
+            className="flex flex-col gap-2 rounded-lg bg-card p-3"
             aria-label={libelleZone}
           >
             <div className="flex items-center justify-between gap-2">

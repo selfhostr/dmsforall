@@ -373,6 +373,10 @@ export function EcranFicheFacture() {
       </div>
 
       {estAnnuleeParAvoir && document_.annuleParAvoirId ? (
+        // DESIGN.md « bordure structurelle » — encart d'état conservé À DESSEIN (pas un simple
+        // groupe de contenu) : il annonce un changement d'état réel du document (annulé par un
+        // avoir) qui conditionne les actions disponibles plus bas sur cet écran, même famille que
+        // `EncartAvanceClient`.
         <div className="rounded-md border bg-muted px-4 py-3 texte-corps text-foreground">
           {t('facturation:fiche.annuleeParAvoir.message')}
         </div>
@@ -399,7 +403,10 @@ export function EcranFicheFacture() {
                   natif, jamais un `<div onClick>`. */}
               <button
                 type="button"
-                className="w-fit rounded-sm text-left texte-corps font-medium text-foreground underline-offset-2 outline-none hover:text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                // DESIGN.md « focus » — `anneau-focus` remplace l'ancienne reconstruction manuelle
+                // (`outline-none` + `ring-2 ring-ring ring-offset-2`) : même résultat visuel, une
+                // seule source de vérité pour l'anneau de focus dans les deux thèmes.
+                className="w-fit rounded-sm text-left texte-corps font-medium text-foreground underline-offset-2 hover:text-primary hover:underline anneau-focus"
                 onClick={() => navigate(`/clients/${document_.clientId}`)}
               >
                 {destinataireNom}
@@ -433,6 +440,10 @@ export function EcranFicheFacture() {
                 );
               })()}
               {!adresseComplete ? (
+                // DESIGN.md « bordure structurelle » — encart d'alerte actionnable conservé (lien
+                // « Compléter la fiche » ci-dessous) : c'est le geste concret qui répond au
+                // blocage réel d'émission (§4.5, `RefusBloquant`), pas un simple regroupement de
+                // texte.
                 <div className="flex flex-col gap-1 rounded-md border bg-muted px-3 py-2 texte-libelle text-foreground">
                   <span>
                     {estBrouillon
@@ -663,16 +674,25 @@ export function EcranFicheFacture() {
           ) : null}
 
           <div className="flex justify-end">
-            <div className="rounded-md border p-4 text-right">
-              <p className="texte-libelle text-muted-foreground">
-                {t('facturation:fiche.totalTtc')}
-              </p>
-              <p className="texte-chiffre-geant tabular-nums font-semibold text-foreground">
-                {document_.totalTtcCentimes !== undefined
-                  ? formaterMontantAvecDevise(document_.totalTtcCentimes, document_.devise)
-                  : t('facturation:fiche.montantIndisponible')}
-              </p>
-            </div>
+            {/* DESIGN.md « densité » — exactement le patron cité par le socle comme candidat
+                évident (« une carte, un chiffre, un libellé ») : `Card compact` remplace l'ancien
+                `rounded-md border p-4` ad hoc, avec le même rembourrage réduit que ce lot appelait
+                de ses vœux. Pas dans une grille CSS (`flex justify-end` seul) : la mise en garde
+                « compact aggrave le vide sans `items-start` » ne s'applique pas ici. */}
+            <Card compact className="text-right">
+              <CardHeader>
+                <p className="texte-libelle text-muted-foreground">
+                  {t('facturation:fiche.totalTtc')}
+                </p>
+              </CardHeader>
+              <CardContent>
+                <p className="texte-chiffre-geant tabular-nums font-semibold text-foreground">
+                  {document_.totalTtcCentimes !== undefined
+                    ? formaterMontantAvecDevise(document_.totalTtcCentimes, document_.devise)
+                    : t('facturation:fiche.montantIndisponible')}
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </div>
 

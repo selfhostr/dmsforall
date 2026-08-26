@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { AdresseStructureeQr, BlocPaiementQrFige } from '@dfa/shared';
 
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formaterMontantAvecDevise } from '@/lib/formats';
 
 interface Props {
@@ -43,50 +44,58 @@ export function CarteBulletinVersement({ qr }: Props) {
   if (!qr) return null;
 
   return (
-    <div className="flex flex-col gap-2 rounded-md border p-3">
-      <h2 className="texte-libelle font-medium text-foreground">
-        {t('facturation:document.type.bulletinPaiement')}
-      </h2>
-      <dl className="grid grid-cols-1 gap-x-4 gap-y-2 texte-corps sm:grid-cols-2">
-        <div>
-          <dt className="texte-libelle text-muted-foreground">
-            {t('facturation:fiche.bulletin.payableA')}
-          </dt>
-          <dd className="text-foreground">{qr.creancier.nom}</dd>
-          <dd className="text-foreground">{ligneAdresse(qr.creancier.adresse)}</dd>
-        </div>
-        {qr.debiteur ? (
+    // DESIGN.md « bordure structurelle uniquement » — même correctif que `RecapitulatifTVA.tsx`,
+    // juste au-dessus dans la même colonne de `EcranFicheFacture` : `Card` remplace l'ancien
+    // `rounded-md border p-3` ad hoc, pour que les trois blocs de la colonne (récap TVA, bulletin,
+    // documents liés) partagent la même surface plutôt que deux habillages différents.
+    <Card>
+      <CardHeader>
+        <CardTitle className="texte-titre-section">
+          {t('facturation:document.type.bulletinPaiement')}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2">
+        <dl className="grid grid-cols-1 gap-x-4 gap-y-2 texte-corps sm:grid-cols-2">
           <div>
             <dt className="texte-libelle text-muted-foreground">
-              {t('facturation:fiche.bulletin.payablePar')}
+              {t('facturation:fiche.bulletin.payableA')}
             </dt>
-            <dd className="text-foreground">{qr.debiteur.nom}</dd>
-            <dd className="text-foreground">{ligneAdresse(qr.debiteur)}</dd>
+            <dd className="text-foreground">{qr.creancier.nom}</dd>
+            <dd className="text-foreground">{ligneAdresse(qr.creancier.adresse)}</dd>
           </div>
-        ) : null}
-        <div>
-          <dt className="texte-libelle text-muted-foreground">
-            {t('facturation:fiche.bulletin.iban')}
-          </dt>
-          <dd className="font-mono text-foreground">{qr.creancier.iban}</dd>
+          {qr.debiteur ? (
+            <div>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('facturation:fiche.bulletin.payablePar')}
+              </dt>
+              <dd className="text-foreground">{qr.debiteur.nom}</dd>
+              <dd className="text-foreground">{ligneAdresse(qr.debiteur)}</dd>
+            </div>
+          ) : null}
+          <div>
+            <dt className="texte-libelle text-muted-foreground">
+              {t('facturation:fiche.bulletin.iban')}
+            </dt>
+            <dd className="font-mono text-foreground">{qr.creancier.iban}</dd>
+          </div>
+          <div>
+            <dt className="texte-libelle text-muted-foreground">
+              {t('facturation:fiche.bulletin.reference')}
+            </dt>
+            <dd className="font-mono text-foreground">
+              {qr.qrReference ?? t('facturation:fiche.bulletin.sansReference')}
+            </dd>
+          </div>
+        </dl>
+        <div className="flex items-center justify-between border-t pt-2">
+          <span className="texte-corps font-semibold text-foreground">
+            {t('facturation:fiche.totalTtc')}
+          </span>
+          <span className="tabular-nums texte-corps font-semibold text-foreground">
+            {formaterMontantAvecDevise(qr.qrMontantCentimes, qr.qrDevise)}
+          </span>
         </div>
-        <div>
-          <dt className="texte-libelle text-muted-foreground">
-            {t('facturation:fiche.bulletin.reference')}
-          </dt>
-          <dd className="font-mono text-foreground">
-            {qr.qrReference ?? t('facturation:fiche.bulletin.sansReference')}
-          </dd>
-        </div>
-      </dl>
-      <div className="flex items-center justify-between border-t pt-2">
-        <span className="texte-corps font-semibold text-foreground">
-          {t('facturation:fiche.totalTtc')}
-        </span>
-        <span className="tabular-nums texte-corps font-semibold text-foreground">
-          {formaterMontantAvecDevise(qr.qrMontantCentimes, qr.qrDevise)}
-        </span>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

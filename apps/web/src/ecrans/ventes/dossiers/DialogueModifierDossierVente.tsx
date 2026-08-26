@@ -116,6 +116,12 @@ export function DialogueModifierDossierVente({ dossier, ouvert, onOuvertChange }
                 {t('ventes:dossier.fiche.modifier.vehiculeVerrouille')}
               </p>
             ) : vehicule ? (
+              /* DESIGN.md « bordure structurelle uniquement » — CONSERVÉE : ce bloc n'affiche pas
+               *  un groupe de contenu, il EST l'état courant du contrôle de saisie « véhicule » et
+               *  porte l'action qui le vide (« modifier »). Il occupe exactement la place du
+               *  `SelecteurVehiculeStockDossier` rendu dans l'autre branche — sans contour, la
+               *  sélection faite cesserait de se lire comme un champ rempli. Même motif que
+               *  `vehicules/DialogueRattacherClient.tsx`. */
               <div className="flex items-center justify-between gap-3 rounded-md border p-2">
                 <IdentiteVehicule vehicule={vehicule.vehicule} />
                 <Button variant="ghost" size="sm" onClick={() => setVehicule(null)}>
@@ -134,6 +140,8 @@ export function DialogueModifierDossierVente({ dossier, ouvert, onOuvertChange }
           <div className="flex flex-col gap-1.5">
             <Label>{t('ventes:dossier.nouveau.clientFacture.titre')}</Label>
             {clientFacture ? (
+              /* Bordure structurelle — même motif que le bloc « véhicule » ci-dessus : état
+               *  courant d'un contrôle de saisie + son action de retrait. */
               <div className="flex items-center justify-between gap-3 rounded-md border p-2">
                 <IdentiteClient client={clientFacture} />
                 <Button variant="ghost" size="sm" onClick={() => setClientFacture(null)}>
@@ -152,6 +160,7 @@ export function DialogueModifierDossierVente({ dossier, ouvert, onOuvertChange }
           <div className="flex flex-col gap-1.5">
             <Label>{t('ventes:dossier.nouveau.clientConducteur.titre')}</Label>
             {clientConducteur ? (
+              /* Bordure structurelle — même motif que les deux blocs ci-dessus. */
               <div className="flex items-center justify-between gap-3 rounded-md border p-2">
                 <IdentiteClient client={clientConducteur} />
                 <Button variant="ghost" size="sm" onClick={() => setClientConducteur(null)}>

@@ -481,6 +481,9 @@ export function SheetEncaissement({
                       {t('facturation:encaissement.lignes.titre')}
                     </h2>
                     {lignes.map((ligne) => (
+                      // DESIGN.md « bordure structurelle » — conservée : ligne de saisie réelle
+                      // (moyen de paiement, montant, bouton « retirer ») dans un bloc qui gère
+                      // l'ajout/retrait de lignes de paiement, pas un simple regroupement.
                       <div key={ligne.id} className="flex items-end gap-2 rounded-md border p-2">
                         <div className="flex flex-col gap-1.5">
                           <span className="texte-libelle text-muted-foreground">

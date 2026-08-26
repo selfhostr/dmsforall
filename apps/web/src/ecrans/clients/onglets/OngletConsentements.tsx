@@ -88,6 +88,8 @@ function BandeauContact({
       <h3 className="texte-titre-section font-medium text-foreground">
         {t('clients:contact.titre')}
       </h3>
+      {/* Bordure structurelle : bloc qui affiche l'état RGPD du contact ET porte l'action
+       *  arrêter/reprendre (DialogTrigger juste en dessous) — pas un simple groupe de contenu. */}
       <div
         className={cn(
           'flex flex-wrap items-center justify-between gap-3 rounded-md border p-3',
@@ -270,11 +272,14 @@ export function OngletConsentements({ clientId, plusAucunContact, motifContact }
           vide={lignes.length === 0}
           texteVide={t('clients:consentements.vide')}
         >
-          <ul className="space-y-2">
+          {/* `divide-y` (filet seul entre lignes), pas de cadre par ligne — même motif que
+           *  `PanneauTravauxReportes.tsx` (vehicules/), DESIGN.md « bordure structurelle
+           *  uniquement ». */}
+          <ul className="divide-y">
             {lignes.map((consentement) => (
               <li
                 key={consentement.id}
-                className="flex items-center justify-between gap-3 rounded-md border p-3 texte-corps"
+                className="flex items-center justify-between gap-3 py-3 texte-corps"
               >
                 <span>{t(`clients:consentements.types.${consentement.type}`)}</span>
                 <span className="text-right text-muted-foreground">

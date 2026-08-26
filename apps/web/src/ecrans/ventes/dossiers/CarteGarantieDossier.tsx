@@ -41,8 +41,13 @@ export function CarteGarantieDossier({ garantie, vehiculeStockId, site }: Props)
 
   // CardHeader/CardTitle délibérément absents — même motif et même raison que
   // `CarteFinancement.tsx` (chantier « mise en page ventes », 19.08.2026), voir son commentaire.
+  //
+  // DESIGN.md « densité » — `compact` : contenu minimal (une ligne de statut, une ligne de lien),
+  // exactement le profil « chiffre/titre/libellé » réservé à `--espace-carte-compacte`. Jamais
+  // posée dans une grille avec une voisine (rendue seule, dans un onglet ou en repli) : pas
+  // d'`items-start` à ajouter ici.
   return (
-    <Card>
+    <Card compact>
       <CardContent className="flex flex-col gap-3">
         <CelluleGarantieSuivi garantie={garantie} />
         <Link

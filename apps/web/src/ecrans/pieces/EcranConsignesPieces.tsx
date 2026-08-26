@@ -12,7 +12,6 @@ import {
 } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,17 +35,9 @@ import { useMarquerRetourConsigne } from '@/hooks/pieces/useMarquerRetourConsign
 import { useSession } from '@/hooks/useSession';
 import { formaterDate, formaterMontant } from '@/lib/formats';
 
+import { BadgeStatutConsigne } from './BadgeStatutConsigne';
 import { peutRetournerConsigne } from './droits';
 import { messageErreurMutation } from './messages-erreur-mutation';
-
-const VARIANTE_BADGE_STATUT: Record<
-  StatutConsigneEchangeStandard,
-  'default' | 'secondary' | 'outline'
-> = {
-  deposee_par_client: 'outline',
-  en_attente_retour_fournisseur: 'default',
-  retournee_fournisseur: 'secondary',
-};
 
 /**
  * Suivi des consignes d'échange standard (RP-37 → RP-42, §6.4, §7.7) — « une consigne jamais
@@ -149,11 +140,7 @@ export function EcranConsignesPieces() {
     {
       id: 'statut',
       libelle: t('pieces:consignes.statut'),
-      rendu: (consigne) => (
-        <Badge variant={VARIANTE_BADGE_STATUT[consigne.statut]}>
-          {t(`pieces:consignes.statuts.${consigne.statut}`)}
-        </Badge>
-      ),
+      rendu: (consigne) => <BadgeStatutConsigne statut={consigne.statut} />,
     },
     {
       id: 'creeLe',

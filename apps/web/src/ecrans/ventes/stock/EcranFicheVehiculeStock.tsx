@@ -236,71 +236,80 @@ export function EcranFicheVehiculeStock() {
   // temps que le passage par `GabaritEcran`.
   return (
     <GabaritEcran titre={t('ventes:stock.fiche.titre')} actions={actionsEnTete}>
-      <div className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <IdentiteVehicule
-              vehicule={
-                vue === 'client'
-                  ? { ...stock.vehicule, identificationIncomplete: false }
-                  : stock.vehicule
-              }
-              taillePlaque="xl"
-            />
-            <Badge variant={VARIANTE_BADGE_STATUT[stock.statutCommercial]}>
-              {t(`ventes:stock.statuts.${stock.statutCommercial}`)}
-            </Badge>
-          </div>
-          <p className="texte-corps text-muted-foreground">
-            {t(`ventes:stock.types.${stock.typeVehicule}`)}
-          </p>
-          <Link
-            to={chemins.vehicules.detail(stock.id, site)}
-            className="texte-corps text-primary underline-offset-4 hover:underline"
-          >
-            {t('ventes:stock.fiche.voirFicheVehicule')}
-          </Link>
+      {/* DESIGN.md « bordure structurelle uniquement » — `border`/`rounded-lg` manuels retirés :
+       *  ce bandeau (identité, statut, emplacement, actions) est un simple groupe de contenu, sans
+       *  comportement propre au conteneur lui-même (chaque contrôle qu'il porte — champ
+       *  d'emplacement, boutons — a déjà son propre contour/focus). Converti en `Card` (surface +
+       *  delta de teinte avec `--background`, jamais un trait) — même patron que
+       *  `EnTeteOrdreReparation.tsx` (atelier, lot déjà livré) pour ce même rôle de bandeau
+       *  en-tête de fiche. */}
+      <Card>
+        <CardContent className="flex flex-col gap-4 pt-6 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <IdentiteVehicule
+                vehicule={
+                  vue === 'client'
+                    ? { ...stock.vehicule, identificationIncomplete: false }
+                    : stock.vehicule
+                }
+                taillePlaque="xl"
+              />
+              <Badge variant={VARIANTE_BADGE_STATUT[stock.statutCommercial]}>
+                {t(`ventes:stock.statuts.${stock.statutCommercial}`)}
+              </Badge>
+            </div>
+            <p className="texte-corps text-muted-foreground">
+              {t(`ventes:stock.types.${stock.typeVehicule}`)}
+            </p>
+            <Link
+              to={chemins.vehicules.detail(stock.id, site)}
+              className="texte-corps text-primary underline-offset-4 hover:underline"
+            >
+              {t('ventes:stock.fiche.voirFicheVehicule')}
+            </Link>
 
-          {/* Emplacement (issue #142) : géré au comptoir, pas un geste accessible en vue client
-              (même retrait que les autres actions internes ci-dessous). */}
+            {/* Emplacement (issue #142) : géré au comptoir, pas un geste accessible en vue client
+                (même retrait que les autres actions internes ci-dessous). */}
+            {vue === 'vendeur' ? (
+              <ChampEmplacementVehiculeStock
+                vehiculeId={stock.vehicule.id}
+                emplacement={stock.vehicule.emplacementLibre}
+                peutModifier={peutModifierVehicule}
+              />
+            ) : null}
+          </div>
+
+          {/* Actions internes (mettre à jour, réceptionner, corrections, garantie) retirées en vue
+              client : pas de geste d'écriture accessible pendant qu'un client regarde l'écran. */}
           {vue === 'vendeur' ? (
-            <ChampEmplacementVehiculeStock
-              vehiculeId={stock.vehicule.id}
-              emplacement={stock.vehicule.emplacementLibre}
-              peutModifier={peutModifierVehicule}
-            />
-          ) : null}
-        </div>
-
-        {/* Actions internes (mettre à jour, réceptionner, corrections, garantie) retirées en vue
-            client : pas de geste d'écriture accessible pendant qu'un client regarde l'écran. */}
-        {vue === 'vendeur' ? (
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
-            {/* « Garantie » (issue #141) : gardée par `vehicule.modifier`, un droit DISTINCT de
-                celui qui gouverne `actionPrimaire`/`actionsSecondaires` ci-dessous (voir
-                `peutModifierVehiculeAssocie`) — placée à côté, hors du composant `ActionPrimaire`,
-                qui n'admet qu'UNE seule action primaire construite par l'appelant (voir son
-                en-tête) : la coincer dans son menu de débordement l'aurait rendue invisible pour
-                un rôle sans action commerciale primaire (ex. `receptionnaire`) alors qu'il a bien
-                le droit de renseigner la garantie. */}
-            {peutModifierVehicule ? (
-              <Button type="button" variant="outline" onClick={() => setGarantieOuverte(true)}>
-                {t('ventes:stock.fiche.actions.garantie')}
-              </Button>
-            ) : null}
-            {actionPrimaire ? (
-              <ActionPrimaire
-                actionsSecondaires={actionsSecondaires}
-                libelleMenuSecondaire={t('ventes:stock.fiche.actions.autresActions')}
-              >
-                <Button type="button" variant="default" onClick={actionPrimaire.onClick}>
-                  {actionPrimaire.libelle}
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              {/* « Garantie » (issue #141) : gardée par `vehicule.modifier`, un droit DISTINCT de
+                  celui qui gouverne `actionPrimaire`/`actionsSecondaires` ci-dessous (voir
+                  `peutModifierVehiculeAssocie`) — placée à côté, hors du composant `ActionPrimaire`,
+                  qui n'admet qu'UNE seule action primaire construite par l'appelant (voir son
+                  en-tête) : la coincer dans son menu de débordement l'aurait rendue invisible pour
+                  un rôle sans action commerciale primaire (ex. `receptionnaire`) alors qu'il a bien
+                  le droit de renseigner la garantie. */}
+              {peutModifierVehicule ? (
+                <Button type="button" variant="outline" onClick={() => setGarantieOuverte(true)}>
+                  {t('ventes:stock.fiche.actions.garantie')}
                 </Button>
-              </ActionPrimaire>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
+              ) : null}
+              {actionPrimaire ? (
+                <ActionPrimaire
+                  actionsSecondaires={actionsSecondaires}
+                  libelleMenuSecondaire={t('ventes:stock.fiche.actions.autresActions')}
+                >
+                  <Button type="button" variant="default" onClick={actionPrimaire.onClick}>
+                    {actionPrimaire.libelle}
+                  </Button>
+                </ActionPrimaire>
+              ) : null}
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
 
       {vue === 'client' ? (
         // Vue client (issue #84) : provenance, ancienneté, prix d'achat, frais de remise en état
@@ -308,8 +317,16 @@ export function EcranFicheVehiculeStock() {
         // révélables, absents du DOM. Seul ce qui aide un client à décider reste : le véhicule,
         // son statut, son prix de vente, mis en avant plutôt qu'englouti dans un tableau de
         // données commerciales qui n'a plus grand-chose à montrer une fois la marge retirée.
-        <Card>
-          <CardContent className="p-6">
+        //
+        // DESIGN.md « densité » — un chiffre, un libellé : même candidat que `CarteChiffreRequete`
+        // (tableau-bord) pour `--espace-carte-compacte`. `p-6` brut (hors système de densité)
+        // remplacé par le jeton compact, posé directement sur `CardContent` plutôt que via la seule
+        // prop `compact` de `Card` : pas de `CardHeader` ici (le libellé reste une légende discrète
+        // au-dessus du chiffre, pas un titre de carte), et `CardContent` applique `pt-0` par défaut
+        // en anticipant un `CardHeader` précédent — sans cet override, le rembourrage du haut
+        // serait vidé.
+        <Card compact>
+          <CardContent className="p-carte-compacte">
             <p className="texte-libelle text-muted-foreground">
               {t('ventes:stock.champs.prixVenteAffiche')}
             </p>

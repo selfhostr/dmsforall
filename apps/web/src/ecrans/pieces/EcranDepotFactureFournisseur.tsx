@@ -149,6 +149,9 @@ export function EcranDepotFactureFournisseur() {
             }}
             onDragLeave={() => setSurvolDropzone(false)}
             onDrop={surDepot}
+            // Bordure CONSERVÉE (DESIGN.md « bordure structurelle uniquement ») : zone de dépôt
+            // de fichier, exemple nommé explicitement de zone à comportement distinct (glisser-
+            // déposer) — pas un simple groupe de contenu.
             className={cn(
               'flex flex-col items-center gap-groupe rounded-lg border-2 border-dashed p-12 text-center transition-colors',
               survolDropzone ? 'border-primary bg-muted/40' : 'border-input',

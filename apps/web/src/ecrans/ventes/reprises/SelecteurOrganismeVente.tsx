@@ -95,6 +95,8 @@ export function SelecteurOrganismeVente({
               aria-required={obligatoire || undefined}
               className="flex max-h-64 flex-col gap-2 overflow-y-auto"
             >
+              {/* DESIGN.md « bordure structurelle uniquement » — CONSERVÉE : contrôle de saisie
+               *  (`role="radio"`), pas un groupe de contenu — voir `SelecteurClientDossier.tsx`. */}
               {clients.map((client) => {
                 const selectionne = client.id === valeur;
                 return (
@@ -105,7 +107,7 @@ export function SelecteurOrganismeVente({
                     aria-checked={selectionne}
                     onClick={() => onChangeValeur(client.id, client)}
                     className={cn(
-                      'flex items-center justify-between gap-3 rounded-md border p-3 text-left transition-colors',
+                      'flex items-center justify-between gap-3 rounded-md border p-3 text-left transition-colors anneau-focus',
                       selectionne ? 'border-primary bg-primary/5' : 'border-input hover:bg-muted',
                     )}
                   >

@@ -331,6 +331,9 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
             {t('pieces:articles.prix.aideTvaComprise')}
           </p>
 
+          {/* Bordure CONSERVÉE (DESIGN.md) : regroupe une case à cocher et un champ conditionnel
+              (montant de consigne) — contour d'un contrôle de saisie, pas un simple groupe de
+              contenu. */}
           <div className="flex flex-col gap-controles rounded-md border p-3">
             <label
               htmlFor="article-echange-standard"

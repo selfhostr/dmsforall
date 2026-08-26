@@ -73,6 +73,9 @@ export function SelecteurVehiculeStockDossier({ valeur, onChangeValeur, libelle 
         />
       ) : (
         <div role="radiogroup" aria-label={libelle} className="flex flex-col gap-2">
+          {/* DESIGN.md « bordure structurelle uniquement » — CONSERVÉE : contrôle de saisie
+           *  (`role="radio"`), pas un groupe de contenu — voir le même commentaire dans
+           *  `SelecteurClientDossier.tsx`. */}
           {vehicules.map((vehicule) => {
             const selectionne = vehicule.id === valeur;
             return (
@@ -83,7 +86,7 @@ export function SelecteurVehiculeStockDossier({ valeur, onChangeValeur, libelle 
                 aria-checked={selectionne}
                 onClick={() => onChangeValeur(vehicule.id, vehicule)}
                 className={cn(
-                  'flex items-center justify-between gap-3 rounded-md border p-3 text-left transition-colors',
+                  'flex items-center justify-between gap-3 rounded-md border p-3 text-left transition-colors anneau-focus',
                   selectionne ? 'border-primary bg-primary/5' : 'border-input hover:bg-muted',
                 )}
               >

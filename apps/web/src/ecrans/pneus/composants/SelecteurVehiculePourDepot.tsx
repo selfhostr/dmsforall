@@ -87,7 +87,11 @@ export function SelecteurVehiculePourDepot({ valeur, onChangeValeur }: Props) {
                   aria-checked={selectionne}
                   onClick={() => onChangeValeur(vehicule)}
                   className={cn(
-                    'flex items-center justify-between gap-3 rounded-md border p-3 text-left transition-colors',
+                    // Bordure structurelle : ce bouton EST le contrôle de saisie (alternative
+                    // radio à un `Select`), pas un simple groupement de contenu — DESIGN.md
+                    // « bordure structurelle uniquement » l'autorise explicitement pour le contour
+                    // d'un contrôle de saisie.
+                    'anneau-focus flex items-center justify-between gap-3 rounded-md border p-3 text-left transition-colors',
                     selectionne ? 'border-primary bg-primary/5' : 'border-input hover:bg-muted',
                   )}
                 >

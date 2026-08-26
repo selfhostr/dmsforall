@@ -224,9 +224,11 @@ export function OngletContacts({ clientId }: Props) {
         vide={lignes.length === 0}
         texteVide={t('clients:contacts.vide')}
       >
-        <ul className="space-y-2">
+        {/* `divide-y` (filet seul entre lignes) — même motif que `PanneauTravauxReportes.tsx`
+         *  (vehicules/), DESIGN.md « bordure structurelle uniquement ». */}
+        <ul className="divide-y">
           {lignes.map((contact) => (
-            <li key={contact.id} className="rounded-md border p-3">
+            <li key={contact.id} className="py-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="texte-corps font-medium text-foreground">
                   {contact.nom}

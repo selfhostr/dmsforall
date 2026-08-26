@@ -352,6 +352,8 @@ export function EcranNouvelleCommandeFournisseur() {
           </div>
         </div>
 
+        {/* Bordure CONSERVÉE (DESIGN.md) : fieldset qui gère réellement l'ajout de lignes
+            (recherche + ajout), pas un simple groupe de contenu passif. */}
         <fieldset className="flex flex-col gap-controles rounded-md border p-3">
           <legend className="px-1 texte-libelle font-medium text-foreground">
             {t('pieces:commandes.lignes.titre')}
@@ -384,7 +386,11 @@ export function EcranNouvelleCommandeFournisseur() {
                             resultat.prixVenteTtcCentimes,
                           )
                         }
-                        className="flex w-full items-center justify-between gap-2 rounded-md border p-2 texte-corps hover:bg-muted disabled:opacity-50"
+                        // Bordure CONSERVÉE (DESIGN.md) : ce `<button>` EST le contrôle — chaque
+                        // résultat de recherche est une ligne sélectionnable, pas un simple
+                        // groupe de contenu. Même doctrine que le contour d'un contrôle de
+                        // saisie.
+                        className="anneau-focus flex w-full items-center justify-between gap-2 rounded-md border p-2 texte-corps hover:bg-muted disabled:opacity-50"
                       >
                         <span className="flex flex-col items-start">
                           <span className="font-medium">{resultat.designation}</span>

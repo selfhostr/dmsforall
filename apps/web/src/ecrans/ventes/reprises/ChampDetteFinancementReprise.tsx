@@ -44,6 +44,10 @@ export function ChampDetteFinancementReprise({ valeurs, onChange, disabled }: Pr
     onChange(coche ? { ...valeurs, montantCentimes: 0 } : { ...VALEURS_DETTE_VIDES });
   }
 
+  // DESIGN.md « bordure structurelle uniquement » — CONSERVÉE : widget de saisie à part entière
+  // (case à cocher qui révèle un sous-formulaire complet — montant, choix organisme), pas un
+  // simple regroupement de champs statiques — même doctrine que le fieldset « demandes » de
+  // `FormulaireNouvelOrdreReparation.tsx` (atelier, « ce groupe porte son propre comportement »).
   return (
     <div className="flex flex-col gap-3 rounded-md border p-3">
       <div className="flex items-center gap-2">

@@ -22,9 +22,12 @@ interface Props {
  * qu'ailleurs dans le produit — la couleur seule ne porte jamais l'information (daltonisme) —
  * appliquée ici sans même s'appuyer sur la couleur.
  *
- * Aucun mode sombre dans ce produit (`index.css`, tranché au Lot K — « aucune variante `dark:` ne
- * doit exister dans le produit », une classe `.dark` n'étant appliquée nulle part) : ce composant
- * n'en porte donc aucune.
+ * Mode sombre : ce composant n'a besoin d'aucune classe `dark:` propre. Le socle de refonte
+ * visuelle a livré un mode sombre réel (`next-themes`, classe `.dark` posée sur `<html>`, voir
+ * DESIGN.md « Mode sombre ») — l'ancienne affirmation ici (« aucun mode sombre dans ce produit »)
+ * a cessé d'être vraie à ce moment-là. Le badge reste correct dans les deux thèmes parce qu'il ne
+ * consomme QUE des jetons déjà dual-thème (`Badge` shadcn, variante `outline`) — aucune couleur en
+ * dur à corriger.
  */
 export function BadgeSaisonPneu({ saison, className }: Props) {
   const { t } = useTranslation('pneus');

@@ -3,14 +3,9 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
-import type {
-  ReponseFactureFournisseur,
-  ReponseLigneFactureFournisseur,
-  StatutFactureFournisseur,
-} from '@dfa/shared';
+import type { ReponseFactureFournisseur, ReponseLigneFactureFournisseur } from '@dfa/shared';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { obtenirEnv } from '@/config/env';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
@@ -18,6 +13,7 @@ import { useCommandeFournisseur } from '@/hooks/pieces/useCommandeFournisseur';
 import { useFournisseur } from '@/hooks/pieces/useFournisseur';
 import { formaterDate, formaterDateHeure, formaterMontant } from '@/lib/formats';
 
+import { BadgeStatutFactureFournisseur } from './BadgeStatutFactureFournisseur';
 import { DialogueMotifCommandeFournisseur } from './DialogueMotifCommandeFournisseur';
 import { IndicateurCertitude } from './IndicateurCertitude';
 import { messageErreurMutation } from './messages-erreur-mutation';
@@ -31,16 +27,6 @@ import {
   formaterQuantiteEcart,
 } from './utils-factures-fournisseur';
 import { formaterQuantiteMillieme, texteOuVide } from './utils';
-
-const VARIANTE_BADGE_STATUT: Record<
-  StatutFactureFournisseur,
-  'default' | 'secondary' | 'outline' | 'destructive'
-> = {
-  deposee: 'outline',
-  rapprochee: 'secondary',
-  validee: 'default',
-  rejetee: 'destructive',
-};
 
 interface Props {
   readonly facture: ReponseFactureFournisseur;
@@ -257,13 +243,14 @@ export function PanneauRapprochementFacture({
         </h2>
       ) : null}
 
-      <div className="flex flex-wrap items-center justify-between gap-controles rounded-md border p-3">
+      {/* Bordure retirée (DESIGN.md) : bandeau d'identité du document, simple groupe de
+          contenu sans comportement propre — surface tonale à la place, jamais cumulée avec un
+          trait (même mécanisme que `EnTeteOrdreReparation.tsx`, atelier). */}
+      <div className="flex flex-wrap items-center justify-between gap-controles rounded-md bg-muted/40 p-3">
         <div className="flex flex-wrap items-center gap-2 texte-corps font-medium">
           <FileText className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
           {facture.numeroFacture ?? t('pieces:facturesFournisseur.sansNumero')}
-          <Badge variant={VARIANTE_BADGE_STATUT[facture.statut]}>
-            {t(`pieces:facturesFournisseur.statuts.${facture.statut}`)}
-          </Badge>
+          <BadgeStatutFactureFournisseur statut={facture.statut} />
           <span className="texte-libelle font-normal text-muted-foreground">
             {t('pieces:facturesFournisseur.deposeeLe', {
               date: formaterDateHeure(facture.document.deposeLe),
@@ -476,7 +463,11 @@ interface PropsChampEnTete {
 
 function ChampEnTete({ libelle, valeur, certitude }: PropsChampEnTete) {
   return (
-    <div className="flex flex-col gap-1 rounded-md border p-3">
+    // Bordure retirée (DESIGN.md « bordure structurelle uniquement ») : sept cellules
+    // libellé+valeur en grille — l'espacement (`gap-groupe` de la grille parente) et le poids
+    // du libellé suffisent à séparer chaque champ, exactement le grief « padding vide » que ce
+    // motif reproduisait. Surface tonale légère à la place, jamais un trait.
+    <div className="flex flex-col gap-1 rounded-md bg-muted/40 p-3">
       <span className="texte-libelle text-muted-foreground">{libelle}</span>
       <ChampValeurLue valeur={valeur} certitude={certitude} tailleTexte="texte-corps font-medium" />
     </div>

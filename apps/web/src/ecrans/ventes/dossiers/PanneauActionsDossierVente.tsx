@@ -319,6 +319,11 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
             />
           ) : null}
 
+          {/* DESIGN.md « bordure structurelle uniquement » — CONSERVÉE : encart d'alerte
+           *  (`role="alert"`, jetons `--statut-attention`), même patron réutilisé partout où une
+           *  transition exige une confirmation serveur (`PanneauActionsFinancement.tsx`,
+           *  `PanneauActionsReprise.tsx`, `EcranNouveauDossierVente.tsx`) — une vraie zone d'action
+           *  (message + bouton « Continuer quand même »), pas un simple groupe de contenu. */}
           {confirmationsRequises.length > 0 ? (
             <div
               role="alert"

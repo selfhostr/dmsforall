@@ -84,6 +84,9 @@ export function CarteFinancement({
   // auto-descriptifs) — soit seule visible (repli sans onglet, rôle sans droit garantie ou dossier
   // sans véhicule), auquel cas l'appelant (`EcranFicheDossierVente`) pose lui-même le titre de
   // section, même patron que sa carte « OR du véhicule ».
+  // DESIGN.md « densité » — PAS de `compact` : contenu variable (historique complet, panneau
+  // d'actions, formulaire de proposition), qui dépasse largement le profil « chiffre/titre/libellé »
+  // réservé à `--espace-carte-compacte`.
   return (
     <Card>
       <CardContent className="flex flex-col gap-4">
@@ -101,6 +104,10 @@ export function CarteFinancement({
           />
         ) : (
           <>
+            {/* DESIGN.md « bordure structurelle uniquement » — CONSERVÉE : ce bloc encadre son
+             *  propre panneau d'actions (`PanneauActionsFinancement`, confirmer/refuser), une vraie
+             *  zone d'action distincte de l'historique en lecture seule ci-dessous, pas un simple
+             *  regroupement de champs statiques. */}
             {financement ? (
               <div className="rounded-md border p-3">
                 <div className="flex flex-wrap items-center gap-2">
@@ -150,11 +157,17 @@ export function CarteFinancement({
                 <p className="texte-libelle text-muted-foreground">
                   {t('ventes:financement.historique.titre')}
                 </p>
-                <ul className="flex flex-col gap-2">
+                {/* DESIGN.md « bordure structurelle uniquement » — retirée : chaque entrée était
+                 *  encadrée individuellement (une carte par ligne d'historique), un cadre par
+                 *  élément de liste plutôt qu'une vraie zone d'action — même défaut que le
+                 *  zebra/cadre-par-ligne proscrit sur les tableaux (`components/ui/table.tsx`).
+                 *  Filet horizontal seul (`divide-y`), même patron que les listes « pièces
+                 *  utilisées »/« documents liés » de `EcranFicheOrdreReparation.tsx` (atelier). */}
+                <ul className="flex flex-col divide-y">
                   {financements.map((entree) => (
                     <li
                       key={entree.id}
-                      className="flex flex-wrap items-center gap-2 rounded-md border p-2 texte-corps"
+                      className="flex flex-wrap items-center gap-2 py-2 texte-corps"
                     >
                       <span>{t(`ventes:financement.types.${entree.type}`)}</span>
                       {entree.organisme ? (

@@ -342,7 +342,7 @@ export function EcranFicheVehicule() {
               </span>
               <button
                 type="button"
-                className="w-fit text-left texte-corps font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="w-fit text-left texte-corps font-medium text-primary underline-offset-4 hover:underline anneau-focus"
                 onClick={() => navigate(chemins.clients.detail(proprietaireActuel.client.id, site))}
               >
                 {proprietaireActuel.client.nomAffiche} · {proprietaireActuel.client.numeroClient}
@@ -363,7 +363,7 @@ export function EcranFicheVehicule() {
                   <li key={detention.id}>
                     <button
                       type="button"
-                      className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      className="text-left texte-corps text-primary underline-offset-4 hover:underline anneau-focus"
                       onClick={() => navigate(chemins.clients.detail(detention.client.id, site))}
                     >
                       {detention.client.nomAffiche} · {detention.client.numeroClient}
@@ -437,7 +437,7 @@ export function EcranFicheVehicule() {
                 <li key={dossier.id} className="flex items-center justify-between gap-3 py-2">
                   <button
                     type="button"
-                    className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    className="text-left texte-corps text-primary underline-offset-4 hover:underline anneau-focus"
                     onClick={() => navigate(chemins.ventes.dossiers.detail(dossier.id, site))}
                   >
                     {dossier.clientAcheteur.nomAffiche}
@@ -485,7 +485,7 @@ export function EcranFicheVehicule() {
                   </div>
                   <Link
                     to={cheminHangarPourDepot(depot.id)}
-                    className="texte-libelle font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    className="texte-libelle font-medium text-primary underline-offset-4 hover:underline anneau-focus"
                   >
                     {t('vehicules:fiche.pneus.lienHangar')}
                   </Link>
@@ -523,7 +523,7 @@ export function EcranFicheVehicule() {
                   <div className="flex items-center justify-between gap-3">
                     <button
                       type="button"
-                      className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      className="text-left texte-corps text-primary underline-offset-4 hover:underline anneau-focus"
                       onClick={() => navigate(chemins.atelier.ordresReparation.detail(or.id, site))}
                     >
                       {or.numero}
@@ -581,7 +581,7 @@ export function EcranFicheVehicule() {
                 <li key={document_.id} className="flex items-center justify-between gap-3 py-2">
                   <button
                     type="button"
-                    className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    className="text-left texte-corps text-primary underline-offset-4 hover:underline anneau-focus"
                     onClick={() => navigate(`/factures/${document_.id}`)}
                   >
                     {document_.numero ?? t('vehicules:fiche.factures.brouillon')}
@@ -596,7 +596,14 @@ export function EcranFicheVehicule() {
         </TabsContent>
       </Tabs>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      {/* DESIGN.md grief n°2 — `items-start` : `BlocEcheances` (échéance expertise + 2 garanties,
+       *  hauteur quasi fixe) et `BlocDonneesAtelier` (0 à 9 champs selon ce qui est renseigné,
+       *  jusqu'à l'état vide) ont des hauteurs structurellement différentes ; sans `items-start`,
+       *  la grille CSS étirerait la plus courte à la hauteur de sa voisine — même défaut que celui
+       *  déjà corrigé sur `TableauBordDirection.tsx`/`EcranFicheOrdreReparation.tsx` (atelier). Les
+       *  deux blocs restent de simples `Card` (contenu variable, jamais `compact`) : c'est
+       *  l'écart de hauteur réel entre eux qui justifie `items-start` ici, pas la densité. */}
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
         <BlocEcheances
           expertise={contexte.expertise}
           garantieConstructeur={contexte.garantie.constructeur}

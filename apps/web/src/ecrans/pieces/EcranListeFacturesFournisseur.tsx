@@ -10,7 +10,6 @@ import {
 } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -34,21 +33,12 @@ import { useListeFacturesFournisseur } from '@/hooks/pieces/useListeFacturesFour
 import { useSession } from '@/hooks/useSession';
 import { formaterDate, formaterMontant } from '@/lib/formats';
 
+import { BadgeStatutFactureFournisseur } from './BadgeStatutFactureFournisseur';
 import { peutDeposerFactureFournisseur, peutLireFactureFournisseur } from './droits';
 import { IndicateurCertitude } from './IndicateurCertitude';
 import { calculerSyntheseEcarts, certitudeChampEnTete } from './utils-factures-fournisseur';
 
 const DELAI_DEBOUNCE_MS = 300;
-
-const VARIANTE_BADGE_STATUT: Record<
-  StatutFactureFournisseur,
-  'default' | 'secondary' | 'outline' | 'destructive'
-> = {
-  deposee: 'outline',
-  rapprochee: 'secondary',
-  validee: 'default',
-  rejetee: 'destructive',
-};
 
 /**
  * Consultation des factures fournisseur déposées (brief, point 3 : « retrouver une facture
@@ -167,11 +157,7 @@ export function EcranListeFacturesFournisseur() {
     {
       id: 'statut',
       libelle: t('pieces:facturesFournisseur.colonnes.statut'),
-      rendu: (facture) => (
-        <Badge variant={VARIANTE_BADGE_STATUT[facture.statut]}>
-          {t(`pieces:facturesFournisseur.statuts.${facture.statut}`)}
-        </Badge>
-      ),
+      rendu: (facture) => <BadgeStatutFactureFournisseur statut={facture.statut} />,
     },
     {
       id: 'ecarts',

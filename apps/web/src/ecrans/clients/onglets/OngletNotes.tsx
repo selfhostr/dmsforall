@@ -151,15 +151,15 @@ export function OngletNotes({ clientId }: Props) {
         vide={lignes.length === 0}
         texteVide={t('clients:notes.vide')}
       >
-        <ul className="space-y-2">
+        {/* `divide-y` (filet seul) entre notes normales — bordure retirée, c'était un simple
+         *  groupe de contenu. La note « alerte » garde un remplissage plein (fond + pas de
+         *  bordure) : signal structurel volontaire, une note d'alerte n'est pas une ligne comme
+         *  les autres (même doctrine que les encarts d'alerte). */}
+        <ul className="divide-y">
           {lignes.map((note) => (
             <li
               key={note.id}
-              className={
-                note.nature === 'alerte'
-                  ? 'rounded-md border border-statut-danger bg-statut-danger-fond p-3'
-                  : 'rounded-md border p-3'
-              }
+              className={note.nature === 'alerte' ? 'rounded-md bg-statut-danger-fond p-3' : 'p-3'}
             >
               <div className="flex items-center justify-between gap-2 texte-libelle text-muted-foreground">
                 <span>{t(`clients:notes.${note.nature}`)}</span>

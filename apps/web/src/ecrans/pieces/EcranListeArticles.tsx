@@ -13,7 +13,6 @@ import {
 } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -39,6 +38,7 @@ import { useListeArticles } from '@/hooks/pieces/useListeArticles';
 import { formaterMontant } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
+import { BadgeStatutArticle } from './BadgeStatutArticle';
 import { FormulaireArticle } from './FormulaireArticle';
 import { peutEcrireArticle } from './droits';
 import { formaterQuantiteMillieme } from './utils';
@@ -51,12 +51,6 @@ const CLES_TRI: Record<(typeof TRIS_ARTICLES)[number], string> = {
   'designation:asc': 'pieces:articles.tri.designationAsc',
   'designation:desc': 'pieces:articles.tri.designationDesc',
   'numeroArticle:asc': 'pieces:articles.tri.numeroArticleAsc',
-};
-
-const VARIANTE_BADGE_STATUT: Record<StatutArticle, 'default' | 'secondary' | 'outline'> = {
-  actif: 'default',
-  obsolete: 'secondary',
-  desactive: 'outline',
 };
 
 /** Liste des articles du référentiel (RP-03) — recherche, tri, filtres catégorie/statut,
@@ -163,11 +157,7 @@ export function EcranListeArticles() {
     {
       id: 'statut',
       libelle: t('pieces:articles.liste.colonnes.statut'),
-      rendu: (article) => (
-        <Badge variant={VARIANTE_BADGE_STATUT[article.statut]}>
-          {t(`pieces:articles.statuts.${article.statut}`)}
-        </Badge>
-      ),
+      rendu: (article) => <BadgeStatutArticle statut={article.statut} />,
     },
     {
       // Libellé « TTC » explicite (pas « Prix » nu) — même clé et même doctrine que la colonne

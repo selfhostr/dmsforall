@@ -144,6 +144,8 @@ export function DialogueRattacherClient({
           <div className="flex flex-col gap-1.5">
             <Label requis>{t('vehicules:detentions.dialogue.clientLabel')}</Label>
             {client ? (
+              // Bordure structurelle : bloc qui porte la sélection courante ET l'action de la
+              // retirer (« modifier la sélection » ci-dessous), pas un simple groupe de contenu.
               <div className="flex items-center justify-between gap-3 rounded-md border border-primary bg-primary/5 p-3">
                 <IdentiteClient client={client} />
                 <Button

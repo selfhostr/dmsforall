@@ -409,9 +409,11 @@ export function OngletAdresses({ clientId }: Props) {
         vide={lignes.length === 0}
         texteVide={t('clients:adresses.vide')}
       >
-        <ul className="space-y-2">
+        {/* `divide-y` (filet seul entre lignes) — même motif que `PanneauTravauxReportes.tsx`
+         *  (vehicules/), DESIGN.md « bordure structurelle uniquement ». */}
+        <ul className="divide-y">
           {lignes.map((adresse) => (
-            <li key={adresse.id} className="rounded-md border p-3">
+            <li key={adresse.id} className="py-3">
               <div className="flex items-center justify-between gap-2">
                 <span className="texte-libelle rounded-full border px-2 py-0.5 text-muted-foreground">
                   {t(`clients:adresses.types.${adresse.type}`)}

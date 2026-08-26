@@ -11,7 +11,6 @@ import {
 } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -33,16 +32,12 @@ import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useListeFournisseurs } from '@/hooks/pieces/useListeFournisseurs';
 import { useSession } from '@/hooks/useSession';
 
+import { BadgeStatutFournisseur } from './BadgeStatutFournisseur';
 import { peutEcrireFournisseur } from './droits';
 import { FormulaireFournisseur } from './FormulaireFournisseur';
 import { texteOuVide } from './utils';
 
 const DELAI_DEBOUNCE_MS = 300;
-
-const VARIANTE_BADGE_STATUT: Record<StatutFournisseur, 'default' | 'secondary'> = {
-  actif: 'default',
-  inactif: 'secondary',
-};
 
 /**
  * Liste des fournisseurs (RP-26, §1) — référentiel minimal (nom, coordonnées, délai habituel).
@@ -116,11 +111,7 @@ export function EcranListeFournisseurs() {
     {
       id: 'statut',
       libelle: t('pieces:fournisseurs.statut'),
-      rendu: (fournisseur) => (
-        <Badge variant={VARIANTE_BADGE_STATUT[fournisseur.statut]}>
-          {t(`pieces:fournisseurs.statuts.${fournisseur.statut}`)}
-        </Badge>
-      ),
+      rendu: (fournisseur) => <BadgeStatutFournisseur statut={fournisseur.statut} />,
     },
   ];
 

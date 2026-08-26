@@ -88,6 +88,8 @@ export function SelecteurClientVehicule({ valeur, onChangeValeur, libelle, requi
           {clients.map((client) => {
             const selectionne = client.id === valeur;
             return (
+              // Bordure structurelle : contrôle de sélection (role="radio"), pas un simple
+              // groupe de contenu.
               <button
                 key={client.id}
                 type="button"
@@ -95,8 +97,7 @@ export function SelecteurClientVehicule({ valeur, onChangeValeur, libelle, requi
                 aria-checked={selectionne}
                 onClick={() => onChangeValeur(client.id, client)}
                 className={cn(
-                  'flex items-center justify-between gap-3 rounded-md border p-3 text-left transition-colors',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                  'anneau-focus flex items-center justify-between gap-3 rounded-md border p-3 text-left transition-colors',
                   selectionne ? 'border-primary bg-primary/5' : 'border-input hover:bg-muted',
                 )}
               >

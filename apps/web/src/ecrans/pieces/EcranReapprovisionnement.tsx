@@ -210,6 +210,8 @@ export function EcranReapprovisionnement() {
 
   const actionCommander =
     peutCommander && selection.size > 0 ? (
+      // Bordure CONSERVÉE (DESIGN.md) : barre d'action contextuelle liée à une sélection active
+      // dans le tableau — zone à comportement distinct, pas un simple groupe de contenu.
       <div className="flex items-center gap-controles rounded-md border bg-muted/50 px-3 py-2">
         <span className="texte-corps text-foreground">
           {t('pieces:stock.reapprovisionnement.selection.nombreSelectionnes', {

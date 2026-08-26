@@ -499,6 +499,8 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
 
       <div className="space-y-champ">
         <Label>{t('clients:liste.filtres.type')}</Label>
+        {/* Bordure structurelle : contour d'un contrôle de saisie (bascule particulier/
+         *  entreprise, `role="group"` de boutons). */}
         <div role="group" className="inline-flex overflow-hidden rounded-md border">
           {(['particulier', 'entreprise'] as const satisfies readonly TypeClient[]).map(
             (valeur) => (
@@ -659,7 +661,7 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
         </div>
       </div>
 
-      <fieldset className="space-y-groupe rounded-md border p-carte">
+      <fieldset className="space-y-groupe p-carte">
         <legend className="px-1 texte-libelle font-medium text-foreground">
           {t('clients:adresses.types.principale')}
         </legend>
@@ -725,6 +727,7 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
       </fieldset>
 
       {candidats.length > 0 ? (
+        // Bordure structurelle : encart d'alerte (doublons potentiels détectés à la saisie).
         <div className="space-y-groupe rounded-md border border-statut-attention bg-statut-attention-fond p-carte">
           <p className="texte-libelle font-semibold text-foreground">
             {t('clients:doublons.titre')}

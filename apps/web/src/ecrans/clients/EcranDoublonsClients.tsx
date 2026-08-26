@@ -202,6 +202,10 @@ export function EcranDoublonsClients() {
           onReessayer={() => void requete.refetch()}
         />
       ) : candidats.length === 0 ? (
+        // Bordure structurelle : panneau d'état terminal (succès), même convention que
+        // `EtatVide` (composants/commun/) — bordure comme signal visuel de l'état, ici pleine et
+        // au token succès plutôt que pointillée/neutre puisque c'est un résultat positif, pas une
+        // absence de contenu.
         <div
           role="status"
           className="flex flex-col items-center gap-3 rounded-lg border border-statut-succes bg-statut-succes-fond p-10 text-center"

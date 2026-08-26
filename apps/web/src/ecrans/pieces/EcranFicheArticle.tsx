@@ -250,7 +250,7 @@ export function EcranFicheArticle() {
           ) : (
             <button
               type="button"
-              className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="text-left texte-corps text-primary underline-offset-4 hover:underline anneau-focus"
               onClick={() => navigate(chemins.pieces.fournisseurs.detail(fournisseurId))}
             >
               {requeteFournisseur.data.nom}
@@ -300,7 +300,7 @@ export function EcranFicheArticle() {
                 >
                   <button
                     type="button"
-                    className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    className="text-left texte-corps text-primary underline-offset-4 hover:underline anneau-focus"
                     onClick={() =>
                       navigate(chemins.pieces.commandesFournisseur.detail(commande.id))
                     }
@@ -347,7 +347,7 @@ export function EcranFicheArticle() {
                 >
                   <button
                     type="button"
-                    className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    className="text-left texte-corps text-primary underline-offset-4 hover:underline anneau-focus"
                     onClick={() =>
                       navigate(
                         chemins.atelier.ordresReparation.detail(
@@ -400,7 +400,7 @@ export function EcranFicheArticle() {
                 >
                   <button
                     type="button"
-                    className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    className="text-left texte-corps text-primary underline-offset-4 hover:underline anneau-focus"
                     onClick={() =>
                       navigate(
                         chemins.atelier.ordresReparation.detail(

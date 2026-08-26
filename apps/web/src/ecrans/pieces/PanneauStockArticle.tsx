@@ -205,7 +205,9 @@ function DetailDisponibilite({ articleId, siteId, nomSite: nom }: PropsDetail) {
   const disponibilite = requete.data;
 
   return (
-    <div className="rounded-md border p-3">
+    // Bordure retirée (DESIGN.md) : simple groupe de contenu (titre + liste de réservations),
+    // sans comportement propre. Surface tonale à la place, jamais un trait.
+    <div className="rounded-md bg-muted/40 p-3">
       <h3 className="texte-libelle font-semibold text-foreground">
         {t('pieces:reservations.disponibilite.titre')} — {nom}
       </h3>

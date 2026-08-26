@@ -154,6 +154,11 @@ export function EcranSuiviVentes() {
           niveau. Rôles ARIA (`tablist`/`tab`) et clavier inchangés : `@radix-ui/react-tabs`
           directement, même contrat de test (`getByRole('tab', …)`). */}
       <TabsPrimitive.Root value={horizon} onValueChange={(valeur) => setHorizon(valeur as Horizon)}>
+        {/* DESIGN.md « bordure structurelle uniquement » — bordure CONSERVÉE : elle dessine le
+            contour d'un CONTRÔLE (`role="tablist"` Radix, un segmented control), pas d'un groupe
+            de contenu. C'est le cas explicitement autorisé par la règle (« contour d'un contrôle
+            de saisie ») : sans elle, les trois horizons flotteraient au-dessus du fond sans
+            frontière commune et cesseraient de se lire comme un seul sélecteur. */}
         <TabsPrimitive.List
           aria-label={t('ventes:suivi.filtres.horizonLabel')}
           className="inline-flex items-stretch gap-1 rounded-md border bg-muted/40 p-1"

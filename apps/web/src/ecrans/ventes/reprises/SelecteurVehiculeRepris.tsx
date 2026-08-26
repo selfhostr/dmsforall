@@ -154,6 +154,9 @@ export function SelecteurVehiculeRepris({ valeur, onChangeValeur, erreur }: Prop
             }
           />
 
+          {/* DESIGN.md « bordure structurelle uniquement » — CONSERVÉE : mini-formulaire à part
+           *  entière (marque/modèle/plaque + ses propres boutons Annuler/Créer), pas un simple
+           *  regroupement de champs statiques. */}
           {creationOuverte ? (
             <div className="flex flex-col gap-3 rounded-md border p-3">
               <p className="texte-libelle text-muted-foreground">
@@ -247,6 +250,8 @@ export function SelecteurVehiculeRepris({ valeur, onChangeValeur, erreur }: Prop
             aria-required="true"
             className="flex max-h-64 flex-col gap-2 overflow-y-auto"
           >
+            {/* DESIGN.md « bordure structurelle uniquement » — CONSERVÉE : contrôle de saisie
+             *  (`role="radio"`), pas un groupe de contenu — voir `SelecteurClientDossier.tsx`. */}
             {requete.vehicules.map((vehicule) => {
               const selectionne = vehicule.id === valeur;
               return (
@@ -257,7 +262,7 @@ export function SelecteurVehiculeRepris({ valeur, onChangeValeur, erreur }: Prop
                   aria-checked={selectionne}
                   onClick={() => onChangeValeur(vehicule.id, vehicule)}
                   className={cn(
-                    'flex items-center justify-between gap-3 rounded-md border p-3 text-left transition-colors',
+                    'flex items-center justify-between gap-3 rounded-md border p-3 text-left transition-colors anneau-focus',
                     selectionne ? 'border-primary bg-primary/5' : 'border-input hover:bg-muted',
                   )}
                 >

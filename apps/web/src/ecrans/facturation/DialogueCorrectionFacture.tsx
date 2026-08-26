@@ -233,6 +233,8 @@ export function DialogueCorrectionFacture({ facture, ouvert, onOuvertChange, onS
           ) : null}
 
           {brancheMontantTaux ? (
+            // DESIGN.md « bordure structurelle » — conservée : encart d'alerte avec sa propre
+            // action (« Créer un avoir »), pas un simple regroupement de texte.
             <div className="flex flex-col gap-2 rounded-md border border-statut-info bg-statut-info-fond p-3">
               <p className="texte-corps">{t('facturation:fiche.correction.motifMontantTaux')}</p>
               <Button

@@ -154,7 +154,7 @@ export function CarteJeuPneu({
         <div className="flex flex-wrap items-center gap-2 pt-1">
           <Link
             to={chemins.vehicules.detail(depot.vehiculeId, site)}
-            className="texte-libelle font-medium text-primary underline"
+            className="anneau-focus rounded-sm texte-libelle font-medium text-primary underline"
           >
             {t('pneus:jeu.actions.voirVehicule')}
           </Link>

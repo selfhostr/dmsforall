@@ -333,6 +333,11 @@ export function EcranNouveauDossierVente() {
 
         {/* CONFIRMATION_REQUISE (§4.4) : même patron que `FormulaireNouvelOrdreReparation` — prompt
          *  inline puis modal, un accord explicite plutôt qu'un second clic silencieux. */}
+        {/* DESIGN.md « bordure structurelle uniquement » — CONSERVÉE : encart d'alerte
+         *  (`role="alert"`, jetons `--statut-attention`), même patron que les blocs
+         *  CONFIRMATION_REQUISE de `PanneauActionsDossierVente.tsx`/`PanneauActionsFinancement.tsx`/
+         *  `PanneauActionsReprise.tsx` — une vraie zone d'action (message + bouton), pas un simple
+         *  groupe de contenu. */}
         {creation.confirmationsRequises.length > 0 ? (
           <div
             role="alert"

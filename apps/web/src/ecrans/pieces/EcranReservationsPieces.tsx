@@ -11,7 +11,6 @@ import {
 } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -36,18 +35,13 @@ import { useSession } from '@/hooks/useSession';
 import { formaterDateHeure } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
+import { BadgeStatutReservationPiece } from './BadgeStatutReservationPiece';
 import { DialogueLiberationReservation } from './DialogueLiberationReservation';
 import { peutLibererReservation, peutSatisfaireReservation } from './droits';
 import { messageErreurMutation } from './messages-erreur-mutation';
 import { formaterQuantiteMillieme } from './utils';
 
 const DELAI_DEBOUNCE_MS = 300;
-
-const VARIANTE_BADGE_STATUT: Record<StatutReservationPiece, 'default' | 'secondary' | 'outline'> = {
-  active: 'default',
-  satisfaite: 'secondary',
-  liberee: 'outline',
-};
 
 /**
  * Vue transverse des réservations (RP-19 → RP-25, priorité 4 du brief) — « qu'est-ce qui est
@@ -150,11 +144,7 @@ export function EcranReservationsPieces() {
     {
       id: 'statut',
       libelle: t('pieces:reservations.statut'),
-      rendu: (reservation) => (
-        <Badge variant={VARIANTE_BADGE_STATUT[reservation.statut]}>
-          {t(`pieces:reservations.statuts.${reservation.statut}`)}
-        </Badge>
-      ),
+      rendu: (reservation) => <BadgeStatutReservationPiece statut={reservation.statut} />,
     },
     {
       id: 'creeLe',

@@ -58,12 +58,11 @@ export function OngletConditions({ clientId }: Props) {
         vide={lignes.length === 0}
         texteVide={t('clients:conditions.vide')}
       >
-        <ul className="space-y-2">
+        {/* `divide-y` (filet seul entre lignes) — même motif que `PanneauTravauxReportes.tsx`
+         *  (vehicules/), DESIGN.md « bordure structurelle uniquement ». */}
+        <ul className="divide-y">
           {lignes.map((condition) => (
-            <li
-              key={condition.id}
-              className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-md border p-3 texte-corps"
-            >
+            <li key={condition.id} className="grid grid-cols-2 gap-x-4 gap-y-1 py-3 texte-corps">
               <span className="text-muted-foreground">{t('clients:conditions.rabaisMo')}</span>
               <span className="text-right tabular-nums">
                 {formaterPourmille(condition.rabaisMoPourmille)}

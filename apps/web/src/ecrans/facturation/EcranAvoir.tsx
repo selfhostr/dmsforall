@@ -7,6 +7,7 @@ import { MOTIFS_AVOIR, schemaCreationAvoir, type MotifAvoir } from '@dfa/shared'
 import { messageErreur } from '@/api/erreurs';
 import { genererCleIdempotence } from '@/api/idempotence';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
@@ -197,7 +198,11 @@ export function EcranAvoir() {
         </Button>
       }
     >
-      <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
+      {/* `items-start` — DESIGN.md « densité » : sans lui, la Card « Total de l'avoir » (colonne de
+          droite, contenu minimal) s'étire en CSS Grid à la hauteur de la colonne de gauche
+          (formulaire + liste de lignes), laissant un grand vide sous le chiffre — exactement le
+          défaut relevé par le socle sur d'autres grilles de ce lot. */}
+      <div className="grid items-start gap-6 xl:grid-cols-[1fr_360px]">
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="avoir-motif">{t('facturation:motifsAvoir.champ')}</Label>
@@ -231,6 +236,9 @@ export function EcranAvoir() {
             ) : null}
           </div>
 
+          {/* DESIGN.md « bordure structurelle » — conservée : bloc gérant une VRAIE sélection
+              (cases à cocher qui déterminent les lignes à créditer, bouton « tout sélectionner »),
+              pas un simple regroupement de contenu. */}
           <div className="flex flex-col gap-2 rounded-md border p-3">
             <div className="flex items-center justify-between">
               <h2 className="texte-libelle font-medium text-foreground">
@@ -280,12 +288,22 @@ export function EcranAvoir() {
           ) : null}
         </div>
 
-        <div className="flex flex-col gap-3 rounded-md border p-4">
-          <p className="texte-libelle text-muted-foreground">{t('facturation:avoir.totalAvoir')}</p>
-          <p className="texte-chiffre-geant tabular-nums font-semibold text-foreground">
-            −{formaterMontantAvecDevise(totalAvoirCentimes, facture.devise)}
-          </p>
-        </div>
+        {/* DESIGN.md « densité » — même patron « une carte, un chiffre, un libellé » que le Total
+            TTC de `EcranFicheFacture.tsx` : `Card compact` remplace l'ancien `rounded-md border
+            p-4`. Voir `items-start` posé sur la grille parente ci-dessus — sans lui, cette carte
+            à contenu minimal s'étirerait à la hauteur de la colonne de gauche. */}
+        <Card compact>
+          <CardHeader>
+            <p className="texte-libelle text-muted-foreground">
+              {t('facturation:avoir.totalAvoir')}
+            </p>
+          </CardHeader>
+          <CardContent>
+            <p className="texte-chiffre-geant tabular-nums font-semibold text-foreground">
+              −{formaterMontantAvecDevise(totalAvoirCentimes, facture.devise)}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       <Dialog open={dialogueOuvert} onOpenChange={setDialogueOuvert}>

@@ -142,6 +142,8 @@ export function DialogueReceptionCommande({ ouvert, onOuvertChange, commande }: 
             const saisie = lignes[ligne.id];
             if (!saisie) return null;
             return (
+              // Bordure CONSERVÉE (DESIGN.md) : regroupe une case à cocher + des champs de
+              // saisie réels (quantité, prix), pas un simple groupe de contenu passif.
               <div key={ligne.id} className="flex flex-col gap-controles rounded-md border p-3">
                 <label
                   htmlFor={`reception-ligne-${ligne.id}`}

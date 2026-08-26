@@ -257,7 +257,7 @@ export function EcranFicheDossierVente() {
                   <li key={or.id} className="flex items-center justify-between gap-3 py-2">
                     <button
                       type="button"
-                      className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      className="rounded-sm text-left texte-corps text-primary underline-offset-4 hover:underline anneau-focus"
                       onClick={() => navigate(chemins.atelier.ordresReparation.detail(or.id, site))}
                     >
                       {or.numero}

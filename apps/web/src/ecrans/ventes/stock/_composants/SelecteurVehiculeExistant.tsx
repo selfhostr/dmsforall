@@ -82,12 +82,15 @@ export function SelecteurVehiculeExistant({ onChoisir }: Props) {
           description={t('ventes:stock.entree.aucunVehiculeDescription')}
         />
       ) : (
-        <ul className="flex flex-col gap-2">
+        /* DESIGN.md « bordure structurelle uniquement » — bordure RETIRÉE : chaque résultat de
+         *  recherche était encadré individuellement (un cadre par ligne), or la ligne elle-même
+         *  n'est pas cliquable — seul le bouton « choisir » l'est. C'était donc un cadre autour
+         *  d'un groupe de contenu, pas autour d'une zone d'action. Filet horizontal seul
+         *  (`divide-y`), même patron que les listes de `components/ui/table.tsx` et que
+         *  l'historique de `financements/CarteFinancement.tsx`. */
+        <ul className="flex flex-col divide-y">
           {requete.data.donnees.map((vehicule) => (
-            <li
-              key={vehicule.id}
-              className="flex items-center justify-between gap-3 rounded-md border p-3"
-            >
+            <li key={vehicule.id} className="flex items-center justify-between gap-3 py-3">
               <IdentiteVehicule vehicule={vehicule} taillePlaque="sm" />
               <Button type="button" variant="outline" onClick={() => onChoisir(vehicule)}>
                 {t('ventes:stock.entree.choisirVehicule')}

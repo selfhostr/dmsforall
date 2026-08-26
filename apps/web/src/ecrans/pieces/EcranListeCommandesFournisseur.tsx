@@ -11,7 +11,6 @@ import {
 } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -35,21 +34,10 @@ import { useListeCommandesFournisseur } from '@/hooks/pieces/useListeCommandesFo
 import { useSession } from '@/hooks/useSession';
 import { formaterDate } from '@/lib/formats';
 
+import { BadgeStatutCommandeFournisseur } from './BadgeStatutCommandeFournisseur';
 import { peutEcrireCommandeFournisseur } from './droits';
 
 const DELAI_DEBOUNCE_MS = 300;
-
-const VARIANTE_BADGE_STATUT: Record<
-  StatutCommandeFournisseur,
-  'default' | 'secondary' | 'outline' | 'destructive'
-> = {
-  brouillon: 'outline',
-  envoyee: 'default',
-  partiellement_recue: 'secondary',
-  recue: 'secondary',
-  cloturee: 'secondary',
-  annulee: 'destructive',
-};
 
 /**
  * Liste des commandes fournisseur (RP-26 → RP-31, §6.2, priorité 1 du lot) — filtres statut,
@@ -155,11 +143,7 @@ export function EcranListeCommandesFournisseur() {
     {
       id: 'statut',
       libelle: t('pieces:commandes.statut'),
-      rendu: (commande) => (
-        <Badge variant={VARIANTE_BADGE_STATUT[commande.statut]}>
-          {t(`pieces:commandes.statuts.${commande.statut}`)}
-        </Badge>
-      ),
+      rendu: (commande) => <BadgeStatutCommandeFournisseur statut={commande.statut} />,
     },
   ];
 

@@ -287,7 +287,7 @@ export function EcranHangarPneus() {
       rendu: (depot) => (
         <Link
           to={chemins.vehicules.detail(depot.vehiculeId, site)}
-          className="texte-corps font-medium text-primary underline"
+          className="anneau-focus rounded-sm texte-corps font-medium text-primary underline"
           onClick={(e) => e.stopPropagation()}
         >
           {t('pneus:jeu.actions.voirVehicule')}
@@ -425,7 +425,14 @@ export function EcranHangarPneus() {
                       description={t('pneus:hangar.recherche.aucunResultat.description')}
                     />
                   ) : (
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    /* DESIGN.md « densité » — `items-start` : `CarteJeuPneu` varie en hauteur
+                     *  (identification présente ou non, avertissement de relance, motif de
+                     *  sortie) ; pas de `compact` ici, son contenu (repère, statuts,
+                     *  identification, dernier mouvement, actions) dépasse largement le seuil
+                     *  « contenu minimal » réservé à `--espace-carte-compacte`. Sans `items-start`,
+                     *  CSS Grid étire chaque carte à la hauteur de la plus haute de sa ligne — vide
+                     *  visible sous le contenu des cartes les plus courtes. */
+                    <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       {recherche.jeux.map(({ depot, candidat }) => (
                         <CarteJeuPneu
                           key={depot.id}
@@ -534,7 +541,9 @@ export function EcranHangarPneus() {
                     )
                   ) : (
                     <>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {/* DESIGN.md « densité » — même raison qu'au-dessus (grille de résultats de
+                       *  recherche) : `items-start`, pas de `compact`. */}
+                      <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {depotsFiltres.map((depot) => (
                           <CarteJeuPneu
                             key={depot.id}

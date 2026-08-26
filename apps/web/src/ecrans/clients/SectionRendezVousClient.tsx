@@ -165,6 +165,8 @@ export function SectionRendezVousClient({ client, vehiculesClient, site }: Props
             afficherSelecteurVehicule ? (
               <div className="flex max-h-64 flex-col gap-1 overflow-y-auto">
                 {vehiculesClient.map((vehicule) => (
+                  // Bordure structurelle : élément interactif (sélection du véhicule pour le
+                  // nouveau rendez-vous).
                   <button
                     key={vehicule.id}
                     type="button"

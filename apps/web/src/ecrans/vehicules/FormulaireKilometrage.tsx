@@ -176,6 +176,7 @@ export function FormulaireKilometrage({
             </div>
 
             {erreurRegression ? (
+              // Bordure structurelle : encart d'alerte (régression de kilométrage détectée).
               <div
                 role="alert"
                 className="flex flex-col gap-3 rounded-md border border-statut-attention bg-statut-attention-fond p-3"

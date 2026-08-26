@@ -89,6 +89,10 @@ export function SelecteurClientDossier({ valeur, onChangeValeur, libelle, requis
           aria-required={requis || undefined}
           className="flex flex-col gap-2"
         >
+          {/* DESIGN.md « bordure structurelle uniquement » — CONSERVÉE : chaque `button` est ici
+           *  un contrôle de saisie à part entière (`role="radio"`), pas un groupe de contenu — le
+           *  contour distingue l'option sélectionnée (`border-primary`) de ses voisines, même
+           *  fonction qu'un contour de champ. */}
           {clients.map((client) => {
             const selectionne = client.id === valeur;
             return (
@@ -99,7 +103,7 @@ export function SelecteurClientDossier({ valeur, onChangeValeur, libelle, requis
                 aria-checked={selectionne}
                 onClick={() => onChangeValeur(client.id, client)}
                 className={cn(
-                  'flex items-center justify-between gap-3 rounded-md border p-3 text-left transition-colors',
+                  'flex items-center justify-between gap-3 rounded-md border p-3 text-left transition-colors anneau-focus',
                   selectionne ? 'border-primary bg-primary/5' : 'border-input hover:bg-muted',
                 )}
               >

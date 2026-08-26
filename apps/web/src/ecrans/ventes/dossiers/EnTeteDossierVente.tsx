@@ -123,14 +123,20 @@ export function EnTeteDossierVente({ dossier, peutAssignerVehicule, onAssignerVe
             onClick={() => navigate(chemins.vehicules.detail(vehiculeStock.id, site))}
           />
         ) : (
-          <div className="rounded-md border border-dashed p-3">
-            <span className="texte-corps text-muted-foreground">
-              {t('ventes:dossier.fiche.aucunVehicule')}
-            </span>
-          </div>
+          // DESIGN.md « bordure structurelle uniquement » — retirée : ce placeholder n'est ni un
+          // contrôle ni une zone d'action, seulement l'absence du bloc `IdentiteVehicule` qu'il
+          // remplace. Même traitement (texte muet, sans encart) que `vehiculeNonAssigne` dans
+          // `EcranListeDossiersVente.tsx`.
+          <span className="texte-corps text-muted-foreground">
+            {t('ventes:dossier.fiche.aucunVehicule')}
+          </span>
         )}
 
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-md border p-3 texte-corps sm:grid-cols-3">
+        {/* DESIGN.md « bordure structurelle uniquement » — retirée : une liste de deux faits
+         *  statiques (prix, date de livraison), aucune action ni comportement propre à ce groupe —
+         *  espacement/typographie suffisent, même doctrine que les `dl` de totaux/pointage de
+         *  `EcranFicheOrdreReparation.tsx` (atelier), qui n'ont jamais porté de cadre. */}
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 texte-corps sm:grid-cols-3">
           <dt className="text-muted-foreground">{t('ventes:dossier.fiche.prix')}</dt>
           <dd className="col-span-2 sm:col-span-1">
             {/* Trois rendus visuellement distincts (jamais interchangeables, voir `utils.ts`) :

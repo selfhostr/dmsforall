@@ -136,6 +136,9 @@ export function CarteReprise({ dossierVenteId, possedeReprise, role, onMutationR
   const ecart = reprise.ecartRepriseVehiculeCentimes;
   const ecartTexte = ecart === null ? null : `${ecart > 0 ? '+' : ''}${formaterMontant(ecart)}`;
 
+  // DESIGN.md « densité » — PAS de `compact` : identité véhicule, valeurs, dette résiduelle
+  // éventuelle et panneau d'actions — contenu qui dépasse largement le profil
+  // « chiffre/titre/libellé » réservé à `--espace-carte-compacte`.
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-3">
@@ -190,8 +193,12 @@ export function CarteReprise({ dossierVenteId, possedeReprise, role, onMutationR
           ) : null}
         </div>
 
+        {/* DESIGN.md « bordure structurelle uniquement » — retirée : note d'information (montant +
+         *  organisme), aucune action ni comportement propre — `border` remplacé par une surface
+         *  tonale, même mécanisme que les fieldsets décoratifs de `FormulaireNouvelOrdreReparation.tsx`
+         *  (atelier). */}
         {reprise.detteFinancementResiduelleCentimes !== null ? (
-          <div className="rounded-md border border-dashed p-3">
+          <div className="rounded-md bg-muted/40 p-3">
             <p className="texte-corps">
               {t('ventes:reprise.champs.detteResiduelle')}
               {': '}

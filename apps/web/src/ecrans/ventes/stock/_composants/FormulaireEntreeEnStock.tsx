@@ -130,6 +130,9 @@ export function FormulaireEntreeEnStock({ vehicule, sites, onRetour, onMisEnStoc
 
   return (
     <form onSubmit={soumettre} noValidate className="flex flex-col gap-4">
+      {/* DESIGN.md « bordure structurelle uniquement » — CONSERVÉE : bloc de l'état courant du
+       *  choix de véhicule, portant l'action qui le défait (« changer de véhicule »). C'est la
+       *  première étape du formulaire figée en résumé, pas un groupe de contenu décoratif. */}
       <div className="flex items-center justify-between gap-3 rounded-md border p-3">
         <IdentiteVehicule vehicule={vehicule} taillePlaque="md" />
         <Button type="button" variant="ghost" onClick={onRetour} disabled={mettreEnStock.isPending}>

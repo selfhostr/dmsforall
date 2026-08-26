@@ -44,7 +44,12 @@ export function ChampVerrouille({ enfant, message, libelleAction, onAction, clas
           role="button"
           tabIndex={0}
           className={cn(
-            'w-full cursor-default rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            // DESIGN.md « focus » — `.anneau-focus` (anneau extérieur, spécificité posée pour
+            // l'emporter sur `outline-none`) remplace l'ancienne reconstruction manuelle du même
+            // anneau (`focus-visible:outline-none` + `ring-2 ring-ring`) : même rendu, une seule
+            // source de vérité pour la couleur/l'épaisseur/le décalage de l'anneau, dans les deux
+            // thèmes.
+            'w-full cursor-default rounded-md text-left anneau-focus',
             className,
           )}
           onKeyDown={(evenement) => {

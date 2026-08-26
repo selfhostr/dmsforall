@@ -261,6 +261,9 @@ export function EcranFacturerOrdreReparation() {
 
   return (
     <GabaritEcran titre={t('facturation:facturerOr.titre')}>
+      {/* DESIGN.md « bordure structurelle » — conservée : barre de contexte qui porte une VRAIE
+          action (« Retour à l'OR »), même famille que la barre de filtres/les onglets de
+          `EcranListeFactures.tsx`, pas un simple regroupement d'identité. */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3">
         <div className="flex flex-wrap items-center gap-3">
           <span className="texte-corps font-semibold text-foreground">{or.numero}</span>
@@ -313,6 +316,9 @@ export function EcranFacturerOrdreReparation() {
         const cle = cleGroupe(groupe.payeur, groupe.payeurClientId);
         const decoche = groupesDecoches.has(cle);
         return (
+          // DESIGN.md « bordure structurelle » — conservée : bloc gérant un VRAI contrôle
+          // (case à cocher « facturer maintenant », zone de saisie du motif de report qui
+          // apparaît/disparaît selon cet état), pas un simple regroupement de lignes.
           <div key={cle} className="flex flex-col gap-2 rounded-md border p-3">
             <div className="flex items-center justify-between gap-3">
               <h2 className="texte-titre-section font-semibold text-foreground">
