@@ -27,17 +27,29 @@ export class TransportCapture implements TransportCourriel {
 
   async envoyer(enveloppe: EnveloppeCourriel): Promise<ResultatEnvoiCourriel> {
     const idMessage = `capture-${randomUUID()}`;
+    const piecesJointes = enveloppe.piecesJointes ?? [];
+    // Trace de la/les pièce(s) jointe(s) — JAMAIS perdue en silence : en développement, c'est le
+    // SEUL moyen de vérifier qu'une facture serait effectivement partie AVEC son PDF (aucun envoi
+    // réel n'a lieu ici). Compte + taille cumulée au niveau `info` (sûrs, aucune donnée
+    // personnelle) ; noms de fichier au niveau `debug` uniquement — voir `PieceJointeCourriel.
+    // nomFichier`, potentiellement identifiant côté client (numéro de facture/dossier).
     this.journal.info('Courriel capturé (aucun envoi réel — voir COURRIEL_ENVOI_REEL)', {
       idMessage,
       nombreDestinataires: enveloppe.destinataires.length,
       longueurCorpsTexte: enveloppe.corpsTexte?.length ?? 0,
       longueurCorpsHtml: enveloppe.corpsHtml?.length ?? 0,
+      nombrePiecesJointes: piecesJointes.length,
+      taillePiecesJointesOctets: piecesJointes.reduce(
+        (total, p) => total + p.contenu.byteLength,
+        0,
+      ),
     });
     this.journal.debug('Courriel capturé — détail', {
       idMessage,
       destinataires: enveloppe.destinataires,
       sujet: enveloppe.sujet,
       repondreA: enveloppe.repondreA,
+      nomsPiecesJointes: piecesJointes.map((p) => p.nomFichier),
     });
     return Promise.resolve({ succes: true, idMessage });
   }

@@ -7,9 +7,14 @@
  * quoi que ce soit d'autre dans son graphe de compilation.
  */
 
-import type { EntreeConnexion, SessionCourante } from '@dfa/shared';
+import type {
+  EntreeConfirmationReinitialisationMotDePasse,
+  EntreeConnexion,
+  EntreeDemandeReinitialisationMotDePasse,
+  SessionCourante,
+} from '@dfa/shared';
 
-import type { UtilisateurAmorcage } from '../db/db.types';
+import type { ContexteTenant, TransactionDfa, UtilisateurAmorcage } from '../db/db.types';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
 
 // ---------------------------------------------------------------------------------------------
@@ -82,4 +87,51 @@ export interface ServiceAuthentification {
   deconnecter(principal: PrincipalAuthentifie): Promise<void>;
 
   sessionCourante(principal: PrincipalAuthentifie): Promise<SessionCourante>;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Réinitialisation de mot de passe en libre-service (« mot de passe oublié »)
+// ---------------------------------------------------------------------------------------------
+
+export interface ServiceReinitialisationMotDePasse {
+  /**
+   * `POST /auth/mot-de-passe/oubli`. Réponse toujours identique côté appelant, que l'email
+   * corresponde ou non à un compte réel (anti-énumération) — cette méthode ne lève donc jamais
+   * pour un email inconnu/inactif, elle journalise et rend silencieusement.
+   */
+  demander(
+    entree: EntreeDemandeReinitialisationMotDePasse,
+    ip: string | null,
+    ua: string | null,
+  ): Promise<void>;
+
+  /**
+   * `POST /auth/mot-de-passe/reinitialisation`. Lève `ErreurJetonReinitialisationInvalide` pour
+   * toute issue liée au JETON (email inconnu, jeton inconnu/expiré/déjà utilisé/révoqué, compte ou
+   * tenant non actif) — jamais distingué côté appelant, même doctrine anti-énumération que
+   * `connecter()`. Distinct d'un `ErreurMetier VALIDATION_ECHOUEE` (mot de passe refusé par la
+   * politique, `politique-mot-de-passe.ts`) : CE refus-là ne consomme pas le jeton — voir
+   * l'implémentation pour le raisonnement (le jeton reste valide, l'employé peut réessayer avec un
+   * meilleur mot de passe sans redemander de lien). Révoque toutes les sessions actives de
+   * l'utilisateur en cas de succès.
+   */
+  confirmer(
+    entree: EntreeConfirmationReinitialisationMotDePasse,
+    ip: string | null,
+    ua: string | null,
+  ): Promise<void>;
+
+  /**
+   * Révoque (marque `revoque_le`) tout jeton de réinitialisation encore valide de cet
+   * utilisateur. Prend la TRANSACTION en paramètre plutôt que d'ouvrir la sienne : appelée
+   * DEPUIS la transaction d'un autre geste d'administration (`ServiceUtilisateur
+   * .reinitialiserAcces`) pour rester atomique avec lui (voir CONTRIBUTING.md, « AccesBase.enTenant
+   * depuis une transaction ouverte n'est pas atomique ») — sans quoi un jeton en libre-service
+   * émis avant qu'un admin ne reprenne la main sur le compte resterait utilisable après coup.
+   */
+  revoquerJetonsActifsDansTransaction(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    utilisateurId: string,
+  ): Promise<void>;
 }

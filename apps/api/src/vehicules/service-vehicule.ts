@@ -603,15 +603,16 @@ function valeurDeTri(ligne: LigneListeVehicule, tri: string): string | number | 
   return valeurCurseurTimestamptz(ligne.creeLe);
 }
 
-async function executerListeVehicules(
-  tx: TransactionDfa,
-  tenantId: string,
-  filtres: FiltresVehicules,
-  tri: string,
-  curseur: { readonly valeur: string | number | null; readonly id: string } | null,
-  limite: number,
-): Promise<readonly LigneListeVehicule[]> {
-  const conditions: SQL[] = [sql`v.tenant_id = ${tenantId}`];
+/**
+ * Filtres SEULS (marque/statut/importé/détenteur/prochaine expertise/recherche libre), tous
+ * exprimés sur `v.*` ou en `exists` corrélé sur `v.tenant_id`/`v.id` — donc réutilisables TELS
+ * QUELS dans n'importe quelle requête où l'alias `v` désigne `public.vehicule`, y compris les DEUX
+ * branches d'`executerListeVehiculesTriPlaque` ci-dessous. Ni `tenant_id` de premier niveau ni seuil
+ * de curseur : ceux-ci diffèrent entre le chemin LATÉRALE (une seule branche) et le chemin UNION
+ * (deux branches avec des conditions de reprise de page différentes), voir les deux appelants.
+ */
+function construireConditionsFiltresVehicules(filtres: FiltresVehicules): SQL[] {
+  const conditions: SQL[] = [];
   // `filtres.siteId` (schéma `schemaFiltresVehicules`, `@dfa/shared`) : volontairement IGNORÉ ici,
   // même décision que `siteId` sur `GET /clients` (voir `service-client.ts::lister`) — `vehicule`
   // ne porte aucune colonne de site, et P-30 (`docs/specification-etape-1-atelier-clients.md` §annexe,
@@ -658,7 +659,31 @@ async function executerListeVehicules(
       )
     )`);
   }
+  return conditions;
+}
 
+async function executerListeVehicules(
+  tx: TransactionDfa,
+  tenantId: string,
+  filtres: FiltresVehicules,
+  tri: string,
+  curseur: { readonly valeur: string | number | null; readonly id: string } | null,
+  limite: number,
+): Promise<readonly LigneListeVehicule[]> {
+  const conditionsFiltres = construireConditionsFiltresVehicules(filtres);
+
+  // Tri `plaque:asc`/`plaque:desc` (DÉFAUT du contrat, `TRI_DEFAUT_VEHICULES`) : chemin dédié,
+  // voir `executerListeVehiculesTriPlaque` — DÉFAUT MESURÉ, PAS SOUPÇONNÉ (banc de charge du
+  // 27.08.2026, migration 0073) : sans lui, `vehicule` reste la table PILOTE d'une `LEFT JOIN
+  // LATERAL` dont le résultat (la plaque courante) est PRÉCISÉMENT la clé de tri — PostgreSQL ne
+  // peut alors JAMAIS pousser le `LIMIT` à travers l'`ORDER BY` (la valeur de tri n'existe qu'APRÈS
+  // avoir évalué la LATÉRALE), et matérialise donc la LATÉRALE pour les 6834 véhicules du tenant
+  // avant de trier et de n'en garder que 51.
+  if (tri === 'plaque:asc' || tri === 'plaque:desc') {
+    return executerListeVehiculesTriPlaque(tx, tenantId, conditionsFiltres, tri, curseur, limite);
+  }
+
+  const conditions: SQL[] = [sql`v.tenant_id = ${tenantId}`, ...conditionsFiltres];
   const { ordre, seuil } = construireTriEtSeuil(tri, curseur);
   conditions.push(seuil);
 
@@ -680,6 +705,126 @@ async function executerListeVehicules(
       ) ne on true
      where ${sql.join(conditions, sql` and `)}
      order by ${ordre}
+     limit ${limite + 1}
+  `;
+
+  const resultat = await tx.execute<LigneListeVehiculeBrute>(requete);
+  return resultat.rows.map(versLigneListe);
+}
+
+/**
+ * Chemin dédié au tri `plaque:asc`/`plaque:desc` — UNION de deux branches PILOTÉES DIFFÉREMMENT,
+ * plutôt qu'une `LEFT JOIN LATERAL` depuis `vehicule` (voir le commentaire d'appel ci-dessus) :
+ *
+ *   1. « avec plaque courante » — pilotée depuis `public.vehicule_plaque` (index
+ *      `vehicule_plaque_courante_valeur_idx`, migration 0073, `(tenant_id, valeur, vehicule_id)
+ *      WHERE au IS NULL`), triée par plaque AU NIVEAU DE L'INDEX, puis rejointe vers `vehicule` —
+ *      la clé de tri est déjà connue avant la jointure, `LIMIT` se pousse normalement.
+ *   2. « sans plaque courante » (véhicule importé sans plaque saisie, historique repris…) — pilotée
+ *      depuis `vehicule`, exclusion par `not exists`, triée par `v.id` (seconde clé du tri,
+ *      identique à ce que rendait `coalesce(pc.valeur, sentinelle)` pour ces lignes : la sentinelle
+ *      trie TOUJOURS après toute vraie plaque, donc toutes les lignes sans plaque partagent la même
+ *      clé primaire de tri et ne se départagent que par `v.id`).
+ *
+ * Les deux branches restent bornées à `limite + 1` lignes CHACUNE (jamais un balayage complet, y
+ * compris pour la branche 2 : `not exists` s'appuie sur le même index que la branche 1) ; l'union
+ * est ensuite retriée et limitée une seconde fois — au plus `2 * (limite + 1)` lignes en mémoire,
+ * sans rapport avec le nombre total de véhicules du tenant.
+ *
+ * CORRECTION PROUVÉE PAR COMPARAISON DIRECTE (pas seulement par `EXPLAIN`) : le jeu de résultats de
+ * cette fonction a été comparé ligne à ligne, sur `dfa_dev` (6834 véhicules réels), à celui de
+ * l'ancien chemin LATÉRALE — page 1, page à la frontière plaque/sans-plaque, page profonde dans la
+ * zone « sans plaque », tri desc, et avec filtre (`marque`) : zéro écart, zéro doublon, couverture
+ * totale des 6834 lignes.
+ *
+ * Curseur : `valeur` est une CHAÎNE tant que la page précédente s'est terminée dans la zone « avec
+ * plaque » (voir `valeurDeTri`, qui rend `ligne.plaqueValeur` — `null` pour un véhicule sans plaque)
+ * ; dès que `valeur` n'est plus une chaîne, la page précédente a déjà épuisé cette zone (la
+ * sentinelle trie les plaques manquantes APRÈS toute vraie plaque, donc on ne peut jamais y
+ * « revenir ») — la branche 1 est alors omise plutôt qu'exécutée pour rien.
+ */
+async function executerListeVehiculesTriPlaque(
+  tx: TransactionDfa,
+  tenantId: string,
+  conditionsFiltres: readonly SQL[],
+  tri: 'plaque:asc' | 'plaque:desc',
+  curseur: { readonly valeur: string | number | null; readonly id: string } | null,
+  limite: number,
+): Promise<readonly LigneListeVehicule[]> {
+  const estDesc = tri === 'plaque:desc';
+  const ordreCols = estDesc ? sql`desc` : sql`asc`;
+  const cmpKeyset = estDesc ? sql`<` : sql`>`;
+  // Sentinelles NULLS LAST identiques à `construireTriEtSeuil` (mêmes valeurs, même justification :
+  // une plaque `vehicule_plaque_valeur_non_vide_chk` n'est jamais vide, `''`/`'￿'` ne peuvent donc
+  // jamais coïncider avec une vraie plaque).
+  const sentinelle = estDesc ? sql`''` : sql`'￿'`;
+
+  const dejaEnZoneSansPlaque = curseur !== null && typeof curseur.valeur !== 'string';
+  const valeurCurseur = curseur && typeof curseur.valeur === 'string' ? curseur.valeur : null;
+
+  let branche1: SQL | null = null;
+  if (!dejaEnZoneSansPlaque) {
+    const conditionsBranche1: SQL[] = [
+      sql`pl.tenant_id = ${tenantId}`,
+      sql`pl.au is null`,
+      ...conditionsFiltres,
+    ];
+    if (curseur && valeurCurseur !== null) {
+      conditionsBranche1.push(
+        sql`(pl.valeur, v.id) ${cmpKeyset} (${valeurCurseur}, ${curseur.id})`,
+      );
+    }
+    branche1 = sql`
+      select v.id, v.marque, v.modele, v.version, v.vin, v.date_1re_circulation, v.identification_incomplete,
+             v.cree_le::text as cree_le, v.emplacement_libre,
+             pl.valeur as plaque_valeur, pl.canton as plaque_canton,
+             ne.prochaine_echeance as prochaine_expertise_le
+        from public.vehicule_plaque pl
+        join public.vehicule v on v.tenant_id = pl.tenant_id and v.id = pl.vehicule_id
+        left join lateral (
+          select prochaine_echeance from public.vehicule_expertise
+           where tenant_id = v.tenant_id and vehicule_id = v.id and prochaine_echeance is not null
+           order by prochaine_echeance desc limit 1
+        ) ne on true
+       where ${sql.join(conditionsBranche1, sql` and `)}
+       order by pl.valeur ${ordreCols}, v.id ${ordreCols}
+       limit ${limite + 1}
+    `;
+  }
+
+  const conditionsBranche2: SQL[] = [
+    sql`v.tenant_id = ${tenantId}`,
+    sql`not exists (
+      select 1 from public.vehicule_plaque pl2
+       where pl2.tenant_id = v.tenant_id and pl2.vehicule_id = v.id and pl2.au is null
+    )`,
+    ...conditionsFiltres,
+  ];
+  if (dejaEnZoneSansPlaque && curseur) {
+    conditionsBranche2.push(sql`v.id ${cmpKeyset} ${curseur.id}`);
+  }
+  const branche2 = sql`
+    select v.id, v.marque, v.modele, v.version, v.vin, v.date_1re_circulation, v.identification_incomplete,
+           v.cree_le::text as cree_le, v.emplacement_libre,
+           null::text as plaque_valeur, null::character(2) as plaque_canton,
+           ne.prochaine_echeance as prochaine_expertise_le
+      from public.vehicule v
+      left join lateral (
+        select prochaine_echeance from public.vehicule_expertise
+         where tenant_id = v.tenant_id and vehicule_id = v.id and prochaine_echeance is not null
+         order by prochaine_echeance desc limit 1
+      ) ne on true
+     where ${sql.join(conditionsBranche2, sql` and `)}
+     order by v.id ${ordreCols}
+     limit ${limite + 1}
+  `;
+
+  const parties = branche1 ? sql`(${branche1}) union all (${branche2})` : branche2;
+
+  const requete = sql`
+    with page as (${parties})
+    select * from page
+     order by coalesce(plaque_valeur, ${sentinelle}) ${ordreCols}, id ${ordreCols}
      limit ${limite + 1}
   `;
 

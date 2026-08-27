@@ -16,9 +16,11 @@ import type { SiteResume, TenantCourant } from './socle';
  *
  * IMPORTANT : `motDePasse` n'utilise QUE `min(1)` ici — un formulaire de
  * connexion ne doit jamais divulguer la politique de mot de passe (longueur
- * minimale, complexité) à un attaquant non authentifié. La règle `min(12)`
- * ne s'applique qu'à la création ou au changement de mot de passe, hors
- * périmètre de l'étape 0.
+ * minimale) à un attaquant non authentifié, ET ne doit jamais casser la connexion d'un compte
+ * existant dont le mot de passe ne respecterait pas la politique courante (voir
+ * `schemaMotDePasseNouveau` ci-dessous — la politique ne s'applique QU'au moment où un mot de
+ * passe est choisi, jamais à sa vérification). `min(1)` reste donc figé ici, volontairement,
+ * même après l'introduction de la politique de mot de passe.
  */
 export const schemaConnexion = z
   .object({
@@ -27,6 +29,79 @@ export const schemaConnexion = z
   })
   .strict();
 export type EntreeConnexion = z.infer<typeof schemaConnexion>;
+
+/**
+ * Politique de mot de passe — s'applique UNIQUEMENT au moment où un mot de passe est CHOISI par
+ * un humain. Aujourd'hui, un seul chemin existe : la confirmation de réinitialisation en
+ * libre-service (`schemaConfirmationReinitialisationMotDePasse` ci-dessous). La création d'un
+ * employé et la réinitialisation d'accès par un admin/direction ne demandent JAMAIS de mot de
+ * passe en entrée — le serveur en génère un (haute entropie, `auth/generateur-mot-de-passe-
+ * temporaire.ts`), donc cette politique ne les concerne pas : un mot de passe généré par CSPRNG
+ * la respecte par construction, très largement.
+ *
+ * CHOIX RETENU — longueur minimale 12, AUCUNE règle de composition imposée (pas de majuscule, de
+ * chiffre ou de symbole obligatoire) :
+ *
+ *  - Aligné sur NIST SP 800-63B (et son évolution 2024) : la longueur est le facteur dominant de
+ *    résistance à la force brute, la composition imposée pousse vers des motifs prévisibles
+ *    (« Password1! ») sans gagner d'entropie réelle, et dégrade l'utilisabilité sans bénéfice de
+ *    sécurité mesuré — recommandation explicite de NE PAS imposer de composition.
+ *  - 12 plutôt que le minimum SHALL de 8 (marge réelle) ou le SHOULD de 15 des révisions les plus
+ *    récentes : compromis délibéré pour un mécanicien qui tape sur une tablette d'atelier, parfois
+ *    ganté — un mot de passe plus long qu'un mnémonique de 12 caractères sans exigence de symboles
+ *    reste raisonnablement saisissable, alors que 15+ commence à décourager les phrases de passe
+ *    simples (« garageSion2026 ») au profit de mots de passe courts+complexes moins mémorisables,
+ *    l'inverse de ce que la longueur sans composition cherche à obtenir.
+ *  - Le refus des mots de passe connus/compromis (liste des plus courants) et de ceux contenant
+ *    l'email de l'employé N'EST PAS exprimable en zod (schéma sans contexte, partagé par le
+ *    bundle web) : appliqué côté serveur SEUL, `apps/api/src/auth/politique-mot-de-passe.ts`,
+ *    juste après cette validation structurelle.
+ *
+ * Parc existant : AUCUNE réapplication rétroactive. Un compte créé avant cette politique (mot de
+ * passe généré, donc déjà conforme en pratique) ou un mot de passe historique plus court continue
+ * de fonctionner À LA CONNEXION (`schemaConnexion` ci-dessus, inchangé) — seul un CHANGEMENT de
+ * mot de passe est soumis à cette règle, jamais sa simple vérification.
+ */
+export const LONGUEUR_MOT_DE_PASSE_MIN = 12;
+
+export const schemaMotDePasseNouveau = z.string().min(LONGUEUR_MOT_DE_PASSE_MIN).max(256);
+
+/**
+ * Corps de `POST /auth/mot-de-passe/oubli` — demande de réinitialisation en libre-service.
+ *
+ * Réponse IDENTIQUE que l'email corresponde ou non à un compte réel (anti-énumération, même
+ * doctrine que `POST /auth/connexion`) : `.strict()` seul suffit ici, aucune règle de mot de
+ * passe n'entre en jeu à cette étape.
+ */
+export const schemaDemandeReinitialisationMotDePasse = z
+  .object({
+    email: z.string().trim().toLowerCase().email().max(320),
+  })
+  .strict();
+export type EntreeDemandeReinitialisationMotDePasse = z.infer<
+  typeof schemaDemandeReinitialisationMotDePasse
+>;
+
+/**
+ * Corps de `POST /auth/mot-de-passe/reinitialisation` — confirmation d'une réinitialisation en
+ * libre-service : jeton reçu par courriel + nouveau mot de passe choisi par l'employé.
+ *
+ * `email` redemandé ICI (en plus du jeton) : c'est ce qui évite au serveur d'avoir besoin d'une
+ * 7e opération d'amorçage hors-tenant (`AccesAmorcage`, `db/db.types.ts`) pour retrouver le
+ * tenant à partir du seul jeton — `amorcage.utilisateur_par_email` (déjà utilisée par la
+ * connexion) suffit à résoudre le tenant, PUIS le jeton est vérifié DANS ce tenant. Le connaître
+ * ne renseigne rien à un attaquant qui ne l'a pas déjà (c'est lui qui l'a saisi).
+ */
+export const schemaConfirmationReinitialisationMotDePasse = z
+  .object({
+    email: z.string().trim().toLowerCase().email().max(320),
+    jeton: z.string().min(1).max(512),
+    nouveauMotDePasse: schemaMotDePasseNouveau,
+  })
+  .strict();
+export type EntreeConfirmationReinitialisationMotDePasse = z.infer<
+  typeof schemaConfirmationReinitialisationMotDePasse
+>;
 
 export interface UtilisateurCourant {
   readonly id: string;

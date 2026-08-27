@@ -108,11 +108,11 @@ export class ServiceReservation {
       if (params.ordreReparationId)
         conditions.push(sql`r.ordre_reparation_id = ${params.ordreReparationId}`);
       if (params.statut && params.statut.length > 0) {
+        // DÉFAUT CONSTATÉ (corrigé, balayage du 27.08.2026) : `r.statut::text in (...)` castait
+        // l'enum en `text` avant comparaison, opaque aux statistiques PostgreSQL de la colonne —
+        // même défaut que `client.statut` (`service-client.ts`). Comparaison native sur l'enum.
         conditions.push(
-          sql`r.statut::text in (${sql.join(
-            params.statut.map((s) => sql`${s}`),
-            sql`, `,
-          )})`,
+          sql`r.statut = any(${sql.param(params.statut)}::public.statut_reservation_piece[])`,
         );
       }
       if (curseurDecode) {

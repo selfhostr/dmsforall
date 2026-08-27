@@ -131,20 +131,15 @@ export class ServiceArticle {
       const conditions = [sql`a.tenant_id = ${ctx.tenantId}`];
 
       if (params.categorie && params.categorie.length > 0) {
+        // DÉFAUT CONSTATÉ (corrigé, balayage du 27.08.2026) : `a.categorie::text in (...)` castait
+        // l'enum en `text` avant comparaison, opaque aux statistiques PostgreSQL de la colonne —
+        // même défaut que `client.statut` (`service-client.ts`). Comparaison native sur l'enum.
         conditions.push(
-          sql`a.categorie::text in (${sql.join(
-            params.categorie.map((c) => sql`${c}`),
-            sql`, `,
-          )})`,
+          sql`a.categorie = any(${sql.param(params.categorie)}::public.categorie_article[])`,
         );
       }
       if (params.statut && params.statut.length > 0) {
-        conditions.push(
-          sql`a.statut::text in (${sql.join(
-            params.statut.map((s) => sql`${s}`),
-            sql`, `,
-          )})`,
-        );
+        conditions.push(sql`a.statut = any(${sql.param(params.statut)}::public.statut_article[])`);
       }
       if (params.estEchangeStandard !== undefined) {
         conditions.push(sql`a.est_echange_standard = ${params.estEchangeStandard}`);

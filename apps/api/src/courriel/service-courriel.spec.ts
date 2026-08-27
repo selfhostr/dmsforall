@@ -3,7 +3,12 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Config } from '../config';
 import type { ServiceJournal } from '../common/journal';
 import { ServiceCourriel } from './service-courriel';
-import type { EnveloppeCourriel, TransportCourriel } from './transport-courriel.interface';
+import {
+  TAILLE_MAX_PIECE_JOINTE_OCTETS,
+  type EnveloppeCourriel,
+  type PieceJointeCourriel,
+  type TransportCourriel,
+} from './transport-courriel.interface';
 
 function journalFactice(): ServiceJournal {
   return {
@@ -174,5 +179,107 @@ describe('ServiceCourriel — journalisation, sans données personnelles au nive
     ];
     expect(donnees.destinataires).toEqual(['client@example.ch']);
     expect(donnees.sujet).toBe('Rappel facture 2026-042');
+  });
+});
+
+function pieceJointe(taille: number, nomFichier = 'Facture-2026-00042.pdf'): PieceJointeCourriel {
+  return { nomFichier, contenu: Buffer.alloc(taille, 1), typeMime: 'application/pdf' };
+}
+
+describe('ServiceCourriel — pièce jointe (facture PDF)', () => {
+  it('traverse jusqu’à l’enveloppe transmise au transport', async () => {
+    const { transport, enveloppes } = transportEspion();
+    const config = { SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' } as Config;
+    const service = new ServiceCourriel(transport, config, journalFactice());
+    const piece = pieceJointe(1024);
+
+    await service.envoyer({
+      destinataires: ['client@example.ch'],
+      sujet: 'Facture 2026-00042',
+      nomGarage: 'Garage Martin',
+      adresseReponseGarage: 'contact@garage-martin.ch',
+      piecesJointes: [piece],
+    });
+
+    expect(enveloppes[0]?.piecesJointes).toEqual([piece]);
+  });
+
+  it('refuse AVANT tout appel au transport quand la taille cumulée dépasse la borne', async () => {
+    const { transport, enveloppes } = transportEspion();
+    const config = { SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' } as Config;
+    const service = new ServiceCourriel(transport, config, journalFactice());
+
+    await expect(
+      service.envoyer({
+        destinataires: ['client@example.ch'],
+        sujet: 'Facture 2026-00042',
+        nomGarage: 'Garage Martin',
+        adresseReponseGarage: 'contact@garage-martin.ch',
+        piecesJointes: [pieceJointe(TAILLE_MAX_PIECE_JOINTE_OCTETS + 1)],
+      }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ECHOUEE' });
+    expect(enveloppes).toHaveLength(0);
+    expect(transport.envoyer).not.toHaveBeenCalled();
+  });
+
+  it('accepte pile la borne (limite inclusive)', async () => {
+    const { transport, enveloppes } = transportEspion();
+    const config = { SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' } as Config;
+    const service = new ServiceCourriel(transport, config, journalFactice());
+
+    await service.envoyer({
+      destinataires: ['client@example.ch'],
+      sujet: 'Facture 2026-00042',
+      nomGarage: 'Garage Martin',
+      adresseReponseGarage: 'contact@garage-martin.ch',
+      piecesJointes: [pieceJointe(TAILLE_MAX_PIECE_JOINTE_OCTETS)],
+    });
+
+    expect(enveloppes).toHaveLength(1);
+  });
+
+  it('la borne porte sur la taille CUMULÉE de plusieurs pièces jointes, pas chacune isolément', async () => {
+    const { transport } = transportEspion();
+    const config = { SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' } as Config;
+    const service = new ServiceCourriel(transport, config, journalFactice());
+    const moitie = Math.floor(TAILLE_MAX_PIECE_JOINTE_OCTETS / 2) + 1;
+
+    await expect(
+      service.envoyer({
+        destinataires: ['client@example.ch'],
+        sujet: 'Facture 2026-00042',
+        nomGarage: 'Garage Martin',
+        adresseReponseGarage: 'contact@garage-martin.ch',
+        piecesJointes: [pieceJointe(moitie, 'a.pdf'), pieceJointe(moitie, 'b.pdf')],
+      }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ECHOUEE' });
+  });
+
+  it("le nom de la pièce jointe n'apparaît jamais au niveau info/warn — seul le compte", async () => {
+    const { transport } = transportEspion();
+    const config = { SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' } as Config;
+    const journal = journalFactice();
+    const service = new ServiceCourriel(transport, config, journal);
+
+    await service.envoyer({
+      destinataires: ['client@example.ch'],
+      sujet: 'Facture 2026-00042',
+      nomGarage: 'Garage Martin',
+      adresseReponseGarage: 'contact@garage-martin.ch',
+      piecesJointes: [pieceJointe(1024, 'Facture-2026-00042-client-secret.pdf')],
+    });
+
+    const [, donneesInfo] = (journal.info as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      Record<string, unknown>,
+    ];
+    expect(donneesInfo.nombrePiecesJointes).toBe(1);
+    expect(JSON.stringify(donneesInfo)).not.toContain('client-secret');
+
+    const [, donneesDebug] = (journal.debug as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      Record<string, unknown>,
+    ];
+    expect(donneesDebug.nomsPiecesJointes).toEqual(['Facture-2026-00042-client-secret.pdf']);
   });
 });

@@ -45,6 +45,18 @@ const DEFINITIONS_TRI_OR: Readonly<Record<ParametresListeOrDuClient['tri'], Defi
 /** Lignes exclues des totaux et de la détection de blocage : annulée n'a jamais eu lieu, refusée n'est pas retenue. */
 const STATUTS_LIGNE_HORS_TOTAL = ['annulee', 'refusee'] as const;
 
+/**
+ * Condition d'exclusion des lignes hors total — UNE SEULE fois ici, réutilisée aux 4 endroits qui
+ * en avaient besoin (`totalTtcCentimes`, les 3 `exists` de blocage) : même motif qu'en-dessous pour
+ * `o.statut`, comparaison NATIVE sur l'enum (`<> all(...)::public.statut_ligne_or[]`) plutôt que
+ * `l.statut::text not in (...)`. Balayage demandé par le coordinateur (27.08.2026, suite au défaut
+ * `client.statut::text` de `service-client.ts`) : ce cast castait `ligne_or.statut` en `text` avant
+ * comparaison, rendant la colonne opaque aux statistiques de PostgreSQL — même défaut, portée
+ * moindre ici (sous-requête PAR OR déjà borné à un client, jamais tout le tenant), corrigé par
+ * cohérence plutôt que par une mesure de lenteur propre à cet endpoint.
+ */
+const EXCLUSION_LIGNES_HORS_TOTAL = sql`l.statut <> all(${sql.param([...STATUTS_LIGNE_HORS_TOTAL])}::public.statut_ligne_or[])`;
+
 type LigneOrDuClientBrute = {
   readonly id: string;
   readonly numero: string;
@@ -178,11 +190,12 @@ export class ServiceClientOrdresReparation {
 
       const conditions = [sql`o.tenant_id = ${ctx.tenantId}`, sql`o.client_id = ${clientId}`];
       if (params.statut && params.statut.length > 0) {
+        // DÉFAUT CONSTATÉ (corrigé, même classe que `client.statut` de `service-client.ts` —
+        // balayage demandé le 27.08.2026) : `o.statut::text in (...)` castait l'enum en `text`
+        // avant comparaison, opaque aux statistiques de la colonne. Comparaison native, même
+        // patron que `service-vehicule.ts` (`v.statut = any(...)::public.statut_vehicule[]`).
         conditions.push(
-          sql`o.statut::text in (${sql.join(
-            params.statut.map((s) => sql`${s}`),
-            sql`, `,
-          )})`,
+          sql`o.statut = any(${sql.param(params.statut)}::public.statut_ordre_reparation[])`,
         );
       }
       if (curseurDecode) {
@@ -201,22 +214,10 @@ export class ServiceClientOrdresReparation {
           v.identification_incomplete as "vehiculeIdentificationIncomplete",
           v.emplacement_libre as "vehiculeEmplacementLibre",
           (select count(*) from public.ligne_or l where l.tenant_id = o.tenant_id and l.ordre_reparation_id = o.id and l.statut <> 'annulee') as "nombreLignes",
-          (select coalesce(sum(l.montant_ttc_centimes), 0) from public.ligne_or l where l.tenant_id = o.tenant_id and l.ordre_reparation_id = o.id and l.statut::text not in (${sql.join(
-            STATUTS_LIGNE_HORS_TOTAL.map((s) => sql`${s}`),
-            sql`, `,
-          )})) as "totalTtcCentimes",
-          exists (select 1 from public.ligne_or l where l.tenant_id = o.tenant_id and l.ordre_reparation_id = o.id and l.blocage = 'accord' and l.statut::text not in (${sql.join(
-            STATUTS_LIGNE_HORS_TOTAL.map((s) => sql`${s}`),
-            sql`, `,
-          )})) as "aAttenteAccord",
-          exists (select 1 from public.ligne_or l where l.tenant_id = o.tenant_id and l.ordre_reparation_id = o.id and l.blocage = 'pieces' and l.statut::text not in (${sql.join(
-            STATUTS_LIGNE_HORS_TOTAL.map((s) => sql`${s}`),
-            sql`, `,
-          )})) as "aAttentePieces",
-          exists (select 1 from public.ligne_or l where l.tenant_id = o.tenant_id and l.ordre_reparation_id = o.id and l.blocage = 'externe' and l.statut::text not in (${sql.join(
-            STATUTS_LIGNE_HORS_TOTAL.map((s) => sql`${s}`),
-            sql`, `,
-          )})) as "aAttenteExterne",
+          (select coalesce(sum(l.montant_ttc_centimes), 0) from public.ligne_or l where l.tenant_id = o.tenant_id and l.ordre_reparation_id = o.id and ${EXCLUSION_LIGNES_HORS_TOTAL}) as "totalTtcCentimes",
+          exists (select 1 from public.ligne_or l where l.tenant_id = o.tenant_id and l.ordre_reparation_id = o.id and l.blocage = 'accord' and ${EXCLUSION_LIGNES_HORS_TOTAL}) as "aAttenteAccord",
+          exists (select 1 from public.ligne_or l where l.tenant_id = o.tenant_id and l.ordre_reparation_id = o.id and l.blocage = 'pieces' and ${EXCLUSION_LIGNES_HORS_TOTAL}) as "aAttentePieces",
+          exists (select 1 from public.ligne_or l where l.tenant_id = o.tenant_id and l.ordre_reparation_id = o.id and l.blocage = 'externe' and ${EXCLUSION_LIGNES_HORS_TOTAL}) as "aAttenteExterne",
           ${expressionTriValeur(definition)} as "triValeur"
         from public.ordre_reparation o
         join public.vehicule v on v.tenant_id = o.tenant_id and v.id = o.vehicule_id

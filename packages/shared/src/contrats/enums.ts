@@ -90,5 +90,13 @@ export const TYPES_EVENEMENT_SECURITE = [
   'compte_verrouille',
   'session_expiree',
   'session_revoquee',
+  // --- Réinitialisation de mot de passe en libre-service (auth/services/reinitialisation-mot-de-
+  // passe.service.ts) — même doctrine de journalisation que connexion_reussie/connexion_echouee :
+  // deux issues possibles par étape, la RAISON précise (email inconnu, jeton expiré/déjà
+  // utilisé/inconnu, compte suspendu…) vit dans `details` (JSONB), jamais dans une valeur d'enum
+  // dédiée, pour ne pas faire exploser ce type à chaque nuance.
+  'reinitialisation_demandee',
+  'reinitialisation_echouee',
+  'reinitialisation_reussie',
 ] as const;
 export type TypeEvenementSecurite = (typeof TYPES_EVENEMENT_SECURITE)[number];

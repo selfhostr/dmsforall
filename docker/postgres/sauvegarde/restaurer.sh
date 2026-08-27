@@ -133,7 +133,10 @@ age -d -i "$AGE_CLE_PRIVEE_FICHIER" "$FICHIER" \
 echo "→ [5/5] Vérifications rapides sur '${BASE_CIBLE}' :"
 echo "  Tables du schéma public :"
 psql_superviseur -c "\c ${BASE_CIBLE}" -c "select count(*) from information_schema.tables where table_schema = 'public';" | tail -n1
-echo "  Tables du schéma public sans RLS activé (0 attendu — sinon anomalie à investiguer avant de considérer cette restauration utilisable) :"
+echo "  Tables du schéma public sans RLS activé (référentiels partagés SANS tenant attendus ici — ex."
+echo "  type_approbation_ch, référentiel ASTRA, migration 0050 — vérifié en exécution le 27.08.2026"
+echo "  contre restaurer-test.sh ; un nombre qui grandit sans lien avec un référentiel connu est"
+echo "  l'anomalie à investiguer, pas la présence de ce compteur au-dessus de zéro) :"
 psql_superviseur -c "\c ${BASE_CIBLE}" -c "select count(*) from pg_tables where schemaname = 'public' and rowsecurity = false;" | tail -n1
 
 echo ""

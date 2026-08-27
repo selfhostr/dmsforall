@@ -47,8 +47,11 @@ import { ErreurMetier } from '../common/erreurs';
 import { remonterCauseParCode } from '../common/erreurs-pg';
 import { genererMotDePasseTemporaire } from '../auth/generateur-mot-de-passe-temporaire';
 import { verifierAttributionRoleAutorisee } from '../auth/gouvernance-roles';
-import { JETON_SERVICE_MOT_DE_PASSE } from '../auth/jetons';
-import type { ServiceMotDePasse } from '../auth/auth.types';
+import {
+  JETON_SERVICE_MOT_DE_PASSE,
+  JETON_SERVICE_REINITIALISATION_MOT_DE_PASSE,
+} from '../auth/jetons';
+import type { ServiceMotDePasse, ServiceReinitialisationMotDePasse } from '../auth/auth.types';
 
 const SQLSTATE_UNICITE = '23505';
 
@@ -89,6 +92,8 @@ export class ServiceUtilisateur {
   constructor(
     @Inject(JETON_DB) private readonly acces: AccesBase,
     @Inject(JETON_SERVICE_MOT_DE_PASSE) private readonly motDePasse: ServiceMotDePasse,
+    @Inject(JETON_SERVICE_REINITIALISATION_MOT_DE_PASSE)
+    private readonly serviceReinitialisation: ServiceReinitialisationMotDePasse,
   ) {}
 
   async lister(
@@ -304,6 +309,17 @@ export class ServiceUtilisateur {
         .where(and(eq(utilisateur.tenantId, ctx.tenantId), eq(utilisateur.id, utilisateurId)));
 
       await this.revoquerSessionsActives(tx, ctx, utilisateurId);
+
+      // Un jeton de réinitialisation en libre-service émis AVANT ce geste admin resterait sinon
+      // utilisable APRÈS que l'admin/direction a repris la main sur le compte — voir l'en-tête de
+      // `auth/services/reinitialisation-mot-de-passe.service.ts` et de `auth.types.ts
+      // ::ServiceReinitialisationMotDePasse.revoquerJetonsActifsDansTransaction`. Passé DANS cette
+      // transaction (jamais un `enTenant()` séparé — non atomique, voir CONTRIBUTING.md).
+      await this.serviceReinitialisation.revoquerJetonsActifsDansTransaction(
+        tx,
+        ctx,
+        utilisateurId,
+      );
 
       await this.ecrireAudit(tx, ctx, {
         utilisateurCibleId: utilisateurId,

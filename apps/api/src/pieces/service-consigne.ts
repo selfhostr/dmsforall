@@ -66,11 +66,11 @@ export class ServiceConsigne {
     return this.acces.enTenant(ctx, async (tx) => {
       const conditions = [sql`c.tenant_id = ${ctx.tenantId}`];
       if (params.statut && params.statut.length > 0) {
+        // DÉFAUT CONSTATÉ (corrigé, balayage du 27.08.2026) : `c.statut::text in (...)` castait
+        // l'enum en `text` avant comparaison, opaque aux statistiques PostgreSQL de la colonne —
+        // même défaut que `client.statut` (`service-client.ts`). Comparaison native sur l'enum.
         conditions.push(
-          sql`c.statut::text in (${sql.join(
-            params.statut.map((s) => sql`${s}`),
-            sql`, `,
-          )})`,
+          sql`c.statut = any(${sql.param(params.statut)}::public.statut_consigne_echange_standard[])`,
         );
       }
       if (params.siteId) conditions.push(sql`c.site_id = ${params.siteId}`);

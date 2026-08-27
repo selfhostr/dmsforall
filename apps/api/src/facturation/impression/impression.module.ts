@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
 
+import { CourrielModule } from '../../courriel/courriel.module';
 import { FacturationModule } from '../facturation.module';
 
 import { ImpressionFactureController } from './impression-facture.controller';
 import { JETON_STOCKAGE_PDF } from './impression.jetons';
+import { ServiceEnvoiFactureCourriel } from './service-envoi-facture-courriel';
 import { ServiceImpressionFacture } from './service-impression-facture';
 import { StockagePdfDisqueLocal } from './stockage-pdf';
 
@@ -54,10 +56,15 @@ import { StockagePdfDisqueLocal } from './stockage-pdf';
  * Aucun cycle : `ImpressionModule`/`FacturationModule` n'importent jamais `CycleVieTenantModule`.
  */
 @Module({
-  imports: [FacturationModule],
+  // `CourrielModule` ajouté pour `POST /documents-vente/{id}/envoyer-courriel`
+  // (`ServiceEnvoiFactureCourriel` a besoin de `ServiceCourriel`) — voir
+  // `service-envoi-facture-courriel.ts`. Aucun cycle : `CourrielModule` est un socle transverse,
+  // sans dépendance vers `FacturationModule`/`ImpressionModule`.
+  imports: [FacturationModule, CourrielModule],
   controllers: [ImpressionFactureController],
   providers: [
     ServiceImpressionFacture,
+    ServiceEnvoiFactureCourriel,
     { provide: JETON_STOCKAGE_PDF, useClass: StockagePdfDisqueLocal },
   ],
   exports: [ServiceImpressionFacture, JETON_STOCKAGE_PDF],

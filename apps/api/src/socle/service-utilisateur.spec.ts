@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db/db.types';
 import type { LigneUtilisateur } from '../db/schema';
-import type { ServiceMotDePasse } from '../auth/auth.types';
+import type { ServiceMotDePasse, ServiceReinitialisationMotDePasse } from '../auth/auth.types';
 import { ServiceUtilisateur } from './service-utilisateur';
 
 const CTX: ContexteTenant = { tenantId: 'tid-1', utilisateurId: 'acteur-1', requeteId: null };
@@ -16,6 +16,14 @@ function motDePasseFactice(): ServiceMotDePasse {
     verifier: vi.fn(async () => true),
     verifierLeurre: vi.fn(async () => undefined),
     doitEtreRehache: vi.fn(() => false),
+  };
+}
+
+function serviceReinitialisationFactice(): ServiceReinitialisationMotDePasse {
+  return {
+    demander: vi.fn(),
+    confirmer: vi.fn(),
+    revoquerJetonsActifsDansTransaction: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -111,7 +119,11 @@ function accesQuiEchoueSiInterroge(): AccesBase {
 
 describe('ServiceUtilisateur.creer — garde n°1 (élévation de rôle) AVANT tout accès base', () => {
   it("direction tentant de créer un admin : 403 DROIT_INSUFFISANT, la base n'est jamais interrogée", async () => {
-    const service = new ServiceUtilisateur(accesQuiEchoueSiInterroge(), motDePasseFactice());
+    const service = new ServiceUtilisateur(
+      accesQuiEchoueSiInterroge(),
+      motDePasseFactice(),
+      serviceReinitialisationFactice(),
+    );
 
     await expect(
       service.creer(
@@ -134,7 +146,11 @@ describe('ServiceUtilisateur.creer — chemin heureux', () => {
       [{ id: ID_SITE, nom: 'Site Sion' }], // chargerSites
     ]);
     const motDePasse = motDePasseFactice();
-    const service = new ServiceUtilisateur(accesAvec(tx), motDePasse);
+    const service = new ServiceUtilisateur(
+      accesAvec(tx),
+      motDePasse,
+      serviceReinitialisationFactice(),
+    );
 
     const resultat = await service.creer(
       CTX,
@@ -182,7 +198,11 @@ describe('ServiceUtilisateur.creer — chemin heureux', () => {
 
 describe('ServiceUtilisateur.modifier — garde n°1 AVANT tout accès base', () => {
   it("direction tentant de promouvoir un employé au rôle admin : 403 DROIT_INSUFFISANT, la base n'est jamais interrogée", async () => {
-    const service = new ServiceUtilisateur(accesQuiEchoueSiInterroge(), motDePasseFactice());
+    const service = new ServiceUtilisateur(
+      accesQuiEchoueSiInterroge(),
+      motDePasseFactice(),
+      serviceReinitialisationFactice(),
+    );
 
     await expect(
       service.modifier(CTX, ID_EMPLOYE, { role: 'admin' }, 'direction'),
@@ -201,7 +221,11 @@ describe('ServiceUtilisateur.modifier — changement de rôle, chemin heureux', 
       [apres], // chargerUtilisateurPourEcriture (rechargement final)
       [], // chargerSitesParUtilisateur
     ]);
-    const service = new ServiceUtilisateur(accesAvec(tx), motDePasseFactice());
+    const service = new ServiceUtilisateur(
+      accesAvec(tx),
+      motDePasseFactice(),
+      serviceReinitialisationFactice(),
+    );
 
     const resultat = await service.modifier(CTX, ID_EMPLOYE, { role: 'chef_atelier' }, 'direction');
 
@@ -221,7 +245,11 @@ describe('ServiceUtilisateur.modifier — changement de rôle, chemin heureux', 
 
 describe('ServiceUtilisateur.desactiver — auto-désactivation refusée AVANT tout accès base', () => {
   it("un acteur qui tente de désactiver son propre compte reçoit 409 CONFLIT, la base n'est jamais interrogée", async () => {
-    const service = new ServiceUtilisateur(accesQuiEchoueSiInterroge(), motDePasseFactice());
+    const service = new ServiceUtilisateur(
+      accesQuiEchoueSiInterroge(),
+      motDePasseFactice(),
+      serviceReinitialisationFactice(),
+    );
 
     await expect(service.desactiver(CTX, ID_ACTEUR)).rejects.toMatchObject({
       code: 'CONFLIT',
@@ -242,7 +270,11 @@ describe('ServiceUtilisateur.desactiver — chemin heureux', () => {
       [apres], // rechargement final
       [], // chargerSitesParUtilisateur
     ]);
-    const service = new ServiceUtilisateur(accesAvec(tx), motDePasseFactice());
+    const service = new ServiceUtilisateur(
+      accesAvec(tx),
+      motDePasseFactice(),
+      serviceReinitialisationFactice(),
+    );
 
     const resultat = await service.desactiver(CTX, ID_EMPLOYE);
 
@@ -270,9 +302,19 @@ describe('ServiceUtilisateur.reinitialiserAcces — jamais de mot de passe en cl
       [], // insert(auditUtilisateur)
     ]);
     const motDePasse = motDePasseFactice();
-    const service = new ServiceUtilisateur(accesAvec(tx), motDePasse);
+    const serviceReinitialisation = serviceReinitialisationFactice();
+    const service = new ServiceUtilisateur(accesAvec(tx), motDePasse, serviceReinitialisation);
 
     const resultat = await service.reinitialiserAcces(CTX, ID_EMPLOYE);
+
+    // Finding sécurité : un jeton de réinitialisation en libre-service émis avant ce geste admin
+    // ne doit pas survivre à la reprise de main — voir le commentaire au point d'appel dans
+    // `service-utilisateur.ts::reinitialiserAcces`.
+    expect(serviceReinitialisation.revoquerJetonsActifsDansTransaction).toHaveBeenCalledWith(
+      tx,
+      CTX,
+      ID_EMPLOYE,
+    );
 
     expect(resultat.motDePasseTemporaire).toMatch(/^[A-Za-z0-9_-]{20,}$/);
     expect(motDePasse.hacher).toHaveBeenCalledWith(resultat.motDePasseTemporaire);

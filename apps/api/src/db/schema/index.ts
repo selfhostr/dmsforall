@@ -18,6 +18,7 @@ export * from './utilisateur';
 export * from './utilisateur-site';
 export * from './audit-utilisateur';
 export * from './session';
+export * from './jeton-reinitialisation-mot-de-passe';
 export * from './journal-securite';
 export * from './atelier';
 export * from './facturation';

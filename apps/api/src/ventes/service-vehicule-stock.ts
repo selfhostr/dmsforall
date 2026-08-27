@@ -456,11 +456,13 @@ export class ServiceVehiculeStock {
         );
       }
       if (filtres.statutCommercial && filtres.statutCommercial.length > 0) {
+        // DÉFAUT CONSTATÉ (corrigé, balayage du 27.08.2026) : `vs.statut::text in (...)` castait
+        // l'enum en `text` avant comparaison, opaque aux statistiques PostgreSQL de la colonne —
+        // même défaut que `client.statut` (`service-client.ts`). Comparaison native sur l'enum —
+        // le type PG s'appelle `statut_vehicule_stock` (pas `statut_commercial_vehicule`, voir
+        // l'en-tête de `db/schema/ventes/enums.ts`).
         conditions.push(
-          sql`vs.statut::text in (${sql.join(
-            filtres.statutCommercial.map((s) => sql`${s}`),
-            sql`, `,
-          )})`,
+          sql`vs.statut = any(${sql.param(filtres.statutCommercial)}::public.statut_vehicule_stock[])`,
         );
       }
       if (filtres.typeVehicule) {

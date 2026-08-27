@@ -35,6 +35,14 @@ export class TransportSmtp implements TransportCourriel {
         subject: enveloppe.sujet,
         text: enveloppe.corpsTexte,
         html: enveloppe.corpsHtml,
+        // Taille cumulée déjà bornée par `ServiceCourriel.envoyer` (`TAILLE_MAX_PIECE_JOINTE_
+        // OCTETS`) avant que ce transport ne soit même atteint — ce fichier ne revalide rien, il
+        // ne fait que traduire vers la forme attendue par nodemailer.
+        attachments: enveloppe.piecesJointes?.map((piece) => ({
+          filename: piece.nomFichier,
+          content: piece.contenu,
+          contentType: piece.typeMime,
+        })),
       });
       return { succes: true, idMessage: info.messageId };
     } catch (erreur) {

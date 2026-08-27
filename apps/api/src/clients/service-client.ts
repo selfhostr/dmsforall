@@ -156,10 +156,20 @@ export class ServiceClient {
     return this.acces.enTenant(ctx, async (tx) => {
       const conditions = [
         sql`c.tenant_id = ${ctx.tenantId}`,
-        sql`c.statut::text in (${sql.join(
-          statuts.map((s) => sql`${s}`),
-          sql`, `,
-        )})`,
+        // DÉFAUT CONSTATÉ (corrigé) : `c.statut::text in (...)` castait la colonne ENUM en `text`
+        // AVANT comparaison — un `CAST` sur la colonne rend l'expression opaque aux statistiques
+        // de `client.statut` (MCV liées au type énuméré natif, pas à sa projection texte), et
+        // PostgreSQL retombe sur une sélectivité par défaut (~1 %/valeur du tableau) au lieu de la
+        // vraie distribution. Mesuré sur `dfa_dev` (9916 clients, tous `actif`) : `rows=99` estimées
+        // contre 9916 réelles avec le cast, `rows=9916` (exact) sans lui — cette estimation fausse
+        // faisait basculer le planificateur sur un `Seq Scan` + tri complet dès qu'une limite plus
+        // large (`limite=200`) rendait le coût apparent du chemin indexé artificiellement élevé
+        // (banc de charge du 27.08.2026, `clients-limite200-page1`). Comparaison NATIVE sur l'enum
+        // (`= any(...)::public.statut_client[]`), même patron que `filtres.statut` côté véhicules
+        // (`service-vehicule.ts`, `v.statut = any(${sql.param(filtres.statut)}::public.statut_vehicule[])`)
+        // — jamais l'interpolation directe d'un tableau JS dans `sql\`\``, qui produirait un
+        // constructeur d'enregistrement plutôt qu'un tableau SQL.
+        sql`c.statut = any(${sql.param(statuts)}::public.statut_client[])`,
       ];
 
       if (params.type) conditions.push(sql`c.type = ${params.type}`);

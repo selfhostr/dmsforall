@@ -223,6 +223,28 @@ describe('MATRICE_DROITS — actions inférées (aucune ligne §10 littérale)',
 });
 
 /**
+ * Effacement nLPD (tâche « socle sécurité pré-production ») — bascule du palliatif
+ * `clients/droits-provisoires.ts` (`@AucunDroitRequis()` + `verifierRoleAutorise` EN SERVICE,
+ * hors de cette matrice). Les deux routes de `client-rgpd.controller.ts` portent désormais
+ * `@ExigerDroit(...)` avec exactement les rôles ci-dessous, repris tels quels des anciennes
+ * constantes `ROLES_CLIENT_EXPORT`/`ROLES_CLIENT_ANONYMISATION` — le palliatif est supprimé, pas
+ * seulement dupliqué.
+ */
+describe('MATRICE_DROITS — effacement nLPD (bascule du palliatif clients/droits-provisoires.ts)', () => {
+  it('client.export.generer — réceptionnaire, chef d’atelier, direction, admin : même périmètre qu’INFERE_CLIENT_CONTACT (lecture, réversible, pas besoin d’attendre la direction)', () => {
+    expect(rolesAyant('client.export.generer')).toEqual(
+      ['admin', 'chef_atelier', 'direction', 'receptionnaire'].sort(),
+    );
+  });
+
+  it('client.anonymiser — direction et admin SEULS (geste irréversible, même palier que client.condition.modifier) : ni réceptionnaire ni chef d’atelier', () => {
+    expect(rolesAyant('client.anonymiser')).toEqual(['admin', 'direction'].sort());
+    expect(MATRICE_DROITS.receptionnaire).not.toContain('client.anonymiser');
+    expect(MATRICE_DROITS.chef_atelier).not.toContain('client.anonymiser');
+  });
+});
+
+/**
  * RF-114 (`docs/specification-etape-2-facturation.md` §9), ligne par ligne — même patron que le
  * bloc §10 ci-dessus, pour les 5 actions ajoutées par l'agent `paiements`.
  */
@@ -1425,6 +1447,9 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'client.condition.modifier',
       'client.consentement.enregistrer',
       'client.note.ecrire',
+      // Effacement nLPD — bascule du palliatif clients/droits-provisoires.ts (voir le describe dédié).
+      'client.export.generer',
+      'client.anonymiser',
       'vehicule.lire',
       'vehicule.creer',
       'vehicule.modifier',
@@ -1874,6 +1899,11 @@ describe('MATRICE_DROITS — invariante structurelle : écrire une entité impli
         'client.condition.modifier',
         'client.consentement.enregistrer',
         'client.note.ecrire',
+        // `client.export.generer` n'est pas une écriture au sens strict (lecture seule), mais
+        // l'invariant tient trivialement (les deux rôles qui l'ont détiennent déjà client.lire
+        // via LECTURE_ETENDUE) — inclus ici pour la couverture, pas parce que c'est une mutation.
+        'client.export.generer',
+        'client.anonymiser',
       ],
     },
     {

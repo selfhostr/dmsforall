@@ -18,17 +18,29 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 
+import { CourrielModule } from '../courriel';
 import { DbAmorcageModule } from '../db/db-amorcage.module';
 import { GardeDroit } from '../common/droits';
 import { AuthController } from './auth.controller';
 import { GardeSession } from './garde-session';
-import { JETON_SERVICE_MOT_DE_PASSE, JETON_SERVICE_SESSION } from './jetons';
+import {
+  JETON_SERVICE_MOT_DE_PASSE,
+  JETON_SERVICE_REINITIALISATION_MOT_DE_PASSE,
+  JETON_SERVICE_SESSION,
+} from './jetons';
+import { ServicePolitiqueMotDePasse } from './politique-mot-de-passe';
 import { ServiceAuthentificationImpl } from './services/authentification.service';
 import { ServiceMotDePasseArgon2id } from './services/mot-de-passe.service';
+import { ServiceReinitialisationMotDePasseImpl } from './services/reinitialisation-mot-de-passe.service';
 import { ServiceSessionImpl } from './services/session.service';
 
 @Module({
-  imports: [DbAmorcageModule],
+  // `CourrielModule` : `ServiceReinitialisationMotDePasseImpl` en a besoin pour envoyer le lien
+  // de réinitialisation (`ServiceCourriel.envoyer`) — voir son en-tête. Interface PUBLIQUE du
+  // socle courriel, déjà stable au moment où ce module a été branché (texte seul, sans pièce
+  // jointe) ; `courriel/` reste hors périmètre d'écriture de cette tâche, aucun de ses fichiers
+  // n'est touché ici.
+  imports: [DbAmorcageModule, CourrielModule],
   controllers: [AuthController],
   providers: [
     // Services exposés par jeton : les consommateurs dépendent de l'interface du contrat
@@ -36,9 +48,14 @@ import { ServiceSessionImpl } from './services/session.service';
     // stockage de session sans toucher une ligne des appelants.
     { provide: JETON_SERVICE_MOT_DE_PASSE, useClass: ServiceMotDePasseArgon2id },
     { provide: JETON_SERVICE_SESSION, useClass: ServiceSessionImpl },
+    {
+      provide: JETON_SERVICE_REINITIALISATION_MOT_DE_PASSE,
+      useClass: ServiceReinitialisationMotDePasseImpl,
+    },
 
     // Injecté par classe : seul le contrôleur d'auth l'utilise, aucune substitution prévue.
     ServiceAuthentificationImpl,
+    ServicePolitiqueMotDePasse,
 
     // Garde d'authentification appliquée à TOUTE l'application. Les endpoints publics sont
     // l'exception explicite, marquée par @Public() — jamais l'inverse. Un endpoint qu'on
@@ -63,6 +80,14 @@ import { ServiceSessionImpl } from './services/session.service';
   // `JETON_SERVICE_MOT_DE_PASSE` exporté depuis issue #137 : `SocleModule` (ServiceUtilisateur)
   // en a besoin pour hacher le mot de passe temporaire généré à la création d'un employé et à la
   // réinitialisation d'accès — même Argon2id que la connexion, jamais une seconde implémentation.
-  exports: [JETON_SERVICE_SESSION, JETON_SERVICE_MOT_DE_PASSE],
+  // `JETON_SERVICE_REINITIALISATION_MOT_DE_PASSE` exporté pour la même raison : `SocleModule`
+  // (`ServiceUtilisateur.reinitialiserAcces`) en a besoin pour révoquer, DANS SA PROPRE
+  // transaction, tout jeton de réinitialisation en libre-service encore valide d'un employé —
+  // voir le commentaire de `revoquerJetonsActifsDansTransaction` (`auth.types.ts`).
+  exports: [
+    JETON_SERVICE_SESSION,
+    JETON_SERVICE_MOT_DE_PASSE,
+    JETON_SERVICE_REINITIALISATION_MOT_DE_PASSE,
+  ],
 })
 export class AuthModule {}

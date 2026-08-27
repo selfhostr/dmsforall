@@ -20,11 +20,18 @@ FROM postgres:16-alpine
 #             ni parser fiablement une date arbitraire (`date -d "20260101"`) ni servir à
 #             l'arithmétique de purger.sh (échéances hebdo/mensuelles) ; `mktemp --suffix` est
 #             également une extension GNU absente de busybox.
-# age       : chiffrement asymétrique au repos (voir sauvegarder.sh — clé publique seulement ici,
-#             jamais la clé privée).
+# age       : chiffrement asymétrique au repos (voir sauvegarder.sh — clé publique seulement ici
+#             en usage normal ; la clé de TEST, voir restaurer-test.sh/planifier-test.sh, est
+#             l'exception documentée et bornée — jamais la clé privée RÉELLE).
 # tzdata    : nécessaire pour qu'Europe/Zurich soit réellement résolu par `date` (musl seul ne
 #             suffit pas, il lui faut la base de données de zones sur disque).
-RUN apk add --no-cache bash coreutils age tzdata
+# rclone    : copie hors site (copier-hors-site.sh) et récupération pour le test mensuel
+#             (planifier-test.sh) — paquet Alpine officiel, PAS un client propre à un fournisseur
+#             (S3/B2/SFTP/WebDAV/… derrière une seule interface) : l'hébergement de ce projet n'est
+#             pas encore choisi (voir docs/exploitation-sauvegardes.md), ce mécanisme ne doit
+#             présumer d'aucun fournisseur — changer de destination est un changement de fichier de
+#             config (secrets/rclone.conf, jamais commité), jamais un changement de ce Dockerfile.
+RUN apk add --no-cache bash coreutils age tzdata rclone
 
 ENV TZ=Europe/Zurich
 
@@ -36,9 +43,22 @@ ENV TZ=Europe/Zurich
 RUN addgroup -g 10001 sauvegarde \
   && adduser -D -u 10001 -G sauvegarde -h /var/lib/sauvegarde -s /bin/bash sauvegarde
 
-COPY --chmod=0555 planifier.sh sauvegarder.sh purger.sh verifier-vivant.sh /scripts/
+# TOUS les scripts de ce répertoire dans l'image, y compris ceux qui ne servaient QUE depuis le
+# poste de @laupernoe jusqu'ici (restaurer-test.sh) : le test de restauration mensuel automatisé
+# (planifier-test.sh, service `restauration-test` de docker-compose.yml) tourne DANS un
+# conteneur construit sur CETTE image — voir son en-tête pour pourquoi (pas de socket Docker,
+# initdb/pg_ctl locaux). `restaurer.sh` (restauration RÉELLE de production, jamais automatisée,
+# toujours lancée à la main depuis le CHECKOUT sur le serveur — voir son en-tête, il pilote
+# `docker compose exec` depuis l'HÔTE) reste volontairement HORS de l'image : il n'a rien à y
+# faire, une image ne peut pas lancer `docker compose` sur son propre hôte sans le socket Docker
+# qu'on a justement écarté ci-dessus pour restaurer-test.sh.
+COPY --chmod=0555 planifier.sh sauvegarder.sh purger.sh verifier-vivant.sh copier-hors-site.sh restaurer-test.sh planifier-test.sh /scripts/
 
 USER sauvegarde
 WORKDIR /var/lib/sauvegarde
 
+# ENTRYPOINT par défaut = service `backup` (sauvegarde nocturne). Le service `restauration-test`
+# (docker-compose.yml, MÊME image, MÊME raison que `worker` réutilise l'image `api` : jamais
+# deux images à faire dériver l'une de l'autre) remplace cet ENTRYPOINT par `planifier-test.sh` via
+# `entrypoint:` — voir ce service.
 ENTRYPOINT ["/scripts/planifier.sh"]

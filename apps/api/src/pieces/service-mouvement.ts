@@ -114,11 +114,11 @@ export class ServiceMouvement {
 
       const conditions = [sql`m.tenant_id = ${ctx.tenantId}`, sql`m.article_id = ${articleId}`];
       if (params.type && params.type.length > 0) {
+        // DÉFAUT CONSTATÉ (corrigé, balayage du 27.08.2026) : `m.type::text in (...)` castait
+        // l'enum en `text` avant comparaison, opaque aux statistiques PostgreSQL de la colonne —
+        // même défaut que `client.statut` (`service-client.ts`). Comparaison native sur l'enum.
         conditions.push(
-          sql`m.type::text in (${sql.join(
-            params.type.map((t) => sql`${t}`),
-            sql`, `,
-          )})`,
+          sql`m.type = any(${sql.param(params.type)}::public.type_mouvement_stock[])`,
         );
       }
       if (params.siteId) {

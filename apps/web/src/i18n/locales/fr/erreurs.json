@@ -165,7 +165,9 @@
     "REPRISE_EMPREINTE_INVALIDE": "L'archive reçue ne correspond pas à celle envoyée. Réessayez le dépôt.",
     "REPRISE_TRANCHE_HORS_SEQUENCE": "L'envoi du fichier a été interrompu. Réessayez : il reprendra là où il s'est arrêté, rien n'est perdu.",
     "REPRISE_PLAN_NON_VALIDABLE": "Ce qui sera repris ne peut plus être validé à cette étape. Rechargez la page pour voir l'état actuel.",
-    "REPRISE_AJUSTEMENT_ELEMENT_INCONNU": "Cet ajustement porte sur un domaine qui n'existe pas dans le plan actuel. Contactez le support si le problème persiste."
+    "REPRISE_AJUSTEMENT_ELEMENT_INCONNU": "Cet ajustement porte sur un domaine qui n'existe pas dans le plan actuel. Contactez le support si le problème persiste.",
+    "AUTH_JETON_REINITIALISATION_INVALIDE": "Ce lien de réinitialisation n'est plus valide. Demandez un nouveau lien.",
+    "FACTURE_DESTINATAIRE_COURRIEL_ABSENT": "Ce client n'a pas d'adresse courriel enregistrée. Complétez la fiche client, puis réessayez."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Créer un devis complémentaire",

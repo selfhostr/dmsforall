@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 
 import { ReferentielVehiculesChController } from './referentiel/referentiel-vehicules-ch.controller';
-import { ReferentielVehiculesChJobModule } from './referentiel/referentiel-vehicules-ch-job.module';
 import { ServiceReferentielVehiculesCh } from './referentiel/service-referentiel-vehicules-ch';
 import { VehiculeOcrModule } from './ocr/vehicule-ocr.module';
 import { ServiceVehicule } from './service-vehicule';
@@ -39,11 +38,13 @@ import { VehiculeTravailReporteController } from './vehicule-travail-reporte.con
  */
 @Module({
   imports: [
-    // Job quotidien de contrôle/import du référentiel véhicules ASTRA — file BullMQ +
-    // planification, voir `referentiel/referentiel-vehicules-ch-job.module.ts`. Dépend de
-    // `OrdonnancementModule` (connexion BullMQ partagée) monté à la racine de l'app
-    // (`app.module.ts`), jamais réimporté ici.
-    ReferentielVehiculesChJobModule,
+    // Le job quotidien de contrôle/import du référentiel véhicules ASTRA (`referentiel/
+    // referentiel-vehicules-ch-job.module.ts`) N'EST PLUS importé ici depuis le 27.08.2026
+    // (chantier « découplage worker/API ») : ce module dynamique a besoin du rôle du process
+    // (`MODE_PROCESSUS`) pour décider s'il s'enregistre — indisponible à ce niveau (les imports
+    // d'un `@Module` statique s'évaluent au chargement du fichier, avant toute config). Enregistré
+    // désormais directement par `app.module.ts` (`ReferentielVehiculesChJobModule.pourConfig
+    // (config)`), à côté de `VehiculesModule` plutôt qu'imbriqué dedans — voir son en-tête.
     // Scan OCR du permis de circulation — module autonome (`ocr/vehicule-ocr.module.ts`),
     // importé ici pour que son contrôleur soit réellement monté (un contrôleur non déclaré dans
     // un `@Module` donne un 404 silencieux, piège documenté de ce dépôt).

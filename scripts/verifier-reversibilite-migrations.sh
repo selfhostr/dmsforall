@@ -440,6 +440,8 @@ obtenir_exception_down_partiel() {
       printf '%s' "ALTER TYPE ... ADD VALUE sur entite_auditee, 1 valeur (rendez_vous) — même limite que 0010 ; voir l'en-tête de down/0052_rendez_vous_atelier.down.sql." ;;
     "0055_pointage_motif_anomalie_cloture_fin_journee.sql")
       printf '%s' "ALTER TYPE ... ADD VALUE sur motif_anomalie_pointage, 1 valeur (cloture_fin_journee) — même limite que 0010 (aucun DROP VALUE en PostgreSQL) ; voir l'en-tête de down/0055_pointage_motif_anomalie_cloture_fin_journee.down.sql." ;;
+    "0074_jeton_reinitialisation_mot_de_passe.sql")
+      printf '%s' "ALTER TYPE ... ADD VALUE sur type_evenement_securite, 3 valeurs (reinitialisation_demandee, reinitialisation_echouee, reinitialisation_reussie) — même limite que 0010 (aucun DROP VALUE en PostgreSQL), type différent (type_evenement_securite, pas entite_auditee) ; voir l'en-tête de down/0074_jeton_reinitialisation_mot_de_passe.down.sql." ;;
     *)
       return 1 ;;
   esac

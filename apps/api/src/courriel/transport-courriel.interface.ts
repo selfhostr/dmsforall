@@ -21,7 +21,47 @@ export interface EnveloppeCourriel {
   readonly sujet: string;
   readonly corpsTexte?: string;
   readonly corpsHtml?: string;
+  /** Pièce(s) jointe(s) — typiquement le PDF d'une facture émise
+   *  (`facturation/impression/generation-pdf-facture.ts`). Taille cumulée bornée par
+   *  `TAILLE_MAX_PIECE_JOINTE_OCTETS`, vérifiée par `ServiceCourriel.envoyer` AVANT tout appel au
+   *  transport — ni `TransportSmtp` ni `TransportCapture` ne revalident cette borne, elle n'a
+   *  qu'un seul point de contrôle. */
+  readonly piecesJointes?: readonly PieceJointeCourriel[];
 }
+
+/**
+ * Une pièce jointe déjà résolue en mémoire — pas de chemin de fichier, pas de flux : l'appelant
+ * (aujourd'hui aucun ; demain un module `facturation`/`documents-vente` qui aura déjà produit le
+ * PDF via `genererPdfFacture`) tient le `Buffer` complet avant d'appeler `ServiceCourriel`, ce
+ * socle ne sait ni lire ni streamer un fichier. Aucune validation de type MIME/contenu ici, seule
+ * la taille est bornée — voir `TAILLE_MAX_PIECE_JOINTE_OCTETS`.
+ */
+export interface PieceJointeCourriel {
+  /** Nom de fichier suggéré au client de messagerie, ex. `Facture-2026-00042.pdf`. ATTENTION —
+   *  donnée à traiter comme potentiellement sensible : un numéro de facture ou de dossier peut
+   *  indirectement identifier un client. Jamais journalisé au niveau `info`/`warn` (voir
+   *  `TransportCapture`/`ServiceCourriel`), réservé au niveau `debug`, même doctrine que
+   *  `destinataires`/`sujet`/`repondreA`. */
+  readonly nomFichier: string;
+  readonly contenu: Buffer;
+  /** Type MIME, ex. `application/pdf`. Transmis tel quel au transport — ce socle ne le déduit
+   *  jamais du nom de fichier ni de son contenu. */
+  readonly typeMime: string;
+}
+
+/**
+ * Borne dure sur la taille CUMULÉE des pièces jointes d'UNE enveloppe — 8 Mio (8 × 1024 × 1024
+ * octets). Une facture QR (`facturation/impression/generation-pdf-facture.ts`, PDFKit — texte et
+ * bulletin QR vectoriels, aucune image embarquée) pèse quelques centaines de kilo-octets, rarement
+ * plus d'un ou deux mégaoctets même pour une facture à plusieurs dizaines de lignes : 8 Mio laisse
+ * une marge large (4 à 8×) sans laisser passer n'importe quoi. Le prestataire SMTP retenu
+ * (Infomaniak, voir `config-courriel.ts`) plafonne lui-même autour de 25 Mio par message — ce
+ * module refuse donc BIEN AVANT cette limite prestataire, plutôt que de laisser `nodemailer`
+ * échouer en pleine négociation SMTP avec une erreur de protocole peu lisible. Un dépassement ici
+ * signale presque toujours une erreur de l'appelant (mauvais buffer, contenu dupliqué), jamais un
+ * besoin métier légitime non couvert par cette marge.
+ */
+export const TAILLE_MAX_PIECE_JOINTE_OCTETS = 8 * 1024 * 1024;
 
 /** Résultat d'un envoi, quel que soit le transport (réel ou capture). */
 export interface ResultatEnvoiCourriel {

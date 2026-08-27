@@ -179,19 +179,22 @@ export class ServiceCommandeFournisseur {
         );
       }
       if (params.statut && params.statut.length > 0) {
+        // DÉFAUT CONSTATÉ (corrigé, balayage du 27.08.2026) : `cf.statut::text in (...)` castait
+        // l'enum en `text` avant comparaison, opaque aux statistiques PostgreSQL de la colonne —
+        // même défaut que `client.statut` (`service-client.ts`). Comparaison native sur l'enum.
         conditions.push(
-          sql`cf.statut::text in (${sql.join(
-            params.statut.map((s) => sql`${s}`),
-            sql`, `,
-          )})`,
+          sql`cf.statut = any(${sql.param(params.statut)}::public.statut_commande_fournisseur[])`,
         );
       }
       if (params.fournisseurId) conditions.push(sql`cf.fournisseur_id = ${params.fournisseurId}`);
       if (params.siteId) conditions.push(sql`cf.site_id = ${params.siteId}`);
       // Sucre documenté par le contrat (`commande-fournisseur.ts`) : équivalent à
-      // `statut in ('envoyee','partiellement_recue')`, jamais une vue distincte en base.
+      // `statut in ('envoyee','partiellement_recue')`, jamais une vue distincte en base. Même
+      // correction de cast que ci-dessus, ici sur une liste constante plutôt qu'un paramètre.
       if (params.avecReliquat) {
-        conditions.push(sql`cf.statut::text in ('envoyee', 'partiellement_recue')`);
+        conditions.push(
+          sql`cf.statut = any(${sql.param(['envoyee', 'partiellement_recue'])}::public.statut_commande_fournisseur[])`,
+        );
       }
       if (curseurDecode) {
         conditions.push(

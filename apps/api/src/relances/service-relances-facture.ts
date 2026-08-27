@@ -20,7 +20,10 @@ import type { AdaptateurNotificationSender } from '../connecteurs';
 import { RegistreConnecteursService } from '../connecteurs';
 import { EXPEDITEUR_DFA_PAR_DEFAUT } from '../courriel/config-courriel';
 import { ServiceCourriel } from '../courriel/service-courriel';
+import type { PieceJointeCourriel } from '../courriel/transport-courriel.interface';
 import { JETON_CONFIG, type Config } from '../config';
+import { JETON_STOCKAGE_PDF } from '../facturation/impression/impression.jetons';
+import { sha256Hex, type StockagePdf } from '../facturation/impression/stockage-pdf';
 
 import {
   calculerPaliersDus,
@@ -33,8 +36,11 @@ import {
 
 /**
  * Service du LOT 1 (facturation, rappel #2 — `docs/specification-relances-automatiques.md`).
- * Aucun ordonnanceur n'existe dans ce dépôt (§6 de la spec : « zéro usage de BullMQ vérifié ») —
- * ce service expose deux OPÉRATIONS APPELABLES, idempotentes, traitant chacune un LOT BORNÉ par
+ * Un ordonnanceur BullMQ horaire existe désormais (`relances/relances-job.module.ts`, gaté par
+ * `MODE_PROCESSUS` — voir sa doc) et invoque `planifier()` PUIS `envoyerPretes()` pour chaque
+ * tenant actif — voir `orchestration-job-relances.ts` pour le détail. Les deux méthodes restent
+ * aussi APPELABLES À LA DEMANDE (`relances.controller.ts`, `POST .../planifier`/`.../envoyer`),
+ * idempotentes, traitant chacune un LOT BORNÉ par
  * appel (jamais un balayage complet sans limite — même raisonnement que la pagination par
  * curseur : un tenant avec 5 ans d'historique et 50 OR/jour a potentiellement des milliers de
  * factures en souffrance, un seul appel ne doit jamais tenter de toutes les traiter d'un coup) :
@@ -72,12 +78,19 @@ import {
  * `SMTP_EXPEDITEUR`/`EXPEDITEUR_DFA_PAR_DEFAUT` si aucun des deux n'existe (jamais un envoi
  * bloqué pour cette seule raison).
  *
- * CE QUI RESTE À FAIRE (signalé, pas fait ici, hors périmètre déclaré de cette tâche) : un
- * déclencheur PÉRIODIQUE (cron applicatif, job BullMQ répété, ou appel externe programmé) qui
- * invoque ces deux méthodes à intervalle régulier — voir le rapport de livraison. Un tel
- * déclencheur n'a PAS de session utilisateur ; ni `direction` ni `comptable` (les deux seuls rôles
- * qui détiennent `relances.facturation.planifier`/`.envoyer`) ne désignent un compte de service,
- * voir le rapport de livraison pour l'arbitrage à trancher avec @laupernoe.
+ * DÉCLENCHEUR PÉRIODIQUE — RÉSOLU : `relances/relances-job.module.ts` (BullMQ, cron horaire) l'a
+ * ajouté. L'IDENTITÉ DE L'APPELANT SYSTÈME, elle, est tranchée comme pour les trois autres jobs du
+ * dépôt (`pointage/orchestration-job-cloture-automatique-pointage.ts`, § « IDENTITÉ DE L'APPELANT
+ * SYSTÈME ») : `ContexteTenant.utilisateurId = null` (convention `db/db.types.ts`), JAMAIS un
+ * compte `direction`/`comptable` fabriqué — voir `orchestration-job-relances.ts`.
+ *
+ * PIÈCE JOINTE (PDF de facture) — l'e-mail de rappel part désormais AVEC la facture en pièce
+ * jointe, lue en LECTURE SEULE sur le PDF déjà mis en cache (`document_vente.pdf_cle`), jamais
+ * régénérée : ce service n'a pas de `PrincipalAuthentifie` pour faire valider RF-116. Voir le
+ * constructeur ci-dessous et `resoudrePieceJointeFacture()`. Pour un envoi DÉCLENCHÉ PAR UN
+ * UTILISATEUR (droits RF-116 réels, génération paresseuse si besoin), voir
+ * `facturation/impression/service-envoi-facture-courriel.ts`
+ * (`POST /documents-vente/{id}/envoyer-courriel`).
  */
 @Injectable()
 export class ServiceRelancesFacture {
@@ -88,6 +101,14 @@ export class ServiceRelancesFacture {
     private readonly journal: ServiceJournal,
     private readonly serviceCourriel: ServiceCourriel,
     @Inject(JETON_CONFIG) private readonly config: Config,
+    // PDF de facture — lecture SEULE, jamais de régénération (arbitrage du coordinateur,
+    // rapport de livraison de cette issue) : ce job n'a pas de `PrincipalAuthentifie`, donc
+    // aucun moyen de faire valider RF-116 par `ServiceDocumentsVente`. Le fichier déjà mis en
+    // cache par `ServiceImpressionFacture` (`document_vente.pdf_cle`, immuable une fois posé —
+    // une facture émise ne change jamais) est, lui, garanti identique par construction : ce sont
+    // EXACTEMENT les mêmes octets que ceux déjà servis à un utilisateur habilité. Voir
+    // `resoudrePieceJointeFacture` ci-dessous.
+    @Inject(JETON_STOCKAGE_PDF) private readonly stockagePdf: StockagePdf,
   ) {}
 
   /** Nombre de documents candidats examinés par appel — voir l'en-tête. */
@@ -366,6 +387,8 @@ export class ServiceRelancesFacture {
           d.total_ttc_centimes as "totalTtcCentimes",
           d.solde_centimes as "soldeCentimes",
           d.date_echeance::text as "dateEcheance",
+          d.pdf_cle as "pdfCle",
+          d.pdf_sha256 as "pdfSha256",
           c.email as "email",
           c.telephone_e164 as "telephoneE164",
           c.plus_aucun_contact as "plusAucunContact",
@@ -451,6 +474,8 @@ export class ServiceRelancesFacture {
         totalTtcCentimes: Number(infos.totalTtcCentimes),
         soldeCentimes: Number(infos.soldeCentimes),
         dateEcheance: new Date(infos.dateEcheance),
+        pdfCle: infos.pdfCle,
+        pdfSha256: infos.pdfSha256,
       };
     });
 
@@ -486,6 +511,9 @@ export class ServiceRelancesFacture {
             contenu,
             expediteurGarage,
             cleIdempotence,
+            claim.numero,
+            claim.pdfCle,
+            claim.pdfSha256,
           )
         : await this.envoyerSmsViaConnecteur(
             ctx,
@@ -516,7 +544,25 @@ export class ServiceRelancesFacture {
     contenu: Extract<ContenuMessageClient, { readonly canal: 'email' }>,
     expediteurGarage: ExpediteurGarage,
     cleIdempotence: string,
+    numero: string,
+    pdfCle: string | null,
+    pdfSha256: string | null,
   ): Promise<ReponseEnvoiMessageClient> {
+    // Pièce jointe AVANT tout appel SMTP — voir `resoudrePieceJointeFacture` : jamais un envoi
+    // « amputé » (arbitrage du coordinateur, rapport de livraison) — soit la facture part avec
+    // son PDF, soit elle ne part pas du tout à cette tentative (retentée au prochain passage
+    // horaire, voir `statutApresEchecEnvoi`).
+    const piece = await this.resoudrePieceJointeFacture(
+      ctx,
+      relancePlanifieeId,
+      numero,
+      pdfCle,
+      pdfSha256,
+    );
+    if (!piece.trouvee) {
+      return { statut: 'rejete', raison: 'contenu_refuse', message: piece.motif };
+    }
+
     try {
       const resultat = await this.serviceCourriel.envoyer({
         destinataires: [contenu.destinataire],
@@ -525,6 +571,7 @@ export class ServiceRelancesFacture {
         corpsHtml: contenu.html ?? undefined,
         nomGarage: expediteurGarage.nomGarage,
         adresseReponseGarage: expediteurGarage.adresseReponseGarage,
+        piecesJointes: [piece.piece],
       });
       if (resultat.succes) {
         // `identifiantMessagePrestataire` ne doit JAMAIS être vide (contrat, décision 1) — repli
@@ -562,6 +609,81 @@ export class ServiceRelancesFacture {
           erreur instanceof Error ? erreur.message : 'Erreur inconnue du transport courriel.',
       };
     }
+  }
+
+  /**
+   * Résout le PDF de facture déjà mis en cache — LECTURE SEULE, jamais de régénération (voir la
+   * doc du constructeur pour l'arbitrage complet : ce service n'a pas de `PrincipalAuthentifie`
+   * pour faire valider RF-116). Deux cas de refus, tous deux journalisés en clair (jamais en
+   * silence — piège explicitement évité, voir `copierPdfDocumentsEnCache`,
+   * `exploitation/cycle-vie-tenant/service-copie-pdf-documents.ts`, qui distingue déjà « aucun
+   * fichier jamais généré » d'une vraie erreur de lecture) :
+   *
+   *   1. `pdfCle` est `null` — cette facture n'a JAMAIS été consultée/imprimée dans l'application
+   *      (génération PARESSEUSE, voir `service-impression-facture.ts`). État NORMAL et courant,
+   *      journalisé en `warn` : la relance repasse `prete` (voir `statutApresEchecEnvoi`) et sera
+   *      retentée au prochain passage horaire — le temps qu'un utilisateur habilité consulte la
+   *      facture une première fois (ou qu'un futur endpoint dédié la génère).
+   *   2. `pdfCle` est posé mais le fichier est illisible, ou son empreinte SHA-256 ne correspond
+   *      plus à `pdfSha256` figé en base — INCOHÉRENCE de stockage, jamais un état attendu :
+   *      journalisé en `error`. Refuse d'attacher un contenu dont on ne peut plus garantir qu'il
+   *      est celui réellement émis, même doctrine que `ServiceImpressionFacture.obtenirPdf`.
+   *
+   * Dans les deux cas : PAS d'envoi amputé. La relance échoue proprement pour cette tentative,
+   * jamais un courriel qui prétend porter la facture sans qu'elle y soit.
+   */
+  private async resoudrePieceJointeFacture(
+    ctx: ContexteTenant,
+    relancePlanifieeId: string,
+    numero: string,
+    pdfCle: string | null,
+    pdfSha256: string | null,
+  ): Promise<
+    | { readonly trouvee: true; readonly piece: PieceJointeCourriel }
+    | { readonly trouvee: false; readonly motif: string }
+  > {
+    if (!pdfCle) {
+      this.journal.warn('relances.envoi.pdf_absent', {
+        tenantId: ctx.tenantId,
+        relancePlanifieeId,
+      });
+      return {
+        trouvee: false,
+        motif: `Facture ${numero} : aucun PDF encore mis en cache (jamais consultée dans l’application) — relance non envoyée sans sa pièce jointe.`,
+      };
+    }
+
+    let contenu: Buffer;
+    try {
+      contenu = await this.stockagePdf.lire(pdfCle);
+    } catch (erreur) {
+      this.journal.error('relances.envoi.pdf_illisible', erreur, {
+        tenantId: ctx.tenantId,
+        relancePlanifieeId,
+        pdfCle,
+      });
+      return {
+        trouvee: false,
+        motif: `Facture ${numero} : PDF mis en cache introuvable ou illisible (${pdfCle}) — relance non envoyée sans sa pièce jointe.`,
+      };
+    }
+
+    if (pdfSha256 && sha256Hex(contenu) !== pdfSha256) {
+      // Même doctrine que `ServiceImpressionFacture.obtenirPdf` : jamais servir un contenu dont
+      // l'empreinte ne correspond plus à celle figée en base au moment de sa mise en cache.
+      this.journal.error('relances.envoi.pdf_empreinte_invalide', undefined, {
+        tenantId: ctx.tenantId,
+        relancePlanifieeId,
+        pdfCle,
+      });
+      return {
+        trouvee: false,
+        motif: `Facture ${numero} : le PDF mis en cache (${pdfCle}) ne correspond plus à son empreinte figée en base — relance non envoyée sans sa pièce jointe.`,
+      };
+    }
+
+    const nomFichier = `Facture-${numero.replace(/[^A-Za-z0-9._-]/g, '_')}.pdf`;
+    return { trouvee: true, piece: { nomFichier, contenu, typeMime: 'application/pdf' } };
   }
 
   /**
@@ -714,6 +836,11 @@ interface LigneFactureEtClientFraiche {
   readonly totalTtcCentimes: string | number;
   readonly soldeCentimes: string | number;
   readonly dateEcheance: string;
+  /** `null` tant que personne n'a jamais consulté/imprimé cette facture — génération PARESSEUSE,
+   *  voir `facturation/impression/service-impression-facture.ts`. Ce service ne régénère JAMAIS
+   *  ce PDF (§ en-tête de la classe), il se contente de lire ce qui existe déjà. */
+  readonly pdfCle: string | null;
+  readonly pdfSha256: string | null;
   readonly email: string | null;
   readonly telephoneE164: string | null;
   readonly plusAucunContact: boolean;
@@ -732,6 +859,10 @@ interface InfosAEnvoyer {
   readonly totalTtcCentimes: number;
   readonly soldeCentimes: number;
   readonly dateEcheance: Date;
+  /** Voir `LigneFactureEtClientFraiche.pdfCle` — non pertinent pour le canal `sms`, toujours
+   *  porté ici pour éviter un second type distinct par canal. */
+  readonly pdfCle: string | null;
+  readonly pdfSha256: string | null;
 }
 
 type ClaimAEnvoyer = { readonly statut: 'ignoree' | 'annulee' } | InfosAEnvoyer;

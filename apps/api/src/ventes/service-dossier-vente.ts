@@ -355,11 +355,11 @@ export class ServiceDossierVente {
       const conditions = [sql`dv.tenant_id = ${ctx.tenantId}`];
       if (filtres.siteId) conditions.push(sql`dv.site_id = ${filtres.siteId}`);
       if (filtres.statut && filtres.statut.length > 0) {
+        // DÉFAUT CONSTATÉ (corrigé, balayage du 27.08.2026) : `dv.statut::text in (...)` castait
+        // l'enum en `text` avant comparaison, opaque aux statistiques PostgreSQL de la colonne —
+        // même défaut que `client.statut` (`service-client.ts`). Comparaison native sur l'enum.
         conditions.push(
-          sql`dv.statut::text in (${sql.join(
-            filtres.statut.map((s) => sql`${s}`),
-            sql`, `,
-          )})`,
+          sql`dv.statut = any(${sql.param(filtres.statut)}::public.statut_dossier_vente[])`,
         );
       }
       if (filtres.clientAcheteurId)

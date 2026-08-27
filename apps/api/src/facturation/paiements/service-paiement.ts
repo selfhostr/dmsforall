@@ -286,12 +286,10 @@ export class ServicePaiement {
 
       if (params.siteId) conditions.push(sql`p.site_id = ${params.siteId}`);
       if (params.moyen && params.moyen.length > 0) {
-        conditions.push(
-          sql`p.moyen::text in (${sql.join(
-            params.moyen.map((m) => sql`${m}`),
-            sql`, `,
-          )})`,
-        );
+        // DÉFAUT CONSTATÉ (corrigé, balayage du 27.08.2026) : `p.moyen::text in (...)` castait
+        // l'enum en `text` avant comparaison, opaque aux statistiques PostgreSQL de la colonne —
+        // même défaut que `client.statut` (`service-client.ts`). Comparaison native sur l'enum.
+        conditions.push(sql`p.moyen = any(${sql.param(params.moyen)}::public.moyen_paiement[])`);
       }
       if (params.payeurClientId)
         conditions.push(sql`p.payeur_client_id = ${params.payeurClientId}`);

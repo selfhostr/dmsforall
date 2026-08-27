@@ -132,11 +132,11 @@ export class ServiceDepotPneus {
 
       const conditions = [sql`d.tenant_id = ${ctx.tenantId}`, sql`d.site_id = ${siteId}`];
       if (params.statut && params.statut.length > 0) {
+        // DÉFAUT CONSTATÉ (corrigé, balayage du 27.08.2026) : `d.statut::text in (...)` castait
+        // l'enum en `text` avant comparaison, opaque aux statistiques PostgreSQL de la colonne —
+        // même défaut que `client.statut` (`service-client.ts`). Comparaison native sur l'enum.
         conditions.push(
-          sql`d.statut::text in (${sql.join(
-            params.statut.map((s) => sql`${s}`),
-            sql`, `,
-          )})`,
+          sql`d.statut = any(${sql.param(params.statut)}::public.statut_depot_pneus[])`,
         );
       }
       if (params.saison) conditions.push(sql`d.saison = ${params.saison}`);
@@ -175,11 +175,11 @@ export class ServiceDepotPneus {
 
       const conditions = [sql`d.tenant_id = ${ctx.tenantId}`, sql`d.vehicule_id = ${vehiculeId}`];
       if (params.statut && params.statut.length > 0) {
+        // DÉFAUT CONSTATÉ (corrigé, balayage du 27.08.2026) : `d.statut::text in (...)` castait
+        // l'enum en `text` avant comparaison, opaque aux statistiques PostgreSQL de la colonne —
+        // même défaut que `client.statut` (`service-client.ts`). Comparaison native sur l'enum.
         conditions.push(
-          sql`d.statut::text in (${sql.join(
-            params.statut.map((s) => sql`${s}`),
-            sql`, `,
-          )})`,
+          sql`d.statut = any(${sql.param(params.statut)}::public.statut_depot_pneus[])`,
         );
       }
       if (curseurDecode) {

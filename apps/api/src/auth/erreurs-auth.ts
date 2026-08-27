@@ -139,3 +139,18 @@ export class ErreurTropDeTentatives extends ErreurAuth {
     });
   }
 }
+
+/**
+ * 400 — `POST /auth/mot-de-passe/reinitialisation` : email inconnu, jeton inconnu/expiré/déjà
+ * utilisé/révoqué, ou compte/tenant non actif. RIGOUREUSEMENT indifférenciés (anti-énumération,
+ * même doctrine qu'`ErreurIdentifiantsInvalides`) — voir `ServiceReinitialisationMotDePasse
+ * .confirmer` (`auth.types.ts`).
+ */
+export class ErreurJetonReinitialisationInvalide extends ErreurAuth {
+  constructor() {
+    super(HttpStatus.BAD_REQUEST, {
+      code: 'AUTH_JETON_REINITIALISATION_INVALIDE',
+      message: 'Ce lien de réinitialisation est invalide, expiré, ou a déjà été utilisé.',
+    });
+  }
+}

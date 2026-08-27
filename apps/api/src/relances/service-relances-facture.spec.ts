@@ -15,6 +15,7 @@ import type {
   EnveloppeCourriel,
   ResultatEnvoiCourriel,
 } from '../courriel/transport-courriel.interface';
+import type { StockagePdf } from '../facturation/impression/stockage-pdf';
 
 import { ServiceRelancesFacture } from './service-relances-facture';
 
@@ -183,6 +184,24 @@ function configFactice(surcharges: Partial<Config> = {}): Config {
   return { SMTP_EXPEDITEUR: 'no-reply@dmsforall.example', ...surcharges } as Config;
 }
 
+/** Double de `StockagePdf` (`facturation/impression/stockage-pdf.ts`) — par défaut, `.lire()`
+ *  lève TOUJOURS (aucun PDF disponible), pour les tests qui ne doivent JAMAIS l'atteindre (canal
+ *  sms, arrêt automatique avant dispatch, planification). `contenuParCle` peuple les tests qui
+ *  ATTEIGNENT réellement `resoudrePieceJointeFacture` avec un contenu déterministe. */
+function stockagePdfFactice(contenuParCle: Record<string, Buffer> = {}): StockagePdf {
+  return {
+    lire: vi.fn(async (cle: string) => {
+      const contenu = contenuParCle[cle];
+      if (!contenu) {
+        throw new Error(`stockagePdfFactice : clé "${cle}" absente (fichier introuvable).`);
+      }
+      return contenu;
+    }),
+    ecrire: vi.fn(),
+    purgerTenant: vi.fn(),
+  } as unknown as StockagePdf;
+}
+
 /** Ligne rendue par la requête de `resoudreExpediteurGarage` — un `execute` de plus dans la file
  *  dès qu'au moins une ligne `prete` existe (voir `envoyerPretes`), AVANT la première réclamation
  *  (`updateReturning`). */
@@ -217,6 +236,7 @@ describe('ServiceRelancesFacture.planifier — RA-05 (idempotence)', () => {
         journalFactice(),
         courrielFactice(),
         configFactice(),
+        stockagePdfFactice(),
       );
 
       const resultat = await service.planifier(CTX);
@@ -247,6 +267,7 @@ describe('ServiceRelancesFacture.planifier — RA-05 (idempotence)', () => {
       journalFactice(),
       courrielFactice(),
       configFactice(),
+      stockagePdfFactice(),
     );
 
     const resultat = await service.planifier(CTX);
@@ -278,6 +299,7 @@ describe('ServiceRelancesFacture.planifier — RA-05 (idempotence)', () => {
         journalFactice(),
         courrielFactice(),
         configFactice(),
+        stockagePdfFactice(),
       );
 
       const resultat = await service.planifier(CTX);
@@ -298,6 +320,7 @@ describe('ServiceRelancesFacture.planifier — RA-05 (idempotence)', () => {
       journalFactice(),
       courrielFactice(),
       configFactice(),
+      stockagePdfFactice(),
     );
 
     const resultat = await service.planifier(CTX);
@@ -324,6 +347,7 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
         journalFactice(),
         courriel,
         configFactice(),
+        stockagePdfFactice(),
       );
 
       const resultat = await service.envoyerPretes(CTX);
@@ -376,6 +400,7 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
         journalFactice(),
         courriel,
         configFactice(),
+        stockagePdfFactice(),
       );
 
       const resultat = await service.envoyerPretes(CTX);
@@ -427,6 +452,7 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
         journalFactice(),
         courriel,
         configFactice(),
+        stockagePdfFactice(),
       );
 
       const resultat = await service.envoyerPretes(CTX);
@@ -446,6 +472,7 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
         identifiantMessagePrestataire: 'x',
       });
       const courriel = courrielFactice({ succes: true, idMessage: 'courriel-msg-1' });
+      const pdf = Buffer.from('%PDF-1.4 contenu factice F-1');
       const { tx } = txFactice([
         { genre: 'select', valeur: [ligneRegle({ canaux: ['email'] })] },
         { genre: 'execute', valeur: [{ id: 'relance-1' }] },
@@ -462,6 +489,8 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
               totalTtcCentimes: 1000,
               soldeCentimes: 1000,
               dateEcheance: '2026-06-01',
+              pdfCle: 'tid-1/doc-1.pdf',
+              pdfSha256: null,
               email: 'client@example.ch',
               telephoneE164: null,
               plusAucunContact: false,
@@ -482,6 +511,7 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
         journalFactice(),
         courriel,
         configFactice(),
+        stockagePdfFactice({ 'tid-1/doc-1.pdf': pdf }),
       );
 
       const resultat = await service.envoyerPretes(CTX);
@@ -493,6 +523,9 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
         destinataires: ['client@example.ch'],
         nomGarage: 'Garage Martin SA',
         adresseReponseGarage: 'direction@garage-martin.ch',
+        piecesJointes: [
+          { nomFichier: 'Facture-F-1.pdf', contenu: pdf, typeMime: 'application/pdf' },
+        ],
       });
     },
   );
@@ -506,6 +539,7 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
         identifiantMessagePrestataire: 'x',
       });
       const courriel = courrielFactice({ succes: false, erreur: 'boîte du destinataire pleine' });
+      const pdf = Buffer.from('%PDF-1.4 contenu factice F-1');
       const { tx } = txFactice([
         { genre: 'select', valeur: [ligneRegle({ canaux: ['email'] })] },
         { genre: 'execute', valeur: [{ id: 'relance-1' }] },
@@ -522,6 +556,8 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
               totalTtcCentimes: 1000,
               soldeCentimes: 1000,
               dateEcheance: '2026-06-01',
+              pdfCle: 'tid-1/doc-1.pdf',
+              pdfSha256: null,
               email: 'client@example.ch',
               telephoneE164: null,
               plusAucunContact: false,
@@ -541,11 +577,15 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
         journalFactice(),
         courriel,
         configFactice(),
+        stockagePdfFactice({ 'tid-1/doc-1.pdf': pdf }),
       );
 
       const resultat = await service.envoyerPretes(CTX);
       expect(resultat).toEqual({ envoyees: 0, echouees: 1, annulees: 0, encoreATraiter: false });
       expect(adaptateur.envoyer).not.toHaveBeenCalled();
+      // La panne vient bien du TRANSPORT (PDF résolu avec succès) — jamais confondue avec le
+      // rejet « contenu_refuse » d'un PDF manquant (voir les tests dédiés plus bas).
+      expect(courriel.envoyer).toHaveBeenCalledTimes(1);
     },
   );
 
@@ -590,6 +630,7 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
         journalFactice(),
         courriel,
         configFactice(),
+        stockagePdfFactice(),
       );
 
       const resultat = await service.envoyerPretes(CTX);
@@ -612,6 +653,7 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
         journalFactice(),
       );
 
+      const pdf = Buffer.from('%PDF-1.4 contenu factice F-42');
       const { tx } = txFactice([
         { genre: 'select', valeur: [ligneRegle({ canaux: ['email'] })] },
         { genre: 'execute', valeur: [{ id: 'relance-1' }] },
@@ -634,6 +676,8 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
               totalTtcCentimes: 123450,
               soldeCentimes: 123450,
               dateEcheance: '2026-06-01',
+              pdfCle: 'tid-1/doc-1.pdf',
+              pdfSha256: null,
               email: 'client@example.ch',
               telephoneE164: null,
               plusAucunContact: false,
@@ -654,6 +698,7 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
         journalFactice(),
         serviceCourriel,
         configFactice({ SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' }),
+        stockagePdfFactice({ 'tid-1/doc-1.pdf': pdf }),
       );
 
       const resultat = await service.envoyerPretes(CTX);
@@ -670,6 +715,12 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
       expect(enveloppe.corpsTexte).toContain('Mahnung 2');
       expect(enveloppe.corpsTexte).toContain('F-42');
       expect(enveloppe.corpsTexte).toContain("1'234.50");
+      // Nouveauté de cette issue : la facture PART DÉSORMAIS AVEC son PDF en pièce jointe —
+      // preuve « en exécution » (chemin RÉEL, aucun double de transport), pas seulement au niveau
+      // du double `courrielFactice`.
+      expect(enveloppe.piecesJointes).toEqual([
+        { nomFichier: 'Facture-F-42.pdf', contenu: pdf, typeMime: 'application/pdf' },
+      ]);
     },
   );
 
@@ -678,6 +729,7 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
       'SMTP_EXPEDITEUR pour le Reply-To (jamais un envoi bloqué faute de contact garage connu)',
     async () => {
       const courriel = courrielFactice();
+      const pdf = Buffer.from('%PDF-1.4 contenu factice F-1');
       const { tx } = txFactice([
         { genre: 'select', valeur: [ligneRegle({ canaux: ['email'] })] },
         { genre: 'execute', valeur: [{ id: 'relance-1' }] },
@@ -700,6 +752,8 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
               totalTtcCentimes: 1000,
               soldeCentimes: 1000,
               dateEcheance: '2026-06-01',
+              pdfCle: 'tid-1/doc-1.pdf',
+              pdfSha256: null,
               email: 'client@example.ch',
               telephoneE164: null,
               plusAucunContact: false,
@@ -720,11 +774,129 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
         journalFactice(),
         courriel,
         configFactice({ SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' }),
+        stockagePdfFactice({ 'tid-1/doc-1.pdf': pdf }),
       );
 
       await service.envoyerPretes(CTX);
 
       expect(courriel.appels[0]?.adresseReponseGarage).toBe('no-reply@dmsforall.example');
+    },
+  );
+
+  it(
+    'RÉGRESSION ÉVITÉE (arbitrage du coordinateur) : pdfCle NULL (facture jamais consultée/' +
+      'imprimée) → AUCUN envoi amputé — le socle courriel n’est JAMAIS appelé, la ligne repasse ' +
+      '"prete" (retentée au passage suivant), et l’absence est journalisée en warn',
+    async () => {
+      const courriel = courrielFactice();
+      const journal = journalFactice();
+      const { tx } = txFactice([
+        { genre: 'select', valeur: [ligneRegle({ canaux: ['email'] })] },
+        { genre: 'execute', valeur: [{ id: 'relance-1' }] },
+        { genre: 'execute', valeur: ligneExpediteurGarage() },
+        { genre: 'updateReturning', valeur: [{ id: 'relance-1', objetId: 'doc-1', palier: 1 }] },
+        {
+          genre: 'execute',
+          valeur: [
+            {
+              numero: 'F-1',
+              statut: 'emis',
+              contentieux: false,
+              statutReglement: 'non_regle',
+              totalTtcCentimes: 1000,
+              soldeCentimes: 1000,
+              dateEcheance: '2026-06-01',
+              pdfCle: null,
+              pdfSha256: null,
+              email: 'client@example.ch',
+              telephoneE164: null,
+              plusAucunContact: false,
+              langue: 'fr',
+            },
+          ],
+        },
+        { genre: 'execute', valeur: [{ n: 0 }] },
+        { genre: 'execute', valeur: [] }, // insert relance_envoi (échoué)
+        { genre: 'update', valeur: undefined }, // statut repasse à 'prete'
+      ]);
+      const { acces } = accesFactice(tx);
+      const service = new ServiceRelancesFacture(
+        acces,
+        registreFactice(null),
+        horlogeFixe('2026-08-05'),
+        journal,
+        courriel,
+        configFactice(),
+        stockagePdfFactice(), // aucune clé peuplée — n'a pas d'importance, jamais atteinte ici
+      );
+
+      const resultat = await service.envoyerPretes(CTX);
+
+      expect(resultat).toEqual({ envoyees: 0, echouees: 1, annulees: 0, encoreATraiter: false });
+      expect(courriel.envoyer).not.toHaveBeenCalled();
+      expect(journal.warn).toHaveBeenCalledWith(
+        'relances.envoi.pdf_absent',
+        expect.objectContaining({ tenantId: 'tid-1' }),
+      );
+    },
+  );
+
+  it(
+    'RÉGRESSION ÉVITÉE : pdfCle posé mais le fichier est illisible (piège vérifié sur ' +
+      '`copierPdfDocumentsEnCache` — jamais confondre "aucun PDF" et "PDF illisible") → AUCUN ' +
+      'envoi amputé, journalisé en ERROR (pas warn : incohérence de stockage, pas un état normal)',
+    async () => {
+      const courriel = courrielFactice();
+      const journal = journalFactice();
+      const { tx } = txFactice([
+        { genre: 'select', valeur: [ligneRegle({ canaux: ['email'] })] },
+        { genre: 'execute', valeur: [{ id: 'relance-1' }] },
+        { genre: 'execute', valeur: ligneExpediteurGarage() },
+        { genre: 'updateReturning', valeur: [{ id: 'relance-1', objetId: 'doc-1', palier: 1 }] },
+        {
+          genre: 'execute',
+          valeur: [
+            {
+              numero: 'F-1',
+              statut: 'emis',
+              contentieux: false,
+              statutReglement: 'non_regle',
+              totalTtcCentimes: 1000,
+              soldeCentimes: 1000,
+              dateEcheance: '2026-06-01',
+              pdfCle: 'tid-1/doc-1.pdf',
+              pdfSha256: null,
+              email: 'client@example.ch',
+              telephoneE164: null,
+              plusAucunContact: false,
+              langue: 'fr',
+            },
+          ],
+        },
+        { genre: 'execute', valeur: [{ n: 0 }] },
+        { genre: 'execute', valeur: [] }, // insert relance_envoi (échoué)
+        { genre: 'update', valeur: undefined }, // statut repasse à 'prete'
+      ]);
+      const { acces } = accesFactice(tx);
+      const service = new ServiceRelancesFacture(
+        acces,
+        registreFactice(null),
+        horlogeFixe('2026-08-05'),
+        journal,
+        courriel,
+        configFactice(),
+        stockagePdfFactice(), // clé demandée absente de la map → lire() lève
+      );
+
+      const resultat = await service.envoyerPretes(CTX);
+
+      expect(resultat).toEqual({ envoyees: 0, echouees: 1, annulees: 0, encoreATraiter: false });
+      expect(courriel.envoyer).not.toHaveBeenCalled();
+      expect(journal.error).toHaveBeenCalledWith(
+        'relances.envoi.pdf_illisible',
+        expect.any(Error),
+        expect.objectContaining({ tenantId: 'tid-1', pdfCle: 'tid-1/doc-1.pdf' }),
+      );
     },
   );
 });

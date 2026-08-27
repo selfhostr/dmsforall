@@ -3,13 +3,11 @@ import { BullModule } from '@nestjs/bullmq';
 import { raw } from 'express';
 
 import { AnalyseRepriseController } from './analyse/analyse.controller';
-import { ProcesseurAnalyseReprise } from './analyse/processeur-analyse-reprise';
 import { ServiceAnalyseReprise } from './analyse/service-analyse-reprise';
 import { StockageArchiveRepriseDisqueLocal } from './depot/stockage-archive-reprise';
 import { ServiceDepotReprise } from './depot/service-depot-reprise';
 import { TrancheRepriseController } from './depot/tranche-reprise.controller';
 import { DossierRepriseController } from './dossier-reprise.controller';
-import { ProcesseurImportReprise } from './import/processeur-import-reprise';
 import { ImportRepriseController } from './import/import.controller';
 import { ServiceImportReprise } from './import/service-import-reprise';
 import { AdaptateurLecteurArchiveReprise } from './lecture/adaptateur-lecteur-archive-reprise';
@@ -33,6 +31,23 @@ import { ServiceCycleVieDossierReprise } from './service-cycle-vie-dossier-repri
  *
  * Enregistré dans `app.module.ts` (voir son import de `RepriseModule`) — piège vérifié n°1 du
  * projet (contrôleur non déclaré = 404 silencieux) refermé par cet agent.
+ *
+ * `BullModule.registerQueue` pour LES DEUX files reste ici, INCONDITIONNEL (jamais gaté par
+ * `MODE_PROCESSUS`) — chantier « découplage worker/API » (27.08.2026) : `ServiceAnalyseReprise`/
+ * `ServiceImportReprise`/`ServicePlanReprise` sont des PRODUCTEURS (`@InjectQueue`, `queue.add(...)`
+ * déclenché depuis `AnalyseRepriseController`/`ImportRepriseController`/`PlanRepriseController` —
+ * un utilisateur qui lance une analyse ou un import HTTP doit pouvoir poser le job même quand ce
+ * process tourne en mode 'api' pur, sans worker). Seuls les DEUX `@Processor`
+ * (`ProcesseurAnalyseReprise`/`ProcesseurImportReprise`, les CONSOMMATEURS) ont déménagé dans
+ * `reprise-job.module.ts`, un second `@Module` DYNAMIQUE enregistré séparément dans
+ * `app.module.ts` — voir son en-tête pour le mécanisme complet et pourquoi `RepriseModule`
+ * lui-même reste une classe statique inchangée (importée à la fois ici et par
+ * `exploitation/cycle-vie-tenant/cycle-vie-tenant.module.ts` : le faire varier par mode aurait créé
+ * une seconde instance de tout ce module côté `CycleVieTenantModule`, voir le même en-tête).
+ *
+ * `ServiceAnalyseReprise`/`ServiceImportReprise` désormais EXPORTÉS (ajout du même chantier) :
+ * `reprise-job.module.ts` en a besoin pour construire `ProcesseurAnalyseReprise`/
+ * `ProcesseurImportReprise`, qui vivent maintenant HORS de ce module.
  */
 @Module({
   imports: [
@@ -50,10 +65,8 @@ import { ServiceCycleVieDossierReprise } from './service-cycle-vie-dossier-repri
     ServiceCycleVieDossierReprise,
     ServiceDepotReprise,
     ServiceAnalyseReprise,
-    ProcesseurAnalyseReprise,
     ServicePlanReprise,
     ServiceImportReprise,
-    ProcesseurImportReprise,
     { provide: JETON_STOCKAGE_ARCHIVE_REPRISE, useClass: StockageArchiveRepriseDisqueLocal },
     { provide: JETON_LECTEUR_ARCHIVE_REPRISE, useClass: AdaptateurLecteurArchiveReprise },
   ],
@@ -61,7 +74,14 @@ import { ServiceCycleVieDossierReprise } from './service-cycle-vie-dossier-repri
   // résiliation (`ServiceCycleVieResiliation.purger`, mandat nLPD 24/25.08.2026) doit effacer les
   // archives binaires déposées sur disque pour le tenant, via CETTE MÊME abstraction (jamais un
   // accès disque en dur dans le service de résiliation). Voir `stockage-archive-reprise.ts`.
-  exports: [ServiceCycleVieDossierReprise, JETON_STOCKAGE_ARCHIVE_REPRISE],
+  // `ServiceAnalyseReprise`/`ServiceImportReprise` : exportés pour `reprise-job.module.ts` (voir
+  // ci-dessus).
+  exports: [
+    ServiceCycleVieDossierReprise,
+    JETON_STOCKAGE_ARCHIVE_REPRISE,
+    ServiceAnalyseReprise,
+    ServiceImportReprise,
+  ],
 })
 export class RepriseModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {

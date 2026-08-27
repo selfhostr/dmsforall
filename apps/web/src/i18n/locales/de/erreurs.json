@@ -165,7 +165,9 @@
     "REPRISE_EMPREINTE_INVALIDE": "Das empfangene Archiv stimmt nicht mit dem gesendeten überein. Laden Sie es erneut hoch.",
     "REPRISE_TRANCHE_HORS_SEQUENCE": "Der Upload der Datei wurde unterbrochen. Versuchen Sie es erneut — er wird dort fortgesetzt, wo er aufgehört hat, nichts geht verloren.",
     "REPRISE_PLAN_NON_VALIDABLE": "Was übernommen wird kann in diesem Schritt nicht mehr bestätigt werden. Laden Sie die Seite neu, um den aktuellen Status zu sehen.",
-    "REPRISE_AJUSTEMENT_ELEMENT_INCONNU": "Diese Anpassung bezieht sich auf einen Bereich, der im aktuellen Plan nicht existiert. Kontaktieren Sie den Support, falls das Problem weiterhin besteht."
+    "REPRISE_AJUSTEMENT_ELEMENT_INCONNU": "Diese Anpassung bezieht sich auf einen Bereich, der im aktuellen Plan nicht existiert. Kontaktieren Sie den Support, falls das Problem weiterhin besteht.",
+    "AUTH_JETON_REINITIALISATION_INVALIDE": "Dieser Rücksetzungslink ist nicht mehr gültig. Fordern Sie einen neuen Link an.",
+    "FACTURE_DESTINATAIRE_COURRIEL_ABSENT": "Dieser Kunde hat keine registrierte E-Mail-Adresse. Ergänzen Sie die Kundenakte und versuchen Sie es dann erneut."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Nachtragsofferte erstellen",

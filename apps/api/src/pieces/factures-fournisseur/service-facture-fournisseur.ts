@@ -264,11 +264,11 @@ export class ServiceFactureFournisseur {
         )`);
       }
       if (params.statut && params.statut.length > 0) {
+        // DÉFAUT CONSTATÉ (corrigé, balayage du 27.08.2026) : `ff.statut::text in (...)` castait
+        // l'enum en `text` avant comparaison, opaque aux statistiques PostgreSQL de la colonne —
+        // même défaut que `client.statut` (`service-client.ts`). Comparaison native sur l'enum.
         conditions.push(
-          sql`ff.statut::text in (${sql.join(
-            params.statut.map((s) => sql`${s}`),
-            sql`, `,
-          )})`,
+          sql`ff.statut = any(${sql.param(params.statut)}::public.statut_facture_fournisseur[])`,
         );
       }
       if (params.fournisseurId) conditions.push(sql`ff.fournisseur_id = ${params.fournisseurId}`);

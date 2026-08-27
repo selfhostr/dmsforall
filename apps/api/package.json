@@ -5,8 +5,10 @@
   "description": "API DFA — NestJS, PostgreSQL/Drizzle, Redis",
   "scripts": {
     "dev": "nest start --watch",
+    "dev:worker": "nest start --watch --entryFile main-worker",
     "build": "nest build",
     "start:prod": "node dist/main.js",
+    "start:worker": "node dist/main-worker.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --project unitaire",
     "test:watch": "vitest --project unitaire",

@@ -1,18 +1,13 @@
 import { Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bullmq';
 
 import { JETON_SERVICE_MOT_DE_PASSE } from '../auth/jetons';
 import { ServiceMotDePasseArgon2id } from '../auth/services/mot-de-passe.service';
 
-import { NOM_FILE_CLOTURE_AUTOMATIQUE_POINTAGE } from './cloture-automatique-pointage.jetons';
-import { OrdonnanceurClotureAutomatiquePointage } from './ordonnanceur-cloture-automatique-pointage';
 import { PinController } from './pin.controller';
 import { PointagePeriodeController } from './pointage-periode.controller';
 import { PointageController } from './pointage.controller';
-import { ProcesseurClotureAutomatiquePointage } from './processeur-cloture-automatique-pointage';
 import { ServiceClotureAutomatiquePointage } from './service-cloture-automatique-pointage';
 import { ServiceIdentificationPin } from './service-identification-pin';
-import { ServiceJobClotureAutomatiquePointage } from './service-job-cloture-automatique-pointage';
 import { ServiceLecturePointage } from './service-lecture-pointage';
 import { ServicePointage } from './service-pointage';
 import { ServiceVerrouillagePeriode } from './service-verrouillage-periode';
@@ -36,6 +31,25 @@ import { ServiceVerrouillagePin } from './service-verrouillage-pin';
  * directement via le schéma Drizzle partagé (`references.ts`, `pointage-requetes.ts`), jamais via
  * les services internes d'`atelier/` — pas de dépendance de compilation entre modules d'experts
  * parallèles (même doctrine que `atelier/or-requetes.ts` vis-à-vis de `vehicules`/`clients`).
+ *
+ * `ServiceClotureAutomatiquePointage` (métier pur, une transaction par tenant, RLS — AUCUNE
+ * connaissance de BullMQ) reste ici et EXPORTÉ. Son branchement BullMQ (file, `@Processor`,
+ * ordonnanceur quotidien) a DÉMÉNAGÉ le 27.08.2026 (chantier « découplage worker/API ») dans
+ * `pointage-cloture-automatique-job.module.ts`, un second `@Module` DYNAMIQUE (`.pourConfig`),
+ * enregistré séparément dans `app.module.ts` — JAMAIS importé ici, pour deux raisons :
+ *   1. `PointageModule` lui-même reste importé TEL QUEL (classe statique, sans `.pourConfig`) à
+ *      la fois par `app.module.ts` ET par `atelier/atelier.module.ts` (pour `JETON_LECTURE_
+ *      POINTAGE`) — Nest déduplique un import statique par RÉFÉRENCE DE CLASSE, mais PAS deux
+ *      appels séparés à `.pourConfig(...)` (chacun produit un objet distinct, donc un second
+ *      graphe/une seconde instance de tout ce module, y compris ses contrôleurs — vérifié dans le
+ *      code de `@nestjs/core`, `ByReferenceModuleOpaqueKeyFactory`). Faire varier CE module par
+ *      mode l'aurait donc cassé silencieusement dès qu'`atelier.module.ts` l'importe. Le bundle
+ *      BullMQ, lui, n'est importé que d'un seul endroit (`app.module.ts`) : aucun risque.
+ *   2. C'est exactement ce que prévoyait déjà le commentaire de tête d'`ordonnanceur-cloture-
+ *      automatique-pointage.ts` avant ce chantier (« un second `@Module` séparé devrait être
+ *      enregistré explicitement dans `app.module.ts` — hors du périmètre d'écriture exclusif de
+ *      cet agent ») : ce chantier a précisément accès à `app.module.ts`, donc le déplacement
+ *      annoncé peut enfin avoir lieu.
  */
 /**
  * MODE BORNE PIN — provider de hachage local. `ServiceIdentificationPin` réutilise le MÊME primitif
@@ -49,14 +63,6 @@ import { ServiceVerrouillagePin } from './service-verrouillage-pin';
  * fourni globalement par `LimitationModule` — rien à importer ici.
  */
 @Module({
-  imports: [
-    // Socle BullMQ (`OrdonnancementModule`, monté une seule fois à la racine de l'app) —
-    // `registerQueue` se raccroche automatiquement à la connexion Redis posée par
-    // `BullModule.forRootAsync`, aucun import explicite d'`OrdonnancementModule` requis (même
-    // constat que `vehicules/referentiel/referentiel-vehicules-ch-job.module.ts`, le modèle suivi
-    // ici — voir `ordonnanceur-cloture-automatique-pointage.ts` pour le détail complet).
-    BullModule.registerQueue({ name: NOM_FILE_CLOTURE_AUTOMATIQUE_POINTAGE }),
-  ],
   controllers: [PointageController, PointagePeriodeController, PinController],
   providers: [
     ServicePointage,
@@ -64,19 +70,7 @@ import { ServiceVerrouillagePin } from './service-verrouillage-pin';
     ServiceLecturePointage,
     ServiceIdentificationPin,
     ServiceVerrouillagePin,
-    // RM-91/RM-119 : clôture automatique de fin de journée — DÉSORMAIS DÉCLENCHÉE (chantier
-    // "socle d'ordonnancement", 17.08.2026). `ServiceClotureAutomatiquePointage` reste le service
-    // métier pur (une transaction par tenant, RLS) ; les trois providers suivants le branchent à
-    // BullMQ : `ServiceJobClotureAutomatiquePointage` (orchestration multi-tenant),
-    // `ProcesseurClotureAutomatiquePointage` (`@Processor`, consomme la file),
-    // `OrdonnanceurClotureAutomatiquePointage` (`OnApplicationBootstrap`, programme le
-    // déclenchement quotidien via `Queue.upsertJobScheduler` — voir son en-tête pour pourquoi
-    // c'est un PROVIDER de CE module plutôt qu'un second `@Module` séparé enregistré dans
-    // `app.module.ts`, hors périmètre d'écriture de cet agent).
     ServiceClotureAutomatiquePointage,
-    ServiceJobClotureAutomatiquePointage,
-    ProcesseurClotureAutomatiquePointage,
-    OrdonnanceurClotureAutomatiquePointage,
     { provide: JETON_SERVICE_MOT_DE_PASSE, useClass: ServiceMotDePasseArgon2id },
   ],
   exports: [

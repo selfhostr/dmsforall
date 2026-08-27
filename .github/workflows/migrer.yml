@@ -1,0 +1,137 @@
+name: Jouer les migrations en production
+
+# SÉPARÉ de deployer.yml, DÉLIBÉRÉMENT — c'est le point le plus important de ce chantier (voir
+# docs/deploiement-production.md §Séquence pour le raisonnement complet, résumé ici) :
+#
+#   - Les migrations de ce dépôt sont expand/contract (voir CONTRIBUTING.md, ARCHITECTURE.md) : une
+#     migration EXPAND (ajout de colonne/table nullable, nouvel index…) est construite pour être
+#     SANS DANGER pendant que l'ANCIEN code tourne encore dessus — c'est cette propriété qui rend
+#     possible l'ordre migrer PUIS déployer (voir ci-dessous), jamais l'inverse (le nouveau code
+#     suppose la migration déjà appliquée, il planterait immédiatement si on le déployait avant).
+#   - Automatiser CE workflow à la suite d'un push de tag retirerait au garagiste — et à @laupernoe — la
+#     possibilité de refuser une migration à un mauvais moment (heure de pointe d'un garage,
+#     doute sur une migration CONTRACT en particulier — voir le commentaire de tête de chaque
+#     migration 000N pour savoir si elle est expand ou contract). `workflow_dispatch` uniquement,
+#     jamais un déclencheur automatique : ce choix ne se discute pas dans ce chantier, il est
+#     répété tel quel depuis docker-compose.yml (`profiles: ['migration']`, jamais démarré
+#     par un `docker compose up` normal) — ce workflow n'est qu'une façade AUDITABLE (CI garde une
+#     trace de qui a lancé quoi, quand, sur quel tag) autour du MÊME geste manuel, jamais un
+#     raccourci qui l'automatiserait.
+#
+# SÉQUENCE COMPLÈTE D'UN DÉPLOIEMENT AVEC MIGRATION (voir docs/deploiement-production.md
+# §Séquence pour la version longue, destinée à qui déploie sans contexte) :
+#   1. Lire le diff des migrations du tag à déployer, décider si c'est sûr.
+#   2. CE workflow, sur ce tag — les conteneurs api/web/worker tournent ENCORE sur l'ANCIEN code
+#      pendant cette étape, c'est voulu (voir plus haut pourquoi c'est sans danger pour une
+#      migration EXPAND).
+#   3. Une fois CE workflow vert : deployer.yml, sur le MÊME tag — bascule api/web/worker vers le
+#      nouveau code, qui peut désormais compter sur le schéma migré.
+#
+# `docker compose --profile migration run --rm migrate` (voir docker-compose.yml) se connecte
+# avec DATABASE_URL_MIGRATION (rôle dfa_migrator, jamais dfa_app) et exécute `dist/db/migrer.js` —
+# MÊME image que le tag choisi (voir docker-compose.yml, service `migrate` :
+# `image: ${API_IMAGE}`), donc les migrations appliquées sont TOUJOURS celles que ce tag précis
+# attend, jamais un décalage entre le code lu et le schéma joué. La séquence distante vit dans
+# .github/scripts/migrer-distant.sh (même patron que deployer.yml, voir son en-tête pour pourquoi
+# un fichier `.sh` séparé plutôt qu'un heredoc embarqué ici).
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: >-
+          Tag dont les migrations doivent être jouées (ex. v0.5.0) — doit déjà être publié par
+          « Publier les images ». Vérifier le diff des migrations AVANT de lancer ce workflow :
+          git diff <tag-precedent>..<tag> -- apps/api/src/db/migrations/
+        required: true
+        type: string
+
+# Jamais deux migrations en vol en même temps sur la même base — annuler un run en cours serait
+# pire que le laisser filer (une migration interrompue à mi-chemin est un état incertain, pas
+# annulable proprement).
+concurrency:
+  group: migrer-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  migrer:
+    name: Migrer vers ${{ inputs.tag }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Hôte du registre de conteneurs
+        id: registre
+        env:
+          SERVER_URL: ${{ github.server_url }}
+        run: |
+          set -euo pipefail
+          HOTE="${SERVER_URL#http://}"
+          HOTE="${HOTE#https://}"
+          HOTE="${HOTE%/}"
+          echo "hote=${HOTE}" >> "$GITHUB_OUTPUT"
+
+      - name: Nom du propriétaire en minuscule (exigence du registre)
+        id: repo
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: echo "owner=$(echo "$OWNER" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Authentification au registre de conteneurs
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ steps.registre.outputs.hote }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.REGISTRE_IMAGES_TOKEN }}
+
+      - name: Vérifier que l'image API existe déjà sur le registre
+        env:
+          IMAGE_API: ${{ steps.registre.outputs.hote }}/${{ steps.repo.outputs.owner }}/dfa-api:${{ inputs.tag }}
+        run: docker manifest inspect "$IMAGE_API" >/dev/null
+
+      # MÊME préparation SSH que deployer.yml — voir ses commentaires pour le détail (empreinte
+      # de l'hôte, clé dédiée). Dupliquée plutôt que factorisée : deux fichiers courts valent
+      # mieux qu'un `workflow_call` partagé pour une poignée de lignes, surtout pour deux workflows
+      # dont on veut pouvoir lire chacun ISOLÉMENT à 22h un vendredi sans sauter d'un fichier à
+      # l'autre.
+      - name: Préparer la clé SSH de déploiement
+        env:
+          CLE_SSH: ${{ secrets.DEPLOY_CLE_SSH }}
+          HOTE_EMPREINTE: ${{ secrets.DEPLOY_HOTE_EMPREINTE }}
+          HOTE: ${{ secrets.DEPLOY_HOTE }}
+          PORT: ${{ secrets.DEPLOY_PORT }}
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$CLE_SSH" > ~/.ssh/deploiement_ed25519
+          chmod 600 ~/.ssh/deploiement_ed25519
+          if [ -n "$HOTE_EMPREINTE" ]; then
+            printf '%s\n' "$HOTE_EMPREINTE" > ~/.ssh/known_hosts
+          else
+            echo "DEPLOY_HOTE_EMPREINTE absente — TOFU via ssh-keyscan (voir le runbook pour durcir)." >&2
+            ssh-keyscan -p "${PORT:-22}" -H "$HOTE" >> ~/.ssh/known_hosts 2>/dev/null
+          fi
+
+      # `docker compose run` (pas `up`) : job PONCTUEL, le conteneur `migrate` s'arrête de
+      # lui-même une fois `dist/db/migrer.js` terminé — `--rm` le supprime aussitôt, rien à
+      # nettoyer après coup. Le code de sortie de `run` est celui du process migré : une migration
+      # qui échoue fait échouer CETTE étape SSH, donc CE job CI, visible immédiatement dans
+      # l'historique des runs — jamais besoin d'aller chercher le résultat ailleurs.
+      - name: Jouer les migrations sur le serveur
+        env:
+          DEPLOY_HOTE: ${{ secrets.DEPLOY_HOTE }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_UTILISATEUR: ${{ secrets.DEPLOY_UTILISATEUR }}
+          DEPLOY_CHEMIN: ${{ secrets.DEPLOY_CHEMIN }}
+          TAG: ${{ inputs.tag }}
+          IMAGE_API: ${{ steps.registre.outputs.hote }}/${{ steps.repo.outputs.owner }}/dfa-api:${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploiement_ed25519 -p "${DEPLOY_PORT:-22}" \
+            -o StrictHostKeyChecking=yes -o BatchMode=yes \
+            "${DEPLOY_UTILISATEUR}@${DEPLOY_HOTE}" \
+            "TAG='${TAG}' IMAGE_API='${IMAGE_API}' DEPLOY_CHEMIN='${DEPLOY_CHEMIN}' bash -s" \
+            < .github/scripts/migrer-distant.sh

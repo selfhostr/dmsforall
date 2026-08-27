@@ -12,3 +12,13 @@ export const JETON_SERVICE_MOT_DE_PASSE = Symbol.for('DFA_SERVICE_MOT_DE_PASSE')
 
 /** Jeton de `ServiceSession` — voir `services/session.service.ts`. */
 export const JETON_SERVICE_SESSION = Symbol.for('DFA_SERVICE_SESSION');
+
+/**
+ * Jeton de `ServiceReinitialisationMotDePasse` — voir
+ * `services/reinitialisation-mot-de-passe.service.ts`. Exporté par `AuthModule` pour que
+ * `SocleModule` (`ServiceUtilisateur.reinitialiserAcces`) puisse révoquer les jetons en
+ * libre-service encore valides d'un employé, même patron que `JETON_SERVICE_MOT_DE_PASSE`.
+ */
+export const JETON_SERVICE_REINITIALISATION_MOT_DE_PASSE = Symbol.for(
+  'DFA_SERVICE_REINITIALISATION_MOT_DE_PASSE',
+);

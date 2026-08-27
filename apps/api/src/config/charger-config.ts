@@ -4,6 +4,7 @@ import { schemaConfigCourriel } from '../courriel/config-courriel';
 import { schemaConfigConsole } from '../exploitation/config-console';
 import { schemaConfigJobPurgeAutomatiqueTenant } from '../exploitation/cycle-vie-tenant/config-job-purge-automatique-tenant';
 import { schemaConfigJobClotureAutomatiquePointage } from '../pointage/config-job-cloture-automatique-pointage';
+import { schemaConfigJobRelances } from '../relances/config-job-relances';
 import { schemaConfigJobReferentielVehiculesCh } from '../vehicules/referentiel/config-job-referentiel-vehicules-ch';
 import { schemaConfigOcrPermis } from '../vehicules/ocr/config-ocr';
 import { calculerBrancheParDefaut, calculerVersionAppParDefaut } from './version-app';
@@ -17,6 +18,21 @@ export const JETON_CONFIG = Symbol.for('DFA_CONFIG');
 export const schemaConfig = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+    // Rôle du process (chantier « socle d'ordonnancement — découplage worker/API », 27.08.2026) —
+    // voir `apps/api/src/ordonnancement/mode-processus.ts` pour les deux fonctions qui LISENT
+    // cette valeur (jamais une comparaison directe dispersée dans chaque module de job) :
+    //   - 'api'     : `apps/api/src/main.ts`, aucun processeur BullMQ enregistré (pas seulement
+    //                 inactif — absent du graphe Nest, voir les modules `*JobModule` de chaque
+    //                 domaine job) ;
+    //   - 'worker'  : `apps/api/src/main-worker.ts`, aucun serveur HTTP métier (application
+    //                 context Nest pur + sonde de santé minimale sur PORT, voir ce fichier) ;
+    //   - 'combine' : DÉFAUT — les deux à la fois, dans le MÊME process. Reste le défaut pour que
+    //                 `pnpm dev` (qui démarre `main.ts` sans variable supplémentaire) continue de
+    //                 tout exécuter localement, exactement comme avant ce chantier.
+    // Producteurs BullMQ (`@InjectQueue`, ex. `ServiceAnalyseReprise.lancer`) ni gardés ni coupés
+    // par cette variable : un `Queue` producteur ne consomme rien, il reste toujours disponible
+    // pour qu'un endpoint HTTP puisse poser un job, y compris en mode 'api' pur.
+    MODE_PROCESSUS: z.enum(['api', 'worker', 'combine']).default('combine'),
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
     API_URL_PUBLIQUE: z.string().url(),
     WEB_URL_PUBLIQUE: z.string().url(),
@@ -253,6 +269,14 @@ export const schemaConfig = z
     // motif de planification `undefined` : l'inscription du planificateur échouerait probablement
     // au démarrage de l'API.
     ...schemaConfigJobPurgeAutomatiqueTenant.shape,
+    // --- Job horaire de relances de facturation (rappel #2,
+    // docs/specification-relances-automatiques.md) ---
+    // Bloc défini une seule fois dans `relances/config-job-relances.ts` et fusionné ici via
+    // `.shape`, même patron que les blocs de job ci-dessus. Sans cette fusion,
+    // RELANCES_FACTURE_JOB_ACTIF/_CRON restent silencieusement `undefined` au runtime même posées
+    // dans `.env` — le job reste inactif quoi qu'on écrive dans l'environnement (fail-closed,
+    // jamais un envoi accidentel, mais aussi jamais un job programmable).
+    ...schemaConfigJobRelances.shape,
   })
   .superRefine((c, ctx) => {
     if (c.NODE_ENV === 'production' && !c.COOKIE_SECURE) {

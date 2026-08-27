@@ -67,11 +67,11 @@ import { ServiceRelancesFacture } from './service-relances-facture';
  * attendant ». Une action dédiée (`relances.facturation.historique.lire`) resterait plus lisible
  * dans `matrice-droits.ts` à terme ; signalé au coordinateur, pas bloquant pour ce livrable.
  *
- * AUCUN ORDONNANCEUR : `POST .../planifier` et `POST .../envoyer` sont des opérations APPELABLES
- * à la demande — un futur déclencheur périodique (cron applicatif, job BullMQ répété) les
- * invoquera à intervalle régulier, voir le rapport de livraison de ce lot pour ce qui manque
- * côté infrastructure, y compris l'identité machine sous laquelle un tel déclencheur devrait
- * s'authentifier (aucun des deux rôles autorisés ci-dessus ne désigne un compte de service).
+ * `POST .../planifier` et `POST .../envoyer` restent des opérations APPELABLES À LA DEMANDE — un
+ * ORDONNANCEUR HORAIRE les invoque désormais aussi automatiquement pour chaque tenant actif
+ * (`relances/relances-job.module.ts`, BullMQ, gaté par `MODE_PROCESSUS`) — voir
+ * `orchestration-job-relances.ts` pour l'identité système sous laquelle il agit
+ * (`ContexteTenant.utilisateurId = null`, jamais un des deux rôles ci-dessus fabriqué).
  */
 @ApiTags('Relances')
 @ApiCookieAuth()

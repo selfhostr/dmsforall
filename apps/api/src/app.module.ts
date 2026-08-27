@@ -20,6 +20,7 @@ import { ConnecteursModule } from './connecteurs/connecteurs.module';
 import { CourrielModule } from './courriel';
 import { DbModule } from './db/db.module';
 import { ExploitationModule } from './exploitation';
+import { CycleVieTenantJobModule } from './exploitation/cycle-vie-tenant/cycle-vie-tenant-job.module';
 import { CycleVieTenantModule } from './exploitation/cycle-vie-tenant/cycle-vie-tenant.module';
 import { FacturationModule } from './facturation/facturation.module';
 import { ImpressionModule } from './facturation/impression/impression.module';
@@ -27,15 +28,19 @@ import { OrdonnancementModule } from './ordonnancement';
 import { ParametrageModule } from './parametrage/parametrage.module';
 import { PiecesModule } from './pieces/pieces.module';
 import { PneusModule } from './pneus/pneus.module';
+import { PointageClotureAutomatiqueJobModule } from './pointage/pointage-cloture-automatique-job.module';
 import { PointageModule } from './pointage/pointage.module';
 import { RechercheModule } from './recherche/recherche.module';
+import { RelancesJobModule } from './relances/relances-job.module';
 import { RelancesModule } from './relances/relances.module';
+import { RepriseJobModule } from './reprise/reprise-job.module';
 import { RepriseModule } from './reprise/reprise.module';
 import { RendezVousModule } from './rendezvous/rendezvous.module';
 import { SanteModule } from './sante';
 import { SocleModule } from './socle';
 import { TableauBordModule } from './tableau-bord/tableau-bord.module';
 import { TempsReelModule } from './temps-reel';
+import { ReferentielVehiculesChJobModule } from './vehicules/referentiel/referentiel-vehicules-ch-job.module';
 import { VehiculesModule } from './vehicules/vehicules.module';
 import { VentesModule } from './ventes/ventes.module';
 
@@ -53,10 +58,18 @@ export class AppModule implements NestModule {
         SanteModule,
         // Socle d'ordonnancement (BullMQ) — PREMIER ordonnanceur de ce dépôt, voir
         // `ordonnancement/ordonnancement.module.ts` pour le choix d'architecture complet. Monté
-        // une seule fois ici ; tout module de job (ex. `VehiculesModule`, qui porte le job
-        // quotidien de contrôle/import du référentiel véhicules ASTRA) importe `BullModule.
-        // registerQueue(...)` directement, sans réimporter celui-ci — voir `referentiel-
-        // vehicules-ch-job.module.ts`.
+        // une seule fois ici ; tout module de job (ex. `ReferentielVehiculesChJobModule`, le job
+        // quotidien de contrôle/import du référentiel véhicules ASTRA, plus bas) importe
+        // `BullModule.registerQueue(...)` directement, sans réimporter celui-ci.
+        //
+        // Les quatre bundles de job du dépôt (ASTRA, clôture pointage, reprise, cycle de vie
+        // tenant) sont chacun des modules `*JobModule` DYNAMIQUES (`.pourConfig(config)`), gatés
+        // par `config.MODE_PROCESSUS` (chantier « découplage worker/API », 27.08.2026) — voir
+        // `ordonnancement/mode-processus.ts` : vides en mode 'api' (aucun `@Processor` enregistré,
+        // pas seulement inactif), pleins en mode 'worker'/'combine'. Chacun est enregistré ICI, à
+        // côté de son module de domaine, jamais imbriqué DANS ce module de domaine — voir l'en-tête
+        // de chacun (ex. `pointage/pointage-cloture-automatique-job.module.ts`) pour pourquoi
+        // (risque de double-instanciation d'un module importé ailleurs sous forme statique).
         OrdonnancementModule,
         // `CourrielModule` (capacité d'envoi de courriel — SMTP Infomaniak/capture, voir
         // `courriel/`) — SOCLE SEUL, aucun branchement métier pour l'instant (ni relances, ni
@@ -73,6 +86,12 @@ export class AppModule implements NestModule {
         ParametrageModule,
         ClientsModule,
         VehiculesModule,
+        // Job quotidien de contrôle/import du référentiel véhicules ASTRA — DÉPLACÉ hors de
+        // `VehiculesModule` le 27.08.2026 (chantier « découplage worker/API ») : module dynamique
+        // gaté par `MODE_PROCESSUS` (voir `referentiel-vehicules-ch-job.module.ts`), vide en mode
+        // 'api'. Enregistré ici, à côté de `VehiculesModule`, plutôt qu'imbriqué dedans — seul CE
+        // fichier connaît `config` au moment de construire le graphe.
+        ReferentielVehiculesChJobModule.pourConfig(config),
         RechercheModule,
         AtelierModule,
         // `ImpressionOrModule` (GET /ordres-reparation/{orId}/pdf — feuille d'atelier, chantier
@@ -89,6 +108,11 @@ export class AppModule implements NestModule {
         // `JETON_LECTURE_POINTAGE` (`atelier.module.ts`, `useExisting: ServiceLecturePointage`)
         // reste à poser par un correctif distinct — voir la consigne transmise avec ce module.
         PointageModule,
+        // Branchement BullMQ de la clôture automatique de fin de journée du pointage — DÉPLACÉ
+        // hors de `PointageModule` le 27.08.2026 (chantier « découplage worker/API », voir
+        // `pointage-cloture-automatique-job.module.ts`) : module dynamique gaté par
+        // `MODE_PROCESSUS`, vide en mode 'api'.
+        PointageClotureAutomatiqueJobModule.pourConfig(config),
         VentesModule,
         FacturationModule,
         // `ImpressionModule` (GET /documents-vente/{id}/pdf) importe `FacturationModule` lui-même
@@ -121,6 +145,12 @@ export class AppModule implements NestModule {
         // résolution de l'adaptateur `NotificationSender`) ; placé après lui par lisibilité,
         // aucune contrainte d'ordre réelle (même raisonnement que `PneusModule` juste au-dessus).
         RelancesModule,
+        // Branchement BullMQ des relances de facturation (rappel #2) — comble le trou documenté
+        // par `service-relances-facture.ts` (§ en-tête : « Aucun ordonnanceur n'existe dans ce
+        // dépôt »), ajouté le 27.08.2026 : module dynamique gaté par `MODE_PROCESSUS`, vide en
+        // mode 'api', même patron que `PointageClotureAutomatiqueJobModule` etc. plus haut — voir
+        // `relances/relances-job.module.ts`.
+        RelancesJobModule.pourConfig(config),
         // `RendezVousModule` (lot RDV-1 — prise de rendez-vous d'atelier,
         // `docs/conception-rendez-vous-metier.md`/`docs/conception-rendez-vous-donnees.md`) —
         // importe `AtelierModule` lui-même (`ServiceOr`/`ServiceTransitions`, réception du
@@ -134,6 +164,12 @@ export class AppModule implements NestModule {
         // plus haut). ÉTAIT NON ENREGISTRÉ ici jusqu'à cet agent — piège vérifié n°1 du projet
         // (contrôleur non déclaré = 404 silencieux), refermé : voir la tête de `reprise.module.ts`.
         RepriseModule,
+        // Branchement CONSOMMATEUR des deux files de reprise (`ProcesseurAnalyseReprise`/
+        // `ProcesseurImportReprise`) — DÉPLACÉ hors de `RepriseModule` le 27.08.2026 (chantier
+        // « découplage worker/API », voir `reprise-job.module.ts`) : module dynamique gaté par
+        // `MODE_PROCESSUS`, vide en mode 'api'. `RepriseModule` ci-dessus continue de poser les
+        // DEUX files (producteurs HTTP, inconditionnel) — seuls les deux `@Processor` ont bougé.
+        RepriseJobModule.pourConfig(config),
         // `TempsReelModule` (canal SSE générique de notification poste fixe, socle) — importe
         // `AuthModule` lui-même (`JETON_SERVICE_SESSION`, revalidation de session sur une
         // connexion longue) ; aucun module métier ne l'importe encore, il est enregistré ici pour
@@ -159,6 +195,13 @@ export class AppModule implements NestModule {
         // fin, comme `ConnecteursModule`/`RelancesModule`/`TempsReelModule` plus haut : aucune
         // contrainte d'ordre réelle.
         CycleVieTenantModule,
+        // Branchement PLANIFIÉ/CONSOMMATEUR du cycle de vie de sortie du garage (purge
+        // automatique, `@Processor` de l'export) — DÉPLACÉ hors de `CycleVieTenantModule` le
+        // 27.08.2026 (chantier « découplage worker/API », voir `cycle-vie-tenant-job.module.ts`) :
+        // module dynamique gaté par `MODE_PROCESSUS`, vide en mode 'api'. `CycleVieTenantModule`
+        // ci-dessus continue de poser la file d'export (producteur HTTP, inconditionnel) — seuls
+        // la file de purge et les processeurs/ordonnanceurs ont bougé.
+        CycleVieTenantJobModule.pourConfig(config),
       ],
     };
   }

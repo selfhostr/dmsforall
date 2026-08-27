@@ -165,7 +165,9 @@
     "REPRISE_EMPREINTE_INVALIDE": "L'archivio ricevuto non corrisponde a quello inviato. Riprova il caricamento.",
     "REPRISE_TRANCHE_HORS_SEQUENCE": "L'invio del file si è interrotto. Riprova: ripartirà da dove si è fermato, nulla è andato perso.",
     "REPRISE_PLAN_NON_VALIDABLE": "Ciò che verrà ripreso non può più essere convalidato in questa fase. Ricarica la pagina per vedere lo stato attuale.",
-    "REPRISE_AJUSTEMENT_ELEMENT_INCONNU": "Questa modifica riguarda un ambito che non esiste nel piano attuale. Contatta il supporto se il problema persiste."
+    "REPRISE_AJUSTEMENT_ELEMENT_INCONNU": "Questa modifica riguarda un ambito che non esiste nel piano attuale. Contatta il supporto se il problema persiste.",
+    "AUTH_JETON_REINITIALISATION_INVALIDE": "Questo link di ripristino non è più valido. Richiedi un nuovo link.",
+    "FACTURE_DESTINATAIRE_COURRIEL_ABSENT": "Questo cliente non ha un indirizzo e-mail registrato. Completa la scheda cliente, poi riprova."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Crea preventivo supplementare",

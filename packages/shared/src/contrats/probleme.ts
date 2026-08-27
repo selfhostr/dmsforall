@@ -323,6 +323,18 @@ export const CODES_ERREUR = [
   'REPRISE_PLAN_NON_VALIDABLE',
   // `elementId` d'un ajustement (PATCH .../plan) absent du plan courant.
   'REPRISE_AJUSTEMENT_ELEMENT_INCONNU',
+  // --- Réinitialisation de mot de passe en libre-service (auth/, task « socle sécurité ») ---
+  // Un seul code, pour TOUTE issue négative de POST /auth/mot-de-passe/reinitialisation : email
+  // inconnu, jeton inconnu/expiré/déjà utilisé, ou compte/tenant non actif — jamais distingué
+  // (anti-énumération, même doctrine qu'AUTH_IDENTIFIANTS_INVALIDES). Un code AUTH_* dédié plutôt
+  // que la réutilisation d'AUTH_IDENTIFIANTS_INVALIDES : le front a besoin d'un message distinct
+  // (« ce lien n'est plus valide, redemandez-en un ») de celui d'un mauvais mot de passe de
+  // connexion, malgré le même statut 400.
+  'AUTH_JETON_REINITIALISATION_INVALIDE',
+  // --- Envoi de facture par courriel (POST /documents-vente/{id}/envoyer-courriel) ---
+  // Le client n'a aucune adresse courriel enregistrée (`client.email` NULL) — l'action ne peut
+  // structurellement pas aboutir, message clair plutôt qu'un envoi silencieux sans destinataire.
+  'FACTURE_DESTINATAIRE_COURRIEL_ABSENT',
 ] as const;
 export type CodeErreur = (typeof CODES_ERREUR)[number];
 
@@ -467,6 +479,8 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   REPRISE_TRANCHE_HORS_SEQUENCE: 400,
   REPRISE_PLAN_NON_VALIDABLE: 409,
   REPRISE_AJUSTEMENT_ELEMENT_INCONNU: 400,
+  AUTH_JETON_REINITIALISATION_INVALIDE: 400,
+  FACTURE_DESTINATAIRE_COURRIEL_ABSENT: 409,
 };
 
 /**
@@ -597,6 +611,8 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   REPRISE_TRANCHE_HORS_SEQUENCE: 'Numéro de tranche hors séquence',
   REPRISE_PLAN_NON_VALIDABLE: 'Plan de reprise non validable',
   REPRISE_AJUSTEMENT_ELEMENT_INCONNU: 'Élément de plan inconnu',
+  AUTH_JETON_REINITIALISATION_INVALIDE: 'Jeton de réinitialisation invalide',
+  FACTURE_DESTINATAIRE_COURRIEL_ABSENT: "Le client n'a pas d'adresse courriel enregistrée",
 };
 
 /**

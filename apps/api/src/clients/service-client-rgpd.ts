@@ -8,7 +8,6 @@ import type {
   ReponseClientConsentement,
   ReponseClientContact,
   ReponseClientNote,
-  RoleUtilisateur,
   VehiculeResume,
 } from '@dfa/shared';
 
@@ -33,7 +32,6 @@ import {
   versContactResponse,
   versNoteResponse,
 } from './mappers';
-import { ROLES_CLIENT_ANONYMISATION, verifierRoleAutorise } from './droits-provisoires';
 import { ServiceClient } from './service-client';
 import { ServiceClientOrdresReparation } from './service-client-ordres-reparation';
 import { ServiceClientVehicules } from './service-client-vehicules';
@@ -135,12 +133,15 @@ export interface ExportClient {
  *    (`client_anonymisation_tenant_client_uk`, migration 0061). Toute la donnée effacée est
  *    scrubée par `public.anonymiser_client_donnees()` (SECURITY DEFINER — dfa_app n'a pas les
  *    privilèges pour redresser `audit_atelier` seul, voir l'en-tête de la migration) ; CE service
- *    ne fait que : vérifier le rôle (droit PROVISOIRE, voir `droits-provisoires.ts`), poser la
- *    trace `client_anonymisation` (qui/quand/motif STAFF — JAMAIS les données du client), puis
- *    appeler la fonction base. `client_anonymisation` INSÉRÉE AVANT le scrub, dans la MÊME
+ *    pose la trace `client_anonymisation` (qui/quand/motif STAFF — JAMAIS les données du client),
+ *    puis appelle la fonction base. `client_anonymisation` INSÉRÉE AVANT le scrub, dans la MÊME
  *    transaction : la contrainte unique sert de verrou d'idempotence — un second appel échoue par
  *    violation de contrainte, mappée en `409 CLIENT_DEJA_ANONYMISE`, jamais une double
  *    anonymisation silencieuse.
+ *
+ * Le rôle est vérifié EN AMONT par `GardeDroit` (`@ExigerDroit('client.export.generer'
+ * |'client.anonymiser')`, `client-rgpd.controller.ts`, matrice `auth/matrice-droits.ts`) — ce
+ * service ne revérifie plus le rôle lui-même : le palliatif `droits-provisoires.ts` a été retiré.
  */
 @Injectable()
 export class ServiceClientRgpd {
@@ -188,12 +189,9 @@ export class ServiceClientRgpd {
 
   async anonymiser(
     ctx: ContexteTenant,
-    role: RoleUtilisateur,
     clientId: string,
     entree: EntreeAnonymisationClient,
   ): Promise<ReponseClient> {
-    verifierRoleAutorise(role, ROLES_CLIENT_ANONYMISATION, 'client.anonymiser');
-
     await this.acces.enTenant(ctx, async (tx) => {
       const lignes = await tx
         .select({ id: client.id })
@@ -327,7 +325,8 @@ export class ServiceClientRgpd {
       const params = schemaListeOrDuClient.parse({ limite: 200, curseur });
       // `avecMontants: true` — un export nLPD est une divulgation COMPLÈTE au sens de l'art. 25,
       // distincte de la visibilité comptoir des montants (RF-116, `roleVoitLesMontants()`) : ce
-      // droit est déjà gardé au palier `ROLES_CLIENT_EXPORT` (`droits-provisoires.ts`).
+      // droit est déjà gardé au palier `client.export.generer` (`auth/matrice-droits.ts`,
+      // `INFERE_CLIENT_EXPORT`).
       const page = await this.serviceClientOrdresReparation.lister(ctx, clientId, params, true);
       tous.push(...page.donnees);
       if (!page.curseurSuivant) break;

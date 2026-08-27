@@ -20,6 +20,7 @@ export default tseslint.config(
       'e2e/.auth/**',
       'e2e/captures-apres-refonte/**',
       'apps/api/uploads/**',
+      'scripts/banc/resultats/**',
     ],
   },
   js.configs.recommended,

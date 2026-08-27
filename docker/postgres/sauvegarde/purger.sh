@@ -4,6 +4,19 @@
 # sauvegarder.sh après CHAQUE sauvegarde réussie (jamais après un échec : une nuit en échec doit
 # laisser TOUT l'historique existant intact, pas réduire la marge de sécurité au pire moment).
 #
+# PURGE APPARIÉE (correction du 27.08.2026, depuis l'ajout du dump de rôles dans sauvegarder.sh) :
+# chaque nuit produit DEUX fichiers partageant le même horodatage — `dfa_prod_<horodatage>.dump.age`
+# (schéma+données) et `dfa_prod_<horodatage>.roles.sql.age` (rôles). Ce script pilote la décision
+# GARDER/PURGER sur le fichier `.dump.age` (comme avant cette correction) et applique EXACTEMENT
+# la même décision au `.roles.sql.age` de même horodatage — jamais l'inverse, et jamais une
+# décision indépendante pour chacun : un dump schéma+données sans son dump de rôles correspondant
+# est aussi inutilisable pour une restauration sur machine vierge qu'une absence totale (voir
+# restaurer-test.sh), donc les deux fichiers d'une même nuit vivent et meurent ENSEMBLE. RESTE HORS
+# DE CE SCRIPT, PAR CONCEPTION : la copie hors site (voir copier-hors-site.sh) n'est JAMAIS purgée
+# depuis ce dépôt, quelle que soit la rétention locale décidée ici — un fichier peut donc rester
+# indéfiniment hors site après avoir été purgé ici, voir la justification dans
+# copier-hors-site.sh.
+#
 # Politique de rétention (identique à celle documentée pour l'ancienne cible S3, voir historique
 # Git de ce fichier) :
 #   - 7 jours de sauvegardes QUOTIDIENNES (toutes, sans distinction) ;
@@ -71,5 +84,13 @@ for fichier in dfa_prod_*.dump.age; do
   if [ "$garder" -eq 0 ]; then
     rm -f -- "$fichier"
     echo "$(date -Iseconds) PURGE ${fichier} (${age_jours} jours)" >>"$JOURNAL"
+
+    # Fichier de rôles apparié — voir l'en-tête « PURGE APPARIÉE ». `-f` : ne lève pas si le
+    # fichier de rôles est déjà absent (sauvegarde antérieure à cette correction, ou déjà purgé).
+    fichier_roles="dfa_prod_${horodatage}.roles.sql.age"
+    if [ -e "$fichier_roles" ]; then
+      rm -f -- "$fichier_roles"
+      echo "$(date -Iseconds) PURGE ${fichier_roles} (appariée à ${fichier})" >>"$JOURNAL"
+    fi
   fi
 done

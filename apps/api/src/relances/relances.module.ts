@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { ConnecteursModule } from '../connecteurs/connecteurs.module';
 import { CourrielModule } from '../courriel/courriel.module';
+import { ImpressionModule } from '../facturation/impression/impression.module';
 
 import { RelancesController } from './relances.controller';
 import { ServiceHistoriqueEnvoisRelance } from './service-historique-envois';
@@ -28,9 +29,16 @@ import { ServiceRelancesFacture } from './service-relances-facture';
  * par ce chemin revenait à ne JAMAIS l'envoyer réellement. `ServiceRelancesFacture` consomme
  * directement `ServiceCourriel` (socle SMTP/capture déjà livré, `courriel/`) pour ce canal — voir
  * `service-relances-facture.ts`, section « email ».
+ *
+ * `ImpressionModule` IMPORTÉ explicitement (arbitrage du coordinateur sur la pièce jointe des
+ * relances) : fournit `JETON_STOCKAGE_PDF` — `ServiceRelancesFacture` lit, EN LECTURE SEULE, le
+ * PDF de facture déjà mis en cache sur disque par `ServiceImpressionFacture` (jamais de
+ * régénération, ce job n'a pas de `PrincipalAuthentifie` pour faire valider RF-116 — voir le
+ * constructeur de `ServiceRelancesFacture`). `ImpressionModule` importe lui-même
+ * `FacturationModule` ; aucun cycle, `FacturationModule` n'importe jamais `RelancesModule`.
  */
 @Module({
-  imports: [ConnecteursModule, CourrielModule],
+  imports: [ConnecteursModule, CourrielModule, ImpressionModule],
   controllers: [RelancesController],
   providers: [ServiceRegleRelance, ServiceRelancesFacture, ServiceHistoriqueEnvoisRelance],
   exports: [ServiceRegleRelance, ServiceRelancesFacture, ServiceHistoriqueEnvoisRelance],

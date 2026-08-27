@@ -84,7 +84,42 @@ export function construireOrderBy(def: DefinitionTri, idExpr: SQL): SQL {
  * venir » (elle n'a pas pu être rendue avant une valeur non nulle) — elle doit donc rester dans
  * le résultat de la page suivante.
  * `NULLS LAST`, `valeur === null` : le curseur précédent s'est arrêté DANS la queue des `NULL`,
- * départagée par id.
+ * départagée par id, DANS LE MÊME SENS que `expr` (`construireOrderBy` applique `${direction}` à
+ * `idExpr` aussi, `NULLS LAST` ne change que la position du bloc NULL, jamais l'ordre interne du
+ * bloc) — d'où `${operateur}` ici, PAS un opérateur figé.
+ *
+ * DÉFAUT CORRIGÉ (mesure/revue du 27.08.2026, banc de charge — signalé par le coordinateur en
+ * relisant l'audit qui a produit la comparaison de ROW ci-dessous) : cette branche renvoyait
+ * TOUJOURS `${idExpr} < ${id}`, correct seulement quand `operateur` vaut aussi `<` (`sens: 'desc'`)
+ * — faux pour `sens: 'asc'` avec `nullable: true` (`ouvertLe:asc` — `service-client-ordres-
+ * reparation.ts` — et `plaque:asc` — `service-client-vehicules.ts`) : la queue NULL d'un tri
+ * ASCENDANT continue en `id ASC`, donc `id > curseur.id`, jamais `id < curseur.id`. Avec
+ * l'ancien code, reprendre la pagination de `GET /clients/{id}/vehicules?tri=plaque:asc` une fois
+ * entré dans la queue des véhicules sans plaque courante rejouait les MÊMES lignes en boucle
+ * (`id < curseur.id` répète indéfiniment le même sous-ensemble) au lieu d'avancer — invisible sur
+ * ce dépôt jusqu'ici faute de client réel avec assez de véhicules sans plaque pour dépasser une
+ * page (`dfa_dev` en a un : voir `pagination-triee.spec.ts` et la comparaison directe qui a validé
+ * ce correctif contre lui, 336 véhicules dont 231 sans plaque).
+ *
+ * FORME DE COMPARAISON — ROW (tuple) `(expr, id) OP (valeur, id)`, remplace l'ancienne forme
+ * `OR` explicite (`(expr OP v) OR (expr = v AND id OP id)`) : ÉQUIVALENCE ALGÉBRIQUE EXACTE pour
+ * toute paire non nulle — c'est la définition même de la comparaison ROW de PostgreSQL (doc :
+ * « the row constructor forms compose using the natural row-comparison semantics, equivalent to
+ * a > c OR (a = c AND b > d) »), pas une réécriture approximative. Mesuré (banc de charge du
+ * 27.08.2026 puis migration 0073, `apps/api/src/db/migrations/`) : la forme `OR` empêche
+ * PostgreSQL de pousser le `LIMIT` à travers un index composite `(tenant_id, expr, id)` — un
+ * `Bitmap Heap Scan` réévalue la clause sur QUASIMENT TOUTES les lignes restantes avant de trier,
+ * exactement le défaut qui rendait `GET /clients?curseur=…` aussi lent que la première page
+ * (`clients-page10`/`page50` à 400-500 ms). La forme ROW, elle, se traduit en un parcours d'index
+ * ORDONNÉ avec arrêt anticipé au `LIMIT` — PROUVÉ par comparaison directe ancien/nouveau sur les
+ * 9916 clients et les 336 véhicules du client de test réels de `dfa_dev` (zéro écart, zéro
+ * doublon, y compris pages frontière/profondes et tris temporels), pas seulement par `EXPLAIN` —
+ * voir le rapport de la tâche qui a introduit ce correctif.
+ *
+ * NE S'APPLIQUE JAMAIS À `expr IS NULL` : une comparaison ROW dont un membre est NULL rend
+ * `unknown` (jamais `true`), donc EXCLUT structurellement les lignes NULL — exactement le
+ * comportement voulu ici (la queue NULL est déjà couverte par `... OR ${expr} IS NULL` séparément,
+ * ci-dessous, puis par la branche `valeur === null` ci-dessus une fois qu'on y est).
  */
 export function construireConditionKeyset(
   def: DefinitionTri,
@@ -95,10 +130,10 @@ export function construireConditionKeyset(
   const operateur = def.sens === 'asc' ? sql`>` : sql`<`;
 
   if (valeur === null) {
-    return sql`(${def.expression} is null and ${idExpr} < ${id})`;
+    return sql`(${def.expression} is null and ${idExpr} ${operateur} ${id})`;
   }
 
-  const suite = sql`((${def.expression} ${operateur} ${valeur}) or (${def.expression} = ${valeur} and ${idExpr} ${operateur} ${id}))`;
+  const suite = sql`(${def.expression}, ${idExpr}) ${operateur} (${valeur}, ${id})`;
   return def.nullable ? sql`(${suite} or ${def.expression} is null)` : suite;
 }
 

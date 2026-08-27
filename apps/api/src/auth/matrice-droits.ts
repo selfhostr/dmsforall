@@ -118,6 +118,13 @@ export const TOUTES_ACTIONS = [
   'client.condition.modifier',
   'client.consentement.enregistrer',
   'client.note.ecrire',
+  // Effacement nLPD (tâche « effacement nLPD », migration 0061) — bascule du palliatif
+  // `clients/droits-provisoires.ts` (ROLES_CLIENT_ANONYMISATION/ROLES_CLIENT_EXPORT) : ces deux
+  // routes portaient `@AucunDroitRequis()` et vérifiaient le rôle EN SERVICE, hors de cette
+  // matrice — corrigé ici, voir les groupes `INFERE_CLIENT_EXPORT`/`INFERE_CLIENT_ANONYMISATION`
+  // plus bas pour la composition par rôle.
+  'client.export.generer',
+  'client.anonymiser',
   // ---- Véhicules (§6.4 ; RM-15 → RM-33, spec lignes 250-270) -----------------------------------
   'vehicule.lire',
   'vehicule.creer',
@@ -654,6 +661,27 @@ const INFERE_CLIENT_CONTACT: readonly Action[] = [
 ];
 
 /**
+ * Droit d'accès nLPD (art. 25) — générer l'export complet des données détenues sur un client.
+ * Geste LISIBLE et réversible (aucune écriture) : même périmètre que `INFERE_CLIENT_CONTACT`
+ * (contact opérationnel courant avec la fiche) plutôt que le palier de l'anonymisation ci-dessous
+ * — un client qui demande ce que le garage détient sur lui n'a pas besoin d'attendre la
+ * direction, à la différence de l'effacement, qui lui est irréversible. Bascule du palliatif
+ * `clients/droits-provisoires.ts::ROLES_CLIENT_EXPORT`, mêmes rôles exacts.
+ */
+const INFERE_CLIENT_EXPORT: readonly Action[] = ['client.export.generer'];
+
+/**
+ * Droit à l'effacement nLPD (art. 32) — anonymiser un client : geste IRRÉVERSIBLE sur des données
+ * réelles, PAS une action de comptoir. Restreint à direction (+ admin, qui suit ici la doctrine
+ * « admin = même périmètre que direction sauf geste financier » — anonymiser un client ne touche
+ * aucun montant, voir la tête de fichier). Bascule du palliatif
+ * `clients/droits-provisoires.ts::ROLES_CLIENT_ANONYMISATION`, mêmes rôles exacts — SANS
+ * `receptionnaire`/`chef_atelier`, à la différence d'`INFERE_CLIENT_EXPORT` ci-dessus : composé
+ * dans `DROITS_DIRECTION` (pas `DROITS_RECEPTIONNAIRE`), voir plus bas.
+ */
+const INFERE_CLIENT_ANONYMISATION: readonly Action[] = ['client.anonymiser'];
+
+/**
  * §10 L960 — Créer / modifier un véhicule : réceptionnaire, chef d'atelier, magasinier, direction.
  * Le technicien a « km seulement » — couvert séparément par `vehicule.kilometrage.saisir`, PAS ici.
  */
@@ -890,6 +918,7 @@ const DROITS_RECEPTIONNAIRE: readonly Action[] = [
   ...L958_CLIENT_ECRITURE,
   ...INFERE_CLIENT_DESACTIVATION,
   ...INFERE_CLIENT_CONTACT,
+  ...INFERE_CLIENT_EXPORT,
   ...L960_VEHICULE_ECRITURE,
   ...L961_VEHICULE_DETENTEUR,
   ...INFERE_VEHICULE_GESTION,
@@ -1024,7 +1053,11 @@ const DROITS_POSTE_ATELIER: readonly Action[] = [...LECTURE_SOCLE, ...LECTURE_OR
  * « sans limite » sur les 24 lignes de §10 sans exception : reçoit tout ce que `chef_atelier` a,
  * plus les actions réservées à direction seule (`client.condition.modifier`).
  */
-const DROITS_DIRECTION: readonly Action[] = [...DROITS_CHEF_ATELIER, ...INFERE_CLIENT_CONDITIONS];
+const DROITS_DIRECTION: readonly Action[] = [
+  ...DROITS_CHEF_ATELIER,
+  ...INFERE_CLIENT_CONDITIONS,
+  ...INFERE_CLIENT_ANONYMISATION,
+];
 
 /**
  * `admin` : compte technique de l'intégrateur (`ARCHITECTURE.md §3`) — administre le système

@@ -110,17 +110,13 @@ function servicesProjectionFactices() {
 }
 
 describe('ServiceClientRgpd.anonymiser', () => {
-  it('refuse un rôle hors ROLES_CLIENT_ANONYMISATION (403 DROIT_INSUFFISANT), sans toucher la base', async () => {
-    const { tx } = txFactice({});
-    const acces = accesFactice(tx);
-    const { vehicules, or } = servicesProjectionFactices();
-    const service = new ServiceClientRgpd(acces, serviceClientFactice(), vehicules, or);
-
-    await expect(
-      service.anonymiser(CTX, 'technicien', 'c1', { motif: 'Demande du client.' }),
-    ).rejects.toMatchObject({ code: 'DROIT_INSUFFISANT' });
-    expect(acces.enTenant).not.toHaveBeenCalled();
-  });
+  // Le refus par rôle (403 DROIT_INSUFFISANT pour tout rôle hors admin/direction) n'est plus
+  // vérifié ICI : il est désormais enforcé en AMONT par `GardeDroit` (`@ExigerDroit
+  // ('client.anonymiser')`, `client-rgpd.controller.ts`), lui-même prouvé générique par
+  // `common/droits/garde-droit.spec.ts`, câblé sur cette route précise par `common/droits/
+  // toutes-les-actions-couvertes.spec.ts` (scan du graphe Nest réel), et sur EXACTEMENT
+  // ['admin','direction'] par `auth/matrice-droits.spec.ts` (« effacement nLPD »). Ce service ne
+  // reçoit donc plus de `role` du tout — bascule du palliatif `droits-provisoires.ts`.
 
   it('rend 404 RESSOURCE_INTROUVABLE si le client est introuvable POUR CE TENANT (isolation)', async () => {
     // `selects` vide au premier tirage : simule l'absence de ligne — même comportement qu'un
@@ -131,7 +127,7 @@ describe('ServiceClientRgpd.anonymiser', () => {
     const service = new ServiceClientRgpd(acces, serviceClientFactice(), vehicules, or);
 
     await expect(
-      service.anonymiser(CTX, 'direction', 'c-etranger', { motif: 'Demande du client.' }),
+      service.anonymiser(CTX, 'c-etranger', { motif: 'Demande du client.' }),
     ).rejects.toMatchObject({ code: 'RESSOURCE_INTROUVABLE' });
   });
 
@@ -146,7 +142,7 @@ describe('ServiceClientRgpd.anonymiser', () => {
     const service = new ServiceClientRgpd(acces, serviceClientFactice(), vehicules, or);
 
     await expect(
-      service.anonymiser(CTX, 'direction', 'c1', { motif: 'Demande du client.' }),
+      service.anonymiser(CTX, 'c1', { motif: 'Demande du client.' }),
     ).rejects.toMatchObject({ code: 'CLIENT_DEJA_ANONYMISE' });
   });
 
@@ -157,12 +153,12 @@ describe('ServiceClientRgpd.anonymiser', () => {
     const { vehicules, or } = servicesProjectionFactices();
     const service = new ServiceClientRgpd(acces, serviceClientFactice(), vehicules, or);
 
-    await expect(
-      service.anonymiser(CTX, 'admin', 'c1', { motif: 'Demande du client.' }),
-    ).rejects.toBe(autreErreur);
+    await expect(service.anonymiser(CTX, 'c1', { motif: 'Demande du client.' })).rejects.toBe(
+      autreErreur,
+    );
   });
 
-  it('pour un rôle autorisé, trace puis appelle la fonction base, tenant/client scopés, puis relit la fiche', async () => {
+  it('chemin heureux : trace puis appelle la fonction base, tenant/client scopés, puis relit la fiche', async () => {
     const { tx, executeAppels } = txFactice({
       selects: [[{ id: 'c1' }]],
       executes: [{ rows: [] }, { rows: [] }],
@@ -172,7 +168,7 @@ describe('ServiceClientRgpd.anonymiser', () => {
     const { vehicules, or } = servicesProjectionFactices();
     const service = new ServiceClientRgpd(acces, serviceClient, vehicules, or);
 
-    const resultat = await service.anonymiser(CTX, 'direction', 'c1', {
+    const resultat = await service.anonymiser(CTX, 'c1', {
       motif: 'Demande écrite du client, art. 32 nLPD.',
     });
 

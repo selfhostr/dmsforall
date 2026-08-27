@@ -63,25 +63,29 @@ describe('construireOrderBy', () => {
 });
 
 describe('construireConditionKeyset — reprise après curseur, non nullable', () => {
-  it('tri ASC : reprend strictement après (valeur, id) — opérateur ">"', () => {
+  it('tri ASC : reprend strictement après (valeur, id) — comparaison de ROW, opérateur ">"', () => {
+    // Forme ROW `(expr, id) > (valeur, id)` depuis le 27.08.2026 (banc de charge + migration 0073) :
+    // remplace l'ancienne forme `OR` explicite, équivalence algébrique exacte (sémantique standard
+    // de la comparaison ROW PostgreSQL), mais exploitable par un parcours d'index ORDONNÉ avec
+    // arrêt anticipé au LIMIT — la forme `OR` forçait un balayage bitmap de tout le reste de la
+    // table avant de trier (mesuré : `clients-page10`/`page50`, 400-500 ms sur 9916 clients).
     const cond = construireConditionKeyset(DEF_NUMERO_ASC, ID_EXPR, 'CL-000010', 'id-10');
     const { sql: texte, params } = rendu(cond);
-    expect(texte).toContain('c.numero > $1');
-    expect(texte).toContain('c.numero = $2 and c.id > $3');
-    expect(params).toEqual(['CL-000010', 'CL-000010', 'id-10']);
+    expect(texte).toBe('(c.numero, c.id) > ($1, $2)');
+    expect(params).toEqual(['CL-000010', 'id-10']);
   });
 
-  it('tri DESC : reprend strictement après (valeur, id) — opérateur "<"', () => {
+  it('tri DESC : reprend strictement après (valeur, id) — comparaison de ROW, opérateur "<"', () => {
     const cond = construireConditionKeyset(DEF_NUMERO_DESC, ID_EXPR, 'CL-000010', 'id-10');
     const { sql: texte, params } = rendu(cond);
-    expect(texte).toContain('c.numero < $1');
-    expect(params).toEqual(['CL-000010', 'CL-000010', 'id-10']);
+    expect(texte).toBe('(c.numero, c.id) < ($1, $2)');
+    expect(params).toEqual(['CL-000010', 'id-10']);
   });
 
   it('valeur null (colonne non nullable) : reprend uniquement par id, sans jamais réexaminer une valeur', () => {
     const cond = construireConditionKeyset(DEF_NUMERO_ASC, ID_EXPR, null, 'id-10');
     const { sql: texte, params } = rendu(cond);
-    expect(texte).toBe('(c.numero is null and c.id < $1)');
+    expect(texte).toBe('(c.numero is null and c.id > $1)');
     expect(params).toEqual(['id-10']);
   });
 });
@@ -98,12 +102,32 @@ describe('construireConditionKeyset — colonne nullable (NULLS LAST)', () => {
     expect(texte).toMatch(/or c\.dernier_passage_le is null\)$/);
   });
 
-  it('valeur null : reprend dans la queue des NULL, départagée par id (comportement identique au non-nullable)', () => {
+  it('valeur null : reprend dans la queue des NULL, départagée par id DANS LE SENS DU TRI (sens desc → "<")', () => {
     const cond = construireConditionKeyset(DEF_DATE_DESC_NULLABLE, ID_EXPR, null, 'id-5');
     const { sql: texte, params } = rendu(cond);
     expect(texte).toBe('(c.dernier_passage_le is null and c.id < $1)');
     expect(params).toEqual(['id-5']);
   });
+
+  it(
+    'DÉFAUT CORRIGÉ : valeur null sur un tri ASCENDANT nullable (ex. `plaque:asc`, ' +
+      '`ouvertLe:asc`) reprend la queue des NULL avec `id > curseur.id`, PAS `id < curseur.id` — ' +
+      "l'ancien code figeait `<` quel que soit `sens`, correct seulement pour desc ; sur asc ça " +
+      're-rendait indéfiniment le même sous-ensemble de la queue NULL au lieu d’avancer ' +
+      '(reproduit et corrigé le 27.08.2026, voir la comparaison directe côté `service-client-' +
+      'vehicules.spec.ts` / rapport de tâche — client réel `dfa_dev` à 231 véhicules sans plaque)',
+    () => {
+      const DEF_ASC_NULLABLE: DefinitionTri = {
+        expression: sql`p.valeur`,
+        sens: 'asc',
+        nullable: true,
+      };
+      const cond = construireConditionKeyset(DEF_ASC_NULLABLE, ID_EXPR, null, 'id-5');
+      const { sql: texte, params } = rendu(cond);
+      expect(texte).toBe('(p.valeur is null and c.id > $1)');
+      expect(params).toEqual(['id-5']);
+    },
+  );
 });
 
 describe(

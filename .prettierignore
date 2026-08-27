@@ -21,3 +21,7 @@ contenu/
 
 # Répertoire de données locales (uploads clients, données éphémères), jamais du code.
 apps/api/uploads/
+
+# Résultats de campagnes de mesure (banc), générés par un outil, horodatés — c'est du *data*,
+# pas du code. Les reformater n'a aucun sens et le problème reviendrait à la prochaine exécution.
+scripts/banc/resultats/

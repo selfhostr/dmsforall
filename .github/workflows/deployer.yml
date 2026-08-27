@@ -1,0 +1,141 @@
+name: Déployer en production
+
+# CE WORKFLOW NE FAIT QU'UNE CHOSE : basculer les conteneurs `api`/`web`/`worker` du serveur de
+# production sur une image DÉJÀ PUBLIÉE par publier-images.yml. Il NE JOUE JAMAIS de migration
+# (voir migrer.yml, séparé et manuel — c'est le point le plus important de ce chantier, détaillé
+# dans docs/deploiement-production.md §Séquence) et NE TOUCHE JAMAIS `postgres`/`redis`/`backup`/
+# `restauration-test`/`reverse-proxy`/`ocr-permis` : le rayon de ce déploiement est délibérément
+# étroit. La séquence exécutée sur le serveur vit dans .github/scripts/deployer-distant.sh (fichier
+# `.sh` séparé plutôt qu'embarqué ici : un `bash -n` local le vérifie sans dépendre d'un runner CI,
+# et ça évite le conflit d'indentation entre un bloc YAML `|` et le terminateur d'un heredoc bash).
+#
+# DÉCLENCHEMENT : `workflow_dispatch` UNIQUEMENT — jamais automatique sur un push de tag, contraire-
+# ment à publier-images.yml. Publier une image et la déployer sont deux DÉCISIONS distinctes : un
+# tag `vX.Y.Z` peut exister (donc son image publiée) sans que le serveur soit prêt à l'accueillir
+# (fenêtre de maintenance, migration à revoir d'abord — voir §Séquence). Automatiser le déploiement
+# sur push de tag supprimerait exactement le point de contrôle humain que ce chantier demande de
+# préserver pour les migrations — la même exigence s'applique au déploiement qui les encadre.
+# `inputs.tag` est un texte libre (pas un choix parmi les tags Git connus de ce dépôt : GitHub/
+# forge Actions n'offre pas de liste dynamique) — VALIDÉ contre le registre à l'étape
+# « Vérifier que les images existent » ci-dessous plutôt que supposé correct.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: >-
+          Tag à déployer (ex. v0.5.0, ou main-abc1234 pour une pré-production) — doit déjà être
+          publié par « Publier les images ». Pour un retour arrière, indiquer le tag précédent :
+          voir docs/deploiement-production.md §Retour arrière AVANT de le faire.
+        required: true
+        type: string
+
+# Un seul déploiement à la fois, jamais annulé en vol (contrairement à ci.yml/publier-images.yml,
+# où annuler un run obsolète est sans risque) : interrompre un déploiement à mi-chemin (images
+# api/web basculées, worker pas encore, ou l'inverse) laisserait la production dans un état mixte
+# non documenté. Un second déclenchement PENDANT qu'un premier tourne doit attendre, pas l'annuler.
+concurrency:
+  group: deployer-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deployer:
+    name: Déployer ${{ inputs.tag }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      # MÊME dérivation que publier-images.yml (registre + propriétaire en minuscule) — dupliquée
+      # ici plutôt que factorisée dans un workflow réutilisable : deux occurrences de quelques
+      # lignes, pas assez pour justifier l'indirection d'un `workflow_call` de plus.
+      - name: Hôte du registre de conteneurs
+        id: registre
+        env:
+          SERVER_URL: ${{ github.server_url }}
+        run: |
+          set -euo pipefail
+          HOTE="${SERVER_URL#http://}"
+          HOTE="${HOTE#https://}"
+          HOTE="${HOTE%/}"
+          echo "hote=${HOTE}" >> "$GITHUB_OUTPUT"
+
+      - name: Nom du propriétaire en minuscule (exigence du registre)
+        id: repo
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: echo "owner=$(echo "$OWNER" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      # Échoue vite et clairement (« manifest unknown ») plutôt que de découvrir, à mi-chemin
+      # d'une session SSH sur le serveur de production, que le tag fourni n'a jamais été publié —
+      # une faute de frappe sur `inputs.tag` ne doit jamais atteindre le serveur.
+      - name: Authentification au registre de conteneurs
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ steps.registre.outputs.hote }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.REGISTRE_IMAGES_TOKEN }}
+
+      - name: Vérifier que les images existent déjà sur le registre
+        env:
+          IMAGE_API: ${{ steps.registre.outputs.hote }}/${{ steps.repo.outputs.owner }}/dfa-api:${{ inputs.tag }}
+          IMAGE_WEB: ${{ steps.registre.outputs.hote }}/${{ steps.repo.outputs.owner }}/dfa-web:${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          echo "Vérification de ${IMAGE_API}..."
+          docker manifest inspect "$IMAGE_API" >/dev/null
+          echo "Vérification de ${IMAGE_WEB}..."
+          docker manifest inspect "$IMAGE_WEB" >/dev/null
+          echo "Les deux images existent sur le registre."
+
+      # Clé privée SSH DÉDIÉE au déploiement (secret DEPLOY_CLE_SSH — jamais la clé personnelle de
+      # @laupernoe) — voir docs/deploiement-production.md §Mise en place de ce workflow pour comment la
+      # générer et l'autoriser sur le serveur (utilisateur dédié, droits limités à ce répertoire et
+      # au groupe docker, JAMAIS root).
+      - name: Préparer la clé SSH de déploiement
+        env:
+          CLE_SSH: ${{ secrets.DEPLOY_CLE_SSH }}
+          HOTE_EMPREINTE: ${{ secrets.DEPLOY_HOTE_EMPREINTE }}
+          HOTE: ${{ secrets.DEPLOY_HOTE }}
+          PORT: ${{ secrets.DEPLOY_PORT }}
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$CLE_SSH" > ~/.ssh/deploiement_ed25519
+          chmod 600 ~/.ssh/deploiement_ed25519
+          # DEPLOY_HOTE_EMPREINTE (optionnel, RECOMMANDÉ — voir le runbook) : empreinte SSH du
+          # serveur, obtenue UNE FOIS hors CI (`ssh-keyscan -H <hote>`) et déposée en secret —
+          # épingle l'hôte plutôt que de faire confiance à la première connexion (`ssh-keyscan`
+          # exécuté ICI, en CI, serait vulnérable à une interception EXACTEMENT au moment où elle
+          # compterait le plus). Absente : repli sur `ssh-keyscan` en direct, moins sûr mais
+          # fonctionnel dès le premier déploiement, avant que @laupernoe n'ait eu l'occasion de la
+          # renseigner — dégradation ACCEPTÉE, jamais un blocage.
+          if [ -n "$HOTE_EMPREINTE" ]; then
+            printf '%s\n' "$HOTE_EMPREINTE" > ~/.ssh/known_hosts
+          else
+            echo "DEPLOY_HOTE_EMPREINTE absente — TOFU via ssh-keyscan (voir le runbook pour durcir)." >&2
+            ssh-keyscan -p "${PORT:-22}" -H "$HOTE" >> ~/.ssh/known_hosts 2>/dev/null
+          fi
+
+      # Exécute .github/scripts/deployer-distant.sh SUR LE SERVEUR : le fichier est envoyé comme
+      # stdin d'un `bash -s` distant (`< chemin`, pas un heredoc) — voir ce script pour la séquence
+      # complète (checkout du tag, bascule des deux images, healthcheck). AUCUNE migration ici —
+      # voir l'en-tête de ce fichier et migrer.yml.
+      - name: Basculer les images sur le serveur
+        env:
+          DEPLOY_HOTE: ${{ secrets.DEPLOY_HOTE }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_UTILISATEUR: ${{ secrets.DEPLOY_UTILISATEUR }}
+          DEPLOY_CHEMIN: ${{ secrets.DEPLOY_CHEMIN }}
+          TAG: ${{ inputs.tag }}
+          IMAGE_API: ${{ steps.registre.outputs.hote }}/${{ steps.repo.outputs.owner }}/dfa-api:${{ inputs.tag }}
+          IMAGE_WEB: ${{ steps.registre.outputs.hote }}/${{ steps.repo.outputs.owner }}/dfa-web:${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploiement_ed25519 -p "${DEPLOY_PORT:-22}" \
+            -o StrictHostKeyChecking=yes -o BatchMode=yes \
+            "${DEPLOY_UTILISATEUR}@${DEPLOY_HOTE}" \
+            "TAG='${TAG}' IMAGE_API='${IMAGE_API}' IMAGE_WEB='${IMAGE_WEB}' DEPLOY_CHEMIN='${DEPLOY_CHEMIN}' bash -s" \
+            < .github/scripts/deployer-distant.sh
