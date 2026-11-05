@@ -27,7 +27,7 @@ export const chemins = {
    *  doivent pas se contredire). */
   tableauBord: (site?: string) => construireChemin('/tableau-bord', { site }),
   /** Absent avant cet ajout alors que `GET /recherche` existe déjà côté API et que l'écran est en
-   *  cours d'écriture (agent dédié) — même forme que `clients`/`vehicules` ci-dessous. */
+   *  cours d'écriture (lot dédié) — même forme que `clients`/`vehicules` ci-dessous. */
   recherche: {
     globale: (site?: string) => construireChemin('/recherche', { site }),
   },
@@ -226,7 +226,7 @@ export const chemins = {
     hangar: (site?: string) => construireChemin('/pneus', { site }),
     aRelancer: (site?: string) => construireChemin('/pneus', { onglet: 'a_relancer', site }),
   },
-  /** Module ventes VN/VO (étape 4). Les chemins locaux posés provisoirement par les agents qui ont
+  /** Module ventes VN/VO (étape 4). Les chemins locaux posés provisoirement par les lots qui ont
    *  livré les écrans (`ecrans/ventes/stock/_composants/chemins-locaux.ts`,
    *  `ecrans/ventes/dossiers/chemins-dossiers.ts`) ont été fusionnés ici au commit `4dbdca2` ; ces
    *  deux fichiers n'existent plus dans le dépôt.

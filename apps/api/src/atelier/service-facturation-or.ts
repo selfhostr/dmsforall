@@ -90,7 +90,7 @@ export function ligneAppartientAuGroupe(
  * Le contrat ne dit RIEN de la recopie d'une ligne d'OR de type `remise` par CETTE action précise
  * (RF-81) : INTERPRÉTATION SIGNALÉE, non tranchée par le contrat — repli sur `'repartition'` (le
  * seul type de document qui porte déjà la notion de ligne signée hors remise de pied de page), à
- * confirmer avec expert-facturation/@laupernoe. Exportée pour test unitaire pur.
+ * confirmer avec l'équipe facturation/@laupernoe. Exportée pour test unitaire pur.
  */
 export function typeLigneDocumentDepuisOr(type: LigneLigneOr['type']): TypeLigneDocumentVente {
   if (type === 'remise') return 'repartition';
@@ -258,7 +258,7 @@ export class ServiceFacturationOr {
           const adresseFacturationFigee =
             (await chargerAdresseFacturationStructuree(tx, ctx, destinataireId)) ?? {};
           // RM-07/RF-04/PF-04, même patron que `facturation/documents/service-documents.ts::creer`
-          // (défaut soldé, cf. rapport de livraison signalé par expert-facturation) : conditions de
+          // (défaut soldé, cf. rapport de livraison signalé par l'équipe facturation) : conditions de
           // paiement du DESTINATAIRE (pas forcément `or.clientId` — un groupe payeur `assurance`/
           // `constructeur`/`tiers` facture un tiers différent, RF-92) EN VIGUEUR à `dateDocument`.
           // `{}` si aucune ligne `client_condition` n'est en vigueur — jamais un délai fabriqué à

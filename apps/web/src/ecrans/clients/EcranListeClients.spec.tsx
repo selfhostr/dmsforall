@@ -125,7 +125,7 @@ describe('EcranListeClients', () => {
     expect(screen.getByText('Lausanne')).toBeInTheDocument();
   });
 
-  // Chantier « titres doublés & espacements » (re-arbitrage @laupernoe du 17.08.2026, ANNULE le retour du
+  // Chantier « titres doublés & espacements » (re-choix produit du 17.08.2026, ANNULE le retour du
   // 12.08.2026 qui demandait ce même h1 visible — voir le commentaire de `EcranListeClients.tsx`) :
   // l'onglet actif « Clients » (`OngletsDomaine`) porte déjà ce libellé, `GabaritEcran` doit donc
   // garder le h1 dans le DOM (lecteur d'écran) mais masqué visuellement, jamais retiré. La classe

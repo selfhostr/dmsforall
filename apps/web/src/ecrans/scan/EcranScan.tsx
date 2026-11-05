@@ -79,37 +79,37 @@ type EtapeScan =
  * doc de tête pour ce qui est honnêtement mesurable et ce qui ne l'est pas), recadrage +
  * réduction/conversion côté client (`reduireImage.ts`, gère aussi le HEIC des iPhone), appel OCR
  * (`contrat-ocr.temporaire.ts` — contrat TEMPORAIRE, endpoint encore en construction par un autre
- * agent, en parallèle), vérification/correction (`FormulairePermisScanne.tsx`), puis création.
+ * lot, en parallèle), vérification/correction (`FormulairePermisScanne.tsx`), puis création.
  *
  * L'ÉTAPE « capture » NE MONTRE PLUS DE CADRE (retiré lors du chantier ergonomie du 16.08.2026,
- * retour direct de @laupernoe : « un grand rectangle, on comprend rien »). Cause profonde identifiée : la
+ * retour produit direct : « un grand rectangle, on comprend rien »). Cause profonde identifiée : la
  * prise de vue passe par l'appareil photo NATIF du téléphone (plein écran, hors de notre contrôle)
  * — un cadre affiché AVANT de déclencher n'est donc JAMAIS visible pendant la capture, il ne guidait
  * personne. À la place, cette étape dit l'OBJECTIF avant tout (pictogramme `IdCard` + un titre qui
  * explique le bénéfice concret — la fiche se remplit toute seule — plutôt qu'une consigne
  * technique), puis un seul geste évident (`scan:capture.action`, bouton `h-14` unique de l'écran).
- * Le cadre (`CadrePermis.tsx`, proportions du RECTO du permis suisse — décision de @laupernoe, jamais le
+ * Le cadre (`CadrePermis.tsx`, proportions du RECTO du permis suisse — décision de conception, jamais le
  * verso) réapparaît seulement là où il a un sens : SUPERPOSÉ SUR LA PHOTO déjà prise, en phase
  * `refus` OU `cadrage`, pour montrer exactement la zone jugée/retenue.
  *
- * CADRAGE AUTOMATIQUE (demande de @laupernoe, 18.08.2026) — `analyserQualitePhoto.ts` tente désormais une
+ * CADRAGE AUTOMATIQUE (demande produit, 18.08.2026) — `analyserQualitePhoto.ts` tente désormais une
  * vraie DÉTECTION DES BORDS du document (`detecterBordsDocument.ts`, contraste avec le fond ; voir
  * sa doc de tête pour la méthode et ses limites, notamment l'absence de correction de perspective) ;
  * repli sur le cadre géométrique fixe (`geometrieCadre.ts`, calcul déterministe, aucune lecture du
  * contenu) quand la détection n'est pas assez confiante. UNE DÉTECTION PEUT SE TROMPER — jamais un
  * recadrage détecté n'est envoyé sans confirmation : phase `cadrage`
  * (`PanneauConfirmationCadrage.tsx`) avant tout appel réseau, avec un recours EXPLICITE pour
- * repartir de la photo entière (« annulabilité » exigée par @laupernoe). Le cadre de REPLI, lui, reste
+ * repartir de la photo entière (« annulabilité » exigée côté produit). Le cadre de REPLI, lui, reste
  * envoyé directement (comportement inchangé d'avant ce chantier : sa marge de 14 % ne coupe jamais
  * le document, aucun recours n'est nécessaire).
  *
- * CONTRÔLE QUALITÉ AVEC POSSIBILITÉ DE FORCER (décision de @laupernoe), jamais bloquant. Une photo
+ * CONTRÔLE QUALITÉ AVEC POSSIBILITÉ DE FORCER (décision de conception), jamais bloquant. Une photo
  * manifestement mauvaise (résolution insuffisante, document trop petit dans le cadre, floue)
  * déclenche un REFUS EXPLICITE ET RÉESSAYABLE (`PanneauRefusPhoto.tsx`, phase `refus`) plutôt qu'un
  * envoi silencieusement dégradé ; « Envoyer quand même » reste toujours atteignable depuis ce refus,
  * avec un avertissement explicite que la lecture risque d'être partielle — jamais un blocage total.
  *
- * TROIS ISSUES, jamais confondues (décision de @laupernoe) : rien n'existe (les deux sont créés), le
+ * TROIS ISSUES, jamais confondues (décision de conception) : rien n'existe (les deux sont créés), le
  * client existe déjà seul (le véhicule est créé et rattaché), les deux existent déjà (rien à
  * créer, on le dit clairement). La distinction est calculée ici, une seule fois
  * (`correspondances` de la réponse OCR), puis transmise en props — jamais recalculée plus bas.
@@ -223,7 +223,7 @@ export function EcranScan() {
    *  - refusée (qualité insuffisante) -> phase `refus`, l'utilisateur décide (reprendre ou forcer) ;
    *  - acceptée avec un cadrage DÉTECTÉ (`cadrageDetecte`) -> phase `cadrage`, confirmation
    *    obligatoire AVANT tout envoi (`PanneauConfirmationCadrage.tsx` — une détection peut se
-   *    tromper, brief explicite de @laupernoe sur l'« annulabilité ») ;
+   *    tromper, brief produit explicite sur l'« annulabilité ») ;
    *  - acceptée avec le cadre de REPLI géométrique fixe -> directement `envoyerPourAnalyse`, AUCUNE
    *    étape intermédiaire (comportement inchangé d'avant ce chantier : ce cadre est généreux par
    *    construction, jamais besoin d'un recours).
@@ -332,7 +332,7 @@ export function EcranScan() {
     void envoyerPourAnalyse(etape.fichier, etape.zone);
   }
 
-  /** Recours de l'« annulabilité » exigée par @laupernoe : renonce au cadrage détecté et envoie la photo
+  /** Recours de l'« annulabilité » exigée côté produit : renonce au cadrage détecté et envoie la photo
    *  ENTIÈRE (`zone` omise, voir la doc de tête d'`envoyerPourAnalyse`). */
   function utiliserPhotoEntiere() {
     if (etape.phase !== 'cadrage') return;
@@ -409,7 +409,7 @@ export function EcranScan() {
 
         {etape.phase === 'capture' ? (
           <div className="mx-auto flex w-full max-w-md flex-col items-center gap-8 text-center">
-            {/* 1. L'OBJECTIF, dit AVANT tout (retour de @laupernoe : un cadre vide affiché ici ne se
+            {/* 1. L'OBJECTIF, dit AVANT tout (retour produit : un cadre vide affiché ici ne se
                 comprenait pas — voir la doc de tête de l'écran pour la cause profonde). Le
                 pictogramme `IdCard` identifie le SUJET (« un document d'identité ») ; ce n'est pas
                 un viseur à aligner, juste une icône dans un badge rond, sans ambiguïté possible
@@ -634,7 +634,7 @@ interface PropsPanneauRienACreer {
  *
  * « Le poste fixe en est averti » (brief) — câblé via le canal temps réel
  * (`hooks/temps-reel/useEvenementsTempsReel`, livré en parallèle). L'ÉMISSION est entièrement
- * SERVEUR (l'agent OCR, en réponse à `POST /scan/permis-circulation` quand `correspondances`
+ * SERVEUR (le lot OCR, en réponse à `POST /scan/permis-circulation` quand `correspondances`
  * porte les deux) : ce panneau ne fait qu'AFFICHER un état déjà observé par `EcranScan` — voir sa
  * doc de tête pour l'abonnement lui-même, ouvert dès le montage de l'écran, avant la photo, pour
  * qu'un événement émis pendant le round-trip OCR ne puisse plus jamais devancer l'abonnement.

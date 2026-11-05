@@ -44,7 +44,7 @@
  *
  * --- `financierNouveauCetExport` : le financier ne part JAMAIS deux fois (MD-91, migration 0019) --
  *
- * Trouvaille du lot précédent, tranchée par @laupernoe et posée en base par la migration 0019 :
+ * Trouvaille du lot précédent, tranchée côté produit et posée en base par la migration 0019 :
  * `imputation_paiement` porte désormais SA PROPRE paire `exporte_le`/`export_id` — le suivi
  * d'export a la granularité de l'IMPUTATION, pas du paiement, parce qu'un paiement peut recevoir de
  * NOUVELLES imputations APRÈS avoir déjà été exporté (avance client affectée plus tard à une

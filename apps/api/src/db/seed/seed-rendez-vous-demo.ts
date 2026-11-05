@@ -13,7 +13,7 @@
  *
  * PAS de `ServiceRendezVous` à câbler ici (à la différence de `seed-atelier-demo.ts` et consorts) :
  * ce lot est le socle DONNÉES seul (`apps/api/src/db/`) — le service applicatif
- * (`apps/api/src/rendezvous/`) est construit par un agent parallèle, absent au moment où ce fichier
+ * (`apps/api/src/rendezvous/`) est construit par un lot parallèle, absent au moment où ce fichier
  * est écrit. Les écritures ci-dessous passent donc par `AccesBase.enTenant` (RLS, rôle `dfa_app`)
  * avec des INSERT/UPDATE Drizzle bruts — pas une entorse à la doctrine du dossier, une conséquence
  * de son périmètre : dès que `ServiceRendezVous` existe, ce fichier peut être réécrit pour
@@ -91,7 +91,7 @@ const MOTIFS_RENDEZ_VOUS_DEMO = [
     dureeDefautMinutes: 60,
   },
   {
-    // Arbitrage de @laupernoe : catch-all pour le client qui ne sait pas décrire sa panne au téléphone —
+    // Choix produit : catch-all pour le client qui ne sait pas décrire sa panne au téléphone —
     // le motif reste obligatoire, mais ce choix-là ne demande aucune compétence diagnostique.
     code: 'A-DETERMINER',
     libelleFr: 'À déterminer — diagnostic au comptoir',

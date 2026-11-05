@@ -15,8 +15,8 @@ import { RechercheGlobale } from './RechercheGlobale';
 import { SelecteurSiteEntete } from './SelecteurSiteEntete';
 
 /**
- * BANDEAU SUPÉRIEUR — Lot « cadre applicatif » (19.08.2026, demande @laupernoe), remplace `EnTete.tsx`.
- * Lot « bandeau haut » (26.08.2026, demande @laupernoe) : le sélecteur de SITE et la bascule de THÈME le
+ * BANDEAU SUPÉRIEUR — Lot « cadre applicatif » (19.08.2026, demande produit), remplace `EnTete.tsx`.
+ * Lot « bandeau haut » (26.08.2026, demande produit) : le sélecteur de SITE et la bascule de THÈME le
  * rejoignent, tous deux déménagés depuis `BarreLaterale.tsx`. Le pied compte (identité + Réglages +
  * déconnexion) NE bouge PAS — @laupernoe l'a tranché explicitement, il reste en bas de `BarreLaterale`.
  *
@@ -103,7 +103,7 @@ import { SelecteurSiteEntete } from './SelecteurSiteEntete';
  * le mode mobile).
  *
  * SÉLECTEUR DE LANGUE — absent d'ici comme du reste du chrome. Hors périmètre de ce lot, laissé EN
- * SUSPENS sur demande explicite de @laupernoe (ne pas trancher de son propre chef).
+ * SUSPENS sur demande produit explicite (ne pas trancher de son propre chef).
  */
 
 /**

@@ -20,7 +20,7 @@ import {
 import { chargerCapaciteHeuresJourCentiemes } from './references';
 
 /**
- * `GET /rendez-vous/capacite` — RV-06/RV-07/RV-08. Informe, ne bloque jamais (arbitrage @laupernoe #1).
+ * `GET /rendez-vous/capacite` — RV-06/RV-07/RV-08. Informe, ne bloque jamais (choix produit #1).
  */
 @Injectable()
 export class ServiceCapaciteRendezVous {

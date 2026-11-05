@@ -14,7 +14,7 @@ export interface CreationRendezVous {
   readonly erreur: unknown;
   readonly erreurActive: ErreurApi | null;
   /** Codes à confirmer explicitement (409 CONFIRMATION_REQUISE) — `PLANNING_CAPACITE_DEPASSEE`
-   *  N'Y FIGURE JAMAIS (RV-06, arbitrage @laupernoe #1 : le surbooking n'est qu'un avertissement de la
+   *  N'Y FIGURE JAMAIS (RV-06, choix produit #1 : le surbooking n'est qu'un avertissement de la
    *  réponse, jamais un blocage à confirmer). */
   readonly confirmationsRequises: readonly CodeConfirmation[];
   readonly soumettre: (

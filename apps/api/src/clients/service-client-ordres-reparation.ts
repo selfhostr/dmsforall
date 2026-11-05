@@ -30,10 +30,10 @@ import type { ParametresListeOrDuClient } from './schemas';
  * Projection `OrdreReparationResume` (`@dfa/shared`).
  *
  * RISQUE DE DIVERGENCE SIGNALÉ EN RÉPONSE DE TÂCHE (propriété réelle : `apps/api/src/atelier/**`,
- * L1-12/13, hors périmètre de cet agent) : `etatAffiche` dérive de `ligne_or.blocage`
+ * L1-12/13, hors périmètre de ce lot) : `etatAffiche` dérive de `ligne_or.blocage`
  * (priorité accord > pieces > externe, RM-58) et `totalTtcCentimes` agrège `ligne_or`. Ce fichier
  * réimplémente cette dérivation en LECTURE SEULE sur le schéma pour honorer cet endpoint, sans
- * dépendre du module atelier (parallélisme des agents). Si le module atelier calcule ces mêmes
+ * dépendre du module atelier (parallélisme des lots). Si le module atelier calcule ces mêmes
  * champs différemment pour `GET /ordres-reparation`, c'est une source de vérité concurrente à
  * réconcilier à l'intégration (L1-16) — voir aussi L1-10 sur ce même risque pour `contexte-atelier`.
  */

@@ -101,9 +101,9 @@ describe('useValeurDebouncee', () => {
   });
 
   /**
-   * Levier de reset (arbitrage @laupernoe, 26.08.2026) : un bouton « Effacer les filtres » est un geste
+   * Levier de reset (choix produit, 26.08.2026) : un bouton « Effacer les filtres » est un geste
    * de reprise en main, pas une frappe — il ne doit JAMAIS attendre le même délai qu'une
-   * recherche. Sans ce test, un futur agent pourrait « simplifier » `reinitialiserImmediat` sans
+   * recherche. Sans ce test, un futur lot pourrait « simplifier » `reinitialiserImmediat` sans
    * qu'aucun test ne le lui reproche.
    */
   describe('reinitialiserImmediat — le levier de reset', () => {

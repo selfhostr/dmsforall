@@ -11,7 +11,7 @@ import { z } from 'zod';
  *
  * Fusionnée dans `schemaConfig` par `apps/api/src/config/charger-config.ts` via
  * `...schemaConfigJobRelances.shape` — POINT DE CONTACT hors du périmètre d'écriture exclusif de
- * cet agent (`config/` n'y figure pas), signalé explicitement dans le rapport de livraison, même
+ * ce lot (`config/` n'y figure pas), signalé explicitement dans le rapport de livraison, même
  * geste déjà accepté pour les trois autres bundles de job (ASTRA, clôture pointage, purge
  * automatique tenant). Sans cette fusion, les deux variables ci-dessous sont silencieusement
  * `undefined` au runtime même posées dans `.env` — le job reste alors inactif en toute

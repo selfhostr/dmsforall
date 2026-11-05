@@ -110,7 +110,7 @@ export interface ReponseLigneDocumentVente {
  * `POST /documents-vente/{id}/emettre`, `POST /documents-vente/{factureId}/avoirs`,
  * `POST /paiements` et ses sous-routes) : aucune création sensible n'y est facultative.
  *
- * **Aucun champ HT, aucun `modeCalculTva`** : décision de @laupernoe, non rouverte — le prix saisi en
+ * **Aucun champ HT, aucun `modeCalculTva`** : décision de conception, non rouverte — le prix saisi en
  * facturation est TOUJOURS un TTC en centimes entiers. Le serveur dérive HT et TVA
  * (`ttc − arrondiCommercial(ttc × taux, 1000 + taux) = ht`, `MD-43` mode `ttc`) et fige
  * `modeCalculTva = 'ttc'` sur la ligne créée.

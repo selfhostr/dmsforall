@@ -1,6 +1,6 @@
 /**
  * I/O fichier pour l'upload par tranches — en flux, jamais un chargement intégral en mémoire :
- * l'archive complète de @laupernoe (Stieger) pèse 43,5 Go, un `readFileSync` la ferait exploser en RAM.
+ * une archive complète de DMS peut peser des dizaines de Go, un `readFileSync` la ferait exploser en RAM.
  */
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';

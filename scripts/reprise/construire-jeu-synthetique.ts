@@ -1,14 +1,13 @@
 #!/usr/bin/env -S pnpm --filter @dfa/api exec tsx
 /**
  * CLI — construit le jeu de test SYNTHÉTIQUE (voir `lib/jeu-synthetique.ts` pour le détail et
- * l'arbitrage nLPD qui justifie de ne PAS partir des CSV réels de @laupernoe).
+ * l'arbitrage nLPD qui justifie de ne PAS partir de CSV réels).
  *
  * USAGE :
- *   pnpm --filter @dfa/api exec tsx /chemin/vers/dmsforall/scripts/reprise/construire-jeu-synthetique.ts \
+ *   pnpm --filter @dfa/api exec tsx scripts/reprise/construire-jeu-synthetique.ts \
  *     [--sortie <dossier>] [--clients N] [--vehicules N] [--factures N] [--graine N]
  *
- * Défaut `--sortie` : `$TMPDIR/dfa-reprise-jeux-test` (jamais dans le dépôt ni sous
- * `/chemin/vers/echantillons/` — l'un est versionné, l'autre est en lecture seule pour ce chantier).
+ * Défaut `--sortie` : `$TMPDIR/dfa-reprise-jeux-test` (jamais dans le dépôt versionné).
  */
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

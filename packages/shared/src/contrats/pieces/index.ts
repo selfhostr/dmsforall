@@ -4,7 +4,7 @@
  *
  * Point d'entrée unique du domaine, même règle que `contrats/atelier/index.ts` et
  * `contrats/facturation/index.ts` : tout ce qui est exporté ici est GELÉ au nom près et à la
- * signature près une fois validé par l'orchestrateur. Un écart nécessaire se remonte, il ne se
+ * signature près une fois validé par le mainteneur. Un écart nécessaire se remonte, il ne se
  * code pas « en attendant ».
  *
  * `primitives.ts` n'est PAS réexporté ici — même règle que `facturation/primitives.ts` : ses

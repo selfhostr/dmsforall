@@ -7,7 +7,7 @@ import type { CalculLigne, EntreeCalculLigne, MontantsLigne } from './atelier.je
  * Implémentation INTÉRIMAIRE de `JETON_CALCUL_LIGNE` (voir `atelier.jetons.ts`), fournie par
  * `AtelierModule` lui-même au lot 1 — EXACTEMENT la même doctrine que `LecturePointageVide` pour
  * `JETON_LECTURE_POINTAGE` : le port est déclaré par `atelier` (le consommateur), et
- * `atelier/montants/**` (propriété expert-facturation, L1-14, plan-lot1-execution.md §6.3)
+ * `atelier/montants/**` (propriété l'équipe facturation, L1-14, plan-lot1-execution.md §6.3)
  * n'existe pas encore dans ce dépôt. Sans lui, `ServiceLigneOr` ne peut ni créer ni modifier une
  * ligne (les colonnes `montant_{ht,tva,ttc}_centimes` sont `NOT NULL` en base). Cette classe
  * comble le vide avec l'ORDRE DE CALCUL GELÉ documenté par le contrat (`packages/shared`,

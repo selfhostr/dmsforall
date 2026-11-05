@@ -1,7 +1,7 @@
 import type { FractionsCadre } from './geometrieCadre';
 
 /**
- * DÉTECTION AUTOMATIQUE DES BORDS DU DOCUMENT — demande explicite de @laupernoe (18.08.2026) : le cadrage
+ * DÉTECTION AUTOMATIQUE DES BORDS DU DOCUMENT — demande produit explicite (18.08.2026) : le cadrage
  * ne doit plus être une simple proportion fixe centrée (`geometrieCadre.ts`, avant ce chantier),
  * mais une vraie lecture du contenu de la photo. Ce module reste dans les limites annoncées au
  * brief : PAS de bibliothèque de vision embarquée, PAS de correction de perspective/quadrilatère

@@ -25,7 +25,7 @@ interface Props {
  * Sélection du véhicule pour lequel entrer un jeu en dépôt (RPP-01 : `vehiculeId` obligatoire) —
  * même patron que `ecrans/ventes/reprises/SelecteurVehiculeRepris.tsx` (recherche `GET
  * /vehicules?q=`, anti-rebond 300ms, `IdentiteVehicule`), copié plutôt qu'importé : ce périmètre
- * (`ecrans/pneus/**`) ne dépend pas d'un fichier propriété d'un autre agent (`ecrans/ventes/**`).
+ * (`ecrans/pneus/**`) ne dépend pas d'un fichier propriété d'un autre lot (`ecrans/ventes/**`).
  */
 export function SelecteurVehiculePourDepot({ valeur, onChangeValeur }: Props) {
   const { t } = useTranslation(['pneus', 'commun', 'erreurs']);

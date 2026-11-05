@@ -169,7 +169,7 @@ export class ServicePaiement {
         //
         // Le schéma partagé (`schemaCreationPaiement.montantCentimes: schemaCentimesTtc`,
         // `packages/shared/src/contrats/facturation/primitives.ts`) n'impose AUCUNE borne — signalé
-        // pour resserrement côté contrat (hors périmètre `facturation/` de cet agent, voir le
+        // pour resserrement côté contrat (hors périmètre `facturation/` de ce lot, voir le
         // rapport de livraison), corrigé ICI en attendant : la garde applicative est le premier
         // rempart, pas le seul (voir aussi `mappeurs.ts::calculerMontantNonImputeCentimes` et
         // `imputations.ts::verifierPaiementImputable` pour les deux suivants).
@@ -386,11 +386,11 @@ export class ServicePaiement {
 
   /**
    * `POST /paiements/{id}/imputations` — affecte un paiement déjà enregistré (acompte non imputé,
-   * trop-perçu réaffecté). `Idempotency-Key` obligatoire : DÉCISION DE SÉCURITÉ de cet agent, PAS
+   * trop-perçu réaffecté). `Idempotency-Key` obligatoire : DÉCISION DE SÉCURITÉ de ce lot, PAS
    * une exigence littérale du contrat gelé (`schemaCreationImputation` n'en fait pas mention,
    * contrairement à `schemaCreationPaiement` et `schemaRembourserAvance`) — une imputation double
    * sur retry réseau lettrerait deux fois le même encaissement. Signalé au rapport de livraison
-   * comme écart à faire confirmer par expert-api/expert-facturation, jamais improvisé en silence.
+   * comme écart à faire confirmer par l'équipe API/l'équipe facturation, jamais improvisé en silence.
    */
   async ajouterImputation(
     ctx: ContexteTenant,

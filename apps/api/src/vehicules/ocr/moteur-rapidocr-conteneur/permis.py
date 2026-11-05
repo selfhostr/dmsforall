@@ -13,7 +13,7 @@
 # ce module ne fait QUE de la lecture de pixels, la validation vit côté API
 # (`extraction-permis.ts`/`correspondance-permis.ts`).
 #
-# VOTE TRIPLE-PASSE : ESSAYÉ (demande @laupernoe, 19.08) puis RETIRÉ (recalibrage du 20.08, mesuré sur le
+# VOTE TRIPLE-PASSE : ESSAYÉ (demande produit, 19.08) puis RETIRÉ (recalibrage du 20.08, mesuré sur le
 # banc des 17 photos, PAS une estimation) une fois les zones resserrées au point qu'une seule passe
 # suffit dans la quasi-totalité des cas. Comparaison en isolation, deux passes consécutives sans
 # autre charge concurrente sur la même machine, mêmes zones des deux côtés :

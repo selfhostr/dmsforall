@@ -2,7 +2,7 @@
  * Correspondance des champs extraits (`extraction-permis.ts`) contre la base : le référentiel
  * ASTRA (`type_approbation_ch`), les véhicules et les clients DÉJÀ EXISTANTS du tenant courant.
  * Une correspondance trouvée VALIDE la lecture (le code type en particulier — voir en-tête de
- * tâche) ; elle ne crée jamais rien (décision @laupernoe : cet endpoint ne crée ni véhicule ni client).
+ * tâche) ; elle ne crée jamais rien (décision de conception : cet endpoint ne crée ni véhicule ni client).
  *
  * Formes de sortie alignées sur `CorrespondanceVehiculeExistant`/`CorrespondanceClientExistant`
  * (`@dfa/shared`, contrat convergé avec l'écran de scan) : EXACTES uniquement pour véhicule/client,

@@ -14,8 +14,8 @@ import type { EntreeModificationParametresAtelierEtendue } from './schema-modifi
  * validation payante ». Restituer `0` à la place de `NULL` changerait silencieusement le sens
  * métier pour tout tenant sans plafond configuré (le pire des deux mensonges possibles ici). Ce
  * DTO expose donc `number | null` ; `ReponseParametresAtelier` (`packages/shared`) doit être
- * élargi au même type — signalé dans la réponse de tâche L1-07, à corriger par expert-api/
- * lead-backend, PAS par ce module (le shared est gelé, hors de mon périmètre d'écriture).
+ * élargi au même type — signalé dans la réponse de tâche L1-07, à corriger par l'équipe API/
+ * l'équipe backend, PAS par ce module (le shared est gelé, hors de mon périmètre d'écriture).
  *
  * DEUXIÈME ÉCART, MÊME NATURE — `reception.plafondAvoirReceptionnaireCentimes` (`RF-117`, 0018) :
  * champ ABSENT de `ReponseParametresAtelier`/`schemaModificationParametresAtelier` gelés, exposé

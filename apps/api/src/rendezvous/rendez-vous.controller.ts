@@ -141,7 +141,7 @@ export class RendezVousController {
   @HttpCode(HttpStatus.CREATED)
   @ExigerDroit('rendez_vous.creer')
   @ApiOperation({
-    summary: 'Prise de rendez-vous (§6 métier) — motif OBLIGATOIRE (arbitrage @laupernoe #2).',
+    summary: 'Prise de rendez-vous (§6 métier) — motif OBLIGATOIRE (choix produit #2).',
     description:
       '`Idempotency-Key` obligatoire (uuid v4). Surbooking jamais bloquant : avertit via ' +
       '`PLANNING_CAPACITE_DEPASSEE` si la capacité du (jour, moment) est déjà atteinte.',

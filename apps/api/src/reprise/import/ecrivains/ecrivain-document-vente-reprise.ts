@@ -16,7 +16,7 @@
  * archive source ne porte de notion de site DFA — l'appelant (orchestrateur) doit fournir un
  * `siteIdDefaut` (aujourd'hui : le premier site du tenant). Correct pour un garage mono-site,
  * FAUX pour un groupe multi-sites qui reprend un historique déjà réparti — à confirmer avec
- * `expert-metier` avant un import réel.
+ * l'équipe métier avant un import réel.
  *
  * NON VÉRIFIÉ EN BASE RÉELLE (signalé, pas caché) : ce writer n'a pas tourné contre une vraie
  * transaction Postgres (`pnpm test:integration` non lancé pour ce chantier, voir rapport de

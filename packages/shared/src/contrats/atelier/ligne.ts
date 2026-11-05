@@ -80,7 +80,7 @@ export interface ReponseLigneOr {
    * `(payeur, payeurClientId)` : deux assureurs sur le même OR sont deux groupes, donc deux
    * factures distinctes, jamais fusionnées sous prétexte qu'ils partagent `payeur = 'assurance'`.
    * Migration et implémentation (`atelier/service-ligne-or.ts`, écran de saisie de ligne) restent
-   * HORS PÉRIMÈTRE de ce fichier — à confier à expert-database / expert-nestjs / expert-react.
+   * HORS PÉRIMÈTRE de ce fichier — à confier à l'équipe base de données / l'équipe backend / l'équipe frontend.
    */
   readonly payeurClientId: string | null;
   /** Ce qui remonte dans les drapeaux `attentes` de l'OR (A-03). */

@@ -123,12 +123,12 @@ const schemaTransition = schemaModificationTravailReporte.pick({
  * Panneau de gestion des travaux reportés (RM-73) — PAS un écran routé : intégré dans
  * `EcranFicheVehicule.tsx`, à l'endroit où le réceptionnaire ouvre le dossier en accueillant le
  * client. Remplace `composants/vehicule/ListeTravauxReportes.tsx` (lecture seule, hors périmètre
- * de cet agent, laissé intact mais plus utilisé depuis la fiche) : celui-ci n'exposait que la
+ * de ce lot, laissé intact mais plus utilisé depuis la fiche) : celui-ci n'exposait que la
  * projection bornée de `contexte-atelier`, sans action. Ce panneau consomme la ressource DÉDIÉE
  * (`GET`/`PATCH .../travaux-reportes`), non bornée, avec les trois gestes RM-73 : corriger,
  * marquer comme repris (le client a accepté), abandonner (le client a refusé définitivement).
  *
- * SIGNALÉ, PAS CORRIGÉ (hors périmètre de cet agent, voir consigne de tâche) :
+ * SIGNALÉ, PAS CORRIGÉ (hors périmètre de ce lot, voir consigne de tâche) :
  *  - `ServiceLigneOr.refuserLignes` n'alimente pas encore la création d'un travail reporté depuis
  *    un refus de ligne d'OR — un refus client d'aujourd'hui n'apparaîtra donc pas ici tant que ce
  *    câblage n'existe pas côté `atelier`.
@@ -484,7 +484,7 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
 
       {/*
        * Dialogue de transition — Dialog CONSTRUIT ICI plutôt que `composants/motifs/
-       * AvertissementConfirmable.tsx` (hors périmètre de cet agent) : ce composant générique
+       * AvertissementConfirmable.tsx` (hors périmètre de ce lot) : ce composant générique
        * n'expose aucun emplacement pour une saisie, et la migration 0033 exige justement d'en
        * accueillir une (le motif de clôture/abandon, facultatif). Même doctrine `onOpenChange`/
        * `onSettled` que le dialogue d'édition ci-dessus.

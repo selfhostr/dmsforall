@@ -65,7 +65,7 @@ export async function verifierVehiculeExiste(
  *  `livre`) acceptent un rattachement — un bon de commande s'accroche typiquement avant
  *  l'engagement, une facture (acompte ou solde, plusieurs par dossier possibles) à tout moment
  *  avant la clôture. Choix documenté, pas tranché par la spécification au moment de cette tâche —
- *  à confirmer par expert-metier si un état intermédiaire doit en réalité être exclu. */
+ *  à confirmer par l'équipe métier si un état intermédiaire doit en réalité être exclu. */
 const ETATS_DOSSIER_VENTE_FERMES: ReadonlySet<StatutDossierVente> = new Set([
   'clos',
   'annule',
@@ -292,7 +292,7 @@ export async function chargerDelaiPaiementJoursDefautTenant(
  * « un document émis ne va rien chercher ailleurs pour s'afficher »). Faute de colonne, cette
  * fonction lit la plaque COURANTE au moment de l'affichage — donc PAS figée : un changement de
  * plaque après émission changerait ce que rend `GET /documents-vente/{id}`, ce que `MD-24` interdit
- * en principe. À signaler à expert-database : la vraie correction est une migration additive
+ * en principe. À signaler à l'équipe base de données : la vraie correction est une migration additive
  * (`document_vente.plaque_figee text`), hors du périmètre d'écriture de cette tâche.
  */
 export async function chargerPlaqueVehiculeCourante(

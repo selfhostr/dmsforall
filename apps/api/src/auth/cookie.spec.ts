@@ -48,7 +48,10 @@ describe('construireAttributsCookie', () => {
   });
 
   it('inclut `domain` quand COOKIE_DOMAINE est configuré', () => {
-    const attrs = construireAttributsCookie(configTest({ COOKIE_DOMAINE: '.dmsforall.example' }), 60);
+    const attrs = construireAttributsCookie(
+      configTest({ COOKIE_DOMAINE: '.dmsforall.example' }),
+      60,
+    );
 
     expect(attrs.domain).toBe('.dmsforall.example');
   });

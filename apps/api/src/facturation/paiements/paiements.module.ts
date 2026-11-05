@@ -10,8 +10,8 @@ import { ServicePaiement } from './service-paiement';
  * `common/idempotence/idempotence.jetons.ts`) : ce module n'a donc besoin de fournir ni l'un ni
  * l'autre lui-même.
  *
- * À CÂBLER par l'orchestrateur : `imports: [PaiementsModule]` dans le futur
- * `facturation.module.ts` (racine `apps/api/src/facturation/`, hors périmètre de cet agent).
+ * À CÂBLER par le mainteneur : `imports: [PaiementsModule]` dans le futur
+ * `facturation.module.ts` (racine `apps/api/src/facturation/`, hors périmètre de ce lot).
  *
  * `ServicePaiement` est exporté : `atelier`/`facturation/documents` en auront probablement besoin
  * plus tard (afficher le statut de règlement d'un OR, déclencher une émission bloquée par une

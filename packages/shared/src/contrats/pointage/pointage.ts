@@ -130,7 +130,7 @@ export interface ReponsePointage {
    * `ordreReparationId`. CONSÉQUENCE ASSUMÉE, signalée explicitement : comme pour
    * `technicienNomAffiche` hier, ajouter une clé requise à un contrat partagé casse toute fixture
    * qui construit un `ReponsePointage` à la main (front ET tests) — le front devra être aligné par
-   * l'agent qui en a le périmètre.
+   * le lot qui en a le périmètre.
    */
   readonly ordreReparationNumero: string | null;
   /**
@@ -369,7 +369,7 @@ export type EntreeCorrectionPointage = z.infer<typeof schemaCorrectionPointage>;
  * de fin de mois, `POST /pointages/verrouiller-periode` dans `periode.ts`) mais ne bloque PAS le
  * verrouillage sur cette validation : `verrouiller-periode` peut verrouiller des pointages encore
  * `termine`, jamais validés individuellement — sans quoi un garage qui n'utilise jamais l'action
- * `valider` ne pourrait plus jamais clôturer de période. À confirmer avec expert-metier avant
+ * `valider` ne pourrait plus jamais clôturer de période. À confirmer avec l'équipe métier avant
  * l'implémentation ; si la réponse est « cette étape n'existe dans aucun garage réel », retirer
  * `valider` de `ACTIONS_POINTAGE` reste un changement ADDITIF côté client (une action en moins
  * dans une liste extensible), pas une rupture.
@@ -393,7 +393,7 @@ export type EntreeValidationPointages = z.infer<typeof schemaValidationPointages
  * COURANTE. Nécessaire en particulier au mode borne (`/pointages/borne`) : chaque identification PIN
  * y recharge l'écran, donc AUCUN état côté client ne survit d'une identification à l'autre.
  *
- * SEUIL DE REPRISE (P-34, arbitrage @laupernoe, NE PAS ROUVRIR) : la reprise reste proposée pendant TOUTE
+ * SEUIL DE REPRISE (P-34, choix produit, NE PAS ROUVRIR) : la reprise reste proposée pendant TOUTE
  * la journée de travail et disparaît le lendemain — aucun paramètre configurable par garage. Même
  * notion de « journée » que la clôture automatique de fin de journée (RM-91/RM-119) et que le
  * verrouillage de période (RM-95, `periode.ts`) : bornes calendaires UTC pures (voir

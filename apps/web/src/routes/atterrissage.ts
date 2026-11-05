@@ -4,7 +4,7 @@ import { chemins } from './chemins';
 
 /**
  * TABLE D'ATTERRISSAGE PAR RÔLE — Lot D (`docs/refonte-navigation.md` §2, table « Rôle /
- * Atterrissage »), RÉVISÉE par l'arbitrage de @laupernoe du 10.08.2026 (fusion Accueil/Tableau de bord,
+ * Atterrissage »), RÉVISÉE par l'choix produit du 10.08.2026 (fusion Accueil/Tableau de bord,
  * `docs/design-tableau-bord-par-role.md`). Où l'on arrive quand on ouvre l'application, avant
  * d'avoir cliqué quoi que ce soit.
  *

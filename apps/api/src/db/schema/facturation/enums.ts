@@ -3,7 +3,7 @@
  *
  * ÉCART ASSUMÉ à la doctrine « SOURCE UNIQUE `@dfa/shared` » suivie par `schema/atelier/enums.ts` :
  * `packages/shared/src/contrats/` n'a PAS ENCORE de contrat de facturation (aucun fichier
- * `contrats/facturation/*`) — le construire appartient à expert-api/expert-facturation, hors du
+ * `contrats/facturation/*`) — le construire appartient à l'équipe API/l'équipe facturation, hors du
  * périmètre de cette migration (`apps/api/src/db/migrations` + `apps/api/src/db/schema`
  * exclusivement). Les valeurs sont donc dupliquées ICI, en dur, le temps que le contrat partagé
  * existe. Quand il existera, ces tableaux doivent être remplacés par des imports depuis
@@ -63,7 +63,7 @@ export const regimeTvaEnum = pgEnum('regime_tva', [
 
 /**
  * MD-43 / §0.2 de la migration : type PG complet (`ht`|`ttc`), restreint à `ttc` par CHECK pour
- * le lot pilote — décision de @laupernoe du 29.07.2026 (RF-40, montants toujours saisis/affichés TTC).
+ * le lot pilote — décision de conception du 29.07.2026 (RF-40, montants toujours saisis/affichés TTC).
  * Voir `ligne_document_mode_ttc_lot_pilote_chk`.
  */
 export const modeCalculTvaEnum = pgEnum('mode_calcul_tva', ['ht', 'ttc']);

@@ -48,7 +48,7 @@ function rendre(routeInitiale: string, ui: ReactElement) {
   );
 }
 
-/** SANS `MemoryRouter` — le cas qui a cassé `EcranRelances.spec.tsx` (agent facturation,
+/** SANS `MemoryRouter` — le cas qui a cassé `EcranRelances.spec.tsx` (lot facturation,
  *  17.08.2026) avant que ce socle ne rende `useNavigationActive` tolérant à l'absence de Router. */
 function rendreSansRouteur(ui: ReactElement) {
   const queryClient = creerQueryClientTest();
@@ -176,7 +176,7 @@ describe('GabaritEcran — tolérance à l’absence de Router (`useNavigationAc
    * `useLocation`/`useSearchParams` exigent un `<Router>` ancêtre — sans la tolérance posée dans
    * `useNavigationActive.ts`, ce rendu planterait avec `useLocation() may be used only in the
    * context of a <Router> component.`, un message qui ne nomme jamais `GabaritEcran`. Régression
-   * concrète rencontrée par l'agent facturation sur `EcranRelances.spec.tsx` avant correctif.
+   * concrète rencontrée par le lot facturation sur `EcranRelances.spec.tsx` avant correctif.
    */
   it('rendu sans MemoryRouter : ne plante pas, le titre reste visible (dégrade comme une route hors arborescence)', async () => {
     connecte('direction');
@@ -203,7 +203,7 @@ describe('GabaritEcran — tolérance à l’absence de Router (`useNavigationAc
 
 describe('GabaritEcran — session en erreur : jamais de blocage', () => {
   /**
-   * Régression réelle (agent transverses, 17.08.2026) : `routes/RouteProtegee.spec.tsx`, test
+   * Régression réelle (lot transverses, 17.08.2026) : `routes/RouteProtegee.spec.tsx`, test
    * « isError », bloquait 15 s parce qu'un SECOND observateur ACTIF de `useSession()` (celui posé
    * ici avant correctif) déclenchait son propre refetch sur une requête déjà en erreur, refetch qui
    * ne se résolvait jamais dans ce scénario. `useNavigationActive` lit désormais la session de façon

@@ -80,7 +80,7 @@ import { ServiceDepotPneus } from './service-depot-pneus';
  *     (`changer-saison`, `sortir`, `deplacer`) ; `creer` avait déjà son `@HttpCode(HttpStatus.
  *     CREATED)` explicite et n'était pas concernée. Le même écart existe ailleurs dans le dépôt
  *     (`commande-fournisseur.controller.ts`, `annuler`/`envoyer`, déjà documenté dans un test) —
- *     HORS PÉRIMÈTRE de cet agent (`pieces/` interdit), signalé pour correction séparée.
+ *     HORS PÉRIMÈTRE de ce lot (`pieces/` interdit), signalé pour correction séparée.
  */
 
 @ApiTags('Pneus — Hangar')

@@ -616,7 +616,7 @@ export class ServiceOr {
    *
    * `tri` (suite du #73, câblage du 12.08.2026) — LES 5 valeurs de `TRIS_ORDRES_REPARATION` sont
    * désormais câblées ci-dessous via `construireOrdreTri` : `ouvertLe:asc/desc`,
-   * `restitutionPromiseLe:asc/desc`, `joursAttenteRetrait:desc` (arbitrage @laupernoe, voir plus bas).
+   * `restitutionPromiseLe:asc/desc`, `joursAttenteRetrait:desc` (choix produit, voir plus bas).
    * `numeroSequence:asc/desc` a été RETIRÉ du contrat (`packages/shared/.../ordre-reparation.ts`),
    * jamais rendu décoratif — voir le commentaire de tête de `TRIS_ORDRES_REPARATION`.
    *
@@ -645,7 +645,7 @@ export class ServiceOr {
    * (y compris le défaut) — `id` est la clé primaire, donc unique par construction, ce qui rend
    * l'ordre total quel que soit le nombre d'ex æquo sur la colonne de tri principale.
    *
-   * `joursAttenteRetrait:desc` (arbitrage @laupernoe, 12.08.2026) — lecture ATELIER, pas lecture client :
+   * `joursAttenteRetrait:desc` (choix produit, 12.08.2026) — lecture ATELIER, pas lecture client :
    * « la voiture est prête, elle occupe une place, le client ne vient pas la chercher ». Le décompte
    * part de la FIN DES TRAVAUX, jamais de `restitutionPromiseLe` dépassée (explicitement écarté —
    * ça mélangerait le retard du garage et celui du client, déjà couvert par `restitutionRetard`/

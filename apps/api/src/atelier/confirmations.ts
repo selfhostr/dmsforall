@@ -17,7 +17,7 @@ import { ErreurMetier } from '../common/erreurs/erreur-metier';
  * `CODES_ERREUR` (`packages/shared/src/contrats/probleme.ts`, gelé par L1-01). `CONFIRMATION_REQUISE`
  * est donc réutilisé dans les deux branches — seuls `confirmationsRequises` et `actionsProposees`
  * distinguent « vous pouvez confirmer » de « demandez à un habilité ». À confirmer avec
- * l'orchestrateur / expert-api si un code dédié doit être ajouté à `CODES_ERREUR`.
+ * le mainteneur / l'équipe API si un code dédié doit être ajouté à `CODES_ERREUR`.
  *
  * Ne fait RIEN (retourne normalement) si `code` figure déjà dans `confirmationsFournies` : c'est
  * le rejeu confirmé, la condition est acceptée et l'appelant continue son geste.

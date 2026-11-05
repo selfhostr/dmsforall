@@ -246,7 +246,7 @@ describe('MATRICE_DROITS — effacement nLPD (bascule du palliatif clients/droit
 
 /**
  * RF-114 (`docs/specification-etape-2-facturation.md` §9), ligne par ligne — même patron que le
- * bloc §10 ci-dessus, pour les 5 actions ajoutées par l'agent `paiements`.
+ * bloc §10 ci-dessus, pour les 5 actions ajoutées par le lot `paiements`.
  */
 describe('MATRICE_DROITS — RF-114, facturation/paiements (étape 2)', () => {
   it('« Voir les montants » côté paiements : direction, comptable, vendeur, réceptionnaire, chef d’atelier, magasinier — PAS technicien, PAS admin (RF-115 littéral : « il ne voit pas les montants, n’émet rien et n’encaisse rien » — DROITS_PAIEMENT_PAR_ROLE.admin = [], y compris la lecture, à la différence du choix fait côté documents, voir plus bas)', () => {
@@ -277,7 +277,7 @@ describe('MATRICE_DROITS — RF-114, facturation/paiements (étape 2)', () => {
 
 /**
  * RF-114 (`docs/specification-etape-2-facturation.md` §9), bloc « documents » — même patron que le
- * bloc paiements ci-dessus, pour les 9 actions ajoutées par l'agent `documents`. Trois points
+ * bloc paiements ci-dessus, pour les 9 actions ajoutées par le lot `documents`. Trois points
  * spécifiques à ce bloc, absents du bloc paiements :
  *  - `facturation.document.lire` est accordée aux 8 rôles SANS exception (contrairement à
  *    `facturation.paiement.lire`, refusée à `admin`) : RF-116 (visibilité des MONTANTS, pas de la
@@ -598,7 +598,7 @@ describe('MATRICE_DROITS — lecture large (LECTURE_SOCLE et LECTURE_ETENDUE)', 
     expect(MATRICE_DROITS.comptable).toContain('facturation.document.emettre_facture');
     // §11 étape 4, ligne 7 : comptable confirme/refuse un financement.
     expect(MATRICE_DROITS.comptable).toContain('ventes.financement.confirmer');
-    // Relances : comptable détient aussi l'écriture (arbitrage @laupernoe, voir le bloc dédié plus bas).
+    // Relances : comptable détient aussi l'écriture (choix produit, voir le bloc dédié plus bas).
     expect(MATRICE_DROITS.comptable).toContain('relances.facturation.regle.ecrire');
     // Issue #45 / RF-117 : comptable fixe aussi le plafond d'avoir réceptionnaire.
     expect(MATRICE_DROITS.comptable).toContain('parametrage.atelier.plafond_avoir.modifier');
@@ -629,7 +629,7 @@ describe('MATRICE_DROITS — admin et direction (superset SAUF droits financiers
     // docs/specification-etape-3-pieces.md écrit littéralement « non (RF-115, aucun droit métier) »
     // pour admin sur TOUT le domaine pièces (y compris la simple lecture) — voir
     // `DROITS_PIECES_PAR_ROLE` dans matrice-droits.ts et le test dédié plus bas. `ventes.` exclu
-    // pour la même raison, décision de l'agent ventes (voir `DROITS_VENTES_PAR_ROLE`) : admin n'a
+    // pour la même raison, décision du lot ventes (voir `DROITS_VENTES_PAR_ROLE`) : admin n'a
     // aucun droit sur le domaine ventes, y compris la lecture. `tableau_bord.` exclu pour la MÊME
     // raison que `facturation.` : `tableau_bord.financier.lire` (RF-115) diverge entre admin ([])
     // et direction ; `tableau_bord.activite.lire`, lui, NE diverge PAS (admin l'a aussi, voir le
@@ -934,8 +934,8 @@ describe('MATRICE_DROITS — ventes VN/VO (étape 4, matrice §11)', () => {
 });
 
 /**
- * Pointage (lot 2, RM-87→RM-99, RM-113→RM-123) : bloc transmis par l'orchestrateur pour le compte
- * de l'agent `pointage/`, périmètre disjoint de ce fichier. Voir `DROITS_POINTAGE_PAR_ROLE`
+ * Pointage (lot 2, RM-87→RM-99, RM-113→RM-123) : bloc transmis par le mainteneur pour le compte
+ * du lot `pointage/`, périmètre disjoint de ce fichier. Voir `DROITS_POINTAGE_PAR_ROLE`
  * (`matrice-droits.ts`) pour l'arbitrage documenté (@laupernoe, 2026-08-03) : `comptable` ne détient NI
  * `verrouiller_periode` NI `deverrouiller_periode`, corrigé depuis une première version qui lui
  * accordait `verrouiller_periode` seul et heurtait l'invariant « comptable = lecture-seule hors
@@ -1136,7 +1136,7 @@ describe('MATRICE_DROITS — tableau de bord (activité + financier)', () => {
  * Pneus — hangar à pneus (`docs/specification-parc-et-hangar-pneus.md`, RPP-01→RPP-08) : bascule
  * du palliatif `@AucunDroitRequis()` + vérification de rôle en service
  * (`pneus/droits-provisoires.ts`, retiré) vers le mécanisme normal `@ExigerDroit(...)` +
- * `GardeDroit`. `gerer` (proposition d'origine de l'agent `pneus/`) est ici scindée en
+ * `GardeDroit`. `gerer` (proposition d'origine du lot `pneus/`) est ici scindée en
  * `changer_saison`/`sortir` — voir le commentaire sur les entrées `pneus.depot.*` de
  * `TOUTES_ACTIONS` (`matrice-droits.ts`) pour l'arbitrage complet.
  */
@@ -1204,7 +1204,7 @@ describe('MATRICE_DROITS — pneus (hangar à pneus)', () => {
 /**
  * Relances automatiques (`docs/specification-relances-automatiques.md`) : bascule du palliatif
  * `@AucunDroitRequis()` + vérification de rôle en service (`relances/droits-provisoires.ts`,
- * retiré) vers le mécanisme normal `@ExigerDroit(...)` + `GardeDroit`. Arbitrage de @laupernoe, confirmé :
+ * retiré) vers le mécanisme normal `@ExigerDroit(...)` + `GardeDroit`. Choix produit, confirmé :
  * UN SEUL jeu de rôles (`direction`, `comptable`) gouverne les QUATRE actions — LIRE la
  * configuration des relances expose déjà une politique de recouvrement du garage, exactement au
  * même titre que la déclencher. Ce bloc casse donc, délibérément, la doctrine par défaut de ce
@@ -1325,7 +1325,7 @@ describe('MATRICE_DROITS — rendez-vous d’atelier (lot RDV-1)', () => {
 });
 
 /**
- * Gestion des employés (issue #137, arbitrage @laupernoe 13.08.2026) — `DROITS_UTILISATEUR_PAR_ROLE`
+ * Gestion des employés (issue #137, choix produit 13.08.2026) — `DROITS_UTILISATEUR_PAR_ROLE`
  * dans matrice-droits.ts. Exactement deux rôles détiennent ces cinq actions : `direction` (le
  * patron) et `admin` (le compte technique de l'intégrateur, qui doit pouvoir créer le tout
  * premier compte `direction` d'un nouveau garage). AUCUN autre rôle, pas même en lecture — gérer
@@ -1576,7 +1576,7 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'ventes.financement.creer',
       'ventes.financement.confirmer',
       'ventes.financement.refuser',
-      // --- Lot 2 : pointage (RM-87→RM-99, RM-113→RM-123), transmis par l'orchestrateur ---
+      // --- Lot 2 : pointage (RM-87→RM-99, RM-113→RM-123), transmis par le mainteneur ---
       'atelier.pointage.demarrer',
       'atelier.pointage.arreter',
       'atelier.pointage.lire',
@@ -1587,7 +1587,7 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'atelier.pointage.verrouiller_periode',
       'atelier.pointage.deverrouiller_periode',
       // --- Mode « borne partagée » du pointage (docs/specification-pointage-borne.md) ----------
-      // Livrées par expert-auth EN AMONT du module PIN, pour que l'agent qui construira
+      // Livrées par l'équipe authentification EN AMONT du module PIN, pour que le lot qui construira
       // `pin_pointage` reprenne des noms et un périmètre de rôles déjà arbitrés. Inertes tant
       // qu'aucune route ne les exerce — déclarées comme telles dans
       // `common/droits/allowlist-actions-non-decorees.ts`.
@@ -1710,7 +1710,7 @@ describe('DROIT_PAR_CONFIRMATION', () => {
  * raison est physique : l'écran est accroché à un mur, allumé en permanence, sans verrouillage,
  * et n'importe qui entrant dans l'atelier est devant.
  *
- * Le risque que ces tests existent pour empêcher est précis : un futur agent qui, voyant la borne
+ * Le risque que ces tests existent pour empêcher est précis : un futur lot qui, voyant la borne
  * « manquer » d'un droit pour faire marcher un écran, lui ajoute `LECTURE_ETENDUE` par confort de
  * copie — et publie du même geste le fichier clients du garage sur un mur d'atelier. Un test rouge
  * est la seule chose qui transforme ce geste en décision consciente.
@@ -1856,7 +1856,7 @@ describe('MATRICE_DROITS — poste_atelier, compte de service (mode borne du poi
  * voit pas les montants, n'émet rien, n'encaisse rien », `docs/specification-etape-2-facturation.md`
  * §9 L1327) : pièces et ventes portent une valeur financière (COGS, marge, prix de reprise), donc
  * `admin` en est exclu EN BLOC, lecture comprise — déjà couvert par les tests dédiés plus haut
- * (« RF-115 appliqué au domaine pièces », « RF-115 (décision de cet agent)… ventes »), et par
+ * (« RF-115 appliqué au domaine pièces », « RF-115 (décision de ce lot)… ventes »), et par
  * `DROITS_PAIEMENT_PAR_ROLE.admin = []` pour `POST /paiements`. AUCUNE de ces absences n'est
  * corrigée ici : ce sont des décisions métier délibérées et déjà testées, pas des oublis.
  *

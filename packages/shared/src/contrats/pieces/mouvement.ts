@@ -52,7 +52,7 @@ export interface ReponseMouvementStock {
    *
    * DÉCISION DE CONTRAT sur ce que `null` signifie pour un consommateur : ce n'est PAS un `null`
    * générique « auteur inconnu ». Dans ce contrat, `null` a EXACTEMENT une seule cause — un
-   * mouvement issu d'une reprise de données ou d'un import (`expert-migration-donnees`), jamais
+   * mouvement issu d'une reprise de données ou d'un import (l'équipe reprise de données), jamais
    * une saisie humaine dont l'auteur se serait perdu. Un `null` brut est exposé plutôt qu'un
    * marqueur structuré séparé (ex. `{ origine: 'import' } | { origine: 'utilisateur'; id }`) : ce
    * marqueur ajouterait un niveau d'indirection pour encoder une information qui n'a aujourd'hui

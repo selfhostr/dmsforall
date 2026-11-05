@@ -92,7 +92,7 @@ function versReponse(ligne: LigneHistoriqueEnvoiBrute): ReponseRelanceEnvoi {
  * nouvelle pour cette issue : la trace existait déjà en base (une ligne par tentative, RLS déjà
  * en place) — seul le listing manquait, voir le rapport de livraison qui accompagne ce fichier.
  *
- * Pièce de dossier pour le comptable, pas un journal technique (décision de @laupernoe, 14.08.2026) :
+ * Pièce de dossier pour le comptable, pas un journal technique (décision de conception, 14.08.2026) :
  * une ligne par relance PARTIE, avec sa date, son palier, le destinataire réellement touché
  * (figé, `relance_envoi.destinataire_fige`) et son résultat. Le contenu du message envoyé
  * (`relance_envoi.contenu_fige`) n'est délibérément jamais exposé — voir le contrat

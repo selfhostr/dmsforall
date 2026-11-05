@@ -29,7 +29,7 @@ type Onglet = 'tauxHoraires' | 'prestations';
  * pour les autres rôles plutôt que de les laisser remplir un formulaire qui échouera en `403`.
  *
  * PORTE AUSSI le choix de langue (« Mon compte », carte distincte de la matière tarifaire
- * ci-dessous) — retiré de l'en-tête (décision @laupernoe, 10.08.2026) où il occupait une place
+ * ci-dessous) — retiré de l'en-tête (décision de conception, 10.08.2026) où il occupait une place
  * permanente pour un réglage qu'on touche une fois. Réglages a cinq onglets (atelier, sites,
  * facturation, tarifs, pièces) mais AUCUN n'est « mon compte » : celui-ci est le seul ouvert à
  * TOUS les rôles authentifiés sans restriction (voir l'en-tête de doc ci-dessus et

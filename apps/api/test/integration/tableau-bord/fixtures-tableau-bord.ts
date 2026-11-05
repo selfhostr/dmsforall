@@ -1,6 +1,6 @@
 /**
  * Fixtures locales au module Tableau de bord (`apps/api/src/tableau-bord/`) — PAS un ajout à
- * `test/lot1/fixtures/garage-demo-lot1.ts` (périmètre d'un autre agent, seulement LU ici, jamais
+ * `test/lot1/fixtures/garage-demo-lot1.ts` (périmètre d'un autre lot, seulement LU ici, jamais
  * modifié) : ce fichier construit, par-dessus `semerGarageDemoLot1`, exactement ce que les tests
  * du tableau de bord ont besoin de créer eux-mêmes — des documents de vente ÉMIS à montant connu,
  * des paiements à montant connu, et (pour la matrice de droits) le seul rôle que la fixture lot 1

@@ -1,7 +1,7 @@
 /**
  * Clés TanStack Query du domaine paramétrage — même convention que `clesFacturation`
  * (`hooks/facturation/cles.ts`) : tuple plat, tenue ICI plutôt que fusionnée dans `api/cles.ts`
- * (gelé, `plan-etape-1-frontend.md` §5.1, hors périmètre de cet agent).
+ * (gelé, `plan-etape-1-frontend.md` §5.1, hors périmètre de ce lot).
  *
  * `tauxHoraires`/`prestations` : listes du catalogue de référentiels (`GET /referentiels/*`,
  * écran `EcranReferentiels`). Volontairement DISTINCTES de `clesQuery.referentiels.prestations(q)`

@@ -43,7 +43,7 @@ const ADAPTATEURS_FACTICES = [
  * liste voisine, et à `inject` de la fabrique ci-dessous — le registre n'a besoin de rien de plus
  * pour le voir apparaître, `typeConnecteurCode` faisant déjà l'aiguillage.
  *
- * Non enregistré dans `AppModule` par ce module lui-même — importé par l'orchestrateur (voir
+ * Non enregistré dans `AppModule` par ce module lui-même — importé par le mainteneur (voir
  * `apps/api/src/app.module.ts`), même patron que `PointageModule`/`PneusModule`. Aucun contrôleur
  * HTTP : ce socle n'expose aucune route, il fournit des services que d'autres modules pourront
  * injecter (`RegistreConnecteursService`, `ServiceExecuteurConnecteurResilient`) une fois leurs

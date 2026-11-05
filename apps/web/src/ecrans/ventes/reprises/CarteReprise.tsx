@@ -39,7 +39,7 @@ interface Props {
  * Carte reprise (§8 du design) — panneau INTÉGRABLE dans la fiche dossier de vente, PAS un écran
  * routé séparément (0 ou 1 reprise par dossier, sous-ressource singulière). Exporté pour être posé
  * directement dans `ecrans/ventes/dossiers/EcranFicheDossierVente.tsx` (hors périmètre de cet
- * agent) au même titre que `PanneauStockArticle` l'est dans `EcranFicheArticle`.
+ * lot) au même titre que `PanneauStockArticle` l'est dans `EcranFicheArticle`.
  *
  * §11 point 1 du design (« deux valeurs toujours rendues ensemble ») : `valeurEstimeeCentimes` et
  * `valeurNegocieeCentimes` s'affichent CÔTE À CÔTE, jamais l'une sans l'autre. Aucune base TVA,

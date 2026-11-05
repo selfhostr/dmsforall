@@ -151,7 +151,7 @@ export function EcranFicheVehicule() {
   // (hooks/pneus/depot-pneus.api.ts) existe déjà (route `GET /vehicules/{id}/depots-pneus`) mais
   // n'était consommée par aucun hook React Query à ce jour (seul le hangar l'était) : appelée ICI
   // directement, sans créer de nouveau fichier `hooks/pneus/useDepotsPneusVehicule.ts` (hors du
-  // périmètre d'écriture exclusif de cet agent). Statuts ACTIFS uniquement (`en_depot`/
+  // périmètre d'écriture exclusif de ce lot). Statuts ACTIFS uniquement (`en_depot`/
   // `a_relancer`) — un jeu `monte` est sur le véhicule, pas « au dépôt » ; `sorti` est un historique
   // terminal, pas une présence actuelle.
   const requeteDepotsPneus = useQuery({
@@ -213,7 +213,7 @@ export function EcranFicheVehicule() {
   const contexte = requeteContexte.data;
 
   // Lot B — « propriétaire · détenteurs précédents ». `FriseDetentions` (`composants/vehicule/`,
-  // hors périmètre exclusif de cet agent) rend déjà l'historique visuellement mais aucune entrée
+  // hors périmètre exclusif de ce lot) rend déjà l'historique visuellement mais aucune entrée
   // n'y est cliquable — étendre son interface n'est pas dans le périmètre annoncé de ce chantier.
   // Ce bloc-ci consomme la MÊME donnée déjà chargée (`requeteDetentions`, aucune requête
   // supplémentaire) pour offrir le lien manquant, en complément de la frise plutôt qu'à sa place.
@@ -250,7 +250,7 @@ export function EcranFicheVehicule() {
   // « le lien qui manque le plus tous les jours » (magasinier) menait à `/pneus` sans jamais
   // désigner LEQUEL des jeux du véhicule regarder — retrouver la bonne case demandait de refaire
   // une recherche visuelle dans le local. `chemins.pneus.hangar` (`routes/chemins.ts`, hors
-  // périmètre d'écriture exclusif de cet agent) n'a pas de troisième paramètre `depot` : le chemin
+  // périmètre d'écriture exclusif de ce lot) n'a pas de troisième paramètre `depot` : le chemin
   // est donc complété ICI plutôt que d'éditer `routes/`. `EcranHangarPneus.tsx` lit `?depot=` avec
   // la même mécanique que `?site=`/`?onglet=` (voir sa note de tête) et fait défiler jusqu'à la
   // carte correspondante, focus au clavier compris — jamais un filtre qui masquerait le reste du
@@ -603,10 +603,10 @@ export function EcranFicheVehicule() {
        *  projection bornée de `contexte-atelier` : `EncartAlertesVehicule` ci-dessus couvre déjà le
        *  « sans cliquer » pour les travaux OUVERTS, ce panneau ajoute la correction/clôture/abandon
        *  et l'historique complet (non bornés), depuis la ressource dédiée.
-       *  SIGNALÉ, PAS CORRIGÉ (Lot B, hors périmètre exclusif de cet agent) : le plan demande
+       *  SIGNALÉ, PAS CORRIGÉ (Lot B, hors périmètre exclusif de ce lot) : le plan demande
        *  « travaux reportés avec ouvrir un OR à partir de ces travaux » — `PanneauTravauxReportes.tsx`
-       *  n'a aujourd'hui aucun tel geste et vit hors de la liste de fichiers confiée à cet agent
-       *  (seul `EcranFicheVehicule.tsx` y figure). À ajouter par l'agent propriétaire de ce
+       *  n'a aujourd'hui aucun tel geste et vit hors de la liste de fichiers confiée à ce lot
+       *  (seul `EcranFicheVehicule.tsx` y figure). À ajouter par le lot propriétaire de ce
        *  composant. */}
       {vehiculeId ? <PanneauTravauxReportes vehiculeId={vehiculeId} /> : null}
 

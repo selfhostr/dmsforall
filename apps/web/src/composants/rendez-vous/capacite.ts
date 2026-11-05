@@ -12,7 +12,7 @@ const SEUIL_PRESQUE_COMPLET_MINUTES = 30;
 /**
  * Classification PURE de la capacité d'un jour, à partir des minutes réellement occupées et de la
  * capacité journalière du site (`GET /rendez-vous/capacite`, `minutesOccupees`/`capaciteMinutes`)
- * — le point le plus délicat de cet écran (consigne de @laupernoe : « un écran qui affiche "libre" alors
+ * — le point le plus délicat de cet écran (consigne produit : « un écran qui affiche "libre" alors
  * que l'atelier est plein est pire que pas d'écran »). QUATRE états, jamais trois :
  *
  * - `capaciteMinutes === null` -> `non_definie` (site sans paramétrage) : ne JAMAIS retomber sur

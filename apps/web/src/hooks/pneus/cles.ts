@@ -3,7 +3,7 @@ import type { FiltresARelancer, FiltresDepotsVehicule, FiltresHangar } from './d
 /**
  * Clés TanStack Query du domaine pneus — même convention que `clesPieces` (`hooks/pieces/cles.ts`) :
  * tuple plat, tenue ICI plutôt que dans `api/cles.ts` (gelé depuis l'étape 1, hors périmètre de
- * cet agent). Chaque clé de liste porte l'objet de filtres COMPLET envoyé au serveur.
+ * ce lot). Chaque clé de liste porte l'objet de filtres COMPLET envoyé au serveur.
  */
 export const clesPneus = {
   hangar: {

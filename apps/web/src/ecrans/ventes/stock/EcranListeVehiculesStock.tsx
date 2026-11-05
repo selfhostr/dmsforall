@@ -69,7 +69,7 @@ const CLES_TRI: Record<(typeof TRIS_VEHICULES_STOCK)[number], string> = {
  * (module pièces, le calque de patron le plus proche).
  *
  * DÉCISION DE NAVIGATION (déjà actée, voir docs/design-ecrans-ventes.md et le brief de livraison
- * de cet agent) : le clic sur une ligne ouvre `/vehicules/{id}` (fiche véhicule existante, étape
+ * de ce lot) : le clic sur une ligne ouvre `/vehicules/{id}` (fiche véhicule existante, étape
  * 1 — `chemins.vehicules.detail`), PAS une fiche contrôlée par ce sous-module. La fiche
  * complémentaire `/ventes/stock/{id}` (`EcranFicheVehiculeStock`) reste accessible via un lien
  * dédié dans chaque ligne (colonne `actions`), pas au clic sur la ligne elle-même — un vendeur qui
@@ -286,7 +286,7 @@ export function EcranListeVehiculesStock() {
       ? toutesColonnes.filter((colonne) => !colonnesMasqueesVueClient.has(colonne.id))
       : toutesColonnes;
 
-  // « Mettre en stock » — seule ACTION de l'en-tête d'écran (retour @laupernoe du 17.08.2026 : « Vue
+  // « Mettre en stock » — seule ACTION de l'en-tête d'écran (retour produit du 17.08.2026 : « Vue
   // vendeur, Vue client, il faut le mettre ailleurs »). Construite AVANT les retours anticipés
   // chargement/erreur pour que l'en-tête garde EXACTEMENT la même composition entre les trois
   // états (même doctrine que `EcranSuiviVentes` pour ses onglets d'horizon) — le bouton ne dépend
@@ -372,7 +372,7 @@ export function EcranListeVehiculesStock() {
     // « mise en page ventes », 19.08.2026, voir `boutonMettreEnStock` ci-dessus) pour rejoindre la
     // barre de filtres ci-dessous — visibles dans les DEUX modes d'affichage (`liste`/`plan`), donc
     // posées à côté de `BarreFiltres`, qui elle non plus ne dépend pas du mode. Le contenu commence
-    // directement par cette rangée, remonté d'une rangée entière (retour @laupernoe du 17.08.2026,
+    // directement par cette rangée, remonté d'une rangée entière (retour produit du 17.08.2026,
     // « tu peux mettre plus haut le truc »).
     <GabaritEcran titre={t('ventes:stock.liste.titre')}>
       <div className="flex flex-wrap items-end justify-between gap-3">

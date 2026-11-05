@@ -35,7 +35,7 @@ const STATUTS_FILTRE_GARAGE: readonly NiveauSanteGarage[] = ['critique', 'attent
 /**
  * Chemin du palier 2 (§1 de la conception : `/console/garages/:tenantId`) — la ROUTE elle-même
  * n'est pas montée par ce lot (hors périmètre d'écriture : `routes/`, palier 2 non construit,
- * décision de @laupernoe non prise sur le modèle d'accès). Le lien pointe donc, pour l'instant, vers une
+ * décision de conception non prise sur le modèle d'accès). Le lien pointe donc, pour l'instant, vers une
  * page qui répond `EcranPageIntrouvable` : attendu, pas une régression de cet écran — signalé au
  * coordinateur comme le chemin exact dont le câblage de route aura besoin.
  */

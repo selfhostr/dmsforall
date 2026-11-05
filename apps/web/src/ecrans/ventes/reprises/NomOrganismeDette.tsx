@@ -16,7 +16,7 @@ interface Props {
  * hook déjà existant `useClient`) plutôt que d'afficher un UUID au garagiste ; une prochaine
  * révision du contrat pourrait embarquer un `ClientResume` directement, comme `financement.ts`,
  * et éviter ce second appel — signalé dans le rapport de livraison, pas corrigé ici (contrat gelé,
- * hors périmètre d'écriture de cet agent).
+ * hors périmètre d'écriture de ce lot).
  */
 export function NomOrganismeDette({ clientId }: Props) {
   const { t } = useTranslation('commun');

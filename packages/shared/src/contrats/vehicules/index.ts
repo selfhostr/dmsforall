@@ -7,7 +7,7 @@
  *
  * Point d'entrée unique du domaine, même règle que les autres `contrats/<domaine>/index.ts` :
  * tout ce qui est exporté ici est GELÉ au nom près et à la signature près une fois validé par
- * l'orchestrateur.
+ * le mainteneur.
  */
 
 export * from './referentiel-vehicules-ch';

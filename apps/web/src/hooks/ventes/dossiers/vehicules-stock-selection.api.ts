@@ -12,7 +12,7 @@ import { ErreurApi } from '@/api/erreurs';
  * Couche transport MINIMALE de `GET /vehicules-stock` (`vehicules-stock.controller.ts`),
  * limitée au besoin du sélecteur de véhicule à la création d'un dossier de vente (RV-30) : chercher
  * un véhicule `disponible`/`en_commande` par plaque/VIN/désignation. Le module « parc en stock »
- * complet (fiche, actions, filtres avancés) appartient à un autre agent
+ * complet (fiche, actions, filtres avancés) appartient à un autre lot
  * (`ecrans/ventes/stock/**`, hors périmètre de celui-ci) — ce fichier ne construit AUCUN écran, il
  * ne fait qu'exposer la requête dont `SelecteurVehiculeStockDossier` a besoin, dans le périmètre
  * `hooks/ventes/dossiers/**` qui m'est propre.
@@ -52,7 +52,7 @@ export async function rechercherVehiculesStockSelection(
 
 /** `GET /vehicules/{vehiculeId}/stock` — fiche stock SINGULIÈRE, utilisée uniquement pour
  *  afficher l'identité d'un véhicule pré-rempli via `?vehiculeId=` (design §5.4 : venir du bouton
- *  « Vendre » de `BlocVente`, écran d'un autre agent). `null` si jamais mis en stock (404) — pas
+ *  « Vendre » de `BlocVente`, écran d'un autre lot). `null` si jamais mis en stock (404) — pas
  *  une exception : l'écran de création retombe alors sur le sélecteur de recherche normal. */
 export async function recupererVehiculeStock(
   vehiculeId: string,

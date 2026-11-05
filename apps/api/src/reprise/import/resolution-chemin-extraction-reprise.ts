@@ -3,7 +3,7 @@
  * persisté par `reprise_analyse.tables`) sur le répertoire d'extraction FRAÎCHEMENT créé par
  * l'IMPORT — pur, sans accès disque ni base.
  *
- * LE DÉFAUT (signalé par l'agent de campagne, mesuré 3/3 sur une archive synthétique de 3 Ko,
+ * LE DÉFAUT (signalé par le lot de campagne, mesuré 3/3 sur une archive synthétique de 3 Ko,
  * `ENOENT`) : `fichierChemin` est un chemin ABSOLU vers le répertoire d'extraction PROPRE À
  * L'ANALYSE (`analyse/service-analyse-reprise.ts::executer`, `fichierChemin: fichierSource.chemin`
  * -> `lecture/adaptateur-lecteur-archive-reprise.ts::extraireEtInventorier`,

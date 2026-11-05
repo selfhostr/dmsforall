@@ -1,5 +1,5 @@
 /**
- * Intégration Sentry (auto-hébergé en Suisse — décision @laupernoe, cohérence nLPD). Voir
+ * Intégration Sentry (auto-hébergé en Suisse — décision de conception, cohérence nLPD). Voir
  * `SENTRY_DSN` dans `apps/api/src/config/charger-config.ts` pour la config validée.
  *
  * Trois responsabilités séparées :

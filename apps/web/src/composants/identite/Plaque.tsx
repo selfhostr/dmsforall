@@ -3,7 +3,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const variantesPlaque = cva(
-  // Signature visuelle du produit (direction @laupernoe) : fond Alu dédié, filet appuyé, Plex Mono 600.
+  // Signature visuelle du produit (direction produit) : fond Alu dédié, filet appuyé, Plex Mono 600.
   // - `bg-card` plutôt que `bg-muted` : `bg-muted`/`bg-secondary`/`bg-accent` partagent tous la
   //   même valeur de jeton (voir index.css) et sont le gris générique de toute autre surface
   //   atténuée du produit (survol, fond de menu…) — une plaque qui les réutilise n'a plus de
@@ -11,7 +11,7 @@ const variantesPlaque = cva(
   //   surface, distinct de `--muted` dans les deux thèmes (blanc plein en clair contre gris
   //   95.9 % — proche du rendu alu/inox d'une vraie plaque suisse ; plus sombre que `--muted` en
   //   sombre, lecture « plaque encastrée » plutôt que « survol »). Aucun nouveau jeton ajouté :
-  //   `index.css` est hors périmètre de cet agent (voir le brief) — composition avec les jetons
+  //   `index.css` est hors périmètre de ce lot (voir le brief) — composition avec les jetons
   //   `@theme inline` déjà mesurés (contrastes vérifiés dans Plaque.spec.tsx).
   // - `border-2` (au lieu de `border`, 1px) : le filet « appuyé » qui donne son cadre à la plaque.
   //   Reste `border-input`, seul jeton du produit déjà mesuré ≥ 3:1 (WCAG 1.4.11) sur toutes les

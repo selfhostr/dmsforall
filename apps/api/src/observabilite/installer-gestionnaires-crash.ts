@@ -16,7 +16,7 @@ import type { Config } from '../config';
  *
  * L'hypothèse qui reste, cohérente avec tous les faits observés mais NON CONFIRMÉE en exécution
  * (voir le rapport) : en développement, `nest start --watch` relance le PROCESS ENTIER à chaque
- * modification de fichier sous `apps/api/src` — dépôt travaillé par plusieurs agents en parallèle
+ * modification de fichier sous `apps/api/src` — dépôt travaillé par plusieurs lots en parallèle
  * sur EXACTEMENT ce répertoire. Une requête en vol au moment du redémarrage perd sa connexion
  * TCP brutalement ; le proxy de développement Vite (`apps/web/vite.config.ts`, `server.proxy`)
  * la traduit alors en `500` sans corps — AUCUN code Nest ne tourne à cet instant, donc

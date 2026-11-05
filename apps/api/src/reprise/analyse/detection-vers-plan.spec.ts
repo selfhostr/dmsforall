@@ -27,7 +27,7 @@ function construireLignes(valeurs: Record<string, unknown>[]): LigneTable[] {
 
 const NOMS_PRENOMS = ['Dupont Jean', 'Meier Anna', 'Rossi Marco', 'Keller Nicole', 'Favre Luc'];
 
-/** Même forme que la table réelle « Kunden » (7143 lignes, archive Auto-i) qui a déclenché le
+/** Même forme que la table « Kunden » d'un DMS tiers qui a déclenché le
  *  défaut : nom de table qui ne dit rien du métier, contenu clairement client. */
 function tableKundenPlausible(): LigneTable[] {
   return construireLignes(
@@ -61,10 +61,10 @@ describe('pipeline détection -> plan (bout en bout, régression échelle indice
     expect(detectee.indiceConfiance).toBe(Math.round(confianceFractionnaire * 100));
     expect(detectee.indiceConfiance).toBeGreaterThan(40); // au-dessus de SEUIL_CONFIANCE_MINIMUM
 
-    // Volume réaliste (7143 lignes mesurées sur l'archive réelle) — seul le nombre de lignes
+    // Volume réaliste (plusieurs milliers de lignes) — seul le nombre de lignes
     // change par rapport à ce que `evaluerRoleTable` a rendu (l'échantillon reste borné), le reste
     // du verdict (rôle, confiance) est celui produit par le pipeline réel.
-    const detecteeVolumeReel = { ...detectee, nombreLignes: 7143 };
+    const detecteeVolumeReel = { ...detectee, nombreLignes: 7000 };
 
     const { elements, exclusions } = genererPlanDepuisTables([detecteeVolumeReel]);
 
@@ -75,7 +75,7 @@ describe('pipeline détection -> plan (bout en bout, régression échelle indice
       domaine: 'clients',
       tableDetecteeId: detectee.id,
       inclus: true,
-      volumeAttenduLignes: 7143,
+      volumeAttenduLignes: 7000,
     });
   });
 

@@ -519,7 +519,7 @@ describe('ServiceCorrectionFacture.corriger — orchestration', () => {
 });
 
 /**
- * Issue #154 — « le paiement suit la facture de remplacement » (arbitrage de @laupernoe). Scénario mesuré
+ * Issue #154 — « le paiement suit la facture de remplacement » (choix produit). Scénario mesuré
  * qui a ouvert l'issue : facture CHF 259.44 (25'944 ct), encaissement CHF 150.00 (15'000 ct),
  * correction → la facture de remplacement doit afficher exactement CHF 109.44 (10'944 ct) de
  * reste dû, pas CHF 259.44.

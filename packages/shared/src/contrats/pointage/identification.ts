@@ -37,7 +37,7 @@ import { schemaCodePin } from './primitives';
  * ralentissement après échecs répétés, n'importe qui devant la borne peut essayer les 10'000
  * combinaisons en quelques minutes. `POINTAGE_PIN_VERROUILLE` (423, `probleme.ts`) matérialise ce
  * verrouillage temporaire dans le contrat — **le nombre d'essais et la durée de blocage restent
- * DES PARAMÈTRES DE SÉCURITÉ NON FIXÉS ICI**, à trancher avec `expert-auth`
+ * DES PARAMÈTRES DE SÉCURITÉ NON FIXÉS ICI**, à trancher avec l'équipe authentification
  * (`apps/api/src/auth/`, hors périmètre de ce fichier). Ce que CE fichier fige : la FORME de
  * l'échec (un code dédié, pas un des codes `AUTH_*` — voir plus bas pourquoi), pas ses paramètres.
  *

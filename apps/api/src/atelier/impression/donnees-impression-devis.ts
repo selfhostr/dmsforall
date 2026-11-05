@@ -15,8 +15,7 @@
  *
  * PAS de « date de validité » du devis : contrairement à ce qu'on pourrait attendre d'un devis
  * classique, ce concept n'existe NULLE PART dans le modèle métier (`docs/specification-etape-1-
- * atelier-clients.md` §7.6, RM-79 → RM-86 ; page wiki `Documentation-utilisateur-atelier-05-devis-
- * complementaire`) : le devis reste ouvert jusqu'à ce que LE GARAGE enregistre la réponse du
+ * atelier-clients.md` §7.6, RM-79 → RM-86) : le devis reste ouvert jusqu'à ce que LE GARAGE enregistre la réponse du
  * client (téléphone/SMS/e-mail/comptoir/lien) — il n'y a pas d'échéance que le client détiendrait.
  * Inventer une durée arbitraire (« valable 30 jours ») aurait été une donnée fabriquée. Ce module
  * imprime à la place le vrai analogue métier : le STATUT réel du devis (en attente de réponse /

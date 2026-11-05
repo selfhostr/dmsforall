@@ -24,7 +24,7 @@ import { requeteApi } from '@/api/client';
  * s'aligne sur leurs DTO, qui implémentent eux-mêmes les types `@dfa/shared` importés ci-dessus
  * (voir `apps/api/src/pneus/dto/depot-pneus.dto.ts`). À réconcilier avec `types.gen.ts` à la
  * prochaine régénération planifiée (`pnpm api:openapi && pnpm web:types`) — non exécutée ici,
- * plusieurs agents ont des chantiers `apps/api/**` en vol en parallèle.
+ * plusieurs lots ont des chantiers `apps/api/**` en vol en parallèle.
  */
 
 export interface PageDepotsPneus {

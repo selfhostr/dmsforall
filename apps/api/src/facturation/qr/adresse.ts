@@ -15,7 +15,7 @@
  * adresse à la main et le paiement passe. Mieux vaut un QR valide et incomplet qu'un QR complet
  * et refusé au guichet.
  *
- * ⚠️  **`RF-60` ASSOUPLI VERS LA NORME SIX — décision prise sans arbitrage de @laupernoe (issue #22).**
+ * ⚠️  **`RF-60` ASSOUPLI VERS LA NORME SIX — décision prise sans choix produit (issue #22).**
  *
  * `RF-60`, tel qu'appliqué jusqu'ici, exigeait nom + rue + **numéro** + NPA + localité pour
  * émettre le bloc débiteur. Or le contrat d'adresse client (`schemaAdresseClientBase`,
@@ -90,7 +90,7 @@ export const CHAMPS_REQUIS_BLOC_CREANCIER: readonly ChampAdresse[] = [
  * débiteur, jamais un bloc partiel. Contrôle mécanique, jamais laissé au jugement de
  * l'utilisateur.
  *
- * `RF-60` ASSOUPLI VERS LA NORME SIX (issue #22, décision prise sans arbitrage de @laupernoe — voir
+ * `RF-60` ASSOUPLI VERS LA NORME SIX (issue #22, décision prise sans choix produit — voir
  * l'en-tête du fichier pour le raisonnement complet et le chemin de retour arrière) : `rue` et
  * `numero` ne sont plus requis. Sans cet assouplissement, `numero` n'étant exposé par AUCUN
  * contrat d'écriture d'adresse client, la condition était insatisfiable pour 100 % des clients —

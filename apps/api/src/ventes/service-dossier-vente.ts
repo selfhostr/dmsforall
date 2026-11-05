@@ -155,11 +155,11 @@ const DEFINITIONS_TRI_DOSSIERS_VENTE: Readonly<Record<FiltresDossiersVente['tri'
  *    existent depuis `migrations/0007_vehicules.sql` (étape 1, avant même ce module), et
  *    `source_kilometrage` porte bien la valeur `'vente'` (`contrats/atelier/enums.ts::
  *    SOURCES_KILOMETRAGE`). Ces deux effets restent NON implémentés ICI volontairement : la
- *    consigne de cet agent est explicitement de ne pas toucher au domaine `vehicule` (étape 1,
+ *    consigne de ce lot est explicitement de ne pas toucher au domaine `vehicule` (étape 1,
  *    propriété d'un autre périmètre) au-delà de l'usage déjà établi de `vehicule_detention`
  *    ci-dessous — écrire dans `vehicule.garantie_debut`/`vehicule_kilometrage` sans arbitrage sur
  *    la source de `garantieMois`/`garantieKm` (déjà posés à l'intake ? valeur par défaut ?) serait
- *    inventer une règle métier. Remonté à l'orchestrateur avec le détail ci-dessus (rapport de
+ *    inventer une règle métier. Remonté à le mainteneur avec le détail ci-dessus (rapport de
  *    livraison) plutôt que corrigé silencieusement ou laissé sous un faux prétexte technique ;
  *  - `documents-requis/marquer` est UPDATE-ONLY : `schemaMarquerDocumentRequis` ne porte pas de
  *    `libelle`, impossible de CRÉER un item sans texte d'affichage tant que `PV-03` n'existe pas ;
@@ -379,7 +379,7 @@ export class ServiceDossierVente {
       // (`vehicule_marque_modele_idx`, 0007, est un btree SANS `gin_trgm_ops` sur une expression
       // SANS `coalesce` — inutilisable par un `LIKE '%fragment%'`) et que la corriger exige une
       // restructuration de requête, pas une clause `OR` de plus. Ajouter cette branche ICI aurait
-      // réintroduit sciemment le même défaut ailleurs jugé non trivial. Signalé à l'orchestrateur
+      // réintroduit sciemment le même défaut ailleurs jugé non trivial. Signalé à le mainteneur
       // plutôt que deviné : le contrat promet plus que ce filtre ne couvre (« désignation »), voir
       // le rapport de livraison.
       //
@@ -592,7 +592,7 @@ export class ServiceDossierVente {
    *  3. `courant.statut === 'confirme'` : AUTORISÉ (comportement inchangé).
    *
    * `VENTE_FINANCEMENT_NON_CONFIRME` reste l'unique code (`CODES_ERREUR`, contrat gelé — packages/
-   * shared hors périmètre d'écriture de cet agent, aucun code dédié `_EN_ATTENTE`/`_REFUSE` ajouté
+   * shared hors périmètre d'écriture de ce lot, aucun code dédié `_EN_ATTENTE`/`_REFUSE` ajouté
    * ici) : le bandeau `erreurs:codes.VENTE_FINANCEMENT_NON_CONFIRME` reste donc IDENTIQUE à
    * l'écran pour les cas 2a/2b — mais reste honnête pour les deux (un financement en attente
    * COMME un financement refusé sont, l'un et l'autre, réellement « non confirmés »). Le message
@@ -752,7 +752,7 @@ export class ServiceDossierVente {
           ),
         )
         .limit(1);
-      // BUG CORRIGÉ (constaté en exécution réelle, signalé par un agent tiers, `remonter-cause-pg.ts`
+      // BUG CORRIGÉ (constaté en exécution réelle, signalé par un lot tiers, `remonter-cause-pg.ts`
       // citait déjà ce fichier parmi les quatre concernés) : cette clôture/réouverture de détention
       // n'était protégée par AUCUN try/catch — une `dateLivraisonEffective` antérieure au `du` de la
       // détention actuellement ouverte viole `vehicule_detention_periode_chk` (`au > du`,

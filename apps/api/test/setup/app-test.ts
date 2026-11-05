@@ -4,7 +4,7 @@
  * tester l'expiration de session sans attendre 8 heures.
  *
  * ------------------------------------------------------------------------------------------
- * HYPOTHÈSES D'IMPORT — à confirmer avec expert-nestjs / expert-database / expert-auth à
+ * HYPOTHÈSES D'IMPORT — à confirmer avec l'équipe backend / l'équipe base de données / l'équipe authentification à
  * l'intégration. Le contrat gelé (contrats-etape-0.md) fixe les SIGNATURES mais pas toujours
  * le CHEMIN DE FICHIER exact ; ce fichier suppose le pattern barrel `index.ts` par répertoire
  * de module, standard en NestJS. Si un chemin diverge, c'est la SEULE ligne à corriger :
@@ -41,7 +41,7 @@ import { determinerModeEphemere } from './mode-ephemere';
 //
 // Le contrat gelé ne prévoit PAS de jeton d'injection pour une horloge côté ServiceSession
 // (pas de `JETON_HORLOGE` au §2.10) : la comparaison "now <= expireLe" décrite au contrat vit
-// dans le code applicatif d'expert-auth, hors de portée de ce dépôt de tests (apps/api/test/**
+// dans le code applicatif d'l'équipe authentification, hors de portée de ce dépôt de tests (apps/api/test/**
 // uniquement). Plutôt que d'inventer une dépendance DI non spécifiée par le contrat — qui
 // romprait le découplage propriétaire par répertoire — cette `Horloge` manipule DIRECTEMENT
 // les colonnes timestamptz de la table `session` via le rôle `dfa_migrator`.

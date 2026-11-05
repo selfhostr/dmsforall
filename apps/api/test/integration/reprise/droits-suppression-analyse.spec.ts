@@ -1,5 +1,5 @@
 /**
- * Défaut 1 (mandat reprise, 24/25.08.2026) : une archive réelle ne pouvait JAMAIS dépasser
+ * Défaut 1 (reprise) : une archive réelle ne pouvait JAMAIS dépasser
  * l'étape d'analyse — `POST /reprise/dossiers/{id}/analyses` rendait 500,
  * `permission denied for table reprise_analyse`, dès le TOUT PREMIER appel.
  *

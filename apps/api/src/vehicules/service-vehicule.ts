@@ -369,11 +369,11 @@ export class ServiceVehicule {
   /**
    * RM-32 — fusion de doublon. AMBIGUÏTÉ DE CONTRAT SIGNALÉE : le contrat d'API (§7.4) exige le
    * droit `direction` seul, mais `auth/matrice-droits.ts` (lecture seule pour ce module, propriété
-   * d'un autre agent) ne déclare AUCUNE action `vehicule.fusionner` — seule `vehicule.archiver`
+   * d'un autre lot) ne déclare AUCUNE action `vehicule.fusionner` — seule `vehicule.archiver`
    * s'en approche (réceptionnaire/chef d'atelier/direction). Faute d'action dédiée, ce service
    * réutilise `vehicule.archiver` au niveau du `@ExigerDroit` du contrôleur ET resserre ICI,
    * explicitement, au rôle `direction`/`admin` — sans modifier la matrice, qui n'est pas de mon
-   * périmètre. À faire trancher par expert-auth/lead-backend : soit une action dédiée est ajoutée
+   * périmètre. À faire trancher par l'équipe authentification/l'équipe backend : soit une action dédiée est ajoutée
    * à la matrice, soit ce resserrement in-service devient la règle documentée.
    */
   async fusionner(

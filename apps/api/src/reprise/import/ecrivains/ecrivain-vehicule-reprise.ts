@@ -148,7 +148,7 @@ export async function preparerCandidatsVehiculesReprise(
       'fahrzeug_id',
       // Auto-i ("Lager" = stock/fiche véhicule) : identifiant propre à cette table, aucun des
       // alias génériques ci-dessus ne le couvrait — défaut réel mesuré le 26.08.2026, import
-      // Auto-i complet de @laupernoe (6874 lignes détectées, 0 écrites, 100% `reference_manquante`,
+      // Auto-i complet (toutes les lignes détectées, aucune écrite, 100% `reference_manquante`,
       // schéma réel vérifié via `mdb-schema` : `LagerNr`/`ReferenzNr`/`FzKey`, jamais `id`).
       'lagernr',
       'referenznr',
@@ -211,10 +211,10 @@ export async function preparerCandidatsVehiculesReprise(
         // `erstiv` (Auto-i, "Lager.ErstIV" = Erst-Inverkehrsetzung, première mise en
         // circulation) : défaut réel mesuré le 26.08.2026 — sans cet alias, AUCUN véhicule
         // n'obtenait jamais de plaque/détention (les deux exigent `plaqueDu`), quand bien même le
-        // client et la plaque eux-mêmes résolvaient correctement : 6823 véhicules écrits, 0
-        // rattachés à leur propriétaire. Vérifié sur l'archive réelle (comptage seul, aucune
-        // donnée personnelle) : `KundenNr` rempli à 100% (6874/6874), `ErstIV` à 82% (5630/6874,
-        // format `jj.mm.aaaa` — voir `normaliserDateTexteVersIso`,
+        // client et la plaque eux-mêmes résolvaient correctement : des véhicules écrits, aucun
+        // rattaché à son propriétaire. Vérifié sur une archive de test (comptage seul, aucune
+        // donnée personnelle) : `KundenNr` toujours rempli, `ErstIV` le plus souvent (format
+        // `jj.mm.aaaa` — voir `normaliserDateTexteVersIso`,
         // `resolution-alias-colonne-reprise.ts`).
         plaqueDu: dateIsoParAlias(
           index,
@@ -271,8 +271,8 @@ export async function ecrireVehiculesBaseReprise(
   const detentionsAInserer: EnregistrementIntervalle<{ vehiculeId: string; clientId: string }>[] =
     [];
   // Progression VISIBLE en cours d'écriture — voir l'en-tête de `progression-ecriture-reprise.ts`
-  // (défaut réel du 26.08.2026, mesuré précisément sur CE domaine : 6874 véhicules, jusqu'à
-  // ~20-30 minutes d'écriture réelle, compteur figé tout ce temps avant ce correctif).
+  // (défaut réel du 26.08.2026, mesuré sur CE domaine volumineux : plusieurs milliers de véhicules,
+  // compteur figé pendant toute l'écriture avant ce correctif).
   const compteurProgres = creerCompteurProgresEcriture(onProgres);
 
   for (const d of candidatsRetenus) {

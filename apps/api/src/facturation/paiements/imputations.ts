@@ -43,7 +43,7 @@ function formaterMontantCentimes(centimes: number | bigint): string {
  * (`POST /documents-vente/{id}/escompte`, `POST /documents-vente/{id}/marquer-irrecouvrable`,
  * `packages/shared/src/contrats/facturation/paiement.ts::schemaAccorderEscompte` /
  * `schemaMarquerIrrecouvrable`) qui ne sont PAS dans le périmètre `facturation/paiements/` de cet
- * agent (périmètre `facturation/documents/`) — voir le rapport de livraison. `compensation` a son
+ * lot (périmètre `facturation/documents/`) — voir le rapport de livraison. `compensation` a son
  * propre endpoint dédié ici même (`POST /paiements/{id}/abandonner`, RF-79 issue 3) : l'exposer
  * AUSSI via le lettrage générique permettrait de contourner l'exigence de motif et le choix
  * explicite d'un document de régularisation qu'`abandonner` impose. Signalé, pas improvisé.
@@ -109,14 +109,14 @@ export function estErreurInvariantImputation(erreur: unknown): boolean {
 }
 
 /**
- * Défaut corrigé (signalé par un agent front qui n'avait pas le droit d'écrire dans
+ * Défaut corrigé (signalé par un lot front qui n'avait pas le droit d'écrire dans
  * `facturation/`, 2026-08-05) : RIEN n'empêchait jusqu'ici d'imputer un paiement sur un document
  * dont la devise diffère — un règlement en CHF sur une facture en EUR s'écrivait avec la même
  * valeur numérique dans la mauvaise devise, une erreur comptable silencieuse. `document_vente` et
  * `paiement` portent chacun leur propre `devise`, bornée à CHF/EUR (`DEVISES_FACTURATION`,
  * migrations 0010/0015) mais jamais comparée entre les deux avant cette fonction.
  *
- * RÈGLE RETENUE (arbitrage de cet agent, à confirmer par expert-api si un tiers en dépend) : la
+ * RÈGLE RETENUE (arbitrage de ce lot, à confirmer par l'équipe API si un tiers en dépend) : la
  * devise du paiement est FOURNIE PAR L'APPELANT (champ `devise` du contrat, déjà obligatoire avec
  * défaut `CHF` pour la compatibilité ascendante — `schemaDeviseFacturation`) et VÉRIFIÉE au moment
  * de l'imputation, jamais devinée depuis le document. Trois options écartées :
@@ -312,7 +312,7 @@ function verifierDocumentPasAvoir(
  * Le trigger `imputation_paiement_verifier_invariants` — l'AUTORITÉ finale sur MD-51 — NE FERME PAS
  * ce trou lui-même : il compare la somme des imputations `reglement` à `abs(paiement.montant_
  * centimes)`, pas au SIGNE du montant (`0010_facturation.sql` lignes ~1320-1335, hors périmètre
- * `facturation/` de cet agent — signalé, pas corrigé, voir le rapport de livraison). Sans cette
+ * `facturation/` de ce lot — signalé, pas corrigé, voir le rapport de livraison). Sans cette
  * garde applicative, une imputation `reglement` de +500 ct passerait donc le trigger contre un
  * paiement de -500 ct (`500 <= abs(-500)`) tout comme elle passait le calcul défectueux de
  * `mappeurs.ts` avant correction — la base n'est le filet que si le filet lui-même n'a pas le même

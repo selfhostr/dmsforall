@@ -8,7 +8,7 @@ import { rechercherMarquesVehicules } from './referentiel-vehicules.api';
 
 // Clé LOCALE, volontairement hors `@/api/cles.ts` (`clesQuery`) : cette fabrique est gelée
 // (vague 0, voir son en-tête) et `apps/web/src/api/` est hors du périmètre d'écriture de cette
-// livraison (agent NestJS en parallèle sur `apps/api`/`packages/shared` ; le périmètre React de
+// livraison (lot NestJS en parallèle sur `apps/api`/`packages/shared` ; le périmètre React de
 // cette livraison est limité à `composants|ecrans|hooks/vehicules` + i18n — voir le brief).
 // Préfixe `referentielMarques` distinct de `clesQuery.vehicules.*` pour ne jamais collisionner ;
 // à fusionner dans `clesQuery` par le propriétaire de ce fichier lors d'une prochaine livraison.

@@ -17,8 +17,8 @@
  * (aucun format d'archive n'y est spécifié). Hypothèse retenue, la plus probable au vu des DMS
  * visés (Auto-i, Nextlane — export d'un dossier de données en un seul fichier) et du seul format
  * pour lequel une bibliothèque de lecture pure Node existe déjà en dépendance (`yauzl`, ajoutée
- * par cet agent) : l'archive déposée est un **ZIP**. AMBIGUÏTÉ SIGNALÉE, PAS ARBITRÉE PAR UNE
- * SPEC : à confirmer avec `expert-migration-donnees`/@laupernoe si un garage réel livre un `.tar`/`.7z`/
+ * par ce lot) : l'archive déposée est un **ZIP**. AMBIGUÏTÉ SIGNALÉE, PAS ARBITRÉE PAR UNE
+ * SPEC : à confirmer avec l'équipe reprise de données/@laupernoe si un garage réel livre un `.tar`/`.7z`/
  * `.rar` — l'échec serait alors un `ResultatDetectionFamille` `inconnu` avec anomalie
  * `archive_partiellement_corrompue` (filet déjà posé par `service-analyse-reprise.executer`),
  * jamais un crash silencieux.
@@ -67,7 +67,7 @@
  *      `dossier_reprise.stockage_chemin`) ; (b) un balayage des résidus, indépendant de la
  *      résiliation. CHOIX RETENU : (b), pour trois raisons pesées explicitement.
  *        - PÉRIMÈTRE : (a) exigerait de modifier `exploitation/cycle-vie-tenant/` — un AUTRE
- *          agent y écrit EN CE MOMENT MÊME sur cette même branche ; y toucher serait soit une
+ *          lot y écrit EN CE MOMENT MÊME sur cette même branche ; y toucher serait soit une
  *          collision d'écriture, soit un couplage figé par écrit sans l'accord de son
  *          propriétaire.
  *        - COUVERTURE RÉELLEMENT PLUS LARGE : (a) ne protège qu'au moment de la RÉSILIATION d'un
@@ -90,7 +90,7 @@
  *      de plantage — précisément le scénario mesuré ce jour-là (transaction Postgres tuée en
  *      cours d'extraction, `uncaughtException` -> `process.exit(1)`, `finally` de l'appelant
  *      jamais exécuté) — pouvait survivre INDÉFINIMENT sur disque, données personnelles en clair
- *      comprises (4,6 Go mesurés, deux copies complètes de l'archive, supprimées à la main faute
+ *      comprises (deux copies complètes de l'archive, supprimées à la main faute
  *      de ce mécanisme). Au redémarrage du process, AUCUNE extraction de CE process n'est encore
  *      en cours : tout répertoire déjà présent sous `racineTravail` est nécessairement un résidu
  *      d'une exécution PRÉCÉDENTE, purgé sans condition d'âge — voir `purgerResidusOrphelinsAuDemarrage`.
@@ -142,11 +142,10 @@ const MAX_ENTREES_CACHE_ECHANTILLONS = 500;
 const TAILLE_SONDE_FAMILLE_OCTETS = 8192;
 
 /**
- * 80 Go — MESURÉ, pas deviné. Les deux archives réelles analysées par l'audit sécurité pèsent
- * 2,3 Go et 43,5 Go COMPRESSÉES (`TAILLE_MAX_ARCHIVE_REPRISE_OCTETS` = 60 Go, `contrats/
- * reprise.ts`, plafond déjà posé avec marge sur ce maximum). 80 Go de sortie DÉCOMPRESSÉE couvre
+ * 80 Go — borne dimensionnée par rapport au plafond d'archive COMPRESSÉE
+ * (`TAILLE_MAX_ARCHIVE_REPRISE_OCTETS` = 60 Go, `contrats/reprise.ts`). 80 Go de sortie DÉCOMPRESSÉE couvre
  * un ratio d'expansion jusqu'à ~1,8× le plus gros dépôt compressé AUTORISÉ — largement suffisant
- * pour du contenu Access/FoxPro (binaire, peu compressible, ratios réels mesurés très inférieurs
+ * pour du contenu Access/FoxPro (binaire, peu compressible, ratios réels très inférieurs
  * à 2×) — mais à des ordres de grandeur des ratios caractéristiques d'une bombe de décompression
  * (centaines à milliers de fois le poids compressé). Toute extraction qui franchit ce seuil est
  * donc, par construction, soit un bug soit une attaque — jamais un dépôt légitime.
@@ -154,7 +153,7 @@ const TAILLE_SONDE_FAMILLE_OCTETS = 8192;
 const LIMITE_OCTETS_EXTRAITS_TOTAL = 80_000_000_000;
 
 /**
- * 200 000 entrées — aucune archive réelle mesurée n'approche quelques milliers de fichiers (une
+ * 200 000 entrées — aucune archive connue n'approche quelques milliers de fichiers (une
  * base Access/FoxPro compte quelques dizaines à quelques centaines de fichiers/tables). Ce
  * plafond, large mais FINI, borne le travail syscall (mkdir/open/write) même si chaque entrée
  * pèse 0 octet — la variante de bombe qui vise le NOMBRE d'entrées plutôt que leur poids
@@ -168,8 +167,8 @@ const LIMITE_ENTREES_ARCHIVE = 200_000;
  * solvabilité) — un résidu qui traîne 24 h après un plantage sans nécessité est un problème nLPD
  * réel, pas un détail de ménage disque (mesuré : deux répertoires `extrait-*` coexistaient,
  * l'un orphelin, après les plantages du jour). Deux bornes mesurées encadrent ce choix, aucune
- * devinée : la durée RÉELLE la plus longue observée sur l'archive complète de @laupernoe (552 tables,
- * 2,3 Go) le 26.08.2026 — 29 min 13 (import, pire cas, rejeu idempotent) — et le plafond ABSOLU
+ * devinée : la durée RÉELLE la plus longue observée sur une grosse archive de test privée
+ * le 26.08.2026 — 29 min 13 (import, pire cas, rejeu idempotent) — et le plafond ABSOLU
  * documenté d'un SEUL appel `mdb-export` (`DELAI_ABSOLU_EXPORT_MS`, `lecteurs/access/
  * lecteur-access.ts`) — 2 h, jamais mesuré en pratique mais la garde dure du dépôt contre un
  * export qui ne se termine jamais. 3 h dépasse le pire cas RÉEL d'un facteur ~6 et le plafond
@@ -559,7 +558,7 @@ export class AdaptateurLecteurArchiveReprise implements PortLecteurArchiveRepris
   // --- Tables --------------------------------------------------------------------------------
 
   /**
-   * ANOMALIE MESURÉE le 26.08.2026 (`RepAw.backup`, archive réelle Auto-i de @laupernoe) : la branche
+   * ANOMALIE MESURÉE le 26.08.2026 (`RepAw.backup`, archive de test privée Auto-i) : la branche
    * 'access' filtrait ICI sur l'EXTENSION du fichier (`/\.(mdb|accdb)$/i`) avant même de sonder son
    * contenu — alors que `lecteurs/detection-famille.ts` documente EXPLICITEMENT, dans son propre
    * en-tête, que ce chantier a choisi de reconnaître la famille « toujours sur le contenu binaire,
@@ -571,7 +570,7 @@ export class AdaptateurLecteurArchiveReprise implements PortLecteurArchiveRepris
    * (jamais `fichier_illisible`), et si c'était le SEUL fichier de l'archive, `tables.length === 0`
    * faisait échouer l'analyse ENTIÈRE (`echecTotal`), sans aucun indice sur la cause réelle.
    *
-   * PREUVE que ceci n'a jamais été détecté sur l'archive complète (781 entrées) : `RepAw.backup` y
+   * PREUVE que ceci n'a jamais été détecté sur l'archive complète : `RepAw.backup` y
    * était SILENCIEUSEMENT ignoré exactement de la même façon (même code, même garde) — mais
    * plusieurs AUTRES fichiers de cette archive (`AutoI/Backups/Anwender20100107.mdb`,
    * `Anwender20100408.mdb`, `Anwender_corrompu.mdb`) portent, eux, l'extension `.mdb` ET contiennent

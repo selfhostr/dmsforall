@@ -40,7 +40,7 @@ export const tenant = pgTable(
     langueDefaut: langueEnum('langue_defaut').notNull().default('fr'),
 
     /**
-     * `suspendu` = accès bloqué (impayé) mais données intactes ; `resilie` = fin de contrat,
+     * `suspendu` = accès bloqué par l'exploitant mais données intactes ; `resilie` = sortie du garage,
      * conservation le temps de la rétention légale. Aucun de ces états n'efface de données :
      * la suppression est une opération d'exploitation explicite, jamais un effet de bord.
      */

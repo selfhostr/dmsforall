@@ -1,5 +1,5 @@
 /**
- * Test unitaire colocalisé, propriété expert-devops (`GET /sante` expose `VERSION_APP` /
+ * Test unitaire colocalisé, propriété l'équipe infrastructure (`GET /sante` expose `VERSION_APP` /
  * `VERSION_APP_BRANCHE`, voir `apps/api/src/config/version-app.ts` pour leur calcul). Seule la
  * méthode `sante()` est couverte ici : elle est pure (aucun accès base/Redis), contrairement à
  * `pret()` — pas besoin d'un module Nest complet ni de doubles pour `JETON_DB`/`JETON_REDIS`,

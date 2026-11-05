@@ -24,7 +24,7 @@ import type { RoleUtilisateur } from '@dfa/shared';
  *     un jour, cette copie doit pouvoir suivre sans qu'un site d'appel soit oublié.)
  *   - `pneus.depot.sortir`         → `peutSortirDepotPneus`
  *
- * Ces listes sont recopiées LITTÉRALEMENT de `matrice-droits.ts` (mêmes rôles) : si `expert-auth`
+ * Ces listes sont recopiées LITTÉRALEMENT de `matrice-droits.ts` (mêmes rôles) : si l'équipe authentification
  * fait évoluer `LECTURE_PNEUS`/`ENTREE_PNEUS`/`SORTIE_PNEUS` côté API, cette copie doit être mise à
  * jour au même moment — même dette assumée que la duplication `ROLES_PIECES`
  * (`routes/droits-routes.ts`) vis-à-vis de `DROITS_PIECES_PAR_ROLE`.

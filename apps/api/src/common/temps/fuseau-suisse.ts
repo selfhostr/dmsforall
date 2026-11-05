@@ -1,6 +1,6 @@
 /**
  * Bornage de journée civile et conversions heure-locale ↔ UTC pour le fuseau UNIQUE du produit —
- * `Europe/Zurich` (décision de @laupernoe, 14.08.2026 : un seul fuseau pour tout dmsforall, pas de colonne
+ * `Europe/Zurich` (décision de conception, 14.08.2026 : un seul fuseau pour tout dmsforall, pas de colonne
  * réglable par site — le produit vise les garages suisses, une configuration supplémentaire pour un
  * besoin qui n'existe pas serait une source d'erreur, pas un progrès). L'heure d'été (CEST, UTC+2)
  * et l'heure d'hiver (CET, UTC+1) sont dérivées à l'exécution via `Intl.DateTimeFormat` — c'est-à-dire

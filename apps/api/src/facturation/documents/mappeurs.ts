@@ -58,7 +58,7 @@ function deviseFacturationDepuisBase(valeur: string, contexte: string): DeviseFa
  * l'OR (`atelier/`), hors du périmètre de cette tâche et potentiellement une régression non
  * demandée. Ce module applique donc la règle `RF-116` LOCALEMENT (`admin` en plus de
  * `ROLES_SANS_MONTANT`), sans toucher au const partagé — même tension déjà rencontrée et tranchée
- * de la même façon par l'agent `paiements` (voir `auth/matrice-droits.ts`, section « Facturation —
+ * de la même façon par le lot `paiements` (voir `auth/matrice-droits.ts`, section « Facturation —
  * paiements », `DROITS_PAIEMENT_PAR_ROLE.admin = []`, RF-115 « À LA DIFFÉRENCE de la doctrine de
  * l'étape 1 »).
  */

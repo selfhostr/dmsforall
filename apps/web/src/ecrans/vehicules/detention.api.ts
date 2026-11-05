@@ -13,7 +13,7 @@ import { requeteApi } from '@/api/client';
  * `DialogueRattacherClient.tsx` (même répertoire) pour l'écran qui l'appelle.
  *
  * Fichier co-localisé dans `ecrans/vehicules/` plutôt que `hooks/vehicules/` (hors périmètre
- * d'écriture de cet agent) — même convention que `travauxReportes.api.ts` /
+ * d'écriture de ce lot) — même convention que `travauxReportes.api.ts` /
  * `useModifierTravailReporte.ts` déjà présents dans ce répertoire.
  */
 export async function changerDetenteurVehicule(

@@ -209,7 +209,7 @@ export class ServiceEmissionDocument {
     // `accepter`/`refuser`/`annuler` plus bas dans ce fichier (une condition d'applicabilité de
     // l'action à l'état COURANT du document, pas une erreur de forme du corps de requête).
     // AUCUN code dédié n'existe pour ce cas dans `CODES_ERREUR` (`@dfa/shared`, contrat gelé,
-    // hors périmètre d'écriture de cet agent) — SIGNALÉ au rapport de livraison : un code
+    // hors périmètre d'écriture de ce lot) — SIGNALÉ au rapport de livraison : un code
     // `DOCUMENT_AUCUNE_LIGNE` dédié (additif, en fin de liste, même patron que
     // `OR_FACTURATION_AUCUNE_LIGNE`) donnerait un bandeau générique plus précis qu'aujourd'hui.
     // En attendant, le message RÉEL est porté par `erreurs[0].message` (rédigé à la main, en
@@ -542,8 +542,8 @@ export class ServiceEmissionDocument {
    * `NodePgTransaction.transaction()` (appelé SUR un `tx` déjà ouvert, pas sur `AccesBase`) pose un
    * vrai `SAVEPOINT` atomique — `ServiceVehiculeStock` n'expose aujourd'hui aucune méthode qui
    * accepte un `tx` externe pour l'emprunter, et lui en ajouter une sort du périmètre d'écriture de
-   * cet agent (`ventes/service-vehicule-stock.ts`, explicitement interdit). SIGNALÉ à
-   * l'orchestrateur, pas tranché seul : la vraie atomicité "même transaction" demandée par la tâche
+   * ce lot (`ventes/service-vehicule-stock.ts`, explicitement interdit). SIGNALÉ à
+   * le mainteneur, pas tranché seul : la vraie atomicité "même transaction" demandée par la tâche
    * exige une méthode `ventes/` supplémentaire prenant un `TransactionDfa` déjà ouvert.
    *
    * ORDRE choisi EN CONSÉQUENCE, pour ne jamais produire le pire des deux résultats possibles : la
@@ -647,7 +647,7 @@ export class ServiceEmissionDocument {
    *  `motif` (optionnel, `schemaRefuserDocument`) : SIGNALÉ — aucune colonne `motif_refus` n'existe
    *  sur `document_vente` (contrairement à `motif_avoir`/`motif_avoir_libre` pour l'avoir, ou
    *  `ordre_reparation.motif_annulation` pour l'OR). Le motif est validé par le schéma d'entrée
-   *  mais n'a nulle part où se poser dans ce lot — à signaler à expert-database. */
+   *  mais n'a nulle part où se poser dans ce lot — à signaler à l'équipe base de données. */
   async refuser(
     ctx: ContexteTenant,
     principal: PrincipalAuthentifie,
@@ -738,11 +738,11 @@ export class ServiceEmissionDocument {
    *
    * MONTANT COMPARÉ — décision prise ici, faute de trancher explicite dans la spécification :
    *  - le TTC, pas le HT : un avoir rend de l'argent au client, et les prix sont stockés TVA
-   *    comprise (arbitrage @laupernoe) — le TTC est ce que le client récupère réellement. Un avoir porte
+   *    comprise (choix produit) — le TTC est ce que le client récupère réellement. Un avoir porte
    *    un total `<= 0` par construction (`document_vente` : `type_document <> 'avoir' or (...
    *    total_ttc_centimes <= 0)`, migration 0010 §9) ; sa valeur absolue est le montant rendu —
    *    même convention que le trigger `imputation_paiement_verifier_invariants` (migration 0010,
-   *    MD-51, `abs(d.total_ttc_centimes)`), pas une invention de cet agent.
+   *    MD-51, `abs(d.total_ttc_centimes)`), pas une invention de ce lot.
    *  - CUMUL sur la facture d'origine, pas seulement le montant de CET avoir : `RF-117` ne
    *    précise pas le cas d'un avoir PARTIEL émis après d'autres avoirs déjà émis sur la même
    *    facture. Lecture retenue, la plus prudente (celle qui protège le plus) faute de trancher
@@ -751,7 +751,7 @@ export class ServiceEmissionDocument {
    *    de ce que le client a déjà récupéré + ce que CET avoir ajoute est comparé au plafond. Ne
    *    compte que les avoirs déjà ÉMIS (`statut = 'emis'`) sur la même `facture_annulee_id` : un
    *    avoir encore en brouillon n'est pas opposable et peut être abandonné (RF-9), il ne doit pas
-   *    gonfler artificiellement le cumul. À SIGNALER à @laupernoe/expert-metier pour confirmation — c'est
+   *    gonfler artificiellement le cumul. À SIGNALER à @laupernoe/l'équipe métier pour confirmation — c'est
    *    la lecture la plus protectrice, pas une certitude tirée de la spec.
    *
    * Un avoir sans `factureAnnuleeId` (avoir libre) n'a pas de cumul à calculer : seul son propre

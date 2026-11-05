@@ -15,7 +15,7 @@ interface Props {
  * `responsableId`, et `ReponseDossierVente` ne porte aucun vendeur responsable — vérifié dans ce
  * lot, pas seulement recopié du design : sans ce filtre, un tableau de bord vendeur montrerait
  * TOUS les dossiers du site, pas « SES » dossiers, ce qui contredirait le principe même de la
- * demande de @laupernoe (un tableau de bord adapté au rôle). Un bloc à moitié construit serait pire que
+ * demande produit (un tableau de bord adapté au rôle). Un bloc à moitié construit serait pire que
  * rien : cet écran l'annonce honnêtement plutôt que de fabriquer un widget bancal, et renvoie vers
  * son vrai plan de travail (`routes/atterrissage.ts` l'y fait déjà atterrir, inchangé).
  *

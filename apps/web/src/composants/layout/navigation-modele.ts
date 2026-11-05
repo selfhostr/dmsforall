@@ -204,7 +204,7 @@ const ONGLETS_ATELIER: readonly OngletDomaine[] = [
    *
    * La vue `cloture` reste néanmoins déclarée ci-dessous, RATTACHÉE à Équipe plutôt que retirée :
    * `routes/routeur.tsx` monte encore une route réelle `/pointage/cloture` (qui rend
-   * `EcranPointage`, comme `jour`/`equipe`), volontairement conservée par l'agent `routes/` parce
+   * `EcranPointage`, comme `jour`/`equipe`), volontairement conservée par le lot `routes/` parce
    * que `routes/atteignabilite.spec.ts` verrouille `trouverCorrespondance('/pointage/cloture')
    * ?.vue?.id === 'cloture'` — un test hors du périmètre d'écriture de ce fichier. La retirer
    * ferait rougir ce test sans pouvoir le corriger ici. Son `chemin` pointe donc explicitement sur

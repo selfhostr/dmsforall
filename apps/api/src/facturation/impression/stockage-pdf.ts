@@ -2,8 +2,8 @@
  * Stockage des PDF de facture — abstraction volontairement minimale (`StockagePdf`) derrière
  * laquelle un adaptateur de production (S3-compatible, Infomaniak/Exoscale — voir
  * `docs/design-impression-facture-qr.md` §« Hors de portée ») pourra se brancher SANS toucher au
- * reste du module. Décision explicitement hors du périmètre `expert-facturation` : le choix d'un
- * stockage objet en production est une décision infrastructure (`expert-devops`), pas une décision
+ * reste du module. Décision explicitement hors du périmètre l'équipe facturation : le choix d'un
+ * stockage objet en production est une décision infrastructure (l'équipe infrastructure), pas une décision
  * de facturation — ce fichier ne fait qu'exposer l'interface et un adaptateur DISQUE LOCAL
  * suffisant pour le développement et un premier pilote mono-instance.
  *
@@ -12,7 +12,7 @@
  * « Données locales... uploads/ ») — aucun fichier `.gitignore` supplémentaire n'était nécessaire,
  * et ce module n'en ajoute donc aucun (hors périmètre d'écriture de cette tâche de toute façon).
  *
- * CORRECTIF nLPD (mandat 24/25.08.2026) : `purgerTenant` ajouté — ces PDF (nom, adresse, détail des
+ * CORRECTIF nLPD : `purgerTenant` ajouté — ces PDF (nom, adresse, détail des
  * prestations d'un client du garage) n'étaient JAMAIS effacés à la résiliation d'un tenant, alors
  * que les lignes SQL l'étaient (`purger_donnees_tenant()`, 0062). `ServiceCycleVieResiliation.purger`
  * appelle désormais cette méthode — MÊME DOCTRINE que `PortStockageArchiveReprise.purgerDossier`

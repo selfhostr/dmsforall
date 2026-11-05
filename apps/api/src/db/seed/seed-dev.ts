@@ -470,7 +470,7 @@ const CLIENTS_DEMO = [
     langue: 'de',
     telephone: '044 555 01 11',
     telephoneE164: '+41445550111',
-    adresse: { rue: 'Musterstrasse 1', npa: '8048', localite: 'Zürich' },
+    adresse: { rue: 'Musterstrasse 1', npa: '8000', localite: 'Zürich' },
   },
   {
     numero: 'CL-000005',
@@ -478,8 +478,8 @@ const CLIENTS_DEMO = [
     raisonSociale: 'AlpiLeasing SA',
     ide: 'CHE-109.444.555',
     langue: 'fr',
-    telephone: '021 555 01 40',
-    telephoneE164: '+41215550140',
+    telephone: '021 555 01 22',
+    telephoneE164: '+41215550122',
     adresse: { rue: 'Avenue de la Gare 10', npa: '1003', localite: 'Lausanne' },
   },
 ] as const;

@@ -28,7 +28,7 @@ import { requeteApi } from '@/api/client';
  * régénération — ne pas relancer cette vérification, la question a été tranchée.
  *
  * ÉCART SIGNALÉ, DÉSORMAIS CONFIRMÉ (corrigé `10.08.2026`) : le paragraphe ci-dessous doutait du verbe
- * HTTP de suppression d'une ligne de brouillon (« à confirmer avec expert-api »). `types.gen.ts`
+ * HTTP de suppression d'une ligne de brouillon (« à confirmer avec l'équipe API »). `types.gen.ts`
  * confirme `DELETE /documents-vente/{id}/lignes/{ligneId}` → `DocumentVenteController_supprimerLigne`
  * ("Suppression d'une ligne sur un brouillon (MD-19, MD-21)") : l'hypothèse de `supprimerLigneDocument`
  * ci-dessous était correcte sur le VERBE. DÉSORMAIS CÂBLÉES (issue #125, `EcranFicheFacture.tsx` via
@@ -46,7 +46,7 @@ import { requeteApi } from '@/api/client';
  * ÉCART SIGNALÉ ET CONTOURNÉ (bug confirmé en exécution, `2026-08-04`) : `GET /documents-vente`
  * NE renvoie PAS `DocumentVenteResume` malgré le commentaire ci-dessous et le type annoncé par
  * `requeteApi<PageCurseur<DocumentVenteResume>>` — `ServiceDocumentsVente.lister`
- * (`apps/api/.../service-documents.ts`, hors périmètre de cet agent) documente lui-même la
+ * (`apps/api/.../service-documents.ts`, hors périmètre de ce lot) documente lui-même la
  * SIMPLIFICATION : chaque ligne passe par `assemblerDocument`, qui rend le document COMPLET
  * (`ReponseDocumentVente`). Vérifié en direct contre l'API du dépôt (`curl` authentifié,
  * `comptable@garage-martin.ch`) : la désignation client vit sous `figees.clientDesignation`,

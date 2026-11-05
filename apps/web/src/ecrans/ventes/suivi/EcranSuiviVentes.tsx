@@ -127,7 +127,7 @@ export function EcranSuiviVentes() {
   // du chantier « titres doublés », 17.08.2026). `GabaritEcran` le détecte lui-même — ne JAMAIS
   // poser `titreVisible` ici.
   //
-  // Retiré (retour @laupernoe du 12.08.2026, revue structure haute) : le lien « Retour aux dossiers de
+  // Retiré (retour produit du 12.08.2026, revue structure haute) : le lien « Retour aux dossiers de
   // vente », qui flottait seul en haut à droite (« mal placé ») ET doublait l'onglet « Dossiers »
   // d'`OngletsDomaine` un rang au-dessus (« c'est doublé aussi ») — même destination, même défaut
   // que le bouton retiré d'`EcranListeDossiersVente`, voir sa note d'en-tête de fichier.
@@ -141,7 +141,7 @@ export function EcranSuiviVentes() {
   // onglets (chargement / erreur / table) varie selon l'état de la requête.
   return (
     <GabaritEcran titre={t('ventes:suivi.titre')}>
-      {/* Sélecteur d'horizon — retour @laupernoe du 17.08.2026 : « 30/90/60 jours, toutes les échéances des
+      {/* Sélecteur d'horizon — retour produit du 17.08.2026 : « 30/90/60 jours, toutes les échéances des
           jours, tu peux enlever l'espace aussi qui n'est pas très beau ». `components/ui/tabs.tsx`
           (utilisé avant ce correctif) porte le style de la NAVIGATION (soulignement, `h-11`,
           `border-b`) — un poids visuel de rangée de navigation pour un simple filtre d'horizon, qui

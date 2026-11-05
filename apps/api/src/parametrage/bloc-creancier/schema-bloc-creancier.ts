@@ -2,7 +2,7 @@
  * Schéma zod de `PATCH /parametres-facturation/creancier` — RE-EXPORT du contrat gelé de
  * `@dfa/shared` (`packages/shared/src/contrats/facturation/creancier.ts`), désormais la source de
  * vérité UNIQUE de cette forme. Avant ce fichier, l'API et le front dérivaient chacun une copie
- * séparée (écart signalé par l'agent qui a livré l'écran de paramétrage) — refermé ici.
+ * séparée (écart signalé par le lot qui a livré l'écran de paramétrage) — refermé ici.
  *
  * Ce fichier ne redéclare plus rien : il existe pour que `bloc-creancier.controller.ts` et
  * `mappeur-bloc-creancier.ts` gardent leur import `./schema-bloc-creancier` inchangé. La

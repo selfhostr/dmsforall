@@ -223,7 +223,7 @@ export class ServiceCycleVieDossierReprise {
       const resultat = await tx.execute<LigneDossierRepriseBrute>(sql`
         update public.dossier_reprise
            set statut = 'annule', annule_le = now(), annule_motif = ${motif},
-               -- Défaut 3 (mandat reprise) : les tranches vont être purgées ci-dessous (RGPD/nLPD).
+               -- Défaut 3 (reprise) : les tranches vont être purgées ci-dessous (RGPD/nLPD).
                -- Si l'archive n'avait JAMAIS été intégralement vérifiée (integrite_validee pas
                -- true), dernier_numero_tranche_recu_contigu devient trompeur une fois les tranches
                -- disparues — un instantané qui affiche encore « 142 » alors qu'aucune tranche n'est

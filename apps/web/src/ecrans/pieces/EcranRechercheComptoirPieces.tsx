@@ -201,13 +201,13 @@ export function EcranRechercheComptoirPieces() {
   );
 
   return (
-    // Pleine largeur (retour @laupernoe du 12.08.2026 : « le module comptoir ne prend pas du tout la
+    // Pleine largeur (retour produit du 12.08.2026 : « le module comptoir ne prend pas du tout la
     // largeur de la page ») — `GabaritEcran` ne pose plus de `max-w-2xl`/`mx-auto` sur l'écran
     // entier ; seul l'état « choisir un site » ci-dessus, une carte de sélection volontairement
     // centrée et étroite, garde sa propre largeur limitée (`max-w-lg` posé localement dessus, pas
     // sur tout l'écran).
     //
-    // Titre MASQUÉ automatiquement (retour @laupernoe du 17.08.2026, chantier « titres doublés » :
+    // Titre MASQUÉ automatiquement (retour produit du 17.08.2026, chantier « titres doublés » :
     // « dans Comptoir, c'est écrit "Recherche comptoir" et du coup ça fait un espace horrible »).
     // Ancienne doctrine (ci-dessus jusqu'à ce correctif) : « Recherche comptoir » n'était PAS
     // considéré comme un doublon de l'onglet « Comptoir » (le titre ajoutait « Recherche », absent

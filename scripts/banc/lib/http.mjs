@@ -95,7 +95,7 @@ export class SessionBanc {
    */
   /**
    * `nest start --watch` (le serveur de dev PARTAGÉ, jamais redémarré par ce banc — voir
-   * README.md) redémarre à toute écriture d'un autre agent dans `apps/api/src/`, ce qui coupe
+   * README.md) redémarre à toute écriture d'un autre lot dans `apps/api/src/`, ce qui coupe
    * les connexions en vol (`fetch failed` / `UND_ERR_SOCKET`, observé en pratique le 27.08.2026).
    * Un tel accroc N'EST PAS une mesure de latence — il est retenté (3 tentatives, 400ms
    * d'attente) puis, s'il persiste, rendu comme `statut: -1` plutôt que de faire planter toute la
@@ -134,7 +134,7 @@ export class SessionBanc {
     } catch (erreur) {
       // 8 tentatives à 1.5s : assez large pour survivre à un redémarrage `nest start --watch`
       // complet (recompilation incrémentale + reconnexion au pool Postgres), déclenché par un
-      // AUTRE agent qui écrit dans `apps/api/src/` pendant que ce banc tourne — mesuré en
+      // AUTRE lot qui écrit dans `apps/api/src/` pendant que ce banc tourne — mesuré en
       // pratique le 27.08.2026 : 3 tentatives à 400ms ne suffisaient pas et faisaient perdre des
       // dizaines de mesures d'un coup au milieu de la campagne.
       if (tentative < 8) {

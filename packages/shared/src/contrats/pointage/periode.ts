@@ -7,7 +7,7 @@ import { schemaDateJour, schemaIdentifiant, schemaMotif } from '../atelier/primi
  * `POST /pointages/deverrouiller-periode` — DEUX ACTIONS, PAS UNE RESSOURCE.
  *
  * HYPOTHÈSE DE MODÈLE, À CONFIRMER avec quiconque possède `contrats/atelier/parametrage.ts` et le
- * schéma de base (expert-database) — hors périmètre d'écriture de ce fichier : le verrouillage
+ * schéma de base (l'équipe base de données) — hors périmètre d'écriture de ce fichier : le verrouillage
  * est modélisé ici comme un SIMPLE SEUIL par site (« tout pointage dont `debutLe` précède cette
  * date est verrouillé »), PAS comme une collection de ressources `periode-pointage` avec son
  * propre cycle de vie. Raisons :

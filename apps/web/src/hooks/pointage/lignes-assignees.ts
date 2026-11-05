@@ -66,7 +66,7 @@ function ligneEstAssignee(ligne: ReponseLigneOr, technicienId: string): boolean 
 /**
  * Lignes assignées ET pointables d'un OR, pour un technicien donné — sert désormais UNIQUEMENT le
  * repère organisationnel de « Mes OR du jour » (compteur de carte, voir `compterLignesAssigneesPointables`
- * ci-dessous), PLUS `DialogueChoixCiblePointage` avant l'arbitrage @laupernoe du 14.08.2026 ci-dessous.
+ * ci-dessous), PLUS `DialogueChoixCiblePointage` avant l'choix produit du 14.08.2026 ci-dessous.
  *
  * ARBITRAGE @laupernoe (14.08.2026, NE PAS ROUVRIR) : un technicien peut pointer une ligne sans y être
  * assigné (la base l'autorise déjà — RM-121, plusieurs pointages simultanés sur une même ligne ; le
@@ -95,7 +95,7 @@ export function lignesAssigneesPointables(
 /**
  * TOUTES les lignes pointables d'un OR, SANS filtre d'assignation — ce que
  * `DialogueChoixCiblePointage` (« Que pointez-vous ? ») propose désormais au technicien, suite à
- * l'arbitrage @laupernoe du 14.08.2026 documenté ci-dessus sur `lignesAssigneesPointables`. Même critère de
+ * l'choix produit du 14.08.2026 documenté ci-dessus sur `lignesAssigneesPointables`. Même critère de
  * statut que le reste de ce fichier (`ligneEstPointable` — jamais `refusee`/`annulee`/`facturee`),
  * SEULE différence : aucune comparaison à `technicienId`. L'assignation existante de chaque ligne
  * reste lisible par l'appelant via `ligne.technicienId` (à afficher comme une INFORMATION — « assignée

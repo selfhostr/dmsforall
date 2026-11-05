@@ -97,7 +97,7 @@ export class ServiceSessionImpl implements ServiceSession {
   }
 
   /**
-   * Distinction délibérée entre les deux codes 401, sur indication d'expert-database :
+   * Distinction délibérée entre les deux codes 401, sur indication d'l'équipe base de données :
    * `amorcage.session_par_empreinte` est volontairement « bête » — elle rend la ligne
    * correspondant à l'empreinte SANS filtrer expiration ni révocation, précisément pour que ce
    * service puisse distinguer :

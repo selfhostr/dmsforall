@@ -7,7 +7,7 @@
  * Racine : `uploads/reprise/<tenantId>/<dossierId>/`, sœur de `uploads/exports-resiliation/` et
  * `uploads/documents-pdf/` (déjà sous `.gitignore` racine, section « Données locales… uploads/ »).
  *
- * TOUT EN FLUX, JAMAIS EN MÉMOIRE : les archives réelles mesurées vont jusqu'à 43 Go — écrire une
+ * TOUT EN FLUX, JAMAIS EN MÉMOIRE : les archives de DMS peuvent atteindre des dizaines de Go — écrire une
  * tranche est une simple écriture de fichier (la tranche elle-même, 16 Mo par défaut, tient en
  * mémoire côté Nest via le corps de requête déjà bufferisé par Express ; ce n'est PAS ce fichier
  * qui bufferise l'archive entière). L'ASSEMBLAGE (`assemblerEtCalculerEmpreinte`), lui, lit et
@@ -159,7 +159,7 @@ export class StockageArchiveRepriseDisqueLocal implements PortStockageArchiveRep
     }
     await rm(cheminRacineDossier, { recursive: true, force: true });
 
-    // Défaut 4 (mandat reprise) : sans ce nettoyage, `uploads/reprise/<tenantId>/` reste sur le
+    // Défaut 4 (reprise) : sans ce nettoyage, `uploads/reprise/<tenantId>/` reste sur le
     // disque, vide, après la purge du dernier dossier d'un tenant — un répertoire par tenant qui
     // s'accumule indéfiniment. Best-effort, jamais bloquant : une erreur (répertoire déjà absent,
     // ou un AUTRE dossier de ce tenant vient d'y écrire en même temps) ne doit jamais faire

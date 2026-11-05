@@ -6,7 +6,7 @@ import { ErreurApi, messageErreur, messageErreurChamp } from '@/api/erreurs';
  * Message(s) à afficher pour l'échec d'une mutation dans un dialogue de CE module SANS
  * `react-hook-form` (état local contrôlé — `DialogueLigneDocumentVente`) — mirroir délibéré de
  * `ecrans/atelier/messages-erreur-mutation.ts` (même doctrine, même code, commentaire adapté au
- * module) : dupliqué plutôt qu'importé depuis `atelier/` (hors périmètre d'écriture de cet agent,
+ * module) : dupliqué plutôt qu'importé depuis `atelier/` (hors périmètre d'écriture de ce lot,
  * et ce petit utilitaire n'a aucune raison de dépendre d'un autre domaine métier).
  *
  * §3.5 règle 5 du contrat : `ProblemeDetail.erreurs[]` est RÉSERVÉ à la validation de saisie et

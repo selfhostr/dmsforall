@@ -112,9 +112,9 @@ export const SEUIL_RESERVATIONS_DISPONIBILITE = 20;
  * `PIECE_RESERVATION_INDISPONIBLE`, est déclaré dans `contrats/probleme.ts::CODES_AVERTISSEMENT`.
  *
  * INTÉGRATION HORS PÉRIMÈTRE DE CE FICHIER : c'est `POST /ordres-reparation/{orId}/lignes`
- * (`contrats/atelier/ligne.ts`, GELÉ, propriété d'un autre agent) qui doit émettre cet
+ * (`contrats/atelier/ligne.ts`, GELÉ, propriété d'un autre lot) qui doit émettre cet
  * avertissement avec ces données au moment de la création de ligne. Ce fichier fige la FORME de
- * l'information ; le raccordement au point d'émission est un signalement à l'orchestrateur, pas
+ * l'information ; le raccordement au point d'émission est un signalement à le mainteneur, pas
  * une implémentation ici.
  */
 export interface DonneesAvertissementReservationIndisponible {

@@ -153,7 +153,7 @@ describe('ServiceVehiculeStock.marquerVendu — `reserve -> vendu` (trou comblé
  * RPP-06 (`docs/specification-parc-et-hangar-pneus.md`) : la vente ne transfère JAMAIS
  * automatiquement au nouveau propriétaire un éventuel dépôt de pneus rattaché au véhicule —
  * signalement, jamais un blocage. `ServiceVehiculeStock.marquerVendu` lit `depot_pneus` en LECTURE
- * SEULE (module `pneus/`, hors périmètre d'écriture de cet agent) et n'ajoute qu'un avertissement
+ * SEULE (module `pneus/`, hors périmètre d'écriture de ce lot) et n'ajoute qu'un avertissement
  * `VEHICULE_DEPOTS_PNEUS_OUVERTS` — la vente aboutit dans tous les cas, avec ou sans dépôt.
  */
 describe('ServiceVehiculeStock.marquerVendu — RPP-06 (signalement des dépôts pneus ouverts)', () => {

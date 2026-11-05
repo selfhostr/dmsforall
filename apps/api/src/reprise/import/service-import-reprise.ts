@@ -361,8 +361,8 @@ export class ServiceImportReprise {
       // corrigé le 26.08.2026 : « contrainte métier refusée » dit au garagiste « vos données
       // violent une règle » ; la vérité ici est « ce domaine n'est pas encore pris en charge par
       // l'outil », un message qui accuse le LOGICIEL, jamais les données. Mesuré : un import réel
-      // (archive Auto-i complète de @laupernoe) rendait ce faux motif sur 35 846 lignes `articles_stock`
-      // et 6 930 lignes `documents_scannes` — de quoi laisser croire à un stock corrompu à
+      // (archive Auto-i complète) rendait ce faux motif sur toutes les lignes `articles_stock`
+      // et `documents_scannes` — de quoi laisser croire à un stock corrompu à
       // nettoyer, alors qu'il n'y a rien à nettoyer. Voir la doctrine complète en tête de
       // `MOTIFS_ECART_IMPORT_REPRISE` (`@dfa/shared`).
       const domainesCouverts = new Set<DomaineReprise>(['clients', 'vehicules', 'documents_vente']);

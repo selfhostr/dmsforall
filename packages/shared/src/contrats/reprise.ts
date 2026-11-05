@@ -23,11 +23,11 @@ import { schemaParametresPage, type PageCurseur } from './pagination';
  *     TVA tantôt par ligne tantôt globale au document tantôt absente, encodages hérités. Remontés
  *     au client dans son vocabulaire via des CODES (`ConstatQualiteTableReprise`), jamais une
  *     chaîne technique en dur.
- *   - **Les volumes sont réels** : jusqu'à 43 Go d'archive, 9,4 millions de lignes sur une seule
+ *   - **Les volumes sont réels** : des dizaines de Go d'archive, des millions de lignes sur une seule
  *     table de référentiel. Tout est ASYNCHRONE — dépôt par tranches, analyse et import en tâche de
  *     fond ; rien ne se fait dans le temps d'une requête HTTP.
  *
- * PÉRIMÈTRE DE REPRISE ARBITRÉ (décisions D-29→D-34 du wiki, non rediscutées ici) : détail ligne à
+ * PÉRIMÈTRE DE REPRISE ARBITRÉ (décisions de conception, non rediscutées ici) : détail ligne à
  * ligne sur 24 mois glissants PLUS tout ce qui est ouvert sans limite de date ; en-têtes de
  * document + totaux + ventilation TVA sur 10 ans ; documents scannés SEULEMENT s'ils sont
  * rattachables par un index source ; comptabilité NON reprise sauf les soldes ouverts ;
@@ -50,8 +50,8 @@ import { schemaParametresPage, type PageCurseur } from './pagination';
  *     analogie) ; pagination par curseur sur toute collection ; erreurs en `problem+json`.
  *
  * CODES D'ERREUR SUGGÉRÉS — HORS PÉRIMÈTRE DE CE FICHIER (`contrats/probleme.ts::CODES_ERREUR` est
- * un registre central partagé ; l'y toucher pendant que trois autres agents travaillent en
- * parallèle serait une collision. À ajouter par un agent habilité, une fois ce contrat fusionné) :
+ * un registre central partagé ; l'y toucher pendant que trois autres lots travaillent en
+ * parallèle serait une collision. À ajouter par un lot habilité, une fois ce contrat fusionné) :
  *   - `REPRISE_DOSSIER_TRANSITION_INTERDITE` (409) — même patron que `OR_TRANSITION_INTERDITE`.
  *   - `REPRISE_ARCHIVE_INCOMPLETE` (409) — `finaliser` appelé avant réception de tous les octets.
  *   - `REPRISE_EMPREINTE_INVALIDE` (409) — l'empreinte assemblée par le serveur ne correspond pas
@@ -93,7 +93,7 @@ export interface AncrageOrigineReprise {
  * Constantes de transport
  * ============================================================================================ */
 
-/** 60 Go — plafond avec marge sur le maximum mesuré (43 Go, archive Visual FoxPro réelle). */
+/** 60 Go — plafond avec marge sur les plus grosses archives Visual FoxPro connues. */
 export const TAILLE_MAX_ARCHIVE_REPRISE_OCTETS = 60_000_000_000;
 
 /** Taille de tranche PAR DÉFAUT côté client tant que `ReponseCreationDossierReprise.
@@ -106,7 +106,7 @@ export const TAILLE_TRANCHE_RECOMMANDEE_OCTETS_DEFAUT = 16 * 1024 * 1024;
  *  schemaEmpreinteSha256` (`RC-64`), redéfinie ICI plutôt qu'importée : ce fichier connecteurs
  *  n'exporte pas ses primitives via son barrel (délibérément « non réexportées », voir son
  *  en-tête), et dupliquer une regex à deux lignes coûte moins qu'un couplage entre deux domaines
- *  écrits en parallèle par des agents différents. */
+ *  écrits en parallèle par des lots différents. */
 export const schemaEmpreinteSha256Reprise = z
   .string()
   .trim()
@@ -368,7 +368,7 @@ export interface MotifDeductionRoleTable {
 
 /** `gravite_constat_reprise` — partagée entre les constats de qualité et les anomalies
  *  (`ConstatQualiteTableReprise`, `AnomalieAnalyseReprise`, `AnomalieImportReprise`) : même échelle
- *  partout dans ce fichier, moins de surface à retenir pour les trois agents qui codent dessus. */
+ *  partout dans ce fichier, moins de surface à retenir pour les trois lots qui codent dessus. */
 export const GRAVITES_CONSTAT_REPRISE = ['information', 'attention', 'bloquante'] as const;
 export type GraviteConstatReprise = (typeof GRAVITES_CONSTAT_REPRISE)[number];
 

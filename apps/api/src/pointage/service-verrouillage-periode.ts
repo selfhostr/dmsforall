@@ -20,7 +20,7 @@ import { finJourneeSuisse } from '../common/temps';
  * (`pointage_verrouillage_site`, voir son en-tête pour la décision de modèle — hors périmètre
  * d'écriture de ce fichier, déjà tranchée par le schéma livré).
  *
- * INTERPRÉTATION SIGNALÉE, à confirmer avec expert-metier — le contrat (`contrats/pointage/
+ * INTERPRÉTATION SIGNALÉE, à confirmer avec l'équipe métier — le contrat (`contrats/pointage/
  * periode.ts`) donne `jusquauLe` aux DEUX actions (verrouiller/déverrouiller) sans préciser le sens
  * exact côté déverrouillage. Avec un SEUIL UNIQUE (pas un intervalle), la seule lecture cohérente
  * est : `deverrouiller-periode(jusquauLe)` fait RECULER le seuil du site jusqu'à `jusquauLe`
@@ -32,7 +32,7 @@ import { finJourneeSuisse } from '../common/temps';
  * BORNE DE JOURNÉE — CORRIGÉE le 14.08.2026 (mesurée en UTC pur avant ce correctif, écart d'une
  * heure en hiver, deux en été, autour de minuit local) : la conversion « ce jour calendaire » ->
  * « cet instant » passe désormais par `common/temps/fuseau-suisse.ts`, Europe/Zurich, CET/CEST
- * gérées automatiquement (décision de @laupernoe : un seul fuseau pour tout le produit, jamais un réglage
+ * gérées automatiquement (décision de conception : un seul fuseau pour tout le produit, jamais un réglage
  * par site). Voir l'en-tête de ce fichier commun pour la doctrine complète et les deux autres
  * endroits qui répliquaient la même convention UTC.
  *

@@ -29,7 +29,7 @@ interface Props {
  * pagination dans ce sélecteur (affiner la recherche est la sortie normale).
  *
  * Périmètre : véhicules DÉJÀ mis en stock uniquement — la mise en stock elle-même
- * (`POST /vehicules/{id}/stock`) appartient à l'écran « parc en stock » d'un autre agent
+ * (`POST /vehicules/{id}/stock`) appartient à l'écran « parc en stock » d'un autre lot
  * (`ecrans/ventes/stock/**`, hors périmètre de celui-ci).
  */
 export function SelecteurVehiculeStockDossier({ valeur, onChangeValeur, libelle }: Props) {

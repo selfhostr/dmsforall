@@ -115,9 +115,9 @@ describe('ecrireVehiculesReprise — cession de l’event loop (boucle CPU + rec
 });
 
 /**
- * Défaut réel du 26.08.2026 (archive Auto-i complète de @laupernoe, table "Lager") : la casse était déjà
+ * Défaut réel du 26.08.2026 (archive Auto-i, table "Lager") : la casse était déjà
  * corrigée (alias insensibles à la casse), mais AUCUN alias générique ne couvrait les noms de
- * colonnes RÉELS de cette source — 6874 lignes détectées, 0 écrites, 100% `reference_manquante`.
+ * colonnes RÉELS de cette source — toutes les lignes détectées, aucune écrite, 100% `reference_manquante`.
  * Schéma vérifié via `mdb-schema` (métadonnées de colonnes, jamais de donnée personnelle) :
  * `LagerNr`/`ReferenzNr`/`FzKey` pour l'identifiant propre, `ChassisNr` pour le VIN, `KundenNr`
  * pour le rattachement client — aucun ne matchait les alias d'avant ce correctif.
@@ -193,7 +193,7 @@ describe('ecrireVehiculesReprise — alias de colonnes Auto-i réels (défaut du
     expect(resultat.anomalies).toEqual([]);
   });
 
-  it('résout `ErstIV` (jj.mm.aaaa) comme date de plaque — sans lui, AUCUN véhicule ne pouvait jamais être rattaché (défaut réel du 26.08.2026 : 6823 véhicules écrits, 0 plaque/détention)', async () => {
+  it('résout `ErstIV` (jj.mm.aaaa) comme date de plaque — sans lui, AUCUN véhicule ne pouvait jamais être rattaché (défaut réel du 26.08.2026)', async () => {
     const lignes: LigneTable[] = [
       ligne(0, {
         LagerNr: 'L-001',

@@ -5,7 +5,7 @@
  * `service-facture-fournisseur.ts`, rend un résultat déterministe — ENTIÈREMENT testable sans
  * PDF, sans OCR, sans base, avec des fixtures inventées (voir `service-rapprochement.spec.ts`).
  *
- * CORRESPONDANCE EXACTE UNIQUEMENT (décision @laupernoe, non négociable) : un rapprochement approximatif
+ * CORRESPONDANCE EXACTE UNIQUEMENT (décision de conception, non négociable) : un rapprochement approximatif
  * qui se révèle faux est pire qu'aucun rapprochement. « Exact » veut dire : après la SEULE
  * normalisation tolérée (espaces superflus, casse) — jamais une distance de Levenshtein, jamais
  * un score de similarité, jamais un « meilleur candidat » choisi parmi plusieurs. Une AMBIGUÏTÉ

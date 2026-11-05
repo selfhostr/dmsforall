@@ -7,7 +7,7 @@ import type { EvenementAPublier, ServiceEvenements } from './evenements.types';
 
 /**
  * Implémentation SQL directe — pas de schéma Drizzle `evenement_metier` : la table est créée par
- * la migration `0004` (L1-04, en parallèle de cet agent), donc pas encore disponible au moment où
+ * la migration `0004` (L1-04, en parallèle de ce lot), donc pas encore disponible au moment où
  * ce fichier est écrit. Colonnes assumées, dérivées du contrat gelé `EnveloppeEvenementMetier`
  * (`@dfa/shared`, `contrats/atelier/evenement.ts`) : `evenement_metier(id, tenant_id, site_id,
  * type, version_schema, survenu_le, ressource_type, ressource_id, ressource_numero, donnees

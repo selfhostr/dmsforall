@@ -121,7 +121,7 @@ export const decisionDevisEnum = pgEnum('decision_devis', DECISIONS_DEVIS);
 // C'étaient les types Postgres pilotés par les enums GELÉS `STATUTS_RENDEZ_VOUS`/
 // `ORIGINES_RENDEZ_VOUS` (`@dfa/shared`, jamais implémentés), jamais consommés par une colonne de
 // table. Le domaine rendez-vous utilise `statut_prise_rendez_vous`/`origine_creation_rendez_vous`
-// (migration 0052, `./rendez-vous.ts`) — noms distincts, valeurs distinctes, arbitrage de @laupernoe.
+// (migration 0052, `./rendez-vous.ts`) — noms distincts, valeurs distinctes, choix produit.
 export const modeAttenteRdvEnum = pgEnum('mode_attente_rdv', MODES_ATTENTE_RDV);
 export const typeRessourcePlanningEnum = pgEnum(
   'type_ressource_planning',
@@ -185,7 +185,7 @@ export const politiqueDeuxOrMemeVehiculeEnum = pgEnum(
 // `apps/api/src/db/migrations/0036_*.sql` et `apps/api/src/db/schema/` — `packages/shared` en
 // est explicitement exclu. Le tableau de valeurs est donc posé EN DUR ici plutôt qu'importé.
 //
-// À RÉSORBER dès qu'un agent peut toucher `packages/shared` : ajouter
+// À RÉSORBER dès qu'un lot peut toucher `packages/shared` : ajouter
 // `MODES_IDENTIFICATION_POINTAGE = ['session_personnelle', 'borne_partagee'] as const` dans
 // `contrats/pointage/enums.ts` (même convention que `ACTIVITES_INDIRECTES`/
 // `MOTIFS_ANOMALIE_POINTAGE` du même fichier), l'exporter depuis `@dfa/shared`, puis remplacer le

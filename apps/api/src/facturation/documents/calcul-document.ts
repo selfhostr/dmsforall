@@ -1,6 +1,6 @@
 /**
  * Arithmétique de la chaîne documentaire — TOUT est TTC (§0.2 de `migrations/0010_facturation.sql`,
- * décision de @laupernoe du 29.07.2026, RF-40 révisée). Aucune autre fonction du module `facturation` ne
+ * décision de conception du 29.07.2026, RF-40 révisée). Aucune autre fonction du module `facturation` ne
  * doit arrondir un montant : `arrondiCommercial`/`foisArrondiCommercial` sont la SEULE porte
  * d'entrée — et vivent maintenant dans `@dfa/shared` (`arithmetique/arrondi-commercial.ts`),
  * réexportées ici pour ne pas casser les imports existants (`export/ecritures/

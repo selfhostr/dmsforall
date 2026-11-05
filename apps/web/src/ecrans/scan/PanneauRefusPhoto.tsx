@@ -24,7 +24,7 @@ interface Props {
  * unique = reprendre (même bouton, même libellé que l'échec de lecture — `scan:actions.reessayer`,
  * doctrine : une action garde toujours le même nom).
  *
- * CONTOURNEMENT ATTEIGNABLE MAIS PAS MIS EN AVANT (décision de @laupernoe) : lien texte, pas un bouton
+ * CONTOURNEMENT ATTEIGNABLE MAIS PAS MIS EN AVANT (décision de conception) : lien texte, pas un bouton
  * plein — mais cible tactile >= 44px (h-11) quand même, jamais un mini-lien injoignable au pouce.
  * L'avertissement (« lecture probablement incomplète ») est affiché AU-DESSUS du lien, jamais
  * après-coup : l'utilisateur le lit avant de décider, pas une fois l'action lancée.

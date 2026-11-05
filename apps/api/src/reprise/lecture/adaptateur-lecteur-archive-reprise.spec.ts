@@ -144,8 +144,8 @@ describe('AdaptateurLecteurArchiveReprise — extraction ZIP réelle + lecture D
   });
 
   /**
-   * ANOMALIE RÉELLE mesurée le 26.08.2026 sur l'archive Auto-i de @laupernoe (`RepAw.backup`, base Access
-   * valide de 242 Mo SANS extension `.mdb`/`.accdb`) : la branche 'access' de `listerTables`
+   * ANOMALIE RÉELLE mesurée le 26.08.2026 sur une archive Auto-i (`RepAw.backup`, base Access
+   * valide SANS extension `.mdb`/`.accdb`) : la branche 'access' de `listerTables`
    * gardait sur l'EXTENSION du fichier avant même de sonder son contenu — violant la doctrine
    * documentée juste à côté (`lecteurs/detection-famille.ts`, qui cite EXPLICITEMENT ce même
    * fichier comme raison de reconnaître la famille « toujours sur le contenu, jamais sur

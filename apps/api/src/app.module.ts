@@ -101,8 +101,8 @@ export class AppModule implements NestModule {
         // AUCUNE route `/ordres-reparation/{orId}/pdf` n'existe.
         ImpressionOrModule,
         PiecesModule,
-        // `PointageModule` livré, non enregistré jusqu'ici (lot 2) — enregistré par l'orchestrateur
-        // au nom de l'agent `pointage/`, qui n'a pas accès à ce fichier. Après `AtelierModule` :
+        // `PointageModule` livré, non enregistré jusqu'ici (lot 2) — enregistré par le mainteneur
+        // au nom du lot `pointage/`, qui n'a pas accès à ce fichier. Après `AtelierModule` :
         // `PointageModule` ne dépend pas d'`AtelierModule` (voir sa tête de fichier, aucune
         // dépendance de compilation entre modules d'experts parallèles), mais le câblage du port
         // `JETON_LECTURE_POINTAGE` (`atelier.module.ts`, `useExisting: ServiceLecturePointage`)
@@ -161,7 +161,7 @@ export class AppModule implements NestModule {
         // `RepriseModule` (reprise de données par dépôt d'archive, `contrats/reprise.ts`,
         // migrations 0066/0067) — aucune dépendance de compilation avec un autre module métier
         // (lit/écrit `client`/`vehicule`/`document_vente` en SQL brut, comme `TableauBordModule`
-        // plus haut). ÉTAIT NON ENREGISTRÉ ici jusqu'à cet agent — piège vérifié n°1 du projet
+        // plus haut). ÉTAIT NON ENREGISTRÉ ici jusqu'à ce lot — piège vérifié n°1 du projet
         // (contrôleur non déclaré = 404 silencieux), refermé : voir la tête de `reprise.module.ts`.
         RepriseModule,
         // Branchement CONSOMMATEUR des deux files de reprise (`ProcesseurAnalyseReprise`/
@@ -187,7 +187,7 @@ export class AppModule implements NestModule {
         // ne doit pouvoir injecter le plan console.
         ExploitationModule.pourConfig(config),
         // `CycleVieTenantModule` (offboarding — export intégral, conservation limitée, effacement
-        // automatique, mandat 20.08.2026, migration 0062) — droit MÉTIER ORDINAIRE déclenché par
+        // automatique, migration 0062) — droit MÉTIER ORDINAIRE déclenché par
         // le garage lui-même (`GardeDroit`, jamais `GardeExploitant`), aucun rapport avec
         // `ExploitationModule` juste au-dessus malgré le nom du répertoire qui l'héberge
         // (`exploitation/cycle-vie-tenant/`) : PAS de dépendance de compilation entre les deux,

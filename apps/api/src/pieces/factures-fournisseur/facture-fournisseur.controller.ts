@@ -45,7 +45,7 @@ import {
 } from './schemas';
 
 /**
- * `POST /factures-fournisseur` — dépôt depuis le poste fixe UNIQUEMENT (décision @laupernoe : pas de
+ * `POST /factures-fournisseur` — dépôt depuis le poste fixe UNIQUEMENT (décision de conception : pas de
  * courriel entrant, pas de photo mobile pour l'instant). Déclenche la chaîne complète (QR → texte
  * du PDF → OCR de repli) et le rapprochement — voir `service-facture-fournisseur.ts`. AUCUNE
  * validation automatique : la réponse est une PROPOSITION, `POST /{id}/valider` reste un geste

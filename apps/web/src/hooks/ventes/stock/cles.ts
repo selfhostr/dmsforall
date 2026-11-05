@@ -3,7 +3,7 @@ import type { FiltresListeVehiculesStock } from './vehicule-stock.api';
 /**
  * Clés TanStack Query du sous-module véhicules en stock (VN/VO, étape 4) — même convention que
  * `clesPieces` (`hooks/pieces/cles.ts`) : tuple plat, tenu ICI plutôt que dans `api/cles.ts`
- * (gelé depuis l'étape 1, hors périmètre de cet agent — même raison que documentée en tête de
+ * (gelé depuis l'étape 1, hors périmètre de ce lot — même raison que documentée en tête de
  * `hooks/facturation/cles.ts` et `hooks/pieces/cles.ts`).
  *
  * La clé de liste porte l'objet de filtres COMPLET envoyé au serveur (même choix que

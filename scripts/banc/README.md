@@ -1,9 +1,8 @@
 # Banc de charge DFA
 
 Mesure la latence perçue par l'utilisateur (via l'API en marche, jamais Postgres en direct) sur
-la base de développement **réelle** (`dfa_dev`, ~9 900 clients / ~6 800 véhicules importés
-d'Auto-i). Sert à choisir un hébergeur et à prouver qu'un correctif de performance en est un —
-voir les notes de travail §Atelier, « Les recherches par fragment ne tiendront pas la charge ».
+une base de développement volumineuse (`dfa_dev`). Sert à choisir un hébergeur et à prouver qu'un correctif de performance en est un —
+pour vérifier que les recherches par fragment tiennent la charge.
 
 ## Lancer le banc
 
@@ -100,7 +99,7 @@ nombre exact, pas une estimation.
 
 ## Aléas rencontrés (et comment le banc s'en protège)
 
-Le serveur de dev (`nest start --watch`) est **partagé** avec d'autres agents qui écrivent dans
+Le serveur de dev (`nest start --watch`) est **partagé** avec d'autres lots qui écrivent dans
 `apps/api/src/` en parallèle — chaque écriture le redémarre, coupant les connexions en vol
 (`fetch failed` / `UND_ERR_SOCKET`, observé en pratique le 27.08.2026, ~36 requêtes perdues d'un
 coup sur `vehicules-page50`). `SessionBanc.requete()` (`lib/http.mjs`) retente automatiquement

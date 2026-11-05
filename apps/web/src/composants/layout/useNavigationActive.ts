@@ -26,7 +26,7 @@ import {
  * tolérance, la détection automatique de doublon aurait cassé d'un coup tout appelant existant, y
  * compris ceux dont l'écran ne touche à rien de la navigation, avec un message d'erreur qui ne dit
  * rien du vrai fautif (`useLocation`, jamais `GabaritEcran`). Constaté sur `EcranRelances.spec.tsx`
- * (agent facturation, 17.08.2026), corrigé en amont ici plutôt que redemandé écran par écran :
+ * (lot facturation, 17.08.2026), corrigé en amont ici plutôt que redemandé écran par écran :
  * hors Router, on dégrade vers « aucune route connue » — EXACTEMENT le même résultat qu'une URL
  * hors arborescence (`trouverCorrespondance` retourne `undefined`, §3 du contrat : titre visible
  * par défaut, aucun plantage). `useLocation`/`useSearchParams` restent appelés SANS condition à

@@ -19,7 +19,7 @@
  *     (`lib/purge-tenant.ts`, FK-safe, garde-fou de préfixe non contournable).
  *
  * USAGE :
- *   pnpm --filter @dfa/api exec tsx /chemin/vers/dmsforall/scripts/reprise/campagne-reprise.ts \
+ *   pnpm --filter @dfa/api exec tsx scripts/reprise/campagne-reprise.ts \
  *     --tenant <suffixe> --archive <chemin.zip> [--rejouer] [--nettoyer]
  *
  * Exemple avec le jeu synthétique (voir `construire-jeu-synthetique.ts`) :

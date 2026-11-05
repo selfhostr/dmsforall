@@ -6,7 +6,7 @@
  *   1. `seed-dev.ts` sème UN jeu figé (`garage-martin`) — ce harnais doit pouvoir en créer
  *      plusieurs, à la demande, avec des identifiants dérivés d'un paramètre (slug) ;
  *   2. rester hors de toute dépendance vers `apps/api/src/**` : ce fichier vit dans le périmètre
- *      exclusif de ce chantier (`scripts/`), un autre agent modifie `apps/api/src/reprise/` EN CE
+ *      exclusif de ce chantier (`scripts/`), un autre lot modifie `apps/api/src/reprise/` EN CE
  *      MOMENT sur la même branche — zéro dépendance croisée, zéro risque de casse si son
  *      refactor déplace un export.
  *

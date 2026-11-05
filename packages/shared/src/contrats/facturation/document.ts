@@ -372,13 +372,13 @@ export const schemaFiltresDocumentsVente = z.object({
    * documents jamais relancés (y compris hors de tout retard) ; une valeur `> 0` sélectionne ceux
    * ayant atteint EXACTEMENT ce palier.
    *
-   * AMBIGUÏTÉ SIGNALÉE (non tranchée ici, hors périmètre de cet agent) : l'onglet écran « À relancer »
+   * AMBIGUÏTÉ SIGNALÉE (non tranchée ici, hors périmètre de ce lot) : l'onglet écran « À relancer »
    * n'est pas forcément une égalité stricte sur un palier — il pourrait vouloir « en retard ET
    * `relanceNiveau` en dessous du plafond configuré par le tenant » (`regle_relance.delaisJours`,
    * variable par tenant, non lisible depuis un schéma de filtre). Ce champ expose la seule primitive
    * qui repose sur une colonne réelle (`relance_niveau`) ; composer `enRetard=true&relanceNiveau=0`
    * couvre déjà le cas usuel « en retard, jamais relancée » mais PAS « en retard, relancée une fois,
-   * palier suivant pas encore atteint » — à trancher côté expert-metier/expert-api avant de câbler
+   * palier suivant pas encore atteint » — à trancher côté l'équipe métier/l'équipe API avant de câbler
    * l'onglet, plutôt que d'inventer ici une sémantique de seuil.
    */
   relanceNiveau: z.coerce.number().int().min(0).optional(),

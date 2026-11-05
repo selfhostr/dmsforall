@@ -10,7 +10,7 @@
  * une 7ᵉ fonction `amorcage.*` :
  *
  *   1. `db/db.types.ts`/`db/acces-amorcage.service.ts` sont HORS du périmètre d'écriture exclusif
- *      de cet agent (`pointage/`, `ordonnancement/`, contrats pointage, migration 0059) — y ajouter
+ *      de ce lot (`pointage/`, `ordonnancement/`, contrats pointage, migration 0059) — y ajouter
  *      une opération cross-tenant serait une décision de sécurité touchant un fichier partagé par
  *      TOUT le dépôt, pas seulement `pointage/` ;
  *   2. la doctrine de `db.types.ts` (§ commentaire des 6 fonctions) est que cette surface reste
@@ -32,7 +32,7 @@
  * job-cloture-automatique-pointage.ts` pour la preuve que ces deux canaux ne se mélangent jamais
  * (la connexion migrateur est fermée avant que la première transaction `enTenant` ne s'ouvre).
  *
- * `statut = 'actif'` UNIQUEMENT : un tenant `suspendu` (impayé, accès bloqué) ou `resilie`
+ * `statut = 'actif'` UNIQUEMENT : un tenant `suspendu` (accès bloqué par l'exploitant) ou `resilie`
  * (rétention légale) ne doit voir AUCUNE de ses données modifiées par un job système — même
  * doctrine fail-closed que `chargerCandidatsClotureAutomatique` (« sans config, rien ne se
  * planifie, jamais un défaut actif implicite »).

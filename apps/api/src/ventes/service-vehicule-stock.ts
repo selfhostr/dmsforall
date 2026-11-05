@@ -388,7 +388,7 @@ export class ServiceVehiculeStock {
    * geste automatique sur un bien qui appartient au client. SIGNALEMENT, jamais un blocage : la
    * vente aboutit dans tous les cas, cette méthode n'ajoute qu'un avertissement.
    *
-   * Lecture SEULE de `depot_pneus` (module `pneus/`, hors périmètre d'écriture de cet agent —
+   * Lecture SEULE de `depot_pneus` (module `pneus/`, hors périmètre d'écriture de ce lot —
    * aucune mutation, aucune règle métier dupliquée depuis `pneus/service-depot-pneus.ts`) :
    * seulement l'existence de jeux encore ACTIFS (`en_depot`/`monte`/`a_relancer`, tout sauf le
    * statut TERMINAL `sorti`, RPP-05) pour ce véhicule. `vehiculeId` ici **est** `vehicule.id`

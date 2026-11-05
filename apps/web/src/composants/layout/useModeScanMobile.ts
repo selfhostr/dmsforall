@@ -5,7 +5,7 @@ import type { RoleUtilisateur } from '@dfa/shared';
 import { ROLES_SCAN } from '@/routes/droits-routes';
 
 /**
- * RESTRICTION MOBILE AU SCAN SEUL — décision de @laupernoe (chantier scanner de permis de circulation) :
+ * RESTRICTION MOBILE AU SCAN SEUL — décision de conception (chantier scanner de permis de circulation) :
  * « sur mobile, l'application se limite au scan. Strictement : pas d'atelier, pas de facturation,
  * pas de liste de clients. » Ce fichier porte le MÉCANISME de détection et son échappatoire ;
  * `AppShell.tsx` (seul appelant) l'applique en masquant la navigation et en redirigeant toute

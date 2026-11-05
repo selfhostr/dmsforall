@@ -5,7 +5,7 @@
  * `schema/pieces/enums.ts`. Les types PG sont créés dans `migrations/0032_ventes.sql`.
  *
  * NOMMAGE DES TYPES PG — DIVERGE DE CE QUE `contrats/ventes/enums.ts` SUGGÈRE EN COMMENTAIRE,
- * SIGNALÉ À L'ORCHESTRATEUR (pas corrigé ici, `contrats/ventes/**` appartient à un autre agent) :
+ * SIGNALÉ AU MAINTENEUR (pas corrigé ici, `contrats/ventes/**` appartient à un autre lot) :
  * le dispositif générique de machine à états (`transition_autorisee` + `verifier_transition()`,
  * migrations/0003 §4.3, `transition_autorisee_valide_contenu()`) exige que le type Postgres
  * d'une entité `<entite>` s'appelle EXACTEMENT `statut_<entite>`

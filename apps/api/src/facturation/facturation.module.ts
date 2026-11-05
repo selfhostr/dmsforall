@@ -38,7 +38,7 @@ import { VentesModule } from '../ventes/ventes.module';
  *    expose `POST /exports-fiduciaires`, gardé par `@ExigerDroit('facturation.export.creer')` —
  *    action ajoutée à `TOUTES_ACTIONS`/`MATRICE_DROITS` par le propriétaire d'`auth/` PENDANT ce
  *    lot (`direction`/`comptable` seulement, `admin: []`, RF-115), après qu'un premier passage de
- *    cet agent eut délibérément laissé `ExportModule.controllers: []` plutôt que de contourner le
+ *    ce lot eut délibérément laissé `ExportModule.controllers: []` plutôt que de contourner le
  *    typage strict d'`Action` par une assertion. `ExportModule` ne dépend que de jetons `@Global`
  *    déjà fournis par `AppModule` : rien à fournir ici non plus.
  *  - `ventes/` : câblé (`imports: [VentesModule]`), AUCUN contrôleur importé (`VentesModule`

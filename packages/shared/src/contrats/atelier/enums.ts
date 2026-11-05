@@ -628,7 +628,7 @@ export type PolitiqueLangueDocument = (typeof POLITIQUES_LANGUE_DOCUMENT)[number
 /**
  * P-28 — mention de restitution sous réserve pour un défaut de sécurité refusé.
  * INTERPRÉTÉ : la spécification ne donne que la valeur par défaut (« obligatoire ») sans
- * énumérer les autres. Modélisé en binaire, faute de source. À confirmer avec expert-metier
+ * énumérer les autres. Modélisé en binaire, faute de source. À confirmer avec l'équipe métier
  * avant le lot 2 ; l'ajout d'une troisième valeur resterait additif (enum extensible).
  */
 export const POLITIQUES_MENTION_SECURITE = ['obligatoire', 'desactivee'] as const;

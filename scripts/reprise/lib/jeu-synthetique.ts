@@ -1,13 +1,13 @@
 /**
  * Jeu de test SYNTHÉTIQUE — le palier « petit et rapide » demandé par la mission : aucune donnée
  * réelle de garage, entièrement fabriqué, rejouable en quelques secondes. Complète (ne remplace
- * pas) le palier « réel réduit » construit par `construire-jeu-reduit-source.ts` à partir de la
- * vraie archive Auto-i de @laupernoe.
+ * pas) le palier « réel réduit » construit par `construire-jeu-reduit-source.ts` à partir d'une
+ * archive de test privée.
  *
- * POURQUOI SYNTHÉTIQUE ET PAS UN SOUS-ENSEMBLE DE `Kunden.csv`/`VerkaufFahrzeuge.csv` (les CSV que
- * la mission cite comme point de départ possible) — arbitrage assumé, à signaler : ces CSV
- * (`/chemin/vers/echantillons/travail/auto-i/csv/`) contiennent des données PERSONNELLES RÉELLES d'un
- * vrai client de @laupernoe (noms, adresses, e-mails, téléphones — vérifié à la lecture de `Kunden.csv`).
+ * POURQUOI SYNTHÉTIQUE ET PAS UN SOUS-ENSEMBLE DE `Kunden.csv`/`VerkaufFahrzeuge.csv` (les CSV
+ * extraits d'une archive de test privée) — arbitrage assumé, à signaler : ces CSV
+ * contiennent des données PERSONNELLES RÉELLES d'un
+ * vrai client (noms, adresses, e-mails, téléphones — vérifié à la lecture de `Kunden.csv`).
  * Le principe nLPD que ce même chantier documente ailleurs (« les fichiers intermédiaires
  * d'extraction sont chiffrés et détruits après bascule ») interdit en pratique de les recopier
  * dans un fichier PERMANENT sous contrôle de version, destiné à être rejoué des dizaines de fois

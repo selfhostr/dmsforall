@@ -8,7 +8,7 @@
  * jamais le payload à partir d'une chaîne déjà construite — il le reconstruit TOUJOURS depuis les
  * champs structurés (`Data`), et n'expose AUCUNE fonction publique acceptant un payload tout fait
  * (voir le rapport d'évaluation, `.../scratchpad/qrbill-eval/`). La coïncidence de mapping
- * vérifiée une fois par cet agent (facture 2026-00002) n'est PAS une garantie structurelle pour
+ * vérifiée une fois par ce lot (facture 2026-00002) n'est PAS une garantie structurelle pour
  * toutes les combinaisons futures (débiteur absent/présent, QRR/SCOR/sans référence, CHF/EUR) —
  * ce module transforme cette coïncidence en invariant, document par document, à chaque génération.
  *

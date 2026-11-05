@@ -22,7 +22,7 @@ interface Props {
 
 /**
  * BARRE D'ONGLETS BASSE — mode téléphone (< `md`, 768 px), refonte navigation mobile
- * (demande @laupernoe, 24.08.2026). Remplace le geste « ouvrir le tiroir puis choisir » par un
+ * (demande produit, 24.08.2026). Remplace le geste « ouvrir le tiroir puis choisir » par un
  * geste unique, à portée de pouce en bas d'écran, là où `env(safe-area-inset-bottom)`
  * (`--zone-sure-bas`, `index.css`) et `--barre-onglets-hauteur` (56 px) ont été posés par
  * le lot de fondations sans jamais être consommés.
@@ -75,7 +75,7 @@ export function BarreOngletsBasse({ ouvrirPlus, plusOuvert }: Props) {
   const role = session?.utilisateur.role;
 
   // Nombre d'entrées primaires — voir la justification complète en tête de fichier. Une
-  // constante nommée plutôt qu'un `4` nu dans `.slice()` : le prochain agent qui relit ce
+  // constante nommée plutôt qu'un `4` nu dans `.slice()` : le prochain lot qui relit ce
   // fichier n'a pas à recompter les `<li>` du JSX pour retrouver la décision.
   const NB_ENTREES_PRIMAIRES = 4;
   const entrees = entreesVisibles(role).slice(0, NB_ENTREES_PRIMAIRES);

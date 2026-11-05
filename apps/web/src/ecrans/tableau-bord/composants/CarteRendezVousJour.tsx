@@ -42,7 +42,7 @@ function comparerRendezVous(a: ReponseRendezVous, b: ReponseRendezVous): number 
 }
 
 /**
- * Rendez-vous du jour — LE bloc qui manquait au réceptionnaire (constat de @laupernoe, 12.08.2026 : son
+ * Rendez-vous du jour — LE bloc qui manquait au réceptionnaire (constat terrain, 12.08.2026 : son
  * écran du lundi matin affichait trois fois « Aucun… » et un zéro, aucun d'eux ne répondant à « qui
  * est attendu aujourd'hui »). `GET /rendez-vous?du=&au=&siteId=` (domaine `rendez-vous`, livré ce
  * lot) résolu sur la journée courante (calendaire LOCAL, `versDateIsoLocale` — même doctrine que

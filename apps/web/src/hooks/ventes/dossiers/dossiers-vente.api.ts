@@ -27,7 +27,7 @@ import { requeteApi } from '@/api/client';
  * régénéré depuis l'OpenAPI pour inclure le module `ventes` — les 12 routes existent et sont
  * prouvées côté API (`apps/api/src/ventes/dossier-vente.controller.ts`) ; ce fichier s'aligne sur
  * leurs DTO, qui implémentent eux-mêmes les types `@dfa/shared` importés ci-dessus. À réconcilier
- * avec `types.gen.ts` à la prochaine régénération planifiée (agent backend en vol en parallèle sur
+ * avec `types.gen.ts` à la prochaine régénération planifiée (lot backend en vol en parallèle sur
  * `apps/api/**`, régénérer maintenant risquait de capturer un état intermédiaire).
  */
 

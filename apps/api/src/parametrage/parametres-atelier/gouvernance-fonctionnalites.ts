@@ -26,7 +26,7 @@ import { ErreurMetier } from '../../common/erreurs';
  * `stockPieces` et `depotPneus` n'ont aucun champ correspondant dans
  * `EntreeModificationParametresAtelier` : rien à gouverner pour eux ici.
  *
- * Ce fichier doit être revu par lead-backend/expert-api si un autre module (L1-12 notamment)
+ * Ce fichier doit être revu par l'équipe backend/l'équipe API si un autre module (L1-12 notamment)
  * réintroduit une lecture différente de ces huit drapeaux.
  */
 export const FONCTIONNALITES_LOT1 = {

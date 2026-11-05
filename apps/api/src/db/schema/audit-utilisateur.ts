@@ -3,7 +3,7 @@
  * (migration 0054, issue #137) : création, changement de rôle, changement de sites,
  * désactivation/réactivation, réinitialisation d'accès. Distincte de `journal_securite`
  * (événements d'authentification, enum partagé racine `@dfa/shared`, hors périmètre d'écriture
- * de cette tâche) et de `audit_atelier` (domaine atelier, propriété d'un autre agent).
+ * de cette tâche) et de `audit_atelier` (domaine atelier, propriété d'un autre lot).
  *
  * Ne contient JAMAIS de mot de passe ni de hash — `reinitialiser-acces` y écrit une ligne sans
  * `avant`/`apres` : seul le fait que le geste a eu lieu (qui, quand, sur qui) compte.

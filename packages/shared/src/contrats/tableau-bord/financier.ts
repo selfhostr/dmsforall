@@ -10,7 +10,7 @@ import type { PeriodeResolueTableauBord } from './query';
  * donc ne reçoit STRUCTURELLEMENT aucun de ces champs (pas seulement masqués côté client — voir
  * `apps/api/src/tableau-bord/financier.controller.spec.ts`).
  *
- * MARGE (14.08.2026, décision de cet agent — un précédent lot avait tranché « aucune marge », signal
+ * MARGE (14.08.2026, décision de ce lot — un précédent lot avait tranché « aucune marge », signal
  * repris et RÉOUVERT ici avec une base de coût vérifiée, voir `MargesTableauBord` pour le détail
  * champ par champ) : la SEULE composante fiable aujourd'hui est la marge sur VENTES DE VÉHICULES
  * (VN/VO) — `vehicule_stock.prixAchatCentimes` est un coût VERROUILLÉ dès la vente
@@ -69,7 +69,7 @@ export interface MargesTableauBord {
   readonly vehicules: MargeVehiculesPeriodeTableauBord;
   /** Coût de revient des pièces vendues non fiable : `article.prixAchatCentimes` est un « dernier
    *  prix connu » mutable, jamais figé à la vente, et `parametre_pieces.methodePrixAchat` (moyenne
-   *  pondérée vs dernier prix) n'est pas encore tranché par @laupernoe — calculer une marge ici
+   *  pondérée vs dernier prix) n'est pas encore tranché côté produit — calculer une marge ici
    *  fabriquerait un chiffre sur une base de coût non normée. */
   readonly pieces: MargeIndisponibleTableauBord;
   /** Aucun taux horaire coûtant n'existe sur `utilisateur` — le coût de la main-d'œuvre facturée

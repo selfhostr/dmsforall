@@ -293,7 +293,7 @@ export class ServiceCorrectionFacture {
   }
 
   /**
-   * Issue #154 — arbitrage de @laupernoe : « le paiement suit la facture de remplacement ». `facture`
+   * Issue #154 — choix produit : « le paiement suit la facture de remplacement ». `facture`
    * (chargée à l'étape 0, AVANT toute écriture) porte encore `montant_regle_centimes` tel qu'il
    * était sur la facture d'origine — l'avoir/l'émission ne le touchent jamais (RF-32 ne porte que
    * sur `statut`/`annule_par_avoir_id`). Ne fait RIEN si aucun règlement n'était encaissé

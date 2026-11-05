@@ -18,10 +18,10 @@ export interface IdentiteClientAffichage {
  * Nom affiché d'un client — implémentation UNIQUE, partagée par `clients/` et `vehicules/`
  * (`recherche/utilitaires-recherche.ts::nomAfficheClient` porte encore sa propre copie ; elle
  * sera alignée séparément, hors périmètre de cette unification — voir note de livraison).
- * Remplace trois implémentations quasi identiques écrites en parallèle par des agents
+ * Remplace trois implémentations quasi identiques écrites en parallèle par des lots
  * différents et qui avaient divergé sur deux points (voir `nom-affiche.spec.ts`).
  *
- * RÈGLE (RM-01, docs/specification-etape-1-atelier-clients.md:235 ; arbitrage @laupernoe du
+ * RÈGLE (RM-01, docs/specification-etape-1-atelier-clients.md:235 ; choix produit du
  * 28.07.2026) : **`type` fait autorité — jamais la simple présence d'un champ.** `type` est
  * immuable après création (trigger SQL `client_verrouiller_type`, `0006_clients.sql`) ;
  * `raisonSociale`/`nom`/`prenom` ne le sont pas. Le CHECK `client_identite_chk` est un OR, pas
@@ -37,7 +37,7 @@ export interface IdentiteClientAffichage {
  * traitée comme absente, jamais comme un nom vide entouré d'espaces qui remonterait dans les
  * recherches, les tris ou les exports fiduciaires.
  *
- * CAS NON RÉSOLU, signalé et non traité ici (décision @laupernoe en attente) : si le champ faisant
+ * CAS NON RÉSOLU, signalé et non traité ici (décision de conception en attente) : si le champ faisant
  * autorité pour le type (`raisonSociale` pour une entreprise, `nom` pour un particulier) est
  * lui-même vide ou blanc une fois trimé, cette fonction rend `''`. C'est atteignable EN BASE —
  * `client_identite_chk` exige seulement `is not null`, pas une chaîne non vide, contrairement à

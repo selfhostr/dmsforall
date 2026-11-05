@@ -53,7 +53,7 @@ function ligneClient(champs: Partial<LigneClient> = {}): LigneClient {
 //
 // L'ancien test ci-dessous («raisonSociale et nom présents ensemble : raisonSociale prime»)
 // n'a PAS été repris tel quel : il figeait un comportement contraire à RM-01
-// (docs/specification-etape-1-atelier-clients.md:235 ; arbitrage @laupernoe du 28.07.2026), qui établit
+// (docs/specification-etape-1-atelier-clients.md:235 ; choix produit du 28.07.2026), qui établit
 // que `type` — immuable après création — fait autorité, jamais la simple présence d'un champ
 // modifiable comme `raisonSociale`. Le test qui remplace celui-ci
 // (`nom-affiche.spec.ts` — describe "RM-01") attend désormais l'inverse : un `particulier` avec

@@ -140,7 +140,7 @@ function construireEntreeDemarrageBorne(
 
 /**
  * Borne d'atelier (`/pointage/borne`) — identification par code PIN à 4 chiffres, mode « borne
- * partagée » du pointage (RM-113 → RM-115, RM-129, arbitrage @laupernoe du 03.08.2026, NE PAS ROUVRIR).
+ * partagée » du pointage (RM-113 → RM-115, RM-129, choix produit du 03.08.2026, NE PAS ROUVRIR).
  * Écran tactile mural, technicien mains sales/gantées, aucun clavier : pavé numérique large
  * (`PaveNumerique`), aucun texte saisi au clavier.
  *
@@ -178,7 +178,7 @@ function construireEntreeDemarrageBorne(
  * murale). Signalé au coordinateur : si le paramètre de site est ajouté plus tard côté API, cet
  * écran devra probablement devenir la destination conditionnelle d'une redirection automatique.
  *
- * SITE DE LA BORNE — DÉCISION @laupernoe du 14.08.2026, NE PAS ROUVRIR : le site vient désormais
+ * SITE DE LA BORNE — DÉCISION DE CONCEPTION du 14.08.2026, NE PAS ROUVRIR : le site vient désormais
  * EXCLUSIVEMENT de `ReponseIdentificationPin.siteId` (résolu par le serveur depuis
  * `pin_pointage.site_id`, jamais d'un paramètre de requête) — plus de `session.sites[0]?.id`, plus
  * aucun sélecteur possible sur cet écran. Conséquence directe : le site n'est connu qu'APRÈS une

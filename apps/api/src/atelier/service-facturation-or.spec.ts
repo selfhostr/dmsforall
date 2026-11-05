@@ -6,7 +6,7 @@ import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.t
 import type { Horloge } from '../common/horloge/horloge';
 
 /**
- * Défaut soldé (signalé par l'agent facturation, non corrigeable par lui — hors de son périmètre
+ * Défaut soldé (signalé par le lot facturation, non corrigeable par lui — hors de son périmètre
  * d'écriture `apps/api/src/facturation/**`) : `ServiceFacturationOr.facturer` insérait
  * `conditionsPaiementFigees: {}` INCONDITIONNELLEMENT, alors que facturer depuis un OR est le
  * chemin le PLUS COURANT dans un garage — sans ce correctif, `date_echeance` (calculée à

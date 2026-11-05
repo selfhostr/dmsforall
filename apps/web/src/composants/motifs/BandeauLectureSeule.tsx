@@ -9,7 +9,7 @@ interface Props {
    * `*.lectureSeule` n'existe dans les 13 namespaces enregistrés (recherche exhaustive sur
    * « lecture »). Ce composant suit donc le même contrat que `EtatVide`/`EtatErreur`
    * (composants/commun/) : il rend un texte déjà résolu par l'appelant plutôt que de posséder sa
-   * propre clé, en attendant qu'expert-i18n tranche l'emplacement définitif d'un message
+   * propre clé, en attendant qu'l'équipe i18n tranche l'emplacement définitif d'un message
    * générique de lecture seule.
    */
   readonly motif: string;

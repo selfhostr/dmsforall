@@ -2,7 +2,7 @@
  * Types internes à la bibliothèque de lecture des archives de reprise.
  *
  * Volontairement indépendants du contrat partagé `@dfa/shared` (en cours de figation par un
- * autre agent au moment de l'écriture) : la couche d'assemblage fera la conversion vers le
+ * autre lot au moment de l'écriture) : la couche d'assemblage fera la conversion vers le
  * contrat public plus tard. Cette bibliothèque est pure — aucune dépendance à Nest.
  */
 

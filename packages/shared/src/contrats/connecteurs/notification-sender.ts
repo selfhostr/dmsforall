@@ -26,7 +26,7 @@ import type { Langue } from '../enums';
  * (`contrats/facturation/export.ts`) : un objet assemblé et consommé côté serveur, jamais un
  * corps de requête HTTP à valider contre une entrée non fiable.
  *
- * SIX DÉCISIONS DE DESIGN (justifiées en détail dans le rapport d'accompagnement de l'agent qui a
+ * SIX DÉCISIONS DE DESIGN (justifiées en détail dans le rapport d'accompagnement du lot qui a
  * posé ce fichier) :
  *
  *  1. ASYNCHRONIE — `envoyer()` (port réel, `apps/api`, hors périmètre de ce fichier) rend un
@@ -74,7 +74,7 @@ import type { Langue } from '../enums';
  *     fichier ne connaît qu'un canal (`sms`/`email`) et un slug de type de connecteur
  *     (`ReponseTypeConnecteur.code`), jamais une marque.
  *
- * DONNÉES PERSONNELLES — AVERTISSEMENT pour l'agent qui câblera l'adaptateur réel
+ * DONNÉES PERSONNELLES — AVERTISSEMENT pour le lot qui câblera l'adaptateur réel
  * (`apps/api/src/connecteurs/`) : `ContenuMessageClient.destinataire` (numéro/adresse),
  * `ContenuMessageClient.texte`/`sujet`/`html` (contenu du rappel — peut nommer le client, le
  * véhicule, un montant dû) sont des DONNÉES PERSONNELLES. Le socle de résilience existant

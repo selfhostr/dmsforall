@@ -78,7 +78,7 @@ import itConsole from './locales/it/console.json';
 import itScan from './locales/it/scan.json';
 import itReprise from './locales/it/reprise.json';
 
-/** 19 namespaces par domaine (propriété expert-i18n) : jamais modifiés ici, seulement importés.
+/** 19 namespaces par domaine (propriété l'équipe i18n) : jamais modifiés ici, seulement importés.
  *  Les 6 premiers sont le socle (étape 0) ; les 7 suivants (`recherche` à `or`) sont le lot 1 —
  *  voir docs/plan-lot1-frontend-execution.md §2.3 (verrou V3). `facturation` et `parametrage`
  *  sont l'étape 2, `pieces` l'étape 3, `ventes` l'étape 4, `tableauBord` le tableau de bord.

@@ -20,7 +20,7 @@ import { TableauBordVendeurIndisponible } from './TableauBordVendeurIndisponible
 
 /**
  * Tableau de bord fusionné — écran d'ATTERRISSAGE des rôles de pilotage (direction, comptable,
- * chef d'atelier, réceptionnaire, arbitrage de @laupernoe du 10.08.2026, voir `routes/atterrissage.ts`),
+ * chef d'atelier, réceptionnaire, choix produit du 10.08.2026, voir `routes/atterrissage.ts`),
  * atteignable en un clic pour tout le monde d'autre (sauf `poste_atelier`, jamais concerné — la
  * garde de route `ROLES_TABLEAU_BORD_ACTIVITE` l'exclut déjà, `routes/routeur.tsx`).
  *
@@ -83,7 +83,7 @@ export function EcranTableauBord() {
     // toucher aux CIBLES TACTILES : `Button`/`SelectTrigger`/`DateInput` posent une hauteur fixe
     // (`h-11`, 44px) indépendante de ces tokens (vérifié dans leurs fichiers respectifs), donc aucun
     // contrôle interactif de cet écran ne rétrécit sous 44px. Chantier « tableau de bord tient sans
-    // défilement » (retour @laupernoe du 16.08.2026, périmètre `ecrans/tableau-bord/**`).
+    // défilement » (retour produit du 16.08.2026, périmètre `ecrans/tableau-bord/**`).
     <GabaritEcran titre={t('tableauBord:titre')} className="densite-dense">
       <SelecteurSiteTableauBord
         sites={session?.sites ?? []}

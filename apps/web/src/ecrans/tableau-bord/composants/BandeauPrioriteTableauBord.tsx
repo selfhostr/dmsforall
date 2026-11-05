@@ -14,7 +14,7 @@ import { chemins } from '@/routes/chemins';
 
 /** Rôles dont le tableau de bord monte DÉJÀ `CarteOrEnRetard` (`TableauBordDirection`/
  *  `TableauBordChefAtelier`/`TableauBordReceptionnaire`, mêmes filtres `useEcheancesOr` — voir plus
- *  bas) : seuls ceux-là déclenchent ici la requête « OR en retard ». Contrainte de @laupernoe (« aucune
+ *  bas) : seuls ceux-là déclenchent ici la requête « OR en retard ». contrainte produit (« aucune
  *  requête API supplémentaire ») : réutiliser EXACTEMENT le même hook, les mêmes paramètres et donc
  *  la MÊME clé TanStack Query que la carte descendante fait que les deux composants (ce bandeau,
  *  monté juste au-dessus, et la carte, montée juste en dessous dans le même commit React) PARTAGENT
@@ -49,7 +49,7 @@ interface Props {
  * positive : ni un bandeau « tout va bien » quand tout est à zéro, ni un bandeau qui clignote
  * pendant le chargement pour finalement disparaître.
  *
- * ZÉRO NOUVEL APPEL RÉSEAU (contrainte explicite de @laupernoe) — les deux compteurs réutilisent, à
+ * ZÉRO NOUVEL APPEL RÉSEAU (contrainte produit explicite) — les deux compteurs réutilisent, à
  * l'identique, des requêtes que CE MÊME ÉCRAN déclenche déjà pour le rôle courant :
  *  - « OR en retard » : `useEcheancesOr` avec les MÊMES paramètres (`restitutionPromiseAu`
  *    = aujourd'hui, `siteId`) que `CarteOrEnRetard.tsx`, filtré sur `enRetard === true` — calculé

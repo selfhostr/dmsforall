@@ -18,7 +18,7 @@ import { requeteApi } from '@/api/client';
  */
 
 /**
- * `POST /paiements` — `Idempotency-Key` OBLIGATOIRE (consigne explicite de @laupernoe sur toute création
+ * `POST /paiements` — `Idempotency-Key` OBLIGATOIRE (consigne produit explicite sur toute création
  * sensible). `imputations` embarquées : l'écran d'encaissement lettre en un seul geste (`RF-69`).
  *
  * DÉFAUT CORRIGÉ (testeur novice, encaissement de Meier Urs, 60.00 CHF, message rouge

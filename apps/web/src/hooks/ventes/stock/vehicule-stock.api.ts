@@ -23,7 +23,7 @@ import { requeteApi } from '@/api/client';
  * `hooks/facturation/documents-vente.api.ts`) : `apps/web/src/api/types.gen.ts` ne contient AUCUNE
  * entrée pour `vehicule-stock`/`vehicules-stock` au moment où ce fichier est écrit (vérifié par
  * recherche textuelle — aucune régénération `pnpm api:openapi && pnpm web:types` exécutée ici, le
- * dépôt a des agents en vol en parallèle sur `apps/api/**` et `packages/shared/**`). Les quatre
+ * dépôt a des lots en vol en parallèle sur `apps/api/**` et `packages/shared/**`). Les quatre
  * routes existent et sont prouvées côté API
  * (`apps/api/src/ventes/vehicule-stock.controller.ts`, `vehicules-stock.controller.ts`) ; ce
  * fichier s'aligne directement sur le contrat partagé, qui est la source de vérité en attendant.
@@ -185,12 +185,12 @@ export async function remettreDisponibleVehiculeStock(
 /** `POST /vehicules/{vehiculeId}/stock/marquer-vendu` — `reserve -> vendu`, correction
  *  exceptionnelle (même doctrine que `remettre-disponible`, motif obligatoire) : l'usage NORMAL
  *  est un effet de bord PROGRAMMATIQUE de l'émission de facture (`facturation/`), câblage hors
- *  périmètre de cet agent — voir `contrats/ventes/vehicule-stock.ts::schemaMarquerVenduVehiculeStock`.
+ *  périmètre de ce lot — voir `contrats/ventes/vehicule-stock.ts::schemaMarquerVenduVehiculeStock`.
  *
  * MANQUE BACKEND CONSTATÉ (voir le rapport de livraison) : au moment où ce fichier est écrit, le
  * contrat partagé et le service (`apps/api/src/ventes/service-vehicule-stock.ts::marquerVendu`)
  * existent, mais AUCUNE route `@Post('marquer-vendu')` n'était encore câblée dans
- * `vehicule-stock.controller.ts` (seuls les imports du schéma y étaient posés) — un agent API
+ * `vehicule-stock.controller.ts` (seuls les imports du schéma y étaient posés) — un lot API
  * distinct travaillait dessus EN PARALLÈLE. Cette fonction suppose la route déjà documentée par
  * le contrat (`POST /vehicules/{vehiculeId}/stock/marquer-vendu`, motif obligatoire, même forme
  * que `remettre-disponible`) ; à vérifier avant mise en service réelle si elle 404 encore. */

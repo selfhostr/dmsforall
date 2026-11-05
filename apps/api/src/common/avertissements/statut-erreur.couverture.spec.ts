@@ -7,7 +7,7 @@
  * Ce test est le filet D'EXÉCUTION demandé par le plan lot 1 (L1-06, « STATUT_PAR_CODE_ERREUR
  * exhaustif, test typé sur CodeErreur ») : il reconfirme la propriété au runtime, contre le
  * contrat public tel qu'un consommateur (front, connecteur) le voit — sans dépendre d'un import
- * de `common/erreurs/` (hors périmètre de cet agent, livré et stable par ailleurs).
+ * de `common/erreurs/` (hors périmètre de ce lot, livré et stable par ailleurs).
  */
 
 import { CODES_ERREUR, STATUT_HTTP_PAR_CODE_ERREUR, type CodeErreur } from '@dfa/shared';

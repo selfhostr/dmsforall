@@ -7,7 +7,7 @@ import type { DeviseFacturation } from '@dfa/shared';
  */
 
 /**
- * Fuseau UNIQUE du produit — décision de @laupernoe, 14.08.2026 (voir
+ * Fuseau UNIQUE du produit — décision de conception, 14.08.2026 (voir
  * `apps/api/src/common/temps/fuseau-suisse.ts`, qui a posé cette doctrine côté API). Un DMS
  * suisse affiche l'heure suisse parce que c'est un DMS suisse, JAMAIS parce que la machine qui
  * l'exécute se trouve réglée sur Zurich : `Intl.DateTimeFormat` SANS `timeZone` explicite retombe

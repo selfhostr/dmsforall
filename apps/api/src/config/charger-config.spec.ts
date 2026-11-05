@@ -1,7 +1,7 @@
 /**
- * Test unitaire colocalisé, propriété expert-auth (`apps/api/src/config/charger-config.ts` est
+ * Test unitaire colocalisé, propriété l'équipe authentification (`apps/api/src/config/charger-config.ts` est
  * dans son périmètre exclusif). Complète `apps/api/test/integration/config.spec.ts` (propriété
- * d'un autre agent) sans le modifier : ce fichier couvre spécifiquement le garde-fou ajouté pour
+ * d'un autre lot) sans le modifier : ce fichier couvre spécifiquement le garde-fou ajouté pour
  * le bloquant B1 (rapport QA étape 0).
  */
 import { describe, expect, it } from 'vitest';
@@ -115,7 +115,8 @@ describe('finding M4 (audit sécurité) — refus des mots de passe de dev (dfa_
   it('refuse DATABASE_URL_MIGRATION portant le mot de passe de dev dfa_migrator_dev en production', () => {
     const env = envValide({
       NODE_ENV: 'production',
-      DATABASE_URL: 'postgresql://dfa_app:un-mot-de-passe-fort@db.prod.dmsforall.example:5432/dfa_prod',
+      DATABASE_URL:
+        'postgresql://dfa_app:un-mot-de-passe-fort@db.prod.dmsforall.example:5432/dfa_prod',
       DATABASE_URL_MIGRATION:
         'postgresql://dfa_migrator:dfa_migrator_dev@db.prod.dmsforall.example:5432/dfa_prod',
       COOKIE_SECURE: 'true',
@@ -150,7 +151,8 @@ describe('finding M4 (audit sécurité) — refus des mots de passe de dev (dfa_
   it('accepte des mots de passe forts en production, sans trace des identifiants de dev', () => {
     const env = envValide({
       NODE_ENV: 'production',
-      DATABASE_URL: 'postgresql://dfa_app:un-mot-de-passe-fort@db.prod.dmsforall.example:5432/dfa_prod',
+      DATABASE_URL:
+        'postgresql://dfa_app:un-mot-de-passe-fort@db.prod.dmsforall.example:5432/dfa_prod',
       DATABASE_URL_MIGRATION:
         'postgresql://dfa_migrator:un-autre-mot-de-passe-fort@db.prod.dmsforall.example:5432/dfa_prod',
       COOKIE_SECURE: 'true',
@@ -160,7 +162,7 @@ describe('finding M4 (audit sécurité) — refus des mots de passe de dev (dfa_
 });
 
 /**
- * VERSION_APP / VERSION_APP_BRANCHE — propriété expert-devops. Le calcul de repli lui-même
+ * VERSION_APP / VERSION_APP_BRANCHE — propriété l'équipe infrastructure. Le calcul de repli lui-même
  * (`calculerVersionAppParDefaut`/`calculerBrancheParDefaut`, cas HEAD détaché, dépôt sans `.git`)
  * est verrouillé dans `version-app.spec.ts`, avec de vrais dépôts Git temporaires — pas reproduit
  * ici. Ce qui EST propre au schéma zod, et donc testé ici : le `.preprocess` chaîne-vide →

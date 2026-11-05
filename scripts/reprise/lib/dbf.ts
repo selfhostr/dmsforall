@@ -8,7 +8,7 @@
  * PROVENANCE ET PÉRIMÈTRE — un constructeur DBF quasi identique existe déjà dans le dépôt,
  * `apps/api/src/reprise/lecteurs/fixtures/constructeur-dbf.ts` (« Aucune donnée réelle de garage
  * n'entre jamais ici », même doctrine). CE FICHIER LE RÉÉCRIT ICI plutôt que de l'importer :
- * `apps/api/src/reprise/` est actuellement modifié par un autre agent sur cette même branche
+ * `apps/api/src/reprise/` est actuellement modifié par un autre lot sur cette même branche
  * (§ périmètre disjoint, CONTRIBUTING.md) — une dépendance croisée vers un fichier de SON périmètre
  * casserait sous ce harnais au premier refactor de son côté, sans lien avec ce qui change ici.
  * Le format DBF est stable et documenté (contrairement au reste du module reprise, en cours de

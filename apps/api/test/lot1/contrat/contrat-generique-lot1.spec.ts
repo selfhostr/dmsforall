@@ -29,7 +29,7 @@
  *     rétroactivement aux DTO de l'étape 0 (TenantCourantDto, UtilisateurCourantDto...). Un test
  *     « chaque enum du document porte l'extension » serait donc rouge dès aujourd'hui pour une
  *     raison ÉTRANGÈRE au lot 1, sans propriétaire dans cette vague pour le corriger — remonté à
- *     l'orchestrateur plutôt que tranché unilatéralement ici.
+ *     le mainteneur plutôt que tranché unilatéralement ici.
  *   - C-15 (instantané versionné) : l'instantané de référence est un livrable de L1-16
  *     (« assemblage, OpenAPI, démarrage réel »), qui n'existe pas encore.
  */

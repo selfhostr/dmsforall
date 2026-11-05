@@ -45,7 +45,7 @@ import { statutCommercialVehiculeEnum } from './enums';
  * `exists (select 1 from vehicule_stock where id = vehicule.id)` donne sans aucun risque de
  * désynchronisation — l'anti-patron « deux sources pour une même vérité » que ce dépôt évite
  * explicitement ailleurs (voir le commentaire de `quantite_reliquat_millieme`,
- * migrations/0024_pieces_commande_fournisseur.sql). Recommandation transmise à l'orchestrateur :
+ * migrations/0024_pieces_commande_fournisseur.sql). Recommandation transmise à le mainteneur :
  * retirer `vehicule.vehicule_stock_id` dans une migration future plutôt que d'y poser une FK qui
  * cimenterait la redondance.
  *

@@ -54,7 +54,7 @@ const REPONSE_CLIENT: ReponseRecherche = {
 };
 
 // Contrat de `chercherDocuments` (apps/api/src/recherche/service-recherche.ts, branche en cours
-// d'écriture par l'agent propriétaire de ce module) : `resume` = numero/typeDocument/statut/
+// d'écriture par le lot propriétaire de ce module) : `resume` = numero/typeDocument/statut/
 // clientNom/dateDocument, JAMAIS de clé monétaire (RF-116). On conçoit contre ce contrat, pas
 // contre une implémentation figée.
 const REPONSE_DOCUMENT_VENTE: ReponseRecherche = {
@@ -149,7 +149,7 @@ describe('EcranRecherche', () => {
   });
 
   // ATTENDU ROUGE tant que `PanneauResultatsRecherche` (composants/recherche/, hors périmètre de
-  // cet agent) ne rend pas de groupe pour `document_vente` — voir le rapport de fin de tâche.
+  // ce lot) ne rend pas de groupe pour `document_vente` — voir le rapport de fin de tâche.
   // Une fois le panneau câblé (composant `ResultatDocumentVente` + groupe dans le panneau, clé
   // i18n `recherche:resultatsGroupes.documents` posée), ce test doit passer sans modification.
   it('affiche un résultat document_vente avec sa nature et navigue vers la fiche facture', async () => {

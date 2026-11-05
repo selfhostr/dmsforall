@@ -22,7 +22,7 @@ import {
  * endpoint. Ce n'est PAS un contournement furtif : c'est le même geste que le mappeur fait déjà
  * pour `plafondDefautCentimes`, documenté au même endroit pour la même raison. `packages/shared`
  * devrait être élargi pour absorber ce champ (le geste redeviendrait alors une pure suppression
- * de ce fichier) — signalé dans la réponse de tâche RF-117, à traiter par expert-api, hors du
+ * de ce fichier) — signalé dans la réponse de tâche RF-117, à traiter par l'équipe API, hors du
  * périmètre d'écriture de ce module.
  *
  * Bornes IDENTIQUES au `CHECK` SQL posé par 0018

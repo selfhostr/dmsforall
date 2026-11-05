@@ -8,7 +8,7 @@
  * Assigné à L1-07 par `plan-lot1-execution.md` §L1-07 (« ServiceCompteurs »), consommé par L1-08
  * (clients) et L1-12 (atelier) — ni l'un ni l'autre n'était livré au moment où ce fichier a été
  * écrit. Le nom du jeton et la forme de `ServiceCompteurs` (voir `compteurs.types.ts`) sont donc
- * une PROPOSITION de ce module, à confirmer par lead-backend si un autre nom a été supposé
+ * une PROPOSITION de ce module, à confirmer par l'équipe backend si un autre nom a été supposé
  * ailleurs en parallèle.
  */
 export const JETON_COMPTEURS = Symbol.for('DFA_COMPTEURS');

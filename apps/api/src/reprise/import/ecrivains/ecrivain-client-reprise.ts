@@ -9,8 +9,8 @@
  * ne décrit le nom des colonnes d'un DMS tiers (Auto-i, Stieger, tableur…), et `lecteurs/` ne
  * fournit qu'un RÔLE déduit par table, jamais un mapping champ-à-champ. `alias(...)` essaie une
  * liste de noms plausibles (français/allemand, la Suisse romande et alémanique) et rend le premier
- * trouvé — DEFENSIBLE, PAS PROUVÉ sur une archive réelle : signalé au rapport de livraison comme
- * le point à affiner en premier une fois une vraie archive Auto-i/Stieger disponible.
+ * trouvé — DEFENSIBLE, PAS PROUVÉ sur toutes les variantes d'archive : à affiner en premier dès qu'une nouvelle
+ * variante Auto-i/Stieger est disponible en test.
  *
  * DEUX PHASES SÉPARÉES, DÉLIBÉRÉMENT (défaut structurel réel du 26.08.2026, § tête de
  * `service-import-reprise.ts::executer`) : `preparerCandidatsClientsReprise` (CPU pur — construction

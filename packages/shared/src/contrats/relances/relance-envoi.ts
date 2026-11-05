@@ -8,7 +8,7 @@ import type { StatutEnvoiRelance } from './enums';
  * `relance_planifiee` seule, qui ne porte pas le résultat par tentative.
  *
  * Pièce de dossier pour le comptable (« prouver à un client qu'il a bien été relancé, et à quelle
- * date ») — décision de @laupernoe, 14.08.2026 :
+ * date ») — décision de conception, 14.08.2026 :
  *   - `envoyeLe` : horodatage réel de l'envoi (jamais celui de la planification).
  *   - `palier` : le numéro de palier au sens de `regle_relance.delaisJours` (1 = premier rappel,
  *     2 = deuxième, etc.) — même vocabulaire que `relances:regles.paliers.libelle` côté écran,

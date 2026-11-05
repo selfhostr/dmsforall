@@ -72,7 +72,7 @@ export function CarteJeuPneu({
 
   // Fait défiler jusqu'à la carte et y place le focus quand elle vient d'être ciblée par
   // `?depot=` — condition à l'existence de `matchMedia` (absent de jsdom sans polyfill dédié,
-  // qu'on ne pose pas ici : `test/setup.ts` est hors périmètre d'écriture de cet agent) et
+  // qu'on ne pose pas ici : `test/setup.ts` est hors périmètre d'écriture de ce lot) et
   // toujours en respectant `prefers-reduced-motion`.
   useEffect(() => {
     if (!misEnEvidence) return;

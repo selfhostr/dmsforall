@@ -551,7 +551,7 @@
   --statut-danger: 0 72% 42%; /* annulé, refusée, marqueur sécurité */
   --statut-terminal: 240 6% 30%; /* clôturé */
 
-  /* ── Variantes « fond » — décision de @laupernoe ──────────────────────────────
+  /* ── Variantes « fond » — décision de conception ──────────────────────────────
      Les six tokens ci-dessus restent des couleurs TEXTE (contour de badge,
      bordure, icône) : ils sont déjà mesurés à ≥ 4.5:1 sur `--background` et
      `--muted`, inchangés. Ce qui a changé : sur les écrans de facturation et
@@ -629,7 +629,7 @@
 
 /* ─────────────────────────────────────────────────────────────────────────
    Densités, échelle typographique et espacement sémantique —
-   docs/design-etape-1-atelier.md §8.2 et §8.3. Arbitrage lead-frontend
+   docs/design-etape-1-atelier.md §8.2 et §8.3. Choix frontend
    (docs/plan-lot1-frontend-execution.md F1-U0) : contrat en variables CSS,
    pas en `lib/densites.ts`.
 

@@ -28,7 +28,7 @@ interface Props {
 /**
  * Recherche client pour la création d'un dossier de vente (RV-29, design §6.1 : « recherche/
  * autocomplete client existant »). Aucun composant partagé équivalent n'existe encore côté
- * `composants/` (hors périmètre d'écriture de cet agent) : contrairement à ce que le design
+ * `composants/` (hors périmètre d'écriture de ce lot) : contrairement à ce que le design
  * suggérait (« composant déjà utilisé côté atelier »), l'atelier redirige en réalité vers
  * `/recherche` plutôt que d'embarquer un sélecteur inline (voir `EcranNouvelOrdreReparation.tsx`).
  * Ce composant reste donc LOCAL à ce sous-domaine — même doctrine que

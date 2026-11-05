@@ -1,32 +1,21 @@
 #!/usr/bin/env -S pnpm --filter @dfa/api exec tsx
 /**
- * CLI — construit le jeu de test « réel réduit » : un sous-ensemble de la VRAIE archive Auto-i de
- * @laupernoe (2,4 Go), assez petit pour être rejoué plusieurs fois sans y passer la journée, mais toujours
- * de vraies données de garage (pas une fabrication).
+ * CLI — construit un jeu de test réduit à partir d'une archive de test privée (par exemple une
+ * extraction locale d'un DMS tiers comme Auto-i) : un sous-ensemble assez petit pour être rejoué
+ * plusieurs fois, mais fait de vraies données de garage (pas une fabrication).
  *
- * PAR DÉFAUT, un seul fichier : `AutoI/RepAw.backup` (242 Mo) — mesuré (`analyse/verification-
- * auto-i/verification.md`) comme le SEUL fichier des 10 de l'archive à porter les tables métier
- * (`Kunden`, `Verkauf`, `Bewertungen`, 104 tables au total). `AutoI/Autoi.mdb` (1,33 Go, la majeure
- * partie du poids total) est un catalogue tiers SANS donnée garage (même source), exclu par
- * défaut — l'inclure ferait dix fois grossir l'archive de test pour zéro ligne de client en plus.
- *
- * SOURCE EN LECTURE SEULE, SORTIE JAMAIS SOUS `/chemin/vers/echantillons/` — ce chantier n'a que la
- * lecture sur les originaux de @laupernoe (§ périmètre de la mission). Écrit par défaut sous
- * `$TMPDIR/dfa-reprise-jeux-test/`, jamais dans le dépôt (l'archive contient de VRAIES données
- * personnelles d'un client réel de @laupernoe — nLPD : elle ne doit jamais entrer dans un historique git).
+ * Le ou les fichiers à zipper sont OBLIGATOIRES (`--fichier`) : aucune valeur par défaut. Les
+ * originaux sont lus en lecture seule ; la sortie est écrite par défaut sous
+ * `$TMPDIR/dfa-reprise-jeux-test/`, jamais dans le dépôt (une archive de test privée peut contenir
+ * des données personnelles — nLPD : elle ne doit jamais entrer dans un historique git).
  *
  * USAGE :
- *   tsx construire-jeu-reduit-source.ts [--fichier <chemin>]... [--sortie <dossier>] [--nom <base>]
- *
- * Sans `--fichier`, utilise le chemin par défaut ci-dessous — à adapter via `--fichier` sur toute
- * machine où l'archive de @laupernoe est ailleurs (§ « documentée pour que n'importe qui la refasse »).
+ *   tsx construire-jeu-reduit-source.ts --fichier <chemin> [--fichier <chemin>]... [--sortie <dossier>] [--nom <base>]
  */
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { creerArchiveZip } from './lib/zip';
-
-const FICHIER_PAR_DEFAUT = '/chemin/vers/echantillons/travail/auto-i/AutoI/RepAw.backup';
 
 function argumentsMultiples(nom: string): string[] {
   const resultats: string[] = [];
@@ -45,7 +34,14 @@ function argument(nom: string): string | undefined {
 
 async function main(): Promise<void> {
   const fichiers = argumentsMultiples('fichier');
-  const sourcesReelles = fichiers.length > 0 ? fichiers : [FICHIER_PAR_DEFAUT];
+  if (fichiers.length === 0) {
+    process.stderr.write(
+      'Argument obligatoire manquant : --fichier <chemin> (au moins un fichier de l’archive de test privée).\n',
+    );
+    process.exitCode = 2;
+    return;
+  }
+  const sourcesReelles = fichiers;
   const sortie = argument('sortie') ?? join(tmpdir(), 'dfa-reprise-jeux-test');
   const nom = argument('nom') ?? 'jeu-reduit-autoi';
 
@@ -54,9 +50,9 @@ async function main(): Promise<void> {
     if (!existsSync(f)) {
       process.stderr.write(
         `Introuvable : ${f}\n` +
-          `Cette archive vit hors du dépôt (originaux de @laupernoe, lecture seule). Sur une autre ` +
-          `machine, pointer --fichier vers l'extraction locale équivalente ` +
-          `(voir docs/reprise/ pour la procédure d'extraction sélective par unzip/mdb-tools).\n`,
+          `Cette archive de test privée vit hors du dépôt (lecture seule). Pointer --fichier vers ` +
+          `l'extraction locale (voir docs/reprise/ pour la procédure d'extraction sélective ` +
+          `par unzip/mdb-tools).\n`,
       );
       process.exitCode = 2;
       return;

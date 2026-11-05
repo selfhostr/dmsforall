@@ -2,10 +2,10 @@
  * `POST /scan/permis-circulation` — reconnaissance automatique du permis de circulation suisse
  * (« carte grise »), OCR serveur (apps/api/src/vehicules/ocr/).
  *
- * CONTRAT CONVERGÉ avec l'écran mobile de scan (agent React, même livraison, périmètre
+ * CONTRAT CONVERGÉ avec l'écran mobile de scan (lot React, même livraison, périmètre
  * `apps/web/src/ecrans/scan/`) — forme et noms alignés sur son contrat temporaire
  * (`apps/web/src/ecrans/scan/contrat-ocr.temporaire.ts`, à supprimer une fois ce fichier généré
- * côté front via `pnpm api:openapi && pnpm web:types`). Arbitrage de l'orchestrateur : ce fichier
+ * côté front via `pnpm api:openapi && pnpm web:types`). Arbitrage de le mainteneur : ce fichier
  * fait foi, `contrat-ocr.temporaire.ts` doit converger vers lui, pas l'inverse.
  *
  * DÉCISIONS DE @laupernoe, STRUCTURANTES POUR CE CONTRAT :

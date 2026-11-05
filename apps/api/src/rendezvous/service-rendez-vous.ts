@@ -60,8 +60,8 @@ export class ServiceRendezVous {
 
   /**
    * `POST /rendez-vous` — `Idempotency-Key` obligatoire (RM-49 : un rejeu ne doit rien créer deux
-   * fois). Motif OBLIGATOIRE (arbitrage @laupernoe #2) : porte la durée par défaut, figée sur la ligne à
-   * la création. Surbooking : jamais bloquant (arbitrage @laupernoe #1) — avertit via
+   * fois). Motif OBLIGATOIRE (choix produit #2) : porte la durée par défaut, figée sur la ligne à
+   * la création. Surbooking : jamais bloquant (choix produit #1) — avertit via
    * `PLANNING_CAPACITE_DEPASSEE` si la capacité du jour est déjà atteinte, ne refuse jamais.
    */
   async creer(

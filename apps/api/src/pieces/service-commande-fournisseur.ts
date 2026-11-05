@@ -118,7 +118,7 @@ export interface ResultatReceptionCommandeFournisseur {
  * autorisée par la base resterait de toute façon refusée si ce calcul se trompait — filet de
  * dernier recours), sans dépendre de `common/avertissements/traducteur-erreur-transition-sql.ts`
  * (dont la table `TABLE_VERS_CODE_TRANSITION` ne connaît pas `commande_fournisseur` — hors
- * périmètre d'écriture de cet agent, signalé au rapport de livraison plutôt que modifié en douce).
+ * périmètre d'écriture de ce lot, signalé au rapport de livraison plutôt que modifié en douce).
  */
 function calculerStatutCibleCommande(
   lignes: readonly LigneCommandeFournisseurLigne[],

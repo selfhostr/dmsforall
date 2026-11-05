@@ -117,7 +117,7 @@ export function EcranListeArticles() {
   const filtresActifs = q.trim() !== '' || filtresStructuresActifs;
 
   function effacerFiltres() {
-    // Levier de reset (arbitrage @laupernoe 26.08.2026) : `effacerFiltres` est un geste de reprise en
+    // Levier de reset (choix produit 26.08.2026) : `effacerFiltres` est un geste de reprise en
     // main, pas une frappe — `q` doit refléter la case vide immédiatement, pas après le même
     // délai qu'une recherche (voir le commentaire de `useValeurDebouncee`, `hooks/commun/`).
     setQSaisie('');
@@ -262,13 +262,13 @@ export function EcranListeArticles() {
   // strict de l'onglet actif « Articles » (`navigation-modele.ts`, `ONGLETS_PIECES`) et de sa vue
   // « Tous ». `GabaritEcran` le détecte lui-même (§3 du contrat du chantier « titres doublés »,
   // 17.08.2026) — ne JAMAIS poser `titreVisible` ici pour forcer la visibilité : la doctrine
-  // « un titre dupliquant à la lettre son onglet reste préférable à son absence » (retour @laupernoe du
-  // 12.08.2026 sur `EcranListeClients`) a été explicitement RE-ARBITRÉE par @laupernoe le 17.08.2026 dans
+  // « un titre dupliquant à la lettre son onglet reste préférable à son absence » (retour produit du
+  // 12.08.2026 sur `EcranListeClients`) a été explicitement RE-ARBITRÉE côté produit le 17.08.2026 dans
   // l'autre sens (voir le contrat du chantier, §3) — ce commentaire la corrigeait à tort ici avant
   // ce correctif.
   //
   // « Créer un article » n'est PAS dans le slot `actions` du gabarit (qui siégerait alors juste
-  // sous les onglets, seul sur sa ligne) — retour @laupernoe du 12.08.2026 : « le bouton "Créer un
+  // sous les onglets, seul sur sa ligne) — retour produit du 12.08.2026 : « le bouton "Créer un
   // article" devrait être plus bas ». Il rejoint la ligne « Trier par », à droite — même
   // déplacement que celui demandé pour Atelier (« Nouvel ordre de réparation », voir le rapport de
   // ce chantier) : la barre de recherche remonte directement sous le titre, plus rien ne

@@ -14,8 +14,8 @@ import {
 
 /**
  * `mdb-export` est un flux, potentiellement TRÈS long sur une table légitime volumineuse (mesuré
- * réel : 6,7 millions de lignes exportées en ~98 s, ~68 000 lignes/s soutenu, sur une base Access
- * de 1,4 Go) — un délai ABSOLU court casserait ce cas réel. Deux gardes DISTINCTES, pas une seule :
+ * en test : plusieurs millions de lignes exportées en une à deux minutes, soutenu, sur une grosse
+ * base Access) — un délai ABSOLU court casserait ce cas réel. Deux gardes DISTINCTES, pas une seule :
  *
  *   - INACTIVITÉ (`DELAI_INACTIVITE_EXPORT_MS`) — aucun octet reçu depuis ce délai. C'est la garde
  *     qui répond exactement à la menace mesurée (un `.mdb` forgé qui fait boucler `mdbtools` SANS
@@ -23,9 +23,8 @@ import {
  *     silence de cette durée, même sous charge I/O dégradée.
  *   - PLAFOND ABSOLU (`DELAI_ABSOLU_EXPORT_MS`) — filet de sécurité contre un flux qui produirait
  *     un filet d'octets en continu sans jamais se terminer (contournerait une garde d'inactivité
- *     seule). Extrapolé du débit mesuré (68 000 lignes/s) : 2 h couvrent plus de 480 millions de
- *     lignes en continu, largement au-delà du plus gros référentiel réel connu du dépôt (9,4
- *     millions de lignes).
+ *     seule). Extrapolé du débit mesuré : 2 h couvrent des centaines de millions de
+ *     lignes en continu, largement au-delà des plus gros référentiels connus.
  */
 export const DELAI_INACTIVITE_EXPORT_MS = 5 * 60 * 1000;
 export const DELAI_ABSOLU_EXPORT_MS = 2 * 60 * 60 * 1000;

@@ -30,14 +30,14 @@ import { ServiceVehiculeOcr } from './service-vehicule-ocr';
 
 /**
  * `POST /scan/permis-circulation` — reconnaissance automatique du permis de circulation suisse.
- * NE CRÉE RIEN (décision @laupernoe) : rend une proposition, la création reste `POST /vehicules` /
+ * NE CRÉE RIEN (décision de conception) : rend une proposition, la création reste `POST /vehicules` /
  * `POST /clients`, inchangés — voir `packages/shared/src/contrats/vehicules/scan-permis-circulation.ts`
  * pour le contrat complet et ses justifications.
  *
  * Chemin/nom de champ ALIGNÉS sur l'écran de scan (`apps/web/src/ecrans/scan/`, contrat
  * temporaire `contrat-ocr.temporaire.ts` à supprimer une fois `pnpm api:openapi && pnpm
- * web:types` généré ce contrôleur) — convergence arbitrée par l'orchestrateur : `/scan/…`, champ
- * `photo`, pas `/vehicules/ocr/…`/`image` (choix initial de cet agent, abandonné pour éviter une
+ * web:types` généré ce contrôleur) — convergence arbitrée par le mainteneur : `/scan/…`, champ
+ * `photo`, pas `/vehicules/ocr/…`/`image` (choix initial de ce lot, abandonné pour éviter une
  * seconde forme de contrat en parallèle du front déjà livré).
  *
  * `vehicule.creer`, pas un droit dédié : scanner un permis n'a de sens que pour préparer la
@@ -99,7 +99,7 @@ export class VehiculeOcrController {
     422,
     'SCAN_PHOTO_ILLISIBLE — aucun champ exploitable extrait (document absent du cadre, flou, trop sombre). ' +
       'Code proposé par l’écran, non encore ajouté à CODES_ERREUR (packages/shared/src/contrats/probleme.ts, ' +
-      'hors périmètre de cet agent) — VALIDATION_ECHOUEE avec statut 422 en attendant cet arbitrage.',
+      'hors périmètre de ce contrôleur) — VALIDATION_ECHOUEE avec statut 422 en attendant cet arbitrage.',
   )
   @ApiReponseProbleme(429, 'AUTH_TROP_DE_TENTATIVES — trop de scans pour cet utilisateur.')
   @ApiReponseProbleme(503, 'Service OCR indisponible.')

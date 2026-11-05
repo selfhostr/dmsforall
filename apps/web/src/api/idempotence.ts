@@ -3,7 +3,7 @@ import { useCallback, useState } from 'react';
 import { genererUuid } from '@/lib/uuid';
 
 /**
- * Idempotence côté client (contrats-api-etape-1.md §5, arbitrage lead-frontend F1-01).
+ * Idempotence côté client (contrats-api-etape-1.md §5, arbitrage l'équipe frontend F1-01).
  *
  * Le plan frontend contenait trois formulations divergentes du moment où générer une clé
  * d'idempotence (§5.6 « au montage du formulaire », §3.5 « à l'ouverture de la barre de saisie »,

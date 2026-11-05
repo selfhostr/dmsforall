@@ -18,7 +18,7 @@ import { requeteApi } from '@/api/client';
  * clos/annulé/abandonné — `409 DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE`).
  *
  * Le reste de la surface `/documents-vente` (lignes, émission, avoirs, correction) appartient au
- * module facturation (`hooks/facturation/documents-vente.api.ts`, hors périmètre de cet agent) :
+ * module facturation (`hooks/facturation/documents-vente.api.ts`, hors périmètre de ce lot) :
  * ces deux fonctions n'existent QUE pour ce geste précis (poser le brouillon et le rattacher), pas
  * comme un doublon générique de la couche transport facturation.
  *

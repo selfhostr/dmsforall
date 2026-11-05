@@ -26,7 +26,7 @@ import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 // cul-de-sac total. Ce bouton coupe court AVANT même d'atteindre la recherche : le client créé ici
 // alimente directement `?clientId=`, l'écran continue sur le choix du véhicule SANS jamais quitter
 // ce flux. Ne dépend pas du bouton « Nouveau client » de l'écran Clients (`#122`, corrigé par un
-// agent parallèle) : ce déclencheur est un second point d'entrée totalement indépendant vers le
+// lot parallèle) : ce déclencheur est un second point d'entrée totalement indépendant vers le
 // même formulaire, qui reste utilisable quel que soit l'état de ce correctif-là.
 import { FormulaireNouveauClient } from '@/ecrans/clients/FormulaireNouveauClient';
 import { useClient } from '@/hooks/clients/useClient';
@@ -38,7 +38,7 @@ import { SelecteurSiteOrRequis } from './SelecteurSiteOrRequis';
 import { SelecteurVehiculeOrdre } from './SelecteurVehiculeOrdre';
 
 /** `chemins.ts` (routes/) n'a pas encore d'entrée Atelier — module en cours de câblage par un
- *  autre agent (périmètre disjoint, voir `EcranFicheOrdreReparation.tsx`). Même helper local que
+ *  autre lot (périmètre disjoint, voir `EcranFicheOrdreReparation.tsx`). Même helper local que
  *  `EcranFicheClient.tsx`/`EcranRecherche.tsx`, répété ici plutôt que d'éditer un fichier hors
  *  périmètre. La fiche d'OR lit `:orId` (pas `:id`, voir `routeur.tsx`) — sans effet sur cette
  *  construction en chaîne. */

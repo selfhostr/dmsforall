@@ -13,7 +13,7 @@ import {
  * `NestFactory.create` (pour instrumenter correctement la création de l'application) — voir
  * l'ordre documenté en tête de `main.ts`.
  *
- * Auto-hébergement (décision @laupernoe, cohérence nLPD) : `SENTRY_DSN` pointe une instance Sentry
+ * Auto-hébergement (décision de conception, cohérence nLPD) : `SENTRY_DSN` pointe une instance Sentry
  * interne, hébergée en Suisse avec le reste de l'infrastructure. Rien de spécifique à coder
  * côté SDK pour ça — un DSN auto-hébergé a exactement la même forme qu'un DSN
  * sentry.io (`https://<clé>@<hôte>/<projet>`), seul l'hôte change. Voir `.env.example`.

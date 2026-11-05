@@ -3,7 +3,7 @@
  * l'audit : `migrations/0030_pointage.sql`.
  *
  * DÉCISION DE MODÈLE, remontée comme hypothèse par `contrats/pointage/periode.ts` (« à confirmer
- * avec expert-database ») et tranchée ici : UN SEUL SEUIL MUTABLE par site, PAS une collection de
+ * avec l'équipe base de données ») et tranchée ici : UN SEUL SEUIL MUTABLE par site, PAS une collection de
  * ressources `periode_pointage` avec leur propre cycle de vie. Raisons :
  *
  *  - Le contrat n'expose que `jusquauLe` (borne haute, INCLUSE) sur `verrouiller-periode` et

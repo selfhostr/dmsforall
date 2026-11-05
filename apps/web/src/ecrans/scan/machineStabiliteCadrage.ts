@@ -1,5 +1,5 @@
 /**
- * STABILITÉ AVANT DÉCLENCHEMENT AUTOMATIQUE — brief de @laupernoe (18.08.2026) pour la prise de vue en
+ * STABILITÉ AVANT DÉCLENCHEMENT AUTOMATIQUE — brief produit (18.08.2026) pour la prise de vue en
  * direct : « le déclenchement automatique ne doit pas surprendre : il faut une stabilité tenue
  * pendant un court instant, pas un déclenchement au premier cadrage correct ». Cette machine est
  * PURE (aucune horloge interne, aucun DOM) — l'appelant (`CaptureLiveCadrage.tsx`) fournit

@@ -4,7 +4,7 @@
  * texte imprimé de la taille d'un permis de circulation reste lisible par l'OCR après réencodage ;
  * `QUALITE_JPEG` (0.82) est un compromis courant qualité/poids pour du texte sur fond clair, pas
  * mesuré sur un vrai jeu de permis dans cet environnement (aucun accès à un appareil physique
- * dans ce contexte d'agent — voir le rapport de livraison, à vérifier en test terrain).
+ * dans ce contexte d'lot — voir le rapport de livraison, à vérifier en test terrain).
  *
  * `DIMENSION_MAX_PX` RELEVÉ DE 1920 À 2800 (diagnostic du 19.08.2026, chiffré) : un permis suisse
  * ouvert fait ~210mm de large, VIN/code type imprimés à ~2mm de haut ; en dessous d'~20px/caractère

@@ -1,6 +1,6 @@
 // Adapté de coss (https://github.com/cosscom/coss, apps/ui/registry/default/ui/tabs.tsx, licence
 // MIT — voir apps/ui/LICENSING.md du dépôt source : seuls apps/origin/ et apps/ui/ y sont MIT, le
-// reste du dépôt est AGPL-3.0, ne JAMAIS copier depuis un autre répertoire). Primitive Base UI
+// reste du dépôt coss est AGPL-3.0, ne JAMAIS copier depuis un autre répertoire). Primitive Base UI
 // (`@base-ui/react/tabs`, MIT, déjà une dépendance du projet via `meter.tsx`) au lieu de Radix —
 // composant « feuille » au sens de la frontière posée dans CONTRIBUTING.md : ni portail, ni piège de
 // focus. Seul écart repris de coss : l'indicateur (`TabsIndicator`) qui glisse sous l'onglet actif

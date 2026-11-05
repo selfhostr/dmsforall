@@ -10,7 +10,7 @@ const FENETRE_A_VENIR_JOURS = 180;
 
 /**
  * `GET /rendez-vous?du=&au=&clientId=&statut=confirme` — rendez-vous À VENIR d'un client, pour la
- * fiche client (point d'entrée 2, constat de @laupernoe : « seul l'agenda est câblé »). `listerRendezVous`
+ * fiche client (point d'entrée 2, constat terrain : « seul l'agenda est câblé »). `listerRendezVous`
  * (`hooks/rendez-vous/rendez-vous.api.ts`, hors périmètre d'écriture ici) ne sérialise que
  * `du`/`au`/`siteId` (`FiltresPeriodeRendezVous`) — `clientId` y serait silencieusement ignoré côté
  * client bien que `schemaFiltresRendezVous` (contrat serveur, `packages/shared`) le supporte.

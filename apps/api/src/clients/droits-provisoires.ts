@@ -4,7 +4,7 @@ import { ErreurMetier } from '../common/erreurs';
 
 /**
  * PALLIATIF TEMPORAIRE — `apps/api/src/clients/**` (périmètre d'écriture de cette tâche) n'a PAS
- * accès en écriture à `apps/api/src/auth/matrice-droits.ts` (propriété d'un autre agent). Les deux
+ * accès en écriture à `apps/api/src/auth/matrice-droits.ts` (propriété d'un autre lot). Les deux
  * actions introduites pour RA-14 (`docs/specification-relances-automatiques.md` §5, « un client
  * peut demander l'arrêt de tout contact ») n'existent donc pas encore dans la matrice :
  *   - `client.contact.arreter`   (POST /clients/{id}/arreter-contact)
@@ -19,7 +19,7 @@ import { ErreurMetier } from '../common/erreurs';
  * (`arreterContact`/`reprendreContact`), AVANT tout accès base — jamais un accès ouvert à tout
  * rôle authentifié en attendant que la matrice soit mise à jour.
  *
- * À FAIRE PAR expert-auth quand `matrice-droits.ts` est accessible à cette tâche : ajouter les
+ * À FAIRE PAR l'équipe authentification quand `matrice-droits.ts` est accessible à cette tâche : ajouter les
  * deux actions ci-dessus à `Action` (`auth/matrice-droits.ts`), une entrée `ROLES_CLIENT_CONTACT`
  * fusionnée dans `MATRICE_DROITS` avec EXACTEMENT les rôles ci-dessous (alignés sur `INFERE_
  * CLIENT_CONTACT`, déjà en place pour `client.consentement.enregistrer`/`client.note.ecrire` — RA-14

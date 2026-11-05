@@ -184,7 +184,7 @@ export type EntreeModificationConnecteurActivation = z.infer<
  * n'accepte JAMAIS de matière secrète en clair (clé API, mot de passe, certificat EBICS) :
  * `secretReferenceId` pointe un secret DÉJÀ déposé par un mécanisme dédié (coffre applicatif,
  * chiffrement au repos) — **hors périmètre de ce fichier**, à porter par
- * expert-devops/expert-auth (`RC-08`, dernière phrase). Voir le rapport d'accompagnement : ce
+ * l'équipe infrastructure/l'équipe authentification (`RC-08`, dernière phrase). Voir le rapport d'accompagnement : ce
  * mécanisme de dépôt lui-même n'existe pas encore dans ce dépôt.
  *
  * Remplace la référence courante — idempotent par construction, pas d'`Idempotency-Key`.

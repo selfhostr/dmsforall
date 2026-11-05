@@ -7,7 +7,7 @@ import type { Page, TestInfo } from '@playwright/test';
  * pas `best-practice` (règles d'opinion, hors du contrat WCAG lui-même) ni `experimental`.
  *
  * N'CORRIGE RIEN : ce harnais est hors périmètre applicatif (`apps/web/src` appartient à un
- * autre agent). Le rôle de cette fonction est de PROUVER et de RAPPORTER — le rapport JSON complet
+ * autre lot). Le rôle de cette fonction est de PROUVER et de RAPPORTER — le rapport JSON complet
  * part en pièce jointe du test (visible dans le rapport HTML même si le test passe), et le résumé
  * lisible part dans le message d'assertion pour un verdict pass/fail sans avoir à ouvrir le JSON.
  */

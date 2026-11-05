@@ -105,7 +105,7 @@ export type MotifAnomaliePointage = (typeof MOTIFS_ANOMALIE_POINTAGE)[number];
  * est DEUX appels ordinaires — `arreter` puis un nouveau `POST /pointages` sur l'activité
  * `pause` — jamais un troisième état ni une troisième action.
  *
- * `valider` — HYPOTHÈSE, à confirmer avec expert-metier (voir `pointage.ts` pour le détail) : la
+ * `valider` — HYPOTHÈSE, à confirmer avec l'équipe métier (voir `pointage.ts` pour le détail) : la
  * machine à états §10 de la spécification montre `termine → valide` sans nommer qui déclenche
  * cette transition ni pourquoi ; ce fichier lui donne un nom d'action plutôt que de la laisser
  * sans contrat.

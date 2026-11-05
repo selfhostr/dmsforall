@@ -23,7 +23,7 @@ import type { ReponseExecutionConnecteur } from './execution';
  * effectivement partir vers le tiers — pas une par appel intermédiaire. Ce contrat pose l'action
  * demandée ; le REGROUPEMENT d'exécutions `en_attente` concurrentes sur le même objet
  * (annuler/remplacer plutôt qu'empiler) est un détail d'ORDONNANCEMENT hors du périmètre de ce
- * fichier — à porter par expert-nestjs (file BullMQ avec clé de regroupement
+ * fichier — à porter par l'équipe backend (file BullMQ avec clé de regroupement
  * `(connecteurActivationId, objetType, objetId)`).
  */
 export const schemaLancerExportConnecteur = z

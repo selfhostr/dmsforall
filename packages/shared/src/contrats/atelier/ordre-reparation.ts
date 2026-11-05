@@ -222,7 +222,7 @@ export interface ReponseOrdreReparation {
    *
    * FACULTATIF dans le TYPE (le serveur le peuple TOUJOURS, sans exception) : rendre le champ
    * obligatoire casserait la compilation des très nombreuses fixtures `ReponseOrdreReparation`
-   * déjà écrites dans `apps/web/**.spec.tsx` par l'agent front parallèle (périmètre disjoint,
+   * déjà écrites dans `apps/web/**.spec.tsx` par le lot front parallèle (périmètre disjoint,
    * hors de portée d'écriture ici) — même arbitrage que `OrdreReparationResume.enRetard?`
    * ci-dessous, additif pur, jamais une rupture de compatibilité (§11.1).
    */
@@ -318,7 +318,7 @@ export interface OrdreReparationResume {
   /**
    * Même calcul, même garde qu'`ReponseOrdreReparation.enRetard` — voir ce champ. FACULTATIF ici
    * (contrairement au document complet) : ce résumé est aussi assemblé par `clients/` (périmètre
-   * disjoint de l'agent rendez-vous), qui ne le peuple pas encore — absent, jamais `false` par
+   * disjoint du lot rendez-vous), qui ne le peuple pas encore — absent, jamais `false` par
    * défaut trompeur, pour ne pas laisser croire « jamais en retard » à un consommateur qui lirait
    * cette projection.
    */
@@ -358,7 +358,7 @@ export interface ReponseEntreeJournal {
 /* ------------------------------------------------------------------ */
 
 /**
- * `numeroSequence:asc/desc` VOLONTAIREMENT ABSENT (arbitrage @laupernoe, 12.08.2026) — retiré, pas
+ * `numeroSequence:asc/desc` VOLONTAIREMENT ABSENT (choix produit, 12.08.2026) — retiré, pas
  * seulement jamais câblé. `ordre_reparation.numero` est un `text` libre (`OR-2026-9`), aucune
  * colonne numérique de séquence n'existe en base : un tri TEXTE trierait `OR-2026-10` avant
  * `OR-2026-9`, ce qui est faux et pire que l'absence de tri. Deux façons de le rendre honnête ont

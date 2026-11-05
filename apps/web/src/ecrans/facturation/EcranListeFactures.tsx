@@ -40,7 +40,7 @@ const ONGLETS_LISTE_FACTURES = [
 
 /**
  * Écran 5 — liste des factures (`design-etape-2-facturation.md` §7). Route attendue : `/factures`,
- * dans la navigation principale (câblage `routes/` hors périmètre de cet agent).
+ * dans la navigation principale (câblage `routes/` hors périmètre de ce lot).
  *
  * ONGLETS « EN RETARD » ET « À RELANCER » — câblés sur de vrais paramètres de requête serveur
  * (`schemaFiltresDocumentsVente.enRetard`/`.relanceNiveau`, `packages/shared/src/contrats/
@@ -58,7 +58,7 @@ const ONGLETS_LISTE_FACTURES = [
  *   atteint » (sémantique de seuil non exprimable par ce schéma de filtre, tenant-dépendante). Choix
  *   retenu ici, EN CITANT le contrat : `enRetard=true&relanceNiveau=0` — la seule primitive qui
  *   repose sur une colonne réelle et couvre le cas usuel ; le raffinement par seuil reste hors
- *   périmètre de cet agent, à trancher côté expert-metier/expert-api comme le contrat l'indique.
+ *   périmètre de ce lot, à trancher côté l'équipe métier/l'équipe API comme le contrat l'indique.
  *
  * ÉCART SIGNALÉ — accélérateur « Encaisser » au survol de ligne (§7.1, risque n°2 du design) :
  * NON implémenté ici. `DocumentVenteResume` ne porte pas `siteId` (seulement `document.ts` §
@@ -123,7 +123,7 @@ export function EcranListeFactures() {
   } = useListeDocumentsVente(filtres);
 
   function effacerFiltres() {
-    // Levier de reset (arbitrage @laupernoe 26.08.2026) : `effacerFiltres` est un geste de reprise en
+    // Levier de reset (choix produit 26.08.2026) : `effacerFiltres` est un geste de reprise en
     // main, pas une frappe — `q` doit refléter la case vide immédiatement, pas après le même
     // délai qu'une recherche (voir le commentaire de `useValeurDebouncee`, `hooks/commun/`).
     setQSaisie('');
@@ -281,7 +281,7 @@ export function EcranListeFactures() {
   }
 
   return (
-    // Détection automatique (chantier « titres doublés », retour @laupernoe du 17.08.2026, cas cité
+    // Détection automatique (chantier « titres doublés », retour produit du 17.08.2026, cas cité
     // nommément : « dans Facturation, c'est écrit "Factures" [...] on sait qu'on est dans les
     // factures puisqu'à gauche on a le menu »). Le titre « Factures » fait doublon avec l'onglet
     // « Factures » (OngletsDomaine) ET avec l'entrée de barre latérale « Facturation » n'est pas

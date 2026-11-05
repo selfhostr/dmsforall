@@ -2,7 +2,7 @@
  * Contrôleur auth (contrat gelé étape 0, §4, endpoints 1-3).
  *
  * Le préfixe global `api` et le versioning URI (`/api/v1/...`) sont configurés une seule fois
- * dans `main.ts` (propriété expert-nestjs) : ce contrôleur ne déclare que le chemin relatif
+ * dans `main.ts` (propriété l'équipe backend) : ce contrôleur ne déclare que le chemin relatif
  * `auth`, conformément au reste du socle.
  */
 import {

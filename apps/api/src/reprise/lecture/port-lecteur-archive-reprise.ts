@@ -4,7 +4,7 @@
  * dépendance Nest) pour tout ce qui reste INTERNE au traitement (colonnes, lignes, évaluation de
  * rôle), MAIS PAS pour la famille de moteur : voir `ResultatDetectionFamilleReprise` ci-dessous.
  *
- * FRONTIÈRE DE TYPES (point de friction réglé ici, signalé par les deux agents précédents) : la
+ * FRONTIÈRE DE TYPES (point de friction réglé ici, signalé par les deux lots précédents) : la
  * famille de moteur est la SEULE information de ce port qui remonte, telle quelle, jusqu'à une
  * réponse d'API (`ReponseAnalyseReprise.moteurDetecte.famille`, `contrats/reprise.ts`). Avant ce
  * correctif, le port exposait le type INTERNE `lecteurs/types.ts::FamilleMoteur` ('access' |
@@ -145,7 +145,7 @@ export interface PortLecteurArchiveReprise {
 
   /**
    * Lecture EN FLUX PARESSEUX, table par table — jamais le fichier entier en mémoire (archives
-   * mesurées jusqu'à 43 Go, 9,4 millions de lignes sur un seul référentiel). `options.limite`
+   * de plusieurs dizaines de Go, millions de lignes sur un seul référentiel). `options.limite`
    * permet un échantillonnage (analyse) ; l'import consomme le flux SANS limite.
    */
   lireLignes(

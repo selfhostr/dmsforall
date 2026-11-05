@@ -36,7 +36,7 @@ import { type ActionReprise, type StatutReprise } from './enums';
  * ecart_reprise_centimes = 0`. Tout document créé par ce module de vente a `origine = 'dfa'` : ce
  * champ y vaut structurellement TOUJOURS 0 et ne peut PORTER AUCUN écart de reprise véhicule. Les
  * deux sens de « reprise » (document repris d'un ancien DMS / véhicule repris au client) se sont
- * télescopés dans la spécification métier — remontée à l'orchestrateur, PAS corrigée ici (la
+ * télescopés dans la spécification métier — remontée à le mainteneur, PAS corrigée ici (la
  * ressource `ecartRepriseVehiculeCentimes` ci-dessous EST le producteur métier voulu par `RV-21`,
  * elle vit juste sur la reprise plutôt que de squatter un champ facturation qui ne peut pas
  * l'accueillir). Faire apparaître cet écart comme une LIGNE sur le document de vente du véhicule

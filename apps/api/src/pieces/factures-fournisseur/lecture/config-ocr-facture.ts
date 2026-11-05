@@ -10,7 +10,7 @@ import { z } from 'zod';
  * traitement : elle est lue paresseusement (première utilisation, `ServiceOcrTexteFacture`), et
  * une valeur malformée dégrade en « OCR non configuré » plutôt que de refuser le démarrage de
  * toute l'API pour un module dont l'OCR est explicitement le DERNIER recours. À CORRIGER par
- * l'agent qui possède `config/charger-config.ts` : fusionner `schemaConfigOcrTexteFacture` dans
+ * le lot qui possède `config/charger-config.ts` : fusionner `schemaConfigOcrTexteFacture` dans
  * `schemaConfig` (même patron que `schemaConfigOcrPermis`, `vehicules/ocr/config-ocr.ts`), puis
  * remplacer `lireConfigOcrTexteFacture()` par une injection de `JETON_CONFIG` ici.
  *

@@ -462,7 +462,7 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
     // IPv4/IPv6 ; toute autre valeur est journalisée avec `ip = null` plutôt que de risquer
     // l'échec de l'écriture — perdre l'IP est acceptable, perdre l'événement ne l'est pas. (Le
     // même filet existe indépendamment côté `db/acces-amorcage.service.ts`, propriété d'un autre
-    // agent — ceci est le filet côté service auth, au point d'entrée unique de tous ses
+    // lot — ceci est le filet côté service auth, au point d'entrée unique de tous ses
     // événements.)
     const ipValidee = ip !== null && isIP(ip) !== 0 ? ip : null;
     try {

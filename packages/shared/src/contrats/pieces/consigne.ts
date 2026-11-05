@@ -17,7 +17,7 @@ import { schemaParametresPage } from '../pagination';
  * « dans le même geste ». Ce geste est déclenché par l'atelier (réalisation de la ligne de dépose,
  * `POST /ordres-reparation/{orId}/lignes/{ligneId}/marquer-realisee`, GELÉ, hors périmètre) —
  * l'enregistrement de la consigne côté pièces en est un EFFET DE BORD serveur, pas un appel HTTP
- * séparé. Signalé à l'orchestrateur comme point d'intégration cross-module, même statut que la
+ * séparé. Signalé à le mainteneur comme point d'intégration cross-module, même statut que la
  * note de `mouvement.ts` sur `sortie_comptoir`/`retour_client`.
  */
 
@@ -83,7 +83,7 @@ export type FiltresConsignes = z.infer<typeof schemaFiltresConsignes>;
  * pour l'implémentation, mais PAS tranchée (décision cross-module) : un seul appel orchestrant les
  * deux écritures dans une même transaction — probablement porté par l'action d'avoir de
  * facturation elle-même, qui appellerait ce service en interne plutôt que d'exposer deux endpoints
- * indépendants que le front devrait enchaîner. Signalé à l'orchestrateur, pas figé.
+ * indépendants que le front devrait enchaîner. Signalé à le mainteneur, pas figé.
  *
  * Pas d'`Idempotency-Key` : transition gardée par l'état de départ
  * (`409 CONSIGNE_TRANSITION_INTERDITE` si `statut !== 'en_attente_retour_fournisseur'`).

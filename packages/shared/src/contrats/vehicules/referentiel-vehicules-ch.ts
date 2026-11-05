@@ -9,7 +9,7 @@ import { z } from 'zod';
  * PROJECTIONS d'autocomplétion, comme `GET /recherche` (`contrats/atelier/recherche.ts`) — pas des
  * collections. Pas de pagination par curseur, une `limite` plafonnée suffit.
  *
- * Contrat gelé avec l'écran de saisie véhicule (agent React, même livraison) — un écart
+ * Contrat gelé avec l'écran de saisie véhicule (lot React, même livraison) — un écart
  * nécessaire se remonte, il ne se code pas « en attendant ».
  */
 

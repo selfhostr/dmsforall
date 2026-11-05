@@ -7,7 +7,7 @@ import { schemaDateJour, schemaIdentifiant } from '../atelier/primitives';
  *
  * FORMULES EN HYPOTHÈSE, PAS EN CERTITUDE — signalé plutôt que codé en silence : RM-99 NOMME les
  * quatre indicateurs sans donner leur formule exacte. Celles ci-dessous sont une PROPOSITION
- * cohérente avec le reste de la spécification (§5, §6), à valider avec expert-metier avant
+ * cohérente avec le reste de la spécification (§5, §6), à valider avec l'équipe métier avant
  * implémentation :
  *  - `presenceCentiemes` = temps `productif` + temps `indirect` (RM-122 : l'indirect est un temps
  *    PRÉSENT et PAYÉ, pas un trou dans la présence — l'exclure sous-compterait silencieusement

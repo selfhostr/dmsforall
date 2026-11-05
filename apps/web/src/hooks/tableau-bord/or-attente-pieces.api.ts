@@ -27,7 +27,7 @@ import { requeteApi } from '@/api/client';
  * Deux limites assumées, à lever le jour où `ServiceTableauBordActivite` expose un vrai snapshot
  * agrégé (SQL scalaire, comme `lignesEnAttenteValidation` — voir
  * `apps/api/src/tableau-bord/service-tableau-bord-activite.ts`) : le champ manquerait alors à
- * `ReponseActiviteTableauBord` (`packages/shared/**`, hors périmètre d'écriture de cet agent) et ce
+ * `ReponseActiviteTableauBord` (`packages/shared/**`, hors périmètre d'écriture de ce lot) et ce
  * fichier disparaîtrait au profit d'une simple lecture de ce champ.
  *  - la priorité `accord > pieces > externe` sous-compte les OR doublement bloqués (ci-dessus) ;
  *  - plafonné à `LIMITE` OR actifs : au-delà, sous-compte silencieux pour un tenant très chargé.

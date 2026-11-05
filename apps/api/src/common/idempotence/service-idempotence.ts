@@ -32,7 +32,7 @@ type LigneCleIdempotenceBrute = {
 
 /**
  * Implémentation SQL directe (pas de schéma Drizzle `cle_idempotence` : la table est créée par la
- * migration `0004` — L1-04, en parallèle de cet agent — donc pas encore disponible au moment où ce
+ * migration `0004` — L1-04, en parallèle de ce lot — donc pas encore disponible au moment où ce
  * fichier est écrit). Colonnes utilisées, conformes à `plan-lot1-execution.md` §L1-04 :
  * `cle_idempotence(tenant_id, methode, chemin, cle, empreinte_requete bytea, statut,
  * statut_http, reponse jsonb, cree_le, expire_le)`, `unique (tenant_id, methode, chemin, cle)`.

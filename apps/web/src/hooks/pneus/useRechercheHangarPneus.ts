@@ -25,7 +25,7 @@ import { listerDepotsPneusVehicule } from './depot-pneus.api';
  *     /vehicules/{id}/depots-pneus` filtré aux statuts actifs (`en_depot`/`monte`/`a_relancer` —
  *     PAS `sorti`, un jeu sorti n'est plus à retrouver) pour lire son `codeCase`.
  *
- * GAP SIGNALÉ (à l'attention d'expert-api) : un endpoint dédié `GET /depots-pneus/recherche?q=`
+ * GAP SIGNALÉ (à l'attention d'l'équipe API) : un endpoint dédié `GET /depots-pneus/recherche?q=`
  * (qui joindrait véhicule+client directement en base) supprimerait ces trois niveaux et serait
  * plus rapide qu'une chaîne de requêtes côté client — non inventé ici (hors périmètre d'écriture,
  * l'API n'est pas dans mon périmètre), signalé au rapport de livraison.

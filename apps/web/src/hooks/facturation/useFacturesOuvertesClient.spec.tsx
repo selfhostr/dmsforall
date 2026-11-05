@@ -108,7 +108,7 @@ function construireDocumentBrut(
  * filtre — le mock MSW ci-dessous REPRODUIT le comportement lu dans le code serveur, il ne l'EXÉCUTE
  * pas. Cette preuve-là (le SQL réellement généré) vit côté serveur, dans
  * `apps/api/src/facturation/documents/service-documents.spec.ts` (`describe('statutReglement —
- * câblé'`) — hors périmètre de cet agent (`apps/web/` uniquement). Un `describe('statut — câblé')`
+ * câblé'`) — hors périmètre de ce lot (`apps/web/` uniquement). Un `describe('statut — câblé')`
  * symétrique n'existe pas encore pour le filtre `statut` (seul `statutReglement`/`ordreReparationId`
  * en ont un aujourd'hui) : à signaler au propriétaire de `apps/api/src/facturation/documents/`.
  */

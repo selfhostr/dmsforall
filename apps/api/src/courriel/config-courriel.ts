@@ -4,7 +4,7 @@ import { z } from 'zod';
  * Configuration SMTP — capacité d'envoi de courriel, SOCLE SEUL (aucun branchement métier ici :
  * ni relances, ni envoi de facture, ni invitation d'utilisateur — voir `service-courriel.ts`).
  *
- * Expéditeur unique multi-tenant (arbitrage @laupernoe) : tous les courriels partent TECHNIQUEMENT de
+ * Expéditeur unique multi-tenant (choix produit) : tous les courriels partent TECHNIQUEMENT de
  * `SMTP_EXPEDITEUR` (no-reply@dmsforall.example), quel que soit le garage — jamais de SMTP par
  * tenant. On n'usurpe JAMAIS le domaine du garage : sans son propre SPF/DKIM, le courriel
  * tomberait en spam. Le nom affiché et le `Reply-To` portent l'identité du garage — voir

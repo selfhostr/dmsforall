@@ -175,7 +175,7 @@ const ACTIONS_ALLOWLIST = new Set<Action>(ALLOWLIST_ACTIONS_SANS_DECORATEUR.map(
  * exécution, donc une divergence PUREMENT TYPÉE ne pouvait jamais faire rougir ce test. C'est
  * exactement ce qui s'est produit : 14 actions de facturation ajoutées au type `Action` sont restées
  * invisibles à ce test structurel — qui prétend pourtant garantir qu'aucune action n'échappe au
- * contrôle — pendant tout un cycle d'agents, découvertes seulement par un `tsc --noEmit` isolé, pas
+ * contrôle — pendant tout un cycle de lots, découvertes seulement par un `tsc --noEmit` isolé, pas
  * par cette suite. En import ant `TOUTES_ACTIONS` au lieu de le recopier, il n'existe plus deux
  * listes à synchroniser : il y en a une seule, et TOUT ajout/retrait/renommage dans
  * `matrice-droits.ts` est désormais visible ICI, À L'EXÉCUTION, sous `vitest run` seul — sans

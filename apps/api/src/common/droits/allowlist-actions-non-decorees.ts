@@ -248,7 +248,7 @@ export const ALLOWLIST_ACTIONS_SANS_DECORATEUR: readonly EntreeAllowlistAction[]
       "('devis'/'bon_commande' → 'facturation.document.emettre_devis_bc', 'facture' → '..._facture', 'avoir' → " +
       "'..._avoir'), puis vérifie `MATRICE_DROITS[principal.role].includes(action)` et lève DROIT_INSUFFISANT sinon " +
       '— même patron que atelier.or.plafond_modifier (ServiceOr.modifier). Le rôle est lu depuis principal.role ' +
-      "(jamais depuis le client). Pas de test dédié à ce jour (hors périmètre de l'agent auth/common-droits qui a " +
+      '(jamais depuis le client). Pas de test dédié à ce jour (hors périmètre du lot auth/common-droits qui a ' +
       'posé cette entrée — signalé, pas masqué : à couvrir par des tests d’intégration sur ServiceEmissionDocument).',
   },
   {

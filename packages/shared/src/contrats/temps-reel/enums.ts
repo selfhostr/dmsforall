@@ -5,7 +5,7 @@
  * (clôture de pointage, facture émise, relance envoyée) ajoute une valeur ICI et une entrée dans
  * `DonneesEvenementTempsReel` (`evenement.ts`), jamais une refonte du transport.
  *
- * Premier usage : un réceptionniste scanne un permis de circulation depuis son téléphone (agent
+ * Premier usage : un réceptionniste scanne un permis de circulation depuis son téléphone (lot
  * OCR, `apps/api/src/vehicules/`, HORS PÉRIMÈTRE de ce module) — si le client/véhicule existe déjà,
  * le poste fixe reçoit ce type pour ouvrir la fiche. AUCUNE donnée personnelle au-delà de
  * l'identifiant : voir `evenement.ts` pour la charge exacte et sa justification.

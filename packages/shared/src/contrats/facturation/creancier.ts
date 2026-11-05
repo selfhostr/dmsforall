@@ -10,7 +10,7 @@ import { schemaCodePays } from '../atelier/primitives';
  * SOURCE DE VÉRITÉ UNIQUE de cette forme : consommé tel quel côté API (le schéma zod local
  * dérive de `schemaModificationBlocCreancier`, le DTO Swagger `implements ReponseBlocCreancier`)
  * et côté web (`apps/web/src/hooks/parametrage/bloc-creancier.api.ts`). Avant ce fichier, les
- * deux côtés redéclaraient la même forme séparément — un écart signalé par l'agent qui a livré
+ * deux côtés redéclaraient la même forme séparément — un écart signalé par le lot qui a livré
  * l'écran, refermé ici.
  *
  * ────────────────────────────────────────────────────────────────────────────────────────

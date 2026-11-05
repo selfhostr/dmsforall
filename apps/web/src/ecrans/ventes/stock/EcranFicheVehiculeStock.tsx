@@ -66,7 +66,7 @@ function texteDate(valeur: string | null): string {
 /**
  * Fiche COMMERCIALE d'un véhicule en stock (`/ventes/stock/{id}`, `EcranFicheVehiculeStock`) —
  * DÉCISION DE NAVIGATION déjà actée (voir docs/design-ecrans-ventes.md et le brief de livraison
- * de cet agent) : `EcranFicheVehicule.tsx` (`/vehicules/{id}`, hors périmètre de cet agent) reste
+ * de ce lot) : `EcranFicheVehicule.tsx` (`/vehicules/{id}`, hors périmètre de ce lot) reste
  * L'écran unique de la fiche véhicule technique, y compris pour un véhicule en stock, via une
  * section `BlocVente` future — PAS remplacée ici. Cet écran est donc un COMPLÉMENT, pas un
  * doublon : il affiche l'identité véhicule en LECTURE SEULE (`IdentiteVehicule`, à partir de
@@ -75,7 +75,7 @@ function texteDate(valeur: string | null): string {
  * est technique/atelier.
  *
  * DÉCISION DE CONCEPTION signalée au rapport de livraison : le sort à terme de cet écran
- * (fusionné dans `BlocVente` ou maintenu séparé) appartient à la session principale — cet agent
+ * (fusionné dans `BlocVente` ou maintenu séparé) appartient à la session principale — ce lot
  * ne pouvait pas trancher sans le périmètre `BlocVente`, confié à un autre travail.
  *
  * Une seule requête PRIMAIRE bloque l'écran entier (la fiche stock elle-même) — même
@@ -137,7 +137,7 @@ export function EcranFicheVehiculeStock() {
     setConfirmationReceptionOuverte(ouvertSuivant);
   }
 
-  // Bascule vue vendeur/client (issue #84) — ACTION de l'en-tête d'écran (retour @laupernoe du 17.08.2026 :
+  // Bascule vue vendeur/client (issue #84) — ACTION de l'en-tête d'écran (retour produit du 17.08.2026 :
   // « Vue vendeur, Vue client, il faut le mettre ailleurs »), construite AVANT les retours anticipés
   // chargement/erreur pour que l'en-tête ne change pas de composition entre les états : elle ne
   // dépend que de l'URL, jamais de `stock`.

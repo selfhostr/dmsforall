@@ -10,7 +10,7 @@ import { server } from '@/test/msw/server';
 import { renduAvecRoutes } from '@/test/utils';
 
 /**
- * MESURE (retour @laupernoe du 17.08.2026, « il y a toujours "Factures" en haut ») — reproduit la VRAIE
+ * MESURE (retour produit du 17.08.2026, « il y a toujours "Factures" en haut ») — reproduit la VRAIE
  * route (`/factures`, celle de `chemins.facturation.liste`/`routeur.tsx`, jamais `/`), avec un rôle
  * qui voit RÉELLEMENT la rangée d'onglets de la navigation Facturation.
  *

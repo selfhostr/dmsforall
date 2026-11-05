@@ -1,5 +1,5 @@
 /**
- * Cycle de vie de sortie du garage d'un tenant (offboarding, mandat 20.08.2026) : export intégral
+ * Cycle de vie de sortie du garage d'un tenant (offboarding) : export intégral
  * remis au garage, conservation limitée, effacement final avec trace d'audit.
  *
  * Domaine de contrats DÉLIBÉRÉMENT distinct de `contrats/exploitation/` (console d'exploitation,

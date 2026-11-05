@@ -76,9 +76,9 @@ export async function listerMotifsRendezVous(): Promise<readonly ReponseMotifRen
   return motifs ?? [];
 }
 
-/** `POST /rendez-vous` — `Idempotency-Key` OBLIGATOIRE (arbitrage @laupernoe #2 : motif obligatoire, un
+/** `POST /rendez-vous` — `Idempotency-Key` OBLIGATOIRE (choix produit #2 : motif obligatoire, un
  *  rejeu ne doit jamais créer deux rendez-vous). Le surbooking (`PLANNING_CAPACITE_DEPASSEE`)
- *  n'entre JAMAIS dans le protocole de confirmation (RV-06, arbitrage @laupernoe #1 : avertir, jamais
+ *  n'entre JAMAIS dans le protocole de confirmation (RV-06, choix produit #1 : avertir, jamais
  *  bloquer) — il n'apparaît, s'il apparaît, que dans `avertissements[]` de la réponse. */
 export async function creerRendezVous(
   entree: EntreeCreationRendezVous,

@@ -80,7 +80,7 @@ const CLES_ATTENTE: Record<AttenteOrdreReparation, string> = {
   externe: 'attenteExterne',
 };
 
-/** Convention assumée en l'absence de câblage de `src/routes/` à ce jour (agent dédié) — même
+/** Convention assumée en l'absence de câblage de `src/routes/` à ce jour (lot dédié) — même
  *  chemin que celui déjà utilisé par `EcranFicheClient.tsx` (`/ordres-reparation/${id}`) ; à
  *  ajuster ici si le nom réel diffère une fois le routage posé. */
 function cheminDetailOr(id: string, site: string | undefined): string {
@@ -147,7 +147,7 @@ export function EcranListeOrdresReparation() {
   const filtresActifs = q.trim() !== '' || filtresStructuresActifs;
 
   function effacerFiltres() {
-    // Levier de reset (arbitrage @laupernoe 26.08.2026) : `effacerFiltres` est un geste de reprise en
+    // Levier de reset (choix produit 26.08.2026) : `effacerFiltres` est un geste de reprise en
     // main, pas une frappe — `q` doit refléter la case vide immédiatement, pas après le même
     // délai qu'une recherche (voir le commentaire de `useValeurDebouncee`, `hooks/commun/`).
     setQSaisie('');
@@ -297,7 +297,7 @@ export function EcranListeOrdresReparation() {
         filtresActifs={filtresActifs}
         onEffacerFiltres={effacerFiltres}
       >
-        {/* Libellé retiré de l'affichage (demande @laupernoe : « Statut »/« Attente » au-dessus du
+        {/* Libellé retiré de l'affichage (demande produit : « Statut »/« Attente » au-dessus du
          *  contrôle ne font que répéter ce que le contrôle dit déjà) — `sr-only`, jamais un
          *  contrôle anonyme : `htmlFor`/`id` + `aria-label` sur le déclencheur conservent le nom
          *  accessible complet pour un lecteur d'écran. Plus de conteneur `flex-col` autour : sans

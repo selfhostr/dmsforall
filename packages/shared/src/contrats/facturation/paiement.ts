@@ -108,7 +108,7 @@ const formeImputationInline = z
   .strict();
 
 /**
- * `POST /paiements` — `Idempotency-Key` OBLIGATOIRE (consigne explicite de @laupernoe : « idempotencyKey
+ * `POST /paiements` — `Idempotency-Key` OBLIGATOIRE (consigne produit explicite : « idempotencyKey
  * sur toutes les créations sensibles — factures, paiements »), portée par l'en-tête
  * `EN_TETE_IDEMPOTENCE` déjà défini par l'étape 1, pas par un second champ dans le corps — un
  * réseau instable au comptoir ne doit jamais faire encaisser deux fois le même geste.

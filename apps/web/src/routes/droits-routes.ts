@@ -162,7 +162,7 @@ export const ROLES_PNEUS: readonly RoleUtilisateur[] = [
  * ENCORE plus restreint (`direction`/`comptable` seuls, RF-115, `admin` exclu) mais N'A PAS de
  * route dédiée — une garde de route ne peut pas exprimer deux niveaux de droits différents sur la
  * même route. Le bloc financier est donc géré EN PLUS, à l'intérieur de l'écran : depuis le
- * passage à un dashboard PAR RÔLE (`EcranTableauBord.tsx`, arbitrage @laupernoe du 10.08.2026), seuls
+ * passage à un dashboard PAR RÔLE (`EcranTableauBord.tsx`, choix produit du 10.08.2026), seuls
  * `TableauBordDirection`/`TableauBordComptable` le montent structurellement, vérifié par
  * `EcranTableauBord.spec.tsx` (test F8, non-fuite).
  *

@@ -142,6 +142,40 @@
         ],
         "type": "object"
       },
+      "ArchiveDeposeeRepriseDto": {
+        "properties": {
+          "dernierNumeroTrancheRecuContigu": {
+            "nullable": true,
+            "type": "number"
+          },
+          "empreinteSha256Annoncee": {
+            "type": "string"
+          },
+          "empreinteSha256Verifiee": {
+            "nullable": true,
+            "type": "string"
+          },
+          "integriteValidee": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "octetsRecus": {
+            "type": "number"
+          },
+          "tailleOctetsAnnoncee": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "tailleOctetsAnnoncee",
+          "octetsRecus",
+          "dernierNumeroTrancheRecuContigu",
+          "empreinteSha256Annoncee",
+          "empreinteSha256Verifiee",
+          "integriteValidee"
+        ],
+        "type": "object"
+      },
       "ArticleAvecAvertissementsDto": {
         "properties": {
           "avertissements": {
@@ -733,6 +767,48 @@
           "minutesOccupees",
           "capaciteMinutes",
           "etat"
+        ],
+        "type": "object"
+      },
+      "ChampScanneBooleenDto": {
+        "properties": {
+          "confiance": {
+            "enum": [
+              "sure",
+              "douteuse",
+              "absente"
+            ],
+            "type": "string"
+          },
+          "valeur": {
+            "nullable": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "valeur",
+          "confiance"
+        ],
+        "type": "object"
+      },
+      "ChampScanneTexteDto": {
+        "properties": {
+          "confiance": {
+            "enum": [
+              "sure",
+              "douteuse",
+              "absente"
+            ],
+            "type": "string"
+          },
+          "valeur": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "valeur",
+          "confiance"
         ],
         "type": "object"
       },
@@ -1734,6 +1810,22 @@
         ],
         "type": "object"
       },
+      "CorrespondanceClientExistantDto": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "nomAffiche": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nomAffiche"
+        ],
+        "type": "object"
+      },
       "CorrespondanceRechercheDto": {
         "properties": {
           "champ": {
@@ -1759,6 +1851,33 @@
           "champ",
           "valeur",
           "historique"
+        ],
+        "type": "object"
+      },
+      "CorrespondancesScanDto": {
+        "properties": {
+          "client": {
+            "$ref": "#/components/schemas/CorrespondanceClientExistantDto"
+          },
+          "vehicule": {
+            "$ref": "#/components/schemas/CorrespondanceVehiculeExistantDto"
+          }
+        },
+        "type": "object"
+      },
+      "CorrespondanceVehiculeExistantDto": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "libelle": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "libelle"
         ],
         "type": "object"
       },
@@ -2036,6 +2155,41 @@
         ],
         "type": "object"
       },
+      "DetenteurScanneDto": {
+        "properties": {
+          "estEntreprise": {
+            "$ref": "#/components/schemas/ChampScanneBooleenDto"
+          },
+          "localite": {
+            "$ref": "#/components/schemas/ChampScanneTexteDto"
+          },
+          "nom": {
+            "$ref": "#/components/schemas/ChampScanneTexteDto"
+          },
+          "npa": {
+            "$ref": "#/components/schemas/ChampScanneTexteDto"
+          },
+          "prenom": {
+            "$ref": "#/components/schemas/ChampScanneTexteDto"
+          },
+          "raisonSociale": {
+            "$ref": "#/components/schemas/ChampScanneTexteDto"
+          },
+          "rue": {
+            "$ref": "#/components/schemas/ChampScanneTexteDto"
+          }
+        },
+        "required": [
+          "estEntreprise",
+          "nom",
+          "prenom",
+          "raisonSociale",
+          "rue",
+          "npa",
+          "localite"
+        ],
+        "type": "object"
+      },
       "DisponibiliteArticleDto": {
         "properties": {
           "articleId": {
@@ -2112,6 +2266,37 @@
         ],
         "type": "object"
       },
+      "DocumentFactureFournisseurDto": {
+        "properties": {
+          "deposeLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "deposeParId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "empreinteSha256": {
+            "description": "SHA-256 hexadécimal (64 caractères).",
+            "type": "string"
+          },
+          "tailleOctets": {
+            "type": "number"
+          },
+          "typeMime": {
+            "example": "application/pdf",
+            "type": "string"
+          }
+        },
+        "required": [
+          "typeMime",
+          "tailleOctets",
+          "empreinteSha256",
+          "deposeParId",
+          "deposeLe"
+        ],
+        "type": "object"
+      },
       "DocumentRequisDossierVenteDto": {
         "properties": {
           "code": {
@@ -2157,6 +2342,50 @@
         "required": [
           "langue",
           "mentionSecurite"
+        ],
+        "type": "object"
+      },
+      "DocumentVenteExportDto": {
+        "properties": {
+          "dateDocument": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "devise": {
+            "example": "CHF",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "numero": {
+            "description": "null tant que le document est un brouillon non numéroté.",
+            "nullable": true,
+            "type": "string"
+          },
+          "statut": {
+            "example": "emis",
+            "type": "string"
+          },
+          "totalTtcCentimes": {
+            "description": "Centimes entiers.",
+            "type": "number"
+          },
+          "typeDocument": {
+            "example": "facture",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "numero",
+          "typeDocument",
+          "statut",
+          "dateDocument",
+          "totalTtcCentimes",
+          "devise"
         ],
         "type": "object"
       },
@@ -2287,6 +2516,21 @@
         ],
         "type": "object"
       },
+      "DonneesPermisScanneDto": {
+        "properties": {
+          "detenteur": {
+            "$ref": "#/components/schemas/DetenteurScanneDto"
+          },
+          "vehicule": {
+            "$ref": "#/components/schemas/VehiculeScanneDto"
+          }
+        },
+        "required": [
+          "vehicule",
+          "detenteur"
+        ],
+        "type": "object"
+      },
       "DossierVenteAvecAvertissementsDto": {
         "properties": {
           "avertissements": {
@@ -2297,6 +2541,46 @@
           },
           "donnees": {
             "$ref": "#/components/schemas/ReponseDossierVenteDto"
+          }
+        },
+        "required": [
+          "donnees",
+          "avertissements"
+        ],
+        "type": "object"
+      },
+      "EcartLigneFactureFournisseurDto": {
+        "properties": {
+          "prixUnitaireCentimes": {
+            "description": "Facturé − attendu, centimes signés.",
+            "type": "number"
+          },
+          "quantiteMillieme": {
+            "description": "Facturé − reliquat attendu, millièmes signés.",
+            "type": "number"
+          },
+          "totalCentimes": {
+            "description": "Facturé − (prix attendu × quantité facturée), centimes signés.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "prixUnitaireCentimes",
+          "quantiteMillieme",
+          "totalCentimes"
+        ],
+        "type": "object"
+      },
+      "EnveloppeCorrectionFactureDto": {
+        "properties": {
+          "avertissements": {
+            "items": {
+              "$ref": "#/components/schemas/AvertissementDocumentDto"
+            },
+            "type": "array"
+          },
+          "donnees": {
+            "$ref": "#/components/schemas/ReponseCorrectionFactureDto"
           }
         },
         "required": [
@@ -2646,6 +2930,93 @@
         ],
         "type": "object"
       },
+      "ExportClientDto": {
+        "properties": {
+          "adresses": {
+            "items": {
+              "$ref": "#/components/schemas/ClientAdresseDto"
+            },
+            "type": "array"
+          },
+          "client": {
+            "$ref": "#/components/schemas/ClientDto"
+          },
+          "conditions": {
+            "items": {
+              "$ref": "#/components/schemas/ClientConditionDto"
+            },
+            "type": "array"
+          },
+          "consentements": {
+            "items": {
+              "$ref": "#/components/schemas/ClientConsentementDto"
+            },
+            "type": "array"
+          },
+          "contacts": {
+            "items": {
+              "$ref": "#/components/schemas/ClientContactDto"
+            },
+            "type": "array"
+          },
+          "documentsVente": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentVenteExportDto"
+            },
+            "type": "array"
+          },
+          "genereLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "notes": {
+            "description": "TOUTES natures (interne comprise) — voir la description du contrôleur.",
+            "items": {
+              "$ref": "#/components/schemas/ClientNoteDto"
+            },
+            "type": "array"
+          },
+          "ordresReparation": {
+            "items": {
+              "$ref": "#/components/schemas/OrdreReparationResumeDto"
+            },
+            "type": "array"
+          },
+          "relances": {
+            "items": {
+              "$ref": "#/components/schemas/RelanceExportDto"
+            },
+            "type": "array"
+          },
+          "rendezVous": {
+            "items": {
+              "$ref": "#/components/schemas/RendezVousExportDto"
+            },
+            "type": "array"
+          },
+          "vehicules": {
+            "items": {
+              "$ref": "#/components/schemas/VehiculeResumeDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "genereLe",
+          "client",
+          "adresses",
+          "contacts",
+          "conditions",
+          "consentements",
+          "notes",
+          "vehicules",
+          "ordresReparation",
+          "documentsVente",
+          "rendezVous",
+          "relances"
+        ],
+        "type": "object"
+      },
       "ExportComptableAvecAvertissementsDto": {
         "properties": {
           "avertissements": {
@@ -2700,6 +3071,127 @@
           "politiqueDemontageRefuse",
           "seuilDemontageCentimes",
           "produitsAtelier"
+        ],
+        "type": "object"
+      },
+      "FactureFournisseurDto": {
+        "properties": {
+          "champsOrigine": {
+            "additionalProperties": {
+              "enum": [
+                "qr",
+                "texte_pdf",
+                "ocr"
+              ],
+              "type": "string"
+            },
+            "description": "Provenance de chaque champ d’en-tête renseigné — clé absente = champ non trouvé.",
+            "type": "object"
+          },
+          "commandeFournisseurId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "creeLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dateFacture": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "devise": {
+            "example": "CHF",
+            "type": "string"
+          },
+          "document": {
+            "$ref": "#/components/schemas/DocumentFactureFournisseurDto"
+          },
+          "fournisseurId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "ibanCreancier": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "lignes": {
+            "items": {
+              "$ref": "#/components/schemas/LigneFactureFournisseurDto"
+            },
+            "type": "array"
+          },
+          "modifieLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "montantTotalCentimes": {
+            "nullable": true,
+            "type": "number"
+          },
+          "motifRejet": {
+            "nullable": true,
+            "type": "string"
+          },
+          "nomCreancier": {
+            "nullable": true,
+            "type": "string"
+          },
+          "numeroFacture": {
+            "nullable": true,
+            "type": "string"
+          },
+          "referencePaiement": {
+            "nullable": true,
+            "type": "string"
+          },
+          "statut": {
+            "enum": [
+              "deposee",
+              "rapprochee",
+              "validee",
+              "rejetee"
+            ],
+            "type": "string"
+          },
+          "valideLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "valideParId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "statut",
+          "document",
+          "fournisseurId",
+          "commandeFournisseurId",
+          "ibanCreancier",
+          "nomCreancier",
+          "numeroFacture",
+          "dateFacture",
+          "montantTotalCentimes",
+          "devise",
+          "referencePaiement",
+          "champsOrigine",
+          "lignes",
+          "valideParId",
+          "valideLe",
+          "motifRejet",
+          "creeLe",
+          "modifieLe"
         ],
         "type": "object"
       },
@@ -3056,6 +3548,77 @@
           "reliquatMotifAnnulation",
           "prixAchatAttenduCentimes",
           "ligneOrOrigineId"
+        ],
+        "type": "object"
+      },
+      "LigneFactureFournisseurDto": {
+        "properties": {
+          "articleId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "commandeFournisseurLigneId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "designation": {
+            "nullable": true,
+            "type": "string"
+          },
+          "ecart": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EcartLigneFactureFournisseurDto"
+              }
+            ],
+            "nullable": true,
+            "type": "object"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "numeroOrdre": {
+            "type": "number"
+          },
+          "origine": {
+            "enum": [
+              "qr",
+              "texte_pdf",
+              "ocr"
+            ],
+            "type": "string"
+          },
+          "prixUnitaireCentimes": {
+            "nullable": true,
+            "type": "number"
+          },
+          "quantiteMillieme": {
+            "type": "number"
+          },
+          "referenceArticle": {
+            "nullable": true,
+            "type": "string"
+          },
+          "totalLigneCentimes": {
+            "nullable": true,
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "numeroOrdre",
+          "referenceArticle",
+          "designation",
+          "quantiteMillieme",
+          "prixUnitaireCentimes",
+          "totalLigneCentimes",
+          "origine",
+          "articleId",
+          "commandeFournisseurLigneId",
+          "ecart"
         ],
         "type": "object"
       },
@@ -4037,6 +4600,29 @@
         ],
         "type": "object"
       },
+      "PageDossierRepriseDto": {
+        "properties": {
+          "curseurSuivant": {
+            "nullable": true,
+            "type": "string"
+          },
+          "donnees": {
+            "items": {
+              "$ref": "#/components/schemas/ReponseDossierRepriseDto"
+            },
+            "type": "array"
+          },
+          "limite": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "donnees",
+          "curseurSuivant",
+          "limite"
+        ],
+        "type": "object"
+      },
       "PageDossierVenteDto": {
         "properties": {
           "curseurSuivant": {
@@ -4072,6 +4658,30 @@
           "donnees": {
             "items": {
               "$ref": "#/components/schemas/ReponseEntreeJournalDto"
+            },
+            "type": "array"
+          },
+          "limite": {
+            "example": 50,
+            "type": "number"
+          }
+        },
+        "required": [
+          "donnees",
+          "curseurSuivant",
+          "limite"
+        ],
+        "type": "object"
+      },
+      "PageFactureFournisseurDto": {
+        "properties": {
+          "curseurSuivant": {
+            "nullable": true,
+            "type": "string"
+          },
+          "donnees": {
+            "items": {
+              "$ref": "#/components/schemas/FactureFournisseurDto"
             },
             "type": "array"
           },
@@ -4783,6 +5393,7 @@
               "VEHICULE_ARCHIVAGE_IMPOSSIBLE",
               "CLIENT_TYPE_IMMUABLE",
               "CLIENT_DESACTIVATION_IMPOSSIBLE",
+              "CLIENT_DEJA_ANONYMISE",
               "PRET_VEHICULE_INDISPONIBLE",
               "PRET_CONDUCTEUR_REQUIS",
               "CONFIRMATION_REQUISE",
@@ -4841,7 +5452,21 @@
               "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE",
               "LIGNE_DOCUMENT_STOCK_LIEE",
               "IMPUTATION_DEVISE_INCOHERENTE",
-              "IMPUTATION_DOCUMENT_NON_REGLABLE"
+              "IMPUTATION_DOCUMENT_NON_REGLABLE",
+              "RESILIATION_TENANT_INTROUVABLE",
+              "RESILIATION_TENANT_TRANSITION_INTERDITE",
+              "RESILIATION_TENANT_DEJA_EN_COURS",
+              "RESILIATION_TENANT_EXPORT_INDISPONIBLE",
+              "RESILIATION_TENANT_PURGE_PREMATUREE",
+              "RESILIATION_TENANT_CONFIRMATION_INVALIDE",
+              "REPRISE_DOSSIER_TRANSITION_INTERDITE",
+              "REPRISE_ARCHIVE_INCOMPLETE",
+              "REPRISE_EMPREINTE_INVALIDE",
+              "REPRISE_TRANCHE_HORS_SEQUENCE",
+              "REPRISE_PLAN_NON_VALIDABLE",
+              "REPRISE_AJUSTEMENT_ELEMENT_INCONNU",
+              "AUTH_JETON_REINITIALISATION_INVALIDE",
+              "FACTURE_DESTINATAIRE_COURRIEL_ABSENT"
             ],
             "type": "string"
           },
@@ -4934,6 +5559,7 @@
               "VEHICULE_ARCHIVAGE_IMPOSSIBLE",
               "CLIENT_TYPE_IMMUABLE",
               "CLIENT_DESACTIVATION_IMPOSSIBLE",
+              "CLIENT_DEJA_ANONYMISE",
               "PRET_VEHICULE_INDISPONIBLE",
               "PRET_CONDUCTEUR_REQUIS",
               "CONFIRMATION_REQUISE",
@@ -4992,7 +5618,21 @@
               "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE",
               "LIGNE_DOCUMENT_STOCK_LIEE",
               "IMPUTATION_DEVISE_INCOHERENTE",
-              "IMPUTATION_DOCUMENT_NON_REGLABLE"
+              "IMPUTATION_DOCUMENT_NON_REGLABLE",
+              "RESILIATION_TENANT_INTROUVABLE",
+              "RESILIATION_TENANT_TRANSITION_INTERDITE",
+              "RESILIATION_TENANT_DEJA_EN_COURS",
+              "RESILIATION_TENANT_EXPORT_INDISPONIBLE",
+              "RESILIATION_TENANT_PURGE_PREMATUREE",
+              "RESILIATION_TENANT_CONFIRMATION_INVALIDE",
+              "REPRISE_DOSSIER_TRANSITION_INTERDITE",
+              "REPRISE_ARCHIVE_INCOMPLETE",
+              "REPRISE_EMPREINTE_INVALIDE",
+              "REPRISE_TRANCHE_HORS_SEQUENCE",
+              "REPRISE_PLAN_NON_VALIDABLE",
+              "REPRISE_AJUSTEMENT_ELEMENT_INCONNU",
+              "AUTH_JETON_REINITIALISATION_INVALIDE",
+              "FACTURE_DESTINATAIRE_COURRIEL_ABSENT"
             ],
             "type": "string"
           },
@@ -5280,6 +5920,84 @@
         ],
         "type": "object"
       },
+      "RelanceExportDto": {
+        "properties": {
+          "canal": {
+            "type": "string"
+          },
+          "contenuFige": {
+            "type": "string"
+          },
+          "destinataireFige": {
+            "type": "string"
+          },
+          "envoyeLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "palier": {
+            "type": "number"
+          },
+          "statutEnvoi": {
+            "type": "string"
+          },
+          "typeRelance": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "typeRelance",
+          "palier",
+          "canal",
+          "destinataireFige",
+          "contenuFige",
+          "statutEnvoi",
+          "envoyeLe"
+        ],
+        "type": "object"
+      },
+      "RendezVousExportDto": {
+        "properties": {
+          "commentaire": {
+            "nullable": true,
+            "type": "string"
+          },
+          "date": {
+            "format": "date",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "moment": {
+            "example": "matin",
+            "type": "string"
+          },
+          "motifAnnulation": {
+            "nullable": true,
+            "type": "string"
+          },
+          "statut": {
+            "example": "confirme",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "date",
+          "moment",
+          "statut",
+          "commentaire",
+          "motifAnnulation"
+        ],
+        "type": "object"
+      },
       "RepartitionStatutOrdreReparationTableauBordDto": {
         "properties": {
           "nombre": {
@@ -5545,6 +6263,36 @@
           "alertesClient",
           "ordresReparationOuverts",
           "avertissements"
+        ],
+        "type": "object"
+      },
+      "ReponseCorrectionFactureDto": {
+        "properties": {
+          "avoir": {
+            "$ref": "#/components/schemas/ReponseDocumentVenteDto"
+          },
+          "factureRemplacement": {
+            "$ref": "#/components/schemas/ReponseDocumentVenteDto"
+          }
+        },
+        "required": [
+          "avoir",
+          "factureRemplacement"
+        ],
+        "type": "object"
+      },
+      "ReponseCreationDossierRepriseDto": {
+        "properties": {
+          "dossier": {
+            "$ref": "#/components/schemas/ReponseDossierRepriseDto"
+          },
+          "tailleTrancheRecommandeeOctets": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "dossier",
+          "tailleTrancheRecommandeeOctets"
         ],
         "type": "object"
       },
@@ -6093,6 +6841,61 @@
         ],
         "type": "object"
       },
+      "ReponseDossierRepriseDto": {
+        "properties": {
+          "analyseId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "archive": {
+            "$ref": "#/components/schemas/ArchiveDeposeeRepriseDto"
+          },
+          "creeLe": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "importId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "modifieLe": {
+            "type": "string"
+          },
+          "planId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "statut": {
+            "enum": [
+              "depot_en_cours",
+              "depot_receptionne",
+              "analyse_en_cours",
+              "analyse_echouee",
+              "analyse_terminee",
+              "plan_propose",
+              "plan_valide",
+              "import_en_cours",
+              "import_termine",
+              "import_echoue",
+              "annule"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "statut",
+          "archive",
+          "analyseId",
+          "planId",
+          "importId",
+          "creeLe",
+          "modifieLe"
+        ],
+        "type": "object"
+      },
       "ReponseDossierVenteDto": {
         "properties": {
           "abandonneLe": {
@@ -6472,6 +7275,30 @@
         ],
         "type": "object"
       },
+      "ReponseEnvoiFactureCourrielDto": {
+        "properties": {
+          "destinataire": {
+            "description": "Adresse courriel réellement utilisée (celle de la fiche client).",
+            "example": "client@example.ch",
+            "type": "string"
+          },
+          "envoye": {
+            "example": true,
+            "type": "boolean"
+          },
+          "idMessage": {
+            "description": "Identifiant de message rendu par le transport (SMTP réel ou capture).",
+            "example": "capture-3f8e...",
+            "type": "string"
+          }
+        },
+        "required": [
+          "envoye",
+          "destinataire",
+          "idMessage"
+        ],
+        "type": "object"
+      },
       "ReponseExportComptableDto": {
         "properties": {
           "documentsExportes": {
@@ -6531,6 +7358,22 @@
         "required": [
           "facturesCreees",
           "ordreReparation"
+        ],
+        "type": "object"
+      },
+      "ReponseFichierExportTenantDto": {
+        "properties": {
+          "chemin": {
+            "example": "tables/client.csv",
+            "type": "string"
+          },
+          "tailleOctets": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "chemin",
+          "tailleOctets"
         ],
         "type": "object"
       },
@@ -7161,6 +8004,20 @@
           "factureId",
           "creeLe",
           "modifieLe"
+        ],
+        "type": "object"
+      },
+      "ReponseListeFichiersExportTenantDto": {
+        "properties": {
+          "fichiers": {
+            "items": {
+              "$ref": "#/components/schemas/ReponseFichierExportTenantDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "fichiers"
         ],
         "type": "object"
       },
@@ -8415,6 +9272,132 @@
         ],
         "type": "object"
       },
+      "ReponseResiliationTenantDto": {
+        "properties": {
+          "creeLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "demandeeLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "demandeeParUtilisateurId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "effaceeLe": {
+            "description": "Renseigné uniquement après effacement automatique effectif.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "exportErreur": {
+            "nullable": true,
+            "type": "string"
+          },
+          "exportGenereLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "exportNbLignesTotal": {
+            "nullable": true,
+            "type": "number"
+          },
+          "exportNbTables": {
+            "nullable": true,
+            "type": "number"
+          },
+          "exportTailleOctets": {
+            "nullable": true,
+            "type": "number"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "modifieLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "motif": {
+            "type": "string"
+          },
+          "purgePrevueLe": {
+            "description": "Date au-delà de laquelle l'effacement automatique devient éligible.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "remisConfirmeParUtilisateurId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "remisLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "retentionJours": {
+            "description": "Nombre de jours de conservation après la remise.",
+            "type": "number"
+          },
+          "statut": {
+            "enum": [
+              "demandee",
+              "export_en_cours",
+              "export_echoue",
+              "export_pret",
+              "export_remis",
+              "en_conservation",
+              "efface"
+            ],
+            "type": "string"
+          },
+          "tenantId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "statut",
+          "motif",
+          "demandeeLe",
+          "demandeeParUtilisateurId",
+          "exportGenereLe",
+          "exportNbTables",
+          "exportNbLignesTotal",
+          "exportTailleOctets",
+          "exportErreur",
+          "remisLe",
+          "remisConfirmeParUtilisateurId",
+          "retentionJours",
+          "purgePrevueLe",
+          "effaceeLe",
+          "creeLe",
+          "modifieLe"
+        ],
+        "type": "object"
+      },
+      "ReponseScanPermisCirculationDto": {
+        "properties": {
+          "correspondances": {
+            "$ref": "#/components/schemas/CorrespondancesScanDto"
+          },
+          "donnees": {
+            "$ref": "#/components/schemas/DonneesPermisScanneDto"
+          }
+        },
+        "required": [
+          "donnees",
+          "correspondances"
+        ],
+        "type": "object"
+      },
       "ReponseTauxHoraireDto": {
         "properties": {
           "code": {
@@ -8451,6 +9434,25 @@
           "montantCentimes",
           "valideDuLe",
           "valideAuLe"
+        ],
+        "type": "object"
+      },
+      "ReponseTrancheDeposeeDto": {
+        "properties": {
+          "numero": {
+            "type": "number"
+          },
+          "octetsRecus": {
+            "type": "number"
+          },
+          "toutesTranchesRecues": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "numero",
+          "octetsRecus",
+          "toutesTranchesRecues"
         ],
         "type": "object"
       },
@@ -10400,6 +11402,42 @@
         ],
         "type": "object"
       },
+      "VehiculeScanneDto": {
+        "properties": {
+          "canton": {
+            "$ref": "#/components/schemas/ChampScanneTexteDto"
+          },
+          "marque": {
+            "$ref": "#/components/schemas/ChampScanneTexteDto"
+          },
+          "modele": {
+            "$ref": "#/components/schemas/ChampScanneTexteDto"
+          },
+          "plaque": {
+            "$ref": "#/components/schemas/ChampScanneTexteDto"
+          },
+          "premiereMiseEnCirculationLe": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChampScanneTexteDto"
+              }
+            ],
+            "description": "Valeur ISO `aaaa-mm-jj` quand lue."
+          },
+          "vin": {
+            "$ref": "#/components/schemas/ChampScanneTexteDto"
+          }
+        },
+        "required": [
+          "marque",
+          "modele",
+          "vin",
+          "plaque",
+          "canton",
+          "premiereMiseEnCirculationLe"
+        ],
+        "type": "object"
+      },
       "VehiculeStockAvecAvertissementsDto": {
         "properties": {
           "avertissements": {
@@ -10524,7 +11562,7 @@
     "contact": {},
     "description": "API du DMS (Dealer Management System) pour garages et concessions suisses. Contrat d'erreur unique application/problem+json (schéma ProblemeDetailCommunDto, code machine stable). Le tenant est toujours résolu depuis la session — aucun endpoint n'accepte de tenantId en paramètre.",
     "title": "API dmsforall (DFA)",
-    "version": "0.1.325+a2bc8ee"
+    "version": "0.1.377+be2774a"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -12907,7 +13945,7 @@
                   "email": {
                     "format": "email",
                     "maxLength": 320,
-                    "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
                     "type": "string"
                   },
                   "motDePasse": {
@@ -13046,6 +14084,170 @@
           }
         },
         "summary": "Session courante de l’utilisateur authentifié.",
+        "tags": [
+          "Authentification"
+        ]
+      }
+    },
+    "/auth/mot-de-passe/oubli": {
+      "post": {
+        "description": "204 systématique — que l'email corresponde ou non à un compte réel, actif, d'un tenant actif : révéler l'existence d'un compte par la forme de la réponse est exactement ce que cet endpoint doit éviter. Si l'email correspond à un compte utilisable, un courriel contenant un lien à usage unique (valide 30 minutes) est envoyé.",
+        "operationId": "AuthController_demanderReinitialisationMotDePasse",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "email": "accueil@garage-martin.ch"
+                  }
+                }
+              },
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "email": {
+                    "format": "email",
+                    "maxLength": 320,
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "email"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Traité — voir la description : ne signifie rien."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailDto"
+                }
+              }
+            },
+            "description": "VALIDATION_ECHOUEE — corps de requête invalide."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailDto"
+                }
+              }
+            },
+            "description": "AUTH_ORIGINE_REFUSEE."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailDto"
+                }
+              }
+            },
+            "description": "AUTH_TROP_DE_TENTATIVES."
+          }
+        },
+        "summary": "Demande de réinitialisation de mot de passe (mot de passe oublié).",
+        "tags": [
+          "Authentification"
+        ]
+      }
+    },
+    "/auth/mot-de-passe/reinitialisation": {
+      "post": {
+        "description": "Email inconnu, jeton inconnu/expiré/déjà utilisé, et compte/tenant non actif renvoient EXACTEMENT la même erreur 400 AUTH_JETON_REINITIALISATION_INVALIDE — anti-énumération, même doctrine que POST /auth/connexion. Succès : toutes les sessions actives de l'utilisateur sont révoquées.",
+        "operationId": "AuthController_confirmerReinitialisationMotDePasse",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "email": "accueil@garage-martin.ch",
+                    "jeton": "jeton-opaque-recu-par-courriel",
+                    "nouveauMotDePasse": "un-nouveau-mot-de-passe-suffisamment-long"
+                  }
+                }
+              },
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "email": {
+                    "format": "email",
+                    "maxLength": 320,
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                    "type": "string"
+                  },
+                  "jeton": {
+                    "maxLength": 512,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "nouveauMotDePasse": {
+                    "maxLength": 256,
+                    "minLength": 12,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "email",
+                  "jeton",
+                  "nouveauMotDePasse"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Mot de passe changé, sessions révoquées."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailDto"
+                }
+              }
+            },
+            "description": "VALIDATION_ECHOUEE (corps invalide, dont politique de mot de passe) ou AUTH_JETON_REINITIALISATION_INVALIDE."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailDto"
+                }
+              }
+            },
+            "description": "AUTH_ORIGINE_REFUSEE."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailDto"
+                }
+              }
+            },
+            "description": "AUTH_TROP_DE_TENTATIVES."
+          }
+        },
+        "summary": "Confirmation de réinitialisation de mot de passe (jeton + nouveau mot de passe).",
         "tags": [
           "Authentification"
         ]
@@ -13297,7 +14499,7 @@
                       {
                         "format": "email",
                         "maxLength": 320,
-                        "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
                         "type": "string"
                       },
                       {
@@ -13613,7 +14815,7 @@
                       {
                         "format": "email",
                         "maxLength": 320,
-                        "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
                         "type": "string"
                       },
                       {
@@ -14159,6 +15361,122 @@
         ]
       }
     },
+    "/clients/{clientId}/anonymiser": {
+      "post": {
+        "description": "Neutralise l'identité du client et de ses satellites (adresse/contact/note), redacte l'historique d'audit de sa fiche, coupe tout contact futur (RA-14). NE TOUCHE JAMAIS les factures ni les ordres de réparation, qui restent en place montants et dates intacts (arbitrage @laupernoe) — voir l'en-tête de `migrations/0061_anonymisation_client.sql` pour le recensement complet. `motif` obligatoire : raison STAFF de la demande, jamais une donnée du client. Un seul geste par client (`409 CLIENT_DEJA_ANONYMISE` au second appel).",
+        "operationId": "ClientRgpdController_anonymiser",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "motif": "Demande écrite du client reçue le 18.08.2026 (art. 32 nLPD)."
+                  }
+                }
+              },
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "motif": {
+                    "maxLength": 500,
+                    "minLength": 3,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "motif"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Motif manquant."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (rôle sans client.anonymiser)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Client introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "CLIENT_DEJA_ANONYMISE — un seul geste par client, irréversible."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Anonymise un client (droit à l'effacement nLPD, art. 32) — IRRÉVERSIBLE.",
+        "tags": [
+          "Clients"
+        ]
+      }
+    },
     "/clients/{clientId}/arreter-contact": {
       "post": {
         "description": "Un client peut demander à ne plus être contacté (litige, mandataire) — ce drapeau prime sur tout consentement marketing, y compris pour une relance de facture impayée, où aucun consentement marketing n'est pourtant requis. `motif` obligatoire. GESTE DÉDIÉ, jamais un champ du `PATCH` générique — même doctrine que la désactivation ci-dessus. Rôle vérifié EN SERVICE (`client.contact.arreter`, droit provisoire — voir `droits-provisoires.ts`).",
@@ -14632,7 +15950,7 @@
                   },
                   "recueilliLe": {
                     "format": "date-time",
-                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
                     "type": "string"
                   },
                   "type": {
@@ -14824,7 +16142,7 @@
                       {
                         "format": "email",
                         "maxLength": 320,
-                        "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
                         "type": "string"
                       },
                       {
@@ -15019,7 +16337,7 @@
                       {
                         "format": "email",
                         "maxLength": 320,
-                        "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
                         "type": "string"
                       },
                       {
@@ -15277,6 +16595,84 @@
           }
         ],
         "summary": "Désactivation d'une fiche client (RM-12).",
+        "tags": [
+          "Clients"
+        ]
+      }
+    },
+    "/clients/{clientId}/export": {
+      "get": {
+        "description": "Bundle exhaustif : fiche, adresses, contacts, conditions, consentements, notes (TOUTES natures, interne comprise), véhicules détenus, ordres de réparation, documents de vente, rendez-vous et historique de relances (adresse/contenu réellement envoyés). Lecture seule.",
+        "operationId": "ClientRgpdController_exporter",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportClientDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Identifiant mal formé."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (rôle sans client.export.generer)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Client introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Export complet des données détenues sur un client (droit d'accès nLPD, art. 25).",
         "tags": [
           "Clients"
         ]
@@ -17728,6 +19124,223 @@
         ]
       }
     },
+    "/documents-vente/{factureId}/corriger": {
+      "post": {
+        "description": "`Idempotency-Key` obligatoire — c'est une création de facture, donc une création sensible. Une facture ÉMISE ne se modifie JAMAIS (MD-20) : ce geste produit TROIS documents immuables — un avoir TOTAL (déjà émis, sans retour physique de stock) créditant la facture d'origine (qui bascule `annule_par_avoir`), et une facture de remplacement (déjà émise) reprenant les mêmes lignes avec l'en-tête corrigé (`champsCorriges` : désignation et/ou adresse de facturation uniquement — une erreur de montant ou de taux se corrige par un avoir libre, `POST /documents-vente/{factureId}/avoirs`, jamais par ce geste). Droit DÉDIÉ, périmètre volontairement PLUS ÉTROIT qu'émettre un avoir simple : `direction`/`comptable` SEULS (ni `receptionnaire`, ni `admin`, RF-115).",
+        "operationId": "DocumentVenteTransitionsController_corriger",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "factureId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "uuid v4, identité de la requête.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "champsCorriges": {
+                      "adresseFacturation": {
+                        "localite": "Lausanne",
+                        "npa": "1000",
+                        "rue": "Rue du Marché 12"
+                      }
+                    },
+                    "corrigerFicheClient": true,
+                    "motif": "erreur_adresse"
+                  }
+                }
+              },
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "champsCorriges": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "adresseFacturation": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "localite": {
+                            "maxLength": 35,
+                            "type": "string"
+                          },
+                          "npa": {
+                            "maxLength": 16,
+                            "type": "string"
+                          },
+                          "numero": {
+                            "anyOf": [
+                              {
+                                "maxLength": 20,
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "pays": {
+                            "default": "CH",
+                            "maxLength": 2,
+                            "minLength": 2,
+                            "type": "string"
+                          },
+                          "rue": {
+                            "maxLength": 200,
+                            "minLength": 1,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "rue",
+                          "npa",
+                          "localite"
+                        ],
+                        "type": "object"
+                      },
+                      "clientDesignation": {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "confirmations": {
+                    "items": {
+                      "enum": [
+                        "CLIENT_BLOQUE",
+                        "VEHICULE_DEUX_OR_OUVERTS",
+                        "RDV_RESSOURCE_CHEVAUCHEMENT",
+                        "RDV_HORS_OUVERTURE",
+                        "PRET_VEHICULE_INDISPONIBLE",
+                        "OR_SANS_RDV"
+                      ],
+                      "type": "string"
+                    },
+                    "maxItems": 10,
+                    "type": "array"
+                  },
+                  "corrigerFicheClient": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "motif": {
+                    "enum": [
+                      "erreur_adresse",
+                      "erreur_montant",
+                      "erreur_destinataire",
+                      "erreur_taux",
+                      "prestation_annulee",
+                      "geste_commercial",
+                      "autre"
+                    ],
+                    "type": "string"
+                  },
+                  "motifAutre": {
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "motif",
+                  "champsCorriges"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeCorrectionFactureDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide ou Idempotency-Key manquante/mal formée."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Facture introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "DOCUMENT_TRANSITION_INTERDITE (facture non émise ou déjà corrigée/annulée) ou IDEMPOTENCE_CONFLIT."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Correction — annule par avoir ET recrée une facture, dans la même transaction (RF-12 → RF-14).",
+        "tags": [
+          "Documents de vente — transitions"
+        ]
+      }
+    },
     "/documents-vente/{id}": {
       "get": {
         "operationId": "DocumentVenteController_parId",
@@ -18328,6 +19941,84 @@
         "summary": "Émission — le point de non-retour (RF-10, MD-18).",
         "tags": [
           "Documents de vente — transitions"
+        ]
+      }
+    },
+    "/documents-vente/{id}/envoyer-courriel": {
+      "post": {
+        "description": "Réutilise `obtenirPdf` (génération paresseuse si le PDF n'est pas encore en cache, DI-3) — la facture part TOUJOURS avec son PDF, jamais un envoi amputé. Refuse (409, `FACTURE_DESTINATAIRE_COURRIEL_ABSENT`) si la fiche client ne porte aucune adresse courriel — rien ne le garantit aujourd’hui dans le modèle de données.",
+        "operationId": "ImpressionFactureController_envoyerParCourriel",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseEnvoiFactureCourrielDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Document introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "FACTURE_DESTINATAIRE_COURRIEL_ABSENT — la fiche client ne porte aucune adresse courriel.\n\nDOCUMENT_PDF_INDISPONIBLE — le document n'est pas une facture émise."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Envoie la facture (PDF en pièce jointe) à l’adresse courriel de la fiche client.",
+        "tags": [
+          "Documents de vente"
         ]
       }
     },
@@ -21772,6 +23463,34 @@
         ]
       }
     },
+    "/evenements-temps-reel/flux": {
+      "get": {
+        "description": "Connexion HTTP longue : chaque message est une ligne `data: <json>` conforme à `EvenementTempsReel` (`@dfa/shared`). Filtré par rôle À L'ÉMISSION (le principal ne reçoit que les événements dont il fait partie des destinataires) — ce endpoint ne fait aucun choix d'autorisation lui-même. Fermé automatiquement si la session expire ou est révoquée pendant que le flux est ouvert (contrôle toutes les 15s).",
+        "operationId": "TempsReelController_flux",
+        "parameters": [],
+        "responses": {
+          "401": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Flux Server-Sent Events des événements temps réel du tenant courant.",
+        "tags": [
+          "Temps réel"
+        ]
+      }
+    },
     "/exports-fiduciaires": {
       "post": {
         "description": "Cible unique câblée dans ce lot : `winbiz` — les autres valeurs de `cible` (`bexio`/`abacus`/`banana`/`csv`) répondent `501 FONCTION_NON_DISPONIBLE`, jamais un fichier vide ou approximatif. Seul `granularite: 'detaille'` (une écriture par document PUIS une par paiement, MD-88) est implémenté ; `agrege` répond le même 501. La continuité de numérotation de la série (facture/avoir, par exercice) est vérifiée de façon BLOQUANTE avant toute écriture (RF-28/RF-105, `409 EXPORT_TROU_NUMEROTATION`) : un trou ne part jamais chez la fiduciaire — elle ne s'applique qu'aux documents, un paiement n'a pas de série. Le mapping comptable du tenant (`mapping_compte`/`mapping_code_tva`) doit être COMPLET pour l'ensemble du lot (documents ET paiements — comptes financiers par moyen de paiement, arrondi, escompte, perte), faute de quoi l'export est refusé EN BLOC, jamais partiellement (`409 EXPORT_MAPPING_INCOMPLET`, qui nomme précisément ce qui manque). Une imputation `compensation`, ou un escompte/une perte sur un document à plusieurs taux de TVA, ne sont pas construits par ce lot (`501 FONCTION_NON_DISPONIBLE` — non documentés par MD-84 §6.2, jamais devinés). `Idempotency-Key` OBLIGATOIRE (uuid v4) : un rejeu réseau ne doit jamais produire un second lot ni marquer deux fois les mêmes documents ou paiements (MD-92 : un document ou un paiement déjà exporté ne repart dans un autre lot que par un geste explicite et tracé — un REJEU n'en est justement pas un). Réponse `200` (au lieu de `201`) si rien n'était candidat sur la période (`donnees.lots: []`, `donnees.documentsExportes: []`, `donnees.paiementsExportes: []`) — un résultat vide honnête, pas une erreur.",
@@ -21930,6 +23649,446 @@
         ]
       }
     },
+    "/factures-fournisseur": {
+      "get": {
+        "operationId": "FactureFournisseurController_lister",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageFactureFournisseurDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Filtres, tri ou curseur invalides."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Liste paginée des factures fournisseurs déposées (sans le binaire).",
+        "tags": [
+          "Pièces — Factures fournisseur"
+        ]
+      },
+      "post": {
+        "description": "Chaîne QR-facture → texte du PDF → OCR de repli. Rattache à la commande fournisseur par correspondance EXACTE uniquement (fournisseur par nom du créancier QR, commande par sa référence retrouvée dans le texte). Écarts prix/quantité/total calculés ligne à ligne, jamais de correction ni de mise à jour de stock/prix automatique — l'utilisateur confirme via `POST /{id}/valider`. Un dépôt du MÊME fichier (empreinte SHA-256 identique) est refusé.",
+        "operationId": "FactureFournisseurController_deposer",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "fichier": {
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "fichier"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FactureFournisseurDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Fichier absent ou signature PDF invalide (VALIDATION_ECHOUEE)."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Rôle sans droit de dépôt (DROIT_INSUFFISANT)."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "CONFLIT — ce fichier a déjà été déposé (même empreinte SHA-256)."
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Fichier trop volumineux (LIMITE_TAILLE_FACTURE_FOURNISSEUR_OCTETS)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Dépose une facture fournisseur (PDF) — lecture automatique et rapprochement.",
+        "tags": [
+          "Pièces — Factures fournisseur"
+        ]
+      }
+    },
+    "/factures-fournisseur/{id}": {
+      "get": {
+        "operationId": "FactureFournisseurController_obtenir",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FactureFournisseurDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Facture introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Détail d’une facture fournisseur — lignes et écarts.",
+        "tags": [
+          "Pièces — Factures fournisseur"
+        ]
+      }
+    },
+    "/factures-fournisseur/{id}/document": {
+      "get": {
+        "operationId": "FactureFournisseurController_telechargerDocument",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Facture introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Le PDF déposé, tel quel — jamais chargé par `GET /{id}` ni par la liste.",
+        "tags": [
+          "Pièces — Factures fournisseur"
+        ]
+      }
+    },
+    "/factures-fournisseur/{id}/rejeter": {
+      "post": {
+        "operationId": "FactureFournisseurController_rejeter",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FactureFournisseurDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Motif absent ou trop court."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Facture introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "CONFLIT — déjà validée ou rejetée (décision terminale)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Refuse la facture (mauvais dépôt, doublon manuel…) — motif exigé.",
+        "tags": [
+          "Pièces — Factures fournisseur"
+        ]
+      }
+    },
+    "/factures-fournisseur/{id}/valider": {
+      "post": {
+        "operationId": "FactureFournisseurController_valider",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FactureFournisseurDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Facture introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "CONFLIT — déjà validée ou rejetée (décision terminale)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Le magasinier confirme la facture (aucune validation automatique).",
+        "tags": [
+          "Pièces — Factures fournisseur"
+        ]
+      }
+    },
     "/fournisseurs": {
       "get": {
         "operationId": "FournisseurController_lister",
@@ -22012,7 +24171,7 @@
                       {
                         "format": "email",
                         "maxLength": 320,
-                        "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
                         "type": "string"
                       },
                       {
@@ -22211,7 +24370,7 @@
                       {
                         "format": "email",
                         "maxLength": 320,
-                        "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
                         "type": "string"
                       },
                       {
@@ -22710,7 +24869,7 @@
                     "anyOf": [
                       {
                         "format": "date-time",
-                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
                         "type": "string"
                       },
                       {
@@ -23034,7 +25193,7 @@
                     "anyOf": [
                       {
                         "format": "date-time",
-                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
                         "type": "string"
                       },
                       {
@@ -23926,7 +26085,7 @@
                     "anyOf": [
                       {
                         "format": "date-time",
-                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
                         "type": "string"
                       },
                       {
@@ -24034,6 +26193,73 @@
         ]
       }
     },
+    "/ordres-reparation/{orId}/devis-complementaires/{devisId}/pdf": {
+      "get": {
+        "description": "RÉGÉNÉRÉ À CHAQUE APPEL, sans cache : un devis en attente peut recevoir une réponse entre deux impressions — le statut affiché reflète toujours l'état courant. Imprimable quel que soit le statut du devis (en attente ou déjà répondu). Porte un montant TTC en clair : refusé (`DROIT_INSUFFISANT`) pour tout rôle sans accès aux montants de l'atelier (`technicien`, `poste_atelier`), même si ce rôle peut lire l'ordre de réparation lui-même.",
+        "operationId": "ImpressionDevisController_telechargerPdf",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "devisId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (rôle sans atelier.or.lire), ou rôle sans accès aux montants de l'atelier."
+          },
+          "404": {
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation ou devis complémentaire introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Devis complémentaire au format PDF, à montrer ou transmettre au client.",
+        "tags": [
+          "Ordres de réparation — devis complémentaires"
+        ]
+      }
+    },
     "/ordres-reparation/{orId}/devis-complementaires/{devisId}/repondre": {
       "post": {
         "description": "`Idempotency-Key` obligatoire : une double réponse est un litige (RM-81). `partiel` fait prendre à chaque ligne sa propre décision. L’OR reprend son cours, il n’est JAMAIS annulé (RM-84).",
@@ -24135,7 +26361,7 @@
                   },
                   "repondueLe": {
                     "format": "date-time",
-                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
                     "type": "string"
                   },
                   "retranscription": {
@@ -24333,52 +26559,40 @@
                   "motifsReport": {
                     "default": [],
                     "items": {
-                      "allOf": [
-                        {
-                          "additionalProperties": false,
-                          "properties": {
-                            "payeur": {
-                              "enum": [
-                                "client",
-                                "constructeur",
-                                "assurance",
-                                "tiers"
-                              ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "motif": {
+                          "maxLength": 500,
+                          "minLength": 3,
+                          "type": "string"
+                        },
+                        "payeur": {
+                          "enum": [
+                            "client",
+                            "constructeur",
+                            "assurance",
+                            "tiers"
+                          ],
+                          "type": "string"
+                        },
+                        "payeurClientId": {
+                          "anyOf": [
+                            {
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
                               "type": "string"
                             },
-                            "payeurClientId": {
-                              "anyOf": [
-                                {
-                                  "format": "uuid",
-                                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                                  "type": "string"
-                                },
-                                {
-                                  "type": "null"
-                                }
-                              ]
+                            {
+                              "type": "null"
                             }
-                          },
-                          "required": [
-                            "payeur"
-                          ],
-                          "type": "object"
-                        },
-                        {
-                          "additionalProperties": false,
-                          "properties": {
-                            "motif": {
-                              "maxLength": 500,
-                              "minLength": 3,
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "motif"
-                          ],
-                          "type": "object"
+                          ]
                         }
-                      ]
+                      },
+                      "required": [
+                        "payeur",
+                        "motif"
+                      ],
+                      "type": "object"
                     },
                     "maxItems": 20,
                     "type": "array"
@@ -27244,7 +29458,7 @@
     },
     "/paiements/{paiementId}/abandonner": {
       "post": {
-        "description": "`Idempotency-Key` obligatoire (uuid v4) — décision de sécurité de cet agent (voir le rapport de livraison) : un geste qui renonce à rendre de l'argent au client ne doit jamais s'exécuter deux fois sur un retry. Crée une imputation de nature `compensation` sur le document de régularisation désigné, rattachée au paiement d'avance.",
+        "description": "`Idempotency-Key` obligatoire (uuid v4) — décision de sécurité (voir la documentation de la route) : un geste qui renonce à rendre de l'argent au client ne doit jamais s'exécuter deux fois sur un retry. Crée une imputation de nature `compensation` sur le document de régularisation désigné, rattachée au paiement d'avance.",
         "operationId": "PaiementController_abandonner",
         "parameters": [
           {
@@ -27383,7 +29597,7 @@
     },
     "/paiements/{paiementId}/imputations": {
       "post": {
-        "description": "`Idempotency-Key` obligatoire (uuid v4) — décision de sécurité de cet agent (voir le rapport de livraison) : une imputation rejouée deux fois lettrerait deux fois le même encaissement. Natures acceptées ici : `reglement`, `arrondi` uniquement — `escompte`/`perte`/`compensation` passent par leurs actions dédiées.",
+        "description": "`Idempotency-Key` obligatoire (uuid v4) — décision de sécurité (voir la documentation de la route) : une imputation rejouée deux fois lettrerait deux fois le même encaissement. Natures acceptées ici : `reglement`, `arrondi` uniquement — `escompte`/`perte`/`compensation` passent par leurs actions dédiées.",
         "operationId": "PaiementController_ajouterImputation",
         "parameters": [
           {
@@ -28521,7 +30735,7 @@
                       },
                       "debutLe": {
                         "format": "date-time",
-                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
                         "type": "string"
                       },
                       "decalageHorlogeMs": {
@@ -28590,7 +30804,7 @@
                       },
                       "debutLe": {
                         "format": "date-time",
-                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
                         "type": "string"
                       },
                       "decalageHorlogeMs": {
@@ -28665,7 +30879,7 @@
                       },
                       "debutLe": {
                         "format": "date-time",
-                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
                         "type": "string"
                       },
                       "decalageHorlogeMs": {
@@ -28913,7 +31127,7 @@
                   },
                   "finLe": {
                     "format": "date-time",
-                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
                     "type": "string"
                   }
                 },
@@ -29058,12 +31272,12 @@
                   },
                   "debutLe": {
                     "format": "date-time",
-                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
                     "type": "string"
                   },
                   "finLe": {
                     "format": "date-time",
-                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
                     "type": "string"
                   },
                   "ligneOrId": {
@@ -31415,7 +33629,7 @@
             "cookie": []
           }
         ],
-        "summary": "Prise de rendez-vous (§6 métier) — motif OBLIGATOIRE (arbitrage @laupernoe #2).",
+        "summary": "Prise de rendez-vous (§6 métier) — motif OBLIGATOIRE (choix produit #2).",
         "tags": [
           "Rendez-vous"
         ]
@@ -32128,6 +34342,1121 @@
         ]
       }
     },
+    "/reprise/dossiers": {
+      "get": {
+        "operationId": "DossierRepriseController_lister",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageDossierRepriseDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Filtres, tri ou curseur invalides."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Liste des dossiers de reprise du tenant courant, curseur, tri creeLe.",
+        "tags": [
+          "Reprise de données"
+        ]
+      },
+      "post": {
+        "description": "`Idempotency-Key` obligatoire (uuid v4) : un rejeu ne doit jamais ouvrir un second dossier.",
+        "operationId": "DossierRepriseController_creer",
+        "parameters": [
+          {
+            "description": "uuid v4, identité de la requête.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "empreinteSha256Annoncee": {
+                    "pattern": "^[0-9a-f]{64}$",
+                    "type": "string"
+                  },
+                  "nomArchiveOriginal": {
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "tailleOctetsAnnoncee": {
+                    "maximum": 60000000000,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "tailleOctetsAnnoncee",
+                  "empreinteSha256Annoncee"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseCreationDossierRepriseDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide ou Idempotency-Key manquante/mal formée."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "IDEMPOTENCE_CONFLIT."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Ouvre un dossier de reprise et déclare l'archive à venir (aucun octet transporté ici).",
+        "tags": [
+          "Reprise de données"
+        ]
+      }
+    },
+    "/reprise/dossiers/{dossierId}": {
+      "get": {
+        "operationId": "DossierRepriseController_lire",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dossierId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseDossierRepriseDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Identifiant mal formé."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Dossier introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Fiche d'un dossier de reprise (§ ressource racine, contrats/reprise.ts).",
+        "tags": [
+          "Reprise de données"
+        ]
+      }
+    },
+    "/reprise/dossiers/{dossierId}/analyse": {
+      "get": {
+        "operationId": "AnalyseRepriseController_lire",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dossierId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "ReponseAnalyseReprise (contrats/reprise.ts) — voir en-tête de fichier pour la simplification Swagger sur les listes JSONB."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Aucune analyse pour ce dossier."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Résultat courant de l'analyse (singleton par dossier).",
+        "tags": [
+          "Reprise de données"
+        ]
+      }
+    },
+    "/reprise/dossiers/{dossierId}/analyses": {
+      "post": {
+        "operationId": "AnalyseRepriseController_lancer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dossierId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Dossier introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "REPRISE_DOSSIER_TRANSITION_INTERDITE."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Lance ou relance l'analyse asynchrone — autorisé depuis depot_receptionne ou analyse_echouee.",
+        "tags": [
+          "Reprise de données"
+        ]
+      }
+    },
+    "/reprise/dossiers/{dossierId}/annuler": {
+      "post": {
+        "operationId": "DossierRepriseController_annuler",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dossierId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "motif": {
+                    "maxLength": 500,
+                    "minLength": 3,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "motif"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseDossierRepriseDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Identifiant mal formé ou motif manquant."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Dossier introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "REPRISE_DOSSIER_TRANSITION_INTERDITE (dossier déjà terminal)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Annule un dossier de reprise — motif requis, purge immédiate de l'archive déposée.",
+        "tags": [
+          "Reprise de données"
+        ]
+      }
+    },
+    "/reprise/dossiers/{dossierId}/finaliser": {
+      "post": {
+        "operationId": "TrancheRepriseController_finaliser",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dossierId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "empreinteSha256Calculee": {
+                    "pattern": "^[0-9a-f]{64}$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "empreinteSha256Calculee"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseDossierRepriseDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Dossier introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "REPRISE_ARCHIVE_INCOMPLETE ou REPRISE_EMPREINTE_INVALIDE."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Finalise le dépôt — assemble les tranches, vérifie l'empreinte SHA-256 côté serveur.",
+        "tags": [
+          "Reprise de données"
+        ]
+      }
+    },
+    "/reprise/dossiers/{dossierId}/import": {
+      "get": {
+        "operationId": "ImportRepriseController_lire",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dossierId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Aucun import pour ce dossier."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Avancement d'import (singleton par dossier).",
+        "tags": [
+          "Reprise de données"
+        ]
+      }
+    },
+    "/reprise/dossiers/{dossierId}/import/rejouer": {
+      "post": {
+        "operationId": "ImportRepriseController_rejouer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dossierId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Aucun import pour ce dossier."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "REPRISE_DOSSIER_TRANSITION_INTERDITE (dossier pas en import_echoue)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Reprise après import_echoue, SANS redépôt — idempotent via l'ancrage d'origine.",
+        "tags": [
+          "Reprise de données"
+        ]
+      }
+    },
+    "/reprise/dossiers/{dossierId}/plan": {
+      "get": {
+        "operationId": "PlanRepriseController_lire",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dossierId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "ReponsePlanReprise (contrats/reprise.ts) — listes JSONB non détaillées en Swagger, voir en-tête de dossier-reprise.dto.ts."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Aucun plan pour ce dossier."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Plan de reprise proposé — écran de validation unique (singleton par dossier).",
+        "tags": [
+          "Reprise de données"
+        ]
+      },
+      "patch": {
+        "operationId": "PlanRepriseController_ajuster",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dossierId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "ajustements": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "elementId": {
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "type": "string"
+                        },
+                        "inclus": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "elementId",
+                        "inclus"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 50,
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "ajustements"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "ReponsePlanReprise (contrats/reprise.ts) — listes JSONB non détaillées en Swagger, voir en-tête de dossier-reprise.dto.ts."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "REPRISE_AJUSTEMENT_ELEMENT_INCONNU ou corps invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Aucun plan pour ce dossier."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "REPRISE_PLAN_NON_VALIDABLE (plan déjà validé)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Ajuste le plan — inclure/exclure des domaines EN BLOC (le seul levier, jamais un éditeur de mapping).",
+        "tags": [
+          "Reprise de données"
+        ]
+      }
+    },
+    "/reprise/dossiers/{dossierId}/plan/valider": {
+      "post": {
+        "description": "`Idempotency-Key` obligatoire : un rejeu ne doit jamais lancer un second import.",
+        "operationId": "PlanRepriseController_valider",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dossierId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "uuid v4, identité de la requête.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "ReponsePlanReprise (contrats/reprise.ts) — listes JSONB non détaillées en Swagger, voir en-tête de dossier-reprise.dto.ts."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Idempotency-Key manquante/mal formée ou corps invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Aucun plan pour ce dossier."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "REPRISE_PLAN_NON_VALIDABLE ou IDEMPOTENCE_CONFLIT."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Valide le plan — déclenche l'import dans le même geste.",
+        "tags": [
+          "Reprise de données"
+        ]
+      }
+    },
+    "/reprise/dossiers/{dossierId}/rapport": {
+      "get": {
+        "operationId": "ImportRepriseController_rapport",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dossierId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Aucun rapport pour ce dossier."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Rapport de réconciliation — lisible dès que import a démarré.",
+        "tags": [
+          "Reprise de données"
+        ]
+      }
+    },
+    "/reprise/dossiers/{dossierId}/tranches": {
+      "get": {
+        "operationId": "TrancheRepriseController_etat",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dossierId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchiveDeposeeRepriseDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Dossier introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "État de réception de l'archive — reprise après interruption.",
+        "tags": [
+          "Reprise de données"
+        ]
+      }
+    },
+    "/reprise/dossiers/{dossierId}/tranches/{numero}": {
+      "put": {
+        "description": "Corps brut `application/octet-stream` (PAS de schéma zod, même doctrine que le scan de permis de circulation). Redéposer le MÊME numéro écrase la précédente sans effet de bord : c'est le mécanisme de reprise après coupure réseau.",
+        "operationId": "TrancheRepriseController_deposer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dossierId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Numéro de tranche, 0-indexé.",
+            "in": "path",
+            "name": "numero",
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseTrancheDeposeeDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "REPRISE_TRANCHE_HORS_SEQUENCE (dépasserait la taille annoncée).\n\nCorps vide, ou dossier/numéro mal formés."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Dossier introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "REPRISE_DOSSIER_TRANSITION_INTERDITE (dossier plus en depot_en_cours)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Dépose une tranche binaire de l'archive — idempotent par numéro.",
+        "tags": [
+          "Reprise de données"
+        ]
+      }
+    },
     "/reservations": {
       "get": {
         "operationId": "ReservationController_lister",
@@ -32370,6 +35699,446 @@
         ]
       }
     },
+    "/resiliation": {
+      "get": {
+        "operationId": "ResiliationTenantController_lireStatut",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseResiliationTenantDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Rôle autre que direction."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Aucun dossier de résiliation pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Statut courant du dossier de résiliation du tenant (réservé à direction).",
+        "tags": [
+          "Résiliation (sortie du garage)"
+        ]
+      },
+      "post": {
+        "description": "Réservé au rôle `direction`. `confirmationRaisonSociale` doit correspondre EXACTEMENT à la raison sociale du tenant (re-saisie, jamais un simple clic — même doctrine que le script de restauration de sauvegarde). L’export est généré en tâche de fond ; suivre sa progression via `GET /resiliation`.",
+        "operationId": "ResiliationTenantController_demander",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "confirmationRaisonSociale": "Garage Martin SA",
+                    "motif": "Fermeture du garage au 31.12.2026"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "confirmationRaisonSociale": {
+                    "maxLength": 320,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "motif": {
+                    "maxLength": 500,
+                    "minLength": 3,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "motif",
+                  "confirmationRaisonSociale"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseResiliationTenantDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Rôle autre que direction."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "RESILIATION_TENANT_DEJA_EN_COURS, ou RESILIATION_TENANT_CONFIRMATION_INVALIDE."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Déclenche la résiliation du compte et l’export intégral des données, en tâche de fond.",
+        "tags": [
+          "Résiliation (sortie du garage)"
+        ]
+      }
+    },
+    "/resiliation/confirmer-remise": {
+      "post": {
+        "description": "Geste EXPLICITE, distinct du simple téléchargement d’un fichier (un seul fichier téléchargé ne prouve pas que le garage a tout récupéré). Réservé au rôle direction.",
+        "operationId": "ResiliationTenantController_confirmerRemise",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseResiliationTenantDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Rôle autre que direction."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Aucun dossier de résiliation pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "RESILIATION_TENANT_TRANSITION_INTERDITE (export pas encore prêt)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Confirme que l’export a été téléchargé et vérifié — démarre l’horloge de rétention.",
+        "tags": [
+          "Résiliation (sortie du garage)"
+        ]
+      }
+    },
+    "/resiliation/fichiers": {
+      "get": {
+        "operationId": "ResiliationTenantController_listerFichiers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseListeFichiersExportTenantDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Rôle autre que direction."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Aucun dossier de résiliation pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "RESILIATION_TENANT_EXPORT_INDISPONIBLE (export pas encore prêt)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Liste les fichiers de l’export produit (réservé à direction).",
+        "tags": [
+          "Résiliation (sortie du garage)"
+        ]
+      }
+    },
+    "/resiliation/fichiers/telecharger": {
+      "get": {
+        "description": "Le chemin provient de `GET /resiliation/fichiers` — toute tentative de traversée de répertoire (`..`, chemin absolu) est refusée par le stockage, jamais seulement par ce contrôleur (voir `StockageExportTenantDisqueLocal.lire`).",
+        "operationId": "ResiliationTenantController_telechargerFichier",
+        "parameters": [
+          {
+            "description": "Chemin relatif, ex. `tables/client.csv`.",
+            "in": "query",
+            "name": "chemin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              },
+              "application/octet-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              },
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Paramètre `chemin` manquant ou mal formé."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              },
+              "application/octet-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              },
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              },
+              "application/octet-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              },
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Rôle autre que direction."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              },
+              "application/octet-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              },
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Dossier de résiliation, export, ou fichier introuvable."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Télécharge UN fichier de l’export produit, par son chemin relatif (réservé à direction).",
+        "tags": [
+          "Résiliation (sortie du garage)"
+        ]
+      }
+    },
     "/sante": {
       "get": {
         "description": "Ne vérifie aucune dépendance externe : répond tant que le process Node tourne.",
@@ -32423,6 +36192,123 @@
         "summary": "Sonde de disponibilité",
         "tags": [
           "Santé"
+        ]
+      }
+    },
+    "/scan/permis-circulation": {
+      "post": {
+        "description": "Ne crée NI véhicule NI client — rend une donnée extraite (trois niveaux de confiance par champ : sûr / douteux / absent) et des correspondances EXACTES TROUVÉES parmi les véhicules et les clients du tenant. À l'utilisateur de confirmer via `POST /vehicules` / `POST /clients`. La photo n'est jamais conservée (traitée en mémoire, ni disque ni base).",
+        "operationId": "VehiculeOcrController_scannerPermisCirculation",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "photo": {
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "photo"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseScanPermisCirculationDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Photo absente ou format non supporté."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (rôle sans vehicule.creer)."
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Photo trop volumineuse (LIMITE_TAILLE_IMAGE_PERMIS_OCTETS)."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "SCAN_PHOTO_ILLISIBLE — aucun champ exploitable extrait (document absent du cadre, flou, trop sombre). Code proposé par l’écran, non encore ajouté à CODES_ERREUR (packages/shared/src/contrats/probleme.ts, hors périmètre de ce contrôleur) — VALIDATION_ECHOUEE avec statut 422 en attendant cet arbitrage."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "AUTH_TROP_DE_TENTATIVES — trop de scans pour cet utilisateur."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Service OCR indisponible."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Reconnaissance automatique du permis de circulation (carte grise).",
+        "tags": [
+          "Véhicules"
         ]
       }
     },
@@ -33213,7 +37099,7 @@
                     "format": "email",
                     "maxLength": 320,
                     "minLength": 3,
-                    "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
                     "type": "string"
                   },
                   "nom": {
@@ -36060,7 +39946,7 @@
                   },
                   "releveLe": {
                     "format": "date-time",
-                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
                     "type": "string"
                   },
                   "source": {
@@ -36634,13 +40520,9 @@
                     ]
                   },
                   "vendeurPrecedentAssujetti": {
-                    "anyOf": [
-                      {
-                        "type": "boolean"
-                      },
-                      {
-                        "type": "null"
-                      }
+                    "type": [
+                      "boolean",
+                      "null"
                     ]
                   }
                 },
@@ -36794,13 +40676,9 @@
                     "type": "string"
                   },
                   "vendeurPrecedentAssujetti": {
-                    "anyOf": [
-                      {
-                        "type": "boolean"
-                      },
-                      {
-                        "type": "null"
-                      }
+                    "type": [
+                      "boolean",
+                      "null"
                     ]
                   }
                 },

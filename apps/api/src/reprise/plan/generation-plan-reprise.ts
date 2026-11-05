@@ -11,7 +11,7 @@
  * borne temporelle propre. Faute d'une cinquième valeur de périmètre pour ces domaines (le champ
  * n'est pas nullable côté contrat), ce module leur attribue PAR DÉFAUT `entetes_totaux_tva_10_ans`
  * — la valeur la plus proche d'« aucune restriction temporelle » parmi les quatre disponibles —
- * SANS AFFIRMER que c'est la bonne réponse métier : à confirmer avec `expert-metier`/le contrat.
+ * SANS AFFIRMER que c'est la bonne réponse métier : à confirmer avec l'équipe métier/le contrat.
  */
 
 import type {
@@ -60,12 +60,11 @@ export interface ResultatGenerationPlanReprise {
  * ancienne sauvegarde) : rend `true` si `candidate` doit REMPLACER `retenue` comme table faisant
  * foi pour ce rôle.
  *
- * DÉFAUT RÉEL corrigé ici (26.08.2026, mesuré sur archive réelle, zéro ligne écrite avant ce
+ * DÉFAUT RÉEL corrigé ici (26.08.2026, mesuré sur une archive de test privée, zéro ligne écrite avant ce
  * correctif) : la comparaison précédente ne portait QUE sur `indiceConfiance`, en `>` STRICT.
  * `indiceConfiance` est un entier 0-100 (`Math.round` d'un score de CONTENU DE COLONNES 0-1, cf.
  * `lecteurs/detecteur-role.ts`) — deux copies d'une même table au même schéma obtiennent quasiment
- * toujours la MÊME confiance arrondie (mesuré : `Anwender_corrompu.mdb`, 7143 lignes, ET
- * `RepAw.backup`, 9977 lignes, confiance 90 identique pour "Kunden"). Sur cette égalité, `>`
+ * toujours la MÊME confiance arrondie (constaté : deux copies d'une table "Kunden" de volumes différents, confiance 90 identique). Sur cette égalité, `>`
  * strict ne remplaçait JAMAIS `retenue` : gagnait systématiquement la table vue EN PREMIER dans
  * `tables` — l'ORDRE D'EXTRACTION DU ZIP, un hasard, jamais un critère métier.
  *
@@ -104,7 +103,7 @@ export interface ResultatGenerationPlanReprise {
  * `lecteurs/detection-famille.ts` pour la reconnaissance de moteur, et par le module de départage
  * de copies aujourd'hui supprimé pour code mort (`choix-copie-source.ts`, voir `lecteurs/
  * index.ts`) : « une décompression réécrit les dates, une archive prise à chaud ment déjà sur sa
- * fraîcheur » — et, mesuré sur une archive réelle avant ce chantier, l'emplacement qui RESSEMBLAIT
+ * fraîcheur » — et, constaté sur une archive de test privée avant ce chantier, l'emplacement qui RESSEMBLAIT
  * à l'installation vive était un ancien répertoire ABANDONNÉ, la copie la plus récente vivant dans
  * un répertoire d'apparence anodine. Un chemin `Backups/` n'est pas différent EN NATURE d'un nom
  * de fichier « corrompu » : les deux sont des indices de PRÉSENTATION (comment l'archive a été

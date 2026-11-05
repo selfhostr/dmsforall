@@ -12,7 +12,7 @@ import { AdaptateurConnecteurFactice } from './adaptateur-connecteur-factice.bas
  * (`packages/shared/src/contrats/facturation/export.ts`, `cible`/`capacites`) est un mécanisme
  * SÉPARÉ, DÉJÀ implémenté pour de vrai par `apps/api/src/facturation/export/winbiz/
  * winbiz-exporteur.service.ts` (hors du périmètre d'écriture de cette tâche —
- * `apps/api/src/facturation/**` appartient à un autre agent). Cette classe n'implémente PAS ce
+ * `apps/api/src/facturation/**` appartient à un autre lot). Cette classe n'implémente PAS ce
  * contrat-là et ne s'y substitue pas : elle modélise seulement la présence — ou l'absence —
  * d'un connecteur `AccountingExporter` générique au niveau du REGISTRE (`RegistreConnecteursService`),
  * pour les futures cibles fiduciaires qui passeraient par ce socle générique plutôt que par le

@@ -199,7 +199,7 @@ export class ServiceConsigne {
    * cœur d'échange standard ». Choix retenu ICI : `retour_consigne`, quantité POSITIVE — symétrique
    * du retour au fournisseur (`marquerRetourFournisseurTx`, MÊME type, quantité NÉGATIVE) : les
    * deux jambes du cycle de consigne partagent un type, distinguées par le signe (RP-17 : « signée,
-   * positive à l'entrée, négative à la sortie »). À confirmer par expert-api/expert-database —
+   * positive à l'entrée, négative à la sortie »). À confirmer par l'équipe API/l'équipe base de données —
    * l'enum reste extensible (RP-16) si un type dédié est préféré.
    */
   async creerDepuisRealisationTx(

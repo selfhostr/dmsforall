@@ -44,7 +44,7 @@ const CODE_SERIE_QR_FACTURE = '10';
  * partition FIXE, jamais recalculée depuis une date réelle : le compteur reste unique, dédié à
  * cette seule clé, et ne se remet jamais à zéro d'une année sur l'autre — c'est la substance de
  * `MD-75`, seule la valeur littérale de la sentinelle diffère de l'exemple du modèle
- * documentaire (qui écrit `0`). SIGNALÉ à expert-database/@laupernoe : desserrer
+ * documentaire (qui écrit `0`). SIGNALÉ à l'équipe base de données/@laupernoe : desserrer
  * `compteur_document_annee_chk` pour admettre `0` rapprocherait le code de la lettre du modèle
  * documentaire, mais n'est pas nécessaire à la correction — une sentinelle fixe et jamais réutilisée
  * satisfait déjà l'invariant (unicité perpétuelle, `MD-76`).

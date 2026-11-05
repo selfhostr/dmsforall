@@ -77,7 +77,7 @@ describe('rechercherVin', () => {
   });
 
   it('deux candidats DISTINCTS valident la clé au même niveau minimal -> aucun choix, la lecture brute est rendue douteuse (jamais un VIN faux)', () => {
-    // Cas réel trouvé par recherche exhaustive (rapport de livraison) : 'JM8CT4CZ3DYK9NY46' a
+    // Cas limite trouvé par recherche exhaustive : 'JM8CT4CZ3DYK9NY46' a
     // EXACTEMENT deux corrections à une substitution qui valident toutes deux la clé de contrôle
     // ('JMBCT4CZ3DYK9NY46' et 'JM8CT4CZ30YK9NY46') — sans marque connue, aucune ne doit être
     // choisie.

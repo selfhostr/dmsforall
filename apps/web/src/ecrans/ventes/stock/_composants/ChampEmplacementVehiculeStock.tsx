@@ -30,7 +30,7 @@ interface Props {
  * « deux clics » (crayon, puis valider) que `composants/vehicule/ChampEmplacementVehicule.tsx`
  * (fiche véhicule technique, `ecrans/vehicules/`, HORS PÉRIMÈTRE d'écriture de ce sous-module :
  * réécrit ici plutôt qu'importé, faute d'un feu vert explicite pour lire dans `composants/vehicule/`
- * — seul `hooks/vehicules/**` est couvert par l'allocation de périmètre de cet agent). DOUBLON
+ * — seul `hooks/vehicules/**` est couvert par l'allocation de périmètre de ce lot). DOUBLON
  * SIGNALÉ au rapport de livraison : les deux composants partagent la même logique d'édition, un
  * futur ménage pourrait les fusionner derrière un composant commun si le périmètre est élargi.
  *

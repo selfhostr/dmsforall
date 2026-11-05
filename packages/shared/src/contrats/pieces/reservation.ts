@@ -11,7 +11,7 @@ import { schemaParametresPage } from '../pagination';
 
 /**
  * La réservation (`reservation_piece`, ou état dérivé — §6.3, §8 : « décision de conception hors
- * du périmètre métier », propriété d'expert-database) — `RP-19` → `RP-25`. C'EST LE CŒUR DU SUJET.
+ * du périmètre métier », propriété d'l'équipe base de données) — `RP-19` → `RP-25`. C'EST LE CŒUR DU SUJET.
  *
  * Ce fichier fige la SÉMANTIQUE (§5.4) indépendamment du choix de stockage : que
  * `reservation_piece` soit une table à part ou une vue dérivée de `ligne_or`, l'API expose une
@@ -43,7 +43,7 @@ export interface ReponseReservationPiece {
    * fixtures `ReponseReservationPiece` complètes hors du périmètre d'écriture de cette passe
    * (`apps/api/src/pieces/**` seul) ; rendre ces trois champs obligatoires aurait cassé son
    * typecheck sans pouvoir corriger le fichier fautif dans cette même passe. Signalé pour une
-   * passe `expert-correctif` qui ajoutera les trois champs à cette fixture et pourra alors durcir
+   * passe l'équipe correctifs qui ajoutera les trois champs à cette fixture et pourra alors durcir
    * ce type en `readonly` (non optionnel) — voir le rapport de livraison de ce correctif.
    */
   readonly articleNumero?: string;

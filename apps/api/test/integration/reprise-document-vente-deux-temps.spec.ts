@@ -19,7 +19,7 @@
  *      (tenant_id, type_document, numero_origine) absorbe le doublon via `on conflict do nothing`.
  *
  * Un test qui mocke `tx.execute` ne prouve rien de tout ça (CONTRIBUTING.md) — c'était précisément
- * l'état signalé par l'agent précédent en tête de `ecrivain-document-vente-reprise.ts`
+ * l'état signalé par le lot précédent en tête de `ecrivain-document-vente-reprise.ts`
  * (« NON VÉRIFIÉ EN BASE RÉELLE »). Ce fichier comble ce trou.
  */
 

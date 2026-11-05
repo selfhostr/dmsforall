@@ -283,11 +283,11 @@ describe("marque (clair, sarcelle 186°) — écart de teinte avec les statuts d
   // Sentinelle de régression : si `--marque` ou un `--statut-*` change de teinte sans que
   // personne ne revérifie l'écart, ce test précis doit rougir avant qu'un badge de statut et un
   // bouton de marque ne deviennent confondables à l'œil. Seuil à 30° — pris directement de la
-  // décision de @laupernoe (« vérifie cet écart sur les valeurs finales »), sous les écarts mesurés
+  // décision de conception (« vérifie cet écart sur les valeurs finales »), sous les écarts mesurés
   // (31° au bleu, 44° au vert) mais assez haut pour capter une dérive accidentelle.
   //
   // LIGHT-ONLY : en sombre, cette même règle ne tient PAS — voir le bloc dédié plus bas, qui la
-  // remplace par l'exception écrite de @laupernoe (arbitrage 1, DESIGN.md).
+  // remplace par l'exception écrite (arbitrage 1, DESIGN.md).
   const SEUIL_ECART_MIN = 30;
 
   it.each(['statut-info', 'statut-attention', 'statut-succes', 'statut-danger'])(
@@ -307,7 +307,7 @@ describe("marque (clair, sarcelle 186°) — écart de teinte avec les statuts d
 });
 
 /**
- * Marque (sombre, cyan 190°) — l'ARBITRAGE ÉCRIT DE @laupernoe (DESIGN.md, « La marque en sombre casse une
+ * Marque (sombre, cyan 190°) — l'CHOIX PRODUIT ÉCRIT (DESIGN.md, « La marque en sombre casse une
  * doctrine ») en version exécutable. La règle générale à ≥ 30° tient pour trois statuts sur quatre ;
  * `--statut-info` (« en cours ») est l'EXCEPTION ASSUMÉE, à 20° seulement. Ce n'est pas un défaut à
  * corriger : c'est le seul choix qui garde une marque à la fois identique dans les deux thèmes ET

@@ -1,7 +1,7 @@
 /**
  * Schéma Drizzle de l'étape 4 (ventes VN/VO).
  * Toute table ajoutée dans ce répertoire DOIT être exportée depuis ce fichier ET depuis
- * `schema/index.ts` (posé par l'orchestrateur — hors périmètre d'écriture de ce module, voir le
+ * `schema/index.ts` (posé par le mainteneur — hors périmètre d'écriture de ce module, voir le
  * rapport de livraison), sinon elle n'existe pas pour le typage des transactions.
  */
 

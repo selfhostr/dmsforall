@@ -76,7 +76,7 @@
         "jobs_en_echec": "Fehlgeschlagene Jobs",
         "disjoncteurs_connecteur_ouverts": "Offene Connector-Schutzschalter",
         "connecteurs_configures": "Konfigurierte Connectors",
-        "modules_souscrits": "Abonnierte Module"
+        "modules_souscrits": "Aktivierte Module"
       }
     },
     "table": {

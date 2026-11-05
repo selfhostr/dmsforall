@@ -439,7 +439,7 @@ export class ServiceDepotPneus {
    * comme s'il avait été oublié.
    *
    * Droit : `pneus.depot.changer_saison`, PAS un droit dédié (aucun n'existe pour ce geste — voir
-   * le rapport de livraison : `auth/matrice-droits.ts` est hors périmètre de cet agent, un
+   * le rapport de livraison : `auth/matrice-droits.ts` est hors périmètre de ce lot, un
    * troisième droit `pneus.depot.deplacer` y serait plus juste sémantiquement mais n'aurait pu
    * être ajouté ici sans y toucher). Le choix n'est pas arbitraire : `changer_saison` est
    * EXACTEMENT le même profil de geste — physique, routinier, réversible, réalisé par qui manipule

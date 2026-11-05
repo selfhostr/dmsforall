@@ -41,7 +41,7 @@
  * découvert au bouclement (MD-92/93), pas une approximation acceptable.
  *
  * --- Granularité du suivi d'export côté paiement — migration 0019 (MD-91) -------------------------
- * Trouvaille du lot précédent, tranchée par @laupernoe et posée en base par la migration 0019 :
+ * Trouvaille du lot précédent, tranchée côté produit et posée en base par la migration 0019 :
  * l'ÉVÉNEMENT comptable qui produit une écriture n'est ni le document (immuable) ni le paiement en
  * tant que tel (un encaissement peut rester en attente d'affectation, puis recevoir de NOUVELLES
  * imputations bien APRÈS avoir déjà été exporté — avance client affectée plus tard à une facture

@@ -10,7 +10,7 @@ export interface UtiliserRepliBarreLaterale {
 }
 
 /**
- * Préférence de repli de la barre latérale DESKTOP (demande @laupernoe, revue webui du 10.08.2026) —
+ * Préférence de repli de la barre latérale DESKTOP (demande produit, revue webui du 10.08.2026) —
  * mémorisée en localStorage comme la langue explicite (`hooks/useLangue.ts`) plutôt qu'un
  * deuxième mécanisme de persistance. Lue une seule fois au montage : deux onglets ouverts peuvent
  * diverger jusqu'au prochain chargement de chacun, exactement comme la langue.

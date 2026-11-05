@@ -18,7 +18,7 @@
  * `orchestration-job-relances.ts` pour la preuve que ces deux canaux ne se mélangent jamais (la
  * connexion migrateur est fermée avant que la première transaction `enTenant` ne s'ouvre).
  *
- * `statut = 'actif'` UNIQUEMENT : un tenant `suspendu` (impayé, accès bloqué) ou `resilie`
+ * `statut = 'actif'` UNIQUEMENT : un tenant `suspendu` (accès bloqué par l'exploitant) ou `resilie`
  * (rétention légale) ne doit voir AUCUNE de ses données modifiées par un job système — même
  * doctrine fail-closed que `planifier()` (§ « sans config, ou désactivée, … rien ne se
  * planifie »).

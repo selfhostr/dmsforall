@@ -25,7 +25,7 @@ import { routesConfig } from './routeur';
 // navigateur si. `/vehicules/nouveau` (`EcranNouveauVehicule`) monte une case à cocher
 // `@radix-ui/react-checkbox` qui l'utilise inconditionnellement au montage
 // (`CheckboxBubbleInput`, `useSize(control)`). Stub scopé à ce fichier (hors périmètre de cet
-// agent : `src/test/setup.ts`, infrastructure de test partagée) — voir le même commentaire dans
+// lot : `src/test/setup.ts`, infrastructure de test partagée) — voir le même commentaire dans
 // `ecrans/vehicules/EcranNouveauVehicule.spec.tsx`.
 beforeAll(() => {
   if (!('ResizeObserver' in globalThis)) {

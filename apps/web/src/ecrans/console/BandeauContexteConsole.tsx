@@ -26,7 +26,7 @@ export interface ProprietesBandeauContexteConsole {
  *  - la conception le décrit comme « non négociable » dès qu'on franchit le palier 1, et fige déjà
  *    sa forme exacte (contenu, couleur, sticky) — rien à redécouvrir quand le palier 2 sera bâti ;
  *  - il est intégralement autoporté (aucune dépendance à une route, un hook réseau, ou une donnée
- *    du palier 2) : le construire ici ne présuppose RIEN sur ce que l'agent accès tranchera
+ *    du palier 2) : le construire ici ne présuppose RIEN sur ce que le lot accès tranchera
  *    (§11 Q1/Q2 de la conception restent ouvertes — `motif` est déjà optionnel pour cette raison).
  *
  * Couleur délibérément hors palette métier normale de DFA (jamais le bleu/vert primaire) — ambre

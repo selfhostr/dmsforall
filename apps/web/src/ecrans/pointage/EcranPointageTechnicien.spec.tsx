@@ -1063,7 +1063,7 @@ describe('EcranPointageTechnicien', () => {
       expect(await screen.findByRole('button', { name: 'Vidange' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Contrôle freins' })).toBeInTheDocument();
       // « Pneus » (assignée à un collègue) reste PROPOSÉE — l'apprenti qui prête main-forte au
-      // compagnon peut la choisir sans détour par le bureau (arbitrage @laupernoe, NE PAS ROUVRIR).
+      // compagnon peut la choisir sans détour par le bureau (choix produit, NE PAS ROUVRIR).
       // Nom accessible complet (bouton + info d'assignation) : `getByText` cible juste le
       // libellé visible de la ligne, `closest('button')` retrouve le bouton qui la porte.
       const boutonPneus = screen.getByText('Pneus').closest('button');

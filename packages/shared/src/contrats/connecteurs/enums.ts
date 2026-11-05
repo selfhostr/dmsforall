@@ -55,7 +55,7 @@ export type FamilleConnecteur = (typeof FAMILLES_CONNECTEUR)[number];
  * sont les deux seules interfaces dont la FORME (types de requête/réponse, pas seulement le nom)
  * est déjà posée dans ce paquet (`contrats/facturation/export.ts` ;
  * `contrats/connecteurs/notification-sender.ts`) ; les quatre autres restent `[INCONNU]` côté
- * méthodes (`RC-20`/`RC-40`/`RC-70`, voir le rapport d'accompagnement de l'agent d'origine) — ce
+ * méthodes (`RC-20`/`RC-40`/`RC-70`, voir le rapport d'accompagnement du lot d'origine) — ce
  * module continue de ne PAS inventer leur forme par anticipation.
  */
 export const NOMS_INTERFACE_CONNECTEUR = [

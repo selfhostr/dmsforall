@@ -553,7 +553,7 @@ export function EcranFicheFacture() {
                       // saisie [en facturation], elle est RECOPIÉE par l'action serveur ». Retenue
                       // par symétrie pour l'édition/suppression : ce dialogue ne sert QUE les
                       // lignes saisies directement ici (vente comptoir, débours, correction),
-                      // jamais la provenance OR — décision de cet agent, non tirée d'une ligne
+                      // jamais la provenance OR — décision de ce lot, non tirée d'une ligne
                       // explicite de la spécification, signalée au rapport de livraison.
                       const modifiable = estBrouillon && ligne.ligneOrId === null;
                       return (

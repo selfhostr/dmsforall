@@ -21,7 +21,7 @@ import { ServiceVerrouillagePin } from './service-verrouillage-pin';
  * (`atelier/atelier.jetons.ts`, `JETON_LECTURE_POINTAGE`) — MÊME PATRON que
  * `JETON_CREATION_TRAVAIL_REPORTE` (`ServiceVehiculeTravailReporte`, exporté par `VehiculesModule`,
  * câblé par `AtelierModule` via `useExisting`). CE MODULE NE POSE PAS LE PROVIDER LUI-MÊME :
- * `atelier.module.ts` n'est pas dans le périmètre d'écriture de cet agent (voir la consigne de la
+ * `atelier.module.ts` n'est pas dans le périmètre d'écriture de ce lot (voir la consigne de la
  * tâche). CÂBLAGE DÉJÀ POSÉ (vérifié au 2026-08-03, CORRECTIF d'une note antérieure qui le décrivait
  * comme restant à faire) — `apps/api/src/atelier/atelier.module.ts` importe bien `PointageModule` et
  * fournit `{ provide: JETON_LECTURE_POINTAGE, useExisting: ServiceLecturePointage }` ; `LecturePointageVide`
@@ -48,7 +48,7 @@ import { ServiceVerrouillagePin } from './service-verrouillage-pin';
  *   2. C'est exactement ce que prévoyait déjà le commentaire de tête d'`ordonnanceur-cloture-
  *      automatique-pointage.ts` avant ce chantier (« un second `@Module` séparé devrait être
  *      enregistré explicitement dans `app.module.ts` — hors du périmètre d'écriture exclusif de
- *      cet agent ») : ce chantier a précisément accès à `app.module.ts`, donc le déplacement
+ *      ce lot ») : ce chantier a précisément accès à `app.module.ts`, donc le déplacement
  *      annoncé peut enfin avoir lieu.
  */
 /**

@@ -67,7 +67,7 @@ function versClientResume(client: {
  * l'exclut EXPLICITEMENT (§8.2, littéral : « aucune duplication du montant, de la TVA ou du statut
  * de paiement ici ») — confirmé par le design déjà écrit (`docs/design-ecrans-ventes.md` §6.1, qui
  * ne liste que les 5 champs ci-dessus). Le prix vit sur le premier document de la chaîne
- * facturation (devis/bon de commande), créé ENSUITE, hors périmètre de cet écran et de cet agent.
+ * facturation (devis/bon de commande), créé ENSUITE, hors périmètre de cet écran et de ce lot.
  * Aucun champ prix n'est donc posé ici — l'inventer aurait envoyé un champ que
  * `schemaCreationDossierVente` rejette (`400 VALIDATION_ECHOUEE`).
  *
@@ -79,7 +79,7 @@ function versClientResume(client: {
  *    qui pré-remplit systématiquement `clientId`, un sélecteur inline reste donc nécessaire.
  *
  * `vehiculeId` peut arriver pré-rempli via `?vehiculeId=` (bouton « Vendre » de `BlocVente`, design
- * §1.1/§5.4, écran d'un autre agent) — sinon choisi via `SelecteurVehiculeStockDossier`, TOUJOURS
+ * §1.1/§5.4, écran d'un autre lot) — sinon choisi via `SelecteurVehiculeStockDossier`, TOUJOURS
  * optionnel (RV-30 : un dossier peut exister avant qu'un véhicule précis lui soit assigné).
  */
 export function EcranNouveauDossierVente() {

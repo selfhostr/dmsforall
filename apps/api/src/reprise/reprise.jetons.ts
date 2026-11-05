@@ -24,8 +24,8 @@ export const NOM_JOB_IMPORT_REPRISE = 'importer-dossier-reprise';
  * DÉFAUT RÉEL (26.08.2026) — aucun `@Processor` du dépôt (les six existants, vérifié)
  * ne posait `lockDuration`/`concurrency` : la valeur par défaut de BullMQ (`lockDuration` 30s,
  * renouvellement automatique à 15s) suffit pour un job court, mais s'est avérée fragile pour
- * l'analyse d'une archive de reprise (mesurée à ~7,5 min sur 2,39 Go, bien plus sur les 43,5 Go
- * réels attendus) : le VRAI correctif est la cession régulière de l'event loop dans la boucle de
+ * l'analyse d'une archive de reprise (plusieurs minutes sur une archive de quelques Go, bien plus sur les très grosses
+ * archives attendues) : le VRAI correctif est la cession régulière de l'event loop dans la boucle de
  * profilage (`common/concurrence/ceder-controle-event-loop.ts`), qui restaure le renouvellement
  * AUTOMATIQUE de verrou de BullMQ (`Worker.lockRenewTime`) — PAS un appel manuel à
  * `Job.extendLock` (qui existe, mais souffre de la MÊME famine que le renouvellement automatique :
@@ -47,9 +47,9 @@ export const NOM_JOB_IMPORT_REPRISE = 'importer-dossier-reprise';
  *     PROCESS-WIDE — tout le produit hors service pour l'échec d'un seul job de reprise d'un seul
  *     garage. Un `lockDuration` mal dimensionné n'est donc pas ici un simple confort : c'est le
  *     PREMIER maillon de cette chaîne — il CRÉE l'orphelin qui affame tout le reste. Durées
- *     réelles observées le 26.08.2026 sur l'archive complète de @laupernoe (552 tables, 2,3 Go) :
+ *     réelles observées le 26.08.2026 sur une grosse archive de test privée :
  *     analyse 11 min 41 à 19 min 50 ; import 5 min 24 à 29 min 13 (le plus long, rejeu idempotent
- *     contre ~16 800 lignes déjà en base). 30 minutes couvre le pire cas mesuré (29 min 13) avec
+ *     contre des milliers de lignes déjà en base). 30 minutes couvre le pire cas mesuré (29 min 13) avec
  *     une marge réelle (~54 %, comparable à la croissance déjà observée du nombre de tables
  *     détectées sur cette même archive après un correctif distinct), tout en restant BORNÉ : un
  *     worker réellement mort (SIGKILL, OOM — le seul cas qu'aucune cession ne peut couvrir) libère
@@ -78,7 +78,7 @@ export const JETON_STOCKAGE_ARCHIVE_REPRISE = Symbol('JETON_STOCKAGE_ARCHIVE_REP
 
 /**
  * Port de lecture de l'archive source (famille de moteur, tables, lecture en flux, copie faisant
- * foi, rôle métier déduit) — implémenté par `apps/api/src/reprise/lecteurs/` (autre agent, EN
+ * foi, rôle métier déduit) — implémenté par `apps/api/src/reprise/lecteurs/` (autre lot, EN
  * COURS au moment où ce module est écrit). Codé contre ce port, jamais contre l'implémentation
  * concrète : voir `lecture/port-lecteur-archive-reprise.ts` pour l'interface exacte et la
  * justification de ce découplage.

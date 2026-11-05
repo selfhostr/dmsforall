@@ -67,12 +67,12 @@ export interface AccountingExporter {
 
 /* ------------------------------------------------------------------ */
 /* Déclenchement (forme minimale — le contrat HTTP complet reste à     */
-/* concevoir avec expert-api au moment de l'implémentation)            */
+/* concevoir avec l'équipe API au moment de l'implémentation)            */
 /* ------------------------------------------------------------------ */
 
 /**
  * `POST /exports-fiduciaires` — `Idempotency-Key` recommandée (pas encore qualifiée « obligatoire
- * » : un export n'est pas une création facturable au sens de la consigne de @laupernoe, mais un rejeu
+ * » : un export n'est pas une création facturable au sens de la consigne produit, mais un rejeu
  * accidentel ne doit pas produire un second lot). La continuité de numérotation est vérifiée AVANT
  * l'appel à l'adaptateur, de façon bloquante (`RF-28`, `RF-105`) : un trou ne part jamais chez la
  * fiduciaire — voir `EXPORT_TROU_NUMEROTATION`.

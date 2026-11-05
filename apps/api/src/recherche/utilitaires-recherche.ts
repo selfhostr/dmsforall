@@ -43,7 +43,7 @@ export function motifFragment(q: string): string {
  * `etatAffiche` = le statut, OU le plus bloquant des trois drapeaux d'attente s'il y en a un
  * (priorité accord > pièces > externe), calculé une seule fois côté serveur. Dupliqué ici depuis
  * la définition du contrat (§8.3) parce que le module `atelier/` (L1-12) qui porte la ressource OR
- * complète est un périmètre exclusif d'un autre agent, indisponible pour cette recherche
+ * complète est un périmètre exclusif d'un autre lot, indisponible pour cette recherche
  * transversale — voir la note de livraison pour le risque de divergence et sa mitigation (couvert
  * par des tests unitaires exhaustifs sur les 4 combinaisons de drapeaux).
  */
@@ -76,7 +76,7 @@ export interface IdentiteClient {
  * par `vehicules/client-resume.helper.ts::calculerNomAfficheClient` (module voisin, L1-09,
  * développé en parallèle, hors périmètre `apps/api/src/recherche/**`) — l'importer depuis
  * `vehicules/` créerait une dépendance de compilation entre deux répertoires livrés par deux
- * agents différents. À terme cette règle devrait vivre une seule fois (`common/` ou
+ * lots différents. À terme cette règle devrait vivre une seule fois (`common/` ou
  * `@dfa/shared`) — signalé, pas résolu ici (même signalement que dans le module voisin).
  */
 export function nomAfficheClient(client: IdentiteClient): string {

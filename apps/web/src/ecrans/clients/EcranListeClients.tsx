@@ -183,13 +183,13 @@ export function EcranListeClients() {
 
   return (
     // Titre laissé à la détection automatique du gabarit (chantier « titres doublés &
-    // espacements », re-arbitrage @laupernoe du 17.08.2026 — ANNULE le retour du 12.08.2026 cité ici
+    // espacements », re-choix produit du 17.08.2026 — ANNULE le retour du 12.08.2026 cité ici
     // auparavant, qui demandait ce même h1 visible : l'onglet « Clients », déjà affiché à
     // l'écran, porte désormais ce libellé, le h1 devient `sr-only` (jamais retiré du DOM).
     // Aucun padding local : `AppShell` pose déjà `p-4 sm:p-6` sur tout écran routé.
     //
     // « Nouveau client » N'EST PAS dans l'emplacement `actions` du gabarit (qui le placerait juste
-    // sous le titre, seul sur sa ligne, et décalerait tout le reste) — retour @laupernoe, chantier
+    // sous le titre, seul sur sa ligne, et décalerait tout le reste) — retour produit, chantier
     // « zone haute des écrans de liste » : le bouton descend juste sous la barre de filtres,
     // aligné à droite, même déplacement que sur Atelier/Pneus/Véhicules.
     <GabaritEcran titre={t('clients:titre')}>

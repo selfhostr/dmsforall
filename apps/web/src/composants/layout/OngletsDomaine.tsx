@@ -27,7 +27,7 @@ interface Props {
  * trente-cinq occasions d'oublier — exactement le défaut « écrit, testé, jamais câblé » que ce
  * dépôt collectionne (un contrôleur absent de son `@Module`, un namespace i18n non enregistré). En
  * le montant une fois dans la coquille, la rangée d'onglets EXISTE pour toute route qui appartient
- * à l'arborescence, y compris les écrans livrés par d'autres agents et ceux qui n'existent pas
+ * à l'arborescence, y compris les écrans livrés par d'autres lots et ceux qui n'existent pas
  * encore, sans qu'aucun d'eux n'ait une ligne à écrire.
  *
  * Il reste réutilisable au sens strict : `trouverCorrespondance` et `navigation-modele.ts` sont

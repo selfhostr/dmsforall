@@ -9,11 +9,11 @@ import swc from 'unplugin-swc';
  *                    à la charge de l'expert propriétaire du répertoire). Aucune dépendance
  *                    Docker, rapides, c'est ce que lance `pnpm test`.
  *  - "integration" : `test/integration/**` et `test/contrat/**` (propriété exclusive
- *                    d'expert-tests). Vraie Postgres éphémère via testcontainers — RLS,
+ *                    d'l'équipe tests). Vraie Postgres éphémère via testcontainers — RLS,
  *                    contraintes et rôles font partie du système testé, donc pas de mock de
  *                    base. Lancé UNIQUEMENT par `pnpm test:integration`, jamais par `pnpm test`.
  *
- * apps/api/package.json (propriété expert-nestjs) doit exposer :
+ * apps/api/package.json (propriété l'équipe backend) doit exposer :
  *   "test":            "vitest run --project unitaire"
  *   "test:integration": "vitest run --project integration"
  *   "test:watch":       "vitest --project unitaire"   (confort dev, optionnel)
@@ -52,9 +52,9 @@ export default defineConfig({
         plugins: [pluginSwc],
         test: {
           name: 'integration',
-          // 'test/lot1/**' (additif, L1-15) : périmètre exclusif d'expert-tests pour le lot 1
+          // 'test/lot1/**' (additif, L1-15) : périmètre exclusif d'l'équipe tests pour le lot 1
           // (fixtures + intégration + contrat), voir plan-lot1-execution.md §7.1. Aucun autre
-          // agent ne possède ce fichier ; l'ajout est la seule façon de faire tourner ces
+          // lot ne possède ce fichier ; l'ajout est la seule façon de faire tourner ces
           // specs sous `pnpm test:integration` sans dupliquer test/integration/ ou test/contrat/.
           include: [
             'test/integration/**/*.spec.ts',

@@ -1,8 +1,7 @@
 /**
  * Client HTTP minimal pour le parcours `/api/v1/reprise/dossiers/**` — pas de dépendance externe
  * (fetch global, Node ≥ 18), juste ce qu'il faut pour rejouer le parcours mesuré manuellement le
- * 25.08.2026 (`/chemin/vers/echantillons/analyse/parcours-complet/parcours.md`) par script plutôt que
- * par requêtes tapées à la main.
+ * 25.08.2026 par script plutôt que par requêtes tapées à la main.
  *
  * DEUX PIÈGES D'API DÉJÀ MESURÉS, encodés ici une fois pour ne plus les redécouvrir :
  *   - `Origin` obligatoire sur CHAQUE requête (garde-fou anti-CSRF, sinon 403 qui s'affiche comme

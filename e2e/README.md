@@ -137,11 +137,11 @@ d'outillage e2e) :
 2. Soit l'e2e reste sur la cible `dev` en connaissance de cause — ce que ce harnais fait déjà
    (`pnpm e2e:dev`), avec la réserve ci-dessous.
 
-**Réserve mesurée sur la cible `dev` en session multi-agents** : `pnpm dev` est un serveur
-**partagé** — toute sauvegarde intermédiaire d'un autre agent en train d'éditer
+**Réserve mesurée sur la cible `dev` en session multi-développeurs** : `pnpm dev` est un serveur
+**partagé** — toute sauvegarde intermédiaire d'un autre lot en train d'éditer
 `apps/web/src/**` peut casser la compilation Vite le temps d'un aller-retour (overlay HMR
 « Application mal configurée », capturé plusieurs fois pendant ce chantier). Le serveur se rétablit
-dès que l'autre agent corrige — c'est réel mais transitoire, pas un défaut du harnais ni de
+dès que l'autre lot corrige — c'est réel mais transitoire, pas un défaut du harnais ni de
 l'application. Une preuve de stabilité (3 exécutions consécutives) contre `dev` n'a de sens que
 lorsqu'aucune édition concurrente de `apps/web/src` n'est en cours.
 
@@ -160,7 +160,7 @@ retentative.
 `e2e/specs/captures-apres-refonte.spec.ts` — tableau de bord et écran atelier, clair et sombre.
 Écrit dans `e2e/captures-apres-refonte/` (chemin absolu, résolu depuis le fichier de spec — stable
 quel que soit le `cwd` d'appel). Ce dossier est ignoré par git (`/e2e/captures-apres-refonte/` dans
-le `.gitignore` racine) : les captures sont une livraison ponctuelle transmise à @laupernoe, jamais un
+le `.gitignore` racine) : les captures sont une livraison ponctuelle transmise au mainteneur, jamais un
 artefact versionné qui périmerait à la prochaine refonte visuelle. Une exécution locale du harnais
 les régénère à l'identique ; à partager, copie le dossier hors du dépôt (scratchpad de session ou
 autre) avant de le transmettre — rien ici ne le fait automatiquement.

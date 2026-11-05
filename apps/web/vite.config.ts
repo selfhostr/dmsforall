@@ -32,7 +32,7 @@ function lireVersionPackageJsonWeb(racineDepot: string): string {
 }
 
 /**
- * Numéro de version affiché en pied du menu utilisateur (demande @laupernoe, 17.08.2026 : « il manque
+ * Numéro de version affiché en pied du menu utilisateur (demande produit, 17.08.2026 : « il manque
  * le numéro de version ... implémente-le quelque part de simple dans l'UI, pour le dev »),
  * voir `composants/layout/MenuUtilisateur.tsx`. Calculé UNE SEULE FOIS ici, à la résolution de
  * cette config (démarrage de `pnpm dev` ou `vite build`) — jamais recalculé côté client, aucune

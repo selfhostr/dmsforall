@@ -50,7 +50,7 @@ return {1, 0}
 
 /**
  * Limitation de débit à fenêtre glissante, sur Redis (ZSET par clé, purgé et incrémenté par un
- * script Lua atomique — voir `SCRIPT_CONSOMMER`). Utilisée par expert-auth sur
+ * script Lua atomique — voir `SCRIPT_CONSOMMER`). Utilisée par l'équipe authentification sur
  * `POST /auth/connexion` (par IP et par email), verrouillage progressif du compte.
  *
  * Le suffixe `Redis` distingue l'implémentation de l'interface `ServiceLimitationDebit` qu'elle

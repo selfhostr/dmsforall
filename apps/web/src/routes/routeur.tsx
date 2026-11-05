@@ -145,7 +145,7 @@ export const routesConfig: RouteObject[] = [
   // aucune donnée de garage n'est jamais rendue sans réponse serveur valide). À CONSTRUIRE avant
   // mise en service réelle : un hook de session exploitant + un composant de garde dédié
   // (`RouteExploitantProtegee` ou équivalent), remplaçant ce commentaire par une vraie garde
-  // frontend — périmètre `expert-auth`/`expert-react`, hors de celui de cet agent (`routes/` sait
+  // frontend — périmètre l'équipe authentification/l'équipe frontend, hors de celui de ce lot (`routes/` sait
   // désormais monter l'écran, mais la décision d'accès reste ouverte).
   {
     path: '/console',
@@ -263,7 +263,7 @@ export const routesConfig: RouteObject[] = [
       // connectant ici est ATTENDU et CORRECT — il reçoit donc un état dédié qui l'explique en ces
       // termes ... que @laupernoe rencontrera en premier s'il se connecte avec le compte admin »). Ajouter
       // `rolesAutorises` ici court-circuiterait cet écran dédié au profit du refus générique de
-      // `EcranAccesRefuse` — une régression UX pour un cas explicitement soigné par un autre agent,
+      // `EcranAccesRefuse` — une régression UX pour un cas explicitement soigné par un autre lot,
       // sans gain de sécurité (le `403` serveur protège déjà la donnée réelle). Le masquage du lien
       // dans `BarreLaterale` (`ROLES_MENU_FINANCIER`) reste néanmoins posé, par confort.
       { path: 'parametrage/facturation', element: <EcranParametresFacturation /> },
@@ -523,11 +523,11 @@ export const routesConfig: RouteObject[] = [
       },
       // `chemins.pointage.cloture()` N'A PAS été retiré de `chemins.ts`, à la différence de ce que
       // suggérait le mandat initial de ce lot : `composants/layout/navigation-modele.ts` (hors
-      // périmètre d'écriture de cet agent — `composants/layout/`) porte encore une vue « Clôture »
+      // périmètre d'écriture de ce lot — `composants/layout/`) porte encore une vue « Clôture »
       // dédiée (`chemin: (site) => chemins.pointage.cloture(site)`) et `routes/atteignabilite.spec.ts`
       // verrouille explicitement `trouverCorrespondance('/pointage/cloture')?.vue?.id === 'cloture'`.
       // Retirer le constructeur aurait cassé la compilation de ce fichier et fait rougir ce test —
-      // aucun des deux n'est dans le périmètre d'écriture de cet agent. SIGNALÉ au coordinateur :
+      // aucun des deux n'est dans le périmètre d'écriture de ce lot. SIGNALÉ au coordinateur :
       // la vue « Clôture » de `navigation-modele.ts` (et son JSDoc, qui suppose encore
       // `EcranCloturePeriodePointage` en écran autonome) est désormais périmée et gagnerait à être
       // retirée ou fusionnée dans la vue « Équipe », maintenant que le geste vit dans
@@ -675,11 +675,11 @@ export const routesConfig: RouteObject[] = [
       // écran de GARAGE (données du tenant), pas un poste d'exploitation plateforme.
       //
       // PAS de `rolesAutorises` ici — SIGNALÉ plutôt qu'inventé : le module API correspondant est
-      // écrit en parallèle par un autre agent et le contrat ne documente aucune restriction de
+      // écrit en parallèle par un autre lot et le contrat ne documente aucune restriction de
       // rôle sur ce domaine. Poser une garde de route sans preuve qu'elle reflète une restriction
       // RÉELLE côté API serait exactement la « sécurité de façade » que ce fichier interdit
-      // ailleurs (voir `droits-routes.ts`, cas de figure 1). À revisiter (expert-auth/expert-
-      // react) une fois le module API fusionné et sa matrice de droits connue.
+      // ailleurs (voir `droits-routes.ts`, cas de figure 1). À revisiter (l'équipe authentification/frontend)
+      // une fois le module API fusionné et sa matrice de droits connue.
       {
         path: 'reprise-donnees',
         element: (

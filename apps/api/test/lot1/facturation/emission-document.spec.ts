@@ -3,7 +3,7 @@
  * — point le plus sensible de l'étape 2 : verrouille un brouillon, attribue un numéro légal, fige
  * des montants. Sans test avant ce fichier (voir la tâche qui l'a créé).
  *
- * ARBITRAGE (à charge du présent agent, consigné ici) : les quatre garanties demandées —
+ * ARBITRAGE (à charge du présent lot, consigné ici) : les quatre garanties demandées —
  * contrôle de droit dynamique, verrouillage post-émission, numérotation sans trou, arithmétique
  * de l'émission — sont TOUTES prouvées ici, EN INTÉGRATION, sur une vraie Postgres éphémère
  * (testcontainers), par les VRAIS chemins applicatifs :
@@ -31,7 +31,7 @@
  * chaque test important en retirant le contrôle avant de le remettre. Ce fichier étant un test
  * d'INTÉGRATION (`test/lot1/**`, projet vitest "integration"), l'exécuter exige
  * `pnpm test:integration` — explicitement hors périmètre de cette tâche (« ne relance pas
- * pnpm test:integration sans demande explicite », consigne de @laupernoe répétée deux fois dans la
+ * pnpm test:integration sans demande explicite », consigne produit répétée deux fois dans la
  * tâche). Le rouge/vert est donc établi PAR LECTURE du chemin de code, pas par exécution :
  *   - `emettre()` (service-emission.ts) appelle `this.verifierDroitEmission(doc.typeDocument,
  *     principal)` ligne ~66, AVANT tout `tx.update`/`tx.insert`/`genererNumeroDocument` — retirer
@@ -45,7 +45,7 @@
  *     assertion 403 ne serait plus jamais atteinte, `expect(reponseFacture.status).toBe(403)`
  *     échouerait). C'est exactement la preuve qu'un test de ce genre doit fournir : à exécuter par
  *     `pnpm test:integration` quand @laupernoe le demandera, avec puis sans la ligne 66.
- *   - Confirmation indépendante : un second agent (revue de code, hors de ce périmètre) est arrivé
+ *   - Confirmation indépendante : un second lot (revue de code, hors de ce périmètre) est arrivé
  *     à la même conclusion par lecture directe, mêmes numéros de ligne — voir l'entrée
  *     `verification-conditionnelle-service` ajoutée pour `facturation.document.emettre_facture`/
  *     `_avoir`/`_devis_bc` dans `common/droits/allowlist-actions-non-decorees.ts`. CE fichier de

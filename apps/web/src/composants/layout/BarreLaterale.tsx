@@ -27,7 +27,7 @@ import {
 import type { UtiliserRepliBarreLaterale } from './useRepliBarreLaterale';
 
 /**
- * Numéro de version affiché collé au bouton Réglages (demande explicite de @laupernoe, 17.08.2026 :
+ * Numéro de version affiché collé au bouton Réglages (demande produit explicite, 17.08.2026 :
  * « mets-le au-dessus ou en dessous du bouton Réglages », pas un pied de page détaché). But réel :
  * identifier sans ambiguïté le BUNDLE FRONT réellement affiché en test à distance (« bundle
  * périmé ou vrai défaut ? », doute qui a coûté du temps réel le 16.08.2026) — le numéro de
@@ -44,7 +44,7 @@ import type { UtiliserRepliBarreLaterale } from './useRepliBarreLaterale';
  * `navigation.json`) ne doit jamais se confondre avec un vrai numéro.
  *
  * RE-ARBITRAGE 17.08.2026 : l'issue #85 cachait la version (« un client au comptoir ne doit voir
- * ni branche ni hash Git ») — @laupernoe a tranché l'inverse ce jour-là, visible tout le temps, y compris
+ * ni branche ni hash Git ») — le choix produit a tranché l'inverse ce jour-là, visible tout le temps, y compris
  * devant un client, pour identifier sans ambiguïté le bundle servi en test à distance. Ne pas
  * « corriger » cette visibilité en croyant réappliquer #85 : elle est voulue, plus le contraire.
  */
@@ -56,7 +56,7 @@ function infoVersionBrute(): string {
 interface Props {
   readonly className?: string;
   /**
-   * Repli DESKTOP uniquement (demande @laupernoe, revue webui du 10.08.2026) — absent (`undefined`) =>
+   * Repli DESKTOP uniquement (demande produit, revue webui du 10.08.2026) — absent (`undefined`) =>
    * toujours déplié, comme avant ce lot. C'est l'état du tiroir mobile (`Sheet` d'`AppShell.tsx`) :
    * déjà en surimpression et se fermant entièrement au moindre geste, un repli y serait un second
    * mécanisme pour le même besoin. Seul l'`aside` desktop d'`AppShell.tsx` passe ce prop, construit
@@ -112,7 +112,7 @@ interface Props {
  * `poste_atelier` (la borne murale) ne voit AUCUNE entrée — c'est un appareil, pas un employé
  * (§2). `AppShell` retire alors la colonne entière plutôt que d'afficher un cadre vide.
  *
- * LOT « CADRE APPLICATIF » (19.08.2026, demande @laupernoe) — TROIS ajouts, tous motivés par le même
+ * LOT « CADRE APPLICATIF » (19.08.2026, demande produit) — TROIS ajouts, tous motivés par le même
  * constat : l'ancienne `EnTete.tsx` occupait 64 px de hauteur sur CHAQUE écran pour n'afficher que
  * du contexte permanent (tenant, site, identité, déconnexion) — un défilement vertical inutile sur
  * un métier où « un écran est plus large que haut ». Ce contexte appartient au CADRE, pas à une
@@ -138,7 +138,7 @@ interface Props {
  *     raison). Pour un poste de PERSONNE (celui qui monte réellement cette colonne), @laupernoe demande
  *     explicitement ce lot un menu qui se déplie — et dupliquer Réglages en lien direct ICI EN PLUS
  *     du menu aurait reproduit le défaut que ce dépôt corrige déjà ailleurs (deux commandes vers la
- *     même destination sur le même écran, voir `GabaritEcran.tsx`, retour @laupernoe du 12.08.2026).
+ *     même destination sur le même écran, voir `GabaritEcran.tsx`, retour produit du 12.08.2026).
  *  3. `EnTete.tsx` est SUPPRIMÉ. Ce qu'il portait pour un poste de personne (tenant, site, identité,
  *     déconnexion) descend ici ; la recherche permanente devient `BarreOutilsSuperieure.tsx` (un
  *     bandeau de 48 px, pas 64, avec la ligne du tiroir mobile FUSIONNÉE dedans plutôt qu'empilée
@@ -146,7 +146,7 @@ interface Props {
  *     (`poste_atelier`, mode scan mobile) — devient `BandeauSansNavigation.tsx`. Voir leurs en-têtes
  *     respectifs pour le chiffrage de hauteur gagnée et le détail de cette scission.
  *
- * LOT « BANDEAU HAUT » (26.08.2026, demande @laupernoe) — le SÉLECTEUR DE SITE (point 1 ci-dessus) et la
+ * LOT « BANDEAU HAUT » (26.08.2026, demande produit) — le SÉLECTEUR DE SITE (point 1 ci-dessus) et la
  * BASCULE DE THÈME (point 2 ci-dessus, `BasculeTheme`) REPARTENT tous deux vers
  * `BarreOutilsSuperieure.tsx` — voir sa doc de tête pour la justification mesurée complète (ce
  * contrôle change le contexte de toute la page, cette colonne se replie ou se ferme selon le
@@ -245,7 +245,7 @@ export function BarreLaterale({ className, repli }: Props) {
             replie ? 'justify-center px-2' : 'gap-3 px-3',
             'anneau-focus',
             actif
-              ? // Refonte du 12.08.2026 (demande @laupernoe : « le truc gris avec un autre gris avec une
+              ? // Refonte du 12.08.2026 (demande produit : « le truc gris avec un autre gris avec une
                 // barre à gauche » manquait de contraste et ne se voyait pas d'un coup d'œil). Le
                 // filet gris sur gris (`--secondary`/`--secondary-foreground`, hérité de l'état actif
                 // des onglets et abandonné ici) est remplacé par un REMPLISSAGE PLEIN dans la couleur
@@ -346,8 +346,8 @@ export function BarreLaterale({ className, repli }: Props) {
        * bien plus grave qu'un onglet manquant. Le menu ne propose Réglages QUE si
        * `reglagesVisibles(role)` reste vrai ; la déconnexion, elle, est TOUJOURS proposée.
        *
-       * Numéro de version SOUS le déclencheur, pas dessus (demande @laupernoe, 17.08.2026 : « au-dessus ou
-       * en dessous du bouton Réglages », choix laissé à l'agent — Réglages a changé de forme depuis,
+       * Numéro de version SOUS le déclencheur, pas dessus (demande produit, 17.08.2026 : « au-dessus ou
+       * en dessous du bouton Réglages », choix laissé à le lot — Réglages a changé de forme depuis,
        * l'ordre de lecture reste le même : l'action en premier, la métadonnée de confort ensuite).
        *
        * REPLIÉ (icônes seules, colonne à 64 px) : le texte identité + le texte de version sont

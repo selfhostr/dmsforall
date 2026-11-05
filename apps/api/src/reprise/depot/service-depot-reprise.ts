@@ -159,13 +159,12 @@ export class ServiceDepotReprise {
 
       const apres = await this.cycleVie.transiter(tx, ctx.tenantId, dossierId, 'depot_receptionne');
 
-      // Défaut 2 (mandat reprise) : les tranches n'ont plus d'utilité une fois l'archive assemblée
+      // Défaut 2 (reprise) : les tranches n'ont plus d'utilité une fois l'archive assemblée
       // ET son intégrité vérifiée (ci-dessus) — la reprise après interruption ne s'applique qu'à
       // un dépôt encore `depot_en_cours` ; passé ce point, seule `archive.bin` sert (relance
       // d'analyse comprise, `ServiceAnalyseReprise.executer` ne lit que
       // `stockage.cheminAbsoluArchive`, jamais les tranches). Sans cette purge, l'archive assemblée
-      // ET ses tranches d'origine coexistaient indéfiniment sur le disque (mesuré : 4,5 Go pour une
-      // archive de 2,3 Go). Ligne base d'abord (source de vérité, `reprise_tranche` porte
+      // ET ses tranches d'origine coexistaient indéfiniment sur le disque (le double de l'archive en espace disque). Ligne base d'abord (source de vérité, `reprise_tranche` porte
       // `[dfa:suppression-physique]` depuis 0067), puis disque en best-effort — même patron que
       // `ServiceCycleVieDossierReprise.annuler` : un échec disque ne doit jamais faire échouer une
       // finalisation par ailleurs réussie, rattrapable par un job de purge ultérieur.

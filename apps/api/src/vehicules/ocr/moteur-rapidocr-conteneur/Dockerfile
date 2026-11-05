@@ -7,7 +7,7 @@
 # texte native, évite l'OCR quand il y en a une — mesuré : les PDF Galaxus de l'échantillon en ont
 # une, voir le rapport de livraison). pillow-heif : décodage HEIC/HEIF pur Python (libheif
 # embarqué dans le wheel, pas de paquet système à compiler).
-FROM python:3.10-slim
+FROM python:3.10-slim@sha256:6ff506466f8b1e981719b468cc0023b8ef000b983cdec0eafe119d01f379e31d
 ENV HOME=/app
 WORKDIR /app
 

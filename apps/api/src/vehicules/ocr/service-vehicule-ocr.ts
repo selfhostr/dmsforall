@@ -7,7 +7,7 @@
  * migration 0058) ne porte JAMAIS le texte lu — seulement des booléens de confirmation et des
  * identifiants de fiches déjà existantes (voir l'en-tête de cette migration).
  *
- * Décision @laupernoe : cet endpoint NE CRÉE RIEN. Toute correspondance rendue ici pointe vers une fiche
+ * Décision de conception : cet endpoint NE CRÉE RIEN. Toute correspondance rendue ici pointe vers une fiche
  * DÉJÀ EXISTANTE du tenant ; rien n'est jamais inséré dans `vehicule`/`client` depuis ce service.
  *
  * Contrat convergé avec l'écran de scan (`@dfa/shared`, `scan-permis-circulation.ts`) : trois

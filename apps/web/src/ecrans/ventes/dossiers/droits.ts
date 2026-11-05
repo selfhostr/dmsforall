@@ -10,7 +10,7 @@ import type { RoleUtilisateur } from '@dfa/shared';
  * Cette matrice porte DEUX décisions marquées « À CONFIRMER AVEC @laupernoe » côté API (voir l'en-tête de
  * `DROITS_VENTES_PAR_ROLE`), reprises ici TELLES QUELLES plutôt que corrigées côté écran — un écran
  * qui adoucirait ces positions conservatrices divergerait silencieusement du serveur :
- *  - `admin` reçoit `[]` sur tout le domaine ventes (RF-115, décision de l'agent API, pas une ligne
+ *  - `admin` reçoit `[]` sur tout le domaine ventes (RF-115, décision du lot API, pas une ligne
  *    littérale de la spécification) — même palier que `pieces.*`.
  *  - `receptionnaire` NE reçoit PAS `ventes.dossier.livrer` (QV-16 non tranché, position
  *    conservatrice retenue côté API).

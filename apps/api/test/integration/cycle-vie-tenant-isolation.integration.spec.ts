@@ -1,12 +1,12 @@
 /**
  * Preuve que l'export/la purge du cycle de vie de sortie du garage (offboarding, migration 0062)
  * respectent la règle numéro un du produit : « un export de tenant ne doit JAMAIS contenir la
- * moindre ligne d'un autre garage » (mandat 20.08.2026, §5). Deux tenants réellement peuplés
+ * moindre ligne d'un autre garage » (§5). Deux tenants réellement peuplés
  * (`semerGarageDemo`, même fixture que `rls.spec.ts`), export/purge exercés via les VRAIS
  * services (`ServiceCycleVieResiliation`/`ServiceExportTenant`), sur la vraie base éphémère
  * (testcontainers, migrations réellement appliquées — 0000 → dernière, 0062 comprise).
  *
- * EXÉCUTÉ EN CI (forge) le 21.08.2026 — a trouvé un vrai défaut au premier passage : une FK
+ * EXÉCUTÉ EN CI le 21.08.2026 — a trouvé un vrai défaut au premier passage : une FK
  * `on delete restrict` de `resiliation_tenant` vers `public.utilisateur` bloquait
  * `purger_donnees_tenant()` en PERMANENCE (elle ne pouvait jamais supprimer la ligne `utilisateur`
  * référencée, puisque `resiliation_tenant` survit toujours à la purge) — corrigé dans
@@ -230,7 +230,7 @@ describe('cycle de vie de sortie du garage — isolation stricte (règle n°1)',
         'test-purge-utilisateur',
       );
 
-      // CORRECTIF nLPD (mandat 24/25.08.2026) : dépôt d'une VRAIE archive de reprise sur disque
+      // CORRECTIF nLPD : dépôt d'une VRAIE archive de reprise sur disque
       // pour le tenant A (dossier_reprise + tranche réelle écrite via `PortStockageArchiveReprise`
       // — même adaptateur que la production, pas un mock), ET une archive pour le tenant B —
       // JAMAIS référencée par un dossier de résiliation, elle ne doit survivre QUE parce que la
@@ -247,7 +247,7 @@ describe('cycle de vie de sortie du garage — isolation stricte (règle n°1)',
       await stockageReprise.ecrireTranche(racineDossierB, 0, Buffer.from('archive-tenant-b-test'));
       expect(await stockageReprise.trancheExiste(racineDossierB, 0)).toBe(true);
 
-      // DEUXIÈME CORRECTIF nLPD (mandat 24/25.08.2026) : mêmes preuves, deux fuites de plus — un
+      // DEUXIÈME CORRECTIF nLPD : mêmes preuves, deux fuites de plus — un
       // VRAI PDF de facture et un VRAI export de résiliation, pour tenant A ET tenant B. Le
       // répertoire d'export du tenant A ci-dessous est délibérément DIFFÉRENT de celui écrit par
       // `marquerExportPret` plus bas (`test/export`, un placeholder qui ne préfixe même pas

@@ -16,7 +16,7 @@
  * posé par `AccesBase.enTenant` à la portée transaction, jamais ici (voir contrats-etape-0.md §3,
  * « le piège du pooling »). Ce guard ne fait que résoudre un cookie en `PrincipalAuthentifie`.
  *
- * --- Note de sécurité à valider (reviewer-securite / orchestrateur) --------------------------
+ * --- Note de sécurité à valider (revue sécurité / mainteneur) --------------------------
  * Le contrat liste l'ordre « 1. @Public → laisse passer ; 2. vérifie Origin ». Une lecture stricte
  * ferait que `POST /auth/connexion` (publique) ne serait JAMAIS soumise à la vérification Origin.
  * Mais la consigne de la tâche est explicite et sans exception : « vérification Origin sur TOUTE

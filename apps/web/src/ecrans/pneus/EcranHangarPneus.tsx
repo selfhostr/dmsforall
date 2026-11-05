@@ -127,7 +127,7 @@ function versOngletHangar(valeur: string | null): OngletHangar {
  * quoi que ce soit, et `packages/shared/src/contrats/pneus/depot-pneus.ts`/`facturation/` ne
  * portent aucun DTO de gardiennage. Un bouton qui appellerait une route inexistante est exactement
  * le défaut que ce dépôt traque (« un bouton qui ne fait rien ») : PAS AJOUTÉ ICI. À câbler dans
- * `CarteJeuPneu` (plan) une fois qu'expert-api/expert-facturation auront défini le contrat
+ * `CarteJeuPneu` (plan) une fois qu'l'équipe API/l'équipe facturation auront défini le contrat
  * (nature de la prestation facturée, périodicité, lien vers la chaîne devis→facture existante).
  *
  * DÉFAUT CORRIGÉ (audit du 09.08.2026, requête tirée pour un onglet inactif) : `useJeuxARelancer`
@@ -153,7 +153,7 @@ function versOngletHangar(valeur: string | null): OngletHangar {
  * normalement + un `Alert` dédié — jamais de mise en évidence fabriquée sur un élément absent, et
  * jamais un plantage.
  *
- * ROUTES SIGNALÉ (hors périmètre d'écriture, `routes/` appartient à un autre agent) : le chemin
+ * ROUTES SIGNALÉ (hors périmètre d'écriture, `routes/` appartient à un autre lot) : le chemin
  * `/pneus/a-relancer` (`chemins.pneus.aRelancer`, `apps/web/src/routes/chemins.ts`) et sa route
  * dans `routes/` n'ont plus d'écran à monter — `EcranJeuxARelancer.tsx` est supprimé. À qui de
  * droit : soit supprimer la route et rediriger `/pneus/a-relancer` vers
@@ -363,7 +363,7 @@ export function EcranHangarPneus() {
   // (« Reifenhotel », « Deposito pneumatici ») étaient déjà identiques à leur libellé d'onglet
   // respectif — seul le FR divergeait.
   //
-  // « Nouveau dépôt » N'EST PLUS sur la ligne du titre (retour @laupernoe, chantier « zone haute des
+  // « Nouveau dépôt » N'EST PLUS sur la ligne du titre (retour produit, chantier « zone haute des
   // écrans de liste » : « comme il est en haut, il fait que ça décale tout »). Cet écran n'a pas de
   // ligne « Trier par » (plan en grille + onglets, pas de `SelecteurTri`) : le bouton rejoint la
   // ligne la plus proche en esprit, juste sous la barre de recherche, dans l'onglet « Dans le
@@ -474,7 +474,7 @@ export function EcranHangarPneus() {
                 </div>
               ) : (
                 <>
-                  {/* Cas honnête (exigence de l'agent) : `?depot=` pointe vers un dépôt qui n'est
+                  {/* Cas honnête (exigence du lot) : `?depot=` pointe vers un dépôt qui n'est
                    *  ni sorti, ni monté, ni entré sur CE site — déplacé ailleurs, sorti depuis,
                    *  ou lien périmé. On ne fabrique JAMAIS de mise en évidence sur un élément
                    *  absent : le hangar s'affiche normalement, avec cette mention en plus. Gardé

@@ -113,7 +113,7 @@ function rendre() {
  * pas. Ce test prouve donc que LE FRONT (`useFacturesOuvertesClient` → `SheetEncaissement`) exclut
  * bien la facture annulée UNE FOIS que le serveur applique le filtre qu'on lui envoie ; il ne prouve
  * pas que le serveur réel l'applique — cette preuve-là est côté `apps/api`, hors périmètre de cet
- * agent (voir `useFacturesOuvertesClient.spec.tsx` pour le même avertissement, et la description du
+ * lot (voir `useFacturesOuvertesClient.spec.tsx` pour le même avertissement, et la description du
  * correctif serveur, hors périmètre, qui doit en plus refuser l'IMPUTATION elle-même sur un document
  * non `emis` — le filtre d'affichage n'est jamais la frontière de sécurité).
  */

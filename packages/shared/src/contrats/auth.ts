@@ -1,7 +1,7 @@
 /**
  * Contrats d'authentification partagés API <-> web.
  *
- * Propriété : expert-auth (voir contrats-etape-0.md §2.5 et §2.10).
+ * Propriété : l'équipe authentification (voir contrats-etape-0.md §2.5 et §2.10).
  * Rien ici ne doit être écrit à la main côté front une fois l'OpenAPI généré :
  * ce fichier reste la source de vérité pour les schémas zod de validation,
  * les types générés depuis l'OpenAPI reprennent la forme des interfaces.

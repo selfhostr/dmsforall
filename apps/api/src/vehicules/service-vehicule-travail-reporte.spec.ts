@@ -6,7 +6,7 @@ import type { LigneVehiculeKilometrage } from '../db/schema';
  * `ServiceVehiculeTravailReporte.creerDepuisRefus` — port `CreationTravailReporte` (RM-73), la
  * moitié « côté fournisseur » du geste « un client refuse une ligne d'OR -> le garage garde le
  * travail en mémoire pour le passage suivant ». Le port lui-même sera appelé par
- * `atelier/service-ligne-or.ts::refuserLignes` (hors périmètre de cet agent) une fois câblé — ce
+ * `atelier/service-ligne-or.ts::refuserLignes` (hors périmètre de ce lot) une fois câblé — ce
  * fichier prouve ce que `vehicules` livre dès aujourd'hui, sans base réelle (fonctions de requête
  * et transaction MOQUÉES, même doctrine que `service-vehicule-kilometrage.spec.ts` et
  * `service-vehicule-contexte-atelier.spec.ts`).

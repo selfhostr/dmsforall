@@ -56,7 +56,7 @@ function construireHrefSite(
 }
 
 /**
- * Changeur de site GLOBAL du chrome (demande @laupernoe, revue webui du 10.08.2026 ; déménagé de l'ancien
+ * Changeur de site GLOBAL du chrome (demande produit, revue webui du 10.08.2026 ; déménagé de l'ancien
  * `EnTete.tsx` vers `BarreLaterale.tsx` le 19.08.2026, puis vers `BarreOutilsSuperieure.tsx` le
  * 26.08.2026 — voir la doc de tête de ce dernier pour la justification mesurée du déménagement).
  * Ce composant reste le SEUL sélecteur de site du chrome applicatif, il n'en existe aucun autre à

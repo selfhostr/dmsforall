@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
  * BASCULE CLAIR/SOMBRE — refonte visuelle, voir DESIGN.md. `useTheme()` vient de `next-themes`
  * (`<ThemeProvider>` posé dans `App.tsx`, `attribute="class"`), qui pose `class="dark"`/`"light"`
  * sur `<html>` — c'est ce que `@custom-variant dark` et les jetons `.dark { ... }` d'`index.css`
- * attendent. Persistance `localStorage` SEULE (arbitrage de @laupernoe) : ni colonne en base, ni point
+ * attendent. Persistance `localStorage` SEULE (choix produit) : ni colonne en base, ni point
  * d'API — le réglage ne suit donc pas le garagiste d'un poste à l'autre, assumé.
  *
  * DEUX ÉTATS EXPOSÉS DANS L'UI, PAS TROIS. `système` reste le point de départ RÉEL avant tout clic

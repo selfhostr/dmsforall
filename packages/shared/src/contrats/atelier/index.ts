@@ -3,7 +3,7 @@
  *
  * Point d'entrée unique du domaine. Tout ce qui est exporté ici est **gelé au nom près et à la
  * signature près** pour le lot 1 : un expert qui a besoin d'un écart le remonte à
- * l'orchestrateur, il ne l'implémente pas « en attendant ».
+ * le mainteneur, il ne l'implémente pas « en attendant ».
  *
  * Règle de compatibilité opposable à toute revue future (§11.1) :
  * > Un client de cette API **doit ignorer les champs qu'il ne connaît pas** et **ne doit pas

@@ -2,10 +2,10 @@ import type { EtatCapaciteRendezVous } from '@dfa/shared';
 
 /**
  * RV-06/RV-07/RV-08 (`docs/conception-rendez-vous-metier.md` §4) : la capacité affichée informe,
- * elle ne bloque JAMAIS (arbitrage @laupernoe #1, « surbooking : avertir, jamais bloquer »). Fonction
+ * elle ne bloque JAMAIS (choix produit #1, « surbooking : avertir, jamais bloquer »). Fonction
  * PURE — aucun accès base, pour rester testable sans DB.
  *
- * RÈGLE MAISON (brief orchestrateur, quatre défauts produits cette semaine par sa violation) :
+ * RÈGLE MAISON (brief du chantier, quatre défauts produits cette semaine par sa violation) :
  * « on ne sait pas », « aucun » et « zéro » ne partagent jamais le même rendu. Un site qui n'a
  * jamais paramétré `parametre_site.capacite_heures_jour_centiemes` (`NULL` en base) est rendu
  * `'non_definie'` — jamais `'disponible'` (mentirait par excès de confiance) ni implicitement

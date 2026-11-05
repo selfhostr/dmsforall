@@ -1,7 +1,7 @@
 /**
  * Clés TanStack Query du domaine reprise de données — même convention que `hooks/pieces/cles.ts`/
  * `hooks/ventes/reprises/cles.ts` : tuple plat, tenu ICI plutôt que dans `api/cles.ts` (gelé
- * depuis l'étape 1, hors périmètre de cet agent).
+ * depuis l'étape 1, hors périmètre de ce lot).
  *
  * `dossiers.liste()` est LA clé racine : le contrat `reprise.ts` n'expose aucun `GET
  * /reprise/dossiers/{id}` (seulement la collection) — l'état du dossier « actif » vient donc

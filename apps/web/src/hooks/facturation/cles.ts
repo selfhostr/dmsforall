@@ -2,7 +2,7 @@
  * Clés TanStack Query du domaine facturation — même convention que `clesQuery` (`@/api/cles.ts`,
  * tuple plat `[domaine, sous-ressource, ...paramètres]`), mais délibérément TENUES ICI plutôt que
  * fusionnées dans `api/cles.ts` : ce fichier n'est pas dans le périmètre d'écriture confié à cet
- * agent (« `apps/web/src/api/cles.ts` ne t'appartient pas »). À REMONTER : une fois validé, ce
+ * lot (« `apps/web/src/api/cles.ts` ne t'appartient pas »). À REMONTER : une fois validé, ce
  * module devrait fusionner dans `clesQuery.facturation` pour que toute la fabrique de clés reste au
  * même endroit — jusque-là, une invalidation croisée (ex. un futur écran hors de ce module qui
  * voudrait invalider `clesFacturation.documents.liste`) devra importer ce fichier explicitement.

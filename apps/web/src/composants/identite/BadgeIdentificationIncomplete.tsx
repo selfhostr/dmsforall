@@ -19,7 +19,7 @@ interface Props {
  * GAP I18N signalé : aucune clé courte n'existe pour ce badge (ex. `vehicules:identite.*`) ; ce
  * composant réutilise la phrase longue `erreurs:avertissements.VEHICULE_IDENTIFICATION_INCOMPLETE`,
  * seule traduction existante rattachée à ce concept métier. À remplacer par une clé dédiée courte
- * si la densité d'un écran (table dense) l'exige — voir signalement à expert-i18n.
+ * si la densité d'un écran (table dense) l'exige — voir signalement à l'équipe i18n.
  */
 export function BadgeIdentificationIncomplete({ identificationIncomplete, className }: Props) {
   const { t } = useTranslation('vehicules');

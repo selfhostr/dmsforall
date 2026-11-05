@@ -16,7 +16,7 @@ interface EntreeStatut {
 
 /**
  * Statut de règlement (§2.2) — `non_regle` porte le token NEUTRE, jamais `--statut-attention` :
- * décision de @laupernoe reprise telle quelle, une facture fraîchement émise et non payée n'est pas une
+ * décision de conception reprise telle quelle, une facture fraîchement émise et non payée n'est pas une
  * alerte. `trop_percu`/`irrecouvrable` sont ABSENTS du design (`STATUTS_REGLEMENT_DOCUMENT` en
  * compte cinq, le document n'en illustre que trois) — mapping étendu ici pour rester exhaustif
  * (type-safe, comme `BadgeStatutOr`) avec une iconographie cohérente au reste du produit :

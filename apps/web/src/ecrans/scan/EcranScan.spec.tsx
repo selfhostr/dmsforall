@@ -16,7 +16,7 @@ import { EcranScan } from './EcranScan';
 /**
  * Faux `EventSource` — MÊME patron que `hooks/temps-reel/useEvenementsTempsReel.spec.tsx` (jsdom
  * n'implémente pas cette API). Dupliqué ici plutôt qu'importé : `hooks/temps-reel/` est hors du
- * périmètre d'écriture de cet agent, et ce fichier de test n'a pas vocation à devenir un point de
+ * périmètre d'écriture de ce lot, et ce fichier de test n'a pas vocation à devenir un point de
  * couplage entre les deux périmètres.
  */
 class FauxEventSource {

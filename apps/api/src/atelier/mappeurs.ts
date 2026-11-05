@@ -100,12 +100,12 @@ export function mapperDevisLigne(ligne: LigneDevisComplementaireLigne): ReponseD
 
 /**
  * `devis_complementaire.preuve` (jsonb) est réservée à la preuve d'acceptation en ligne
- * (IP/user-agent, §7 hors lot 1) mais reste PRÉSENTE et INERTE en base — voir
+ * (IP/user-lot, §7 hors lot 1) mais reste PRÉSENTE et INERTE en base — voir
  * `migrations/0008_atelier.sql`. `destinataireContactId` figure dans le schéma d'ENTRÉE
  * (`schemaCreationDevisComplementaire`) sans avoir de colonne dédiée : ce module réutilise
  * `preuve` pour le porter (`{ destinataireContactId }`), plutôt que de le perdre silencieusement.
  * Signalé comme une réutilisation pragmatique d'une colonne inerte, pas une invention de schéma —
- * à confirmer avec expert-database si une colonne dédiée est préférée.
+ * à confirmer avec l'équipe base de données si une colonne dédiée est préférée.
  */
 interface PreuveDevis {
   readonly destinataireContactId?: string | null;

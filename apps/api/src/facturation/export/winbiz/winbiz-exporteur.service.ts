@@ -5,7 +5,7 @@
  * `AccountingExporter` (contrat gelé, `MD-84`) ne déclare que `cible`/`capacites` — le fichier
  * source précise explicitement que le contrat HTTP complet de déclenchement reste à concevoir
  * (« hors du périmètre demandé pour ce lot »). Les méthodes ci-dessous sont donc une EXTENSION
- * de ce service, pas une promesse d'interface partagée : un futur contrat HTTP (`expert-api`)
+ * de ce service, pas une promesse d'interface partagée : un futur contrat HTTP (l'équipe API)
  * pourra les envelopper différemment sans que ce fichier n'ait à changer de forme interne.
  *
  * Ce service ne touche NI la base NI le réseau : il reçoit une liste d'`EcritureExport` déjà

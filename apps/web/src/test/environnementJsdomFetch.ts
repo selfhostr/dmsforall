@@ -41,7 +41,7 @@ import type { Environment } from 'vitest/environments';
  *   `dom.window`. `getWindowFromNode(document)` lit donc CE `global`, pas une fenêtre séparée.
  * - Le test isolé, machine au repos : 25/25 passent, mais le test incriminé prend 14.72 s sur un
  *   budget (`testTimeout`, vitest.config.ts) de 15 s — 98 % du budget SANS aucune charge
- *   concurrente. Sous la charge réelle décrite (trois suites de `pnpm test` + agents en parallèle),
+ *   concurrente. Sous la charge réelle décrite (trois suites de `pnpm test` + lots en parallèle),
  *   ce test bascule le premier.
  * - `waitFor` (`@testing-library/dom`) enveloppe tout son corps dans
  *   `new Promise(async (resolve, reject) => {...})` : un throw synchrone AVANT le premier `await`

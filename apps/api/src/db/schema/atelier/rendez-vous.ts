@@ -2,13 +2,13 @@
  * `rendez_vous` — prise de rendez-vous d'atelier. Détail des règles, contraintes et triggers :
  * migrations/0052_rendez_vous_atelier.sql (voir son en-tête pour la collision de noms avec les
  * types `statut_rendez_vous`/`origine_rendez_vous` posés — inutilisés — par 0005_parametrage.sql,
- * et pour les trois arbitrages de @laupernoe appliqués ici).
+ * et pour les trois choix produit appliqués ici).
  *
  * DÉVIATION DE DOCTRINE (même précédent que `modeIdentificationPointageEnum`, `./enums.ts` §0036) :
  * les enums de CE fichier ne sont normalement des `pgEnum(...)` que si leurs valeurs viennent de
  * `@dfa/shared` (SOURCE UNIQUE côté TypeScript). Ici, `packages/shared/src/contrats/` est hors du
- * périmètre d'écriture de cette tâche (propriété de l'agent parallèle sur
- * `apps/api/src/rendezvous/`) — les valeurs sont donc posées EN DUR, à résorber dès qu'un agent
+ * périmètre d'écriture de cette tâche (propriété du lot parallèle sur
+ * `apps/api/src/rendezvous/`) — les valeurs sont donc posées EN DUR, à résorber dès qu'un lot
  * peut toucher `packages/shared` : ajouter `STATUTS_PRISE_RENDEZ_VOUS`/`ORIGINES_CREATION_RENDEZ_VOUS`
  * (ou réconcilier avec `StatutRendezVous`/`OrigineRendezVous` existants, voir la migration) dans
  * `contrats/atelier/enums.ts`, les exporter, puis remplacer les tableaux littéraux ci-dessous par

@@ -154,7 +154,7 @@ describe('EcranHangarPneus', () => {
   // `waitFor` avec une requête `getByRole` FRAÎCHE à chaque tour contourne cette instabilité sans
   // rien affaiblir : la classe `sr-only` doit toujours finir par apparaître sur LE `h1` réellement
   // présent à l'écran. Signalé au socle (`composants/motifs/GabaritEcran.tsx`, hors périmètre
-  // d'écriture de cet agent) : la bascule entre les deux formes de rendu du gabarit pourrait
+  // d'écriture de ce lot) : la bascule entre les deux formes de rendu du gabarit pourrait
   // conserver la même profondeur de conteneur pour éviter ce remontage.
   it("garde un h1 accessible « Dépôt pneus » dans le DOM, masqué via `sr-only` (doublon avec l'onglet actif)", async () => {
     server.use(

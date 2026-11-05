@@ -11,7 +11,7 @@ interface Props {
  * État vide générique : message + action optionnelle. Un écran sans action pertinente
  * (ex. EcranAccueil à l'étape 0) omet simplement `action`.
  *
- * REMBOURRAGE RELIÉ À LA DENSITÉ (19.08.2026, signalé par l'agent tableau de bord) — `p-10`
+ * REMBOURRAGE RELIÉ À LA DENSITÉ (19.08.2026, signalé par le lot tableau de bord) — `p-10`
  * (40 px fixe) ne suivait AUCUN jeu de densité (`.densite-dense`/`aeree`/`tres-aeree`,
  * `index.css`) : sous `densite-dense`, un état vide restait un pavé de 40 px alors que tout le
  * reste de l'écran s'était resserré. `p-carte` (`--spacing-carte` -> `--espace-carte`, 16/24/24 px

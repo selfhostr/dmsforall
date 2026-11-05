@@ -81,7 +81,7 @@ const CLES_STATUT: Record<StatutDossierVente, string> = {
  *
  * ÉCARTS SIGNALÉS AVEC LE BRIEF (à lire, pas des omissions silencieuses) :
  *  1. **Colonne « prix »** — demandée par le brief, absente de `ventes:dossier.liste.colonnes.*`
- *     (namespace déjà livré par l'agent i18n : `client`/`vehicule`/`statut`/`dateLivraisonEstimee`
+ *     (namespace déjà livré par le lot i18n : `client`/`vehicule`/`statut`/`dateLivraisonEstimee`
  *     SEULEMENT) et absente de `docs/design-ecrans-ventes.md` §6 (4 colonnes littérales). Un prix
  *     DÉRIVÉ existe déjà pour la fiche (`utils.ts::selectionnerPrixDossierVente`, chaque ligne de
  *     liste porte le document complet) — je ne l'ajoute pas ici pour rester fidèle au design déjà
@@ -96,7 +96,7 @@ const CLES_STATUT: Record<StatutDossierVente, string> = {
  *  3. **Filtre « période »** — demandé par le brief, aucun paramètre de plage de dates n'existe sur
  *     le contrat (seul le TRI par `dateLivraisonEstimee` existe). Non implémenté.
  *
- * PAS de lien vers le suivi financement/garantie dans l'en-tête (retiré, retour @laupernoe du 12.08.2026 :
+ * PAS de lien vers le suivi financement/garantie dans l'en-tête (retiré, retour produit du 12.08.2026 :
  * « c'est doublé aussi sur les dossiers de vente ») — `OngletsDomaine` affiche déjà « Suivi
  * financement & garantie » comme onglet actif un rang au-dessus de cet écran (même arborescence que
  * « Dossiers »/« Véhicules en parc »), même destination que ce bouton retiré. Deux commandes vers la
@@ -265,7 +265,7 @@ export function EcranListeDossiersVente() {
   // dit déjà Dossiers, et du coup ça fait un espace horrible »). `GabaritEcran` le détecte lui-même
   // — ne JAMAIS poser `titreVisible` ici pour forcer la visibilité : ce commentaire affirmait
   // l'inverse avant ce correctif (« pas un doublon »), à tort — la doctrine « un titre visible reste
-  // préférable » a été explicitement RE-ARBITRÉE par @laupernoe dans l'autre sens pour ce cas précis (voir
+  // préférable » a été explicitement RE-ARBITRÉE côté produit dans l'autre sens pour ce cas précis (voir
   // le contrat du chantier, §3, qui liste ce couple titre/onglet à la lettre). Seule action du
   // titre : « Nouveau dossier de vente » — le bouton « Suivi financement & garantie » qui siégeait
   // ici a été retiré, voir la note de l'en-tête de fichier.

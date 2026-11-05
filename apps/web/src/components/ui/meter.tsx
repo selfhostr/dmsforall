@@ -1,6 +1,6 @@
 // Adapté de coss (https://github.com/cosscom/coss, apps/ui/registry/default/ui/meter.tsx,
 // licence MIT — voir apps/ui/LICENSING.md du dépôt source : seuls apps/origin/ et apps/ui/ y
-// sont MIT, le reste du dépôt est AGPL-3.0, ne JAMAIS copier depuis un autre répertoire). Couche
+// sont MIT, le reste du dépôt coss est AGPL-3.0, ne JAMAIS copier depuis un autre répertoire). Couche
 // de primitive Base UI (`@base-ui/react/meter`, MIT) au lieu de Radix — voir la note sur la
 // cohabitation des deux bibliothèques dans CONTRIBUTING.md. Composant « feuille » : ni portail, ni
 // piège de focus, ni superposition — le seul écart mesuré par rapport à Radix est purement

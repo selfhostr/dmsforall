@@ -1,7 +1,7 @@
 /**
  * Test unitaire colocalisé — dimensionnement du pool `pg` (`DATABASE_POOL_MIN`,
  * `DATABASE_TIMEOUT_CONNEXION_MS`, `DATABASE_TIMEOUT_IDLE_MS`). Fichier séparé de
- * `charger-config.spec.ts` (propriété déclarée d'un autre agent, non touché ici) pour éviter
+ * `charger-config.spec.ts` (propriété déclarée d'un autre lot, non touché ici) pour éviter
  * toute collision d'écriture — voir `apps/api/src/db/acces-base.service.ts` pour l'usage réel de
  * ces trois variables et `apps/api/src/db/erreur-pool-sature.ts` pour le défaut qui a motivé leur
  * introduction (`timeout exceeded when trying to connect` mesuré sous charge, 88 reproductions).

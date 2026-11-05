@@ -4,7 +4,7 @@
  * migrations/0014_bloc_creancier_tenant.sql.
  *
  * Un tenant a au plus une ligne ici (`tenant_bloc_creancier_tenant_id_uk`, unique sur
- * `tenant_id` seul — pas de site, arbitrage @laupernoe 30.07.2026). Toutes les colonnes sont
+ * `tenant_id` seul — pas de site, choix produit 30.07.2026). Toutes les colonnes sont
  * nullables : un créancier incomplet ne bloque jamais la création du tenant, seulement
  * l'émission d'une facture (contrôle applicatif, `facturation/qr/adresse.ts`,
  * `CHAMPS_REQUIS_BLOC_CREANCIER`).
@@ -34,7 +34,7 @@ export const tenantBlocCreancier = pgTable(
 
     /**
      * Deux comptes distincts et indépendants — jamais un seul champ qui jouerait les deux
-     * rôles (arbitrage @laupernoe). Forme COMPACTE exigée par le CHECK (majuscules, sans espace,
+     * rôles (choix produit). Forme COMPACTE exigée par le CHECK (majuscules, sans espace,
      * 21 caractères) : c'est celle que `validerIbanCreancier()` renvoie.
      */
     iban: text('iban'),

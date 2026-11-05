@@ -1,7 +1,7 @@
 import type { TFunction } from 'i18next';
 
 /**
- * Utilitaires locaux au module pièces — `lib/**` est hors périmètre de cet agent, même règle que
+ * Utilitaires locaux au module pièces — `lib/**` est hors périmètre de ce lot, même règle que
  * `ecrans/clients/utils.ts` (fonctions propres à un domaine, pas assez génériques pour `lib/`).
  *
  * QUANTITÉS EN MILLIÈMES — `quantiteMillieme` (@dfa/shared, `contrats/pieces/primitives.ts`) :
@@ -15,7 +15,7 @@ const FORMATEUR_QUANTITE = new Intl.NumberFormat('de-CH', { maximumFractionDigit
 // Même correctif que `lib/formats.ts#corrigerApostropheMilliers` : Intl.NumberFormat('de-CH')
 // rend l'apostrophe typographique (U+2019) comme séparateur de milliers, le rendu suisse standard
 // utilise l'apostrophe droite (U+0027). Dupliqué ici (pas dans `lib/`, hors périmètre) plutôt que
-// réimporté d'un fichier qu'un autre agent peut modifier en parallèle.
+// réimporté d'un fichier qu'un autre lot peut modifier en parallèle.
 const APOSTROPHE_TYPOGRAPHIQUE = /’/g;
 
 /** Millièmes d'unité (integer) -> quantité affichable (ex. `2500` -> `"2.5"`, `1000` -> `"1"`). */

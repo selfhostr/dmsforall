@@ -4,7 +4,7 @@
  *
  * Point d'entrée unique du domaine, même règle que `contrats/atelier` : tout ce qui est exporté
  * ici est GELÉ au nom près et à la signature près une fois validé. Un écart nécessaire se remonte
- * à l'orchestrateur, il ne se code pas « en attendant ».
+ * à le mainteneur, il ne se code pas « en attendant ».
  *
  * Règle de compatibilité opposable à toute revue future, reprise à l'identique de
  * `contrats/atelier/index.ts` : un client de cette API doit ignorer les champs qu'il ne connaît

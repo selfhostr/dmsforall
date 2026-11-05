@@ -41,7 +41,7 @@ function versEntreeAudit(ligne: LigneAuditBrute): EntreeAudit {
 
 /**
  * Implémentation SQL directe — pas de schéma Drizzle `audit_atelier` : la table (partitionnée par
- * mois) est créée par la migration `0004` (L1-04, en parallèle de cet agent). Colonnes conformes à
+ * mois) est créée par la migration `0004` (L1-04, en parallèle de ce lot). Colonnes conformes à
  * `plan-lot1-execution.md` §L1-04 / `plan-etape-1-backend.md` §2.4 : `audit_atelier(id, tenant_id,
  * entite entite_auditee, entite_id, action action_auditee, champ, valeur_avant jsonb,
  * valeur_apres jsonb, utilisateur_id, requete_id, cree_le)`. Toujours interrogée via la table

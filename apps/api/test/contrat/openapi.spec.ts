@@ -147,7 +147,7 @@ describe('contrat OpenAPI — la règle n°1 du projet (isolation tenant) ne peu
     } catch {
       throw new Error(
         `Document OpenAPI introuvable (${CHEMIN_OPENAPI}). Généré par "pnpm api:openapi" ` +
-          `(exporter-openapi.ts, propriété expert-nestjs) — à exécuter avant ce test.`,
+          `(exporter-openapi.ts, propriété de l'équipe backend) — à exécuter avant ce test.`,
       );
     }
 

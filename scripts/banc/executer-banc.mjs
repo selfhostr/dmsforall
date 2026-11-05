@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Banc de charge DFA — mesure la latence perçue (via l'API en marche, jamais Postgres en direct)
- * sur la base de développement réelle (9911 clients / 6823 véhicules importés d'Auto-i).
+ * sur une base de développement volumineuse.
  *
  * Lecture seule stricte : chaque scénario est un GET. Rien n'est créé, modifié ou supprimé dans
  * `dfa_dev` — voir README.md pour le détail des garanties et la commande de lancement.

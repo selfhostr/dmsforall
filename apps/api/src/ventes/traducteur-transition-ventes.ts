@@ -9,9 +9,9 @@ import { ErreurMetier } from '../common/erreurs/erreur-metier';
  * COPIE LOCALE VOLONTAIRE de `common/avertissements/traducteur-erreur-transition-sql.ts`, PAS un
  * appel à `interpreterErreurTransitionInterdite()` : cette fonction commune tient sa propre table
  * `TABLE_VERS_CODE_TRANSITION` en dur (`ordre_reparation`, `ligne_or`, `rendez_vous`, `pointage`),
- * hors du périmètre d'écriture de cet agent (`common/` n'est pas dans le périmètre exclusif de la
+ * hors du périmètre d'écriture de ce lot (`common/` n'est pas dans le périmètre exclusif de la
  * vague ventes). Y ajouter `dossier_vente`/`reprise`/`financement_vente` serait la solution la plus
- * propre — SIGNALÉ à l'orchestrateur, pas fait ici. Cette copie duplique ~30 lignes d'analyse du
+ * propre — SIGNALÉ à le mainteneur, pas fait ici. Cette copie duplique ~30 lignes d'analyse du
  * SQLSTATE plutôt que d'écrire hors périmètre.
  *
  * `vehicule_stock` N'A PAS de code `VENTE_*_TRANSITION_INTERDITE` dédié (12 codes `VENTE_*` posés
@@ -72,7 +72,7 @@ const MOTIF_DETAIL = /^entite=([^;]+);depuis=([^;]+);vers=([^;]+)$/;
  * l'appelant retombe alors sur son traitement générique (relance l'erreur telle quelle).
  *
  * GAP DE CONTRAT SIGNALÉ (`packages/shared/src/contrats/probleme.ts::TYPES_ELEMENT_BLOQUANT`, hors
- * périmètre d'écriture de cet agent) : ce type fermé ne porte NI `dossier_vente`, NI `reprise`, NI
+ * périmètre d'écriture de ce lot) : ce type fermé ne porte NI `dossier_vente`, NI `reprise`, NI
  * `financement_vente`, NI `vehicule_stock` — seulement les valeurs de l'atelier/facturation
  * (`ordre_reparation`, `ligne_or`, `ligne_document`, `champ`…). `blocages` est donc omis ici plutôt
  * que peuplé avec un `type` qui ne compilerait pas (ou pire, un `as` forcé) : `detail` et

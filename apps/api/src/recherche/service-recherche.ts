@@ -46,7 +46,7 @@ import {
  *     absente de la liste explicite « Ce qui doit marcher » de la tâche (plaque+historique, VIN,
  *     nom client, numéro d'OR), et aucun index d'expression trigram n'existe sur le téléphone
  *     (seul `client_telephone_idx`, un btree exact sur `telephone_e164`, existe) — une recherche
- *     par fragment y forcerait un seq scan. À statuer avec expert-database avant d'ajouter cette
+ *     par fragment y forcerait un seq scan. À statuer avec l'équipe base de données avant d'ajouter cette
  *     capacité.
  *   - la recherche par MARQUE/MODÈLE n'est pas non plus incluse : absente de RM-112 (qui ne cite
  *     que « plaque, VIN, nom, téléphone ») et de la liste « Ce qui doit marcher » de la tâche.
@@ -68,10 +68,10 @@ import {
  * mesure ci-dessous). Deux points réglés en le construisant, chacun documenté au plus près du code :
  *
  *   1. CONTRAT GELÉ — `TypeResultatRecherche` (`packages/shared/src/contrats/atelier/enums.ts:520`)
- *      porte désormais `'document_vente'` (posé par l'agent propriétaire de `packages/shared/`, pas
- *      ici). Une seule déclaration de la constante dans le dépôt, vérifiée par l'agent qui l'a posée.
+ *      porte désormais `'document_vente'` (posé par le lot propriétaire de `packages/shared/`, pas
+ *      ici). Une seule déclaration de la constante dans le dépôt, vérifiée par le lot qui l'a posée.
  *
- *   2. INDEX — TOUJOURS MANQUANT au 30.07.2026, signalé et relayé à l'agent propriétaire de
+ *   2. INDEX — TOUJOURS MANQUANT au 30.07.2026, signalé et relayé à le lot propriétaire de
  *      `apps/api/src/db/`, PAS créé ici (`db/` n'est pas mon périmètre). AUCUN index n'exploite
  *      `normaliser_recherche(numero)` sur `document_vente` : le seul index existant,
  *      `document_vente_numero_recherche_idx`, est un btree sur la colonne générée `numero_normalise`

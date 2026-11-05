@@ -25,7 +25,7 @@
  * la requête s'exécute (aucun ordre d'exécution n'est supposé entre les `it`).
  *
  * Périmètre d'écriture : `apps/api/test/**` uniquement (brief de cette tâche — `apps/api/src/
- * ventes/` reste le périmètre d'écriture exclusif de l'agent qui a livré le correctif).
+ * ventes/` reste le périmètre d'écriture exclusif du lot qui a livré le correctif).
  */
 
 import { randomUUID } from 'node:crypto';

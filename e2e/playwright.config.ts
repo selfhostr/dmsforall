@@ -48,7 +48,7 @@ export default defineConfig({
   // repêche un test flaky masquerait exactement ce qu'on cherche à mesurer. `PW_RETRIES`
   // reste un échappatoire assumé (jamais utilisé pour la preuve de stabilité elle-même).
   retries: process.env.PW_RETRIES ? Number(process.env.PW_RETRIES) : 0,
-  // Machine partagée avec d'autres agents/process (voir hygiène CONTRIBUTING.md) : workers borné plutôt
+  // Machine partagée avec d'autres lots/process (voir hygiène CONTRIBUTING.md) : workers borné plutôt
   // que le défaut (nombre de coeurs), qui saturerait la machine à chaque run.
   workers: process.env.PW_WORKERS ? Number(process.env.PW_WORKERS) : 2,
   reporter: [['list'], ['html', { outputFolder: './playwright-report', open: 'never' }]],

@@ -67,7 +67,7 @@ function estEtatNavigationClientCree(valeur: unknown): valeur is EtatNavigationC
 }
 
 /** `chemins.ts` (routes/) n'a pas encore d'entrée Atelier — module en cours de câblage par un
- *  autre agent (périmètre disjoint, voir routeur.tsx : `EcranFonctionAVenir`). Même sémantique que
+ *  autre lot (périmètre disjoint, voir routeur.tsx : `EcranFonctionAVenir`). Même sémantique que
  *  `construireChemin` : le site n'est ajouté que s'il est déjà défini, jamais inventé — répété ici
  *  plutôt que d'éditer un fichier hors périmètre. */
 function cheminOr(id: string, site: string | undefined): string {
@@ -94,7 +94,7 @@ function cheminNouveauVehicule(clientId: string, site: string | undefined): stri
   return `/vehicules/nouveau?${parametres.toString()}`;
 }
 
-/** `:id` — convention assumée en l'absence de routage câblé à ce jour (hors périmètre, un agent
+/** `:id` — convention assumée en l'absence de routage câblé à ce jour (hors périmètre, un lot
  *  dédié câble `src/routes/routeur.tsx`) ; à ajuster ici si le nom réel du paramètre diffère. */
 export function EcranFicheClient() {
   const { id } = useParams<{ id: string }>();
@@ -243,7 +243,7 @@ export function EcranFicheClient() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <IdentiteClient client={clientPourIdentite} alerte={client.notesAlerte.length > 0} />
         {/* Action primaire unique de la fiche (RM-21) — chemin assumé en l'absence de câblage
-         *  du module atelier à ce jour, à ajuster par l'agent de routage si besoin. */}
+         *  du module atelier à ce jour, à ajuster par le lot de routage si besoin. */}
         <Button type="button" onClick={() => navigate(cheminNouvelOr(client.id, site))}>
           <Wrench aria-hidden className="h-4 w-4" />
           {t('clients:fiche.ouvrirOr')}

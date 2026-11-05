@@ -71,7 +71,7 @@ export class LecturePointageVide implements LecturePointage {
 /* ------------------------------------------------------------------ */
 
 /**
- * `atelier/montants/**` est hors périmètre de ce module (propriété expert-facturation, L1-14,
+ * `atelier/montants/**` est hors périmètre de ce module (propriété l'équipe facturation, L1-14,
  * livré en parallèle dans la même vague C). Signature reprise À L'IDENTIQUE de
  * `plan-lot1-execution.md` §6.3 : si `atelier/montants/montants.jetons.ts` choisit un autre nom de
  * registre `Symbol.for`, l'injection se rebranchera correctement le jour où `AtelierModule`
@@ -113,7 +113,7 @@ export interface CalculLigne {
  * véhicule — c'est le rôle du travail reporté (RM-73), matérialisé côté `vehicules`.
  *
  * Entrée du port, signature ALIGNÉE sur celle documentée par
- * `vehicules/service-vehicule-travail-reporte.ts` (agent propriétaire du port côté fournisseur) —
+ * `vehicules/service-vehicule-travail-reporte.ts` (lot propriétaire du port côté fournisseur) —
  * déclarée ICI, jamais importée depuis `vehicules`, doctrine de ce fichier : « le port est déclaré
  * par le CONSOMMATEUR, jamais par le fournisseur ».
  *

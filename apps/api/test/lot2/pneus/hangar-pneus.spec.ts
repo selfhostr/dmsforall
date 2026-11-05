@@ -16,7 +16,7 @@
  * Aucun mock ici : vraie base Postgres éphémère (testcontainers, `demarrerBaseEphemere`), vraie
  * app NestJS (`creerAppTest`), vraies requêtes HTTP via `supertest` — exactement le chemin qui
  * casse en production. Périmètre d'écriture : `apps/api/test/**` uniquement (CONTRIBUTING.md, brief de
- * cette tâche) ; `apps/api/src/pneus/**` est corrigé par un autre agent en parallèle et n'est ni
+ * cette tâche) ; `apps/api/src/pneus/**` est corrigé par un autre lot en parallèle et n'est ni
  * lu comme source de vérité du comportement attendu, ni modifié ici — ce fichier PROUVE le
  * comportement réel de la route, dans un sens ou dans l'autre, et rougit tant que le défaut existe.
  *

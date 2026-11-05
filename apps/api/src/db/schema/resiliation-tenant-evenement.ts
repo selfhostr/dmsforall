@@ -1,7 +1,7 @@
 /**
  * `resiliation_tenant_evenement` — piste d'audit APPEND-ONLY du cycle de sortie du garage
  * (migration 0062) : une ligne par transition de `resiliation_tenant.statut`. Répond à
- * l'exigence du mandat pour l'effacement final (« quand, sur quel tenant, à la demande de qui »)
+ * l'exigence d'audit de l'effacement final (« quand, sur quel tenant, à la demande de qui »)
  * pour TOUTES les transitions, pas seulement la dernière — une ligne unique sur
  * `resiliation_tenant` écraserait l'historique à chaque UPDATE.
  *

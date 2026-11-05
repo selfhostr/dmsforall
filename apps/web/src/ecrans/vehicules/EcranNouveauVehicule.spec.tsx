@@ -34,7 +34,7 @@ beforeEach(() => {
 // jsdom (26.1, `src/test/environnementJsdomFetch.ts`) n'implémente PAS `ResizeObserver` — un vrai
 // navigateur si. `@radix-ui/react-checkbox` (case « importé ») l'utilise inconditionnellement dès
 // le montage (`CheckboxBubbleInput`, `useSize(control)`) pour synchroniser la taille de son input
-// natif caché. Repéré ici plutôt que dans `src/test/setup.ts` (hors périmètre de cet agent, voir
+// natif caché. Repéré ici plutôt que dans `src/test/setup.ts` (hors périmètre de ce lot, voir
 // consigne de la tâche) : stub scopé à ce fichier, sans effet sur les autres suites.
 beforeAll(() => {
   if (!('ResizeObserver' in globalThis)) {

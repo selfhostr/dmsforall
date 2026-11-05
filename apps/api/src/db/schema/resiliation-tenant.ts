@@ -1,5 +1,5 @@
 /**
- * `resiliation_tenant` — dossier de sortie du garage d'un tenant (mandat 20.08.2026, migration
+ * `resiliation_tenant` — dossier de sortie du garage d'un tenant (migration
  * 0062). Au plus une ligne par tenant (`unique(tenant_id)`) : machine à états locale à cette
  * migration (`statut_resiliation_tenant`, sept valeurs, dispositif partagé
  * `transition_autorisee`/`entite_auditee` non utilisable ici — voir §A de l'en-tête de

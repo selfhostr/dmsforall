@@ -3,14 +3,14 @@ import { obtenirEnv } from '@/config/env';
 import { construireErreurApi, ErreurReseau } from '@/api/erreurs';
 
 /**
- * CONTRAT TEMPORAIRE — `POST /scan/permis-circulation` n'existe pas encore côté OpenAPI (agent
+ * CONTRAT TEMPORAIRE — `POST /scan/permis-circulation` n'existe pas encore côté OpenAPI (lot
  * OCR serveur, en parallèle de ce lot). Ce fichier tient lieu de contrat en attendant que
  * `pnpm api:openapi && pnpm web:types` le fasse apparaître dans `apps/web/src/api/types.gen.ts` —
  * RÈGLE DU DÉPÔT : « les types API sont générés depuis l'OpenAPI, jamais redéfinis à la main ».
  * DÈS QUE le contrat réel existe : remplacer les imports de ce fichier par le type généré dans
  * `EcranScan.tsx`/`FormulairePermisScanne.tsx`, puis supprimer ce fichier. Rien d'autre dans
  * `ecrans/scan/` ne devrait bouger si le contrat ci-dessous est respecté à la lettre — voir le
- * rapport de livraison de ce lot pour la version « à faire converger » adressée à l'agent OCR.
+ * rapport de livraison de ce lot pour la version « à faire converger » adressée à le lot OCR.
  *
  * ENDPOINT ATTENDU : `POST /scan/permis-circulation`, `multipart/form-data`, UN SEUL champ
  * `photo` (JPEG, déjà réduit côté client, voir `reduireImage.ts`). Pas d'`Idempotency-Key` : ce

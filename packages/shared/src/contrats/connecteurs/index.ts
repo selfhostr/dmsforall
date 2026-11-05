@@ -9,7 +9,7 @@
  * `RC-xx` : le module de relances automatiques ne peut exister sans cette sixième interface.
  *
  * Point d'entrée unique du domaine, même règle que `contrats/pieces/index.ts` : tout ce qui est
- * exporté ici est GELÉ au nom près et à la signature près une fois validé par l'orchestrateur. Un
+ * exporté ici est GELÉ au nom près et à la signature près une fois validé par le mainteneur. Un
  * écart nécessaire se remonte, il ne se code pas « en attendant ».
  *
  * `primitives.ts` n'est PAS réexporté ici — même règle que les autres domaines : ses symboles sont

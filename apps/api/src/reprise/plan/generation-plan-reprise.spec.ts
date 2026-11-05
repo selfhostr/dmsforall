@@ -85,13 +85,13 @@ describe('genererPlanDepuisTables', () => {
       id: 'petite',
       fichierChemin: 'AutoI/Anwender_corrompu.mdb',
       indiceConfiance: 90,
-      nombreLignes: 7143,
+      nombreLignes: 7000,
     });
     const grosse = table({
       id: 'grosse',
       fichierChemin: 'AutoI/RepAw.backup',
       indiceConfiance: 90,
-      nombreLignes: 9977,
+      nombreLignes: 9000,
     });
 
     // Ordre du tableau = la copie la PLUS PETITE arrive EN PREMIER (exactement le cas qui faisait

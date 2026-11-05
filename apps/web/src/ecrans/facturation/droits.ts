@@ -106,7 +106,7 @@ export function peutEmettreAvoir(role: RoleUtilisateur | undefined): boolean {
  * requête, de N'IMPORTE QUEL rôle (y compris `direction`/`comptable`), reçoit aujourd'hui un `404`
  * générique de Nest (route non montée), PAS un `403 DROIT_INSUFFISANT` — ce n'est donc pas un refus
  * par rôle, c'est une fonctionnalité absente. Voir `document-vente-corriger-absent.spec.ts`
- * (verrouille cette absence) et le rapport de livraison de cet agent pour le détail.
+ * (verrouille cette absence) et le rapport de livraison de ce lot pour le détail.
  *
  * Ce défensif front reste posé MAINTENANT, par anticipation (même doctrine que
  * `atelier.pointage.identifier`/`gerer_pin` côté serveur, posés avant leur route) : le jour où

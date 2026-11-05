@@ -5,7 +5,7 @@
  * node-gyp) : sur le poste de dev (Windows, Node 24), aucun prebuild de `argon2` n'existe encore
  * pour cette version de Node, et sa compilation exigerait Visual Studio Build Tools. Même
  * algorithme (Argon2id), même format de sortie PHC (`$argon2id$v=19$m=...,t=...,p=...$...`),
- * juste une API différente et zéro compilation. Décision d'expert-database, appliquée ici.
+ * juste une API différente et zéro compilation. Décision d'l'équipe base de données, appliquée ici.
  */
 import { Inject, Injectable } from '@nestjs/common';
 import { hash, verify, type Algorithm } from '@node-rs/argon2';

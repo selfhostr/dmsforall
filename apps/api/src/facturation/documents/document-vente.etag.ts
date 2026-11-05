@@ -9,7 +9,7 @@
  * document-vente.ts`. Le contrat gelé `ReponseDocumentVente.version` (`@dfa/shared`) l'exige
  * pourtant, non optionnel.
  *
- * Palliatif retenu ICI, à confirmer avec expert-database (une vraie colonne `version integer` est
+ * Palliatif retenu ICI, à confirmer avec l'équipe base de données (une vraie colonne `version integer` est
  * la correction propre, migration additive hors du périmètre d'écriture de cette tâche) :
  * `version = modifie_le` en millisecondes epoch. `document_vente_touche_modifie_le` (trigger déjà
  * posé) garantit que `modifie_le` avance à CHAQUE `UPDATE`, y compris dans la fenêtre `brouillon`

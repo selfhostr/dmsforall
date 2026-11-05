@@ -91,7 +91,7 @@ export function orDoitPasserEnCours(statut: StatutOrdreReparation): boolean {
  * deux pointages en_cours simultanément »), sans exception pour P-06. RM-88 (« sauf chevauchement
  * autorisé ») ne peut donc pas signifier « deux lignes réellement ouvertes à la fois » — le schéma,
  * livré et figé avant ce fichier, a déjà tranché ce point. INTERPRÉTATION RETENUE ICI, à confirmer
- * avec expert-metier (signalée dans le rapport de livraison) :
+ * avec l'équipe métier (signalée dans le rapport de livraison) :
  *
  *  - Le pointage ouvert précédent du technicien est TOUJOURS clôturé automatiquement quand un
  *    nouveau démarre (RM-89) — c'est la seule façon de respecter la contrainte de base. CE N'EST

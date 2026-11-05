@@ -456,7 +456,7 @@ describe('BarreLaterale — masquage par rôle', () => {
 });
 
 /**
- * REPLI DESKTOP (demande @laupernoe, revue webui du 10.08.2026) — un bouton réduit la colonne aux
+ * REPLI DESKTOP (demande produit, revue webui du 10.08.2026) — un bouton réduit la colonne aux
  * icônes seules. Deux promesses testées, dans l'ordre du brief : rien ne casse quand `repli` est
  * fourni mais déplié (c'est ce que fait l'`aside` d'`AppShell.tsx` par défaut, avant tout clic), et
  * le nom accessible de chaque entrée survit au repli — l'icône seule est `aria-hidden`, c'est
@@ -553,7 +553,7 @@ describe('BarreLaterale — repli desktop', () => {
 });
 
 /**
- * Numéro de version (demande @laupernoe, 17.08.2026) — collé au pied compte, jamais un pied de page
+ * Numéro de version (demande produit, 17.08.2026) — collé au pied compte, jamais un pied de page
  * détaché (précision explicite après une première implémentation ailleurs). Injecté par
  * `vite.config.ts` (`define`) dans `import.meta.env.VITE_DFA_VERSION_INFO`, une config SÉPARÉE de
  * `vitest.config.ts` qui ne porte pas ce `define` : ces tests stubbent donc explicitement la

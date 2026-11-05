@@ -21,7 +21,7 @@ async function recupererParametresPieces(): Promise<ReponseParametresPieces> {
  * réapprovisionnement, méthode de prix d'achat, visibilité du stock inter-sites. Même convention
  * que `hooks/parametres/useParametresAtelier.ts` (`staleTime` long : un paramétrage change
  * rarement en cours de service). Placé dans `hooks/pieces/` (pas `hooks/parametres/`, hors
- * périmètre de cet agent) : le paramétrage pièces est un sous-domaine de `pieces`, pas du
+ * périmètre de ce lot) : le paramétrage pièces est un sous-domaine de `pieces`, pas du
  * paramétrage atelier partagé.
  */
 export function useParametresPieces(): UseQueryResult<ReponseParametresPieces> {

@@ -132,7 +132,7 @@ export class ServiceTauxHoraires {
    * Traduit `23P01` (exclusion_violation) en `409 CONFLIT`. ÉCART SIGNALÉ : `CODES_ERREUR`
    * (gelé, `packages/shared`) ne porte aucun code dédié « période de taux horaire chevauchante »
    * — contrairement à `VEHICULE_PLAQUE_COLLISION` pour un cas structurellement analogue. `CONFLIT`
-   * (générique, 409) est le code le plus proche disponible ; à faire arbitrer par expert-api si un
+   * (générique, 409) est le code le plus proche disponible ; à faire arbitrer par l'équipe API si un
    * code dédié est souhaité (ex. `TAUX_HORAIRE_PERIODE_CHEVAUCHEMENT`).
    */
   private traduireErreurPeriode(erreur: unknown, identifiant: string): Error {

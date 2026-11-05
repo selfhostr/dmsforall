@@ -34,7 +34,7 @@ export type ProvenanceVehiculeStock = (typeof PROVENANCES_VEHICULE_STOCK)[number
  * Type PG **`statut_vehicule_stock`** (CORRIGÉ — la table qui porte ce statut est
  * `vehicule_stock`, et le dispositif générique de machine à états exige `statut_<table>` ;
  * `statut_commercial_vehicule`, écrit ici dans une version antérieure, ne correspond à aucune
- * table réelle et cassait `apps/api/src/db/schema/ventes/enums.ts`, signalé par l'agent schéma
+ * table réelle et cassait `apps/api/src/db/schema/ventes/enums.ts`, signalé par le lot schéma
  * binôme lors de l'écriture de `migrations/0032_ventes.sql`) — **GELÉ** (même patron que
  * `statut_ordre_reparation`, `RV-09`) : machine à états à cinq positions, diagramme §6.1 de la
  * spécification. **Les transitions vivent dans une table côté serveur, pas dans ce type** — un
@@ -77,7 +77,7 @@ export type ActionVehiculeStock = (typeof ACTIONS_VEHICULE_STOCK)[number];
 /**
  * `type_vehicule_vente` (VN/VO) — champ **DÉRIVÉ**, jamais saisi (§8.2 de la spécification :
  * « dérivé de la provenance et du statut du véhicule associé plutôt qu'une donnée saisie
- * séparément »). Inférence documentée ici faute d'arbitrage `expert-database` encore rendu :
+ * séparément »). Inférence documentée ici faute d'arbitrage l'équipe base de données encore rendu :
  * `vn` tant que `provenance = 'neuf_constructeur'` ET que le véhicule n'a jamais été immatriculé
  * (`vehicule.date1reCirculation` nulle) ; `vo` dans tous les autres cas, y compris un VN annulé
  * requalifié après réception (`RV-18`, `CV-06` — kilométrage zéro mais provenance déjà

@@ -14,7 +14,7 @@ import type { FiltresEcranFacturesFournisseur } from './factures-fournisseur.api
  * Clés TanStack Query du domaine pièces — même convention que `clesFacturation`
  * (`hooks/facturation/cles.ts`) et `clesParametrage` (`hooks/parametrage/cles.ts`) : tuple plat,
  * tenue ICI plutôt que fusionnée dans `api/cles.ts` (gelé depuis l'étape 1, hors périmètre de cet
- * agent — voir l'en-tête de `hooks/facturation/cles.ts` pour l'historique de cette décision).
+ * lot — voir l'en-tête de `hooks/facturation/cles.ts` pour l'historique de cette décision).
  *
  * Chaque clé de liste porte l'objet de filtres COMPLET envoyé au serveur (même choix que
  * `clesFacturation.documents.liste`) — pas une forme réduite aux seules valeurs primitives : les
@@ -46,7 +46,7 @@ export const clesPieces = {
   },
 
   // Second relais (étape 3, sous-fonctions commande fournisseur/fournisseur/consigne) — mêmes
-  // conventions que les blocs ci-dessus (tuple plat, filtres complets), ajoutées par l'agent qui a
+  // conventions que les blocs ci-dessus (tuple plat, filtres complets), ajoutées par le lot qui a
   // complété le module (périmètre `hooks/pieces/**`, disjoint des blocs déjà livrés).
   commandesFournisseur: {
     liste: (filtres: FiltresCommandesFournisseur) =>

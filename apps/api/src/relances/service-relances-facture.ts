@@ -301,7 +301,7 @@ export class ServiceRelancesFacture {
 
   /**
    * Identité d'expédition e-mail des relances — `nomGarage` (nom affiché) et `adresseReponseGarage`
-   * (`Reply-To`, arbitrage de @laupernoe du 14.08.2026 : « le client répond au garagiste, pas au néant »).
+   * (`Reply-To`, choix produit du 14.08.2026 : « le client répond au garagiste, pas au néant »).
    * `raisonSociale` est TOUJOURS présente (`tenant.raisonSociale`, colonne `NOT NULL`) ; l'adresse
    * de réponse, elle, n'a AUCUNE colonne dédiée aujourd'hui (`tenant`, `site`, bloc créancier de
    * facturation) — signalé au coordinateur plutôt qu'une supposition non vérifiable. Repli, dans

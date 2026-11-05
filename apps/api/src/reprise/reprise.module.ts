@@ -30,7 +30,7 @@ import { ServiceCycleVieDossierReprise } from './service-cycle-vie-dossier-repri
  * (rejeu en mémoire) reste réservé aux tests unitaires du reste du module, jamais posé ici.
  *
  * Enregistré dans `app.module.ts` (voir son import de `RepriseModule`) — piège vérifié n°1 du
- * projet (contrôleur non déclaré = 404 silencieux) refermé par cet agent.
+ * projet (contrôleur non déclaré = 404 silencieux) refermé par ce lot.
  *
  * `BullModule.registerQueue` pour LES DEUX files reste ici, INCONDITIONNEL (jamais gaté par
  * `MODE_PROCESSUS`) — chantier « découplage worker/API » (27.08.2026) : `ServiceAnalyseReprise`/
@@ -71,7 +71,7 @@ import { ServiceCycleVieDossierReprise } from './service-cycle-vie-dossier-repri
     { provide: JETON_LECTEUR_ARCHIVE_REPRISE, useClass: AdaptateurLecteurArchiveReprise },
   ],
   // `JETON_STOCKAGE_ARCHIVE_REPRISE` : exporté pour `CycleVieTenantModule` — la purge de
-  // résiliation (`ServiceCycleVieResiliation.purger`, mandat nLPD 24/25.08.2026) doit effacer les
+  // résiliation (`ServiceCycleVieResiliation.purger`, correctif nLPD) doit effacer les
   // archives binaires déposées sur disque pour le tenant, via CETTE MÊME abstraction (jamais un
   // accès disque en dur dans le service de résiliation). Voir `stockage-archive-reprise.ts`.
   // `ServiceAnalyseReprise`/`ServiceImportReprise` : exportés pour `reprise-job.module.ts` (voir

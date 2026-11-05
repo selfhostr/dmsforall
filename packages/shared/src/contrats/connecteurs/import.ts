@@ -18,7 +18,7 @@ import type { ReponseExecutionConnecteur } from './execution';
  * TRANSPORT DU FICHIER NON MODÉLISÉ ICI : ce contrat suppose le fichier déjà accessible côté
  * serveur (déposé par un canal à définir — upload direct, dépôt sur un stockage objet…) au moment
  * de l'appel. Aucun mécanisme d'upload générique n'existe encore dans ce dépôt à la date
- * d'écriture — voir le rapport d'accompagnement, à trancher avec expert-nestjs/expert-devops avant
+ * d'écriture — voir le rapport d'accompagnement, à trancher avec l'équipe backend/l'équipe infrastructure avant
  * implémentation.
  */
 

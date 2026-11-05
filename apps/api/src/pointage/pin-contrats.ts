@@ -5,7 +5,7 @@ import { z } from 'zod';
  * Schémas de validation des routes de GESTION des PIN (`atelier.pointage.gerer_pin`), LOCAUX au
  * module API — délibérément PAS dans `packages/shared/src/contrats/pointage/`.
  *
- * Raison : ce point de contact partagé est négocié entre développeurs/agents (voir CONTRIBUTING.md), et
+ * Raison : ce point de contact partagé est négocié entre développeurs/lots (voir CONTRIBUTING.md), et
  * le périmètre d'écriture de cette tâche s'arrête à `apps/api/src/pointage/**`. Le front n'en a pas
  * besoin en tant que type écrit à la main : ses types sont GÉNÉRÉS depuis l'OpenAPI (règle
  * projet), lequel est alimenté par les DTO Swagger de `dto/pin.dto.ts`. Le SEUL contrat partagé

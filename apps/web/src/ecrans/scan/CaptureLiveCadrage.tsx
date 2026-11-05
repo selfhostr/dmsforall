@@ -13,7 +13,7 @@ import {
   type EtatStabiliteCadrage,
 } from './machineStabiliteCadrage';
 
-/** Cadence d'analyse du flux vidéo — brief de @laupernoe : « analyser chaque image d'un flux vidéo sur un
+/** Cadence d'analyse du flux vidéo — brief produit : « analyser chaque image d'un flux vidéo sur un
  *  téléphone chauffe et vide la batterie ». 2/s (500 ms) est délibérément BIEN plus lent qu'une
  *  boucle `requestAnimationFrame` (typiquement 30-60/s) : largement suffisant pour juger un cadrage
  *  qui ne bouge qu'à l'échelle de la main, à une fraction du coût CPU. NON MESURÉ sur téléphone réel

@@ -4,8 +4,8 @@
  * exécution : aucune extension d'instrumentation (`pg_stat_statements`) n'est chargée sur le
  * Postgres de dev (`shared_preload_libraries` ne la précharge pas dans `docker/postgres/`), et en
  * ajouter une exigerait soit de modifier `docker-compose*.yml`/la config Postgres (hors
- * périmètre, redémarrage du conteneur qui gênerait les autres agents), soit d'instrumenter
- * `apps/api/src/db/acces-base.service.ts` (hors périmètre — deux agents y travaillent).
+ * périmètre, redémarrage du conteneur qui gênerait les autres lots), soit d'instrumenter
+ * `apps/api/src/db/acces-base.service.ts` (hors périmètre — deux lots y travaillent).
  *
  * La méthode retenue à la place : chaque service de `apps/api/src/**` interroge Postgres UNIQUEMENT
  * via `tx.execute(sql\`…\`)` ou le query builder Drizzle, jamais dans une boucle sur les résultats

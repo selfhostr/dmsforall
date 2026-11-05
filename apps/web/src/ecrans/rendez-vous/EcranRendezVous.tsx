@@ -84,7 +84,7 @@ function versDetail(
  * (`docs/conception-rendez-vous-ecrans.md`). Branche `EcranAgendaRendezVous` (présentation pure,
  * déjà testée) sur les hooks réels. Point d'entrée 1 SEULEMENT (depuis l'agenda) : les points
  * d'entrée 2/3 (fiche client/véhicule) restent à câbler par les écrans `ecrans/clients/`/
- * `ecrans/vehicules/`, hors du périmètre d'écriture de cet agent — voir le rapport de livraison.
+ * `ecrans/vehicules/`, hors du périmètre d'écriture de ce lot — voir le rapport de livraison.
  */
 export function EcranRendezVous() {
   const { t, i18n } = useTranslation(['planning', 'commun', 'erreurs']);

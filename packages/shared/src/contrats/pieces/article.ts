@@ -138,7 +138,7 @@ export const TRI_DEFAUT_ARTICLES = 'designation:asc';
  * `recherche/` transverse de l'étape 1 pour l'écran global ; ce paramètre reste nécessaire pour un
  * filtrage LOCAL à l'écran pièces (comptoir, ligne d'OR), sans dépendre du service de recherche
  * transverse dont l'objet `TYPES_RESULTAT_RECHERCHE` n'inclut pas encore `'article'` (extension
- * à discuter avec l'agent propriétaire de `recherche/`, hors périmètre de ce fichier).
+ * à discuter avec le lot propriétaire de `recherche/`, hors périmètre de ce fichier).
  */
 export const schemaFiltresArticles = z.object({
   q: z.string().trim().min(1).max(120).optional(),

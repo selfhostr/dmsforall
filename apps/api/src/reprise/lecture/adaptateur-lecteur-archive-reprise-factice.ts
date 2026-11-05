@@ -1,6 +1,6 @@
 /**
  * Adaptateur FACTICE de `PortLecteurArchiveReprise`, exclusivement pour les tests de ce module —
- * `lecteurs/` (bibliothèque réelle) est écrite EN PARALLÈLE par un autre agent, aucune dépendance
+ * `lecteurs/` (bibliothèque réelle) est écrite EN PARALLÈLE par un autre lot, aucune dépendance
  * directe ici. Configurable en mémoire : un scénario de test construit une archive synthétique
  * (familles/tables/lignes) et cette classe la rejoue telle quelle.
  */

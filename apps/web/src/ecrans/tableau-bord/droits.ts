@@ -12,7 +12,7 @@ import type { RoleUtilisateur } from '@dfa/shared';
  * (`composants/layout/`) pour l'entrée de menu — la garde RÉELLE de l'écran est la route
  * (`ROLES_TABLEAU_BORD_ACTIVITE`, `routes/routeur.tsx`), pas un prédicat local ici : le bloc
  * financier (`direction`/`comptable` seuls, RF-115) n'a pas de garde locale non plus depuis le
- * passage à un dashboard PAR RÔLE (`EcranTableauBord.tsx`, arbitrage @laupernoe du 10.08.2026) — seuls
+ * passage à un dashboard PAR RÔLE (`EcranTableauBord.tsx`, choix produit du 10.08.2026) — seuls
  * `TableauBordDirection`/`TableauBordComptable` montent structurellement le bloc financier, les
  * autres composants de rôle ne le contiennent pas, vérifié par `EcranTableauBord.spec.tsx` (test
  * F8, non-fuite).

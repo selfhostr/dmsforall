@@ -11,7 +11,7 @@ import { DEVISES_FACTURATION } from './enums';
  * le barrel `@dfa/shared` et rendrait l'export ambigu (silencieusement omis par TypeScript).
  */
 
-/** Prix ou montant de ligne, TOUJOURS TVA comprise (décision de @laupernoe, non rouverte — voir
+/** Prix ou montant de ligne, TOUJOURS TVA comprise (décision de conception, non rouverte — voir
  *  `ModeCalculTva` dans `enums.ts`). Signé : une ligne `repartition` ou `acompte_deduit` porte un
  *  montant négatif. Jamais de flottant — `CONTRIBUTING.md`. */
 export const schemaCentimesTtc = z.number().int();

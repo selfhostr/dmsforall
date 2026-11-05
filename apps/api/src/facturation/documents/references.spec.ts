@@ -43,7 +43,7 @@ function txFactice(lignes: readonly LigneClientCondition[]) {
 /**
  * Défaut EXACTEMENT DUPLIQUÉ de celui corrigé dans `atelier/references.ts::
  * chargerConditionsEnVigueur` (RM-65, commit « Taux horaire : la borne de validite ne tire plus au
- * sort le tarif facture ») — signalé par l'agent atelier comme un doublon, corrigé ici avec la même
+ * sort le tarif facture ») — signalé par le lot atelier comme un doublon, corrigé ici avec la même
  * preuve : la contrainte réelle `EXCLUDE ... daterange(valide_du, valide_au, '[)')`
  * (`0006_clients.sql`) a une borne haute EXCLUSIVE. Une lecture `valideAu >= dateJour` (inclusive)
  * désaccorde donc le code de la base le jour même d'une bascule « ancien jusqu'au 10 inclus,

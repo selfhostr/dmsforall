@@ -24,7 +24,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  * l'impose jamais, `delaiMs` reste au choix de l'appelant.
  *
  * RETOUR : `[valeurTemporisee, reinitialiserImmediat]`. Le second élément est le LEVIER DE RESET
- * (arbitrage @laupernoe, ticket « effacerFiltres() ») : un bouton « Effacer les filtres » est un geste de
+ * (choix produit, ticket « effacerFiltres() ») : un bouton « Effacer les filtres » est un geste de
  * reprise en main, pas une frappe — le faire attendre le même délai qu'une recherche donne
  * l'impression que le clic n'a pas été pris en compte, et le réflexe est de recliquer (friction
  * mesurée au comptoir, client en face). `reinitialiserImmediat()` demande au PROCHAIN changement

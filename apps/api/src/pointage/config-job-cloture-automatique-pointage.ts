@@ -16,7 +16,7 @@ import { z } from 'zod';
  *
  * Fusionnée dans `schemaConfig` par `apps/api/src/config/charger-config.ts` via
  * `...schemaConfigJobClotureAutomatiquePointage.shape` — POINT DE CONTACT hors du périmètre
- * d'écriture exclusif de cet agent (`config/` n'y figure pas). Ajout d'UNE ligne d'import + UNE
+ * d'écriture exclusif de ce lot (`config/` n'y figure pas). Ajout d'UNE ligne d'import + UNE
  * ligne de fusion, signalé explicitement dans le rapport de livraison, même geste que les trois
  * blocs déjà fusionnés là (courriel, console, ASTRA) — sans cette fusion, les deux variables
  * ci-dessous sont silencieusement ignorées par zod (`schemaConfig` ne les connaît pas) et

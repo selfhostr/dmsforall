@@ -119,7 +119,7 @@ class StockagePdfMemoire implements StockagePdf {
   }
   // Non exercée par ces tests (impression, pas résiliation) — voir
   // `exploitation/cycle-vie-tenant/service-cycle-vie-resiliation.spec.ts` pour la couverture réelle
-  // de `purgerTenant` (correctif nLPD, mandat 24/25.08.2026).
+  // de `purgerTenant` (correctif nLPD).
   async purgerTenant(tenantId: string): Promise<void> {
     for (const cle of [...this.contenu.keys()]) {
       if (cle.startsWith(`${tenantId}/`)) this.contenu.delete(cle);

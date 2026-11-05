@@ -80,7 +80,7 @@ export const TOUTES_ACTIONS = [
   // ---- Socle (étape 0), inchangé --------------------------------------------------------------
   'socle.tenant.lire',
   'socle.site.lire',
-  // ---- Gestion des employés (issue #137, arbitrage @laupernoe 13.08.2026) -----------------------------
+  // ---- Gestion des employés (issue #137, choix produit 13.08.2026) -----------------------------
   // Rangée dans l'administration SYSTÈME par la doctrine RF-115 déjà écrite plus bas dans ce
   // fichier (« tenants, sites, utilisateurs, paramètres »), pas dans le métier — c'est pourquoi
   // `admin` reçoit ces cinq actions au même titre que `direction`, sans que ça rouvre RF-115 :
@@ -194,7 +194,7 @@ export const TOUTES_ACTIONS = [
   'rendez_vous.confirmation.hors_ouverture',
   'pret_vehicule.confirmation.indisponible',
   // ---- Facturation — paiements (étape 2, RF-65 → RF-80, RF-114 → RF-116) -----------------------
-  // Ajouté par l'agent `paiements` (`apps/api/src/facturation/paiements/`), périmètre disjoint de
+  // Ajouté par le lot `paiements` (`apps/api/src/facturation/paiements/`), périmètre disjoint de
   // ce fichier (`apps/api/src/auth/`) — voir le rapport de livraison pour le détail de l'arbitrage.
   // Calé littéralement sur le tableau RF-114 (« Encaisser / imputer », « Rembourser un
   // trop-perçu ») de `docs/specification-etape-2-facturation.md` §9. `facturation.paiement.
@@ -208,10 +208,10 @@ export const TOUTES_ACTIONS = [
   'facturation.paiement.rembourser',
   'facturation.paiement.abandonner',
   // ---- Facturation — chaîne documentaire (étape 2, RF-1 → RF-32, RF-114 → RF-120) --------------
-  // Ajouté par l'agent `documents` (`apps/api/src/facturation/documents/`), périmètre disjoint de
+  // Ajouté par le lot `documents` (`apps/api/src/facturation/documents/`), périmètre disjoint de
   // ce fichier — MÊME PATRON que le bloc « Facturation — paiements » ci-dessus (bloc additif pur,
   // fusionné dans `MATRICE_DROITS` sans toucher aux consts `DROITS_*` existantes), pour la MÊME
-  // raison déjà posée par cet agent : `RF-114` (tableau §9 de la spec étape 2) casse la hiérarchie
+  // raison déjà posée par ce lot : `RF-114` (tableau §9 de la spec étape 2) casse la hiérarchie
   // stricte chef_atelier ⊇ receptionnaire / direction-admin ⊇ chef_atelier que ce fichier suit
   // depuis l'étape 1 — « Émettre une facture » est ✅ pour receptionnaire, ❌ pour chef_atelier ;
   // « Créer / modifier un brouillon » est ❌ pour admin (RF-115, séparation des pouvoirs), alors que
@@ -250,7 +250,7 @@ export const TOUTES_ACTIONS = [
   'facturation.document.emettre_facture',
   'facturation.document.emettre_avoir',
   'facturation.avoir.creer',
-  // `facturation.document.corriger` — demande relayée par l'orchestrateur pour le compte d'un agent
+  // `facturation.document.corriger` — demande relayée par le mainteneur pour le compte d'un lot
   // sans accès à ce fichier (même patron que les blocs additifs déjà présents ici). ENDPOINT SERVEUR
   // PAS ENCORE ÉCRIT à la date de cet ajout : contrat et écran l'appellent déjà, défaut ouvert par
   // ailleurs — le droit est posé EN AVANCE de l'opération pour que la route, le jour où elle
@@ -264,7 +264,7 @@ export const TOUTES_ACTIONS = [
   // ---- Bloc créancier QR-facture (étape 2) — palier de gouvernance le plus élevé de la matrice ---
   // `GET|PATCH /parametres-facturation/creancier` (`apps/api/src/parametrage/bloc-creancier/`, PAS
   // le périmètre de ce fichier) porte l'IBAN sur lequel les clients du garage paient. Arbitrage du
-  // coordinateur : un agent a livré ces routes SANS action de droit dédiée, faute d'accès à ce
+  // coordinateur : un lot a livré ces routes SANS action de droit dédiée, faute d'accès à ce
   // fichier — constat juste, qu'il a signalé plutôt que d'inventer une entrée ici. Deux actions
   // dédiées, PAS `parametrage.atelier.modifier`/`parametrage.referentiel.modifier` : ces deux-là
   // donnent l'écriture à `admin` via `INFERE_PARAMETRAGE_GOUVERNANCE`, ce qui violerait `RF-115`
@@ -281,7 +281,7 @@ export const TOUTES_ACTIONS = [
   // le périmètre de ce fichier) orchestre l'export comptable : sélection des factures/avoirs émis
   // non encore exportés sur une période, vérification de continuité de numérotation, construction
   // des écritures équilibrées, génération du fichier WinBIZ, marquage `exporte_le`/`export_id`, le
-  // tout sous idempotence. Arbitrage du coordinateur, même motif que le bloc créancier : un agent a
+  // tout sous idempotence. Arbitrage du coordinateur, même motif que le bloc créancier : un lot a
   // livré le service complet et refusé de câbler la route faute de l'action de droit, plutôt que de
   // forcer par un cast (un `as Action` naïf sur un littéral hors union ne compile pas — pas de porte
   // de sortie silencieuse). Transmettre les écritures à la fiduciaire est un geste comptable
@@ -341,7 +341,7 @@ export const TOUTES_ACTIONS = [
   'pieces.reservation.satisfaire',
   'pieces.reservation.liberer',
   // ---- Pièces, second relais (étape 3, fournisseurs/commandes/consignes/paramétrage) — transmis
-  // par l'orchestrateur au nom de l'agent qui a complété le module Pièces (périmètre disjoint, sans
+  // par le mainteneur au nom du lot qui a complété le module Pièces (périmètre disjoint, sans
   // accès à ce fichier). Voir `DROITS_PIECES_PAR_ROLE` ci-dessous pour le détail rôle par rôle.
   'pieces.fournisseur.lire',
   'pieces.fournisseur.creer',
@@ -396,7 +396,7 @@ export const TOUTES_ACTIONS = [
   'ventes.financement.confirmer',
   'ventes.financement.refuser',
   // ---- Pointage (lot 2, RM-87→RM-99, RM-113→RM-123) — bloc ADDITIF PUR, transmis par
-  // l'orchestrateur au nom de l'agent `pointage/` (périmètre disjoint, sans accès à ce fichier).
+  // le mainteneur au nom du lot `pointage/` (périmètre disjoint, sans accès à ce fichier).
   // Voir `DROITS_POINTAGE_PAR_ROLE` ci-dessous. Trois actions citées par la spécification
   // (`lire_equipe`, `lire_indicateurs`, `corriger_soi_meme`) sont VOLONTAIREMENT absentes : aucune
   // route livrée ne les consomme encore — les ajouter maintenant créerait des actions inertes que
@@ -426,7 +426,7 @@ export const TOUTES_ACTIONS = [
   'atelier.pointage.verrouiller_periode',
   'atelier.pointage.deverrouiller_periode',
   // ---- Mode « borne partagée » du pointage (docs/specification-pointage-borne.md) --------------
-  // Deux actions posées par expert-auth EN AMONT du module PIN, pour que l'agent qui construira
+  // Deux actions posées par l'équipe authentification EN AMONT du module PIN, pour que le lot qui construira
   // `pin_pointage` / `POST /pointages/identification` s'appuie sur des noms déjà figés plutôt que
   // d'en inventer. Aucune route ne les exerce aujourd'hui : elles sont déclarées
   // `action-inerte-anticipee` dans `common/droits/allowlist-actions-non-decorees.ts`.
@@ -453,13 +453,13 @@ export const TOUTES_ACTIONS = [
   'tableau_bord.activite.lire',
   'tableau_bord.financier.lire',
   // ---- Pneus — hangar à pneus (docs/specification-parc-et-hangar-pneus.md, RPP-01→RPP-08) ------
-  // Bloc ADDITIF PUR, transmis par l'orchestrateur au nom de l'agent qui a livré
+  // Bloc ADDITIF PUR, transmis par le mainteneur au nom du lot qui a livré
   // `apps/api/src/pneus/` (périmètre disjoint, sans accès à ce fichier — palliatif signalé, pas un
   // accès ouvert par négligence, même patron que le tableau de bord juste au-dessus : les six
   // routes portaient `@AucunDroitRequis()` + une vérification de rôle posée EN SERVICE
   // (`pneus/droits-provisoires.ts`, retiré par ce bloc), faute d'accès de son auteur à ce fichier.
   //
-  // TROIS actions proposées par cet agent (`pneus.depot.lire`, `pneus.depot.creer`,
+  // TROIS actions proposées par ce lot (`pneus.depot.lire`, `pneus.depot.creer`,
   // `pneus.depot.gerer`) — CORRIGÉES ICI en QUATRE : `pneus.depot.gerer` couvrait à la fois
   // `POST .../changer-saison` (RPP-03, bascule réversible monté ↔ en dépôt, geste physique
   // routinier de l'atelier) ET `POST .../sortir` (RPP-05, statut TERMINAL, motif obligatoire —
@@ -478,14 +478,14 @@ export const TOUTES_ACTIONS = [
   'pneus.depot.changer_saison',
   'pneus.depot.sortir',
   // ---- Relances automatiques (docs/specification-relances-automatiques.md, lot 1 facturation) ---
-  // Bloc ADDITIF PUR, transmis par l'orchestrateur au nom de l'agent qui a livré
+  // Bloc ADDITIF PUR, transmis par le mainteneur au nom du lot qui a livré
   // `apps/api/src/relances/` (périmètre disjoint, sans accès à ce fichier — palliatif signalé, pas
   // un accès ouvert par négligence, même patron que le tableau de bord et les pneus ci-dessus : les
   // quatre routes portaient `@AucunDroitRequis()` + une vérification de rôle posée EN SERVICE
   // (`relances/droits-provisoires.ts`, retiré par ce bloc), faute d'accès de son auteur à ce
   // fichier.
   //
-  // UN SEUL jeu de rôles pour LIRE et ÉCRIRE — arbitrage de @laupernoe, confirmé, qui casse ICI la
+  // UN SEUL jeu de rôles pour LIRE et ÉCRIRE — choix produit, confirmé, qui casse ICI la
   // doctrine par défaut de ce fichier (« la lecture est ouverte, seule l'écriture est gouvernée »,
   // `LECTURE_ETENDUE`/`pneus.depot.lire`/`tableau_bord.activite.lire` ci-dessus) : même LIRE la
   // configuration des relances (délais par palier, canaux) expose une politique de recouvrement du
@@ -506,7 +506,7 @@ export const TOUTES_ACTIONS = [
   'relances.facturation.planifier',
   'relances.facturation.envoyer',
   // ---- Rendez-vous d'atelier (lot RDV-1, docs/conception-rendez-vous-metier.md §7, §9) ---------
-  // Bloc ADDITIF PUR, ajouté par l'agent `apps/api/src/rendezvous/` (périmètre disjoint autorisé
+  // Bloc ADDITIF PUR, ajouté par le lot `apps/api/src/rendezvous/` (périmètre disjoint autorisé
   // à toucher ce fichier pour cette tâche — contrairement aux autres blocs additifs ci-dessus, pas
   // un palliatif : aucune route ne tournait avant ce bloc).
   //
@@ -516,7 +516,7 @@ export const TOUTES_ACTIONS = [
   // paramétrable, même nature que `GET /referentiels/taux-horaires` — pas une action propre au
   // domaine rendez-vous, aucune entrée dédiée nécessaire ici).
   //
-  // Répartition calée sur le brief de l'orchestrateur, littéral : « le réceptionniste prend et
+  // Répartition calée sur le brief de le mainteneur, littéral : « le réceptionniste prend et
   // déplace les rendez-vous, le chef d'atelier les voit et les réorganise, le technicien les
   // consulte » — donc `rendez_vous.creer` au réceptionniste SEUL (« prend »), `rendez_vous.
   // modifier`/`arrivee`/`absence`/`annuler` à réceptionniste ET chef_atelier (« déplace » /
@@ -533,7 +533,7 @@ export const TOUTES_ACTIONS = [
   'rendez_vous.absence',
   'rendez_vous.annuler',
   // ---- Reprise de données (`apps/api/src/reprise/`, contrats/reprise.ts, migrations 0066/0067) —
-  // bloc ADDITIF PUR, ajouté par l'agent d'assemblage qui a câblé `RepriseModule` dans
+  // bloc ADDITIF PUR, ajouté par le lot d'assemblage qui a câblé `RepriseModule` dans
   // `app.module.ts` (périmètre disjoint autorisé à toucher ce fichier pour cette tâche précise —
   // même situation que `rendez_vous.*` ci-dessus, PAS un palliatif : les cinq contrôleurs du
   // module portaient `@AucunDroitRequis()` sur TOUTES leurs routes, remplacé ici).
@@ -589,7 +589,7 @@ export const TOUTES_ACTIONS = [
  * entre `Action` et l'énumération recopiée n'était détectée QUE par `pnpm typecheck` (`tsc`
  * complet), jamais par le test qui prétendait pourtant garantir la couverture. C'est exactement ce
  * qui s'est produit : 14 actions de facturation ajoutées au type sont restées invisibles au test
- * structurel pendant tout un cycle d'agents, découvertes seulement par un `tsc --noEmit` isolé.
+ * structurel pendant tout un cycle de lots, découvertes seulement par un `tsc --noEmit` isolé.
  * Dériver le type de la constante élimine la possibilité même de cette divergence — il n'existe
  * plus deux listes à synchroniser, une seule, lue à la fois par le compilateur ET par `vitest run`.
  */
@@ -1074,7 +1074,7 @@ const DROITS_ADMIN: readonly Action[] = [...DROITS_DIRECTION];
 // Facturation — paiements (étape 2) : bloc ADDITIF PUR, ne modifie aucune des consts ci-dessus
 // =================================================================================================
 //
-// Ajouté par l'agent `paiements` (apps/api/src/facturation/paiements/), périmètre disjoint de ce
+// Ajouté par le lot `paiements` (apps/api/src/facturation/paiements/), périmètre disjoint de ce
 // fichier. Décision délibérée de NE PAS insérer ces droits DANS les listes composées ci-dessus
 // (`DROITS_RECEPTIONNAIRE`, `DROITS_CHEF_ATELIER`, `DROITS_DIRECTION`, `DROITS_ADMIN`) : RF-114
 // (`docs/specification-etape-2-facturation.md` §9) casse ICI, pour la première fois, l'hypothèse de
@@ -1082,7 +1082,7 @@ const DROITS_ADMIN: readonly Action[] = [...DROITS_DIRECTION];
 // admin ⊇ chef_atelier) — « Encaisser / imputer » est ✅ pour receptionnaire mais ❌ pour
 // chef_atelier, qui est pourtant construit comme un SUR-ensemble de receptionnaire. Restructurer la
 // chaîne de composition existante pour faire rentrer cette exception aurait un rayon d'effet bien
-// plus large que ce seul module : les droits `document_vente` qu'un futur agent `documents` ajoutera
+// plus large que ce seul module : les droits `document_vente` qu'un futur lot `documents` ajoutera
 // cassent la MÊME hiérarchie de la MÊME façon (« Émettre une facture » est ✅ pour receptionnaire, ❌
 // pour chef_atelier). Un lookup additif par rôle, fusionné une seule fois dans `MATRICE_DROITS`
 // ci-dessous, est la façon la moins invasive de poser une matrice financière qui ne suit PAS la
@@ -1132,7 +1132,7 @@ const DROITS_PAIEMENT_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action
 
 // =================================================================================================
 // Facturation — documents (étape 2) : bloc ADDITIF PUR, calé LITTÉRALEMENT sur le tableau `RF-114`
-// (docs/specification-etape-2-facturation.md §9) — aucune ligne n'est une inférence de cet agent.
+// (docs/specification-etape-2-facturation.md §9) — aucune ligne n'est une inférence de ce lot.
 // =================================================================================================
 
 /** `RF-114` ligne « (lecture) » — pas de ligne littérale dédiée, mais la lecture d'un document
@@ -1173,7 +1173,7 @@ const EMISSION_AVOIR: readonly Action[] = [
 ];
 
 /**
- * `facturation.document.corriger` — demande relayée par l'orchestrateur (voir le commentaire sur
+ * `facturation.document.corriger` — demande relayée par le mainteneur (voir le commentaire sur
  * `TOUTES_ACTIONS` ci-dessus pour la doctrine complète : endpoint pas encore écrit, droit posé en
  * avance). Corrige une facture ÉMISE : annule par avoir ET recrée une nouvelle facture dans la
  * MÊME opération — plus engageant qu'`EMISSION_AVOIR` seule, périmètre volontairement PLUS ÉTROIT :
@@ -1222,7 +1222,7 @@ const DROITS_DOCUMENT_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action
 // Bloc créancier QR-facture (étape 2) : bloc ADDITIF PUR, même patron que les deux blocs ci-dessus.
 // =================================================================================================
 //
-// Arbitrage du coordinateur, suite au constat d'un agent qui a livré `GET|PATCH
+// Arbitrage du coordinateur, suite au constat d'un lot qui a livré `GET|PATCH
 // /parametres-facturation/creancier` (`apps/api/src/parametrage/bloc-creancier/`, porte l'IBAN
 // d'encaissement du garage) SANS action de droit dédiée, faute d'accès à ce fichier — plutôt que
 // d'inventer une entrée hors de son périmètre, il a signalé le trou et posé un palliatif
@@ -1329,7 +1329,7 @@ const DROITS_PLAFOND_AVOIR_RECEPTIONNAIRE_PAR_ROLE: Readonly<
 // Export fiduciaire (étape 2) : bloc ADDITIF PUR, même patron et MÊME PALIER que le bloc créancier.
 // =================================================================================================
 //
-// Arbitrage du coordinateur, même motif que le bloc créancier : un agent a livré l'orchestration
+// Arbitrage du coordinateur, même motif que le bloc créancier : un lot a livré l'orchestration
 // complète de l'export comptable (`apps/api/src/facturation/export/service-export-comptable.ts` —
 // sélection des factures/avoirs émis non exportés, continuité de numérotation, écritures
 // équilibrées, fichier WinBIZ, marquage `exporte_le`/`export_id`, idempotence) et refusé de câbler
@@ -1474,7 +1474,7 @@ const SATISFACTION_RESERVATION_PIECES: readonly Action[] = ['pieces.reservation.
 const LIBERATION_RESERVATION_PIECES: readonly Action[] = ['pieces.reservation.liberer'];
 
 // ---- Pièces, second relais (fournisseurs, commandes fournisseur, consignes, paramétrage) --------
-// Transmis par l'orchestrateur pour le compte de l'agent qui a complété le module Pièces, même
+// Transmis par le mainteneur pour le compte du lot qui a complété le module Pièces, même
 // patron additif que le reste de ce fichier. `admin: []` reconduit SANS EXCEPTION (RF-115, déjà
 // littéral sur TOUTE la matrice §11 pièces — voir la note de tête de section ci-dessus) : le stock
 // (fournisseurs, commandes, consignes) porte une valeur financière (COGS, valorisation
@@ -1494,7 +1494,7 @@ const LECTURE_COMMANDE_FOURNISSEUR_PIECES: readonly Action[] = ['pieces.commande
 const ECRITURE_COMMANDE_FOURNISSEUR_PIECES: readonly Action[] = [
   'pieces.commande_fournisseur.creer',
 ];
-/** Couvre aussi l'annulation de reliquat (note de l'agent, pas une seconde action distincte). */
+/** Couvre aussi l'annulation de reliquat (note du lot, pas une seconde action distincte). */
 const RECEPTION_COMMANDE_FOURNISSEUR_PIECES: readonly Action[] = [
   'pieces.commande_fournisseur.reception',
 ];
@@ -1557,7 +1557,7 @@ const DROITS_PIECES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]
     ...LECTURE_FACTURE_FOURNISSEUR_PIECES,
   ],
   // Consigne : une consigne d'échange standard jamais rendue est une créance qui dort — donnée
-  // financière, INFÉRÉ par l'agent qui a livré ce bloc (pas une ligne littérale de la matrice §11).
+  // financière, INFÉRÉ par le lot qui a livré ce bloc (pas une ligne littérale de la matrice §11).
   // Facture fournisseur : même raisonnement — voir le commentaire de tête de
   // `LECTURE_FACTURE_FOURNISSEUR_PIECES` ci-dessus.
   comptable: [...LECTURE_PIECES, ...LECTURE_CONSIGNE_PIECES, ...LECTURE_FACTURE_FOURNISSEUR_PIECES],
@@ -1634,7 +1634,7 @@ const DROITS_PIECES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]
 // `prixAchatCentimes` du contrat gelé `contrats/ventes/vehicule-stock.ts::ReponseVehiculeStock`
 // est de toute façon `number` non-nullable, PAS `number | null` comme `pieces/article.ts` — le
 // contrat gelé ne permet même pas de MASQUER ce champ par rôle, seulement de refuser l'ÉCRITURE ;
-// masquer la lecture demanderait de rouvrir ce contrat, hors périmètre de cet agent) ;
+// masquer la lecture demanderait de rouvrir ce contrat, hors périmètre de ce lot) ;
 // `receptionnaire` ne reçoit PAS `ventes.dossier.livrer`. **À CONFIRMER AVEC @laupernoe** — voir le
 // rapport de livraison.
 //
@@ -1654,7 +1654,7 @@ const DROITS_PIECES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]
 // palier que le domaine pièces (étape 3) et le domaine financier de la facturation (étape 2). Un
 // dossier de vente porte un prix de véhicule, une valeur de reprise négociée, un financement — au
 // moins aussi engageant financièrement que les domaines déjà tranchés `admin: []`. **DÉCISION DE
-// CET AGENT, pas une ligne §11** : à confirmer avec @laupernoe au même titre que QV-15/QV-16 — voir le
+// CE LOT, pas une ligne §11** : à confirmer avec @laupernoe au même titre que QV-15/QV-16 — voir le
 // rapport de livraison. Ne JAMAIS combler par copier-coller de `direction`.
 //
 // `chef_atelier` reçoit une lecture MINIMALE (`vehicule_stock.lire`, `dossier.lire`) — INFÉRÉE,
@@ -1773,7 +1773,7 @@ const DROITS_VENTES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]
   chef_atelier: [...LECTURE_VEHICULE_STOCK, ...LECTURE_DOSSIER_VENTE],
   technicien: [],
   magasinier: [],
-  // RF-115, appliqué ICI par décision de cet agent (§11 ne mentionne pas admin) — voir la note de
+  // RF-115, appliqué ICI par décision de ce lot (§11 ne mentionne pas admin) — voir la note de
   // tête de section : `[]` VOLONTAIREMENT, jamais à combler par copier-coller de `direction`.
   admin: [],
   // Compte de service (borne d'atelier) : aucun droit dans ce domaine, par construction.
@@ -1781,7 +1781,7 @@ const DROITS_VENTES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]
 };
 
 // =================================================================================================
-// Pointage (lot 2) : bloc ADDITIF PUR transmis par l'orchestrateur pour le compte de l'agent
+// Pointage (lot 2) : bloc ADDITIF PUR transmis par le mainteneur pour le compte du lot
 // `pointage/` — même patron que les blocs précédents. Table proposée à l'origine : `chef_atelier`/
 // `direction`/`admin` reçoivent les actions d'encadrement (dont `pointer_autrui`, ajouté par la
 // correction de faille — voir sa définition dans `TOUTES_ACTIONS`) ; `technicien`/`magasinier`
@@ -1796,7 +1796,7 @@ const DROITS_VENTES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]
 // `admin` REÇOIT LES 6 — décision reprise TELLE QUELLE, vérifiée COHÉRENTE avec la doctrine de ce
 // fichier : `RF-115` (« admin n'a AUCUN droit financier ») ne s'applique qu'aux blocs qui
 // manipulent de l'argent (paiements, documents de vente, créancier QR, export fiduciaire, PLUS,
-// décision de CET agent, le domaine ventes ci-dessus) — le pointage enregistre du TEMPS de travail,
+// décision de CE LOT, le domaine ventes ci-dessus) — le pointage enregistre du TEMPS de travail,
 // pas un montant. `admin` reste ici le rôle technique/propriétaire du tenant, superset de
 // `direction`, doctrine de tête de fichier (lot 1) : cohérent avec `parametrage.atelier.modifier`/
 // `parametrage.referentiel.modifier`, qui donnent eux aussi l'écriture à `admin` sans réserve
@@ -1824,7 +1824,7 @@ const DROITS_VENTES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]
 // appartiennent à `chef_atelier`/`direction`/`admin` SEULS.
 //
 // NOTE : `comptable` ne détient PAS non plus `atelier.pointage.lire` dans ce bloc (héritage de la
-// table transmise par l'agent `pointage/`, jamais réexaminé ici) — hors périmètre de cette
+// table transmise par le lot `pointage/`, jamais réexaminé ici) — hors périmètre de cette
 // correction, qui porte UNIQUEMENT sur les deux actions de verrouillage signalées par le test.
 //
 // `gerer_pin` (RM-128, mode borne) — `chef_atelier`/`direction`/`admin`, exactement le trio qui
@@ -1889,7 +1889,7 @@ const DROITS_POINTAGE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action
 //
 // `GET /tableau-bord/activite` (`apps/api/src/tableau-bord/`) restait sous `@AucunDroitRequis()` +
 // une vérification de rôle posée EN SERVICE (`tableau-bord/droits-provisoires.ts`, retiré par ce
-// bloc), faute d'accès de son auteur à ce fichier — palliatif signalé par l'agent, pas un accès
+// bloc), faute d'accès de son auteur à ce fichier — palliatif signalé par le lot, pas un accès
 // ouvert par négligence, même patron que le bloc créancier avant que ses actions n'existent.
 //
 // AUCUN montant dans cette réponse (OR par statut, délai moyen de restitution, lignes en attente
@@ -1952,7 +1952,7 @@ const DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE: Readonly<Record<RoleUtilisateur, re
 // d'ÉMISSION sur UN document (`facturation.document.emettre*`) : émettre UNE facture n'est pas la
 // même exposition que voir le chiffre d'affaires CONSOLIDÉ du garage sur une période. Écart
 // SIGNALÉ, pas tranché ici — si le terrain montre qu'un rôle opérationnel a besoin de voir le CA de
-// son propre périmètre, c'est une décision de @laupernoe, pas une inférence de cet agent.
+// son propre périmètre, c'est une décision de conception, pas une inférence de ce lot.
 const LECTURE_TABLEAU_BORD_FINANCIER: readonly Action[] = ['tableau_bord.financier.lire'];
 
 const DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> =
@@ -1974,7 +1974,7 @@ const DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE: Readonly<Record<RoleUtilisateur, r
 // Pneus — hangar à pneus (docs/specification-parc-et-hangar-pneus.md, RPP-01→RPP-08) : bloc
 // ADDITIF PUR, même patron que le tableau de bord ci-dessus. Voir le commentaire sur les 4 entrées
 // `pneus.depot.*` de `TOUTES_ACTIONS` pour le détail de la correction apportée à la proposition de
-// l'agent `pneus/` (séparation de `gerer` en `changer_saison` / `sortir`).
+// le lot `pneus/` (séparation de `gerer` en `changer_saison` / `sortir`).
 //
 // AUCUN MONTANT dans `depot_pneus` (id, véhicule, site, saison, statut, code_case, dimension,
 // état, dates, motif_sortie, ligne_or_dernier_changement_id — voir `versDepotPneusResponse`,

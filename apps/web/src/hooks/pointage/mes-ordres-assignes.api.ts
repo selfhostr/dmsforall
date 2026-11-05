@@ -5,7 +5,7 @@ import { requeteApi } from '@/api/client';
 /**
  * `GET /ordres-reparation?technicienId=&statut[]=` — « Mes OR du jour » (écran de pointage du
  * technicien). Transport DÉDIÉ, PAS une réutilisation de `hooks/atelier/ordres-reparation.api.ts` :
- * ce fichier — hors périmètre d'écriture de cet agent — expose `FiltresListeOrdresReparation` sans
+ * ce fichier — hors périmètre d'écriture de ce lot — expose `FiltresListeOrdresReparation` sans
  * `technicienId` ET avec `statut` en mono-sélection, alors que le contrat serveur
  * (`schemaFiltresOrdresReparation`, `contrats/atelier/ordre-reparation.ts`) accepte bel et bien les
  * deux : `statut` y est un TABLEAU. Étendre le hook partagé serait la solution la plus propre à

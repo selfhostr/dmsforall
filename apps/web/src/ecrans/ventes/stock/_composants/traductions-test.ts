@@ -3,7 +3,7 @@ import i18next from '@/i18n';
 /**
  * Traductions FR du namespace `ventes` (clés `ventes:stock.*`) utilisées par les écrans de ce
  * sous-module — le namespace n'est PAS encore enregistré dans `apps/web/src/i18n/index.ts` (hors
- * périmètre de cet agent, un agent i18n distinct le fait EN PARALLÈLE, voir le rapport de
+ * périmètre de ce lot, un lot i18n distinct le fait EN PARALLÈLE, voir le rapport de
  * livraison pour la liste complète attendue côté production). Enregistrée ICI, dans un fichier de
  * test, via `i18next.addResourceBundle` — ça n'édite AUCUN fichier sous `i18n/**`, ça ajoute une
  * ressource en mémoire pour la durée du test, seul moyen de vérifier le texte RÉELLEMENT rendu

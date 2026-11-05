@@ -1,6 +1,6 @@
 /**
  * Suite de non-régression DI-3/MD-77 : transforme la « coïncidence de mapping » vérifiée une fois
- * par l'agent précédent (facture 2026-00002, débiteur absent) en invariant, sur plusieurs
+ * par le lot précédent (facture 2026-00002, débiteur absent) en invariant, sur plusieurs
  * combinaisons (QRR + QR-IBAN, SCOR + IBAN ordinaire, sans référence, débiteur présent/absent,
  * CHF/EUR) — consigne explicite du coordinateur.
  *

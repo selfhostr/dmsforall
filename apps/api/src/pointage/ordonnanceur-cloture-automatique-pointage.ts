@@ -25,7 +25,7 @@ const journal = new Logger('OrdonnanceurClotureAutomatiquePointage');
  * `pointage.module.ts` (`providers`), plutôt qu'un second `@Module` séparé porteur du hook.
  *
  * POURQUOI CETTE DÉVIATION DU MODÈLE ASTRA — deux raisons, toutes deux liées au périmètre
- * d'écriture EXCLUSIF de cet agent :
+ * d'écriture EXCLUSIF de ce lot :
  *   1. `ProcesseurClotureAutomatiquePointage` a besoin d'injecter `ServiceJobClotureAutomatique-
  *      Pointage`, qui a lui-même besoin de `ServiceClotureAutomatiquePointage` — un provider posé
  *      par `PointageModule` (`pointage.module.ts`), pas exporté vers un module SÉPARÉ sans créer
@@ -33,7 +33,7 @@ const journal = new Logger('OrdonnanceurClotureAutomatiquePointage');
  *      qui importerait en retour `PointageModule` pour cette même injection) ;
  *   2. un second `@Module` séparé devrait être enregistré explicitement dans `app.module.ts`
  *      (comme `ReferentielVehiculesChJobModule` l'est) — fichier HORS du périmètre d'écriture
- *      exclusif de cet agent. En posant ce déclencheur comme un PROVIDER ORDINAIRE de
+ *      exclusif de ce lot. En posant ce déclencheur comme un PROVIDER ORDINAIRE de
  *      `PointageModule` (déjà enregistré dans `app.module.ts`, voir son en-tête), Nest invoque son
  *      `onApplicationBootstrap()` automatiquement — AUCUNE modification d'`app.module.ts` requise.
  *

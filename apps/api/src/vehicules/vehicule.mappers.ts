@@ -47,7 +47,7 @@ export function ajouterMoisIso(dateIso: string, mois: number): string {
  * garantie vendue par le garage. Ce mapper expose donc ce jeu de colonnes comme
  * `garantieConstructeur` (cohérent avec RM-33 : « date de début = 1re mise en circulation ou date
  * de livraison » — une garantie d'origine, pas une extension commerciale) et renvoie
- * TOUJOURS `garantieGarage: null` au lot 1. À confirmer avec expert-database/expert-metier : soit
+ * TOUJOURS `garantieGarage: null` au lot 1. À confirmer avec l'équipe base de données/l'équipe métier : soit
  * une migration ajoute un second jeu de colonnes, soit le contrat `@dfa/shared` est corrigé pour
  * n'exposer qu'une garantie.
  */

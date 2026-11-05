@@ -43,13 +43,13 @@ export interface ProprietesValeurConfidentielle {
  * l'état (« Voir »/« Fermer » + nom du champ) plutôt que de rester un icône muet. Même élément
  * DOM dans les deux états (seuls l'icône et le libellé changent) : le focus ne saute jamais.
  *
- * SIGNALÉ (hors périmètre d'écriture i18n de cet agent) : `nomChamp` compose le nom accessible
+ * SIGNALÉ (hors périmètre d'écriture i18n de ce lot) : `nomChamp` compose le nom accessible
  * avec les verbes génériques `commun:actions.voir`/`commun:actions.fermer`, faute de clés
  * dédiées disponibles au moment de l'écriture. Des clés propres existent déjà pour un patron
  * identique (`auth:connexion.champs.motDePasse.afficher`/`.masquer`, `EcranConnexion.tsx`) —
  * l'équivalent pour ce module (`ventes:stock.fiche.confidentiel.afficher`/`.masquer` et
  * `ventes:reprise.champs.confidentiel.afficher`/`.masquer`, même structure) reste à ajouter par
- * l'agent i18n, puis à substituer ici en remplacement de la composition `voir/fermer + nomChamp`.
+ * le lot i18n, puis à substituer ici en remplacement de la composition `voir/fermer + nomChamp`.
  */
 export function ValeurConfidentielle({
   revele,

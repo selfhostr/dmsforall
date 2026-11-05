@@ -91,7 +91,7 @@ export interface Props {
   readonly erreur?: string | null;
   /** Codes à confirmer explicitement (409 CONFIRMATION_REQUISE, ex. CLIENT_BLOQUE) — JAMAIS
    *  `PLANNING_CAPACITE_DEPASSEE` : le surbooking n'entre jamais dans ce protocole, il n'est
-   *  qu'un avertissement de la réponse (RV-06, arbitrage de @laupernoe #1 : avertir, jamais bloquer). */
+   *  qu'un avertissement de la réponse (RV-06, choix produit #1 : avertir, jamais bloquer). */
   readonly confirmationsRequises?: readonly CodeConfirmation[];
   readonly onConfirmerQuandMeme?: () => void;
 }
@@ -100,7 +100,7 @@ export interface Props {
  * Nouveau rendez-vous — Écran 2, dialogue UNIQUE pour les trois points d'entrée
  * (`docs/conception-rendez-vous-ecrans.md`). Un seul bouton primaire **Confirmer le rendez-vous** ;
  * **Annuler** ferme sans confirmation supplémentaire (rien n'est encore engagé). Motif OBLIGATOIRE
- * (arbitrage de @laupernoe #2) — le référentiel porte déjà un motif générique (« À déterminer — diagnostic
+ * (choix produit #2) — le référentiel porte déjà un motif générique (« À déterminer — diagnostic
  * au comptoir ») pour le client qui ne sait pas décrire sa panne : pas de sentinelle synthétique
  * ici, c'est un motif réel parmi les autres.
  */

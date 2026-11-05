@@ -31,7 +31,7 @@
  * rôle où `roleVoitLesMontants()` (`atelier/mappeurs.ts`, déjà la source de vérité du masquage des
  * montants ailleurs dans l'OR) est faux — AVANT même de charger l'OR, pour ne faire aucun travail
  * inutile pour un rôle définitivement refusé. Résultat fonctionnel identique à un droit dédié.
- * Signalé pour arbitrage avec expert-auth : un `atelier.devis.imprimer` propre dans la matrice
+ * Signalé pour arbitrage avec l'équipe authentification : un `atelier.devis.imprimer` propre dans la matrice
  * remplacerait proprement ce garde-fou applicatif le jour où ce fichier repasse en périmètre.
  */
 

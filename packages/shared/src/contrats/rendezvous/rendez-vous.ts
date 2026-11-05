@@ -28,8 +28,8 @@ import {
 
 /**
  * Contrat du domaine rendez-vous d'atelier (lot RDV-1, `docs/conception-rendez-vous-metier.md` /
- * `docs/conception-rendez-vous-donnees.md`). GELÉ par l'orchestrateur pour les sept endpoints
- * ci-dessous — l'agent front s'appuie dessus, aucun écart sans le signaler.
+ * `docs/conception-rendez-vous-donnees.md`). GELÉ par le mainteneur pour les sept endpoints
+ * ci-dessous — le lot front s'appuie dessus, aucun écart sans le signaler.
  *
  * DÉCISION STRUCTURANTE reprise du domaine `atelier` : les changements d'état (arrivée, absence,
  * annulation) sont des ACTIONS NOMMÉES (`POST .../arrivee`), jamais un `PATCH {"statut": ...}` —
@@ -79,7 +79,7 @@ export interface ReponseRendezVous {
   readonly vehicule: VehiculeResume | null;
   readonly type: TypeOrdreReparation;
   /**
-   * Renvoi au référentiel `motif_rendez_vous`, JAMAIS un texte libre (arbitrage @laupernoe #2,
+   * Renvoi au référentiel `motif_rendez_vous`, JAMAIS un texte libre (choix produit #2,
    * `migrations/0052` §B.2) : c'est lui qui porte la durée par défaut, donc la capacité
    * consommée. Embarqué en résumé (comme `client`/`vehicule`) pour éviter un aller-retour
    * supplémentaire vers `GET /motifs-rendez-vous` à chaque affichage d'un rendez-vous.
@@ -176,7 +176,7 @@ export interface ReponseCapaciteRendezVous {
  * `POST /rendez-vous` — `Idempotency-Key` OBLIGATOIRE (même doctrine que `POST
  * /ordres-reparation`, RM-49 : un rejeu ne doit rien créer deux fois).
  *
- * `motifId` est OBLIGATOIRE (arbitrage @laupernoe #2, `migrations/0052` §B.2) : renvoi au référentiel
+ * `motifId` est OBLIGATOIRE (choix produit #2, `migrations/0052` §B.2) : renvoi au référentiel
  * `motif_rendez_vous`, jamais un texte libre — c'est lui qui porte la durée estimée par défaut,
  * donc la capacité consommée (RV-01/RV-02). `dureeEstimeeMinutes` permet au réceptionniste
  * d'ajuster l'estimation du motif pour CE rendez-vous précis (« on bloque 45 minutes », §1

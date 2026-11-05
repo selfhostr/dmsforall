@@ -37,8 +37,8 @@ export interface SortieCommande {
 /**
  * Délai dur par défaut pour une commande COURTE (`mdb-tables`, `mdb-schema`, `--version`) —
  * jamais utilisé pour l'export de table (`lireLignesAccess`, délai propre : inactivité + plafond
- * absolu, voir `lecteur-access.ts`). MESURÉ, pas deviné : `mdb-tables -1` sur une base Access
- * RÉELLE de 1,4 Go a rendu la main en 25 ms — ces commandes lisent des MÉTADONNÉES (catalogue de
+ * absolu, voir `lecteur-access.ts`). MESURÉ, pas deviné : `mdb-tables -1` sur une grosse base Access
+ * RÉELLE a rendu la main en quelques millisecondes — ces commandes lisent des MÉTADONNÉES (catalogue de
  * tables/schéma), jamais le contenu des lignes, donc leur durée est indépendante du volume de
  * données. 30 s laisse une marge de plus de 1000× sur le temps mesuré tout en bornant strictement
  * un blocage (fichier `.mdb` forgé qui fait boucler `mdbtools` avant même de lister quoi que ce

@@ -96,7 +96,7 @@ export interface EntreeCreationTravailReporteDepuisRefus {
    * INTERPRÉTATION RETENUE : `urgence` est nullable sur `ReponseLigneOr` (une ligne saisie sans
    * urgence explicite) mais NOT NULL sur `vehicule_travail_reporte` — faute d'urgence connue,
    * `creerDepuisRefus` retient `'a_faire'` (ni `'urgent'` ni `'a_surveiller'`, les deux extrêmes de
-   * `URGENCES_TRAVAIL`) plutôt que d'inventer une urgence. À confirmer avec expert-metier.
+   * `URGENCES_TRAVAIL`) plutôt que d'inventer une urgence. À confirmer avec l'équipe métier.
    */
   readonly urgence: UrgenceTravail | null;
   readonly montantEstimeCentimes: number | null;
@@ -107,7 +107,7 @@ export interface EntreeCreationTravailReporteDepuisRefus {
 /**
  * Port à déclarer par le CONSOMMATEUR (`atelier`), doctrine `atelier.jetons.ts` (« le port est
  * déclaré par le CONSOMMATEUR, jamais par le fournisseur ») — reproduite ici uniquement parce
- * qu'`atelier/` est hors périmètre de cet agent. Voir la réponse de tâche pour le câblage exact
+ * qu'`atelier/` est hors périmètre de ce lot. Voir la réponse de tâche pour le câblage exact
  * attendu côté `atelier` : nom du jeton (`JETON_CREATION_TRAVAIL_REPORTE`), et où
  * `AtelierModule` doit lier ce jeton à `ServiceVehiculeTravailReporte` (`useExisting`, après avoir
  * importé `VehiculesModule` — `ServiceVehiculeTravailReporte` est désormais EXPORTÉ par

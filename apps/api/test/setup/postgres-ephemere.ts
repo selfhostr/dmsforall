@@ -35,10 +35,10 @@ const execFileAsync = promisify(execFile);
 
 // ---------------------------------------------------------------------------------------------
 // Constantes de convention. Deux d'entre elles sont des HYPOTHÈSES documentées, à confirmer par
-// expert-database à l'intégration (le contrat gelé §3 ne fixe que les NOMS des deux premières
+// l'équipe base de données à l'intégration (le contrat gelé §3 ne fixe que les NOMS des deux premières
 // migrations, pas le dossier qui les contient) :
 //   - DOSSIER_MIGRATIONS      : convention drizzle-kit standard (`drizzle/migrations` à la
-//                                racine du package). Si expert-database a choisi un autre
+//                                racine du package). Si l'équipe base de données a choisi un autre
 //                                dossier, ajuster cette seule constante suffit.
 //   - DOSSIER_MIGRATIONS_DOWN : sous-dossier `down/` du même dossier, comme décrit au contrat
 //                                ("migrations/down/NNNN_x.down.sql").
@@ -493,7 +493,7 @@ export async function appliquerMigrationsUp(client: Client): Promise<void> {
   const fichiers = listerFichiersMigrationsUp();
   if (fichiers.length === 0) {
     throw new Error(
-      `Aucune migration trouvée dans ${DOSSIER_MIGRATIONS}. Soit expert-database n'a pas ` +
+      `Aucune migration trouvée dans ${DOSSIER_MIGRATIONS}. Soit l'équipe base de données n'a pas ` +
         `encore écrit les migrations de l'étape 0, soit le dossier réel diverge de la ` +
         `convention assumée par ce harnais (voir le commentaire en tête de fichier) — dans ce ` +
         `second cas, ajuster la constante DOSSIER_MIGRATIONS ci-dessus.`,

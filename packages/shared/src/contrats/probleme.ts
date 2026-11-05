@@ -191,7 +191,7 @@ export const CODES_ERREUR = [
   // --- Étape 3 : pièces — stock et mouvements ---
   // RP-15 : une sortie (casse, perte, transfert, ajustement à la baisse) dépasserait le stock
   // disponible ; le forçage explicite reste un point de droit non tranché (voir le rapport
-  // d'accompagnement de l'agent expert-api sur `PP-02`).
+  // d'accompagnement du lot l'équipe API sur `PP-02`).
   'STOCK_INSUFFISANT',
   // RP-17 : motif obligatoire pour `casse`/`perte`/`ajustement_inventaire` — conditionnel au
   // type de mouvement, donc un code dédié plutôt qu'une contrainte `min()` uniforme sur `motif`.
@@ -264,7 +264,7 @@ export const CODES_ERREUR = [
   // l'a fait naître : la modifier ou la supprimer désynchroniserait la quantité facturée de la
   // quantité réellement sortie du stock. `service-documents.ts::modifierLigne`/`supprimerLigne`.
   'LIGNE_DOCUMENT_STOCK_LIEE',
-  // --- Étape 2 : paiements et imputations — correctif devise (défaut latent signalé par un agent
+  // --- Étape 2 : paiements et imputations — correctif devise (défaut latent signalé par un lot
   // front, 2026-08-05) : un `paiement` porte UNE SEULE devise (MD-50, `DEVISES_FACTURATION`),
   // vérifiée par l'appelant plutôt que devinée par le serveur — voir
   // `apps/api/src/facturation/paiements/imputations.ts`. Imputer (ou compenser une avance) sur un

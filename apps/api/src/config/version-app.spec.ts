@@ -1,5 +1,5 @@
 /**
- * Test unitaire colocalisé, propriété expert-devops (`apps/api/src/config/version-app.ts` est
+ * Test unitaire colocalisé, propriété l'équipe infrastructure (`apps/api/src/config/version-app.ts` est
  * dans son périmètre exclusif — repli DÉVELOPPEMENT du calcul de VERSION_APP/VERSION_APP_BRANCHE,
  * voir l'en-tête du module). Utilise de VRAIS dépôts Git temporaires (`mkdtempSync` + `git init`)
  * plutôt que de mocker `execFileSync` : ce module existe précisément pour survivre aux aspérités

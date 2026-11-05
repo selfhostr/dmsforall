@@ -14,7 +14,7 @@ import type { RoleUtilisateur } from '@dfa/shared';
  *    n'est pas leur outil.
  *  - `atelier.pointage.corriger_autrui` / `.verrouiller_periode` / `.deverrouiller_periode` :
  *    `chef_atelier`, `direction`, `admin` SEULS — `comptable` explicitement écarté des deux
- *    dernières (arbitrage @laupernoe du 2026-08-03, documenté en tête de `DROITS_POINTAGE_PAR_ROLE` :
+ *    dernières (choix produit du 2026-08-03, documenté en tête de `DROITS_POINTAGE_PAR_ROLE` :
  *    clore/rouvrir une période de pointage est une décision d'ATELIER, pas un geste comptable).
  *
  * Pas de notion distincte « vue équipe » dans la matrice de droits : `atelier.pointage.lire_equipe`
@@ -23,7 +23,7 @@ import type { RoleUtilisateur } from '@dfa/shared';
  * droit dans `matrice-droits.ts`). `peutVoirEquipePointage` ci-dessous EN INFÈRE le même
  * périmètre que la correction (`chef_atelier`/`direction`/`admin`) parce que la spécification ne
  * distingue pas non plus « voir les pointages d'autrui » de « les corriger » — à confirmer avec
- * expert-metier si un rôle devait un jour voir sans pouvoir corriger.
+ * l'équipe métier si un rôle devait un jour voir sans pouvoir corriger.
  */
 const ROLES_LECTURE_POINTAGE: ReadonlySet<RoleUtilisateur> = new Set([
   'chef_atelier',

@@ -1,7 +1,7 @@
 /**
  * Enums métier partagés entre l'API et le front. Ces valeurs sont le contrat gelé de
  * l'étape 0 (voir contrats-etape-0.md §2.1) : les noms des types PostgreSQL correspondants
- * (expert-database) doivent rester identiques au singulier snake_case :
+ * (l'équipe base de données) doivent rester identiques au singulier snake_case :
  * `langue`, `statut_tenant`, `statut_utilisateur`, `role_utilisateur`, `type_evenement_securite`.
  */
 

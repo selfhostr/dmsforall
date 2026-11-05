@@ -2,16 +2,16 @@ import { CanActivate, ExecutionContext, Injectable, SetMetadata } from '@nestjs/
 import { Reflector } from '@nestjs/core';
 // NOTE D'INTERPRÉTATION — AMBIGUÏTÉ DE CONTRAT SIGNALÉE (voir réponse de tâche) : le contrat
 // §2.10 place `MATRICE_DROITS` et le type `Action` dans apps/api/src/auth/ (propriété
-// expert-auth) sans préciser ni le nom de fichier ni de guard d'autorisation par action
+// l'équipe authentification) sans préciser ni le nom de fichier ni de guard d'autorisation par action
 // réutilisable par les futurs modules métier. Au moment d'écrire ce fichier, apps/api/src/auth/
 // ne contient que auth.types.ts, jetons.ts, erreurs-auth.ts et services/ (pas encore de
 // GardeSession ni de MATRICE_DROITS) : le chemin d'import ci-dessous ('../../auth/matrice-droits')
 // est une hypothèse de nommage, pas un fait vérifié. Ce guard générique est volontairement placé
-// ici (common/droits/, propriété expert-nestjs) pour rester réutilisable par tous les futurs
-// modules métier (pas seulement socle). À CONFIRMER avec expert-auth : nom réel du fichier/export,
+// ici (common/droits/, propriété l'équipe backend) pour rester réutilisable par tous les futurs
+// modules métier (pas seulement socle). À CONFIRMER avec l'équipe authentification : nom réel du fichier/export,
 // et s'assurer qu'aucun mécanisme équivalent n'est dupliqué côté auth/.
 import { MATRICE_DROITS, type Action } from '../../auth/matrice-droits';
-// Lecture seule de la métadonnée `@Public()` (propriété expert-auth, auth/decorateurs/public.decorator.ts) :
+// Lecture seule de la métadonnée `@Public()` (propriété l'équipe authentification, auth/decorateurs/public.decorator.ts) :
 // GardeDroit ne définit ni ne modifie ce décorateur, il se contente de le reconnaître pour qu'une
 // route publique n'ait pas besoin de porter EN PLUS `@AucunDroitRequis()` — voir le commentaire de
 // `canActivate` ci-dessous sur le passage en refus par défaut.

@@ -12,14 +12,14 @@ export type MomentRendezVous = (typeof MOMENTS_RENDEZ_VOUS)[number];
  * Machine à états du RDV (§7 métier) : `confirme` est l'unique état initial (un RDV pris par
  * téléphone est confirmé par construction, RV-06) ; `honore`/`absent`/`annule` sont TERMINAUX,
  * jamais rouverts (RV-19, trigger `rendez_vous_empecher_reouverture` côté base). Nommé `absent`
- * (arbitrage @laupernoe, `migrations/0052` §B), pas `no_show` : vocabulaire métier français à l'écran
+ * (choix produit, `migrations/0052` §B), pas `no_show` : vocabulaire métier français à l'écran
  * comme en base — « no-show » reste réservé à la documentation interne (§10 conception métier).
  *
  * ARBITRAGE TRANCHÉ (dette technique n°3, réglée) : `contrats/atelier/enums.ts` déclarait un
  * `STATUTS_RENDEZ_VOUS`/`StatutRendezVous` **GELÉ** (« déclaré au lot 1, servi au lot 4 ») avec des
  * valeurs DIFFÉRENTES (`demande, planifie, honore, absent, annule_client, annule_garage, reporte`)
  * — une spéculation antérieure, jamais implémentée (aucune table `rendez_vous`, aucun
- * consommateur) et jamais confrontée aux types Postgres qu'elle était censée piloter. @laupernoe a tranché
+ * consommateur) et jamais confrontée aux types Postgres qu'elle était censée piloter. le choix produit a tranché
  * en faveur du modèle CI-DESSOUS, celui réellement implémenté par `docs/conception-rendez-vous-
  * metier.md` §7 : pas d'état brouillon (un RDV téléphonique est confirmé par construction), un
  * report n'est PAS un état (RV-16), une seule valeur `annule` (client/garage non distingués en

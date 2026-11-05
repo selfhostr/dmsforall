@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
  * rafraîchissement de page. Absent de l'URL => vendeur : jamais de vue client par accident au
  * premier chargement d'un lien partagé ou mis en favori.
  *
- * STYLE — retour @laupernoe du 12.08.2026 (revue structure haute) : « le bouton Vue vendeur / Vue client
+ * STYLE — retour produit du 12.08.2026 (revue structure haute) : « le bouton Vue vendeur / Vue client
  * ne respecte pas les autres éléments de l'interface ». `components/ui/tabs.tsx` (`TabsList`/
  * `TabsTrigger`, non réutilisés ici) porte le style de la NAVIGATION (soulignement, voir
  * `OngletsDomaine.tsx`, onglets de premier niveau) — ce contrôle-ci ne navigue nulle part, il

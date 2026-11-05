@@ -51,7 +51,7 @@ import { traduireErreurTransition } from './traducteur-transition';
  * ÉCART DE SCHÉMA SIGNALÉ : `devis_complementaire` ne porte qu'UNE colonne `canal`, alors que le
  * contrat en distingue deux usages — le canal d'ENVOI (`schemaCreationDevisComplementaire.canal`)
  * et le canal de RÉPONSE (`schemaReponseDevisComplementaire.canal`). `repondre()` écrase donc la
- * valeur posée par `creer()`. Signalé pour arbitrage avec expert-database/expert-api plutôt que
+ * valeur posée par `creer()`. Signalé pour arbitrage avec l'équipe base de données/l'équipe API plutôt que
  * résolu d'autorité (ajouter une colonne serait une migration hors du périmètre de cette tâche).
  *
  * SIMPLIFICATIONS SIGNALÉES (RM-73, P-24, CT-36) : les lignes refusées n'alimentent pas encore les

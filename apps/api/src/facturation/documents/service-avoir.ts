@@ -40,7 +40,7 @@ import { ServiceDocumentsVente } from './service-documents';
  * `service-emission.ts` §6) — jamais à la création d'un brouillon qui pourrait encore être
  * abandonné.
  *
- * SIMPLIFICATION SIGNALÉE (à faire remonter à expert-facturation/expert-database) : `MD-23` exige
+ * SIMPLIFICATION SIGNALÉE (à faire remonter à l'équipe facturation/l'équipe base de données) : `MD-23` exige
  * `Σ avoirs ≤ facture, PAR TAUX` — un plafond CUMULATIF sur tous les avoirs déjà émis pour une
  * même ligne. Aucune colonne de `ligne_document` ne relie une ligne d'avoir à la ligne de facture
  * qu'elle crédite (`ligne_or_id` sert l'OR, `document_acompte_id` sert l'acompte — rien

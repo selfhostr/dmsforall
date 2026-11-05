@@ -44,7 +44,7 @@ import { useRepliBarreLaterale } from './useRepliBarreLaterale';
  * un employé (§2 de l'arbitrage, « aucun menu, aucun en-tête, aucune recherche »). Afficher une
  * colonne vide sur une tablette d'atelier serait pire que de ne pas l'afficher.
  *
- * LOT « CADRE APPLICATIF » (19.08.2026, demande @laupernoe) — `EnTete.tsx` est SUPPRIMÉ, remplacé par DEUX
+ * LOT « CADRE APPLICATIF » (19.08.2026, demande produit) — `EnTete.tsx` est SUPPRIMÉ, remplacé par DEUX
  * bandeaux mutuellement exclusifs, choisis sur le MÊME `afficheNavigation` qui gouvernait déjà
  * l'`aside` ci-dessous : `BarreOutilsSuperieure.tsx` (recherche + déclencheur du tiroir mobile)
  * quand la navigation existe — tenant, site, identité et déconnexion ont migré dans
@@ -68,7 +68,7 @@ export function AppShell() {
   const modeScan = useModeScanMobile(session?.utilisateur.role);
   const afficheNavigation =
     entreesVisibles(session?.utilisateur.role).length > 0 && !modeScan.actif;
-  // Repli DESKTOP de la barre latérale (demande @laupernoe, revue webui du 10.08.2026) — préférence
+  // Repli DESKTOP de la barre latérale (demande produit, revue webui du 10.08.2026) — préférence
   // mémorisée (`useRepliBarreLaterale`), lue ici et nulle part ailleurs : seul l'`aside` ci-dessous
   // la reçoit. Le tiroir mobile (`Sheet`) monte `BarreLaterale` SANS le prop `repli`, il reste donc
   // toujours déplié quelle que soit cette préférence — déjà en surimpression, déjà refermable d'un

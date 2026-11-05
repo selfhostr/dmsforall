@@ -13,7 +13,7 @@ import { ReponseOrdreReparationDto } from './ordre-reparation.dto';
  * `POST /ordres-reparation/{orId}/facturer` (`RF-81`) — LE PONT entre l'atelier et la facturation,
  * voir `packages/shared/src/contrats/facturation/facturer-or.ts` (contrat figé, fait foi). DTO
  * Swagger seulement : composé de deux DTO déjà posés dans deux périmètres différents
- * (`atelier/dto` et `facturation/documents/dto`), tous deux propriété de cet agent pour cette
+ * (`atelier/dto` et `facturation/documents/dto`), tous deux propriété de ce lot pour cette
  * tâche — pas une dépendance croisée inter-experts.
  */
 export class ReponseFacturationOrdreReparationDto implements ReponseFacturationOrdreReparation {

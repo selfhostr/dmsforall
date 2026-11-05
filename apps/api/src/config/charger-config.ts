@@ -192,7 +192,7 @@ export const schemaConfig = z
       (v) => (v === '' ? undefined : v),
       z.string().min(1).default(calculerBrancheParDefaut),
     ),
-    // --- Supervision (Sentry, auto-hébergé en Suisse — décision @laupernoe, cohérence nLPD) --------
+    // --- Supervision (Sentry, auto-hébergé en Suisse — décision de conception, cohérence nLPD) --------
     // DSN de l'instance Sentry. OPTIONNELLE et SANS DÉFAUT : son absence ne doit JAMAIS
     // empêcher l'API de démarrer, elle désactive proprement la supervision (voir
     // `observabilite/initialiser-sentry.ts`). Auto-hébergement : ce DSN pointe une instance
@@ -258,7 +258,7 @@ export const schemaConfig = z
     // Bloc défini une seule fois dans `vehicules/ocr/config-ocr.ts` et fusionné ici via `.shape`,
     // même patron que les blocs ci-dessus.
     ...schemaConfigOcrPermis.shape,
-    // --- Job quotidien de purge automatique de sortie du garage (offboarding, mandat 20.08.2026,
+    // --- Job quotidien de purge automatique à la sortie du garage (offboarding,
     // migration 0062) ---
     // Bloc défini une seule fois dans
     // `exploitation/cycle-vie-tenant/config-job-purge-automatique-tenant.ts` et fusionné ici via

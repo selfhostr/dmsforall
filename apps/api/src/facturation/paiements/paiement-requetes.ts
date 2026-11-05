@@ -13,7 +13,7 @@ import {
 } from '../../db/schema';
 
 /** Même forme que `atelier/references.ts::ResumeUtilisateur` — dupliquée volontairement plutôt
- *  qu'importée : `atelier/` et `facturation/` sont deux périmètres d'agents distincts, et aucun
+ *  qu'importée : `atelier/` et `facturation/` sont deux périmètres de lots distincts, et aucun
  *  des deux modules ne s'importe l'un l'autre dans ce dépôt (voir le rapport de livraison). */
 export interface ResumeUtilisateurPaiement {
   readonly utilisateurId: string;

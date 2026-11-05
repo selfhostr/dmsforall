@@ -1,5 +1,5 @@
 /**
- * Gouvernance de l'attribution des rôles — issue #137, arbitrage @laupernoe (13.08.2026).
+ * Gouvernance de l'attribution des rôles — issue #137, choix produit (13.08.2026).
  *
  * Distincte de `matrice-droits.ts` (qui gouverne les ACTIONS qu'un rôle peut exercer) : ce
  * fichier gouverne un cas particulier, la capacité d'un rôle à ATTRIBUER un autre rôle à

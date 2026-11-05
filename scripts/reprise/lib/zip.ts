@@ -10,8 +10,8 @@
  * (horodatage fixe posé sur chaque fichier AVANT l'appel à `zip`) : une empreinte SHA-256 stable
  * pour une même graine est un repère utile en documentation. DÉSACTIVÉ PAR DÉFAUT et à laisser
  * ainsi pour tout fichier SOURCE qu'on ne possède pas en écriture légitime — `construire-jeu-
- * reduit-source.ts` zippe directement les originaux de @laupernoe (`/chemin/vers/echantillons/`, lecture
- * seule pour ce chantier) : `utimes()` dessus, même juste pour dater l'archive, en modifierait les
+ * reduit-source.ts` zippe directement les fichiers originaux de l'archive de test privée (lecture
+ * seule) : `utimes()` dessus, même juste pour dater l'archive, en modifierait les
  * métadonnées. Seul `jeu-synthetique.ts` (fichiers dans un répertoire temporaire créé et détruit
  * par ce même appel) l'active.
  */

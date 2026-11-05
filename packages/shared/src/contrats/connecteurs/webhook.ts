@@ -25,9 +25,9 @@ import { TYPES_EVENEMENT_METIER, type TypeEvenementMetier } from '../atelier/eve
  * pour recevoir `EnveloppeEvenementMetier` sans sonder DFA en boucle.
  *
  * JUGEMENT EXPLICITE, à confirmer par @laupernoe (détaillé dans le rapport d'accompagnement) : ni le
- * brief de cet agent ni `docs/specification-etape-5-connecteurs.md` (`RC-xx`) ne consacrent de
+ * brief de ce lot ni `docs/specification-etape-5-connecteurs.md` (`RC-xx`) ne consacrent de
  * section aux abonnements webhook — c'est la persona qui porte la règle générale (« webhooks
- * signés HMAC, conçus dès le départ ») et `atelier/evenement.ts` prouve qu'un précédent agent
+ * signés HMAC, conçus dès le départ ») et `atelier/evenement.ts` prouve qu'un précédent lot
  * l'a déjà anticipée côté catalogue, en écrivant noir sur blanc que la LIVRAISON restait à
  * brancher. Je complète le socle plutôt que de laisser un mécanisme à moitié posé, mais ceci
  * n'est PAS un `RC-xx` sourcé — à traiter comme une proposition, pas un fait acquis.

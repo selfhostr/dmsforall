@@ -65,7 +65,7 @@ function versEntreeModification(
  * un garage multi-sites peut avoir des horaires différents par site.
  *
  * Sélection de site en ÉTAT LOCAL (pas de sous-route `/parametrage/sites/:id` — hors périmètre
- * de cet agent, `routes/**` appartient à un autre) : la liste vient de `session.sites` (déjà
+ * de ce lot, `routes/**` appartient à un autre) : la liste vient de `session.sites` (déjà
  * chargée par toute page applicative, jamais un second `GET /sites` paginé pour ce qui est
  * typiquement une poignée de sites par tenant suisse). Le premier site actif est présélectionné
  * s'il n'y en a qu'un — l'écran d'un garage mono-site s'ouvre directement sur son formulaire,

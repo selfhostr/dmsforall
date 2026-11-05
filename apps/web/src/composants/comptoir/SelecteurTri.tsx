@@ -32,7 +32,7 @@ export interface ProprietesSelecteurTri {
  * tablette où la table dense n'est pas le gabarit par défaut). `valeur` suit la forme du
  * paramètre `tri` de l'API, pas de mapping supplémentaire côté appelant.
  *
- * LIBELLÉ `sr-only` (19.08.2026, signalé par l'agent atelier) — le `Select` affiche déjà l'option
+ * LIBELLÉ `sr-only` (19.08.2026, signalé par le lot atelier) — le `Select` affiche déjà l'option
  * triée en toutes lettres (`SelectValue`, ex. « Date, plus récent d'abord ») : un libellé visible
  * « Trier par » au-dessus ne fait que répéter ce que le contrôle montre déjà, pour le seul coût de
  * consommer de la hauteur (doctrine du chantier « cadre applicatif » : pas de libellé qui répète

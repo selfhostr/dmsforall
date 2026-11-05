@@ -13,7 +13,7 @@ import {
  * CONTRÔLE AVANT ENVOI — trois vérifications RÉELLEMENT mesurables côté navigateur, sur la zone
  * finalement retenue pour le recadrage, jamais un score de qualité inventé. Brief du coordinateur :
  * « ce que tu ne peux pas mesurer honnêtement, ne le prétends pas ». Cette zone vient DÉSORMAIS
- * (demande de @laupernoe, 18.08.2026) d'une vraie DÉTECTION AUTOMATIQUE DES BORDS DU DOCUMENT
+ * (demande produit, 18.08.2026) d'une vraie DÉTECTION AUTOMATIQUE DES BORDS DU DOCUMENT
  * (`detecterBordsDocument.ts`, contraste avec le fond + composant connexe — voir sa doc de tête
  * pour ce qu'elle fait et ne fait pas, notamment l'absence de correction de perspective) quand elle
  * est CONFIANTE ; sinon repli sur le cadre géométrique fixe d'avant ce chantier

@@ -9,7 +9,7 @@
  * fois : aucune API `update()` incrémentale n'existe côté WebCrypto. Aucune librairie de hash
  * (hash-wasm, js-sha256, crypto-js…) n'est présente dans le workspace — en ajouter une pour ce
  * seul besoin aurait exigé une modification de `package.json`/lockfile pendant que d'autres
- * agents installent en parallèle sur le même arbre, un risque évitable. D'où cette implémentation
+ * lots installent en parallèle sur le même arbre, un risque évitable. D'où cette implémentation
  * directe, minimale, testée contre des vecteurs connus ET contre `crypto.subtle.digest` (voir le
  * fichier de test) pour preuve d'équivalence.
  *

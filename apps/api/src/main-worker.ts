@@ -18,7 +18,7 @@
  *     zéro dépendance ajoutée) qui répond UNIQUEMENT `GET /sante` et `GET /sante/pret` — mêmes
  *     garanties que `SanteController` (`sante/sante.controller.ts`), réimplémentées en direct
  *     pour ne dépendre d'AUCUN adaptateur HTTP Nest (celui-ci n'existe justement pas dans ce
- *     process). Le worker doit être supervisable (sonde de vie/disponibilité pour l'orchestrateur
+ *     process). Le worker doit être supervisable (sonde de vie/disponibilité pour le mainteneur
  *     de conteneurs) sans pour autant ouvrir la moindre route métier : ~40 lignes de `node:http`
  *     l'obtiennent sans réintroduire tout Express/Nest juste pour deux routes.
  *

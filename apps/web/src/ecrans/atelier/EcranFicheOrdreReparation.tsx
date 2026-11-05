@@ -45,7 +45,7 @@ function cleTypeDocumentVente(typeDocument: string, natureFacture: string | null
  * `PanneauActionsOr`). `GET /ordres-reparation/{id}` renvoie le DOCUMENT COMPLET (D-10) : une
  * seule requête bloque l'écran entier, aucune sous-requête secondaire à gérer séparément.
  *
- * `:orId` — convention assumée en l'absence de câblage de `src/routes/` à ce jour (agent dédié),
+ * `:orId` — convention assumée en l'absence de câblage de `src/routes/` à ce jour (lot dédié),
  * même paramètre que celui déjà utilisé par `EcranFicheClient.tsx`/`EcranFicheVehicule.tsx` pour
  * leurs propres ressources ; à ajuster ici si le nom réel diffère une fois le routage posé.
  */

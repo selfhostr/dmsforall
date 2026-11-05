@@ -799,7 +799,7 @@ describe('ServiceOr.lister — recherche q (numéro OR / plaque courante / nom c
  * BY restait figé sur `ouvertLe desc, creeLe desc` quelle que soit la valeur demandée. Les 5 valeurs
  * de `TRIS_ORDRES_REPARATION` sont maintenant toutes câblées par `construireOrdreTri` :
  * `ouvertLe:asc/desc`, `restitutionPromiseLe:asc/desc` (colonnes réelles) et `joursAttenteRetrait:desc`
- * (arbitrage @laupernoe du 12.08.2026, décompte depuis `termineLe` pour un OR `termine`/`facture` — voir
+ * (choix produit du 12.08.2026, décompte depuis `termineLe` pour un OR `termine`/`facture` — voir
  * la doc de tête de `ServiceOr.lister`). `numeroSequence:asc/desc` a été RETIRÉ du contrat (aucune
  * colonne de séquence numérique en base) — plus aucune valeur décorative dans ce module.
  *

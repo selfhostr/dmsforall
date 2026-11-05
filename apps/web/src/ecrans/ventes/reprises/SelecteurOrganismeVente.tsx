@@ -39,7 +39,7 @@ interface Props {
  * quasi-doublons (même doctrine que `DialogueMotifCommandeFournisseur`).
  *
  * Composant partagé entre `ecrans/ventes/reprises/` et `ecrans/ventes/financements/` (les deux
- * périmètres d'écriture de cet agent) — importé par chemin relatif depuis `financements/`.
+ * périmètres d'écriture de ce lot) — importé par chemin relatif depuis `financements/`.
  */
 export function SelecteurOrganismeVente({
   valeur,

@@ -47,7 +47,7 @@ import { ServicePaiement } from './service-paiement';
  * mouvement de sens opposé (`contrePasseId`), jamais par une modification en place (`MD-52`).
  *
  * Ce contrôleur ne suppose JAMAIS qu'un document doit être soldé avant une autre action (un
- * véhicule se restitue sans encaissement, décision de @laupernoe — `RF-83`, `docs/specification-etape-2-
+ * véhicule se restitue sans encaissement, décision de conception — `RF-83`, `docs/specification-etape-2-
  * facturation.md` §7 tableau ligne 1) : rien ici ne bloque quoi que ce soit côté atelier.
  */
 @ApiTags('Facturation — paiements')
@@ -165,7 +165,7 @@ export class PaiementController {
   @ApiOperation({
     summary: 'Affecte un paiement déjà enregistré à un document (lettrage a posteriori).',
     description:
-      '`Idempotency-Key` obligatoire (uuid v4) — décision de sécurité de cet agent (voir le rapport de livraison) : ' +
+      '`Idempotency-Key` obligatoire (uuid v4) — décision de sécurité (voir la documentation de la route) : ' +
       'une imputation rejouée deux fois lettrerait deux fois le même encaissement. Natures acceptées ici : `reglement`, `arrondi` ' +
       'uniquement — `escompte`/`perte`/`compensation` passent par leurs actions dédiées.',
   })
@@ -266,7 +266,7 @@ export class PaiementController {
   @ApiOperation({
     summary: 'Abandonne une avance client non imputée en faveur du garage (RF-79, issue 3/3).',
     description:
-      '`Idempotency-Key` obligatoire (uuid v4) — décision de sécurité de cet agent (voir le rapport de livraison) : un geste qui ' +
+      '`Idempotency-Key` obligatoire (uuid v4) — décision de sécurité (voir la documentation de la route) : un geste qui ' +
       "renonce à rendre de l'argent au client ne doit jamais s'exécuter deux fois sur un retry. Crée une imputation de nature " +
       "`compensation` sur le document de régularisation désigné, rattachée au paiement d'avance.",
   })

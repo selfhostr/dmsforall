@@ -132,7 +132,7 @@ export const vehicule = pgTable(
      * de `tenant_id`, elle est partagée par construction.
      *
      * `marque`/`modele`/`version` (ci-dessus) restent du texte libre et NE deviennent JAMAIS des
-     * clés étrangères vers ce référentiel — arbitrage explicite de @laupernoe, à ne pas rouvrir sans
+     * clés étrangères vers ce référentiel — choix produit explicite, à ne pas rouvrir sans
      * revalider les trois modes de saisie (voir l'en-tête de 0050) : le rendre obligatoire
      * bloquerait le mode 3 (saisie 100% libre, véhicule importé/ancien/transformé absent du
      * référentiel) et casserait tous les véhicules déjà saisis en texte libre.

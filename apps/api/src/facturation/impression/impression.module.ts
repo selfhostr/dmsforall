@@ -17,7 +17,7 @@ import { StockagePdfDisqueLocal } from './stockage-pdf';
  * `technicien`, PAS `admin` (`RF-115`, `RF-116`).
  *
  * **Correction d'une affirmation fausse d'une version précédente de ce commentaire**, signalée par
- * l'agent des droits : ce n'est PAS « le même ensemble de rôles que `EMISSION_FACTURE` ».
+ * le lot des droits : ce n'est PAS « le même ensemble de rôles que `EMISSION_FACTURE` ».
  * `EMISSION_FACTURE` n'a que QUATRE rôles (direction, comptable, vendeur, réceptionnaire) — ni
  * `chef_atelier` ni `magasinier`. La règle réelle, et la seule exacte, est `roleVoitLesMontants()`
  * (`facturation/documents/mappeurs.ts`) : `chef_atelier` et `magasinier` VOIENT les montants d'une
@@ -46,10 +46,10 @@ import { StockagePdfDisqueLocal } from './stockage-pdf';
  *
  * `JETON_STOCKAGE_PDF` → `StockagePdfDisqueLocal` : adaptateur disque local, suffisant pour le
  * développement et un premier pilote mono-instance (voir `stockage-pdf.ts`). Un adaptateur de
- * production (S3-compatible) remplacerait cette seule ligne, décision `expert-devops` hors du
+ * production (S3-compatible) remplacerait cette seule ligne, décision l'équipe infrastructure hors du
  * périmètre de cette tâche.
  *
- * CORRECTIF nLPD (mandat 24/25.08.2026) : `JETON_STOCKAGE_PDF` désormais aussi dans `exports` —
+ * CORRECTIF nLPD : `JETON_STOCKAGE_PDF` désormais aussi dans `exports` —
  * `CycleVieTenantModule` (`exploitation/cycle-vie-tenant/`) importe ce module pour que
  * `ServiceCycleVieResiliation.purger` puisse purger les PDF de facture d'un tenant résilié
  * (`StockagePdf.purgerTenant`) via l'abstraction de stockage, jamais un accès disque en dur.

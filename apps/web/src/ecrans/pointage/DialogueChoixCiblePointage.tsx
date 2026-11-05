@@ -13,7 +13,7 @@ import { lignesPointables } from '@/hooks/pointage/lignes-assignees';
 
 /**
  * Issue #152 — SIGNALÉ AU COORDINATEUR, PAS CORRIGÉ À LA SOURCE (hors du périmètre d'écriture de
- * cet agent, `hooks/pointage/**` n'y est pas) : `lignesPointables()` (`hooks/pointage/
+ * ce lot, `hooks/pointage/**` n'y est pas) : `lignesPointables()` (`hooks/pointage/
  * lignes-assignees.ts`, `STATUTS_LIGNE_POINTABLE`) considère `'proposee'`/`'a_valider'`/`'realisee'`
  * comme pointables — le SERVEUR, lui (`apps/api/src/pointage/regles-pointage.ts`,
  * `STATUTS_LIGNE_POINTABLES`, RM-93), n'accepte de démarrer un pointage QUE sur `'validee'` ou
@@ -25,7 +25,7 @@ import { lignesPointables } from '@/hooks/pointage/lignes-assignees';
  * toucher au fichier partagé. RM-121/CT-54 reste inchangé : une ligne `'en_cours'` PAR UN AUTRE
  * technicien demeure cliquable (un second technicien peut rejoindre la même ligne) — seul le STATUT
  * de la ligne compte ici, jamais `technicienId` (voir `assigneeAutre` plus bas, qui reste une simple
- * information, jamais un blocage — arbitrage @laupernoe du 14.08.2026, INCHANGÉ).
+ * information, jamais un blocage — choix produit du 14.08.2026, INCHANGÉ).
  */
 const STATUTS_LIGNE_REELLEMENT_POINTABLES: ReadonlySet<StatutLigneOr> = new Set([
   'validee',

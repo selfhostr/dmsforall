@@ -59,7 +59,7 @@ function versCarteRendezVous(
 }
 
 /**
- * « Prendre un rendez-vous » depuis la fiche client (point d'entrée 2, constat de @laupernoe : « seul
+ * « Prendre un rendez-vous » depuis la fiche client (point d'entrée 2, constat terrain : « seul
  * l'agenda est câblé »). Réutilise `DialogueNouveauRendezVous` (Écran 2, dialogue UNIQUE des trois
  * points d'entrée) plutôt qu'un second formulaire — client déjà renseigné (jamais de sélecteur
  * client ici, il est fixé par la fiche d'origine), véhicule préempli SEULEMENT si le client en a

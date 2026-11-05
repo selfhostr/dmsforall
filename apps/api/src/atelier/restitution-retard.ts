@@ -1,7 +1,7 @@
 import type { StatutOrdreReparation } from '@dfa/shared';
 
 /**
- * Le cœur du chantier RDV (brief orchestrateur) : `ordre_reparation.restitution_promise_le`
+ * Le cœur du chantier RDV (brief du chantier) : `ordre_reparation.restitution_promise_le`
  * existe en base depuis le lot 1 mais aucun service ne l'écrit jamais — donc aucun retard n'est
  * calculable, et deux tableaux de bord (chef d'atelier, réceptionniste) finissent par lire deux
  * réalités différentes du même OR (l'un déduit une sortie du jour par une autre voie, l'autre lit

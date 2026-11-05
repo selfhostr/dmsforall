@@ -9,10 +9,10 @@
  * depuis le sous-ensemble DOCUMENT (`creances_clients`/`produit`/`tva_due`/`acomptes_recus`/
  * `ecart_reprise`) pour couvrir aussi les écritures de PAIEMENT (`financier`/`arrondi`/`escompte`/
  * `perte`, MD-84 §6.2 lignes « Encaissement »/« Escompte »/« Perte ») — explicitement laissées hors
- * périmètre par l'agent précédent (voir `construction-ecriture.ts` : « hors périmètre de ce lot »)
+ * périmètre par le lot précédent (voir `construction-ecriture.ts` : « hors périmètre de ce lot »)
  * et prises en charge par `construction-ecriture-paiement.ts`. Toujours pas de contrat partagé
  * `UsageMappingCompte` dans `@dfa/shared` à ce jour — même écart assumé que `db/schema/
- * facturation/enums.ts`, et toujours hors de portée d'écriture de cet agent (`packages/shared`
+ * facturation/enums.ts`, et toujours hors de portée d'écriture de ce lot (`packages/shared`
  * n'est pas dans le périmètre exclusif `apps/api/src/facturation/export/`).
  */
 

@@ -14,7 +14,7 @@ interface Props {
 }
 
 /**
- * Réceptionnaire — 3 blocs, REFONDUS le 12.08.2026 (constat de @laupernoe, verbatim : « son écran du
+ * Réceptionnaire — 3 blocs, REFONDUS le 12.08.2026 (constat terrain, verbatim : « son écran du
  * lundi matin affiche trois fois "Aucun…" et un zéro »). Mesuré avant de corriger — le serveur
  * n'était PAS en cause : `GET /tableau-bord/activite` rend des données réelles (voir git-blame de
  * ce fichier pour le détail des appels). La faute était dans le CHOIX des blocs, hérité d'un écran

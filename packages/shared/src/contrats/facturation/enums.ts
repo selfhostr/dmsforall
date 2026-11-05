@@ -156,7 +156,7 @@ export type RegimeTva = (typeof REGIMES_TVA)[number];
  * `mode_calcul_tva` — **GELÉ** (`MD-43`). Champ de LECTURE SEULE sur une ligne de document : il
  * n'existe dans AUCUN schéma d'entrée de la facturation.
  *
- * Décision de @laupernoe, non rouverte : le prix saisi dans la facturation est TOUJOURS un TTC en
+ * Décision de conception, non rouverte : le prix saisi dans la facturation est TOUJOURS un TTC en
  * centimes entiers (y compris pour les entreprises) ; HT et TVA en sont dérivés côté serveur,
  * jamais saisis. `RF-40` proposait des défauts `ht`/`ttc` par type de ligne — cette proposition
  * était explicitement marquée « à valider avec @laupernoe » (hypothèse #2 de `§11.1`) et @laupernoe l'a

@@ -19,7 +19,7 @@ import { versParametresPiecesResponse } from './mappers';
  * ligne `parametre_pieces` à la création d'un tenant à ce jour (vérifié : aucune référence hors de
  * `db/schema/pieces/`, `pieces/mappers.ts` et `pieces/service-mouvement.ts` — le lecteur de seuil
  * d'ajustement) — ce module est postérieur (étape 3) au flux de création de tenant (étape 0), hors
- * périmètre d'écriture de cet agent. Ce service se rend donc résilient à l'absence de ligne : lit
+ * périmètre d'écriture de ce lot. Ce service se rend donc résilient à l'absence de ligne : lit
  * en garantissant l'existence (`INSERT … ON CONFLICT DO NOTHING` avant SELECT), les valeurs par
  * défaut de chaque colonne (0028) produisant exactement la réponse attendue pour un tenant qui n'a
  * jamais réglé ce paramétrage. Signalé au rapport de livraison : le bootstrap propre (à la création

@@ -80,7 +80,9 @@ describe('initialiserSentry', () => {
     const { initialiserSentry } = await import('./initialiser-sentry');
 
     expect(() =>
-      initialiserSentry(configTest({ SENTRY_DSN: 'https://cle@sentry.interne.dmsforall.example/1' })),
+      initialiserSentry(
+        configTest({ SENTRY_DSN: 'https://cle@sentry.interne.dmsforall.example/1' }),
+      ),
     ).not.toThrow();
   });
 });

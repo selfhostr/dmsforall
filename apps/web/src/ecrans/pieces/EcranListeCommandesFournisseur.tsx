@@ -95,7 +95,7 @@ export function EcranListeCommandesFournisseur() {
   const filtresStructuresActifs = statut !== undefined || avecReliquat;
   const filtresActifs = q.trim() !== '' || filtresStructuresActifs;
   function effacerFiltres() {
-    // Levier de reset (arbitrage @laupernoe 26.08.2026) : `effacerFiltres` est un geste de reprise en
+    // Levier de reset (choix produit 26.08.2026) : `effacerFiltres` est un geste de reprise en
     // main, pas une frappe — `q` doit refléter la case vide immédiatement, pas après le même
     // délai qu'une recherche (voir le commentaire de `useValeurDebouncee`, `hooks/commun/`).
     setQSaisie('');
@@ -172,7 +172,7 @@ export function EcranListeCommandesFournisseur() {
   // « commandes » de l'onglet Approvisionnement) : `GabaritEcran` le détecte par inclusion (le
   // titre CONTIENT le libellé de la vue). Défaut cité nommément par @laupernoe le 17.08.2026 (« dans
   // Commandes, "Commandes fournisseur" ») — l'ancien commentaire ici (« pas un doublon », retiré
-  // par ce correctif) argumentait l'inverse ; @laupernoe a explicitement tranché dans l'autre sens.
+  // par ce correctif) argumentait l'inverse ; le choix produit a explicitement tranché dans l'autre sens.
   const boutonCreer = peutEcrireCommandeFournisseur(role) ? (
     <Button onClick={() => navigate('/pieces/commandes-fournisseur/nouvelle')}>
       {t('pieces:commandes.actions.creer')}

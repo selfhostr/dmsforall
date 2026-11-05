@@ -21,9 +21,9 @@ import { EcranListeFactures } from './EcranListeFactures';
  * sur « Toutes » mais ces deux onglets dédiés affichaient « tout est à jour ».
  *
  * Ces tests isolent exactement la responsabilité qui vit dans CE fichier (`EcranListeFactures.tsx`,
- * périmètre de cet agent) : construire le bon `FiltresDocumentsVente` par onglet et le faire
+ * périmètre de ce lot) : construire le bon `FiltresDocumentsVente` par onglet et le faire
  * parvenir, via le VRAI `useListeDocumentsVente`, jusqu'à l'appel de `listerDocumentsVente`. Seule
- * la couche transport (`hooks/facturation/documents-vente.api.ts`, HORS périmètre de cet agent) est
+ * la couche transport (`hooks/facturation/documents-vente.api.ts`, HORS périmètre de ce lot) est
  * doublée ici — volontairement, pour ne pas faire dépendre ce test de sa sérialisation d'URL.
  *
  * CORRIGÉ DEPUIS (vérifié en relisant `apps/web/src/hooks/facturation/documents-vente.api.ts` lors

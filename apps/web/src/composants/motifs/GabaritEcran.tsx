@@ -28,7 +28,7 @@ interface Props {
    * parmi elles (repère UX du dépôt : une tâche, une action évidente par écran). Un contrôle qui
    * n'est pas une action de CET écran (une navigation déjà offerte par un onglet d'`OngletsDomaine`,
    * par exemple) n'a pas sa place ici — deux commandes vers la même destination sur le même écran
-   * ont déjà coûté une revue complète (retour @laupernoe du 12.08.2026 sur les dossiers de vente et le
+   * ont déjà coûté une revue complète (retour produit du 12.08.2026 sur les dossiers de vente et le
    * suivi financement/garantie : « c'est doublé »).
    */
   readonly actions?: ReactNode;
@@ -76,7 +76,7 @@ export function estTitreDoublonNavigation(
 /**
  * GABARIT D'ÉCRAN — structure haute commune à tout écran de consultation/liste du produit.
  *
- * Chantier d'unification (retour @laupernoe du 12.08.2026, sept observations distinctes faites écran par
+ * Chantier d'unification (retour produit du 12.08.2026, sept observations distinctes faites écran par
  * écran, qui décrivaient toutes le même manque : aucun gabarit d'écran partagé, donc chaque écran
  * réinventait son titre, ses actions et son espacement). Ce composant a été MESURÉ sur l'existant
  * avant d'être écrit, pas inventé : `EcranListeClients` (titre visible, action à droite),
@@ -101,7 +101,7 @@ export function estTitreDoublonNavigation(
  *
  * VERSION 2 (chantier « titres doublés & espacements », 17.08.2026) — DEUX changements de fond,
  * qui SUPERSÈDENT la doctrine « titre toujours visible par défaut » de la version 1, elle-même
- * fondée sur un retour @laupernoe du 12.08.2026 citant `EcranListeClients` (« il y a écrit Clients, c'est
+ * fondée sur un retour produit du 12.08.2026 citant `EcranListeClients` (« il y a écrit Clients, c'est
  * mieux »). @laupernoe a repassé les écrans en revue et RE-ARBITRÉ le 17.08.2026 dans l'autre sens : le
  * défaut répété qu'il relève cette fois, ce sont des titres qui RÉPÈTENT un libellé de navigation
  * déjà affiché (onglet actif, vue active, ou entrée de barre latérale — cas Facturation : « on sait

@@ -304,7 +304,7 @@ export async function listerDetentions(
  * séparément), sans qu'aucun endpoint dédié à la seule mise à jour de l'échéance n'existe au lot 1.
  * Interprétation retenue ici, la plus conservatrice : la ligne la PLUS RÉCEMMENT CRÉÉE
  * (`creeLe desc`) porteuse d'une `prochaineEcheance` non nulle fait foi — qu'elle vienne d'un
- * contrôle effectif ou d'une ligne de correction ultérieure. À confirmer avec expert-metier avant
+ * contrôle effectif ou d'une ligne de correction ultérieure. À confirmer avec l'équipe métier avant
  * l'écran de relance (RM-29).
  */
 export async function lireExpertiseReference(
