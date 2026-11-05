@@ -83,7 +83,7 @@ export const jetonReinitialisationMotDePasse = pgTable(
       foreignColumns: [utilisateur.tenantId, utilisateur.id],
     }).onDelete('cascade'),
 
-    unique('jeton_reinitialisation_mot_de_passe_empreinte_uk').on(t.empreinteJeton),
+    unique('jeton_reinitialisation_mot_de_passe_empreinte_uk').on(t.tenantId, t.empreinteJeton),
 
     // Sert `revoquerJetonsActifsDansTransaction` (invalider tout jeton en cours d'un utilisateur)
     // et la purge future des lignes expirées.

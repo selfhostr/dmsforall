@@ -51,6 +51,7 @@ import {
   creerFactureEmisePourTest,
   envoyer,
   joursAvant,
+  mettrePdfEnCachePourTest,
   lireEmailClientPourTest,
   lireHistoriqueEnvoisPourRelance,
   lireRelancesPlanifieesPourObjet,
@@ -117,6 +118,7 @@ describe('Famille légale (facturation) — indépendante des consentements mark
     });
 
     const cookieDirection = await cookiePour(garage.tenantA, 'direction');
+    await mettrePdfEnCachePourTest(ctx, cookieDirection, facture.id);
     await planifier(ctx, cookieDirection);
 
     const lignes = await lireRelancesPlanifieesPourObjet(bdd, garage.tenantA.tenant.id, facture.id);
@@ -160,6 +162,7 @@ describe('RA-14 — client "plus aucun contact"', () => {
     });
 
     const cookieDirection = await cookiePour(garage.tenantA, 'direction');
+    await mettrePdfEnCachePourTest(ctx, cookieDirection, facture.id);
     await planifier(ctx, cookieDirection);
 
     const avant = await lireRelancesPlanifieesPourObjet(bdd, garage.tenantA.tenant.id, facture.id);
@@ -218,6 +221,7 @@ describe('POST /relances/facturation/envoyer — canal email, cas normal (aucun 
     });
 
     const cookieDirection = await cookiePour(garage.tenantA, 'direction');
+    await mettrePdfEnCachePourTest(ctx, cookieDirection, facture.id);
     await planifier(ctx, cookieDirection);
     const avant = await lireRelancesPlanifieesPourObjet(bdd, garage.tenantA.tenant.id, facture.id);
     expect(avant).toHaveLength(1);

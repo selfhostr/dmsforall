@@ -553,6 +553,26 @@ export async function planifier(ctx: AppTest, cookie: string): Promise<ReponsePl
   return reponse.body as ReponsePlanificationDeTest;
 }
 
+/** Met en cache le PDF d'une facture émise (génération paresseuse à la première consultation,
+ *  `GET /documents-vente/{id}/pdf`). L'envoi d'une relance par courriel exige ce PDF en pièce
+ *  jointe et refuse de partir sans lui : une facture jamais consultée ne peut donc pas être relancée. */
+export async function mettrePdfEnCachePourTest(
+  ctx: AppTest,
+  cookie: string,
+  factureId: string,
+): Promise<void> {
+  const reponse = await ctx.requete
+    .get(`/api/v1/documents-vente/${factureId}/pdf`)
+    .set('Origin', ctx.config.WEB_URL_PUBLIQUE)
+    .set('Cookie', cookie);
+  if (reponse.status !== 200) {
+    throw new Error(
+      `fixture relances : GET .../pdf a échoué (${String(reponse.status)}) : ` +
+        JSON.stringify(reponse.body),
+    );
+  }
+}
+
 export async function envoyer(ctx: AppTest, cookie: string): Promise<ReponseEnvoiDeTest> {
   const reponse = await ctx.requete
     .post('/api/v1/relances/facturation/envoyer')

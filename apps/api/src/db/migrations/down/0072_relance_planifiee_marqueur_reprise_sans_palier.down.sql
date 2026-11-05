@@ -37,8 +37,9 @@ alter table public.relance_planifiee
 alter table public.relance_planifiee
   alter column palier set not null;
 
-comment on column public.relance_planifiee.palier is
-  'Palier 1, 2, 3… au sens de regle_relance.delaisJours (§6.1) — jamais 0 (voir CHECK).';
+-- `palier` n'avait AUCUN commentaire avant 0072 (0045 n'en pose pas) : on le retire pour que le
+-- schéma redescendu soit identique octet pour octet.
+comment on column public.relance_planifiee.palier is null;
 
 comment on column public.relance_planifiee.note_reprise is
   'D-45 (docs/reprise/decisions.md) : signalement « déjà relancée N fois côté ancien système, à '
@@ -47,7 +48,7 @@ comment on column public.relance_planifiee.note_reprise is
   'd''import n''existe encore pour le domaine relances (extension seam, voir '
   '@dfa/shared::DOMAINES_REPRISE). Ne doit JAMAIS accompagner un statut actif '
   '(a_planifier/prete/en_cours_envoi/envoyee) — voir avertissement de conception en en-tête de '
-  '0070_ancrages_origine_reprise_pneus_ventes_relances.sql.';
+  'fichier avant d''implémenter l''écrivain qui la peuplera.';
 
 
 -- ---------------------------------------------------------------------------------------------
