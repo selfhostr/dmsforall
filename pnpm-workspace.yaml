@@ -35,7 +35,9 @@ overrides:
   # @nestjs/swagger publie une release avec js-yaml >=5.2.2 (`npm view @nestjs/swagger
   # dependencies` pour vérifier), ou dès qu'on migre vers un générateur OpenAPI qui n'en
   # dépend pas.
-  '@nestjs/swagger>js-yaml': '>=5.2.2'
+  # js-yaml 5.5.0 (dernière) tire argparse@3 (PSF-2.0, hors liste CI) ; 5.4.x tire argparse@2
+  # (Python-2.0, autorisée). Plafond <5.5.0 : même correctif de sécurité, licence conforme.
+  '@nestjs/swagger>js-yaml': '>=5.2.2 <5.5.0'
   # Dependabot 12.08.2026, dépendances de dev uniquement (aucun chemin de production) :
   #
   # - brace-expansion : minimatch en tire trois lignes majeures incompatibles (1.x via
