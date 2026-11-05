@@ -2,7 +2,8 @@
   "name": "dmsforall",
   "version": "0.1.0",
   "private": true,
-  "description": "DMS pour garages et concessions suisses",
+  "description": "Management software for Swiss garages and dealerships",
+  "license": "MIT",
   "packageManager": "pnpm@11.17.0",
   "engines": {
     "node": ">=22"
@@ -25,9 +26,9 @@
     "db:import:vehicules-ch": "pnpm --filter @dfa/api db:import:vehicules-ch",
     "api:openapi": "pnpm --filter @dfa/api openapi:export",
     "web:types": "pnpm --filter @dfa/web types:api",
-    "docker:up": "DOCKER_HOST=\"${DOCKER_HOST:-unix:///var/run/docker.sock}\" docker compose up -d",
-    "docker:down": "DOCKER_HOST=\"${DOCKER_HOST:-unix:///var/run/docker.sock}\" docker compose down",
-    "docker:reset": "DOCKER_HOST=\"${DOCKER_HOST:-unix:///var/run/docker.sock}\" docker compose down -v && DOCKER_HOST=\"${DOCKER_HOST:-unix:///var/run/docker.sock}\" docker compose up -d",
+    "docker:up": "DOCKER_HOST=\"${DOCKER_HOST:-unix:///var/run/docker.sock}\" docker compose -f docker-compose.dev.yml up -d",
+    "docker:down": "DOCKER_HOST=\"${DOCKER_HOST:-unix:///var/run/docker.sock}\" docker compose -f docker-compose.dev.yml down",
+    "docker:reset": "DOCKER_HOST=\"${DOCKER_HOST:-unix:///var/run/docker.sock}\" docker compose -f docker-compose.dev.yml down -v && DOCKER_HOST=\"${DOCKER_HOST:-unix:///var/run/docker.sock}\" docker compose -f docker-compose.dev.yml up -d",
     "e2e": "e2e/scripts/executer.sh build",
     "e2e:dev": "e2e/scripts/executer.sh dev",
     "e2e:report": "playwright show-report e2e/playwright-report"

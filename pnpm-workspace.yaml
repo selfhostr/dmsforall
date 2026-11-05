@@ -63,3 +63,11 @@ overrides:
   #   par ailleurs) et drizzle-kit@0.31.10 (dernière version, vérifié le 12.08.2026) le tire
   #   encore. Retirer cette ligne quand drizzle-kit abandonne @esbuild-kit/esm-loader.
   'esbuild@0.18.20': '^0.25.12'
+  # Audit prod 05.11.2026 : paquets Express tirés par @nestjs/platform-express@11, qui les
+  # borne par des ranges trop bas. Correctifs dans la même majeure ; retirer ces lignes quand
+  # le lockfile résout naturellement ces versions (`pnpm why multer`).
+  multer: '>=2.5.0'
+  body-parser: '>=2.4.0'
+  proxy-addr: '>=2.0.8'
+  # ajv (via @hookform/resolvers > ajv-formats) : correctif fast-uri dans la même majeure 3.x.
+  fast-uri: '>=3.1.7 <4'

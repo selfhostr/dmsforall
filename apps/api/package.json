@@ -2,6 +2,7 @@
   "name": "@dfa/api",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "API DFA — NestJS, PostgreSQL/Drizzle, Redis",
   "scripts": {
     "dev": "nest start --watch",
@@ -35,7 +36,7 @@
     "express": "^5.2.1",
     "ioredis": "^5.4.1",
     "jsqr": "^1.4.0",
-    "nodemailer": "^9.0.5",
+    "nodemailer": "^10.3.1",
     "pdfjs-dist": "^4.10.38",
     "pdfkit": "0.19.1",
     "pg": "^8.13.1",
@@ -45,7 +46,7 @@
     "rxjs": "^7.8.1",
     "swissqrbill": "4.4.0",
     "yauzl": "^3.4.0",
-    "zod": "^4.1.12"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.2",
