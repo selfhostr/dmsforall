@@ -316,7 +316,7 @@ export const schemaConfig = z
             message:
               `${variable} porte un mot de passe de développement (dfa_app_dev/dfa_migrator_dev) en production — ` +
               'ces valeurs sont publiées dans le dépôt Git. Rejouer la procédure de rotation des ' +
-              'mots de passe PostgreSQL avant de redémarrer : docs/deploiement-production.md §3.2.',
+              'mots de passe PostgreSQL avant de redémarrer : docs/reference/configuration.md.',
           });
         }
       }

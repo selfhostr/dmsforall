@@ -131,7 +131,7 @@ describe('finding M4 (audit sécurité) — refus des mots de passe de dev (dfa_
     }
   });
 
-  it("le message d'erreur renvoie vers la procédure de rotation (docs/deploiement-production.md §3.2)", () => {
+  it("le message d'erreur renvoie vers la procédure de rotation (docs/reference/configuration.md)", () => {
     const env = envValide({
       NODE_ENV: 'production',
       DATABASE_URL: 'postgresql://dfa_app:dfa_app_dev@db.prod.dmsforall.example:5432/dfa_prod',
@@ -144,7 +144,7 @@ describe('finding M4 (audit sécurité) — refus des mots de passe de dev (dfa_
       chargerConfig(env);
     } catch (erreur) {
       const messages = (erreur as ErreurConfigInvalide).problemes.map((p) => p.message).join(' ');
-      expect(messages).toContain('docs/deploiement-production.md §3.2');
+      expect(messages).toContain('docs/reference/configuration.md');
     }
   });
 

@@ -194,7 +194,7 @@ nettoyer() {
 trap nettoyer EXIT
 
 # --- Démarrage du Postgres éphémère -------------------------------------------------------------
-# Contrairement à docker-compose.yml (dev) et docker-compose.yml, AUCUN fichier n'est monté
+# Contrairement à docker-compose.dev.yml et docker-compose.yml, AUCUN fichier n'est monté
 # dans /docker-entrypoint-initdb.d/ ici : le hook d'init automatique de l'image officielle exige un
 # CHEMIN HÔTE que le démon puisse résoudir, ce qui casse dès que ce script tourne dans un conteneur
 # de job dont l'espace de travail est un volume Docker nommé (voir l'en-tête du script,

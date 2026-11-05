@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { TransactionDfa } from '../../db';
+import type { ServiceCompteurs } from '../../parametrage/compteurs/compteurs.types';
 
 import { genererNumeroDocument } from './numerotation';
 
@@ -15,10 +16,12 @@ describe('genererNumeroDocument', () => {
   const ctx = { tenantId: 'tenant-a' } as never;
   const tx = {} as TransactionDfa;
 
-  function compteursRendant(numeroSequence: number): {
-    prochainNumero: ReturnType<typeof vi.fn>;
+  function compteursRendant(numeroSequence: number): ServiceCompteurs & {
+    prochainNumero: ReturnType<typeof vi.fn<ServiceCompteurs['prochainNumero']>>;
   } {
-    return { prochainNumero: vi.fn(async () => numeroSequence) };
+    return {
+      prochainNumero: vi.fn<ServiceCompteurs['prochainNumero']>(async () => numeroSequence),
+    };
   }
 
   it('compose facture : préfixe FAC, exercice, séquence sur 5 chiffres', async () => {

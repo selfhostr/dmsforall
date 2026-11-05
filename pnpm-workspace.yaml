@@ -44,16 +44,16 @@ overrides:
   #   dans sa propre majeure ; pas de dépendance directe unique à monter pour les trois à la
   #   fois, d'où trois sélecteurs plutôt qu'une seule contrainte globale (qui casserait les
   #   lignes majeures qui n'en ont pas besoin).
-  'brace-expansion@1': '^1.1.18'
-  'brace-expansion@2': '^2.1.4'
-  'brace-expansion@5': '^5.0.9'
+  'brace-expansion@1': '^1.1.21'
+  'brace-expansion@2': '^2.1.7'
+  'brace-expansion@5': '^5.0.12'
   # - js-yaml (instances 4.x, distinctes du pin @nestjs/swagger ci-dessus) : @redocly/openapi-
   #   core@1.x (tiré par openapi-typescript, génération des types API front) épingle
   #   js-yaml en 4.2.0 EXACT ; @redocly/openapi-core@2.x corrige déjà (js-yaml >=5.2.2) mais
   #   openapi-typescript@7.13.0 (dernière version, vérifié le 12.08.2026) dépend encore de
   #   ^1.34.6. Retirer cette ligne quand openapi-typescript migre vers @redocly/openapi-core
   #   2.x (`pnpm info openapi-typescript dependencies` pour vérifier).
-  'js-yaml@4': '^4.3.1'
+  'js-yaml@4': '^4.3.2'
   # - nanoid : postcss (via vite/webpack, outillage de build) l'autorise déjà (^3.3.16) ;
   #   simple retard de résolution, pas de pin en cause. Override par simplicité plutôt que
   #   forcer une résolution complète du graphe.
@@ -71,3 +71,10 @@ overrides:
   proxy-addr: '>=2.0.8'
   # ajv (via @hookform/resolvers > ajv-formats) : correctif fast-uri dans la même majeure 3.x.
   fast-uri: '>=3.1.7 <4'
+  # Audit OSV 05.11.2026 (GHSA-3g3m-2fjr-6pw4 glob, GHSA-g3hv-75wg-m249 minimatch), dev et test
+  # uniquement : archiver-utils (testcontainers) épingle glob 10 / minimatch 9, @nestjs/cli et
+  # typescript-estree épinglent minimatch 10. Le correctif n'existe que dans glob 14 et
+  # minimatch 11. Retirer ces lignes quand archiver et ces outils les résolvent d'eux-mêmes.
+  'glob@10': '^14.0.2'
+  'minimatch@9': '^11.0.1'
+  'minimatch@10': '^11.0.1'

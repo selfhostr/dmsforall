@@ -18,7 +18,7 @@ import swc from 'unplugin-swc';
  *   "test:integration": "vitest run --project integration"
  *   "test:watch":       "vitest --project unitaire"   (confort dev, optionnel)
  *
- * Nécessite vitest ^3 (API `test.projects`).
+ * Nécessite vitest >=3 (API `test.projects`).
  *
  * Transpilation SWC (et non esbuild, le défaut de Vite) : esbuild ne supporte pas
  * `emitDecoratorMetadata`, donc sous esbuild `design:paramtypes` n'est jamais émis et Nest ne
@@ -80,11 +80,9 @@ export default defineConfig({
           // d'intégration = base réelle, pas la majorité de la suite).
           fileParallelism: false,
           pool: 'forks',
-          poolOptions: {
-            forks: {
-              singleFork: true,
-            },
-          },
+          // Vitest 4 a retiré `poolOptions.forks.singleFork` : un seul worker, avec isolation
+          // par fichier conservée (`isolate` reste à son défaut).
+          maxWorkers: 1,
         },
       },
     ],

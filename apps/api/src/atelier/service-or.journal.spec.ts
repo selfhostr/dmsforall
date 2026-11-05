@@ -53,14 +53,14 @@ function accesBaseFactice() {
 }
 
 function auditFactice(entrees: readonly EntreeAudit[] = []): ServiceAudit & {
-  pourEntite: ReturnType<typeof vi.fn>;
-  pourEntiteTx: ReturnType<typeof vi.fn>;
-  pourEntitesTx: ReturnType<typeof vi.fn>;
+  pourEntite: ReturnType<typeof vi.fn<ServiceAudit['pourEntite']>>;
+  pourEntiteTx: ReturnType<typeof vi.fn<ServiceAudit['pourEntiteTx']>>;
+  pourEntitesTx: ReturnType<typeof vi.fn<ServiceAudit['pourEntitesTx']>>;
 } {
   return {
-    pourEntite: vi.fn(),
-    pourEntiteTx: vi.fn(),
-    pourEntitesTx: vi.fn().mockResolvedValue(entrees),
+    pourEntite: vi.fn<ServiceAudit['pourEntite']>(),
+    pourEntiteTx: vi.fn<ServiceAudit['pourEntiteTx']>(),
+    pourEntitesTx: vi.fn<ServiceAudit['pourEntitesTx']>().mockResolvedValue(entrees),
   };
 }
 

@@ -49,11 +49,11 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@nestjs/cli": "^11.0.2",
+    "@nestjs/cli": "^12.0.11",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.10",
     "@swc/core": "^1.15.46",
-    "@testcontainers/postgresql": "^12.1.0",
+    "@testcontainers/postgresql": "^12.2.1",
     "@types/cookie-parser": "^1.4.8",
     "@types/express": "^5.0.0",
     "@types/multer": "^2.2.0",
@@ -68,11 +68,11 @@
     "drizzle-kit": "^0.31.0",
     "qrcode": "^1.5.4",
     "supertest": "^7.0.0",
-    "testcontainers": "^12.1.0",
+    "testcontainers": "^12.2.1",
     "tsx": "^4.19.2",
     "typescript": "^5.9.3",
     "unplugin-swc": "^1.5.9",
-    "vitest": "^3.0.5",
+    "vitest": "^4.1.12",
     "yazl": "^3.3.1"
   }
 }
