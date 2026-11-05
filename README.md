@@ -1,163 +1,89 @@
-dmsforall (DFA)
-===============
+<div align="center">
 
-DMS pour garages et concessions suisses. 100% navigateur, multi-tenant,
-hébergé en Suisse (nLPD).
+<img src="docs/assets/logo.svg" width="96" alt="dmsforall logo">
 
-Démarrage rapide
-----------------
+# dmsforall
 
-```bash
-cp .env.example .env
-pnpm install
-pnpm docker:up
-pnpm db:migrate
-pnpm db:seed
-pnpm dev
+**Self-hosted management software for Swiss garages and dealerships: repair orders, invoices with QR-bill, parts, time clocking and used car sales.**
+
+[![CI](https://github.com/selfhostr/dmsforall/actions/workflows/ci.yml/badge.svg)](https://github.com/selfhostr/dmsforall/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-dmsforall.selfhostr.io-F07E17)](https://dmsforall.selfhostr.io/docs/)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/selfhostr/dmsforall/badge)](https://scorecard.dev/viewer/?uri=github.com/selfhostr/dmsforall)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+</div>
+
+> [!WARNING]
+> Development is paused for now. The code, images and docs stay available, but do not expect new features or quick fixes.
+
+## Overview
+
+- **One app for the workshop and the counter.** Clients, vehicles, repair orders (OR), appointments, time clocking, parts stock, quotes, invoices and payments run in one browser application.
+- **Built for Swiss garages.** Invoices carry a Swiss QR-bill reference, VAT is calculated per line, amounts are stored as whole centimes, and the interface is available in French, German and Italian.
+- **Runs on your server.** Each installation is a Docker stack. PostgreSQL row-level security keeps each garage's data apart, and the API describes its endpoints in OpenAPI.
+
+Free, for good. MIT licence, no paid edition.
+
+## Quick start
+
+You need Docker with Compose v2.
+
+```sh
+git clone https://github.com/selfhostr/dmsforall.git && cd dmsforall
+cp .env.example .env   # optional for a first try on localhost
+docker compose up -d
 ```
 
-API : http://localhost:3000 — Interface web : http://localhost:5173
+Open http://localhost:8080 in your browser. The first start generates the database passwords, applies the migrations, then starts the API. Create the first garage account with `docker compose exec api node dist/cli/creer-garage.js --garage "Garage Exemple" --email direction@example.ch`, then sign in.
 
-Comptes de démonstration
-------------------------
+For a server with a domain name and HTTPS, set `DFA_SITE_ADDRESS` and `DFA_PUBLIC_URL` in `.env`, then read [Install on a server](https://dmsforall.selfhostr.io/docs/get-started/installation/). Set up backups before you enter real data: [Back up and restore](https://dmsforall.selfhostr.io/docs/get-started/backup-and-restore/).
 
-Tous les comptes utilisent le mot de passe : Demo1234!Garage
+## What it does
 
-- admin@garage-martin.ch — gestion technique (comptes, sites, paramètres).
-  Aucun droit financier.
-- direction@garage-martin.ch — tous les droits (atelier, facturation, stock,
-  ventes).
-- comptable@garage-martin.ch — encaissement, paiements, export fiduciaire.
-- receptionniste@garage-martin.ch — comptoir (devis, factures, encaissement).
-- chef.atelier@garage-martin.ch — OR, constat, devis, validation.
-- technicien@garage-martin.ch — pointage (lecture montants masquée).
-- magasinier@garage-martin.ch — stock pièces (mouvements, réservations).
-- vendeur@garage-martin.ch — ventes VN/VO (dossiers, reprises, financement).
-- borne.atelier@garage-martin.ch — poste atelier, pointage tactile par PIN.
+- **Clients and vehicles**: client records, contacts, vehicles with their owner history, and a global search.
+- **Workshop**: repair orders with labour, parts and fee lines, statuses from planned to closed, appointments, and a courtesy car list.
+- **Time clocking**: technicians clock their time on repair orders, from a shared workshop terminal protected by a PIN.
+- **Invoicing**: quotes, purchase orders, invoices, down-payment invoices and credit notes, with a Swiss QR-bill and PDF output.
+- **Payments**: cash, card, bank transfer, QR-bill, TWINT, compensation and leasing, recorded per document.
+- **Parts and stock**: articles, stock per site, stock movements, reservations on repair orders, supplier orders and supplier invoices.
+- **Used and new car sales**: vehicle stock, sales files, trade-ins, and financing or leasing confirmation.
+- **Tyre storage**: seasonal tyre sets kept in storage, flagged for recall when they have not moved for a while.
+- **Reminders**: automatic reminders for overdue invoices, sent by e-mail.
+- **Data import**: import of a garage's existing database from a Microsoft Access or dBase/FoxPro archive, with a plan to review before anything is written.
+- **Dashboard**: workshop activity and, for management and accounting roles, financial figures.
+- **Accounting export**: WinBIZ export of invoices and payments.
 
-Utiliser direction@ pour tester la facturation. admin@ n'a aucun droit
-financier.
+## Architecture
 
-Vérifier
---------
+The web interface is a React single-page application built with Vite. It calls a NestJS API, which publishes an OpenAPI description. The API stores data in PostgreSQL 16 through Drizzle ORM, with row-level security on tenant tables. Redis and BullMQ run background jobs. In the production stack, Caddy receives the public requests and forwards them to the web and API containers.
 
-```bash
-docker compose ps          # Postgres et Redis doivent être "healthy"
-curl http://localhost:3000/api/docs    # Documentation OpenAPI (Swagger)
-```
+## Limits
 
-Interface web : ouvrir http://localhost:5173 dans le navigateur.
+- The interface exists in French, German and Italian only.
+- dmsforall is designed for Swiss law and VAT: QR-bill invoices, amounts in CHF centimes. It is not designed for other countries.
+- The light and dark themes belong to the application design. No other theme is provided.
+- The project is in alpha. The data model, the configuration variables and the screens can still change between releases.
+- dmsforall gives no tax or legal guarantee. Have invoices, VAT figures and accounting exports checked by a fiduciary before you rely on them.
+- Connectors to third-party services, such as a vehicle reference data source or a parts catalogue, need their own licences or accounts.
+- The operator is responsible for security: TLS certificates, server access, secrets, backups and updates.
 
-Prérequis système — reprise de données Access
-----------------------------------------------
+## Status
 
-mdbtools (lecture des archives .mdb/.accdb) : sous-processus invoqué par la
-reprise de données, absent par défaut sur un poste neuf.
+Alpha. Development is paused for now. The code, images and docs stay available, but do not expect new features or quick fixes. Version `0.1.0` is not released yet, and no stable release line exists. Until version 1.0, an upgrade can require manual steps. Read the [changelog](CHANGELOG.md) before each upgrade.
 
-```bash
-sudo dnf install mdbtools     # Fedora
-sudo apt install mdbtools     # Debian/Ubuntu
-brew install mdbtools         # macOS
-```
+## Contributing
 
-Sans lui : échec propre (ErreurOutilAccesIndisponible), jamais un plantage
-silencieux. Déjà présent en image Docker (apps/api/Dockerfile) et en CI
-(.github/workflows/ci.yml, job « Tests d'intégration »).
+Contributions are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) explains the development setup, the checks that CI runs and the project conventions. Report security problems privately, as described in [SECURITY.md](SECURITY.md). The [Code of Conduct](CODE_OF_CONDUCT.md) applies to all project spaces.
 
-Avant de conclure ou pousser
------------------------------
+## License
 
-Exécuter cette passe de vérification (dans cet ordre) :
+MIT, see [LICENSE](LICENSE). The software is provided as is, without warranty of any kind. Third-party notices are in [NOTICE](NOTICE).
 
-```bash
-pnpm --filter @dfa/shared build
-pnpm typecheck && pnpm lint && pnpm format:check
-pnpm --filter @dfa/web i18n:check && pnpm test
-```
+## Support dmsforall
 
-Pourquoi ? Modifier packages/shared sans reconstruire fait typechecker l'API
-contre un dist/ périmé — compilation réussit mais échoue à l'exécution.
+dmsforall is free and has no company behind it. If it saves you time, you can support its development:
 
-Repartir de zéro
-----------------
-
-```bash
-pnpm docker:reset && pnpm db:migrate && pnpm db:seed
-```
-
-Pièges connus
--------------
-
-- docker compose down -v est obligatoire après modification de
-  docker/postgres/init/01-roles.sql (réinitialise le volume Postgres).
-
-- pnpm api:openapi entre en conflit avec pnpm dev — ne jamais lancer
-  les deux en même temps (conflit de dossier de compilation).
-
-- Interface web : un seul .env à la racine. Vite y cherche VITE_* là,
-  jamais dans apps/web/.env.
-
-- import type est interdit en API : convertir un import de classe injectée
-  en import type casse l'injection de dépendance à l'exécution.
-
-Commandes
----------
-
-- pnpm dev — API + interface web avec hot-reload
-- pnpm dev:api — API seule (:3000)
-- pnpm dev:web — Interface web seule (:5173)
-- pnpm build — build production
-- pnpm typecheck — vérifier TypeScript
-- pnpm lint — linter
-- pnpm test — tests unitaires
-- pnpm test:integration — tests d'intégration (Postgres)
-- pnpm db:migrate — appliquer migrations
-- pnpm db:seed — charger données de démo
-- pnpm api:openapi — exporter schéma OpenAPI
-- pnpm web:types — générer types frontend
-- pnpm docker:reset — repartir de zéro
-
-Conventions essentielles
-------------------------
-
-Avant de coder, lire CONTRIBUTING.md :
-
-- Tous les montants en centimes (entiers).
-- Multi-tenant : tenant_id NOT NULL + RLS partout.
-- Types frontend générés depuis OpenAPI, jamais à la main.
-- i18n FR/DE/IT dès le départ.
-- Français : code, commentaires, documentation.
-
-Travail à deux
---------------
-
-Branche de fonctionnalité : git switch -c feat/<nom> depuis dev. PR contre dev.
-
-```bash
-git push -u origin feat/<nom>
-```
-
-Puis ouvrir une pull request depuis http://forge.example.org/owner/dmsforall
-(créer une PR vers la branche dev). Avec la CLI forge (tea), la commande
-équivalente est : tea pr create --base dev
-
-Règles : périmètre disjoint (un répertoire = un propriétaire), points de
-contact négociés avant le code.
-
-Structure du dépôt
-------------------
-
-- apps/ — API (NestJS), interface web (React).
-- packages/ — Modules partagés (contrats TypeScript, types métier).
-- notes de travail — Idées et chantiers restants, par domaine.
-
-Documentation, guides de démarrage et spécifications techniques :
-http://forge.example.org/owner/dmsforall/wiki
-
-Ressources
-----------
-
-- ARCHITECTURE.md — Source de vérité
-- CONTRIBUTING.md — Conventions de code
-- Wiki : http://forge.example.org/owner/dmsforall/wiki — Spécifications,
-  guides utilisateur, documentation légale.
+- **Patreon** (recurring): [patreon.com/selfhostr](https://www.patreon.com/selfhostr)
+- **Bitcoin**: `bc1phcqfc46ev9ztpuxyh3fmz6aaktshnz8z4ve9jk7pxdcyu9ks37wqq2kjgd`
+- **Ethereum**: `0x67Cd93028943308B8c12782C9ad078D253278f40`
+- **Solana**: `63u8bhkf63HBcNYbRRyaHPtfRtSUmbugtwaauzAxHtb3`

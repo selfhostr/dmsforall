@@ -1,0 +1,20 @@
+dmsforall
+Copyright (c) 2026 selfhostr
+
+This product is licensed under the MIT License (see LICENSE).
+
+It includes third-party material under the following licences.
+
+1. coss (https://github.com/cosscom/coss), MIT License.
+   Some components in apps/web/src/components/ui/ (command, meter, select,
+   tabs) are adapted from coss. Each file keeps a provenance comment with the
+   source path and licence. The coss licence text applies to that material.
+
+2. IBM Plex (https://github.com/IBM/plex), SIL Open Font License 1.1.
+   The web fonts in apps/web/src/polices/ (IBM Plex Sans and IBM Plex Mono,
+   WOFF2) are distributed under the SIL Open Font License 1.1. The full licence
+   text is in apps/web/src/polices/LICENCE-IBM-Plex.txt.
+   Copyright 2019 IBM Corp.
+
+Not affiliated with Auto-i. Its name appears in the documentation to describe
+an archive that the data import has been tested with.

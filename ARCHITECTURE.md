@@ -1,146 +1,108 @@
-dmsforall (DFA) — Architecture (v0.2)
-====================================
+# Architecture
 
-> DMS pour garages et concessions suisses.
-> 100% navigateur, multi-tenant, API-first, connecteurs par marque.
-> Document de travail — chaque section est à valider ensemble avant le code.
+This document describes how dmsforall is built. It is written for developers and operators. For the reasons behind some choices, read the decision records in [docs/development/adr/](docs/development/adr/). For the business rules, read the code in `apps/api/src/` and the contracts in `packages/shared/src/contrats/`.
 
----
+## Components
 
-1. Vision et positionnement
+| Component          | Technology                                    | Where                                                      |
+| ------------------ | --------------------------------------------- | ---------------------------------------------------------- |
+| Web interface      | React, Vite, shadcn/ui, TanStack Query        | `apps/web/`                                                |
+| API                | NestJS, TypeScript (strict)                   | `apps/api/`                                                |
+| Worker             | The same NestJS code, started in worker mode  | `apps/api/src/main-worker.ts`                              |
+| Database           | PostgreSQL 16, Drizzle ORM                    | `apps/api/src/db/`                                         |
+| Queue and realtime | Redis, BullMQ                                 | `apps/api/src/ordonnancement/`, `apps/api/src/temps-reel/` |
+| Shared contracts   | TypeScript package                            | `packages/shared/`                                         |
+| Reverse proxy      | Caddy, in front of the web and API containers | `docker-compose.yml`                                       |
 
----
+The web interface is a client of the public API and has no privileged access to the database. Each feature exists as an endpoint in the OpenAPI description before it has a screen.
 
-- **Marché initial : Suisse.** TVA suisse, QR-facture, CHF, multilingue FR/DE/IT dès la conception.
-- **Cibles : les deux dès le départ.** Le modèle de données est pensé "concession" (multi-sites, multi-marques, VN/VO, primes constructeur) ; un garage indépendant en utilise un sous-ensemble.
-- **Différenciateurs :**
-  1. 100% navigateur — zéro installation, zéro serveur chez le client.
-  2. Hébergement en Suisse (nLPD).
-  3. API ouverte — tout ce que fait l'UI est faisable par l'API.
-  4. Facturation QR-facture native + export fiduciaire (Bexio, WinBIZ, Abacus, Banana).
+## Process modes
 
-2. Principes d'architecture
+The API process runs in one of three modes, set with `MODE_PROCESSUS`:
 
----
+- `api`: serves HTTP and registers no queue consumer.
+- `worker`: runs the background jobs. It has no business HTTP server, only a minimal health probe on `PORT`.
+- `combine` (default): both, in one process. `pnpm dev` uses this mode.
 
-1. **API-first.** La web UI est un client de l'API publique, sans accès privilégié. Chaque fonctionnalité existe d'abord comme endpoint documenté (OpenAPI), puis comme écran.
-2. **Multi-tenant, une seule instance.** Un tenant = un groupe/garage. PostgreSQL unique avec `tenant_id` sur chaque table + Row-Level Security (RLS) en garde-fou : même un bug applicatif ne peut pas faire fuiter les données d'un autre tenant.
-3. **Couche connecteurs standardisée.** Le cœur ne connaît aucune marque. Des interfaces stables (`PartsCatalogProvider`, `VehicleReferenceProvider`, `OrderProvider`, `ListingPublisher`, `AccountingExporter`) sont implémentées par des adaptateurs. Ajouter une marque ou un fournisseur = un adaptateur, zéro changement au cœur.
-4. **i18n dès le jour 1.** Aucune chaîne en dur ; FR d'abord, DE/IT ensuite. Les documents clients (factures, devis, OR) sont générés dans la langue du client final.
-5. **Piste d'audit.** Toute modification sur les entités sensibles (documents de vente, OR, mouvements de stock) est journalisée (qui, quoi, quand, avant/après). Nécessaire pour la confiance et les litiges.
+Code that only adds jobs to a queue works in every mode.
 
-6. Stack (validée le 27.07.2026)
+## Multi-tenancy
 
----
+- Each garage is a tenant. Every tenant table has a `tenant_id NOT NULL` column.
+- PostgreSQL row-level security (RLS) filters every tenant table. The application also scopes each query to the tenant explicitly. RLS is a safety net, not the only mechanism.
+- The tenant comes from the session or the token, never from a request parameter.
+- The API connects as `dfa_app`, a role subject to RLS. Migrations run as `dfa_migrator`, which the API never uses at run time. The optional operator console connects as `dfa_console`, a role with `NOBYPASSRLS`.
+- Operations that run before a tenant is known (bootstrap) go through a limited set of `SECURITY DEFINER` functions in a dedicated schema.
 
-- **Backend** — TypeScript + NestJS — Un seul langage sur toute la stack, structure modulaire imposée (bien pour un gros produit métier), OpenAPI généré automatiquement.
-- **Base de données** — PostgreSQL + Drizzle ORM — RLS pour le multi-tenant, JSONB pour les attributs spécifiques marque, solide pour le reporting.
-- **Front** — React + Vite (SPA) + shadcn/ui — UI moderne et rapide ; SPA suffit (app métier derrière login, pas de besoin SEO).
-- **Jobs/asynchrone** — BullMQ (Redis) — Imports catalogues, génération PDF, envois d'e-mails, synchros connecteurs.
-- **PDF (factures, OR, devis)** — Génération serveur (Typst ou Playwright) — QR-facture = exigences de mise en page précises.
-- **Auth** — Sessions + rôles par tenant ; TOTP en option — Rôles : direction, vendeur, **réceptionnaire**, chef d'atelier, technicien, magasinier, comptable, admin.
-- **Hébergement** — Infomaniak ou Exoscale (Suisse) — nLPD + argument de vente. Docker Compose au début, on complexifie seulement si nécessaire.
-- **Monitoring** — Sentry + logs structurés — Toi seul au support au début : il faut voir les erreurs avant les clients.
+## Business domains
 
-Alternatives considérées : Go (backend plus performant mais deux langages à maintenir), .NET (très bon mais écosystème front séparé), Next.js full-stack (couplage UI/API contraire au principe API-first). Le choix TypeScript/NestJS optimise pour **un développeur solo productif sur toute la stack**.
+Each domain is a folder under `apps/api/src/`, with its module, controllers, services and tests:
 
-4. Modèle de données — entités principales
+- `atelier`: repair orders with labour, parts and fee lines, statuses, time clocking on orders, inspection dates, courtesy cars, documents.
+- `clients`, `vehicules`: clients, vehicles, owner history, registration document scanning (OCR), and a Swiss vehicle reference data import.
+- `rendezvous`: appointments, appointment reasons, capacity per site.
+- `pointage`: time clocking rules and the end-of-day closing job.
+- `facturation`: quotes, orders, invoices, credit notes, payments, the Swiss QR-bill, PDF generation, accounting exports (WinBIZ).
+- `pieces`: articles, stock per site, stock movements, reservations, supplier orders and supplier invoices, core exchanges.
+- `ventes`: vehicle stock for sale, sales files, trade-ins, financing and leasing.
+- `pneus`: tyre storage and seasonal changes.
+- `relances`: planned reminders for overdue invoices, and their sending by e-mail.
+- `reprise`: data import from an Access or dBase/FoxPro archive, in steps: upload, detection, profiling, plan, write, report.
+- `tableau-bord`: dashboard figures, with separate rights for workshop and financial figures.
+- `parametrage`: sites, references, numbering counters, invoice settings, users and roles.
+- `auth`: sessions, passwords, login limits, the rights matrix.
+- `socle`: tenants, sites, users. `common`: shared errors, rights guard, pagination, time helpers.
+- `connecteurs`: the connector registry and its resilience layer. Only stub adapters are wired. No third-party provider is connected in this version.
+- `courriel`: outgoing e-mail. The SMTP transport sends real messages only when `NODE_ENV=production` and `COURRIEL_ENVOI_REEL=true`. Otherwise messages are captured.
+- `exploitation`: the operator console, the tenant offboarding export and purge, platform health.
+- `observabilite`, `sante`, `openapi`, `config`, `db`: logging and optional error reporting, health, OpenAPI export, configuration, database access.
 
----
+## API conventions
 
-**Socle.**
+- Base path `/api/v1/` (URI versioning, default version `1`).
+- The OpenAPI description is generated from the controllers and DTOs. The interactive documentation is served at `/api/docs` only when `OPENAPI_EXPOSER_DOCS=true`.
+- Errors use the `application/problem+json` format.
+- Lists use cursor pagination.
+- Sensitive creations accept an idempotency key.
+- Authorisation uses one mechanism: the `@ExigerDroit(...)` decorator and the `GardeDroit` guard. Both read the rights matrix in `apps/api/src/auth/matrice-droits.ts`, which is typed by role.
 
-- **Tenant** — groupe/entreprise cliente. Paramètres : n° TVA, IBAN/QR-IBAN, langues, logo.
-- **Site** — point de vente/atelier d'un tenant (une concession peut en avoir plusieurs). Chaque donnée opérationnelle est rattachée à un site.
-- **Utilisateur** — appartient à un tenant, rôles par site.
-- **Marque** — référentiel global (pas par tenant) ; un tenant active les marques qu'il représente ou répare.
+## Money and documents
 
-**Clients & véhicules.**
+- Amounts are integers in centimes. Floating-point numbers never hold money.
+- VAT is calculated per line, then added up per document. Rates are stored per mille (for example 81 for 8.1%).
+- An issued invoice is locked. A correction is a credit note.
+- Sensitive entities (sales documents, repair orders, stock) keep an audit trail: who, what, when, and the values before and after.
+- The QR-bill is generated with the `swissqrbill` library.
 
-- **Client** — particulier ou entreprise ; coordonnées, langue, consentements marketing, conditions (rabais, délai de paiement).
-- **Véhicule** — VIN, plaque, marque/modèle/version, motorisation, dates (1re mise en circulation, expertise), kilométrage historisé. Lié à un **propriétaire** (client) avec historique de détention — critique pour l'atelier ("le véhicule revient, le propriétaire a changé").
-- **VéhiculeStock** — un véhicule _en stock du garage_ (VN/VO/démo/reprise) : prix d'achat, frais, prix affiché, statut (commandé → en transport → en stock → réservé → vendu → livré), photos/360°, publication d'annonces.
+## Frontend
 
-**Atelier.**
+- Server state goes through TanStack Query. The API types are generated from the OpenAPI description with `pnpm web:types`, never written by hand.
+- Interface strings come from translation keys in `apps/web/src/i18n/`. French is the source language. German and Italian are checked for completeness by `pnpm --filter @dfa/web i18n:check`.
+- The design system is described in [DESIGN.md](DESIGN.md). That document is written in French.
 
-- **Rendez-vous** — planning par site, lié à client + véhicule, motif, durée estimée, ressources (pont, technicien).
-- **Ordre de réparation (OR)** — le document central de l'atelier : lignes de travaux (forfaits ou temps barémés), lignes de pièces (réservation sur stock), affectation techniciens, statuts (ouvert → en cours → attente pièces → terminé → facturé). Signature client à la réception (navigateur/tablette).
-- **Pointage** — temps réel par technicien et par OR ; base du calcul de productivité atelier.
+## Persistence and migrations
 
-**Pièces.**
+- Tables use UUID keys, `timestamptz` times and PostgreSQL enums. JSONB is kept for attributes that really vary.
+- Migrations are SQL files in `apps/api/src/db/migrations/`, each with a reverse script in `down/`. The migrator stores a checksum of every applied file and refuses to run if one has changed.
+- CI applies each migration, reverts it, and applies it again.
 
-- **Article** — référence, désignations multilingues, marque, prix d'achat/vente, TVA, emplacement, équivalences (référence remplacée par).
-- **Stock** — quantité par site, seuil d'alerte, réservations (par OR), mouvements journalisés.
-- **Fournisseur / Commande fournisseur** — réappro manuel d'abord, automatisable ensuite (suggestion sous seuil).
+## Security
 
-**Ventes & facturation.**
+This section is a summary. The full description is in [docs/security/](docs/security/).
 
-- **Devis / Bon de commande / Facture / Avoir** — chaîne documentaire avec numérotation continue par type et par année, verrouillage à l'émission (une facture émise ne se modifie plus, elle s'annule par avoir).
-- **Facture** — QR-facture suisse native ; paiements (espèces, carte, virement) ; rapprochement camt.054 (phase 2).
-- **VenteVéhicule** — dossier de vente : véhicule, reprise éventuelle, financement, primes constructeur, marge calculée.
-- **ExportComptable** — écritures agrégées exportables vers Bexio/WinBIZ/Abacus/Banana (interface `AccountingExporter`, un adaptateur par cible).
+- The session cookie is HTTP-only and is marked `Secure` by default. Passwords are hashed with Argon2id.
+- Login attempts are limited per IP address and per account, with counters in Redis.
+- Configuration is validated with zod at start-up. The API refuses to start with an invalid configuration and lists every faulty variable.
+- In production, the API refuses the development database passwords.
 
-5. Couche connecteurs
+## Observability
 
----
+Logs are JSON, written with pino. Errors go to a Sentry-compatible server when `SENTRY_DSN` is set. Without it, error reporting is off and the API still starts. Health is served at `/api/v1/sante`.
 
-```
-        ┌─────────────────────────────┐
-        │        Cœur GarageOS        │   ne connaît AUCUNE marque
-        └──────────────┬──────────────┘
-                       │  interfaces stables
-   ┌───────────┬───────┴───────┬───────────────┐
-   │ PartsCatalog  VehicleRef   ListingPublisher  AccountingExporter
-   │ Provider      Provider     │                 │
-   ▼               ▼            ▼                 ▼
- TecDoc        Eurotax/       AutoScout24,     Bexio, WinBIZ,
- (générique)   auto-i-dat     tutti, Facebook  Abacus, Banana
- puis OEM      (cotes VO)     Marketplace
- marque par
- marque
-```
+## Testing
 
-- **Phase 1 (indépendants)** : catalogue générique (TecDoc — licence à négocier), saisie/import manuel, export comptable.
-- **Phase 2 (Suisse VO)** : Eurotax/auto-i-dat pour les cotes et données véhicules, AutoScout24 pour la publication d'annonces (acteur dominant en Suisse).
-- **Phase 3 (OEM)** : adaptateurs constructeur, marque par marque, au rythme des agréments obtenus. L'architecture est prête dès la phase 1 ; seul le calendrier commercial décide.
+- Unit tests run with Vitest: `pnpm test`.
+- Integration tests run with Vitest and testcontainers against a throwaway PostgreSQL database: `pnpm test:integration`.
+- Tenant isolation and the rights matrix have tests that every change must keep passing.
 
-6. État actuel et feuille de route
-
----
-
-- **0. Socle** — Auth, tenants, sites, rôles, i18n, API OpenAPI, squelette UI, CI/CD, hébergement — livré, vérifié.
-- **1. Atelier + Clients** — Clients, véhicules, RDV, OR, planning, pointage sur OR — livré (API + écrans).
-- **2. Facturation** — Devis/facture/avoir, QR-facture, export fiduciaire WinBIZ, encaissement — livré (API + écrans + jeu démo).
-- **Lot 2. Pointage** — Pointage par technicien/OR (temps réel, tracé historisé, statut OR=en_cours) — API livrée, écrans en cours.
-- **3. Pièces** — Articles, stock par site, mouvements (casse/transfert/retour/comptoir), réservations — API et écrans livrés ; commandes fournisseur et consignes en cours.
-- **4. Ventes VN/VO** — Stock garage, dossiers de vente, reprises, financement, leasings, garanties — cycle complet livré (API + écrans) ; suivi leasings/garanties en cours.
-- **Tableau-bord** — Activité atelier (ouverte), financier (direction/comptabilité seulement) — API, écrans et droits dédiés livrés.
-- **Pneus** — Hangar à dépôt, déposer/retirer pneus, changement de saison — API et écrans livrés (migrations 0043–0044).
-- **5. Connecteurs** — Interfaces pour TecDoc, AutoScout24, exports comptables, OEM ; socle d'exécution — socle d'exécution livré (registre, résilience) ; adaptateurs en cours (4 interfaces sans contrat métier).
-
-Jalon clé : **fin d'étape 2 (31.07.2026) = premier garage prêt pour une utilisation réelle.** Étapes 3-5 élargissent le périmètre ; aucune n'est bloquante pour le pilote.
-
-7. Décisions et questions ouvertes
-
----
-
-Décidé (27.07.2026, confirmé 31.07.2026, confirmé 05.08.2026) :
-
-- [x] **Nom : dmsforall (DFA).**
-- [x] **Stack validée** (§3) : TypeScript + NestJS + PostgreSQL/Drizzle + React/Vite.
-
-- [x] **Dev hybride** : Postgres + Redis dans Docker (installé), backend/front en Node local en dev, tout conteneurisé en prod.
-- [x] **Étapes 1-2 livrées** : atelier (OR, planning, pointage), clients, véhicules, facturation (QR-facture, export WinBIZ, encaissement).
-- [x] **Décision ventes VN/VO** (§4) : un véhicule en stock n'est pas un second objet ; c'est le même enregistrement `vehicule` étendu (colonnes `prix_*`, `statut_stock`, photos, etc.).
-- [x] **Étapes 3-4 cycle complet** : pièces (stock, mouvements, réservation atelier) et ventes (dossier de vente, cycle complet, facturation) API + écrans complets. Atelier câblé aux pièces. Cycle ventes marque le véhicule vendu.
-- [x] **Tableau-bord + Pneus** : transversaux livrés (droits, écrans, migrations).
-- [x] **Étape 5 socle** : registre, résilience, adaptateurs factices. Cinq interfaces définies : `AccountingExporter` implémenté (facturation) ; quatre autres (`PartsCatalogProvider`, `VehicleReferenceProvider`, `OrderProvider`, `ListingPublisher`) ne sont que des NOMS — contrats métier en attente du partenaire réel.
-
-Encore ouvert :
-
-- [ ] Premier garage : à confirmer avant démarrage etape 2 production (facturation).
-- [ ] Licence TecDoc : coûts à évaluer avant adaptateur (étape 5).
-- [ ] Migration données Auto-i/Nextlane : modalités par premier garage — voir `docs/specification-reprise-donnees.md`.
-- [ ] Étape 3 : commandes fournisseur, consignes pièces EN COURS (socle attelier + pièces posé).
-- [ ] Étape 4 : leasings et garanties, suivi détaillé EN COURS (cycle complet posé).
-- [ ] Étape 5 : adaptateurs connecteurs (TecDoc, AutoScout24 prioritaires ; OEM au rythme agréments commerciaux). Les contrats métier des quatre interfaces sont encore vides — à définir avec chaque partenaire au moment de l'intégration.
+See [docs/development/](docs/development/) for the development guide.
