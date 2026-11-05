@@ -99,7 +99,7 @@ export async function construireReponseVehicule(
  * mécanisme).
  */
 
-export async function lirePlaqueCourante(
+async function lirePlaqueCourante(
   tx: TransactionDfa,
   ctx: ContexteTenant,
   vehiculeId: string,

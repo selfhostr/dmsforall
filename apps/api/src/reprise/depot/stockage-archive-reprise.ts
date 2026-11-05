@@ -18,7 +18,7 @@
 
 import { createHash } from 'node:crypto';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { mkdir, readdir, rm, stat, unlink, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve, sep } from 'node:path';
 
 export interface PortStockageArchiveReprise {
@@ -213,8 +213,4 @@ export async function listerFichiersRecursif(chemin: string): Promise<readonly s
   } catch {
     return [];
   }
-}
-
-export async function supprimerFichierSiExiste(chemin: string): Promise<void> {
-  await unlink(chemin).catch(() => undefined);
 }

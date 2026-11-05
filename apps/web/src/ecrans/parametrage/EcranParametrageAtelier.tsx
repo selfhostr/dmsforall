@@ -669,5 +669,3 @@ function ChampInerte({ libelle, raison }: { readonly libelle: string; readonly r
     </div>
   );
 }
-
-export default EcranParametrageAtelier;

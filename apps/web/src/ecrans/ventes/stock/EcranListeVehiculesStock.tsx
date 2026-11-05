@@ -33,6 +33,7 @@ import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
+import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { useSession } from '@/hooks/useSession';
 import { useListeVehiculesStock } from '@/hooks/ventes/stock/useListeVehiculesStock';
 import { formaterMontant } from '@/lib/formats';
@@ -121,18 +122,13 @@ export function EcranListeVehiculesStock() {
   }
 
   const [qSaisie, setQSaisie] = useState('');
-  const [q, setQ] = useState('');
+  const [q, reinitialiserQ] = useValeurDebouncee(qSaisie, DELAI_DEBOUNCE_MS);
   const [provenance, setProvenance] = useState<string | undefined>(undefined);
   const [statutCommercial, setStatutCommercial] = useState<StatutCommercialVehicule | undefined>(
     undefined,
   );
   const [typeVehicule, setTypeVehicule] = useState<TypeVehiculeVente | undefined>(undefined);
   const [tri, setTri] = useState<string>(TRI_DEFAUT_VEHICULES_STOCK);
-
-  useEffect(() => {
-    const identifiant = window.setTimeout(() => setQ(qSaisie), DELAI_DEBOUNCE_MS);
-    return () => window.clearTimeout(identifiant);
-  }, [qSaisie]);
 
   // Vue client (issue #84) : la provenance et le tri par ancienneté sont des dimensions RETIRÉES
   // de l'écran, pas des filtres qu'on continue d'appliquer en douce. La sélection du vendeur
@@ -188,7 +184,7 @@ export function EcranListeVehiculesStock() {
 
   function effacerFiltres() {
     setQSaisie('');
-    setQ('');
+    reinitialiserQ();
     setProvenance(undefined);
     setStatutCommercial(undefined);
     setTypeVehicule(undefined);

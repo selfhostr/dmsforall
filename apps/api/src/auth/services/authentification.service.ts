@@ -15,6 +15,7 @@ import type { EntreeConnexion, SessionCourante, TypeEvenementSecurite } from '@d
 
 import { JETON_CONFIG } from '../../config/config.jetons';
 import type { Config } from '../../config/config.types';
+import { enDate } from '../../db';
 import { JETON_DB, JETON_DB_AMORCAGE } from '../../db/db.jetons';
 import type { AccesAmorcage, AccesBase } from '../../db/db.types';
 import { session, site, tenant, utilisateur } from '../../db/schema';
@@ -409,8 +410,7 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
 
   /** Voir le commentaire au point d'appel (défense en profondeur sur `verrouilleJusquA`). */
   private versDateOuNull(valeur: Date | string | null): Date | null {
-    if (valeur === null) return null;
-    return valeur instanceof Date ? valeur : new Date(valeur);
+    return valeur === null ? null : enDate(valeur);
   }
 
   private rehacherEnArrierePlan(

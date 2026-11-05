@@ -45,6 +45,15 @@ export interface FiltresListeOrdresReparation {
   readonly attente?: AttenteOrdreReparation;
   /** Site sélectionné (`?site=` de l'URL, jamais un état global — voir `routes/chemins.ts`). */
   readonly siteId?: string;
+  /** Véhicule (`ordreReparation.vehiculeId`), filtre `eq(...)` SINGULIER côté serveur
+   *  (`apps/api/src/atelier/service-or.ts::lister`, `if (filtres.vehiculeId) conditions.push(eq(…))`)
+   *  — même doctrine que `detenteurId` (`hooks/vehicules/vehicules.api.ts`) : un seul identifiant
+   *  par appel, aucune fusion de requêtes de plusieurs véhicules distincts. Défaut réparé : cette
+   *  fonction de transport ne le sérialisait pas alors que le serveur le supporte déjà
+   *  (`schemaFiltresOrdresReparation.vehiculeId`), forçant trois écrans (`EnTeteOrdreReparation`,
+   *  `EcranFicheVehicule`, `EcranFicheDossierVente`) à contourner par un `useQuery` local avec
+   *  `URLSearchParams` construit à la main. */
+  readonly vehiculeId?: string;
   readonly tri: string;
   // Index signature structurelle : requise pour rester assignable à `FiltresListe` (clesQuery.ts,
   // @/api/cles — forme ouverte volontaire, voir son en-tête).
@@ -71,6 +80,7 @@ function construireParametres(
   if (filtres.statut) parametres.set('statut', filtres.statut);
   if (filtres.attente) parametres.set('attente', filtres.attente);
   if (filtres.siteId) parametres.set('siteId', filtres.siteId);
+  if (filtres.vehiculeId !== undefined) parametres.set('vehiculeId', filtres.vehiculeId);
   parametres.set('tri', filtres.tri);
   parametres.set('limite', String(page.limite));
   if (page.curseur) parametres.set('curseur', page.curseur);

@@ -34,6 +34,7 @@ import {
   joursDeLaSemaine,
   versDateIsoLocale,
 } from '@/hooks/rendez-vous/periode-agenda';
+import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { formaterDate } from '@/lib/formats';
 import { useLangue } from '@/hooks/useLangue';
 import { useSession } from '@/hooks/useSession';
@@ -201,9 +202,10 @@ export function EcranRendezVous() {
 
   const requeteMotifs = useMotifsRendezVous();
   const creation = useCreationRendezVous();
-  const rechercheClientsActive = rechercheClient.trim().length >= 2;
+  const [rechercheClientTemporisee] = useValeurDebouncee(rechercheClient);
+  const rechercheClientsActive = rechercheClientTemporisee.trim().length >= 2;
   const requeteClients = useListeClients(
-    { q: rechercheClient },
+    { q: rechercheClientTemporisee },
     { enabled: rechercheClientsActive },
   );
   const requeteVehiculesCreation = useVehiculesClient(

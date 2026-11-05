@@ -15,6 +15,3 @@ export const STATUTS_OR_OUVERTS: readonly StatutOrdreReparation[] = [
   'termine',
   'facture',
 ];
-
-/** RM-29 : délai par défaut (P, non paramétré au lot 1) de relance avant échéance d'expertise. */
-export const MOIS_RELANCE_EXPERTISE_DEFAUT = 3;

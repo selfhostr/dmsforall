@@ -9,12 +9,11 @@
  *
  * REMPLACE la doctrine « borne de journée en UTC pur » mesurée le 14.08.2026, jusqu'ici dupliquée à
  * TROIS endroits, tous affectés du même écart d'une heure (hiver) à deux heures (été) autour de
- * minuit local :
- *  - `pointage/service-verrouillage-periode.ts::finDeJournee` (RM-95) — RECÂBLÉ sur ce fichier ;
- *  - `pointage/regles-pointage.ts::journeeTravailCourante` — RECÂBLÉ sur ce fichier ;
- *  - `atelier/service-or.ts::debutDeJourneeUtc`/`finDeJourneeUtc` — HORS PÉRIMÈTRE de ce chantier
- *    (propriété d'un autre agent, `atelier/` n'est pas dans le périmètre d'écriture de celui-ci) :
- *    PAS recâblé ici, signalé dans le rapport de livraison pour que son propriétaire le fasse.
+ * minuit local — les trois RECÂBLÉS sur ce fichier :
+ *  - `pointage/service-verrouillage-periode.ts::finDeJournee` (RM-95) ;
+ *  - `pointage/regles-pointage.ts::journeeTravailCourante` ;
+ *  - `atelier/service-or.ts` (usage de `debutJourneeSuisse`/`finJourneeSuisse`, signalé hors
+ *    périmètre le 14.08.2026, recâblé depuis par le propriétaire du domaine).
  *
  * Posé dans `common/` plutôt que dans `pointage/` : un seul propriétaire pour une seule vérité, alors
  * que le bornage de journée sert déjà DEUX domaines (pointage, atelier) et sert désormais aussi la

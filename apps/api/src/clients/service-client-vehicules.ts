@@ -12,7 +12,7 @@ import {
   decoderCurseurPourTri,
   encoderCurseurTrie,
   type DefinitionTri,
-} from './pagination-triee';
+} from '../common/pagination';
 import type { ParametresListeVehiculesDuClient } from './schemas';
 
 /**

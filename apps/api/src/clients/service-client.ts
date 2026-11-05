@@ -52,7 +52,7 @@ import {
   expressionTriValeur,
   valeurCurseurDepuisTri,
   type DefinitionTri,
-} from './pagination-triee';
+} from '../common/pagination';
 import type { ParametresListeClients } from './schemas';
 import { normaliserTelephoneCh } from './telephone';
 
@@ -284,7 +284,7 @@ export class ServiceClient {
           // (colonnes `temporel: true`), `expressionTriValeur()` cast explicitement en `::text` dans
           // le `SELECT` ci-dessus — précisément pour empêcher le pilote de la rendre en `Date` et
           // d'en tronquer la microseconde avant que la valeur de curseur ne soit construite (voir
-          // `pagination-triee.ts`, `valeurCurseurDepuisTri()` plus bas).
+          // `common/pagination/keyset.ts`, `valeurCurseurDepuisTri()` plus bas).
           triValeur: string | number | null;
           localite: string | null;
           nombreVehicules: number;
@@ -741,7 +741,7 @@ export class ServiceClient {
    * jour une chaîne à la place. Purement un champ d'AFFICHAGE : la conversion (`enDate()`) est
    * appliquée par l'appelant, au moment de construire la réponse (`mappers.ts`), pas ici — voir la
    * doc de `enDate()`. Sans rapport avec la valeur de CURSEUR de `lister()` ci-dessus (voir
-   * `pagination-triee.ts`) : cette méthode n'est jamais appelée en contexte de pagination.
+   * `common/pagination/keyset.ts`) : cette méthode n'est jamais appelée en contexte de pagination.
    */
   private async dernierPassage(
     tx: TransactionDfa,

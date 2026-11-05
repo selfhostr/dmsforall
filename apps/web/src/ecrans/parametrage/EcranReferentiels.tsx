@@ -86,5 +86,3 @@ export function EcranReferentiels() {
     </GabaritEcran>
   );
 }
-
-export default EcranReferentiels;

@@ -370,9 +370,10 @@ const ROLES_LECTURE_FOURNISSEUR_PIECES: readonly RoleUtilisateur[] = [
 /**
  * Lecture consigne (`pieces.consigne.lire`, `DROITS_PIECES_PAR_ROLE`) : `direction`, `chef_atelier`,
  * `magasinier`, ET `comptable` (donnée financière — « une consigne jamais rendue est une créance
- * qui dort ») — PAS `vendeur`, `receptionnaire`, `technicien`. Mêmes valeurs que la constante privée
- * `ROLES_LECTURE_CONSIGNE` d'`ecrans/pieces/droits.ts`, même raisonnement de duplication que
- * `ROLES_LECTURE_FOURNISSEUR_PIECES` ci-dessus. CORRECTIF issue #44, second cas trouvé en vérifiant
+ * qui dort ») — PAS `vendeur`, `receptionnaire`, `technicien`. `ecrans/pieces/droits.ts` portait
+ * autrefois une constante privée équivalente (`ROLES_LECTURE_CONSIGNE`) : retirée (chasse au code
+ * mort, 27.08.2026) car sans appelant — la lecture consigne n'a pas de garde locale dans cet
+ * écran, uniquement la garde de route ici. CORRECTIF issue #44, second cas trouvé en vérifiant
  * systématiquement les autres onglets du fichier après le rapport du chasseur : l'onglet Consignes
  * portait le même défaut (`ROLES_PIECES`) et n'avait pas été testé par lui.
  */
@@ -384,9 +385,10 @@ const ROLES_LECTURE_FOURNISSEUR_PIECES: readonly RoleUtilisateur[] = [
  * `ROLES_LECTURE_CONSIGNE_PIECES` ci-dessous, mais gardée SÉPARÉE plutôt que réutilisée : les deux
  * droits sont distincts côté API (consigne vs facture fournisseur), une coïncidence de valeurs
  * aujourd'hui ne garantit rien pour demain. Mêmes valeurs littérales que la constante privée
- * `ROLES_LECTURE_FACTURE_FOURNISSEUR` d'`apps/web/src/ecrans/pieces/droits.ts` — même chaîne de
- * duplication assumée que `ROLES_LECTURE_FOURNISSEUR_PIECES` ci-dessus (`routes/` et
- * `composants/layout/` ne dépendent jamais d'`ecrans/*`).
+ * `ROLES_LECTURE_FACTURE_FOURNISSEUR` d'`apps/web/src/ecrans/pieces/droits.ts` (celle-ci, à la
+ * différence de `ROLES_LECTURE_CONSIGNE` ci-dessus, reste appelée par un écran — pas candidate à
+ * la même suppression) — même chaîne de duplication assumée que `ROLES_LECTURE_FOURNISSEUR_PIECES`
+ * ci-dessus (`routes/` et `composants/layout/` ne dépendent jamais d'`ecrans/*`).
  */
 const ROLES_LECTURE_FACTURE_FOURNISSEUR_PIECES: readonly RoleUtilisateur[] = [
   'direction',

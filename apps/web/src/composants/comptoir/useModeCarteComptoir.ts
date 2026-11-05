@@ -13,7 +13,7 @@ import { useEffect, useState } from 'react';
  * PAGE — aucune règle métier, aucun `pointer: coarse` (un poste fixe redimensionné sous 768px doit
  * aussi profiter des cartes, la table à 8 colonnes y déborderait pareillement).
  */
-export const REQUETE_MEDIA_CARTE_COMPTOIR = '(max-width: 767px)';
+const REQUETE_MEDIA_CARTE_COMPTOIR = '(max-width: 767px)';
 
 function detecterCarte(): boolean {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;

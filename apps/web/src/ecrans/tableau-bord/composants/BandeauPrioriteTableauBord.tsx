@@ -27,8 +27,7 @@ const ROLES_OR_EN_RETARD: readonly RoleUtilisateur[] = [
   'receptionnaire',
 ];
 
-/** Rôles autorisés sur `GET /tableau-bord/financier` (RF-115, `droits.ts` :
- *  `ROLES_TABLEAU_BORD_FINANCIER`) — CE SONT AUSSI, aujourd'hui, exactement les deux rôles dont le
+/** Rôles autorisés sur `GET /tableau-bord/financier` (RF-115) — CE SONT AUSSI, aujourd'hui, exactement les deux rôles dont le
  *  tableau de bord monte déjà `useFinancierTableauBord` avec le même filtre `{ siteId }` par défaut
  *  (`TableauBordDirection`/`TableauBordComptable`), donc même déduplication que ci-dessus. Jamais
  *  `admin` : séparation des pouvoirs délibérée, verrouillée par `EcranTableauBord.spec.tsx` (test

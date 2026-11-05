@@ -278,5 +278,3 @@ export function EcranUtilisateurs() {
     </GabaritEcran>
   );
 }
-
-export default EcranUtilisateurs;

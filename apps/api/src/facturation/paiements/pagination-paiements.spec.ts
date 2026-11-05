@@ -175,15 +175,35 @@ describe(
   },
 );
 
-describe('construireConditionKeysetPaiement — inchangé, non couvert par le correctif', () => {
-  it('tri DESC sur dateValeur : opérateur "<"', () => {
-    const { sql: texte } = rendu(
+describe('construireConditionKeysetPaiement — délègue à construireConditionKeyset commune (forme ROW, 27.08.2026)', () => {
+  it('tri DESC sur dateValeur : comparaison de ROW, opérateur "<", départagée par p.id', () => {
+    const { sql: texte, params } = rendu(
       construireConditionKeysetPaiement(
         definitionTriPaiement('dateValeur:desc'),
         '2026-07-29',
         'id-1',
       ),
     );
-    expect(texte).toContain('p.date_valeur < $1');
+    expect(texte).toBe('(p.date_valeur, p.id) < ($1, $2)');
+    expect(params).toEqual(['2026-07-29', 'id-1']);
+  });
+
+  it('tri ASC sur dateValeur : opérateur ">"', () => {
+    const { sql: texte } = rendu(
+      construireConditionKeysetPaiement(
+        definitionTriPaiement('dateValeur:asc'),
+        '2026-07-29',
+        'id-1',
+      ),
+    );
+    expect(texte).toBe('(p.date_valeur, p.id) > ($1, $2)');
+  });
+
+  it('valeur null : aucun tri de TRIS_PAIEMENTS n’est nullable — reprend uniquement par id, sans jamais matcher (expr IS NULL toujours faux ici)', () => {
+    const { sql: texte, params } = rendu(
+      construireConditionKeysetPaiement(definitionTriPaiement('dateValeur:desc'), null, 'id-1'),
+    );
+    expect(texte).toBe('(p.date_valeur is null and p.id < $1)');
+    expect(params).toEqual(['id-1']);
   });
 });

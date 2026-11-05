@@ -22,7 +22,7 @@ import {
   expressionTriValeur,
   valeurCurseurDepuisTri,
   type DefinitionTri,
-} from './pagination-triee';
+} from '../common/pagination';
 import type { ParametresListeOrDuClient } from './schemas';
 
 /**
@@ -87,8 +87,8 @@ type LigneOrDuClientBrute = {
   // `string | number | null`, jamais `Date` : `ouvertLe:asc/desc` est `temporel: true`
   // (`DEFINITIONS_TRI_OR` ci-dessus), donc `expressionTriValeur()` cast explicitement cette colonne
   // en `::text` dans le `SELECT` — pour empêcher le pilote de la rendre en `Date` et d'en tronquer
-  // la microseconde avant que la valeur de curseur ne soit construite (voir `pagination-triee.ts`,
-  // `valeurCurseurDepuisTri()`, et `common/pagination/valeur-temporelle.ts`).
+  // la microseconde avant que la valeur de curseur ne soit construite (voir
+  // `common/pagination/keyset.ts`, `valeurCurseurDepuisTri()`, et `common/pagination/valeur-temporelle.ts`).
   readonly triValeur: string | number | null;
 };
 

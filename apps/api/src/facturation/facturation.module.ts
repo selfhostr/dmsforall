@@ -15,8 +15,9 @@ import { VentesModule } from '../ventes/ventes.module';
  * Façade HTTP de la facturation (étape 2) — chaîne devis → bon de commande → facture → avoir
  * (`documents/`, lot précédent), encaissement/lettrage (`paiements/`, câblé via
  * `PaiementsModule`) ET export fiduciaire (`export/`, câblé via `ExportModule` — `POST
- * /exports-fiduciaires`). `qr/` (encodage QR-facture) n'expose PAS encore de contrôleur : non
- * enregistré ici.
+ * /exports-fiduciaires`). `qr/` (encodage QR-facture) n'expose pas de contrôleur propre : câblé
+ * en interne via `documents/qr-emission.ts`, appelé par `ServiceEmissionDocument.emettre()` (voir
+ * plus bas — ce paragraphe corrige une note devenue fausse).
  *
  * PIÈGE DU DÉPÔT, vérifié explicitement pour ce module (consigne de la tâche) : un module déjà
  * livré avec tout son domaine mais `controllers: []`, ou jamais importé — vérifié ici que
@@ -56,14 +57,14 @@ import { VentesModule } from '../ventes/ventes.module';
  *    ci-dessus, qui n'a PAS cette atomicité réelle) — même patron que `AtelierModule` injectant
  *    `ServiceReservation`/`ServiceConsigne`. Pas de dépendance inverse : `PiecesModule` n'importe
  *    aucun autre module (`imports` absent de son `@Module`, vérifié), aucun cycle possible.
- *  - `qr/` : `ReponseDocumentVente.qr` est rendu `null` par ce lot (voir `documents/mappeurs.ts`).
- *    Câbler `qr/encodeur.ts` dans `ServiceEmissionDocument.emettre()` (§4-5, entre le recalcul des
- *    lignes et l'écriture du numéro) exige au minimum : le bloc créancier (IBAN + adresse du
- *    tenant — AUCUNE table de paramétrage IBAN/créancier n'existe dans le schéma exploré pour ce
- *    lot) et l'adresse structurée du débiteur (voir l'écart signalé dans `documents/references.ts`
- *    : `numero` de rue toujours `null`, faute de colonne dédiée sur `client_adresse`). Ni l'un ni
- *    l'autre n'est résolu ici — À ARBITRER PAR L'ORCHESTRATEUR avant de câbler `qr/` dans ce
- *    service.
+ *  - `qr/` : CÂBLÉ, contrairement à ce qu'affirmait une version antérieure de ce commentaire.
+ *    `ServiceEmissionDocument.emettre()` (`documents/service-emission.ts`) appelle
+ *    `construireBlocQrPourEmission`/`resoudreBlocCreancierPourEmission` (`documents/qr-emission.ts`,
+ *    lui-même bâti sur les primitives de `qr/`) après l'allocation du numéro, en lisant
+ *    `tenant_bloc_creancier` (table de paramétrage désormais posée par `parametrage/bloc-creancier/`)
+ *    et l'adresse du débiteur déjà figée. `ReponseDocumentVente.qr` n'est `null` que pour un
+ *    document qui n'est pas une facture émise (`documents/mappeurs.ts::construireBlocQrFige`) — pas
+ *    par indisponibilité de la fonctionnalité.
  *
  * `JETON_COMPTEURS` (numérotation) n'est pas fourni ici : `CompteursModule` (`@Global`, importé
  * depuis `ParametrageModule`) le rend disponible partout — même doctrine que `AtelierModule`.

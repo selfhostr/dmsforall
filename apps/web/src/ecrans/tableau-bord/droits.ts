@@ -8,7 +8,14 @@ import type { RoleUtilisateur } from '@dfa/shared';
  * normalement côté écran — le serveur reste l'arbitre final.
  *
  * `GET /tableau-bord/activite` : ouvert à tout rôle de PERSONNE sauf `poste_atelier` (la borne
- * murale partagée n'a pas d'usage tableau de bord).
+ * murale partagée n'a pas d'usage tableau de bord). Consommée par `navigation-modele.ts`
+ * (`composants/layout/`) pour l'entrée de menu — la garde RÉELLE de l'écran est la route
+ * (`ROLES_TABLEAU_BORD_ACTIVITE`, `routes/routeur.tsx`), pas un prédicat local ici : le bloc
+ * financier (`direction`/`comptable` seuls, RF-115) n'a pas de garde locale non plus depuis le
+ * passage à un dashboard PAR RÔLE (`EcranTableauBord.tsx`, arbitrage @laupernoe du 10.08.2026) — seuls
+ * `TableauBordDirection`/`TableauBordComptable` montent structurellement le bloc financier, les
+ * autres composants de rôle ne le contiennent pas, vérifié par `EcranTableauBord.spec.tsx` (test
+ * F8, non-fuite).
  */
 export const ROLES_TABLEAU_BORD_ACTIVITE: readonly RoleUtilisateur[] = [
   'technicien',
@@ -20,18 +27,3 @@ export const ROLES_TABLEAU_BORD_ACTIVITE: readonly RoleUtilisateur[] = [
   'direction',
   'admin',
 ];
-
-/**
- * `GET /tableau-bord/financier` : RÉSERVÉ `direction`/`comptable` SEULEMENT — RF-115, `admin`
- * explicitement EXCLU (séparation des pouvoirs délibérée, PAS un oubli à corriger). Ne jamais
- * ajouter `admin` à cette liste par copier-coller d'un autre groupe de rôles.
- */
-export const ROLES_TABLEAU_BORD_FINANCIER: readonly RoleUtilisateur[] = ['direction', 'comptable'];
-
-export function peutVoirActiviteTableauBord(role: RoleUtilisateur | undefined): boolean {
-  return role !== undefined && ROLES_TABLEAU_BORD_ACTIVITE.includes(role);
-}
-
-export function peutVoirFinancierTableauBord(role: RoleUtilisateur | undefined): boolean {
-  return role !== undefined && ROLES_TABLEAU_BORD_FINANCIER.includes(role);
-}

@@ -91,20 +91,6 @@ export function projeterDossierReprise(
 }
 
 // ---------------------------------------------------------------------------------------------
-// reprise_tranche
-// ---------------------------------------------------------------------------------------------
-
-export type LigneRepriseTrancheBrute = {
-  readonly id: string;
-  readonly tenant_id: string;
-  readonly dossier_reprise_id: string;
-  readonly numero: number;
-  readonly taille_octets: string;
-  readonly chemin_stockage: string;
-  readonly recue_le: string;
-};
-
-// ---------------------------------------------------------------------------------------------
 // reprise_analyse
 // ---------------------------------------------------------------------------------------------
 

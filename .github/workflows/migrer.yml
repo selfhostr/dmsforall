@@ -61,7 +61,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Récupérer le code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Hôte du registre de conteneurs
         id: registre
@@ -81,7 +81,7 @@ jobs:
         run: echo "owner=$(echo "$OWNER" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
 
       - name: Authentification au registre de conteneurs
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ${{ steps.registre.outputs.hote }}
           username: ${{ github.actor }}
@@ -135,3 +135,13 @@ jobs:
             "${DEPLOY_UTILISATEUR}@${DEPLOY_HOTE}" \
             "TAG='${TAG}' IMAGE_API='${IMAGE_API}' DEPLOY_CHEMIN='${DEPLOY_CHEMIN}' bash -s" \
             < .github/scripts/migrer-distant.sh
+
+      # `if: always()` : doit tourner MÊME si l'étape SSH ci-dessus échoue — sinon la clé privée
+      # de production reste sur le disque du runner. Sur un runner forge PERSISTANT (pas
+      # d'hypothèse faite ici sur ce point, voir le rapport de ce correctif), ce fichier
+      # survivrait sinon entre deux runs, lisible par tout job ultérieur. `rm -f` : inconditionnel,
+      # ne fait jamais échouer cette étape (fichier déjà absent si l'étape "Préparer la clé SSH de
+      # déploiement" n'a elle-même pas été atteinte).
+      - name: Nettoyer la clé SSH de déploiement
+        if: always()
+        run: rm -f ~/.ssh/deploiement_ed25519 ~/.ssh/known_hosts

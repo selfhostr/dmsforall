@@ -35,7 +35,7 @@ import {
   expressionTriValeur,
   valeurCurseurDepuisTri,
   type DefinitionTri,
-} from './pagination-triee';
+} from '../common/pagination';
 
 /**
  * Délai par défaut avant relance automatique d'un jeu oublié (RPP-04). La spec (§3) propose un
@@ -124,7 +124,7 @@ export class ServiceDepotPneus {
   ): Promise<PageCurseur<ReponseDepotPneus>> {
     const definition = DEFINITIONS_TRI_HANGAR[params.tri];
     const idExpr = sql`d.id`;
-    const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
+    const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri, DEFINITIONS_TRI_HANGAR);
 
     return this.acces.enTenant(ctx, async (tx) => {
       await this.chargerSiteOu404(tx, ctx, siteId);
@@ -167,7 +167,11 @@ export class ServiceDepotPneus {
   ): Promise<PageCurseur<ReponseDepotPneus>> {
     const definition = DEFINITIONS_TRI_VEHICULE[params.tri];
     const idExpr = sql`d.id`;
-    const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
+    const curseurDecode = decoderCurseurPourTri(
+      params.curseur,
+      params.tri,
+      DEFINITIONS_TRI_VEHICULE,
+    );
 
     return this.acces.enTenant(ctx, async (tx) => {
       await this.chargerVehiculeOu404(tx, ctx, vehiculeId);
@@ -208,7 +212,11 @@ export class ServiceDepotPneus {
   ): Promise<PageCurseur<ReponseDepotPneus>> {
     const definition = DEFINITIONS_TRI_RELANCE[params.tri];
     const idExpr = sql`d.id`;
-    const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
+    const curseurDecode = decoderCurseurPourTri(
+      params.curseur,
+      params.tri,
+      DEFINITIONS_TRI_RELANCE,
+    );
 
     return this.acces.enTenant(ctx, async (tx) => {
       if (params.siteId) await this.chargerSiteOu404(tx, ctx, params.siteId);

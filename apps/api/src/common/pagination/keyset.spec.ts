@@ -1,18 +1,26 @@
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
+import { encoderCurseurTrie } from './curseur';
 import {
   construireConditionKeyset,
   construireOrderBy,
   decoderCurseurPourTri,
-  encoderCurseurTrie,
   expressionTriValeur,
   valeurCurseurDepuisTri,
   type DefinitionTri,
-} from './pagination-triee';
+} from './keyset';
+
+/**
+ * Mécanique commune du curseur v2 triable, factorisée le 27.08.2026 depuis cinq copies locales
+ * quasi identiques (`clients/`, `pieces/`, `ventes/`, `pneus/`, `facturation/paiements/`) — voir
+ * l'en-tête de `keyset.ts`. Ces tests remplacent les cinq spec locales qui vérifiaient toutes,
+ * séparément, la même comparaison ROW sur des `DefinitionTri` de façade différentes : mutualisés
+ * ici plutôt que dupliqués cinq fois. Les tables `DEFINITIONS_TRI_*` réelles restent testées au
+ * niveau de chaque domaine (elles ne montent pas dans le commun).
+ */
 
 const dialect = new PgDialect();
-/** Rend le texte SQL final et les paramètres liés, dans l'ordre — sans dépendre d'une base réelle. */
 function rendu(fragment: ReturnType<typeof sql>): {
   readonly sql: string;
   readonly params: readonly unknown[];
@@ -28,6 +36,7 @@ const DEF_DATE_DESC_NULLABLE: DefinitionTri = {
   sens: 'desc',
   nullable: true,
 };
+const DEF_ASC_NULLABLE: DefinitionTri = { expression: sql`p.valeur`, sens: 'asc', nullable: true };
 const DEF_CREE_LE_DESC: DefinitionTri = {
   expression: sql`c.cree_le`,
   sens: 'desc',
@@ -35,16 +44,17 @@ const DEF_CREE_LE_DESC: DefinitionTri = {
   temporel: true,
 };
 
-/**
- * Table de définitions telle que la construit chaque appelant réel (`DEFINITIONS_TRI_CLIENTS`,
- * `DEFINITIONS_TRI_OR`, `DEFINITIONS_TRI_VEHICULES`) — c'est elle qui indique à
- * `decoderCurseurPourTri` si le tri demandé porte sur une colonne temporelle.
- */
+/** Table de définitions telle que la construit chaque appelant réel (`DEFINITIONS_TRI_*`). */
 const DEFINITIONS_TEST: Readonly<Record<string, DefinitionTri>> = {
   'numeroClient:asc': DEF_NUMERO_ASC,
   'nom:desc': { expression: sql`c.nom`, sens: 'desc', nullable: false },
   'creeLe:desc': DEF_CREE_LE_DESC,
 };
+
+function curseurV2(tri: string, v: unknown, id = '01dc576e-7560-4e7f-9fc7-2b1806186f67'): string {
+  const brut = JSON.stringify({ t: tri, v, i: id });
+  return Buffer.from(brut, 'utf8').toString('base64url');
+}
 
 describe('construireOrderBy', () => {
   it('trie ASC, départagé par id ASC, sans NULLS LAST quand la colonne est non nullable', () => {
@@ -60,15 +70,20 @@ describe('construireOrderBy', () => {
   it('une colonne nullable ajoute NULLS LAST, quel que soit le sens', () => {
     expect(rendu(construireOrderBy(DEF_DATE_DESC_NULLABLE, ID_EXPR)).sql).toContain('nulls last');
   });
+
+  it('ASC nullable : NULLS LAST rendu explicitement dans le texte final', () => {
+    expect(rendu(construireOrderBy(DEF_ASC_NULLABLE, ID_EXPR)).sql).toBe(
+      'p.valeur asc nulls last, c.id asc',
+    );
+  });
 });
 
-describe('construireConditionKeyset — reprise après curseur, non nullable', () => {
+describe('construireConditionKeyset — forme ROW, colonne non nullable', () => {
   it('tri ASC : reprend strictement après (valeur, id) — comparaison de ROW, opérateur ">"', () => {
-    // Forme ROW `(expr, id) > (valeur, id)` depuis le 27.08.2026 (banc de charge + migration 0073) :
-    // remplace l'ancienne forme `OR` explicite, équivalence algébrique exacte (sémantique standard
-    // de la comparaison ROW PostgreSQL), mais exploitable par un parcours d'index ORDONNÉ avec
-    // arrêt anticipé au LIMIT — la forme `OR` forçait un balayage bitmap de tout le reste de la
-    // table avant de trier (mesuré : `clients-page10`/`page50`, 400-500 ms sur 9916 clients).
+    // Forme ROW `(expr, id) > (valeur, id)` : équivalence algébrique exacte de la forme `OR`
+    // explicite historique, mais exploitable par un parcours d'index ORDONNÉ avec arrêt anticipé
+    // au LIMIT — la forme `OR` forçait un balayage bitmap de tout le reste de la table avant de
+    // trier (mesuré : `clients-page10`/`page50`, 400-500 ms sur 9916 clients).
     const cond = construireConditionKeyset(DEF_NUMERO_ASC, ID_EXPR, 'CL-000010', 'id-10');
     const { sql: texte, params } = rendu(cond);
     expect(texte).toBe('(c.numero, c.id) > ($1, $2)');
@@ -110,18 +125,12 @@ describe('construireConditionKeyset — colonne nullable (NULLS LAST)', () => {
   });
 
   it(
-    'DÉFAUT CORRIGÉ : valeur null sur un tri ASCENDANT nullable (ex. `plaque:asc`, ' +
-      '`ouvertLe:asc`) reprend la queue des NULL avec `id > curseur.id`, PAS `id < curseur.id` — ' +
-      "l'ancien code figeait `<` quel que soit `sens`, correct seulement pour desc ; sur asc ça " +
-      're-rendait indéfiniment le même sous-ensemble de la queue NULL au lieu d’avancer ' +
-      '(reproduit et corrigé le 27.08.2026, voir la comparaison directe côté `service-client-' +
-      'vehicules.spec.ts` / rapport de tâche — client réel `dfa_dev` à 231 véhicules sans plaque)',
+    'DÉFAUT CORRIGÉ : valeur null sur un tri ASCENDANT nullable (ex. `plaque:asc`, `ouvertLe:asc`) ' +
+      'reprend la queue des NULL avec `id > curseur.id`, PAS `id < curseur.id` — un opérateur figé ' +
+      "à `<` re-rendrait indéfiniment le même sous-ensemble de la queue NULL au lieu d'avancer " +
+      '(bug réel, corrigé le 27.08.2026 puis réappliqué séparément dans quatre des cinq copies ' +
+      'locales avant cette factorisation — motif direct de la factorisation)',
     () => {
-      const DEF_ASC_NULLABLE: DefinitionTri = {
-        expression: sql`p.valeur`,
-        sens: 'asc',
-        nullable: true,
-      };
       const cond = construireConditionKeyset(DEF_ASC_NULLABLE, ID_EXPR, null, 'id-5');
       const { sql: texte, params } = rendu(cond);
       expect(texte).toBe('(p.valeur is null and c.id > $1)');
@@ -133,17 +142,10 @@ describe('construireConditionKeyset — colonne nullable (NULLS LAST)', () => {
 describe(
   'expressionTriValeur / valeurCurseurDepuisTri — une expression temporelle (`temporel: true`) ne doit ' +
     'JAMAIS perdre de précision sur la valeur de curseur (résolution microseconde PostgreSQL vs ' +
-    'milliseconde de `Date` JavaScript, voir `common/pagination/valeur-temporelle.ts`)',
+    'milliseconde de `Date` JavaScript, voir `valeur-temporelle.ts`)',
   () => {
-    const DEF_CREE_LE: DefinitionTri = {
-      expression: sql`c.cree_le`,
-      sens: 'desc',
-      nullable: false,
-      temporel: true,
-    };
-
     it('expressionTriValeur cast en ::text une expression marquée temporelle, pour empêcher le pilote de la rendre en Date', () => {
-      const { sql: texte } = rendu(expressionTriValeur(DEF_CREE_LE));
+      const { sql: texte } = rendu(expressionTriValeur(DEF_CREE_LE_DESC));
       expect(texte).toBe('(c.cree_le)::text');
     });
 
@@ -156,7 +158,7 @@ describe(
       'valeurCurseurDepuisTri canonicalise une valeur temporelle SANS jamais passer par Date : la ' +
         'microseconde du texte natif PostgreSQL survit intacte jusqu’au curseur encodé',
       () => {
-        const valeur = valeurCurseurDepuisTri(DEF_CREE_LE, '2026-07-29 13:37:35.171181+00');
+        const valeur = valeurCurseurDepuisTri(DEF_CREE_LE_DESC, '2026-07-29 13:37:35.171181+00');
         expect(valeur).toBe('2026-07-29T13:37:35.171181+00:00');
       },
     );
@@ -165,7 +167,7 @@ describe(
       'régression directe du bug corrigé : une valeur temporelle qui transiterait par `new Date(...).toISOString()` ' +
         'tronquerait `.171181` en `.171` — `valeurCurseurDepuisTri` ne le fait jamais',
       () => {
-        const valeur = valeurCurseurDepuisTri(DEF_CREE_LE, '2026-07-29 13:37:35.171181+00');
+        const valeur = valeurCurseurDepuisTri(DEF_CREE_LE_DESC, '2026-07-29 13:37:35.171181+00');
         expect(valeur).not.toBe(new Date('2026-07-29 13:37:35.171181+00').toISOString());
       },
     );
@@ -173,14 +175,14 @@ describe(
     it('valeurCurseurDepuisTri rejette un Date reçu pour une expression temporelle — révélateur d’un ::text manquant dans le SELECT', () => {
       expect(() =>
         valeurCurseurDepuisTri(
-          DEF_CREE_LE,
+          DEF_CREE_LE_DESC,
           new Date('2026-07-29T13:37:35.171Z') as unknown as string,
         ),
       ).toThrow();
     });
 
     it('valeurCurseurDepuisTri laisse passer null (colonne NULLS LAST) sans tenter de le canonicaliser', () => {
-      expect(valeurCurseurDepuisTri(DEF_CREE_LE, null)).toBeNull();
+      expect(valeurCurseurDepuisTri(DEF_CREE_LE_DESC, null)).toBeNull();
     });
 
     it('valeurCurseurDepuisTri laisse une valeur non temporelle (nombre, ex. numeroClient) totalement inchangée', () => {
@@ -214,32 +216,33 @@ describe('decoderCurseurPourTri', () => {
     });
     expect(() => decoderCurseurPourTri(curseur, 'nom:desc', DEFINITIONS_TEST)).toThrow();
   });
+
+  it('un curseur base64url invalide est rejeté — jamais une requête SQL construite depuis du bruit', () => {
+    expect(() =>
+      decoderCurseurPourTri('!!!pas-base64url-json!!!', 'creeLe:desc', DEFINITIONS_TEST),
+    ).toThrowError(expect.objectContaining({ code: 'VALIDATION_ECHOUEE', status: 400 }));
+  });
+
+  it('un uuid mal formé pour `i` est rejeté', () => {
+    const curseur = curseurV2('numeroClient:asc', 'x', 'pas-un-uuid');
+    expect(() => decoderCurseurPourTri(curseur, 'numeroClient:asc', DEFINITIONS_TEST)).toThrowError(
+      expect.objectContaining({ code: 'VALIDATION_ECHOUEE', status: 400 }),
+    );
+  });
 });
 
 /**
- * Défaut n°1 (rapport de livraison, même classe que celle corrigée dans
- * `apps/api/src/pneus/pagination-triee.ts`) : `GET /clients`, `GET /clients/{id}/vehicules` et
- * `GET /clients/{id}/ordres-reparation` répondaient `500 ERREUR_INTERNE` sur un curseur v2
- * SYNTAXIQUEMENT valide (forme `{t,v,i}` correcte, `t` égal au tri demandé, `i` un uuid) mais dont
- * la valeur `v` n'était pas le texte natif PostgreSQL d'un `timestamptz`, pour les tris qui portent
- * sur une colonne temporelle (`creeLe:desc`, `ouvertLe:asc/desc`, `dernierPassageLe:desc`) —
- * reproduit en exécution réelle CONTRE UN AUTRE MODULE (pneus) partageant la même mécanique, PAS
- * par les tests d'intégration existants de ce module : ceux-ci n'exercent que des curseurs absents
- * ou ENCODÉS PAR LE SERVEUR (donc déjà valides). Un curseur FORGÉ avec une valeur arbitraire dans
- * `v` n'est exercé nulle part côté intégration.
- *
- * `decoderCurseurPourTri` doit désormais rejeter un tel curseur en `VALIDATION_ECHOUEE` (400)
- * AVANT toute requête SQL, pour tout tri dont la `DefinitionTri` associée porte `temporel: true`.
+ * Défaut historique (reproduit en exécution réelle, `500 ERREUR_INTERNE` — voir
+ * `common/pagination/curseur.ts`) : un curseur v2 SYNTAXIQUEMENT valide (forme `{t,v,i}` correcte,
+ * `t` égal au tri demandé, `i` un uuid) mais dont la valeur `v` n'était pas le texte natif
+ * PostgreSQL d'un `timestamptz`, pour un tri `temporel: true`, traversait le décodage intact et
+ * atteignait la clause `WHERE` non castée. `decoderCurseurPourTri` doit rejeter un tel curseur en
+ * `VALIDATION_ECHOUEE` (400) AVANT toute requête SQL — jamais laisser un curseur forgé produire une
+ * requête cassée.
  */
-describe('decoderCurseurPourTri — défaut n°1 : curseur syntaxiquement valide, valeur non temporelle', () => {
-  function curseurV2(tri: string, v: unknown): string {
-    const brut = JSON.stringify({ t: tri, v, i: '01dc576e-7560-4e7f-9fc7-2b1806186f67' });
-    return Buffer.from(brut, 'utf8').toString('base64url');
-  }
-
-  it('rejette (VALIDATION_ECHOUEE) une valeur qui n’est pas un timestamptz PostgreSQL sur un tri temporel — c’était le crash reproduit', () => {
+describe('decoderCurseurPourTri — curseur forgé, valeur incompatible avec un tri temporel', () => {
+  it('rejette une valeur qui n’est pas un timestamptz PostgreSQL sur un tri temporel', () => {
     const curseur = curseurV2('creeLe:desc', 'not-a-real-timestamp');
-
     expect(() => decoderCurseurPourTri(curseur, 'creeLe:desc', DEFINITIONS_TEST)).toThrowError(
       expect.objectContaining({ code: 'VALIDATION_ECHOUEE', status: 400 }),
     );
@@ -247,7 +250,6 @@ describe('decoderCurseurPourTri — défaut n°1 : curseur syntaxiquement valide
 
   it('rejette une valeur numérique sur un tri temporel', () => {
     const curseur = curseurV2('creeLe:desc', 42);
-
     expect(() => decoderCurseurPourTri(curseur, 'creeLe:desc', DEFINITIONS_TEST)).toThrowError(
       expect.objectContaining({ code: 'VALIDATION_ECHOUEE', status: 400 }),
     );
@@ -255,7 +257,6 @@ describe('decoderCurseurPourTri — défaut n°1 : curseur syntaxiquement valide
 
   it('rejette une chaîne vide sur un tri temporel', () => {
     const curseur = curseurV2('creeLe:desc', '');
-
     expect(() => decoderCurseurPourTri(curseur, 'creeLe:desc', DEFINITIONS_TEST)).toThrowError(
       expect.objectContaining({ code: 'VALIDATION_ECHOUEE', status: 400 }),
     );
@@ -263,15 +264,12 @@ describe('decoderCurseurPourTri — défaut n°1 : curseur syntaxiquement valide
 
   it('accepte une valeur null sur un tri temporel (branche NULLS LAST) sans lever', () => {
     const curseur = curseurV2('creeLe:desc', null);
-
     expect(() => decoderCurseurPourTri(curseur, 'creeLe:desc', DEFINITIONS_TEST)).not.toThrow();
   });
 
   it('accepte le texte natif PostgreSQL (avec microseconde) sur un tri temporel', () => {
     const curseur = curseurV2('creeLe:desc', '2026-04-01 08:00:00.123456+00');
-
     const decode = decoderCurseurPourTri(curseur, 'creeLe:desc', DEFINITIONS_TEST);
-
     expect(decode).toEqual({
       valeur: '2026-04-01 08:00:00.123456+00',
       id: '01dc576e-7560-4e7f-9fc7-2b1806186f67',
@@ -283,10 +281,20 @@ describe('decoderCurseurPourTri — défaut n°1 : curseur syntaxiquement valide
       'de format particulier — aucun risque de 22007 côté base, une chaîne arbitraire passe',
     () => {
       const curseur = curseurV2('numeroClient:asc', 'valeur-quelconque');
-
       expect(() =>
         decoderCurseurPourTri(curseur, 'numeroClient:asc', DEFINITIONS_TEST),
       ).not.toThrow();
     },
   );
+
+  it('aucun message d’erreur ne fuit de fragment SQL ni de nom de colonne', () => {
+    const curseur = curseurV2('creeLe:desc', 'not-a-real-timestamp');
+    try {
+      decoderCurseurPourTri(curseur, 'creeLe:desc', DEFINITIONS_TEST);
+      throw new Error('devrait avoir levé');
+    } catch (e) {
+      const message = (e as Error).message;
+      expect(message).not.toMatch(/select|cree_le|timestamptz|22007/i);
+    }
+  });
 });

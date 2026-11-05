@@ -4,14 +4,8 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 
-import type {
-  FiltresDocumentsVente,
-  OrdreReparationResume,
-  PageCurseur,
-  VehiculeResume,
-} from '@dfa/shared';
+import type { FiltresDocumentsVente, VehiculeResume } from '@dfa/shared';
 
-import { requeteApi } from '@/api/client';
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,6 +23,7 @@ import { FriseDetentions } from '@/composants/vehicule/FriseDetentions';
 import { FriseKilometrage } from '@/composants/vehicule/FriseKilometrage';
 import { BadgeStatutDossierVente } from '@/ecrans/ventes/dossiers/BadgeStatutDossierVente';
 import { peutLireDossierVente } from '@/ecrans/ventes/dossiers/droits';
+import { listerOrdresReparation } from '@/hooks/atelier/ordres-reparation.api';
 import { listerDocumentsVente } from '@/hooks/facturation/documents-vente.api';
 import { useDoitReessayer } from '@/hooks/pagination-curseur';
 import { listerDepotsPneusVehicule } from '@/hooks/pneus/depot-pneus.api';
@@ -102,24 +97,16 @@ export function EcranFicheVehicule() {
   const peutVoirOrdresReparation = peutLireOrdresReparation(session.data?.utilisateur.role);
   const reessayerOr = useDoitReessayer();
 
-  // Lot B (`docs/plan-refonte-navigation.md`) — « ses OR ». `listerOrdresReparation`
-  // (hooks/atelier/ordres-reparation.api.ts, hors périmètre) ne sérialise QUE `q`/`statut`/
-  // `siteId`/`tri` dans son `URLSearchParams` : `vehiculeId` y serait silencieusement ignoré côté
-  // client bien que le serveur le supporte (`schemaFiltresOrdresReparation.vehiculeId`). Requête
-  // construite ICI, même doctrine que `EnTeteOrdreReparation.tsx` (« l'OR précédent »).
+  // Lot B (`docs/plan-refonte-navigation.md`) — « ses OR », via la fonction de transport
+  // (`vehiculeId` désormais sérialisé, défaut réparé — voir `ordres-reparation.api.ts`).
   const requeteOr = useQuery({
     queryKey: ['vehicule-ordres-reparation', vehiculeId],
     queryFn: async () => {
-      const parametres = new URLSearchParams({
-        vehiculeId: vehiculeId as string,
-        tri: 'ouvertLe:desc',
-        limite: '20',
-      });
-      const page = await requeteApi<PageCurseur<OrdreReparationResume>>(
-        `/ordres-reparation?${parametres.toString()}`,
-        { method: 'GET' },
+      const page = await listerOrdresReparation(
+        { vehiculeId, tri: 'ouvertLe:desc' },
+        { limite: 20 },
       );
-      return page?.donnees ?? [];
+      return page.donnees;
     },
     enabled: vehiculeId !== undefined && peutVoirOrdresReparation,
     retry: reessayerOr,

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 
@@ -32,6 +32,7 @@ import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
+import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { useListeDossiersVente } from '@/hooks/ventes/dossiers/useListeDossiersVente';
 import { useSession } from '@/hooks/useSession';
@@ -118,15 +119,10 @@ export function EcranListeDossiersVente() {
   const { data: session } = useSession();
 
   const [qSaisie, setQSaisie] = useState('');
-  const [q, setQ] = useState('');
+  const [q, reinitialiserQ] = useValeurDebouncee(qSaisie, DELAI_DEBOUNCE_MS);
   const [filtreStatut, setFiltreStatut] = useState<FiltreStatut>('tous');
   const [afficherTermines, setAfficherTermines] = useState(false);
   const [tri, setTri] = useState<string>(TRI_DEFAUT_DOSSIERS_VENTE);
-
-  useEffect(() => {
-    const identifiant = window.setTimeout(() => setQ(qSaisie), DELAI_DEBOUNCE_MS);
-    return () => window.clearTimeout(identifiant);
-  }, [qSaisie]);
 
   const statutEnvoye =
     filtreStatut !== 'tous' ? [filtreStatut] : afficherTermines ? undefined : STATUTS_ACTIFS;
@@ -161,7 +157,7 @@ export function EcranListeDossiersVente() {
 
   function effacerFiltres() {
     setQSaisie('');
-    setQ('');
+    reinitialiserQ();
     setFiltreStatut('tous');
     setAfficherTermines(false);
   }

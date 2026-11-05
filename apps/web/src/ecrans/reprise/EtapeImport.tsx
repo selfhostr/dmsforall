@@ -1,6 +1,7 @@
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { ReponseDossierReprise } from '@dfa/shared';
+import type { ReponseDossierReprise, StatutImportReprise } from '@dfa/shared';
 
 import { Button } from '@/components/ui/button';
 import { Meter, MeterIndicator, MeterLabel, MeterTrack, MeterValue } from '@/components/ui/meter';
@@ -24,9 +25,29 @@ export function EtapeImport({ dossier }: Props) {
   const { t } = useTranslation('reprise');
   const importDisponible = dossier.importId !== null;
   const requete = useImportReprise(dossier.id, importDisponible);
+  const statutImport = requete.data?.statut;
   const rapportDisponible = requete.data !== undefined && requete.data.statut !== 'en_attente';
-  const rapportRequete = useRapportReprise(dossier.id, rapportDisponible);
+  const rapportRequete = useRapportReprise(dossier.id, rapportDisponible, statutImport);
   const rejouer = useRejouerImportReprise(dossier.id);
+
+  // DÉFAUT CORRIGÉ (voir l'en-tête de `useRapportReprise`) : le sondage du rapport s'arrête
+  // exactement quand l'import quitte `en_cours` — sans ce dernier appel forcé, le bilan affiché au
+  // passage à `termine`/`echoue` resterait celui du tick précédent (jusqu'à 3s de retard, voire
+  // jamais rafraîchi si l'import a basculé entre deux ticks), au lieu du bilan réellement final.
+  // Gardé sur une TRANSITION depuis `en_cours` précisément (pas sur le simple passage à `true` de
+  // `rapportDisponible`) : un dossier déjà `termine` à l'ouverture de l'écran (rechargement de
+  // page) a déjà son rapport à jour via le premier fetch normal de `useRapportReprise` — refaire un
+  // second appel dans ce cas serait exactement le genre d'appel réseau redondant que ce chantier
+  // traque.
+  const statutImportPrecedentRef = useRef<StatutImportReprise | undefined>(statutImport);
+  useEffect(() => {
+    const precedent = statutImportPrecedentRef.current;
+    statutImportPrecedentRef.current = statutImport;
+    if (precedent === 'en_cours' && statutImport !== undefined && statutImport !== 'en_cours') {
+      void rapportRequete.refetch();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statutImport]);
 
   return (
     <div className="flex flex-col gap-groupe">

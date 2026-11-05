@@ -12,7 +12,7 @@ import {
   decoderCurseurPourTri,
   encoderCurseurTrie,
   type DefinitionTri,
-} from './pagination-triee';
+} from '../common/pagination';
 import { versLigneSuiviVente, type EntreeLigneSuiviVenteBrut } from './suivi-mappers';
 
 /**
@@ -94,7 +94,7 @@ function construireExpressionProchaineEcheance(role: RoleUtilisateur): SQL {
 /** Déjà castée en texte (pas de colonne `timestamptz` en jeu ici, l'expression source est une
  *  `date` — `date::text` rend `"aaaa-mm-jj"`, comparable lexicographiquement dans le même ordre
  *  que la date qu'elle représente ; `temporel` (mécanisme dédié aux `timestamptz`, voir
- *  `pagination-triee.ts`) n'est pas nécessaire ici). */
+ *  `common/pagination/keyset.ts`) n'est pas nécessaire ici). */
 function construireDefinitionTri(role: RoleUtilisateur): DefinitionTri {
   return {
     expression: sql`(${construireExpressionProchaineEcheance(role)})::text`,

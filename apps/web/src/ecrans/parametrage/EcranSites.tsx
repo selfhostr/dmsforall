@@ -386,5 +386,3 @@ function FormulaireSiteContenu({ siteId, donnees, peutEcrire }: PropsFormulaireS
     </form>
   );
 }
-
-export default EcranSites;

@@ -261,5 +261,3 @@ export function EcranDoublonsClients() {
     </GabaritEcran>
   );
 }
-
-export default EcranDoublonsClients;

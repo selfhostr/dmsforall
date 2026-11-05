@@ -24,7 +24,7 @@ import {
   expressionTriValeur,
   valeurCurseurDepuisTri,
   type DefinitionTri,
-} from './pagination-triee';
+} from '../common/pagination';
 
 /** `LigneReservationPiece` (Drizzle, `reservation_piece` seule) enrichie des colonnes jointes par
  *  `COLONNES_RESERVATION_ALIASEES`/`JOINTURES_RESERVATION` — voir leur doc respective. */

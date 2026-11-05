@@ -31,12 +31,6 @@ const ROLES_ECRITURE_DOSSIER_VENTE: ReadonlySet<RoleUtilisateur> = new Set([
   'vendeur',
 ]);
 
-/** §11 ligne 8 : `vendeur`, `direction` — `receptionnaire` volontairement absent (QV-16). */
-const ROLES_LIVRAISON_DOSSIER_VENTE: ReadonlySet<RoleUtilisateur> = new Set([
-  'direction',
-  'vendeur',
-]);
-
 export function peutLireDossierVente(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && ROLES_LECTURE_DOSSIER_VENTE.has(role);
 }
@@ -45,9 +39,4 @@ export function peutLireDossierVente(role: RoleUtilisateur | undefined): boolean
  *  `annuler`, `abandonner` — TOUJOURS accordés ensemble côté matrice (`ECRITURE_DOSSIER_VENTE_HORS_LIVRAISON`). */
 export function peutEcrireDossierVente(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && ROLES_ECRITURE_DOSSIER_VENTE.has(role);
-}
-
-/** `livrer` séparé du reste de l'écriture (droit distinct côté matrice, `ventes.dossier.livrer`). */
-export function peutLivrerDossierVente(role: RoleUtilisateur | undefined): boolean {
-  return role !== undefined && ROLES_LIVRAISON_DOSSIER_VENTE.has(role);
 }

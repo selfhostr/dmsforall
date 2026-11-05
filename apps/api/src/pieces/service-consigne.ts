@@ -22,7 +22,7 @@ import {
   expressionTriValeur,
   valeurCurseurDepuisTri,
   type DefinitionTri,
-} from './pagination-triee';
+} from '../common/pagination';
 
 const DEFINITIONS_TRI_CONSIGNES: Readonly<Record<FiltresConsignes['tri'], DefinitionTri>> = {
   'creeLe:desc': { expression: sql`c.cree_le`, sens: 'desc', nullable: false, temporel: true },

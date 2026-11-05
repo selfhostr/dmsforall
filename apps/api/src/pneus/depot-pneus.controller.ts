@@ -69,7 +69,7 @@ import { ServiceDepotPneus } from './service-depot-pneus';
  * DÉFAUTS CORRIGÉS (rapport de livraison) :
  *  1. `GET /sites/{siteId}/hangar-pneus` (et les autres listes) répondaient `500 ERREUR_INTERNE`
  *     sur un curseur de pagination syntaxiquement valide mais dont la valeur n'était pas un
- *     timestamptz PostgreSQL bien formé — corrigé dans `pagination-triee.ts::decoderCurseurPourTri`
+ *     timestamptz PostgreSQL bien formé — corrigé dans `common/pagination/keyset.ts::decoderCurseurPourTri`
  *     (validation avant toute requête SQL, `400 VALIDATION_ECHOUEE` au lieu d'une erreur Postgres
  *     non déballée).
  *  2. Le repère de rangement (`codeCase`, RPP-07) n'était modifiable qu'à la création — corrigé

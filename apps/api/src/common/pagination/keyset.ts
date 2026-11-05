@@ -1,17 +1,26 @@
 import { sql, type SQL } from 'drizzle-orm';
-import {
-  decoderCurseurTrie,
-  encoderCurseurTrie,
-  valeurCurseurTimestamptz,
-} from '../common/pagination';
+import { decoderCurseurTrie } from './curseur';
+import { valeurCurseurTimestamptz } from './valeur-temporelle';
 
 /**
  * Support générique du curseur v2 triable (contrats-api-etape-1.md §6.1) pour les listes qui ne
  * peuvent pas s'exprimer avec le seul query-builder Drizzle : tri sur une expression calculée
- * (nom d'affichage, sous-requête `dernierPassageLe`) ou colonne potentiellement `NULL`.
+ * (nom d'affichage, sous-requête) ou colonne potentiellement `NULL`.
  *
- * Partagé par les trois listes de `apps/api/src/clients/**` qui exposent un `tri` fermé :
- * `GET /clients`, `GET /clients/{id}/vehicules`, `GET /clients/{id}/ordres-reparation`.
+ * FACTORISÉ ICI le 27.08.2026 : cette mécanique existait en cinq copies locales quasi identiques
+ * (`clients/`, `pieces/`, `ventes/`, `pneus/`, `facturation/paiements/`), chacune réimplémentant la
+ * même comparaison keyset. Un défaut d'opérateur corrigé dans une copie (`clients/`, banc de charge
+ * du 27.08.2026 — voir `construireConditionKeyset` ci-dessous) n'a jamais été propagé aux quatre
+ * autres, qui l'ont laissé traîner des semaines avant d'être réalignées séparément le même jour :
+ * la démonstration empirique du coût de la duplication. `pointage/pagination-pointages.ts` porte
+ * encore sa propre copie bespoke (hors périmètre de cette factorisation, voir le rapport associé).
+ *
+ * Chaque domaine garde sa propre table `DEFINITIONS_TRI_*` (expressions SQL réelles, propres à ses
+ * colonnes) — seule la MÉCANIQUE de comparaison est partagée ici. RÈGLE DE SÉCURITÉ NON
+ * NÉGOCIABLE : `DefinitionTri.expression` est TOUJOURS une constante du code choisie par
+ * l'appelant via un lookup dans une table fermée (`DEFINITIONS_TRI_*`) — jamais un fragment SQL
+ * construit depuis l'entrée utilisateur. Les fonctions ci-dessous reçoivent cette expression déjà
+ * résolue, elles ne l'inventent ni ne la dérivent d'un paramètre de requête.
  */
 export interface DefinitionTri {
   /** Expression SQL de la clé de tri — TOUJOURS une constante du code, jamais un fragment construit depuis l'entrée utilisateur. */
@@ -24,7 +33,7 @@ export interface DefinitionTri {
   readonly nullable: boolean;
   /**
    * `true` si `expression` désigne (ou dérive d') une colonne `timestamptz` — `creeLe`,
-   * `dernierPassageLe`, `ouvertLe`. La valeur de curseur correspondante DOIT alors transiter par
+   * `dernierPassageLe`, `ouvertLe`… La valeur de curseur correspondante DOIT alors transiter par
    * du texte natif PostgreSQL (`::text` en sortie de `SELECT`, via `expressionTriValeur()`
    * ci-dessous) et par `valeurCurseurTimestamptz()` à l'encodage (via `valeurCurseurDepuisTri()`),
    * jamais par un objet `Date` JavaScript : le pilote `pg` rend bien un `timestamptz` en `Date`
@@ -88,23 +97,21 @@ export function construireOrderBy(def: DefinitionTri, idExpr: SQL): SQL {
  * `idExpr` aussi, `NULLS LAST` ne change que la position du bloc NULL, jamais l'ordre interne du
  * bloc) — d'où `${operateur}` ici, PAS un opérateur figé.
  *
- * DÉFAUT CORRIGÉ (mesure/revue du 27.08.2026, banc de charge — signalé par le coordinateur en
- * relisant l'audit qui a produit la comparaison de ROW ci-dessous) : cette branche renvoyait
+ * DÉFAUT CORRIGÉ (mesure/revue du 27.08.2026, banc de charge) : cette branche renvoyait autrefois
  * TOUJOURS `${idExpr} < ${id}`, correct seulement quand `operateur` vaut aussi `<` (`sens: 'desc'`)
- * — faux pour `sens: 'asc'` avec `nullable: true` (`ouvertLe:asc` — `service-client-ordres-
- * reparation.ts` — et `plaque:asc` — `service-client-vehicules.ts`) : la queue NULL d'un tri
- * ASCENDANT continue en `id ASC`, donc `id > curseur.id`, jamais `id < curseur.id`. Avec
- * l'ancien code, reprendre la pagination de `GET /clients/{id}/vehicules?tri=plaque:asc` une fois
- * entré dans la queue des véhicules sans plaque courante rejouait les MÊMES lignes en boucle
- * (`id < curseur.id` répète indéfiniment le même sous-ensemble) au lieu d'avancer — invisible sur
- * ce dépôt jusqu'ici faute de client réel avec assez de véhicules sans plaque pour dépasser une
- * page (`dfa_dev` en a un : voir `pagination-triee.spec.ts` et la comparaison directe qui a validé
- * ce correctif contre lui, 336 véhicules dont 231 sans plaque).
+ * — faux pour `sens: 'asc'` avec `nullable: true` (`ouvertLe:asc`, `plaque:asc`) : la queue NULL
+ * d'un tri ASCENDANT continue en `id ASC`, donc `id > curseur.id`, jamais `id < curseur.id`. Avec
+ * l'ancien code, reprendre la pagination une fois entré dans la queue NULL rejouait les MÊMES
+ * lignes en boucle (`id < curseur.id` répète indéfiniment le même sous-ensemble) au lieu
+ * d'avancer. Corrigé une première fois dans `clients/pagination-triee.ts`, puis réappliqué
+ * séparément le même jour dans `pieces/`, `ventes/` et `pneus/` — trois copies sur quatre avaient
+ * laissé passer le défaut pendant des semaines, faute de source unique. C'est le motif direct de
+ * cette factorisation.
  *
- * FORME DE COMPARAISON — ROW (tuple) `(expr, id) OP (valeur, id)`, remplace l'ancienne forme
- * `OR` explicite (`(expr OP v) OR (expr = v AND id OP id)`) : ÉQUIVALENCE ALGÉBRIQUE EXACTE pour
- * toute paire non nulle — c'est la définition même de la comparaison ROW de PostgreSQL (doc :
- * « the row constructor forms compose using the natural row-comparison semantics, equivalent to
+ * FORME DE COMPARAISON — ROW (tuple) `(expr, id) OP (valeur, id)`, PAS la forme `OR` explicite
+ * (`(expr OP v) OR (expr = v AND id OP id)`) : ÉQUIVALENCE ALGÉBRIQUE EXACTE pour toute paire non
+ * nulle — c'est la définition même de la comparaison ROW de PostgreSQL (doc : « the row
+ * constructor forms compose using the natural row-comparison semantics, equivalent to
  * a > c OR (a = c AND b > d) »), pas une réécriture approximative. Mesuré (banc de charge du
  * 27.08.2026 puis migration 0073, `apps/api/src/db/migrations/`) : la forme `OR` empêche
  * PostgreSQL de pousser le `LIMIT` à travers un index composite `(tenant_id, expr, id)` — un
@@ -113,8 +120,10 @@ export function construireOrderBy(def: DefinitionTri, idExpr: SQL): SQL {
  * (`clients-page10`/`page50` à 400-500 ms). La forme ROW, elle, se traduit en un parcours d'index
  * ORDONNÉ avec arrêt anticipé au `LIMIT` — PROUVÉ par comparaison directe ancien/nouveau sur les
  * 9916 clients et les 336 véhicules du client de test réels de `dfa_dev` (zéro écart, zéro
- * doublon, y compris pages frontière/profondes et tris temporels), pas seulement par `EXPLAIN` —
- * voir le rapport de la tâche qui a introduit ce correctif.
+ * doublon, y compris pages frontière/profondes et tris temporels), pas seulement par `EXPLAIN`.
+ * `pneus/pagination-triee.ts` était resté sur la forme `OR` malgré cette mesure (comparaison
+ * directe faite à l'occasion de cette factorisation) : la migration vers cette fonction commune la
+ * corrige au passage.
  *
  * NE S'APPLIQUE JAMAIS À `expr IS NULL` : une comparaison ROW dont un membre est NULL rend
  * `unknown` (jamais `true`), donc EXCLUT structurellement les lignes NULL — exactement le
@@ -140,20 +149,10 @@ export function construireConditionKeyset(
 /**
  * Décode le curseur de la requête pour le `tri` demandé — `null` si aucun curseur fourni.
  *
- * DÉFAUT CORRIGÉ (même classe que celui documenté dans `common/pagination/curseur.ts` et déjà
- * corrigé dans `apps/api/src/pneus/pagination-triee.ts`, constaté en exécution réelle sur ce
- * dernier — `500 ERREUR_INTERNE` sur un curseur v2 syntaxiquement valide dont la valeur n'était
- * pas un horodatage PostgreSQL bien formé) : cette fonction ne demandait auparavant à
- * `decoderCurseurTrie` qu'une validation de FORME, jamais de contenu — alors que trois des tris de
- * ce module (`creeLe:desc`, `ouvertLe:asc/desc`, `dernierPassageLe:desc`, voir les `DefinitionTri`
- * de `service-client.ts`/`service-client-ordres-reparation.ts`) portent sur une colonne
- * `timestamptz` et atteignent `construireConditionKeyset()` sans jamais être castés, devenant un
- * littéral non castable dans la clause `WHERE` en cas de valeur forgée invalide.
- *
- * `definitions` est la table `DEFINITIONS_TRI_*` PROPRE À L'APPELANT (`service-client.ts`,
- * `service-client-vehicules.ts`, `service-client-ordres-reparation.ts`) : seul l'appelant sait, via
+ * `definitions` est la table `DEFINITIONS_TRI_*` PROPRE À L'APPELANT : seul l'appelant sait, via
  * `DefinitionTri.temporel`, si le tri demandé porte sur une colonne temporelle — ce module ne fait
- * que router cette information vers `decoderCurseurTrie`, qui porte la validation elle-même.
+ * que router cette information vers `decoderCurseurTrie`, qui porte la validation elle-même
+ * (`common/pagination/curseur.ts`, défaut `500 ERREUR_INTERNE` sur curseur forgé déjà corrigé là).
  */
 export function decoderCurseurPourTri(
   curseur: string | undefined,
@@ -165,5 +164,3 @@ export function decoderCurseurPourTri(
   const { valeur, id } = decoderCurseurTrie(curseur, triDemande, typeValeur);
   return { valeur, id };
 }
-
-export { encoderCurseurTrie };

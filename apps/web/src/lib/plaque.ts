@@ -4,9 +4,7 @@
  * exige que la normalisation de recherche reste strictement serveur, car elle doit être
  * identique à celle des index d'expression PostgreSQL — deux normalisations divergentes
  * produiraient des résultats manquants indébogables. `normaliserPlaque`/`formaterPlaque` ici ne
- * servent qu'à l'affichage et à la préparation de la valeur envoyée telle quelle au serveur ;
- * `detecterFormeSaisie` ne sert qu'à pré-sélectionner les types de recherche et ordonner
- * l'affichage des résultats, jamais à filtrer côté client.
+ * servent qu'à l'affichage et à la préparation de la valeur envoyée telle quelle au serveur.
  */
 
 const CANTONS_SUISSES = new Set([
@@ -61,53 +59,4 @@ export function formaterPlaque(plaqueNormalisee: string): string {
     }
   }
   return normalisee;
-}
-
-export type FormeSaisie = 'plaque' | 'vin' | 'email' | 'telephone' | 'numeroOr' | 'libre';
-
-// VIN ISO 3779 : 17 caractères alphanumériques, sans I/O/Q (confusion avec 1/0).
-const CARACTERE_INTERDIT_VIN = /[IOQ]/;
-const MOTIF_NUMERO_OR = /^OR[\s-]?\d/;
-const MOTIF_TELEPHONE = /^\+?\d{9,13}$/;
-
-/** Devine la nature d'une saisie libre (barre de recherche globale) pour pré-sélectionner les
- *  types de recherche côté serveur et ordonner l'affichage des résultats. Heuristique
- *  d'ergonomie uniquement — ne filtre ni ne normalise la requête envoyée au serveur. */
-export function detecterFormeSaisie(saisieBrute: string): FormeSaisie {
-  const saisie = saisieBrute.trim();
-  if (saisie === '') {
-    return 'libre';
-  }
-  if (saisie.includes('@')) {
-    return 'email';
-  }
-
-  const majuscules = saisie.toUpperCase();
-  if (MOTIF_NUMERO_OR.test(majuscules)) {
-    return 'numeroOr';
-  }
-
-  const compact = normaliserPlaque(saisie);
-
-  if (
-    compact.length === 17 &&
-    /^[A-Z0-9]+$/.test(compact) &&
-    !CARACTERE_INTERDIT_VIN.test(compact)
-  ) {
-    return 'vin';
-  }
-
-  const correspondancePlaque = /^([A-Z]{2})(\d{1,6})$/.exec(compact);
-  if (correspondancePlaque) {
-    const [, canton] = correspondancePlaque;
-    if (canton !== undefined && CANTONS_SUISSES.has(canton)) {
-      return 'plaque';
-    }
-  }
-
-  if (MOTIF_TELEPHONE.test(compact)) {
-    return 'telephone';
-  }
-
-  return 'libre';
 }

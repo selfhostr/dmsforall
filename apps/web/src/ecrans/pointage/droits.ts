@@ -44,15 +44,7 @@ const ROLES_GOUVERNANCE_POINTAGE: ReadonlySet<RoleUtilisateur> = new Set([
   'admin',
 ]);
 
-export function peutLirePointage(role: RoleUtilisateur | undefined): boolean {
-  return role !== undefined && ROLES_LECTURE_POINTAGE.has(role);
-}
-
 export function peutDemarrerPointage(role: RoleUtilisateur | undefined): boolean {
-  return role !== undefined && ROLES_ECRITURE_POINTAGE.has(role);
-}
-
-export function peutArreterPointage(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && ROLES_ECRITURE_POINTAGE.has(role);
 }
 
@@ -66,10 +58,6 @@ export function peutCorrigerPointage(role: RoleUtilisateur | undefined): boolean
 }
 
 export function peutVerrouillerPeriode(role: RoleUtilisateur | undefined): boolean {
-  return role !== undefined && ROLES_GOUVERNANCE_POINTAGE.has(role);
-}
-
-export function peutDeverrouillerPeriode(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && ROLES_GOUVERNANCE_POINTAGE.has(role);
 }
 

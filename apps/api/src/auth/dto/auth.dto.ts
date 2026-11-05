@@ -20,7 +20,6 @@ import {
   LANGUES,
   ROLES_UTILISATEUR,
   type CodeErreur,
-  type EntreeConnexion,
   type ErreurChamp,
   type Langue,
   type ProblemeDetail,
@@ -30,15 +29,6 @@ import {
   type TenantCourant,
   type UtilisateurCourant,
 } from '@dfa/shared';
-
-export class EntreeConnexionDto implements EntreeConnexion {
-  @ApiProperty({ format: 'email', maxLength: 320, example: 'garage@example.ch' })
-  email!: string;
-
-  /** `minLength: 1` — jamais la politique de mot de passe sur un formulaire de connexion. */
-  @ApiProperty({ minLength: 1, maxLength: 256, writeOnly: true })
-  motDePasse!: string;
-}
 
 export class UtilisateurCourantDto implements UtilisateurCourant {
   @ApiProperty({ format: 'uuid' })

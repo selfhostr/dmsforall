@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { detecterFormeSaisie, formaterPlaque, normaliserPlaque } from './plaque';
+import { formaterPlaque, normaliserPlaque } from './plaque';
 
 describe('normaliserPlaque', () => {
   it('met en majuscules et retire les espaces', () => {
@@ -40,33 +40,5 @@ describe('formaterPlaque', () => {
 
   it('rend telle quelle une valeur qui ne correspond pas au motif canton+numéro', () => {
     expect(formaterPlaque('ABC')).toBe('ABC');
-  });
-});
-
-describe('detecterFormeSaisie', () => {
-  it('détecte un e-mail', () => {
-    expect(detecterFormeSaisie('client@exemple.ch')).toBe('email');
-  });
-
-  it('détecte un VIN (17 caractères)', () => {
-    expect(detecterFormeSaisie('WVWZZZ1KZAW123456')).toBe('vin');
-  });
-
-  it('détecte un numéro d’OR ("OR-")', () => {
-    expect(detecterFormeSaisie('OR-2026-00123')).toBe('numeroOr');
-  });
-
-  it('détecte une plaque suisse (canton + numéro)', () => {
-    expect(detecterFormeSaisie('VD 123456')).toBe('plaque');
-  });
-
-  it('détecte un numéro de téléphone', () => {
-    expect(detecterFormeSaisie('+41791234567')).toBe('telephone');
-    expect(detecterFormeSaisie('079 123 45 67')).toBe('telephone');
-  });
-
-  it('retombe sur une recherche libre sinon', () => {
-    expect(detecterFormeSaisie('Dupont')).toBe('libre');
-    expect(detecterFormeSaisie('')).toBe('libre');
   });
 });

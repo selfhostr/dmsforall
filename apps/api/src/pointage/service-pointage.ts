@@ -25,6 +25,7 @@ import type {
 } from '@dfa/shared';
 import { estCompteDeService } from '@dfa/shared';
 
+import { siteImposeAuPrincipal, verifierSiteAutorise } from '../auth/comptes-de-service';
 import { MATRICE_DROITS } from '../auth/matrice-droits';
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
 import {
@@ -187,8 +188,12 @@ export class ServicePointage {
    * BORNE (`poste_atelier`, compte de service) EXEMPTÉE : `principal.utilisateurId` est le compte de
    * la borne, jamais un technicien — le concept « soi/autrui » n'a pas d'objet pour elle. Elle pointe
    * POUR le technicien identifié par PIN par conception ; cette capacité est portée par
-   * `demarrer`/`arreter` + le scoping de site, JAMAIS par ce droit (qu'elle ne détient pas, ce qui
-   * garde son périmètre minimal, RM-115/RM-131 — aucun geste sensible depuis un écran mural).
+   * `demarrer`/`arreter` + le scoping de site — COMMENTAIRE CORRIGÉ (audit sécurité #2, gravité
+   * HAUTE) : ce scoping de site était affirmé ICI mais n'était posé NULLE PART dans ce fichier tant
+   * que le correctif ci-dessous n'existait pas (`verifierSiteAutorise`, appelé en tête de
+   * `demarrer`/`arreter`/`corriger`/`lister`) — une borne du site A pouvait donc agir sur n'importe
+   * quel site du tenant. JAMAIS par ce droit (qu'elle ne détient pas, ce qui garde son périmètre
+   * minimal, RM-115/RM-131 — aucun geste sensible depuis un écran mural).
    *
    * `@ExigerDroit` ne peut pas porter ce contrôle (statique par route) : la même route sert le cas
    * « pour soi » (à ouvrir) et « pour autrui » (à restreindre) — seul le service, une fois la cible
@@ -236,6 +241,14 @@ export class ServicePointage {
     // pour ne rien mémoriser d'une requête non autorisée — un démarrage au nom d'un autre technicien
     // par un rôle non habilité.
     this.exigerDroitCiblerAutrui(principal, entree.technicienId);
+    // FAILLE CORRIGÉE (audit sécurité #2, gravité HAUTE) : confiner une borne (`poste_atelier`) à
+    // SON site (résolu depuis la SESSION, jamais depuis `entree.siteId`). Sans ce contrôle,
+    // `entree.siteId` fourni par le CLIENT était accepté tel quel — y compris pour un pointage
+    // `indirect` (sans OR, donc sans AUCUNE autre vérification de site sur ce chemin ; le seul
+    // contrôle de site existant plus bas, ligne ~283, ne vérifie que la cohérence `siteId` ↔ OR
+    // ciblé, jamais la portée du principal). Un compte de PERSONNE n'est jamais restreint ici
+    // (portée tenant, voir `verifierSiteAutorise`, `auth/comptes-de-service.ts`).
+    verifierSiteAutorise(principal, entree.siteId);
     return this.idempotence.executer(
       ctx,
       { methode: 'POST', chemin: '/pointages', cle: cleIdempotence, corps: entree },
@@ -470,6 +483,13 @@ export class ServicePointage {
       },
       async (tx) => {
         const actuel = await chargerPointagePourEcriture(tx, ctx, id);
+        // FAILLE CORRIGÉE (audit sécurité #2, gravité HAUTE) : confiner une borne au site RÉEL du
+        // pointage chargé sous verrou (`actuel.siteId`) — jamais un `siteId` fourni par le client
+        // (ce corps ne porte d'ailleurs aucun `siteId`, seulement `finLe`). Sans ce contrôle, une
+        // borne du site A pouvait arrêter n'importe quel pointage `en_cours` du tenant, quel que
+        // soit son site. Placé AVANT tout contrôle d'état et toute écriture, même idiome que la
+        // garde soi/autrui juste en dessous.
+        verifierSiteAutorise(principal, actuel.siteId);
         // FAILLE CORRIGÉE : arrêter le pointage d'un AUTRE technicien exige l'habilitation
         // d'encadrement. Le corps ne porte que `id` + `finLe` ; la propriété se lit sur la ligne
         // chargée sous verrou. Placé AVANT tout contrôle d'état et toute écriture.
@@ -593,6 +613,14 @@ export class ServicePointage {
       },
       async (tx) => {
         const actuel = await chargerPointagePourEcriture(tx, ctx, id);
+        // FAILLE CORRIGÉE (audit sécurité #2, gravité HAUTE) : défense en profondeur — la route
+        // exige déjà `atelier.pointage.corriger_autrui`, qu'une borne (`poste_atelier`) ne détient
+        // pas (`DROITS_POINTAGE_PAR_ROLE.poste_atelier`, `matrice-droits.ts`), donc ce chemin lui
+        // est aujourd'hui fermé au garde HTTP. Ce contrôle protège quand même : si ce droit était un
+        // jour accordé à un compte de service, il ne pourrait corriger QUE sur le site RÉEL du
+        // pointage chargé sous verrou (`actuel.siteId`) — même patron défensif que
+        // `ServiceIdentificationPin.attribuer`/`.revoquer` (`service-identification-pin.ts`).
+        verifierSiteAutorise(principal, actuel.siteId);
 
         if (actuel.statut === 'verrouille') {
           throw new ErreurMetier(
@@ -762,6 +790,19 @@ export class ServicePointage {
    * cette matrice, voir le commentaire de tête du bloc) borne qui voit au-delà de son propre
    * pointage. `RESSOURCE_INTROUVABLE` plutôt que `DROIT_INSUFFISANT` sur le pointage d'autrui : ne
    * pas révéler l'existence d'un pointage qu'on n'a pas le droit de voir.
+   *
+   * SITE — FAILLE CORRIGÉE (audit sécurité #2, gravité HAUTE) : `horsSite`, ci-dessous, rend le
+   * confinement de site d'une borne EXPLICITE — avant ce correctif, une borne (`poste_atelier`)
+   * n'était bloquée que PAR ACCIDENT : elle n'est jamais dans `ROLES_AVEC_VUE_EQUIPE_POINTAGE` et
+   * `ligne.technicienId` n'est jamais son propre `principal.utilisateurId` (par CONVENTION
+   * applicative — « un compte de service n'est jamais le sujet d'un geste métier », `auth/comptes-
+   * de-service.ts` § 3 — PAS par une contrainte de base), donc la seconde condition ci-dessous
+   * bloquait déjà TOUJOURS une borne, indépendamment du site. Un blocage qui tient à la coïncidence
+   * entre deux configurations jamais relues ensemble n'est pas un contrôle. MÊME CODE
+   * (`RESSOURCE_INTROUVABLE`, 404) que le cas « pointage d'un collègue sans vue équipe » —
+   * JAMAIS `DROIT_INSUFFISANT` (403) : un signal distinct pour « ce site n'est pas le vôtre »
+   * révélerait qu'un `id` désigne bien un pointage réel ailleurs dans le tenant, exactement ce que
+   * cette méthode s'interdit déjà pour le cas « autrui ».
    */
   async obtenir(
     ctx: ContexteTenant,
@@ -771,9 +812,12 @@ export class ServicePointage {
     return this.acces.enTenant(ctx, async (tx) => {
       const ligne = await chargerPointageOuNull(tx, ctx, id);
       if (!ligne) throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Pointage ${id} introuvable.`);
+      const siteBorne = siteImposeAuPrincipal(principal);
+      const horsSite = siteBorne !== null && ligne.siteId !== siteBorne;
       if (
-        ligne.technicienId !== principal.utilisateurId &&
-        !ROLES_AVEC_VUE_EQUIPE_POINTAGE.has(principal.role)
+        horsSite ||
+        (ligne.technicienId !== principal.utilisateurId &&
+          !ROLES_AVEC_VUE_EQUIPE_POINTAGE.has(principal.role))
       ) {
         throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Pointage ${id} introuvable.`);
       }
@@ -809,6 +853,22 @@ export class ServicePointage {
    * simplement AUCUN pointage à la requête SQL, donc `cible: null`, sans distinction observable
    * entre « inexistant » et « aucun pointage aujourd'hui ». C'est le comportement voulu : ne pas
    * révéler par un code d'erreur distinct si un identifiant correspond à quelqu'un du tenant.
+   *
+   * SITE — FAILLE CORRIGÉE (audit sécurité #2, gravité HAUTE) : la `cible` rendue porte `siteId`,
+   * `numeroOr`, `libelle` — des informations d'un AUTRE site que celui de la borne, avant ce
+   * correctif, dès que `technicienId` désignait un technicien qui y avait pointé le jour même.
+   * `chargerPointagesProductifsDuJour` (`pointage-requetes.ts`) ne filtre QUE tenant + technicien +
+   * nature + date, jamais le site — hors périmètre de ce correctif (ne modifie que ce fichier) : le
+   * filtrage se fait donc ICI, EN APPLICATIF, sur les lignes déjà chargées, avant `resoudreCible-
+   * Reprise`. SÉMANTIQUE DÉLIBÉRÉMENT DIFFÉRENTE DE `lister` (refus explicite 403 sur un `siteId`
+   * de FILTRE explicite) : cette méthode ne reçoit aucun `siteId` en entrée, rien à comparer AVANT
+   * la requête, et surtout — le paragraphe ci-dessus l'établit déjà pour l'existence du technicien —
+   * cette route s'interdit toute réponse distinctive qui permettrait de sonder un identifiant
+   * (« ce technicien existe mais n'est pas sur mon site » ≠ « rien à afficher » serait exactement
+   * cette fuite). Un refus 403 pour un pointage d'un AUTRE site violerait donc la doctrine anti-
+   * énumération que cette méthode s'impose déjà : les pointages hors du site de la borne sont donc
+   * SILENCIEUSEMENT exclus, exactement comme s'ils n'existaient pas — `cible: null` si plus aucune
+   * ligne ne reste. Un compte de PERSONNE n'est jamais restreint ici (portée tenant).
    */
   async dernierDuJour(
     ctx: ContexteTenant,
@@ -822,6 +882,9 @@ export class ServicePointage {
 
     const maintenant = this.horloge.maintenant();
     const { debutLe, finLe } = journeeTravailCourante(maintenant);
+    // `null` pour un compte de PERSONNE (jamais restreint) ; le site de la borne sinon — voir le
+    // commentaire de tête ci-dessus.
+    const siteBorne = siteImposeAuPrincipal(principal);
 
     return this.acces.enTenant(ctx, async (tx) => {
       const pointagesDuJour = await chargerPointagesProductifsDuJour(
@@ -831,7 +894,14 @@ export class ServicePointage {
         debutLe,
         finLe,
       );
-      return { cible: resoudreCibleReprise(pointagesDuJour, maintenant) };
+      // FAILLE CORRIGÉE (audit sécurité #2) : jamais une ligne d'un AUTRE site que celui de la
+      // borne jusqu'à `resoudreCibleReprise` — voir le commentaire de tête de la méthode pour le
+      // choix du filtrage silencieux plutôt qu'un refus explicite.
+      const pointagesVisibles =
+        siteBorne === null
+          ? pointagesDuJour
+          : pointagesDuJour.filter((p) => p.siteId === siteBorne);
+      return { cible: resoudreCibleReprise(pointagesVisibles, maintenant) };
     });
   }
 
@@ -845,6 +915,13 @@ export class ServicePointage {
    * jamais une fuite vers les pointages d'un collègue, jamais une erreur pour une requête par
    * ailleurs légitime (l'écran atelier d'un technicien n'a probablement même pas connaissance du
    * filtre `technicienId`).
+   *
+   * SITE — FAILLE CORRIGÉE (audit sécurité #2, gravité HAUTE) : une borne (`poste_atelier`) est
+   * confinée à SON site. Refus EXPLICITE (403 `DROIT_INSUFFISANT`, jamais un 404 ni une page
+   * silencieusement vide) si `filtres.siteId` désigne un AUTRE site — même sémantique que
+   * `verifierSiteAutorise` partout ailleurs dans ce module. En l'ABSENCE de filtre explicite, le
+   * site de la borne est imposé silencieusement (même idiome que `technicienIdEffectif`
+   * ci-dessous). Un compte de PERSONNE n'est jamais restreint ici (portée tenant).
    */
   async lister(
     ctx: ContexteTenant,
@@ -853,6 +930,12 @@ export class ServicePointage {
     limite: number,
     curseur: string | undefined,
   ): Promise<PageCurseur<ReponsePointage>> {
+    // Avant toute requête : un `siteId` de filtre explicite pour un AUTRE site que celui de la
+    // borne est refusé net (voir le commentaire de tête ci-dessus). Un compte de personne n'est
+    // jamais restreint (`siteImposeAuPrincipal` rend `null`).
+    if (filtres.siteId !== undefined) verifierSiteAutorise(principal, filtres.siteId);
+    const siteBorne = siteImposeAuPrincipal(principal);
+
     const sens = filtres.tri === 'debutLe:asc' ? 'asc' : 'desc';
     const curseurDecode = decoderCurseurPointages(curseur, filtres.tri);
     const vueEquipe = ROLES_AVEC_VUE_EQUIPE_POINTAGE.has(principal.role);
@@ -860,7 +943,10 @@ export class ServicePointage {
 
     return this.acces.enTenant(ctx, async (tx) => {
       const clauses: SQL[] = [eq(pointage.tenantId, ctx.tenantId)];
-      if (filtres.siteId) clauses.push(eq(pointage.siteId, filtres.siteId));
+      // Site de la borne imposé silencieusement en l'absence de filtre explicite (déjà validé
+      // ci-dessus s'il était présent) — jamais une fuite vers les pointages d'un autre site.
+      const siteIdEffectif = siteBorne ?? filtres.siteId;
+      if (siteIdEffectif) clauses.push(eq(pointage.siteId, siteIdEffectif));
       if (technicienIdEffectif) clauses.push(eq(pointage.technicienId, technicienIdEffectif));
       if (filtres.ordreReparationId)
         clauses.push(eq(pointage.ordreReparationId, filtres.ordreReparationId));

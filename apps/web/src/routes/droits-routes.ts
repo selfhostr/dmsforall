@@ -160,9 +160,11 @@ export const ROLES_PNEUS: readonly RoleUtilisateur[] = [
  * route reflète donc une restriction RÉELLE. Les droits `tableau_bord.activite.*` sont DÉFINITIFS
  * côté API — appliqués par `@ExigerDroit(...)` et `GardeDroit`. `GET /tableau-bord/financier` est
  * ENCORE plus restreint (`direction`/`comptable` seuls, RF-115, `admin` exclu) mais N'A PAS de
- * route dédiée — le bloc financier est géré EN PLUS, à l'intérieur de l'écran
- * (`ecrans/tableau-bord/droits.ts`, `peutVoirFinancierTableauBord`) : une garde de route ne peut
- * pas exprimer deux niveaux de droits différents sur la même route.
+ * route dédiée — une garde de route ne peut pas exprimer deux niveaux de droits différents sur la
+ * même route. Le bloc financier est donc géré EN PLUS, à l'intérieur de l'écran : depuis le
+ * passage à un dashboard PAR RÔLE (`EcranTableauBord.tsx`, arbitrage @laupernoe du 10.08.2026), seuls
+ * `TableauBordDirection`/`TableauBordComptable` le montent structurellement, vérifié par
+ * `EcranTableauBord.spec.tsx` (test F8, non-fuite).
  *
  * Liste DUPLIQUÉE depuis `ecrans/tableau-bord/droits.ts` (même chaîne de duplication assumée que
  * `ROLES_PIECES`/`ROLES_VENTES` ci-dessus, `routes/` ne dépend pas d'`ecrans/*`).

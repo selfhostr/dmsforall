@@ -1,16 +1,24 @@
 import { sql, type SQL } from 'drizzle-orm';
 import { TRIS_PAIEMENTS, type FiltresPaiements } from '@dfa/shared';
 
-import { decoderCurseurTrie, encoderCurseurTrie } from '../../common/pagination';
+import {
+  construireConditionKeyset,
+  decoderCurseurTrie,
+  encoderCurseurTrie,
+  type DefinitionTri,
+} from '../../common/pagination';
 import { ErreurMetier } from '../../common/erreurs';
 
 /**
- * Support du curseur v2 triable pour `GET /paiements`, sur le même principe que
- * `apps/api/src/clients/pagination-triee.ts` (dupliqué plutôt qu'importé : deux périmètres
- * d'agents distincts, aucune dépendance `facturation/ → clients/` dans ce dépôt — voir le rapport
- * de livraison). Seules les primitives réellement génériques (`decoderCurseurTrie`/
- * `encoderCurseurTrie`, `common/pagination`) sont réutilisées : elles sont explicitement conçues
- * pour l'être.
+ * Support du curseur v2 triable pour `GET /paiements`.
+ *
+ * REVU le 27.08.2026 (factorisation `common/pagination/keyset.ts`, voir son en-tête) : la
+ * comparaison ROW elle-même (`construireConditionKeysetPaiement` ci-dessous) DÉLÈGUE désormais à
+ * `construireConditionKeyset` commune — mêmes garanties (forme ROW indexable, pas la forme `OR`
+ * historique de ce module) que `clients/`, `pieces/`, `ventes/`, `pneus/`. Le reste de ce fichier
+ * (décodage du curseur, validation de CONTENU, `EXPRESSION_MONTANT_NON_IMPUTE`) reste local et
+ * délibérément NON unifié avec `common/pagination/keyset.ts::decoderCurseurPourTri` — raison
+ * détaillée ci-dessous.
  *
  * Aucun des trois tris de `TRIS_PAIEMENTS` n'est nullable (`date_valeur` est `not null` ; l'écart
  * non imputé est une expression `coalesce(...)`), donc pas de `NULLS LAST` à gérer ici — plus
@@ -44,11 +52,12 @@ import { ErreurMetier } from '../../common/erreurs';
  *     d'apparence numérique — JSON distingue `"42"` de `42`) → `22P02`, comparant l'expression
  *     numérique à une chaîne.
  * `validerContenuValeurPaiement` ci-dessous referme ce trou, LOCALEMENT à ce module — `'texte' |
- * 'temporel'` (`common/pagination/curseur.ts`, hors périmètre d'écriture de cet agent) ne suffit
- * pas à distinguer ces deux natures ; l'étendre serait le bon geste à terme (un troisième membre
- * `'numerique'`, ou un type discriminé par nature de colonne plutôt que par seul risque de
- * précision), mais reste une décision pour le propriétaire de `common/pagination/`, pas improvisée
- * ici sur un fichier interdit.
+ * 'temporel'` (`common/pagination/curseur.ts`) ne suffit pas à distinguer ces deux natures ;
+ * l'étendre serait le bon geste à terme (un troisième membre `'numerique'`, ou un type discriminé
+ * par nature de colonne plutôt que par seul risque de précision), mais délibérément PAS fait ici :
+ * élargirait la surface d'un type partagé par cinq domaines pour un seul appelant, décision qui
+ * dépasse le périmètre de cette factorisation (rebrancher les copies existantes, pas redessiner
+ * `TypeValeurCurseur`).
  * `null` reste toujours accepté (même doctrine défensive que `common/pagination/curseur.ts`) :
  * aucun des trois tris n'est nullable en pratique, mais un curseur forgé prétendant `null` ne
  * cause aucun risque ici — `construireConditionKeysetPaiement` ne gère pas de branche NULLS LAST,
@@ -150,13 +159,32 @@ export function construireOrderByPaiement(def: DefinitionTriPaiement): SQL {
   return sql`${def.expression} ${direction}, p.id ${direction}`;
 }
 
+/** `p.id` code en dur — TRIS_PAIEMENTS n'a qu'un seul alias de table possible (`p`, `paiement-requetes.ts`). */
+const ID_EXPR_PAIEMENT = sql`p.id`;
+
+/**
+ * Délègue à `construireConditionKeyset` commune (`common/pagination/keyset.ts`) : `nullable:
+ * false` en dur (aucun tri de `TRIS_PAIEMENTS` n'est nullable, voir l'en-tête de ce fichier), donc
+ * seule la branche ROW non nullable s'exerce jamais en pratique. Remplace l'ancienne forme `OR`
+ * explicite propre à ce module — même correction ROW-vs-OR que `clients/`, `pieces/`, `ventes/`,
+ * `pneus/` (voir `construireConditionKeyset`) : un index composite `(tenant_id, expr, p.id)` sur
+ * `paiement` devient exploitable en parcours ordonné avec arrêt anticipé au `LIMIT`, plutôt qu'un
+ * balayage bitmap sur la forme `OR`.
+ *
+ * Signature INCHANGÉE (pas de `idExpr` exposé) : `p.id` reste l'unique alias possible pour ce
+ * module, coder en dur ici évite d'exposer un paramètre que aucun appelant ne fait varier.
+ */
 export function construireConditionKeysetPaiement(
   def: DefinitionTriPaiement,
   valeur: string | number | null,
   id: string,
 ): SQL {
-  const operateur = def.sens === 'asc' ? sql`>` : sql`<`;
-  return sql`((${def.expression} ${operateur} ${valeur}) or (${def.expression} = ${valeur} and p.id ${operateur} ${id}))`;
+  const definitionCommune: DefinitionTri = {
+    expression: def.expression,
+    sens: def.sens,
+    nullable: false,
+  };
+  return construireConditionKeyset(definitionCommune, ID_EXPR_PAIEMENT, valeur, id);
 }
 
 /**

@@ -80,31 +80,17 @@ const ROLES_ECRITURE_COMMANDE_FOURNISSEUR: ReadonlySet<RoleUtilisateur> = new Se
  *  par le MÊME droit côté contrôleur) : `magasinier` SEUL, comme les mouvements de stock. */
 const ROLES_RECEPTION_COMMANDE_FOURNISSEUR: ReadonlySet<RoleUtilisateur> = new Set(['magasinier']);
 
-/** Lecture consigne : direction, chef_atelier, magasinier, ET comptable (donnée financière —
- *  « une consigne jamais rendue est une créance qui dort », INFÉRÉ côté matrice API). */
-const ROLES_LECTURE_CONSIGNE: ReadonlySet<RoleUtilisateur> = new Set([
-  'direction',
-  'chef_atelier',
-  'magasinier',
-  'comptable',
-]);
-
 /** Retour fournisseur d'une consigne (`pieces.consigne.retourner`) : `magasinier` SEUL — le geste
  *  de comptoir qui constate physiquement le retour. */
 const ROLES_RETOUR_CONSIGNE: ReadonlySet<RoleUtilisateur> = new Set(['magasinier']);
 
 /**
  * Paramétrage pièces (`pieces.parametrage.lire`/`pieces.parametrage.modifier`,
- * `apps/api/src/auth/matrice-droits.ts`) — LECTURE accordée à `direction`, `chef_atelier` ET
- * `magasinier` (« exécute la politique de stock, ne la fixe pas »), ÉCRITURE réservée à
- * `direction`/`chef_atelier` seuls, un sous-ensemble strict. Distinct des deux constantes
- * précédentes : ni un droit d'article, ni un droit de fournisseur.
+ * `apps/api/src/auth/matrice-droits.ts`) — ÉCRITURE réservée à `direction`/`chef_atelier` seuls,
+ * un sous-ensemble strict. Distinct des deux constantes précédentes : ni un droit d'article, ni un
+ * droit de fournisseur. La lecture n'a pas de garde locale : `RouteProtegee
+ * rolesAutorises={ROLES_PARAMETRAGE_PIECES}` (`routeur.tsx`) la couvre déjà au niveau route.
  */
-const ROLES_LECTURE_PARAMETRAGE_PIECES: ReadonlySet<RoleUtilisateur> = new Set([
-  'direction',
-  'chef_atelier',
-  'magasinier',
-]);
 const ROLES_ECRITURE_PARAMETRAGE_PIECES: ReadonlySet<RoleUtilisateur> = new Set([
   'direction',
   'chef_atelier',
@@ -121,8 +107,8 @@ const ROLES_ECRITURE_PARAMETRAGE_PIECES: ReadonlySet<RoleUtilisateur> = new Set(
  * Lecture élargie à `chef_atelier` — même trio que `ROLES_LECTURE_FOURNISSEUR` ci-dessus (consulter
  * la facture qui règle ce qu'il a commandé prolonge son périmètre fournisseur/commande fournisseur,
  * ce n'est pas un droit nouveau) — et à `comptable` (pièce comptable, RF-115 mise à part `admin`
- * reste `[]`), même périmètre que `ROLES_LECTURE_CONSIGNE` ci-dessus, même raisonnement (« une
- * créance/dépense qui dort »). Dépôt, validation ET rejet réservés à `magasinier` SEUL (« le
+ * reste `[]`), même raisonnement qu'une consigne non rendue (« une créance/dépense qui dort »).
+ * Dépôt, validation ET rejet réservés à `magasinier` SEUL (« le
  * magasinier confirme », brief) — même périmètre que `ROLES_RECEPTION_COMMANDE_FOURNISSEUR` (geste
  * physique de confirmation), délibérément PAS `ROLES_ECRITURE_FOURNISSEUR`/
  * `ROLES_ECRITURE_COMMANDE_FOURNISSEUR` : direction/chef_atelier gèrent la relation fournisseur et
@@ -185,16 +171,8 @@ export function peutReceptionnerCommandeFournisseur(role: RoleUtilisateur | unde
   return role !== undefined && ROLES_RECEPTION_COMMANDE_FOURNISSEUR.has(role);
 }
 
-export function peutLireConsigne(role: RoleUtilisateur | undefined): boolean {
-  return role !== undefined && ROLES_LECTURE_CONSIGNE.has(role);
-}
-
 export function peutRetournerConsigne(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && ROLES_RETOUR_CONSIGNE.has(role);
-}
-
-export function peutLireParametragePieces(role: RoleUtilisateur | undefined): boolean {
-  return role !== undefined && ROLES_LECTURE_PARAMETRAGE_PIECES.has(role);
 }
 
 export function peutModifierParametragePieces(role: RoleUtilisateur | undefined): boolean {

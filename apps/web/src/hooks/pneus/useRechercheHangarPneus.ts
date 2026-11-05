@@ -1,15 +1,9 @@
 import { useQueries } from '@tanstack/react-query';
 
-import {
-  TRI_DEFAUT_CREATION,
-  type PageCurseur,
-  type ReponseDepotPneus,
-  type ResultatRecherche,
-  type VehiculeResume,
-} from '@dfa/shared';
+import { TRI_DEFAUT_CREATION, type ReponseDepotPneus, type ResultatRecherche } from '@dfa/shared';
 
-import { requeteApi } from '@/api/client';
 import { useRechercheComptoir } from '@/hooks/recherche/useRechercheComptoir';
+import { listerVehicules } from '@/hooks/vehicules/vehicules.api';
 
 import { listerDepotsPneusVehicule } from './depot-pneus.api';
 
@@ -36,41 +30,24 @@ import { listerDepotsPneusVehicule } from './depot-pneus.api';
  * plus rapide qu'une chaîne de requêtes côté client — non inventé ici (hors périmètre d'écriture,
  * l'API n'est pas dans mon périmètre), signalé au rapport de livraison.
  *
- * DÉFAUT CORRIGÉ (rapport de test du 06.08.2026, n°1 : « recherche par nom de client ne trouve
- * jamais rien ») — cause CONFIRMÉE en exécution (curl direct, tenant de démo) : `GET /recherche`
- * rend bien un résultat `type: 'client'` pour « Meier », et `GET
- * /vehicules?detenteurId=<id>` rend bien SES véhicules quand on l'appelle directement. Le niveau 2
- * ci-dessous appelait auparavant `listerVehicules` (`@/hooks/vehicules/vehicules.api.ts`), dont
- * `construireParametres()` ne lit QUE `q`/`statut`/`importe`/`siteId`/`tri` — `detenteurId` est
- * silencieusement absent de cette liste et n'était donc JAMAIS envoyé au serveur, malgré
- * l'absence d'erreur TypeScript (l'index signature de `FiltresListeVehicules` accepte n'importe
- * quelle clé additionnelle). La requête réelle devenait `GET /vehicules?tri=...` SANS filtre —
- * des véhicules D'UN AUTRE client, dont les dépôts de pneus (niveau 3) sont presque toujours vides
- * pour la recherche en cours. `hooks/vehicules/vehicules.api.ts` est HORS de mon périmètre
- * d'écriture (`apps/web/src/hooks/pneus/**`/`apps/web/src/hooks/pieces/**` seulement) : plutôt que
- * d'y toucher, ce module interroge `GET /vehicules?detenteurId=` directement via `requeteApi`
- * (`listerVehiculesDuClient` ci-dessous), en restant dans mon périmètre. SIGNALÉ pour correction à
- * la source : `FiltresListeVehicules`/`construireParametres` devraient porter `detenteurId` comme
- * champ nommé (même défaut, mêmes symptômes, pour tout AUTRE futur appelant de `listerVehicules`
- * avec ce filtre).
+ * DÉFAUT CORRIGÉ (27.08.2026) : `construireParametres()` dans
+ * `@/hooks/vehicules/vehicules.api.ts` ne sérialisait QUE `q`/`statut`/`importe`/`siteId`/`tri` —
+ * `detenteurId` était silencieusement absent, donc jamais envoyé au serveur malgré l'absence
+ * d'erreur TypeScript (index signature ouverte de `FiltresListeVehicules`). Un contournement
+ * local (`listerVehiculesDuClient`, appel direct `GET /vehicules?detenteurId=` via `requeteApi`)
+ * avait été posé ici en attendant la correction à la source. `construireParametres` porte
+ * maintenant `detenteurId` comme champ nommé (voir `vehicules.api.ts`) : le niveau 2 ci-dessous
+ * appelle désormais `listerVehicules` directement, contournement supprimé.
+ *
+ * NIVEAU 2 NON FUSIONNABLE EN UNE SEULE REQUÊTE : `detenteurId` (`schemaFiltresVehicules`,
+ * @dfa/shared) est un identifiant SINGULIER (`schemaIdentifiant.optional()`), pas une liste — le
+ * SQL serveur applique `d.client_id = ${filtres.detenteurId}` (égalité simple, jamais
+ * `= any(...)`, voir `service-vehicule.ts::construireConditionsFiltresVehicules`). Plusieurs
+ * clients distincts trouvés exigent donc toujours un appel `GET /vehicules?detenteurId=` PAR
+ * client — une requête par détenteur, pas un batch. Seul le niveau 3 (dépôts de pneus par
+ * véhicule) reste un N+1 réseau réel, et son second niveau exige un endpoint batché côté API qui
+ * n'existe pas — hors périmètre ici, laissé au backlog (voir le GAP ci-dessus).
  */
-
-/** `GET /vehicules?detenteurId=` — contournement LOCAL du défaut décrit ci-dessus
- *  (`listerVehicules` ignore `detenteurId`, hors périmètre d'écriture ici). Ne couvre QUE ce
- *  besoin précis (site non filtré, `tri` imposé par l'appelant) — pas un remplacement général de
- *  `listerVehicules`. */
-async function listerVehiculesDuClient(
-  detenteurId: string,
-  tri: string,
-  limite: number,
-): Promise<PageCurseur<VehiculeResume>> {
-  const parametres = new URLSearchParams({ detenteurId, tri, limite: String(limite) });
-  const page = await requeteApi<PageCurseur<VehiculeResume>>(
-    `/vehicules?${parametres.toString()}`,
-    { method: 'GET' },
-  );
-  return page ?? { donnees: [], curseurSuivant: null, limite };
-}
 
 const LIMITE_VEHICULES_PAR_CLIENT = 5;
 const LIMITE_DEPOTS_PAR_VEHICULE = 10;
@@ -130,7 +107,10 @@ export function useRechercheHangarPneus(): EtatRechercheHangarPneus {
     queries: resultatsClient.map((client) => ({
       queryKey: ['pneus', 'recherche', 'vehiculesClient', client.id] as const,
       queryFn: () =>
-        listerVehiculesDuClient(client.id, TRI_DEFAUT_CREATION, LIMITE_VEHICULES_PAR_CLIENT),
+        listerVehicules(
+          { detenteurId: client.id, tri: TRI_DEFAUT_CREATION },
+          { limite: LIMITE_VEHICULES_PAR_CLIENT },
+        ),
       enabled: actif,
     })),
   });

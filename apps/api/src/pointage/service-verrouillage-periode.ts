@@ -7,6 +7,7 @@ import type {
   ReponseVerrouillagePeriodePointage,
 } from '@dfa/shared';
 
+import { verifierSiteAutorise } from '../auth/comptes-de-service';
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
 import { pointage, pointageVerrouillageSite } from '../db/schema';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
@@ -34,6 +35,18 @@ import { finJourneeSuisse } from '../common/temps';
  * gérées automatiquement (décision de @laupernoe : un seul fuseau pour tout le produit, jamais un réglage
  * par site). Voir l'en-tête de ce fichier commun pour la doctrine complète et les deux autres
  * endroits qui répliquaient la même convention UTC.
+ *
+ * SITE — FAILLE CORRIGÉE (audit sécurité #2, gravité HAUTE, DÉFENSE EN PROFONDEUR) : `verrouiller`/
+ * `deverrouiller` reçoivent `entree.siteId` et ne le confrontaient jamais au `principal`. `poste_
+ * atelier` (la borne) ne détient AUJOURD'HUI ni `atelier.pointage.verrouiller_periode` ni `.
+ * deverrouiller_periode` (`DROITS_POINTAGE_PAR_ROLE`, `matrice-droits.ts`) — le garde HTTP
+ * (`@ExigerDroit`, `pointage-periode.controller.ts`) ferme donc déjà cette route à un compte de
+ * service. Ce contrôle protège quand même, MÊME PATRON que `ServicePointage.corriger` : ce service
+ * ne doit pas dépendre de la matrice de droits pour rester sûr — si ce droit était un jour accordé à
+ * un compte de service (évolution de la matrice, jamais relue en même temps que ce fichier), la
+ * faille s'ouvrirait en silence sans ce garde. Verrouiller/déverrouiller une période a un effet
+ * DIRECT sur ce qui sera facturé et payé (RM-95) : un chemin qui touche à l'argent mérite le
+ * contrôle même quand il est inaccessible aujourd'hui.
  */
 @Injectable()
 export class ServiceVerrouillagePeriode {
@@ -47,6 +60,9 @@ export class ServiceVerrouillagePeriode {
     principal: PrincipalAuthentifie,
     entree: EntreeVerrouillagePeriodePointage,
   ): Promise<ReponseVerrouillagePeriodePointage> {
+    // FAILLE CORRIGÉE (audit sécurité #2, gravité HAUTE) — voir le commentaire de tête du fichier.
+    // Avant toute écriture : un compte de PERSONNE n'est jamais restreint (portée tenant).
+    verifierSiteAutorise(principal, entree.siteId);
     return this.acces.enTenant(ctx, async (tx) => {
       const seuil = finDeJournee(entree.jusquauLe);
 
@@ -113,6 +129,8 @@ export class ServiceVerrouillagePeriode {
     principal: PrincipalAuthentifie,
     entree: EntreeDeverrouillagePeriodePointage,
   ): Promise<ReponseDeverrouillagePeriodePointage> {
+    // FAILLE CORRIGÉE (audit sécurité #2, gravité HAUTE) — même garde que `verrouiller` ci-dessus.
+    verifierSiteAutorise(principal, entree.siteId);
     return this.acces.enTenant(ctx, async (tx) => {
       const seuil = finDeJournee(entree.jusquauLe);
 

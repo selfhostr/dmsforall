@@ -40,8 +40,7 @@ function versDansJours(horizon: Horizon): number | undefined {
  * MÊME `rolesAutorises={ROLES_VENTES}` que `/ventes/dossiers`, car le droit de lecture serveur
  * (`ventes.dossier.lire`) est déjà celui qui garde `/ventes/dossiers` au niveau routeur (même
  * liste de rôles, `droits-routes.ts` documente l'invariant), donc aucune garde supplémentaire
- * n'est nécessaire ici — `ecrans/ventes/suivi/droits.ts` reste défensif seulement, comme le reste
- * du produit.
+ * n'est nécessaire ici.
  *
  * `dansJours` filtre CÔTÉ SERVEUR (brief : « en s'appuyant sur le paramètre... plutôt qu'en
  * filtrant côté client ») — changer d'horizon relance la requête, jamais un `.filter()` local sur

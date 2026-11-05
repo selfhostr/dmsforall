@@ -3,9 +3,6 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 
-import type { OrdreReparationResume, PageCurseur } from '@dfa/shared';
-
-import { requeteApi } from '@/api/client';
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +16,7 @@ import { CarteFinancement } from '@/ecrans/ventes/financements/CarteFinancement'
 import { peutLireFinancement } from '@/ecrans/ventes/financements/droits';
 import { CarteReprise } from '@/ecrans/ventes/reprises/CarteReprise';
 import { peutLireOrdresReparation } from '@/ecrans/vehicules/droits';
+import { listerOrdresReparation } from '@/hooks/atelier/ordres-reparation.api';
 import { useDoitReessayer } from '@/hooks/pagination-curseur';
 import { useSession } from '@/hooks/useSession';
 import { useDossierVente } from '@/hooks/ventes/dossiers/useDossierVente';
@@ -86,22 +84,16 @@ export function EcranFicheDossierVente() {
   // « préparation vente » n'existe pas comme concept distinct côté serveur aujourd'hui. Ce bloc
   // liste donc, pragmatiquement, TOUS les OR du véhicule assigné (même architecture que la fiche
   // véhicule : « le même enregistrement étendu », voir ARCHITECTURE.md) plutôt que d'inventer un
-  // filtre qui n'existe pas. Même contournement transport que `EnTeteOrdreReparation.tsx`/
-  // `EcranFicheVehicule.tsx` : `listerOrdresReparation` (hors périmètre) ne sérialise pas
-  // `vehiculeId`.
+  // filtre qui n'existe pas. Via la fonction de transport (`vehiculeId` désormais sérialisé, défaut
+  // réparé — voir `ordres-reparation.api.ts`).
   const requeteOr = useQuery({
     queryKey: ['dossier-vente-ordres-reparation', vehiculeId],
     queryFn: async () => {
-      const parametres = new URLSearchParams({
-        vehiculeId: vehiculeId as string,
-        tri: 'ouvertLe:desc',
-        limite: '10',
-      });
-      const page = await requeteApi<PageCurseur<OrdreReparationResume>>(
-        `/ordres-reparation?${parametres.toString()}`,
-        { method: 'GET' },
+      const page = await listerOrdresReparation(
+        { vehiculeId, tri: 'ouvertLe:desc' },
+        { limite: 10 },
       );
-      return page?.donnees ?? [];
+      return page.donnees;
     },
     enabled: vehiculeId !== undefined && peutVoirOrdresReparation,
     retry: reessayerOr,

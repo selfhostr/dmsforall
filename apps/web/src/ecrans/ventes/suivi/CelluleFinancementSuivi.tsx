@@ -22,8 +22,7 @@ const CLES_TYPE: Record<SuiviFinancement['type'], string> = {
 
 /**
  * Colonne financement du suivi (`GET /ventes/suivi`) — RF-116 appliquée en LISANT le corps de la
- * réponse serveur, jamais en re-dérivant un droit côté client (voir l'en-tête de
- * `ecrans/ventes/suivi/droits.ts`). `dureeMois`/`echeanceLe` sont des propriétés OPTIONNELLES du
+ * réponse serveur, jamais en re-dérivant un droit côté client. `dureeMois`/`echeanceLe` sont des propriétés OPTIONNELLES du
  * contrat (`SuiviFinancement`) : `'echeanceLe' in financement` vaut `false` quand le serveur les a
  * OMISES (rôle sans droit financier) — un `financement.echeanceLe === undefined` a exactement la
  * même valeur JS qu'un champ omis, `in` est le seul test qui distingue fiablement « omis » de

@@ -29,13 +29,7 @@ export type { EtatCapaciteRendezVous, MomentRendezVous, StatutRdv };
  *  occupées / capacité configurée ou `null`, `composants/rendez-vous/capacite.ts`) : DISTINCT de
  *  `EtatCapaciteRendezVous` (serveur, trois valeurs `non_definie`/`disponible`/`complete`) — le
  *  serveur ne calcule pas la nuance « presque complet », c'est un raffinement d'écran. */
-export const ETATS_CAPACITE_JOUR = [
-  'disponible',
-  'presque_complet',
-  'complet',
-  'non_definie',
-] as const;
-export type EtatCapaciteJour = (typeof ETATS_CAPACITE_JOUR)[number];
+export type EtatCapaciteJour = 'disponible' | 'presque_complet' | 'complet' | 'non_definie';
 
 /** Résout le libellé d'un motif dans la langue d'interface courante — `libelleDe`/`libelleIt`
  *  peuvent être `null` (référentiel garage, pas de traduction saisie) : repli sur `libelleFr`,

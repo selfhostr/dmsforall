@@ -33,7 +33,7 @@ import {
   expressionTriValeur,
   valeurCurseurDepuisTri,
   type DefinitionTri,
-} from './pagination-triee';
+} from '../common/pagination';
 
 const DEFINITION_TRI_ECART: Readonly<Record<FiltresReapprovisionnement['tri'], DefinitionTri>> = {
   'ecartMillieme:desc': {

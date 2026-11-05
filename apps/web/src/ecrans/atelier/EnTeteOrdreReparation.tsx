@@ -5,12 +5,9 @@ import { Link, useNavigate, useSearchParams } from 'react-router';
 import type {
   EtatAfficheOrdreReparation,
   LocalisationVehicule,
-  OrdreReparationResume,
-  PageCurseur,
   ReponseOrdreReparation,
 } from '@dfa/shared';
 
-import { requeteApi } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { BadgeStatutOr } from '@/composants/identite/BadgeStatutOr';
@@ -18,6 +15,7 @@ import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { ActionPrimaire } from '@/composants/layout/ActionPrimaire';
 import { FilAriane, type SegmentFilAriane } from '@/composants/layout/FilAriane';
+import { listerOrdresReparation } from '@/hooks/atelier/ordres-reparation.api';
 import { formaterDateHeure, formaterMontant, formaterKilometrage } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
@@ -123,26 +121,17 @@ export function EnTeteOrdreReparation({ or }: Props) {
   const peutFacturer = or.actionsDisponibles.includes('facturer');
 
   // Lot B (`docs/plan-refonte-navigation.md`) — « l'OR précédent du même véhicule ». Requête
-  // construite ICI plutôt que via `hooks/atelier/ordres-reparation.api.ts::listerOrdresReparation`
-  // (hors périmètre de cet agent) : cette fonction de transport ne sérialise QUE `q`/`statut`/
-  // `siteId`/`tri` dans son `URLSearchParams` — `vehiculeId` y serait silencieusement ignoré côté
-  // client alors que le serveur le supporte bien (`schemaFiltresOrdresReparation.vehiculeId`,
-  // `packages/shared/src/contrats/atelier/ordre-reparation.ts`). Requête minimale, non mise en
-  // cache sous une clé partagée (`clesQuery.or.*`, gelée, hors périmètre) pour ne rien risquer de
-  // collision avec l'invalidation existante de la liste d'OR.
+  // minimale via la fonction de transport (`vehiculeId` désormais sérialisé, défaut réparé), non
+  // mise en cache sous une clé partagée (`clesQuery.or.*`, gelée, hors périmètre) pour ne rien
+  // risquer de collision avec l'invalidation existante de la liste d'OR.
   const requetePrecedent = useQuery({
     queryKey: ['or-precedent', or.vehicule.id, or.id],
     queryFn: async () => {
-      const parametres = new URLSearchParams({
-        vehiculeId: or.vehicule.id,
-        tri: 'ouvertLe:desc',
-        limite: '5',
-      });
-      const page = await requeteApi<PageCurseur<OrdreReparationResume>>(
-        `/ordres-reparation?${parametres.toString()}`,
-        { method: 'GET' },
+      const page = await listerOrdresReparation(
+        { vehiculeId: or.vehicule.id, tri: 'ouvertLe:desc' },
+        { limite: 5 },
       );
-      return page?.donnees ?? [];
+      return page.donnees;
     },
   });
   const orPrecedent = requetePrecedent.data?.find((candidat) => candidat.id !== or.id) ?? null;

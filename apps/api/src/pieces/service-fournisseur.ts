@@ -25,7 +25,7 @@ import {
   expressionTriValeur,
   valeurCurseurDepuisTri,
   type DefinitionTri,
-} from './pagination-triee';
+} from '../common/pagination';
 
 const DEFINITIONS_TRI_FOURNISSEURS: Readonly<Record<FiltresFournisseurs['tri'], DefinitionTri>> = {
   'nom:asc': { expression: sql`f.nom`, sens: 'asc', nullable: false },

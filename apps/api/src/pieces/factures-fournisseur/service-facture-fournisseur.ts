@@ -39,7 +39,7 @@ import {
   expressionTriValeur,
   valeurCurseurDepuisTri,
   type DefinitionTri,
-} from '../pagination-triee';
+} from '../../common/pagination';
 
 import { ServiceOrchestrateurLectureFacture } from './lecture/orchestrateur-lecture';
 import type { DonneesFactureExtraites, EnTeteFactureExtrait } from './lecture/types';

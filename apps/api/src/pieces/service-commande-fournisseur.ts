@@ -56,7 +56,7 @@ import {
   expressionTriValeur,
   valeurCurseurDepuisTri,
   type DefinitionTri,
-} from './pagination-triee';
+} from '../common/pagination';
 
 const DEFINITIONS_TRI_COMMANDES: Readonly<
   Record<FiltresCommandesFournisseur['tri'], DefinitionTri>

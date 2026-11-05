@@ -310,10 +310,8 @@ export function EcranFicheClient() {
            *  SANS branche d'erreur — un 403/404 stable retombait indéfiniment dans le squelette
            *  de chargement (TanStack Query réessaie par défaut), jamais résolu. `EtatSousCollection`
            *  (déjà utilisé par les 5 onglets de sous-collection, voir `onglets/`) couvre les trois
-           *  états explicitement. Réessai encore par défaut ici : `useVehiculesClient`
-           *  (hooks/clients/, hors périmètre d'écriture de ce correctif) n'a pas de politique de
-           *  réessai dédiée aux 403/404 — à aligner sur `useListeDossiersVente` par le
-           *  propriétaire de `hooks/clients/`. */}
+           *  états explicitement — `useVehiculesClient` (hooks/clients/) porte déjà sa propre
+           *  politique de réessai via `useDoitReessayer()` (403/404 jamais réessayés). */}
           <section className="space-y-2">
             <div className="flex items-center justify-between gap-3">
               <h2 className="texte-titre-section font-medium text-foreground">
@@ -355,8 +353,7 @@ export function EcranFicheClient() {
           </section>
 
           {/* Même défaut, même correctif que la section « véhicules » ci-dessus — voir son
-           *  commentaire. Même réserve sur la politique de réessai : `useOrdresClient`
-           *  (hooks/clients/) est hors périmètre d'écriture ici. */}
+           *  commentaire. `useOrdresClient` (hooks/clients/) porte la même politique de réessai. */}
           <section className="space-y-2">
             <h2 className="texte-titre-section font-medium text-foreground">
               {t('clients:fiche.derniersOr')}

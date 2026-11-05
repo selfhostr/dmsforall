@@ -48,7 +48,7 @@ import {
   expressionTriValeur,
   valeurCurseurDepuisTri,
   type DefinitionTri,
-} from './pagination-triee';
+} from '../common/pagination';
 import type { ParametresListeArticles } from './schemas';
 
 /**

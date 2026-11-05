@@ -91,7 +91,7 @@ import {
   expressionTriValeur,
   valeurCurseurDepuisTri,
   type DefinitionTri,
-} from './pagination-triee';
+} from '../common/pagination';
 import {
   chargerDossierVente,
   chargerDossierVentePourEcriture,

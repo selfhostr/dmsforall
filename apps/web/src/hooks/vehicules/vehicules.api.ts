@@ -23,6 +23,11 @@ export interface FiltresListeVehicules {
   readonly importe?: boolean;
   /** Site sélectionné (`?site=` de l'URL, jamais un état global — voir `routes/chemins.ts`). */
   readonly siteId?: string;
+  /** Détenteur courant (`d.au is null`), filtre `exists` côté serveur — voir
+   *  `service-vehicule.ts::construireConditionsFiltresVehicules`. Un seul identifiant par appel
+   *  (le contrat `schemaFiltresVehicules` ne le déclare pas en liste) : plusieurs détenteurs
+   *  distincts exigent un appel par détenteur, pas un appel batché. */
+  readonly detenteurId?: string;
   readonly tri: string;
   // Index signature structurelle : requise pour rester assignable à `FiltresListe` (clesQuery.ts,
   // @/api/cles — forme ouverte volontaire, voir son en-tête). Les propriétés nommées ci-dessus
@@ -43,6 +48,7 @@ function construireParametres(filtres: FiltresListeVehicules, page: PageVehicule
   if (filtres.statut) parametres.set('statut', filtres.statut);
   if (filtres.importe !== undefined) parametres.set('importe', String(filtres.importe));
   if (filtres.siteId) parametres.set('siteId', filtres.siteId);
+  if (filtres.detenteurId !== undefined) parametres.set('detenteurId', filtres.detenteurId);
   parametres.set('tri', filtres.tri);
   parametres.set('limite', String(page.limite));
   if (page.curseur) parametres.set('curseur', page.curseur);
