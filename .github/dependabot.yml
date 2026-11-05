@@ -1,0 +1,50 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    # Major versions are reviewed by hand: they touch code, not only the lockfile.
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    groups:
+      actions:
+        update-types:
+          - minor
+          - patch
+  - package-ecosystem: docker
+    directories:
+      - /apps/api
+      - /apps/web
+      - /apps/api/src/vehicules/ocr/moteur-rapidocr-conteneur
+      - /docker/postgres/sauvegarde
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    groups:
+      docker:
+        update-types:
+          - minor
+          - patch
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    groups:
+      docker-compose:
+        update-types:
+          - minor
+          - patch

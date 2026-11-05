@@ -5,8 +5,8 @@
 # laisser TOUT l'historique existant intact, pas réduire la marge de sécurité au pire moment).
 #
 # PURGE APPARIÉE (correction du 27.08.2026, depuis l'ajout du dump de rôles dans sauvegarder.sh) :
-# chaque nuit produit DEUX fichiers partageant le même horodatage — `dfa_prod_<horodatage>.dump.age`
-# (schéma+données) et `dfa_prod_<horodatage>.roles.sql.age` (rôles). Ce script pilote la décision
+# chaque nuit produit DEUX fichiers partageant le même horodatage — `dfa_<horodatage>.dump.age`
+# (schéma+données) et `dfa_<horodatage>.roles.sql.age` (rôles). Ce script pilote la décision
 # GARDER/PURGER sur le fichier `.dump.age` (comme avant cette correction) et applique EXACTEMENT
 # la même décision au `.roles.sql.age` de même horodatage — jamais l'inverse, et jamais une
 # décision indépendante pour chacun : un dump schéma+données sans son dump de rôles correspondant
@@ -49,10 +49,12 @@ RETENTION_MENSUELLE_JOURS="${RETENTION_MENSUELLE_JOURS:-365}"
 maintenant_epoch="$(date +%s)"
 
 cd "$DOSSIER"
-for fichier in dfa_prod_*.dump.age; do
+# Files made before the prefix change are named dfa_prod_<timestamp>: both forms are handled.
+for fichier in dfa_*.dump.age; do
   [ -e "$fichier" ] || continue
 
-  horodatage="${fichier#dfa_prod_}"
+  horodatage="${fichier#dfa_}"
+  horodatage="${horodatage#prod_}"
   horodatage="${horodatage%.dump.age}"
   jour="${horodatage%-*}" # YYYYmmdd
 
@@ -87,7 +89,7 @@ for fichier in dfa_prod_*.dump.age; do
 
     # Fichier de rôles apparié — voir l'en-tête « PURGE APPARIÉE ». `-f` : ne lève pas si le
     # fichier de rôles est déjà absent (sauvegarde antérieure à cette correction, ou déjà purgé).
-    fichier_roles="dfa_prod_${horodatage}.roles.sql.age"
+    fichier_roles="${fichier%.dump.age}.roles.sql.age"
     if [ -e "$fichier_roles" ]; then
       rm -f -- "$fichier_roles"
       echo "$(date -Iseconds) PURGE ${fichier_roles} (appariée à ${fichier})" >>"$JOURNAL"

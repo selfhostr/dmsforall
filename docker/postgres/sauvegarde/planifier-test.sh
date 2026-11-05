@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =================================================================================================
-# planifier-test.sh — processus PID 1 du service `restauration-test` (docker-compose.yml).
+# planifier-test.sh: optional monthly restore test (not in the default docker-compose.yml: run the backup image with this script as entrypoint).
 # Boucle de sondage, MÊME PATRON que planifier.sh (voir son en-tête pour le « pourquoi une boucle
 # plutôt qu'un cron interne ») : déclenche restaurer-test.sh une fois par mois, le JOUR_TEST_MENSUEL
 # (défaut : le 1er), contre la DERNIÈRE sauvegarde disponible HORS SITE (jamais le volume local —
@@ -18,7 +18,7 @@
 # script récupère donc la DERNIÈRE paire de fichiers (données + rôles) directement depuis
 # RCLONE_REMOTE avant de les restaurer — la preuve porte sur le mécanisme qui compte réellement.
 #
-# --- CLÉ DE TEST, PAS LA CLÉ RÉELLE (voir docs/exploitation-sauvegardes.md « Clé de test ») -----
+# --- CLÉ DE TEST, PAS LA CLÉ RÉELLE (voir the backup documentation, "test key") -----
 # La clé privée age RÉELLE ne vit JAMAIS sur ce serveur (voir restaurer.sh) — ce job automatisé
 # mensuel ne peut donc PAS s'en servir. Il utilise AGE_CLE_PRIVEE_TEST_FICHIER, la moitié privée
 # d'un DEUXIÈME destinataire age (AGE_CLE_PUBLIQUE_TEST côté sauvegarder.sh) dédié à CE SEUL usage.
@@ -71,12 +71,12 @@ tenter_test() {
   mois_aujourdhui="$(date +%Y-%m)"
 
   if [ -z "${RCLONE_REMOTE:-}" ] || [ ! -s "$RCLONE_CONFIG" ]; then
-    journaliser "NON CONFIGURÉ (RCLONE_REMOTE ou ${RCLONE_CONFIG} absent/vide) — test de restauration mensuel impossible tant que la copie hors site n'est pas configurée, voir docs/exploitation-sauvegardes.md"
+    journaliser "NON CONFIGURÉ (RCLONE_REMOTE ou ${RCLONE_CONFIG} absent/vide) — test de restauration mensuel impossible tant que la copie hors site n'est pas configurée, voir the backup documentation"
     echo "NON_CONFIGURE $(date -Iseconds)" >"$STATUT"
     return 1
   fi
   if [ -z "${AGE_CLE_PRIVEE_TEST_FICHIER:-}" ] || [ ! -r "${AGE_CLE_PRIVEE_TEST_FICHIER:-/nonexistent}" ]; then
-    journaliser "NON CONFIGURÉ (AGE_CLE_PRIVEE_TEST_FICHIER absente/illisible) — voir docs/exploitation-sauvegardes.md « Clé de test »"
+    journaliser "NON CONFIGURÉ (AGE_CLE_PRIVEE_TEST_FICHIER absente/illisible) — voir the backup documentation, "test key""
     echo "NON_CONFIGURE $(date -Iseconds)" >"$STATUT"
     return 1
   fi
@@ -87,7 +87,7 @@ tenter_test() {
 
   # Dernier fichier de données par ordre alphabétique = dernier par horodatage (format de nom
   # AAAAMMJJ-HHMMSS, voir sauvegarder.sh — tri lexicographique = tri chronologique).
-  nom_donnees="$(rclone lsf "$RCLONE_REMOTE" --include 'dfa_prod_*.dump.age' | sort | tail -n1)"
+  nom_donnees="$(rclone lsf "$RCLONE_REMOTE" --include 'dfa_*.dump.age' | sort | tail -n1)"
   if [ -z "$nom_donnees" ]; then
     journaliser "ECHEC aucune sauvegarde trouvée sur ${RCLONE_REMOTE}"
     echo "ECHEC $(date -Iseconds)" >"$STATUT"

@@ -1,8 +1,7 @@
-# Secrets et configuration locale — JAMAIS commités
+# Secrets and local configuration: never committed
 .env
 .env.*
 !.env.example
-!.env.production.example
 *.pem
 *.key
 *.p12
@@ -10,12 +9,11 @@
 secrets/
 credentials.json
 
-# Surcouche Docker locale : ports d'hôte et réglages propres à un poste. Compose la charge
-# automatiquement par-dessus docker-compose.yml, qui reste la référence partagée. Utile quand la
-# machine héberge déjà d'autres services et que 5432/6379/3000 ne sont pas libres.
+# Local Docker overrides (host ports, per-machine settings). Compose loads this file on top of
+# docker-compose.yml automatically.
 docker-compose.override.yml
 
-# Dépendances
+# Dependencies
 node_modules/
 .pnpm-store/
 .yarn/
@@ -28,28 +26,26 @@ out/
 .vite/
 *.tsbuildinfo
 
-# Tests et couverture
+# Tests and coverage
 coverage/
 .nyc_output/
 playwright-report/
 test-results/
 blob-report/
 
-# e2e (e2e/playwright.config.ts) — état d'authentification rejouable (cookie de session RÉEL,
-# jamais commité) et captures produites par une exécution locale du harnais (livrées à @laupernoe hors
-# dépôt, voir e2e/README.md « Captures »).
+# e2e (e2e/playwright.config.ts): replayable authentication state (a real session cookie) and
+# screenshots from a local run.
 /e2e/.auth/
 /e2e/captures-apres-refonte/
 
-# Caches outils
+# Tool caches
 .eslintcache
 .turbo/
 .cache/
 
 # Logs
 *.log
-# Journaux de `screen` : capturent tout ce qui passe dans le terminal, y compris des
-# jetons collés à la main. Ne doivent jamais partir sur le dépôt distant.
+# `screen` logs capture everything typed in the terminal, tokens included.
 screenlog.*
 npm-debug.log*
 yarn-debug.log*
@@ -57,14 +53,14 @@ yarn-error.log*
 pnpm-debug.log*
 logs/
 
-# Données locales (dumps Postgres, volumes Docker, uploads de dev)
+# Local data (Postgres dumps, Docker volumes, development uploads)
 *.dump
 *.sql.gz
 .docker-data/
 uploads/
 tmp/
 
-# Éditeurs et OS
+# Editors and OS
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
@@ -75,5 +71,4 @@ Desktop.ini
 $RECYCLE.BIN/
 .DS_Store
 
-
-# CodeGraph — index de graphe du dépôt, reconstruit par `codegraph init` sur chaque poste
+# Local working folders, not published

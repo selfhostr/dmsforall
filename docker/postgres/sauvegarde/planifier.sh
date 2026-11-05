@@ -2,7 +2,7 @@
 # =================================================================================================
 # planifier.sh — processus PID 1 du service `backup` (docker-compose.yml). Boucle simple qui
 # déclenche sauvegarder.sh une fois par jour à HEURE_SAUVEGARDE (heure locale du conteneur, fixée
-# par TZ=Europe/Zurich dans le Dockerfile), sans dépendre d'un cron/systemd du serveur — cohérent
+# par TZ, set by docker-compose.yml from DFA_TIMEZONE), sans dépendre d'un cron/systemd du serveur — cohérent
 # avec le choix « TOUT en conteneurs » du reste de docker-compose.yml.
 #
 # Pourquoi une boucle plutôt qu'un cron interne (busybox crond) : un daemon cron démarré comme

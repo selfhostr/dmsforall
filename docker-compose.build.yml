@@ -1,0 +1,26 @@
+# Build the images from source instead of pulling the published ones:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml build
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d
+#
+# The tags are the same as the published ones (DFA_VERSION, default latest), so the local build
+# replaces the pulled image on this machine.
+
+services:
+  migrate:
+    build: &api-build
+      context: .
+      dockerfile: apps/api/Dockerfile
+      args:
+        VERSION_APP: ${DFA_VERSION:-local}
+  api:
+    build: *api-build
+  worker:
+    build: *api-build
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+  ocr-permis:
+    build:
+      context: ./apps/api/src/vehicules/ocr/moteur-rapidocr-conteneur

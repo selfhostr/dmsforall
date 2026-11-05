@@ -54,7 +54,7 @@
 # `migrer.ts` (apps/api/src/db/migrer.ts, hors périmètre de ce script) n'a AUCUN mécanisme de
 # `down` automatisé : ce script applique donc les fichiers `down/*.sql` directement au pilote SQL,
 # et retire la ligne de suivi correspondante de `__dfa_migrations` à la main — exactement ce que
-# les agents ont fait manuellement jusqu'ici. Une vraie recommandation, à trancher par @laupernoe : donner
+# les agents ont fait manuellement jusqu'ici. Une vraie recommandation, à trancher par le mainteneur : donner
 # à `migrer.ts` un chemin `down` connu (au minimum : appliquer un fichier down + retirer la ligne
 # de suivi dans LA MÊME transaction, ce que ce script ne fait pas — un down qui échoue à mi-chemin
 # ici peut laisser une base dans un état intermédiaire, rattrapable seulement parce que la base est
@@ -108,7 +108,7 @@
 # PROVISIONNEMENT DES RÔLES (docker/postgres/init/01-roles.sql) : posé via `docker cp` puis exécuté
 # manuellement par `docker exec ... psql -f`, PAS via le hook `/docker-entrypoint-initdb.d/`
 # habituel. Une ancienne version montait ce fichier par CHEMIN HÔTE (`-v`) — correct sur le poste de
-# développement, où `$RACINE_DEPOT` est un vrai chemin de la machine, mais cassé en CI forge :
+# développement, où `$RACINE_DEPOT` est un vrai chemin de la machine, mais cassé en CI :
 # l'espace de travail du job y est un VOLUME Docker NOMMÉ régénéré à chaque tâche, jamais un chemin
 # de l'hôte réel. Le démon, qui reçoit un chemin résolu depuis L'INTÉRIEUR du conteneur de job, ne le
 # trouve pas et refuse de le créer (« mkdir /workspace: permission denied ») — et aucun chemin fixe
@@ -116,7 +116,7 @@
 # `docker cp` ne demande JAMAIS au démon de résoudre le chemin source : c'est le CLIENT docker (ce
 # script, où qu'il tourne) qui lit lui-même les octets du fichier sur SA PROPRE vue du système de
 # fichiers — celle où `$RACINE_DEPOT` est toujours correct, que ce script tourne nativement sur le
-# poste de @laupernoe ou à l'intérieur d'un conteneur de job dont l'espace de travail est un volume nommé —
+# poste de développement ou à l'intérieur d'un conteneur de job dont l'espace de travail est un volume nommé —
 # puis les transmet au démon via l'API. Fonctionne donc à l'identique sur le poste de dev, en CI, et
 # en Docker-outside-of-Docker, SANS détection de contexte ni variable d'échappatoire : l'ancienne
 # `DFA_VERIF_RACINE_HOTE` (un chemin hôte fixe) est retirée, elle ne pouvait de toute façon rien pour
@@ -162,7 +162,7 @@ readonly HOTE_PNPM_FORCE="${DFA_VERIF_PG_HOTE_DEPUIS_PNPM:-}"
 # un job CI dont le socket Docker de l'hôte est monté) ? `/.dockerenv` est posé par le runtime Docker
 # à la racine de tout conteneur qu'il démarre, jamais sur un hôte nu — vérifié dans les deux sens sur
 # ce dépôt (absent sur le poste de dev, présent dans un conteneur monté comme le sont les conteneurs
-# de job forge). Sert UNIQUEMENT à choisir comment joindre le Postgres éphémère depuis `pnpm`, voir
+# de job CI). Sert UNIQUEMENT à choisir comment joindre le Postgres éphémère depuis `pnpm`, voir
 # « JOINDRE PNPM AU POSTGRES ÉPHÉMÈRE » en tête de script — jamais pour le provisionnement des
 # rôles (`docker cp`), qui n'en a besoin dans aucun cas.
 if [[ -f /.dockerenv ]]; then
@@ -403,7 +403,7 @@ appliquer_migrations_montantes() {
 # Étape 3 (pièces) : QUATRE nouvelles entrées, même limite, chacune une seule valeur ajoutée à
 # entite_auditee — vérifié en exécution (protocole manuel équivalent à ce script, pnpm/node
 # absents de l'hôte qui a écrit ces migrations ; voir le rapport de livraison de
-# expert-database) : down sans erreur SQL, remontée après down identique à la première montante,
+# rapport de livraison associé) : down sans erreur SQL, remontée après down identique à la première montante,
 # et le SEUL diff résiduel avant/après down est exactement la ligne de la valeur enum ajoutée —
 # rien d'autre ne fuit.
 # Portabilité bash 3.2 (voir la garde en tête de script) : pas de tableau associatif (`declare -A`

@@ -32,7 +32,7 @@
 #      l'hôte.
 #
 # À NE PAS CONFONDRE avec restaurer.sh (à côté de ce fichier) : celui-ci ne touche JAMAIS
-# dfa_dev/dfa_test/dfa_prod ni le Postgres de production — tout se passe dans une instance jetable,
+# dfa_dev/dfa_test/dfa ni le Postgres de production — tout se passe dans une instance jetable,
 # détruite en fin d'exécution quoi qu'il arrive (voir le `trap` ci-dessous).
 #
 # Usage :
@@ -43,7 +43,7 @@
 #                            la clé RÉELLE (usage manuel, apportée pour l'occasion, jamais laissée
 #                            sur ce serveur — même règle que restaurer.sh), soit la clé de TEST
 #                            dédiée (usage automatisé mensuel, voir planifier-test.sh et
-#                            docs/exploitation-sauvegardes.md « Clé de test ») — ce script ne fait
+#                            the backup documentation, "test key") — ce script ne fait
 #                            aucune différence entre les deux, `age -d` déchiffre avec n'importe
 #                            quelle clé privée correspondant à un des destinataires du fichier.
 # =================================================================================================

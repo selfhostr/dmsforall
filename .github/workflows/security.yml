@@ -1,0 +1,71 @@
+name: Security
+
+# Weekly, and after each publication of :edge: scans the published images for known CVEs
+# (Trivy) and the lockfile against OSV, the database the Scorecard "Vulnerabilities" check
+# reads. Results land in the repository Security tab.
+
+on:
+  schedule:
+    - cron: '17 5 * * 1'
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+    branches: [dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trivy:
+    name: Image CVE scan (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: api
+            image: ghcr.io/selfhostr/dmsforall:edge
+          - name: web
+            image: ghcr.io/selfhostr/dmsforall-web:edge
+          - name: ocr
+            image: ghcr.io/selfhostr/dmsforall-ocr:edge
+    steps:
+      - name: Scan
+        run: |
+          docker run --rm -v "$PWD:/out" aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb image \
+            --format sarif --output /out/trivy-${{ matrix.name }}.sarif \
+            --severity CRITICAL,HIGH --ignore-unfixed ${{ matrix.image }}
+      - uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        if: always() && hashFiles(format('trivy-{0}.sarif', matrix.name)) != ''
+        with:
+          sarif_file: trivy-${{ matrix.name }}.sarif
+          category: trivy-${{ matrix.name }}
+
+  osv:
+    name: Lockfile scan (OSV)
+    runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # A known vulnerability fails the job once the SARIF is written. Exceptions with a
+      # reason go in osv-scanner.toml.
+      - name: Scan
+        run: |
+          docker run --rm -v "$PWD:/src" -w /src \
+            ghcr.io/google/osv-scanner:v2.7.0@sha256:4f3b7e2c64b9d38a5febc5a7e4a3dfef1d1362f726dea7a2ef4762b46469fcd0 \
+            --recursive --format sarif --output-file /src/osv.sarif /src
+      - uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        if: always() && hashFiles('osv.sarif') != ''
+        with:
+          sarif_file: osv.sarif
+          category: osv-lockfiles

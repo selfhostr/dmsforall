@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =================================================================================================
-# sauvegarder.sh — une sauvegarde de dfa_prod, EN DEUX PARTIES (schéma+données ET rôles, voir plus
+# sauvegarder.sh — une sauvegarde de la base dfa, EN DEUX PARTIES (schéma+données ET rôles, voir plus
 # bas pourquoi les deux sont indispensables), chacune : dump → vérification structurelle →
 # chiffrement age → écriture sur le volume dédié. Rotation locale (purger.sh) puis copie hors site
 # (copier-hors-site.sh, non bloquante) en fin de script. Exécuté chaque nuit par planifier.sh à
@@ -26,11 +26,11 @@
 # d'un `docker compose up` neuf sur ce même dépôt) n'échoue PAS à proprement parler — mais il
 # recrée les rôles avec les MOTS DE PASSE DE DEV (dfa_app_dev/dfa_migrator_dev/dfa_console_dev,
 # publiés dans le dépôt Git), jamais les mots de passe RÉELLEMENT en usage en production au moment
-# du sinistre. Un `.env.production` restauré à l'identique ne pourrait alors PAS se reconnecter
+# du sinistre. Un `the .env file` restauré à l'identique ne pourrait alors PAS se reconnecter
 # tant qu'une rotation manuelle n'a pas été rejouée EN PLUS de la restauration elle-même — au pire
 # moment pour découvrir cette étape. Un `pg_dumpall --roles-only` capture les VRAIS mots de passe
 # (hashés) et échéances `VALID UNTIL` en vigueur au moment de CETTE sauvegarde précise : une
-# restauration qui le rejoue retrouve exactement les identifiants que `.env.production` attend
+# restauration qui le rejoue retrouve exactement les identifiants que `the .env file` attend
 # déjà, sans étape de rotation supplémentaire pendant un incident. Robuste aussi au cas où
 # `01-roles.sql` aurait divergé de ce qui tournait réellement (dérive non voulue), ou où la
 # restauration se ferait sur un Postgres qui n'a jamais vu ce script.
@@ -78,7 +78,7 @@
 # Optionnelles :
 #   AGE_CLE_PUBLIQUE_TEST — clé PUBLIQUE age D'UN SECOND DESTINATAIRE, dédiée au test de
 #     restauration MENSUEL AUTOMATISÉ (voir restaurer-test.sh/planifier-test.sh et
-#     docs/exploitation-sauvegardes.md « Clé de test »). Si posée, CHAQUE fichier est chiffré pour
+#     the backup documentation, "test key"). Si posée, CHAQUE fichier est chiffré pour
 #     LES DEUX destinataires (`age -r ... -r ...`) — la clé privée correspondante peut, elle,
 #     rester sur ce serveur (voir la justification complète dans les docs : compromission de cette
 #     clé seule ne donne accès qu'à une COPIE des données déjà accessibles en clair sur ce même
@@ -122,8 +122,8 @@ journaliser() {
 }
 
 DATE="$(date +%Y%m%d-%H%M%S)"
-FICHIER_FINAL="$SAUVEGARDES_DIR/dfa_prod_${DATE}.dump.age"
-FICHIER_ROLES_FINAL="$SAUVEGARDES_DIR/dfa_prod_${DATE}.roles.sql.age"
+FICHIER_FINAL="$SAUVEGARDES_DIR/dfa_${DATE}.dump.age"
+FICHIER_ROLES_FINAL="$SAUVEGARDES_DIR/dfa_${DATE}.roles.sql.age"
 TMP="$(mktemp --suffix=.dump "${SCRATCH_DIR}/dfa-XXXXXX")"
 TMP_ROLES="$(mktemp --suffix=.sql "${SCRATCH_DIR}/dfa-roles-XXXXXX")"
 chmod 600 "$TMP" "$TMP_ROLES"
@@ -187,7 +187,7 @@ if [ "$nb_tenants_source" -gt 0 ]; then
   nb_tenants_dump="$(pg_restore --data-only --table=tenant --file=- "$TMP" \
     | sed -n '/^COPY /,/^\\\.$/p' | grep -vc -E '^(COPY |\\\.$)')"
   if [ "$nb_tenants_dump" -eq 0 ]; then
-    journaliser "ECHEC contrôle sentinelle : ${nb_tenants_source} tenant(s) en base source mais 0 dans le dump produit — sauvegarde REJETÉE (voir docs/exploitation-sauvegardes.md)"
+    journaliser "ECHEC contrôle sentinelle : ${nb_tenants_source} tenant(s) en base source mais 0 dans le dump produit — sauvegarde REJETÉE (voir the backup documentation)"
     exit 1
   fi
   journaliser "contrôle sentinelle OK : ${nb_tenants_dump}/${nb_tenants_source} tenant(s) présents dans le dump"
@@ -230,7 +230,7 @@ taille_octets="${taille_octets// /}"
 
 # `ls`/`grep`/`sort` plutôt que `find -printf` : busybox (Alpine) n'a pas l'extension GNU
 # `-printf`, et `findutils` n'apporterait rien d'autre d'utile ici.
-precedent="$(cd "$SAUVEGARDES_DIR" && ls -1 dfa_prod_*.dump.age 2>/dev/null \
+precedent="$(cd "$SAUVEGARDES_DIR" && ls -1 dfa_*.dump.age 2>/dev/null \
   | grep -F -v -- "$(basename "$FICHIER_FINAL")" | sort | tail -n1 || true)"
 
 if [ -n "${precedent:-}" ]; then

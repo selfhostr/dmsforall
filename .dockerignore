@@ -1,0 +1,24 @@
+# Build context of the API and web images is the repository root. Dockerfiles copy named
+# files only, this list is a second safety net.
+.git
+.github
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+node_modules
+**/node_modules
+dist
+**/dist
+.vite
+coverage
+.pnpm-store
+*.tsbuildinfo
+*.log
+e2e
+docs
+**/test

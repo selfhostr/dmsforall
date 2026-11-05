@@ -1,64 +1,124 @@
-# Dev hybride DFA : seuls Postgres et Redis tournent en conteneurs.
-# Le backend (apps/api) et le front (apps/web) tournent en Node local pour le hot-reload
-# (`pnpm dev`), et se connectent à ces services via les ports publiés sur l'hôte.
+# dmsforall, complete stack from published images: PostgreSQL, Redis, API, background worker,
+# web app and a Caddy reverse proxy.
 #
-# En production, tout (y compris l'app) tourne en conteneurs — voir docs/deploiement-local.md
-# pour le détail dev, et la doc de déploiement prod (à venir) pour la config serveur.
+#   git clone https://github.com/selfhostr/dmsforall.git && cd dmsforall
+#   cp .env.example .env        # optional for a first try on localhost
+#   docker compose up -d
 #
-# Les tests d'intégration N'UTILISENT PAS ces conteneurs : ils passent par testcontainers,
-# qui démarre ses propres instances Postgres/Redis éphémères et isolées. La base `dfa_dev`
-# ci-dessous est réservée au développement manuel — ne jamais la pointer depuis les tests.
+# Then open http://localhost:8080. Settings are documented in .env.example.
 #
-# Rôles Postgres (RLS) : le service postgres démarre en superuser (`dfa`) UNIQUEMENT pour
-# initialiser le conteneur. Au premier démarrage sur un volume vide, il exécute
-# docker/postgres/init/01-roles.sql, qui crée les deux rôles réellement utilisés ensuite
-# (dfa_migrator pour les migrations, dfa_app pour l'API — voir .env.example et le fichier SQL
-# pour le détail). L'application ne se connecte JAMAIS avec le rôle superuser.
+# What happens on the first start:
+#   - init-secrets generates the database passwords once and keeps them in the dfa_secrets
+#     volume (nothing secret lives in this file or in the repository);
+#   - postgres creates the two restricted roles the application uses (dfa_migrator for schema
+#     changes, dfa_app for the API, which is subject to row level security);
+#   - migrate applies the database migrations, then api and worker start.
+# Upgrading is `docker compose pull && docker compose up -d`: migrate runs again before the
+# new API starts.
 #
-# L'attribut `version:` est déprécié depuis Compose v2 et volontairement omis.
+# Optional profiles:
+#   --profile ocr      registration-document scanner (extra image)
+#   --profile backup   encrypted nightly PostgreSQL backups (needs an age public key)
+#
+# Local development uses docker-compose.dev.yml instead. docker-compose.build.yml builds the
+# images from source instead of pulling them.
+
+name: dmsforall
+
+x-hardening: &hardening
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  logging:
+    driver: json-file
+    options:
+      max-size: '10m'
+      max-file: '5'
+
+# Settings every API process shares. The database URLs are built by the image entrypoint from
+# the generated passwords (see docker/entrypoint-api.sh).
+x-api-env: &api-env
+  NODE_ENV: production
+  REDIS_URL: redis://redis:6379
+  API_URL_PUBLIQUE: ${DFA_PUBLIC_URL:-http://localhost:8080}
+  WEB_URL_PUBLIQUE: ${DFA_PUBLIC_URL:-http://localhost:8080}
+  COOKIE_SECURE: 'true'
+  TRUST_PROXY_HOPS: ${DFA_TRUST_PROXY_HOPS:-1}
+  LOG_NIVEAU: ${DFA_LOG_LEVEL:-info}
+  OPENAPI_EXPOSER_DOCS: ${DFA_EXPOSE_API_DOCS:-false}
+  SENTRY_DSN: ${DFA_SENTRY_DSN:-}
+  SMTP_HOTE: ${DFA_SMTP_HOST:-}
+  SMTP_PORT: ${DFA_SMTP_PORT:-587}
+  SMTP_SECURISE: ${DFA_SMTP_SECURE:-false}
+  SMTP_UTILISATEUR: ${DFA_SMTP_USER:-}
+  SMTP_MOT_DE_PASSE: ${DFA_SMTP_PASSWORD:-}
+  SMTP_EXPEDITEUR: ${DFA_SMTP_FROM:-}
+  COURRIEL_ENVOI_REEL: ${DFA_SMTP_ENABLED:-false}
 
 services:
+  # One-shot job: creates the database passwords the first time, does nothing afterwards.
+  init-secrets:
+    image: postgres:16-alpine@sha256:0cefaabd882e42bcb2a2f3dc56d3ce4770560ba62fd7f197f1a2e008fd5731ab
+    restart: 'no'
+    command:
+      - sh
+      - -c
+      - |
+        set -eu
+        for name in postgres_password app_password migrator_password; do
+          if [ ! -s "/secrets/$$name" ]; then
+            tr -dc 'A-Za-z0-9' </dev/urandom | head -c 40 > "/secrets/$$name.tmp"
+            mv "/secrets/$$name.tmp" "/secrets/$$name"
+          fi
+          chmod 0444 "/secrets/$$name"
+        done
+    volumes:
+      - dfa_secrets:/secrets
+    <<: *hardening
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+
   postgres:
-    # Alpine : image minimale, patchs de sécurité rapides. Version majeure fixée (16) pour
-    # rester alignée avec la prod ; le tag mineur suit les correctifs de sécurité en amont.
-    image: postgres:16-alpine
-    container_name: dfa-postgres
+    image: postgres:16-alpine@sha256:0cefaabd882e42bcb2a2f3dc56d3ce4770560ba62fd7f197f1a2e008fd5731ab
     restart: unless-stopped
     environment:
+      # This superuser is only used to bootstrap the container and to run backups. The
+      # application never connects with it: a superuser would silently bypass row level security.
       POSTGRES_USER: dfa
-      POSTGRES_PASSWORD: dfa_dev_local
-      POSTGRES_DB: dfa_dev
-      # Encodage/locale explicites : montants, dates et tri doivent être stables et
-      # reproductibles entre le poste de dev (Windows) et les serveurs de prod (Linux).
+      POSTGRES_PASSWORD_FILE: /secrets/postgres_password
+      POSTGRES_DB: dfa
       POSTGRES_INITDB_ARGS: '--encoding=UTF8 --locale=C.UTF-8'
-    ports:
-      # Publié sur l'hôte car l'app (Node local) et les outils (psql, Drizzle Studio, GUI)
-      # s'y connectent directement depuis l'extérieur du réseau Docker.
-      - '5432:5432'
     volumes:
       - dfa_postgres_data:/var/lib/postgresql/data
-      # Monté en lecture seule : ne s'exécute qu'à l'initdb d'un volume vide (comportement
-      # standard de /docker-entrypoint-initdb.d/). Sur un volume déjà initialisé, il faut
-      # `docker compose down -v` pour qu'il rejoue — voir docs/deploiement-local.md.
-      - ./docker/postgres/init/01-roles.sql:/docker-entrypoint-initdb.d/01-roles.sql:ro
+      - dfa_secrets:/secrets:ro
+    configs:
+      - source: postgres-roles
+        target: /docker-entrypoint-initdb.d/01-roles.sh
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U dfa -d dfa_dev']
+      test: ['CMD-SHELL', 'pg_isready -U dfa -d dfa']
       interval: 5s
       timeout: 5s
       retries: 10
-      # Laisse le temps à un premier démarrage (initdb) sur un poste lent avant de compter
-      # les échecs de healthcheck.
-      start_period: 10s
+      start_period: 15s
+    depends_on:
+      init-secrets:
+        condition: service_completed_successfully
+    # Not published on the host. To open a SQL shell:
+    #   docker compose exec postgres psql -U dfa -d dfa
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
 
   redis:
-    image: redis:7-alpine
-    container_name: dfa-redis
+    image: redis:7-alpine@sha256:8da19c7399dca900c6822a1cf30f9d2285585e2c4b457ff4095b0f4500054d3f
     restart: unless-stopped
-    # Persistance AOF (Append Only File) : Redis sert de backend BullMQ (files de jobs) en
-    # plus du cache, on ne veut pas perdre les jobs en attente à un redémarrage du conteneur.
-    command: redis-server --appendonly yes
-    ports:
-      - '6379:6379'
+    # Append-only file: Redis holds the background job queues, which must survive a restart.
+    command: ['redis-server', '--appendonly', 'yes']
     volumes:
       - dfa_redis_data:/data
     healthcheck:
@@ -67,39 +127,228 @@ services:
       timeout: 3s
       retries: 10
       start_period: 5s
+    # Not published on the host, reachable from the compose network only.
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
 
-  ocr-permis:
-    # Service OCR dédié à la lecture du permis de circulation (RapidOCR, voir
-    # apps/api/src/vehicules/ocr/moteur-rapidocr-conteneur/). Construit localement (pas d'image
-    # publiée) — même doctrine que les autres conteneurs internes de ce dépôt.
-    build:
-      context: ./apps/api/src/vehicules/ocr/moteur-rapidocr-conteneur
-    container_name: dfa-ocr-permis
+  # One-shot job: applies the pending database migrations, then exits.
+  migrate:
+    image: ghcr.io/selfhostr/dmsforall:${DFA_VERSION:-latest}
+    restart: 'no'
+    command: ['node', 'dist/db/migrer.js']
+    environment:
+      <<: *api-env
+    volumes:
+      - dfa_secrets:/secrets:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    <<: *hardening
+
+  api:
+    image: ghcr.io/selfhostr/dmsforall:${DFA_VERSION:-latest}
     restart: unless-stopped
-    ports:
-      # 8092, HORS de la plage éphémère du noyau (32768-60999) : Docker rootless (ce poste) ne
-      # publie PAS un port choisi dans cette plage — piège vérifié, voir docs/deploiement-local.md.
-      # Publié sur l'hôte car l'API (Node local, `pnpm dev`) l'appelle directement, comme
-      # postgres/redis ci-dessus — voir OCR_SERVICE_URL (apps/api/src/vehicules/ocr/config-ocr.ts,
-      # `.env`).
-      - '8092:8092'
+    environment:
+      <<: *api-env
+      PORT: '3000'
+      MODE_PROCESSUS: api
+    volumes:
+      - dfa_secrets:/secrets:ro
+      - dfa_api_uploads:/repo/apps/api/uploads/documents-pdf
+      - dfa_exports_resiliation:/repo/apps/api/uploads/exports-resiliation
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    stop_grace_period: 30s
+    <<: *hardening
+
+  # Same image as the API, runs the BullMQ queues and the scheduled jobs.
+  worker:
+    image: ghcr.io/selfhostr/dmsforall:${DFA_VERSION:-latest}
+    restart: unless-stopped
+    command: ['node', 'dist/main-worker.js']
+    environment:
+      <<: *api-env
+      PORT: '3001'
+      MODE_PROCESSUS: worker
+    volumes:
+      - dfa_secrets:/secrets:ro
+      - dfa_api_uploads:/repo/apps/api/uploads/documents-pdf
+      - dfa_exports_resiliation:/repo/apps/api/uploads/exports-resiliation
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    stop_grace_period: 30s
     healthcheck:
       test:
-        [
-          'CMD',
-          'python',
-          '-c',
-          "import urllib.request; urllib.request.urlopen('http://localhost:8092/sante', timeout=3)",
-        ]
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/sante').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
       interval: 30s
       timeout: 5s
-      retries: 3
-      # Chargement de deux instances RapidOCR au démarrage (profils "page"/"zone", voir moteur.py)
-      # — quelques secondes, pas instantané.
       start_period: 20s
+      retries: 3
+    <<: *hardening
+
+  web:
+    image: ghcr.io/selfhostr/dmsforall-web:${DFA_VERSION:-latest}
+    restart: unless-stopped
+    <<: *hardening
+
+  # Single entry point: /api goes to the API, everything else to the web app. With a domain name
+  # as DFA_SITE_ADDRESS, Caddy gets and renews a Let's Encrypt certificate by itself (ports 80
+  # and 443 must be reachable from the internet).
+  proxy:
+    image: caddy:2-alpine@sha256:f6228111e5fafa1a5238258d0858e103f10599b8d1659a146e7726681a002bb9
+    restart: unless-stopped
+    ports:
+      - '${DFA_HTTP_PORT:-8080}:80'
+      - '${DFA_HTTPS_PORT:-8443}:443'
+    configs:
+      - source: caddyfile
+        target: /etc/caddy/Caddyfile
+    volumes:
+      - dfa_caddy_data:/data
+      - dfa_caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://127.0.0.1:2019/config/']
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
+
+  # --- profile ocr: registration-document scanner. The API calls it at http://ocr-permis:8092.
+  ocr-permis:
+    image: ghcr.io/selfhostr/dmsforall-ocr:${DFA_VERSION:-latest}
+    profiles: ['ocr']
+    restart: unless-stopped
+    <<: *hardening
+
+  # --- profile backup: nightly encrypted dumps, written to the dfa_postgres_backups volume.
+  # Needs AGE_CLE_PUBLIQUE (an age public key; keep the private key off this server).
+  # Built from docker/postgres/sauvegarde, so it needs a clone of the repository.
+  init-backups:
+    image: postgres:16-alpine@sha256:0cefaabd882e42bcb2a2f3dc56d3ce4770560ba62fd7f197f1a2e008fd5731ab
+    profiles: ['backup']
+    restart: 'no'
+    user: root
+    command: ['sh', '-c', 'chown -R 10001:10001 /sauvegardes']
+    volumes:
+      - dfa_postgres_backups:/sauvegardes
+    cap_add:
+      - CHOWN
+    cap_drop:
+      - ALL
+
+  backup:
+    build:
+      context: ./docker/postgres/sauvegarde
+    image: dmsforall-backup:local
+    profiles: ['backup']
+    restart: unless-stopped
+    entrypoint:
+      - sh
+      - -c
+      - 'PGPASSWORD="$$(cat /secrets/postgres_password)"; export PGPASSWORD; exec /scripts/planifier.sh'
+    environment:
+      TZ: ${DFA_TIMEZONE:-UTC}
+      PGHOST: postgres
+      PGPORT: '5432'
+      PGDATABASE: dfa
+      PGUSER: dfa
+      AGE_CLE_PUBLIQUE: ${AGE_CLE_PUBLIQUE:-}
+      HEURE_SAUVEGARDE: ${HEURE_SAUVEGARDE:-03:15}
+      SEUIL_TAILLE_MIN_POURCENT: ${SEUIL_TAILLE_MIN_POURCENT:-50}
+      RCLONE_REMOTE: ${RCLONE_REMOTE:-}
+    volumes:
+      - dfa_secrets:/secrets:ro
+      - dfa_postgres_backups:/sauvegardes
+    tmpfs:
+      - /scratch:mode=1777,size=1g
+    depends_on:
+      postgres:
+        condition: service_healthy
+      init-backups:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ['CMD', '/scripts/verifier-vivant.sh']
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    <<: *hardening
+
+configs:
+  caddyfile:
+    content: |
+      ${DFA_SITE_ADDRESS:-http://localhost} {
+        encode gzip
+
+        header {
+          X-Content-Type-Options nosniff
+          -Server
+        }
+
+        handle /api/* {
+          reverse_proxy api:3000
+        }
+
+        handle {
+          reverse_proxy web:8080
+        }
+      }
+
+  # Creates the two restricted application roles with the generated passwords. Runs only when
+  # the data volume is empty (standard PostgreSQL image behaviour). Same grants as
+  # docker/postgres/init/01-roles.sql, the development version with fixed passwords.
+  postgres-roles:
+    content: |
+      #!/bin/sh
+      set -eu
+      app_password="$$(cat /secrets/app_password)"
+      migrator_password="$$(cat /secrets/migrator_password)"
+      psql -v ON_ERROR_STOP=1 --username "$$POSTGRES_USER" --dbname "$$POSTGRES_DB" <<SQL
+      CREATE ROLE dfa_migrator WITH LOGIN PASSWORD '$$migrator_password'
+        NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
+      CREATE ROLE dfa_app WITH LOGIN PASSWORD '$$app_password'
+        NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
+      ALTER SCHEMA public OWNER TO dfa_migrator;
+      REVOKE ALL ON SCHEMA public FROM PUBLIC;
+      GRANT USAGE ON SCHEMA public TO dfa_migrator;
+      GRANT USAGE ON SCHEMA public TO dfa_app;
+      GRANT CREATE ON DATABASE $$POSTGRES_DB TO dfa_migrator;
+      SQL
 
 volumes:
-  # Volumes nommés : les données survivent aux `docker compose down` (sans -v) et aux
-  # recréations de conteneurs. `docker compose down -v` reste le moyen de repartir de zéro.
+  dfa_secrets:
   dfa_postgres_data:
   dfa_redis_data:
+  dfa_api_uploads:
+  dfa_exports_resiliation:
+  dfa_caddy_data:
+  dfa_caddy_config:
+  dfa_postgres_backups:

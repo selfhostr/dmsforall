@@ -1,34 +1,27 @@
 #!/usr/bin/env bash
 # =================================================================================================
-# restaurer.sh — remonte une base PostgreSQL depuis un fichier de sauvegarde chiffré
-# (dfa_prod_AAAAMMJJ-HHMMSS.dump.age, produit par sauvegarder.sh). Pensé pour être utilisable sous
-# pression, à 22h, sans avoir à réfléchir : deux arguments obligatoires, un seul indicateur, des
-# messages en français à chaque étape.
+# restaurer.sh: restore an encrypted backup (dfa_<timestamp>.dump.age, made by sauvegarder.sh, the
+# older dfa_prod_<timestamp>.dump.age name works too) into a database of the running PostgreSQL
+# container of docker-compose.yml.
 #
-# Usage :
-#   docker/postgres/sauvegarde/restaurer.sh <fichier.dump.age> <base-cible> [--confirmer]
+# Run it from a clone of the repository, on the machine that runs the stack:
 #
-# <base-cible> : nom de la base PostgreSQL à (re)créer sur le conteneur `postgres` de PRODUCTION
-#                (docker-compose.yml). N'écrase JAMAIS une base existante sans --confirmer
-#                ET une seconde confirmation tapée à la main (voir plus bas) — deux gestes
-#                distincts exprès, pour qu'un `--confirmer` ajouté par réflexe ou copié-collé d'une
-#                commande précédente ne suffise pas à lui seul à écraser la base de production.
+#   docker compose stop api worker
+#   AGE_CLE_PRIVEE_FICHIER=/path/to/age.key \
+#     docker/postgres/sauvegarde/restaurer.sh /path/to/dfa_20260101-031500.dump.age dfa --confirmer
+#   docker compose up -d
 #
-# Recommandé pour une restauration de PRODUCTION réelle : restaurer d'abord sous un nom TEMPORAIRE
-# (ex. dfa_prod_restauration), vérifier son contenu, puis basculer l'application dessus
-# manuellement (renommage de base ou changement de DATABASE_URL) plutôt que d'écraser dfa_prod
-# directement — ce script permet les deux, le choix reste à l'opérateur.
+# Typical disaster recovery: start a fresh stack (`docker compose up -d postgres`), restore into
+# the database `dfa`, then start everything. The database passwords of the new stack are used,
+# the roles are created by the new postgres container, so no role dump is needed.
 #
-# Variables d'environnement requises :
-#   AGE_CLE_PRIVEE_FICHIER   chemin vers la clé PRIVÉE age qui déchiffre les sauvegardes. Cette clé
-#                            ne vit JAMAIS sur ce serveur en permanence (voir sauvegarder.sh) — elle
-#                            doit être apportée pour l'occasion (clé USB, gestionnaire de mots de
-#                            passe de @laupernoe) et supprimée du serveur juste après. Ce script ne la lit
-#                            qu'en lecture, ne la copie ni ne l'affiche jamais.
-# Optionnelle :
-#   RACINE_DEPOT             remplace la racine de dépôt déduite de l'emplacement de ce script —
-#                            réservé aux tests (pointer vers une copie jetable de
-#                            docker-compose.yml), jamais nécessaire en usage normal.
+# Safety:
+#   - the target database must not exist, or --confirmer AND a typed confirmation are needed;
+#   - decryption is streamed into pg_restore, no clear text file is written;
+#   - the age private key is brought for the occasion: delete it from the server afterwards.
+#
+# Variable: AGE_CLE_PRIVEE_FICHIER, path to the age private key. Needs `age` and `docker` on the
+# host. COMPOSE_ARGS adds options to `docker compose` (for example "-p myproject").
 # =================================================================================================
 set -euo pipefail
 
@@ -41,108 +34,81 @@ fi
 
 if [ -z "$FICHIER" ] || [ -z "$BASE_CIBLE" ]; then
   cat >&2 <<'USAGE'
-Usage : docker/postgres/sauvegarde/restaurer.sh <fichier.dump.age> <base-cible> [--confirmer]
+Usage: docker/postgres/sauvegarde/restaurer.sh <file.dump.age> <target-database> [--confirmer]
 
-  <fichier.dump.age>  sauvegarde à restaurer (voir /sauvegardes sur le serveur, ou une copie
-                       récupérée hors site par @laupernoe).
-  <base-cible>         nom de la base à créer/écraser sur le Postgres de production.
-  --confirmer          requis en plus d'une confirmation tapée à la main si <base-cible> existe
-                        déjà — sans ce risque, ce script ne touche jamais une base existante.
+  <file.dump.age>      backup to restore (see the dfa_postgres_backups volume, or an off-site copy).
+  <target-database>    database to create (use "dfa" to replace the one the API uses).
+  --confirmer          needed, with a typed confirmation, when the target database already exists.
 
-Variable requise : AGE_CLE_PRIVEE_FICHIER (chemin vers la clé privée age, jamais stockée sur ce
-serveur en permanence).
+Variable required: AGE_CLE_PRIVEE_FICHIER (path to the age private key).
 USAGE
   exit 1
 fi
 
 if [ ! -r "$FICHIER" ]; then
-  echo "Erreur : fichier de sauvegarde introuvable ou illisible : ${FICHIER}" >&2
+  echo "Error: backup file not found or unreadable: ${FICHIER}" >&2
   exit 1
 fi
 
 if ! [[ "$BASE_CIBLE" =~ ^[a-z_][a-z0-9_]*$ ]]; then
-  echo "Erreur : nom de base invalide : '${BASE_CIBLE}' (lettres minuscules/chiffres/_ uniquement, ne commence pas par un chiffre)." >&2
+  echo "Error: invalid database name '${BASE_CIBLE}' (lower case letters, digits and _ only)." >&2
   exit 1
 fi
 
-: "${AGE_CLE_PRIVEE_FICHIER:?AGE_CLE_PRIVEE_FICHIER manquant — chemin vers la clé privée age, apportée pour l\'occasion, jamais laissée sur ce serveur}"
+: "${AGE_CLE_PRIVEE_FICHIER:?AGE_CLE_PRIVEE_FICHIER is missing: path to the age private key}"
 if [ ! -r "$AGE_CLE_PRIVEE_FICHIER" ]; then
-  echo "Erreur : clé privée age introuvable ou illisible : ${AGE_CLE_PRIVEE_FICHIER}" >&2
+  echo "Error: age private key not found or unreadable: ${AGE_CLE_PRIVEE_FICHIER}" >&2
   exit 1
 fi
 
 RACINE_DEPOT="${RACINE_DEPOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
-FICHIER_ENV="${RACINE_DEPOT}/.env.production"
-if [ ! -r "$FICHIER_ENV" ]; then
-  echo "Erreur : ${FICHIER_ENV} introuvable — ce script doit s'exécuter depuis un checkout du dépôt sur le serveur de production." >&2
-  exit 1
-fi
+# shellcheck disable=SC2206
+COMPOSE=(docker compose -f "${RACINE_DEPOT}/docker-compose.yml" ${COMPOSE_ARGS:-})
 
-# Secrets Postgres lus depuis .env.production, jamais tapés en argument (voir docs de rotation des
-# secrets, même règle qu'ailleurs dans ce projet) : `set -a` exporte tout ce que la source pose,
-# `set +a` referme la portée aussitôt après pour ne pas exporter le reste du script par erreur.
-set -a
-# shellcheck disable=SC1090
-. "$FICHIER_ENV"
-set +a
-
-: "${POSTGRES_SUPERUSER_PASSWORD:?POSTGRES_SUPERUSER_PASSWORD manquant dans ${FICHIER_ENV}}"
-: "${POSTGRES_MIGRATOR_PASSWORD:?POSTGRES_MIGRATOR_PASSWORD manquant dans ${FICHIER_ENV}}"
-
-COMPOSE=(docker compose -f "${RACINE_DEPOT}/docker-compose.yml" --env-file "$FICHIER_ENV")
-
+# Inside the container the superuser connects through the local socket (trust), the migrator
+# role over TCP with the generated password stored in /secrets.
 psql_superviseur() {
-  "${COMPOSE[@]}" exec -T -e PGPASSWORD="$POSTGRES_SUPERUSER_PASSWORD" postgres \
-    psql -U dfa -d postgres -v ON_ERROR_STOP=1 -tA "$@"
+  "${COMPOSE[@]}" exec -T postgres psql -U dfa -d postgres -v ON_ERROR_STOP=1 -tA "$@" </dev/null
 }
 
-echo "→ [1/5] Vérification de l'état de la base cible '${BASE_CIBLE}'..."
+echo "-> [1/5] Checking the target database '${BASE_CIBLE}'..."
 existe="$(psql_superviseur -c "select 1 from pg_database where datname = '${BASE_CIBLE}';")"
 
 if [ "$existe" = "1" ]; then
   if [ "$CONFIRMER" -ne 1 ]; then
-    echo "" >&2
-    echo "REFUS : la base '${BASE_CIBLE}' existe déjà. Relancez avec --confirmer si vous voulez" >&2
-    echo "vraiment l'écraser (les données actuelles de cette base seront perdues)." >&2
+    echo "REFUSED: database '${BASE_CIBLE}' exists. Use --confirmer to replace it (its data is lost)." >&2
     exit 1
   fi
-
-  echo "" >&2
-  echo "ATTENTION : la base '${BASE_CIBLE}' existe déjà et va être DÉTRUITE puis recréée à partir" >&2
-  echo "de la sauvegarde. Cette action est IRRÉVERSIBLE." >&2
-  read -r -p "Tapez exactement le nom de la base pour confirmer (${BASE_CIBLE}) : " saisie
+  echo "WARNING: database '${BASE_CIBLE}' will be DROPPED and recreated from the backup." >&2
+  read -r -p "Type the database name to confirm (${BASE_CIBLE}): " saisie
   if [ "$saisie" != "$BASE_CIBLE" ]; then
-    echo "Saisie différente du nom attendu — abandon, rien n'a été touché." >&2
+    echo "Different input, nothing was touched." >&2
     exit 1
   fi
-
-  echo "→ [2/5] Suppression de la base existante '${BASE_CIBLE}'..."
-  psql_superviseur -c "drop database \"${BASE_CIBLE}\";" >/dev/null
+  echo "-> [2/5] Dropping '${BASE_CIBLE}'..."
+  psql_superviseur -c "drop database \"${BASE_CIBLE}\" with (force);" >/dev/null
 else
-  echo "→ [2/5] La base '${BASE_CIBLE}' n'existe pas encore — création directe."
+  echo "-> [2/5] '${BASE_CIBLE}' does not exist yet, creating it."
 fi
 
-echo "→ [3/5] Création de la base '${BASE_CIBLE}' (propriétaire dfa_migrator)..."
+echo "-> [3/5] Creating '${BASE_CIBLE}' (owner dfa_migrator)..."
 psql_superviseur -c "create database \"${BASE_CIBLE}\" owner dfa_migrator;" >/dev/null
 
-echo "→ [4/5] Déchiffrement en flux et restauration (pg_restore, aucun fichier en clair écrit) — peut prendre plusieurs minutes selon la taille de la sauvegarde..."
+echo "-> [4/5] Decrypting and restoring (streamed, may take minutes)..."
 age -d -i "$AGE_CLE_PRIVEE_FICHIER" "$FICHIER" \
-  | "${COMPOSE[@]}" exec -T -e PGPASSWORD="$POSTGRES_MIGRATOR_PASSWORD" postgres \
-    pg_restore -U dfa_migrator -d "$BASE_CIBLE"
+  | "${COMPOSE[@]}" exec -T postgres sh -c \
+    "PGPASSWORD=\"\$(cat /secrets/migrator_password)\" pg_restore -h 127.0.0.1 -U dfa_migrator -d '${BASE_CIBLE}'"
 
-echo "→ [5/5] Vérifications rapides sur '${BASE_CIBLE}' :"
-echo "  Tables du schéma public :"
-psql_superviseur -c "\c ${BASE_CIBLE}" -c "select count(*) from information_schema.tables where table_schema = 'public';" | tail -n1
-echo "  Tables du schéma public sans RLS activé (référentiels partagés SANS tenant attendus ici — ex."
-echo "  type_approbation_ch, référentiel ASTRA, migration 0050 — vérifié en exécution le 27.08.2026"
-echo "  contre restaurer-test.sh ; un nombre qui grandit sans lien avec un référentiel connu est"
-echo "  l'anomalie à investiguer, pas la présence de ce compteur au-dessus de zéro) :"
-psql_superviseur -c "\c ${BASE_CIBLE}" -c "select count(*) from pg_tables where schemaname = 'public' and rowsecurity = false;" | tail -n1
+echo "-> [5/5] Quick checks on '${BASE_CIBLE}':"
+echo "  tables in schema public:"
+"${COMPOSE[@]}" exec -T postgres psql -U dfa -d "$BASE_CIBLE" -tA \
+  -c "select count(*) from information_schema.tables where table_schema = 'public';"
+echo "  garages (tenants):"
+"${COMPOSE[@]}" exec -T postgres psql -U dfa -d "$BASE_CIBLE" -tA -c "select count(*) from tenant;"
 
 echo ""
-echo "OK. Base '${BASE_CIBLE}' restaurée depuis $(basename "$FICHIER")."
-echo "Rappel : cette base n'est PAS automatiquement celle que l'API utilise — pour la mettre en"
-echo "service, ajustez DATABASE_URL/DATABASE_URL_MIGRATION dans .env.production puis redémarrez"
-echo "le service api (docker compose ... up -d api), ou renommez cette base vers dfa_prod si vous"
-echo "avez d'abord supprimé/renommé l'ancienne. Supprimez ${AGE_CLE_PRIVEE_FICHIER} de ce serveur"
-echo "maintenant que la restauration est terminée — la clé privée ne doit pas y rester."
+echo "OK. Database '${BASE_CIBLE}' restored from $(basename "$FICHIER")."
+if [ "$BASE_CIBLE" != "dfa" ]; then
+  echo "The API does not use it: it reads the database 'dfa'."
+fi
+echo "Delete ${AGE_CLE_PRIVEE_FICHIER} from this server now: the private key must not stay here."

@@ -1,89 +1,21 @@
 name: CI
 
-# Push sur main et dev (post-merge, ou tout push direct hors PR), et PR ciblant `dev` uniquement.
-#
-# `dev` dans `push` ET `pull_request` : le modèle de branches du dépôt est feature -> dev -> main,
-# donc TOUTES les relectures passent par une PR vers `dev` — celles vers `main` ne sont que la
-# promotion d'un `dev` déjà intégré. Sans `dev` dans ces deux listes, aucune PR de travail n'était
-# jamais vérifiée : les checks n'apparaissaient qu'au moment de promouvoir, c'est-à-dire trop tard
-# pour servir de garde-fou.
-#
-# Constaté en vrai : la PR « reconciliation des tests d'integration » est sortie avec ZÉRO check,
-# alors qu'elle rendait justement le job d'intégration vert. Impossible de le prouver autrement qu'en
-# local, ce qui est exactement ce que la CI existe pour éviter.
-#
-# `main` ABSENT de `pull_request` (retiré le 10.08.2026, voir commit qui a introduit ce
-# commentaire) : dans ce modèle, la SEULE source de PR vers `main` est `dev` — jamais une branche
-# `feat/*` directement. Or `dev` est déjà dans `push.branches` ci-dessus : chaque commit qui
-# atterrit sur `dev` (merge d'une PR feat->dev, ou push direct) déclenche déjà un run `push`, sur
-# CE MÊME sha. Garder `main` dans `pull_request.branches` faisait tourner un DEUXIÈME run
-# identique dès qu'une PR dev->main restait ouverte pendant qu'on continuait à pousser sur `dev` —
-# mesuré sur le commit a695bf0 (deux runs complets, 11 min de job « Vérifier » chacun, donc 22 min
-# consommées pour 11 utiles). GitHub associe les check runs à un commit par SHA, pas par
-# déclencheur : les checks produits par le run `push` sur `dev` s'affichent normalement sur la PR
-# dev->main (même sha en tête de PR) et alimentent la protection de branche sans qu'un second run
-# `pull_request` soit nécessaire. C'est le même principe que le contournement standard « pas de
-# run pull_request pour les branches déjà couvertes par push », habituellement utilisé pour
-# distinguer PR internes et PR de fork.
-#
-# Trou assumé : une PR vers `main` dont la tête n'est PAS `dev` (contournement exceptionnel du
-# process, en théorie interdit par CONTRIBUTING.md — « main ne reçoit que les merges de dev ») n'aurait
-# de check ni via push (sa branche n'est pas dans push.branches) ni via pull_request (main en est
-# sorti) — zéro couverture CI sur GitHub pour ce cas-là. Accepté parce que hors process documenté ;
-# à revisiter si ce contournement devient un usage réel.
-#
-# `workflow_call` en plus : publier-images.yml (push sur main, push de tag vX.Y.Z) invoque CE
-# fichier comme workflow réutilisable pour ses trois jobs de qualité, au lieu d'en garder une copie.
-# Un `workflow_call` exécute les jobs appelés dans le run de l'appelant lui-même — contrairement à
-# une dépendance sur un run externe de ci.yml, il n'exige donc PAS que ci.yml ait été déclenché par
-# ailleurs au préalable. C'est ce qui rend la factorisation praticable même pour un push de tag, qui
-# ne déclenche jamais ci.yml par ses propres `on:` ci-dessus.
-#
-# `main` ABSENT de `push.branches` ci-dessous (retiré le 10.08.2026) : il y était, et ça faisait
-# tourner ci.yml DEUX FOIS en parallèle sur chaque push main — une fois pour son propre
-# déclencheur `push`, une fois à l'intérieur du run publier-images.yml qui l'invoque en
-# `workflow_call`. Un ancien commentaire ici qualifiait ça d'« accepté sciemment » ; ça ne l'était
-# plus. Preuve mesurée sur `main`, commit d21452a : les deux runs sur le MÊME sha n'ont PAS rendu
-# le même résultat (l'un vert partout, l'autre avec l'intégration en échec). Cause : les deux
-# suites `tests-integration` démarrent chacune leurs propres conteneurs testcontainers
-# (Postgres + Redis) sur le même runner à 2 cœurs — deux démarrages simultanés se disputent le
-# démon Docker. Déjà vu sur ce commit et le précédent : un `HTTP 500` du démon Docker, et un
-# Postgres `57P01 admin_shutdown` (conteneur arrêté pendant qu'une connexion vivait encore). Ce
-# n'était donc pas seulement du gaspillage de minutes CI, mais la cause de checks rouges au
-# hasard sur du code sain.
-#
-# publier-images.yml invoque déjà ce fichier en `workflow_call` pour ses trois jobs de qualité sur
-# un push main (voir son commentaire de tête) : retirer `main` d'ici ne perd donc aucune
-# couverture, ça élimine seulement la seconde exécution simultanée. Un push main déclenche
-# toujours les trois portes de qualité, une seule fois, via l'appelant.
-#
-# Effet sur le NOM des checks GitHub (importe si une protection de branche en référence un) : un
-# push `dev` continue de produire les noms directs (« Vérifier (lint, typecheck, tests, build) »,
-# etc. — visibles aussi sur une PR dev->main par association de SHA, voir plus haut). Un push
-# `main`, lui, ne produit plus QUE les noms préfixés par l'appelant (« Vérification qualité
-# (ci.yml) / Vérifier (...) »), plus jamais les noms directs — avant ce correctif, main produisait
-# les deux séries de noms. Vérifié avant d'écrire ce changement : `gh api
-# repos/selfhostr/dmsforall/branches/main/protection` ET `.../rulesets` rendent tous les deux
-# `403 Upgrade to GitHub Pro or make this repository public to enable this feature` — ce dépôt,
-# privé sur un compte personnel gratuit, ne PEUT PAS avoir de protection de branche ni de ruleset
-# configuré aujourd'hui, donc aucune règle n'existe qui référence l'un ou l'autre nom. À
-# revérifier le jour où ce dépôt passe public ou sur un plan payant : une protection ajoutée à ce
-# moment-là doit cibler les noms préfixés pour un check sur `main`.
+# Format, lint, types, unit tests, i18n, build, integration tests on a throwaway database,
+# migration reversibility, licences, advisories and the Docker install. Job names are part of
+# the required status checks of the dev and main rulesets: do not rename them.
+
 on:
   push:
-    branches: [dev]
+    branches: [dev, main]
   pull_request:
-    branches: [dev]
+    branches: [dev, main]
   workflow_call:
+  workflow_dispatch:
 
-# Annule les runs obsolètes d'une même branche/PR quand de nouveaux commits arrivent :
-# évite de consommer des minutes CI sur du code déjà dépassé.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Permissions minimales : ce workflow ne fait que lire le code et exécuter des vérifications,
-# il ne publie ni ne modifie rien dans le dépôt ou sur GitHub.
 permissions:
   contents: read
 
@@ -91,138 +23,81 @@ env:
   NODE_VERSION: '22'
 
 jobs:
-  # Lint, typecheck, tests unitaires et build — le socle de vérification rapide sur
-  # chaque push/PR. Les workspaces (apps/api, apps/web) sont attendus, mais les scripts
-  # racine (package.json) agrègent via `pnpm -r`, qui saute silencieusement un workspace
-  # n'ayant pas encore le script correspondant : le job reste valide même en cours de
-  # construction du monorepo.
-  verifier:
-    name: Vérifier (lint, typecheck, tests, build)
+  build-and-test:
+    name: Build and test
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - name: Récupérer le code
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      # Pas de `version:` ici : pnpm/action-setup@v4 la lit dans `packageManager` de
-      # package.json, seule source de vérité. La spécifier aussi ici ferait échouer
-      # l'action (conflit de version détecté entre les deux sources).
-      - name: Installer pnpm
-        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
-      - name: Installer Node ${{ env.NODE_VERSION }} (avec cache du store pnpm)
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
-      - name: Installer les dépendances (lockfile figé)
+      - name: Install dependencies (frozen lockfile)
         run: pnpm install --frozen-lockfile
 
-      # apps/web/vite.config.ts fixe `envDir` sur la racine du monorepo et refuse de builder si
-      # VITE_API_URL n'en est pas résolue (garde-fou volontaire, voir CONTRIBUTING.md). `.env` est
-      # gitignoré et donc absent sur un checkout CI ; `.env.example` définit déjà
-      # VITE_API_URL=/api/v1, suffisant pour un build (aucun secret réel n'est nécessaire ici).
-      - name: Préparer le .env racine (VITE_API_URL pour le build web)
+      # The web build reads VITE_API_URL from the root .env.
+      - name: Prepare .env
         run: cp .env.example .env
 
-      # @dfa/shared est compilé en CommonJS pour NestJS (voir packages/shared/package.json :
-      # `exports` ne pointe que vers ./dist, aucun fallback vers les sources). apps/api résout
-      # donc @dfa/shared via son dist/ compilé, pas via `tsc --noEmit` (le script `typecheck` de
-      # shared, qui ne produit aucun dist/). Sans cette étape, `pnpm typecheck` ci-dessous échoue
-      # en cascade sur apps/api avec TS2307 (« Cannot find module '@dfa/shared' »). Même besoin
-      # déjà couvert dans les deux jobs suivants (« Tests d'intégration » et réversibilité des
-      # migrations) — ce job est le seul à l'avoir oublié.
-      - name: Construire @dfa/shared
+      - name: Build @dfa/shared
         run: pnpm --filter @dfa/shared build
 
-      - name: Formatage (Prettier)
+      - name: Format
         run: pnpm format:check
 
-      - name: Lint (ESLint)
+      - name: Lint
         run: pnpm lint
 
-      - name: Vérification des types (TypeScript)
+      - name: Type check
         run: pnpm typecheck
 
-      # `pnpm -r --sequential` plutôt que `pnpm test` (= `pnpm -r test`, parallèle par défaut) :
-      # mesuré sur ce runner (voir capacity:1 dans runner_data/config.yml) que apps/api et apps/web
-      # tournent déjà en concurrence l'un de l'autre au sein de CE SEUL job, chacun avec
-      # VITEST_MAX_THREADS=3 — pic de 6 fils sur une machine à 8, déjà chargée par un mineur et les
-      # services personnels de @laupernoe (charge de base 8-10 hors CI). Conséquence observée : 4 fichiers
-      # web en échec par dépassement de testTimeout (apps/web/vitest.config.ts, 15000ms), jamais une
-      # assertion cassée — signature de contention, pas de régression (1790/1790 sur poste de dev le
-      # même jour). Sérialiser divise le pic par deux (3 fils max) sans changer le temps total de
-      # façon notable : les fils sont de toute façon le facteur limitant, pas l'ordre d'exécution
-      # (mesuré : 7m58 en série contre un run parallèle qui dépassait déjà 8m20 avant même de finir).
-      # Seul `--sequential` change ici ; `pnpm test` en local reste inchangé (packages/shared,
-      # apps/api, apps/web tous les trois via `-r --sequential`).
-      - name: Tests unitaires
+      - name: i18n keys
+        run: pnpm --filter @dfa/web i18n:check
+
+      - name: Unit tests
         run: pnpm -r --sequential run test
 
       - name: Build
         run: pnpm build
 
-  # Tests d'intégration : utilisent testcontainers (Postgres + Redis éphémères démarrés par
-  # les tests eux-mêmes), donc AUCUN `services:` déclaré ici — ce serait redondant et
-  # risquerait d'entrer en conflit sur les ports avec les conteneurs de testcontainers.
-  # ubuntu-latest fournit Docker nativement, requis par testcontainers.
-  tests-integration:
-    name: Tests d'intégration (testcontainers)
+  integration-tests:
+    name: Integration tests
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
-      - name: Récupérer le code
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      # Pas de `version:` ici : pnpm/action-setup@v4 la lit dans `packageManager` de
-      # package.json, seule source de vérité. La spécifier aussi ici ferait échouer
-      # l'action (conflit de version détecté entre les deux sources).
-      - name: Installer pnpm
-        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
-      - name: Installer Node ${{ env.NODE_VERSION }} (avec cache du store pnpm)
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
-      - name: Installer les dépendances (lockfile figé)
+      - name: Install dependencies (frozen lockfile)
         run: pnpm install --frozen-lockfile
 
-      # @dfa/shared est compilé en CommonJS pour NestJS (voir packages/shared/package.json :
-      # `exports` ne pointe que vers ./dist, aucun fallback vers les sources). Le job « Vérifier »
-      # construit shared en passant par `pnpm build` (= `pnpm -r build`), mais ce job repart d'un
-      # checkout propre et n'appelle jamais ce script — sans cette étape, vitest échoue à résoudre
-      # l'entrée du package (« Failed to resolve entry for package "@dfa/shared" »). Même besoin,
-      # déjà couvert dans scripts/verifier-reversibilite-migrations.sh (voir son étape
-      # "build-shared.log"), qui construit shared lui-même avant de jouer les migrations.
-      - name: Construire @dfa/shared
+      - name: Build @dfa/shared
         run: pnpm --filter @dfa/shared build
 
-      # apps/api/src/reprise/lecteurs/access/ shelle un vrai sous-processus mdb-tables/mdb-schema/
-      # mdb-export pour lire les archives Access (.mdb/.accdb, format Jet) — voir
-      # executeur-processus.ts. Les specs UNITAIRES (job « Vérifier » ci-dessus) substituent
-      # toujours ce sous-processus par une fabrique fictive (FabriqueProcessus, voir
-      # lecteur-access.ts : « assez étroit pour être substitué en test sans dépendre d'un vrai
-      # sous-processus mdbtools ») — elles n'ont donc jamais besoin du binaire. Seuls les futurs
-      # tests d'intégration de reprise (test/integration/**, ce job) peuvent vouloir prouver la
-      # lecture en exécution réelle, cohérent avec la règle du dépôt (« un mock ne prouve rien sur
-      # la requête réelle », CONTRIBUTING.md) — d'où l'installation ICI seulement, jamais dans « Vérifier »
-      # ni dans le job de réversibilité des migrations (aucun rapport). `mdbtools` sur
-      # Debian/Ubuntu fournit à la fois la lib et les binaires mdb-* (pas de split comme sur
-      # Alpine, voir apps/api/Dockerfile pour ce piège-là).
-      - name: Installer mdbtools (lecture des archives Access, test/integration/**)
-        run: sudo apt-get update && sudo apt-get install -y mdbtools
+      # Tests read Microsoft Access archives with the mdb-* command line tools.
+      - name: Install mdbtools
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends mdbtools
 
-      - name: Tests d'intégration
+      # testcontainers starts its own PostgreSQL and Redis, the settings below only satisfy the
+      # configuration schema.
+      - name: Integration tests
         run: pnpm test:integration
         env:
-          # Valeurs de test en dur, aucun secret réel. testcontainers démarre ses propres
-          # conteneurs Postgres/Redis éphémères ; DATABASE_URL/DATABASE_URL_MIGRATION/REDIS_URL
-          # ci-dessous ne servent qu'à satisfaire la validation zod au démarrage si le code lit
-          # l'env avant de basculer sur les conteneurs éphémères — ils ne pointent vers aucun
-          # service réel du CI. Les deux DATABASE_URL* utilisent des rôles différents
-          # (dfa_app / dfa_migrator), comme l'exige la validation zod (RLS — voir
-          # docker/postgres/init/01-roles.sql).
           NODE_ENV: test
           PORT: '3000'
           API_URL_PUBLIQUE: http://localhost:3000
@@ -241,66 +116,96 @@ jobs:
           ARGON2_PARALLELISME: '1'
           LIMITE_CONNEXION_IP: '20'
           LIMITE_CONNEXION_COMPTE: '5'
-          # DOIT rester STRICTEMENT INFÉRIEUR à LIMITE_CONNEXION_COMPTE ci-dessus (contrainte
-          # croisée du schéma zod, apps/api/src/config/charger-config.ts, superRefine) : sans
-          # cette ligne, SEUIL_VERROUILLAGE_COMPTE retombe sur son défaut de 5, identique à
-          # LIMITE_CONNEXION_COMPTE, et `chargerConfig` refuse de démarrer (ErreurConfigInvalide)
-          # pour tout chemin qui l'invoquerait avec ces variables. Abaissé ici plutôt que relevé
-          # LIMITE_CONNEXION_COMPTE (qui resterait à 15, le défaut de prod) : ce bloc sert de
-          # filet si un chemin de code lit un jour process.env avant de basculer sur les
-          # conteneurs éphémères (voir le commentaire de tête de ce bloc), pas à faire tourner de
-          # test de brute-force lui-même — le garder bas maintient ce filet rapide à satisfaire.
-          # Mêmes valeurs que apps/api/test/setup/app-test.ts::envTest() dans leur RELATION
-          # (compte < limite), pas dans leur montant : ce fichier n'a pas besoin de coller aux
-          # défauts de prod (15/5), seulement de rester valide. Rappel du pourquoi de la
-          # contrainte elle-même (bloquant B1, rapport QA étape 0) : si le budget de débit par
-          # email s'épuise au même rythme ou avant le seuil de verrouillage, la tentative qui doit
-          # PROUVER le verrouillage (bon mot de passe, compte déjà verrouillé) se fait refuser par
-          # le limiteur de débit et rend 429 au lieu du 423 attendu — le verrouillage devient
-          # untestable.
           SEUIL_VERROUILLAGE_COMPTE: '3'
           LIMITE_FENETRE_SECONDES: '900'
           LOG_NIVEAU: debug
           OPENAPI_EXPOSER_DOCS: 'true'
-          VERSION_APP: 0.1.0-ci
+          VERSION_APP: 0.0.0-ci
 
-  # Réversibilité des migrations : la règle du dépôt (« migrations réversibles, expand/contract,
-  # jamais destructives ») était vérifiée À LA MAIN jusqu'ici — appliquer la montante, dumper le
-  # schéma, appliquer l'inverse, réappliquer la montante, comparer les dumps. Protocole qui a
-  # réellement trouvé quelque chose (un `comment on table` que 0012 ne restaurait pas mot pour mot,
-  # alors que `verifierPostureRls()` au démarrage de l'API lit CE commentaire). scripts/verifier-
-  # reversibilite-migrations.sh l'automatise : CHAQUE migration existante est testée
-  # INDIVIDUELLEMENT (pas un seul cycle « up all → down all → up all », qui désignerait mal le
-  # coupable), dans l'ordre où elle a réellement été appliquée. Voir l'en-tête du script pour
-  # l'arbitrage détaillé (granularité, périmètre historique complet plutôt que diff de branche) et
-  # pour ce que ce garde-fou NE détecte PAS (aucune donnée réelle, aucun verrou de production,
-  # aucun rollback de plusieurs migrations d'affilée).
-  #
-  # AUCUN `services:` Postgres ici : le script démarre et détruit lui-même son propre conteneur
-  # Postgres jetable (jamais `dfa_dev`/`dfa_test`), et route tout `psql`/`pg_dump` via `docker exec`
-  # dedans — donc AUCUN outil client Postgres n'est requis sur le runner, seuls `docker` (natif sur
-  # ubuntu-latest) et `pnpm` le sont.
-  verifier-reversibilite-migrations:
-    name: Réversibilité des migrations (up → down → up, une par une)
+  migrations-reversibility:
+    name: Migrations reversibility
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - name: Récupérer le code
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      # Pas de `version:` ici : pnpm/action-setup@v4 la lit dans `packageManager` de
-      # package.json, seule source de vérité. La spécifier aussi ici ferait échouer
-      # l'action (conflit de version détecté entre les deux sources).
-      - name: Installer pnpm
-        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
-      - name: Installer Node ${{ env.NODE_VERSION }} (avec cache du store pnpm)
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
-      # Pas de `pnpm install` séparé : le script l'exécute lui-même, UNE seule fois pour toute la
-      # vérification (jamais par migration) — voir son en-tête. Le cache pnpm ci-dessus (même clé
-      # que les deux jobs précédents, basée sur pnpm-lock.yaml) s'applique de la même façon.
-      - name: Vérifier la réversibilité de chaque migration
+      # Each migration is applied, rolled back with its down script and applied again; the
+      # schema dumps must match at every step.
+      - name: Check every migration (up, down, up)
         run: scripts/verifier-reversibilite-migrations.sh
+
+  licences-and-advisories:
+    name: Licences and advisories
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      # Only OSI-approved licences pass, see the list in the script.
+      - name: Licences
+        run: pnpm licenses list --json | node .github/scripts/check-licenses.mjs
+
+      - name: Advisories (production dependencies, high and critical)
+        run: pnpm audit --prod --audit-level high
+
+  docker:
+    name: Docker install
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      COMPOSE_FILE: docker-compose.yml:docker-compose.build.yml
+      DFA_VERSION: ci
+      DFA_HTTP_PORT: '8080'
+      DFA_EXPOSE_API_DOCS: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      # The images are built but never pushed on pull requests. Then the real compose file starts
+      # the whole product from them.
+      - name: Build the images
+        run: docker compose build api web
+
+      - name: Start the stack
+        run: docker compose up -d --wait --wait-timeout 300
+
+      - name: Health and API documentation
+        run: |
+          set -eu
+          curl --fail --silent --show-error http://localhost:8080/api/v1/sante
+          echo
+          curl --fail --silent --show-error http://localhost:8080/api/docs.json | head -c 200
+          echo
+          curl --fail --silent --show-error --output /dev/null http://localhost:8080/
+
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs --no-color --tail 100
+
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v

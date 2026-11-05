@@ -45,7 +45,7 @@
 #                           casserait la sauvegarde locale, voir sauvegarder.sh) — attendu tant que
 #                           l'hébergement n'est pas choisi. Statut consigné comme NON_CONFIGURE,
 #                           PAS comme ECHEC (distinction utile : « pas encore fait » diffère de
-#                           « configuré et cassé » — voir docs/exploitation-sauvegardes.md).
+#                           « configuré et cassé » — voir the backup documentation).
 #   RCLONE_CONFIG           chemin du fichier de config rclone (secrets du fournisseur choisi,
 #                           JAMAIS commité — voir secrets/rclone.conf, monté par
 #                           docker-compose.yml, `.gitignore` couvre déjà `secrets/`). Défaut
@@ -70,7 +70,7 @@ journaliser() {
 # consigné distinctement de ECHEC, mais TOUJOURS journalisé : un manque qui ne s'affiche jamais
 # nulle part est le manque qu'on oublie de traiter (même doctrine que le reste de ce chantier).
 if [ -z "${RCLONE_REMOTE:-}" ] || [ ! -s "$RCLONE_CONFIG" ]; then
-  journaliser "NON CONFIGURÉ (RCLONE_REMOTE ou ${RCLONE_CONFIG} absent/vide) — sauvegarde de cette nuit disponible UNIQUEMENT en local, voir docs/exploitation-sauvegardes.md « Copie hors site »"
+  journaliser "NON CONFIGURÉ (RCLONE_REMOTE ou ${RCLONE_CONFIG} absent/vide) — sauvegarde de cette nuit disponible UNIQUEMENT en local, see the backup documentation"
   echo "NON_CONFIGURE $(date -Iseconds)" >"$STATUT"
   exit 1
 fi
