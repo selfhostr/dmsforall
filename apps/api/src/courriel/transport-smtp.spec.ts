@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
  * `TransportSmtp` construit un `Transporter` nodemailer réel dans son constructeur (voir sa doc
@@ -25,6 +25,12 @@ function configSmtp(): ConfigSmtpResolue {
 }
 
 describe('TransportSmtp — traduction de l’enveloppe vers nodemailer', () => {
+  // Vitest 4 : `restoreMocks` ne remet plus à zéro les `vi.fn()` (seulement les spies) ; sans ceci,
+  // `mock.calls[0]` désignerait l'appel d'un test précédent.
+  beforeEach(() => {
+    sendMail.mockReset();
+  });
+
   it('sans pièce jointe : `attachments` est absent (undefined), pas un tableau vide implicite', async () => {
     sendMail.mockResolvedValueOnce({ messageId: 'msg-1' });
     const transport = new TransportSmtp(configSmtp());
