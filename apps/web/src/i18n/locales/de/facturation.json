@@ -106,7 +106,15 @@
     "retour": "Zurück zum Auftrag",
     "refusBloquant": {
       "titre": "{count, plural, one {# Position verhindert die Fakturierung} other {# Positionen verhindern die Fakturierung}}",
-      "resoudre": "Beheben →"
+      "resoudre": "Beheben →",
+      "marquerRealisees": "{count, plural, one {Position als ausgeführt markieren} other {# Positionen als ausgeführt markieren}}",
+      "marquageEnCours": "Markierung läuft…",
+      "aFaire": {
+        "proposee": "dem Kunden vorschlagen, dann im AR freigeben",
+        "aValider": "im AR freigeben",
+        "validee": "als ausgeführt markieren",
+        "enCours": "als ausgeführt markieren"
+      }
     },
     "demontage": {
       "message": "Für einen abgelehnten Kostenvoranschlag wurde eine Demontage durchgeführt — fakturierbar: {montant} inkl. MWST",

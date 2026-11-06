@@ -7,6 +7,7 @@ import type {
   EntreeValidationLignes,
   ReponseAvecAvertissements,
   ReponseLigneOr,
+  ReponseOrdreReparation,
 } from '@dfa/shared';
 
 import { clesQuery } from '@/api/cles';
@@ -14,6 +15,7 @@ import { clesQuery } from '@/api/cles';
 import {
   annulerLignesOrdreReparation,
   creerLigneOrdreReparation,
+  marquerLigneOrRealisee,
   refuserLignesOrdreReparation,
   validerLignesOrdreReparation,
 } from './ordres-reparation.api';
@@ -65,4 +67,54 @@ export function useRefuserLignesOr(orId: string) {
  *  `atelier.ligne.annuler`. */
 export function useAnnulerLignesOr(orId: string) {
   return useActionOrdreReparation<EntreeAnnulationLignes>(orId, annulerLignesOrdreReparation);
+}
+
+/** Statuts déjà au-delà de « réalisée » : rien à renvoyer (idempotence côté client). */
+const STATUTS_DEJA_REALISES: ReadonlySet<ReponseLigneOr['statut']> = new Set([
+  'realisee',
+  'facturee',
+]);
+
+/**
+ * « Marquer les lignes comme réalisées » (action proposée `MARQUER_LIGNES_REALISEES`, I-10) :
+ * `POST .../lignes/{ligneId}/marquer-realisee` pour CHAQUE ligne, une à la fois (pas d'endpoint
+ * groupé). S'arrête à la première erreur et la relance telle quelle (`ErreurApi`, message
+ * `problem+json` intact) ; les lignes déjà passées sont reportées dans le cache pour qu'un nouvel
+ * essai ne les renvoie pas. Une ligne que le cache connaît déjà « réalisée » n'est jamais envoyée.
+ * Dans tous les cas (succès ou échec partiel) le document OR est invalidé (relecture serveur).
+ */
+export function useMarquerLignesRealisees(
+  orId: string,
+): UseMutationResult<number, unknown, readonly string[]> {
+  const queryClient = useQueryClient();
+  const cleOr = clesQuery.or.detail(orId);
+
+  return useMutation({
+    mutationFn: async (ligneIds: readonly string[]) => {
+      let envoyees = 0;
+      for (const ligneId of new Set(ligneIds)) {
+        const connue = queryClient
+          .getQueryData<ReponseOrdreReparation>(cleOr)
+          ?.lignes.find((ligne) => ligne.id === ligneId);
+        if (connue && STATUTS_DEJA_REALISES.has(connue.statut)) continue;
+        const reponse = await marquerLigneOrRealisee(orId, ligneId);
+        envoyees += 1;
+        queryClient.setQueryData<ReponseOrdreReparation>(cleOr, (or) =>
+          or
+            ? {
+                ...or,
+                lignes: or.lignes.map((ligne) =>
+                  ligne.id === ligneId ? { ...ligne, statut: reponse.donnees.statut } : ligne,
+                ),
+              }
+            : or,
+        );
+      }
+      return envoyees;
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: cleOr });
+      void queryClient.invalidateQueries({ queryKey: ['or', 'liste'] });
+    },
+  });
 }
