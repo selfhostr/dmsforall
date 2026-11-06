@@ -9,8 +9,9 @@
 #
 #   docker build -f apps/web/Dockerfile -t ghcr.io/selfhostr/dmsforall-web:dev .
 
-ARG NODE_IMAGE=node:22-alpine@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914
-ARG NGINX_IMAGE=nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
+ARG NODE_IMAGE=node:22-alpine@sha256:0e1754758c2df4cfa3e68d59e2e1b7374bb7fd9ea6328eaaacf15cc934af8202
+# nginx 1.31-alpine (mainline): the 1.27 base carried ~65 OS-level CVEs (musl, openssl, libexpat...).
+ARG NGINX_IMAGE=nginx:1.31-alpine@sha256:713fc2ebfd92e8217db451477182ee91944b123d2b1ee9fd5a8c6e91ca6c3a11
 
 # --- base: Node + pnpm ---
 FROM ${NODE_IMAGE} AS base
