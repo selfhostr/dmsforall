@@ -15,10 +15,25 @@ export class ServiceCompteursImpl implements ServiceCompteurs {
   async prochainNumero(tx: TransactionDfa, clef: ClefCompteur): Promise<number> {
     const siteClef = clef.siteId ?? SITE_NUL;
 
-    // `select … for update` : verrouille la ligne de compteur existante pour la durée de la
-    // transaction appelante — un second appel concurrent sur la MÊME clé attend le commit/rollback
-    // du premier au lieu de lire une valeur périmée (protocole documenté sur la table,
-    // db/migrations/0005_parametrage.sql §4).
+    // 1. Garantit l'existence de la ligne. `on conflict do nothing` : si une transaction
+    // concurrente est en train de créer la même clé (premier numéro d'un garage neuf), cet INSERT
+    // attend son commit puis ne fait rien (ou s'exécute si elle a fait rollback) — plus jamais
+    // d'erreur `compteur_document_uk`. `site_id` est écrit tel quel (potentiellement `null`,
+    // portée tenant) ; l'uuid nul n'existe que dans l'expression de l'index, d'où la cible
+    // d'inférence recopiée à l'identique de la migration 0005. La ligne naît à 0 (défaut de la
+    // colonne) et l'incrément ci-dessous la porte à 1 : un rollback annule les deux ensemble.
+    await tx.execute(sql`
+      insert into public.compteur_document (tenant_id, type_document, annee, site_id, valeur)
+      values (${clef.tenantId}, ${clef.typeDocument}, ${clef.annee}, ${clef.siteId}, 0)
+      on conflict (tenant_id, type_document, annee,
+                   coalesce(site_id, ${SITE_NUL}::uuid))
+      do nothing
+    `);
+
+    // 2. `select … for update` : verrouille la ligne pour la durée de la transaction appelante —
+    // un appel concurrent sur la MÊME clé attend le commit/rollback du premier au lieu de lire une
+    // valeur périmée (protocole documenté sur la table, db/migrations/0005_parametrage.sql §4).
+    // Nouvelle instruction en READ COMMITTED : elle voit la ligne commitée par la concurrente.
     const existante = await tx.execute<LigneCompteurBrute>(sql`
       select id, valeur
         from public.compteur_document
@@ -30,37 +45,18 @@ export class ServiceCompteursImpl implements ServiceCompteurs {
     `);
 
     const ligne = existante.rows[0];
-
-    if (ligne) {
-      const suivant = ligne.valeur + 1;
-      await tx.execute(sql`
-        update public.compteur_document
-           set valeur = ${suivant}
-         where id = ${ligne.id}
-      `);
-      return suivant;
-    }
-
-    // Aucune ligne pour cette clé : première émission de l'année/du site pour ce type de document.
-    // `site_id` est écrit tel quel (potentiellement `null`, portée tenant) — c'est la colonne
-    // réelle qui distingue la portée « tenant » de la portée « site », l'uuid nul ci-dessus ne
-    // sert qu'à l'expression de l'index et n'est jamais persisté.
-    const insertion = await tx.execute<LigneCompteurBrute>(sql`
-      insert into public.compteur_document (tenant_id, type_document, annee, site_id, valeur)
-      values (${clef.tenantId}, ${clef.typeDocument}, ${clef.annee}, ${clef.siteId}, 1)
-      returning id, valeur
-    `);
-
-    // `on conflict` n'est délibérément pas utilisé ici : le `for update` ci-dessus a déjà pris le
-    // verrou de ligne applicable si la ligne existait, et la contrainte `compteur_document_uk`
-    // rendrait de toute façon une éventuelle course concurrente visible par une erreur — jamais
-    // par un numéro dupliqué silencieux.
-    const creee = insertion.rows[0];
-    if (!creee) {
+    if (!ligne) {
       throw new Error(
-        `ServiceCompteurs : l'insertion de la ligne de compteur (${clef.tenantId}/${clef.typeDocument}/${String(clef.annee)}) n'a rendu aucune ligne.`,
+        `ServiceCompteurs : la ligne de compteur (${clef.tenantId}/${clef.typeDocument}/${String(clef.annee)}) est introuvable après insertion.`,
       );
     }
-    return creee.valeur;
+
+    const suivant = ligne.valeur + 1;
+    await tx.execute(sql`
+      update public.compteur_document
+         set valeur = ${suivant}
+       where id = ${ligne.id}
+    `);
+    return suivant;
   }
 }
