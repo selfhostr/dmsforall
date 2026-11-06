@@ -20,6 +20,7 @@ import {
 } from '../db/schema';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
 import type { CreationTravailReporte } from './atelier.jetons';
+import { ErreurMetier } from '../common/erreurs/erreur-metier';
 import { CalculLigneSimple } from './calcul-ligne';
 
 /**
@@ -1563,4 +1564,79 @@ describe("ServiceLigneOr.modifier — F-01-bis, un PATCH { designation } ne doit
     expect(valeurs).not.toHaveProperty('fourniParClient');
     expect(valeurs).not.toHaveProperty('aRestituer');
   });
+});
+
+describe('ServiceLigneOr.marquerRealisee — sans pointage, tous types (0076)', () => {
+  const TYPES = [
+    'main_oeuvre_bareme',
+    'main_oeuvre_temps_reel',
+    'forfait',
+    'piece',
+    'fourniture',
+    'produit_atelier',
+    'sous_traitance',
+    'taxe',
+    'remise',
+    'texte',
+  ] as const;
+
+  function preparer(ligne: LigneLigneOr) {
+    vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(orFixture());
+    vi.mocked(orRequetes.chargerLigneOrPourEcriture).mockResolvedValue(ligne);
+    const { update, appels } = construireUpdate(
+      new Map([[ligneOr, [{ ...ligne, statut: 'realisee' as const }]]]),
+    );
+    const tx = { update } as unknown as TransactionDfa;
+    return { service: serviceFacticePiecesRealisation(tx), appels };
+  }
+
+  const combinaisons = TYPES.flatMap((type) =>
+    (['validee', 'en_cours'] as const).map((statut) => [type, statut] as const),
+  );
+
+  it.each(combinaisons)('ligne %s au statut %s → écrite realisee', async (type, statut) => {
+    const { service, appels } = preparer(ligneFixture({ type, statut }));
+    const resultat = await service.marquerRealisee(
+      CTX,
+      principal('receptionnaire'),
+      OR_ID,
+      LIGNE_ID,
+      {},
+    );
+    expect(resultat.donnees.statut).toBe('realisee');
+    expect(appels).toHaveLength(1);
+    expect(appels[0]?.valeurs).toEqual({ statut: 'realisee' });
+  });
+
+  const REFUSES = [
+    ['proposee', 'VALIDER_LIGNES', 'proposée'],
+    ['a_valider', 'VALIDER_LIGNES', 'en attente de l’accord du client'],
+    ['refusee', 'RAFRAICHIR', 'refusée par le client'],
+    ['realisee', 'RAFRAICHIR', 'déjà réalisée'],
+    ['facturee', 'RAFRAICHIR', 'déjà facturée'],
+    ['annulee', 'RAFRAICHIR', 'annulée'],
+  ] as const;
+
+  it.each(REFUSES)(
+    'ligne au statut %s → 409 LIGNE_TRANSITION_INTERDITE, aucune écriture, detail lisible',
+    async (statut, action, libelle) => {
+      const { service, appels } = preparer(ligneFixture({ type: 'forfait', statut }));
+      const erreur = await service
+        .marquerRealisee(CTX, principal('receptionnaire'), OR_ID, LIGNE_ID, {})
+        .catch((e: unknown) => e);
+      expect(erreur).toBeInstanceOf(ErreurMetier);
+      const e = erreur as ErreurMetier;
+      expect(e.code).toBe('LIGNE_TRANSITION_INTERDITE');
+      expect(e.status).toBe(409);
+      expect(e.detail).toContain(`La ligne est ${libelle}`);
+      expect(e.detail).toContain('validée ou en cours');
+      expect(e.blocages?.[0]?.donnees).toMatchObject({
+        statutActuel: statut,
+        statutDemande: 'realisee',
+        statutsAcceptes: ['validee', 'en_cours'],
+      });
+      expect(e.actionsProposees).toEqual([{ code: action }]);
+      expect(appels).toHaveLength(0);
+    },
+  );
 });
