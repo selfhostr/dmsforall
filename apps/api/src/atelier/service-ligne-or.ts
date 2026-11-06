@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
 import {
   schemaModificationLigneOr,
+  type CodeActionProposee,
   type ElementBloquant,
   type EntreeAnnulationLignes,
   type EntreeCreationLigneOr,
@@ -86,6 +87,84 @@ const PAYEURS_AVEC_TIERS: ReadonlySet<PayeurLigneOr> = new Set([
  * './service-ligne-or'`).
  */
 export { CODE_TAUX_HORAIRE_DEFAUT } from './taux-horaire';
+
+/** Statuts depuis lesquels une ligne peut être marquée réalisée (0076) : `validee` (sans
+ *  pointage) et `en_cours` (après un pointage). */
+const STATUTS_REALISABLES: ReadonlySet<string> = new Set(['validee', 'en_cours']);
+
+/** Libellé garagiste d'un statut de ligne + la marche à suivre quand on tente de la réaliser. */
+const CONSIGNE_REALISATION_PAR_STATUT: Readonly<
+  Record<
+    string,
+    { readonly libelle: string; readonly marche: string; readonly action: CodeActionProposee }
+  >
+> = {
+  proposee: {
+    libelle: 'proposée',
+    marche: 'Validez d’abord la ligne, puis marquez-la réalisée.',
+    action: 'VALIDER_LIGNES',
+  },
+  a_valider: {
+    libelle: 'en attente de l’accord du client',
+    marche: 'Validez la ligne une fois l’accord reçu, puis marquez-la réalisée.',
+    action: 'VALIDER_LIGNES',
+  },
+  refusee: {
+    libelle: 'refusée par le client',
+    marche: 'Une ligne refusée ne peut pas être réalisée : demandez un nouvel accord au client.',
+    action: 'RAFRAICHIR',
+  },
+  realisee: {
+    libelle: 'déjà réalisée',
+    marche: 'Rien à faire : la ligne est déjà réalisée.',
+    action: 'RAFRAICHIR',
+  },
+  facturee: {
+    libelle: 'déjà facturée',
+    marche: 'Une ligne facturée est figée : corrigez par un avoir.',
+    action: 'RAFRAICHIR',
+  },
+  annulee: {
+    libelle: 'annulée',
+    marche: 'Une ligne annulée ne peut plus être réalisée : ajoutez une nouvelle ligne.',
+    action: 'RAFRAICHIR',
+  },
+};
+
+/**
+ * Garde applicative de `marquerRealisee` : le trigger ZDFA1 dit seulement « transition interdite » ;
+ * ici le `detail` du problème dit le statut actuel, les statuts acceptés et ce qu'il faut faire.
+ */
+export function refuserSiRealisationImpossible(ligne: LigneLigneOr, voitMontants: boolean): void {
+  if (STATUTS_REALISABLES.has(ligne.statut)) return;
+  const consigne = CONSIGNE_REALISATION_PAR_STATUT[ligne.statut];
+  const libelle = consigne?.libelle ?? ligne.statut;
+  throw new ErreurMetier(
+    'LIGNE_TRANSITION_INTERDITE',
+    `Transition ${ligne.statut} → realisee interdite.`,
+    {
+      detail:
+        `La ligne est ${libelle} : seule une ligne validée ou en cours peut être marquée réalisée. ` +
+        (consigne?.marche ?? 'Actualisez l’ordre de réparation.'),
+      blocages: [
+        {
+          type: 'ligne_or',
+          id: ligne.id,
+          libelle: ligne.designation ?? '',
+          donnees: {
+            statutActuel: ligne.statut,
+            statutDemande: 'realisee',
+            statutsAcceptes: ['validee', 'en_cours'],
+            numeroLigne: ligne.numeroOrdre,
+            origine: ligne.origine,
+            ...(voitMontants ? { totalTtcCentimes: ligne.montantTtcCentimes } : {}),
+          },
+        },
+      ],
+      actionsProposees: [{ code: consigne?.action ?? 'RAFRAICHIR' }],
+    },
+  );
+}
 
 /**
  * Lignes d'ordre de réparation (contrats-api-etape-1.md §7.8) : création, modification libre,
@@ -525,9 +604,12 @@ export class ServiceLigneOr {
   }
 
   /**
-   * `POST .../lignes/{ligneId}/marquer-realisee` (§7.9) — `en_cours -> realisee` uniquement ;
-   * `refusee -> realisee` n'existe pas dans `transition_autorisee` (RM-72, CT-28) et lève
-   * `LIGNE_TRANSITION_INTERDITE` via le même mécanisme ZDFA1 que les transitions d'OR.
+   * `POST .../lignes/{ligneId}/marquer-realisee` (§7.9) — `validee|en_cours -> realisee`, pour
+   * TOUS les types de ligne et SANS pointage (0076) : un garage qui ne pointe pas doit pouvoir
+   * facturer ses heures. Depuis tout autre statut (`refusee -> realisee` n'existe pas, RM-72,
+   * CT-28), `LIGNE_TRANSITION_INTERDITE` dont le `detail` dit le statut actuel, les statuts
+   * acceptés et l'action à faire (`refuserTransitionRealisation`). Le trigger ZDFA1 reste le
+   * filet si le statut change entre la lecture et l'écriture.
    *
    * RP-21/RP-38 (`pieces/reservation.ts`, `pieces/consigne.ts`) : une ligne `piece` réservée sort
    * PHYSIQUEMENT du stock (`sortie_or`) et, si l'article est d'échange standard, pose la consigne
@@ -546,6 +628,7 @@ export class ServiceLigneOr {
       const or = await chargerOrPourEcriture(tx, ctx, orId);
       this.garantirNonVerrouille(or, orId);
       const ligne = await chargerLigneOrPourEcriture(tx, ctx, orId, ligneId);
+      refuserSiRealisationImpossible(ligne, roleVoitLesMontants(principal.role));
 
       const misAJour = await this.transitionnerLigne(tx, ctx, ligne, 'realisee', {});
       // `temps_reel_centiemes` n'a nulle part où se poser en base au lot 1 (Δ4, module pointage

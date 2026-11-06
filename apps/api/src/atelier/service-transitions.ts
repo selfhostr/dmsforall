@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import type {
   ElementBloquant,
   EntreeActionAnnuler,
@@ -277,7 +277,8 @@ export class ServiceTransitions {
     );
   }
 
-  /** T-13 `controle -> termine`. Garde I-09 : un contrôle qualité ne clôt pas un pointage ouvert. */
+  /** T-13 `controle -> termine`. Gardes I-09 (pointage ouvert) et I-10 (lignes non réalisées) :
+   *  mêmes refus que `terminer`, sans quoi le détour par le contrôle contournerait I-10. */
   async validerControle(
     ctx: ContexteTenant,
     principal: PrincipalAuthentifie,
@@ -289,6 +290,7 @@ export class ServiceTransitions {
       orId,
       async (tx, or) => {
         await this.verifierPointageOuvert(tx, ctx, orId);
+        await this.verifierLignesNonRealisees(tx, ctx, orId, principal.role);
         const maintenant = this.horloge.maintenant();
         await this.transitionner(tx, or, 'termine', { termineLe: maintenant });
         await tx.insert(orControleQualite).values({
@@ -710,7 +712,8 @@ export class ServiceTransitions {
     );
   }
 
-  /** I-10 : refuse tant qu'une ligne validée n'a pas été exécutée. */
+  /** I-10 : refuse tant qu'une ligne validée ou en cours (pointage arrêté, ligne pas réalisée)
+   *  n'a pas été marquée réalisée. Commun à `terminer` et `validerControle`. */
   private async verifierLignesNonRealisees(
     tx: TransactionDfa,
     ctx: ContexteTenant,
@@ -724,7 +727,7 @@ export class ServiceTransitions {
         and(
           eq(ligneOr.tenantId, ctx.tenantId),
           eq(ligneOr.ordreReparationId, orId),
-          eq(ligneOr.statut, 'validee'),
+          inArray(ligneOr.statut, ['validee', 'en_cours']),
         ),
       );
     if (lignes.length === 0) return;
@@ -734,6 +737,9 @@ export class ServiceTransitions {
       'OR_LIGNE_NON_REALISEE',
       "Des lignes validées n'ont pas été réalisées (I-10).",
       {
+        detail:
+          `${String(lignes.length)} ligne(s) validée(s) ou en cours ne sont pas marquées réalisées. ` +
+          'Marquez-les réalisées (le pointage seul ne réalise pas une ligne), puis recommencez.',
         blocages: lignes.slice(0, 50).map((l) => this.blocageLigne(l, voitMontants)),
         actionsProposees: [{ code: 'MARQUER_LIGNES_REALISEES' }],
       },
@@ -799,6 +805,9 @@ export class ServiceTransitions {
       donnees: {
         numeroLigne: ligne.numeroOrdre,
         origine: ligne.origine,
+        statut: ligne.statut,
+        type: ligne.type,
+        statutActuel: ligne.statut,
         ...(voitMontants ? { totalTtcCentimes: ligne.montantTtcCentimes } : {}),
       },
     };

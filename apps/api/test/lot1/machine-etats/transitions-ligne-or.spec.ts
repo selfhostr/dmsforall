@@ -98,6 +98,36 @@ describe('ligne_or — transitions autorisées', () => {
     }
   });
 
+  // 0076 : un garage qui ne pointe pas doit pouvoir réaliser (donc facturer) TOUS les types de ligne.
+  const TYPES_DE_LIGNE = [
+    'main_oeuvre_bareme',
+    'main_oeuvre_temps_reel',
+    'forfait',
+    'piece',
+    'fourniture',
+    'produit_atelier',
+    'sous_traitance',
+    'taxe',
+    'remise',
+    'texte',
+  ] as const;
+
+  it.each(TYPES_DE_LIGNE)(
+    'validee → realisee directement (sans pointage) pour une ligne de type %s',
+    async (type) => {
+      const ligne = await nouvelleLigne(10 + TYPES_DE_LIGNE.indexOf(type));
+      await ecrireSousTenant(bdd.poolApp, garage.tenantA.tenant.id, async (client) => {
+        await client.query(
+          'update ligne_or set type = $1::type_ligne_or, taux_horaire_centimes = $2 where id = $3',
+          [type, type.startsWith('main_oeuvre') ? 12_000 : null, ligne.id],
+        );
+      });
+      await transitionnerLigne(garage.tenantA.tenant.id, ligne.id, 'validee');
+      const resultat = await transitionnerLigne(garage.tenantA.tenant.id, ligne.id, 'realisee');
+      expect(resultat.statut).toBe('realisee');
+    },
+  );
+
   it("refusee → a_valider (le client rappelle et change d'avis, un nouveau devis reprend le circuit)", async () => {
     const ligne = await nouvelleLigne(3);
     await transitionnerLigne(garage.tenantA.tenant.id, ligne.id, 'a_valider');
