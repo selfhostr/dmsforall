@@ -2,9 +2,9 @@
 
 All notable changes to dmsforall are recorded here, for people who run it and for people who use it. Each entry says what changes for you. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/) until 1.0.
 
-## 0.1.0 (not released)
+## 0.1.0 (2026-11-06)
 
-This is the first public version of dmsforall. It has not been released as a tagged version yet. Development is paused for now. The code, images and docs stay available, but do not expect new features or quick fixes. The alpha limits in the [README](README.md#limits) apply.
+This is the first public version of dmsforall. Development is paused for now. The code, images and docs stay available, but do not expect new features or quick fixes. The alpha limits in the [README](README.md#limits) apply.
 
 What it contains:
 

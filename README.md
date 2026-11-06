@@ -24,6 +24,8 @@
 
 Free, for good. MIT licence, no paid edition.
 
+Try the [public demo](https://dmsforall.selfhostr.io/demo/) in your browser. It runs on made-up data and nothing leaves your browser.
+
 ## Quick start
 
 You need Docker with Compose v2.
@@ -69,7 +71,7 @@ The web interface is a React single-page application built with Vite. It calls a
 
 ## Status
 
-Alpha. Development is paused for now. The code, images and docs stay available, but do not expect new features or quick fixes. Version `0.1.0` is not released yet, and no stable release line exists. Until version 1.0, an upgrade can require manual steps. Read the [changelog](CHANGELOG.md) before each upgrade.
+Alpha. Development is paused for now. The code, images and docs stay available, but do not expect new features or quick fixes. Version `0.1.0` is the first release, and no stable release line exists. Until version 1.0, an upgrade can require manual steps. Read the [changelog](CHANGELOG.md) before each upgrade.
 
 ## Contributing
 
