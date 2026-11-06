@@ -9,7 +9,7 @@
 #
 #   docker build -f apps/api/Dockerfile -t ghcr.io/selfhostr/dmsforall:dev .
 
-ARG NODE_IMAGE=node:22-alpine@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914
+ARG NODE_IMAGE=node:22-alpine@sha256:0e1754758c2df4cfa3e68d59e2e1b7374bb7fd9ea6328eaaacf15cc934af8202
 
 # --- base: Node + pnpm (corepack reads the version from package.json) ---
 FROM ${NODE_IMAGE} AS base
@@ -82,6 +82,13 @@ ARG VERSION_APP=0.0.0-image
 ENV VERSION_APP=${VERSION_APP}
 ARG VERSION_APP_BRANCHE=unknown
 ENV VERSION_APP_BRANCHE=${VERSION_APP_BRANCHE}
+
+# Nothing at runtime needs npm, npx, corepack or yarn: the entrypoint is sh, the healthcheck and
+# the jobs (dist/main.js, dist/main-worker.js, dist/db/migrer.js, dist/cli/*.js) only call node.
+# Removing them drops the CVEs of npm's bundled dependencies from the final image.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+           /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
+           /opt/yarn* /usr/local/bin/yarn /usr/local/bin/yarnpkg
 
 USER dfa
 WORKDIR /repo/apps/api
