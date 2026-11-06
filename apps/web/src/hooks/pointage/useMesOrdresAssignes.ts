@@ -20,6 +20,10 @@ export function useMesOrdresAssignes(
   technicienId: string | undefined,
 ): UseQueryResult<readonly ReponseOrdreReparation[]> {
   return useQuery({
+    // Liste/état critique du poste : toujours frais, rechargé au retour sur l'onglet (le défaut du
+    // QueryClient — 30 s, sans rechargement au focus — ne s'applique pas ici).
+    staleTime: 0,
+    refetchOnWindowFocus: true,
     queryKey: ['pointages', 'mesOrdresAssignes', technicienId ?? ''] as const,
     queryFn: async () => {
       const filtres: FiltresMesOrdresAssignes = {

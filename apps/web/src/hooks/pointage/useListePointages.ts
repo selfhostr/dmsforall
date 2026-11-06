@@ -31,6 +31,7 @@ export function useListePointages(
     cle: clesPointage.liste(filtres),
     charger: (curseur) => listerPointages(filtres, { limite: LIMITE_PAGE, curseur }),
     actif: options?.enabled,
+    fraicheur: 'toujours-frais',
   });
 
   return { ...resultat, pointages: elements };

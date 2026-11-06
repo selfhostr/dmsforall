@@ -19,6 +19,10 @@ export function useEcheancesOr(
   options?: { readonly enabled?: boolean },
 ): UseQueryResult<PageCurseur<OrdreReparationResume>> {
   return useQuery({
+    // Liste/état critique du poste : toujours frais, rechargé au retour sur l'onglet (le défaut du
+    // QueryClient — 30 s, sans rechargement au focus — ne s'applique pas ici).
+    staleTime: 0,
+    refetchOnWindowFocus: true,
     queryKey: clesQuery.or.liste({ ...filtres, portee: 'accueil-echeances' }),
     queryFn: () => listerEcheancesOr(filtres),
     enabled: options?.enabled ?? true,

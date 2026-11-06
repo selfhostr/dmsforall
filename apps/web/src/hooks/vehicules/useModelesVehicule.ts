@@ -2,6 +2,7 @@ import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 
 import type { ReponseModelesVehiculesCh } from '@dfa/shared';
 
+import { FRAICHEUR_REFERENTIEL_MS } from '@/api/reessai';
 import { useDoitReessayer } from '@/hooks/pagination-curseur';
 
 import { rechercherModelesVehicules } from './referentiel-vehicules.api';
@@ -30,5 +31,6 @@ export function useModelesVehicule(
     queryFn: ({ signal }) => rechercherModelesVehicules(marque, recherche, signal),
     enabled: options.enabled,
     retry: reessayer,
+    staleTime: FRAICHEUR_REFERENTIEL_MS,
   });
 }

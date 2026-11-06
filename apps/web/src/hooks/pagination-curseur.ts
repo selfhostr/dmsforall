@@ -46,6 +46,7 @@ import {
 import type { PageCurseur } from '@dfa/shared';
 
 import { ErreurApi } from '@/api/erreurs';
+import { FRAICHEUR_REFERENTIEL_MS } from '@/api/reessai';
 
 /** Charge UNE page. `curseur === undefined` désigne la première page — jamais un numéro de page
  *  (contrat `PageCurseur` : `BoutonChargerPlus`, pas de pagination numérotée). */
@@ -63,6 +64,10 @@ export interface OptionsListeCurseur<T> {
    *  dans les tests). À fournir quand un état d'échec est STABLE (403/404 : aucun réessai ne le
    *  résoudra jamais). */
   readonly reessayer?: PolitiqueReessai;
+  /** Fraîcheur de la liste. `'toujours-frais'` : liste critique (pointage…) rechargée à chaque
+   *  montage et au retour sur l'onglet. `'referentiel'` : donnée quasi statique, gardée 5 min.
+   *  Omis ⇒ défaut du `QueryClient`. */
+  readonly fraicheur?: 'toujours-frais' | 'referentiel';
 }
 
 /** Signature de `retry` côté TanStack Query, redite ici pour ne pas dépendre d'un type interne. */
@@ -139,6 +144,7 @@ export function useListeCurseur<T>({
   charger,
   actif,
   reessayer,
+  fraicheur,
 }: OptionsListeCurseur<T>): ListeCurseur<T> {
   // La clé `retry` doit être ABSENTE, pas `undefined`, quand l'appelant n'en veut pas :
   // `QueryClient.defaultQueryOptions` fusionne par étalement (`{...defaults.queries, ...options}`),
@@ -147,8 +153,17 @@ export function useListeCurseur<T>({
   const optionsReessai: { retry?: PolitiqueReessai } =
     reessayer === undefined ? {} : { retry: reessayer };
 
+  // Même précaution que pour `retry` : les clés sont ABSENTES quand l'appelant n'en veut pas.
+  const optionsFraicheur =
+    fraicheur === 'toujours-frais'
+      ? { staleTime: 0, refetchOnWindowFocus: true }
+      : fraicheur === 'referentiel'
+        ? { staleTime: FRAICHEUR_REFERENTIEL_MS }
+        : {};
+
   const resultat = useInfiniteQuery({
     ...optionsReessai,
+    ...optionsFraicheur,
     queryKey: cle,
     queryFn: ({ pageParam }: { pageParam: string | undefined }) => {
       if (charger === undefined) {

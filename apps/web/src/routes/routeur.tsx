@@ -3,63 +3,65 @@ import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
 import { AppShell } from '@/composants/layout/AppShell';
 import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { EcranConnexion } from '@/ecrans/EcranConnexion';
-import { EcranFicheOrdreReparation } from '@/ecrans/atelier/EcranFicheOrdreReparation';
-import { EcranListeOrdresReparation } from '@/ecrans/atelier/EcranListeOrdresReparation';
-import { EcranNouvelOrdreReparation } from '@/ecrans/atelier/EcranNouvelOrdreReparation';
-import { EcranFicheClient } from '@/ecrans/clients/EcranFicheClient';
-import { EcranListeClients } from '@/ecrans/clients/EcranListeClients';
-import { EcranAvoir } from '@/ecrans/facturation/EcranAvoir';
-import { EcranFacturerOrdreReparation } from '@/ecrans/facturation/EcranFacturerOrdreReparation';
-import { EcranFicheFacture } from '@/ecrans/facturation/EcranFicheFacture';
-import { EcranListeFactures } from '@/ecrans/facturation/EcranListeFactures';
-import { EcranDoublonsClients } from '@/ecrans/clients/EcranDoublonsClients';
-import { EcranConsolePlateforme } from '@/ecrans/console/EcranConsolePlateforme';
-import { EcranParametragePieces } from '@/ecrans/parametrage/EcranParametragePieces';
-import { EcranParametrageAtelier } from '@/ecrans/parametrage/EcranParametrageAtelier';
-import { EcranParametresFacturation } from '@/ecrans/parametrage/EcranParametresFacturation';
-import { EcranReferentiels } from '@/ecrans/parametrage/EcranReferentiels';
-import { EcranSites } from '@/ecrans/parametrage/EcranSites';
-import { EcranUtilisateurs } from '@/ecrans/parametrage/EcranUtilisateurs';
-import { EcranConsignesPieces } from '@/ecrans/pieces/EcranConsignesPieces';
-import { EcranDepotFactureFournisseur } from '@/ecrans/pieces/EcranDepotFactureFournisseur';
-import { EcranFactureFournisseur } from '@/ecrans/pieces/EcranFactureFournisseur';
-import { EcranFicheArticle } from '@/ecrans/pieces/EcranFicheArticle';
-import { EcranFicheCommandeFournisseur } from '@/ecrans/pieces/EcranFicheCommandeFournisseur';
-import { EcranFicheFournisseur } from '@/ecrans/pieces/EcranFicheFournisseur';
-import { EcranListeArticles } from '@/ecrans/pieces/EcranListeArticles';
-import { EcranListeCommandesFournisseur } from '@/ecrans/pieces/EcranListeCommandesFournisseur';
-import { EcranListeFacturesFournisseur } from '@/ecrans/pieces/EcranListeFacturesFournisseur';
-import { EcranListeFournisseurs } from '@/ecrans/pieces/EcranListeFournisseurs';
-import { EcranNouvelleCommandeFournisseur } from '@/ecrans/pieces/EcranNouvelleCommandeFournisseur';
-import { EcranReapprovisionnement } from '@/ecrans/pieces/EcranReapprovisionnement';
-import { EcranRechercheComptoirPieces } from '@/ecrans/pieces/EcranRechercheComptoirPieces';
-import { EcranReservationsPieces } from '@/ecrans/pieces/EcranReservationsPieces';
-import { EcranHangarPneus } from '@/ecrans/pneus/EcranHangarPneus';
-import { EcranBornePointage } from '@/ecrans/pointage/EcranBornePointage';
-import { EcranPointage } from '@/ecrans/pointage/EcranPointage';
-import { EcranPointageTechnicien } from '@/ecrans/pointage/EcranPointageTechnicien';
-import { EcranRecherche } from '@/ecrans/recherche/EcranRecherche';
-import { EcranReglagesRelances } from '@/ecrans/relances/EcranReglagesRelances';
-import { EcranRelances } from '@/ecrans/relances/EcranRelances';
-import { EcranReprise } from '@/ecrans/reprise/EcranReprise';
-import { EcranScan } from '@/ecrans/scan/EcranScan';
 // `EcranRendezVous` (routé ci-dessous) est le CONTENEUR réseau ; il rend `EcranAgendaRendezVous`
 // (présentation pure, testée séparément par fixtures locales) — l'écran métier existe donc bien
 // dans ce fichier, à un niveau d'indirection près (`ecrans/rendez-vous/EcranAgendaRendezVous.tsx`).
-import { EcranRendezVous } from '@/ecrans/rendez-vous/EcranRendezVous';
 import { EcranPageIntrouvable } from '@/ecrans/systeme/EcranPageIntrouvable';
-import { EcranTableauBord } from '@/ecrans/tableau-bord/EcranTableauBord';
-import { EcranFicheVehicule } from '@/ecrans/vehicules/EcranFicheVehicule';
-import { EcranListeVehicules } from '@/ecrans/vehicules/EcranListeVehicules';
-import { EcranNouveauVehicule } from '@/ecrans/vehicules/EcranNouveauVehicule';
-import { EcranFicheDossierVente } from '@/ecrans/ventes/dossiers/EcranFicheDossierVente';
-import { EcranListeDossiersVente } from '@/ecrans/ventes/dossiers/EcranListeDossiersVente';
-import { EcranNouveauDossierVente } from '@/ecrans/ventes/dossiers/EcranNouveauDossierVente';
-import { EcranEntreeEnStock } from '@/ecrans/ventes/stock/EcranEntreeEnStock';
-import { EcranFicheVehiculeStock } from '@/ecrans/ventes/stock/EcranFicheVehiculeStock';
-import { EcranListeVehiculesStock } from '@/ecrans/ventes/stock/EcranListeVehiculesStock';
-import { EcranSuiviVentes } from '@/ecrans/ventes/suivi/EcranSuiviVentes';
 
+import {
+  EcranFicheOrdreReparation,
+  EcranListeOrdresReparation,
+  EcranNouvelOrdreReparation,
+  EcranFicheClient,
+  EcranListeClients,
+  EcranAvoir,
+  EcranFacturerOrdreReparation,
+  EcranFicheFacture,
+  EcranListeFactures,
+  EcranDoublonsClients,
+  EcranConsolePlateforme,
+  EcranParametragePieces,
+  EcranParametrageAtelier,
+  EcranParametresFacturation,
+  EcranReferentiels,
+  EcranSites,
+  EcranUtilisateurs,
+  EcranConsignesPieces,
+  EcranDepotFactureFournisseur,
+  EcranFactureFournisseur,
+  EcranFicheArticle,
+  EcranFicheCommandeFournisseur,
+  EcranFicheFournisseur,
+  EcranListeArticles,
+  EcranListeCommandesFournisseur,
+  EcranListeFacturesFournisseur,
+  EcranListeFournisseurs,
+  EcranNouvelleCommandeFournisseur,
+  EcranReapprovisionnement,
+  EcranRechercheComptoirPieces,
+  EcranReservationsPieces,
+  EcranHangarPneus,
+  EcranBornePointage,
+  EcranPointage,
+  EcranPointageTechnicien,
+  EcranRecherche,
+  EcranReglagesRelances,
+  EcranRelances,
+  EcranReprise,
+  EcranScan,
+  EcranRendezVous,
+  EcranTableauBord,
+  EcranFicheVehicule,
+  EcranListeVehicules,
+  EcranNouveauVehicule,
+  EcranFicheDossierVente,
+  EcranListeDossiersVente,
+  EcranNouveauDossierVente,
+  EcranEntreeEnStock,
+  EcranFicheVehiculeStock,
+  EcranListeVehiculesStock,
+  EcranSuiviVentes,
+} from './ecransParesseux';
 import { ATTERRISSAGE_PAR_ROLE } from './atterrissage';
 import { chemins } from './chemins';
 import { RouteProtegee } from './RouteProtegee';
