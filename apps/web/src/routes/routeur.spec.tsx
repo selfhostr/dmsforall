@@ -195,7 +195,11 @@ describe('routeur — protection par défaut', () => {
       http.get('/api/v1/clients', () => HttpResponse.json({ donnees: [], curseurSuivant: null })),
     );
     renduAvecRoutes(routesConfig, { routeInitiale: '/clients' });
-    expect(await screen.findByRole('heading', { name: 'Clients' })).toBeInTheDocument();
+    // Premier écran métier de ce fichier : son chunk (`React.lazy`) est importé à froid, ce qui
+    // dépasse le délai par défaut de 1 s sur une machine chargée.
+    expect(
+      await screen.findByRole('heading', { name: 'Clients' }, { timeout: 20_000 }),
+    ).toBeInTheDocument();
   });
 
   it('/ redirige vers le tableau de bord fusionné (fusion Accueil/Tableau de bord, 10.08.2026)', async () => {

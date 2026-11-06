@@ -15,6 +15,7 @@ export function useListeTauxHoraires(): UseInfiniteQueryResult<
 > {
   const { resultat } = useListeCurseur<ReponseTauxHoraire>({
     cle: clesParametrage.tauxHoraires.liste(),
+    fraicheur: 'referentiel',
     // Même écart `null`/`undefined` que `useListePrestations` — voir le commentaire là-bas.
     charger: (curseur) => listerTauxHoraires(curseur ?? null),
   });
