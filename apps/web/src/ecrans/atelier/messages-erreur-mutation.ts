@@ -51,3 +51,20 @@ export function messagesErreurMutation(erreur: unknown, t: TFunction): readonly 
 export function messageErreurMutation(erreur: unknown, t: TFunction): string {
   return messagesErreurMutation(erreur, t).join(' ');
 }
+
+/**
+ * Message d'un échec « marquer réalisée » : un `409 LIGNE_TRANSITION_INTERDITE` porte, dans le
+ * `detail` du `problem+json`, la raison exacte (ex. ligne de main-d'œuvre jamais pointée) que le
+ * libellé générique du code ne sait pas dire — on l'affiche alors tel quel, sans l'avaler. Tout
+ * autre échec suit la règle commune (`messageErreurMutation`).
+ */
+export function messageErreurMarquage(erreur: unknown, t: TFunction): string {
+  if (
+    erreur instanceof ErreurApi &&
+    erreur.probleme.code === 'LIGNE_TRANSITION_INTERDITE' &&
+    erreur.probleme.detail
+  ) {
+    return erreur.probleme.detail;
+  }
+  return messageErreurMutation(erreur, t);
+}

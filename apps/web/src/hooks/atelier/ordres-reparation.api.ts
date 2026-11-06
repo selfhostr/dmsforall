@@ -12,6 +12,7 @@ import type {
   EntreeAnnulationLignes,
   EntreeCreationLigneOr,
   EntreeCreationOrdreReparation,
+  EntreeMarquageRealisee,
   EntreeRefusLignes,
   EntreeValidationLignes,
   OrdreReparationResume,
@@ -204,6 +205,22 @@ export async function creerLigneOrdreReparation(
   if (!reponse) {
     throw new Error(`Réponse vide inattendue : POST /ordres-reparation/${orId}/lignes.`);
   }
+  return reponse;
+}
+
+/** `POST /ordres-reparation/{orId}/lignes/{ligneId}/marquer-realisee` — `en_cours -> realisee`.
+ *  Réponse : la LIGNE mise à jour (enveloppe), jamais le document OR complet. */
+export async function marquerLigneOrRealisee(
+  orId: string,
+  ligneId: string,
+  entree: EntreeMarquageRealisee = {},
+): Promise<ReponseAvecAvertissements<ReponseLigneOr>> {
+  const chemin = `/ordres-reparation/${orId}/lignes/${ligneId}/marquer-realisee`;
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseLigneOr>>(chemin, {
+    method: 'POST',
+    body: JSON.stringify(entree),
+  });
+  if (!reponse) throw new Error(`Réponse vide inattendue : POST ${chemin}.`);
   return reponse;
 }
 

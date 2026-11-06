@@ -22,6 +22,8 @@ import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
+import { messageErreurMarquage } from '@/ecrans/atelier/messages-erreur-mutation';
+import { useMarquerLignesRealisees } from '@/hooks/atelier/useActionsLigneOr';
 import { useOrdreReparation } from '@/hooks/atelier/useOrdreReparation';
 import { useFacturationOrdreReparation } from '@/hooks/facturation/useFacturationOrdreReparation';
 import { formaterMontant, formaterMontantAvecDevise } from '@/lib/formats';
@@ -40,6 +42,16 @@ const STATUTS_INDECIS: ReadonlySet<ReponseLigneOr['statut']> = new Set([
   'validee',
   'en_cours',
 ]);
+
+/** Parmi les statuts indécis, ceux qu'une action « Marquer réalisées » fait avancer
+ *  (`validee`/`en_cours` -> `realisee`). `proposee`/`a_valider` attendent une décision du client ou
+ *  du réceptionnaire : cela se règle dans l'OR, pas ici. */
+const STATUTS_MARQUABLES: ReadonlySet<ReponseLigneOr['statut']> = new Set(['validee', 'en_cours']);
+
+/** Segment i18n du statut de ligne (`or:lignes.statuts.<segment>`). */
+function segmentStatutLigne(statut: ReponseLigneOr['statut']): string {
+  return statut === 'a_valider' ? 'aValider' : statut === 'en_cours' ? 'enCours' : statut;
+}
 
 /** `garage` n'a pas de groupe séparé (`RF-92`) : ses lignes, valorisées à `0.00` (RM-70), rejoignent
  *  le groupe `'client'` — `PAYEURS_FACTURATION_SELECTIONNABLES` (contrat gelé) exclut `'garage'` par
@@ -104,6 +116,7 @@ export function EcranFacturerOrdreReparation() {
 
   const requete = useOrdreReparation(orId);
   const facturation = useFacturationOrdreReparation();
+  const marquerRealisees = useMarquerLignesRealisees(orId ?? '');
 
   const [groupesDecoches, setGroupesDecoches] = useState<ReadonlySet<string>>(new Set());
   const [motifsReportSaisis, setMotifsReportSaisis] = useState<Readonly<Record<string, string>>>(
@@ -191,6 +204,7 @@ export function EcranFacturerOrdreReparation() {
   const lignesIndecises = or.lignes.filter((ligne) => STATUTS_INDECIS.has(ligne.statut));
   const lignesRefusees = or.lignes.filter((ligne) => ligne.statut === 'refusee');
   const bloque = lignesIndecises.length > 0;
+  const lignesMarquables = lignesIndecises.filter((ligne) => STATUTS_MARQUABLES.has(ligne.statut));
   const groupesCoches = groupes.filter(
     (groupe) => !groupesDecoches.has(cleGroupe(groupe.payeur, groupe.payeurClientId)),
   );
@@ -291,24 +305,53 @@ export function EcranFacturerOrdreReparation() {
             </p>
           </div>
           <ul className="flex flex-col gap-1.5">
-            {lignesIndecises.map((ligne) => (
-              <li key={ligne.id} className="flex items-center justify-between gap-2 texte-corps">
-                <span>
-                  {ligne.designation} —{' '}
-                  {t(
-                    `or:lignes.statuts.${ligne.statut === 'a_valider' ? 'aValider' : ligne.statut === 'en_cours' ? 'enCours' : ligne.statut}`,
+            {lignesIndecises.map((ligne) => {
+              const marquable = STATUTS_MARQUABLES.has(ligne.statut);
+              return (
+                <li key={ligne.id} className="flex items-center justify-between gap-2 texte-corps">
+                  <span>
+                    {ligne.designation} —{' '}
+                    {t(`or:lignes.statuts.${segmentStatutLigne(ligne.statut)}`)}
+                    <span className="text-muted-foreground">
+                      {' · '}
+                      {t(
+                        `facturation:facturerOr.refusBloquant.aFaire.${segmentStatutLigne(ligne.statut)}`,
+                      )}
+                    </span>
+                  </span>
+                  {marquable ? null : (
+                    <button
+                      type="button"
+                      className="shrink-0 font-medium text-primary underline-offset-2 hover:underline"
+                      onClick={() => navigate(`/ordres-reparation/${or.id}`)}
+                    >
+                      {t('facturation:facturerOr.refusBloquant.resoudre')}
+                    </button>
                   )}
-                </span>
-                <button
-                  type="button"
-                  className="shrink-0 font-medium text-primary underline-offset-2 hover:underline"
-                  onClick={() => navigate(`/ordres-reparation/${or.id}`)}
-                >
-                  {t('facturation:facturerOr.refusBloquant.resoudre')}
-                </button>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
+          {lignesMarquables.length > 0 ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-fit"
+              disabled={marquerRealisees.isPending}
+              onClick={() => marquerRealisees.mutate(lignesMarquables.map((ligne) => ligne.id))}
+            >
+              {marquerRealisees.isPending
+                ? t('facturation:facturerOr.refusBloquant.marquageEnCours')
+                : t('facturation:facturerOr.refusBloquant.marquerRealisees', {
+                    count: lignesMarquables.length,
+                  })}
+            </Button>
+          ) : null}
+          {marquerRealisees.isError ? (
+            <p className="texte-libelle text-destructive">
+              {messageErreurMarquage(marquerRealisees.error, t)}
+            </p>
+          ) : null}
         </div>
       ) : null}
 

@@ -204,3 +204,107 @@ describe('PanneauActionsOr — CONFIRMATION_REQUISE (§4.4)', () => {
     expect(screen.queryByRole('button', { name: 'Continuer quand même' })).not.toBeInTheDocument();
   });
 });
+
+describe('PanneauActionsOr — action proposée « Marquer les lignes comme réalisées » (I-10)', () => {
+  const URL_TERMINER = '/api/v1/ordres-reparation/or-1/terminer';
+  const urlMarquer = (ligneId: string) =>
+    `/api/v1/ordres-reparation/or-1/lignes/${ligneId}/marquer-realisee`;
+
+  function refusLignesNonRealisees() {
+    return HttpResponse.json(
+      {
+        type: 'https://docs.dmsforall.example/erreurs/OR_LIGNE_NON_REALISEE',
+        title: 'Lignes non réalisées',
+        status: 409,
+        code: 'OR_LIGNE_NON_REALISEE',
+        instance: 'req-3',
+        blocages: [
+          { type: 'ligne_or', id: 'l-1', libelle: 'Vidange', donnees: { numeroLigne: 1 } },
+          { type: 'ligne_or', id: 'l-2', libelle: 'Filtre', donnees: { numeroLigne: 2 } },
+        ],
+        actionsProposees: [{ code: 'MARQUER_LIGNES_REALISEES' }],
+      },
+      { status: 409, headers: { 'content-type': 'application/problem+json' } },
+    );
+  }
+
+  function reponseLigne(id: string) {
+    return HttpResponse.json({ donnees: { id, statut: 'realisee' }, avertissements: [] });
+  }
+
+  async function ouvrirTerminerEtConfirmer() {
+    const utilisateur = userEvent.setup({ pointerEventsCheck: 0 });
+    rendre(construireOr({ statut: 'en_cours', actionsDisponibles: ['terminer'] }));
+    await utilisateur.click(await screen.findByRole('button', { name: 'Terminer' }));
+    const dialogue = await screen.findByRole('dialog');
+    await utilisateur.click(within(dialogue).getByRole('button', { name: 'Confirmer' }));
+    return { utilisateur, dialogue };
+  }
+
+  it('le bouton marque chaque ligne bloquante réalisée, puis relance Terminer', async () => {
+    const marquees: string[] = [];
+    let appelsTerminer = 0;
+    server.use(
+      http.post(URL_TERMINER, () => {
+        appelsTerminer += 1;
+        if (appelsTerminer === 1) return refusLignesNonRealisees();
+        return HttpResponse.json({
+          donnees: construireOr({ statut: 'termine', actionsDisponibles: [] }),
+          avertissements: [],
+        });
+      }),
+      http.post(urlMarquer('l-1'), () => {
+        marquees.push('l-1');
+        return reponseLigne('l-1');
+      }),
+      http.post(urlMarquer('l-2'), () => {
+        marquees.push('l-2');
+        return reponseLigne('l-2');
+      }),
+    );
+
+    const { utilisateur, dialogue } = await ouvrirTerminerEtConfirmer();
+    await utilisateur.click(
+      await within(dialogue).findByRole('button', { name: 'Marquer les lignes comme réalisées' }),
+    );
+
+    await waitFor(() => expect(appelsTerminer).toBe(2));
+    expect(marquees).toEqual(['l-1', 'l-2']);
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it("échec partiel : s'arrête, affiche le message de l'API tel quel et ne relance pas Terminer", async () => {
+    let appelsTerminer = 0;
+    server.use(
+      http.post(URL_TERMINER, () => {
+        appelsTerminer += 1;
+        return refusLignesNonRealisees();
+      }),
+      http.post(urlMarquer('l-1'), () => reponseLigne('l-1')),
+      http.post(urlMarquer('l-2'), () =>
+        HttpResponse.json(
+          {
+            type: 'https://docs.dmsforall.example/erreurs/LIGNE_TRANSITION_INTERDITE',
+            title: 'Transition interdite',
+            status: 409,
+            code: 'LIGNE_TRANSITION_INTERDITE',
+            detail: 'Aucun temps pointé sur la ligne « Filtre ».',
+            instance: 'req-4',
+          },
+          { status: 409, headers: { 'content-type': 'application/problem+json' } },
+        ),
+      ),
+    );
+
+    const { utilisateur, dialogue } = await ouvrirTerminerEtConfirmer();
+    await utilisateur.click(
+      await within(dialogue).findByRole('button', { name: 'Marquer les lignes comme réalisées' }),
+    );
+
+    expect(
+      await within(dialogue).findByText('Aucun temps pointé sur la ligne « Filtre ».'),
+    ).toBeInTheDocument();
+    expect(appelsTerminer).toBe(1);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+});

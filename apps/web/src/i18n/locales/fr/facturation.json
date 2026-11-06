@@ -106,7 +106,15 @@
     "retour": "Retour à l'OR",
     "refusBloquant": {
       "titre": "{count, plural, one {# ligne empêche la facturation} other {# lignes empêchent la facturation}}",
-      "resoudre": "Résoudre →"
+      "resoudre": "Résoudre →",
+      "marquerRealisees": "{count, plural, one {Marquer la ligne comme réalisée} other {Marquer les # lignes comme réalisées}}",
+      "marquageEnCours": "Marquage en cours…",
+      "aFaire": {
+        "proposee": "à proposer au client puis valider dans l'OR",
+        "aValider": "à valider dans l'OR",
+        "validee": "à marquer comme réalisée",
+        "enCours": "à marquer comme réalisée"
+      }
     },
     "demontage": {
       "message": "Un démontage a été réalisé pour un devis refusé — facturable : {montant} TTC",

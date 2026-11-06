@@ -106,7 +106,15 @@
     "retour": "Torna all'ordine",
     "refusBloquant": {
       "titre": "{count, plural, one {# riga impedisce la fatturazione} other {# righe impediscono la fatturazione}}",
-      "resoudre": "Risolvere →"
+      "resoudre": "Risolvere →",
+      "marquerRealisees": "{count, plural, one {Segnare la riga come eseguita} other {Segnare le # righe come eseguite}}",
+      "marquageEnCours": "Contrassegno in corso…",
+      "aFaire": {
+        "proposee": "da proporre al cliente, poi convalidare nell'OR",
+        "aValider": "da convalidare nell'OR",
+        "validee": "da segnare come eseguita",
+        "enCours": "da segnare come eseguita"
+      }
     },
     "demontage": {
       "message": "È stato eseguito uno smontaggio per un preventivo rifiutato — fatturabile: {montant} IVA incl.",

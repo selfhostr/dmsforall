@@ -11,6 +11,7 @@ import {
   schemaActionRouvrir,
   schemaActionTerminer,
   type ActionOrdreReparation,
+  type ActionProposee,
   type CodeConfirmation,
   type ReponseOrdreReparation,
 } from '@dfa/shared';
@@ -32,6 +33,7 @@ import { ChampKilometrage } from '@/composants/comptoir/ChampKilometrage';
 import { ActionPrimaire, type ActionSecondaireMenu } from '@/composants/layout/ActionPrimaire';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
 import { RefusBloquant } from '@/composants/motifs/RefusBloquant';
+import { useMarquerLignesRealisees } from '@/hooks/atelier/useActionsLigneOr';
 import {
   useAnnulerOr,
   useCloturerOr,
@@ -48,7 +50,7 @@ import {
 import { useSession } from '@/hooks/useSession';
 
 import { BoutonImprimerOr } from './BoutonImprimerOr';
-import { messageErreurMutation } from './messages-erreur-mutation';
+import { messageErreurMarquage, messageErreurMutation } from './messages-erreur-mutation';
 
 /**
  * Barre d'actions de l'OR — LES actions réellement proposées par le serveur (`actionsDisponibles`,
@@ -160,6 +162,7 @@ export function PanneauActionsOr({ or }: Props) {
   const restituer = useRestituerOr(or.id);
   const cloturer = useCloturerOr(or.id);
   const annuler = useAnnulerOr(or.id);
+  const marquerRealisees = useMarquerLignesRealisees(or.id);
 
   // Champs locaux — un seul jeu à la fois, remis à zéro à l'ouverture de chaque dialogue.
   const [kilometrage, setKilometrage] = useState<number | null>(null);
@@ -181,6 +184,7 @@ export function PanneauActionsOr({ or }: Props) {
   const actionsNiveauOr = or.actionsDisponibles.filter((action) => !ACTIONS_LIGNE.has(action));
 
   function fermer() {
+    marquerRealisees.reset();
     setActionOuverte(null);
     setKilometrage(null);
     setSignatureDifferee(false);
@@ -234,6 +238,22 @@ export function PanneauActionsOr({ or }: Props) {
         onSuccess: () => fermer(),
       },
     );
+  }
+
+  // Action proposée `MARQUER_LIGNES_REALISEES` (I-10) : marque réalisée chaque ligne bloquante
+  // listée par le refus, puis rejoue l'action initiale avec la même saisie. Un échec (ex. 409
+  // `LIGNE_TRANSITION_INTERDITE`) reste affiché dans le dialogue, l'action initiale n'est pas rejouée.
+  function executerActionProposee(action: ActionProposee) {
+    if (action.code !== 'MARQUER_LIGNES_REALISEES' || !erreurActive) return;
+    const ligneIds = erreurActive.blocages
+      .filter((blocage) => blocage.type === 'ligne_or')
+      .map((blocage) => blocage.id);
+    const entreeInitiale = derniereEntree;
+    marquerRealisees.mutate(ligneIds, {
+      onSuccess: () => {
+        if (entreeInitiale) soumettre(entreeInitiale);
+      },
+    });
   }
 
   function resoumettreAvecConfirmations(confirmations: readonly CodeConfirmation[]) {
@@ -354,7 +374,15 @@ export function PanneauActionsOr({ or }: Props) {
               blocages={erreurActive.blocages}
               actionsProposees={erreurActive.actionsProposees}
               estTerminal={or.statut === 'annule' || or.statut === 'cloture'}
+              actionEnCours={marquerRealisees.isPending || mutationActive?.isPending}
+              onActionProposee={executerActionProposee}
             />
+          ) : null}
+
+          {marquerRealisees.isError ? (
+            <p role="alert" className="texte-libelle text-destructive">
+              {messageErreurMarquage(marquerRealisees.error, t)}
+            </p>
           ) : null}
 
           {actionOuverte === 'receptionner' ? (
