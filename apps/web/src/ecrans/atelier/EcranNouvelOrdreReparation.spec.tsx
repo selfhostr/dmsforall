@@ -196,6 +196,12 @@ function rendre(routeInitiale: string) {
   );
 }
 
+// Garage à deux sites : en mono-site le site est implicite (`useSiteImplicite`), rien à demander.
+const SESSION_DEUX_SITES = {
+  ...SESSION_TEST,
+  sites: [...SESSION_TEST.sites, { id: 'site-2', code: 'S2', nom: 'Second site', actif: true }],
+};
+
 describe('EcranNouvelOrdreReparation', () => {
   afterEach(async () => {
     await i18n.changeLanguage('fr');
@@ -223,7 +229,7 @@ describe('EcranNouvelOrdreReparation', () => {
       // se découvre qu'à la facturation (voir l'en-tête du composant).
       server.use(
         http.get(`/api/v1/clients/${CLIENT_ID}`, () => HttpResponse.json(CLIENT)),
-        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_DEUX_SITES)),
       );
       rendre(`/ordres-reparation/nouveau?parcours=classique&clientId=${CLIENT_ID}`);
 
@@ -243,7 +249,7 @@ describe('EcranNouvelOrdreReparation', () => {
     it('choisir un site dans le sélecteur inline complète `?site=` SANS perdre `clientId` et révèle le choix du véhicule', async () => {
       server.use(
         http.get(`/api/v1/clients/${CLIENT_ID}`, () => HttpResponse.json(CLIENT)),
-        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_DEUX_SITES)),
         http.get(`/api/v1/clients/${CLIENT_ID}/vehicules`, () =>
           HttpResponse.json({
             donnees: [VEHICULE],
