@@ -462,5 +462,22 @@
       "titre": "Da completare",
       "adresse": "L'indirizzo del garage (via, n., NPA, località)"
     }
+  },
+  "signalements": {
+    "titre": "Segnalazioni",
+    "modes": {
+      "via_site": "Invia tramite il sito",
+      "copie_seule": "Solo copia",
+      "desactive": "Disattivato"
+    },
+    "aide": {
+      "via_site": "Il pulsante «Segnala un problema» apre il sito di dmsforall per completare l’invio, senza account GitHub.",
+      "copie_seule": "La segnalazione si copia e si trasmette a mano: il pulsante «Continua sul sito» non compare.",
+      "desactive": "La voce «Segnala un problema» non compare più nel menu del profilo."
+    },
+    "enregistre": "Impostazione salvata.",
+    "erreur": {
+      "titre": "Impossibile caricare l’impostazione delle segnalazioni"
+    }
   }
 }

@@ -3,8 +3,10 @@ import {
   EN_TETE_IDEMPOTENCE,
   EN_TETE_IDEMPOTENCE_REJEU,
   EN_TETE_IF_MATCH,
+  EN_TETE_REQUETE_ID,
 } from '@dfa/shared';
 
+import { enregistrerAppelEchoue } from '@/diagnostic/tampon';
 import i18n from '@/i18n';
 import { obtenirEnv } from '@/config/env';
 
@@ -60,6 +62,8 @@ export async function requeteApi<T>(
       signal: options.signal ?? AbortSignal.timeout(DELAI_REQUETE_MS),
     });
   } catch (cause) {
+    // Diagnostic : méthode, gabarit de route et statut 0 seulement (voir `diagnostic/tampon.ts`).
+    enregistrerAppelEchoue({ methode: options.method ?? 'GET', url, statut: 0 });
     throw new ErreurReseau(cause);
   }
 
@@ -70,7 +74,15 @@ export async function requeteApi<T>(
   const corpsTexte = await reponse.text();
 
   if (!reponse.ok) {
-    throw construireErreurApi(reponse, corpsTexte);
+    const erreur = construireErreurApi(reponse, corpsTexte);
+    enregistrerAppelEchoue({
+      methode: options.method ?? 'GET',
+      url,
+      statut: reponse.status,
+      code: erreur.probleme.code,
+      requestId: reponse.headers.get(EN_TETE_REQUETE_ID),
+    });
+    throw erreur;
   }
 
   if (corpsTexte.length === 0) return undefined;

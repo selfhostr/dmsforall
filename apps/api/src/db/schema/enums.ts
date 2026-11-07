@@ -15,6 +15,7 @@
 import { pgEnum } from 'drizzle-orm/pg-core';
 import {
   LANGUES,
+  MODES_SIGNALEMENT,
   ROLES_UTILISATEUR,
   STATUTS_TENANT,
   STATUTS_UTILISATEUR,
@@ -23,6 +24,9 @@ import {
 
 /** Langues de travail de l'application et des documents clients. Type PG : `langue`. */
 export const langueEnum = pgEnum('langue', LANGUES);
+
+/** Comportement du bouton « Signaler un problème ». Type PG : `mode_signalement`. */
+export const modeSignalementEnum = pgEnum('mode_signalement', MODES_SIGNALEMENT);
 
 /** Cycle de vie commercial d'un tenant. Type PG : `statut_tenant`. */
 export const statutTenantEnum = pgEnum('statut_tenant', STATUTS_TENANT);

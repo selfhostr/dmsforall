@@ -106,5 +106,8 @@
   },
   "rangee": {
     "aria": "Réglages rapides"
+  },
+  "signalement": {
+    "entree": "Signaler un problème"
   }
 }

@@ -61,6 +61,7 @@ export function creerSessionTest(
       slug: 'garage-test',
       raisonSociale: 'Garage Test SA',
       langueDefaut: 'fr',
+      modeSignalement: 'via_site',
     },
     sites: [{ id: 'site-1', code: 'PRINCIPAL', nom: 'Site principal', actif: true }],
     siteRattachementId: role === 'poste_atelier' ? 'site-1' : null,

@@ -9,7 +9,7 @@ import { sql } from 'drizzle-orm';
 import { boolean, char, check, integer, pgTable, text, unique } from 'drizzle-orm/pg-core';
 
 import { colonneId, colonnesHorodatage } from './colonnes-communes';
-import { langueEnum, statutTenantEnum } from './enums';
+import { langueEnum, modeSignalementEnum, statutTenantEnum } from './enums';
 
 export const tenant = pgTable(
   'tenant',
@@ -62,6 +62,9 @@ export const tenant = pgTable(
      * usage suisse courant (« net 30 »).
      */
     delaiPaiementJoursDefaut: integer('delai_paiement_jours_defaut').notNull().default(30),
+
+    /** Réglage « Signalements » (migration 0093) : `via_site` par défaut. */
+    modeSignalement: modeSignalementEnum('mode_signalement').notNull().default('via_site'),
 
     ...colonnesHorodatage(),
   },

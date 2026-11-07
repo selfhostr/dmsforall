@@ -11,6 +11,7 @@ import { useBlocCreancier } from '@/hooks/parametrage/useBlocCreancier';
 
 import { adresseGarageComplete, FormulaireAdresseGarage } from './FormulaireAdresseGarage';
 import { SectionEntreprise } from './SectionEntreprise';
+import { SectionSignalements } from './SectionSignalements';
 
 /**
  * « Mon garage » : ce qui identifie le garage sur ses factures et documents — nom (raison sociale),
@@ -50,6 +51,8 @@ export function EcranMonGarage() {
         ) : null}
 
         <SectionEntreprise />
+
+        <SectionSignalements />
 
         {bloc.isPending ? (
           <EtatChargement lignes={5} />
