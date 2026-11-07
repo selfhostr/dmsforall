@@ -170,8 +170,8 @@ async function semerOrdres(): Promise<void> {
           `insert into ligne_or
              (id, tenant_id, ordre_reparation_id, numero_ordre, type, origine, statut, payeur,
               payeur_client_id, designation, motif_annulation, montant_ht_centimes,
-              montant_tva_centimes, montant_ttc_centimes)
-           values ($1,$2,$3,$4,'forfait','commandee',$5,$6,$7,$8,$9,10000,810,10810)`,
+              montant_tva_centimes, montant_ttc_centimes, technicien_id)
+           values ($1,$2,$3,$4,'forfait','commandee',$5,$6,$7,$8,$9,10000,810,10810,$10)`,
           [
             randomUUID(),
             tenant.id,
@@ -182,6 +182,8 @@ async function semerOrdres(): Promise<void> {
             tiers?.id ?? null,
             `Ligne ${String(l)} de l'OR ${String(i)}`,
             l === 3 ? 'Annulée pour le test' : null,
+            // Un OR sur deux a un technicien assigné sur sa première ligne (résumé `technicienAssigne`).
+            l === 1 && i % 2 === 0 ? garage.tenantA.utilisateursParRole.technicien.id : null,
           ],
         );
       }
@@ -295,6 +297,130 @@ describe('GET /ordres-reparation — chargement par lot', () => {
     },
     60_000,
   );
+
+  it.each(['direction', 'technicien'] as const)(
+    'forme=resume : mêmes valeurs que le document complet, même ordre (rôle %s)',
+    async (role) => {
+      const service = ctx.app.get(ServiceOr);
+      const c = ctxTenant(garage.tenantA.tenant.id);
+      const filtres = { tri: 'ouvertLe:desc' } as never;
+      const complet = (await service.lister(c, principal(role), filtres, 200, undefined)).donnees;
+      const resume = (await service.listerResumes(c, principal(role), filtres, 200, undefined))
+        .donnees;
+      expect(resume).toHaveLength(NOMBRE_OR);
+
+      const attendu = aller(
+        complet.map((o) => ({
+          id: o.id,
+          numero: o.numero,
+          siteId: o.siteId,
+          type: o.type,
+          statut: o.statut,
+          etatAffiche: o.etatAffiche,
+          enRetard: o.enRetard,
+          client: {
+            id: o.client.id,
+            numeroClient: o.client.numeroClient,
+            nomAffiche: o.client.nomAffiche,
+            type: o.client.type,
+            statut: o.client.statut,
+          },
+          vehicule: {
+            id: o.vehicule.id,
+            plaque: o.vehicule.plaque,
+            canton: o.vehicule.canton,
+            designation: o.vehicule.designation,
+            premiereMiseEnCirculationLe: o.vehicule.premiereMiseEnCirculationLe,
+            identificationIncomplete: o.vehicule.identificationIncomplete,
+          },
+          ouvertLe: o.ouvertLe,
+          restitutionPromiseLe: o.restitutionPromiseLe,
+          localisation: o.localisation,
+          attentes: o.attentes,
+          designationsApercu: o.designationsApercu,
+          nombreLignes: o.nombreLignes,
+          totalTtcCentimes: o.totalTtcCentimes,
+          version: o.version,
+        })),
+      ) as Record<string, unknown>[];
+      // `technicienAssigne` n'existe pas dans le document complet : vérifié à part.
+      const sansTechnicien = (aller(resume) as Record<string, unknown>[]).map((r) => {
+        const { technicienAssigne: _t, ...reste } = r;
+        return reste;
+      });
+      expect(sansTechnicien).toEqual(attendu);
+
+      // Garde-fous : la fixture exerce les chemins sensibles.
+      expect(resume.some((o) => o.nombreLignes > 0)).toBe(true);
+      expect(resume.some((o) => o.designationsApercu.length > 0)).toBe(true);
+      expect(resume.some((o) => o.technicienAssigne !== undefined)).toBe(true);
+      expect(resume.some((o) => o.enRetard)).toBe(true);
+      if (role === 'direction') {
+        expect(resume.some((o) => (o.totalTtcCentimes ?? 0) > 0)).toBe(true);
+      } else {
+        // Rôle sans droit aux montants : champ absent du JSON, jamais 0.
+        expect(resume.every((o) => !('totalTtcCentimes' in o))).toBe(true);
+      }
+    },
+    60_000,
+  );
+
+  it('forme=resume via HTTP : mêmes ids, même ordre, curseur identique ; poids réduit', async () => {
+    const complet = await get('A', 'direction', '/api/v1/ordres-reparation?limite=50');
+    const resume = await get('A', 'direction', '/api/v1/ordres-reparation?limite=50&forme=resume');
+    expect(resume.status).toBe(200);
+    const pc = complet.body as unknown as Page;
+    const pr = resume.body as unknown as Page;
+    expect(pr.donnees.map((d) => d.id)).toEqual(pc.donnees.map((d) => d.id));
+    expect(pr.curseurSuivant).toBe(pc.curseurSuivant);
+    const octetsComplet = Buffer.byteLength(JSON.stringify(complet.body));
+    const octetsResume = Buffer.byteLength(JSON.stringify(resume.body));
+    process.stderr.write(
+      `[mesure] page de 50 OR : complet = ${String(octetsComplet)} octets, resume = ${String(octetsResume)} octets (${String(Math.round((100 * octetsResume) / octetsComplet))} %)\n`,
+    );
+    expect(octetsResume).toBeLessThan(octetsComplet / 4);
+    // Le résumé ne porte aucun des gros champs du document complet.
+    const premier = pr.donnees[0] as unknown as Record<string, unknown>;
+    for (const cle of ['lignes', 'demandes', 'devisComplementaires', 'totauxParPayeur', 'figees'])
+      expect(premier).not.toHaveProperty(cle);
+    // Rétrocompatibilité : sans `forme`, le document complet.
+    expect(pc.donnees[0]).toHaveProperty('lignes');
+    // Valeur inconnue : 400.
+    const mauvais = await get('A', 'direction', '/api/v1/ordres-reparation?forme=autre');
+    expect(mauvais.status).toBe(400);
+  }, 60_000);
+
+  it('forme=resume : isolation tenant, ID inexistant -> liste vide', async () => {
+    const b = await get('B', 'direction', '/api/v1/ordres-reparation?limite=200&forme=resume');
+    expect(b.status).toBe(200);
+    expect((b.body as unknown as Page).donnees.filter((d) => orIdsA.includes(d.id))).toEqual([]);
+    const vide = await get(
+      'A',
+      'direction',
+      `/api/v1/ordres-reparation?forme=resume&clientId=${randomUUID()}`,
+    );
+    expect((vide.body as unknown as Page).donnees).toEqual([]);
+  });
+
+  it('forme=resume : une page de 50 coûte au plus 5 requêtes, quelle que soit sa taille', async () => {
+    const service = ctx.app.get(ServiceOr);
+    const c = ctxTenant(garage.tenantA.tenant.id);
+    const filtres = { tri: 'ouvertLe:desc' } as never;
+    const petite = await compterRequetes(() =>
+      service.listerResumes(c, principal('direction'), filtres, 5, undefined),
+    );
+    const grande = await compterRequetes(() =>
+      service.listerResumes(c, principal('direction'), filtres, 50, undefined),
+    );
+    const complet = await compterRequetes(() =>
+      service.lister(c, principal('direction'), filtres, 50, undefined),
+    );
+    process.stderr.write(
+      `[mesure] OR resume : page de 5 = ${String(petite.requetes)} requêtes, page de 50 = ${String(grande.requetes)} ; complet (50) = ${String(complet.requetes)}\n`,
+    );
+    expect(grande.requetes).toBeLessThanOrEqual(5);
+    expect(grande.requetes - petite.requetes).toBeLessThanOrEqual(1);
+  }, 60_000);
 
   it.each(TRIS_ORDRES_REPARATION)(
     'pagine sans doublon ni trou, tri %s (page de 7 == page unique de 200)',

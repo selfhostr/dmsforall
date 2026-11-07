@@ -19,6 +19,7 @@ import type {
   EntreeReponseDevisComplementaire,
   EntreeValidationLignes,
   OrdreReparationResume,
+  OrdreReparationResumeListe,
   PageCurseur,
   ReponseAvecAvertissements,
   ReponseDevisComplementaire,
@@ -101,6 +102,21 @@ export async function listerOrdresReparation(
 ): Promise<PageCurseur<OrdreReparationResume>> {
   const page_ = await requeteApi<PageCurseur<OrdreReparationResume>>(
     `/ordres-reparation?${construireParametres(filtres, page)}`,
+    { method: 'GET' },
+  );
+  return page_ ?? { donnees: [], curseurSuivant: null, limite: page.limite };
+}
+
+/** `GET /ordres-reparation?forme=resume` — résumé de liste (`OrdreReparationResumeListe`), environ
+ *  dix fois plus léger que le document complet : c'est ce que consomme l'écran liste. Mêmes filtres,
+ *  mêmes tris, mêmes curseurs que `listerOrdresReparation`. */
+export async function listerResumesOrdresReparation(
+  filtres: FiltresListeOrdresReparation,
+  page: PageOrdresReparation,
+): Promise<PageCurseur<OrdreReparationResumeListe>> {
+  const parametres = `${construireParametres(filtres, page)}&forme=resume`;
+  const page_ = await requeteApi<PageCurseur<OrdreReparationResumeListe>>(
+    `/ordres-reparation?${parametres}`,
     { method: 'GET' },
   );
   return page_ ?? { donnees: [], curseurSuivant: null, limite: page.limite };

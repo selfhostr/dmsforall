@@ -1,7 +1,7 @@
 import { TriangleAlert } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import type { ClientResume } from '@dfa/shared';
+import type { ClientResumeListe } from '@dfa/shared';
 
 import { cn } from '@/lib/utils';
 
@@ -9,7 +9,7 @@ import { BadgeAttribut } from './BadgeAttribut';
 import { BadgeStatutClient } from './BadgeStatutClient';
 
 interface Props {
-  readonly client: ClientResume;
+  readonly client: ClientResumeListe;
   /**
    * `ClientResume` ne porte pas l'information « a une note d'alerte » (RM-13/RM-36, elle vit sur
    * les notes de la fiche complète) — à passer explicitement par l'appelant qui la connaît déjà

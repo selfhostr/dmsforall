@@ -338,6 +338,60 @@ export interface OrdreReparationResume {
   readonly designationsApercu?: readonly string[];
 }
 
+/** Formes de réponse de `GET /ordres-reparation` (`?forme=`). `complet` (défaut, rétrocompatible) :
+ *  `ReponseOrdreReparation` par élément. `resume` : `OrdreReparationResumeListe`, ~10 % du poids. */
+export const FORMES_LISTE_ORDRES_REPARATION = ['complet', 'resume'] as const;
+export type FormeListeOrdresReparation = (typeof FORMES_LISTE_ORDRES_REPARATION)[number];
+
+/** Client d'une ligne de liste : identité seule (pas de localité, de véhicules détenus ni de
+ *  dernier passage — trois sous-requêtes que la liste n'affiche pas). Sous-ensemble de `ClientResume`. */
+export type ClientResumeListe = Pick<
+  ClientResume,
+  'id' | 'numeroClient' | 'nomAffiche' | 'type' | 'statut'
+>;
+
+/** Véhicule d'une ligne de liste : plaque, désignation et année. Sous-ensemble de `VehiculeResume`. */
+export type VehiculeResumeListe = Pick<
+  VehiculeResume,
+  | 'id'
+  | 'plaque'
+  | 'canton'
+  | 'designation'
+  | 'premiereMiseEnCirculationLe'
+  | 'identificationIncomplete'
+>;
+
+/**
+ * Résumé d'un OR pour la liste (`GET /ordres-reparation?forme=resume`) : tout ce que l'écran liste,
+ * « Mes OR du jour » et les calendriers affichent, sans lignes, demandes, devis, totaux par payeur
+ * ni valeurs figées. Mêmes valeurs que le document complet (`ReponseOrdreReparation`) pour les
+ * champs communs, mêmes règles de masquage des montants par rôle.
+ */
+export interface OrdreReparationResumeListe {
+  readonly id: string;
+  readonly numero: string;
+  readonly siteId: string;
+  readonly type: TypeOrdreReparation;
+  readonly statut: StatutOrdreReparation;
+  readonly etatAffiche: EtatAfficheOrdreReparation;
+  readonly enRetard: boolean;
+  readonly client: ClientResumeListe;
+  readonly vehicule: VehiculeResumeListe;
+  readonly ouvertLe: string | null;
+  readonly restitutionPromiseLe: string | null;
+  readonly localisation: LocalisationVehicule;
+  readonly attentes: AttentesOr;
+  /** Technicien de la première ligne assignée (hors annulée/refusée) ; absent si aucune. */
+  readonly technicienAssigne?: { readonly utilisateurId: string; readonly nomAffiche: string };
+  /** Mêmes règles que `ReponseOrdreReparation.designationsApercu`. */
+  readonly designationsApercu: readonly string[];
+  /** Toutes les lignes de l'OR, tous statuts confondus (comme `ReponseOrdreReparation.nombreLignes`). */
+  readonly nombreLignes: number;
+  /** Absent pour un rôle sans droit aux montants. */
+  readonly totalTtcCentimes?: number;
+  readonly version: number;
+}
+
 /** Entrée du journal d'audit (`GET /ordres-reparation/{orId}/journal`, RM-59, RM-111). */
 export interface ReponseEntreeJournal {
   readonly id: string;
