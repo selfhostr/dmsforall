@@ -82,13 +82,15 @@ function articleComplet(): ReponseArticle {
   };
 }
 
-function mockRecherche(resultat: ResultatRechercheComptoirArticle) {
+function mockRecherche(resultat: ResultatRechercheComptoirArticle, assujettiTva = true) {
   server.use(
     // Issue #71 : le raccourci catalogue (`SelecteurArticlePiece`) n'est proposé qu'à un rôle qui
     // lit effectivement le catalogue pièces (`peutRechercherArticlePiece`, `ecrans/atelier/droits.ts`)
     // — sans session authentifiée ici, le handler par défaut (401 sur `/auth/moi`) le masquerait
     // pour tous ces scénarios. `chef_atelier` (`SESSION_TEST`) fait partie de `ROLES_PIECES`.
-    http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+    http.get('/api/v1/auth/moi', () =>
+      HttpResponse.json({ ...SESSION_TEST, tenant: { ...SESSION_TEST.tenant, assujettiTva } }),
+    ),
     http.get('/api/v1/articles/recherche-comptoir', () => HttpResponse.json([resultat])),
     http.get(`/api/v1/articles/${ARTICLE_ID}`, () => HttpResponse.json(articleComplet())),
     // Mode PARCOURS du sélecteur (`SelecteurArticlePiece`, `GET /articles`, saisie vide au
@@ -144,18 +146,8 @@ describe('DialogueAjoutLigneOr — reprendre une pièce du magasin au lieu de to
     });
   });
 
-  it('garage assujetti (réglages lus) : prix HT converti au taux de l’article, 6850 TTC à 8.1 % -> 63.37', async () => {
+  it('garage assujetti (session) : prix HT converti au taux de l’article, 6850 TTC à 8.1 % -> 63.37', async () => {
     mockRecherche(resultatRecherche('suivi', 3000));
-    server.use(
-      http.get('/api/v1/parametres-entreprise', () =>
-        HttpResponse.json({
-          raisonSociale: 'G',
-          assujettiTva: true,
-          numeroTva: 'CHE-116.281.710 TVA',
-          delaiPaiementJoursDefaut: 30,
-        }),
-      ),
-    );
     const utilisateur = userEvent.setup();
     await ouvrirEnTypePiece(utilisateur);
     await choisirLaPiece(utilisateur);
@@ -165,17 +157,7 @@ describe('DialogueAjoutLigneOr — reprendre une pièce du magasin au lieu de to
   });
 
   it('garage NON assujetti : HT = TTC catalogue (6850 -> 68.50), jamais converti au taux 8.1 % de l’article', async () => {
-    mockRecherche(resultatRecherche('suivi', 3000));
-    server.use(
-      http.get('/api/v1/parametres-entreprise', () =>
-        HttpResponse.json({
-          raisonSociale: 'G',
-          assujettiTva: false,
-          numeroTva: null,
-          delaiPaiementJoursDefaut: 30,
-        }),
-      ),
-    );
+    mockRecherche(resultatRecherche('suivi', 3000), false);
     const utilisateur = userEvent.setup();
     await ouvrirEnTypePiece(utilisateur);
     await choisirLaPiece(utilisateur);

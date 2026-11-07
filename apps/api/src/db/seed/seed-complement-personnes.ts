@@ -505,6 +505,36 @@ const COLLABORATEURS: ReadonlyArray<{
   },
 ];
 
+/**
+ * Chaque PERSONNE du jeu de démo a au moins un site et un site principal (défaut des filtres de
+ * site de l'interface). Les comptes du jeu de base n'ont aucune affectation : ils reçoivent tous les
+ * sites ; le site principal est l'un des sites de la personne (SION d'abord). Les invités sans site
+ * restent sans principal, et la borne (compte de service) n'en a jamais (CHECK en base).
+ */
+async function attribuerSitesEtSitePrincipal(ctx: Ctx): Promise<void> {
+  await ctx.c.query(
+    `insert into utilisateur_site (tenant_id, utilisateur_id, site_id)
+     select u.tenant_id, u.id, s.id
+       from utilisateur u cross join site s
+      where u.tenant_id = $1 and s.tenant_id = $1
+        and u.role <> 'poste_atelier' and u.statut <> 'invite'
+        and not exists (select 1 from utilisateur_site us where us.utilisateur_id = u.id)
+     on conflict do nothing`,
+    [ctx.tenantId],
+  );
+  await ctx.c.query(
+    `update utilisateur u
+        set site_principal_id = (
+          select us.site_id
+            from utilisateur_site us join site s on s.id = us.site_id
+           where us.utilisateur_id = u.id and us.tenant_id = u.tenant_id
+           order by (s.code = 'SION') desc, s.code
+           limit 1)
+      where u.tenant_id = $1 and u.role <> 'poste_atelier'`,
+    [ctx.tenantId],
+  );
+}
+
 export async function semerCollaborateurs(ctx: Ctx): Promise<void> {
   for (const col of COLLABORATEURS) {
     const email = `${sansAccent(col.prenom)}.${sansAccent(col.nom)}@garage-martin.ch`;
@@ -534,6 +564,7 @@ export async function semerCollaborateurs(ctx: Ctx): Promise<void> {
   if (base)
     for (const siteId of ctx.sites.values())
       await ins(ctx, 'utilisateur_site', { utilisateurId: base, siteId });
+  await attribuerSitesEtSitePrincipal(ctx);
   // PIN de pointage des techniciens (même PIN que le technicien du jeu de base).
   const pinBase = await sql<{ pin_hash: string; site_id: string }>(
     ctx,

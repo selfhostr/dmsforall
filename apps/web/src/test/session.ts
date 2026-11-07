@@ -63,6 +63,7 @@ export function creerSessionTest(
       raisonSociale: 'Garage Test SA',
       langueDefaut: 'fr',
       modeSignalement: 'via_site',
+      assujettiTva: true,
     },
     sites: [
       { id: 'site-1', code: 'PRINCIPAL', codeCourt: 'PRINC', nom: 'Site principal', actif: true },

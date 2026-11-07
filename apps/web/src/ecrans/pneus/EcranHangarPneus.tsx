@@ -402,8 +402,8 @@ export function EcranHangarPneus() {
                       </SelectTrigger>
                       <SelectContent>
                         {sites.map((s) => (
-                          <SelectItem key={s.id} value={s.id}>
-                            {s.nom}
+                          <SelectItem key={s.id} value={s.id} title={s.nom}>
+                            {s.codeCourt}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -621,8 +621,8 @@ export function EcranHangarPneus() {
                   <SelectContent>
                     <SelectItem value="tous">{t('pneus:aRelancer.filtreSiteTous')}</SelectItem>
                     {sites.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.nom}
+                      <SelectItem key={s.id} value={s.id} title={s.nom}>
+                        {s.codeCourt}
                       </SelectItem>
                     ))}
                   </SelectContent>

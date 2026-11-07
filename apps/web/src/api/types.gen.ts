@@ -9236,6 +9236,7 @@ export interface components {
       plafondKm: number | null;
     };
     TenantCourantDto: {
+      assujettiTva: boolean;
       /** Format: uuid */
       id: string;
       /** @enum {string} */

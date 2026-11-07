@@ -48,7 +48,11 @@ function urlDeBase(): string {
  * reste monté (fermer puis rouvrir le panneau ne fait rien perdre). Le diagnostic est figé à
  * l'ouverture du panneau.
  */
-export function useSignalement(ouvert: boolean, nbSites: number): UtiliserSignalement {
+export function useSignalement(
+  ouvert: boolean,
+  nbSites: number,
+  modules: readonly string[] = [],
+): UtiliserSignalement {
   const { t } = useTranslation('signalement');
   const [constat, setConstat] = useState('');
   const [etapes, setEtapes] = useState('');
@@ -58,9 +62,12 @@ export function useSignalement(ouvert: boolean, nbSites: number): UtiliserSignal
   const [etatCopie, setEtatCopie] = useState<EtatCopie>('inactif');
   const [texteACopier, setTexteACopier] = useState('');
 
+  // Clé stable : un tableau recréé à chaque rendu ne doit pas refaire le diagnostic figé.
+  const cleModules = modules.join(',');
   const diagnostic = useMemo(
-    () => (ouvert ? collecterDiagnostic(nbSites) : null),
-    [ouvert, nbSites],
+    () =>
+      ouvert ? collecterDiagnostic(nbSites, cleModules === '' ? [] : cleModules.split(',')) : null,
+    [ouvert, nbSites, cleModules],
   );
 
   const { signalement, url } = useMemo(

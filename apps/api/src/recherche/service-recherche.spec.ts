@@ -25,10 +25,25 @@ import { ServiceRecherche } from './service-recherche';
 
 const CTX: ContexteTenant = { tenantId: 'tid-1', utilisateurId: 'u1', requeteId: null };
 
-function txFactice(executes: ReadonlyArray<{ rows: readonly unknown[] }>) {
+/** Vrai pour la lecture des modules retirés (`select modules_desactives ... from tenant`). */
+function estLectureModules(requete: unknown): boolean {
+  return JSON.stringify(requete).includes('modules_desactives');
+}
+
+function txFactice(
+  executes: ReadonlyArray<{ rows: readonly unknown[] }>,
+  modulesDesactives: readonly string[] = [],
+) {
   const file = [...executes];
   return {
-    execute: vi.fn(() => Promise.resolve(file.shift() ?? { rows: [] })),
+    // La lecture des modules ne consomme pas la file des requêtes de recherche.
+    execute: vi.fn((requete: unknown) =>
+      Promise.resolve(
+        estLectureModules(requete)
+          ? { rows: [{ modules_desactives: modulesDesactives }] }
+          : (file.shift() ?? { rows: [] }),
+      ),
+    ),
   } as unknown as TransactionDfa;
 }
 
@@ -284,5 +299,57 @@ describe('ServiceRecherche.rechercher — régression sur les natures préexista
 
     expect(reponse.resultats).toHaveLength(1);
     expect(reponse.resultats[0]).toMatchObject({ type: 'document_vente', id: 'doc-1' });
+  });
+});
+
+// =================================================================================================
+// Modules désactivés — aucune nature d'un module retiré ne remonte
+// =================================================================================================
+
+describe('ServiceRecherche.rechercher — modules désactivés', () => {
+  it.each([
+    ['article', 'pieces'],
+    ['fournisseur', 'pieces'],
+    ['depot_pneu', 'pneus'],
+    ['ordre_reparation', 'atelier'],
+  ] as const)(
+    'la nature « %s » ne remonte rien quand le module « %s » est retiré (aucune requête de recherche)',
+    async (type, module) => {
+      const tx = txFactice([{ rows: [{ id: 'x', score: 1 }] }], [module]);
+      const service = new ServiceRecherche(accesFactice(tx), contexteRequeteTest('chef_atelier'));
+
+      const reponse = await service.rechercher(CTX, params({ types: [type] }));
+
+      expect(reponse.resultats).toEqual([]);
+      // Seule la lecture des modules a touché la base.
+      expect(tx.execute).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('retirer « atelier » laisse les articles (autre module)', async () => {
+    const tx = txFactice(
+      [
+        {
+          rows: [
+            {
+              id: 'art-1',
+              designation: 'Plaquette',
+              reference_principale: 'R1',
+              numero_article: 'A-1',
+              statut: 'actif',
+              champ: 'designation',
+              valeur_matchee: 'Plaquette',
+              score: 0.9,
+            },
+          ],
+        },
+      ],
+      ['atelier'],
+    );
+    const service = new ServiceRecherche(accesFactice(tx), contexteRequeteTest('chef_atelier'));
+
+    const reponse = await service.rechercher(CTX, params({ types: ['article'] }));
+
+    expect(reponse.resultats).toHaveLength(1);
   });
 });

@@ -47,6 +47,7 @@ export class ServiceTenant {
         raisonSociale: ligne.raisonSociale,
         langueDefaut: ligne.langueDefaut,
         modeSignalement: ligne.modeSignalement,
+        assujettiTva: ligne.assujettiTva,
       };
     });
   }

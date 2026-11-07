@@ -18,6 +18,7 @@ export function SignalerProbleme() {
       }}
       mode={mode}
       nbSites={session.sites.length}
+      modules={session.modulesActifs}
     />
   );
 }

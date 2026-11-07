@@ -12865,6 +12865,9 @@
       },
       "TenantCourantDto": {
         "properties": {
+          "assujettiTva": {
+            "type": "boolean"
+          },
           "id": {
             "format": "uuid",
             "type": "string"
@@ -12899,7 +12902,8 @@
           "slug",
           "raisonSociale",
           "langueDefaut",
-          "modeSignalement"
+          "modeSignalement",
+          "assujettiTva"
         ],
         "type": "object"
       },

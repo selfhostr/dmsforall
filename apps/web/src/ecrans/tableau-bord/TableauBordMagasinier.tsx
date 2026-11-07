@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { SessionCourante } from '@dfa/shared';
 
 import { EcheancesAVenir } from '@/ecrans/accueil/composants/EcheancesAVenir';
+import { useModulesActifs } from '@/hooks/modules/useModulesActifs';
 import { chemins } from '@/routes/chemins';
 
 import { CarteAccesRapide } from './composants/CarteAccesRapide';
@@ -33,23 +34,28 @@ interface Props {
 export function TableauBordMagasinier({ site, sites }: Props) {
   const { t } = useTranslation(['tableauBord', 'commun']);
   const siteResolu = site ?? sites.find((candidat) => candidat.actif)?.id ?? sites[0]?.id;
+  // Module « Pièces » retiré : ni réservations ni réapprovisionnement à proposer.
+  const { estActif } = useModulesActifs();
+  const modulePieces = estActif('pieces');
 
   return (
     <div className="flex flex-col gap-section">
       {/* DESIGN.md grief n°2 — `items-start` : `CarteAccesRapide` (`compact`, titre+description+
           bouton) est structurellement plus courte que `CarteReapprovisionnement` (liste jusqu'à 5
           lignes) ; sans lui, la grille CSS l'étirerait à la hauteur de sa voisine. */}
-      <div className="grid items-start gap-groupe sm:grid-cols-2">
-        <CarteAccesRapide
-          titre={t('tableauBord:magasinier.reservations.titre')}
-          description={t('tableauBord:magasinier.reservations.description')}
-          lien={{
-            to: chemins.pieces.reservations(siteResolu),
-            texte: t('tableauBord:magasinier.reservations.lien'),
-          }}
-        />
-        <CarteReapprovisionnement site={siteResolu} />
-      </div>
+      {modulePieces ? (
+        <div className="grid items-start gap-groupe sm:grid-cols-2">
+          <CarteAccesRapide
+            titre={t('tableauBord:magasinier.reservations.titre')}
+            description={t('tableauBord:magasinier.reservations.description')}
+            lien={{
+              to: chemins.pieces.reservations(siteResolu),
+              texte: t('tableauBord:magasinier.reservations.lien'),
+            }}
+          />
+          <CarteReapprovisionnement site={siteResolu} />
+        </div>
+      ) : null}
 
       <EcheancesAVenir site={siteResolu} />
     </div>

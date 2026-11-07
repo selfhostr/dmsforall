@@ -36,7 +36,6 @@ import {
 } from '@/composants/photos/SelecteurPhotosEnAttente';
 import { useCreerLigneOr } from '@/hooks/atelier/useActionsLigneOr';
 import { useAjouterPhotoLigne } from '@/hooks/atelier/usePhotosOr';
-import { useParametresEntreprise } from '@/hooks/parametrage/useParametresEntreprise';
 import { useArticle } from '@/hooks/pieces/useArticle';
 import { useSession } from '@/hooks/useSession';
 import { formaterMontant } from '@/lib/formats';
@@ -187,14 +186,12 @@ export function DialogueAjoutLigneOr({ orId, siteId, onAjoutee }: Props) {
   // voir `convertirTtcVersHtCentimes`). Le résultat de recherche ci-dessus ne porte PAS ce taux.
   const detailArticlePourPrix = useArticle(etat.articleId ?? undefined);
 
-  // Régime TVA du garage (`assujettiTva`, GET /parametres-entreprise) : un garage NON assujetti ne
-  // facture aucune TVA, donc HT = TTC catalogue et taux 0 (jamais le taux de l'article). Tant que
-  // le régime est inconnu (requête en cours) on ne préremplit rien — poser un HT puis le corriger
-  // serait pire qu'attendre. Requête refusée/en échec (rôle sans accès aux réglages) : on retombe
-  // sur le comportement historique (taux de l'article), faute de source du régime pour ce rôle.
-  const parametresEntreprise = useParametresEntreprise();
-  const regimeConnu = !parametresEntreprise.isPending;
-  const garageNonAssujetti = parametresEntreprise.data?.assujettiTva === false;
+  // Régime TVA du garage (`session.tenant.assujettiTva`, lisible par tout rôle) : un garage NON
+  // assujetti ne facture aucune TVA, donc HT = TTC catalogue et taux 0 (jamais le taux de
+  // l'article). Tant que la session n'est pas chargée le régime est inconnu : on ne préremplit
+  // rien — poser un HT puis le corriger serait pire qu'attendre.
+  const regimeConnu = session.data !== undefined;
+  const garageNonAssujetti = session.data?.tenant.assujettiTva === false;
 
   // Préremplit le prix unitaire HT UNE SEULE FOIS par sélection, dès que le taux de TVA de
   // l'article est connu — jamais une seconde fois pour le MÊME `articleId` : si le garagiste

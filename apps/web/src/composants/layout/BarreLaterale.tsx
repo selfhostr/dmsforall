@@ -179,7 +179,7 @@ interface Props {
  * palier, son nom complet n'était accessible qu'au survol une fois repliée — inatteignable au
  * tactile). Deux défauts mesurés du sélecteur ont été corrigés au passage (désynchronisation de la
  * préférence de site, collision de libellé « Aucun site choisi » / « Tous les sites » pour le même
- * état `undefined` — détail dans `BarreOutilsSuperieure.tsx` et `SelecteurSiteEntete.tsx`). Le PIED
+ * état `undefined` — ce sélecteur d'en-tête a depuis été retiré : le site se filtre par écran, `FiltreSite`). Le PIED
  * COMPTE (point 2), lui, NE BOUGE PAS — @laupernoe l'a tranché explicitement, il reste ici.
  */
 export function BarreLaterale({ className, repli }: Props) {

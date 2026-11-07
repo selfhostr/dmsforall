@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router';
@@ -129,6 +129,12 @@ describe('ouverture de l’assistant de démarrage depuis l’accueil', () => {
     api('direction');
     rendre();
     await screen.findByRole('dialog', { name: t('assistant:titre') });
+    // Attendre la fin du chargement de l'étape : pendant celui-ci, « Quitter » est un bouton
+    // provisoire (`PiedQuitterSeul`) que l'arrivée des données remplace par celui du formulaire.
+    // Cliquer sur le provisoire détaché ne fermait rien (course, pas un défaut de l'assistant).
+    await waitFor(() =>
+      expect(screen.queryByRole('status', { name: t('assistant:chargement') })).toBeNull(),
+    );
     await userEvent.click(
       await screen.findByRole('button', { name: t('assistant:actions.quitter') }),
     );

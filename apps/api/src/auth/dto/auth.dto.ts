@@ -70,6 +70,9 @@ export class TenantCourantDto implements TenantCourant {
 
   @ApiProperty({ enum: MODES_SIGNALEMENT })
   modeSignalement!: ModeSignalement;
+
+  @ApiProperty()
+  assujettiTva!: boolean;
 }
 
 export class SiteResumeDto implements SiteResume {

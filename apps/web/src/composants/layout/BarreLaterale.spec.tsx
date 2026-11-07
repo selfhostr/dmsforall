@@ -637,7 +637,7 @@ describe('BarreLaterale — numéro de version, collé au pied compte', () => {
  * mot-symbole « dmsforall » (voir la doc de tête du fichier, §1). Le SITE, qui vivait dans ce même
  * bloc, a déménagé vers `BarreOutilsSuperieure.tsx` au lot « bandeau haut » (26.08.2026) — ses
  * tests (rendu à un site, multi-site, code court replié, « Tous les sites »/« Aucun site choisi »)
- * vivent désormais dans `BarreOutilsSuperieure.spec.tsx` et `SelecteurSiteEntete.spec.tsx`.
+ * ont quitté la barre latérale (le site se filtre désormais par écran, `FiltreSite`).
  */
 describe('BarreLaterale — bloc tenant', () => {
   it('affiche le nom du tenant, jamais le mot-symbole du produit', async () => {

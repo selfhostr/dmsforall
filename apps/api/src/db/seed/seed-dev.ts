@@ -155,6 +155,7 @@ async function chargerHacheurParDefaut(): Promise<HacherMotDePasse> {
 const SITES_DEMO = [
   {
     code: 'SION',
+    codeCourt: 'SION',
     nom: 'Garage Martin — Sion',
     rue: 'Route de Riddes 42',
     npa: '1950',
@@ -162,6 +163,7 @@ const SITES_DEMO = [
   },
   {
     code: 'MARTIGNY',
+    codeCourt: 'MART',
     nom: 'Garage Martin — Martigny',
     rue: 'Avenue du Grand-Saint-Bernard 18',
     npa: '1920',
@@ -674,6 +676,7 @@ export async function semerDev(options: OptionsSeed): Promise<ResultatSeedDev> {
         .values({
           tenantId,
           code: s.code,
+          codeCourt: s.codeCourt,
           nom: s.nom,
           rue: s.rue,
           npa: s.npa,
@@ -683,7 +686,14 @@ export async function semerDev(options: OptionsSeed): Promise<ResultatSeedDev> {
         })
         .onConflictDoUpdate({
           target: [site.tenantId, site.code],
-          set: { nom: s.nom, rue: s.rue, npa: s.npa, localite: s.localite, actif: true },
+          set: {
+            codeCourt: s.codeCourt,
+            nom: s.nom,
+            rue: s.rue,
+            npa: s.npa,
+            localite: s.localite,
+            actif: true,
+          },
         })
         .returning({ id: site.id });
       const idSite =

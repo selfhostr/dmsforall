@@ -595,6 +595,56 @@ describe('EcranTableauBord — Magasinier', () => {
   });
 });
 
+describe('EcranTableauBord — modules retirés par le garage', () => {
+  it('magasinier : sans les modules Pièces et Pneus, ni réservations, ni réapprovisionnement, ni pneus à relancer', async () => {
+    connecterSession('magasinier');
+    let sessionsLues = 0;
+    server.use(
+      http.get('/api/v1/auth/moi', () => {
+        sessionsLues += 1;
+        return HttpResponse.json({
+          ...SESSION_TEST,
+          utilisateur: { ...SESSION_TEST.utilisateur, role: 'magasinier' },
+          modulesActifs: SESSION_TEST.modulesActifs.filter((m) => m !== 'pieces' && m !== 'pneus'),
+        });
+      }),
+      http.get(CHEMIN_REAPPRO, () => HttpResponse.json(PAGE_VIDE)),
+      http.get(CHEMIN_PNEUS, () => HttpResponse.json(PAGE_VIDE)),
+    );
+    rendre();
+
+    // Preuve que l'absence n'est pas due à une session pas encore lue : on attend sa lecture.
+    await waitFor(() => expect(sessionsLues).toBeGreaterThan(0));
+    await new Promise((r) => setTimeout(r, 150));
+    expect(
+      screen.queryByRole('link', { name: i18n.t('tableauBord:magasinier.reservations.lien') }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(i18n.t('accueil:echeances.titre'))).not.toBeInTheDocument();
+  });
+
+  it('technicien : sans le module Pointage, la carte « mes OR » disparaît', async () => {
+    connecterSession('technicien');
+    let sessionsLues = 0;
+    server.use(
+      http.get('/api/v1/auth/moi', () => {
+        sessionsLues += 1;
+        return HttpResponse.json({
+          ...SESSION_TEST,
+          utilisateur: { ...SESSION_TEST.utilisateur, role: 'technicien' },
+          modulesActifs: SESSION_TEST.modulesActifs.filter(
+            (m) => m !== 'pointage' && m !== 'tablettes',
+          ),
+        });
+      }),
+    );
+    rendre();
+
+    await waitFor(() => expect(sessionsLues).toBeGreaterThan(0));
+    await new Promise((r) => setTimeout(r, 150));
+    expect(screen.queryByText(i18n.t('tableauBord:technicien.titre'))).not.toBeInTheDocument();
+  });
+});
+
 describe('EcranTableauBord — Technicien', () => {
   it('affiche 1 seul bloc, « mes OR assignés » — sous le plancher de 3, assumé (écran de travail réel = Pointage)', async () => {
     connecterSession('technicien');

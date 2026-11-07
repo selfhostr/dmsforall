@@ -7,6 +7,7 @@ import type { RoleUtilisateur } from '@dfa/shared';
 
 import { BadgeStatut } from '@/composants/identite/BadgeStatut';
 import { versDateIsoLocale } from '@/ecrans/accueil/semaine';
+import { useModulesActifs } from '@/hooks/modules/useModulesActifs';
 import { useEcheancesOr } from '@/hooks/accueil/useEcheancesOr';
 import { chemins } from '@/routes/chemins';
 
@@ -42,7 +43,10 @@ export function BandeauPrioriteTableauBord({ role, site }: Props) {
   const { t } = useTranslation('tableauBord');
   const aujourdhui = useMemo(() => versDateIsoLocale(new Date()), []);
 
-  const orEnRetardActif = role !== undefined && ROLES_OR_EN_RETARD.includes(role);
+  // Module « Atelier » retiré : plus d'ordres de réparation, donc plus de retard à signaler.
+  const { estActif } = useModulesActifs();
+  const orEnRetardActif =
+    role !== undefined && ROLES_OR_EN_RETARD.includes(role) && estActif('atelier');
   const echeances = useEcheancesOr(
     { restitutionPromiseAu: aujourdhui, siteId: site },
     { enabled: orEnRetardActif },

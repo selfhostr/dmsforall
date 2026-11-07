@@ -22,4 +22,7 @@ export class TenantCourantDto implements TenantCourant {
 
   @ApiProperty({ enum: MODES_SIGNALEMENT })
   readonly modeSignalement!: ModeSignalement;
+
+  @ApiProperty()
+  readonly assujettiTva!: boolean;
 }

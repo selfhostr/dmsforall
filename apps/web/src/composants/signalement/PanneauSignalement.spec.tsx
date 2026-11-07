@@ -10,8 +10,16 @@ import { enregistrerAppelEchoue, viderTampon } from '@/diagnostic/tampon';
 
 import { PanneauSignalement } from './PanneauSignalement';
 
-function rendre(mode: 'via_site' | 'copie_seule' = 'via_site') {
-  return render(<PanneauSignalement ouvert onOuvertChange={() => {}} mode={mode} nbSites={2} />);
+function rendre(mode: 'via_site' | 'copie_seule' = 'via_site', modules?: readonly string[]) {
+  return render(
+    <PanneauSignalement
+      ouvert
+      onOuvertChange={() => {}}
+      mode={mode}
+      nbSites={2}
+      modules={modules}
+    />,
+  );
 }
 
 const libelle = (cle: string) => i18n.t(`signalement:${cle}`);
@@ -62,6 +70,20 @@ describe('PanneauSignalement', () => {
     expect(charge.diagnostic?.appelsEchec).toMatchObject([
       { route: '/api/documents-vente/:id/emettre', statut: 409 },
     ]);
+  });
+
+  it('le diagnostic joint les modules actifs du garage', async () => {
+    rendre('via_site', ['atelier', 'pieces']);
+    await userEvent.type(
+      screen.getByLabelText(new RegExp(libelle('champs.constat'))),
+      'Un bouton ne fait rien',
+    );
+    await userEvent.click(screen.getByRole('button', { name: libelle('actions.continuer') }));
+    const url = String(vi.mocked(window.open).mock.calls[0]?.[0]);
+    const charge = JSON.parse(decoderBase64Url(url.split('#r=')[1] ?? '')) as {
+      diagnostic: { modules: string[] } | null;
+    };
+    expect(charge.diagnostic?.modules).toEqual(['atelier', 'pieces']);
   });
 
   it('décocher le diagnostic : il n’est pas joint', async () => {

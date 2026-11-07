@@ -18,6 +18,8 @@ interface Props {
   /** `via_site` ou `copie_seule` (en `desactive`, le panneau n'est pas monté). */
   readonly mode: Exclude<ModeSignalement, 'desactive'>;
   readonly nbSites: number;
+  /** Modules actifs du garage, joints au diagnostic (absent = non communiqué). */
+  readonly modules?: readonly string[];
 }
 
 /**
@@ -25,9 +27,9 @@ interface Props {
  * poste rien : le bouton ouvre le site, qui termine l'envoi (sans compte GitHub). Ce que
  * l'aperçu montre est exactement ce qui part.
  */
-export function PanneauSignalement({ ouvert, onOuvertChange, mode, nbSites }: Props) {
+export function PanneauSignalement({ ouvert, onOuvertChange, mode, nbSites, modules }: Props) {
   const { t } = useTranslation(['signalement', 'commun']);
-  const s = useSignalement(ouvert, nbSites);
+  const s = useSignalement(ouvert, nbSites, modules);
   const champConstat = useRef<HTMLTextAreaElement>(null);
   const viaSite = mode === 'via_site';
 

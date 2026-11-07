@@ -18,6 +18,8 @@ export interface TenantCourant {
   readonly langueDefaut: Langue;
   /** Réglage « Signalements » du garage : lisible par tout compte (il décide de l'entrée de menu). */
   readonly modeSignalement: ModeSignalement;
+  /** Le garage est-il assujetti à la TVA ? Lisible par tout compte (la saisie des lignes en dépend). */
+  readonly assujettiTva: boolean;
 }
 
 /** Élément de `GET /api/v1/sites` et corps de `GET /api/v1/sites/{siteId}`. */

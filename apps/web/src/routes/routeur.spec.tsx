@@ -523,7 +523,9 @@ describe('routeur — /parametrage/facturation refuse réellement (protection pa
     expect(
       await screen.findByText('Accès réservé à la direction et à la comptabilité'),
     ).toBeInTheDocument();
-    expect(screen.queryByLabelText('Nom du garage')).not.toBeInTheDocument();
+    // Le champ que le formulaire réel affiche (cf. le test « direction » ci-dessous) est absent :
+    // l'écran de refus l'a remplacé, il ne s'y ajoute pas.
+    expect(screen.queryByLabelText('IBAN (compte ordinaire)')).not.toBeInTheDocument();
   });
 
   it('direction : atteint le formulaire réel, jamais l’écran de refus', async () => {
@@ -545,11 +547,16 @@ describe('routeur — /parametrage/facturation refuse réellement (protection pa
     );
     renduAvecRoutes(routesConfig, { routeInitiale: '/parametrage/facturation' });
 
-    expect(await screen.findByLabelText('IBAN (compte ordinaire)')).toBeInTheDocument();
+    // Chunk `React.lazy` importé à froid (écran lourd) : le délai par défaut ne tient pas sous
+    // charge (les suites shared/api/web tournent ensemble en CI) — délai explicite, comme pour
+    // « /clients » plus haut, et délai de test relevé d'autant.
+    expect(
+      await screen.findByLabelText('IBAN (compte ordinaire)', {}, { timeout: 20_000 }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByText('Accès réservé à la direction et à la comptabilité'),
     ).not.toBeInTheDocument();
-  });
+  }, 30_000);
 });
 
 /**

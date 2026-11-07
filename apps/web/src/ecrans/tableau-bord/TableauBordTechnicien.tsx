@@ -9,6 +9,7 @@ import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
+import { useModulesActifs } from '@/hooks/modules/useModulesActifs';
 import { useMesOrdresAssignes } from '@/hooks/pointage/useMesOrdresAssignes';
 import { useSession } from '@/hooks/useSession';
 import { chemins } from '@/routes/chemins';
@@ -34,7 +35,11 @@ export function TableauBordTechnicien({ site }: Props) {
   const { data: session } = useSession();
   const technicienId = session?.utilisateur.id;
 
-  const requete = useMesOrdresAssignes(technicienId);
+  // Module « Pointage » retiré : « mes OR du jour » n'a plus de source, la carte disparaît.
+  const { estActif } = useModulesActifs();
+  const modulePointage = estActif('pointage');
+
+  const requete = useMesOrdresAssignes(modulePointage ? technicienId : undefined);
   const ordres = requete.data ?? [];
 
   let contenu: ReactNode;
@@ -79,6 +84,8 @@ export function TableauBordTechnicien({ site }: Props) {
       </div>
     );
   }
+
+  if (!modulePointage) return null;
 
   return (
     <Card>
