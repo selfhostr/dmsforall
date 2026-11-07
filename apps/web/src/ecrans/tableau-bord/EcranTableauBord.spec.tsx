@@ -27,6 +27,11 @@ import { creerQueryClientTest } from '@/test/utils';
 
 import { EcranTableauBord } from './EcranTableauBord';
 
+// La liste de démarrage a ses propres requêtes et sa propre spec (`ChecklistDemarrage.spec.tsx`).
+vi.mock('@/ecrans/accueil/composants/ChecklistDemarrage', () => ({
+  ChecklistDemarrage: () => null,
+}));
+
 // Radix Select (`@radix-ui/react-select`, sous `SelecteurSiteTableauBord`) appelle
 // `hasPointerCapture`/`scrollIntoView`, absents de jsdom — même stub local que
 // `composants/comptoir/SelecteurTri.spec.tsx` et
@@ -347,10 +352,23 @@ function construireFactureARelancer(id: string): ReponseDocumentVente {
   };
 }
 
-function connecterSession(role: (typeof SESSION_TEST)['utilisateur']['role']) {
+const DEUX_SITES = [
+  ...SESSION_TEST.sites,
+  { id: 'site-2', code: 'SECOND', nom: 'Second site', actif: true },
+];
+
+/** `sites` : un seul site (défaut) masque le sélecteur de site (site implicite). */
+function connecterSession(
+  role: (typeof SESSION_TEST)['utilisateur']['role'],
+  sites: typeof SESSION_TEST.sites = SESSION_TEST.sites,
+) {
   server.use(
     http.get('/api/v1/auth/moi', () =>
-      HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role } }),
+      HttpResponse.json({
+        ...SESSION_TEST,
+        sites,
+        utilisateur: { ...SESSION_TEST.utilisateur, role },
+      }),
     ),
   );
 }
@@ -796,7 +814,7 @@ describe('EcranTableauBord — erreur serveur sur /tableau-bord/activite (chef d
 
 describe('EcranTableauBord — sélecteur de site commun', () => {
   it('reste présent quel que soit le rôle (en-tête partagée)', async () => {
-    connecterSession('comptable');
+    connecterSession('comptable', DEUX_SITES);
     server.use(
       http.get(CHEMIN_FINANCIER, () => HttpResponse.json(FINANCIER_NOMINAL)),
       // Rôle comptable : la carte « à relancer » interroge aussi `documents-vente` (voir le
@@ -809,6 +827,18 @@ describe('EcranTableauBord — sélecteur de site commun', () => {
     expect(
       within(document.body).getByText(i18n.t('navigation:entete.tousLesSites')),
     ).toBeInTheDocument();
+  });
+
+  it('garage à un seul site : aucun sélecteur (le site est implicite)', async () => {
+    connecterSession('comptable');
+    server.use(
+      http.get(CHEMIN_FINANCIER, () => HttpResponse.json(FINANCIER_NOMINAL)),
+      http.get(CHEMIN_DOCUMENTS_VENTE, () => HttpResponse.json(PAGE_VIDE)),
+    );
+    rendre();
+
+    await screen.findByText('CHF 456.00');
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 });
 
@@ -843,7 +873,7 @@ describe('EcranTableauBord — synchronisation de la préférence de site (défa
   });
 
   it('choisir un site PRÉCIS mémorise ce site comme préférence globale', async () => {
-    connecterSession('comptable');
+    connecterSession('comptable', DEUX_SITES);
     server.use(
       http.get(CHEMIN_FINANCIER, () => HttpResponse.json(FINANCIER_NOMINAL)),
       http.get(CHEMIN_DOCUMENTS_VENTE, () => HttpResponse.json(PAGE_VIDE)),
@@ -860,7 +890,7 @@ describe('EcranTableauBord — synchronisation de la préférence de site (défa
 
   it('« Tous les sites » NE touche PAS la préférence mémorisée — le dernier site réel reste le défaut', async () => {
     window.localStorage.setItem('dfa.site-courant.tenant-1', 'site-1');
-    connecterSession('comptable');
+    connecterSession('comptable', DEUX_SITES);
     server.use(
       http.get(CHEMIN_FINANCIER, () => HttpResponse.json(FINANCIER_NOMINAL)),
       http.get(CHEMIN_DOCUMENTS_VENTE, () => HttpResponse.json(PAGE_VIDE)),

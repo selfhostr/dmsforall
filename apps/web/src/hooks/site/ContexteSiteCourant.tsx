@@ -42,6 +42,14 @@ export interface SiteCourant {
   readonly definirPreferenceSite: (siteId: string) => void;
 }
 
+/** Id du seul site actif du garage, `undefined` s'il y en a zéro ou plusieurs. */
+export function siteUniqueActif(
+  sites: ReadonlyArray<{ readonly id: string; readonly actif: boolean }> | undefined,
+): string | undefined {
+  const actifs = (sites ?? []).filter((site) => site.actif);
+  return actifs.length === 1 ? actifs[0]?.id : undefined;
+}
+
 const PREFIXE_CLE_SITE_COURANT = 'dfa.site-courant';
 
 function cleStockage(tenantId: string): string {
@@ -103,9 +111,14 @@ export function FournisseurSiteCourant({ children }: Props) {
     [tenantId],
   );
 
+  // Garage à un seul site : le site est implicite. Sans préférence mémorisée, il tient lieu de
+  // préférence — chaque écran qui demandait « quel site ? » le reçoit déjà choisi.
+  const siteUnique = siteUniqueActif(session?.sites);
+  const preferenceEffective = preferenceSiteId ?? siteUnique;
+
   const valeur = useMemo<SiteCourant>(
-    () => ({ preferenceSiteId, definirPreferenceSite }),
-    [preferenceSiteId, definirPreferenceSite],
+    () => ({ preferenceSiteId: preferenceEffective, definirPreferenceSite }),
+    [preferenceEffective, definirPreferenceSite],
   );
 
   return <ContexteSiteCourant.Provider value={valeur}>{children}</ContexteSiteCourant.Provider>;

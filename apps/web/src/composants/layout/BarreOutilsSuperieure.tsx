@@ -8,6 +8,7 @@ import type { SessionCourante } from '@dfa/shared';
 import { Button } from '@/components/ui/button';
 import { SheetTrigger } from '@/components/ui/sheet';
 import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
+import { useSiteImplicite } from '@/hooks/site/useSiteImplicite';
 import { useSession } from '@/hooks/useSession';
 
 import { BasculeTheme } from './BasculeTheme';
@@ -139,6 +140,8 @@ export function BarreOutilsSuperieure() {
   // absence — jamais l'inverse.
   const site = searchParams.get('site') ?? preferenceSiteId;
   const libelleSite = resoudreLibelleSite(session?.sites, site, t);
+  // Un seul site : rien à choisir ni à afficher dans le bandeau (garage neuf, mono-site).
+  const { estMonoSite } = useSiteImplicite();
 
   return (
     <header className="flex h-12 shrink-0 items-center gap-2 border-b bg-background px-2">
@@ -156,7 +159,7 @@ export function BarreOutilsSuperieure() {
       <div className="flex min-w-0 flex-1 justify-center">
         <RechercheGlobale />
       </div>
-      {session ? (
+      {session && !estMonoSite ? (
         <SelecteurSiteEntete
           sites={session.sites}
           siteIdActif={site}

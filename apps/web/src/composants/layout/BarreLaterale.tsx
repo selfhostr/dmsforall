@@ -368,6 +368,11 @@ export function BarreLaterale({ className, repli }: Props) {
               même besoin que le sélecteur de site (atteignable SANS ouvrir le tiroir sur
               tablette), tranché explicitement par @laupernoe. Le pied compte, lui, NE bouge PAS — seul
               déclencheur restant ici. */}
+          {/* Réglages en accès direct, toujours visible : un garage neuf ne doit pas chercher la
+              porte de configuration dans le menu du compte (qui la propose encore). */}
+          {reglagesVisibles(role) ? (
+            <ul className="mb-1">{rendreEntree(ENTREE_REGLAGES)}</ul>
+          ) : null}
           <div className="min-w-0">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

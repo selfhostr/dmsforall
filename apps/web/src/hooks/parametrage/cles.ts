@@ -14,6 +14,9 @@ export const clesParametrage = {
   /** Singleton par tenant, aucun paramètre — voir `hooks/parametrage/bloc-creancier.api.ts`. */
   creancier: () => ['parametrage', 'creancier'] as const,
 
+  /** Identité fiscale du garage (`GET|PATCH /parametres-entreprise`) : raison sociale, n° TVA. */
+  entreprise: () => ['parametrage', 'entreprise'] as const,
+
   tauxHoraires: {
     /** Liste paginée par curseur (`useInfiniteQuery`) — un seul cache par tenant, pas de filtre
      *  aujourd'hui (le catalogue de taux horaires d'un garage compte rarement plus de quelques

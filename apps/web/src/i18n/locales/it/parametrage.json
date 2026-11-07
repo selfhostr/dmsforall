@@ -188,17 +188,6 @@
         "rien": "Nessuno"
       }
     },
-    "aVenir": {
-      "titre": "Funzionalità future",
-      "description": "Queste impostazioni esistono già nel contratto dell'API ma non sono ancora collegate ad alcuna funzionalità rilasciata — non compaiono quindi come caselle modificabili senza alcun effetto.",
-      "pasEncoreDisponible": "non ancora disponibile",
-      "fonctionnalites": {
-        "facturation": "Fatturazione d'officina",
-        "stockPieces": "Magazzino ricambi",
-        "depotPneus": "Deposito pneumatici",
-        "prets": "Veicoli sostitutivi"
-      }
-    },
     "inerte": {
       "signature": "disponibile con la cattura della firma elettronica, non ancora rilasciata",
       "pointage": "disponibile con il modulo di timbratura, non ancora rilasciato"
@@ -379,6 +368,69 @@
       "identifiantLabel": "Identificativo",
       "motDePasseLabel": "Password",
       "fermer": "Ho annotato queste informazioni"
+    }
+  },
+  "entreprise": {
+    "titre": "Azienda",
+    "explication": "Queste informazioni identificano la vostra autofficina sulle fatture.",
+    "raisonSociale": "Ragione sociale",
+    "numeroTva": "Numero IVA",
+    "numeroTvaAide": "Formato: CHE-123.456.789 IVA. Lasciate vuoto se non siete soggetti all'IVA.",
+    "erreurTva": {
+      "format": "Il numero deve avere la forma CHE-123.456.789 IVA.",
+      "cle": "Questo numero non esiste: controllate le cifre."
+    },
+    "enregistrer": "Salva il numero",
+    "enregistrementReussi": "Numero IVA salvato.",
+    "erreur": {
+      "titre": "Impossibile caricare i dati dell'azienda"
+    }
+  },
+  "motifsRdv": {
+    "titre": "Motivi degli appuntamenti",
+    "explication": "Perché vengono i clienti: un appuntamento si prende sempre con un motivo.",
+    "nouveau": "Nuovo motivo",
+    "modifier": "Modifica il motivo",
+    "dialogueAide": "Il nome francese basta; le traduzioni sono facoltative.",
+    "traductionsAide": "Le traduzioni sono visibili ai clienti e ai collaboratori che usano il software in questa lingua.",
+    "champs": {
+      "libelleFr": "Nome del motivo",
+      "libelleDe": "Nome in tedesco",
+      "libelleIt": "Nome in italiano",
+      "dureeMinutes": "Durata (minuti)",
+      "dureeMinutesAide": "Per una fascia fissa, es. 60.",
+      "heuresAtelier": "Ore d'officina",
+      "heuresAtelierAide": "Tempo conteggiato sulla giornata, es. 1,5."
+    },
+    "colonnes": {
+      "duree": "Durata",
+      "statut": "Stato"
+    },
+    "statut": {
+      "actif": "Attivo",
+      "desactive": "Disattivato"
+    },
+    "duree": {
+      "minutes": "{count} min",
+      "heures": "{heures} h d'officina",
+      "aucune": "Non definita"
+    },
+    "actions": {
+      "desactiver": "Disattiva",
+      "reactiver": "Riattiva"
+    },
+    "erreurs": {
+      "libelle": "Indicate il nome del motivo.",
+      "dejaPris": "Esiste già un motivo con questo nome.",
+      "duree": "Indicate un numero intero di minuti.",
+      "heures": "Indicate le ore, es. 1,5."
+    },
+    "vide": {
+      "titre": "Nessun motivo di appuntamento",
+      "description": "Create almeno un motivo, altrimenti non si può fissare alcun appuntamento."
+    },
+    "erreur": {
+      "titre": "Impossibile caricare i motivi"
     }
   }
 }

@@ -4,7 +4,9 @@ import { useSearchParams } from 'react-router';
 import type { RoleUtilisateur } from '@dfa/shared';
 
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
+import { ChecklistDemarrage } from '@/ecrans/accueil/composants/ChecklistDemarrage';
 import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
+import { useSiteImplicite } from '@/hooks/site/useSiteImplicite';
 import { useSession } from '@/hooks/useSession';
 
 import { BandeauPrioriteTableauBord } from './composants/BandeauPrioriteTableauBord';
@@ -48,6 +50,7 @@ export function EcranTableauBord() {
   const [searchParams, setSearchParams] = useSearchParams();
   const siteId = searchParams.get('site') ?? undefined;
   const { definirPreferenceSite } = useSiteCourant();
+  const { estMonoSite } = useSiteImplicite();
 
   // DÉFAUT MESURÉ CORRIGÉ (lot « bandeau haut », 26.08.2026) : avant ce lot, AUCUN choix fait ici
   // — site précis ou « Tous les sites » — ne synchronisait `ContexteSiteCourant`, contrairement à
@@ -85,11 +88,13 @@ export function EcranTableauBord() {
     // contrôle interactif de cet écran ne rétrécit sous 44px. Chantier « tableau de bord tient sans
     // défilement » (retour produit du 16.08.2026, périmètre `ecrans/tableau-bord/**`).
     <GabaritEcran titre={t('tableauBord:titre')} className="densite-dense">
-      <SelecteurSiteTableauBord
-        sites={session?.sites ?? []}
-        siteId={siteId}
-        onChange={changerSite}
-      />
+      {estMonoSite ? null : (
+        <SelecteurSiteTableauBord
+          sites={session?.sites ?? []}
+          siteId={siteId}
+          onChange={changerSite}
+        />
+      )}
 
       {/* Bandeau de priorité (lot « bandeau haut », 26.08.2026) — PLEINE LARGEUR, commun à tous les
           rôles, posé AVANT le contenu par rôle ci-dessous (donc avant lui à la tabulation). Absent
@@ -97,6 +102,8 @@ export function EcranTableauBord() {
           pour le rôle courant — voir la doc de tête de `BandeauPrioriteTableauBord.tsx` pour le
           détail du choix des deux compteurs (zéro nouvel appel réseau : réutilise à l'identique des
           requêtes déjà déclenchées plus bas dans l'arbre par rôle). */}
+      <ChecklistDemarrage />
+
       <BandeauPrioriteTableauBord role={role} site={siteId} />
 
       {(() => {

@@ -188,17 +188,6 @@
         "rien": "Rien"
       }
     },
-    "aVenir": {
-      "titre": "Fonctionnalités à venir",
-      "description": "Ces réglages existent dans le contrat de l'API mais ne sont rattachés à aucune fonctionnalité livrée pour l'instant — ils n'apparaissent donc pas comme des cases à cocher qui n'auraient aucun effet.",
-      "pasEncoreDisponible": "pas encore disponible",
-      "fonctionnalites": {
-        "facturation": "Facturation d'atelier",
-        "stockPieces": "Stock de pièces",
-        "depotPneus": "Dépôt de pneus",
-        "prets": "Véhicules de prêt"
-      }
-    },
     "inerte": {
       "signature": "disponible avec la capture de signature électronique, non livrée à ce jour",
       "pointage": "disponible avec le module de pointage, non livré à ce jour"
@@ -379,6 +368,69 @@
       "identifiantLabel": "Identifiant",
       "motDePasseLabel": "Mot de passe",
       "fermer": "J'ai noté ces informations"
+    }
+  },
+  "entreprise": {
+    "titre": "Entreprise",
+    "explication": "Ces informations identifient votre garage sur les factures.",
+    "raisonSociale": "Raison sociale",
+    "numeroTva": "Numéro de TVA",
+    "numeroTvaAide": "Format : CHE-123.456.789 TVA. Laissez vide si vous n'êtes pas assujetti à la TVA.",
+    "erreurTva": {
+      "format": "Le numéro doit ressembler à CHE-123.456.789 TVA.",
+      "cle": "Ce numéro n'existe pas : vérifiez les chiffres."
+    },
+    "enregistrer": "Enregistrer le numéro",
+    "enregistrementReussi": "Numéro de TVA enregistré.",
+    "erreur": {
+      "titre": "Impossible de charger les informations de l'entreprise"
+    }
+  },
+  "motifsRdv": {
+    "titre": "Motifs de rendez-vous",
+    "explication": "Ce que vos clients viennent faire : un rendez-vous se prend toujours avec un motif.",
+    "nouveau": "Nouveau motif",
+    "modifier": "Modifier le motif",
+    "dialogueAide": "Le nom français suffit ; les traductions sont facultatives.",
+    "traductionsAide": "Les traductions s'affichent aux clients et collaborateurs qui utilisent le logiciel dans cette langue.",
+    "champs": {
+      "libelleFr": "Nom du motif",
+      "libelleDe": "Nom en allemand",
+      "libelleIt": "Nom en italien",
+      "dureeMinutes": "Durée (minutes)",
+      "dureeMinutesAide": "Pour un créneau fixe, ex. 60.",
+      "heuresAtelier": "Heures d'atelier",
+      "heuresAtelierAide": "Temps compté sur la journée, ex. 1,5."
+    },
+    "colonnes": {
+      "duree": "Durée",
+      "statut": "État"
+    },
+    "statut": {
+      "actif": "Actif",
+      "desactive": "Désactivé"
+    },
+    "duree": {
+      "minutes": "{count} min",
+      "heures": "{heures} h d'atelier",
+      "aucune": "Non définie"
+    },
+    "actions": {
+      "desactiver": "Désactiver",
+      "reactiver": "Réactiver"
+    },
+    "erreurs": {
+      "libelle": "Indiquez le nom du motif.",
+      "dejaPris": "Un motif porte déjà ce nom.",
+      "duree": "Indiquez un nombre entier de minutes.",
+      "heures": "Indiquez des heures, ex. 1,5."
+    },
+    "vide": {
+      "titre": "Aucun motif de rendez-vous",
+      "description": "Créez au moins un motif, sinon aucun rendez-vous ne peut être pris."
+    },
+    "erreur": {
+      "titre": "Impossible de charger les motifs"
     }
   }
 }

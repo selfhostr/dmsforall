@@ -1,6 +1,52 @@
 {
   "demarrage": {
-    "titre": "Cosa succede oggi"
+    "titre": "Cosa succede oggi",
+    "checklist": {
+      "titre": "Avviare la vostra autofficina",
+      "progression": "{faites} passaggi su {total} completati. Ognuno richiede pochi minuti.",
+      "masquer": "Non mostrare più",
+      "chargement": "Verifica della configurazione",
+      "verificationImpossible": "Alcuni passaggi non hanno potuto essere verificati.",
+      "reessayer": "Riprova"
+    },
+    "etat": {
+      "fait": "Fatto",
+      "aFaire": "Da fare",
+      "inconnu": "Da verificare"
+    },
+    "facultatif": "facoltativo",
+    "regler": "Configura",
+    "modifier": "Modifica",
+    "etapes": {
+      "coordonnees": {
+        "titre": "Nome e indirizzo dell'autofficina",
+        "pourquoi": "Compaiono su ogni fattura e sulla fattura QR."
+      },
+      "compte": {
+        "titre": "Conto bancario (IBAN)",
+        "pourquoi": "Senza IBAN le fatture non hanno la fattura QR e i clienti non possono pagare facilmente."
+      },
+      "tva": {
+        "titre": "Numero IVA",
+        "pourquoi": "Deve comparire sulle fatture se siete soggetti all'IVA. Altrimenti nascondete questo elenco quando il resto è a posto."
+      },
+      "tauxHoraire": {
+        "titre": "Tariffa oraria",
+        "pourquoi": "Serve a calcolare la manodopera sugli ordini di riparazione."
+      },
+      "motifs": {
+        "titre": "Motivi degli appuntamenti",
+        "pourquoi": "Un appuntamento richiede un motivo (tagliando, collaudo MFK …): controllate l'elenco o aggiungete i vostri."
+      },
+      "collaborateur": {
+        "titre": "Primo collaboratore",
+        "pourquoi": "Create gli account del team: ognuno vede ciò che il suo ruolo consente."
+      },
+      "borne": {
+        "titre": "Terminale d'officina",
+        "pourquoi": "Un tablet fisso in officina su cui i meccanici timbrano le ore."
+      }
+    }
   },
   "calendrier": {
     "titre": "Questa settimana",
