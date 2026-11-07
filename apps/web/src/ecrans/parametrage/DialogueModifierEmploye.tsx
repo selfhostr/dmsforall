@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useModifierUtilisateur } from '@/hooks/parametrage/useModifierUtilisateur';
+import { useSiteImplicite } from '@/hooks/site/useSiteImplicite';
 import { useSession } from '@/hooks/useSession';
 import { ChampRoleEmploye } from './ChampRoleEmploye';
 
@@ -33,6 +34,8 @@ interface Props {
 export function DialogueModifierEmploye({ employe, onFerme }: Props) {
   const { t } = useTranslation(['parametrage', 'commun', 'erreurs']);
   const { data: session } = useSession();
+  // Garage mono-site : le site est implicite, le champ n'est pas demandé.
+  const { estMonoSite, siteId: siteImplicite } = useSiteImplicite();
   const modifier = useModifierUtilisateur();
 
   const [role, setRole] = useState<RolePersonne>('technicien');
@@ -48,10 +51,12 @@ export function DialogueModifierEmploye({ employe, onFerme }: Props) {
   }, [employe?.id]);
 
   const sites = session?.sites ?? [];
+  const siteIdsEffectifs: readonly string[] =
+    estMonoSite && siteImplicite ? [siteImplicite] : siteIds;
   const rolesProposes = ROLES_PERSONNE.filter(
     (r) => r !== 'admin' || session?.utilisateur.role === 'admin' || employe?.role === 'admin',
   );
-  const formulaireValide = siteIds.length > 0;
+  const formulaireValide = siteIdsEffectifs.length > 0;
 
   function basculerSite(siteId: string) {
     setSiteIds((valeur) =>
@@ -62,7 +67,7 @@ export function DialogueModifierEmploye({ employe, onFerme }: Props) {
   function soumettre() {
     if (!employe || !formulaireValide) return;
     modifier.mutate(
-      { utilisateurId: employe.id, entree: { role, siteIds: [...siteIds] } },
+      { utilisateurId: employe.id, entree: { role, siteIds: [...siteIdsEffectifs] } },
       { onSuccess: onFerme },
     );
   }
@@ -91,30 +96,32 @@ export function DialogueModifierEmploye({ employe, onFerme }: Props) {
             onChange={setRole}
           />
 
-          <fieldset className="flex flex-col gap-1.5">
-            <legend className="texte-corps font-medium">
-              {t('parametrage:utilisateurs.creation.champSites')} *
-            </legend>
-            <div className="flex flex-col gap-2">
-              {sites.map((site) => (
-                <div key={site.id} className="flex items-center gap-2">
-                  <Checkbox
-                    id={`modifier-employe-site-${site.id}`}
-                    checked={siteIds.includes(site.id)}
-                    onCheckedChange={() => basculerSite(site.id)}
-                  />
-                  <Label htmlFor={`modifier-employe-site-${site.id}`} className="font-normal">
-                    {site.nom}
-                  </Label>
-                </div>
-              ))}
-            </div>
-            {siteIds.length === 0 ? (
-              <p className="texte-libelle text-muted-foreground">
-                {t('parametrage:utilisateurs.creation.sitesAucunSelectionne')}
-              </p>
-            ) : null}
-          </fieldset>
+          {estMonoSite ? null : (
+            <fieldset className="flex flex-col gap-1.5">
+              <legend className="texte-corps font-medium">
+                {t('parametrage:utilisateurs.creation.champSites')} *
+              </legend>
+              <div className="flex flex-col gap-2">
+                {sites.map((site) => (
+                  <div key={site.id} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`modifier-employe-site-${site.id}`}
+                      checked={siteIds.includes(site.id)}
+                      onCheckedChange={() => basculerSite(site.id)}
+                    />
+                    <Label htmlFor={`modifier-employe-site-${site.id}`} className="font-normal">
+                      {site.nom}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+              {siteIds.length === 0 ? (
+                <p className="texte-libelle text-muted-foreground">
+                  {t('parametrage:utilisateurs.creation.sitesAucunSelectionne')}
+                </p>
+              ) : null}
+            </fieldset>
+          )}
         </div>
 
         {modifier.error ? (

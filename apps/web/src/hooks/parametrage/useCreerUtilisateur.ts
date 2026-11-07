@@ -19,6 +19,7 @@ export function useCreerUtilisateur(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation({
+    meta: { succes: 'commun:toasts.employeCree' },
     mutationFn: (entree: EntreeCreationUtilisateur) =>
       requeteApi<ReponseCreationUtilisateur>('/utilisateurs', {
         method: 'POST',

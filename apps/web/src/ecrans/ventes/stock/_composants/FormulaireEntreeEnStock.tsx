@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
+import { useSiteImplicite } from '@/hooks/site/useSiteImplicite';
 import { useMettreEnStock } from '@/hooks/ventes/stock/useTransitionsVehiculeStock';
 
 /** Sentinelle de provenance « autre » — `provenance` est une liste EXTENSIBLE côté contrat
@@ -99,7 +100,9 @@ export function FormulaireEntreeEnStock({ vehicule, sites, onRetour, onMisEnStoc
   const { t } = useTranslation(['ventes', 'commun', 'validation', 'erreurs']);
   const idempotence = useCleIdempotence();
   const mettreEnStock = useMettreEnStock(vehicule.id);
-  const [siteParDefaut] = useState(() => sites[0]?.id ?? '');
+  // Garage mono-site : site implicite, champ masqué (valeur envoyée telle quelle).
+  const { estMonoSite, siteId: siteImplicite } = useSiteImplicite();
+  const [siteParDefaut] = useState(() => siteImplicite ?? sites[0]?.id ?? '');
 
   const form = useForm<ValeursFormulaire>({ defaultValues: valeursVides(siteParDefaut) });
   const provenanceSelect = form.watch('provenanceSelect');
@@ -144,44 +147,46 @@ export function FormulaireEntreeEnStock({ vehicule, sites, onRetour, onMisEnStoc
         {t('commun:formulaires.champsObligatoiresLegende')}
       </LegendeChampsObligatoires>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="entree-site" requis>
-          {t('ventes:stock.champs.site')}
-        </Label>
-        <Controller
-          control={form.control}
-          name="siteId"
-          render={({ field }) => (
-            <Select
-              value={field.value}
-              onValueChange={field.onChange}
-              disabled={mettreEnStock.isPending}
-            >
-              <SelectTrigger
-                id="entree-site"
-                aria-label={t('ventes:stock.champs.site')}
-                aria-required="true"
-                aria-invalid={form.formState.errors.siteId ? true : undefined}
-                aria-describedby={form.formState.errors.siteId ? 'entree-site-erreur' : undefined}
+      {estMonoSite ? null : (
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="entree-site" requis>
+            {t('ventes:stock.champs.site')}
+          </Label>
+          <Controller
+            control={form.control}
+            name="siteId"
+            render={({ field }) => (
+              <Select
+                value={field.value}
+                onValueChange={field.onChange}
+                disabled={mettreEnStock.isPending}
               >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {sites.map((site) => (
-                  <SelectItem key={site.id} value={site.id}>
-                    {site.nom}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-        {form.formState.errors.siteId ? (
-          <p id="entree-site-erreur" className="texte-libelle text-destructive">
-            {t('validation:requis')}
-          </p>
-        ) : null}
-      </div>
+                <SelectTrigger
+                  id="entree-site"
+                  aria-label={t('ventes:stock.champs.site')}
+                  aria-required="true"
+                  aria-invalid={form.formState.errors.siteId ? true : undefined}
+                  aria-describedby={form.formState.errors.siteId ? 'entree-site-erreur' : undefined}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {sites.map((site) => (
+                    <SelectItem key={site.id} value={site.id}>
+                      {site.nom}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+          {form.formState.errors.siteId ? (
+            <p id="entree-site-erreur" className="texte-libelle text-destructive">
+              {t('validation:requis')}
+            </p>
+          ) : null}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">

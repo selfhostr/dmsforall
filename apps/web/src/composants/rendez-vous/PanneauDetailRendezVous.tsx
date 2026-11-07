@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Mail, Phone } from 'lucide-react';
 import { Link } from 'react-router';
@@ -31,6 +31,8 @@ interface Props {
    *  (consigne du coordinateur). */
   readonly peutAgir: boolean;
   readonly onVehiculeArrive: () => void;
+  /** Raccourci facultatif (ex. prêt d'un véhicule de courtoisie), posé avec les gestes du RDV. */
+  readonly slotCourtoisie?: ReactNode;
   readonly onSignalerAbsence: () => void;
   /** Déplacer le rendez-vous (nouvelle date / moment) — le bouton n'existe que si fourni. */
   readonly onDeplacer?: () => void;
@@ -78,6 +80,7 @@ export function PanneauDetailRendezVous({
   delaiGracePasse,
   peutAgir,
   onVehiculeArrive,
+  slotCourtoisie,
   onSignalerAbsence,
   onDeplacer,
   onAnnuler,
@@ -246,6 +249,7 @@ export function PanneauDetailRendezVous({
                   {t('planning:detail.actions.signalerAbsence')}
                 </Button>
               ) : null}
+              {slotCourtoisie}
               {onDeplacer && rendezVous.statut === 'confirme' ? (
                 <Button
                   type="button"

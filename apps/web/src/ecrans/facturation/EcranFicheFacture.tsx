@@ -558,7 +558,7 @@ export function EcranFicheFacture() {
                   {t('facturation:fiche.lignes.vide')}
                 </p>
               ) : (
-                <Table densite="dense">
+                <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>{t('facturation:fiche.lignes.colonnes.designation')}</TableHead>

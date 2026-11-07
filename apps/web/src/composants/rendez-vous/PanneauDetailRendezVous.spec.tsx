@@ -178,4 +178,16 @@ describe('PanneauDetailRendezVous', () => {
       }),
     ).toBeInTheDocument();
   });
+
+  it('affiche le raccourci fourni (véhicule de courtoisie) avec les gestes du rendez-vous', () => {
+    rendre({ slotCourtoisie: <button type="button">Véhicule de courtoisie</button> });
+    expect(screen.getByRole('button', { name: 'Véhicule de courtoisie' })).toBeInTheDocument();
+  });
+
+  it('sans raccourci fourni : rien de plus', () => {
+    rendre();
+    expect(
+      screen.queryByRole('button', { name: 'Véhicule de courtoisie' }),
+    ).not.toBeInTheDocument();
+  });
 });

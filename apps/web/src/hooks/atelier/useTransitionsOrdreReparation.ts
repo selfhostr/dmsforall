@@ -52,11 +52,14 @@ export function useActionOrdreReparation<TEntree extends object>(
     orId: string,
     entree: TEntree,
   ) => Promise<ReponseAvecAvertissements<ReponseOrdreReparation>>,
+  /** Clé i18n du toast de succès (`commun:toasts.*`) ; sans elle, aucun retour affiché. */
+  succes?: string,
 ): UseMutationResult<ReponseAvecAvertissements<ReponseOrdreReparation>, unknown, TEntree> {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (entree: TEntree) => action(orId, entree),
+    meta: succes ? { succes } : undefined,
     onSuccess: (reponse) => {
       queryClient.setQueryData(clesQuery.or.detail(orId), reponse.donnees);
       void queryClient.invalidateQueries({ queryKey: ['or', 'liste'] });
@@ -66,12 +69,20 @@ export function useActionOrdreReparation<TEntree extends object>(
 
 /** T-03 `planifie -> ouvert`. */
 export function useReceptionnerOr(orId: string) {
-  return useActionOrdreReparation<EntreeActionReceptionner>(orId, receptionnerOrdreReparation);
+  return useActionOrdreReparation<EntreeActionReceptionner>(
+    orId,
+    receptionnerOrdreReparation,
+    'commun:toasts.orReceptionne',
+  );
 }
 
 /** T-04 `ouvert -> en_cours`. */
 export function useDemarrerOr(orId: string) {
-  return useActionOrdreReparation<EntreeActionSansCorps>(orId, demarrerOrdreReparation);
+  return useActionOrdreReparation<EntreeActionSansCorps>(
+    orId,
+    demarrerOrdreReparation,
+    'commun:toasts.orDemarre',
+  );
 }
 
 /** T-06 / T-08 / T-10 — lève les blocages d'attente. */
@@ -79,12 +90,17 @@ export function useReprendreTravauxOr(orId: string) {
   return useActionOrdreReparation<EntreeActionReprendreTravaux>(
     orId,
     reprendreTravauxOrdreReparation,
+    'commun:toasts.travauxRepris',
   );
 }
 
 /** T-11 `en_cours -> controle`. */
 export function usePasserEnControleOr(orId: string) {
-  return useActionOrdreReparation<EntreeActionSansCorps>(orId, passerEnControleOrdreReparation);
+  return useActionOrdreReparation<EntreeActionSansCorps>(
+    orId,
+    passerEnControleOrdreReparation,
+    'commun:toasts.orEnControle',
+  );
 }
 
 /** T-12 `controle -> en_cours`, motif obligatoire. */
@@ -92,6 +108,7 @@ export function useRefuserControleOr(orId: string) {
   return useActionOrdreReparation<EntreeActionRefuserControle>(
     orId,
     refuserControleOrdreReparation,
+    'commun:toasts.controleRefuse',
   );
 }
 
@@ -100,31 +117,52 @@ export function useValiderControleOr(orId: string) {
   return useActionOrdreReparation<EntreeActionValiderControle>(
     orId,
     validerControleOrdreReparation,
+    'commun:toasts.controleValide',
   );
 }
 
 /** T-14 `en_cours -> termine` (interdite si contrôle qualité obligatoire, P-08). */
 export function useTerminerOr(orId: string) {
-  return useActionOrdreReparation<EntreeActionTerminer>(orId, terminerOrdreReparation);
+  return useActionOrdreReparation<EntreeActionTerminer>(
+    orId,
+    terminerOrdreReparation,
+    'commun:toasts.travauxTermines',
+  );
 }
 
 /** T-15 `termine -> en_cours`, motif obligatoire. Depuis `facture`, refusée par le serveur
  *  (`OR_LIGNE_VERROUILLEE`/transition interdite) avec `CREER_OR_RETOUCHE` en action proposée. */
 export function useRouvrirOr(orId: string) {
-  return useActionOrdreReparation<EntreeActionRouvrir>(orId, rouvrirOrdreReparation);
+  return useActionOrdreReparation<EntreeActionRouvrir>(
+    orId,
+    rouvrirOrdreReparation,
+    'commun:toasts.orRouvert',
+  );
 }
 
 /** T-17 / T-18. */
 export function useRestituerOr(orId: string) {
-  return useActionOrdreReparation<EntreeActionRestituer>(orId, restituerOrdreReparation);
+  return useActionOrdreReparation<EntreeActionRestituer>(
+    orId,
+    restituerOrdreReparation,
+    'commun:toasts.orRestitue',
+  );
 }
 
 /** T-19. */
 export function useCloturerOr(orId: string) {
-  return useActionOrdreReparation<EntreeActionSansCorps>(orId, cloturerOrdreReparation);
+  return useActionOrdreReparation<EntreeActionSansCorps>(
+    orId,
+    cloturerOrdreReparation,
+    'commun:toasts.orCloture',
+  );
 }
 
 /** T-20, motif obligatoire (RM-62). */
 export function useAnnulerOr(orId: string) {
-  return useActionOrdreReparation<EntreeActionAnnuler>(orId, annulerOrdreReparation);
+  return useActionOrdreReparation<EntreeActionAnnuler>(
+    orId,
+    annulerOrdreReparation,
+    'commun:toasts.orAnnule',
+  );
 }

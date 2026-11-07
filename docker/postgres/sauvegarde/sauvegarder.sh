@@ -85,14 +85,6 @@
 #     serveur compromis, pas à un nouveau périmètre). Absente : le test mensuel ne peut pas
 #     tourner sans intervention humaine (apport de la clé privée RÉELLE, hors ligne) — dégradation
 #     ACCEPTÉE, jamais un blocage de la sauvegarde elle-même.
-#   UPLOADS_DIR (défaut /uploads) — dossier des fichiers déposés (PDF de factures, photos d'OR,
-#     exports de résiliation, futurs logos…), monté EN LECTURE SEULE par docker-compose.yml. Archivé
-#     en `dfa_<horodatage>.uploads.tar.gz.age`, MÊME horodatage, MÊME rotation, MÊME copie hors
-#     site, MÊMES destinataires age que le dump. L'archive passe en flux (tar | age) : le clair ne
-#     touche aucun disque (ni tmpfs, qui est borné à 1 Go). Tout ce qui est monté sous UPLOADS_DIR
-#     est couvert, sans liste de sous-dossiers à tenir à jour. UPLOADS_DIR vide (`UPLOADS_DIR=`)
-#     désactive l'archive ; un dossier défini mais absent est un ECHEC (montage oublié).
-#     Aucun seuil de taille sur l'archive : un garage sans photo ce mois-ci n'est pas une anomalie.
 #   SAUVEGARDES_DIR (défaut /sauvegardes), SCRATCH_DIR (défaut /scratch),
 #   SEUIL_TAILLE_MIN_POURCENT (défaut 50) — en-dessous de ce pourcentage de la taille de la
 #   dernière sauvegarde connue, la sauvegarde du jour est considérée suspecte (probable dump
@@ -113,7 +105,6 @@ set -euo pipefail
 
 SAUVEGARDES_DIR="${SAUVEGARDES_DIR:-/sauvegardes}"
 SCRATCH_DIR="${SCRATCH_DIR:-/scratch}"
-UPLOADS_DIR="${UPLOADS_DIR-/uploads}"
 SEUIL_TAILLE_MIN_POURCENT="${SEUIL_TAILLE_MIN_POURCENT:-50}"
 
 JOURNAL="$SAUVEGARDES_DIR/journal.log"
@@ -133,8 +124,6 @@ journaliser() {
 DATE="$(date +%Y%m%d-%H%M%S)"
 FICHIER_FINAL="$SAUVEGARDES_DIR/dfa_${DATE}.dump.age"
 FICHIER_ROLES_FINAL="$SAUVEGARDES_DIR/dfa_${DATE}.roles.sql.age"
-FICHIER_UPLOADS_FINAL="$SAUVEGARDES_DIR/dfa_${DATE}.uploads.tar.gz.age"
-FICHIER_UPLOADS_PARTIEL="${FICHIER_UPLOADS_FINAL}.partiel"
 TMP="$(mktemp --suffix=.dump "${SCRATCH_DIR}/dfa-XXXXXX")"
 TMP_ROLES="$(mktemp --suffix=.sql "${SCRATCH_DIR}/dfa-roles-XXXXXX")"
 chmod 600 "$TMP" "$TMP_ROLES"
@@ -151,7 +140,7 @@ chmod 600 "$TMP" "$TMP_ROLES"
 # conditionnellement), et c'est un `trap ... ERR` qui journalise l'échec — un `trap` ne désactive
 # PAS `set -e`, contrairement à un `if`.
 nettoyer() {
-  rm -f -- "$TMP" "$TMP_ROLES" "$FICHIER_UPLOADS_PARTIEL"
+  rm -f -- "$TMP" "$TMP_ROLES"
 }
 trap nettoyer EXIT
 
@@ -258,26 +247,6 @@ if [ -n "${precedent:-}" ]; then
   fi
 fi
 
-# --- 3bis. Fichiers déposés (uploads), même horodatage que le dump -----------------------------
-# Écrit sous un nom `.partiel` puis renommé : une archive tronquée (tar ou age en échec, disque
-# plein) ne porte jamais le nom d'une sauvegarde valide. `set -o pipefail` (en tête) fait échouer
-# le script si tar OU age échoue. Au cas d'échec, le dump du jour reste sur le volume mais le statut
-# est ECHEC : une sauvegarde sans ses fichiers n'est pas une nuit réussie.
-FICHIERS_HORS_SITE=("$(basename "$FICHIER_FINAL")" "$(basename "$FICHIER_ROLES_FINAL")")
-if [ -n "$UPLOADS_DIR" ]; then
-  if [ ! -d "$UPLOADS_DIR" ]; then
-    journaliser "ECHEC dossier des fichiers déposés introuvable : ${UPLOADS_DIR} (volumes d'uploads non montés dans le service backup ?)"
-    exit 1
-  fi
-  tar -C "$UPLOADS_DIR" -czf - . | age "${DESTINATAIRES[@]}" -o "$FICHIER_UPLOADS_PARTIEL"
-  mv -- "$FICHIER_UPLOADS_PARTIEL" "$FICHIER_UPLOADS_FINAL"
-  taille_uploads="$(wc -c <"$FICHIER_UPLOADS_FINAL")"
-  journaliser "OK archive des fichiers $(basename "$FICHIER_UPLOADS_FINAL") (${taille_uploads// /} octets)"
-  FICHIERS_HORS_SITE+=("$(basename "$FICHIER_UPLOADS_FINAL")")
-else
-  journaliser "ATTENTION archive des fichiers désactivée (UPLOADS_DIR vide) — PDF et photos NON sauvegardés"
-fi
-
 journaliser "OK sauvegarde $(basename "$FICHIER_FINAL") (${taille_octets} octets) + $(basename "$FICHIER_ROLES_FINAL")"
 
 "$(dirname "${BASH_SOURCE[0]}")/purger.sh" "$SAUVEGARDES_DIR"
@@ -290,6 +259,6 @@ echo "OK $(date -Iseconds)" >"$STATUT"
 # sont deux faits distincts, dans deux fichiers distincts (voir copier-hors-site.sh), pour ne
 # jamais masquer l'un derrière l'autre. `|| true` explicite : ce script continue (et sort 0) même
 # si la copie hors site échoue bruyamment dans SON PROPRE journal/statut.
-if ! "$(dirname "${BASH_SOURCE[0]}")/copier-hors-site.sh" "$SAUVEGARDES_DIR" "${FICHIERS_HORS_SITE[@]}"; then
+if ! "$(dirname "${BASH_SOURCE[0]}")/copier-hors-site.sh" "$SAUVEGARDES_DIR" "$(basename "$FICHIER_FINAL")" "$(basename "$FICHIER_ROLES_FINAL")"; then
   journaliser "ATTENTION copie hors site échouée ou non configurée — voir dernier-statut-hors-site.txt"
 fi

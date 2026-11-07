@@ -145,7 +145,8 @@ describe('EcranUtilisateurs — création', () => {
       screen.getByLabelText(`${i18n.t('parametrage:utilisateurs.creation.champEmail')} *`),
       'julie.rey@garage-martin.ch',
     );
-    await util.click(screen.getByLabelText('Site principal'));
+    // Garage mono-site : aucun champ « site », le site est envoyé implicitement (assert du POST).
+    expect(screen.queryByLabelText('Site principal')).not.toBeInTheDocument();
 
     await util.click(
       screen.getByRole('button', {
@@ -157,6 +158,31 @@ describe('EcranUtilisateurs — création', () => {
       await screen.findByText(i18n.t('parametrage:utilisateurs.acces.titre')),
     ).toBeInTheDocument();
     expect(screen.getByDisplayValue('k3f9QzSecretGenere')).toBeInTheDocument();
+  });
+
+  it('garage à plusieurs sites : le choix du site reste demandé', async () => {
+    connecterSession();
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({
+          ...SESSION_TEST,
+          sites: [
+            ...SESSION_TEST.sites,
+            { id: 'site-2', code: 'S2', nom: 'Site deux', actif: true },
+          ],
+        }),
+      ),
+      http.get(CHEMIN_LISTE, () => HttpResponse.json(pageDe([]))),
+    );
+    rendre();
+
+    const util = userEvent.setup();
+    await util.click(
+      await screen.findByRole('button', { name: i18n.t('parametrage:utilisateurs.nouveau') }),
+    );
+
+    expect(await screen.findByLabelText('Site principal')).toBeInTheDocument();
+    expect(screen.getByLabelText('Site deux')).toBeInTheDocument();
   });
 
   it("refuse la création d'un admin par une direction : le refus serveur (403) s'affiche, aucun compte n'est créé", async () => {

@@ -18,7 +18,7 @@
 #
 # Optional profiles:
 #   --profile ocr      registration-document scanner (extra image)
-#   --profile backup   encrypted nightly backups of the database and uploaded files (needs an age public key)
+#   --profile backup   encrypted nightly PostgreSQL backups (needs an age public key)
 #
 # Local development uses docker-compose.dev.yml instead. docker-compose.build.yml builds the
 # images from source instead of pulling them.
@@ -252,7 +252,7 @@ services:
     restart: unless-stopped
     <<: *hardening
 
-  # --- profile backup: nightly encrypted dumps and uploads archive, written to the dfa_postgres_backups volume.
+  # --- profile backup: nightly encrypted dumps, written to the dfa_postgres_backups volume.
   # Needs AGE_CLE_PUBLIQUE (an age public key; keep the private key off this server).
   # Built from docker/postgres/sauvegarde, so it needs a clone of the repository.
   init-backups:
@@ -288,15 +288,9 @@ services:
       HEURE_SAUVEGARDE: ${HEURE_SAUVEGARDE:-03:15}
       SEUIL_TAILLE_MIN_POURCENT: ${SEUIL_TAILLE_MIN_POURCENT:-50}
       RCLONE_REMOTE: ${RCLONE_REMOTE:-}
-      # Everything mounted under /uploads is archived with the dump. A new uploads volume added to
-      # the api service must also be mounted here, read-only.
-      UPLOADS_DIR: /uploads
     volumes:
       - dfa_secrets:/secrets:ro
       - dfa_postgres_backups:/sauvegardes
-      - dfa_api_uploads:/uploads/documents-pdf:ro
-      - dfa_exports_resiliation:/uploads/exports-resiliation:ro
-      - dfa_photos_or:/uploads/photos-or:ro
     tmpfs:
       - /scratch:mode=1777,size=1g
     depends_on:

@@ -139,6 +139,7 @@ La densité de l'application est choisie par `useDensite()` (`apps/web/src/hooks
 | Sinon (souris, y compris 1024-1279 px)   | `compacte` | 14 px | 13 px   | 40 px            | 44 px       |
 
 - L'utilisateur peut forcer « Compacte » ou « Aérée » depuis le bouton `Aa` de la barre haute (`SelecteurDensite`, à côté de la bascule de thème). Le choix est stocké dans le navigateur (`localStorage`, clé `dfa-densite`), comme le thème : aucun point d'API. « Automatique » est le défaut.
+- `index.html` pose `densite-dense`/`densite-aeree` avant le premier rendu (même règle que `resoudreDensite`) ; `Button size="sm"` mesure 44 px visibles en `aeree` et `tres-aeree`.
 - La borne de pointage garde `densite-tres-aeree` posée localement (sa sous-arborescence l'emporte sur la racine).
 - `Table` et `TableComptoir` n'ont plus de densité par défaut : ils héritent de la racine. Ne passer `densite=` que pour un cas qui diffère réellement de l'appareil.
 - Aucune hauteur ou taille n'est écrite en dur dans un composant : `--densite-hauteur-ligne`, `--hauteur-barre-haute`, `--texte-*`, `--cible-tactile` (index.css).
@@ -229,7 +230,7 @@ useMutation({
 - `annuler` : facultatif, réservé aux actions réellement réversibles par l'API. Le toast se met en pause au survol et au focus.
 - Les clés partagées vivent dans `commun.json` sous `toasts.*` (FR, DE, IT) ; une clé propre à un domaine peut vivre dans son namespace.
 - Exemples branchés : `useCreerClient`, `useCreerVehicule`, `useDeplacerRendezVous`, `useCreerArticle`, `useArreterPointage`.
-- Un échec reste traité par le filet d'erreur (`FiletErreurMutation`) ; `ToastsSucces` (bas gauche, `role="status"`) et le filet d'erreur (bas droit, `role="alert"`) ne se mélangent jamais.
+- Un échec reste traité par le filet d'erreur (`FiletErreurMutation`) ; `ToastsSucces` (bas gauche, `role="status"`) et le filet d'erreur (bas droit, `role="alert"`) ne se mélangent jamais. Le toast de succès flotte sur `bg-popover` (icône `statut-succes` pour le signal) : la couleur `statut-succes-fond` reste réservée aux badges de statut « terminé ».
 
 ### Quand garder un dialogue de confirmation
 
