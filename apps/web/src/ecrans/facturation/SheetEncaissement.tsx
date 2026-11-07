@@ -10,6 +10,7 @@ import {
   type MoyenPaiement,
 } from '@dfa/shared';
 
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { messageErreur } from '@/api/erreurs';
 import { genererCleIdempotence } from '@/api/idempotence';
 import { Button } from '@/components/ui/button';
@@ -503,9 +504,15 @@ export function SheetEncaissement({
               {saisieDisponible ? (
                 <>
                   <section className="flex flex-col gap-3">
-                    <h2 className="texte-libelle font-medium text-foreground">
-                      {t('facturation:encaissement.lignes.titre')}
-                    </h2>
+                    <div className="flex items-center gap-1.5">
+                      <h2 className="texte-libelle font-medium text-foreground">
+                        {t('facturation:encaissement.lignes.titre')}
+                      </h2>
+                      <AideContextuelle
+                        sujet={t('aide:facturation.encaissement.sujet')}
+                        texte={t('aide:facturation.encaissement.texte')}
+                      />
+                    </div>
                     {lignes.map((ligne) => (
                       // DESIGN.md « bordure structurelle » — conservée : ligne de saisie réelle
                       // (moyen de paiement, montant, bouton « retirer ») dans un bloc qui gère

@@ -1,0 +1,49 @@
+{
+  "ouvrir": "Mostri l'aiuto",
+  "ouvrirSujet": "Aiuto: {sujet}",
+  "or": {
+    "provenanceLigne": "Da dove viene la riga: richiesta dal cliente, scoperta durante l'intervento, campagna del costruttore, garanzia, ripresa o interna. Ciò decide chi paga.",
+    "travauxReportes": "Lavori consigliati al cliente ma non eseguiti questa volta. Restano legati al veicolo per proporli alla prossima visita.",
+    "statuts": "Lo stato indica a che punto è l'OR: aperto, in corso, terminato, fatturato. «Attesa ricambi» si somma a qualsiasi stato."
+  },
+  "vehicules": {
+    "travauxReportes": "Lavori individuati ma non eseguiti (cliente non d'accordo, ricambio mancante). Restano sulla scheda del veicolo per la prossima visita."
+  },
+  "facturation": {
+    "arrondiEspeces": {
+      "sujet": "Arrotondamento contanti",
+      "texte": "In contanti il totale è arrotondato ai 5 centesimi (regola svizzera). Con carta o TWINT l'importo resta esatto."
+    },
+    "encaissement": {
+      "sujet": "Incasso",
+      "texte": "Contanti arrotondati ai 5 centesimi. Se il cliente paga più del saldo, l'eccedenza è conservata come anticipo cliente, da assegnare più tardi a un'altra fattura."
+    }
+  },
+  "pieces": {
+    "reliquat": "Residuo: quantità ordinata non ancora arrivata. Resta attesa dal fornitore finché non la si annulla.",
+    "origineCommande": "Come è nato l'ordine: inserito a mano, generato da un ricambio prenotato esaurito o proposto dal riordino.",
+    "consignes": "Cauzione: somma versata dal cliente per un ricambio a scambio. Viene restituita quando riporta il pezzo vecchio.",
+    "reservations": "Ricambio messo da parte per un OR. Finché è prenotato, non è più disponibile alla vendita al banco."
+  },
+  "pointage": {
+    "borne": {
+      "sujet": "Terminale di timbratura",
+      "texte": "Il terminale è il tablet o il PC fisso dell'officina dove i meccanici registrano il tempo su un OR."
+    }
+  },
+  "export": {
+    "fiduciaire": "Il file da consegnare al suo fiduciario: fatture, note di credito e incassi del periodo, nel formato del suo programma contabile."
+  },
+  "pneus": {
+    "hangar": "I treni di pneumatici di un cliente conservati da Lei per la stagione. «Da sollecitare» elenca quelli il cui cambio stagione si avvicina."
+  },
+  "ventes": {
+    "reprise": "Permuta: il veicolo del cliente che Lei ritira in deduzione dal prezzo del veicolo venduto. Il suo valore viene sottratto dal totale della vendita."
+  },
+  "relances": {
+    "regles": "Quando e con quale canale si richiama un cliente: preventivo senza risposta, fattura non pagata, collaudo in scadenza."
+  },
+  "courtoisie": {
+    "parc": "Auto sostitutive prestate ai clienti durante la riparazione. Il giorno scelto serve a vedere quali sono libere."
+  }
+}

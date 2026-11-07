@@ -10,6 +10,7 @@ import {
   type ReponseRegleRelance,
 } from '@dfa/shared';
 
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { messageErreur } from '@/api/erreurs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -110,7 +111,10 @@ function BlocRegleFactureEchue({ regle }: PropsBlocRegle) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="texte-titre-section">{t('relances:regles.titre')}</CardTitle>
+        <div className="flex items-center gap-1.5">
+          <CardTitle className="texte-titre-section">{t('relances:regles.titre')}</CardTitle>
+          <AideContextuelle sujet={t('relances:regles.titre')} texte={t('aide:relances.regles')} />
+        </div>
         <CardDescription>{t('relances:regles.description')}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">

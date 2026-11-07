@@ -14,7 +14,6 @@ import {
 
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -282,7 +281,6 @@ export function EcranListeArticles() {
         onEffacerFiltres={effacerFiltres}
       >
         <div className="flex flex-col gap-champ">
-          <Label htmlFor="filtre-categorie">{t('pieces:articles.categorie')}</Label>
           <Select
             value={categorie ?? 'toutes'}
             onValueChange={(valeur) =>
@@ -307,7 +305,6 @@ export function EcranListeArticles() {
           </Select>
         </div>
         <div className="flex flex-col gap-champ">
-          <Label htmlFor="filtre-statut">{t('pieces:articles.statut')}</Label>
           <Select
             value={statut ?? 'tous'}
             onValueChange={(valeur) =>
@@ -333,7 +330,6 @@ export function EcranListeArticles() {
         </div>
         {sitesActifs.length > 1 ? (
           <div className="flex flex-col gap-champ">
-            <Label htmlFor="filtre-site">{t('pieces:siteRequis.label')}</Label>
             <Select value={site} onValueChange={setSite}>
               <SelectTrigger
                 id="filtre-site"

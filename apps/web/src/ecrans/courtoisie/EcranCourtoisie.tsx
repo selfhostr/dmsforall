@@ -13,10 +13,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { BadgeAttribut } from '@/composants/identite/BadgeAttribut';
 import {
   useAnnulerPretCourtoisie,
@@ -65,32 +66,26 @@ export function EcranCourtoisie() {
   const vehicules = requete.data?.vehicules ?? [];
   const nbLibres = vehicules.filter((v) => v.disponibilite === 'libre').length;
 
-  return (
-    <div className="flex flex-col gap-4 p-4">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="texte-titre-page">{t('courtoisie:titre')}</h1>
-          <p className="texte-libelle text-muted-foreground">{t('courtoisie:sousTitre')}</p>
-        </div>
-        <div className="flex items-end gap-3">
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="courtoisie-jour">{t('courtoisie:jour')}</Label>
-            <Input
-              id="courtoisie-jour"
-              type="date"
-              value={jour}
-              onChange={(e) => e.target.value && setJour(e.target.value)}
-            />
-          </div>
-          {peutGererParc ? (
-            <Button type="button" variant="outline" onClick={() => setAjoutOuvert(true)}>
-              <Plus aria-hidden className="h-4 w-4" />
-              {t('courtoisie:parc.ajouter')}
-            </Button>
-          ) : null}
-        </div>
-      </header>
+  const actionsEcran = (
+    <>
+      <Input
+        type="date"
+        aria-label={t('courtoisie:jour')}
+        value={jour}
+        onChange={(e) => e.target.value && setJour(e.target.value)}
+        className="w-auto"
+      />
+      {peutGererParc ? (
+        <Button type="button" variant="outline" onClick={() => setAjoutOuvert(true)}>
+          <Plus aria-hidden className="h-4 w-4" />
+          {t('courtoisie:parc.ajouter')}
+        </Button>
+      ) : null}
+    </>
+  );
 
+  return (
+    <GabaritEcran titre={t('courtoisie:titre')} actions={actionsEcran}>
       {remettre.isError || annuler.isError ? (
         <Alert variant="destructive">
           <AlertDescription>{messageErreur(remettre.error ?? annuler.error, t)}</AlertDescription>
@@ -116,8 +111,12 @@ export function EcranCourtoisie() {
 
       {requete.isSuccess && vehicules.length > 0 ? (
         <>
-          <p className="texte-corps font-medium" role="status">
+          <p className="flex items-center gap-1.5 texte-corps font-medium" role="status">
             {t('courtoisie:resume', { libres: nbLibres, total: vehicules.length })}
+            <AideContextuelle
+              sujet={t('courtoisie:titre')}
+              texte={t('aide:courtoisie.parc')}
+            />
           </p>
           <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {vehicules.map((v) => {
@@ -216,6 +215,6 @@ export function EcranCourtoisie() {
       />
       <DialogueRetourPret pret={aRendre} onFermer={() => setARendre(null)} />
       <DialogueNouveauVehicule ouvert={ajoutOuvert} onFermer={() => setAjoutOuvert(false)} />
-    </div>
+    </GabaritEcran>
   );
 }

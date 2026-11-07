@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router';
 
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -171,9 +170,6 @@ export function EcranConsolePlateforme() {
           onEffacerFiltres={effacerFiltres}
         >
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="filtre-statut-garage">
-              {t('console:plateforme.statutFiltre.label')}
-            </Label>
             <Select
               value={statutFiltre ?? 'tous'}
               onValueChange={(valeur) =>

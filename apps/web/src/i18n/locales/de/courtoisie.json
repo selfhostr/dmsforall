@@ -1,6 +1,5 @@
 {
   "titre": "Ersatzfahrzeuge",
-  "sousTitre": "Ersatzwagen, die Kundinnen und Kunden während der Reparatur geliehen werden.",
   "jour": "Tag",
   "erreur": "Ersatzfahrzeuge konnten nicht geladen werden",
   "resume": "{libres, plural, =0 {Kein Fahrzeug frei} one {# Fahrzeug frei} other {# Fahrzeuge frei}} von {total}",

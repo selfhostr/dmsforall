@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -199,8 +200,12 @@ export function EcranFicheCommandeFournisseur() {
                   <dd>{nomSite}</dd>
                 </div>
                 <div>
-                  <dt className="texte-libelle text-muted-foreground">
+                  <dt className="flex items-center gap-1.5 texte-libelle text-muted-foreground">
                     {t('pieces:commandes.origine')}
+                    <AideContextuelle
+                      sujet={t('pieces:commandes.origine')}
+                      texte={t('aide:pieces.origineCommande')}
+                    />
                   </dt>
                   <dd>{t(`pieces:commandes.origines.${commande.origine}`)}</dd>
                 </div>
@@ -338,8 +343,12 @@ export function EcranFicheCommandeFournisseur() {
                   </p>
                 </div>
                 <div>
-                  <span className="texte-libelle text-muted-foreground">
+                  <span className="flex items-center gap-1.5 texte-libelle text-muted-foreground">
                     {t('pieces:commandes.lignes.quantiteReliquat')}
+                    <AideContextuelle
+                      sujet={t('pieces:commandes.lignes.quantiteReliquat')}
+                      texte={t('aide:pieces.reliquat')}
+                    />
                   </span>
                   <p className="tabular-nums">
                     {formaterQuantiteMillieme(ligne.quantiteReliquatMillieme)}

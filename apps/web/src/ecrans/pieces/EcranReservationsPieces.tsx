@@ -10,9 +10,9 @@ import {
   type StatutReservationPiece,
 } from '@dfa/shared';
 
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -236,7 +236,15 @@ export function EcranReservationsPieces() {
   // (`navigation-modele.ts`, `ONGLETS_PIECES`, vue « reservations » de l'onglet Articles) :
   // `GabaritEcran` le détecte lui-même (§3 du contrat du chantier « titres doublés », 17.08.2026).
   return (
-    <GabaritEcran titre={t('pieces:reservations.titre')}>
+    <GabaritEcran
+      titre={t('pieces:reservations.titre')}
+      actions={
+        <AideContextuelle
+          sujet={t('pieces:reservations.titre')}
+          texte={t('aide:pieces.reservations')}
+        />
+      }
+    >
       <BarreFiltres
         q={qSaisie}
         onChangeQ={setQSaisie}
@@ -245,7 +253,6 @@ export function EcranReservationsPieces() {
         onEffacerFiltres={effacerFiltres}
       >
         <div className="flex flex-col gap-champ">
-          <Label htmlFor="filtre-statut-reservation">{t('pieces:reservations.statut')}</Label>
           <Select
             value={statut ?? 'toutes'}
             onValueChange={(valeur) =>

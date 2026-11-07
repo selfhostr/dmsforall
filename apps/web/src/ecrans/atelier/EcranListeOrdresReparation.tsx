@@ -13,6 +13,7 @@ import {
   type StatutOrdreReparation,
 } from '@dfa/shared';
 
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -351,6 +352,10 @@ export function EcranListeOrdresReparation() {
             ))}
           </SelectContent>
         </Select>
+        <AideContextuelle
+          sujet={t('or:liste.filtres.statut')}
+          texte={t('aide:or.statuts')}
+        />
       </BarreFiltres>
 
       <div className="flex flex-wrap items-end justify-between gap-3">

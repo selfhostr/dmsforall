@@ -11,7 +11,6 @@ import {
 
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -245,9 +244,6 @@ export function EcranListeFacturesFournisseur() {
         onEffacerFiltres={effacerFiltres}
       >
         <div className="flex flex-col gap-champ">
-          <Label htmlFor="filtre-statut-facture">
-            {t('pieces:facturesFournisseur.colonnes.statut')}
-          </Label>
           <Select
             value={statut ?? 'tous'}
             onValueChange={(valeur) =>

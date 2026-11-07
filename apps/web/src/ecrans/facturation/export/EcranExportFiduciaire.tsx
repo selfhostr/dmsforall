@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Download, FileText, ListChecks } from 'lucide-react';
 
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { ErreurApi, messageErreur } from '@/api/erreurs';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -104,7 +105,10 @@ export function EcranExportFiduciaire() {
     <GabaritEcran titre={t('export:titre')} sousTitre={t('export:sousTitre')}>
       <Card>
         <CardHeader>
-          <CardTitle className="texte-titre-section">{t('export:format.titre')}</CardTitle>
+          <div className="flex items-center gap-1.5">
+            <CardTitle className="texte-titre-section">{t('export:format.titre')}</CardTitle>
+            <AideContextuelle sujet={t('export:titre')} texte={t('aide:export.fiduciaire')} />
+          </div>
           <CardDescription>{t('export:format.description')}</CardDescription>
         </CardHeader>
         <CardContent>

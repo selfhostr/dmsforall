@@ -11,6 +11,7 @@ import {
   type StatutConsigneEchangeStandard,
 } from '@dfa/shared';
 
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -192,10 +193,14 @@ export function EcranConsignesPieces() {
   }
 
   return (
-    <GabaritEcran titre={t('pieces:consignes.titre')}>
+    <GabaritEcran
+      titre={t('pieces:consignes.titre')}
+      actions={
+        <AideContextuelle sujet={t('pieces:consignes.titre')} texte={t('aide:pieces.consignes')} />
+      }
+    >
       <div className="flex flex-wrap items-end gap-groupe">
         <div className="flex flex-col gap-champ max-w-xs">
-          <Label htmlFor="filtre-statut-consigne">{t('pieces:consignes.statut')}</Label>
           <Select
             value={statut ?? 'toutes'}
             onValueChange={(valeur) =>

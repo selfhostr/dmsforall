@@ -10,10 +10,10 @@ import {
   type StatutCommandeFournisseur,
 } from '@dfa/shared';
 
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -215,7 +215,6 @@ export function EcranListeCommandesFournisseur() {
         onEffacerFiltres={effacerFiltres}
       >
         <div className="flex flex-col gap-champ">
-          <Label htmlFor="filtre-statut-commande">{t('pieces:commandes.statut')}</Label>
           <Select
             value={statut ?? 'tous'}
             onValueChange={(valeur) =>
@@ -247,6 +246,10 @@ export function EcranListeCommandesFournisseur() {
           />
           {t('pieces:commandes.filtres.avecReliquat')}
         </label>
+        <AideContextuelle
+          sujet={t('pieces:commandes.filtres.avecReliquat')}
+          texte={t('aide:pieces.reliquat')}
+        />
       </BarreFiltres>
 
       <TableComptoir

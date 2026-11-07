@@ -14,6 +14,7 @@ import {
   type TypeLigneOr,
 } from '@dfa/shared';
 
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { genererCleIdempotence } from '@/api/idempotence';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -451,9 +452,15 @@ export function DialogueAjoutLigneOr({ orId, siteId, onAjoutee }: Props) {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="or-ligne-origine" requis>
-                  {t('or:lignes.colonnes.origine')}
-                </Label>
+                <div className="flex items-center gap-1.5">
+                  <Label htmlFor="or-ligne-origine" requis>
+                    {t('or:lignes.colonnes.origine')}
+                  </Label>
+                  <AideContextuelle
+                    sujet={t('or:lignes.colonnes.origine')}
+                    texte={t('aide:or.provenanceLigne')}
+                  />
+                </div>
                 <Select
                   value={etat.origine}
                   onValueChange={(valeur) => majEtat({ origine: valeur as OrigineLigneOr })}

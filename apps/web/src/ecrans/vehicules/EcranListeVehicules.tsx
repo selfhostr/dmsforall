@@ -13,7 +13,6 @@ import {
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -204,7 +203,6 @@ export function EcranListeVehicules() {
         onEffacerFiltres={effacerFiltres}
       >
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="filtre-statut">{t('vehicules:liste.filtres.statut')}</Label>
           <Select
             value={statut ?? 'tous'}
             onValueChange={(valeur) =>
