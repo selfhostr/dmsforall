@@ -568,6 +568,18 @@ const ONGLETS_FACTURATION: readonly OngletDomaine[] = [
     motifs: ['/relances'],
     roles: ROLES_RELANCES,
   },
+  /**
+   * Export fiduciaire (`facturation.export.creer`, direction/comptable seuls, `admin: []`) —
+   * TROISIÈME onglet de Facturation : un export se déclenche depuis le domaine dont il exporte les
+   * documents, jamais depuis Réglages (opération datée qu'on rejoue chaque fin de mois).
+   */
+  {
+    id: 'exportFiduciaire',
+    cleLibelle: 'navigation:onglets.facturationExportFiduciaire',
+    chemin: (site) => chemins.facturation.exportFiduciaire(site),
+    motifs: ['/export-fiduciaire'],
+    roles: ROLES_MENU_FINANCIER,
+  },
 ];
 
 const ONGLETS_VENTES: readonly OngletDomaine[] = [
@@ -751,17 +763,6 @@ export const EMPLACEMENTS_RESERVES: readonly {
   readonly cleLibelle: string;
   readonly motif: string;
 }[] = [
-  {
-    entree: 'facturation',
-    onglet: 'exportFiduciaire',
-    cleLibelle: 'navigation:onglets.facturationExportFiduciaire',
-    motif:
-      "Export vers la fiduciaire (WinBIZ, Bexio, Abacus, Banana). L'API expose déjà " +
-      "`facturation.export.creer` (direction/comptable seuls, `admin: []`) ; il manque l'écran. " +
-      'Va en TROISIÈME onglet de Facturation, après Relances — un export se déclenche depuis le ' +
-      "domaine dont il exporte les documents, jamais depuis Réglages (ce n'est pas un paramètre, " +
-      "c'est une opération datée qu'on rejoue chaque fin de mois).",
-  },
   {
     entree: 'facturation',
     onglet: 'encaissements',

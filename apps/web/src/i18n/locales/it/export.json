@@ -1,0 +1,78 @@
+{
+  "titre": "Esportazione per la fiduciaria",
+  "sousTitre": "Preparate il file da consegnare alla vostra fiduciaria per il periodo.",
+  "format": {
+    "titre": "Formato del file",
+    "description": "Il formato che la vostra fiduciaria importa nella sua contabilità.",
+    "winbiz": {
+      "nom": "WinBIZ",
+      "phrase": "Per WinBIZ: una registrazione per fattura o nota di credito, poi una per incasso."
+    }
+  },
+  "periode": {
+    "titre": "Periodo",
+    "description": "Per impostazione predefinita il mese precedente, il ritmo abituale di fine mese.",
+    "modes": {
+      "moisPrecedent": "Mese precedente",
+      "trimestrePrecedent": "Trimestre precedente",
+      "personnalisee": "Periodo personalizzato"
+    },
+    "du": "Dal",
+    "au": "Al",
+    "resume": "Dal {du} al {au}.",
+    "inversee": "La data di inizio deve precedere la data di fine."
+  },
+  "perimetre": "Il file contiene le fatture, le note di credito e gli incassi del periodo non ancora trasmessi alla fiduciaria. Un documento già esportato non viene esportato una seconda volta.",
+  "action": {
+    "telecharger": "Scarica",
+    "encours": "Esportazione in corso…"
+  },
+  "droits": {
+    "refuse": "Solo la direzione e la contabilità possono esportare verso la fiduciaria."
+  },
+  "confirmation": {
+    "titre": "Esportare verso la fiduciaria?",
+    "description": "Le fatture, le note di credito e gli incassi dal {du} al {au} saranno contrassegnati come trasmessi alla fiduciaria. Il file non viene conservato sui nostri server: conservatelo dopo il download.",
+    "valider": "Esporta e scarica"
+  },
+  "resultat": {
+    "titre": "Esportazione terminata",
+    "fichierNonConserve": "Il file è stato scaricato. Non viene conservato sui nostri server: se lasciate questa pagina non potrete più recuperarlo.",
+    "factures": "Fatture esportate",
+    "avoirs": "Note di credito esportate",
+    "encaissements": "Incassi esportati",
+    "ecritures": "Registrazioni contabili",
+    "total": "Totale delle registrazioni (dare)",
+    "numerosFactures": "Numeri di fattura",
+    "numerosAvoirs": "Numeri di nota di credito",
+    "plage": "da {premier} a {dernier}",
+    "avertissements": "Punti da verificare nel file",
+    "retelecharger": "Scarica di nuovo {nom}"
+  },
+  "vide": {
+    "titre": "Niente da esportare in questo periodo",
+    "description": "Nessuna fattura, nota di credito o incasso da trasmettere: tutto ciò che risale a questo periodo è già stato esportato, oppure non è ancora stato emesso nulla. Provate un altro periodo."
+  },
+  "erreur": {
+    "titre": "Non è stato possibile eseguire l'esportazione",
+    "reessayer": "Riprova"
+  },
+  "prerequis": {
+    "EXPORT_MAPPING_INCOMPLET": {
+      "titre": "Il piano dei conti non è completo",
+      "description": "Alcuni conti o codici IVA della fiduciaria non sono ancora associati alle vostre registrazioni. Nessun documento è stato esportato. Chiedete alla fiduciaria l'elenco dei suoi conti, poi contattate il supporto per inserirli."
+    },
+    "EXPORT_TROU_NUMEROTATION": {
+      "titre": "Manca un numero di fattura o di nota di credito",
+      "description": "La sequenza dei numeri del periodo presenta un buco: il file non parte verso la fiduciaria in questo stato. Nessun documento è stato esportato. Contattate il supporto."
+    },
+    "EXPORT_ECRITURES_DESEQUILIBREES": {
+      "titre": "Alcune registrazioni non sono in pareggio",
+      "description": "Il file non è stato prodotto, nessun documento è stato esportato. Contattate il supporto."
+    },
+    "FONCTION_NON_DISPONIBLE": {
+      "titre": "Questo periodo contiene un caso non gestito",
+      "description": "Un incasso del periodo (compensazione, o sconto su una fattura con più aliquote IVA) non può ancora essere esportato. Nessun documento è stato esportato. Contattate il supporto."
+    }
+  }
+}

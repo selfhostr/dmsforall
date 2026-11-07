@@ -1,0 +1,78 @@
+{
+  "titre": "Export fiduciaire",
+  "sousTitre": "Préparez le fichier à remettre à votre fiduciaire pour la période.",
+  "format": {
+    "titre": "Format du fichier",
+    "description": "Le format que votre fiduciaire importe dans sa comptabilité.",
+    "winbiz": {
+      "nom": "WinBIZ",
+      "phrase": "Pour WinBIZ : une écriture par facture ou avoir, puis une par encaissement."
+    }
+  },
+  "periode": {
+    "titre": "Période",
+    "description": "Mois précédent par défaut, le rythme habituel d'une fin de mois.",
+    "modes": {
+      "moisPrecedent": "Mois précédent",
+      "trimestrePrecedent": "Trimestre précédent",
+      "personnalisee": "Période personnalisée"
+    },
+    "du": "Du",
+    "au": "Au",
+    "resume": "Du {du} au {au}.",
+    "inversee": "La date de début doit précéder la date de fin."
+  },
+  "perimetre": "Le fichier reprend les factures, avoirs et encaissements de la période qui n'ont pas encore été transmis à la fiduciaire. Un document déjà exporté ne repart pas une seconde fois.",
+  "action": {
+    "telecharger": "Télécharger",
+    "encours": "Export en cours…"
+  },
+  "droits": {
+    "refuse": "Seuls la direction et la comptabilité peuvent exporter vers la fiduciaire."
+  },
+  "confirmation": {
+    "titre": "Exporter vers la fiduciaire ?",
+    "description": "Les factures, avoirs et encaissements du {du} au {au} seront marqués comme transmis à la fiduciaire. Le fichier n'est pas conservé sur nos serveurs : gardez-le après le téléchargement.",
+    "valider": "Exporter et télécharger"
+  },
+  "resultat": {
+    "titre": "Export terminé",
+    "fichierNonConserve": "Le fichier a été téléchargé. Il n'est pas conservé sur nos serveurs : si vous quittez cette page, vous ne pourrez plus le récupérer.",
+    "factures": "Factures exportées",
+    "avoirs": "Avoirs exportés",
+    "encaissements": "Encaissements exportés",
+    "ecritures": "Écritures comptables",
+    "total": "Total des écritures (débit)",
+    "numerosFactures": "Numéros de factures",
+    "numerosAvoirs": "Numéros d'avoirs",
+    "plage": "{premier} à {dernier}",
+    "avertissements": "Points à vérifier dans le fichier",
+    "retelecharger": "Télécharger à nouveau {nom}"
+  },
+  "vide": {
+    "titre": "Rien à exporter sur cette période",
+    "description": "Aucune facture, aucun avoir ni encaissement à transmettre : tout ce qui date de cette période a déjà été exporté, ou rien n'a encore été émis. Essayez une autre période."
+  },
+  "erreur": {
+    "titre": "L'export n'a pas pu être fait",
+    "reessayer": "Réessayer"
+  },
+  "prerequis": {
+    "EXPORT_MAPPING_INCOMPLET": {
+      "titre": "Le plan comptable n'est pas complet",
+      "description": "Certains comptes ou codes TVA de la fiduciaire ne sont pas encore associés à vos écritures. Aucun document n'a été exporté. Demandez à votre fiduciaire la liste de ses comptes, puis contactez le support pour les saisir."
+    },
+    "EXPORT_TROU_NUMEROTATION": {
+      "titre": "Un numéro de facture ou d'avoir manque",
+      "description": "La suite des numéros de la période présente un trou : le fichier ne part pas chez la fiduciaire dans cet état. Aucun document n'a été exporté. Contactez le support."
+    },
+    "EXPORT_ECRITURES_DESEQUILIBREES": {
+      "titre": "Des écritures ne sont pas équilibrées",
+      "description": "Le fichier n'a pas été produit, aucun document n'a été exporté. Contactez le support."
+    },
+    "FONCTION_NON_DISPONIBLE": {
+      "titre": "Cette période contient un cas non pris en charge",
+      "description": "Un encaissement de la période (compensation, ou escompte sur une facture à plusieurs taux de TVA) ne peut pas encore être exporté. Aucun document n'a été exporté. Contactez le support."
+    }
+  }
+}

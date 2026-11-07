@@ -32,6 +32,7 @@ import deRelances from './locales/de/relances.json';
 import deConsole from './locales/de/console.json';
 import deScan from './locales/de/scan.json';
 import deReprise from './locales/de/reprise.json';
+import deExport from './locales/de/export.json';
 import frAccueil from './locales/fr/accueil.json';
 import frAuth from './locales/fr/auth.json';
 import frCommun from './locales/fr/commun.json';
@@ -56,6 +57,7 @@ import frRelances from './locales/fr/relances.json';
 import frConsole from './locales/fr/console.json';
 import frScan from './locales/fr/scan.json';
 import frReprise from './locales/fr/reprise.json';
+import frExport from './locales/fr/export.json';
 import itAccueil from './locales/it/accueil.json';
 import itAuth from './locales/it/auth.json';
 import itCommun from './locales/it/commun.json';
@@ -80,6 +82,7 @@ import itRelances from './locales/it/relances.json';
 import itConsole from './locales/it/console.json';
 import itScan from './locales/it/scan.json';
 import itReprise from './locales/it/reprise.json';
+import itExport from './locales/it/export.json';
 
 /** 19 namespaces par domaine (propriété l'équipe i18n) : jamais modifiés ici, seulement importés.
  *  Les 6 premiers sont le socle (étape 0) ; les 7 suivants (`recherche` à `or`) sont le lot 1 —
@@ -122,6 +125,7 @@ export const NAMESPACES = [
   'console',
   'scan',
   'reprise',
+  'export',
 ] as const;
 
 const ressources = {
@@ -150,6 +154,7 @@ const ressources = {
     console: frConsole,
     scan: frScan,
     reprise: frReprise,
+    export: frExport,
   },
   de: {
     commun: deCommun,
@@ -176,6 +181,7 @@ const ressources = {
     console: deConsole,
     scan: deScan,
     reprise: deReprise,
+    export: deExport,
   },
   it: {
     commun: itCommun,
@@ -202,6 +208,7 @@ const ressources = {
     console: itConsole,
     scan: itScan,
     reprise: itReprise,
+    export: itExport,
   },
 } as const;
 

@@ -1,0 +1,78 @@
+{
+  "titre": "Export für die Treuhand",
+  "sousTitre": "Bereiten Sie die Datei für Ihre Treuhandstelle für den Zeitraum vor.",
+  "format": {
+    "titre": "Dateiformat",
+    "description": "Das Format, das Ihre Treuhandstelle in ihre Buchhaltung importiert.",
+    "winbiz": {
+      "nom": "WinBIZ",
+      "phrase": "Für WinBIZ: eine Buchung pro Rechnung oder Gutschrift, dann eine pro Zahlungseingang."
+    }
+  },
+  "periode": {
+    "titre": "Zeitraum",
+    "description": "Standardmässig der Vormonat, der übliche Monatsabschluss.",
+    "modes": {
+      "moisPrecedent": "Vormonat",
+      "trimestrePrecedent": "Vorquartal",
+      "personnalisee": "Eigener Zeitraum"
+    },
+    "du": "Von",
+    "au": "Bis",
+    "resume": "Vom {du} bis {au}.",
+    "inversee": "Das Startdatum muss vor dem Enddatum liegen."
+  },
+  "perimetre": "Die Datei enthält die Rechnungen, Gutschriften und Zahlungseingänge des Zeitraums, die noch nicht an die Treuhandstelle übermittelt wurden. Ein bereits exportiertes Dokument wird nicht ein zweites Mal exportiert.",
+  "action": {
+    "telecharger": "Herunterladen",
+    "encours": "Export läuft…"
+  },
+  "droits": {
+    "refuse": "Nur die Geschäftsleitung und die Buchhaltung können für die Treuhandstelle exportieren."
+  },
+  "confirmation": {
+    "titre": "An die Treuhandstelle exportieren?",
+    "description": "Die Rechnungen, Gutschriften und Zahlungseingänge vom {du} bis {au} werden als an die Treuhandstelle übermittelt markiert. Die Datei wird nicht auf unseren Servern gespeichert: Bewahren Sie sie nach dem Herunterladen auf.",
+    "valider": "Exportieren und herunterladen"
+  },
+  "resultat": {
+    "titre": "Export abgeschlossen",
+    "fichierNonConserve": "Die Datei wurde heruntergeladen. Sie wird nicht auf unseren Servern gespeichert: Wenn Sie diese Seite verlassen, können Sie sie nicht mehr abrufen.",
+    "factures": "Exportierte Rechnungen",
+    "avoirs": "Exportierte Gutschriften",
+    "encaissements": "Exportierte Zahlungseingänge",
+    "ecritures": "Buchungen",
+    "total": "Total der Buchungen (Soll)",
+    "numerosFactures": "Rechnungsnummern",
+    "numerosAvoirs": "Gutschriftsnummern",
+    "plage": "{premier} bis {dernier}",
+    "avertissements": "Punkte, die in der Datei zu prüfen sind",
+    "retelecharger": "{nom} erneut herunterladen"
+  },
+  "vide": {
+    "titre": "Nichts zu exportieren in diesem Zeitraum",
+    "description": "Keine Rechnung, Gutschrift und kein Zahlungseingang zu übermitteln: Alles aus diesem Zeitraum wurde bereits exportiert, oder es wurde noch nichts ausgestellt. Versuchen Sie einen anderen Zeitraum."
+  },
+  "erreur": {
+    "titre": "Der Export konnte nicht durchgeführt werden",
+    "reessayer": "Erneut versuchen"
+  },
+  "prerequis": {
+    "EXPORT_MAPPING_INCOMPLET": {
+      "titre": "Der Kontenplan ist nicht vollständig",
+      "description": "Einige Konten oder MWST-Codes der Treuhandstelle sind Ihren Buchungen noch nicht zugeordnet. Es wurde kein Dokument exportiert. Fragen Sie Ihre Treuhandstelle nach der Kontenliste und wenden Sie sich dann an den Support, um sie zu erfassen."
+    },
+    "EXPORT_TROU_NUMEROTATION": {
+      "titre": "Eine Rechnungs- oder Gutschriftsnummer fehlt",
+      "description": "In der Nummernfolge des Zeitraums gibt es eine Lücke: Die Datei geht so nicht an die Treuhandstelle. Es wurde kein Dokument exportiert. Wenden Sie sich an den Support."
+    },
+    "EXPORT_ECRITURES_DESEQUILIBREES": {
+      "titre": "Einige Buchungen sind nicht ausgeglichen",
+      "description": "Die Datei wurde nicht erstellt, es wurde kein Dokument exportiert. Wenden Sie sich an den Support."
+    },
+    "FONCTION_NON_DISPONIBLE": {
+      "titre": "Dieser Zeitraum enthält einen nicht unterstützten Fall",
+      "description": "Ein Zahlungseingang des Zeitraums (Verrechnung oder Skonto auf eine Rechnung mit mehreren MWST-Sätzen) kann noch nicht exportiert werden. Es wurde kein Dokument exportiert. Wenden Sie sich an den Support."
+    }
+  }
+}
