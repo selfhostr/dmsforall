@@ -106,6 +106,7 @@ import type {
 } from '@dfa/shared';
 
 import { arrondiCommercial } from '../../documents/calcul-document';
+import { ErreurEcritureDesequilibree } from './erreur-desequilibre';
 import type {
   BesoinMappingManquant,
   ComptesResolusADate,
@@ -480,8 +481,9 @@ export function construireEcriturePaiement(
   // MD-85 : vérifié explicitement en bigint avant de rendre l'écriture — même garde que
   // `construction-ecriture.ts`.
   if (totalDebitCentimes !== totalCreditCentimes) {
-    throw new Error(
+    throw new ErreurEcritureDesequilibree(
       `Écriture déséquilibrée pour le paiement ${paiement.id} : débit=${totalDebitCentimes.toString()}, crédit=${totalCreditCentimes.toString()} — EXPORT_ECRITURES_DESEQUILIBREES.`,
+      { reference: paiement.id, documentId: null, totalDebitCentimes, totalCreditCentimes },
     );
   }
 
