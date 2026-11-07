@@ -85,6 +85,8 @@ describe('construireEcriturePaiement', () => {
     expect(resultat.totalDebitCentimes).toBe(15_000n);
     expect(resultat.totalCreditCentimes).toBe(15_000n);
     expect(resultat.ecriture.reference).toBe('paiement-master');
+    // Pièce comptable = n° de la facture réglée (convention fiduciaire), pas l'UUID du paiement.
+    expect(resultat.ecriture.piece).toBe('2026-00001');
     // `documentId` reste TOUJOURS `null` sur une écriture de paiement, même sur un règlement
     // portant sur un seul document — piège vérifié en exécution : le document 2026-00001 ET ce
     // paiement sont candidats dans le MÊME lot, et `winbiz-serialiseur.ts::verifierAucunDoublon`
@@ -413,9 +415,64 @@ describe('construireEcriturePaiement', () => {
           type: 'compte',
           usage: 'financier',
           categorie: 'twint',
-          documentNumero: 'paiement-twint',
+          documentNumero: '2026-00700 · encaissement du 12.07.2026 · CHF 50.00',
         },
       ]),
     );
+  });
+
+  it('paiement multi-factures : pièce = 1re facture (ordre alphabétique) + « +N » ; blocage cite toutes les factures, date et montant', () => {
+    // 1'234.50 CHF = 1'000.00 (FA-2026-00200) + 234.50 (FA-2026-00108), virement du 12.03.2026.
+    const p = paiement({
+      id: 'c7de3620-uuid',
+      dateValeur: '2026-03-12',
+      montantCentimes: 123_450n,
+    });
+    const imps = [
+      imputation({ documentId: 'd-200', montantCentimes: 100_000n }),
+      imputation({ documentId: 'd-108', montantCentimes: 23_450n }),
+    ];
+    const docs = documentsDeTest({
+      'd-200': { numero: 'FA-2026-00200', ventilationTva: [] },
+      'd-108': { numero: 'FA-2026-00108', ventilationTva: [] },
+    });
+
+    const ok = construireEcriturePaiement(p, imps, docs, comptesDeTest(), null, true);
+    expect(ok.succes).toBe(true);
+    if (!ok.succes) return;
+    expect(ok.ecriture.piece).toBe('FA-2026-00108+1');
+    expect(ok.ecriture.reference).toBe('c7de3620-uuid');
+
+    const sansBanque = new ComptesResolusADate(
+      indexerComptes([{ usage: 'creances_clients', categorie: 'defaut', compte: '1100' }]),
+      indexerCodesTva([]),
+    );
+    const ko = construireEcriturePaiement(p, imps, docs, sansBanque, null, true);
+    expect(ko.succes).toBe(false);
+    if (ko.succes) return;
+    expect(ko.manquants).toEqual([
+      {
+        type: 'compte',
+        usage: 'financier',
+        categorie: 'virement',
+        documentNumero: "FA-2026-00108, FA-2026-00200 · encaissement du 12.03.2026 · CHF 1'234.50",
+      },
+    ]);
+  });
+
+  it('paiement sans imputation (avance) : pas de pièce propre, blocage « sans facture » avec date et montant', () => {
+    const p = paiement({ id: 'avance-1', dateValeur: '2026-01-05', montantCentimes: 5n });
+    const sansBanque = new ComptesResolusADate(indexerComptes([]), indexerCodesTva([]));
+    const ko = construireEcriturePaiement(p, [], documentsDeTest({}), sansBanque, null, true);
+    expect(ko.succes).toBe(false);
+    if (ko.succes) return;
+    expect(ko.manquants[0]).toEqual({
+      type: 'compte',
+      usage: 'financier',
+      categorie: 'virement',
+      documentNumero: 'encaissement du 05.01.2026 · CHF 0.05 (sans facture)',
+    });
+    const ok = construireEcriturePaiement(p, [], documentsDeTest({}), comptesDeTest(), null, true);
+    expect(ok.succes && ok.ecriture.piece).toBeUndefined();
   });
 });
