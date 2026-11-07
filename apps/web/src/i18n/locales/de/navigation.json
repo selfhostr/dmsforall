@@ -87,6 +87,11 @@
     "agrandir": "Seitenleiste ausklappen"
   },
   "theme": {
+    "titre": "Design",
+    "clair": "Hell",
+    "sombre": "Dunkel",
+    "systeme": "System",
+    "passerSysteme": "Dem System-Design folgen",
     "passerClair": "Zu hellem Design wechseln",
     "passerSombre": "Zu dunklem Design wechseln"
   },

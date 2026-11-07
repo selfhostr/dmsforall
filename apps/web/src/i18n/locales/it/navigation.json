@@ -87,6 +87,11 @@
     "agrandir": "Espandi la barra laterale"
   },
   "theme": {
+    "titre": "Tema",
+    "clair": "Chiaro",
+    "sombre": "Scuro",
+    "systeme": "Sistema",
+    "passerSysteme": "Segui il tema del sistema",
     "passerClair": "Passa al tema chiaro",
     "passerSombre": "Passa al tema scuro"
   },
