@@ -96,6 +96,7 @@ function construireTxFactice(reponses: readonly unknown[]): {
 
   const tx = {
     select: () => chaine(),
+    execute: () => chaine(),
     insert: (table: unknown) => chaine({ table }),
     update: (table: unknown) => chaine({ table }),
     delete: (table: unknown) => chaine({ table }),
@@ -260,7 +261,7 @@ describe('ServiceUtilisateur.desactiver — auto-désactivation refusée AVANT t
       serviceReinitialisationFactice(),
     );
 
-    await expect(service.desactiver(CTX, ID_ACTEUR)).rejects.toMatchObject({
+    await expect(service.desactiver(CTX, ID_ACTEUR, 'direction')).rejects.toMatchObject({
       code: 'CONFLIT',
       status: 409,
     });
@@ -285,7 +286,7 @@ describe('ServiceUtilisateur.desactiver — chemin heureux', () => {
       serviceReinitialisationFactice(),
     );
 
-    const resultat = await service.desactiver(CTX, ID_EMPLOYE);
+    const resultat = await service.desactiver(CTX, ID_EMPLOYE, 'direction');
 
     expect(resultat.statut).toBe('suspendu');
     expect(
@@ -314,7 +315,7 @@ describe('ServiceUtilisateur.reinitialiserAcces — jamais de mot de passe en cl
     const serviceReinitialisation = serviceReinitialisationFactice();
     const service = new ServiceUtilisateur(accesAvec(tx), motDePasse, serviceReinitialisation);
 
-    const resultat = await service.reinitialiserAcces(CTX, ID_EMPLOYE);
+    const resultat = await service.reinitialiserAcces(CTX, ID_EMPLOYE, 'direction');
 
     // Finding sécurité : un jeton de réinitialisation en libre-service émis avant ce geste admin
     // ne doit pas survivre à la reprise de main — voir le commentaire au point d'appel dans
@@ -548,7 +549,7 @@ describe('ServiceUtilisateur.modifierCapacites — attaques', () => {
 describe('ServiceUtilisateur — dernier patron non rétrogradable', () => {
   it('rétrograder le dernier patron actif (changement de rôle) : 409, rien n’est écrit', async () => {
     const patron = ligneUtilisateur({ role: 'direction' });
-    const { service, appels } = serviceAvec([[patron], [{ n: 0 }]]);
+    const { service, appels } = serviceAvec([[patron], [], [{ n: 0 }]]);
     await expect(
       service.modifier(CTX, ID_EMPLOYE, { role: 'vendeur' }, 'direction'),
     ).rejects.toMatchObject({ code: 'CONFLIT' });
@@ -557,14 +558,16 @@ describe('ServiceUtilisateur — dernier patron non rétrogradable', () => {
 
   it('désactiver le dernier patron actif : 409', async () => {
     const patron = ligneUtilisateur({ role: 'direction' });
-    const { service } = serviceAvec([[patron], [{ n: 0 }]]);
-    await expect(service.desactiver(CTX, ID_EMPLOYE)).rejects.toMatchObject({ code: 'CONFLIT' });
+    const { service } = serviceAvec([[patron], [], [{ n: 0 }]]);
+    await expect(service.desactiver(CTX, ID_EMPLOYE, 'direction')).rejects.toMatchObject({
+      code: 'CONFLIT',
+    });
   });
 
   it('avec un second patron actif, la rétrogradation passe', async () => {
     const patron = ligneUtilisateur({ role: 'direction' });
     const apres = ligneUtilisateur({ role: 'vendeur' });
-    const { service } = serviceAvec([[patron], [{ n: 1 }], [], [], [], [apres], []]);
+    const { service } = serviceAvec([[patron], [], [{ n: 1 }], [], [], [], [apres], []]);
     await expect(
       service.modifier(CTX, ID_EMPLOYE, { role: 'vendeur' }, 'direction'),
     ).resolves.toMatchObject({ role: 'vendeur' });
@@ -641,5 +644,59 @@ describe('ServiceUtilisateur — préréglages', () => {
         { role: 'direction', capacites: DIRECTION_REDUITE },
       ),
     ).rejects.toMatchObject({ code: 'DROIT_INSUFFISANT' });
+  });
+});
+
+describe('ServiceUtilisateur — désactiver / réactiver / réinitialiser : mêmes gardes que modifier (revue sécurité F1)', () => {
+  const PATRON_COMPLET = (id = ID_EMPLOYE) => ligneUtilisateur({ id, role: 'direction' });
+
+  it("réinitialiser l'accès d'un patron complet par un patron aux droits réduits : 403, aucun mot de passe écrit ni rendu", async () => {
+    const { service, appels } = serviceAvec([[PATRON_COMPLET()]]);
+    await expect(
+      service.reinitialiserAcces(CTX, ID_EMPLOYE, {
+        role: 'direction',
+        capacites: DIRECTION_REDUITE,
+      }),
+    ).rejects.toMatchObject({ code: 'DROIT_INSUFFISANT', status: 403 });
+    expect(appels.some((a) => (a.payload as { motDePasseHash?: string })?.motDePasseHash)).toBe(
+      false,
+    );
+  });
+
+  it("… ni celui d'un compte admin par un non-admin ; un admin le peut", async () => {
+    const admin = ligneUtilisateur({ role: 'admin' });
+    const { service } = serviceAvec([[admin]]);
+    await expect(service.reinitialiserAcces(CTX, ID_EMPLOYE, 'direction')).rejects.toMatchObject({
+      code: 'DROIT_INSUFFISANT',
+    });
+    const { service: serviceAdmin } = serviceAvec([[admin], [], [], [], []]);
+    await expect(serviceAdmin.reinitialiserAcces(CTX, ID_EMPLOYE, 'admin')).resolves.toBeDefined();
+  });
+
+  it('réinitialiser son PROPRE accès par cette route : 403 avant tout accès base', async () => {
+    await expect(
+      serviceSansBase().reinitialiserAcces(CTX, ID_ACTEUR, 'direction'),
+    ).rejects.toMatchObject({ code: 'DROIT_INSUFFISANT', status: 403 });
+  });
+
+  it('suspendre un patron complet ou un admin par un patron réduit / un non-admin : 403', async () => {
+    const { service } = serviceAvec([[PATRON_COMPLET()]]);
+    await expect(
+      service.desactiver(CTX, ID_EMPLOYE, { role: 'direction', capacites: DIRECTION_REDUITE }),
+    ).rejects.toMatchObject({ code: 'DROIT_INSUFFISANT' });
+    const { service: s2 } = serviceAvec([[ligneUtilisateur({ role: 'admin' })]]);
+    await expect(s2.desactiver(CTX, ID_EMPLOYE, 'direction')).rejects.toMatchObject({
+      code: 'DROIT_INSUFFISANT',
+    });
+  });
+
+  it('réactiver : même garde (cible plus puissante 403 ; soi-même 403)', async () => {
+    const { service } = serviceAvec([[ligneUtilisateur({ role: 'admin', statut: 'suspendu' })]]);
+    await expect(service.reactiver(CTX, ID_EMPLOYE, 'direction')).rejects.toMatchObject({
+      code: 'DROIT_INSUFFISANT',
+    });
+    await expect(serviceSansBase().reactiver(CTX, ID_ACTEUR, 'direction')).rejects.toMatchObject({
+      code: 'DROIT_INSUFFISANT',
+    });
   });
 });

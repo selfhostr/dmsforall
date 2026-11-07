@@ -112,7 +112,11 @@ export const CAPACITE_DE_L_ACTION: Readonly<Record<Action, Classement>> = {
   'atelier.or.lire': 'atelier.voir',
   'atelier.or.demarrer': 'atelier.faire',
   'atelier.or.passer_en_controle': 'atelier.faire',
-  'atelier.or.controler': 'atelier.faire',
+  // Séparation des tâches (capacités dérivées, `capacitesDeLaGrille`) : un poste de stock ne
+  // contrôle pas, n'émet pas, ne valide pas d'achat ; voir @dfa/shared `capacites.ts`.
+  // Séparation des tâches (capacités dérivées, voir `capacitesDeLaGrille` dans @dfa/shared) :
+  // un poste de stock ne contrôle pas, n'émet ni facture ni avoir, ne valide pas d'achat.
+  'atelier.or.controler': 'atelier.controle',
   'atelier.ligne.marquer_realisee': 'atelier.faire',
   'atelier.pointage.demarrer': 'atelier.faire',
   'atelier.pointage.arreter': 'atelier.faire',
@@ -134,15 +138,15 @@ export const CAPACITE_DE_L_ACTION: Readonly<Record<Action, Classement>> = {
   'facturation.paiement.lire': 'facturation.montants',
   // RF-116 : imprimer expose le montant (QR) -> exige de voir les montants.
   'facturation.document.imprimer': 'facturation.montants',
-  'facturation.paiement.creer': 'facturation.faire',
-  'facturation.paiement.imputer': 'facturation.faire',
+  'facturation.paiement.creer': 'facturation.encaisser',
+  'facturation.paiement.imputer': 'facturation.encaisser',
   'facturation.document.creer': 'facturation.faire',
   'facturation.document.modifier': 'facturation.faire',
   'facturation.document.transitionner': 'facturation.faire',
-  'facturation.document.emettre': 'facturation.faire',
-  'facturation.document.emettre_devis_bc': 'facturation.faire',
-  'facturation.document.emettre_facture': 'facturation.faire',
-  'facturation.document.emettre_avoir': 'facturation.faire',
+  'facturation.document.emettre': 'facturation.emettre_devis',
+  'facturation.document.emettre_devis_bc': 'facturation.emettre_devis',
+  'facturation.document.emettre_facture': 'facturation.emettre_facture',
+  'facturation.document.emettre_avoir': 'facturation.emettre_facture',
   'facturation.avoir.creer': 'facturation.faire',
   // Contrainte (option « avoirs plafonnés »), pas un pouvoir.
   'facturation.avoir.plafonne': 'contrainte.avoir_plafonne',
@@ -174,19 +178,22 @@ export const CAPACITE_DE_L_ACTION: Readonly<Record<Action, Classement>> = {
   'pieces.article.creer': 'pieces.faire',
   'pieces.article.modifier': 'pieces.faire',
   'pieces.stock.modifier': 'pieces.faire',
-  'pieces.mouvement.creer': 'pieces.faire',
-  'pieces.mouvement.forcer': 'pieces.faire',
-  'pieces.reservation.satisfaire': 'pieces.faire',
+  // Les 8 actions historiquement réservées au seul magasinier (mouvements de stock, réception,
+  // consignes, factures fournisseur) : « tenue du magasin ». Refusées au chef d'atelier qui
+  // encadre (il commande, il ne réceptionne ni ne valide), accordées à direction par phase 0.
+  'pieces.mouvement.creer': 'pieces.magasin',
+  'pieces.mouvement.forcer': 'pieces.magasin',
+  'pieces.reservation.satisfaire': 'pieces.magasin',
   'pieces.reservation.liberer': 'pieces.faire',
   'pieces.fournisseur.creer': 'pieces.faire',
   'pieces.fournisseur.modifier': 'pieces.faire',
   'pieces.commande_fournisseur.creer': 'pieces.faire',
-  'pieces.commande_fournisseur.reception': 'pieces.faire',
-  'pieces.consigne.retourner': 'pieces.faire',
+  'pieces.commande_fournisseur.reception': 'pieces.magasin',
+  'pieces.consigne.retourner': 'pieces.magasin',
   'pieces.parametrage.modifier': 'pieces.faire',
-  'pieces.facture_fournisseur.deposer': 'pieces.faire',
-  'pieces.facture_fournisseur.valider': 'pieces.faire',
-  'pieces.facture_fournisseur.rejeter': 'pieces.faire',
+  'pieces.facture_fournisseur.deposer': 'pieces.magasin',
+  'pieces.facture_fournisseur.valider': 'pieces.magasin',
+  'pieces.facture_fournisseur.rejeter': 'pieces.magasin',
   // ---- Ventes VN/VO ----------------------------------------------------------------------------
   // Lecture des véhicules en stock et des dossiers : aussi pour qui gère les pièces (chef
   // d'atelier, magasinier) — le chef d'atelier les lit aujourd'hui SANS voir reprises ni

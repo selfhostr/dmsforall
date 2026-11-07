@@ -73,7 +73,8 @@ beforeAll(async () => {
   bdd = await demarrerBaseEphemere();
   demo = await semerGarageDemo(bdd);
   redis = await demarrerRedisEphemere();
-  ctx = await creerAppTest(bdd, redis.url);
+  // Beaucoup de connexions depuis la même IP de test : budget IP relevé (hors sujet ici).
+  ctx = await creerAppTest(bdd, redis.url, { LIMITE_CONNEXION_IP: '500' });
 }, 180_000);
 
 afterAll(async () => {
@@ -123,9 +124,15 @@ describe('PATCH /utilisateurs/{id}/capacites', () => {
     expect(accord.status).toBe(200);
     expect(accord.body.capacites).toMatchObject({ personnalisee: true, prereglage: null });
 
-    const apres = await moi(cible);
+    // Séparation des tâches : tenir le stock ET contrôler son propre travail est exclu, donc
+    // accorder Pièces : Faire à un technicien lui retire « contrôler » — droits en baisse, sa
+    // session est révoquée et il se reconnecte avec la nouvelle grille.
+    expect((await moi(cible)).status).toBe(401);
+    const neuve = await connecter(cible.utilisateur);
+    const apres = await moi(neuve);
     expect(apres.status).toBe(200);
     expect(apres.body.actions).toContain('pieces.mouvement.creer');
+    expect(apres.body.actions).not.toContain('atelier.or.controler');
     expect(apres.body.capacites.niveaux.pieces).toBe('faire');
 
     const retrait = await patchCapacites(patron, cible.utilisateur.id, {
@@ -133,7 +140,7 @@ describe('PATCH /utilisateurs/{id}/capacites', () => {
     });
     expect(retrait.status).toBe(200);
     // Droits en baisse : la session de la personne est révoquée.
-    const revoquee = await moi(cible);
+    const revoquee = await moi(neuve);
     expect(revoquee.status).toBe(401);
 
     const audit = await bdd.poolSuperutilisateur.query(
@@ -262,5 +269,163 @@ describe('session expirée / compte désactivé', () => {
       .set('Origin', ctx.config.WEB_URL_PUBLIQUE);
     expect(r.status).toBe(200);
     expect((await moi(cible)).status).toBe(401);
+  });
+});
+
+// =================================================================================================
+// Revue sécurité F1 : mêmes gardes sur désactiver / réactiver / réinitialiser l'accès
+// =================================================================================================
+
+function action(
+  acteur: Connecte,
+  cibleId: string,
+  route: 'desactiver' | 'reactiver' | 'reinitialiser-acces',
+) {
+  return ctx.requete
+    .post(`/api/v1/utilisateurs/${cibleId}/${route}`)
+    .set('Cookie', acteur.cookie)
+    .set('Origin', ctx.config.WEB_URL_PUBLIQUE);
+}
+
+async function ligne(id: string) {
+  const { rows } = await bdd.poolSuperutilisateur.query(
+    `select statut, mot_de_passe_hash from utilisateur where id = $1`,
+    [id],
+  );
+  return rows[0] as { statut: string; mot_de_passe_hash: string };
+}
+
+describe('F1 — gestes sur un compte plus puissant que soi', () => {
+  const ROUTES = ['desactiver', 'reactiver', 'reinitialiser-acces'] as const;
+
+  async function patronReduit(): Promise<Connecte> {
+    const u = await nouveau(demo.tenantA.id, 'direction');
+    await bdd.poolSuperutilisateur.query(
+      `update utilisateur set niveau_finances = 'rien' where id = $1`,
+      [u.id],
+    );
+    return connecter(u);
+  }
+
+  for (const route of ROUTES) {
+    it(`${route} : un patron aux droits réduits ne peut pas toucher un patron complet (403, rien n'est modifié)`, async () => {
+      const acteur = await patronReduit();
+      const cible = await nouveau(demo.tenantA.id, 'direction');
+      if (route === 'reactiver') {
+        await bdd.poolSuperutilisateur.query(
+          `update utilisateur set statut='suspendu' where id=$1`,
+          [cible.id],
+        );
+      }
+      const avant = await ligne(cible.id);
+      const r = await action(acteur, cible.id, route);
+      expect(r.status).toBe(403);
+      expect(JSON.stringify(r.body)).not.toMatch(/motDePasseTemporaire/);
+      expect(await ligne(cible.id)).toEqual(avant);
+    });
+
+    it(`${route} : un patron (non-admin) ne peut pas toucher un compte admin (403)`, async () => {
+      const patron = await connecter(await nouveau(demo.tenantA.id, 'direction'));
+      const admin = await nouveau(demo.tenantA.id, 'admin');
+      if (route === 'reactiver') {
+        await bdd.poolSuperutilisateur.query(
+          `update utilisateur set statut='suspendu' where id=$1`,
+          [admin.id],
+        );
+      }
+      const avant = await ligne(admin.id);
+      const r = await action(patron, admin.id, route);
+      expect(r.status).toBe(403);
+      expect(await ligne(admin.id)).toEqual(avant);
+    });
+
+    it(`${route} : sur soi-même, refusé (désactiver : 409 ; les autres : 403)`, async () => {
+      const patron = await connecter(await nouveau(demo.tenantA.id, 'direction'));
+      const avant = await ligne(patron.utilisateur.id);
+      const r = await action(patron, patron.utilisateur.id, route);
+      expect(r.status).toBe(route === 'desactiver' ? 409 : 403);
+      expect(await ligne(patron.utilisateur.id)).toEqual(avant);
+    });
+  }
+
+  it('contrôle : un patron complet réinitialise bien l’accès d’un employé ordinaire (200, mot de passe rendu une fois)', async () => {
+    const patron = await connecter(await nouveau(demo.tenantA.id, 'direction'));
+    const employe = await nouveau(demo.tenantA.id, 'technicien');
+    const r = await action(patron, employe.id, 'reinitialiser-acces');
+    expect(r.status).toBe(200);
+    expect(r.body.motDePasseTemporaire).toBeTruthy();
+  });
+});
+
+// =================================================================================================
+// Revue sécurité F2 : deux rétrogradations concurrentes ne suppriment pas le dernier patron
+// =================================================================================================
+
+describe('F2 — dernier patron, concurrence', () => {
+  it('deux patrons rétrogradés en même temps : un seul passe (200), l’autre est refusé (409) ; il reste un patron actif', async () => {
+    const tenantId = randomUUID();
+    await bdd.poolSuperutilisateur.query(
+      `insert into tenant (id, slug, raison_sociale, numero_tva, pays, langue_defaut, statut)
+       values ($1, $2, 'Garage Course SA', null, 'CH', 'fr', 'actif')`,
+      [tenantId, `course-${tenantId.slice(0, 8)}`],
+    );
+    const admin = await connecter(await nouveau(tenantId, 'admin'));
+    const p1 = await nouveau(tenantId, 'direction');
+    const p2 = await nouveau(tenantId, 'direction');
+
+    const [a, b] = await Promise.all(
+      [p1, p2].map((p) =>
+        ctx.requete
+          .patch(`/api/v1/utilisateurs/${p.id}`)
+          .set('Cookie', admin.cookie)
+          .set('Origin', ctx.config.WEB_URL_PUBLIQUE)
+          .send({ role: 'vendeur' }),
+      ),
+    );
+    const statuts = [a!.status, b!.status].sort();
+    expect(statuts).toEqual([200, 409]);
+
+    const { rows } = await bdd.poolSuperutilisateur.query(
+      `select count(*)::int as n from utilisateur
+        where tenant_id = $1 and est_patron and statut = 'actif'`,
+      [tenantId],
+    );
+    expect(rows[0].n).toBe(1);
+  });
+
+  it('déterministe : la rétrogradation d’un patron attend le verrou du garage (preuve que la section critique est sérialisée)', async () => {
+    const tenantId = randomUUID();
+    await bdd.poolSuperutilisateur.query(
+      `insert into tenant (id, slug, raison_sociale, numero_tva, pays, langue_defaut, statut)
+       values ($1, $2, 'Garage Verrou SA', null, 'CH', 'fr', 'actif')`,
+      [tenantId, `verrou-${tenantId.slice(0, 8)}`],
+    );
+    const admin = await connecter(await nouveau(tenantId, 'admin'));
+    const p1 = await nouveau(tenantId, 'direction');
+    await nouveau(tenantId, 'direction');
+
+    const client = await bdd.poolSuperutilisateur.connect();
+    try {
+      await client.query('begin');
+      await client.query(`select pg_advisory_xact_lock(hashtextextended($1, 0))`, [
+        `patron:${tenantId}`,
+      ]);
+      let termine = false;
+      const requete = ctx.requete
+        .patch(`/api/v1/utilisateurs/${p1.id}`)
+        .set('Cookie', admin.cookie)
+        .set('Origin', ctx.config.WEB_URL_PUBLIQUE)
+        .send({ role: 'vendeur' })
+        .then((r) => {
+          termine = true;
+          return r;
+        });
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      expect(termine).toBe(false); // bloquée derrière le verrou détenu par l'autre transaction
+      await client.query('commit');
+      expect((await requete).status).toBe(200);
+    } finally {
+      client.release();
+    }
   });
 });

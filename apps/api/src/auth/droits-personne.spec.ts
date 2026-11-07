@@ -140,6 +140,54 @@ describe('personne cumulant plusieurs métiers (le but de la grille)', () => {
   });
 });
 
+describe('séparation des tâches (revue sécurité)', () => {
+  const actions = (id: 'chef_atelier' | 'magasinier' | 'technicien') =>
+    new Set(actionsDeLaGrille(PREREGLAGES[id].grille));
+
+  it("le magasinier n'émet ni devis, ni facture, ni avoir, et ne contrôle pas un OR ; il encaisse et démarre", () => {
+    const m = actions('magasinier');
+    for (const a of [
+      'facturation.document.emettre',
+      'facturation.document.emettre_devis_bc',
+      'facturation.document.emettre_facture',
+      'facturation.document.emettre_avoir',
+      'atelier.or.controler',
+    ] as const) {
+      expect(m.has(a), a).toBe(false);
+    }
+    expect(m.has('facturation.paiement.creer')).toBe(true);
+    expect(m.has('atelier.or.demarrer')).toBe(true);
+  });
+
+  it("le chef d'atelier n'encaisse pas, n'émet ni facture ni avoir, ne tient pas le stock et ne valide pas d'achat ; il émet un devis et contrôle", () => {
+    const c = actions('chef_atelier');
+    for (const a of [
+      'facturation.paiement.creer',
+      'facturation.paiement.imputer',
+      'facturation.document.emettre_facture',
+      'facturation.document.emettre_avoir',
+      'pieces.mouvement.creer',
+      'pieces.mouvement.forcer',
+      'pieces.facture_fournisseur.valider',
+      'pieces.facture_fournisseur.rejeter',
+    ] as const) {
+      expect(c.has(a), a).toBe(false);
+    }
+    expect(c.has('facturation.document.emettre_devis_bc')).toBe(true);
+    expect(c.has('atelier.or.controler')).toBe(true);
+  });
+
+  it('mécanicien + magasinier sans encadrer : ne contrôle pas son propre travail', () => {
+    const g = {
+      ...PREREGLAGES.technicien.grille,
+      niveaux: { ...PREREGLAGES.technicien.grille.niveaux, pieces: 'faire' as const },
+    };
+    const a = new Set(actionsDeLaGrille(g));
+    expect(a.has('atelier.or.demarrer')).toBe(true);
+    expect(a.has('atelier.or.controler')).toBe(false);
+  });
+});
+
 describe('fiduciaire : lecture seule, montants visibles', () => {
   const droits = droitsDe('comptable', PREREGLAGES.fiduciaire.grille);
 

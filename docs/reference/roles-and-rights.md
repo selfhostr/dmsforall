@@ -54,15 +54,20 @@ No person loses a right in the move from roles to presets. A test (`apps/api/src
 
 Each of the ~170 actions (`apps/api/src/auth/matrice-droits.ts`, the labels on the routes) is attached to one or two internal capacities in `apps/api/src/auth/capacites-actions.ts`. A person holds the action when their grid grants one of them. The table is typed `Record<Action, ...>`: an action that is not classified does not compile. `MATRICE_DROITS[role]` is now only the list of actions of that role's preset.
 
+## Separation of duties
+
+A "Faire" level alone does not give every action of its area. A person who runs the parts stock (Pieces: Faire) without any commercial authority (no Ventes: Faire, no Finances: Faire) cannot check their own work on a repair order, issue quotes, invoices or credit notes, and cannot validate supplier invoices; a workshop manager (`encadrer`) in that position can issue quotes and check orders, but does not take payments, issue invoices or credit notes, hold the stock movements or validate supplier invoices. These rules live in `capacitesDeLaGrille` (`packages/shared/src/contrats/capacites.ts`).
+
 ## Who can change a grid
 
 `PATCH /api/v1/utilisateurs/{id}/capacites` and the role change need the right `socle.utilisateur.modifier` (Employes & reglages). On top of that:
 
-- you cannot change your own grid or role;
+- you cannot change your own grid or role, nor reset or reactivate your own account through the employee routes;
+- deactivating, reactivating and resetting the access of someone follow the same rules as changing their grid (a weaker person cannot take over, or suspend, a stronger one);
 - you cannot grant what you do not hold yourself (the API names the offending field);
 - you cannot change someone who holds more than you; only an `admin` can change an `admin`;
 - `admin` (the integrator) can assign any business preset, so it can create the first owner of a garage;
-- the last active `patron` cannot be demoted or deactivated;
+- the last active `patron` cannot be demoted or deactivated (checked under a per-garage lock, so two simultaneous demotions cannot remove both);
 - changes are audited (before and after); the sessions of a person whose rights go down are revoked.
 
 ## Credit note ceiling

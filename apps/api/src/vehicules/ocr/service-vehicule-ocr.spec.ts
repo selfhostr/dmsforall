@@ -330,6 +330,8 @@ describe('ServiceVehiculeOcr.scanner — succès, confiance par champ', () => {
       'vehicule.correspondance_scan_permis',
       { clientId: 'cli-7' },
       expect.arrayContaining(['receptionnaire', 'vendeur', 'direction']),
+      // Filtre sur le DROIT de chaque abonné (sa grille), plus sur son rôle seul.
+      'client.lire',
     );
   });
 
