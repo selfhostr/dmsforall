@@ -85,6 +85,12 @@
     "typeDocument": {
       "facture": "Rechnungen",
       "avoir": "Gutschriften"
+    },
+    "limite": {
+      "sur": "(Beleg {reference})",
+      "ADAPTATEUR_NON_CABLE": "Das Format {cible} ist für den Export noch nicht verfügbar.",
+      "COMPENSATION_NON_SUPPORTEE": "Eine Zahlung per Verrechnung kann noch nicht exportiert werden.",
+      "TAUX_MULTIPLES_NON_SUPPORTE": "{nature, select, perte {Ein Verlust} other {Ein Skonto}} auf einer Rechnung mit mehreren MWST-Sätzen kann noch nicht exportiert werden."
     }
   },
   "apercu": {

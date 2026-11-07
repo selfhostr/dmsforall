@@ -85,6 +85,12 @@
     "typeDocument": {
       "facture": "Factures",
       "avoir": "Avoirs"
+    },
+    "limite": {
+      "sur": "(document {reference})",
+      "ADAPTATEUR_NON_CABLE": "Le format {cible} n’est pas encore disponible pour l’export.",
+      "COMPENSATION_NON_SUPPORTEE": "Un encaissement par compensation ne peut pas encore être exporté.",
+      "TAUX_MULTIPLES_NON_SUPPORTE": "{nature, select, perte {Une perte} other {Un escompte}} sur une facture à plusieurs taux de TVA ne peut pas encore être exporté."
     }
   },
   "apercu": {

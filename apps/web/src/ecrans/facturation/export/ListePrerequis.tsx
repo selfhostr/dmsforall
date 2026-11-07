@@ -1,7 +1,8 @@
-import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { TriangleAlert } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
-import type { PrerequisExport } from '@dfa/shared';
+import type { LimiteExport, PrerequisExport } from '@dfa/shared';
 
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -86,9 +87,11 @@ export function ListePrerequis({ prerequis, onReglerComptes }: Props) {
 
           {p.code === 'FONCTION_NON_DISPONIBLE' ? (
             <ul className="mt-2 list-disc pl-5">
-              {p.limites.map((l) => (
-                <li key={l}>{l}</li>
-              ))}
+              {p.details.length > 0
+                ? p.details.map((detail, index) => (
+                    <li key={`${detail.code}-${String(index)}`}>{texteLimite(detail, t)}</li>
+                  ))
+                : p.limites.map((l) => <li key={l}>{l}</li>)}
             </ul>
           ) : null}
         </Alert>
@@ -106,4 +109,31 @@ function Pieces({ references }: { references: readonly string[] }) {
       {t('export:prerequis.pieces', { pieces: references.join(', ') })}
     </span>
   );
+}
+
+/** Un identifiant technique (uuid) ne dit rien au garagiste : on ne l'affiche pas. */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function referenceLisible(valeur: unknown): string | undefined {
+  return typeof valeur === 'string' && valeur !== '' && !UUID.test(valeur) ? valeur : undefined;
+}
+
+/** La limite de l'export en phrase du garagiste, depuis son code stable et ses données. */
+function texteLimite(detail: LimiteExport, t: TFunction<'export'>): string {
+  const reference = referenceLisible(detail.donnees.documentId);
+  const sur = reference ? ` ${t('export:prerequis.limite.sur', { reference })}` : '';
+  switch (detail.code) {
+    case 'ADAPTATEUR_NON_CABLE':
+      return t('export:prerequis.limite.ADAPTATEUR_NON_CABLE', {
+        cible: t(`export:format.${String(detail.donnees.cible)}.nom`, {
+          defaultValue: String(detail.donnees.cible ?? ''),
+        }),
+      });
+    case 'COMPENSATION_NON_SUPPORTEE':
+      return `${t('export:prerequis.limite.COMPENSATION_NON_SUPPORTEE')}${sur}`;
+    case 'TAUX_MULTIPLES_NON_SUPPORTE':
+      return `${t('export:prerequis.limite.TAUX_MULTIPLES_NON_SUPPORTE', {
+        nature: detail.donnees.nature === 'perte' ? 'perte' : 'escompte',
+      })}${sur}`;
+  }
 }
