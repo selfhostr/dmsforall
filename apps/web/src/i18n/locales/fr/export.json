@@ -7,6 +7,10 @@
     "winbiz": {
       "nom": "WinBIZ",
       "phrase": "Pour WinBIZ : une écriture par facture ou avoir, puis une par encaissement."
+    },
+    "csv": {
+      "nom": "CSV",
+      "phrase": "CSV : lisible par Excel et toute fiduciaire."
     }
   },
   "periode": {
@@ -32,12 +36,11 @@
   },
   "confirmation": {
     "titre": "Exporter vers la fiduciaire ?",
-    "description": "Les factures, avoirs et encaissements du {du} au {au} seront marqués comme transmis à la fiduciaire. Le fichier n'est pas conservé sur nos serveurs : gardez-le après le téléchargement.",
+    "description": "Les factures, avoirs et encaissements du {du} au {au} seront marqués comme transmis à la fiduciaire. Le fichier est conservé : vous pourrez le télécharger à nouveau depuis l'historique.",
     "valider": "Exporter et télécharger"
   },
   "resultat": {
     "titre": "Export terminé",
-    "fichierNonConserve": "Le fichier a été téléchargé. Il n'est pas conservé sur nos serveurs : si vous quittez cette page, vous ne pourrez plus le récupérer.",
     "factures": "Factures exportées",
     "avoirs": "Avoirs exportés",
     "encaissements": "Encaissements exportés",
@@ -47,7 +50,8 @@
     "numerosAvoirs": "Numéros d'avoirs",
     "plage": "{premier} à {dernier}",
     "avertissements": "Points à vérifier dans le fichier",
-    "retelecharger": "Télécharger à nouveau {nom}"
+    "retelecharger": "Télécharger à nouveau {nom}",
+    "fichierConserve": "Le fichier a été téléchargé. Il est conservé : vous le retrouvez dans l'historique ci-dessous."
   },
   "vide": {
     "titre": "Rien à exporter sur cette période",
@@ -60,19 +64,117 @@
   "prerequis": {
     "EXPORT_MAPPING_INCOMPLET": {
       "titre": "Le plan comptable n'est pas complet",
-      "description": "Certains comptes ou codes TVA de la fiduciaire ne sont pas encore associés à vos écritures. Aucun document n'a été exporté. Demandez à votre fiduciaire la liste de ses comptes, puis contactez le support pour les saisir."
+      "description": "Certains comptes ou codes TVA de la fiduciaire ne sont pas encore associés à vos écritures. Aucun document n'a été exporté. Réglez les comptes ci-dessous, puis relancez l'export."
     },
     "EXPORT_TROU_NUMEROTATION": {
       "titre": "Un numéro de facture ou d'avoir manque",
-      "description": "La suite des numéros de la période présente un trou : le fichier ne part pas chez la fiduciaire dans cet état. Aucun document n'a été exporté. Contactez le support."
+      "description": "La suite des numéros de la période présente un trou : le fichier ne part pas chez la fiduciaire dans cet état. Aucun document n'a été exporté. Contactez le support avec les numéros ci-dessous."
     },
     "EXPORT_ECRITURES_DESEQUILIBREES": {
       "titre": "Des écritures ne sont pas équilibrées",
-      "description": "Le fichier n'a pas été produit, aucun document n'a été exporté. Contactez le support."
+      "description": "Le fichier n'a pas été produit, aucun document n'a été exporté. Contactez le support avec les références ci-dessous."
     },
     "FONCTION_NON_DISPONIBLE": {
       "titre": "Cette période contient un cas non pris en charge",
       "description": "Un encaissement de la période (compensation, ou escompte sur une facture à plusieurs taux de TVA) ne peut pas encore être exporté. Aucun document n'a été exporté. Contactez le support."
+    },
+    "codeTva": "Code TVA : {poste}",
+    "pieces": "(pièces : {pieces})",
+    "trou": "{type}, exercice {exercice} : numéros manquants {numeros}",
+    "desequilibre": "{reference} : débit CHF {debit}, crédit CHF {credit}",
+    "typeDocument": {
+      "facture": "Factures",
+      "avoir": "Avoirs"
     }
+  },
+  "apercu": {
+    "titre": "Aperçu de la période",
+    "description": "Ce que le fichier contiendrait, avant de le produire.",
+    "erreur": "L'aperçu n'a pas pu être calculé",
+    "periodeRequise": "Choisissez une période valide pour voir l'aperçu.",
+    "aucun": "Aucun",
+    "facturesAExporter": "Factures à exporter",
+    "avoirsAExporter": "Avoirs à exporter",
+    "encaissementsAExporter": "Encaissements à exporter",
+    "dejaExportes": "Déjà exportés",
+    "dejaExportesValeur": "{documents} documents, {encaissements} encaissements",
+    "totalHt": "Total hors taxes",
+    "totalTva": "Total TVA",
+    "totalTtc": "Total TTC"
+  },
+  "mapping": {
+    "ouvrir": "Comptes comptables",
+    "regler": "Régler les comptes",
+    "titre": "Comptes comptables",
+    "description": "À quel compte et à quel code TVA de votre fiduciaire chaque poste est rattaché.",
+    "aValider": "Les valeurs proposées suivent le plan comptable PME suisse : à valider avec votre fiduciaire.",
+    "complet": "Tous les comptes nécessaires sont réglés.",
+    "manquants": "{count, plural, one {# poste à régler} other {# postes à régler}}",
+    "utiliserProposees": "Utiliser les valeurs proposées",
+    "comptes": "Comptes",
+    "codesTva": "Codes TVA",
+    "facultatif": "(facultatif)",
+    "propose": "Proposé : {valeur}",
+    "aucuneProposition": "Aucune valeur proposée : demandez le compte à votre fiduciaire.",
+    "valeurInvalide": "Compte ou code non valable (12 caractères au plus, lettres, chiffres, point, tiret).",
+    "enregistrer": "Enregistrer",
+    "enregistrement": "Enregistrement…",
+    "erreurLecture": "Les comptes n'ont pas pu être chargés",
+    "erreurEnregistrement": "Les comptes n'ont pas été enregistrés",
+    "usage": {
+      "creances_clients": "Clients débiteurs",
+      "produit": "Produits",
+      "tva_due": "TVA due",
+      "acomptes_recus": "Acomptes reçus",
+      "financier": "Compte financier",
+      "arrondi": "Arrondi",
+      "escompte": "Escompte",
+      "perte": "Pertes sur débiteurs",
+      "ecart_reprise": "Écart de reprise"
+    },
+    "categorie": {
+      "main_oeuvre": "Main-d'œuvre",
+      "piece": "Pièces",
+      "fourniture": "Fournitures",
+      "forfait": "Forfait",
+      "especes": "Espèces",
+      "virement": "Virement",
+      "carte": "Carte",
+      "twint": "TWINT",
+      "cheque": "Chèque"
+    },
+    "regime": {
+      "normal": "Normal",
+      "reduit": "Réduit",
+      "hebergement": "Hébergement",
+      "exonere": "Exonéré",
+      "exclu": "Exclu",
+      "marge": "Taxation de la marge",
+      "acquisition": "Acquisition"
+    }
+  },
+  "historique": {
+    "titre": "Historique des exports",
+    "description": "Les fichiers déjà remis à la fiduciaire.",
+    "erreur": "L'historique n'a pas pu être chargé",
+    "erreurFichier": "Le fichier n'a pas pu être téléchargé",
+    "vide": {
+      "titre": "Aucun export pour le moment",
+      "description": "Le premier export apparaîtra ici, avec son fichier."
+    },
+    "colonnes": {
+      "genereLe": "Date",
+      "periode": "Période",
+      "format": "Format",
+      "ecritures": "Écritures",
+      "total": "Total TTC",
+      "numeros": "Numéros",
+      "auteur": "Par",
+      "fichier": "Fichier"
+    },
+    "periode": "{du} au {au}",
+    "auteurInconnu": "Utilisateur supprimé",
+    "retelecharger": "Télécharger à nouveau",
+    "nonConserve": "Non conservé"
   }
 }

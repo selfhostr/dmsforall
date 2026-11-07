@@ -7,6 +7,10 @@
     "winbiz": {
       "nom": "WinBIZ",
       "phrase": "Per WinBIZ: una registrazione per fattura o nota di credito, poi una per incasso."
+    },
+    "csv": {
+      "nom": "CSV",
+      "phrase": "CSV: leggibile da Excel e da qualsiasi fiduciaria."
     }
   },
   "periode": {
@@ -32,12 +36,11 @@
   },
   "confirmation": {
     "titre": "Esportare verso la fiduciaria?",
-    "description": "Le fatture, le note di credito e gli incassi dal {du} al {au} saranno contrassegnati come trasmessi alla fiduciaria. Il file non viene conservato sui nostri server: conservatelo dopo il download.",
+    "description": "Le fatture, le note di credito e gli incassi dal {du} al {au} saranno contrassegnati come trasmessi alla fiduciaria. Il file viene conservato: potrete scaricarlo di nuovo dalla cronologia.",
     "valider": "Esporta e scarica"
   },
   "resultat": {
     "titre": "Esportazione terminata",
-    "fichierNonConserve": "Il file è stato scaricato. Non viene conservato sui nostri server: se lasciate questa pagina non potrete più recuperarlo.",
     "factures": "Fatture esportate",
     "avoirs": "Note di credito esportate",
     "encaissements": "Incassi esportati",
@@ -47,7 +50,8 @@
     "numerosAvoirs": "Numeri di nota di credito",
     "plage": "da {premier} a {dernier}",
     "avertissements": "Punti da verificare nel file",
-    "retelecharger": "Scarica di nuovo {nom}"
+    "retelecharger": "Scarica di nuovo {nom}",
+    "fichierConserve": "Il file è stato scaricato. Viene conservato: lo ritrovate nella cronologia qui sotto."
   },
   "vide": {
     "titre": "Niente da esportare in questo periodo",
@@ -60,19 +64,117 @@
   "prerequis": {
     "EXPORT_MAPPING_INCOMPLET": {
       "titre": "Il piano dei conti non è completo",
-      "description": "Alcuni conti o codici IVA della fiduciaria non sono ancora associati alle vostre registrazioni. Nessun documento è stato esportato. Chiedete alla fiduciaria l'elenco dei suoi conti, poi contattate il supporto per inserirli."
+      "description": "Alcuni conti o codici IVA della fiduciaria non sono ancora associati alle vostre registrazioni. Nessun documento è stato esportato. Impostate i conti qui sotto, poi rilanciate l'esportazione."
     },
     "EXPORT_TROU_NUMEROTATION": {
       "titre": "Manca un numero di fattura o di nota di credito",
-      "description": "La sequenza dei numeri del periodo presenta un buco: il file non parte verso la fiduciaria in questo stato. Nessun documento è stato esportato. Contattate il supporto."
+      "description": "La sequenza dei numeri del periodo presenta un buco: il file non parte verso la fiduciaria in questo stato. Nessun documento è stato esportato. Contattate il supporto con i numeri qui sotto."
     },
     "EXPORT_ECRITURES_DESEQUILIBREES": {
       "titre": "Alcune registrazioni non sono in pareggio",
-      "description": "Il file non è stato prodotto, nessun documento è stato esportato. Contattate il supporto."
+      "description": "Il file non è stato prodotto, nessun documento è stato esportato. Contattate il supporto con i riferimenti qui sotto."
     },
     "FONCTION_NON_DISPONIBLE": {
       "titre": "Questo periodo contiene un caso non gestito",
       "description": "Un incasso del periodo (compensazione, o sconto su una fattura con più aliquote IVA) non può ancora essere esportato. Nessun documento è stato esportato. Contattate il supporto."
+    },
+    "codeTva": "Codice IVA: {poste}",
+    "pieces": "(documenti: {pieces})",
+    "trou": "{type}, esercizio {exercice}: numeri mancanti {numeros}",
+    "desequilibre": "{reference}: dare CHF {debit}, avere CHF {credit}",
+    "typeDocument": {
+      "facture": "Fatture",
+      "avoir": "Note di credito"
     }
+  },
+  "apercu": {
+    "titre": "Anteprima del periodo",
+    "description": "Ciò che il file conterrebbe, prima di produrlo.",
+    "erreur": "Non è stato possibile calcolare l'anteprima",
+    "periodeRequise": "Scegliete un periodo valido per vedere l'anteprima.",
+    "aucun": "Nessuno",
+    "facturesAExporter": "Fatture da esportare",
+    "avoirsAExporter": "Note di credito da esportare",
+    "encaissementsAExporter": "Incassi da esportare",
+    "dejaExportes": "Già esportati",
+    "dejaExportesValeur": "{documents} documenti, {encaissements} incassi",
+    "totalHt": "Totale IVA esclusa",
+    "totalTva": "Totale IVA",
+    "totalTtc": "Totale IVA inclusa"
+  },
+  "mapping": {
+    "ouvrir": "Conti contabili",
+    "regler": "Impostare i conti",
+    "titre": "Conti contabili",
+    "description": "A quale conto e a quale codice IVA della vostra fiduciaria è collegata ogni voce.",
+    "aValider": "I valori proposti seguono il piano contabile PMI svizzero: da convalidare con la vostra fiduciaria.",
+    "complet": "Tutti i conti necessari sono impostati.",
+    "manquants": "{count, plural, one {# voce da impostare} other {# voci da impostare}}",
+    "utiliserProposees": "Usare i valori proposti",
+    "comptes": "Conti",
+    "codesTva": "Codici IVA",
+    "facultatif": "(facoltativo)",
+    "propose": "Proposto: {valeur}",
+    "aucuneProposition": "Nessun valore proposto: chiedete il conto alla vostra fiduciaria.",
+    "valeurInvalide": "Conto o codice non valido (al massimo 12 caratteri, lettere, cifre, punto, trattino).",
+    "enregistrer": "Salva",
+    "enregistrement": "Salvataggio…",
+    "erreurLecture": "Non è stato possibile caricare i conti",
+    "erreurEnregistrement": "I conti non sono stati salvati",
+    "usage": {
+      "creances_clients": "Clienti debitori",
+      "produit": "Ricavi",
+      "tva_due": "IVA dovuta",
+      "acomptes_recus": "Acconti ricevuti",
+      "financier": "Conto finanziario",
+      "arrondi": "Arrotondamento",
+      "escompte": "Sconto",
+      "perte": "Perdite su debitori",
+      "ecart_reprise": "Differenza di ripresa"
+    },
+    "categorie": {
+      "main_oeuvre": "Manodopera",
+      "piece": "Ricambi",
+      "fourniture": "Forniture",
+      "forfait": "Forfait",
+      "especes": "Contanti",
+      "virement": "Bonifico",
+      "carte": "Carta",
+      "twint": "TWINT",
+      "cheque": "Assegno"
+    },
+    "regime": {
+      "normal": "Normale",
+      "reduit": "Ridotto",
+      "hebergement": "Alloggio",
+      "exonere": "Esente",
+      "exclu": "Escluso",
+      "marge": "Imposizione del margine",
+      "acquisition": "Imposta sull'acquisto"
+    }
+  },
+  "historique": {
+    "titre": "Cronologia delle esportazioni",
+    "description": "I file già consegnati alla fiduciaria.",
+    "erreur": "Non è stato possibile caricare la cronologia",
+    "erreurFichier": "Non è stato possibile scaricare il file",
+    "vide": {
+      "titre": "Nessuna esportazione per ora",
+      "description": "La prima esportazione apparirà qui, con il suo file."
+    },
+    "colonnes": {
+      "genereLe": "Data",
+      "periode": "Periodo",
+      "format": "Formato",
+      "ecritures": "Registrazioni",
+      "total": "Totale IVA incl.",
+      "numeros": "Numeri",
+      "auteur": "Da",
+      "fichier": "File"
+    },
+    "periode": "{du} al {au}",
+    "auteurInconnu": "Utente eliminato",
+    "retelecharger": "Scarica di nuovo",
+    "nonConserve": "Non conservato"
   }
 }
