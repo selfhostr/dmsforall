@@ -1630,6 +1630,8 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'atelier.ligne.photo.ajouter',
       'atelier.ligne.photo.lire',
       'atelier.ligne.photo.supprimer',
+      // Accueil — état de mise en route.
+      'accueil.demarrage.lire',
     ];
 
     const actionsAccordees = new Set(Object.values(MATRICE_DROITS).flat());
@@ -2256,6 +2258,10 @@ describe('courtoisie et signalement de travaux reportés', () => {
       ['admin', 'chef_atelier', 'direction', 'receptionnaire', 'technicien'].sort(),
     );
     expect(MATRICE_DROITS.technicien).not.toContain('vehicule.travail_reporte.gerer');
+  });
+
+  it('accueil.demarrage.lire : direction et admin seuls', () => {
+    expect(rolesAyant('accueil.demarrage.lire')).toEqual(['admin', 'direction']);
   });
 });
 

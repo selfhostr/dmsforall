@@ -330,6 +330,8 @@ const NOMBRE_DESIGNATIONS_APERCU = 3;
 
 export interface AgregatLignesOr {
   readonly nombreLignes: number;
+  /** Lignes assignées à l'utilisateur courant, hors annulée/refusée. */
+  readonly nombreLignesAssignees: number;
   readonly totalTtcCentimes: number;
   readonly designationsApercu: readonly string[];
   /** Technicien de la première ligne assignée (par `numero_ordre`), hors annulée/refusée. */
@@ -397,6 +399,11 @@ export async function chargerLotResumeListeOr(
       .select({
         ordreReparationId: ligneOr.ordreReparationId,
         nombre: sql<number>`count(*)::int`,
+        // Comparé à l'utilisateur de la SESSION (jamais un paramètre) ; compte sans utilisateur -> 0.
+        assignees:
+          ctx.utilisateurId === null
+            ? sql<number>`0`
+            : sql<number>`(count(*) filter (where ${ligneOr.technicienId} = ${ctx.utilisateurId} and ${STATUTS_EXCLUS_SQL}))::int`,
         totalTtc: voitMontants
           ? sql<number>`coalesce(sum(${ligneOr.montantTtcCentimes}) filter (where ${STATUTS_EXCLUS_SQL}), 0)::int`
           : sql<number>`0`,
@@ -417,6 +424,7 @@ export async function chargerLotResumeListeOr(
       a.ordreReparationId,
       {
         nombreLignes: a.nombre,
+        nombreLignesAssignees: a.assignees,
         totalTtcCentimes: a.totalTtc,
         designationsApercu: a.designations ?? [],
         technicienId: a.technicienId,

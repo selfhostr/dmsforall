@@ -28,6 +28,7 @@ import {
   schemaCreationRendezVous,
   schemaFiltresCapaciteRendezVous,
   schemaFiltresRendezVous,
+  schemaFiltresResumeSitesRendezVous,
   schemaIdentifiant,
   schemaModificationRendezVous,
   STATUTS_RDV,
@@ -35,6 +36,7 @@ import {
   type EntreeCreationRendezVous,
   type EntreeModificationRendezVous,
   type FiltresCapaciteRendezVous,
+  type FiltresResumeSitesRendezVous,
 } from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../common/contexte';
@@ -44,7 +46,7 @@ import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
 import { EnveloppeOrDto, PageOrDto } from '../atelier/dto';
 
-import { ReponseCapaciteRendezVousDto, ReponseRendezVousDto } from './dto';
+import { ReponseCapaciteRendezVousDto, ReponseRendezVousDto, ResumeSiteRendezVousDto } from './dto';
 import { ServiceCapaciteRendezVous } from './service-capacite-rendez-vous';
 import { ServiceRendezVous } from './service-rendez-vous';
 
@@ -104,6 +106,27 @@ export class RendezVousController {
     const ctx = this.contexte.contexteTenant();
     const { limite, curseur, ...filtres } = query;
     return this.service.lister(ctx, filtres, limite, curseur);
+  }
+
+  @Get('resume-sites')
+  @ExigerDroit('rendez_vous.lire')
+  @ApiOperation({
+    summary:
+      'Nombre de rendez-vous non annulés par site sur la période, tous les sites en un appel.',
+    description:
+      'Un élément par site actif du garage (`nombre: 0` si aucun rendez-vous) ; un site désactivé n’apparaît que s’il a des rendez-vous sur la période.',
+  })
+  @ApiQuery({ name: 'du', required: true, type: String, format: 'date', example: '2026-08-01' })
+  @ApiQuery({ name: 'au', required: true, type: String, format: 'date', example: '2026-08-31' })
+  @ApiOkResponse({ type: [ResumeSiteRendezVousDto] })
+  @ApiReponseProbleme(400, 'Bornes invalides.')
+  @ApiReponseProbleme(401, 'Session absente ou expirée.')
+  @ApiReponseProbleme(403, 'Droit insuffisant.')
+  async resumeSites(
+    @Query(new PipeZod(schemaFiltresResumeSitesRendezVous)) filtres: FiltresResumeSitesRendezVous,
+  ) {
+    const ctx = this.contexte.contexteTenant();
+    return this.service.resumeSites(ctx, filtres);
   }
 
   @Get('capacite')
