@@ -5,8 +5,11 @@ import { RouterProvider } from 'react-router';
 
 import { doitReessayerParDefaut, FRAICHEUR_PAR_DEFAUT_MS } from '@/api/reessai';
 import { gererEchecMutationSansTraitement } from '@/api/gestion-echecs-mutation';
+import { afficherToastSuccesMutation } from '@/api/toast-succes-mutation';
+import { SynchronisationDensite } from '@/composants/commun/SynchronisationDensite';
 import { SynchronisationLangue } from '@/composants/commun/SynchronisationLangue';
 import { FiletErreurMutation } from '@/composants/motifs/FiletErreurMutation';
+import { ToastsSucces } from '@/composants/motifs/ToastsSucces';
 import { EcranErreurFatale } from '@/ecrans/systeme/EcranErreurFatale';
 import { signalerErreur } from '@/observabilite/sentry';
 import { routeur } from '@/routes/routeur';
@@ -25,6 +28,11 @@ const queryClient = new QueryClient({
     },
   },
   mutationCache: new MutationCache({
+    // Retour de succès déclaré par la mutation (`meta.succes`, `meta.annuler`) — sans `meta`,
+    // rien. Voir `toast-succes-mutation.ts` et DESIGN.md « Retour après une action ».
+    onSuccess: (donnees, variables, _onMutateResult, mutation) => {
+      afficherToastSuccesMutation(donnees, variables, mutation);
+    },
     onError: (erreur, _variables, _onMutateResult, mutation) => {
       gererEchecMutationSansTraitement(erreur, mutation);
     },
@@ -114,8 +122,10 @@ export default function App() {
         <SynchroniseCouleurBarreSysteme />
         <QueryClientProvider client={queryClient}>
           <SynchronisationLangue />
+          <SynchronisationDensite />
           <RouterProvider router={routeur} />
           <FiletErreurMutation />
+          <ToastsSucces />
         </QueryClientProvider>
       </ThemeProvider>
     </LimiteErreur>

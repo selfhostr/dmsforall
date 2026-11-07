@@ -69,5 +69,22 @@
     "comptable": "Comptable",
     "admin": "Administrateur",
     "posteAtelier": "Borne d'atelier"
+  },
+  "toasts": {
+    "annuler": "Annuler",
+    "clientCree": "Client créé",
+    "vehiculeCree": "Véhicule enregistré",
+    "rdvDeplace": "Rendez-vous déplacé",
+    "articleCree": "Article créé",
+    "pointageArrete": "Pointage arrêté",
+    "orTermine": "OR terminé",
+    "factureEmise": "Facture émise"
+  },
+  "densite": {
+    "titre": "Densité d'affichage",
+    "auto": "Automatique (selon l'appareil)",
+    "compacte": "Compacte",
+    "aeree": "Aérée",
+    "aide": "Aérée : texte plus grand et lignes plus hautes, pour tablette et doigt."
   }
 }

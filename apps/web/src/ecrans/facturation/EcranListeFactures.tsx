@@ -1,4 +1,3 @@
-import { Tabs as TabsPrimitive } from '@base-ui/react/tabs';
 import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -8,6 +7,7 @@ import type { DocumentVenteResume, FiltresDocumentsVente } from '@dfa/shared';
 import { messageErreur } from '@/api/erreurs';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
+import { Segments } from '@/composants/commun/Segments';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { BarreFiltres } from '@/composants/comptoir/BarreFiltres';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
@@ -18,7 +18,6 @@ import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { useListeDocumentsVente } from '@/hooks/facturation/useListeDocumentsVente';
 import { useSession } from '@/hooks/useSession';
 import { formaterDate, formaterMontant } from '@/lib/formats';
-import { cn } from '@/lib/utils';
 
 import { BadgeEtatDocument } from './BadgeEtatDocument';
 import { BadgeStatutDevis } from './BadgeStatutDevis';
@@ -338,30 +337,15 @@ export function EcranListeFactures() {
           panneau évite structurellement. Piste « radiogroup » écartée aussi : chaque onglet change
           RÉELLEMENT quel jeu de factures s'affiche (pas un simple tri) — la sémantique « tabs »
           reste honnête, seule la bibliothèque posait un attribut invalide. */}
-      <TabsPrimitive.Root
-        value={onglet}
-        onValueChange={(valeur) => setOnglet(valeur as OngletListeFactures)}
-      >
-        <TabsPrimitive.List
-          aria-label={t('facturation:liste.onglets.groupeLabel')}
-          className="inline-flex items-stretch gap-1 rounded-md border bg-muted/40 p-1"
-        >
-          {ONGLETS_LISTE_FACTURES.map((valeur) => (
-            <TabsPrimitive.Tab
-              key={valeur}
-              value={valeur}
-              className={cn(
-                'flex h-9 items-center whitespace-nowrap rounded-sm px-3 texte-corps font-medium transition-colors',
-                'anneau-focus',
-                'text-muted-foreground hover:text-foreground',
-                'data-active:bg-background data-active:font-semibold data-active:text-foreground data-active:shadow-sm',
-              )}
-            >
-              {t(`facturation:liste.onglets.${valeur}`)}
-            </TabsPrimitive.Tab>
-          ))}
-        </TabsPrimitive.List>
-      </TabsPrimitive.Root>
+      <Segments
+        valeur={onglet}
+        onChange={setOnglet}
+        ariaLabel={t('facturation:liste.onglets.groupeLabel')}
+        options={ONGLETS_LISTE_FACTURES.map((valeur) => ({
+          valeur,
+          libelle: t(`facturation:liste.onglets.${valeur}`),
+        }))}
+      />
 
       <BarreFiltres
         q={qSaisie}

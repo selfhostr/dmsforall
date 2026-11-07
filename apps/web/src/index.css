@@ -656,8 +656,8 @@
 
      rôle                     classe                      dense   aérée  très aérée
      ─────────────────────────────────────────────────────────────────────────────
-     libellé (en-tête, méta)  .texte-libelle              12/16   14/20   16/24
-     petit (texte-xs, ss.     .texte-petit                12/16   14/20   16/24
+     libellé (en-tête, méta)  .texte-libelle              13/16   14/20   16/24
+     petit (texte-xs, ss.     .texte-petit                13/16   14/20   16/24
        couleur imposée)
      corps (tout le reste)    .texte-corps                14/20   16/24   18/28
      annexe (paragraphe       .texte-annexe               16/24   18/28   20/28
@@ -710,6 +710,13 @@
 .densite-tres-aeree {
   --densite-tuile-or-largeur: 280px;
   --densite-tuile-or-hauteur: 120px;
+  /* CIBLE TACTILE — plancher de 44 px (WCAG 2.5.5 niveau AAA / usage au doigt sur tablette
+     d'atelier), identique dans toutes les densités : une souris n'a pas besoin de 44 px, mais un
+     contrôle de 40 px en `dense` qui se retrouve sur une tablette (densité choisie par
+     `useDensite`, voir hooks/useDensite.ts) serait inutilisable. Les contrôles interactifs
+     (onglets, segments, boutons icône, lignes cliquables) lisent ce jeton plutôt que d'écrire
+     `h-9`/`h-10` en dur. */
+  --cible-tactile: 2.75rem;
 }
 
 .densite-dense {
@@ -719,8 +726,11 @@
 
   --texte-corps-taille: 0.875rem; /* 14px */
   --texte-corps-hauteur: 1.25rem; /* 20px */
-  --texte-libelle-taille: 0.75rem; /* 12px */
+  /* 13 px et non 12 : plancher de lisibilité du texte LU (badges, en-têtes de tableau, aides)
+     pour des yeux de 55 ans — voir l'audit « interface-navigation » §4. */
+  --texte-libelle-taille: 0.8125rem; /* 13px, était 12px */
   --texte-libelle-hauteur: 1rem; /* 16px */
+  --hauteur-barre-haute: 2.75rem; /* 44px, était 48px — souris, l'espace vertical compte */
   --texte-titre-taille: 1rem; /* 16px */
   --texte-titre-hauteur: 1.5rem; /* 24px */
   --texte-titre-page-taille: 1.25rem; /* 20px */
@@ -754,7 +764,8 @@
 }
 
 .densite-aeree {
-  --densite-hauteur-ligne: 56px;
+  --densite-hauteur-ligne: 48px; /* était 56px : 48 px = cible tactile + respiration, sans gaspiller la hauteur d'écran */
+  --hauteur-barre-haute: 3.5rem; /* 56px */
   --densite-padding-x: 1rem; /* px-4 */
   --densite-padding-y: 0.75rem; /* py-3 */
 
@@ -792,6 +803,7 @@
 
 .densite-tres-aeree {
   --densite-hauteur-ligne: 72px;
+  --hauteur-barre-haute: 3.5rem; /* 56px */
   --densite-padding-x: 1rem; /* px-4 */
   --densite-padding-y: 1rem; /* py-4 */
 
@@ -816,6 +828,22 @@
 }
 
 @layer utilities {
+  /* Étend la zone cliquable d'un contrôle visuellement plus petit jusqu'à `--cible-tactile`
+     (44 px) SANS changer sa taille ni la mise en page : le pseudo-élément, invisible, déborde du
+     contrôle (qui doit être `position: relative`, posé ici). Même technique que `Button` `sm`. */
+  .zone-cible {
+    position: relative;
+  }
+  .zone-cible::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: max(100%, var(--cible-tactile, 2.75rem));
+    transform: translateY(-50%);
+  }
+
   .texte-corps {
     font-size: var(--texte-corps-taille, 0.875rem);
     line-height: var(--texte-corps-hauteur, 1.25rem);
@@ -828,7 +856,7 @@
      AA). Pour du texte secondaire d'une autre couleur, poser la taille explicitement
      (`text-xs leading-4`) plutôt que d'utiliser cette classe. */
   .texte-libelle {
-    font-size: var(--texte-libelle-taille, 0.75rem);
+    font-size: var(--texte-libelle-taille, 0.8125rem);
     line-height: var(--texte-libelle-hauteur, 1rem);
     color: hsl(var(--muted-foreground));
   }
@@ -841,7 +869,7 @@
      la plus petite taille du produit ; `.texte-libelle` reste le choix par défaut pour un
      libellé/méta qui n'a besoin d'aucune couleur particulière. */
   .texte-petit {
-    font-size: var(--texte-libelle-taille, 0.75rem);
+    font-size: var(--texte-libelle-taille, 0.8125rem);
     line-height: var(--texte-libelle-hauteur, 1rem);
   }
   .texte-titre-section {

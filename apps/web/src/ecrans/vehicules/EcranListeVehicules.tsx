@@ -113,7 +113,7 @@ export function EcranListeVehicules() {
         vehicule.vin ? (
           <span className="flex items-center gap-1 font-mono texte-libelle text-muted-foreground">
             {vehicule.vin}
-            <BoutonCopier valeur={vehicule.vin} className="h-8 w-8" />
+            <BoutonCopier valeur={vehicule.vin} />
           </span>
         ) : null,
     },

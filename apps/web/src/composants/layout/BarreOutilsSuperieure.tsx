@@ -12,6 +12,7 @@ import { useSession } from '@/hooks/useSession';
 
 import { BasculeTheme } from './BasculeTheme';
 import { RechercheGlobale } from './RechercheGlobale';
+import { SelecteurDensite } from './SelecteurDensite';
 import { SelecteurSiteEntete } from './SelecteurSiteEntete';
 
 /**
@@ -75,9 +76,10 @@ import { SelecteurSiteEntete } from './SelecteurSiteEntete';
  *    doc de `RechercheGlobale.tsx` est explicite (Lot A) : « jamais supposer un clavier — postes
  *    tactiles ». Un bandeau FIN, permanent, indépendant de l'état ouvert/fermé du tiroir, est le
  *    seul choix qui ne dégrade la recherche (ni le site, ni le thème) sur AUCUN appareil.
- *  - 48 px de haut (`h-12`) : un bouton de 44 px (plancher tactile) et 2 px de respiration de
- *    chaque côté — inchangé par cet ajout, tous les contrôles du bandeau tiennent dans cette
- *    hauteur (icônes 44×44, recherche `h-11`).
+ *  - Hauteur par DENSITÉ (`--hauteur-barre-haute`, index.css) : 44 px en `compacte` (souris, chaque
+ *    pixel de hauteur compte), 56 px en `aeree` (tablette, 6 px de respiration autour des
+ *    contrôles de 44 px). `box-content` : le filet du bas s'ajoute à la hauteur, il ne mange pas
+ *    les 44 px des contrôles.
  *  - La ligne « bouton hamburger seul » du tiroir mobile, qui vivait EMPILÉE au-dessus de
  *    l'ancienne `EnTete` (`AppShell.tsx`, avant le lot du 19.08.2026), est FUSIONNÉE ici plutôt que
  *    dupliquée à côté. Le bouton reste `lg:hidden` (le tiroir n'existe pas au-delà de ce seuil,
@@ -141,7 +143,7 @@ export function BarreOutilsSuperieure() {
   const libelleSite = resoudreLibelleSite(session?.sites, site, t);
 
   return (
-    <header className="flex h-12 shrink-0 items-center gap-2 border-b bg-background px-2">
+    <header className="box-content flex h-[var(--hauteur-barre-haute,2.75rem)] shrink-0 items-center gap-2 border-b bg-background px-2">
       <SheetTrigger asChild>
         <Button
           type="button"
@@ -164,6 +166,7 @@ export function BarreOutilsSuperieure() {
           compact
         />
       ) : null}
+      <SelecteurDensite />
       <BasculeTheme />
     </header>
   );
