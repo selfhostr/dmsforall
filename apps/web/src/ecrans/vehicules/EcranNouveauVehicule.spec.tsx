@@ -342,7 +342,7 @@ describe('EcranNouveauVehicule', () => {
       await utilisateur.type(champMarque, 'Garage Import Zoug');
       await utilisateur.tab(); // perte de focus : c'est seulement là que le repli visible s'affiche.
       await waitFor(() =>
-        expect(screen.getByText(/Ne figure pas dans le référentiel/)).toBeInTheDocument(),
+        expect(screen.getByText(/Absent de la liste/)).toBeInTheDocument(),
       );
       await utilisateur.type(screen.getByLabelText('Modèle'), 'Modèle maison');
 

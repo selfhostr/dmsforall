@@ -263,8 +263,6 @@ export interface ReponseOrdreReparation {
   readonly devisComplementaires: readonly ReponseDevisComplementaire[];
   readonly controleQualite: ReponseControleQualiteOr | null;
   readonly signatures: readonly ReponseSignatureOr[];
-  /** Prêt de véhicule de courtoisie lié. Toujours `null` au lot 1 (module lot 5). */
-  readonly pret: Readonly<Record<string, unknown>> | null;
   readonly cumulsPointage: CumulsPointageOr;
   /** Absents pour un rôle sans droit aux montants. */
   readonly totauxParPayeur?: readonly TotauxPayeurOr[];

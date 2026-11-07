@@ -13,8 +13,8 @@
     "adresse": {
       "titre": "Adresse",
       "rue": "Rue",
-      "numero": "N°",
-      "numeroAide": "Laissez ce champ vide si vous n'avez pas de numéro (case postale, lieu-dit). Attention : l'émission d'une facture avec bulletin QR l'exige — sans lui, l'émission restera bloquée tant qu'il ne sera pas complété.",
+      "numero": "Numéro",
+      "numeroAide": "Requis pour émettre une facture avec bulletin QR. Sans numéro (case postale, lieu-dit), indiquez « s/n ».",
       "npa": "NPA",
       "localite": "Localité",
       "pays": "Pays"

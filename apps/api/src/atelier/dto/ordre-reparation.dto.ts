@@ -371,14 +371,6 @@ export class ReponseOrdreReparationDto implements ReponseOrdreReparation {
   @ApiProperty({ type: () => [SignatureOrDto] })
   readonly signatures!: readonly ReponseSignatureOr[];
 
-  @ApiProperty({
-    type: 'object',
-    nullable: true,
-    additionalProperties: true,
-    description: 'Prêt de véhicule de courtoisie lié. Toujours `null` au lot 1 (module lot 5).',
-  })
-  readonly pret!: Readonly<Record<string, unknown>> | null;
-
   @ApiProperty({ type: () => CumulsPointageOrDto })
   readonly cumulsPointage!: CumulsPointageOr;
 
