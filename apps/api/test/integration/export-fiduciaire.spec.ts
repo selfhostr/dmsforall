@@ -48,7 +48,7 @@ async function appeler(
     .set('Origin', ctx.config.WEB_URL_PUBLIQUE)
     .set('Cookie', cookie);
   if (methode === 'post') req = req.set(EN_TETE_IDEMPOTENCE, randomUUID());
-  if (chemin.endsWith('/fichier')) req = req.buffer(true).parse(binaire);
+  if (chemin.endsWith('/fichier')) req = req.buffer(true).parse(binaire as never);
   const r = await (corps ? req.send(corps) : req);
   const brut = Buffer.isBuffer(r.body) ? r.body : Buffer.alloc(0);
   return {
