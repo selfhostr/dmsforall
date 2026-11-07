@@ -65,9 +65,7 @@ describe('DialogueCorrectionFacture — deux gestes', () => {
     expect(adresse).toBeChecked();
     expect(
       screen.getByRole('radio', {
-        name: new RegExp(
-          echapperRegex(t('facturation:fiche.correction.choix.brouillon.titre')),
-        ),
+        name: new RegExp(echapperRegex(t('facturation:fiche.correction.choix.brouillon.titre'))),
       }),
     ).not.toBeChecked();
   });
@@ -95,9 +93,7 @@ describe('DialogueCorrectionFacture — deux gestes', () => {
 
     await utilisateur.click(
       await screen.findByRole('radio', {
-        name: new RegExp(
-          echapperRegex(t('facturation:fiche.correction.choix.brouillon.titre')),
-        ),
+        name: new RegExp(echapperRegex(t('facturation:fiche.correction.choix.brouillon.titre'))),
       }),
     );
     await utilisateur.click(
@@ -115,9 +111,7 @@ describe('DialogueCorrectionFacture — deux gestes', () => {
   it('facture déjà réglée en partie (15000 centimes) : « Refaire la facture » désactivé avec sa raison', async () => {
     rendre(facture(15_000));
     const refaire = await screen.findByRole('radio', {
-      name: new RegExp(
-        echapperRegex(t('facturation:fiche.correction.choix.brouillon.titre')),
-      ),
+      name: new RegExp(echapperRegex(t('facturation:fiche.correction.choix.brouillon.titre'))),
     });
     expect(refaire).toBeDisabled();
     expect(
