@@ -107,6 +107,8 @@ export const chemins = {
     /** `id` est la facture D'ORIGINE à partir de laquelle l'avoir est émis, pas l'avoir lui-même
      *  (qui n'existe pas encore quand cet écran s'ouvre) — voir `routeur.tsx`. */
     avoir: (id: string, site?: string) => construireChemin(`/factures/${id}/avoir`, { site }),
+    /** Export fiduciaire (`/export-fiduciaire`) — onglet de Facturation. */
+    exportFiduciaire: (site?: string) => construireChemin('/export-fiduciaire', { site }),
   },
   /** Paramétrage — singletons par TENANT (facturation, référentiels, atelier), jamais par site :
    *  pas de `?site=` à conserver pour ceux-là (contrairement à `clients`/`vehicules` ci-dessus).

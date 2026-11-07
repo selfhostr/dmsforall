@@ -22,6 +22,7 @@ import {
   EcranConsolePlateforme,
   EcranParametragePieces,
   EcranParametrageAtelier,
+  EcranExportFiduciaire,
   EcranParametresFacturation,
   EcranReferentiels,
   EcranSites,
@@ -74,6 +75,7 @@ import {
   ROLES_PIECES,
   ROLES_PNEUS,
   ROLES_POINTAGE,
+  ROLES_MENU_FINANCIER,
   ROLES_RELANCES,
   ROLES_SCAN,
   ROLES_TABLEAU_BORD_ACTIVITE,
@@ -662,6 +664,15 @@ export const routesConfig: RouteObject[] = [
       // `ROLES_PNEUS` plus haut : `relances.facturation.planifier`/`.envoyer`/`.regle.lire`
       // (historique) ferment ces trois opérations à tout rôle hors `direction`/`comptable`
       // (`apps/api/src/relances/relances.controller.ts`) — cette garde ne l'invente pas.
+      // Export fiduciaire : `facturation.export.creer` = direction/comptable (`ROLES_MENU_FINANCIER`).
+      {
+        path: 'export-fiduciaire',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_MENU_FINANCIER}>
+            <EcranExportFiduciaire />
+          </RouteProtegee>
+        ),
+      },
       {
         path: 'relances',
         element: (

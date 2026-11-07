@@ -276,12 +276,12 @@ describe('OngletsDomaine — quand il ne rend rien', () => {
     });
   });
 
-  it('le même écran rend bien la rangée pour un rôle qui a deux onglets (contre-épreuve)', async () => {
+  it('le même écran rend bien la rangée pour un rôle qui a trois onglets (contre-épreuve)', async () => {
     connecte('comptable');
     rendre('/factures');
 
     const onglets = await screen.findByRole('navigation', { name: /onglets/i });
-    expect(libelles(onglets)).toEqual(['Factures', 'Relances']);
+    expect(libelles(onglets)).toEqual(['Factures', 'Relances', 'Export fiduciaire']);
   });
 });
 
