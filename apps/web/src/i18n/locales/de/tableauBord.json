@@ -164,8 +164,8 @@
   },
   "vendeur": {
     "indisponible": {
-      "titre": "Übersicht nicht verfügbar",
-      "description": "Die API erlaubt noch keine Filterung der Verkaufsdossiers nach zuständigem Verkäufer: alle Dossiers des Standorts als „Ihre Dossiers“ anzuzeigen wäre irreführend. Ihre Arbeit finden Sie unter Verkauf › Dossiers.",
+      "titre": "Ihre Verkaufsdossiers",
+      "description": "Die Verkaufsdossiers verfolgen Sie unter Verkauf › Dossiers. Zahlen pro Verkäufer sind noch nicht verfügbar.",
       "lien": "Zu meinen Dossiers"
     }
   },

@@ -683,6 +683,30 @@ describe('EcranTableauBord — Vendeur (tableau de bord non construit, gap signa
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(appelsDossiersVente).toBe(0);
   });
+
+  it('propose la recherche et ses gestes rapides, sans appel hors de ses droits (aucun 403)', async () => {
+    connecterSession('vendeur');
+    const appelsRefuses: string[] = [];
+    for (const chemin of ['/api/v1/accueil/etat-demarrage', '/api/v1/ordres-reparation']) {
+      server.use(
+        http.get(chemin, () => {
+          appelsRefuses.push(chemin);
+          return new HttpResponse(null, { status: 403 });
+        }),
+      );
+    }
+    rendre();
+
+    expect(
+      await screen.findByRole('button', { name: i18n.t('accueil:actions.rechercher') }),
+    ).toBeInTheDocument();
+    // Le vendeur n'a pas atelier.or.lire : ni création d'OR ni bandeau « OR en retard ».
+    expect(
+      screen.queryByRole('link', { name: i18n.t('accueil:actions.creerOr') }),
+    ).not.toBeInTheDocument();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(appelsRefuses).toEqual([]);
+  });
 });
 
 /**

@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Put,
+  Query,
   Res,
   UploadedFile,
   UseGuards,
@@ -19,6 +20,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiProduces,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 import type { Response } from 'express';
@@ -90,10 +92,25 @@ export class LogoEntrepriseController {
   @ApiOkResponse({ description: 'L’image, avec son Content-Type.' })
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'DROIT_INSUFFISANT — réservé à direction/comptable.')
-  @ApiReponseProbleme(404, 'RESSOURCE_INTROUVABLE — aucun logo déposé.')
-  async lire(@Res() res: Response): Promise<void> {
+  @ApiQuery({
+    name: 'absence',
+    required: false,
+    enum: ['vide'],
+    description:
+      'Sans paramètre : 404 quand aucun logo n’est déposé (comportement historique). ' +
+      '`absence=vide` : 204 sans corps, pour qu’un client qui demande « y a-t-il un logo ? » ne produise pas d’erreur.',
+  })
+  @ApiNoContentResponse({ description: 'Aucun logo déposé, et `absence=vide` demandé.' })
+  @ApiReponseProbleme(404, 'RESSOURCE_INTROUVABLE — aucun logo déposé (sans `absence=vide`).')
+  async lire(@Res() res: Response, @Query('absence') absence?: string): Promise<void> {
     const logo = await this.service.lire(this.contexte.contexteTenant());
-    if (!logo) throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Aucun logo déposé.');
+    if (!logo) {
+      if (absence === 'vide') {
+        res.status(HttpStatus.NO_CONTENT).send();
+        return;
+      }
+      throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Aucun logo déposé.');
+    }
     res
       .status(HttpStatus.OK)
       .setHeader('Content-Type', logo.typeMime)

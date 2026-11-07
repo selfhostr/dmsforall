@@ -12,6 +12,7 @@ export const peutLireEcheancesOr = (a: ActionsSession) => peut(a, 'atelier.or.li
  */
 export const ROLES_ACCUEIL_BUREAU: readonly RoleUtilisateur[] = [
   'direction',
+  'vendeur',
   'receptionnaire',
   'chef_atelier',
   'comptable',

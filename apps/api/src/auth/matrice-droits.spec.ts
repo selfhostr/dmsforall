@@ -118,6 +118,30 @@ describe('borne (poste_atelier) : profil d’appareil figé', () => {
     expect([...ACTIONS_PROFIL_BORNE]).toHaveLength(7);
   });
 
+  it('la borne n’a EXACTEMENT que ces 7 actions : aucune écriture OR, aucune facturation, aucun client, aucun réglage', () => {
+    expect([...MATRICE_DROITS.poste_atelier].sort()).toEqual(
+      [
+        'atelier.or.lire',
+        'atelier.pointage.arreter',
+        'atelier.pointage.demarrer',
+        'atelier.pointage.identifier',
+        'atelier.pointage.lire',
+        'socle.site.lire',
+        'socle.tenant.lire',
+      ].sort(),
+    );
+    for (const a of [
+      'facturation.document.lire',
+      'accueil.demarrage.lire',
+      'tableau_bord.activite.lire',
+      'atelier.or.creer',
+      'atelier.pointage.pointer_autrui',
+      'socle.utilisateur.lire',
+    ] as const) {
+      expect(MATRICE_DROITS.poste_atelier, a).not.toContain(a);
+    }
+  });
+
   it('personne d’autre ne peut pointer par PIN (atelier.pointage.identifier)', () => {
     for (const role of ROLES_PERSONNE) {
       expect(MATRICE_DROITS[role]).not.toContain('atelier.pointage.identifier');
@@ -201,4 +225,25 @@ describe('migration 0087 : le SQL recopie exactement les préréglages', () => {
       ]);
     });
   }
+});
+
+describe('droits vus par le menu et l’accueil (audit navigateur du 07.11.2026)', () => {
+  it('vendeur : aucune lecture atelier / rendez-vous / pointage (le menu ne doit rien lui proposer qui parte en 403)', () => {
+    for (const a of [
+      'atelier.or.lire',
+      'rendez_vous.lire',
+      'atelier.ligne.marquer_realisee',
+      'accueil.demarrage.lire',
+    ] as const) {
+      expect(MATRICE_DROITS.vendeur, a).not.toContain(a);
+    }
+    expect(MATRICE_DROITS.vendeur).toContain('tableau_bord.activite.lire');
+  });
+
+  it('accueil.demarrage.lire : direction et admin seulement (chef d’atelier exclu : la checklist ne doit pas l’appeler)', () => {
+    const titulaires = ROLES_PERSONNE.filter((r) =>
+      MATRICE_DROITS[r as RoleUtilisateur].includes('accueil.demarrage.lire'),
+    ).sort();
+    expect(titulaires).toEqual(['admin', 'direction']);
+  });
 });

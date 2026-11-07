@@ -36,9 +36,11 @@ const LIENS: Readonly<Record<IdEtapeDemarrage, string>> = {
  */
 export function ChecklistDemarrage() {
   const { data: session } = useSession();
-  const autorise = peut(session?.actions, 'socle.utilisateur.lire');
+  // Même droit que l'API (`GET /accueil/etat-demarrage`) : sans lui, l'appel part en 403.
+  const autorise = peut(session?.actions, 'accueil.demarrage.lire');
   const { masque, masquer } = useMasquageDemarrage(autorise ? session?.utilisateur.id : undefined);
-  const gereLesParametres = peut(session?.actions, 'parametrage.atelier.modifier');
+  const gereLesParametres =
+    autorise && peut(session?.actions, 'parametrage.atelier.modifier');
   return (
     <>
       {gereLesParametres && session ? (

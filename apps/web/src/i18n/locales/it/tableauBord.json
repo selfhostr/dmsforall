@@ -164,8 +164,8 @@
   },
   "vendeur": {
     "indisponible": {
-      "titre": "Cruscotto non disponibile",
-      "description": "L'API non permette ancora di filtrare le pratiche di vendita per venditore responsabile: mostrare tutte le pratiche della sede come «le sue pratiche» sarebbe fuorviante. Trova il suo lavoro in Vendite › Pratiche.",
+      "titre": "Le sue pratiche di vendita",
+      "description": "Le pratiche di vendita si seguono in Vendite › Pratiche. I dati per venditore non sono ancora disponibili.",
       "lien": "Vai alle mie pratiche"
     }
   },

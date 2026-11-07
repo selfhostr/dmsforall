@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
@@ -52,25 +52,35 @@ function rendre(entree = '/pointage') {
  */
 describe('EcranPointage', () => {
   it(
-    'site requis : invite à choisir un site quand plusieurs sont actifs — gate UNIQUE, ' +
-      'auparavant dupliquée trois fois (Journal, Équipe, Clôture de période avaient chacun leur ' +
-      'propre bloc `if (!siteId)`)',
+    'multi-site : le site principal est le défaut (jamais « Choisissez un site »), le filtre de ' +
+      'site commun est affiché sans « Tous » (les vues travaillent sur un site) et le choix ' +
+      "bascule les requêtes sur l'autre site",
     async () => {
+      const sitesVus: (string | null)[] = [];
       server.use(
         http.get('/api/v1/auth/moi', () =>
           HttpResponse.json({
             ...SESSION_TEST,
+            sitePrincipalId: 'site-2',
             sites: [
               { id: 'site-1', code: 'P', codeCourt: 'P', nom: 'Site principal', actif: true },
               { id: 'site-2', code: 'S', codeCourt: 'S', nom: 'Site secondaire', actif: true },
             ],
           }),
         ),
+        http.get('/api/v1/pointages', ({ request }) => {
+          sitesVus.push(new URL(request.url).searchParams.get('siteId'));
+          return HttpResponse.json(pageVide());
+        }),
       );
 
       rendre();
 
-      expect(await screen.findByText('Choisissez un site')).toBeInTheDocument();
+      expect(await screen.findByTestId('filtre-site')).toBeInTheDocument();
+      expect(screen.queryByText('Choisissez un site')).not.toBeInTheDocument();
+      expect(screen.queryByRole('tab', { name: 'Tous les sites' })).not.toBeInTheDocument();
+      await waitFor(() => expect(sitesVus).toContain('site-2'));
+      expect(sitesVus).not.toContain('site-1');
     },
   );
 

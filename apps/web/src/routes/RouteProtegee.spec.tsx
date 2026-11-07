@@ -206,3 +206,65 @@ describe('RouteProtegee — modules activables', () => {
     expect(screen.queryByText('ECRAN_PNEUS')).not.toBeInTheDocument();
   });
 });
+
+describe('RouteProtegee — borne murale (poste_atelier)', () => {
+  function rendreBorneSur(chemin: string) {
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({
+          ...SESSION_TEST,
+          utilisateur: { ...SESSION_TEST.utilisateur, role: 'poste_atelier' },
+          actions: ['atelier.or.lire', 'atelier.pointage.identifier'],
+        }),
+      ),
+    );
+    render(
+      <QueryClientProvider client={creerQueryClientTest()}>
+        <MemoryRouter initialEntries={[chemin]}>
+          <Routes>
+            <Route path="/pointage/borne" element={<div>ECRAN_BORNE</div>} />
+            <Route
+              path="*"
+              element={
+                <RouteProtegee>
+                  <div>ECRAN_METIER</div>
+                </RouteProtegee>
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  }
+
+  it.each(['/ordres-reparation', '/factures', '/clients', '/pointage', '/parametrage/garage'])(
+    'la borne demandant %s est renvoyée vers son écran, jamais le contenu métier',
+    async (chemin) => {
+      rendreBorneSur(chemin);
+      expect(await screen.findByText('ECRAN_BORNE')).toBeInTheDocument();
+      expect(screen.queryByText('ECRAN_METIER')).not.toBeInTheDocument();
+    },
+  );
+
+  it('un employé (chef_atelier) n’est pas redirigé vers la borne', async () => {
+    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
+    render(
+      <QueryClientProvider client={creerQueryClientTest()}>
+        <MemoryRouter initialEntries={['/ordres-reparation']}>
+          <Routes>
+            <Route path="/pointage/borne" element={<div>ECRAN_BORNE</div>} />
+            <Route
+              path="*"
+              element={
+                <RouteProtegee>
+                  <div>ECRAN_METIER</div>
+                </RouteProtegee>
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByText('ECRAN_METIER')).toBeInTheDocument();
+  });
+});

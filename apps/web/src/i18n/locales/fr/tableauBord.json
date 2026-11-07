@@ -164,8 +164,8 @@
   },
   "vendeur": {
     "indisponible": {
-      "titre": "Tableau de bord indisponible",
-      "description": "L'API ne permet pas encore de filtrer les dossiers de vente par vendeur responsable : afficher tous les dossiers du site sous « vos dossiers » serait trompeur. Retrouvez votre travail dans Ventes › Dossiers.",
+      "titre": "Vos dossiers de vente",
+      "description": "Les dossiers de vente se suivent dans Ventes › Dossiers. Les chiffres par vendeur ne sont pas encore disponibles.",
       "lien": "Aller à mes dossiers"
     }
   },

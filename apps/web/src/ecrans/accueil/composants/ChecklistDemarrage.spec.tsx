@@ -218,6 +218,20 @@ describe('ChecklistDemarrage', () => {
     ).not.toBeInTheDocument();
   });
 
+  it.each(['chef_atelier', 'vendeur', 'comptable', 'receptionnaire'])(
+    '%s : aucun appel à /accueil/etat-demarrage (droit absent, l’API répondrait 403), pas d’assistant',
+    async (role) => {
+      session(role);
+      const appels = api();
+      rendre();
+      await new Promise((r) => setTimeout(r, 50));
+      expect(appels.n).toBe(0);
+      expect(
+        screen.queryByRole('heading', { name: t('accueil:demarrage.checklist.titre') }),
+      ).not.toBeInTheDocument();
+    },
+  );
+
   it('source en erreur : « À vérifier » (jamais « À faire ») et possibilité de réessayer', async () => {
     session('direction');
     server.use(

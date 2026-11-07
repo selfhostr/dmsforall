@@ -11,7 +11,14 @@ import { EcranVerificationSession } from '@/ecrans/systeme/EcranVerificationSess
 
 import { EcranAccesRefuse } from './EcranAccesRefuse';
 import type { DestinationAtterrissage } from './atterrissage';
+import { chemins } from './chemins';
 import type { Acces } from './droits-routes';
+
+/** `/` (le relais d'atterrissage la renvoie vers la borne) et l'écran de la borne seulement. */
+function cheminAutoriseALaBorne(pathname: string): boolean {
+  const borne = chemins.pointage.borne();
+  return pathname === '/' || pathname === borne || pathname.startsWith(`${borne}/`);
+}
 
 interface Props {
   readonly children: ReactNode;
@@ -81,6 +88,12 @@ export function RouteProtegee({ children, accesAutorise, redirectionParRole }: P
   }
   if (data === null) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
+  // Borne murale (`poste_atelier`) : un appareil, pas un employé. Son profil API lit les OR (pour
+  // le pointage) mais l'interface ne lui ouvre QUE l'écran de la borne — jamais la liste des OR ni
+  // une page qui partirait en 403 (factures, clients…).
+  if (data.utilisateur.role === 'poste_atelier' && !cheminAutoriseALaBorne(location.pathname)) {
+    return <Navigate to={chemins.pointage.borne()} replace />;
   }
   if (accesAutorise && !peutUne(data.actions, ...accesAutorise)) {
     return <EcranAccesRefuse />;

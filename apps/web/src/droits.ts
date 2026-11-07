@@ -11,6 +11,7 @@ import { useSession } from '@/hooks/useSession';
  * masquer un bouton en silence).
  */
 export const ACTIONS_CITEES = [
+  'accueil.demarrage.lire',
   'atelier.ligne.annuler',
   'atelier.ligne.creer',
   'atelier.ligne.marquer_realisee',
