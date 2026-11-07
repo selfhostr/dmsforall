@@ -380,19 +380,28 @@ export class ServiceUtilisateur {
    *  factures, pointages) doit rester attribuable des années plus tard. Révoque immédiatement
    *  toute session active : sans quoi la désactivation resterait cosmétique jusqu'à l'expiration
    *  naturelle de la session en cours. */
-  async desactiver(ctx: ContexteTenant, utilisateurId: string): Promise<UtilisateurResume> {
+  async desactiver(
+    ctx: ContexteTenant,
+    utilisateurId: string,
+    acteur: ActeurGouvernance,
+  ): Promise<UtilisateurResume> {
     if (utilisateurId === ctx.utilisateurId) {
       throw new ErreurMetier(
         'CONFLIT',
         'Impossible de désactiver son propre compte — demandez à un autre titulaire de direction/admin.',
       );
     }
-    return this.basculerStatut(ctx, utilisateurId, 'suspendu', 'desactivation', true);
+    return this.basculerStatut(ctx, utilisateurId, 'suspendu', 'desactivation', true, acteur);
   }
 
   /** Réactive un employé précédemment désactivé (`statut = 'actif'`). */
-  async reactiver(ctx: ContexteTenant, utilisateurId: string): Promise<UtilisateurResume> {
-    return this.basculerStatut(ctx, utilisateurId, 'actif', 'reactivation', false);
+  async reactiver(
+    ctx: ContexteTenant,
+    utilisateurId: string,
+    acteur: ActeurGouvernance,
+  ): Promise<UtilisateurResume> {
+    verifierPasAutoModification(ctx.utilisateurId ?? null, utilisateurId);
+    return this.basculerStatut(ctx, utilisateurId, 'actif', 'reactivation', false, acteur);
   }
 
   /**
@@ -403,12 +412,17 @@ export class ServiceUtilisateur {
   async reinitialiserAcces(
     ctx: ContexteTenant,
     utilisateurId: string,
+    acteur: ActeurGouvernance,
   ): Promise<ReponseAccesTemporaire> {
+    // Reprendre la main sur un compte (mot de passe temporaire rendu en clair) est le geste le plus
+    // dangereux : jamais sur soi-même, jamais sur plus puissant que soi (sinon on devient lui).
+    verifierPasAutoModification(ctx.utilisateurId ?? null, utilisateurId);
     const motDePasseClair = genererMotDePasseTemporaire();
     const motDePasseHash = await this.motDePasse.hacher(motDePasseClair);
 
     await this.acces.enTenant(ctx, async (tx) => {
-      await this.chargerUtilisateurPourEcriture(tx, ctx, utilisateurId);
+      const cible = await this.chargerUtilisateurPourEcriture(tx, ctx, utilisateurId);
+      verifierCibleModifiable(acteur, cible.role, grilleDepuisLigne(cible));
 
       await tx
         .update(utilisateur)
@@ -449,9 +463,13 @@ export class ServiceUtilisateur {
     statutCible: 'actif' | 'suspendu',
     action: 'desactivation' | 'reactivation',
     revoquerSessions: boolean,
+    acteur: ActeurGouvernance,
   ): Promise<UtilisateurResume> {
     return this.acces.enTenant(ctx, async (tx) => {
       const ligne = await this.chargerUtilisateurPourEcriture(tx, ctx, utilisateurId);
+      // Suspendre ou réactiver un compte plus puissant que soi serait un déni de service (ou une
+      // réactivation d'un compte révoqué) hors de ses droits.
+      verifierCibleModifiable(acteur, ligne.role, grilleDepuisLigne(ligne));
 
       if (ligne.statut !== statutCible) {
         if (statutCible === 'suspendu') {
@@ -494,6 +512,14 @@ export class ServiceUtilisateur {
   ): Promise<void> {
     if (!ligne.estPatron || ligne.statut !== 'actif') return;
     if (grilleApres !== null && grilleApres.patron) return;
+    // Sérialise, par garage, les rétrogradations/désactivations de patrons : sans verrou, deux
+    // transactions concurrentes voient chacune l'AUTRE patron encore actif et le garage se
+    // retrouve sans patron. Verrou consultatif de transaction (pas de FOR UPDATE croisé : deux
+    // patrons se verrouillant mutuellement feraient un interblocage). Le comptage qui suit lit
+    // l'état validé par la transaction précédente (READ COMMITTED).
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtextextended(${`patron:${ctx.tenantId}`}, 0))`,
+    );
     const [autres] = await tx
       .select({ n: sql<number>`count(*)::int` })
       .from(utilisateur)

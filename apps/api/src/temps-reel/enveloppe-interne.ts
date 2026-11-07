@@ -1,4 +1,5 @@
 import type { RoleUtilisateur } from '@dfa/shared';
+import type { Action } from '../auth/matrice-droits';
 import type { DonneesEvenementTempsReel, TypeEvenementTempsReel } from '@dfa/shared';
 
 /**
@@ -17,4 +18,9 @@ export interface EnveloppeEvenementTempsReelInterne<
   readonly emisLe: string;
   readonly donnees: DonneesEvenementTempsReel[T];
   readonly rolesCibles: readonly RoleUtilisateur[];
+  /**
+   * Droit que doit DÉTENIR l'abonné (sa grille réelle, pas son rôle) en plus d'être dans
+   * `rolesCibles`. Absent : seul le rôle filtre.
+   */
+  readonly droitRequis?: Action;
 }

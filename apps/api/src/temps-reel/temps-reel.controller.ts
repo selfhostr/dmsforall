@@ -18,6 +18,7 @@
  * canal n'expose donc aucune décision d'autorisation propre : il relaie ce qu'on a déjà décidé de
  * lui donner pour ce rôle.
  */
+import { droitsDuPrincipal } from '../auth/droits-personne';
 import { Controller, Get, Inject, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiCookieAuth, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
@@ -84,6 +85,7 @@ export class TempsReelController {
         if (ferme) return;
         res.write(`event: message\ndata: ${JSON.stringify(evenement)}\n\n`);
       },
+      droitsDuPrincipal(principal).aLeDroit,
     );
 
     const fermer = (): void => {

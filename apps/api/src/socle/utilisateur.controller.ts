@@ -199,12 +199,14 @@ export class UtilisateurController {
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant (rôle sans socle.utilisateur.desactiver).')
   @ApiReponseProbleme(404, 'Employé introuvable pour ce tenant.')
-  @ApiReponseProbleme(409, 'Tentative de désactiver son propre compte.')
+  @ApiReponseProbleme(409, 'Tentative de désactiver son propre compte, ou dernier patron.')
+  @ApiReponseProbleme(403, 'Cible plus puissante que l’appelant, ou compte admin par un non-admin.')
   async desactiver(
     @Param('utilisateurId', new PipeZod(schemaUtilisateurId)) utilisateurId: string,
   ): Promise<UtilisateurResumeDto> {
     const ctx = this.contexte.contexteTenant();
-    return this.service.desactiver(ctx, utilisateurId);
+    const principal = this.contexte.exigerPrincipal();
+    return this.service.desactiver(ctx, utilisateurId, principal);
   }
 
   @Post(':utilisateurId/reactiver')
@@ -220,7 +222,8 @@ export class UtilisateurController {
     @Param('utilisateurId', new PipeZod(schemaUtilisateurId)) utilisateurId: string,
   ): Promise<UtilisateurResumeDto> {
     const ctx = this.contexte.contexteTenant();
-    return this.service.reactiver(ctx, utilisateurId);
+    const principal = this.contexte.exigerPrincipal();
+    return this.service.reactiver(ctx, utilisateurId, principal);
   }
 
   @Post(':utilisateurId/reinitialiser-acces')
@@ -242,6 +245,7 @@ export class UtilisateurController {
     @Param('utilisateurId', new PipeZod(schemaUtilisateurId)) utilisateurId: string,
   ): Promise<ReponseAccesTemporaireDto> {
     const ctx = this.contexte.contexteTenant();
-    return this.service.reinitialiserAcces(ctx, utilisateurId);
+    const principal = this.contexte.exigerPrincipal();
+    return this.service.reinitialiserAcces(ctx, utilisateurId, principal);
   }
 }

@@ -53,6 +53,11 @@ export type OptionPersonne = (typeof OPTIONS_PERSONNE)[number];
  *                    montants ». Garde les gestes qui exposent un montant en clair (PDF avec
  *                    bulletin QR, liste des paiements) : RF-116, un rôle sans droit aux montants
  *                    ne peut pas les obtenir, même avec Facturation : Voir.
+ *  - `atelier.controle`, `facturation.emettre_devis`, `facturation.emettre_facture`,
+ *    `facturation.encaisser`, `pieces.magasin` : DÉRIVÉES, SÉPARATION DES TÂCHES — voir
+ *    `capacitesDeLaGrille`. Elles empêchent qu'un simple niveau « Faire » cumule tout ce que le
+ *    même niveau donnait à un poste de bureau (le magasinier n'émet pas de facture ; le chef
+ *    d'atelier n'encaisse pas, ne tient pas le stock et ne valide pas les achats).
  *  - `borne`       : réservée au profil d'appareil (jamais obtenue par une grille).
  *  - `contrainte.avoir_plafonne` : n'est PAS un pouvoir mais une contrainte — l'option
  *                    « avoirs plafonnés ». Elle figure dans la table des actions pour que la
@@ -67,6 +72,11 @@ export const CAPACITES = [
   'facturation.voir',
   'facturation.faire',
   'facturation.montants',
+  'facturation.encaisser',
+  'facturation.emettre_devis',
+  'facturation.emettre_facture',
+  'atelier.controle',
+  'pieces.magasin',
   'pieces.voir',
   'pieces.faire',
   'ventes.voir',
@@ -114,6 +124,25 @@ export function capacitesDeLaGrille(grille: GrilleCapacites): ReadonlySet<Capaci
   }
   if (niveauAtteint(grille.niveaux.facturation, 'voir') && grille.options.voitMontants) {
     capacites.add('facturation.montants');
+  }
+  // --- Séparation des tâches ----------------------------------------------------------------
+  // `poste de stock` : gère les pièces (Faire) sans autorité commerciale (ni Ventes : Faire, ni
+  // Finances : Faire). Ce profil — magasinier, chef d'atelier, mécanicien-magasinier — ne contrôle
+  // pas le travail qu'il a fait (sauf s'il encadre), n'émet ni facture ni avoir, et un chef qui
+  // encadre l'atelier n'encaisse pas et ne valide pas les factures fournisseur qu'il commande.
+  const faireFactu = capacites.has('facturation.faire');
+  const posteDeStock =
+    capacites.has('pieces.faire') &&
+    !capacites.has('finances.faire') &&
+    !capacites.has('ventes.faire');
+  if (capacites.has('atelier.faire') && (!posteDeStock || grille.encadrer)) {
+    capacites.add('atelier.controle');
+  }
+  if (faireFactu && (!posteDeStock || grille.encadrer)) capacites.add('facturation.emettre_devis');
+  if (faireFactu && !posteDeStock) capacites.add('facturation.emettre_facture');
+  if (faireFactu && (!posteDeStock || !grille.encadrer)) capacites.add('facturation.encaisser');
+  if (capacites.has('pieces.faire') && !(posteDeStock && grille.encadrer)) {
+    capacites.add('pieces.magasin');
   }
   if (grille.encadrer) capacites.add('encadrer');
   if (grille.gererEmployes) capacites.add('employes');
