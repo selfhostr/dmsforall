@@ -1,3 +1,5 @@
+import { GRILLE_VIDE, PREREGLAGES } from '@dfa/shared';
+import { colonnesDepuisGrille } from '../grille-utilisateur';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
@@ -12,6 +14,7 @@ import {
 } from '../../db/schema';
 import type { ServiceContexteRequete } from '../../common/contexte/contexte-requete.service';
 import type { ServiceLimitationDebit } from '../../common/limitation/limitation-debit.types';
+import { MATRICE_DROITS } from '../matrice-droits';
 import { ServiceAuthentificationImpl } from './authentification.service';
 import type { ServiceMotDePasse, ServiceSession } from '../auth.types';
 import {
@@ -66,6 +69,7 @@ function accesBaseTest(): AccesBase {
       // Compte de personne : aucun rattachement de site (migration 0039) — `sessionCourante()`
       // rend alors TOUS les sites du tenant, comportement inchangé depuis l'étape 0.
       siteId: null,
+      ...colonnesDepuisGrille(PREREGLAGES.admin.grille),
     },
     tenant: {
       id: 'tenant-id',
@@ -785,6 +789,10 @@ describe('ServiceAuthentificationImpl.sessionCourante — portée de site des co
           role: siteIdUtilisateur === null ? 'admin' : 'poste_atelier',
           langue: 'fr',
           siteId: siteIdUtilisateur,
+          // Colonnes de grille : la borne n'en a pas (profil figé), un admin a son préréglage.
+          ...colonnesDepuisGrille(
+            siteIdUtilisateur === null ? PREREGLAGES.admin.grille : GRILLE_VIDE,
+          ),
         },
       ],
       tenant: [
@@ -884,5 +892,32 @@ describe('ServiceAuthentificationImpl.sessionCourante — portée de site des co
     expect(Object.keys(corps.utilisateur).sort()).toEqual(
       ['id', 'email', 'prenom', 'nom', 'role', 'langue'].sort(),
     );
+  });
+
+  it('publie les actions de la matrice du rôle LU EN BASE (triées) — la borne n’a que ses 7 actions, jamais celles de direction', async () => {
+    const { svc: svcBorne } = svcAvecUtilisateur('site-sion');
+    const borne = await svcBorne.sessionCourante({
+      sessionId: 'session-id',
+      tenantId: 'tenant-id',
+      utilisateurId: 'utilisateur-id',
+      // Principal volontairement mensonger : seul le rôle de la base compte.
+      role: 'direction',
+      langue: 'fr',
+      siteId: 'site-sion',
+    });
+    expect(borne.actions).toEqual([...MATRICE_DROITS.poste_atelier].sort());
+    expect(borne.actions).not.toContain('socle.utilisateur.creer');
+
+    const { svc: svcAdmin } = svcAvecUtilisateur(null);
+    const admin = await svcAdmin.sessionCourante({
+      sessionId: 'session-id',
+      tenantId: 'tenant-id',
+      utilisateurId: 'utilisateur-id',
+      role: 'admin',
+      langue: 'fr',
+      siteId: null,
+    });
+    expect(admin.actions).toEqual([...MATRICE_DROITS.admin].sort());
+    expect(admin.actions).not.toContain('facturation.paiement.encaisser');
   });
 });

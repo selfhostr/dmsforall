@@ -50,7 +50,7 @@ export function EcranListeFournisseurs() {
   const { t } = useTranslation(['pieces', 'commun']);
   const navigate = useNavigate();
   const { data: session } = useSession();
-  const role = session?.utilisateur.role;
+  const actions = session?.actions;
 
   const [statut, setStatut] = useState<StatutFournisseur | undefined>('actif');
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
@@ -139,7 +139,7 @@ export function EcranListeFournisseurs() {
   // active « Fournisseurs » (`navigation-modele.ts`, `ONGLETS_PIECES`, vue « fournisseurs » de
   // l'onglet Approvisionnement) : `GabaritEcran` le détecte lui-même (§3 du contrat du chantier
   // « titres doublés », 17.08.2026), plus besoin de le faire à la main ici.
-  const boutonAjouter = peutEcrireFournisseur(role) ? (
+  const boutonAjouter = peutEcrireFournisseur(actions) ? (
     <Button onClick={() => setFormulaireOuvert(true)}>
       {t('pieces:fournisseurs.actions.ajouter')}
     </Button>

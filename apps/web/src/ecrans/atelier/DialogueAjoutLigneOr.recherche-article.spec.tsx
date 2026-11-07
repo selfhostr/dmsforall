@@ -44,6 +44,7 @@ function resultatRecherche(
     designation: 'Plaquettes de frein avant',
     referencePrincipale: 'REF-4242',
     prixVenteTtcCentimes: 6850,
+    prixAchatCentimes: null,
     quantiteDisponibleMillieme,
     statutSuivi,
     emplacement: 'A-12',

@@ -1,6 +1,6 @@
 {
   "titre": "Annahme",
-  "nouveau": "RA öffnen",
+  "nouveau": "RA erstellen",
   "sections": {
     "vehicule": "Fahrzeug und Kunde",
     "kilometrage": "Kilometerstand",
@@ -15,7 +15,7 @@
   "champs": {
     "kmEntree": "Km bei Ankunft (erforderlich)",
     "kmSortie": "Km bei Abfahrt (geschätzt)",
-    "demandes": "Kundenangaben (Wortlaut)",
+    "demandes": "Kundenwünsche, wörtlich",
     "plafond": "Kostengrenze (CHF)",
     "autorisePar": "Genehmigt durch",
     "restitutionPromise": "Versprochene Rückgabe",

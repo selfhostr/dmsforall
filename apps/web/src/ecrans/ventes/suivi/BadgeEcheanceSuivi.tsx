@@ -2,6 +2,7 @@ import { AlertTriangle, Calendar, CalendarClock, Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/lib/utils';
+import { BadgeStatut, type FormeBadge, type TokenStatut } from '@/composants/identite/BadgeStatut';
 
 import { calculerJoursRestants, determinerNiveauUrgence, type NiveauUrgence } from './urgence';
 
@@ -21,11 +22,11 @@ const ICONES: Record<NiveauUrgence, typeof AlertTriangle> = {
   lointaine: Calendar,
 };
 
-const CLASSES_TOKEN: Record<NiveauUrgence, string> = {
-  echue: 'border-transparent bg-statut-danger-fond text-statut-danger',
-  imminente: 'border-transparent bg-statut-attention-fond text-statut-attention',
-  proche: 'border-statut-info bg-background text-statut-info',
-  lointaine: 'border-statut-neutre bg-background text-statut-neutre',
+const FORME_TOKEN: Record<NiveauUrgence, { token: TokenStatut; forme: FormeBadge }> = {
+  echue: { token: 'danger', forme: 'plein' },
+  imminente: { token: 'attention', forme: 'plein' },
+  proche: { token: 'info', forme: 'contour' },
+  lointaine: { token: 'neutre', forme: 'contour' },
 };
 
 /**
@@ -65,15 +66,8 @@ export function BadgeEcheanceSuivi({ prochaineEcheanceLe, aujourdHui, className 
   }
 
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 texte-libelle font-medium',
-        CLASSES_TOKEN[niveau],
-        className,
-      )}
-    >
-      <Icone aria-hidden className="h-3.5 w-3.5 shrink-0" />
+    <BadgeStatut icone={Icone} {...FORME_TOKEN[niveau]} className={className}>
       {libelle}
-    </span>
+    </BadgeStatut>
   );
 }

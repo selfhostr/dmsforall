@@ -1,4 +1,3 @@
-import { Tabs as TabsPrimitive } from '@base-ui/react/tabs';
 import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -8,6 +7,7 @@ import type { DocumentVenteResume, FiltresDocumentsVente } from '@dfa/shared';
 import { messageErreur } from '@/api/erreurs';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
+import { Segments } from '@/composants/commun/Segments';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { BarreFiltres } from '@/composants/comptoir/BarreFiltres';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
@@ -18,16 +18,17 @@ import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { useListeDocumentsVente } from '@/hooks/facturation/useListeDocumentsVente';
 import { useSession } from '@/hooks/useSession';
 import { formaterDate, formaterMontant } from '@/lib/formats';
-import { cn } from '@/lib/utils';
 
 import { BadgeEtatDocument } from './BadgeEtatDocument';
+import { BadgeStatutDevis } from './BadgeStatutDevis';
 import { BadgeStatutReglement } from './BadgeStatutReglement';
+import { BoutonNouveauDevis } from './BoutonNouveauDevis';
 import { peutVoirMontantsFacturation } from './droits';
 import { IndicateurRetard } from './IndicateurRetard';
 
 const DELAI_DEBOUNCE_MS = 300;
 
-type OngletListeFactures = 'toutes' | 'nonReglees' | 'enRetard' | 'aRelancer';
+type OngletListeFactures = 'toutes' | 'nonReglees' | 'enRetard' | 'aRelancer' | 'devis';
 
 // Ordre d'affichage des onglets, réutilisé pour le rendu — `satisfies` garantit que la liste
 // reste synchronisée avec `OngletListeFactures` si une valeur est ajoutée ou renommée.
@@ -36,6 +37,7 @@ const ONGLETS_LISTE_FACTURES = [
   'nonReglees',
   'enRetard',
   'aRelancer',
+  'devis',
 ] as const satisfies readonly OngletListeFactures[];
 
 /**
@@ -73,12 +75,12 @@ export function EcranListeFactures() {
   const { t } = useTranslation(['facturation', 'commun']);
   const navigate = useNavigate();
   const { data: session } = useSession();
-  const role = session?.utilisateur.role;
+  const actions = session?.actions;
   // Tant que la session n'est pas résolue, `role === undefined` -> `peutVoirMontantsFacturation`
   // rend `false` -> la colonne « Retard » reste absente jusqu'à confirmation du droit. Jamais
   // l'inverse (colonne visible puis retirée) : cette direction est la seule qui ne fait pas
   // clignoter le tableau (même principe que `autoriseFinancier` sur `EcranTableauBord`).
-  const voitMontantsFacturation = peutVoirMontantsFacturation(role);
+  const voitMontantsFacturation = peutVoirMontantsFacturation(actions);
 
   const [qSaisie, setQSaisie] = useState('');
   const [q, reinitialiserQ] = useValeurDebouncee(qSaisie, DELAI_DEBOUNCE_MS);
@@ -88,10 +90,15 @@ export function EcranListeFactures() {
 
   const filtres: FiltresDocumentsVente = useMemo(() => {
     const base: FiltresDocumentsVente = {
-      typeDocument: ['facture'],
+      typeDocument: onglet === 'devis' ? ['devis'] : ['facture'],
       q: q.trim() === '' ? undefined : q.trim(),
       tri: onglet === 'nonReglees' ? 'dateDocument:asc' : 'dateDocument:desc',
     };
+    if (onglet === 'devis') {
+      // Les devis n'ont ni règlement ni échéance : aucun autre filtre que le type, du plus récent
+      // au plus ancien.
+      return base;
+    }
     if (onglet === 'nonReglees') {
       // `statut: ['emis']` — même correctif que `useFacturesOuvertesClient` (`hooks/facturation/`) :
       // `statutReglement` seul laissait passer une facture `annule_par_avoir`, qui conserve le
@@ -209,7 +216,9 @@ export function EcranListeFactures() {
             // contredisaient en apparence. Les DEUX badges, mêmes mots qu'ailleurs dans l'app, côte à
             // côte — jamais l'un choisi au détriment de l'autre.
             rendu: (document_: DocumentVenteResume) =>
-              document_.statut === 'annule_par_avoir' ? (
+              document_.typeDocument === 'devis' ? (
+                <BadgeStatutDevis statut={document_.statut} />
+              ) : document_.statut === 'annule_par_avoir' ? (
                 <BadgeEtatDocument etat="annule_par_avoir" />
               ) : document_.statut === 'brouillon' ? (
                 <BadgeEtatDocument etat="brouillon" />
@@ -264,6 +273,14 @@ export function EcranListeFactures() {
         description={t('facturation:liste.vide.nonReglees.description')}
       />
     );
+  } else if (onglet === 'devis') {
+    contenuVide = (
+      <EtatVide
+        titre={t('facturation:liste.vide.devis.titre')}
+        description={t('facturation:liste.vide.devis.description')}
+        action={<BoutonNouveauDevis variante="default" />}
+      />
+    );
   } else if (onglet === 'enRetard') {
     contenuVide = (
       <EtatVide
@@ -290,7 +307,7 @@ export function EcranListeFactures() {
     // Clients, c'est mieux » (12.08.2026), tranchée dans l'autre sens le 17.08.2026 pour ce cas
     // précis. Aucun padding local : le gabarit ne pose ni max-largeur ni remplissage, `AppShell`
     // fournit déjà l'unique `p-4 sm:p-6` de tout écran routé.
-    <GabaritEcran titre={t('facturation:liste.titre')}>
+    <GabaritEcran titre={t('facturation:liste.titre')} actions={<BoutonNouveauDevis />}>
       {/* Bascule de VUE à l'intérieur de cet écran (elle ne navigue nulle part — elle change quelles
           factures la même liste affiche), pas un second niveau de NAVIGATION : empilée sous la
           rangée d'onglets d'`OngletsDomaine` (soulignement, `components/ui/tabs.tsx`), une même
@@ -320,30 +337,15 @@ export function EcranListeFactures() {
           panneau évite structurellement. Piste « radiogroup » écartée aussi : chaque onglet change
           RÉELLEMENT quel jeu de factures s'affiche (pas un simple tri) — la sémantique « tabs »
           reste honnête, seule la bibliothèque posait un attribut invalide. */}
-      <TabsPrimitive.Root
-        value={onglet}
-        onValueChange={(valeur) => setOnglet(valeur as OngletListeFactures)}
-      >
-        <TabsPrimitive.List
-          aria-label={t('facturation:liste.onglets.groupeLabel')}
-          className="inline-flex items-stretch gap-1 rounded-md border bg-muted/40 p-1"
-        >
-          {ONGLETS_LISTE_FACTURES.map((valeur) => (
-            <TabsPrimitive.Tab
-              key={valeur}
-              value={valeur}
-              className={cn(
-                'flex h-9 items-center whitespace-nowrap rounded-sm px-3 texte-corps font-medium transition-colors',
-                'anneau-focus',
-                'text-muted-foreground hover:text-foreground',
-                'data-active:bg-background data-active:font-semibold data-active:text-foreground data-active:shadow-sm',
-              )}
-            >
-              {t(`facturation:liste.onglets.${valeur}`)}
-            </TabsPrimitive.Tab>
-          ))}
-        </TabsPrimitive.List>
-      </TabsPrimitive.Root>
+      <Segments
+        valeur={onglet}
+        onChange={setOnglet}
+        ariaLabel={t('facturation:liste.onglets.groupeLabel')}
+        options={ONGLETS_LISTE_FACTURES.map((valeur) => ({
+          valeur,
+          libelle: t(`facturation:liste.onglets.${valeur}`),
+        }))}
+      />
 
       <BarreFiltres
         q={qSaisie}

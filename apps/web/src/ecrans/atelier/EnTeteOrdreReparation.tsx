@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 
@@ -16,8 +17,17 @@ import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { ActionPrimaire } from '@/composants/layout/ActionPrimaire';
 import { FilAriane, type SegmentFilAriane } from '@/composants/layout/FilAriane';
 import { listerOrdresReparation } from '@/hooks/atelier/ordres-reparation.api';
+import { useSession } from '@/hooks/useSession';
 import { formaterDateHeure, formaterMontant, formaterKilometrage } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
+
+import {
+  DialogueFacturerEtEncaisser,
+  type DemandeFacturerEtEncaisser,
+} from '@/ecrans/facturation/DialogueFacturerEtEncaisser';
+
+import { demandeFacturerEtEncaisserDepuisOr } from './facturer-encaisser-or';
+import { trouverOrPrecedent } from './or-precedent';
 
 // `LocalisationVehicule` -> suffixe de `or:localisations` — mapping non trivial
 // (`sous_traitant` -> `sousTraitant` avec interpolation `{fournisseur}`), explicite comme partout
@@ -119,6 +129,13 @@ export function EnTeteOrdreReparation({ or }: Props) {
   // correspondance unique déjà vertes dans `EcranFicheOrdreReparation.spec.tsx`. Un futur lot qui
   // toucherait ce fichier pourrait déplacer ce déclencheur ici plutôt que de le dupliquer.
   const peutFacturer = or.actionsDisponibles.includes('facturer');
+  // « Facturer et encaisser » : action principale quand le cas est simple (un client, tout
+  // réalisé) ; sinon « Facturer » mène à l'écran détaillé. L'état du dialogue reste ici : après la
+  // facturation `actionsDisponibles` perd `facturer`, le bouton disparaît mais le dialogue doit
+  // rester ouvert pour l'encaissement et le PDF.
+  const session = useSession();
+  const [demande, setDemande] = useState<DemandeFacturerEtEncaisser | null>(null);
+  const demandeSimple = demandeFacturerEtEncaisserDepuisOr(or, session.data?.actions);
 
   // Lot B (`docs/plan-refonte-navigation.md`) — « l'OR précédent du même véhicule ». Requête
   // minimale via la fonction de transport (`vehiculeId` désormais sérialisé, défaut réparé), non
@@ -129,12 +146,12 @@ export function EnTeteOrdreReparation({ or }: Props) {
     queryFn: async () => {
       const page = await listerOrdresReparation(
         { vehiculeId: or.vehicule.id, tri: 'ouvertLe:desc' },
-        { limite: 5 },
+        { limite: 50 },
       );
       return page.donnees;
     },
   });
-  const orPrecedent = requetePrecedent.data?.find((candidat) => candidat.id !== or.id) ?? null;
+  const orPrecedent = trouverOrPrecedent(requetePrecedent.data ?? [], or);
 
   const localisationTexte =
     or.localisation === 'sous_traitant'
@@ -156,7 +173,13 @@ export function EnTeteOrdreReparation({ or }: Props) {
             <span className="texte-titre-section font-semibold text-foreground">{or.numero}</span>
             <BadgeStatutOr etat={or.etatAffiche} />
           </div>
-          {peutFacturer ? (
+          {peutFacturer && demandeSimple ? (
+            <ActionPrimaire>
+              <Button type="button" variant="default" onClick={() => setDemande(demandeSimple)}>
+                {t('or:transitions.facturerEncaisser')}
+              </Button>
+            </ActionPrimaire>
+          ) : peutFacturer ? (
             <ActionPrimaire>
               <Button asChild variant="default">
                 <Link
@@ -271,6 +294,12 @@ export function EnTeteOrdreReparation({ or }: Props) {
           </div>
         ) : null}
       </CardContent>
+      <DialogueFacturerEtEncaisser
+        demande={demande}
+        onFermer={() => setDemande(null)}
+        onOuvrirFacture={(factureId) => navigate(`/factures/${factureId}`)}
+        onFacturerEnDetail={() => navigate(`/ordres-reparation/${or.id}/facturer`)}
+      />
     </Card>
   );
 }

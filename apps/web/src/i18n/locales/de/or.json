@@ -9,7 +9,7 @@
     "attentePieces": "Wartet auf Teile",
     "attenteExterne": "Wartet auf Fremdfertigung",
     "controle": "Kontrolle",
-    "termine": "Abgeschlossen",
+    "termine": "Arbeiten abgeschlossen",
     "facture": "Fakturiert",
     "restitue": "Zurückgegeben",
     "cloture": "Geschlossen",
@@ -26,8 +26,8 @@
     "termine": "Arbeiten abgeschlossen, bereit zur Abholung",
     "facture": "Fakturiert, wartet auf Zahlung",
     "restitue": "Fahrzeug zurückgegeben",
-    "cloture": "Akte geschlossen",
-    "annule": "Akte storniert"
+    "cloture": "RA abgeschlossen",
+    "annule": "RA storniert"
   },
   "bandeau": {
     "numero": "RA",
@@ -38,14 +38,14 @@
     "localisation": "Position",
     "restitutionPromise": "Versprochene Rückgabe",
     "plafond": "Kostengrenze",
-    "totalDuJour": "Heute",
+    "totalDuJour": "Tagestotal",
     "techniciensEnCours": "Techniker aktiv",
     "numeroPo": "Kundenauftrag",
     "restitutionReportee": "Verschoben",
     "orPrecedent": "Vorheriger RA: {numero}"
   },
   "localisations": {
-    "parc": "Stellplatz",
+    "parc": "Parkplatz",
     "atelier": "Werkstatt",
     "sousTraitant": "Bei {fournisseur}",
     "essaiRoutier": "Probefahrt",
@@ -67,21 +67,21 @@
       "annule": "Storniert"
     },
     "colonnes": {
-      "origine": "Ursprung",
+      "origine": "Herkunft",
       "designation": "Bezeichnung",
       "type": "Typ",
       "quantite": "Menge",
-      "tempsBareme": "Richtzeit",
+      "tempsBareme": "Vorgabezeit",
       "tempsPointe": "Erfasste Zeit",
       "prixUnitaire": "Einzelpreis exkl. MWST",
       "rabais": "Rabatt",
-      "payeur": "Zahler",
+      "payeur": "Zahlungspflichtig",
       "technicien": "Techniker",
       "totalTtc": "Total inkl. MwSt.",
       "statut": "Status"
     },
     "types": {
-      "mainOeuvreBaremee": "Arbeitszeit (Richtzeit-Tarif)",
+      "mainOeuvreBaremee": "Arbeit (Vorgabezeit)",
       "mainOeuvreTempsReel": "Arbeitszeit (effektiv erfasste Zeit)",
       "forfait": "Pauschal",
       "piece": "Teil (aus Lager entnommen)",
@@ -93,8 +93,8 @@
       "texte": "Information"
     },
     "origines": {
-      "commandee": "Kunde",
-      "constatee": "Festgestellt",
+      "commandee": "Vom Kunden bestellt",
+      "constatee": "Bei der Arbeit festgestellt",
       "campagne": "Kampagne",
       "garantie": "Garantie",
       "retouche": "Nacharbeit",
@@ -134,7 +134,7 @@
       "placeholder": "Geben Sie eine Bezeichnung ein (Ctrl+Eingabe)",
       "aide": "Schnelleintrag: Eingabe erstellt, Umschalt+Eingabe bleibt in der Zeile, Escape bricht ab. Alt+T/R/F/P/S für Typ",
       "raccourcis": {
-        "travail": "Alt+T = Arbeitszeit Tarif",
+        "travail": "Alt+T = Arbeit (Vorgabe)",
         "tempsReel": "Alt+R = Realzeit",
         "forfait": "Alt+F = Pauschal",
         "piece": "Alt+P = Teil",
@@ -146,9 +146,8 @@
       "refuser": "Ablehnen",
       "annuler": "Stornieren",
       "dupliquer": "Duplizieren",
-      "marquerRealisee": "Erledigt markieren",
       "affecterTechnicien": "Techniker zuweisen",
-      "changerPayeur": "Zahler ändern"
+      "changerPayeur": "Zahlungspflichtigen ändern"
     },
     "annulation": {
       "titre": "Arbeit stornieren",
@@ -201,11 +200,19 @@
       "validerTitre": "{count, plural, one {# Position freigeben} other {# Positionen freigeben}}",
       "refuserTitre": "{count, plural, one {# Position ablehnen} other {# Positionen ablehnen}}",
       "annulerTitre": "{count, plural, one {# Position stornieren} other {# Positionen stornieren}}"
+    },
+    "attenteAccord": {
+      "indicateur": "Wartet auf Zustimmung des Kunden",
+      "ajouteeBureau": "Arbeit hinzugefügt, wartet auf Zustimmung des Kunden. Nutzen Sie «Zustimmung des Kunden» in der Zeile.",
+      "ajouteeAtelier": "Arbeit hinzugefügt, wartet auf Zustimmung des Kunden. Das Büro sieht sie in diesem RA."
+    },
+    "reporter": {
+      "action": "Arbeit verschieben"
     }
   },
   "demandes": {
     "titre": "Kundenangaben",
-    "verbatim": "Wortlaut",
+    "verbatim": "Kundenwünsche",
     "ajouter": "Hinzufügen",
     "aide": "Kundenangaben werden nie umformuliert – sie behalten die exakten Begriffe des Kunden",
     "jamaisReformule": "Wie vorgegeben gespeichert"
@@ -240,7 +247,7 @@
       },
       "interlocuteur": "Person die geantwortet hat",
       "interlocuteurRequis": "Der Name ist erforderlich",
-      "retranscription": "Freier Text",
+      "retranscription": "Freie Bemerkung",
       "enregistrer": "Antwort speichern"
     },
     "enAttenteDepuis": "Ausstehend seit {duree}",
@@ -282,13 +289,14 @@
     "passerEnControle": "Zur Kontrolle",
     "refuserControle": "Kontrolle ablehnen",
     "validerControle": "Kontrolle validieren",
-    "terminer": "Abschliessen",
+    "terminer": "Arbeiten abgeschlossen",
     "facturer": "Fakturieren",
     "restituer": "Fahrzeug restitieren",
     "cloturer": "Schliessend",
     "annuler": "RA stornieren",
     "rouvrir": "Wiederöffnen",
-    "reprendreTravaux": "Arbeiten fortsetzen"
+    "reprendreTravaux": "Arbeiten fortsetzen",
+    "facturerEncaisser": "Verrechnen und kassieren"
   },
   "refus": {
     "ligneAValider": "Einige Arbeiten erwarten Freigabe. Sie sind unten aufgelistet.",
@@ -330,7 +338,7 @@
   "liste": {
     "titre": "Reparaturaufträge",
     "actions": {
-      "nouveau": "Neuer Reparaturauftrag"
+      "nouveau": "RA erstellen"
     },
     "colonnes": {
       "numero": "RA-Nr.",
@@ -401,17 +409,22 @@
     "titre": "Aktionen",
     "imprimer": "RA drucken",
     "confirmer": "Bestätigen",
-    "confirmerAction": "Bestätigen Sie diese Aktion.",
+    "confirmation": {
+      "demarrer": "Der RA wird auf «In Bearbeitung» gesetzt: Die Mitarbeitenden können nun stempeln und die Arbeiten ausführen.",
+      "passerEnControle": "Der RA geht in die Kontrolle: Die Arbeiten werden geprüft, bevor sie als abgeschlossen gelten.",
+      "cloturer": "Der RA wird geschlossen: Er kann danach weder geändert noch fakturiert werden."
+    },
     "annulerAvertissement": "Diese Aktion ist endgültig: Ein stornierter Reparaturauftrag kann weder geändert noch fortgesetzt werden.",
     "motif": "Grund",
     "motifRequis": "Der Grund ist obligatorisch",
     "kilometrageEntree": "Kilometerstand bei Annahme",
     "kilometrageSortie": "Kilometerstand bei Abfahrt",
-    "signatureDifferee": "Später unterschreiben",
+    "signatureDifferee": "Kunde unterschreibt später",
     "motifSignatureDifferee": "Grund für die aufgeschobene Unterschrift",
     "paiementRecu": "Zahlung bei Rückgabe erhalten",
     "aucuneActionDisponible": "Momentan keine Aktion möglich.",
-    "autresActions": "Weitere Aktionen"
+    "autresActions": "Weitere Aktionen",
+    "kilometrageAide": "Zählerstand bei der Annahme"
   },
   "totaux": {
     "titre": "Totale",
@@ -419,7 +432,7 @@
     "aideDistinction": "«Validiertes Total» überwacht die Kostengrenze des Auftrags (bereits validierte Positionen, alle Kostenträger zusammen) — kein zu fakturierender Betrag. Für einen Betrag an einen Kostenträger die entsprechende Zeile oben verwenden."
   },
   "nouveau": {
-    "titre": "Neuer Reparaturauftrag",
+    "titre": "RA erstellen",
     "siteManquant": {
       "titre": "Kein Standort ausgewählt",
       "description": "Wählen Sie einen Standort, bevor Sie einen Reparaturauftrag eröffnen: Die Nummerierung und die Einstellungen des Reparaturauftrags hängen davon ab.",
@@ -437,7 +450,13 @@
     "vehicule": {
       "titre": "Fahrzeug",
       "aucun": "Für diesen Kunden ist kein Fahrzeug erfasst.",
-      "erreur": "Die Fahrzeuge dieses Kunden konnten nicht geladen werden"
+      "erreur": "Die Fahrzeuge dieses Kunden konnten nicht geladen werden",
+      "ajouter": {
+        "action": "Fahrzeug hinzufügen",
+        "titre": "Neues Fahrzeug dieses Kunden",
+        "valider": "Fahrzeug speichern",
+        "enCours": "Wird gespeichert…"
+      }
     },
     "type": {
       "libelle": "Reparaturauftrag-Typ",
@@ -451,7 +470,7 @@
       "interne": "Intern"
     },
     "champs": {
-      "statutInitial": "Status bei Eröffnung",
+      "statutInitial": "Ausgangsstatus",
       "avance": "Weitere Angaben",
       "kmInvalide": "Der eingegebene Kilometerstand überschreitet die zulässige Grenze.",
       "plafondInvalide": "Die Kostengrenze darf nicht negativ sein.",
@@ -465,12 +484,159 @@
       "titre": "Der Reparaturauftrag konnte nicht eröffnet werden"
     },
     "confirmation": {
-      "vehiculeDeuxOrOuverts": "Für dieses Fahrzeug bereits offen: {numeros}. Trotzdem einen neuen Reparaturauftrag eröffnen?"
+      "vehiculeDeuxOrOuverts": "Für dieses Fahrzeug bereits offen: {numeros}. Trotzdem einen neuen Reparaturauftrag eröffnen?",
+      "ouvrirOr": "RA {numero} öffnen (neuer Tab)"
     },
     "actions": {
       "creer": "Reparaturauftrag eröffnen",
       "enCours": "Wird eröffnet…",
       "ignorerBrouillon": "Entwurf verwerfen"
+    },
+    "rapide": {
+      "titre": "Auftrag eröffnen",
+      "intro": "Kontrollschild eingeben: Fahrzeug und Kunde werden gefunden. Andernfalls ergänzen Sie unten ein paar Angaben, alles wird in einem Zug erfasst.",
+      "plaque": "Kontrollschild",
+      "plaqueExemple": "VD 123456",
+      "plaqueAide": "Leerzeichen und Bindestriche werden ignoriert.",
+      "vehicule": {
+        "titre": "Fahrzeug",
+        "requis": "Geben Sie das Kontrollschild ein oder wählen Sie das Fahrzeug aus der Liste.",
+        "choisir": "Wählen Sie ein Fahrzeug aus der Liste oder geben Sie ein anderes Fahrzeug an."
+      },
+      "vehiculesTrouves": "{count, plural, one {# Fahrzeug passt} other {# Fahrzeuge passen}}",
+      "vehiculesDuClient": "Fahrzeuge dieses Kunden",
+      "autreVehicule": "Keines davon: anderes Fahrzeug",
+      "plaqueInconnue": "Kontrollschild unbekannt. Geben Sie Marke und Modell an, das Fahrzeug wird mit dem Auftrag erfasst.",
+      "nouveauVehicule": "Anderes Fahrzeug: Geben Sie Marke und Modell an.",
+      "retourListe": "Zurück zur Liste",
+      "rechercheErreur": "Suche nicht möglich",
+      "orDejaOuvert": "Auftrag bereits offen",
+      "anciennePlaque": "Früheres Kontrollschild",
+      "changer": "Ändern",
+      "invalide": "Ungültiger Wert.",
+      "client": {
+        "titre": "Kunde",
+        "detenteur": "Halter des Fahrzeugs",
+        "recherche": "Kunde suchen (Name, Telefon, Kundennr.)",
+        "aucun": "Kein Kunde gefunden.",
+        "nouveau": "Neuer Kunde",
+        "nom": "Name des Kunden",
+        "telephone": "Telefon",
+        "adressePlusTard": "Die Adresse wird später auf der Kundenkarte ergänzt.",
+        "similaires": "Ein Kunde mit diesem Namen existiert vielleicht schon:",
+        "chercherExistant": "Bestehenden Kunden suchen",
+        "requis": "Wählen Sie einen Kunden oder erfassen Sie einen neuen."
+      },
+      "ordre": {
+        "titre": "Reparaturauftrag",
+        "demande": "Anliegen des Kunden"
+      },
+      "echec": {
+        "titre": "Der Auftrag konnte nicht eröffnet werden",
+        "reprise": "Ihre Eingabe bleibt erhalten: erneut versuchen, nichts wird doppelt angelegt."
+      },
+      "reessayer": "Erneut versuchen",
+      "ancienParcours": "Detaillierter Ablauf",
+      "clientIntrouvable": "Dieser Kunde wurde nicht gefunden: wählen Sie ihn unten erneut aus."
+    }
+  },
+  "accordClient": {
+    "titre": "Zustimmung des Kunden",
+    "nom": "Wer hat zugestimmt?",
+    "nomRequis": "Geben Sie den Namen der Person an.",
+    "mode": {
+      "libelle": "Wie?",
+      "telephone": "Telefon",
+      "surPlace": "Vor Ort",
+      "email": "E-Mail"
+    },
+    "horodatage": "Datum und Uhrzeit werden jetzt erfasst.",
+    "enregistrer": "Zustimmung speichern",
+    "action": "Zustimmung des Kunden",
+    "description": "{count, plural, one {Der Kunde hat für # Arbeit zugestimmt. Sie wird freigegeben.} other {Der Kunde hat für # Arbeiten zugestimmt. Sie werden freigegeben.}}",
+    "pourTous": "{count, plural, one {Zustimmung des Kunden für die vorgeschlagene Arbeit} other {Zustimmung des Kunden für die # vorgeschlagenen Arbeiten}}"
+  },
+  "lignesEnAttente": {
+    "annuler": "Abbrechen",
+    "motifRetrait": "Aus dem RA entfernt: keine Zustimmung des Kunden.",
+    "titre": "{count, plural, one {# Arbeit wartet noch auf die Zustimmung des Kunden} other {# Arbeiten warten noch auf die Zustimmung des Kunden}}",
+    "description": "{count, plural, one {Diese Arbeit ist «Vorgeschlagen»: weder akzeptiert noch abgelehnt. Was tun vor «{action}»?} other {Diese Arbeiten sind «Vorgeschlagen»: weder akzeptiert noch abgelehnt. Was tun vor «{action}»?}}",
+    "retirer": "{count, plural, one {Aus dem RA entfernen} other {Aus dem RA entfernen}}",
+    "laisser": "{count, plural, one {Wartend lassen} other {Wartend lassen}}"
+  },
+  "arretPointages": {
+    "titre": "{count, plural, one {# Zeiterfassung stoppen?} other {# Zeiterfassungen stoppen?}}",
+    "description": "{count, plural, one {Die laufende Zeiterfassung wird jetzt gestoppt. Der Mechaniker muss neu starten.} other {Die laufenden Zeiterfassungen werden jetzt gestoppt. Die Mechaniker müssen neu starten.}}",
+    "confirmer": "{count, plural, one {Zeiterfassung stoppen} other {Zeiterfassungen stoppen}}"
+  },
+  "consignes": {
+    "fournirMotif": "Der eingegebene Kilometerstand liegt unter dem letzten Stand ({km} km). Korrigieren Sie ihn bei einem Tippfehler.",
+    "signerReserveSecurite": "Lassen Sie den Sicherheitsvorbehalt vom Kunden unterzeichnen und wiederholen Sie dann die Rückgabe.",
+    "demanderHabilitation": "Diese Aktion ist einer verantwortlichen Person vorbehalten. Bitten Sie sie um Bestätigung.",
+    "controleQualite": "Die Qualitätskontrolle ist für diesen Betrieb Pflicht: der RA muss in die Kontrolle, bevor er abgeschlossen wird.",
+    "receptionnerIndisponible": "Das Fahrzeug muss zuerst angenommen werden. Ihre Rolle erlaubt das nicht: fragen Sie den Empfang."
+  },
+  "renseignerPo": {
+    "titre": "Bestellnummer erfassen",
+    "requis": "Geben Sie die Bestellnummer des Kunden an."
+  },
+  "erreurs": {
+    "transitionInterdite": {
+      "avecStatut": "Diese Aktion ist nicht möglich: Das RA ist « {statut} ». Laden Sie die Seite neu und wählen Sie einen der angebotenen Schritte.",
+      "sansStatut": "Diese Aktion ist in dieser Phase des RA nicht möglich. Laden Sie die Seite neu und wählen Sie einen der angebotenen Schritte."
+    }
+  },
+  "travauxReportes": {
+    "titre": "Verschobene Arbeiten dieses Fahrzeugs",
+    "description": "{count, plural, one {Eine Arbeit wartete auf dieses Fahrzeug.} other {# Arbeiten warteten auf dieses Fahrzeug.}}",
+    "reprendre": "In diesen RA übernehmen"
+  },
+  "courtoisie": {
+    "action": "Ersatzfahrzeug",
+    "titre": "Ersatzfahrzeug",
+    "description": "Wählen Sie ein heute freies Auto: Die Ausleihe wird diesem Kunden und diesem RA zugeordnet.",
+    "aucunLibre": "Heute ist kein Ersatzfahrzeug frei."
+  },
+  "lignesARealiser": {
+    "avertissement": "{count, plural, one {# Arbeit ist noch nicht als erledigt markiert. Sie wird mit dem Abschluss der Arbeiten erledigt.} other {# Arbeiten sind noch nicht als erledigt markiert. Sie werden mit dem Abschluss der Arbeiten erledigt.}}",
+    "action": "{count, plural, one {Position als erledigt markieren und abschliessen} other {# Positionen als erledigt markieren und abschliessen}}"
+  },
+  "pretCourtoisie": {
+    "titre": "Ersatzfahrzeug",
+    "chargement": "Ersatzfahrzeug wird geladen…",
+    "erreur": "Die Ausleihe des Ersatzfahrzeugs konnte nicht geladen werden.",
+    "enCours": "Ersatzfahrzeug: {vehicule}, ausgeliehen am {date}",
+    "enRetard": "Ersatzfahrzeug: {vehicule}, ausgeliehen am {date} – noch nicht zurückgegeben",
+    "reserve": "Ersatzfahrzeug: {vehicule}, reserviert ab {date}",
+    "retourne": "Ersatzfahrzeug: {vehicule}, ausgeliehen am {date}, zurückgegeben am {dateRetour}"
+  },
+  "photos": {
+    "bouton": "Foto",
+    "ajouter": "Foto hinzufügen",
+    "boutonPour": "Foto hinzufügen — {designation}",
+    "compteur": "{count, plural, one {# Foto} other {# Fotos}}",
+    "complet": "Maximum erreicht ({max} Fotos).",
+    "liste": "Fotos zur Arbeit",
+    "ouvrir": "Foto {numero} von {total} öffnen",
+    "apercuAttente": "Foto {numero} zum Senden",
+    "retirer": "Foto {numero} entfernen",
+    "apercuDevis": "{count, plural, one {# Foto zu dieser Arbeit} other {# Fotos zu diesen Arbeiten}}",
+    "echecApresCreation": "{count, plural, one {Die Arbeit ist gespeichert, aber # Foto konnte nicht gesendet werden.} other {Die Arbeit ist gespeichert, aber # Fotos konnten nicht gesendet werden.}}",
+    "reessayer": "Senden wiederholen",
+    "continuerSans": "Ohne Foto fortfahren",
+    "erreurs": {
+      "tropLourde": "Dieses Foto ist auch nach der Verkleinerung zu gross. Bitte neu aufnehmen.",
+      "illisible": "Dieses Foto kann nicht gelesen werden. Bitte neu aufnehmen.",
+      "heic": "Dieses Fotoformat (HEIC) kann hier nicht gelesen werden. Stellen Sie die Kamera auf «Kompatibelste» (JPEG) und nehmen Sie das Foto neu auf."
+    },
+    "visionneuse": {
+      "titre": "Foto der Arbeit",
+      "position": "Foto {numero} von {total}",
+      "sansLegende": "Foto der Arbeit",
+      "precedente": "Zurück",
+      "suivante": "Weiter",
+      "supprimer": "Foto löschen",
+      "confirmerSuppression": "Ja, löschen"
     }
   }
 }

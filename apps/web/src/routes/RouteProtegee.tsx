@@ -3,18 +3,20 @@ import { Navigate, useLocation } from 'react-router';
 
 import type { RoleUtilisateur } from '@dfa/shared';
 
+import { peutUne } from '@/droits';
 import { useSession } from '@/hooks/useSession';
 import { EcranServiceIndisponible } from '@/ecrans/systeme/EcranServiceIndisponible';
 import { EcranVerificationSession } from '@/ecrans/systeme/EcranVerificationSession';
 
 import { EcranAccesRefuse } from './EcranAccesRefuse';
+import type { DestinationAtterrissage } from './atterrissage';
+import type { Acces } from './droits-routes';
 
 interface Props {
   readonly children: ReactNode;
   /**
-   * Restreint la route à un sous-ensemble de rôles — calqué LITTÉRALEMENT sur le(s) droit(s)
-   * que l'API exige pour l'action portée par l'écran (voir `apps/api/src/auth/matrice-droits.ts`,
-   * ex. `parametrage.referentiel.modifier` -> `chef_atelier`/`direction`/`admin`). Omis : tout
+   * Restreint la route aux personnes qui détiennent AU MOINS UNE de ces actions (`session.actions`,
+   * voir `@/droits` et `routes/droits-routes.ts`) — le droit que l'API exige pour l'écran. Omis : tout
    * utilisateur authentifié passe, comportement historique inchangé pour les routes qui ne
    * portent aucune restriction propre au rôle (l'API reste de toute façon l'arbitre final à
    * chaque appel — ceci évite seulement d'afficher un écran que l'utilisateur ne pourra pas
@@ -22,10 +24,10 @@ interface Props {
    * `BarreLaterale` : masquer dans le menu SEUL ne protège rien, un utilisateur qui connaît
    * l'URL l'atteindrait quand même sans ce contrôle.
    */
-  readonly rolesAutorises?: readonly RoleUtilisateur[];
+  readonly accesAutorise?: Acces;
   /**
    * Redirection automatique par rôle, appliquée APRÈS la vérification de rôle mais AVANT le rendu
-   * de `children` — mécanisme distinct de `rolesAutorises` : ce n'est pas une restriction (le
+   * de `children` — mécanisme distinct de `accesAutorise` : ce n'est pas une restriction (le
    * rôle qui matche ne perd aucun droit, il ne voit simplement pas CET écran-ci), c'est un choix
    * d'atterrissage. Introduit pour le Lot 0 de la refonte de navigation
    * (`docs/plan-refonte-navigation.md`, section « Lot 0 — Dettes préalables ») : le rôle
@@ -36,7 +38,7 @@ interface Props {
    * Posé sur la route index (`routeur.tsx`) pour l'instant ; rien n'empêche de le poser sur une
    * autre route protégée si un besoin similaire apparaît.
    */
-  readonly redirectionParRole?: Partial<Record<RoleUtilisateur, string>>;
+  readonly redirectionParRole?: Partial<Record<RoleUtilisateur, string | DestinationAtterrissage>>;
 }
 
 /** 6 branches strictes (les 4 historiques de contrats-etape-0.md §5, la restriction par rôle
@@ -65,7 +67,7 @@ interface Props {
  *  PREMIER chargement (`data === undefined`, aucune session jamais connue) justifie encore l'écran
  *  de service indisponible — dans ce cas précis, et seulement celui-là, on ignore réellement l'état
  *  d'authentification. */
-export function RouteProtegee({ children, rolesAutorises, redirectionParRole }: Props) {
+export function RouteProtegee({ children, accesAutorise, redirectionParRole }: Props) {
   const { data, isPending, isError } = useSession();
   const location = useLocation();
 
@@ -79,10 +81,16 @@ export function RouteProtegee({ children, rolesAutorises, redirectionParRole }: 
   if (data === null) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
-  if (rolesAutorises && !rolesAutorises.includes(data.utilisateur.role)) {
+  if (accesAutorise && !peutUne(data.actions, ...accesAutorise)) {
     return <EcranAccesRefuse />;
   }
-  const destinationRedirection = redirectionParRole?.[data.utilisateur.role];
+  const brute = redirectionParRole?.[data.utilisateur.role];
+  const destinationRedirection =
+    typeof brute === 'object' && !peutUne(data.actions, ...brute.acces)
+      ? undefined
+      : typeof brute === 'object'
+        ? brute.chemin
+        : brute;
   if (destinationRedirection) {
     return <Navigate to={destinationRedirection} replace />;
   }

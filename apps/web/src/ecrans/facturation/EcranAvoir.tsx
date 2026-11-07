@@ -57,7 +57,7 @@ export function EcranAvoir() {
 
   const requete = useDocumentVente(id);
   const creation = useCreerAvoir();
-  const emission = useEmettreDocumentVente();
+  const emission = useEmettreDocumentVente({ succes: 'commun:toasts.avoirEmis' });
 
   const [motif, setMotif] = useState<MotifAvoir>('geste_commercial');
   const [motifAutre, setMotifAutre] = useState('');

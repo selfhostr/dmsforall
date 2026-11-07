@@ -40,7 +40,9 @@ describe('classification de gravité (construireToastFiletErreurMutation)', () =
     const toast = construireToastFiletErreurMutation(erreurApi('DROIT_INSUFFISANT', 403), i18n.t);
     expect(toast.gravite).toBe('droit');
     expect(toast.titre).toBe('Action refusée');
-    expect(toast.message).toBe("Vous n'avez pas les droits pour cette action.");
+    expect(toast.message).toBe(
+      "Votre rôle ne permet pas cette action. Demandez à la direction de vous l'ouvrir, ou faites-la faire par un collègue autorisé.",
+    );
   });
 
   it('distingue un conflit métier (409)', async () => {

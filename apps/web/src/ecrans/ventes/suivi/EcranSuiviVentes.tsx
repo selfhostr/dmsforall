@@ -1,4 +1,3 @@
-import { Tabs as TabsPrimitive } from '@base-ui/react/tabs';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -8,12 +7,12 @@ import type { LigneSuiviVente } from '@dfa/shared';
 import { messageErreur } from '@/api/erreurs';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
+import { Segments } from '@/composants/commun/Segments';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useListeSuiviVente } from '@/hooks/ventes/suivi/useListeSuiviVente';
-import { cn } from '@/lib/utils';
 import { chemins } from '@/routes/chemins';
 
 import { BadgeEcheanceSuivi } from './BadgeEcheanceSuivi';
@@ -158,32 +157,15 @@ export function EcranSuiviVentes() {
           jamais rendu, donc Base UI omet `aria-controls` — WCAG 4.1.2, voir `BasculeVueStock.tsx`
           pour le détail vérifié dans le code source, et `EcranSuiviVentes.spec.tsx` pour la preuve
           ici). */}
-      <TabsPrimitive.Root value={horizon} onValueChange={(valeur) => setHorizon(valeur as Horizon)}>
-        {/* DESIGN.md « bordure structurelle uniquement » — bordure CONSERVÉE : elle dessine le
-            contour d'un CONTRÔLE (`role="tablist"`, un segmented control), pas d'un groupe
-            de contenu. C'est le cas explicitement autorisé par la règle (« contour d'un contrôle
-            de saisie ») : sans elle, les trois horizons flotteraient au-dessus du fond sans
-            frontière commune et cesseraient de se lire comme un seul sélecteur. */}
-        <TabsPrimitive.List
-          aria-label={t('ventes:suivi.filtres.horizonLabel')}
-          className="inline-flex items-stretch gap-1 rounded-md border bg-muted/40 p-1"
-        >
-          {OPTIONS_HORIZON.map((valeur) => (
-            <TabsPrimitive.Tab
-              key={valeur}
-              value={valeur}
-              className={cn(
-                'flex h-9 items-center whitespace-nowrap rounded-sm px-3 texte-corps font-medium transition-colors',
-                'anneau-focus',
-                'text-muted-foreground hover:text-foreground',
-                'data-active:bg-background data-active:font-semibold data-active:text-foreground data-active:shadow-sm',
-              )}
-            >
-              {t(`ventes:suivi.filtres.horizon.${valeur}`)}
-            </TabsPrimitive.Tab>
-          ))}
-        </TabsPrimitive.List>
-      </TabsPrimitive.Root>
+      <Segments
+        valeur={horizon}
+        onChange={setHorizon}
+        ariaLabel={t('ventes:suivi.filtres.horizonLabel')}
+        options={OPTIONS_HORIZON.map((valeur) => ({
+          valeur,
+          libelle: t(`ventes:suivi.filtres.horizon.${valeur}`),
+        }))}
+      />
 
       {isPending ? (
         <EtatChargement lignes={6} />

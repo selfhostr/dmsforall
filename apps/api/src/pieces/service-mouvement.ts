@@ -22,7 +22,7 @@ import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
 import { JETON_DB } from '../db';
 import { article, mouvementStock, parametrePieces, site, stockArticle } from '../db/schema';
 import type { LigneMouvementStock, NouveauMouvementStock } from '../db/schema';
-import { MATRICE_DROITS } from '../auth/matrice-droits';
+import { actionsCourantes } from '../auth/droits-personne';
 import { CollecteurAvertissements } from '../common/avertissements';
 import { remonterCausePg } from '../common/erreurs-pg/remonter-cause-pg';
 import { ErreurMetier } from '../common/erreurs';
@@ -740,7 +740,7 @@ export class ServiceMouvement {
    */
   private exigerDroitForcage(role: RoleUtilisateur, forcer: boolean): void {
     if (!forcer) return;
-    const droitsDuRole = MATRICE_DROITS[role] ?? [];
+    const droitsDuRole = actionsCourantes(role);
     if (!droitsDuRole.includes('pieces.mouvement.forcer')) {
       throw new ErreurMetier(
         'DROIT_INSUFFISANT',

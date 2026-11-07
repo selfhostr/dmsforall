@@ -28,6 +28,7 @@ import {
 } from '@nestjs/swagger';
 import {
   schemaCreationUtilisateur,
+  schemaModificationCapacites,
   schemaModificationUtilisateur,
   schemaParametresPage,
   type ParametresPage,
@@ -117,13 +118,13 @@ export class UtilisateurController {
   ): Promise<ReponseCreationUtilisateurDto> {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
-    return this.service.creer(ctx, corps, principal.role);
+    return this.service.creer(ctx, corps, principal);
   }
 
   @Patch(':utilisateurId')
   @ExigerDroit('socle.utilisateur.modifier')
   @ApiOperation({
-    summary: 'Modifier le rôle et/ou les sites d’un employé',
+    summary: 'Modifier le rôle (préréglage) et/ou les sites d’un employé',
     description:
       'Au moins un des deux champs (role, siteIds) requis. Promouvoir vers admin est réservé ' +
       'à un acteur déjà admin (403 sinon), même avec le droit socle.utilisateur.modifier.',
@@ -147,7 +148,41 @@ export class UtilisateurController {
   ): Promise<UtilisateurResumeDto> {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
-    return this.service.modifier(ctx, utilisateurId, corps, principal.role);
+    return this.service.modifier(ctx, utilisateurId, corps, principal);
+  }
+
+  @Patch(':utilisateurId/capacites')
+  @ExigerDroit('socle.utilisateur.modifier')
+  @ApiOperation({
+    summary: 'Ajuster la grille de capacités d’un employé',
+    description:
+      'Niveaux Rien/Voir/Faire par domaine (atelier, accueil, facturation, pieces, ventes, ' +
+      'finances), encadrer, et options (voitMontants, voitPrixAchat, avoirsPlafonnes) ; champs ' +
+      'omis inchangés. Règle « on ne coche pas ce qu’on n’a pas » : 403 si la grille dépasse celle ' +
+      'de l’appelant, ou si l’appelant se modifie lui-même, ou modifie quelqu’un de plus puissant ' +
+      '(un compte admin n’est modifiable que par un admin). gererEmployes et patron ne se ' +
+      'modifient pas ici (suivent le rôle). Les sessions de la personne sont révoquées si ses ' +
+      'droits baissent. Audit avant/après.',
+  })
+  @ApiParam({ name: 'utilisateurId', format: 'uuid' })
+  @ApiOkResponse({ type: UtilisateurResumeDto })
+  @ApiReponseProbleme(400, 'Corps invalide (champ inconnu, niveau inconnu, corps vide).')
+  @ApiReponseProbleme(401, 'Session absente ou expirée.')
+  @ApiReponseProbleme(
+    403,
+    'Droit insuffisant, grille supérieure à celle de l’appelant, auto-modification, ou cible plus puissante.',
+  )
+  @ApiReponseProbleme(404, 'Employé introuvable pour ce tenant.')
+  async modifierCapacites(
+    @Param('utilisateurId', new PipeZod(schemaUtilisateurId)) utilisateurId: string,
+    @CorpsZod(schemaModificationCapacites, {
+      exemple: { niveaux: { pieces: 'faire' }, options: { voitPrixAchat: true } },
+    })
+    corps: z.infer<typeof schemaModificationCapacites>,
+  ): Promise<UtilisateurResumeDto> {
+    const ctx = this.contexte.contexteTenant();
+    const principal = this.contexte.exigerPrincipal();
+    return this.service.modifierCapacites(ctx, utilisateurId, corps, principal);
   }
 
   @Post(':utilisateurId/desactiver')
@@ -164,12 +199,14 @@ export class UtilisateurController {
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant (rôle sans socle.utilisateur.desactiver).')
   @ApiReponseProbleme(404, 'Employé introuvable pour ce tenant.')
-  @ApiReponseProbleme(409, 'Tentative de désactiver son propre compte.')
+  @ApiReponseProbleme(409, 'Tentative de désactiver son propre compte, ou dernier patron.')
+  @ApiReponseProbleme(403, 'Cible plus puissante que l’appelant, ou compte admin par un non-admin.')
   async desactiver(
     @Param('utilisateurId', new PipeZod(schemaUtilisateurId)) utilisateurId: string,
   ): Promise<UtilisateurResumeDto> {
     const ctx = this.contexte.contexteTenant();
-    return this.service.desactiver(ctx, utilisateurId);
+    const principal = this.contexte.exigerPrincipal();
+    return this.service.desactiver(ctx, utilisateurId, principal);
   }
 
   @Post(':utilisateurId/reactiver')
@@ -185,7 +222,8 @@ export class UtilisateurController {
     @Param('utilisateurId', new PipeZod(schemaUtilisateurId)) utilisateurId: string,
   ): Promise<UtilisateurResumeDto> {
     const ctx = this.contexte.contexteTenant();
-    return this.service.reactiver(ctx, utilisateurId);
+    const principal = this.contexte.exigerPrincipal();
+    return this.service.reactiver(ctx, utilisateurId, principal);
   }
 
   @Post(':utilisateurId/reinitialiser-acces')
@@ -207,6 +245,7 @@ export class UtilisateurController {
     @Param('utilisateurId', new PipeZod(schemaUtilisateurId)) utilisateurId: string,
   ): Promise<ReponseAccesTemporaireDto> {
     const ctx = this.contexte.contexteTenant();
-    return this.service.reinitialiserAcces(ctx, utilisateurId);
+    const principal = this.contexte.exigerPrincipal();
+    return this.service.reinitialiserAcces(ctx, utilisateurId, principal);
   }
 }

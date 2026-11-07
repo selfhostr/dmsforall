@@ -88,7 +88,11 @@ describe('EcranListeVehicules', () => {
     rendre();
 
     expect(await screen.findByText('Impossible de charger les véhicules')).toBeInTheDocument();
-    expect(screen.getByText("Une erreur interne s'est produite. Réessayez.")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Un problème inattendu est survenu. Réessayez dans un instant ; s'il revient, prévenez le support en indiquant l'heure.",
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Réessayer' })).toBeInTheDocument();
   });
 

@@ -58,7 +58,10 @@ export function OngletsDomaine({ className }: Props) {
   const libelleEntree = t(correspondance.entree.cleLibelle);
 
   return (
-    <div className={cn('shrink-0 border-b bg-background', className)}>
+    /* UNE SEULE rangée quand la place le permet (gain de 44 à 56 px avant le titre d'écran, audit
+          §1) : onglets à gauche, vues à droite du même niveau ; `flex-wrap` ne passe sur une
+          seconde rangée que si les deux ne tiennent pas côte à côte (tablette portrait). */
+    <div className={cn('flex shrink-0 flex-wrap items-center border-b bg-background', className)}>
       {afficheOnglets ? (
         // `aria-label` nommé par le domaine (« Onglets d'Atelier ») et non « Onglets » tout court :
         // deux zones de navigation dans la même page (barre latérale + onglets) doivent porter des
@@ -67,7 +70,7 @@ export function OngletsDomaine({ className }: Props) {
         // sur une tablette, faire glisser une rangée est un geste, ouvrir un menu en est deux.
         <nav
           aria-label={t('navigation:onglets.aria', { domaine: libelleEntree })}
-          className="overflow-x-auto"
+          className="min-w-0 overflow-x-auto"
         >
           <ul className="flex min-w-max items-stretch gap-1 px-2">
             {onglets.map((onglet) => {
@@ -89,7 +92,7 @@ export function OngletsDomaine({ className }: Props) {
                     className={cn(
                       // h-11 = 44 px, plancher tactile du produit (postes de comptoir tactiles,
                       // §4.6) — jamais réduit sur desktop, la souris n'est pas la seule entrée.
-                      'flex h-11 items-center whitespace-nowrap rounded-t-md border-b-2 px-4 texte-corps transition-colors',
+                      'flex h-[var(--cible-tactile)] items-center whitespace-nowrap rounded-t-md border-b-2 px-4 texte-corps transition-colors',
                       'anneau-focus',
                       actif
                         ? 'border-primary font-semibold text-foreground'
@@ -113,9 +116,14 @@ export function OngletsDomaine({ className }: Props) {
           aria-label={t('navigation:onglets.vuesAria', {
             onglet: t(correspondance.onglet.cleLibelle),
           })}
-          className={cn('overflow-x-auto', afficheOnglets ? 'border-t' : undefined)}
+          className={cn(
+            'min-w-0 overflow-x-auto',
+            afficheOnglets
+              ? 'ml-auto border-l pl-1 max-lg:w-full max-lg:border-l-0 max-lg:border-t'
+              : undefined,
+          )}
         >
-          <ul className="flex min-w-max items-stretch gap-1 px-2 py-1.5">
+          <ul className="flex min-w-max items-stretch gap-1 px-2">
             {vues.map((vue) => {
               const actif = vue.id === correspondance.vue?.id;
               return (
@@ -126,7 +134,7 @@ export function OngletsDomaine({ className }: Props) {
                     to={vue.chemin(site)}
                     aria-current={actif ? 'page' : undefined}
                     className={cn(
-                      'flex h-11 items-center whitespace-nowrap rounded-md px-3 texte-corps transition-colors',
+                      'flex h-[var(--cible-tactile)] items-center whitespace-nowrap rounded-md px-3 texte-corps transition-colors',
                       'anneau-focus',
                       actif
                         ? 'bg-secondary font-semibold text-secondary-foreground'

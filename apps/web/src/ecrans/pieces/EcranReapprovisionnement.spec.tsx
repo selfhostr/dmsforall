@@ -112,7 +112,18 @@ describe('EcranReapprovisionnement — titre de page (doublon avec l’onglet «
 
 describe('EcranReapprovisionnement — états de base', () => {
   it('demande un site tant qu’aucun n’est sélectionné', async () => {
-    connecterSession();
+    // Garage à deux sites : en mono-site le site est implicite (aucune question posée).
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({
+          ...SESSION_TEST,
+          sites: [
+            ...SESSION_TEST.sites,
+            { id: 'site-2', code: 'S2', nom: 'Second site', actif: true },
+          ],
+        }),
+      ),
+    );
     rendre('/pieces/reapprovisionnement');
 
     expect(await screen.findByText(i18n.t('pieces:siteRequis.titre'))).toBeInTheDocument();

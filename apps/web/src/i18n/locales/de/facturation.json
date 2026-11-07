@@ -24,7 +24,7 @@
       "irrecouvrable": "Uneinbringlich"
     },
     "statutAvoir": {
-      "nonRegle": "Nicht verrechnet",
+      "nonRegle": "Noch nicht verrechnet",
       "partiel": "Teilweise verrechnet",
       "regle": "Verrechnet",
       "tropPercu": "Zu viel verrechnet",
@@ -48,7 +48,8 @@
   "ligneDepuisOrGenerique": "vom Reparaturauftrag",
   "verrouille": {
     "message": "Diese Rechnung ist ausgestellt und kann nicht mehr geändert werden.",
-    "corriger": "Mit Gutschrift korrigieren →"
+    "corriger": "Mit Gutschrift korrigieren →",
+    "messageDevis": "Diese Offerte ist gesendet und kann nicht mehr geändert werden."
   },
   "paiementVerrouille": {
     "message": "Diese Zahlung ist erfasst und kann nicht mehr geändert werden.",
@@ -57,7 +58,8 @@
   "avanceClient": {
     "message": "Dieser Zahlungseingang übersteigt den Saldo von {montant} — der Überschuss wird als Kundenguthaben erfasst und später zugewiesen.",
     "aucuneFactureOuverte": "Dieser Kunde hat keine offene Rechnung zu begleichen.",
-    "confirmerAction": "Trotzdem als Kundenguthaben erfassen"
+    "confirmerAction": "Trotzdem als Kundenguthaben erfassen",
+    "excedent": "Sie kassieren {excedent} mehr als den Saldo von {solde}: der Überschuss wird als Kundenguthaben (Vorauszahlung) verbucht und kann später zugeordnet werden."
   },
   "motifsAvoir": {
     "erreurAdresse": "Adressfehler",
@@ -106,18 +108,26 @@
     "retour": "Zurück zum Auftrag",
     "refusBloquant": {
       "titre": "{count, plural, one {# Position verhindert die Fakturierung} other {# Positionen verhindern die Fakturierung}}",
-      "resoudre": "Beheben →"
+      "resoudre": "Beheben →",
+      "marquerRealisees": "{count, plural, one {Position als ausgeführt markieren} other {# Positionen als ausgeführt markieren}}",
+      "marquageEnCours": "Markierung läuft…",
+      "aFaire": {
+        "proposee": "dem Kunden vorschlagen, dann im AR freigeben",
+        "aValider": "im AR freigeben",
+        "validee": "als ausgeführt markieren",
+        "enCours": "als ausgeführt markieren"
+      }
     },
     "demontage": {
       "message": "Für einen abgelehnten Kostenvoranschlag wurde eine Demontage durchgeführt — fakturierbar: {montant} inkl. MWST",
       "ajouter": "Diese Position zur Kundenrechnung hinzufügen"
     },
     "groupe": {
-      "titre": "Zahlergruppe «{payeur}»",
+      "titre": "Rechnung für « {payeur} »",
       "facturerMaintenant": "Jetzt fakturieren",
       "sousTotal": "Zwischensumme",
       "motifReport": "Grund der Verschiebung (fakultativ)",
-      "motifReportPlaceholder": "Z. B. Schadenfall wartet auf Zusage"
+      "motifReportPlaceholder": "Z. B. Schadenfall, Zustimmung ausstehend"
     },
     "ligneOfferte": "gratis ({raison})",
     "lignesRefusees": {
@@ -205,7 +215,7 @@
     "documentsLies": {
       "titre": "Verknüpfte Dokumente",
       "or": "Verknüpfter Reparaturauftrag →",
-      "dossierVente": "Verknüpfter Verkaufsvorgang →",
+      "dossierVente": "Verknüpfter Verkauf →",
       "vehicule": "Verknüpftes Fahrzeug →",
       "facture": "Ursprüngliche Rechnung →",
       "avoir": "Verknüpfte Gutschrift →",
@@ -233,7 +243,11 @@
         "corriger": "Diese Rechnung korrigieren",
         "creerAvoir": "Gutschrift erstellen",
         "journal": "Protokoll anzeigen"
-      }
+      },
+      "telechargerPdf": "PDF herunterladen",
+      "envoyerDevis": "Offerte senden",
+      "accordClient": "Zustimmung des Kunden",
+      "creerOr": "AR erstellen"
     },
     "dialogueEmission": {
       "titre": "Rechnung ausstellen?",
@@ -243,7 +257,12 @@
       "avertissement": "Einmal ausgestellt, kann diese Rechnung nicht mehr geändert werden — nur eine Korrektur per Gutschrift bleibt danach möglich.",
       "avertissementAvoir": "Sie mindert die Rechnung {numero} und kann nach dem Ausstellen nicht mehr storniert werden.",
       "confirmer": "Ausstellen",
-      "enCours": "Wird ausgestellt…"
+      "enCours": "Wird ausgestellt…",
+      "titreDevis": "Offerte senden?",
+      "resumeDevis": "Offerte für {destinataire} — {montant} inkl. MWST",
+      "avertissementDevis": "Einmal gesendet, kann diese Offerte nicht mehr geändert werden. Ändert der Kunde seine Meinung, muss eine neue Offerte erstellt werden.",
+      "confirmerDevis": "Senden",
+      "enCoursDevis": "Wird gesendet…"
     },
     "refusEmission": {
       "blocCreancierIncomplet": "Ausstellen nicht möglich — die Bankverbindung der Werkstatt ist unvollständig.",
@@ -272,7 +291,10 @@
     "erreur": {
       "titre": "Diese Rechnung konnte nicht geladen werden"
     },
-    "montantIndisponible": "Nicht mitgeteilt"
+    "montantIndisponible": "Nicht mitgeteilt",
+    "titreBrouillonDevis": "Neue Offerte",
+    "titreBrouillonBonCommande": "Neue Bestellung",
+    "envoyeLe": "gesendet am {date}"
   },
   "encaissement": {
     "titre": "Inkassieren · {destinataire}",
@@ -301,15 +323,16 @@
     "erreur": {
       "titre": "Der Zahlungseingang konnte nicht erfasst werden"
     },
-    "chargement": "Offene Rechnungen werden geladen…"
+    "chargement": "Offene Rechnungen werden geladen…",
+    "paiementPartiel": "Teilzahlung: es bleiben {reste} auf dieser Rechnung offen."
   },
   "avoir": {
     "titre": "Gutschrift auf Rechnung {numero} — {destinataire}",
     "motif": "Grund",
     "lignesOrigine": {
-      "titre": "Positionen der ursprünglichen Rechnung",
+      "titre": "Positionen der korrigierten Rechnung",
       "dejaCreditee": "bereits gutgeschrieben",
-      "toutSelectionner": "Alles auswählen (vollständige Gutschrift)"
+      "toutSelectionner": "Alle auswählen (vollständige Gutschrift)"
     },
     "totalAvoir": "Total der Gutschrift",
     "motifObligatoire": "Grund obligatorisch, beim Ausstellen erforderlich",
@@ -328,7 +351,8 @@
       "toutes": "Alle",
       "nonReglees": "Nicht bezahlt",
       "enRetard": "Überfällig",
-      "aRelancer": "Zu mahnen"
+      "aRelancer": "Zu mahnen",
+      "devis": "Offerten"
     },
     "colonnes": {
       "numero": "Nr.",
@@ -363,6 +387,10 @@
       "recherche": {
         "titre": "Keine Rechnung gefunden",
         "description": "Keine Rechnung entspricht dieser Nummer oder diesem Kundennamen."
+      },
+      "devis": {
+        "titre": "Keine Offerten",
+        "description": "Ihre Offerten erscheinen hier, die neuesten zuerst."
       }
     }
   },
@@ -373,5 +401,87 @@
     "encaisser": "Inkassieren",
     "corriger": "Korrigieren",
     "modifier": "Ändern"
+  },
+  "devis": {
+    "nouveau": {
+      "action": "Neue Offerte",
+      "titre": "Neue Offerte",
+      "description": "Ein Preis für einen Kunden, ohne Auftrag zu eröffnen. Das Fahrzeug ist optional.",
+      "client": "Kunde",
+      "clientPlaceholder": "Name, Telefon oder Kundennummer",
+      "clientRequis": "Wählen Sie einen Kunden.",
+      "aucunClient": "Kein Kunde gefunden.",
+      "vehicule": "Fahrzeug",
+      "vehiculeAide": "Optional: lassen Sie «Ohne Fahrzeug», wenn das Auto noch nicht bekannt ist.",
+      "sansVehicule": "Ohne Fahrzeug",
+      "site": "Standort",
+      "creer": "Offerte erstellen"
+    },
+    "cree": {
+      "titre": "Offerte erstellt",
+      "description": "Erfassen Sie jetzt Arbeit und Teile in der Offerte. Sobald die Offerte gesendet und vom Kunden angenommen ist, können Sie daraus einen AR erstellen.",
+      "ouvrir": "Offerte öffnen"
+    },
+    "statuts": {
+      "brouillon": "Entwurf",
+      "emis": "Gesendet",
+      "accepte": "Angenommen",
+      "refuse": "Abgelehnt",
+      "expire": "Abgelaufen",
+      "remplace": "Ersetzt",
+      "transforme": "Umgewandelt",
+      "annule": "Storniert",
+      "abandonne": "Verworfen"
+    },
+    "creerOr": {
+      "titre": "AR aus dieser Offerte erstellen",
+      "description": "Der AR übernimmt Kunde, Fahrzeug und alle Positionen der Offerte von {destinataire}. Die Offerte wird auf «Angenommen» gesetzt.",
+      "kilometrage": "Kilometerstand bei Eingang",
+      "kilometrageAide": "Am Tacho abgelesener Stand bei Eingang (freiwillig, wenn der Betrieb ihn nicht verlangt)",
+      "confirmer": "AR erstellen",
+      "enCours": "Wird erstellt…"
+    }
+  },
+  "facturerEncaisser": {
+    "bouton": "Verrechnen und kassieren",
+    "titre": "Verrechnen und kassieren",
+    "resume": "{destinataire} · Total {montant} inkl. MwSt.",
+    "modeLegende": "Wie bezahlt der Kunde?",
+    "modes": {
+      "especes": "Bar",
+      "carte": "Karte",
+      "twint": "TWINT",
+      "plus_tard": "Der Kunde zahlt später"
+    },
+    "apercuExact": "Zu kassieren: {montant}",
+    "apercuArrondi": "Zu kassieren: {montant} (auf 5 Rp. gerundet, {ecart})",
+    "apercuPlusTard": "Die Rechnung wird ausgestellt, jetzt wird nichts kassiert.",
+    "apercuInconnu": "Der Betrag wird bei der Rechnungsstellung berechnet.",
+    "action": "Verrechnen und {montant} kassieren",
+    "actionPlusTard": "Verrechnen ohne Kassieren",
+    "enCours": "Läuft…",
+    "reessayer": "Erneut versuchen",
+    "enDetail": "Im Detail verrechnen",
+    "echec": {
+      "facturation": "Die Rechnung konnte nicht erstellt werden.",
+      "factureConservee": "Nichts wurde gespeichert: Sie können es ohne Risiko einer Doublette erneut versuchen."
+    },
+    "succes": {
+      "titre": "Erledigt",
+      "facture": "Rechnung {numero} ausgestellt.",
+      "encaisse": "{montant} kassiert ({moyen}).",
+      "plusTard": "Rechnung ausgestellt, der Kunde zahlt später.",
+      "telechargerPdf": "PDF herunterladen",
+      "envoyerCourriel": "Per E-Mail senden",
+      "courrielEnvoye": "Rechnung an {destinataire} gesendet.",
+      "ouvrirFacture": "Rechnung öffnen",
+      "encaissementEchoue": "Rechnung {numero} ausgestellt, die Zahlung ist aber nicht zustande gekommen. Der Rechnungssaldo ist unverändert.",
+      "encaisserMaintenant": "Jetzt kassieren",
+      "encaissementErreur": "Die Zahlung ist nicht erfasst."
+    }
+  },
+  "toasts": {
+    "devisEnvoye": "Offerte gesendet",
+    "devisAccepte": "Zustimmung des Kunden erfasst"
   }
 }

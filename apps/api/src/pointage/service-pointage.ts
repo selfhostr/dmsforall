@@ -21,12 +21,11 @@ import type {
   ReponseAvecAvertissements,
   ReponseDernierPointageDuJour,
   ReponsePointage,
-  RoleUtilisateur,
 } from '@dfa/shared';
 import { estCompteDeService } from '@dfa/shared';
 
 import { siteImposeAuPrincipal, verifierSiteAutorise } from '../auth/comptes-de-service';
-import { MATRICE_DROITS } from '../auth/matrice-droits';
+import { droitsDuPrincipal } from '../auth/droits-personne';
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
 import {
   ligneOr,
@@ -69,6 +68,7 @@ import { dureeBruteDepuisPeriode, mapperPointage } from './mappeurs';
 import {
   chargerLigneOuNull,
   chargerLignesOrPourAgregat,
+  chargerNomSite,
   chargerOrOuNull,
   chargerLignePourPointage,
   chargerOrPourPointage,
@@ -137,21 +137,13 @@ type ResultatEcriture = ResultatIdempotent<
 >;
 
 /**
- * Rôles qui voient au-delà de leur propre pointage (`atelier.pointage.lire_equipe`, §9 de la spec
- * pointage : « chef d'atelier, direction »). LISTE LOCALE, TOUJOURS NÉCESSAIRE — CORRECTIF d'un
- * commentaire antérieur : le bloc `DROITS_POINTAGE_PAR_ROLE` EXISTE désormais dans
- * `matrice-droits.ts` (vérifié au 2026-08-03, six actions `atelier.pointage.*` posées et câblées par
- * rôle), mais l'action `atelier.pointage.lire_equipe` elle-même en est TOUJOURS délibérément absente
- * (commentaire de tête du bloc : « aucune route livrée ne les consomme encore ») — cette liste
- * locale reste donc la seule source de cette restriction, PAS une lecture de `MATRICE_DROITS`
- * possible en l'état. `admin` inclus par la même doctrine que le reste de la matrice lot 1 (« rôle
- * technique, superset de `direction` »).
+ * Vue d'équipe du pointage (`atelier.pointage.lire_equipe`, §9 de la spec pointage : « chef d'atelier,
+ * direction ») : accordée par « Encadrer » (chef d'atelier, direction, admin) — plus par une liste
+ * de rôles.
  */
-const ROLES_AVEC_VUE_EQUIPE_POINTAGE: ReadonlySet<RoleUtilisateur> = new Set([
-  'chef_atelier',
-  'direction',
-  'admin',
-]);
+function aLaVueEquipePointage(principal: PrincipalAuthentifie): boolean {
+  return droitsDuPrincipal(principal).capacites.has('encadrer');
+}
 
 /**
  * Cœur du domaine Pointage (RM-87 → RM-99, RM-113 → RM-123) : démarrer/arrêter/corriger, la
@@ -198,7 +190,7 @@ export class ServicePointage {
    * `@ExigerDroit` ne peut pas porter ce contrôle (statique par route) : la même route sert le cas
    * « pour soi » (à ouvrir) et « pour autrui » (à restreindre) — seul le service, une fois la cible
    * connue, peut trancher. Même idiome que `ServiceOr.modifier` / `ServiceVehiculeKilometrage.creer`
-   * (`MATRICE_DROITS[role] ?? []`, `.includes(action)`), lu ici en LECTURE SEULE (`auth/` hors
+   * (`actionsCourantes(role)`, `.includes(action)`), lu ici en LECTURE SEULE (`auth/` hors
    * périmètre d'écriture de ce module).
    */
   private exigerDroitCiblerAutrui(
@@ -208,7 +200,7 @@ export class ServicePointage {
     // Un compte de service (borne) n'est jamais « soi » : self-vs-autrui ne le concerne pas.
     if (estCompteDeService(principal.role)) return;
     if (technicienCibleId === principal.utilisateurId) return;
-    const droitsDuRole = MATRICE_DROITS[principal.role] ?? [];
+    const droitsDuRole = droitsDuPrincipal(principal).actions;
     if (!droitsDuRole.includes('atelier.pointage.pointer_autrui')) {
       throw new ErreurMetier(
         'DROIT_INSUFFISANT',
@@ -216,6 +208,41 @@ export class ServicePointage {
           "pointer au nom d'un autre technicien exige le droit d'encadrement (atelier.pointage.pointer_autrui).",
       );
     }
+  }
+
+  /**
+   * Règle : le pointage se fait sur le site de l'OR, et une borne ne pointe que sur SON site. Même
+   * confinement que `verifierSiteAutorise`, mais le refus dit CLAIREMENT pourquoi
+   * (`403 POINTAGE_SITE_AUTRE`, avec le nom du site de l'OR dans `blocages[0].donnees.siteNom`)
+   * au lieu d'un `DROIT_INSUFFISANT` muet. Aucune écriture n'est atteinte.
+   */
+  private async exigerSiteDeLaBorne(
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    entree: EntreeDemarragePointage,
+  ): Promise<void> {
+    const siteBorne = siteImposeAuPrincipal(principal);
+    if (siteBorne === null || siteBorne === entree.siteId) return;
+    const siteNom = await this.acces.enTenant(ctx, (tx) => chargerNomSite(tx, ctx, entree.siteId));
+    const ordreReparationId = 'ordreReparationId' in entree ? entree.ordreReparationId : null;
+    throw new ErreurMetier(
+      'POINTAGE_SITE_AUTRE',
+      siteNom
+        ? `Cet ordre de réparation est au site ${siteNom} ; pointez depuis la borne de ce site ou demandez au bureau.`
+        : 'Cet ordre de réparation est à un autre site ; pointez depuis la borne de ce site ou demandez au bureau.',
+      {
+        blocages: siteNom
+          ? [
+              {
+                type: 'ordre_reparation',
+                id: ordreReparationId ?? entree.siteId,
+                libelle: siteNom,
+                donnees: { siteId: entree.siteId, siteNom },
+              },
+            ]
+          : undefined,
+      },
+    );
   }
 
   /**
@@ -248,7 +275,7 @@ export class ServicePointage {
     // contrôle de site existant plus bas, ligne ~283, ne vérifie que la cohérence `siteId` ↔ OR
     // ciblé, jamais la portée du principal). Un compte de PERSONNE n'est jamais restreint ici
     // (portée tenant, voir `verifierSiteAutorise`, `auth/comptes-de-service.ts`).
-    verifierSiteAutorise(principal, entree.siteId);
+    await this.exigerSiteDeLaBorne(ctx, principal, entree);
     return this.idempotence.executer(
       ctx,
       { methode: 'POST', chemin: '/pointages', cle: cleIdempotence, corps: entree },
@@ -816,8 +843,7 @@ export class ServicePointage {
       const horsSite = siteBorne !== null && ligne.siteId !== siteBorne;
       if (
         horsSite ||
-        (ligne.technicienId !== principal.utilisateurId &&
-          !ROLES_AVEC_VUE_EQUIPE_POINTAGE.has(principal.role))
+        (ligne.technicienId !== principal.utilisateurId && !aLaVueEquipePointage(principal))
       ) {
         throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Pointage ${id} introuvable.`);
       }
@@ -938,7 +964,7 @@ export class ServicePointage {
 
     const sens = filtres.tri === 'debutLe:asc' ? 'asc' : 'desc';
     const curseurDecode = decoderCurseurPointages(curseur, filtres.tri);
-    const vueEquipe = ROLES_AVEC_VUE_EQUIPE_POINTAGE.has(principal.role);
+    const vueEquipe = aLaVueEquipePointage(principal);
     const technicienIdEffectif = vueEquipe ? filtres.technicienId : principal.utilisateurId;
 
     return this.acces.enTenant(ctx, async (tx) => {

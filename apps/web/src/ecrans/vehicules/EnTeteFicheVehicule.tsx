@@ -47,8 +47,8 @@ interface DefinitionChamp {
 export function EnTeteFicheVehicule({ vehicule, dernierKilometrage }: Props) {
   const { t } = useTranslation('vehicules');
   const { data: session } = useSession();
-  const peutModifierEmplacement = peutModifierVehicule(session?.utilisateur.role);
-  const peutGererPlaque = peutGererPlaqueVehicule(session?.utilisateur.role);
+  const peutModifierEmplacement = peutModifierVehicule(session?.actions);
+  const peutGererPlaque = peutGererPlaqueVehicule(session?.actions);
   const [dialogueIdentiteOuvert, setDialogueIdentiteOuvert] = useState(false);
 
   const champs: DefinitionChamp[] = [];
@@ -101,7 +101,7 @@ export function EnTeteFicheVehicule({ vehicule, dernierKilometrage }: Props) {
               <dt className="texte-libelle text-muted-foreground">{champ.libelle} :</dt>
               <dd className="flex items-center gap-1 texte-corps font-medium">
                 {champ.valeur}
-                {champ.copiable ? <BoutonCopier valeur={champ.valeur} className="h-8 w-8" /> : null}
+                {champ.copiable ? <BoutonCopier valeur={champ.valeur} /> : null}
               </dd>
             </div>
           ))}

@@ -47,6 +47,24 @@ export function VueListeRendezVous({
     },
     { id: 'client', libelle: t('planning:vueListe.colonnes.client'), rendu: (r) => r.clientNom },
     {
+      id: 'telephone',
+      libelle: t('planning:vueListe.colonnes.telephone'),
+      // Lien `tel:` : cliquable sur tablette/téléphone, et `stopPropagation` pour que l'appel ne
+      // déclenche pas aussi l'ouverture de la ligne. `null` = non renseigné, dit en toutes lettres.
+      rendu: (r) =>
+        r.clientTelephone ? (
+          <a
+            href={`tel:${r.clientTelephone.replace(/[^+\d]/g, '')}`}
+            onClick={(evenement) => evenement.stopPropagation()}
+            className="inline-flex min-h-11 items-center tabular-nums text-primary underline-offset-4 hover:underline anneau-focus"
+          >
+            {r.clientTelephone}
+          </a>
+        ) : (
+          <span className="text-muted-foreground">{t('planning:vueListe.pasDeTelephone')}</span>
+        ),
+    },
+    {
       id: 'vehicule',
       libelle: t('planning:vueListe.colonnes.vehicule'),
       rendu: (r) =>

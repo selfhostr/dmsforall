@@ -32,6 +32,7 @@ import { clesPieces } from '@/hooks/pieces/cles';
 import { useCreerCommandeFournisseur } from '@/hooks/pieces/useCreerCommandeFournisseur';
 import { useListeFournisseurs } from '@/hooks/pieces/useListeFournisseurs';
 import { useRechercheComptoirPieces } from '@/hooks/pieces/useRechercheComptoirPieces';
+import { useSiteImplicite } from '@/hooks/site/useSiteImplicite';
 import { useSession } from '@/hooks/useSession';
 import { formaterMontant } from '@/lib/formats';
 
@@ -84,6 +85,8 @@ export function EcranNouvelleCommandeFournisseur() {
     : undefined;
   const { data: session } = useSession();
   const sites = (session?.sites ?? []).filter((site) => site.actif);
+  // Garage mono-site : site implicite, champ masqué.
+  const { estMonoSite, siteId: siteImplicite } = useSiteImplicite();
 
   const fournisseursRequete = useListeFournisseurs({
     statut: ['actif'],
@@ -95,7 +98,8 @@ export function EcranNouvelleCommandeFournisseur() {
   const creer = useCreerCommandeFournisseur();
 
   const [fournisseurId, setFournisseurId] = useState('');
-  const [siteId, setSiteId] = useState(() => etatPreremplissage?.siteId ?? '');
+  const [siteChoisi, setSiteId] = useState(() => etatPreremplissage?.siteId ?? '');
+  const siteId = estMonoSite && siteImplicite ? siteImplicite : siteChoisi;
   const [dateCommande, setDateCommande] = useState('');
   const [reference, setReference] = useState('');
   const [lignes, setLignes] = useState<readonly LigneEnCours[]>(() =>
@@ -175,7 +179,7 @@ export function EcranNouvelleCommandeFournisseur() {
     articleId: string,
     numeroArticle: string,
     designation: string,
-    prixVenteTtcCentimes: number,
+    prixAchatCentimes: number | null,
   ) {
     if (idsDejaAjoutes.has(articleId)) return;
     setLignes((valeur) => [
@@ -185,7 +189,8 @@ export function EcranNouvelleCommandeFournisseur() {
         numeroArticle,
         designation,
         quantiteSaisie: '1',
-        prixAttenduCentimes: prixVenteTtcCentimes,
+        // Prix d'ACHAT seulement (jamais le prix de vente) ; null = champ laissé vide.
+        prixAttenduCentimes: prixAchatCentimes,
         quantiteSuggereeManquante: false,
       },
     ]);
@@ -308,27 +313,29 @@ export function EcranNouvelleCommandeFournisseur() {
               </Select>
             )}
           </div>
-          <div className="flex flex-col gap-champ">
-            <Label htmlFor="cmd-site" requis>
-              {t('pieces:commandes.site')}
-            </Label>
-            <Select value={siteId} onValueChange={setSiteId} disabled={enCours}>
-              <SelectTrigger
-                id="cmd-site"
-                aria-label={t('pieces:commandes.site')}
-                aria-required="true"
-              >
-                <SelectValue placeholder={t('pieces:stock.site')} />
-              </SelectTrigger>
-              <SelectContent>
-                {sites.map((site) => (
-                  <SelectItem key={site.id} value={site.id}>
-                    {site.nom}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {estMonoSite ? null : (
+            <div className="flex flex-col gap-champ">
+              <Label htmlFor="cmd-site" requis>
+                {t('pieces:commandes.site')}
+              </Label>
+              <Select value={siteId} onValueChange={setSiteId} disabled={enCours}>
+                <SelectTrigger
+                  id="cmd-site"
+                  aria-label={t('pieces:commandes.site')}
+                  aria-required="true"
+                >
+                  <SelectValue placeholder={t('pieces:stock.site')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {sites.map((site) => (
+                    <SelectItem key={site.id} value={site.id}>
+                      {site.nom}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-controles">
@@ -383,7 +390,7 @@ export function EcranNouvelleCommandeFournisseur() {
                             resultat.articleId,
                             resultat.numeroArticle,
                             resultat.designation,
-                            resultat.prixVenteTtcCentimes,
+                            resultat.prixAchatCentimes,
                           )
                         }
                         // Bordure CONSERVÉE (DESIGN.md) : ce `<button>` EST le contrôle — chaque

@@ -1,7 +1,7 @@
 import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 
-import { ROLES_SANS_MONTANT } from '../auth/matrice-droits';
+import { droitsDuPrincipal } from '../auth/droits-personne';
 import { ServiceContexteRequete } from '../common/contexte';
 import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
@@ -89,7 +89,7 @@ export class ClientOrdresReparationController {
   ): Promise<PageOrdreReparationResumeDto> {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
-    const avecMontants = !ROLES_SANS_MONTANT.includes(principal.role);
+    const avecMontants = droitsDuPrincipal(principal).voitMontants;
     return this.service.lister(ctx, clientId, params, avecMontants);
   }
 }

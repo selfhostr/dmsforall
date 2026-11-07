@@ -38,7 +38,7 @@
       "titre": "Bereich nicht verfügbar"
     },
     "actions": {
-      "nouvelOr": "Neuer RA",
+      "nouvelOr": "RA erstellen",
       "modifierTitre": "Fahrzeugidentität bearbeiten"
     },
     "proprietaire": {
@@ -48,9 +48,9 @@
       "vide": "Kein Halter für dieses Fahrzeug erfasst."
     },
     "dossierVente": {
-      "titre": "Verkaufsdossier",
-      "vide": "Kein Verkaufsdossier für dieses Fahrzeug.",
-      "droitRequis": "Sie sind nicht berechtigt, die Verkaufsdossiers dieses Fahrzeugs einzusehen."
+      "titre": "Verkauf",
+      "vide": "Kein Verkauf für dieses Fahrzeug.",
+      "droitRequis": "Sie dürfen die Verkäufe dieses Fahrzeugs nicht einsehen."
     },
     "ordresReparation": {
       "titre": "Reparaturaufträge",
@@ -89,7 +89,7 @@
     "version": "Version",
     "finition": "Ausstattung",
     "vin": "VIN",
-    "codeType": "CH-Code",
+    "codeType": "Typencode (Fahrzeugausweis)",
     "plaque": "Kennzeichen",
     "plaqueExemple": "VS 123456",
     "plaqueAide": "Kanton, dann Nummer, mit Leerzeichen, wie auf dem Kontrollschild: VS 123456.",
@@ -227,7 +227,9 @@
       "corriger": "Korrigieren",
       "reprendre": "Als übernommen markieren",
       "abandonner": "Verwerfen",
-      "enregistrer": "Speichern"
+      "enregistrer": "Speichern",
+      "reprendreDansOr": "In {numero} übernehmen",
+      "reprendreDansUnOr": "In einen RA übernehmen"
     },
     "dialogue": {
       "corrigerTitre": "Zurückgestellte Arbeit korrigieren",
@@ -250,6 +252,15 @@
     },
     "erreur": {
       "titre": "Zurückgestellte Arbeiten konnten nicht geladen werden"
+    },
+    "reporter": {
+      "bouton": "Arbeit zurückstellen",
+      "titre": "Arbeit zurückstellen",
+      "description": "Notieren Sie, was beim nächsten Besuch zu erledigen ist: Es erscheint auf der Fahrzeugkarte und beim Öffnen des nächsten Arbeitsauftrags.",
+      "designationPlaceholder": "z. B. Zahnriemen",
+      "detail": "Details (optional)",
+      "enregistrer": "Speichern",
+      "erreurValidation": "Geben Sie die auszuführende Arbeit an (höchstens 200 Zeichen)."
     }
   },
   "donnees": {

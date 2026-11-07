@@ -221,7 +221,7 @@ describe('EcranFicheDossierVente', () => {
     // seule — voir l'en-tête de `EcranFicheDossierVente.tsx`) : un dossier `prospection` sans
     // reprise ni financement affiche l'état vide INTERACTIF de chacune, pas un simple texte —
     // « vendeur » (rôle par défaut de `rendre()`) a le droit d'en créer une des deux.
-    expect(screen.getByText('Pas de reprise sur ce dossier')).toBeInTheDocument();
+    expect(screen.getByText('Pas de reprise sur cette vente')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Ajouter une reprise' })).toBeInTheDocument();
     expect(screen.getByText('Aucune tentative de financement enregistrée.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Proposer un financement' })).toBeInTheDocument();
@@ -360,7 +360,7 @@ describe('EcranFicheDossierVente', () => {
     rendre('chef_atelier');
 
     expect((await screen.findAllByText('Jean Dupont')).length).toBeGreaterThan(0);
-    expect(screen.queryByText('Pas de reprise sur ce dossier')).not.toBeInTheDocument();
+    expect(screen.queryByText('Pas de reprise sur cette vente')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Ajouter une reprise' })).not.toBeInTheDocument();
     expect(
       screen.queryByText('Aucune tentative de financement enregistrée.'),
@@ -451,7 +451,7 @@ describe('EcranFicheDossierVente', () => {
     // Le dossier PRIMAIRE a été rechargé : `dossier.reprise` n'est plus `null`, `CarteReprise`
     // bascule de son état vide à sa fiche complète (nouvelle requête `GET .../reprise`).
     await waitFor(() =>
-      expect(screen.queryByText('Pas de reprise sur ce dossier')).not.toBeInTheDocument(),
+      expect(screen.queryByText('Pas de reprise sur cette vente')).not.toBeInTheDocument(),
     );
     expect(await screen.findByText('Audi A4 2.0 TDI')).toBeInTheDocument();
     expect(screen.getByText('Estimée')).toBeInTheDocument();
@@ -568,7 +568,7 @@ describe('EcranFicheDossierVente', () => {
 
     rendre();
 
-    expect(await screen.findByText("Impossible d'afficher ce dossier")).toBeInTheDocument();
+    expect(await screen.findByText("Impossible d'afficher cette vente")).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Réessayer' })).toBeInTheDocument();
   });
 
@@ -598,7 +598,7 @@ describe('EcranFicheDossierVente', () => {
     const utilisateur = userEvent.setup();
 
     await utilisateur.click(await screen.findByRole('button', { name: 'Engager' }));
-    expect(screen.getByText('Aucun bon de commande sur ce dossier')).toBeInTheDocument();
+    expect(screen.getByText('Aucun bon de commande sur cette vente')).toBeInTheDocument();
 
     await utilisateur.click(screen.getByRole('button', { name: 'Créer le bon de commande' }));
 
@@ -613,7 +613,7 @@ describe('EcranFicheDossierVente', () => {
     // Le dossier refetché (invalidation post-création) porte désormais le bon de commande : le
     // message d'état vide disparaît au profit du sélecteur.
     await waitFor(() =>
-      expect(screen.queryByText('Aucun bon de commande sur ce dossier')).not.toBeInTheDocument(),
+      expect(screen.queryByText('Aucun bon de commande sur cette vente')).not.toBeInTheDocument(),
     );
     const selecteur = screen.getByRole('combobox', { name: 'Bon de commande' });
     expect(selecteur).toBeInTheDocument();
@@ -655,7 +655,7 @@ describe('EcranFicheDossierVente', () => {
     const utilisateur = userEvent.setup();
 
     await utilisateur.click(await screen.findByRole('button', { name: 'Livrer' }));
-    expect(screen.getByText('Aucune facture sur ce dossier')).toBeInTheDocument();
+    expect(screen.getByText('Aucune facture sur cette vente')).toBeInTheDocument();
 
     await utilisateur.click(screen.getByRole('button', { name: 'Créer la facture' }));
 
@@ -671,7 +671,7 @@ describe('EcranFicheDossierVente', () => {
     // vers l'écran facturation où le vendeur ajoute les lignes et émet le document.
     const lien = await screen.findByRole('link', { name: 'Voir la facture' });
     expect(lien).toHaveAttribute('href', '/factures/doc-facture-1');
-    expect(screen.queryByText('Aucune facture sur ce dossier')).not.toBeInTheDocument();
+    expect(screen.queryByText('Aucune facture sur cette vente')).not.toBeInTheDocument();
   });
 
   // Défaut corrigé : « Ajoutez les lignes et émettez la facture pour pouvoir livrer » restait
@@ -743,7 +743,7 @@ describe('EcranFicheDossierVente', () => {
 
     expect(
       await screen.findByText(
-        'Ce dossier de vente est clos, annulé ou abandonné. Aucun document ne peut lui être rattaché.',
+        'Cette vente est close, annulée ou abandonnée : rien ne peut lui être rattaché. Choisissez une vente en cours.',
       ),
     ).toBeInTheDocument();
   });

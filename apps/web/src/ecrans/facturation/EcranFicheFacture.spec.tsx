@@ -542,7 +542,7 @@ describe('EcranFicheFacture — vocabulaire du badge de règlement sur un avoir 
     rendre('avoir-vocabulaire');
 
     await screen.findAllByText('Jean Dupont');
-    expect(await screen.findByText('Non imputé')).toBeInTheDocument();
+    expect(await screen.findByText('Pas encore utilisé')).toBeInTheDocument();
     expect(screen.queryByText('Non réglée')).not.toBeInTheDocument();
   });
 
@@ -768,18 +768,18 @@ describe('EcranFicheFacture — droits par geste (émettre / encaisser / créer 
   );
 
   it(
-    '« Créer un avoir » (menu ⋯) : absent pour vendeur (pas de droit `emettre_avoir`), présent ' +
+    '« Créer un avoir » (menu ⋯) : absent pour magasinier (pas de droit `emettre_avoir`), présent ' +
       'pour réceptionnaire (autorisé)',
     async () => {
       installerHandlerDocument(construireDocument());
-      connecterSession('vendeur');
+      connecterSession('magasinier');
       const utilisateur = userEvent.setup();
       const rendu1 = rendre();
-      // vendeur n'a ni `peutCorrigerFacture` ni `peutEmettreAvoir` : aucune action secondaire,
+      // magasinier n'a ni `peutCorrigerFacture` ni `peutEmettreAvoir` : aucune action secondaire,
       // donc le menu « Autres actions » lui-même ne s'affiche plus (Imprimer, qui le maintenait en
       // vie à lui seul avant le chantier d'unification inter-écrans du 25.08.2026, est désormais un
       // bouton autonome) — seul le bouton primaire « Encaisser » (droit distinct, voir
-      // `peutEncaisser`, qui inclut `vendeur`) reste visible.
+      // `peutEncaisser`, qui inclut `magasinier`) reste visible.
       await screen.findByRole('button', { name: 'Encaisser' });
       expect(screen.queryByRole('button', { name: 'Autres actions' })).not.toBeInTheDocument();
       expect(screen.queryByRole('menuitem', { name: 'Créer un avoir' })).not.toBeInTheDocument();
@@ -965,7 +965,7 @@ describe('EcranFicheFacture — carte « Documents liés » (dossier de vente / 
       rendreAvecRoutesLiees();
 
       const lienDossier = await screen.findByRole('button', {
-        name: 'Dossier de vente lié →',
+        name: 'Vente liée →',
       });
       expect(lienDossier).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Véhicule lié →' })).toBeInTheDocument();
@@ -1000,9 +1000,7 @@ describe('EcranFicheFacture — carte « Documents liés » (dossier de vente / 
       rendreAvecRoutesLiees();
 
       await screen.findAllByText('Jean Dupont');
-      expect(
-        screen.queryByRole('button', { name: 'Dossier de vente lié →' }),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Vente liée →' })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Véhicule lié →' })).not.toBeInTheDocument();
       expect(await screen.findByText('Aucun document lié.')).toBeInTheDocument();
     },
@@ -1030,9 +1028,7 @@ describe('EcranFicheFacture — carte « Documents liés » (dossier de vente / 
       expect(
         await screen.findByRole('button', { name: "Facture d'origine →" }),
       ).toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', { name: 'Dossier de vente lié →' }),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Vente liée →' })).not.toBeInTheDocument();
       expect(screen.queryByText('Aucun document lié.')).not.toBeInTheDocument();
     },
   );
@@ -1251,6 +1247,10 @@ describe('EcranFicheFacture — lignes de document (issue #125)', () => {
         "Ce document n'a aucune ligne : ajoutez au moins une ligne avant de l'émettre.",
       ),
     ).toBeInTheDocument();
-    expect(screen.queryByText('Certaines informations sont incorrectes.')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'Certaines informations sont incorrectes ou incomplètes. Corrigez les champs signalés, puis réessayez.',
+      ),
+    ).not.toBeInTheDocument();
   });
 });

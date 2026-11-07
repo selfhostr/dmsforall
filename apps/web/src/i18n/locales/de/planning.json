@@ -11,7 +11,8 @@
       "semaineSuivante": "Nächste Woche",
       "jourPrecedent": "Vorheriger Tag",
       "jourSuivant": "Nächster Tag",
-      "aujourdhui": "Heute"
+      "aujourdhui": "Heute",
+      "demain": "Morgen"
     },
     "rechercheLabel": "Kunde, Fahrzeug oder Kontrollschild suchen",
     "recherchePlaceholder": "Kunde, Fahrzeug, Kontrollschild…",
@@ -20,7 +21,7 @@
   "site": {
     "manquant": {
       "titre": "Standort wählen",
-      "description": "Klicken Sie oben links, unter dem Namen des Betriebs, um einen Standort zu wählen und dessen Terminkalender zu sehen."
+      "description": "Wählen Sie unten oder mit der Standortauswahl oben rechts einen Standort, um dessen Terminkalender zu sehen."
     }
   },
   "vide": {
@@ -98,10 +99,11 @@
     "echec": "Der Termin konnte nicht gespeichert werden. Ihre Angaben bleiben erhalten, korrigieren Sie sie und versuchen Sie es erneut.",
     "rechercheClientPlaceholder": "Name, Kundennummer, Telefon…",
     "aucunClient": "Kein Kunde entspricht dieser Suche.",
-    "aucunVehicule": "Dieser Kunde hat kein registriertes Fahrzeug."
+    "aucunVehicule": "Dieser Kunde hat kein registriertes Fahrzeug.",
+    "siteAide": "Der Termin wird in diesem Standort vereinbart. Für einen anderen Standort wechseln Sie in der Planung den Standort."
   },
   "dialogueArrivee": {
-    "titre": "Das Fahrzeug ist eingetroffen",
+    "titre": "Der Kunde ist eingetroffen",
     "confirmer": "Ankunft bestätigen",
     "confirmationDeuxOrOuverts": "Für dieses Fahrzeug sind bereits zwei Reparaturaufträge offen.",
     "confirmationGenerique": "Eine Bestätigung ist erforderlich, um die Ankunft zu speichern."
@@ -109,10 +111,11 @@
   "detail": {
     "titre": "Termin",
     "actions": {
-      "vehiculeArrive": "Das Fahrzeug ist eingetroffen",
+      "vehiculeArrive": "Der Kunde ist angekommen: Reparaturauftrag öffnen",
       "signalerAbsence": "Abwesenheit des Kunden melden",
       "annuler": "Termin stornieren",
-      "voirOrdre": "Reparaturauftrag ansehen"
+      "voirOrdre": "Reparaturauftrag ansehen",
+      "deplacer": "Verschieben"
     },
     "annulation": {
       "titre": "Termin stornieren",
@@ -130,7 +133,11 @@
       "annulePar": "Storniert von {nom}, am {date}"
     },
     "succesEnregistrement": "Termin aktualisiert.",
-    "echecEnregistrement": "Die Aktion konnte nicht gespeichert werden."
+    "echecEnregistrement": "Die Aktion konnte nicht gespeichert werden.",
+    "contact": {
+      "titre": "Kontakt des Kunden",
+      "pasDeTelephone": "Keine Telefonnummer erfasst"
+    }
   },
   "vueListe": {
     "titre": "Terminliste",
@@ -139,7 +146,48 @@
       "client": "Kunde",
       "vehicule": "Fahrzeug",
       "motif": "Grund",
-      "statut": "Status"
+      "statut": "Status",
+      "telephone": "Telefon"
+    },
+    "pasDeTelephone": "Kein Telefon"
+  },
+  "siteAffiche": "Angezeigter Standort: {site}",
+  "autresSites": {
+    "compteJour": "{count, plural, one {# Termin} other {# Termine}} in {site} an diesem Tag",
+    "compteSemaine": "{count, plural, one {# Termin} other {# Termine}} in {site} diese Woche",
+    "voir": "Terminkalender {site} anzeigen"
+  },
+  "aide": {
+    "planning": {
+      "resume": "Ein Kalender pro Standort",
+      "libelle": "Hilfe: Planung",
+      "texte": "Dieser Kalender zeigt die Termine jeweils eines Standorts. Die Termine der anderen Standorte werden oberhalb gezählt: Klicken Sie, um dorthin zu wechseln. Klicken Sie auf einen Termin, um den Kunden anzurufen, den Termin zu verschieben, abzusagen oder den Reparaturauftrag bei Ankunft zu öffnen. Die Listenansicht zeigt alle Telefonnummern auf einmal."
+    },
+    "nouveau": {
+      "libelle": "Hilfe: Termin vereinbaren",
+      "texte": "Kunde suchen, Fahrzeug wählen, dann Tag und Zeitfenster (Vormittag, Nachmittag oder genaue Uhrzeit). Der Grund legt die Dauer fest, sie kann angepasst werden. Der Termin wird im unten angezeigten Standort vereinbart."
     }
+  },
+  "motifs": {
+    "aide": {
+      "EXPERTISE-MFK": "Vorgeschriebene periodische Fahrzeugprüfung durch das Strassenverkehrsamt (MFK). Der Kunde muss den Fahrzeugausweis mitbringen.",
+      "PNEUS": "Saisonwechsel: Sommer oder Winter. Prüfen Sie, ob die Räder des Kunden bereits im Reifenlager sind.",
+      "SERVICE": "Regelmässiger Unterhalt gemäss Serviceheft des Herstellers.",
+      "DIAGNOSTIC": "Fehlersuche mit dem Diagnosegerät.",
+      "A-DETERMINER": "Der Kunde kann das Problem nicht beschreiben: Das Fahrzeug wird am Schalter angeschaut."
+    }
+  },
+  "pneus": {
+    "inconnu": "Wählen Sie ein Fahrzeug, um zu sehen, ob die Reifen im Lager sind.",
+    "chargement": "Reifenlager wird geprüft…",
+    "erreur": "Das Reifenlager konnte nicht geprüft werden. Fragen Sie den Kunden, ob er die Räder mitbringt.",
+    "absent": "Kein Radsatz dieses Kunden ist im Lager: Er muss seine Räder mitbringen.",
+    "present": "{count, plural, one {Ein Radsatz dieses Kunden ist bereits im Lager{detail}.} other {# Radsätze dieses Kunden sind bereits im Lager{detail}.}}",
+    "case": "Fach {code}"
+  },
+  "deplacer": {
+    "titre": "Termin verschieben",
+    "nouvelleDate": "Neues Datum",
+    "confirmer": "Termin verschieben"
   }
 }

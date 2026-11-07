@@ -24,7 +24,7 @@
       "irrecouvrable": "Inesigibile"
     },
     "statutAvoir": {
-      "nonRegle": "Non imputato",
+      "nonRegle": "Non ancora utilizzato",
       "partiel": "Imputato parzialmente",
       "regle": "Imputato",
       "tropPercu": "Imputato in eccesso",
@@ -48,7 +48,8 @@
   "ligneDepuisOrGenerique": "dall'ordine di riparazione",
   "verrouille": {
     "message": "Questa fattura è emessa e non può più essere modificata.",
-    "corriger": "Correggere con una nota di credito →"
+    "corriger": "Correggere con una nota di credito →",
+    "messageDevis": "Questo preventivo è inviato e non può più essere modificato."
   },
   "paiementVerrouille": {
     "message": "Questo pagamento è registrato e non può più essere modificato.",
@@ -57,7 +58,8 @@
   "avanceClient": {
     "message": "Questo incasso supera il saldo di {montant} — l'eccedenza sarà registrata come acconto cliente, da imputare in seguito.",
     "aucuneFactureOuverte": "Questo cliente non ha nessuna fattura aperta da saldare.",
-    "confirmerAction": "Registrare comunque come acconto cliente"
+    "confirmerAction": "Registrare comunque come acconto cliente",
+    "excedent": "Incassate {excedent} in più rispetto al saldo di {solde}: l'eccedenza sarà registrata come anticipo del cliente, da assegnare più tardi."
   },
   "motifsAvoir": {
     "erreurAdresse": "Errore d'indirizzo",
@@ -106,18 +108,26 @@
     "retour": "Torna all'ordine",
     "refusBloquant": {
       "titre": "{count, plural, one {# riga impedisce la fatturazione} other {# righe impediscono la fatturazione}}",
-      "resoudre": "Risolvere →"
+      "resoudre": "Risolvere →",
+      "marquerRealisees": "{count, plural, one {Segnare la riga come eseguita} other {Segnare le # righe come eseguite}}",
+      "marquageEnCours": "Contrassegno in corso…",
+      "aFaire": {
+        "proposee": "da proporre al cliente, poi convalidare nell'OR",
+        "aValider": "da convalidare nell'OR",
+        "validee": "da segnare come eseguita",
+        "enCours": "da segnare come eseguita"
+      }
     },
     "demontage": {
       "message": "È stato eseguito uno smontaggio per un preventivo rifiutato — fatturabile: {montant} IVA incl.",
       "ajouter": "Aggiungere questa riga alla fattura del cliente"
     },
     "groupe": {
-      "titre": "Gruppo pagante «{payeur}»",
+      "titre": "Fattura per « {payeur} »",
       "facturerMaintenant": "Fatturare ora",
       "sousTotal": "Subtotale",
       "motifReport": "Motivo del rinvio (facoltativo)",
-      "motifReportPlaceholder": "Es. pratica sinistro in attesa di approvazione"
+      "motifReportPlaceholder": "Es. sinistro in attesa di approvazione"
     },
     "ligneOfferte": "offerto ({raison})",
     "lignesRefusees": {
@@ -205,7 +215,7 @@
     "documentsLies": {
       "titre": "Documenti collegati",
       "or": "Ordine di riparazione collegato →",
-      "dossierVente": "Pratica di vendita collegata →",
+      "dossierVente": "Vendita collegata →",
       "vehicule": "Veicolo collegato →",
       "facture": "Fattura d'origine →",
       "avoir": "Nota di credito collegata →",
@@ -233,7 +243,11 @@
         "corriger": "Correggere questa fattura",
         "creerAvoir": "Creare una nota di credito",
         "journal": "Vedere il registro"
-      }
+      },
+      "telechargerPdf": "Scarica il PDF",
+      "envoyerDevis": "Inviare il preventivo",
+      "accordClient": "Accordo del cliente",
+      "creerOr": "Creare l'OR"
     },
     "dialogueEmission": {
       "titre": "Emettere la fattura?",
@@ -243,7 +257,12 @@
       "avertissement": "Una volta emessa, questa fattura non potrà più essere modificata — solo una correzione tramite nota di credito sarà possibile in seguito.",
       "avertissementAvoir": "Riduce la fattura {numero} e non potrà essere annullata una volta emessa.",
       "confirmer": "Emettere",
-      "enCours": "Emissione…"
+      "enCours": "Emissione…",
+      "titreDevis": "Inviare il preventivo?",
+      "resumeDevis": "Preventivo per {destinataire} — {montant} IVA incl.",
+      "avertissementDevis": "Una volta inviato, questo preventivo non potrà più essere modificato. Se il cliente cambia idea, dovrà crearne uno nuovo.",
+      "confirmerDevis": "Inviare",
+      "enCoursDevis": "Invio…"
     },
     "refusEmission": {
       "blocCreancierIncomplet": "Impossibile emettere — le coordinate bancarie dell'officina sono incomplete.",
@@ -272,7 +291,10 @@
     "erreur": {
       "titre": "Impossibile caricare questa fattura"
     },
-    "montantIndisponible": "Non comunicato"
+    "montantIndisponible": "Non comunicato",
+    "titreBrouillonDevis": "Nuovo preventivo",
+    "titreBrouillonBonCommande": "Nuovo ordine",
+    "envoyeLe": "inviato il {date}"
   },
   "encaissement": {
     "titre": "Incassare · {destinataire}",
@@ -283,7 +305,7 @@
       "emiseLe": "emessa il {date}",
       "totalSelectionne": "Totale selezionato",
       "vide": "Nessuna fattura aperta",
-      "devisesMultiples": "Queste fatture sono in valute diverse. Deseleziona alcune fatture per conservare solo fatture nella stessa valuta prima di incassare."
+      "devisesMultiples": "Queste fatture sono in valute diverse. Deselezioni alcune fatture per conservare solo fatture nella stessa valuta prima di incassare."
     },
     "lignes": {
       "titre": "Incassi",
@@ -301,15 +323,16 @@
     "erreur": {
       "titre": "Impossibile registrare l'incasso"
     },
-    "chargement": "Caricamento delle fatture aperte…"
+    "chargement": "Caricamento delle fatture aperte…",
+    "paiementPartiel": "Pagamento parziale: restano {reste} da pagare su questa fattura."
   },
   "avoir": {
     "titre": "Nota di credito sulla fattura {numero} — {destinataire}",
     "motif": "Motivo",
     "lignesOrigine": {
-      "titre": "Righe della fattura d'origine",
+      "titre": "Righe della fattura corretta",
       "dejaCreditee": "già accreditata",
-      "toutSelectionner": "Selezionare tutto (nota di credito totale)"
+      "toutSelectionner": "Seleziona tutto (nota di credito totale)"
     },
     "totalAvoir": "Totale della nota di credito",
     "motifObligatoire": "Motivo obbligatorio, richiesto all'emissione",
@@ -328,7 +351,8 @@
       "toutes": "Tutte",
       "nonReglees": "Non pagate",
       "enRetard": "In ritardo",
-      "aRelancer": "Da sollecitare"
+      "aRelancer": "Da sollecitare",
+      "devis": "Preventivi"
     },
     "colonnes": {
       "numero": "N.",
@@ -363,6 +387,10 @@
       "recherche": {
         "titre": "Nessuna fattura trovata",
         "description": "Nessuna fattura corrisponde a questo numero o nome cliente."
+      },
+      "devis": {
+        "titre": "Nessun preventivo",
+        "description": "I preventivi che crea compaiono qui, dal più recente al più vecchio."
       }
     }
   },
@@ -373,5 +401,87 @@
     "encaisser": "Incassare",
     "corriger": "Correggere",
     "modifier": "Modificare"
+  },
+  "devis": {
+    "nouveau": {
+      "action": "Nuovo preventivo",
+      "titre": "Nuovo preventivo",
+      "description": "Un prezzo per un cliente, senza aprire un ordine di riparazione. Il veicolo è facoltativo.",
+      "client": "Cliente",
+      "clientPlaceholder": "Nome, telefono o n. cliente",
+      "clientRequis": "Scelga un cliente.",
+      "aucunClient": "Nessun cliente trovato.",
+      "vehicule": "Veicolo",
+      "vehiculeAide": "Facoltativo: lasci «Senza veicolo» se l'auto non è ancora nota.",
+      "sansVehicule": "Senza veicolo",
+      "site": "Sede",
+      "creer": "Crea il preventivo"
+    },
+    "cree": {
+      "titre": "Preventivo creato",
+      "description": "Aggiunga ora manodopera e ricambi al preventivo. Una volta inviato il preventivo e accettato dal cliente, potrà trasformarlo in un OR.",
+      "ouvrir": "Apri il preventivo"
+    },
+    "statuts": {
+      "brouillon": "Bozza",
+      "emis": "Inviato",
+      "accepte": "Accettato",
+      "refuse": "Rifiutato",
+      "expire": "Scaduto",
+      "remplace": "Sostituito",
+      "transforme": "Trasformato",
+      "annule": "Annullato",
+      "abandonne": "Abbandonato"
+    },
+    "creerOr": {
+      "titre": "Crea l'OR da questo preventivo",
+      "description": "L'OR riprende il cliente, il veicolo e tutte le righe del preventivo di {destinataire}. Il preventivo passa a «Accettato».",
+      "kilometrage": "Chilometraggio all'ingresso",
+      "kilometrageAide": "Lettura del contachilometri all'ingresso (facoltativa se l'officina non la richiede)",
+      "confirmer": "Crea l'OR",
+      "enCours": "Creazione…"
+    }
+  },
+  "facturerEncaisser": {
+    "bouton": "Fatturare e incassare",
+    "titre": "Fatturare e incassare",
+    "resume": "{destinataire} · totale {montant} IVA incl.",
+    "modeLegende": "Come paga il cliente?",
+    "modes": {
+      "especes": "Contanti",
+      "carte": "Carta",
+      "twint": "TWINT",
+      "plus_tard": "Il cliente pagherà più tardi"
+    },
+    "apercuExact": "Da incassare: {montant}",
+    "apercuArrondi": "Da incassare: {montant} (arrotondato a 5 ct, {ecart})",
+    "apercuPlusTard": "La fattura viene emessa, ora non si incassa nulla.",
+    "apercuInconnu": "L’importo sarà calcolato all’emissione della fattura.",
+    "action": "Fatturare e incassare {montant}",
+    "actionPlusTard": "Fatturare senza incassare",
+    "enCours": "In corso…",
+    "reessayer": "Riprova",
+    "enDetail": "Fatturare nel dettaglio",
+    "echec": {
+      "facturation": "Non è stato possibile creare la fattura.",
+      "factureConservee": "Nulla è stato registrato: può riprovare senza rischio di duplicati."
+    },
+    "succes": {
+      "titre": "Fatto",
+      "facture": "Fattura {numero} emessa.",
+      "encaisse": "{montant} incassati ({moyen}).",
+      "plusTard": "Fattura emessa, il cliente pagherà più tardi.",
+      "telechargerPdf": "Scarica il PDF",
+      "envoyerCourriel": "Invia per e-mail",
+      "courrielEnvoye": "Fattura inviata a {destinataire}.",
+      "ouvrirFacture": "Apri la fattura",
+      "encaissementEchoue": "Fattura {numero} emessa, ma l’incasso non è andato a buon fine. Il saldo della fattura è intatto.",
+      "encaisserMaintenant": "Incassa ora",
+      "encaissementErreur": "L’incasso non è registrato."
+    }
+  },
+  "toasts": {
+    "devisEnvoye": "Preventivo inviato",
+    "devisAccepte": "Accordo del cliente registrato"
   }
 }

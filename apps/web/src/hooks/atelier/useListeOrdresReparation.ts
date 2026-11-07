@@ -1,21 +1,24 @@
 import { type UseInfiniteQueryResult } from '@tanstack/react-query';
 
-import type { OrdreReparationResume, PageCurseur } from '@dfa/shared';
+import type { OrdreReparationResumeListe, PageCurseur } from '@dfa/shared';
 
 import { clesQuery } from '@/api/cles';
 import { useDoitReessayer, useListeCurseur } from '@/hooks/pagination-curseur';
 
-import { listerOrdresReparation, type FiltresListeOrdresReparation } from './ordres-reparation.api';
+import {
+  listerResumesOrdresReparation,
+  type FiltresListeOrdresReparation,
+} from './ordres-reparation.api';
 
 const LIMITE_PAGE = 50;
 
 export type ResultatListeOrdresReparation = UseInfiniteQueryResult<
-  { readonly pages: readonly PageCurseur<OrdreReparationResume>[] },
+  { readonly pages: readonly PageCurseur<OrdreReparationResumeListe>[] },
   unknown
 > & {
   /** Toutes les pages chargées, aplaties — l'écran ne manipule jamais `data.pages` directement
    *  (même contrat que `useListeVehicules`). */
-  readonly ordres: readonly OrdreReparationResume[];
+  readonly ordres: readonly OrdreReparationResumeListe[];
 };
 
 /** `GET /ordres-reparation`, pagination par curseur (`BoutonChargerPlus`, jamais de numéro de
@@ -30,9 +33,9 @@ export function useListeOrdresReparation(
   filtres: FiltresListeOrdresReparation,
 ): ResultatListeOrdresReparation {
   const reessayer = useDoitReessayer();
-  const { resultat, elements } = useListeCurseur<OrdreReparationResume>({
+  const { resultat, elements } = useListeCurseur<OrdreReparationResumeListe>({
     cle: clesQuery.or.liste(filtres),
-    charger: (curseur) => listerOrdresReparation(filtres, { limite: LIMITE_PAGE, curseur }),
+    charger: (curseur) => listerResumesOrdresReparation(filtres, { limite: LIMITE_PAGE, curseur }),
     reessayer,
   });
 

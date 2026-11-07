@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import {
   cheminEntree,
   entreesVisibles,
+  sujetNavigation,
   trouverCorrespondance,
   type EntreeMenu,
 } from './navigation-modele';
@@ -72,20 +73,20 @@ export function BarreOngletsBasse({ ouvrirPlus, plusOuvert }: Props) {
   const site = searchParams.get('site') ?? preferenceSiteId;
   const { pathname } = useLocation();
   const { data: session } = useSession();
-  const role = session?.utilisateur.role;
+  const sujet = sujetNavigation(session);
 
   // Nombre d'entrées primaires — voir la justification complète en tête de fichier. Une
   // constante nommée plutôt qu'un `4` nu dans `.slice()` : le prochain lot qui relit ce
   // fichier n'a pas à recompter les `<li>` du JSX pour retrouver la décision.
   const NB_ENTREES_PRIMAIRES = 4;
-  const entrees = entreesVisibles(role).slice(0, NB_ENTREES_PRIMAIRES);
+  const entrees = entreesVisibles(sujet).slice(0, NB_ENTREES_PRIMAIRES);
   const correspondance = trouverCorrespondance(pathname);
   const idEntreeActive = correspondance?.entree.id;
   const activeParmiPrimaires = entrees.some((entree) => entree.id === idEntreeActive);
   const activeDansPlus = idEntreeActive !== undefined && !activeParmiPrimaires;
 
   function rendreEntree(entree: EntreeMenu) {
-    const cible = cheminEntree(entree, role, site);
+    const cible = cheminEntree(entree, sujet, site);
     if (cible === undefined) return null;
     const Icone = entree.icone;
     const actif = entree.id === idEntreeActive;

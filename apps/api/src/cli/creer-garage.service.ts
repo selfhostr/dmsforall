@@ -1,6 +1,7 @@
 /**
- * Logique de `creer-garage` : crée en UNE transaction un tenant, son site principal et son
- * premier utilisateur au rôle `direction` (plus la ligne d'audit `audit_utilisateur`).
+ * Logique de `creer-garage` : crée en UNE transaction un tenant, son site principal, son premier
+ * utilisateur au rôle `direction` (plus la ligne d'audit `audit_utilisateur`) et les données de
+ * départ d'un garage utilisable le premier jour (`parametrage/defauts-garage.ts`).
  *
  * Aucune dépendance à Nest ni à `tsx` : le service reçoit un exécuteur SQL et une fonction de
  * hachage, ce qui le rend testable sans base et exécutable dans l'image compilée.
@@ -11,6 +12,11 @@ import { z } from 'zod';
 
 import { ErreurMetier } from '../common/erreurs';
 import { ServicePolitiqueMotDePasse } from '../auth/politique-mot-de-passe';
+import {
+  codeSiteParDefaut,
+  MOTIFS_RENDEZ_VOUS_PAR_DEFAUT,
+  TAUX_HORAIRE_ATELIER_DEFAUT,
+} from '../parametrage/defauts-garage';
 
 export type CodeErreurCreerGarage =
   | 'GARAGE_INVALIDE'
@@ -58,8 +64,6 @@ export interface ResultatCreerGarage {
   readonly role: 'direction';
 }
 
-export const CODE_SITE_PRINCIPAL = 'PRINCIPAL';
-
 /** Slug conforme à `tenant_slug_format_chk` : `^[a-z0-9][a-z0-9-]{1,62}$`. */
 export function deriverSlug(nomGarage: string): string {
   const slug = nomGarage
@@ -89,19 +93,54 @@ function verifierMotDePasse(motDePasse: string, email: string): void {
   if (!schemaMotDePasseNouveau.safeParse(motDePasse).success) {
     throw new ErreurCreerGarage(
       'MOT_DE_PASSE_FAIBLE',
-      'Password must be 12 to 256 characters long.',
+      'Le mot de passe doit contenir entre 12 et 256 caractères.',
     );
   }
   try {
     new ServicePolitiqueMotDePasse().verifier(motDePasse, { email });
   } catch (erreur) {
+    // Le message de la politique nomme le motif exact (trop courant, prévisible, contient le
+    // courriel) : on le restitue tel quel plutôt que d'en inventer un résumé.
     if (erreur instanceof ErreurMetier) {
-      throw new ErreurCreerGarage(
-        'MOT_DE_PASSE_FAIBLE',
-        'Password rejected by the password policy (too common, predictable, or contains the email).',
-      );
+      throw new ErreurCreerGarage('MOT_DE_PASSE_FAIBLE', erreur.message);
     }
     throw erreur;
+  }
+}
+
+/**
+ * Ce qu'un garage neuf doit avoir pour servir dès le premier jour : paramètres atelier du tenant et
+ * du site (valeurs par défaut de la base), taux horaire « Atelier », motifs de rendez-vous courants.
+ * Les compteurs de numérotation (OR, factures, clients…) se créent à la demande au premier document.
+ * `on conflict do nothing` : rejouable sans doublon.
+ */
+async function poserDefautsGarage(
+  bd: ExecuteurSql,
+  tenantId: string,
+  siteId: string,
+): Promise<void> {
+  await bd.query(
+    'insert into parametre_atelier (tenant_id) values ($1) on conflict (tenant_id) do nothing',
+    [tenantId],
+  );
+  await bd.query(
+    'insert into parametre_site (tenant_id, site_id) values ($1, $2) on conflict (site_id) do nothing',
+    [tenantId, siteId],
+  );
+  const t = TAUX_HORAIRE_ATELIER_DEFAUT;
+  await bd.query(
+    `insert into taux_horaire (tenant_id, code, libelle, montant_centimes, valide_du)
+     values ($1, $2, $3, $4, $5)`,
+    [tenantId, t.code, t.libelle, t.montantCentimes, t.valideDu],
+  );
+  for (const m of MOTIFS_RENDEZ_VOUS_PAR_DEFAUT) {
+    await bd.query(
+      `insert into motif_rendez_vous
+         (tenant_id, code, libelle_fr, libelle_de, libelle_it, duree_defaut_minutes)
+       values ($1, $2, $3, $4, $5, $6)
+       on conflict (tenant_id, code) do nothing`,
+      [tenantId, m.code, m.libelleFr, m.libelleDe, m.libelleIt, m.dureeDefautMinutes],
+    );
   }
 }
 
@@ -147,15 +186,17 @@ export async function creerGarage(
         )
       ).rows[0]?.id,
     );
+    const siteCode = codeSiteParDefaut(slug);
     const siteId = String(
       (
         await bd.query(
           `insert into site (tenant_id, code, nom, pays, actif)
            values ($1, $2, $3, 'CH', true) returning id`,
-          [tenantId, CODE_SITE_PRINCIPAL, garage],
+          [tenantId, siteCode, garage],
         )
       ).rows[0]?.id,
     );
+    await poserDefautsGarage(bd, tenantId, siteId);
     const utilisateurId = String(
       (
         await bd.query(
@@ -184,7 +225,7 @@ export async function creerGarage(
       tenantId,
       slug,
       siteId,
-      siteCode: CODE_SITE_PRINCIPAL,
+      siteCode,
       utilisateurId,
       email,
       role: 'direction',

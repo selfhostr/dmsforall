@@ -67,6 +67,13 @@ export class ServiceEnvoiFactureCourriel {
     // portillon déclaratif que `GET .../pdf` (`@ExigerDroit('facturation.document.imprimer')` sur
     // la route, voir `impression-facture.controller.ts`).
     const document = await this.serviceDocuments.obtenirComplet(ctx, principal, documentId);
+    const estDevis = document.typeDocument === 'devis';
+    if (estDevis && document.numero === null) {
+      throw new ErreurMetier(
+        'DOCUMENT_PDF_INDISPONIBLE',
+        `Le devis ${documentId} est encore un brouillon : émettez-le avant de l'envoyer au client.`,
+      );
+    }
     const { buffer, nomFichier } = await this.serviceImpression.obtenirPdf(
       ctx,
       principal,
@@ -80,7 +87,7 @@ export class ServiceEnvoiFactureCourriel {
       throw new ErreurMetier(
         'FACTURE_DESTINATAIRE_COURRIEL_ABSENT',
         `Le client ${document.figees.clientDesignation} n'a pas d'adresse courriel enregistrée ` +
-          `— impossible d'envoyer la facture ${document.numero ?? documentId} par ce canal.`,
+          `— impossible d'envoyer ${estDevis ? 'le devis' : 'la facture'} ${document.numero ?? documentId} par ce canal.`,
       );
     }
 
@@ -88,6 +95,7 @@ export class ServiceEnvoiFactureCourriel {
       numero: document.numero ?? documentId,
       totalTtcCentimes: document.totalTtcCentimes,
       langue: document.figees.clientLangue as Langue,
+      typeDocument: estDevis ? 'devis' : 'facture',
     });
 
     const resultat = await this.serviceCourriel.envoyer({
@@ -106,7 +114,7 @@ export class ServiceEnvoiFactureCourriel {
       // partie.
       throw new ErreurMetier(
         'ERREUR_INTERNE',
-        `Échec de l'envoi du courriel pour la facture ${document.numero ?? documentId}.`,
+        `Échec de l'envoi du courriel pour ${estDevis ? 'le devis' : 'la facture'} ${document.numero ?? documentId}.`,
         { detail: resultat.erreur },
       );
     }

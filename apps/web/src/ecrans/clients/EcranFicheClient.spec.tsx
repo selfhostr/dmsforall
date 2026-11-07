@@ -287,24 +287,24 @@ describe('EcranFicheClient', () => {
       expect(routeur.state.location.search).toBe('?site=site-1');
     });
 
-    it('conserve `?site=` en cliquant « Ouvrir un OR »', async () => {
+    it('conserve `?site=` en cliquant « Créer un OR »', async () => {
       repondreFicheOk();
       const utilisateur = userEvent.setup();
       const { routeur } = rendreEcran('/clients/cl-1?site=site-1');
 
-      await utilisateur.click(await screen.findByRole('button', { name: 'Ouvrir un OR' }));
+      await utilisateur.click(await screen.findByRole('button', { name: 'Créer un OR' }));
 
       expect(await screen.findByText('PAGE_NOUVEL_OR')).toBeInTheDocument();
       expect(routeur.state.location.pathname).toBe('/atelier/ordres-reparation/nouveau');
       expect(routeur.state.location.search).toBe('?clientId=cl-1&site=site-1');
     });
 
-    it('ne réinvente pas de `site` en cliquant « Ouvrir un OR » quand il est absent de l’URL', async () => {
+    it('ne réinvente pas de `site` en cliquant « Créer un OR » quand il est absent de l’URL', async () => {
       repondreFicheOk();
       const utilisateur = userEvent.setup();
       const { routeur } = rendreEcran('/clients/cl-1');
 
-      await utilisateur.click(await screen.findByRole('button', { name: 'Ouvrir un OR' }));
+      await utilisateur.click(await screen.findByRole('button', { name: 'Créer un OR' }));
 
       expect(await screen.findByText('PAGE_NOUVEL_OR')).toBeInTheDocument();
       expect(routeur.state.location.search).toBe('?clientId=cl-1');
@@ -362,9 +362,11 @@ describe('EcranFicheClient', () => {
         rendreEcran();
 
         expect(
-          await screen.findByText("Vous n'avez pas les droits pour cette action."),
+          await screen.findByText(
+            "Votre rôle ne permet pas cette action. Demandez à la direction de vous l'ouvrir, ou faites-la faire par un collègue autorisé.",
+          ),
         ).toBeInTheDocument();
-        expect(screen.queryByText('Aucun dossier de vente.')).not.toBeInTheDocument();
+        expect(screen.queryByText('Aucune vente pour ce client.')).not.toBeInTheDocument();
         // Politique de réessai (`useListeDossiersVente` : `retry: false` sur 403/404) — un seul
         // appel, jamais le martèlement mesuré en navigateur (six requêtes en moins de dix
         // secondes avec l'ancien comportement).
@@ -393,11 +395,9 @@ describe('EcranFicheClient', () => {
         rendreEcran();
 
         expect(
-          await screen.findByText(
-            "Vous n'avez pas le droit de consulter les dossiers de vente de ce client.",
-          ),
+          await screen.findByText("Vous n'avez pas le droit de consulter les ventes de ce client."),
         ).toBeInTheDocument();
-        expect(screen.queryByText('Aucun dossier de vente.')).not.toBeInTheDocument();
+        expect(screen.queryByText('Aucune vente pour ce client.')).not.toBeInTheDocument();
         expect(nombreAppels).toBe(0);
       },
     );

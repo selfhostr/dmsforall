@@ -8,6 +8,7 @@
  */
 import { z } from 'zod';
 
+import type { CapacitesPersonne } from './capacites';
 import type { Langue, RoleUtilisateur } from './enums';
 import type { SiteResume, TenantCourant } from './socle';
 
@@ -137,5 +138,18 @@ export interface SessionCourante {
    * au serveur.
    */
   readonly siteRattachementId: string | null;
+  /**
+   * Actions de la matrice (`auth/matrice-droits.ts`) détenues par le rôle de ce compte, triées.
+   * Lues côté serveur depuis la matrice : le front n'a plus à la recopier à la main. Informatif
+   * pour l'affichage (bouton visible ou non) — le serveur re-vérifie toujours chaque requête.
+   */
+  readonly actions: readonly string[];
+  /**
+   * Grille de capacités de CE compte (`CapacitesPersonne`) : niveaux par domaine, encadrer,
+   * options (voit les montants, voit les prix d'achat, avoirs plafonnés). Pour afficher « Marc
+   * (Technicien, personnalisé) » ou griser une option ; la décision reste `actions`. Une borne a
+   * une grille vide (profil d'appareil figé).
+   */
+  readonly capacites: CapacitesPersonne;
   readonly expireLe: string; // ISO 8601
 }

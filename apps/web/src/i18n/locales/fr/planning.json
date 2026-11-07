@@ -11,7 +11,8 @@
       "semaineSuivante": "Semaine suivante",
       "jourPrecedent": "Jour précédent",
       "jourSuivant": "Jour suivant",
-      "aujourdhui": "Aujourd’hui"
+      "aujourdhui": "Aujourd’hui",
+      "demain": "Demain"
     },
     "rechercheLabel": "Rechercher un client, un véhicule, une plaque",
     "recherchePlaceholder": "Client, véhicule, plaque…",
@@ -20,7 +21,7 @@
   "site": {
     "manquant": {
       "titre": "Choisissez un site",
-      "description": "Cliquez en haut à gauche, sous le nom du garage, pour choisir un site et voir son agenda de rendez-vous."
+      "description": "Choisissez un site ci-dessous, ou avec le sélecteur de site en haut à droite de l’écran, pour voir son agenda de rendez-vous."
     }
   },
   "vide": {
@@ -98,10 +99,11 @@
     "echec": "Le rendez-vous n’a pas pu être enregistré. Vos informations sont conservées, corrigez et réessayez.",
     "rechercheClientPlaceholder": "Nom, numéro client, téléphone…",
     "aucunClient": "Aucun client ne correspond à cette recherche.",
-    "aucunVehicule": "Ce client n’a aucun véhicule enregistré."
+    "aucunVehicule": "Ce client n’a aucun véhicule enregistré.",
+    "siteAide": "Le rendez-vous est pris dans ce site. Pour un autre site, changez de site dans le planning."
   },
   "dialogueArrivee": {
-    "titre": "Le véhicule est arrivé",
+    "titre": "Le client est arrivé",
     "confirmer": "Confirmer l’arrivée",
     "confirmationDeuxOrOuverts": "Ce véhicule a déjà deux ordres de réparation ouverts.",
     "confirmationGenerique": "Une confirmation est nécessaire pour enregistrer l’arrivée."
@@ -109,10 +111,11 @@
   "detail": {
     "titre": "Rendez-vous",
     "actions": {
-      "vehiculeArrive": "Le véhicule est arrivé",
+      "vehiculeArrive": "Le client est arrivé : ouvrir l’ordre de réparation",
       "signalerAbsence": "Signaler l’absence du client",
       "annuler": "Annuler le rendez-vous",
-      "voirOrdre": "Voir l’ordre de réparation"
+      "voirOrdre": "Voir l’ordre de réparation",
+      "deplacer": "Déplacer"
     },
     "annulation": {
       "titre": "Annuler le rendez-vous",
@@ -130,7 +133,11 @@
       "annulePar": "Annulé par {nom}, le {date}"
     },
     "succesEnregistrement": "Rendez-vous mis à jour.",
-    "echecEnregistrement": "L’action n’a pas pu être enregistrée."
+    "echecEnregistrement": "L’action n’a pas pu être enregistrée.",
+    "contact": {
+      "titre": "Contact du client",
+      "pasDeTelephone": "Pas de téléphone enregistré"
+    }
   },
   "vueListe": {
     "titre": "Liste des rendez-vous",
@@ -139,7 +146,48 @@
       "client": "Client",
       "vehicule": "Véhicule",
       "motif": "Motif",
-      "statut": "Statut"
+      "statut": "Statut",
+      "telephone": "Téléphone"
+    },
+    "pasDeTelephone": "Pas de téléphone"
+  },
+  "siteAffiche": "Site affiché : {site}",
+  "autresSites": {
+    "compteJour": "{count, plural, one {# rendez-vous} other {# rendez-vous}} à {site} ce jour-là",
+    "compteSemaine": "{count, plural, one {# rendez-vous} other {# rendez-vous}} à {site} cette semaine",
+    "voir": "Voir l’agenda de {site}"
+  },
+  "aide": {
+    "planning": {
+      "resume": "Un agenda par site",
+      "libelle": "Aide : le planning",
+      "texte": "Cet agenda montre les rendez-vous d’un seul site à la fois. Les rendez-vous des autres sites sont comptés au-dessus de l’agenda : cliquez pour passer à ce site. Cliquez sur un rendez-vous pour appeler le client, le déplacer, l’annuler ou ouvrir l’ordre de réparation quand il arrive. La vue Liste montre tous les téléphones d’un coup."
+    },
+    "nouveau": {
+      "libelle": "Aide : prendre un rendez-vous",
+      "texte": "Cherchez le client, choisissez son véhicule, puis le jour et le créneau (matin, après-midi ou heure précise). Le motif règle la durée : vous pouvez la corriger. Le rendez-vous est pris dans le site affiché ci-dessous."
     }
+  },
+  "motifs": {
+    "aide": {
+      "EXPERTISE-MFK": "Contrôle périodique obligatoire du véhicule par le service des automobiles (expertise MFK). Le client doit apporter le permis de circulation.",
+      "PNEUS": "Changement de saison : été ou hiver. Vérifiez si les roues du client sont déjà au dépôt pneus.",
+      "SERVICE": "Entretien régulier selon le carnet de service du constructeur.",
+      "DIAGNOSTIC": "Recherche d’une panne ou d’un défaut avec l’appareil de diagnostic.",
+      "A-DETERMINER": "Le client ne sait pas décrire le problème : le véhicule sera examiné au comptoir."
+    }
+  },
+  "pneus": {
+    "inconnu": "Choisissez un véhicule pour savoir si ses pneus sont au dépôt.",
+    "chargement": "Vérification du dépôt pneus…",
+    "erreur": "Le dépôt pneus n’a pas pu être vérifié. Demandez au client s’il apporte ses roues.",
+    "absent": "Aucun jeu de pneus de ce client n’est au dépôt : il doit apporter ses roues.",
+    "present": "{count, plural, one {Un jeu de pneus de ce client est déjà au dépôt{detail}.} other {# jeux de pneus de ce client sont déjà au dépôt{detail}.}}",
+    "case": "case {code}"
+  },
+  "deplacer": {
+    "titre": "Déplacer le rendez-vous",
+    "nouvelleDate": "Nouvelle date",
+    "confirmer": "Déplacer le rendez-vous"
   }
 }

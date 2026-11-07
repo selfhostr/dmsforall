@@ -4,10 +4,7 @@ import type { FiltreTableauBord } from '@dfa/shared';
 
 import { useActiviteTableauBord } from '@/hooks/tableau-bord/useActiviteTableauBord';
 
-import { CarteOrEnRetard } from './composants/CarteOrEnRetard';
-import { CarteRendezVousJour } from './composants/CarteRendezVousJour';
 import { CarteRepartitionStatuts } from './composants/CarteRepartitionStatuts';
-import { CarteRestitutionsJour } from './composants/CarteRestitutionsJour';
 
 interface Props {
   readonly site: string | undefined;
@@ -40,25 +37,10 @@ export function TableauBordReceptionnaire({ site }: Props) {
   const activite = useActiviteTableauBord(filtre);
 
   return (
-    // Quatre cartes indépendantes, plus jamais empilées plein-écran dès `lg` (mission « largeur
-    // plutôt que défilement », ce rôle était l'écran le plus haut des quatre stacks originaux) :
-    // ordre de lecture inchangé, gauche→droite puis haut→bas — qui est attendu aujourd'hui, ce qui
-    // sort aujourd'hui, ce qui est en retard, l'état du parc.
+    // Rendez-vous du jour, restitutions et OR en retard sont remontés dans « À faire aujourd'hui »
+    // (`ecrans/accueil/composants/AFaireAujourdhui.tsx`, audit navigation : l'accueil commence par
+    // l'action, pas par les chiffres) — il reste ici l'état du parc à l'atelier.
     <div className="grid gap-groupe lg:grid-cols-2 lg:items-start">
-      <CarteRendezVousJour site={site} />
-
-      <CarteRestitutionsJour
-        site={site}
-        titreCle="tableauBord:receptionnaire.restitutionsJour.titre"
-        descriptionCle="tableauBord:receptionnaire.restitutionsJour.description"
-        videTitreCle="tableauBord:receptionnaire.restitutionsJour.vide.titre"
-        videDescriptionCle="tableauBord:receptionnaire.restitutionsJour.vide.description"
-      />
-
-      {/* Issue #112 : `CarteRestitutionsJour` ci-dessus reste bornée à aujourd'hui — carte
-       *  distincte pour ce qui traîne depuis avant, voir sa doc de tête. */}
-      <CarteOrEnRetard site={site} />
-
       <CarteRepartitionStatuts resultat={activite} />
     </div>
   );

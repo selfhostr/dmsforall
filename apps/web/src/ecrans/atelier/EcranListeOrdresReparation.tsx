@@ -9,7 +9,7 @@ import {
   TRI_DEFAUT_ORDRES_REPARATION,
   TRIS_ORDRES_REPARATION,
   type AttenteOrdreReparation,
-  type OrdreReparationResume,
+  type OrdreReparationResumeListe,
   type StatutOrdreReparation,
 } from '@dfa/shared';
 
@@ -116,7 +116,7 @@ export function EcranListeOrdresReparation() {
   // liste ne porte pas de client précis, `EcranNouvelOrdreReparation` gère déjà cette absence en
   // renvoyant vers `/recherche` (état « Client non sélectionné »).
   const session = useSession();
-  const peutCreer = peutCreerOrdreReparation(session.data?.utilisateur.role);
+  const peutCreer = peutCreerOrdreReparation(session.data?.actions);
 
   const [qSaisie, setQSaisie] = useState('');
   const [q, reinitialiserQ] = useValeurDebouncee(qSaisie, DELAI_DEBOUNCE_MS);
@@ -156,7 +156,7 @@ export function EcranListeOrdresReparation() {
     setAttente(undefined);
   }
 
-  const colonnes: ColonneComptoir<OrdreReparationResume>[] = [
+  const colonnes: ColonneComptoir<OrdreReparationResumeListe>[] = [
     {
       id: 'numero',
       libelle: t('or:liste.colonnes.numero'),
@@ -210,19 +210,13 @@ export function EcranListeOrdresReparation() {
   // (`EtatVidePremierUsage.action`) — même patron que `EcranListeVehicules.tsx`. Absent des deux
   // s'il n'y a rien à créer OU si le rôle courant n'a pas `atelier.or.creer`.
   //
-  // CORRECTIF issue #81 (rapport de test terrain) : ce bouton — le plus visible de l'écran
-  // Atelier — pointait vers `chemins.atelier.ordresReparation.nouveau(site)` SANS `clientId`,
-  // que cet écran (liste, sans contexte client) n'a jamais. `EcranNouvelOrdreReparation` refusait
-  // alors systématiquement (`or:nouveau.client.requisTitre`, « Client non sélectionné ») : 100 %
-  // des clics depuis ICI tombaient sur ce cul-de-sac, dont le seul rôle était de renvoyer vers
-  // `/recherche` — un détour pur, jamais une étape utile. Pointer directement vers `/recherche`
-  // retire ce détour au lieu de le maquiller ; le geste réel « ouvrir un OR pour CE client » reste
-  // sur la fiche client (`clients:...ouvrirOr`, hors périmètre) et sur la fiche véhicule
-  // (`vehicules:...nouvelOr`, hors périmètre) — SIGNALÉ : ces deux boutons et celui-ci portent
-  // trois noms différents pour le même geste, non unifiables depuis ce seul périmètre.
+  // Issue #81 : ce bouton menait à `/recherche` (détour sans création). Il ouvre maintenant l'écran
+  // « depuis une plaque » : plaque -> véhicule reconnu ou créé -> client -> OR, en un écran
+  // (`creation-rapide/`). Les fiches client et véhicule y mènent aussi (redirection de l'ancienne
+  // route de création).
   const boutonNouveauOr = peutCreer ? (
     <Button asChild>
-      <Link to={chemins.recherche.globale(site)}>
+      <Link to={chemins.atelier.ordresReparation.depuisPlaque({ site })}>
         <Plus aria-hidden className="h-4 w-4" />
         {t('or:liste.actions.nouveau')}
       </Link>

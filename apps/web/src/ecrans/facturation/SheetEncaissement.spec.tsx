@@ -232,7 +232,7 @@ function reponsePaiementBrute() {
 
 /**
  * Reproduit le défaut d'argent le plus grave remonté par le testeur novice (facture Meier Urs,
- * 60 CHF, « L'opération n'a pas pu être effectuée. Réessayez. » puis, au rejeu, « Le montant
+ * 60 CHF, « L'opération n'a pas abouti. Réessayez ; si cela revient, prévenez le support. » puis, au rejeu, « Le montant
  * imputé dépasse le reste à payer. ») — CAUSE RACINE PROUVÉE en exécution réelle (`POST
  * /paiements` sur l'API tournante, deux clés distinctes, même corps) : le premier appel réussit
  * réellement côté serveur (`201`, facture soldée), le second — portant une NOUVELLE clé

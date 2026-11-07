@@ -1,0 +1,163 @@
+{
+  "domaines": {
+    "atelier": {
+      "libelle": "Atelier",
+      "description": "Les ordres de réparation et le travail dans l'atelier.",
+      "exemples": {
+        "1": "Voir les ordres de réparation en cours",
+        "2": "Ouvrir un ordre et y ajouter des lignes",
+        "3": "Pointer ses heures",
+        "4": "Valider ou refuser une ligne"
+      }
+    },
+    "accueil": {
+      "libelle": "Accueil",
+      "description": "Les clients, leurs véhicules et les rendez-vous.",
+      "exemples": {
+        "1": "Chercher un client ou un véhicule",
+        "2": "Créer une fiche client",
+        "3": "Prendre un rendez-vous",
+        "4": "Prêter un véhicule de courtoisie"
+      }
+    },
+    "facturation": {
+      "libelle": "Facturation",
+      "description": "Les devis, les factures et les paiements.",
+      "exemples": {
+        "1": "Consulter les devis et les factures",
+        "2": "Établir un devis",
+        "3": "Émettre une facture",
+        "4": "Encaisser un paiement"
+      }
+    },
+    "pieces": {
+      "libelle": "Pièces",
+      "description": "Le stock, les fournisseurs et les commandes de pièces.",
+      "exemples": {
+        "1": "Consulter le stock et les réservations",
+        "2": "Enregistrer une entrée ou une sortie",
+        "3": "Commander chez un fournisseur",
+        "4": "Réceptionner une livraison"
+      }
+    },
+    "ventes": {
+      "libelle": "Ventes",
+      "description": "Les véhicules neufs et d'occasion, les reprises et les financements.",
+      "exemples": {
+        "1": "Consulter le stock de véhicules",
+        "2": "Ouvrir un dossier de vente",
+        "3": "Enregistrer une reprise",
+        "4": "Proposer un financement"
+      }
+    },
+    "finances": {
+      "libelle": "Finances",
+      "description": "Le suivi de l'argent du garage et la comptabilité.",
+      "exemples": {
+        "1": "Voir le tableau de bord financier",
+        "2": "Suivre les relances de factures impayées",
+        "3": "Établir un avoir ou corriger une facture",
+        "4": "Exporter vers la fiduciaire"
+      }
+    }
+  },
+  "niveaux": {
+    "rien": "Rien",
+    "voir": "Voir",
+    "faire": "Faire"
+  },
+  "options": {
+    "voitMontants": {
+      "libelle": "Voit les montants",
+      "description": "Voit les prix, les totaux et les montants des documents. Sans cela, ni facturer, ni vendre, ni toucher aux finances."
+    },
+    "voitPrixAchat": {
+      "libelle": "Voit les prix d'achat",
+      "description": "Voit ce que les pièces coûtent au garage, donc les marges."
+    },
+    "avoirsPlafonnes": {
+      "libelle": "Avoirs plafonnés",
+      "description": "Ne peut établir un avoir que jusqu'au plafond fixé dans les réglages de l'atelier."
+    }
+  },
+  "encadrer": {
+    "libelle": "Encadre l'équipe",
+    "description": "Corrige les heures des autres, rouvre un ordre de réparation, lève un blocage et règle l'atelier."
+  },
+  "gererEmployes": {
+    "libelle": "Employés et réglages",
+    "description": "Crée les comptes des employés et les bornes d'atelier. Se règle avec le poste, pas case par case."
+  },
+  "prereglages": {
+    "admin": {
+      "libelle": "Administrateur technique",
+      "description": "Compte de l'intégrateur : atelier, accueil et comptes. Aucun accès à l'argent, aux pièces ni aux ventes."
+    },
+    "direction": {
+      "libelle": "Direction",
+      "description": "Le patron : tout, y compris les gestes irréversibles comme l'IBAN du garage."
+    },
+    "vendeur": {
+      "libelle": "Vendeur",
+      "description": "Vend les véhicules et facture. Voit les pièces, pas l'atelier. Avoirs plafonnés."
+    },
+    "receptionnaire": {
+      "libelle": "Réceptionnaire",
+      "description": "Tient le comptoir : accueille, établit devis et factures, encaisse. Avoirs plafonnés."
+    },
+    "chef_atelier": {
+      "libelle": "Chef d'atelier",
+      "description": "Dirige l'atelier : encadre l'équipe, gère les pièces et facture. Avoirs plafonnés."
+    },
+    "technicien": {
+      "libelle": "Technicien",
+      "description": "Travaille à l'atelier et pointe ses heures. Ne voit aucun montant."
+    },
+    "magasinier": {
+      "libelle": "Magasinier",
+      "description": "Gère le stock de pièces, facture au comptoir et pointe ses heures. Avoirs plafonnés."
+    },
+    "comptable": {
+      "libelle": "Comptable",
+      "description": "Facturation et finances, regarde le reste. Ne peut pas changer l'IBAN du garage."
+    },
+    "fiduciaire": {
+      "libelle": "Fiduciaire (lecture seule)",
+      "description": "Comptable externe : consulte la facturation et les finances, ne modifie rien."
+    }
+  },
+  "editeur": {
+    "titre": "Qui peut quoi",
+    "description": "Choisissez un point de départ, puis ajustez si cette personne doit faire plus ou moins.",
+    "depart": "Point de départ",
+    "grilleTitre": "Ce que cette personne peut faire",
+    "domaineAria": "Accès {domaine}",
+    "exemplesTitre": "Par exemple",
+    "optionsTitre": "Options",
+    "autresTitre": "Autres droits",
+    "gererEmployesOui": "Oui, avec ce point de départ",
+    "gererEmployesNon": "Non",
+    "personnalise": "Personnalisé",
+    "personnaliseAide": "Cette grille s'écarte du point de départ « {prereglage} ».",
+    "conformeAide": "Cette grille suit exactement le point de départ.",
+    "revenir": "Revenir au préréglage",
+    "chargement": "Chargement des droits…",
+    "erreurTitre": "Impossible de charger les droits",
+    "reessayer": "Réessayer",
+    "incoherence": {
+      "montants": "Sans « Voit les montants », cette personne ne peut pas faire ce niveau. Passez à « Voir » ou « Rien », ou activez l'option.",
+      "finances": "Les finances manipulent de l'argent : activez « Voit les montants » ou choisissez « Rien ».",
+      "depassement": "Vous ne pouvez pas accorder plus que ce que vous avez vous-même."
+    },
+    "incoherencesResume": "Corrigez les points signalés avant d'enregistrer.",
+    "enregistrer": "Enregistrer les droits",
+    "enregistrerEnCours": "Enregistrement…",
+    "enregistre": "Droits enregistrés."
+  },
+  "resume": {
+    "aucun": "Aucun accès",
+    "voit": "Voit : {liste}",
+    "encadre": "encadre",
+    "lectureSeule": "Lecture seule"
+  }
+}

@@ -1,10 +1,17 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
+import { MemoryRouter } from 'react-router';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
-import type { ClientResume, ReponseOrdreReparation, VehiculeResume } from '@dfa/shared';
+import type {
+  ClientResume,
+  ReponseLigneOr,
+  ReponseOrdreReparation,
+  VehiculeResume,
+} from '@dfa/shared';
 
+import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { renduAvecQueryClient } from '@/test/utils';
 
@@ -111,7 +118,11 @@ function construireOr(overrides: Partial<ReponseOrdreReparation> = {}): ReponseO
 }
 
 function rendre(or: ReponseOrdreReparation = construireOr()) {
-  return renduAvecQueryClient(<PanneauActionsOr or={or} />);
+  return renduAvecQueryClient(
+    <MemoryRouter>
+      <PanneauActionsOr or={or} />
+    </MemoryRouter>,
+  );
 }
 
 describe('PanneauActionsOr — CONFIRMATION_REQUISE (§4.4)', () => {
@@ -202,5 +213,273 @@ describe('PanneauActionsOr — CONFIRMATION_REQUISE (§4.4)', () => {
     // resterait posé côté mutation et la modale se rouvrirait TOUTE SEULE au rendu suivant.
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(screen.queryByRole('button', { name: 'Continuer quand même' })).not.toBeInTheDocument();
+  });
+});
+
+describe('PanneauActionsOr — action proposée « Marquer les lignes comme réalisées » (I-10)', () => {
+  const URL_TERMINER = '/api/v1/ordres-reparation/or-1/terminer';
+  const urlMarquer = (ligneId: string) =>
+    `/api/v1/ordres-reparation/or-1/lignes/${ligneId}/marquer-realisee`;
+
+  function refusLignesNonRealisees() {
+    return HttpResponse.json(
+      {
+        type: 'https://docs.dmsforall.example/erreurs/OR_LIGNE_NON_REALISEE',
+        title: 'Lignes non réalisées',
+        status: 409,
+        code: 'OR_LIGNE_NON_REALISEE',
+        instance: 'req-3',
+        blocages: [
+          { type: 'ligne_or', id: 'l-1', libelle: 'Vidange', donnees: { numeroLigne: 1 } },
+          { type: 'ligne_or', id: 'l-2', libelle: 'Filtre', donnees: { numeroLigne: 2 } },
+        ],
+        actionsProposees: [{ code: 'MARQUER_LIGNES_REALISEES' }],
+      },
+      { status: 409, headers: { 'content-type': 'application/problem+json' } },
+    );
+  }
+
+  function reponseLigne(id: string) {
+    return HttpResponse.json({ donnees: { id, statut: 'realisee' }, avertissements: [] });
+  }
+
+  async function ouvrirTerminerEtConfirmer() {
+    const utilisateur = userEvent.setup({ pointerEventsCheck: 0 });
+    rendre(construireOr({ statut: 'en_cours', actionsDisponibles: ['terminer'] }));
+    await utilisateur.click(await screen.findByRole('button', { name: 'Travaux terminés' }));
+    const dialogue = await screen.findByRole('dialog');
+    await utilisateur.click(within(dialogue).getByRole('button', { name: 'Confirmer' }));
+    return { utilisateur, dialogue };
+  }
+
+  it('le bouton marque chaque ligne bloquante réalisée, puis relance Terminer', async () => {
+    const marquees: string[] = [];
+    let appelsTerminer = 0;
+    server.use(
+      http.post(URL_TERMINER, () => {
+        appelsTerminer += 1;
+        if (appelsTerminer === 1) return refusLignesNonRealisees();
+        return HttpResponse.json({
+          donnees: construireOr({ statut: 'termine', actionsDisponibles: [] }),
+          avertissements: [],
+        });
+      }),
+      http.post(urlMarquer('l-1'), () => {
+        marquees.push('l-1');
+        return reponseLigne('l-1');
+      }),
+      http.post(urlMarquer('l-2'), () => {
+        marquees.push('l-2');
+        return reponseLigne('l-2');
+      }),
+    );
+
+    const { utilisateur, dialogue } = await ouvrirTerminerEtConfirmer();
+    await utilisateur.click(
+      await within(dialogue).findByRole('button', { name: 'Marquer les lignes comme réalisées' }),
+    );
+
+    await waitFor(() => expect(appelsTerminer).toBe(2));
+    expect(marquees).toEqual(['l-1', 'l-2']);
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it("échec partiel : s'arrête, affiche le message de l'API tel quel et ne relance pas Terminer", async () => {
+    let appelsTerminer = 0;
+    server.use(
+      http.post(URL_TERMINER, () => {
+        appelsTerminer += 1;
+        return refusLignesNonRealisees();
+      }),
+      http.post(urlMarquer('l-1'), () => reponseLigne('l-1')),
+      http.post(urlMarquer('l-2'), () =>
+        HttpResponse.json(
+          {
+            type: 'https://docs.dmsforall.example/erreurs/LIGNE_TRANSITION_INTERDITE',
+            title: 'Transition interdite',
+            status: 409,
+            code: 'LIGNE_TRANSITION_INTERDITE',
+            detail: 'Aucun temps pointé sur la ligne « Filtre ».',
+            instance: 'req-4',
+          },
+          { status: 409, headers: { 'content-type': 'application/problem+json' } },
+        ),
+      ),
+    );
+
+    const { utilisateur, dialogue } = await ouvrirTerminerEtConfirmer();
+    await utilisateur.click(
+      await within(dialogue).findByRole('button', { name: 'Marquer les lignes comme réalisées' }),
+    );
+
+    expect(
+      await within(dialogue).findByText('Aucun temps pointé sur la ligne « Filtre ».'),
+    ).toBeInTheDocument();
+    expect(appelsTerminer).toBe(1);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+});
+
+function construireLigneARealiser(id: string, statut: ReponseLigneOr['statut']): ReponseLigneOr {
+  return {
+    id,
+    ordreReparationId: 'or-1',
+    numeroOrdre: 1,
+    type: 'forfait',
+    origine: 'commandee',
+    statut,
+    payeur: 'client',
+    payeurClientId: null,
+    blocage: 'aucun',
+    designation: `Travail ${id}`,
+    referenceTexte: null,
+    articleId: null,
+    quantiteMillieme: 1000,
+    tempsBaremeCentiemes: null,
+    tempsBaremeConstructeurCentiemes: null,
+    tempsReelCentiemes: null,
+    tauxHoraireCentimes: null,
+    prixUnitaireCentimes: 10000,
+    rabaisPourmille: 0,
+    tauxTvaPourmille: 81,
+    figeLe: null,
+    montants: { montantHtCentimes: 10000, montantTvaCentimes: 810, montantTtcCentimes: 10810 },
+    technicienId: null,
+    codeOperation: null,
+    codeDefaut: null,
+    numeroSinistre: null,
+    numeroAccord: null,
+    urgence: null,
+    securite: false,
+    fournieParClient: false,
+    aRestituer: false,
+    restituee: false,
+    motifAnnulation: null,
+    factureId: null,
+    creeLe: '2026-08-06T08:00:00.000Z',
+    modifieLe: '2026-08-06T08:00:00.000Z',
+  };
+}
+
+describe("PanneauActionsOr — « Travaux terminés » avec des lignes que l'OR connaît déjà comme à réaliser (D6)", () => {
+  const URL_TERMINER = '/api/v1/ordres-reparation/or-1/terminer';
+  const urlMarquer = (ligneId: string) =>
+    `/api/v1/ordres-reparation/or-1/lignes/${ligneId}/marquer-realisee`;
+
+  async function ouvrirTerminer() {
+    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
+    const utilisateur = userEvent.setup({ pointerEventsCheck: 0 });
+    rendre(
+      construireOr({
+        statut: 'en_cours',
+        actionsDisponibles: ['terminer'],
+        lignes: [
+          construireLigneARealiser('l-1', 'validee'),
+          construireLigneARealiser('l-2', 'en_cours'),
+          construireLigneARealiser('l-3', 'realisee'),
+        ],
+        nombreLignes: 3,
+      }),
+    );
+    await utilisateur.click(await screen.findByRole('button', { name: 'Travaux terminés' }));
+    const dialogue = await screen.findByRole('dialog');
+    return { utilisateur, dialogue };
+  }
+
+  it("propose d'emblée « Marquer les 2 lignes réalisées et terminer » (pas de « Confirmer »)", async () => {
+    const { dialogue } = await ouvrirTerminer();
+    expect(
+      await within(dialogue).findByRole('button', {
+        name: 'Marquer les 2 lignes réalisées et terminer',
+      }),
+    ).toBeInTheDocument();
+    expect(within(dialogue).queryByRole('button', { name: 'Confirmer' })).not.toBeInTheDocument();
+  });
+
+  it('marque les seules lignes à réaliser puis termine : un seul appel « terminer », jamais de 409', async () => {
+    const marquees: string[] = [];
+    let appelsTerminer = 0;
+    server.use(
+      http.post(URL_TERMINER, () => {
+        appelsTerminer += 1;
+        return HttpResponse.json({
+          donnees: construireOr({ statut: 'termine', actionsDisponibles: [] }),
+          avertissements: [],
+        });
+      }),
+      http.post(urlMarquer('l-1'), () => {
+        marquees.push('l-1');
+        return HttpResponse.json({
+          donnees: { id: 'l-1', statut: 'realisee' },
+          avertissements: [],
+        });
+      }),
+      http.post(urlMarquer('l-2'), () => {
+        marquees.push('l-2');
+        return HttpResponse.json({
+          donnees: { id: 'l-2', statut: 'realisee' },
+          avertissements: [],
+        });
+      }),
+    );
+    const { utilisateur, dialogue } = await ouvrirTerminer();
+    await utilisateur.click(
+      await within(dialogue).findByRole('button', {
+        name: 'Marquer les 2 lignes réalisées et terminer',
+      }),
+    );
+
+    await waitFor(() => expect(appelsTerminer).toBe(1));
+    expect(marquees).toEqual(['l-1', 'l-2']);
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it("un échec de marquage affiche le message de l'API et n'envoie jamais « terminer »", async () => {
+    let appelsTerminer = 0;
+    server.use(
+      http.post(URL_TERMINER, () => {
+        appelsTerminer += 1;
+        return HttpResponse.json({ donnees: construireOr(), avertissements: [] });
+      }),
+      http.post(urlMarquer('l-1'), () =>
+        HttpResponse.json(
+          {
+            type: 'https://docs.dmsforall.example/erreurs/LIGNE_TRANSITION_INTERDITE',
+            title: 'Transition interdite',
+            status: 409,
+            code: 'LIGNE_TRANSITION_INTERDITE',
+            detail: 'Aucun temps pointé sur la ligne « Travail l-1 ».',
+            instance: 'req-5',
+          },
+          { status: 409, headers: { 'content-type': 'application/problem+json' } },
+        ),
+      ),
+    );
+    const { utilisateur, dialogue } = await ouvrirTerminer();
+    await utilisateur.click(
+      await within(dialogue).findByRole('button', {
+        name: 'Marquer les 2 lignes réalisées et terminer',
+      }),
+    );
+
+    expect(
+      await within(dialogue).findByText('Aucun temps pointé sur la ligne « Travail l-1 ».'),
+    ).toBeInTheDocument();
+    expect(appelsTerminer).toBe(0);
+  });
+});
+
+describe('PanneauActionsOr — confirmation : une phrase qui dit ce qui va se passer', () => {
+  it.each([
+    ['demarrer', 'Démarrer les travaux', "L'OR passe en cours"],
+    ['passer-en-controle', 'Passer en contrôle', "L'OR passe en contrôle"],
+    ['cloturer', 'Clôturer', "L'OR est clôturé"],
+  ] as const)('%s', async (action, bouton, debutPhrase) => {
+    const utilisateur = userEvent.setup({ pointerEventsCheck: 0 });
+    rendre(construireOr({ statut: 'en_cours', actionsDisponibles: [action] }));
+    await utilisateur.click(await screen.findByRole('button', { name: bouton }));
+    const dialogue = await screen.findByRole('dialog');
+    expect(within(dialogue).getByText(new RegExp(`^${debutPhrase}`))).toBeInTheDocument();
+    expect(screen.queryByText('Confirmez cette action.')).not.toBeInTheDocument();
   });
 });

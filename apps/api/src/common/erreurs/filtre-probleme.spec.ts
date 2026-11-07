@@ -338,4 +338,33 @@ describe('FiltreProbleme — blocages, confirmationsRequises et actionsProposees
     const corpsEnvoye = (reponse.json as ReturnType<typeof vi.fn>).mock.calls[0]?.[0];
     expect(corpsEnvoye).toHaveProperty('blocages', blocages);
   });
+
+  it("journalise la cause d'une erreur de base en masquant les valeurs du détail (IBAN forgé), sans paramètres de requête", () => {
+    const journal = serviceJournalTest();
+    const filtre = new FiltreProbleme(serviceContexteTest(PRINCIPAL_TEST), journal);
+    const causePg = Object.assign(new Error('duplicate key value violates unique constraint'), {
+      code: '23505',
+      constraint: 'creancier_iban_uniq',
+      detail: 'Key (iban)=(CH9300762011623852957) already exists.',
+    });
+    const exception = Object.assign(new Error('Failed query: insert'), {
+      cause: causePg,
+      query: 'insert into creancier (iban) values ($1)',
+      params: ['CH9300762011623852957'],
+    });
+
+    filtre.catch(exception, hostTest(requeteTest(), reponseTest()));
+
+    const donnees = (journal.error as ReturnType<typeof vi.fn>).mock.calls[0]?.[2];
+    expect(donnees).toEqual({
+      requeteId: 'requete-id-1',
+      cause: {
+        code: '23505',
+        constraint: 'creancier_iban_uniq',
+        detail: 'Key (iban)=([masqué]) already exists.',
+        message: 'duplicate key value violates unique constraint',
+      },
+    });
+    expect(JSON.stringify(donnees)).not.toContain('CH9300762011623852957');
+  });
 });

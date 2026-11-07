@@ -504,7 +504,13 @@ describe('ServiceMouvement — pieces.mouvement.forcer (audit sécurité, forcer
     );
 
     await expect(
-      service.perte(CTX, 'chef_atelier', 'a1', { ...ENTREE_CASSE, forcer: true }, 'idem-forcer-2'),
+      service.perte(
+        CTX,
+        'receptionnaire',
+        'a1',
+        { ...ENTREE_CASSE, forcer: true },
+        'idem-forcer-2',
+      ),
     ).rejects.toMatchObject({ code: 'DROIT_INSUFFISANT', status: 403 });
     expect(insertValuesArgs).toHaveLength(0);
   });

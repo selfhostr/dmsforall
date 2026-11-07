@@ -6,3 +6,6 @@ export * from './site-affecte-resume.dto';
 export * from './site-resume.dto';
 export * from './tenant-courant.dto';
 export * from './utilisateur-resume.dto';
+export * from './borne-resume.dto';
+export * from './page-borne-resume.dto';
+export * from './reponse-creation-borne.dto';

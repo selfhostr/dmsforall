@@ -54,6 +54,7 @@ import {
 vi.mock('./references', () => ({
   chargerLigneOuNull: vi.fn(),
   chargerLignesOrPourAgregat: vi.fn(),
+  chargerNomSite: vi.fn(),
   chargerOrOuNull: vi.fn(),
   chargerLignePourPointage: vi.fn(),
   chargerOrPourPointage: vi.fn(),
@@ -61,7 +62,11 @@ vi.mock('./references', () => ({
   chargerResumeTechnicien: vi.fn(),
   resoudreCibleAffichagePointage: vi.fn(),
 }));
-import { chargerResumeTechnicien, resoudreCibleAffichagePointage } from './references';
+import {
+  chargerNomSite,
+  chargerResumeTechnicien,
+  resoudreCibleAffichagePointage,
+} from './references';
 
 const TENANT = '11111111-1111-1111-1111-111111111111';
 const MOI = '22222222-2222-2222-2222-222222222222';
@@ -102,9 +107,9 @@ function entreeDemarrage(technicienId: string): EntreeDemarragePointage {
 }
 
 /** Dépendances non exercées par le chemin de garde — stubs inertes. */
-const accesStub = { enTenant: vi.fn() } as unknown as ConstructorParameters<
-  typeof ServicePointage
->[0];
+const accesStub = {
+  enTenant: vi.fn(async (_ctx: unknown, travail: (tx: unknown) => Promise<unknown>) => travail({})),
+} as unknown as ConstructorParameters<typeof ServicePointage>[0];
 const horlogeStub = {
   maintenant: () => new Date('2026-07-31T09:00:00.000Z'),
 } as unknown as ConstructorParameters<typeof ServicePointage>[2];
@@ -179,14 +184,35 @@ describe('ServicePointage.demarrer — garde soi/autrui (faille corrigée)', () 
 describe('ServicePointage.demarrer — confinement de site pour une borne (faille corrigée #2)', () => {
   const SENTINELLE = { rejoue: false, reponse: { statutHttp: 201, corps: {} } };
 
-  it('REFUSE (403 DROIT_INSUFFISANT) la borne poste_atelier du site A démarrant sur le site B du même tenant — aucune écriture atteinte', async () => {
+  it('REFUSE (403 POINTAGE_SITE_AUTRE) la borne poste_atelier du site A démarrant sur le site B du même tenant, en NOMMANT le site — aucune écriture atteinte', async () => {
     const executer = vi.fn(async () => SENTINELLE);
     const { service } = serviceAvecExecuter(executer);
     const entree = { ...entreeDemarrage(AUTRE), siteId: SITE_B };
+    vi.mocked(chargerNomSite).mockResolvedValueOnce('Martigny');
+
+    const erreur = await service
+      .demarrer(CTX, principal('poste_atelier', BORNE), entree, 'cle')
+      .catch((e: unknown) => e);
+
+    expect(erreur).toBeInstanceOf(ErreurMetier);
+    expect(erreur).toMatchObject({
+      code: 'POINTAGE_SITE_AUTRE',
+      status: 403,
+      blocages: [expect.objectContaining({ donnees: { siteId: SITE_B, siteNom: 'Martigny' } })],
+    });
+    expect((erreur as ErreurMetier).message).toContain('Martigny');
+    expect(executer).not.toHaveBeenCalled();
+  });
+
+  it('REFUSE quand même (POINTAGE_SITE_AUTRE, sans nom) si le site demandé est introuvable — jamais un passe-droit', async () => {
+    const executer = vi.fn(async () => SENTINELLE);
+    const { service } = serviceAvecExecuter(executer);
+    const entree = { ...entreeDemarrage(AUTRE), siteId: SITE_B };
+    vi.mocked(chargerNomSite).mockResolvedValueOnce(null);
 
     await expect(
       service.demarrer(CTX, principal('poste_atelier', BORNE), entree, 'cle'),
-    ).rejects.toMatchObject({ code: 'DROIT_INSUFFISANT' });
+    ).rejects.toMatchObject({ code: 'POINTAGE_SITE_AUTRE', blocages: undefined });
     expect(executer).not.toHaveBeenCalled();
   });
 
@@ -199,7 +225,7 @@ describe('ServicePointage.demarrer — confinement de site pour une borne (faill
 
     await expect(
       service.demarrer(CTX, principal('poste_atelier', BORNE), entree, 'cle'),
-    ).rejects.toMatchObject({ code: 'DROIT_INSUFFISANT' });
+    ).rejects.toMatchObject({ code: 'POINTAGE_SITE_AUTRE' });
     expect(executer).not.toHaveBeenCalled();
   });
 

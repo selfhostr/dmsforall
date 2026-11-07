@@ -1,9 +1,10 @@
+import type { ActionsSession } from '@/droits';
 import { AlertCircle, CheckCircle2, Loader2, UploadCloud, WifiOff, XCircle } from 'lucide-react';
 import { useRef, useState, type DragEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
-import type { ReponseFactureFournisseur, RoleUtilisateur } from '@dfa/shared';
+import type { ReponseFactureFournisseur } from '@dfa/shared';
 
 import { ErreurReseau, messageErreur } from '@/api/erreurs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -55,7 +56,7 @@ type EtapeDepot =
 export function EcranDepotFactureFournisseur() {
   const { t } = useTranslation(['pieces', 'commun', 'erreurs']);
   const session = useSession();
-  const role = session.data?.utilisateur.role;
+  const actions = session.data?.actions;
   const deposer = useDeposerFactureFournisseur();
 
   const [etape, setEtape] = useState<EtapeDepot>({ phase: 'depot' });
@@ -118,7 +119,7 @@ export function EcranDepotFactureFournisseur() {
     );
   }
 
-  if (!peutDeposerFactureFournisseur(role)) {
+  if (!peutDeposerFactureFournisseur(actions)) {
     return (
       <GabaritEcran titre={t('pieces:facturesFournisseur.titreDepot')}>
         <Alert variant="destructive">
@@ -221,7 +222,7 @@ export function EcranDepotFactureFournisseur() {
         {etape.phase === 'rapprochement' ? (
           <PanneauRapprochementFactureAvecDecision
             facture={etape.facture}
-            role={role}
+            actions={actions}
             onDecidee={(facture) => setEtape({ phase: 'decidee', facture })}
           />
         ) : null}
@@ -259,7 +260,7 @@ export function EcranDepotFactureFournisseur() {
 
 interface PropsAvecDecision {
   readonly facture: ReponseFactureFournisseur;
-  readonly role: RoleUtilisateur | undefined;
+  readonly actions: ActionsSession;
   readonly onDecidee: (facture: ReponseFactureFournisseur) => void;
 }
 
@@ -268,14 +269,18 @@ interface PropsAvecDecision {
  *  (`EcranFactureFournisseur.tsx`) puisse recâbler les MÊMES mutations SANS dupliquer ce fil (id
  *  différent à chaque montage : `useMutation` doit être réinstancié par fiche, jamais partagé
  *  entre deux id). */
-function PanneauRapprochementFactureAvecDecision({ facture, role, onDecidee }: PropsAvecDecision) {
+function PanneauRapprochementFactureAvecDecision({
+  facture,
+  actions,
+  onDecidee,
+}: PropsAvecDecision) {
   const valider = useValiderRapprochementFactureFournisseur(facture.id);
   const rejeter = useRejeterFactureFournisseur(facture.id);
 
   return (
     <PanneauRapprochementFacture
       facture={facture}
-      peutDecider={peutDeciderFactureFournisseur(role)}
+      peutDecider={peutDeciderFactureFournisseur(actions)}
       validationEnCours={valider.isPending}
       rejetEnCours={rejeter.isPending}
       erreurValidation={valider.error}

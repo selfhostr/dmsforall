@@ -97,7 +97,7 @@
         "actif": "Leistung aktiv"
       },
       "typesLigne": {
-        "main_oeuvre_bareme": "Arbeit nach Vorgabezeit",
+        "main_oeuvre_bareme": "Arbeit (Vorgabe)",
         "main_oeuvre_temps_reel": "Arbeit nach effektiver Zeit",
         "forfait": "Pauschale",
         "piece": "Teil",
@@ -109,10 +109,10 @@
         "texte": "Information"
       },
       "tauxTvaLibelles": {
-        "81": "8.1 % (Normalsatz)",
+        "0": "0 % (befreit)",
         "26": "2.6 % (reduzierter Satz)",
         "38": "3.8 % (Beherbergung)",
-        "0": "0 % (befreit)"
+        "81": "8.1 % (Normalsatz)"
       },
       "vide": {
         "titre": "Keine Leistung vorhanden",
@@ -186,17 +186,6 @@
         "tout": "Gesamte Historie",
         "technique": "Nur technische Historie",
         "rien": "Keine"
-      }
-    },
-    "aVenir": {
-      "titre": "Künftige Funktionen",
-      "description": "Diese Einstellungen bestehen bereits im API-Vertrag, sind aber noch an keine ausgelieferte Funktion angebunden — sie erscheinen deshalb nicht als Kontrollkästchen ohne Wirkung.",
-      "pasEncoreDisponible": "noch nicht verfügbar",
-      "fonctionnalites": {
-        "facturation": "Werkstattfakturierung",
-        "stockPieces": "Teilelager",
-        "depotPneus": "Reifeneinlagerung",
-        "prets": "Leihfahrzeuge"
       }
     },
     "inerte": {
@@ -280,6 +269,7 @@
       "nom": "Name",
       "email": "E-Mail",
       "role": "Rolle",
+      "acces": "Zugriff",
       "sites": "Standorte",
       "statut": "Status",
       "actions": "Aktionen"
@@ -295,7 +285,7 @@
       "desactiver": "Deaktivieren",
       "reactiver": "Reaktivieren",
       "reinitialiserAcces": "Zugang zurücksetzen",
-      "menuAria": "Aktionen für {{nom}}"
+      "menuAria": "Aktionen für {nom}"
     },
     "creation": {
       "titre": "Mitarbeiter erstellen",
@@ -303,17 +293,18 @@
       "champPrenom": "Vorname",
       "champNom": "Name",
       "champEmail": "E-Mail",
-      "champRole": "Rolle",
+      "champRole": "Stelle (Ausgangspunkt)",
       "champSites": "Standorte, an denen der Mitarbeiter arbeitet",
       "aucunSiteDisponible": "Dieser Garage ist noch kein Standort zugeordnet.",
       "sitesAucunSelectionne": "Wählen Sie mindestens einen Standort aus.",
       "actions": {
         "creer": "Erstellen"
-      }
+      },
+      "droitsNonEnregistres": "Das Konto wurde erstellt, aber die Rechte konnten nicht gespeichert werden. Ihre Auswahl bleibt erhalten: prüfen und speichern Sie sie."
     },
     "modification": {
-      "titre": "{{nom}} bearbeiten",
-      "description": "Rolle und/oder Standorte ändern — nützlich bei einem Stellenwechsel.",
+      "titre": "{nom} bearbeiten",
+      "description": "Stelle, Standorte oder Rechte dieser Person ändern — nützlich, wenn jemand die Funktion wechselt.",
       "actions": {
         "enregistrer": "Speichern"
       }
@@ -326,19 +317,145 @@
       "fermer": "Ich habe das Passwort notiert"
     },
     "desactiver": {
-      "titre": "{{nom}} deaktivieren?",
+      "titre": "{nom} deaktivieren?",
       "description": "Der Mitarbeiter kann sich nicht mehr anmelden. Sein Verlauf (Reparaturaufträge, Rechnungen, Zeiterfassung) bleibt zuordenbar — dies ist keine Löschung, das Konto kann jederzeit reaktiviert werden.",
       "confirmer": "Deaktivieren"
     },
     "reactiver": {
-      "titre": "{{nom}} reaktivieren?",
+      "titre": "{nom} reaktivieren?",
       "description": "Der Mitarbeiter kann sich mit seinem bestehenden Passwort wieder anmelden.",
       "confirmer": "Reaktivieren"
     },
     "reinitialiserAcces": {
-      "titre": "Zugang von {{nom}} zurücksetzen?",
+      "titre": "Zugang von {nom} zurücksetzen?",
       "description": "Ein neues temporäres Passwort wird generiert und alle offenen Sitzungen dieses Mitarbeiters werden sofort geschlossen.",
       "confirmer": "Zurücksetzen"
+    },
+    "rolesDescription": {
+      "direction": "Macht alles: Annahme, Verkauf, Fakturierung, Teile, Einstellungen und Mitarbeitende.",
+      "chef_atelier": "Leitet die Werkstatt: plant, kontrolliert, korrigiert Zeiten und hebt Sperren auf. Sieht die Preise.",
+      "receptionnaire": "Empfängt Kunden, eröffnet Reparaturaufträge, bereitet Offerten und Rechnungen vor.",
+      "technicien": "Sieht und stempelt seine Arbeiten, nie die Preise.",
+      "magasinier": "Führt das Lager: Teileausgaben, Inventur, Wareneingang von Bestellungen.",
+      "vendeur": "Verkauft Neu- und Occasionsfahrzeuge und verfolgt die Verkaufsdossiers.",
+      "comptable": "Verfolgt Fakturierung, Zahlungen und Exporte für die Treuhandstelle.",
+      "admin": "Technisches Konto: verwaltet Zugänge, ohne Rechte auf Werkstatt oder Fakturierung."
+    },
+    "roleUnique": "Jede Person hat nur eine Rolle. In einem kleinen Betrieb wählen Sie Direktion: Diese Rolle kann alles.",
+    "bornes": {
+      "titre": "Werkstatt-Terminals",
+      "description": "Ein Terminal ist das Wandtablet der Werkstatt: Die Mechaniker stempeln dort mit ihrem PIN-Code.",
+      "nouveau": "Terminal hinzufügen",
+      "vide": "Noch kein Werkstatt-Terminal.",
+      "colNom": "Name",
+      "colIdentifiant": "Kennung",
+      "colSite": "Standort",
+      "colStatut": "Status",
+      "colActions": "Aktionen",
+      "champNom": "Name des Terminals",
+      "champSite": "Standort des Terminals",
+      "placeholderSite": "Standort wählen",
+      "creer": "Terminal erstellen",
+      "acces": "Kennung und Passwort des Terminals",
+      "accesDescription": "Geben Sie sie einmalig auf dem Tablet ein. Das Passwort wird nie mehr angezeigt.",
+      "desactiver": "Deaktivieren",
+      "reactiver": "Reaktivieren",
+      "reinitialiser": "Neues Passwort",
+      "desactiverTitre": "Terminal {nom} deaktivieren?",
+      "desactiverDescription": "Das Tablet wird sofort abgemeldet.",
+      "reactiverTitre": "Terminal {nom} reaktivieren?",
+      "reactiverDescription": "Das Tablet kann sich wieder anmelden.",
+      "reinitialiserTitre": "Neues Passwort für {nom}?",
+      "reinitialiserDescription": "Das Tablet wird abgemeldet: Das neue Passwort muss dort eingegeben werden.",
+      "identifiantLabel": "Kennung",
+      "motDePasseLabel": "Passwort",
+      "fermer": "Ich habe die Angaben notiert"
+    },
+    "fiduciaire": {
+      "bouton": "Treuhänder hinzufügen",
+      "titre": "Neues Treuhänder-Konto",
+      "description": "Nur-Lese-Konto für Ihre Treuhandstelle: Fakturierung und Finanzen, sonst nichts."
+    },
+    "accesPerso": "{role} (angepasst)"
+  },
+  "entreprise": {
+    "titre": "Unternehmen",
+    "explication": "Diese Angaben identifizieren Ihre Garage auf den Rechnungen.",
+    "raisonSociale": "Firmenname",
+    "numeroTva": "MWST-Nummer",
+    "numeroTvaAide": "Format: CHE-123.456.789 MWST. Leer lassen, wenn Sie nicht mehrwertsteuerpflichtig sind.",
+    "erreurTva": {
+      "format": "Die Nummer muss wie CHE-123.456.789 MWST aussehen.",
+      "cle": "Diese Nummer existiert nicht: prüfen Sie die Ziffern."
+    },
+    "enregistrer": "Unternehmen speichern",
+    "enregistrementReussi": "Änderungen gespeichert.",
+    "erreur": {
+      "titre": "Unternehmensdaten konnten nicht geladen werden"
+    },
+    "delaiPaiement": "Standard-Zahlungsfrist (Tage)",
+    "delaiPaiementAide": "Gilt für Rechnungen von Kunden ohne eigene Zahlungsbedingung. 0 bis 365 Tage.",
+    "erreurDelai": "Geben Sie eine ganze Zahl von Tagen zwischen 0 und 365 an.",
+    "logo": {
+      "titre": "Logo",
+      "alt": "Logo der Garage",
+      "aucun": "Kein Logo hinterlegt: Ihre Rechnungen werden ohne Logo gedruckt.",
+      "choisir": "Logo auswählen",
+      "remplacer": "Logo ersetzen",
+      "supprimer": "Entfernen",
+      "aide": "PNG, JPEG oder SVG, höchstens 1 MB. Nur neue PDF tragen das Logo: bereits gedruckte Rechnungen ändern sich nicht.",
+      "svgNonImprime": "Das SVG wird hier angezeigt, aber nicht auf die PDF gedruckt. Verwenden Sie PNG oder JPEG, damit es auf Ihren Rechnungen erscheint.",
+      "refus": {
+        "type": "Diese Datei wird nicht akzeptiert: wählen Sie PNG, JPEG oder SVG.",
+        "taille": "Diese Datei ist grösser als 1 MB: wählen Sie ein kleineres Bild."
+      }
+    }
+  },
+  "motifsRdv": {
+    "titre": "Termingründe",
+    "explication": "Wofür Ihre Kunden kommen: Ein Termin wird immer mit einem Grund vereinbart.",
+    "nouveau": "Neuer Grund",
+    "modifier": "Grund ändern",
+    "dialogueAide": "Der französische Name genügt; Übersetzungen sind optional.",
+    "traductionsAide": "Die Übersetzungen sehen Kunden und Mitarbeiter, die die Software in dieser Sprache nutzen.",
+    "champs": {
+      "libelleFr": "Name des Grundes",
+      "libelleDe": "Name auf Deutsch",
+      "libelleIt": "Name auf Italienisch",
+      "dureeMinutes": "Dauer (Minuten)",
+      "dureeMinutesAide": "Für einen festen Termin, z. B. 60.",
+      "heuresAtelier": "Werkstattstunden",
+      "heuresAtelierAide": "Auf den Tag angerechnete Zeit, z. B. 1,5."
+    },
+    "colonnes": {
+      "duree": "Dauer",
+      "statut": "Status"
+    },
+    "statut": {
+      "actif": "Aktiv",
+      "desactive": "Deaktiviert"
+    },
+    "duree": {
+      "minutes": "{count} Min.",
+      "heures": "{heures} Std. Werkstatt",
+      "aucune": "Nicht festgelegt"
+    },
+    "actions": {
+      "desactiver": "Deaktivieren",
+      "reactiver": "Reaktivieren"
+    },
+    "erreurs": {
+      "libelle": "Geben Sie den Namen des Grundes an.",
+      "dejaPris": "Ein Grund mit diesem Namen existiert bereits.",
+      "duree": "Geben Sie eine ganze Zahl Minuten an.",
+      "heures": "Geben Sie Stunden an, z. B. 1,5."
+    },
+    "vide": {
+      "titre": "Keine Termingründe",
+      "description": "Legen Sie mindestens einen Grund an, sonst kann kein Termin vereinbart werden."
+    },
+    "erreur": {
+      "titre": "Termingründe konnten nicht geladen werden"
     }
   }
 }

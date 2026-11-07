@@ -1,4 +1,4 @@
-import type { Langue, RoleUtilisateur } from '@dfa/shared';
+import type { GrilleCapacites, Langue, RoleUtilisateur } from '@dfa/shared';
 
 /**
  * Principal attaché à la requête une fois la session résolue par `GardeSession`
@@ -31,6 +31,13 @@ export interface PrincipalAuthentifie {
    * `services/session.service.spec.ts`).
    */
   readonly siteId?: string | null;
+  /**
+   * Grille de capacités de la personne, rechargée de la base À CHAQUE requête avec le rôle (jamais
+   * lue du cookie ni d'un jeton). Optionnelle dans le type pour les principaux construits à la
+   * main par les tests : absente, les droits sont ceux du préréglage du `role`
+   * (`auth/droits-personne.ts`). `ServiceSessionImpl.resoudre()` la renseigne toujours.
+   */
+  readonly capacites?: GrilleCapacites;
 }
 
 export interface ContexteRequete {

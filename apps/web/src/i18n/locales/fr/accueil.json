@@ -1,6 +1,52 @@
 {
   "demarrage": {
-    "titre": "Ce qui se passe aujourd'hui"
+    "titre": "Ce qui se passe aujourd'hui",
+    "checklist": {
+      "titre": "Démarrer votre garage",
+      "progression": "{faites} étapes sur {total} réglées. Chacune prend quelques minutes.",
+      "masquer": "Ne plus afficher",
+      "chargement": "Vérification de votre configuration",
+      "verificationImpossible": "Certaines étapes n'ont pas pu être vérifiées.",
+      "reessayer": "Réessayer"
+    },
+    "etat": {
+      "fait": "Fait",
+      "aFaire": "À faire",
+      "inconnu": "À vérifier"
+    },
+    "facultatif": "facultatif",
+    "regler": "Régler",
+    "modifier": "Modifier",
+    "etapes": {
+      "coordonnees": {
+        "titre": "Nom et adresse du garage",
+        "pourquoi": "Ils figurent sur chaque facture et sur la QR-facture."
+      },
+      "compte": {
+        "titre": "Compte bancaire (IBAN)",
+        "pourquoi": "Sans lui, les factures n'ont pas de QR-facture et vos clients ne peuvent pas payer facilement."
+      },
+      "tva": {
+        "titre": "Numéro de TVA",
+        "pourquoi": "Il doit apparaître sur vos factures si vous êtes assujetti à la TVA. Sinon, masquez cette liste quand le reste est réglé."
+      },
+      "tauxHoraire": {
+        "titre": "Taux horaire",
+        "pourquoi": "Il sert à chiffrer la main-d'œuvre sur les ordres de réparation."
+      },
+      "motifs": {
+        "titre": "Motifs de rendez-vous",
+        "pourquoi": "Un rendez-vous demande un motif (révision, expertise MFK…) : vérifiez la liste ou ajoutez les vôtres."
+      },
+      "collaborateur": {
+        "titre": "Premier collaborateur",
+        "pourquoi": "Créez le compte de votre équipe : chacun voit ce que son rôle permet."
+      },
+      "borne": {
+        "titre": "Borne d'atelier",
+        "pourquoi": "Une tablette fixe à l'atelier pour que les mécaniciens pointent leurs heures."
+      }
+    }
   },
   "calendrier": {
     "titre": "Cette semaine",
@@ -24,5 +70,43 @@
     "autres": "{count, plural, one {+ # autre jeu à relancer} other {+ # autres jeux à relancer}}",
     "voirTout": "Voir tout le hangar à pneus",
     "aVenir": "Les expertises MFK et les garanties seront ajoutées à cette liste prochainement."
+  },
+  "recherche": {
+    "placeholder": "Plaque, client ou n° d'OR"
+  },
+  "actions": {
+    "titre": "Actions rapides",
+    "creerOr": "Créer un OR",
+    "nouveauRendezVous": "Nouveau rendez-vous",
+    "encaisser": "Encaisser"
+  },
+  "aFaire": {
+    "titre": "À faire aujourd'hui",
+    "toutVoir": "Tout voir",
+    "aFacturer": {
+      "titre": "Terminés, à facturer",
+      "description": "Travaux finis dont la facture n'est pas encore faite.",
+      "vide": {
+        "titre": "Rien à facturer",
+        "description": "Tous les travaux terminés sont facturés."
+      }
+    },
+    "accordClient": {
+      "titre": "En attente de l'accord du client",
+      "description": "Travaux en plus proposés : la réponse du client manque.",
+      "vide": {
+        "titre": "Aucune réponse à attendre",
+        "description": "Aucun travail n'attend l'accord d'un client."
+      }
+    },
+    "facturesEchues": {
+      "titre": "Factures échues",
+      "description": "Factures dont la date de paiement est dépassée.",
+      "retard": "{count, plural, one {# jour de retard} other {# jours de retard}}",
+      "vide": {
+        "titre": "Aucune facture échue",
+        "description": "Aucun client ne dépasse son délai de paiement."
+      }
+    }
   }
 }

@@ -1,0 +1,163 @@
+{
+  "domaines": {
+    "atelier": {
+      "libelle": "Werkstatt",
+      "description": "Die Reparaturaufträge und die Arbeit in der Werkstatt.",
+      "exemples": {
+        "1": "Laufende Reparaturaufträge ansehen",
+        "2": "Einen Auftrag öffnen und Positionen hinzufügen",
+        "3": "Die eigenen Stunden stempeln",
+        "4": "Eine Position freigeben oder ablehnen"
+      }
+    },
+    "accueil": {
+      "libelle": "Empfang",
+      "description": "Die Kunden, ihre Fahrzeuge und die Termine.",
+      "exemples": {
+        "1": "Einen Kunden oder ein Fahrzeug suchen",
+        "2": "Eine Kundenkarte anlegen",
+        "3": "Einen Termin vereinbaren",
+        "4": "Ein Ersatzfahrzeug ausleihen"
+      }
+    },
+    "facturation": {
+      "libelle": "Fakturierung",
+      "description": "Die Offerten, die Rechnungen und die Zahlungen.",
+      "exemples": {
+        "1": "Offerten und Rechnungen ansehen",
+        "2": "Eine Offerte erstellen",
+        "3": "Eine Rechnung ausstellen",
+        "4": "Eine Zahlung verbuchen"
+      }
+    },
+    "pieces": {
+      "libelle": "Ersatzteile",
+      "description": "Das Lager, die Lieferanten und die Teilebestellungen.",
+      "exemples": {
+        "1": "Lager und Reservationen ansehen",
+        "2": "Einen Eingang oder Ausgang erfassen",
+        "3": "Bei einem Lieferanten bestellen",
+        "4": "Eine Lieferung entgegennehmen"
+      }
+    },
+    "ventes": {
+      "libelle": "Verkauf",
+      "description": "Die Neu- und Occasionsfahrzeuge, die Inzahlungnahmen und die Finanzierungen.",
+      "exemples": {
+        "1": "Den Fahrzeugbestand ansehen",
+        "2": "Ein Verkaufsdossier eröffnen",
+        "3": "Eine Inzahlungnahme erfassen",
+        "4": "Eine Finanzierung anbieten"
+      }
+    },
+    "finances": {
+      "libelle": "Finanzen",
+      "description": "Die Übersicht über das Geld der Garage und die Buchhaltung.",
+      "exemples": {
+        "1": "Das Finanz-Dashboard ansehen",
+        "2": "Mahnungen offener Rechnungen verfolgen",
+        "3": "Eine Gutschrift erstellen oder eine Rechnung korrigieren",
+        "4": "An die Treuhandstelle exportieren"
+      }
+    }
+  },
+  "niveaux": {
+    "rien": "Nichts",
+    "voir": "Ansehen",
+    "faire": "Bearbeiten"
+  },
+  "options": {
+    "voitMontants": {
+      "libelle": "Sieht die Beträge",
+      "description": "Sieht Preise, Totale und Beträge der Dokumente. Ohne dies kann man weder fakturieren noch verkaufen noch auf die Finanzen zugreifen."
+    },
+    "voitPrixAchat": {
+      "libelle": "Sieht die Einkaufspreise",
+      "description": "Sieht, was die Teile die Garage kosten, und damit die Margen."
+    },
+    "avoirsPlafonnes": {
+      "libelle": "Gutschriften begrenzt",
+      "description": "Kann eine Gutschrift nur bis zur Obergrenze erstellen, die in den Werkstatt-Einstellungen festgelegt ist."
+    }
+  },
+  "encadrer": {
+    "libelle": "Leitet das Team",
+    "description": "Korrigiert die Stunden der anderen, öffnet einen Reparaturauftrag wieder, hebt eine Sperre auf und stellt die Werkstatt ein."
+  },
+  "gererEmployes": {
+    "libelle": "Mitarbeitende und Einstellungen",
+    "description": "Erstellt die Konten der Mitarbeitenden und die Werkstatt-Terminals. Wird über die Stelle eingestellt, nicht einzeln."
+  },
+  "prereglages": {
+    "admin": {
+      "libelle": "Technischer Administrator",
+      "description": "Konto des Integrators: Werkstatt, Empfang und Konten. Kein Zugriff auf Geld, Ersatzteile oder Verkauf."
+    },
+    "direction": {
+      "libelle": "Geschäftsleitung",
+      "description": "Der Chef: alles, auch unumkehrbare Handlungen wie die IBAN der Garage."
+    },
+    "vendeur": {
+      "libelle": "Verkäufer",
+      "description": "Verkauft Fahrzeuge und fakturiert. Sieht die Ersatzteile, nicht die Werkstatt. Gutschriften begrenzt."
+    },
+    "receptionnaire": {
+      "libelle": "Serviceberater",
+      "description": "Führt den Empfang: empfängt, erstellt Offerten und Rechnungen, kassiert. Gutschriften begrenzt."
+    },
+    "chef_atelier": {
+      "libelle": "Werkstattleiter",
+      "description": "Leitet die Werkstatt: führt das Team, verwaltet die Ersatzteile und fakturiert. Gutschriften begrenzt."
+    },
+    "technicien": {
+      "libelle": "Mechaniker",
+      "description": "Arbeitet in der Werkstatt und stempelt seine Stunden. Sieht keine Beträge."
+    },
+    "magasinier": {
+      "libelle": "Magaziner",
+      "description": "Verwaltet das Teilelager, fakturiert am Schalter und stempelt seine Stunden. Gutschriften begrenzt."
+    },
+    "comptable": {
+      "libelle": "Buchhalter",
+      "description": "Fakturierung und Finanzen, sieht den Rest. Kann die IBAN der Garage nicht ändern."
+    },
+    "fiduciaire": {
+      "libelle": "Treuhänder (nur Lesen)",
+      "description": "Externer Buchhalter: sieht Fakturierung und Finanzen, ändert nichts."
+    }
+  },
+  "editeur": {
+    "titre": "Wer darf was",
+    "description": "Wählen Sie einen Ausgangspunkt und passen Sie ihn an, wenn diese Person mehr oder weniger dürfen soll.",
+    "depart": "Ausgangspunkt",
+    "grilleTitre": "Was diese Person tun darf",
+    "domaineAria": "Zugriff {domaine}",
+    "exemplesTitre": "Zum Beispiel",
+    "optionsTitre": "Optionen",
+    "autresTitre": "Weitere Rechte",
+    "gererEmployesOui": "Ja, mit diesem Ausgangspunkt",
+    "gererEmployesNon": "Nein",
+    "personnalise": "Angepasst",
+    "personnaliseAide": "Dieses Raster weicht vom Ausgangspunkt «{prereglage}» ab.",
+    "conformeAide": "Dieses Raster entspricht genau dem Ausgangspunkt.",
+    "revenir": "Zur Vorlage zurückkehren",
+    "chargement": "Rechte werden geladen…",
+    "erreurTitre": "Die Rechte konnten nicht geladen werden",
+    "reessayer": "Erneut versuchen",
+    "incoherence": {
+      "montants": "Ohne «Sieht die Beträge» kann diese Person diese Stufe nicht haben. Wählen Sie «Ansehen» oder «Nichts» oder aktivieren Sie die Option.",
+      "finances": "Die Finanzen betreffen Geld: aktivieren Sie «Sieht die Beträge» oder wählen Sie «Nichts».",
+      "depassement": "Sie können nicht mehr vergeben, als Sie selbst haben."
+    },
+    "incoherencesResume": "Korrigieren Sie die markierten Punkte vor dem Speichern.",
+    "enregistrer": "Rechte speichern",
+    "enregistrerEnCours": "Wird gespeichert…",
+    "enregistre": "Rechte gespeichert."
+  },
+  "resume": {
+    "aucun": "Kein Zugriff",
+    "voit": "Sieht: {liste}",
+    "encadre": "leitet das Team",
+    "lectureSeule": "Nur Lesen"
+  }
+}

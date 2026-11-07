@@ -17,7 +17,7 @@ import { DialogueAjoutLigneOr } from './DialogueAjoutLigneOr';
  * sans taux négocié (RM-07) et un référentiel garage sans taux standard, le serveur répond
  * `VALIDATION_ECHOUEE` avec, dans `erreurs[0]`, un message précis rédigé à la main (« Aucun taux
  * horaire standard : ... Renseigner les taux horaires dans le paramétrage. »). Avant le correctif,
- * le dialogue affichait « Certaines informations sont incorrectes. » — perdant l'action à mener —
+ * le dialogue affichait « Certaines informations sont incorrectes ou incomplètes. Corrigez les champs signalés, puis réessayez. » — perdant l'action à mener —
  * parce qu'il appelait `messageErreur(erreurActive, t)`, qui ne lit QUE `probleme.code`, jamais
  * `probleme.erreurs[]`.
  */
@@ -47,14 +47,14 @@ async function ouvrirDialogueEtSaisirDesignation(utilisateur: ReturnType<typeof 
 }
 
 describe("DialogueAjoutLigneOr — correctifs test d'utilisabilité novice (11.08.2026)", () => {
-  it('affiche une unité « h » à côté du Temps barémé — « est-ce 1 heure 20, ou 1,2 heure ? »', async () => {
+  it('affiche une unité « h » à côté du Temps forfaitaire — « est-ce 1 heure 20, ou 1,2 heure ? »', async () => {
     const utilisateur = userEvent.setup();
     renduAvecQueryClient(<DialogueAjoutLigneOr orId={OR_ID} siteId="site-1" />);
     await utilisateur.click(screen.getByRole('button', { name: i18n.t('or:lignes.ajouter') }));
     await screen.findByRole('dialog');
 
-    // Type par défaut = « Main-d'œuvre (temps barémé) » : le champ Temps barémé est visible d'emblée.
-    const champTemps = screen.getByLabelText('Temps barémé');
+    // Type par défaut = « Main-d'œuvre (temps forfaitaire) » : le champ Temps forfaitaire est visible d'emblée.
+    const champTemps = screen.getByLabelText('Temps forfaitaire');
     expect(champTemps.parentElement).toHaveTextContent('h');
   });
 
@@ -72,7 +72,7 @@ describe("DialogueAjoutLigneOr — correctifs test d'utilisabilité novice (11.0
 });
 
 describe('DialogueAjoutLigneOr — défaut : message métier du serveur perdu derrière le bandeau générique', () => {
-  it('affiche le message serveur précis (taux_horaire_introuvable) au lieu de « Certaines informations sont incorrectes. »', async () => {
+  it('affiche le message serveur précis (taux_horaire_introuvable) au lieu de « Certaines informations sont incorrectes ou incomplètes. Corrigez les champs signalés, puis réessayez. »', async () => {
     server.use(
       http.post(`/api/v1/ordres-reparation/${OR_ID}/lignes`, () =>
         HttpResponse.json(
@@ -96,7 +96,11 @@ describe('DialogueAjoutLigneOr — défaut : message métier du serveur perdu de
     await utilisateur.click(screen.getByRole('button', { name: 'Confirmer' }));
 
     expect(await screen.findByText(MESSAGE_TAUX_HORAIRE)).toBeInTheDocument();
-    expect(screen.queryByText('Certaines informations sont incorrectes.')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'Certaines informations sont incorrectes ou incomplètes. Corrigez les champs signalés, puis réessayez.',
+      ),
+    ).not.toBeInTheDocument();
   });
 
   it('reste général : un DEUXIÈME code métier, jamais codé en dur ici, atteint aussi l’écran avec son propre message', async () => {

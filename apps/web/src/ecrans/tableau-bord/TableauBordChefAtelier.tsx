@@ -8,9 +8,7 @@ import { useOrEnAttentePieces } from '@/hooks/tableau-bord/useOrEnAttentePieces'
 
 import { CarteChiffreRequete } from './composants/CarteChiffreRequete';
 import { CarteEquipeEnCours } from './composants/CarteEquipeEnCours';
-import { CarteOrEnRetard } from './composants/CarteOrEnRetard';
 import { CarteRepartitionStatuts } from './composants/CarteRepartitionStatuts';
-import { CarteRestitutionsJour } from './composants/CarteRestitutionsJour';
 
 interface Props {
   readonly site: string | undefined;
@@ -43,21 +41,7 @@ export function TableauBordChefAtelier({ site }: Props) {
 
   return (
     <div className="flex flex-col gap-section">
-      {/* Deux listes indépendantes côte à côte dès `lg` plutôt qu'empilées — même patron que
-          `TableauBordDirection` (mission « largeur plutôt que défilement »). */}
-      <div className="grid gap-groupe lg:grid-cols-2 lg:items-start">
-        <CarteRestitutionsJour
-          site={site}
-          titreCle="tableauBord:chefAtelier.sortiesDuJour.titre"
-          descriptionCle="tableauBord:chefAtelier.sortiesDuJour.description"
-          videTitreCle="tableauBord:chefAtelier.sortiesDuJour.vide.titre"
-          videDescriptionCle="tableauBord:chefAtelier.sortiesDuJour.vide.description"
-        />
-
-        {/* Issue #112 : voir la doc de tête de `CarteOrEnRetard.tsx`. */}
-        <CarteOrEnRetard site={site} />
-      </div>
-
+      {/* Sorties du jour et OR en retard : remontés dans « À faire aujourd'hui » (accueil). */}
       {/* DESIGN.md grief n°2 — `items-start` : `CarteEquipeEnCours` (liste jusqu'à 6 techniciens)
           est structurellement plus haute que ses deux voisines `compact`, mêmes raisons que
           `TableauBordDirection`. */}

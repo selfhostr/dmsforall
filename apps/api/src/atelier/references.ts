@@ -1,5 +1,5 @@
 import { and, desc, eq, inArray, isNull, or } from 'drizzle-orm';
-import type { ClientResume, VehiculeResume } from '@dfa/shared';
+import { formaterNomClient, type ClientResume, type VehiculeResume } from '@dfa/shared';
 
 import type { ContexteTenant, TransactionDfa } from '../db';
 import {
@@ -32,14 +32,11 @@ import { ErreurMetier } from '../common/erreurs/erreur-metier';
  * le mécanisme — doctrine du projet).
  */
 
-/** `nomAffiche` d'un client : raison sociale pour une entreprise, "nom prénom" sinon. */
+/** `nomAffiche` d'un client : raison sociale pour une entreprise, "Prénom Nom" sinon. */
 export function nomAfficheClient(
   row: Pick<LigneClient, 'type' | 'nom' | 'prenom' | 'raisonSociale'>,
 ): string {
-  if (row.type === 'entreprise') {
-    return row.raisonSociale ?? '';
-  }
-  return [row.nom, row.prenom].filter((v): v is string => Boolean(v)).join(' ');
+  return formaterNomClient(row);
 }
 
 /** Rendu d'affichage d'un véhicule : `marque modele version`, espaces superflus retirés. */
@@ -158,6 +155,7 @@ export async function versClientResume(
     langueCorrespondance: ligne.langue,
     poObligatoire: ligne.poObligatoire,
     telephone: ligne.telephone,
+    email: ligne.email,
     localite: adressePrincipale?.localite ?? null,
     nombreVehicules: vehiculesDetenus.length,
     dernierPassageLe: dernierOrOuvert?.ouvertLe ? dernierOrOuvert.ouvertLe.toISOString() : null,

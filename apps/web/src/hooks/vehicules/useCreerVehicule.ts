@@ -31,6 +31,7 @@ export function useCreerVehicule(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation({
+    meta: { succes: 'commun:toasts.vehiculeCree' },
     mutationFn: ({ entree, idempotencyKey }: VariablesCreationVehicule) =>
       requeteApi<ReponseAvecAvertissements<ReponseVehicule>>('/vehicules', {
         method: 'POST',

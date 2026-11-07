@@ -13,9 +13,6 @@
 
 </div>
 
-> [!WARNING]
-> Development is paused for now. The code, images and docs stay available, but do not expect new features or quick fixes.
-
 ## Overview
 
 - **One app for the workshop and the counter.** Clients, vehicles, repair orders (OR), appointments, time clocking, parts stock, quotes, invoices and payments run in one browser application.
@@ -36,7 +33,7 @@ cp .env.example .env   # optional for a first try on localhost
 docker compose up -d
 ```
 
-Open http://localhost:8080 in your browser. The first start generates the database passwords, applies the migrations, then starts the API. Create the first garage account with `docker compose exec api node dist/cli/creer-garage.js --garage "Garage Exemple" --email direction@example.ch`, then sign in.
+Open http://localhost:8080 in your browser. The first start generates the database passwords, applies the migrations, then starts the API. Create the first garage account with `docker compose exec api node dist/cli/creer-garage.js --garage "Garage Exemple" --email direction@example.ch`, then sign in. In development, run `pnpm --filter @dfa/api exec tsx src/cli/creer-garage.ts --garage "Garage Exemple" --email direction@example.ch` instead.
 
 For a server with a domain name and HTTPS, set `DFA_SITE_ADDRESS` and `DFA_PUBLIC_URL` in `.env`, then read [Install on a server](https://dmsforall.selfhostr.io/docs/get-started/installation/). Set up backups before you enter real data: [Back up and restore](https://dmsforall.selfhostr.io/docs/get-started/backup-and-restore/).
 
@@ -71,7 +68,7 @@ The web interface is a React single-page application built with Vite. It calls a
 
 ## Status
 
-Alpha. Development is paused for now. The code, images and docs stay available, but do not expect new features or quick fixes. Version `0.1.0` is the first release, and no stable release line exists. Until version 1.0, an upgrade can require manual steps. Read the [changelog](CHANGELOG.md) before each upgrade.
+Alpha. Development is active, and each release brings new features and fixes. Version `0.2.0` is the current release, and no stable release line exists. Until version 1.0, an upgrade can require manual steps. Read the [changelog](CHANGELOG.md) before each upgrade.
 
 ## Contributing
 

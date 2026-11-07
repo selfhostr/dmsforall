@@ -1,4 +1,4 @@
-import { Pencil, Plus } from 'lucide-react';
+import { Download, Pencil, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
@@ -33,11 +33,15 @@ import { FilAriane, type SegmentFilAriane } from '@/composants/layout/FilAriane'
 import { BoutonImprimerDocument } from '@/composants/motifs/BoutonImprimerDocument';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { obtenirEnv } from '@/config/env';
+import { useAccepterDevis } from '@/hooks/facturation/useAccepterDevis';
 import { useDocumentVente } from '@/hooks/facturation/useDocumentVente';
+import { useTelechargerPdfDocument } from '@/hooks/facturation/useTelechargerPdfDocument';
 import { useEmettreDocumentVente } from '@/hooks/facturation/useEmettreDocumentVente';
 import { useSupprimerLigneDocument } from '@/hooks/facturation/useLignesDocumentVente';
 import { useModifierDocumentVente } from '@/hooks/facturation/useModifierDocumentVente';
 import { useSession } from '@/hooks/useSession';
+import { chemins } from '@/routes/chemins';
+import { peutCreerOrdreReparation } from '@/ecrans/atelier/droits';
 import {
   formaterDate,
   formaterMontant,
@@ -46,13 +50,23 @@ import {
 } from '@/lib/formats';
 
 import { BadgeEtatDocument } from './BadgeEtatDocument';
+import { BadgeStatutDevis } from './BadgeStatutDevis';
 import { BadgeStatutReglement } from './BadgeStatutReglement';
 import { BadgeTypeDocument } from './BadgeTypeDocument';
 import { CarteBulletinVersement } from './CarteBulletinVersement';
 import { ChampVerrouille } from './ChampVerrouille';
 import { DialogueCorrectionFacture } from './DialogueCorrectionFacture';
+import { DialogueCreerOrDepuisDevis } from './DialogueCreerOrDepuisDevis';
 import { DialogueLigneDocumentVente } from './DialogueLigneDocumentVente';
-import { peutCorrigerFacture, peutEmettreAvoir, peutEmettreFacture, peutEncaisser } from './droits';
+import {
+  peutAccepterDevis,
+  peutCorrigerFacture,
+  peutEmettreDevis,
+  peutEmettreAvoir,
+  peutEmettreFacture,
+  peutEncaisser,
+  peutVoirMontantsFacturation,
+} from './droits';
 import { IndicateurRetard } from './IndicateurRetard';
 import { messagesErreurMutation } from './messages-erreur-mutation';
 import { RecapitulatifTVA } from './RecapitulatifTVA';
@@ -100,17 +114,23 @@ export function EcranFicheFacture() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: session } = useSession();
-  const role = session?.utilisateur.role;
+  const actions = session?.actions;
 
   const requete = useDocumentVente(id);
   const modification = useModifierDocumentVente();
-  const emission = useEmettreDocumentVente();
+  const estDevis = requete.data?.typeDocument === 'devis';
+  const emission = useEmettreDocumentVente(
+    estDevis ? { succes: 'facturation:toasts.devisEnvoye' } : {},
+  );
+  const accord = useAccepterDevis();
   const suppressionLigne = useSupprimerLigneDocument();
+  const pdfDevis = useTelechargerPdfDocument();
 
   const [dialogueEmissionOuvert, setDialogueEmissionOuvert] = useState(false);
   const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
   const [encaissementOuvert, setEncaissementOuvert] = useState(false);
   const [correctionOuverte, setCorrectionOuverte] = useState(false);
+  const [creationOrOuverte, setCreationOrOuverte] = useState(false);
   const [remiseCentimes, setRemiseCentimes] = useState<number | null>(null);
 
   useEffect(() => {
@@ -194,15 +214,35 @@ export function EcranFicheFacture() {
   // points d'entrée (menu, lien sous les lignes, action du champ verrouillé) sont désormais
   // gouvernés par CE SEUL booléen — voir `peutCorrigerFacture` (`./droits.ts`) pour le détail du
   // rôle et l'état RÉEL du serveur aujourd'hui (l'endpoint `POST .../corriger` n'existe pas encore).
-  const proposeEmettre = estBrouillon && peutEmettreFacture(role);
-  const proposeEncaisser = peutGererFacture && resteAEncaisser && peutEncaisser(role);
-  const proposeCreerAvoir = peutGererFacture && peutEmettreAvoir(role);
-  const proposeCorriger = peutGererFacture && peutCorrigerFacture(role);
+  const documentEstDevis = document_.typeDocument === 'devis';
+  const messageVerrouille = t(
+    documentEstDevis ? 'facturation:verrouille.messageDevis' : 'facturation:verrouille.message',
+  );
+  const proposeEmettre =
+    estBrouillon && (documentEstDevis ? peutEmettreDevis(actions) : peutEmettreFacture(actions));
+  // Devis AUTONOME : l'accord du client et l'ouverture de l'OR se font ici, pas seulement depuis un
+  // travail d'OR. Un devis `emis` attend l'accord ; `emis` ou `accepte`, sans véhicule inconnu ni OR
+  // déjà ouvert, il peut devenir un OR (le serveur reprend client, véhicule et lignes).
+  const proposeAccord =
+    documentEstDevis && document_.statut === 'emis' && peutAccepterDevis(actions);
+  const proposeCreerOr =
+    documentEstDevis &&
+    (document_.statut === 'emis' || document_.statut === 'accepte') &&
+    document_.ordreReparationId === null &&
+    document_.vehiculeId !== null &&
+    peutCreerOrdreReparation(actions);
+  const proposeEncaisser = peutGererFacture && resteAEncaisser && peutEncaisser(actions);
+  const proposeCreerAvoir = peutGererFacture && peutEmettreAvoir(actions);
+  const proposeCorriger = peutGererFacture && peutCorrigerFacture(actions);
   // Imprimer : condition DÉCOUPLÉE de `peutGererFacture` — voir le commentaire de tête de fichier.
   // `document_.qr !== null` implique déjà `typeDocument === 'facture'` et une émission passée
   // (`mapperDocument`, serveur), donc ce document reste imprimable même `estAnnuleeParAvoir`
   // (`impression-facture.controller.ts` ne teste que `typeDocument`/`qr`, jamais `statut`).
   const peutImprimer = document_.qr !== null;
+  // PDF d'un DEVIS : pas de lien direct (`qr` est toujours `null` hors facture émise) mais un
+  // téléchargement qui affiche l'échec — `DOCUMENT_PDF_INDISPONIBLE` tant que l'API ne le produit
+  // pas, plutôt qu'un onglet vide. Réservé aux rôles qui voient les montants.
+  const peutPdfDevis = document_.typeDocument === 'devis' && peutVoirMontantsFacturation(actions);
   const urlPdf = `${obtenirEnv().VITE_API_URL}/documents-vente/${document_.id}/pdf`;
   // Titre de FICHE (chantier « titres doublés & espacements », 17.08.2026) — « Facture 2026-00002 »
   // / « Avoir 2026-AV-00001 » : CONTRE-EXEMPLE cité par le contrat du chantier, il ne fait PAS
@@ -216,7 +256,11 @@ export function EcranFicheFacture() {
       })
     : document_.typeDocument === 'avoir'
       ? t('facturation:fiche.titreBrouillonAvoir')
-      : t('facturation:fiche.titreBrouillonFacture');
+      : document_.typeDocument === 'devis'
+        ? t('facturation:fiche.titreBrouillonDevis')
+        : document_.typeDocument === 'bon_commande'
+          ? t('facturation:fiche.titreBrouillonBonCommande')
+          : t('facturation:fiche.titreBrouillonFacture');
 
   function ouvrirCorrection() {
     setCorrectionOuverte(true);
@@ -281,7 +325,13 @@ export function EcranFicheFacture() {
 
   const boutonActionPrimaire = proposeEmettre ? (
     <Button type="button" onClick={() => setDialogueEmissionOuvert(true)}>
-      {t('facturation:fiche.actions.emettre')}
+      {documentEstDevis
+        ? t('facturation:fiche.actions.envoyerDevis')
+        : t('facturation:fiche.actions.emettre')}
+    </Button>
+  ) : proposeAccord ? (
+    <Button type="button" disabled={accord.isPending} onClick={() => accord.mutate(document_.id)}>
+      {t('facturation:fiche.actions.accordClient')}
     </Button>
   ) : proposeEncaisser ? (
     <Button type="button" onClick={() => setEncaissementOuvert(true)}>
@@ -290,8 +340,34 @@ export function EcranFicheFacture() {
   ) : null;
 
   const actionsEnTete =
-    peutImprimer || boutonActionPrimaire || actionsSecondairesFacture.length > 0 ? (
+    peutImprimer ||
+    peutPdfDevis ||
+    proposeCreerOr ||
+    boutonActionPrimaire ||
+    actionsSecondairesFacture.length > 0 ? (
       <div className="flex items-center gap-controles">
+        {peutPdfDevis ? (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pdfDevis.isPending}
+            onClick={() =>
+              pdfDevis.mutate({ id: document_.id, nom: document_.numero ?? document_.id })
+            }
+          >
+            <Download aria-hidden className="h-4 w-4" />
+            {t('facturation:fiche.actions.telechargerPdf')}
+          </Button>
+        ) : null}
+        {proposeCreerOr ? (
+          <Button
+            type="button"
+            variant={proposeAccord ? 'outline' : 'default'}
+            onClick={() => setCreationOrOuverte(true)}
+          >
+            {t('facturation:fiche.actions.creerOr')}
+          </Button>
+        ) : null}
         {peutImprimer ? (
           <BoutonImprimerDocument
             url={urlPdf}
@@ -323,8 +399,24 @@ export function EcranFicheFacture() {
     <GabaritEcran titre={titreDocument} actions={actionsEnTete}>
       <FilAriane segments={segmentsFilAriane} pageCourante={titreDocument} />
 
+      {accord.isError ? (
+        <p role="alert" className="texte-corps text-destructive">
+          {messageErreur(accord.error, t)}
+        </p>
+      ) : null}
+
+      {pdfDevis.isError ? (
+        <p role="alert" className="texte-corps text-destructive">
+          {messageErreur(pdfDevis.error, t)}
+        </p>
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-3">
-        <BadgeEtatDocument etat={etatAffiche} />
+        {documentEstDevis ? (
+          <BadgeStatutDevis statut={document_.statut} />
+        ) : (
+          <BadgeEtatDocument etat={etatAffiche} />
+        )}
         {/* Défaut corrigé (issue #80, testeur novice) : cette fiche n'affichait QUE l'état du
             DOCUMENT (« Émise »), jamais l'état du RÈGLEMENT — la liste (`EcranListeFactures.tsx`)
             affichait l'inverse (règlement seul, jamais « Émise »). Même paire de badges, mêmes
@@ -332,7 +424,7 @@ export function EcranFicheFacture() {
             un brouillon (`statutReglement` par défaut, rien n'est dû) ou une facture déjà
             `annule_par_avoir` (`statutReglement` figé d'AVANT l'annulation, `RF-32`) ne doivent
             jamais porter ce badge, même doctrine que la liste. */}
-        {etatAffiche === 'emis' && document_.statutReglement ? (
+        {!documentEstDevis && etatAffiche === 'emis' && document_.statutReglement ? (
           // Défaut corrigé (issue #129, vocabulaire) : un avoir n'est jamais « réglé »/« non
           // réglé » comme une facture (le sens de l'argent s'inverse — DFA doit au client, un
           // crédit s'IMPUTE, il ne se PAIE pas) — voir le commentaire de `contexte` sur
@@ -368,9 +460,14 @@ export function EcranFicheFacture() {
             libellé — trois dates différentes pour un même document selon l'écran. `dateDocument`
             est non nul par construction (`document.ts`) : plus de garde de nullité nécessaire,
             affiché pour tout document comme le fait déjà la liste. */}
-        <span className="texte-libelle text-muted-foreground">
-          {t('facturation:fiche.emiseLe', { date: formaterDate(document_.dateDocument) })}
-        </span>
+        {/* Un devis brouillon n'a pas de date d'émission ; envoyé, il parle d'envoi, pas d'émission. */}
+        {documentEstDevis && estBrouillon ? null : (
+          <span className="texte-libelle text-muted-foreground">
+            {t(documentEstDevis ? 'facturation:fiche.envoyeLe' : 'facturation:fiche.emiseLe', {
+              date: formaterDate(document_.dateDocument),
+            })}
+          </span>
+        )}
         {/* `dateEcheance` n'a de sens que sur une facture (`document.ts` : toujours `null` pour
             un devis/bon de commande/avoir — « aucune échéance de paiement ne les concerne »).
             Restreindre l'affichage au `typeDocument` évite un "Échéance inconnue" trompeur sur
@@ -445,7 +542,7 @@ export function EcranFicheFacture() {
                 ) : (
                   <ChampVerrouille
                     enfant={blocAdresse}
-                    message={t('facturation:verrouille.message')}
+                    message={messageVerrouille}
                     libelleAction={
                       proposeCorriger ? t('facturation:verrouille.corriger') : undefined
                     }
@@ -453,7 +550,7 @@ export function EcranFicheFacture() {
                   />
                 );
               })()}
-              {!adresseComplete ? (
+              {!adresseComplete && !documentEstDevis ? (
                 // DESIGN.md « bordure structurelle » — encart d'alerte actionnable conservé (lien
                 // « Compléter la fiche » ci-dessous) : c'est le geste concret qui répond au
                 // blocage réel d'émission (§4.5, `RefusBloquant`), pas un simple regroupement de
@@ -482,7 +579,7 @@ export function EcranFicheFacture() {
                 {t('facturation:fiche.lignes.titre')}
               </CardTitle>
               {/* Issue #125 : seul geste qui manquait pour qu'un brouillon puisse porter du
-                  contenu commercial avant émission. Aucun `peut*(role)` supplémentaire ici — même
+                  contenu commercial avant émission. Aucun `peut*(actions)` supplémentaire ici — même
                   doctrine que la Card « Remise globale » juste en dessous, déjà éditable sur tout
                   brouillon sans re-vérification de rôle côté écran (le serveur reste l'arbitre
                   final, `facturation.document.modifier`, `ExigerDroit` sur la route). */}
@@ -510,20 +607,18 @@ export function EcranFicheFacture() {
                   className="w-fit texte-libelle text-muted-foreground underline-offset-2 hover:underline"
                   onClick={ouvrirCorrection}
                 >
-                  {t('facturation:verrouille.message')} {t('facturation:verrouille.corriger')}
+                  {messageVerrouille} {t('facturation:verrouille.corriger')}
                 </button>
               ) : null}
               {!estBrouillon && !proposeCorriger ? (
-                <p className="w-fit texte-libelle text-muted-foreground">
-                  {t('facturation:verrouille.message')}
-                </p>
+                <p className="w-fit texte-libelle text-muted-foreground">{messageVerrouille}</p>
               ) : null}
               {document_.lignes.length === 0 ? (
                 <p className="texte-corps text-muted-foreground">
                   {t('facturation:fiche.lignes.vide')}
                 </p>
               ) : (
-                <Table densite="dense">
+                <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>{t('facturation:fiche.lignes.colonnes.designation')}</TableHead>
@@ -786,22 +881,37 @@ export function EcranFicheFacture() {
       <Dialog open={dialogueEmissionOuvert} onOpenChange={setDialogueEmissionOuvert}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t('facturation:fiche.dialogueEmission.titre')}</DialogTitle>
+            <DialogTitle>
+              {t(
+                documentEstDevis
+                  ? 'facturation:fiche.dialogueEmission.titreDevis'
+                  : 'facturation:fiche.dialogueEmission.titre',
+              )}
+            </DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-3">
             <p className="texte-corps">
-              {t('facturation:fiche.dialogueEmission.resume', {
-                destinataire: destinataireNom,
-                montant:
-                  document_.totalTtcCentimes !== undefined
-                    ? formaterMontantAvecDevise(document_.totalTtcCentimes, document_.devise)
-                    : '',
-              })}
+              {t(
+                documentEstDevis
+                  ? 'facturation:fiche.dialogueEmission.resumeDevis'
+                  : 'facturation:fiche.dialogueEmission.resume',
+                {
+                  destinataire: destinataireNom,
+                  montant:
+                    document_.totalTtcCentimes !== undefined
+                      ? formaterMontantAvecDevise(document_.totalTtcCentimes, document_.devise)
+                      : '',
+                },
+              )}
             </p>
             <p className="texte-corps text-muted-foreground">
-              {t('facturation:fiche.dialogueEmission.avertissement')}
+              {t(
+                documentEstDevis
+                  ? 'facturation:fiche.dialogueEmission.avertissementDevis'
+                  : 'facturation:fiche.dialogueEmission.avertissement',
+              )}
             </p>
-            {!adresseComplete ? (
+            {!adresseComplete && !documentEstDevis ? (
               <p className="texte-libelle text-statut-attention">
                 {t('facturation:champs.adresseIncompleteEmission')}
               </p>
@@ -824,8 +934,16 @@ export function EcranFicheFacture() {
             </DialogClose>
             <Button disabled={emission.isPending} onClick={soumettreEmission}>
               {emission.isPending
-                ? t('facturation:fiche.dialogueEmission.enCours')
-                : t('facturation:fiche.dialogueEmission.confirmer')}
+                ? t(
+                    documentEstDevis
+                      ? 'facturation:fiche.dialogueEmission.enCoursDevis'
+                      : 'facturation:fiche.dialogueEmission.enCours',
+                  )
+                : t(
+                    documentEstDevis
+                      ? 'facturation:fiche.dialogueEmission.confirmerDevis'
+                      : 'facturation:fiche.dialogueEmission.confirmer',
+                  )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -839,6 +957,17 @@ export function EcranFicheFacture() {
         destinataireNom={destinataireNom}
         factureIdPreselectionnee={document_.id}
       />
+
+      {documentEstDevis ? (
+        <DialogueCreerOrDepuisDevis
+          devis={document_}
+          ouvert={creationOrOuverte}
+          onOuvertChange={setCreationOrOuverte}
+          onCree={(orId) =>
+            navigate(chemins.atelier.ordresReparation.detail(orId, document_.siteId))
+          }
+        />
+      ) : null}
 
       <DialogueCorrectionFacture
         facture={document_}

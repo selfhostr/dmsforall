@@ -25,6 +25,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
 import { clesFacturation } from '@/hooks/facturation/cles';
+import { montantPourMoyen, repartirImputations } from '@/hooks/facturation/montant-encaissement';
 import { useEncaissement } from '@/hooks/facturation/useEncaissement';
 import { useFacturesOuvertesClient } from '@/hooks/facturation/useFacturesOuvertesClient';
 import { formaterDate, formaterMontant, formaterMontantAvecDevise } from '@/lib/formats';
@@ -32,12 +33,6 @@ import { genererUuid } from '@/lib/uuid';
 
 import { BadgeStatutReglement } from './BadgeStatutReglement';
 import { EncartAvanceClient } from './EncartAvanceClient';
-
-/** Arrondi commercial au 5 centimes (RF-49) — seule la ligne Espèces qui SOLDE le document y est
- *  soumise (§5.3). `Math.round` centré : 2 et 3 centimes d'écart se répartissent symétriquement. */
-function arrondirA5Centimes(centimes: number): number {
-  return Math.round(centimes / 5) * 5;
-}
 
 interface LignePaiementSaisie {
   readonly id: string;
@@ -48,6 +43,12 @@ interface LignePaiementSaisie {
    *  main (risque n°3 du design : « le montant déjà saisi manuellement n'est jamais modifié
    *  automatiquement une fois édité »). */
   readonly ecartArrondiCentimes: number | null;
+  /** Montant EXACT dont `montantCentimes` découle, tant que la ligne est pré-remplie
+   *  automatiquement (non nul uniquement dans ce cas). Sert à RECALCULER le montant quand on change
+   *  de moyen (espèces arrondies au 5 ct, TWINT/carte au centime près) sans repartir d'un montant
+   *  déjà arrondi. Passe à `null` dès que l'utilisateur tape un montant : sa saisie n'est jamais
+   *  réécrite. */
+  readonly exactCentimes: number | null;
   /**
    * Clé d'idempotence de CETTE ligne (`api/idempotence.ts` : « une clé par ligne, à l'instant où
    * le contenu est déterminé »), STABLE tant que la ligne n'est ni modifiée ni soumise avec
@@ -206,15 +207,15 @@ export function SheetEncaissement({
     // Espèces par défaut (le geste comptoir le plus fréquent) : si ce reste zéro le solde,
     // arrondi commercial automatique et visible sans qu'on ait à le savoir (§5.3).
     if (resteExact > 0) {
-      const arrondi = arrondirA5Centimes(resteExact);
-      const ecart = arrondi - resteExact;
+      const { montantCentimes, ecartArrondiCentimes } = montantPourMoyen(resteExact, 'especes');
       setLignes((valeur) => [
         ...valeur,
         {
           id,
           moyen: 'especes',
-          montantCentimes: arrondi,
-          ecartArrondiCentimes: ecart !== 0 ? ecart : null,
+          montantCentimes,
+          ecartArrondiCentimes: ecartArrondiCentimes !== 0 ? ecartArrondiCentimes : null,
+          exactCentimes: resteExact,
           idempotencyKey: genererCleIdempotence(),
         },
       ]);
@@ -226,6 +227,7 @@ export function SheetEncaissement({
           moyen: 'especes',
           montantCentimes: null,
           ecartArrondiCentimes: null,
+          exactCentimes: null,
           idempotencyKey: genererCleIdempotence(),
         },
       ]);
@@ -243,11 +245,30 @@ export function SheetEncaissement({
   // entièrement.
   function modifierMoyen(id: string, moyen: MoyenPaiement) {
     setLignes((valeur) =>
-      valeur.map((ligne) =>
-        ligne.id === id
-          ? { ...ligne, moyen, ecartArrondiCentimes: null, idempotencyKey: genererCleIdempotence() }
-          : ligne,
-      ),
+      valeur.map((ligne) => {
+        if (ligne.id !== id) return ligne;
+        // Montant pré-rempli (jamais tapé à la main) : on le recalcule pour le NOUVEAU moyen à
+        // partir du montant exact — espèces -> TWINT repasse de 109.45 à 109.44, et inversement.
+        if (ligne.exactCentimes !== null) {
+          const { montantCentimes, ecartArrondiCentimes } = montantPourMoyen(
+            ligne.exactCentimes,
+            moyen,
+          );
+          return {
+            ...ligne,
+            moyen,
+            montantCentimes,
+            ecartArrondiCentimes: ecartArrondiCentimes !== 0 ? ecartArrondiCentimes : null,
+            idempotencyKey: genererCleIdempotence(),
+          };
+        }
+        return {
+          ...ligne,
+          moyen,
+          ecartArrondiCentimes: null,
+          idempotencyKey: genererCleIdempotence(),
+        };
+      }),
     );
   }
 
@@ -259,6 +280,7 @@ export function SheetEncaissement({
               ...ligne,
               montantCentimes,
               ecartArrondiCentimes: null,
+              exactCentimes: null,
               idempotencyKey: genererCleIdempotence(),
             }
           : ligne,
@@ -305,21 +327,25 @@ export function SheetEncaissement({
       return;
     }
 
-    let resteAImputer = Math.max(sommeLignesCentimes - sommeEcartsCentimes, 0);
-    const imputations = factures
-      .filter((facture) => selection.has(facture.id))
-      .map((facture) => {
-        const montant = Math.min(facture.soldeCentimes ?? 0, resteAImputer);
-        resteAImputer -= montant;
-        return { documentId: facture.id, montantCentimes: montant, nature: 'reglement' as const };
-      })
-      .filter((imputation) => imputation.montantCentimes > 0);
+    // Chaque ligne (un paiement) n'impute que SES espèces/son montant : règlement = ce qui est
+    // réellement remis, et l'écart d'arrondi espèces devient une imputation `arrondi` SIGNÉE
+    // (`-ecart`) — 109.44 payé 109.45 = règlement 10945 + arrondi -1. Aucun centime ne reste
+    // « non imputé » (avance fantôme) et aucun règlement ne dépasse son paiement (MD-51.b).
+    const imputationsParLigne = repartirImputations(
+      lignes.map((ligne) => ({
+        montantCentimes: ligne.montantCentimes ?? 0,
+        ecartArrondiCentimes: ligne.ecartArrondiCentimes,
+      })),
+      factures
+        .filter((facture) => selection.has(facture.id))
+        .map((facture) => ({ id: facture.id, soldeCentimes: facture.soldeCentimes ?? 0 })),
+    );
 
     // Capturés AVANT la boucle : `resteAEncaisserCentimes`/`sommeLignesCentimes`/
     // `sommeEcartsCentimes` dépendent de `lignes`/`selection`, non mutées pendant l'envoi — la
     // confirmation finale (item 3) reflète donc exactement ce que l'utilisateur a validé, pas un
     // état recalculé après coup.
-    const montantTotalCollecteCentimes = Math.max(sommeLignesCentimes - sommeEcartsCentimes, 0);
+    const montantTotalCollecteCentimes = Math.max(sommeLignesCentimes, 0);
     const selectionDesormaisReglee = totalSelectionneCentimes > 0 && resteAEncaisserCentimes <= 0;
 
     try {
@@ -345,7 +371,7 @@ export function SheetEncaissement({
           devise: deviseSelectionCommune ?? 'CHF',
           payeurClientId: clientId,
           payeurLibelle: destinataireNom ?? '',
-          imputations: index === 0 ? imputations : [],
+          imputations: imputationsParLigne[index] ?? [],
         };
         // Clé STABLE portée par la ligne (voir `LignePaiementSaisie.idempotencyKey`) — plus jamais
         // régénérée ici à chaque clic : DÉFAUT CORRIGÉ (testeur novice) qui empêchait tout rejeu
@@ -550,8 +576,23 @@ export function SheetEncaissement({
 
                   {tropPercuCentimes > 0 ? (
                     <EncartAvanceClient
-                      message={t('facturation:avanceClient.message', {
-                        montant: formaterTotalSelection(totalSelectionneCentimes),
+                      message={t('facturation:avanceClient.excedent', {
+                        excedent: formaterTotalSelection(tropPercuCentimes),
+                        solde: formaterTotalSelection(totalSelectionneCentimes),
+                      })}
+                    />
+                  ) : null}
+
+                  {/* Paiement partiel : un montant saisi inférieur au solde est un choix légitime
+                      (acompte, règlement en deux fois) — dit tel quel, pour ne pas être pris pour
+                      une erreur ni pour un solde réglé. */}
+                  {lignes.length > 0 &&
+                  totalSelectionneCentimes > 0 &&
+                  resteAEncaisserCentimes > 0 &&
+                  sommeLignesCentimes > 0 ? (
+                    <EncartAvanceClient
+                      message={t('facturation:encaissement.paiementPartiel', {
+                        reste: formaterTotalSelection(resteAEncaisserCentimes),
                       })}
                     />
                   ) : null}

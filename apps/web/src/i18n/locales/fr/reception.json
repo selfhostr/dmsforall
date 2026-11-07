@@ -1,6 +1,6 @@
 {
   "titre": "Réception",
-  "nouveau": "Ouvrir un OR",
+  "nouveau": "Créer un OR",
   "sections": {
     "vehicule": "Véhicule et client",
     "kilometrage": "Kilométrage",
@@ -15,7 +15,7 @@
   "champs": {
     "kmEntree": "Km à l'entrée (obligatoire)",
     "kmSortie": "Km prévus à la sortie",
-    "demandes": "Demandes du client (verbatim)",
+    "demandes": "Demandes du client, mot pour mot",
     "plafond": "Montant plafond (CHF)",
     "autorisePar": "Autorisé par",
     "restitutionPromise": "Restitution promise",

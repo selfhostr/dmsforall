@@ -48,7 +48,7 @@ export function EcranReapprovisionnement() {
   const [searchParams, setSearchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
   const { data: session } = useSession();
-  const peutCommander = peutEcrireCommandeFournisseur(session?.utilisateur.role);
+  const peutCommander = peutEcrireCommandeFournisseur(session?.actions);
   // Seuil de réapprovisionnement (#121) — LES DEUX emplacements envisagés se justifient, pas un
   // seul : ici, une ÉDITION (voir `CelluleSeuil` plus bas), pré-remplie d'une valeur TOUJOURS
   // réelle — `LigneReapprovisionnement` est le SEUL endroit du contrat qui rend
@@ -60,7 +60,7 @@ export function EcranReapprovisionnement() {
   // route `GET` n'expose la valeur actuelle en dehors de cette liste, un formulaire pré-rempli y
   // serait donc un mensonge. Droit distinct de `peutCommander` (`pieces.stock.modifier` côté
   // serveur, `StockArticleController.modifierSite`), pas celui de la commande fournisseur.
-  const peutModifierSeuil = peutEcrireStockSite(session?.utilisateur.role);
+  const peutModifierSeuil = peutEcrireStockSite(session?.actions);
 
   const {
     lignes,

@@ -83,7 +83,9 @@ describe('RefusBloquant', () => {
     expect(
       screen.getByRole('button', { name: 'Créer un devis complémentaire' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Valider les lignes' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: "Enregistrer l'accord du client" }),
+    ).toBeInTheDocument();
   });
 
   it('I-09 : rend deux techniciens et le bouton « Arrêter les pointages »', () => {
@@ -146,7 +148,9 @@ describe('RefusBloquant', () => {
     render(<RefusBloquant code="OR_ANNULATION_IMPOSSIBLE" blocages={[]} actionsProposees={[]} />);
 
     expect(
-      screen.getByText("L'opération n'a pas pu être effectuée. Réessayez."),
+      screen.getByText(
+        "L'opération n'a pas abouti. Réessayez ; si cela revient, prévenez le support.",
+      ),
     ).toBeInTheDocument();
     expect(signalerErreur).toHaveBeenCalledTimes(1);
   });
@@ -163,7 +167,9 @@ describe('RefusBloquant', () => {
     );
 
     expect(
-      screen.queryByText("L'opération n'a pas pu être effectuée. Réessayez."),
+      screen.queryByText(
+        "L'opération n'a pas abouti. Réessayez ; si cela revient, prévenez le support.",
+      ),
     ).not.toBeInTheDocument();
     expect(signalerErreur).not.toHaveBeenCalled();
   });

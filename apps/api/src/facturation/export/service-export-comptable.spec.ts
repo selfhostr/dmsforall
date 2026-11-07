@@ -15,6 +15,7 @@ import type { LigneDocumentVente } from '../../db/schema';
 import { ErreurMetier } from '../../common/erreurs';
 import { FiltreProbleme } from '../../common/erreurs/filtre-probleme';
 import type { ServiceIdempotence } from '../../common/idempotence';
+import { ErreurExportWinbiz } from './winbiz';
 
 /**
  * Preuve ciblée du correctif : les 14 `throw new ErreurMetier(...)` de ce service portaient leur
@@ -30,16 +31,41 @@ import type { ServiceIdempotence } from '../../common/idempotence';
  * service n'a pas de test colocalisé avant ce correctif.
  */
 
-vi.mock('./continuite/verification-continuite', () => ({
-  verifierContinuiteNumerotation: vi.fn(async () => undefined),
+const etat = vi.hoisted(() => ({
+  trous: [] as {
+    typeDocument: string;
+    exercice: number;
+    documents: { id: string; numero: string }[];
+  }[],
+  desequilibre: false,
 }));
 
-vi.mock('./ecritures/construction-ecriture', () => ({
-  construireEcritureDocument: vi.fn(() => ({
-    succes: false,
-    manquants: [{ type: 'compte', usage: 'tva_due', categorie: '8.1', documentNumero: 'F-000123' }],
-  })),
+vi.mock('./continuite/verification-continuite', () => ({
+  trouverTrousNumerotation: vi.fn(async () => etat.trous),
+  decrireTrous: vi.fn(() => 'série facture/2026 : F-000120'),
 }));
+
+vi.mock('./ecritures/construction-ecriture', async () => {
+  const { ErreurEcritureDesequilibree } = await import('./ecritures/erreur-desequilibre');
+  return {
+    construireEcritureDocument: vi.fn(() => {
+      if (etat.desequilibre) {
+        throw new ErreurEcritureDesequilibree('Écriture déséquilibrée pour le document F-000123', {
+          reference: 'F-000123',
+          documentId: 'doc-1',
+          totalDebitCentimes: 10000n,
+          totalCreditCentimes: 9999n,
+        });
+      }
+      return {
+        succes: false,
+        manquants: [
+          { type: 'compte', usage: 'tva_due', categorie: '8.1', documentNumero: 'F-000123' },
+        ],
+      };
+    }),
+  };
+});
 
 vi.mock('./mapping/chargement-mapping', () => ({
   chargerCodesTva: vi.fn(async () => new Map()),
@@ -150,7 +176,12 @@ describe('ServiceExportComptable.lancer — EXPORT_MAPPING_INCOMPLET expose son 
 
   it("l'exception ErreurMetier levée porte le message précis dans `detail`, pas seulement dans `.message`", async () => {
     const tx = txFactice([candidatFixture()]);
-    const service = new ServiceExportComptable(idempotenceFactice(tx), {} as never, {} as never);
+    const service = new ServiceExportComptable(
+      idempotenceFactice(tx),
+      {} as never,
+      {} as never,
+      {} as never,
+    );
 
     let capturee: ErreurMetier | undefined;
     try {
@@ -174,7 +205,12 @@ describe('ServiceExportComptable.lancer — EXPORT_MAPPING_INCOMPLET expose son 
 
   it('le VRAI FiltreProbleme (celui qui construit la réponse HTTP problem+json) expose ce detail au client — pas seulement `.message`', async () => {
     const tx = txFactice([candidatFixture()]);
-    const service = new ServiceExportComptable(idempotenceFactice(tx), {} as never, {} as never);
+    const service = new ServiceExportComptable(
+      idempotenceFactice(tx),
+      {} as never,
+      {} as never,
+      {} as never,
+    );
 
     let capturee: unknown;
     try {
@@ -191,5 +227,169 @@ describe('ServiceExportComptable.lancer — EXPORT_MAPPING_INCOMPLET expose son 
     expect(corpsType.detail).toBeDefined();
     expect(corpsType.detail).toContain('mapping_compte manquant');
     expect(corpsType.detail).toContain('F-000123');
+  });
+});
+
+async function erreurDe(entree: EntreeLancerExport): Promise<ErreurMetier> {
+  const tx = txFactice([candidatFixture()]);
+  const service = new ServiceExportComptable(
+    idempotenceFactice(tx),
+    {} as never,
+    {} as never,
+    {} as never,
+  );
+  try {
+    await service.lancer(CTX, entree, CLE_IDEMPOTENCE);
+  } catch (e) {
+    return e as ErreurMetier;
+  }
+  throw new Error("lancer n'a rien levé");
+}
+
+describe('ServiceExportComptable.lancer — prérequis affichables (blocages)', () => {
+  const entree: EntreeLancerExport = {
+    cible: 'csv',
+    periodeDu: '2026-08-01',
+    periodeAu: '2026-08-31',
+  };
+
+  it('EXPORT_MAPPING_INCOMPLET : le compte manquant et la pièce sont dans blocages[].donnees', async () => {
+    etat.trous = [];
+    etat.desequilibre = false;
+    const e = await erreurDe(entree);
+    expect(e.code).toBe('EXPORT_MAPPING_INCOMPLET');
+    expect(e.blocages).toEqual([
+      {
+        type: 'champ',
+        id: 'compte:tva_due:8.1',
+        libelle: 'Compte manquant (tva_due/8.1)',
+        donnees: {
+          poste: 'compte',
+          usage: 'tva_due',
+          categorie: '8.1',
+          references: ['F-000123'],
+          total: 1,
+        },
+      },
+    ]);
+  });
+
+  it('EXPORT_TROU_NUMEROTATION : un blocage par document manquant, avec son numéro', async () => {
+    etat.trous = [
+      { typeDocument: 'facture', exercice: 2026, documents: [{ id: 'doc-0', numero: 'F-000120' }] },
+    ];
+    etat.desequilibre = false;
+    const e = await erreurDe(entree);
+    etat.trous = [];
+    expect(e.code).toBe('EXPORT_TROU_NUMEROTATION');
+    expect(e.status).toBe(409);
+    expect(e.blocages).toEqual([
+      {
+        type: 'document_vente',
+        id: 'doc-0',
+        libelle: 'F-000120',
+        donnees: { numero: 'F-000120', typeDocument: 'facture', exercice: 2026, total: 1 },
+      },
+    ]);
+  });
+
+  it('EXPORT_ECRITURES_DESEQUILIBREES : 409 typé (et non 500) avec les deux totaux exacts', async () => {
+    etat.trous = [];
+    etat.desequilibre = true;
+    const e = await erreurDe(entree);
+    etat.desequilibre = false;
+    expect(e.code).toBe('EXPORT_ECRITURES_DESEQUILIBREES');
+    expect(e.status).toBe(409);
+    expect(e.blocages).toEqual([
+      {
+        type: 'document_vente',
+        id: 'doc-1',
+        libelle: 'F-000123',
+        donnees: {
+          reference: 'F-000123',
+          totalDebitCentimes: 10000,
+          totalCreditCentimes: 9999,
+          total: 1,
+        },
+      },
+    ]);
+  });
+
+  it.each(['bexio', 'abacus', 'banana'] as const)(
+    'cible %s : 501 FONCTION_NON_DISPONIBLE, jamais un fichier approximatif',
+    async (cible) => {
+      const e = await erreurDe({ ...entree, cible });
+      expect(e.code).toBe('FONCTION_NON_DISPONIBLE');
+      expect(e.status).toBe(501);
+    },
+  );
+});
+
+describe('ServiceExportComptable — ErreurExportWinbiz traduite au bord en 422 EXPORT_WINBIZ_INVALIDE', () => {
+  it("une ErreurExportWinbiz de l'adaptateur devient une ErreurMetier 422 au detail lisible, rendue en problem+json (pas un 500)", () => {
+    const winbiz = {
+      genererLots: () => {
+        throw new ErreurExportWinbiz(
+          'COMPTE_INVALIDE',
+          'Numéro de compte trop long : 1234567890123',
+          'F-000123',
+        );
+      },
+    };
+    const service = new ServiceExportComptable(
+      {} as never,
+      winbiz as never,
+      {} as never,
+      {} as never,
+    );
+    const produireLot = (
+      service as unknown as {
+        produireLot: (e: EntreeLancerExport, ecr: unknown[], c: Map<string, string>) => unknown;
+      }
+    ).produireLot.bind(service);
+
+    let capturee: unknown;
+    try {
+      produireLot(
+        { cible: 'winbiz', periodeDu: '2026-08-01', periodeAu: '2026-08-31' },
+        [],
+        new Map(),
+      );
+    } catch (e) {
+      capturee = e;
+    }
+
+    expect(capturee).toBeInstanceOf(ErreurMetier);
+    const { statut, corps } = corpsProduitParLeFiltre(capturee);
+    expect(statut).toBe(422);
+    expect(corps).toMatchObject({ code: 'EXPORT_WINBIZ_INVALIDE' });
+    expect((corps as { detail?: string }).detail).toBe(
+      'Numéro de compte trop long : 1234567890123 (écriture F-000123)',
+    );
+  });
+
+  it('une erreur qui n’est pas une ErreurExportWinbiz est relancée telle quelle', () => {
+    const winbiz = {
+      genererLots: () => {
+        throw new TypeError('boom');
+      },
+    };
+    const service = new ServiceExportComptable(
+      {} as never,
+      winbiz as never,
+      {} as never,
+      {} as never,
+    );
+    expect(() =>
+      (
+        service as unknown as {
+          produireLot: (e: EntreeLancerExport, ecr: unknown[], c: Map<string, string>) => unknown;
+        }
+      ).produireLot(
+        { cible: 'winbiz', periodeDu: '2026-08-01', periodeAu: '2026-08-31' },
+        [],
+        new Map(),
+      ),
+    ).toThrow(TypeError);
   });
 });

@@ -86,7 +86,9 @@ describe('DialogueCloturePeriode', () => {
     await utilisateur.click(await screen.findByRole('button', { name: 'Verrouiller' }));
 
     expect(
-      await screen.findByText('Cet élément a été modifié entre-temps. Rechargez la page.'),
+      await screen.findByText(
+        "Quelqu'un a modifié cet élément entre-temps. Rechargez la page pour voir la version actuelle, puis refaites votre modification.",
+      ),
     ).toBeInTheDocument();
   });
 
@@ -183,7 +185,9 @@ describe('DialogueCloturePeriode', () => {
         ),
       ).toBeInTheDocument();
       expect(
-        screen.queryByText('Cet élément a été modifié entre-temps. Rechargez la page.'),
+        screen.queryByText(
+          "Quelqu'un a modifié cet élément entre-temps. Rechargez la page pour voir la version actuelle, puis refaites votre modification.",
+        ),
       ).not.toBeInTheDocument();
       expect(screen.queryByText('technicien-bloquant-1')).not.toBeInTheDocument();
       expect(screen.queryByText('pointage-bloquant-1')).not.toBeInTheDocument();

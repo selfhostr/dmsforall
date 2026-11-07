@@ -53,6 +53,7 @@ const CONTEXTE: ReponseContexteAtelier = {
         ligneOrOrigineId: null,
         ordreReparationRepriseId: null,
         motifModification: null,
+        detail: null,
       },
     ],
   },

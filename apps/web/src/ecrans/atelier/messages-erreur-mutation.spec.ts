@@ -51,7 +51,9 @@ describe('messagesErreurMutation', () => {
         'référentiel du garage ne porte ni le code « ATELIER » ni un taux unique en vigueur ' +
         'au 2026-08-10. Renseigner les taux horaires dans le paramétrage.',
     ]);
-    expect(messages[0]).not.toBe('Certaines informations sont incorrectes.');
+    expect(messages[0]).not.toBe(
+      'Certaines informations sont incorrectes ou incomplètes. Corrigez les champs signalés, puis réessayez.',
+    );
   });
 
   it('reste général : un DEUXIÈME code métier futur, jamais vu ici, passe sans cas particulier codé en dur', async () => {
@@ -138,5 +140,56 @@ describe('messageErreurMutation (variante à chaîne unique)', () => {
     expect(messageErreurMutation(erreur, i18n.t)).toContain(
       'Renseigner les taux horaires dans le paramétrage.',
     );
+  });
+});
+
+describe('messageErreurMutation — transition interdite', () => {
+  function transition(detail: string | undefined, statutActuel?: string): ErreurApi {
+    return new ErreurApi({
+      type: 'https://docs.dmsforall.example/erreurs/OR_TRANSITION_INTERDITE',
+      title: 'Transition interdite',
+      status: 409,
+      code: 'OR_TRANSITION_INTERDITE',
+      instance: 'req-t',
+      ...(detail !== undefined ? { detail } : {}),
+      ...(statutActuel
+        ? {
+            blocages: [
+              {
+                type: 'ordre_reparation' as const,
+                id: 'or-1',
+                libelle: 'OR',
+                donnees: { statutActuel },
+              },
+            ],
+          }
+        : {}),
+    });
+  }
+
+  it('affiche le detail du problem+json quand c’est une vraie phrase', async () => {
+    await attendreI18nPret();
+    expect(
+      messageErreurMutation(
+        transition('Le contrôle qualité est obligatoire avant de terminer.'),
+        i18n.t,
+      ),
+    ).toBe('Le contrôle qualité est obligatoire avant de terminer.');
+  });
+
+  it('n’affiche jamais la trace machine : nomme le statut actuel et dit quoi faire', async () => {
+    await attendreI18nPret();
+    const message = messageErreurMutation(
+      transition('entite=ordre_reparation;depuis=termine;vers=en_cours', 'termine'),
+      i18n.t,
+    );
+    expect(message).not.toContain('entite=');
+    expect(message).toContain('« Travaux terminés »');
+    expect(message).toContain('Rechargez la page');
+  });
+
+  it('sans detail ni statut : une phrase qui dit quoi faire', async () => {
+    await attendreI18nPret();
+    expect(messageErreurMutation(transition(undefined), i18n.t)).toContain('Rechargez la page');
   });
 });

@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
+import { MemoryRouter } from 'react-router';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type {
@@ -236,13 +237,15 @@ function rendre(
     onCree,
     onChangerVehicule,
     ...renduAvecQueryClient(
-      <FormulaireNouvelOrdreReparation
-        site={SITE_ID}
-        client={CLIENT}
-        vehicule={VEHICULE}
-        onChangerVehicule={onChangerVehicule}
-        onCree={onCree}
-      />,
+      <MemoryRouter>
+        <FormulaireNouvelOrdreReparation
+          site={SITE_ID}
+          client={CLIENT}
+          vehicule={VEHICULE}
+          onChangerVehicule={onChangerVehicule}
+          onCree={onCree}
+        />
+      </MemoryRouter>,
     ),
   };
 }
@@ -285,7 +288,7 @@ describe('FormulaireNouvelOrdreReparation', () => {
     const utilisateur = userEvent.setup();
     rendre();
 
-    const champDemande = screen.getByLabelText('Verbatim');
+    const champDemande = screen.getByLabelText('Demandes du client');
     await utilisateur.type(champDemande, 'Bruit bizarre au freinage');
     await utilisateur.click(screen.getByRole('button', { name: 'Ajouter' }));
 
@@ -311,7 +314,7 @@ describe('FormulaireNouvelOrdreReparation', () => {
     const utilisateur = userEvent.setup();
     rendre();
 
-    const champDemande = screen.getByLabelText('Verbatim');
+    const champDemande = screen.getByLabelText('Demandes du client');
     await utilisateur.type(
       champDemande,
       'Bruit anormal à l’avant droit quand je roule, surtout dans les virages',
@@ -339,7 +342,7 @@ describe('FormulaireNouvelOrdreReparation', () => {
     const utilisateur = userEvent.setup();
     rendre();
 
-    const champDemande = screen.getByLabelText('Verbatim');
+    const champDemande = screen.getByLabelText('Demandes du client');
     await utilisateur.type(champDemande, 'Vidange à faire');
     await utilisateur.click(screen.getByRole('button', { name: 'Ajouter' }));
     await utilisateur.type(champDemande, 'Bruit au freinage');
@@ -393,9 +396,7 @@ describe('FormulaireNouvelOrdreReparation', () => {
       // à trouver d'abord — c'est exactement le défaut terrain corrigé (un second clic silencieux
       // sur le bouton déjà cliqué, faute de réaction visible dans son champ visuel).
       const dialogue = await screen.findByRole('dialog');
-      expect(
-        within(dialogue).getByText('Une confirmation est requise pour poursuivre.'),
-      ).toBeInTheDocument();
+      expect(within(dialogue).getByText("Confirmez l'action pour continuer.")).toBeInTheDocument();
       await utilisateur.click(
         within(dialogue).getByRole('button', { name: 'Continuer quand même' }),
       );
@@ -447,6 +448,10 @@ describe('FormulaireNouvelOrdreReparation', () => {
           'Déjà ouvert pour ce véhicule : OR-000001, OR-000002. Ouvrir quand même un nouvel ordre de réparation ?',
         ),
       ).toBeInTheDocument();
+      // Chaque OR déjà ouvert est un lien vers sa fiche (nouvel onglet : la saisie en cours reste).
+      const lien = within(dialogue).getByRole('link', { name: /OR-000001/ });
+      expect(lien).toHaveAttribute('href', expect.stringContaining('/ordres-reparation/'));
+      expect(lien).toHaveAttribute('target', '_blank');
     });
 
     it("« Annuler » referme la modale sans qu'elle se rouvre toute seule — le refus reste un vrai refus", async () => {
@@ -507,7 +512,7 @@ describe('FormulaireNouvelOrdreReparation', () => {
       const utilisateur = userEvent.setup();
       let rendu = rendre();
 
-      await utilisateur.type(screen.getByLabelText('Verbatim'), 'Bruit au freinage');
+      await utilisateur.type(screen.getByLabelText('Demandes du client'), 'Bruit au freinage');
       await utilisateur.type(screen.getByLabelText("Kilométrage à l'entrée"), '84200');
 
       // Laisse l'effet de sauvegarde (`useSauvegardeBrouillon`) s'exécuter avant le démontage —
@@ -520,14 +525,14 @@ describe('FormulaireNouvelOrdreReparation', () => {
       rendu = rendre();
 
       expect(await screen.findByText(/Brouillon repris de/)).toBeInTheDocument();
-      expect(screen.getByLabelText('Verbatim')).toHaveValue('Bruit au freinage');
+      expect(screen.getByLabelText('Demandes du client')).toHaveValue('Bruit au freinage');
       expect(screen.getByLabelText("Kilométrage à l'entrée")).toHaveValue('84200');
 
       // Exigence n°2 : rejetable d'un geste, sans quoi un formulaire qui se remplit tout seul
       // ferait douter de ce qu'on est en train d'envoyer.
       await utilisateur.click(screen.getByRole('button', { name: 'Ignorer le brouillon' }));
       expect(screen.queryByText(/Brouillon repris de/)).not.toBeInTheDocument();
-      expect(screen.getByLabelText('Verbatim')).toHaveValue('');
+      expect(screen.getByLabelText('Demandes du client')).toHaveValue('');
       expect(screen.getByLabelText("Kilométrage à l'entrée")).toHaveValue('');
 
       // Preuve fonctionnelle que le rejet est DURABLE, pas juste visuel sur l'instant : un
@@ -538,7 +543,7 @@ describe('FormulaireNouvelOrdreReparation', () => {
       rendu.unmount();
       rendre();
       expect(screen.queryByText(/Brouillon repris de/)).not.toBeInTheDocument();
-      expect(await screen.findByLabelText('Verbatim')).toHaveValue('');
+      expect(await screen.findByLabelText('Demandes du client')).toHaveValue('');
       expect(screen.getByLabelText("Kilométrage à l'entrée")).toHaveValue('');
     });
 
@@ -551,7 +556,7 @@ describe('FormulaireNouvelOrdreReparation', () => {
       const utilisateur = userEvent.setup();
       const { onCree, unmount } = rendre();
 
-      await utilisateur.type(screen.getByLabelText('Verbatim'), 'Vidange à faire');
+      await utilisateur.type(screen.getByLabelText('Demandes du client'), 'Vidange à faire');
       await waitFor(() => expect(sessionStorage.getItem(CLE_STOCKAGE)).not.toBeNull());
 
       await utilisateur.click(screen.getByRole('button', { name: "Ouvrir l'ordre de réparation" }));
@@ -563,7 +568,7 @@ describe('FormulaireNouvelOrdreReparation', () => {
       // Aucun bandeau, aucune reprise : le prochain client ne doit JAMAIS hériter de la demande
       // du précédent.
       expect(screen.queryByText(/Brouillon repris de/)).not.toBeInTheDocument();
-      expect(await screen.findByLabelText('Verbatim')).toHaveValue('');
+      expect(await screen.findByLabelText('Demandes du client')).toHaveValue('');
     });
 
     it("un simple échec de soumission NE DOIT PAS effacer le brouillon — l'utilisateur doit pouvoir corriger et renvoyer sans retaper", async () => {
@@ -571,7 +576,7 @@ describe('FormulaireNouvelOrdreReparation', () => {
       const utilisateur = userEvent.setup();
       rendre();
 
-      await utilisateur.type(screen.getByLabelText('Verbatim'), 'Bruit au freinage');
+      await utilisateur.type(screen.getByLabelText('Demandes du client'), 'Bruit au freinage');
       await waitFor(() => expect(sessionStorage.getItem(CLE_STOCKAGE)).not.toBeNull());
 
       await utilisateur.click(screen.getByRole('button', { name: "Ouvrir l'ordre de réparation" }));

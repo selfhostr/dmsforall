@@ -38,7 +38,7 @@
       "titre": "Section indisponible"
     },
     "actions": {
-      "nouvelOr": "Nouvel OR",
+      "nouvelOr": "Créer un OR",
       "modifierTitre": "Modifier l'identité du véhicule"
     },
     "proprietaire": {
@@ -48,9 +48,9 @@
       "vide": "Aucun détenteur enregistré pour ce véhicule."
     },
     "dossierVente": {
-      "titre": "Dossier de vente",
-      "vide": "Aucun dossier de vente pour ce véhicule.",
-      "droitRequis": "Vous n'avez pas le droit de consulter les dossiers de vente de ce véhicule."
+      "titre": "Vente",
+      "vide": "Aucune vente pour ce véhicule.",
+      "droitRequis": "Vous n'avez pas le droit de consulter les ventes de ce véhicule."
     },
     "ordresReparation": {
       "titre": "Ordres de réparation",
@@ -89,7 +89,7 @@
     "version": "Version",
     "finition": "Finition",
     "vin": "VIN",
-    "codeType": "Code type CH",
+    "codeType": "Code type (carte grise)",
     "plaque": "Plaque",
     "plaqueExemple": "VS 123456",
     "plaqueAide": "Canton puis numéro, avec un espace, comme sur la plaque : VS 123456.",
@@ -227,7 +227,9 @@
       "corriger": "Corriger",
       "reprendre": "Marquer comme repris",
       "abandonner": "Abandonner",
-      "enregistrer": "Enregistrer"
+      "enregistrer": "Enregistrer",
+      "reprendreDansOr": "Reprendre dans {numero}",
+      "reprendreDansUnOr": "Reprendre dans un OR"
     },
     "dialogue": {
       "corrigerTitre": "Corriger le travail reporté",
@@ -250,6 +252,15 @@
     },
     "erreur": {
       "titre": "Impossible de charger les travaux reportés"
+    },
+    "reporter": {
+      "bouton": "Reporter un travail",
+      "titre": "Reporter un travail",
+      "description": "Notez ce qui sera à faire à la prochaine visite : il ressortira sur la fiche du véhicule et à l'ouverture du prochain OR.",
+      "designationPlaceholder": "Ex. : courroie de distribution",
+      "detail": "Détail (facultatif)",
+      "enregistrer": "Enregistrer",
+      "erreurValidation": "Indiquez le travail à faire (200 caractères au plus)."
     }
   },
   "donnees": {

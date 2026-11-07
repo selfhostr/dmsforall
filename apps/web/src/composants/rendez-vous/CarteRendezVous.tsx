@@ -13,6 +13,9 @@ interface Props {
    *  (défaut) en vue Semaine (carte compacte, motif court seul) — voir la conception, Écran 1. */
   readonly dense?: boolean;
   readonly className?: string;
+  /** Ligne de contexte facultative au-dessus du créneau (ex. « 14.11.2026 · Lausanne » sur une fiche
+   *  qui liste des rendez-vous de jours et de sites différents). */
+  readonly contexte?: string;
 }
 
 /** Heure souhaitée si connue, sinon le moment de la journée — jamais une heure inventée : le
@@ -29,7 +32,13 @@ function libelleCreneau(rendezVous: RendezVousCarte, t: (cle: string) => string)
  * §Accessibilité) : la carte ENTIÈRE est le bouton, `min-h-11` garantit les 44px même en vue Semaine
  * dense.
  */
-export function CarteRendezVous({ rendezVous, onOuvrir, dense = false, className }: Props) {
+export function CarteRendezVous({
+  rendezVous,
+  onOuvrir,
+  dense = false,
+  className,
+  contexte,
+}: Props) {
   const { t } = useTranslation('planning');
   const creneau = libelleCreneau(rendezVous, t);
 
@@ -43,6 +52,9 @@ export function CarteRendezVous({ rendezVous, onOuvrir, dense = false, className
         className,
       )}
     >
+      {contexte ? (
+        <span className="truncate texte-libelle text-muted-foreground">{contexte}</span>
+      ) : null}
       <div className="flex items-center justify-between gap-1">
         <span className="texte-libelle font-semibold tabular-nums text-foreground">{creneau}</span>
         {rendezVous.vehiculePlaque ? (
@@ -57,6 +69,11 @@ export function CarteRendezVous({ rendezVous, onOuvrir, dense = false, className
       <span className="truncate texte-libelle text-muted-foreground">
         {rendezVous.motifLibelle}
       </span>
+      {dense && rendezVous.clientTelephone ? (
+        <span className="truncate texte-libelle tabular-nums text-muted-foreground">
+          {rendezVous.clientTelephone}
+        </span>
+      ) : null}
       {dense ? (
         <div className="flex items-center justify-between gap-1 pt-0.5">
           <span className="truncate texte-libelle text-muted-foreground">

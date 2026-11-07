@@ -41,7 +41,9 @@ const variantesBouton = cva(
         // bas pour tenir la règle des 44 px sans imposer un bouton de 44 px de haut dans une
         // barre d'outils dense de comptoir. La zone étendue est invisible et n'occupe aucune
         // place dans le flux — elle ne peut donc pas décaler la mise en page.
-        sm: 'relative h-10 rounded-md px-3 after:absolute after:inset-x-0 after:-inset-y-0.5 after:content-[""]',
+        // En densité aérée (tablette) ou très aérée (borne), le bouton mesure 44 px VISIBLES : la
+        // zone étendue ne suffit pas au doigt, la cible visible doit l'être aussi.
+        sm: 'relative h-10 rounded-md px-3 [.densite-aeree_&]:h-11 [.densite-tres-aeree_&]:h-11 after:absolute after:inset-x-0 after:-inset-y-0.5 after:content-[""]',
         lg: 'h-12 rounded-md px-8',
         icon: 'h-11 w-11',
       },

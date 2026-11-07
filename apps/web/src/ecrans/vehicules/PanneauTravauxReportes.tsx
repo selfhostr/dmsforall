@@ -1,4 +1,13 @@
-import { AlertTriangle, Clock3, Eye, Pencil, ShieldAlert, type LucideIcon } from 'lucide-react';
+import { usePeut } from '@/droits';
+import {
+  AlertTriangle,
+  Clock3,
+  Eye,
+  Pencil,
+  Plus,
+  ShieldAlert,
+  type LucideIcon,
+} from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -6,7 +15,6 @@ import {
   schemaModificationTravailReporte,
   URGENCES_TRAVAIL,
   type ReponseTravailReporte,
-  type RoleUtilisateur,
   type StatutTravailReporte,
   type UrgenceTravail,
 } from '@dfa/shared';
@@ -39,11 +47,12 @@ import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
-import { useSession } from '@/hooks/useSession';
 import { formaterDate, formaterKilometrage, formaterMontant } from '@/lib/formats';
 import { cn } from '@/lib/utils';
 
 import { BadgeStatutTravailReporte } from './BadgeStatutTravailReporte';
+import { BoutonReprendreDansOr } from './BoutonReprendreDansOr';
+import { DialogueReporterTravail } from './DialogueReporterTravail';
 import { useModifierTravailReporte } from './useModifierTravailReporte';
 import { useTravauxReportesVehicule } from './useTravauxReportesVehicule';
 
@@ -55,13 +64,6 @@ import { useTravauxReportesVehicule } from './useTravauxReportesVehicule';
  * voir `PanneauActionsOr.tsx`) : pas de signal serveur à consommer à la place de ce mirroir. À
  * FAIRE ÉVOLUER EN MÊME TEMPS que `matrice-droits.ts` si `vehicule.travail_reporte.gerer` change.
  */
-const ROLES_GESTION_TRAVAIL_REPORTE: ReadonlySet<RoleUtilisateur> = new Set([
-  'receptionnaire',
-  'chef_atelier',
-  'direction',
-  'admin',
-]);
-
 const CONFIG_URGENCE: Record<
   UrgenceTravail,
   { readonly icone: LucideIcon; readonly cle: string; readonly accentue: boolean }
@@ -71,6 +73,8 @@ const CONFIG_URGENCE: Record<
   a_surveiller: { icone: Eye, cle: 'aSurveiller', accentue: false },
 };
 
+/** Rôles porteurs de `vehicule.travail_reporte.signaler` (`matrice-droits.ts`) — le technicien
+ *  note ce qu'il voit sous le capot, sans pouvoir clore ni corriger. Miroir d'affichage. */
 type Onglet = 'ouvert' | 'repris' | 'abandonne' | 'tous';
 
 const ONGLETS: readonly Onglet[] = ['ouvert', 'repris', 'abandonne', 'tous'];
@@ -145,18 +149,18 @@ const schemaTransition = schemaModificationTravailReporte.pick({
  */
 export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
   const { t } = useTranslation(['vehicules', 'commun', 'erreurs']);
-  const session = useSession();
   const requete = useTravauxReportesVehicule(vehiculeId);
   const modifier = useModifierTravailReporte(vehiculeId);
 
   const [onglet, setOnglet] = useState<Onglet>('ouvert');
   const [edition, setEdition] = useState<EtatEdition | null>(null);
   const [erreurEdition, setErreurEdition] = useState<string | null>(null);
+  const [reporterOuvert, setReporterOuvert] = useState(false);
   const [transition, setTransition] = useState<EtatTransition | null>(null);
   const [erreurTransition, setErreurTransition] = useState<string | null>(null);
 
-  const role = session.data?.utilisateur.role;
-  const peutGerer = role !== undefined && ROLES_GESTION_TRAVAIL_REPORTE.has(role);
+  const peutGerer = usePeut('vehicule.travail_reporte.gerer');
+  const peutSignaler = usePeut('vehicule.travail_reporte.signaler');
 
   const travaux = requete.data ?? [];
   const compterParStatut = (statut: StatutTravailReporte) =>
@@ -279,12 +283,23 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
 
   return (
     <Card className={className}>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between gap-2">
         <CardTitle className="texte-titre-section">
           {t('vehicules:travauxReportes.titre')}
         </CardTitle>
+        {peutSignaler ? (
+          <Button type="button" variant="outline" size="sm" onClick={() => setReporterOuvert(true)}>
+            <Plus aria-hidden className="h-4 w-4" />
+            {t('vehicules:travauxReportes.reporter.bouton')}
+          </Button>
+        ) : null}
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
+        <DialogueReporterTravail
+          vehiculeId={vehiculeId}
+          ouvert={reporterOuvert}
+          onOuvertChange={setReporterOuvert}
+        />
         {erreurMutation ? (
           <Alert variant="destructive">
             <AlertTitle>{t('erreurs:inattendue.titre')}</AlertTitle>
@@ -336,6 +351,11 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
                             <ShieldAlert aria-hidden className="h-4 w-4 shrink-0 text-foreground" />
                           ) : null}
                           <p className="flex-1 texte-corps font-medium">{travail.designation}</p>
+                          {travail.detail ? (
+                            <p className="basis-full texte-libelle text-muted-foreground">
+                              {travail.detail}
+                            </p>
+                          ) : null}
                           <p className="texte-libelle text-muted-foreground">
                             {formaterDate(travail.constateLe)}
                             {travail.kilometrageAlors !== null
@@ -374,6 +394,10 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
                               </Button>
                               {travail.statut === 'ouvert' ? (
                                 <>
+                                  <BoutonReprendreDansOr
+                                    vehiculeId={vehiculeId}
+                                    travail={travail}
+                                  />
                                   <Button
                                     type="button"
                                     variant="outline"

@@ -4,6 +4,8 @@ import { CourrielModule } from '../../courriel/courriel.module';
 import { FacturationModule } from '../facturation.module';
 
 import { ImpressionFactureController } from './impression-facture.controller';
+import { LogoEntrepriseController } from './logo/logo-entreprise.controller';
+import { ServiceLogoEntreprise } from './logo/service-logo-entreprise';
 import { JETON_STOCKAGE_PDF } from './impression.jetons';
 import { ServiceEnvoiFactureCourriel } from './service-envoi-facture-courriel';
 import { ServiceImpressionFacture } from './service-impression-facture';
@@ -61,10 +63,11 @@ import { StockagePdfDisqueLocal } from './stockage-pdf';
   // `service-envoi-facture-courriel.ts`. Aucun cycle : `CourrielModule` est un socle transverse,
   // sans dépendance vers `FacturationModule`/`ImpressionModule`.
   imports: [FacturationModule, CourrielModule],
-  controllers: [ImpressionFactureController],
+  controllers: [ImpressionFactureController, LogoEntrepriseController],
   providers: [
     ServiceImpressionFacture,
     ServiceEnvoiFactureCourriel,
+    ServiceLogoEntreprise,
     { provide: JETON_STOCKAGE_PDF, useClass: StockagePdfDisqueLocal },
   ],
   exports: [ServiceImpressionFacture, JETON_STOCKAGE_PDF],

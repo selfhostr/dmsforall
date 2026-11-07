@@ -99,13 +99,40 @@ export type FiltresPaiements = z.infer<typeof schemaFiltresPaiements>;
 /* Entrées d'écriture                                                  */
 /* ------------------------------------------------------------------ */
 
+/** Borne de l'écart d'arrondi espèces au 5 centimes le plus proche (`RF-51`) : {-2,-1,+1,+2}. */
+export const ARRONDI_ESPECES_ECART_MAX_CENTIMES = 2;
+
+/**
+ * Le montant d'une imputation est positif ou nul, SAUF la nature `arrondi` qui est SIGNÉE et bornée
+ * (`RF-51`, `CF-05`) : `+1/+2` quand la caisse encaisse MOINS que le solde (arrondi vers le bas),
+ * `-1/-2` quand elle encaisse PLUS (arrondi vers le haut, solde finissant par 3 ou 4 centimes).
+ * Zéro est exclu pour l'arrondi (contrainte SQL `imputation_paiement_montant_non_nul_chk`).
+ */
 const formeImputationInline = z
   .object({
     documentId: schemaIdentifiant,
-    montantCentimes: schemaCentimesTtcPositif,
+    montantCentimes: schemaCentimesTtc,
     nature: z.enum(NATURES_IMPUTATION).default('reglement'),
   })
-  .strict();
+  .strict()
+  .superRefine((imputation, ctx) => {
+    if (imputation.nature === 'arrondi') {
+      const magnitude = Math.abs(imputation.montantCentimes);
+      if (magnitude < 1 || magnitude > ARRONDI_ESPECES_ECART_MAX_CENTIMES) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['montantCentimes'],
+          message: `L'écart d'arrondi doit valoir ±1 ou ±${ARRONDI_ESPECES_ECART_MAX_CENTIMES} centimes.`,
+        });
+      }
+    } else if (imputation.montantCentimes < 0) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['montantCentimes'],
+        message: 'Le montant imputé ne peut pas être négatif (seul un arrondi est signé).',
+      });
+    }
+  });
 
 /**
  * `POST /paiements` — `Idempotency-Key` OBLIGATOIRE (consigne produit explicite : « idempotencyKey

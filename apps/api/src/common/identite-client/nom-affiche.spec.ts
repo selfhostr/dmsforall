@@ -22,7 +22,7 @@ describe('calculerNomAffiche', () => {
           nom: 'Dupont',
           prenom: 'Jean',
         }),
-      ).toBe('Dupont Jean');
+      ).toBe('Jean Dupont');
     });
 
     it('un particulier sans prénom affiche seulement le nom', () => {
@@ -65,7 +65,7 @@ describe('calculerNomAffiche', () => {
           nom: 'Dupont',
           prenom: 'Jean',
         }),
-      ).toBe('Dupont Jean');
+      ).toBe('Jean Dupont');
     });
 
     // Symétrique : une entreprise avec nom/prenom résiduels (même OR permissif) affiche quand
@@ -91,7 +91,7 @@ describe('calculerNomAffiche', () => {
           nom: '  Dupont  ',
           prenom: '  Jean  ',
         }),
-      ).toBe('Dupont Jean');
+      ).toBe('Jean Dupont');
     });
 
     it("un nom composé uniquement d'espaces est traité comme absent, pas comme un espace parasite", () => {

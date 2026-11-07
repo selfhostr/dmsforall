@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router';
+import { useQueryClient } from '@tanstack/react-query';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 
 import {
   schemaActionAnnuler,
@@ -11,6 +12,7 @@ import {
   schemaActionRouvrir,
   schemaActionTerminer,
   type ActionOrdreReparation,
+  type ActionProposee,
   type CodeConfirmation,
   type ReponseOrdreReparation,
 } from '@dfa/shared';
@@ -32,6 +34,8 @@ import { ChampKilometrage } from '@/composants/comptoir/ChampKilometrage';
 import { ActionPrimaire, type ActionSecondaireMenu } from '@/composants/layout/ActionPrimaire';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
 import { RefusBloquant } from '@/composants/motifs/RefusBloquant';
+import { useAnnulerLignesOr, useMarquerLignesRealisees } from '@/hooks/atelier/useActionsLigneOr';
+import { useArreterPointagesOr } from '@/hooks/atelier/useArreterPointagesOr';
 import {
   useAnnulerOr,
   useCloturerOr,
@@ -45,10 +49,18 @@ import {
   useTerminerOr,
   useValiderControleOr,
 } from '@/hooks/atelier/useTransitionsOrdreReparation';
+import { usePeut } from '@/droits';
 import { useSession } from '@/hooks/useSession';
+import { clesQuery } from '@/api/cles';
+import { chemins } from '@/routes/chemins';
 
+import { planifierActionProposee, type ConsigneActionProposee } from './actions-proposees';
 import { BoutonImprimerOr } from './BoutonImprimerOr';
-import { messageErreurMutation } from './messages-erreur-mutation';
+import { DialogueAccordClient } from './DialogueAccordClient';
+import { DialogueLignesEnAttente } from './DialogueLignesEnAttente';
+import { DialogueRenseignerPo } from './DialogueRenseignerPo';
+import { peutAnnulerLigneOr } from './droits';
+import { messageErreurMarquage, messageErreurMutation } from './messages-erreur-mutation';
 
 /**
  * Barre d'actions de l'OR — LES actions réellement proposées par le serveur (`actionsDisponibles`,
@@ -160,6 +172,13 @@ export function PanneauActionsOr({ or }: Props) {
   const restituer = useRestituerOr(or.id);
   const cloturer = useCloturerOr(or.id);
   const annuler = useAnnulerOr(or.id);
+  const marquerRealisees = useMarquerLignesRealisees(or.id);
+  const arreterPointages = useArreterPointagesOr(or.id);
+  const retirerLignes = useAnnulerLignesOr(or.id);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const queryClient = useQueryClient();
+  const actions = session.data?.actions;
 
   // Champs locaux — un seul jeu à la fois, remis à zéro à l'ouverture de chaque dialogue.
   const [kilometrage, setKilometrage] = useState<number | null>(null);
@@ -177,10 +196,35 @@ export function PanneauActionsOr({ or }: Props) {
   // mutation reste posée tant qu'aucun nouvel envoi n'a eu lieu) : reposer la question exige un
   // nouvel envoi explicite.
   const [confirmationRejetee, setConfirmationRejetee] = useState(false);
+  // Effets des actions proposées qui passent par un dialogue propre (voir `actions-proposees.ts`).
+  const [accordLigneIds, setAccordLigneIds] = useState<readonly string[] | null>(null);
+  const [pointagesAArreter, setPointagesAArreter] = useState<readonly string[] | null>(null);
+  const [poOuvert, setPoOuvert] = useState(false);
+  const [consigne, setConsigne] = useState<{
+    readonly consigne: ConsigneActionProposee;
+    readonly donnees?: Readonly<Record<string, unknown>>;
+  } | null>(null);
+  // Travaux « Proposée » qui subsistent à la fin de l'OR : la saisie en attente d'être envoyée
+  // après le choix de l'utilisateur (laisser / retirer / annuler).
+  const [entreeAvecLignesEnAttente, setEntreeAvecLignesEnAttente] = useState<object | null>(null);
+  const lignesEnAttente = or.lignes.filter((ligne) => ligne.statut === 'proposee');
+  // Travaux validés ou en cours : le serveur refuse « Travaux terminés » / « Valider le contrôle »
+  // tant qu'ils ne sont pas réalisés (I-10). L'OR chargé le dit déjà : on propose le geste combiné
+  // d'emblée plutôt que d'attendre un refus 409 (qui reste géré en filet, `RefusBloquant`).
+  const peutMarquerRealisees = usePeut('atelier.ligne.marquer_realisee');
+  const lignesARealiser = or.lignes.filter(
+    (ligne) => ligne.statut === 'validee' || ligne.statut === 'en_cours',
+  );
+  const gesteCombine = peutMarquerRealisees && lignesARealiser.length > 0;
 
   const actionsNiveauOr = or.actionsDisponibles.filter((action) => !ACTIONS_LIGNE.has(action));
 
   function fermer() {
+    marquerRealisees.reset();
+    arreterPointages.reset();
+    retirerLignes.reset();
+    setConsigne(null);
+    setEntreeAvecLignesEnAttente(null);
     setActionOuverte(null);
     setKilometrage(null);
     setSignatureDifferee(false);
@@ -233,6 +277,83 @@ export function PanneauActionsOr({ or }: Props) {
       {
         onSuccess: () => fermer(),
       },
+    );
+  }
+
+  function rejouerActionInitiale() {
+    if (derniereEntree) soumettre(derniereEntree);
+  }
+
+  // Actions proposées par un refus (`actionsProposees`, invariant n°8) : CHAQUE code du contrat a un
+  // effet réel (voir `actions-proposees.ts`, exhaustif et testé). Celles qui lèvent le blocage
+  // (marquer réalisées, accord du client, arrêt des pointages, n° de commande) rejouent ensuite
+  // l'action initiale avec la même saisie ; un échec reste affiché dans son dialogue et l'action
+  // initiale n'est pas rejouée.
+  function executerActionProposee(action: ActionProposee) {
+    if (!erreurActive) return;
+    setConsigne(null);
+    const effet = planifierActionProposee(action, {
+      blocages: erreurActive.blocages,
+      actionsDisponibles: or.actionsDisponibles,
+      confirmationsRequises,
+    });
+    switch (effet.type) {
+      case 'marquer_realisees':
+        marquerRealisees.mutate(effet.ligneIds, { onSuccess: rejouerActionInitiale });
+        break;
+      case 'accord_client':
+        setAccordLigneIds(effet.ligneIds);
+        break;
+      case 'arreter_pointages':
+        setPointagesAArreter(effet.pointageIds);
+        break;
+      case 'renseigner_po':
+        setPoOuvert(true);
+        break;
+      case 'ouvrir_action':
+        ouvrir(effet.action);
+        break;
+      case 'nouvel_or': {
+        const parametres = new URLSearchParams({ vehiculeId: or.vehicule.id });
+        navigate(
+          `${chemins.atelier.ordresReparation.nouveau(searchParams.get('site') ?? undefined, or.client.id)}&${parametres.toString()}`,
+        );
+        break;
+      }
+      case 'rafraichir':
+        mutationActive?.reset();
+        void queryClient.invalidateQueries({ queryKey: clesQuery.or.detail(or.id) });
+        break;
+      case 'rejouer_confirme':
+        resoumettreAvecConfirmations(effet.confirmations);
+        break;
+      case 'consigne':
+        setConsigne({ consigne: effet.consigne, donnees: effet.donnees });
+        break;
+    }
+  }
+
+  const terminaisonAvecLignesEnAttente =
+    (actionOuverte === 'terminer' || actionOuverte === 'valider-controle') &&
+    lignesEnAttente.length > 0;
+
+  // « Terminer » / « Valider le contrôle » avec des travaux encore « Proposée » : le garagiste
+  // choisit (laisser en attente, retirer de l'OR, annuler) avant l'envoi — le serveur, lui, reste
+  // l'arbitre de la transition.
+  function soumettreEnControlantLesLignes(entree: object) {
+    if (terminaisonAvecLignesEnAttente) {
+      setEntreeAvecLignesEnAttente(entree);
+      return;
+    }
+    soumettre(entree);
+  }
+
+  // Geste combiné : marque réalisées les lignes que l'OR connaît déjà comme à réaliser, puis envoie
+  // la transition. Un échec de marquage s'affiche dans le dialogue et n'envoie rien.
+  function marquerPuisSoumettre(entree: object) {
+    marquerRealisees.mutate(
+      lignesARealiser.map((ligne) => ligne.id),
+      { onSuccess: () => soumettreEnControlantLesLignes(entree) },
     );
   }
 
@@ -354,7 +475,26 @@ export function PanneauActionsOr({ or }: Props) {
               blocages={erreurActive.blocages}
               actionsProposees={erreurActive.actionsProposees}
               estTerminal={or.statut === 'annule' || or.statut === 'cloture'}
+              actionEnCours={marquerRealisees.isPending || mutationActive?.isPending}
+              onActionProposee={executerActionProposee}
             />
+          ) : null}
+
+          {consigne ? (
+            <p role="note" className="texte-corps text-foreground">
+              {t(`or:consignes.${consigne.consigne}`, {
+                km:
+                  typeof consigne.donnees?.dernierConnuKm === 'number'
+                    ? consigne.donnees.dernierConnuKm
+                    : '',
+              })}
+            </p>
+          ) : null}
+
+          {marquerRealisees.isError ? (
+            <p role="alert" className="texte-libelle text-destructive">
+              {messageErreurMarquage(marquerRealisees.error, t)}
+            </p>
           ) : null}
 
           {actionOuverte === 'receptionner' ? (
@@ -537,6 +677,11 @@ export function PanneauActionsOr({ or }: Props) {
                 unite="km"
                 label={t('or:actions.kilometrageSortie')}
               />
+              {gesteCombine ? (
+                <p role="note" className="texte-corps text-muted-foreground">
+                  {t('or:lignesARealiser.avertissement', { count: lignesARealiser.length })}
+                </p>
+              ) : null}
               {erreurValidation ? (
                 <p className="texte-libelle text-destructive">{erreurValidation}</p>
               ) : null}
@@ -545,7 +690,7 @@ export function PanneauActionsOr({ or }: Props) {
                   <Button variant="outline">{t('commun:actions.annuler')}</Button>
                 </DialogClose>
                 <Button
-                  disabled={mutationActive?.isPending}
+                  disabled={mutationActive?.isPending || marquerRealisees.isPending}
                   onClick={() => {
                     const resultat = schemaActionTerminer.safeParse({
                       kilometrageSortie: kilometrage,
@@ -554,10 +699,13 @@ export function PanneauActionsOr({ or }: Props) {
                       setErreurValidation(t('validation:requis'));
                       return;
                     }
-                    soumettre(resultat.data);
+                    if (gesteCombine) marquerPuisSoumettre(resultat.data);
+                    else soumettreEnControlantLesLignes(resultat.data);
                   }}
                 >
-                  {t('or:actions.confirmer')}
+                  {gesteCombine
+                    ? t('or:lignesARealiser.action', { count: lignesARealiser.length })
+                    : t('or:actions.confirmer')}
                 </Button>
               </DialogFooter>
             </div>
@@ -612,18 +760,34 @@ export function PanneauActionsOr({ or }: Props) {
           {actionOuverte === 'valider-controle' ? (
             <div className="flex flex-col gap-4">
               <p className="texte-corps text-muted-foreground">{t('or:fiche.controleurAuto')}</p>
+              {gesteCombine ? (
+                <p role="note" className="texte-corps text-muted-foreground">
+                  {t('or:lignesARealiser.avertissement', { count: lignesARealiser.length })}
+                </p>
+              ) : null}
               <DialogFooter>
                 <DialogClose asChild>
                   <Button variant="outline">{t('commun:actions.annuler')}</Button>
                 </DialogClose>
                 <Button
-                  disabled={mutationActive?.isPending || !session.data?.utilisateur.id}
+                  disabled={
+                    mutationActive?.isPending ||
+                    marquerRealisees.isPending ||
+                    !session.data?.utilisateur.id
+                  }
                   onClick={() => {
                     if (!session.data) return;
-                    soumettre({ controleurId: session.data.utilisateur.id, pointsControles: [] });
+                    const entree = {
+                      controleurId: session.data.utilisateur.id,
+                      pointsControles: [],
+                    };
+                    if (gesteCombine) marquerPuisSoumettre(entree);
+                    else soumettreEnControlantLesLignes(entree);
                   }}
                 >
-                  {t('or:actions.confirmer')}
+                  {gesteCombine
+                    ? t('or:lignesARealiser.action', { count: lignesARealiser.length })
+                    : t('or:actions.confirmer')}
                 </Button>
               </DialogFooter>
             </div>
@@ -633,7 +797,9 @@ export function PanneauActionsOr({ or }: Props) {
           actionOuverte === 'passer-en-controle' ||
           actionOuverte === 'cloturer' ? (
             <div className="flex flex-col gap-4">
-              <p className="texte-corps text-muted-foreground">{t('or:actions.confirmerAction')}</p>
+              <p className="texte-corps text-muted-foreground">
+                {t(`or:actions.confirmation.${cleTitre ?? 'demarrer'}`)}
+              </p>
               <DialogFooter>
                 <DialogClose asChild>
                   <Button variant="outline">{t('commun:actions.annuler')}</Button>
@@ -646,6 +812,87 @@ export function PanneauActionsOr({ or }: Props) {
           ) : null}
         </DialogContent>
       </Dialog>
+
+      <DialogueAccordClient
+        orId={or.id}
+        ligneIds={accordLigneIds ?? []}
+        plafondCentimes={or.plafondCentimes ?? 0}
+        ouvert={accordLigneIds !== null}
+        onOuvertChange={(ouvertAccord) => {
+          if (!ouvertAccord) setAccordLigneIds(null);
+        }}
+        onAccorde={rejouerActionInitiale}
+      />
+
+      <DialogueRenseignerPo
+        orId={or.id}
+        version={or.version}
+        ouvert={poOuvert}
+        onOuvertChange={setPoOuvert}
+        onEnregistre={rejouerActionInitiale}
+      />
+
+      <AvertissementConfirmable
+        ouvert={pointagesAArreter !== null}
+        onOuvertChange={(ouvertArret) => {
+          if (!ouvertArret) {
+            setPointagesAArreter(null);
+            arreterPointages.reset();
+          }
+        }}
+        titre={t('or:arretPointages.titre', { count: pointagesAArreter?.length ?? 0 })}
+        description={t('or:arretPointages.description', { count: pointagesAArreter?.length ?? 0 })}
+        libelleConfirmation={t('or:arretPointages.confirmer', {
+          count: pointagesAArreter?.length ?? 0,
+        })}
+        enCours={arreterPointages.isPending}
+        messageErreur={
+          arreterPointages.isError ? messageErreurMutation(arreterPointages.error, t) : null
+        }
+        onConfirmer={() => {
+          if (!pointagesAArreter) return;
+          arreterPointages.mutate(pointagesAArreter, {
+            onSuccess: () => {
+              setPointagesAArreter(null);
+              rejouerActionInitiale();
+            },
+          });
+        }}
+      />
+
+      <DialogueLignesEnAttente
+        ouvert={entreeAvecLignesEnAttente !== null}
+        nombre={lignesEnAttente.length}
+        libelleAction={titreDialogue}
+        peutRetirer={peutAnnulerLigneOr(actions)}
+        enCours={retirerLignes.isPending || (mutationActive?.isPending ?? false)}
+        messageErreur={retirerLignes.isError ? messageErreurMutation(retirerLignes.error, t) : null}
+        onAnnuler={() => {
+          setEntreeAvecLignesEnAttente(null);
+          retirerLignes.reset();
+        }}
+        onLaisser={() => {
+          const entree = entreeAvecLignesEnAttente;
+          setEntreeAvecLignesEnAttente(null);
+          if (entree) soumettre(entree);
+        }}
+        onRetirer={() => {
+          const entree = entreeAvecLignesEnAttente;
+          if (!entree) return;
+          retirerLignes.mutate(
+            {
+              ligneIds: lignesEnAttente.map((ligne) => ligne.id),
+              motif: t('or:lignesEnAttente.motifRetrait'),
+            },
+            {
+              onSuccess: () => {
+                setEntreeAvecLignesEnAttente(null);
+                soumettre(entree);
+              },
+            },
+          );
+        }}
+      />
 
       {/* CONFIRMATION_REQUISE (§4.4, issues #64/#66) : s'ouvre D'ELLE-MÊME dès que le serveur
        *  l'exige, jamais derrière un second clic sur un encart qu'on peut manquer — même mécanisme

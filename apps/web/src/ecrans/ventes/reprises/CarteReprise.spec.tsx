@@ -1,3 +1,4 @@
+import { actionsDuRole } from '@/test/session';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -78,25 +79,37 @@ function rendre(ui: ReactElement) {
 
 describe('CarteReprise', () => {
   it('affiche un état vide avec une action « Ajouter une reprise » quand le dossier n’en a pas', () => {
-    rendre(<CarteReprise dossierVenteId="dossier-1" possedeReprise={false} role="vendeur" />);
+    rendre(
+      <CarteReprise
+        dossierVenteId="dossier-1"
+        possedeReprise={false}
+        actions={actionsDuRole('vendeur')}
+      />,
+    );
 
-    expect(screen.getByText('Pas de reprise sur ce dossier')).toBeInTheDocument();
+    expect(screen.getByText('Pas de reprise sur cette vente')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Ajouter une reprise' })).toBeInTheDocument();
   });
 
   it('n’affiche pas l’action d’ajout pour un rôle sans droit d’écriture', () => {
     rendre(
-      <CarteReprise dossierVenteId="dossier-1" possedeReprise={false} role="receptionnaire" />,
+      <CarteReprise
+        dossierVenteId="dossier-1"
+        possedeReprise={false}
+        actions={actionsDuRole('receptionnaire')}
+      />,
     );
 
-    expect(screen.getByText('Pas de reprise sur ce dossier')).toBeInTheDocument();
+    expect(screen.getByText('Pas de reprise sur cette vente')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Ajouter une reprise' })).not.toBeInTheDocument();
   });
 
   it('affiche les deux valeurs, l’écart et le statut quand la reprise existe', async () => {
     server.use(http.get('/api/v1/dossiers-vente/:id/reprise', () => HttpResponse.json(REPRISE)));
 
-    rendre(<CarteReprise dossierVenteId="dossier-1" possedeReprise role="vendeur" />);
+    rendre(
+      <CarteReprise dossierVenteId="dossier-1" possedeReprise actions={actionsDuRole('vendeur')} />,
+    );
 
     await waitFor(() => {
       expect(screen.getByText("8'500.00")).toBeInTheDocument();
@@ -132,7 +145,9 @@ describe('CarteReprise', () => {
       ),
     );
 
-    rendre(<CarteReprise dossierVenteId="dossier-1" possedeReprise role="vendeur" />);
+    rendre(
+      <CarteReprise dossierVenteId="dossier-1" possedeReprise actions={actionsDuRole('vendeur')} />,
+    );
 
     await waitFor(() => {
       expect(screen.getByText("Impossible d'afficher cette reprise")).toBeInTheDocument();
@@ -166,7 +181,7 @@ describe('CarteReprise', () => {
       <CarteReprise
         dossierVenteId="dossier-1"
         possedeReprise={false}
-        role="vendeur"
+        actions={actionsDuRole('vendeur')}
         onMutationReussie={onMutationReussie}
       />,
     );
@@ -232,7 +247,13 @@ describe('CarteReprise', () => {
     );
 
     const utilisateur = userEvent.setup();
-    rendre(<CarteReprise dossierVenteId="dossier-1" possedeReprise role="direction" />);
+    rendre(
+      <CarteReprise
+        dossierVenteId="dossier-1"
+        possedeReprise
+        actions={actionsDuRole('direction')}
+      />,
+    );
 
     await utilisateur.click(await screen.findByRole('button', { name: 'Négocier' }));
     await utilisateur.type(screen.getByLabelText(/Nouvelle valeur négociée/), '9000');
@@ -269,7 +290,9 @@ describe('CarteReprise', () => {
     );
 
     const utilisateur = userEvent.setup();
-    rendre(<CarteReprise dossierVenteId="dossier-1" possedeReprise role="vendeur" />);
+    rendre(
+      <CarteReprise dossierVenteId="dossier-1" possedeReprise actions={actionsDuRole('vendeur')} />,
+    );
 
     await utilisateur.click(await screen.findByRole('button', { name: 'Refuser' }));
     await utilisateur.type(
@@ -287,7 +310,13 @@ describe('CarteReprise', () => {
   it('un rôle en lecture seule (receptionnaire) ne voit aucune action sur une reprise négociable', async () => {
     server.use(http.get('/api/v1/dossiers-vente/:id/reprise', () => HttpResponse.json(REPRISE)));
 
-    rendre(<CarteReprise dossierVenteId="dossier-1" possedeReprise role="receptionnaire" />);
+    rendre(
+      <CarteReprise
+        dossierVenteId="dossier-1"
+        possedeReprise
+        actions={actionsDuRole('receptionnaire')}
+      />,
+    );
 
     await waitFor(() => expect(screen.getByText('Négociée')).toBeInTheDocument());
     expect(screen.queryByRole('button', { name: 'Négocier' })).not.toBeInTheDocument();

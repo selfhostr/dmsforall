@@ -53,9 +53,11 @@ export class ImpressionFactureController {
   @Get(':id/pdf')
   @ExigerDroit('facturation.document.imprimer')
   @ApiOperation({
-    summary: 'Bulletin QR-facture au format PDF (facture émise uniquement).',
+    summary: 'PDF d’une facture émise (avec bulletin QR) ou d’un devis (sans QR).',
     description:
-      'Génération paresseuse au premier appel, mise en cache (`document_vente.pdfCle`/`pdfSha256`), ' +
+      'Facture émise : génération paresseuse au premier appel, mise en cache (`document_vente.pdfCle`/`pdfSha256`), ' +
+      'Un DEVIS (tout statut, brouillon compris) produit un PDF « Devis » sans bulletin QR, ' +
+      'valable 30 jours après sa date, rendu à chaque appel et non mis en cache. ' +
       'JAMAIS régénérée ensuite — une facture émise est immuable, son PDF aussi (DI-3). ' +
       '`RF-116` : la charge QR contient le montant en clair — droit dédié, distinct de `facturation.document.lire`.',
   })
@@ -64,7 +66,10 @@ export class ImpressionFactureController {
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Document introuvable pour ce tenant.')
-  @ApiReponseProbleme(409, "DOCUMENT_PDF_INDISPONIBLE — le document n'est pas une facture émise.")
+  @ApiReponseProbleme(
+    409,
+    "DOCUMENT_PDF_INDISPONIBLE — le document n'est ni un devis ni une facture émise.",
+  )
   async telechargerPdf(
     @Param('id', new PipeZod(schemaIdentifiant)) id: string,
     @Res() res: Response,

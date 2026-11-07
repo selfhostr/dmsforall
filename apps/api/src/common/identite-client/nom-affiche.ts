@@ -1,4 +1,4 @@
-import type { TypeClient } from '@dfa/shared';
+import { formaterNomClient, type TypeClient } from '@dfa/shared';
 
 /**
  * Champs d'identité nécessaires pour calculer le nom affiché d'un client — délibérément
@@ -15,7 +15,7 @@ export interface IdentiteClientAffichage {
 }
 
 /**
- * Nom affiché d'un client — implémentation UNIQUE, partagée par `clients/` et `vehicules/`
+ * Nom affiché d'un client (« Prénom Nom » pour un particulier, via `formaterNomClient` de `@dfa/shared`) — implémentation UNIQUE, partagée par `clients/` et `vehicules/`
  * (`recherche/utilitaires-recherche.ts::nomAfficheClient` porte encore sa propre copie ; elle
  * sera alignée séparément, hors périmètre de cette unification — voir note de livraison).
  * Remplace trois implémentations quasi identiques écrites en parallèle par des lots
@@ -49,11 +49,5 @@ export interface IdentiteClientAffichage {
  * produire ce cas.
  */
 export function calculerNomAffiche(client: IdentiteClientAffichage): string {
-  if (client.type === 'entreprise') {
-    return (client.raisonSociale ?? '').trim();
-  }
-  return [client.nom, client.prenom]
-    .map((valeur) => valeur?.trim())
-    .filter((valeur): valeur is string => Boolean(valeur))
-    .join(' ');
+  return formaterNomClient(client);
 }

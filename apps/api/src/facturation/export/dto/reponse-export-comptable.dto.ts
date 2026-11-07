@@ -5,8 +5,13 @@ import {
   MOYENS_PAIEMENT,
   type Avertissement,
   type CibleExport,
+  type DocumentExporte,
+  type ImputationExportee,
+  type LotExportProduit,
   type MoyenPaiement,
+  type PaiementExporte,
   type ReponseAvecAvertissements,
+  type ReponseExportComptable,
 } from '@dfa/shared';
 
 /** Sous-ensemble de `TYPES_DOCUMENT_VENTE` qui produit des écritures comptables (MD-84) — voir
@@ -14,14 +19,6 @@ import {
  *  uniquement pour la métadonnée Swagger (un import de la constante privée du service coderait
  *  une dépendance DTO → service dans le mauvais sens). */
 const TYPES_DOCUMENT_EXPORTABLES_SWAGGER = ['facture', 'avoir'] as const;
-
-import type {
-  DocumentExporte,
-  ImputationExportee,
-  LotExportProduit,
-  PaiementExporte,
-  ReponseExportComptable,
-} from '../service-export-comptable';
 
 /** Dupliqué volontairement de `facturation/paiements/dto/paiement.dto.ts::AvertissementPaiementDto`
  *  — même raison que partout ailleurs dans ce module : pas de dépendance croisée entre

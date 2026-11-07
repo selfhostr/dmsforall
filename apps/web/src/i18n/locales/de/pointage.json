@@ -28,7 +28,7 @@
   },
   "enCours": {
     "demarrer": "Zeiterfassung starten",
-    "terminer": "Beenden",
+    "terminer": "Diese Zeiterfassung beenden",
     "changerLigne": "Arbeit wechseln",
     "signaler": "Befund melden"
   },
@@ -107,6 +107,7 @@
     "aucunOrDescription": "Sie können trotzdem unten einen beliebigen offenen RA wählen, um eine Zeiterfassung zu starten."
   },
   "toutesLesOr": {
+    "siteBorne": "Auf dieser Station werden nur die RA dieses Standorts angeboten.",
     "titre": "Alle offenen RA",
     "afficher": "Alle offenen RA anzeigen",
     "masquer": "Ausblenden",
@@ -147,7 +148,8 @@
     "pointageEnCours": {
       "titre": "Laufende Zeiterfassung",
       "depuis": "Seit {heure}",
-      "cumulAujourdhui": "Heute auf diesem Ziel: {duree}"
+      "cumulAujourdhui": "Heute auf diesem Ziel: {duree}",
+      "etat": "Läuft"
     },
     "bandeauReprise": {
       "titre": "Fortsetzen: {cible}",
@@ -166,12 +168,24 @@
       "reprendre": "Fortsetzen",
       "changer": "Wechseln",
       "demarrerOr": "Auf diesem RA erfassen",
-      "demarrerLigne": "Auf dieser Arbeit erfassen"
+      "demarrerLigne": "Auf dieser Arbeit erfassen",
+      "photo": "Foto"
     },
     "mesOrs": {
       "titre": "Meine RA heute",
-      "lignesAssignees": "{count, plural, one {# Ihnen zugewiesene Arbeit} other {# Ihnen zugewiesene Arbeiten}}"
+      "lignesAssignees": "{count, plural, one {# Ihnen zugewiesene Arbeit} other {# Ihnen zugewiesene Arbeiten}}",
+      "restitution": "Rückgabe zugesagt {date}",
+      "enRetard": "Verspätet, zugesagt {date}",
+      "horsSite": "Standort {site}: erfassen Sie an der Station dieses Standorts",
+      "horsSiteSansNom": "Anderer Standort: erfassen Sie an der Station dieses Standorts"
     },
+    "ligneARealiser": {
+      "titre": "Arbeit fertig?",
+      "bouton": "Diese Position als erledigt markieren",
+      "plusTard": "Nicht jetzt",
+      "ok": "Position als erledigt markiert."
+    },
+    "siteAutre": "Dieser RA gehört zum Standort {site}; erfassen Sie an der Station dieses Standorts oder fragen Sie das Büro.",
     "choisirCible": {
       "titre": "Was erfassen Sie?",
       "retour": "Zurück",
@@ -183,7 +197,8 @@
       "nonPointable": "Noch nicht für die Zeiterfassung verfügbar."
     },
     "erreur": {
-      "titre": "Ihre Zeiterfassung konnte nicht geladen werden"
+      "titre": "Ihre Zeiterfassung konnte nicht geladen werden",
+      "titreAction": "Zeiterfassung nicht möglich"
     }
   },
   "jour": {
@@ -262,10 +277,10 @@
       "arretReussi": "Zeiterfassungen beendet — Sie können erneut sperren."
     },
     "deverrouiller": {
-      "titre": "Entsperren (Gegenbuchung)",
+      "titre": "Gesperrte Periode korrigieren",
       "description": "Betrifft nur bereits gesperrte Zeiterfassungen des Standorts, die wieder als bestätigt gelten.",
       "jusquau": "Bis (einschliesslich)",
-      "motif": "Grund der Gegenbuchung",
+      "motif": "Grund der Korrektur",
       "motifRequis": "Der Grund ist erforderlich, um eine Periode zu entsperren.",
       "action": "Entsperren",
       "resultat": "{count, plural, one {# Zeiterfassung entsperrt.} other {# Zeiterfassungen entsperrt.}}"

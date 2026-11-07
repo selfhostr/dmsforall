@@ -9,6 +9,7 @@ import {
   ATTENTES_ORDRE_REPARATION,
   ENTITES_AUDITEES,
   LOCALISATIONS_VEHICULE,
+  MOTIFS_KILOMETRAGE_REGRESSIF,
   MOTIFS_LIEN_OR,
   STATUTS_INITIAUX_ORDRE_REPARATION,
   STATUTS_ORDRE_REPARATION,
@@ -337,6 +338,63 @@ export interface OrdreReparationResume {
   readonly designationsApercu?: readonly string[];
 }
 
+/** Formes de réponse de `GET /ordres-reparation` (`?forme=`). `complet` (défaut, rétrocompatible) :
+ *  `ReponseOrdreReparation` par élément. `resume` : `OrdreReparationResumeListe`, ~10 % du poids. */
+export const FORMES_LISTE_ORDRES_REPARATION = ['complet', 'resume'] as const;
+export type FormeListeOrdresReparation = (typeof FORMES_LISTE_ORDRES_REPARATION)[number];
+
+/** Client d'une ligne de liste : identité seule (pas de localité, de véhicules détenus ni de
+ *  dernier passage — trois sous-requêtes que la liste n'affiche pas). Sous-ensemble de `ClientResume`. */
+export type ClientResumeListe = Pick<
+  ClientResume,
+  'id' | 'numeroClient' | 'nomAffiche' | 'type' | 'statut'
+>;
+
+/** Véhicule d'une ligne de liste : plaque, désignation et année. Sous-ensemble de `VehiculeResume`. */
+export type VehiculeResumeListe = Pick<
+  VehiculeResume,
+  | 'id'
+  | 'plaque'
+  | 'canton'
+  | 'designation'
+  | 'premiereMiseEnCirculationLe'
+  | 'identificationIncomplete'
+>;
+
+/**
+ * Résumé d'un OR pour la liste (`GET /ordres-reparation?forme=resume`) : tout ce que l'écran liste,
+ * « Mes OR du jour » et les calendriers affichent, sans lignes, demandes, devis, totaux par payeur
+ * ni valeurs figées. Mêmes valeurs que le document complet (`ReponseOrdreReparation`) pour les
+ * champs communs, mêmes règles de masquage des montants par rôle.
+ */
+export interface OrdreReparationResumeListe {
+  readonly id: string;
+  readonly numero: string;
+  readonly siteId: string;
+  readonly type: TypeOrdreReparation;
+  readonly statut: StatutOrdreReparation;
+  readonly etatAffiche: EtatAfficheOrdreReparation;
+  readonly enRetard: boolean;
+  readonly client: ClientResumeListe;
+  readonly vehicule: VehiculeResumeListe;
+  readonly ouvertLe: string | null;
+  readonly restitutionPromiseLe: string | null;
+  readonly localisation: LocalisationVehicule;
+  readonly attentes: AttentesOr;
+  /** Technicien de la première ligne assignée (hors annulée/refusée) ; absent si aucune. */
+  readonly technicienAssigne?: { readonly utilisateurId: string; readonly nomAffiche: string };
+  /** Mêmes règles que `ReponseOrdreReparation.designationsApercu`. */
+  readonly designationsApercu: readonly string[];
+  /** Toutes les lignes de l'OR, tous statuts confondus (comme `ReponseOrdreReparation.nombreLignes`). */
+  readonly nombreLignes: number;
+  /** Lignes de cet OR assignées à l'UTILISATEUR COURANT (`ligne_or.technicien_id`), hors annulées et
+   *  refusées. `0` pour un compte sans technicien (borne). Sert « Mes OR du jour » sans le document complet. */
+  readonly nombreLignesAssignees: number;
+  /** Absent pour un rôle sans droit aux montants. */
+  readonly totalTtcCentimes?: number;
+  readonly version: number;
+}
+
 /** Entrée du journal d'audit (`GET /ordres-reparation/{orId}/journal`, RM-59, RM-111). */
 export interface ReponseEntreeJournal {
   readonly id: string;
@@ -493,6 +551,14 @@ export const schemaActionReceptionner = z
     /** RM-51 / §6.12 : la signature peut être différée, mais alors le motif est exigé. */
     signatureDifferee: z.boolean().default(false),
     motifDifferee: schemaMotif.optional(),
+    /**
+     * Réponse à l'action proposée `FOURNIR_MOTIF` (`409 VEHICULE_KILOMETRAGE_REGRESSIF`) : le
+     * kilométrage saisi est inférieur au dernier relevé connu. Sans ce champ la réception est
+     * refusée ; avec, le relevé est enregistré (`vehicule_kilometrage.motif_regression`) et le
+     * droit `vehicule.kilometrage.corriger_regression` est exigé, comme pour
+     * `POST /vehicules/{id}/kilometrages`. Ignoré si le relevé n'est pas régressif.
+     */
+    motifKilometrageRegressif: z.enum(MOTIFS_KILOMETRAGE_REGRESSIF).optional(),
   })
   .extend(schemaConfirmations.shape)
   .strict()
@@ -552,6 +618,16 @@ export const schemaActionRestituer = z
     /** RM-78 : pièces remplacées effectivement remises au client. */
     piecesRestituees: z.array(schemaIdentifiant).max(200).optional(),
     paiementRecu: z.boolean().optional(),
+    /**
+     * Réponse à l'action proposée `SIGNER_RESERVE_SECURITE` (`409 OR_RESERVE_SECURITE_REQUISE`) :
+     * déclare que le client a signé la réserve sur les lignes de sécurité refusées. Le serveur
+     * trace la déclaration au journal de l'OR (nom, date) ; l'image ou le document signé n'est PAS
+     * stocké par cette API. Ignoré s'il n'y a aucune réserve à signer.
+     */
+    reserveSecuriteSignee: z
+      .object({ signataireNom: schemaTexteCourt, signeLe: schemaHorodatage.optional() })
+      .strict()
+      .optional(),
   })
   .extend(schemaConfirmations.shape)
   .strict();

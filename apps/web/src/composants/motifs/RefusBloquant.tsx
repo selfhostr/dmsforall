@@ -18,6 +18,8 @@ interface Props {
    *  contrat documente qu'`actionsProposees` y est vide **par construction** (aucune sortie
    *  n'existe), donc le repli d'anomalie ne doit pas se déclencher. Par défaut `false`. */
   readonly estTerminal?: boolean;
+  /** Désactive les boutons d'action pendant qu'une action proposée est en cours d'exécution. */
+  readonly actionEnCours?: boolean;
   readonly onActionProposee?: (action: ActionProposee) => void;
   readonly onElementBloquantClic?: (element: ElementBloquant) => void;
   readonly className?: string;
@@ -40,6 +42,7 @@ export function RefusBloquant({
   blocages,
   actionsProposees,
   estTerminal = false,
+  actionEnCours = false,
   onActionProposee,
   onElementBloquantClic,
   className,
@@ -82,7 +85,12 @@ export function RefusBloquant({
       {actionsProposees.length > 0 ? (
         <div className="flex flex-wrap gap-controles">
           {actionsProposees.map((action) => (
-            <Button key={action.code} variant="outline" onClick={() => onActionProposee?.(action)}>
+            <Button
+              key={action.code}
+              variant="outline"
+              disabled={actionEnCours}
+              onClick={() => onActionProposee?.(action)}
+            >
               {t(`erreurs:actions.${action.code}`)}
             </Button>
           ))}

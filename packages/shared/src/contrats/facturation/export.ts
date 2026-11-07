@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { CIBLES_EXPORT, MODES_GRANULARITE_EXPORT, type CibleExport } from './enums';
-import { schemaDateJour, schemaIdentifiant } from '../atelier/primitives';
+import { schemaDateJour } from '../atelier/primitives';
 
 /**
  * Export fiduciaire (§6 du modèle documentaire, `RF-101` → `RF-113`) : le cœur produit des
@@ -36,6 +36,9 @@ export interface LigneEcritureExport {
  *  paiement : c'est ce que la fiduciaire tape pour retrouver la pièce en trente secondes (`RF-108`). */
 export interface EcritureExport {
   readonly reference: string;
+  /** N° de pièce comptable si différent de `reference` (écriture de paiement : n° de la facture
+   *  réglée, + `+N` si plusieurs). Absent : l'adaptateur utilise `reference`. */
+  readonly piece?: string;
   readonly date: string;
   readonly libelle: string;
   /** Code du site — `null` si le tenant n'utilise pas de centre de charge. */
@@ -83,7 +86,6 @@ export const schemaLancerExport = z
     granularite: z.enum(MODES_GRANULARITE_EXPORT).optional(),
     periodeDu: schemaDateJour,
     periodeAu: schemaDateJour,
-    siteId: schemaIdentifiant.optional(),
   })
   .strict();
 export type EntreeLancerExport = z.infer<typeof schemaLancerExport>;

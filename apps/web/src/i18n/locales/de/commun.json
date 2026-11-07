@@ -69,5 +69,52 @@
     "comptable": "Buchhaltung",
     "admin": "Administrator",
     "posteAtelier": "Werkstattterminal"
+  },
+  "toasts": {
+    "annuler": "Rückgängig",
+    "clientCree": "Kunde erstellt",
+    "vehiculeCree": "Fahrzeug gespeichert",
+    "rdvDeplace": "Termin verschoben",
+    "articleCree": "Artikel erstellt",
+    "pointageArrete": "Zeiterfassung gestoppt",
+    "orTermine": "Auftrag abgeschlossen",
+    "factureEmise": "Rechnung ausgestellt",
+    "orCree": "Auftrag eröffnet",
+    "orReceptionne": "Reparaturauftrag entgegengenommen",
+    "orDemarre": "Reparaturauftrag gestartet",
+    "travauxRepris": "Arbeiten wieder aufgenommen",
+    "orEnControle": "Reparaturauftrag in der Kontrolle",
+    "controleRefuse": "Kontrolle abgelehnt, Auftrag wieder in Arbeit",
+    "controleValide": "Kontrolle bestätigt",
+    "travauxTermines": "Arbeiten abgeschlossen",
+    "orRouvert": "Reparaturauftrag wieder geöffnet",
+    "orRestitue": "Fahrzeug übergeben",
+    "orCloture": "Reparaturauftrag abgeschlossen",
+    "orAnnule": "Reparaturauftrag storniert",
+    "avoirEmis": "Gutschrift ausgestellt",
+    "paiementEnregistre": "Zahlung erfasst",
+    "factureEncaissee": "Rechnung ausgestellt und einkassiert",
+    "rdvCree": "Termin gespeichert",
+    "pretCree": "Leihe erfasst",
+    "travailReporteRepris": "Zurückgestellte Arbeit in den Auftrag übernommen",
+    "motifRdvCree": "Termingrund erstellt",
+    "motifRdvModifie": "Termingrund geändert",
+    "employeCree": "Mitarbeiter erstellt"
+  },
+  "densite": {
+    "titre": "Anzeigedichte",
+    "auto": "Automatisch (je nach Gerät)",
+    "compacte": "Kompakt",
+    "aeree": "Luftig",
+    "aide": "Luftig: grössere Schrift und höhere Zeilen, für Tablet und Finger."
+  },
+  "glossaire": {
+    "OR": "Reparaturauftrag (RA): Auftrag für ein Fahrzeug in der Werkstatt, von der Annahme bis zur Rückgabe.",
+    "MFK": "Motorfahrzeugkontrolle: amtliche Fahrzeugprüfung in der Schweiz (italienisch: collaudo).",
+    "VN": "Neuwagen: vor dem Verkauf nie immatrikuliert.",
+    "VO": "Occasion: bereits gebraucht, vom Betrieb verkauft oder in Zahlung genommen.",
+    "QRFacture": "QR-Rechnung: Schweizer Zahlteil mit QR-Code, im E-Banking scannbar.",
+    "Avoir": "Gutschrift: Korrekturbeleg, der eine ausgestellte Rechnung ganz oder teilweise storniert.",
+    "Detenteur": "Person, die im Fahrzeugausweis eingetragen ist; nicht unbedingt der Eigentümer, z. B. beim Leasing."
   }
 }

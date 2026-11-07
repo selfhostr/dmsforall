@@ -1,3 +1,4 @@
+import { creerSessionTest } from '@/test/session';
 import type { ReponseRecherche, ResultatRecherche, SessionCourante } from '@dfa/shared';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -32,27 +33,7 @@ const { useSessionMock } = vi.hoisted(() => ({ useSessionMock: vi.fn() }));
 vi.mock('@/hooks/useSession', () => ({ useSession: useSessionMock }));
 
 function sessionAvecRole(role: SessionCourante['utilisateur']['role']): { data: SessionCourante } {
-  return {
-    data: {
-      utilisateur: {
-        id: 'u-1',
-        email: 'u@garage-martin.ch',
-        prenom: 'Anna',
-        nom: 'Dupont',
-        role,
-        langue: 'fr',
-      },
-      tenant: {
-        id: 't-1',
-        slug: 'garage-martin',
-        raisonSociale: 'Garage Martin SA',
-        langueDefaut: 'fr',
-      },
-      sites: [{ id: 'site-1', code: 'MTG', nom: 'Martigny', actif: true }],
-      siteRattachementId: null,
-      expireLe: new Date(Date.now() + 3_600_000).toISOString(),
-    },
-  };
+  return { data: creerSessionTest(role) };
 }
 
 const VEHICULE_A: ResultatRecherche = {

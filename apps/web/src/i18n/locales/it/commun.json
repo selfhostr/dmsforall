@@ -34,7 +34,7 @@
     "choisir": "Scegli la lingua"
   },
   "langues": {
-    "fr": "Francais",
+    "fr": "Français",
     "de": "Deutsch",
     "it": "Italiano"
   },
@@ -54,7 +54,7 @@
   },
   "montants": {
     "masque": "Non visibile",
-    "masqueDescription": "Questo importo esiste, ma il tuo ruolo non ha accesso agli importi."
+    "masqueDescription": "Questo importo esiste, ma il suo ruolo non ha accesso agli importi."
   },
   "tableComptoir": {
     "trierPar": "Ordina per"
@@ -69,5 +69,52 @@
     "comptable": "Contabilita",
     "admin": "Amministratore",
     "posteAtelier": "Terminale officina"
+  },
+  "toasts": {
+    "annuler": "Annulla",
+    "clientCree": "Cliente creato",
+    "vehiculeCree": "Veicolo registrato",
+    "rdvDeplace": "Appuntamento spostato",
+    "articleCree": "Articolo creato",
+    "pointageArrete": "Timbratura fermata",
+    "orTermine": "OR terminato",
+    "factureEmise": "Fattura emessa",
+    "orCree": "Ordine aperto",
+    "orReceptionne": "OR ricevuto",
+    "orDemarre": "OR avviato",
+    "travauxRepris": "Lavori ripresi",
+    "orEnControle": "OR passato al controllo",
+    "controleRefuse": "Controllo rifiutato, OR di nuovo in corso",
+    "controleValide": "Controllo convalidato",
+    "travauxTermines": "Lavori terminati",
+    "orRouvert": "OR riaperto",
+    "orRestitue": "Veicolo riconsegnato",
+    "orCloture": "OR chiuso",
+    "orAnnule": "OR annullato",
+    "avoirEmis": "Nota di credito emessa",
+    "paiementEnregistre": "Pagamento registrato",
+    "factureEncaissee": "Fattura emessa e incassata",
+    "rdvCree": "Appuntamento registrato",
+    "pretCree": "Prestito registrato",
+    "travailReporteRepris": "Lavoro rimandato ripreso nell’OR",
+    "motifRdvCree": "Motivo di appuntamento creato",
+    "motifRdvModifie": "Motivo di appuntamento modificato",
+    "employeCree": "Dipendente creato"
+  },
+  "densite": {
+    "titre": "Densità di visualizzazione",
+    "auto": "Automatica (secondo il dispositivo)",
+    "compacte": "Compatta",
+    "aeree": "Ampia",
+    "aide": "Ampia: testo più grande e righe più alte, per tablet e dito."
+  },
+  "glossaire": {
+    "OR": "Ordine di riparazione (OR): scheda dei lavori di un veicolo, dalla consegna alla restituzione.",
+    "MFK": "Controllo tecnico ufficiale svizzero (Motorfahrzeugkontrolle, in tedesco MFK).",
+    "VN": "Veicolo nuovo: mai immatricolato prima della vendita.",
+    "VO": "Veicolo usato: già utilizzato, venduto dall'officina o ritirato come usato.",
+    "QRFacture": "Bollettino di pagamento svizzero con codice QR, da scansionare nell'e-banking.",
+    "Avoir": "Nota di credito: documento che annulla in tutto o in parte una fattura emessa.",
+    "Detenteur": "Persona iscritta sulla carta di circolazione; non necessariamente il proprietario, per esempio in leasing."
   }
 }

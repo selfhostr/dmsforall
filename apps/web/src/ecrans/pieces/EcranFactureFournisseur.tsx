@@ -27,8 +27,8 @@ export function EcranFactureFournisseur() {
   const { t } = useTranslation(['pieces', 'commun']);
   const { id } = useParams<{ id: string }>();
   const session = useSession();
-  const role = session.data?.utilisateur.role;
-  const peutLire = peutLireFactureFournisseur(role);
+  const actions = session.data?.actions;
+  const peutLire = peutLireFactureFournisseur(actions);
 
   // Gardé par le droit AVANT de partir — même correctif que `EcranFicheCommandeFournisseur`
   // (`peutLireCommandeFournisseur` posé avant le hook, jamais laissé partir puis rattrapé par un
@@ -100,7 +100,7 @@ export function EcranFactureFournisseur() {
 
       <PanneauRapprochementFacture
         facture={facture}
-        peutDecider={peutDeciderFactureFournisseur(role)}
+        peutDecider={peutDeciderFactureFournisseur(actions)}
         validationEnCours={valider.isPending}
         rejetEnCours={rejeter.isPending}
         erreurValidation={valider.error}

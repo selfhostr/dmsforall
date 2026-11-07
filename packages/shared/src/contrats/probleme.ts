@@ -175,6 +175,9 @@ export const CODES_ERREUR = [
   // RF-109, MD-92 : un document déjà exporté ne repart pas dans un autre lot sans une action
   // d'exploitation explicite et tracée — évite le double comptage découvert au bouclement.
   'EXPORT_DEJA_TRANSMIS',
+  // L'adaptateur WinBIZ refuse une écriture qu'il ne sait pas sérialiser fidèlement (compte trop
+  // long, date ou montant invalide, écriture non décomposable…) : 422, le `detail` dit laquelle.
+  'EXPORT_WINBIZ_INVALIDE',
   // RF-112, RF-113 : changement de cible, de granularité ou de mapping refusé hors d'une
   // frontière de période comptable — jamais en cours de mois.
   'BASCULE_FIDUCIAIRE_HORS_FRONTIERE',
@@ -221,6 +224,7 @@ export const CODES_ERREUR = [
   // RM-114 : ralentissement anti-brute-force sur un espace de PIN volontairement petit. Nombre
   // d'essais et durée de blocage restent des paramètres de sécurité, non fixés par ce code.
   'POINTAGE_PIN_VERROUILLE',
+  'POINTAGE_SITE_AUTRE',
   // --- Étape 4 : ventes (VN/VO et reprises) ---
   'VENTE_VEHICULE_STOCK_DEJA_EXISTANT',
   'VENTE_DOSSIER_TRANSITION_INTERDITE',
@@ -431,6 +435,7 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   EXPORT_ECRITURES_DESEQUILIBREES: 409,
   EXPORT_MAPPING_INCOMPLET: 409,
   EXPORT_DEJA_TRANSMIS: 409,
+  EXPORT_WINBIZ_INVALIDE: 422,
   BASCULE_FIDUCIAIRE_HORS_FRONTIERE: 409,
   ARTICLE_REFERENCE_COLLISION: 409,
   ARTICLE_REMPLACANT_REQUIS: 400,
@@ -445,6 +450,7 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   CONSIGNE_TRANSITION_INTERDITE: 409,
   POINTAGE_PIN_INVALIDE: 401,
   POINTAGE_PIN_VERROUILLE: 423,
+  POINTAGE_SITE_AUTRE: 403,
   VENTE_VEHICULE_STOCK_DEJA_EXISTANT: 409,
   VENTE_DOSSIER_TRANSITION_INTERDITE: 409,
   VENTE_REPRISE_TRANSITION_INTERDITE: 409,
@@ -563,6 +569,7 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   EXPORT_ECRITURES_DESEQUILIBREES: 'Écritures comptables déséquilibrées',
   EXPORT_MAPPING_INCOMPLET: 'Mapping comptable incomplet',
   EXPORT_DEJA_TRANSMIS: 'Document déjà transmis à la fiduciaire',
+  EXPORT_WINBIZ_INVALIDE: 'Écriture refusée par le format WinBIZ',
   BASCULE_FIDUCIAIRE_HORS_FRONTIERE: 'Bascule de fiduciaire hors frontière de période',
   ARTICLE_REFERENCE_COLLISION: 'Référence déjà portée par un autre article',
   ARTICLE_REMPLACANT_REQUIS: 'Référence de remplacement requise',
@@ -577,6 +584,7 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   CONSIGNE_TRANSITION_INTERDITE: 'Transition interdite pour cette consigne',
   POINTAGE_PIN_INVALIDE: 'Code PIN non reconnu',
   POINTAGE_PIN_VERROUILLE: 'Sélecteur de code PIN temporairement verrouillé',
+  POINTAGE_SITE_AUTRE: 'Pointage depuis la borne d’un autre site',
   VENTE_VEHICULE_STOCK_DEJA_EXISTANT: 'Véhicule déjà au stock',
   VENTE_DOSSIER_TRANSITION_INTERDITE: 'Transition interdite pour ce dossier de vente',
   VENTE_REPRISE_TRANSITION_INTERDITE: 'Transition interdite pour cette reprise',
@@ -757,6 +765,15 @@ export const CODES_AVERTISSEMENT = [
   // financier reste émis), seulement signalé pour que le magasinier enregistre le retour physique
   // à la main s'il a réellement eu lieu (`POST /articles/{id}/mouvements/retour-client`).
   'AVOIR_RETOUR_STOCK_NON_DECLENCHE',
+  // Facture émise sans bloc créancier complet (IBAN, adresse) : elle est valable et verrouillée,
+  // mais ne porte pas de QR-facture. `donnees.documentId` : la facture concernée. Voie de sortie :
+  // renseigner le bloc créancier (`PATCH /parametres-facturation/creancier`) pour les suivantes.
+  'FACTURE_SANS_QR',
+  // `POST /ordres-reparation/{orId}/facturer-et-encaisser` : la facture est créée ET émise (acquise,
+  // verrouillée), mais l'encaissement demandé a échoué (montant excédentaire, moyen refusé…). Le
+  // geste n'est PAS annulé : la facture reste émise, son solde est intact, l'encaissement se
+  // refait par `POST /paiements`. `donnees` : `{ factureId, codeErreur }`.
+  'ENCAISSEMENT_ECHOUE',
 ] as const;
 export type CodeAvertissement = (typeof CODES_AVERTISSEMENT)[number];
 

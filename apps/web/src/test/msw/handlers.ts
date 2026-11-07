@@ -2,27 +2,9 @@ import { http, HttpResponse } from 'msw';
 
 import type { SessionCourante } from '@dfa/shared';
 
-export const SESSION_TEST: SessionCourante = {
-  utilisateur: {
-    id: 'utilisateur-1',
-    email: 'jean.dupont@garage.ch',
-    prenom: 'Jean',
-    nom: 'Dupont',
-    role: 'chef_atelier',
-    langue: 'fr',
-  },
-  tenant: {
-    id: 'tenant-1',
-    slug: 'garage-test',
-    raisonSociale: 'Garage Test SA',
-    langueDefaut: 'fr',
-  },
-  sites: [{ id: 'site-1', code: 'PRINCIPAL', nom: 'Site principal', actif: true }],
-  // Compte de personne (role: 'chef_atelier') : `siteRattachementId` n'est renseigné que pour les
-  // comptes de service (`ROLES_COMPTE_DE_SERVICE`, ex. `poste_atelier`), voir `@dfa/shared`.
-  siteRattachementId: null,
-  expireLe: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-};
+import { creerSessionTest } from '../session';
+
+export const SESSION_TEST: SessionCourante = creerSessionTest('chef_atelier');
 
 /** Valeur de fixture pour `GET /sante` — volontairement distincte de tout défaut réel
  *  (`VERSION_APP` de l'API vaut `0.0.0-dev` par défaut, voir `apps/api/src/config/`) pour qu'un

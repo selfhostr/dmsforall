@@ -50,7 +50,6 @@ export class ParametresAtelierController {
     type: ReponseParametresAtelierDto,
   })
   @ApiResponse({ status: 304, description: 'Non modifié depuis `If-None-Match`.' })
-  @ApiReponseProbleme(404, 'RESSOURCE_INTROUVABLE — aucune ligne de paramétrage pour ce tenant.')
   async obtenir(
     @Headers('if-none-match') ifNoneMatch: string | undefined,
     @Res() res: Response,
@@ -103,7 +102,6 @@ export class ParametresAtelierController {
     400,
     'VALIDATION_ECHOUEE — corps invalide, ou valeur hors périmètre lot 1 (ex. `travaux.controleQualite`).',
   )
-  @ApiReponseProbleme(404, 'RESSOURCE_INTROUVABLE — aucune ligne de paramétrage pour ce tenant.')
   @ApiReponseProbleme(
     501,
     "FONCTION_NON_DISPONIBLE — le champ modifié dépend d'une fonctionnalité non livrée au lot 1.",

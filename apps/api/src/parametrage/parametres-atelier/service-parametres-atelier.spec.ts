@@ -50,15 +50,33 @@ function ligneBrute(
   } as schema.LigneParametreAtelier;
 }
 
-/** Fausse `AccesBase` : `select().from().where()` et `update().set().where().returning()`. */
+/**
+ * Fausse `AccesBase` : `select().from().where()`, `insert().values().onConflictDoNothing()` et
+ * `update().set().where().returning()`. `ligneApresInsert` : ce que le second SELECT rend une fois
+ * la ligne par défaut insérée (cas d'un tenant sans ligne).
+ */
 function accesFactice(options: {
   readonly ligneSelect?: schema.LigneParametreAtelier | undefined;
   readonly ligneUpdate?: schema.LigneParametreAtelier | undefined;
-}): AccesBase {
+  readonly ligneApresInsert?: schema.LigneParametreAtelier | undefined;
+}): AccesBase & { readonly insertions: unknown[] } {
+  const insertions: unknown[] = [];
   const tx = {
     select: () => ({
       from: () => ({
-        where: () => Promise.resolve(options.ligneSelect ? [options.ligneSelect] : []),
+        where: () => {
+          const ligne =
+            options.ligneSelect ?? (insertions.length > 0 ? options.ligneApresInsert : undefined);
+          return Promise.resolve(ligne ? [ligne] : []);
+        },
+      }),
+    }),
+    insert: () => ({
+      values: (valeurs: unknown) => ({
+        onConflictDoNothing: () => {
+          insertions.push(valeurs);
+          return Promise.resolve();
+        },
       }),
     }),
     update: () => ({
@@ -70,6 +88,7 @@ function accesFactice(options: {
     }),
   };
   return {
+    insertions,
     enTenant: vi.fn((_ctx, travail) => travail(tx as never)),
     verifierConnexion: vi.fn(),
     verifierPostureRls: vi.fn(),
@@ -84,8 +103,21 @@ describe('ServiceParametresAtelier.obtenir', () => {
     expect(dto.version).toBe(new Date('2026-07-27T09:14:22.000Z').getTime());
   });
 
-  it('ligne absente : RESSOURCE_INTROUVABLE (jamais un objet vide silencieux)', async () => {
-    const service = new ServiceParametresAtelier(accesFactice({ ligneSelect: undefined }));
+  it('garage neuf sans ligne : la crée avec les défauts de la base au lieu de répondre 404', async () => {
+    const acces = accesFactice({ ligneApresInsert: ligneBrute({ orPrefixe: null }) });
+    const dto = await new ServiceParametresAtelier(acces).obtenir(CTX);
+    expect(acces.insertions).toEqual([{ tenantId: 'tid' }]);
+    expect(dto.or.prefixe).toBe('');
+  });
+
+  it('ligne déjà là : aucune insertion', async () => {
+    const acces = accesFactice({ ligneSelect: ligneBrute() });
+    await new ServiceParametresAtelier(acces).obtenir(CTX);
+    expect(acces.insertions).toHaveLength(0);
+  });
+
+  it('ligne introuvable même après insertion : RESSOURCE_INTROUVABLE (jamais un objet vide silencieux)', async () => {
+    const service = new ServiceParametresAtelier(accesFactice({}));
     await expect(service.obtenir(CTX)).rejects.toMatchObject({ code: 'RESSOURCE_INTROUVABLE' });
   });
 });
@@ -326,13 +358,16 @@ describe('ServiceParametresAtelier.modifier', () => {
     expect(dto.or.prefixe).toBe('OR');
   });
 
-  it('ligne absente pour ce tenant : RESSOURCE_INTROUVABLE, avant même la vérification du plafond', async () => {
-    const service = new ServiceParametresAtelier(accesFactice({ ligneSelect: undefined }));
-    await expect(
-      service.modifier(CTX, 'chef_atelier', { or: { prefixe: 'X' } }),
-    ).rejects.toMatchObject({
-      code: 'RESSOURCE_INTROUVABLE',
+  it('garage neuf sans ligne : la crée puis applique la modification', async () => {
+    const acces = accesFactice({
+      ligneApresInsert: ligneBrute({ orPrefixe: null }),
+      ligneUpdate: ligneBrute({ orPrefixe: 'X' }),
     });
+    const dto = await new ServiceParametresAtelier(acces).modifier(CTX, 'chef_atelier', {
+      or: { prefixe: 'X' },
+    });
+    expect(acces.insertions).toHaveLength(1);
+    expect(dto.or.prefixe).toBe('X');
   });
 
   it('ligne disparue entre la lecture et le UPDATE (course concurrente) : RESSOURCE_INTROUVABLE', async () => {

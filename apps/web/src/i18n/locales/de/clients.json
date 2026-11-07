@@ -32,7 +32,7 @@
   },
   "fiche": {
     "titre": "Kundenkarte",
-    "ouvrirOr": "RA öffnen",
+    "ouvrirOr": "RA erstellen",
     "actions": {
       "fusionner": "Zusammenführen",
       "ajouterVehicule": "Fahrzeug hinzufügen"
@@ -47,9 +47,9 @@
     "vehiculesVide": "Kein Fahrzeug zugeordnet.",
     "derniersOr": "Letzte Werkstattbesuche",
     "derniersOrVide": "Kein Besuch erfasst.",
-    "dossiersVente": "Verkaufsdossiers",
-    "dossiersVenteVide": "Kein Verkaufsdossier.",
-    "dossiersVenteDroitRequis": "Sie sind nicht berechtigt, die Verkaufsdossiers dieses Kunden einzusehen.",
+    "dossiersVente": "Verkäufe des Kunden",
+    "dossiersVenteVide": "Keine Verkäufe für diesen Kunden.",
+    "dossiersVenteDroitRequis": "Sie dürfen die Verkäufe dieses Kunden nicht einsehen.",
     "dossierSansVehicule": "Kein Fahrzeug zugewiesen",
     "rendezVous": {
       "titre": "Nächste Termine",
@@ -67,7 +67,7 @@
     "nom": "Name",
     "prenom": "Vorname",
     "raisonSociale": "Firmenname",
-    "ide": "UID",
+    "ide": "UID-Nummer",
     "ideFormatInvalide": "Erwartetes Format: CHE-123.456.789.",
     "langue": "Korrespondenzsprache",
     "po": "Bestellnummer (PO)",
@@ -150,17 +150,17 @@
   },
   "doublonsEcran": {
     "titre": "Kundendubletten",
-    "description": "Suchen Sie einen Kunden nach Name, PLZ, E-Mail, Telefon oder UID, bevor Sie einen neuen erstellen, oder prüfen Sie, ob zwei Karten dieselbe Person betreffen.",
+    "description": "Suchen Sie einen Kunden nach Name, PLZ, E-Mail, Telefon oder UID-Nummer, bevor Sie einen neuen anlegen, oder prüfen Sie, ob zwei Kundenkarten dieselbe Person betreffen.",
     "champs": {
       "nom": "Name oder Firmenname",
       "npa": "PLZ",
       "email": "E-Mail",
       "telephone": "Telefon",
-      "ide": "UID"
+      "ide": "UID-Nummer"
     },
     "vide": {
       "premier": "Geben Sie mindestens ein Suchkriterium ein",
-      "premierDescription": "Name, PLZ, E-Mail, Telefon oder UID — ein Kriterium genügt.",
+      "premierDescription": "Name, PLZ, E-Mail, Telefon oder UID-Nummer: Ein einziges Kriterium genügt.",
       "aucunDoublon": "Keine Dublette erkannt",
       "aucunDoublonDescription": "Kein bestehender Kunde entspricht diesen Kriterien."
     },

@@ -39,8 +39,8 @@ const MAX_LIGNES = 5;
 export function EcheancesAVenir({ site }: Props) {
   const { t } = useTranslation(['accueil', 'pneus', 'commun', 'erreurs']);
   const { data: session, isLoading: sessionEnChargement } = useSession();
-  const role = session?.utilisateur.role;
-  const peutLire = peutLireDepotPneus(role);
+  const actions = session?.actions;
+  const peutLire = peutLireDepotPneus(actions);
 
   const requete = useJeuxARelancer(
     { siteId: site, tri: 'dernierMouvementLe:asc' },

@@ -3,13 +3,17 @@ import type { ReponseDocumentVente } from '@dfa/shared';
 
 import type { PrincipalAuthentifie } from '../../common/contexte/contexte-requete.types';
 import type { AccesBase, ContexteTenant } from '../../db';
+import { site, tenant } from '../../db/schema';
 import type { ServiceDocumentsVente } from '../documents/service-documents';
 
-import { genererPdfFacture } from './generation-pdf-facture';
+import { genererPdfDevis, genererPdfFacture } from './generation-pdf-facture';
 import { ServiceImpressionFacture } from './service-impression-facture';
 import type { StockagePdf } from './stockage-pdf';
 
-vi.mock('./generation-pdf-facture', () => ({ genererPdfFacture: vi.fn() }));
+vi.mock('./generation-pdf-facture', () => ({
+  genererPdfFacture: vi.fn(),
+  genererPdfDevis: vi.fn(),
+}));
 
 const CTX: ContexteTenant = { tenantId: 't-1', utilisateurId: 'u-1', requeteId: 'req-1' };
 const PRINCIPAL: PrincipalAuthentifie = {
@@ -114,8 +118,12 @@ class StockagePdfMemoire implements StockagePdf {
   }
   async lire(cle: string): Promise<Buffer> {
     const b = this.contenu.get(cle);
-    if (!b) throw new Error(`clé absente : ${cle}`);
+    // Comme le disque : une clé absente est une ENOENT (le logo, optionnel, en dépend).
+    if (!b) throw Object.assign(new Error(`clé absente : ${cle}`), { code: 'ENOENT' });
     return b;
+  }
+  async supprimer(cle: string): Promise<void> {
+    this.contenu.delete(cle);
   }
   // Non exercée par ces tests (impression, pas résiliation) — voir
   // `exploitation/cycle-vie-tenant/service-cycle-vie-resiliation.spec.ts` pour la couverture réelle
@@ -127,12 +135,36 @@ class StockagePdfMemoire implements StockagePdf {
   }
 }
 
-function accesBaseFake(): AccesBase & { readonly misAJour: { cle: string; sha256: string }[] } {
+function accesBaseFake(
+  numeroTvaTenant: string | null = 'CHE-114.873.733 TVA',
+  blocCreancier: readonly Record<string, string>[] = [
+    {
+      nom: 'Garage Martin SA',
+      rue: 'Route de Riddes',
+      numero: '42',
+      npa: '1950',
+      localite: 'Sion',
+    },
+  ],
+): AccesBase & { readonly misAJour: { cle: string; sha256: string }[] } {
   const misAJour: { cle: string; sha256: string }[] = [];
   return {
     misAJour,
     async enTenant<T>(_ctx: ContexteTenant, travail: (tx: unknown) => Promise<T>): Promise<T> {
       const tx = {
+        select: () => ({
+          from: (table: unknown) => ({
+            where: () => ({
+              limit: async () => {
+                if (table === tenant)
+                  return [{ raisonSociale: 'Garage Martin SA', numeroTva: numeroTvaTenant }];
+                if (table === site)
+                  return [{ rue: 'Rue du Site', npa: '1000', localite: 'Lausanne' }];
+                return blocCreancier;
+              },
+            }),
+          }),
+        }),
         update: () => ({
           set: (valeurs: { pdfCle: string; pdfSha256: string }) => ({
             where: async () => {
@@ -150,27 +182,101 @@ function accesBaseFake(): AccesBase & { readonly misAJour: { cle: string; sha256
 describe('ServiceImpressionFacture', () => {
   beforeEach(() => {
     vi.mocked(genererPdfFacture).mockReset();
+    vi.mocked(genererPdfDevis).mockReset();
   });
 
-  it('refuse un devis (jamais de bulletin QR) avec DOCUMENT_PDF_INDISPONIBLE', async () => {
+  it('imprime un devis (brouillon ou émis) sans passer par le cache ni le bulletin QR', async () => {
     const serviceDocuments = {
       obtenirComplet: vi
         .fn()
-        .mockResolvedValue(documentFacture({ typeDocument: 'devis', qr: null })),
+        .mockResolvedValue(documentFacture({ typeDocument: 'devis', qr: null, numero: 'DEV-1' })),
     } as unknown as ServiceDocumentsVente;
+    vi.mocked(genererPdfDevis).mockResolvedValue(Buffer.from('%PDF-devis'));
+    const stockage = new StockagePdfMemoire();
+    const acces = accesBaseFake();
+    const service = new ServiceImpressionFacture(acces, stockage, serviceDocuments);
+
+    const resultat = await service.obtenirPdf(CTX, PRINCIPAL, 'doc-1');
+
+    expect(resultat.nomFichier).toBe('Devis-DEV-1.pdf');
+    expect(genererPdfDevis).toHaveBeenCalledWith(
+      expect.objectContaining({ typeDocument: 'devis' }),
+      {
+        nom: 'Garage Martin SA',
+        rue: 'Route de Riddes',
+        numero: '42',
+        npa: '1950',
+        localite: 'Sion',
+        numeroTva: 'CHE-114.873.733 TVA',
+      },
+      null, // pas de logo déposé
+    );
+    expect(genererPdfFacture).not.toHaveBeenCalled();
+    expect(stockage.contenu.size).toBe(0);
+    expect(acces.misAJour).toHaveLength(0);
+  });
+
+  it('imprime une facture émise sans bloc QR (expéditeur lu au paramétrage)', async () => {
+    const serviceDocuments = {
+      obtenirComplet: vi.fn().mockResolvedValue(documentFacture({ qr: null })),
+    } as unknown as ServiceDocumentsVente;
+    vi.mocked(genererPdfFacture).mockResolvedValue(Buffer.from('%PDF-f'));
     const service = new ServiceImpressionFacture(
       accesBaseFake(),
       new StockagePdfMemoire(),
       serviceDocuments,
     );
-
-    await expect(service.obtenirPdf(CTX, PRINCIPAL, 'doc-1')).rejects.toMatchObject({
-      code: 'DOCUMENT_PDF_INDISPONIBLE',
-    });
-    expect(genererPdfFacture).not.toHaveBeenCalled();
+    await service.obtenirPdf(CTX, PRINCIPAL, 'doc-1');
+    expect(genererPdfFacture).toHaveBeenCalledWith(
+      expect.objectContaining({ qr: null }),
+      expect.objectContaining({ nom: 'Garage Martin SA' }),
+      null, // pas de logo déposé
+    );
   });
 
-  it('refuse une facture sans bloc QR (brouillon, devise hors CHF/EUR, ou rôle sans droit aux montants)', async () => {
+  it('garage sans bloc créancier (sans IBAN) : expéditeur = raison sociale + adresse du site + n° TVA', async () => {
+    const serviceDocuments = {
+      obtenirComplet: vi.fn().mockResolvedValue(documentFacture({ qr: null })),
+    } as unknown as ServiceDocumentsVente;
+    vi.mocked(genererPdfFacture).mockResolvedValue(Buffer.from('%PDF-f'));
+    const service = new ServiceImpressionFacture(
+      accesBaseFake('CHE-114.873.733 TVA', []),
+      new StockagePdfMemoire(),
+      serviceDocuments,
+    );
+    await service.obtenirPdf(CTX, PRINCIPAL, 'doc-1');
+    expect(vi.mocked(genererPdfFacture).mock.calls[0]?.[1]).toEqual({
+      nom: 'Garage Martin SA',
+      rue: 'Rue du Site',
+      numero: null,
+      npa: '1000',
+      localite: 'Lausanne',
+      numeroTva: 'CHE-114.873.733 TVA',
+    });
+  });
+
+  it('passe le logo PNG déposé par le garage au rendu du devis (et ignore celui d’un autre tenant)', async () => {
+    const serviceDocuments = {
+      obtenirComplet: vi
+        .fn()
+        .mockResolvedValue(documentFacture({ typeDocument: 'devis', qr: null, numero: 'DEV-1' })),
+    } as unknown as ServiceDocumentsVente;
+    vi.mocked(genererPdfDevis).mockResolvedValue(Buffer.from('%PDF-devis'));
+    const png = Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      Buffer.alloc(8),
+    ]);
+    const stockage = new StockagePdfMemoire();
+    stockage.contenu.set('t-1/logo', png);
+    stockage.contenu.set('t-2/logo', Buffer.from('autre'));
+    const service = new ServiceImpressionFacture(accesBaseFake(), stockage, serviceDocuments);
+
+    await service.obtenirPdf(CTX, PRINCIPAL, 'doc-1');
+
+    expect(vi.mocked(genererPdfDevis).mock.calls[0]?.[2]).toEqual(png);
+  });
+
+  it('refuse un brouillon de facture', async () => {
     const serviceDocuments = {
       obtenirComplet: vi.fn().mockResolvedValue(documentFacture({ qr: null, statut: 'brouillon' })),
     } as unknown as ServiceDocumentsVente;

@@ -58,10 +58,26 @@ beforeEach(() => {
   );
 });
 
+/** Page de `GET /ordres-reparation`. « Mes OR du jour » demande `forme=resume` : le serveur ajoute
+ *  alors `nombreLignesAssignees` (lignes du compte de SESSION, hors annulées et refusées) — calculé
+ *  ici depuis `lignes`, comme le fait le serveur. Le champ en plus est sans effet pour les autres
+ *  appelants (sélecteur « Toutes les OR ouvertes »). */
 function pageOrdres(
   donnees: readonly ReponseOrdreReparation[],
-): PageCurseur<ReponseOrdreReparation> {
-  return { donnees, curseurSuivant: null, limite: 50 };
+): PageCurseur<ReponseOrdreReparation & { nombreLignesAssignees: number }> {
+  return {
+    donnees: donnees.map((or) => ({
+      ...or,
+      nombreLignesAssignees: or.lignes.filter(
+        (ligne) =>
+          ligne.technicienId === SESSION_TEST.utilisateur.id &&
+          ligne.statut !== 'annulee' &&
+          ligne.statut !== 'refusee',
+      ).length,
+    })),
+    curseurSuivant: null,
+    limite: 50,
+  };
 }
 
 function pagePointages(donnees: readonly ReponsePointage[]): PageCurseur<ReponsePointage> {
@@ -300,6 +316,30 @@ describe('EcranPointageTechnicien', () => {
     expect(screen.getByRole('button', { name: 'Nettoyage' })).toBeInTheDocument();
   });
 
+  it('« Mes OR du jour » demande forme=resume et lit nombreLignesAssignees (aucune ligne dans la réponse)', async () => {
+    const requetes: URL[] = [];
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([]))),
+      http.get('/api/v1/ordres-reparation', ({ request }) => {
+        requetes.push(new URL(request.url));
+        const { lignes: _lignes, ...resume } = OR_ASSIGNE;
+        return HttpResponse.json({
+          donnees: [{ ...resume, nombreLignesAssignees: 3 }],
+          curseurSuivant: null,
+          limite: 50,
+        });
+      }),
+    );
+
+    rendre();
+
+    expect(await screen.findByText('3 lignes qui vous sont assignées')).toBeInTheDocument();
+    const miennes = requetes.filter((u) => u.searchParams.has('technicienId'));
+    expect(miennes.length).toBeGreaterThan(0);
+    expect(miennes.every((u) => u.searchParams.get('forme') === 'resume')).toBe(true);
+  });
+
   it(
     'état vide (#148) : invite EXPLICITE quand aucun OR n’est assigné, jamais le texte muet ' +
       "d'avant ce correctif — la Direction/l'encadrement, qui n'a normalement aucune ligne " +
@@ -453,7 +493,7 @@ describe('EcranPointageTechnicien', () => {
       await waitFor(() => expect(appelsDemarrer).toHaveLength(1));
       expect(appelsArreter).toHaveLength(0);
       expect(
-        await screen.findByText('Ce pointage a été clôturé automatiquement à la fermeture.'),
+        await screen.findByText('Votre pointage précédent a été clôturé automatiquement.'),
       ).toBeInTheDocument();
     },
   );
@@ -953,7 +993,9 @@ describe('EcranPointageTechnicien', () => {
         await utilisateur.click(boutonOrEntier);
 
         expect(
-          await screen.findByText("L'opération n'a pas pu être effectuée. Réessayez."),
+          await screen.findByText(
+            "L'opération n'a pas abouti. Réessayez ; si cela revient, prévenez le support.",
+          ),
         ).toBeInTheDocument();
 
         // Laisse Node achever son cycle de détection des rejections non gérées PENDANT que le
@@ -1198,9 +1240,12 @@ describe('EcranPointageTechnicien', () => {
         // doit rester utilisable — jamais vide, jamais figé — pas la ligne cliquée, qui n'est plus
         // affichée nulle part une fois la vue refermée.
         expect(
-          await screen.findByText("Cette ligne n'est pas dans un état permettant un pointage.", {
-            exact: false,
-          }),
+          await screen.findByText(
+            'Cette ligne ne peut pas être pointée à cette étape. Pointez une ligne validée et en cours de travaux.',
+            {
+              exact: false,
+            },
+          ),
         ).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /OR-000123/ })).toBeEnabled();
 
@@ -1213,4 +1258,116 @@ describe('EcranPointageTechnicien', () => {
       expect(rejetsNonRattrapes).toEqual([]);
     },
   );
+
+  describe('après « Arrêter » sur une ligne — marquer réalisée en un geste', () => {
+    function poserHandlersArret(pointage: ReponsePointage, appelsRealisee: string[]) {
+      let ouvert = true;
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/pointages', () =>
+          HttpResponse.json(pagePointages(ouvert ? [pointage] : [])),
+        ),
+        http.get('/api/v1/ordres-reparation', () => HttpResponse.json(pageOrdres([]))),
+        http.get('/api/v1/ordres-reparation/or-1', () =>
+          HttpResponse.json(construireOrDetail({ lignes: [construireLigne({ id: 'ligne-1' })] })),
+        ),
+        http.post('/api/v1/pointages/:id/arreter', () => {
+          ouvert = false;
+          return HttpResponse.json({
+            donnees: { ...pointage, statut: 'termine', finLe: new Date().toISOString() },
+            avertissements: [],
+          });
+        }),
+        http.post(
+          '/api/v1/ordres-reparation/or-1/lignes/:ligneId/marquer-realisee',
+          ({ params }) => {
+            appelsRealisee.push(String(params['ligneId']));
+            return HttpResponse.json({
+              donnees: construireLigne({ id: String(params['ligneId']), statut: 'realisee' }),
+              avertissements: [],
+            });
+          },
+        ),
+      );
+    }
+
+    it('propose « Marquer cette ligne réalisée » et envoie UN appel marquer-realisee sur la ligne arrêtée', async () => {
+      const appels: string[] = [];
+      poserHandlersArret(
+        { ...POINTAGE_EN_COURS, nature: 'productif_ligne', ligneOrId: 'ligne-1' },
+        appels,
+      );
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      await utilisateur.click(await screen.findByRole('button', { name: 'Arrêter' }));
+      await utilisateur.click(
+        await screen.findByRole('button', { name: 'Marquer cette ligne réalisée' }),
+      );
+
+      expect(await screen.findByText('Ligne marquée réalisée.')).toBeInTheDocument();
+      expect(appels).toEqual(['ligne-1']);
+    });
+
+    it('« Pas maintenant » referme la proposition sans rien envoyer', async () => {
+      const appels: string[] = [];
+      poserHandlersArret(
+        { ...POINTAGE_EN_COURS, nature: 'productif_ligne', ligneOrId: 'ligne-1' },
+        appels,
+      );
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      await utilisateur.click(await screen.findByRole('button', { name: 'Arrêter' }));
+      await utilisateur.click(await screen.findByRole('button', { name: 'Pas maintenant' }));
+
+      expect(screen.queryByRole('button', { name: 'Marquer cette ligne réalisée' })).toBeNull();
+      expect(appels).toEqual([]);
+    });
+
+    it('ne propose rien après l’arrêt d’un pointage sur l’OR entier (aucune ligne précise)', async () => {
+      poserHandlersArret(POINTAGE_EN_COURS, []);
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      await utilisateur.click(await screen.findByRole('button', { name: 'Arrêter' }));
+      await waitFor(() =>
+        expect(screen.queryByRole('button', { name: 'Arrêter' })).not.toBeInTheDocument(),
+      );
+      expect(screen.queryByRole('button', { name: 'Marquer cette ligne réalisée' })).toBeNull();
+    });
+  });
+
+  it('« Mes OR du jour » : l’OR dont la restitution est la plus proche passe en premier, avec son échéance', async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([]))),
+      http.get('/api/v1/ordres-reparation', () =>
+        HttpResponse.json(
+          pageOrdres([
+            construireOrDetail({ id: 'or-a', numero: 'OR-A', restitutionPromiseLe: null }),
+            construireOrDetail({
+              id: 'or-b',
+              numero: 'OR-B',
+              restitutionPromiseLe: '2026-11-09T15:00:00.000Z',
+            }),
+            construireOrDetail({
+              id: 'or-c',
+              numero: 'OR-C',
+              restitutionPromiseLe: '2026-11-05T09:00:00.000Z',
+              enRetard: true,
+            }),
+          ]),
+        ),
+      ),
+    );
+
+    rendre();
+
+    await screen.findByText('OR-C');
+    const numeros = screen.getAllByText(/^OR-[ABC]$/).map((n) => n.textContent);
+    expect(numeros).toEqual(['OR-C', 'OR-B', 'OR-A']);
+    expect(screen.getByText(/En retard, promis 05\.11\.2026/)).toBeInTheDocument();
+    expect(screen.getByText(/Retour promis 09\.11\.2026/)).toBeInTheDocument();
+  });
 });

@@ -15,7 +15,7 @@ const MOTS_FR: Readonly<Record<EtatAfficheOrdreReparation, string>> = {
   attente_pieces: 'Attente pièces',
   attente_externe: 'Attente externe',
   controle: 'Contrôle',
-  termine: 'Terminé',
+  termine: 'Travaux terminés',
   facture: 'Facturé',
   restitue: 'Restitué',
   cloture: 'Clôturé',

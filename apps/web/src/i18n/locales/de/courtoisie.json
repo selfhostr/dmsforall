@@ -1,0 +1,50 @@
+{
+  "titre": "Ersatzfahrzeuge",
+  "sousTitre": "Ersatzwagen, die Kundinnen und Kunden während der Reparatur geliehen werden.",
+  "jour": "Tag",
+  "erreur": "Ersatzfahrzeuge konnten nicht geladen werden",
+  "resume": "{libres, plural, =0 {Kein Fahrzeug frei} one {# Fahrzeug frei} other {# Fahrzeuge frei}} von {total}",
+  "vide": {
+    "titre": "Kein Ersatzfahrzeug",
+    "description": "Erfassen Sie die Fahrzeuge, die Sie verleihen, um zu sehen, welches frei ist."
+  },
+  "disponibilite": {
+    "libre": "Frei",
+    "occupe": "Verliehen"
+  },
+  "etat": {
+    "disponible": "Verfügbar",
+    "en_entretien": "In Wartung",
+    "hors_service": "Ausser Betrieb"
+  },
+  "enRetard": "Noch nicht zurückgegeben",
+  "reserve": "Reserviert",
+  "actions": {
+    "preter": "Verleihen",
+    "rendu": "Zurückgegeben",
+    "remettre": "Schlüssel übergeben",
+    "annuler": "Leihe stornieren"
+  },
+  "pret": {
+    "titre": "Fahrzeug verleihen",
+    "client": "Kunde",
+    "du": "Von",
+    "au": "Bis",
+    "kmDepart": "km bei Abgabe",
+    "confirmer": "Verleihen",
+    "erreurValidation": "Wählen Sie einen Kunden und einen gültigen Zeitraum (Ende nach Beginn)."
+  },
+  "retour": {
+    "titre": "Fahrzeug zurücknehmen",
+    "kmRetour": "km bei Rückgabe",
+    "confirmer": "Rückgabe speichern"
+  },
+  "parc": {
+    "ajouter": "Fahrzeug hinzufügen",
+    "ajouterTitre": "Ersatzfahrzeug hinzufügen",
+    "designation": "Bezeichnung",
+    "designationPlaceholder": "z. B. VW Polo grau",
+    "plaque": "Kontrollschild",
+    "erreurValidation": "Geben Sie die Bezeichnung des Fahrzeugs an."
+  }
+}

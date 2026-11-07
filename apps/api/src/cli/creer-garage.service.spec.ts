@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { MOTIFS_RENDEZ_VOUS_PAR_DEFAUT } from '../parametrage/defauts-garage';
+
 import {
   creerGarage,
   deriverSlug,
@@ -65,11 +67,35 @@ describe('creerGarage', () => {
       tenantId: 'tenant-1',
       slug: 'garage-exemple',
       siteId: 'site-1',
-      siteCode: 'PRINCIPAL',
+      siteCode: 'GARAGE-EXEMPLE',
       utilisateurId: 'user-1',
       email: 'direction@example.ch',
       role: 'direction',
     });
+  });
+
+  it('pose les défauts du garage neuf dans la même transaction, avant le commit', async () => {
+    const bd = fauxExecuteur();
+    await creerGarage(bd, entreeValide, hacher);
+    const textes = bd.appels.map((a) => a.texte);
+    const idx = (fragment: string): number => textes.findIndex((t) => t.includes(fragment));
+    expect(idx('insert into parametre_atelier')).toBeGreaterThan(idx('insert into site'));
+    expect(idx('insert into parametre_site')).toBeGreaterThan(-1);
+    expect(idx('insert into taux_horaire')).toBeGreaterThan(-1);
+    expect(textes.filter((t) => t.includes('insert into motif_rendez_vous'))).toHaveLength(
+      MOTIFS_RENDEZ_VOUS_PAR_DEFAUT.length,
+    );
+    expect(idx('commit')).toBeGreaterThan(idx('insert into motif_rendez_vous'));
+    const taux = bd.appels.find((a) => a.texte.includes('insert into taux_horaire'));
+    expect(taux?.valeurs).toEqual([
+      'tenant-1',
+      'ATELIER',
+      'Taux horaire atelier',
+      14000,
+      '2020-01-01',
+    ]);
+    const site = bd.appels.find((a) => a.texte.includes('insert into site'));
+    expect(site?.valeurs).toEqual(['tenant-1', 'GARAGE-EXEMPLE', 'Garage Exemple']);
   });
 
   it('refuse un mot de passe trop court sans toucher la base', async () => {
@@ -86,15 +112,28 @@ describe('creerGarage', () => {
     const bd = fauxExecuteur();
     await expect(
       creerGarage(bd, { ...entreeValide, motDePasse: 'password1234' }, hacher),
-    ).rejects.toMatchObject({ code: 'MOT_DE_PASSE_FAIBLE' });
+    ).rejects.toMatchObject({
+      code: 'MOT_DE_PASSE_FAIBLE',
+      message: expect.stringContaining('trop courant'),
+    });
     expect(bd.appels).toHaveLength(0);
+  });
+
+  it('refuse un mot de passe prévisible en le disant', async () => {
+    const bd = fauxExecuteur();
+    await expect(
+      creerGarage(bd, { ...entreeValide, motDePasse: 'abcdefghijkl' }, hacher),
+    ).rejects.toMatchObject({ message: expect.stringContaining('trop prévisible') });
   });
 
   it('refuse un mot de passe contenant la partie locale du courriel', async () => {
     const bd = fauxExecuteur();
     await expect(
       creerGarage(bd, { ...entreeValide, motDePasse: 'xx-direction-Zq93!k' }, hacher),
-    ).rejects.toMatchObject({ code: 'MOT_DE_PASSE_FAIBLE' });
+    ).rejects.toMatchObject({
+      code: 'MOT_DE_PASSE_FAIBLE',
+      message: expect.stringContaining('adresse courriel'),
+    });
     expect(bd.appels).toHaveLength(0);
   });
 

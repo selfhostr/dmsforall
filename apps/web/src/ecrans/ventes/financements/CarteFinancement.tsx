@@ -1,7 +1,8 @@
+import type { ActionsSession } from '@/droits';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { FinancementResume, RoleUtilisateur, StatutDossierVente } from '@dfa/shared';
+import type { FinancementResume, StatutDossierVente } from '@dfa/shared';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -31,7 +32,7 @@ interface Props {
   readonly financements: readonly FinancementResume[];
   readonly financementsTronques: boolean;
   readonly statutDossierVente: StatutDossierVente;
-  readonly role: RoleUtilisateur | undefined;
+  readonly actions: ActionsSession;
   /** Appelé après toute mutation réussie (création/confirmation/refus) — AUCUN cache propre à ce
    *  module (pas de `GET` dédié, voir `hooks/ventes/financements/financement.api.ts`) : c'est
    *  l'intégrateur (fiche dossier) qui doit invalider/recharger sa requête dossier ici. */
@@ -58,7 +59,7 @@ export function CarteFinancement({
   financements,
   financementsTronques,
   statutDossierVente,
-  role,
+  actions,
   onMutationReussie,
 }: Props) {
   const { t } = useTranslation(['ventes', 'commun']);
@@ -68,12 +69,12 @@ export function CarteFinancement({
     readonly motif: string;
   } | null>(null);
 
-  if (!peutLireFinancement(role)) {
+  if (!peutLireFinancement(actions)) {
     return null;
   }
 
   const dossierTerminal = STATUTS_DOSSIER_TERMINAUX.has(statutDossierVente);
-  const peutProposer = !dossierTerminal && peutCreerFinancement(role);
+  const peutProposer = !dossierTerminal && peutCreerFinancement(actions);
 
   // CardHeader/CardTitle délibérément absents (chantier « mise en page ventes », 19.08.2026) :
   // quand cette carte est rendue dans `EcranFicheDossierVente`, elle vit soit dans l'onglet
@@ -137,7 +138,7 @@ export function CarteFinancement({
                   <PanneauActionsFinancement
                     dossierVenteId={dossierVenteId}
                     financement={financement}
-                    role={role}
+                    actions={actions}
                     onMutationReussie={onMutationReussie}
                     onSucces={(reponse) => {
                       if (reponse.statutConfirmation === 'refuse' && reponse.motifRefus) {

@@ -1,6 +1,7 @@
 import type { CodeConfirmation, RoleUtilisateur } from '@dfa/shared';
 
-import { DROIT_PAR_CONFIRMATION, MATRICE_DROITS } from '../auth/matrice-droits';
+import { DROIT_PAR_CONFIRMATION } from '../auth/matrice-droits';
+import { actionsCourantes } from '../auth/droits-personne';
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
 
 /**
@@ -30,7 +31,7 @@ export function verifierConfirmation(
   if (confirmationsFournies?.includes(code)) return;
 
   const droitRequis = DROIT_PAR_CONFIRMATION[code];
-  const aLeDroit = (MATRICE_DROITS[role] ?? []).includes(droitRequis);
+  const aLeDroit = actionsCourantes(role).includes(droitRequis);
 
   if (aLeDroit) {
     throw new ErreurMetier(

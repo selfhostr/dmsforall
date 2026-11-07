@@ -102,9 +102,7 @@ describe('EcranSuiviVentes', () => {
 
     expect(await screen.findByText('Aucune échéance à venir')).toBeInTheDocument();
     expect(
-      screen.getByText(
-        "Bonne nouvelle : aucun dossier n'arrive à échéance sur la période sélectionnée.",
-      ),
+      screen.getByText("Bonne nouvelle : aucune vente n'arrive à échéance sur la période choisie."),
     ).toBeInTheDocument();
   });
 

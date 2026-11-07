@@ -90,14 +90,14 @@
         "code": "Code",
         "designation": "Désignation",
         "typeLigne": "Type de ligne",
-        "tempsBareme": "Temps barémé",
+        "tempsBareme": "Temps forfaitaire",
         "prix": "Prix",
         "tauxHoraireCode": "Taux horaire associé",
         "tauxTva": "Taux de TVA",
         "actif": "Prestation active"
       },
       "typesLigne": {
-        "main_oeuvre_bareme": "M.O. barémée",
+        "main_oeuvre_bareme": "M.O. forfaitaire",
         "main_oeuvre_temps_reel": "M.O. temps réel",
         "forfait": "Forfait",
         "piece": "Pièce",
@@ -109,10 +109,10 @@
         "texte": "Information"
       },
       "tauxTvaLibelles": {
-        "81": "8.1 % (taux normal)",
+        "0": "0 % (exonéré)",
         "26": "2.6 % (taux réduit)",
         "38": "3.8 % (hébergement)",
-        "0": "0 % (exonéré)"
+        "81": "8.1 % (taux normal)"
       },
       "vide": {
         "titre": "Aucune prestation",
@@ -186,17 +186,6 @@
         "tout": "Tout l'historique",
         "technique": "Historique technique uniquement",
         "rien": "Rien"
-      }
-    },
-    "aVenir": {
-      "titre": "Fonctionnalités à venir",
-      "description": "Ces réglages existent dans le contrat de l'API mais ne sont rattachés à aucune fonctionnalité livrée pour l'instant — ils n'apparaissent donc pas comme des cases à cocher qui n'auraient aucun effet.",
-      "pasEncoreDisponible": "pas encore disponible",
-      "fonctionnalites": {
-        "facturation": "Facturation d'atelier",
-        "stockPieces": "Stock de pièces",
-        "depotPneus": "Dépôt de pneus",
-        "prets": "Véhicules de prêt"
       }
     },
     "inerte": {
@@ -280,6 +269,7 @@
       "nom": "Nom",
       "email": "E-mail",
       "role": "Rôle",
+      "acces": "Accès",
       "sites": "Sites",
       "statut": "Statut",
       "actions": "Actions"
@@ -295,7 +285,7 @@
       "desactiver": "Désactiver",
       "reactiver": "Réactiver",
       "reinitialiserAcces": "Réinitialiser l'accès",
-      "menuAria": "Actions pour {{nom}}"
+      "menuAria": "Actions pour {nom}"
     },
     "creation": {
       "titre": "Créer un employé",
@@ -303,17 +293,18 @@
       "champPrenom": "Prénom",
       "champNom": "Nom",
       "champEmail": "E-mail",
-      "champRole": "Rôle",
+      "champRole": "Poste (point de départ)",
       "champSites": "Sites où travaille l'employé",
       "aucunSiteDisponible": "Aucun site n'est encore rattaché à ce garage.",
       "sitesAucunSelectionne": "Sélectionnez au moins un site.",
       "actions": {
         "creer": "Créer"
-      }
+      },
+      "droitsNonEnregistres": "Le compte a été créé, mais ses droits n'ont pas pu être enregistrés. Votre choix est conservé : vérifiez-le et enregistrez."
     },
     "modification": {
-      "titre": "Modifier {{nom}}",
-      "description": "Changer le rôle et/ou les sites — utile quand un employé change de poste.",
+      "titre": "Modifier {nom}",
+      "description": "Changer le poste, les sites ou les droits de cette personne — utile quand un employé change de fonction.",
       "actions": {
         "enregistrer": "Enregistrer"
       }
@@ -326,19 +317,145 @@
       "fermer": "J'ai noté le mot de passe"
     },
     "desactiver": {
-      "titre": "Désactiver {{nom}} ?",
+      "titre": "Désactiver {nom} ?",
       "description": "L'employé ne pourra plus se connecter. Son historique (ordres de réparation, factures, pointages) reste attribuable — ce n'est pas une suppression, et le compte peut être réactivé à tout moment.",
       "confirmer": "Désactiver"
     },
     "reactiver": {
-      "titre": "Réactiver {{nom}} ?",
+      "titre": "Réactiver {nom} ?",
       "description": "L'employé pourra à nouveau se connecter avec son mot de passe existant.",
       "confirmer": "Réactiver"
     },
     "reinitialiserAcces": {
-      "titre": "Réinitialiser l'accès de {{nom}} ?",
+      "titre": "Réinitialiser l'accès de {nom} ?",
       "description": "Un nouveau mot de passe temporaire est généré et toute session ouverte de cet employé est fermée immédiatement.",
       "confirmer": "Réinitialiser"
+    },
+    "rolesDescription": {
+      "direction": "Fait tout : réception, ventes, facturation, pièces, réglages et employés.",
+      "chef_atelier": "Dirige l'atelier : planifie, contrôle, corrige les heures et lève les blocages. Voit les prix.",
+      "receptionnaire": "Accueille les clients, ouvre les ordres de réparation, prépare devis et factures.",
+      "technicien": "Voit et pointe ses travaux, jamais les prix.",
+      "magasinier": "Tient le stock : sorties de pièces, inventaire, réception des commandes.",
+      "vendeur": "Vend les véhicules neufs et d'occasion et suit les dossiers de vente.",
+      "comptable": "Suit la facturation, les paiements et les exports pour la fiduciaire.",
+      "admin": "Compte technique : gère les accès, sans aucun droit sur l'atelier ni la facturation."
+    },
+    "roleUnique": "Chaque personne a un seul rôle. Dans un petit garage, choisissez Direction : ce rôle peut tout faire.",
+    "bornes": {
+      "titre": "Bornes d'atelier",
+      "description": "Une borne est la tablette murale de l'atelier : les mécaniciens y pointent avec leur code PIN.",
+      "nouveau": "Ajouter une borne",
+      "vide": "Aucune borne d'atelier pour l'instant.",
+      "colNom": "Nom",
+      "colIdentifiant": "Identifiant",
+      "colSite": "Site",
+      "colStatut": "Statut",
+      "colActions": "Actions",
+      "champNom": "Nom de la borne",
+      "champSite": "Site de la borne",
+      "placeholderSite": "Choisir un site",
+      "creer": "Créer la borne",
+      "acces": "Identifiant et mot de passe de la borne",
+      "accesDescription": "Saisissez-les une seule fois sur la tablette. Le mot de passe ne sera plus jamais affiché.",
+      "desactiver": "Désactiver",
+      "reactiver": "Réactiver",
+      "reinitialiser": "Nouveau mot de passe",
+      "desactiverTitre": "Désactiver la borne {nom} ?",
+      "desactiverDescription": "La tablette est déconnectée immédiatement.",
+      "reactiverTitre": "Réactiver la borne {nom} ?",
+      "reactiverDescription": "La tablette pourra de nouveau se connecter.",
+      "reinitialiserTitre": "Nouveau mot de passe pour {nom} ?",
+      "reinitialiserDescription": "La tablette est déconnectée : il faudra y saisir le nouveau mot de passe.",
+      "identifiantLabel": "Identifiant",
+      "motDePasseLabel": "Mot de passe",
+      "fermer": "J'ai noté ces informations"
+    },
+    "fiduciaire": {
+      "bouton": "Ajouter une fiduciaire",
+      "titre": "Nouveau compte fiduciaire",
+      "description": "Compte en lecture seule pour votre fiduciaire : facturation et finances, rien d'autre."
+    },
+    "accesPerso": "{role} (personnalisé)"
+  },
+  "entreprise": {
+    "titre": "Entreprise",
+    "explication": "Ces informations identifient votre garage sur les factures.",
+    "raisonSociale": "Raison sociale",
+    "numeroTva": "Numéro de TVA",
+    "numeroTvaAide": "Format : CHE-123.456.789 TVA. Laissez vide si vous n'êtes pas assujetti à la TVA.",
+    "erreurTva": {
+      "format": "Le numéro doit ressembler à CHE-123.456.789 TVA.",
+      "cle": "Ce numéro n'existe pas : vérifiez les chiffres."
+    },
+    "enregistrer": "Enregistrer l’entreprise",
+    "enregistrementReussi": "Modifications enregistrées.",
+    "erreur": {
+      "titre": "Impossible de charger les informations de l'entreprise"
+    },
+    "delaiPaiement": "Délai de paiement par défaut (jours)",
+    "delaiPaiementAide": "Appliqué aux factures des clients qui n’ont pas de condition de paiement propre. De 0 à 365 jours.",
+    "erreurDelai": "Indiquez un nombre entier de jours, de 0 à 365.",
+    "logo": {
+      "titre": "Logo",
+      "alt": "Logo du garage",
+      "aucun": "Aucun logo déposé : vos factures sont imprimées sans logo.",
+      "choisir": "Choisir un logo",
+      "remplacer": "Remplacer le logo",
+      "supprimer": "Supprimer",
+      "aide": "PNG, JPEG ou SVG, 1 Mo au maximum. Seuls les nouveaux PDF portent le logo : les factures déjà imprimées ne changent pas.",
+      "svgNonImprime": "Le SVG s’affiche ici mais n’est pas imprimé sur les PDF. Utilisez un PNG ou un JPEG pour qu’il figure sur vos factures.",
+      "refus": {
+        "type": "Ce fichier n’est pas accepté : choisissez un PNG, un JPEG ou un SVG.",
+        "taille": "Ce fichier dépasse 1 Mo : choisissez une image plus légère."
+      }
+    }
+  },
+  "motifsRdv": {
+    "titre": "Motifs de rendez-vous",
+    "explication": "Ce que vos clients viennent faire : un rendez-vous se prend toujours avec un motif.",
+    "nouveau": "Nouveau motif",
+    "modifier": "Modifier le motif",
+    "dialogueAide": "Le nom français suffit ; les traductions sont facultatives.",
+    "traductionsAide": "Les traductions s'affichent aux clients et collaborateurs qui utilisent le logiciel dans cette langue.",
+    "champs": {
+      "libelleFr": "Nom du motif",
+      "libelleDe": "Nom en allemand",
+      "libelleIt": "Nom en italien",
+      "dureeMinutes": "Durée (minutes)",
+      "dureeMinutesAide": "Pour un créneau fixe, ex. 60.",
+      "heuresAtelier": "Heures d'atelier",
+      "heuresAtelierAide": "Temps compté sur la journée, ex. 1,5."
+    },
+    "colonnes": {
+      "duree": "Durée",
+      "statut": "État"
+    },
+    "statut": {
+      "actif": "Actif",
+      "desactive": "Désactivé"
+    },
+    "duree": {
+      "minutes": "{count} min",
+      "heures": "{heures} h d'atelier",
+      "aucune": "Non définie"
+    },
+    "actions": {
+      "desactiver": "Désactiver",
+      "reactiver": "Réactiver"
+    },
+    "erreurs": {
+      "libelle": "Indiquez le nom du motif.",
+      "dejaPris": "Un motif porte déjà ce nom.",
+      "duree": "Indiquez un nombre entier de minutes.",
+      "heures": "Indiquez des heures, ex. 1,5."
+    },
+    "vide": {
+      "titre": "Aucun motif de rendez-vous",
+      "description": "Créez au moins un motif, sinon aucun rendez-vous ne peut être pris."
+    },
+    "erreur": {
+      "titre": "Impossible de charger les motifs"
     }
   }
 }

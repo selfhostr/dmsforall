@@ -27,7 +27,8 @@ import type {
 
 import { enDate } from '../db';
 import { roleVoitLesMontants } from '../facturation/documents/mappeurs';
-import { MATRICE_DROITS, type Action } from '../auth/matrice-droits';
+import { type Action } from '../auth/matrice-droits';
+import { actionsCourantes } from '../auth/droits-personne';
 import type {
   LigneDocumentVente,
   LigneDossierVente,
@@ -60,11 +61,11 @@ import type { ResumeUtilisateur } from '../atelier/references';
  * première.
  */
 export function roleVoitReprise(role: RoleUtilisateur): boolean {
-  return (MATRICE_DROITS[role] ?? []).includes('ventes.reprise.lire');
+  return actionsCourantes(role).includes('ventes.reprise.lire');
 }
 
 export function roleVoitFinancement(role: RoleUtilisateur): boolean {
-  return (MATRICE_DROITS[role] ?? []).includes('ventes.financement.lire');
+  return actionsCourantes(role).includes('ventes.financement.lire');
 }
 
 const MILLISECONDES_PAR_JOUR = 24 * 60 * 60 * 1000;
@@ -135,7 +136,7 @@ export function calculerActionsDisponiblesVehiculeStock(
   statut: StatutCommercialVehicule,
   role: RoleUtilisateur,
 ): readonly ActionVehiculeStock[] {
-  const droitsDuRole: readonly Action[] = MATRICE_DROITS[role] ?? [];
+  const droitsDuRole: readonly Action[] = actionsCourantes(role);
   return ACTIONS_DEPUIS_STATUT_VEHICULE_STOCK[statut].filter((action) =>
     droitsDuRole.includes(DROIT_PAR_ACTION_VEHICULE_STOCK[action]),
   );
@@ -239,7 +240,7 @@ export function calculerActionsDisponiblesDossierVente(
   statut: StatutDossierVente,
   role: RoleUtilisateur,
 ): readonly ActionDossierVente[] {
-  const droitsDuRole: readonly Action[] = MATRICE_DROITS[role] ?? [];
+  const droitsDuRole: readonly Action[] = actionsCourantes(role);
   return ACTIONS_DEPUIS_STATUT_DOSSIER[statut].filter((action) =>
     droitsDuRole.includes(DROIT_PAR_ACTION_DOSSIER[action]),
   );
@@ -417,7 +418,7 @@ export function calculerActionsDisponiblesReprise(
   statut: StatutReprise,
   role: RoleUtilisateur,
 ): readonly ActionReprise[] {
-  const droitsDuRole: readonly Action[] = MATRICE_DROITS[role] ?? [];
+  const droitsDuRole: readonly Action[] = actionsCourantes(role);
   return ACTIONS_DEPUIS_STATUT_REPRISE[statut].filter((action) =>
     droitsDuRole.includes(DROIT_PAR_ACTION_REPRISE[action]),
   );
@@ -509,7 +510,7 @@ export function calculerActionsDisponiblesFinancement(
   statut: StatutConfirmationFinancement,
   role: RoleUtilisateur,
 ): readonly ActionFinancement[] {
-  const droitsDuRole: readonly Action[] = MATRICE_DROITS[role] ?? [];
+  const droitsDuRole: readonly Action[] = actionsCourantes(role);
   return ACTIONS_DEPUIS_STATUT_FINANCEMENT[statut].filter((action) =>
     droitsDuRole.includes(DROIT_PAR_ACTION_FINANCEMENT[action]),
   );

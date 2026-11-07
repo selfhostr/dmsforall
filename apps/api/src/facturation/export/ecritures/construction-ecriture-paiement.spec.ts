@@ -85,6 +85,8 @@ describe('construireEcriturePaiement', () => {
     expect(resultat.totalDebitCentimes).toBe(15_000n);
     expect(resultat.totalCreditCentimes).toBe(15_000n);
     expect(resultat.ecriture.reference).toBe('paiement-master');
+    // Pièce comptable = n° de la facture réglée (convention fiduciaire), pas l'UUID du paiement.
+    expect(resultat.ecriture.piece).toBe('2026-00001');
     // `documentId` reste TOUJOURS `null` sur une écriture de paiement, même sur un règlement
     // portant sur un seul document — piège vérifié en exécution : le document 2026-00001 ET ce
     // paiement sont candidats dans le MÊME lot, et `winbiz-serialiseur.ts::verifierAucunDoublon`
@@ -174,6 +176,48 @@ describe('construireEcriturePaiement', () => {
     expect(parCompte.get('1100')).toMatchObject({ sens: 'credit', montantCentimes: 20_433 }); // Créances
     expect(parCompte.get('3900')).toMatchObject({ sens: 'credit', montantCentimes: 2 }); // Arrondi (gain)
   });
+
+  it.each([
+    // solde, espèces remises, arrondi signé, sens attendu du compte d'arrondi, montant du poste
+    [10_941n, 10_940n, 1n, 'debit'],
+    [10_942n, 10_940n, 2n, 'debit'],
+    [10_943n, 10_945n, -2n, 'credit'],
+    [10_944n, 10_945n, -1n, 'credit'],
+  ] as const)(
+    'solde %i ct, espèces %i ct, arrondi %i : écriture équilibrée, poste d’arrondi au %s, aucune avance',
+    (solde, especes, arrondi, sens) => {
+      const p = paiement({ id: 'paiement-4', montantCentimes: especes, moyen: 'especes' });
+      const imps = [
+        imputation({ documentId: 'doc-4', montantCentimes: especes, nature: 'reglement' }),
+        imputation({ documentId: 'doc-4', montantCentimes: arrondi, nature: 'arrondi' }),
+      ];
+      const docs = documentsDeTest({ 'doc-4': { numero: '2026-00109', ventilationTva: [] } });
+
+      const resultat = construireEcriturePaiement(p, imps, docs, comptesDeTest(), null, true);
+
+      expect(resultat.succes).toBe(true);
+      if (!resultat.succes) return;
+      const montantArrondi = arrondi < 0n ? -arrondi : arrondi;
+      const debitTotal = sens === 'debit' ? especes + montantArrondi : especes;
+      expect(resultat.totalDebitCentimes).toBe(debitTotal);
+      expect(resultat.totalCreditCentimes).toBe(debitTotal);
+      const parCompte = new Map(resultat.ecriture.lignes.map((l) => [l.compte, l]));
+      expect(parCompte.get('1000')).toMatchObject({
+        sens: 'debit',
+        montantCentimes: Number(especes),
+      });
+      expect(parCompte.get('1100')).toMatchObject({
+        sens: 'credit',
+        montantCentimes: Number(solde),
+      });
+      expect(parCompte.get('3900')).toMatchObject({
+        sens,
+        montantCentimes: Number(montantArrondi),
+      });
+      // Trois lignes exactement : pas de ligne « avance non affectée » (acomptes reçus).
+      expect(resultat.ecriture.lignes).toHaveLength(3);
+    },
+  );
 
   it('CF-14 : escompte 2 % avec correction proportionnelle de TVA — le calcul tombe juste au centime', () => {
     // Facture 3459.20 TTC (81 ‰), escompte 69.18 (dont TVA 5.18, HT 64.00), client verse 3390.02.
@@ -371,9 +415,64 @@ describe('construireEcriturePaiement', () => {
           type: 'compte',
           usage: 'financier',
           categorie: 'twint',
-          documentNumero: 'paiement-twint',
+          documentNumero: '2026-00700 · encaissement du 12.07.2026 · CHF 50.00',
         },
       ]),
     );
+  });
+
+  it('paiement multi-factures : pièce = 1re facture (ordre alphabétique) + « +N » ; blocage cite toutes les factures, date et montant', () => {
+    // 1'234.50 CHF = 1'000.00 (FA-2026-00200) + 234.50 (FA-2026-00108), virement du 12.03.2026.
+    const p = paiement({
+      id: 'c7de3620-uuid',
+      dateValeur: '2026-03-12',
+      montantCentimes: 123_450n,
+    });
+    const imps = [
+      imputation({ documentId: 'd-200', montantCentimes: 100_000n }),
+      imputation({ documentId: 'd-108', montantCentimes: 23_450n }),
+    ];
+    const docs = documentsDeTest({
+      'd-200': { numero: 'FA-2026-00200', ventilationTva: [] },
+      'd-108': { numero: 'FA-2026-00108', ventilationTva: [] },
+    });
+
+    const ok = construireEcriturePaiement(p, imps, docs, comptesDeTest(), null, true);
+    expect(ok.succes).toBe(true);
+    if (!ok.succes) return;
+    expect(ok.ecriture.piece).toBe('FA-2026-00108+1');
+    expect(ok.ecriture.reference).toBe('c7de3620-uuid');
+
+    const sansBanque = new ComptesResolusADate(
+      indexerComptes([{ usage: 'creances_clients', categorie: 'defaut', compte: '1100' }]),
+      indexerCodesTva([]),
+    );
+    const ko = construireEcriturePaiement(p, imps, docs, sansBanque, null, true);
+    expect(ko.succes).toBe(false);
+    if (ko.succes) return;
+    expect(ko.manquants).toEqual([
+      {
+        type: 'compte',
+        usage: 'financier',
+        categorie: 'virement',
+        documentNumero: "FA-2026-00108, FA-2026-00200 · encaissement du 12.03.2026 · CHF 1'234.50",
+      },
+    ]);
+  });
+
+  it('paiement sans imputation (avance) : pas de pièce propre, blocage « sans facture » avec date et montant', () => {
+    const p = paiement({ id: 'avance-1', dateValeur: '2026-01-05', montantCentimes: 5n });
+    const sansBanque = new ComptesResolusADate(indexerComptes([]), indexerCodesTva([]));
+    const ko = construireEcriturePaiement(p, [], documentsDeTest({}), sansBanque, null, true);
+    expect(ko.succes).toBe(false);
+    if (ko.succes) return;
+    expect(ko.manquants[0]).toEqual({
+      type: 'compte',
+      usage: 'financier',
+      categorie: 'virement',
+      documentNumero: 'encaissement du 05.01.2026 · CHF 0.05 (sans facture)',
+    });
+    const ok = construireEcriturePaiement(p, [], documentsDeTest({}), comptesDeTest(), null, true);
+    expect(ok.succes && ok.ecriture.piece).toBeUndefined();
   });
 });

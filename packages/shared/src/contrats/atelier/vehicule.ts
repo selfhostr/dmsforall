@@ -246,6 +246,8 @@ export interface ReponseTravailReporte {
    * matrice de droits existante (`ROLES_SANS_MONTANT` ne porte que sur les montants).
    */
   readonly motifModification: string | null;
+  /** Explication libre saisie avec le travail (« courroie à prévoir », migration 0082). */
+  readonly detail: string | null;
 }
 
 /* ------------------------------------------------------------------ */

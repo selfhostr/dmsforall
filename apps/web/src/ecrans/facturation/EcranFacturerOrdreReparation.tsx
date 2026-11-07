@@ -4,10 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
 
 import {
-  PAYEURS_FACTURATION_SELECTIONNABLES,
-  type PayeurFacturationSelectionnable,
-  type PayeurLigneOr,
   type ReponseLigneOr,
+  type EntreeFacturationOrdreReparation,
   type SelecteurGroupePayeurOr,
 } from '@dfa/shared';
 
@@ -22,9 +20,25 @@ import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
+import { messageErreurMarquage } from '@/ecrans/atelier/messages-erreur-mutation';
+import { useMarquerLignesRealisees } from '@/hooks/atelier/useActionsLigneOr';
 import { useOrdreReparation } from '@/hooks/atelier/useOrdreReparation';
+import { useSession } from '@/hooks/useSession';
 import { useFacturationOrdreReparation } from '@/hooks/facturation/useFacturationOrdreReparation';
 import { formaterMontant, formaterMontantAvecDevise } from '@/lib/formats';
+
+import {
+  calculerGroupesFacturables,
+  cleGroupe,
+  libelleGroupe,
+  STATUTS_INDECIS,
+  type GroupePayeur,
+} from './groupes-facturables';
+import {
+  DialogueFacturerEtEncaisser,
+  type DemandeFacturerEtEncaisser,
+} from './DialogueFacturerEtEncaisser';
+import { peutEmettreFacture, peutEncaisser } from './droits';
 
 /** L'atelier (module `atelier`, contrat `ReponseOrdreReparation`) ne porte AUCUN champ `devise` —
  *  à la différence de `document_vente` (migration `0015`), un OR n'existe qu'en CHF, sans
@@ -32,50 +46,14 @@ import { formaterMontant, formaterMontantAvecDevise } from '@/lib/formats';
  *  valeur devinée par défaut, c'est la seule devise que ce domaine connaisse aujourd'hui. */
 const DEVISE_FACTURATION_OR = 'CHF' as const;
 
-/** Statuts de ligne « indécis » qui bloquent la facturation (`RF-86`) : ni réalisées (facturables),
- *  ni refusées/annulées (définitivement écartées). */
-const STATUTS_INDECIS: ReadonlySet<ReponseLigneOr['statut']> = new Set([
-  'proposee',
-  'a_valider',
-  'validee',
-  'en_cours',
-]);
+/** Parmi les statuts indécis, ceux qu'une action « Marquer réalisées » fait avancer
+ *  (`validee`/`en_cours` -> `realisee`). `proposee`/`a_valider` attendent une décision du client ou
+ *  du réceptionnaire : cela se règle dans l'OR, pas ici. */
+const STATUTS_MARQUABLES: ReadonlySet<ReponseLigneOr['statut']> = new Set(['validee', 'en_cours']);
 
-/** `garage` n'a pas de groupe séparé (`RF-92`) : ses lignes, valorisées à `0.00` (RM-70), rejoignent
- *  le groupe `'client'` — `PAYEURS_FACTURATION_SELECTIONNABLES` (contrat gelé) exclut `'garage'` par
- *  construction, donc toute autre valeur de `PayeurLigneOr` s'y range identiquement. */
-function payeurFacturable(payeur: PayeurLigneOr): PayeurFacturationSelectionnable {
-  return payeur === 'garage' ? 'client' : (payeur as PayeurFacturationSelectionnable);
-}
-
-/** Clé de regroupement `(payeur, payeurClientId)` (`MD-62`) — jamais `payeur` seul : deux
- *  assurances distinctes sur le même OR (deux sinistres qui se croisent sur la même voiture) sont
- *  deux groupes, donc deux factures à deux destinataires, jamais fusionnées. */
-function cleGroupe(payeur: PayeurFacturationSelectionnable, payeurClientId: string | null): string {
-  return `${payeur}:${payeurClientId ?? ''}`;
-}
-
-interface GroupePayeur {
-  readonly payeur: PayeurFacturationSelectionnable;
-  readonly payeurClientId: string | null;
-  /** Résolu depuis `or.totauxParPayeur` (destinataire projeté par le serveur, `RF-87`) ; pour le
-   *  groupe `'client'`, retombe sur le client de l'OR lui-même si les totaux sont absents (rôle
-   *  sans droit aux montants). */
-  readonly destinataire: { readonly clientId: string; readonly nomAffiche: string } | null;
-  readonly lignes: readonly ReponseLigneOr[];
-  readonly totalTtcCentimes: number | undefined;
-}
-
-/** Libellé affiché du groupe — « Assurance — Zurich Assurances » pour désambiguïser deux groupes
- *  du même `payeur` (design §3.2), jamais juste « Assurance » qui redeviendrait ambigu à deux
- *  assureurs sur le même OR. */
-function libelleGroupe(
-  t: (cle: string, options?: Record<string, unknown>) => string,
-  groupe: GroupePayeur,
-): string {
-  const libellePayeur = t(`or:lignes.payeurs.${groupe.payeur}`);
-  if (groupe.payeur === 'client' || !groupe.destinataire) return libellePayeur;
-  return `${libellePayeur} — ${groupe.destinataire.nomAffiche}`;
+/** Segment i18n du statut de ligne (`or:lignes.statuts.<segment>`). */
+function segmentStatutLigne(statut: ReponseLigneOr['statut']): string {
+  return statut === 'a_valider' ? 'aValider' : statut === 'en_cours' ? 'enCours' : statut;
 }
 
 /**
@@ -97,13 +75,20 @@ function libelleGroupe(
  *  - Le lien « Voir les travaux reportés » pointe vers la fiche véhicule : aucun écran dédié aux
  *    travaux reportés n'est confirmé dans ce lot.
  */
-export function EcranFacturerOrdreReparation() {
+function ContenuFacturerOrdreReparation({
+  onFacturerEtEncaisser,
+}: {
+  readonly onFacturerEtEncaisser: (demande: DemandeFacturerEtEncaisser) => void;
+}) {
   const { t } = useTranslation(['facturation', 'or', 'commun', 'erreurs']);
   const { orId } = useParams<{ orId: string }>();
   const navigate = useNavigate();
 
+  const { data: session } = useSession();
+  const actions = session?.actions;
   const requete = useOrdreReparation(orId);
   const facturation = useFacturationOrdreReparation();
+  const marquerRealisees = useMarquerLignesRealisees(orId ?? '');
 
   const [groupesDecoches, setGroupesDecoches] = useState<ReadonlySet<string>>(new Set());
   const [motifsReportSaisis, setMotifsReportSaisis] = useState<Readonly<Record<string, string>>>(
@@ -112,52 +97,10 @@ export function EcranFacturerOrdreReparation() {
   const [inclureDemontageRefuse, setInclureDemontageRefuse] = useState(false);
   const [confirmationOuverte, setConfirmationOuverte] = useState(false);
 
-  const groupes = useMemo<readonly GroupePayeur[]>(() => {
-    if (!requete.data) return [];
-    const or = requete.data;
-    const lignesFacturables = or.lignes.filter(
-      (ligne) => ligne.statut === 'realisee' && ligne.factureId === null,
-    );
-    const parGroupe = new Map<
-      string,
-      {
-        payeur: PayeurFacturationSelectionnable;
-        payeurClientId: string | null;
-        lignes: ReponseLigneOr[];
-      }
-    >();
-    for (const ligne of lignesFacturables) {
-      const payeur = payeurFacturable(ligne.payeur);
-      const payeurClientId = payeur === 'client' ? null : ligne.payeurClientId;
-      const cle = cleGroupe(payeur, payeurClientId);
-      const existant = parGroupe.get(cle);
-      if (existant) existant.lignes.push(ligne);
-      else parGroupe.set(cle, { payeur, payeurClientId, lignes: [ligne] });
-    }
-    return [...parGroupe.values()]
-      .sort((a, b) => {
-        const rang =
-          PAYEURS_FACTURATION_SELECTIONNABLES.indexOf(a.payeur) -
-          PAYEURS_FACTURATION_SELECTIONNABLES.indexOf(b.payeur);
-        return rang !== 0 ? rang : (a.payeurClientId ?? '').localeCompare(b.payeurClientId ?? '');
-      })
-      .map((g) => {
-        const totaux = or.totauxParPayeur?.find(
-          (t_) => t_.payeur === g.payeur && (t_.payeurClientId ?? null) === g.payeurClientId,
-        );
-        const destinataire =
-          g.payeur === 'client'
-            ? (totaux?.destinataire ?? { clientId: or.client.id, nomAffiche: or.client.nomAffiche })
-            : (totaux?.destinataire ?? null);
-        return {
-          payeur: g.payeur,
-          payeurClientId: g.payeurClientId,
-          destinataire,
-          lignes: g.lignes,
-          totalTtcCentimes: totaux?.montantTtcCentimes,
-        };
-      });
-  }, [requete.data]);
+  const groupes = useMemo<readonly GroupePayeur[]>(
+    () => (requete.data ? calculerGroupesFacturables(requete.data) : []),
+    [requete.data],
+  );
 
   // Titre unique, posé via `GabaritEcran` sur les QUATRE branches de retour de cet écran
   // (chargement/erreur/vide/normal) — chantier « titres doublés & espacements », 17.08.2026 :
@@ -191,6 +134,7 @@ export function EcranFacturerOrdreReparation() {
   const lignesIndecises = or.lignes.filter((ligne) => STATUTS_INDECIS.has(ligne.statut));
   const lignesRefusees = or.lignes.filter((ligne) => ligne.statut === 'refusee');
   const bloque = lignesIndecises.length > 0;
+  const lignesMarquables = lignesIndecises.filter((ligne) => STATUTS_MARQUABLES.has(ligne.statut));
   const groupesCoches = groupes.filter(
     (groupe) => !groupesDecoches.has(cleGroupe(groupe.payeur, groupe.payeurClientId)),
   );
@@ -216,15 +160,11 @@ export function EcranFacturerOrdreReparation() {
     if (premiere) navigate(`/factures/${premiere.id}`);
   }
 
-  function soumettre() {
-    if (!orId) return;
+  function construireEntree(): EntreeFacturationOrdreReparation {
     const groupesSelectionnes: SelecteurGroupePayeurOr[] = groupesCoches.map((groupe) => ({
       payeur: groupe.payeur,
       payeurClientId: groupe.payeurClientId,
     }));
-    // Motif de report FACULTATIF (design §3.3 : « décocher un groupe payeur sans obliger de motif »)
-    // — un groupe décoché sans texte saisi reste un report valide, il n'entre simplement pas dans
-    // `motifsReport` (position par défaut du contrat, pas une erreur).
     const motifsReport = groupes
       .filter((groupe) => groupesDecoches.has(cleGroupe(groupe.payeur, groupe.payeurClientId)))
       .map((groupe) => ({
@@ -233,19 +173,36 @@ export function EcranFacturerOrdreReparation() {
         motif: (motifsReportSaisis[cleGroupe(groupe.payeur, groupe.payeurClientId)] ?? '').trim(),
       }))
       .filter((entree) => entree.motif !== '');
+    return {
+      groupes: groupesSelectionnes,
+      motifsReport,
+      inclureDemontageRefuse: clientGroupeCoche ? inclureDemontageRefuse : undefined,
+    };
+  }
 
-    facturation.soumettre(
+  function soumettre() {
+    if (!orId) return;
+    facturation.soumettre(orId, construireEntree(), { onSuccess: reponseVersFacture });
+  }
+
+  // « Facturer et encaisser » : une seule facture à la fois (un seul groupe payeur coché) et un
+  // rôle qui peut créer, émettre ET encaisser — sinon le parcours détaillé reste la seule voie.
+  const groupeUnique = groupesCoches.length === 1 ? groupesCoches[0] : undefined;
+  const peutFacturerEtEncaisser =
+    groupeUnique !== undefined &&
+    // Le raccourci serveur ne facture que le groupe client, sans report ni démontage refusé.
+    groupeUnique.payeur === 'client' &&
+    !inclureDemontageRefuse &&
+    peutEmettreFacture(actions) &&
+    peutEncaisser(actions);
+
+  function ouvrirFacturerEtEncaisser() {
+    if (!orId || !groupeUnique) return;
+    onFacturerEtEncaisser({
       orId,
-      {
-        groupes: groupesSelectionnes,
-        motifsReport,
-        // Sans effet côté serveur si `groupes` ne contient pas de sélecteur `payeur = 'client'`
-        // (contrat) — n'envoyé que quand ce groupe est effectivement coché, pour rester honnête sur
-        // ce que la case à cocher affichée signifie réellement.
-        inclureDemontageRefuse: clientGroupeCoche ? inclureDemontageRefuse : undefined,
-      },
-      { onSuccess: reponseVersFacture },
-    );
+      totalEstimeCentimes: groupeUnique.totalTtcCentimes,
+      destinataireNom: groupeUnique.destinataire?.nomAffiche ?? libelleGroupe(t, groupeUnique),
+    });
   }
 
   if (groupes.length === 0 && !bloque) {
@@ -291,24 +248,53 @@ export function EcranFacturerOrdreReparation() {
             </p>
           </div>
           <ul className="flex flex-col gap-1.5">
-            {lignesIndecises.map((ligne) => (
-              <li key={ligne.id} className="flex items-center justify-between gap-2 texte-corps">
-                <span>
-                  {ligne.designation} —{' '}
-                  {t(
-                    `or:lignes.statuts.${ligne.statut === 'a_valider' ? 'aValider' : ligne.statut === 'en_cours' ? 'enCours' : ligne.statut}`,
+            {lignesIndecises.map((ligne) => {
+              const marquable = STATUTS_MARQUABLES.has(ligne.statut);
+              return (
+                <li key={ligne.id} className="flex items-center justify-between gap-2 texte-corps">
+                  <span>
+                    {ligne.designation} —{' '}
+                    {t(`or:lignes.statuts.${segmentStatutLigne(ligne.statut)}`)}
+                    <span className="text-muted-foreground">
+                      {' · '}
+                      {t(
+                        `facturation:facturerOr.refusBloquant.aFaire.${segmentStatutLigne(ligne.statut)}`,
+                      )}
+                    </span>
+                  </span>
+                  {marquable ? null : (
+                    <button
+                      type="button"
+                      className="shrink-0 font-medium text-primary underline-offset-2 hover:underline"
+                      onClick={() => navigate(`/ordres-reparation/${or.id}`)}
+                    >
+                      {t('facturation:facturerOr.refusBloquant.resoudre')}
+                    </button>
                   )}
-                </span>
-                <button
-                  type="button"
-                  className="shrink-0 font-medium text-primary underline-offset-2 hover:underline"
-                  onClick={() => navigate(`/ordres-reparation/${or.id}`)}
-                >
-                  {t('facturation:facturerOr.refusBloquant.resoudre')}
-                </button>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
+          {lignesMarquables.length > 0 ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-fit"
+              disabled={marquerRealisees.isPending}
+              onClick={() => marquerRealisees.mutate(lignesMarquables.map((ligne) => ligne.id))}
+            >
+              {marquerRealisees.isPending
+                ? t('facturation:facturerOr.refusBloquant.marquageEnCours')
+                : t('facturation:facturerOr.refusBloquant.marquerRealisees', {
+                    count: lignesMarquables.length,
+                  })}
+            </Button>
+          ) : null}
+          {marquerRealisees.isError ? (
+            <p className="texte-libelle text-destructive">
+              {messageErreurMarquage(marquerRealisees.error, t)}
+            </p>
+          ) : null}
         </div>
       ) : null}
 
@@ -443,9 +429,19 @@ export function EcranFacturerOrdreReparation() {
         </div>
       ) : null}
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        {peutFacturerEtEncaisser ? (
+          <Button
+            type="button"
+            disabled={bloque || facturation.enCours}
+            onClick={ouvrirFacturerEtEncaisser}
+          >
+            {t('facturation:facturerEncaisser.bouton')}
+          </Button>
+        ) : null}
         <Button
           type="button"
+          variant={peutFacturerEtEncaisser ? 'outline' : 'default'}
           disabled={bloque || groupesCoches.length === 0 || facturation.enCours}
           onClick={soumettre}
         >
@@ -476,5 +472,28 @@ export function EcranFacturerOrdreReparation() {
         enCours={facturation.enCours}
       />
     </GabaritEcran>
+  );
+}
+
+export function EcranFacturerOrdreReparation() {
+  const navigate = useNavigate();
+  const { orId } = useParams<{ orId: string }>();
+  // L'état du dialogue vit ICI, au-dessus du contenu : une fois l'OR facturé, la liste des lignes à
+  // facturer se vide et `ContenuFacturerOrdreReparation` bascule sur l'état vide — le dialogue,
+  // lui, doit survivre pour afficher l'encaissement et le PDF.
+  const [demande, setDemande] = useState<DemandeFacturerEtEncaisser | null>(null);
+
+  return (
+    <>
+      <ContenuFacturerOrdreReparation onFacturerEtEncaisser={setDemande} />
+      <DialogueFacturerEtEncaisser
+        demande={demande}
+        onFermer={({ factureId }) => {
+          setDemande(null);
+          if (factureId && orId) navigate(`/ordres-reparation/${orId}`);
+        }}
+        onOuvrirFacture={(factureId) => navigate(`/factures/${factureId}`)}
+      />
+    </>
   );
 }

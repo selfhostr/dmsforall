@@ -195,7 +195,11 @@ describe('routeur — protection par défaut', () => {
       http.get('/api/v1/clients', () => HttpResponse.json({ donnees: [], curseurSuivant: null })),
     );
     renduAvecRoutes(routesConfig, { routeInitiale: '/clients' });
-    expect(await screen.findByRole('heading', { name: 'Clients' })).toBeInTheDocument();
+    // Premier écran métier de ce fichier : son chunk (`React.lazy`) est importé à froid, ce qui
+    // dépasse le délai par défaut de 1 s sur une machine chargée.
+    expect(
+      await screen.findByRole('heading', { name: 'Clients' }, { timeout: 20_000 }),
+    ).toBeInTheDocument();
   });
 
   it('/ redirige vers le tableau de bord fusionné (fusion Accueil/Tableau de bord, 10.08.2026)', async () => {
@@ -308,11 +312,25 @@ describe('routeur — protection par défaut', () => {
     // écrans peuvent se ressembler à l'oeil (un titre, un bouton retour), donc l'assertion porte sur
     // un texte que SEUL l'écran réel produit : le repli « site manquant » de
     // `EcranNouvelOrdreReparation.tsx`, déclenché ici en n'apportant aucun `?site=`.
-    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
-    renduAvecRoutes(routesConfig, { routeInitiale: '/atelier/ordres-reparation/nouveau' });
+    // Garage à deux sites : en mono-site le site est implicite (`useSiteImplicite`), le repli
+    // « site manquant » n'apparaît alors jamais.
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({
+          ...SESSION_TEST,
+          sites: [
+            ...SESSION_TEST.sites,
+            { id: 'site-2', code: 'S2', nom: 'Second site', actif: true },
+          ],
+        }),
+      ),
+    );
+    renduAvecRoutes(routesConfig, {
+      routeInitiale: '/atelier/ordres-reparation/nouveau?parcours=classique',
+    });
     expect(await screen.findByText('Site non sélectionné')).toBeInTheDocument();
     expect(
-      screen.queryByText("Cette fonctionnalité n'est pas encore disponible."),
+      screen.queryByText("Cette fonction n'est pas encore disponible pour votre garage."),
     ).not.toBeInTheDocument();
     expect(screen.queryByText("Cette page n'existe pas")).not.toBeInTheDocument();
   });
@@ -323,9 +341,24 @@ describe('routeur — protection par défaut', () => {
     // que le câblage passe bien par la query string, pas par un paramètre de route.
     server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
     renduAvecRoutes(routesConfig, {
-      routeInitiale: '/atelier/ordres-reparation/nouveau?site=site-1',
+      routeInitiale: '/atelier/ordres-reparation/nouveau?parcours=classique&site=site-1',
     });
     expect(await screen.findByText('Client non sélectionné')).toBeInTheDocument();
+  });
+
+  it('la route « depuis une plaque » rend l’écran réel, et l’ancienne route de création y redirige', async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      http.get('/api/v1/parametres-atelier', () =>
+        HttpResponse.json({ reception: { kmEntreeObligatoire: false }, or: {} }),
+      ),
+    );
+    const { routeur } = renduAvecRoutes(routesConfig, {
+      routeInitiale: '/atelier/ordres-reparation/nouveau?site=site-1',
+    });
+    expect(await screen.findByLabelText('Plaque')).toBeInTheDocument();
+    expect(routeur.state.location.pathname).toBe('/atelier/ordres-reparation/depuis-plaque');
+    expect(routeur.state.location.search).toBe('?site=site-1');
   });
 
   it('la fiche d’OR reçoit son identifiant depuis l’URL (`:orId`) et déclenche son chargement', async () => {
@@ -455,7 +488,9 @@ describe('routeur — /parametrage/referentiels, /parametrage/atelier, /parametr
 
       expect(await screen.findAllByRole('tab')).toHaveLength(2);
       expect(
-        screen.queryByText("Vous n'avez pas les droits pour cette action."),
+        screen.queryByText(
+          "Votre rôle ne permet pas cette action. Demandez à la direction de vous l'ouvrir, ou faites-la faire par un collègue autorisé.",
+        ),
       ).not.toBeInTheDocument();
     },
   );
@@ -558,7 +593,7 @@ describe('routeur — Réglages : les onglets existent dans l’assemblage réel
     const declencheurCompte = await screen.findByRole('button', { name: /jean dupont/i });
     await utilisateur.click(declencheurCompte);
     const reglages = await screen.findByRole('menuitem', { name: /réglages/i });
-    expect(reglages).toHaveAttribute('href', '/parametrage/referentiels');
+    expect(reglages).toHaveAttribute('href', '/parametrage/referentiels?site=site-1');
 
     // Un seul onglet visible => aucune rangée rendue (une rangée à un onglet n'offre aucun choix).
     await waitFor(() => {
@@ -578,15 +613,15 @@ describe('routeur — Réglages : les onglets existent dans l’assemblage réel
     const onglets = await screen.findByRole('navigation', { name: /onglets/i });
     expect(within(onglets).getByRole('link', { name: /^atelier$/i })).toHaveAttribute(
       'href',
-      '/parametrage/atelier',
+      '/parametrage/atelier?site=site-1',
     );
     expect(within(onglets).getByRole('link', { name: /^sites$/i })).toHaveAttribute(
       'href',
-      '/parametrage/sites',
+      '/parametrage/sites?site=site-1',
     );
     expect(within(onglets).getByRole('link', { name: /tarifs/i })).toHaveAttribute(
       'href',
-      '/parametrage/referentiels',
+      '/parametrage/referentiels?site=site-1',
     );
     // L'onglet courant est celui de l'URL, et il le dit aux lecteurs d'écran.
     expect(within(onglets).getByRole('link', { name: /tarifs/i })).toHaveAttribute(
@@ -619,7 +654,9 @@ describe('routeur — /pieces/* refuse admin (protection RÉELLE, RF-115), ouvre
     renduAvecRoutes(routesConfig, { routeInitiale: '/pieces/reservations' });
 
     expect(
-      await screen.findByText("Vous n'avez pas les droits pour cette action."),
+      await screen.findByText(
+        "Votre rôle ne permet pas cette action. Demandez à la direction de vous l'ouvrir, ou faites-la faire par un collègue autorisé.",
+      ),
     ).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Réservations' })).not.toBeInTheDocument();
   });
@@ -635,7 +672,9 @@ describe('routeur — /pieces/* refuse admin (protection RÉELLE, RF-115), ouvre
 
     expect(await screen.findByRole('heading', { name: 'Réservations' })).toBeInTheDocument();
     expect(
-      screen.queryByText("Vous n'avez pas les droits pour cette action."),
+      screen.queryByText(
+        "Votre rôle ne permet pas cette action. Demandez à la direction de vous l'ouvrir, ou faites-la faire par un collègue autorisé.",
+      ),
     ).not.toBeInTheDocument();
   });
 

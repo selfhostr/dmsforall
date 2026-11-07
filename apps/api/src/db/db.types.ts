@@ -9,6 +9,7 @@
 
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type {
+  GrilleCapacites,
   Langue,
   RoleUtilisateur,
   StatutTenant,
@@ -132,6 +133,12 @@ export interface SessionAmorcage {
    * rend impossible qu'un client déclare le site de sa borne (même doctrine que le tenant).
    */
   readonly siteId: string | null;
+  /**
+   * Grille de capacités de la personne (migration 0087), relue de la base à CHAQUE requête avec le
+   * rôle : une baisse de droits prend effet à la requête suivante, sans attendre l'expiration de la
+   * session. Valeurs de la borne : grille vide (profil d'appareil figé, jamais lu).
+   */
+  readonly capacites: GrilleCapacites;
 }
 
 /** Entrée du journal de sécurité. `tenantId` nullable : un échec sur email inconnu n'a pas de tenant. */

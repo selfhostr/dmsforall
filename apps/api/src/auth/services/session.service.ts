@@ -153,6 +153,9 @@ export class ServiceSessionImpl implements ServiceSession {
       // cookie, jamais depuis la requête : même doctrine que le tenant, et la raison directe pour
       // laquelle une borne ne peut pas consulter les PIN d'un autre site.
       siteId: s.siteId,
+      // Relue de la base à chaque requête avec le rôle (`amorcage.session_par_empreinte`) :
+      // une baisse de droits prend effet immédiatement, sans attendre la fin de la session.
+      capacites: s.capacites,
     };
   }
 

@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { ROLES_PERSONNE, type RolePersonne, type UtilisateurResume } from '@dfa/shared';
+import {
+  PREREGLAGES,
+  ROLES_PERSONNE,
+  type GrilleCapacites,
+  type IdPrereglage,
+  type UtilisateurResume,
+} from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
@@ -16,49 +22,95 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  depassementsAvantEnvoi,
+  erreurPorteSurLaGrille,
+  erreursGrilleDuServeur,
+} from '@/composants/capacites/erreurs-grille';
+import { diffCapacites, grilleDe } from '@/composants/capacites/grille';
+import { SectionQuiPeutQuoi } from '@/composants/capacites/SectionQuiPeutQuoi';
+import { useGrilleEditable } from '@/composants/capacites/useGrilleEditable';
+import { useModeleCapacites, useModifierCapacites } from '@/hooks/parametrage/useCapacites';
 import { useModifierUtilisateur } from '@/hooks/parametrage/useModifierUtilisateur';
+import { useSiteImplicite } from '@/hooks/site/useSiteImplicite';
 import { useSession } from '@/hooks/useSession';
-import { cleTraductionRole } from '@/lib/roles';
+import { ChampRoleEmploye } from './ChampRoleEmploye';
 
 interface Props {
   readonly employe: UtilisateurResume | null;
   readonly onFerme: () => void;
+  /** Grille à restaurer (saisie perdue à la création) : remplace celle du serveur à l'ouverture. */
+  readonly grilleARestaurer?: GrilleCapacites;
+  /** Annonce que le compte vient d'être créé sans que ses droits aient pu être enregistrés. */
+  readonly droitsNonEnregistres?: boolean;
+}
+
+/** Préréglage de départ d'un employé : celui que reconnaît le serveur, sinon celui de son rôle. */
+function prereglageDe(employe: UtilisateurResume): IdPrereglage {
+  return employe.capacites.prereglage ?? employe.role;
 }
 
 /**
- * `PATCH /utilisateurs/{id}` — changer le rôle et/ou les sites d'un employé, « quand il change
- * de poste » (brief). `employe === null` ferme le dialogue (même patron que les dialogues à
- * cible optionnelle du reste du produit) — pas de prop `ouvert` séparée, la présence de la cible
- * EST l'état d'ouverture.
+ * Fiche d'un employé : poste (point de départ), sites, et « Qui peut quoi ». L'enregistrement
+ * fait au plus deux appels : `PATCH /utilisateurs/{id}` si le poste ou les sites changent (le
+ * serveur réapplique alors le préréglage), puis `PATCH …/capacites` avec les seuls écarts. Si le
+ * second échoue, le premier est acquis et la saisie reste à l'écran. `employe === null` ferme le
+ * dialogue.
  */
-export function DialogueModifierEmploye({ employe, onFerme }: Props) {
-  const { t } = useTranslation(['parametrage', 'commun', 'erreurs']);
+export function DialogueModifierEmploye({
+  employe,
+  onFerme,
+  grilleARestaurer,
+  droitsNonEnregistres = false,
+}: Props) {
+  const { t } = useTranslation(['parametrage', 'commun', 'erreurs', 'capacites']);
   const { data: session } = useSession();
+  // Garage mono-site : le site est implicite, le champ n'est pas demandé.
+  const { estMonoSite, siteId: siteImplicite, pret } = useSiteImplicite();
   const modifier = useModifierUtilisateur();
+  const modifierCapacites = useModifierCapacites();
+  const requeteModele = useModeleCapacites();
+  const etat = useGrilleEditable({
+    modele: requeteModele.data,
+    prereglageInitial: employe ? prereglageDe(employe) : 'technicien',
+    grilleInitiale: employe ? (grilleARestaurer ?? grilleDe(employe.capacites)) : undefined,
+  });
 
-  const [role, setRole] = useState<RolePersonne>('technicien');
   const [siteIds, setSiteIds] = useState<readonly string[]>([]);
+  const [erreur, setErreur] = useState<unknown>(null);
+  const [enCours, setEnCours] = useState(false);
+  // Étape 1 (poste/sites) réussie : le poste de référence a changé, on ne la rejoue pas.
+  const [posteAppliqueId, setPosteAppliqueId] = useState<IdPrereglage | null>(null);
 
   useEffect(() => {
     if (employe) {
-      setRole(employe.role);
+      etat.reinitialiser(prereglageDe(employe), grilleARestaurer ?? grilleDe(employe.capacites));
       setSiteIds(employe.sites.map((s) => s.id));
+      setErreur(null);
+      setPosteAppliqueId(null);
       modifier.reset();
+      modifierCapacites.reset();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- resynchronisation à l'ouverture seulement
   }, [employe?.id]);
 
   const sites = session?.sites ?? [];
-  const rolesProposes = ROLES_PERSONNE.filter(
-    (r) => r !== 'admin' || session?.utilisateur.role === 'admin' || employe?.role === 'admin',
+  const siteIdsEffectifs: readonly string[] =
+    estMonoSite && siteImplicite ? [siteImplicite] : siteIds;
+  const prereglagesProposes: readonly IdPrereglage[] = [
+    ...ROLES_PERSONNE,
+    'fiduciaire' as const,
+  ].filter(
+    (id) => id !== 'admin' || session?.utilisateur.role === 'admin' || employe?.role === 'admin',
   );
-  const formulaireValide = siteIds.length > 0;
+  const depassements = depassementsAvantEnvoi(session?.capacites, etat.grille, t);
+  const erreursChamp = { ...depassements, ...erreursGrilleDuServeur(erreur, t) };
+  // Tant que la session ou le modèle charge, on ne sait pas quoi envoyer : pas d'enregistrement.
+  const formulaireValide =
+    pret &&
+    etat.grille !== undefined &&
+    (estMonoSite || siteIdsEffectifs.length > 0) &&
+    etat.incoherences.length === 0 &&
+    Object.keys(depassements).length === 0;
 
   function basculerSite(siteId: string) {
     setSiteIds((valeur) =>
@@ -66,17 +118,56 @@ export function DialogueModifierEmploye({ employe, onFerme }: Props) {
     );
   }
 
-  function soumettre() {
-    if (!employe || !formulaireValide) return;
-    modifier.mutate(
-      { utilisateurId: employe.id, entree: { role, siteIds: [...siteIds] } },
-      { onSuccess: onFerme },
-    );
+  async function soumettre() {
+    if (!employe || !formulaireValide || !etat.grille) return;
+    setEnCours(true);
+    setErreur(null);
+    try {
+      const posteDeReference = posteAppliqueId ?? prereglageDe(employe);
+      const sitesInitiaux = employe.sites.map((s) => s.id);
+      const sitesChanges =
+        !estMonoSite &&
+        (siteIdsEffectifs.length !== sitesInitiaux.length ||
+          siteIdsEffectifs.some((id) => !sitesInitiaux.includes(id)));
+      const posteChange = etat.prereglageId !== posteDeReference;
+
+      let grilleDeBase: GrilleCapacites = employe.capacites;
+      if (posteAppliqueId !== null && etat.prereglage) grilleDeBase = etat.prereglage.grille;
+
+      if (posteChange || (sitesChanges && posteAppliqueId === null)) {
+        await modifier.mutateAsync({
+          utilisateurId: employe.id,
+          entree: {
+            ...(posteChange
+              ? {
+                  role: PREREGLAGES[etat.prereglageId].roleOrigine,
+                  prereglage: etat.prereglageId,
+                }
+              : {}),
+            ...(sitesChanges ? { siteIds: [...siteIdsEffectifs] } : {}),
+          },
+        });
+        if (posteChange) {
+          setPosteAppliqueId(etat.prereglageId);
+          grilleDeBase = etat.prereglage?.grille ?? grilleDeBase;
+        }
+      }
+
+      const ecart = diffCapacites(grilleDeBase, etat.grille);
+      if (ecart) {
+        await modifierCapacites.mutateAsync({ utilisateurId: employe.id, entree: ecart });
+      }
+      onFerme();
+    } catch (e) {
+      setErreur(e);
+    } finally {
+      setEnCours(false);
+    }
   }
 
   return (
     <Dialog open={employe !== null} onOpenChange={(valeurOuverte) => !valeurOuverte && onFerme()}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>
             {employe
@@ -90,67 +181,66 @@ export function DialogueModifierEmploye({ employe, onFerme }: Props) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="modifier-employe-role">
-              {t('parametrage:utilisateurs.creation.champRole')} *
-            </Label>
-            <Select value={role} onValueChange={(v) => setRole(v as RolePersonne)}>
-              <SelectTrigger id="modifier-employe-role">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {rolesProposes.map((valeur) => (
-                  <SelectItem key={valeur} value={valeur}>
-                    {t(cleTraductionRole(valeur))}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        {droitsNonEnregistres ? (
+          <p className="texte-libelle text-destructive" role="alert">
+            {t('parametrage:utilisateurs.creation.droitsNonEnregistres')}
+          </p>
+        ) : null}
 
-          <fieldset className="flex flex-col gap-1.5">
-            <legend className="texte-corps font-medium">
-              {t('parametrage:utilisateurs.creation.champSites')} *
-            </legend>
-            <div className="flex flex-col gap-2">
-              {sites.map((site) => (
-                <div key={site.id} className="flex items-center gap-2">
-                  <Checkbox
-                    id={`modifier-employe-site-${site.id}`}
-                    checked={siteIds.includes(site.id)}
-                    onCheckedChange={() => basculerSite(site.id)}
-                  />
-                  <Label htmlFor={`modifier-employe-site-${site.id}`} className="font-normal">
-                    {site.nom}
-                  </Label>
-                </div>
-              ))}
-            </div>
-            {siteIds.length === 0 ? (
-              <p className="texte-libelle text-muted-foreground">
-                {t('parametrage:utilisateurs.creation.sitesAucunSelectionne')}
-              </p>
-            ) : null}
-          </fieldset>
+        <div className="flex flex-col gap-4">
+          <ChampRoleEmploye
+            idPrefixe="modifier-employe"
+            valeur={etat.prereglageId}
+            prereglages={prereglagesProposes}
+            onChange={etat.choisirPrereglage}
+          />
+
+          {estMonoSite ? null : (
+            <fieldset className="flex flex-col gap-1.5">
+              <legend className="texte-corps font-medium">
+                {t('parametrage:utilisateurs.creation.champSites')} *
+              </legend>
+              <div className="flex flex-col gap-2">
+                {sites.map((site) => (
+                  <div key={site.id} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`modifier-employe-site-${site.id}`}
+                      checked={siteIds.includes(site.id)}
+                      onCheckedChange={() => basculerSite(site.id)}
+                    />
+                    <Label htmlFor={`modifier-employe-site-${site.id}`} className="font-normal">
+                      {site.nom}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+              {siteIds.length === 0 ? (
+                <p className="texte-libelle text-muted-foreground">
+                  {t('parametrage:utilisateurs.creation.sitesAucunSelectionne')}
+                </p>
+              ) : null}
+            </fieldset>
+          )}
+
+          <SectionQuiPeutQuoi requete={requeteModele} etat={etat} erreursChamp={erreursChamp} />
         </div>
 
-        {modifier.error ? (
+        {erreur && !erreurPorteSurLaGrille(erreur) ? (
           <p className="texte-libelle text-destructive" role="alert">
-            {messageErreur(modifier.error, t)}
+            {messageErreur(erreur, t)}
           </p>
         ) : null}
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={onFerme} disabled={modifier.isPending}>
+          <Button type="button" variant="outline" onClick={onFerme} disabled={enCours}>
             {t('commun:actions.annuler')}
           </Button>
           <Button
             type="button"
-            disabled={!formulaireValide || modifier.isPending}
-            onClick={soumettre}
+            disabled={!formulaireValide || enCours}
+            onClick={() => void soumettre()}
           >
-            {modifier.isPending
+            {enCours
               ? t('commun:chargement.enCours')
               : t('parametrage:utilisateurs.modification.actions.enregistrer')}
           </Button>

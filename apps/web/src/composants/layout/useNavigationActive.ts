@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useSearchParams } from 'react-router';
 
-import type { RoleUtilisateur, SessionCourante } from '@dfa/shared';
+import type { SessionCourante } from '@dfa/shared';
 
 import { clesQuery } from '@/api/cles';
 import { recupererSessionCourante } from '@/api/session';
@@ -11,7 +11,9 @@ import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import {
   ongletsVisibles,
   trouverCorrespondance,
+  sujetNavigation,
   vuesVisibles,
+  type SujetNavigation,
   type CorrespondanceNavigation,
   type OngletDomaine,
   type VueDomaine,
@@ -73,7 +75,7 @@ function useParametresRechercheTolerants(): URLSearchParams {
  * suspension, exactement la doctrine déjà suivie par `OngletsDomaine` (« la rangée s'enrichit, elle
  * ne clignote pas »).
  */
-function useRoleSession(): RoleUtilisateur | undefined {
+function useSujetNavigation(): SujetNavigation | undefined {
   const { data } = useQuery<SessionCourante | null>({
     queryKey: clesQuery.session(),
     queryFn: recupererSessionCourante,
@@ -82,7 +84,7 @@ function useRoleSession(): RoleUtilisateur | undefined {
     refetchOnWindowFocus: true,
     refetchOnMount: false,
   });
-  return data?.utilisateur.role;
+  return sujetNavigation(data);
 }
 
 export interface NavigationActive {
@@ -116,7 +118,7 @@ export function useNavigationActive(): NavigationActive {
   // Même correctif que `BarreLaterale.tsx`/`OngletsDomaine.tsx` (issue #91) : l'URL fait foi, la
   // préférence ne comble que son absence.
   const site = searchParams.get('site') ?? preferenceSiteId;
-  const role = useRoleSession();
+  const sujet = useSujetNavigation();
 
   const correspondance = trouverCorrespondance(pathname);
   if (correspondance === undefined) {
@@ -130,8 +132,8 @@ export function useNavigationActive(): NavigationActive {
     };
   }
 
-  const onglets = ongletsVisibles(correspondance.entree, role);
-  const vues = vuesVisibles(correspondance.onglet, role);
+  const onglets = ongletsVisibles(correspondance.entree, sujet);
+  const vues = vuesVisibles(correspondance.onglet, sujet);
 
   return {
     correspondance,

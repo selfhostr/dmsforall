@@ -11,6 +11,8 @@ import { CONSTRUCTEURS_CHEMIN_RESULTAT } from '@/composants/recherche/chemins-re
 import { PanneauResultatsRecherche } from '@/composants/recherche/PanneauResultatsRecherche';
 import { useRechercheComptoir } from '@/hooks/recherche/useRechercheComptoir';
 
+import { ActionsCreerOrRecherche } from './ActionsCreerOrRecherche';
+
 /**
  * F1-R2 — écran de recherche comptoir (RM-112, D-08) : le point d'entrée n°1 du produit. Toute la
  * logique réseau/anti-rebond vit dans `useRechercheComptoir` ; cet écran assemble les trois états
@@ -68,6 +70,9 @@ export function EcranRecherche() {
           {!saisieNonVide ? (
             <EtatVide titre={t('recherche:titre')} description={t('recherche:aide')} />
           ) : null}
+          {enChargement ? null : (
+            <ActionsCreerOrRecherche saisie={saisie} reponse={reponse} site={site} />
+          )}
         </>
       )}
     </GabaritEcran>

@@ -97,7 +97,7 @@ export function construireLigneCsvWinbiz(
 ): LigneCsvWinbiz {
   const date = formaterDateWinbiz(ecriture.date);
 
-  const piece = formaterPieceWinbiz(ecriture.reference);
+  const piece = formaterPieceWinbiz(ecriture.piece ?? ecriture.reference);
   poussetAvertissementTexte(
     ecriture.reference,
     piece,

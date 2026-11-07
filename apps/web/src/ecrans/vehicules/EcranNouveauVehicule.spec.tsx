@@ -184,7 +184,9 @@ describe('EcranNouveauVehicule', () => {
     await utilisateur.click(screen.getByRole('button', { name: 'Créer le véhicule' }));
 
     expect(
-      await screen.findByText("Une erreur interne s'est produite. Réessayez."),
+      await screen.findByText(
+        "Un problème inattendu est survenu. Réessayez dans un instant ; s'il revient, prévenez le support en indiquant l'heure.",
+      ),
     ).toBeInTheDocument();
     // La saisie n'est jamais perdue après un échec serveur (standard non négociable, CONTRIBUTING.md).
     expect(screen.getByLabelText('Marque')).toHaveValue('Volkswagen');
@@ -246,7 +248,9 @@ describe('EcranNouveauVehicule', () => {
       );
       // Jamais dans le bandeau générique — même doctrine que `DialogueModifierIdentiteVehicule`.
       expect(
-        screen.queryByText("Une erreur interne s'est produite. Réessayez."),
+        screen.queryByText(
+          "Un problème inattendu est survenu. Réessayez dans un instant ; s'il revient, prévenez le support en indiquant l'heure.",
+        ),
       ).not.toBeInTheDocument();
       // La saisie survit à l'échec, standard non négociable (CONTRIBUTING.md).
       expect(screen.getByLabelText('Plaque')).toHaveValue('999999');

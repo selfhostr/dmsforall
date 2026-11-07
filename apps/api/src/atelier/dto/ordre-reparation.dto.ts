@@ -1,6 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ACTIONS_ORDRE_REPARATION,
+  STATUTS_CLIENT,
+  TYPES_CLIENT,
   ETATS_AFFICHES_ORDRE_REPARATION,
   LOCALISATIONS_VEHICULE,
   MOTIFS_LIEN_OR,
@@ -10,8 +12,10 @@ import {
   type ActionOrdreReparation,
   type AttentesOr,
   type ClientResume,
+  type ClientResumeListe,
   type CumulsPointageOr,
   type OrdreReparationResume,
+  type OrdreReparationResumeListe,
   type ReponseControleQualiteOr,
   type ReponseDevisComplementaire,
   type ReponseLigneOr,
@@ -21,6 +25,7 @@ import {
   type TotauxPayeurOr,
   type ValeursFigeesOr,
   type VehiculeResume,
+  type VehiculeResumeListe,
 } from '@dfa/shared';
 
 import { ReponseDevisComplementaireDto } from './devis.dto';
@@ -450,4 +455,108 @@ export class OrdreReparationResumeDto implements OrdreReparationResume {
 
   @ApiPropertyOptional({ description: 'Absent pour un rôle sans droit aux montants.' })
   readonly totalTtcCentimes?: number;
+}
+
+export class ClientResumeListeDto implements ClientResumeListe {
+  @ApiProperty({ format: 'uuid' })
+  readonly id!: string;
+
+  @ApiProperty({ example: 'CL-000123' })
+  readonly numeroClient!: string;
+
+  @ApiProperty()
+  readonly nomAffiche!: string;
+
+  @ApiProperty({ enum: TYPES_CLIENT })
+  readonly type!: ClientResumeListe['type'];
+
+  @ApiProperty({ enum: STATUTS_CLIENT })
+  readonly statut!: ClientResumeListe['statut'];
+}
+
+export class VehiculeResumeListeDto implements VehiculeResumeListe {
+  @ApiProperty({ format: 'uuid' })
+  readonly id!: string;
+
+  @ApiProperty({ type: String, nullable: true, example: 'VD 123456' })
+  readonly plaque!: string | null;
+
+  @ApiProperty({ type: String, nullable: true, example: 'VD' })
+  readonly canton!: string | null;
+
+  @ApiProperty({ example: 'VW Touran 2.0 TDI' })
+  readonly designation!: string;
+
+  @ApiProperty({ type: String, nullable: true, format: 'date' })
+  readonly premiereMiseEnCirculationLe!: string | null;
+
+  @ApiProperty()
+  readonly identificationIncomplete!: boolean;
+}
+
+/** Ligne de la liste en forme `resume` (`GET /ordres-reparation?forme=resume`). */
+export class OrdreReparationResumeListeDto implements OrdreReparationResumeListe {
+  @ApiProperty({ format: 'uuid' })
+  readonly id!: string;
+
+  @ApiProperty()
+  readonly numero!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  readonly siteId!: string;
+
+  @ApiProperty({ enum: TYPES_ORDRE_REPARATION })
+  readonly type!: OrdreReparationResumeListe['type'];
+
+  @ApiProperty({ enum: STATUTS_ORDRE_REPARATION })
+  readonly statut!: OrdreReparationResumeListe['statut'];
+
+  @ApiProperty({ enum: ETATS_AFFICHES_ORDRE_REPARATION })
+  readonly etatAffiche!: OrdreReparationResumeListe['etatAffiche'];
+
+  @ApiProperty({ description: 'Même calcul que `ReponseOrdreReparation.enRetard`.' })
+  readonly enRetard!: boolean;
+
+  @ApiProperty({ type: () => ClientResumeListeDto })
+  readonly client!: ClientResumeListe;
+
+  @ApiProperty({ type: () => VehiculeResumeListeDto })
+  readonly vehicule!: VehiculeResumeListe;
+
+  @ApiProperty({ type: String, format: 'date-time', nullable: true })
+  readonly ouvertLe!: string | null;
+
+  @ApiProperty({ type: String, format: 'date-time', nullable: true })
+  readonly restitutionPromiseLe!: string | null;
+
+  @ApiProperty({ enum: LOCALISATIONS_VEHICULE })
+  readonly localisation!: OrdreReparationResumeListe['localisation'];
+
+  @ApiProperty({ type: () => AttentesOrDto })
+  readonly attentes!: AttentesOr;
+
+  @ApiPropertyOptional({
+    type: 'object',
+    properties: NOM_AFFICHE_PROPERTIES,
+    description: 'Technicien de la première ligne assignée ; absent si aucune.',
+  })
+  readonly technicienAssigne?: { readonly utilisateurId: string; readonly nomAffiche: string };
+
+  @ApiProperty({ type: [String] })
+  readonly designationsApercu!: readonly string[];
+
+  @ApiProperty()
+  readonly nombreLignes!: number;
+
+  @ApiProperty({
+    description:
+      "Lignes de cet OR assignées à l'utilisateur courant (hors annulées/refusées) ; 0 pour un compte sans technicien.",
+  })
+  readonly nombreLignesAssignees!: number;
+
+  @ApiPropertyOptional({ description: 'Absent pour un rôle sans droit aux montants.' })
+  readonly totalTtcCentimes?: number;
+
+  @ApiProperty()
+  readonly version!: number;
 }

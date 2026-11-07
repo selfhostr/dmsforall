@@ -6,10 +6,12 @@ import {
   type EntreeActionArriveeRendezVous,
   type EntreeCreationRendezVous,
   type EntreeModificationRendezVous,
+  type FiltresResumeSitesRendezVous,
   type FiltresRendezVous,
   type PageCurseur,
   type ReponseAvecAvertissements,
   type ReponseRendezVous,
+  type ResumeSiteRendezVous,
 } from '@dfa/shared';
 
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
@@ -82,6 +84,23 @@ export class ServiceRendezVous {
           await chargerVehiculeLigne(tx, ctx, entree.vehiculeId);
         }
         const motif = await chargerMotifLigne(tx, ctx, entree.motifId);
+        // Un motif désactivé reste lisible sur l'historique mais ne se choisit plus : c'est tout
+        // l'intérêt de « désactiver » plutôt que supprimer (`PATCH /motifs-rendez-vous/{id}`).
+        if (!motif.actif) {
+          throw new ErreurMetier(
+            'VALIDATION_ECHOUEE',
+            `Le motif « ${motif.libelleFr} » est désactivé : choisissez un motif actif.`,
+            {
+              erreurs: [
+                {
+                  champ: 'motifId',
+                  code: 'motif_desactive',
+                  message: 'Ce motif de rendez-vous est désactivé.',
+                },
+              ],
+            },
+          );
+        }
 
         const dureeEstimeeMinutes = entree.dureeEstimeeMinutes ?? dureeMinutesDepuisMotif(motif);
         if (dureeEstimeeMinutes === null) {
@@ -189,6 +208,34 @@ export class ServiceRendezVous {
    * en sortie, jamais un `Date` JS comparé directement — sinon des lignes sautent en silence sous
    * forte cadence d'écriture.
    */
+  /**
+   * `GET /rendez-vous/resume-sites` — un compteur par site du tenant, en UNE requête (le sélecteur
+   * de site de l'agenda n'a plus à lister chaque site). Rendez-vous annulés exclus ; les sites
+   * désactivés sans rendez-vous sur la période sont omis, un site actif sans rendez-vous vaut `0`.
+   */
+  async resumeSites(
+    ctx: ContexteTenant,
+    filtres: FiltresResumeSitesRendezVous,
+  ): Promise<readonly ResumeSiteRendezVous[]> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      const resultat = await tx.execute<{ site_id: string; nombre: number }>(sql`
+        select s.id as site_id, count(r.id)::int as nombre
+          from public.site s
+          left join public.rendez_vous r
+            on r.tenant_id = s.tenant_id
+           and r.site_id = s.id
+           and r.date >= ${filtres.du}
+           and r.date <= ${filtres.au}
+           and r.statut <> 'annule'
+         where s.tenant_id = ${ctx.tenantId}
+           and (s.actif or r.id is not null)
+         group by s.id, s.code
+         order by s.code
+      `);
+      return resultat.rows.map((l) => ({ siteId: l.site_id, nombre: l.nombre }));
+    });
+  }
+
   async lister(
     ctx: ContexteTenant,
     filtres: FiltresRendezVous,

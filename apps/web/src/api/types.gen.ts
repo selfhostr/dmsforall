@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+  '/accueil/etat-demarrage': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Où en est la mise en route du garage (coordonnées, IBAN, TVA, taux, motifs, équipe, borne).
+     * @description Calculé côté serveur en une seule lecture. Chaque étape est un booléen définitif. Réservé à direction/admin.
+     */
+    get: operations['EtatDemarrageController_etatDemarrage'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/articles': {
     parameters: {
       query?: never;
@@ -404,6 +424,101 @@ export interface paths {
      * @description Email inconnu, jeton inconnu/expiré/déjà utilisé, et compte/tenant non actif renvoient EXACTEMENT la même erreur 400 AUTH_JETON_REINITIALISATION_INVALIDE — anti-énumération, même doctrine que POST /auth/connexion. Succès : toutes les sessions actives de l'utilisateur sont révoquées.
      */
     post: operations['AuthController_confirmerReinitialisationMotDePasse'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/bornes': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Liste des bornes d'atelier du tenant courant */
+    get: operations['BorneController_lister'];
+    put?: never;
+    /**
+     * Créer une borne d'atelier rattachée à un site
+     * @description L'identifiant de connexion et le mot de passe sont générés par le serveur ; le mot de passe est rendu UNE SEULE FOIS (acces.motDePasseTemporaire). Les PIN de pointage restent gérés par technicien (PUT /pointage/pins).
+     */
+    post: operations['BorneController_creer'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/bornes/{borneId}/desactiver': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Désactiver une borne (révoque ses sessions) */
+    post: operations['BorneController_desactiver'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/bornes/{borneId}/reactiver': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Réactiver une borne désactivée */
+    post: operations['BorneController_reactiver'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/bornes/{borneId}/reinitialiser-acces': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Nouveau mot de passe d'une borne
+     * @description Mot de passe rendu UNE SEULE FOIS ; les sessions de la borne sont révoquées.
+     */
+    post: operations['BorneController_reinitialiserAcces'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/capacites/modele': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Modèle de la grille de capacités (domaines, niveaux, options, préréglages)
+     * @description Libellés sous forme de clés i18n. Les préréglages portent la grille complète à appliquer ; `fiduciaire` s'enregistre avec le rôle d'origine `comptable`.
+     */
+    get: operations['CapacitesController_modele'];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -879,6 +994,119 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/courtoisie/prets': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Prêts, filtrables par client, OR, véhicule ou statut (le plus récent d'abord). */
+    get: operations['CourtoisieController_listerPrets'];
+    put?: never;
+    /**
+     * Prêter (ou réserver) un véhicule de courtoisie à un client.
+     * @description Début atteint : prêt `en_cours` ; début futur : `reserve`. `409 CONFLIT` si le véhicule est déjà prêté sur la période ou hors du parc prêtable. `ordreReparationId` / `rendezVousId` facultatifs.
+     */
+    post: operations['CourtoisieController_creerPret'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/courtoisie/prets/{id}/annuler': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Annuler un prêt réservé ou saisi par erreur. */
+    post: operations['CourtoisieController_annuler'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/courtoisie/prets/{id}/remettre': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Remettre les clés : un prêt réservé devient en cours. */
+    post: operations['CourtoisieController_remettre'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/courtoisie/prets/{id}/rendre': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Enregistrer le retour du véhicule (km retour facultatif). */
+    post: operations['CourtoisieController_rendre'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/courtoisie/vehicules': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Parc de courtoisie et disponibilité sur une période.
+     * @description Sans `du`/`au` : disponibilité à l'instant. Un prêt en cours non rendu occupe la voiture au-delà de sa fin prévue. `disponibilite` : `libre`, `occupe` ou `indisponible` (entretien, hors service).
+     */
+    get: operations['CourtoisieController_listerVehicules'];
+    put?: never;
+    /** Ajouter un véhicule au parc de courtoisie. */
+    post: operations['CourtoisieController_creerVehicule'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/courtoisie/vehicules/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Corriger un véhicule du parc ou le mettre en entretien / hors service.
+     * @description Aucun `DELETE` : un véhicule retiré du parc passe `hors_service`.
+     */
+    patch: operations['CourtoisieController_modifierVehicule'];
+    trace?: never;
+  };
   '/depots-pneus/{id}/changer-saison': {
     parameters: {
       query?: never;
@@ -1066,6 +1294,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/documents-vente/{id}/creer-ordre-reparation': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Crée un ordre de réparation depuis un devis et en reprend les lignes.
+     * @description Client, véhicule et site viennent du devis. Chaque ligne du devis devient une ligne d'OR `validee` (origine `commandee`) avec ses montants HT/TVA/TTC recopiés à l’identique ; un devis `emis` passe à `accepte`. Le lien OR ← devis est posé (un devis ne crée qu’un seul OR). Mêmes confirmations que `POST /ordres-reparation` (client bloqué, deux OR sur le véhicule, OR sans RDV). `Idempotency-Key` obligatoire (uuid v4) : un rejeu ne crée ni second OR ni second numéro.
+     */
+    post: operations['DevisVersOrController_creerOrdreReparation'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/documents-vente/{id}/emettre': {
     parameters: {
       query?: never;
@@ -1152,8 +1400,8 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * Bulletin QR-facture au format PDF (facture émise uniquement).
-     * @description Génération paresseuse au premier appel, mise en cache (`document_vente.pdfCle`/`pdfSha256`), JAMAIS régénérée ensuite — une facture émise est immuable, son PDF aussi (DI-3). `RF-116` : la charge QR contient le montant en clair — droit dédié, distinct de `facturation.document.lire`.
+     * PDF d’une facture émise (avec bulletin QR) ou d’un devis (sans QR).
+     * @description Facture émise : génération paresseuse au premier appel, mise en cache (`document_vente.pdfCle`/`pdfSha256`), Un DEVIS (tout statut, brouillon compris) produit un PDF « Devis » sans bulletin QR, valable 30 jours après sa date, rendu à chaque appel et non mis en cache. JAMAIS régénérée ensuite — une facture émise est immuable, son PDF aussi (DI-3). `RF-116` : la charge QR contient le montant en clair — droit dédié, distinct de `facturation.document.lire`.
      */
     get: operations['ImpressionFactureController_telechargerPdf'];
     put?: never;
@@ -1545,13 +1793,81 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    get?: never;
+    /**
+     * Historique des exports du tenant, du plus récent au plus ancien.
+     * @description Pagination par curseur (`genereLe:desc`). Un lot antérieur à la migration 0084 n'a ni compteurs ni fichier (`fichierDisponible: false`, champs concernés à null).
+     */
+    get: operations['ExportComptableController_lister'];
     put?: never;
     /**
      * Sélectionne les documents de vente et les paiements émis/enregistrés et non encore exportés d'une période, produit le fichier comptable, et les marque exportés.
-     * @description Cible unique câblée dans ce lot : `winbiz` — les autres valeurs de `cible` (`bexio`/`abacus`/`banana`/`csv`) répondent `501 FONCTION_NON_DISPONIBLE`, jamais un fichier vide ou approximatif. Seul `granularite: 'detaille'` (une écriture par document PUIS une par paiement, MD-88) est implémenté ; `agrege` répond le même 501. La continuité de numérotation de la série (facture/avoir, par exercice) est vérifiée de façon BLOQUANTE avant toute écriture (RF-28/RF-105, `409 EXPORT_TROU_NUMEROTATION`) : un trou ne part jamais chez la fiduciaire — elle ne s'applique qu'aux documents, un paiement n'a pas de série. Le mapping comptable du tenant (`mapping_compte`/`mapping_code_tva`) doit être COMPLET pour l'ensemble du lot (documents ET paiements — comptes financiers par moyen de paiement, arrondi, escompte, perte), faute de quoi l'export est refusé EN BLOC, jamais partiellement (`409 EXPORT_MAPPING_INCOMPLET`, qui nomme précisément ce qui manque). Une imputation `compensation`, ou un escompte/une perte sur un document à plusieurs taux de TVA, ne sont pas construits par ce lot (`501 FONCTION_NON_DISPONIBLE` — non documentés par MD-84 §6.2, jamais devinés). `Idempotency-Key` OBLIGATOIRE (uuid v4) : un rejeu réseau ne doit jamais produire un second lot ni marquer deux fois les mêmes documents ou paiements (MD-92 : un document ou un paiement déjà exporté ne repart dans un autre lot que par un geste explicite et tracé — un REJEU n'en est justement pas un). Réponse `200` (au lieu de `201`) si rien n'était candidat sur la période (`donnees.lots: []`, `donnees.documentsExportes: []`, `donnees.paiementsExportes: []`) — un résultat vide honnête, pas une erreur.
+     * @description Cibles câblées : `winbiz` et `csv` (UTF-8 avec BOM, séparateur `;`, en-têtes français, une ligne par couple débit/crédit) — les autres valeurs de `cible` (`bexio`/`abacus`/`banana`) répondent `501 FONCTION_NON_DISPONIBLE`, jamais un fichier vide ou approximatif. Le fichier produit est conservé et relisible via `GET /exports-fiduciaires/{id}/fichier`. Seul `granularite: 'detaille'` (une écriture par document PUIS une par paiement, MD-88) est implémenté ; `agrege` répond le même 501. La continuité de numérotation de la série (facture/avoir, par exercice) est vérifiée de façon BLOQUANTE avant toute écriture (RF-28/RF-105, `409 EXPORT_TROU_NUMEROTATION`) : un trou ne part jamais chez la fiduciaire — elle ne s'applique qu'aux documents, un paiement n'a pas de série. Le mapping comptable du tenant (`mapping_compte`/`mapping_code_tva`) doit être COMPLET pour l'ensemble du lot (documents ET paiements — comptes financiers par moyen de paiement, arrondi, escompte, perte), faute de quoi l'export est refusé EN BLOC, jamais partiellement (`409 EXPORT_MAPPING_INCOMPLET`). Les 409 `EXPORT_MAPPING_INCOMPLET`, `EXPORT_TROU_NUMEROTATION` et `EXPORT_ECRITURES_DESEQUILIBREES` nomment ce qui bloque dans `blocages[].donnees` (comptes, numéros, montants) — les mêmes éléments que `prerequis` de `GET /exports-fiduciaires/apercu`. Une imputation `compensation`, ou un escompte/une perte sur un document à plusieurs taux de TVA, ne sont pas construits par ce lot (`501 FONCTION_NON_DISPONIBLE` — non documentés par MD-84 §6.2, jamais devinés). `Idempotency-Key` OBLIGATOIRE (uuid v4) : un rejeu réseau ne doit jamais produire un second lot ni marquer deux fois les mêmes documents ou paiements (MD-92 : un document ou un paiement déjà exporté ne repart dans un autre lot que par un geste explicite et tracé — un REJEU n'en est justement pas un). Réponse `200` (au lieu de `201`) si rien n'était candidat sur la période (`donnees.lots: []`, `donnees.documentsExportes: []`, `donnees.paiementsExportes: []`) — un résultat vide honnête, pas une erreur.
      */
     post: operations['ExportComptableController_lancer'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/exports-fiduciaires/{exportId}/fichier': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Relit le fichier exporté, octet pour octet identique à celui remis à la fiduciaire.
+     * @description Le fichier est celui conservé à la génération (gzip en base), pas une régénération. L'empreinte SHA-256 est revérifiée à chaque lecture et rendue dans l'en-tête `X-Empreinte-Sha256`. `404` pour un lot antérieur à la migration 0084.
+     */
+    get: operations['ExportComptableController_fichier'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/exports-fiduciaires/apercu': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Aperçu d'une période avant export : compteurs, totaux et prérequis non satisfaits.
+     * @description Ne marque rien et n'écrit rien. Même sélection et même construction d'écritures que le déclenchement : `exportable: true` garantit que `POST /exports-fiduciaires` ne répondrait pas 409 pour un prérequis. `prerequis` liste, sans s'arrêter au premier, le mapping incomplet (comptes et codes TVA manquants avec les pièces concernées), les trous de numérotation (numéros), les écritures déséquilibrées et les cas non pris en charge. Une seule écriture déséquilibrée est détectée par document ou paiement.
+     */
+    get: operations['ExportComptableController_apercu'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/exports-fiduciaires/mapping': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * État du plan comptable de l'export : comptes par poste et codes TVA de la cible.
+     * @description Chaque poste porte son `compte` actif aujourd'hui (null = non réglé) et une suggestion `compteParDefaut` du plan PME suisse (jamais appliquée automatiquement). `complet` ne considère que les postes `requis` ; l'aperçu reste la vérité pour une période.
+     */
+    get: operations['ExportComptableController_consulterMapping'];
+    /**
+     * Règle des comptes et des codes TVA du plan comptable de la cible.
+     * @description Idempotent par poste : un compte déjà réglé à l'identique n'écrit rien. Un compte est VERSIONNÉ (RF-112) — jamais réécrit : la version active est close à la date d'effet et une nouvelle s'ouvre. Date d'effet par défaut : `1970-01-01` pour un poste jamais réglé (valable pour les périodes passées à exporter), aujourd'hui pour le changement d'un compte existant. Les codes TVA sont par cible et modifiés en place. Renvoie l'état à jour.
+     */
+    put: operations['ExportComptableController_mettreAJourMapping'];
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -1727,11 +2043,35 @@ export interface paths {
     /** Catalogue des motifs de rendez-vous, avec leur durée par défaut (RV-01/RV-02). */
     get: operations['MotifsRendezVousController_lister'];
     put?: never;
-    post?: never;
+    /**
+     * Crée un motif de rendez-vous.
+     * @description Le `code` (majuscules, chiffres, `-`, `_`) est unique par garage et immuable. Un motif sans durée par défaut oblige à préciser la durée à chaque rendez-vous.
+     */
+    post: operations['MotifsRendezVousController_creer'];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
+    trace?: never;
+  };
+  '/motifs-rendez-vous/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Modifie ou désactive un motif de rendez-vous (jamais son code).
+     * @description `actif: false` retire le motif des nouvelles prises de rendez-vous ; les rendez-vous existants le gardent. Il n'existe pas de suppression.
+     */
+    patch: operations['MotifsRendezVousController_modifier'];
     trace?: never;
   };
   '/ordres-reparation': {
@@ -1952,6 +2292,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/ordres-reparation/{orId}/facturer-et-encaisser': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Comptoir en un appel : crée la facture du groupe client, l’ÉMET, puis encaisse son solde si `paiement` est fourni.
+     * @description Même logique que `POST .../facturer` (groupe `client`) suivie de l’émission, dans UNE transaction. L’encaissement (`especes`, `carte` ou `twint`, montant par défaut = solde) s’exécute dans un savepoint : s’il échoue, la facture reste émise et la réponse porte l’avertissement `ENCAISSEMENT_ECHOUE` (sans `paiement`). Espèces : paiement arrondi au multiple de 5 ct le plus proche (dans les deux sens, arrondi signé) si le solde exact est encaissé ; carte et TWINT au centime. Droits : `facturation.document.creer` + droit d’émettre une facture + `facturation.paiement.creer` si `paiement` est fourni.
+     */
+    post: operations['OrdreReparationTransitionsController_facturerEtEncaisser'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/ordres-reparation/{orId}/journal': {
     parameters: {
       query?: never;
@@ -2030,6 +2390,27 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/ordres-reparation/{orId}/lignes/{ligneId}/photos': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Photos d’une ligne, de la plus ancienne à la plus récente. */
+    get: operations['PhotosLigneController_listerParLigne'];
+    put?: never;
+    /**
+     * Joindre une photo à une ligne (travail constaté).
+     * @description JPEG ou PNG, 8 Mo au plus, 20 photos par ligne. `vignette` (JPEG ≤ 320 px) facultative, produite par le navigateur. Refusé si l’OR est facturé ou clos.
+     */
+    post: operations['PhotosLigneController_ajouter'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/ordres-reparation/{orId}/passer-en-controle': {
     parameters: {
       query?: never;
@@ -2059,6 +2440,26 @@ export interface paths {
      * @description RÉGÉNÉRÉE À CHAQUE APPEL, sans cache : contrairement au PDF de facture (immuable une fois émis), un OR est VIVANT — lignes, statut et restitution promise évoluent tant qu'il n'est pas clôturé. Imprimable quel que soit le statut de l’OR — ce document sert à travailler sur le véhicule, pas à l'engager. Document DE TRAVAIL, pas commercial : reste visible depuis l'extérieur d'un véhicule garé dehors, donc SANS nom de client, téléphone, prix, total ni signature, quel que soit le rôle qui imprime — distinct du masquage des montants par rôle (`atelier/mappeurs.ts::roleVoitLesMontants`), qui reste actif ailleurs sur `GET /ordres-reparation/{orId}` et non altéré ici.
      */
     get: operations['ImpressionOrController_telechargerPdf'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/ordres-reparation/{orId}/photos': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Toutes les photos d’un OR (une requête pour tout l’écran), triées par ancienneté.
+     * @description Le champ `ligneId` de chaque photo permet de les regrouper par ligne.
+     */
+    get: operations['PhotosLigneController_listerParOr'];
     put?: never;
     post?: never;
     delete?: never;
@@ -2240,9 +2641,29 @@ export interface paths {
     put?: never;
     /**
      * Action groupée ATOMIQUE : `proposee|a_valider -> validee` (§10 L967).
-     * @description Le plafond de l’OR (RM-54) est vérifié UNE FOIS sur la somme du lot avant toute écriture — tout ou rien.
+     * @description Le plafond de l’OR (RM-54) est vérifié UNE FOIS sur la somme du lot avant toute écriture — tout ou rien. `accord` (facultatif) trace l’accord du client recueilli hors application (nom, canal, heure, commentaire) : une entrée de journal par ligne validée (`GET .../journal`, entité `ligne_or`, champ `motif`) — aucune colonne dédiée.
      */
     post: operations['LigneOrController_validerLignes'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/ordres-reparation/creation-rapide': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Accueil comptoir en un appel : (client) + (véhicule) + ordre de réparation, une transaction.
+     * @description `client` : `{ id }` ou `{ nouveau }` ; `vehicule` : `{ id }` ou `{ nouveau }` (le détenteur est le client) ; `or` : corps de `POST /ordres-reparation` sans `clientId`/`vehiculeId` (`or.confirmations` pour les confirmations). Tout ou rien. Un doublon client probable ne bloque pas : avertissement `CLIENT_DOUBLON_PROBABLE`. Créer un client exige `client.creer`, créer un véhicule exige `vehicule.creer`.
+     */
+    post: operations['OrdreReparationTransitionsController_creationRapideOr'];
     delete?: never;
     options?: never;
     head?: never;
@@ -2264,7 +2685,7 @@ export interface paths {
     put?: never;
     /**
      * Enregistrement d'un encaissement, avec lettrage optionnel dans le même geste.
-     * @description `Idempotency-Key` obligatoire (uuid v4) : un rejeu réseau au comptoir ne doit jamais faire encaisser deux fois le même geste. `imputations[]` est optionnel — un paiement sans imputation reste valide (acompte avant tout document, RF-65) et apparaît dans `GET /paiements?nonImputeUniquement=true` jusqu'à affectation explicite. Le lettrage est TOUJOURS explicite : aucune règle n'impute automatiquement une facture à la place de l'appelant. Arrondi espèces (RF-49 → RF-52) : soumis comme une imputation `nature: 'arrondi'` explicite dans `imputations[]`, revalidée intégralement côté serveur (moyen 'especes' uniquement, ±2 centimes, et seulement si elle solde exactement le document).
+     * @description `Idempotency-Key` obligatoire (uuid v4) : un rejeu réseau au comptoir ne doit jamais faire encaisser deux fois le même geste. `imputations[]` est optionnel — un paiement sans imputation reste valide (acompte avant tout document, RF-65) et apparaît dans `GET /paiements?nonImputeUniquement=true` jusqu'à affectation explicite. Le lettrage est TOUJOURS explicite : aucune règle n'impute automatiquement une facture à la place de l'appelant. Arrondi espèces (RF-49 → RF-52) : soumis comme une imputation `nature: 'arrondi'` explicite dans `imputations[]`, revalidée intégralement côté serveur (moyen 'especes' uniquement, ±1/±2 centimes, montant du paiement multiple de 5 ct, et seulement si elle solde exactement le document). Signe : `+1/+2` = le client paie MOINS que le solde (solde finissant par 1, 2, 6, 7) ; `-1/-2` = le client paie PLUS (solde finissant par 3, 4, 8, 9) — le règlement imputé vaut alors solde + |arrondi|.
      */
     post: operations['PaiementController_creer'];
     delete?: never;
@@ -2392,6 +2813,52 @@ export interface paths {
     patch: operations['ParametresAtelierController_modifier'];
     trace?: never;
   };
+  '/parametres-entreprise': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Identité fiscale du garage (raison sociale, n° TVA).
+     * @description Le garage est celui de la session. `numeroTva` vaut `null` tant qu'il n'est pas saisi.
+     */
+    get: operations['ParametresEntrepriseController_obtenir'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Saisit ou efface le n° TVA du garage.
+     * @description Format IDE suisse `CHE-123.456.789 TVA` (`MWST`/`IVA` acceptés), clé de contrôle modulo 11 vérifiée. `numeroTva: null` efface le numéro (garage non assujetti). Corps vide : aucun effet.
+     */
+    patch: operations['ParametresEntrepriseController_modifier'];
+    trace?: never;
+  };
+  '/parametres-entreprise/logo': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Le logo du garage (octets de l’image). */
+    get: operations['LogoEntrepriseController_lire'];
+    /**
+     * Dépose ou remplace le logo du garage (PNG, JPEG ou SVG, 1 Mo maximum).
+     * @description Le type est vérifié par les premiers octets du fichier, pas par son extension ni son type déclaré. Un SVG contenant un script, un gestionnaire d’événement ou une ressource externe est refusé. Seuls PNG et JPEG sont imprimés sur les PDF.
+     */
+    put: operations['LogoEntrepriseController_deposer'];
+    post?: never;
+    /** Supprime le logo du garage. Idempotent. */
+    delete: operations['LogoEntrepriseController_supprimer'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/parametres-facturation/creancier': {
     parameters: {
       query?: never;
@@ -2414,6 +2881,41 @@ export interface paths {
      * @description Un champ absent du corps n'est pas touché ; un champ présent à `null` efface la valeur existante (utile pour un changement de banque : l'ancien IBAN peut disparaître sans qu'on lui substitue une valeur bidon). `iban`/`qrIban` sont validés en forme, pays (CH/LI), longueur ET clé de contrôle modulo 97 (ISO 7064) — une clé fausse est refusée bruyamment, jamais tronquée ou corrigée silencieusement. `iban` doit être un compte ORDINAIRE (IID hors 30000–31999) et `qrIban` un QR-IBAN (IID dans cette plage) : un IBAN posé dans le mauvais champ est refusé, les deux colonnes ne se mélangent jamais. Réservé à `direction`/`comptable`.
      */
     patch: operations['BlocCreancierController_modifier'];
+    trace?: never;
+  };
+  '/photos/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Image de la photo (fichier binaire). */
+    get: operations['PhotosLigneController_telecharger'];
+    put?: never;
+    post?: never;
+    /** Supprimer une photo (son auteur, ou l’encadrement), tant que l’OR n’est pas facturé. */
+    delete: operations['PhotosLigneController_supprimer'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/photos/{id}/vignette': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Vignette (≤ 320 px) de la photo ; la photo entière si aucune vignette n’existe. */
+    get: operations['PhotosLigneController_telechargerVignette'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
     trace?: never;
   };
   '/pointages': {
@@ -2729,7 +3231,10 @@ export interface paths {
     delete?: never;
     options?: never;
     head?: never;
-    /** Modifie partiellement une période de taux horaire (jamais son `code`). */
+    /**
+     * Modifie une période de taux horaire (jamais son `code`) — un nouveau montant ouvre une nouvelle période.
+     * @description Un changement de `montantCentimes` sur la période en cours n'écrase PAS la période : il ouvre une NOUVELLE période datée d'aujourd'hui (ou de `valideDuLe` fourni, qui ne peut pas être dans le passé) et clôt la précédente à cette date (`valideAuLe` est une borne exclusive : la veille est le dernier jour couvert). La réponse est la période résultante (la nouvelle). Les lignes d'OR déjà créées gardent leur taux figé. Le libellé et la fin de période (`valideAuLe`, dans le futur) se modifient en place. Une période pas encore commencée se modifie entièrement en place. Une période déjà close répond 409 `CONFLIT`.
+     */
     patch: operations['TauxHorairesController_modifier'];
     trace?: never;
   };
@@ -2972,6 +3477,26 @@ export interface paths {
      * @description `capaciteMinutes: null` + `etat: 'non_definie'` sur un site jamais paramétré : jamais `0`, jamais `'disponible'`.
      */
     get: operations['RendezVousController_capacite'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/rendez-vous/resume-sites': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Nombre de rendez-vous non annulés par site sur la période, tous les sites en un appel.
+     * @description Un élément par site actif du garage (`nombre: 0` si aucun rendez-vous) ; un site désactivé n’apparaît que s’il a des rendez-vous sur la période.
+     */
+    get: operations['RendezVousController_resumeSites'];
     put?: never;
     post?: never;
     delete?: never;
@@ -3588,10 +4113,30 @@ export interface paths {
     options?: never;
     head?: never;
     /**
-     * Modifier le rôle et/ou les sites d’un employé
+     * Modifier le rôle (préréglage) et/ou les sites d’un employé
      * @description Au moins un des deux champs (role, siteIds) requis. Promouvoir vers admin est réservé à un acteur déjà admin (403 sinon), même avec le droit socle.utilisateur.modifier.
      */
     patch: operations['UtilisateurController_modifier'];
+    trace?: never;
+  };
+  '/utilisateurs/{utilisateurId}/capacites': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Ajuster la grille de capacités d’un employé
+     * @description Niveaux Rien/Voir/Faire par domaine (atelier, accueil, facturation, pieces, ventes, finances), encadrer, et options (voitMontants, voitPrixAchat, avoirsPlafonnes) ; champs omis inchangés. Règle « on ne coche pas ce qu’on n’a pas » : 403 si la grille dépasse celle de l’appelant, ou si l’appelant se modifie lui-même, ou modifie quelqu’un de plus puissant (un compte admin n’est modifiable que par un admin). gererEmployes et patron ne se modifient pas ici (suivent le rôle). Les sessions de la personne sont révoquées si ses droits baissent. Audit avant/après.
+     */
+    patch: operations['UtilisateurController_modifierCapacites'];
     trace?: never;
   };
   '/utilisateurs/{utilisateurId}/desactiver': {
@@ -4009,7 +4554,11 @@ export interface paths {
      */
     get: operations['VehiculeTravailReporteController_lister'];
     put?: never;
-    post?: never;
+    /**
+     * Noter un travail à faire la prochaine fois (RM-73).
+     * @description Saisie directe : désignation, détail, priorité (`a_faire` par défaut), origine facultative (`ordreReparationOrigineId`, un OR de CE véhicule ; absent = saisie libre). Ressort sur la fiche véhicule et à l'ouverture du prochain OR.
+     */
+    post: operations['VehiculeTravailReporteController_creer'];
     delete?: never;
     options?: never;
     head?: never;
@@ -4106,8 +4655,52 @@ export interface components {
       /** Format: date-time */
       traiteeLe: string | null;
     };
+    ApercuDocumentsDto: {
+      /** @description Émis et non exportés. */
+      aExporter: number;
+      /** @description Émis sur la période, déjà partis dans un lot antérieur. */
+      dejaExportes: number;
+      /** @description Dont avoirs. */
+      dejaExportesAvoirs: number;
+      /** @description Dont factures (`dejaExportes` = factures + avoirs). */
+      dejaExportesFactures: number;
+      nbAvoirs: number;
+      nbFactures: number;
+    };
+    ApercuEncaissementsDto: {
+      /** @description Paiements dont le cash n'est jamais parti. */
+      aExporter: number;
+      dejaExportes: number;
+      /** @description Imputations (lettrages) non exportées. */
+      imputationsAExporter: number;
+    };
+    ApercuExportDto: {
+      aQuelqueChoseAExporter: boolean;
+      /** @enum {string} */
+      cible: 'bexio' | 'winbiz' | 'abacus' | 'banana' | 'csv';
+      documents: components['schemas']['ApercuDocumentsDto'];
+      encaissements: components['schemas']['ApercuEncaissementsDto'];
+      /** @description `aQuelqueChoseAExporter` et aucun prérequis non satisfait. */
+      exportable: boolean;
+      /** Format: date */
+      periodeAu: string;
+      /** Format: date */
+      periodeDu: string;
+      plageNumeros: components['schemas']['PlagesNumerosDto'];
+      /** @description Vide = rien ne bloque. Mêmes éléments que les `blocages` des 409 du déclenchement. */
+      prerequis: components['schemas']['PrerequisExportDto'][];
+      totaux: components['schemas']['ApercuTotauxDto'];
+    };
     ApercuForcageMouvementDto: {
       reservations: components['schemas']['ReservationMenaceeParForcageDto'][];
+    };
+    ApercuTotauxDto: {
+      /** @description Centimes, avoirs en négatif. */
+      htCentimes: number;
+      /** @description Centimes. */
+      ttcCentimes: number;
+      /** @description Centimes. */
+      tvaCentimes: number;
     };
     ArchiveDeposeeRepriseDto: {
       dernierNumeroTrancheRecuContigu: number | null;
@@ -4213,7 +4806,9 @@ export interface components {
         | 'INVENTAIRE_ECART_SIGNIFICATIF'
         | 'VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE'
         | 'VEHICULE_DEPOTS_PNEUS_OUVERTS'
-        | 'AVOIR_RETOUR_STOCK_NON_DECLENCHE';
+        | 'AVOIR_RETOUR_STOCK_NON_DECLENCHE'
+        | 'FACTURE_SANS_QR'
+        | 'ENCAISSEMENT_ECHOUE';
       donnees?: {
         [key: string]: unknown;
       };
@@ -4242,7 +4837,9 @@ export interface components {
         | 'INVENTAIRE_ECART_SIGNIFICATIF'
         | 'VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE'
         | 'VEHICULE_DEPOTS_PNEUS_OUVERTS'
-        | 'AVOIR_RETOUR_STOCK_NON_DECLENCHE';
+        | 'AVOIR_RETOUR_STOCK_NON_DECLENCHE'
+        | 'FACTURE_SANS_QR'
+        | 'ENCAISSEMENT_ECHOUE';
       donnees?: {
         [key: string]: unknown;
       };
@@ -4267,7 +4864,9 @@ export interface components {
         | 'INVENTAIRE_ECART_SIGNIFICATIF'
         | 'VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE'
         | 'VEHICULE_DEPOTS_PNEUS_OUVERTS'
-        | 'AVOIR_RETOUR_STOCK_NON_DECLENCHE';
+        | 'AVOIR_RETOUR_STOCK_NON_DECLENCHE'
+        | 'FACTURE_SANS_QR'
+        | 'ENCAISSEMENT_ECHOUE';
       donnees?: {
         [key: string]: unknown;
       };
@@ -4292,7 +4891,9 @@ export interface components {
         | 'INVENTAIRE_ECART_SIGNIFICATIF'
         | 'VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE'
         | 'VEHICULE_DEPOTS_PNEUS_OUVERTS'
-        | 'AVOIR_RETOUR_STOCK_NON_DECLENCHE';
+        | 'AVOIR_RETOUR_STOCK_NON_DECLENCHE'
+        | 'FACTURE_SANS_QR'
+        | 'ENCAISSEMENT_ECHOUE';
       donnees?: {
         [key: string]: unknown;
       };
@@ -4317,7 +4918,9 @@ export interface components {
         | 'INVENTAIRE_ECART_SIGNIFICATIF'
         | 'VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE'
         | 'VEHICULE_DEPOTS_PNEUS_OUVERTS'
-        | 'AVOIR_RETOUR_STOCK_NON_DECLENCHE';
+        | 'AVOIR_RETOUR_STOCK_NON_DECLENCHE'
+        | 'FACTURE_SANS_QR'
+        | 'ENCAISSEMENT_ECHOUE';
       donnees?: {
         [key: string]: unknown;
       };
@@ -4342,7 +4945,9 @@ export interface components {
         | 'INVENTAIRE_ECART_SIGNIFICATIF'
         | 'VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE'
         | 'VEHICULE_DEPOTS_PNEUS_OUVERTS'
-        | 'AVOIR_RETOUR_STOCK_NON_DECLENCHE';
+        | 'AVOIR_RETOUR_STOCK_NON_DECLENCHE'
+        | 'FACTURE_SANS_QR'
+        | 'ENCAISSEMENT_ECHOUE';
       donnees?: {
         [key: string]: unknown;
       };
@@ -4367,12 +4972,35 @@ export interface components {
         | 'INVENTAIRE_ECART_SIGNIFICATIF'
         | 'VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE'
         | 'VEHICULE_DEPOTS_PNEUS_OUVERTS'
-        | 'AVOIR_RETOUR_STOCK_NON_DECLENCHE';
+        | 'AVOIR_RETOUR_STOCK_NON_DECLENCHE'
+        | 'FACTURE_SANS_QR'
+        | 'ENCAISSEMENT_ECHOUE';
       donnees?: {
         [key: string]: unknown;
       };
       /** @description Libellé FR stable — jamais affiché tel quel par le front. */
       message: string;
+    };
+    BorneResumeDto: {
+      /** Format: date-time */
+      creeLe: string;
+      /** Format: date-time */
+      derniereConnexionLe: string | null;
+      /** Format: uuid */
+      id: string;
+      /**
+       * @description Identifiant de connexion de la tablette, généré par le serveur.
+       * @example borne-3fa81c20@bornes.dmsforall.invalid
+       */
+      identifiant: string;
+      /** @example Atelier Sion */
+      nom: string;
+      site: components['schemas']['SiteAffecteResumeDto'];
+      /**
+       * @example actif
+       * @enum {string}
+       */
+      statut: 'invite' | 'actif' | 'suspendu';
     };
     CampagneOuverteContexteDto: {
       /** @example 23K7 */
@@ -4407,6 +5035,30 @@ export interface components {
       minutesOccupees: number;
       /** @enum {string} */
       moment: 'matin' | 'apres_midi' | 'toute_journee';
+    };
+    CapacitesPersonneDto: {
+      /** @description Corriger les heures des autres, rouvrir un OR, lever un blocage. */
+      encadrer: boolean;
+      /** @description Employés & réglages (comptes, bornes). Suit le préréglage. */
+      gererEmployes: boolean;
+      niveaux: components['schemas']['NiveauxCapacitesDto'];
+      options: components['schemas']['OptionsCapacitesDto'];
+      /** @description Gestes irréversibles (IBAN, reprise). Suit le préréglage. */
+      patron: boolean;
+      /** @description La grille diffère du préréglage du rôle. */
+      personnalisee: boolean;
+      /** @enum {string|null} */
+      prereglage:
+        | 'admin'
+        | 'direction'
+        | 'vendeur'
+        | 'receptionnaire'
+        | 'chef_atelier'
+        | 'technicien'
+        | 'magasinier'
+        | 'comptable'
+        | 'fiduciaire'
+        | null;
     };
     ChampScanneBooleenDto: {
       /** @enum {string} */
@@ -4455,6 +5107,10 @@ export interface components {
        * @enum {string}
        */
       type: 'ligne' | 'or';
+    };
+    CleCaseDto: {
+      descriptionCle: string;
+      libelleCle: string;
     };
     ClientAdresseAvecAvertissementsDto: {
       avertissements: components['schemas']['AvertissementDto'][];
@@ -4637,12 +5293,25 @@ export interface components {
       /** @enum {string} */
       type: 'particulier' | 'entreprise';
     };
+    ClientResumeListeDto: {
+      /** Format: uuid */
+      id: string;
+      nomAffiche: string;
+      /** @example CL-000123 */
+      numeroClient: string;
+      /** @enum {string} */
+      statut: 'actif' | 'inactif' | 'bloque';
+      /** @enum {string} */
+      type: 'particulier' | 'entreprise';
+    };
     ClientResumeOrDto: {
       /**
        * Format: date-time
        * @description Dérivée du dernier OR ouvert.
        */
       dernierPassageLe: string | null;
+      /** @description Courriel de la fiche (`null` = aucun). Absent sur `GET /clients` ; présent quand le résumé est embarqué dans un OR ou un rendez-vous. */
+      email?: string | null;
       /** Format: uuid */
       id: string;
       /** @enum {string} */
@@ -4668,6 +5337,12 @@ export interface components {
       /** Format: uuid */
       id: string;
       nomAffiche: string;
+    };
+    CodeTvaManquantDto: {
+      references: string[];
+      regimeTva: string;
+      /** @description Valeur du taux telle que stockée (81 pour 8.1 %). */
+      tauxPourmille: number;
     };
     CommandeFournisseurAvecAvertissementsDto: {
       avertissements: components['schemas']['AvertissementDto'][];
@@ -4697,6 +5372,23 @@ export interface components {
       siteId: string;
       /** @enum {string} */
       statut: 'brouillon' | 'envoyee' | 'partiellement_recue' | 'recue' | 'cloturee' | 'annulee';
+    };
+    CompteManquantDto: {
+      /** @description defaut, type de ligne, moyen de paiement ou taux selon `usage`. */
+      categorie: string;
+      /** @description Pièces concernées (10 au plus). */
+      references: string[];
+      /** @enum {string} */
+      usage:
+        | 'creances_clients'
+        | 'produit'
+        | 'tva_due'
+        | 'acomptes_recus'
+        | 'financier'
+        | 'arrondi'
+        | 'escompte'
+        | 'perte'
+        | 'ecart_reprise';
     };
     ConsigneEchangeStandardDto: {
       /** Format: uuid */
@@ -4974,6 +5666,13 @@ export interface components {
       tauxTvaPourmille: number;
       tvaCentimes: number;
     };
+    DomaineModeleDto: {
+      descriptionCle: string;
+      exemplesCles: string[];
+      /** @enum {string} */
+      id: 'atelier' | 'accueil' | 'facturation' | 'pieces' | 'ventes' | 'finances';
+      libelleCle: string;
+    };
     DonneesPermisScanneDto: {
       detenteur: components['schemas']['DetenteurScanneDto'];
       vehicule: components['schemas']['VehiculeScanneDto'];
@@ -4990,9 +5689,24 @@ export interface components {
       /** @description Facturé − (prix attendu × quantité facturée), centimes signés. */
       totalCentimes: number;
     };
+    EcritureDesequilibreeDto: {
+      reference: string;
+      /** @description Centimes. */
+      totalCreditCentimes: number;
+      /** @description Centimes. */
+      totalDebitCentimes: number;
+    };
     EnveloppeCorrectionFactureDto: {
       avertissements: components['schemas']['AvertissementDocumentDto'][];
       donnees: components['schemas']['ReponseCorrectionFactureDto'];
+    };
+    EnveloppeCreationOrdreDepuisDevisDto: {
+      avertissements: components['schemas']['AvertissementOrDto'][];
+      donnees: components['schemas']['ReponseCreationOrdreDepuisDevisDto'];
+    };
+    EnveloppeCreationRapideOrDto: {
+      avertissements: components['schemas']['AvertissementOrDto'][];
+      donnees: components['schemas']['ReponseCreationRapideOrdreReparationDto'];
     };
     EnveloppeDevisComplementaireDto: {
       avertissements: components['schemas']['AvertissementOrDto'][];
@@ -5005,6 +5719,10 @@ export interface components {
     EnveloppeFacturationOrDto: {
       avertissements: components['schemas']['AvertissementOrDto'][];
       donnees: components['schemas']['ReponseFacturationOrdreReparationDto'];
+    };
+    EnveloppeFacturerEtEncaisserOrDto: {
+      avertissements: components['schemas']['AvertissementOrDto'][];
+      donnees: components['schemas']['ReponseFacturerEtEncaisserOrDto'];
     };
     EnveloppeKilometrageDto: {
       avertissements: components['schemas']['AvertissementVehiculeDto'][];
@@ -5074,6 +5792,31 @@ export interface components {
       code: string;
       message: string;
     };
+    EtapesDemarrageDto: {
+      /** @description Au moins une borne d’atelier active. */
+      borne: boolean;
+      /** @description Nom, rue, NPA et localité du bloc créancier renseignés. */
+      coordonnees: boolean;
+      /** @description IBAN ou QR-IBAN renseigné. */
+      iban: boolean;
+      /** @description Au moins un motif de rendez-vous actif. */
+      motifsRdv: boolean;
+      /** @description Numéro TVA du garage saisi. */
+      numeroTva: boolean;
+      /** @description Un compte de personne autre que le vôtre (invité ou actif). */
+      premierCollaborateur: boolean;
+      /** @description Au moins un taux horaire. */
+      tauxHoraire: boolean;
+    };
+    EtatMappingExportDto: {
+      /** @enum {string} */
+      cible: 'bexio' | 'winbiz' | 'abacus' | 'banana' | 'csv';
+      codesTva: components['schemas']['PosteCodeTvaMappingDto'][];
+      /** @description Tous les postes `requis` sont réglés (aperçu = vérité par période). */
+      complet: boolean;
+      comptes: components['schemas']['PosteCompteMappingDto'][];
+      nbPostesManquants: number;
+    };
     ExpertiseContexteDto: {
       /** Format: date */
       derniereLe: string | null;
@@ -5107,6 +5850,48 @@ export interface components {
     ExportComptableAvecAvertissementsDto: {
       avertissements: components['schemas']['AvertissementExportDto'][];
       donnees: components['schemas']['ReponseExportComptableDto'];
+    };
+    ExportHistoriqueDto: {
+      /** @enum {string} */
+      cible: 'bexio' | 'winbiz' | 'abacus' | 'banana' | 'csv';
+      /** @description SHA-256 hexadécimal du fichier. */
+      empreinteSha256: string;
+      /** @description false : lot antérieur à la migration 0084, fichier non conservé. */
+      fichierDisponible: boolean;
+      /**
+       * Format: date-time
+       * @description UTC.
+       */
+      genereLe: string;
+      /** Format: uuid */
+      genereParId: string | null;
+      genereParNom: string | null;
+      /** @enum {string} */
+      granularite: 'detaille' | 'agrege';
+      /** Format: uuid */
+      id: string;
+      nbAvoirs: number | null;
+      nbEcritures: number;
+      nbEncaissements: number | null;
+      /** @description null : lot antérieur à la migration 0084. */
+      nbFactures: number | null;
+      nomFichier: string | null;
+      /** Format: date */
+      periodeAu: string;
+      /** Format: date */
+      periodeDu: string;
+      plageNumeros: components['schemas']['PlagesNumerosDto'];
+      statut: string;
+      /** @description Centimes. */
+      totalCreditCentimes: number;
+      /** @description Centimes. */
+      totalDebitCentimes: number;
+      /** @description Centimes. */
+      totalHtCentimes: number | null;
+      /** @description Centimes. */
+      totalTtcCentimes: number | null;
+      /** @description Centimes. */
+      totalTvaCentimes: number | null;
     };
     FacturationParametresAtelierDto: {
       multiPayeursAutorise: boolean;
@@ -5222,6 +6007,16 @@ export interface components {
       finLe: string | null;
       plafondKm: number | null;
     };
+    GrilleCapacitesDto: {
+      /** @description Corriger les heures des autres, rouvrir un OR, lever un blocage. */
+      encadrer: boolean;
+      /** @description Employés & réglages (comptes, bornes). Suit le préréglage. */
+      gererEmployes: boolean;
+      niveaux: components['schemas']['NiveauxCapacitesDto'];
+      options: components['schemas']['OptionsCapacitesDto'];
+      /** @description Gestes irréversibles (IBAN, reprise). Suit le préréglage. */
+      patron: boolean;
+    };
     ImportationVehiculeDto: {
       estImporte: boolean;
       /** Format: date */
@@ -5317,6 +6112,14 @@ export interface components {
       /** @description null tant qu'aucun véhicule n'est associé (RV-30, dossier encore en prospection). */
       vehicule: components['schemas']['VehiculeSuiviVenteDto'] | null;
     };
+    LimiteExportDto: {
+      /** @enum {string} */
+      code: 'ADAPTATEUR_NON_CABLE' | 'COMPENSATION_NON_SUPPORTEE' | 'TAUX_MULTIPLES_NON_SUPPORTE';
+      /** @description `ADAPTATEUR_NON_CABLE` : { cible } ; `COMPENSATION_NON_SUPPORTEE` : { paiementId, documentId } ; `TAUX_MULTIPLES_NON_SUPPORTE` : { paiementId, documentId, nature }. */
+      donnees: {
+        [key: string]: unknown;
+      };
+    };
     LotExportProduitDto: {
       /** @description Avertissements de sérialisation WinBIZ (troncatures de champs) — libellés FR, pas un CodeAvertissement du contrat gelé. */
       avertissements: string[];
@@ -5374,6 +6177,14 @@ export interface components {
        * @example 959
        */
       nombreModeles: number;
+    };
+    ModeleCapacitesDto: {
+      domaines: components['schemas']['DomaineModeleDto'][];
+      encadrer: components['schemas']['CleCaseDto'];
+      gererEmployes: components['schemas']['CleCaseDto'];
+      niveaux: components['schemas']['NiveauModeleDto'][];
+      options: components['schemas']['OptionModeleDto'][];
+      prereglages: components['schemas']['PrereglageModeleDto'][];
     };
     ModeleVehiculeChDto: {
       /**
@@ -5453,6 +6264,39 @@ export interface components {
         | 'perte'
         | 'retour_consigne';
     };
+    NiveauModeleDto: {
+      /** @enum {string} */
+      id: 'rien' | 'voir' | 'faire';
+      libelleCle: string;
+    };
+    NiveauxCapacitesDto: {
+      /** @enum {string} */
+      accueil: 'rien' | 'voir' | 'faire';
+      /** @enum {string} */
+      atelier: 'rien' | 'voir' | 'faire';
+      /** @enum {string} */
+      facturation: 'rien' | 'voir' | 'faire';
+      /** @enum {string} */
+      finances: 'rien' | 'voir' | 'faire';
+      /** @enum {string} */
+      pieces: 'rien' | 'voir' | 'faire';
+      /** @enum {string} */
+      ventes: 'rien' | 'voir' | 'faire';
+    };
+    OptionModeleDto: {
+      descriptionCle: string;
+      /** @enum {string} */
+      id: 'voitMontants' | 'voitPrixAchat' | 'avoirsPlafonnes';
+      libelleCle: string;
+    };
+    OptionsCapacitesDto: {
+      /** @description Avoirs plafonnés au plafond d'avoir du garage (une contrainte). */
+      avoirsPlafonnes: boolean;
+      /** @description Voit les prix de vente, totaux et montants. */
+      voitMontants: boolean;
+      /** @description Voit les prix d'achat et marges (pièces). */
+      voitPrixAchat: boolean;
+    };
     OrdreReparationOuvertContexteDto: {
       /** Format: uuid */
       id: string;
@@ -5521,6 +6365,80 @@ export interface components {
         | 'interne';
       vehicule: components['schemas']['VehiculeResumeDto'];
     };
+    OrdreReparationResumeListeDto: {
+      attentes: components['schemas']['AttentesOrDto'];
+      client: components['schemas']['ClientResumeListeDto'];
+      designationsApercu: string[];
+      /** @description Même calcul que `ReponseOrdreReparation.enRetard`. */
+      enRetard: boolean;
+      /** @enum {string} */
+      etatAffiche:
+        | 'planifie'
+        | 'ouvert'
+        | 'en_cours'
+        | 'attente_accord'
+        | 'attente_pieces'
+        | 'attente_externe'
+        | 'controle'
+        | 'termine'
+        | 'facture'
+        | 'restitue'
+        | 'cloture'
+        | 'annule';
+      /** Format: uuid */
+      id: string;
+      /** @enum {string} */
+      localisation:
+        | 'parc'
+        | 'atelier'
+        | 'sous_traitant'
+        | 'essai_routier'
+        | 'lavage'
+        | 'pret_au_retrait'
+        | 'sorti_provisoirement'
+        | 'restitue';
+      nombreLignes: number;
+      /** @description Lignes de cet OR assignées à l'utilisateur courant (hors annulées/refusées) ; 0 pour un compte sans technicien. */
+      nombreLignesAssignees: number;
+      numero: string;
+      /** Format: date-time */
+      ouvertLe: string | null;
+      /** Format: date-time */
+      restitutionPromiseLe: string | null;
+      /** Format: uuid */
+      siteId: string;
+      /** @enum {string} */
+      statut:
+        | 'planifie'
+        | 'ouvert'
+        | 'en_cours'
+        | 'controle'
+        | 'termine'
+        | 'facture'
+        | 'restitue'
+        | 'cloture'
+        | 'annule';
+      /** @description Technicien de la première ligne assignée ; absent si aucune. */
+      technicienAssigne?: {
+        nomAffiche?: string;
+        /** Format: uuid */
+        utilisateurId?: string;
+      };
+      /** @description Absent pour un rôle sans droit aux montants. */
+      totalTtcCentimes?: number;
+      /** @enum {string} */
+      type:
+        | 'service'
+        | 'reparation'
+        | 'diagnostic'
+        | 'expertise'
+        | 'pneus'
+        | 'carrosserie'
+        | 'retouche'
+        | 'interne';
+      vehicule: components['schemas']['VehiculeResumeListeDto'];
+      version: number;
+    };
     OrParametresAtelierDto: {
       /** @enum {string} */
       deuxOrMemeVehicule: 'bloquer' | 'avertir' | 'autoriser';
@@ -5546,6 +6464,13 @@ export interface components {
       /** @description Opaque base64url ; null = fin de liste. */
       curseurSuivant: string | null;
       donnees: components['schemas']['ArticleReferenceDto'][];
+      /** @example 50 */
+      limite: number;
+    };
+    PageBorneResumeDto: {
+      /** @description Opaque base64url ; null = fin de liste. */
+      curseurSuivant: string | null;
+      donnees: components['schemas']['BorneResumeDto'][];
       /** @example 50 */
       limite: number;
     };
@@ -5637,6 +6562,12 @@ export interface components {
       /** @example 50 */
       limite: number;
     };
+    PageExportsDto: {
+      /** @description Opaque ; null = fin de liste. */
+      curseurSuivant: string | null;
+      donnees: components['schemas']['ExportHistoriqueDto'][];
+      limite: number;
+    };
     PageFactureFournisseurDto: {
       curseurSuivant: string | null;
       donnees: components['schemas']['FactureFournisseurDto'][];
@@ -5681,6 +6612,13 @@ export interface components {
       /** @example 50 */
       limite: number;
     };
+    PageOrdreReparationResumeListeDto: {
+      /** @description Opaque base64url ; null = fin de liste. */
+      curseurSuivant: string | null;
+      donnees: components['schemas']['OrdreReparationResumeListeDto'][];
+      /** @example 50 */
+      limite: number;
+    };
     PagePointageDto: {
       /** @description Opaque base64url ; null = fin de liste. */
       curseurSuivant: string | null;
@@ -5691,6 +6629,13 @@ export interface components {
     PagePrestationDto: {
       curseurSuivant: string | null;
       donnees: components['schemas']['ReponsePrestationDto'][];
+      limite: number;
+    };
+    PagePretCourtoisieDto: {
+      /** @description Opaque base64url ; null = fin de liste. */
+      curseurSuivant: string | null;
+      donnees: components['schemas']['ReponsePretCourtoisieDto'][];
+      /** @example 50 */
       limite: number;
     };
     PageReapprovisionnementDto: {
@@ -5812,6 +6757,14 @@ export interface components {
        */
       du: string;
     };
+    PlageNumerosDto: {
+      dernier: string;
+      premier: string;
+    };
+    PlagesNumerosDto: {
+      avoirs: components['schemas']['PlageNumerosDto'] | null;
+      factures: components['schemas']['PlageNumerosDto'] | null;
+    };
     PlanificationRelancesDto: {
       /** @example 3 */
       creees: number;
@@ -5829,6 +6782,85 @@ export interface components {
       code: string;
       conforme: boolean | null;
       libelle: string;
+    };
+    PosteCodeTvaMappingDto: {
+      codeExterne: string | null;
+      codeParDefaut: string | null;
+      libelle: string;
+      /** @enum {string} */
+      regimeTva:
+        'normal' | 'reduit' | 'hebergement' | 'exonere' | 'exclu' | 'marge' | 'acquisition';
+      requis: boolean;
+      /** @description 81 pour 8.1 %. */
+      tauxPourmille: number;
+    };
+    PosteCompteMappingDto: {
+      /** Format: date */
+      actifDu: string | null;
+      categorie: string;
+      /** @description Compte actif aujourd'hui ; null = non réglé. */
+      compte: string | null;
+      /** @description Suggestion du plan PME suisse, à valider avec la fiduciaire. */
+      compteParDefaut: string | null;
+      /** @description Libellé FR stable (support) — le front rend le poste depuis usage + categorie. */
+      libelle: string;
+      requis: boolean;
+      /** @enum {string} */
+      usage:
+        | 'creances_clients'
+        | 'produit'
+        | 'tva_due'
+        | 'acomptes_recus'
+        | 'financier'
+        | 'arrondi'
+        | 'escompte'
+        | 'perte'
+        | 'ecart_reprise';
+    };
+    PrereglageModeleDto: {
+      descriptionCle: string;
+      grille: components['schemas']['GrilleCapacitesDto'];
+      /** @enum {string} */
+      id:
+        | 'admin'
+        | 'direction'
+        | 'vendeur'
+        | 'receptionnaire'
+        | 'chef_atelier'
+        | 'technicien'
+        | 'magasinier'
+        | 'comptable'
+        | 'fiduciaire';
+      libelleCle: string;
+      /** @enum {string} */
+      roleOrigine:
+        | 'admin'
+        | 'direction'
+        | 'vendeur'
+        | 'receptionnaire'
+        | 'chef_atelier'
+        | 'technicien'
+        | 'magasinier'
+        | 'comptable';
+    };
+    PrerequisExportDto: {
+      /** @enum {string} */
+      code:
+        | 'EXPORT_MAPPING_INCOMPLET'
+        | 'EXPORT_TROU_NUMEROTATION'
+        | 'EXPORT_ECRITURES_DESEQUILIBREES'
+        | 'FONCTION_NON_DISPONIBLE';
+      codesTva?: components['schemas']['CodeTvaManquantDto'][];
+      comptes?: components['schemas']['CompteManquantDto'][];
+      /** @description Les mêmes limites, en données structurées à traduire côté écran. */
+      details?: components['schemas']['LimiteExportDto'][];
+      ecritures?: components['schemas']['EcritureDesequilibreeDto'][];
+      /**
+       * @deprecated
+       * @description Libellés français (support, logs). L’écran lit `details`.
+       */
+      limites?: string[];
+      trous?: components['schemas']['TrouNumerotationDto'][];
     };
     ProblemeDetailCommunDto: {
       /**
@@ -5908,6 +6940,7 @@ export interface components {
         | 'EXPORT_ECRITURES_DESEQUILIBREES'
         | 'EXPORT_MAPPING_INCOMPLET'
         | 'EXPORT_DEJA_TRANSMIS'
+        | 'EXPORT_WINBIZ_INVALIDE'
         | 'BASCULE_FIDUCIAIRE_HORS_FRONTIERE'
         | 'ARTICLE_REFERENCE_COLLISION'
         | 'ARTICLE_REMPLACANT_REQUIS'
@@ -5922,6 +6955,7 @@ export interface components {
         | 'CONSIGNE_TRANSITION_INTERDITE'
         | 'POINTAGE_PIN_INVALIDE'
         | 'POINTAGE_PIN_VERROUILLE'
+        | 'POINTAGE_SITE_AUTRE'
         | 'VENTE_VEHICULE_STOCK_DEJA_EXISTANT'
         | 'VENTE_DOSSIER_TRANSITION_INTERDITE'
         | 'VENTE_REPRISE_TRANSITION_INTERDITE'
@@ -6048,6 +7082,7 @@ export interface components {
         | 'EXPORT_ECRITURES_DESEQUILIBREES'
         | 'EXPORT_MAPPING_INCOMPLET'
         | 'EXPORT_DEJA_TRANSMIS'
+        | 'EXPORT_WINBIZ_INVALIDE'
         | 'BASCULE_FIDUCIAIRE_HORS_FRONTIERE'
         | 'ARTICLE_REFERENCE_COLLISION'
         | 'ARTICLE_REMPLACANT_REQUIS'
@@ -6062,6 +7097,7 @@ export interface components {
         | 'CONSIGNE_TRANSITION_INTERDITE'
         | 'POINTAGE_PIN_INVALIDE'
         | 'POINTAGE_PIN_VERROUILLE'
+        | 'POINTAGE_SITE_AUTRE'
         | 'VENTE_VEHICULE_STOCK_DEJA_EXISTANT'
         | 'VENTE_DOSSIER_TRANSITION_INTERDITE'
         | 'VENTE_REPRISE_TRANSITION_INTERDITE'
@@ -6300,9 +7336,44 @@ export interface components {
       avoir: components['schemas']['ReponseDocumentVenteDto'];
       factureRemplacement: components['schemas']['ReponseDocumentVenteDto'];
     };
+    ReponseCreationBorneDto: {
+      acces: components['schemas']['ReponseAccesTemporaireDto'];
+      borne: components['schemas']['BorneResumeDto'];
+    };
     ReponseCreationDossierRepriseDto: {
       dossier: components['schemas']['ReponseDossierRepriseDto'];
       tailleTrancheRecommandeeOctets: number;
+    };
+    ReponseCreationOrdreDepuisDevisDto: {
+      /** Format: uuid */
+      devisId: string;
+      /**
+       * @example accepte
+       * @enum {string}
+       */
+      devisStatut:
+        | 'brouillon'
+        | 'emis'
+        | 'accepte'
+        | 'refuse'
+        | 'expire'
+        | 'remplace'
+        | 'transforme'
+        | 'annule'
+        | 'annule_par_avoir'
+        | 'abandonne';
+      /** @description Lignes du devis reprises en lignes d'OR (lignes de texte comprises). */
+      nombreLignesReprises: number;
+      /** @description L'OR créé, document complet — même forme que `GET /ordres-reparation/{orId}`. */
+      ordreReparation: components['schemas']['ReponseOrdreReparationDto'];
+    };
+    ReponseCreationRapideOrdreReparationDto: {
+      /** @description Le client (créé ou existant). */
+      client: components['schemas']['ClientDto'];
+      /** @description L'OR créé. */
+      ordreReparation: components['schemas']['ReponseOrdreReparationDto'];
+      /** @description Le véhicule (créé ou existant). */
+      vehicule: components['schemas']['ReponseVehiculeDto'];
     };
     ReponseCreationUtilisateurDto: {
       acces: components['schemas']['ReponseAccesTemporaireDto'];
@@ -6672,6 +7743,9 @@ export interface components {
        */
       idMessage: string;
     };
+    ReponseEtatDemarrageDto: {
+      etapes: components['schemas']['EtapesDemarrageDto'];
+    };
     ReponseExportComptableDto: {
       documentsExportes: components['schemas']['DocumentExporteDto'][];
       /** @description Imputations dont l'effet sur leur document (créance soldée, et le cas échéant escompte/perte/arrondi) a été transmis dans ce lot — la granularité réelle du suivi (migration 0019, `imputation_paiement.exporteLe`). */
@@ -6686,6 +7760,14 @@ export interface components {
       facturesCreees: components['schemas']['ReponseDocumentVenteDto'][];
       /** @description L'OR à jour — même patron que les actions de §7.7. */
       ordreReparation: components['schemas']['ReponseOrdreReparationDto'];
+    };
+    ReponseFacturerEtEncaisserOrDto: {
+      /** @description La facture ÉMISE (numéro attribué, verrouillée), règlement à jour. */
+      facture: components['schemas']['ReponseDocumentVenteDto'];
+      /** @description L'OR à jour. */
+      ordreReparation: components['schemas']['ReponseOrdreReparationDto'];
+      /** @description Absent si aucun `paiement` demandé, ou si l'encaissement a échoué (avertissement `ENCAISSEMENT_ECHOUE`). */
+      paiement?: components['schemas']['ReponsePaiementDto'];
     };
     ReponseFichierExportTenantDto: {
       /** @example tables/client.csv */
@@ -6766,7 +7848,7 @@ export interface components {
         /** Format: uuid */
         utilisateurId?: string;
       } | null;
-      /** @description Toujours positif sur ce lettrage (le signe vit sur le paiement, MD-50). */
+      /** @description Positif sur ce lettrage (le signe vit sur le paiement, MD-50), sauf la nature 'arrondi' : signée, ±1 ou ±2 centimes (RF-51, CF-05). */
       montantCentimes: number;
       /** @enum {string} */
       nature: 'reglement' | 'escompte' | 'arrondi' | 'perte' | 'compensation';
@@ -6939,6 +8021,22 @@ export interface components {
     };
     ReponseListeFichiersExportTenantDto: {
       fichiers: components['schemas']['ReponseFichierExportTenantDto'][];
+    };
+    ReponseListePhotosLigneDto: {
+      donnees: components['schemas']['ReponsePhotoLigneDto'][];
+    };
+    ReponseListeVehiculesCourtoisieDto: {
+      /** Format: date-time */
+      au: string;
+      /** Format: date-time */
+      du: string;
+      vehicules: components['schemas']['ReponseVehiculeCourtoisieDto'][];
+    };
+    ReponseLogoEntrepriseDto: {
+      /** @description Taille du fichier, en octets. */
+      tailleOctets: number;
+      /** @enum {string} */
+      typeMime: 'image/png' | 'image/jpeg' | 'image/svg+xml';
     };
     ReponseMarquesVehiculesChDto: {
       marques: components['schemas']['MarqueVehiculeChDto'][];
@@ -7188,6 +8286,20 @@ export interface components {
        */
       version: number;
     };
+    ReponseParametresEntrepriseDto: {
+      /**
+       * @description Délai de paiement par défaut des factures, en jours, pour un client sans condition de paiement propre.
+       * @example 30
+       */
+      delaiPaiementJoursDefaut: number;
+      /**
+       * @description N° IDE avec mention TVA (CHE-123.456.789 TVA, MWST ou IVA), clé de contrôle vérifiée. `null` : garage non assujetti ou numéro pas encore saisi.
+       * @example CHE-116.281.710 TVA
+       */
+      numeroTva: string | null;
+      /** @example Garage Martin SA */
+      raisonSociale: string;
+    };
     ReponseParametresSiteDto: {
       /** @description P-20. `null` = non saisie — jamais `0` (une barre de charge à zéro serait un mensonge). */
       capaciteHeuresJourCentiemes: number | null;
@@ -7214,6 +8326,26 @@ export interface components {
       siteId: string;
       /** @description Sert l'ETag (`W/"<version>"`). Dérivé de `modifie_le`. */
       version: number;
+    };
+    ReponsePhotoLigneDto: {
+      /** Format: date-time */
+      creeLe: string;
+      /** Format: uuid */
+      creeParId: string | null;
+      /** Format: uuid */
+      id: string;
+      legende: string | null;
+      /** Format: uuid */
+      ligneId: string;
+      /** Format: uuid */
+      ordreReparationId: string;
+      /** @description Le demandeur peut supprimer cette photo. */
+      supprimable: boolean;
+      tailleOctets: number;
+      /** @enum {string} */
+      typeMime: 'image/jpeg' | 'image/png';
+      /** @description Sinon `/vignette` sert la photo entière. */
+      vignetteDisponible: boolean;
     };
     ReponsePinPointageDto: {
       /** @description true après attribution/réinitialisation, false après révocation. */
@@ -7325,6 +8457,36 @@ export interface components {
         | 'taxe'
         | 'remise'
         | 'texte';
+    };
+    ReponsePretCourtoisieDto: {
+      /** Format: uuid */
+      clientId: string;
+      clientNom: string;
+      /** Format: date-time */
+      creeLe: string;
+      /** Format: date-time */
+      debutLe: string;
+      /** @description Prêt en cours dont la fin prévue est dépassée. */
+      enRetard: boolean;
+      /** Format: date-time */
+      finPrevueLe: string;
+      /** Format: uuid */
+      id: string;
+      kmDepart: number | null;
+      kmRetour: number | null;
+      note: string | null;
+      /** Format: uuid */
+      ordreReparationId: string | null;
+      /** Format: uuid */
+      rendezVousId: string | null;
+      /** Format: date-time */
+      renduLe: string | null;
+      /** @enum {string} */
+      statut: 'reserve' | 'en_cours' | 'retourne' | 'annule';
+      /** Format: uuid */
+      vehiculeCourtoisieId: string;
+      vehiculeDesignation: string;
+      vehiculePlaque: string | null;
     };
     ReponseRechercheDto: {
       /** @description RM-18/§6.9 : `true` quand la plaque cherchée est interchangeable — les DEUX véhicules sont alors présents dans `resultats`. Le serveur ne choisit jamais à la place de l'utilisateur. */
@@ -7497,6 +8659,8 @@ export interface components {
       /** Format: date */
       constateLe: string;
       designation: string;
+      /** @description Explication libre saisie avec le travail (symptôme, pièce à prévoir). */
+      detail: string | null;
       /** Format: uuid */
       id: string;
       kilometrageAlors: number | null;
@@ -7515,6 +8679,19 @@ export interface components {
       statut: 'ouvert' | 'repris' | 'abandonne';
       /** @enum {string} */
       urgence: 'urgent' | 'a_faire' | 'a_surveiller';
+    };
+    ReponseVehiculeCourtoisieDto: {
+      designation: string;
+      /** @enum {string} */
+      disponibilite: 'libre' | 'occupe' | 'indisponible';
+      /** @enum {string} */
+      etat: 'disponible' | 'en_entretien' | 'hors_service';
+      /** Format: uuid */
+      id: string;
+      kilometrage: number | null;
+      note: string | null;
+      plaque: string | null;
+      pretSurPeriode: components['schemas']['ReponsePretCourtoisieDto'] | null;
     };
     ReponseVehiculeDetentionDto: {
       client: components['schemas']['ClientResumeDetentionDto'];
@@ -7790,6 +8967,8 @@ export interface components {
       estEchangeStandard: boolean;
       montantConsigneTtcCentimes: number | null;
       numeroArticle: string;
+      /** @description Dernier prix d'achat connu (centimes). null pour vendeur, réceptionnaire, technicien et admin (masquage serveur, comme ReponseArticle.prixAchatCentimes) ou si l'article n'a pas de prix d'achat. */
+      prixAchatCentimes: number | null;
       /** @description TVA comprise (RP-36) — jamais le prix hors taxe. */
       prixVenteTtcCentimes: number;
       /** @description Fiable UNIQUEMENT si statutSuivi = 'suivi' ; sinon vaut 0 par convention et NE DOIT PAS être lu comme un stock nul — voir statutSuivi. */
@@ -7817,6 +8996,12 @@ export interface components {
       score: number;
       type: components['schemas']['TypeResultatRecherche'];
     };
+    ResumeSiteRendezVousDto: {
+      /** @description Rendez-vous non annulés de la période (0 si aucun). */
+      nombre: number;
+      /** Format: uuid */
+      siteId: string;
+    };
     SanteDto: {
       /** @example main */
       branche: string;
@@ -7832,6 +9017,16 @@ export interface components {
       redis: 'ok';
     };
     SessionCouranteDto: {
+      /**
+       * @description Actions de la matrice de droits détenues par le rôle du compte (triées). Informatif : le serveur re-vérifie chaque requête.
+       * @example [
+       *       "atelier.or.lire",
+       *       "client.lire"
+       *     ]
+       */
+      actions: string[];
+      /** @description Grille de capacités du compte (niveaux par domaine, encadrer, options). Pour l'affichage ; la décision reste `actions`. */
+      capacites: components['schemas']['CapacitesPersonneDto'];
       /** Format: date-time */
       expireLe: string;
       /** Format: uuid */
@@ -7981,6 +9176,12 @@ export interface components {
       /** @description Compte réel des travaux OUVERTS — peut dépasser `elements.length` (borné). */
       total: number;
     };
+    TrouNumerotationDto: {
+      exercice: number;
+      numeros: string[];
+      /** @enum {string} */
+      typeDocument: 'facture' | 'avoir';
+    };
     /** @enum {string} */
     TypeResultatRecherche:
       | 'vehicule'
@@ -8012,6 +9213,7 @@ export interface components {
         | 'poste_atelier';
     };
     UtilisateurResumeDto: {
+      capacites: components['schemas']['CapacitesPersonneDto'];
       /** Format: date-time */
       creeLe: string;
       /** Format: date-time */
@@ -8108,6 +9310,19 @@ export interface components {
       premiereMiseEnCirculationLe: string | null;
       vin: string | null;
     };
+    VehiculeResumeListeDto: {
+      /** @example VD */
+      canton: string | null;
+      /** @example VW Touran 2.0 TDI */
+      designation: string;
+      /** Format: uuid */
+      id: string;
+      identificationIncomplete: boolean;
+      /** @example VD 123456 */
+      plaque: string | null;
+      /** Format: date */
+      premiereMiseEnCirculationLe: string | null;
+    };
     VehiculeResumeOrDto: {
       /** @example VD */
       canton: string | null;
@@ -8179,6 +9394,43 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  EtatDemarrageController_etatDemarrage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseEtatDemarrageDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description DROIT_INSUFFISANT — réservé à direction/admin. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
   ArticleController_lister: {
     parameters: {
       query?: never;
@@ -9819,6 +11071,290 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ProblemeDetailDto'];
+        };
+      };
+    };
+  };
+  BorneController_lister: {
+    parameters: {
+      query?: {
+        curseur?: string;
+        limite?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PageBorneResumeDto'];
+        };
+      };
+      /** @description Curseur illisible ou paramètres de pagination invalides. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant (rôle sans socle.borne.lire). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  BorneController_creer: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          nom: string;
+          /** Format: uuid */
+          siteId: string;
+        };
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseCreationBorneDto'];
+        };
+      };
+      /** @description Corps invalide, ou site introuvable pour ce tenant. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant (rôle sans socle.borne.creer). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  BorneController_desactiver: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        borneId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BorneResumeDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant (rôle sans socle.borne.desactiver). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Borne introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  BorneController_reactiver: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        borneId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BorneResumeDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant (rôle sans socle.borne.desactiver). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Borne introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  BorneController_reinitialiserAcces: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        borneId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseAccesTemporaireDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant (rôle sans socle.borne.reinitialiser_acces). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Borne introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  CapacitesController_modele: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ModeleCapacitesDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant (rôle sans socle.utilisateur.lire). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
         };
       };
     };
@@ -11930,6 +13466,508 @@ export interface operations {
       };
     };
   };
+  CourtoisieController_listerPrets: {
+    parameters: {
+      query?: {
+        curseur?: string;
+        limite?: number;
+        statut?: 'reserve' | 'en_cours' | 'retourne' | 'annule';
+        vehiculeCourtoisieId?: string;
+        ordreReparationId?: string;
+        clientId?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PagePretCourtoisieDto'];
+        };
+      };
+      /** @description Filtres ou curseur invalides. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  CourtoisieController_creerPret: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** Format: uuid */
+          clientId: string;
+          /** Format: date-time */
+          debutLe: string;
+          /** Format: date-time */
+          finPrevueLe: string;
+          kmDepart?: number;
+          note?: string;
+          /** Format: uuid */
+          ordreReparationId?: string;
+          /** Format: uuid */
+          rendezVousId?: string;
+          /** Format: uuid */
+          vehiculeCourtoisieId: string;
+        };
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponsePretCourtoisieDto'];
+        };
+      };
+      /** @description Corps invalide. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Véhicule, client, OR ou rendez-vous introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Véhicule indisponible sur la période. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  CourtoisieController_annuler: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponsePretCourtoisieDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Prêt introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Prêt déjà terminé ou annulé. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  CourtoisieController_remettre: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          kmDepart?: number;
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponsePretCourtoisieDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Prêt introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Le prêt n'est pas réservé. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  CourtoisieController_rendre: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          kmRetour?: number;
+          /** Format: date-time */
+          renduLe?: string;
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponsePretCourtoisieDto'];
+        };
+      };
+      /** @description Corps invalide ou km retour inférieur au départ. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Prêt introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Le prêt n'est pas en cours. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  CourtoisieController_listerVehicules: {
+    parameters: {
+      query?: {
+        au?: string;
+        du?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseListeVehiculesCourtoisieDto'];
+        };
+      };
+      /** @description Période invalide. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  CourtoisieController_creerVehicule: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          designation: string;
+          kilometrage?: number;
+          note?: string;
+          plaque?: string;
+        };
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseVehiculeCourtoisieDto'];
+        };
+      };
+      /** @description Corps invalide. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  CourtoisieController_modifierVehicule: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          designation?: string;
+          /** @enum {string} */
+          etat?: 'disponible' | 'en_entretien' | 'hors_service';
+          kilometrage?: number | null;
+          note?: string | null;
+          plaque?: string | null;
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseVehiculeCourtoisieDto'];
+        };
+      };
+      /** @description Corps invalide. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Véhicule de courtoisie introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
   DepotPneusController_changerSaison: {
     parameters: {
       query?: never;
@@ -12879,6 +14917,122 @@ export interface operations {
       };
     };
   };
+  DevisVersOrController_creerOrdreReparation: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description uuid v4, identité de la requête. */
+        'Idempotency-Key': string;
+      };
+      path: {
+        /** @description Identifiant du devis. */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          conducteurPresentNom?: string | null;
+          confirmations?: (
+            | 'CLIENT_BLOQUE'
+            | 'VEHICULE_DEUX_OR_OUVERTS'
+            | 'RDV_RESSOURCE_CHEVAUCHEMENT'
+            | 'RDV_HORS_OUVERTURE'
+            | 'PRET_VEHICULE_INDISPONIBLE'
+            | 'OR_SANS_RDV'
+          )[];
+          /** @default [] */
+          demandes?: {
+            verbatim: string;
+          }[];
+          kilometrageEntree?: number | null;
+          numeroCommandeInterne?: string | null;
+          plafondAutorisePar?: string | null;
+          plafondCentimes?: number;
+          rendezVousId?: string | null;
+          restitutionPromiseLe?: string | null;
+          /** Format: uuid */
+          siteId?: string;
+          /**
+           * @default ouvert
+           * @enum {string}
+           */
+          statutInitial?: 'planifie' | 'ouvert';
+          /** @enum {string} */
+          type?:
+            | 'service'
+            | 'reparation'
+            | 'diagnostic'
+            | 'expertise'
+            | 'pneus'
+            | 'carrosserie'
+            | 'retouche'
+            | 'interne';
+          /**
+           * @default km
+           * @enum {string}
+           */
+          uniteKilometrage?: 'km' | 'mi';
+        };
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EnveloppeCreationOrdreDepuisDevisDto'];
+        };
+      };
+      /** @description Corps invalide ou Idempotency-Key manquante/mal formée. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Devis introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description CONFLIT (devis sans véhicule, brouillon/refusé/expiré, devise ≠ CHF, ligne non reprenable, OR déjà ouvert), DOCUMENT_SOURCE_DEJA_TRANSFORME, CONFIRMATION_REQUISE, OR_KM_ENTREE_REQUIS ou IDEMPOTENCE_CONFLIT. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
   DocumentVenteTransitionsController_emettre: {
     parameters: {
       query?: never;
@@ -13333,7 +15487,7 @@ export interface operations {
           'application/pdf': components['schemas']['ProblemeDetailCommunDto'];
         };
       };
-      /** @description DOCUMENT_PDF_INDISPONIBLE — le document n'est pas une facture émise. */
+      /** @description DOCUMENT_PDF_INDISPONIBLE — le document n'est ni un devis ni une facture émise. */
       409: {
         headers: {
           [name: string]: unknown;
@@ -14994,6 +17148,56 @@ export interface operations {
       };
     };
   };
+  ExportComptableController_lister: {
+    parameters: {
+      query?: {
+        cible?: 'bexio' | 'winbiz' | 'abacus' | 'banana' | 'csv';
+        curseur?: unknown;
+        limite?: unknown;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PageExportsDto'];
+        };
+      };
+      /** @description Paramètres ou curseur invalides. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant (rôle sans facturation.export.lire). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
   ExportComptableController_lancer: {
     parameters: {
       query?: never;
@@ -15015,8 +17219,6 @@ export interface operations {
           periodeAu: string;
           /** Format: date */
           periodeDu: string;
-          /** Format: uuid */
-          siteId?: string;
         };
       };
     };
@@ -15066,7 +17268,7 @@ export interface operations {
           'application/json': components['schemas']['ProblemeDetailCommunDto'];
         };
       };
-      /** @description EXPORT_TROU_NUMEROTATION, EXPORT_MAPPING_INCOMPLET, ou IDEMPOTENCE_CONFLIT. */
+      /** @description EXPORT_TROU_NUMEROTATION, EXPORT_MAPPING_INCOMPLET, EXPORT_ECRITURES_DESEQUILIBREES (avec `blocages`), ou IDEMPOTENCE_CONFLIT. */
       409: {
         headers: {
           [name: string]: unknown;
@@ -15075,8 +17277,252 @@ export interface operations {
           'application/json': components['schemas']['ProblemeDetailCommunDto'];
         };
       };
-      /** @description FONCTION_NON_DISPONIBLE — cible autre que winbiz, granularité agrege, lot dépassant la taille maximale WinBIZ, ou écriture de paiement non prise en charge (imputation compensation, ou escompte/perte sur un document à plusieurs taux de TVA). */
+      /** @description FONCTION_NON_DISPONIBLE — cible autre que winbiz/csv, granularité agrege, lot dépassant la taille maximale WinBIZ, ou écriture de paiement non prise en charge (imputation compensation, ou escompte/perte sur un document à plusieurs taux de TVA). */
       501: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  ExportComptableController_fichier: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        exportId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Fichier (text/csv). */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Identifiant invalide. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/csv': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/csv': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant (rôle sans facturation.export.lire). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/csv': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Export introuvable pour ce tenant, ou fichier non conservé. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/csv': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  ExportComptableController_apercu: {
+    parameters: {
+      query: {
+        /** @description aaaa-mm-jj */
+        periodeAu: unknown;
+        /** @description aaaa-mm-jj */
+        periodeDu: unknown;
+        cible?: 'bexio' | 'winbiz' | 'abacus' | 'banana' | 'csv';
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ApercuExportDto'];
+        };
+      };
+      /** @description Paramètres invalides (dates, fin avant début). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant (rôle sans facturation.export.lire). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  ExportComptableController_consulterMapping: {
+    parameters: {
+      query?: {
+        cible?: 'bexio' | 'winbiz' | 'abacus' | 'banana' | 'csv';
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EtatMappingExportDto'];
+        };
+      };
+      /** @description Cible invalide. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant (rôle sans facturation.export.lire). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  ExportComptableController_mettreAJourMapping: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @enum {string} */
+          cible: 'bexio' | 'winbiz' | 'abacus' | 'banana' | 'csv';
+          /** @default [] */
+          codesTva?: {
+            codeExterne: string;
+            /** @enum {string} */
+            regimeTva:
+              'normal' | 'reduit' | 'hebergement' | 'exonere' | 'exclu' | 'marge' | 'acquisition';
+            tauxPourmille: number;
+          }[];
+          /** @default [] */
+          comptes?: {
+            /** Format: date */
+            actifDu?: string;
+            categorie: string;
+            compte: string;
+            /** @enum {string} */
+            usage:
+              | 'creances_clients'
+              | 'produit'
+              | 'tva_due'
+              | 'acomptes_recus'
+              | 'financier'
+              | 'arrondi'
+              | 'escompte'
+              | 'perte'
+              | 'ecart_reprise';
+          }[];
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EtatMappingExportDto'];
+        };
+      };
+      /** @description Corps invalide. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant (rôle sans facturation.export.creer). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description CONFLIT — une version du compte existe déjà à la date d'effet ou plus tard (changement le même jour). */
+      409: {
         headers: {
           [name: string]: unknown;
         };
@@ -15736,7 +18182,10 @@ export interface operations {
   };
   MotifsRendezVousController_lister: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description `true` : seulement les motifs proposables à la prise de rendez-vous ; `false` : seulement les inactifs ; absent : tous (comportement historique). */
+        actifs?: boolean;
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -15751,6 +18200,15 @@ export interface operations {
           'application/json': components['schemas']['ReponseMotifRendezVousDto'][];
         };
       };
+      /** @description Filtre invalide. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
       /** @description Session absente ou expirée. */
       401: {
         headers: {
@@ -15762,21 +18220,162 @@ export interface operations {
       };
     };
   };
-  OrdreReparationController_lister: {
+  MotifsRendezVousController_creer: {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody: {
+      content: {
+        'application/json': {
+          actif?: boolean;
+          code: string;
+          dureeDefautMinutes?: number | null;
+          heuresAtelierDefautCentiemes?: number | null;
+          libelleDe?: string | null;
+          libelleFr: string;
+          libelleIt?: string | null;
+        };
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseMotifRendezVousDto'];
+        };
+      };
+      /** @description VALIDATION_ECHOUEE — corps invalide. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant (parametrage.referentiel.modifier). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description CONFLIT — un motif porte déjà ce code dans ce garage. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  MotifsRendezVousController_modifier: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          actif?: boolean;
+          dureeDefautMinutes?: number | null;
+          heuresAtelierDefautCentiemes?: number | null;
+          libelleDe?: string | null;
+          libelleFr?: string;
+          libelleIt?: string | null;
+        };
+      };
+    };
     responses: {
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['PageOrdreReparationDto'];
+          'application/json': components['schemas']['ReponseMotifRendezVousDto'];
+        };
+      };
+      /** @description VALIDATION_ECHOUEE — corps invalide. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant (parametrage.referentiel.modifier). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description RESSOURCE_INTROUVABLE — motif inconnu de ce garage. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  OrdreReparationController_lister: {
+    parameters: {
+      query?: {
+        /** @description `complet` (défaut) : document complet par élément. `resume` : résumé de liste (`OrdreReparationResumeListe`), environ dix fois plus léger. */
+        forme?: 'complet' | 'resume';
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Page de documents complets (`forme=complet`) ou de résumés (`forme=resume`). */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json':
+            | components['schemas']['PageOrdreReparationDto']
+            | components['schemas']['PageOrdreReparationResumeListeDto'];
         };
       };
       /** @description Filtres, tri ou curseur invalides. */
@@ -16565,7 +19164,7 @@ export interface operations {
           destinataireContactId?: string | null;
           impactRestitutionLe?: string | null;
           ligneIds: string[];
-          nouveauPlafondCentimes: number;
+          nouveauPlafondCentimes?: number;
         };
       };
     };
@@ -16850,6 +19449,93 @@ export interface operations {
       };
     };
   };
+  OrdreReparationTransitionsController_facturerEtEncaisser: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description uuid v4 — un rejeu à l’identique rend la même facture (en-tête `Idempotency-Rejeu`). */
+        'Idempotency-Key': string;
+      };
+      path: {
+        orId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          confirmations?: (
+            | 'CLIENT_BLOQUE'
+            | 'VEHICULE_DEUX_OR_OUVERTS'
+            | 'RDV_RESSOURCE_CHEVAUCHEMENT'
+            | 'RDV_HORS_OUVERTURE'
+            | 'PRET_VEHICULE_INDISPONIBLE'
+            | 'OR_SANS_RDV'
+          )[];
+          paiement?: {
+            /** @enum {string} */
+            mode: 'especes' | 'carte' | 'twint';
+            montantCentimes?: number;
+          };
+        };
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EnveloppeFacturerEtEncaisserOrDto'];
+        };
+      };
+      /** @description Corps invalide ou Idempotency-Key manquante/mal formée. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant (créer, émettre une facture ou encaisser). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Ordre de réparation introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description OR_TRANSITION_INTERDITE, FACTURATION_LIGNES_INDECISES, OR_FACTURATION_AUCUNE_LIGNE, CONFIRMATION_REQUISE, DOCUMENT_VERROUILLE ou IDEMPOTENCE_CONFLIT. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
   OrdreReparationController_journal: {
     parameters: {
       query?: never;
@@ -16987,7 +19673,7 @@ export interface operations {
           blocage?: 'aucun' | 'accord' | 'pieces' | 'externe';
           codeDefaut?: string | null;
           codeOperation?: string | null;
-          designation: string;
+          designation?: string;
           /** @default false */
           fournieParClient?: boolean;
           numeroAccord?: string | null;
@@ -17012,6 +19698,7 @@ export interface operations {
           securite?: boolean;
           technicienId?: string | null;
           tempsBaremeCentiemes?: number | null;
+          travailReporteId?: string | null;
           /** @enum {string} */
           type:
             | 'main_oeuvre_bareme'
@@ -17271,6 +19958,141 @@ export interface operations {
       };
     };
   };
+  PhotosLigneController_listerParLigne: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orId: string;
+        ligneId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseListePhotosLigneDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description OR introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  PhotosLigneController_ajouter: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orId: string;
+        ligneId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'multipart/form-data': {
+          legende?: string;
+          /** Format: binary */
+          photo: string;
+          /** Format: binary */
+          vignette?: string;
+        };
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponsePhotoLigneDto'];
+        };
+      };
+      /** @description Photo absente, vide, au format non reconnu ou HEIC. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description OR ou ligne introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description OR_LIGNE_VERROUILLEE (OR facturé/clos) ou 20 photos déjà jointes. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Photo de plus de 8 Mo. */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
   OrdreReparationTransitionsController_passerEnControle: {
     parameters: {
       query?: never;
@@ -17381,6 +20203,54 @@ export interface operations {
       };
     };
   };
+  PhotosLigneController_listerParOr: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseListePhotosLigneDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description OR introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
   OrdreReparationTransitionsController_receptionner: {
     parameters: {
       query?: never;
@@ -17403,6 +20273,9 @@ export interface operations {
           )[];
           kilometrageEntree: number;
           motifDifferee?: string;
+          /** @enum {string} */
+          motifKilometrageRegressif?:
+            'compteur_remplace' | 'erreur_saisie' | 'changement_unite' | 'correction';
           /** @default false */
           signatureDifferee?: boolean;
           /**
@@ -17701,6 +20574,11 @@ export interface operations {
           kilometrageSortie?: number | null;
           paiementRecu?: boolean;
           piecesRestituees?: string[];
+          reserveSecuriteSignee?: {
+            signataireNom: string;
+            /** Format: date-time */
+            signeLe?: string;
+          };
           /**
            * @default km
            * @enum {string}
@@ -18084,6 +20962,14 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': {
+          accord?: {
+            /** @enum {string} */
+            canal: 'telephone' | 'sms' | 'email' | 'comptoir' | 'lien';
+            commentaire?: string;
+            /** Format: date-time */
+            horodate?: string;
+            nom: string;
+          };
           ligneIds: string[];
         };
       };
@@ -18134,6 +21020,173 @@ export interface operations {
         };
       };
       /** @description OR_PLAFOND_DEPASSE, OR_LIGNE_VERROUILLEE ou LIGNE_TRANSITION_INTERDITE. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  OrdreReparationTransitionsController_creationRapideOr: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description uuid v4 — un rejeu rend les mêmes client, véhicule et OR. */
+        'Idempotency-Key': string;
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          client:
+            | {
+                /** Format: uuid */
+                id: string;
+              }
+            | {
+                nouveau: {
+                  email?: string | null;
+                  /**
+                   * @default fr
+                   * @enum {string}
+                   */
+                  langueCorrespondance?: 'fr' | 'de' | 'it';
+                  nom: string;
+                  prenom?: string | null;
+                  telephone?: string;
+                  /** @enum {string} */
+                  type: 'particulier' | 'entreprise';
+                };
+              };
+          or: {
+            conducteurPresentNom?: string | null;
+            confirmations?: (
+              | 'CLIENT_BLOQUE'
+              | 'VEHICULE_DEUX_OR_OUVERTS'
+              | 'RDV_RESSOURCE_CHEVAUCHEMENT'
+              | 'RDV_HORS_OUVERTURE'
+              | 'PRET_VEHICULE_INDISPONIBLE'
+              | 'OR_SANS_RDV'
+            )[];
+            /** @default [] */
+            demandes?: {
+              verbatim: string;
+            }[];
+            kilometrageEntree?: number | null;
+            motifLien?: ('retouche' | 'suite') | null;
+            numeroCommandeInterne?: string | null;
+            ordreReparationParentId?: string | null;
+            plafondAutorisePar?: string | null;
+            plafondCentimes?: number;
+            rendezVousId?: string | null;
+            restitutionPromiseLe?: string | null;
+            /** Format: uuid */
+            siteId: string;
+            /**
+             * @default ouvert
+             * @enum {string}
+             */
+            statutInitial?: 'planifie' | 'ouvert';
+            /** @enum {string} */
+            type:
+              | 'service'
+              | 'reparation'
+              | 'diagnostic'
+              | 'expertise'
+              | 'pneus'
+              | 'carrosserie'
+              | 'retouche'
+              | 'interne';
+            /**
+             * @default km
+             * @enum {string}
+             */
+            uniteKilometrage?: 'km' | 'mi';
+          };
+          vehicule:
+            | {
+                /** Format: uuid */
+                id: string;
+              }
+            | {
+                nouveau: {
+                  boite?: string | null;
+                  canton?: string | null;
+                  carburant?: string | null;
+                  codeTypeCh?: string | null;
+                  conducteurHabituel?: string | null;
+                  couleur?: string | null;
+                  cylindreeCm3?: number | null;
+                  finition?: string | null;
+                  /** @default false */
+                  importe?: boolean;
+                  importeLe?: string | null;
+                  marque: string;
+                  modele: string;
+                  paysOrigine?: string | null;
+                  plaque: string;
+                  premiereMiseEnCirculationLe?: string | null;
+                  proprietaireEconomiqueClientId?: string | null;
+                  puissanceKw?: number | null;
+                  transmission?: string | null;
+                  version?: string | null;
+                  vin?: string | null;
+                };
+              };
+        };
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EnveloppeCreationRapideOrDto'];
+        };
+      };
+      /** @description Corps invalide ou Idempotency-Key manquante/mal formée. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant (OR, client ou véhicule). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Client ou véhicule existant introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description CONFLIT, CONFIRMATION_REQUISE, VEHICULE_PLAQUE_COLLISION, OR_KM_ENTREE_REQUIS ou IDEMPOTENCE_CONFLIT : rien n’est créé. */
       409: {
         headers: {
           [name: string]: unknown;
@@ -18701,15 +21754,6 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description RESSOURCE_INTROUVABLE — aucune ligne de paramétrage pour ce tenant. */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProblemeDetailCommunDto'];
-        };
-      };
     };
   };
   ParametresAtelierController_modifier: {
@@ -18808,8 +21852,8 @@ export interface operations {
           'application/json': components['schemas']['ProblemeDetailCommunDto'];
         };
       };
-      /** @description RESSOURCE_INTROUVABLE — aucune ligne de paramétrage pour ce tenant. */
-      404: {
+      /** @description FONCTION_NON_DISPONIBLE — le champ modifié dépend d'une fonctionnalité non livrée au lot 1. */
+      501: {
         headers: {
           [name: string]: unknown;
         };
@@ -18817,8 +21861,238 @@ export interface operations {
           'application/json': components['schemas']['ProblemeDetailCommunDto'];
         };
       };
-      /** @description FONCTION_NON_DISPONIBLE — le champ modifié dépend d'une fonctionnalité non livrée au lot 1. */
-      501: {
+    };
+  };
+  ParametresEntrepriseController_obtenir: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseParametresEntrepriseDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description DROIT_INSUFFISANT — réservé à direction/comptable. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  ParametresEntrepriseController_modifier: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          delaiPaiementJoursDefaut?: number;
+          numeroTva?: string | null;
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseParametresEntrepriseDto'];
+        };
+      };
+      /** @description VALIDATION_ECHOUEE — format ou clé de contrôle du n° TVA invalide. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description DROIT_INSUFFISANT — réservé à direction/comptable. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  LogoEntrepriseController_lire: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description L’image, avec son Content-Type. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'image/jpeg': components['schemas']['ProblemeDetailCommunDto'];
+          'image/png': components['schemas']['ProblemeDetailCommunDto'];
+          'image/svg+xml': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description DROIT_INSUFFISANT — réservé à direction/comptable. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'image/jpeg': components['schemas']['ProblemeDetailCommunDto'];
+          'image/png': components['schemas']['ProblemeDetailCommunDto'];
+          'image/svg+xml': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description RESSOURCE_INTROUVABLE — aucun logo déposé. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'image/jpeg': components['schemas']['ProblemeDetailCommunDto'];
+          'image/png': components['schemas']['ProblemeDetailCommunDto'];
+          'image/svg+xml': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  LogoEntrepriseController_deposer: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'multipart/form-data': {
+          /** Format: binary */
+          logo: string;
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseLogoEntrepriseDto'];
+        };
+      };
+      /** @description Fichier absent, vide ou format non reconnu (VALIDATION_ECHOUEE). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description DROIT_INSUFFISANT — réservé à direction/comptable. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Fichier de plus de 1 Mo. */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  LogoEntrepriseController_supprimer: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Logo supprimé (ou déjà absent). */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description DROIT_INSUFFISANT — réservé à direction/comptable. */
+      403: {
         headers: {
           [name: string]: unknown;
         };
@@ -18911,6 +22185,148 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  PhotosLigneController_telecharger: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'image/jpeg': components['schemas']['ProblemeDetailCommunDto'];
+          'image/png': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'image/jpeg': components['schemas']['ProblemeDetailCommunDto'];
+          'image/png': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Photo introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'image/jpeg': components['schemas']['ProblemeDetailCommunDto'];
+          'image/png': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  PhotosLigneController_supprimer: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Photo supprimée. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant, ou photo d’un autre pour un non-encadrement. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Photo introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description OR_LIGNE_VERROUILLEE — OR facturé ou clos. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  PhotosLigneController_telechargerVignette: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'image/jpeg': components['schemas']['ProblemeDetailCommunDto'];
+          'image/png': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'image/jpeg': components['schemas']['ProblemeDetailCommunDto'];
+          'image/png': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Photo introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'image/jpeg': components['schemas']['ProblemeDetailCommunDto'];
+          'image/png': components['schemas']['ProblemeDetailCommunDto'];
         };
       };
     };
@@ -20096,7 +23512,7 @@ export interface operations {
           'application/json': components['schemas']['ProblemeDetailCommunDto'];
         };
       };
-      /** @description CONFLIT — nouvelle période chevauchant une période valide existante du même code. */
+      /** @description CONFLIT — période déjà close (immuable), ou nouvelle période chevauchant une période valide existante du même code. */
       409: {
         headers: {
           [name: string]: unknown;
@@ -20947,6 +24363,55 @@ export interface operations {
         };
       };
       /** @description Filtres invalides ou période trop longue. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  RendezVousController_resumeSites: {
+    parameters: {
+      query: {
+        au: string;
+        du: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResumeSiteRendezVousDto'][];
+        };
+      };
+      /** @description Bornes invalides. */
       400: {
         headers: {
           [name: string]: unknown;
@@ -22815,6 +26280,17 @@ export interface operations {
           nom: string;
           prenom: string;
           /** @enum {string} */
+          prereglage?:
+            | 'admin'
+            | 'direction'
+            | 'vendeur'
+            | 'receptionnaire'
+            | 'chef_atelier'
+            | 'technicien'
+            | 'magasinier'
+            | 'comptable'
+            | 'fiduciaire';
+          /** @enum {string} */
           role:
             | 'admin'
             | 'direction'
@@ -22888,6 +26364,17 @@ export interface operations {
       content: {
         'application/json': {
           /** @enum {string} */
+          prereglage?:
+            | 'admin'
+            | 'direction'
+            | 'vendeur'
+            | 'receptionnaire'
+            | 'chef_atelier'
+            | 'technicien'
+            | 'magasinier'
+            | 'comptable'
+            | 'fiduciaire';
+          /** @enum {string} */
           role?:
             | 'admin'
             | 'direction'
@@ -22948,6 +26435,88 @@ export interface operations {
       };
     };
   };
+  UtilisateurController_modifierCapacites: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        utilisateurId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          encadrer?: boolean;
+          niveaux?: {
+            /** @enum {string} */
+            accueil?: 'rien' | 'voir' | 'faire';
+            /** @enum {string} */
+            atelier?: 'rien' | 'voir' | 'faire';
+            /** @enum {string} */
+            facturation?: 'rien' | 'voir' | 'faire';
+            /** @enum {string} */
+            finances?: 'rien' | 'voir' | 'faire';
+            /** @enum {string} */
+            pieces?: 'rien' | 'voir' | 'faire';
+            /** @enum {string} */
+            ventes?: 'rien' | 'voir' | 'faire';
+          };
+          options?: {
+            avoirsPlafonnes?: boolean;
+            voitMontants?: boolean;
+            voitPrixAchat?: boolean;
+          };
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UtilisateurResumeDto'];
+        };
+      };
+      /** @description Corps invalide (champ inconnu, niveau inconnu, corps vide). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant, grille supérieure à celle de l’appelant, auto-modification, ou cible plus puissante. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Employé introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
   UtilisateurController_desactiver: {
     parameters: {
       query?: never;
@@ -22976,7 +26545,11 @@ export interface operations {
           'application/json': components['schemas']['ProblemeDetailCommunDto'];
         };
       };
-      /** @description Droit insuffisant (rôle sans socle.utilisateur.desactiver). */
+      /**
+       * @description Cible plus puissante que l’appelant, ou compte admin par un non-admin.
+       *
+       *     Droit insuffisant (rôle sans socle.utilisateur.desactiver).
+       */
       403: {
         headers: {
           [name: string]: unknown;
@@ -22994,7 +26567,7 @@ export interface operations {
           'application/json': components['schemas']['ProblemeDetailCommunDto'];
         };
       };
-      /** @description Tentative de désactiver son propre compte. */
+      /** @description Tentative de désactiver son propre compte, ou dernier patron. */
       409: {
         headers: {
           [name: string]: unknown;
@@ -24976,6 +28549,76 @@ export interface operations {
         };
       };
       /** @description Véhicule introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  VehiculeTravailReporteController_creer: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        vehiculeId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          designation: string;
+          detail?: string;
+          montantEstimeCentimes?: number | null;
+          /** Format: uuid */
+          ordreReparationOrigineId?: string;
+          securite?: boolean;
+          /** @enum {string} */
+          urgence?: 'urgent' | 'a_faire' | 'a_surveiller';
+        };
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseTravailReporteDto'];
+        };
+      };
+      /** @description Corps invalide. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Véhicule ou ordre de réparation introuvable pour ce tenant. */
       404: {
         headers: {
           [name: string]: unknown;

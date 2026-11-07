@@ -141,6 +141,14 @@ export function formaterPieceWinbiz(reference: string): ChampTexteWinbiz {
   if (assaini.length <= LONGUEURS_CHAMPS_WINBIZ.piece) {
     return { valeur: assaini, tronque: false };
   }
+  // Pièce d'un paiement multi-factures (« FA-2026-00108+2 ») : le suffixe `+N` est discriminant,
+  // on tronque le numéro (par la droite de sa partie) et on garde le suffixe entier.
+  const suffixe = /\+\d+$/.exec(assaini)?.[0];
+  if (suffixe !== undefined && suffixe.length < LONGUEURS_CHAMPS_WINBIZ.piece) {
+    const base = assaini.slice(0, assaini.length - suffixe.length);
+    const place = LONGUEURS_CHAMPS_WINBIZ.piece - suffixe.length;
+    return { valeur: base.slice(base.length - place) + suffixe, tronque: true };
+  }
   return {
     valeur: assaini.slice(assaini.length - LONGUEURS_CHAMPS_WINBIZ.piece),
     tronque: true,

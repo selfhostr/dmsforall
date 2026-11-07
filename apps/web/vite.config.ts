@@ -65,6 +65,34 @@ function calculerInfoVersionWeb(racineDepot: string): string {
   return `${version}+${shaCourt}${modifie ? '+modifié' : ''}`;
 }
 
+const GROUPES_VENDORS: ReadonlyArray<readonly [string, readonly string[]]> = [
+  ['vendor-sentry', ['@sentry', '@sentry-internal']],
+  ['vendor-react', ['react', 'react-dom', 'scheduler']],
+  ['vendor-router', ['react-router', '@remix-run']],
+  ['vendor-tanstack', ['@tanstack']],
+  ['vendor-formulaires', ['react-hook-form', '@hookform', 'zod']],
+  ['vendor-ui', ['@radix-ui', 'radix-ui', '@base-ui', '@floating-ui']],
+  ['vendor-i18n', ['i18next', 'react-i18next']],
+];
+
+/** Nom du paquet npm d'un chemin `…/node_modules/<paquet>/…` (gère le scope et pnpm). */
+function paquetNpm(id: string): string | undefined {
+  const marque = '/node_modules/';
+  const debut = id.lastIndexOf(marque);
+  if (debut === -1) return undefined;
+  const segments = id.slice(debut + marque.length).split('/');
+  return segments[0]?.startsWith('@') ? `${segments[0]}/${segments[1] ?? ''}` : segments[0];
+}
+
+function regrouperVendors(id: string): string | undefined {
+  const paquet = paquetNpm(id);
+  if (paquet === undefined) return undefined;
+  for (const [chunk, paquets] of GROUPES_VENDORS) {
+    if (paquets.some((p) => paquet === p || paquet.startsWith(`${p}/`))) return chunk;
+  }
+  return undefined;
+}
+
 // Dev : proxy /api -> API NestJS locale (voir contrats-etape-0.md §0). En prod, le front est
 // servi derrière le même reverse proxy que l'API, aucun proxy Vite n'entre en jeu.
 export default defineConfig(({ mode }) => {
@@ -160,6 +188,23 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       sourcemap: true,
+      rollupOptions: {
+        // `@dfa/shared` est résolu vers ses sources par alias (donc hors `node_modules`), et Vite
+        // n'y applique pas son `"sideEffects": false`. Sans cette règle, Rollup garde chaque module
+        // du barrel (`export *`), donc tous les schémas zod, dans le chunk initial. Chaque module
+        // du paquet n'a que des exports purs : un module dont aucun export n'est utilisé est élagué.
+        treeshake: {
+          moduleSideEffects: (id) => !id.includes('/packages/shared/src/'),
+        },
+        output: {
+          // Vendors stables séparés du code applicatif : leur nom de fichier ne change qu'à la
+          // montée de version d'une dépendance, le navigateur les garde en cache d'une livraison
+          // à l'autre. `@sentry` n'a volontairement PAS de groupe ici hors de son propre chunk :
+          // il n'est atteint que par `import()` (observabilite/sentry.ts) et ne doit jamais être
+          // fusionné avec un vendor chargé au premier écran.
+          manualChunks: regrouperVendors,
+        },
+      },
     },
   };
 });

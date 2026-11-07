@@ -15,6 +15,7 @@ export function useListePrestations(): UseInfiniteQueryResult<
 > {
   const { resultat } = useListeCurseur<ReponsePrestation>({
     cle: clesParametrage.prestations.liste(),
+    fraicheur: 'referentiel',
     // `listerPrestations` attend `string | null` (« pas de curseur » y est écrit `null`) là où le
     // patron partagé écrit `undefined` — les deux sont traités à l'identique par cette API, qui
     // teste la valeur en truthiness.

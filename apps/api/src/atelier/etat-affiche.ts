@@ -6,7 +6,8 @@ import type {
   StatutOrdreReparation,
 } from '@dfa/shared';
 
-import { MATRICE_DROITS, type Action } from '../auth/matrice-droits';
+import { type Action } from '../auth/matrice-droits';
+import { actionsCourantes } from '../auth/droits-personne';
 
 /**
  * `etatAffiche` (contrats-api-etape-1.md §8.3) : le plus bloquant des trois drapeaux d'attente
@@ -136,7 +137,7 @@ export function calculerActionsDisponiblesPourRole(
   statut: StatutOrdreReparation,
   role: RoleUtilisateur,
 ): readonly ActionOrdreReparation[] {
-  const droitsDuRole: readonly Action[] = MATRICE_DROITS[role] ?? [];
+  const droitsDuRole: readonly Action[] = actionsCourantes(role);
   return calculerActionsDisponibles(statut).filter((action) =>
     droitsDuRole.includes(DROIT_PAR_ACTION[action]),
   );

@@ -1,4 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 
@@ -17,10 +19,15 @@ import { chemins } from '@/routes/chemins';
 import { formaterDate, formaterMontantAvecDevise } from '@/lib/formats';
 
 import { DialogueAjoutLigneOr } from './DialogueAjoutLigneOr';
-import { peutCreerLigneOr } from './droits';
+import { peutCreerLigneOr, peutValiderLigneOr } from './droits';
+import { peutPreterCourtoisie } from '@/ecrans/courtoisie/droits';
+
+import { BlocPretCourtoisieOr } from './BlocPretCourtoisieOr';
+import { BoutonVehiculeCourtoisieOr } from './BoutonVehiculeCourtoisieOr';
 import { EnTeteOrdreReparation } from './EnTeteOrdreReparation';
 import { ListeLignesOrdreReparation } from './ListeLignesOrdreReparation';
 import { PanneauActionsOr } from './PanneauActionsOr';
+import { PanneauTravauxReportesOr } from './PanneauTravauxReportesOr';
 
 /** Centièmes d'heure -> "1.50 h" — même formateur local que `ListeLignesOrdreReparation.tsx`
  *  (aucun helper partagé dans `lib/formats.ts` pour une durée de pointage, seulement pour
@@ -57,6 +64,7 @@ export function EcranFicheOrdreReparation() {
   const [searchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
 
+  const [ligneEnAttenteAjoutee, setLigneEnAttenteAjoutee] = useState(false);
   const requete = useOrdreReparation(orId);
 
   // Lot B — « le devis d'origine, la facture émise ». `listerDocumentsVente` (hooks/facturation/,
@@ -132,6 +140,11 @@ export function EcranFicheOrdreReparation() {
   }));
 
   const documentsLies = requeteDocuments.data?.donnees ?? [];
+  const actions = session.data?.actions;
+  // Lignes ajoutables et courtoisie utile tant que l'OR n'est ni facturé ni clos.
+  const ouvertAuxTravaux = !['termine', 'facture', 'restitue', 'cloture', 'annule'].includes(
+    or.statut,
+  );
 
   return (
     <GabaritEcran titre={t('or:titre')} titreVisible={false}>
@@ -142,25 +155,55 @@ export function EcranFicheOrdreReparation() {
           <CardTitle className="texte-titre-section">{t('or:actions.titre')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <PanneauActionsOr or={or} />
+          <div className="flex flex-col gap-3">
+            <PanneauActionsOr or={or} />
+            {ouvertAuxTravaux && peutPreterCourtoisie(actions) ? (
+              <div className="flex flex-wrap gap-2">
+                <BoutonVehiculeCourtoisieOr orId={or.id} clientId={or.client.id} />
+              </div>
+            ) : null}
+            <BlocPretCourtoisieOr orId={or.id} />
+          </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
           <CardTitle className="texte-titre-section">{t('or:lignes.titre')}</CardTitle>
-          {peutCreerLigneOr(session.data?.utilisateur.role) ? (
-            <DialogueAjoutLigneOr orId={or.id} siteId={or.siteId} />
+          {peutCreerLigneOr(session.data?.actions) ? (
+            <DialogueAjoutLigneOr
+              orId={or.id}
+              siteId={or.siteId}
+              onAjoutee={(ligne) => setLigneEnAttenteAjoutee(ligne.statut === 'proposee')}
+            />
           ) : null}
         </CardHeader>
         <CardContent>
+          {/* Un travail constaté entre « Proposée » : le technicien doit savoir où il en est (ni
+           *  refusé, ni validé) et qui doit agir ensuite — le bureau voit la ligne sur cet OR. */}
+          {ligneEnAttenteAjoutee ? (
+            <p role="status" className="mb-3 flex items-center gap-2 texte-corps text-foreground">
+              <Clock aria-hidden className="h-4 w-4 shrink-0 text-statut-attention" />
+              {t(
+                peutValiderLigneOr(session.data?.actions)
+                  ? 'or:lignes.attenteAccord.ajouteeBureau'
+                  : 'or:lignes.attenteAccord.ajouteeAtelier',
+              )}
+            </p>
+          ) : null}
           <ListeLignesOrdreReparation
             orId={or.id}
             lignes={or.lignes}
             lignesTronquees={or.lignesTronquees}
+            plafondCentimes={or.plafondCentimes ?? 0}
+            vehiculeId={or.vehicule.id}
           />
         </CardContent>
       </Card>
+
+      {ouvertAuxTravaux && peutCreerLigneOr(actions) ? (
+        <PanneauTravauxReportesOr orId={or.id} vehiculeId={or.vehicule.id} />
+      ) : null}
 
       {/* Regroupement en grille large plutôt qu'empilement (« un écran est plus large que
        *  haut ») : ces quatre cartes sont des blocs d'information COURTS (liste/`dl`), jamais un

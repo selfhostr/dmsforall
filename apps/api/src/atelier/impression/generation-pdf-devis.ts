@@ -38,11 +38,18 @@ const MARGE_DROITE_PT = 555;
 function dessinerEnTete(doc: PDFKit.PDFDocument, d: DonneesImpressionDevis): void {
   const l = d.libelles;
 
-  doc.fontSize(9).fillColor('#333333');
-  doc.text(d.garageRaisonSociale, MARGE_PT, MARGE_PT);
-  if (d.garageSiteNom) doc.text(d.garageSiteNom);
-  if (d.garageAdresseLigne1) doc.text(d.garageAdresseLigne1);
-  if (d.garageAdresseLigne2) doc.text(d.garageAdresseLigne2);
+  for (const [i, ligne] of [
+    d.garageRaisonSociale,
+    d.garageSiteNom,
+    d.garageAdresseLigne1,
+    d.garageAdresseLigne2,
+    d.garageNumeroTva,
+  ]
+    .filter((x): x is string => !!x)
+    .entries()) {
+    if (i === 0) doc.fontSize(9).fillColor('#333333').text(ligne, MARGE_PT, MARGE_PT);
+    else doc.text(ligne);
+  }
 
   doc
     .fillColor('#000000')

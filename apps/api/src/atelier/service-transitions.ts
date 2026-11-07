@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
+import { MOTIFS_KILOMETRAGE_REGRESSIF } from '@dfa/shared';
 import type {
   ElementBloquant,
   EntreeActionAnnuler,
@@ -16,6 +17,7 @@ import type {
   RoleUtilisateur,
 } from '@dfa/shared';
 
+import { droitsDuPrincipal } from '../auth/droits-personne';
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
 import {
   auditAtelier,
@@ -44,7 +46,7 @@ import {
 } from './references';
 import { calculerRestitutionAmorcee } from './restitution-amorcage';
 import { ServiceOr, estOrVerrouille } from './service-or';
-import { traduireErreurTransition } from './traducteur-transition';
+import { libelleStatutOr, traduireErreurTransition } from './traducteur-transition';
 
 /**
  * Les 11 actions de transition de l'OR (§7.7) — chacune : gardes conditionnelles couche 4 (§3.3
@@ -83,7 +85,8 @@ export class ServiceTransitions {
         // Drizzle ; un relevé existant SANS valeur km comparable n'a rien à opposer à la saisie —
         // c'est le même cas métier qu'« aucun relevé antérieur », pas un relevé à zéro km.
         const dernierKm = dernier?.valeurKm ?? null;
-        if (dernierKm !== null && kmKm < dernierKm) {
+        const regressif = dernierKm !== null && kmKm < dernierKm;
+        if (regressif && !entree.motifKilometrageRegressif) {
           throw new ErreurMetier(
             'VEHICULE_KILOMETRAGE_REGRESSIF',
             'Le kilométrage saisi est inférieur au dernier relevé connu.',
@@ -99,17 +102,21 @@ export class ServiceTransitions {
               actionsProposees: [
                 {
                   code: 'FOURNIR_MOTIF',
-                  parametres: {
-                    motifsAcceptes: [
-                      'compteur_remplace',
-                      'erreur_saisie',
-                      'changement_unite',
-                      'correction',
-                    ],
-                  },
+                  parametres: { motifsAcceptes: MOTIFS_KILOMETRAGE_REGRESSIF },
                 },
               ],
             },
+          );
+        }
+        // Branche régressive AVEC motif : c'est une CORRECTION, pas une saisie normale — même droit
+        // fort que `POST /vehicules/{id}/kilometrages` (`service-vehicule-kilometrage.ts`).
+        if (
+          regressif &&
+          !droitsDuPrincipal(principal).actions.includes('vehicule.kilometrage.corriger_regression')
+        ) {
+          throw new ErreurMetier(
+            'DROIT_INSUFFISANT',
+            `Le rôle "${principal.role}" n'a pas le droit de corriger un kilométrage régressif (RM-24).`,
           );
         }
 
@@ -153,6 +160,7 @@ export class ServiceTransitions {
           unite: entree.unite,
           releveLe: maintenant,
           source: 'reception',
+          motifRegression: regressif ? (entree.motifKilometrageRegressif ?? null) : null,
           ordreReparationId: orId,
           saisiParId: principal.utilisateurId,
         });
@@ -277,7 +285,8 @@ export class ServiceTransitions {
     );
   }
 
-  /** T-13 `controle -> termine`. Garde I-09 : un contrôle qualité ne clôt pas un pointage ouvert. */
+  /** T-13 `controle -> termine`. Gardes I-09 (pointage ouvert) et I-10 (lignes non réalisées) :
+   *  mêmes refus que `terminer`, sans quoi le détour par le contrôle contournerait I-10. */
   async validerControle(
     ctx: ContexteTenant,
     principal: PrincipalAuthentifie,
@@ -289,6 +298,7 @@ export class ServiceTransitions {
       orId,
       async (tx, or) => {
         await this.verifierPointageOuvert(tx, ctx, orId);
+        await this.verifierLignesNonRealisees(tx, ctx, orId, principal.role);
         const maintenant = this.horloge.maintenant();
         await this.transitionner(tx, or, 'termine', { termineLe: maintenant });
         await tx.insert(orControleQualite).values({
@@ -395,9 +405,9 @@ export class ServiceTransitions {
         if (or.statut !== 'termine') {
           throw new ErreurMetier(
             'OR_TRANSITION_INTERDITE',
-            `Transition ${or.statut} → en_cours interdite : rouvrir (T-15) n'est valide que depuis « termine ».`,
+            `Impossible de rouvrir cet OR : il est « ${libelleStatutOr(or.statut)} ».`,
             {
-              detail: `entite=ordre_reparation;depuis=${or.statut};vers=en_cours`,
+              detail: `L'OR est « ${libelleStatutOr(or.statut)} » : il ne peut être rouvert que depuis « ${libelleStatutOr('termine')} ».`,
               blocages: [
                 {
                   type: 'ordre_reparation',
@@ -451,7 +461,24 @@ export class ServiceTransitions {
         if (parametres.mentionSecurite === 'obligatoire') {
           const lignes = await listerLignesOr(tx, ctx, orId);
           const refuseesSecurite = lignes.filter((l) => l.securite && l.statut === 'refusee');
-          if (refuseesSecurite.length > 0) {
+          if (refuseesSecurite.length > 0 && entree.reserveSecuriteSignee) {
+            // Réponse à `SIGNER_RESERVE_SECURITE` : la signature elle-même n'est pas stockée par
+            // l'API, la déclaration (qui, quand, quelles lignes) est tracée au journal de l'OR.
+            const { signataireNom, signeLe } = entree.reserveSecuriteSignee;
+            await tx.insert(auditAtelier).values({
+              tenantId: ctx.tenantId,
+              entite: 'ordre_reparation',
+              entiteId: orId,
+              action: 'transition',
+              champ: 'motif',
+              valeurApres:
+                `Réserve de sécurité signée par ${signataireNom}` +
+                (signeLe ? ` (${signeLe})` : '') +
+                ` — lignes refusées : ${refuseesSecurite.map((l) => String(l.numeroOrdre)).join(', ')}.`,
+              utilisateurId: principal.utilisateurId,
+              requeteId: ctx.requeteId,
+            });
+          } else if (refuseesSecurite.length > 0) {
             throw new ErreurMetier(
               'OR_RESERVE_SECURITE_REQUISE',
               'Une réserve de sécurité doit être signée avant restitution (§6.12).',
@@ -710,7 +737,8 @@ export class ServiceTransitions {
     );
   }
 
-  /** I-10 : refuse tant qu'une ligne validée n'a pas été exécutée. */
+  /** I-10 : refuse tant qu'une ligne validée ou en cours (pointage arrêté, ligne pas réalisée)
+   *  n'a pas été marquée réalisée. Commun à `terminer` et `validerControle`. */
   private async verifierLignesNonRealisees(
     tx: TransactionDfa,
     ctx: ContexteTenant,
@@ -724,7 +752,7 @@ export class ServiceTransitions {
         and(
           eq(ligneOr.tenantId, ctx.tenantId),
           eq(ligneOr.ordreReparationId, orId),
-          eq(ligneOr.statut, 'validee'),
+          inArray(ligneOr.statut, ['validee', 'en_cours']),
         ),
       );
     if (lignes.length === 0) return;
@@ -734,6 +762,9 @@ export class ServiceTransitions {
       'OR_LIGNE_NON_REALISEE',
       "Des lignes validées n'ont pas été réalisées (I-10).",
       {
+        detail:
+          `${String(lignes.length)} ligne(s) validée(s) ou en cours ne sont pas marquées réalisées. ` +
+          'Marquez-les réalisées (le pointage seul ne réalise pas une ligne), puis recommencez.',
         blocages: lignes.slice(0, 50).map((l) => this.blocageLigne(l, voitMontants)),
         actionsProposees: [{ code: 'MARQUER_LIGNES_REALISEES' }],
       },
@@ -799,6 +830,9 @@ export class ServiceTransitions {
       donnees: {
         numeroLigne: ligne.numeroOrdre,
         origine: ligne.origine,
+        statut: ligne.statut,
+        type: ligne.type,
+        statutActuel: ligne.statut,
         ...(voitMontants ? { totalTtcCentimes: ligne.montantTtcCentimes } : {}),
       },
     };

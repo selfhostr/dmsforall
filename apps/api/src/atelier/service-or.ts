@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, eq, exists, gte, inArray, isNull, lte, or, sql, type SQL } from 'drizzle-orm';
+import { and, eq, exists, gte, inArray, isNull, lte, or, sql } from 'drizzle-orm';
 import type {
   AttentesOr,
+  OrdreReparationResumeListe,
   ClientResume,
   EntreeCreationOrdreReparation,
   EntreeDemandeOrdreReparation,
@@ -10,6 +11,7 @@ import type {
   FiltresOrdresReparation,
   ReponseAvecAvertissements,
   ReponseEntreeJournal,
+  ReponseDevisComplementaire,
   ReponseOrdreReparation,
   ReponseOrdreReparationDemande,
   TotauxPayeurOr,
@@ -23,9 +25,12 @@ import {
   ordreReparationDemande,
   vehiculePlaque,
   type LigneLigneOr,
+  type LigneOrControleQualite,
   type LigneOrdreReparation,
+  type LigneVehicule,
+  type LigneVehiculePlaque,
 } from '../db/schema';
-import { MATRICE_DROITS } from '../auth/matrice-droits';
+import { droitsDuPrincipal } from '../auth/droits-personne';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
 import { calculerNomAffiche } from '../common/identite-client';
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
@@ -38,6 +43,15 @@ import {
   type ResultatIdempotent,
   type ServiceIdempotence,
 } from '../common/idempotence';
+import {
+  construireConditionKeyset,
+  construireOrderBy,
+  decoderCurseurPourTri,
+  encoderCurseurTrie,
+  expressionTriValeur,
+  valeurCurseurDepuisTri,
+  type DefinitionTri,
+} from '../common/pagination';
 import { debutJourneeSuisse, finJourneeSuisse } from '../common/temps';
 import { JETON_COMPTEURS } from '../parametrage/compteurs/compteurs.jetons';
 import type { ServiceCompteurs } from '../parametrage/compteurs/compteurs.types';
@@ -46,6 +60,14 @@ import { JETON_LECTURE_POINTAGE, type LecturePointage } from './atelier.jetons';
 import { verifierConfirmation } from './confirmations';
 import { calculerActionsDisponiblesPourRole, calculerEtatAffiche } from './etat-affiche';
 import { convertirEnKm } from './kilometrage';
+import {
+  chargerLotListeOr,
+  chargerLotResumeListeOr,
+  exigerClient,
+  exigerClientListe,
+  exigerVehicule,
+  exigerVehiculeListe,
+} from './liste-or-lot';
 import { mapperDemande, mapperDevis, mapperLigneOr, roleVoitLesMontants } from './mappeurs';
 import { estRestitutionEnRetard } from './restitution-retard';
 import {
@@ -68,6 +90,7 @@ import {
   chargerVehiculeLigne,
   construireVehiculeResume,
   versClientResume,
+  type ResumeUtilisateur,
 } from './references';
 import { ServiceSnapshotOr } from './service-snapshot-or';
 import { calculerTotauxParPayeur, STATUTS_EXCLUS_DES_TOTAUX } from './totaux-payeur';
@@ -121,157 +144,170 @@ export class ServiceOr {
     return this.idempotence.executer(
       ctx,
       { methode: 'POST', chemin: '/ordres-reparation', cle: cleIdempotence, corps: entree },
-      async (tx) => {
-        const clientLigne = await chargerClientLigne(tx, ctx, entree.clientId);
-        if (clientLigne.statut === 'bloque') {
-          verifierConfirmation('CLIENT_BLOQUE', principal.role, entree.confirmations);
-        }
-        await chargerVehiculeLigne(tx, ctx, entree.vehiculeId);
+      async (tx) => ({
+        statutHttp: 201,
+        corps: { donnees: await this.creerTx(tx, ctx, principal, entree), avertissements: [] },
+      }),
+    );
+  }
 
-        const parametres = await chargerParametresAtelier(tx, ctx);
+  /**
+   * Cœur transactionnel de `creer()` SANS enveloppe d'idempotence — réutilisé par
+   * `POST /ordres-reparation/creation-rapide` (client + véhicule + OR dans une seule transaction).
+   */
+  async creerTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    entree: EntreeCreationOrdreReparation,
+  ): Promise<ReponseOrdreReparation> {
+    const clientLigne = await chargerClientLigne(tx, ctx, entree.clientId);
+    if (clientLigne.statut === 'bloque') {
+      verifierConfirmation('CLIENT_BLOQUE', principal.role, entree.confirmations);
+    }
+    await chargerVehiculeLigne(tx, ctx, entree.vehiculeId);
 
-        if (parametres.deuxOrMemeVehicule !== 'autoriser') {
-          const orsOuverts = await tx
-            .select({ id: ordreReparation.id })
-            .from(ordreReparation)
-            .where(
-              and(
-                eq(ordreReparation.tenantId, ctx.tenantId),
-                eq(ordreReparation.vehiculeId, entree.vehiculeId),
-                inArray(ordreReparation.statut, [...STATUTS_OR_ACTIFS]),
-              ),
-            );
-          if (orsOuverts.length > 0) {
-            if (parametres.deuxOrMemeVehicule === 'bloquer') {
-              throw new ErreurMetier(
-                'CONFLIT',
-                'Un ordre de réparation est déjà ouvert sur ce véhicule.',
-                {
-                  blocages: orsOuverts.map((o) => ({
-                    type: 'ordre_reparation' as const,
-                    id: o.id,
-                    libelle: 'OR déjà ouvert',
-                  })),
-                  actionsProposees: [{ code: 'RAFRAICHIR' }],
-                },
-              );
-            }
-            verifierConfirmation('VEHICULE_DEUX_OR_OUVERTS', principal.role, entree.confirmations);
-          }
-        }
+    const parametres = await chargerParametresAtelier(tx, ctx);
 
-        if (!parametres.orSansRdvAutorise && !entree.rendezVousId) {
-          verifierConfirmation('OR_SANS_RDV', principal.role, entree.confirmations);
-        }
-
-        if (entree.statutInitial === 'planifie' && !parametres.etatPlanifieActif) {
+    if (parametres.deuxOrMemeVehicule !== 'autoriser') {
+      const orsOuverts = await tx
+        .select({ id: ordreReparation.id })
+        .from(ordreReparation)
+        .where(
+          and(
+            eq(ordreReparation.tenantId, ctx.tenantId),
+            eq(ordreReparation.vehiculeId, entree.vehiculeId),
+            inArray(ordreReparation.statut, [...STATUTS_OR_ACTIFS]),
+          ),
+        );
+      if (orsOuverts.length > 0) {
+        if (parametres.deuxOrMemeVehicule === 'bloquer') {
           throw new ErreurMetier(
-            'VALIDATION_ECHOUEE',
-            "L'état « planifié » n'est pas activé pour ce garage (P-22).",
+            'CONFLIT',
+            'Un ordre de réparation est déjà ouvert sur ce véhicule.',
             {
-              erreurs: [
-                {
-                  champ: 'statutInitial',
-                  code: 'etat_planifie_inactif',
-                  message: 'État planifié désactivé.',
-                },
-              ],
+              blocages: orsOuverts.map((o) => ({
+                type: 'ordre_reparation' as const,
+                id: o.id,
+                libelle: 'OR déjà ouvert',
+              })),
+              actionsProposees: [{ code: 'RAFRAICHIR' }],
             },
           );
         }
+        verifierConfirmation('VEHICULE_DEUX_OR_OUVERTS', principal.role, entree.confirmations);
+      }
+    }
 
-        const kilometrageEntreeKm =
-          entree.kilometrageEntree != null
-            ? convertirEnKm(entree.kilometrageEntree, entree.uniteKilometrage)
-            : null;
+    if (!parametres.orSansRdvAutorise && !entree.rendezVousId) {
+      verifierConfirmation('OR_SANS_RDV', principal.role, entree.confirmations);
+    }
 
-        if (
-          entree.statutInitial === 'ouvert' &&
-          parametres.kmEntreeObligatoire &&
-          kilometrageEntreeKm === null
-        ) {
-          throw new ErreurMetier(
-            'OR_KM_ENTREE_REQUIS',
-            "Le kilométrage d'entrée est obligatoire à la réception (RM-51).",
-          );
-        }
+    if (entree.statutInitial === 'planifie' && !parametres.etatPlanifieActif) {
+      throw new ErreurMetier(
+        'VALIDATION_ECHOUEE',
+        "L'état « planifié » n'est pas activé pour ce garage (P-22).",
+        {
+          erreurs: [
+            {
+              champ: 'statutInitial',
+              code: 'etat_planifie_inactif',
+              message: 'État planifié désactivé.',
+            },
+          ],
+        },
+      );
+    }
 
-        const maintenant = this.horloge.maintenant();
-        const snapshot = await this.snapshot.capturer(
-          tx,
-          ctx,
-          entree.clientId,
-          entree.vehiculeId,
-          maintenant,
-        );
-        const numero = await this.genererNumero(tx, ctx, entree.siteId, parametres, maintenant);
+    const kilometrageEntreeKm =
+      entree.kilometrageEntree != null
+        ? convertirEnKm(entree.kilometrageEntree, entree.uniteKilometrage)
+        : null;
 
-        const [ligne] = await tx
-          .insert(ordreReparation)
-          .values({
-            tenantId: ctx.tenantId,
-            numero,
-            siteId: entree.siteId,
-            type: entree.type,
-            statut: entree.statutInitial,
-            clientId: entree.clientId,
-            vehiculeId: entree.vehiculeId,
-            clientDesignationFigee: snapshot.clientDesignationFigee,
-            adresseFacturationFigee: snapshot.adresseFacturationFigee,
-            conditionsFigees: snapshot.conditionsFigees ?? {},
-            plaqueFigee: snapshot.plaqueFigee,
-            detenteurFigeClientId: snapshot.detenteurFigeClientId,
-            conducteurPresentNom: entree.conducteurPresentNom ?? null,
-            kmEntree: kilometrageEntreeKm,
-            plafondCentimes: entree.plafondCentimes ?? null,
-            plafondAutorisePar: entree.plafondAutorisePar ?? null,
-            restitutionPromiseLe: entree.restitutionPromiseLe
-              ? new Date(entree.restitutionPromiseLe)
-              : null,
-            restitutionInitialeLe: entree.restitutionPromiseLe
-              ? new Date(entree.restitutionPromiseLe)
-              : null,
-            ordreReparationParentId: entree.ordreReparationParentId ?? null,
-            motifLien: entree.motifLien ?? null,
-            rendezVousId: entree.rendezVousId ?? null,
-            numeroCommandeInterne: entree.numeroCommandeInterne ?? null,
-            receptionnaireId: principal.utilisateurId,
-            ouvertLe: entree.statutInitial === 'ouvert' ? maintenant : null,
-          })
-          .returning();
-        if (!ligne) {
-          throw new ErreurMetier(
-            'ERREUR_INTERNE',
-            "L'insertion de l'ordre de réparation n'a rendu aucune ligne.",
-          );
-        }
+    if (
+      entree.statutInitial === 'ouvert' &&
+      parametres.kmEntreeObligatoire &&
+      kilometrageEntreeKm === null
+    ) {
+      throw new ErreurMetier(
+        'OR_KM_ENTREE_REQUIS',
+        "Le kilométrage d'entrée est obligatoire à la réception (RM-51).",
+      );
+    }
 
-        let ordreDemande = 1;
-        for (const demande of entree.demandes) {
-          // eslint-disable-next-line no-await-in-loop -- append-only, ordre strictement croissant
-          await tx.insert(ordreReparationDemande).values({
-            tenantId: ctx.tenantId,
-            ordreReparationId: ligne.id,
-            ordre: ordreDemande++,
-            verbatim: demande.verbatim,
-            saisiParId: principal.utilisateurId,
-          });
-        }
-
-        if (ligne.statut === 'ouvert') {
-          await this.evenements.publier(tx, ctx, {
-            type: 'ordre_reparation.ouvert',
-            versionSchema: 1,
-            siteId: entree.siteId,
-            ressource: { type: 'ordre_reparation', id: ligne.id, numero },
-            donnees: { statut: 'ouvert' },
-          });
-        }
-
-        const document = await this.assemblerDocument(tx, ctx, principal.role, ligne.id);
-        return { statutHttp: 201, corps: { donnees: document, avertissements: [] } };
-      },
+    const maintenant = this.horloge.maintenant();
+    const snapshot = await this.snapshot.capturer(
+      tx,
+      ctx,
+      entree.clientId,
+      entree.vehiculeId,
+      maintenant,
     );
+    const numero = await this.genererNumero(tx, ctx, entree.siteId, parametres, maintenant);
+
+    const [ligne] = await tx
+      .insert(ordreReparation)
+      .values({
+        tenantId: ctx.tenantId,
+        numero,
+        siteId: entree.siteId,
+        type: entree.type,
+        statut: entree.statutInitial,
+        clientId: entree.clientId,
+        vehiculeId: entree.vehiculeId,
+        clientDesignationFigee: snapshot.clientDesignationFigee,
+        adresseFacturationFigee: snapshot.adresseFacturationFigee,
+        conditionsFigees: snapshot.conditionsFigees ?? {},
+        plaqueFigee: snapshot.plaqueFigee,
+        detenteurFigeClientId: snapshot.detenteurFigeClientId,
+        conducteurPresentNom: entree.conducteurPresentNom ?? null,
+        kmEntree: kilometrageEntreeKm,
+        plafondCentimes: entree.plafondCentimes ?? null,
+        plafondAutorisePar: entree.plafondAutorisePar ?? null,
+        restitutionPromiseLe: entree.restitutionPromiseLe
+          ? new Date(entree.restitutionPromiseLe)
+          : null,
+        restitutionInitialeLe: entree.restitutionPromiseLe
+          ? new Date(entree.restitutionPromiseLe)
+          : null,
+        ordreReparationParentId: entree.ordreReparationParentId ?? null,
+        motifLien: entree.motifLien ?? null,
+        rendezVousId: entree.rendezVousId ?? null,
+        numeroCommandeInterne: entree.numeroCommandeInterne ?? null,
+        receptionnaireId: principal.utilisateurId,
+        ouvertLe: entree.statutInitial === 'ouvert' ? maintenant : null,
+      })
+      .returning();
+    if (!ligne) {
+      throw new ErreurMetier(
+        'ERREUR_INTERNE',
+        "L'insertion de l'ordre de réparation n'a rendu aucune ligne.",
+      );
+    }
+
+    let ordreDemande = 1;
+    for (const demande of entree.demandes) {
+      // eslint-disable-next-line no-await-in-loop -- append-only, ordre strictement croissant
+      await tx.insert(ordreReparationDemande).values({
+        tenantId: ctx.tenantId,
+        ordreReparationId: ligne.id,
+        ordre: ordreDemande++,
+        verbatim: demande.verbatim,
+        saisiParId: principal.utilisateurId,
+      });
+    }
+
+    if (ligne.statut === 'ouvert') {
+      await this.evenements.publier(tx, ctx, {
+        type: 'ordre_reparation.ouvert',
+        versionSchema: 1,
+        siteId: entree.siteId,
+        ressource: { type: 'ordre_reparation', id: ligne.id, numero },
+        donnees: { statut: 'ouvert' },
+      });
+    }
+
+    return this.assemblerDocument(tx, ctx, principal.role, ligne.id);
   }
 
   async obtenirComplet(
@@ -352,12 +388,12 @@ export class ServiceOr {
       // CETTE requête précise touche réellement le plafond. Contrôle posé ICI, avant toute
       // écriture, uniquement quand la valeur change effectivement (renvoyer la valeur déjà en
       // place n'est pas une modification) — même idiome que `GardeDroit.canActivate`
-      // (`MATRICE_DROITS[role] ?? []`, `.includes(action)`).
+      // (`actionsCourantes(role)`, `.includes(action)`).
       const modifiePlafond =
         entree.plafondCentimes !== undefined &&
         entree.plafondCentimes !== (ligne.plafondCentimes ?? undefined);
       if (modifiePlafond) {
-        const droitsDuRole = MATRICE_DROITS[principal.role] ?? [];
+        const droitsDuRole = droitsDuPrincipal(principal).actions;
         if (!droitsDuRole.includes('atelier.or.plafond_modifier')) {
           throw new ErreurMetier(
             'DROIT_INSUFFISANT',
@@ -635,15 +671,13 @@ export class ServiceOr {
    * que reconduit à l'identique (câbler `ouvertLe:desc` proprement, y compris comme valeur par
    * défaut, fait partie du périmètre de ce correctif).
    *
-   * Cohérence du CURSEUR (offset opaque, `decoderCurseurOffset`/`encoderCurseurOffset`, partagé
-   * avec `service-ligne-or.ts`/`service-devis.ts`/`service-documents.ts` — pas touché ici) : un
-   * curseur d'offset exige un ORDER BY qui soit un ORDRE TOTAL déterministe, sinon Postgres peut
-   * réordonner les ex æquo différemment entre deux exécutions et la page 2 saute ou répète des
-   * lignes SANS qu'aucune écriture concurrente n'ait eu lieu. L'ancien tiebreak `creeLe desc`
-   * n'était pas garanti unique (deux OR ouverts dans la même transaction batch, même seconde) ;
-   * `construireOrdreTri` ajoute désormais `id asc` comme DERNIER critère, sur TOUTES les branches
-   * (y compris le défaut) — `id` est la clé primaire, donc unique par construction, ce qui rend
-   * l'ordre total quel que soit le nombre d'ex æquo sur la colonne de tri principale.
+   * CURSEUR (keyset, depuis le correctif de performance des listes) : curseur opaque v2
+   * (`common/pagination`, `construireConditionKeyset`) qui encode la valeur de la clé de tri ET
+   * l'`id` de la dernière ligne — coût constant quelle que soit la profondeur de page, aucune
+   * ligne sautée ni répétée si un OR est créé entre deux requêtes. `construireOrderBy` départage
+   * par `id` DANS LE SENS du tri (la comparaison ROW du keyset l'exige), clé primaire donc ordre
+   * total. Un curseur de l'ancien format (offset), forgé, ou émis pour un autre `tri` rend
+   * `400 VALIDATION_ECHOUEE` (`curseur_invalide`), comme tout curseur illisible du dépôt.
    *
    * `joursAttenteRetrait:desc` (choix produit, 12.08.2026) — lecture ATELIER, pas lecture client :
    * « la voiture est prête, elle occupe une place, le client ne vient pas la chercher ». Le décompte
@@ -702,166 +736,317 @@ export class ServiceOr {
     curseur: string | undefined,
   ): Promise<{ donnees: readonly ReponseOrdreReparation[]; curseurSuivant: string | null }> {
     return this.acces.enTenant(ctx, async (tx) => {
-      const conditions = [eq(ordreReparation.tenantId, ctx.tenantId)];
-      if (filtres.siteId) conditions.push(eq(ordreReparation.siteId, filtres.siteId));
-      if (filtres.clientId) conditions.push(eq(ordreReparation.clientId, filtres.clientId));
-      if (filtres.vehiculeId) conditions.push(eq(ordreReparation.vehiculeId, filtres.vehiculeId));
-      // `q` (#defaut-recherche-or, 14.08.2026) : DÉSORMAIS appliqué — voir la doctrine complète au
-      // JSDoc de tête de `lister()`. Comparaison à `undefined`, jamais à la véracité : `q` est déjà
-      // `trim().min(1)` côté schéma zod (`schemaFiltresOrdresReparation`), donc une chaîne vide ne
-      // peut structurellement pas arriver ici, mais on ne suppose jamais ce qu'un schéma amont a
-      // déjà garanti (même garde-fou que `ServiceRecherche.rechercher`).
-      if (filtres.q !== undefined && !/[\p{L}\p{N}]/u.test(filtres.q)) {
-        // Garde-fou IDENTIQUE à `ServiceRecherche.rechercher` (recherche/service-recherche.ts) : un
-        // terme sans AUCUNE lettre ni chiffre (ex. `---`, encore possible après le `trim().min(1)`
-        // du schéma) normaliserait vers une chaîne VIDE côté `public.normaliser_recherche()`, et
-        // `like '%%'` matcherait ALORS TOUT LE TENANT — l'exact inverse du défaut corrigé ici (un
-        // filtre qui, au lieu d'être silencieusement ignoré, deviendrait une fuite totale). On ne
-        // devine jamais ce que `normaliser_recherche` va produire pour un cas qu'on peut refuser
-        // structurellement : `false` rend explicitement AUCUN résultat, jamais la liste entière.
-        conditions.push(sql`false`);
-      } else if (filtres.q !== undefined) {
-        const motif = `%${filtres.q}%`;
-        // Trois branches, une SEULE normalisation (`public.normaliser_recherche()`, migration 0003
-        // §2) — jamais réimplémentée en TypeScript (même doctrine que
-        // `recherche/utilitaires-recherche.ts`, tête de fichier : deux normalisations divergentes
-        // produiraient des résultats manquants indébogables).
-        //
-        // 1. Numéro d'OR : condition DIRECTE sur `ordre_reparation.numero`, servie par
-        //    `ordre_reparation_numero_recherche_idx` (GIN trigram, migration 0013).
-        //
-        // 2. Plaque : sur la plaque COURANTE (`vehicule_plaque.au is null`) — le CHAMP AFFICHÉ par
-        //    cette même liste (`assemblerDocument` → `chargerPlaqueCourante`), jamais une plaque
-        //    historique. Une recherche par plaque HISTORIQUE existe déjà par ailleurs
-        //    (`recherche/service-recherche.ts::chercherVehicules`, périmètre distinct, hors de
-        //    cette collection) — chercher l'historique ICI AUSSI redéfinirait silencieusement ce
-        //    que « la plaque » désigne pour cette liste précise, jamais tranché par le contrat.
-        //    Écrite en `vehiculeId IN (sous-requête NON CORRÉLÉE)`, PAS en `exists(...)` corrélé
-        //    (à la différence de `technicienId` ci-dessus) : la sous-requête ne référence QUE
-        //    `vehicule_plaque`, donc `ordre_reparation.vehicule_id = any(...)` reste indexable par
-        //    `ordre_reparation_vehicule_idx` (migration 0008) et peut entrer dans un `BitmapOr` aux
-        //    côtés de la branche 1 — un `exists(...)` corrélé ne le peut JAMAIS pour un `OR`
-        //    multi-tables (raison documentée dans le détail par migration 0013, section « AUTRES
-        //    LACUNES »). Servie, côté sous-requête, par `vehicule_plaque_recherche_idx` (GIN
-        //    trigram, migration 0007).
-        //
-        // 3. Nom du client : MÊME expression EXACTE que `clients/service-client.ts::lister`
-        //    (`coalesce(raison_sociale, nom || ' ' || coalesce(prenom, ''))`) — same réutilisation
-        //    volontaire que la plaque ci-dessus, `clientId IN (sous-requête non corrélée)`, servie
-        //    par `client_recherche_idx` (GIN trigram, migration 0006).
-        //
-        // INDEX : AUCUN nouveau nécessaire — les trois existent déjà (0006/0007/0013), chacun posé
-        // pour cette exacte expression. Ce qui reste non résolu, SIGNALÉ plutôt que masqué (rapport
-        // de livraison) : combiner les trois branches par `OR` empêche Postgres de fusionner leurs
-        // plans en un seul `BitmapOr` sur `ordre_reparation` (les branches 2/3 filtrent d'abord une
-        // AUTRE table) — la requête retombe donc en `Seq Scan` sur `ordre_reparation` dès que `q`
-        // est fourni, avec deux sous-requêtes indexées (rapides) évaluées par ligne balayée. Correct
-        // fonctionnellement, mais PAS optimal au grand volume — même limite, déjà documentée pour
-        // les mêmes trois axes, par `migrations/0013…sql` (section « AUTRES LACUNES DU MÊME
-        // GENRE ») pour `service-client.ts::lister` et `service-vehicule.ts`. Le correctif réel est
-        // une restructuration de requête (candidats par ID, UNION, cf. `recherche/service-recherche.ts`),
-        // pas un index — hors périmètre d'une migration seule, donc pas fait ici.
-        const conditionRecherche = or(
-          sql`public.normaliser_recherche(${ordreReparation.numero}) like public.normaliser_recherche(${motif})`,
-          inArray(
-            ordreReparation.vehiculeId,
-            tx
-              .select({ vehiculeId: vehiculePlaque.vehiculeId })
-              .from(vehiculePlaque)
-              .where(
-                and(
-                  eq(vehiculePlaque.tenantId, ctx.tenantId),
-                  isNull(vehiculePlaque.au),
-                  sql`public.normaliser_recherche(${vehiculePlaque.valeur}) like public.normaliser_recherche(${motif})`,
-                ),
-              ),
-          ),
-          inArray(
-            ordreReparation.clientId,
-            tx
-              .select({ id: client.id })
-              .from(client)
-              .where(
-                and(
-                  eq(client.tenantId, ctx.tenantId),
-                  sql`public.normaliser_recherche(coalesce(${client.raisonSociale}, ${client.nom} || ' ' || coalesce(${client.prenom}, ''), '')) like public.normaliser_recherche(${motif})`,
-                ),
-              ),
-          ),
-        );
-        // `or(...)` appelé avec TROIS arguments TOUJOURS présents ci-dessus (jamais un tableau vide
-        // comme pour `attente`) : `condition` est donc structurellement toujours défini — le garde
-        // suit quand même le même patron que `attente` ci-dessus, par cohérence de style.
-        if (conditionRecherche) conditions.push(conditionRecherche);
-      }
-      if (filtres.statut && filtres.statut.length > 0)
-        conditions.push(inArray(ordreReparation.statut, filtres.statut));
-      if (filtres.localisation && filtres.localisation.length > 0)
-        conditions.push(inArray(ordreReparation.localisation, filtres.localisation));
-      if (filtres.attente && filtres.attente.length > 0) {
-        const drapeauxParAttente = {
-          accord: ordreReparation.attenteAccord,
-          pieces: ordreReparation.attentePieces,
-          externe: ordreReparation.attenteExterne,
-        } as const;
-        const drapeaux = filtres.attente.map((a) => eq(drapeauxParAttente[a], true));
-        // `or(...)` toujours appelé avec AU MOINS un élément ici (`length > 0` ci-dessus) : jamais
-        // le `or()` sans argument (qui produirait une condition vide, silencieusement inerte).
-        const condition = or(...drapeaux);
-        if (condition) conditions.push(condition);
-      }
-      if (filtres.restitutionPromiseDu)
-        conditions.push(
-          gte(
-            ordreReparation.restitutionPromiseLe,
-            debutJourneeSuisse(filtres.restitutionPromiseDu),
-          ),
-        );
-      if (filtres.restitutionPromiseAu)
-        conditions.push(
-          lte(ordreReparation.restitutionPromiseLe, finJourneeSuisse(filtres.restitutionPromiseAu)),
-        );
-      if (filtres.ouvertDu)
-        conditions.push(gte(ordreReparation.ouvertLe, debutJourneeSuisse(filtres.ouvertDu)));
-      if (filtres.ouvertAu)
-        conditions.push(lte(ordreReparation.ouvertLe, finJourneeSuisse(filtres.ouvertAu)));
-      if (filtres.technicienId) {
-        const technicienId = filtres.technicienId;
-        conditions.push(
-          exists(
-            tx
-              .select({ id: ligneOr.id })
-              .from(ligneOr)
-              .where(
-                and(
-                  eq(ligneOr.tenantId, ordreReparation.tenantId),
-                  eq(ligneOr.ordreReparationId, ordreReparation.id),
-                  eq(ligneOr.technicienId, technicienId),
-                ),
-              ),
-          ),
-        );
-      }
-
-      const decalage = decoderCurseurOffset(curseur);
-      const lignes = await tx
-        .select()
-        .from(ordreReparation)
-        .where(and(...conditions))
-        .orderBy(...construireOrdreTri(filtres.tri))
-        .limit(limite + 1)
-        .offset(decalage);
-
-      const page = lignes.slice(0, limite);
-      const suite = lignes.length > limite ? encoderCurseurOffset(decalage + limite) : null;
-
-      // `pourListe = true` : voir la note sur `assemblerDocument` ci-dessous — évite d'ouvrir
-      // jusqu'à `limite` (max 200) transactions d'audit imbriquées en parallèle sur une seule
-      // page (épuisement du pool `pg`, `max 10` par défaut).
-      const donnees = await Promise.all(
-        page.map((l) => this.assemblerDocument(tx, ctx, principal.role, l.id, true)),
+      const { pageOr, curseurSuivant } = await this.selectionnerPageOr(
+        tx,
+        ctx,
+        filtres,
+        limite,
+        curseur,
       );
-      return { donnees, curseurSuivant: suite };
+      // Chargement PAR LOT de la page (voir `liste-or-lot.ts`), puis assemblage en mémoire par le
+      // même `construireReponse` que la fiche : ~11 requêtes par page, quelle que soit sa taille.
+      const donnees = await this.assemblerListe(tx, ctx, principal.role, pageOr);
+      return { donnees, curseurSuivant };
+    });
+  }
+
+  /**
+   * `GET /ordres-reparation?forme=resume` — mêmes filtres, mêmes tris, mêmes curseurs que `lister`
+   * (la sélection de la page est PARTAGÉE : `selectionnerPageOr`), mais chaque élément est un
+   * `OrdreReparationResumeListe` : 4 à 5 requêtes par page (OR, clients, véhicules, agrégat de
+   * lignes, techniciens), jamais le document complet.
+   */
+  async listerResumes(
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    filtres: FiltresOrdresReparation,
+    limite: number,
+    curseur: string | undefined,
+  ): Promise<{ donnees: readonly OrdreReparationResumeListe[]; curseurSuivant: string | null }> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      const { pageOr, curseurSuivant } = await this.selectionnerPageOr(
+        tx,
+        ctx,
+        filtres,
+        limite,
+        curseur,
+      );
+      if (pageOr.length === 0) return { donnees: [], curseurSuivant };
+      const voitMontants = roleVoitLesMontants(principal.role);
+      const lot = await chargerLotResumeListeOr(tx, ctx, pageOr, voitMontants);
+      const maintenant = this.horloge.maintenant();
+      const donnees = pageOr.map((or): OrdreReparationResumeListe => {
+        const agregat = lot.agregats.get(or.id);
+        const attentes: AttentesOr = {
+          accord: or.attenteAccord,
+          pieces: or.attentePieces,
+          externe: or.attenteExterne,
+        };
+        const technicien = agregat?.technicienId
+          ? lot.techniciens.get(agregat.technicienId)
+          : undefined;
+        return {
+          id: or.id,
+          numero: or.numero,
+          siteId: or.siteId,
+          type: or.type,
+          statut: or.statut,
+          etatAffiche: calculerEtatAffiche(or.statut, attentes),
+          enRetard: estRestitutionEnRetard(
+            { statut: or.statut, restitutionPromiseLe: or.restitutionPromiseLe },
+            maintenant,
+          ),
+          client: exigerClientListe(lot, or.clientId),
+          vehicule: exigerVehiculeListe(lot, or.vehiculeId),
+          ouvertLe: or.ouvertLe ? or.ouvertLe.toISOString() : null,
+          restitutionPromiseLe: or.restitutionPromiseLe
+            ? or.restitutionPromiseLe.toISOString()
+            : null,
+          localisation: or.localisation,
+          attentes,
+          ...(technicien ? { technicienAssigne: technicien } : {}),
+          designationsApercu: agregat?.designationsApercu ?? [],
+          nombreLignes: agregat?.nombreLignes ?? 0,
+          nombreLignesAssignees: agregat?.nombreLignesAssignees ?? 0,
+          ...(voitMontants ? { totalTtcCentimes: agregat?.totalTtcCentimes ?? 0 } : {}),
+          version: or.version,
+        };
+      });
+      return { donnees, curseurSuivant };
+    });
+  }
+
+  /**
+   * Sélection de la page d'OR (filtres, `q`, tri, curseur keyset) — partagée par `lister` (document
+   * complet) et `listerResumes` : les deux formes ne peuvent pas diverger sur ce qu'une page contient.
+   */
+  private async selectionnerPageOr(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    filtres: FiltresOrdresReparation,
+    limite: number,
+    curseur: string | undefined,
+  ): Promise<{ pageOr: LigneOrdreReparation[]; curseurSuivant: string | null }> {
+    const conditions = [eq(ordreReparation.tenantId, ctx.tenantId)];
+    if (filtres.siteId) conditions.push(eq(ordreReparation.siteId, filtres.siteId));
+    if (filtres.clientId) conditions.push(eq(ordreReparation.clientId, filtres.clientId));
+    if (filtres.vehiculeId) conditions.push(eq(ordreReparation.vehiculeId, filtres.vehiculeId));
+    // `q` (#defaut-recherche-or, 14.08.2026) : DÉSORMAIS appliqué — voir la doctrine complète au
+    // JSDoc de tête de `lister()`. Comparaison à `undefined`, jamais à la véracité : `q` est déjà
+    // `trim().min(1)` côté schéma zod (`schemaFiltresOrdresReparation`), donc une chaîne vide ne
+    // peut structurellement pas arriver ici, mais on ne suppose jamais ce qu'un schéma amont a
+    // déjà garanti (même garde-fou que `ServiceRecherche.rechercher`).
+    if (filtres.q !== undefined && !/[\p{L}\p{N}]/u.test(filtres.q)) {
+      // Garde-fou IDENTIQUE à `ServiceRecherche.rechercher` (recherche/service-recherche.ts) : un
+      // terme sans AUCUNE lettre ni chiffre (ex. `---`, encore possible après le `trim().min(1)`
+      // du schéma) normaliserait vers une chaîne VIDE côté `public.normaliser_recherche()`, et
+      // `like '%%'` matcherait ALORS TOUT LE TENANT — l'exact inverse du défaut corrigé ici (un
+      // filtre qui, au lieu d'être silencieusement ignoré, deviendrait une fuite totale). On ne
+      // devine jamais ce que `normaliser_recherche` va produire pour un cas qu'on peut refuser
+      // structurellement : `false` rend explicitement AUCUN résultat, jamais la liste entière.
+      conditions.push(sql`false`);
+    } else if (filtres.q !== undefined) {
+      const motif = `%${filtres.q}%`;
+      // Trois branches, une SEULE normalisation (`public.normaliser_recherche()`, migration 0003
+      // §2) — jamais réimplémentée en TypeScript (même doctrine que
+      // `recherche/utilitaires-recherche.ts`, tête de fichier : deux normalisations divergentes
+      // produiraient des résultats manquants indébogables).
+      //
+      // 1. Numéro d'OR : condition DIRECTE sur `ordre_reparation.numero`, servie par
+      //    `ordre_reparation_numero_recherche_idx` (GIN trigram, migration 0013).
+      //
+      // 2. Plaque : sur la plaque COURANTE (`vehicule_plaque.au is null`) — le CHAMP AFFICHÉ par
+      //    cette même liste (`assemblerDocument` → `chargerPlaqueCourante`), jamais une plaque
+      //    historique. Une recherche par plaque HISTORIQUE existe déjà par ailleurs
+      //    (`recherche/service-recherche.ts::chercherVehicules`, périmètre distinct, hors de
+      //    cette collection) — chercher l'historique ICI AUSSI redéfinirait silencieusement ce
+      //    que « la plaque » désigne pour cette liste précise, jamais tranché par le contrat.
+      //    Écrite en `vehiculeId IN (sous-requête NON CORRÉLÉE)`, PAS en `exists(...)` corrélé
+      //    (à la différence de `technicienId` ci-dessus) : la sous-requête ne référence QUE
+      //    `vehicule_plaque`, donc `ordre_reparation.vehicule_id = any(...)` reste indexable par
+      //    `ordre_reparation_vehicule_idx` (migration 0008) et peut entrer dans un `BitmapOr` aux
+      //    côtés de la branche 1 — un `exists(...)` corrélé ne le peut JAMAIS pour un `OR`
+      //    multi-tables (raison documentée dans le détail par migration 0013, section « AUTRES
+      //    LACUNES »). Servie, côté sous-requête, par `vehicule_plaque_recherche_idx` (GIN
+      //    trigram, migration 0007).
+      //
+      // 3. Nom du client : MÊME expression EXACTE que `clients/service-client.ts::lister`
+      //    (`coalesce(raison_sociale, nom || ' ' || coalesce(prenom, ''))`) — same réutilisation
+      //    volontaire que la plaque ci-dessus, `clientId IN (sous-requête non corrélée)`, servie
+      //    par `client_recherche_idx` (GIN trigram, migration 0006).
+      //
+      // INDEX : AUCUN nouveau nécessaire — les trois existent déjà (0006/0007/0013), chacun posé
+      // pour cette exacte expression. Ce qui reste non résolu, SIGNALÉ plutôt que masqué (rapport
+      // de livraison) : combiner les trois branches par `OR` empêche Postgres de fusionner leurs
+      // plans en un seul `BitmapOr` sur `ordre_reparation` (les branches 2/3 filtrent d'abord une
+      // AUTRE table) — la requête retombe donc en `Seq Scan` sur `ordre_reparation` dès que `q`
+      // est fourni, avec deux sous-requêtes indexées (rapides) évaluées par ligne balayée. Correct
+      // fonctionnellement, mais PAS optimal au grand volume — même limite, déjà documentée pour
+      // les mêmes trois axes, par `migrations/0013…sql` (section « AUTRES LACUNES DU MÊME
+      // GENRE ») pour `service-client.ts::lister` et `service-vehicule.ts`. Le correctif réel est
+      // une restructuration de requête (candidats par ID, UNION, cf. `recherche/service-recherche.ts`),
+      // pas un index — hors périmètre d'une migration seule, donc pas fait ici.
+      const conditionRecherche = or(
+        sql`public.normaliser_recherche(${ordreReparation.numero}) like public.normaliser_recherche(${motif})`,
+        inArray(
+          ordreReparation.vehiculeId,
+          tx
+            .select({ vehiculeId: vehiculePlaque.vehiculeId })
+            .from(vehiculePlaque)
+            .where(
+              and(
+                eq(vehiculePlaque.tenantId, ctx.tenantId),
+                isNull(vehiculePlaque.au),
+                sql`public.normaliser_recherche(${vehiculePlaque.valeur}) like public.normaliser_recherche(${motif})`,
+              ),
+            ),
+        ),
+        inArray(
+          ordreReparation.clientId,
+          tx
+            .select({ id: client.id })
+            .from(client)
+            .where(
+              and(
+                eq(client.tenantId, ctx.tenantId),
+                sql`(public.normaliser_recherche(coalesce(${client.raisonSociale}, ${client.nom} || ' ' || coalesce(${client.prenom}, ''), '')) like public.normaliser_recherche(${motif}) or public.normaliser_recherche(coalesce(${client.raisonSociale}, concat_ws(' ', ${client.prenom}, ${client.nom}), '')) like public.normaliser_recherche(${motif}))`,
+              ),
+            ),
+        ),
+      );
+      // `or(...)` appelé avec TROIS arguments TOUJOURS présents ci-dessus (jamais un tableau vide
+      // comme pour `attente`) : `condition` est donc structurellement toujours défini — le garde
+      // suit quand même le même patron que `attente` ci-dessus, par cohérence de style.
+      if (conditionRecherche) conditions.push(conditionRecherche);
+    }
+    if (filtres.statut && filtres.statut.length > 0)
+      conditions.push(inArray(ordreReparation.statut, filtres.statut));
+    if (filtres.localisation && filtres.localisation.length > 0)
+      conditions.push(inArray(ordreReparation.localisation, filtres.localisation));
+    if (filtres.attente && filtres.attente.length > 0) {
+      const drapeauxParAttente = {
+        accord: ordreReparation.attenteAccord,
+        pieces: ordreReparation.attentePieces,
+        externe: ordreReparation.attenteExterne,
+      } as const;
+      const drapeaux = filtres.attente.map((a) => eq(drapeauxParAttente[a], true));
+      // `or(...)` toujours appelé avec AU MOINS un élément ici (`length > 0` ci-dessus) : jamais
+      // le `or()` sans argument (qui produirait une condition vide, silencieusement inerte).
+      const condition = or(...drapeaux);
+      if (condition) conditions.push(condition);
+    }
+    if (filtres.restitutionPromiseDu)
+      conditions.push(
+        gte(ordreReparation.restitutionPromiseLe, debutJourneeSuisse(filtres.restitutionPromiseDu)),
+      );
+    if (filtres.restitutionPromiseAu)
+      conditions.push(
+        lte(ordreReparation.restitutionPromiseLe, finJourneeSuisse(filtres.restitutionPromiseAu)),
+      );
+    if (filtres.ouvertDu)
+      conditions.push(gte(ordreReparation.ouvertLe, debutJourneeSuisse(filtres.ouvertDu)));
+    if (filtres.ouvertAu)
+      conditions.push(lte(ordreReparation.ouvertLe, finJourneeSuisse(filtres.ouvertAu)));
+    if (filtres.technicienId) {
+      const technicienId = filtres.technicienId;
+      conditions.push(
+        exists(
+          tx
+            .select({ id: ligneOr.id })
+            .from(ligneOr)
+            .where(
+              and(
+                eq(ligneOr.tenantId, ordreReparation.tenantId),
+                eq(ligneOr.ordreReparationId, ordreReparation.id),
+                eq(ligneOr.technicienId, technicienId),
+              ),
+            ),
+        ),
+      );
+    }
+
+    // Pagination KEYSET (curseur v2 opaque `{t, v, i}`, `common/pagination`) : coût constant quelle
+    // que soit la profondeur de page, et aucune ligne sautée/répétée si un OR est créé entre deux
+    // requêtes. Un curseur de l'ancien format (offset) est refusé en `400 VALIDATION_ECHOUEE`
+    // (`curseur_invalide`) — convention du dépôt pour tout curseur illisible, jamais une première
+    // page muette.
+    const definition = DEFINITIONS_TRI_OR[filtres.tri];
+    const idExpr = sql`${ordreReparation.id}`;
+    const reprise = decoderCurseurPourTri(curseur, filtres.tri, DEFINITIONS_TRI_OR);
+    if (reprise) {
+      conditions.push(
+        sql`${construireConditionKeyset(definition, idExpr, reprise.valeur, reprise.id)}`,
+      );
+    }
+
+    const lignes = await tx
+      .select({
+        ligne: ordreReparation,
+        triValeur: sql<string | null>`${expressionTriValeur(definition)}`,
+      })
+      .from(ordreReparation)
+      .where(and(...conditions))
+      .orderBy(construireOrderBy(definition, idExpr))
+      .limit(limite + 1);
+
+    const pageLignes = lignes.slice(0, limite);
+    const derniere = pageLignes.at(-1);
+    const suite =
+      lignes.length > limite && derniere
+        ? encoderCurseurTrie({
+            tri: filtres.tri,
+            valeur: valeurCurseurDepuisTri(definition, derniere.triValeur),
+            id: derniere.ligne.id,
+          })
+        : null;
+
+    return { pageOr: pageLignes.map((l) => l.ligne), curseurSuivant: suite };
+  }
+
+  /**
+   * Version PAR LOT de `assemblerDocument(…, pourListe = true)` — mêmes champs, mêmes valeurs,
+   * même masquage par rôle (le `construireReponse` est partagé), `modifiePar` à `null` comme en
+   * liste unitaire (le journal d'audit n'est pas lu). Ne lit RIEN par OR : tout vient de
+   * `chargerLotListeOr` (une requête par table pour la page). L'ordre d'entrée est conservé.
+   */
+  async assemblerListe(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    role: PrincipalAuthentifie['role'],
+    ors: readonly LigneOrdreReparation[],
+  ): Promise<readonly ReponseOrdreReparation[]> {
+    if (ors.length === 0) return [];
+    const voitMontants = roleVoitLesMontants(role);
+    const lot = await chargerLotListeOr(tx, ctx, ors, voitMontants);
+    const resumePour = (id: string | null) => (id ? (lot.utilisateurs.get(id) ?? null) : null);
+
+    return ors.map((or) => {
+      const clientResume = exigerClient(lot, or.clientId);
+      const lignesToutes = lot.lignes.get(or.id) ?? [];
+      return this.construireReponse({
+        or,
+        clientResume,
+        vehiculeLigne: exigerVehicule(lot, or.vehiculeId),
+        plaque: lot.plaques.get(or.vehiculeId) ?? null,
+        demandes: (lot.demandes.get(or.id) ?? []).map((d) =>
+          mapperDemande(d, resumePour(d.saisiParId)),
+        ),
+        devis: (lot.devis.get(or.id) ?? []).map((d) =>
+          mapperDevis(d, lot.lignesDevis.get(d.id) ?? [], resumePour(d.emetteurId), role),
+        ),
+        lignesToutes,
+        controle: lot.controles.get(or.id) ?? null,
+        nombrePointagesOuverts: lot.pointagesOuverts.get(or.id) ?? 0,
+        modifiePar: null,
+        totauxParPayeur: voitMontants
+          ? calculerTotauxParPayeur(
+              lignesToutes,
+              { clientId: clientResume.id, nomAffiche: clientResume.nomAffiche },
+              (payeurClientId) => lot.destinatairesPayeurs.get(payeurClientId),
+            )
+          : undefined,
+        role,
+      });
     });
   }
 
@@ -943,6 +1128,56 @@ export class ServiceOr {
       }),
     );
 
+    const modifiePar = resumePour(dernierEvenement?.utilisateurId ?? null);
+    const voitMontants = roleVoitLesMontants(role);
+
+    // `totauxParPayeur` (MD-62) : résout le destinataire de chaque groupe payeur tiers en UN SEUL
+    // aller-retour batché sur `client` (jamais une requête par ligne) — voir
+    // `totaux-payeur.ts::ResolveurDestinataireTiers`. Calculé uniquement pour un rôle qui voit les
+    // montants (même garde que le reste de ce bloc), le fetch supplémentaire n'a pas de coût pour
+    // `technicien`.
+    const totauxParPayeur = voitMontants
+      ? await this.calculerTotauxAvecDestinataires(tx, ctx, lignesToutes, clientResume)
+      : undefined;
+
+    return this.construireReponse({
+      or,
+      clientResume,
+      vehiculeLigne,
+      plaque,
+      demandes,
+      devis,
+      lignesToutes,
+      controle,
+      nombrePointagesOuverts: pointagesOuverts.length,
+      modifiePar,
+      totauxParPayeur,
+      role,
+    });
+  }
+
+  /**
+   * Construction PURE (aucun accès base) de la réponse `ReponseOrdreReparation` — unique chemin de
+   * vérité partagé par `assemblerDocument` (fiche, un OR) et `assemblerListe` (liste, chargement
+   * par lot) : les deux ne peuvent pas diverger sur les champs, le masquage des montants par rôle
+   * ou les totaux. `totauxParPayeur` est déjà gaté par le rôle par l'appelant (`undefined` pour
+   * un rôle sans droit aux montants).
+   */
+  private construireReponse(e: EntreeConstructionReponseOr): ReponseOrdreReparation {
+    const {
+      or,
+      clientResume,
+      vehiculeLigne,
+      plaque,
+      demandes,
+      devis,
+      lignesToutes,
+      controle,
+      modifiePar,
+      totauxParPayeur,
+      role,
+    } = e;
+    const voitMontants = roleVoitLesMontants(role);
     const lignesTronquees = lignesToutes.length > 200;
     const lignesEmbarquees = lignesTronquees ? lignesToutes.slice(0, 200) : lignesToutes;
 
@@ -966,17 +1201,6 @@ export class ServiceOr {
       pieces: or.attentePieces,
       externe: or.attenteExterne,
     };
-    const modifiePar = resumePour(dernierEvenement?.utilisateurId ?? null);
-    const voitMontants = roleVoitLesMontants(role);
-
-    // `totauxParPayeur` (MD-62) : résout le destinataire de chaque groupe payeur tiers en UN SEUL
-    // aller-retour batché sur `client` (jamais une requête par ligne) — voir
-    // `totaux-payeur.ts::ResolveurDestinataireTiers`. Calculé uniquement pour un rôle qui voit les
-    // montants (même garde que le reste de ce bloc), le fetch supplémentaire n'a pas de coût pour
-    // `technicien`.
-    const totauxParPayeur = voitMontants
-      ? await this.calculerTotauxAvecDestinataires(tx, ctx, lignesToutes, clientResume)
-      : undefined;
 
     // #76 : `totalTtcCentimes` — la colonne « Total TTC » de la liste des OR (`ServiceOr.lister`,
     // qui appelle CETTE méthode) était vide car `assemblerDocument` ne le rendait jamais, alors que
@@ -1084,7 +1308,7 @@ export class ServiceOr {
       cumulsPointage: {
         totalCentiemes: 0,
         parTechnicien: [],
-        pointagesOuverts: pointagesOuverts.length,
+        pointagesOuverts: e.nombrePointagesOuverts,
       },
       ...(voitMontants ? { totauxParPayeur } : {}),
       attentes,
@@ -1215,43 +1439,66 @@ export function decoderCurseurOffset(curseur: string | undefined): number {
 }
 
 /**
- * Traduit `filtres.tri` (`FiltresOrdresReparation['tri']`, 5 valeurs, `TRIS_ORDRES_REPARATION`) en
- * critères `ORDER BY` réels pour `ServiceOr.lister` — voir la doc de tête de `lister()` pour la
- * doctrine complète (NULLS LAST dans les deux sens, tiebreak `id`, et l'arbitrage
- * `joursAttenteRetrait`).
+ * Définitions de tri keyset de `ServiceOr.lister`, une par valeur de `TRIS_ORDRES_REPARATION`
+ * (`Record` exhaustif : toute valeur ajoutée au contrat sans être traitée ICI casse la compilation
+ * plutôt que de retomber en silence sur le tri par défaut). Doctrine inchangée : colonnes
+ * nullables, `NULLS LAST` dans les deux sens (un OR sans date n'est ni « le plus ancien » ni « le
+ * plus récent »). Les expressions sont des CONSTANTES du code (`common/pagination/keyset.ts`).
  *
- * `switch` exhaustif sur les 5 valeurs (pas de `default` générique) : toute future valeur ajoutée à
- * `TRIS_ORDRES_REPARATION` sans être traitée ICI casse la compilation (`exhaustif: never`) plutôt
- * que de retomber en silence sur le tri par défaut — exactement le mensonge que le correctif #73 a
- * fermé.
+ * Le départage final par `id` suit désormais le SENS du tri (comparaison ROW du keyset) : seuls
+ * deux OR de timestamp strictement identique (à la microseconde) sont concernés, leur ordre
+ * relatif n'ayant jamais été défini métier.
+ *
+ * `joursAttenteRetrait:desc` : « jours d'attente de retrait » = maintenant - `termine_le`, pour un
+ * OR encore `termine` ou `facture` seulement ; le trier DESC équivaut à trier `termine_le` ASC
+ * parmi ces deux statuts (le `case` sans `else` rend NULL pour les autres, relégués en fin).
  */
-function construireOrdreTri(tri: FiltresOrdresReparation['tri']): SQL[] {
-  const tiebreakId = asc(ordreReparation.id);
-  switch (tri) {
-    case 'ouvertLe:asc':
-      return [sql`${ordreReparation.ouvertLe} asc nulls last`, tiebreakId];
-    case 'ouvertLe:desc':
-      return [sql`${ordreReparation.ouvertLe} desc nulls last`, tiebreakId];
-    case 'restitutionPromiseLe:asc':
-      return [sql`${ordreReparation.restitutionPromiseLe} asc nulls last`, tiebreakId];
-    case 'restitutionPromiseLe:desc':
-      return [sql`${ordreReparation.restitutionPromiseLe} desc nulls last`, tiebreakId];
-    case 'joursAttenteRetrait:desc': {
-      // « jours d'attente de retrait » = maintenant - termine_le, UNIQUEMENT pour un OR encore
-      // `termine` ou `facture` (voir la doc de tête de `lister()`) — les autres statuts n'attendent
-      // pas d'être retirés. Trier `joursAttenteRetrait` DESC (le plus longtemps en attente
-      // d'abord) équivaut à trier `termine_le` ASC (le plus ancien d'abord) parmi ces deux statuts
-      // : pas besoin de matérialiser la soustraction, l'ordre relatif est le même. Le `case` (sans
-      // `else`) rend NULL pour tout autre statut, donc `nulls last` les relègue en fin de liste —
-      // jamais un tri qui invente une position pour un OR hors-sujet.
-      const attenteDepuisFinTravaux = sql`(case when ${ordreReparation.statut} in ('termine', 'facture') then ${ordreReparation.termineLe} end)`;
-      return [sql`${attenteDepuisFinTravaux} asc nulls last`, tiebreakId];
-    }
-    default: {
-      const exhaustif: never = tri;
-      return exhaustif;
-    }
-  }
+const DEFINITIONS_TRI_OR: Readonly<Record<FiltresOrdresReparation['tri'], DefinitionTri>> = {
+  'ouvertLe:desc': {
+    expression: sql`${ordreReparation.ouvertLe}`,
+    sens: 'desc',
+    nullable: true,
+    temporel: true,
+  },
+  'ouvertLe:asc': {
+    expression: sql`${ordreReparation.ouvertLe}`,
+    sens: 'asc',
+    nullable: true,
+    temporel: true,
+  },
+  'restitutionPromiseLe:asc': {
+    expression: sql`${ordreReparation.restitutionPromiseLe}`,
+    sens: 'asc',
+    nullable: true,
+    temporel: true,
+  },
+  'restitutionPromiseLe:desc': {
+    expression: sql`${ordreReparation.restitutionPromiseLe}`,
+    sens: 'desc',
+    nullable: true,
+    temporel: true,
+  },
+  'joursAttenteRetrait:desc': {
+    expression: sql`(case when ${ordreReparation.statut} in ('termine', 'facture') then ${ordreReparation.termineLe} end)`,
+    sens: 'asc',
+    nullable: true,
+    temporel: true,
+  },
+};
+
+interface EntreeConstructionReponseOr {
+  readonly or: LigneOrdreReparation;
+  readonly clientResume: ClientResume;
+  readonly vehiculeLigne: LigneVehicule;
+  readonly plaque: LigneVehiculePlaque | null;
+  readonly demandes: readonly ReponseOrdreReparationDemande[];
+  readonly devis: readonly ReponseDevisComplementaire[];
+  readonly lignesToutes: readonly LigneLigneOr[];
+  readonly controle: LigneOrControleQualite | null;
+  readonly nombrePointagesOuverts: number;
+  readonly modifiePar: ResumeUtilisateur | null;
+  readonly totauxParPayeur: readonly TotauxPayeurOr[] | undefined;
+  readonly role: PrincipalAuthentifie['role'];
 }
 
 // Réexporté pour les actions de transition (marquage réalisée, etc.) qui doivent charger une

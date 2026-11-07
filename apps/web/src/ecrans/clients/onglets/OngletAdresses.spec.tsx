@@ -93,7 +93,11 @@ describe('OngletAdresses — erreur de création (RM-03)', () => {
     await ouvrirEtRemplirFormulaire(utilisateur);
     await utilisateur.click(screen.getByRole('button', { name: 'Ajouter' }));
 
-    expect(await screen.findByText('Certaines informations sont incorrectes.')).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        'Certaines informations sont incorrectes ou incomplètes. Corrigez les champs signalés, puis réessayez.',
+      ),
+    ).toBeInTheDocument();
     // Le dialogue reste ouvert : le champ saisi avant l'échec est toujours visible et non perdu.
     // (S'il s'était refermé, `getByLabelText` échouerait — le champ serait démonté.)
     expect(screen.getByLabelText(/^Rue et numéro\s*\*$/)).toHaveValue('Rue du Lac 12');
@@ -127,7 +131,7 @@ describe('OngletAdresses — erreur de création (RM-03)', () => {
     await ouvrirEtRemplirFormulaire(utilisateur);
     await utilisateur.click(screen.getByRole('button', { name: 'Ajouter' }));
 
-    // Avant le correctif : seul « Certaines informations sont incorrectes. » apparaissait, le
+    // Avant le correctif : seul « Certaines informations sont incorrectes ou incomplètes. Corrigez les champs signalés, puis réessayez. » apparaissait, le
     // message serveur précis (« Une adresse « principale » active existe déjà. ») était perdu.
     expect(
       await screen.findByText('Une adresse « principale » active existe déjà.'),
@@ -190,7 +194,11 @@ describe('OngletAdresses — erreur de création (RM-03)', () => {
     // champ « Rue » n'est plus dans le DOM (Radix démonte `DialogContent` quand `open` devient
     // faux), et aucun message d'erreur ne s'affiche.
     await waitFor(() => expect(screen.queryByLabelText('Rue et numéro')).not.toBeInTheDocument());
-    expect(screen.queryByText('Certaines informations sont incorrectes.')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'Certaines informations sont incorrectes ou incomplètes. Corrigez les champs signalés, puis réessayez.',
+      ),
+    ).not.toBeInTheDocument();
   });
 });
 

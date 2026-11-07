@@ -1,3 +1,4 @@
+import { PREREGLAGES } from '@dfa/shared';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Config } from '../../config/config.types';
@@ -40,6 +41,7 @@ function sessionAmorcageTest(overrides: Partial<SessionAmorcage> = {}): SessionA
     // Compte de PERSONNE : aucun rattachement de site (migration 0039). Les comptes de service
     // sont couverts par leurs propres tests, plus bas et dans `comptes-de-service.spec.ts`.
     siteId: null,
+    capacites: PREREGLAGES.admin.grille,
     ...overrides,
   };
 }
@@ -82,6 +84,8 @@ describe('ServiceSessionImpl.resoudre — expiration absolue vs glissante', () =
       role: 'admin',
       langue: 'fr',
       siteId: null,
+      // Grille relue de la base à chaque requête (migration 0087), jamais d'un jeton.
+      capacites: PREREGLAGES.admin.grille,
     });
   });
 

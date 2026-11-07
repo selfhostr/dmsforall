@@ -105,9 +105,13 @@ function connecte(role: RoleUtilisateur): void {
  *  série de `getByRole` ne dirait pas. Réglages n'est PLUS un `role=link` direct (Lot « cadre
  *  applicatif » : regroupé dans le menu du pied compte) — cette liste ne porte donc plus que les
  *  six entrées. */
+/** Liens des SIX entrées du menu : « Réglages », lien de pied de barre, n'en fait pas partie. */
+function liensDesSixEntrees(): HTMLElement[] {
+  return screen.getAllByRole('link').filter((lien) => lien.textContent?.trim() !== 'Réglages');
+}
+
 function libellesDesEntrees(): string[] {
-  return screen
-    .getAllByRole('link')
+  return liensDesSixEntrees()
     .map((lien) => lien.textContent?.trim() ?? '')
     .filter((libelle) => libelle !== '');
 }
@@ -143,7 +147,7 @@ describe('BarreLaterale — les six entrées', () => {
       'Clients & véhicules',
       'Pièces',
       'Facturation',
-      'Ventes',
+      'Véhicules à vendre',
     ]);
   });
 
@@ -153,14 +157,15 @@ describe('BarreLaterale — les six entrées', () => {
 
     await screen.findByRole('link', { name: /^pièces$/i });
 
-    // Pas de Ventes (`ventes.*` fermé au magasinier), mais Atelier reste avant
-    // Clients & véhicules, qui reste avant Pièces : l'ordre est absolu, pas relatif au rôle.
+    // Atelier reste avant Clients & véhicules, qui reste avant Pièces : l'ordre est absolu, pas
+    // relatif au rôle. Ventes apparaît : la grille (Pièces : Faire) ouvre `ventes.dossier.lire`.
     expect(libellesDesEntrees()).toEqual([
       "Aujourd'hui",
       'Atelier',
       'Clients & véhicules',
       'Pièces',
       'Facturation',
+      'Véhicules à vendre',
     ]);
   });
 
@@ -178,7 +183,7 @@ describe('BarreLaterale — les six entrées', () => {
     await screen.findByRole('link', { name: /^pièces$/i });
 
     expect(container.querySelectorAll('[class*="overflow-y"]')).toHaveLength(0);
-    expect(screen.getAllByRole('link').length).toBeLessThanOrEqual(6);
+    expect(liensDesSixEntrees().length).toBeLessThanOrEqual(6);
   });
 
   it('cibles tactiles : chaque entrée fait au moins 44 px de haut (h-11), postes de comptoir tactiles', async () => {
@@ -207,7 +212,7 @@ describe('BarreLaterale — où mène chaque entrée', () => {
     expect(hrefDuLien(/clients & véhicules/i)).toBe('/clients');
     expect(hrefDuLien(/^pièces$/i)).toBe('/pieces/recherche-comptoir');
     expect(hrefDuLien(/^facturation$/i)).toBe('/factures');
-    expect(hrefDuLien(/^ventes$/i)).toBe('/ventes/dossiers');
+    expect(hrefDuLien(/^véhicules à vendre$/i)).toBe('/ventes/dossiers');
   });
 
   /**
@@ -233,6 +238,14 @@ describe('BarreLaterale — où mène chaque entrée', () => {
     await ouvrirMenuCompte();
     const reglages = await screen.findByRole('menuitem', { name: /réglages/i });
     expect(reglages.getAttribute('href')).toBe('/parametrage/referentiels');
+  });
+
+  it('direction : Réglages est un lien direct de la barre, visible sans ouvrir le menu du compte', async () => {
+    connecte('direction');
+    rendre('/');
+
+    const lien = await screen.findByRole('link', { name: /réglages/i });
+    expect(lien.getAttribute('href')).toBe('/parametrage/atelier');
   });
 
   it('comptable : le menu du pied ouvre Réglages sur les coordonnées bancaires (gouvernance atelier fermée)', async () => {
@@ -367,15 +380,16 @@ describe('BarreLaterale — masquage par rôle', () => {
    * une liste sans un seul montant annonce un contenu qu'il ne verra jamais. Jusqu'ici le lien
    * `/factures` était le SEUL du menu sans aucune garde de rôle.
    */
-  it('admin : aucune entrée Facturation (RF-115), ni Pièces, ni Ventes', async () => {
+  it('admin : ni Pièces, ni Ventes (les montants restent fermés)', async () => {
     connecte('admin');
     rendre('/');
 
     await screen.findByRole('link', { name: /^atelier$/i });
 
-    expect(screen.queryByRole('link', { name: /^facturation$/i })).not.toBeInTheDocument();
+    // Facturation : `facturation.document.lire` lui est accordé via « Encadrer » (grille) ; le menu
+    // suit le serveur. Les montants restent masqués (`facturation.paiement.lire` absent).
     expect(screen.queryByRole('link', { name: /^pièces$/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /^ventes$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^véhicules à vendre$/i })).not.toBeInTheDocument();
     // Il garde en revanche Réglages : la gouvernance atelier lui est ouverte — vérifié dans le
     // menu du pied compte, où Réglages vit désormais (Lot « cadre applicatif »).
     await ouvrirMenuCompte();
@@ -401,7 +415,7 @@ describe('BarreLaterale — masquage par rôle', () => {
       'Clients & véhicules',
       'Pièces',
       'Facturation',
-      'Ventes',
+      'Véhicules à vendre',
     ]);
   });
 
@@ -410,7 +424,7 @@ describe('BarreLaterale — masquage par rôle', () => {
     rendre('/');
 
     expect(await screen.findByRole('link', { name: /^facturation$/i })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /^ventes$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^véhicules à vendre$/i })).not.toBeInTheDocument();
   });
 
   /**
@@ -477,7 +491,7 @@ describe('BarreLaterale — repli desktop', () => {
     const atelier = screen.getByRole('link', { name: /^atelier$/i });
     expect(atelier).toHaveAccessibleName('Atelier');
     // Six liens, chacun nommé — pas un seul lien muet une fois l'icône seule affichée.
-    const liens = screen.getAllByRole('link');
+    const liens = liensDesSixEntrees();
     expect(liens).toHaveLength(6);
     for (const lien of liens) {
       expect(lien.getAttribute('aria-label')).not.toBe('');
@@ -496,7 +510,7 @@ describe('BarreLaterale — repli desktop', () => {
       'Clients & véhicules',
       'Pièces',
       'Facturation',
-      'Ventes',
+      'Véhicules à vendre',
     ]);
     // Déplié, le libellé reste un texte normal (pas `sr-only`) — repli fourni ou non ne doit rien
     // changer au rendu déplié.
@@ -700,20 +714,24 @@ describe('BarreLaterale — pied compte', () => {
     expect(declencheur).toHaveTextContent('JD');
   });
 
-  it('le menu propose Réglages puis Se déconnecter, dans cet ordre — jamais Réglages en lien direct à côté', async () => {
+  it('le menu propose Réglages puis Se déconnecter, dans cet ordre — en plus du lien direct de la barre', async () => {
     connecte('chef_atelier');
     rendre('/');
 
-    // Aucun lien direct nommé « Réglages » dans la barre avant ouverture du menu — la seule voie
-    // reste le menu (doctrine anti-doublon, `GabaritEcran.tsx`).
+    // Depuis l'audit « garage neuf » : Réglages est aussi un lien direct, toujours visible (un
+    // garage neuf ne trouvait pas la porte de configuration dans le menu du compte).
     await screen.findByRole('link', { name: /^pièces$/i });
-    expect(screen.queryByRole('link', { name: /^réglages$/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^réglages$/i })).toBeInTheDocument();
 
     await ouvrirMenuCompte();
     const elements = await screen.findAllByRole('menuitem');
     expect(elements.map((element) => element.textContent?.trim())).toEqual([
       expect.stringContaining('Réglages'),
       expect.stringContaining('Se déconnecter'),
+      // Choix de langue (SelecteurLangueMenu), après la déconnexion, dans sa propre langue.
+      expect.stringContaining('Français'),
+      expect.stringContaining('Deutsch'),
+      expect.stringContaining('Italiano'),
     ]);
   });
 

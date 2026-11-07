@@ -66,3 +66,16 @@ export function formaterDateSuisse(dateIso: string): string {
   }
   return `${jour}.${mois}.${annee}`;
 }
+
+/** `"2026-07-29"` + 30 → `"2026-08-28"`. Calcul en UTC pur (aucun fuseau local, aucun décalage
+ *  d'heure d'été) ; seuls les 10 premiers caractères de `dateIso` comptent. */
+export function ajouterJoursIso(dateIso: string, jours: number): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateIso);
+  if (!m) {
+    throw new RangeError(
+      `ajouterJoursIso attend une date ISO ("YYYY-MM-DD..."), reçu "${dateIso}".`,
+    );
+  }
+  const date = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + jours));
+  return date.toISOString().slice(0, 10);
+}
