@@ -193,7 +193,6 @@ export function EcranAgendaRendezVous({
   return (
     <GabaritEcran
       titre={t('planning:titre')}
-      titreVisible={false}
       actions={
         onNouveauRendezVous ? (
           <Button type="button" onClick={onNouveauRendezVous}>

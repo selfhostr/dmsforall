@@ -182,7 +182,9 @@ describe('EcranAgendaRendezVous', () => {
 
   it('le titre « Rendez-vous » est masqué visuellement (h1 lecteur d’écran seulement)', () => {
     rendre(<EcranAgendaRendezVous {...PROPS_BASE} etat="contenu" />);
-    expect(screen.getByRole('heading', { level: 1, name: 'Rendez-vous' })).toHaveClass('sr-only');
+    expect(screen.getByRole('heading', { level: 1, name: 'Rendez-vous' })).not.toHaveClass(
+      'sr-only',
+    );
   });
 
   it('propose un bouton « Demain »', async () => {

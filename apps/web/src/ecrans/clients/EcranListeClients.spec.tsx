@@ -131,13 +131,13 @@ describe('EcranListeClients', () => {
   // fiable ici — `toBeVisible()` (jest-dom) ne teste que `display`/`visibility`/`opacity`/`hidden`,
   // jamais la technique `position: absolute; clip: …` d'une classe `sr-only`, et aucune feuille de
   // style n'est chargée dans ces tests (jsdom) : cette assertion resterait verte même sans masquage.
-  it('garde un h1 accessible « Clients » dans le DOM, masqué via `sr-only` (doublon avec l’onglet actif)', async () => {
+  it('affiche le h1 « Clients » (jamais masqué sur un écran de liste)', async () => {
     repondreListe([CLIENT_TEST]);
     rendreEcran();
 
     const titre = await screen.findByRole('heading', { level: 1, name: 'Clients' });
     expect(titre).toBeInTheDocument();
-    expect(titre.className).toMatch(/\bsr-only\b/);
+    expect(titre.className).not.toMatch(/\bsr-only\b/);
   });
 
   it('affiche des lignes squelette pendant le chargement', async () => {

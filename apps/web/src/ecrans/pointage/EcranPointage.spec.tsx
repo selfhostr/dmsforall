@@ -1,6 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
@@ -85,8 +84,8 @@ describe('EcranPointage', () => {
   );
 
   it(
-    "affiche les onglets Journal / Équipe pour l'encadrement (SESSION_TEST : chef_atelier) et " +
-      'atterrit par défaut sur Journal',
+    "n'ajoute aucun second jeu d'onglets Journal / Équipe (déjà dans la barre du domaine) et " +
+      'atterrit par défaut sur la vue Journal',
     async () => {
       server.use(
         http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
@@ -95,51 +94,27 @@ describe('EcranPointage', () => {
 
       rendre();
 
-      // Deux onglets nommés « Journal »/« Équipe » (l'onglet interne jour/semaine de
-      // `VueJournalPointage`, sans lien avec ceux-ci, apparaît une fois les données chargées — on
-      // interroge donc par NOM plutôt que par un `findByRole('tablist')` générique, ambigu dès que
-      // les deux structures Tabs coexistent dans le DOM).
-      const ongletJournal = await screen.findByRole('tab', { name: 'Journal' });
-      const ongletEquipe = screen.getByRole('tab', { name: 'Équipe' });
-      expect(ongletJournal).toHaveAttribute('aria-selected', 'true');
-      expect(ongletEquipe).toHaveAttribute('aria-selected', 'false');
-      // Contenu de la vue Journal (pas de la vue Équipe) visible par défaut.
       expect(
         await screen.findByText('Aucun pointage enregistré sur cette période.'),
       ).toBeInTheDocument();
+      expect(screen.queryByRole('tab', { name: 'Équipe' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Clôturer la période' })).not.toBeInTheDocument();
     },
   );
 
-  it(
-    'navigation clavier : la flèche droite déplace le focus de l’onglet Journal vers Équipe, et ' +
-      'l’activation bascule le panneau affiché (patron ARIA tablist standard, géré par Radix)',
-    async () => {
-      server.use(
-        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
-        http.get('/api/v1/pointages', () => HttpResponse.json(pageVide())),
-        http.get('/api/v1/ordres-reparation', () =>
-          HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 }),
-        ),
-      );
+  it('`?vue=equipe` affiche la vue Équipe (geste de clôture de période)', async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      http.get('/api/v1/pointages', () => HttpResponse.json(pageVide())),
+      http.get('/api/v1/ordres-reparation', () =>
+        HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 }),
+      ),
+    );
 
-      rendre();
+    rendre('/pointage?vue=equipe');
 
-      const utilisateur = userEvent.setup();
-      const ongletJournal = await screen.findByRole('tab', { name: 'Journal' });
-      ongletJournal.focus();
-      await utilisateur.keyboard('{ArrowRight}');
-
-      const ongletEquipe = screen.getByRole('tab', { name: 'Équipe' });
-      expect(ongletEquipe).toHaveFocus();
-      await utilisateur.keyboard('{Enter}');
-
-      expect(ongletEquipe).toHaveAttribute('aria-selected', 'true');
-      // Le geste de clôture de période (Lot E) vit désormais dans ce panneau.
-      expect(
-        await screen.findByRole('button', { name: 'Clôturer la période' }),
-      ).toBeInTheDocument();
-    },
-  );
+    expect(await screen.findByRole('button', { name: 'Clôturer la période' })).toBeInTheDocument();
+  });
 
   it(
     "n'affiche AUCUN onglet global pour un rôle sans vue équipe (technicien) — l'onglet " +

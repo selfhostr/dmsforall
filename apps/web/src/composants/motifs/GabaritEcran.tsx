@@ -149,7 +149,10 @@ export function GabaritEcran({
   className,
 }: Props) {
   const libellesAffiches = useLibellesNavigationAffiches();
-  const visible = titreVisible ?? !estTitreDoublonNavigation(titre, libellesAffiches);
+  // Un écran de liste (il passe une `barre` de filtres) affiche toujours son titre : titre à
+  // gauche, actions à droite, filtres en dessous. Les autres écrans gardent la détection de doublon.
+  const visible =
+    titreVisible ?? (barre ? true : !estTitreDoublonNavigation(titre, libellesAffiches));
   const classeH1 = cn('texte-titre-page', !visible && 'sr-only');
 
   // Règle anti-trou (§4 du contrat) : rien d'autre que le h1 sr-only ne doit occuper de rangée.

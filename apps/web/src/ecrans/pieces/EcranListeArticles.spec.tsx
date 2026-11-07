@@ -106,10 +106,12 @@ describe('EcranListeArticles — titre de page (doublon avec l’onglet « Artic
     expect(
       screen.getByRole('heading', { level: 1, name: i18n.t('pieces:articles.liste.titre') }),
     ).toBeInTheDocument();
+    // Décision produit (retour de recette) : un écran de liste affiche son titre, même s'il
+    // répète l'onglet actif — jamais masqué.
     await waitFor(() => {
       expect(
         screen.getByRole('heading', { level: 1, name: i18n.t('pieces:articles.liste.titre') }),
-      ).toHaveClass('sr-only');
+      ).not.toHaveClass('sr-only');
     });
   });
 });

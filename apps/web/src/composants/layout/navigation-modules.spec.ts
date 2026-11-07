@@ -9,6 +9,7 @@ import {
   ENTREE_REGLAGES,
   TOUTES_ENTREES,
   cheminDansModuleRetire,
+  cheminEntree,
   entreesVisibles,
   moduleDeChemin,
   ongletsVisibles,
@@ -154,5 +155,20 @@ describe('garde de route — module d’une URL', () => {
     expect(cheminDansModuleRetire('/pointage/borne', actifs)).toBe(true);
     expect(cheminDansModuleRetire('/rendez-vous', actifs)).toBe(false);
     expect(cheminDansModuleRetire('/pneus', undefined)).toBe(false);
+  });
+});
+
+describe('navigation — premier lien d’un domaine', () => {
+  it('vendeur : Atelier ouvre la première vue accessible (Dépôt pneus), jamais les OR', () => {
+    const sujetVendeur: SujetNavigation = {
+      role: 'vendeur',
+      actions: actionsDuRole('vendeur'),
+    };
+    const atelier = entree('atelier');
+    expect(actionsDuRole('vendeur')).not.toContain('atelier.or.lire');
+    const cible = cheminEntree(atelier, sujetVendeur, undefined);
+    expect(cible).toBeDefined();
+    expect(cible).not.toContain('ordres-reparation');
+    expect(cible).toBe(ongletsVisibles(atelier, sujetVendeur)[0]?.chemin(undefined));
   });
 });

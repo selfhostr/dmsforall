@@ -188,7 +188,9 @@ export function EcranListeVehiculesStock() {
     {
       id: 'statut',
       libelle: t('ventes:stock.liste.colonnes.statut'),
-      rendu: (ligne) => <BadgeStatutVehiculeStock statut={ligne.statutCommercial} />,
+      rendu: (ligne) => (
+        <BadgeStatutVehiculeStock statut={ligne.statutCommercial} className="whitespace-nowrap" />
+      ),
     },
     {
       id: 'joursStock',
@@ -290,7 +292,12 @@ export function EcranListeVehiculesStock() {
     // fait tomber la détection automatique juste dans les trois langues.
     <GabaritEcran
       titre={t('ventes:stock.liste.titre')}
-      actions={boutonMettreEnStock}
+      actions={
+        <>
+          <BasculeAffichageStock affichage={affichage} onChangeAffichage={definirAffichage} />
+          {boutonMettreEnStock}
+        </>
+      }
       barre={
         <div className="flex flex-wrap items-center gap-3">
           <BarreFiltres
@@ -380,7 +387,6 @@ export function EcranListeVehiculesStock() {
               </SelectContent>
             </Select>
           </BarreFiltres>
-          <BasculeAffichageStock affichage={affichage} onChangeAffichage={definirAffichage} />
         </div>
       }
     >
@@ -411,6 +417,7 @@ export function EcranListeVehiculesStock() {
       ) : (
         <>
           <TableComptoir
+            className="min-w-[56rem]"
             colonnes={colonnes}
             lignes={vehiculesStock}
             cleLigne={(ligne) => ligne.id}
