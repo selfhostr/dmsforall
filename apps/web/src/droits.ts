@@ -30,6 +30,7 @@ export const ACTIONS_CITEES = [
   'facturation.document.corriger',
   'facturation.document.creer',
   'facturation.document.emettre_avoir',
+  'facturation.document.emettre_devis_bc',
   'facturation.document.emettre_facture',
   'facturation.document.lire',
   'facturation.export.creer',

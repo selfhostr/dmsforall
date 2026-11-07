@@ -223,7 +223,8 @@ export function EcranFicheFacture() {
   // Devis AUTONOME : l'accord du client et l'ouverture de l'OR se font ici, pas seulement depuis un
   // travail d'OR. Un devis `emis` attend l'accord ; `emis` ou `accepte`, sans véhicule inconnu ni OR
   // déjà ouvert, il peut devenir un OR (le serveur reprend client, véhicule et lignes).
-  const proposeAccord = documentEstDevis && document_.statut === 'emis' && peutAccepterDevis(actions);
+  const proposeAccord =
+    documentEstDevis && document_.statut === 'emis' && peutAccepterDevis(actions);
   const proposeCreerOr =
     documentEstDevis &&
     (document_.statut === 'emis' || document_.statut === 'accepte') &&
