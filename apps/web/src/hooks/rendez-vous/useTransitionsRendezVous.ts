@@ -27,6 +27,7 @@ export function useActionRendezVous<TEntree extends object>(
     onSuccess: (rendezVous) => {
       queryClient.setQueryData(clesQuery.rdv.detail(rdvId), rendezVous);
       void queryClient.invalidateQueries({ queryKey: ['rdv', 'plage'] });
+      void queryClient.invalidateQueries({ queryKey: ['rdv', 'resume-sites'] });
       void queryClient.invalidateQueries({ queryKey: ['rdv', 'charge'] });
     },
   });

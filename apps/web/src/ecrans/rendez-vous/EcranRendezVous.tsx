@@ -36,7 +36,6 @@ import {
 } from '@/hooks/rendez-vous/periode-agenda';
 import { BoutonVehiculeCourtoisieOr } from '@/ecrans/atelier/BoutonVehiculeCourtoisieOr';
 import { peutPreterCourtoisie } from '@/ecrans/courtoisie/droits';
-import { useClient } from '@/hooks/clients/useClient';
 import { useDeplacerRendezVous } from '@/hooks/rendez-vous/useDeplacerRendezVous';
 import { useDepotsPneusClient } from '@/hooks/rendez-vous/useDepotsPneusClient';
 import { useRendezVousAutresSites } from '@/hooks/rendez-vous/useRendezVousAutresSites';
@@ -80,6 +79,7 @@ function versDetail(
   return {
     ...versCarte(rdv, langue),
     siteNom,
+    clientEmail: rdv.client.email,
     remarque: rdv.commentaire,
     motifAnnulation: rdv.motifAnnulation,
     // Aucun journal d'audit exposé par `/rendez-vous/{id}` à ce jour (pas d'endpoint dédié, à la
@@ -234,7 +234,7 @@ export function EcranRendezVous() {
   const [vehiculeIgnore, setVehiculeIgnore] = useState(false);
   const [rechercheClient, setRechercheClient] = useState('');
 
-  const requeteMotifs = useMotifsRendezVous();
+  const requeteMotifs = useMotifsRendezVous({ actifs: true });
   const creation = useCreationRendezVous();
   const [rechercheClientTemporisee] = useValeurDebouncee(rechercheClient);
   const rechercheClientsActive = rechercheClientTemporisee.trim().length >= 2;
@@ -277,9 +277,6 @@ export function EcranRendezVous() {
 
   const rdvSelectionne = requeteAgenda.data?.donnees.find((r) => r.id === rdvSelectionneId) ?? null;
 
-  const clientDetail = useClient(
-    rdvSelectionne && panneauOuvert ? rdvSelectionne.client.id : undefined,
-  );
   const [dialogueDeplacerOuvert, setDialogueDeplacerOuvert] = useState(false);
   const deplacer = useDeplacerRendezVous(rdvSelectionneId ?? '');
   const absence = useAbsenceRendezVous(rdvSelectionneId ?? '');
@@ -410,10 +407,7 @@ export function EcranRendezVous() {
         <PanneauDetailRendezVous
           ouvert={panneauOuvert}
           onOpenChange={setPanneauOuvert}
-          rendezVous={{
-            ...versDetail(rdvSelectionne, site.nom, langue),
-            clientEmail: clientDetail.data?.email,
-          }}
+          rendezVous={versDetail(rdvSelectionne, site.nom, langue)}
           siteUrl={site.id}
           // Le jour J : comparaison sur la DATE seule (pas d'heure de rendez-vous garantie —
           // `heureSouhaitee` optionnel) — le rendez-vous devient actionnable dès le jour même.

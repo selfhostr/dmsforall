@@ -33,6 +33,7 @@ function useArriveeRendezVousMutation(
     onSuccess: (reponse) => {
       queryClient.setQueryData(clesQuery.rdv.detail(rdvId), reponse.donnees);
       void queryClient.invalidateQueries({ queryKey: ['rdv', 'plage'] });
+      void queryClient.invalidateQueries({ queryKey: ['rdv', 'resume-sites'] });
       void queryClient.invalidateQueries({ queryKey: ['rdv', 'charge'] });
       void queryClient.invalidateQueries({ queryKey: ['or', 'liste'] });
       if (reponse.donnees.ordreReparationId) {
