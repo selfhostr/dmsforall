@@ -233,7 +233,6 @@ export function EcranListeDossiersVente() {
       <EtatVidePremierUsage
         titre={t('ventes:dossier.liste.vide.premierUsage.titre')}
         description={t('ventes:dossier.liste.vide.premierUsage.description')}
-        action={boutonNouveauDossier}
       />
     );
   }

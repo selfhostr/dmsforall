@@ -170,12 +170,6 @@ export function EcranListeClients() {
     <EtatVidePremierUsage
       titre={t('clients:vide.premier')}
       description={t('clients:vide.premierDescription')}
-      action={
-        <Button type="button" onClick={() => setSheetOuvert(true)}>
-          <Plus aria-hidden className="h-4 w-4" />
-          {t('clients:nouveau')}
-        </Button>
-      }
     />
   );
 

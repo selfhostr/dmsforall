@@ -278,7 +278,6 @@ export function EcranListeFactures() {
       <EtatVide
         titre={t('facturation:liste.vide.devis.titre')}
         description={t('facturation:liste.vide.devis.description')}
-        action={<BoutonNouveauDevis variante="default" />}
       />
     );
   } else if (onglet === 'enRetard') {

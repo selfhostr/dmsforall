@@ -157,14 +157,6 @@ export function EcranAgendaRendezVous({
           description={t(
             vue === 'jour' ? 'planning:vide.jour.description' : 'planning:vide.semaine.description',
           )}
-          action={
-            onNouveauRendezVous ? (
-              <Button type="button" onClick={onNouveauRendezVous}>
-                <CalendarPlus aria-hidden className="h-4 w-4" />
-                {t('planning:toolbar.nouveauRendezVous')}
-              </Button>
-            ) : undefined
-          }
         />
       );
     }

@@ -84,10 +84,8 @@ function repondreListeVide() {
   );
 }
 
-/** Liste VIDE (`repondreListeVide`) : DEUX boutons portent le nom accessible « Nouveau client »
- *  une fois `EtatVidePremierUsage` rendu — celui de l'en-tête (toujours présent, premier dans le
- *  DOM) et celui de l'état vide. Le premier, systématiquement, jamais `getByRole` seul (ambigu dès
- *  que la liste vide a fini de se rendre). */
+/** Bouton « Nouveau client » de l'en-tête. L'état vide n'en porte plus (doublon retiré) : un seul
+ *  bouton existe, même liste vide. */
 async function boutonNouveauClient() {
   const boutons = await screen.findAllByRole('button', { name: 'Nouveau client' });
   const bouton = boutons[0];
@@ -162,7 +160,8 @@ describe('EcranListeClients', () => {
     expect(
       await screen.findByText('Aucun client enregistré. Créez le premier.'),
     ).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'Nouveau client' }).length).toBeGreaterThan(0);
+    // Un seul bouton de création : celui de l'en-tête, pas de doublon dans l'état vide.
+    expect(screen.getAllByRole('button', { name: 'Nouveau client' })).toHaveLength(1);
   });
 
   it("affiche un état d'erreur actionnable si le serveur répond en erreur", async () => {
