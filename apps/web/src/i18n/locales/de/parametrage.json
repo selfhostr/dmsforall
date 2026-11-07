@@ -380,10 +380,27 @@
       "format": "Die Nummer muss wie CHE-123.456.789 MWST aussehen.",
       "cle": "Diese Nummer existiert nicht: prüfen Sie die Ziffern."
     },
-    "enregistrer": "Nummer speichern",
-    "enregistrementReussi": "MWST-Nummer gespeichert.",
+    "enregistrer": "Unternehmen speichern",
+    "enregistrementReussi": "Änderungen gespeichert.",
     "erreur": {
       "titre": "Unternehmensdaten konnten nicht geladen werden"
+    },
+    "delaiPaiement": "Standard-Zahlungsfrist (Tage)",
+    "delaiPaiementAide": "Gilt für Rechnungen von Kunden ohne eigene Zahlungsbedingung. 0 bis 365 Tage.",
+    "erreurDelai": "Geben Sie eine ganze Zahl von Tagen zwischen 0 und 365 an.",
+    "logo": {
+      "titre": "Logo",
+      "alt": "Logo der Garage",
+      "aucun": "Kein Logo hinterlegt: Ihre Rechnungen werden ohne Logo gedruckt.",
+      "choisir": "Logo auswählen",
+      "remplacer": "Logo ersetzen",
+      "supprimer": "Entfernen",
+      "aide": "PNG, JPEG oder SVG, höchstens 1 MB. Nur neue PDF tragen das Logo: bereits gedruckte Rechnungen ändern sich nicht.",
+      "svgNonImprime": "Das SVG wird hier angezeigt, aber nicht auf die PDF gedruckt. Verwenden Sie PNG oder JPEG, damit es auf Ihren Rechnungen erscheint.",
+      "refus": {
+        "type": "Diese Datei wird nicht akzeptiert: wählen Sie PNG, JPEG oder SVG.",
+        "taille": "Diese Datei ist grösser als 1 MB: wählen Sie ein kleineres Bild."
+      }
     }
   },
   "motifsRdv": {
