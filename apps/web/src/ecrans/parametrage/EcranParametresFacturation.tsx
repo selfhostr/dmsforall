@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 
 import { ErreurApi, messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
+import { LegendeChampsObligatoires } from '@/components/ui/label';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
@@ -69,6 +70,9 @@ export function EcranParametresFacturation() {
         />
       ) : (
         <div className="flex flex-col gap-6">
+          <LegendeChampsObligatoires>
+            {t('parametrage:obligatoire.legende')}
+          </LegendeChampsObligatoires>
           <SectionEntreprise />
           <FormulaireBlocCreancier blocCreancier={requete.data} />
         </div>

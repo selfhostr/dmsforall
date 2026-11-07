@@ -14,6 +14,9 @@ import { creerQueryClientTest } from '@/test/utils';
 
 import { EcranParametresFacturation } from './EcranParametresFacturation';
 
+/** Libellé d'un champ obligatoire : l'étoile (aria-hidden) fait partie du texte du <label>. */
+const avecEtoile = (libelle: string) => new RegExp(`^${libelle}\\*?$`);
+
 const CHEMIN = '/api/v1/parametres-facturation/creancier';
 
 // Radix Select (pays) appelle `hasPointerCapture`/`scrollIntoView`, absents de jsdom — même stub
@@ -84,7 +87,9 @@ describe('EcranParametresFacturation — état vide (jamais configuré)', () => 
       await screen.findByText(i18n.t('parametrage:creancier.nonConfigure')),
     ).toBeInTheDocument();
     // Champ vide, jamais bloqué à la saisie (numero pas requis) — formulaire directement éditable.
-    expect(screen.getByLabelText(i18n.t('parametrage:creancier.identite.nom'))).toHaveValue('');
+    expect(
+      screen.getByLabelText(avecEtoile(i18n.t('parametrage:creancier.identite.nom'))),
+    ).toHaveValue('');
     // Checklist : rien n'est encore complet.
     expect(
       screen.queryByText(i18n.t('parametrage:creancier.completude.complet')),
@@ -98,9 +103,9 @@ describe('EcranParametresFacturation — données réelles déjà saisies', () =
     server.use(http.get(CHEMIN, () => HttpResponse.json(BLOC_COMPLET)));
     rendre();
 
-    expect(await screen.findByLabelText(i18n.t('parametrage:creancier.identite.nom'))).toHaveValue(
-      'Garage Martin SA',
-    );
+    expect(
+      await screen.findByLabelText(avecEtoile(i18n.t('parametrage:creancier.identite.nom'))),
+    ).toHaveValue('Garage Martin SA');
     expect(screen.getByLabelText(i18n.t('parametrage:creancier.comptes.iban'))).toHaveValue(
       BLOC_COMPLET.iban,
     );
@@ -130,7 +135,9 @@ describe('EcranParametresFacturation — données réelles déjà saisies', () =
     );
     rendre();
 
-    const champNom = await screen.findByLabelText(i18n.t('parametrage:creancier.identite.nom'));
+    const champNom = await screen.findByLabelText(
+      avecEtoile(i18n.t('parametrage:creancier.identite.nom')),
+    );
     const utilisateur = userEvent.setup();
     await utilisateur.clear(champNom);
     await utilisateur.type(champNom, 'Garage Martin & Fils SA');
@@ -174,7 +181,7 @@ describe('EcranParametresFacturation — données réelles déjà saisies', () =
     );
     rendre();
 
-    await screen.findByLabelText(i18n.t('parametrage:creancier.identite.nom'));
+    await screen.findByLabelText(avecEtoile(i18n.t('parametrage:creancier.identite.nom')));
     const utilisateur = userEvent.setup();
     await utilisateur.click(
       screen.getByRole('button', { name: i18n.t('parametrage:creancier.actions.enregistrer') }),
@@ -260,8 +267,36 @@ describe('EcranParametresFacturation — chargement', () => {
     expect(screen.getByText(i18n.t('commun:chargement.enCours'))).toBeInTheDocument();
     await waitFor(() =>
       expect(
-        screen.getByLabelText(i18n.t('parametrage:creancier.identite.nom')),
+        screen.getByLabelText(avecEtoile(i18n.t('parametrage:creancier.identite.nom'))),
       ).toBeInTheDocument(),
     );
+  });
+});
+
+describe('EcranParametresFacturation — champs obligatoires', () => {
+  it('affiche la légende en tête, pose aria-required sur le nom et l’adresse, et traite IBAN / QR-IBAN comme un groupe « un sur deux »', async () => {
+    server.use(http.get(CHEMIN, () => HttpResponse.json(BLOC_VIDE)));
+    rendre();
+
+    const nom = await screen.findByLabelText(
+      avecEtoile(i18n.t('parametrage:creancier.identite.nom')),
+    );
+    expect(screen.getByText(i18n.t('parametrage:obligatoire.legende'))).toBeInTheDocument();
+    expect(nom).toHaveAttribute('aria-required', 'true');
+    for (const cle of ['rue', 'numero', 'npa', 'localite']) {
+      expect(
+        screen.getByLabelText(avecEtoile(i18n.t(`parametrage:creancier.adresse.${cle}`))),
+      ).toHaveAttribute('aria-required', 'true');
+    }
+    // Un seul des deux comptes suffit : aucun des deux champs n'est « requis » individuellement,
+    // l'obligation est portée par le groupe (fieldset + légende + description).
+    const iban = screen.getByLabelText(i18n.t('parametrage:creancier.comptes.iban'));
+    const qrIban = screen.getByLabelText(i18n.t('parametrage:creancier.comptes.qrIban'));
+    expect(iban).not.toHaveAttribute('aria-required');
+    expect(qrIban).not.toHaveAttribute('aria-required');
+    const groupe = screen.getByRole('group', {
+      name: new RegExp(i18n.t('parametrage:creancier.comptes.groupe')),
+    });
+    expect(groupe).toHaveAccessibleDescription(i18n.t('parametrage:creancier.comptes.groupeAide'));
   });
 });
