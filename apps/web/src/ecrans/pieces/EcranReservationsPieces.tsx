@@ -93,7 +93,6 @@ export function EcranReservationsPieces() {
     fetchNextPage,
   } = useReservations(filtres);
 
-  const filtresActifs = q.trim() !== '' || statut !== undefined;
   function effacerFiltres() {
     // Levier de reset (choix produit 26.08.2026) : `effacerFiltres` est un geste de reprise en
     // main, pas une frappe — `q` doit refléter la case vide immédiatement, pas après le même
@@ -240,8 +239,6 @@ export function EcranReservationsPieces() {
         q={qSaisie}
         onChangeQ={setQSaisie}
         placeholderRecherche={t('pieces:reservations.filtres.rechercherPlaceholder')}
-        filtresActifs={filtresActifs}
-        onEffacerFiltres={effacerFiltres}
       >
         <div className="flex flex-col gap-champ">
           <Select

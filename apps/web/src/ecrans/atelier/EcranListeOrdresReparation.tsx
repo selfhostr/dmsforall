@@ -145,7 +145,6 @@ export function EcranListeOrdresReparation() {
   } = useListeOrdresReparation(filtres);
 
   const filtresStructuresActifs = statut !== undefined || attente !== undefined;
-  const filtresActifs = q.trim() !== '' || filtresStructuresActifs;
 
   function effacerFiltres() {
     // Levier de reset (choix produit 26.08.2026) : `effacerFiltres` est un geste de reprise en
@@ -284,12 +283,21 @@ export function EcranListeOrdresReparation() {
   // ligne « Trier par », à droite — écran de référence de ce chantier, même déplacement appliqué
   // ensuite à Pneus/Clients/Véhicules et, en parallèle, à Pièces (`EcranListeArticles.tsx`).
   return (
-    <GabaritEcran titre={t('or:liste.titre')}>
+    <GabaritEcran titre={t('or:liste.titre')} actions={<>{boutonNouveauOr}</>}>
       <BarreFiltres
+        tri={
+          <SelecteurTri
+            options={TRIS_ORDRES_REPARATION.map((valeur) => ({
+              valeur,
+              libelle: t(CLES_TRI[valeur]),
+            }))}
+            valeur={tri}
+            onChangeValeur={setTri}
+            label={t('or:liste.tri.label')}
+          />
+        }
         q={qSaisie}
         onChangeQ={setQSaisie}
-        filtresActifs={filtresActifs}
-        onEffacerFiltres={effacerFiltres}
       >
         {/* Libellé retiré de l'affichage (demande produit : « Statut »/« Attente » au-dessus du
          *  contrôle ne font que répéter ce que le contrôle dit déjà) — `sr-only`, jamais un
@@ -353,20 +361,6 @@ export function EcranListeOrdresReparation() {
         </Select>
         <AideContextuelle sujet={t('or:liste.filtres.statut')} texte={t('aide:or.statuts')} />
       </BarreFiltres>
-
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <SelecteurTri
-          options={TRIS_ORDRES_REPARATION.map((valeur) => ({
-            valeur,
-            libelle: t(CLES_TRI[valeur]),
-          }))}
-          valeur={tri}
-          onChangeValeur={setTri}
-          label={t('or:liste.tri.label')}
-          className="max-w-xs"
-        />
-        {boutonNouveauOr}
-      </div>
 
       <TableComptoir
         colonnes={colonnes}

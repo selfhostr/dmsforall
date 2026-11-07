@@ -1,13 +1,12 @@
-import { useId } from 'react';
+import { ArrowUpDown, Check } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
 export interface OptionTri {
@@ -23,22 +22,15 @@ export interface ProprietesSelecteurTri {
   readonly options: readonly OptionTri[];
   readonly valeur: string;
   readonly onChangeValeur: (valeur: string) => void;
+  /** Nom accessible ET infobulle du bouton (déjà traduit). */
   readonly label: string;
   readonly className?: string;
 }
 
 /**
- * Sélecteur de tri compact — alternative aux en-têtes triables de `TableComptoir` (utile en
- * tablette où la table dense n'est pas le gabarit par défaut). `valeur` suit la forme du
- * paramètre `tri` de l'API, pas de mapping supplémentaire côté appelant.
- *
- * LIBELLÉ `sr-only` (19.08.2026, signalé par le lot atelier) — le `Select` affiche déjà l'option
- * triée en toutes lettres (`SelectValue`, ex. « Date, plus récent d'abord ») : un libellé visible
- * « Trier par » au-dessus ne fait que répéter ce que le contrôle montre déjà, pour le seul coût de
- * consommer de la hauteur (doctrine du chantier « cadre applicatif » : pas de libellé qui répète
- * son contrôle). `htmlFor`/`aria-label` restent posés SANS changement — un contrôle ne devient
- * jamais anonyme pour un lecteur d'écran quand on masque son libellé à l'œil, seulement invisible
- * à l'écran (`sr-only`, retiré du flux visuel, jamais de l'arbre d'accessibilité).
+ * Tri d'une liste : un bouton icône (comme sur une boutique en ligne) qui ouvre un petit menu
+ * Radix. Pas de libellé visible ni de grand déroulant : le nom vit dans `aria-label` et `title`,
+ * l'option active est cochée dans le menu. Même hauteur (44 px) que les champs voisins.
  */
 export function SelecteurTri({
   id,
@@ -48,26 +40,35 @@ export function SelecteurTri({
   label,
   className,
 }: ProprietesSelecteurTri) {
-  const idGenere = useId();
-  const idChamp = id ?? idGenere;
-
   return (
-    <div className={cn(className)}>
-      <Label htmlFor={idChamp} className="sr-only">
-        {label}
-      </Label>
-      <Select value={valeur} onValueChange={onChangeValeur}>
-        <SelectTrigger id={idChamp} aria-label={label}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {options.map((option) => (
-            <SelectItem key={option.valeur} value={option.valeur}>
-              {option.libelle}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          id={id}
+          type="button"
+          variant="outline"
+          size="icon"
+          aria-label={label}
+          title={label}
+          className={cn('shrink-0', className)}
+        >
+          <ArrowUpDown aria-hidden className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {options.map((option) => (
+          <DropdownMenuCheckboxItem
+            key={option.valeur}
+            checked={option.valeur === valeur}
+            onSelect={() => onChangeValeur(option.valeur)}
+          >
+            {option.valeur === valeur ? (
+              <Check aria-hidden className="absolute left-2 h-4 w-4" />
+            ) : null}
+            {option.libelle}
+          </DropdownMenuCheckboxItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

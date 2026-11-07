@@ -93,7 +93,6 @@ export function EcranListeCommandesFournisseur() {
   const nomSite = (siteId: string) => sites.find((site) => site.id === siteId)?.nom ?? siteId;
 
   const filtresStructuresActifs = statut !== undefined || avecReliquat;
-  const filtresActifs = q.trim() !== '' || filtresStructuresActifs;
   function effacerFiltres() {
     // Levier de reset (choix produit 26.08.2026) : `effacerFiltres` est un geste de reprise en
     // main, pas une frappe — `q` doit refléter la case vide immédiatement, pas après le même
@@ -210,8 +209,6 @@ export function EcranListeCommandesFournisseur() {
         q={qSaisie}
         onChangeQ={setQSaisie}
         placeholderRecherche={t('pieces:commandes.filtres.rechercherPlaceholder')}
-        filtresActifs={filtresActifs}
-        onEffacerFiltres={effacerFiltres}
       >
         <div className="flex flex-col gap-champ">
           <Select

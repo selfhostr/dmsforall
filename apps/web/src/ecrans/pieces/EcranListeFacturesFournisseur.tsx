@@ -91,7 +91,6 @@ export function EcranListeFacturesFournisseur() {
     fetchNextPage,
   } = useListeFacturesFournisseur(filtres, !session.isLoading && peutLire);
 
-  const filtresActifs = q.trim() !== '' || statut !== undefined;
   function effacerFiltres() {
     // Levier de reset (choix produit 26.08.2026) : `effacerFiltres` est un geste de reprise en
     // main, pas une frappe — `q` doit refléter la case vide immédiatement, pas après le même
@@ -239,8 +238,6 @@ export function EcranListeFacturesFournisseur() {
         q={qSaisie}
         onChangeQ={setQSaisie}
         placeholderRecherche={t('pieces:facturesFournisseur.filtres.rechercherPlaceholder')}
-        filtresActifs={filtresActifs}
-        onEffacerFiltres={effacerFiltres}
       >
         <div className="flex flex-col gap-champ">
           <Select

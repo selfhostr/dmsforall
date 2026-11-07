@@ -175,8 +175,6 @@ export function EcranListeFournisseurs() {
         q={qSaisie}
         onChangeQ={setQSaisie}
         placeholderRecherche={t('pieces:fournisseurs.filtres.rechercherPlaceholder')}
-        filtresActifs={q.trim() !== '' || statut !== undefined}
-        onEffacerFiltres={effacerFiltres}
       >
         <div className="flex flex-col gap-champ">
           <Select

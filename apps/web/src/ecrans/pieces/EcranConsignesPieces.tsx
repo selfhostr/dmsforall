@@ -1,4 +1,3 @@
-import { X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -199,7 +198,7 @@ export function EcranConsignesPieces() {
         <AideContextuelle sujet={t('pieces:consignes.titre')} texte={t('aide:pieces.consignes')} />
       }
     >
-      <div className="flex flex-wrap items-end gap-groupe">
+      <div className="flex flex-nowrap items-center gap-controles">
         <div className="flex flex-col gap-champ max-w-xs">
           <Select
             value={statut ?? 'toutes'}
@@ -236,11 +235,6 @@ export function EcranConsignesPieces() {
             onChange={(evenement) => setAncienneteSaisie(evenement.target.value)}
           />
         </div>
-
-        <Button type="button" variant="ghost" disabled={!filtresActifs} onClick={effacerFiltres}>
-          <X aria-hidden className="h-4 w-4" />
-          {t('commun:actions.effacerFiltres')}
-        </Button>
       </div>
 
       <TableComptoir

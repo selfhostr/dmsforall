@@ -84,9 +84,6 @@ export function EcranConsolePlateforme() {
     });
   }, [garages, statutFiltre, filtreIndicateur, texteNormalise]);
 
-  const filtresActifs =
-    texteNormalise !== '' || statutFiltre !== undefined || filtreIndicateur !== null;
-
   function effacerFiltres() {
     setQSaisie('');
     setStatutFiltre(undefined);
@@ -166,8 +163,6 @@ export function EcranConsolePlateforme() {
           q={qSaisie}
           onChangeQ={setQSaisie}
           placeholderRecherche={t('console:plateforme.recherche.placeholder')}
-          filtresActifs={filtresActifs}
-          onEffacerFiltres={effacerFiltres}
         >
           <div className="flex flex-col gap-1.5">
             <Select

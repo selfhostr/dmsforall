@@ -597,8 +597,6 @@ export function EcranHangarPneus() {
             q={filtreRepereARelancer}
             onChangeQ={setFiltreRepereARelancer}
             placeholderRecherche={t('pneus:hangar.filtres.reperePlaceholder')}
-            filtresActifs={filtreRepereARelancer.trim() !== ''}
-            onEffacerFiltres={() => setFiltreRepereARelancer('')}
           >
             {sites.length > 0 ? (
               <div className="flex flex-col gap-1.5">
