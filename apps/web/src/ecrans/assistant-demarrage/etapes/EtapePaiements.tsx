@@ -88,13 +88,9 @@ function FormulairePaiements({
           id="assistant-comptant"
           checked={saisie.comptantSeulement}
           onCheckedChange={(v) => setSaisie((s) => ({ ...s, comptantSeulement: v === true }))}
-          aria-describedby="assistant-comptant-aide"
         />
         <div className="pt-2.5">
           <Label htmlFor="assistant-comptant">{t('assistant:paiements.comptant')}</Label>
-          <p id="assistant-comptant-aide" className="texte-libelle text-muted-foreground">
-            {t('assistant:paiements.comptantAide')}
-          </p>
         </div>
       </div>
 

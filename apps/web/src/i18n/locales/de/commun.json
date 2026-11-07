@@ -103,11 +103,10 @@
   },
   "densite": {
     "titre": "Grösse der Oberfläche",
-    "court": { "auto": "Auto", "compacte": "Kompakt", "aeree": "Luftig" },
     "auto": "Automatisch (je nach Gerät)",
     "compacte": "Kompakt",
     "aeree": "Luftig",
-    "aide": "Luftig: grössere Schrift und höhere Zeilen, für Tablet und Finger."
+    "revenirAuto": "Zur automatischen Größe zurückkehren"
   },
   "glossaire": {
     "OR": "Reparaturauftrag (RA): Auftrag für ein Fahrzeug in der Werkstatt, von der Annahme bis zur Rückgabe.",

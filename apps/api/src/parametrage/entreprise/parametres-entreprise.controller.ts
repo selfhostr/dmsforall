@@ -45,14 +45,21 @@ export class ParametresEntrepriseController {
   @ExigerDroit('facturation.parametrage.creancier.modifier')
   @Patch()
   @ApiOperation({
-    summary: 'Modifie la raison sociale, le n° TVA ou le délai de paiement du garage.',
+    summary:
+      'Modifie la raison sociale, l’assujettissement à la TVA, le n° TVA ou le délai de paiement du garage.',
     description:
       '`raisonSociale` : 1 à 200 caractères (espaces de bord retirés), journalisée dans le journal ' +
       "d'audit (avant/après). Le slug du garage ne change jamais. Les documents déjà émis gardent " +
       'leur raison sociale ; les suivants prennent la nouvelle (sauf si le bloc créancier porte ' +
       'son propre nom, qui reste prioritaire et se change dans la facturation). ' +
       'Format IDE suisse `CHE-123.456.789 TVA` (`MWST`/`IVA` acceptés), clé de contrôle modulo 11 ' +
-      'vérifiée. `numeroTva: null` efface le numéro (garage non assujetti). Corps vide : aucun effet.',
+      'vérifiée. `numeroTva: null` efface le numéro. `assujettiTva: false` déclare le garage non assujetti : ' +
+      'le numéro est vidé et les documents émis ensuite n’ont aucune TVA ; `assujettiTva: false` ' +
+      'avec un `numeroTva` non nul (ou un numéro envoyé à un garage non assujetti) est refusé ' +
+      '(`VALIDATION_ECHOUEE`, `erreurs[0].champ = numeroTva`). `assujettiTva: true` sans numéro est ' +
+      'accepté, mais l’émission d’une facture exige alors le numéro (`TVA_NUMERO_REQUIS`). ' +
+      "Chaque changement de raison sociale, d'assujettissement ou de numéro est journalisé (avant/après). " +
+      'Corps vide : aucun effet.',
   })
   @ApiOkResponse({ type: ReponseParametresEntrepriseDto })
   @ApiReponseProbleme(

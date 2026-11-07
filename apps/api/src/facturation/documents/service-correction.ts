@@ -35,6 +35,7 @@ import {
 } from '../../common/idempotence';
 import { calculerStatutReglement } from '../paiements/imputations';
 
+import { chargerSituationTva, REGIME_NON_ASSUJETTI } from './assujettissement';
 import { calculerLigneDocument } from './calcul-document';
 import { chargerDocumentPourEcriture, listerLignesDocumentPourEcriture } from './document-requetes';
 import { calculerRetardDocument } from './echeance';
@@ -243,15 +244,21 @@ export class ServiceCorrectionFacture {
         "L'insertion de la facture de remplacement n'a rendu aucune ligne.",
       );
 
+    // Régime ACTUEL du garage : un garage devenu non assujetti depuis l'émission d'origine
+    // recopie ses lignes à 0 ‰ / `exclu` (prix TTC conservé, donc HT = TTC) ; sinon une
+    // facture de remplacement à TVA > 0 serait refusée à l'émission. Assujetti : recopie telle quelle.
+    const situationTva = await chargerSituationTva(tx, ctx);
     let numeroOrdre = 1;
     for (const ligne of lignesFacture) {
+      const tauxTvaPourmille = situationTva.assujetti ? ligne.tauxTvaPourmille : 0;
+      const regimeTva = situationTva.assujetti ? ligne.regimeTva : REGIME_NON_ASSUJETTI;
       const montants = calculerLigneDocument({
         prixUnitaireTtcCentimes: ligne.prixUnitaireCentimes,
         quantiteMillieme: ligne.quantiteMillieme,
         remisePourmille: ligne.remisePourmille,
         remiseMontantCentimes: ligne.remiseMontantCentimes,
         remiseGlobaleRepartieCentimes: 0,
-        tauxTvaPourmille: ligne.tauxTvaPourmille,
+        tauxTvaPourmille,
       });
       const [ligneInseree] = await tx
         .insert(ligneDocument)
@@ -266,8 +273,8 @@ export class ServiceCorrectionFacture {
           documentAcompteId: ligne.documentAcompteId,
           categorieComptable: ligne.categorieComptable,
           modeCalculTva: 'ttc',
-          regimeTva: ligne.regimeTva,
-          tauxTvaPourmille: ligne.tauxTvaPourmille,
+          regimeTva,
+          tauxTvaPourmille,
           datePrestation: ligne.datePrestation,
           quantiteMillieme: ligne.quantiteMillieme,
           prixUnitaireCentimes: ligne.prixUnitaireCentimes,

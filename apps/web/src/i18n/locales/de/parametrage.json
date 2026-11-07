@@ -1,14 +1,7 @@
 {
-  "titre": "Rechnungseinstellungen",
-  "monCompte": {
-    "titre": "Mein Konto",
-    "langue": {
-      "description": "Diese Sprache betrifft nur Ihr Konto, nicht die anderen Benutzer der Garage."
-    }
-  },
+  "titre": "Rechnungen und Zahlungen",
   "creancier": {
     "titre": "Bankverbindung der Garage",
-    "description": "Diese Angaben erscheinen auf dem QR-Zahlteil jeder ausgestellten Rechnung. Solange sie unvollständig sind, kann keine Rechnung mit einer zahlbaren QR-Rechnung ausgestellt werden.",
     "nonConfigure": "Diese Angaben wurden noch nie erfasst.",
     "identite": {
       "titre": "Identität",
@@ -20,7 +13,7 @@
     "adresse": {
       "titre": "Adresse",
       "rue": "Strasse",
-      "numero": "Hausnummer",
+      "numero": "Nr.",
       "numeroAide": "Leer lassen, wenn keine Hausnummer vorhanden ist (Postfach, Weiler). Achtung: Für die Ausstellung einer Rechnung mit QR-Zahlteil ist sie erforderlich — ohne sie bleibt die Ausstellung blockiert, bis sie ergänzt wird.",
       "npa": "PLZ",
       "localite": "Ort",
@@ -30,9 +23,11 @@
       "titre": "Bankkonten",
       "explication": "Ein QR-IBAN (Konto bei einem für QR-Rechnungen reservierten Institut) verlangt auf jeder Rechnung eine QR-Referenz. Ein gewöhnlicher IBAN akzeptiert nur eine SCOR-Referenz oder keine Referenz. Es handelt sich um zwei unterschiedliche Konten: nie das eine im Feld des anderen erfassen, sonst wird der Zahlteil von der Bank abgelehnt.",
       "iban": "IBAN (gewöhnliches Konto)",
-      "ibanAide": "Das übliche Kontokorrentkonto der Garage — kein QR-IBAN.",
       "qrIban": "QR-IBAN",
-      "qrIbanAide": "Für QR-Rechnungen reserviertes Konto (Institut-Identifikation zwischen 30000 und 31999)."
+      "qrIbanAide": "Für QR-Rechnungen reserviertes Konto (Institut-Identifikation zwischen 30000 und 31999).",
+      "groupe": "Bankkonto",
+      "groupeAide": "Mindestens eines der beiden Konten ist erforderlich.",
+      "difference": "Was ist der Unterschied zwischen beiden?"
     },
     "completude": {
       "titre": "Für die Ausstellung einer Rechnung mit QR-Zahlteil nötig",
@@ -56,11 +51,9 @@
   },
   "referentiels": {
     "titre": "Werkstatttarife",
-    "introduction": "Die Stundensätze und der Leistungskatalog dienen zur Verrechnung jeder Position eines Reparaturauftrags. Ohne gültigen Stundensatz oder gültige Leistung kann eine Position keinen Preis tragen.",
     "enCours": "laufend",
     "tauxHoraires": {
       "onglet": "Stundensätze",
-      "explication": "Ein Stundensatz ist eine datierte Periode: Der auf eine RA-Position angewendete Betrag ist derjenige, der am Tag der Verrechnung gültig ist. Zwei Perioden desselben Codes dürfen sich nie überschneiden.",
       "nouveau": "Neuer Stundensatz",
       "modifier": "Stundensatz bearbeiten",
       "codeVerrouille": "Der Code kann nach der Erstellung nicht mehr geändert werden — er wird auf bereits verrechneten RA-Positionen übernommen.",
@@ -76,11 +69,11 @@
       "vide": {
         "titre": "Kein Stundensatz vorhanden",
         "description": "Erfassen Sie mindestens einen Stundensatz, um Arbeitszeit nach effektivem Zeitaufwand verrechnen zu können."
-      }
+      },
+      "auMoinsUn": "* Mindestens ein Stundensatz."
     },
     "prestations": {
       "onglet": "Leistungskatalog",
-      "explication": "Leistungen sind die am Schalter angebotenen Pauschalen, Teile und Standardpositionen. Eine Preisänderung eröffnet eine neue Periode — bereits verrechnete RA behalten ihren ursprünglichen Preis.",
       "nouvelle": "Neue Leistung",
       "modifier": "Leistung bearbeiten",
       "codeVerrouille": "Der Code kann nach der Erstellung nicht mehr geändert werden.",
@@ -124,13 +117,13 @@
     }
   },
   "atelier": {
-    "titre": "Werkstatteinstellungen",
+    "titre": "Werkstatt und Termine",
     "lectureSeule": "Diese Einstellungen sind der Werkstattleitung und der Geschäftsleitung vorbehalten. Sie können sie einsehen, aber nicht ändern.",
     "enregistrementReussi": "Einstellungen gespeichert.",
     "or": {
-      "titre": "Reparaturaufträge",
-      "prefixe": "Präfix der RA-Nummern",
-      "porteeNumerotation": "Nummerierung",
+      "titre": "Reparaturaufträge (RA)",
+      "prefixe": "Beginn der RA-Nummern",
+      "porteeNumerotation": "Nummernkreise",
       "porteeNumerotationValeurs": {
         "tenant": "Eine Serie für die ganze Garage",
         "site": "Eine Serie pro Standort"
@@ -147,12 +140,11 @@
       "rdvRetroactifAuto": "Vergangenen Termin automatisch dem RA zuordnen"
     },
     "reception": {
-      "titre": "Annahme",
+      "titre": "Fahrzeugannahme",
       "kmEntreeObligatoire": "Kilometerstand bei Annahme obligatorisch",
       "kmSortieObligatoire": "Kilometerstand bei Abgabe obligatorisch",
-      "plafondDefautCentimes": "Standard-Kostengrenze für Kundenfreigabe",
-      "plafondDefautAide": "Über diesem Betrag ist vor jeder kostenpflichtigen Freigabe eine ausdrückliche Zustimmung des Kunden erforderlich. Leer lassen, um keine Grenze festzulegen.",
-      "signature": "Kundenunterschrift bei der Annahme"
+      "plafondDefautCentimes": "Freigabe des Kunden erforderlich ab",
+      "plafondDefautAide": "Ab diesem Betrag muss der Kunde vor den Arbeiten zustimmen. Leer lassen, um keine Grenze festzulegen."
     },
     "travaux": {
       "titre": "Arbeiten",
@@ -161,16 +153,15 @@
         "heures_decimales": "Dezimalstunden (1.25 h)",
         "unites_constructeur": "Herstellereinheiten (AW)"
       },
-      "controleQualite": "Qualitätskontrolle vor Rückgabe",
+      "controleQualite": "Qualitätskontrolle vor der Fahrzeugübergabe",
       "controleQualiteValeurs": {
         "jamais": "Nie erforderlich",
         "toujours": "Immer erforderlich"
-      },
-      "pointage": "Zeiterfassungseinstellungen (Rundung, Überschneidung, Höchstdauer)"
+      }
     },
     "documents": {
-      "titre": "Dokumente",
-      "langue": "Sprache der Kundendokumente",
+      "titre": "Dokumente für den Kunden",
+      "langue": "Sprache der Dokumente",
       "langueValeurs": {
         "client": "Korrespondenzsprache des Kunden",
         "site": "Standardsprache des Standorts"
@@ -184,20 +175,16 @@
     "vehicule": {
       "titre": "Fahrzeuge",
       "expertiseAlerteMois": "Prüftermin-Warnung (Monate im Voraus)",
-      "visibiliteHistorique": "Sichtbare Historie für einen neuen Halter",
+      "visibiliteHistorique": "Sichtbare Historie für einen neuen Eigentümer",
       "visibiliteHistoriqueValeurs": {
         "tout": "Gesamte Historie",
         "technique": "Nur technische Historie",
         "rien": "Keine"
       }
-    },
-    "inerte": {
-      "signature": "verfügbar mit der elektronischen Unterschriftserfassung, bisher nicht ausgeliefert",
-      "pointage": "verfügbar mit dem Zeiterfassungsmodul, bisher nicht ausgeliefert"
     }
   },
   "sites": {
-    "titre": "Standorteinstellungen",
+    "titre": "Öffnungszeiten und Schliessungen",
     "inactif": "Inaktiv",
     "vide": {
       "titre": "Kein Standort vorhanden",
@@ -207,25 +194,26 @@
       "titre": "Öffnungszeiten",
       "ouverture": "Öffnung",
       "fermeture": "Schliessung",
-      "cloturePointage": "Automatischer Zeiterfassungsschluss",
-      "cloturePointageAide": "Eine zu diesem Zeitpunkt noch offene Zeiterfassung wird automatisch geschlossen — verhindert eine vergessene Erfassung, die die ganze Nacht weiterläuft."
+      "cloturePointage": "Automatisches Ende der Zeiterfassung"
     },
     "capacite": {
       "titre": "Kapazität",
-      "champ": "Stundenkapazität pro Tag",
-      "aide": "Summe der an diesem Standort an einem Tag verfügbaren produktiven Stunden, über alle Mitarbeitenden — dient zur Anzeige der Planungsauslastung. Leer lassen, wenn noch nicht bekannt."
+      "champ": "Kapazität pro Tag (Std.)",
+      "aide": "Verfügbare Arbeitsstunden pro Tag, alle Mechaniker zusammen: dient zur Berechnung der Planungsauslastung. Leer lassen, wenn nicht bekannt."
     },
     "fermeture": {
       "titre": "Schliesstage",
-      "explication": "Diese Tage erscheinen in der Terminplanung nicht als verfügbar (Feiertage, Betriebsferien).",
       "aucun": "Kein Schliesstag geplant.",
       "retirer": "{date} entfernen",
       "ajouter": "Hinzufügen"
     },
-    "enregistrementReussi": "Standorteinstellungen gespeichert."
+    "enregistrementReussi": "Standorteinstellungen gespeichert.",
+    "avance": {
+      "titre": "Erweiterte Einstellungen"
+    }
   },
   "pieces": {
-    "titre": "Teileeinstellungen",
+    "titre": "Teile und Lager",
     "enregistrementReussi": "Einstellungen gespeichert.",
     "erreur": {
       "titre": "Teileeinstellungen konnten nicht geladen werden"
@@ -236,8 +224,8 @@
       "stockNegatifForcageAutorise": "Erzwingen eines Abgangs trotz unzureichendem Bestand erlauben"
     },
     "valorisation": {
-      "titre": "Lagerbewertung",
-      "methodePrixAchat": "Methode für den Einkaufspreis",
+      "titre": "Einkaufspreis und Inventur",
+      "methodePrixAchat": "Berechnung des Einkaufspreises",
       "methodePrixAchatAide": "Bestimmt, wie der auf einem Artikel angezeigte Einkaufspreis nach jedem Wareneingang neu berechnet wird. Bleibt unbestimmt, solange keine Methode festgelegt wurde.",
       "methodePrixAchatValeurs": {
         "aucune": "Nicht festgelegt",
@@ -246,7 +234,6 @@
       }
     },
     "inventaire": {
-      "titre": "Inventur",
       "seuilValeurAjustementSignificatif": "Warnschwelle für eine bedeutende Korrektur",
       "seuilValeurAjustementSignificatifAide": "Eine Bestandskorrektur, deren Wert diesen Betrag übersteigt, löst bei der Erfassung eine Warnung aus. Leer lassen, solange kein Schwellenwert festgelegt wurde."
     },
@@ -255,10 +242,6 @@
       "delaiAcquisitionJours": "Frist vor Vorschlag zur Übernahme (Tage)",
       "delaiAcquisitionJoursAide": "Leer lassen, solange keine Frist festgelegt wurde: kein Pfand wird automatisch als erworben vorgeschlagen.",
       "tauxTva": "Auf das Pfand angewendeter MWST-Satz"
-    },
-    "conditionnement": {
-      "articleDistinct": "Eine andere Verpackungseinheit ist ein eigener Artikel",
-      "inerte": "feste Einstellung, noch nicht konfigurierbar"
     }
   },
   "utilisateurs": {
@@ -296,7 +279,7 @@
       "champPrenom": "Vorname",
       "champNom": "Name",
       "champEmail": "E-Mail",
-      "champRole": "Stelle (Ausgangspunkt)",
+      "champRole": "Stelle",
       "champSites": "Standorte, an denen der Mitarbeiter arbeitet",
       "aucunSiteDisponible": "Dieser Garage ist noch kein Standort zugeordnet.",
       "sitesAucunSelectionne": "Wählen Sie mindestens einen Standort aus.",
@@ -346,19 +329,19 @@
     },
     "roleUnique": "Jede Person hat nur eine Rolle. In einem kleinen Betrieb wählen Sie Direktion: Diese Rolle kann alles.",
     "bornes": {
-      "titre": "Werkstatt-Terminals",
-      "description": "Ein Terminal ist das Wandtablet der Werkstatt: Die Mechaniker stempeln dort mit ihrem PIN-Code.",
-      "nouveau": "Terminal hinzufügen",
-      "vide": "Noch kein Werkstatt-Terminal.",
+      "titre": "Werkstatt-Tablets",
+      "description": "Wandtablet, auf dem die Mechaniker mit ihrem PIN-Code stempeln.",
+      "nouveau": "Tablet hinzufügen",
+      "vide": "Noch kein Werkstatt-Tablet.",
       "colNom": "Name",
       "colIdentifiant": "Kennung",
       "colSite": "Standort",
       "colStatut": "Status",
       "colActions": "Aktionen",
-      "champNom": "Name des Terminals",
-      "champSite": "Standort des Terminals",
+      "champNom": "Name des Tablets",
+      "champSite": "Standort des Tablets",
       "placeholderSite": "Standort wählen",
-      "creer": "Terminal erstellen",
+      "creer": "Tablet erstellen",
       "acces": "Kennung und Passwort des Terminals",
       "accesDescription": "Geben Sie sie einmalig auf dem Tablet ein. Das Passwort wird nie mehr angezeigt.",
       "desactiver": "Deaktivieren",
@@ -388,7 +371,15 @@
     "erreurRaison": "Geben Sie den Namen der Garage an.",
     "raisonSocialeAide": "Dieser Name erscheint auf Ihren Dokumenten und Rechnungen. Bereits ausgestellte Dokumente behalten den alten Namen.",
     "numeroTva": "MWST-Nummer",
-    "numeroTvaAide": "Format: CHE-123.456.789 MWST. Leer lassen, wenn Sie nicht mehrwertsteuerpflichtig sind.",
+    "numeroTvaAide": "Format: CHE-123.456.789 MWST. Sie erscheint auf Ihren Rechnungen.",
+    "assujetti": {
+      "legende": "Ist Ihre Garage mehrwertsteuerpflichtig?",
+      "oui": "Ja",
+      "non": "Nein",
+      "aide": "Unter CHF 100'000 Jahresumsatz müssen Sie nicht mehrwertsteuerpflichtig sein.",
+      "ouiSansNumero": "Ohne MWST-Nummer können Sie keine Rechnung ausstellen.",
+      "nonInfo": "Ihre Rechnungen und Offerten weisen keine MWST aus und tragen den Vermerk «Nicht mehrwertsteuerpflichtig»."
+    },
     "erreurTva": {
       "format": "Die Nummer muss wie CHE-123.456.789 MWST aussehen.",
       "cle": "Diese Nummer existiert nicht: prüfen Sie die Ziffern."
@@ -418,11 +409,8 @@
   },
   "motifsRdv": {
     "titre": "Termingründe",
-    "explication": "Wofür Ihre Kunden kommen: Ein Termin wird immer mit einem Grund vereinbart.",
     "nouveau": "Neuer Grund",
     "modifier": "Grund ändern",
-    "dialogueAide": "Der französische Name genügt; Übersetzungen sind optional.",
-    "traductionsAide": "Die Übersetzungen sehen Kunden und Mitarbeiter, die die Software in dieser Sprache nutzen.",
     "champs": {
       "libelleFr": "Name des Grundes",
       "libelleDe": "Name auf Deutsch",
@@ -461,6 +449,18 @@
     },
     "erreur": {
       "titre": "Termingründe konnten nicht geladen werden"
+    },
+    "auMoinsUn": "Mindestens ein aktiver Grund."
+  },
+  "obligatoire": {
+    "legende": "* Pflichtfeld",
+    "sr": "Pflichtfeld"
+  },
+  "garage": {
+    "titre": "Meine Garage",
+    "aCompleter": {
+      "titre": "Zu ergänzen",
+      "adresse": "Die Adresse der Garage (Strasse, Nr., PLZ, Ort)"
     }
   }
 }

@@ -98,6 +98,8 @@
     "DOCUMENT_PDF_INDISPONIBLE": "Il PDF non è ancora pronto. Attenda qualche istante, poi riprovi.",
     "FACTURATION_LIGNES_INDECISES": "Alcune righe attendono l'approvazione del cliente prima di essere fatturi. Ottenga l'approvazione o le rimuova da questa fattura.",
     "QR_CREANCIER_INCOMPLET": "I suoi dati bancari per la QR-fattura sono incompleti. Completili nelle impostazioni di fatturazione.",
+    "TVA_NON_ASSUJETTI_TAUX_INTERDIT": "Il Suo garage non è soggetto all'IVA: nessuna riga può contenere IVA. Imposti l'aliquota allo 0 %, oppure indichi nelle impostazioni di fatturazione di essere soggetto all'IVA.",
+    "TVA_NUMERO_REQUIS": "Il Suo garage è soggetto all'IVA: inserisca il Suo numero IVA nelle impostazioni di fatturazione prima di emettere una fattura.",
     "IBAN_INVALIDE": "Questo IBAN sembra errato (forma o cifra di controllo). Verifichi l'inserimento, cifra per cifra.",
     "IBAN_EST_UN_QR_IBAN": "Questo è un QR-IBAN: lo inserisca nel campo «QR-IBAN», non nel campo «IBAN».",
     "QR_IBAN_SANS_IID_RESERVE": "Questo è un IBAN ordinario, non un QR-IBAN: lo inserisca nel campo «IBAN», non nel campo «QR-IBAN».",

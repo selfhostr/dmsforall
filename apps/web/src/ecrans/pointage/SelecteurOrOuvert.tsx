@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 
 import { messageErreur } from '@/api/erreurs';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
@@ -59,11 +58,9 @@ export function SelecteurOrOuvert({ siteId, onChoisirOr, disabled = false }: Pro
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="pointage-recherche-toutes-or">
-          {t('pointage:toutesLesOr.rechercherLabel')}
-        </Label>
         <Input
           id="pointage-recherche-toutes-or"
+          aria-label={t('pointage:toutesLesOr.rechercherLabel')}
           value={qSaisie}
           onChange={(evenement) => setQSaisie(evenement.target.value)}
           placeholder={t('pointage:toutesLesOr.rechercherPlaceholder')}

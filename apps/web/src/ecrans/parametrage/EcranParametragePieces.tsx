@@ -1,4 +1,4 @@
-import { CheckCircle2, Lock } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -191,10 +191,6 @@ function FormulaireParametresPieces({
             disabled={!peutEcrire}
             libelle={t('parametrage:pieces.stock.stockNegatifForcageAutorise')}
           />
-          <ChampInerte
-            libelle={t('parametrage:pieces.conditionnement.articleDistinct')}
-            raison={t('parametrage:pieces.conditionnement.inerte')}
-          />
         </CardContent>
       </Card>
 
@@ -204,7 +200,7 @@ function FormulaireParametresPieces({
             {t('parametrage:pieces.valorisation.titre')}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-4">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="pp-methode-prix">
               {t('parametrage:pieces.valorisation.methodePrixAchat')}
@@ -238,16 +234,7 @@ function FormulaireParametresPieces({
           <p className="texte-libelle text-muted-foreground">
             {t('parametrage:pieces.valorisation.methodePrixAchatAide')}
           </p>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="texte-titre-section">
-            {t('parametrage:pieces.inventaire.titre')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
           <Controller
             control={form.control}
             name="seuilValeurAjustementSignificatifCentimes"
@@ -384,20 +371,5 @@ function CaseACocher({ name, form, disabled, libelle }: PropsCaseACocher) {
         </label>
       )}
     />
-  );
-}
-
-/** Réglage lu depuis l'API mais INERTE (`conditionnementArticleDistinct`, hypothèse figée `RP-05`
- *  tant que `QP-03` n'est pas tranché — voir `contrats/pieces/parametrage.ts`) : affiché en
- *  lecture seule avec la raison, même patron que `ChampInerte` dans `EcranParametrageAtelier.tsx`
- *  (dupliqué plutôt que partagé — pas assez de matière commune pour un composant générique). */
-function ChampInerte({ libelle, raison }: { readonly libelle: string; readonly raison: string }) {
-  return (
-    <div className="flex items-center gap-2 rounded-md border border-dashed p-3 texte-corps text-muted-foreground">
-      <Lock className="h-4 w-4 shrink-0" aria-hidden="true" />
-      <span>
-        {libelle} — {raison}
-      </span>
-    </div>
   );
 }

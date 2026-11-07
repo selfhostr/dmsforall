@@ -29,6 +29,8 @@ export interface LibellesFacture {
   readonly totalTva: string;
   readonly totalTtc: string;
   readonly mentionTvaComprise: string;
+  /** Garage non assujetti à la TVA : mention imprimée en en-tête et sous le total. */
+  readonly nonAssujettiTva: string;
   /** Devis : titre, variante brouillon (pas de numéro), validité et mention de non-facture. */
   readonly devisNumero: (numero: string) => string;
   readonly devisBrouillon: string;
@@ -56,6 +58,7 @@ const FR: LibellesFacture = {
   totalTva: 'Total TVA',
   totalTtc: 'Total TTC',
   mentionTvaComprise: 'Prix TVA comprise',
+  nonAssujettiTva: 'Non assujetti à la TVA',
   devisNumero: (numero) => `Devis n° ${numero}`,
   devisBrouillon: 'Devis (brouillon)',
   valableJusqu: "Valable jusqu'au",
@@ -82,6 +85,7 @@ const DE: LibellesFacture = {
   totalTva: 'Total MWST',
   totalTtc: 'Total Brutto',
   mentionTvaComprise: 'Preise inkl. MWST',
+  nonAssujettiTva: 'Nicht mehrwertsteuerpflichtig',
   devisNumero: (numero) => `Offerte Nr. ${numero}`,
   devisBrouillon: 'Offerte (Entwurf)',
   valableJusqu: 'Gültig bis',
@@ -108,6 +112,7 @@ const IT: LibellesFacture = {
   totalTva: 'Totale IVA',
   totalTtc: 'Totale lordo',
   mentionTvaComprise: 'Prezzi IVA inclusa',
+  nonAssujettiTva: "Non soggetto all'IVA",
   devisNumero: (numero) => `Preventivo n. ${numero}`,
   devisBrouillon: 'Preventivo (bozza)',
   valableJusqu: 'Valido fino al',

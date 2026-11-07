@@ -2,6 +2,7 @@ import { AlertTriangle, CheckCircle2, Download, Mail } from 'lucide-react';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import {
@@ -261,7 +262,11 @@ export function DialogueFacturerEtEncaisser({
                     : t('facturation:facturerEncaisser.apercuExact', {
                         montant: formaterMontantAvecDevise(apercu.montantCentimes, DEVISE),
                       })
-                  : t('facturation:facturerEncaisser.apercuInconnu')}
+                  : t('facturation:facturerEncaisser.apercuInconnu')}{' '}
+              <AideContextuelle
+                sujet={t('aide:facturation.arrondiEspeces.sujet')}
+                texte={t('aide:facturation.arrondiEspeces.texte')}
+              />
             </p>
 
             {flux.erreurConfirmation ? (

@@ -136,37 +136,41 @@ export function EnTeteDossierVente({ dossier, peutAssignerVehicule, onAssignerVe
          *  statiques (prix, date de livraison), aucune action ni comportement propre à ce groupe —
          *  espacement/typographie suffisent, même doctrine que les `dl` de totaux/pointage de
          *  `EcranFicheOrdreReparation.tsx` (atelier), qui n'ont jamais porté de cadre. */}
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 texte-corps sm:grid-cols-3">
-          <dt className="text-muted-foreground">{t('ventes:dossier.fiche.prix')}</dt>
-          <dd className="col-span-2 sm:col-span-1">
-            {/* Trois rendus visuellement distincts (jamais interchangeables, voir `utils.ts`) :
-             *  - `aucun` -> texte muet, ne ressemble à aucun montant (ni chiffre ni devise) ;
-             *  - `undefined` (rôle masqué, montant existant mais illisible pour ce rôle) -> `null`,
-             *    RIEN n'est rendu — surtout pas un texte qui pourrait se lire comme « pas de prix » ;
-             *  - `indicatif` -> montant réel, mais atténué + préfixé, jamais confondu avec un engagé ;
-             *  - `engage` -> seul cas en texte proéminent, le seul qui affirme un prix ferme. */}
-            {prix.statut === 'aucun' ? (
-              <span className="text-muted-foreground">{t('ventes:dossier.fiche.prixAucun')}</span>
-            ) : prix.document.totalTtcCentimes === undefined ? null : prix.statut ===
-              'indicatif' ? (
-              <span className="text-muted-foreground">
-                {t('ventes:dossier.fiche.prixIndicatif', {
-                  montant: formaterMontant(prix.document.totalTtcCentimes),
-                })}
-              </span>
-            ) : (
-              <span className="texte-donnee-proeminente">
-                {formaterMontant(prix.document.totalTtcCentimes)}
-              </span>
-            )}
-          </dd>
+        <dl className="flex flex-col gap-y-2 texte-corps">
+          <div className="grid grid-cols-2 gap-x-4 sm:grid-cols-3">
+            <dt className="text-muted-foreground">{t('ventes:dossier.fiche.prix')}</dt>
+            <dd className="sm:col-span-2">
+              {/* Trois rendus visuellement distincts (jamais interchangeables, voir `utils.ts`) :
+               *  - `aucun` -> texte muet, ne ressemble à aucun montant (ni chiffre ni devise) ;
+               *  - `undefined` (rôle masqué, montant existant mais illisible pour ce rôle) -> `null`,
+               *    RIEN n'est rendu — surtout pas un texte qui pourrait se lire comme « pas de prix » ;
+               *  - `indicatif` -> montant réel, mais atténué + préfixé, jamais confondu avec un engagé ;
+               *  - `engage` -> seul cas en texte proéminent, le seul qui affirme un prix ferme. */}
+              {prix.statut === 'aucun' ? (
+                <span className="text-muted-foreground">{t('ventes:dossier.fiche.prixAucun')}</span>
+              ) : prix.document.totalTtcCentimes === undefined ? null : prix.statut ===
+                'indicatif' ? (
+                <span className="text-muted-foreground">
+                  {t('ventes:dossier.fiche.prixIndicatif', {
+                    montant: formaterMontant(prix.document.totalTtcCentimes),
+                  })}
+                </span>
+              ) : (
+                <span className="texte-donnee-proeminente">
+                  {formaterMontant(prix.document.totalTtcCentimes)}
+                </span>
+              )}
+            </dd>
+          </div>
 
-          <dt className="text-muted-foreground">
-            {t('ventes:dossier.fiche.dateLivraisonEstimee')}
-          </dt>
-          <dd className="col-span-2 sm:col-span-1">
-            {dossier.dateLivraisonEstimee ? formaterDate(dossier.dateLivraisonEstimee) : ''}
-          </dd>
+          <div className="grid grid-cols-2 gap-x-4 sm:grid-cols-3">
+            <dt className="text-muted-foreground">
+              {t('ventes:dossier.fiche.dateLivraisonEstimee')}
+            </dt>
+            <dd className="sm:col-span-2">
+              {dossier.dateLivraisonEstimee ? formaterDate(dossier.dateLivraisonEstimee) : ''}
+            </dd>
+          </div>
         </dl>
       </CardContent>
     </Card>

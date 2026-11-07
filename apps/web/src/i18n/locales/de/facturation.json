@@ -230,7 +230,9 @@
       "payablePar": "Zahlbar durch",
       "iban": "IBAN",
       "reference": "Referenz",
-      "sansReference": "Ohne Referenz"
+      "sansReference": "Ohne Referenz",
+      "copier": "Kopieren",
+      "copie": "Kopiert"
     },
     "actions": {
       "emettre": "Ausstellen",
@@ -244,6 +246,7 @@
         "creerAvoir": "Gutschrift erstellen",
         "journal": "Protokoll anzeigen"
       },
+      "corrigerFacture": "Rechnung korrigieren",
       "telechargerPdf": "PDF herunterladen",
       "envoyerDevis": "Offerte senden",
       "accordClient": "Zustimmung des Kunden",
@@ -273,7 +276,7 @@
     },
     "correction": {
       "titre": "Rechnung {numero} korrigieren",
-      "explication": "Eine ausgestellte Rechnung ist unveränderlich: eine direkte Änderung ist nicht möglich. DFA erstellt eine Gutschrift, die diese Rechnung storniert, und anschliessend eine neue Rechnung mit der Korrektur. Beide behalten ihre Nummer in der Reihe — nichts verschwindet, nichts wird neu nummeriert.",
+      "explication": "Eine ausgestellte Rechnung wird nicht geändert: Eine Gutschrift storniert sie, danach wird eine korrigierte Rechnung erstellt.",
       "motif": "Grund der Korrektur",
       "adresse": {
         "rue": "Strasse und Nr.",
@@ -346,6 +349,17 @@
   },
   "liste": {
     "titre": "Rechnungen",
+    "tri": {
+      "label": "Sortieren",
+      "options": {
+        "dateDesc": "Datum, neueste zuerst",
+        "dateAsc": "Datum, älteste zuerst",
+        "numeroDesc": "Nr., absteigend",
+        "numeroAsc": "Nr., aufsteigend",
+        "soldeDesc": "Saldo, höchster zuerst",
+        "relanceAsc": "Nächste Mahnung"
+      }
+    },
     "onglets": {
       "groupeLabel": "Rechnungen filtern",
       "toutes": "Alle",
@@ -406,20 +420,17 @@
     "nouveau": {
       "action": "Neue Offerte",
       "titre": "Neue Offerte",
-      "description": "Ein Preis für einen Kunden, ohne Auftrag zu eröffnen. Das Fahrzeug ist optional.",
       "client": "Kunde",
       "clientPlaceholder": "Name, Telefon oder Kundennummer",
       "clientRequis": "Wählen Sie einen Kunden.",
       "aucunClient": "Kein Kunde gefunden.",
       "vehicule": "Fahrzeug",
-      "vehiculeAide": "Optional: lassen Sie «Ohne Fahrzeug», wenn das Auto noch nicht bekannt ist.",
       "sansVehicule": "Ohne Fahrzeug",
       "site": "Standort",
       "creer": "Offerte erstellen"
     },
     "cree": {
       "titre": "Offerte erstellt",
-      "description": "Erfassen Sie jetzt Arbeit und Teile in der Offerte. Sobald die Offerte gesendet und vom Kunden angenommen ist, können Sie daraus einen AR erstellen.",
       "ouvrir": "Offerte öffnen"
     },
     "statuts": {

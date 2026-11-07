@@ -23,7 +23,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -152,13 +152,17 @@ export function DialoguePrestation({
         </DialogHeader>
 
         <form onSubmit={soumettre} noValidate className="flex flex-col gap-4">
+          <LegendeChampsObligatoires>
+            {t('parametrage:obligatoire.legende')}
+          </LegendeChampsObligatoires>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="pr-code">
+              <Label htmlFor="pr-code" requis>
                 {t('parametrage:referentiels.prestations.champs.code')}
               </Label>
               <Input
                 id="pr-code"
+                aria-required="true"
                 readOnly={estModification || enCours}
                 aria-invalid={form.formState.errors.code ? true : undefined}
                 aria-describedby={form.formState.errors.code ? 'pr-code-erreur' : undefined}
@@ -176,7 +180,7 @@ export function DialoguePrestation({
               ) : null}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="pr-type">
+              <Label htmlFor="pr-type" requis>
                 {t('parametrage:referentiels.prestations.champs.typeLigne')}
               </Label>
               <Controller
@@ -190,6 +194,7 @@ export function DialoguePrestation({
                   >
                     <SelectTrigger
                       id="pr-type"
+                      aria-required="true"
                       aria-label={t('parametrage:referentiels.prestations.champs.typeLigne')}
                     >
                       <SelectValue />
@@ -215,9 +220,12 @@ export function DialoguePrestation({
               {t('parametrage:referentiels.prestations.champs.designation')}
             </legend>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="pr-designation-fr">{t('commun:langues.fr')}</Label>
+              <Label htmlFor="pr-designation-fr" requis>
+                {t('commun:langues.fr')}
+              </Label>
               <Input
                 id="pr-designation-fr"
+                aria-required="true"
                 readOnly={enCours}
                 aria-invalid={form.formState.errors.designationFr ? true : undefined}
                 aria-describedby={

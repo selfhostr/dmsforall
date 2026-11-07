@@ -241,4 +241,33 @@ describe('EcranParametrageAtelier', () => {
       await screen.findByRole('button', { name: i18n.t('commun:actions.reessayer') }),
     ).toBeInTheDocument();
   });
+
+  it('affiche la légende et la section Motifs de rendez-vous avant les cases à cocher', async () => {
+    connecterSession('chef_atelier');
+    server.use(http.get(CHEMIN, () => HttpResponse.json(PARAMETRES)));
+    rendre();
+
+    await screen.findByLabelText(i18n.t('parametrage:atelier.or.prefixe'));
+    expect(screen.getByText(i18n.t('parametrage:obligatoire.legende'))).toBeInTheDocument();
+    const motifs = screen.getByRole('heading', {
+      name: new RegExp(i18n.t('parametrage:motifsRdv.titre')),
+    });
+    const ordres = screen.getByText(i18n.t('parametrage:atelier.or.titre'));
+    // eslint-disable-next-line no-bitwise
+    expect(motifs.compareDocumentPosition(ordres) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Aucun réglage inerte (« non livré à ce jour ») n'est affiché.
+    expect(screen.queryByText(/non livré/)).not.toBeInTheDocument();
+  });
+
+  it('masque le choix « une série par site » pour un garage à un seul site', async () => {
+    connecterSession('chef_atelier');
+    server.use(http.get(CHEMIN, () => HttpResponse.json(PARAMETRES)));
+    rendre();
+    await screen.findByLabelText(i18n.t('parametrage:atelier.or.prefixe'));
+    await waitFor(() =>
+      expect(
+        screen.queryByLabelText(i18n.t('parametrage:atelier.or.porteeNumerotation')),
+      ).not.toBeInTheDocument(),
+    );
+  });
 });

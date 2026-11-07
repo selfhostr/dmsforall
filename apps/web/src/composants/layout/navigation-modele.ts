@@ -21,6 +21,7 @@ import {
   ACCES_LECTURE_OR,
   ACCES_LECTURE_RENDEZ_VOUS,
   ACCES_MENU_FACTURATION,
+  ACCES_CHIFFRES,
   ACCES_GESTION_UTILISATEURS,
   ACCES_MENU_FINANCIER,
   ACCES_MENU_PARAMETRAGE_ATELIER,
@@ -536,6 +537,14 @@ const ONGLETS_FACTURATION: readonly OngletDomaine[] = [
     motifs: ['/factures'],
     acces: ACCES_MENU_FACTURATION,
   },
+  {
+    id: 'chiffres',
+    cleLibelle: 'navigation:onglets.facturationChiffres',
+    chemin: (site) => chemins.facturation.chiffres(site),
+    // Avant `/factures` de l'onglet Factures (voir ci-dessus) : le motif le plus long gagne.
+    motifs: ['/factures/chiffres'],
+    acces: ACCES_CHIFFRES,
+  },
   /**
    * Déclenchement des relances sous FACTURATION, pas sous Réglages (§4.5 : « déclenchement ->
    * Factures »). Scindé de l'ancien `EcranRelances` (qui portait AUSSI les paliers) : voir l'onglet
@@ -610,6 +619,13 @@ const ONGLETS_REGLAGES: readonly OngletDomaine[] = [
    * plus alors qu'il n'appartient à aucun groupe de gouvernance. L'absence de restriction est la
    * décision, pas un oubli — voir `droits-routes.ts`.
    */
+  {
+    id: 'garage',
+    cleLibelle: 'navigation:onglets.reglagesGarage',
+    chemin: (site) => chemins.parametrage.garage(site),
+    motifs: ['/parametrage/garage'],
+    acces: ACCES_MENU_FINANCIER,
+  },
   {
     id: 'atelier',
     cleLibelle: 'navigation:onglets.reglagesAtelier',

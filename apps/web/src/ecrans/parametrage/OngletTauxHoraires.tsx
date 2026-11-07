@@ -98,23 +98,17 @@ export function OngletTauxHoraires({ actions }: Props) {
     <EtatVidePremierUsage
       titre={t('parametrage:referentiels.tauxHoraires.vide.titre')}
       description={t('parametrage:referentiels.tauxHoraires.vide.description')}
-      action={
-        peutEcrire ? (
-          <Button type="button" onClick={ouvrirCreation}>
-            <Plus aria-hidden className="h-4 w-4" />
-            {t('parametrage:referentiels.tauxHoraires.nouveau')}
-          </Button>
-        ) : undefined
-      }
     />
   );
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-4">
-        <p className="texte-corps text-muted-foreground">
-          {t('parametrage:referentiels.tauxHoraires.explication')}
-        </p>
+        <div className="flex flex-col gap-1">
+          <p className="texte-corps font-medium text-foreground">
+            {t('parametrage:referentiels.tauxHoraires.auMoinsUn')}
+          </p>
+        </div>
         {peutEcrire ? (
           <Button type="button" onClick={ouvrirCreation}>
             <Plus aria-hidden className="h-4 w-4" />

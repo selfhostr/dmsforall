@@ -11,13 +11,6 @@ import {
 import { ErreurApi, messageErreur } from '@/api/erreurs';
 import { useCleIdempotence } from '@/api/idempotence';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import {
@@ -27,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { RefusBloquant } from '@/composants/motifs/RefusBloquant';
 import { SelecteurOrganismeVente } from '@/ecrans/ventes/reprises/SelecteurOrganismeVente';
 import { useCreerFinancement } from '@/hooks/ventes/financements/useTransitionsFinancement';
@@ -110,63 +104,83 @@ export function DialogueCreationFinancement({
   }
 
   return (
-    <Dialog open={ouvert} onOpenChange={onOuvertChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t('ventes:financement.proposer.titre')}</DialogTitle>
-        </DialogHeader>
+    <PanneauLateral
+      ouvert={ouvert}
+      onOuvertChange={onOuvertChange}
+      titre={t('ventes:financement.proposer.titre')}
+      pied={
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOuvertChange(false)}
+            disabled={creer.isPending}
+          >
+            {t('commun:actions.annuler')}
+          </Button>
+          <Button type="submit" form="financement-creation" disabled={creer.isPending}>
+            {creer.isPending
+              ? t('commun:chargement.enCours')
+              : t('ventes:financement.proposer.bouton')}
+          </Button>
+        </>
+      }
+    >
+      <form
+        id="financement-creation"
+        noValidate
+        className="flex flex-col gap-4"
+        onSubmit={(evenement) => {
+          evenement.preventDefault();
+          soumettre();
+        }}
+      >
+        <LegendeChampsObligatoires>
+          {t('commun:formulaires.champsObligatoiresLegende')}
+        </LegendeChampsObligatoires>
 
-        <div className="flex flex-col gap-4">
-          <LegendeChampsObligatoires>
-            {t('commun:formulaires.champsObligatoiresLegende')}
-          </LegendeChampsObligatoires>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="financement-type" requis>
+            {t('ventes:financement.proposer.champType')}
+          </Label>
+          <Select value={type} onValueChange={(valeur) => setType(valeur as TypeFinancementVente)}>
+            <SelectTrigger id="financement-type" aria-required="true">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TYPES_FINANCEMENT_VENTE.map((valeur) => (
+                <SelectItem key={valeur} value={valeur}>
+                  {t(`ventes:financement.types.${valeur}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="financement-type" requis>
-              {t('ventes:financement.proposer.champType')}
-            </Label>
-            <Select
-              value={type}
-              onValueChange={(valeur) => setType(valeur as TypeFinancementVente)}
-            >
-              <SelectTrigger id="financement-type" aria-required="true">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TYPES_FINANCEMENT_VENTE.map((valeur) => (
-                  <SelectItem key={valeur} value={valeur}>
-                    {t(`ventes:financement.types.${valeur}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        {type === 'comptant' ? (
+          <p className="texte-libelle text-muted-foreground">
+            {t('ventes:financement.proposer.aideComptant')}
+          </p>
+        ) : (
+          <SelecteurOrganismeVente
+            label={t('ventes:financement.proposer.champOrganisme')}
+            placeholder={t('ventes:financement.proposer.champOrganismePlaceholder')}
+            obligatoire
+            valeur={organismeId}
+            onChangeValeur={setOrganismeId}
+            erreur={erreursChamps.organismeId}
+          />
+        )}
 
-          {type === 'comptant' ? (
-            <p className="texte-libelle text-muted-foreground">
-              {t('ventes:financement.proposer.aideComptant')}
-            </p>
-          ) : (
-            <SelecteurOrganismeVente
-              label={t('ventes:financement.proposer.champOrganisme')}
-              placeholder={t('ventes:financement.proposer.champOrganismePlaceholder')}
-              obligatoire
-              valeur={organismeId}
-              onChangeValeur={setOrganismeId}
-              erreur={erreursChamps.organismeId}
-            />
-          )}
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="financement-reference">
-              {t('ventes:financement.proposer.champReferenceContrat')}
-            </Label>
-            <Input
-              id="financement-reference"
-              value={referenceContrat}
-              onChange={(evenement) => setReferenceContrat(evenement.target.value)}
-            />
-          </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="financement-reference">
+            {t('ventes:financement.proposer.champReferenceContrat')}
+          </Label>
+          <Input
+            id="financement-reference"
+            value={referenceContrat}
+            onChange={(evenement) => setReferenceContrat(evenement.target.value)}
+          />
         </div>
 
         {erreurActive ? (
@@ -180,23 +194,7 @@ export function DialogueCreationFinancement({
             {messageErreur(creer.error, t)}
           </p>
         ) : null}
-
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOuvertChange(false)}
-            disabled={creer.isPending}
-          >
-            {t('commun:actions.annuler')}
-          </Button>
-          <Button type="button" disabled={creer.isPending} onClick={soumettre}>
-            {creer.isPending
-              ? t('commun:chargement.enCours')
-              : t('ventes:financement.proposer.bouton')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </form>
+    </PanneauLateral>
   );
 }

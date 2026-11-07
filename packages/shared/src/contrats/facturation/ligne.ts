@@ -160,7 +160,11 @@ export const formeLigneDocument = z
     /** `null` UNIQUEMENT pour `type = 'texte'` (note libre sans prix). */
     prixUnitaireTtcCentimes: schemaCentimesTtc.nullish(),
     regimeTva: z.enum(REGIMES_TVA).default('normal'),
-    tauxTvaPourmille: schemaPourmille,
+    /** Taux en ‰. REQUIS pour un garage assujetti à la TVA. Facultatif pour un garage NON
+     *  assujetti (`tenant.assujetti_tva = false`) : absent = 0 ‰ ; un taux > 0 est accepté en
+     *  brouillon mais refusé à l'émission (`TVA_NON_ASSUJETTI_TAUX_INTERDIT`). Son régime est
+     *  ramené à `exclu` quand le taux est 0. */
+    tauxTvaPourmille: schemaPourmille.optional(),
     /** `MD-39`. Défaut proposé par le client = date du jour ; le serveur ne le déduit jamais tout
      *  seul, une prestation exécutée un autre jour doit porter SA date. */
     datePrestation: schemaDateJour,

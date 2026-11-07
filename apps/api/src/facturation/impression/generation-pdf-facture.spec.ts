@@ -273,3 +273,76 @@ describe('genererPdfFacture — n° TVA de l’émetteur (art. 26 LTVA)', () => 
     expect(blocs).toContain('Route de Riddes 42');
   });
 });
+
+describe('genererPdfFacture — garage non assujetti à la TVA (art. 27 LTVA)', () => {
+  /** Même facture de CHF 123'456.78, mais sans aucune TVA : HT = TTC, taux 0 ‰, régime `exclu`. */
+  function factureNonAssujettie(langue: 'fr' | 'de' | 'it'): ReponseDocumentVente {
+    const base = factureAllemandeGrandMontant();
+    const ligne = base.lignes[0]!;
+    return {
+      ...base,
+      figees: { ...base.figees, clientLangue: langue },
+      qr: base.qr ? { ...base.qr, qrLangue: langue } : base.qr,
+      totalHtCentimes: 12_345_678,
+      totalTvaCentimes: 0,
+      totalTtcCentimes: 12_345_678,
+      ventilationTva: [
+        { regimeTva: 'exclu', tauxTvaPourmille: 0, baseCentimes: 12_345_678, tvaCentimes: 0 },
+      ],
+      lignes: [
+        {
+          ...ligne,
+          regimeTva: 'exclu',
+          tauxTvaPourmille: 0,
+          montants: {
+            montantHtCentimes: 12_345_678,
+            montantTvaCentimes: 0,
+            montantTtcCentimes: 12_345_678,
+            montantFacturableCentimes: 12_345_678,
+            montantValoriseCentimes: 12_345_678,
+          },
+        },
+      ],
+    };
+  }
+
+  const expediteur = { ...CREANCIER, numeroTva: null, nonAssujettiTva: true };
+
+  it('en allemand : mention, total sans TVA, ni colonne ni récapitulatif TVA', async () => {
+    const blocs = extraireBlocsTexte(
+      await genererPdfFacture(factureNonAssujettie('de'), expediteur),
+    );
+    // La mention apparaît en en-tête ET sous le total.
+    expect(blocs.filter((b) => b === 'Nicht mehrwertsteuerpflichtig')).toHaveLength(2);
+    expect(blocs).toContain("Total : CHF 123'456.78");
+    expect(blocs).not.toContain('MWST');
+    expect(blocs.some((b) => b.startsWith('Basis Netto'))).toBe(false);
+    expect(blocs.some((b) => b.startsWith('MWST-Betrag'))).toBe(false);
+    expect(blocs.some((b) => b.startsWith('Total MWST'))).toBe(false);
+    expect(blocs.some((b) => b.includes('0.0%'))).toBe(false);
+    expect(blocs.some((b) => b.includes('CHE-'))).toBe(false);
+  });
+
+  it('en français et en italien : mention traduite', async () => {
+    const fr = extraireBlocsTexte(await genererPdfFacture(factureNonAssujettie('fr'), expediteur));
+    expect(fr).toContain('Non assujetti à la TVA');
+    expect(fr).not.toContain('TVA');
+    const it = extraireBlocsTexte(await genererPdfFacture(factureNonAssujettie('it'), expediteur));
+    expect(it).toContain("Non soggetto all'IVA");
+    expect(it).not.toContain('IVA');
+  });
+
+  it('un garage assujetti garde colonne TVA, récapitulatif et n° TVA, sans mention', async () => {
+    const blocs = extraireBlocsTexte(
+      await genererPdfFacture(factureAllemandeGrandMontant(), {
+        ...CREANCIER,
+        numeroTva: 'CHE-114.873.733 TVA',
+        nonAssujettiTva: false,
+      }),
+    );
+    expect(blocs).toContain('MWST');
+    expect(blocs.some((b) => b.startsWith('MWST-Betrag'))).toBe(true);
+    expect(blocs).toContain('CHE-114.873.733 TVA');
+    expect(blocs).not.toContain('Nicht mehrwertsteuerpflichtig');
+  });
+});

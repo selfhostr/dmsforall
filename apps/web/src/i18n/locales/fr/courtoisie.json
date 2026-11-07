@@ -1,6 +1,5 @@
 {
   "titre": "Véhicules de courtoisie",
-  "sousTitre": "Voitures de remplacement prêtées aux clients pendant la réparation.",
   "jour": "Jour",
   "erreur": "Impossible de charger les véhicules de courtoisie",
   "resume": "{libres, plural, =0 {Aucune voiture libre} one {# voiture libre} other {# voitures libres}} sur {total}",
