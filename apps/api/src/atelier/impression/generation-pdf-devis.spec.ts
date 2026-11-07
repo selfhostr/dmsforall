@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { inflateSync } from 'node:zlib';
 import type { ReponseDevisComplementaire, ReponseOrdreReparation } from '@dfa/shared';
 
 import { genererPdfDevis } from './generation-pdf-devis';
@@ -151,6 +152,27 @@ function devisFixture(
   };
 }
 
+/** Texte réellement dessiné (blocs BT..ET, chaînes hexadécimales), flux compressés ou non. */
+function extraireBlocsTexte(pdf: Buffer): string[] {
+  const blocs: string[] = [];
+  for (const m of pdf.toString('latin1').matchAll(/stream\r?\n([\s\S]*?)endstream/g)) {
+    const brut = Buffer.from(m[1] ?? '', 'latin1');
+    let texte: string;
+    try {
+      texte = inflateSync(brut).toString('latin1');
+    } catch {
+      texte = brut.toString('latin1');
+    }
+    for (const bt of texte.matchAll(/BT([\s\S]*?)ET/g)) {
+      const chaine = [...(bt[1] ?? '').matchAll(/<([0-9a-fA-F]+)>/g)]
+        .map(([, hex]) => Buffer.from(hex ?? '', 'hex').toString('latin1'))
+        .join('');
+      if (chaine.length > 0) blocs.push(chaine);
+    }
+  }
+  return blocs;
+}
+
 const IDENTITE: IdentiteGarage = {
   raisonSociale: 'Garage Martin SA',
   siteNom: 'Sion',
@@ -191,5 +213,28 @@ describe('genererPdfDevis', () => {
     });
 
     expect(buffer.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+  });
+});
+
+describe('genererPdfDevis — en-tête garage et n° TVA', () => {
+  it('imprime raison sociale, adresse et n° TVA au format saisi', async () => {
+    const blocs = extraireBlocsTexte(
+      await genererPdfDevis(ordreReparationFixture(), devisFixture(), {
+        ...IDENTITE,
+        numeroTva: 'CHE-114.873.733 TVA',
+      }),
+    );
+    expect(blocs).toContain('Garage Martin SA');
+    expect(blocs).toContain('Route de Lausanne 12');
+    expect(blocs).toContain('1950 Sion');
+    expect(blocs).toContain('CHE-114.873.733 TVA');
+  });
+
+  it('sans n° TVA : aucune ligne TVA', async () => {
+    const blocs = extraireBlocsTexte(
+      await genererPdfDevis(ordreReparationFixture(), devisFixture(), IDENTITE),
+    );
+    expect(blocs.some((b) => b.includes('CHE-'))).toBe(false);
+    expect(blocs).toContain('Garage Martin SA');
   });
 });

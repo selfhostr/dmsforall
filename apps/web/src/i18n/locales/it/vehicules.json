@@ -238,7 +238,7 @@
       "reprendreDescription": "Il cliente ha accettato questo lavoro: non comparirà più tra i lavori da riproporre.",
       "abandonnerTitre": "Abbandonare questo lavoro rinviato?",
       "abandonnerDescription": "Il cliente ha rifiutato questo lavoro. Non comparirà più tra i lavori da riproporre, ma resta consultabile nello storico.",
-      "erreurValidation": "Verifica la descrizione e la priorità inserite.",
+      "erreurValidation": "Verifichi la descrizione e la priorità inserite.",
       "motifLabel": "Motivo (facoltativo)",
       "motifPlaceholder": "Es.: il cliente ha rinviato questo lavoro al prossimo controllo.",
       "erreurValidationMotif": "Il motivo deve contenere almeno 3 caratteri, se inserito."
@@ -260,7 +260,7 @@
       "designationPlaceholder": "Es. cinghia di distribuzione",
       "detail": "Dettaglio (facoltativo)",
       "enregistrer": "Salva",
-      "erreurValidation": "Indicate il lavoro da fare (al massimo 200 caratteri)."
+      "erreurValidation": "Indichi il lavoro da fare (al massimo 200 caratteri)."
     }
   },
   "donnees": {
@@ -302,7 +302,7 @@
     "kilometrage": "Nessun chilometraggio registrato",
     "nouveau": {
       "titre": "Nessun veicolo registrato",
-      "description": "Crea il tuo primo veicolo"
+      "description": "Crei il suo primo veicolo"
     },
     "recherche": {
       "titre": "Nessun veicolo trovato",

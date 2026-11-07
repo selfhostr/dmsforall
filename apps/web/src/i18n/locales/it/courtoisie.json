@@ -32,7 +32,7 @@
     "au": "Al",
     "kmDepart": "km alla partenza",
     "confirmer": "Prestare",
-    "erreurValidation": "Scegliete un cliente e un periodo valido (fine dopo l'inizio)."
+    "erreurValidation": "Scelga un cliente e un periodo valido (fine dopo l'inizio)."
   },
   "retour": {
     "titre": "Riprendere l'auto",
@@ -45,6 +45,6 @@
     "designation": "Designazione",
     "designationPlaceholder": "Es. VW Polo grigia",
     "plaque": "Targa",
-    "erreurValidation": "Indicate la designazione dell'auto."
+    "erreurValidation": "Indichi la designazione dell'auto."
   }
 }

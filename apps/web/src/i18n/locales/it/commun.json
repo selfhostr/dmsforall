@@ -54,7 +54,7 @@
   },
   "montants": {
     "masque": "Non visibile",
-    "masqueDescription": "Questo importo esiste, ma il tuo ruolo non ha accesso agli importi."
+    "masqueDescription": "Questo importo esiste, ma il suo ruolo non ha accesso agli importi."
   },
   "tableComptoir": {
     "trierPar": "Ordina per"

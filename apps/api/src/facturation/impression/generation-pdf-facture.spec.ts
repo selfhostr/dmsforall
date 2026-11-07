@@ -255,3 +255,21 @@ describe('genererPdfFacture — largeurs de colonnes (régression #126 bis)', ()
     expect(blocs.some((b) => b.startsWith('Total Brutto'))).toBe(true);
   });
 });
+
+describe('genererPdfFacture — n° TVA de l’émetteur (art. 26 LTVA)', () => {
+  const expediteur = { ...CREANCIER, numeroTva: 'CHE-114.873.733 TVA' };
+
+  it('facture avec bulletin QR : en-tête du bloc figé + n° TVA des réglages', async () => {
+    const blocs = extraireBlocsTexte(
+      await genererPdfFacture(factureAllemandeGrandMontant(), expediteur),
+    );
+    expect(blocs).toContain('CHE-114.873.733 TVA');
+    expect(blocs).toContain('Route de Riddes 42');
+  });
+
+  it('facture avec bulletin QR sans n° TVA renseigné : aucune ligne CHE-', async () => {
+    const blocs = extraireBlocsTexte(await genererPdfFacture(factureAllemandeGrandMontant()));
+    expect(blocs.some((b) => b.includes('CHE-'))).toBe(false);
+    expect(blocs).toContain('Route de Riddes 42');
+  });
+});

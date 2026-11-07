@@ -5,7 +5,7 @@
     "equipe": "Team"
   },
   "identification": {
-    "titre": "Chi sei?",
+    "titre": "Chi è Lei?",
     "saisisseCode": "Inserisci codice PIN",
     "bonjour": "Ciao {prenom}",
     "terminer": "Fatto",
@@ -63,7 +63,7 @@
   },
   "cloturAuto": {
     "titre": "Timbratura chiusa",
-    "message": "La tua timbratura su {or} e stata chiusa a {heure}",
+    "message": "La sua timbratura su {or} è stata chiusa a {heure}",
     "corriger": "Correggi ora di fine"
   },
   "anomalies": {
@@ -103,8 +103,8 @@
     "perimees": "Dati obsoleti"
   },
   "vide": {
-    "aucunOr": "Al momento non ti è assegnato nessun ordine.",
-    "aucunOrDescription": "Puoi comunque scegliere un ordine aperto qualsiasi qui sotto per iniziare una timbratura."
+    "aucunOr": "Al momento non Le è assegnato nessun ordine.",
+    "aucunOrDescription": "Può comunque scegliere un ordine aperto qualsiasi qui sotto per iniziare una timbratura."
   },
   "toutesLesOr": {
     "siteBorne": "Su questa postazione sono proposti solo gli ordini di questa sede.",
@@ -133,17 +133,17 @@
   },
   "siteRequis": {
     "titre": "Scegli una sede",
-    "description": "La timbratura si fa per una sede precisa — seleziona la sede in cui lavori oggi.",
+    "description": "La timbratura si fa per una sede precisa — selezioni la sede in cui lavora oggi.",
     "label": "Sede",
     "erreur": {
-      "titre": "Impossibile caricare le tue sedi"
+      "titre": "Impossibile caricare le sue sedi"
     }
   },
   "technicien": {
     "titreEcran": "La mia timbratura",
     "aucunPointage": {
       "titre": "Nessuna timbratura in corso",
-      "description": "Scegli un ordine qui sotto o un'attivita indiretta per iniziare."
+      "description": "Scelga un ordine qui sotto o un’attività indiretta per iniziare."
     },
     "pointageEnCours": {
       "titre": "Timbratura in corso",
@@ -189,15 +189,15 @@
     "choisirCible": {
       "titre": "Cosa stai timbrando?",
       "retour": "Indietro",
-      "description": "Scegli un lavoro dell'ordine, oppure timbra sull'ordine intero.",
+      "description": "Scelga un lavoro dell'ordine, oppure timbri sull'ordine intero.",
       "orEntier": "Ordine intero (senza lavoro preciso)",
       "lignesTitre": "Lavori dell'ordine",
-      "aucuneLigne": "Questo ordine non ha alcun lavoro timbrabile — puoi timbrare sull'ordine intero.",
+      "aucuneLigne": "Questo ordine non ha alcun lavoro timbrabile — Lei può timbrare sull'ordine intero.",
       "assigneeAutre": "Assegnato a un altro tecnico.",
       "nonPointable": "Non ancora disponibile per la timbratura."
     },
     "erreur": {
-      "titre": "Impossibile caricare la tua timbratura",
+      "titre": "Impossibile caricare la sua timbratura",
       "titreAction": "Timbratura impossibile"
     }
   },
@@ -251,7 +251,7 @@
       "ecart": "Scostamento",
       "parTechnicien": "Dettaglio per tecnico",
       "aucunPointage": "Nessuna timbratura registrata su questo ordine.",
-      "choisirOr": "Scegli un ordine per vedere il dettaglio della sua timbratura."
+      "choisirOr": "Scelga un ordine per vedere il dettaglio della sua timbratura."
     },
     "vide": {
       "titre": "Nessuna timbratura",
@@ -274,7 +274,7 @@
       "blocageAvecTechniciens": "Timbrature ancora in corso per: {liste} — devono essere fermate prima di poter bloccare.",
       "arreterPointages": "Ferma le timbrature in corso",
       "arretEnCours": "Arresto delle timbrature in corso…",
-      "arretReussi": "Timbrature fermate — puoi bloccare di nuovo."
+      "arretReussi": "Timbrature fermate — Lei può bloccare di nuovo."
     },
     "deverrouiller": {
       "titre": "Correggi il periodo bloccato",

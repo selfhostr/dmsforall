@@ -305,7 +305,7 @@
       "emiseLe": "emessa il {date}",
       "totalSelectionne": "Totale selezionato",
       "vide": "Nessuna fattura aperta",
-      "devisesMultiples": "Queste fatture sono in valute diverse. Deseleziona alcune fatture per conservare solo fatture nella stessa valuta prima di incassare."
+      "devisesMultiples": "Queste fatture sono in valute diverse. Deselezioni alcune fatture per conservare solo fatture nella stessa valuta prima di incassare."
     },
     "lignes": {
       "titre": "Incassi",
@@ -390,7 +390,7 @@
       },
       "devis": {
         "titre": "Nessun preventivo",
-        "description": "I preventivi che create compaiono qui, dal più recente al più vecchio."
+        "description": "I preventivi che crea compaiono qui, dal più recente al più vecchio."
       }
     }
   },
@@ -409,10 +409,10 @@
       "description": "Un prezzo per un cliente, senza aprire un ordine di riparazione. Il veicolo è facoltativo.",
       "client": "Cliente",
       "clientPlaceholder": "Nome, telefono o n. cliente",
-      "clientRequis": "Scegliete un cliente.",
+      "clientRequis": "Scelga un cliente.",
       "aucunClient": "Nessun cliente trovato.",
       "vehicule": "Veicolo",
-      "vehiculeAide": "Facoltativo: lasciate «Senza veicolo» se l'auto non è ancora nota.",
+      "vehiculeAide": "Facoltativo: lasci «Senza veicolo» se l'auto non è ancora nota.",
       "sansVehicule": "Senza veicolo",
       "site": "Sede",
       "creer": "Crea il preventivo"
@@ -464,7 +464,7 @@
     "enDetail": "Fatturare nel dettaglio",
     "echec": {
       "facturation": "Non è stato possibile creare la fattura.",
-      "factureConservee": "Nulla è stato registrato: puoi riprovare senza rischio di duplicati."
+      "factureConservee": "Nulla è stato registrato: può riprovare senza rischio di duplicati."
     },
     "succes": {
       "titre": "Fatto",

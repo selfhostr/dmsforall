@@ -2,7 +2,7 @@
   "demarrage": {
     "titre": "Cosa succede oggi",
     "checklist": {
-      "titre": "Avviare la vostra autofficina",
+      "titre": "Avviare la sua autofficina",
       "progression": "{faites} passaggi su {total} completati. Ognuno richiede pochi minuti.",
       "masquer": "Non mostrare più",
       "chargement": "Verifica della configurazione",
@@ -28,7 +28,7 @@
       },
       "tva": {
         "titre": "Numero IVA",
-        "pourquoi": "Deve comparire sulle fatture se siete soggetti all'IVA. Altrimenti nascondete questo elenco quando il resto è a posto."
+        "pourquoi": "Deve comparire sulle fatture se è soggetto all'IVA. Altrimenti nasconda questo elenco quando il resto è a posto."
       },
       "tauxHoraire": {
         "titre": "Tariffa oraria",
@@ -36,11 +36,11 @@
       },
       "motifs": {
         "titre": "Motivi degli appuntamenti",
-        "pourquoi": "Un appuntamento richiede un motivo (tagliando, collaudo MFK …): controllate l'elenco o aggiungete i vostri."
+        "pourquoi": "Un appuntamento richiede un motivo (tagliando, collaudo MFK …): controlli l'elenco o aggiunga i suoi."
       },
       "collaborateur": {
         "titre": "Primo collaboratore",
-        "pourquoi": "Create gli account del team: ognuno vede ciò che il suo ruolo consente."
+        "pourquoi": "Crei gli account del team: ognuno vede ciò che il suo ruolo consente."
       },
       "borne": {
         "titre": "Terminale d'officina",
@@ -51,7 +51,7 @@
   "calendrier": {
     "titre": "Questa settimana",
     "apercu": "Anteprima — le date di restituzione promesse questa settimana.",
-    "droitRequis": "Non hai il diritto di consultare gli ordini di riparazione.",
+    "droitRequis": "Non ha il diritto di consultare gli ordini di riparazione.",
     "vide": {
       "titre": "Nessuna restituzione promessa questa settimana",
       "description": "Nessun ordine di riparazione aperto ha una data di restituzione promessa nei prossimi 7 giorni."
@@ -61,7 +61,7 @@
   "echeances": {
     "titre": "Scadenze in arrivo",
     "description": "Set di pneumatici senza movimento da oltre due anni, da richiamare presso il cliente.",
-    "droitRequis": "Non hai il diritto di consultare il deposito pneumatici.",
+    "droitRequis": "Non ha il diritto di consultare il deposito pneumatici.",
     "vide": {
       "titre": "Nessuna scadenza",
       "description": "Nessun set di pneumatici è al momento da richiamare."
