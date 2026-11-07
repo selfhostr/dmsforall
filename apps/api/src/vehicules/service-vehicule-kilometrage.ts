@@ -5,7 +5,7 @@ import {
   type ReponseVehiculeKilometrage,
   type RoleUtilisateur,
 } from '@dfa/shared';
-import { MATRICE_DROITS } from '../auth/matrice-droits';
+import { actionsCourantes } from '../auth/droits-personne';
 import { JETON_DB, type AccesBase, type ContexteTenant } from '../db';
 import { vehiculeKilometrage, type LigneVehiculeKilometrage } from '../db/schema';
 import { CollecteurAvertissements } from '../common/avertissements';
@@ -143,11 +143,11 @@ export class ServiceVehiculeKilometrage {
 
       // Branche régressive AVEC motif fourni : c'est une CORRECTION (§10 L962), pas une saisie
       // normale — droit fort exigé ICI, avant tout écriture (aucune ligne insérée en cas de refus).
-      // Même idiome que `GardeDroit.canActivate` (MATRICE_DROITS[role] ?? [], .includes(action)) :
+      // Même idiome que `GardeDroit.canActivate` (actionsCourantes(role), .includes(action)) :
       // un seul endroit sait ce qu'un rôle peut faire, mais cette vérification-CI ne peut vivre que
       // côté service, parce que seul le service sait si CE relevé est régressif.
       if (decision.regressif) {
-        const droitsDuRole = MATRICE_DROITS[role] ?? [];
+        const droitsDuRole = actionsCourantes(role);
         if (!droitsDuRole.includes('vehicule.kilometrage.corriger_regression')) {
           throw new ErreurMetier(
             'DROIT_INSUFFISANT',

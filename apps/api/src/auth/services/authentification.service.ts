@@ -24,7 +24,8 @@ import type { PrincipalAuthentifie } from '../../common/contexte/contexte-requet
 import { JETON_SERVICE_LIMITATION_DEBIT } from '../../common/limitation/limitation-debit.jetons';
 import type { ServiceLimitationDebit } from '../../common/limitation/limitation-debit.types';
 import { JETON_SERVICE_MOT_DE_PASSE, JETON_SERVICE_SESSION } from '../jetons';
-import { MATRICE_DROITS } from '../matrice-droits';
+import { droitsDe } from '../droits-personne';
+import { capacitesPersonneDe, grilleDepuisLigne } from '../grille-utilisateur';
 import type {
   ServiceAuthentification,
   ServiceMotDePasse,
@@ -264,6 +265,20 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
             // chaque appel, jamais depuis le principal — `connecter()` construit un principal
             // sans site (voir son commentaire), et cette méthode sert les deux chemins.
             siteId: utilisateur.siteId,
+            // Grille de capacités : relue ici comme le rôle, pour que `actions` reflète la
+            // personne réelle (jamais un préréglage périmé).
+            niveauAtelier: utilisateur.niveauAtelier,
+            niveauAccueil: utilisateur.niveauAccueil,
+            niveauFacturation: utilisateur.niveauFacturation,
+            niveauPieces: utilisateur.niveauPieces,
+            niveauVentes: utilisateur.niveauVentes,
+            niveauFinances: utilisateur.niveauFinances,
+            peutEncadrer: utilisateur.peutEncadrer,
+            peutGererEmployes: utilisateur.peutGererEmployes,
+            estPatron: utilisateur.estPatron,
+            voitMontants: utilisateur.voitMontants,
+            voitPrixAchat: utilisateur.voitPrixAchat,
+            avoirsPlafonnes: utilisateur.avoirsPlafonnes,
           })
           .from(utilisateur)
           .where(
@@ -326,6 +341,8 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
           );
         }
 
+        const grille = grilleDepuisLigne(ligneUtilisateur);
+
         // `siteId` est retiré de l'objet `utilisateur` : le contrat `UtilisateurCourant` ne porte
         // pas de site (c'est une propriété du COMPTE, exposée à part en `siteRattachementId`), et
         // renvoyer un champ non déclaré au contrat le ferait diverger de l'OpenAPI généré.
@@ -341,7 +358,8 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
           tenant: ligneTenant,
           sites: lignesSites,
           siteRattachementId,
-          actions: [...(MATRICE_DROITS[ligneUtilisateur.role] ?? [])].sort(),
+          actions: [...droitsDe(ligneUtilisateur.role, grille).actions].sort(),
+          capacites: capacitesPersonneDe(ligneUtilisateur.role, grille),
           expireLe: ligneSession.expireLe.toISOString(),
         } satisfies SessionCourante;
       },

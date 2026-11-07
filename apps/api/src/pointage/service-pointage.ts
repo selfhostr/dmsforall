@@ -21,12 +21,11 @@ import type {
   ReponseAvecAvertissements,
   ReponseDernierPointageDuJour,
   ReponsePointage,
-  RoleUtilisateur,
 } from '@dfa/shared';
 import { estCompteDeService } from '@dfa/shared';
 
 import { siteImposeAuPrincipal, verifierSiteAutorise } from '../auth/comptes-de-service';
-import { MATRICE_DROITS } from '../auth/matrice-droits';
+import { droitsDuPrincipal } from '../auth/droits-personne';
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
 import {
   ligneOr,
@@ -138,21 +137,13 @@ type ResultatEcriture = ResultatIdempotent<
 >;
 
 /**
- * Rôles qui voient au-delà de leur propre pointage (`atelier.pointage.lire_equipe`, §9 de la spec
- * pointage : « chef d'atelier, direction »). LISTE LOCALE, TOUJOURS NÉCESSAIRE — CORRECTIF d'un
- * commentaire antérieur : le bloc `DROITS_POINTAGE_PAR_ROLE` EXISTE désormais dans
- * `matrice-droits.ts` (vérifié au 2026-08-03, six actions `atelier.pointage.*` posées et câblées par
- * rôle), mais l'action `atelier.pointage.lire_equipe` elle-même en est TOUJOURS délibérément absente
- * (commentaire de tête du bloc : « aucune route livrée ne les consomme encore ») — cette liste
- * locale reste donc la seule source de cette restriction, PAS une lecture de `MATRICE_DROITS`
- * possible en l'état. `admin` inclus par la même doctrine que le reste de la matrice lot 1 (« rôle
- * technique, superset de `direction` »).
+ * Vue d'équipe du pointage (`atelier.pointage.lire_equipe`, §9 de la spec pointage : « chef d'atelier,
+ * direction ») : accordée par « Encadrer » (chef d'atelier, direction, admin) — plus par une liste
+ * de rôles.
  */
-const ROLES_AVEC_VUE_EQUIPE_POINTAGE: ReadonlySet<RoleUtilisateur> = new Set([
-  'chef_atelier',
-  'direction',
-  'admin',
-]);
+function aLaVueEquipePointage(principal: PrincipalAuthentifie): boolean {
+  return droitsDuPrincipal(principal).capacites.has('encadrer');
+}
 
 /**
  * Cœur du domaine Pointage (RM-87 → RM-99, RM-113 → RM-123) : démarrer/arrêter/corriger, la
@@ -199,7 +190,7 @@ export class ServicePointage {
    * `@ExigerDroit` ne peut pas porter ce contrôle (statique par route) : la même route sert le cas
    * « pour soi » (à ouvrir) et « pour autrui » (à restreindre) — seul le service, une fois la cible
    * connue, peut trancher. Même idiome que `ServiceOr.modifier` / `ServiceVehiculeKilometrage.creer`
-   * (`MATRICE_DROITS[role] ?? []`, `.includes(action)`), lu ici en LECTURE SEULE (`auth/` hors
+   * (`actionsCourantes(role)`, `.includes(action)`), lu ici en LECTURE SEULE (`auth/` hors
    * périmètre d'écriture de ce module).
    */
   private exigerDroitCiblerAutrui(
@@ -209,7 +200,7 @@ export class ServicePointage {
     // Un compte de service (borne) n'est jamais « soi » : self-vs-autrui ne le concerne pas.
     if (estCompteDeService(principal.role)) return;
     if (technicienCibleId === principal.utilisateurId) return;
-    const droitsDuRole = MATRICE_DROITS[principal.role] ?? [];
+    const droitsDuRole = droitsDuPrincipal(principal).actions;
     if (!droitsDuRole.includes('atelier.pointage.pointer_autrui')) {
       throw new ErreurMetier(
         'DROIT_INSUFFISANT',
@@ -852,8 +843,7 @@ export class ServicePointage {
       const horsSite = siteBorne !== null && ligne.siteId !== siteBorne;
       if (
         horsSite ||
-        (ligne.technicienId !== principal.utilisateurId &&
-          !ROLES_AVEC_VUE_EQUIPE_POINTAGE.has(principal.role))
+        (ligne.technicienId !== principal.utilisateurId && !aLaVueEquipePointage(principal))
       ) {
         throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Pointage ${id} introuvable.`);
       }
@@ -974,7 +964,7 @@ export class ServicePointage {
 
     const sens = filtres.tri === 'debutLe:asc' ? 'asc' : 'desc';
     const curseurDecode = decoderCurseurPointages(curseur, filtres.tri);
-    const vueEquipe = ROLES_AVEC_VUE_EQUIPE_POINTAGE.has(principal.role);
+    const vueEquipe = aLaVueEquipePointage(principal);
     const technicienIdEffectif = vueEquipe ? filtres.technicienId : principal.utilisateurId;
 
     return this.acces.enTenant(ctx, async (tx) => {

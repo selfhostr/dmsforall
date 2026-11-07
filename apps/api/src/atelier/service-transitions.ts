@@ -17,7 +17,7 @@ import type {
   RoleUtilisateur,
 } from '@dfa/shared';
 
-import { MATRICE_DROITS } from '../auth/matrice-droits';
+import { droitsDuPrincipal } from '../auth/droits-personne';
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
 import {
   auditAtelier,
@@ -112,9 +112,7 @@ export class ServiceTransitions {
         // fort que `POST /vehicules/{id}/kilometrages` (`service-vehicule-kilometrage.ts`).
         if (
           regressif &&
-          !(MATRICE_DROITS[principal.role] ?? []).includes(
-            'vehicule.kilometrage.corriger_regression',
-          )
+          !droitsDuPrincipal(principal).actions.includes('vehicule.kilometrage.corriger_regression')
         ) {
           throw new ErreurMetier(
             'DROIT_INSUFFISANT',

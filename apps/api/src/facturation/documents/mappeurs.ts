@@ -12,7 +12,7 @@ import type {
 } from '@dfa/shared';
 import { DEVISES_FACTURATION, SEUIL_LIGNES_EMBARQUEES_DOCUMENT } from '@dfa/shared';
 
-import { ROLES_SANS_MONTANT } from '../../auth/matrice-droits';
+import { voitLesMontantsDeFacturation } from '../../auth/droits-personne';
 import type { LigneDocumentVente, LigneLigneDocument } from '../../db/schema';
 import { ErreurMetier } from '../../common/erreurs/erreur-metier';
 import { estQrIban } from '../qr';
@@ -62,13 +62,8 @@ function deviseFacturationDepuisBase(valeur: string, contexte: string): DeviseFa
  * paiements », `DROITS_PAIEMENT_PAR_ROLE.admin = []`, RF-115 « À LA DIFFÉRENCE de la doctrine de
  * l'étape 1 »).
  */
-const ROLES_SANS_MONTANT_FACTURATION: ReadonlySet<RoleUtilisateur> = new Set([
-  ...ROLES_SANS_MONTANT,
-  'admin',
-]);
-
 export function roleVoitLesMontants(role: RoleUtilisateur): boolean {
-  return !ROLES_SANS_MONTANT_FACTURATION.has(role);
+  return voitLesMontantsDeFacturation(role);
 }
 
 export function mapperLigneDocument(

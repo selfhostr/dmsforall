@@ -20,7 +20,7 @@ import {
 // `apps/api/src/recherche/**`) — même patron déjà établi par `common/droits/garde-droit.ts` pour
 // consulter la matrice sans y ajouter d'action. Sert uniquement à RF-116 (voir `chercherDocuments`
 // ci-dessous) : aucune action n'est créée, modifiée ni retirée ici.
-import { MATRICE_DROITS } from '../auth/matrice-droits';
+import { actionsCourantes } from '../auth/droits-personne';
 import { ServiceContexteRequete } from '../common/contexte';
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
 import {
@@ -1027,7 +1027,7 @@ export class ServiceRecherche {
     // indépendant des deux autres et de `recherche.executer` (voir la note de tête de fichier).
     // `MATRICE_DROITS` est lue ici, jamais modifiée (`apps/api/src/auth/` hors périmètre).
     const role = this.contexte.exigerPrincipal().role;
-    const droitsRole = MATRICE_DROITS[role] ?? [];
+    const droitsRole = actionsCourantes(role);
     const peutVoirDocuments = droitsRole.includes('facturation.document.lire');
     const peutVoirArticles = droitsRole.includes('pieces.article.lire');
     const peutVoirFournisseurs = droitsRole.includes('pieces.fournisseur.lire');

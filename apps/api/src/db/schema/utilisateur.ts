@@ -11,9 +11,11 @@
 
 import { sql } from 'drizzle-orm';
 import {
+  boolean,
   check,
   foreignKey,
   index,
+  pgEnum,
   pgTable,
   smallint,
   text,
@@ -22,10 +24,25 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
+import { NIVEAUX_ACCES } from '@dfa/shared';
+
 import { colonneId, colonnesHorodatage } from './colonnes-communes';
 import { langueEnum, roleUtilisateurEnum, statutUtilisateurEnum } from './enums';
 import { site } from './site';
 import { tenant } from './tenant';
+
+/** Niveau d'accès d'une personne à un domaine de la grille (migration 0087). */
+export const niveauAccesEnum = pgEnum('niveau_acces', NIVEAUX_ACCES);
+
+/**
+ * Colonnes de la grille de capacités, SANS valeur par défaut en base : un trigger `BEFORE INSERT`
+ * (`utilisateur_grille_par_defaut`) remplit toute colonne omise depuis le préréglage du `role`.
+ * `default(sql\`null\`)` n'existe ici que pour rendre le champ optionnel dans `$inferInsert` (les
+ * dizaines d'insertions de fixtures et de CLI ne changent pas) ; Drizzle émet alors `default`, la
+ * base rend NULL, le trigger tranche. Une colonne NOT NULL ne voit JAMAIS NULL : le trigger passe
+ * avant la vérification.
+ */
+const sansDefautBase = sql`null`;
 
 export const utilisateur = pgTable(
   'utilisateur',
@@ -48,8 +65,29 @@ export const utilisateur = pgTable(
     /** Langue de l'interface, indépendante de `tenant.langue_defaut` (personnel plurilingue). */
     langue: langueEnum('langue').notNull().default('fr'),
 
-    /** Rôle unique à l'étape 0. Les rôles par site arriveront avec une table de liaison dédiée. */
+    /**
+     * Préréglage d'ORIGINE et libellé d'affichage (« Technicien (personnalisé) »). Ne décide plus
+     * des droits d'une personne : c'est sa grille (colonnes `niveau_*` et suivantes). Reste lu
+     * pour la borne (`poste_atelier`, profil d'appareil figé), la durée de session et le site.
+     */
     role: roleUtilisateurEnum('role').notNull(),
+
+    /** Grille de capacités (voir `@dfa/shared` `GrilleCapacites`) — typée, pas JSONB : six niveaux
+     *  fermés + cinq booléens, contraints en base et indexables, pas des attributs variables. */
+    niveauAtelier: niveauAccesEnum('niveau_atelier').notNull().default(sansDefautBase),
+    niveauAccueil: niveauAccesEnum('niveau_accueil').notNull().default(sansDefautBase),
+    niveauFacturation: niveauAccesEnum('niveau_facturation').notNull().default(sansDefautBase),
+    niveauPieces: niveauAccesEnum('niveau_pieces').notNull().default(sansDefautBase),
+    niveauVentes: niveauAccesEnum('niveau_ventes').notNull().default(sansDefautBase),
+    niveauFinances: niveauAccesEnum('niveau_finances').notNull().default(sansDefautBase),
+    peutEncadrer: boolean('peut_encadrer').notNull().default(sansDefautBase),
+    /** « Employés & réglages » : comptes, bornes, préparation de la reprise. Suit le préréglage. */
+    peutGererEmployes: boolean('peut_gerer_employes').notNull().default(sansDefautBase),
+    /** Gestes irréversibles (IBAN, lancement de la reprise). Suit le préréglage. */
+    estPatron: boolean('est_patron').notNull().default(sansDefautBase),
+    voitMontants: boolean('voit_montants').notNull().default(sansDefautBase),
+    voitPrixAchat: boolean('voit_prix_achat').notNull().default(sansDefautBase),
+    avoirsPlafonnes: boolean('avoirs_plafonnes').notNull().default(sansDefautBase),
 
     /**
      * Site de rattachement du COMPTE (migration 0039).
@@ -130,6 +168,17 @@ export const utilisateur = pgTable(
     check(
       'utilisateur_site_compte_de_service_chk',
       sql`(${t.role} = 'poste_atelier') = (${t.siteId} is not null)`,
+    ),
+
+    // La borne est un profil d'appareil FIGÉ : aucune grille stockée n'a de sens sur elle.
+    check(
+      'utilisateur_borne_sans_grille_chk',
+      sql`${t.role} <> 'poste_atelier' or (${t.niveauAtelier} = 'rien' and ${t.niveauAccueil} = 'rien' and ${t.niveauFacturation} = 'rien' and ${t.niveauPieces} = 'rien' and ${t.niveauVentes} = 'rien' and ${t.niveauFinances} = 'rien' and not ${t.peutEncadrer} and not ${t.peutGererEmployes} and not ${t.estPatron} and not ${t.voitMontants} and not ${t.voitPrixAchat} and not ${t.avoirsPlafonnes})`,
+    ),
+    // « patron » suppose « employés » (le patron gère les comptes).
+    check(
+      'utilisateur_patron_gere_employes_chk',
+      sql`not ${t.estPatron} or ${t.peutGererEmployes}`,
     ),
 
     // Sert la vérification du `on delete restrict` de la FK ci-dessus, et la question « quelles

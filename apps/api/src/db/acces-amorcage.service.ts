@@ -25,6 +25,7 @@ import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
+import type { NiveauAcces } from '@dfa/shared';
 
 /**
  * Convertit en `Date` un horodatage renvoyé par la base.
@@ -238,9 +239,24 @@ export class ServiceAccesAmorcage implements AccesAmorcage, OnModuleDestroy {
         statut_utilisateur: SessionAmorcage['statutUtilisateur'];
         statut_tenant: SessionAmorcage['statutTenant'];
         site_id: string | null;
+        niveau_atelier: NiveauAcces;
+        niveau_accueil: NiveauAcces;
+        niveau_facturation: NiveauAcces;
+        niveau_pieces: NiveauAcces;
+        niveau_ventes: NiveauAcces;
+        niveau_finances: NiveauAcces;
+        peut_encadrer: boolean;
+        peut_gerer_employes: boolean;
+        est_patron: boolean;
+        voit_montants: boolean;
+        voit_prix_achat: boolean;
+        avoirs_plafonnes: boolean;
       }>(sql`
       select session_id, tenant_id, utilisateur_id, cree_le, expire_le, vu_le,
-             revoquee_le, role, langue, statut_utilisateur, statut_tenant, site_id
+             revoquee_le, role, langue, statut_utilisateur, statut_tenant, site_id,
+             niveau_atelier, niveau_accueil, niveau_facturation, niveau_pieces, niveau_ventes,
+             niveau_finances, peut_encadrer, peut_gerer_employes, est_patron, voit_montants,
+             voit_prix_achat, avoirs_plafonnes
         from amorcage.session_par_empreinte(${empreinte}::bytea)
     `),
     );
@@ -269,6 +285,24 @@ export class ServiceAccesAmorcage implements AccesAmorcage, OnModuleDestroy {
       // contrôle fail-closed de `siteImposeAuPrincipal()` (auth/comptes-de-service.ts) repose
       // dessus.
       siteId: l.site_id ?? null,
+      capacites: {
+        niveaux: {
+          atelier: l.niveau_atelier,
+          accueil: l.niveau_accueil,
+          facturation: l.niveau_facturation,
+          pieces: l.niveau_pieces,
+          ventes: l.niveau_ventes,
+          finances: l.niveau_finances,
+        },
+        encadrer: l.peut_encadrer,
+        gererEmployes: l.peut_gerer_employes,
+        patron: l.est_patron,
+        options: {
+          voitMontants: l.voit_montants,
+          voitPrixAchat: l.voit_prix_achat,
+          avoirsPlafonnes: l.avoirs_plafonnes,
+        },
+      },
     };
   }
 

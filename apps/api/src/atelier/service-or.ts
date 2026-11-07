@@ -30,7 +30,7 @@ import {
   type LigneVehicule,
   type LigneVehiculePlaque,
 } from '../db/schema';
-import { MATRICE_DROITS } from '../auth/matrice-droits';
+import { droitsDuPrincipal } from '../auth/droits-personne';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
 import { calculerNomAffiche } from '../common/identite-client';
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
@@ -375,12 +375,12 @@ export class ServiceOr {
       // CETTE requête précise touche réellement le plafond. Contrôle posé ICI, avant toute
       // écriture, uniquement quand la valeur change effectivement (renvoyer la valeur déjà en
       // place n'est pas une modification) — même idiome que `GardeDroit.canActivate`
-      // (`MATRICE_DROITS[role] ?? []`, `.includes(action)`).
+      // (`actionsCourantes(role)`, `.includes(action)`).
       const modifiePlafond =
         entree.plafondCentimes !== undefined &&
         entree.plafondCentimes !== (ligne.plafondCentimes ?? undefined);
       if (modifiePlafond) {
-        const droitsDuRole = MATRICE_DROITS[principal.role] ?? [];
+        const droitsDuRole = droitsDuPrincipal(principal).actions;
         if (!droitsDuRole.includes('atelier.or.plafond_modifier')) {
           throw new ErreurMetier(
             'DROIT_INSUFFISANT',

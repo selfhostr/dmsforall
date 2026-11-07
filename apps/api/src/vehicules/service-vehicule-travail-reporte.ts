@@ -7,7 +7,7 @@ import type {
   RoleUtilisateur,
   UrgenceTravail,
 } from '@dfa/shared';
-import { ROLES_SANS_MONTANT } from '../auth/matrice-droits';
+import { voitLesMontants } from '../auth/droits-personne';
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
 import {
   ordreReparation,
@@ -56,7 +56,7 @@ export function versReponseTravailReporte(
     motifModification: ligne.motifModification,
     detail: ligne.detail,
   };
-  if (ROLES_SANS_MONTANT.includes(role)) {
+  if (!voitLesMontants(role)) {
     return base;
   }
   return { ...base, montantEstimeCentimes: ligne.montantEstimeCentimes };
