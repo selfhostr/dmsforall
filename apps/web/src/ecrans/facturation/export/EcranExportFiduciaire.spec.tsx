@@ -601,7 +601,12 @@ describe('EcranExportFiduciaire — aperçu', () => {
     );
     rendre();
 
-    expect(await screen.findByText(/Pièces \(pièces : FAC-2026-00015\)/)).toBeInTheDocument();
+    expect(await screen.findByText(/pièces : FAC-2026-00015/)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        (_, el) => el?.tagName === 'LI' && /^Pièces\s*\(pièces/.test(el.textContent ?? ''),
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText(/numéros manquants FAC-2026-00013/)).toBeInTheDocument();
     expect(
       screen.getByText('FAC-2026-00016 : débit CHF 100.00, crédit CHF 99.95'),
