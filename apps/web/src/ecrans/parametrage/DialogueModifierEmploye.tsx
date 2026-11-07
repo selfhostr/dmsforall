@@ -35,7 +35,7 @@ export function DialogueModifierEmploye({ employe, onFerme }: Props) {
   const { t } = useTranslation(['parametrage', 'commun', 'erreurs']);
   const { data: session } = useSession();
   // Garage mono-site : le site est implicite, le champ n'est pas demandé.
-  const { estMonoSite, siteId: siteImplicite } = useSiteImplicite();
+  const { estMonoSite, siteId: siteImplicite, pret } = useSiteImplicite();
   const modifier = useModifierUtilisateur();
 
   const [role, setRole] = useState<RolePersonne>('technicien');
@@ -56,7 +56,8 @@ export function DialogueModifierEmploye({ employe, onFerme }: Props) {
   const rolesProposes = ROLES_PERSONNE.filter(
     (r) => r !== 'admin' || session?.utilisateur.role === 'admin' || employe?.role === 'admin',
   );
-  const formulaireValide = estMonoSite || siteIdsEffectifs.length > 0;
+  // Tant que la session charge, on ne sait pas si le garage est mono-site : pas d'enregistrement.
+  const formulaireValide = pret && (estMonoSite || siteIdsEffectifs.length > 0);
 
   function basculerSite(siteId: string) {
     setSiteIds((valeur) =>

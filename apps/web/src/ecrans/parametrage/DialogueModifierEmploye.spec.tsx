@@ -1,7 +1,7 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { UtilisateurResume } from '@dfa/shared';
@@ -46,14 +46,41 @@ describe('DialogueModifierEmploye — garage mono-site', () => {
       </QueryClientProvider>,
     );
 
-    await userEvent.click(
-      await screen.findByRole('button', {
-        name: i18n.t('parametrage:utilisateurs.modification.actions.enregistrer'),
-      }),
-    );
+    const enregistrer = await screen.findByRole('button', {
+      name: i18n.t('parametrage:utilisateurs.modification.actions.enregistrer'),
+    });
+    // Session chargée : le bouton s'active (jamais avant, voir le cas suivant).
+    await waitFor(() => expect(enregistrer).toBeEnabled());
+    await userEvent.click(enregistrer);
 
     await waitFor(() => expect(onFerme).toHaveBeenCalled());
     expect(corps.valeur).toEqual({ role: 'technicien' });
     expect(corps.valeur).not.toHaveProperty('siteIds');
+  });
+
+  it('pendant le chargement de la session : enregistrer est impossible, aucun PATCH ne part', async () => {
+    let patchRecu = false;
+    server.use(
+      http.get('/api/v1/auth/moi', async () => {
+        await delay('infinite');
+        return HttpResponse.json(null);
+      }),
+      http.patch('/api/v1/utilisateurs/emp-1', () => {
+        patchRecu = true;
+        return HttpResponse.json({ ...EMPLOYE });
+      }),
+    );
+    render(
+      <QueryClientProvider client={creerQueryClientTest()}>
+        <DialogueModifierEmploye employe={EMPLOYE} onFerme={vi.fn()} />
+      </QueryClientProvider>,
+    );
+
+    const enregistrer = await screen.findByRole('button', {
+      name: i18n.t('parametrage:utilisateurs.modification.actions.enregistrer'),
+    });
+    expect(enregistrer).toBeDisabled();
+    await userEvent.click(enregistrer);
+    expect(patchRecu).toBe(false);
   });
 });
