@@ -21,10 +21,13 @@ const ROLES_LECTURE_RENDEZ_VOUS: readonly RoleUtilisateur[] = [
   'direction',
   'admin',
   'technicien',
+  'magasinier',
+  'comptable',
 ];
 
 const ROLES_CREATION_RENDEZ_VOUS: readonly RoleUtilisateur[] = [
   'receptionnaire',
+  'chef_atelier',
   'direction',
   'admin',
 ];

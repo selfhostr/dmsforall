@@ -24,7 +24,10 @@ import type { RoleUtilisateur } from '@dfa/shared';
  * droit `ventes.vehicule_stock.corriger` », doctrine identique — motif obligatoire) : `direction`
  * SEULE, même doctrine que `vehicule.detention.corriger` (étape 1).
  */
-const ROLES_ECRITURE_VEHICULE_STOCK: ReadonlySet<RoleUtilisateur> = new Set(['direction']);
+const ROLES_ECRITURE_VEHICULE_STOCK: ReadonlySet<RoleUtilisateur> = new Set([
+  'direction',
+  'vendeur',
+]);
 
 const ROLES_CORRECTION_VEHICULE_STOCK: ReadonlySet<RoleUtilisateur> = new Set(['direction']);
 

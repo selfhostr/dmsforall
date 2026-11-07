@@ -101,6 +101,7 @@ const ROLES_RETOUR_CONSIGNE: ReadonlySet<RoleUtilisateur> = new Set(['direction'
 const ROLES_ECRITURE_PARAMETRAGE_PIECES: ReadonlySet<RoleUtilisateur> = new Set([
   'direction',
   'chef_atelier',
+  'magasinier',
 ]);
 
 /**

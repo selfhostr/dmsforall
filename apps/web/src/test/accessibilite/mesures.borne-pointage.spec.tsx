@@ -19,6 +19,7 @@ import { creerQueryClientTest } from '@/test/utils';
 import { EcranBornePointage } from '@/ecrans/pointage/EcranBornePointage';
 
 import { auditerAccessibiliteEcran, exigerAucuneViolation } from './harnais';
+import { CAPACITES_TEST } from '@/test/capacites';
 
 /**
  * Mesure 1/4 — famille « borne tactile », le cas le plus contraint du produit : utilisée debout,
@@ -43,6 +44,7 @@ const SESSION_BORNE: SessionCourante = {
   sites: [{ id: 'site-1', code: 'PRINCIPAL', nom: 'Site principal', actif: true }],
   siteRattachementId: 'site-1',
   actions: [],
+  capacites: CAPACITES_TEST,
   expireLe: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
 };
 

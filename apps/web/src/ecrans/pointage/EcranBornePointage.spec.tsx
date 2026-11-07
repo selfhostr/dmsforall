@@ -23,6 +23,7 @@ import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
 
 import { EcranBornePointage } from './EcranBornePointage';
+import { CAPACITES_TEST } from '@/test/capacites';
 
 /**
  * `SESSION_TEST` (`@/test/msw/handlers`) porte le rôle `chef_atelier` — inadapté ici : la borne
@@ -47,6 +48,7 @@ const SESSION_BORNE: SessionCourante = {
   sites: [{ id: 'site-1', code: 'PRINCIPAL', nom: 'Site principal', actif: true }],
   siteRattachementId: 'site-1',
   actions: [],
+  capacites: CAPACITES_TEST,
   expireLe: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
 };
 

@@ -7,6 +7,7 @@ import '@/i18n';
 import i18n from '@/i18n';
 
 import { PanneauResultatsRecherche } from './PanneauResultatsRecherche';
+import { CAPACITES_TEST } from '@/test/capacites';
 
 // cmdk (navigation clavier de CommandList) appelle `Element.scrollIntoView` — absent de jsdom —
 // et `CommandList` observe sa hauteur via `ResizeObserver` — également absent de jsdom. Stubs
@@ -51,6 +52,7 @@ function sessionAvecRole(role: SessionCourante['utilisateur']['role']): { data: 
       sites: [{ id: 'site-1', code: 'MTG', nom: 'Martigny', actif: true }],
       siteRattachementId: null,
       actions: [],
+      capacites: CAPACITES_TEST,
       expireLe: new Date(Date.now() + 3_600_000).toISOString(),
     },
   };

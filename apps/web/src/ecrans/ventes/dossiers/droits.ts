@@ -21,6 +21,7 @@ const ROLES_LECTURE_DOSSIER_VENTE: ReadonlySet<RoleUtilisateur> = new Set([
   'vendeur',
   'receptionnaire',
   'chef_atelier',
+  'magasinier',
 ]);
 
 /** §11 lignes 1/2 de la spécification (créer/modifier en `prospection`, faire signer le bon de

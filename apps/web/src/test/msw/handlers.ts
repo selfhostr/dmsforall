@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw';
 
 import type { SessionCourante } from '@dfa/shared';
+import { CAPACITES_TEST } from '@/test/capacites';
 
 export const SESSION_TEST: SessionCourante = {
   utilisateur: {
@@ -22,6 +23,7 @@ export const SESSION_TEST: SessionCourante = {
   // comptes de service (`ROLES_COMPTE_DE_SERVICE`, ex. `poste_atelier`), voir `@dfa/shared`.
   siteRattachementId: null,
   actions: [],
+  capacites: CAPACITES_TEST,
   expireLe: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
 };
 

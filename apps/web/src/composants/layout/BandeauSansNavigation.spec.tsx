@@ -11,6 +11,7 @@ import type { SessionCourante } from '@dfa/shared';
 import { creerQueryClientTest } from '@/test/utils';
 
 import { BandeauSansNavigation } from './BandeauSansNavigation';
+import { CAPACITES_TEST } from '@/test/capacites';
 
 /**
  * Lot « cadre applicatif » (19.08.2026) — remplace `EnTete.tsx` pour les DEUX postes SANS barre
@@ -45,6 +46,7 @@ const session: SessionCourante = {
   sites: [{ id: 'site-martigny', code: 'MTG', nom: 'Martigny', actif: true }],
   siteRattachementId: 'site-martigny',
   actions: [],
+  capacites: CAPACITES_TEST,
   expireLe: new Date(Date.now() + 3_600_000).toISOString(),
 };
 

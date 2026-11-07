@@ -104,8 +104,8 @@ describe('EcranParametragePieces', () => {
     expect(screen.queryByText(i18n.t('parametrage:atelier.lectureSeule'))).not.toBeInTheDocument();
   });
 
-  it("affiche un bandeau lecture seule et n'affiche pas le bouton enregistrer pour un rôle sans droit d'écriture (magasinier, lecture seule sur ce sous-domaine)", async () => {
-    connecterSession('magasinier');
+  it("affiche un bandeau lecture seule et n'affiche pas le bouton enregistrer pour un rôle sans droit d'écriture (vendeur, lecture seule sur ce sous-domaine)", async () => {
+    connecterSession('vendeur');
     server.use(http.get(CHEMIN, () => HttpResponse.json(PARAMETRES)));
     rendre();
 
