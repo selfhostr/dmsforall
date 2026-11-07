@@ -59,6 +59,7 @@ export class ParametresEntrepriseController {
       '(`VALIDATION_ECHOUEE`, `erreurs[0].champ = numeroTva`). `assujettiTva: true` sans numéro est ' +
       'accepté, mais l’émission d’une facture exige alors le numéro (`TVA_NUMERO_REQUIS`). ' +
       "Chaque changement de raison sociale, d'assujettissement ou de numéro est journalisé (avant/après). " +
+      '`modeSignalement` (`via_site`, `copie_seule`, `desactive`) règle le bouton « Signaler un problème » ; son changement est journalisé. ' +
       'Corps vide : aucun effet.',
   })
   @ApiOkResponse({ type: ReponseParametresEntrepriseDto })

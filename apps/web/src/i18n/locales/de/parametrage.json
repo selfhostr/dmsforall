@@ -462,5 +462,22 @@
       "titre": "Zu ergänzen",
       "adresse": "Die Adresse der Garage (Strasse, Nr., PLZ, Ort)"
     }
+  },
+  "signalements": {
+    "titre": "Meldungen",
+    "modes": {
+      "via_site": "Über die Website senden",
+      "copie_seule": "Nur kopieren",
+      "desactive": "Deaktiviert"
+    },
+    "aide": {
+      "via_site": "Die Schaltfläche «Problem melden» öffnet die dmsforall-Website, um die Meldung abzuschliessen – ohne GitHub-Konto.",
+      "copie_seule": "Die Meldung wird kopiert und von Hand weitergegeben: die Schaltfläche «Weiter auf der Website» erscheint nicht.",
+      "desactive": "Der Eintrag «Problem melden» erscheint nicht mehr im Profilmenü."
+    },
+    "enregistre": "Einstellung gespeichert.",
+    "erreur": {
+      "titre": "Die Einstellung für Meldungen konnte nicht geladen werden"
+    }
   }
 }

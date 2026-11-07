@@ -11,6 +11,10 @@ export type Langue = (typeof LANGUES)[number];
 export const STATUTS_TENANT = ['actif', 'suspendu', 'resilie'] as const;
 export type StatutTenant = (typeof STATUTS_TENANT)[number];
 
+/** Comportement du bouton « Signaler un problème » (réglage du garage). Type PG : `mode_signalement`. */
+export const MODES_SIGNALEMENT = ['via_site', 'copie_seule', 'desactive'] as const;
+export type ModeSignalement = (typeof MODES_SIGNALEMENT)[number];
+
 export const STATUTS_UTILISATEUR = ['invite', 'actif', 'suspendu'] as const;
 export type StatutUtilisateur = (typeof STATUTS_UTILISATEUR)[number];
 

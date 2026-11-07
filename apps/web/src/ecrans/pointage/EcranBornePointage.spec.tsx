@@ -45,6 +45,7 @@ const SESSION_BORNE: SessionCourante = creerSessionTest('poste_atelier', {
     slug: 'garage-test',
     raisonSociale: 'Garage Test SA',
     langueDefaut: 'fr',
+    modeSignalement: 'via_site',
   },
   sites: [{ id: 'site-1', code: 'PRINCIPAL', nom: 'Site principal', actif: true }],
   siteRattachementId: 'site-1',

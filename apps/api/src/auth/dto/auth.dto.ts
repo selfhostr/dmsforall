@@ -19,6 +19,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   CODES_ERREUR,
   LANGUES,
+  MODES_SIGNALEMENT,
+  type ModeSignalement,
   ROLES_UTILISATEUR,
   type CodeErreur,
   type ErreurChamp,
@@ -63,6 +65,9 @@ export class TenantCourantDto implements TenantCourant {
 
   @ApiProperty({ enum: LANGUES })
   langueDefaut!: Langue;
+
+  @ApiProperty({ enum: MODES_SIGNALEMENT })
+  modeSignalement!: ModeSignalement;
 }
 
 export class SiteResumeDto implements SiteResume {

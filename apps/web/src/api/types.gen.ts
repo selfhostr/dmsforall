@@ -8303,6 +8303,12 @@ export interface components {
        */
       delaiPaiementJoursDefaut: number;
       /**
+       * @description Réglage « Signalements » : `via_site` (défaut) ouvre le site pour terminer le signalement, `copie_seule` ne propose que la copie du rapport, `desactive` retire le bouton « Signaler un problème ».
+       * @example via_site
+       * @enum {string}
+       */
+      modeSignalement: 'via_site' | 'copie_seule' | 'desactive';
+      /**
        * @description N° IDE avec mention TVA (CHE-123.456.789 TVA, MWST ou IVA), clé de contrôle vérifiée. `null` : numéro pas encore saisi, ou garage non assujetti.
        * @example CHE-116.281.710 TVA
        */
@@ -9142,6 +9148,8 @@ export interface components {
       id: string;
       /** @enum {string} */
       langueDefaut: 'fr' | 'de' | 'it';
+      /** @enum {string} */
+      modeSignalement: 'via_site' | 'copie_seule' | 'desactive';
       /** @example Garage du Léman Sàrl */
       raisonSociale: string;
       /** @example garage-du-leman */
@@ -21922,6 +21930,7 @@ export interface operations {
         'application/json': {
           assujettiTva?: boolean;
           delaiPaiementJoursDefaut?: number;
+          modeSignalement?: 'via_site' | 'copie_seule' | 'desactive';
           numeroTva?: string | null;
           raisonSociale?: string;
         };
