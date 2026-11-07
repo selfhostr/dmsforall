@@ -144,6 +144,47 @@ describe('DialogueAjoutLigneOr — reprendre une pièce du magasin au lieu de to
     });
   });
 
+  it('garage assujetti (réglages lus) : prix HT converti au taux de l’article, 6850 TTC à 8.1 % -> 63.37', async () => {
+    mockRecherche(resultatRecherche('suivi', 3000));
+    server.use(
+      http.get('/api/v1/parametres-entreprise', () =>
+        HttpResponse.json({
+          raisonSociale: 'G',
+          assujettiTva: true,
+          numeroTva: 'CHE-116.281.710 TVA',
+          delaiPaiementJoursDefaut: 30,
+        }),
+      ),
+    );
+    const utilisateur = userEvent.setup();
+    await ouvrirEnTypePiece(utilisateur);
+    await choisirLaPiece(utilisateur);
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Prix unitaire HT/)).toHaveValue('63.37');
+    });
+  });
+
+  it('garage NON assujetti : HT = TTC catalogue (6850 -> 68.50), jamais converti au taux 8.1 % de l’article', async () => {
+    mockRecherche(resultatRecherche('suivi', 3000));
+    server.use(
+      http.get('/api/v1/parametres-entreprise', () =>
+        HttpResponse.json({
+          raisonSociale: 'G',
+          assujettiTva: false,
+          numeroTva: null,
+          delaiPaiementJoursDefaut: 30,
+        }),
+      ),
+    );
+    const utilisateur = userEvent.setup();
+    await ouvrirEnTypePiece(utilisateur);
+    await choisirLaPiece(utilisateur);
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Prix unitaire HT/)).toHaveValue('68.50');
+    });
+    expect(screen.getByText(/repris tel quel/)).toBeInTheDocument();
+  });
+
   it('« aucune » (suivi ici, épuisé) se distingue clairement de « suivi nulle part »', async () => {
     mockRecherche(resultatRecherche('suivi', 0));
     const utilisateur = userEvent.setup();

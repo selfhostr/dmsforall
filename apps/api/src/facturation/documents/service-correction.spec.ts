@@ -213,14 +213,33 @@ function serviceFactice(tx: TransactionDfa) {
           } as unknown as ReponseDocumentVente),
     ),
   };
+  const brouillonAssemble = {
+    id: 'facture-remplacement-1',
+    typeDocument: 'facture',
+    statut: 'brouillon',
+    numero: null,
+  } as unknown as ReponseDocumentVente;
+  const documents = {
+    assemblerDocument: vi.fn(async () => brouillonAssemble),
+  };
   const service = new ServiceCorrectionFacture(
     {} as never, // acces (JETON_DB) : jamais exercé, seul idempotence.executer l'est (même convention que ServiceAvoir/ServiceEmissionDocument).
     idempotence as never,
     horloge as never,
     avoirs as never,
     emission as never,
+    documents as never,
   );
-  return { service, idempotence, horloge, avoirs, emission, avoirEmis };
+  return {
+    service,
+    idempotence,
+    horloge,
+    avoirs,
+    emission,
+    avoirEmis,
+    documents,
+    brouillonAssemble,
+  };
 }
 
 beforeEach(() => {
@@ -749,5 +768,158 @@ describe('ServiceCorrectionFacture.corriger — report du règlement (issue #154
       soldeCentimes: 0n, // jamais négatif
       statutReglement: 'regle',
     });
+  });
+});
+
+describe('ServiceCorrectionFacture.corriger — mode brouillon (avoir total + nouveau brouillon)', () => {
+  const ENTREE_BROUILLON = {
+    mode: 'brouillon',
+    motif: 'erreur_montant',
+    corrigerFicheClient: true,
+    confirmations: [],
+  } as never;
+
+  function preparer(assujetti: boolean, factureSurcharge: Partial<LigneDocumentVente> = {}) {
+    vi.mocked(assujettissement.chargerSituationTva).mockResolvedValue({
+      assujetti,
+      numeroTva: assujetti ? 'CHE-123.456.789 TVA' : null,
+    });
+    vi.mocked(documentRequetes.chargerDocumentPourEcriture).mockResolvedValue(
+      factureFixture(factureSurcharge),
+    );
+    vi.mocked(documentRequetes.listerLignesDocumentPourEcriture).mockResolvedValue([
+      LIGNE_1,
+      LIGNE_2,
+    ] as never);
+    vi.mocked(references.chargerIdAdresseFacturationActive).mockResolvedValue('adresse-1');
+  }
+
+  it('assujetti : avoir total émis, UN SEUL brouillon (jamais émis), lié à l’originale, id du brouillon renvoyé', async () => {
+    preparer(true);
+    const { tx, facturesInserees, adressesMisesAJour, reportsInseres } = txFactice();
+    const { service, avoirs, emission, documents, brouillonAssemble } = serviceFactice(tx);
+
+    const resultat = await service.corriger(
+      CTX,
+      principal('direction'),
+      FACTURE_ID,
+      ENTREE_BROUILLON,
+      CLE_IDEMPOTENCE,
+    );
+
+    expect(avoirs.construireAvoirTotalPourCorrectionTx).toHaveBeenCalledTimes(1);
+    // Seul l'AVOIR est émis : le brouillon reste modifiable.
+    expect(emission.emettreCoeurTx).toHaveBeenCalledTimes(1);
+    expect(emission.emettreCoeurTx.mock.calls[0]?.[3]).toBe('avoir-1');
+
+    expect(facturesInserees).toHaveLength(1);
+    expect(facturesInserees[0]).toMatchObject({
+      typeDocument: 'facture',
+      factureCorrigeeId: FACTURE_ID,
+      clientDesignationFigee: 'Jean Dupont',
+    });
+    expect(facturesInserees[0]).not.toHaveProperty('remplaceId');
+    expect(facturesInserees[0]).not.toHaveProperty('documentSourceId');
+
+    // Ni report de règlement, ni écriture de la fiche client.
+    expect(reportsInseres).toHaveLength(0);
+    expect(adressesMisesAJour).toHaveLength(0);
+
+    expect(documents.assemblerDocument).toHaveBeenCalledWith(
+      tx,
+      CTX,
+      'direction',
+      facturesInserees[0]?.id,
+    );
+    expect(resultat.reponse.statutHttp).toBe(201);
+    expect(resultat.reponse.corps.donnees.mode).toBe('brouillon');
+    expect(resultat.reponse.corps.donnees.avoir.id).toBe('avoir-1');
+    expect(resultat.reponse.corps.donnees.factureRemplacement).toBe(brouillonAssemble);
+  });
+
+  it('assujetti : lignes du brouillon aux montants EXACTS (100.00 à 8.1 % -> HT 92.51 / TVA 7.49 ; 50.00 à 2.6 % -> HT 48.73 / TVA 1.27)', async () => {
+    preparer(true);
+    const { tx, lignesInserees } = txFactice();
+    const { service } = serviceFactice(tx);
+    await service.corriger(CTX, principal(), FACTURE_ID, ENTREE_BROUILLON, CLE_IDEMPOTENCE);
+
+    expect(lignesInserees).toHaveLength(2);
+    expect(lignesInserees[0]).toMatchObject({
+      regimeTva: 'normal',
+      tauxTvaPourmille: 81,
+      htCentimes: 9_251,
+      tvaCentimes: 749,
+      ttcCentimes: 10_000,
+    });
+    expect(lignesInserees[1]).toMatchObject({
+      regimeTva: 'reduit',
+      tauxTvaPourmille: 26,
+      htCentimes: 4_873,
+      tvaCentimes: 127,
+      ttcCentimes: 5_000,
+    });
+  });
+
+  it('NON assujetti : lignes recalculées à 0 ‰ / exclu, HT = TTC (10 000 et 5 000 centimes), TVA 0, total inchangé 15 000', async () => {
+    preparer(false);
+    const { tx, lignesInserees } = txFactice();
+    const { service } = serviceFactice(tx);
+    await service.corriger(CTX, principal(), FACTURE_ID, ENTREE_BROUILLON, CLE_IDEMPOTENCE);
+
+    expect(lignesInserees).toHaveLength(2);
+    for (const [i, ttc] of [10_000, 5_000].entries()) {
+      expect(lignesInserees[i]).toMatchObject({
+        regimeTva: 'exclu',
+        tauxTvaPourmille: 0,
+        htCentimes: ttc,
+        tvaCentimes: 0,
+        ttcCentimes: ttc,
+      });
+    }
+    const total = lignesInserees.reduce((somme, l) => somme + (l['ttcCentimes'] as number), 0);
+    expect(total).toBe(15_000);
+  });
+
+  it('facture déjà annulée par un avoir : FACTURE_DEJA_CORRIGEE nommant le document de correction, aucune écriture', async () => {
+    preparer(true, { statut: 'annule_par_avoir' } as never);
+    const { tx, facturesInserees } = txFactice();
+    const select = vi.fn(() => ({
+      from: () => ({
+        where: () => ({
+          limit: async () => [{ id: 'brouillon-existant', numero: null }],
+        }),
+      }),
+    }));
+    const { service, avoirs, emission } = serviceFactice({ ...tx, select } as never);
+
+    const erreur = await service
+      .corriger(CTX, principal(), FACTURE_ID, ENTREE_BROUILLON, CLE_IDEMPOTENCE)
+      .catch((e: unknown) => e);
+
+    expect(erreur).toBeInstanceOf(ErreurMetier);
+    expect((erreur as ErreurMetier).code).toBe('FACTURE_DEJA_CORRIGEE');
+    expect((erreur as ErreurMetier).blocages?.[0]?.id).toBe('brouillon-existant');
+    expect(avoirs.construireAvoirTotalPourCorrectionTx).not.toHaveBeenCalled();
+    expect(emission.emettreCoeurTx).not.toHaveBeenCalled();
+    expect(facturesInserees).toHaveLength(0);
+  });
+
+  it('facture déjà partiellement payée (15 000 sur 25 944) : FACTURE_CORRECTION_REGLEMENT_EXISTANT, aucune écriture', async () => {
+    preparer(true, { montantRegleCentimes: 15_000n } as never);
+    const { tx, facturesInserees } = txFactice();
+    const { service, avoirs, emission } = serviceFactice(tx);
+
+    const erreur = await service
+      .corriger(CTX, principal(), FACTURE_ID, ENTREE_BROUILLON, CLE_IDEMPOTENCE)
+      .catch((e: unknown) => e);
+
+    expect(erreur).toBeInstanceOf(ErreurMetier);
+    expect((erreur as ErreurMetier).code).toBe('FACTURE_CORRECTION_REGLEMENT_EXISTANT');
+    expect((erreur as ErreurMetier).blocages?.[0]?.donnees).toEqual({
+      montantRegleCentimes: 15_000,
+    });
+    expect(avoirs.construireAvoirTotalPourCorrectionTx).not.toHaveBeenCalled();
+    expect(emission.emettreCoeurTx).not.toHaveBeenCalled();
+    expect(facturesInserees).toHaveLength(0);
   });
 });

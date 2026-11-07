@@ -28,6 +28,52 @@ describe('convertirLigneDevisEnLigneOr', () => {
       montantTtcCentimes: 19999,
     });
   });
+  it('garage assujetti : situation fournie, montants recopiés à l’identique (taux 81 ‰ conservé)', () => {
+    const l = convertirLigneDevisEnLigneOr(
+      { ...base, typeLigne: 'piece' },
+      { assujetti: true, numeroTva: 'CHE-123.456.789 TVA' },
+    );
+    expect(l).toMatchObject({
+      tauxTvaPourmille: 81,
+      montantHtCentimes: 18500,
+      montantTvaCentimes: 1499,
+      montantTtcCentimes: 19999,
+    });
+  });
+  it('garage NON assujetti : ancien taux 8.1 % abandonné, taux 0, TVA 0, HT = TTC = 19999, net unitaire 10000', () => {
+    const l = convertirLigneDevisEnLigneOr(
+      { ...base, typeLigne: 'piece' },
+      { assujetti: false, numeroTva: null },
+    );
+    expect(l).toMatchObject({
+      tauxTvaPourmille: 0,
+      montantHtCentimes: 19999,
+      montantTvaCentimes: 0,
+      montantTtcCentimes: 19999,
+      prixUnitaireCentimes: 10000,
+    });
+  });
+  it('garage NON assujetti, main-d’œuvre : taux horaire sur le TTC conservé (15000 pour 1.5 h -> 10000/h)', () => {
+    const l = convertirLigneDevisEnLigneOr(
+      {
+        ...base,
+        typeLigne: 'main_oeuvre_bareme',
+        quantiteMillieme: 1500,
+        htCentimes: 13876,
+        tvaCentimes: 1124,
+        ttcCentimes: 15000,
+      },
+      { assujetti: false, numeroTva: null },
+    );
+    expect(l).toMatchObject({
+      tauxTvaPourmille: 0,
+      montantHtCentimes: 15000,
+      montantTvaCentimes: 0,
+      montantTtcCentimes: 15000,
+      tempsBaremeCentiemes: 150,
+      tauxHoraireCentimes: 10000,
+    });
+  });
   it('main-d’œuvre : temps en centièmes d’heure et taux horaire net', () => {
     const l = convertirLigneDevisEnLigneOr({
       ...base,

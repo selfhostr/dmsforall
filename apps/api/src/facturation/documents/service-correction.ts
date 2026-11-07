@@ -12,7 +12,7 @@ import type {
  *  `AdresseStructureeQr.numero`, strictement `string | null` : les DEUX types existent dans le
  *  contrat pour des raisons différentes, ne pas les confondre). */
 type OverlayAdresseFacturation = NonNullable<
-  EntreeCorrectionFacture['champsCorriges']['adresseFacturation']
+  NonNullable<EntreeCorrectionFacture['champsCorriges']>['adresseFacturation']
 >;
 
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../../db';
@@ -35,12 +35,14 @@ import {
 } from '../../common/idempotence';
 import { calculerStatutReglement } from '../paiements/imputations';
 
-import { chargerSituationTva, REGIME_NON_ASSUJETTI } from './assujettissement';
+import { adapterLigneRecopieeAuRegimeActuel, chargerSituationTva } from './assujettissement';
 import { calculerLigneDocument } from './calcul-document';
 import { chargerDocumentPourEcriture, listerLignesDocumentPourEcriture } from './document-requetes';
 import { calculerRetardDocument } from './echeance';
 import { chargerIdAdresseFacturationActive } from './references';
 import { ServiceAvoir } from './service-avoir';
+// Import de CLASSE (jamais `import type`) : injection Nest, voir la note de `service-avoir.ts`.
+import { ServiceDocumentsVente } from './service-documents';
 import { ServiceEmissionDocument } from './service-emission';
 
 /**
@@ -77,6 +79,7 @@ export class ServiceCorrectionFacture {
     private readonly horloge: Horloge,
     private readonly avoirs: ServiceAvoir,
     private readonly emission: ServiceEmissionDocument,
+    private readonly documents: ServiceDocumentsVente,
   ) {}
 
   async corriger(
@@ -105,6 +108,9 @@ export class ServiceCorrectionFacture {
         // (étape 2 ci-dessous) bascule déjà la facture à `annule_par_avoir` dès la première
         // correction, aucun compteur/verrou dédié n'est nécessaire.
         const facture = await chargerDocumentPourEcriture(tx, ctx, factureId);
+        if (entree.mode === 'brouillon') {
+          await this.verifierCorrigeableEnBrouillonTx(tx, ctx, facture);
+        }
         this.avoirs.validerFactureCreditable(facture);
 
         // `FOR UPDATE` : les lignes servent à la fois à créditer l'avoir et à peupler la facture de
@@ -133,6 +139,33 @@ export class ServiceCorrectionFacture {
         //    copier `ligneOrId` AVANT ce basculement violerait la contrainte.
         const avoir = await this.emission.emettreCoeurTx(tx, ctx, principal, avoirId);
 
+        // Mode `brouillon` : l'avoir est émis (la facture est annulée), mais la nouvelle facture
+        // reste un BROUILLON pré-rempli — AUCUNE émission, AUCUN report de règlement (refusé en
+        // amont si la facture portait un encaissement), AUCUN report sur la fiche client.
+        if (entree.mode === 'brouillon') {
+          const brouillonId = await this.creerFactureRemplacementTx(
+            tx,
+            ctx,
+            facture,
+            lignesFacture,
+            undefined,
+            maintenant,
+          );
+          const brouillon = await this.documents.assemblerDocument(
+            tx,
+            ctx,
+            principal.role,
+            brouillonId,
+          );
+          return {
+            statutHttp: 201,
+            corps: {
+              donnees: { mode: 'brouillon', avoir, factureRemplacement: brouillon },
+              avertissements: [],
+            },
+          };
+        }
+
         // 3. Facture de remplacement — mêmes lignes (recopiées, AUCUN nouveau mouvement de stock :
         //    la marchandise n'est pas revendue, seule la paperasse change), en-tête recopié avec
         //    l'overlay `champsCorriges`.
@@ -141,7 +174,7 @@ export class ServiceCorrectionFacture {
           ctx,
           facture,
           lignesFacture,
-          entree,
+          entree.champsCorriges,
           maintenant,
         );
 
@@ -174,7 +207,7 @@ export class ServiceCorrectionFacture {
         //    N'EST PAS reporté sur `client` (`nom`/`prenom` vs `raisonSociale` selon le type de
         //    client : aucune correspondance sûre depuis un texte libre) — SIGNALÉ au rapport de
         //    livraison plutôt qu'un mapping deviné.
-        if (entree.corrigerFicheClient && entree.champsCorriges.adresseFacturation) {
+        if (entree.corrigerFicheClient && entree.champsCorriges?.adresseFacturation) {
           await this.reporterAdresseSurFicheTx(
             tx,
             ctx,
@@ -185,7 +218,10 @@ export class ServiceCorrectionFacture {
 
         return {
           statutHttp: 201,
-          corps: { donnees: { avoir, factureRemplacement }, avertissements: [] },
+          corps: {
+            donnees: { mode: 'remplacement', avoir, factureRemplacement },
+            avertissements: [],
+          },
         };
       },
     );
@@ -204,13 +240,13 @@ export class ServiceCorrectionFacture {
     ctx: ContexteTenant,
     facture: LigneDocumentVente,
     lignesFacture: readonly LigneLigneDocument[],
-    entree: EntreeCorrectionFacture,
+    champsCorriges: EntreeCorrectionFacture['champsCorriges'],
     maintenant: Date,
   ): Promise<string> {
     const clientDesignationFigee =
-      entree.champsCorriges.clientDesignation ?? facture.clientDesignationFigee;
+      champsCorriges?.clientDesignation ?? facture.clientDesignationFigee;
     const adresseFacturationFigee =
-      entree.champsCorriges.adresseFacturation ?? facture.adresseFacturationFigee;
+      champsCorriges?.adresseFacturation ?? facture.adresseFacturationFigee;
 
     const [nouvelle] = await tx
       .insert(documentVente)
@@ -244,14 +280,16 @@ export class ServiceCorrectionFacture {
         "L'insertion de la facture de remplacement n'a rendu aucune ligne.",
       );
 
-    // Régime ACTUEL du garage : un garage devenu non assujetti depuis l'émission d'origine
+    // Régime ACTUEL du garage (`adapterLigneRecopieeAuRegimeActuel`, qui s'appuie sur
+    // `normaliserTauxEtRegime`) : un garage devenu non assujetti depuis l'émission d'origine
     // recopie ses lignes à 0 ‰ / `exclu` (prix TTC conservé, donc HT = TTC) ; sinon une
     // facture de remplacement à TVA > 0 serait refusée à l'émission. Assujetti : recopie telle quelle.
     const situationTva = await chargerSituationTva(tx, ctx);
     let numeroOrdre = 1;
     for (const ligne of lignesFacture) {
-      const tauxTvaPourmille = situationTva.assujetti ? ligne.tauxTvaPourmille : 0;
-      const regimeTva = situationTva.assujetti ? ligne.regimeTva : REGIME_NON_ASSUJETTI;
+      const regime = adapterLigneRecopieeAuRegimeActuel(situationTva, ligne);
+      const regimeTva = regime.regimeTva;
+      const tauxTvaPourmille = regime.tauxTvaPourmille ?? 0;
       const montants = calculerLigneDocument({
         prixUnitaireTtcCentimes: ligne.prixUnitaireCentimes,
         quantiteMillieme: ligne.quantiteMillieme,
@@ -297,6 +335,67 @@ export class ServiceCorrectionFacture {
     }
 
     return nouvelle.id;
+  }
+
+  /**
+   * Mode `brouillon` : refus clairs AVANT toute écriture (la transaction n'a encore rien changé).
+   * - déjà annulée par un avoir (donc déjà corrigée ou créditée) → `FACTURE_DEJA_CORRIGEE`, avec
+   *   le document de correction en `blocages[]` s'il existe (brouillon ou facture de remplacement) ;
+   * - un règlement est déjà imputé (partiel ou total) → `FACTURE_CORRECTION_REGLEMENT_EXISTANT` :
+   *   le brouillon étant libre de changer le montant, le report automatique du paiement
+   *   (mode `remplacement`) n'a plus de sens, et l'avoir total d'une facture payée créerait un
+   *   trop-perçu. Le garagiste doit d'abord défaire le règlement.
+   * Les autres statuts (brouillon, annulée…) restent refusés par `validerFactureCreditable`.
+   */
+  private async verifierCorrigeableEnBrouillonTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    facture: LigneDocumentVente,
+  ): Promise<void> {
+    if (facture.statut === 'annule_par_avoir') {
+      const [correction] = await tx
+        .select({ id: documentVente.id, numero: documentVente.numero })
+        .from(documentVente)
+        .where(
+          and(
+            eq(documentVente.tenantId, ctx.tenantId),
+            eq(documentVente.factureCorrigeeId, facture.id),
+          ),
+        )
+        .limit(1);
+      const cible = correction ?? { id: facture.id, numero: facture.numero };
+      throw new ErreurMetier(
+        'FACTURE_DEJA_CORRIGEE',
+        `La facture ${facture.numero ?? facture.id} a déjà été annulée par un avoir.`,
+        {
+          blocages: [
+            {
+              type: 'document_vente',
+              id: cible.id,
+              libelle: cible.numero ?? cible.id,
+              donnees: { statutActuel: facture.statut },
+            },
+          ],
+        },
+      );
+    }
+    if (facture.statut === 'emis' && facture.montantRegleCentimes > 0n) {
+      throw new ErreurMetier(
+        'FACTURE_CORRECTION_REGLEMENT_EXISTANT',
+        `La facture ${facture.numero ?? facture.id} porte déjà un règlement de ` +
+          `${facture.montantRegleCentimes} centimes.`,
+        {
+          blocages: [
+            {
+              type: 'document_vente',
+              id: facture.id,
+              libelle: facture.numero ?? facture.id,
+              donnees: { montantRegleCentimes: Number(facture.montantRegleCentimes) },
+            },
+          ],
+        },
+      );
+    }
   }
 
   /**
