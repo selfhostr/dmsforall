@@ -180,6 +180,7 @@ describe('n° TVA', () => {
       assujettiTva: true,
       numeroTva: 'CHE-116.281.710 TVA',
       delaiPaiementJoursDefaut: 30,
+      modeSignalement: 'via_site',
     });
 
     const relu = await ctx.requete.get('/api/v1/parametres-entreprise').set(entetes(cookie));
