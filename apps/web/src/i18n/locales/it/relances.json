@@ -36,23 +36,23 @@
       "vide": "Nessun canale scelto"
     },
     "prereglage": {
-      "bouton": "Attivare la preimpostazione consigliata",
+      "bouton": "Attiva la preimpostazione consigliata",
       "description": "1° promemoria a {p1} giorni, 2° promemoria a {p2} giorni, diffida a {p3} giorni, via e-mail.",
       "applique": "Preimpostazione applicata il {date}."
     },
     "actions": {
-      "modifier": "Modificare la regola",
-      "enregistrer": "Salvare",
-      "annuler": "Annullare"
+      "modifier": "Modifica la regola",
+      "enregistrer": "Salva",
+      "annuler": "Annulla"
     },
     "formulaire": {
-      "actif": "Inviare questi promemoria automaticamente",
+      "actif": "Invia questi promemoria automaticamente",
       "actifAide": "Deselezioni per sospendere i solleciti di fattura senza perdere l'impostazione.",
       "paliersLabel": "Scadenze dei livelli (giorni dopo la scadenza)",
       "paliersAide": "Una scadenza per livello, nell'ordine di invio. Esempio: 10, poi 20, poi 30.",
       "palierPlaceholder": "Giorni",
-      "ajouterPalier": "Aggiungere un livello",
-      "supprimerPalier": "Rimuovere il livello {n}",
+      "ajouterPalier": "Aggiungi un livello",
+      "supprimerPalier": "Rimuovi il livello {n}",
       "canauxLabel": "Canali di invio",
       "erreurPalierPositif": "Ogni livello deve essere un numero intero di giorni maggiore di zero.",
       "erreurPaliersRequis": "Aggiungete almeno una fase per attivare i solleciti di pagamento.",
@@ -64,9 +64,9 @@
     "titre": "Avvio manuale",
     "description": "Nessun automatismo esegue ancora queste operazioni: avviale a mano. Sono sicure se le riavvii (nessun promemoria viene inviato due volte).",
     "planifier": {
-      "titre": "Pianificare i promemoria",
+      "titre": "Pianifica i promemoria",
       "description": "Individua le fatture con un livello dovuto e crea i promemoria corrispondenti.",
-      "bouton": "Pianificare ora",
+      "bouton": "Pianifica ora",
       "enCours": "Pianificazione in corso…",
       "creees": "{n, plural, =0 {Nessun promemoria creato} one {# promemoria creato} other {# promemoria creati}}",
       "ignorees": "{n, plural, =0 {nessuno già pianificato} one {# già pianificato} other {# già pianificati}}",
@@ -74,9 +74,9 @@
       "termine": "Tutto elaborato."
     },
     "envoyer": {
-      "titre": "Inviare i promemoria pronti",
+      "titre": "Invia i promemoria pronti",
       "description": "Invii i promemoria pianificati che sono pronti, tramite il canale configurato per ogni cliente.",
-      "bouton": "Inviare ora",
+      "bouton": "Invia ora",
       "enCours": "Invio in corso…",
       "envoyees": "{n, plural, =0 {Nessun promemoria inviato} one {# promemoria inviato} other {# promemoria inviati}}",
       "echouees": "{n, plural, =0 {nessun errore} one {# errore} other {# errori}}",

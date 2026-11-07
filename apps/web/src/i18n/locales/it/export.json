@@ -28,7 +28,7 @@
   },
   "perimetre": "Il file contiene le fatture, le note di credito e gli incassi del periodo non ancora trasmessi alla fiduciaria. Un documento già esportato non viene esportato una seconda volta.",
   "action": {
-    "telecharger": "Scaricare",
+    "telecharger": "Scarica",
     "encours": "Esportazione in corso…"
   },
   "droits": {
@@ -37,7 +37,7 @@
   "confirmation": {
     "titre": "Esportare verso la fiduciaria?",
     "description": "Le fatture, le note di credito e gli incassi dal {du} al {au} saranno contrassegnati come trasmessi alla fiduciaria. Il file viene conservato: potrete scaricarlo di nuovo dalla cronologia.",
-    "valider": "Esportare e scaricare"
+    "valider": "Esporta e scarica"
   },
   "resultat": {
     "titre": "Esportazione terminata",
@@ -50,7 +50,7 @@
     "numerosAvoirs": "Numeri di nota di credito",
     "plage": "da {premier} a {dernier}",
     "avertissements": "Punti da verificare nel file",
-    "retelecharger": "Scaricare di nuovo {nom}",
+    "retelecharger": "Scarica di nuovo {nom}",
     "fichierConserve": "Il file è stato scaricato. Viene conservato: lo ritrovate nella cronologia qui sotto."
   },
   "vide": {
@@ -59,7 +59,7 @@
   },
   "erreur": {
     "titre": "Non è stato possibile eseguire l'esportazione",
-    "reessayer": "Riprovare"
+    "reessayer": "Riprova"
   },
   "prerequis": {
     "EXPORT_MAPPING_INCOMPLET": {
@@ -123,7 +123,7 @@
     "propose": "Proposto: {valeur}",
     "aucuneProposition": "Nessun valore proposto: chieda il conto alla sua fiduciaria.",
     "valeurInvalide": "Conto o codice non valido (al massimo 12 caratteri, lettere, cifre, punto, trattino).",
-    "enregistrer": "Salvare",
+    "enregistrer": "Salva",
     "enregistrement": "Salvataggio…",
     "erreurLecture": "Non è stato possibile caricare i conti",
     "erreurEnregistrement": "I conti non sono stati salvati",
@@ -180,7 +180,7 @@
     },
     "periode": "{du} al {au}",
     "auteurInconnu": "Utente eliminato",
-    "retelecharger": "Scaricare di nuovo",
+    "retelecharger": "Scarica di nuovo",
     "nonConserve": "Non conservato"
   }
 }

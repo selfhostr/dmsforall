@@ -174,20 +174,20 @@
     "FACTURE_DESTINATAIRE_COURRIEL_ABSENT": "Questo cliente non ha un indirizzo e-mail registrato. Completa la scheda cliente, poi riprovi."
   },
   "actions": {
-    "CREER_DEVIS_COMPLEMENTAIRE": "Creare preventivo supplementare",
+    "CREER_DEVIS_COMPLEMENTAIRE": "Crea preventivo supplementare",
     "VALIDER_LIGNES": "Registrare l'accordo del cliente",
     "ARRETER_POINTAGES": "Arresta timbrature",
     "MARQUER_LIGNES_REALISEES": "Segna righe come eseguite",
     "COMPLETER_CONTROLE_QUALITE": "Completa controllo qualita",
-    "CREER_OR_RETOUCHE": "Creare un OR di ritocco",
-    "CREER_NOUVEL_OR": "Creare un OR",
+    "CREER_OR_RETOUCHE": "Crea un OR di ritocco",
+    "CREER_NOUVEL_OR": "Crea un OR",
     "RENSEIGNER_PO": "Indicare il n. d'ordine",
-    "SIGNER_RESERVE_SECURITE": "Firmare dichiarazione di sicurezza",
-    "FOURNIR_MOTIF": "Fornire motivo",
-    "REJOUER_AVEC_CONFIRMATION": "Confermare e continuare",
-    "DEMANDER_HABILITATION": "Chiedere l'autorizzazione",
-    "RECEPTIONNER_VEHICULE": "Accettare veicolo",
-    "RAFRAICHIR": "Aggiornare pagina"
+    "SIGNER_RESERVE_SECURITE": "Firma dichiarazione di sicurezza",
+    "FOURNIR_MOTIF": "Fornisci motivo",
+    "REJOUER_AVEC_CONFIRMATION": "Conferma e continua",
+    "DEMANDER_HABILITATION": "Chiedi l'autorizzazione",
+    "RECEPTIONNER_VEHICULE": "Accetta veicolo",
+    "RAFRAICHIR": "Aggiorna pagina"
   },
   "filet": {
     "titreDroit": "Azione rifiutata",

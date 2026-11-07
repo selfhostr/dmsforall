@@ -2,7 +2,7 @@
   "titre": "Clienti",
   "nouveau": "Nuovo cliente",
   "actions": {
-    "creer": "Creare cliente"
+    "creer": "Crea cliente"
   },
   "liste": {
     "titre": "Clienti",
@@ -32,10 +32,10 @@
   },
   "fiche": {
     "titre": "Scheda cliente",
-    "ouvrirOr": "Creare un OR",
+    "ouvrirOr": "Crea un OR",
     "actions": {
-      "fusionner": "Unire",
-      "ajouterVehicule": "Aggiungere un veicolo"
+      "fusionner": "Unisci",
+      "ajouterVehicule": "Aggiungi un veicolo"
     },
     "onglets": {
       "contacts": "Contatti",
@@ -53,7 +53,7 @@
     "dossierSansVehicule": "Veicolo non assegnato",
     "rendezVous": {
       "titre": "Prossimi appuntamenti",
-      "prendre": "Fissare un appuntamento",
+      "prendre": "Fissa un appuntamento",
       "vide": "Nessun appuntamento previsto.",
       "creeTitre": "Appuntamento registrato"
     }
@@ -88,7 +88,7 @@
   },
   "contacts": {
     "titre": "Contatti",
-    "ajouter": "Aggiungere contatto",
+    "ajouter": "Aggiungi contatto",
     "roles": {
       "conducteur": "Conducente",
       "gestionnaireFl": "Gestore flotta",
@@ -102,9 +102,9 @@
   },
   "adresses": {
     "titre": "Indirizzi",
-    "ajouter": "Aggiungere indirizzo",
-    "modifier": "Modificare indirizzo",
-    "modifierAriaLabel": "Modificare indirizzo {type}",
+    "ajouter": "Aggiungi indirizzo",
+    "modifier": "Modifica indirizzo",
+    "modifierAriaLabel": "Modifica indirizzo {type}",
     "types": {
       "principale": "Principale",
       "facturation": "Fatturazione",
@@ -138,8 +138,8 @@
   "doublons": {
     "titre": "Duplicati rilevati",
     "clientSimiliaire": "Esiste un cliente simile",
-    "voir": "Visualizzare scheda",
-    "creerQuandMeme": "Creare comunque",
+    "voir": "Visualizza scheda",
+    "creerQuandMeme": "Crea comunque",
     "criteres": {
       "nom_npa": "Nome e CAP",
       "email": "Indirizzo e-mail",
@@ -171,7 +171,7 @@
   },
   "consentements": {
     "titre": "Consensi",
-    "ajouter": "Aggiungere consenso",
+    "ajouter": "Aggiungi consenso",
     "types": {
       "marketing_email": "Pubblicita via e-mail",
       "marketing_sms": "Pubblicita via SMS",
@@ -185,7 +185,7 @@
     "vide": "Nessun consenso registrato."
   },
   "desactivation": {
-    "titre": "Disattivare cliente",
+    "titre": "Disattiva cliente",
     "motif": "Motivo della disattivazione"
   },
   "contact": {
@@ -193,15 +193,15 @@
     "statutActif": "Il cliente puo essere contattato normalmente.",
     "statutArrete": "Questo cliente ha richiesto l'interruzione di ogni contatto.",
     "motifLabel": "Motivo",
-    "arreterAction": "Interrompere ogni contatto",
-    "reprendreAction": "Riprendere il contatto",
+    "arreterAction": "Interrompi ogni contatto",
+    "reprendreAction": "Riprendi il contatto",
     "arreterTitre": "Interrompere ogni contatto con questo cliente",
     "arreterDescription": "Questo cliente non ricevera piu alcuna comunicazione (marketing, promemoria, solleciti), anche per una fattura non pagata. Il motivo e obbligatorio e viene conservato nello storico.",
     "reprendreTitre": "Riprendere il contatto con questo cliente",
     "reprendreDescription": "Questo cliente potra essere nuovamente contattato secondo i consensi registrati. Il motivo e obbligatorio e viene conservato nello storico."
   },
   "fusion": {
-    "titre": "Unire due clienti",
+    "titre": "Unisci due clienti",
     "confirmation": "Digiti il nome del cliente da unire per confermare",
     "irreversible": "Questa azione e irreversibile.",
     "transferer": "Le seguenti informazioni verranno trasferite",
@@ -209,7 +209,7 @@
       "client1": "Cliente da mantenere",
       "client2": "Cliente da unire"
     },
-    "confirmer": "Unire definitivamente"
+    "confirmer": "Unisci definitivamente"
   },
   "vide": {
     "premier": "Nessun cliente registrato. Crearne uno.",
@@ -221,13 +221,13 @@
   },
   "formulaireNouveau": {
     "brouillon": {
-      "ignorer": "Ignorare la bozza"
+      "ignorer": "Ignora la bozza"
     },
-    "reessaiSansDoublon": "Cliccare di nuovo su «Creare cliente» non crea un doppione: un tentativo precedente viene riconosciuto automaticamente."
+    "reessaiSansDoublon": "Cliccare di nuovo su «Crea cliente» non crea un doppione: un tentativo precedente viene riconosciuto automaticamente."
   },
   "ficheApresCreation": {
     "titre": "Cliente registrato",
     "description": "Il cliente {nom} è stato registrato correttamente ({numero}), ma la sua scheda non è potuta essere visualizzata. Riprovi, oppure lo trovi nell'elenco clienti — non lo crei di nuovo.",
-    "retourListe": "Tornare all'elenco clienti"
+    "retourListe": "Torna all'elenco clienti"
   }
 }

@@ -1,6 +1,6 @@
 {
   "titre": "Accettazione",
-  "nouveau": "Creare un OR",
+  "nouveau": "Crea un OR",
   "sections": {
     "vehicule": "Veicolo e cliente",
     "kilometrage": "Chilometraggio",
@@ -43,7 +43,7 @@
   },
   "signature": {
     "titre": "Firma del mandato",
-    "bouton": "Far firmare",
+    "bouton": "Fai firmare",
     "langue": "Lingua documento: {langue}"
   },
   "mandat": {
@@ -55,9 +55,9 @@
     "donnees": "Protezione dei dati accettata"
   },
   "brouillon": "Bozza ripresa da {heure}",
-  "reprendre": "Riprendere immissione",
+  "reprendre": "Riprendi immissione",
   "recommencer": "Ricomincia da zero",
-  "enregistrer": "Salvare",
+  "enregistrer": "Salva",
   "enCours": "Salvataggio…",
   "succes": "Ordine creato con successo"
 }

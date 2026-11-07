@@ -22,10 +22,10 @@
     "dernierMouvement": "Ultimo movimento il {date}",
     "avertissementRelance": "Nessun movimento da oltre due anni.",
     "actions": {
-      "voirVehicule": "Vedere il veicolo",
+      "voirVehicule": "Vedi il veicolo",
       "changerSaison": "Cambio stagione",
-      "deplacer": "Spostare",
-      "sortir": "Far uscire"
+      "deplacer": "Sposta",
+      "sortir": "Fai uscire"
     },
     "misEnEvidence": {
       "badge": "Set cercato",
@@ -49,7 +49,7 @@
       "label": "Sede"
     },
     "recherche": {
-      "champLabel": "Cercare per targa o nome cliente",
+      "champLabel": "Cerca per targa o nome cliente",
       "champPlaceholder": "Es. VD 123456 o Dupont",
       "erreur": {
         "titre": "La ricerca non è riuscita"
@@ -62,7 +62,7 @@
     "filtres": {
       "saison": "Stagione",
       "saisonToutes": "Tutte",
-      "repere": "Filtrare per ubicazione",
+      "repere": "Filtra per ubicazione",
       "reperePlaceholder": "Es. Scaffale 3"
     },
     "vide": {
@@ -81,7 +81,7 @@
     "description": "Registri un set di pneumatici nel deposito di questa sede.",
     "actions": {
       "ouvrir": "Nuovo deposito",
-      "creer": "Creare il deposito"
+      "creer": "Crea il deposito"
     },
     "champVehicule": "Veicolo",
     "champVehiculePlaceholder": "Targa, marca o modello",
@@ -100,12 +100,12 @@
     "description": "Il set \"{codeCase}\" e il suo gemello (stagione opposta) invertono lo stato montato/in deposito."
   },
   "deplacement": {
-    "titre": "Spostare questo set",
+    "titre": "Sposta questo set",
     "description": "Ubicazione attuale: \"{codeCase}\". Indicare la nuova ubicazione.",
     "champCodeCase": "Nuova ubicazione"
   },
   "sortie": {
-    "titre": "Far uscire questo set dal deposito",
+    "titre": "Fai uscire questo set dal deposito",
     "description": "Il set \"{codeCase}\" passa allo stato definitivo \"uscito\". Questa azione non è reversibile — indicare il motivo.",
     "champMotif": "Motivo dell'uscita",
     "champMotifPlaceholder": "Scegliere un motivo"
