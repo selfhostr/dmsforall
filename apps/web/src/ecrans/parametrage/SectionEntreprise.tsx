@@ -14,12 +14,15 @@ import type { ReponseParametresEntreprise } from '@/hooks/parametrage/entreprise
 import { useModifierParametresEntreprise } from '@/hooks/parametrage/useModifierParametresEntreprise';
 import { useParametresEntreprise } from '@/hooks/parametrage/useParametresEntreprise';
 
+import { BlocLogoEntreprise } from './BlocLogoEntreprise';
+import { validerDelaiPaiement } from './delai-paiement';
 import { validerNumeroTva } from './numero-tva';
 
 /**
- * Identité fiscale du garage (`GET|PATCH /parametres-entreprise`) : raison sociale en lecture
- * seule (elle vient de la création du garage), n° TVA modifiable. Le numéro est imprimé sur les
- * factures émises ; une faute de frappe est refusée ICI (format + clé de contrôle) avant l'appel.
+ * Identité du garage (`GET|PATCH /parametres-entreprise`) : raison sociale en lecture seule (elle
+ * vient de la création du garage), n° TVA et délai de paiement par défaut modifiables, logo
+ * (`BlocLogoEntreprise`). Le numéro est imprimé sur les factures émises ; une faute de frappe est
+ * refusée ICI (format + clé de contrôle) avant l'appel.
  */
 export function SectionEntreprise() {
   const { t } = useTranslation(['parametrage', 'erreurs']);
@@ -43,6 +46,8 @@ function FormulaireEntreprise({ donnees }: { readonly donnees: ReponseParametres
   const modifier = useModifierParametresEntreprise();
   const [saisie, setSaisie] = useState(donnees.numeroTva ?? '');
   const [raisonErreur, setRaisonErreur] = useState<'format' | 'cle' | undefined>(undefined);
+  const [delai, setDelai] = useState(String(donnees.delaiPaiementJoursDefaut));
+  const [delaiInvalide, setDelaiInvalide] = useState(false);
   const [enregistre, setEnregistre] = useState(false);
 
   function soumettre(evenement: React.FormEvent) {
@@ -53,12 +58,16 @@ function FormulaireEntreprise({ donnees }: { readonly donnees: ReponseParametres
       setRaisonErreur(resultat.raison);
       return;
     }
+    const delaiJours = validerDelaiPaiement(delai);
+    setDelaiInvalide(delaiJours === null);
+    if (delaiJours === null) return;
     setRaisonErreur(undefined);
     modifier.mutate(
-      { numeroTva: resultat.valeur },
+      { numeroTva: resultat.valeur, delaiPaiementJoursDefaut: delaiJours },
       {
         onSuccess: (reponse) => {
           setSaisie(reponse.numeroTva ?? '');
+          setDelai(String(reponse.delaiPaiementJoursDefaut));
           setEnregistre(true);
         },
       },
@@ -108,6 +117,38 @@ function FormulaireEntreprise({ donnees }: { readonly donnees: ReponseParametres
             ) : null}
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="ent-delai">{t('parametrage:entreprise.delaiPaiement')}</Label>
+            <Input
+              id="ent-delai"
+              className="max-w-32"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={365}
+              step={1}
+              value={delai}
+              readOnly={modifier.isPending}
+              aria-invalid={delaiInvalide ? true : undefined}
+              aria-describedby={
+                delaiInvalide ? 'ent-delai-aide ent-delai-erreur' : 'ent-delai-aide'
+              }
+              onChange={(e) => {
+                setDelai(e.target.value);
+                setDelaiInvalide(false);
+                setEnregistre(false);
+              }}
+            />
+            <p id="ent-delai-aide" className="texte-corps text-muted-foreground">
+              {t('parametrage:entreprise.delaiPaiementAide')}
+            </p>
+            {delaiInvalide ? (
+              <p id="ent-delai-erreur" className="texte-corps text-destructive" role="alert">
+                {t('parametrage:entreprise.erreurDelai')}
+              </p>
+            ) : null}
+          </div>
+
           {modifier.isError ? (
             <Alert variant="destructive">
               <AlertDescription>{messageErreur(modifier.error, t)}</AlertDescription>
@@ -127,6 +168,9 @@ function FormulaireEntreprise({ donnees }: { readonly donnees: ReponseParametres
               </span>
             ) : null}
           </div>
+        </CardContent>
+        <CardContent>
+          <BlocLogoEntreprise />
         </CardContent>
       </Card>
     </form>

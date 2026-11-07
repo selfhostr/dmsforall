@@ -380,10 +380,27 @@
       "format": "Il numero deve avere la forma CHE-123.456.789 IVA.",
       "cle": "Questo numero non esiste: controllate le cifre."
     },
-    "enregistrer": "Salva il numero",
-    "enregistrementReussi": "Numero IVA salvato.",
+    "enregistrer": "Salva azienda",
+    "enregistrementReussi": "Modifiche salvate.",
     "erreur": {
       "titre": "Impossibile caricare i dati dell'azienda"
+    },
+    "delaiPaiement": "Termine di pagamento predefinito (giorni)",
+    "delaiPaiementAide": "Applicato alle fatture dei clienti senza condizione di pagamento propria. Da 0 a 365 giorni.",
+    "erreurDelai": "Indica un numero intero di giorni, da 0 a 365.",
+    "logo": {
+      "titre": "Logo",
+      "alt": "Logo dell’officina",
+      "aucun": "Nessun logo caricato: le fatture vengono stampate senza logo.",
+      "choisir": "Scegli un logo",
+      "remplacer": "Sostituisci il logo",
+      "supprimer": "Elimina",
+      "aide": "PNG, JPEG o SVG, massimo 1 MB. Solo i nuovi PDF riportano il logo: le fatture già stampate non cambiano.",
+      "svgNonImprime": "L’SVG viene mostrato qui ma non è stampato sui PDF. Usa un PNG o un JPEG perché compaia sulle fatture.",
+      "refus": {
+        "type": "Questo file non è accettato: scegli un PNG, un JPEG o un SVG.",
+        "taille": "Questo file supera 1 MB: scegli un’immagine più leggera."
+      }
     }
   },
   "motifsRdv": {
