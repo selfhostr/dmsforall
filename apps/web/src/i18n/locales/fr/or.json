@@ -93,8 +93,8 @@
       "texte": "Information"
     },
     "origines": {
-      "commandee": "Client",
-      "constatee": "Constatée",
+      "commandee": "Demandé par le client",
+      "constatee": "Découvert pendant l'intervention",
       "campagne": "Campagne",
       "garantie": "Garantie",
       "retouche": "Retouche",
@@ -409,7 +409,11 @@
     "titre": "Actions",
     "imprimer": "Imprimer l'OR",
     "confirmer": "Confirmer",
-    "confirmerAction": "Confirmez cette action.",
+    "confirmation": {
+      "demarrer": "L'OR passe en cours : les techniciens peuvent commencer à pointer et à réaliser les travaux.",
+      "passerEnControle": "L'OR passe en contrôle : les travaux sont vérifiés avant d'être déclarés terminés.",
+      "cloturer": "L'OR est clôturé : il ne pourra plus être modifié ni facturé."
+    },
     "annulerAvertissement": "Cette action est définitive : l'ordre de réparation annulé ne pourra plus être ni modifié ni repris.",
     "motif": "Motif",
     "motifRequis": "Le motif est obligatoire",
@@ -592,6 +596,19 @@
     "titre": "Véhicule de courtoisie",
     "description": "Choisissez une voiture libre aujourd’hui : le prêt sera rattaché à ce client et à cet OR.",
     "aucunLibre": "Aucun véhicule de courtoisie n’est libre aujourd’hui."
+  },
+  "lignesARealiser": {
+    "avertissement": "{count, plural, one {# travail n'est pas encore marqué réalisé. Il le sera en même temps que la fin des travaux.} other {# travaux ne sont pas encore marqués réalisés. Ils le seront en même temps que la fin des travaux.}}",
+    "action": "{count, plural, one {Marquer la ligne réalisée et terminer} other {Marquer les # lignes réalisées et terminer}}"
+  },
+  "pretCourtoisie": {
+    "titre": "Voiture de courtoisie",
+    "chargement": "Chargement du prêt de courtoisie…",
+    "erreur": "Impossible de charger le prêt de voiture de courtoisie.",
+    "enCours": "Voiture de courtoisie : {vehicule}, prêtée le {date}",
+    "enRetard": "Voiture de courtoisie : {vehicule}, prêtée le {date} — pas encore rendue",
+    "reserve": "Voiture de courtoisie : {vehicule}, réservée dès le {date}",
+    "retourne": "Voiture de courtoisie : {vehicule}, prêtée le {date}, rendue le {dateRetour}"
   },
   "photos": {
     "bouton": "Photo",

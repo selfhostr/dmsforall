@@ -22,6 +22,7 @@ import { DialogueAjoutLigneOr } from './DialogueAjoutLigneOr';
 import { peutCreerLigneOr, peutValiderLigneOr } from './droits';
 import { peutPreterCourtoisie } from '@/ecrans/courtoisie/droits';
 
+import { BlocPretCourtoisieOr } from './BlocPretCourtoisieOr';
 import { BoutonVehiculeCourtoisieOr } from './BoutonVehiculeCourtoisieOr';
 import { EnTeteOrdreReparation } from './EnTeteOrdreReparation';
 import { ListeLignesOrdreReparation } from './ListeLignesOrdreReparation';
@@ -161,6 +162,7 @@ export function EcranFicheOrdreReparation() {
                 <BoutonVehiculeCourtoisieOr orId={or.id} clientId={or.client.id} />
               </div>
             ) : null}
+            <BlocPretCourtoisieOr orId={or.id} />
           </div>
         </CardContent>
       </Card>

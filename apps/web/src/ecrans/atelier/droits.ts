@@ -10,3 +10,5 @@ export const peutRefuserLigneOr = (a: ActionsSession) => peut(a, 'atelier.ligne.
 export const peutAnnulerLigneOr = (a: ActionsSession) => peut(a, 'atelier.ligne.annuler');
 /** Chercher une pièce depuis une ligne d'OR. */
 export const peutRechercherArticlePiece = (a: ActionsSession) => peut(a, 'pieces.article.lire');
+/** Voir les prêts de voiture de courtoisie (rattachés à un OR). */
+export const peutLireCourtoisie = (a: ActionsSession) => peut(a, 'courtoisie.lire');

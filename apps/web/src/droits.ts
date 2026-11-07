@@ -25,6 +25,7 @@ export const ACTIONS_CITEES = [
   'atelier.pointage.identifier',
   'atelier.pointage.pointer_autrui',
   'atelier.pointage.verrouiller_periode',
+  'courtoisie.lire',
   'courtoisie.parc.gerer',
   'courtoisie.preter',
   'facturation.document.corriger',

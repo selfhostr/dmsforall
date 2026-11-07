@@ -49,6 +49,7 @@ import {
   useTerminerOr,
   useValiderControleOr,
 } from '@/hooks/atelier/useTransitionsOrdreReparation';
+import { usePeut } from '@/droits';
 import { useSession } from '@/hooks/useSession';
 import { clesQuery } from '@/api/cles';
 import { chemins } from '@/routes/chemins';
@@ -207,6 +208,14 @@ export function PanneauActionsOr({ or }: Props) {
   // après le choix de l'utilisateur (laisser / retirer / annuler).
   const [entreeAvecLignesEnAttente, setEntreeAvecLignesEnAttente] = useState<object | null>(null);
   const lignesEnAttente = or.lignes.filter((ligne) => ligne.statut === 'proposee');
+  // Travaux validés ou en cours : le serveur refuse « Travaux terminés » / « Valider le contrôle »
+  // tant qu'ils ne sont pas réalisés (I-10). L'OR chargé le dit déjà : on propose le geste combiné
+  // d'emblée plutôt que d'attendre un refus 409 (qui reste géré en filet, `RefusBloquant`).
+  const peutMarquerRealisees = usePeut('atelier.ligne.marquer_realisee');
+  const lignesARealiser = or.lignes.filter(
+    (ligne) => ligne.statut === 'validee' || ligne.statut === 'en_cours',
+  );
+  const gesteCombine = peutMarquerRealisees && lignesARealiser.length > 0;
 
   const actionsNiveauOr = or.actionsDisponibles.filter((action) => !ACTIONS_LIGNE.has(action));
 
@@ -337,6 +346,15 @@ export function PanneauActionsOr({ or }: Props) {
       return;
     }
     soumettre(entree);
+  }
+
+  // Geste combiné : marque réalisées les lignes que l'OR connaît déjà comme à réaliser, puis envoie
+  // la transition. Un échec de marquage s'affiche dans le dialogue et n'envoie rien.
+  function marquerPuisSoumettre(entree: object) {
+    marquerRealisees.mutate(
+      lignesARealiser.map((ligne) => ligne.id),
+      { onSuccess: () => soumettreEnControlantLesLignes(entree) },
+    );
   }
 
   function resoumettreAvecConfirmations(confirmations: readonly CodeConfirmation[]) {
@@ -659,6 +677,11 @@ export function PanneauActionsOr({ or }: Props) {
                 unite="km"
                 label={t('or:actions.kilometrageSortie')}
               />
+              {gesteCombine ? (
+                <p role="note" className="texte-corps text-muted-foreground">
+                  {t('or:lignesARealiser.avertissement', { count: lignesARealiser.length })}
+                </p>
+              ) : null}
               {erreurValidation ? (
                 <p className="texte-libelle text-destructive">{erreurValidation}</p>
               ) : null}
@@ -667,7 +690,7 @@ export function PanneauActionsOr({ or }: Props) {
                   <Button variant="outline">{t('commun:actions.annuler')}</Button>
                 </DialogClose>
                 <Button
-                  disabled={mutationActive?.isPending}
+                  disabled={mutationActive?.isPending || marquerRealisees.isPending}
                   onClick={() => {
                     const resultat = schemaActionTerminer.safeParse({
                       kilometrageSortie: kilometrage,
@@ -676,10 +699,13 @@ export function PanneauActionsOr({ or }: Props) {
                       setErreurValidation(t('validation:requis'));
                       return;
                     }
-                    soumettreEnControlantLesLignes(resultat.data);
+                    if (gesteCombine) marquerPuisSoumettre(resultat.data);
+                    else soumettreEnControlantLesLignes(resultat.data);
                   }}
                 >
-                  {t('or:actions.confirmer')}
+                  {gesteCombine
+                    ? t('or:lignesARealiser.action', { count: lignesARealiser.length })
+                    : t('or:actions.confirmer')}
                 </Button>
               </DialogFooter>
             </div>
@@ -734,21 +760,34 @@ export function PanneauActionsOr({ or }: Props) {
           {actionOuverte === 'valider-controle' ? (
             <div className="flex flex-col gap-4">
               <p className="texte-corps text-muted-foreground">{t('or:fiche.controleurAuto')}</p>
+              {gesteCombine ? (
+                <p role="note" className="texte-corps text-muted-foreground">
+                  {t('or:lignesARealiser.avertissement', { count: lignesARealiser.length })}
+                </p>
+              ) : null}
               <DialogFooter>
                 <DialogClose asChild>
                   <Button variant="outline">{t('commun:actions.annuler')}</Button>
                 </DialogClose>
                 <Button
-                  disabled={mutationActive?.isPending || !session.data?.utilisateur.id}
+                  disabled={
+                    mutationActive?.isPending ||
+                    marquerRealisees.isPending ||
+                    !session.data?.utilisateur.id
+                  }
                   onClick={() => {
                     if (!session.data) return;
-                    soumettreEnControlantLesLignes({
+                    const entree = {
                       controleurId: session.data.utilisateur.id,
                       pointsControles: [],
-                    });
+                    };
+                    if (gesteCombine) marquerPuisSoumettre(entree);
+                    else soumettreEnControlantLesLignes(entree);
                   }}
                 >
-                  {t('or:actions.confirmer')}
+                  {gesteCombine
+                    ? t('or:lignesARealiser.action', { count: lignesARealiser.length })
+                    : t('or:actions.confirmer')}
                 </Button>
               </DialogFooter>
             </div>
@@ -758,7 +797,9 @@ export function PanneauActionsOr({ or }: Props) {
           actionOuverte === 'passer-en-controle' ||
           actionOuverte === 'cloturer' ? (
             <div className="flex flex-col gap-4">
-              <p className="texte-corps text-muted-foreground">{t('or:actions.confirmerAction')}</p>
+              <p className="texte-corps text-muted-foreground">
+                {t(`or:actions.confirmation.${cleTitre ?? 'demarrer'}`)}
+              </p>
               <DialogFooter>
                 <DialogClose asChild>
                   <Button variant="outline">{t('commun:actions.annuler')}</Button>
