@@ -15,5 +15,5 @@ Start with one of these pages:
 The interface is available in French, German and Italian. These pages are in English, so screen labels are given in English here. Your interface shows them in the language you chose.
 
 :::caution
-dmsforall is in alpha. Development is paused for now. The code, images and docs stay available, but do not expect new features or quick fixes. A live demo is available at https://dmsforall.selfhostr.io/demo/. Read the [limits in the README](https://github.com/selfhostr/dmsforall#limits) before you use it for real invoices.
+dmsforall is in alpha. A live demo is available at https://dmsforall.selfhostr.io/demo/. Read the [limits in the README](https://github.com/selfhostr/dmsforall#limits) before you use it for real invoices.
 :::
