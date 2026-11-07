@@ -11,7 +11,7 @@ import i18n from '@/i18n';
 import { server } from '@/test/msw/server';
 import { renduAvecRoutes } from '@/test/utils';
 
-import { RechercheGlobale } from './RechercheGlobale';
+import { RechercheGlobale, useOuvrirRechercheGlobale } from './RechercheGlobale';
 
 /**
  * Lot A (`docs/plan-refonte-navigation.md` §4) : la recherche montée dans l'en-tête, en
@@ -161,6 +161,60 @@ describe('RechercheGlobale', () => {
     await utilisateur.click(resultat);
 
     expect(await screen.findByText('Fiche véhicule ouverte')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('useOuvrirRechercheGlobale ouvre le panneau sans événement clavier', async () => {
+    const utilisateur = userEvent.setup();
+    function ChampAccueil() {
+      const ouvrir = useOuvrirRechercheGlobale();
+      return (
+        <button type="button" onClick={ouvrir}>
+          Chercher depuis l’accueil
+        </button>
+      );
+    }
+    renduAvecRoutes([
+      {
+        path: '/',
+        element: (
+          <>
+            <RechercheGlobale />
+            <ChampAccueil />
+          </>
+        ),
+      },
+    ]);
+
+    await utilisateur.click(screen.getByRole('button', { name: 'Chercher depuis l’accueil' }));
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('useOuvrirRechercheGlobale n’ouvre pas l’instance du tiroir (une seule fenêtre)', async () => {
+    const utilisateur = userEvent.setup();
+    function ChampAccueil() {
+      const ouvrir = useOuvrirRechercheGlobale();
+      return (
+        <button type="button" onClick={ouvrir}>
+          Chercher depuis l’accueil
+        </button>
+      );
+    }
+    renduAvecRoutes([
+      {
+        path: '/',
+        element: (
+          <>
+            <RechercheGlobale raccourciClavier={false} />
+            <ChampAccueil />
+          </>
+        ),
+      },
+    ]);
+
+    await utilisateur.click(screen.getByRole('button', { name: 'Chercher depuis l’accueil' }));
+
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

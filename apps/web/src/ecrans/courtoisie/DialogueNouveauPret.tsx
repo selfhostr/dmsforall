@@ -6,17 +6,9 @@ import { schemaCreationPretCourtoisie, type ReponseVehiculeCourtoisie } from '@d
 import { messageErreur } from '@/api/erreurs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { SelecteurClientVehicule } from '@/ecrans/vehicules/SelecteurClientVehicule';
 import { useCreerPretCourtoisie } from '@/hooks/courtoisie/useCourtoisie';
 
@@ -71,77 +63,74 @@ export function DialogueNouveauPret({
   }
 
   return (
-    <Dialog open={vehicule !== null} onOpenChange={(ouvert) => (ouvert ? undefined : onFermer())}>
-      <DialogContent>
-        <form onSubmit={soumettre} className="flex flex-col gap-4">
-          <DialogHeader>
-            <DialogTitle>{t('courtoisie:pret.titre')}</DialogTitle>
-            <DialogDescription>
-              {vehicule
-                ? `${vehicule.designation}${vehicule.plaque ? ` · ${vehicule.plaque}` : ''}`
-                : ''}
-            </DialogDescription>
-          </DialogHeader>
+    <PanneauLateral
+      ouvert={vehicule !== null}
+      onOuvertChange={(ouvert) => (ouvert ? undefined : onFermer())}
+      titre={t('courtoisie:pret.titre')}
+      description={
+        vehicule
+          ? `${vehicule.designation}${vehicule.plaque ? ` · ${vehicule.plaque}` : ''}`
+          : undefined
+      }
+      pied={
+        <>
+          <Button type="button" variant="outline" onClick={onFermer}>
+            {t('commun:actions.annuler')}
+          </Button>
+          <Button type="submit" form="form-pret-courtoisie" disabled={creer.isPending}>
+            {t('courtoisie:pret.confirmer')}
+          </Button>
+        </>
+      }
+    >
+      <form id="form-pret-courtoisie" onSubmit={soumettre} className="flex flex-col gap-4">
+        <SelecteurClientVehicule
+          valeur={clientId}
+          onChangeValeur={(id) => setClientId(id)}
+          libelle={t('courtoisie:pret.client')}
+          requis
+        />
 
-          <SelecteurClientVehicule
-            valeur={clientId}
-            onChangeValeur={(id) => setClientId(id)}
-            libelle={t('courtoisie:pret.client')}
-            requis
-          />
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="pret-debut">{t('courtoisie:pret.du')}</Label>
-              <Input
-                id="pret-debut"
-                type="datetime-local"
-                required
-                value={debut}
-                onChange={(e) => setDebut(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="pret-fin">{t('courtoisie:pret.au')}</Label>
-              <Input
-                id="pret-fin"
-                type="datetime-local"
-                required
-                value={fin}
-                onChange={(e) => setFin(e.target.value)}
-              />
-            </div>
-          </div>
-
+        <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="pret-km">{t('courtoisie:pret.kmDepart')}</Label>
+            <Label htmlFor="pret-debut">{t('courtoisie:pret.du')}</Label>
             <Input
-              id="pret-km"
-              inputMode="numeric"
-              value={kmDepart}
-              onChange={(e) => setKmDepart(e.target.value.replace(/\D/g, ''))}
-              placeholder={vehicule?.kilometrage != null ? String(vehicule.kilometrage) : ''}
+              id="pret-debut"
+              type="datetime-local"
+              required
+              value={debut}
+              onChange={(e) => setDebut(e.target.value)}
             />
           </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="pret-fin">{t('courtoisie:pret.au')}</Label>
+            <Input
+              id="pret-fin"
+              type="datetime-local"
+              required
+              value={fin}
+              onChange={(e) => setFin(e.target.value)}
+            />
+          </div>
+        </div>
 
-          {erreur || creer.isError ? (
-            <Alert variant="destructive">
-              <AlertDescription>{erreur ?? messageErreur(creer.error, t)}</AlertDescription>
-            </Alert>
-          ) : null}
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="pret-km">{t('courtoisie:pret.kmDepart')}</Label>
+          <Input
+            id="pret-km"
+            inputMode="numeric"
+            value={kmDepart}
+            onChange={(e) => setKmDepart(e.target.value.replace(/\D/g, ''))}
+            placeholder={vehicule?.kilometrage != null ? String(vehicule.kilometrage) : ''}
+          />
+        </div>
 
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                {t('commun:actions.annuler')}
-              </Button>
-            </DialogClose>
-            <Button type="submit" disabled={creer.isPending}>
-              {t('courtoisie:pret.confirmer')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        {erreur || creer.isError ? (
+          <Alert variant="destructive">
+            <AlertDescription>{erreur ?? messageErreur(creer.error, t)}</AlertDescription>
+          </Alert>
+        ) : null}
+      </form>
+    </PanneauLateral>
   );
 }

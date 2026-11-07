@@ -1,6 +1,5 @@
 {
-  "titre": "Benvenuto! Configuriamo la vostra autorimessa",
-  "description": "Bastano pochi minuti. Può uscire in qualsiasi momento e riprendere più tardi dalla pagina iniziale.",
+  "titre": "Configurare l’autorimessa",
   "navigation": {
     "liste": "Passaggi della procedura guidata",
     "position": "Passaggio {numero} di {total}",
@@ -20,72 +19,58 @@
     "enregistrement": "Il salvataggio non è riuscito. I dati inseriti sono conservati: corregga e riprovi."
   },
   "reprise": {
-    "titre": "Procedura guidata di avvio",
-    "description": "Configuri l'essenziale della sua autorimessa passo dopo passo.",
     "bouton": "Riprendi la procedura"
   },
   "etapes": {
     "garage": {
-      "titre": "La sua autorimessa",
-      "intro": "Queste informazioni compaiono sulle fatture e sulla fattura QR."
+      "titre": "La sua autorimessa"
     },
     "modules": {
       "titre": "Ciò che usate",
       "intro": "Togliete ciò che la vostra autorimessa non usa. Potrete cambiarlo in Impostazioni > Moduli."
     },
     "paiements": {
-      "titre": "Pagamenti",
-      "intro": "Il suo conto bancario permette di stampare la fattura QR: i clienti pagano con una scansione."
+      "titre": "Pagamenti"
     },
     "atelier": {
-      "titre": "Officina",
-      "intro": "La tariffa oraria valorizza la manodopera; i motivi servono per fissare gli appuntamenti."
+      "titre": "Officina"
     },
     "logo": {
-      "titre": "Il suo logo",
-      "intro": "Viene stampato in alto sulle fatture. Può aggiungerlo più tardi."
+      "titre": "Il suo logo"
     },
     "equipe": {
-      "titre": "Team",
-      "intro": "Crei gli account dei collaboratori: ognuno vede ciò che il suo ruolo consente."
+      "titre": "Team"
     },
     "termine": {
-      "titre": "Completato",
-      "intro": "Ecco a che punto è la sua autorimessa."
+      "titre": "Completato"
     }
   },
   "garage": {
     "raisonSociale": "Ragione sociale",
-    "raisonSocialeNote": "Proviene dalla creazione del suo account e per ora non si modifica qui. Ci scriva se deve cambiare.",
-    "adresse": "Indirizzo dell'autorimessa",
     "rue": "Via",
     "numero": "N.",
     "npa": "NPA",
     "localite": "Località",
-    "numeroAide": "Facoltativo (casella postale, località isolata).",
     "erreurRue": "Indichi la via.",
     "erreurNpa": "Indichi il NPA.",
     "erreurLocalite": "Indichi la località.",
-    "contactNote": "Telefono ed e-mail dell'autorimessa: da inserire più tardi, per ora non si possono salvare qui.",
     "tva": {
       "question": "La sua autorimessa è soggetta all'IVA?",
       "oui": "Sì",
       "non": "No",
       "numero": "Numero IVA",
-      "aide": "Facoltativo. Formato CHE-123.456.789 IVA. Compare sulle fatture.",
       "erreurFormat": "Questo numero non ha il formato corretto. Esempio: CHE-123.456.789 IVA.",
       "erreurCle": "Questo numero IVA non è corretto: controlli le cifre."
-    }
+    },
+    "erreurRaisonSociale": "Indichi la ragione sociale."
   },
   "paiements": {
     "comptant": "Incasso solo in contanti",
-    "comptantAide": "Nessuna fattura QR verrà preparata. Potrà aggiungere un conto più tardi.",
-    "iban": "IBAN o QR-IBAN",
-    "ibanAide": "Facoltativo. Lo incolli con o senza spazi, ad esempio CH93 0076 2011 6238 5295 7."
+    "iban": "IBAN",
+    "ibanAide": "Per una fattura QR con riferimento QR, indichi il QR-IBAN e non l’IBAN."
   },
   "atelier": {
-    "tauxHoraire": "Tariffa oraria (CHF all'ora)",
-    "tauxHoraireAide": "Precompilata a CHF 140.00. Modificabile più tardi nelle Impostazioni.",
+    "tauxHoraire": "Tariffa oraria (CHF/h)",
     "tauxDejaDefini": "Tariffa oraria già definita: CHF {montant} all'ora.",
     "erreurMontant": "Indichi un importo valido, ad esempio 140.00.",
     "horaires": "Orari di apertura",
@@ -93,7 +78,6 @@
     "fermeture": "Chiusura",
     "horairesPlusieursSites": "La sua autorimessa ha più sedi: imposti gli orari di apertura sede per sede nelle Impostazioni.",
     "motifs": "Motivi di appuntamento",
-    "motifsAide": "Selezioni ciò per cui vengono i clienti.",
     "motifDejaPresent": "già presente"
   },
   "equipe": {
@@ -104,12 +88,10 @@
     "plusTard": "Più tardi",
     "erreurChamps": "Nome, cognome ed e-mail sono obbligatori.",
     "invitesTitre": "Account creati",
-    "aucun": "Nessun account creato finora.",
     "accesTemporaire": "Password temporanea: {mot}. La annoti, non verrà più mostrata.",
     "continuer": "Continua"
   },
   "termine": {
-    "recapitulatif": "Riepilogo",
     "etat": {
       "fait": "Configurato",
       "aFaire": "Da configurare",

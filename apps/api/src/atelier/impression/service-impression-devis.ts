@@ -119,7 +119,11 @@ export class ServiceImpressionDevis {
   ): Promise<IdentiteGarage> {
     return this.acces.enTenant(ctx, async (tx) => {
       const [ligneTenant] = await tx
-        .select({ raisonSociale: tenant.raisonSociale, numeroTva: tenant.numeroTva })
+        .select({
+          raisonSociale: tenant.raisonSociale,
+          numeroTva: tenant.numeroTva,
+          assujettiTva: tenant.assujettiTva,
+        })
         .from(tenant)
         .where(eq(tenant.id, ctx.tenantId))
         .limit(1);
@@ -136,6 +140,7 @@ export class ServiceImpressionDevis {
         npa: ligneSite?.npa ?? null,
         localite: ligneSite?.localite ?? null,
         numeroTva: ligneTenant?.numeroTva ?? null,
+        assujettiTva: ligneTenant?.assujettiTva,
       };
     });
   }

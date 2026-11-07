@@ -1,6 +1,5 @@
 {
-  "titre": "Bienvenue ! Configurons votre garage",
-  "description": "Quelques minutes suffisent. Vous pouvez quitter à tout moment et reprendre plus tard depuis l'accueil.",
+  "titre": "Configurer le garage",
   "navigation": {
     "liste": "Étapes de l'assistant",
     "position": "Étape {numero} sur {total}",
@@ -20,72 +19,58 @@
     "enregistrement": "L'enregistrement a échoué. Vos saisies sont conservées : corrigez et réessayez."
   },
   "reprise": {
-    "titre": "Assistant de démarrage",
-    "description": "Réglez l'essentiel de votre garage pas à pas.",
     "bouton": "Reprendre l'assistant"
   },
   "etapes": {
     "garage": {
-      "titre": "Votre garage",
-      "intro": "Ces informations figurent sur vos factures et sur la QR-facture."
+      "titre": "Votre garage"
     },
     "modules": {
       "titre": "Ce que vous utilisez",
       "intro": "Retirez ce que votre garage n'utilise pas. Vous pourrez le changer dans Réglages > Modules."
     },
     "paiements": {
-      "titre": "Paiements",
-      "intro": "Votre compte bancaire permet d'imprimer la QR-facture : vos clients paient d'un scan."
+      "titre": "Paiements"
     },
     "atelier": {
-      "titre": "Atelier",
-      "intro": "Le taux horaire chiffre la main-d'œuvre ; les motifs servent à prendre rendez-vous."
+      "titre": "Atelier"
     },
     "logo": {
-      "titre": "Votre logo",
-      "intro": "Il s'imprime en haut de vos factures. Vous pouvez l'ajouter plus tard."
+      "titre": "Votre logo"
     },
     "equipe": {
-      "titre": "Équipe",
-      "intro": "Créez les comptes de vos collaborateurs : chacun voit ce que son rôle permet."
+      "titre": "Équipe"
     },
     "termine": {
-      "titre": "Terminé",
-      "intro": "Voici où en est votre garage."
+      "titre": "Terminé"
     }
   },
   "garage": {
     "raisonSociale": "Raison sociale",
-    "raisonSocialeNote": "Elle vient de la création de votre compte et ne se modifie pas encore ici. Écrivez-nous si elle doit changer.",
-    "adresse": "Adresse du garage",
     "rue": "Rue",
     "numero": "N°",
     "npa": "NPA",
     "localite": "Localité",
-    "numeroAide": "Facultatif (case postale, lieu-dit).",
     "erreurRue": "Indiquez la rue.",
     "erreurNpa": "Indiquez le NPA.",
     "erreurLocalite": "Indiquez la localité.",
-    "contactNote": "Téléphone et e-mail du garage : à saisir plus tard, ils ne sont pas encore enregistrables ici.",
     "tva": {
       "question": "Votre garage est-il assujetti à la TVA ?",
       "oui": "Oui",
       "non": "Non",
       "numero": "N° de TVA",
-      "aide": "Facultatif. Format CHE-123.456.789 TVA. Il figure sur vos factures.",
       "erreurFormat": "Ce numéro n'a pas le bon format. Exemple : CHE-123.456.789 TVA.",
       "erreurCle": "Ce numéro de TVA est incorrect : vérifiez les chiffres."
-    }
+    },
+    "erreurRaisonSociale": "Indiquez la raison sociale."
   },
   "paiements": {
     "comptant": "Je n'encaisse qu'au comptant",
-    "comptantAide": "Aucune QR-facture ne sera préparée. Vous pourrez ajouter un compte plus tard.",
-    "iban": "IBAN ou QR-IBAN",
-    "ibanAide": "Facultatif. Collez-le avec ou sans espaces, par exemple CH93 0076 2011 6238 5295 7."
+    "iban": "IBAN",
+    "ibanAide": "Pour une QR-facture avec référence QR, saisissez le QR-IBAN, pas l’IBAN."
   },
   "atelier": {
-    "tauxHoraire": "Taux horaire (CHF par heure)",
-    "tauxHoraireAide": "Prérempli à CHF 140.00. Modifiable plus tard dans Réglages.",
+    "tauxHoraire": "Taux horaire (CHF/h)",
     "tauxDejaDefini": "Taux horaire déjà défini : CHF {montant} par heure.",
     "erreurMontant": "Indiquez un montant valide, par exemple 140.00.",
     "horaires": "Heures d'ouverture",
@@ -93,7 +78,6 @@
     "fermeture": "Fermeture",
     "horairesPlusieursSites": "Votre garage a plusieurs sites : réglez les heures d'ouverture site par site dans Réglages.",
     "motifs": "Motifs de rendez-vous",
-    "motifsAide": "Cochez ce que vos clients viennent faire.",
     "motifDejaPresent": "déjà présent"
   },
   "equipe": {
@@ -104,12 +88,10 @@
     "plusTard": "Plus tard",
     "erreurChamps": "Prénom, nom et e-mail sont obligatoires.",
     "invitesTitre": "Comptes créés",
-    "aucun": "Aucun compte créé pour l'instant.",
     "accesTemporaire": "Mot de passe temporaire : {mot}. Notez-le, il ne sera plus affiché.",
     "continuer": "Continuer"
   },
   "termine": {
-    "recapitulatif": "Récapitulatif",
     "etat": {
       "fait": "Réglé",
       "aFaire": "À régler",

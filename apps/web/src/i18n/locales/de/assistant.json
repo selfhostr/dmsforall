@@ -1,6 +1,5 @@
 {
-  "titre": "Willkommen! Richten wir Ihren Betrieb ein",
-  "description": "Ein paar Minuten genügen. Sie können jederzeit abbrechen und später über die Startseite fortfahren.",
+  "titre": "Betrieb einrichten",
   "navigation": {
     "liste": "Schritte des Assistenten",
     "position": "Schritt {numero} von {total}",
@@ -20,72 +19,58 @@
     "enregistrement": "Das Speichern ist fehlgeschlagen. Ihre Eingaben bleiben erhalten: korrigieren Sie und versuchen Sie es erneut."
   },
   "reprise": {
-    "titre": "Einrichtungsassistent",
-    "description": "Richten Sie das Wichtigste Ihres Betriebs Schritt für Schritt ein.",
     "bouton": "Assistent fortsetzen"
   },
   "etapes": {
     "garage": {
-      "titre": "Ihr Betrieb",
-      "intro": "Diese Angaben stehen auf Ihren Rechnungen und auf der QR-Rechnung."
+      "titre": "Ihr Betrieb"
     },
     "modules": {
       "titre": "Was Sie nutzen",
       "intro": "Entfernen Sie, was Ihre Garage nicht nutzt. Sie können das später unter Einstellungen > Module ändern."
     },
     "paiements": {
-      "titre": "Zahlungen",
-      "intro": "Mit Ihrem Bankkonto wird die QR-Rechnung gedruckt: Ihre Kunden zahlen per Scan."
+      "titre": "Zahlungen"
     },
     "atelier": {
-      "titre": "Werkstatt",
-      "intro": "Der Stundensatz bewertet die Arbeitszeit; die Gründe dienen der Terminvergabe."
+      "titre": "Werkstatt"
     },
     "logo": {
-      "titre": "Ihr Logo",
-      "intro": "Es wird oben auf Ihre Rechnungen gedruckt. Sie können es später hinzufügen."
+      "titre": "Ihr Logo"
     },
     "equipe": {
-      "titre": "Team",
-      "intro": "Legen Sie die Konten Ihrer Mitarbeitenden an: Jede Person sieht, was ihre Rolle erlaubt."
+      "titre": "Team"
     },
     "termine": {
-      "titre": "Fertig",
-      "intro": "So weit ist Ihr Betrieb eingerichtet."
+      "titre": "Fertig"
     }
   },
   "garage": {
     "raisonSociale": "Firmenname",
-    "raisonSocialeNote": "Er stammt aus der Erstellung Ihres Kontos und kann hier noch nicht geändert werden. Schreiben Sie uns, falls er angepasst werden muss.",
-    "adresse": "Adresse des Betriebs",
     "rue": "Strasse",
     "numero": "Nr.",
     "npa": "PLZ",
     "localite": "Ort",
-    "numeroAide": "Optional (Postfach, Flurname).",
     "erreurRue": "Geben Sie die Strasse an.",
     "erreurNpa": "Geben Sie die PLZ an.",
     "erreurLocalite": "Geben Sie den Ort an.",
-    "contactNote": "Telefon und E-Mail des Betriebs: später erfassen, sie lassen sich hier noch nicht speichern.",
     "tva": {
       "question": "Ist Ihr Betrieb mehrwertsteuerpflichtig?",
       "oui": "Ja",
       "non": "Nein",
       "numero": "MWST-Nummer",
-      "aide": "Optional. Format CHE-123.456.789 MWST. Sie steht auf Ihren Rechnungen.",
       "erreurFormat": "Diese Nummer hat nicht das richtige Format. Beispiel: CHE-123.456.789 MWST.",
       "erreurCle": "Diese MWST-Nummer ist falsch: Prüfen Sie die Ziffern."
-    }
+    },
+    "erreurRaisonSociale": "Geben Sie den Firmennamen an."
   },
   "paiements": {
     "comptant": "Ich kassiere nur bar",
-    "comptantAide": "Es wird keine QR-Rechnung vorbereitet. Ein Konto können Sie später hinzufügen.",
-    "iban": "IBAN oder QR-IBAN",
-    "ibanAide": "Optional. Mit oder ohne Leerzeichen einfügen, zum Beispiel CH93 0076 2011 6238 5295 7."
+    "iban": "IBAN",
+    "ibanAide": "Für eine QR-Rechnung mit QR-Referenz geben Sie die QR-IBAN an, nicht die IBAN."
   },
   "atelier": {
-    "tauxHoraire": "Stundensatz (CHF pro Stunde)",
-    "tauxHoraireAide": "Vorausgefüllt mit CHF 140.00. Später in den Einstellungen änderbar.",
+    "tauxHoraire": "Stundensatz (CHF/h)",
     "tauxDejaDefini": "Stundensatz bereits festgelegt: CHF {montant} pro Stunde.",
     "erreurMontant": "Geben Sie einen gültigen Betrag an, zum Beispiel 140.00.",
     "horaires": "Öffnungszeiten",
@@ -93,7 +78,6 @@
     "fermeture": "Schliessung",
     "horairesPlusieursSites": "Ihr Betrieb hat mehrere Standorte: Legen Sie die Öffnungszeiten pro Standort in den Einstellungen fest.",
     "motifs": "Termingründe",
-    "motifsAide": "Kreuzen Sie an, wofür Ihre Kunden kommen.",
     "motifDejaPresent": "bereits vorhanden"
   },
   "equipe": {
@@ -104,12 +88,10 @@
     "plusTard": "Später",
     "erreurChamps": "Vorname, Name und E-Mail sind Pflichtfelder.",
     "invitesTitre": "Erstellte Konten",
-    "aucun": "Noch kein Konto erstellt.",
     "accesTemporaire": "Temporäres Passwort: {mot}. Notieren Sie es, es wird nicht mehr angezeigt.",
     "continuer": "Weiter"
   },
   "termine": {
-    "recapitulatif": "Zusammenfassung",
     "etat": {
       "fait": "Erledigt",
       "aFaire": "Noch zu erledigen",

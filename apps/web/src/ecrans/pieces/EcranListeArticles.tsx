@@ -14,7 +14,6 @@ import {
 
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -114,7 +113,6 @@ export function EcranListeArticles() {
   } = useListeArticles(filtres);
 
   const filtresStructuresActifs = categorie !== undefined || statut !== undefined;
-  const filtresActifs = q.trim() !== '' || filtresStructuresActifs;
 
   function effacerFiltres() {
     // Levier de reset (choix produit 26.08.2026) : `effacerFiltres` est un geste de reprise en
@@ -267,15 +265,31 @@ export function EcranListeArticles() {
   // ce chantier) : la barre de recherche remonte directement sous le titre, plus rien ne
   // l'en sépare.
   return (
-    <GabaritEcran titre={t('pieces:articles.liste.titre')}>
+    <GabaritEcran
+      titre={t('pieces:articles.liste.titre')}
+      actions={
+        <>
+          {peutEcrireArticle(actions) ? (
+            <Button onClick={() => setFormulaireOuvert(true)}>
+              {t('pieces:articles.actions.ajouter')}
+            </Button>
+          ) : null}
+        </>
+      }
+    >
       <BarreFiltres
+        tri={
+          <SelecteurTri
+            options={TRIS_ARTICLES.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
+            valeur={tri}
+            onChangeValeur={setTri}
+            label={t('pieces:articles.tri.label')}
+          />
+        }
         q={qSaisie}
         onChangeQ={setQSaisie}
-        filtresActifs={filtresActifs}
-        onEffacerFiltres={effacerFiltres}
       >
         <div className="flex flex-col gap-champ">
-          <Label htmlFor="filtre-categorie">{t('pieces:articles.categorie')}</Label>
           <Select
             value={categorie ?? 'toutes'}
             onValueChange={(valeur) =>
@@ -300,7 +314,6 @@ export function EcranListeArticles() {
           </Select>
         </div>
         <div className="flex flex-col gap-champ">
-          <Label htmlFor="filtre-statut">{t('pieces:articles.statut')}</Label>
           <Select
             value={statut ?? 'tous'}
             onValueChange={(valeur) =>
@@ -326,7 +339,6 @@ export function EcranListeArticles() {
         </div>
         {sitesActifs.length > 1 ? (
           <div className="flex flex-col gap-champ">
-            <Label htmlFor="filtre-site">{t('pieces:siteRequis.label')}</Label>
             <Select value={site} onValueChange={setSite}>
               <SelectTrigger
                 id="filtre-site"
@@ -346,21 +358,6 @@ export function EcranListeArticles() {
           </div>
         ) : null}
       </BarreFiltres>
-
-      <div className="flex flex-wrap items-end justify-between gap-controles">
-        <SelecteurTri
-          options={TRIS_ARTICLES.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
-          valeur={tri}
-          onChangeValeur={setTri}
-          label={t('pieces:articles.tri.label')}
-          className="max-w-xs"
-        />
-        {peutEcrireArticle(actions) ? (
-          <Button onClick={() => setFormulaireOuvert(true)}>
-            {t('pieces:articles.actions.ajouter')}
-          </Button>
-        ) : null}
-      </div>
 
       <TableComptoir
         colonnes={colonnes}

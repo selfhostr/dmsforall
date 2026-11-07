@@ -41,12 +41,14 @@
     "piecesFacturesFournisseur": "Factures fournisseurs",
     "piecesConsignes": "Consignes",
     "facturationFactures": "Factures",
+    "facturationChiffres": "Chiffres",
     "facturationEncaissements": "Encaissements",
     "facturationRelances": "Relances",
     "facturationExportFiduciaire": "Export fiduciaire",
     "ventesDossiers": "Ventes en cours",
     "ventesParc": "Véhicules en stock",
     "ventesSuivi": "Suivi financement & garantie",
+    "reglagesGarage": "Mon garage",
     "reglagesAtelier": "Atelier",
     "reglagesSites": "Sites",
     "reglagesFacturation": "Facturation",
@@ -97,7 +99,13 @@
     "passerSombre": "Passer en thème sombre"
   },
   "pied": {
-    "version": "Version {info}",
-    "versionInconnue": "inconnue"
+    "version": "Version {info}"
+  },
+  "configurer": {
+    "entree": "Configurer le garage",
+    "pastille": "Garage à configurer"
+  },
+  "rangee": {
+    "aria": "Réglages rapides"
   }
 }

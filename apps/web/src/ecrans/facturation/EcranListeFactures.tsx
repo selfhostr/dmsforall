@@ -4,12 +4,24 @@ import { Link, useNavigate } from 'react-router';
 
 import type { DocumentVenteResume, FiltresDocumentsVente } from '@dfa/shared';
 
+type TriFactures = FiltresDocumentsVente['tri'];
+
+const CLE_TRI: Record<TriFactures, string> = {
+  'dateDocument:desc': 'dateDesc',
+  'dateDocument:asc': 'dateAsc',
+  'numeroSequence:desc': 'numeroDesc',
+  'numeroSequence:asc': 'numeroAsc',
+  'soldeCentimes:desc': 'soldeDesc',
+  'relanceLe:asc': 'relanceAsc',
+};
+
 import { messageErreur } from '@/api/erreurs';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { Segments } from '@/composants/commun/Segments';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { BarreFiltres } from '@/composants/comptoir/BarreFiltres';
+import { SelecteurTri } from '@/composants/comptoir/SelecteurTri';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
@@ -28,6 +40,7 @@ import { chemins } from '@/routes/chemins';
 import { peutVoirChiffres } from './chiffres/droits';
 import { peutVoirMontantsFacturation } from './droits';
 import { IndicateurRetard } from './IndicateurRetard';
+
 
 const DELAI_DEBOUNCE_MS = 300;
 
@@ -86,16 +99,28 @@ export function EcranListeFactures() {
   const voitMontantsFacturation = peutVoirMontantsFacturation(actions);
 
   const [qSaisie, setQSaisie] = useState('');
-  const [q, reinitialiserQ] = useValeurDebouncee(qSaisie, DELAI_DEBOUNCE_MS);
+  const [q] = useValeurDebouncee(qSaisie, DELAI_DEBOUNCE_MS);
   // Onglet par défaut : « Non réglées » (§7.1) — reste un badge neutre, l'onglet organise le
   // travail du patron sans l'alarmer.
   const [onglet, setOnglet] = useState<OngletListeFactures>('nonReglees');
+  // `null` = tri par défaut de l'onglet (les plus anciennes d'abord pour « Non réglées »).
+  const [triChoisi, setTriChoisi] = useState<TriFactures | null>(null);
+  const triParDefaut: TriFactures =
+    onglet === 'nonReglees' ? 'dateDocument:asc' : 'dateDocument:desc';
+  const tri = triChoisi ?? triParDefaut;
+  const optionsTri: readonly TriFactures[] = [
+    'dateDocument:desc',
+    'dateDocument:asc',
+    'numeroSequence:desc',
+    'numeroSequence:asc',
+    ...(voitMontantsFacturation ? (['soldeCentimes:desc'] as const) : []),
+  ];
 
   const filtres: FiltresDocumentsVente = useMemo(() => {
     const base: FiltresDocumentsVente = {
       typeDocument: onglet === 'devis' ? ['devis'] : ['facture'],
       q: q.trim() === '' ? undefined : q.trim(),
-      tri: onglet === 'nonReglees' ? 'dateDocument:asc' : 'dateDocument:desc',
+      tri,
     };
     if (onglet === 'devis') {
       // Les devis n'ont ni règlement ni échéance : aucun autre filtre que le type, du plus récent
@@ -119,7 +144,7 @@ export function EcranListeFactures() {
       return { ...base, enRetard: true, relanceNiveau: 0 };
     }
     return base;
-  }, [q, onglet]);
+  }, [q, onglet, tri]);
 
   const {
     documents,
@@ -131,14 +156,6 @@ export function EcranListeFactures() {
     isFetchingNextPage,
     fetchNextPage,
   } = useListeDocumentsVente(filtres);
-
-  function effacerFiltres() {
-    // Levier de reset (choix produit 26.08.2026) : `effacerFiltres` est un geste de reprise en
-    // main, pas une frappe — `q` doit refléter la case vide immédiatement, pas après le même
-    // délai qu'une recherche (voir le commentaire de `useValeurDebouncee`, `hooks/commun/`).
-    setQSaisie('');
-    reinitialiserQ();
-  }
 
   const colonnes: ColonneComptoir<DocumentVenteResume>[] = [
     {
@@ -367,8 +384,17 @@ export function EcranListeFactures() {
       <BarreFiltres
         q={qSaisie}
         onChangeQ={setQSaisie}
-        filtresActifs={q.trim() !== ''}
-        onEffacerFiltres={effacerFiltres}
+        tri={
+          <SelecteurTri
+            label={t('facturation:liste.tri.label')}
+            valeur={tri}
+            onChangeValeur={(valeur) => setTriChoisi(valeur as TriFactures)}
+            options={optionsTri.map((valeur) => ({
+              valeur,
+              libelle: t(`facturation:liste.tri.options.${CLE_TRI[valeur]}`),
+            }))}
+          />
+        }
       />
 
       {isPending ? (

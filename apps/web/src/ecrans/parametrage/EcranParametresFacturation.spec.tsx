@@ -152,7 +152,9 @@ describe('EcranParametresFacturation — données réelles déjà saisies', () =
         name: i18n.t('parametrage:creancier.identite.nomDifferent'),
       }),
     );
-    const champNom = screen.getByLabelText(i18n.t('parametrage:creancier.identite.nomBulletin'));
+    const champNom = screen.getByLabelText(
+      avecEtoile(i18n.t('parametrage:creancier.identite.nomBulletin')),
+    );
     await utilisateur.clear(champNom);
     await utilisateur.type(champNom, 'Garage Martin & Fils SA');
     await utilisateur.click(
@@ -292,19 +294,25 @@ describe('EcranParametresFacturation — chargement', () => {
 });
 
 describe('EcranParametresFacturation — champs obligatoires', () => {
-  it('affiche la légende en tête, pose aria-required sur l’adresse, et traite IBAN / QR-IBAN comme un groupe « un sur deux »', async () => {
+  it('affiche la légende en tête, pose aria-required sur le nom, et traite IBAN / QR-IBAN comme un groupe « un sur deux »', async () => {
     server.use(http.get(CHEMIN, () => HttpResponse.json(BLOC_VIDE)));
     rendre();
 
-    await screen.findByText(
-      i18n.t('parametrage:creancier.identite.nomRepris', { nom: 'Garage Martin SA' }),
+    await userEvent.setup().click(
+      await screen.findByRole('button', {
+        name: i18n.t('parametrage:creancier.identite.nomDifferent'),
+      }),
+    );
+    const nom = await screen.findByLabelText(
+      avecEtoile(i18n.t('parametrage:creancier.identite.nomBulletin')),
     );
     expect(screen.getByText(i18n.t('parametrage:obligatoire.legende'))).toBeInTheDocument();
-    for (const cle of ['rue', 'numero', 'npa', 'localite']) {
-      expect(
-        screen.getByLabelText(avecEtoile(i18n.t(`parametrage:creancier.adresse.${cle}`))),
-      ).toHaveAttribute('aria-required', 'true');
-    }
+    expect(nom).toHaveAttribute('aria-required', 'true');
+    // L'adresse se règle dans « Mon garage » : plus de champ ici, un lien depuis la checklist.
+    expect(screen.queryByLabelText(/^Rue/)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: i18n.t('parametrage:creancier.completude.adresse') }),
+    ).toHaveAttribute('href', '/parametrage/garage');
     // Un seul des deux comptes suffit : aucun des deux champs n'est « requis » individuellement,
     // l'obligation est portée par le groupe (fieldset + légende + description).
     const iban = screen.getByLabelText(i18n.t('parametrage:creancier.comptes.iban'));

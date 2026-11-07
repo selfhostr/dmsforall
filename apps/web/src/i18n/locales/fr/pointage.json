@@ -285,5 +285,13 @@
       "action": "Déverrouiller",
       "resultat": "{count, plural, one {# pointage déverrouillé.} other {# pointages déverrouillés.}}"
     }
+  },
+  "borne": {
+    "comptePersonnel": {
+      "titre": "Borne d’atelier",
+      "titreVide": "Borne d’atelier",
+      "description": "Le code PIN sert uniquement sur la borne partagée. Avec votre compte, vous pointez sans code.",
+      "action": "Mon travail"
+    }
   }
 }

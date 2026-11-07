@@ -1,7 +1,8 @@
 import { CheckCircle2, Circle } from 'lucide-react';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useForm, type UseFormRegisterReturn, type UseFormReturn } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 
 import { ErreurApi, ErreurReseau, messageErreur } from '@/api/erreurs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -9,46 +10,32 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useModifierBlocCreancier } from '@/hooks/parametrage/useModifierBlocCreancier';
 import { useParametresEntreprise } from '@/hooks/parametrage/useParametresEntreprise';
 import type {
   BlocCreancier,
   EntreeModificationBlocCreancier,
 } from '@/hooks/parametrage/bloc-creancier.api';
+import { chemins } from '@/routes/chemins';
 import { cn } from '@/lib/utils';
+
+import { adresseGarageComplete } from './FormulaireAdresseGarage';
 
 interface Props {
   readonly blocCreancier: BlocCreancier;
 }
 
+/** Nom du bulletin et comptes : l'adresse, elle, se règle dans « Mon garage » (`FormulaireAdresseGarage`).
+ *  Chaque formulaire n'envoie que SES champs (PATCH partiel) : aucun n'écrase l'autre. */
 export interface ValeursFormulaire {
   readonly nom: string;
-  readonly rue: string;
-  readonly numero: string;
-  readonly npa: string;
-  readonly localite: string;
-  readonly pays: string;
   readonly iban: string;
   readonly qrIban: string;
 }
 
-const PAYS_ADMIS = ['CH', 'LI'] as const;
-
 function versValeursFormulaire(bloc: BlocCreancier): ValeursFormulaire {
   return {
     nom: bloc.nom ?? '',
-    rue: bloc.rue ?? '',
-    numero: bloc.numero ?? '',
-    npa: bloc.npa ?? '',
-    localite: bloc.localite ?? '',
-    pays: bloc.pays,
     iban: bloc.iban ?? '',
     qrIban: bloc.qrIban ?? '',
   };
@@ -62,11 +49,6 @@ function versEntree(valeurs: ValeursFormulaire): EntreeModificationBlocCreancier
     valeur.trim() === '' ? null : valeur.trim();
   return {
     nom: videVersNull(valeurs.nom),
-    rue: videVersNull(valeurs.rue),
-    numero: videVersNull(valeurs.numero),
-    npa: videVersNull(valeurs.npa),
-    localite: videVersNull(valeurs.localite),
-    pays: valeurs.pays,
     // IBAN/QR-IBAN : la forme saisie (espaces tolérés, ex. « CH93 0076 2011 6238 5295 7 ») part
     // telle quelle — la normalisation (majuscules, compaction) est faite côté serveur
     // (`facturation/qr/iban.ts`), jamais dupliquée ici.
@@ -121,9 +103,7 @@ export function FormulaireBlocCreancier({ blocCreancier }: Props) {
   const estErreurReseau = erreur instanceof ErreurReseau;
 
   const nomRempli = nomEffectif.trim() !== '';
-  const adresseComplete = [valeurs.rue, valeurs.numero, valeurs.npa, valeurs.localite].every(
-    (v) => v.trim() !== '',
-  );
+  const adresseComplete = adresseGarageComplete(blocCreancier);
   const compteRempli = valeurs.iban.trim() !== '' || valeurs.qrIban.trim() !== '';
   const complet = nomRempli && adresseComplete && compteRempli;
 
@@ -146,7 +126,11 @@ export function FormulaireBlocCreancier({ blocCreancier }: Props) {
               <ElementCompletude ok={nomRempli} texte={t('parametrage:creancier.completude.nom')} />
               <ElementCompletude
                 ok={adresseComplete}
-                texte={t('parametrage:creancier.completude.adresse')}
+                texte={
+                  <Link to={chemins.parametrage.garage()} className="underline underline-offset-2">
+                    {t('parametrage:creancier.completude.adresse')}
+                  </Link>
+                }
               />
               <ElementCompletude
                 ok={compteRempli}
@@ -181,11 +165,14 @@ export function FormulaireBlocCreancier({ blocCreancier }: Props) {
         <CardContent className="space-y-2">
           {nomSepare ? (
             <>
-              <Label htmlFor="bc-nom">{t('parametrage:creancier.identite.nomBulletin')}</Label>
+              <Label htmlFor="bc-nom" requis>
+                {t('parametrage:creancier.identite.nomBulletin')}
+              </Label>
               <Input
                 id="bc-nom"
                 maxLength={70}
                 readOnly={modifier.isPending}
+                aria-required="true"
                 {...form.register('nom')}
               />
               <p className="texte-corps text-muted-foreground">
@@ -209,8 +196,6 @@ export function FormulaireBlocCreancier({ blocCreancier }: Props) {
           )}
         </CardContent>
       </Card>
-
-      <SectionAdresseGarage form={form} lectureSeule={modifier.isPending} />
 
       <SectionComptesBancaires
         form={form}
@@ -238,103 +223,6 @@ export function FormulaireBlocCreancier({ blocCreancier }: Props) {
 interface PropsSectionBloc {
   readonly form: UseFormReturn<ValeursFormulaire>;
   readonly lectureSeule: boolean;
-}
-
-/** Adresse du garage — rue, numéro, NPA, localité et pays sont tous exigés à l'émission d'une
- *  QR-facture (`CHAMPS_REQUIS_BLOC_CREANCIER`) : étoile visuelle + `aria-required` sur chacun. */
-export function SectionAdresseGarage({ form, lectureSeule }: PropsSectionBloc) {
-  const { t } = useTranslation(['parametrage']);
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="texte-titre-section">
-          {t('parametrage:creancier.adresse.titre')}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="bc-rue" requis>
-            {t('parametrage:creancier.adresse.rue')}
-          </Label>
-          <Input
-            id="bc-rue"
-            maxLength={70}
-            readOnly={lectureSeule}
-            aria-required="true"
-            {...form.register('rue')}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="bc-numero" requis>
-            {t('parametrage:creancier.adresse.numero')}
-          </Label>
-          <Input
-            id="bc-numero"
-            maxLength={16}
-            readOnly={lectureSeule}
-            aria-required="true"
-            aria-describedby="bc-numero-aide"
-            {...form.register('numero')}
-          />
-          <p id="bc-numero-aide" className="texte-corps text-muted-foreground">
-            {t('parametrage:creancier.adresse.numeroAide')}
-          </p>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <Label htmlFor="bc-npa" requis>
-              {t('parametrage:creancier.adresse.npa')}
-            </Label>
-            <Input
-              id="bc-npa"
-              maxLength={16}
-              readOnly={lectureSeule}
-              aria-required="true"
-              {...form.register('npa')}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="bc-localite" requis>
-              {t('parametrage:creancier.adresse.localite')}
-            </Label>
-            <Input
-              id="bc-localite"
-              maxLength={35}
-              readOnly={lectureSeule}
-              aria-required="true"
-              {...form.register('localite')}
-            />
-          </div>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="bc-pays" requis>
-            {t('parametrage:creancier.adresse.pays')}
-          </Label>
-          <Select
-            value={form.watch('pays')}
-            onValueChange={(valeur) => form.setValue('pays', valeur)}
-            disabled={lectureSeule}
-          >
-            <SelectTrigger
-              id="bc-pays"
-              aria-label={t('parametrage:creancier.adresse.pays')}
-              aria-required="true"
-              className="w-40"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {PAYS_ADMIS.map((code) => (
-                <SelectItem key={code} value={code}>
-                  {code}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </CardContent>
-    </Card>
-  );
 }
 
 interface PropsSectionComptes extends PropsSectionBloc {
@@ -402,7 +290,7 @@ export function SectionComptesBancaires({
   );
 }
 
-function ElementCompletude({ ok, texte }: { readonly ok: boolean; readonly texte: string }) {
+function ElementCompletude({ ok, texte }: { readonly ok: boolean; readonly texte: ReactNode }) {
   return (
     <li
       className={cn(

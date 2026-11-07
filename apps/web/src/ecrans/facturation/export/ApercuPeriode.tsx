@@ -4,7 +4,7 @@ import type { ApercuExport } from '@dfa/shared';
 
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { messageErreur } from '@/api/erreurs';
 import { formaterMontant } from '@/lib/formats';
@@ -33,7 +33,6 @@ export function ApercuPeriode({
     <Card>
       <CardHeader>
         <CardTitle className="texte-titre-section">{t('export:apercu.titre')}</CardTitle>
-        <CardDescription>{t('export:apercu.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4" aria-live="polite">
         {enChargement ? (

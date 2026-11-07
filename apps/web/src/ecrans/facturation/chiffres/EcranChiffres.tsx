@@ -83,10 +83,7 @@ export function EcranChiffres() {
   }
 
   return (
-    <GabaritEcran
-      titre={t('facturation:chiffres.titre')}
-      sousTitre={t('facturation:chiffres.sousTitre')}
-    >
+    <GabaritEcran titre={t('facturation:chiffres.titre')}>
       <SectionChiffreAffaires periodes={periodes} siteId={siteId} />
       <SectionEncaissements periode={periodes.moisCourant} siteId={siteId} />
       <div className="grid grid-cols-1 items-stretch gap-groupe md:grid-cols-2">

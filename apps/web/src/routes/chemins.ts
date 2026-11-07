@@ -148,6 +148,8 @@ export const chemins = {
    *  chaîne qu'avant — aucun appelant existant n'est affecté.
    */
   parametrage: {
+    /** Identité du garage : raison sociale, logo, TVA, adresse (`EcranMonGarage`). */
+    garage: (site?: string) => construireChemin('/parametrage/garage', { site }),
     facturation: (site?: string) => construireChemin('/parametrage/facturation', { site }),
     referentiels: (site?: string) => construireChemin('/parametrage/referentiels', { site }),
     atelier: (site?: string) => construireChemin('/parametrage/atelier', { site }),

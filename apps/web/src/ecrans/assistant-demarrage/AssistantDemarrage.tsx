@@ -3,13 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { memoriserEtapeAssistant, useEtatAssistant } from '@/hooks/assistant/etat-assistant';
 import { cn } from '@/lib/utils';
 
 import {
@@ -41,7 +36,10 @@ interface Props {
  */
 export function AssistantDemarrage({ ouvert, onFermer }: Props) {
   const { t } = useTranslation(['assistant', 'commun']);
-  const [etape, setEtape] = useState<IdEtapeAssistant>('garage');
+  // L'étape vit dans la mémoire de session de l'assistant : rouvert depuis la barre latérale
+  // (écran différent, assistant remonté), il repart où la personne l'avait laissé.
+  const { etape } = useEtatAssistant();
+  const setEtape = memoriserEtapeAssistant;
   const [faites, setFaites] = useState<ReadonlySet<IdEtapeAssistant>>(new Set());
   const [comptes, setComptes] = useState<readonly CompteCree[]>([]);
   const memoire = useRef<MemoireEtapes>(new Map()).current;
@@ -70,10 +68,9 @@ export function AssistantDemarrage({ ouvert, onFermer }: Props) {
 
   return (
     <Dialog open={ouvert} onOpenChange={(o) => (o ? undefined : onFermer())}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-3xl" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>{t('assistant:titre')}</DialogTitle>
-          <DialogDescription>{t('assistant:description')}</DialogDescription>
         </DialogHeader>
 
         <nav aria-label={t('assistant:navigation.liste')}>
@@ -111,7 +108,7 @@ export function AssistantDemarrage({ ouvert, onFermer }: Props) {
 
         <div className="flex flex-col gap-4">
           <div>
-            <p className="texte-libelle text-muted-foreground" aria-live="polite">
+            <p className="sr-only" aria-live="polite">
               {t('assistant:navigation.position', { numero, total })}
             </p>
             <h3
@@ -121,9 +118,6 @@ export function AssistantDemarrage({ ouvert, onFermer }: Props) {
             >
               {t(`assistant:etapes.${etape}.titre`)}
             </h3>
-            <p className="texte-corps text-muted-foreground">
-              {t(`assistant:etapes.${etape}.intro`)}
-            </p>
           </div>
 
           {etape === 'garage' ? <EtapeGarage {...propsEtape} /> : null}

@@ -1,11 +1,5 @@
 {
   "titre": "Facturation et paiements",
-  "monCompte": {
-    "titre": "Mon compte",
-    "langue": {
-      "description": "Cette langue ne concerne que votre compte, pas les autres utilisateurs du garage."
-    }
-  },
   "creancier": {
     "titre": "Coordonnées bancaires du garage",
     "nonConfigure": "Ces coordonnées n'ont encore jamais été saisies.",
@@ -461,6 +455,13 @@
   "obligatoire": {
     "legende": "* obligatoire",
     "sr": "obligatoire"
+  },
+  "garage": {
+    "titre": "Mon garage",
+    "aCompleter": {
+      "titre": "À compléter",
+      "adresse": "L'adresse du garage (rue, N°, NPA, localité)"
+    }
   },
   "modules": {
     "titre": "Modules",

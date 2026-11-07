@@ -10,6 +10,7 @@ import { MODULES_APP, modulesActifsDepuis, type ModuleApp } from '@dfa/shared';
 import '@/i18n';
 import i18n from '@/i18n';
 
+import { reinitialiserEtatAssistant } from '@/hooks/assistant/etat-assistant';
 import { creerSessionTest } from '@/test/session';
 import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
@@ -184,14 +185,18 @@ async function remplirGarage() {
 }
 
 describe('AssistantDemarrage', () => {
-  beforeEach(() => window.localStorage.clear());
+  beforeEach(() => {
+    window.localStorage.clear();
+    reinitialiserEtatAssistant();
+  });
 
-  it('étape 1 : adresse enregistrée dans le bloc créancier, raison sociale en lecture seule', async () => {
+  it('étape 1 : adresse enregistrée dans le bloc créancier, raison sociale inchangée = aucun appel', async () => {
     const appels = simulerApi();
     rendre();
     const raison = await screen.findByLabelText(t('assistant:garage.raisonSociale'));
     expect(raison).toHaveValue('Garage Test SA');
-    expect(raison).toHaveAttribute('readonly');
+    expect(raison).not.toHaveAttribute('readonly');
+    expect(raison).toBeEnabled();
 
     await remplirGarage();
     await userEvent.click(await enregistrer());
@@ -206,6 +211,48 @@ describe('AssistantDemarrage', () => {
     });
     // Aucune réponse « assujetti » : le n° TVA n'est pas touché.
     expect(ecrit(appels, 'PATCH', '/parametres-entreprise')).toHaveLength(0);
+  });
+
+  it('étape 1 : la raison sociale modifiée est envoyée avec PATCH /parametres-entreprise', async () => {
+    const appels = simulerApi();
+    rendre();
+    const raison = await screen.findByLabelText(t('assistant:garage.raisonSociale'));
+    await userEvent.clear(raison);
+    await userEvent.type(raison, '  Garage du Lac Sàrl ');
+    await remplirGarage();
+    await userEvent.click(await enregistrer());
+    await titreEtape('paiements');
+    expect(ecrit(appels, 'PATCH', '/parametres-entreprise')[0]?.corps).toEqual({
+      raisonSociale: 'Garage du Lac Sàrl',
+    });
+  });
+
+  it('étape 1 : raison sociale vidée = erreur de champ, rien n’est enregistré', async () => {
+    const appels = simulerApi();
+    rendre();
+    await userEvent.clear(await screen.findByLabelText(t('assistant:garage.raisonSociale')));
+    await remplirGarage();
+    await userEvent.click(await enregistrer());
+    expect(await screen.findByText(t('assistant:garage.erreurRaisonSociale'))).toBeInTheDocument();
+    expect(ecrit(appels, 'PATCH', '/parametres-facturation/creancier')).toHaveLength(0);
+    expect(ecrit(appels, 'PATCH', '/parametres-entreprise')).toHaveLength(0);
+  });
+
+  it('étape 1 : aucun sous-titre, aucune note ni aide qui répète un libellé', async () => {
+    simulerApi();
+    rendre();
+    await screen.findByLabelText(t('assistant:garage.rue'));
+    for (const cle of [
+      'assistant:description',
+      'assistant:etapes.garage.intro',
+      'assistant:garage.raisonSocialeNote',
+      'assistant:garage.adresse',
+      'assistant:garage.numeroAide',
+      'assistant:garage.contactNote',
+    ]) {
+      expect(i18n.exists(cle)).toBe(false);
+    }
+    expect(screen.queryByText(/lecture seule|Adresse du garage|Facultatif/i)).toBeNull();
   });
 
   it('étape 1 : adresse incomplète bloque l’enregistrement sans rien perdre', async () => {
@@ -322,7 +369,9 @@ describe('AssistantDemarrage', () => {
 
     // 7. Terminé : récapitulatif et trois suites.
     await titreEtape('termine');
-    expect(await screen.findByText(t('assistant:termine.recapitulatif'))).toBeInTheDocument();
+    expect(
+      await screen.findByRole('region', { name: t('assistant:etapes.termine.titre') }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: t('assistant:termine.creerOr') })).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: t('assistant:termine.ajouterClient') }),

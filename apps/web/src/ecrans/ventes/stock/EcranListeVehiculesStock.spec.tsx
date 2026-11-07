@@ -103,14 +103,7 @@ describe('EcranListeVehiculesStock', () => {
     expect(screen.getAllByText('—').length).toBeGreaterThan(0);
   });
 
-  /**
-   * Issue #84 (`securite`) : le vendeur pilote son stock avec provenance/jours en stock affichés
-   * (constat testeur : « c'est mon affaire, pas la sienne » / « si le client voit qu'une voiture
-   * est là depuis trois mois, il négocie 2000 francs »), mais tourne parfois ce même écran vers un
-   * client. La vue client RETIRE ces colonnes (et le badge « Identification incomplète », qui « fait
-   * négligé ») du DOM — rien à démasquer par erreur, contrairement à un simple assombrissement.
-   */
-  it('vue client : retire provenance, jours en stock et le badge d’identification incomplète, garde le prix', async () => {
+  it('une seule vue (vendeur) : provenance, jours en stock et alerte d’identification toujours affichés, aucune bascule client', async () => {
     server.use(
       http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
       http.get('/api/v1/vehicules-stock', () => HttpResponse.json(pageDe([VEHICULE_STOCK]))),
@@ -122,42 +115,32 @@ describe('EcranListeVehiculesStock', () => {
     expect(screen.getByText('Reprise')).toBeInTheDocument();
     expect(screen.getByText('12')).toBeInTheDocument();
     expect(screen.getByText('Numéro de châssis manquant')).toBeInTheDocument();
-
-    const utilisateur = userEvent.setup();
-    await utilisateur.click(screen.getByRole('tab', { name: 'Vue client' }));
-
-    expect(screen.queryByText('Reprise')).not.toBeInTheDocument();
-    expect(screen.queryByText('12')).not.toBeInTheDocument();
-    expect(screen.queryByText('Numéro de châssis manquant')).not.toBeInTheDocument();
-    // Le prix de vente reste affiché : c'est justement ce que le vendeur veut montrer au client.
-    expect(screen.getByText("1'890.00")).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Vue client' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Vue vendeur' })).not.toBeInTheDocument();
   });
 
-  /**
-   * WCAG 4.1.2 : `BasculeVueStock`/`BasculeAffichageStock` ne montent jamais de
-   * `TabsPrimitive.Panel` (elles filtrent l'affichage d'une liste unique, hors `Tabs`) — Base UI
-   * (`@base-ui/react/tabs`, chantier d'unification inter-écrans, 25.08.2026) calcule
-   * `aria-controls` depuis les panneaux RÉELLEMENT montés (`TabsRoot.js`,
-   * `getTabPanelIdByValue`/`registerMountedTabPanel`, source vérifiée) : sans `Panel`, l'attribut
-   * est simplement OMIS, sur les deux bascules, dans tous leurs états.
-   */
-  it('vue vendeur/client : aucun `aria-controls` cassé sur les onglets de bascule (WCAG 4.1.2)', async () => {
+  it('barre d’outils : pas de « Effacer les filtres », et le tri passe par un bouton icône qui ouvre un menu', async () => {
+    const tris: (string | null)[] = [];
     server.use(
       http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
-      http.get('/api/v1/vehicules-stock', () => HttpResponse.json(pageDe([VEHICULE_STOCK]))),
+      http.get('/api/v1/vehicules-stock', ({ request }) => {
+        tris.push(new URL(request.url).searchParams.get('tri'));
+        return HttpResponse.json(pageDe([VEHICULE_STOCK]));
+      }),
     );
 
     rendre();
 
     expect(await screen.findByText('VW Touran 2.0 TDI')).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Vue vendeur' })).not.toHaveAttribute('aria-controls');
-    expect(screen.getByRole('tab', { name: 'Vue client' })).not.toHaveAttribute('aria-controls');
+    expect(screen.queryByRole('button', { name: /effacer les filtres/i })).not.toBeInTheDocument();
 
     const utilisateur = userEvent.setup();
-    await utilisateur.click(screen.getByRole('tab', { name: 'Vue client' }));
+    await utilisateur.click(screen.getByRole('button', { name: 'Trier par' }));
+    await utilisateur.click(
+      await screen.findByRole('menuitemcheckbox', { name: 'Prix de vente (croissant)' }),
+    );
 
-    expect(screen.getByRole('tab', { name: 'Vue vendeur' })).not.toHaveAttribute('aria-controls');
-    expect(screen.getByRole('tab', { name: 'Vue client' })).not.toHaveAttribute('aria-controls');
+    await vi.waitFor(() => expect(tris).toContain('prixVenteAfficheCentimes:asc'));
   });
 
   it('liste/plan : aucun `aria-controls` cassé sur les onglets de bascule (WCAG 4.1.2)', async () => {

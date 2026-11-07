@@ -14,13 +14,6 @@ import {
 import { useCleIdempotence } from '@/api/idempotence';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import {
@@ -31,6 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { messageErreur } from '@/api/erreurs';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
 import { useCreerArticle } from '@/hooks/pieces/useCreerArticle';
 import { useModifierArticle } from '@/hooks/pieces/useTransitionsArticle';
@@ -176,99 +170,168 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
   const erreur = estModification ? modifier.error : creer.error;
 
   return (
-    <Dialog open={ouvert} onOpenChange={onOuvertChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {estModification
-              ? t('pieces:articles.actions.modifier')
-              : t('pieces:articles.actions.ajouter')}
-          </DialogTitle>
-        </DialogHeader>
+    <PanneauLateral
+      ouvert={ouvert}
+      onOuvertChange={onOuvertChange}
+      titre={
+        estModification
+          ? t('pieces:articles.actions.modifier')
+          : t('pieces:articles.actions.ajouter')
+      }
+      pied={
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOuvertChange(false)}
+            disabled={enCours}
+          >
+            {t('commun:actions.annuler')}
+          </Button>
+          <Button type="submit" form="formulaire-article" disabled={enCours}>
+            {enCours ? t('commun:chargement.enCours') : t('commun:actions.enregistrer')}
+          </Button>
+        </>
+      }
+    >
+      <form
+        id="formulaire-article"
+        onSubmit={soumettre}
+        noValidate
+        className="flex flex-col gap-groupe"
+      >
+        <LegendeChampsObligatoires>
+          {t('commun:formulaires.champsObligatoiresLegende')}
+        </LegendeChampsObligatoires>
 
-        <form onSubmit={soumettre} noValidate className="flex flex-col gap-groupe">
-          <LegendeChampsObligatoires>
-            {t('commun:formulaires.champsObligatoiresLegende')}
-          </LegendeChampsObligatoires>
-
-          <div className="grid grid-cols-2 gap-controles">
-            <div className="flex flex-col gap-champ">
-              <Label htmlFor="art-designation" requis>
-                {t('pieces:articles.designation')}
-              </Label>
-              <Input
-                id="art-designation"
-                required
-                readOnly={enCours}
-                aria-invalid={form.formState.errors.designation ? true : undefined}
-                aria-describedby={
-                  form.formState.errors.designation ? 'art-designation-erreur' : undefined
-                }
-                {...form.register('designation', { required: true })}
-              />
-              {form.formState.errors.designation ? (
-                <p id="art-designation-erreur" className="texte-libelle text-destructive">
-                  {t('validation:requis')}
-                </p>
-              ) : null}
-            </div>
-            <div className="flex flex-col gap-champ">
-              <Label htmlFor="art-marque">{t('pieces:articles.marque')}</Label>
-              <Input id="art-marque" readOnly={enCours} {...form.register('marque')} />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-controles">
-            <div className="flex flex-col gap-champ">
-              <Label htmlFor="art-reference" requis>
-                {t('pieces:articles.reference')}
-              </Label>
-              <Input
-                id="art-reference"
-                required
-                readOnly={enCours}
-                aria-invalid={form.formState.errors.referencePrincipale ? true : undefined}
-                aria-describedby={
-                  form.formState.errors.referencePrincipale ? 'art-reference-erreur' : undefined
-                }
-                {...form.register('referencePrincipale', { required: true })}
-              />
-              {form.formState.errors.referencePrincipale ? (
-                <p id="art-reference-erreur" className="texte-libelle text-destructive">
-                  {t('validation:requis')}
-                </p>
-              ) : null}
-            </div>
-            <div className="flex flex-col gap-champ">
-              <Label htmlFor="art-code-barres">{t('pieces:articles.codeBarres')}</Label>
-              <Input id="art-code-barres" readOnly={enCours} {...form.register('codeBarres')} />
-            </div>
-          </div>
-
+        <div className="grid grid-cols-2 gap-controles">
           <div className="flex flex-col gap-champ">
-            <Label htmlFor="art-categorie" requis>
-              {t('pieces:articles.categorie')}
+            <Label htmlFor="art-designation" requis>
+              {t('pieces:articles.designation')}
+            </Label>
+            <Input
+              id="art-designation"
+              required
+              readOnly={enCours}
+              aria-invalid={form.formState.errors.designation ? true : undefined}
+              aria-describedby={
+                form.formState.errors.designation ? 'art-designation-erreur' : undefined
+              }
+              {...form.register('designation', { required: true })}
+            />
+            {form.formState.errors.designation ? (
+              <p id="art-designation-erreur" className="texte-libelle text-destructive">
+                {t('validation:requis')}
+              </p>
+            ) : null}
+          </div>
+          <div className="flex flex-col gap-champ">
+            <Label htmlFor="art-marque">{t('pieces:articles.marque')}</Label>
+            <Input id="art-marque" readOnly={enCours} {...form.register('marque')} />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-controles">
+          <div className="flex flex-col gap-champ">
+            <Label htmlFor="art-reference" requis>
+              {t('pieces:articles.reference')}
+            </Label>
+            <Input
+              id="art-reference"
+              required
+              readOnly={enCours}
+              aria-invalid={form.formState.errors.referencePrincipale ? true : undefined}
+              aria-describedby={
+                form.formState.errors.referencePrincipale ? 'art-reference-erreur' : undefined
+              }
+              {...form.register('referencePrincipale', { required: true })}
+            />
+            {form.formState.errors.referencePrincipale ? (
+              <p id="art-reference-erreur" className="texte-libelle text-destructive">
+                {t('validation:requis')}
+              </p>
+            ) : null}
+          </div>
+          <div className="flex flex-col gap-champ">
+            <Label htmlFor="art-code-barres">{t('pieces:articles.codeBarres')}</Label>
+            <Input id="art-code-barres" readOnly={enCours} {...form.register('codeBarres')} />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-champ">
+          <Label htmlFor="art-categorie" requis>
+            {t('pieces:articles.categorie')}
+          </Label>
+          <Controller
+            control={form.control}
+            name="categorie"
+            render={({ field }) => (
+              <Select
+                value={field.value}
+                onValueChange={(valeur) => field.onChange(valeur as CategorieArticle)}
+                disabled={enCours}
+              >
+                <SelectTrigger
+                  id="art-categorie"
+                  aria-label={t('pieces:articles.categorie')}
+                  aria-required="true"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES_ARTICLE.map((valeur) => (
+                    <SelectItem key={valeur} value={valeur}>
+                      {t(`pieces:articles.categories.${valeur}`)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-controles">
+          <Controller
+            control={form.control}
+            name="prixVenteTtcCentimes"
+            render={({ field }) => (
+              <ChampMontant
+                id="art-prix-vente"
+                label={t('pieces:articles.prix.vente')}
+                obligatoire
+                disabled={enCours}
+                valeurCentimes={field.value}
+                onChangeCentimes={field.onChange}
+                erreur={
+                  form.formState.errors.prixVenteTtcCentimes ? t('validation:requis') : undefined
+                }
+              />
+            )}
+          />
+          <div className="flex flex-col gap-champ">
+            <Label htmlFor="art-tva" requis>
+              {t('pieces:articles.tva')}
             </Label>
             <Controller
               control={form.control}
-              name="categorie"
+              name="tauxTvaPourmille"
               render={({ field }) => (
                 <Select
-                  value={field.value}
-                  onValueChange={(valeur) => field.onChange(valeur as CategorieArticle)}
+                  value={String(field.value)}
+                  onValueChange={(valeur) => field.onChange(Number(valeur))}
                   disabled={enCours}
                 >
                   <SelectTrigger
-                    id="art-categorie"
-                    aria-label={t('pieces:articles.categorie')}
+                    id="art-tva"
+                    aria-label={t('pieces:articles.tva')}
                     aria-required="true"
                   >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {CATEGORIES_ARTICLE.map((valeur) => (
-                      <SelectItem key={valeur} value={valeur}>
-                        {t(`pieces:articles.categories.${valeur}`)}
+                    {TAUX_TVA_SUISSES.map((pourmille) => (
+                      <SelectItem key={pourmille} value={String(pourmille)}>
+                        {t(`pieces:articles.tauxTvaLibelles.${pourmille}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -276,128 +339,60 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
               )}
             />
           </div>
+        </div>
+        <p className="-mt-2 texte-libelle text-muted-foreground">
+          {t('pieces:articles.prix.aideTvaComprise')}
+        </p>
 
-          <div className="grid grid-cols-2 gap-controles">
+        {/* Bordure CONSERVÉE (DESIGN.md) : regroupe une case à cocher et un champ conditionnel
+              (montant de consigne) — contour d'un contrôle de saisie, pas un simple groupe de
+              contenu. */}
+        <div className="flex flex-col gap-controles rounded-md border p-3">
+          <label htmlFor="article-echange-standard" className="flex items-center gap-2 texte-corps">
             <Controller
               control={form.control}
-              name="prixVenteTtcCentimes"
+              name="estEchangeStandard"
+              render={({ field }) => (
+                <Checkbox
+                  id="article-echange-standard"
+                  checked={field.value}
+                  onCheckedChange={(coche) => field.onChange(coche === true)}
+                  disabled={enCours}
+                />
+              )}
+            />
+            {t('pieces:articles.echangeStandard')}
+          </label>
+          {estEchangeStandard ? (
+            <Controller
+              control={form.control}
+              name="montantConsigneTtcCentimes"
               render={({ field }) => (
                 <ChampMontant
-                  id="art-prix-vente"
-                  label={t('pieces:articles.prix.vente')}
+                  id="art-consigne"
+                  label={t('pieces:articles.montantConsigne')}
                   obligatoire
                   disabled={enCours}
                   valeurCentimes={field.value}
                   onChangeCentimes={field.onChange}
                   erreur={
-                    form.formState.errors.prixVenteTtcCentimes ? t('validation:requis') : undefined
+                    form.formState.errors.montantConsigneTtcCentimes
+                      ? t('validation:requis')
+                      : undefined
                   }
                 />
               )}
             />
-            <div className="flex flex-col gap-champ">
-              <Label htmlFor="art-tva" requis>
-                {t('pieces:articles.tva')}
-              </Label>
-              <Controller
-                control={form.control}
-                name="tauxTvaPourmille"
-                render={({ field }) => (
-                  <Select
-                    value={String(field.value)}
-                    onValueChange={(valeur) => field.onChange(Number(valeur))}
-                    disabled={enCours}
-                  >
-                    <SelectTrigger
-                      id="art-tva"
-                      aria-label={t('pieces:articles.tva')}
-                      aria-required="true"
-                    >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TAUX_TVA_SUISSES.map((pourmille) => (
-                        <SelectItem key={pourmille} value={String(pourmille)}>
-                          {t(`pieces:articles.tauxTvaLibelles.${pourmille}`)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
-          </div>
-          <p className="-mt-2 texte-libelle text-muted-foreground">
-            {t('pieces:articles.prix.aideTvaComprise')}
-          </p>
-
-          {/* Bordure CONSERVÉE (DESIGN.md) : regroupe une case à cocher et un champ conditionnel
-              (montant de consigne) — contour d'un contrôle de saisie, pas un simple groupe de
-              contenu. */}
-          <div className="flex flex-col gap-controles rounded-md border p-3">
-            <label
-              htmlFor="article-echange-standard"
-              className="flex items-center gap-2 texte-corps"
-            >
-              <Controller
-                control={form.control}
-                name="estEchangeStandard"
-                render={({ field }) => (
-                  <Checkbox
-                    id="article-echange-standard"
-                    checked={field.value}
-                    onCheckedChange={(coche) => field.onChange(coche === true)}
-                    disabled={enCours}
-                  />
-                )}
-              />
-              {t('pieces:articles.echangeStandard')}
-            </label>
-            {estEchangeStandard ? (
-              <Controller
-                control={form.control}
-                name="montantConsigneTtcCentimes"
-                render={({ field }) => (
-                  <ChampMontant
-                    id="art-consigne"
-                    label={t('pieces:articles.montantConsigne')}
-                    obligatoire
-                    disabled={enCours}
-                    valeurCentimes={field.value}
-                    onChangeCentimes={field.onChange}
-                    erreur={
-                      form.formState.errors.montantConsigneTtcCentimes
-                        ? t('validation:requis')
-                        : undefined
-                    }
-                  />
-                )}
-              />
-            ) : null}
-          </div>
-
-          {erreur ? (
-            <p className="texte-libelle text-destructive" role="alert">
-              {messageErreur(erreur, t)}
-            </p>
           ) : null}
+        </div>
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOuvertChange(false)}
-              disabled={enCours}
-            >
-              {t('commun:actions.annuler')}
-            </Button>
-            <Button type="submit" disabled={enCours}>
-              {enCours ? t('commun:chargement.enCours') : t('commun:actions.enregistrer')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        {erreur ? (
+          <p className="texte-libelle text-destructive" role="alert">
+            {messageErreur(erreur, t)}
+          </p>
+        ) : null}
+      </form>
+    </PanneauLateral>
   );
 }
 

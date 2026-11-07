@@ -11,15 +11,6 @@ import {
 
 import { genererCleIdempotence } from '@/api/idempotence';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import {
@@ -30,6 +21,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
+import { Slot } from '@radix-ui/react-slot';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import {
   useAjouterLigneDocument,
   useModifierLigneDocument,
@@ -254,14 +247,33 @@ export function DialogueLigneDocumentVente({ documentId, ligne, enfantDeclencheu
     : t('facturation:fiche.lignes.dialogueAjout.titre');
 
   return (
-    <Dialog open={ouvert} onOpenChange={(valeur) => (valeur ? setOuvert(true) : fermer())}>
-      <DialogTrigger asChild>{enfantDeclencheur}</DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{titre}</DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={gererSoumission} noValidate className="flex flex-col gap-4">
+    <>
+      <Slot onClick={() => setOuvert(true)}>{enfantDeclencheur}</Slot>
+      <PanneauLateral
+        ouvert={ouvert}
+        onOuvertChange={(valeur) => (valeur ? setOuvert(true) : fermer())}
+        titre={titre}
+        pied={
+          <>
+            <Button type="button" variant="outline" onClick={fermer}>
+              {t('commun:actions.annuler')}
+            </Button>
+            <Button
+              type="submit"
+              form="form-ligne-document-vente"
+              enChargement={mutation.isPending}
+            >
+              {modeModification ? t('commun:actions.enregistrer') : t('commun:actions.confirmer')}
+            </Button>
+          </>
+        }
+      >
+        <form
+          id="form-ligne-document-vente"
+          onSubmit={gererSoumission}
+          noValidate
+          className="flex flex-col gap-4"
+        >
           <div className="flex flex-col gap-4">
             <LegendeChampsObligatoires>
               {t('commun:formulaires.champsObligatoiresLegende')}
@@ -391,19 +403,8 @@ export function DialogueLigneDocumentVente({ documentId, ligne, enfantDeclencheu
                 ))
               : null}
           </div>
-
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                {t('commun:actions.annuler')}
-              </Button>
-            </DialogClose>
-            <Button type="submit" enChargement={mutation.isPending}>
-              {modeModification ? t('commun:actions.enregistrer') : t('commun:actions.confirmer')}
-            </Button>
-          </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </PanneauLateral>
+    </>
   );
 }

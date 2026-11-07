@@ -1,9 +1,7 @@
 {
   "titre": "Export für die Treuhand",
-  "sousTitre": "Bereiten Sie die Datei für Ihre Treuhandstelle für den Zeitraum vor.",
   "format": {
     "titre": "Dateiformat",
-    "description": "Das Format, das Ihre Treuhandstelle in ihre Buchhaltung importiert.",
     "winbiz": {
       "nom": "WinBIZ",
       "phrase": "Für WinBIZ: eine Buchung pro Rechnung oder Gutschrift, dann eine pro Zahlungseingang."
@@ -15,7 +13,6 @@
   },
   "periode": {
     "titre": "Zeitraum",
-    "description": "Standardmässig der Vormonat, der übliche Monatsabschluss.",
     "modes": {
       "moisPrecedent": "Vormonat",
       "trimestrePrecedent": "Vorquartal",
@@ -98,7 +95,6 @@
   },
   "apercu": {
     "titre": "Vorschau des Zeitraums",
-    "description": "Was die Datei enthalten würde, bevor sie erstellt wird.",
     "erreur": "Die Vorschau konnte nicht berechnet werden",
     "periodeRequise": "Wählen Sie einen gültigen Zeitraum, um die Vorschau zu sehen.",
     "aucun": "Keine",
@@ -186,7 +182,6 @@
   },
   "historique": {
     "titre": "Exportverlauf",
-    "description": "Die bereits an die Treuhandstelle übergebenen Dateien.",
     "erreur": "Der Verlauf konnte nicht geladen werden",
     "erreurFichier": "Die Datei konnte nicht heruntergeladen werden",
     "vide": {

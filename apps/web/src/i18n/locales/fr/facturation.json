@@ -230,7 +230,9 @@
       "payablePar": "Payable par",
       "iban": "IBAN",
       "reference": "Référence",
-      "sansReference": "Sans référence"
+      "sansReference": "Sans référence",
+      "copier": "Copier",
+      "copie": "Copié"
     },
     "actions": {
       "emettre": "Émettre",
@@ -244,6 +246,7 @@
         "creerAvoir": "Créer un avoir",
         "journal": "Voir le journal"
       },
+      "corrigerFacture": "Corriger la facture",
       "telechargerPdf": "Télécharger le PDF",
       "envoyerDevis": "Envoyer le devis",
       "accordClient": "Accord du client",
@@ -273,7 +276,7 @@
     },
     "correction": {
       "titre": "Corriger la facture {numero}",
-      "explication": "Une facture émise est figée : impossible de la modifier directement. DFA va créer un avoir qui annule cette facture, puis une nouvelle facture avec la correction. Les deux gardent leur numéro dans la série — rien ne disparaît, rien ne se renumérote.",
+      "explication": "Une facture émise ne se modifie pas : un avoir l'annule, puis une nouvelle facture corrigée est créée.",
       "motif": "Motif de la correction",
       "adresse": {
         "rue": "Rue et n°",
@@ -346,6 +349,17 @@
   },
   "liste": {
     "titre": "Factures",
+    "tri": {
+      "label": "Trier",
+      "options": {
+        "dateDesc": "Date, récentes d'abord",
+        "dateAsc": "Date, anciennes d'abord",
+        "numeroDesc": "N°, décroissant",
+        "numeroAsc": "N°, croissant",
+        "soldeDesc": "Solde, le plus élevé d'abord",
+        "relanceAsc": "Prochaine relance"
+      }
+    },
     "onglets": {
       "groupeLabel": "Filtrer les factures",
       "toutes": "Toutes",
@@ -406,20 +420,17 @@
     "nouveau": {
       "action": "Nouveau devis",
       "titre": "Nouveau devis",
-      "description": "Un prix pour un client, sans ouvrir d'ordre de réparation. Le véhicule est facultatif.",
       "client": "Client",
       "clientPlaceholder": "Nom, téléphone ou n° de client",
       "clientRequis": "Choisissez un client.",
       "aucunClient": "Aucun client trouvé.",
       "vehicule": "Véhicule",
-      "vehiculeAide": "Facultatif : laissez « Sans véhicule » si la voiture n'est pas encore connue.",
       "sansVehicule": "Sans véhicule",
       "site": "Site",
       "creer": "Créer le devis"
     },
     "cree": {
       "titre": "Devis créé",
-      "description": "Ajoutez maintenant la main-d'œuvre et les pièces sur le devis. Une fois le devis envoyé et accepté par le client, vous pourrez en faire un OR.",
       "ouvrir": "Ouvrir le devis"
     },
     "statuts": {
