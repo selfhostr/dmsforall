@@ -21,9 +21,7 @@
   },
   "pieces": {
     "reliquat": "Reliquat : quantité commandée qui n'est pas encore arrivée. Elle reste attendue du fournisseur tant qu'on ne l'annule pas.",
-    "origineCommande": "Comment la commande est née : saisie à la main, déclenchée par une pièce réservée en rupture, ou proposée par le réapprovisionnement.",
-    "consignes": "Consigne : somme versée par le client pour une pièce échange standard. Elle est rendue quand il rapporte l'ancienne pièce.",
-    "reservations": "Pièce mise de côté pour un OR. Tant qu'elle est réservée, elle n'est plus disponible à la vente au comptoir."
+    "consignes": "Consigne : somme versée par le client pour une pièce échange standard. Elle est rendue quand il rapporte l'ancienne pièce."
   },
   "pointage": {
     "borne": {
@@ -39,11 +37,5 @@
   },
   "ventes": {
     "reprise": "Reprise : le véhicule du client que vous rachetez en déduction du prix du véhicule vendu. Sa valeur est soustraite du total de la vente."
-  },
-  "relances": {
-    "regles": "Quand et par quel canal on rappelle un client : devis sans réponse, facture impayée, expertise à échéance."
-  },
-  "courtoisie": {
-    "parc": "Voitures de remplacement prêtées aux clients pendant la réparation. Le jour choisi sert à voir lesquelles sont libres."
   }
 }

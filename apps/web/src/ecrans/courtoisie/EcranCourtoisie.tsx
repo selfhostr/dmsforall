@@ -17,7 +17,6 @@ import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
-import { AideContextuelle } from '@/composants/AideContextuelle';
 import { BadgeAttribut } from '@/composants/identite/BadgeAttribut';
 import {
   useAnnulerPretCourtoisie,
@@ -111,12 +110,8 @@ export function EcranCourtoisie() {
 
       {requete.isSuccess && vehicules.length > 0 ? (
         <>
-          <p className="flex items-center gap-1.5 texte-corps font-medium" role="status">
+          <p className="texte-corps font-medium" role="status">
             {t('courtoisie:resume', { libres: nbLibres, total: vehicules.length })}
-            <AideContextuelle
-              sujet={t('courtoisie:titre')}
-              texte={t('aide:courtoisie.parc')}
-            />
           </p>
           <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {vehicules.map((v) => {

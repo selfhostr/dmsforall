@@ -9,15 +9,9 @@ import { genererCleIdempotence } from '@/api/idempotence';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { DatetimeInput } from '@/components/ui/datetime-input';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { useCorrigerPointage } from '@/hooks/pointage/useCorrigerPointage';
 
 interface Props {
@@ -102,87 +96,89 @@ export function DialogueCorrectionPointage({ ouvert, onOuvertChange, pointage, o
   });
 
   return (
-    <Dialog open={ouvert} onOpenChange={onOuvertChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t('pointage:correction.titre')}</DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={soumettre} noValidate className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="correction-debut">{t('pointage:correction.debut')}</Label>
-              <Controller
-                control={form.control}
-                name="debutLe"
-                rules={{ required: true }}
-                render={({ field }) => (
-                  <DatetimeInput
-                    id="correction-debut"
-                    value={field.value}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    erreur={
-                      form.formState.errors.debutLe
-                        ? t('pointage:correction.debutRequis')
-                        : undefined
-                    }
-                  />
-                )}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="correction-fin">{t('pointage:correction.fin')}</Label>
-              <Controller
-                control={form.control}
-                name="finLe"
-                render={({ field }) => (
-                  <DatetimeInput
-                    id="correction-fin"
-                    value={field.value}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                  />
-                )}
-              />
-            </div>
-          </div>
-
+    <PanneauLateral
+      ouvert={ouvert}
+      onOuvertChange={onOuvertChange}
+      titre={t('pointage:correction.titre')}
+      pied={
+        <>
+          <Button type="button" variant="outline" onClick={() => onOuvertChange(false)}>
+            {t('pointage:correction.annuler')}
+          </Button>
+          <Button type="submit" form="formulaire-correction-pointage" disabled={corriger.isPending}>
+            {t('pointage:correction.enregistrer')}
+          </Button>
+        </>
+      }
+    >
+      <form
+        id="formulaire-correction-pointage"
+        onSubmit={soumettre}
+        noValidate
+        className="flex flex-col gap-4"
+      >
+        <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="correction-motif">{t('pointage:correction.motif')}</Label>
-            <Textarea
-              id="correction-motif"
-              placeholder={t('pointage:correction.motifPlaceholder')}
-              aria-invalid={form.formState.errors.motif ? true : undefined}
-              aria-describedby={form.formState.errors.motif ? 'correction-motif-erreur' : undefined}
-              {...form.register('motif', {
-                required: true,
-                validate: (valeur) => valeur.trim().length > 0,
-              })}
+            <Label htmlFor="correction-debut">{t('pointage:correction.debut')}</Label>
+            <Controller
+              control={form.control}
+              name="debutLe"
+              rules={{ required: true }}
+              render={({ field }) => (
+                <DatetimeInput
+                  id="correction-debut"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  erreur={
+                    form.formState.errors.debutLe ? t('pointage:correction.debutRequis') : undefined
+                  }
+                />
+              )}
             />
-            {form.formState.errors.motif ? (
-              <p id="correction-motif-erreur" className="texte-libelle text-destructive">
-                {t('pointage:correction.motifRequis')}
-              </p>
-            ) : null}
           </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="correction-fin">{t('pointage:correction.fin')}</Label>
+            <Controller
+              control={form.control}
+              name="finLe"
+              render={({ field }) => (
+                <DatetimeInput
+                  id="correction-fin"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                />
+              )}
+            />
+          </div>
+        </div>
 
-          {corriger.isError ? (
-            <Alert variant="destructive">
-              <AlertDescription>{messageErreur(corriger.error, t)}</AlertDescription>
-            </Alert>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="correction-motif">{t('pointage:correction.motif')}</Label>
+          <Textarea
+            id="correction-motif"
+            placeholder={t('pointage:correction.motifPlaceholder')}
+            aria-invalid={form.formState.errors.motif ? true : undefined}
+            aria-describedby={form.formState.errors.motif ? 'correction-motif-erreur' : undefined}
+            {...form.register('motif', {
+              required: true,
+              validate: (valeur) => valeur.trim().length > 0,
+            })}
+          />
+          {form.formState.errors.motif ? (
+            <p id="correction-motif-erreur" className="texte-libelle text-destructive">
+              {t('pointage:correction.motifRequis')}
+            </p>
           ) : null}
+        </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOuvertChange(false)}>
-              {t('pointage:correction.annuler')}
-            </Button>
-            <Button type="submit" disabled={corriger.isPending}>
-              {t('pointage:correction.enregistrer')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        {corriger.isError ? (
+          <Alert variant="destructive">
+            <AlertDescription>{messageErreur(corriger.error, t)}</AlertDescription>
+          </Alert>
+        ) : null}
+      </form>
+    </PanneauLateral>
   );
 }

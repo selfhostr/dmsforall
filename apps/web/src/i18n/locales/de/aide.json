@@ -21,9 +21,7 @@
   },
   "pieces": {
     "reliquat": "Restmenge: bestellte Menge, die noch nicht eingetroffen ist. Sie wird vom Lieferanten weiter erwartet, bis man sie storniert.",
-    "origineCommande": "Wie die Bestellung entstanden ist: von Hand erfasst, durch ein reserviertes Teil ohne Bestand ausgelöst oder vom Nachschub vorgeschlagen.",
-    "consignes": "Pfand: Betrag, den der Kunde für ein Austauschteil hinterlegt. Er wird zurückerstattet, wenn das Altteil zurückkommt.",
-    "reservations": "Für einen Auftrag zurückgelegtes Teil. Solange es reserviert ist, steht es am Verkaufsschalter nicht mehr zur Verfügung."
+    "consignes": "Pfand: Betrag, den der Kunde für ein Austauschteil hinterlegt. Er wird zurückerstattet, wenn das Altteil zurückkommt."
   },
   "pointage": {
     "borne": {
@@ -39,11 +37,5 @@
   },
   "ventes": {
     "reprise": "Inzahlungnahme: das Fahrzeug des Kunden, das Sie vom Preis des verkauften Fahrzeugs abziehen. Der Wert wird vom Verkaufstotal abgezogen."
-  },
-  "relances": {
-    "regles": "Wann und auf welchem Weg ein Kunde erinnert wird: unbeantwortete Offerte, unbezahlte Rechnung, fällige MFK."
-  },
-  "courtoisie": {
-    "parc": "Ersatzwagen, die Kunden während der Reparatur ausgeliehen werden. Der gewählte Tag zeigt, welche frei sind."
   }
 }

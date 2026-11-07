@@ -220,9 +220,6 @@ export function CarteReprise({
                 <> — {reprise.detteFinancementOrganismeNom}</>
               ) : null}
             </p>
-            <p className="texte-libelle text-muted-foreground">
-              {t('ventes:reprise.champs.detteAide')}
-            </p>
           </div>
         ) : null}
 

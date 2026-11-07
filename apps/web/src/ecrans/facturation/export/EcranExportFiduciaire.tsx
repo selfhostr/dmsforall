@@ -102,14 +102,13 @@ export function EcranExportFiduciaire() {
   }
 
   return (
-    <GabaritEcran titre={t('export:titre')} sousTitre={t('export:sousTitre')}>
+    <GabaritEcran titre={t('export:titre')}>
       <Card>
         <CardHeader>
           <div className="flex items-center gap-1.5">
             <CardTitle className="texte-titre-section">{t('export:format.titre')}</CardTitle>
             <AideContextuelle sujet={t('export:titre')} texte={t('aide:export.fiduciaire')} />
           </div>
-          <CardDescription>{t('export:format.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <fieldset className="grid gap-2 sm:grid-cols-2">
@@ -145,7 +144,6 @@ export function EcranExportFiduciaire() {
       <Card>
         <CardHeader>
           <CardTitle className="texte-titre-section">{t('export:periode.titre')}</CardTitle>
-          <CardDescription>{t('export:periode.description')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <fieldset className="flex flex-wrap gap-2">

@@ -10,11 +10,10 @@ import {
   type ReponseRegleRelance,
 } from '@dfa/shared';
 
-import { AideContextuelle } from '@/composants/AideContextuelle';
 import { messageErreur } from '@/api/erreurs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
@@ -48,7 +47,7 @@ export function EcranReglagesRelances() {
   const requete = useReglesRelance();
 
   return (
-    <GabaritEcran titre={t('relances:reglages.titre')} sousTitre={t('relances:reglages.sousTitre')}>
+    <GabaritEcran titre={t('relances:reglages.titre')}>
       {requete.isPending ? (
         <EtatChargement lignes={6} />
       ) : requete.isError ? (
@@ -111,11 +110,7 @@ function BlocRegleFactureEchue({ regle }: PropsBlocRegle) {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center gap-1.5">
-          <CardTitle className="texte-titre-section">{t('relances:regles.titre')}</CardTitle>
-          <AideContextuelle sujet={t('relances:regles.titre')} texte={t('aide:relances.regles')} />
-        </div>
-        <CardDescription>{t('relances:regles.description')}</CardDescription>
+        <CardTitle className="texte-titre-section">{t('relances:regles.titre')}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {regle === undefined ? (
@@ -290,16 +285,10 @@ function FormulaireRegleFactureEchue({ regle, onAnnuler, onEnregistre }: PropsFo
           </label>
         )}
       />
-      <p className="-mt-2 texte-libelle text-muted-foreground">
-        {t('relances:regles.formulaire.actifAide')}
-      </p>
 
       <div className="flex flex-col gap-2">
         <p className="texte-libelle font-medium text-foreground">
           {t('relances:regles.formulaire.paliersLabel')}
-        </p>
-        <p className="texte-libelle text-muted-foreground">
-          {t('relances:regles.formulaire.paliersAide')}
         </p>
         <Controller
           control={form.control}

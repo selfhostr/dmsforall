@@ -15,18 +15,10 @@ import {
 } from '@dfa/shared';
 
 import { AideContextuelle } from '@/composants/AideContextuelle';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { genererCleIdempotence } from '@/api/idempotence';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import {
@@ -399,18 +391,36 @@ export function DialogueAjoutLigneOr({ orId, siteId, onAjoutee }: Props) {
   }
 
   return (
-    <Dialog open={ouvert} onOpenChange={(valeur) => (valeur ? setOuvert(true) : fermer())}>
-      <DialogTrigger asChild>
-        <Button type="button" variant="outline">
-          {t('or:lignes.ajouter')}
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t('or:lignes.ajouter')}</DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={gererSoumission} noValidate className="flex flex-col gap-4">
+    <>
+      <Button type="button" variant="outline" onClick={() => setOuvert(true)}>
+        {t('or:lignes.ajouter')}
+      </Button>
+      <PanneauLateral
+        ouvert={ouvert}
+        onOuvertChange={(valeur) => (valeur ? setOuvert(true) : fermer())}
+        titre={t('or:lignes.ajouter')}
+        pied={
+          <>
+            <Button type="button" variant="outline" onClick={() => fermer()}>
+              {t('commun:actions.annuler')}
+            </Button>
+            <Button
+              type="submit"
+              form="or-ligne-formulaire"
+              enChargement={mutation.isPending || ajoutPhoto.isPending}
+              disabled={echecPhotos !== null}
+            >
+              {t('or:actions.confirmer')}
+            </Button>
+          </>
+        }
+      >
+        <form
+          id="or-ligne-formulaire"
+          onSubmit={gererSoumission}
+          noValidate
+          className="flex flex-col gap-4"
+        >
           <div className="flex flex-col gap-4">
             <LegendeChampsObligatoires>
               {t('commun:formulaires.champsObligatoiresLegende')}
@@ -717,23 +727,8 @@ export function DialogueAjoutLigneOr({ orId, siteId, onAjoutee }: Props) {
                 ))
               : null}
           </div>
-
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                {t('commun:actions.annuler')}
-              </Button>
-            </DialogClose>
-            <Button
-              type="submit"
-              enChargement={mutation.isPending || ajoutPhoto.isPending}
-              disabled={echecPhotos !== null}
-            >
-              {t('or:actions.confirmer')}
-            </Button>
-          </DialogFooter>
         </form>
-      </DialogContent>
+      </PanneauLateral>
 
       {/* Issue #106 — avertissement CONFIRMABLE (invariant n°8), jamais un blocage : voir la doc
        *  de `depassementStock` ci-dessus. Modal séparée de `DialogContent` ci-dessus (même
@@ -760,6 +755,6 @@ export function DialogueAjoutLigneOr({ orId, siteId, onAjoutee }: Props) {
           }}
         />
       ) : null}
-    </Dialog>
+    </>
   );
 }

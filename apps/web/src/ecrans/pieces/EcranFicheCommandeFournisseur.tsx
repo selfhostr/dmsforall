@@ -200,12 +200,8 @@ export function EcranFicheCommandeFournisseur() {
                   <dd>{nomSite}</dd>
                 </div>
                 <div>
-                  <dt className="flex items-center gap-1.5 texte-libelle text-muted-foreground">
+                  <dt className="texte-libelle text-muted-foreground">
                     {t('pieces:commandes.origine')}
-                    <AideContextuelle
-                      sujet={t('pieces:commandes.origine')}
-                      texte={t('aide:pieces.origineCommande')}
-                    />
                   </dt>
                   <dd>{t(`pieces:commandes.origines.${commande.origine}`)}</dd>
                 </div>

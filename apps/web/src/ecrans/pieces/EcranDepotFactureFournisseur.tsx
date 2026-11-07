@@ -133,7 +133,6 @@ export function EcranDepotFactureFournisseur() {
   return (
     <GabaritEcran
       titre={t('pieces:facturesFournisseur.titreDepot')}
-      sousTitre={t('pieces:facturesFournisseur.sousTitreDepot')}
     >
       <div className="flex flex-col gap-section">
         {etape.phase === 'depot' ? (

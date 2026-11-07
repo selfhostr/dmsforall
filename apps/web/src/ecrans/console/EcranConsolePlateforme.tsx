@@ -228,12 +228,7 @@ export function EcranConsolePlateforme() {
 
   return (
     <ConsoleShell>
-      <GabaritEcran
-        titre={t('console:plateforme.titre')}
-        sousTitre={
-          !requete.isPending && !requete.isError ? t('console:plateforme.sousTitre') : undefined
-        }
-      >
+      <GabaritEcran titre={t('console:plateforme.titre')}>
         {contenu}
       </GabaritEcran>
     </ConsoleShell>

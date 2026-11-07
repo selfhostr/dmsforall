@@ -1,9 +1,7 @@
 {
   "titre": "Relances automatiques",
-  "sousTitre": "Rappels de factures impayées : déclenchez la planification et l'envoi, consultez l'historique.",
   "reglages": {
-    "titre": "Rappels de paiement",
-    "sousTitre": "Réglez les délais et les canaux d'envoi des rappels de facture impayée pour ce garage."
+    "titre": "Rappels de paiement"
   },
   "navigation": {
     "lien": "Relances"
@@ -14,7 +12,6 @@
   },
   "regles": {
     "titre": "Règle de rappel — facture échue",
-    "description": "Un rappel part automatiquement à chaque palier, compté en jours après l'échéance de la facture.",
     "statut": {
       "active": "Active",
       "inactive": "Inactive"
@@ -47,9 +44,7 @@
     },
     "formulaire": {
       "actif": "Envoyer ces rappels automatiquement",
-      "actifAide": "Décochez pour suspendre les rappels de facture sans perdre le réglage.",
       "paliersLabel": "Délais des paliers (jours après l'échéance)",
-      "paliersAide": "Un délai par palier, par ordre d'envoi. Exemple : 10, puis 20, puis 30.",
       "palierPlaceholder": "Jours",
       "ajouterPalier": "Ajouter un palier",
       "supprimerPalier": "Retirer le palier {n}",

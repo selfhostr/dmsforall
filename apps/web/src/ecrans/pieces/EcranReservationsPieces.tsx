@@ -10,7 +10,6 @@ import {
   type StatutReservationPiece,
 } from '@dfa/shared';
 
-import { AideContextuelle } from '@/composants/AideContextuelle';
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import {
@@ -236,15 +235,7 @@ export function EcranReservationsPieces() {
   // (`navigation-modele.ts`, `ONGLETS_PIECES`, vue « reservations » de l'onglet Articles) :
   // `GabaritEcran` le détecte lui-même (§3 du contrat du chantier « titres doublés », 17.08.2026).
   return (
-    <GabaritEcran
-      titre={t('pieces:reservations.titre')}
-      actions={
-        <AideContextuelle
-          sujet={t('pieces:reservations.titre')}
-          texte={t('aide:pieces.reservations')}
-        />
-      }
-    >
+    <GabaritEcran titre={t('pieces:reservations.titre')}>
       <BarreFiltres
         q={qSaisie}
         onChangeQ={setQSaisie}

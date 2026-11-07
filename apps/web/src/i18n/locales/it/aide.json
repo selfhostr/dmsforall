@@ -21,9 +21,7 @@
   },
   "pieces": {
     "reliquat": "Residuo: quantità ordinata non ancora arrivata. Resta attesa dal fornitore finché non la si annulla.",
-    "origineCommande": "Come è nato l'ordine: inserito a mano, generato da un ricambio prenotato esaurito o proposto dal riordino.",
-    "consignes": "Cauzione: somma versata dal cliente per un ricambio a scambio. Viene restituita quando riporta il pezzo vecchio.",
-    "reservations": "Ricambio messo da parte per un OR. Finché è prenotato, non è più disponibile alla vendita al banco."
+    "consignes": "Cauzione: somma versata dal cliente per un ricambio a scambio. Viene restituita quando riporta il pezzo vecchio."
   },
   "pointage": {
     "borne": {
@@ -39,11 +37,5 @@
   },
   "ventes": {
     "reprise": "Permuta: il veicolo del cliente che Lei ritira in deduzione dal prezzo del veicolo venduto. Il suo valore viene sottratto dal totale della vendita."
-  },
-  "relances": {
-    "regles": "Quando e con quale canale si richiama un cliente: preventivo senza risposta, fattura non pagata, collaudo in scadenza."
-  },
-  "courtoisie": {
-    "parc": "Auto sostitutive prestate ai clienti durante la riparazione. Il giorno scelto serve a vedere quali sono libere."
   }
 }

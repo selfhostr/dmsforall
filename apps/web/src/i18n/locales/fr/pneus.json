@@ -78,7 +78,6 @@
   },
   "creation": {
     "titre": "Nouveau dépôt de pneus",
-    "description": "Entre un jeu de pneus dans le hangar de ce site.",
     "actions": {
       "ouvrir": "Nouveau dépôt",
       "creer": "Créer le dépôt"
@@ -92,7 +91,6 @@
     "champCodeCasePlaceholder": "Ex. Rack 3, étagère B",
     "champDimension": "Dimension",
     "champDimensionPlaceholder": "Ex. 205/55 R16",
-    "champDimensionIndication": "Laissez vide pour reprendre la dimension enregistrée sur le véhicule.",
     "champEtat": "État (observation libre)"
   },
   "changementSaison": {
@@ -101,7 +99,6 @@
   },
   "deplacement": {
     "titre": "Déplacer ce jeu",
-    "description": "Repère actuel : \"{codeCase}\". Indiquez la nouvelle case.",
     "champCodeCase": "Nouveau repère"
   },
   "sortie": {

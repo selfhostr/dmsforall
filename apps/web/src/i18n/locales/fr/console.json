@@ -6,7 +6,6 @@
   },
   "plateforme": {
     "titre": "Vue plateforme",
-    "sousTitre": "Où ça va mal, là, sur l'ensemble des garages.",
     "etatErreur": {
       "titre": "Impossible d'afficher la vue plateforme",
       "moduleInactif": {

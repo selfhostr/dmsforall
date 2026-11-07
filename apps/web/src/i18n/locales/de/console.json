@@ -6,7 +6,6 @@
   },
   "plateforme": {
     "titre": "Plattform-Ansicht",
-    "sousTitre": "Übersicht der Probleme in allen Garagen.",
     "etatErreur": {
       "titre": "Plattform-Ansicht kann nicht angezeigt werden",
       "moduleInactif": {
