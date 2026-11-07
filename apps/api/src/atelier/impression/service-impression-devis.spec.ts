@@ -119,7 +119,7 @@ function ordreReparationAvecDevis(): ReponseOrdreReparation {
  * par appel plutôt que par table ciblée, comme `service-impression-or.spec.ts::accesBaseAvecSite`.
  */
 function accesBaseAvecIdentite(
-  tenantRow: { raisonSociale: string } | null,
+  tenantRow: { raisonSociale: string; numeroTva: string | null } | null,
   siteRow: { nom: string; rue: string | null; npa: string | null; localite: string | null } | null,
 ): AccesBase {
   let appel = 0;
@@ -145,7 +145,7 @@ function accesBaseAvecIdentite(
 }
 
 const IDENTITE_ROWS = {
-  tenant: { raisonSociale: 'Garage Martin SA' },
+  tenant: { raisonSociale: 'Garage Martin SA', numeroTva: 'CHE-114.873.733 TVA' },
   site: { nom: 'Sion', rue: 'Route de Lausanne 12', npa: '1950', localite: 'Sion' },
 };
 
@@ -179,6 +179,7 @@ describe('ServiceImpressionDevis', () => {
         rue: 'Route de Lausanne 12',
         npa: '1950',
         localite: 'Sion',
+        numeroTva: 'CHE-114.873.733 TVA',
       },
     );
   });

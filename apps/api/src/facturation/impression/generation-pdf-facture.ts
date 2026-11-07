@@ -23,6 +23,7 @@ import type {
 } from '@dfa/shared';
 
 import { ErreurMetier } from '../../common/erreurs/erreur-metier';
+import { dessinerEnTeteEmetteur } from './en-tete-emetteur';
 import {
   construireDonneesSwissQrBill,
   langueSwissQrBill,
@@ -76,6 +77,8 @@ export interface ExpediteurImpression {
   readonly numero: string | null;
   readonly npa: string | null;
   readonly localite: string | null;
+  /** N° TVA du garage tel que saisi dans les réglages ; absent s'il n'est pas renseigné. */
+  readonly numeroTva?: string | null;
 }
 
 /** Logo en haut à droite, dans une boîte de 140 x 60 pt. Un fichier que `pdfkit` ne sait pas
@@ -99,14 +102,7 @@ function dessinerEnTete(
   logo?: Buffer | null,
 ): void {
   dessinerLogo(doc, logo);
-  doc.fontSize(9).fillColor('#333333');
-  doc.text(expediteur.nom, MARGE_PT, MARGE_PT);
-  if (expediteur.rue) {
-    doc.text(`${expediteur.rue}${expediteur.numero ? ' ' + expediteur.numero : ''}`);
-  }
-  if (expediteur.npa || expediteur.localite) {
-    doc.text(`${expediteur.npa ?? ''} ${expediteur.localite ?? ''}`.trim());
-  }
+  dessinerEnTeteEmetteur(doc, expediteur, MARGE_PT, MARGE_PT);
 
   doc
     .fillColor('#000000')
@@ -273,11 +269,11 @@ export async function genererPdfFacture(
         : 'fr',
   );
   const totaux = exigerMontantsVisibles(document);
-  const expediteurFacture: ExpediteurImpression =
-    expediteur ??
-    (qr
-      ? { nom: qr.creancier.nom, ...qr.creancier.adresse }
-      : { nom: '', rue: null, numero: null, npa: null, localite: null });
+  // Avec bloc QR, nom et adresse viennent du bloc figé à l'émission (cohérence avec le bulletin) ;
+  // le n° TVA, lui, vient toujours de l'expéditeur fourni (réglages entreprise).
+  const expediteurFacture: ExpediteurImpression = qr
+    ? { nom: qr.creancier.nom, ...qr.creancier.adresse, numeroTva: expediteur?.numeroTva ?? null }
+    : (expediteur as ExpediteurImpression);
 
   const pdf = new PDFDocument({
     size: 'A4',
