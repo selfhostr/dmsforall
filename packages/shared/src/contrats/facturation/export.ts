@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { CIBLES_EXPORT, MODES_GRANULARITE_EXPORT, type CibleExport } from './enums';
-import { schemaDateJour, schemaIdentifiant } from '../atelier/primitives';
+import { schemaDateJour } from '../atelier/primitives';
 
 /**
  * Export fiduciaire (§6 du modèle documentaire, `RF-101` → `RF-113`) : le cœur produit des
@@ -83,7 +83,6 @@ export const schemaLancerExport = z
     granularite: z.enum(MODES_GRANULARITE_EXPORT).optional(),
     periodeDu: schemaDateJour,
     periodeAu: schemaDateJour,
-    siteId: schemaIdentifiant.optional(),
   })
   .strict();
 export type EntreeLancerExport = z.infer<typeof schemaLancerExport>;

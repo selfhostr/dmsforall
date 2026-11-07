@@ -110,6 +110,7 @@
     "EXPORT_ECRITURES_DESEQUILIBREES": "Die Buchhaltungseinträge sind nicht ausgeglichen. Kontaktieren Sie Ihren Revisor.",
     "EXPORT_MAPPING_INCOMPLET": "Die Buchungsmapping ist für dieses Ziel nicht vollständig. Kontaktieren Sie Ihren Revisor.",
     "EXPORT_DEJA_TRANSMIS": "Dieses Dokument wurde bereits an den Revisor gesendet. Kontaktieren Sie Ihren Revisor für Anpassungen.",
+    "EXPORT_WINBIZ_INVALIDE": "Eine Buchung kann nicht im WinBIZ-Format exportiert werden. Prüfen Sie Konten und Beträge oder kontaktieren Sie Ihren Revisor.",
     "BASCULE_FIDUCIAIRE_HORS_FRONTIERE": "Wechsel des Revisors während eines Monats nicht möglich. Warten Sie bis zum Ende der Periode.",
     "ARTICLE_REFERENCE_COLLISION": "Diese Referenz wird bereits von einem anderen Artikel verwendet.",
     "ARTICLE_REMPLACANT_REQUIS": "Geben Sie den Artikel an, der diesen ersetzt.",

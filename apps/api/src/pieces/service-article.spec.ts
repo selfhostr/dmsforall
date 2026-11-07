@@ -490,6 +490,7 @@ describe(
         designation: 'Jeu de plaquettes de frein avant',
         referencePrincipale: 'GDB1330DTE',
         prixVenteTtcCentimes: 8900,
+        prixAchatCentimes: 5125,
         quantitePhysiqueMillieme: null,
         quantiteReserveeMillieme: null,
         suiviQuelquePart: false,
@@ -504,7 +505,7 @@ describe(
       const { tx, execute } = txFactice({ executes: [{ rows: [] }] });
       const service = new ServiceArticle(accesFactice(tx), idempotenceFactice(tx));
 
-      await service.rechercheComptoir(CTX, { q: 'a huile', siteId: 's1', limite: 10 });
+      await service.rechercheComptoir(CTX, 'direction', { q: 'a huile', siteId: 's1', limite: 10 });
 
       const appel = execute.mock.calls[0]?.[0] as SQL;
       const { sql: texte } = dialect.sqlToQuery(appel);
@@ -520,11 +521,28 @@ describe(
       expect(texte).not.toContain('ilike');
     });
 
+    it("prix d'achat : lu en base, rendu pour la direction et masqué (null) pour le vendeur", async () => {
+      const { tx, execute } = txFactice({
+        executes: [{ rows: [donneesBrutes()] }, { rows: [donneesBrutes()] }],
+      });
+      const service = new ServiceArticle(accesFactice(tx), idempotenceFactice(tx));
+      const params = { q: 'plaquettes', siteId: 's1', limite: 10 };
+
+      const [vuDirection] = await service.rechercheComptoir(CTX, 'direction', params);
+      const [vuVendeur] = await service.rechercheComptoir(CTX, 'vendeur', params);
+
+      expect(vuDirection?.prixAchatCentimes).toBe(5125);
+      expect(vuVendeur?.prixAchatCentimes).toBeNull();
+      expect(vuVendeur?.prixVenteTtcCentimes).toBe(8900);
+      const { sql: texte } = dialect.sqlToQuery(execute.mock.calls[0]?.[0] as SQL);
+      expect(texte).toContain('a.prix_achat_centimes as "prixAchatCentimes"');
+    });
+
     it('un critère qui ne correspond à aucun article rend une liste VIDE, jamais le catalogue entier', async () => {
       const { tx } = txFactice({ executes: [{ rows: [] }] });
       const service = new ServiceArticle(accesFactice(tx), idempotenceFactice(tx));
 
-      const resultats = await service.rechercheComptoir(CTX, {
+      const resultats = await service.rechercheComptoir(CTX, 'direction', {
         q: 'introuvable-xyz',
         siteId: 's1',
         limite: 10,
@@ -549,7 +567,7 @@ describe(
       });
       const service = new ServiceArticle(accesFactice(tx), idempotenceFactice(tx));
 
-      const [resultat] = await service.rechercheComptoir(CTX, {
+      const [resultat] = await service.rechercheComptoir(CTX, 'direction', {
         q: 'plaquettes',
         siteId: 's1',
         limite: 10,
@@ -566,7 +584,7 @@ describe(
       });
       const service = new ServiceArticle(accesFactice(tx), idempotenceFactice(tx));
 
-      const [resultat] = await service.rechercheComptoir(CTX, {
+      const [resultat] = await service.rechercheComptoir(CTX, 'direction', {
         q: 'plaquettes',
         siteId: 's1',
         limite: 10,
@@ -582,7 +600,7 @@ describe(
       });
       const service = new ServiceArticle(accesFactice(tx), idempotenceFactice(tx));
 
-      const [resultat] = await service.rechercheComptoir(CTX, {
+      const [resultat] = await service.rechercheComptoir(CTX, 'direction', {
         q: 'plaquettes',
         siteId: 's1',
         limite: 10,
@@ -598,7 +616,7 @@ describe(
       });
       const service = new ServiceArticle(accesFactice(tx), idempotenceFactice(tx));
 
-      const [resultat] = await service.rechercheComptoir(CTX, {
+      const [resultat] = await service.rechercheComptoir(CTX, 'direction', {
         q: 'plaquettes',
         siteId: 's1',
         limite: 10,

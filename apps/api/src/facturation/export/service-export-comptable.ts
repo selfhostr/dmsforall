@@ -122,7 +122,7 @@ import {
   type LimiteEcriturePaiement,
 } from './ecritures/construction-ecriture-paiement';
 import { chargerCodesTva, chargerComptesResolusADate } from './mapping/chargement-mapping';
-import { WinbizExporteurService } from './winbiz';
+import { ErreurExportWinbiz, WinbizExporteurService } from './winbiz';
 
 /** Types de document qui produisent des écritures comptables (MD-84) — `devis`/`bon_commande` ne
  *  sont pas des ventes réalisées, ils ne sont jamais candidats à l'export. */
@@ -449,7 +449,19 @@ export class ServiceExportComptable {
         clientParReference,
       );
     }
-    const lots = this.winbiz.genererLots(ecritures, (index) => this.nomFichier(entree, index));
+    let lots: ReturnType<WinbizExporteurService['genererLots']>;
+    try {
+      lots = this.winbiz.genererLots(ecritures, (index) => this.nomFichier(entree, index));
+    } catch (e) {
+      // L'adaptateur WinBIZ est sans dépendance Nest (donc sans `ErreurMetier`) : on traduit ici,
+      // au bord, plutôt qu'un 500 pour une écriture que le format WinBIZ ne sait pas porter.
+      if (!(e instanceof ErreurExportWinbiz)) throw e;
+      const detail =
+        e.reference === undefined ? e.message : `${e.message} (écriture ${e.reference})`;
+      throw new ErreurMetier('EXPORT_WINBIZ_INVALIDE', 'Écriture refusée par le format WinBIZ.', {
+        detail,
+      });
+    }
     if (lots.length > 1) {
       // Voir l'en-tête de ce fichier, §« Multi-lot » : la corrélation document → lot au-delà
       // d'un seul lot n'est pas construite dans ce service — refuser plutôt que mécompter.
@@ -475,7 +487,7 @@ export class ServiceExportComptable {
   async preparer(
     tx: TransactionDfa,
     ctx: ContexteTenant,
-    entree: Pick<EntreeLancerExport, 'cible' | 'periodeDu' | 'periodeAu' | 'siteId'>,
+    entree: Pick<EntreeLancerExport, 'cible' | 'periodeDu' | 'periodeAu'>,
   ): Promise<PreparationExport> {
     const [candidats, { imputations, paiementsFinancierNouveau }] = await Promise.all([
       this.chargerCandidats(tx, ctx, entree),
@@ -565,7 +577,7 @@ export class ServiceExportComptable {
   private async chargerCandidats(
     tx: TransactionDfa,
     ctx: ContexteTenant,
-    entree: Pick<EntreeLancerExport, 'periodeDu' | 'periodeAu' | 'siteId'>,
+    entree: Pick<EntreeLancerExport, 'periodeDu' | 'periodeAu'>,
   ): Promise<readonly LigneDocumentVente[]> {
     const conditions = [
       eq(documentVente.tenantId, ctx.tenantId),
@@ -578,7 +590,6 @@ export class ServiceExportComptable {
       // silencieusement inclus au mauvais montant. Signalé au rapport de livraison, pas traité ici.
       eq(documentVente.devise, 'CHF'),
     ];
-    if (entree.siteId) conditions.push(eq(documentVente.siteId, entree.siteId));
 
     return tx
       .select()
@@ -692,13 +703,15 @@ export class ServiceExportComptable {
    * imputations candidates (financier déjà transmis avant, `MD-57` issue 2) ou l'inverse (avance
    * pure, remboursement — aucune imputation, `MD-57`).
    *
-   * `siteId` : l'imputation n'a pas son propre site — filtrée via le site DE SON PAIEMENT, résolu
-   * par une requête ciblée sur les paiements référencés uniquement si `entree.siteId` est fourni.
+   * Aucun filtre par site : la numérotation des factures/avoirs est par tenant et par exercice
+   * (`facturation/documents/numerotation.ts`, `siteId: null`), donc la continuité l'est aussi — voir
+   * `continuite/verification-continuite.ts`. Un export par site ferait apparaître les documents des
+   * autres sites comme des trous.
    */
   private async chargerCandidatsPaiements(
     tx: TransactionDfa,
     ctx: ContexteTenant,
-    entree: Pick<EntreeLancerExport, 'periodeDu' | 'periodeAu' | 'siteId'>,
+    entree: Pick<EntreeLancerExport, 'periodeDu' | 'periodeAu'>,
   ): Promise<{
     imputations: readonly LigneImputationPaiement[];
     paiementsFinancierNouveau: readonly LignePaiement[];
@@ -710,7 +723,6 @@ export class ServiceExportComptable {
       // `capacites.multiDevise: false` (WinbizExporteurService) — même garde que `chargerCandidats`.
       eq(paiement.devise, 'CHF'),
     ];
-    if (entree.siteId) conditionsFinancier.push(eq(paiement.siteId, entree.siteId));
 
     const [paiementsFinancierNouveau, imputationsBrutes] = await Promise.all([
       tx
@@ -732,21 +744,7 @@ export class ServiceExportComptable {
         .orderBy(asc(imputationPaiement.imputeLe), asc(imputationPaiement.id)),
     ]);
 
-    if (!entree.siteId || imputationsBrutes.length === 0) {
-      return { imputations: imputationsBrutes, paiementsFinancierNouveau };
-    }
-
-    const idsPaiementsImputes = [...new Set(imputationsBrutes.map((i) => i.paiementId))];
-    const paiementsImputes = await tx
-      .select({ id: paiement.id, siteId: paiement.siteId })
-      .from(paiement)
-      .where(and(eq(paiement.tenantId, ctx.tenantId), inArray(paiement.id, idsPaiementsImputes)));
-    const siteIdParPaiement = new Map(paiementsImputes.map((p) => [p.id, p.siteId]));
-    const imputations = imputationsBrutes.filter(
-      (i) => siteIdParPaiement.get(i.paiementId) === entree.siteId,
-    );
-
-    return { imputations, paiementsFinancierNouveau };
+    return { imputations: imputationsBrutes, paiementsFinancierNouveau };
   }
 
   /**

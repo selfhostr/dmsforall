@@ -28,6 +28,7 @@ const ARTICLE: ResultatRechercheComptoirArticle = {
   designation: 'Plaquettes de frein avant',
   referencePrincipale: '1K0698151',
   prixVenteTtcCentimes: 8900,
+  prixAchatCentimes: null,
   quantiteDisponibleMillieme: 3000,
   emplacement: 'B3',
   rayon: null,

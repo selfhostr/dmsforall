@@ -324,6 +324,12 @@ export const schemaCreationTauxHoraire = z
   })
   .strict();
 
+/**
+ * `PATCH /taux-horaires/{id}` : un nouveau `montantCentimes` sur la période en cours ouvre une
+ * NOUVELLE période (début = `valideDuLe` fourni, jamais dans le passé, sinon aujourd'hui) et clôt la
+ * précédente à cette date ; `libelle` et `valideAuLe` (futur) se modifient en place ; une période
+ * déjà close est immuable (409). La réponse est la période résultante.
+ */
 export const schemaModificationTauxHoraire = schemaCreationTauxHoraire
   .partial()
   .omit({ code: true });

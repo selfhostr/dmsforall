@@ -274,6 +274,9 @@ export const TOUTES_ACTIONS = [
   // `DISPOSITION_AVANCE_PAIEMENT` et le bloc créancier : direction + comptable seuls, `admin: []`
   // (RF-115) — voir `DROITS_EXPORT_COMPTABLE_PAR_ROLE` ci-dessous.
   'facturation.export.creer',
+  // Lecture de l'export (aperçu, historique, relecture du fichier, plan comptable) : distincte de
+  // `creer` pour que les routes GET ne demandent pas le droit de déclencher l'export. Mêmes rôles.
+  'facturation.export.lire',
   // ---- Impression PDF facture QR (étape 2, docs/design-impression-facture-qr.md §11.5) ----------
   // `GET /documents-vente/{id}/pdf` (`apps/api/src/facturation/impression/`, PAS le périmètre de ce
   // fichier) génère le PDF de facture avec bulletin de versement QR — livré et prouvé contre la vraie
@@ -1230,7 +1233,8 @@ const ECRITURE_CREANCIER: readonly Action[] = ['facturation.parametrage.creancie
 const DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> =
   {
     direction: [...LECTURE_CREANCIER, ...ECRITURE_CREANCIER],
-    comptable: [...LECTURE_CREANCIER, ...ECRITURE_CREANCIER],
+    // Le comptable LIT le bloc créancier mais ne change pas l'IBAN d'encaissement (arbitrage).
+    comptable: [...LECTURE_CREANCIER],
     vendeur: [],
     receptionnaire: [],
     chef_atelier: [],
@@ -1330,8 +1334,8 @@ const DROITS_PLAFOND_AVOIR_RECEPTIONNAIRE_PAR_ROLE: Readonly<
 // direction + comptable SEULS, `admin: []` VOLONTAIREMENT — à ne JAMAIS combler par copier-coller
 // de `direction` (RF-115).
 const DROITS_EXPORT_COMPTABLE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
-  direction: ['facturation.export.creer'],
-  comptable: ['facturation.export.creer'],
+  direction: ['facturation.export.creer', 'facturation.export.lire'],
+  comptable: ['facturation.export.creer', 'facturation.export.lire'],
   vendeur: [],
   receptionnaire: [],
   chef_atelier: [],

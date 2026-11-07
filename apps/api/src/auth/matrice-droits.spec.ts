@@ -387,9 +387,8 @@ describe('MATRICE_DROITS — bloc créancier QR-facture (facturation/parametrage
     expect(rolesAyant('facturation.parametrage.creancier.lire')).toEqual(
       ['comptable', 'direction'].sort(),
     );
-    expect(rolesAyant('facturation.parametrage.creancier.modifier')).toEqual(
-      ['comptable', 'direction'].sort(),
-    );
+    // Modifier l'IBAN : direction SEULE (le comptable le lit, sans pouvoir le changer).
+    expect(rolesAyant('facturation.parametrage.creancier.modifier')).toEqual(['direction']);
   });
 
   it('RF-115 — admin N’A NI la lecture NI l’écriture de l’IBAN créancier, à la différence de parametrage.atelier.modifier/parametrage.referentiel.modifier qui, eux, donnent l’écriture à admin : un test doit échouer si l’entrée admin de ce bloc est un jour remplie par copier-coller de direction, en la prenant pour un oubli de recopie plutôt qu’une décision RF-115 délibérée', () => {
@@ -432,6 +431,11 @@ describe('MATRICE_DROITS — bloc créancier QR-facture (facturation/parametrage
 describe('MATRICE_DROITS — export fiduciaire (facturation/export, même palier de gouvernance que le bloc créancier)', () => {
   it('« Lancer un export fiduciaire » : direction, comptable SEULS — même palier que facturation.paiement.rembourser/abandonner et le bloc créancier', () => {
     expect(rolesAyant('facturation.export.creer')).toEqual(['comptable', 'direction'].sort());
+  });
+
+  it('« Consulter l’export fiduciaire » (aperçu, historique, fichier, plan comptable) : mêmes rôles que creer, admin exclu', () => {
+    expect(rolesAyant('facturation.export.lire')).toEqual(['comptable', 'direction'].sort());
+    expect(MATRICE_DROITS.admin).not.toContain('facturation.export.lire');
   });
 
   it('RF-115 — admin N’A PAS le droit de lancer un export fiduciaire : un test doit échouer si l’entrée admin de ce bloc est un jour remplie par copier-coller de direction, en la prenant pour un oubli de recopie plutôt qu’une décision RF-115 délibérée', () => {
@@ -1520,6 +1524,7 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'facturation.parametrage.creancier.modifier',
       // --- Étape 2 : export fiduciaire (arbitrage coordinateur, même palier direction+comptable) ---
       'facturation.export.creer',
+      'facturation.export.lire',
       // --- Étape 2 : impression PDF facture QR (accordée exactement à roleVoitLesMontants()) ---
       'facturation.document.imprimer',
       // --- Étape 3 : pièces (RP-01 → RP-25, matrice §11 de docs/specification-etape-3-pieces.md) ---

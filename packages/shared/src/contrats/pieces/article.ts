@@ -171,6 +171,10 @@ export interface ResultatRechercheComptoirArticle {
   /** TVA comprise (RP-36) — jamais le prix hors taxe, voir `contrats/atelier/ligne.ts::ReponseLigneOr.prixUnitaireCentimes`
    *  pour la conversion éventuelle attendue côté saisie de ligne d'OR (HT, capturé serveur). */
   readonly prixVenteTtcCentimes: number;
+  /** Dernier prix d'achat connu (centimes) pour préremplir une commande fournisseur. `null` pour
+   *  les rôles sans visibilité du prix d'achat (vendeur, réceptionnaire, technicien, admin — même
+   *  masquage que `ReponseArticle.prixAchatCentimes`) ET pour un article sans prix d'achat. */
+  readonly prixAchatCentimes: number | null;
   /** Fiable UNIQUEMENT si `statutSuivi = 'suivi'` — sinon vaut 0 par convention, voir `StatutSuiviStockArticle`. */
   readonly quantiteDisponibleMillieme: number;
   /** Suivi de stock au site demandé — à lire AVANT `quantiteDisponibleMillieme`. */

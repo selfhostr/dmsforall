@@ -96,11 +96,18 @@ export function DialogueTauxHoraire({ ouvert, onOuvertChange, tauxHoraire }: Pro
     form.clearErrors();
 
     if (estModification && tauxHoraire) {
+      // Seuls les champs MODIFIÉS partent : l'API traite un nouveau montant comme une nouvelle
+      // période datée (la précédente est close), et refuse une date de début passée — renvoyer la
+      // date de début inchangée de la période en cours serait donc une erreur.
       const resultat = schemaModificationTauxHoraire.safeParse({
         libelle: valeurs.libelle,
         montantCentimes: valeurs.montantCentimes,
-        valideDuLe: valeurs.valideDuLe,
-        valideAuLe: valeurs.valideAuLe,
+        ...(valeurs.valideDuLe !== tauxHoraire.valideDuLe
+          ? { valideDuLe: valeurs.valideDuLe }
+          : {}),
+        ...(valeurs.valideAuLe !== tauxHoraire.valideAuLe
+          ? { valideAuLe: valeurs.valideAuLe }
+          : {}),
       });
       if (!resultat.success) {
         rapporterErreursZod(resultat.error, form);

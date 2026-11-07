@@ -61,9 +61,8 @@ const schemaUuidExport = z.string().uuid();
 /**
  * Export fiduciaire (`RF-101` → `RF-113`, `MD-84` → `MD-95`) : déclenchement, aperçu de période,
  * historique, relecture du fichier et plan comptable. Actions FINANCIÈRES : toutes sous
- * `facturation.export.creer`, réservée à `direction`/`comptable` (`RF-114`) — `admin` n'a
- * structurellement AUCUN droit financier (`RF-115`), voir `auth/matrice-droits.ts`. Il n'existe
- * pas (encore) d'action `facturation.export.lire` distincte : les lectures réutilisent `creer`.
+ * `facturation.export.creer` (écriture) et `facturation.export.lire` (GET), réservées à `direction`/`comptable` (`RF-114`) — `admin` n'a
+ * structurellement AUCUN droit financier (`RF-115`), voir `auth/matrice-droits.ts`.
  */
 @ApiTags('Facturation — export fiduciaire')
 @ApiCookieAuth()
@@ -155,7 +154,7 @@ export class ExportComptableController {
   }
 
   @Get('apercu')
-  @ExigerDroit('facturation.export.creer')
+  @ExigerDroit('facturation.export.lire')
   @ApiOperation({
     summary: "Aperçu d'une période avant export : compteurs, totaux et prérequis non satisfaits.",
     description:
@@ -168,11 +167,10 @@ export class ExportComptableController {
   @ApiQuery({ name: 'cible', required: false, enum: CIBLES_EXPORT })
   @ApiQuery({ name: 'periodeDu', required: true, description: 'aaaa-mm-jj' })
   @ApiQuery({ name: 'periodeAu', required: true, description: 'aaaa-mm-jj' })
-  @ApiQuery({ name: 'siteId', required: false })
   @ApiOkResponse({ type: ApercuExportDto })
   @ApiReponseProbleme(400, 'Paramètres invalides (dates, fin avant début).')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
-  @ApiReponseProbleme(403, 'Droit insuffisant (rôle sans facturation.export.creer).')
+  @ApiReponseProbleme(403, 'Droit insuffisant (rôle sans facturation.export.lire).')
   async apercu(
     @Query(new PipeZod(schemaApercuExport)) query: EntreeApercuExport,
   ): Promise<ApercuExportDto> {
@@ -180,7 +178,7 @@ export class ExportComptableController {
   }
 
   @Get('mapping')
-  @ExigerDroit('facturation.export.creer')
+  @ExigerDroit('facturation.export.lire')
   @ApiOperation({
     summary: "État du plan comptable de l'export : comptes par poste et codes TVA de la cible.",
     description:
@@ -191,7 +189,7 @@ export class ExportComptableController {
   @ApiOkResponse({ type: EtatMappingExportDto })
   @ApiReponseProbleme(400, 'Cible invalide.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
-  @ApiReponseProbleme(403, 'Droit insuffisant (rôle sans facturation.export.creer).')
+  @ApiReponseProbleme(403, 'Droit insuffisant (rôle sans facturation.export.lire).')
   async consulterMapping(
     @Query(new PipeZod(schemaConsulterMapping)) query: EntreeConsulterMapping,
   ): Promise<EtatMappingExportDto> {
@@ -230,7 +228,7 @@ export class ExportComptableController {
   }
 
   @Get()
-  @ExigerDroit('facturation.export.creer')
+  @ExigerDroit('facturation.export.lire')
   @ApiOperation({
     summary: 'Historique des exports du tenant, du plus récent au plus ancien.',
     description:
@@ -243,7 +241,7 @@ export class ExportComptableController {
   @ApiOkResponse({ type: PageExportsDto })
   @ApiReponseProbleme(400, 'Paramètres ou curseur invalides.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
-  @ApiReponseProbleme(403, 'Droit insuffisant (rôle sans facturation.export.creer).')
+  @ApiReponseProbleme(403, 'Droit insuffisant (rôle sans facturation.export.lire).')
   async lister(
     @Query(new PipeZod(schemaListeExports)) query: ParametresListeExports,
   ): Promise<PageExportsDto> {
@@ -251,7 +249,7 @@ export class ExportComptableController {
   }
 
   @Get(':exportId/fichier')
-  @ExigerDroit('facturation.export.creer')
+  @ExigerDroit('facturation.export.lire')
   @ApiOperation({
     summary: 'Relit le fichier exporté, octet pour octet identique à celui remis à la fiduciaire.',
     description:
@@ -263,7 +261,7 @@ export class ExportComptableController {
   @ApiResponse({ status: 200, description: 'Fichier (text/csv).' })
   @ApiReponseProbleme(400, 'Identifiant invalide.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
-  @ApiReponseProbleme(403, 'Droit insuffisant (rôle sans facturation.export.creer).')
+  @ApiReponseProbleme(403, 'Droit insuffisant (rôle sans facturation.export.lire).')
   @ApiReponseProbleme(404, 'Export introuvable pour ce tenant, ou fichier non conservé.')
   async fichier(
     @Param('exportId', new PipeZod(schemaUuidExport)) exportId: string,
