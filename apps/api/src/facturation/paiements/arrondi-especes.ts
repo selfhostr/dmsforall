@@ -27,6 +27,16 @@ import { ErreurMetier } from '../../common/erreurs';
  * Magnitude bornée à 2 centimes (RF-51 : intervalle {−2,…,+2}, 0 exclu par la contrainte SQL
  * `imputation_paiement_montant_non_nul_chk`) — c'est la borne mathématique d'un arrondi au 5
  * centimes le plus proche, jamais un chiffre arbitraire.
+ *
+ * L'arrondi est SIGNÉ et vaut dans les DEUX sens (CF-05) :
+ *   - `+1/+2` (solde finissant par 1, 2, 6, 7) : arrondi vers le BAS, le client paie 1–2 ct de
+ *     MOINS que le solde ; le garage absorbe l'écart (débit du compte d'arrondi).
+ *   - `-1/-2` (solde finissant par 3, 4, 8, 9) : arrondi vers le HAUT, le client paie 1–2 ct de
+ *     PLUS que le solde ; l'écart est un gain d'arrondi (crédit du compte d'arrondi). Le
+ *     règlement imputé vaut alors le solde + |arrondi| (= l'espèces réellement remise), et
+ *     `reglement + arrondi` solde exactement le document — jamais d'avance client ni d'excédent.
+ * Le montant du PAIEMENT, lui, est une somme d'espèces réellement remises : multiple de 5
+ * centimes (aucune pièce de 1 ou 2 ct n'existe) — vérifié ici, pas seulement côté écran.
  */
 
 export const ARRONDI_ESPECES_MAGNITUDE_MAX_CENTIMES = 2;
@@ -40,8 +50,10 @@ export interface ContexteVerificationArrondi {
   readonly montantRegleAvantCentimes: bigint;
   /** Somme des imputations `reglement` de CE lot, pour CE document. */
   readonly sommeReglementLotCentimes: bigint;
-  /** Valeur soumise pour l'imputation `arrondi` — non nulle (déjà garanti par le schéma zod). */
+  /** Valeur soumise pour l'imputation `arrondi`, SIGNÉE — non nulle (déjà garanti par le schéma zod). */
   readonly arrondiCentimes: bigint;
+  /** `paiement.montantCentimes` : les espèces réellement remises. Doit être un multiple de 5 ct. */
+  readonly paiementMontantCentimes: bigint;
 }
 
 /**
@@ -83,6 +95,22 @@ export function verifierArrondiEspeces(c: ContexteVerificationArrondi): void {
             champ: 'imputations[].montantCentimes',
             code: 'arrondi_hors_borne',
             message: 'Écart d’arrondi hors de {-2,-1,+1,+2} centimes.',
+          },
+        ],
+      },
+    );
+  }
+
+  if (c.paiementMontantCentimes % 5n !== 0n) {
+    throw new ErreurMetier(
+      'VALIDATION_ECHOUEE',
+      `Un encaissement en espèces avec arrondi doit être un multiple de 5 centimes (reçu ${c.paiementMontantCentimes} ct) : il n'existe pas de pièce de 1 ou 2 centimes.`,
+      {
+        erreurs: [
+          {
+            champ: 'montantCentimes',
+            code: 'especes_pas_multiple_5_centimes',
+            message: 'Le montant en espèces doit être un multiple de 0.05.',
           },
         ],
       },

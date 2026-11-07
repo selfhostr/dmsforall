@@ -74,3 +74,39 @@ describe('schemaCreationPaiement — champ inconnu REFUSÉ, nommé (issue #12, .
     expect(resultat.error.issues[0]?.message).toBe('Unrecognized key: "natur"');
   });
 });
+
+describe('schemaCreationPaiement — imputation d’arrondi espèces signée (RF-51, CF-05)', () => {
+  const DOC = '11111111-1111-4111-8111-111111111111';
+  const corps = (imputations: readonly object[]) => ({
+    siteId: '00000000-0000-0000-0000-000000000000',
+    dateValeur: '2026-07-29',
+    moyen: 'especes',
+    montantCentimes: 10945,
+    payeurLibelle: 'Client comptoir',
+    imputations,
+  });
+  const montantErreur = (montantCentimes: number, nature: string) =>
+    schemaCreationPaiement.safeParse(corps([{ documentId: DOC, montantCentimes, nature }]));
+
+  it.each([-2, -1, 1, 2])('accepte un arrondi de %i centime(s)', (ecart) => {
+    expect(montantErreur(ecart, 'arrondi').success).toBe(true);
+  });
+
+  it.each([-3, 0, 3, 5])('refuse un arrondi de %i centime(s)', (ecart) => {
+    expect(montantErreur(ecart, 'arrondi').success).toBe(false);
+  });
+
+  it('refuse toujours un règlement négatif', () => {
+    expect(montantErreur(-1, 'reglement').success).toBe(false);
+  });
+
+  it('accepte le règlement 109.45 + arrondi -1 ct (solde 109.44 arrondi vers le haut)', () => {
+    const resultat = schemaCreationPaiement.safeParse(
+      corps([
+        { documentId: DOC, montantCentimes: 10945, nature: 'reglement' },
+        { documentId: DOC, montantCentimes: -1, nature: 'arrondi' },
+      ]),
+    );
+    expect(resultat.success).toBe(true);
+  });
+});

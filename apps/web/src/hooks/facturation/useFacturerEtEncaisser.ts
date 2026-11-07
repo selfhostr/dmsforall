@@ -11,7 +11,7 @@ import {
 import { ErreurApi } from '@/api/erreurs';
 import { genererCleIdempotence } from '@/api/idempotence';
 
-import { montantPourMoyen } from './montant-encaissement';
+import { montantPourMoyen, repartirImputations } from './montant-encaissement';
 import { useEmettreDocumentVente } from './useEmettreDocumentVente';
 import { useEncaissement } from './useEncaissement';
 import { useFacturerOrdreReparation } from './useFacturerOrdreReparation';
@@ -147,7 +147,11 @@ export function useFacturerEtEncaisser(): FacturerEtEncaisser {
       }
       let encaisseCentimes = 0;
       if (soldeCentimes > 0 && !paiementFaitRef.current) {
-        const { montantCentimes } = montantPourMoyen(soldeCentimes, moyen);
+        const { montantCentimes, ecartArrondiCentimes } = montantPourMoyen(soldeCentimes, moyen);
+        const [imputations = []] = repartirImputations(
+          [{ montantCentimes, ecartArrondiCentimes }],
+          [{ id: emise.id, soldeCentimes }],
+        );
         if (clePaiement.current?.moyen !== moyen) {
           clePaiement.current = { moyen, cle: genererCleIdempotence() };
         }
@@ -160,11 +164,9 @@ export function useFacturerEtEncaisser(): FacturerEtEncaisser {
             devise: emise.devise,
             payeurClientId: emise.clientId,
             payeurLibelle: emise.figees.clientDesignation,
-            // Imputation au solde EXACT : l'éventuel écart d'arrondi espèces est celui du paiement,
-            // pas une avance (même règle que `SheetEncaissement`).
-            imputations: [
-              { documentId: emise.id, montantCentimes: soldeCentimes, nature: 'reglement' },
-            ],
+            // Règlement = espèces remises, écart d'arrondi = imputation `arrondi` signée : le
+            // paiement est soldé sans avance client ni excédent (même règle que `SheetEncaissement`).
+            imputations,
           },
           idempotencyKey: clePaiement.current.cle,
         });
