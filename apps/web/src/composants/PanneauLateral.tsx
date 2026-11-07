@@ -49,7 +49,13 @@ export function PanneauLateral({
     <Sheet open={ouvert} onOpenChange={onOuvertChange}>
       <SheetContent
         side="right"
-        className={cn('w-full gap-0 p-0 sm:w-[34rem] sm:max-w-[35rem]', className)}
+        className={cn(
+          'w-full gap-0 p-0 sm:w-[34rem] sm:max-w-[35rem]',
+          // Contenu calé en haut, pied (s'il existe) collé en bas : la ligne centrale absorbe
+          // l'espace libre. `auto-rows-min` du corps (sheet.tsx) est annulé par ces lignes.
+          pied ? 'grid-rows-[auto_1fr_auto]' : 'grid-rows-[auto_1fr]',
+          className,
+        )}
         {...(description ? {} : { 'aria-describedby': undefined })}
         {...evenements}
       >
@@ -59,7 +65,7 @@ export function PanneauLateral({
         </SheetHeader>
         <div className="px-carte pb-carte">{children}</div>
         {pied ? (
-          <SheetFooter className="mt-auto flex-row justify-end gap-controles border-t p-carte">
+          <SheetFooter className="flex-row justify-end gap-controles border-t p-carte">
             {pied}
           </SheetFooter>
         ) : null}

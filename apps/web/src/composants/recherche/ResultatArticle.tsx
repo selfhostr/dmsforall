@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { ResultatRecherche, StatutArticle } from '@dfa/shared';
 import { STATUTS_ARTICLE } from '@dfa/shared';
 
-import { Badge } from '@/components/ui/badge';
+import { BadgeStatutArticle } from '@/ecrans/pieces/BadgeStatutArticle';
 
 import { texteResume } from './resume';
 
@@ -14,14 +14,6 @@ export interface ProprietesResultatArticle {
 function estStatutArticle(valeur: string | null): valeur is StatutArticle {
   return valeur !== null && (STATUTS_ARTICLE as readonly string[]).includes(valeur);
 }
-
-// Même palette que `EcranListeArticles.tsx` (`VARIANTE_BADGE_STATUT`) — la recherche globale ne
-// réinvente pas un second vocabulaire visuel pour la même distinction de statut.
-const VARIANTE_BADGE_STATUT: Record<StatutArticle, 'default' | 'secondary' | 'outline'> = {
-  actif: 'default',
-  obsolete: 'secondary',
-  desactive: 'outline',
-};
 
 /** Contenu d'une ligne de résultat « article » (pièce). Enveloppé dans un `CommandItem` par
  *  `PanneauResultatsRecherche` — même patron que `ResultatClient`/`ResultatOr`. */
@@ -44,11 +36,7 @@ export function ResultatArticle({ resultat }: ProprietesResultatArticle) {
       {referencePrincipale ? (
         <span className="texte-libelle text-muted-foreground">{referencePrincipale}</span>
       ) : null}
-      {estStatutArticle(statut) ? (
-        <Badge variant={VARIANTE_BADGE_STATUT[statut]}>
-          {t(`pieces:articles.statuts.${statut}`)}
-        </Badge>
-      ) : null}
+      {estStatutArticle(statut) ? <BadgeStatutArticle statut={statut} /> : null}
     </div>
   );
 }

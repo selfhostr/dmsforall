@@ -20,6 +20,7 @@ function session(tenantId: string): SessionCourante {
       slug: 'garage-martin',
       raisonSociale: 'Garage Martin SA',
       langueDefaut: 'fr',
+      modeSignalement: 'via_site',
     },
     sites: [
       { id: 'site-sion', code: 'SIO', nom: 'Sion', actif: true },

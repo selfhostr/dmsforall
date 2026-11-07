@@ -60,7 +60,6 @@
   },
   "echeances": {
     "titre": "Scadenze in arrivo",
-    "description": "Set di pneumatici senza movimento da oltre due anni, da richiamare presso il cliente.",
     "droitRequis": "Non ha il diritto di consultare il deposito pneumatici.",
     "vide": {
       "titre": "Nessuna scadenza",

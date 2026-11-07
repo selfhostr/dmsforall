@@ -35,8 +35,8 @@ describe('BlocDonneesAtelier', () => {
 
   it('affiche un état vide dédié quand aucune donnée n’est renseignée', () => {
     render(<BlocDonneesAtelier donnees={TOUT_VIDE} />);
-    // Le titre de carte ET le titre de l'état vide portent le même libellé : deux occurrences.
-    expect(screen.getAllByText("Données d'atelier")).toHaveLength(2);
+    // Le titre de la carte n'est pas répété dans l'état vide : une seule occurrence.
+    expect(screen.getAllByText("Données d'atelier")).toHaveLength(1);
     expect(screen.queryByRole('definition')).not.toBeInTheDocument();
   });
 

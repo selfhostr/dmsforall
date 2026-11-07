@@ -68,18 +68,13 @@ describe('EcranDoublonsClients', () => {
   // comportement de PRODUCTION, pas un artefact du harnais. La classe `sr-only` est la preuve
   // fiable ici — `toBeVisible()` (jest-dom) ne détecte pas la technique `position: absolute;
   // clip: …` sans feuille de style chargée (jsdom, ces tests).
-  it('garde un h1 accessible « Doublons clients » dans le DOM, masqué via `sr-only` (doublon avec la vue active), description visible', () => {
+  it('garde un h1 accessible « Doublons clients » dans le DOM, masqué via `sr-only` (doublon avec la vue active), sans sous-titre', () => {
     renduAvecRoutes([{ path: '/clients/doublons', element: <EcranDoublonsClients /> }], {
       routeInitiale: '/clients/doublons',
     });
 
     const titre = screen.getByRole('heading', { level: 1, name: 'Doublons clients' });
     expect(titre.className).toMatch(/\bsr-only\b/);
-    expect(
-      screen.getByText(
-        "Recherchez un client par nom, NPA, e-mail, téléphone ou numéro d'entreprise avant d'en créer un nouveau, ou pour vérifier si deux fiches désignent la même personne.",
-      ),
-    ).toBeInTheDocument();
   });
 
   it('ne déclenche pas de recherche pour un nom trop court (min. 2 caractères, RM-05)', async () => {

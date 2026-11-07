@@ -303,6 +303,7 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
             raisonSociale: tenant.raisonSociale,
             langueDefaut: tenant.langueDefaut,
             modulesDesactives: tenant.modulesDesactives,
+            modeSignalement: tenant.modeSignalement,
           })
           .from(tenant)
           .where(eq(tenant.id, principal.tenantId));
@@ -349,6 +350,10 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
 
         const grille = grilleDepuisLigne(ligneUtilisateur);
 
+        // La liste brute des modules retirés n'est pas un champ de `TenantCourant` : la session
+        // n'expose que `modulesActifs` (effet des dépendances compris).
+        const { modulesDesactives, ...tenantCourant } = ligneTenant;
+
         // `siteId` est retiré de l'objet `utilisateur` : le contrat `UtilisateurCourant` ne porte
         // pas de site (c'est une propriété du COMPTE, exposée à part en `siteRattachementId`), et
         // renvoyer un champ non déclaré au contrat le ferait diverger de l'OpenAPI généré.
@@ -361,17 +366,12 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
             role: ligneUtilisateur.role,
             langue: ligneUtilisateur.langue,
           },
-          tenant: {
-            id: ligneTenant.id,
-            slug: ligneTenant.slug,
-            raisonSociale: ligneTenant.raisonSociale,
-            langueDefaut: ligneTenant.langueDefaut,
-          },
+          tenant: tenantCourant,
           sites: lignesSites,
           siteRattachementId,
           actions: [...droitsDe(ligneUtilisateur.role, grille).actions].sort(),
           capacites: capacitesPersonneDe(ligneUtilisateur.role, grille),
-          modulesActifs: modulesActifsDepuis(ligneTenant.modulesDesactives),
+          modulesActifs: modulesActifsDepuis(modulesDesactives),
           expireLe: ligneSession.expireLe.toISOString(),
         } satisfies SessionCourante;
       },

@@ -129,7 +129,9 @@ describe('ouverture de l’assistant de démarrage depuis l’accueil', () => {
     api('direction');
     rendre();
     await screen.findByRole('dialog', { name: t('assistant:titre') });
-    await userEvent.click(screen.getByRole('button', { name: t('assistant:actions.quitter') }));
+    await userEvent.click(
+      await screen.findByRole('button', { name: t('assistant:actions.quitter') }),
+    );
     expect(assistant()).toBeNull();
     expect(window.localStorage.getItem(CLE_FERMEE)).toBe('1');
 

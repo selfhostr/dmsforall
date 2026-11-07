@@ -7,6 +7,7 @@
     "statuts": "Le statut dit où en est l'OR : ouvert, en cours, terminé, facturé. « Attente pièces » se cumule avec n'importe quel statut."
   },
   "vehicules": {
+    "expertise": "MFK : contrôle technique officiel du véhicule. La prochaine échéance est calculée depuis la dernière expertise ou lue sur la convocation.",
     "travauxReportes": "Travaux repérés mais pas faits (client pas d'accord, pièce manquante). Ils restent sur la fiche du véhicule pour la prochaine visite."
   },
   "facturation": {

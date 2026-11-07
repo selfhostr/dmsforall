@@ -144,7 +144,7 @@ describe('BarreLaterale — les six entrées', () => {
     await screen.findByRole('link', { name: /^pièces$/i });
 
     expect(libellesDesEntrees()).toEqual([
-      "Aujourd'hui",
+      'Tableau de bord',
       'Atelier',
       'Clients & véhicules',
       'Pièces',
@@ -162,7 +162,7 @@ describe('BarreLaterale — les six entrées', () => {
     // Atelier reste avant Clients & véhicules, qui reste avant Pièces : l'ordre est absolu, pas
     // relatif au rôle. Ventes apparaît : la grille (Pièces : Faire) ouvre `ventes.dossier.lire`.
     expect(libellesDesEntrees()).toEqual([
-      "Aujourd'hui",
+      'Tableau de bord',
       'Atelier',
       'Clients & véhicules',
       'Pièces',
@@ -207,9 +207,9 @@ describe('BarreLaterale — où mène chaque entrée', () => {
 
     await screen.findByRole('link', { name: /^pièces$/i });
 
-    // Fusion accueil/tableau de bord : l'entrée « Aujourd'hui » pointe directement sur
+    // Fusion accueil/tableau de bord : l'entrée « Tableau de bord » pointe directement sur
     // `/tableau-bord`, plus sur `/` (qui n'est plus qu'un relais vers cette même page).
-    expect(hrefDuLien(/aujourd/i)).toBe('/tableau-bord');
+    expect(hrefDuLien(/^tableau de bord$/i)).toBe('/tableau-bord');
     expect(hrefDuLien(/^atelier$/i)).toBe('/ordres-reparation');
     expect(hrefDuLien(/clients & véhicules/i)).toBe('/clients');
     expect(hrefDuLien(/^pièces$/i)).toBe('/pieces/recherche-comptoir');
@@ -426,7 +426,7 @@ describe('BarreLaterale — masquage par rôle', () => {
       '/factures',
     );
     expect(libellesDesEntrees()).toEqual([
-      "Aujourd'hui",
+      'Tableau de bord',
       'Atelier',
       'Clients & véhicules',
       'Pièces',
@@ -521,7 +521,7 @@ describe('BarreLaterale — repli desktop', () => {
     await screen.findByRole('link', { name: /^pièces$/i });
 
     expect(libellesDesEntrees()).toEqual([
-      "Aujourd'hui",
+      'Tableau de bord',
       'Atelier',
       'Clients & véhicules',
       'Pièces',

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, Outlet, useLocation } from 'react-router';
 
+import { SignalerProbleme } from '@/composants/signalement/SignalerProbleme';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { FournisseurSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { useSession } from '@/hooks/useSession';
@@ -77,6 +78,7 @@ export function AppShell() {
     // synchronisés, et la route index (`routeur.tsx`) peut s'en servir pour atterrir directement
     // sur le dernier site connu plutôt que sur « aucun site ».
     <FournisseurSiteCourant>
+      <SignalerProbleme />
       {/* `pt-zone-sure-haut`/`pl-zone-sure-gauche`/`pr-zone-sure-droite` : depuis que
           `index.html` porte `viewport-fit=cover` (voir `BarreOngletsBasse.tsx`), la page peut
           s'étendre sous l'encoche/le coin arrondi sur TOUS les côtés, pas seulement en bas —
@@ -119,7 +121,7 @@ export function AppShell() {
           {afficheNavigation ? (
             // Tiroir de la barre latérale (téléphone/tablette), ouvert par « Plus » de la barre basse.
             <Sheet open={ouvert} onOpenChange={setOuvert}>
-              <SheetContent side="left" className="w-60 p-0">
+              <SheetContent side="left" className="w-60 content-stretch auto-rows-fr p-0">
                 {/* `SheetContent side="left"` pose déjà `fixed inset-y-0 ... h-full` (voir
                     `components/ui/sheet.tsx`) : le tiroir a donc une hauteur de viewport définie
                     sans rien ajouter ici, et `BarreLaterale` (h-full) s'y ancre exactement comme

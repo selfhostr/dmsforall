@@ -217,7 +217,10 @@ export function DialogueNouveauRendezVous({
           ) : undefined
         }
       >
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between gap-2">
+          <span className="texte-libelle text-muted-foreground">
+            {t('planning:aide.nouveau.libelle')}
+          </span>
           <AideContextuelle libelle={t('planning:aide.nouveau.libelle')}>
             <p className="texte-corps">{t('planning:aide.nouveau.texte')}</p>
           </AideContextuelle>

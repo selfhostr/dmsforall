@@ -150,7 +150,6 @@
   },
   "doublonsEcran": {
     "titre": "Duplicati clienti",
-    "description": "Cercate un cliente per nome, NPA, e-mail, telefono o numero IDI prima di crearne uno nuovo, oppure per verificare se due schede riguardano la stessa persona.",
     "champs": {
       "nom": "Nome o ragione sociale",
       "npa": "CAP",
@@ -220,6 +219,7 @@
     "filtreDescription": "Modifichi o cancelli i filtri attivi."
   },
   "formulaireNouveau": {
+    "adresse": "Indirizzo",
     "brouillon": {
       "ignorer": "Ignora la bozza"
     },

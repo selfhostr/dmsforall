@@ -1,0 +1,40 @@
+{
+  "titre": "Signaler un problème",
+  "intro": "Signalez ici un défaut de dmsforall : un écran qui plante, un calcul faux, un bouton qui ne fait rien. Ce n’est pas un support : pas de réponse aux questions d’utilisation, de configuration ou de comptabilité. Le signalement devient une fiche publique sur GitHub : n’y mettez ni nom de client, ni plaque, ni montant.",
+  "champs": {
+    "constat": "Ce qui ne marche pas",
+    "etapes": "Ce que vous faisiez juste avant",
+    "attendu": "Ce que vous attendiez"
+  },
+  "erreurs": {
+    "constat": "Décrivez ce qui ne marche pas."
+  },
+  "diagnostic": {
+    "joindre": "Joindre le diagnostic technique",
+    "apercu": "Voir ce qui sera envoyé",
+    "apercuAide": "Version, navigateur, dernières erreurs. Rien de ce que vous avez saisi dans le logiciel.",
+    "apercuAria": "Contenu exact du signalement"
+  },
+  "actions": {
+    "continuer": "Continuer sur le site",
+    "copier": "Copier le rapport"
+  },
+  "envoi": {
+    "explication": "Vous terminez l’envoi sur le site, sans compte GitHub.",
+    "copieSeule": "Copiez le rapport, puis transmettez-le à la main."
+  },
+  "copie": {
+    "reussie": "Rapport copié.",
+    "echec": "Copie impossible : copiez le texte ci-dessous.",
+    "rapport": "Rapport à copier",
+    "fiche": "Sans internet ici ? Collez le rapport dans une fiche :",
+    "lien": "nouvelle fiche GitHub"
+  },
+  "markdown": {
+    "constat": "Ce qui ne marche pas",
+    "etapes": "Ce que l’utilisateur faisait juste avant",
+    "attendu": "Ce que l’utilisateur attendait",
+    "diagnostic": "Diagnostic",
+    "aucun": "(non renseigné)"
+  }
+}

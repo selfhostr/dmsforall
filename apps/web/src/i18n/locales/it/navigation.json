@@ -3,7 +3,7 @@
     "aria": "Navigazione principale"
   },
   "entrees": {
-    "aujourdhui": "Oggi",
+    "aujourdhui": "Cruscotto",
     "atelier": "Officina",
     "clientsVehicules": "Clienti e veicoli",
     "pieces": "Ricambi",
@@ -107,5 +107,8 @@
   },
   "rangee": {
     "aria": "Impostazioni rapide"
+  },
+  "signalement": {
+    "entree": "Segnala un problema"
   }
 }

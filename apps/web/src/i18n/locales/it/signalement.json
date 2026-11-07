@@ -1,0 +1,40 @@
+{
+  "titre": "Segnala un problema",
+  "intro": "Segnalate qui un difetto di dmsforall: una schermata che si blocca, un calcolo errato, un pulsante che non fa nulla. Non è un supporto: nessuna risposta a domande di utilizzo, configurazione o contabilità. La segnalazione diventa una scheda pubblica su GitHub: non inseritevi né nome di cliente, né targa, né importo.",
+  "champs": {
+    "constat": "Cosa non funziona",
+    "etapes": "Cosa stavate facendo subito prima",
+    "attendu": "Cosa vi aspettavate"
+  },
+  "erreurs": {
+    "constat": "Descrivete cosa non funziona."
+  },
+  "diagnostic": {
+    "joindre": "Allega la diagnostica tecnica",
+    "apercu": "Vedi cosa verrà inviato",
+    "apercuAide": "Versione, browser, ultimi errori. Nulla di ciò che avete inserito nel software.",
+    "apercuAria": "Contenuto esatto della segnalazione"
+  },
+  "actions": {
+    "continuer": "Continua sul sito",
+    "copier": "Copia il rapporto"
+  },
+  "envoi": {
+    "explication": "Completate l’invio sul sito, senza account GitHub.",
+    "copieSeule": "Copiate il rapporto, poi trasmettetelo a mano."
+  },
+  "copie": {
+    "reussie": "Rapporto copiato.",
+    "echec": "Copia impossibile: copiate il testo qui sotto.",
+    "rapport": "Rapporto da copiare",
+    "fiche": "Senza internet qui? Incollate il rapporto in una scheda:",
+    "lien": "nuova scheda GitHub"
+  },
+  "markdown": {
+    "constat": "Cosa non funziona",
+    "etapes": "Cosa stava facendo l’utente subito prima",
+    "attendu": "Cosa si aspettava l’utente",
+    "diagnostic": "Diagnostica",
+    "aucun": "(non indicato)"
+  }
+}
