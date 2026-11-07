@@ -178,6 +178,7 @@ describe('n° TVA', () => {
     expect(bon.body).toEqual({
       raisonSociale: 'Garage Neuf Test',
       numeroTva: 'CHE-116.281.710 TVA',
+      delaiPaiementJoursDefaut: 30,
     });
 
     const relu = await ctx.requete.get('/api/v1/parametres-entreprise').set(entetes(cookie));
