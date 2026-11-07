@@ -131,10 +131,7 @@ export function EcranDepotFactureFournisseur() {
   }
 
   return (
-    <GabaritEcran
-      titre={t('pieces:facturesFournisseur.titreDepot')}
-      sousTitre={t('pieces:facturesFournisseur.sousTitreDepot')}
-    >
+    <GabaritEcran titre={t('pieces:facturesFournisseur.titreDepot')}>
       <div className="flex flex-col gap-section">
         {etape.phase === 'depot' ? (
           // Pas de sémantique `role="button"`/clic sur le conteneur : le SEUL affordance

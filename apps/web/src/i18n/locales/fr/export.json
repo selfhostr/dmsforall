@@ -1,9 +1,7 @@
 {
   "titre": "Export fiduciaire",
-  "sousTitre": "Préparez le fichier à remettre à votre fiduciaire pour la période.",
   "format": {
     "titre": "Format du fichier",
-    "description": "Le format que votre fiduciaire importe dans sa comptabilité.",
     "winbiz": {
       "nom": "WinBIZ",
       "phrase": "Pour WinBIZ : une écriture par facture ou avoir, puis une par encaissement."
@@ -15,7 +13,6 @@
   },
   "periode": {
     "titre": "Période",
-    "description": "Mois précédent par défaut, le rythme habituel d'une fin de mois.",
     "modes": {
       "moisPrecedent": "Mois précédent",
       "trimestrePrecedent": "Trimestre précédent",
@@ -98,7 +95,6 @@
   },
   "apercu": {
     "titre": "Aperçu de la période",
-    "description": "Ce que le fichier contiendrait, avant de le produire.",
     "erreur": "L'aperçu n'a pas pu être calculé",
     "periodeRequise": "Choisissez une période valide pour voir l'aperçu.",
     "aucun": "Aucun",
@@ -186,7 +182,6 @@
   },
   "historique": {
     "titre": "Historique des exports",
-    "description": "Les fichiers déjà remis à la fiduciaire.",
     "erreur": "L'historique n'a pas pu être chargé",
     "erreurFichier": "Le fichier n'a pas pu être téléchargé",
     "vide": {

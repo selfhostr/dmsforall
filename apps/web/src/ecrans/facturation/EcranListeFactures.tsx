@@ -1,16 +1,27 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
 
 import type { DocumentVenteResume, FiltresDocumentsVente } from '@dfa/shared';
 
+type TriFactures = FiltresDocumentsVente['tri'];
+
+const CLE_TRI: Record<TriFactures, string> = {
+  'dateDocument:desc': 'dateDesc',
+  'dateDocument:asc': 'dateAsc',
+  'numeroSequence:desc': 'numeroDesc',
+  'numeroSequence:asc': 'numeroAsc',
+  'soldeCentimes:desc': 'soldeDesc',
+  'relanceLe:asc': 'relanceAsc',
+};
+
 import { messageErreur } from '@/api/erreurs';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
-import { Input } from '@/components/ui/input';
 import { Segments } from '@/composants/commun/Segments';
 import { EtatVide } from '@/composants/commun/EtatVide';
+import { BarreFiltres } from '@/composants/comptoir/BarreFiltres';
+import { SelecteurTri } from '@/composants/comptoir/SelecteurTri';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
@@ -29,7 +40,7 @@ import { chemins } from '@/routes/chemins';
 import { peutVoirChiffres } from './chiffres/droits';
 import { peutVoirMontantsFacturation } from './droits';
 import { IndicateurRetard } from './IndicateurRetard';
-import { MenuTriFactures, type TriFactures } from './MenuTriFactures';
+
 
 const DELAI_DEBOUNCE_MS = 300;
 
@@ -370,23 +381,21 @@ export function EcranListeFactures() {
         }))}
       />
 
-      <div className="flex items-center gap-3">
-        <div className="relative min-w-0 flex-1">
-          <Search
-            aria-hidden
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+      <BarreFiltres
+        q={qSaisie}
+        onChangeQ={setQSaisie}
+        tri={
+          <SelecteurTri
+            label={t('facturation:liste.tri.label')}
+            valeur={tri}
+            onChangeValeur={(valeur) => setTriChoisi(valeur as TriFactures)}
+            options={optionsTri.map((valeur) => ({
+              valeur,
+              libelle: t(`facturation:liste.tri.options.${CLE_TRI[valeur]}`),
+            }))}
           />
-          <Input
-            type="search"
-            className="pl-9"
-            placeholder={t('commun:actions.rechercher')}
-            aria-label={t('commun:actions.rechercher')}
-            value={qSaisie}
-            onChange={(evenement) => setQSaisie(evenement.target.value)}
-          />
-        </div>
-        <MenuTriFactures valeur={tri} options={optionsTri} onChange={setTriChoisi} />
-      </div>
+        }
+      />
 
       {isPending ? (
         <EtatChargement lignes={6} />

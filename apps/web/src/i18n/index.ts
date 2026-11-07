@@ -51,6 +51,7 @@ export const NAMESPACES = [
   'reprise',
   'export',
   'capacites',
+  'aide',
   'assistant',
 ] as const;
 
@@ -84,6 +85,7 @@ const ressources = {
     reprise: () => import('./locales/fr/reprise.json'),
     export: () => import('./locales/fr/export.json'),
     capacites: () => import('./locales/fr/capacites.json'),
+    aide: () => import('./locales/fr/aide.json'),
     assistant: () => import('./locales/fr/assistant.json'),
   },
   de: {
@@ -113,6 +115,7 @@ const ressources = {
     reprise: () => import('./locales/de/reprise.json'),
     export: () => import('./locales/de/export.json'),
     capacites: () => import('./locales/de/capacites.json'),
+    aide: () => import('./locales/de/aide.json'),
     assistant: () => import('./locales/de/assistant.json'),
   },
   it: {
@@ -142,6 +145,7 @@ const ressources = {
     reprise: () => import('./locales/it/reprise.json'),
     export: () => import('./locales/it/export.json'),
     capacites: () => import('./locales/it/capacites.json'),
+    aide: () => import('./locales/it/aide.json'),
     assistant: () => import('./locales/it/assistant.json'),
   },
 } as const;

@@ -13,7 +13,6 @@ import {
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -88,7 +87,6 @@ export function EcranListeVehicules() {
   } = useListeVehicules(filtres);
 
   const filtresStructuresActifs = statut !== undefined || importe;
-  const filtresActifs = q.trim() !== '' || filtresStructuresActifs;
 
   function effacerFiltres() {
     // Levier de reset (choix produit 26.08.2026) : `effacerFiltres` est un geste de reprise en
@@ -188,15 +186,32 @@ export function EcranListeVehicules() {
   // juste sous le titre, seul sur sa ligne, et décalerait tout le reste) : il rejoint la ligne
   // « Trier par », à droite — même déplacement que l'écran de référence (Atelier).
   return (
-    <GabaritEcran titre={t('vehicules:liste.titre')}>
+    <GabaritEcran
+      titre={t('vehicules:liste.titre')}
+      actions={
+        <>
+          <Button asChild>
+            <Link to={chemins.vehicules.nouveau(site)}>
+              <Plus aria-hidden className="h-4 w-4" />
+              {t('vehicules:nouveau')}
+            </Link>
+          </Button>
+        </>
+      }
+    >
       <BarreFiltres
+        tri={
+          <SelecteurTri
+            options={TRIS_VEHICULES.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
+            valeur={tri}
+            onChangeValeur={setTri}
+            label={t('vehicules:liste.tri.label')}
+          />
+        }
         q={qSaisie}
         onChangeQ={setQSaisie}
-        filtresActifs={filtresActifs}
-        onEffacerFiltres={effacerFiltres}
       >
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="filtre-statut">{t('vehicules:liste.filtres.statut')}</Label>
           <Select
             value={statut ?? 'tous'}
             onValueChange={(valeur) =>
@@ -224,22 +239,6 @@ export function EcranListeVehicules() {
           {t('vehicules:liste.filtres.importe')}
         </label>
       </BarreFiltres>
-
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <SelecteurTri
-          options={TRIS_VEHICULES.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
-          valeur={tri}
-          onChangeValeur={setTri}
-          label={t('vehicules:liste.tri.label')}
-          className="max-w-xs"
-        />
-        <Button asChild>
-          <Link to={chemins.vehicules.nouveau(site)}>
-            <Plus aria-hidden className="h-4 w-4" />
-            {t('vehicules:nouveau')}
-          </Link>
-        </Button>
-      </div>
 
       <TableComptoir
         colonnes={colonnes}

@@ -348,7 +348,7 @@ export function EcranScan() {
   // ce n'est PAS le même arbitrage que la borne d'atelier).
   if (sessionEnAttente) {
     return (
-      <GabaritEcran titre={t('scan:titre')} sousTitre={t('scan:sousTitre')}>
+      <GabaritEcran titre={t('scan:titre')}>
         <EtatChargement lignes={4} />
       </GabaritEcran>
     );
@@ -364,7 +364,7 @@ export function EcranScan() {
   // déjà lancé s'afficher normalement, sans jamais l'interrompre pour ce seul motif.
   if (sessionEnErreur && etape.phase === 'capture') {
     return (
-      <GabaritEcran titre={t('scan:titre')} sousTitre={t('scan:sousTitre')}>
+      <GabaritEcran titre={t('scan:titre')}>
         <EtatErreur
           titre={t('scan:session.erreur.titre')}
           description={t('scan:session.erreur.description')}
@@ -380,7 +380,7 @@ export function EcranScan() {
   const sessionPerdueEnCours = session === null && etape.phase !== 'capture';
 
   return (
-    <GabaritEcran titre={t('scan:titre')} sousTitre={t('scan:sousTitre')}>
+    <GabaritEcran titre={t('scan:titre')}>
       <div className="flex flex-col gap-6">
         {sessionPerdueEnCours ? (
           <Alert variant="destructive">

@@ -61,7 +61,7 @@
     },
     "filtres": {
       "saison": "Saison",
-      "saisonToutes": "Alle",
+      "saisonToutes": "Alle Saisons",
       "repere": "Nach Standort filtern",
       "reperePlaceholder": "Z. B. Regal 3"
     },
@@ -78,7 +78,6 @@
   },
   "creation": {
     "titre": "Neue Reifeneinlagerung",
-    "description": "Einen Reifensatz in das Reifenhotel dieses Standorts einlagern.",
     "actions": {
       "ouvrir": "Neue Einlagerung",
       "creer": "Einlagerung erstellen"
@@ -92,7 +91,6 @@
     "champCodeCasePlaceholder": "Z. B. Regal 3, Fach B",
     "champDimension": "Dimension",
     "champDimensionPlaceholder": "Z. B. 205/55 R16",
-    "champDimensionIndication": "Leer lassen, um die am Fahrzeug hinterlegte Dimension zu übernehmen.",
     "champEtat": "Zustand (freie Bemerkung)"
   },
   "changementSaison": {
@@ -101,7 +99,6 @@
   },
   "deplacement": {
     "titre": "Diesen Satz verschieben",
-    "description": "Aktueller Standort: \"{codeCase}\". Neuen Standort angeben.",
     "champCodeCase": "Neuer Standort"
   },
   "sortie": {

@@ -6,16 +6,9 @@ import { schemaCreationReprise, type ReponseReprise, type VehiculeResume } from 
 import { ErreurApi, messageErreur } from '@/api/erreurs';
 import { useCleIdempotence } from '@/api/idempotence';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { LegendeChampsObligatoires } from '@/components/ui/label';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { RefusBloquant } from '@/composants/motifs/RefusBloquant';
 import { useCreerReprise } from '@/hooks/ventes/reprises/useCreerReprise';
 
@@ -98,44 +91,64 @@ export function DialogueCreationReprise({ dossierVenteId, ouvert, onOuvertChange
   }
 
   return (
-    <Dialog open={ouvert} onOpenChange={onOuvertChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t('ventes:reprise.creation.titre')}</DialogTitle>
-          <DialogDescription>{t('ventes:reprise.creation.description')}</DialogDescription>
-        </DialogHeader>
+    <PanneauLateral
+      ouvert={ouvert}
+      onOuvertChange={onOuvertChange}
+      titre={t('ventes:reprise.creation.titre')}
+      pied={
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOuvertChange(false)}
+            disabled={creer.isPending}
+          >
+            {t('commun:actions.annuler')}
+          </Button>
+          <Button type="submit" form="reprise-creation" disabled={creer.isPending}>
+            {creer.isPending ? t('commun:chargement.enCours') : t('ventes:reprise.actions.creer')}
+          </Button>
+        </>
+      }
+    >
+      <form
+        id="reprise-creation"
+        noValidate
+        className="flex flex-col gap-4"
+        onSubmit={(evenement) => {
+          evenement.preventDefault();
+          soumettre();
+        }}
+      >
+        <LegendeChampsObligatoires>
+          {t('commun:formulaires.champsObligatoiresLegende')}
+        </LegendeChampsObligatoires>
 
-        <div className="flex flex-col gap-4">
-          <LegendeChampsObligatoires>
-            {t('commun:formulaires.champsObligatoiresLegende')}
-          </LegendeChampsObligatoires>
+        <SelecteurVehiculeRepris
+          valeur={vehiculeId}
+          onChangeValeur={(id, v) => {
+            setVehiculeId(id);
+            setVehicule(v);
+          }}
+          erreur={erreursChamps.vehiculeReprisId}
+        />
+        {vehicule ? (
+          <p className="texte-libelle text-muted-foreground">
+            {t('ventes:reprise.creation.vehiculeSelectionne', {
+              designation: vehicule.designation,
+            })}
+          </p>
+        ) : null}
 
-          <SelecteurVehiculeRepris
-            valeur={vehiculeId}
-            onChangeValeur={(id, v) => {
-              setVehiculeId(id);
-              setVehicule(v);
-            }}
-            erreur={erreursChamps.vehiculeReprisId}
-          />
-          {vehicule ? (
-            <p className="texte-libelle text-muted-foreground">
-              {t('ventes:reprise.creation.vehiculeSelectionne', {
-                designation: vehicule.designation,
-              })}
-            </p>
-          ) : null}
+        <ChampMontant
+          label={t('ventes:reprise.creation.valeurEstimee')}
+          obligatoire
+          valeurCentimes={valeurEstimeeCentimes}
+          onChangeCentimes={setValeurEstimeeCentimes}
+          erreur={erreursChamps.valeurEstimeeCentimes}
+        />
 
-          <ChampMontant
-            label={t('ventes:reprise.creation.valeurEstimee')}
-            obligatoire
-            valeurCentimes={valeurEstimeeCentimes}
-            onChangeCentimes={setValeurEstimeeCentimes}
-            erreur={erreursChamps.valeurEstimeeCentimes}
-          />
-
-          <ChampDetteFinancementReprise valeurs={dette} onChange={setDette} />
-        </div>
+        <ChampDetteFinancementReprise valeurs={dette} onChange={setDette} />
 
         {erreurActive ? (
           <RefusBloquant
@@ -148,21 +161,7 @@ export function DialogueCreationReprise({ dossierVenteId, ouvert, onOuvertChange
             {messageErreur(creer.error, t)}
           </p>
         ) : null}
-
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOuvertChange(false)}
-            disabled={creer.isPending}
-          >
-            {t('commun:actions.annuler')}
-          </Button>
-          <Button type="button" disabled={creer.isPending} onClick={soumettre}>
-            {creer.isPending ? t('commun:chargement.enCours') : t('ventes:reprise.actions.creer')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </form>
+    </PanneauLateral>
   );
 }

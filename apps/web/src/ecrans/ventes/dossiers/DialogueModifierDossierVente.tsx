@@ -5,16 +5,9 @@ import type { ClientResume, ReponseDossierVente, VehiculeStockResume } from '@df
 
 import { ErreurApi, messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { DateInput } from '@/components/ui/date-input';
 import { Label } from '@/components/ui/label';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { RefusBloquant } from '@/composants/motifs/RefusBloquant';
@@ -90,113 +83,130 @@ export function DialogueModifierDossierVente({ dossier, ouvert, onOuvertChange }
   }
 
   return (
-    <Dialog open={ouvert} onOpenChange={onOuvertChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{t('ventes:dossier.fiche.modifier.titre')}</DialogTitle>
-        </DialogHeader>
-
-        <div className="flex flex-col gap-4">
-          {mutation.error instanceof ErreurApi ? (
-            <RefusBloquant
-              code={mutation.error.probleme.code}
-              blocages={mutation.error.blocages}
-              actionsProposees={mutation.error.actionsProposees}
-            />
-          ) : mutation.isError ? (
-            <p className="texte-libelle text-destructive" role="alert">
-              {messageErreur(mutation.error, t)}
-            </p>
-          ) : null}
-
-          <div className="flex flex-col gap-1.5">
-            <Label>{t('ventes:dossier.fiche.modifier.vehicule')}</Label>
-            {!peutReassignerVehicule ? (
-              <p className="texte-libelle text-muted-foreground">
-                {t('ventes:dossier.fiche.modifier.vehiculeVerrouille')}
-              </p>
-            ) : vehicule ? (
-              /* DESIGN.md « bordure structurelle uniquement » — CONSERVÉE : ce bloc n'affiche pas
-               *  un groupe de contenu, il EST l'état courant du contrôle de saisie « véhicule » et
-               *  porte l'action qui le vide (« modifier »). Il occupe exactement la place du
-               *  `SelecteurVehiculeStockDossier` rendu dans l'autre branche — sans contour, la
-               *  sélection faite cesserait de se lire comme un champ rempli. Même motif que
-               *  `vehicules/DialogueRattacherClient.tsx`. */
-              <div className="flex items-center justify-between gap-3 rounded-md border p-2">
-                <IdentiteVehicule vehicule={vehicule.vehicule} />
-                <Button variant="ghost" size="sm" onClick={() => setVehicule(null)}>
-                  {t('commun:actions.modifier')}
-                </Button>
-              </div>
-            ) : (
-              <SelecteurVehiculeStockDossier
-                valeur={null}
-                onChangeValeur={(_id, v) => setVehicule(v)}
-                libelle={t('ventes:dossier.fiche.modifier.vehicule')}
-              />
-            )}
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label>{t('ventes:dossier.nouveau.clientFacture.titre')}</Label>
-            {clientFacture ? (
-              /* Bordure structurelle — même motif que le bloc « véhicule » ci-dessus : état
-               *  courant d'un contrôle de saisie + son action de retrait. */
-              <div className="flex items-center justify-between gap-3 rounded-md border p-2">
-                <IdentiteClient client={clientFacture} />
-                <Button variant="ghost" size="sm" onClick={() => setClientFacture(null)}>
-                  {t('commun:actions.modifier')}
-                </Button>
-              </div>
-            ) : (
-              <SelecteurClientDossier
-                valeur={null}
-                onChangeValeur={(_id, client) => setClientFacture(client)}
-                libelle={t('ventes:dossier.nouveau.clientFacture.titre')}
-              />
-            )}
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label>{t('ventes:dossier.nouveau.clientConducteur.titre')}</Label>
-            {clientConducteur ? (
-              /* Bordure structurelle — même motif que les deux blocs ci-dessus. */
-              <div className="flex items-center justify-between gap-3 rounded-md border p-2">
-                <IdentiteClient client={clientConducteur} />
-                <Button variant="ghost" size="sm" onClick={() => setClientConducteur(null)}>
-                  {t('commun:actions.modifier')}
-                </Button>
-              </div>
-            ) : (
-              <SelecteurClientDossier
-                valeur={null}
-                onChangeValeur={(_id, client) => setClientConducteur(client)}
-                libelle={t('ventes:dossier.nouveau.clientConducteur.titre')}
-              />
-            )}
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="dossier-vente-modifier-date-livraison">
-              {t('ventes:dossier.nouveau.dateLivraisonEstimee')}
-            </Label>
-            <DateInput
-              id="dossier-vente-modifier-date-livraison"
-              value={dateLivraisonEstimee}
-              onChange={(valeurISO: string | undefined) => setDateLivraisonEstimee(valeurISO ?? '')}
-            />
-          </div>
-        </div>
-
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline">{t('commun:actions.annuler')}</Button>
-          </DialogClose>
-          <Button disabled={mutation.isPending} onClick={soumettre}>
+    <PanneauLateral
+      ouvert={ouvert}
+      onOuvertChange={onOuvertChange}
+      titre={t('ventes:dossier.fiche.modifier.titre')}
+      pied={
+        <>
+          <Button type="button" variant="outline" onClick={() => onOuvertChange(false)}>
+            {t('commun:actions.annuler')}
+          </Button>
+          <Button type="submit" form="dossier-vente-modification" disabled={mutation.isPending}>
             {t('commun:actions.enregistrer')}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      <form
+        id="dossier-vente-modification"
+        noValidate
+        className="flex flex-col gap-4"
+        onSubmit={(evenement) => {
+          evenement.preventDefault();
+          soumettre();
+        }}
+      >
+        {mutation.error instanceof ErreurApi ? (
+          <RefusBloquant
+            code={mutation.error.probleme.code}
+            blocages={mutation.error.blocages}
+            actionsProposees={mutation.error.actionsProposees}
+          />
+        ) : mutation.isError ? (
+          <p className="texte-libelle text-destructive" role="alert">
+            {messageErreur(mutation.error, t)}
+          </p>
+        ) : null}
+
+        <div className="flex flex-col gap-1.5">
+          <Label>{t('ventes:dossier.fiche.modifier.vehicule')}</Label>
+          {!peutReassignerVehicule ? (
+            <p className="texte-libelle text-muted-foreground">
+              {t('ventes:dossier.fiche.modifier.vehiculeVerrouille')}
+            </p>
+          ) : vehicule ? (
+            /* DESIGN.md « bordure structurelle uniquement » — CONSERVÉE : ce bloc n'affiche pas
+             *  un groupe de contenu, il EST l'état courant du contrôle de saisie « véhicule » et
+             *  porte l'action qui le vide (« modifier »). Il occupe exactement la place du
+             *  `SelecteurVehiculeStockDossier` rendu dans l'autre branche — sans contour, la
+             *  sélection faite cesserait de se lire comme un champ rempli. Même motif que
+             *  `vehicules/DialogueRattacherClient.tsx`. */
+            <div className="flex items-center justify-between gap-3 rounded-md border p-2">
+              <IdentiteVehicule vehicule={vehicule.vehicule} />
+              <Button type="button" variant="ghost" size="sm" onClick={() => setVehicule(null)}>
+                {t('commun:actions.modifier')}
+              </Button>
+            </div>
+          ) : (
+            <SelecteurVehiculeStockDossier
+              valeur={null}
+              onChangeValeur={(_id, v) => setVehicule(v)}
+              libelle={t('ventes:dossier.fiche.modifier.vehicule')}
+            />
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label>{t('ventes:dossier.nouveau.clientFacture.titre')}</Label>
+          {clientFacture ? (
+            /* Bordure structurelle — même motif que le bloc « véhicule » ci-dessus : état
+             *  courant d'un contrôle de saisie + son action de retrait. */
+            <div className="flex items-center justify-between gap-3 rounded-md border p-2">
+              <IdentiteClient client={clientFacture} />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setClientFacture(null)}
+              >
+                {t('commun:actions.modifier')}
+              </Button>
+            </div>
+          ) : (
+            <SelecteurClientDossier
+              valeur={null}
+              onChangeValeur={(_id, client) => setClientFacture(client)}
+              libelle={t('ventes:dossier.nouveau.clientFacture.titre')}
+            />
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label>{t('ventes:dossier.nouveau.clientConducteur.titre')}</Label>
+          {clientConducteur ? (
+            /* Bordure structurelle — même motif que les deux blocs ci-dessus. */
+            <div className="flex items-center justify-between gap-3 rounded-md border p-2">
+              <IdentiteClient client={clientConducteur} />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setClientConducteur(null)}
+              >
+                {t('commun:actions.modifier')}
+              </Button>
+            </div>
+          ) : (
+            <SelecteurClientDossier
+              valeur={null}
+              onChangeValeur={(_id, client) => setClientConducteur(client)}
+              libelle={t('ventes:dossier.nouveau.clientConducteur.titre')}
+            />
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="dossier-vente-modifier-date-livraison">
+            {t('ventes:dossier.nouveau.dateLivraisonEstimee')}
+          </Label>
+          <DateInput
+            id="dossier-vente-modifier-date-livraison"
+            value={dateLivraisonEstimee}
+            onChange={(valeurISO: string | undefined) => setDateLivraisonEstimee(valeurISO ?? '')}
+          />
+        </div>
+      </form>
+    </PanneauLateral>
   );
 }

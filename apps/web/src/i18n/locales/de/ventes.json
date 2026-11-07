@@ -252,7 +252,6 @@
       "marquerVenduDescription": "Das Fahrzeug wechselt in den Status «Verkauft».",
       "garantie": {
         "titre": "Garantie",
-        "description": "Manuelle Eingabe — ausfüllen, sobald die Information bekannt ist, nie automatisch berechnet.",
         "debutLe": "Garantiebeginn",
         "mois": "Dauer (Monate)",
         "km": "Kilometer-Obergrenze",
@@ -610,7 +609,6 @@
       "champVehiculeIndication": "Geben Sie ein Kennzeichen oder eine Bezeichnung ein, um das eingetauschte Fahrzeug zu suchen.",
       "aucunVehiculeTrouve": "Kein Fahrzeug entspricht dieser Suche.",
       "creerVehiculeBouton": "Dieses Fahrzeug anlegen",
-      "creerVehiculeAide": "Der Kunde bringt ein Fahrzeug, das der Garage noch nicht bekannt ist? Legen Sie es mit den nötigsten Angaben an — der Rest wird später in der Fahrzeugkarte ergänzt.",
       "creerVehiculeSoumettre": "Anlegen und auswählen",
       "vehiculeSelectionne": "Ausgewähltes Fahrzeug: {designation}",
       "champValeurEstimee": "Geschätzter Wert",
@@ -649,7 +647,6 @@
       "enNegociation": "In Verhandlung",
       "ecart": "Differenz / Entgegenkommen",
       "detteResiduelle": "Restschuld aus Finanzierung",
-      "detteAide": "Aufschiebende Bedingung des Eintauschs.",
       "organisme": "Institut"
     },
     "modification": {

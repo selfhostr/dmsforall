@@ -343,11 +343,7 @@ function ActionSeuilSite({ articleId, siteId, nomSite }: PropsActionSeuilSite) {
                 disabled={modifier.isPending}
                 onChange={(evenement) => setSaisie(evenement.target.value)}
                 aria-invalid={erreurSaisie ? true : undefined}
-                aria-describedby={`${champId}-aide`}
               />
-              <p id={`${champId}-aide`} className="texte-libelle text-muted-foreground">
-                {t('pieces:stock.seuilSite.champAide')}
-              </p>
             </div>
 
             {erreurSaisie ? (

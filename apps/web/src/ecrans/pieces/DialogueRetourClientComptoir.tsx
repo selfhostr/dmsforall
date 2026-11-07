@@ -4,15 +4,9 @@ import { useTranslation } from 'react-i18next';
 import type { ResultatRechercheComptoirArticle } from '@dfa/shared';
 
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { useRetourClientComptoir } from '@/hooks/pieces/useVenteComptoirPieces';
 
 import { messageErreurMutation } from './messages-erreur-mutation';
@@ -77,71 +71,12 @@ export function DialogueRetourClientComptoir({ ouvert, onOuvertChange, siteId, a
   }
 
   return (
-    <Dialog open={ouvert} onOpenChange={onOuvertChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t('pieces:comptoirVente.retour.titre')}</DialogTitle>
-        </DialogHeader>
-
-        <div className="flex flex-col gap-groupe">
-          <LegendeChampsObligatoires>
-            {t('commun:formulaires.champsObligatoiresLegende')}
-          </LegendeChampsObligatoires>
-
-          <div className="flex flex-col gap-0.5">
-            <span className="font-medium">{article.designation}</span>
-            <span className="font-mono texte-libelle text-muted-foreground">
-              {article.referencePrincipale}
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-champ">
-            <Label htmlFor="retour-quantite" requis>
-              {t('pieces:comptoirVente.retour.quantite')}
-            </Label>
-            <Input
-              id="retour-quantite"
-              type="text"
-              inputMode="decimal"
-              required
-              autoFocus
-              readOnly={enCours}
-              value={quantiteSaisie}
-              onChange={(evenement) => setQuantiteSaisie(evenement.target.value)}
-            />
-            <span className="texte-libelle text-muted-foreground">
-              {t('pieces:comptoirVente.vente.disponible', {
-                n: formaterQuantiteMillieme(article.quantiteDisponibleMillieme),
-              })}
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-champ">
-            <Label htmlFor="retour-motif" requis>
-              {t('pieces:comptoirVente.retour.motif')}
-            </Label>
-            <Input
-              id="retour-motif"
-              required
-              readOnly={enCours}
-              value={motif}
-              onChange={(evenement) => setMotif(evenement.target.value)}
-            />
-          </div>
-
-          {erreurValidation ? (
-            <p className="texte-libelle text-statut-attention" role="alert">
-              {erreurValidation}
-            </p>
-          ) : null}
-          {erreur ? (
-            <p className="texte-libelle text-destructive" role="alert">
-              {messageErreurMutation(erreur, t)}
-            </p>
-          ) : null}
-        </div>
-
-        <DialogFooter>
+    <PanneauLateral
+      ouvert={ouvert}
+      onOuvertChange={onOuvertChange}
+      titre={t('pieces:comptoirVente.retour.titre')}
+      pied={
+        <>
           <Button
             type="button"
             variant="outline"
@@ -153,8 +88,66 @@ export function DialogueRetourClientComptoir({ ouvert, onOuvertChange, siteId, a
           <Button type="button" disabled={enCours} onClick={soumettre}>
             {enCours ? t('commun:chargement.enCours') : t('pieces:comptoirVente.retour.confirmer')}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-groupe">
+        <LegendeChampsObligatoires>
+          {t('commun:formulaires.champsObligatoiresLegende')}
+        </LegendeChampsObligatoires>
+
+        <div className="flex flex-col gap-0.5">
+          <span className="font-medium">{article.designation}</span>
+          <span className="font-mono texte-libelle text-muted-foreground">
+            {article.referencePrincipale}
+          </span>
+        </div>
+
+        <div className="flex flex-col gap-champ">
+          <Label htmlFor="retour-quantite" requis>
+            {t('pieces:comptoirVente.retour.quantite')}
+          </Label>
+          <Input
+            id="retour-quantite"
+            type="text"
+            inputMode="decimal"
+            required
+            autoFocus
+            readOnly={enCours}
+            value={quantiteSaisie}
+            onChange={(evenement) => setQuantiteSaisie(evenement.target.value)}
+          />
+          <span className="texte-libelle text-muted-foreground">
+            {t('pieces:comptoirVente.vente.disponible', {
+              n: formaterQuantiteMillieme(article.quantiteDisponibleMillieme),
+            })}
+          </span>
+        </div>
+
+        <div className="flex flex-col gap-champ">
+          <Label htmlFor="retour-motif" requis>
+            {t('pieces:comptoirVente.retour.motif')}
+          </Label>
+          <Input
+            id="retour-motif"
+            required
+            readOnly={enCours}
+            value={motif}
+            onChange={(evenement) => setMotif(evenement.target.value)}
+          />
+        </div>
+
+        {erreurValidation ? (
+          <p className="texte-libelle text-statut-attention" role="alert">
+            {erreurValidation}
+          </p>
+        ) : null}
+        {erreur ? (
+          <p className="texte-libelle text-destructive" role="alert">
+            {messageErreurMutation(erreur, t)}
+          </p>
+        ) : null}
+      </div>
+    </PanneauLateral>
   );
 }
