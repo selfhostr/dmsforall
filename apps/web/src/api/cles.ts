@@ -38,6 +38,7 @@ export const clesQuery = {
     prestations: (q?: string) => ['referentiels', 'prestations', q ?? ''] as const,
     techniciens: (site: string) => ['referentiels', 'techniciens', site] as const,
     motifsRdv: () => ['referentiels', 'motifsRdv'] as const,
+    motifsRdvActifs: () => ['referentiels', 'motifsRdv', 'actifs'] as const,
     checklists: () => ['referentiels', 'checklists'] as const,
   },
 
@@ -70,6 +71,7 @@ export const clesQuery = {
     plage: (site: string, du: string, au: string) => ['rdv', 'plage', site, du, au] as const,
     detail: (id: string) => ['rdv', 'detail', id] as const,
     charge: (site: string, du: string, au: string) => ['rdv', 'charge', site, du, au] as const,
+    resumeSites: (du: string, au: string) => ['rdv', 'resume-sites', du, au] as const,
   },
 
   or: {

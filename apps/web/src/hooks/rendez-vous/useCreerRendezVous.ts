@@ -36,6 +36,7 @@ export function useCreerRendezVous(): UseMutationResult<
     onSuccess: (reponse) => {
       queryClient.setQueryData(clesQuery.rdv.detail(reponse.donnees.id), reponse.donnees);
       void queryClient.invalidateQueries({ queryKey: ['rdv', 'plage'] });
+      void queryClient.invalidateQueries({ queryKey: ['rdv', 'resume-sites'] });
       void queryClient.invalidateQueries({ queryKey: ['rdv', 'charge'] });
     },
   });

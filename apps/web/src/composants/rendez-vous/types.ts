@@ -74,8 +74,8 @@ export interface EntreeHistoriqueRendezVous {
  *  dans le panneau détaillé. */
 export interface RendezVousDetail extends RendezVousCarte {
   readonly siteNom: string;
-  /** E-mail du client — absent de `ClientResume` (liste de RDV), chargé à l'ouverture du panneau
-   *  depuis la fiche client. `undefined` = pas encore chargé, `null` = non renseigné. */
+  /** E-mail du client, embarqué dans `ClientResume.email` du rendez-vous. `null` = non renseigné ;
+   *  `undefined` = absent de la réponse. */
   readonly clientEmail?: string | null;
   readonly remarque: string | null;
   readonly motifAnnulation: string | null;

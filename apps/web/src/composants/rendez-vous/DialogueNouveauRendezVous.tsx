@@ -328,14 +328,13 @@ export function DialogueNouveauRendezVous({
                   <SelectValue placeholder={t('planning:champs.motifPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {/* Un motif désactivé (`actif === false`) n'est plus proposé à la prise de RDV. */}
-                  {motifsDisponibles
-                    .filter((motif) => motif.actif !== false)
-                    .map((motif) => (
-                      <SelectItem key={motif.id} value={motif.id}>
-                        {libelleMotif(motif, langue)}
-                      </SelectItem>
-                    ))}
+                  {/* `motifsDisponibles` vient de `GET /motifs-rendez-vous?actifs=true` : le
+                      serveur a déjà écarté les motifs désactivés. */}
+                  {motifsDisponibles.map((motif) => (
+                    <SelectItem key={motif.id} value={motif.id}>
+                      {libelleMotif(motif, langue)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               {erreursChamps.motifId ? (

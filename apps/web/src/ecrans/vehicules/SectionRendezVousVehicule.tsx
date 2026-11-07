@@ -110,7 +110,7 @@ export function SectionRendezVousVehicule({ vehicule, detenteur, site }: Props) 
   const peutVoirRendezVous = peutLireRendezVous(session.data?.utilisateur.role);
 
   const requeteRdv = useRendezVousAVenirVehicule(vehicule.id, { enabled: peutVoirRendezVous });
-  const requeteMotifs = useMotifsRendezVous();
+  const requeteMotifs = useMotifsRendezVous({ actifs: true });
   const creation = useCreationRendezVous();
 
   /** « jj.mm.aaaa · nom du site » — le créneau seul ne dit ni quel jour ni quel site. */

@@ -9,6 +9,7 @@ import type {
   ReponseMotifRendezVous,
   ReponseRendezVous,
   ReponseRendezVousAvecAvertissements,
+  ResumeSiteRendezVous,
 } from '@dfa/shared';
 
 import { requeteApi } from '@/api/client';
@@ -68,12 +69,29 @@ export async function capaciteRendezVous(
   return capacite ?? { siteId: filtres.siteId, jours: [] };
 }
 
-/** `GET /motifs-rendez-vous` — catalogue des motifs, avec durée par défaut (RV-01/RV-02). */
-export async function listerMotifsRendezVous(): Promise<readonly ReponseMotifRendezVous[]> {
-  const motifs = await requeteApi<ReponseMotifRendezVous[]>('/motifs-rendez-vous', {
+/** `GET /motifs-rendez-vous` — catalogue des motifs, avec durée par défaut (RV-01/RV-02).
+ *  `actifs: true` : seulement les motifs proposables à la prise de rendez-vous (filtre serveur) ;
+ *  absent : tous, actifs et inactifs (l'écran de paramétrage réactive les inactifs). */
+export async function listerMotifsRendezVous(
+  filtres: { readonly actifs?: boolean } = {},
+): Promise<readonly ReponseMotifRendezVous[]> {
+  const requete = filtres.actifs === undefined ? '' : `?actifs=${String(filtres.actifs)}`;
+  const motifs = await requeteApi<ReponseMotifRendezVous[]>(`/motifs-rendez-vous${requete}`, {
     method: 'GET',
   });
   return motifs ?? [];
+}
+
+/** `GET /rendez-vous/resume-sites?du&au` — rendez-vous non annulés par site, tous sites en un appel. */
+export async function resumerRendezVousParSite(
+  du: string,
+  au: string,
+): Promise<readonly ResumeSiteRendezVous[]> {
+  const resume = await requeteApi<ResumeSiteRendezVous[]>(
+    `/rendez-vous/resume-sites?du=${encodeURIComponent(du)}&au=${encodeURIComponent(au)}`,
+    { method: 'GET' },
+  );
+  return resume ?? [];
 }
 
 /** `POST /rendez-vous` — `Idempotency-Key` OBLIGATOIRE (choix produit #2 : motif obligatoire, un
