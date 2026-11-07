@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AccesBase, ContexteTenant } from '../../../db';
 import { schema } from '../../../db';
 import { ServiceTauxHoraires } from './service-taux-horaires';
@@ -40,6 +40,8 @@ interface OptionsAcces {
   readonly ligneUpdate?: schema.LigneTauxHoraire | undefined;
   readonly ligneSelectUnitaire?: schema.LigneTauxHoraire | undefined;
   readonly erreurUpdate?: unknown;
+  /** Journal des écritures : valeurs `set()` des UPDATE et `values()` des INSERT, dans l'ordre. */
+  readonly journal?: { updates: unknown[]; inserts: unknown[] };
 }
 
 function accesFactice(options: OptionsAcces): AccesBase {
@@ -55,22 +57,31 @@ function accesFactice(options: OptionsAcces): AccesBase {
       }),
     }),
     insert: () => ({
-      values: () => ({
+      values: (valeurs: unknown) => ({
         returning: () => {
+          options.journal?.inserts.push(valeurs);
           if (options.erreurInsert) return Promise.reject(options.erreurInsert);
           return Promise.resolve(options.ligneInsert ? [options.ligneInsert] : []);
         },
       }),
     }),
     update: () => ({
-      set: () => ({
-        where: () => ({
-          returning: () => {
-            if (options.erreurUpdate) return Promise.reject(options.erreurUpdate);
-            return Promise.resolve(options.ligneUpdate ? [options.ligneUpdate] : []);
+      set: (valeurs: unknown) => {
+        options.journal?.updates.push(valeurs);
+        return {
+          where: () => {
+            const ecriture = options.erreurUpdate
+              ? Promise.reject(options.erreurUpdate)
+              : Promise.resolve([]);
+            return Object.assign(ecriture, {
+              returning: () => {
+                if (options.erreurUpdate) return Promise.reject(options.erreurUpdate);
+                return Promise.resolve(options.ligneUpdate ? [options.ligneUpdate] : []);
+              },
+            });
           },
-        }),
-      }),
+        };
+      },
     }),
   };
   return {
@@ -160,32 +171,214 @@ describe('ServiceTauxHoraires.creer', () => {
 });
 
 describe('ServiceTauxHoraires.modifier', () => {
-  it('met à jour et projette la ligne', async () => {
+  // Aujourd'hui (Zurich) = 2026-08-10 ; la période de test court depuis 2026-01-01, sans fin.
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-10T10:00:00.000Z'));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function journalVide() {
+    return { updates: [] as unknown[], inserts: [] as unknown[] };
+  }
+
+  it('libellé seul : mis à jour en place, aucune nouvelle période', async () => {
+    const journal = journalVide();
     const service = new ServiceTauxHoraires(
-      accesFactice({ ligneUpdate: ligne({ libelle: 'Renommé' }) }),
+      accesFactice({
+        ligneSelectUnitaire: ligne(),
+        ligneUpdate: ligne({ libelle: 'Renommé' }),
+        journal,
+      }),
     );
-    const dto = await service.modifier(CTX, 'th-1', { libelle: 'Renommé' });
+    const dto = await service.modifier(CTX, ID_TH_1, { libelle: 'Renommé' });
     expect(dto.libelle).toBe('Renommé');
+    expect(journal.updates).toEqual([{ libelle: 'Renommé' }]);
+    expect(journal.inserts).toEqual([]);
   });
 
   it('corps vide : relit sans écrire', async () => {
-    const service = new ServiceTauxHoraires(accesFactice({ ligneSelectUnitaire: ligne() }));
-    const dto = await service.modifier(CTX, 'th-1', {});
+    const journal = journalVide();
+    const service = new ServiceTauxHoraires(
+      accesFactice({ ligneSelectUnitaire: ligne(), journal }),
+    );
+    const dto = await service.modifier(CTX, ID_TH_1, {});
     expect(dto.code).toBe('MEC');
+    expect(journal.updates).toEqual([]);
+    expect(journal.inserts).toEqual([]);
   });
 
   it('id introuvable pour ce tenant : RESSOURCE_INTROUVABLE', async () => {
-    const service = new ServiceTauxHoraires(accesFactice({ ligneUpdate: undefined }));
+    const service = new ServiceTauxHoraires(accesFactice({}));
     await expect(service.modifier(CTX, 'absent', { libelle: 'X' })).rejects.toMatchObject({
       code: 'RESSOURCE_INTROUVABLE',
     });
   });
 
-  it('extension de période en collision (23P01) : 409 CONFLIT', async () => {
+  it('nouveau montant sur la période en cours : clôt la précédente à aujourd’hui (borne exclusive, dernier jour couvert = la veille) et ouvre une nouvelle période datée d’aujourd’hui', async () => {
+    const journal = journalVide();
     const service = new ServiceTauxHoraires(
-      accesFactice({ erreurUpdate: { code: '23P01', message: 'exclusion violation' } }),
+      accesFactice({
+        ligneSelectUnitaire: ligne({ montantCentimes: 14500 }),
+        ligneInsert: ligne({
+          id: ID_TH_RECENT,
+          montantCentimes: 15000,
+          valideDu: '2026-08-10',
+          valideAu: null,
+        }),
+        journal,
+      }),
     );
-    await expect(service.modifier(CTX, 'th-1', { valideAuLe: null })).rejects.toMatchObject({
+
+    const dto = await service.modifier(CTX, ID_TH_1, { montantCentimes: 15000 });
+
+    expect(journal.updates).toEqual([{ valideAu: '2026-08-10' }]);
+    expect(journal.inserts).toEqual([
+      {
+        tenantId: 'tid',
+        code: 'MEC',
+        libelle: 'Mécanique générale',
+        montantCentimes: 15000,
+        valideDu: '2026-08-10',
+        valideAu: null,
+      },
+    ]);
+    expect(dto).toMatchObject({
+      id: ID_TH_RECENT,
+      montantCentimes: 15000,
+      valideDuLe: '2026-08-10',
+      valideAuLe: null,
+    });
+  });
+
+  it('valideDuLe futur fourni : la nouvelle période démarre à cette date, l’ancienne s’arrête là', async () => {
+    const journal = journalVide();
+    const service = new ServiceTauxHoraires(
+      accesFactice({
+        ligneSelectUnitaire: ligne(),
+        ligneInsert: ligne({ id: ID_TH_RECENT, valideDu: '2026-09-01' }),
+        journal,
+      }),
+    );
+    await service.modifier(CTX, ID_TH_1, {
+      montantCentimes: 16000,
+      valideDuLe: '2026-09-01',
+      libelle: 'Nouveau libellé',
+    });
+    expect(journal.updates).toEqual([{ valideAu: '2026-09-01' }]);
+    expect(journal.inserts).toEqual([
+      expect.objectContaining({
+        libelle: 'Nouveau libellé',
+        montantCentimes: 16000,
+        valideDu: '2026-09-01',
+        valideAu: null,
+      }),
+    ]);
+  });
+
+  it('la nouvelle période hérite d’une fin future de l’ancienne', async () => {
+    const journal = journalVide();
+    const service = new ServiceTauxHoraires(
+      accesFactice({
+        ligneSelectUnitaire: ligne({ valideAu: '2026-12-31' }),
+        ligneInsert: ligne({ id: ID_TH_RECENT }),
+        journal,
+      }),
+    );
+    await service.modifier(CTX, ID_TH_1, { montantCentimes: 16000 });
+    expect(journal.inserts).toEqual([
+      expect.objectContaining({ valideDu: '2026-08-10', valideAu: '2026-12-31' }),
+    ]);
+  });
+
+  it('valideDuLe dans le passé avec un nouveau montant : refusé (400), rien n’est écrit', async () => {
+    const journal = journalVide();
+    const service = new ServiceTauxHoraires(
+      accesFactice({ ligneSelectUnitaire: ligne(), journal }),
+    );
+    await expect(
+      service.modifier(CTX, ID_TH_1, { montantCentimes: 16000, valideDuLe: '2026-08-09' }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ECHOUEE' });
+    expect(journal.updates).toEqual([]);
+    expect(journal.inserts).toEqual([]);
+  });
+
+  it('valideDuLe sans changement de montant sur une période en cours : refusé (400)', async () => {
+    const service = new ServiceTauxHoraires(accesFactice({ ligneSelectUnitaire: ligne() }));
+    await expect(
+      service.modifier(CTX, ID_TH_1, { valideDuLe: '2026-09-01' }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ECHOUEE' });
+  });
+
+  it('montant identique à l’actuel : pas de nouvelle période (mise à jour en place du reste)', async () => {
+    const journal = journalVide();
+    const service = new ServiceTauxHoraires(
+      accesFactice({ ligneSelectUnitaire: ligne(), ligneUpdate: ligne(), journal }),
+    );
+    await service.modifier(CTX, ID_TH_1, { montantCentimes: 14500, libelle: 'X' });
+    expect(journal.inserts).toEqual([]);
+  });
+
+  it('période close : 409 CONFLIT, aucune écriture', async () => {
+    const journal = journalVide();
+    const service = new ServiceTauxHoraires(
+      accesFactice({ ligneSelectUnitaire: ligne({ valideAu: '2026-08-10' }), journal }),
+    );
+    await expect(service.modifier(CTX, ID_TH_1, { libelle: 'X' })).rejects.toMatchObject({
+      code: 'CONFLIT',
+    });
+    await expect(service.modifier(CTX, ID_TH_1, { montantCentimes: 99999 })).rejects.toMatchObject({
+      code: 'CONFLIT',
+    });
+    expect(journal.updates).toEqual([]);
+    expect(journal.inserts).toEqual([]);
+  });
+
+  it('période pas encore commencée : montant et dates se modifient en place (rien d’historique)', async () => {
+    const journal = journalVide();
+    const service = new ServiceTauxHoraires(
+      accesFactice({
+        ligneSelectUnitaire: ligne({ valideDu: '2026-09-01' }),
+        ligneUpdate: ligne({ valideDu: '2026-10-01', montantCentimes: 15500 }),
+        journal,
+      }),
+    );
+    await service.modifier(CTX, ID_TH_1, { montantCentimes: 15500, valideDuLe: '2026-10-01' });
+    expect(journal.updates).toEqual([{ montantCentimes: 15500, valideDu: '2026-10-01' }]);
+    expect(journal.inserts).toEqual([]);
+  });
+
+  it('période commencée aujourd’hui et nouveau montant daté d’aujourd’hui : correction en place (la précédente serait vide)', async () => {
+    const journal = journalVide();
+    const service = new ServiceTauxHoraires(
+      accesFactice({
+        ligneSelectUnitaire: ligne({ valideDu: '2026-08-10' }),
+        ligneUpdate: ligne({ valideDu: '2026-08-10', montantCentimes: 15000 }),
+        journal,
+      }),
+    );
+    await service.modifier(CTX, ID_TH_1, { montantCentimes: 15000 });
+    expect(journal.updates).toEqual([{ montantCentimes: 15000 }]);
+    expect(journal.inserts).toEqual([]);
+  });
+
+  it('fin de période fixée dans le passé : refusé (400)', async () => {
+    const service = new ServiceTauxHoraires(accesFactice({ ligneSelectUnitaire: ligne() }));
+    await expect(
+      service.modifier(CTX, ID_TH_1, { valideAuLe: '2026-08-10' }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ECHOUEE' });
+  });
+
+  it('nouvelle période en collision avec une période future (23P01) : 409 CONFLIT', async () => {
+    const service = new ServiceTauxHoraires(
+      accesFactice({
+        ligneSelectUnitaire: ligne(),
+        erreurInsert: { code: '23P01', message: 'exclusion violation' },
+      }),
+    );
+    await expect(service.modifier(CTX, ID_TH_1, { montantCentimes: 16000 })).rejects.toMatchObject({
       code: 'CONFLIT',
     });
   });

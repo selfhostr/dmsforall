@@ -68,6 +68,7 @@ function versResultatParcours(
     designation: article.designation,
     referencePrincipale: article.referencePrincipale,
     prixVenteTtcCentimes: article.prixVenteTtcCentimes,
+    prixAchatCentimes: article.prixAchatCentimes,
     quantiteDisponibleMillieme: stock?.quantiteDisponibleMillieme ?? 0,
     statutSuivi,
     emplacement: stock?.emplacement ?? null,

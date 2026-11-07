@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { schemaDateJour, schemaIdentifiant } from '../atelier/primitives';
+import { schemaDateJour } from '../atelier/primitives';
 import type { ReponseAvecAvertissements } from '../atelier/avertissement';
 import {
   CIBLES_EXPORT,
@@ -143,7 +143,6 @@ export const schemaApercuExport = z
     cible: z.enum(CIBLES_EXPORT).default('winbiz'),
     periodeDu: schemaDateJour,
     periodeAu: schemaDateJour,
-    siteId: schemaIdentifiant.optional(),
   })
   .strict();
 export type EntreeApercuExport = z.infer<typeof schemaApercuExport>;
@@ -152,7 +151,6 @@ export interface ApercuExport {
   readonly cible: CibleExport;
   readonly periodeDu: string;
   readonly periodeAu: string;
-  readonly siteId: string | null;
   readonly documents: {
     readonly nbFactures: number;
     readonly nbAvoirs: number;

@@ -175,7 +175,7 @@ export function EcranNouvelleCommandeFournisseur() {
     articleId: string,
     numeroArticle: string,
     designation: string,
-    prixVenteTtcCentimes: number,
+    prixAchatCentimes: number | null,
   ) {
     if (idsDejaAjoutes.has(articleId)) return;
     setLignes((valeur) => [
@@ -185,7 +185,8 @@ export function EcranNouvelleCommandeFournisseur() {
         numeroArticle,
         designation,
         quantiteSaisie: '1',
-        prixAttenduCentimes: prixVenteTtcCentimes,
+        // Prix d'ACHAT seulement (jamais le prix de vente) ; null = champ laissé vide.
+        prixAttenduCentimes: prixAchatCentimes,
         quantiteSuggereeManquante: false,
       },
     ]);
@@ -383,7 +384,7 @@ export function EcranNouvelleCommandeFournisseur() {
                             resultat.articleId,
                             resultat.numeroArticle,
                             resultat.designation,
-                            resultat.prixVenteTtcCentimes,
+                            resultat.prixAchatCentimes,
                           )
                         }
                         // Bordure CONSERVÉE (DESIGN.md) : ce `<button>` EST le contrôle — chaque

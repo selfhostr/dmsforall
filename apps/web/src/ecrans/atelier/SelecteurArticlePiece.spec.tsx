@@ -21,6 +21,7 @@ const PLAQUETTES: ResultatRechercheComptoirArticle = {
   designation: 'Plaquettes avant',
   referencePrincipale: 'REF-PLAQ-1',
   prixVenteTtcCentimes: 6850,
+  prixAchatCentimes: null,
   quantiteDisponibleMillieme: 3000,
   statutSuivi: 'suivi',
   emplacement: 'A-12',

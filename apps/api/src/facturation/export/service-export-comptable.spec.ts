@@ -15,6 +15,7 @@ import type { LigneDocumentVente } from '../../db/schema';
 import { ErreurMetier } from '../../common/erreurs';
 import { FiltreProbleme } from '../../common/erreurs/filtre-probleme';
 import type { ServiceIdempotence } from '../../common/idempotence';
+import { ErreurExportWinbiz } from './winbiz';
 
 /**
  * Preuve ciblée du correctif : les 14 `throw new ErreurMetier(...)` de ce service portaient leur
@@ -322,4 +323,73 @@ describe('ServiceExportComptable.lancer — prérequis affichables (blocages)', 
       expect(e.status).toBe(501);
     },
   );
+});
+
+describe('ServiceExportComptable — ErreurExportWinbiz traduite au bord en 422 EXPORT_WINBIZ_INVALIDE', () => {
+  it("une ErreurExportWinbiz de l'adaptateur devient une ErreurMetier 422 au detail lisible, rendue en problem+json (pas un 500)", () => {
+    const winbiz = {
+      genererLots: () => {
+        throw new ErreurExportWinbiz(
+          'COMPTE_INVALIDE',
+          'Numéro de compte trop long : 1234567890123',
+          'F-000123',
+        );
+      },
+    };
+    const service = new ServiceExportComptable(
+      {} as never,
+      winbiz as never,
+      {} as never,
+      {} as never,
+    );
+    const produireLot = (
+      service as unknown as {
+        produireLot: (e: EntreeLancerExport, ecr: unknown[], c: Map<string, string>) => unknown;
+      }
+    ).produireLot.bind(service);
+
+    let capturee: unknown;
+    try {
+      produireLot(
+        { cible: 'winbiz', periodeDu: '2026-08-01', periodeAu: '2026-08-31' },
+        [],
+        new Map(),
+      );
+    } catch (e) {
+      capturee = e;
+    }
+
+    expect(capturee).toBeInstanceOf(ErreurMetier);
+    const { statut, corps } = corpsProduitParLeFiltre(capturee);
+    expect(statut).toBe(422);
+    expect(corps).toMatchObject({ code: 'EXPORT_WINBIZ_INVALIDE' });
+    expect((corps as { detail?: string }).detail).toBe(
+      'Numéro de compte trop long : 1234567890123 (écriture F-000123)',
+    );
+  });
+
+  it('une erreur qui n’est pas une ErreurExportWinbiz est relancée telle quelle', () => {
+    const winbiz = {
+      genererLots: () => {
+        throw new TypeError('boom');
+      },
+    };
+    const service = new ServiceExportComptable(
+      {} as never,
+      winbiz as never,
+      {} as never,
+      {} as never,
+    );
+    expect(() =>
+      (
+        service as unknown as {
+          produireLot: (e: EntreeLancerExport, ecr: unknown[], c: Map<string, string>) => unknown;
+        }
+      ).produireLot(
+        { cible: 'winbiz', periodeDu: '2026-08-01', periodeAu: '2026-08-31' },
+        [],
+        new Map(),
+      ),
+    ).toThrow(TypeError);
+  });
 });

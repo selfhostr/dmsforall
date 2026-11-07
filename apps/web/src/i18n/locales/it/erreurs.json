@@ -110,6 +110,7 @@
     "EXPORT_ECRITURES_DESEQUILIBREES": "Le registrazioni contabili non sono bilanciate. Contatta il tuo revisore.",
     "EXPORT_MAPPING_INCOMPLET": "La mappatura contabile non e completa per questo target. Contatta il tuo revisore.",
     "EXPORT_DEJA_TRANSMIS": "Questo documento e gia stato inviato al revisore. Contatta il tuo revisore per gli adeguamenti.",
+    "EXPORT_WINBIZ_INVALIDE": "Una registrazione non può essere esportata nel formato WinBIZ. Verifica conti e importi o contatta il tuo revisore.",
     "BASCULE_FIDUCIAIRE_HORS_FRONTIERE": "Il cambio di revisore non e possibile durante il mese. Attendi la fine del periodo.",
     "ARTICLE_REFERENCE_COLLISION": "Questo riferimento è già utilizzato da un altro articolo.",
     "ARTICLE_REMPLACANT_REQUIS": "Indica l'articolo che sostituisce questo.",

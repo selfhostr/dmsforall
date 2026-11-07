@@ -81,7 +81,15 @@ export class TauxHorairesController {
   @Patch(':id')
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOperation({
-    summary: 'Modifie partiellement une période de taux horaire (jamais son `code`).',
+    summary:
+      'Modifie une période de taux horaire (jamais son `code`) — un nouveau montant ouvre une nouvelle période.',
+    description:
+      "Un changement de `montantCentimes` sur la période en cours n'écrase PAS la période : il ouvre une " +
+      "NOUVELLE période datée d'aujourd'hui (ou de `valideDuLe` fourni, qui ne peut pas être dans le passé) et " +
+      'clôt la précédente à cette date (`valideAuLe` est une borne exclusive : la veille est le dernier jour couvert). ' +
+      "La réponse est la période résultante (la nouvelle). Les lignes d'OR déjà créées gardent leur taux figé. " +
+      'Le libellé et la fin de période (`valideAuLe`, dans le futur) se modifient en place. Une période pas encore ' +
+      'commencée se modifie entièrement en place. Une période déjà close répond 409 `CONFLIT`.',
   })
   @ApiResponse({
     status: 200,
@@ -92,7 +100,7 @@ export class TauxHorairesController {
   @ApiReponseProbleme(404, 'RESSOURCE_INTROUVABLE — taux horaire inconnu de ce tenant.')
   @ApiReponseProbleme(
     409,
-    'CONFLIT — nouvelle période chevauchant une période valide existante du même code.',
+    'CONFLIT — période déjà close (immuable), ou nouvelle période chevauchant une période valide existante du même code.',
   )
   async modifier(
     @Param('id', new PipeZod(schemaIdentifiant)) id: string,

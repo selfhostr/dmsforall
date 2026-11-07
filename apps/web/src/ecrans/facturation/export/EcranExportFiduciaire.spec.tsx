@@ -66,7 +66,6 @@ function apercu(surcharge: Partial<ApercuExport> = {}): ApercuExport {
     cible: 'winbiz',
     periodeDu: '2026-10-01',
     periodeAu: '2026-10-31',
-    siteId: null,
     documents: { nbFactures: 12, nbAvoirs: 2, aExporter: 14, dejaExportes: 3 },
     encaissements: { aExporter: 9, dejaExportes: 1, imputationsAExporter: 9 },
     totaux: { htCentimes: 1000000, tvaCentimes: 81000, ttcCentimes: 1081000 },

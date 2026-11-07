@@ -175,6 +175,9 @@ export const CODES_ERREUR = [
   // RF-109, MD-92 : un document déjà exporté ne repart pas dans un autre lot sans une action
   // d'exploitation explicite et tracée — évite le double comptage découvert au bouclement.
   'EXPORT_DEJA_TRANSMIS',
+  // L'adaptateur WinBIZ refuse une écriture qu'il ne sait pas sérialiser fidèlement (compte trop
+  // long, date ou montant invalide, écriture non décomposable…) : 422, le `detail` dit laquelle.
+  'EXPORT_WINBIZ_INVALIDE',
   // RF-112, RF-113 : changement de cible, de granularité ou de mapping refusé hors d'une
   // frontière de période comptable — jamais en cours de mois.
   'BASCULE_FIDUCIAIRE_HORS_FRONTIERE',
@@ -432,6 +435,7 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   EXPORT_ECRITURES_DESEQUILIBREES: 409,
   EXPORT_MAPPING_INCOMPLET: 409,
   EXPORT_DEJA_TRANSMIS: 409,
+  EXPORT_WINBIZ_INVALIDE: 422,
   BASCULE_FIDUCIAIRE_HORS_FRONTIERE: 409,
   ARTICLE_REFERENCE_COLLISION: 409,
   ARTICLE_REMPLACANT_REQUIS: 400,
@@ -565,6 +569,7 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   EXPORT_ECRITURES_DESEQUILIBREES: 'Écritures comptables déséquilibrées',
   EXPORT_MAPPING_INCOMPLET: 'Mapping comptable incomplet',
   EXPORT_DEJA_TRANSMIS: 'Document déjà transmis à la fiduciaire',
+  EXPORT_WINBIZ_INVALIDE: 'Écriture refusée par le format WinBIZ',
   BASCULE_FIDUCIAIRE_HORS_FRONTIERE: 'Bascule de fiduciaire hors frontière de période',
   ARTICLE_REFERENCE_COLLISION: 'Référence déjà portée par un autre article',
   ARTICLE_REMPLACANT_REQUIS: 'Référence de remplacement requise',

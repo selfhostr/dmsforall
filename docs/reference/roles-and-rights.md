@@ -11,7 +11,7 @@ Every user has one role. The role decides what the user can read, create and cha
 | ---------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | `direction`      | Management              | All rights on the garage: workshop, invoicing, stock (including receiving supplier orders and validating supplier invoices), sales, settings. |
 | `admin`          | Technical administrator | Accounts, sites and settings. No rights on money, stock or sales.                                                                             |
-| `comptable`      | Accounting              | Payments, accounting exports, reading of invoices and supplier invoices.                                                                      |
+| `comptable`      | Accounting              | Payments, accounting exports, reading of invoices and supplier invoices. Reads the creditor block (IBAN) but cannot change it.                |
 | `receptionnaire` | Counter                 | Quotes, invoices and payments. Credit notes up to a ceiling.                                                                                  |
 | `vendeur`        | Sales                   | New and used car sales, quotes, invoices and payments.                                                                                        |
 | `chef_atelier`   | Workshop manager        | Repair orders and quotes. Drafts documents, but does not issue invoices or credit notes.                                                      |

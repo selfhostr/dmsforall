@@ -285,6 +285,7 @@ export interface DonneesRechercheComptoir {
   readonly designation: string;
   readonly referencePrincipale: string;
   readonly prixVenteTtcCentimes: number;
+  readonly prixAchatCentimes: number | null;
   readonly quantitePhysiqueMillieme: number | null;
   readonly quantiteReserveeMillieme: number | null;
   readonly suiviQuelquePart: boolean;
@@ -297,6 +298,7 @@ export interface DonneesRechercheComptoir {
 
 export function versRechercheComptoirResultat(
   donnees: DonneesRechercheComptoir,
+  role: RoleUtilisateur,
 ): ResultatRechercheComptoirArticle {
   const suivi = donnees.quantitePhysiqueMillieme !== null;
   const statutSuivi: StatutSuiviStockArticle = suivi
@@ -310,6 +312,9 @@ export function versRechercheComptoirResultat(
     designation: donnees.designation,
     referencePrincipale: donnees.referencePrincipale,
     prixVenteTtcCentimes: donnees.prixVenteTtcCentimes,
+    prixAchatCentimes: ROLES_SANS_PRIX_ACHAT_PIECES.includes(role)
+      ? null
+      : donnees.prixAchatCentimes,
     quantiteDisponibleMillieme: suivi
       ? (donnees.quantitePhysiqueMillieme ?? 0) - (donnees.quantiteReserveeMillieme ?? 0)
       : 0,

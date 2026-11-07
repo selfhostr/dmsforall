@@ -218,6 +218,7 @@ export class ServiceArticle {
    */
   async rechercheComptoir(
     ctx: ContexteTenant,
+    role: RoleUtilisateur,
     params: { readonly q: string; readonly siteId: string; readonly limite: number },
   ): Promise<readonly ResultatRechercheComptoirArticle[]> {
     return this.acces.enTenant(ctx, async (tx) => {
@@ -228,6 +229,7 @@ export class ServiceArticle {
         designation: string;
         referencePrincipale: string;
         prixVenteTtcCentimes: number;
+        prixAchatCentimes: number | null;
         quantitePhysiqueMillieme: number | null;
         quantiteReserveeMillieme: number | null;
         suiviQuelquePart: boolean;
@@ -240,6 +242,7 @@ export class ServiceArticle {
         select a.id as "articleId", coalesce(a.numero_article, '') as "numeroArticle",
                a.designation as "designation", a.reference_principale as "referencePrincipale",
                a.prix_vente_ttc_centimes as "prixVenteTtcCentimes",
+               a.prix_achat_centimes as "prixAchatCentimes",
                s.quantite_physique_millieme as "quantitePhysiqueMillieme",
                s.quantite_reservee_millieme as "quantiteReserveeMillieme",
                exists (
@@ -266,7 +269,7 @@ export class ServiceArticle {
          order by a.designation asc, a.id asc
          limit ${params.limite}
       `);
-      return resultat.rows.map((ligne) => versRechercheComptoirResultat(ligne));
+      return resultat.rows.map((ligne) => versRechercheComptoirResultat(ligne, role));
     });
   }
 

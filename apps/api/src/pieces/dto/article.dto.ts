@@ -211,6 +211,15 @@ export class ResultatRechercheComptoirArticleDto implements ResultatRechercheCom
   readonly prixVenteTtcCentimes!: number;
 
   @ApiProperty({
+    type: Number,
+    nullable: true,
+    description:
+      "Dernier prix d'achat connu (centimes). null pour vendeur, réceptionnaire, technicien et admin " +
+      "(masquage serveur, comme ReponseArticle.prixAchatCentimes) ou si l'article n'a pas de prix d'achat.",
+  })
+  readonly prixAchatCentimes!: number | null;
+
+  @ApiProperty({
     description:
       "Fiable UNIQUEMENT si statutSuivi = 'suivi' ; sinon vaut 0 par convention et NE DOIT PAS " +
       'être lu comme un stock nul — voir statutSuivi.',

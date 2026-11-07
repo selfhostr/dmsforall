@@ -54,14 +54,12 @@ export class ServiceApercuExport {
         between(documentVente.dateDocument, entree.periodeDu, entree.periodeAu),
         eq(documentVente.devise, 'CHF'),
       ];
-      if (entree.siteId) conditionsDocs.push(eq(documentVente.siteId, entree.siteId));
       const conditionsPaiements = [
         eq(paiement.tenantId, ctx.tenantId),
         isNotNull(paiement.exporteLe),
         between(paiement.dateValeur, entree.periodeDu, entree.periodeAu),
         eq(paiement.devise, 'CHF'),
       ];
-      if (entree.siteId) conditionsPaiements.push(eq(paiement.siteId, entree.siteId));
 
       const [[docsDeja], [paiementsDeja]] = await Promise.all([
         tx
@@ -91,7 +89,6 @@ export class ServiceApercuExport {
         cible: entree.cible,
         periodeDu: entree.periodeDu,
         periodeAu: entree.periodeAu,
-        siteId: entree.siteId ?? null,
         documents: {
           nbFactures: synthese.nbFactures,
           nbAvoirs: synthese.nbAvoirs,

@@ -112,7 +112,6 @@ export class ApercuExportDto implements ApercuExport {
   @ApiProperty({ enum: CIBLES_EXPORT }) readonly cible!: CibleExport;
   @ApiProperty({ format: 'date' }) readonly periodeDu!: string;
   @ApiProperty({ format: 'date' }) readonly periodeAu!: string;
-  @ApiProperty({ format: 'uuid', nullable: true }) readonly siteId!: string | null;
   @ApiProperty({ type: () => ApercuDocumentsDto }) readonly documents!: ApercuDocumentsDto;
   @ApiProperty({ type: () => ApercuEncaissementsDto })
   readonly encaissements!: ApercuEncaissementsDto;

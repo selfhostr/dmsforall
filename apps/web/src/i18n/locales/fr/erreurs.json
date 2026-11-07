@@ -110,6 +110,7 @@
     "EXPORT_ECRITURES_DESEQUILIBREES": "Les écritures comptables ne sont pas équilibrées. Contactez votre fiduciaire.",
     "EXPORT_MAPPING_INCOMPLET": "Le mapping comptable n'est pas complet pour cette cible. Contactez votre fiduciaire.",
     "EXPORT_DEJA_TRANSMIS": "Ce document a déjà été transmis à la fiduciaire. Contactez votre fiduciaire pour des ajustements.",
+    "EXPORT_WINBIZ_INVALIDE": "Une écriture ne peut pas être exportée au format WinBIZ. Vérifiez les comptes et les montants, ou contactez votre fiduciaire.",
     "BASCULE_FIDUCIAIRE_HORS_FRONTIERE": "Changement de fiduciaire impossible en cours de mois. Attendez la fin de la période.",
     "ARTICLE_REFERENCE_COLLISION": "Cette référence est déjà utilisée par un autre article.",
     "ARTICLE_REMPLACANT_REQUIS": "Indiquez l'article qui remplace celui-ci.",
