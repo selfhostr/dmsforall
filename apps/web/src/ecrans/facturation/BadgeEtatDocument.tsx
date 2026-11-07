@@ -1,7 +1,8 @@
 import { Ban, Lock, PencilLine, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { cn } from '@/lib/utils';
+import { BadgeStatut } from '@/composants/identite/BadgeStatut';
+import type { FormeBadge, TokenStatut } from '@/composants/identite/BadgeStatut';
 
 /**
  * État affiché du document de vente — `design-etape-2-facturation.md` §2.1. Volontairement
@@ -13,24 +14,17 @@ import { cn } from '@/lib/utils';
  */
 export type EtatDocumentAffichable = 'brouillon' | 'emis' | 'annule_par_avoir';
 
-type TokenStatut = 'neutre' | 'terminal';
-
 interface EntreeEtat {
   readonly cle: string;
   readonly icone: LucideIcon;
   readonly token: TokenStatut;
-  readonly forme: 'plein' | 'contour';
+  readonly forme: FormeBadge;
 }
 
 const CONFIG_ETAT: Readonly<Record<EtatDocumentAffichable, EntreeEtat>> = {
   brouillon: { cle: 'brouillon', icone: PencilLine, token: 'neutre', forme: 'contour' },
   emis: { cle: 'emis', icone: Lock, token: 'terminal', forme: 'contour' },
   annule_par_avoir: { cle: 'annuleParAvoir', icone: Ban, token: 'neutre', forme: 'contour' },
-};
-
-const CLASSES_CONTOUR: Readonly<Record<TokenStatut, string>> = {
-  neutre: 'border-statut-neutre bg-background text-statut-neutre',
-  terminal: 'border-statut-terminal bg-background text-statut-terminal',
 };
 
 interface Props {
@@ -43,18 +37,15 @@ interface Props {
 export function BadgeEtatDocument({ etat, className }: Props) {
   const { t } = useTranslation('facturation');
   const config = CONFIG_ETAT[etat];
-  const Icone = config.icone;
 
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 texte-libelle font-medium',
-        CLASSES_CONTOUR[config.token],
-        className,
-      )}
+    <BadgeStatut
+      icone={config.icone}
+      token={config.token}
+      forme={config.forme}
+      className={className}
     >
-      <Icone aria-hidden className="h-3.5 w-3.5 shrink-0" />
       {t(`facturation:document.etat.${config.cle}`)}
-    </span>
+    </BadgeStatut>
   );
 }
