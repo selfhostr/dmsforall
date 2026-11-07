@@ -7,17 +7,17 @@
     "import": "Importazione"
   },
   "depot": {
-    "titre": "Caricate l'archivio del vostro vecchio programma",
-    "description": "Trascinate il file qui, oppure sceglietelo sul vostro computer. È l'unica cosa che vi chiediamo — il resto avviene da solo.",
+    "titre": "Carichi l'archivio del suo vecchio programma",
+    "description": "Trascini il file qui, oppure lo scelga sul suo computer. È l'unica cosa che Le chiediamo — il resto avviene da solo.",
     "zone": {
-      "instruction": "Trascinate il file qui, oppure premete Invio per sceglierlo",
+      "instruction": "Trascini il file qui, oppure prema Invio per sceglierlo",
       "survol": "Rilasciate il file qui",
       "boutonChoisir": "Scegliere un file"
     },
     "reprise": {
       "titre": "Caricamento interrotto",
-      "description": "Un caricamento è stato interrotto al {pourcent, number, ::percent}. Ricaricate lo stesso file per continuare da dove si era fermato — nulla verrà rinviato inutilmente.",
-      "fichierDifferent": "Questo file non è quello del caricamento in corso. Ricaricate lo stesso file dell'ultima volta, oppure annullate questo caricamento per iniziarne uno nuovo."
+      "description": "Un caricamento è stato interrotto al {pourcent, number, ::percent}. Ricarichi lo stesso file per continuare da dove si era fermato — nulla verrà rinviato inutilmente.",
+      "fichierDifferent": "Questo file non è quello del caricamento in corso. Ricarichi lo stesso file dell'ultima volta, oppure annulli questo caricamento per iniziarne uno nuovo."
     },
     "phase": {
       "verification": "Verifica dell'archivio prima dell'invio…",
@@ -29,35 +29,35 @@
     },
     "erreur": {
       "titre": "L'invio non è potuto continuare",
-      "reseau": "La connessione è stata interrotta. Verificate la vostra connessione internet, poi riprovate — l'invio riprenderà da dove si era fermato.",
-      "integrite": "L'archivio ricevuto non corrisponde a quello inviato. Riprovate il caricamento.",
+      "reseau": "La connessione è stata interrotta. Verifichi la sua connessione internet, poi riprovi — l'invio riprenderà da dove si era fermato.",
+      "integrite": "L'archivio ricevuto non corrisponde a quello inviato. Riprovi il caricamento.",
       "tailleInattendue": "Questo file non ha la stessa dimensione di quello del caricamento in corso.",
-      "generique": "Il caricamento non è potuto andare a buon fine. Riprovate — nulla di ciò che è già stato inviato viene perso.",
+      "generique": "Il caricamento non è potuto andare a buon fine. Riprovi — nulla di ciò che è già stato inviato viene perso.",
       "reessayer": "Riprovare"
     },
-    "aideFormat": "Il file atteso è l'archivio completo (ZIP) del vostro vecchio programma di gestione officina."
+    "aideFormat": "Il file atteso è l'archivio completo (ZIP) del suo vecchio programma di gestione officina."
   },
   "analyse": {
-    "titre": "Stiamo esaminando il vostro archivio",
-    "description": "Questa fase è automatica e può richiedere alcuni minuti a seconda delle dimensioni del vostro archivio. Non dovete fare nulla — potete chiudere questa pagina e tornare più tardi, la ripresa continua.",
+    "titre": "Stiamo esaminando il suo archivio",
+    "description": "Questa fase è automatica e può richiedere alcuni minuti a seconda delle dimensioni del suo archivio. Non deve fare nulla — può chiudere questa pagina e tornare più tardi, la ripresa continua.",
     "enCours": "Analisi in corso…",
     "echouee": {
       "titre": "L'analisi non è riuscita",
-      "description": "Non siamo riusciti a esaminare il vostro archivio. Non serve ricaricarlo — riprovate semplicemente l'analisi.",
+      "description": "Non siamo riusciti a esaminare il suo archivio. Non serve ricaricarlo — riprovi semplicemente l'analisi.",
       "reessayer": "Riprovare l'analisi",
       "motif": {
-        "archive_volume_extrait_excessif": "Una volta aperto, il vostro archivio è troppo voluminoso per essere elaborato. Contattate il nostro supporto: prepareremo un caricamento adatto alle dimensioni dei vostri dati."
+        "archive_volume_extrait_excessif": "Una volta aperto, il suo archivio è troppo voluminoso per essere elaborato. Contatti il nostro supporto: prepareremo un caricamento adatto alle dimensioni dei suoi dati."
       }
     },
     "partielle": "Alcuni file dell'archivio non hanno potuto essere letti, ma il resto è stato esaminato normalmente.",
     "moteur": {
-      "reconnu": "Il vostro vecchio programma è stato riconosciuto.",
-      "inconnu": "Il tipo del vostro vecchio programma non ha potuto essere identificato con certezza, ma l'analisi si è comunque svolta."
+      "reconnu": "Il suo vecchio programma è stato riconosciuto.",
+      "inconnu": "Il tipo del suo vecchio programma non ha potuto essere identificato con certezza, ma l'analisi si è comunque svolta."
     }
   },
   "plan": {
     "titre": "Ciò che verrà ripreso",
-    "description": "Ecco ciò che abbiamo trovato nel vostro archivio. Deselezionate un ambito se non desiderate riprenderlo — tutto il resto parte poi automaticamente.",
+    "description": "Ecco ciò che abbiamo trovato nel suo archivio. Deselezioni un ambito se non desidera riprenderlo — tutto il resto parte poi automaticamente.",
     "volumeAttendu": "{count, plural, one {circa # riga} other {circa # righe}}",
     "inclure": "Riprendere {domaine}",
     "exclu": {
@@ -67,15 +67,15 @@
         "comptabilite_non_reprise": "Contabilità generale — non ripresa, solo i saldi aperti vengono ripresi.",
         "hors_perimetre_temporel": "Fuori dal periodo ripreso.",
         "role_indetermine": "Non siamo riusciti a determinare con sufficiente certezza cosa contenessero questi dati.",
-        "table_vide": "Questi dati sono vuoti nel vostro archivio.",
+        "table_vide": "Questi dati sono vuoti nel suo archivio.",
         "document_non_rattachable": "Questi documenti scansionati non hanno potuto essere collegati a una fattura o a un ordine di riparazione.",
         "doublon_table_meme_role": "Questi dati sono duplicati altrove nell'archivio — viene ripresa solo la versione più affidabile.",
-        "exclusion_manuelle": "Avete scelto di non riprendere questo ambito."
+        "exclusion_manuelle": "Ha scelto di non riprendere questo ambito."
       }
     },
     "action": {
       "lancer": "Avviare l'importazione",
-      "confirmation": "L'importazione parte non appena confermate — non dovrete fare altro."
+      "confirmation": "L'importazione parte non appena confermi — non dovrà fare altro."
     },
     "vide": {
       "titre": "Nulla da riprendere",
@@ -83,32 +83,32 @@
     }
   },
   "domaines": {
-    "clients": "I vostri clienti",
-    "vehicules": "I vostri veicoli",
-    "ordres_reparation": "La vostra cronologia officina (OR)",
-    "documents_vente": "Le vostre fatture e offerte",
-    "paiements": "I vostri pagamenti",
-    "articles_stock": "Il vostro magazzino ricambi",
-    "fournisseurs": "I vostri fornitori",
-    "documents_scannes": "I vostri documenti scansionati",
-    "pneus": "Il vostro deposito pneumatici",
-    "ventes_vn_vo": "Le vostre pratiche di vendita (nuovo/usato)",
-    "relances": "I vostri solleciti"
+    "clients": "I suoi clienti",
+    "vehicules": "I suoi veicoli",
+    "ordres_reparation": "La sua cronologia officina (OR)",
+    "documents_vente": "Le sue fatture e offerte",
+    "paiements": "I suoi pagamenti",
+    "articles_stock": "Il suo magazzino ricambi",
+    "fournisseurs": "I suoi fornitori",
+    "documents_scannes": "I suoi documenti scansionati",
+    "pneus": "Il suo deposito pneumatici",
+    "ventes_vn_vo": "Le sue pratiche di vendita (nuovo/usato)",
+    "relances": "I suoi solleciti"
   },
   "import": {
     "titre": "Importazione in corso",
-    "description": "I vostri dati sono in fase di ripresa. Questa fase può richiedere tempo — potete chiudere questa pagina e tornare più tardi.",
+    "description": "I suoi dati sono in fase di ripresa. Questa fase può richiedere tempo — può chiudere questa pagina e tornare più tardi.",
     "domaineCourant": "In corso: {domaine}",
     "progression": "{traites} su {total} elementi ripresi ({pourcent, number, ::percent})",
     "echoue": {
       "titre": "L'importazione si è interrotta",
-      "description": "Una parte dei vostri dati è già stata ripresa (vedi dettaglio sotto). Potete rilanciare l'importazione — i dati già ripresi non verranno mai duplicati.",
+      "description": "Una parte dei suoi dati è già stata ripresa (vedi dettaglio sotto). Può rilanciare l'importazione — i dati già ripresi non verranno mai duplicati.",
       "relancer": "Rilanciare l'importazione",
       "tentative": "Tentativo n. {numero}"
     },
     "termine": {
       "titre": "Ripresa completata",
-      "description": "Tutti i vostri dati sono stati ripresi."
+      "description": "Tutti i suoi dati sono stati ripresi."
     }
   },
   "rapport": {
@@ -121,7 +121,7 @@
       "titre": "Scartato",
       "compte": "{count, plural, one {# elemento} other {# elementi}}",
       "motif": {
-        "ligne_invalide": "Dato illeggibile o incompleto nel vostro vecchio programma.",
+        "ligne_invalide": "Dato illeggibile o incompleto nel suo vecchio programma.",
         "reference_manquante": "Un'informazione necessaria (cliente, veicolo…) era mancante.",
         "doublon_deja_importe": "Già ripreso durante un tentativo precedente.",
         "hors_perimetre_temporel": "Fuori dal periodo ripreso.",
@@ -131,7 +131,7 @@
     "anomaliesTronquees": "Esistono altri scarti, non dettagliati qui — i totali sopra restano esatti.",
     "reconciliation": {
       "titre": "Verifica per anno",
-      "description": "Il numero di documenti e gli importi trovati nel vostro vecchio programma, confrontati con ciò che è stato ripreso. Uno scarto pari a zero conferma che nulla è andato perso.",
+      "description": "Il numero di documenti e gli importi trovati nel suo vecchio programma, confrontati con ciò che è stato ripreso. Uno scarto pari a zero conferma che nulla è andato perso.",
       "annee": "Anno {annee}",
       "colonneAnnee": "Anno",
       "documentsSource": "Documenti nel vecchio programma",
@@ -149,7 +149,7 @@
     "titre": "Annullare questa ripresa",
     "description": "Questa azione interrompe la ripresa in corso. Resta tracciata e non cancella alcun dato già inserito in dmsforall.",
     "motif": {
-      "libelle": "Perché annullate?",
+      "libelle": "Perché annulli?",
       "aide": "Almeno 3 caratteri."
     },
     "confirmer": "Confermare l'annullamento",
@@ -157,15 +157,15 @@
   },
   "dossierAnnule": {
     "titre": "Ripresa annullata",
-    "description": "Questa ripresa è stata annullata. Potete caricare un nuovo archivio in qualsiasi momento.",
+    "description": "Questa ripresa è stata annullata. Può caricare un nuovo archivio in qualsiasi momento.",
     "nouveau": "Caricare un nuovo archivio"
   },
   "vide": {
     "titre": "Nessuna ripresa in corso",
-    "description": "Non avete ancora avviato una ripresa dati."
+    "description": "Non ha ancora avviato una ripresa dati."
   },
   "erreurChargement": {
     "titre": "Impossibile visualizzare la ripresa",
-    "description": "Si è verificato un errore nel recupero dello stato della vostra ripresa dati."
+    "description": "Si è verificato un errore nel recupero dello stato della sua ripresa dati."
   }
 }

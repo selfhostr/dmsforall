@@ -57,7 +57,7 @@
   "lignes": {
     "titre": "Lavori",
     "vide": "Nessun lavoro registrato.",
-    "ajouter": "Aggiungi lavoro o ricambio",
+    "ajouter": "Aggiungere lavoro o ricambio",
     "tronquees": "Alcune righe non sono visualizzate qui (limite raggiunto) — consultare l'elenco completo.",
     "groupes": {
       "aValider": "Da approvare",
@@ -124,14 +124,14 @@
     },
     "marqueurs": {
       "securite": "Sicurezza",
-      "securiteAide": "Blocca la restituzione del veicolo finché non è firmata una riserva scritta.",
+      "securiteAide": "Blocchi la restituzione del veicolo finché non è firmata una riserva scritta.",
       "pieceARestituer": "Ricambio da restituire",
       "fournieParClient": "Fornito dal cliente",
       "attentePiece": "In attesa ricambio",
       "tempsPartage": "Tempo condiviso"
     },
     "saisieRapide": {
-      "placeholder": "Inserisci descrizione (Ctrl+Invio)",
+      "placeholder": "Inserire descrizione (Ctrl+Invio)",
       "aide": "Inserimento rapido: Invio crea, Maiusc+Invio rimane in riga, Esc abbandona. Alt+T/R/F/P/S per tipo",
       "raccourcis": {
         "travail": "Alt+T = manodopera forfettaria",
@@ -142,18 +142,18 @@
       }
     },
     "actions": {
-      "valider": "Approva",
-      "refuser": "Rifiuta",
-      "annuler": "Annulla",
-      "dupliquer": "Duplica",
+      "valider": "Approvare",
+      "refuser": "Rifiutare",
+      "annuler": "Annullare",
+      "dupliquer": "Duplicare",
       "affecterTechnicien": "Assegna tecnico",
-      "changerPayeur": "Cambia chi paga"
+      "changerPayeur": "Cambiare chi paga"
     },
     "annulation": {
-      "titre": "Annulla lavoro",
+      "titre": "Annullare lavoro",
       "motifRequis": "Il motivo è obbligatorio",
       "motifPlaceholder": "Motivo dell'annullamento",
-      "confirmer": "Conferma annullamento"
+      "confirmer": "Confermare annullamento"
     },
     "champs": {
       "referenceTexte": "Riferimento"
@@ -164,20 +164,20 @@
       "calculMainOeuvre": "{temps} × {taux}/h"
     },
     "selecteurArticle": {
-      "label": "Cerca un pezzo in magazzino",
+      "label": "Cercare un pezzo in magazzino",
       "placeholder": "Descrizione, riferimento o codice a barre",
       "recherche": "Ricerca in corso…",
-      "aucunResultat": "Nessun articolo trovato in magazzino. Puoi inserire il pezzo manualmente qui sotto.",
+      "aucunResultat": "Nessun articolo trovato in magazzino. Può inserire il pezzo manualmente qui sotto.",
       "resultats": "{count, plural, one {# risultato} other {# risultati}}",
       "choisi": "Scelto dal magazzino",
-      "changer": "Cerca un altro pezzo",
+      "changer": "Cercare un altro pezzo",
       "prixConverti": "Prezzo di catalogo {prixTtc} IVA inclusa, convertito in netto (IVA {taux} %).",
       "parcours": {
-        "aide": "Digita un riferimento preciso per cercare, oppure scegli direttamente dal catalogo qui sotto.",
-        "vide": "Nessun articolo attivo nel catalogo di questa sede al momento. Puoi inserire il pezzo manualmente qui sotto."
+        "aide": "Digiti un riferimento preciso per cercare, oppure scelga direttamente dal catalogo qui sotto.",
+        "vide": "Nessun articolo attivo nel catalogo di questa sede al momento. Può inserire il pezzo manualmente qui sotto."
       },
       "erreur": {
-        "reessayer": "Riprova",
+        "reessayer": "Riprovare",
         "parcours": "Impossibile caricare il catalogo del magazzino. {message}"
       },
       "disponibilite": {
@@ -191,19 +191,19 @@
       "avertissementStock": {
         "titre": "Confermare una quantità superiore allo stock?",
         "description": "{quantite} richiesti per {disponible} disponibili in questa sede. Il pezzo mancante può essere ordinato separatamente.",
-        "confirmer": "Aggiungi comunque"
+        "confirmer": "Aggiungere comunque"
       }
     },
     "groupees": {
       "colonneSelection": "Selezione",
-      "selectionnerLigne": "Seleziona {designation}",
-      "validerTitre": "{count, plural, one {Approva # riga} other {Approva # righe}}",
+      "selectionnerLigne": "Selezionare {designation}",
+      "validerTitre": "{count, plural, one {Approvare # riga} other {Approvare # righe}}",
       "refuserTitre": "{count, plural, one {Rifiuta # riga} other {Rifiuta # righe}}",
-      "annulerTitre": "{count, plural, one {Annulla # riga} other {Annulla # righe}}"
+      "annulerTitre": "{count, plural, one {Annullare # riga} other {Annullare # righe}}"
     },
     "attenteAccord": {
       "indicateur": "In attesa dell'accordo del cliente",
-      "ajouteeBureau": "Lavoro aggiunto, in attesa dell'accordo del cliente. Usate «Accordo del cliente» sulla riga.",
+      "ajouteeBureau": "Lavoro aggiunto, in attesa dell'accordo del cliente. Usi «Accordo del cliente» sulla riga.",
       "ajouteeAtelier": "Lavoro aggiunto, in attesa dell'accordo del cliente. L'ufficio lo vede su questo OR."
     },
     "reporter": {
@@ -213,7 +213,7 @@
   "demandes": {
     "titre": "Richieste del cliente",
     "verbatim": "Richieste del cliente",
-    "ajouter": "Aggiungi",
+    "ajouter": "Aggiungere",
     "aide": "Le richieste non vengono mai riformulate – mantengono i termini esatti del cliente",
     "jamaisReformule": "Conservato come dichiarato"
   },
@@ -221,14 +221,14 @@
     "libelle": "Tetto di spesa",
     "restant": "{restant} rimanente",
     "depasse": "Tetto superato di {depasse}",
-    "modifier": "Modifica tetto",
+    "modifier": "Modificare tetto",
     "autorisePar": "Autorizzato da",
     "zeroSignifieAccordSysteme": "Zero = qualsiasi lavoro aggiuntivo richiede approvazione"
   },
   "devisComplementaire": {
     "titre": "Preventivi supplementari",
     "numero": "Preventivo #{numero}",
-    "creer": "Crea nuovo preventivo",
+    "creer": "Creare nuovo preventivo",
     "lignesSoumises": "Lavori sottoposti",
     "nouveauPlafond": "Nuovo tetto richiesto",
     "impactRestitution": "Impatto su restituzione",
@@ -248,7 +248,7 @@
       "interlocuteur": "Persona che ha risposto",
       "interlocuteurRequis": "Il nome è obbligatorio",
       "retranscription": "Nota libera",
-      "enregistrer": "Salva risposta"
+      "enregistrer": "Salvare risposta"
     },
     "enAttenteDepuis": "In sospeso da {duree}",
     "immuable": "Risposta registrata – non modificabile"
@@ -279,23 +279,23 @@
     "manquante": "Mancante",
     "signee": "Firmato {date} alle {heure} da {nom}",
     "differee": "Rinviato",
-    "faireSigner": "Fai firmare",
+    "faireSigner": "Far firmare",
     "langueDocument": "Lingua: {langue}",
-    "nonEnregistree": "Firma non registrata – non chiudere questa finestra"
+    "nonEnregistree": "Firma non registrata – non chiuda questa finestra"
   },
   "transitions": {
-    "receptionner": "Accetta veicolo",
+    "receptionner": "Accettare veicolo",
     "demarrer": "Avvia i lavori",
-    "passerEnControle": "Passa a controllo",
-    "refuserControle": "Rifiuta il controllo",
+    "passerEnControle": "Passare a controllo",
+    "refuserControle": "Rifiutare il controllo",
     "validerControle": "Valida controllo",
     "terminer": "Lavori terminati",
     "facturer": "Fattura",
-    "restituer": "Restituisci veicolo",
-    "cloturer": "Chiudi",
-    "annuler": "Annulla ordine",
-    "rouvrir": "Riapri",
-    "reprendreTravaux": "Riprendi lavori",
+    "restituer": "Restituire veicolo",
+    "cloturer": "Chiudere",
+    "annuler": "Annullare ordine",
+    "rouvrir": "Riaprire",
+    "reprendreTravaux": "Riprendere lavori",
     "facturerEncaisser": "Fatturare e incassare"
   },
   "refus": {
@@ -303,7 +303,7 @@
     "pointageOuvert": "Ci sono timbrature aperte. Sono elencate di seguito.",
     "ligneNonRealisee": "Alcuni lavori approvati non sono stati eseguiti. Sono elencati di seguito.",
     "receptionRequise": "Il veicolo deve essere accettato prima di poter lavorare su di esso.",
-    "orFacture": "Un ordine fatturato non può essere riaperto direttamente. Crea un ordine di rilavorazione collegato.",
+    "orFacture": "Un ordine fatturato non può essere riaperto direttamente. Crei un ordine di rilavorazione collegato.",
     "checklistIncomplete": "Checklist incompleta. Punti mancanti elencati di seguito.",
     "poManquant": "Il numero del buono d'ordine del cliente è obbligatorio.",
     "reserveSecuriteRequise": "Una dichiarazione di sicurezza deve essere sottoscritta prima della restituzione."
@@ -338,7 +338,7 @@
   "liste": {
     "titre": "Ordini di riparazione",
     "actions": {
-      "nouveau": "Crea un OR"
+      "nouveau": "Creare un OR"
     },
     "colonnes": {
       "numero": "N. ordine",
@@ -355,7 +355,7 @@
       "attenteToutes": "Tutte"
     },
     "tri": {
-      "label": "Ordina per",
+      "label": "Ordinare per",
       "ouvertLeDesc": "Apertura (più recenti)",
       "ouvertLeAsc": "Apertura (più vecchi)",
       "restitutionPromiseLeAsc": "Restituzione più vicina",
@@ -370,7 +370,7 @@
     "vide": {
       "premierUsage": {
         "titre": "Nessun ordine di riparazione",
-        "description": "Apritene uno non appena arriva un veicolo."
+        "description": "Apra uno non appena arriva un veicolo."
       },
       "recherche": {
         "titre": "Nessun ordine trovato",
@@ -387,7 +387,7 @@
       "titre": "Impossibile caricare l'ordine di riparazione"
     },
     "montantIndisponible": "Non comunicato",
-    "controleurAuto": "Sarete registrati come controllore.",
+    "controleurAuto": "Lei sarà registrato come controllore.",
     "erreurSection": {
       "titre": "Sezione non disponibile"
     },
@@ -428,7 +428,7 @@
     "aideDistinction": "«Totale validato» segue il tetto di spesa dell'OR (righe già validate, tutti i pagatori insieme) — non è un importo da fatturare. Per comunicare un importo, usare la riga del pagatore interessato qui sopra."
   },
   "nouveau": {
-    "titre": "Crea un OR",
+    "titre": "Creare un OR",
     "siteManquant": {
       "titre": "Nessuna sede selezionata",
       "description": "Selezionare una sede prima di aprire un ordine di riparazione: la numerazione e i parametri dell'ordine di riparazione ne dipendono.",
@@ -439,8 +439,8 @@
     },
     "client": {
       "requisTitre": "Nessun cliente selezionato",
-      "requisDescription": "Cercate prima il cliente, poi aprite un ordine di riparazione dalla sua scheda.",
-      "creerAction": "Crea un nuovo cliente",
+      "requisDescription": "Cerchi prima il cliente, poi apra un ordine di riparazione dalla sua scheda.",
+      "creerAction": "Creare un nuovo cliente",
       "creerTitre": "Nuovo cliente"
     },
     "vehicule": {
@@ -448,9 +448,9 @@
       "aucun": "Questo cliente non ha alcun veicolo registrato a suo nome.",
       "erreur": "Impossibile caricare i veicoli di questo cliente",
       "ajouter": {
-        "action": "Aggiungi un veicolo",
+        "action": "Aggiungere un veicolo",
         "titre": "Nuovo veicolo di questo cliente",
-        "valider": "Salva il veicolo",
+        "valider": "Salvare il veicolo",
         "enCours": "Salvataggio…"
       }
     },
@@ -474,41 +474,41 @@
     },
     "demandes": {
       "placeholder": "Descrivere la richiesta del cliente, testualmente…",
-      "retirer": "Rimuovi questa richiesta"
+      "retirer": "Rimuovere questa richiesta"
     },
     "erreur": {
       "titre": "Impossibile aprire l'ordine di riparazione"
     },
     "confirmation": {
       "vehiculeDeuxOrOuverts": "Già aperto per questo veicolo: {numeros}. Aprire comunque un nuovo ordine di riparazione?",
-      "ouvrirOr": "Apri l'OR {numero} (nuova scheda)"
+      "ouvrirOr": "Aprire l'OR {numero} (nuova scheda)"
     },
     "actions": {
-      "creer": "Apri l'ordine di riparazione",
+      "creer": "Aprire l'ordine di riparazione",
       "enCours": "Apertura in corso…",
-      "ignorerBrouillon": "Ignora la bozza"
+      "ignorerBrouillon": "Ignorare la bozza"
     },
     "rapide": {
-      "titre": "Apri un ordine",
-      "intro": "Digitate la targa: veicolo e cliente vengono ritrovati. Altrimenti completate qualche informazione qui sotto, tutto viene creato in una volta.",
+      "titre": "Aprire un ordine",
+      "intro": "Digiti la targa: veicolo e cliente vengono ritrovati. Altrimenti completi qualche informazione qui sotto, tutto viene creato in una volta.",
       "plaque": "Targa",
       "plaqueExemple": "VD 123456",
       "plaqueAide": "Spazi e trattini sono ignorati.",
       "vehicule": {
         "titre": "Veicolo",
-        "requis": "Digitate la targa del veicolo o sceglietelo dall’elenco.",
-        "choisir": "Scegliete un veicolo dall’elenco o indicate un altro veicolo."
+        "requis": "Digiti la targa del veicolo o lo scelga dall’elenco.",
+        "choisir": "Scelga un veicolo dall’elenco o indichi un altro veicolo."
       },
       "vehiculesTrouves": "{count, plural, one {# veicolo corrisponde} other {# veicoli corrispondono}}",
       "vehiculesDuClient": "Veicoli di questo cliente",
       "autreVehicule": "Nessuno di questi: altro veicolo",
-      "plaqueInconnue": "Targa sconosciuta. Indicate marca e modello, il veicolo sarà creato con l’ordine.",
-      "nouveauVehicule": "Altro veicolo: indicate marca e modello.",
-      "retourListe": "Torna all’elenco",
+      "plaqueInconnue": "Targa sconosciuta. Indichi marca e modello, il veicolo sarà creato con l’ordine.",
+      "nouveauVehicule": "Altro veicolo: indichi marca e modello.",
+      "retourListe": "Tornare all’elenco",
       "rechercheErreur": "Ricerca impossibile",
       "orDejaOuvert": "Ordine già aperto",
       "anciennePlaque": "Vecchia targa",
-      "changer": "Cambia",
+      "changer": "Cambiare",
       "invalide": "Valore non valido.",
       "client": {
         "titre": "Cliente",
@@ -520,8 +520,8 @@
         "telephone": "Telefono",
         "adressePlusTard": "L’indirizzo si completa più tardi, dalla scheda del cliente.",
         "similaires": "Forse esiste già un cliente con questo nome:",
-        "chercherExistant": "Cerca un cliente esistente",
-        "requis": "Scegliete un cliente o createne uno."
+        "chercherExistant": "Cercare un cliente esistente",
+        "requis": "Scelga un cliente o ne crei uno."
       },
       "ordre": {
         "titre": "Ordine di riparazione",
@@ -529,11 +529,11 @@
       },
       "echec": {
         "titre": "Non è stato possibile aprire l’OR",
-        "reprise": "L’inserimento è conservato: riprova, nulla verrà creato due volte."
+        "reprise": "L’inserimento è conservato: riprovi, nulla verrà creato due volte."
       },
-      "reessayer": "Riprova",
+      "reessayer": "Riprovare",
       "ancienParcours": "Percorso dettagliato",
-      "clientIntrouvable": "Questo cliente non è stato trovato: sceglietelo di nuovo qui sotto."
+      "clientIntrouvable": "Questo cliente non è stato trovato: lo scelga di nuovo qui sotto."
     }
   },
   "accordClient": {
@@ -547,13 +547,13 @@
       "email": "E-mail"
     },
     "horodatage": "Data e ora vengono registrate adesso.",
-    "enregistrer": "Registra l'accordo",
+    "enregistrer": "Registrare l'accordo",
     "action": "Accordo del cliente",
     "description": "{count, plural, one {Il cliente ha dato l'accordo per # lavoro. Sarà convalidato.} other {Il cliente ha dato l'accordo per # lavori. Saranno convalidati.}}",
     "pourTous": "{count, plural, one {Accordo del cliente per il lavoro proposto} other {Accordo del cliente per i # lavori proposti}}"
   },
   "lignesEnAttente": {
-    "annuler": "Annulla",
+    "annuler": "Annullare",
     "motifRetrait": "Tolto dall'OR: accordo del cliente non ottenuto.",
     "titre": "{count, plural, one {# lavoro attende ancora l'accordo del cliente} other {# lavori attendono ancora l'accordo del cliente}}",
     "description": "{count, plural, one {Questo lavoro è «Proposta»: né accettato né rifiutato. Cosa fare prima di «{action}»?} other {Questi lavori sono «Proposta»: né accettati né rifiutati. Cosa fare prima di «{action}»?}}",
@@ -567,10 +567,10 @@
   },
   "consignes": {
     "fournirMotif": "Il chilometraggio inserito è inferiore all'ultima lettura ({km} km). Correggetelo se è un errore di battitura.",
-    "signerReserveSecurite": "Fate firmare la riserva di sicurezza al cliente, poi ripetete la riconsegna.",
+    "signerReserveSecurite": "Faccia firmare la riserva di sicurezza al cliente, poi ripeta la riconsegna.",
     "demanderHabilitation": "Questa azione è riservata a un responsabile. Chiedetegli di confermarla.",
     "controleQualite": "Il controllo qualità è obbligatorio per questa officina: l'OR deve passare in controllo prima di essere terminato.",
-    "receptionnerIndisponible": "Il veicolo deve prima essere accettato. Il vostro ruolo non lo consente: rivolgetevi all'accettazione."
+    "receptionnerIndisponible": "Il veicolo deve prima essere accettato. Il suo ruolo non lo consente: si rivolga all'accettazione."
   },
   "renseignerPo": {
     "titre": "Indicare il n. d'ordine",
@@ -578,8 +578,8 @@
   },
   "erreurs": {
     "transitionInterdite": {
-      "avecStatut": "Questa azione non è possibile: l'OR è « {statut} ». Ricaricate la pagina e scegliete tra i pulsanti proposti.",
-      "sansStatut": "Questa azione non è possibile in questa fase dell'OR. Ricaricate la pagina e scegliete tra i pulsanti proposti."
+      "avecStatut": "Questa azione non è possibile: l'OR è « {statut} ». Ricarichi la pagina e scelga tra i pulsanti proposti.",
+      "sansStatut": "Questa azione non è possibile in questa fase dell'OR. Ricarichi la pagina e scelga tra i pulsanti proposti."
     }
   },
   "travauxReportes": {
@@ -590,26 +590,26 @@
   "courtoisie": {
     "action": "Veicolo di cortesia",
     "titre": "Veicolo di cortesia",
-    "description": "Scegliete un’auto libera oggi: il prestito sarà collegato a questo cliente e a questo OR.",
+    "description": "Scelga un’auto libera oggi: il prestito sarà collegato a questo cliente e a questo OR.",
     "aucunLibre": "Oggi nessun veicolo di cortesia è libero."
   },
   "photos": {
     "bouton": "Foto",
-    "ajouter": "Aggiungi una foto",
-    "boutonPour": "Aggiungi una foto — {designation}",
+    "ajouter": "Aggiungere una foto",
+    "boutonPour": "Aggiungere una foto — {designation}",
     "compteur": "{count, plural, one {# foto} other {# foto}}",
     "complet": "Massimo raggiunto ({max} foto).",
     "liste": "Foto del lavoro",
-    "ouvrir": "Apri la foto {numero} di {total}",
+    "ouvrir": "Aprire la foto {numero} di {total}",
     "apercuAttente": "Foto {numero} da inviare",
-    "retirer": "Rimuovi la foto {numero}",
+    "retirer": "Rimuovere la foto {numero}",
     "apercuDevis": "{count, plural, one {# foto allegata a questo lavoro} other {# foto allegate a questi lavori}}",
     "echecApresCreation": "{count, plural, one {Il lavoro è registrato, ma # foto non ha potuto essere inviata.} other {Il lavoro è registrato, ma # foto non hanno potuto essere inviate.}}",
-    "reessayer": "Riprova l’invio",
-    "continuerSans": "Continua senza la foto",
+    "reessayer": "Riprovare l’invio",
+    "continuerSans": "Continuare senza la foto",
     "erreurs": {
       "tropLourde": "Questa foto è troppo pesante, anche dopo la riduzione. Rifarla.",
-      "illisible": "Questa foto non può essere letta. Rifarla.",
+      "illisible": "Questa foto non può essere letta. La rifaccia.",
       "heic": "Questo formato di foto (HEIC) non è leggibile qui. Imposti la fotocamera su «Più compatibile» (JPEG) e rifaccia la foto."
     },
     "visionneuse": {
@@ -618,7 +618,7 @@
       "sansLegende": "Foto del lavoro",
       "precedente": "Precedente",
       "suivante": "Successiva",
-      "supprimer": "Elimina la foto",
+      "supprimer": "Eliminare la foto",
       "confirmerSuppression": "Sì, elimina"
     }
   }

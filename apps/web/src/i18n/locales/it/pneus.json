@@ -22,10 +22,10 @@
     "dernierMouvement": "Ultimo movimento il {date}",
     "avertissementRelance": "Nessun movimento da oltre due anni.",
     "actions": {
-      "voirVehicule": "Vedi il veicolo",
+      "voirVehicule": "Vedere il veicolo",
       "changerSaison": "Cambio stagione",
-      "deplacer": "Sposta",
-      "sortir": "Fai uscire"
+      "deplacer": "Spostare",
+      "sortir": "Far uscire"
     },
     "misEnEvidence": {
       "badge": "Set cercato",
@@ -49,7 +49,7 @@
       "label": "Sede"
     },
     "recherche": {
-      "champLabel": "Cerca per targa o nome cliente",
+      "champLabel": "Cercare per targa o nome cliente",
       "champPlaceholder": "Es. VD 123456 o Dupont",
       "erreur": {
         "titre": "La ricerca non è riuscita"
@@ -62,7 +62,7 @@
     "filtres": {
       "saison": "Stagione",
       "saisonToutes": "Tutte",
-      "repere": "Filtra per ubicazione",
+      "repere": "Filtrare per ubicazione",
       "reperePlaceholder": "Es. Scaffale 3"
     },
     "vide": {
@@ -78,10 +78,10 @@
   },
   "creation": {
     "titre": "Nuovo deposito pneumatici",
-    "description": "Registra un set di pneumatici nel deposito di questa sede.",
+    "description": "Registri un set di pneumatici nel deposito di questa sede.",
     "actions": {
       "ouvrir": "Nuovo deposito",
-      "creer": "Crea il deposito"
+      "creer": "Creare il deposito"
     },
     "champVehicule": "Veicolo",
     "champVehiculePlaceholder": "Targa, marca o modello",
@@ -100,12 +100,12 @@
     "description": "Il set \"{codeCase}\" e il suo gemello (stagione opposta) invertono lo stato montato/in deposito."
   },
   "deplacement": {
-    "titre": "Sposta questo set",
+    "titre": "Spostare questo set",
     "description": "Ubicazione attuale: \"{codeCase}\". Indicare la nuova ubicazione.",
     "champCodeCase": "Nuova ubicazione"
   },
   "sortie": {
-    "titre": "Fai uscire questo set dal deposito",
+    "titre": "Far uscire questo set dal deposito",
     "description": "Il set \"{codeCase}\" passa allo stato definitivo \"uscito\". Questa azione non è reversibile — indicare il motivo.",
     "champMotif": "Motivo dell'uscita",
     "champMotifPlaceholder": "Scegliere un motivo"

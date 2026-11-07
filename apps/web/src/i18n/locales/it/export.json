@@ -1,9 +1,9 @@
 {
   "titre": "Esportazione per la fiduciaria",
-  "sousTitre": "Preparate il file da consegnare alla vostra fiduciaria per il periodo.",
+  "sousTitre": "Prepari il file da consegnare alla sua fiduciaria per il periodo.",
   "format": {
     "titre": "Formato del file",
-    "description": "Il formato che la vostra fiduciaria importa nella sua contabilità.",
+    "description": "Il formato che la sua fiduciaria importa nella sua contabilità.",
     "winbiz": {
       "nom": "WinBIZ",
       "phrase": "Per WinBIZ: una registrazione per fattura o nota di credito, poi una per incasso."
@@ -28,7 +28,7 @@
   },
   "perimetre": "Il file contiene le fatture, le note di credito e gli incassi del periodo non ancora trasmessi alla fiduciaria. Un documento già esportato non viene esportato una seconda volta.",
   "action": {
-    "telecharger": "Scarica",
+    "telecharger": "Scaricare",
     "encours": "Esportazione in corso…"
   },
   "droits": {
@@ -37,7 +37,7 @@
   "confirmation": {
     "titre": "Esportare verso la fiduciaria?",
     "description": "Le fatture, le note di credito e gli incassi dal {du} al {au} saranno contrassegnati come trasmessi alla fiduciaria. Il file viene conservato: potrete scaricarlo di nuovo dalla cronologia.",
-    "valider": "Esporta e scarica"
+    "valider": "Esportare e scaricare"
   },
   "resultat": {
     "titre": "Esportazione terminata",
@@ -50,33 +50,33 @@
     "numerosAvoirs": "Numeri di nota di credito",
     "plage": "da {premier} a {dernier}",
     "avertissements": "Punti da verificare nel file",
-    "retelecharger": "Scarica di nuovo {nom}",
+    "retelecharger": "Scaricare di nuovo {nom}",
     "fichierConserve": "Il file è stato scaricato. Viene conservato: lo ritrovate nella cronologia qui sotto."
   },
   "vide": {
     "titre": "Niente da esportare in questo periodo",
-    "description": "Nessuna fattura, nota di credito o incasso da trasmettere: tutto ciò che risale a questo periodo è già stato esportato, oppure non è ancora stato emesso nulla. Provate un altro periodo."
+    "description": "Nessuna fattura, nota di credito o incasso da trasmettere: tutto ciò che risale a questo periodo è già stato esportato, oppure non è ancora stato emesso nulla. Provi un altro periodo."
   },
   "erreur": {
     "titre": "Non è stato possibile eseguire l'esportazione",
-    "reessayer": "Riprova"
+    "reessayer": "Riprovare"
   },
   "prerequis": {
     "EXPORT_MAPPING_INCOMPLET": {
       "titre": "Il piano dei conti non è completo",
-      "description": "Alcuni conti o codici IVA della fiduciaria non sono ancora associati alle vostre registrazioni. Nessun documento è stato esportato. Impostate i conti qui sotto, poi rilanciate l'esportazione."
+      "description": "Alcuni conti o codici IVA della fiduciaria non sono ancora associati alle sue registrazioni. Nessun documento è stato esportato. Imposti i conti qui sotto, poi rilanci l'esportazione."
     },
     "EXPORT_TROU_NUMEROTATION": {
       "titre": "Manca un numero di fattura o di nota di credito",
-      "description": "La sequenza dei numeri del periodo presenta un buco: il file non parte verso la fiduciaria in questo stato. Nessun documento è stato esportato. Contattate il supporto con i numeri qui sotto."
+      "description": "La sequenza dei numeri del periodo presenta un buco: il file non parte verso la fiduciaria in questo stato. Nessun documento è stato esportato. Contatti il supporto con i numeri qui sotto."
     },
     "EXPORT_ECRITURES_DESEQUILIBREES": {
       "titre": "Alcune registrazioni non sono in pareggio",
-      "description": "Il file non è stato prodotto, nessun documento è stato esportato. Contattate il supporto con i riferimenti qui sotto."
+      "description": "Il file non è stato prodotto, nessun documento è stato esportato. Contatti il supporto con i riferimenti qui sotto."
     },
     "FONCTION_NON_DISPONIBLE": {
       "titre": "Questo periodo contiene un caso non gestito",
-      "description": "Un incasso del periodo (compensazione, o sconto su una fattura con più aliquote IVA) non può ancora essere esportato. Nessun documento è stato esportato. Contattate il supporto."
+      "description": "Un incasso del periodo (compensazione, o sconto su una fattura con più aliquote IVA) non può ancora essere esportato. Nessun documento è stato esportato. Contatti il supporto."
     },
     "codeTva": "Codice IVA: {poste}",
     "pieces": "(documenti: {pieces})",
@@ -97,7 +97,7 @@
     "titre": "Anteprima del periodo",
     "description": "Ciò che il file conterrebbe, prima di produrlo.",
     "erreur": "Non è stato possibile calcolare l'anteprima",
-    "periodeRequise": "Scegliete un periodo valido per vedere l'anteprima.",
+    "periodeRequise": "Scelga un periodo valido per vedere l'anteprima.",
     "aucun": "Nessuno",
     "facturesAExporter": "Fatture da esportare",
     "avoirsAExporter": "Note di credito da esportare",
@@ -112,8 +112,8 @@
     "ouvrir": "Conti contabili",
     "regler": "Impostare i conti",
     "titre": "Conti contabili",
-    "description": "A quale conto e a quale codice IVA della vostra fiduciaria è collegata ogni voce.",
-    "aValider": "I valori proposti seguono il piano contabile PMI svizzero: da convalidare con la vostra fiduciaria.",
+    "description": "A quale conto e a quale codice IVA della sua fiduciaria è collegata ogni voce.",
+    "aValider": "I valori proposti seguono il piano contabile PMI svizzero: da convalidare con la sua fiduciaria.",
     "complet": "Tutti i conti necessari sono impostati.",
     "manquants": "{count, plural, one {# voce da impostare} other {# voci da impostare}}",
     "utiliserProposees": "Usare i valori proposti",
@@ -121,9 +121,9 @@
     "codesTva": "Codici IVA",
     "facultatif": "(facoltativo)",
     "propose": "Proposto: {valeur}",
-    "aucuneProposition": "Nessun valore proposto: chiedete il conto alla vostra fiduciaria.",
+    "aucuneProposition": "Nessun valore proposto: chieda il conto alla sua fiduciaria.",
     "valeurInvalide": "Conto o codice non valido (al massimo 12 caratteri, lettere, cifre, punto, trattino).",
-    "enregistrer": "Salva",
+    "enregistrer": "Salvare",
     "enregistrement": "Salvataggio…",
     "erreurLecture": "Non è stato possibile caricare i conti",
     "erreurEnregistrement": "I conti non sono stati salvati",
@@ -180,7 +180,7 @@
     },
     "periode": "{du} al {au}",
     "auteurInconnu": "Utente eliminato",
-    "retelecharger": "Scarica di nuovo",
+    "retelecharger": "Scaricare di nuovo",
     "nonConserve": "Non conservato"
   }
 }

@@ -2,7 +2,7 @@
   "titre": "Console di amministrazione",
   "titreOnglet": "Console di amministrazione — Console DFA",
   "bandeConsole": {
-    "deconnexion": "Esci"
+    "deconnexion": "Uscire"
   },
   "plateforme": {
     "titre": "Vista piattaforma",
@@ -14,8 +14,8 @@
         "description": "La variabile di connessione dedicata non è configurata sul server (DATABASE_URL_CONSOLE). Configurarla e riavviare l'API per abilitare la console."
       },
       "accesRefuse": {
-        "titre": "Non hai accesso alla console.",
-        "description": "La tua sessione non dispone dei diritti necessari per accedere alla console di amministrazione."
+        "titre": "Non ha accesso alla console.",
+        "description": "La sua sessione non dispone dei diritti necessari per accedere alla console di amministrazione."
       }
     },
     "etatVide": {
@@ -24,7 +24,7 @@
     },
     "etatVideFiltre": {
       "titre": "Nessun garage corrisponde",
-      "description": "Nessun garage corrisponde a questi criteri. Prova una ricerca diversa o rimuovi i filtri."
+      "description": "Nessun garage corrisponde a questi criteri. Provi una ricerca diversa o rimuova i filtri."
     },
     "recherche": {
       "placeholder": "Nome o identificatore del garage…"
@@ -40,7 +40,7 @@
     },
     "filtre": {
       "actif": "Filtrato per: {libelle}",
-      "retirer": "Rimuovi filtro"
+      "retirer": "Rimuovere filtro"
     },
     "indicateurs": {
       "groupe": "Indicatori piattaforma — fai clic per filtrare l'elenco dei garage",
@@ -87,10 +87,10 @@
         "comptesVerrouilles": "Account bloccati",
         "relancesEnRetard": "Solleciti in ritardo",
         "exportCompta": "Contabilità",
-        "entrer": "Accedi"
+        "entrer": "Accedere"
       },
-      "entrer": "Accedi",
-      "entrerAria": "Accedi a {raisonSociale}",
+      "entrer": "Accedere",
+      "entrerAria": "Accedere a {raisonSociale}",
       "jamaisConnecte": "Mai connesso",
       "derniereActivite": {
         "minute": "{n, plural, =0 {Proprio ora} one {# minuto fa} other {# minuti fa}}",
@@ -108,7 +108,7 @@
   },
   "bandeauContexte": {
     "contenu": "Stai consultando {nomGarage} — accesso supporto",
-    "quitter": "Esci",
+    "quitter": "Uscire",
     "duree": {
       "moins5Min": "meno di 5 minuti fa",
       "moins30Min": "meno di 30 minuti fa",

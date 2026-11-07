@@ -1,9 +1,9 @@
 {
-  "titre": "Scansiona una licenza di circolazione",
-  "sousTitre": "Fotografate la licenza, verificate, poi confermate.",
+  "titre": "Scansionare una licenza di circolazione",
+  "sousTitre": "Fotografi la licenza, verifichi, poi confermi.",
   "echappement": {
     "message": "Vista semplificata per cellulare: qui è disponibile solo la scansione.",
-    "action": "Apri l'applicazione completa"
+    "action": "Aprire l'applicazione completa"
   },
   "capture": {
     "objectifTitre": "Fotografate la licenza di circolazione",
@@ -16,9 +16,9 @@
   },
   "cadrage": {
     "titre": "Ritaglio automatico rilevato",
-    "description": "I bordi del documento sono stati individuati automaticamente. Verificate che non manchi nulla.",
-    "continuer": "Continua",
-    "photoEntiere": "Usa la foto intera",
+    "description": "I bordi del documento sono stati individuati automaticamente. Verifichi che non manchi nulla.",
+    "continuer": "Continuare",
+    "photoEntiere": "Usare la foto intera",
     "apercuAlt": "Anteprima della foto con il ritaglio rilevato automaticamente"
   },
   "captureLive": {
@@ -32,13 +32,13 @@
     "titre": "Questa foto non va bene",
     "motifs": {
       "resolutionInsuffisante": "La foto non ha una definizione sufficiente. Rifatela più da vicino.",
-      "margeInsuffisante": "La licenza tocca i bordi della foto. Allontanate un po' l'apparecchio e lasciate un margine tutto intorno.",
+      "margeInsuffisante": "La licenza tocca i bordi della foto. Allontani un po' l'apparecchio e lasci un margine tutto intorno.",
       "pageNonAPlat": "La licenza non è ben distesa. Apritela completamente e appoggiatela ben piatta prima di rifare la foto.",
       "documentTropPetit": "La licenza è troppo piccola nel riquadro. Avvicinatevi.",
-      "photoFloue": "La foto è sfocata. Tenete l'apparecchio ben fermo."
+      "photoFloue": "La foto è sfocata. Tenga l'apparecchio ben fermo."
     },
     "avertissementEnvoiForce": "Senza rifare la foto, la lettura automatica sarà probabilmente incompleta.",
-    "envoyerQuandMeme": "Invia comunque",
+    "envoyerQuandMeme": "Inviare comunque",
     "apercuAlt": "Anteprima della foto scattata per la verifica"
   },
   "preparation": {
@@ -49,32 +49,32 @@
   },
   "erreurs": {
     "titre": "La foto non può essere utilizzata",
-    "photoIllisible": "Questa foto non può essere aperta. Rifatela con la fotocamera, ben piatta e ben illuminata.",
+    "photoIllisible": "Questa foto non può essere aperta. La rifaccia con la fotocamera, ben piatta e ben illuminata.",
     "heicNonPrisEnCharge": "Questo formato di foto non è supportato su questo dispositivo. Rifate la foto con il pulsante «Scatta la foto» invece che dal rullino."
   },
   "session": {
     "erreur": {
       "titre": "Connessione impossibile",
-      "description": "Al momento non è possibile verificare la vostra connessione. Controllate la rete e riprovate."
+      "description": "Al momento non è possibile verificare la sua connessione. Controlli la rete e riprovi."
     },
     "perdueEnCours": {
       "titre": "Connessione persa",
-      "description": "La vostra sessione è scaduta durante questa scansione. Ciò che avete già fotografato o inserito resta visibile, ma non potrà essere registrato finché non vi sarete ricollegati."
+      "description": "La sua sessione è scaduta durante questa scansione. Ciò che ha già fotografato o inserito resta visibile, ma non potrà essere registrato finché non si sarà ricollegato."
     },
     "seReconnecter": "Ricollegati"
   },
   "actions": {
     "reessayer": "Rifai la foto",
-    "scannerUnAutre": "Scansiona un'altra licenza"
+    "scannerUnAutre": "Scansionare un'altra licenza"
   },
   "formulaire": {
     "sectionDetenteur": "Detentore",
     "sectionVehicule": "Veicolo",
     "clientTrouve": "Cliente già registrato — il veicolo gli sarà collegato",
     "clientCreeTitre": "Cliente registrato",
-    "clientCreeDescription": "{nom} è stato creato. Verificate ora il veicolo qui sotto.",
-    "langueAide": "Non stampata sulla licenza — da scegliere voi stessi.",
-    "valider": "Conferma e registra"
+    "clientCreeDescription": "{nom} è stato creato. Verifichi ora il veicolo qui sotto.",
+    "langueAide": "Non stampata sulla licenza — da scegliere Lei stesso.",
+    "valider": "Confermare e registrare"
   },
   "confiance": {
     "nonLu": "Non letto — da completare",
