@@ -183,7 +183,7 @@ describe('ServiceRecherche.rechercher — nature "depot_pneu" (pneus.depot.lire)
         saison: 'hiver',
         statut: 'en_depot',
         codeCase: 'B-12',
-        detenteurNom: 'Dupont Jean',
+        detenteurNom: 'Jean Dupont',
       },
     });
   });
@@ -220,7 +220,7 @@ describe('ServiceRecherche.rechercher — régression sur les natures préexista
             telephone: null,
             localite: 'Lausanne',
             champ: 'nom',
-            valeur_matchee: 'Dupont Jean',
+            valeur_matchee: 'Jean Dupont',
             score: 0.9,
           },
         ],

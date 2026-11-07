@@ -117,7 +117,7 @@ function factureAllemandeGrandMontant(): ReponseDocumentVente {
     annuleParAvoirId: null,
     remplaceId: null,
     figees: {
-      clientDesignation: 'Meier Urs',
+      clientDesignation: 'Urs Meier',
       clientIde: null,
       clientLangue: 'de',
       adresseFacturation: {
