@@ -3,6 +3,7 @@ import type { ReponseDocumentVente } from '@dfa/shared';
 
 import type { PrincipalAuthentifie } from '../../common/contexte/contexte-requete.types';
 import type { AccesBase, ContexteTenant } from '../../db';
+import { site, tenant } from '../../db/schema';
 import type { ServiceDocumentsVente } from '../documents/service-documents';
 
 import { genererPdfDevis, genererPdfFacture } from './generation-pdf-facture';
@@ -134,24 +135,33 @@ class StockagePdfMemoire implements StockagePdf {
   }
 }
 
-function accesBaseFake(): AccesBase & { readonly misAJour: { cle: string; sha256: string }[] } {
+function accesBaseFake(
+  numeroTvaTenant: string | null = 'CHE-114.873.733 TVA',
+  blocCreancier: readonly Record<string, string>[] = [
+    {
+      nom: 'Garage Martin SA',
+      rue: 'Route de Riddes',
+      numero: '42',
+      npa: '1950',
+      localite: 'Sion',
+    },
+  ],
+): AccesBase & { readonly misAJour: { cle: string; sha256: string }[] } {
   const misAJour: { cle: string; sha256: string }[] = [];
   return {
     misAJour,
     async enTenant<T>(_ctx: ContexteTenant, travail: (tx: unknown) => Promise<T>): Promise<T> {
       const tx = {
         select: () => ({
-          from: () => ({
+          from: (table: unknown) => ({
             where: () => ({
-              limit: async () => [
-                {
-                  nom: 'Garage Martin SA',
-                  rue: 'Route de Riddes',
-                  numero: '42',
-                  npa: '1950',
-                  localite: 'Sion',
-                },
-              ],
+              limit: async () => {
+                if (table === tenant)
+                  return [{ raisonSociale: 'Garage Martin SA', numeroTva: numeroTvaTenant }];
+                if (table === site)
+                  return [{ rue: 'Rue du Site', npa: '1000', localite: 'Lausanne' }];
+                return blocCreancier;
+              },
             }),
           }),
         }),
@@ -197,6 +207,7 @@ describe('ServiceImpressionFacture', () => {
         numero: '42',
         npa: '1950',
         localite: 'Sion',
+        numeroTva: 'CHE-114.873.733 TVA',
       },
       null, // pas de logo déposé
     );
@@ -221,6 +232,27 @@ describe('ServiceImpressionFacture', () => {
       expect.objectContaining({ nom: 'Garage Martin SA' }),
       null, // pas de logo déposé
     );
+  });
+
+  it('garage sans bloc créancier (sans IBAN) : expéditeur = raison sociale + adresse du site + n° TVA', async () => {
+    const serviceDocuments = {
+      obtenirComplet: vi.fn().mockResolvedValue(documentFacture({ qr: null })),
+    } as unknown as ServiceDocumentsVente;
+    vi.mocked(genererPdfFacture).mockResolvedValue(Buffer.from('%PDF-f'));
+    const service = new ServiceImpressionFacture(
+      accesBaseFake('CHE-114.873.733 TVA', []),
+      new StockagePdfMemoire(),
+      serviceDocuments,
+    );
+    await service.obtenirPdf(CTX, PRINCIPAL, 'doc-1');
+    expect(vi.mocked(genererPdfFacture).mock.calls[0]?.[1]).toEqual({
+      nom: 'Garage Martin SA',
+      rue: 'Rue du Site',
+      numero: null,
+      npa: '1000',
+      localite: 'Lausanne',
+      numeroTva: 'CHE-114.873.733 TVA',
+    });
   });
 
   it('passe le logo PNG déposé par le garage au rendu du devis (et ignore celui d’un autre tenant)', async () => {

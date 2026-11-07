@@ -227,3 +227,39 @@ describe('genererPdfFacture sans bloc QR', () => {
     });
   });
 });
+
+describe('en-tête émetteur et n° TVA', () => {
+  const TVA = 'CHE-114.873.733 TVA';
+
+  it('devis : nom, adresse et n° TVA au format saisi', async () => {
+    const blocs = extraireBlocsTexte(
+      await genererPdfDevis(devis(), { ...EXPEDITEUR, numeroTva: TVA }),
+    );
+    expect(blocs).toContain('Garage Martin SA');
+    expect(blocs).toContain('Route de Riddes 42');
+    expect(blocs).toContain('1950 Sion');
+    expect(blocs).toContain(TVA);
+  });
+
+  it('devis sans n° TVA renseigné : aucune ligne TVA', async () => {
+    for (const numeroTva of [undefined, null, '  ']) {
+      const blocs = extraireBlocsTexte(
+        await genererPdfDevis(devis(), { ...EXPEDITEUR, numeroTva }),
+      );
+      expect(blocs.some((b) => b.includes('CHE-'))).toBe(false);
+      expect(blocs).toContain('Garage Martin SA');
+    }
+  });
+
+  it('facture sans IBAN ni QR : en-tête garage et n° TVA présents', async () => {
+    const blocs = extraireBlocsTexte(
+      await genererPdfFacture(
+        devis({ typeDocument: 'facture', natureFacture: 'ordinaire', numero: 'FAC-1', qr: null }),
+        { ...EXPEDITEUR, numeroTva: TVA },
+      ),
+    );
+    expect(blocs).toContain('Garage Martin SA');
+    expect(blocs).toContain('Route de Riddes 42');
+    expect(blocs).toContain(TVA);
+  });
+});
