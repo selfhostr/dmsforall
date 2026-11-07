@@ -381,5 +381,27 @@
     "encaisser": "Encaisser",
     "corriger": "Corriger",
     "modifier": "Modifier"
+  },
+  "devis": {
+    "nouveau": {
+      "action": "Nouveau devis",
+      "titre": "Nouveau devis",
+      "description": "Un prix pour un client, sans ouvrir d'ordre de réparation. Le véhicule est facultatif.",
+      "client": "Client",
+      "clientPlaceholder": "Nom, téléphone ou n° de client",
+      "clientRequis": "Choisissez un client.",
+      "aucunClient": "Aucun client trouvé.",
+      "vehicule": "Véhicule",
+      "vehiculeAide": "Facultatif : laissez « Sans véhicule » si la voiture n'est pas encore connue.",
+      "sansVehicule": "Sans véhicule",
+      "site": "Site",
+      "creer": "Créer le devis"
+    },
+    "cree": {
+      "titre": "Devis créé",
+      "description": "Ajoutez maintenant la main-d'œuvre et les pièces sur le devis. Si le client accepte, ouvrez un OR prérempli avec le même client et le même véhicule.",
+      "creerOr": "Créer l'OR à partir de ce devis",
+      "ouvrir": "Ouvrir le devis"
+    }
   }
 }

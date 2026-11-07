@@ -1,6 +1,7 @@
 import type {
   EntreeCorrectionFacture,
   EntreeCreationAvoir,
+  EntreeCreationDocumentVente,
   EntreeCreationLigneDocument,
   EntreeEmissionDocumentVente,
   EntreeModificationDocumentVente,
@@ -310,6 +311,22 @@ export async function corrigerFacture(
   );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /documents-vente/corriger.');
+  }
+  return reponse;
+}
+
+/** `POST /documents-vente` — `Idempotency-Key` OBLIGATOIRE. Crée un BROUILLON (ici : un devis,
+ *  `typeDocument = 'devis'`) ; les lignes s'ajoutent ensuite sur la fiche (`ajouterLigneDocument`). */
+export async function creerDocumentVente(
+  entree: EntreeCreationDocumentVente,
+  idempotencyKey: string,
+): Promise<ReponseAvecAvertissements<ReponseDocumentVente>> {
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseDocumentVente>>(
+    '/documents-vente',
+    { method: 'POST', body: JSON.stringify(entree), idempotencyKey },
+  );
+  if (!reponse) {
+    throw new Error('Réponse vide inattendue : POST /documents-vente.');
   }
   return reponse;
 }

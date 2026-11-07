@@ -381,5 +381,27 @@
     "encaisser": "Incassare",
     "corriger": "Correggere",
     "modifier": "Modificare"
+  },
+  "devis": {
+    "nouveau": {
+      "action": "Nuovo preventivo",
+      "titre": "Nuovo preventivo",
+      "description": "Un prezzo per un cliente, senza aprire un ordine di riparazione. Il veicolo è facoltativo.",
+      "client": "Cliente",
+      "clientPlaceholder": "Nome, telefono o n. cliente",
+      "clientRequis": "Scegliete un cliente.",
+      "aucunClient": "Nessun cliente trovato.",
+      "vehicule": "Veicolo",
+      "vehiculeAide": "Facoltativo: lasciate «Senza veicolo» se l'auto non è ancora nota.",
+      "sansVehicule": "Senza veicolo",
+      "site": "Sede",
+      "creer": "Crea il preventivo"
+    },
+    "cree": {
+      "titre": "Preventivo creato",
+      "description": "Aggiungete ora manodopera e ricambi al preventivo. Se il cliente accetta, aprite un OR con lo stesso cliente e lo stesso veicolo.",
+      "creerOr": "Crea l'OR da questo preventivo",
+      "ouvrir": "Apri il preventivo"
+    }
   }
 }

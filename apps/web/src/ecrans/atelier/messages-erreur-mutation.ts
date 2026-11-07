@@ -38,7 +38,42 @@ export function messagesErreurMutation(erreur: unknown, t: TFunction): readonly 
   if (erreur instanceof ErreurApi && erreur.erreursChamp.length > 0) {
     return erreur.erreursChamp.map((champErreur) => messageErreurChamp(champErreur, t));
   }
+  if (erreur instanceof ErreurApi && CODES_TRANSITION_INTERDITE.has(erreur.probleme.code)) {
+    return [messageTransitionInterdite(erreur, t)];
+  }
   return [messageErreur(erreur, t)];
+}
+
+const CODES_TRANSITION_INTERDITE: ReadonlySet<string> = new Set([
+  'OR_TRANSITION_INTERDITE',
+  'LIGNE_TRANSITION_INTERDITE',
+]);
+
+/** `detail` produit par le traducteur SQL de transition : `entite=ordre_reparation;depuis=a;vers=b`
+ *  — une trace pour le support, pas une phrase pour le garagiste. */
+const DETAIL_MACHINE = /^[a-z_]+=[^;]*(;[a-z_]+=[^;]*)*$/;
+
+/**
+ * « Transition interdite » dit pourquoi et quoi faire. Ordre : (1) le `detail` du `problem+json`
+ * quand c'est une vraie phrase (ex. « Le contrôle qualité est obligatoire pour ce garage avant de
+ * terminer ») — jamais sa forme machine ; (2) sinon le statut actuel de l'OR s'il est connu
+ * (`blocages[].donnees.statutActuel`) ; (3) sinon la consigne générique. Dans tous les cas la
+ * dernière phrase dit quoi faire : recharger la page et choisir parmi les actions proposées.
+ */
+function messageTransitionInterdite(erreur: ErreurApi, t: TFunction): string {
+  const detail = erreur.probleme.detail?.trim();
+  if (detail && !DETAIL_MACHINE.test(detail)) return detail;
+
+  const statutActuel = erreur.blocages
+    .map((blocage) => blocage.donnees?.statutActuel)
+    .find((statut): statut is string => typeof statut === 'string');
+  if (statutActuel) {
+    const cle = statutActuel.replace(/_([a-z])/g, (_, lettre: string) => lettre.toUpperCase());
+    return t('or:erreurs.transitionInterdite.avecStatut', {
+      statut: t(`or:statuts.${cle}`, { defaultValue: statutActuel }),
+    });
+  }
+  return t('or:erreurs.transitionInterdite.sansStatut');
 }
 
 /**

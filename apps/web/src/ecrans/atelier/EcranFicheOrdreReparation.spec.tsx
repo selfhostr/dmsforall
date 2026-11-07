@@ -314,7 +314,9 @@ describe('EcranFicheOrdreReparation', () => {
       // Le refus s'affiche EN PLACE, dans le dialogue toujours ouvert — pas de fermeture
       // silencieuse qui laisserait croire que l'action a réussi.
       expect(
-        await within(dialogue).findByText("Cette transition n'est pas autorisée pour ce statut."),
+        await within(dialogue).findByText(
+          "Cette action n'est pas possible dans l'état actuel de l'OR. Rechargez la page, puis choisissez une des actions proposées.",
+        ),
       ).toBeInTheDocument();
       expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
@@ -532,8 +534,8 @@ describe('EcranFicheOrdreReparation', () => {
           expect(url.searchParams.get('vehiculeId')).toBe(VEHICULE.id);
           return HttpResponse.json({
             donnees: [
-              { id: 'or-1', numero: 'OR-000123' },
-              { id: 'or-2', numero: 'OR-000099' },
+              { id: 'or-1', numero: 'OR-000123', ouvertLe: '2026-07-01T08:00:00.000Z' },
+              { id: 'or-2', numero: 'OR-000099', ouvertLe: '2026-06-01T08:00:00.000Z' },
             ],
             curseurSuivant: null,
             limite: 5,

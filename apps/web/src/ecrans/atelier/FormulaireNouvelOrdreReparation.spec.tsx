@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
+import { MemoryRouter } from 'react-router';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type {
@@ -236,13 +237,15 @@ function rendre(
     onCree,
     onChangerVehicule,
     ...renduAvecQueryClient(
-      <FormulaireNouvelOrdreReparation
-        site={SITE_ID}
-        client={CLIENT}
-        vehicule={VEHICULE}
-        onChangerVehicule={onChangerVehicule}
-        onCree={onCree}
-      />,
+      <MemoryRouter>
+        <FormulaireNouvelOrdreReparation
+          site={SITE_ID}
+          client={CLIENT}
+          vehicule={VEHICULE}
+          onChangerVehicule={onChangerVehicule}
+          onCree={onCree}
+        />
+      </MemoryRouter>,
     ),
   };
 }
@@ -447,6 +450,10 @@ describe('FormulaireNouvelOrdreReparation', () => {
           'Déjà ouvert pour ce véhicule : OR-000001, OR-000002. Ouvrir quand même un nouvel ordre de réparation ?',
         ),
       ).toBeInTheDocument();
+      // Chaque OR déjà ouvert est un lien vers sa fiche (nouvel onglet : la saisie en cours reste).
+      const lien = within(dialogue).getByRole('link', { name: /OR-000001/ });
+      expect(lien).toHaveAttribute('href', expect.stringContaining('/ordres-reparation/'));
+      expect(lien).toHaveAttribute('target', '_blank');
     });
 
     it("« Annuler » referme la modale sans qu'elle se rouvre toute seule — le refus reste un vrai refus", async () => {

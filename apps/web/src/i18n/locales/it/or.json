@@ -200,6 +200,11 @@
       "validerTitre": "{count, plural, one {Approva # riga} other {Approva # righe}}",
       "refuserTitre": "{count, plural, one {Rifiuta # riga} other {Rifiuta # righe}}",
       "annulerTitre": "{count, plural, one {Annulla # riga} other {Annulla # righe}}"
+    },
+    "attenteAccord": {
+      "indicateur": "In attesa dell'accordo del cliente",
+      "ajouteeBureau": "Lavoro aggiunto, in attesa dell'accordo del cliente. Usate «Accordo del cliente» sulla riga.",
+      "ajouteeAtelier": "Lavoro aggiunto, in attesa dell'accordo del cliente. L'ufficio lo vede su questo OR."
     }
   },
   "demandes": {
@@ -410,7 +415,8 @@
     "motifSignatureDifferee": "Motivo del rinvio della firma",
     "paiementRecu": "Pagamento ricevuto alla restituzione",
     "aucuneActionDisponible": "Nessuna azione disponibile al momento.",
-    "autresActions": "Altre azioni"
+    "autresActions": "Altre azioni",
+    "kilometrageAide": "Lettura del contachilometri all'ingresso"
   },
   "totaux": {
     "titre": "Totali",
@@ -464,12 +470,59 @@
       "titre": "Impossibile aprire l'ordine di riparazione"
     },
     "confirmation": {
-      "vehiculeDeuxOrOuverts": "Già aperto per questo veicolo: {numeros}. Aprire comunque un nuovo ordine di riparazione?"
+      "vehiculeDeuxOrOuverts": "Già aperto per questo veicolo: {numeros}. Aprire comunque un nuovo ordine di riparazione?",
+      "ouvrirOr": "Apri l'OR {numero} (nuova scheda)"
     },
     "actions": {
       "creer": "Apri l'ordine di riparazione",
       "enCours": "Apertura in corso…",
       "ignorerBrouillon": "Ignora la bozza"
+    }
+  },
+  "accordClient": {
+    "titre": "Accordo del cliente",
+    "nom": "Chi ha dato l'accordo?",
+    "nomRequis": "Indicare il nome della persona.",
+    "mode": {
+      "libelle": "Come?",
+      "telephone": "Telefono",
+      "surPlace": "Sul posto",
+      "email": "E-mail"
+    },
+    "horodatage": "Data e ora vengono registrate adesso.",
+    "enregistrer": "Registra l'accordo",
+    "action": "Accordo del cliente",
+    "description": "{count, plural, one {Il cliente ha dato l'accordo per # lavoro. Sarà convalidato.} other {Il cliente ha dato l'accordo per # lavori. Saranno convalidati.}}",
+    "pourTous": "{count, plural, one {Accordo del cliente per il lavoro proposto} other {Accordo del cliente per i # lavori proposti}}"
+  },
+  "lignesEnAttente": {
+    "annuler": "Annulla",
+    "motifRetrait": "Tolto dall'OR: accordo del cliente non ottenuto.",
+    "titre": "{count, plural, one {# lavoro attende ancora l'accordo del cliente} other {# lavori attendono ancora l'accordo del cliente}}",
+    "description": "{count, plural, one {Questo lavoro è «Proposta»: né accettato né rifiutato. Cosa fare prima di «{action}»?} other {Questi lavori sono «Proposta»: né accettati né rifiutati. Cosa fare prima di «{action}»?}}",
+    "retirer": "{count, plural, one {Toglierlo dall'OR} other {Toglierli dall'OR}}",
+    "laisser": "{count, plural, one {Lasciarlo in attesa} other {Lasciarli in attesa}}"
+  },
+  "arretPointages": {
+    "titre": "{count, plural, one {Fermare # timbratura?} other {Fermare # timbrature?}}",
+    "description": "{count, plural, one {La timbratura in corso sarà fermata adesso. Il tecnico dovrà ripartire.} other {Le timbrature in corso saranno fermate adesso. I tecnici dovranno ripartire.}}",
+    "confirmer": "{count, plural, one {Fermare la timbratura} other {Fermare le timbrature}}"
+  },
+  "consignes": {
+    "fournirMotif": "Il chilometraggio inserito è inferiore all'ultima lettura ({km} km). Correggetelo se è un errore di battitura.",
+    "signerReserveSecurite": "Fate firmare la riserva di sicurezza al cliente, poi ripetete la riconsegna.",
+    "demanderHabilitation": "Questa azione è riservata a un responsabile. Chiedetegli di confermarla.",
+    "controleQualite": "Il controllo qualità è obbligatorio per questa officina: l'OR deve passare in controllo prima di essere terminato.",
+    "receptionnerIndisponible": "Il veicolo deve prima essere accettato. Il vostro ruolo non lo consente: rivolgetevi all'accettazione."
+  },
+  "renseignerPo": {
+    "titre": "Indicare il n. d'ordine",
+    "requis": "Indicare il numero d'ordine del cliente."
+  },
+  "erreurs": {
+    "transitionInterdite": {
+      "avecStatut": "Questa azione non è possibile: l'OR ha lo stato «{statut}». Ricaricate la pagina, poi scegliete una delle azioni proposte.",
+      "sansStatut": "Questa azione non è possibile nello stato attuale dell'OR. Ricaricate la pagina, poi scegliete una delle azioni proposte."
     }
   }
 }

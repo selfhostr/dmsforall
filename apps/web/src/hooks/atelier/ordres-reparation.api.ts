@@ -10,14 +10,18 @@ import type {
   EntreeActionTerminer,
   EntreeActionValiderControle,
   EntreeAnnulationLignes,
+  EntreeCreationDevisComplementaire,
   EntreeCreationLigneOr,
   EntreeCreationOrdreReparation,
   EntreeMarquageRealisee,
+  EntreeModificationOrdreReparation,
   EntreeRefusLignes,
+  EntreeReponseDevisComplementaire,
   EntreeValidationLignes,
   OrdreReparationResume,
   PageCurseur,
   ReponseAvecAvertissements,
+  ReponseDevisComplementaire,
   ReponseLigneOr,
   ReponseOrdreReparation,
   StatutOrdreReparation,
@@ -234,3 +238,55 @@ export const refuserLignesOrdreReparation = (orId: string, entree: EntreeRefusLi
 
 export const annulerLignesOrdreReparation = (orId: string, entree: EntreeAnnulationLignes) =>
   executerActionOr(orId, 'annuler-lignes', entree);
+
+/** `POST /ordres-reparation/{orId}/devis-complementaires` — `Idempotency-Key` OBLIGATOIRE (pièce à
+ *  valeur probante, RM-79). Le montant est calculé par le serveur depuis les lignes référencées. */
+export async function creerDevisComplementaire(
+  orId: string,
+  entree: EntreeCreationDevisComplementaire,
+  idempotencyKey: string,
+): Promise<ReponseAvecAvertissements<ReponseDevisComplementaire>> {
+  const chemin = `/ordres-reparation/${orId}/devis-complementaires`;
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseDevisComplementaire>>(chemin, {
+    method: 'POST',
+    body: JSON.stringify(entree),
+    idempotencyKey,
+  });
+  if (!reponse) throw new Error(`Réponse vide inattendue : POST ${chemin}.`);
+  return reponse;
+}
+
+/** `POST /ordres-reparation/{orId}/devis-complementaires/{devisId}/repondre` — enregistre QUI a
+ *  répondu et QUAND (RM-81, `interlocuteurNom` obligatoire). `accepte` valide les lignes du devis. */
+export async function repondreDevisComplementaire(
+  orId: string,
+  devisId: string,
+  entree: EntreeReponseDevisComplementaire,
+  idempotencyKey: string,
+): Promise<ReponseAvecAvertissements<ReponseDevisComplementaire>> {
+  const chemin = `/ordres-reparation/${orId}/devis-complementaires/${devisId}/repondre`;
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseDevisComplementaire>>(chemin, {
+    method: 'POST',
+    body: JSON.stringify(entree),
+    idempotencyKey,
+  });
+  if (!reponse) throw new Error(`Réponse vide inattendue : POST ${chemin}.`);
+  return reponse;
+}
+
+/** `PATCH /ordres-reparation/{orId}` — champs libres de l'en-tête. `If-Match: W/"<version>"`
+ *  obligatoire (§9). */
+export async function modifierOrdreReparation(
+  orId: string,
+  entree: EntreeModificationOrdreReparation,
+  version: number,
+): Promise<ReponseAvecAvertissements<ReponseOrdreReparation>> {
+  const chemin = `/ordres-reparation/${orId}`;
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseOrdreReparation>>(chemin, {
+    method: 'PATCH',
+    body: JSON.stringify(entree),
+    ifMatch: `W/"${version}"`,
+  });
+  if (!reponse) throw new Error(`Réponse vide inattendue : PATCH ${chemin}.`);
+  return reponse;
+}

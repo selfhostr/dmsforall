@@ -1,4 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 
@@ -17,7 +19,7 @@ import { chemins } from '@/routes/chemins';
 import { formaterDate, formaterMontantAvecDevise } from '@/lib/formats';
 
 import { DialogueAjoutLigneOr } from './DialogueAjoutLigneOr';
-import { peutCreerLigneOr } from './droits';
+import { peutCreerLigneOr, peutValiderLigneOr } from './droits';
 import { EnTeteOrdreReparation } from './EnTeteOrdreReparation';
 import { ListeLignesOrdreReparation } from './ListeLignesOrdreReparation';
 import { PanneauActionsOr } from './PanneauActionsOr';
@@ -57,6 +59,7 @@ export function EcranFicheOrdreReparation() {
   const [searchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
 
+  const [ligneEnAttenteAjoutee, setLigneEnAttenteAjoutee] = useState(false);
   const requete = useOrdreReparation(orId);
 
   // Lot B — « le devis d'origine, la facture émise ». `listerDocumentsVente` (hooks/facturation/,
@@ -150,14 +153,31 @@ export function EcranFicheOrdreReparation() {
         <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
           <CardTitle className="texte-titre-section">{t('or:lignes.titre')}</CardTitle>
           {peutCreerLigneOr(session.data?.utilisateur.role) ? (
-            <DialogueAjoutLigneOr orId={or.id} siteId={or.siteId} />
+            <DialogueAjoutLigneOr
+              orId={or.id}
+              siteId={or.siteId}
+              onAjoutee={(ligne) => setLigneEnAttenteAjoutee(ligne.statut === 'proposee')}
+            />
           ) : null}
         </CardHeader>
         <CardContent>
+          {/* Un travail constaté entre « Proposée » : le technicien doit savoir où il en est (ni
+           *  refusé, ni validé) et qui doit agir ensuite — le bureau voit la ligne sur cet OR. */}
+          {ligneEnAttenteAjoutee ? (
+            <p role="status" className="mb-3 flex items-center gap-2 texte-corps text-foreground">
+              <Clock aria-hidden className="h-4 w-4 shrink-0 text-statut-attention" />
+              {t(
+                peutValiderLigneOr(session.data?.utilisateur.role)
+                  ? 'or:lignes.attenteAccord.ajouteeBureau'
+                  : 'or:lignes.attenteAccord.ajouteeAtelier',
+              )}
+            </p>
+          ) : null}
           <ListeLignesOrdreReparation
             orId={or.id}
             lignes={or.lignes}
             lignesTronquees={or.lignesTronquees}
+            plafondCentimes={or.plafondCentimes ?? 0}
           />
         </CardContent>
       </Card>

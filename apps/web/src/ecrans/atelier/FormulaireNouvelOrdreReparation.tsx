@@ -1,6 +1,7 @@
 import { AlertCircle, Plus, WifiOff, X } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 
 import {
   schemaCreationOrdreReparation,
@@ -36,6 +37,7 @@ import { effacerBrouillon, lireBrouillon } from '@/hooks/brouillon/brouillon';
 import { useSauvegardeBrouillon } from '@/hooks/brouillon/useSauvegardeBrouillon';
 import { useParametresAtelier } from '@/hooks/parametres/useParametresAtelier';
 import { useContexteAtelier } from '@/hooks/vehicules/useContexteAtelier';
+import { chemins } from '@/routes/chemins';
 import { cn } from '@/lib/utils';
 
 import { messageErreurMutation } from './messages-erreur-mutation';
@@ -172,6 +174,12 @@ export function FormulaireNouvelOrdreReparation({
   const [confirmationRejetee, setConfirmationRejetee] = useState(false);
 
   const etatPlanifieActif = parametresAtelier.data?.or.etatPlanifieActif ?? false;
+  // Le kilométrage est exigé par le SERVEUR (`OR_KM_ENTREE_REQUIS`, RM-51) quand le garage l'a
+  // paramétré (`reception.kmEntreeObligatoire`) ET que l'OR s'ouvre tout de suite (`ouvert`, pas
+  // `planifie`) : le champ doit le dire AVANT l'envoi — astérisque + `aria-required` — plutôt que
+  // de laisser découvrir l'obligation par un refus.
+  const kilometrageObligatoire =
+    (parametresAtelier.data?.reception.kmEntreeObligatoire ?? false) && statutInitial === 'ouvert';
 
   // Sauvegarde AUTOMATIQUE à chaque changement de l'un des trois champs couverts (issue #77) —
   // voir `ValeursBrouillonNouvelOr` pour la justification de cette portée précise.
@@ -294,9 +302,12 @@ export function FormulaireNouvelOrdreReparation({
    *  ouvrir un second écran. Nomme les OR déjà ouverts quand `contexteAtelier` les connaît déjà ;
    *  retombe sur le message serveur sinon (chargement encore en cours, ou requête distincte
    *  échouée — l'un n'empêche jamais l'autre, la confirmation reste utilisable dans les deux cas). */
+  const orsOuverts = contexteAtelier.data?.ordresReparationOuverts ?? [];
+  const deuxOrOuverts =
+    confirmationsRequises.includes('VEHICULE_DEUX_OR_OUVERTS') && orsOuverts.length > 0;
+
   function descriptionConfirmation(): string {
-    const orsOuverts = contexteAtelier.data?.ordresReparationOuverts ?? [];
-    if (confirmationsRequises.includes('VEHICULE_DEUX_OR_OUVERTS') && orsOuverts.length > 0) {
+    if (deuxOrOuverts) {
       return t('or:nouveau.confirmation.vehiculeDeuxOrOuverts', {
         numeros: orsOuverts.map((or) => or.numero).join(', '),
       });
@@ -470,14 +481,18 @@ export function FormulaireNouvelOrdreReparation({
         </div>
       </fieldset>
 
-      <ChampKilometrage
-        valeur={kilometrageEntree}
-        onChangeValeur={setKilometrageEntree}
-        unite="km"
-        label={t('or:actions.kilometrageEntree')}
-        erreur={erreursChamps.kilometrageEntree}
-        disabled={enCours}
-      />
+      <div className="flex flex-col gap-1.5">
+        <ChampKilometrage
+          valeur={kilometrageEntree}
+          onChangeValeur={setKilometrageEntree}
+          unite="km"
+          label={t('or:actions.kilometrageEntree')}
+          erreur={erreursChamps.kilometrageEntree}
+          obligatoire={kilometrageObligatoire}
+          disabled={enCours}
+        />
+        <p className="texte-libelle text-muted-foreground">{t('or:actions.kilometrageAide')}</p>
+      </div>
 
       {/* DESIGN.md « bordure structurelle uniquement » — champs indépendants sans action propre
        *  (contrairement au fieldset « demandes » ci-dessus, qui gère son propre ajout/retrait de
@@ -584,7 +599,24 @@ export function FormulaireNouvelOrdreReparation({
         libelleConfirmation={t('commun:actions.continuerQuandMeme')}
         onConfirmer={() => creation.confirmerEtResoumettre({ onSuccess: onCree })}
         enCours={enCours}
-      />
+      >
+        {deuxOrOuverts ? (
+          <ul className="flex flex-col gap-1">
+            {orsOuverts.map((orOuvert) => (
+              <li key={orOuvert.id}>
+                <Link
+                  to={chemins.atelier.ordresReparation.detail(orOuvert.id, site)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="texte-corps font-medium text-primary underline underline-offset-2"
+                >
+                  {t('or:nouveau.confirmation.ouvrirOr', { numero: orOuvert.numero })}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </AvertissementConfirmable>
     </div>
   );
 }

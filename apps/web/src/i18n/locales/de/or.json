@@ -200,6 +200,11 @@
       "validerTitre": "{count, plural, one {# Position freigeben} other {# Positionen freigeben}}",
       "refuserTitre": "{count, plural, one {# Position ablehnen} other {# Positionen ablehnen}}",
       "annulerTitre": "{count, plural, one {# Position stornieren} other {# Positionen stornieren}}"
+    },
+    "attenteAccord": {
+      "indicateur": "Wartet auf Zustimmung des Kunden",
+      "ajouteeBureau": "Arbeit hinzugefügt, wartet auf Zustimmung des Kunden. Nutzen Sie «Zustimmung des Kunden» in der Zeile.",
+      "ajouteeAtelier": "Arbeit hinzugefügt, wartet auf Zustimmung des Kunden. Das Büro sieht sie in diesem AR."
     }
   },
   "demandes": {
@@ -410,7 +415,8 @@
     "motifSignatureDifferee": "Grund für die aufgeschobene Unterschrift",
     "paiementRecu": "Zahlung bei Rückgabe erhalten",
     "aucuneActionDisponible": "Momentan keine Aktion möglich.",
-    "autresActions": "Weitere Aktionen"
+    "autresActions": "Weitere Aktionen",
+    "kilometrageAide": "Zählerstand bei der Annahme"
   },
   "totaux": {
     "titre": "Totale",
@@ -464,12 +470,59 @@
       "titre": "Der Reparaturauftrag konnte nicht eröffnet werden"
     },
     "confirmation": {
-      "vehiculeDeuxOrOuverts": "Für dieses Fahrzeug bereits offen: {numeros}. Trotzdem einen neuen Reparaturauftrag eröffnen?"
+      "vehiculeDeuxOrOuverts": "Für dieses Fahrzeug bereits offen: {numeros}. Trotzdem einen neuen Reparaturauftrag eröffnen?",
+      "ouvrirOr": "AR {numero} öffnen (neuer Tab)"
     },
     "actions": {
       "creer": "Reparaturauftrag eröffnen",
       "enCours": "Wird eröffnet…",
       "ignorerBrouillon": "Entwurf verwerfen"
+    }
+  },
+  "accordClient": {
+    "titre": "Zustimmung des Kunden",
+    "nom": "Wer hat zugestimmt?",
+    "nomRequis": "Geben Sie den Namen der Person an.",
+    "mode": {
+      "libelle": "Wie?",
+      "telephone": "Telefon",
+      "surPlace": "Vor Ort",
+      "email": "E-Mail"
+    },
+    "horodatage": "Datum und Uhrzeit werden jetzt erfasst.",
+    "enregistrer": "Zustimmung speichern",
+    "action": "Zustimmung des Kunden",
+    "description": "{count, plural, one {Der Kunde hat für # Arbeit zugestimmt. Sie wird freigegeben.} other {Der Kunde hat für # Arbeiten zugestimmt. Sie werden freigegeben.}}",
+    "pourTous": "{count, plural, one {Zustimmung des Kunden für die vorgeschlagene Arbeit} other {Zustimmung des Kunden für die # vorgeschlagenen Arbeiten}}"
+  },
+  "lignesEnAttente": {
+    "annuler": "Abbrechen",
+    "motifRetrait": "Aus dem AR entfernt: keine Zustimmung des Kunden.",
+    "titre": "{count, plural, one {# Arbeit wartet noch auf die Zustimmung des Kunden} other {# Arbeiten warten noch auf die Zustimmung des Kunden}}",
+    "description": "{count, plural, one {Diese Arbeit ist «Vorgeschlagen»: weder akzeptiert noch abgelehnt. Was tun vor «{action}»?} other {Diese Arbeiten sind «Vorgeschlagen»: weder akzeptiert noch abgelehnt. Was tun vor «{action}»?}}",
+    "retirer": "{count, plural, one {Aus dem AR entfernen} other {Aus dem AR entfernen}}",
+    "laisser": "{count, plural, one {Wartend lassen} other {Wartend lassen}}"
+  },
+  "arretPointages": {
+    "titre": "{count, plural, one {# Zeiterfassung stoppen?} other {# Zeiterfassungen stoppen?}}",
+    "description": "{count, plural, one {Die laufende Zeiterfassung wird jetzt gestoppt. Der Mechaniker muss neu starten.} other {Die laufenden Zeiterfassungen werden jetzt gestoppt. Die Mechaniker müssen neu starten.}}",
+    "confirmer": "{count, plural, one {Zeiterfassung stoppen} other {Zeiterfassungen stoppen}}"
+  },
+  "consignes": {
+    "fournirMotif": "Der eingegebene Kilometerstand liegt unter dem letzten Stand ({km} km). Korrigieren Sie ihn bei einem Tippfehler.",
+    "signerReserveSecurite": "Lassen Sie den Sicherheitsvorbehalt vom Kunden unterzeichnen und wiederholen Sie dann die Rückgabe.",
+    "demanderHabilitation": "Diese Aktion ist einer verantwortlichen Person vorbehalten. Bitten Sie sie um Bestätigung.",
+    "controleQualite": "Die Qualitätskontrolle ist für diesen Betrieb Pflicht: der AR muss in die Kontrolle, bevor er abgeschlossen wird.",
+    "receptionnerIndisponible": "Das Fahrzeug muss zuerst angenommen werden. Ihre Rolle erlaubt das nicht: fragen Sie den Empfang."
+  },
+  "renseignerPo": {
+    "titre": "Bestellnummer erfassen",
+    "requis": "Geben Sie die Bestellnummer des Kunden an."
+  },
+  "erreurs": {
+    "transitionInterdite": {
+      "avecStatut": "Diese Aktion ist nicht möglich: der AR hat den Status «{statut}». Laden Sie die Seite neu und wählen Sie eine der vorgeschlagenen Aktionen.",
+      "sansStatut": "Diese Aktion ist im aktuellen Zustand des AR nicht möglich. Laden Sie die Seite neu und wählen Sie eine der vorgeschlagenen Aktionen."
     }
   }
 }

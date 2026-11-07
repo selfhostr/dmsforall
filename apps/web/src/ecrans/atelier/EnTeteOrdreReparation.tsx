@@ -19,6 +19,8 @@ import { listerOrdresReparation } from '@/hooks/atelier/ordres-reparation.api';
 import { formaterDateHeure, formaterMontant, formaterKilometrage } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
+import { trouverOrPrecedent } from './or-precedent';
+
 // `LocalisationVehicule` -> suffixe de `or:localisations` — mapping non trivial
 // (`sous_traitant` -> `sousTraitant` avec interpolation `{fournisseur}`), explicite comme partout
 // ailleurs dans ce lot.
@@ -129,12 +131,12 @@ export function EnTeteOrdreReparation({ or }: Props) {
     queryFn: async () => {
       const page = await listerOrdresReparation(
         { vehiculeId: or.vehicule.id, tri: 'ouvertLe:desc' },
-        { limite: 5 },
+        { limite: 50 },
       );
       return page.donnees;
     },
   });
-  const orPrecedent = requetePrecedent.data?.find((candidat) => candidat.id !== or.id) ?? null;
+  const orPrecedent = trouverOrPrecedent(requetePrecedent.data ?? [], or);
 
   const localisationTexte =
     or.localisation === 'sous_traitant'
