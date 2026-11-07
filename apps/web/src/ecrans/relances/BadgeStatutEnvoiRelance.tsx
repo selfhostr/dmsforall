@@ -32,7 +32,12 @@ export function BadgeStatutEnvoiRelance({ statut, className }: Props) {
   const config = CONFIG_STATUT_ENVOI[statut];
 
   return (
-    <BadgeStatut icone={config.icone} token={config.token} forme={config.forme} className={className}>
+    <BadgeStatut
+      icone={config.icone}
+      token={config.token}
+      forme={config.forme}
+      className={className}
+    >
       {t(`relances:tracabilite.statut.${statut}`)}
     </BadgeStatut>
   );

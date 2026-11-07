@@ -16,7 +16,7 @@ import { validerNumeroTva } from '@/ecrans/parametrage/numero-tva';
 import { champsAdresseManquants, LONGUEURS_ADRESSE, type ChampAdresse } from '../adresse';
 import { ChampAssistant } from '../ChampAssistant';
 import { useMemoireEtape } from '../memoire-etapes';
-import { PiedEtape } from '../PiedEtape';
+import { PiedEtape, PiedQuitterSeul } from '../PiedEtape';
 import type { PropsEtape } from '../types-etape';
 
 type Assujetti = 'oui' | 'non' | undefined;
@@ -43,23 +43,29 @@ export function EtapeGarage(props: PropsEtape) {
 
   if (entreprise.isPending || creancier.isPending) {
     return (
-      <div role="status" aria-label={t('assistant:chargement')} className="space-y-3">
-        <Skeleton className="h-11 w-full" />
-        <Skeleton className="h-11 w-full" />
-        <Skeleton className="h-11 w-full" />
+      <div className="space-y-4">
+        <div role="status" aria-label={t('assistant:chargement')} className="space-y-3">
+          <Skeleton className="h-11 w-full" />
+          <Skeleton className="h-11 w-full" />
+          <Skeleton className="h-11 w-full" />
+        </div>
+        <PiedQuitterSeul />
       </div>
     );
   }
   if (entreprise.isError || creancier.isError) {
     return (
-      <EtatErreur
-        titre={t('assistant:erreur.titre')}
-        description={messageErreur(entreprise.error ?? creancier.error, t)}
-        onReessayer={() => {
-          void entreprise.refetch();
-          void creancier.refetch();
-        }}
-      />
+      <div className="space-y-4">
+        <EtatErreur
+          titre={t('assistant:erreur.titre')}
+          description={messageErreur(entreprise.error ?? creancier.error, t)}
+          onReessayer={() => {
+            void entreprise.refetch();
+            void creancier.refetch();
+          }}
+        />
+        <PiedQuitterSeul />
+      </div>
     );
   }
 

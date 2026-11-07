@@ -5,6 +5,7 @@ import { type ReponseDossierVente } from '@dfa/shared';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { ListeDefinitions, type ElementDefinition } from '@/composants/ListeDefinitions';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { ActionPrimaire } from '@/composants/layout/ActionPrimaire';
@@ -75,6 +76,39 @@ export function EnTeteDossierVente({ dossier, peutAssignerVehicule, onAssignerVe
   // le SEUL point d'entrée.
   const peutAssignerMaintenant = !vehiculeStock && peutAssignerVehicule;
 
+  // Trois rendus du prix, jamais interchangeables (voir `utils.ts`) :
+  //  - `aucun` -> texte muet, ne ressemble à aucun montant ;
+  //  - montant illisible pour ce rôle (`undefined`) -> la ligne est OMISE, jamais un tiret qui se
+  //    lirait comme « pas de prix » ;
+  //  - `indicatif` -> montant atténué et préfixé ; `engage` -> seul rendu proéminent.
+  const elementsResume: ElementDefinition[] = [];
+  if (prix.statut === 'aucun') {
+    elementsResume.push({
+      cle: 'prix',
+      libelle: t('ventes:dossier.fiche.prix'),
+      valeur: <span className="text-muted-foreground">{t('ventes:dossier.fiche.prixAucun')}</span>,
+    });
+  } else if (prix.document.totalTtcCentimes !== undefined) {
+    const total = prix.document.totalTtcCentimes;
+    elementsResume.push({
+      cle: 'prix',
+      libelle: t('ventes:dossier.fiche.prix'),
+      valeur:
+        prix.statut === 'indicatif' ? (
+          <span className="text-muted-foreground">
+            {t('ventes:dossier.fiche.prixIndicatif', { montant: formaterMontant(total) })}
+          </span>
+        ) : (
+          <span className="texte-donnee-proeminente">{formaterMontant(total)}</span>
+        ),
+    });
+  }
+  elementsResume.push({
+    cle: 'dateLivraison',
+    libelle: t('ventes:dossier.fiche.dateLivraisonEstimee'),
+    valeur: dossier.dateLivraisonEstimee ? formaterDate(dossier.dateLivraisonEstimee) : '',
+  });
+
   return (
     <Card>
       <CardContent className="flex flex-col gap-4 pt-6">
@@ -136,42 +170,7 @@ export function EnTeteDossierVente({ dossier, peutAssignerVehicule, onAssignerVe
          *  statiques (prix, date de livraison), aucune action ni comportement propre à ce groupe —
          *  espacement/typographie suffisent, même doctrine que les `dl` de totaux/pointage de
          *  `EcranFicheOrdreReparation.tsx` (atelier), qui n'ont jamais porté de cadre. */}
-        <dl className="flex flex-col gap-y-2 texte-corps">
-          <div className="grid grid-cols-2 gap-x-4 sm:grid-cols-3">
-            <dt className="text-muted-foreground">{t('ventes:dossier.fiche.prix')}</dt>
-            <dd className="sm:col-span-2">
-              {/* Trois rendus visuellement distincts (jamais interchangeables, voir `utils.ts`) :
-               *  - `aucun` -> texte muet, ne ressemble à aucun montant (ni chiffre ni devise) ;
-               *  - `undefined` (rôle masqué, montant existant mais illisible pour ce rôle) -> `null`,
-               *    RIEN n'est rendu — surtout pas un texte qui pourrait se lire comme « pas de prix » ;
-               *  - `indicatif` -> montant réel, mais atténué + préfixé, jamais confondu avec un engagé ;
-               *  - `engage` -> seul cas en texte proéminent, le seul qui affirme un prix ferme. */}
-              {prix.statut === 'aucun' ? (
-                <span className="text-muted-foreground">{t('ventes:dossier.fiche.prixAucun')}</span>
-              ) : prix.document.totalTtcCentimes === undefined ? null : prix.statut ===
-                'indicatif' ? (
-                <span className="text-muted-foreground">
-                  {t('ventes:dossier.fiche.prixIndicatif', {
-                    montant: formaterMontant(prix.document.totalTtcCentimes),
-                  })}
-                </span>
-              ) : (
-                <span className="texte-donnee-proeminente">
-                  {formaterMontant(prix.document.totalTtcCentimes)}
-                </span>
-              )}
-            </dd>
-          </div>
-
-          <div className="grid grid-cols-2 gap-x-4 sm:grid-cols-3">
-            <dt className="text-muted-foreground">
-              {t('ventes:dossier.fiche.dateLivraisonEstimee')}
-            </dt>
-            <dd className="sm:col-span-2">
-              {dossier.dateLivraisonEstimee ? formaterDate(dossier.dateLivraisonEstimee) : ''}
-            </dd>
-          </div>
-        </dl>
+        <ListeDefinitions colonnes={2} elements={elementsResume} />
       </CardContent>
     </Card>
   );

@@ -41,7 +41,6 @@ import { peutVoirChiffres } from './chiffres/droits';
 import { peutVoirMontantsFacturation } from './droits';
 import { IndicateurRetard } from './IndicateurRetard';
 
-
 const DELAI_DEBOUNCE_MS = 300;
 
 type OngletListeFactures = 'toutes' | 'nonReglees' | 'enRetard' | 'aRelancer' | 'devis';

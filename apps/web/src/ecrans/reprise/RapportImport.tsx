@@ -2,6 +2,14 @@ import { useTranslation } from 'react-i18next';
 
 import type { RapportImportReprise } from '@dfa/shared';
 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { formaterDate, formaterMontant } from '@/lib/formats';
 
 import { cleI18nDomaine } from './libelles-domaine';
@@ -77,63 +85,55 @@ export function RapportImport({ rapport }: Props) {
             {t('reprise:rapport.reconciliation.vide')}
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left text-muted-foreground">
-                  <th scope="col" className="py-1 pr-groupe">
-                    {t('reprise:rapport.reconciliation.colonneAnnee')}
-                  </th>
-                  <th scope="col" className="py-1 pr-groupe">
-                    {t('reprise:rapport.reconciliation.documentsSource')}
-                  </th>
-                  <th scope="col" className="py-1 pr-groupe">
-                    {t('reprise:rapport.reconciliation.documentsCible')}
-                  </th>
-                  <th scope="col" className="py-1 pr-groupe">
-                    {t('reprise:rapport.reconciliation.totalSource')}
-                  </th>
-                  <th scope="col" className="py-1 pr-groupe">
-                    {t('reprise:rapport.reconciliation.totalCible')}
-                  </th>
-                  <th scope="col" className="py-1">
-                    {t('reprise:rapport.reconciliation.ecart')}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {rapport.reconciliation.map((ligne) => (
-                  <tr key={ligne.annee} className="border-b last:border-0">
-                    <th scope="row" className="py-1 pr-groupe text-left font-normal tabular-nums">
-                      <span className="sr-only">
-                        {t('reprise:rapport.reconciliation.annee', { annee: ligne.annee })}
-                      </span>
-                      <span aria-hidden="true">{ligne.annee}</span>
-                    </th>
-                    <td className="py-1 pr-groupe tabular-nums">{ligne.nombreDocumentsSource}</td>
-                    <td className="py-1 pr-groupe tabular-nums">{ligne.nombreDocumentsCible}</td>
-                    <td className="py-1 pr-groupe tabular-nums">
-                      {formaterMontant(ligne.totalCentimesSource)}
-                    </td>
-                    <td className="py-1 pr-groupe tabular-nums">
-                      {formaterMontant(ligne.totalCentimesCible)}
-                    </td>
-                    <td
-                      className={
-                        ligne.ecartCentimes === 0
-                          ? 'py-1 tabular-nums text-muted-foreground'
-                          : 'py-1 tabular-nums font-medium text-destructive'
-                      }
-                    >
-                      {ligne.ecartCentimes === 0
-                        ? t('reprise:rapport.reconciliation.ecartNul')
-                        : formaterMontant(ligne.ecartCentimes)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead scope="col">
+                  {t('reprise:rapport.reconciliation.colonneAnnee')}
+                </TableHead>
+                <TableHead scope="col">
+                  {t('reprise:rapport.reconciliation.documentsSource')}
+                </TableHead>
+                <TableHead scope="col">
+                  {t('reprise:rapport.reconciliation.documentsCible')}
+                </TableHead>
+                <TableHead scope="col">{t('reprise:rapport.reconciliation.totalSource')}</TableHead>
+                <TableHead scope="col">{t('reprise:rapport.reconciliation.totalCible')}</TableHead>
+                <TableHead scope="col">{t('reprise:rapport.reconciliation.ecart')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rapport.reconciliation.map((ligne) => (
+                <TableRow key={ligne.annee}>
+                  <TableHead scope="row" className="font-normal tabular-nums">
+                    <span className="sr-only">
+                      {t('reprise:rapport.reconciliation.annee', { annee: ligne.annee })}
+                    </span>
+                    <span aria-hidden="true">{ligne.annee}</span>
+                  </TableHead>
+                  <TableCell className="tabular-nums">{ligne.nombreDocumentsSource}</TableCell>
+                  <TableCell className="tabular-nums">{ligne.nombreDocumentsCible}</TableCell>
+                  <TableCell className="tabular-nums">
+                    {formaterMontant(ligne.totalCentimesSource)}
+                  </TableCell>
+                  <TableCell className="tabular-nums">
+                    {formaterMontant(ligne.totalCentimesCible)}
+                  </TableCell>
+                  <TableCell
+                    className={
+                      ligne.ecartCentimes === 0
+                        ? 'tabular-nums text-muted-foreground'
+                        : 'tabular-nums font-medium text-destructive'
+                    }
+                  >
+                    {ligne.ecartCentimes === 0
+                      ? t('reprise:rapport.reconciliation.ecartNul')
+                      : formaterMontant(ligne.ecartCentimes)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </div>
 
