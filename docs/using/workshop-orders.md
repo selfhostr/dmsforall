@@ -42,6 +42,10 @@ Each line is one of these types:
 
 Each line has its own status: proposed, to be validated, validated, in progress, done, invoiced, refused or cancelled.
 
+### Attach photos to a line
+
+Use **Photo** on a line, or in the dialog that adds a job, to photograph the fault on a tablet or phone. Each line takes up to 20 photos, in JPEG or PNG, and the browser shrinks each one before sending it. Select a thumbnail to see the photo full screen with its caption. The person who took a photo, or a manager, can delete it until the order is invoiced. Anyone who can read the order sees the thumbnails.
+
 ## Quotes for extra work
 
 When the workshop finds extra work, it creates a supplementary quote on the order. The client decides for the whole quote, or line by line: accept, refuse, or partial. The decision is recorded on the order.

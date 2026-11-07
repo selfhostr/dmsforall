@@ -6,6 +6,7 @@ import type { ReponsePointage, VehiculeResume } from '@dfa/shared';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PhotosLigne } from '@/composants/photos/PhotosLigne';
 import { formaterDureeLisible, useChronoPointage } from '@/hooks/pointage/temps-pointage';
 import { formaterHeure } from '@/lib/formats';
 import { cn } from '@/lib/utils';
@@ -155,6 +156,18 @@ export function CartePointageEnCours({
           <Alert variant="destructive">
             <AlertDescription>{messageErreur}</AlertDescription>
           </Alert>
+        ) : null}
+
+        {pointage.ordreReparationId && pointage.ligneOrId ? (
+          // Le technicien photographie le défaut sur la ligne qu'il est en train de traiter. Le
+          // bouton ne s'affiche que si son rôle peut ajouter une photo : la borne (compte de
+          // service) n'en a pas le droit et ne le voit donc jamais.
+          <PhotosLigne
+            orId={pointage.ordreReparationId}
+            ligneId={pointage.ligneOrId}
+            grand
+            libelleBouton={t('pointage:technicien.boutons.photo')}
+          />
         ) : null}
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

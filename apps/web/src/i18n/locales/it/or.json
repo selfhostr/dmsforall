@@ -539,5 +539,34 @@
     "titre": "Veicolo di cortesia",
     "description": "Scegliete un’auto libera oggi: il prestito sarà collegato a questo cliente e a questo OR.",
     "aucunLibre": "Oggi nessun veicolo di cortesia è libero."
+  },
+  "photos": {
+    "bouton": "Foto",
+    "ajouter": "Aggiungi una foto",
+    "boutonPour": "Aggiungi una foto — {designation}",
+    "compteur": "{count, plural, one {# foto} other {# foto}}",
+    "complet": "Massimo raggiunto ({max} foto).",
+    "liste": "Foto del lavoro",
+    "ouvrir": "Apri la foto {numero} di {total}",
+    "apercuAttente": "Foto {numero} da inviare",
+    "retirer": "Rimuovi la foto {numero}",
+    "apercuDevis": "{count, plural, one {# foto allegata a questo lavoro} other {# foto allegate a questi lavori}}",
+    "echecApresCreation": "{count, plural, one {Il lavoro è registrato, ma # foto non ha potuto essere inviata.} other {Il lavoro è registrato, ma # foto non hanno potuto essere inviate.}}",
+    "reessayer": "Riprova l’invio",
+    "continuerSans": "Continua senza la foto",
+    "erreurs": {
+      "tropLourde": "Questa foto è troppo pesante, anche dopo la riduzione. Rifarla.",
+      "illisible": "Questa foto non può essere letta. Rifarla.",
+      "heic": "Questo formato di foto (HEIC) non è leggibile qui. Imposti la fotocamera su «Più compatibile» (JPEG) e rifaccia la foto."
+    },
+    "visionneuse": {
+      "titre": "Foto del lavoro",
+      "position": "Foto {numero} di {total}",
+      "sansLegende": "Foto del lavoro",
+      "precedente": "Precedente",
+      "suivante": "Successiva",
+      "supprimer": "Elimina la foto",
+      "confirmerSuppression": "Sì, elimina"
+    }
   }
 }
