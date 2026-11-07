@@ -93,8 +93,8 @@
       "texte": "Information"
     },
     "origines": {
-      "commandee": "Kunde",
-      "constatee": "Festgestellt",
+      "commandee": "Vom Kunden bestellt",
+      "constatee": "Bei der Arbeit festgestellt",
       "campagne": "Kampagne",
       "garantie": "Garantie",
       "retouche": "Nacharbeit",
@@ -409,7 +409,11 @@
     "titre": "Aktionen",
     "imprimer": "RA drucken",
     "confirmer": "Bestätigen",
-    "confirmerAction": "Bestätigen Sie diese Aktion.",
+    "confirmation": {
+      "demarrer": "Der RA wird auf «In Bearbeitung» gesetzt: Die Mitarbeitenden können nun stempeln und die Arbeiten ausführen.",
+      "passerEnControle": "Der RA geht in die Kontrolle: Die Arbeiten werden geprüft, bevor sie als abgeschlossen gelten.",
+      "cloturer": "Der RA wird geschlossen: Er kann danach weder geändert noch fakturiert werden."
+    },
     "annulerAvertissement": "Diese Aktion ist endgültig: Ein stornierter Reparaturauftrag kann weder geändert noch fortgesetzt werden.",
     "motif": "Grund",
     "motifRequis": "Der Grund ist obligatorisch",
@@ -592,6 +596,19 @@
     "titre": "Ersatzfahrzeug",
     "description": "Wählen Sie ein heute freies Auto: Die Ausleihe wird diesem Kunden und diesem RA zugeordnet.",
     "aucunLibre": "Heute ist kein Ersatzfahrzeug frei."
+  },
+  "lignesARealiser": {
+    "avertissement": "{count, plural, one {# Arbeit ist noch nicht als erledigt markiert. Sie wird mit dem Abschluss der Arbeiten erledigt.} other {# Arbeiten sind noch nicht als erledigt markiert. Sie werden mit dem Abschluss der Arbeiten erledigt.}}",
+    "action": "{count, plural, one {Position als erledigt markieren und abschliessen} other {# Positionen als erledigt markieren und abschliessen}}"
+  },
+  "pretCourtoisie": {
+    "titre": "Ersatzfahrzeug",
+    "chargement": "Ersatzfahrzeug wird geladen…",
+    "erreur": "Die Ausleihe des Ersatzfahrzeugs konnte nicht geladen werden.",
+    "enCours": "Ersatzfahrzeug: {vehicule}, ausgeliehen am {date}",
+    "enRetard": "Ersatzfahrzeug: {vehicule}, ausgeliehen am {date} – noch nicht zurückgegeben",
+    "reserve": "Ersatzfahrzeug: {vehicule}, reserviert ab {date}",
+    "retourne": "Ersatzfahrzeug: {vehicule}, ausgeliehen am {date}, zurückgegeben am {dateRetour}"
   },
   "photos": {
     "bouton": "Foto",

@@ -29,7 +29,7 @@ describe('ListeElementsBloquants', () => {
   it('enrichit la ligne « ligne_or » avec le numéro, l’origine et le montant tirés de `donnees`', () => {
     render(<ListeElementsBloquants blocages={ELEMENTS} />);
     expect(screen.getByText(/#4/)).toBeInTheDocument();
-    expect(screen.getByText(/Constatée/)).toBeInTheDocument();
+    expect(screen.getByText(/Découvert pendant l'intervention/)).toBeInTheDocument();
     expect(screen.getByText(/620\.00/)).toBeInTheDocument();
   });
 

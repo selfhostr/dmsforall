@@ -153,6 +153,9 @@ describe('EcranFicheOrdreReparation', () => {
       http.get('/api/v1/documents-vente', () =>
         HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 20 }),
       ),
+      http.get('/api/v1/courtoisie/prets', () =>
+        HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 }),
+      ),
     );
   });
 

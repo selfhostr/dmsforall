@@ -93,8 +93,8 @@
       "texte": "Informazione"
     },
     "origines": {
-      "commandee": "Cliente",
-      "constatee": "Constatata",
+      "commandee": "Richiesta dal cliente",
+      "constatee": "Scoperta durante l'intervento",
       "campagne": "Campagna",
       "garantie": "Garanzia",
       "retouche": "Rilavorazione",
@@ -409,7 +409,11 @@
     "titre": "Azioni",
     "imprimer": "Stampare l'OR",
     "confirmer": "Confermare",
-    "confirmerAction": "Confermare questa azione.",
+    "confirmation": {
+      "demarrer": "L'OR passa «In corso»: i tecnici possono iniziare a timbrare e a eseguire i lavori.",
+      "passerEnControle": "L'OR passa al controllo: i lavori vengono verificati prima di essere dichiarati terminati.",
+      "cloturer": "L'OR viene chiuso: non potrà più essere modificato né fatturato."
+    },
     "annulerAvertissement": "Questa azione è definitiva: un ordine di riparazione annullato non potrà più essere né modificato né ripreso.",
     "motif": "Motivo",
     "motifRequis": "Il motivo è obbligatorio",
@@ -592,6 +596,19 @@
     "titre": "Veicolo di cortesia",
     "description": "Scelga un’auto libera oggi: il prestito sarà collegato a questo cliente e a questo OR.",
     "aucunLibre": "Oggi nessun veicolo di cortesia è libero."
+  },
+  "lignesARealiser": {
+    "avertissement": "{count, plural, one {# lavoro non è ancora segnato come eseguito. Lo sarà insieme alla fine dei lavori.} other {# lavori non sono ancora segnati come eseguiti. Lo saranno insieme alla fine dei lavori.}}",
+    "action": "{count, plural, one {Segnare la riga come eseguita e terminare} other {Segnare le # righe come eseguite e terminare}}"
+  },
+  "pretCourtoisie": {
+    "titre": "Veicolo di cortesia",
+    "chargement": "Caricamento del prestito di cortesia…",
+    "erreur": "Impossibile caricare il prestito del veicolo di cortesia.",
+    "enCours": "Veicolo di cortesia: {vehicule}, prestato il {date}",
+    "enRetard": "Veicolo di cortesia: {vehicule}, prestato il {date} – non ancora restituito",
+    "reserve": "Veicolo di cortesia: {vehicule}, riservato dal {date}",
+    "retourne": "Veicolo di cortesia: {vehicule}, prestato il {date}, restituito il {dateRetour}"
   },
   "photos": {
     "bouton": "Foto",
