@@ -474,7 +474,16 @@ describe('AssistantDemarrage', () => {
   it('« Quitter pour l’instant » ferme sans rien exiger', async () => {
     simulerApi();
     const onFermer = rendre();
+    // Attendre le formulaire : pendant le chargement le pied réduit porte déjà « Quitter », puis
+    // se remplace par le pied complet — cliquer entre les deux perdrait le clic.
+    await screen.findByLabelText(t('assistant:garage.rue'));
     await userEvent.click(await bouton(t('assistant:actions.quitter')));
     expect(onFermer).toHaveBeenCalledTimes(1);
+  });
+
+  it('« Quitter pour l’instant » reste proposé pendant le chargement de l’étape', async () => {
+    simulerApi();
+    rendre();
+    expect(await bouton(t('assistant:actions.quitter'))).toBeInTheDocument();
   });
 });

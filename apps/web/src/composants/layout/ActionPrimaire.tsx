@@ -33,6 +33,9 @@ interface Props {
   readonly actionsSecondaires?: readonly ActionSecondaireMenu[];
   /** `aria-label` du déclencheur « … » — à fournir dès qu'`actionsSecondaires` est non vide. */
   readonly libelleMenuSecondaire?: string;
+  /** Boutons complémentaires, rendus entre l'action primaire et le « … » : le menu reste
+   *  toujours le dernier élément de la rangée. */
+  readonly complements?: ReactNode;
   readonly className?: string;
 }
 
@@ -45,11 +48,13 @@ export function ActionPrimaire({
   children,
   actionsSecondaires = [],
   libelleMenuSecondaire,
+  complements,
   className,
 }: Props) {
   return (
     <div className={cn('flex shrink-0 items-center gap-2', className)}>
       {children}
+      {complements}
       {actionsSecondaires.length > 0 ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

@@ -62,3 +62,19 @@ export function PiedEtape({
     </div>
   );
 }
+
+/** Pied réduit à « Quitter pour l'instant » : affiché pendant le chargement ou après une erreur
+ *  d'une étape, quand aucune action principale n'est encore possible — l'assistant ne doit jamais
+ *  enfermer l'utilisateur. Absent hors de l'assistant (pas de contexte de fermeture). */
+export function PiedQuitterSeul() {
+  const { t } = useTranslation('assistant');
+  const onQuitter = useQuitterAssistant();
+  if (!onQuitter) return null;
+  return (
+    <div className="flex items-center justify-end gap-3 border-t pt-4">
+      <Button type="button" variant="ghost" onClick={onQuitter}>
+        {t('assistant:actions.quitter')}
+      </Button>
+    </div>
+  );
+}
