@@ -68,6 +68,10 @@ export const EcranConsolePlateforme = paresseux(() =>
 export const EcranParametragePieces = paresseux(() =>
   import('@/ecrans/parametrage/EcranParametragePieces').then((m) => m.EcranParametragePieces),
 );
+export const EcranModules = paresseux(() =>
+  import('@/ecrans/parametrage/EcranModules').then((m) => m.EcranModules),
+);
+
 export const EcranParametrageAtelier = paresseux(() =>
   import('@/ecrans/parametrage/EcranParametrageAtelier').then((m) => m.EcranParametrageAtelier),
 );

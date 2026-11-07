@@ -34,6 +34,7 @@ import { PipeZod } from '../common/validation';
 import { FournisseurAvecAvertissementsDto, FournisseurDto, PageFournisseurDto } from './dto';
 import { schemaFiltresFournisseurs, schemaUuid } from './schemas';
 import { ServiceFournisseur } from './service-fournisseur';
+import { ExigerModule } from '../common/droits/garde-module';
 
 /**
  * Référentiel fournisseur (RP-26, §1) : minimal — nom, coordonnées, délai habituel. Pas de
@@ -41,6 +42,7 @@ import { ServiceFournisseur } from './service-fournisseur';
  */
 @ApiTags('Pièces — Fournisseurs')
 @ApiCookieAuth()
+@ExigerModule('pieces')
 @Controller({ path: 'fournisseurs', version: '1' })
 @UseGuards(GardeDroit)
 export class FournisseurController {

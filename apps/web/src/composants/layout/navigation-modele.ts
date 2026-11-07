@@ -9,7 +9,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
-import type { RoleUtilisateur } from '@dfa/shared';
+import type { ModuleApp, RoleUtilisateur } from '@dfa/shared';
 
 import { chemins } from '@/routes/chemins';
 import {
@@ -79,6 +79,11 @@ type AccesEntree = Acces | undefined;
 export interface SujetNavigation {
   readonly role: RoleUtilisateur;
   readonly actions: readonly string[];
+  /**
+   * Modules que le garage utilise (`session.modulesActifs`, Réglages > Modules). Absent : tout est
+   * actif (session pas encore connue, fixtures anciennes) — on n'invente jamais un retrait.
+   */
+  readonly modulesActifs?: readonly ModuleApp[];
 }
 
 export interface VueDomaine {
@@ -89,6 +94,8 @@ export interface VueDomaine {
   /** Préfixes d'URL qui activent cette vue — voir `cheminCorrespond`. */
   readonly motifs: readonly string[];
   readonly acces?: AccesEntree;
+  /** Module qui porte cette vue (plus fin que celui de l'onglet) : retiré, la vue disparaît. */
+  readonly module?: ModuleApp;
 }
 
 export interface OngletDomaine {
@@ -102,6 +109,12 @@ export interface OngletDomaine {
    */
   readonly motifs: readonly string[];
   readonly acces?: AccesEntree;
+  /**
+   * Module du garage qui porte cet onglet (Réglages > Modules). Retiré : l'onglet disparaît du
+   * menu, sa route redirige vers l'accueil (`cheminDansModuleRetire`), et une entrée sans onglet
+   * visible disparaît d'elle-même. Absent : socle, jamais retirable.
+   */
+  readonly module?: ModuleApp;
   readonly vues?: readonly VueDomaine[];
 }
 
@@ -179,6 +192,7 @@ const ONGLETS_ATELIER: readonly OngletDomaine[] = [
    */
   {
     id: 'ordresReparation',
+    module: 'atelier',
     cleLibelle: 'navigation:onglets.atelierOrdresReparation',
     chemin: (site) => chemins.atelier.ordresReparation.liste(site),
     motifs: ['/ordres-reparation', '/atelier/ordres-reparation'],
@@ -192,6 +206,7 @@ const ONGLETS_ATELIER: readonly OngletDomaine[] = [
    */
   {
     id: 'rendezVous',
+    module: 'planning',
     cleLibelle: 'navigation:onglets.atelierPlanning',
     chemin: (site) => chemins.atelier.rendezVous.agenda(site),
     motifs: ['/rendez-vous'],
@@ -199,6 +214,7 @@ const ONGLETS_ATELIER: readonly OngletDomaine[] = [
   },
   {
     id: 'courtoisie',
+    module: 'courtoisie',
     cleLibelle: 'navigation:onglets.atelierCourtoisie',
     chemin: (site) => chemins.atelier.courtoisie(site),
     motifs: ['/courtoisie'],
@@ -231,6 +247,7 @@ const ONGLETS_ATELIER: readonly OngletDomaine[] = [
    */
   {
     id: 'pointage',
+    module: 'pointage',
     cleLibelle: 'navigation:onglets.atelierPointage',
     chemin: (site) => chemins.pointage.saisie(site),
     motifs: ['/pointage'],
@@ -266,6 +283,7 @@ const ONGLETS_ATELIER: readonly OngletDomaine[] = [
       },
       {
         id: 'borne',
+        module: 'tablettes',
         cleLibelle: 'navigation:onglets.pointageBorne',
         chemin: () => chemins.pointage.borne(),
         motifs: ['/pointage/borne'],
@@ -293,6 +311,7 @@ const ONGLETS_ATELIER: readonly OngletDomaine[] = [
    */
   {
     id: 'depotPneus',
+    module: 'pneus',
     cleLibelle: 'navigation:onglets.atelierDepotPneus',
     chemin: (site) => chemins.pneus.hangar(site),
     motifs: ['/pneus'],
@@ -408,6 +427,7 @@ const ONGLETS_PIECES: readonly OngletDomaine[] = [
    */
   {
     id: 'comptoir',
+    module: 'pieces',
     cleLibelle: 'navigation:onglets.piecesComptoir',
     chemin: (site) => chemins.pieces.rechercheComptoir(site),
     motifs: ['/pieces/recherche-comptoir'],
@@ -421,6 +441,7 @@ const ONGLETS_PIECES: readonly OngletDomaine[] = [
    */
   {
     id: 'articles',
+    module: 'pieces',
     cleLibelle: 'navigation:onglets.piecesArticles',
     chemin: (site) => chemins.pieces.articles(site),
     motifs: ['/pieces/articles', '/pieces/reservations'],
@@ -458,6 +479,7 @@ const ONGLETS_PIECES: readonly OngletDomaine[] = [
    */
   {
     id: 'approvisionnement',
+    module: 'pieces',
     cleLibelle: 'navigation:onglets.piecesApprovisionnement',
     chemin: (site) => chemins.pieces.reapprovisionnement(site),
     motifs: [
@@ -514,6 +536,7 @@ const ONGLETS_PIECES: readonly OngletDomaine[] = [
    */
   {
     id: 'consignes',
+    module: 'pieces',
     cleLibelle: 'navigation:onglets.piecesConsignes',
     chemin: (site) => chemins.pieces.consignes(site),
     motifs: ['/pieces/consignes'],
@@ -555,6 +578,7 @@ const ONGLETS_FACTURATION: readonly OngletDomaine[] = [
    */
   {
     id: 'relances',
+    module: 'relances',
     cleLibelle: 'navigation:onglets.facturationRelances',
     chemin: (site) => chemins.relances(site),
     motifs: ['/relances'],
@@ -567,6 +591,7 @@ const ONGLETS_FACTURATION: readonly OngletDomaine[] = [
    */
   {
     id: 'exportFiduciaire',
+    module: 'export_fiduciaire',
     cleLibelle: 'navigation:onglets.facturationExportFiduciaire',
     chemin: (site) => chemins.facturation.exportFiduciaire(site),
     motifs: ['/export-fiduciaire'],
@@ -585,6 +610,7 @@ const ONGLETS_VENTES: readonly OngletDomaine[] = [
    */
   {
     id: 'dossiers',
+    module: 'ventes',
     cleLibelle: 'navigation:onglets.ventesDossiers',
     chemin: (site) => chemins.ventes.dossiers.liste(site),
     motifs: ['/ventes/dossiers'],
@@ -592,6 +618,7 @@ const ONGLETS_VENTES: readonly OngletDomaine[] = [
   },
   {
     id: 'parc',
+    module: 'ventes',
     cleLibelle: 'navigation:onglets.ventesParc',
     chemin: (site) => chemins.ventes.stock.liste(site),
     motifs: ['/ventes/stock'],
@@ -599,6 +626,7 @@ const ONGLETS_VENTES: readonly OngletDomaine[] = [
   },
   {
     id: 'suivi',
+    module: 'ventes',
     cleLibelle: 'navigation:onglets.ventesSuivi',
     chemin: (site) => chemins.ventes.suivi(site),
     motifs: ['/ventes/suivi'],
@@ -655,6 +683,7 @@ const ONGLETS_REGLAGES: readonly OngletDomaine[] = [
   },
   {
     id: 'pieces',
+    module: 'pieces',
     cleLibelle: 'navigation:onglets.reglagesPieces',
     chemin: (site) => chemins.parametrage.pieces(site),
     motifs: ['/parametrage/pieces'],
@@ -680,7 +709,15 @@ const ONGLETS_REGLAGES: readonly OngletDomaine[] = [
    * rôle hors `direction`/`comptable` côté API.
    */
   {
+    id: 'modules',
+    cleLibelle: 'navigation:onglets.reglagesModules',
+    chemin: (site) => chemins.parametrage.modules(site),
+    motifs: ['/parametrage/modules'],
+    acces: ACCES_MENU_PARAMETRAGE_ATELIER,
+  },
+  {
     id: 'relances',
+    module: 'relances',
     cleLibelle: 'navigation:onglets.reglagesRelances',
     chemin: (site) => chemins.parametrage.relances(site),
     motifs: ['/parametrage/relances'],
@@ -804,27 +841,52 @@ export function sujetNavigation(
     | {
         readonly utilisateur: { readonly role: RoleUtilisateur };
         readonly actions: readonly string[];
+        readonly modulesActifs?: readonly ModuleApp[];
       }
     | null
     | undefined,
 ): SujetNavigation | undefined {
-  return session ? { role: session.utilisateur.role, actions: session.actions } : undefined;
+  if (!session) return undefined;
+  const base = { role: session.utilisateur.role, actions: session.actions };
+  return session.modulesActifs === undefined
+    ? base
+    : { ...base, modulesActifs: session.modulesActifs };
 }
 
-/** `undefined` sur `acces` = aucune restriction, visible même session non encore résolue (le menu
- *  ne doit pas clignoter au chargement). Une restriction posée + session inconnue = masqué : on ne
- *  montre jamais une entrée gouvernée « au cas où ». Autorisé = au moins une des actions listées. */
 export function estAutorise(acces: AccesEntree, sujet: SujetNavigation | undefined): boolean {
   if (acces === undefined) return true;
   return sujet !== undefined && acces.some((action) => sujet.actions.includes(action));
 }
 
 /**
- * `poste_atelier` est un APPAREIL, pas un employé (§2, décision « on n'y revient pas ») : la borne
- * murale n'a ni menu, ni onglets, ni recherche — un seul geste, le pavé numérique. Filtrer entrée
- * par entrée laisserait passer celles qui n'ont aucune restriction (Clients & véhicules, Ordres de
- * réparation), ce qui remettrait un menu sur une tablette qui n'en veut pas.
+ * Le garage utilise-t-il ce module ? `undefined` (socle) : toujours. Sans liste de modules (session
+ * pas encore connue) : oui — on ne masque jamais sur une information absente.
  */
+export function moduleActif(
+  module: ModuleApp | undefined,
+  modulesActifs: readonly ModuleApp[] | undefined,
+): boolean {
+  if (module === undefined || modulesActifs === undefined) return true;
+  return modulesActifs.includes(module);
+}
+
+/**
+ * Module d'une URL, d'après le modèle ci-dessus (la vue prime sur l'onglet) — l'unique source de
+ * vérité du routeur (`RouteProtegee`) : une route n'a pas à redéclarer son module.
+ */
+export function moduleDeChemin(pathname: string): ModuleApp | undefined {
+  const correspondance = trouverCorrespondance(pathname);
+  return correspondance?.vue?.module ?? correspondance?.onglet.module;
+}
+
+/** `true` si l'URL appartient à un module que le garage a retiré (le routeur renvoie alors à l'accueil). */
+export function cheminDansModuleRetire(
+  pathname: string,
+  modulesActifs: readonly ModuleApp[] | undefined,
+): boolean {
+  return !moduleActif(moduleDeChemin(pathname), modulesActifs);
+}
+
 function estCompteAppareil(sujet: SujetNavigation | undefined): boolean {
   return sujet?.role === 'poste_atelier';
 }
@@ -836,7 +898,9 @@ export function vuesVisibles(
   // Même garde que `ongletsVisibles` : la borne murale ne rend aucun niveau de navigation. Sans
   // elle, `poste_atelier` verrait la rangée de vues du pointage — précisément ce que §2 exclut.
   if (estCompteAppareil(sujet)) return [];
-  return (onglet.vues ?? []).filter((vue) => estAutorise(vue.acces, sujet));
+  return (onglet.vues ?? []).filter(
+    (vue) => estAutorise(vue.acces, sujet) && moduleActif(vue.module, sujet?.modulesActifs),
+  );
 }
 
 export function ongletsVisibles(
@@ -844,7 +908,10 @@ export function ongletsVisibles(
   sujet: SujetNavigation | undefined,
 ): readonly OngletDomaine[] {
   if (estCompteAppareil(sujet)) return [];
-  return entree.onglets.filter((onglet) => estAutorise(onglet.acces, sujet));
+  return entree.onglets.filter(
+    (onglet) =>
+      estAutorise(onglet.acces, sujet) && moduleActif(onglet.module, sujet?.modulesActifs),
+  );
 }
 
 /** Une entrée existe pour un rôle si et seulement si au moins un de ses onglets lui est ouvert —

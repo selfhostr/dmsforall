@@ -18,6 +18,7 @@ import { EtapeAtelier } from './etapes/EtapeAtelier';
 import { EtapeEquipe, type CompteCree } from './etapes/EtapeEquipe';
 import { EtapeGarage } from './etapes/EtapeGarage';
 import { EtapeLogo } from './etapes/EtapeLogo';
+import { EtapeModules } from './etapes/EtapeModules';
 import { EtapePaiements } from './etapes/EtapePaiements';
 import { EtapeTermine } from './etapes/EtapeTermine';
 import type { MemoireEtapes } from './memoire-etapes';
@@ -121,6 +122,7 @@ export function AssistantDemarrage({ ouvert, onFermer }: Props) {
             </div>
 
             {etape === 'garage' ? <EtapeGarage {...propsEtape} /> : null}
+            {etape === 'modules' ? <EtapeModules {...propsEtape} /> : null}
             {etape === 'paiements' ? <EtapePaiements {...propsEtape} /> : null}
             {etape === 'atelier' ? <EtapeAtelier {...propsEtape} /> : null}
             {etape === 'logo' ? <EtapeLogo {...propsEtape} /> : null}

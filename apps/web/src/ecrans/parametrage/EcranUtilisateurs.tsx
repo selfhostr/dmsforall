@@ -30,6 +30,7 @@ import { useDesactiverUtilisateur } from '@/hooks/parametrage/useDesactiverUtili
 import { useListeUtilisateurs } from '@/hooks/parametrage/useListeUtilisateurs';
 import { useReactiverUtilisateur } from '@/hooks/parametrage/useReactiverUtilisateur';
 import { useReinitialiserAccesUtilisateur } from '@/hooks/parametrage/useReinitialiserAccesUtilisateur';
+import { useModulesActifs } from '@/hooks/modules/useModulesActifs';
 import { cleTraductionRole } from '@/lib/roles';
 
 import { DialogueAccesTemporaire } from './DialogueAccesTemporaire';
@@ -65,6 +66,7 @@ function BadgeStatutEmploye({ statut }: { readonly statut: UtilisateurResume['st
 export function EcranUtilisateurs() {
   const { t } = useTranslation(['parametrage', 'commun', 'erreurs']);
   const requete = useListeUtilisateurs();
+  const { estActif } = useModulesActifs();
 
   const [dialogueOuvert, setDialogueOuvert] = useState(false);
   const [dialogueFiduciaire, setDialogueFiduciaire] = useState(false);
@@ -301,7 +303,7 @@ export function EcranUtilisateurs() {
         onAnnuler={() => setActionEnAttente(null)}
       />
 
-      <SectionBornes />
+      {estActif('tablettes') ? <SectionBornes /> : null}
 
       <DialogueAccesTemporaire
         ouvert={motDePasseAffiche !== null}

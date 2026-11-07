@@ -15,6 +15,7 @@
 import { pgEnum } from 'drizzle-orm/pg-core';
 import {
   LANGUES,
+  MODULES_APP,
   MODES_SIGNALEMENT,
   ROLES_UTILISATEUR,
   STATUTS_TENANT,
@@ -25,6 +26,8 @@ import {
 /** Langues de travail de l'application et des documents clients. Type PG : `langue`. */
 export const langueEnum = pgEnum('langue', LANGUES);
 
+/** Module de l'application que le garage peut retirer (migration 0092). Type PG : `module_app`. */
+export const moduleAppEnum = pgEnum('module_app', MODULES_APP);
 /** Comportement du bouton « Signaler un problème ». Type PG : `mode_signalement`. */
 export const modeSignalementEnum = pgEnum('mode_signalement', MODES_SIGNALEMENT);
 

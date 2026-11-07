@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { RoleUtilisateur } from '@dfa/shared';
 
 import { peutLireEcheancesOr } from '@/ecrans/accueil/droits';
+import { useModulesActifs } from '@/hooks/modules/useModulesActifs';
 import { peutEmettreFacture, peutEncaisser } from '@/ecrans/facturation/droits';
 import { peutLireRendezVous } from '@/ecrans/rendez-vous/droits';
 import { CarteOrEnRetard } from '@/ecrans/tableau-bord/composants/CarteOrEnRetard';
@@ -51,6 +52,9 @@ const CLES_RESTITUTIONS: Readonly<Record<string, string>> = {
 export function AFaireAujourdhui({ role, actions, site }: Props) {
   const { t } = useTranslation('accueil');
   const cles = (role && CLES_RESTITUTIONS[role]) ?? CLES_RESTITUTIONS.receptionnaire;
+  // Module retiré par le garage : ses cartes ne s'affichent plus (rendez-vous = planning, le reste = atelier).
+  const { estActif } = useModulesActifs();
+  const atelier = estActif('atelier');
 
   return (
     <section aria-labelledby="accueil-a-faire-titre" className="flex flex-col gap-groupe">
@@ -63,12 +67,12 @@ export function AFaireAujourdhui({ role, actions, site }: Props) {
         {t('aFaire.titre')}
       </h2>
       <div className="grid grid-cols-1 items-stretch gap-groupe md:grid-cols-2">
-        {peutLireRendezVous(actions) ? (
+        {estActif('planning') && peutLireRendezVous(actions) ? (
           <CelluleCarte>
             <CarteRendezVousJour site={site} />
           </CelluleCarte>
         ) : null}
-        {peutLireEcheancesOr(actions) ? (
+        {atelier && peutLireEcheancesOr(actions) ? (
           <CelluleCarte>
             <CarteRestitutionsJour
               site={site}
@@ -79,12 +83,12 @@ export function AFaireAujourdhui({ role, actions, site }: Props) {
             />
           </CelluleCarte>
         ) : null}
-        {peutLireEcheancesOr(actions) ? (
+        {atelier && peutLireEcheancesOr(actions) ? (
           <CelluleCarte>
             <CarteOrEnRetard site={site} />
           </CelluleCarte>
         ) : null}
-        {peutEmettreFacture(actions) ? (
+        {atelier && peutEmettreFacture(actions) ? (
           <CelluleCarte>
             <CarteOrAFaire
               site={site}
@@ -99,7 +103,7 @@ export function AFaireAujourdhui({ role, actions, site }: Props) {
             <CarteFacturesEchues site={site} />
           </CelluleCarte>
         ) : null}
-        {peutLireEcheancesOr(actions) ? (
+        {atelier && peutLireEcheancesOr(actions) ? (
           <CelluleCarte>
             <CarteOrAFaire
               site={site}

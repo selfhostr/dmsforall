@@ -37,11 +37,13 @@ import {
   ReponseCreationBorneDto,
 } from './dto';
 import { ServiceBorne } from './service-borne';
+import { ExigerModule } from '../common/droits/garde-module';
 
 const schemaBorneId = z.string().uuid();
 
 @ApiTags('Socle')
 @ApiCookieAuth()
+@ExigerModule('tablettes')
 @Controller({ path: 'bornes', version: '1' })
 @UseGuards(GardeDroit)
 export class BorneController {

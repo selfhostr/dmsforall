@@ -54,6 +54,7 @@ import {
 } from './dto';
 import { schemaFiltresMouvementsStock, schemaUuid } from './schemas';
 import { ServiceMouvement } from './service-mouvement';
+import { ExigerModule } from '../common/droits/garde-module';
 
 /**
  * Mouvements de stock (RP-16 → RP-18) : historique + les cinq actions à déclenchement direct.
@@ -61,6 +62,7 @@ import { ServiceMouvement } from './service-mouvement';
  */
 @ApiTags('Pièces — Mouvements de stock')
 @ApiCookieAuth()
+@ExigerModule('pieces')
 @Controller({ path: 'articles', version: '1' })
 @UseGuards(GardeDroit)
 export class MouvementController {

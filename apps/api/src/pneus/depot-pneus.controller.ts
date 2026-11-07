@@ -48,6 +48,7 @@ import {
   schemaUuid,
 } from './schemas';
 import { ServiceDepotPneus } from './service-depot-pneus';
+import { ExigerModule } from '../common/droits/garde-module';
 
 /**
  * Trois contrôleurs pour un module — préfixes de route disjoints (`sites/`, `vehicules/`,
@@ -85,6 +86,7 @@ import { ServiceDepotPneus } from './service-depot-pneus';
 
 @ApiTags('Pneus — Hangar')
 @ApiCookieAuth()
+@ExigerModule('pneus')
 @Controller({ path: 'sites', version: '1' })
 @UseGuards(GardeDroit)
 export class SiteHangarPneusController {
@@ -115,6 +117,7 @@ export class SiteHangarPneusController {
 
 @ApiTags('Pneus — Hangar')
 @ApiCookieAuth()
+@ExigerModule('pneus')
 @Controller({ path: 'vehicules', version: '1' })
 @UseGuards(GardeDroit)
 export class VehiculeDepotsPneusController {
@@ -178,6 +181,7 @@ export class VehiculeDepotsPneusController {
 
 @ApiTags('Pneus — Hangar')
 @ApiCookieAuth()
+@ExigerModule('pneus')
 @Controller({ path: 'depots-pneus', version: '1' })
 @UseGuards(GardeDroit)
 export class DepotPneusController {

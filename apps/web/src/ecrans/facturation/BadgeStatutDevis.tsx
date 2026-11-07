@@ -12,12 +12,11 @@ import { useTranslation } from 'react-i18next';
 
 import type { StatutDocumentVente } from '@dfa/shared';
 
-import { cn } from '@/lib/utils';
-
-type Feu = 'neutre' | 'info' | 'attention' | 'succes' | 'danger' | 'terminal';
+import { BadgeStatut } from '@/composants/identite/BadgeStatut';
+import type { TokenStatut } from '@/composants/identite/BadgeStatut';
 
 const CONFIG: Readonly<
-  Partial<Record<StatutDocumentVente, { readonly icone: LucideIcon; readonly feu: Feu }>>
+  Partial<Record<StatutDocumentVente, { readonly icone: LucideIcon; readonly feu: TokenStatut }>>
 > = {
   brouillon: { icone: PencilLine, feu: 'neutre' },
   emis: { icone: Send, feu: 'info' },
@@ -30,15 +29,6 @@ const CONFIG: Readonly<
   abandonne: { icone: Ban, feu: 'neutre' },
 };
 
-const CLASSES: Readonly<Record<Feu, string>> = {
-  neutre: 'border-statut-neutre text-statut-neutre',
-  info: 'border-statut-info text-statut-info',
-  attention: 'border-statut-attention text-statut-attention',
-  succes: 'border-statut-succes text-statut-succes',
-  danger: 'border-statut-danger text-statut-danger',
-  terminal: 'border-statut-terminal text-statut-terminal',
-};
-
 interface Props {
   readonly statut: StatutDocumentVente;
 }
@@ -48,16 +38,9 @@ interface Props {
 export function BadgeStatutDevis({ statut }: Props) {
   const { t } = useTranslation('facturation');
   const config = CONFIG[statut] ?? { icone: Ban, feu: 'neutre' as const };
-  const Icone = config.icone;
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 rounded-full border bg-background px-2.5 py-0.5 texte-libelle font-medium',
-        CLASSES[config.feu],
-      )}
-    >
-      <Icone aria-hidden className="h-3.5 w-3.5 shrink-0" />
+    <BadgeStatut icone={config.icone} token={config.feu} forme="contour">
       {t(`facturation:devis.statuts.${statut}`)}
-    </span>
+    </BadgeStatut>
   );
 }

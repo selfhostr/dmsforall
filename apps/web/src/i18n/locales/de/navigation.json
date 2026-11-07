@@ -56,7 +56,8 @@
     "reglagesPieces": "Teile",
     "reglagesUtilisateurs": "Benutzer",
     "reglagesRelances": "Zahlungserinnerungen",
-    "atelierCourtoisie": "Ersatzwagen"
+    "atelierCourtoisie": "Ersatzwagen",
+    "reglagesModules": "Module"
   },
   "liens": {
     "clients": "Kunden",

@@ -9,6 +9,7 @@ import { PipeZod } from '../common/validation';
 
 import { PageVehiculeStockResumeDto } from './dto';
 import { ServiceVehiculeStock } from './service-vehicule-stock';
+import { ExigerModule } from '../common/droits/garde-module';
 
 /**
  * Collection paginée des véhicules en stock (RV-01→RV-14, priorité 4 du module) — distincte de
@@ -17,6 +18,7 @@ import { ServiceVehiculeStock } from './service-vehicule-stock';
  */
 @ApiTags('Véhicules en stock')
 @ApiCookieAuth()
+@ExigerModule('ventes')
 @Controller({ path: 'vehicules-stock', version: '1' })
 @UseGuards(GardeDroit)
 export class VehiculesStockController {

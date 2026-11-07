@@ -9,6 +9,7 @@ import { PipeZod } from '../common/validation';
 
 import { PageSuiviVenteDto } from './dto';
 import { ServiceSuiviVente } from './service-suivi-vente';
+import { ExigerModule } from '../common/droits/garde-module';
 
 /**
  * Suivi financement/garantie (`GET /ventes/suivi`) — VUE dérivée, en lecture seule, sur
@@ -41,6 +42,7 @@ import { ServiceSuiviVente } from './service-suivi-vente';
  */
 @ApiTags('Suivi ventes')
 @ApiCookieAuth()
+@ExigerModule('ventes')
 @Controller({ path: 'ventes/suivi', version: '1' })
 @UseGuards(GardeDroit)
 export class SuiviVenteController {

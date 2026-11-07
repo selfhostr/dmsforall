@@ -11,7 +11,12 @@ import { isIP } from 'node:net';
 
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { and, asc, eq } from 'drizzle-orm';
-import type { EntreeConnexion, SessionCourante, TypeEvenementSecurite } from '@dfa/shared';
+import {
+  modulesActifsDepuis,
+  type EntreeConnexion,
+  type SessionCourante,
+  type TypeEvenementSecurite,
+} from '@dfa/shared';
 
 import { JETON_CONFIG } from '../../config/config.jetons';
 import type { Config } from '../../config/config.types';
@@ -298,6 +303,7 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
             slug: tenant.slug,
             raisonSociale: tenant.raisonSociale,
             langueDefaut: tenant.langueDefaut,
+            modulesDesactives: tenant.modulesDesactives,
             modeSignalement: tenant.modeSignalement,
           })
           .from(tenant)
@@ -351,6 +357,10 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
 
         const grille = grilleDepuisLigne(ligneUtilisateur);
 
+        // La liste brute des modules retirés n'est pas un champ de `TenantCourant` : la session
+        // n'expose que `modulesActifs` (effet des dépendances compris).
+        const { modulesDesactives, ...tenantCourant } = ligneTenant;
+
         // `siteId` est retiré de l'objet `utilisateur` : le contrat `UtilisateurCourant` ne porte
         // pas de site (c'est une propriété du COMPTE, exposée à part en `siteRattachementId`), et
         // renvoyer un champ non déclaré au contrat le ferait diverger de l'OpenAPI généré.
@@ -363,12 +373,13 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
             role: ligneUtilisateur.role,
             langue: ligneUtilisateur.langue,
           },
-          tenant: ligneTenant,
+          tenant: tenantCourant,
           sites: lignesSites,
           siteRattachementId,
           sitePrincipalId: ligneUtilisateur.sitePrincipalId,
           actions: [...droitsDe(ligneUtilisateur.role, grille).actions].sort(),
           capacites: capacitesPersonneDe(ligneUtilisateur.role, grille),
+          modulesActifs: modulesActifsDepuis(modulesDesactives),
           expireLe: ligneSession.expireLe.toISOString(),
         } satisfies SessionCourante;
       },

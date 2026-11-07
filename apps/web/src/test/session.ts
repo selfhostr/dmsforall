@@ -1,4 +1,5 @@
 import {
+  MODULES_APP,
   PREREGLAGES,
   type CapacitesPersonne,
   type IdPrereglage,
@@ -70,6 +71,7 @@ export function creerSessionTest(
     sitePrincipalId: role === 'poste_atelier' ? null : 'site-1',
     actions: actionsDuRole(role),
     capacites: capacitesDuRole(role),
+    modulesActifs: [...MODULES_APP],
     expireLe: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
     ...surcharges,
   };

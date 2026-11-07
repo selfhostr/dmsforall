@@ -25,6 +25,10 @@
     "garage": {
       "titre": "La sua autorimessa"
     },
+    "modules": {
+      "titre": "Ciò che usate",
+      "intro": "Togliete ciò che la vostra autorimessa non usa. Potrete cambiarlo in Impostazioni > Moduli."
+    },
     "paiements": {
       "titre": "Pagamenti"
     },

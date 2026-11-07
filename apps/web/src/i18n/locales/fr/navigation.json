@@ -56,7 +56,8 @@
     "reglagesPieces": "Pièces",
     "reglagesUtilisateurs": "Utilisateurs",
     "reglagesRelances": "Rappels de paiement",
-    "atelierCourtoisie": "Courtoisie"
+    "atelierCourtoisie": "Courtoisie",
+    "reglagesModules": "Modules"
   },
   "liens": {
     "clients": "Clients",

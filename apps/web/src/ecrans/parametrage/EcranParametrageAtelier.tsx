@@ -38,6 +38,7 @@ import {
 } from '@/hooks/parametres/useModifierParametresAtelier';
 import { useParametresAtelier } from '@/hooks/parametres/useParametresAtelier';
 import { useSession } from '@/hooks/useSession';
+import { useModulesActifs } from '@/hooks/modules/useModulesActifs';
 
 import { peutModifierParametrage } from './droits';
 import { SectionMotifsRendezVous } from './SectionMotifsRendezVous';
@@ -162,6 +163,7 @@ export function EcranParametrageAtelier() {
   const requete = useParametresAtelier();
   const { data: session } = useSession();
   const peutEcrire = peutModifierParametrage(session?.actions);
+  const { estActif } = useModulesActifs();
 
   return (
     <GabaritEcran titre={t('parametrage:atelier.titre')}>
@@ -169,7 +171,7 @@ export function EcranParametrageAtelier() {
       {/* Motifs en tête : obligatoires pour prendre un rendez-vous, donc vus avant les cases à
           cocher. Hors du <form> des réglages et monté même si ceux-ci échouent : indépendant de
           `GET /parametres-atelier` (son propre appel), il doit rester utilisable. */}
-      <SectionMotifsRendezVous peutEcrire={peutEcrire} />
+      {estActif('planning') ? <SectionMotifsRendezVous peutEcrire={peutEcrire} /> : null}
       {requete.isPending ? (
         <EtatChargement lignes={10} />
       ) : requete.isError ? (

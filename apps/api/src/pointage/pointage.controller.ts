@@ -51,6 +51,7 @@ import {
   ReponsePointageDto,
 } from './dto';
 import { ServicePointage } from './service-pointage';
+import { ExigerModule } from '../common/droits/garde-module';
 
 const EnveloppePointageResponseDto = EnveloppePointageDto(ReponsePointageDto, 'Pointage');
 const PagePointageResponseDto = PagePointageDto(ReponsePointageDto, 'Pointage');
@@ -79,6 +80,7 @@ type EntreeListePointages = z.infer<typeof schemaListePointages>;
  */
 @ApiTags('Pointage')
 @ApiCookieAuth()
+@ExigerModule('pointage')
 @Controller({ path: 'pointages', version: '1' })
 @UseGuards(GardeDroit)
 export class PointageController {

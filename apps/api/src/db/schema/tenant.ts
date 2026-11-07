@@ -9,7 +9,7 @@ import { sql } from 'drizzle-orm';
 import { boolean, char, check, integer, pgTable, text, unique } from 'drizzle-orm/pg-core';
 
 import { colonneId, colonnesHorodatage } from './colonnes-communes';
-import { langueEnum, modeSignalementEnum, statutTenantEnum } from './enums';
+import { langueEnum, modeSignalementEnum, moduleAppEnum, statutTenantEnum } from './enums';
 
 export const tenant = pgTable(
   'tenant',
@@ -39,6 +39,15 @@ export const tenant = pgTable(
      * est exigé à l'émission d'une facture. `numero_tva` est NULL quand il vaut `false` (CHECK).
      */
     assujettiTva: boolean('assujetti_tva').notNull().default(true),
+
+    /**
+     * Modules de l'application que le garage a retirés (migration 0092, Réglages > Modules). Vide :
+     * tout est actif. Les dépendances entre modules ne sont jamais stockées (`modulesActifsDepuis`).
+     */
+    modulesDesactives: moduleAppEnum('modules_desactives')
+      .array()
+      .notNull()
+      .default(sql`'{}'::module_app[]`),
 
     /** Code pays ISO 3166-1 alpha-2. `CH` par défaut : le marché initial. */
     pays: char('pays', { length: 2 }).notNull().default('CH'),

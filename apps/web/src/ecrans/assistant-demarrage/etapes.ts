@@ -1,6 +1,7 @@
 /** Identifiants stables des étapes : servent de clés i18n (`assistant:etapes.<id>`). */
 export const ETAPES_ASSISTANT = [
   'garage',
+  'modules',
   'paiements',
   'atelier',
   'logo',

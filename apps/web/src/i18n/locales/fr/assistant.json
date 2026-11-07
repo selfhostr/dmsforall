@@ -25,6 +25,10 @@
     "garage": {
       "titre": "Votre garage"
     },
+    "modules": {
+      "titre": "Ce que vous utilisez",
+      "intro": "Retirez ce que votre garage n'utilise pas. Vous pourrez le changer dans Réglages > Modules."
+    },
     "paiements": {
       "titre": "Paiements"
     },

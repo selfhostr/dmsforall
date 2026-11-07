@@ -23,9 +23,11 @@ import { ApiReponseProbleme } from '../../common/erreurs';
 import { PipeZod } from '../../common/validation';
 
 import { ServiceImpressionOr } from './service-impression-or';
+import { ExigerModule } from '../../common/droits/garde-module';
 
 @ApiTags('Ordres de réparation')
 @ApiCookieAuth()
+@ExigerModule('atelier')
 @Controller({ path: 'ordres-reparation', version: '1' })
 @UseGuards(GardeDroit)
 export class ImpressionOrController {
