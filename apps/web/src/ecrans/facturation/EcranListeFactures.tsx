@@ -334,7 +334,6 @@ export function EcranListeFactures() {
       titre={t('facturation:liste.titre')}
       actions={
         <>
-          <FiltreSite filtre={filtreSite} />
           {peutVoirChiffres(actions) ? (
             <Link
               to={chemins.facturation.chiffres()}
@@ -346,62 +345,35 @@ export function EcranListeFactures() {
           <BoutonNouveauDevis />
         </>
       }
-    >
-      {/* Bascule de VUE à l'intérieur de cet écran (elle ne navigue nulle part — elle change quelles
-          factures la même liste affiche), pas un second niveau de NAVIGATION : empilée sous la
-          rangée d'onglets d'`OngletsDomaine` (soulignement, `components/ui/tabs.tsx`), une même
-          apparence soulignée lisait comme une double barre de navigation ambiguë (retour @laupernoe du
-          13.08.2026). Reconstruite sur `@base-ui/react/tabs` directement, avec le style déjà
-          retenu pour ce rôle — fond `bg-muted/40`, onglet actif en `bg-background` — même modèle
-          que `BasculeVueStock` (`ecrans/ventes/stock/_composants/BasculeVueStock.tsx`, PAS encore
-          repris sur cette bibliothèque — signalé hors périmètre de ce correctif). Rôles ARIA et
-          clavier inchangés (`tablist`/`tab`, flèches, Home/End, `getByRole('tab', …)`) — seul
-          l'habillage change.
-          `@base-ui/react/tabs` plutôt que `@radix-ui/react-tabs` (bug e2e mesuré, `aria-valid-
-          attr-value` critique WCAG 4.1.2, axe-core, clair ET sombre) : ces onglets FILTRENT une
-          liste unique en dessous, ils n'ouvrent jamais un panneau dédié par onglet (aucun
-          `TabsContent`/`TabsPanel` — la liste + ses états chargement/vide/erreur restent rendus
-          UNE fois, hors `Tabs`, filtrés par `onglet`). Radix calcule `aria-controls` sur chaque
-          `Trigger` à partir d'un id DÉTERMINISTE (`<base>-content-<value>`) qu'aucun panneau ne
-          porte jamais ici — référence cassée dans les quatre onglets, en permanence. Base UI
-          calcule `aria-controls` à partir des panneaux RÉELLEMENT montés (`TabsRoot.js`,
-          `getTabPanelIdByValue`/`registerMountedTabPanel`) : sans `TabsPanel` du tout, l'attribut
-          est simplement OMIS (React n'écrit jamais un attribut `undefined`) — rien à référencer,
-          rien d'invalide, sans avoir à fabriquer un panneau qui n'existerait que pour satisfaire
-          l'attribut. Piste « un vrai `TabsPanel` par onglet » écartée : forcerait `forceMount`
-          sur les quatre pour que les `aria-controls` des onglets INACTIFS restent valides en
-          permanence (Radix/Base UI ne montent QUE le panneau actif sans lui), donc quatre
-          `<div role="tabpanel">` montés en clavier/lecteur d'écran en permanence à masquer
-          soi-même en CSS — plus de code, plus de risque, pour un problème que l'absence de
-          panneau évite structurellement. Piste « radiogroup » écartée aussi : chaque onglet change
-          RÉELLEMENT quel jeu de factures s'affiche (pas un simple tri) — la sémantique « tabs »
-          reste honnête, seule la bibliothèque posait un attribut invalide. */}
-      <Segments
-        valeur={onglet}
-        onChange={setOnglet}
-        ariaLabel={t('facturation:liste.onglets.groupeLabel')}
-        options={ONGLETS_LISTE_FACTURES.map((valeur) => ({
-          valeur,
-          libelle: t(`facturation:liste.onglets.${valeur}`),
-        }))}
-      />
-
-      <BarreFiltres
-        q={qSaisie}
-        onChangeQ={setQSaisie}
-        tri={
-          <SelecteurTri
-            label={t('facturation:liste.tri.label')}
-            valeur={tri}
-            onChangeValeur={(valeur) => setTriChoisi(valeur as TriFactures)}
-            options={optionsTri.map((valeur) => ({
+      barre={
+        <BarreFiltres
+          q={qSaisie}
+          onChangeQ={setQSaisie}
+          tri={
+            <SelecteurTri
+              label={t('facturation:liste.tri.label')}
+              valeur={tri}
+              onChangeValeur={(valeur) => setTriChoisi(valeur as TriFactures)}
+              options={optionsTri.map((valeur) => ({
+                valeur,
+                libelle: t(`facturation:liste.tri.options.${CLE_TRI[valeur]}`),
+              }))}
+            />
+          }
+        >
+          <Segments
+            valeur={onglet}
+            onChange={setOnglet}
+            ariaLabel={t('facturation:liste.onglets.groupeLabel')}
+            options={ONGLETS_LISTE_FACTURES.map((valeur) => ({
               valeur,
-              libelle: t(`facturation:liste.tri.options.${CLE_TRI[valeur]}`),
+              libelle: t(`facturation:liste.onglets.${valeur}`),
             }))}
           />
-        }
-      />
-
+          <FiltreSite filtre={filtreSite} />
+        </BarreFiltres>
+      }
+    >
       {isPending ? (
         <EtatChargement lignes={6} />
       ) : isError ? (

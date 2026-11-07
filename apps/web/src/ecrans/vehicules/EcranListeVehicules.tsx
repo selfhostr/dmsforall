@@ -98,7 +98,7 @@ export function EcranListeVehicules() {
     setImporte(false);
   }
 
-  const colonnes: ColonneComptoir<VehiculeResume>[] = [
+  const colonnesToutes: ColonneComptoir<VehiculeResume>[] = [
     {
       id: 'vehicule',
       libelle: t('vehicules:liste.colonnes.vehicule'),
@@ -129,6 +129,10 @@ export function EcranListeVehicules() {
         ) : null,
     },
   ];
+
+  // Colonne Emplacement masquée tant qu'aucune ligne chargée n'en porte un.
+  const afficherEmplacement = vehicules.some((v) => Boolean(v.emplacementLibre));
+  const colonnes = colonnesToutes.filter((c) => c.id !== 'emplacement' || afficherEmplacement);
 
   // Titres d'état vide nommant l'ABSENCE (jamais « Véhicules », qui répéterait l'onglet actif/le
   // menu — même défaut que celui corrigé le 17.08.2026 sur `EcranListeFactures.tsx`). Les textes
@@ -198,48 +202,49 @@ export function EcranListeVehicules() {
           </Button>
         </>
       }
-    >
-      <BarreFiltres
-        tri={
-          <SelecteurTri
-            options={TRIS_VEHICULES.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
-            valeur={tri}
-            onChangeValeur={setTri}
-            label={t('vehicules:liste.tri.label')}
-          />
-        }
-        q={qSaisie}
-        onChangeQ={setQSaisie}
-      >
-        <div className="flex flex-col gap-1.5">
-          <Select
-            value={statut ?? 'tous'}
-            onValueChange={(valeur) =>
-              setStatut(valeur === 'tous' ? undefined : (valeur as StatutVehicule))
-            }
-          >
-            <SelectTrigger
-              id="filtre-statut"
-              className="w-[180px]"
-              aria-label={t('vehicules:liste.filtres.statut')}
+      barre={
+        <BarreFiltres
+          tri={
+            <SelecteurTri
+              options={TRIS_VEHICULES.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
+              valeur={tri}
+              onChangeValeur={setTri}
+              label={t('vehicules:liste.tri.label')}
+            />
+          }
+          q={qSaisie}
+          onChangeQ={setQSaisie}
+        >
+          <div className="flex flex-col gap-1.5">
+            <Select
+              value={statut ?? 'tous'}
+              onValueChange={(valeur) =>
+                setStatut(valeur === 'tous' ? undefined : (valeur as StatutVehicule))
+              }
             >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="tous">{t('vehicules:liste.filtres.statutTous')}</SelectItem>
-              <SelectItem value="actif">{t('vehicules:liste.filtres.statuts.actif')}</SelectItem>
-              <SelectItem value="archive">
-                {t('vehicules:liste.filtres.statuts.archive')}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <label className="flex h-11 items-center gap-2 texte-corps">
-          <Checkbox checked={importe} onCheckedChange={(coche) => setImporte(coche === true)} />
-          {t('vehicules:liste.filtres.importe')}
-        </label>
-      </BarreFiltres>
-
+              <SelectTrigger
+                id="filtre-statut"
+                className="w-[180px]"
+                aria-label={t('vehicules:liste.filtres.statut')}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="tous">{t('vehicules:liste.filtres.statutTous')}</SelectItem>
+                <SelectItem value="actif">{t('vehicules:liste.filtres.statuts.actif')}</SelectItem>
+                <SelectItem value="archive">
+                  {t('vehicules:liste.filtres.statuts.archive')}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <label className="flex h-11 items-center gap-2 texte-corps">
+            <Checkbox checked={importe} onCheckedChange={(coche) => setImporte(coche === true)} />
+            {t('vehicules:liste.filtres.importe')}
+          </label>
+        </BarreFiltres>
+      }
+    >
       <TableComptoir
         colonnes={colonnes}
         lignes={vehicules}

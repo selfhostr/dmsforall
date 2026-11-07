@@ -187,7 +187,7 @@
           "description": "Nehmen Sie Ihr erstes Fahrzeug in den Bestand auf."
         }
       },
-      "rechercherPlaceholder": "Kennzeichen, VIN oder Bezeichnung…",
+      "rechercherPlaceholder": "Kennzeichen, VIN…",
       "erreur": {
         "titre": "Fahrzeuge im Lager können nicht angezeigt werden"
       },

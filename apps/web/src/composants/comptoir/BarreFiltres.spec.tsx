@@ -21,7 +21,7 @@ describe('BarreFiltres', () => {
     expect(screen.queryByRole('button', { name: /Effacer les filtres/ })).not.toBeInTheDocument();
   });
 
-  it('range recherche, filtres et tri sur une seule ligne, sans retour à la ligne', () => {
+  it('range recherche, filtres et tri sur une ligne qui passe à la ligne sans chevaucher', () => {
     // JSDOM ne calcule pas de mise en page : on verrouille les classes (la preuve au pixel est la
     // mesure navigateur).
     const { container } = render(
@@ -30,8 +30,8 @@ describe('BarreFiltres', () => {
       </BarreFiltres>,
     );
     const rangee = container.firstElementChild;
-    expect(rangee?.className).toContain('flex-nowrap');
-    expect(rangee?.className).not.toContain('flex-wrap ');
+    expect(rangee?.className).toContain('flex-wrap');
+    expect(rangee?.className).not.toContain('flex-nowrap');
     expect(rangee?.className).toContain('items-center');
     expect(screen.getByRole('button', { name: 'Filtre' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Tri' })).toBeInTheDocument();

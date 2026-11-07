@@ -189,35 +189,36 @@ export function EcranListeClients() {
           {t('clients:nouveau')}
         </Button>
       }
+      barre={
+        <BarreFiltres q={qSaisi} onChangeQ={setQSaisi}>
+          <Select
+            value={type ?? 'tous'}
+            onValueChange={(valeur) =>
+              setType(valeur === 'tous' ? undefined : (valeur as TypeClient))
+            }
+          >
+            <SelectTrigger className="w-[200px]" aria-label={t('clients:liste.filtres.type')}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="tous">{t('clients:liste.filtres.tousLesTypes')}</SelectItem>
+              <SelectItem value="particulier">{t('clients:liste.types.particulier')}</SelectItem>
+              <SelectItem value="entreprise">{t('clients:liste.types.entreprise')}</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="clients-inclure-inactifs"
+              checked={inclureInactifs}
+              onCheckedChange={(valeur) => setInclureInactifs(valeur === true)}
+            />
+            <Label htmlFor="clients-inclure-inactifs">
+              {t('clients:liste.filtres.inclureInactifs')}
+            </Label>
+          </div>
+        </BarreFiltres>
+      }
     >
-      <BarreFiltres q={qSaisi} onChangeQ={setQSaisi}>
-        <Select
-          value={type ?? 'tous'}
-          onValueChange={(valeur) =>
-            setType(valeur === 'tous' ? undefined : (valeur as TypeClient))
-          }
-        >
-          <SelectTrigger className="w-[200px]" aria-label={t('clients:liste.filtres.type')}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="tous">{t('clients:liste.filtres.tousLesTypes')}</SelectItem>
-            <SelectItem value="particulier">{t('clients:liste.types.particulier')}</SelectItem>
-            <SelectItem value="entreprise">{t('clients:liste.types.entreprise')}</SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="clients-inclure-inactifs"
-            checked={inclureInactifs}
-            onCheckedChange={(valeur) => setInclureInactifs(valeur === true)}
-          />
-          <Label htmlFor="clients-inclure-inactifs">
-            {t('clients:liste.filtres.inclureInactifs')}
-          </Label>
-        </div>
-      </BarreFiltres>
-
       {requete.isError ? (
         <EtatErreur
           titre={t(estErreurReseau ? 'erreurs:reseau.titre' : 'erreurs:inattendue.titre')}

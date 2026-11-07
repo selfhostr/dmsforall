@@ -313,6 +313,7 @@ export function EcranRendezVous() {
         onChangerSite={onChangerSite}
         onDemain={onDemain}
         sitesChoisissables={sitesSession}
+        filtreSite={filtreSite}
       />
 
       {site ? (

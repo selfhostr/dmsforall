@@ -402,8 +402,8 @@ export function SheetEncaissement({
 
   return (
     <Sheet open={ouvert} onOpenChange={(valeur) => (valeur ? undefined : fermer())}>
-      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-lg">
-        <SheetHeader>
+      <SheetContent side="right" className="w-full gap-0 overflow-y-auto p-0 sm:max-w-lg">
+        <SheetHeader className="p-carte pb-3">
           <SheetTitle>
             {destinataireNom
               ? t('facturation:encaissement.titre', { destinataire: destinataireNom })
@@ -411,7 +411,7 @@ export function SheetEncaissement({
           </SheetTitle>
         </SheetHeader>
 
-        <div className="flex flex-col gap-6 py-4">
+        <div className="flex flex-col gap-6 px-carte pb-carte">
           {confirmationSucces ? (
             // Confirmation EXPLICITE du succès (item 3, testeur novice) : avant ce correctif, le
             // panneau se refermait en silence sur `fermer()`, identique visuellement à un abandon

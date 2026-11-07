@@ -159,7 +159,12 @@ export function EcranListeVehiculesStock() {
     setTypeVehicule(undefined);
   }
 
-  const colonnes: ColonneComptoir<VehiculeStockResume>[] = [
+  // Colonne Emplacement masquée tant qu'aucune ligne chargée n'en porte un (sinon une colonne de « — »).
+  const afficherEmplacement = vehiculesStock.some((ligne) =>
+    Boolean(ligne.vehicule.emplacementLibre),
+  );
+
+  const colonnesToutes: ColonneComptoir<VehiculeStockResume>[] = [
     {
       id: 'vehicule',
       libelle: t('ventes:stock.liste.colonnes.vehicule'),
@@ -235,6 +240,8 @@ export function EcranListeVehiculesStock() {
     },
   ];
 
+  const colonnes = colonnesToutes.filter((c) => c.id !== 'emplacement' || afficherEmplacement);
+
   // « Mettre en stock » : à droite de la barre d'outils, indépendant des données de la requête.
   const boutonMettreEnStock = peutEcrireVehiculeStock(actions) ? (
     <Button onClick={() => navigate(chemins.ventes.stock.nouveau(site))}>
@@ -281,99 +288,102 @@ export function EcranListeVehiculesStock() {
     // §5.2, « ne jamais poser titreVisible pour être sûr ») : le texte, désormais identique à
     // l'allemand `stock.liste.titre`/`Fahrzeugbestand` qui matchait déjà son onglet par coïncidence,
     // fait tomber la détection automatique juste dans les trois langues.
-    <GabaritEcran titre={t('ventes:stock.liste.titre')}>
-      <div className="flex items-center gap-3">
-        <BarreFiltres
-          q={qSaisie}
-          onChangeQ={setQSaisie}
-          placeholderRecherche={t('ventes:stock.liste.rechercherPlaceholder')}
-          className="min-w-0 flex-1"
-          tri={
-            affichage === 'liste' ? (
-              <SelecteurTri
-                options={TRIS_VEHICULES_STOCK.map((valeur) => ({
-                  valeur,
-                  libelle: t(CLES_TRI[valeur]),
-                }))}
-                valeur={triActif}
-                onChangeValeur={setTri}
-                label={t('ventes:stock.liste.tri.label')}
-              />
-            ) : undefined
-          }
-        >
-          <FiltreSite filtre={filtreSite} />
-          <Select
-            value={typeVehicule ?? 'tous'}
-            onValueChange={(valeur) =>
-              setTypeVehicule(valeur === 'tous' ? undefined : (valeur as TypeVehiculeVente))
+    <GabaritEcran
+      titre={t('ventes:stock.liste.titre')}
+      actions={boutonMettreEnStock}
+      barre={
+        <div className="flex flex-wrap items-center gap-3">
+          <BarreFiltres
+            q={qSaisie}
+            onChangeQ={setQSaisie}
+            placeholderRecherche={t('ventes:stock.liste.rechercherPlaceholder')}
+            className="min-w-0 flex-1 basis-[28rem]"
+            tri={
+              affichage === 'liste' ? (
+                <SelecteurTri
+                  options={TRIS_VEHICULES_STOCK.map((valeur) => ({
+                    valeur,
+                    libelle: t(CLES_TRI[valeur]),
+                  }))}
+                  valeur={triActif}
+                  onChangeValeur={setTri}
+                  label={t('ventes:stock.liste.tri.label')}
+                />
+              ) : undefined
             }
           >
-            <SelectTrigger
-              id="filtre-type-vehicule"
-              className="w-auto min-w-36 shrink-0"
-              aria-label={t('ventes:stock.champs.typeVehicule')}
+            <FiltreSite filtre={filtreSite} />
+            <Select
+              value={typeVehicule ?? 'tous'}
+              onValueChange={(valeur) =>
+                setTypeVehicule(valeur === 'tous' ? undefined : (valeur as TypeVehiculeVente))
+              }
             >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="tous">{t('ventes:stock.filtres.typeTous')}</SelectItem>
-              {TYPES_VEHICULE_VENTE.map((valeur) => (
-                <SelectItem key={valeur} value={valeur}>
-                  {t(`ventes:stock.types.${valeur}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={statutCommercial ?? 'tous'}
-            onValueChange={(valeur) =>
-              setStatutCommercial(
-                valeur === 'tous' ? undefined : (valeur as StatutCommercialVehicule),
-              )
-            }
-          >
-            <SelectTrigger
-              id="filtre-statut-commercial"
-              className="w-auto min-w-36 shrink-0"
-              aria-label={t('ventes:stock.champs.statutCommercial')}
+              <SelectTrigger
+                id="filtre-type-vehicule"
+                className="w-auto min-w-36 shrink-0"
+                aria-label={t('ventes:stock.champs.typeVehicule')}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="tous">{t('ventes:stock.filtres.typeTous')}</SelectItem>
+                {TYPES_VEHICULE_VENTE.map((valeur) => (
+                  <SelectItem key={valeur} value={valeur}>
+                    {t(`ventes:stock.types.${valeur}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={statutCommercial ?? 'tous'}
+              onValueChange={(valeur) =>
+                setStatutCommercial(
+                  valeur === 'tous' ? undefined : (valeur as StatutCommercialVehicule),
+                )
+              }
             >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="tous">{t('ventes:stock.filtres.statutTous')}</SelectItem>
-              {STATUTS_COMMERCIAUX_VEHICULE.map((valeur) => (
-                <SelectItem key={valeur} value={valeur}>
-                  {t(`ventes:stock.statuts.${valeur}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={provenance ?? 'toutes'}
-            onValueChange={(valeur) => setProvenance(valeur === 'toutes' ? undefined : valeur)}
-          >
-            <SelectTrigger
-              id="filtre-provenance"
-              className="w-auto min-w-36 shrink-0"
-              aria-label={t('ventes:stock.champs.provenance')}
+              <SelectTrigger
+                id="filtre-statut-commercial"
+                className="w-auto min-w-36 shrink-0"
+                aria-label={t('ventes:stock.champs.statutCommercial')}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="tous">{t('ventes:stock.filtres.statutTous')}</SelectItem>
+                {STATUTS_COMMERCIAUX_VEHICULE.map((valeur) => (
+                  <SelectItem key={valeur} value={valeur}>
+                    {t(`ventes:stock.statuts.${valeur}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={provenance ?? 'toutes'}
+              onValueChange={(valeur) => setProvenance(valeur === 'toutes' ? undefined : valeur)}
             >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="toutes">{t('ventes:stock.filtres.provenanceToutes')}</SelectItem>
-              {PROVENANCES_VEHICULE_STOCK.map((valeur) => (
-                <SelectItem key={valeur} value={valeur}>
-                  {t(`ventes:stock.provenances.${valeur}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </BarreFiltres>
-        <BasculeAffichageStock affichage={affichage} onChangeAffichage={definirAffichage} />
-        {boutonMettreEnStock}
-      </div>
-
+              <SelectTrigger
+                id="filtre-provenance"
+                className="w-auto min-w-36 shrink-0"
+                aria-label={t('ventes:stock.champs.provenance')}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="toutes">{t('ventes:stock.filtres.provenanceToutes')}</SelectItem>
+                {PROVENANCES_VEHICULE_STOCK.map((valeur) => (
+                  <SelectItem key={valeur} value={valeur}>
+                    {t(`ventes:stock.provenances.${valeur}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </BarreFiltres>
+          <BasculeAffichageStock affichage={affichage} onChangeAffichage={definirAffichage} />
+        </div>
+      }
+    >
       {isPending ? (
         <EtatChargement lignes={6} />
       ) : isError ? (

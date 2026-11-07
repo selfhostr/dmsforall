@@ -187,7 +187,7 @@
           "description": "Immetta il suo primo veicolo in stock."
         }
       },
-      "rechercherPlaceholder": "Targa, VIN o descrizione…",
+      "rechercherPlaceholder": "Targa, VIN…",
       "erreur": {
         "titre": "Impossibile visualizzare i veicoli in stock"
       },

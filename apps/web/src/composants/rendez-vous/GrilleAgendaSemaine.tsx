@@ -86,7 +86,9 @@ export function GrilleAgendaSemaine({ jours, onCliquerJour, onOuvrirRendezVous }
       aria-label={t('planning:titre')}
       className={cn(
         'grid gap-2',
-        vueSemaine ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-7' : 'grid-cols-1',
+        vueSemaine
+          ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 min-[1360px]:grid-cols-7'
+          : 'grid-cols-1',
       )}
     >
       {jours.map((jour, index) => {

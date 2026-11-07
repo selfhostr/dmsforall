@@ -91,10 +91,12 @@ export function SelecteurOrOuvert({ siteId, onChoisirOr, disabled = false }: Pro
               onClick={() => onChoisirOr(or.id)}
               // Bordure conservée : carte cliquable de sélection d'OR, zone d'action réelle
               // (DESIGN.md). `anneau-focus` (dépôt) plutôt que l'anneau natif du navigateur.
-              className="flex min-h-[56px] flex-col items-start gap-1 rounded-lg border p-3 text-left transition-colors hover:bg-muted anneau-focus disabled:pointer-events-none disabled:opacity-50 sm:flex-row sm:items-center sm:justify-between"
+              className="flex min-h-[56px] flex-col items-start gap-1 rounded-lg border p-3 text-left transition-colors hover:bg-muted anneau-focus disabled:pointer-events-none disabled:opacity-50 sm:flex-row sm:items-center sm:justify-start sm:gap-6"
             >
-              <span className="font-medium">{or.numero}</span>
-              <div className="flex flex-col items-start gap-0.5 sm:items-end">
+              <span className="shrink-0 whitespace-nowrap font-mono font-medium tabular-nums sm:w-32">
+                {or.numero}
+              </span>
+              <div className="flex min-w-0 flex-col items-start gap-0.5">
                 <IdentiteVehicule vehicule={or.vehicule} taillePlaque="sm" />
                 <IdentiteClient client={or.client} />
               </div>

@@ -500,7 +500,7 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
         </Alert>
       ) : null}
 
-      <div className="space-y-2">
+      <div className="flex flex-col items-start gap-2">
         <Label>{t('clients:liste.filtres.type')}</Label>
         {/* Bordure structurelle : contour d'un contrôle de saisie (bascule particulier/
          *  entreprise, `role="group"` de boutons). */}
