@@ -188,17 +188,6 @@
         "rien": "Keine"
       }
     },
-    "aVenir": {
-      "titre": "Künftige Funktionen",
-      "description": "Diese Einstellungen bestehen bereits im API-Vertrag, sind aber noch an keine ausgelieferte Funktion angebunden — sie erscheinen deshalb nicht als Kontrollkästchen ohne Wirkung.",
-      "pasEncoreDisponible": "noch nicht verfügbar",
-      "fonctionnalites": {
-        "facturation": "Werkstattfakturierung",
-        "stockPieces": "Teilelager",
-        "depotPneus": "Reifeneinlagerung",
-        "prets": "Leihfahrzeuge"
-      }
-    },
     "inerte": {
       "signature": "verfügbar mit der elektronischen Unterschriftserfassung, bisher nicht ausgeliefert",
       "pointage": "verfügbar mit dem Zeiterfassungsmodul, bisher nicht ausgeliefert"
@@ -379,6 +368,69 @@
       "identifiantLabel": "Kennung",
       "motDePasseLabel": "Passwort",
       "fermer": "Ich habe die Angaben notiert"
+    }
+  },
+  "entreprise": {
+    "titre": "Unternehmen",
+    "explication": "Diese Angaben identifizieren Ihre Garage auf den Rechnungen.",
+    "raisonSociale": "Firmenname",
+    "numeroTva": "MWST-Nummer",
+    "numeroTvaAide": "Format: CHE-123.456.789 MWST. Leer lassen, wenn Sie nicht mehrwertsteuerpflichtig sind.",
+    "erreurTva": {
+      "format": "Die Nummer muss wie CHE-123.456.789 MWST aussehen.",
+      "cle": "Diese Nummer existiert nicht: prüfen Sie die Ziffern."
+    },
+    "enregistrer": "Nummer speichern",
+    "enregistrementReussi": "MWST-Nummer gespeichert.",
+    "erreur": {
+      "titre": "Unternehmensdaten konnten nicht geladen werden"
+    }
+  },
+  "motifsRdv": {
+    "titre": "Termingründe",
+    "explication": "Wofür Ihre Kunden kommen: Ein Termin wird immer mit einem Grund vereinbart.",
+    "nouveau": "Neuer Grund",
+    "modifier": "Grund ändern",
+    "dialogueAide": "Der französische Name genügt; Übersetzungen sind optional.",
+    "traductionsAide": "Die Übersetzungen sehen Kunden und Mitarbeiter, die die Software in dieser Sprache nutzen.",
+    "champs": {
+      "libelleFr": "Name des Grundes",
+      "libelleDe": "Name auf Deutsch",
+      "libelleIt": "Name auf Italienisch",
+      "dureeMinutes": "Dauer (Minuten)",
+      "dureeMinutesAide": "Für einen festen Termin, z. B. 60.",
+      "heuresAtelier": "Werkstattstunden",
+      "heuresAtelierAide": "Auf den Tag angerechnete Zeit, z. B. 1,5."
+    },
+    "colonnes": {
+      "duree": "Dauer",
+      "statut": "Status"
+    },
+    "statut": {
+      "actif": "Aktiv",
+      "desactive": "Deaktiviert"
+    },
+    "duree": {
+      "minutes": "{count} Min.",
+      "heures": "{heures} Std. Werkstatt",
+      "aucune": "Nicht festgelegt"
+    },
+    "actions": {
+      "desactiver": "Deaktivieren",
+      "reactiver": "Reaktivieren"
+    },
+    "erreurs": {
+      "libelle": "Geben Sie den Namen des Grundes an.",
+      "dejaPris": "Ein Grund mit diesem Namen existiert bereits.",
+      "duree": "Geben Sie eine ganze Zahl Minuten an.",
+      "heures": "Geben Sie Stunden an, z. B. 1,5."
+    },
+    "vide": {
+      "titre": "Keine Termingründe",
+      "description": "Legen Sie mindestens einen Grund an, sonst kann kein Termin vereinbart werden."
+    },
+    "erreur": {
+      "titre": "Termingründe konnten nicht geladen werden"
     }
   }
 }

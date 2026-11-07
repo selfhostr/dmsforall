@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
@@ -41,6 +41,11 @@ function connecte(sites: (typeof SESSION_TEST)['sites'] = SESSION_TEST.sites): v
   server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json({ ...SESSION_TEST, sites })));
 }
 
+const DEUX_SITES = [
+  ...SESSION_TEST.sites,
+  { id: 'site-2', code: 'SECOND', nom: 'Second site', actif: true },
+];
+
 describe('BarreOutilsSuperieure', () => {
   it('sans session résolue : déclencheur du tiroir + recherche + thème, ni site ni pied compte', () => {
     rendre();
@@ -60,11 +65,21 @@ describe('BarreOutilsSuperieure', () => {
     expect(screen.getAllByRole('button')).toHaveLength(4);
   });
 
-  it('session résolue, site unique : le sélecteur de site (compact) et la bascule de thème sont tous deux présents', async () => {
+  it('session résolue, site unique : aucun sélecteur ni code de site, la bascule de thème reste là', async () => {
     connecte();
     rendre('/?site=site-1');
 
-    expect(await screen.findByText('Site principal')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /passer en thème/i })).toBeInTheDocument();
+    // Un seul site : rien à choisir, rien à afficher.
+    await waitFor(() => expect(screen.queryByText('PRINCIPAL')).not.toBeInTheDocument());
+    expect(screen.queryByText('Site principal')).not.toBeInTheDocument();
+  });
+
+  it('plusieurs sites actifs : le sélecteur de site (compact) et la bascule de thème sont présents', async () => {
+    connecte(DEUX_SITES);
+    rendre('/?site=site-1');
+
+    expect(await screen.findByRole('button', { name: 'Site principal' })).toBeInTheDocument();
     expect(screen.getByText('PRINCIPAL')).toBeInTheDocument(); // code court, rendu compact
     expect(screen.getByRole('button', { name: /passer en thème/i })).toBeInTheDocument();
   });
@@ -85,19 +100,19 @@ describe('BarreOutilsSuperieure', () => {
    */
   describe('libellé affiché — distinction à la source (défaut mesuré n°2)', () => {
     it('aucun `?site=`, aucune préférence : « Tous les sites », jamais « Aucun site choisi »', async () => {
-      connecte();
+      connecte(DEUX_SITES);
       rendre('/');
 
-      expect(await screen.findByText('Tous les sites')).toBeInTheDocument();
-      expect(screen.queryByText('Aucun site choisi')).not.toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: 'Tous les sites' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Aucun site choisi' })).not.toBeInTheDocument();
     });
 
     it('`?site=` présent mais inconnu de la session : « Aucun site choisi », jamais « Tous les sites »', async () => {
-      connecte();
+      connecte(DEUX_SITES);
       rendre('/?site=site-supprime');
 
-      expect(await screen.findByText('Aucun site choisi')).toBeInTheDocument();
-      expect(screen.queryByText('Tous les sites')).not.toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: 'Aucun site choisi' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Tous les sites' })).not.toBeInTheDocument();
     });
   });
 });

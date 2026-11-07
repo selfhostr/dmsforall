@@ -94,6 +94,7 @@ function connecterSession(role: (typeof SESSION_TEST)['utilisateur']['role'] = '
 }
 
 function rendre() {
+  server.use(http.get('/api/v1/motifs-rendez-vous', () => HttpResponse.json([])));
   const queryClient = creerQueryClientTest();
   return render(
     <QueryClientProvider client={queryClient}>
@@ -121,7 +122,7 @@ describe('EcranParametrageAtelier', () => {
     );
   });
 
-  it('affiche les valeurs actuelles et les domaines inertes en lecture seule (rôle habilité)', async () => {
+  it('affiche les valeurs actuelles (rôle habilité)', async () => {
     connecterSession('chef_atelier');
     server.use(http.get(CHEMIN, () => HttpResponse.json(PARAMETRES)));
     rendre();
@@ -129,10 +130,6 @@ describe('EcranParametrageAtelier', () => {
     expect(await screen.findByLabelText(i18n.t('parametrage:atelier.or.prefixe'))).toHaveValue(
       'OR',
     );
-    expect(screen.getByText(i18n.t('parametrage:atelier.aVenir.titre'))).toBeInTheDocument();
-    expect(
-      screen.getAllByText(i18n.t('parametrage:atelier.aVenir.pasEncoreDisponible')).length,
-    ).toBe(4);
     expect(screen.queryByText(i18n.t('parametrage:atelier.lectureSeule'))).not.toBeInTheDocument();
   });
 
