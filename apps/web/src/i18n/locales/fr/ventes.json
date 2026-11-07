@@ -281,17 +281,17 @@
     }
   },
   "dossier": {
-    "titre": "Dossiers de vente",
+    "titre": "Ventes en cours",
     "liste": {
       "titre": "Ventes en cours",
       "nouveauDossier": "Nouvelle vente",
       "vide": {
         "recherche": {
-          "titre": "Aucun dossier trouvé",
+          "titre": "Aucune vente trouvée",
           "description": "Aucune vente ne correspond à cette recherche."
         },
         "filtre": {
-          "titre": "Aucun dossier avec ces filtres",
+          "titre": "Aucune vente avec ces filtres",
           "description": "Aucune vente ne correspond aux filtres choisis."
         },
         "premierUsage": {
@@ -374,7 +374,7 @@
       "prixIndicatif": "Indicatif : {montant}",
       "dateLivraisonEstimee": "Date de livraison estimée",
       "modifier": {
-        "titre": "Modifier le dossier",
+        "titre": "Modifier la vente",
         "vehicule": "Véhicule",
         "vehiculeVerrouille": "Le véhicule ne peut plus être modifié à ce stade."
       },
@@ -400,10 +400,10 @@
       "confirmer": "Confirmer",
       "aucuneActionDisponible": "Aucune action disponible pour le moment.",
       "bonCommande": "Bon de commande",
-      "aucunBonCommande": "Aucun bon de commande sur ce dossier",
+      "aucunBonCommande": "Aucun bon de commande sur cette vente",
       "creerBonCommande": "Créer le bon de commande",
       "facture": "Facture",
-      "aucuneFacture": "Aucune facture sur ce dossier",
+      "aucuneFacture": "Aucune facture sur cette vente",
       "creerFacture": "Créer la facture",
       "voirFacture": "Voir la facture",
       "factureACompleter": "Ajoutez les lignes et émettez la facture pour pouvoir livrer.",
@@ -427,7 +427,7 @@
       "livrerConfirmationReprise": "Le véhicule repris entrera au parc en stock à sa valeur négociée ({montant}).",
       "motif": "Motif",
       "motifRequis": "Le motif est requis.",
-      "annulerConfirmationVehicule": "Si un véhicule est réservé sur ce dossier, il redevient disponible à la vente."
+      "annulerConfirmationVehicule": "Si un véhicule est réservé pour cette vente, il redevient disponible à la vente."
     },
     "statuts": {
       "prospection": "Prospection",
@@ -483,13 +483,13 @@
         "verifierExpertise": "À : l'atelier — expertise MFK à vérifier",
         "documentsManquants": "À : {n, plural, one {# document manquant} other {# documents manquants}}"
       },
-      "resteAFaireCloturer": "Reste à faire : clôturer le dossier"
+      "resteAFaireCloturer": "Reste à faire : clôturer la vente"
     },
     "actionsPanneau": {
       "engager": {
-        "titre": "Engager le dossier",
+        "titre": "Engager la vente",
         "champBonCommande": "Bon de commande",
-        "aucunBonCommande": "Aucun bon de commande sur ce dossier",
+        "aucunBonCommande": "Aucun bon de commande sur cette vente",
         "champIdentite": "Pièce d'identité présentée",
         "consequenceVehicule": "Le véhicule sera réservé.",
         "consequenceReprise": "La reprise sera confirmée."
@@ -500,23 +500,23 @@
       },
       "marquerPretALivrer": {
         "titre": "Marquer prêt à livrer",
-        "description": "Confirmer que le dossier est prêt à livrer."
+        "description": "Confirmer que la vente est prête à livrer."
       },
       "cloturer": {
-        "titre": "Clôturer le dossier",
+        "titre": "Clôturer la vente",
         "description": "Purement administratif — aucune vérification supplémentaire n'est effectuée."
       },
       "annuler": {
-        "titre": "Annuler le dossier",
+        "titre": "Annuler la vente",
         "motifLabel": "Motif d'annulation",
-        "motifPlaceholder": "Expliquez pourquoi ce dossier est annulé…",
-        "consequenceVehicule": "Si un véhicule est réservé sur ce dossier, il redevient disponible à la vente."
+        "motifPlaceholder": "Expliquez pourquoi cette vente est annulée…",
+        "consequenceVehicule": "Si un véhicule est réservé pour cette vente, il redevient disponible à la vente."
       },
       "abandonner": {
-        "titre": "Abandonner le dossier",
+        "titre": "Abandonner la vente",
         "motifLabel": "Motif d'abandon",
-        "motifPlaceholder": "Expliquez pourquoi ce dossier est abandonné…",
-        "consequenceVehicule": "Si un véhicule est réservé sur ce dossier, il redevient disponible à la vente."
+        "motifPlaceholder": "Expliquez pourquoi cette vente est abandonnée…",
+        "consequenceVehicule": "Si un véhicule est réservé pour cette vente, il redevient disponible à la vente."
       }
     },
     "livraison": {
@@ -530,7 +530,7 @@
     },
     "documents": {
       "titre": "Documents",
-      "vide": "Aucun document sur ce dossier.",
+      "vide": "Aucun document sur cette vente.",
       "tronques": "Liste limitée aux 50 premiers documents",
       "solde": "Solde : {montant}",
       "statuts": {
@@ -556,7 +556,7 @@
     },
     "documentsRequis": {
       "titre": "Documents requis",
-      "vide": "Aucun document requis pour ce dossier.",
+      "vide": "Aucun document requis pour cette vente.",
       "fourniLe": "Fourni le {date}",
       "erreurLigne": "Impossible d'enregistrer — réessayez"
     },
@@ -565,9 +565,9 @@
       "titreSection": "Impossible de charger cette section"
     },
     "refus": {
-      "vehiculeManquant": "Aucun véhicule n'est associé à ce dossier.",
-      "vehiculeIndisponible": "Ce véhicule n'est plus disponible — un autre dossier l'a réservé entre-temps.",
-      "financementNonConfirme": "Le financement doit être confirmé avant de marquer le dossier prêt à livrer.",
+      "vehiculeManquant": "Aucun véhicule n'est associé à cette vente.",
+      "vehiculeIndisponible": "Ce véhicule n'est plus disponible — une autre vente l'a réservé entre-temps.",
+      "financementNonConfirme": "Le financement doit être confirmé avant de marquer la vente prête à livrer.",
       "expertiseRequise": "Une expertise MFK requise doit être résolue avant la livraison.",
       "livraisonIncomplete": "Les éléments requis pour la livraison ne sont pas tous réunis.",
       "annulationImpossible": "Cette vente ne peut plus être annulée ou abandonnée à ce stade. Clôturez-la si elle est terminée.",
@@ -577,9 +577,9 @@
   "reprise": {
     "titre": "Reprise",
     "absente": {
-      "titre": "Pas de reprise sur ce dossier"
+      "titre": "Pas de reprise sur cette vente"
     },
-    "aucuneReprise": "Pas de reprise sur ce dossier.",
+    "aucuneReprise": "Pas de reprise sur cette vente.",
     "valeurEstimee": "Valeur estimée",
     "valeurNegociee": "Valeur négociée",
     "enNegociation": "En cours de négociation",
@@ -677,7 +677,7 @@
     },
     "refus": {
       "valeurNegocieeRequise": "La reprise doit être négociée avant confirmation.",
-      "dejaExistante": "Une reprise existe déjà sur ce dossier."
+      "dejaExistante": "Une reprise existe déjà pour cette vente."
     }
   },
   "financement": {
@@ -728,7 +728,7 @@
     },
     "creation": {
       "titre": "Proposer un financement",
-      "description": "Ajoutez une nouvelle proposition de financement pour ce dossier.",
+      "description": "Ajoutez une nouvelle proposition de financement pour cette vente.",
       "champType": "Type de financement",
       "champOrganisme": "Organisme",
       "champReferenceContrat": "Référence de contrat",

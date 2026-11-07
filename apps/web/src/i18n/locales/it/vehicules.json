@@ -44,7 +44,7 @@
     "proprietaire": {
       "titre": "Proprietario e detentori",
       "actuel": "Proprietario attuale",
-      "precedents": "Proprietari precedenti",
+      "precedents": "Detentori precedenti",
       "vide": "Nessun detentore registrato per questo veicolo."
     },
     "dossierVente": {

@@ -281,17 +281,17 @@
     }
   },
   "dossier": {
-    "titre": "Pratiche di vendita",
+    "titre": "Vendite in corso",
     "liste": {
       "titre": "Vendite in corso",
       "nouveauDossier": "Nuova vendita",
       "vide": {
         "recherche": {
-          "titre": "Nessuna pratica trovata",
+          "titre": "Nessuna vendita trovata",
           "description": "Nessuna vendita corrisponde a questa ricerca."
         },
         "filtre": {
-          "titre": "Nessuna pratica con questi filtri",
+          "titre": "Nessuna vendita con questi filtri",
           "description": "Nessuna vendita corrisponde ai filtri scelti."
         },
         "premierUsage": {
@@ -374,7 +374,7 @@
       "prixIndicatif": "Indicativo: {montant}",
       "dateLivraisonEstimee": "Data di consegna prevista",
       "modifier": {
-        "titre": "Modificare la pratica",
+        "titre": "Modifica la vendita",
         "vehicule": "Veicolo",
         "vehiculeVerrouille": "Il veicolo non può più essere modificato in questa fase."
       },
@@ -400,10 +400,10 @@
       "confirmer": "Confermare",
       "aucuneActionDisponible": "Nessuna azione disponibile al momento.",
       "bonCommande": "Ordine di acquisto",
-      "aucunBonCommande": "Nessun ordine di acquisto per questa pratica",
+      "aucunBonCommande": "Nessun ordine di acquisto per questa vendita",
       "creerBonCommande": "Creare l'ordine di acquisto",
       "facture": "Fattura",
-      "aucuneFacture": "Nessuna fattura per questa pratica",
+      "aucuneFacture": "Nessuna fattura per questa vendita",
       "creerFacture": "Creare la fattura",
       "voirFacture": "Vedere la fattura",
       "factureACompleter": "Aggiungere le righe ed emettere la fattura per poter consegnare.",
@@ -427,7 +427,7 @@
       "livrerConfirmationReprise": "Il veicolo permutato entrerà nel parco in stock al valore negoziato ({montant}).",
       "motif": "Motivo",
       "motifRequis": "Il motivo è obbligatorio.",
-      "annulerConfirmationVehicule": "Se un veicolo è riservato per questa pratica, torna disponibile alla vendita."
+      "annulerConfirmationVehicule": "Se un veicolo è riservato per questa vendita, torna disponibile alla vendita."
     },
     "statuts": {
       "prospection": "In prospezione",
@@ -483,13 +483,13 @@
         "verifierExpertise": "Chi: l'officina — verificare la MFK",
         "documentsManquants": "{n, plural, one {Chi: # documento mancante} other {Chi: # documenti mancanti}}"
       },
-      "resteAFaireCloturer": "Da fare: chiudere la pratica"
+      "resteAFaireCloturer": "Da fare: chiudere la vendita"
     },
     "actionsPanneau": {
       "engager": {
-        "titre": "Confermare l'ordine",
+        "titre": "Impegnare la vendita",
         "champBonCommande": "Ordine di acquisto",
-        "aucunBonCommande": "Nessun ordine di acquisto per questa pratica",
+        "aucunBonCommande": "Nessun ordine di acquisto per questa vendita",
         "champIdentite": "Documento d'identità presentato",
         "consequenceVehicule": "Il veicolo sarà riservato.",
         "consequenceReprise": "La permuta sarà confermata."
@@ -500,23 +500,23 @@
       },
       "marquerPretALivrer": {
         "titre": "Contrassegnare come pronto per la consegna",
-        "description": "Confermare che la pratica è pronta per la consegna."
+        "description": "Confermare che la vendita è pronta per la consegna."
       },
       "cloturer": {
-        "titre": "Chiudere la pratica",
+        "titre": "Chiudere la vendita",
         "description": "Puramente amministrativo — non viene effettuato alcun controllo supplementare."
       },
       "annuler": {
-        "titre": "Annullare la pratica",
+        "titre": "Annullare la vendita",
         "motifLabel": "Motivo dell'annullamento",
-        "motifPlaceholder": "Spiegare perché questa pratica viene annullata…",
-        "consequenceVehicule": "Se un veicolo è riservato per questa pratica, torna disponibile alla vendita."
+        "motifPlaceholder": "Spiegare perché questa vendita viene annullata…",
+        "consequenceVehicule": "Se un veicolo è riservato per questa vendita, torna disponibile alla vendita."
       },
       "abandonner": {
-        "titre": "Abbandonare la pratica",
+        "titre": "Abbandonare la vendita",
         "motifLabel": "Motivo dell'abbandono",
-        "motifPlaceholder": "Spiegare perché questa pratica viene abbandonata…",
-        "consequenceVehicule": "Se un veicolo è riservato per questa pratica, torna disponibile alla vendita."
+        "motifPlaceholder": "Spiegare perché questa vendita viene abbandonata…",
+        "consequenceVehicule": "Se un veicolo è riservato per questa vendita, torna disponibile alla vendita."
       }
     },
     "livraison": {
@@ -530,7 +530,7 @@
     },
     "documents": {
       "titre": "Documenti",
-      "vide": "Nessun documento per questa pratica.",
+      "vide": "Nessun documento per questa vendita.",
       "tronques": "Elenco limitato ai primi 50 documenti",
       "solde": "Saldo: {montant}",
       "statuts": {
@@ -556,7 +556,7 @@
     },
     "documentsRequis": {
       "titre": "Documenti richiesti",
-      "vide": "Nessun documento richiesto per questa pratica.",
+      "vide": "Nessun documento richiesto per questa vendita.",
       "fourniLe": "Fornito il {date}",
       "erreurLigne": "Impossibile salvare — riprovare"
     },
@@ -565,9 +565,9 @@
       "titreSection": "Impossibile caricare questa sezione"
     },
     "refus": {
-      "vehiculeManquant": "Nessun veicolo è associato a questa pratica.",
-      "vehiculeIndisponible": "Questo veicolo non è più disponibile — un'altra pratica lo ha riservato nel frattempo.",
-      "financementNonConfirme": "Il finanziamento deve essere confermato prima di contrassegnare la pratica come pronta per la consegna.",
+      "vehiculeManquant": "Nessun veicolo è associato a questa vendita.",
+      "vehiculeIndisponible": "Questo veicolo non è più disponibile — un'altra vendita lo ha riservato nel frattempo.",
+      "financementNonConfirme": "Il finanziamento deve essere confermato prima di contrassegnare la vendita come pronta per la consegna.",
       "expertiseRequise": "Una MFK richiesta deve essere risolta prima della consegna.",
       "livraisonIncomplete": "Non tutti gli elementi richiesti per la consegna sono riuniti.",
       "annulationImpossible": "Questa vendita non può più essere annullata o abbandonata in questa fase. Chiudetela se è conclusa.",
@@ -577,9 +577,9 @@
   "reprise": {
     "titre": "Permuta",
     "absente": {
-      "titre": "Nessuna permuta per questa pratica"
+      "titre": "Nessun ritiro dell'usato per questa vendita"
     },
-    "aucuneReprise": "Nessuna permuta per questa pratica.",
+    "aucuneReprise": "Nessun ritiro dell'usato per questa vendita.",
     "valeurEstimee": "Valore stimato",
     "valeurNegociee": "Valore negoziato",
     "enNegociation": "In fase di negoziazione",
@@ -677,7 +677,7 @@
     },
     "refus": {
       "valeurNegocieeRequise": "La permuta deve essere negoziata prima della conferma.",
-      "dejaExistante": "Esiste già una permuta per questa pratica."
+      "dejaExistante": "Esiste già un ritiro dell'usato per questa vendita."
     }
   },
   "financement": {
@@ -728,7 +728,7 @@
     },
     "creation": {
       "titre": "Proporre un finanziamento",
-      "description": "Aggiungere una nuova proposta di finanziamento per questa pratica.",
+      "description": "Aggiungete una nuova proposta di finanziamento per questa vendita.",
       "champType": "Tipo di finanziamento",
       "champOrganisme": "Istituto",
       "champReferenceContrat": "Riferimento contratto",

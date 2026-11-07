@@ -281,17 +281,17 @@
     }
   },
   "dossier": {
-    "titre": "Verkaufsdossiers",
+    "titre": "Laufende Verkäufe",
     "liste": {
       "titre": "Laufende Verkäufe",
       "nouveauDossier": "Neuer Verkauf",
       "vide": {
         "recherche": {
-          "titre": "Kein Dossier gefunden",
+          "titre": "Kein Verkauf gefunden",
           "description": "Kein Verkauf entspricht dieser Suche."
         },
         "filtre": {
-          "titre": "Kein Dossier mit diesen Filtern",
+          "titre": "Kein Verkauf mit diesen Filtern",
           "description": "Kein Verkauf entspricht den gewählten Filtern."
         },
         "premierUsage": {
@@ -374,7 +374,7 @@
       "prixIndicatif": "Unverbindlich: {montant}",
       "dateLivraisonEstimee": "Voraussichtliches Übergabedatum",
       "modifier": {
-        "titre": "Dossier bearbeiten",
+        "titre": "Verkauf bearbeiten",
         "vehicule": "Fahrzeug",
         "vehiculeVerrouille": "Das Fahrzeug kann in diesem Stadium nicht mehr geändert werden."
       },
@@ -400,10 +400,10 @@
       "confirmer": "Bestätigen",
       "aucuneActionDisponible": "Derzeit keine Aktion verfügbar.",
       "bonCommande": "Bestellung",
-      "aucunBonCommande": "Keine Bestellung für dieses Dossier vorhanden",
+      "aucunBonCommande": "Keine Bestellung für diesen Verkauf vorhanden",
       "creerBonCommande": "Bestellung erstellen",
       "facture": "Rechnung",
-      "aucuneFacture": "Keine Rechnung für dieses Dossier vorhanden",
+      "aucuneFacture": "Keine Rechnung für diesen Verkauf vorhanden",
       "creerFacture": "Rechnung erstellen",
       "voirFacture": "Rechnung ansehen",
       "factureACompleter": "Fügen Sie die Positionen hinzu und stellen Sie die Rechnung aus, um ausliefern zu können.",
@@ -427,7 +427,7 @@
       "livrerConfirmationReprise": "Das eingetauschte Fahrzeug wird zum verhandelten Wert ({montant}) in den Bestand aufgenommen.",
       "motif": "Grund",
       "motifRequis": "Der Grund ist erforderlich.",
-      "annulerConfirmationVehicule": "Falls ein Fahrzeug für dieses Dossier reserviert ist, wird es wieder verkaufbar."
+      "annulerConfirmationVehicule": "Falls ein Fahrzeug für diesen Verkauf reserviert ist, wird es wieder verkaufbar."
     },
     "statuts": {
       "prospection": "In Anbahnung",
@@ -483,13 +483,13 @@
         "verifierExpertise": "Wer: die Werkstatt — MFK prüfen",
         "documentsManquants": "{n, plural, one {Wer: # fehlendes Dokument} other {Wer: # fehlende Dokumente}}"
       },
-      "resteAFaireCloturer": "Noch zu erledigen: Dossier abschliessen"
+      "resteAFaireCloturer": "Noch zu erledigen: Verkauf abschliessen"
     },
     "actionsPanneau": {
       "engager": {
-        "titre": "Verbindlich bestellen",
+        "titre": "Verkauf verbindlich machen",
         "champBonCommande": "Bestellung",
-        "aucunBonCommande": "Keine Bestellung für dieses Dossier vorhanden",
+        "aucunBonCommande": "Keine Bestellung für diesen Verkauf vorhanden",
         "champIdentite": "Vorgelegter Ausweis",
         "consequenceVehicule": "Das Fahrzeug wird reserviert.",
         "consequenceReprise": "Der Eintausch wird bestätigt."
@@ -500,23 +500,23 @@
       },
       "marquerPretALivrer": {
         "titre": "Als übergabebereit markieren",
-        "description": "Bestätigen, dass das Dossier übergabebereit ist."
+        "description": "Bestätigen, dass der Verkauf übergabebereit ist."
       },
       "cloturer": {
-        "titre": "Dossier abschliessen",
+        "titre": "Verkauf abschliessen",
         "description": "Rein administrativ — es erfolgt keine zusätzliche Prüfung."
       },
       "annuler": {
-        "titre": "Dossier stornieren",
+        "titre": "Verkauf stornieren",
         "motifLabel": "Grund der Stornierung",
-        "motifPlaceholder": "Erklären Sie, weshalb dieses Dossier storniert wird…",
-        "consequenceVehicule": "Falls ein Fahrzeug für dieses Dossier reserviert ist, wird es wieder verkaufbar."
+        "motifPlaceholder": "Erklären Sie, weshalb dieser Verkauf storniert wird…",
+        "consequenceVehicule": "Falls ein Fahrzeug für diesen Verkauf reserviert ist, wird es wieder verkaufbar."
       },
       "abandonner": {
-        "titre": "Dossier aufgeben",
+        "titre": "Verkauf aufgeben",
         "motifLabel": "Grund der Aufgabe",
-        "motifPlaceholder": "Erklären Sie, weshalb dieses Dossier aufgegeben wird…",
-        "consequenceVehicule": "Falls ein Fahrzeug für dieses Dossier reserviert ist, wird es wieder verkaufbar."
+        "motifPlaceholder": "Erklären Sie, weshalb dieser Verkauf aufgegeben wird…",
+        "consequenceVehicule": "Falls ein Fahrzeug für diesen Verkauf reserviert ist, wird es wieder verkaufbar."
       }
     },
     "livraison": {
@@ -530,7 +530,7 @@
     },
     "documents": {
       "titre": "Dokumente",
-      "vide": "Kein Dokument für dieses Dossier.",
+      "vide": "Kein Dokument für diesen Verkauf.",
       "tronques": "Liste auf die ersten 50 Dokumente beschränkt",
       "solde": "Saldo: {montant}",
       "statuts": {
@@ -556,7 +556,7 @@
     },
     "documentsRequis": {
       "titre": "Erforderliche Dokumente",
-      "vide": "Kein Dokument für dieses Dossier erforderlich.",
+      "vide": "Kein Dokument für diesen Verkauf erforderlich.",
       "fourniLe": "Erbracht am {date}",
       "erreurLigne": "Speichern nicht möglich — erneut versuchen"
     },
@@ -565,9 +565,9 @@
       "titreSection": "Dieser Abschnitt kann nicht geladen werden"
     },
     "refus": {
-      "vehiculeManquant": "Diesem Dossier ist kein Fahrzeug zugewiesen.",
-      "vehiculeIndisponible": "Dieses Fahrzeug ist nicht mehr verfügbar — ein anderes Dossier hat es inzwischen reserviert.",
-      "financementNonConfirme": "Die Finanzierung muss bestätigt sein, bevor das Dossier als übergabebereit markiert werden kann.",
+      "vehiculeManquant": "Diesem Verkauf ist kein Fahrzeug zugewiesen.",
+      "vehiculeIndisponible": "Dieses Fahrzeug ist nicht mehr verfügbar — ein anderer Verkauf hat es inzwischen reserviert.",
+      "financementNonConfirme": "Die Finanzierung muss bestätigt sein, bevor der Verkauf als übergabebereit markiert werden kann.",
       "expertiseRequise": "Eine erforderliche MFK muss vor der Übergabe geklärt werden.",
       "livraisonIncomplete": "Nicht alle für die Übergabe erforderlichen Elemente sind vorhanden.",
       "annulationImpossible": "Dieser Verkauf kann in diesem Stadium nicht mehr storniert oder aufgegeben werden. Schliessen Sie ihn ab, wenn er erledigt ist.",
@@ -577,9 +577,9 @@
   "reprise": {
     "titre": "Eintausch",
     "absente": {
-      "titre": "Kein Eintausch bei diesem Dossier"
+      "titre": "Keine Inzahlungnahme bei diesem Verkauf"
     },
-    "aucuneReprise": "Kein Eintausch bei diesem Dossier.",
+    "aucuneReprise": "Keine Inzahlungnahme bei diesem Verkauf.",
     "valeurEstimee": "Geschätzter Wert",
     "valeurNegociee": "Verhandelter Wert",
     "enNegociation": "In Verhandlung",
@@ -677,7 +677,7 @@
     },
     "refus": {
       "valeurNegocieeRequise": "Der Eintausch muss vor der Bestätigung verhandelt werden.",
-      "dejaExistante": "Für dieses Dossier besteht bereits ein Eintausch."
+      "dejaExistante": "Für diesen Verkauf besteht bereits eine Inzahlungnahme."
     }
   },
   "financement": {
@@ -728,7 +728,7 @@
     },
     "creation": {
       "titre": "Finanzierung vorschlagen",
-      "description": "Fügen Sie einen neuen Finanzierungsvorschlag für dieses Dossier hinzu.",
+      "description": "Fügen Sie einen neuen Finanzierungsvorschlag für diesen Verkauf hinzu.",
       "champType": "Finanzierungsart",
       "champOrganisme": "Institut",
       "champReferenceContrat": "Vertragsreferenz",
