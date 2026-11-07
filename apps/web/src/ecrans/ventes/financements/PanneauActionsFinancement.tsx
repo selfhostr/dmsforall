@@ -8,7 +8,6 @@ import {
   type CodeConfirmation,
   type FinancementResume,
   type ReponseFinancement,
-  type RoleUtilisateur,
 } from '@dfa/shared';
 
 import { ErreurApi, messageErreur } from '@/api/erreurs';
@@ -72,7 +71,10 @@ export function PanneauActionsFinancement({
   const confirmer = useConfirmerFinancement(dossierVenteId);
   const refuser = useRefuserFinancement(dossierVenteId);
 
-  if (financement.statutConfirmation !== 'en_attente' || !peutConfirmerOuRefuserFinancement(actions)) {
+  if (
+    financement.statutConfirmation !== 'en_attente' ||
+    !peutConfirmerOuRefuserFinancement(actions)
+  ) {
     return null;
   }
 

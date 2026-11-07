@@ -1,5 +1,5 @@
 import type { ActionsSession } from '@/droits';
-import type { ReponseOrdreReparation, RoleUtilisateur } from '@dfa/shared';
+import type { ReponseOrdreReparation } from '@dfa/shared';
 
 import type { DemandeFacturerEtEncaisser } from '@/ecrans/facturation/DialogueFacturerEtEncaisser';
 import { peutEmettreFacture, peutEncaisser } from '@/ecrans/facturation/droits';

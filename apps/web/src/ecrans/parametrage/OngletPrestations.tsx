@@ -3,7 +3,7 @@ import { Pencil, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { ReponsePrestation, RoleUtilisateur } from '@dfa/shared';
+import type { ReponsePrestation } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
 import { Badge } from '@/components/ui/badge';

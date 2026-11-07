@@ -9,7 +9,6 @@ import {
   type ActionReprise,
   type CodeConfirmation,
   type ReponseReprise,
-  type RoleUtilisateur,
 } from '@dfa/shared';
 
 import { ErreurApi, messageErreur } from '@/api/erreurs';

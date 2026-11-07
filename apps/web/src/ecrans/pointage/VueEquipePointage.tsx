@@ -2,7 +2,7 @@ import type { ActionsSession } from '@/droits';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { ReponsePointage, RoleUtilisateur } from '@dfa/shared';
+import type { ReponsePointage } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
 import { Badge } from '@/components/ui/badge';

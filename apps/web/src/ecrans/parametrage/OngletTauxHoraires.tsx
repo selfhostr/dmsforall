@@ -3,7 +3,7 @@ import { Pencil, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { ReponseTauxHoraire, RoleUtilisateur } from '@dfa/shared';
+import type { ReponseTauxHoraire } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';

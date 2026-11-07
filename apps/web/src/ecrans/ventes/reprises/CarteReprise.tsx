@@ -3,8 +3,6 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
-import type { RoleUtilisateur } from '@dfa/shared';
-
 import { messageErreur } from '@/api/erreurs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -46,7 +44,12 @@ interface Props {
  * `valeurNegocieeCentimes` s'affichent CÔTE À CÔTE, jamais l'une sans l'autre. Aucune base TVA,
  * aucun montant de TVA lié à l'écart n'apparaît nulle part ici (§8.3, QV-05 non tranché).
  */
-export function CarteReprise({ dossierVenteId, possedeReprise, actions, onMutationReussie }: Props) {
+export function CarteReprise({
+  dossierVenteId,
+  possedeReprise,
+  actions,
+  onMutationReussie,
+}: Props) {
   const { t } = useTranslation(['ventes', 'commun', 'erreurs']);
   const [creationOuverte, setCreationOuverte] = useState(false);
   const [modificationOuverte, setModificationOuverte] = useState(false);

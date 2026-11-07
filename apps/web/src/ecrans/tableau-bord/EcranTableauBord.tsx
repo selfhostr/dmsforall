@@ -124,7 +124,9 @@ export function EcranTableauBord() {
 
       <BandeauPrioriteTableauBord role={role} site={siteId} />
 
-      {voitAFaireAujourdhui(role) ? <AFaireAujourdhui role={role} actions={session?.actions} site={siteTravail} /> : null}
+      {voitAFaireAujourdhui(role) ? (
+        <AFaireAujourdhui role={role} actions={session?.actions} site={siteTravail} />
+      ) : null}
 
       {role === 'direction' || role === 'comptable' ? (
         <h2 className="texte-titre-section font-semibold text-foreground">

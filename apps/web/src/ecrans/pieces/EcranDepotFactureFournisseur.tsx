@@ -4,7 +4,7 @@ import { useRef, useState, type DragEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
-import type { ReponseFactureFournisseur, RoleUtilisateur } from '@dfa/shared';
+import type { ReponseFactureFournisseur } from '@dfa/shared';
 
 import { ErreurReseau, messageErreur } from '@/api/erreurs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -269,7 +269,11 @@ interface PropsAvecDecision {
  *  (`EcranFactureFournisseur.tsx`) puisse recâbler les MÊMES mutations SANS dupliquer ce fil (id
  *  différent à chaque montage : `useMutation` doit être réinstancié par fiche, jamais partagé
  *  entre deux id). */
-function PanneauRapprochementFactureAvecDecision({ facture, actions, onDecidee }: PropsAvecDecision) {
+function PanneauRapprochementFactureAvecDecision({
+  facture,
+  actions,
+  onDecidee,
+}: PropsAvecDecision) {
   const valider = useValiderRapprochementFactureFournisseur(facture.id);
   const rejeter = useRejeterFactureFournisseur(facture.id);
 

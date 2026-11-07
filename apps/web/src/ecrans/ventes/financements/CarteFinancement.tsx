@@ -2,7 +2,7 @@ import type { ActionsSession } from '@/droits';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { FinancementResume, RoleUtilisateur, StatutDossierVente } from '@dfa/shared';
+import type { FinancementResume, StatutDossierVente } from '@dfa/shared';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
