@@ -35,6 +35,7 @@ describe('traduireErreurTransition', () => {
       },
     ]);
     expect(erreur?.actionsProposees).toEqual([{ code: 'RAFRAICHIR' }]);
+    expect(erreur?.message).toBe('Passage à « En cours » impossible : l’élément est « Planifié ».');
   });
 
   it('LIGNE_TRANSITION_INTERDITE : code et type de blocage corrects', () => {

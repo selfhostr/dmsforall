@@ -407,7 +407,7 @@ export class ServiceTransitions {
         if (or.statut !== 'termine') {
           throw new ErreurMetier(
             'OR_TRANSITION_INTERDITE',
-            `Transition ${or.statut} → en_cours interdite : rouvrir (T-15) n'est valide que depuis « termine ».`,
+            `Impossible de rouvrir cet OR : il est « ${libelleStatutOr(or.statut)} ».`,
             {
               detail: `L'OR est « ${libelleStatutOr(or.statut)} » : il ne peut être rouvert que depuis « ${libelleStatutOr('termine')} ».`,
               blocages: [
