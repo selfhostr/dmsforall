@@ -28,7 +28,7 @@
       },
       "tva": {
         "titre": "MWST-Nummer",
-        "pourquoi": "Sie muss auf Ihren Rechnungen stehen, wenn Sie mehrwertsteuerpflichtig sind. Sonst blenden Sie diese Liste aus, sobald der Rest erledigt ist."
+        "pourquoi": "Ist Ihr Betrieb mehrwertsteuerpflichtig? Wenn ja, steht diese Nummer auf Ihren Rechnungen. Sonst überspringen Sie diese Etappe."
       },
       "tauxHoraire": {
         "titre": "Stundenansatz",
