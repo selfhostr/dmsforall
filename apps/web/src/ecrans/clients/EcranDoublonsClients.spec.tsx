@@ -47,7 +47,7 @@ describe('EcranDoublonsClients', () => {
 
     expect(await screen.findByText('Duplicati clienti')).toBeInTheDocument();
     expect(screen.getByLabelText('Nome o ragione sociale')).toBeInTheDocument();
-    expect(screen.getByText('Inserisci almeno un criterio di ricerca')).toBeInTheDocument();
+    expect(screen.getByText('Inserisca almeno un criterio di ricerca')).toBeInTheDocument();
   });
 
   it("affiche l'état « aucun critère » avant toute saisie, sans appeler le serveur", () => {

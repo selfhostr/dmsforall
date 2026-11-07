@@ -14,8 +14,8 @@
         "description": "La variabile di connessione dedicata non è configurata sul server (DATABASE_URL_CONSOLE). Configurarla e riavviare l'API per abilitare la console."
       },
       "accesRefuse": {
-        "titre": "Non hai accesso alla console.",
-        "description": "La tua sessione non dispone dei diritti necessari per accedere alla console di amministrazione."
+        "titre": "Non ha accesso alla console.",
+        "description": "La sua sessione non dispone dei diritti necessari per accedere alla console di amministrazione."
       }
     },
     "etatVide": {
@@ -24,7 +24,7 @@
     },
     "etatVideFiltre": {
       "titre": "Nessun garage corrisponde",
-      "description": "Nessun garage corrisponde a questi criteri. Prova una ricerca diversa o rimuovi i filtri."
+      "description": "Nessun garage corrisponde a questi criteri. Provi una ricerca diversa o rimuova i filtri."
     },
     "recherche": {
       "placeholder": "Nome o identificatore del garage…"

@@ -78,7 +78,7 @@
   },
   "creation": {
     "titre": "Nuovo deposito pneumatici",
-    "description": "Registra un set di pneumatici nel deposito di questa sede.",
+    "description": "Registri un set di pneumatici nel deposito di questa sede.",
     "actions": {
       "ouvrir": "Nuovo deposito",
       "creer": "Crea il deposito"

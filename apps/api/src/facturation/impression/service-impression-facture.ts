@@ -16,7 +16,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import type { ReponseDocumentVente } from '@dfa/shared';
 
 import { JETON_DB, type AccesBase, type ContexteTenant } from '../../db';
-import { documentVente, tenantBlocCreancier } from '../../db/schema';
+import { documentVente, site, tenant, tenantBlocCreancier } from '../../db/schema';
 import type { PrincipalAuthentifie } from '../../common/contexte/contexte-requete.types';
 import { ErreurMetier } from '../../common/erreurs/erreur-metier';
 
@@ -95,7 +95,7 @@ export class ServiceImpressionFacture {
     // de divergence — cette fonction ne fait qu'orchestrer la mise en cache autour.
     const buffer = await genererPdfFacture(
       document,
-      document.qr === null ? await this.lireExpediteur(ctx) : undefined,
+      await this.lireExpediteur(ctx, document.siteId),
       await lireLogoImprimable(this.stockage, ctx.tenantId),
     );
     const sha256 = sha256Hex(buffer);
@@ -118,7 +118,7 @@ export class ServiceImpressionFacture {
     ctx: ContexteTenant,
     document: ReponseDocumentVente,
   ): Promise<PdfFactureResultat> {
-    const expediteur = await this.lireExpediteur(ctx);
+    const expediteur = await this.lireExpediteur(ctx, document.siteId);
     const buffer = await genererPdfDevis(
       document,
       expediteur,
@@ -129,9 +129,14 @@ export class ServiceImpressionFacture {
     return { buffer, sha256, nomFichier };
   }
 
-  private async lireExpediteur(ctx: ContexteTenant): Promise<ExpediteurImpression> {
+  /**
+   * Expéditeur imprimé. Nom/adresse : bloc créancier s'il est renseigné, sinon raison sociale du
+   * tenant et adresse du site du document (un garage sans IBAN n'a pas de bloc créancier mais doit
+   * quand même figurer en en-tête). N° TVA : `tenant.numero_tva` (réglages entreprise).
+   */
+  private async lireExpediteur(ctx: ContexteTenant, siteId: string): Promise<ExpediteurImpression> {
     return this.acces.enTenant(ctx, async (tx) => {
-      const [ligne] = await tx
+      const [bloc] = await tx
         .select({
           nom: tenantBlocCreancier.nom,
           rue: tenantBlocCreancier.rue,
@@ -142,12 +147,25 @@ export class ServiceImpressionFacture {
         .from(tenantBlocCreancier)
         .where(eq(tenantBlocCreancier.tenantId, ctx.tenantId))
         .limit(1);
+      const [ligneTenant] = await tx
+        .select({ raisonSociale: tenant.raisonSociale, numeroTva: tenant.numeroTva })
+        .from(tenant)
+        .where(eq(tenant.id, ctx.tenantId))
+        .limit(1);
+      const [ligneSite] = await tx
+        .select({ rue: site.rue, npa: site.npa, localite: site.localite })
+        .from(site)
+        .where(and(eq(site.tenantId, ctx.tenantId), eq(site.id, siteId)))
+        .limit(1);
+
+      const blocComplet = !!bloc?.nom?.trim();
       return {
-        nom: ligne?.nom ?? '',
-        rue: ligne?.rue ?? null,
-        numero: ligne?.numero ?? null,
-        npa: ligne?.npa ?? null,
-        localite: ligne?.localite ?? null,
+        nom: bloc?.nom?.trim() || ligneTenant?.raisonSociale || '',
+        rue: blocComplet ? (bloc?.rue ?? null) : (ligneSite?.rue ?? null),
+        numero: blocComplet ? (bloc?.numero ?? null) : null,
+        npa: blocComplet ? (bloc?.npa ?? null) : (ligneSite?.npa ?? null),
+        localite: blocComplet ? (bloc?.localite ?? null) : (ligneSite?.localite ?? null),
+        numeroTva: ligneTenant?.numeroTva ?? null,
       };
     });
   }

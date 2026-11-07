@@ -128,7 +128,7 @@
   },
   "editeur": {
     "titre": "Chi può fare cosa",
-    "description": "Scegliete un punto di partenza, poi adattatelo se questa persona deve poter fare di più o di meno.",
+    "description": "Scelga un punto di partenza, poi lo adatti se questa persona deve poter fare di più o di meno.",
     "depart": "Punto di partenza",
     "grilleTitre": "Cosa può fare questa persona",
     "domaineAria": "Accesso {domaine}",
@@ -140,16 +140,16 @@
     "personnalise": "Personalizzato",
     "personnaliseAide": "Questa griglia si discosta dal punto di partenza «{prereglage}».",
     "conformeAide": "Questa griglia segue esattamente il punto di partenza.",
-    "revenir": "Tornare al preset",
+    "revenir": "Torna al punto di partenza",
     "chargement": "Caricamento dei diritti…",
     "erreurTitre": "Impossibile caricare i diritti",
-    "reessayer": "Riprovare",
+    "reessayer": "Riprova",
     "incoherence": {
-      "montants": "Senza «Vede gli importi», questa persona non può avere questo livello. Passate a «Vedere» o «Niente», oppure attivate l'opzione.",
-      "finances": "Le finanze riguardano il denaro: attivate «Vede gli importi» oppure scegliete «Niente».",
-      "depassement": "Non potete concedere più di quanto avete voi stessi."
+      "montants": "Senza «Vede gli importi», questa persona non può avere questo livello. Passi a «Vedere» o «Niente», oppure attivi l'opzione.",
+      "finances": "Le finanze riguardano il denaro: attivi «Vede gli importi» oppure scelga «Niente».",
+      "depassement": "Non può concedere più di quanto ha Lei stesso."
     },
-    "incoherencesResume": "Correggete i punti segnalati prima di salvare.",
+    "incoherencesResume": "Corregga i punti segnalati prima di salvare.",
     "enregistrer": "Salva i diritti",
     "enregistrerEnCours": "Salvataggio…",
     "enregistre": "Diritti salvati."
