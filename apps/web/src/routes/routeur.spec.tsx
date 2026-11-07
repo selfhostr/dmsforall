@@ -562,7 +562,7 @@ describe('routeur — Réglages : les onglets existent dans l’assemblage réel
     const declencheurCompte = await screen.findByRole('button', { name: /jean dupont/i });
     await utilisateur.click(declencheurCompte);
     const reglages = await screen.findByRole('menuitem', { name: /réglages/i });
-    expect(reglages).toHaveAttribute('href', '/parametrage/referentiels');
+    expect(reglages).toHaveAttribute('href', '/parametrage/referentiels?site=site-1');
 
     // Un seul onglet visible => aucune rangée rendue (une rangée à un onglet n'offre aucun choix).
     await waitFor(() => {
@@ -582,15 +582,15 @@ describe('routeur — Réglages : les onglets existent dans l’assemblage réel
     const onglets = await screen.findByRole('navigation', { name: /onglets/i });
     expect(within(onglets).getByRole('link', { name: /^atelier$/i })).toHaveAttribute(
       'href',
-      '/parametrage/atelier',
+      '/parametrage/atelier?site=site-1',
     );
     expect(within(onglets).getByRole('link', { name: /^sites$/i })).toHaveAttribute(
       'href',
-      '/parametrage/sites',
+      '/parametrage/sites?site=site-1',
     );
     expect(within(onglets).getByRole('link', { name: /tarifs/i })).toHaveAttribute(
       'href',
-      '/parametrage/referentiels',
+      '/parametrage/referentiels?site=site-1',
     );
     // L'onglet courant est celui de l'URL, et il le dit aux lecteurs d'écran.
     expect(within(onglets).getByRole('link', { name: /tarifs/i })).toHaveAttribute(
