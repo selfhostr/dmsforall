@@ -79,6 +79,13 @@ export interface ExpediteurImpression {
   readonly localite: string | null;
   /** N° TVA du garage tel que saisi dans les réglages ; absent s'il n'est pas renseigné. */
   readonly numeroTva?: string | null;
+  /**
+   * Garage non assujetti à la TVA ET document sans aucune TVA : le PDF n'imprime ni colonne TVA, ni
+   * récapitulatif TVA, ni total HT/TVA, mais la mention « Non assujetti à la TVA ». Calculé par
+   * `service-impression-facture.ts` (jamais déduit du seul réglage : une facture émise quand le
+   * garage était assujetti garde sa TVA).
+   */
+  readonly nonAssujettiTva?: boolean;
 }
 
 /** Logo en haut à droite, dans une boîte de 140 x 60 pt. Un fichier que `pdfkit` ne sait pas
@@ -102,7 +109,15 @@ function dessinerEnTete(
   logo?: Buffer | null,
 ): void {
   dessinerLogo(doc, logo);
-  dessinerEnTeteEmetteur(doc, expediteur, MARGE_PT, MARGE_PT);
+  dessinerEnTeteEmetteur(
+    doc,
+    {
+      ...expediteur,
+      mentionNonAssujetti: expediteur.nonAssujettiTva ? l.nonAssujettiTva : null,
+    },
+    MARGE_PT,
+    MARGE_PT,
+  );
 
   doc
     .fillColor('#000000')
@@ -127,6 +142,7 @@ function dessinerLignes(
   lignes: readonly ReponseLigneDocumentVente[],
   l: LibellesFacture,
   devise: DeviseFacturation,
+  sansTva = false,
 ): void {
   // Largeurs revues (régression #126 bis, trouvée par la contre-vérification indépendante) :
   // le premier passage avait élargi `prixUnitaire`/`total` pour le préfixe devise mais RÉTRÉCI
@@ -150,7 +166,7 @@ function dessinerLignes(
   doc.text(l.designation, colX.designation, yEntete, { width: colX.quantite - colX.designation });
   doc.text(l.quantite, colX.quantite, yEntete, { width: colX.prixUnitaire - colX.quantite });
   doc.text(l.prixUnitaire, colX.prixUnitaire, yEntete, { width: colX.tva - colX.prixUnitaire });
-  doc.text(l.tva, colX.tva, yEntete, { width: colX.total - colX.tva });
+  if (!sansTva) doc.text(l.tva, colX.tva, yEntete, { width: colX.total - colX.tva });
   doc.text(l.total, colX.total, yEntete, { width: MARGE_DROITE_PT - colX.total });
   doc.moveDown(0.3);
   doc.moveTo(MARGE_PT, doc.y).lineTo(MARGE_DROITE_PT, doc.y).strokeColor('#cccccc').stroke();
@@ -171,9 +187,11 @@ function dessinerLignes(
         width: colX.tva - colX.prixUnitaire,
       },
     );
-    doc.text(`${(ligne.tauxTvaPourmille / 10).toFixed(1)}%`, colX.tva, y, {
-      width: colX.total - colX.tva,
-    });
+    if (!sansTva) {
+      doc.text(`${(ligne.tauxTvaPourmille / 10).toFixed(1)}%`, colX.tva, y, {
+        width: colX.total - colX.tva,
+      });
+    }
     doc.text(
       ligne.montants ? formaterMontantAvecDevise(ligne.montants.montantTtcCentimes, devise) : '',
       colX.total,
@@ -189,8 +207,21 @@ function dessinerRecapitulatifTva(
   totaux: ReturnType<typeof exigerMontantsVisibles>,
   l: LibellesFacture,
   devise: DeviseFacturation,
+  sansTva = false,
 ): void {
   doc.moveDown(1);
+  if (sansTva) {
+    doc.x = MARGE_PT;
+    // Non assujetti : ni récapitulatif, ni HT/TVA — le total (= TTC = HT, aucune TVA) et la mention.
+    doc
+      .fontSize(11)
+      .text(`${l.total} : ${formaterMontantAvecDevise(totaux.totalTtcCentimes, devise)}`, {
+        align: 'right',
+      });
+    doc.fontSize(8).fillColor('#666666').text(l.nonAssujettiTva, { align: 'right' });
+    doc.fillColor('#000000');
+    return;
+  }
   doc.fontSize(10).text(l.recapitulatifTva, MARGE_PT);
   doc.moveDown(0.3);
 
@@ -269,10 +300,16 @@ export async function genererPdfFacture(
         : 'fr',
   );
   const totaux = exigerMontantsVisibles(document);
+  const sansTva = expediteur?.nonAssujettiTva === true;
   // Avec bloc QR, nom et adresse viennent du bloc figé à l'émission (cohérence avec le bulletin) ;
   // le n° TVA, lui, vient toujours de l'expéditeur fourni (réglages entreprise).
   const expediteurFacture: ExpediteurImpression = qr
-    ? { nom: qr.creancier.nom, ...qr.creancier.adresse, numeroTva: expediteur?.numeroTva ?? null }
+    ? {
+        nom: qr.creancier.nom,
+        ...qr.creancier.adresse,
+        numeroTva: expediteur?.numeroTva ?? null,
+        nonAssujettiTva: sansTva,
+      }
     : (expediteur as ExpediteurImpression);
 
   const pdf = new PDFDocument({
@@ -302,8 +339,8 @@ export async function genererPdfFacture(
       [],
       logo,
     );
-    dessinerLignes(pdf, document.lignes, libelles, document.devise);
-    dessinerRecapitulatifTva(pdf, totaux, libelles, document.devise);
+    dessinerLignes(pdf, document.lignes, libelles, document.devise, sansTva);
+    dessinerRecapitulatifTva(pdf, totaux, libelles, document.devise, sansTva);
 
     if (qr && donneesSwissQrBill) {
       const qrBill = new SwissQRBill(donneesSwissQrBill, {
@@ -358,6 +395,7 @@ export async function genererPdfDevis(
     langueClient === 'de' || langueClient === 'it' ? langueClient : 'fr',
   );
   const totaux = exigerMontantsVisibles(document);
+  const sansTva = expediteur.nonAssujettiTva === true;
   const titre = document.numero ? libelles.devisNumero(document.numero) : libelles.devisBrouillon;
   const validite = `${libelles.valableJusqu} : ${formaterDateSuisse(dateValiditeDevis(document.dateDocument))}`;
 
@@ -375,8 +413,8 @@ export async function genererPdfDevis(
     pdf.on('error', reject);
 
     dessinerEnTete(pdf, document, expediteur, titre, libelles, [validite], logo);
-    dessinerLignes(pdf, document.lignes, libelles, document.devise);
-    dessinerRecapitulatifTva(pdf, totaux, libelles, document.devise);
+    dessinerLignes(pdf, document.lignes, libelles, document.devise, sansTva);
+    dessinerRecapitulatifTva(pdf, totaux, libelles, document.devise, sansTva);
     pdf.moveDown(1.5);
     pdf.fontSize(8).fillColor('#666666').text(libelles.devisMention, MARGE_PT);
     pdf.end();

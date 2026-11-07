@@ -2,6 +2,20 @@
 
 All notable changes to dmsforall are recorded here, for people who run it and for people who use it. Each entry says what changes for you. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/) until 1.0.
 
+## Unreleased
+
+### Added
+
+- **VAT status of the garage.** Settings ask "Is your garage subject to VAT?". A garage that answers No issues invoices, quotes and repair order invoices with no VAT, and its PDFs say "Not subject to VAT" (in French, German or Italian) with no VAT column. The API refuses to issue a document with a VAT rate above 0 for such a garage. A garage that answers Yes must enter its VAT number before it can issue an invoice. `creer-garage --non-assujetti` creates a garage that is not subject to VAT.
+
+### Upgrade notes
+
+- Existing garages are marked as subject to VAT, so nothing changes silently. A garage that is subject to VAT but has no VAT number saved can no longer issue invoices until it enters the number (or answers No if it is not subject to VAT).
+
+### Fixed
+
+- **Start-up checklist and invoice issuing agree.** The "address" step now also requires the street number, as issuing an invoice does.
+
 ## 0.2.0 (2026-11-07)
 
 This release fixes the repair order invoicing problem found in 0.1.0, and adds quotes, courtesy cars and an accounting export for your fiduciary. Read the upgrade notes before you update.

@@ -46,6 +46,11 @@ export const schemaModificationParametresEntreprise = z.object({
    *  Le slug du garage ne suit JAMAIS ce champ. */
   raisonSociale: z.string().trim().min(1).max(LONGUEUR_MAX_RAISON_SOCIALE).optional(),
   numeroTva: schemaNumeroTva.nullable().optional(),
+  /** Le garage est-il assujetti à la TVA ? Absent = inchangé. `false` : le n° TVA est vidé (un
+   *  non-assujetti n'en a pas) et les documents émis n'ont aucune TVA ; fournir `numeroTva` non nul
+   *  avec `assujettiTva: false` est refusé. `true` : le n° TVA peut être saisi plus tard, mais
+   *  l'émission d'une facture l'exige. */
+  assujettiTva: z.boolean().optional(),
   /** Délai de paiement par défaut (jours) des factures d'un client sans condition de paiement
    *  propre (`tenant.delai_paiement_jours_defaut`). Entier 0–365 ; absent = inchangé. */
   delaiPaiementJoursDefaut: z.number().int().min(0).max(365).optional(),
@@ -53,7 +58,10 @@ export const schemaModificationParametresEntreprise = z.object({
 
 export interface ReponseParametresEntreprise {
   readonly raisonSociale: string;
-  /** `null` : garage non assujetti à la TVA, ou numéro pas encore saisi. */
+  /** Le garage est-il assujetti à la TVA ? (`true` tant que le garage n'a rien répondu : c'est le
+   *  comportement historique, la TVA est facturée.) */
+  readonly assujettiTva: boolean;
+  /** `null` : numéro pas encore saisi, ou garage non assujetti (alors toujours `null`). */
   readonly numeroTva: string | null;
   /** Délai de paiement par défaut, en jours (30 tant que le garage n'a rien choisi). */
   readonly delaiPaiementJoursDefaut: number;
