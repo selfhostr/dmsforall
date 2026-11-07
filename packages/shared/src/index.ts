@@ -1,4 +1,5 @@
 export * from './arithmetique/arrondi-commercial';
+export * from './identite/nom-affiche';
 
 export * from './contrats/enums';
 export * from './contrats/probleme';

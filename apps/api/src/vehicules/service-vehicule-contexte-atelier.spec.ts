@@ -291,7 +291,7 @@ describe('ServiceVehiculeContexteAtelier.obtenir', () => {
     expect(contexte.detenteurCourant).toEqual({
       clientId: detention.client.id,
       numeroClient: 'C-004128',
-      nom: 'Meier Hans',
+      nom: 'Hans Meier',
       langueCorrespondance: 'de',
       statut: 'actif',
       depuisLe: '2022-05-01',

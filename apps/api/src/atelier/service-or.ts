@@ -909,7 +909,7 @@ export class ServiceOr {
             .where(
               and(
                 eq(client.tenantId, ctx.tenantId),
-                sql`public.normaliser_recherche(coalesce(${client.raisonSociale}, ${client.nom} || ' ' || coalesce(${client.prenom}, ''), '')) like public.normaliser_recherche(${motif})`,
+                sql`(public.normaliser_recherche(coalesce(${client.raisonSociale}, ${client.nom} || ' ' || coalesce(${client.prenom}, ''), '')) like public.normaliser_recherche(${motif}) or public.normaliser_recherche(coalesce(${client.raisonSociale}, concat_ws(' ', ${client.prenom}, ${client.nom}), '')) like public.normaliser_recherche(${motif}))`,
               ),
             ),
         ),
