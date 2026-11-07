@@ -539,5 +539,34 @@
     "titre": "Ersatzfahrzeug",
     "description": "Wählen Sie ein heute freies Auto: Die Ausleihe wird diesem Kunden und diesem AR zugeordnet.",
     "aucunLibre": "Heute ist kein Ersatzfahrzeug frei."
+  },
+  "photos": {
+    "bouton": "Foto",
+    "ajouter": "Foto hinzufügen",
+    "boutonPour": "Foto hinzufügen — {designation}",
+    "compteur": "{count, plural, one {# Foto} other {# Fotos}}",
+    "complet": "Maximum erreicht ({max} Fotos).",
+    "liste": "Fotos zur Arbeit",
+    "ouvrir": "Foto {numero} von {total} öffnen",
+    "apercuAttente": "Foto {numero} zum Senden",
+    "retirer": "Foto {numero} entfernen",
+    "apercuDevis": "{count, plural, one {# Foto zu dieser Arbeit} other {# Fotos zu diesen Arbeiten}}",
+    "echecApresCreation": "{count, plural, one {Die Arbeit ist gespeichert, aber # Foto konnte nicht gesendet werden.} other {Die Arbeit ist gespeichert, aber # Fotos konnten nicht gesendet werden.}}",
+    "reessayer": "Senden wiederholen",
+    "continuerSans": "Ohne Foto fortfahren",
+    "erreurs": {
+      "tropLourde": "Dieses Foto ist auch nach der Verkleinerung zu gross. Bitte neu aufnehmen.",
+      "illisible": "Dieses Foto kann nicht gelesen werden. Bitte neu aufnehmen.",
+      "heic": "Dieses Fotoformat (HEIC) kann hier nicht gelesen werden. Stellen Sie die Kamera auf «Kompatibelste» (JPEG) und nehmen Sie das Foto neu auf."
+    },
+    "visionneuse": {
+      "titre": "Foto der Arbeit",
+      "position": "Foto {numero} von {total}",
+      "sansLegende": "Foto der Arbeit",
+      "precedente": "Zurück",
+      "suivante": "Weiter",
+      "supprimer": "Foto löschen",
+      "confirmerSuppression": "Ja, löschen"
+    }
   }
 }

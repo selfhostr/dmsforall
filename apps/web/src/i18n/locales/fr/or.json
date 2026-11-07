@@ -539,5 +539,34 @@
     "titre": "Véhicule de courtoisie",
     "description": "Choisissez une voiture libre aujourd’hui : le prêt sera rattaché à ce client et à cet OR.",
     "aucunLibre": "Aucun véhicule de courtoisie n’est libre aujourd’hui."
+  },
+  "photos": {
+    "bouton": "Photo",
+    "ajouter": "Ajouter une photo",
+    "boutonPour": "Ajouter une photo — {designation}",
+    "compteur": "{count, plural, one {# photo} other {# photos}}",
+    "complet": "Maximum atteint ({max} photos).",
+    "liste": "Photos du travail",
+    "ouvrir": "Ouvrir la photo {numero} sur {total}",
+    "apercuAttente": "Photo {numero} à envoyer",
+    "retirer": "Retirer la photo {numero}",
+    "apercuDevis": "{count, plural, one {# photo jointe à ce travail} other {# photos jointes à ces travaux}}",
+    "echecApresCreation": "{count, plural, one {Le travail est enregistré, mais # photo n’a pas pu être envoyée.} other {Le travail est enregistré, mais # photos n’ont pas pu être envoyées.}}",
+    "reessayer": "Réessayer l’envoi",
+    "continuerSans": "Continuer sans la photo",
+    "erreurs": {
+      "tropLourde": "Cette photo est trop lourde, même après réduction. Reprenez-la.",
+      "illisible": "Cette photo ne peut pas être lue. Reprenez-la.",
+      "heic": "Ce format de photo (HEIC) n’est pas lisible ici. Réglez l’appareil sur « le plus compatible » (JPEG) et reprenez la photo."
+    },
+    "visionneuse": {
+      "titre": "Photo du travail",
+      "position": "Photo {numero} sur {total}",
+      "sansLegende": "Photo du travail",
+      "precedente": "Précédente",
+      "suivante": "Suivante",
+      "supprimer": "Supprimer la photo",
+      "confirmerSuppression": "Oui, supprimer"
+    }
   }
 }

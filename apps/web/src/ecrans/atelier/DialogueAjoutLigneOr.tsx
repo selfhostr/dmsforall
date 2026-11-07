@@ -37,7 +37,12 @@ import {
 } from '@/components/ui/select';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
+import {
+  SelecteurPhotosEnAttente,
+  type PhotoEnAttente,
+} from '@/composants/photos/SelecteurPhotosEnAttente';
 import { useCreerLigneOr } from '@/hooks/atelier/useActionsLigneOr';
+import { useAjouterPhotoLigne } from '@/hooks/atelier/usePhotosOr';
 import { useArticle } from '@/hooks/pieces/useArticle';
 import { useSession } from '@/hooks/useSession';
 import { formaterMontant } from '@/lib/formats';
@@ -143,10 +148,19 @@ const ETAT_INITIAL: EtatFormulaire = {
 export function DialogueAjoutLigneOr({ orId, siteId, onAjoutee }: Props) {
   const { t } = useTranslation(['or', 'commun', 'validation']);
   const mutation = useCreerLigneOr(orId);
+  const ajoutPhoto = useAjouterPhotoLigne(orId);
   const session = useSession();
   const [ouvert, setOuvert] = useState(false);
   const [etat, setEtat] = useState<EtatFormulaire>(ETAT_INITIAL);
   const [erreurValidation, setErreurValidation] = useState<string | null>(null);
+  // Photos prises avant la création (la ligne n'a pas encore d'identifiant) ; envoyées juste après.
+  const [photosEnAttente, setPhotosEnAttente] = useState<readonly PhotoEnAttente[]>([]);
+  // La ligne est créée mais des photos n'ont pas pu partir : on garde le dialogue ouvert, sans
+  // permettre de recréer la ligne (doublon), et on propose de réessayer ou de continuer sans.
+  const [echecPhotos, setEchecPhotos] = useState<{
+    readonly ligne: ReponseLigneOr;
+    readonly restantes: readonly PhotoEnAttente[];
+  } | null>(null);
 
   const estMainOeuvre = TYPES_MAIN_OEUVRE.has(etat.type);
   const estPiece = etat.type === 'piece';
@@ -242,7 +256,29 @@ export function DialogueAjoutLigneOr({ orId, siteId, onAjoutee }: Props) {
     setErreurValidation(null);
     setResultatChoisi(null);
     setEntreeEnAttenteConfirmationStock(null);
+    setPhotosEnAttente([]);
+    setEchecPhotos(null);
     mutation.reset();
+  }
+
+  /** Envoie les photos en attente sur la ligne créée, une à une ; au premier échec, s'arrête et
+   *  garde les restantes pour un nouvel essai. */
+  async function envoyerPhotos(ligne: ReponseLigneOr, photos: readonly PhotoEnAttente[]) {
+    setEchecPhotos(null);
+    for (const [index, photo] of photos.entries()) {
+      try {
+        await ajoutPhoto.mutateAsync({
+          ligneId: ligne.id,
+          photo: photo.photo,
+          vignette: photo.vignette,
+        });
+      } catch {
+        setEchecPhotos({ ligne, restantes: photos.slice(index) });
+        return;
+      }
+    }
+    fermer();
+    onAjoutee?.(ligne);
   }
 
   function envoyer(entree: EntreeCreationLigneOr) {
@@ -250,6 +286,10 @@ export function DialogueAjoutLigneOr({ orId, siteId, onAjoutee }: Props) {
       { entree, idempotencyKey: genererCleIdempotence() },
       {
         onSuccess: (reponse) => {
+          if (photosEnAttente.length > 0) {
+            void envoyerPhotos(reponse.donnees, photosEnAttente);
+            return;
+          }
           fermer();
           onAjoutee?.(reponse.donnees);
         },
@@ -624,6 +664,41 @@ export function DialogueAjoutLigneOr({ orId, siteId, onAjoutee }: Props) {
               </>
             ) : null}
 
+            <SelecteurPhotosEnAttente
+              photos={photosEnAttente}
+              onChange={setPhotosEnAttente}
+              desactive={mutation.isPending || ajoutPhoto.isPending || echecPhotos !== null}
+            />
+
+            {echecPhotos ? (
+              <div role="alert" className="flex flex-col gap-2">
+                <p className="texte-libelle text-destructive">
+                  {t('or:photos.echecApresCreation', { count: echecPhotos.restantes.length })}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    enChargement={ajoutPhoto.isPending}
+                    onClick={() => void envoyerPhotos(echecPhotos.ligne, echecPhotos.restantes)}
+                  >
+                    {t('or:photos.reessayer')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      const { ligne } = echecPhotos;
+                      fermer();
+                      onAjoutee?.(ligne);
+                    }}
+                  >
+                    {t('or:photos.continuerSans')}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
             {erreurValidation ? (
               <p className="texte-libelle text-destructive">{erreurValidation}</p>
             ) : null}
@@ -642,7 +717,11 @@ export function DialogueAjoutLigneOr({ orId, siteId, onAjoutee }: Props) {
                 {t('commun:actions.annuler')}
               </Button>
             </DialogClose>
-            <Button type="submit" enChargement={mutation.isPending}>
+            <Button
+              type="submit"
+              enChargement={mutation.isPending || ajoutPhoto.isPending}
+              disabled={echecPhotos !== null}
+            >
               {t('or:actions.confirmer')}
             </Button>
           </DialogFooter>

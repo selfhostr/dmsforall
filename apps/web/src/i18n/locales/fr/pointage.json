@@ -168,7 +168,8 @@
       "reprendre": "Reprendre",
       "changer": "Changer",
       "demarrerOr": "Pointer sur cet OR",
-      "demarrerLigne": "Pointer sur cette ligne"
+      "demarrerLigne": "Pointer sur cette ligne",
+      "photo": "Photo"
     },
     "mesOrs": {
       "titre": "Mes OR du jour",

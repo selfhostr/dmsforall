@@ -21,6 +21,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { MontantMasque } from '@/composants/comptoir/MontantMasque';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { EtatVide } from '@/composants/commun/EtatVide';
+import { PhotosLigne } from '@/composants/photos/PhotosLigne';
 import {
   peutAnnulerLigneOr,
   peutRefuserLigneOr,
@@ -274,6 +275,12 @@ export function ListeLignesOrdreReparation({
             {t(`or:lignes.origines.${ligne.origine}`)}
             {ligne.referenceTexte ? ` · ${ligne.referenceTexte}` : ''}
           </span>
+          <PhotosLigne
+            orId={orId}
+            ligneId={ligne.id}
+            designation={ligne.designation}
+            modifiable={ligne.statut !== 'facturee'}
+          />
         </div>
       ),
     },

@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { ApercuPhotosLignes } from '@/composants/photos/ApercuPhotosLignes';
 import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import {
   MODES_ACCORD_CLIENT,
@@ -100,6 +101,8 @@ export function DialogueAccordClient({
             enregistrer();
           }}
         >
+          <ApercuPhotosLignes orId={orId} ligneIds={ligneIds} />
+
           <LegendeChampsObligatoires>
             {t('commun:formulaires.champsObligatoiresLegende')}
           </LegendeChampsObligatoires>

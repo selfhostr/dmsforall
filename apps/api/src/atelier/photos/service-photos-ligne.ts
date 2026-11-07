@@ -91,11 +91,11 @@ export class ServicePhotosLigne {
             'Cette ligne est facturée : on ne peut plus y joindre de photo.',
           );
         }
-        const [{ n }] = await tx
+        const [decompte] = await tx
           .select({ n: count() })
           .from(ligneOrPhoto)
           .where(and(eq(ligneOrPhoto.tenantId, ctx.tenantId), eq(ligneOrPhoto.ligneOrId, ligneId)));
-        if ((n ?? 0) >= NOMBRE_MAX_PHOTOS_PAR_LIGNE) {
+        if ((decompte?.n ?? 0) >= NOMBRE_MAX_PHOTOS_PAR_LIGNE) {
           throw new ErreurMetier(
             'CONFLIT',
             `Cette ligne a déjà ${NOMBRE_MAX_PHOTOS_PAR_LIGNE} photos, le maximum.`,
