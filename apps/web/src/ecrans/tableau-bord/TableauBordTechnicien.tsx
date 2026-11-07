@@ -9,7 +9,6 @@ import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
-import { compterLignesAssigneesPointables } from '@/hooks/pointage/lignes-assignees';
 import { useMesOrdresAssignes } from '@/hooks/pointage/useMesOrdresAssignes';
 import { useSession } from '@/hooks/useSession';
 import { chemins } from '@/routes/chemins';
@@ -25,8 +24,8 @@ interface Props {
  * inchangé par cette fusion. Ce bloc ne sert que s'il navigue explicitement vers le tableau de bord
  * fusionné ; dupliquer l'écran de pointage ici serait le contraire de « minimaliste ».
  *
- * Même source que « Mes OR du jour » (`useMesOrdresAssignes` + `compterLignesAssigneesPointables`,
- * réutilisés tels quels — SOURCE UNIQUE du calcul, voir `hooks/pointage/lignes-assignees.ts`), mais
+ * Même source que « Mes OR du jour » (`useMesOrdresAssignes`, `forme=resume` : le serveur compte les lignes
+ * assignées, `nombreLignesAssignees`), mais
  * en LECTURE (lien vers la fiche OR), pas en action de pointage : ce geste-là reste sur son écran
  * de travail.
  */
@@ -72,7 +71,7 @@ export function TableauBordTechnicien({ site }: Props) {
             </div>
             <span className="texte-libelle text-muted-foreground">
               {t('pointage:technicien.mesOrs.lignesAssignees', {
-                count: compterLignesAssigneesPointables(or, technicienId as string),
+                count: or.lignesAssignees,
               })}
             </span>
           </Link>

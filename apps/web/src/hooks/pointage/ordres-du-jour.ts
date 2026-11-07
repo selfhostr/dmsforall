@@ -1,4 +1,4 @@
-import type { ReponseOrdreReparation } from '@dfa/shared';
+import type { OrDuJour } from './useMesOrdresAssignes';
 
 /**
  * « Mes OR du jour » : tri et partage par site, purs (aucun appel réseau).
@@ -7,9 +7,9 @@ import type { ReponseOrdreReparation } from '@dfa/shared';
  * jour), puis les OR SANS promesse (« aucune date » n'est jamais une urgence ni un retard — elle
  * ne se range ni en tête ni parmi les dates), puis le numéro pour un ordre stable.
  */
-export function trierParEcheance(
-  ordres: readonly ReponseOrdreReparation[],
-): readonly ReponseOrdreReparation[] {
+export function trierParEcheance<T extends Pick<OrDuJour, 'numero' | 'restitutionPromiseLe'>>(
+  ordres: readonly T[],
+): readonly T[] {
   return [...ordres].sort((a, b) => {
     const echeanceA = a.restitutionPromiseLe ? Date.parse(a.restitutionPromiseLe) : null;
     const echeanceB = b.restitutionPromiseLe ? Date.parse(b.restitutionPromiseLe) : null;
@@ -28,7 +28,7 @@ export function trierParEcheance(
  * (compte de personne, portée tenant) -> aucun OR n'est « hors site ».
  */
 export function estHorsSite(
-  ordre: Pick<ReponseOrdreReparation, 'siteId'>,
+  ordre: Pick<OrDuJour, 'siteId'>,
   siteBorne: string | undefined,
 ): boolean {
   return siteBorne !== undefined && ordre.siteId !== siteBorne;

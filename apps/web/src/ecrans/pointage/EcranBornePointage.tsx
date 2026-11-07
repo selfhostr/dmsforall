@@ -25,7 +25,6 @@ import {
   cibleCumulDepuisPointage,
   useCumulsPointagesJour,
 } from '@/hooks/pointage/cumul-cible-jour';
-import { compterLignesAssigneesPointables } from '@/hooks/pointage/lignes-assignees';
 import { estHorsSite, trierParEcheance } from '@/hooks/pointage/ordres-du-jour';
 import { useArreterPointage } from '@/hooks/pointage/useArreterPointage';
 import { useDemarrerPointage } from '@/hooks/pointage/useDemarrerPointage';
@@ -234,7 +233,7 @@ export function EcranBornePointage() {
   const siteId = identifie?.siteId;
 
   const pointageOuvert = usePointageOuvertTechnicien(technicienId);
-  const mesOrdres = useMesOrdresAssignes(technicienId);
+  const mesOrdres = useMesOrdresAssignes(technicienId, { comptage: 'document' });
   const requeteOrSelectionne = useOrdreReparation(orSelectionneId);
   // Véhicule de l'OR pointé (affiché en grand sur la carte « en cours ») : document OR de la cible
   // du pointage OUVERT, jamais un état local. `undefined` -> requête inerte (activité indirecte).
@@ -662,7 +661,6 @@ export function EcranBornePointage() {
                   desactive={enTraitement}
                   horsSite={estHorsSite(or, siteId)}
                   siteNom={nomSite(or.siteId)}
-                  lignesAssignees={compterLignesAssigneesPointables(or, technicienId as string)}
                   onChoisir={() => {
                     reinitialiserInactivite();
                     setOrSelectionneId(or.id);
