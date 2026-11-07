@@ -98,6 +98,8 @@
     "DOCUMENT_PDF_INDISPONIBLE": "Das PDF ist noch nicht bereit. Warten Sie einen Moment und versuchen Sie es erneut.",
     "FACTURATION_LIGNES_INDECISES": "Einige Positionen warten auf die Zustimmung des Kunden, bevor sie verrechnet werden. Holen Sie seine Zustimmung ein oder entfernen Sie sie von dieser Rechnung.",
     "QR_CREANCIER_INCOMPLET": "Ihre Bankangaben für die QR-Rechnung sind unvollständig. Ergänzen Sie sie in den Abrechnungseinstellungen.",
+    "TVA_NON_ASSUJETTI_TAUX_INTERDIT": "Ihre Garage ist nicht mehrwertsteuerpflichtig: keine Position darf MWST enthalten. Setzen Sie den Satz auf 0 % oder geben Sie in den Fakturierungseinstellungen an, dass Sie mehrwertsteuerpflichtig sind.",
+    "TVA_NUMERO_REQUIS": "Ihre Garage ist mehrwertsteuerpflichtig: Erfassen Sie Ihre MWST-Nummer in den Fakturierungseinstellungen, bevor Sie eine Rechnung ausstellen.",
     "IBAN_INVALIDE": "Dieser IBAN scheint falsch zu sein (Form oder Prüfziffer). Überprüfen Sie die Eingabe Ziffer für Ziffer.",
     "IBAN_EST_UN_QR_IBAN": "Dies ist ein QR-IBAN: Erfassen Sie ihn im Feld «QR-IBAN», nicht im Feld «IBAN».",
     "QR_IBAN_SANS_IID_RESERVE": "Dies ist ein gewöhnlicher IBAN, kein QR-IBAN: Erfassen Sie ihn im Feld «IBAN», nicht im Feld «QR-IBAN».",

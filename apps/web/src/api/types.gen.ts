@@ -2831,8 +2831,8 @@ export interface paths {
     options?: never;
     head?: never;
     /**
-     * Modifie la raison sociale, le n° TVA ou le délai de paiement du garage.
-     * @description `raisonSociale` : 1 à 200 caractères (espaces de bord retirés), journalisée dans le journal d'audit (avant/après). Le slug du garage ne change jamais. Les documents déjà émis gardent leur raison sociale ; les suivants prennent la nouvelle (sauf si le bloc créancier porte son propre nom, qui reste prioritaire et se change dans la facturation). Format IDE suisse `CHE-123.456.789 TVA` (`MWST`/`IVA` acceptés), clé de contrôle modulo 11 vérifiée. `numeroTva: null` efface le numéro (garage non assujetti). Corps vide : aucun effet.
+     * Modifie la raison sociale, l’assujettissement à la TVA, le n° TVA ou le délai de paiement du garage.
+     * @description `raisonSociale` : 1 à 200 caractères (espaces de bord retirés), journalisée dans le journal d'audit (avant/après). Le slug du garage ne change jamais. Les documents déjà émis gardent leur raison sociale ; les suivants prennent la nouvelle (sauf si le bloc créancier porte son propre nom, qui reste prioritaire et se change dans la facturation). Format IDE suisse `CHE-123.456.789 TVA` (`MWST`/`IVA` acceptés), clé de contrôle modulo 11 vérifiée. `numeroTva: null` efface le numéro. `assujettiTva: false` déclare le garage non assujetti : le numéro est vidé et les documents émis ensuite n’ont aucune TVA ; `assujettiTva: false` avec un `numeroTva` non nul (ou un numéro envoyé à un garage non assujetti) est refusé (`VALIDATION_ECHOUEE`, `erreurs[0].champ = numeroTva`). `assujettiTva: true` sans numéro est accepté, mais l’émission d’une facture exige alors le numéro (`TVA_NUMERO_REQUIS`). Chaque changement de raison sociale, d'assujettissement ou de numéro est journalisé (avant/après). Corps vide : aucun effet.
      */
     patch: operations['ParametresEntrepriseController_modifier'];
     trace?: never;
@@ -5795,13 +5795,13 @@ export interface components {
     EtapesDemarrageDto: {
       /** @description Au moins une borne d’atelier active. */
       borne: boolean;
-      /** @description Nom, rue, NPA et localité du bloc créancier renseignés. */
+      /** @description Nom, rue, n° de rue, NPA, localité et pays du bloc créancier renseignés (mêmes champs requis que l’émission d’une facture). */
       coordonnees: boolean;
       /** @description IBAN ou QR-IBAN renseigné. */
       iban: boolean;
       /** @description Au moins un motif de rendez-vous actif. */
       motifsRdv: boolean;
-      /** @description Numéro TVA du garage saisi. */
+      /** @description Étape TVA faite : le garage est non assujetti, ou assujetti avec son numéro de TVA saisi. */
       numeroTva: boolean;
       /** @description Un compte de personne autre que le vôtre (invité ou actif). */
       premierCollaborateur: boolean;
@@ -6991,7 +6991,9 @@ export interface components {
         | 'REPRISE_PLAN_NON_VALIDABLE'
         | 'REPRISE_AJUSTEMENT_ELEMENT_INCONNU'
         | 'AUTH_JETON_REINITIALISATION_INVALIDE'
-        | 'FACTURE_DESTINATAIRE_COURRIEL_ABSENT';
+        | 'FACTURE_DESTINATAIRE_COURRIEL_ABSENT'
+        | 'TVA_NON_ASSUJETTI_TAUX_INTERDIT'
+        | 'TVA_NUMERO_REQUIS';
       /** @description Détail technique — jamais affiché à l'utilisateur final. */
       detail?: string;
       erreurs?: components['schemas']['ErreurChampCommunDto'][];
@@ -7133,7 +7135,9 @@ export interface components {
         | 'REPRISE_PLAN_NON_VALIDABLE'
         | 'REPRISE_AJUSTEMENT_ELEMENT_INCONNU'
         | 'AUTH_JETON_REINITIALISATION_INVALIDE'
-        | 'FACTURE_DESTINATAIRE_COURRIEL_ABSENT';
+        | 'FACTURE_DESTINATAIRE_COURRIEL_ABSENT'
+        | 'TVA_NON_ASSUJETTI_TAUX_INTERDIT'
+        | 'TVA_NUMERO_REQUIS';
       detail?: string;
       erreurs?: components['schemas']['ErreurChampDto'][];
       instance: string;
@@ -8289,12 +8293,17 @@ export interface components {
     };
     ReponseParametresEntrepriseDto: {
       /**
+       * @description Le garage est-il assujetti à la TVA ? `false` : aucune TVA sur ses documents (taux 0, régime « exclu »), mention « Non assujetti à la TVA », `numeroTva` toujours `null`. `true` par défaut (comportement historique) ; une facture ne peut être émise sans `numeroTva` quand il vaut `true`.
+       * @example true
+       */
+      assujettiTva: boolean;
+      /**
        * @description Délai de paiement par défaut des factures, en jours, pour un client sans condition de paiement propre.
        * @example 30
        */
       delaiPaiementJoursDefaut: number;
       /**
-       * @description N° IDE avec mention TVA (CHE-123.456.789 TVA, MWST ou IVA), clé de contrôle vérifiée. `null` : garage non assujetti ou numéro pas encore saisi.
+       * @description N° IDE avec mention TVA (CHE-123.456.789 TVA, MWST ou IVA), clé de contrôle vérifiée. `null` : numéro pas encore saisi, ou garage non assujetti.
        * @example CHE-116.281.710 TVA
        */
       numeroTva: string | null;
@@ -14339,7 +14348,7 @@ export interface operations {
             remiseMontantCentimes?: number;
             remisePourmille?: number;
             siteId?: string | null;
-            tauxTvaPourmille: number;
+            tauxTvaPourmille?: number;
             /** @enum {string} */
             type:
               | 'main_oeuvre_bareme'
@@ -15210,7 +15219,7 @@ export interface operations {
           remiseMontantCentimes?: number;
           remisePourmille?: number;
           siteId?: string | null;
-          tauxTvaPourmille: number;
+          tauxTvaPourmille?: number;
           /** @enum {string} */
           type:
             | 'main_oeuvre_bareme'
@@ -21911,6 +21920,7 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': {
+          assujettiTva?: boolean;
           delaiPaiementJoursDefaut?: number;
           numeroTva?: string | null;
           raisonSociale?: string;

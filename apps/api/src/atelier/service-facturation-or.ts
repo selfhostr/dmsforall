@@ -35,6 +35,10 @@ import {
   chargerConditionsPaiementEnVigueur,
 } from '../facturation/documents/references';
 import { ServiceDocumentsVente } from '../facturation/documents/service-documents';
+import {
+  chargerSituationTva,
+  REGIME_NON_ASSUJETTI,
+} from '../facturation/documents/assujettissement';
 
 import { verifierConfirmation } from './confirmations';
 import { chargerClientLigne, nomAfficheClient } from './references';
@@ -315,6 +319,10 @@ export class ServiceFacturationOr {
           "L'insertion du document de vente n'a rendu aucune ligne.",
         );
 
+      // Garage non assujetti : les lignes d'OR (prix TTC figés avec le taux 8.1 % par défaut des
+      // prestations) sont recopiées à 0 ‰, régime « hors champ », HT = TTC — le prix payé par le
+      // client ne bouge pas, seule la TVA fictive disparaît.
+      const sansTva = !(await chargerSituationTva(tx, ctx)).assujetti;
       let numeroOrdre = 1;
       for (const ligneOrCourante of lignesRealisees) {
         await this.inserterLigneDepuisOr(
@@ -324,6 +332,7 @@ export class ServiceFacturationOr {
           numeroOrdre++,
           ligneOrCourante,
           datePrestation,
+          sansTva,
         );
 
         try {
@@ -416,10 +425,14 @@ export class ServiceFacturationOr {
     numeroOrdre: number,
     ligne: LigneLigneOr,
     datePrestation: string,
+    sansTva = false,
   ): Promise<void> {
     const estLigneGarage = ligne.payeur === 'garage';
     const prixUnitaireTtcCentimes = estLigneGarage ? 0 : ligne.montantTtcCentimes;
-    const montants = montantsLigneDocumentDepuisLigneOr(ligne);
+    const montantsOr = montantsLigneDocumentDepuisLigneOr(ligne);
+    const montants = sansTva
+      ? { ...montantsOr, htCentimes: montantsOr.ttcCentimes, tvaCentimes: 0 }
+      : montantsOr;
 
     await tx.insert(ligneDocument).values({
       tenantId: ctx.tenantId,
@@ -431,8 +444,8 @@ export class ServiceFacturationOr {
       ligneOrId: ligne.id,
       documentAcompteId: null,
       modeCalculTva: 'ttc',
-      regimeTva: 'normal',
-      tauxTvaPourmille: ligne.tauxTvaPourmille,
+      regimeTva: sansTva ? REGIME_NON_ASSUJETTI : 'normal',
+      tauxTvaPourmille: sansTva ? 0 : ligne.tauxTvaPourmille,
       datePrestation,
       quantiteMillieme: 1000,
       prixUnitaireCentimes: prixUnitaireTtcCentimes,

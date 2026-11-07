@@ -388,7 +388,15 @@
     "erreurRaison": "Indiquez le nom du garage.",
     "raisonSocialeAide": "Ce nom apparaît sur vos documents et factures. Les documents déjà émis gardent l'ancien nom.",
     "numeroTva": "Numéro de TVA",
-    "numeroTvaAide": "Format : CHE-123.456.789 TVA. Laissez vide si vous n'êtes pas assujetti à la TVA.",
+    "numeroTvaAide": "Format : CHE-123.456.789 TVA. Il figure sur vos factures.",
+    "assujetti": {
+      "legende": "Votre garage est-il assujetti à la TVA ?",
+      "oui": "Oui",
+      "non": "Non",
+      "aide": "En dessous de CHF 100'000 de chiffre d'affaires par an, vous pouvez ne pas l'être.",
+      "ouiSansNumero": "Sans numéro de TVA, vous ne pourrez pas émettre de facture.",
+      "nonInfo": "Vos factures et devis n'indiquent pas de TVA et portent la mention « Non assujetti à la TVA »."
+    },
     "erreurTva": {
       "format": "Le numéro doit ressembler à CHE-123.456.789 TVA.",
       "cle": "Ce numéro n'existe pas : vérifiez les chiffres."

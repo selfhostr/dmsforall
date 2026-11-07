@@ -127,8 +127,11 @@ async function semerTenant(
 ): Promise<TenantFixture> {
   const tenantId = randomUUID();
   await bdd.poolSuperutilisateur.query(
+    // Garage assujetti (défaut de colonne, migration 0090) AVEC n° TVA : l'émission d'une facture
+    // l'exige (`TVA_NUMERO_REQUIS`). Les tests du cas « non assujetti » ou « sans n° » modifient
+    // ces colonnes eux-mêmes.
     `insert into tenant (id, slug, raison_sociale, numero_tva, pays, langue_defaut, statut)
-     values ($1, $2, $3, null, 'CH', $4, 'actif')`,
+     values ($1, $2, $3, 'CHE-116.281.710 TVA', 'CH', $4, 'actif')`,
     [tenantId, definition.slug, definition.raisonSociale, definition.langueDefaut],
   );
 

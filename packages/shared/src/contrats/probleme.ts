@@ -339,6 +339,13 @@ export const CODES_ERREUR = [
   // Le client n'a aucune adresse courriel enregistrée (`client.email` NULL) — l'action ne peut
   // structurellement pas aboutir, message clair plutôt qu'un envoi silencieux sans destinataire.
   'FACTURE_DESTINATAIRE_COURRIEL_ABSENT',
+  // --- Assujettissement à la TVA (tenant.assujetti_tva, migration 0090) ---
+  // Garage NON assujetti : une ligne porte un taux de TVA > 0 à l'émission (art. 27 LTVA : un
+  // non-assujetti qui facture de la TVA la doit). `erreurs[]` nomme les lignes.
+  'TVA_NON_ASSUJETTI_TAUX_INTERDIT',
+  // Garage assujetti : son n° TVA n'est pas saisi, une facture ne peut pas être émise
+  // (art. 26 LTVA). Se règle dans Réglages > Mon garage.
+  'TVA_NUMERO_REQUIS',
 ] as const;
 export type CodeErreur = (typeof CODES_ERREUR)[number];
 
@@ -487,6 +494,8 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   REPRISE_AJUSTEMENT_ELEMENT_INCONNU: 400,
   AUTH_JETON_REINITIALISATION_INVALIDE: 400,
   FACTURE_DESTINATAIRE_COURRIEL_ABSENT: 409,
+  TVA_NON_ASSUJETTI_TAUX_INTERDIT: 409,
+  TVA_NUMERO_REQUIS: 409,
 };
 
 /**
@@ -621,6 +630,8 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   REPRISE_AJUSTEMENT_ELEMENT_INCONNU: 'Élément de plan inconnu',
   AUTH_JETON_REINITIALISATION_INVALIDE: 'Jeton de réinitialisation invalide',
   FACTURE_DESTINATAIRE_COURRIEL_ABSENT: "Le client n'a pas d'adresse courriel enregistrée",
+  TVA_NON_ASSUJETTI_TAUX_INTERDIT: 'TVA interdite pour un garage non assujetti',
+  TVA_NUMERO_REQUIS: 'Numéro de TVA requis pour émettre',
 };
 
 /**

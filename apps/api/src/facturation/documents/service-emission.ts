@@ -36,6 +36,11 @@ import type { ServiceCompteurs } from '../../parametrage/compteurs/compteurs.typ
 import { ServiceVehiculeStock } from '../../ventes/service-vehicule-stock';
 
 import {
+  chargerSituationTva,
+  REGIME_NON_ASSUJETTI,
+  verifierEmissionSelonAssujettissement,
+} from './assujettissement';
+import {
   agregerTvaParTauxRegime,
   calculerLigneDocument,
   calculerTotauxDocument,
@@ -269,6 +274,14 @@ export class ServiceEmissionDocument {
       );
     }
 
+    // 0.5. Assujettissement à la TVA (tenant.assujetti_tva, migration 0090) : contrôlé AVANT toute
+    // écriture et avant l'allocation du numéro. Non assujetti → refus de toute ligne à taux > 0 ;
+    // assujetti sans n° TVA → refus d'une facture/d'un avoir. L'avoir d'un non-assujetti reprend
+    // les lignes de la facture corrigée telles quelles (voir `assujettissement.ts`).
+    const situationTva = await chargerSituationTva(tx, ctx);
+    verifierEmissionSelonAssujettissement(situationTva, doc.typeDocument, lignes);
+    const sansTva = !situationTva.assujetti && doc.typeDocument !== 'avoir';
+
     // 1. MD-59/60 : résout et ventile la remise globale de pied de document sur les lignes,
     // MAINTENANT — jamais avant (le brouillon peut tout contenir, MD-61).
     const sommeBase = lignes.reduce((s, l) => s + l.baseCentimes, 0);
@@ -297,13 +310,21 @@ export class ServiceEmissionDocument {
         remiseGlobaleRepartieCentimes,
         tauxTvaPourmille: ligne.tauxTvaPourmille,
       });
-      return { ...ligne, remiseGlobaleRepartieCentimes, ...montants };
+      // Non assujetti : toutes les lignes (déjà à 0 ‰, vérifié ci-dessus) passent au régime
+      // « hors champ de l'impôt » — jamais un `normal` à 0 %, qui se lirait comme un taux 0 %.
+      return {
+        ...ligne,
+        remiseGlobaleRepartieCentimes,
+        ...montants,
+        regimeTva: sansTva ? REGIME_NON_ASSUJETTI : ligne.regimeTva,
+      };
     });
 
     for (const ligne of lignesRecalculees) {
       await tx
         .update(ligneDocument)
         .set({
+          regimeTva: ligne.regimeTva,
           remiseGlobaleRepartieCentimes: ligne.remiseGlobaleRepartieCentimes,
           baseCentimes: ligne.baseCentimes,
           htCentimes: ligne.htCentimes,

@@ -52,6 +52,9 @@ export interface EntreeCreerGarage {
   readonly motDePasse: string;
   readonly prenom: string;
   readonly nom: string;
+  /** Garage assujetti à la TVA ? Défaut `true` ; `false` (CLI `--non-assujetti`) : aucune TVA sur
+   *  ses documents, aucun n° TVA. */
+  readonly assujettiTva?: boolean;
 }
 
 export interface ResultatCreerGarage {
@@ -180,9 +183,9 @@ export async function creerGarage(
     const tenantId = String(
       (
         await bd.query(
-          `insert into tenant (slug, raison_sociale, pays, langue_defaut, statut)
-           values ($1, $2, 'CH', 'fr', 'actif') returning id`,
-          [slug, garage],
+          `insert into tenant (slug, raison_sociale, pays, langue_defaut, statut, assujetti_tva)
+           values ($1, $2, 'CH', 'fr', 'actif', $3) returning id`,
+          [slug, garage, entree.assujettiTva ?? true],
         )
       ).rows[0]?.id,
     );
