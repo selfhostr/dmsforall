@@ -13,7 +13,7 @@ import { BarreLaterale } from './BarreLaterale';
 import { BarreOngletsBasse } from './BarreOngletsBasse';
 import { BarreOutilsSuperieure } from './BarreOutilsSuperieure';
 import { LimiteErreurEcran } from './LimiteErreurEcran';
-import { entreesVisibles } from './navigation-modele';
+import { entreesVisibles, sujetNavigation } from './navigation-modele';
 import { OngletsDomaine } from './OngletsDomaine';
 import { useModeScanMobile } from './useModeScanMobile';
 import { useRepliBarreLaterale } from './useRepliBarreLaterale';
@@ -65,9 +65,8 @@ export function AppShell() {
   // tête d'`useModeScanMobile.ts` pour le détail de la détection et de son échappatoire. `actif`
   // masque toute la navigation ci-dessous (même traitement que `poste_atelier`, la borne murale :
   // aucune colonne, aucun onglet) ET redirige toute route hors `/scan` (voir `<main>` plus bas).
-  const modeScan = useModeScanMobile(session?.utilisateur.role);
-  const afficheNavigation =
-    entreesVisibles(session?.utilisateur.role).length > 0 && !modeScan.actif;
+  const modeScan = useModeScanMobile(session?.actions);
+  const afficheNavigation = entreesVisibles(sujetNavigation(session)).length > 0 && !modeScan.actif;
   // Repli DESKTOP de la barre latérale (demande produit, revue webui du 10.08.2026) — préférence
   // mémorisée (`useRepliBarreLaterale`), lue ici et nulle part ailleurs : seul l'`aside` ci-dessous
   // la reçoit. Le tiroir mobile (`Sheet`) monte `BarreLaterale` SANS le prop `repli`, il reste donc

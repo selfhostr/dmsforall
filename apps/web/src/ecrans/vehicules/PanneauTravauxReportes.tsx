@@ -1,3 +1,4 @@
+import { usePeut } from '@/droits';
 import {
   AlertTriangle,
   Clock3,
@@ -14,7 +15,6 @@ import {
   schemaModificationTravailReporte,
   URGENCES_TRAVAIL,
   type ReponseTravailReporte,
-  type RoleUtilisateur,
   type StatutTravailReporte,
   type UrgenceTravail,
 } from '@dfa/shared';
@@ -47,7 +47,6 @@ import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
-import { useSession } from '@/hooks/useSession';
 import { formaterDate, formaterKilometrage, formaterMontant } from '@/lib/formats';
 import { cn } from '@/lib/utils';
 
@@ -65,13 +64,6 @@ import { useTravauxReportesVehicule } from './useTravauxReportesVehicule';
  * voir `PanneauActionsOr.tsx`) : pas de signal serveur à consommer à la place de ce mirroir. À
  * FAIRE ÉVOLUER EN MÊME TEMPS que `matrice-droits.ts` si `vehicule.travail_reporte.gerer` change.
  */
-const ROLES_GESTION_TRAVAIL_REPORTE: ReadonlySet<RoleUtilisateur> = new Set([
-  'receptionnaire',
-  'chef_atelier',
-  'direction',
-  'admin',
-]);
-
 const CONFIG_URGENCE: Record<
   UrgenceTravail,
   { readonly icone: LucideIcon; readonly cle: string; readonly accentue: boolean }
@@ -83,14 +75,6 @@ const CONFIG_URGENCE: Record<
 
 /** Rôles porteurs de `vehicule.travail_reporte.signaler` (`matrice-droits.ts`) — le technicien
  *  note ce qu'il voit sous le capot, sans pouvoir clore ni corriger. Miroir d'affichage. */
-const ROLES_SIGNALEMENT_TRAVAIL_REPORTE: ReadonlySet<RoleUtilisateur> = new Set([
-  'receptionnaire',
-  'chef_atelier',
-  'direction',
-  'admin',
-  'technicien',
-]);
-
 type Onglet = 'ouvert' | 'repris' | 'abandonne' | 'tous';
 
 const ONGLETS: readonly Onglet[] = ['ouvert', 'repris', 'abandonne', 'tous'];
@@ -165,7 +149,6 @@ const schemaTransition = schemaModificationTravailReporte.pick({
  */
 export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
   const { t } = useTranslation(['vehicules', 'commun', 'erreurs']);
-  const session = useSession();
   const requete = useTravauxReportesVehicule(vehiculeId);
   const modifier = useModifierTravailReporte(vehiculeId);
 
@@ -176,9 +159,8 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
   const [transition, setTransition] = useState<EtatTransition | null>(null);
   const [erreurTransition, setErreurTransition] = useState<string | null>(null);
 
-  const role = session.data?.utilisateur.role;
-  const peutGerer = role !== undefined && ROLES_GESTION_TRAVAIL_REPORTE.has(role);
-  const peutSignaler = role !== undefined && ROLES_SIGNALEMENT_TRAVAIL_REPORTE.has(role);
+  const peutGerer = usePeut('vehicule.travail_reporte.gerer');
+  const peutSignaler = usePeut('vehicule.travail_reporte.signaler');
 
   const travaux = requete.data ?? [];
   const compterParStatut = (statut: StatutTravailReporte) =>
