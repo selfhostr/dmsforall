@@ -14,14 +14,14 @@
       "aujourdhui": "Oggi",
       "demain": "Domani"
     },
-    "rechercheLabel": "Cerca cliente, veicolo o targa",
+    "rechercheLabel": "Cercare cliente, veicolo o targa",
     "recherchePlaceholder": "Cliente, veicolo, targa…",
     "nouveauRendezVous": "Nuovo appuntamento"
   },
   "site": {
     "manquant": {
       "titre": "Scegliere una sede",
-      "description": "Scegliete una sede qui sotto, o con il selettore in alto a destra, per vedere la sua agenda degli appuntamenti."
+      "description": "Scelga una sede qui sotto, o con il selettore in alto a destra, per vedere la sua agenda degli appuntamenti."
     }
   },
   "vide": {
@@ -71,7 +71,7 @@
     "toute_journee": "Tutto il giorno"
   },
   "carte": {
-    "ouvrir": "Apri l’appuntamento di {client}, {heure}"
+    "ouvrir": "Aprire l’appuntamento di {client}, {heure}"
   },
   "champs": {
     "client": "Cliente",
@@ -96,7 +96,7 @@
     "titre": "Nuovo appuntamento",
     "confirmer": "Confermare l’appuntamento",
     "enCours": "Salvataggio…",
-    "echec": "L’appuntamento non è stato salvato. I dati inseriti sono conservati, correggeteli e riprovate.",
+    "echec": "L’appuntamento non è stato salvato. I dati inseriti sono conservati, li corregga e riprovi.",
     "rechercheClientPlaceholder": "Nome, numero cliente, telefono…",
     "aucunClient": "Nessun cliente corrisponde a questa ricerca.",
     "aucunVehicule": "Questo cliente non ha alcun veicolo registrato.",
@@ -115,7 +115,7 @@
       "signalerAbsence": "Segnalare l’assenza del cliente",
       "annuler": "Annullare l’appuntamento",
       "voirOrdre": "Vedere l’ordine di riparazione",
-      "deplacer": "Sposta"
+      "deplacer": "Spostare"
     },
     "annulation": {
       "titre": "Annullare l’appuntamento",
@@ -155,30 +155,30 @@
   "autresSites": {
     "compteJour": "{count, plural, one {# appuntamento} other {# appuntamenti}} a {site} quel giorno",
     "compteSemaine": "{count, plural, one {# appuntamento} other {# appuntamenti}} a {site} questa settimana",
-    "voir": "Vedi l’agenda di {site}"
+    "voir": "Vedere l’agenda di {site}"
   },
   "aide": {
     "planning": {
       "resume": "Un’agenda per sede",
       "libelle": "Aiuto: la pianificazione",
-      "texte": "Questa agenda mostra gli appuntamenti di una sola sede alla volta. Gli appuntamenti delle altre sedi sono contati sopra l’agenda: cliccate per passare a quella sede. Cliccate su un appuntamento per chiamare il cliente, spostarlo, annullarlo o aprire l’ordine di riparazione all’arrivo. La vista Elenco mostra tutti i numeri di telefono in una volta."
+      "texte": "Questa agenda mostra gli appuntamenti di una sola sede alla volta. Gli appuntamenti delle altre sedi sono contati sopra l’agenda: clicchi per passare a quella sede. Clicchi su un appuntamento per chiamare il cliente, spostarlo, annullarlo o aprire l’ordine di riparazione all’arrivo. La vista Elenco mostra tutti i numeri di telefono in una volta."
     },
     "nouveau": {
       "libelle": "Aiuto: fissare un appuntamento",
-      "texte": "Cercate il cliente, scegliete il veicolo, poi il giorno e la fascia (mattina, pomeriggio o ora precisa). Il motivo imposta la durata, che potete correggere. L’appuntamento è fissato nella sede indicata qui sotto."
+      "texte": "Cerchi il cliente, scelga il veicolo, poi il giorno e la fascia (mattina, pomeriggio o ora precisa). Il motivo imposta la durata, che Lei può correggere. L’appuntamento è fissato nella sede indicata qui sotto."
     }
   },
   "motifs": {
     "aide": {
       "EXPERTISE-MFK": "Controllo periodico obbligatorio del veicolo da parte dell’ufficio della circolazione (collaudo MFK). Il cliente deve portare la licenza di circolazione.",
-      "PNEUS": "Cambio stagionale: estate o inverno. Verificate se le ruote del cliente sono già nel deposito pneumatici.",
+      "PNEUS": "Cambio stagionale: estate o inverno. Verifichi se le ruote del cliente sono già nel deposito pneumatici.",
       "SERVICE": "Manutenzione regolare secondo il libretto di servizio del costruttore.",
       "DIAGNOSTIC": "Ricerca di un guasto o di un difetto con lo strumento di diagnosi.",
       "A-DETERMINER": "Il cliente non sa descrivere il problema: il veicolo sarà esaminato al banco."
     }
   },
   "pneus": {
-    "inconnu": "Scegliete un veicolo per sapere se i pneumatici sono nel deposito.",
+    "inconnu": "Scelga un veicolo per sapere se i pneumatici sono nel deposito.",
     "chargement": "Verifica del deposito pneumatici…",
     "erreur": "Impossibile verificare il deposito pneumatici. Chiedete al cliente se porta le ruote.",
     "absent": "Nessun treno di pneumatici di questo cliente è nel deposito: deve portare le sue ruote.",
@@ -186,8 +186,8 @@
     "case": "casella {code}"
   },
   "deplacer": {
-    "titre": "Sposta l’appuntamento",
+    "titre": "Spostare l’appuntamento",
     "nouvelleDate": "Nuova data",
-    "confirmer": "Sposta l’appuntamento"
+    "confirmer": "Spostare l’appuntamento"
   }
 }

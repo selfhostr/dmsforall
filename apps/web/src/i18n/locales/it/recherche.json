@@ -35,7 +35,7 @@
   "chargement": "Ricerca in corso…",
   "annonceResultats": "{count, plural, one {# risultato trovato} other {# risultati trovati}}",
   "creerOr": {
-    "titre": "Crea un ordine",
+    "titre": "Creare un ordine",
     "pourVehicule": "Per {vehicule}",
     "pourClient": "Per {client}",
     "pourSaisie": "Per «{saisie}» (targa o cliente sconosciuti)"

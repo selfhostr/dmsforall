@@ -40,7 +40,7 @@
     "actions": {
       "nouveauDossier": "Nuova vendita",
       "vendre": "Vendere",
-      "voirDossier": "Vedi la vendita",
+      "voirDossier": "Vedere la vendita",
       "assignerVehicule": "Assegnare un veicolo",
       "creerBonCommande": "Creare l'ordine di acquisto",
       "creerDevis": "Creare un preventivo",
@@ -68,10 +68,10 @@
       "typeTous": "Tutti i tipi",
       "provenance": "Provenienza",
       "provenanceToutes": "Tutte le provenienze",
-      "afficherVendusLivres": "Mostra anche i veicoli venduti/consegnati"
+      "afficherVendusLivres": "Mostrare anche i veicoli venduti/consegnati"
     },
     "tri": {
-      "label": "Ordina per",
+      "label": "Ordinare per",
       "joursStockDesc": "Da più tempo in stock",
       "dateEntreeStockDesc": "Ingresso in stock più recente",
       "dateEntreeStockAsc": "Ingresso in stock meno recente",
@@ -189,7 +189,7 @@
         },
         "premierUsage": {
           "titre": "Nessun veicolo in stock",
-          "description": "Immetti il tuo primo veicolo in stock."
+          "description": "Immetta il suo primo veicolo in stock."
         }
       },
       "rechercherPlaceholder": "Targa, VIN o descrizione…",
@@ -210,7 +210,7 @@
         "mettreEnStock": "Immettere in stock"
       },
       "tri": {
-        "label": "Ordina per",
+        "label": "Ordinare per",
         "dateEntreeStockDesc": "Ingresso in stock più recente",
         "dateEntreeStockAsc": "Ingresso in stock meno recente",
         "joursStockDesc": "Da più tempo in stock",
@@ -316,10 +316,10 @@
         "statutLabel": "Stato",
         "statutActifs": "Vendite attive",
         "statutTous": "Tutti gli stati",
-        "afficherTermines": "Mostra anche le vendite chiuse, annullate o abbandonate"
+        "afficherTermines": "Mostrare anche le vendite chiuse, annullate o abbandonate"
       },
       "tri": {
-        "label": "Ordina per",
+        "label": "Ordinare per",
         "prospectionLeDesc": "Più recenti",
         "prospectionLeAsc": "Più vecchie",
         "dateLivraisonEstimeeAsc": "Consegna più vicina",
@@ -331,11 +331,11 @@
       "aideVehicule": "Facoltativo — il veicolo può essere assegnato in seguito.",
       "aideClientFacture": "Facoltativo — per impostazione predefinita, il cliente acquirente.",
       "aideConducteur": "Facoltativo — per impostazione predefinita, il cliente acquirente.",
-      "bouton": "Crea la vendita"
+      "bouton": "Creare la vendita"
     },
     "nouveau": {
       "titre": "Nuova vendita",
-      "creer": "Crea la vendita",
+      "creer": "Creare la vendita",
       "dateLivraisonEstimee": "Data di consegna prevista",
       "siteManquant": {
         "titre": "Nessuna sede selezionata",
@@ -374,7 +374,7 @@
       "prixIndicatif": "Indicativo: {montant}",
       "dateLivraisonEstimee": "Data di consegna prevista",
       "modifier": {
-        "titre": "Modifica la vendita",
+        "titre": "Modificare la vendita",
         "vehicule": "Veicolo",
         "vehiculeVerrouille": "Il veicolo non può più essere modificato in questa fase."
       },
@@ -385,7 +385,7 @@
       },
       "garantie": {
         "titre": "Garanzia",
-        "gererSurFicheVehicule": "Visualizza/modifica sulla scheda del veicolo"
+        "gererSurFicheVehicule": "Visualizzare/modificare sulla scheda del veicolo"
       }
     },
     "transitions": {
@@ -475,9 +475,9 @@
         "documentsReunis": "Documenti di consegna riuniti"
       },
       "aFaire": {
-        "assignerVehicule": "Chi: voi — assegnare un veicolo",
-        "verifierIdentite": "Chi: voi — verificare un documento d'identità",
-        "negocierReprise": "Chi: voi — negoziare la permuta prima della firma",
+        "assignerVehicule": "Chi: Lei — assegnare un veicolo",
+        "verifierIdentite": "Chi: Lei — verificare un documento d'identità",
+        "negocierReprise": "Chi: Lei — negoziare la permuta prima della firma",
         "financementEnAttente": "Chi: {organisme} — finanziamento in attesa",
         "financementEnAttenteGenerique": "Chi: l'istituto di finanziamento — finanziamento in attesa",
         "verifierExpertise": "Chi: l'officina — verificare la MFK",
@@ -609,9 +609,9 @@
       "champVehiculePlaceholder": "Targa o descrizione…",
       "champVehiculeIndication": "Digitare una targa o una descrizione per cercare il veicolo permutato.",
       "aucunVehiculeTrouve": "Nessun veicolo corrisponde a questa ricerca.",
-      "creerVehiculeBouton": "Crea questo veicolo",
+      "creerVehiculeBouton": "Creare questo veicolo",
       "creerVehiculeAide": "Il cliente porta un veicolo che l'officina non conosce ancora? Createlo con le informazioni minime — il resto si completa più tardi dalla sua scheda.",
-      "creerVehiculeSoumettre": "Crea e seleziona",
+      "creerVehiculeSoumettre": "Creare e selezionare",
       "vehiculeSelectionne": "Veicolo selezionato: {designation}",
       "champValeurEstimee": "Valore stimato",
       "valeurEstimee": "Valore stimato",
@@ -721,7 +721,7 @@
       "titre": "Proporre un finanziamento",
       "champType": "Tipo di finanziamento",
       "champOrganisme": "Istituto",
-      "champOrganismePlaceholder": "Cerca un istituto…",
+      "champOrganismePlaceholder": "Cercare un istituto…",
       "champReferenceContrat": "Riferimento contratto",
       "aideComptant": "Per un pagamento in contanti non è necessaria alcuna ulteriore conferma.",
       "bouton": "Proporre"

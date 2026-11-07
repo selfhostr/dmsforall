@@ -5,8 +5,8 @@
     "equipe": "Team"
   },
   "identification": {
-    "titre": "Chi sei?",
-    "saisisseCode": "Inserisci codice PIN",
+    "titre": "Chi è Lei?",
+    "saisisseCode": "Inserire codice PIN",
     "bonjour": "Ciao {prenom}",
     "terminer": "Fatto",
     "erreur": {
@@ -16,8 +16,8 @@
     "pave": {
       "chiffre": "Cifra {chiffre}",
       "chiffresSaisis": "{compte} cifre su {total} inserite",
-      "effacer": "Cancella",
-      "valider": "Conferma",
+      "effacer": "Cancellare",
+      "valider": "Confermare",
       "reessayerDans": "Nuovo tentativo possibile tra {secondes} s."
     }
   },
@@ -28,8 +28,8 @@
   },
   "enCours": {
     "demarrer": "Inizia timbratura",
-    "terminer": "Ferma questa rilevazione",
-    "changerLigne": "Cambia lavoro",
+    "terminer": "Fermare questa rilevazione",
+    "changerLigne": "Cambiare lavoro",
     "signaler": "Segnala constatazione"
   },
   "chrono": {
@@ -43,7 +43,7 @@
     "urgent": "Urgente",
     "aFaire": "Da fare",
     "aSurveiller": "Da monitorare",
-    "enregistrer": "Registra"
+    "enregistrer": "Registrare"
   },
   "activites": {
     "titre": "Attivita indirette",
@@ -63,7 +63,7 @@
   },
   "cloturAuto": {
     "titre": "Timbratura chiusa",
-    "message": "La tua timbratura su {or} e stata chiusa a {heure}",
+    "message": "La sua timbratura su {or} è stata chiusa a {heure}",
     "corriger": "Correggi ora di fine"
   },
   "anomalies": {
@@ -78,7 +78,7 @@
       "deriveHorloge": "Orologio disallineato",
       "clotureFinJournee": "Chiuso automaticamente a fine giornata"
     },
-    "corbeille": "Mostra cestino",
+    "corbeille": "Mostrare cestino",
     "corriger": "Da correggere"
   },
   "correction": {
@@ -88,12 +88,12 @@
     "motif": "Motivo della correzione",
     "motifRequis": "Il motivo e obbligatorio",
     "debutRequis": "L'ora di inizio e obbligatoria",
-    "enregistrer": "Salva correzione",
+    "enregistrer": "Salvare correzione",
     "debut": "Inizio",
     "fin": "Fine",
     "nature": "Tipo",
     "cible": "Destinazione",
-    "annuler": "Annulla",
+    "annuler": "Annullare",
     "succes": "Correzione salvata.",
     "motifPlaceholder": "Es.: dimenticato di fermare a fine giornata"
   },
@@ -103,16 +103,16 @@
     "perimees": "Dati obsoleti"
   },
   "vide": {
-    "aucunOr": "Al momento non ti è assegnato nessun ordine.",
-    "aucunOrDescription": "Puoi comunque scegliere un ordine aperto qualsiasi qui sotto per iniziare una timbratura."
+    "aucunOr": "Al momento non Le è assegnato nessun ordine.",
+    "aucunOrDescription": "Può comunque scegliere un ordine aperto qualsiasi qui sotto per iniziare una timbratura."
   },
   "toutesLesOr": {
     "siteBorne": "Su questa postazione sono proposti solo gli ordini di questa sede.",
     "titre": "Tutti gli ordini aperti",
-    "afficher": "Mostra tutti gli ordini aperti",
-    "masquer": "Nascondi",
+    "afficher": "Mostrare tutti gli ordini aperti",
+    "masquer": "Nascondere",
     "rechercherLabel": "Numero ordine o veicolo",
-    "rechercherPlaceholder": "Cerca un ordine…",
+    "rechercherPlaceholder": "Cercare un ordine…",
     "aucunResultat": "Nessun ordine aperto corrisponde a questa ricerca."
   },
   "statuts": {
@@ -132,18 +132,18 @@
     "ligneSansDesignation": "{numero} — Riga d'ordine"
   },
   "siteRequis": {
-    "titre": "Scegli una sede",
-    "description": "La timbratura si fa per una sede precisa — seleziona la sede in cui lavori oggi.",
+    "titre": "Scegliere una sede",
+    "description": "La timbratura si fa per una sede precisa — selezioni la sede in cui lavora oggi.",
     "label": "Sede",
     "erreur": {
-      "titre": "Impossibile caricare le tue sedi"
+      "titre": "Impossibile caricare le sue sedi"
     }
   },
   "technicien": {
     "titreEcran": "La mia timbratura",
     "aucunPointage": {
       "titre": "Nessuna timbratura in corso",
-      "description": "Scegli un ordine qui sotto o un'attivita indiretta per iniziare."
+      "description": "Scelga un ordine qui sotto o un’attività indiretta per iniziare."
     },
     "pointageEnCours": {
       "titre": "Timbratura in corso",
@@ -152,10 +152,10 @@
       "etat": "In corso"
     },
     "bandeauReprise": {
-      "titre": "Riprendi: {cible}",
+      "titre": "Riprendere: {cible}",
       "interrompuDepuis": "Interrotto {duree} fa",
       "cumulJour": "{cumul} già timbrate oggi",
-      "libelleAccessible": "Riprendi la timbratura su {cible}"
+      "libelleAccessible": "Riprendere la timbratura su {cible}"
     },
     "cible": {
       "ligne": "{numero} — {designation}",
@@ -163,10 +163,10 @@
       "indirect": "{activite}"
     },
     "boutons": {
-      "arreter": "Ferma",
-      "pause": "Metti in pausa",
-      "reprendre": "Riprendi",
-      "changer": "Cambia",
+      "arreter": "Fermare",
+      "pause": "Mettere in pausa",
+      "reprendre": "Riprendere",
+      "changer": "Cambiare",
       "demarrerOr": "Timbra su questo ordine",
       "demarrerLigne": "Timbra su questo lavoro",
       "photo": "Foto"
@@ -189,15 +189,15 @@
     "choisirCible": {
       "titre": "Cosa stai timbrando?",
       "retour": "Indietro",
-      "description": "Scegli un lavoro dell'ordine, oppure timbra sull'ordine intero.",
+      "description": "Scelga un lavoro dell'ordine, oppure timbri sull'ordine intero.",
       "orEntier": "Ordine intero (senza lavoro preciso)",
       "lignesTitre": "Lavori dell'ordine",
-      "aucuneLigne": "Questo ordine non ha alcun lavoro timbrabile — puoi timbrare sull'ordine intero.",
+      "aucuneLigne": "Questo ordine non ha alcun lavoro timbrabile — Lei può timbrare sull'ordine intero.",
       "assigneeAutre": "Assegnato a un altro tecnico.",
       "nonPointable": "Non ancora disponibile per la timbratura."
     },
     "erreur": {
-      "titre": "Impossibile caricare la tua timbratura",
+      "titre": "Impossibile caricare la sua timbratura",
       "titreAction": "Timbratura impossibile"
     }
   },
@@ -242,16 +242,16 @@
       "actions": "Azioni"
     },
     "corriger": "Correggi",
-    "clotureAction": "Chiudi il periodo",
+    "clotureAction": "Chiudere il periodo",
     "parOr": {
       "rechercherOrLabel": "Numero ordine o veicolo",
-      "rechercherOrPlaceholder": "Cerca un ordine…",
+      "rechercherOrPlaceholder": "Cercare un ordine…",
       "tempsReel": "Tempo effettivamente timbrato",
       "tempsFacture": "Tempo fatturato (tempario)",
       "ecart": "Scostamento",
       "parTechnicien": "Dettaglio per tecnico",
       "aucunPointage": "Nessuna timbratura registrata su questo ordine.",
-      "choisirOr": "Scegli un ordine per vedere il dettaglio della sua timbratura."
+      "choisirOr": "Scelga un ordine per vedere il dettaglio della sua timbratura."
     },
     "vide": {
       "titre": "Nessuna timbratura",
@@ -264,17 +264,17 @@
   "periode": {
     "titre": "Chiusura periodo",
     "verrouiller": {
-      "titre": "Blocca un periodo",
+      "titre": "Bloccare un periodo",
       "description": "Ogni timbratura terminata o convalidata, il cui inizio precede questa data, sara bloccata. Una timbratura ancora in corso nel periodo blocca l'intera operazione.",
       "jusquau": "Fino al (incluso)",
       "motif": "Motivo (facoltativo)",
-      "action": "Blocca",
+      "action": "Bloccare",
       "resultat": "{count, plural, one {# timbratura bloccata.} other {# timbrature bloccate.}}",
       "blocage": "Ci sono timbrature ancora in corso in questo periodo — devono essere fermate prima di poter bloccare.",
       "blocageAvecTechniciens": "Timbrature ancora in corso per: {liste} — devono essere fermate prima di poter bloccare.",
-      "arreterPointages": "Ferma le timbrature in corso",
+      "arreterPointages": "Fermare le timbrature in corso",
       "arretEnCours": "Arresto delle timbrature in corso…",
-      "arretReussi": "Timbrature fermate — puoi bloccare di nuovo."
+      "arretReussi": "Timbrature fermate — Lei può bloccare di nuovo."
     },
     "deverrouiller": {
       "titre": "Correggi il periodo bloccato",
@@ -282,7 +282,7 @@
       "jusquau": "Fino al (incluso)",
       "motif": "Motivo della correzione",
       "motifRequis": "Il motivo e obbligatorio per sbloccare un periodo.",
-      "action": "Sblocca",
+      "action": "Sbloccare",
       "resultat": "{count, plural, one {# timbratura sbloccata.} other {# timbrature sbloccate.}}"
     }
   }

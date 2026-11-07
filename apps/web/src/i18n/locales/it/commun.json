@@ -4,24 +4,24 @@
     "nomCourt": "DFA"
   },
   "actions": {
-    "reessayer": "Riprova",
-    "rechargerApplication": "Ricarica l'applicazione",
-    "retourAccueil": "Torna alla home",
-    "fermer": "Chiudi",
-    "annuler": "Annulla",
-    "enregistrer": "Salva",
-    "modifier": "Modifica",
-    "ajouter": "Aggiungi",
-    "rechercher": "Cerca",
-    "filtrer": "Filtra",
-    "effacerFiltres": "Cancella filtri",
-    "continuerQuandMeme": "Continua comunque",
-    "confirmer": "Conferma",
-    "chargerPlus": "Carica altro",
-    "copier": "Copia",
-    "imprimer": "Stampa",
-    "voir": "Visualizza",
-    "ouvrirElement": "Apri {nom}"
+    "reessayer": "Riprovare",
+    "rechargerApplication": "Ricaricare l'applicazione",
+    "retourAccueil": "Tornare alla home",
+    "fermer": "Chiudere",
+    "annuler": "Annullare",
+    "enregistrer": "Salvare",
+    "modifier": "Modificare",
+    "ajouter": "Aggiungere",
+    "rechercher": "Cercare",
+    "filtrer": "Filtrare",
+    "effacerFiltres": "Cancellare filtri",
+    "continuerQuandMeme": "Continuare comunque",
+    "confirmer": "Confermare",
+    "chargerPlus": "Caricare altro",
+    "copier": "Copiare",
+    "imprimer": "Stampare",
+    "voir": "Visualizzare",
+    "ouvrirElement": "Aprire {nom}"
   },
   "chargement": {
     "enCours": "Caricamento..."
@@ -31,7 +31,7 @@
   },
   "langue": {
     "libelle": "Lingua",
-    "choisir": "Scegli la lingua"
+    "choisir": "Scegliere la lingua"
   },
   "langues": {
     "fr": "Francais",
@@ -54,10 +54,10 @@
   },
   "montants": {
     "masque": "Non visibile",
-    "masqueDescription": "Questo importo esiste, ma il tuo ruolo non ha accesso agli importi."
+    "masqueDescription": "Questo importo esiste, ma il suo ruolo non ha accesso agli importi."
   },
   "tableComptoir": {
-    "trierPar": "Ordina per"
+    "trierPar": "Ordinare per"
   },
   "roles": {
     "direction": "Direzione",
@@ -71,7 +71,7 @@
     "posteAtelier": "Terminale officina"
   },
   "toasts": {
-    "annuler": "Annulla",
+    "annuler": "Annullare",
     "clientCree": "Cliente creato",
     "vehiculeCree": "Veicolo registrato",
     "rdvDeplace": "Appuntamento spostato",

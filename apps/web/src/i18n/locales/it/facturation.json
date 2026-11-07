@@ -104,7 +104,7 @@
   },
   "facturerOr": {
     "titre": "Fatturare l'ordine di riparazione",
-    "retour": "Torna all'ordine",
+    "retour": "Tornare all'ordine",
     "refusBloquant": {
       "titre": "{count, plural, one {# riga impedisce la fatturazione} other {# righe impediscono la fatturazione}}",
       "resoudre": "Risolvere →",
@@ -169,16 +169,16 @@
         "tva": "IVA"
       },
       "ajouterDemontage": "Aggiungere la riga di smontaggio proposta",
-      "ajouter": "Aggiungi una riga",
+      "ajouter": "Aggiungere una riga",
       "retirer": "Rimuovere",
       "modifierAria": "Modificare la riga « {designation} »",
       "retirerAria": "Rimuovere la riga « {designation} »",
       "vide": "Nessuna riga su questo documento.",
       "dialogueAjout": {
-        "titre": "Aggiungi una riga"
+        "titre": "Aggiungere una riga"
       },
       "dialogueModifier": {
-        "titre": "Modifica riga"
+        "titre": "Modificare riga"
       },
       "champs": {
         "type": "Tipo",
@@ -243,7 +243,7 @@
         "creerAvoir": "Creare una nota di credito",
         "journal": "Vedere il registro"
       },
-      "telechargerPdf": "Scarica il PDF"
+      "telechargerPdf": "Scaricare il PDF"
     },
     "dialogueEmission": {
       "titre": "Emettere la fattura?",
@@ -295,7 +295,7 @@
       "emiseLe": "emessa il {date}",
       "totalSelectionne": "Totale selezionato",
       "vide": "Nessuna fattura aperta",
-      "devisesMultiples": "Queste fatture sono in valute diverse. Deseleziona alcune fatture per conservare solo fatture nella stessa valuta prima di incassare."
+      "devisesMultiples": "Queste fatture sono in valute diverse. Deselezioni alcune fatture per conservare solo fatture nella stessa valuta prima di incassare."
     },
     "lignes": {
       "titre": "Incassi",
@@ -322,7 +322,7 @@
     "lignesOrigine": {
       "titre": "Righe della fattura corretta",
       "dejaCreditee": "già accreditata",
-      "toutSelectionner": "Seleziona tutto (nota di credito totale)"
+      "toutSelectionner": "Selezionare tutto (nota di credito totale)"
     },
     "totalAvoir": "Totale della nota di credito",
     "motifObligatoire": "Motivo obbligatorio, richiesto all'emissione",
@@ -337,7 +337,7 @@
   "liste": {
     "titre": "Fatture",
     "onglets": {
-      "groupeLabel": "Filtra le fatture",
+      "groupeLabel": "Filtrare le fatture",
       "toutes": "Tutte",
       "nonReglees": "Non pagate",
       "enRetard": "In ritardo",
@@ -380,7 +380,7 @@
       },
       "devis": {
         "titre": "Nessun preventivo",
-        "description": "I preventivi che create compaiono qui, dal più recente al più vecchio."
+        "description": "I preventivi che crea compaiono qui, dal più recente al più vecchio."
       }
     }
   },
@@ -399,19 +399,19 @@
       "description": "Un prezzo per un cliente, senza aprire un ordine di riparazione. Il veicolo è facoltativo.",
       "client": "Cliente",
       "clientPlaceholder": "Nome, telefono o n. cliente",
-      "clientRequis": "Scegliete un cliente.",
+      "clientRequis": "Scelga un cliente.",
       "aucunClient": "Nessun cliente trovato.",
       "vehicule": "Veicolo",
-      "vehiculeAide": "Facoltativo: lasciate «Senza veicolo» se l'auto non è ancora nota.",
+      "vehiculeAide": "Facoltativo: lasci «Senza veicolo» se l'auto non è ancora nota.",
       "sansVehicule": "Senza veicolo",
       "site": "Sede",
-      "creer": "Crea il preventivo"
+      "creer": "Creare il preventivo"
     },
     "cree": {
       "titre": "Preventivo creato",
-      "description": "Aggiungete ora manodopera e ricambi al preventivo. Se il cliente accetta, aprite un OR con lo stesso cliente e lo stesso veicolo.",
-      "creerOr": "Crea l'OR da questo preventivo",
-      "ouvrir": "Apri il preventivo"
+      "description": "Aggiunga ora manodopera e ricambi al preventivo. Se il cliente accetta, apra un OR con lo stesso cliente e lo stesso veicolo.",
+      "creerOr": "Creare l'OR da questo preventivo",
+      "ouvrir": "Aprire il preventivo"
     },
     "statuts": {
       "brouillon": "Bozza",
@@ -443,23 +443,23 @@
     "action": "Fatturare e incassare {montant}",
     "actionPlusTard": "Fatturare senza incassare",
     "enCours": "In corso…",
-    "reessayer": "Riprova",
+    "reessayer": "Riprovare",
     "enDetail": "Fatturare nel dettaglio",
     "echec": {
       "facturation": "Non è stato possibile creare la fattura.",
-      "factureConservee": "Nulla è stato registrato: puoi riprovare senza rischio di duplicati."
+      "factureConservee": "Nulla è stato registrato: può riprovare senza rischio di duplicati."
     },
     "succes": {
       "titre": "Fatto",
       "facture": "Fattura {numero} emessa.",
       "encaisse": "{montant} incassati ({moyen}).",
       "plusTard": "Fattura emessa, il cliente pagherà più tardi.",
-      "telechargerPdf": "Scarica il PDF",
-      "envoyerCourriel": "Invia per e-mail",
+      "telechargerPdf": "Scaricare il PDF",
+      "envoyerCourriel": "Inviare per e-mail",
       "courrielEnvoye": "Fattura inviata a {destinataire}.",
-      "ouvrirFacture": "Apri la fattura",
+      "ouvrirFacture": "Aprire la fattura",
       "encaissementEchoue": "Fattura {numero} emessa, ma l’incasso non è andato a buon fine. Il saldo della fattura è intatto.",
-      "encaisserMaintenant": "Incassa ora",
+      "encaisserMaintenant": "Incassare ora",
       "encaissementErreur": "L’incasso non è registrato."
     }
   }

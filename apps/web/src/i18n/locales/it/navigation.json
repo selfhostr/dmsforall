@@ -62,14 +62,14 @@
     "piecesArticles": "Articoli"
   },
   "menu": {
-    "ouvrir": "Apri menu"
+    "ouvrir": "Aprire menu"
   },
   "barreBasse": {
     "aria": "Navigazione inferiore",
     "plus": "Altro"
   },
   "evitement": {
-    "contenu": "Vai al contenuto"
+    "contenu": "Andare al contenuto"
   },
   "filAriane": {
     "aria": "Percorso di navigazione"
@@ -80,15 +80,15 @@
   "entete": {
     "tousLesSites": "Tutte le officine",
     "siteNonChoisi": "Nessuna sede selezionata",
-    "changerSite": "Cambia sede"
+    "changerSite": "Cambiare sede"
   },
   "repli": {
     "reduire": "Comprimi la barra laterale",
     "agrandir": "Espandi la barra laterale"
   },
   "theme": {
-    "passerClair": "Passa al tema chiaro",
-    "passerSombre": "Passa al tema scuro"
+    "passerClair": "Passare al tema chiaro",
+    "passerSombre": "Passare al tema scuro"
   },
   "pied": {
     "version": "Versione {info}",

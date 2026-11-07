@@ -2,10 +2,10 @@
   "titre": "Ricambi",
   "siteRequis": {
     "titre": "Scegliere un'ubicazione",
-    "description": "Questa pagina mostra dati specifici di un'ubicazione — selezionarne una per continuare.",
+    "description": "Questa pagina mostra dati specifici di un'ubicazione — ne selezioni una per continuare.",
     "label": "Ubicazione",
     "erreur": {
-      "titre": "Impossibile caricare le tue ubicazioni"
+      "titre": "Impossibile caricare le sue ubicazioni"
     }
   },
   "emplacement": {
@@ -13,7 +13,7 @@
     "rayonSeul": "Scaffale {rayon}",
     "tiroirSeul": "Cassetto {tiroir}",
     "avecLibre": "{structure} — {emplacement}",
-    "modifier": "Modifica vano",
+    "modifier": "Modificare vano",
     "aucun": "Nessun vano indicato",
     "dialogue": {
       "titre": "Vano di stoccaggio",
@@ -97,16 +97,16 @@
         "fournisseur": "Fornitore"
       },
       "fournisseur": "Fornitore",
-      "ajouter": "Aggiungi riferimento",
+      "ajouter": "Aggiungere riferimento",
       "collision": "Questo riferimento e gia utilizzato da un altro articolo."
     },
     "remplacant": "Articolo sostitutivo",
     "actions": {
-      "ajouter": "Crea articolo",
-      "modifier": "Modifica",
+      "ajouter": "Creare articolo",
+      "modifier": "Modificare",
       "marquerObsolete": "Contrassegna come obsoleto",
-      "desactiver": "Disattiva",
-      "reactiver": "Riattiva",
+      "desactiver": "Disattivare",
+      "reactiver": "Riattivare",
       "autresActions": "Altre azioni"
     },
     "vide": "Nessun articolo.",
@@ -115,7 +115,7 @@
       "categorieToutes": "Tutte le categorie"
     },
     "tri": {
-      "label": "Ordina per",
+      "label": "Ordinare per",
       "creeLeDesc": "Più recenti",
       "creeLeAsc": "Più vecchi",
       "designationAsc": "Descrizione (A → Z)",
@@ -145,7 +145,7 @@
         },
         "premierUsage": {
           "titre": "Nessun articolo a catalogo",
-          "description": "Create il primo articolo per iniziare ad alimentare il magazzino."
+          "description": "Crei il primo articolo per iniziare ad alimentare il magazzino."
         }
       }
     },
@@ -161,12 +161,12 @@
       "consommateurs": {
         "titre": "Ordini che lo hanno consumato",
         "vide": "Nessun ordine ha consumato questo articolo.",
-        "lien": "Vedi l'ordine"
+        "lien": "Vedere l'ordine"
       },
       "reservationsActives": {
         "titre": "Prenotazioni in corso",
         "vide": "Nessuna prenotazione in corso per questo articolo.",
-        "lien": "Vedi l'ordine"
+        "lien": "Vedere l'ordine"
       },
       "commandesFournisseur": {
         "titre": "Ordini fornitore in attesa",
@@ -203,12 +203,12 @@
     },
     "seuilSite": {
       "action": "Soglia di riordino",
-      "actionAria": "Imposta la soglia di riordino — {nomSite}",
+      "actionAria": "Impostare la soglia di riordino — {nomSite}",
       "champ": "Nuova soglia",
       "champAide": "Il valore attuale non è visualizzato qui. Se questo articolo è già sotto la sua soglia, questa è visibile e modificabile nella schermata Riordino. Salvare qui imposta o sostituisce la soglia per questo sito.",
-      "erreurVide": "Inserire una quantità, oppure usare «Rimuovi la soglia» per non impostarne una.",
-      "erreurInvalide": "Quantità non valida. Una soglia pari a zero non è possibile — per non riordinare mai questo articolo, usare «Rimuovi la soglia».",
-      "retirer": "Rimuovi la soglia",
+      "erreurVide": "Inserisca una quantità, oppure usi «Rimuovi la soglia» per non impostarne una.",
+      "erreurInvalide": "Quantità non valida. Una soglia pari a zero non è possibile — per non riordinare mai questo articolo, usi «Rimuovi la soglia».",
+      "retirer": "Rimuovere la soglia",
       "confirmationPosee": "Soglia salvata: {valeur}.",
       "confirmationRetiree": "Soglia rimossa: questo articolo non è più monitorato per il riordino su questo sito."
     },
@@ -236,10 +236,10 @@
       "actions": {
         "creerCasse": "Segnala rottura",
         "creerPerte": "Segnala smarrimento",
-        "creerTransfert": "Crea trasferimento",
-        "creerAjustement": "Crea rettifica",
-        "creerRetourFournisseur": "Crea reso fornitore",
-        "nouveauMouvement": "Registra un movimento"
+        "creerTransfert": "Creare trasferimento",
+        "creerAjustement": "Creare rettifica",
+        "creerRetourFournisseur": "Creare reso fornitore",
+        "nouveauMouvement": "Registrare un movimento"
       },
       "siteSource": "Ubicazione di origine",
       "siteDestination": "Ubicazione di destinazione",
@@ -248,7 +248,7 @@
         "titre": "Impossibile visualizzare lo storico"
       },
       "nouveauMouvement": {
-        "titre": "Registra un movimento",
+        "titre": "Registrare un movimento",
         "champType": "Tipo di movimento",
         "champQuantiteComptee": "Quantità contata",
         "champForcer": "Forza nonostante la scorta insufficiente",
@@ -266,10 +266,10 @@
       "titre": "Riordino",
       "ecart": "Differenza",
       "actions": {
-        "commander": "Ordina"
+        "commander": "Ordinare"
       },
       "selection": {
-        "aria": "Seleziona {designation}",
+        "aria": "Selezionare {designation}",
         "nombreSelectionnes": "{count} {count, plural, one {articolo selezionato} other {articoli selezionati}}"
       },
       "vide": "Nessun riordino necessario.",
@@ -281,9 +281,9 @@
       "seuil": {
         "champ": "Soglia di riordino",
         "champAide": "Questo articolo compare nell'elenco finché la quantità disponibile resta sotto questa soglia. Svuotare il campo per rimuovere il monitoraggio; una soglia pari a zero non è possibile, usare la rimozione.",
-        "modifierAria": "Modifica la soglia di riordino di {designation}",
-        "erreurInvalide": "Soglia non valida. Inserire una quantità maggiore di zero, oppure svuotare il campo e confermare «Rimuovi la soglia» per non monitorare più questo articolo.",
-        "retirer": "Rimuovi la soglia"
+        "modifierAria": "Modificare la soglia di riordino di {designation}",
+        "erreurInvalide": "Soglia non valida. Inserisca una quantità maggiore di zero, oppure svuoti il campo e confermi «Rimuovi la soglia» per non monitorare più questo articolo.",
+        "retirer": "Rimuovere la soglia"
       },
       "erreur": {
         "titre": "Impossibile visualizzare il riordino"
@@ -325,16 +325,16 @@
     },
     "filtres": {
       "statutToutes": "Tutti gli stati",
-      "rechercherPlaceholder": "Cerca per articolo o n. OR"
+      "rechercherPlaceholder": "Cercare per articolo o n. OR"
     },
-    "voirArticle": "Vedi articolo",
-    "voirOr": "Vedi ordine di riparazione",
+    "voirArticle": "Vedere articolo",
+    "voirOr": "Vedere ordine di riparazione",
     "erreur": {
       "titre": "Impossibile visualizzare le prenotazioni"
     },
     "liberation": {
       "titre": "Liberare questa prenotazione?",
-      "description": "Il pezzo torna disponibile per un altro ordine di riparazione. Indicare il motivo.",
+      "description": "Il pezzo torna disponibile per un altro ordine di riparazione. Indichi il motivo.",
       "champMotif": "Motivo"
     },
     "vide": {
@@ -371,7 +371,7 @@
       "reapprovisionnement": "Riordino"
     },
     "fournisseur": "Fornitore",
-    "voirFournisseur": "Vedi il fornitore",
+    "voirFournisseur": "Vedere il fornitore",
     "site": "Ubicazione",
     "dateCommande": "Data ordine",
     "envoyeeLe": "Inviato il",
@@ -391,11 +391,11 @@
       "motif": "Motivo"
     },
     "actions": {
-      "creer": "Crea ordine",
-      "envoyer": "Invia",
-      "receptionner": "Registra ricezione",
-      "annulerReliquat": "Annulla importo in sospeso",
-      "annuler": "Annulla ordine"
+      "creer": "Creare ordine",
+      "envoyer": "Inviare",
+      "receptionner": "Registrare ricezione",
+      "annulerReliquat": "Annullare importo in sospeso",
+      "annuler": "Annullare ordine"
     },
     "reception": {
       "titre": "Ricezione",
@@ -414,13 +414,13 @@
     "filtres": {
       "statutTous": "Tutti gli stati",
       "avecReliquat": "Solo con importo in sospeso",
-      "rechercherPlaceholder": "Cerca per riferimento"
+      "rechercherPlaceholder": "Cercare per riferimento"
     },
     "confirmations": {
       "annulerTitre": "Annullare questo ordine?",
-      "annulerDescription": "L'ordine viene annullato definitivamente. Indicare il motivo.",
+      "annulerDescription": "L'ordine viene annullato definitivamente. Indichi il motivo.",
       "annulerReliquatTitre": "Annullare questo importo in sospeso?",
-      "annulerReliquatDescription": "La quantita restante non sara piu attesa da questo fornitore. Indicare il motivo."
+      "annulerReliquatDescription": "La quantita restante non sara piu attesa da questo fornitore. Indichi il motivo."
     },
     "erreur": {
       "titre": "Impossibile visualizzare gli ordini"
@@ -442,7 +442,7 @@
       },
       "premierUsage": {
         "titre": "Nessun ordine fornitore",
-        "description": "Create un ordine per riapprovvigionare un fornitore."
+        "description": "Crei un ordine per riapprovvigionare un fornitore."
       }
     }
   },
@@ -492,14 +492,14 @@
     "telephone": "Telefono",
     "delaiHabituelJours": "Termine abituale (giorni)",
     "actions": {
-      "ajouter": "Crea fornitore",
-      "modifier": "Modifica",
-      "desactiver": "Disattiva",
-      "reactiver": "Riattiva"
+      "ajouter": "Creare fornitore",
+      "modifier": "Modificare",
+      "desactiver": "Disattivare",
+      "reactiver": "Riattivare"
     },
     "filtres": {
       "statutTous": "Tutti gli stati",
-      "rechercherPlaceholder": "Cerca un fornitore"
+      "rechercherPlaceholder": "Cercare un fornitore"
     },
     "confirmations": {
       "desactiverTitre": "Disattivare questo fornitore?",
@@ -527,7 +527,7 @@
       },
       "premierUsage": {
         "titre": "Nessun fornitore",
-        "description": "Create il primo fornitore per iniziare a passare ordini."
+        "description": "Crei il primo fornitore per iniziare a passare ordini."
       }
     }
   },
@@ -553,13 +553,13 @@
       "titre": "Reso cliente",
       "quantite": "Quantità",
       "motif": "Motivo del reso",
-      "confirmer": "Registra il reso"
+      "confirmer": "Registrare il reso"
     }
   },
   "facturesFournisseur": {
     "titre": "Fatture fornitore",
-    "titreDepot": "Carica una fattura fornitore",
-    "sousTitreDepot": "Carica il PDF ricevuto dal fornitore: viene letto automaticamente e riconciliato con l'ordine corrispondente.",
+    "titreDepot": "Caricare una fattura fornitore",
+    "sousTitreDepot": "Carichi il PDF ricevuto dal fornitore: viene letto automaticamente e riconciliato con l'ordine corrispondente.",
     "deposeeLe": "Caricata il {date}",
     "sansNumero": "Fattura senza numero letto",
     "vide": {
@@ -573,19 +573,19 @@
       },
       "premierUsage": {
         "titre": "Nessuna fattura fornitore caricata",
-        "description": "Caricate una fattura del fornitore: la leggiamo e la colleghiamo a un ordine."
+        "description": "Carichi una fattura del fornitore: la leggiamo e la colleghiamo a un ordine."
       }
     },
     "erreur": {
       "titre": "Impossibile visualizzare le fatture fornitore"
     },
     "droitRequis": {
-      "lecture": "Non hai il diritto di consultare le fatture fornitore.",
-      "depot": "Non hai il diritto di caricare una fattura fornitore."
+      "lecture": "Non ha il diritto di consultare le fatture fornitore.",
+      "depot": "Non ha il diritto di caricare una fattura fornitore."
     },
     "filtres": {
       "statutTous": "Tutti gli stati",
-      "rechercherPlaceholder": "Cerca per fornitore o numero"
+      "rechercherPlaceholder": "Cercare per fornitore o numero"
     },
     "colonnes": {
       "fichier": "Fattura",
@@ -614,11 +614,11 @@
       "non_rapprochee": "Non riconciliata"
     },
     "depot": {
-      "consigneTitre": "Carica la fattura ricevuta dal fornitore",
+      "consigneTitre": "Caricare la fattura ricevuta dal fornitore",
       "consigneDetail": "Solo file PDF, massimo 15 MB.",
-      "glisserDeposer": "Trascina qui il file",
+      "glisserDeposer": "Trascinare qui il file",
       "ou": "oppure",
-      "parcourir": "Scegli un file"
+      "parcourir": "Scegliere un file"
     },
     "analyse": {
       "enCours": "Lettura della fattura in corso…"
@@ -632,7 +632,7 @@
       "titre": "Risultato della lettura",
       "fournisseurTrouveTitre": "Fornitore riconosciuto",
       "fournisseurAbsentTitre": "Nessun fornitore riconosciuto",
-      "fournisseurAbsentDescription": "Il nome letto sulla fattura non corrisponde a nessun fornitore della vostra officina. Verificatelo o create il fornitore prima di confermare.",
+      "fournisseurAbsentDescription": "Il nome letto sulla fattura non corrisponde a nessun fornitore della sua officina. Lo verifichi o crei il fornitore prima di confermare.",
       "commandeTrouveeTitre": "Collegata a un ordine al fornitore",
       "commandeAbsenteTitre": "Nessun ordine corrispondente",
       "commandeAbsenteDescription": "Questa fattura non ha potuto essere collegata a un ordine fornitore. Verificala manualmente prima di confermarla."
@@ -677,11 +677,11 @@
       "description": "Il documento resta conservato e consultabile. Indica perché questa fattura viene respinta."
     },
     "actions": {
-      "deposer": "Carica una fattura",
-      "voirDocument": "Visualizza il documento",
+      "deposer": "Caricare una fattura",
+      "voirDocument": "Visualizzare il documento",
       "valider": "Convalida la fattura del fornitore",
       "rejeter": "Respingi",
-      "deposerUneAutre": "Carica un'altra fattura",
+      "deposerUneAutre": "Caricare un'altra fattura",
       "consulter": "Consulta"
     }
   }
