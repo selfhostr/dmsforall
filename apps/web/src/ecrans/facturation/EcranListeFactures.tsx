@@ -21,6 +21,7 @@ import { formaterDate, formaterMontant } from '@/lib/formats';
 import { cn } from '@/lib/utils';
 
 import { BadgeEtatDocument } from './BadgeEtatDocument';
+import { BadgeStatutDevis } from './BadgeStatutDevis';
 import { BadgeStatutReglement } from './BadgeStatutReglement';
 import { BoutonNouveauDevis } from './BoutonNouveauDevis';
 import { peutVoirMontantsFacturation } from './droits';
@@ -28,7 +29,7 @@ import { IndicateurRetard } from './IndicateurRetard';
 
 const DELAI_DEBOUNCE_MS = 300;
 
-type OngletListeFactures = 'toutes' | 'nonReglees' | 'enRetard' | 'aRelancer';
+type OngletListeFactures = 'toutes' | 'nonReglees' | 'enRetard' | 'aRelancer' | 'devis';
 
 // Ordre d'affichage des onglets, réutilisé pour le rendu — `satisfies` garantit que la liste
 // reste synchronisée avec `OngletListeFactures` si une valeur est ajoutée ou renommée.
@@ -37,6 +38,7 @@ const ONGLETS_LISTE_FACTURES = [
   'nonReglees',
   'enRetard',
   'aRelancer',
+  'devis',
 ] as const satisfies readonly OngletListeFactures[];
 
 /**
@@ -89,10 +91,15 @@ export function EcranListeFactures() {
 
   const filtres: FiltresDocumentsVente = useMemo(() => {
     const base: FiltresDocumentsVente = {
-      typeDocument: ['facture'],
+      typeDocument: onglet === 'devis' ? ['devis'] : ['facture'],
       q: q.trim() === '' ? undefined : q.trim(),
       tri: onglet === 'nonReglees' ? 'dateDocument:asc' : 'dateDocument:desc',
     };
+    if (onglet === 'devis') {
+      // Les devis n'ont ni règlement ni échéance : aucun autre filtre que le type, du plus récent
+      // au plus ancien.
+      return base;
+    }
     if (onglet === 'nonReglees') {
       // `statut: ['emis']` — même correctif que `useFacturesOuvertesClient` (`hooks/facturation/`) :
       // `statutReglement` seul laissait passer une facture `annule_par_avoir`, qui conserve le
@@ -210,7 +217,9 @@ export function EcranListeFactures() {
             // contredisaient en apparence. Les DEUX badges, mêmes mots qu'ailleurs dans l'app, côte à
             // côte — jamais l'un choisi au détriment de l'autre.
             rendu: (document_: DocumentVenteResume) =>
-              document_.statut === 'annule_par_avoir' ? (
+              document_.typeDocument === 'devis' ? (
+                <BadgeStatutDevis statut={document_.statut} />
+              ) : document_.statut === 'annule_par_avoir' ? (
                 <BadgeEtatDocument etat="annule_par_avoir" />
               ) : document_.statut === 'brouillon' ? (
                 <BadgeEtatDocument etat="brouillon" />
@@ -263,6 +272,14 @@ export function EcranListeFactures() {
       <EtatVide
         titre={t('facturation:liste.vide.nonReglees.titre')}
         description={t('facturation:liste.vide.nonReglees.description')}
+      />
+    );
+  } else if (onglet === 'devis') {
+    contenuVide = (
+      <EtatVide
+        titre={t('facturation:liste.vide.devis.titre')}
+        description={t('facturation:liste.vide.devis.description')}
+        action={<BoutonNouveauDevis variante="default" />}
       />
     );
   } else if (onglet === 'enRetard') {

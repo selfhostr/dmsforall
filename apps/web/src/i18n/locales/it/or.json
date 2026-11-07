@@ -205,6 +205,9 @@
       "indicateur": "In attesa dell'accordo del cliente",
       "ajouteeBureau": "Lavoro aggiunto, in attesa dell'accordo del cliente. Usate «Accordo del cliente» sulla riga.",
       "ajouteeAtelier": "Lavoro aggiunto, in attesa dell'accordo del cliente. L'ufficio lo vede su questo OR."
+    },
+    "reporter": {
+      "action": "Rimandare questo lavoro"
     }
   },
   "demandes": {
@@ -292,7 +295,8 @@
     "cloturer": "Chiudi",
     "annuler": "Annulla ordine",
     "rouvrir": "Riapri",
-    "reprendreTravaux": "Riprendi lavori"
+    "reprendreTravaux": "Riprendi lavori",
+    "facturerEncaisser": "Fatturare e incassare"
   },
   "refus": {
     "ligneAValider": "Alcuni lavori sono in attesa di approvazione. Sono elencati di seguito.",
@@ -524,5 +528,16 @@
       "avecStatut": "Questa azione non è possibile: l'OR ha lo stato «{statut}». Ricaricate la pagina, poi scegliete una delle azioni proposte.",
       "sansStatut": "Questa azione non è possibile nello stato attuale dell'OR. Ricaricate la pagina, poi scegliete una delle azioni proposte."
     }
+  },
+  "travauxReportes": {
+    "titre": "Lavori rimandati di questo veicolo",
+    "description": "{count, plural, one {Un lavoro attendeva questo veicolo.} other {# lavori attendevano questo veicolo.}}",
+    "reprendre": "Riprendere in questo OR"
+  },
+  "courtoisie": {
+    "action": "Veicolo di cortesia",
+    "titre": "Veicolo di cortesia",
+    "description": "Scegliete un’auto libera oggi: il prestito sarà collegato a questo cliente e a questo OR.",
+    "aucunLibre": "Oggi nessun veicolo di cortesia è libero."
   }
 }

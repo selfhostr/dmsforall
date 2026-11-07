@@ -57,7 +57,8 @@
   "avanceClient": {
     "message": "Dieser Zahlungseingang übersteigt den Saldo von {montant} — der Überschuss wird als Kundenguthaben erfasst und später zugewiesen.",
     "aucuneFactureOuverte": "Dieser Kunde hat keine offene Rechnung zu begleichen.",
-    "confirmerAction": "Trotzdem als Kundenguthaben erfassen"
+    "confirmerAction": "Trotzdem als Kundenguthaben erfassen",
+    "excedent": "Sie kassieren {excedent} mehr als den Saldo von {solde}: der Überschuss wird als Kundenguthaben (Vorauszahlung) verbucht und kann später zugeordnet werden."
   },
   "motifsAvoir": {
     "erreurAdresse": "Adressfehler",
@@ -241,7 +242,8 @@
         "corriger": "Diese Rechnung korrigieren",
         "creerAvoir": "Gutschrift erstellen",
         "journal": "Protokoll anzeigen"
-      }
+      },
+      "telechargerPdf": "PDF herunterladen"
     },
     "dialogueEmission": {
       "titre": "Rechnung ausstellen?",
@@ -280,7 +282,9 @@
     "erreur": {
       "titre": "Diese Rechnung konnte nicht geladen werden"
     },
-    "montantIndisponible": "Nicht mitgeteilt"
+    "montantIndisponible": "Nicht mitgeteilt",
+    "titreBrouillonDevis": "Neue Offerte",
+    "titreBrouillonBonCommande": "Neue Bestellung"
   },
   "encaissement": {
     "titre": "Inkassieren · {destinataire}",
@@ -309,7 +313,8 @@
     "erreur": {
       "titre": "Der Zahlungseingang konnte nicht erfasst werden"
     },
-    "chargement": "Offene Rechnungen werden geladen…"
+    "chargement": "Offene Rechnungen werden geladen…",
+    "paiementPartiel": "Teilzahlung: es bleiben {reste} auf dieser Rechnung offen."
   },
   "avoir": {
     "titre": "Gutschrift auf Rechnung {numero} — {destinataire}",
@@ -336,7 +341,8 @@
       "toutes": "Alle",
       "nonReglees": "Nicht bezahlt",
       "enRetard": "Überfällig",
-      "aRelancer": "Zu mahnen"
+      "aRelancer": "Zu mahnen",
+      "devis": "Offerten"
     },
     "colonnes": {
       "numero": "Nr.",
@@ -371,6 +377,10 @@
       "recherche": {
         "titre": "Keine Rechnung gefunden",
         "description": "Keine Rechnung entspricht dieser Nummer oder diesem Kundennamen."
+      },
+      "devis": {
+        "titre": "Keine Offerten",
+        "description": "Ihre Offerten erscheinen hier, die neuesten zuerst."
       }
     }
   },
@@ -402,6 +412,59 @@
       "description": "Erfassen Sie jetzt Arbeit und Teile in der Offerte. Wenn der Kunde zustimmt, eröffnen Sie einen AR mit demselben Kunden und Fahrzeug.",
       "creerOr": "AR aus dieser Offerte erstellen",
       "ouvrir": "Offerte öffnen"
+    },
+    "statuts": {
+      "brouillon": "Entwurf",
+      "emis": "Gesendet",
+      "accepte": "Angenommen",
+      "refuse": "Abgelehnt",
+      "expire": "Abgelaufen",
+      "remplace": "Ersetzt",
+      "transforme": "Umgewandelt",
+      "annule": "Storniert",
+      "abandonne": "Verworfen"
+    }
+  },
+  "facturerEncaisser": {
+    "bouton": "Verrechnen und kassieren",
+    "titre": "Verrechnen und kassieren",
+    "resume": "{destinataire} · Total {montant} inkl. MwSt.",
+    "modeLegende": "Wie bezahlt der Kunde?",
+    "modes": {
+      "especes": "Bar",
+      "carte": "Karte",
+      "twint": "TWINT",
+      "plus_tard": "Der Kunde zahlt später"
+    },
+    "apercuExact": "Zu kassieren: {montant}",
+    "apercuArrondi": "Zu kassieren: {montant} (auf 5 Rp. gerundet, {ecart})",
+    "apercuPlusTard": "Die Rechnung wird ausgestellt, jetzt wird nichts kassiert.",
+    "apercuInconnu": "Der Betrag wird bei der Rechnungsstellung berechnet.",
+    "action": "Verrechnen und {montant} kassieren",
+    "actionPlusTard": "Verrechnen ohne Kassieren",
+    "enCours": "Läuft…",
+    "reessayer": "Erneut versuchen",
+    "enDetail": "Im Detail verrechnen",
+    "etapes": {
+      "facturation": "Rechnung wird erstellt…",
+      "emission": "Rechnung wird ausgestellt…",
+      "encaissement": "Zahlung wird erfasst…"
+    },
+    "echec": {
+      "facturation": "Die Rechnung konnte nicht erstellt werden.",
+      "emission": "Die Rechnung ist erstellt, aber noch nicht ausgestellt.",
+      "encaissement": "Die Rechnung ist ausgestellt, die Zahlung ist aber nicht erfasst.",
+      "factureConservee": "Nichts geht verloren: «Erneut versuchen» macht dort weiter, wo es aufgehört hat, ohne die Rechnung neu zu erstellen."
+    },
+    "succes": {
+      "titre": "Erledigt",
+      "facture": "Rechnung {numero} ausgestellt.",
+      "encaisse": "{montant} kassiert ({moyen}).",
+      "plusTard": "Rechnung ausgestellt, der Kunde zahlt später.",
+      "telechargerPdf": "PDF herunterladen",
+      "envoyerCourriel": "Per E-Mail senden",
+      "courrielEnvoye": "Rechnung an {destinataire} gesendet.",
+      "ouvrirFacture": "Rechnung öffnen"
     }
   }
 }

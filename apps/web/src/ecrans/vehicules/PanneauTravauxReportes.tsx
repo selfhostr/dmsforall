@@ -52,6 +52,7 @@ import { formaterDate, formaterKilometrage, formaterMontant } from '@/lib/format
 import { cn } from '@/lib/utils';
 
 import { BadgeStatutTravailReporte } from './BadgeStatutTravailReporte';
+import { BoutonReprendreDansOr } from './BoutonReprendreDansOr';
 import { DialogueReporterTravail } from './DialogueReporterTravail';
 import { useModifierTravailReporte } from './useModifierTravailReporte';
 import { useTravauxReportesVehicule } from './useTravauxReportesVehicule';
@@ -411,6 +412,10 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
                               </Button>
                               {travail.statut === 'ouvert' ? (
                                 <>
+                                  <BoutonReprendreDansOr
+                                    vehiculeId={vehiculeId}
+                                    travail={travail}
+                                  />
                                   <Button
                                     type="button"
                                     variant="outline"

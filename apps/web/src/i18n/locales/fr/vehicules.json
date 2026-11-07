@@ -227,7 +227,9 @@
       "corriger": "Corriger",
       "reprendre": "Marquer comme repris",
       "abandonner": "Abandonner",
-      "enregistrer": "Enregistrer"
+      "enregistrer": "Enregistrer",
+      "reprendreDansOr": "Reprendre dans {numero}",
+      "reprendreDansUnOr": "Reprendre dans un OR"
     },
     "dialogue": {
       "corrigerTitre": "Corriger le travail reporté",

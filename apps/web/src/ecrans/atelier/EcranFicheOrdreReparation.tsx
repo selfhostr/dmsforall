@@ -20,9 +20,13 @@ import { formaterDate, formaterMontantAvecDevise } from '@/lib/formats';
 
 import { DialogueAjoutLigneOr } from './DialogueAjoutLigneOr';
 import { peutCreerLigneOr, peutValiderLigneOr } from './droits';
+import { peutPreterCourtoisie } from '@/ecrans/courtoisie/droits';
+
+import { BoutonVehiculeCourtoisieOr } from './BoutonVehiculeCourtoisieOr';
 import { EnTeteOrdreReparation } from './EnTeteOrdreReparation';
 import { ListeLignesOrdreReparation } from './ListeLignesOrdreReparation';
 import { PanneauActionsOr } from './PanneauActionsOr';
+import { PanneauTravauxReportesOr } from './PanneauTravauxReportesOr';
 
 /** Centièmes d'heure -> "1.50 h" — même formateur local que `ListeLignesOrdreReparation.tsx`
  *  (aucun helper partagé dans `lib/formats.ts` pour une durée de pointage, seulement pour
@@ -135,6 +139,11 @@ export function EcranFicheOrdreReparation() {
   }));
 
   const documentsLies = requeteDocuments.data?.donnees ?? [];
+  const role = session.data?.utilisateur.role;
+  // Lignes ajoutables et courtoisie utile tant que l'OR n'est ni facturé ni clos.
+  const ouvertAuxTravaux = !['termine', 'facture', 'restitue', 'cloture', 'annule'].includes(
+    or.statut,
+  );
 
   return (
     <GabaritEcran titre={t('or:titre')} titreVisible={false}>
@@ -145,7 +154,14 @@ export function EcranFicheOrdreReparation() {
           <CardTitle className="texte-titre-section">{t('or:actions.titre')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <PanneauActionsOr or={or} />
+          <div className="flex flex-col gap-3">
+            <PanneauActionsOr or={or} />
+            {ouvertAuxTravaux && peutPreterCourtoisie(role) ? (
+              <div className="flex flex-wrap gap-2">
+                <BoutonVehiculeCourtoisieOr orId={or.id} clientId={or.client.id} />
+              </div>
+            ) : null}
+          </div>
         </CardContent>
       </Card>
 
@@ -178,9 +194,14 @@ export function EcranFicheOrdreReparation() {
             lignes={or.lignes}
             lignesTronquees={or.lignesTronquees}
             plafondCentimes={or.plafondCentimes ?? 0}
+            vehiculeId={or.vehicule.id}
           />
         </CardContent>
       </Card>
+
+      {ouvertAuxTravaux && peutCreerLigneOr(role) ? (
+        <PanneauTravauxReportesOr orId={or.id} vehiculeId={or.vehicule.id} />
+      ) : null}
 
       {/* Regroupement en grille large plutôt qu'empilement (« un écran est plus large que
        *  haut ») : ces quatre cartes sont des blocs d'information COURTS (liste/`dl`), jamais un

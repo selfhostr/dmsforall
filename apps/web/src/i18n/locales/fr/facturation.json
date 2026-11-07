@@ -57,7 +57,8 @@
   "avanceClient": {
     "message": "Cet encaissement dépasse le solde de {montant} — l'excédent sera enregistré comme avance client, à affecter plus tard.",
     "aucuneFactureOuverte": "Ce client n'a aucune facture ouverte à régler.",
-    "confirmerAction": "Enregistrer quand même comme avance client"
+    "confirmerAction": "Enregistrer quand même comme avance client",
+    "excedent": "Vous encaissez {excedent} de plus que le solde de {solde} : l'excédent sera enregistré comme avance client, à affecter plus tard."
   },
   "motifsAvoir": {
     "erreurAdresse": "Erreur d'adresse",
@@ -241,7 +242,8 @@
         "corriger": "Corriger cette facture",
         "creerAvoir": "Créer un avoir",
         "journal": "Voir le journal"
-      }
+      },
+      "telechargerPdf": "Télécharger le PDF"
     },
     "dialogueEmission": {
       "titre": "Émettre la facture ?",
@@ -280,7 +282,9 @@
     "erreur": {
       "titre": "Impossible de charger cette facture"
     },
-    "montantIndisponible": "Non communiqué"
+    "montantIndisponible": "Non communiqué",
+    "titreBrouillonDevis": "Nouveau devis",
+    "titreBrouillonBonCommande": "Nouveau bon de commande"
   },
   "encaissement": {
     "titre": "Encaisser · {destinataire}",
@@ -309,7 +313,8 @@
     "erreur": {
       "titre": "Impossible d'enregistrer l'encaissement"
     },
-    "chargement": "Chargement des factures ouvertes…"
+    "chargement": "Chargement des factures ouvertes…",
+    "paiementPartiel": "Paiement partiel : il restera {reste} à payer sur cette facture."
   },
   "avoir": {
     "titre": "Avoir sur facture {numero} — {destinataire}",
@@ -336,7 +341,8 @@
       "toutes": "Toutes",
       "nonReglees": "Non réglées",
       "enRetard": "En retard",
-      "aRelancer": "À relancer"
+      "aRelancer": "À relancer",
+      "devis": "Devis"
     },
     "colonnes": {
       "numero": "N°",
@@ -371,6 +377,10 @@
       "recherche": {
         "titre": "Aucune facture trouvée",
         "description": "Aucune facture ne correspond à ce numéro ou à ce nom de client."
+      },
+      "devis": {
+        "titre": "Aucun devis",
+        "description": "Les devis que vous créez apparaissent ici, du plus récent au plus ancien."
       }
     }
   },
@@ -402,6 +412,59 @@
       "description": "Ajoutez maintenant la main-d'œuvre et les pièces sur le devis. Si le client accepte, ouvrez un OR prérempli avec le même client et le même véhicule.",
       "creerOr": "Créer l'OR à partir de ce devis",
       "ouvrir": "Ouvrir le devis"
+    },
+    "statuts": {
+      "brouillon": "Brouillon",
+      "emis": "Envoyé",
+      "accepte": "Accepté",
+      "refuse": "Refusé",
+      "expire": "Expiré",
+      "remplace": "Remplacé",
+      "transforme": "Transformé",
+      "annule": "Annulé",
+      "abandonne": "Abandonné"
+    }
+  },
+  "facturerEncaisser": {
+    "bouton": "Facturer et encaisser",
+    "titre": "Facturer et encaisser",
+    "resume": "{destinataire} · total {montant} TTC",
+    "modeLegende": "Comment le client paie-t-il ?",
+    "modes": {
+      "especes": "Espèces",
+      "carte": "Carte",
+      "twint": "TWINT",
+      "plus_tard": "Le client paiera plus tard"
+    },
+    "apercuExact": "À encaisser : {montant}",
+    "apercuArrondi": "À encaisser : {montant} (arrondi au 5 ct, {ecart})",
+    "apercuPlusTard": "La facture est émise, rien n’est encaissé maintenant.",
+    "apercuInconnu": "Le montant sera calculé à l’émission de la facture.",
+    "action": "Facturer et encaisser {montant}",
+    "actionPlusTard": "Facturer sans encaisser",
+    "enCours": "En cours…",
+    "reessayer": "Réessayer",
+    "enDetail": "Facturer en détail",
+    "etapes": {
+      "facturation": "Création de la facture…",
+      "emission": "Émission de la facture…",
+      "encaissement": "Enregistrement de l’encaissement…"
+    },
+    "echec": {
+      "facturation": "La facture n’a pas pu être créée.",
+      "emission": "La facture est créée mais pas encore émise.",
+      "encaissement": "La facture est émise mais l’encaissement n’est pas enregistré.",
+      "factureConservee": "Rien n’est perdu : « Réessayer » reprend là où ça s’est arrêté, sans recréer la facture."
+    },
+    "succes": {
+      "titre": "C’est fait",
+      "facture": "Facture {numero} émise.",
+      "encaisse": "{montant} encaissés ({moyen}).",
+      "plusTard": "Facture émise, à régler plus tard par le client.",
+      "telechargerPdf": "Télécharger le PDF",
+      "envoyerCourriel": "Envoyer par e-mail",
+      "courrielEnvoye": "Facture envoyée à {destinataire}.",
+      "ouvrirFacture": "Ouvrir la facture"
     }
   }
 }
