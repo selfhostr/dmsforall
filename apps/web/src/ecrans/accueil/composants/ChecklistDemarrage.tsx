@@ -48,7 +48,7 @@ function CarteDemarrage({ masquer }: { readonly masquer: () => void }) {
   const aVerifier = etapes.some((e) => e.etat === 'inconnu');
 
   return (
-    <Card aria-labelledby="demarrage-titre" role="region">
+    <Card aria-labelledby="demarrage-titre" role="region" data-demarrage>
       <CardHeader className="flex-row items-start justify-between gap-4">
         <div className="space-y-1">
           <CardTitle id="demarrage-titre" className="texte-titre-section">

@@ -78,7 +78,8 @@
     "titre": "Actions rapides",
     "creerOr": "Créer un OR",
     "nouveauRendezVous": "Nouveau rendez-vous",
-    "encaisser": "Encaisser"
+    "encaisser": "Encaisser",
+    "rechercher": "Ouvrir la recherche"
   },
   "aFaire": {
     "titre": "À faire aujourd'hui",

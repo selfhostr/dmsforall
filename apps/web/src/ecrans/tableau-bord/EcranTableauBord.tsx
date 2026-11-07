@@ -6,7 +6,6 @@ import type { RoleUtilisateur } from '@dfa/shared';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { ActionsRapidesAccueil } from '@/ecrans/accueil/composants/ActionsRapidesAccueil';
 import { AFaireAujourdhui } from '@/ecrans/accueil/composants/AFaireAujourdhui';
-import { BarreRechercheAccueil } from '@/ecrans/accueil/composants/BarreRechercheAccueil';
 import { ChecklistDemarrage } from '@/ecrans/accueil/composants/ChecklistDemarrage';
 import { estRoleAccueilBureau, voitAFaireAujourdhui } from '@/ecrans/accueil/droits';
 import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
@@ -16,11 +15,7 @@ import { useSession } from '@/hooks/useSession';
 import { BandeauPrioriteTableauBord } from './composants/BandeauPrioriteTableauBord';
 import { SelecteurSiteTableauBord } from './SelecteurSiteTableauBord';
 import { TableauBordAdmin } from './TableauBordAdmin';
-import { TableauBordChefAtelier } from './TableauBordChefAtelier';
-import { TableauBordComptable } from './TableauBordComptable';
-import { TableauBordDirection } from './TableauBordDirection';
 import { TableauBordMagasinier } from './TableauBordMagasinier';
-import { TableauBordReceptionnaire } from './TableauBordReceptionnaire';
 import { TableauBordTechnicien } from './TableauBordTechnicien';
 import { TableauBordVendeurIndisponible } from './TableauBordVendeurIndisponible';
 
@@ -95,7 +90,11 @@ export function EcranTableauBord() {
     // (`h-11`, 44px) indépendante de ces tokens (vérifié dans leurs fichiers respectifs), donc aucun
     // contrôle interactif de cet écran ne rétrécit sous 44px. Chantier « tableau de bord tient sans
     // défilement » (retour produit du 16.08.2026, périmètre `ecrans/tableau-bord/**`).
-    <GabaritEcran titre={t('tableauBord:titre')} className="densite-dense">
+    <GabaritEcran
+      titre={t('tableauBord:titre')}
+      titreVisible={false}
+      className="group/accueil densite-dense"
+    >
       {estMonoSite ? null : (
         <SelecteurSiteTableauBord
           sites={session?.sites ?? []}
@@ -115,7 +114,6 @@ export function EcranTableauBord() {
           état du parc) suit plus bas. */}
       {accueilBureau ? (
         <div className="flex flex-col gap-groupe">
-          <BarreRechercheAccueil site={siteTravail} />
           <ActionsRapidesAccueil site={siteTravail} />
         </div>
       ) : null}
@@ -128,22 +126,11 @@ export function EcranTableauBord() {
         <AFaireAujourdhui role={role} actions={session?.actions} site={siteTravail} />
       ) : null}
 
-      {role === 'direction' || role === 'comptable' ? (
-        <h2 className="texte-titre-section font-semibold text-foreground">
-          {t('tableauBord:chiffres.titre')}
-        </h2>
-      ) : null}
-
       {(() => {
         switch (role) {
-          case 'direction':
-            return <TableauBordDirection site={siteId} />;
-          case 'comptable':
-            return <TableauBordComptable site={siteId} />;
-          case 'chef_atelier':
-            return <TableauBordChefAtelier site={siteId} />;
-          case 'receptionnaire':
-            return <TableauBordReceptionnaire site={siteId} />;
+          // Direction, comptable, chef d'atelier, réceptionnaire : l'accueil ne montre que les
+          // tâches du jour (`AFaireAujourdhui`). Leurs chiffres (CA, encours, répartition par
+          // statut) ont quitté l'accueil : Facturation > Chiffres (`ecrans/facturation/chiffres`).
           case 'magasinier':
             return <TableauBordMagasinier site={siteId} sites={session?.sites ?? []} />;
           case 'technicien':
