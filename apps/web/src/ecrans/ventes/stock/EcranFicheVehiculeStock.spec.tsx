@@ -94,32 +94,13 @@ describe('EcranFicheVehiculeStock', () => {
     expect(await screen.findByText("32'000.00")).toBeInTheDocument();
   });
 
-  /**
-   * Issue #84 (`securite`) : constat testeur — « le prix d'achat et les frais de remise en état
-   * sont masqués par défaut... mais un petit œil juste à côté permet de les révéler. Un clic
-   * malheureux devant le client et il voit ce que la voiture m'a coûté. Ces deux lignes ne
-   * devraient carrément pas être sur l'écran que je tourne vers le client. » La vue client retire
-   * ces champs (et provenance, jours en stock, assujettissement TVA, historique, actions
-   * internes) du DOM — pas de bouton « Voir » à cliquer par erreur, rien à démasquer.
-   */
-  it('vue client : retire prix d’achat, frais de remise en état, provenance, historique et actions ; garde le prix de vente', async () => {
+  it('plus de basculement client : prix d’achat et actions internes restent ceux de la vue vendeur', async () => {
     rendre();
 
     expect(await screen.findByText('VW Touran 2.0 TDI')).toBeInTheDocument();
-
-    const utilisateur = userEvent.setup();
-    await utilisateur.click(screen.getByRole('tab', { name: 'Vue client' }));
-
-    expect(screen.queryByRole('button', { name: "Voir Prix d'achat" })).not.toBeInTheDocument();
-    expect(screen.queryByText("32'000.00")).not.toBeInTheDocument();
-    expect(screen.queryByText('Neuf constructeur')).not.toBeInTheDocument();
-    expect(screen.queryByText('Données commerciales')).not.toBeInTheDocument();
-    expect(screen.queryByText('Historique')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Réceptionner' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Autres actions' })).not.toBeInTheDocument();
-
-    // Le prix de vente reste affiché, mis en avant — c'est ce qu'on montre au client.
-    expect(screen.getByText('Non fixé')).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Vue client' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: "Voir Prix d'achat" })).toBeInTheDocument();
+    expect(screen.getByText('Données commerciales')).toBeInTheDocument();
   });
 
   it('un rôle sans droit d’écriture ne voit aucune action (ni primaire ni menu de débordement)', async () => {

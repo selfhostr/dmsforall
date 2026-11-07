@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,7 +43,13 @@ export function PanneauTravauxReportesOr({ orId, vehiculeId }: Props) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="texte-titre-section">{t('or:travauxReportes.titre')}</CardTitle>
+        <div className="flex items-center gap-1.5">
+          <CardTitle className="texte-titre-section">{t('or:travauxReportes.titre')}</CardTitle>
+          <AideContextuelle
+            sujet={t('or:travauxReportes.titre')}
+            texte={t('aide:or.travauxReportes')}
+          />
+        </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-2">
         <p className="texte-corps text-muted-foreground">

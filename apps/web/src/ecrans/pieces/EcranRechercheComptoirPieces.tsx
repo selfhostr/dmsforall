@@ -180,8 +180,6 @@ export function EcranRechercheComptoirPieces() {
     );
   }
 
-  const saisieNonVide = saisie.trim().length > 0;
-
   // Deux raisons distinctes pour une liste vide : le catalogue actif n'a AUCUN article (mode
   // parcours) contre « rien ne correspond à cette recherche » (mode recherche) — même distinction
   // que `EcranListeArticles` entre `EtatVidePremierUsage` et `EtatVideRecherche`, jamais le même
@@ -223,8 +221,6 @@ export function EcranRechercheComptoirPieces() {
         q={saisie}
         onChangeQ={onSaisieChange}
         placeholderRecherche={t('pieces:rechercheComptoir.champRecherche')}
-        filtresActifs={saisieNonVide}
-        onEffacerFiltres={() => onSaisieChange('')}
       />
 
       <TableComptoir

@@ -273,7 +273,7 @@
     },
     "correction": {
       "titre": "Correggere la fattura {numero}",
-      "explication": "Una fattura emessa è bloccata: non è possibile modificarla direttamente. DFA creerà una nota di credito che annulla questa fattura, poi una nuova fattura con la correzione. Entrambe mantengono il proprio numero nella serie — nulla scompare, nulla viene rinumerato.",
+      "explication": "Una fattura emessa non si modifica: una nota di credito la annulla, poi viene creata una nuova fattura corretta.",
       "motif": "Motivo della correzione",
       "adresse": {
         "rue": "Via e numero",
@@ -406,20 +406,17 @@
     "nouveau": {
       "action": "Nuovo preventivo",
       "titre": "Nuovo preventivo",
-      "description": "Un prezzo per un cliente, senza aprire un ordine di riparazione. Il veicolo è facoltativo.",
       "client": "Cliente",
       "clientPlaceholder": "Nome, telefono o n. cliente",
       "clientRequis": "Scelga un cliente.",
       "aucunClient": "Nessun cliente trovato.",
       "vehicule": "Veicolo",
-      "vehiculeAide": "Facoltativo: lasci «Senza veicolo» se l'auto non è ancora nota.",
       "sansVehicule": "Senza veicolo",
       "site": "Sede",
       "creer": "Crea il preventivo"
     },
     "cree": {
       "titre": "Preventivo creato",
-      "description": "Aggiunga ora manodopera e ricambi al preventivo. Una volta inviato il preventivo e accettato dal cliente, potrà trasformarlo in un OR.",
       "ouvrir": "Apri il preventivo"
     },
     "statuts": {

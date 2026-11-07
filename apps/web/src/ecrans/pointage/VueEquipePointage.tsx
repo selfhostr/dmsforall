@@ -9,7 +9,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
@@ -261,11 +260,9 @@ export function VueEquipePointage({ siteId, actions }: Props) {
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="equipe-recherche-or">
-            {t('pointage:equipe.parOr.rechercherOrLabel')}
-          </Label>
           <Input
             id="equipe-recherche-or"
+            aria-label={t('pointage:equipe.parOr.rechercherOrLabel')}
             value={qSaisie}
             onChange={(evenement) => setQSaisie(evenement.target.value)}
             placeholder={t('pointage:equipe.parOr.rechercherOrPlaceholder')}

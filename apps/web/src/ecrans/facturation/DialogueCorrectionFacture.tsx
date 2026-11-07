@@ -8,14 +8,6 @@ import { messageErreur } from '@/api/erreurs';
 import { genererCleIdempotence } from '@/api/idempotence';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -26,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { useCorrigerFacture } from '@/hooks/facturation/useCorrigerFacture';
 
 /**
@@ -155,134 +148,138 @@ export function DialogueCorrectionFacture({ facture, ouvert, onOuvertChange, onS
   }
 
   return (
-    <Dialog open={ouvert} onOpenChange={onOuvertChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>
-            {t('facturation:fiche.correction.titre', { numero: facture.numero ?? '' })}
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="flex flex-col gap-4">
-          <p className="texte-corps text-muted-foreground">
-            {t('facturation:fiche.correction.explication')}
-          </p>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="correction-motif">{t('facturation:motifsAvoir.champ')}</Label>
-            <Select value={motif} onValueChange={(valeur) => setMotif(valeur as MotifAvoir)}>
-              <SelectTrigger id="correction-motif">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MOTIFS_CORRECTION_TOTALE.map((valeur) => (
-                  <SelectItem key={valeur} value={valeur}>
-                    {t(`facturation:motifsAvoir.${toCleCamel(valeur)}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {motif === 'autre' ? (
-            <Textarea
-              aria-label={t('facturation:motifsAvoir.autre')}
-              placeholder={t('facturation:motifsAvoir.autrePlaceholder')}
-              value={motifAutre}
-              onChange={(evenement) => setMotifAutre(evenement.target.value)}
-            />
-          ) : null}
-
+    <PanneauLateral
+      ouvert={ouvert}
+      onOuvertChange={onOuvertChange}
+      titre={t('facturation:fiche.correction.titre', { numero: facture.numero ?? '' })}
+      pied={
+        <>
+          <Button type="button" variant="outline" onClick={() => onOuvertChange(false)}>
+            {t('commun:actions.annuler')}
+          </Button>
           {brancheAdresse ? (
-            <div className="grid grid-cols-2 gap-3">
-              {motif === 'erreur_destinataire' ? (
-                <div className="col-span-2 flex flex-col gap-1.5">
-                  <Label htmlFor="correction-destinataire">
-                    {t('facturation:champs.destinataire')}
-                  </Label>
-                  <Input
-                    id="correction-destinataire"
-                    value={clientDesignation}
-                    onChange={(e) => setClientDesignation(e.target.value)}
-                  />
-                </div>
-              ) : null}
+            <Button type="submit" form="form-correction-facture" disabled={correction.isPending}>
+              {correction.isPending
+                ? t('facturation:fiche.correction.enCours')
+                : t('facturation:fiche.correction.confirmer')}
+            </Button>
+          ) : null}
+        </>
+      }
+    >
+      <form
+        id="form-correction-facture"
+        className="flex flex-col gap-4"
+        onSubmit={(evenement) => {
+          evenement.preventDefault();
+          soumettre();
+        }}
+      >
+        <p className="texte-corps text-muted-foreground">
+          {t('facturation:fiche.correction.explication')}
+        </p>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="correction-motif">{t('facturation:motifsAvoir.champ')}</Label>
+          <Select value={motif} onValueChange={(valeur) => setMotif(valeur as MotifAvoir)}>
+            <SelectTrigger id="correction-motif">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MOTIFS_CORRECTION_TOTALE.map((valeur) => (
+                <SelectItem key={valeur} value={valeur}>
+                  {t(`facturation:motifsAvoir.${toCleCamel(valeur)}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {motif === 'autre' ? (
+          <Textarea
+            aria-label={t('facturation:motifsAvoir.autre')}
+            placeholder={t('facturation:motifsAvoir.autrePlaceholder')}
+            value={motifAutre}
+            onChange={(evenement) => setMotifAutre(evenement.target.value)}
+          />
+        ) : null}
+
+        {brancheAdresse ? (
+          <div className="grid grid-cols-2 gap-3">
+            {motif === 'erreur_destinataire' ? (
               <div className="col-span-2 flex flex-col gap-1.5">
-                <Label htmlFor="correction-rue">
-                  {t('facturation:fiche.correction.adresse.rue')}
-                </Label>
-                <Input id="correction-rue" value={rue} onChange={(e) => setRue(e.target.value)} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="correction-npa">
-                  {t('facturation:fiche.correction.adresse.npa')}
-                </Label>
-                <Input id="correction-npa" value={npa} onChange={(e) => setNpa(e.target.value)} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="correction-localite">
-                  {t('facturation:fiche.correction.adresse.localite')}
+                <Label htmlFor="correction-destinataire">
+                  {t('facturation:champs.destinataire')}
                 </Label>
                 <Input
-                  id="correction-localite"
-                  value={localite}
-                  onChange={(e) => setLocalite(e.target.value)}
+                  id="correction-destinataire"
+                  value={clientDesignation}
+                  onChange={(e) => setClientDesignation(e.target.value)}
                 />
               </div>
-            </div>
-          ) : null}
-
-          {brancheMontantTaux ? (
-            // DESIGN.md « bordure structurelle » — conservée : encart d'alerte avec sa propre
-            // action (« Créer un avoir »), pas un simple regroupement de texte.
-            <div className="flex flex-col gap-2 rounded-md border border-statut-info bg-statut-info-fond p-3">
-              <p className="texte-corps">{t('facturation:fiche.correction.motifMontantTaux')}</p>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  onOuvertChange(false);
-                  navigate(`/factures/${facture.id}/avoir`);
-                }}
-              >
-                {t('facturation:fiche.actions.menu.creerAvoir')}
-              </Button>
-            </div>
-          ) : null}
-
-          {brancheAdresse ? (
-            <label htmlFor="facture-corriger-fiche" className="flex items-center gap-2 texte-corps">
-              <Checkbox
-                id="facture-corriger-fiche"
-                checked={corrigerFiche}
-                onCheckedChange={(coche) => setCorrigerFiche(coche === true)}
-              />
-              {t('facturation:fiche.correction.corrigerFiche')}
-            </label>
-          ) : null}
-
-          {erreurValidation ? (
-            <p className="texte-libelle text-destructive">{erreurValidation}</p>
-          ) : null}
-          {correction.isError ? (
-            <p className="texte-libelle text-destructive">{messageErreur(correction.error, t)}</p>
-          ) : null}
-
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">{t('commun:actions.annuler')}</Button>
-            </DialogClose>
-            {brancheAdresse ? (
-              <Button disabled={correction.isPending} onClick={soumettre}>
-                {correction.isPending
-                  ? t('facturation:fiche.correction.enCours')
-                  : t('facturation:fiche.correction.confirmer')}
-              </Button>
             ) : null}
-          </DialogFooter>
-        </div>
-      </DialogContent>
-    </Dialog>
+            <div className="col-span-2 flex flex-col gap-1.5">
+              <Label htmlFor="correction-rue">
+                {t('facturation:fiche.correction.adresse.rue')}
+              </Label>
+              <Input id="correction-rue" value={rue} onChange={(e) => setRue(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="correction-npa">
+                {t('facturation:fiche.correction.adresse.npa')}
+              </Label>
+              <Input id="correction-npa" value={npa} onChange={(e) => setNpa(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="correction-localite">
+                {t('facturation:fiche.correction.adresse.localite')}
+              </Label>
+              <Input
+                id="correction-localite"
+                value={localite}
+                onChange={(e) => setLocalite(e.target.value)}
+              />
+            </div>
+          </div>
+        ) : null}
+
+        {brancheMontantTaux ? (
+          // DESIGN.md « bordure structurelle » — conservée : encart d'alerte avec sa propre
+          // action (« Créer un avoir »), pas un simple regroupement de texte.
+          <div className="flex flex-col gap-2 rounded-md border border-statut-info bg-statut-info-fond p-3">
+            <p className="texte-corps">{t('facturation:fiche.correction.motifMontantTaux')}</p>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                onOuvertChange(false);
+                navigate(`/factures/${facture.id}/avoir`);
+              }}
+            >
+              {t('facturation:fiche.actions.menu.creerAvoir')}
+            </Button>
+          </div>
+        ) : null}
+
+        {brancheAdresse ? (
+          <label htmlFor="facture-corriger-fiche" className="flex items-center gap-2 texte-corps">
+            <Checkbox
+              id="facture-corriger-fiche"
+              checked={corrigerFiche}
+              onCheckedChange={(coche) => setCorrigerFiche(coche === true)}
+            />
+            {t('facturation:fiche.correction.corrigerFiche')}
+          </label>
+        ) : null}
+
+        {erreurValidation ? (
+          <p className="texte-libelle text-destructive">{erreurValidation}</p>
+        ) : null}
+        {correction.isError ? (
+          <p className="texte-libelle text-destructive">{messageErreur(correction.error, t)}</p>
+        ) : null}
+      </form>
+    </PanneauLateral>
   );
 }
 

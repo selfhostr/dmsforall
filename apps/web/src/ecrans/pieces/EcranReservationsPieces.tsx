@@ -12,7 +12,6 @@ import {
 
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -94,7 +93,6 @@ export function EcranReservationsPieces() {
     fetchNextPage,
   } = useReservations(filtres);
 
-  const filtresActifs = q.trim() !== '' || statut !== undefined;
   function effacerFiltres() {
     // Levier de reset (choix produit 26.08.2026) : `effacerFiltres` est un geste de reprise en
     // main, pas une frappe — `q` doit refléter la case vide immédiatement, pas après le même
@@ -241,11 +239,8 @@ export function EcranReservationsPieces() {
         q={qSaisie}
         onChangeQ={setQSaisie}
         placeholderRecherche={t('pieces:reservations.filtres.rechercherPlaceholder')}
-        filtresActifs={filtresActifs}
-        onEffacerFiltres={effacerFiltres}
       >
         <div className="flex flex-col gap-champ">
-          <Label htmlFor="filtre-statut-reservation">{t('pieces:reservations.statut')}</Label>
           <Select
             value={statut ?? 'toutes'}
             onValueChange={(valeur) =>
