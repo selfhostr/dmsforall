@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 
 import { BadgeEtatDocument } from './BadgeEtatDocument';
 import { BadgeStatutReglement } from './BadgeStatutReglement';
+import { BoutonNouveauDevis } from './BoutonNouveauDevis';
 import { peutVoirMontantsFacturation } from './droits';
 import { IndicateurRetard } from './IndicateurRetard';
 
@@ -290,7 +291,7 @@ export function EcranListeFactures() {
     // Clients, c'est mieux » (12.08.2026), tranchée dans l'autre sens le 17.08.2026 pour ce cas
     // précis. Aucun padding local : le gabarit ne pose ni max-largeur ni remplissage, `AppShell`
     // fournit déjà l'unique `p-4 sm:p-6` de tout écran routé.
-    <GabaritEcran titre={t('facturation:liste.titre')}>
+    <GabaritEcran titre={t('facturation:liste.titre')} actions={<BoutonNouveauDevis />}>
       {/* Bascule de VUE à l'intérieur de cet écran (elle ne navigue nulle part — elle change quelles
           factures la même liste affiche), pas un second niveau de NAVIGATION : empilée sous la
           rangée d'onglets d'`OngletsDomaine` (soulignement, `components/ui/tabs.tsx`), une même

@@ -126,3 +126,21 @@ const ROLES_CORRECTION_FACTURE: ReadonlySet<RoleUtilisateur> = new Set(['directi
 export function peutCorrigerFacture(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && ROLES_CORRECTION_FACTURE.has(role);
 }
+
+/**
+ * `facturation.document.creer` (`ECRITURE_BROUILLON`, RF-114) : direction, comptable, vendeur,
+ * réceptionnaire, chef d'atelier, magasinier — PAS technicien, PAS admin, PAS poste_atelier.
+ * Défensif d'ergonomie (entrée « Nouveau devis ») : le serveur reste l'arbitre.
+ */
+const ROLES_CREATION_DEVIS: ReadonlySet<RoleUtilisateur> = new Set([
+  'direction',
+  'comptable',
+  'vendeur',
+  'receptionnaire',
+  'chef_atelier',
+  'magasinier',
+]);
+
+export function peutCreerDevis(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_CREATION_DEVIS.has(role);
+}

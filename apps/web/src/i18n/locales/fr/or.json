@@ -200,6 +200,11 @@
       "validerTitre": "{count, plural, one {Valider # ligne} other {Valider # lignes}}",
       "refuserTitre": "{count, plural, one {Refuser # ligne} other {Refuser # lignes}}",
       "annulerTitre": "{count, plural, one {Annuler # ligne} other {Annuler # lignes}}"
+    },
+    "attenteAccord": {
+      "indicateur": "En attente d'accord du client",
+      "ajouteeBureau": "Travail ajouté, en attente d'accord du client. Utilisez « Accord du client » sur la ligne.",
+      "ajouteeAtelier": "Travail ajouté, en attente d'accord du client. Le bureau le voit sur cet OR."
     }
   },
   "demandes": {
@@ -410,7 +415,8 @@
     "motifSignatureDifferee": "Motif du report de signature",
     "paiementRecu": "Paiement reçu à la restitution",
     "aucuneActionDisponible": "Aucune action possible pour le moment.",
-    "autresActions": "Autres actions"
+    "autresActions": "Autres actions",
+    "kilometrageAide": "Relevé au compteur à l'entrée"
   },
   "totaux": {
     "titre": "Totaux",
@@ -464,12 +470,59 @@
       "titre": "Impossible d'ouvrir l'ordre de réparation"
     },
     "confirmation": {
-      "vehiculeDeuxOrOuverts": "Déjà ouvert pour ce véhicule : {numeros}. Ouvrir quand même un nouvel ordre de réparation ?"
+      "vehiculeDeuxOrOuverts": "Déjà ouvert pour ce véhicule : {numeros}. Ouvrir quand même un nouvel ordre de réparation ?",
+      "ouvrirOr": "Ouvrir l'OR {numero} (nouvel onglet)"
     },
     "actions": {
       "creer": "Ouvrir l'ordre de réparation",
       "enCours": "Création en cours…",
       "ignorerBrouillon": "Ignorer le brouillon"
+    }
+  },
+  "accordClient": {
+    "titre": "Accord du client",
+    "nom": "Qui a donné l'accord ?",
+    "nomRequis": "Indiquez le nom de la personne.",
+    "mode": {
+      "libelle": "Comment ?",
+      "telephone": "Téléphone",
+      "surPlace": "Sur place",
+      "email": "E-mail"
+    },
+    "horodatage": "La date et l'heure sont enregistrées maintenant.",
+    "enregistrer": "Enregistrer l'accord",
+    "action": "Accord du client",
+    "description": "{count, plural, one {Le client a donné son accord pour # travail. Il sera validé.} other {Le client a donné son accord pour # travaux. Ils seront validés.}}",
+    "pourTous": "{count, plural, one {Accord du client pour le travail proposé} other {Accord du client pour les # travaux proposés}}"
+  },
+  "lignesEnAttente": {
+    "annuler": "Annuler",
+    "motifRetrait": "Retiré de l'OR : accord du client non obtenu.",
+    "titre": "{count, plural, one {# travail attend encore l'accord du client} other {# travaux attendent encore l'accord du client}}",
+    "description": "{count, plural, one {Ce travail est « Proposée » : ni accepté ni refusé. Que faire avant « {action} » ?} other {Ces travaux sont « Proposée » : ni acceptés ni refusés. Que faire avant « {action} » ?}}",
+    "retirer": "{count, plural, one {Le retirer de l'OR} other {Les retirer de l'OR}}",
+    "laisser": "{count, plural, one {Le laisser en attente} other {Les laisser en attente}}"
+  },
+  "arretPointages": {
+    "titre": "{count, plural, one {Arrêter # pointage ?} other {Arrêter # pointages ?}}",
+    "description": "{count, plural, one {Le pointage en cours sera arrêté maintenant. Le technicien devra reprendre son pointage.} other {Les pointages en cours seront arrêtés maintenant. Les techniciens devront reprendre leur pointage.}}",
+    "confirmer": "{count, plural, one {Arrêter le pointage} other {Arrêter les pointages}}"
+  },
+  "consignes": {
+    "fournirMotif": "Le kilométrage saisi est inférieur au dernier relevé ({km} km). Corrigez-le si c'est une faute de frappe.",
+    "signerReserveSecurite": "Faites signer la réserve de sécurité par le client, puis recommencez la restitution.",
+    "demanderHabilitation": "Cette action est réservée à un responsable. Demandez-lui de la confirmer.",
+    "controleQualite": "Le contrôle qualité est obligatoire pour ce garage : l'OR doit passer en contrôle avant d'être terminé.",
+    "receptionnerIndisponible": "Le véhicule doit d'abord être réceptionné. Votre rôle ne le permet pas : demandez à la réception."
+  },
+  "renseignerPo": {
+    "titre": "Renseigner le n° de bon de commande",
+    "requis": "Indiquez le numéro de commande du client."
+  },
+  "erreurs": {
+    "transitionInterdite": {
+      "avecStatut": "Cette action n'est pas possible : l'OR est au statut « {statut} ». Rechargez la page, puis choisissez une des actions proposées.",
+      "sansStatut": "Cette action n'est pas possible dans l'état actuel de l'OR. Rechargez la page, puis choisissez une des actions proposées."
     }
   }
 }

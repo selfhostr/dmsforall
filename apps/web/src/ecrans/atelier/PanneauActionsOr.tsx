@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router';
+import { useQueryClient } from '@tanstack/react-query';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 
 import {
   schemaActionAnnuler,
@@ -33,7 +34,8 @@ import { ChampKilometrage } from '@/composants/comptoir/ChampKilometrage';
 import { ActionPrimaire, type ActionSecondaireMenu } from '@/composants/layout/ActionPrimaire';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
 import { RefusBloquant } from '@/composants/motifs/RefusBloquant';
-import { useMarquerLignesRealisees } from '@/hooks/atelier/useActionsLigneOr';
+import { useAnnulerLignesOr, useMarquerLignesRealisees } from '@/hooks/atelier/useActionsLigneOr';
+import { useArreterPointagesOr } from '@/hooks/atelier/useArreterPointagesOr';
 import {
   useAnnulerOr,
   useCloturerOr,
@@ -48,8 +50,15 @@ import {
   useValiderControleOr,
 } from '@/hooks/atelier/useTransitionsOrdreReparation';
 import { useSession } from '@/hooks/useSession';
+import { clesQuery } from '@/api/cles';
+import { chemins } from '@/routes/chemins';
 
+import { planifierActionProposee, type ConsigneActionProposee } from './actions-proposees';
 import { BoutonImprimerOr } from './BoutonImprimerOr';
+import { DialogueAccordClient } from './DialogueAccordClient';
+import { DialogueLignesEnAttente } from './DialogueLignesEnAttente';
+import { DialogueRenseignerPo } from './DialogueRenseignerPo';
+import { peutAnnulerLigneOr } from './droits';
 import { messageErreurMarquage, messageErreurMutation } from './messages-erreur-mutation';
 
 /**
@@ -163,6 +172,12 @@ export function PanneauActionsOr({ or }: Props) {
   const cloturer = useCloturerOr(or.id);
   const annuler = useAnnulerOr(or.id);
   const marquerRealisees = useMarquerLignesRealisees(or.id);
+  const arreterPointages = useArreterPointagesOr(or.id);
+  const retirerLignes = useAnnulerLignesOr(or.id);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const queryClient = useQueryClient();
+  const role = session.data?.utilisateur.role;
 
   // Champs locaux — un seul jeu à la fois, remis à zéro à l'ouverture de chaque dialogue.
   const [kilometrage, setKilometrage] = useState<number | null>(null);
@@ -180,11 +195,27 @@ export function PanneauActionsOr({ or }: Props) {
   // mutation reste posée tant qu'aucun nouvel envoi n'a eu lieu) : reposer la question exige un
   // nouvel envoi explicite.
   const [confirmationRejetee, setConfirmationRejetee] = useState(false);
+  // Effets des actions proposées qui passent par un dialogue propre (voir `actions-proposees.ts`).
+  const [accordLigneIds, setAccordLigneIds] = useState<readonly string[] | null>(null);
+  const [pointagesAArreter, setPointagesAArreter] = useState<readonly string[] | null>(null);
+  const [poOuvert, setPoOuvert] = useState(false);
+  const [consigne, setConsigne] = useState<{
+    readonly consigne: ConsigneActionProposee;
+    readonly donnees?: Readonly<Record<string, unknown>>;
+  } | null>(null);
+  // Travaux « Proposée » qui subsistent à la fin de l'OR : la saisie en attente d'être envoyée
+  // après le choix de l'utilisateur (laisser / retirer / annuler).
+  const [entreeAvecLignesEnAttente, setEntreeAvecLignesEnAttente] = useState<object | null>(null);
+  const lignesEnAttente = or.lignes.filter((ligne) => ligne.statut === 'proposee');
 
   const actionsNiveauOr = or.actionsDisponibles.filter((action) => !ACTIONS_LIGNE.has(action));
 
   function fermer() {
     marquerRealisees.reset();
+    arreterPointages.reset();
+    retirerLignes.reset();
+    setConsigne(null);
+    setEntreeAvecLignesEnAttente(null);
     setActionOuverte(null);
     setKilometrage(null);
     setSignatureDifferee(false);
@@ -240,20 +271,72 @@ export function PanneauActionsOr({ or }: Props) {
     );
   }
 
-  // Action proposée `MARQUER_LIGNES_REALISEES` (I-10) : marque réalisée chaque ligne bloquante
-  // listée par le refus, puis rejoue l'action initiale avec la même saisie. Un échec (ex. 409
-  // `LIGNE_TRANSITION_INTERDITE`) reste affiché dans le dialogue, l'action initiale n'est pas rejouée.
+  function rejouerActionInitiale() {
+    if (derniereEntree) soumettre(derniereEntree);
+  }
+
+  // Actions proposées par un refus (`actionsProposees`, invariant n°8) : CHAQUE code du contrat a un
+  // effet réel (voir `actions-proposees.ts`, exhaustif et testé). Celles qui lèvent le blocage
+  // (marquer réalisées, accord du client, arrêt des pointages, n° de commande) rejouent ensuite
+  // l'action initiale avec la même saisie ; un échec reste affiché dans son dialogue et l'action
+  // initiale n'est pas rejouée.
   function executerActionProposee(action: ActionProposee) {
-    if (action.code !== 'MARQUER_LIGNES_REALISEES' || !erreurActive) return;
-    const ligneIds = erreurActive.blocages
-      .filter((blocage) => blocage.type === 'ligne_or')
-      .map((blocage) => blocage.id);
-    const entreeInitiale = derniereEntree;
-    marquerRealisees.mutate(ligneIds, {
-      onSuccess: () => {
-        if (entreeInitiale) soumettre(entreeInitiale);
-      },
+    if (!erreurActive) return;
+    setConsigne(null);
+    const effet = planifierActionProposee(action, {
+      blocages: erreurActive.blocages,
+      actionsDisponibles: or.actionsDisponibles,
+      confirmationsRequises,
     });
+    switch (effet.type) {
+      case 'marquer_realisees':
+        marquerRealisees.mutate(effet.ligneIds, { onSuccess: rejouerActionInitiale });
+        break;
+      case 'accord_client':
+        setAccordLigneIds(effet.ligneIds);
+        break;
+      case 'arreter_pointages':
+        setPointagesAArreter(effet.pointageIds);
+        break;
+      case 'renseigner_po':
+        setPoOuvert(true);
+        break;
+      case 'ouvrir_action':
+        ouvrir(effet.action);
+        break;
+      case 'nouvel_or': {
+        const parametres = new URLSearchParams({ vehiculeId: or.vehicule.id });
+        navigate(
+          `${chemins.atelier.ordresReparation.nouveau(searchParams.get('site') ?? undefined, or.client.id)}&${parametres.toString()}`,
+        );
+        break;
+      }
+      case 'rafraichir':
+        mutationActive?.reset();
+        void queryClient.invalidateQueries({ queryKey: clesQuery.or.detail(or.id) });
+        break;
+      case 'rejouer_confirme':
+        resoumettreAvecConfirmations(effet.confirmations);
+        break;
+      case 'consigne':
+        setConsigne({ consigne: effet.consigne, donnees: effet.donnees });
+        break;
+    }
+  }
+
+  const terminaisonAvecLignesEnAttente =
+    (actionOuverte === 'terminer' || actionOuverte === 'valider-controle') &&
+    lignesEnAttente.length > 0;
+
+  // « Terminer » / « Valider le contrôle » avec des travaux encore « Proposée » : le garagiste
+  // choisit (laisser en attente, retirer de l'OR, annuler) avant l'envoi — le serveur, lui, reste
+  // l'arbitre de la transition.
+  function soumettreEnControlantLesLignes(entree: object) {
+    if (terminaisonAvecLignesEnAttente) {
+      setEntreeAvecLignesEnAttente(entree);
+      return;
+    }
+    soumettre(entree);
   }
 
   function resoumettreAvecConfirmations(confirmations: readonly CodeConfirmation[]) {
@@ -377,6 +460,17 @@ export function PanneauActionsOr({ or }: Props) {
               actionEnCours={marquerRealisees.isPending || mutationActive?.isPending}
               onActionProposee={executerActionProposee}
             />
+          ) : null}
+
+          {consigne ? (
+            <p role="note" className="texte-corps text-foreground">
+              {t(`or:consignes.${consigne.consigne}`, {
+                km:
+                  typeof consigne.donnees?.dernierConnuKm === 'number'
+                    ? consigne.donnees.dernierConnuKm
+                    : '',
+              })}
+            </p>
           ) : null}
 
           {marquerRealisees.isError ? (
@@ -582,7 +676,7 @@ export function PanneauActionsOr({ or }: Props) {
                       setErreurValidation(t('validation:requis'));
                       return;
                     }
-                    soumettre(resultat.data);
+                    soumettreEnControlantLesLignes(resultat.data);
                   }}
                 >
                   {t('or:actions.confirmer')}
@@ -648,7 +742,10 @@ export function PanneauActionsOr({ or }: Props) {
                   disabled={mutationActive?.isPending || !session.data?.utilisateur.id}
                   onClick={() => {
                     if (!session.data) return;
-                    soumettre({ controleurId: session.data.utilisateur.id, pointsControles: [] });
+                    soumettreEnControlantLesLignes({
+                      controleurId: session.data.utilisateur.id,
+                      pointsControles: [],
+                    });
                   }}
                 >
                   {t('or:actions.confirmer')}
@@ -674,6 +771,87 @@ export function PanneauActionsOr({ or }: Props) {
           ) : null}
         </DialogContent>
       </Dialog>
+
+      <DialogueAccordClient
+        orId={or.id}
+        ligneIds={accordLigneIds ?? []}
+        plafondCentimes={or.plafondCentimes ?? 0}
+        ouvert={accordLigneIds !== null}
+        onOuvertChange={(ouvertAccord) => {
+          if (!ouvertAccord) setAccordLigneIds(null);
+        }}
+        onAccorde={rejouerActionInitiale}
+      />
+
+      <DialogueRenseignerPo
+        orId={or.id}
+        version={or.version}
+        ouvert={poOuvert}
+        onOuvertChange={setPoOuvert}
+        onEnregistre={rejouerActionInitiale}
+      />
+
+      <AvertissementConfirmable
+        ouvert={pointagesAArreter !== null}
+        onOuvertChange={(ouvertArret) => {
+          if (!ouvertArret) {
+            setPointagesAArreter(null);
+            arreterPointages.reset();
+          }
+        }}
+        titre={t('or:arretPointages.titre', { count: pointagesAArreter?.length ?? 0 })}
+        description={t('or:arretPointages.description', { count: pointagesAArreter?.length ?? 0 })}
+        libelleConfirmation={t('or:arretPointages.confirmer', {
+          count: pointagesAArreter?.length ?? 0,
+        })}
+        enCours={arreterPointages.isPending}
+        messageErreur={
+          arreterPointages.isError ? messageErreurMutation(arreterPointages.error, t) : null
+        }
+        onConfirmer={() => {
+          if (!pointagesAArreter) return;
+          arreterPointages.mutate(pointagesAArreter, {
+            onSuccess: () => {
+              setPointagesAArreter(null);
+              rejouerActionInitiale();
+            },
+          });
+        }}
+      />
+
+      <DialogueLignesEnAttente
+        ouvert={entreeAvecLignesEnAttente !== null}
+        nombre={lignesEnAttente.length}
+        libelleAction={titreDialogue}
+        peutRetirer={peutAnnulerLigneOr(role)}
+        enCours={retirerLignes.isPending || (mutationActive?.isPending ?? false)}
+        messageErreur={retirerLignes.isError ? messageErreurMutation(retirerLignes.error, t) : null}
+        onAnnuler={() => {
+          setEntreeAvecLignesEnAttente(null);
+          retirerLignes.reset();
+        }}
+        onLaisser={() => {
+          const entree = entreeAvecLignesEnAttente;
+          setEntreeAvecLignesEnAttente(null);
+          if (entree) soumettre(entree);
+        }}
+        onRetirer={() => {
+          const entree = entreeAvecLignesEnAttente;
+          if (!entree) return;
+          retirerLignes.mutate(
+            {
+              ligneIds: lignesEnAttente.map((ligne) => ligne.id),
+              motif: t('or:lignesEnAttente.motifRetrait'),
+            },
+            {
+              onSuccess: () => {
+                setEntreeAvecLignesEnAttente(null);
+                soumettre(entree);
+              },
+            },
+          );
+        }}
+      />
 
       {/* CONFIRMATION_REQUISE (§4.4, issues #64/#66) : s'ouvre D'ELLE-MÊME dès que le serveur
        *  l'exige, jamais derrière un second clic sur un encart qu'on peut manquer — même mécanisme

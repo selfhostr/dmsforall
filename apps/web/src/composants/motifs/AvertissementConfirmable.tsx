@@ -1,4 +1,5 @@
 import { TriangleAlert } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/button';
@@ -37,6 +38,8 @@ interface Props {
    *  à l'appelant de ne fermer que sur succès (ex. `mutate(x, { onSuccess: () => onOuvertChange(false) })`,
    *  jamais `onSettled`) : sinon un échec ferme la modale avant que ce message n'ait pu s'afficher. */
   readonly messageErreur?: string | null;
+  /** Contenu complémentaire sous la description (ex. liens vers les éléments concernés). */
+  readonly children?: ReactNode;
 }
 
 /**
@@ -57,6 +60,7 @@ export function AvertissementConfirmable({
   destructif = false,
   enCours = false,
   messageErreur = null,
+  children,
 }: Props) {
   const { t } = useTranslation('commun');
 
@@ -70,6 +74,7 @@ export function AvertissementConfirmable({
           </div>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
+        {children}
         {messageErreur ? (
           <p className="texte-libelle text-destructive" role="alert">
             {messageErreur}

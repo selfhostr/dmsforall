@@ -10,6 +10,7 @@ import {
   type OrigineLigneOr,
   type PayeurLigneOr,
   type ResultatRechercheComptoirArticle,
+  type ReponseLigneOr,
   type TypeLigneOr,
 } from '@dfa/shared';
 
@@ -51,6 +52,8 @@ import { SelecteurArticlePiece } from './SelecteurArticlePiece';
 
 interface Props {
   readonly orId: string;
+  /** Appelé avec la ligne créée (le statut dit si elle attend l'accord du client : `proposee`). */
+  readonly onAjoutee?: (ligne: ReponseLigneOr) => void;
   /**
    * Site de l'OR — permet d'interroger la disponibilité magasin au bon endroit
    * (`SelecteurArticlePiece`, même doctrine que `useRechercheComptoirPieces`).
@@ -137,7 +140,7 @@ const ETAT_INITIAL: EtatFormulaire = {
  * DISTINCT (prestations catalogue à prix figé serveur, hors périmètre ici) — ce correctif ne le
  * remplace pas, il comble seulement l'absence de raccourci catalogue sur CE dialogue.
  */
-export function DialogueAjoutLigneOr({ orId, siteId }: Props) {
+export function DialogueAjoutLigneOr({ orId, siteId, onAjoutee }: Props) {
   const { t } = useTranslation(['or', 'commun', 'validation']);
   const mutation = useCreerLigneOr(orId);
   const session = useSession();
@@ -245,7 +248,12 @@ export function DialogueAjoutLigneOr({ orId, siteId }: Props) {
   function envoyer(entree: EntreeCreationLigneOr) {
     mutation.mutate(
       { entree, idempotencyKey: genererCleIdempotence() },
-      { onSuccess: () => fermer() },
+      {
+        onSuccess: (reponse) => {
+          fermer();
+          onAjoutee?.(reponse.donnees);
+        },
+      },
     );
   }
 

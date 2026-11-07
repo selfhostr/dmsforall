@@ -1,4 +1,4 @@
-import { PackageCheck, ShieldAlert, UserRound } from 'lucide-react';
+import { Clock, PackageCheck, ShieldAlert, UserRound } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -34,6 +34,7 @@ import {
 import { useSession } from '@/hooks/useSession';
 import { formaterMontant, formaterMontantAvecDevise, formaterPourmille } from '@/lib/formats';
 
+import { DialogueAccordClient } from './DialogueAccordClient';
 import { messagesErreurMutation } from './messages-erreur-mutation';
 
 const FORMATEUR_QUANTITE = new Intl.NumberFormat('de-CH', { maximumFractionDigits: 3 });
@@ -91,6 +92,8 @@ interface Props {
   readonly orId: string;
   readonly lignes: readonly ReponseLigneOr[];
   readonly lignesTronquees: boolean;
+  /** Plafond actuel de l'OR (centimes), repris tel quel dans le devis de l'accord client. */
+  readonly plafondCentimes?: number;
 }
 
 /**
@@ -117,7 +120,12 @@ interface Props {
  * `composants/identite/` — voir le commentaire de `components/ui/badge.tsx`) : le statut de ligne
  * utilise donc le `Badge` générique, à remplacer par un composant dédié quand il existera.
  */
-export function ListeLignesOrdreReparation({ orId, lignes, lignesTronquees }: Props) {
+export function ListeLignesOrdreReparation({
+  orId,
+  lignes,
+  lignesTronquees,
+  plafondCentimes = 0,
+}: Props) {
   const { t } = useTranslation(['or', 'commun']);
   const session = useSession();
   const role = session.data?.utilisateur.role;
@@ -126,6 +134,8 @@ export function ListeLignesOrdreReparation({ orId, lignes, lignesTronquees }: Pr
   const [actionOuverte, setActionOuverte] = useState<ActionGroupeeLigne | null>(null);
   const [motif, setMotif] = useState('');
   const [erreurValidation, setErreurValidation] = useState<string | null>(null);
+  // « Accord du client » : lignes concernées (une seule, ou tous les travaux proposés).
+  const [accordLigneIds, setAccordLigneIds] = useState<readonly string[] | null>(null);
 
   const validerLignes = useValiderLignesOr(orId);
   const refuserLignes = useRefuserLignesOr(orId);
@@ -135,6 +145,7 @@ export function ListeLignesOrdreReparation({ orId, lignes, lignesTronquees }: Pr
   const peutRefuser = peutRefuserLigneOr(role);
   const peutAnnuler = peutAnnulerLigneOr(role);
   const peutDecider = peutValider || peutRefuser || peutAnnuler;
+  const lignesProposees = lignes.filter((ligne) => ligne.statut === 'proposee');
 
   function basculerSelection(ligneId: string) {
     setSelection((precedente) => {
@@ -366,6 +377,27 @@ export function ListeLignesOrdreReparation({ orId, lignes, lignesTronquees }: Pr
           {ligne.statut === 'annulee' && ligne.motifAnnulation ? (
             <span className="texte-libelle text-muted-foreground">{ligne.motifAnnulation}</span>
           ) : null}
+          {/* « Proposée » = le client n'a rien dit : forme (icône) + mot, jamais la couleur
+           *  seule. Visible de TOUS les rôles (le mécanicien voit où en est son constat) ; le
+           *  geste d'enregistrer l'accord n'est offert qu'à qui peut valider une ligne. */}
+          {ligne.statut === 'proposee' ? (
+            <span className="inline-flex items-center gap-1 texte-libelle text-muted-foreground">
+              <Clock aria-hidden className="h-3.5 w-3.5 shrink-0" />
+              {t('or:lignes.attenteAccord.indicateur')}
+            </span>
+          ) : null}
+          {ligne.statut === 'proposee' && peutValider ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="self-start"
+              onClick={() => setAccordLigneIds([ligne.id])}
+            >
+              {t('or:accordClient.action')}
+              <span className="sr-only"> — {ligne.designation}</span>
+            </Button>
+          ) : null}
         </div>
       ),
     },
@@ -382,6 +414,18 @@ export function ListeLignesOrdreReparation({ orId, lignes, lignesTronquees }: Pr
 
   return (
     <div className="flex flex-col gap-2">
+      {peutValider && lignesProposees.length > 1 ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setAccordLigneIds(lignesProposees.map((ligne) => ligne.id))}
+          >
+            {t('or:accordClient.pourTous', { count: lignesProposees.length })}
+          </Button>
+        </div>
+      ) : null}
+
       {peutDecider && selection.size > 0 ? (
         <div
           role="group"
@@ -415,6 +459,16 @@ export function ListeLignesOrdreReparation({ orId, lignes, lignesTronquees }: Pr
       {lignesTronquees ? (
         <p className="texte-libelle text-muted-foreground">{t('or:lignes.tronquees')}</p>
       ) : null}
+
+      <DialogueAccordClient
+        orId={orId}
+        ligneIds={accordLigneIds ?? []}
+        plafondCentimes={plafondCentimes}
+        ouvert={accordLigneIds !== null}
+        onOuvertChange={(ouvertAccord) => {
+          if (!ouvertAccord) setAccordLigneIds(null);
+        }}
+      />
 
       <Dialog
         open={actionOuverte !== null}

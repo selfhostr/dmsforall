@@ -83,7 +83,9 @@ describe('RefusBloquant', () => {
     expect(
       screen.getByRole('button', { name: 'Créer un devis complémentaire' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Valider les lignes' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: "Enregistrer l'accord du client" }),
+    ).toBeInTheDocument();
   });
 
   it('I-09 : rend deux techniciens et le bouton « Arrêter les pointages »', () => {

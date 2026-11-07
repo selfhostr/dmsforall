@@ -381,5 +381,27 @@
     "encaisser": "Inkassieren",
     "corriger": "Korrigieren",
     "modifier": "Ändern"
+  },
+  "devis": {
+    "nouveau": {
+      "action": "Neue Offerte",
+      "titre": "Neue Offerte",
+      "description": "Ein Preis für einen Kunden, ohne Auftrag zu eröffnen. Das Fahrzeug ist optional.",
+      "client": "Kunde",
+      "clientPlaceholder": "Name, Telefon oder Kundennummer",
+      "clientRequis": "Wählen Sie einen Kunden.",
+      "aucunClient": "Kein Kunde gefunden.",
+      "vehicule": "Fahrzeug",
+      "vehiculeAide": "Optional: lassen Sie «Ohne Fahrzeug», wenn das Auto noch nicht bekannt ist.",
+      "sansVehicule": "Ohne Fahrzeug",
+      "site": "Standort",
+      "creer": "Offerte erstellen"
+    },
+    "cree": {
+      "titre": "Offerte erstellt",
+      "description": "Erfassen Sie jetzt Arbeit und Teile in der Offerte. Wenn der Kunde zustimmt, eröffnen Sie einen AR mit demselben Kunden und Fahrzeug.",
+      "creerOr": "AR aus dieser Offerte erstellen",
+      "ouvrir": "Offerte öffnen"
+    }
   }
 }

@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
+import { MemoryRouter } from 'react-router';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { ClientResume, ReponseOrdreReparation, VehiculeResume } from '@dfa/shared';
@@ -111,7 +112,11 @@ function construireOr(overrides: Partial<ReponseOrdreReparation> = {}): ReponseO
 }
 
 function rendre(or: ReponseOrdreReparation = construireOr()) {
-  return renduAvecQueryClient(<PanneauActionsOr or={or} />);
+  return renduAvecQueryClient(
+    <MemoryRouter>
+      <PanneauActionsOr or={or} />
+    </MemoryRouter>,
+  );
 }
 
 describe('PanneauActionsOr — CONFIRMATION_REQUISE (§4.4)', () => {
