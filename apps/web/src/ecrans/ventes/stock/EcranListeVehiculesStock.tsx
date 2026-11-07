@@ -24,7 +24,9 @@ import {
 } from '@/components/ui/select';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
+import { BarreFiltres } from '@/composants/comptoir/BarreFiltres';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
+import { SelecteurTri } from '@/composants/comptoir/SelecteurTri';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
@@ -36,9 +38,6 @@ import { useSession } from '@/hooks/useSession';
 import { useListeVehiculesStock } from '@/hooks/ventes/stock/useListeVehiculesStock';
 import { formaterMontant } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
-
-import { BarreOutilsVentes } from '../_composants/BarreOutilsVentes';
-import { MenuTriVentes } from '../_composants/MenuTriVentes';
 
 import { BadgeStatutVehiculeStock } from './BadgeStatutVehiculeStock';
 import {
@@ -281,84 +280,15 @@ export function EcranListeVehiculesStock() {
     // l'allemand `stock.liste.titre`/`Fahrzeugbestand` qui matchait déjà son onglet par coïncidence,
     // fait tomber la détection automatique juste dans les trois langues.
     <GabaritEcran titre={t('ventes:stock.liste.titre')}>
-      <BarreOutilsVentes
-        q={qSaisie}
-        onChangeQ={setQSaisie}
-        placeholderRecherche={t('ventes:stock.liste.rechercherPlaceholder')}
-        filtres={
-          <>
-            <Select
-              value={typeVehicule ?? 'tous'}
-              onValueChange={(valeur) =>
-                setTypeVehicule(valeur === 'tous' ? undefined : (valeur as TypeVehiculeVente))
-              }
-            >
-              <SelectTrigger
-                id="filtre-type-vehicule"
-                className="w-36 min-w-0 shrink"
-                aria-label={t('ventes:stock.champs.typeVehicule')}
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="tous">{t('ventes:stock.filtres.typeTous')}</SelectItem>
-                {TYPES_VEHICULE_VENTE.map((valeur) => (
-                  <SelectItem key={valeur} value={valeur}>
-                    {t(`ventes:stock.types.${valeur}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={statutCommercial ?? 'tous'}
-              onValueChange={(valeur) =>
-                setStatutCommercial(
-                  valeur === 'tous' ? undefined : (valeur as StatutCommercialVehicule),
-                )
-              }
-            >
-              <SelectTrigger
-                id="filtre-statut-commercial"
-                className="w-44 min-w-0 shrink"
-                aria-label={t('ventes:stock.champs.statutCommercial')}
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="tous">{t('ventes:stock.filtres.statutTous')}</SelectItem>
-                {STATUTS_COMMERCIAUX_VEHICULE.map((valeur) => (
-                  <SelectItem key={valeur} value={valeur}>
-                    {t(`ventes:stock.statuts.${valeur}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={provenance ?? 'toutes'}
-              onValueChange={(valeur) => setProvenance(valeur === 'toutes' ? undefined : valeur)}
-            >
-              <SelectTrigger
-                id="filtre-provenance"
-                className="w-48 min-w-0 shrink"
-                aria-label={t('ventes:stock.champs.provenance')}
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="toutes">{t('ventes:stock.filtres.provenanceToutes')}</SelectItem>
-                {PROVENANCES_VEHICULE_STOCK.map((valeur) => (
-                  <SelectItem key={valeur} value={valeur}>
-                    {t(`ventes:stock.provenances.${valeur}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </>
-        }
-        droite={
-          <>
-            {affichage === 'liste' ? (
-              <MenuTriVentes
+      <div className="flex items-center gap-3">
+        <BarreFiltres
+          q={qSaisie}
+          onChangeQ={setQSaisie}
+          placeholderRecherche={t('ventes:stock.liste.rechercherPlaceholder')}
+          className="min-w-0 flex-1"
+          tri={
+            affichage === 'liste' ? (
+              <SelecteurTri
                 options={TRIS_VEHICULES_STOCK.map((valeur) => ({
                   valeur,
                   libelle: t(CLES_TRI[valeur]),
@@ -367,12 +297,79 @@ export function EcranListeVehiculesStock() {
                 onChangeValeur={setTri}
                 label={t('ventes:stock.liste.tri.label')}
               />
-            ) : null}
-            <BasculeAffichageStock affichage={affichage} onChangeAffichage={definirAffichage} />
-            {boutonMettreEnStock}
-          </>
-        }
-      />
+            ) : undefined
+          }
+        >
+          <Select
+            value={typeVehicule ?? 'tous'}
+            onValueChange={(valeur) =>
+              setTypeVehicule(valeur === 'tous' ? undefined : (valeur as TypeVehiculeVente))
+            }
+          >
+            <SelectTrigger
+              id="filtre-type-vehicule"
+              className="w-auto min-w-36 shrink-0"
+              aria-label={t('ventes:stock.champs.typeVehicule')}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="tous">{t('ventes:stock.filtres.typeTous')}</SelectItem>
+              {TYPES_VEHICULE_VENTE.map((valeur) => (
+                <SelectItem key={valeur} value={valeur}>
+                  {t(`ventes:stock.types.${valeur}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={statutCommercial ?? 'tous'}
+            onValueChange={(valeur) =>
+              setStatutCommercial(
+                valeur === 'tous' ? undefined : (valeur as StatutCommercialVehicule),
+              )
+            }
+          >
+            <SelectTrigger
+              id="filtre-statut-commercial"
+              className="w-auto min-w-36 shrink-0"
+              aria-label={t('ventes:stock.champs.statutCommercial')}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="tous">{t('ventes:stock.filtres.statutTous')}</SelectItem>
+              {STATUTS_COMMERCIAUX_VEHICULE.map((valeur) => (
+                <SelectItem key={valeur} value={valeur}>
+                  {t(`ventes:stock.statuts.${valeur}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={provenance ?? 'toutes'}
+            onValueChange={(valeur) => setProvenance(valeur === 'toutes' ? undefined : valeur)}
+          >
+            <SelectTrigger
+              id="filtre-provenance"
+              className="w-auto min-w-36 shrink-0"
+              aria-label={t('ventes:stock.champs.provenance')}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="toutes">{t('ventes:stock.filtres.provenanceToutes')}</SelectItem>
+              {PROVENANCES_VEHICULE_STOCK.map((valeur) => (
+                <SelectItem key={valeur} value={valeur}>
+                  {t(`ventes:stock.provenances.${valeur}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </BarreFiltres>
+        <BasculeAffichageStock affichage={affichage} onChangeAffichage={definirAffichage} />
+        {boutonMettreEnStock}
+      </div>
 
       {isPending ? (
         <EtatChargement lignes={6} />

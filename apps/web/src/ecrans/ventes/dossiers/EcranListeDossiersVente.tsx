@@ -22,7 +22,9 @@ import {
 } from '@/components/ui/select';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
+import { BarreFiltres } from '@/composants/comptoir/BarreFiltres';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
+import { SelecteurTri } from '@/composants/comptoir/SelecteurTri';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
@@ -36,9 +38,6 @@ import { useListeDossiersVente } from '@/hooks/ventes/dossiers/useListeDossiersV
 import { useSession } from '@/hooks/useSession';
 import { formaterDate } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
-
-import { BarreOutilsVentes } from '../_composants/BarreOutilsVentes';
-import { MenuTriVentes } from '../_composants/MenuTriVentes';
 
 import { BadgeStatutDossierVente } from './BadgeStatutDossierVente';
 import { peutEcrireDossierVente } from './droits';
@@ -276,51 +275,14 @@ export function EcranListeDossiersVente() {
   // chantier) : rejoint la rangée filtres + tri ci-dessous, à sa suite, plutôt que de rester isolé.
   return (
     <GabaritEcran titre={t('ventes:dossier.liste.titre')}>
-      <BarreOutilsVentes
-        q={qSaisie}
-        onChangeQ={setQSaisie}
-        placeholderRecherche={t('ventes:dossier.liste.filtres.q')}
-        filtres={
-          <>
-            <Select
-              value={filtreStatut}
-              onValueChange={(valeur) => setFiltreStatut(valeur as FiltreStatut)}
-            >
-              <SelectTrigger
-                id="filtre-statut-dossier-vente"
-                className="w-52 min-w-0 shrink"
-                aria-label={t('ventes:dossier.liste.filtres.statutLabel')}
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="tous">{t('ventes:dossier.liste.filtres.statutTous')}</SelectItem>
-                {STATUTS_DOSSIER_VENTE.map((valeur) => (
-                  <SelectItem key={valeur} value={valeur}>
-                    {t(`ventes:dossier.statuts.${CLES_STATUT[valeur]}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {filtreStatut === 'tous' ? (
-              <label
-                htmlFor="dossiers-afficher-termines"
-                className="flex shrink items-center gap-2 texte-corps"
-              >
-                <Checkbox
-                  id="dossiers-afficher-termines"
-                  checked={afficherTermines}
-                  onCheckedChange={(coche) => setAfficherTermines(coche === true)}
-                />
-                {t('ventes:dossier.liste.filtres.afficherTermines')}
-              </label>
-            ) : null}
-          </>
-        }
-        droite={
-          <>
-            <MenuTriVentes
+      <div className="flex items-center gap-3">
+        <BarreFiltres
+          q={qSaisie}
+          onChangeQ={setQSaisie}
+          placeholderRecherche={t('ventes:dossier.liste.filtres.q')}
+          className="min-w-0 flex-1"
+          tri={
+            <SelecteurTri
               options={TRIS_DOSSIERS_VENTE.map((valeur) => ({
                 valeur,
                 libelle: t(CLES_TRI[valeur]),
@@ -329,10 +291,45 @@ export function EcranListeDossiersVente() {
               onChangeValeur={setTri}
               label={t('ventes:dossier.liste.tri.label')}
             />
-            {boutonNouveauDossier}
-          </>
-        }
-      />
+          }
+        >
+          <Select
+            value={filtreStatut}
+            onValueChange={(valeur) => setFiltreStatut(valeur as FiltreStatut)}
+          >
+            <SelectTrigger
+              id="filtre-statut-dossier-vente"
+              className="w-auto min-w-44 shrink-0"
+              aria-label={t('ventes:dossier.liste.filtres.statutLabel')}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="tous">{t('ventes:dossier.liste.filtres.statutTous')}</SelectItem>
+              {STATUTS_DOSSIER_VENTE.map((valeur) => (
+                <SelectItem key={valeur} value={valeur}>
+                  {t(`ventes:dossier.statuts.${CLES_STATUT[valeur]}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {filtreStatut === 'tous' ? (
+            <label
+              htmlFor="dossiers-afficher-termines"
+              className="flex shrink items-center gap-2 texte-corps"
+            >
+              <Checkbox
+                id="dossiers-afficher-termines"
+                checked={afficherTermines}
+                onCheckedChange={(coche) => setAfficherTermines(coche === true)}
+              />
+              {t('ventes:dossier.liste.filtres.afficherTermines')}
+            </label>
+          ) : null}
+        </BarreFiltres>
+        {boutonNouveauDossier}
+      </div>
 
       <TableComptoir
         colonnes={colonnes}
