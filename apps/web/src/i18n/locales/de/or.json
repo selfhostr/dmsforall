@@ -528,12 +528,8 @@
         "demande": "Anliegen des Kunden"
       },
       "echec": {
-        "client": "Der Kunde konnte nicht erfasst werden",
-        "vehicule": "Das Fahrzeug konnte nicht erfasst werden",
-        "or": "Der Auftrag konnte nicht eröffnet werden",
-        "clientCree": "Kunde erfasst.",
-        "vehiculeCree": "Fahrzeug erfasst.",
-        "reprise": "Ihre Eingaben bleiben erhalten: versuchen Sie es erneut, nichts wird doppelt erfasst."
+        "titre": "Der Auftrag konnte nicht eröffnet werden",
+        "reprise": "Ihre Eingabe bleibt erhalten: erneut versuchen, nichts wird doppelt angelegt."
       },
       "reessayer": "Erneut versuchen",
       "ancienParcours": "Detaillierter Ablauf",

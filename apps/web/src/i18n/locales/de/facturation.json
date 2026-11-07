@@ -445,16 +445,9 @@
     "enCours": "Läuft…",
     "reessayer": "Erneut versuchen",
     "enDetail": "Im Detail verrechnen",
-    "etapes": {
-      "facturation": "Rechnung wird erstellt…",
-      "emission": "Rechnung wird ausgestellt…",
-      "encaissement": "Zahlung wird erfasst…"
-    },
     "echec": {
       "facturation": "Die Rechnung konnte nicht erstellt werden.",
-      "emission": "Die Rechnung ist erstellt, aber noch nicht ausgestellt.",
-      "encaissement": "Die Rechnung ist ausgestellt, die Zahlung ist aber nicht erfasst.",
-      "factureConservee": "Nichts geht verloren: «Erneut versuchen» macht dort weiter, wo es aufgehört hat, ohne die Rechnung neu zu erstellen."
+      "factureConservee": "Nichts wurde gespeichert: Sie können es ohne Risiko einer Doublette erneut versuchen."
     },
     "succes": {
       "titre": "Erledigt",
@@ -464,7 +457,10 @@
       "telechargerPdf": "PDF herunterladen",
       "envoyerCourriel": "Per E-Mail senden",
       "courrielEnvoye": "Rechnung an {destinataire} gesendet.",
-      "ouvrirFacture": "Rechnung öffnen"
+      "ouvrirFacture": "Rechnung öffnen",
+      "encaissementEchoue": "Rechnung {numero} ausgestellt, die Zahlung ist aber nicht zustande gekommen. Der Rechnungssaldo ist unverändert.",
+      "encaisserMaintenant": "Jetzt kassieren",
+      "encaissementErreur": "Die Zahlung ist nicht erfasst."
     }
   }
 }

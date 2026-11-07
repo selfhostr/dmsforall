@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
@@ -17,21 +17,10 @@ import { construireDocumentBrut } from './document.fixture';
 
 const DEMANDE: DemandeFacturerEtEncaisser = {
   orId: 'or-1',
-  entree: { groupes: [{ payeur: 'client', payeurClientId: null }], motifsReport: [] },
   totalEstimeCentimes: 10944,
   destinataireNom: 'Jean Dupont',
 };
 
-const brouillon = construireDocumentBrut({
-  id: 'fact-1',
-  numero: null,
-  statut: 'brouillon',
-  statutReglement: undefined,
-  soldeCentimes: undefined,
-  totalTtcCentimes: 10944,
-  emisLe: null,
-  emisPar: null,
-});
 const emise = construireDocumentBrut({
   id: 'fact-1',
   numero: '2026-00012',
@@ -53,55 +42,66 @@ function probleme(status: number, code: string) {
   );
 }
 
-interface Appels {
-  facturer: string[];
-  emettre: string[];
-  paiements: { cle: string | null; corps: Record<string, unknown> }[];
+interface Appel {
+  cle: string | null;
+  corps: Record<string, unknown>;
 }
 
-function simuler(options: { emissionEnEchec?: boolean } = {}): Appels {
-  const appels: Appels = { facturer: [], emettre: [], paiements: [] };
-  let emissionsRestantesEnEchec = options.emissionEnEchec ? 1 : 0;
+function reponseUnique(options: { paiement?: boolean; echec?: boolean; montant?: number } = {}) {
+  const montant = options.montant ?? 10945;
+  return HttpResponse.json(
+    {
+      donnees: {
+        facture: emise,
+        ...(options.paiement === false || options.echec
+          ? {}
+          : {
+              paiement: {
+                id: 'p-1',
+                moyen: 'especes',
+                montantCentimes: montant,
+                imputations: [],
+              },
+            }),
+        ordreReparation: { id: 'or-1', statut: 'facture', lignes: [] },
+      },
+      avertissements: options.echec
+        ? [{ code: 'ENCAISSEMENT_ECHOUE', message: 'x', donnees: {} }]
+        : [],
+    },
+    { status: 201 },
+  );
+}
+
+function simuler(reponses: (() => Response)[] = [() => reponseUnique()]): {
+  appels: Appel[];
+  paiements: Appel[];
+} {
+  const appels: Appel[] = [];
+  const paiements: Appel[] = [];
+  let i = 0;
   server.use(
-    http.post('/api/v1/ordres-reparation/or-1/facturer', ({ request }) => {
-      appels.facturer.push(request.headers.get('Idempotency-Key') ?? '');
-      return HttpResponse.json(
-        {
-          donnees: {
-            facturesCreees: [brouillon],
-            ordreReparation: { id: 'or-1', statut: 'facture', lignes: [] },
-          },
-          avertissements: [],
-        },
-        { status: 201 },
-      );
-    }),
-    http.post('/api/v1/documents-vente/fact-1/emettre', ({ request }) => {
-      appels.emettre.push(request.headers.get('Idempotency-Key') ?? '');
-      if (emissionsRestantesEnEchec > 0) {
-        emissionsRestantesEnEchec -= 1;
-        return probleme(500, 'ERREUR_INTERNE');
-      }
-      return HttpResponse.json({ donnees: emise, avertissements: [] });
+    http.post('/api/v1/ordres-reparation/or-1/facturer-et-encaisser', async ({ request }) => {
+      appels.push({
+        cle: request.headers.get('Idempotency-Key'),
+        corps: (await request.json()) as Record<string, unknown>,
+      });
+      const fabrique = reponses[Math.min(i, reponses.length - 1)];
+      i += 1;
+      return fabrique ? fabrique() : reponseUnique();
     }),
     http.post('/api/v1/paiements', async ({ request }) => {
-      appels.paiements.push({
+      paiements.push({
         cle: request.headers.get('Idempotency-Key'),
         corps: (await request.json()) as Record<string, unknown>,
       });
       return HttpResponse.json(
-        {
-          donnees: {
-            id: 'p-1',
-            imputations: [{ documentId: 'fact-1', montantCentimes: 10944, nature: 'reglement' }],
-          },
-          avertissements: [],
-        },
+        { donnees: { id: 'p-2', imputations: [] }, avertissements: [] },
         { status: 201 },
       );
     }),
   );
-  return appels;
+  return { appels, paiements };
 }
 
 function rendre() {
@@ -119,15 +119,12 @@ function rendre() {
 }
 
 describe('DialogueFacturerEtEncaisser', () => {
-  it('nominal : crée, émet, encaisse en espèces (arrondi 5 ct) puis propose le PDF', async () => {
-    const appels = simuler();
+  it('nominal : un seul appel, affiche le montant espèces rendu par le serveur', async () => {
+    const { appels, paiements } = simuler();
     const utilisateur = userEvent.setup();
     rendre();
 
     const dialogue = await screen.findByRole('dialog', { name: 'Facturer et encaisser' });
-    expect(
-      within(dialogue).getByText(/À encaisser : .*109\.45 \(arrondi au 5 ct, \+0\.01\)/),
-    ).toBeInTheDocument();
     await utilisateur.click(
       within(dialogue).getByRole('button', { name: /^Facturer et encaisser/ }),
     );
@@ -135,40 +132,29 @@ describe('DialogueFacturerEtEncaisser', () => {
     expect(await screen.findByText('Facture 2026-00012 émise.')).toBeInTheDocument();
     expect(screen.getByText(/109\.45 encaissés \(Espèces\)/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Télécharger le PDF' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Envoyer par e-mail' })).toBeInTheDocument();
-
-    expect(appels.facturer).toHaveLength(1);
-    expect(appels.emettre).toHaveLength(1);
-    expect(appels.paiements).toHaveLength(1);
-    expect(appels.paiements[0]?.corps).toMatchObject({
-      moyen: 'especes',
-      montantCentimes: 10945,
-      // Règlement = espèces remises, écart d'arrondi = arrondi signé : aucun centime d'avance.
-      imputations: [
-        { documentId: 'fact-1', montantCentimes: 10945, nature: 'reglement' },
-        { documentId: 'fact-1', montantCentimes: -1, nature: 'arrondi' },
-      ],
-    });
+    expect(appels).toHaveLength(1);
+    expect(appels[0]?.cle).toBeTruthy();
+    expect(appels[0]?.corps).toEqual({ paiement: { mode: 'especes' } });
+    expect(paiements).toHaveLength(0);
   });
 
-  it('TWINT : montant exact au centime, aucun arrondi', async () => {
-    const appels = simuler();
+  it('TWINT : le mode part au serveur', async () => {
+    const { appels } = simuler([() => reponseUnique({ montant: 10944 })]);
     const utilisateur = userEvent.setup();
     rendre();
 
     const dialogue = await screen.findByRole('dialog');
     await utilisateur.click(within(dialogue).getByLabelText('TWINT'));
-    expect(within(dialogue).getByText(/À encaisser : .*109\.44$/)).toBeInTheDocument();
     await utilisateur.click(
       within(dialogue).getByRole('button', { name: /^Facturer et encaisser/ }),
     );
 
     await screen.findByText('Facture 2026-00012 émise.');
-    expect(appels.paiements[0]?.corps).toMatchObject({ moyen: 'twint', montantCentimes: 10944 });
+    expect(appels[0]?.corps).toEqual({ paiement: { mode: 'twint' } });
   });
 
-  it('échec à l’émission : la facture créée est conservée, « Réessayer » ne la recrée pas et garde les clés', async () => {
-    const appels = simuler({ emissionEnEchec: true });
+  it('échec réseau : « Réessayer » rejoue la MÊME clé d’idempotence', async () => {
+    const { appels } = simuler([() => probleme(500, 'ERREUR_INTERNE'), () => reponseUnique()]);
     const utilisateur = userEvent.setup();
     rendre();
 
@@ -176,24 +162,34 @@ describe('DialogueFacturerEtEncaisser', () => {
     await utilisateur.click(
       within(dialogue).getByRole('button', { name: /^Facturer et encaisser/ }),
     );
-
-    expect(
-      await screen.findByText('La facture est créée mais pas encore émise.'),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/sans recréer la facture/)).toBeInTheDocument();
-    expect(appels.paiements).toHaveLength(0);
+    expect(await screen.findByText('La facture n’a pas pu être créée.')).toBeInTheDocument();
 
     await utilisateur.click(screen.getByRole('button', { name: 'Réessayer' }));
     expect(await screen.findByText('Facture 2026-00012 émise.')).toBeInTheDocument();
-
-    expect(appels.facturer).toHaveLength(1);
-    expect(appels.emettre).toHaveLength(2);
-    expect(appels.emettre[1]).toBe(appels.emettre[0]);
-    expect(appels.paiements).toHaveLength(1);
+    expect(appels).toHaveLength(2);
+    expect(appels[1]?.cle).toBe(appels[0]?.cle);
   });
 
-  it('« le client paiera plus tard » : facture émise, aucun paiement envoyé', async () => {
-    const appels = simuler();
+  it('ENCAISSEMENT_ECHOUE : facture émise, « Encaisser maintenant » encaisse via POST /paiements', async () => {
+    const { appels, paiements } = simuler([() => reponseUnique({ echec: true })]);
+    const utilisateur = userEvent.setup();
+    rendre();
+
+    const dialogue = await screen.findByRole('dialog');
+    await utilisateur.click(
+      within(dialogue).getByRole('button', { name: /^Facturer et encaisser/ }),
+    );
+    expect(await screen.findByText(/l’encaissement n’a pas abouti/)).toBeInTheDocument();
+
+    await utilisateur.click(screen.getByRole('button', { name: 'Encaisser maintenant' }));
+    expect(await screen.findByText(/109\.45 encaissés \(Espèces\)/)).toBeInTheDocument();
+    expect(appels).toHaveLength(1);
+    expect(paiements).toHaveLength(1);
+    expect(paiements[0]?.corps).toMatchObject({ moyen: 'especes', montantCentimes: 10945 });
+  });
+
+  it('« le client paiera plus tard » : facture émise, corps sans paiement', async () => {
+    const { appels, paiements } = simuler([() => reponseUnique({ paiement: false })]);
     const utilisateur = userEvent.setup();
     rendre();
 
@@ -206,7 +202,7 @@ describe('DialogueFacturerEtEncaisser', () => {
     expect(
       await screen.findByText('Facture émise, à régler plus tard par le client.'),
     ).toBeInTheDocument();
-    await waitFor(() => expect(appels.emettre).toHaveLength(1));
-    expect(appels.paiements).toHaveLength(0);
+    expect(appels[0]?.corps).toEqual({});
+    expect(paiements).toHaveLength(0);
   });
 });

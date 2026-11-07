@@ -189,13 +189,17 @@ function ContenuFacturerOrdreReparation({
   // rôle qui peut créer, émettre ET encaisser — sinon le parcours détaillé reste la seule voie.
   const groupeUnique = groupesCoches.length === 1 ? groupesCoches[0] : undefined;
   const peutFacturerEtEncaisser =
-    groupeUnique !== undefined && peutEmettreFacture(role) && peutEncaisser(role);
+    groupeUnique !== undefined &&
+    // Le raccourci serveur ne facture que le groupe client, sans report ni démontage refusé.
+    groupeUnique.payeur === 'client' &&
+    !inclureDemontageRefuse &&
+    peutEmettreFacture(role) &&
+    peutEncaisser(role);
 
   function ouvrirFacturerEtEncaisser() {
     if (!orId || !groupeUnique) return;
     onFacturerEtEncaisser({
       orId,
-      entree: construireEntree(),
       totalEstimeCentimes: groupeUnique.totalTtcCentimes,
       destinataireNom: groupeUnique.destinataire?.nomAffiche ?? libelleGroupe(t, groupeUnique),
     });

@@ -528,11 +528,7 @@
         "demande": "Demande du client"
       },
       "echec": {
-        "client": "Le client n'a pas pu être créé",
-        "vehicule": "Le véhicule n'a pas pu être créé",
-        "or": "L'OR n'a pas pu être ouvert",
-        "clientCree": "Client créé.",
-        "vehiculeCree": "Véhicule créé.",
+        "titre": "L’OR n’a pas pu être ouvert",
         "reprise": "Votre saisie est conservée : réessayez, rien ne sera créé deux fois."
       },
       "reessayer": "Réessayer",
