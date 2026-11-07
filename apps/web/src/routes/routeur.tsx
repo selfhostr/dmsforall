@@ -50,6 +50,7 @@ import {
   EcranReprise,
   EcranScan,
   EcranRendezVous,
+  EcranCourtoisie,
   EcranTableauBord,
   EcranFicheVehicule,
   EcranListeVehicules,
@@ -239,6 +240,15 @@ export const routesConfig: RouteObject[] = [
         element: (
           <RouteProtegee rolesAutorises={ROLES_LECTURE_RENDEZ_VOUS}>
             <EcranRendezVous />
+          </RouteProtegee>
+        ),
+      },
+      // Véhicules de courtoisie — `courtoisie.lire` a la même population que `rendez_vous.lire`.
+      {
+        path: 'courtoisie',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_LECTURE_RENDEZ_VOUS}>
+            <EcranCourtoisie />
           </RouteProtegee>
         ),
       },

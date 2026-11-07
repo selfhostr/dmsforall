@@ -365,6 +365,8 @@ export const vehiculeTravailReporte = pgTable(
      * — normalisation défensive `.trim() || null` avant écriture, même doctrine que
      * `creerDepuisRefus`/`motifRefus`). */
     motifModification: text('motif_modification'),
+    /** Explication libre d'un travail noté à la main (0082) — nullable, non vide si renseignée. */
+    detail: text('detail'),
     ...colonnesHorodatage(),
   },
   (t) => [

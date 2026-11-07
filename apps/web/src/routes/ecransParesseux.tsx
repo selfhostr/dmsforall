@@ -158,6 +158,9 @@ export const EcranScan = paresseux(() =>
 export const EcranRendezVous = paresseux(() =>
   import('@/ecrans/rendez-vous/EcranRendezVous').then((m) => m.EcranRendezVous),
 );
+export const EcranCourtoisie = paresseux(() =>
+  import('@/ecrans/courtoisie/EcranCourtoisie').then((m) => m.EcranCourtoisie),
+);
 export const EcranTableauBord = paresseux(() =>
   import('@/ecrans/tableau-bord/EcranTableauBord').then((m) => m.EcranTableauBord),
 );

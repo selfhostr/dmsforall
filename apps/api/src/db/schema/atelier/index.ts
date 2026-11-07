@@ -12,4 +12,5 @@ export * from './parametrage';
 export * from './client';
 export * from './vehicule';
 export * from './rendez-vous';
+export * from './courtoisie';
 export * from './ordre-reparation';

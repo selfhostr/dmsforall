@@ -250,6 +250,15 @@
     },
     "erreur": {
       "titre": "Impossibile caricare i lavori rinviati"
+    },
+    "reporter": {
+      "bouton": "Rimandare un lavoro",
+      "titre": "Rimandare un lavoro",
+      "description": "Annotate cosa andrà fatto alla prossima visita: comparirà sulla scheda del veicolo e all'apertura del prossimo ordine di riparazione.",
+      "designationPlaceholder": "Es. cinghia di distribuzione",
+      "detail": "Dettaglio (facoltativo)",
+      "enregistrer": "Salva",
+      "erreurValidation": "Indicate il lavoro da fare (al massimo 200 caratteri)."
     }
   },
   "donnees": {

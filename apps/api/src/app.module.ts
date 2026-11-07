@@ -10,6 +10,7 @@
 import type { DynamicModule, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { Module } from '@nestjs/common';
 import { AtelierModule } from './atelier/atelier.module';
+import { CourtoisieModule } from './atelier/courtoisie/courtoisie.module';
 import { ImpressionOrModule } from './atelier/impression/impression-or.module';
 import { AuthModule } from './auth/auth.module';
 import { ClientsModule } from './clients/clients.module';
@@ -158,6 +159,7 @@ export class AppModule implements NestModule {
         // même raisonnement que `PneusModule`/`RelancesModule` ci-dessus (aucune contrainte
         // d'ordre réelle, `AtelierModule` n'importe jamais ce module — sens unique).
         RendezVousModule,
+        CourtoisieModule,
         // `RepriseModule` (reprise de données par dépôt d'archive, `contrats/reprise.ts`,
         // migrations 0066/0067) — aucune dépendance de compilation avec un autre module métier
         // (lit/écrit `client`/`vehicule`/`document_vente` en SQL brut, comme `TableauBordModule`

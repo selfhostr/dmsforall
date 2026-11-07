@@ -17,6 +17,7 @@ import deValidation from './locales/de/validation.json';
 import deRecherche from './locales/de/recherche.json';
 import deClients from './locales/de/clients.json';
 import deVehicules from './locales/de/vehicules.json';
+import deCourtoisie from './locales/de/courtoisie.json';
 import dePlanning from './locales/de/planning.json';
 import deReception from './locales/de/reception.json';
 import dePointage from './locales/de/pointage.json';
@@ -40,6 +41,7 @@ import frValidation from './locales/fr/validation.json';
 import frRecherche from './locales/fr/recherche.json';
 import frClients from './locales/fr/clients.json';
 import frVehicules from './locales/fr/vehicules.json';
+import frCourtoisie from './locales/fr/courtoisie.json';
 import frPlanning from './locales/fr/planning.json';
 import frReception from './locales/fr/reception.json';
 import frPointage from './locales/fr/pointage.json';
@@ -63,6 +65,7 @@ import itValidation from './locales/it/validation.json';
 import itRecherche from './locales/it/recherche.json';
 import itClients from './locales/it/clients.json';
 import itVehicules from './locales/it/vehicules.json';
+import itCourtoisie from './locales/it/courtoisie.json';
 import itPlanning from './locales/it/planning.json';
 import itReception from './locales/it/reception.json';
 import itPointage from './locales/it/pointage.json';
@@ -104,6 +107,7 @@ export const NAMESPACES = [
   'recherche',
   'clients',
   'vehicules',
+  'courtoisie',
   'planning',
   'reception',
   'pointage',
@@ -131,6 +135,7 @@ const ressources = {
     recherche: frRecherche,
     clients: frClients,
     vehicules: frVehicules,
+    courtoisie: frCourtoisie,
     planning: frPlanning,
     reception: frReception,
     pointage: frPointage,
@@ -156,6 +161,7 @@ const ressources = {
     recherche: deRecherche,
     clients: deClients,
     vehicules: deVehicules,
+    courtoisie: deCourtoisie,
     planning: dePlanning,
     reception: deReception,
     pointage: dePointage,
@@ -181,6 +187,7 @@ const ressources = {
     recherche: itRecherche,
     clients: itClients,
     vehicules: itVehicules,
+    courtoisie: itCourtoisie,
     planning: itPlanning,
     reception: itReception,
     pointage: itPointage,

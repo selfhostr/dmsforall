@@ -559,6 +559,20 @@ export const TOUTES_ACTIONS = [
   'reprise.plan.valider',
   'reprise.import.lire',
   'reprise.import.lancer',
+  // ---- Véhicules de courtoisie et travaux reportés saisis à la main --------------------------------
+  //    `courtoisie.lire` : voir le parc et sa disponibilité (« une voiture libre jeudi ? ») —
+  //    réceptionnaire, chef d'atelier, direction, admin, technicien (le mécanicien prête aussi la
+  //    voiture au client qui attend, mais ne décide pas du parc). `courtoisie.preter` : créer,
+  //    rendre ou annuler un prêt — comptoir seulement (réceptionnaire et au-dessus, pas
+  //    technicien). `courtoisie.parc.gerer` : ajouter/modifier/retirer un véhicule du parc —
+  //    chef d'atelier, direction, admin. `vehicule.travail_reporte.signaler` : noter un travail
+  //    « à faire la prochaine fois » — réceptionnaire, chef d'atelier, direction, admin ET
+  //    technicien (c'est le mécanicien sous le capot qui le voit). Corriger/clore un travail reste
+  //    `vehicule.travail_reporte.gerer`. Aucune de ces actions n'est financière (admin inclus).
+  'courtoisie.lire',
+  'courtoisie.preter',
+  'courtoisie.parc.gerer',
+  'vehicule.travail_reporte.signaler',
 ] as const;
 
 /**
@@ -2148,6 +2162,30 @@ const DROITS_REPRISE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[
   poste_atelier: [],
 };
 
+// =================================================================================================
+// Véhicules de courtoisie + signalement de travaux reportés — voir le commentaire des quatre
+// entrées de `TOUTES_ACTIONS` ci-dessus.
+// =================================================================================================
+const COURTOISIE_LECTURE: readonly Action[] = ['courtoisie.lire'];
+const COURTOISIE_COMPTOIR: readonly Action[] = [
+  ...COURTOISIE_LECTURE,
+  'courtoisie.preter',
+  'vehicule.travail_reporte.signaler',
+];
+const COURTOISIE_COMPLETE: readonly Action[] = [...COURTOISIE_COMPTOIR, 'courtoisie.parc.gerer'];
+
+const DROITS_COURTOISIE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
+  receptionnaire: [...COURTOISIE_COMPTOIR],
+  chef_atelier: [...COURTOISIE_COMPLETE],
+  direction: [...COURTOISIE_COMPLETE],
+  admin: [...COURTOISIE_COMPLETE],
+  technicien: [...COURTOISIE_LECTURE, 'vehicule.travail_reporte.signaler'],
+  vendeur: [],
+  magasinier: [],
+  comptable: [],
+  poste_atelier: [],
+};
+
 export const MATRICE_DROITS = {
   admin: [
     ...DROITS_ADMIN,
@@ -2167,6 +2205,7 @@ export const MATRICE_DROITS = {
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.admin,
     ...DROITS_UTILISATEUR_PAR_ROLE.admin,
     ...DROITS_REPRISE_PAR_ROLE.admin,
+    ...DROITS_COURTOISIE_PAR_ROLE.admin,
   ],
   direction: [
     ...DROITS_DIRECTION,
@@ -2186,6 +2225,7 @@ export const MATRICE_DROITS = {
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.direction,
     ...DROITS_UTILISATEUR_PAR_ROLE.direction,
     ...DROITS_REPRISE_PAR_ROLE.direction,
+    ...DROITS_COURTOISIE_PAR_ROLE.direction,
   ],
   vendeur: [
     ...DROITS_VENDEUR,
@@ -2205,6 +2245,7 @@ export const MATRICE_DROITS = {
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.vendeur,
     ...DROITS_UTILISATEUR_PAR_ROLE.vendeur,
     ...DROITS_REPRISE_PAR_ROLE.vendeur,
+    ...DROITS_COURTOISIE_PAR_ROLE.vendeur,
   ],
   receptionnaire: [
     ...DROITS_RECEPTIONNAIRE,
@@ -2224,6 +2265,7 @@ export const MATRICE_DROITS = {
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.receptionnaire,
     ...DROITS_UTILISATEUR_PAR_ROLE.receptionnaire,
     ...DROITS_REPRISE_PAR_ROLE.receptionnaire,
+    ...DROITS_COURTOISIE_PAR_ROLE.receptionnaire,
   ],
   chef_atelier: [
     ...DROITS_CHEF_ATELIER,
@@ -2243,6 +2285,7 @@ export const MATRICE_DROITS = {
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.chef_atelier,
     ...DROITS_UTILISATEUR_PAR_ROLE.chef_atelier,
     ...DROITS_REPRISE_PAR_ROLE.chef_atelier,
+    ...DROITS_COURTOISIE_PAR_ROLE.chef_atelier,
   ],
   technicien: [
     ...DROITS_TECHNICIEN,
@@ -2262,6 +2305,7 @@ export const MATRICE_DROITS = {
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.technicien,
     ...DROITS_UTILISATEUR_PAR_ROLE.technicien,
     ...DROITS_REPRISE_PAR_ROLE.technicien,
+    ...DROITS_COURTOISIE_PAR_ROLE.technicien,
   ],
   magasinier: [
     ...DROITS_MAGASINIER,
@@ -2281,6 +2325,7 @@ export const MATRICE_DROITS = {
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.magasinier,
     ...DROITS_UTILISATEUR_PAR_ROLE.magasinier,
     ...DROITS_REPRISE_PAR_ROLE.magasinier,
+    ...DROITS_COURTOISIE_PAR_ROLE.magasinier,
   ],
   comptable: [
     ...DROITS_COMPTABLE,
@@ -2300,6 +2345,7 @@ export const MATRICE_DROITS = {
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.comptable,
     ...DROITS_UTILISATEUR_PAR_ROLE.comptable,
     ...DROITS_REPRISE_PAR_ROLE.comptable,
+    ...DROITS_COURTOISIE_PAR_ROLE.comptable,
   ],
   poste_atelier: [
     ...DROITS_POSTE_ATELIER,
@@ -2319,6 +2365,7 @@ export const MATRICE_DROITS = {
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.poste_atelier,
     ...DROITS_UTILISATEUR_PAR_ROLE.poste_atelier,
     ...DROITS_REPRISE_PAR_ROLE.poste_atelier,
+    ...DROITS_COURTOISIE_PAR_ROLE.poste_atelier,
   ],
 } as const satisfies Readonly<Record<RoleUtilisateur, readonly Action[]>>;
 

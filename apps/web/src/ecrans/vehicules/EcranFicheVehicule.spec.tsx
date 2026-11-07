@@ -134,6 +134,7 @@ const CONTEXTE: ReponseContexteAtelier = {
         ligneOrOrigineId: null,
         ordreReparationRepriseId: null,
         motifModification: null,
+        detail: null,
       },
       {
         id: 't2',
@@ -148,6 +149,7 @@ const CONTEXTE: ReponseContexteAtelier = {
         ligneOrOrigineId: null,
         ordreReparationRepriseId: null,
         motifModification: null,
+        detail: null,
       },
     ],
   },
@@ -174,6 +176,7 @@ const TRAVAUX_REPORTES: readonly ReponseTravailReporte[] = [
     ligneOrOrigineId: null,
     ordreReparationRepriseId: null,
     motifModification: null,
+    detail: null,
   },
   {
     id: 't2',
@@ -188,6 +191,7 @@ const TRAVAUX_REPORTES: readonly ReponseTravailReporte[] = [
     ligneOrOrigineId: null,
     ordreReparationRepriseId: null,
     motifModification: null,
+    detail: null,
   },
 ];
 

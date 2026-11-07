@@ -92,6 +92,7 @@ export const chemins = {
     rendezVous: {
       agenda: (site?: string) => construireChemin('/rendez-vous', { site }),
     },
+    courtoisie: (site?: string) => construireChemin('/courtoisie', { site }),
   },
   /** Facturation (étape 2) — ces chemins n'avaient AUCUN constructeur avant le Lot D : la barre
    *  latérale pointait `/factures` en chaîne brute et les écrans de facturation naviguaient en

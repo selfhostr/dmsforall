@@ -250,6 +250,15 @@
     },
     "erreur": {
       "titre": "Impossible de charger les travaux reportés"
+    },
+    "reporter": {
+      "bouton": "Reporter un travail",
+      "titre": "Reporter un travail",
+      "description": "Notez ce qui sera à faire à la prochaine visite : il ressortira sur la fiche du véhicule et à l'ouverture du prochain OR.",
+      "designationPlaceholder": "Ex. : courroie de distribution",
+      "detail": "Détail (facultatif)",
+      "enregistrer": "Enregistrer",
+      "erreurValidation": "Indiquez le travail à faire (200 caractères au plus)."
     }
   },
   "donnees": {
