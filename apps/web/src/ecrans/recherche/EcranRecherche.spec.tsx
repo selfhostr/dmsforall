@@ -70,7 +70,7 @@ const REPONSE_DOCUMENT_VENTE: ReponseRecherche = {
         typeDocument: 'facture',
         statut: 'emis',
         clientNom: 'Meier Hans',
-        dateDocument: '15.03.2026',
+        dateDocument: '2026-03-15',
       },
     },
   ],
@@ -161,6 +161,8 @@ describe('EcranRecherche', () => {
     expect(await screen.findByText('FA-2026-000123')).toBeInTheDocument();
     // Nature du document — même badge que la fiche facture (BadgeTypeDocument), aucun montant.
     expect(screen.getByText('Facture')).toBeInTheDocument();
+    // Date du document rendue au format suisse (contrat ISO `2026-03-15`, jamais brute).
+    expect(screen.getByText('15.03.2026')).toBeInTheDocument();
 
     await userEvent.setup().click(screen.getByText('FA-2026-000123'));
 
