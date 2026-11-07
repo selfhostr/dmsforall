@@ -156,18 +156,30 @@ export class ServiceParametresAtelier {
     }
   }
 
+  /**
+   * Charge la ligne du tenant ; si elle manque (garage créé avant que `creer-garage` ne la pose,
+   * ou ligne jamais écrite), la crée avec les valeurs par défaut de la base — `on conflict do
+   * nothing` rend la création concurrente inoffensive. Un garage neuf n'a ainsi jamais de 404.
+   */
   private async chargerLigne(
     tx: TransactionDfa,
     tenantId: string,
   ): Promise<schema.LigneParametreAtelier> {
-    const [ligne] = await tx
-      .select()
-      .from(schema.parametreAtelier)
-      .where(eq(schema.parametreAtelier.tenantId, tenantId));
+    const lire = (): Promise<schema.LigneParametreAtelier[]> =>
+      tx
+        .select()
+        .from(schema.parametreAtelier)
+        .where(eq(schema.parametreAtelier.tenantId, tenantId));
+
+    const [existante] = await lire();
+    if (existante) return existante;
+
+    await tx.insert(schema.parametreAtelier).values({ tenantId }).onConflictDoNothing();
+    const [ligne] = await lire();
     if (!ligne) {
       throw new ErreurMetier(
         'RESSOURCE_INTROUVABLE',
-        'Paramètres atelier introuvables pour ce tenant : la ligne de paramétrage aurait dû être créée à la création du tenant.',
+        'Paramètres atelier introuvables pour ce tenant et impossibles à initialiser.',
       );
     }
     return ligne;

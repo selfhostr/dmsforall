@@ -65,6 +65,22 @@ import { adresseDepuisJsonb, ServiceDocumentsVente } from './service-documents';
  * ce service ne réimplémente aucune règle de légalité de transition, il se contente d'écrire le
  * statut et de traduire le `ZDFA1` si la base refuse.
  */
+/**
+ * Avertissement `FACTURE_SANS_QR` : une facture émise sans bloc QR (bloc créancier incomplet à
+ * l'émission). La facture est valide et verrouillée ; seul le bulletin de paiement manque.
+ */
+function avertissementsSansQr(documentId: string, sansQr: boolean): Avertissement[] {
+  if (!sansQr) return [];
+  return [
+    {
+      code: 'FACTURE_SANS_QR',
+      message:
+        'Facture émise sans QR-facture : complétez vos coordonnées bancaires (Réglages > Facturation).',
+      donnees: { documentId },
+    },
+  ];
+}
+
 @Injectable()
 export class ServiceEmissionDocument {
   private readonly journal = new Logger(ServiceEmissionDocument.name);
@@ -120,8 +136,16 @@ export class ServiceEmissionDocument {
         corps: { documentId, ...entree },
       },
       async (tx) => {
-        const document = await this.emettreCoeurTx(tx, ctx, principal, documentId);
-        return { statutHttp: 200, corps: { donnees: document, avertissements: [] } };
+        const { document, sansQr } = await this.emettreCoeurDetailleTx(
+          tx,
+          ctx,
+          principal,
+          documentId,
+        );
+        return {
+          statutHttp: 200,
+          corps: { donnees: document, avertissements: avertissementsSansQr(documentId, sansQr) },
+        };
       },
     );
 
@@ -173,6 +197,16 @@ export class ServiceEmissionDocument {
     principal: PrincipalAuthentifie,
     documentId: string,
   ): Promise<ReponseDocumentVente> {
+    return (await this.emettreCoeurDetailleTx(tx, ctx, principal, documentId)).document;
+  }
+
+  /** Comme `emettreCoeurTx`, et dit si une FACTURE vient d'être émise sans bloc QR. */
+  private async emettreCoeurDetailleTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    documentId: string,
+  ): Promise<{ readonly document: ReponseDocumentVente; readonly sansQr: boolean }> {
     const doc = await chargerDocumentPourEcriture(tx, ctx, documentId);
     if (doc.statut !== 'brouillon') {
       throw new ErreurMetier(
@@ -279,11 +313,19 @@ export class ServiceEmissionDocument {
 
     // 2.5. RF-54/PF-03/MD-73 : bloc créancier — uniquement une FACTURE doit être payée (devis et
     // bon de commande n'exigent jamais de coordonnées bancaires ; un avoir crédite le client, il
-    // ne se paie pas par QR-facture, donc n'en porte jamais). Vérifié ICI, avant l'allocation du
-    // numéro (RF-26) : une facture ne doit jamais consommer un numéro pour finir sans QR faute de
-    // coordonnées bancaires du garage — voir `qr-emission.ts`.
-    const blocCreancier =
-      doc.typeDocument === 'facture' ? await resoudreBlocCreancierPourEmission(tx, ctx) : null;
+    // ne se paie pas par QR-facture, donc n'en porte jamais). Résolu ICI, avant l'allocation du
+    // numéro (RF-26).
+    //
+    // Un bloc créancier incomplet NE BLOQUE PLUS l'émission : un garage neuf n'a pas encore
+    // saisi son IBAN, et une facture réglée au comptoir (espèces, carte) n'a besoin d'aucun QR.
+    // La facture est émise SANS QR-facture (`qr_*`/`creancier_*` restent NULL, colonnes nullables) ;
+    // `emettre()` le signale par l'avertissement `FACTURE_SANS_QR`. La lecture n'écrit rien avant
+    // le refus : l'attraper dans la transaction ne la corrompt pas.
+    const resolution =
+      doc.typeDocument === 'facture'
+        ? await this.resoudreBlocCreancierOuNull(tx, ctx)
+        : { bloc: null, incomplet: false };
+    const blocCreancier = resolution.bloc;
 
     // 3. MD-44/45 : agrège la TVA par (régime, taux) depuis les lignes — jamais sur le total.
     const ventilation = agregerTvaParTauxRegime(
@@ -523,7 +565,28 @@ export class ServiceEmissionDocument {
     }
 
     const document = await this.documents.assemblerDocument(tx, ctx, principal.role, documentId);
-    return document;
+    return { document, sansQr: resolution.incomplet };
+  }
+
+  /**
+   * `resoudreBlocCreancierPourEmission` ou `null` si le bloc créancier est absent/incomplet/invalide
+   * (`QR_CREANCIER_INCOMPLET`). Toute autre erreur remonte telle quelle.
+   */
+  private async resoudreBlocCreancierOuNull(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+  ): Promise<{
+    readonly bloc: Awaited<ReturnType<typeof resoudreBlocCreancierPourEmission>> | null;
+    readonly incomplet: boolean;
+  }> {
+    try {
+      return { bloc: await resoudreBlocCreancierPourEmission(tx, ctx), incomplet: false };
+    } catch (erreur) {
+      if (erreur instanceof ErreurMetier && erreur.code === 'QR_CREANCIER_INCOMPLET') {
+        return { bloc: null, incomplet: true };
+      }
+      throw erreur;
+    }
   }
 
   /**

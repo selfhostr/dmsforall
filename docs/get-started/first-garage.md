@@ -5,19 +5,25 @@ description: Create the first garage account, then the sites, users and invoicin
 
 At the end of this page, the garage has its first account, its sites, its staff accounts and the invoicing settings needed to issue a first invoice.
 
-Create the garage, its site `PRINCIPAL`, its first `direction` account and an audit line with one command:
+Create the garage, its site (named after the garage), its first `direction` account and an audit line with one command. The garage also gets its workshop settings, an hourly rate `ATELIER` (CHF 140.00) and eight appointment reasons (service, tyres, MFK inspection, brakes, diagnosis, bodywork, air conditioning, other), so it can take appointments on day one. All of it can be changed in the settings:
 
 ```sh
 docker compose exec api node dist/cli/creer-garage.js --garage "Garage Exemple" --email direction@example.ch
 ```
 
-Optional: `--first-name X` and `--last-name Y`.
+Optional: `--first-name X` and `--last-name Y`. Run with `--help` for the full usage.
+
+In development, run the same command from the repository root. It reads `DATABASE_URL_MIGRATION` from the root `.env`, like the API:
+
+```sh
+pnpm --filter @dfa/api exec tsx src/cli/creer-garage.ts --garage "Garage Exemple" --email direction@example.ch
+```
 
 The password is read from the variable `DFA_PREMIER_MOT_DE_PASSE`. If it is not set, the command asks for it without echo. The interactive prompt has not been tested yet.
 
 The command exits with status 1 and one of these codes:
 
-- `MOT_DE_PASSE_FAIBLE`: the password is too weak;
+- `MOT_DE_PASSE_FAIBLE`: the password is too weak. The message says why: too common, too predictable, or it contains the e-mail address;
 - `GARAGE_EXISTANT`: a garage with this name already exists;
 - `COURRIEL_EXISTANT`: the e-mail address is already used.
 
@@ -39,7 +45,7 @@ For a shared workshop terminal, create an account with the role `poste_atelier` 
 
 Fill in the company name and address, the VAT number and regime, the bank details, and the creditor block. The creditor block is copied onto each invoice when it is issued.
 
-Invoices with a QR-bill cannot be issued without a complete creditor block.
+An invoice can be issued without a complete creditor block, for example when it is paid in cash. It then has no QR-bill, and the application warns you. Fill in the creditor block before you send invoices that must be paid by transfer.
 
 ## 5. Issue a test document
 

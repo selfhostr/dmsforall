@@ -35,9 +35,11 @@ export class ServiceParametresSite {
     const colonnes = versColonnesMiseAJourSite(entree);
 
     return this.acces.enTenant(ctx, async (tx) => {
+      // Garantit l'existence de la ligne (ou lève 404 si le site n'est pas à ce tenant) AVANT
+      // l'UPDATE : sur un garage créé avant les défauts, l'UPDATE seul ne toucherait rien.
+      const ligneActuelle = await this.chargerLigne(tx, ctx.tenantId, siteId);
       if (Object.keys(colonnes).length === 0) {
-        const ligne = await this.chargerLigne(tx, ctx.tenantId, siteId);
-        return versDtoParametresSite(ligne);
+        return versDtoParametresSite(ligneActuelle);
       }
 
       const [ligne] = await tx
@@ -61,24 +63,39 @@ export class ServiceParametresSite {
     });
   }
 
+  /**
+   * Charge la ligne du site ; si le site existe dans ce tenant mais n'a pas encore de ligne de
+   * paramètres (garage créé avant `creer-garage` à jour), la crée avec les valeurs par défaut.
+   * Un site inconnu de ce tenant reste un `404` : on ne crée jamais de paramètres pour lui.
+   */
   private async chargerLigne(
     tx: TransactionDfa,
     tenantId: string,
     siteId: string,
   ): Promise<schema.LigneParametreSite> {
-    const [ligne] = await tx
-      .select()
-      .from(schema.parametreSite)
-      .where(
-        and(eq(schema.parametreSite.tenantId, tenantId), eq(schema.parametreSite.siteId, siteId)),
-      );
+    const lire = (): Promise<schema.LigneParametreSite[]> =>
+      tx
+        .select()
+        .from(schema.parametreSite)
+        .where(
+          and(eq(schema.parametreSite.tenantId, tenantId), eq(schema.parametreSite.siteId, siteId)),
+        );
 
-    if (!ligne) {
-      throw new ErreurMetier(
-        'RESSOURCE_INTROUVABLE',
-        `Paramètres du site "${siteId}" introuvables pour ce tenant.`,
-      );
+    const [existante] = await lire();
+    if (existante) return existante;
+
+    const [site] = await tx
+      .select({ id: schema.site.id })
+      .from(schema.site)
+      .where(and(eq(schema.site.tenantId, tenantId), eq(schema.site.id, siteId)));
+    if (site) {
+      await tx.insert(schema.parametreSite).values({ tenantId, siteId }).onConflictDoNothing();
+      const [creee] = await lire();
+      if (creee) return creee;
     }
-    return ligne;
+    throw new ErreurMetier(
+      'RESSOURCE_INTROUVABLE',
+      `Paramètres du site "${siteId}" introuvables pour ce tenant.`,
+    );
   }
 }

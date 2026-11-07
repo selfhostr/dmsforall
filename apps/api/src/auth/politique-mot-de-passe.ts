@@ -144,16 +144,32 @@ export class ServicePolitiqueMotDePasse {
   verifier(motDePasse: string, indices: IndicesMotDePasse): void {
     const normalise = motDePasse.trim().toLowerCase();
 
-    if (MOTS_DE_PASSE_COURANTS.has(normalise) || estMotifTrivial(motDePasse)) {
+    if (MOTS_DE_PASSE_COURANTS.has(normalise)) {
       throw new ErreurMetier(
         'VALIDATION_ECHOUEE',
-        'Ce mot de passe est trop commun ou trop prévisible — choisissez-en un autre.',
+        'Ce mot de passe est trop courant : il figure parmi les plus fréquemment compromis. Choisissez-en un autre.',
         {
           erreurs: [
             {
               champ: 'nouveauMotDePasse',
               code: 'mot_de_passe_trop_commun',
               message: 'Ce mot de passe figure parmi les plus fréquemment compromis.',
+            },
+          ],
+        },
+      );
+    }
+
+    if (estMotifTrivial(motDePasse)) {
+      throw new ErreurMetier(
+        'VALIDATION_ECHOUEE',
+        'Ce mot de passe est trop prévisible : un seul caractère répété, ou une suite (abcdef, 123456). Choisissez-en un autre.',
+        {
+          erreurs: [
+            {
+              champ: 'nouveauMotDePasse',
+              code: 'mot_de_passe_trop_previsible',
+              message: 'Un seul caractère répété ou une suite de caractères consécutifs.',
             },
           ],
         },
