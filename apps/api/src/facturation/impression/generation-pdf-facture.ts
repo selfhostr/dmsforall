@@ -78,6 +78,17 @@ export interface ExpediteurImpression {
   readonly localite: string | null;
 }
 
+/** Logo en haut à droite, dans une boîte de 140 x 60 pt. Un fichier que `pdfkit` ne sait pas
+ *  décoder est ignoré : un logo illisible ne doit jamais empêcher d'imprimer une facture. */
+function dessinerLogo(doc: PDFKit.PDFDocument, logo: Buffer | null | undefined): void {
+  if (!logo) return;
+  try {
+    doc.image(logo, doc.page.width - MARGE_PT - 140, MARGE_PT, { fit: [140, 60], align: 'right' });
+  } catch {
+    // ignoré
+  }
+}
+
 function dessinerEnTete(
   doc: PDFKit.PDFDocument,
   document: ReponseDocumentVente,
@@ -85,7 +96,9 @@ function dessinerEnTete(
   titre: string,
   l: LibellesFacture,
   lignesSousTitre: readonly string[] = [],
+  logo?: Buffer | null,
 ): void {
+  dessinerLogo(doc, logo);
   doc.fontSize(9).fillColor('#333333');
   doc.text(expediteur.nom, MARGE_PT, MARGE_PT);
   if (expediteur.rue) {
@@ -232,6 +245,7 @@ function dessinerRecapitulatifTva(
 export async function genererPdfFacture(
   document: ReponseDocumentVente,
   expediteur?: ExpediteurImpression,
+  logo?: Buffer | null,
 ): Promise<Buffer> {
   if (document.typeDocument !== 'facture' || (document.qr == null && !expediteur)) {
     throw new ErreurMetier(
@@ -289,6 +303,8 @@ export async function genererPdfFacture(
       expediteurFacture,
       libelles.factureNumero(document.numero ?? ''),
       libelles,
+      [],
+      logo,
     );
     dessinerLignes(pdf, document.lignes, libelles, document.devise);
     dessinerRecapitulatifTva(pdf, totaux, libelles, document.devise);
@@ -330,6 +346,7 @@ export function dateValiditeDevis(dateDocument: string): string {
 export async function genererPdfDevis(
   document: ReponseDocumentVente,
   expediteur: ExpediteurImpression,
+  logo?: Buffer | null,
 ): Promise<Buffer> {
   if (document.typeDocument !== 'devis') {
     throw new ErreurMetier(
@@ -361,7 +378,7 @@ export async function genererPdfDevis(
     pdf.on('end', () => resolve(Buffer.concat(morceaux)));
     pdf.on('error', reject);
 
-    dessinerEnTete(pdf, document, expediteur, titre, libelles, [validite]);
+    dessinerEnTete(pdf, document, expediteur, titre, libelles, [validite], logo);
     dessinerLignes(pdf, document.lignes, libelles, document.devise);
     dessinerRecapitulatifTva(pdf, totaux, libelles, document.devise);
     pdf.moveDown(1.5);

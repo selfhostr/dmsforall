@@ -70,6 +70,6 @@ import { VehiculeTravailReporteController } from './vehicule-travail-reporte.con
     ServiceVehiculeTravailReporte,
     ServiceReferentielVehiculesCh,
   ],
-  exports: [ServiceVehiculeTravailReporte],
+  exports: [ServiceVehiculeTravailReporte, ServiceVehicule],
 })
 export class VehiculesModule {}

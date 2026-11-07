@@ -31,7 +31,9 @@ import {
   schemaActionRouvrir,
   schemaActionTerminer,
   schemaActionValiderControle,
+  schemaCreationRapideOrdreReparation,
   schemaFacturationOrdreReparation,
+  schemaFacturerEtEncaisserOr,
   schemaIdentifiant,
   type EntreeActionAnnuler,
   type EntreeActionReceptionner,
@@ -41,7 +43,9 @@ import {
   type EntreeActionRouvrir,
   type EntreeActionTerminer,
   type EntreeActionValiderControle,
+  type EntreeCreationRapideOrdreReparation,
   type EntreeFacturationOrdreReparation,
+  type EntreeFacturerEtEncaisserOr,
 } from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../common/contexte';
@@ -52,9 +56,13 @@ import { PipeZod } from '../common/validation';
 
 import {
   EnveloppeOrDto,
+  ReponseCreationRapideOrdreReparationDto,
   ReponseFacturationOrdreReparationDto,
+  ReponseFacturerEtEncaisserOrDto,
   ReponseOrdreReparationDto,
 } from './dto';
+import { ServiceCreationRapideOr } from './service-creation-rapide-or';
+import { ServiceFacturationEncaissementOr } from './service-facturation-encaissement-or';
 import { ServiceFacturationOr } from './service-facturation-or';
 import { ServiceTransitions } from './service-transitions';
 
@@ -65,6 +73,14 @@ const EnveloppeOrdreReparationDto = EnveloppeOrDto(
 const EnveloppeFacturationOrDto = EnveloppeOrDto(
   ReponseFacturationOrdreReparationDto,
   'FacturationOr',
+);
+const EnveloppeCreationRapideOrDto = EnveloppeOrDto(
+  ReponseCreationRapideOrdreReparationDto,
+  'CreationRapideOr',
+);
+const EnveloppeFacturerEtEncaisserOrDto = EnveloppeOrDto(
+  ReponseFacturerEtEncaisserOrDto,
+  'FacturerEtEncaisserOr',
 );
 
 /**
@@ -86,6 +102,8 @@ export class OrdreReparationTransitionsController {
   constructor(
     private readonly transitions: ServiceTransitions,
     private readonly facturation: ServiceFacturationOr,
+    private readonly facturationEncaissement: ServiceFacturationEncaissementOr,
+    private readonly creationRapide: ServiceCreationRapideOr,
     private readonly contexte: ServiceContexteRequete,
   ) {}
 
@@ -429,6 +447,106 @@ export class OrdreReparationTransitionsController {
       entree,
       cleIdempotence ?? '',
     );
+
+    res.status(resultat.reponse.statutHttp);
+    if (resultat.rejoue) res.setHeader('Idempotency-Rejeu', 'true');
+    return resultat.reponse.corps;
+  }
+
+  @Post(':orId/facturer-et-encaisser')
+  @HttpCode(HttpStatus.CREATED)
+  @ExigerDroit('facturation.document.creer')
+  @ApiOperation({
+    summary:
+      'Comptoir en un appel : crée la facture du groupe client, l’ÉMET, puis encaisse son solde si `paiement` est fourni.',
+    description:
+      'Même logique que `POST .../facturer` (groupe `client`) suivie de l’émission, dans UNE transaction. ' +
+      'L’encaissement (`especes`, `carte` ou `twint`, montant par défaut = solde) s’exécute dans un savepoint : ' +
+      's’il échoue, la facture reste émise et la réponse porte l’avertissement `ENCAISSEMENT_ECHOUE` (sans `paiement`). ' +
+      'Arrondi 5 ct espèces seulement, en faveur du client (1 ou 2 ct), uniquement si le solde exact est encaissé. ' +
+      'Droits : `facturation.document.creer` + droit d’émettre une facture + `facturation.paiement.creer` si `paiement` est fourni.',
+  })
+  @ApiParam({ name: 'orId', format: 'uuid' })
+  @ApiHeader({
+    name: EN_TETE_IDEMPOTENCE,
+    required: true,
+    description:
+      'uuid v4 — un rejeu à l’identique rend la même facture (en-tête `Idempotency-Rejeu`).',
+  })
+  @ApiResponse({ status: 201, type: EnveloppeFacturerEtEncaisserOrDto })
+  @ApiReponseProbleme(400, 'Corps invalide ou Idempotency-Key manquante/mal formée.')
+  @ApiReponseProbleme(401, 'Session absente ou expirée.')
+  @ApiReponseProbleme(403, 'Droit insuffisant (créer, émettre une facture ou encaisser).')
+  @ApiReponseProbleme(404, 'Ordre de réparation introuvable pour ce tenant.')
+  @ApiReponseProbleme(
+    409,
+    'OR_TRANSITION_INTERDITE, FACTURATION_LIGNES_INDECISES, OR_FACTURATION_AUCUNE_LIGNE, CONFIRMATION_REQUISE, DOCUMENT_VERROUILLE ou IDEMPOTENCE_CONFLIT.',
+  )
+  async facturerEtEncaisser(
+    @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
+    @CorpsZod(schemaFacturerEtEncaisserOr, {
+      exemple: { paiement: { mode: 'especes' } },
+    })
+    entree: EntreeFacturerEtEncaisserOr,
+    @Headers(EN_TETE_IDEMPOTENCE.toLowerCase()) cleIdempotence: string | undefined,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<unknown> {
+    const ctx = this.contexte.contexteTenant();
+    const principal = this.contexte.exigerPrincipal();
+    const resultat = await this.facturationEncaissement.facturerEtEncaisser(
+      ctx,
+      principal,
+      orId,
+      entree,
+      cleIdempotence ?? '',
+    );
+
+    res.status(resultat.reponse.statutHttp);
+    if (resultat.rejoue) res.setHeader('Idempotency-Rejeu', 'true');
+    return resultat.reponse.corps;
+  }
+
+  @Post('creation-rapide')
+  @HttpCode(HttpStatus.CREATED)
+  @ExigerDroit('atelier.or.creer')
+  @ApiOperation({
+    summary:
+      'Accueil comptoir en un appel : (client) + (véhicule) + ordre de réparation, une transaction.',
+    description:
+      '`client` : `{ id }` ou `{ nouveau }` ; `vehicule` : `{ id }` ou `{ nouveau }` (le détenteur est le client) ; `or` : corps de ' +
+      '`POST /ordres-reparation` sans `clientId`/`vehiculeId` (`or.confirmations` pour les confirmations). Tout ou rien. ' +
+      'Un doublon client probable ne bloque pas : avertissement `CLIENT_DOUBLON_PROBABLE`. ' +
+      'Créer un client exige `client.creer`, créer un véhicule exige `vehicule.creer`.',
+  })
+  @ApiHeader({
+    name: EN_TETE_IDEMPOTENCE,
+    required: true,
+    description: 'uuid v4 — un rejeu rend les mêmes client, véhicule et OR.',
+  })
+  @ApiResponse({ status: 201, type: EnveloppeCreationRapideOrDto })
+  @ApiReponseProbleme(400, 'Corps invalide ou Idempotency-Key manquante/mal formée.')
+  @ApiReponseProbleme(401, 'Session absente ou expirée.')
+  @ApiReponseProbleme(403, 'Droit insuffisant (OR, client ou véhicule).')
+  @ApiReponseProbleme(404, 'Client ou véhicule existant introuvable pour ce tenant.')
+  @ApiReponseProbleme(
+    409,
+    'CONFLIT, CONFIRMATION_REQUISE, VEHICULE_PLAQUE_COLLISION, OR_KM_ENTREE_REQUIS ou IDEMPOTENCE_CONFLIT : rien n’est créé.',
+  )
+  async creationRapideOr(
+    @CorpsZod(schemaCreationRapideOrdreReparation, {
+      exemple: {
+        client: { nouveau: { type: 'particulier', nom: 'Dupont', prenom: 'Marie' } },
+        vehicule: { nouveau: { plaque: 'VD 123456', marque: 'Renault', modele: 'Clio' } },
+        or: { siteId: '00000000-0000-0000-0000-000000000000', type: 'reparation' },
+      },
+    })
+    entree: EntreeCreationRapideOrdreReparation,
+    @Headers(EN_TETE_IDEMPOTENCE.toLowerCase()) cleIdempotence: string | undefined,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<unknown> {
+    const ctx = this.contexte.contexteTenant();
+    const principal = this.contexte.exigerPrincipal();
+    const resultat = await this.creationRapide.creer(ctx, principal, entree, cleIdempotence ?? '');
 
     res.status(resultat.reponse.statutHttp);
     if (resultat.rejoue) res.setHeader('Idempotency-Rejeu', 'true');

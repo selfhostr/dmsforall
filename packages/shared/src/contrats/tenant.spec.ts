@@ -71,3 +71,13 @@ describe('contrats motifs de rendez-vous', () => {
     expect(r).toEqual({ actif: false });
   });
 });
+
+describe('délai de paiement par défaut', () => {
+  it('entier 0 à 365, 0 compris', () => {
+    const schema = schemaModificationParametresEntreprise;
+    expect(schema.parse({ delaiPaiementJoursDefaut: 0 })).toEqual({ delaiPaiementJoursDefaut: 0 });
+    expect(schema.safeParse({ delaiPaiementJoursDefaut: 366 }).success).toBe(false);
+    expect(schema.safeParse({ delaiPaiementJoursDefaut: -1 }).success).toBe(false);
+    expect(schema.safeParse({ delaiPaiementJoursDefaut: 10.5 }).success).toBe(false);
+  });
+});

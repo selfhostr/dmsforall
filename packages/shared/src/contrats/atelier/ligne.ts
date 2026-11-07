@@ -169,7 +169,17 @@ export const schemaCreationLigneOr = z
   .object({
     type: z.enum(TYPES_LIGNE_OR),
     origine: z.enum(ORIGINES_LIGNE_OR),
-    designation: schemaTexteCourt,
+    /** Obligatoire, SAUF si `travailReporteId` est fourni : la ligne reprend alors la désignation du
+     *  travail reporté (`400 VALIDATION_ECHOUEE` si ni l'une ni l'autre). */
+    designation: schemaTexteCourt.optional(),
+    /**
+     * Reprise d'un travail reporté du véhicule de l'OR (RM-73) : dans la même transaction, la ligne
+     * reprend la désignation (si absente), l'estimation (`prixUnitaireCentimes`, si absent), l'urgence
+     * et le drapeau sécurité du travail, qui passe à `repris` (`ordreReparationRepriseId` = l'OR).
+     * `409 CONFLIT` si le travail n'est pas `ouvert` ; `404` s'il n'appartient pas à ce véhicule.
+     * Le champ `detail` du travail n'a pas d'équivalent sur la ligne d'OR : non recopié.
+     */
+    travailReporteId: schemaIdentifiant.nullish(),
     referenceTexte: z.string().trim().max(80).nullish(),
     /** RP-19/RP-20 (`pieces/reservation.ts`, GELÉ) : quand `type = 'piece'` et
      *  `fournieParClient = false`, réserve la pièce en base — voir `ReponseLigneOr.articleId`. */
@@ -210,7 +220,7 @@ export const schemaCreationLigneOr = z
  * Sur une ligne déjà `validee`, une hausse de montant peut produire `409 OR_PLAFOND_DEPASSE`.
  */
 export const schemaModificationLigneOr = schemaCreationLigneOr
-  .omit({ origine: true, blocage: true })
+  .omit({ origine: true, blocage: true, travailReporteId: true })
   .partial()
   .extend({ blocage: z.enum(BLOCAGES_LIGNE_OR).optional() });
 

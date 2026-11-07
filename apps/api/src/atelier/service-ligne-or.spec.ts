@@ -13,6 +13,7 @@ import {
   ligneOr,
   reservationPiece,
   tauxHoraire,
+  vehiculeTravailReporte,
   type LigneArticle,
   type LigneLigneOr,
   type LigneOrdreReparation,
@@ -270,7 +271,10 @@ function construireSelect(donnees: Map<unknown, unknown[]>) {
         const lignes = donnees.get(table) ?? [];
         const promesse = Promise.resolve(lignes);
         return {
-          limit: vi.fn(async () => lignes),
+          // `.limit(n)` est attendu directement OU suivi de `.for('update')` (verrou de ligne).
+          limit: vi.fn(() =>
+            Object.assign(Promise.resolve(lignes), { for: vi.fn(async () => lignes) }),
+          ),
           then: (onFulfilled: (v: unknown[]) => unknown, onRejected: (e: unknown) => unknown) =>
             promesse.then(onFulfilled, onRejected),
           catch: (onRejected: (e: unknown) => unknown) => promesse.catch(onRejected),
@@ -1639,4 +1643,127 @@ describe('ServiceLigneOr.marquerRealisee — sans pointage, tous types (0076)', 
       expect(appels).toHaveLength(0);
     },
   );
+});
+
+/* ------------------------------------------------------------------------------------------- */
+/* Reprise d'un travail reporté à la création d'une ligne (RM-73)                                 */
+/* ------------------------------------------------------------------------------------------- */
+
+describe('ServiceLigneOr.creer — travailReporteId (reprise d’un travail reporté, RM-73)', () => {
+  function travailFixture(surcharges: Record<string, unknown> = {}) {
+    return {
+      id: 'travail-1',
+      tenantId: 'tenant-a',
+      vehiculeId: VEHICULE_ID,
+      designation: 'Plaquettes arrière à changer',
+      urgence: 'urgent',
+      montantEstimeCentimes: 12_000,
+      securite: true,
+      statut: 'ouvert',
+      ...surcharges,
+    };
+  }
+
+  function preparer(travaux: unknown[], calcul = calculFactice()) {
+    vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(orFixture());
+    vi.mocked(orRequetes.listerLignesOr).mockResolvedValue([]);
+    const ligneInseree = ligneFixture({ type: 'forfait', statut: 'validee', blocage: 'aucun' });
+    const select = construireSelect(new Map([[vehiculeTravailReporte, travaux]]));
+    const { insert, appels: appelsInsert } = construireInsert(
+      new Map<unknown, { lignes?: unknown[]; erreur?: unknown }>([
+        [ligneOr, { lignes: [ligneInseree] }],
+      ]),
+    );
+    const { update, appels: appelsUpdate } = construireUpdate(new Map());
+    const tx = ajouterTransactionPassthrough({
+      select,
+      insert,
+      update,
+    }) as unknown as TransactionDfa;
+    return { service: serviceFacticePieces(tx, calcul), appelsInsert, appelsUpdate, calcul };
+  }
+
+  function entree(surcharges: Record<string, unknown> = {}): EntreeCreationLigneOr {
+    return entreePieceFixture({
+      type: 'forfait',
+      articleId: null,
+      designation: undefined,
+      prixUnitaireCentimes: undefined,
+      travailReporteId: 'travail-1',
+      ...surcharges,
+    } as Partial<EntreeCreationLigneOr>);
+  }
+
+  it('reprend désignation, estimation, urgence et sécurité du travail, et le passe à « repris » dans la même transaction', async () => {
+    const { service, appelsInsert, appelsUpdate, calcul } = preparer([travailFixture()]);
+    const r = await service.creer(CTX, principal('receptionnaire'), OR_ID, entree(), 'idem-tr-1');
+    expect(r.reponse.statutHttp).toBe(201);
+
+    const insertLigne = appelsInsert.find((a) => a.table === ligneOr)?.valeurs as Record<
+      string,
+      unknown
+    >;
+    expect(insertLigne).toMatchObject({
+      designation: 'Plaquettes arrière à changer',
+      prixUnitaireCentimes: 12_000,
+      urgence: 'urgent',
+      securite: true,
+    });
+    expect(calcul.calculer).toHaveBeenCalledWith(
+      expect.objectContaining({ prixUnitaireCentimes: 12_000 }),
+    );
+    expect(appelsUpdate.find((a) => a.table === vehiculeTravailReporte)?.valeurs).toEqual({
+      statut: 'repris',
+      ordreReparationRepriseId: OR_ID,
+    });
+  });
+
+  it('une valeur envoyée par l’appelant l’emporte sur celle du travail', async () => {
+    const { service, appelsInsert } = preparer([travailFixture()]);
+    await service.creer(
+      CTX,
+      principal('receptionnaire'),
+      OR_ID,
+      entree({
+        designation: 'Plaquettes arrière + disques',
+        prixUnitaireCentimes: 30_000,
+        urgence: 'a_surveiller',
+      }),
+      'idem-tr-2',
+    );
+    expect(appelsInsert.find((a) => a.table === ligneOr)?.valeurs).toMatchObject({
+      designation: 'Plaquettes arrière + disques',
+      prixUnitaireCentimes: 30_000,
+      urgence: 'a_surveiller',
+    });
+  });
+
+  it('travail introuvable pour ce véhicule : 404, aucune ligne écrite', async () => {
+    const { service, appelsInsert } = preparer([]);
+    await expect(
+      service.creer(CTX, principal('receptionnaire'), OR_ID, entree(), 'idem-tr-3'),
+    ).rejects.toMatchObject({ code: 'RESSOURCE_INTROUVABLE' });
+    expect(appelsInsert).toHaveLength(0);
+  });
+
+  it('travail déjà repris ou abandonné : 409 CONFLIT, aucune ligne écrite', async () => {
+    const { service, appelsInsert } = preparer([travailFixture({ statut: 'repris' })]);
+    await expect(
+      service.creer(CTX, principal('receptionnaire'), OR_ID, entree(), 'idem-tr-4'),
+    ).rejects.toMatchObject({ code: 'CONFLIT' });
+    expect(appelsInsert).toHaveLength(0);
+  });
+
+  it('ni désignation ni travail reporté : 400 VALIDATION_ECHOUEE', async () => {
+    const { service } = preparer([]);
+    await expect(
+      service.creer(
+        CTX,
+        principal('receptionnaire'),
+        OR_ID,
+        entree({ travailReporteId: undefined }),
+        'idem-tr-5',
+      ),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ECHOUEE' });
+  });
 });

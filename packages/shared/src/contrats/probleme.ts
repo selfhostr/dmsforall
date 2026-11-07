@@ -769,6 +769,11 @@ export const CODES_AVERTISSEMENT = [
   // mais ne porte pas de QR-facture. `donnees.documentId` : la facture concernée. Voie de sortie :
   // renseigner le bloc créancier (`PATCH /parametres-facturation/creancier`) pour les suivantes.
   'FACTURE_SANS_QR',
+  // `POST /ordres-reparation/{orId}/facturer-et-encaisser` : la facture est créée ET émise (acquise,
+  // verrouillée), mais l'encaissement demandé a échoué (montant excédentaire, moyen refusé…). Le
+  // geste n'est PAS annulé : la facture reste émise, son solde est intact, l'encaissement se
+  // refait par `POST /paiements`. `donnees` : `{ factureId, codeErreur }`.
+  'ENCAISSEMENT_ECHOUE',
 ] as const;
 export type CodeAvertissement = (typeof CODES_AVERTISSEMENT)[number];
 

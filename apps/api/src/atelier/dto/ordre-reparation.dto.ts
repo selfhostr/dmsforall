@@ -548,6 +548,12 @@ export class OrdreReparationResumeListeDto implements OrdreReparationResumeListe
   @ApiProperty()
   readonly nombreLignes!: number;
 
+  @ApiProperty({
+    description:
+      "Lignes de cet OR assignées à l'utilisateur courant (hors annulées/refusées) ; 0 pour un compte sans technicien.",
+  })
+  readonly nombreLignesAssignees!: number;
+
   @ApiPropertyOptional({ description: 'Absent pour un rôle sans droit aux montants.' })
   readonly totalTtcCentimes?: number;
 

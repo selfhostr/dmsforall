@@ -27,6 +27,7 @@ import {
   type ExpediteurImpression,
 } from './generation-pdf-facture';
 import { JETON_STOCKAGE_PDF } from './impression.jetons';
+import { lireLogoImprimable } from './logo/service-logo-entreprise';
 import { cleePdfDocument, sha256Hex, type StockagePdf } from './stockage-pdf';
 
 export interface PdfFactureResultat {
@@ -95,6 +96,7 @@ export class ServiceImpressionFacture {
     const buffer = await genererPdfFacture(
       document,
       document.qr === null ? await this.lireExpediteur(ctx) : undefined,
+      await lireLogoImprimable(this.stockage, ctx.tenantId),
     );
     const sha256 = sha256Hex(buffer);
     const cle = cleePdfDocument(ctx.tenantId, documentId);
@@ -117,7 +119,11 @@ export class ServiceImpressionFacture {
     document: ReponseDocumentVente,
   ): Promise<PdfFactureResultat> {
     const expediteur = await this.lireExpediteur(ctx);
-    const buffer = await genererPdfDevis(document, expediteur);
+    const buffer = await genererPdfDevis(
+      document,
+      expediteur,
+      await lireLogoImprimable(this.stockage, ctx.tenantId),
+    );
     const sha256 = sha256Hex(buffer);
     const nomFichier = `Devis-${(document.numero ?? document.id).replace(/[^A-Za-z0-9._-]/g, '_')}.pdf`;
     return { buffer, sha256, nomFichier };
