@@ -103,7 +103,7 @@
     "siteAide": "Le rendez-vous est pris dans ce site. Pour un autre site, changez de site dans le planning."
   },
   "dialogueArrivee": {
-    "titre": "Le véhicule est arrivé",
+    "titre": "Le client est arrivé",
     "confirmer": "Confirmer l’arrivée",
     "confirmationDeuxOrOuverts": "Ce véhicule a déjà deux ordres de réparation ouverts.",
     "confirmationGenerique": "Une confirmation est nécessaire pour enregistrer l’arrivée."

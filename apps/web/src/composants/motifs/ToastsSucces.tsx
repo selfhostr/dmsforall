@@ -42,7 +42,7 @@ function ToastSuccesLigne({ toast }: { readonly toast: ToastSucces }) {
 
   return (
     <div
-      className="pointer-events-auto flex items-center gap-3 rounded-md border border-statut-succes bg-statut-succes-fond p-carte-compacte text-foreground shadow-lg"
+      className="pointer-events-auto flex items-center gap-3 rounded-md border border-input bg-popover p-carte-compacte text-popover-foreground shadow-lg"
       onPointerEnter={() => setSuspendu(true)}
       onPointerLeave={() => setSuspendu(false)}
       onFocus={() => setSuspendu(true)}

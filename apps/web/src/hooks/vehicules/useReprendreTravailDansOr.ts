@@ -40,6 +40,7 @@ export function useReprendreTravailDansOr(
   const cles = useRef(new Map<string, string>());
 
   return useMutation({
+    meta: { succes: 'commun:toasts.travailReporteRepris' },
     mutationFn: async ({ travail, orId }: VariablesReprise) => {
       const cleMemo = `${orId}:${travail.id}`;
       let cle = cles.current.get(cleMemo);

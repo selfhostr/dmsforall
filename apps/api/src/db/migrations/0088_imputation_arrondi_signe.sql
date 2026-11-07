@@ -17,6 +17,8 @@
 -- l'application insère l'arrondi négatif AVANT le règlement qui le compense.
 --
 -- MD-51.b (Σ reglement ≤ montant du paiement) est inchangé : 109.45 ≤ 109.45.
+-- Le commentaire de la table (réécrit par 0019) n'est volontairement pas touché : un down qui le
+-- restaurerait écraserait celui de 0019 (échec de la vérification de réversibilité).
 -- Réversible : migrations/down/0088_imputation_arrondi_signe.down.sql.
 -- =============================================================================================
 
@@ -71,8 +73,3 @@ begin
   return null;
 end
 $fn$;
-
-comment on table public.imputation_paiement is
-  'Ce que le paiement solde (MD-50). MD-51 : deux invariants agrégés, vérifiés par trigger AFTER '
-  'INSERT — (a) Σ imputations d''un document ≤ |total| du document (valeur absolue, sauf ''arrondi'' '
-  'signé, CF-05) ; (b) Σ imputations de nature ''reglement'' d''un paiement ≤ |montant| du paiement.';

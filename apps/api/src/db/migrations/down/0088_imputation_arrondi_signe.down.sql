@@ -51,8 +51,3 @@ begin
   return null;
 end
 $fn$;
-
-comment on table public.imputation_paiement is
-  'Ce que le paiement solde (MD-50). MD-51 : deux invariants agrégés, vérifiés par trigger AFTER '
-  'INSERT — (a) Σ imputations d''un document ≤ |total| du document ; (b) Σ imputations de nature '
-  '''reglement'' d''un paiement ≤ |montant| du paiement (restriction volontaire, voir CF-05).';

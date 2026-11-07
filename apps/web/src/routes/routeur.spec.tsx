@@ -312,7 +312,19 @@ describe('routeur — protection par défaut', () => {
     // écrans peuvent se ressembler à l'oeil (un titre, un bouton retour), donc l'assertion porte sur
     // un texte que SEUL l'écran réel produit : le repli « site manquant » de
     // `EcranNouvelOrdreReparation.tsx`, déclenché ici en n'apportant aucun `?site=`.
-    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
+    // Garage à deux sites : en mono-site le site est implicite (`useSiteImplicite`), le repli
+    // « site manquant » n'apparaît alors jamais.
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({
+          ...SESSION_TEST,
+          sites: [
+            ...SESSION_TEST.sites,
+            { id: 'site-2', code: 'S2', nom: 'Second site', actif: true },
+          ],
+        }),
+      ),
+    );
     renduAvecRoutes(routesConfig, {
       routeInitiale: '/atelier/ordres-reparation/nouveau?parcours=classique',
     });

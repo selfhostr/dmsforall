@@ -113,6 +113,12 @@ export function SectionRendezVousVehicule({ vehicule, detenteur, site }: Props) 
   const requeteMotifs = useMotifsRendezVous();
   const creation = useCreationRendezVous();
 
+  /** « jj.mm.aaaa · nom du site » — le créneau seul ne dit ni quel jour ni quel site. */
+  function contexteRendezVous(rdv: ReponseRendezVous): string {
+    const siteNom = session.data?.sites.find((s) => s.id === rdv.siteId)?.nom;
+    return siteNom ? `${formaterDate(rdv.dateLe)} · ${siteNom}` : formaterDate(rdv.dateLe);
+  }
+
   function ouvrirDialogue() {
     const d = requeteDetenteurComplet.data;
     setClientCreation(
@@ -201,6 +207,7 @@ export function SectionRendezVousVehicule({ vehicule, detenteur, site }: Props) 
                 <CarteRendezVous
                   rendezVous={versCarteRendezVous(rdv, langue)}
                   onOuvrir={() => navigate(chemins.atelier.rendezVous.agenda(site?.id))}
+                  contexte={contexteRendezVous(rdv)}
                   dense
                 />
               </li>

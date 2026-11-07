@@ -30,6 +30,7 @@ export function useCreerRendezVous(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation({
+    meta: { succes: 'commun:toasts.rdvCree' },
     mutationFn: ({ entree, idempotencyKey }: VariablesCreationRendezVous) =>
       creerRendezVous(entree, idempotencyKey),
     onSuccess: (reponse) => {

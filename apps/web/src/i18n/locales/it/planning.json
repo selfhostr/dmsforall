@@ -103,7 +103,7 @@
     "siteAide": "L’appuntamento è fissato in questa sede. Per un’altra sede, cambiate sede nella pianificazione."
   },
   "dialogueArrivee": {
-    "titre": "Il veicolo è arrivato",
+    "titre": "Il cliente è arrivato",
     "confirmer": "Confermare l’arrivo",
     "confirmationDeuxOrOuverts": "Questo veicolo ha già due ordini di riparazione aperti.",
     "confirmationGenerique": "È necessaria una conferma per registrare l’arrivo."

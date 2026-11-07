@@ -27,6 +27,7 @@ import { useListeClients } from '@/hooks/clients/useListeClients';
 import { useVehiculesClient } from '@/hooks/clients/useVehiculesClient';
 import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { useCreerDevis } from '@/hooks/facturation/useCreerDevis';
+import { useSiteImplicite } from '@/hooks/site/useSiteImplicite';
 import { useSession } from '@/hooks/useSession';
 import { chemins } from '@/routes/chemins';
 
@@ -62,6 +63,7 @@ export function DialogueNouveauDevis({
 
   const sites = (session.data?.sites ?? []).filter((site) => site.actif);
   const siteUrl = searchParams.get('site') ?? undefined;
+  const { estMonoSite, siteId: siteImplicite } = useSiteImplicite();
 
   const [recherche, setRecherche] = useState('');
   const [rechercheTemporisee] = useValeurDebouncee(recherche.trim(), 300);
@@ -74,7 +76,7 @@ export function DialogueNouveauDevis({
   const [devisCree, setDevisCree] = useState<ReponseDocumentVente | null>(null);
 
   const client = clientFixe ?? clientChoisi;
-  const siteId = siteUrl ?? siteChoisi ?? (sites.length === 1 ? sites[0]?.id : undefined);
+  const siteId = siteUrl ?? siteChoisi ?? siteImplicite;
 
   const resultats = useListeClients(
     { q: rechercheTemporisee },
@@ -264,7 +266,7 @@ export function DialogueNouveauDevis({
               </div>
             ) : null}
 
-            {!siteUrl && sites.length > 1 ? (
+            {!siteUrl && !estMonoSite && sites.length > 1 ? (
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="devis-site" requis>
                   {t('facturation:devis.nouveau.site')}

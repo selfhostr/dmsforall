@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ChampRoleEmploye } from './ChampRoleEmploye';
 import { useCreerUtilisateur } from '@/hooks/parametrage/useCreerUtilisateur';
+import { useSiteImplicite } from '@/hooks/site/useSiteImplicite';
 import { useSession } from '@/hooks/useSession';
 
 interface Props {
@@ -37,6 +38,8 @@ interface Props {
 export function DialogueNouvelEmploye({ ouvert, onFerme, onCree }: Props) {
   const { t } = useTranslation(['parametrage', 'commun', 'erreurs']);
   const { data: session } = useSession();
+  // Garage mono-site : le site est implicite, le champ n'est pas demandé.
+  const { estMonoSite, siteId: siteImplicite } = useSiteImplicite();
   const creer = useCreerUtilisateur();
 
   const [prenom, setPrenom] = useState('');
@@ -58,6 +61,8 @@ export function DialogueNouvelEmploye({ ouvert, onFerme, onCree }: Props) {
   }, [ouvert]);
 
   const sites = session?.sites ?? [];
+  const siteIdsEffectifs: readonly string[] =
+    estMonoSite && siteImplicite ? [siteImplicite] : siteIds;
   // `direction` ne peut jamais créer d'`admin` (auth/gouvernance-roles.ts) — l'option n'apparaît
   // même pas dans le sélecteur pour ce rôle, seul `admin` peut créer un autre `admin`.
   const rolesProposes = ROLES_PERSONNE.filter(
@@ -65,7 +70,7 @@ export function DialogueNouvelEmploye({ ouvert, onFerme, onCree }: Props) {
   );
 
   const formulaireValide =
-    prenom.trim() !== '' && nom.trim() !== '' && email.trim() !== '' && siteIds.length > 0;
+    prenom.trim() !== '' && nom.trim() !== '' && email.trim() !== '' && siteIdsEffectifs.length > 0;
 
   function basculerSite(siteId: string) {
     setSiteIds((valeur) =>
@@ -76,7 +81,13 @@ export function DialogueNouvelEmploye({ ouvert, onFerme, onCree }: Props) {
   function soumettre() {
     if (!formulaireValide) return;
     creer.mutate(
-      { prenom: prenom.trim(), nom: nom.trim(), email: email.trim(), role, siteIds: [...siteIds] },
+      {
+        prenom: prenom.trim(),
+        nom: nom.trim(),
+        email: email.trim(),
+        role,
+        siteIds: [...siteIdsEffectifs],
+      },
       {
         onSuccess: (reponse) => {
           onCree(reponse.acces.motDePasseTemporaire);
@@ -145,36 +156,38 @@ export function DialogueNouvelEmploye({ ouvert, onFerme, onCree }: Props) {
             onChange={setRole}
           />
 
-          <fieldset className="flex flex-col gap-1.5">
-            <legend className="texte-corps font-medium">
-              {t('parametrage:utilisateurs.creation.champSites')} *
-            </legend>
-            {sites.length === 0 ? (
-              <p className="texte-libelle text-muted-foreground">
-                {t('parametrage:utilisateurs.creation.aucunSiteDisponible')}
-              </p>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {sites.map((site) => (
-                  <div key={site.id} className="flex items-center gap-2">
-                    <Checkbox
-                      id={`nouvel-employe-site-${site.id}`}
-                      checked={siteIds.includes(site.id)}
-                      onCheckedChange={() => basculerSite(site.id)}
-                    />
-                    <Label htmlFor={`nouvel-employe-site-${site.id}`} className="font-normal">
-                      {site.nom}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            )}
-            {siteIds.length === 0 ? (
-              <p className="texte-libelle text-muted-foreground">
-                {t('parametrage:utilisateurs.creation.sitesAucunSelectionne')}
-              </p>
-            ) : null}
-          </fieldset>
+          {estMonoSite ? null : (
+            <fieldset className="flex flex-col gap-1.5">
+              <legend className="texte-corps font-medium">
+                {t('parametrage:utilisateurs.creation.champSites')} *
+              </legend>
+              {sites.length === 0 ? (
+                <p className="texte-libelle text-muted-foreground">
+                  {t('parametrage:utilisateurs.creation.aucunSiteDisponible')}
+                </p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {sites.map((site) => (
+                    <div key={site.id} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`nouvel-employe-site-${site.id}`}
+                        checked={siteIds.includes(site.id)}
+                        onCheckedChange={() => basculerSite(site.id)}
+                      />
+                      <Label htmlFor={`nouvel-employe-site-${site.id}`} className="font-normal">
+                        {site.nom}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {siteIds.length === 0 ? (
+                <p className="texte-libelle text-muted-foreground">
+                  {t('parametrage:utilisateurs.creation.sitesAucunSelectionne')}
+                </p>
+              ) : null}
+            </fieldset>
+          )}
         </div>
 
         {creer.error ? (
