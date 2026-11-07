@@ -79,3 +79,21 @@ export const ROLES_POINTAGE_ENCADREMENT: readonly RoleUtilisateur[] = [
   'direction',
   'admin',
 ];
+
+/**
+ * `atelier.ligne.marquer_realisee` (matrice-droits.ts, `INFERE_LIGNE_REALISATION`) :
+ * `technicien`, `chef_atelier`, `direction` (via chef d'atelier), `magasinier`, `admin`.
+ * **`poste_atelier` (la borne) NE l'a PAS, volontairement** (RM-115/RM-131 : aucune transition
+ * d'OR ni de ligne depuis l'écran mural) — ce geste n'est donc proposé que sur l'écran personnel.
+ */
+const ROLES_MARQUER_LIGNE_REALISEE: ReadonlySet<RoleUtilisateur> = new Set([
+  'technicien',
+  'chef_atelier',
+  'direction',
+  'admin',
+  'magasinier',
+]);
+
+export function peutMarquerLigneRealisee(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_MARQUER_LIGNE_REALISEE.has(role);
+}

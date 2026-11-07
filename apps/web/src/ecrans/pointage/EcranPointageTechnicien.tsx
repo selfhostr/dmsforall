@@ -17,9 +17,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
-import { IdentiteClient } from '@/composants/identite/IdentiteClient';
-import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
+import { useMarquerLignesRealisees } from '@/hooks/atelier/useActionsLigneOr';
 import { useOrdreReparation } from '@/hooks/atelier/useOrdreReparation';
 import {
   calculerCumulSecondesCible,
@@ -27,19 +26,28 @@ import {
   useCumulsPointagesJour,
 } from '@/hooks/pointage/cumul-cible-jour';
 import { compterLignesAssigneesPointables } from '@/hooks/pointage/lignes-assignees';
+import { trierParEcheance } from '@/hooks/pointage/ordres-du-jour';
 import { useArreterPointage } from '@/hooks/pointage/useArreterPointage';
 import { useDemarrerPointage } from '@/hooks/pointage/useDemarrerPointage';
 import { useDerniereCiblePointage } from '@/hooks/pointage/useDerniereCiblePointage';
 import { useMesOrdresAssignes } from '@/hooks/pointage/useMesOrdresAssignes';
 import { usePointageOuvertTechnicien } from '@/hooks/pointage/usePointageOuvertTechnicien';
+import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { useSession } from '@/hooks/useSession';
 import { genererUuid } from '@/lib/uuid';
 
+import { BandeauLigneARealiser } from './BandeauLigneARealiser';
 import { BandeauReprisePointage } from './BandeauReprisePointage';
+import { CarteOrDuJour } from './CarteOrDuJour';
 import { CartePointageEnCours } from './CartePointageEnCours';
 import { DialogueChoixCiblePointage } from './DialogueChoixCiblePointage';
-import { peutDemarrerPointage } from './droits';
-import { libelleActiviteIndirecte, libelleCiblePointageTechnicien } from './libelles';
+import { peutDemarrerPointage, peutMarquerLigneRealisee } from './droits';
+import {
+  libelleActiviteIndirecte,
+  libelleCiblePointage,
+  libelleCiblePointageTechnicien,
+  messageErreurPointage,
+} from './libelles';
 import { SelecteurOrOuvert } from './SelecteurOrOuvert';
 import { SelecteurSitePointage } from './SelecteurSitePointage';
 
@@ -183,7 +191,14 @@ export function EcranPointageTechnicien() {
   const [searchParams, setSearchParams] = useSearchParams();
   const siteParam = searchParams.get('site') ?? undefined;
   const sitesActifs = (session?.sites ?? []).filter((site) => site.actif);
-  const siteId = siteParam ?? (sitesActifs.length === 1 ? sitesActifs[0]?.id : undefined);
+  const { preferenceSiteId } = useSiteCourant();
+  // Site des activités indirectes (pause, nettoyage…), dans l'ordre : `?site=` explicite, site
+  // unique du tenant, dernier site choisi sur ce poste (préférence), puis — plus bas, une fois
+  // « Mes OR » chargées — le site commun de tous mes OR. Le sélecteur de site n'apparaît que si
+  // AUCUN de ces repères ne tranche.
+  const preferenceActive = sitesActifs.find((site) => site.id === preferenceSiteId)?.id;
+  const siteConnu =
+    siteParam ?? (sitesActifs.length === 1 ? sitesActifs[0]?.id : undefined) ?? preferenceActive;
 
   const [orSelectionneId, setOrSelectionneId] = useState<string | undefined>(undefined);
   const [cibleJusteChoisie, setCibleJusteChoisie] = useState<CibleJusteChoisie | undefined>(
@@ -192,6 +207,19 @@ export function EcranPointageTechnicien() {
   const [erreurAction, setErreurAction] = useState<string | undefined>(undefined);
   const [avertissementAction, setAvertissementAction] = useState<string | undefined>(undefined);
   const [enChainage, setEnChainage] = useState(false);
+  // Ligne dont le pointage vient d'être ARRÊTÉ (bouton « Arrêter » seulement, pas pause/changer) :
+  // propose de la marquer réalisée en un geste. `fait` -> confirmation seule.
+  const [ligneAFinir, setLigneAFinir] = useState<
+    | {
+        readonly ordreReparationId: string;
+        readonly ligneOrId: string;
+        readonly libelle: string;
+        readonly fait: boolean;
+      }
+    | undefined
+  >(undefined);
+  const [erreurRealisation, setErreurRealisation] = useState<string | undefined>(undefined);
+  const marquerRealisee = useMarquerLignesRealisees(ligneAFinir?.ordreReparationId ?? '');
   // Correctif #148 : `undefined` = pas encore de choix EXPLICITE de l'utilisateur, la visibilité
   // suit alors `mesOrdres` (repliée par défaut, révélée automatiquement dès que « Mes OR du jour »
   // se révèle vide — voir `toutesOrOuvertesVisible` plus bas) ; `true`/`false` = l'utilisateur a
@@ -206,6 +234,10 @@ export function EcranPointageTechnicien() {
 
   const pointageOuvert = usePointageOuvertTechnicien(technicien?.id);
   const mesOrdres = useMesOrdresAssignes(technicien?.id);
+  const sitesDeMesOrdres = new Set((mesOrdres.data ?? []).map((or) => or.siteId));
+  // Site retenu pour les activités indirectes. Quatrième repère : si tous mes OR du jour sont au
+  // MÊME site, c'est là que je travaille — inutile de redemander un site.
+  const siteId = siteConnu ?? (sitesDeMesOrdres.size === 1 ? [...sitesDeMesOrdres][0] : undefined);
   const requeteOrSelectionne = useOrdreReparation(orSelectionneId);
   // Défaut 2 (repli après F5) : le document OR de la cible du pointage OUVERT, dérivé du
   // `ordreReparationId` renvoyé par l'API elle-même (`pointageOuvert.data`), jamais d'un état
@@ -264,6 +296,7 @@ export function EcranPointageTechnicien() {
   ) {
     setErreurAction(undefined);
     setAvertissementAction(undefined);
+    setLigneAFinir(undefined);
     try {
       // `construireEntreeDemarrage` DOIT rester à l'intérieur de ce `try` : c'est une fonction
       // synchrone qui peut lever (ex. génération d'identifiant, voir `@/lib/uuid`), et rien ne
@@ -315,7 +348,7 @@ export function EcranPointageTechnicien() {
       // `throw` ici devenait un rejet de promesse NON RATTRAPÉ, cassant l'écran de sélection.
       // `setErreurAction` ci-dessus reste la seule garantie utile ; `handlePause`/`handleReprendre`
       // (les deux appelants qui `await`) portent leur propre `finally` inconditionnel.
-      setErreurAction(messageErreur(erreur, t));
+      setErreurAction(messageErreurPointage(erreur, t));
     }
   }
 
@@ -361,12 +394,37 @@ export function EcranPointageTechnicien() {
         idempotencyKey: genererCleIdempotence(),
       });
       setAvertissementAction(undefined);
+      setErreurRealisation(undefined);
+      if (
+        p.nature === 'productif_ligne' &&
+        p.ordreReparationId &&
+        p.ligneOrId &&
+        peutMarquerLigneRealisee(role)
+      ) {
+        setLigneAFinir({
+          ordreReparationId: p.ordreReparationId,
+          ligneOrId: p.ligneOrId,
+          libelle: libelleCiblePointage(p, t),
+          fait: false,
+        });
+      }
       // Un pointage « Changer » resté ouvert n'a plus de sens une fois qu'il n'y a plus AUCUN
       // pointage en cours — sans ce reset, un « Changer » démarré puis un « Arrêter » explicite
       // laisserait le sélecteur ouvert en mémoire, prêt à réapparaître au prochain démarrage.
       setChangementCibleOuvert(false);
     } catch (erreur) {
-      setErreurAction(messageErreur(erreur, t));
+      setErreurAction(messageErreurPointage(erreur, t));
+    }
+  }
+
+  async function handleMarquerRealisee() {
+    if (!ligneAFinir) return;
+    setErreurRealisation(undefined);
+    try {
+      await marquerRealisee.mutateAsync([ligneAFinir.ligneOrId]);
+      setLigneAFinir({ ...ligneAFinir, fait: true });
+    } catch (erreur) {
+      setErreurRealisation(messageErreur(erreur, t));
     }
   }
 
@@ -389,7 +447,7 @@ export function EcranPointageTechnicien() {
         siteId: p.siteId,
       });
     } catch (erreur) {
-      setErreurAction(messageErreur(erreur, t));
+      setErreurAction(messageErreurPointage(erreur, t));
     } finally {
       setEnChainage(false);
     }
@@ -430,7 +488,7 @@ export function EcranPointageTechnicien() {
         });
       }
     } catch (erreur) {
-      setErreurAction(messageErreur(erreur, t));
+      setErreurAction(messageErreurPointage(erreur, t));
     } finally {
       setEnChainage(false);
     }
@@ -528,33 +586,19 @@ export function EcranPointageTechnicien() {
             />
           ) : (
             <div className="flex flex-col gap-3">
-              {(mesOrdres.data ?? []).map((or) => (
-                <button
+              {trierParEcheance(mesOrdres.data ?? []).map((or) => (
+                <CarteOrDuJour
                   key={or.id}
-                  type="button"
-                  disabled={!peutDemarrerPointage(role) || enTraitement}
-                  onClick={() => setOrSelectionneId(or.id)}
-                  // Bordure conservée : carte cliquable de sélection d'OR, zone d'action réelle
-                  // (DESIGN.md). `anneau-focus` (dépôt) plutôt que l'anneau natif du navigateur.
-                  className="flex min-h-[72px] flex-col items-start gap-1 rounded-lg border p-4 text-left transition-colors hover:bg-muted anneau-focus disabled:pointer-events-none disabled:opacity-50 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="flex flex-col gap-1">
-                    <span className="font-medium">{or.numero}</span>
-                    <IdentiteVehicule vehicule={or.vehicule} taillePlaque="sm" />
-                    <IdentiteClient client={or.client} />
-                  </div>
-                  <span className="texte-libelle text-muted-foreground">
-                    {t('pointage:technicien.mesOrs.lignesAssignees', {
-                      // `or.nombreLignes` compte TOUTES les lignes de l'OR côté serveur, sans
-                      // distinction de technicien (voir `mes-ordres-assignes.api.ts`) — jamais
-                      // ce qu'il faut afficher ici. `compterLignesAssigneesPointables` applique
-                      // le même critère que `DialogueChoixCiblePointage` (technicien courant +
-                      // ligne pointable), pour que la carte et le détail montrent toujours le
-                      // même nombre.
-                      count: compterLignesAssigneesPointables(or, technicienId),
-                    })}
-                  </span>
-                </button>
+                  or={or}
+                  desactive={!peutDemarrerPointage(role) || enTraitement}
+                  siteNom={
+                    sitesActifs.length > 1
+                      ? sitesActifs.find((site) => site.id === or.siteId)?.nom
+                      : undefined
+                  }
+                  lignesAssignees={compterLignesAssigneesPointables(or, technicienId)}
+                  onChoisir={() => setOrSelectionneId(or.id)}
+                />
               ))}
             </div>
           )}
@@ -676,10 +720,24 @@ export function EcranPointageTechnicien() {
         />
       ) : null}
 
+      {!pointageActuel && ligneAFinir ? (
+        <BandeauLigneARealiser
+          libelle={ligneAFinir.libelle}
+          fait={ligneAFinir.fait}
+          enCours={marquerRealisee.isPending}
+          messageErreur={erreurRealisation}
+          onMarquer={() => void handleMarquerRealisee()}
+          onPlusTard={() => setLigneAFinir(undefined)}
+        />
+      ) : null}
+
       {!pointageActuel ? (
         <>
           {erreurAction ? (
-            <EtatErreur titre={t('pointage:technicien.erreur.titre')} description={erreurAction} />
+            <EtatErreur
+              titre={t('pointage:technicien.erreur.titreAction')}
+              description={erreurAction}
+            />
           ) : null}
           {blocChoixCible}
         </>

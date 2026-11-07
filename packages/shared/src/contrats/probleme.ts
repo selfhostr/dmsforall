@@ -221,6 +221,7 @@ export const CODES_ERREUR = [
   // RM-114 : ralentissement anti-brute-force sur un espace de PIN volontairement petit. Nombre
   // d'essais et durée de blocage restent des paramètres de sécurité, non fixés par ce code.
   'POINTAGE_PIN_VERROUILLE',
+  'POINTAGE_SITE_AUTRE',
   // --- Étape 4 : ventes (VN/VO et reprises) ---
   'VENTE_VEHICULE_STOCK_DEJA_EXISTANT',
   'VENTE_DOSSIER_TRANSITION_INTERDITE',
@@ -445,6 +446,7 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   CONSIGNE_TRANSITION_INTERDITE: 409,
   POINTAGE_PIN_INVALIDE: 401,
   POINTAGE_PIN_VERROUILLE: 423,
+  POINTAGE_SITE_AUTRE: 403,
   VENTE_VEHICULE_STOCK_DEJA_EXISTANT: 409,
   VENTE_DOSSIER_TRANSITION_INTERDITE: 409,
   VENTE_REPRISE_TRANSITION_INTERDITE: 409,
@@ -577,6 +579,7 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   CONSIGNE_TRANSITION_INTERDITE: 'Transition interdite pour cette consigne',
   POINTAGE_PIN_INVALIDE: 'Code PIN non reconnu',
   POINTAGE_PIN_VERROUILLE: 'Sélecteur de code PIN temporairement verrouillé',
+  POINTAGE_SITE_AUTRE: 'Pointage depuis la borne d’un autre site',
   VENTE_VEHICULE_STOCK_DEJA_EXISTANT: 'Véhicule déjà au stock',
   VENTE_DOSSIER_TRANSITION_INTERDITE: 'Transition interdite pour ce dossier de vente',
   VENTE_REPRISE_TRANSITION_INTERDITE: 'Transition interdite pour cette reprise',

@@ -107,6 +107,7 @@
     "aucunOrDescription": "Puoi comunque scegliere un ordine aperto qualsiasi qui sotto per iniziare una timbratura."
   },
   "toutesLesOr": {
+    "siteBorne": "Su questa postazione sono proposti solo gli ordini di questa sede.",
     "titre": "Tutti gli ordini aperti",
     "afficher": "Mostra tutti gli ordini aperti",
     "masquer": "Nascondi",
@@ -147,7 +148,8 @@
     "pointageEnCours": {
       "titre": "Timbratura in corso",
       "depuis": "Dalle {heure}",
-      "cumulAujourdhui": "Oggi su questa destinazione: {duree}"
+      "cumulAujourdhui": "Oggi su questa destinazione: {duree}",
+      "etat": "In corso"
     },
     "bandeauReprise": {
       "titre": "Riprendi: {cible}",
@@ -170,8 +172,19 @@
     },
     "mesOrs": {
       "titre": "I miei ordini di oggi",
-      "lignesAssignees": "{count, plural, one {# lavoro a te assegnato} other {# lavori a te assegnati}}"
+      "lignesAssignees": "{count, plural, one {# lavoro a te assegnato} other {# lavori a te assegnati}}",
+      "restitution": "Riconsegna promessa {date}",
+      "enRetard": "In ritardo, promessa {date}",
+      "horsSite": "Sede {site}: timbra dalla postazione di questa sede",
+      "horsSiteSansNom": "Altra sede: timbra dalla postazione di questa sede"
     },
+    "ligneARealiser": {
+      "titre": "Lavoro terminato?",
+      "bouton": "Segna questa riga come eseguita",
+      "plusTard": "Non ora",
+      "ok": "Riga segnata come eseguita."
+    },
+    "siteAutre": "Questo ordine è alla sede {site}; timbra dalla postazione di quella sede o chiedi all'ufficio.",
     "choisirCible": {
       "titre": "Cosa stai timbrando?",
       "retour": "Indietro",
@@ -183,7 +196,8 @@
       "nonPointable": "Non ancora disponibile per la timbratura."
     },
     "erreur": {
-      "titre": "Impossibile caricare la tua timbratura"
+      "titre": "Impossibile caricare la tua timbratura",
+      "titreAction": "Timbratura impossibile"
     }
   },
   "jour": {
