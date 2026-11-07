@@ -436,6 +436,8 @@ obtenir_exception_down_partiel() {
       printf '%s' "ALTER TYPE ... ADD VALUE sur entite_auditee, 1 valeur (relance_planifiee) — même limite que 0010 ; voir l'en-tête de down/0045_relances_socle.down.sql." ;;
     "0047_stock_article_reservee_negatif_forcage.sql")
       printf '%s' "ALTER TYPE ... ADD VALUE sur motif_liberation_reservation, 1 valeur (liberation_forcage_stock) — même limite que 0010 (aucun DROP VALUE en PostgreSQL), type différent (motif_liberation_reservation, pas entite_auditee) ; voir l'en-tête de down/0047_stock_article_reservee_negatif_forcage.down.sql." ;;
+    "0089_audit_tenant.sql")
+      printf '%s' "ALTER TYPE ... ADD VALUE sur entite_auditee, 1 valeur (tenant) — même limite que 0010 ; voir l'en-tête de down/0089_audit_tenant.down.sql (down intentionnellement vide, rien d'autre à défaire)." ;;
     "0052_rendez_vous_atelier.sql")
       printf '%s' "ALTER TYPE ... ADD VALUE sur entite_auditee, 1 valeur (rendez_vous) — même limite que 0010 ; voir l'en-tête de down/0052_rendez_vous_atelier.down.sql." ;;
     "0055_pointage_motif_anomalie_cloture_fin_journee.sql")

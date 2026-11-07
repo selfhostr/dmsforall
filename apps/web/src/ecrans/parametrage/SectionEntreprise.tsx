@@ -2,6 +2,8 @@ import { CheckCircle2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { LONGUEUR_MAX_RAISON_SOCIALE } from '@dfa/shared';
+
 import { messageErreur } from '@/api/erreurs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -19,8 +21,7 @@ import { validerDelaiPaiement } from './delai-paiement';
 import { validerNumeroTva } from './numero-tva';
 
 /**
- * Identité du garage (`GET|PATCH /parametres-entreprise`) : raison sociale en lecture seule (elle
- * vient de la création du garage), n° TVA et délai de paiement par défaut modifiables, logo
+ * Identité du garage (`GET|PATCH /parametres-entreprise`) : nom du garage (raison sociale), n° TVA et délai de paiement par défaut modifiables, logo
  * (`BlocLogoEntreprise`). Le numéro est imprimé sur les factures émises ; une faute de frappe est
  * refusée ICI (format + clé de contrôle) avant l'appel.
  */
@@ -44,6 +45,8 @@ export function SectionEntreprise() {
 function FormulaireEntreprise({ donnees }: { readonly donnees: ReponseParametresEntreprise }) {
   const { t } = useTranslation(['parametrage', 'commun', 'erreurs']);
   const modifier = useModifierParametresEntreprise();
+  const [raison, setRaison] = useState(donnees.raisonSociale);
+  const [raisonInvalide, setRaisonInvalide] = useState(false);
   const [saisie, setSaisie] = useState(donnees.numeroTva ?? '');
   const [raisonErreur, setRaisonErreur] = useState<'format' | 'cle' | undefined>(undefined);
   const [delai, setDelai] = useState(String(donnees.delaiPaiementJoursDefaut));
@@ -53,7 +56,11 @@ function FormulaireEntreprise({ donnees }: { readonly donnees: ReponseParametres
   function soumettre(evenement: React.FormEvent) {
     evenement.preventDefault();
     setEnregistre(false);
+    const raisonNettoyee = raison.trim();
+    const raisonVide = raisonNettoyee === '';
+    setRaisonInvalide(raisonVide);
     const resultat = validerNumeroTva(saisie);
+    if (raisonVide) return;
     if (!resultat.ok) {
       setRaisonErreur(resultat.raison);
       return;
@@ -63,9 +70,14 @@ function FormulaireEntreprise({ donnees }: { readonly donnees: ReponseParametres
     if (delaiJours === null) return;
     setRaisonErreur(undefined);
     modifier.mutate(
-      { numeroTva: resultat.valeur, delaiPaiementJoursDefaut: delaiJours },
+      {
+        raisonSociale: raisonNettoyee,
+        numeroTva: resultat.valeur,
+        delaiPaiementJoursDefaut: delaiJours,
+      },
       {
         onSuccess: (reponse) => {
+          setRaison(reponse.raisonSociale);
           setSaisie(reponse.numeroTva ?? '');
           setDelai(String(reponse.delaiPaiementJoursDefaut));
           setEnregistre(true);
@@ -87,7 +99,30 @@ function FormulaireEntreprise({ donnees }: { readonly donnees: ReponseParametres
 
           <div className="space-y-2">
             <Label htmlFor="ent-raison-sociale">{t('parametrage:entreprise.raisonSociale')}</Label>
-            <Input id="ent-raison-sociale" value={donnees.raisonSociale} readOnly />
+            <Input
+              id="ent-raison-sociale"
+              maxLength={LONGUEUR_MAX_RAISON_SOCIALE}
+              autoComplete="organization"
+              value={raison}
+              readOnly={modifier.isPending}
+              aria-invalid={raisonInvalide ? true : undefined}
+              aria-describedby={
+                raisonInvalide ? 'ent-raison-aide ent-raison-erreur' : 'ent-raison-aide'
+              }
+              onChange={(e) => {
+                setRaison(e.target.value);
+                setRaisonInvalide(false);
+                setEnregistre(false);
+              }}
+            />
+            <p id="ent-raison-aide" className="texte-corps text-muted-foreground">
+              {t('parametrage:entreprise.raisonSocialeAide')}
+            </p>
+            {raisonInvalide ? (
+              <p id="ent-raison-erreur" className="texte-corps text-destructive" role="alert">
+                {t('parametrage:entreprise.erreurRaison')}
+              </p>
+            ) : null}
           </div>
 
           <div className="space-y-2">
