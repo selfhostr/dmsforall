@@ -42,6 +42,7 @@ Store the file encrypted and outside the server.
 ## What is not backed up
 
 - The uploaded documents, in the volume `dmsforall_dfa_api_uploads`. Check the backup scope before you rely on it.
+- The repair order photos and their thumbnails, in the volume `dmsforall_dfa_photos_or`. The nightly backup does not cover it either.
 - The Redis data. Queues and short-lived state are recreated.
 
 ## Restore
