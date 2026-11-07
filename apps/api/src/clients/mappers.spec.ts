@@ -57,7 +57,7 @@ function ligneClient(champs: Partial<LigneClient> = {}): LigneClient {
 // que `type` — immuable après création — fait autorité, jamais la simple présence d'un champ
 // modifiable comme `raisonSociale`. Le test qui remplace celui-ci
 // (`nom-affiche.spec.ts` — describe "RM-01") attend désormais l'inverse : un `particulier` avec
-// une `raisonSociale` résiduelle affiche "nom prénom", pas la raison sociale. Ne pas restaurer
+// une `raisonSociale` résiduelle affiche "Prénom Nom", pas la raison sociale. Ne pas restaurer
 // l'ancien comportement en croyant réparer une régression.
 
 describe('versClientResponse', () => {
@@ -65,7 +65,7 @@ describe('versClientResponse', () => {
     const dto = versClientResponse(ligneClient(), null, []);
     expect(dto.creeLe).toBe('2026-01-01T00:00:00.000Z');
     expect(dto.modifieLe).toBe('2026-07-27T09:14:22.000Z');
-    expect(dto.nomAffiche).toBe('Dupont Jean');
+    expect(dto.nomAffiche).toBe('Jean Dupont');
     expect(dto.numeroClient).toBe('CL-000001');
   });
 

@@ -79,7 +79,7 @@ export async function detecterDoublons(
       tx,
       sql`
         select c.id as client_id, c.numero as numero,
-               coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, '')) as nom,
+               coalesce(c.raison_sociale, concat_ws(' ', c.prenom, c.nom)) as nom,
                a.npa as npa
           from public.client c
           join public.client_adresse a
@@ -100,7 +100,7 @@ export async function detecterDoublons(
       tx,
       sql`
         select c.id as client_id, c.numero as numero,
-               coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, '')) as nom,
+               coalesce(c.raison_sociale, concat_ws(' ', c.prenom, c.nom)) as nom,
                null::text as npa
           from public.client c
          where c.tenant_id = ${tenantId}
@@ -118,7 +118,7 @@ export async function detecterDoublons(
       tx,
       sql`
         select c.id as client_id, c.numero as numero,
-               coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, '')) as nom,
+               coalesce(c.raison_sociale, concat_ws(' ', c.prenom, c.nom)) as nom,
                null::text as npa
           from public.client c
          where c.tenant_id = ${tenantId}
@@ -135,7 +135,7 @@ export async function detecterDoublons(
       tx,
       sql`
         select c.id as client_id, c.numero as numero,
-               coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, '')) as nom,
+               coalesce(c.raison_sociale, concat_ws(' ', c.prenom, c.nom)) as nom,
                null::text as npa
           from public.client c
          where c.tenant_id = ${tenantId}
