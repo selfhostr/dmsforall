@@ -17,6 +17,10 @@
 # indéfiniment hors site après avoir été purgé ici, voir la justification dans
 # copier-hors-site.sh.
 #
+# L'archive des fichiers déposés (`dfa_<horodatage>.uploads.tar.gz.age`, PDF/photos/exports) est
+# une TROISIÈME pièce du même jeu, purgée avec lui. Elle est complète (pas incrémentale) : le
+# volume local pèse donc jusqu'à ~23 x la taille des fichiers, à prévoir pour des photos d'OR.
+#
 # Politique de rétention (identique à celle documentée pour l'ancienne cible S3, voir historique
 # Git de ce fichier) :
 #   - 7 jours de sauvegardes QUOTIDIENNES (toutes, sans distinction) ;
@@ -89,10 +93,13 @@ for fichier in dfa_*.dump.age; do
 
     # Fichier de rôles apparié — voir l'en-tête « PURGE APPARIÉE ». `-f` : ne lève pas si le
     # fichier de rôles est déjà absent (sauvegarde antérieure à cette correction, ou déjà purgé).
-    fichier_roles="${fichier%.dump.age}.roles.sql.age"
-    if [ -e "$fichier_roles" ]; then
-      rm -f -- "$fichier_roles"
-      echo "$(date -Iseconds) PURGE ${fichier_roles} (appariée à ${fichier})" >>"$JOURNAL"
-    fi
+    # Idem pour l'archive des fichiers déposés (.uploads.tar.gz.age) : même nuit, même sort.
+    for suffixe in roles.sql.age uploads.tar.gz.age; do
+      fichier_apparie="${fichier%.dump.age}.${suffixe}"
+      if [ -e "$fichier_apparie" ]; then
+        rm -f -- "$fichier_apparie"
+        echo "$(date -Iseconds) PURGE ${fichier_apparie} (appariée à ${fichier})" >>"$JOURNAL"
+      fi
+    done
   fi
 done
