@@ -10,7 +10,7 @@ Les valeurs chiffrées (ratios de contraste) sont calculées selon la formule WC
 
 Le produit a trois familles de couleur, chacune avec un rôle exclusif. Ne pas introduire de quatrième famille.
 
-- **Marque** (`--marque`, `--marque-fort`, `--marque-doux`). Valeur `#083f45` en clair et `#4ccce6` en sombre. Rôle : bouton principal, lien, élément de menu actif, anneau de focus. La marque ne sert jamais à porter un statut.
+- **Marque** (`--marque`, `--marque-fort`, `--marque-doux`). Orange dmsforall : `#9f4704` (orange profond, 26°) en clair, `#F07E17` (orange du logo) en sombre. Rôle : bouton principal, lien, élément de menu actif, anneau de focus. La marque ne sert jamais à porter un statut.
 - **Neutres** (`--foreground`, `--border`, `--input`, `--muted`, `--secondary`, `--accent`, `--card`, `--popover`). Rôle : texte, structure, surfaces. Un neutre ne porte jamais un sens.
 - **Six feux d'atelier** (`--statut-*` et `--statut-*-fond`). Palette de sévérité générale : `neutre`, `info`, `attention`, `succes`, `danger`, `terminal`. Ils servent à tout ce qui se lit comme un degré de sévérité : statut d'un ordre de réparation, échéance, disponibilité d'une pièce, statut d'un dossier de vente.
 
@@ -29,15 +29,15 @@ Le thème clair est la base shadcn, avec un fond de page légèrement teinté.
 | `--background`                         | `#f0f0f3` | Fond de page                                   |
 | `--foreground`                         | `#09090b` | Texte principal                                |
 | `--card` / `--popover`                 | `#ffffff` | Surface de carte, menu                         |
-| `--marque`                             | `#083f45` | Couleur de marque, `--primary`                 |
-| `--marque-fort`                        | `#052a2e` | Survol ou appui d'une surface pleine de marque |
-| `--marque-doux`                        | `#edf6f7` | Surlignage (élément actif, sélection)          |
+| `--marque`                             | `#9f4704` | Couleur de marque, `--primary`                 |
+| `--marque-fort`                        | `#773503` | Survol ou appui d'une surface pleine de marque |
+| `--marque-doux`                        | `#fcefe3` | Surlignage (élément actif, sélection)          |
 | `--secondary` / `--muted` / `--accent` | `#f2f2f4` | Surfaces neutres (bouton secondaire, survol)   |
 | `--muted-foreground`                   | `#62626a` | Texte atténué                                  |
 | `--destructive`                        | `#b81e1e` | Action destructrice                            |
 | `--border`                             | `#d7d7dc` | Trait décoratif (non soumis au seuil de 3:1)   |
 | `--input`                              | `#888896` | Contour de contrôle de saisie (3:1 requis)     |
-| `--ring`                               | `#083f45` | Anneau de focus                                |
+| `--ring`                               | `#9f4704` | Anneau de focus                                |
 | `--avertissement`                      | `#77420d` | Texte d'un bandeau d'alerte                    |
 | `--avertissement-fond`                 | `#fef7eb` | Fond d'un bandeau d'alerte                     |
 
@@ -53,9 +53,9 @@ Un jeton absent du bloc `.dark` garde sa valeur claire (échelle d'espacement, d
 | `--foreground`                         | `#edeef0` | Texte principal (16.39:1 sur le fond)   |
 | `--card`                               | `#18191b` | Surface de carte                        |
 | `--popover`                            | `#212225` | Surface haute (menu, popover)           |
-| `--marque`                             | `#4ccce6` | Couleur de marque                       |
-| `--marque-fort`                        | `#67d4e9` | Survol, plus clair que la marque        |
-| `--marque-doux`                        | `#1e393e` | Surlignage                              |
+| `--marque`                             | `#F07E17` | Couleur de marque (orange du logo)      |
+| `--marque-fort`                        | `#f48d34` | Survol, plus clair que la marque        |
+| `--marque-doux`                        | `#3b2816` | Surlignage                              |
 | `--primary-foreground`                 | `#111113` | Texte sombre sur bouton plein de marque |
 | `--secondary` / `--muted` / `--accent` | `#212225` | Surfaces neutres                        |
 | `--muted-foreground`                   | `#b0b4ba` | Texte atténué                           |
@@ -69,7 +69,9 @@ Choix à connaître :
 
 - `--input` vaut `slate-9` et non `slate-8` : `slate-8` ne tient pas 3:1 sur une carte.
 - `--marque-fort` est plus claire que `--marque` en sombre, car la marque y est déjà claire.
-- `--primary-foreground` est sombre. Aucune teinte de la famille cyan ne tient 4.5:1 en texte blanc sur fond de marque.
+- `--primary-foreground` est sombre. Le texte blanc ne fait que 2.73:1 sur `#F07E17` ; le texte sombre y fait 6.75:1.
+- En clair, la marque n'est pas `#F07E17` (2.73:1 en blanc dessus, 2.40:1 sur le fond de page) mais un orange plus profond de la même teinte, qui tient AA en bouton plein et en texte.
+- Écarts de teinte : le bleu `info` et le vert `succes` sont à 30° ou plus de la marque. Le rouge `danger` et l'ambre `attention` en sont proches (clair : 26° et 12°, sombre : 26° et 18°) : exception assumée, rendue acceptable par forme + icône + mot obligatoires sur tout badge. `contraste-jetons.spec.ts` verrouille ces écarts.
 
 ### Contrastes mesurés (tokens de base)
 
@@ -77,11 +79,13 @@ Choix à connaître :
 | ----------------------------------------------------- | ------- | ----- |
 | `--foreground` sur `--background` (sombre)            | 16.39:1 | 4.5:1 |
 | `--muted-foreground` sur `--background` (sombre)      | 9.06:1  | 4.5:1 |
-| `--marque` sur `--background` (sombre)                | 9.96:1  | 4.5:1 |
-| `--primary-foreground` sur `--primary` (sombre)       | 9.96:1  | 4.5:1 |
+| `--marque` sur `--background` (sombre)                | 6.75:1  | 4.5:1 |
+| `--primary-foreground` sur `--primary` (sombre)       | 6.75:1  | 4.5:1 |
+| blanc sur `--primary` (clair)                         | 6.22:1  | 4.5:1 |
+| `--marque` sur `--background` (clair)                 | 5.47:1  | 4.5:1 |
 | `--input` sur `--background` (sombre)                 | 3.68:1  | 3:1   |
 | `--input` sur `--card` (sombre)                       | 3.43:1  | 3:1   |
-| `--ring` sur `--card` (sombre)                        | 9.29:1  | 3:1   |
+| `--ring` sur `--card` (sombre)                        | 6.29:1  | 3:1   |
 | `--avertissement` sur `--avertissement-fond` (sombre) | 7.29:1  | 4.5:1 |
 | `--input` sur `--background` (clair)                  | 3.10:1  | 3:1   |
 | `--statut-neutre` sur `--background` (clair)          | 4.61:1  | 4.5:1 |

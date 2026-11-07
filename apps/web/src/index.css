@@ -136,58 +136,32 @@
   --popover-foreground: 240 10% 3.9%;
 
   /* ── Couleur de marque ────────────────────────────────────────────────────
-     SARCELLE PROFONDE, teinte 186°. Décision de @laupernoe, revenue sur le gris
-     neutre `240 6% 24%` du Lot K (lui-même un retour sur le violet d'encre du
-     Lot K d'origine, `288 58% 36%`) : le produit a maintenant une vraie
-     couleur d'accueil, pas un gris de plus dans la famille de `--foreground`/
-     `--border`/`--muted`.
+     ORANGE dmsforall, teinte 26°, celui du logo (`#F07E17`, `public/favicon.svg`).
+     `#F07E17` lui-même ne tient PAS le texte en clair : 2.73:1 pour du blanc dessus, 2.40:1 pour
+     lui-même sur `--background`. En clair, la marque est donc l'orange PROFOND de la même famille
+     (`#9f4704`, 26°) : même teinte, luminosité abaissée jusqu'à tenir AA en bouton plein (texte
+     blanc) ET en texte posé sur le fond de page (`text-primary`). En sombre, l'orange vif du logo
+     tient tel quel (voir `.dark`).
 
-     Teinte choisie pour son écart aux quatre teintes déjà prises par les
-     statuts d'OR (`--statut-*` plus bas, §Statuts métier) — une couleur ne
-     dit jamais deux choses dans ce produit :
-       écart à --statut-info      (217°, « en cours »)  : 31°
-       écart à --statut-attention (38°,  « attention »)  : 148°
-       écart à --statut-succes    (142°, « terminé »)    : 44°
-       écart à --statut-danger    (0°,   « annulé/sécu ») : 174°
-     Les deux écarts qui comptent (bleu/vert, les teintes les plus proches sur
-     le cercle chromatique) restent chacun > 30°, largement au-delà du seuil
-     de confusion à l'œil — et l'écart de LUMINOSITÉ fait le reste : la marque
-     reste nettement plus sombre que les fonds `--statut-*-fond` (91-97 % de
-     luminosité, voir plus bas).
+     Écart de teinte avec les statuts : le bleu (`--statut-info`, 217°) est à plus de 30°. Le
+     rouge (0°) et l'ambre d'attention (38°) sont, eux, PROCHES de l'orange (écarts 26° et 12°) :
+     même arbitrage écrit que pour la marque sombre d'avant — l'écart de teinte est assumé, et la
+     contrainte « forme + icône + mot sur tout badge de statut, jamais la couleur seule »
+     (DESIGN.md) est ce qui le rend acceptable. La sentinelle de `contraste-jetons.spec.ts`
+     verrouille ces écarts mesurés.
 
-     Clarté/saturation ajustées par rapport à la valeur de départ proposée
-     (`186 82% 27%`, 5.65:1 sur fond blanc) : ce triplet ne tenait PAS le
-     plancher fixé par @laupernoe (« ne jamais descendre sous les ratios actuels,
-     documentés jusqu'à 11.28:1 AAA »). Assombrie à L 15 % (au lieu de 27 %) en
-     gardant une saturation élevée (S 80 %, contre 82 % proposé) pour rester
-     une vraie couleur perçue et pas un gris teinté : la sarcelle qui en
-     résulte est profonde et saturée, jamais un pastel.
-
-     Contraste mesuré (méthode de docs/design-comptoir.md — luminance relative
-     WCAG 2.1, calcul programmatique, rejoué par
-     `src/test/accessibilite/contraste-jetons.spec.ts`) — chaque ligne reste
-     ≥ à la valeur Lot K qu'elle remplace (rappelée entre parenthèses) :
-       --marque sur --background ......... 10.31:1 AAA (Lot K : 11.28:1 — voir NOTE ci-dessous)
-       --marque sur --muted .............. 10.57:1 AAA (Lot K : 10.26:1)
-       blanc sur --marque (bouton plein) . 11.62:1 AAA (Lot K : 11.28:1)
-       blanc sur --marque-fort (survol) .. 15.25:1 AAA (Lot K : 15.04:1)
-       --marque sur --marque-doux ........ 10.58:1 AAA (Lot K : 10.00:1)
-       --marque-doux-foreground sur --marque-doux .. 12.59:1 AAA (Lot K : 10.80:1)
-     NOTE (refonte visuelle) : la seule ligne qui ne tient plus STRICTEMENT le plancher Lot K est
-     « --marque sur --background », et c'est attendu — `--background` lui-même est passé de blanc
-     pur à `#f0f0f3` dans cette refonte (voir plus bas), ce qui baisse mécaniquement CE ratio précis
-     sans toucher à la couleur de marque. 10.31:1 reste très largement AAA (seuil AAA texte normal :
-     7:1) et loin au-dessus du seuil AA (4.5:1) qui gouverne réellement l'accessibilité : le
-     plancher Lot K protégeait un choix de TEINTE, pas une promesse que plus aucun autre jeton ne
-     bougerait jamais. La ligne `--marque-doux-foreground sur --marque-doux` était déjà légèrement
-     sur-documentée avant ce lot (13.89 écrit, 12.59 mesuré) — ni `--marque-doux` ni
-     `--marque-doux-foreground` n'ont changé dans cette refonte, le chiffre corrigé ici documente
-     simplement la valeur réelle, jamais mesurée avant.
+     Contraste mesuré (WCAG 2.1, rejoué par `src/test/accessibilite/contraste-jetons.spec.ts`) :
+       blanc sur --marque (bouton plein) ......... 6.22:1 AA
+       blanc sur --marque-fort (survol) .......... 9.15:1 AAA
+       --marque sur --background ................. 5.47:1 AA
+       --marque sur --muted ...................... 5.66:1 AA
+       --marque sur --marque-doux ................ 5.51:1 AA
+       --marque-doux-foreground sur --marque-doux  9.00:1 AAA
      ─────────────────────────────────────────────────────────────────────── */
-  --marque: 186 80% 15%; /* #083f45 */
-  --marque-fort: 186 80% 10%; /* survol / appui d'une surface pleine de marque, #052a2e */
-  --marque-doux: 186 40% 95%; /* surface de surlignage (élément de menu actif), #edf6f7 */
-  --marque-doux-foreground: 186 80% 12%; /* #063237 */
+  --marque: 26 95% 32%; /* #9f4704 */
+  --marque-fort: 26 95% 24%; /* survol / appui d'une surface pleine de marque, #773503 */
+  --marque-doux: 28 80% 94%; /* surface de surlignage (élément de menu actif), #fcefe3 */
+  --marque-doux-foreground: 26 90% 22%; /* #6b3106 */
 
   /* `--primary` EST la couleur de marque. Une seule source de vérité : il n'existe
      pas d'un côté un « gris primaire » et de l'autre une marque décorative, sans quoi
@@ -329,29 +303,16 @@
    la valeur par défaut de shadcn). Mesuré : 3.68:1 sur fond, 3.43:1 sur carte, 3.10:1 sur
    `--muted`/`--secondary`/`--accent` (`.dark` plus bas) — les trois au-dessus du seuil 3:1.
 
-   MARQUE — la sarcelle claire (`#083f45`) mesure 1.37:1 sur fond sombre : invisible, un jeton par
-   thème est donc obligatoire ici (contrairement à `--destructive`, sa luminance ne dépend pas du
-   fond). Remplacée par `cyan-11` dark de Radix (`#4ccce6`, 190°) : 9.96:1 sur `--background`,
-   9.29:1 sur `--card`, et 9.96:1 pour DU TEXTE SOMBRE posé sur un bouton plein de marque — inversé
-   par rapport au clair (texte blanc sur marque foncée) parce qu'aucune sarcelle/cyan de la famille
-   ne tient un contraste ≥ 4.5:1 en texte BLANC sur fond sombre : vérifié séparément, le pas
-   « solid » standard de la famille (`#12a594`) ne mesure que 3.07:1 en blanc, clair comme sombre.
-   `--primary-foreground` prend donc ici la couleur du FOND (`#111113`) plutôt que du blanc — c'est
-   ce qui donne exactement 9.96:1, la même paire que marque/fond puisque c'est littéralement la
-   même seconde couleur.
+   MARQUE — l'orange profond du clair (`#9f4704`) mesure 2.6:1 sur fond sombre : insuffisant en
+   texte, un jeton par thème est donc obligatoire ici. En sombre, la marque est l'orange vif du
+   logo, `#F07E17` : 6.75:1 sur `--background`, 6.29:1 sur `--card`. Texte SOMBRE (`#111113`) sur
+   bouton plein de marque, 6.75:1 : le blanc ne ferait que 2.73:1 sur cet orange, d'où
+   `--primary-foreground` = couleur du FOND, comme avant.
 
-   MAIS — ARBITRAGE DE @laupernoe, ÉCRIT ICI PARCE QU'IL DEVIENT UNE CONTRAINTE, PAS UNE PRÉFÉRENCE :
-   cette sarcelle sombre CASSE la doctrine « une couleur ne dit jamais deux choses » (écart de
-   teinte > 30° entre la marque et chaque statut, voir le commentaire de `--marque` en clair
-   ci-dessus). Mesuré : `cyan-11` (190°) n'est qu'à 20° de `--statut-info` (210°, « en cours ») —
-   sous le seuil de 30°. Aucune teinte de la famille sarcelle/cyan ne tient l'écart avec les SIX
-   statuts en sombre (l'alternative `teal-11` en serait à 21° de `--statut-succes`). @laupernoe a choisi
-   d'ASSUMER cet écart réduit plutôt que de désaturer la marque ou de la faire changer de famille
-   selon le thème — À LA CONDITION EXPLICITE que forme + icône + mot restent TOUJOURS les trois
-   signaux d'un badge de statut, jamais la couleur seule. Ce n'était déjà qu'une bonne pratique
-   documentée (`BadgeStatutOr`) ; l'arbitrage de @laupernoe la transforme en CONTRAINTE NON NÉGOCIABLE,
-   parce que c'est elle — et elle seule — qui rend cet écart de 20° acceptable. Voir DESIGN.md,
-   section statuts, et `contraste-jetons.spec.ts` (sentinelle dédiée à cet écart réduit).
+   Écarts de teinte (même arbitrage écrit qu'en clair, voir `--marque` en tête) : bleu `info` à
+   plus de 30° ; `attention` (46°) et `danger` (2°) à 18° et 26° — assumé, à la condition que forme +
+   icône + mot restent TOUJOURS les trois signaux d'un badge de statut, jamais la couleur seule.
+   Voir DESIGN.md et la sentinelle de `contraste-jetons.spec.ts`.
    ══════════════════════════════════════════════════════════════════════════ */
 .dark {
   color-scheme: dark;
@@ -363,12 +324,12 @@
   --popover: 225 6% 14%; /* #212225 — surface « haute » (menu, popover), 1.19:1 sur --background */
   --popover-foreground: 220 9% 94%;
 
-  --marque: 190 75% 60%; /* #4ccce6 — Radix cyan-11 dark, voir le commentaire de tête */
-  --marque-fort: 190 75% 66%; /* #67d4e9 — survol/appui : ÉCLAIRCIE (pas assombrie comme en clair),
-    la direction « plus d'emphase » s'inverse avec le fond ; 10.93:1 sur --background */
-  --marque-doux: 190 35% 18%; /* #1e393e — surlignage d'un élément de menu actif, tonalité sombre
+  --marque: 28 87.4% 51.4%; /* #F07E17 — l'orange du logo, 6.75:1 sur --background */
+  --marque-fort: 29 90% 58%; /* #f48d34 — survol/appui : ÉCLAIRCIE (pas assombrie comme en clair),
+    la direction « plus d'emphase » s'inverse avec le fond ; 7.82:1 sur --background */
+  --marque-doux: 28 45% 16%; /* #3b2816 — surlignage d'un élément de menu actif, tonalité sombre
     de la marque plutôt que la marque elle-même en fond (qui serait éblouissante en pleine surface) */
-  --marque-doux-foreground: 190 75% 60%; /* = --marque : 6.48:1 sur --marque-doux */
+  --marque-doux-foreground: 28 87.4% 51.4%; /* = --marque : 5.01:1 sur --marque-doux */
 
   /* `--primary` reste l'alias de `--marque` (voir :root) : hérite automatiquement de la valeur
      ci-dessus, aucune redéclaration nécessaire — c'est tout l'intérêt de l'alias. */
