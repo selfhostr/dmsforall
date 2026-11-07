@@ -18,6 +18,8 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
+import { useDensite } from '@/hooks/useDensite';
+
 import { useModeCarteComptoir } from './useModeCarteComptoir';
 
 /** Au-delà de ce nombre de lignes, `TableComptoir` bascule en rendu virtualisé (issue #92 —
@@ -41,7 +43,7 @@ const SURVOL_VIRTUALISATION = 12;
  *  empilés TTC/HT/calcul) via `measureElement`. */
 const HAUTEUR_ESTIMEE_PAR_DENSITE: Record<Densite, number> = {
   dense: 40,
-  aeree: 56,
+  aeree: 48,
   'tres-aeree': 72,
 };
 
@@ -168,7 +170,7 @@ export function TableComptoir<T>({
   colonnes,
   lignes,
   cleLigne,
-  densite = 'dense',
+  densite,
   tri = null,
   onTrier,
   onOuvrirLigne,
@@ -180,6 +182,9 @@ export function TableComptoir<T>({
 }: ProprietesTableComptoir<T>) {
   const { t } = useTranslation('commun');
   const enModeCarte = useModeCarteComptoir();
+  // Sans `densite` explicite, la table hérite de la densité de l'appareil (racine).
+  const { densite: densiteAppareil } = useDensite();
+  const densiteEffective: Densite = densite ?? (densiteAppareil === 'aeree' ? 'aeree' : 'dense');
 
   const gererClicLigne = (ligne: T) => {
     onOuvrirLigne?.(ligne);
@@ -245,7 +250,9 @@ export function TableComptoir<T>({
     count: estVirtualise ? lignes.length : 0,
     getScrollElement: () => conteneurDefilementRef.current,
     estimateSize: () =>
-      (enModeCarte ? HAUTEUR_ESTIMEE_CARTE_PAR_DENSITE : HAUTEUR_ESTIMEE_PAR_DENSITE)[densite],
+      (enModeCarte ? HAUTEUR_ESTIMEE_CARTE_PAR_DENSITE : HAUTEUR_ESTIMEE_PAR_DENSITE)[
+        densiteEffective
+      ],
     overscan: SURVOL_VIRTUALISATION,
   });
 
@@ -271,7 +278,7 @@ export function TableComptoir<T>({
             // clic sur ce bouton — même garde que la colonne `actions` juste au-dessus.
             <button
               type="button"
-              className="anneau-focus-interne block w-full rounded-sm"
+              className="anneau-focus-interne zone-cible block w-full rounded-sm text-left"
               onClick={(evenement) => {
                 evenement.stopPropagation();
                 gererClicLigne(ligne);

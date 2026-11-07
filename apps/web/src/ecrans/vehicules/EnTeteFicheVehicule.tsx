@@ -101,7 +101,7 @@ export function EnTeteFicheVehicule({ vehicule, dernierKilometrage }: Props) {
               <dt className="texte-libelle text-muted-foreground">{champ.libelle} :</dt>
               <dd className="flex items-center gap-1 texte-corps font-medium">
                 {champ.valeur}
-                {champ.copiable ? <BoutonCopier valeur={champ.valeur} className="h-8 w-8" /> : null}
+                {champ.copiable ? <BoutonCopier valeur={champ.valeur} /> : null}
               </dd>
             </div>
           ))}

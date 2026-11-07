@@ -69,5 +69,22 @@
     "comptable": "Contabilita",
     "admin": "Amministratore",
     "posteAtelier": "Terminale officina"
+  },
+  "toasts": {
+    "annuler": "Annulla",
+    "clientCree": "Cliente creato",
+    "vehiculeCree": "Veicolo registrato",
+    "rdvDeplace": "Appuntamento spostato",
+    "articleCree": "Articolo creato",
+    "pointageArrete": "Timbratura fermata",
+    "orTermine": "OR terminato",
+    "factureEmise": "Fattura emessa"
+  },
+  "densite": {
+    "titre": "Densità di visualizzazione",
+    "auto": "Automatica (secondo il dispositivo)",
+    "compacte": "Compatta",
+    "aeree": "Ampia",
+    "aide": "Ampia: testo più grande e righe più alte, per tablet e dito."
   }
 }

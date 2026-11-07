@@ -21,6 +21,7 @@ export function useCreerArticle(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation({
+    meta: { succes: 'commun:toasts.articleCree' },
     mutationFn: ({ entree, idempotencyKey }: VariablesCreationArticle) =>
       creerArticle(entree, idempotencyKey),
     onSuccess: () => {

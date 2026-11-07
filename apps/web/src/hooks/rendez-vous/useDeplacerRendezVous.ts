@@ -13,6 +13,7 @@ export function useDeplacerRendezVous(
 ): UseMutationResult<ReponseRendezVous, unknown, EntreeModificationRendezVous> {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: { succes: 'commun:toasts.rdvDeplace' },
     mutationFn: (entree: EntreeModificationRendezVous) => modifierRendezVous(rdvId, entree),
     onSuccess: (rendezVous) => {
       queryClient.setQueryData(clesQuery.rdv.detail(rdvId), rendezVous);

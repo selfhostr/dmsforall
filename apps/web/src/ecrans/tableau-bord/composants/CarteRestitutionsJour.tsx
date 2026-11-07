@@ -5,6 +5,7 @@ import { Link } from 'react-router';
 
 import { ErreurReseau, messageErreur } from '@/api/erreurs';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { BadgeStatut } from '@/composants/identite/BadgeStatut';
 import { BadgeStatutOr } from '@/composants/identite/BadgeStatutOr';
 import { Plaque } from '@/composants/identite/Plaque';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
@@ -91,10 +92,9 @@ export function CarteRestitutionsJour({
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
                 {or.enRetard ? (
-                  <span className="inline-flex items-center gap-1 texte-libelle font-medium text-statut-danger">
-                    <AlertTriangle aria-hidden className="h-3.5 w-3.5 shrink-0" />
+                  <BadgeStatut icone={AlertTriangle} token="danger" forme="contour">
                     {t('tableauBord:activite.enRetard')}
-                  </span>
+                  </BadgeStatut>
                 ) : null}
                 <BadgeStatutOr etat={or.etatAffiche} />
               </div>

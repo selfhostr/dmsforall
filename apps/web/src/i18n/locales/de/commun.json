@@ -69,5 +69,22 @@
     "comptable": "Buchhaltung",
     "admin": "Administrator",
     "posteAtelier": "Werkstattterminal"
+  },
+  "toasts": {
+    "annuler": "Rückgängig",
+    "clientCree": "Kunde erstellt",
+    "vehiculeCree": "Fahrzeug gespeichert",
+    "rdvDeplace": "Termin verschoben",
+    "articleCree": "Artikel erstellt",
+    "pointageArrete": "Zeiterfassung gestoppt",
+    "orTermine": "Auftrag abgeschlossen",
+    "factureEmise": "Rechnung ausgestellt"
+  },
+  "densite": {
+    "titre": "Anzeigedichte",
+    "auto": "Automatisch (je nach Gerät)",
+    "compacte": "Kompakt",
+    "aeree": "Luftig",
+    "aide": "Luftig: grössere Schrift und höhere Zeilen, für Tablet und Finger."
   }
 }

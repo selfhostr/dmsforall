@@ -85,7 +85,7 @@ export function FiletErreurMutation() {
               type="button"
               variant="ghost"
               size="icon"
-              className="-m-2 h-8 w-8 shrink-0"
+              className="-my-2.5 -mr-2 shrink-0"
               aria-label={t('commun:actions.fermer')}
               onClick={() => fermerToastFiletErreurMutation(toast.id)}
             >

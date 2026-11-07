@@ -27,6 +27,7 @@ export function useCreerClient(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation({
+    meta: { succes: 'commun:toasts.clientCree' },
     mutationFn: ({ entree, idempotencyKey }: VariablesCreationClient) =>
       requeteApi<ReponseAvecAvertissements<ReponseClient>>('/clients', {
         method: 'POST',

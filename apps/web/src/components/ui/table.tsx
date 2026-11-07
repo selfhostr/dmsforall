@@ -10,8 +10,10 @@ import { cn } from '@/lib/utils';
 export type Densite = 'dense' | 'aeree' | 'tres-aeree';
 
 export interface TableProps extends HTMLAttributes<HTMLTableElement> {
-  /** Contrat de densité — docs/design-etape-1-atelier.md §8.2. `dense` (bureau/comptoir) par
-   *  défaut : les listes métier du comptoir (clients, véhicules) sont denses. */
+  /** Contrat de densité — docs/design-etape-1-atelier.md §8.2. ABSENT par défaut : le tableau
+   *  HÉRITE de la densité de l'appareil posée sur `<html>` (`useDensite`, `SynchronisationDensite`)
+   *  — 40 px en `compacte`, 48 px en `aeree`. Ne le forcer que pour un cas qui diffère
+   *  réellement de l'appareil (borne de pointage : `tres-aeree`). */
   densite?: Densite;
 }
 
@@ -29,8 +31,8 @@ export interface TableProps extends HTMLAttributes<HTMLTableElement> {
 // l'utilisent directement (hors `TableComptoir`) portent des tables de détail à peu de colonnes,
 // hors périmètre de ce chantier.
 export const Table = forwardRef<HTMLTableElement, TableProps>(
-  ({ className, densite = 'dense', ...props }, ref) => (
-    <div className={cn('densite-' + densite, 'relative w-full overflow-auto')}>
+  ({ className, densite, ...props }, ref) => (
+    <div className={cn(densite && 'densite-' + densite, 'relative w-full overflow-auto')}>
       <table ref={ref} className={cn('w-full caption-bottom texte-corps', className)} {...props} />
     </div>
   ),
