@@ -20,10 +20,14 @@ This release fixes the repair order invoicing problem found in 0.1.0, and adds q
 - **Dates in search results** follow the Swiss format (dd.mm.yyyy).
 - **Uploaded files are backed up.** Nightly backups and restores include invoice PDFs, repair order photos and resignation exports, next to the database.
 - **Error logs hide values.** Query parameters and database values appear as `[masqué]` in logs.
+- **Account actions respect rank.** You cannot deactivate, reactivate or reset the access of yourself, or of someone with more rights than you. Only an admin can act on an admin. The last owner (patron) of a garage cannot be removed, even when two changes happen at the same time.
+- **VAT number and garage header on every document.** The VAT number from your settings was not printed anywhere. The garage name, address and VAT number now appear on invoices, quotes, additional quotes and repair order sheets, including garages without bank details.
 
 ### Added
 
-- **Quotes.** Create a quote, send it as a PDF by e-mail, turn it into a repair order with its lines, and let the client approve each line in one click.
+- **Quotes.** Create a quote, send it as a PDF by e-mail, record the client's acceptance, and create a repair order from the accepted quote, with its lines.
+- **Repair order from a quote.** The repair order takes the client, the vehicle and all the quote lines. You can enter the mileage at entry.
+- **Language choice in the account menu**: Français, Deutsch or Italiano. Your choice is kept after a reload.
 - **Courtesy cars.** A fleet list, loans by period, and a Courtoisie screen under Atelier. A courtesy car can be lent from an appointment.
 - **Deferred work.** Note work to do at the next visit from the vehicle page. It is picked up when you add the line to a repair order.
 - **Accounting export for your fiduciary.** A screen with preview and history, a WinBIZ export, a generic CSV export and account mapping.
@@ -44,6 +48,12 @@ This release fixes the repair order invoicing problem found in 0.1.0, and adds q
 - **Export screen** shows invoices and credit notes separately, with a preview.
 - **Easier to tap on touch screens.** Buttons have 44 px targets, and the density adapts to the device.
 - **Lighter repair order list.** The list loads a summary of each order, with fewer queries and less data per page.
+- **Rights are set per person.** Each person has a grid of Rien, Voir or Faire over six areas: workshop, reception, invoicing, parts, sales and finance. Roles are now presets you can adjust. The editor is "Qui peut quoi" in Réglages. A cut in rights applies on the next request. You cannot change your own rights, or give rights you do not have.
+- **Separation of duties.** On the default presets, a stock keeper cannot issue invoices. Unless he supervises the workshop, he also cannot issue quotes or check his own work. A workshop manager cannot issue invoices, take payments or hold stock moves.
+- **Sent quotes are locked.** A quote cannot be edited once sent, and sending asks you to confirm.
+- **People are shown as First Last** (Prénom Nom) everywhere. Search finds them in either order.
+- **Italian uses the formal Lei** in full sentences. Short labels keep the standard form.
+- **Accounting export proposes WinBIZ values.** Account mapping suggests 3809 for rounding and N81 for 8.1 % VAT. The invoice number is used as the accounting document number. Blocking messages name the invoice, its date and amount.
 
 ### Performance
 
@@ -54,6 +64,7 @@ This release fixes the repair order invoicing problem found in 0.1.0, and adds q
 ### Upgrade notes
 
 - **Migrations 0076 to 0088 run automatically** when you start the stack. Nothing to do.
+- **Review rights after you update.** Open Réglages, then "Qui peut quoi", and check each employee. The migration gives each person the grid of their role. The separation of duties then removes some rights from stock keepers and workshop managers, and some roles gain rights. Check stock keepers and workshop managers first.
 - **Two new Docker volumes** are created on `docker compose up -d`: `dfa_photos_or` for repair order photos and `dfa_reprise` for archives from your previous software. Do not delete them.
 - **If you changed `docker-compose.yml`**, mount the two new volumes in the `backup` service too, read-only, so that the nightly backup includes them.
 - **Back up before you upgrade.** See [Back up and restore](https://dmsforall.selfhostr.io/docs/get-started/backup-and-restore/).
