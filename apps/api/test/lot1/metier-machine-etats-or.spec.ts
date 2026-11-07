@@ -94,7 +94,11 @@ interface CorpsErreurTransition {
   readonly code?: string;
   readonly detail?: string;
   readonly actionsProposees?: ReadonlyArray<{ code?: string }>;
-  readonly blocages?: ReadonlyArray<{ type?: string; id?: string }>;
+  readonly blocages?: ReadonlyArray<{
+    type?: string;
+    id?: string;
+    donnees?: { statutActuel?: string; statutDemande?: string };
+  }>;
 }
 
 // -------------------------------------------------------------------------------------------
@@ -211,7 +215,13 @@ describe('ordre_reparation — transitions INTERDITES, par le VRAI endpoint HTTP
       expect(reponse.headers['content-type']).toContain('application/problem+json');
       const corps = reponse.body as CorpsErreurTransition;
       expect(corps.code).toBe('OR_TRANSITION_INTERDITE');
-      expect(corps.detail).toBe('entite=ordre_reparation;depuis=planifie;vers=cloture');
+      expect(corps.detail).toContain(
+        "L'OR est « Planifié » : il ne peut pas passer à « Clôturé ».",
+      );
+      expect(corps.blocages?.[0]?.donnees).toMatchObject({
+        statutActuel: 'planifie',
+        statutDemande: 'cloture',
+      });
       expect(corps.actionsProposees).toEqual([{ code: 'RAFRAICHIR' }]);
       expect(corps.blocages?.[0]?.type).toBe('ordre_reparation');
       expect(corps.blocages?.[0]?.id).toBe(or.id);
@@ -247,7 +257,11 @@ describe('ordre_reparation — transitions INTERDITES, par le VRAI endpoint HTTP
       expect(reponse.status).toBe(409);
       const corps = reponse.body as CorpsErreurTransition;
       expect(corps.code).toBe('OR_TRANSITION_INTERDITE');
-      expect(corps.detail).toBe('entite=ordre_reparation;depuis=ouvert;vers=cloture');
+      expect(corps.detail).toContain("L'OR est « Ouvert » : il ne peut pas passer à « Clôturé ».");
+      expect(corps.blocages?.[0]?.donnees).toMatchObject({
+        statutActuel: 'ouvert',
+        statutDemande: 'cloture',
+      });
     },
   );
 
@@ -305,7 +319,11 @@ describe('ordre_reparation — transitions INTERDITES, par le VRAI endpoint HTTP
     expect(tentative.status).toBe(409);
     const corps = tentative.body as CorpsErreurTransition;
     expect(corps.code).toBe('OR_TRANSITION_INTERDITE');
-    expect(corps.detail).toBe('entite=ordre_reparation;depuis=cloture;vers=ouvert');
+    expect(corps.detail).toContain("L'OR est « Clôturé » : il ne peut pas passer à « Ouvert ».");
+    expect(corps.blocages?.[0]?.donnees).toMatchObject({
+      statutActuel: 'cloture',
+      statutDemande: 'ouvert',
+    });
     expect(corps.actionsProposees).toEqual([]);
 
     // Contrôle négatif — cette partie n'est PAS affectée par le défaut : l'OR est resté « cloture ».
