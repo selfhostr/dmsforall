@@ -14,57 +14,28 @@ import { creerQueryClientTest } from '@/test/utils';
 
 import { ChecklistDemarrage } from './ChecklistDemarrage';
 
-const page = (donnees: unknown[]) => ({ donnees, curseurSuivant: null, limite: 50 });
 const t = (cle: string, options?: Record<string, unknown>) => i18n.t(cle, options);
 
-const CREANCIER_VIDE = {
-  nom: null,
-  rue: null,
-  numero: null,
-  npa: null,
-  localite: null,
-  pays: 'CH',
-  iban: null,
-  qrIban: null,
-  version: 0,
+const NEUF = {
+  coordonnees: false,
+  iban: false,
+  numeroTva: false,
+  tauxHoraire: false,
+  motifsRdv: false,
+  premierCollaborateur: false,
+  borne: false,
 };
 
-function api(
-  opts: {
-    creancier?: object;
-    tva?: string | null;
-    taux?: unknown[];
-    motifs?: unknown[];
-    autres?: boolean;
-  } = {},
-) {
-  const utilisateurMoi = {
-    id: SESSION_TEST.utilisateur.id,
-    prenom: 'J',
-    nom: 'D',
-    email: 'j@d.ch',
-    role: 'direction',
-    statut: 'actif',
-    sites: [],
-    derniereConnexionLe: null,
-    creeLe: '2026-01-01T00:00:00.000Z',
-  };
+/** Un seul appel alimente la liste : `GET /accueil/etat-demarrage`. */
+function api(etapes: Partial<typeof NEUF> = {}) {
+  const appels = { n: 0 };
   server.use(
-    http.get('/api/v1/parametres-facturation/creancier', () =>
-      HttpResponse.json(opts.creancier ?? CREANCIER_VIDE),
-    ),
-    http.get('/api/v1/parametres-entreprise', () =>
-      HttpResponse.json({ raisonSociale: 'G', numeroTva: opts.tva ?? null }),
-    ),
-    http.get('/api/v1/referentiels/taux-horaires', () => HttpResponse.json(page(opts.taux ?? []))),
-    http.get('/api/v1/motifs-rendez-vous', () => HttpResponse.json(opts.motifs ?? [])),
-    http.get('/api/v1/utilisateurs', () =>
-      HttpResponse.json(
-        page(opts.autres ? [utilisateurMoi, { ...utilisateurMoi, id: 'paul' }] : [utilisateurMoi]),
-      ),
-    ),
-    http.get('/api/v1/bornes', () => HttpResponse.json(page([]))),
+    http.get('/api/v1/accueil/etat-demarrage', () => {
+      appels.n += 1;
+      return HttpResponse.json({ etapes: { ...NEUF, ...etapes } });
+    }),
   );
+  return appels;
 }
 
 function session(role: string) {
@@ -93,7 +64,7 @@ describe('ChecklistDemarrage', () => {
 
   it('garage neuf (direction) : sept lignes, toutes à faire, chacune avec son lien et sa raison', async () => {
     session('direction');
-    api();
+    const appels = api();
     rendre();
 
     const titre = await screen.findByRole('heading', {
@@ -106,6 +77,7 @@ describe('ChecklistDemarrage', () => {
       ).toHaveLength(7),
     );
 
+    expect(appels.n).toBe(1);
     const motifs = ligne('motifs');
     expect(
       within(motifs).getByText(t('accueil:demarrage.etapes.motifs.pourquoi')),
@@ -129,7 +101,7 @@ describe('ChecklistDemarrage', () => {
 
   it('étapes calculées depuis les données : TVA et taux horaire faits, le reste à faire', async () => {
     session('direction');
-    api({ tva: 'CHE-116.281.710 TVA', taux: [{ id: 't1' }] });
+    api({ numeroTva: true, tauxHoraire: true });
     rendre();
 
     await waitFor(() =>
@@ -151,18 +123,12 @@ describe('ChecklistDemarrage', () => {
   it('tout réglé : la liste disparaît d’elle-même', async () => {
     session('direction');
     api({
-      creancier: {
-        ...CREANCIER_VIDE,
-        nom: 'G',
-        rue: 'R',
-        npa: '1000',
-        localite: 'L',
-        iban: 'CH9300762011623852957',
-      },
-      tva: 'CHE-116.281.710 TVA',
-      taux: [{ id: 't1' }],
-      motifs: [{ id: 'm', actif: true }],
-      autres: true,
+      coordonnees: true,
+      iban: true,
+      numeroTva: true,
+      tauxHoraire: true,
+      motifsRdv: true,
+      premierCollaborateur: true,
     });
     rendre();
     await waitFor(() =>
@@ -210,9 +176,8 @@ describe('ChecklistDemarrage', () => {
 
   it('source en erreur : « À vérifier » (jamais « À faire ») et possibilité de réessayer', async () => {
     session('direction');
-    api({ tva: 'CHE-116.281.710 TVA' });
     server.use(
-      http.get('/api/v1/parametres-facturation/creancier', () =>
+      http.get('/api/v1/accueil/etat-demarrage', () =>
         HttpResponse.json(
           {
             type: 'about:blank',

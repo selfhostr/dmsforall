@@ -1,4 +1,4 @@
-import type { ReponseBlocCreancier, ReponseMotifRendezVous, UtilisateurResume } from '@dfa/shared';
+import type { ReponseEtatDemarrage } from '@dfa/shared';
 
 /** Identifiants stables des étapes : servent de clés i18n (`accueil:demarrage.etapes.<id>`). */
 export const IDS_ETAPES_DEMARRAGE = [
@@ -13,9 +13,9 @@ export const IDS_ETAPES_DEMARRAGE = [
 export type IdEtapeDemarrage = (typeof IDS_ETAPES_DEMARRAGE)[number];
 
 /**
- * `inconnu` n'est PAS `aFaire` : une source qui n'a pas répondu (refus de droit, erreur réseau)
- * ne prouve pas que l'étape manque — l'afficher « à faire » enverrait la patronne refaire un
- * réglage déjà fait.
+ * `inconnu` n'est PAS `aFaire` : l'appel qui n'a pas répondu (refus de droit, erreur réseau) ne
+ * prouve pas que l'étape manque — l'afficher « à faire » enverrait la patronne refaire un réglage
+ * déjà fait. Le serveur, lui, rend toujours des booléens définitifs.
  */
 export type EtatEtapeDemarrage = 'fait' | 'aFaire' | 'inconnu';
 
@@ -26,66 +26,29 @@ export interface EtapeDemarrage {
   readonly facultative: boolean;
 }
 
-/** `undefined` = source pas (ou pas encore) lue. */
-export interface DonneesDemarrage {
-  readonly creancier: ReponseBlocCreancier | undefined;
-  readonly numeroTva: string | null | undefined;
-  readonly nbTauxHoraires: number | undefined;
-  readonly motifs: readonly ReponseMotifRendezVous[] | undefined;
-  readonly utilisateurs: readonly UtilisateurResume[] | undefined;
-  readonly nbBornes: number | undefined;
-  readonly utilisateurCourantId: string | undefined;
-}
+/** Clé de `GET /accueil/etat-demarrage` pour chaque étape de l'écran. */
+const CLE_SERVEUR: Readonly<Record<IdEtapeDemarrage, keyof ReponseEtatDemarrage['etapes']>> = {
+  coordonnees: 'coordonnees',
+  compte: 'iban',
+  tva: 'numeroTva',
+  tauxHoraire: 'tauxHoraire',
+  motifs: 'motifsRdv',
+  collaborateur: 'premierCollaborateur',
+  borne: 'borne',
+};
 
-const rempli = (valeur: string | null | undefined): boolean =>
-  valeur !== null && valeur !== undefined && valeur.trim() !== '';
-
-function etat(fait: boolean | undefined): EtatEtapeDemarrage {
-  if (fait === undefined) return 'inconnu';
-  return fait ? 'fait' : 'aFaire';
-}
-
-export function calculerEtapesDemarrage(donnees: DonneesDemarrage): readonly EtapeDemarrage[] {
-  const { creancier } = donnees;
-  const coordonnees =
-    creancier === undefined
-      ? undefined
-      : rempli(creancier.nom) &&
-        rempli(creancier.rue) &&
-        rempli(creancier.npa) &&
-        rempli(creancier.localite);
-  const compte =
-    creancier === undefined ? undefined : rempli(creancier.iban) || rempli(creancier.qrIban);
-  const collaborateur =
-    donnees.utilisateurs === undefined
-      ? undefined
-      : donnees.utilisateurs.some((u) => u.id !== donnees.utilisateurCourantId);
-
-  return [
-    { id: 'coordonnees', etat: etat(coordonnees), facultative: false },
-    { id: 'compte', etat: etat(compte), facultative: false },
-    {
-      id: 'tva',
-      etat: etat(donnees.numeroTva === undefined ? undefined : rempli(donnees.numeroTva)),
-      facultative: false,
-    },
-    {
-      id: 'tauxHoraire',
-      etat: etat(donnees.nbTauxHoraires === undefined ? undefined : donnees.nbTauxHoraires > 0),
-      facultative: false,
-    },
-    {
-      id: 'motifs',
-      etat: etat(donnees.motifs === undefined ? undefined : donnees.motifs.some((m) => m.actif)),
-      facultative: false,
-    },
-    { id: 'collaborateur', etat: etat(collaborateur), facultative: false },
-    {
-      id: 'borne',
-      etat: etat(donnees.nbBornes === undefined ? undefined : donnees.nbBornes > 0),
-      facultative: true,
-    },
-  ];
+/** `undefined` = l'appel n'a pas (ou pas encore) répondu : tout est « inconnu ». */
+export function calculerEtapesDemarrage(
+  etat: ReponseEtatDemarrage | undefined,
+): readonly EtapeDemarrage[] {
+  return IDS_ETAPES_DEMARRAGE.map((id) => {
+    const fait = etat?.etapes[CLE_SERVEUR[id]];
+    return {
+      id,
+      etat: fait === undefined ? 'inconnu' : fait ? 'fait' : 'aFaire',
+      facultative: id === 'borne',
+    };
+  });
 }
 
 /** La liste disparaît d'elle-même quand toutes les étapes obligatoires sont faites. */

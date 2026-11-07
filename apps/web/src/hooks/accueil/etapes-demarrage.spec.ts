@@ -1,78 +1,36 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ReponseBlocCreancier, ReponseMotifRendezVous, UtilisateurResume } from '@dfa/shared';
+import type { ReponseEtatDemarrage } from '@dfa/shared';
 
-import {
-  calculerEtapesDemarrage,
-  demarrageComplet,
-  type DonneesDemarrage,
-} from './etapes-demarrage';
+import { calculerEtapesDemarrage, demarrageComplet } from './etapes-demarrage';
 
-const CREANCIER_COMPLET: ReponseBlocCreancier = {
-  nom: 'Garage Martin SA',
-  rue: 'Rue de la Gare',
-  numero: '12',
-  npa: '1000',
-  localite: 'Lausanne',
-  pays: 'CH',
-  iban: 'CH9300762011623852957',
-  qrIban: null,
-  version: 1,
+const TOUT_FAIT: ReponseEtatDemarrage = {
+  etapes: {
+    coordonnees: true,
+    iban: true,
+    numeroTva: true,
+    tauxHoraire: true,
+    motifsRdv: true,
+    premierCollaborateur: true,
+    borne: false,
+  },
 };
 
-const motif = (actif: boolean): ReponseMotifRendezVous => ({
-  id: 'm1',
-  code: 'REVISION',
-  libelleFr: 'Révision',
-  libelleDe: null,
-  libelleIt: null,
-  dureeDefautMinutes: 60,
-  heuresAtelierDefautCentiemes: null,
-  actif,
-});
-
-const utilisateur = (id: string): UtilisateurResume => ({
-  id,
-  prenom: 'A',
-  nom: 'B',
-  email: 'a@b.ch',
-  role: 'technicien',
-  statut: 'actif',
-  sites: [],
-  derniereConnexionLe: null,
-  creeLe: '2026-01-01T00:00:00.000Z',
-});
-
-const TOUT_FAIT: DonneesDemarrage = {
-  creancier: CREANCIER_COMPLET,
-  numeroTva: 'CHE-116.281.710 TVA',
-  nbTauxHoraires: 1,
-  motifs: [motif(true)],
-  utilisateurs: [utilisateur('moi'), utilisateur('paul')],
-  nbBornes: 0,
-  utilisateurCourantId: 'moi',
-};
-
-const etat = (donnees: DonneesDemarrage, id: string) =>
-  calculerEtapesDemarrage(donnees).find((e) => e.id === id)?.etat;
+const etat = (reponse: ReponseEtatDemarrage | undefined, id: string) =>
+  calculerEtapesDemarrage(reponse).find((e) => e.id === id)?.etat;
 
 describe('calculerEtapesDemarrage', () => {
   it('garage neuf : tout est à faire, rien n’est inventé comme fait', () => {
     const etapes = calculerEtapesDemarrage({
-      creancier: {
-        ...CREANCIER_COMPLET,
-        nom: null,
-        rue: null,
-        npa: null,
-        localite: null,
-        iban: null,
+      etapes: {
+        coordonnees: false,
+        iban: false,
+        numeroTva: false,
+        tauxHoraire: false,
+        motifsRdv: false,
+        premierCollaborateur: false,
+        borne: false,
       },
-      numeroTva: null,
-      nbTauxHoraires: 0,
-      motifs: [],
-      utilisateurs: [utilisateur('moi')],
-      nbBornes: 0,
-      utilisateurCourantId: 'moi',
     });
     expect(etapes.map((e) => e.etat)).toEqual(Array(7).fill('aFaire'));
     expect(demarrageComplet(etapes)).toBe(false);
@@ -84,36 +42,17 @@ describe('calculerEtapesDemarrage', () => {
     expect(demarrageComplet(etapes)).toBe(true);
   });
 
-  it('une adresse incomplète laisse « coordonnées » à faire mais « compte » fait', () => {
-    const donnees = { ...TOUT_FAIT, creancier: { ...CREANCIER_COMPLET, npa: '' } };
-    expect(etat(donnees, 'coordonnees')).toBe('aFaire');
-    expect(etat(donnees, 'compte')).toBe('fait');
+  it('chaque étape suit sa propre clé serveur', () => {
+    const reponse = { etapes: { ...TOUT_FAIT.etapes, iban: false, motifsRdv: false } };
+    expect(etat(reponse, 'compte')).toBe('aFaire');
+    expect(etat(reponse, 'motifs')).toBe('aFaire');
+    expect(etat(reponse, 'coordonnees')).toBe('fait');
+    expect(etat(reponse, 'collaborateur')).toBe('fait');
   });
 
-  it('un QR-IBAN seul suffit pour le compte', () => {
-    const donnees = {
-      ...TOUT_FAIT,
-      creancier: { ...CREANCIER_COMPLET, iban: null, qrIban: 'CH4431999123000889012' },
-    };
-    expect(etat(donnees, 'compte')).toBe('fait');
-  });
-
-  it('seuls des motifs désactivés comptent pour rien', () => {
-    expect(etat({ ...TOUT_FAIT, motifs: [motif(false)] }, 'motifs')).toBe('aFaire');
-  });
-
-  it('le compte connecté ne compte pas comme « premier collaborateur »', () => {
-    expect(etat({ ...TOUT_FAIT, utilisateurs: [utilisateur('moi')] }, 'collaborateur')).toBe(
-      'aFaire',
-    );
-  });
-
-  it('source non lue : « inconnu », jamais « à faire », et la liste n’est pas complète', () => {
-    const donnees = { ...TOUT_FAIT, creancier: undefined, numeroTva: undefined };
-    const etapes = calculerEtapesDemarrage(donnees);
-    expect(etat(donnees, 'coordonnees')).toBe('inconnu');
-    expect(etat(donnees, 'compte')).toBe('inconnu');
-    expect(etat(donnees, 'tva')).toBe('inconnu');
+  it('réponse absente : « inconnu », jamais « à faire », et la liste n’est pas complète', () => {
+    const etapes = calculerEtapesDemarrage(undefined);
+    expect(etapes.map((e) => e.etat)).toEqual(Array(7).fill('inconnu'));
     expect(demarrageComplet(etapes)).toBe(false);
   });
 });
