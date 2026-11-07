@@ -2,11 +2,7 @@ import type { ReactNode } from 'react';
 import { AlertTriangle, CheckCircle2, Circle, Lock, Play, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import {
-  BadgeStatut,
-  type FormeBadge,
-  type TokenStatut,
-} from '@/composants/identite/BadgeStatut';
+import { BadgeStatut, type FormeBadge, type TokenStatut } from '@/composants/identite/BadgeStatut';
 
 type StatutPointage = 'en_cours' | 'termine' | 'valide' | 'verrouille';
 

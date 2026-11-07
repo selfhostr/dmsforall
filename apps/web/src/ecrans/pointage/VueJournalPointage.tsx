@@ -136,9 +136,7 @@ export function VueJournalPointage({ siteId }: Props) {
               <TableRow key={cumul.technicienId}>
                 <TableCell>
                   <span className="font-medium">{cumul.technicienNomAffiche}</span>
-                  {cumul.enCours ? (
-                    <BadgeEnCoursPointage className="ml-2" />
-                  ) : null}
+                  {cumul.enCours ? <BadgeEnCoursPointage className="ml-2" /> : null}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {formaterDureeLisible(cumul.productifSecondes)}

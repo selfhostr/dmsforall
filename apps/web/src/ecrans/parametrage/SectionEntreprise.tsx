@@ -183,7 +183,11 @@ function FormulaireEntreprise({ donnees }: { readonly donnees: ReponseParametres
                 readOnly={modifier.isPending}
                 aria-invalid={raisonErreur ? true : undefined}
                 aria-describedby={
-                  raisonErreur ? 'ent-tva-erreur' : saisie.trim() === '' ? 'ent-tva-aide' : undefined
+                  raisonErreur
+                    ? 'ent-tva-erreur'
+                    : saisie.trim() === ''
+                      ? 'ent-tva-aide'
+                      : undefined
                 }
                 onChange={(e) => {
                   setSaisie(e.target.value);

@@ -281,7 +281,6 @@ export function SectionComptesBancaires({
             erreur={erreurPourChamp('qrIban')}
             t={t}
           />
-
         </fieldset>
       </CardContent>
     </Card>
