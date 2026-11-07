@@ -82,6 +82,23 @@ export class ServiceRendezVous {
           await chargerVehiculeLigne(tx, ctx, entree.vehiculeId);
         }
         const motif = await chargerMotifLigne(tx, ctx, entree.motifId);
+        // Un motif désactivé reste lisible sur l'historique mais ne se choisit plus : c'est tout
+        // l'intérêt de « désactiver » plutôt que supprimer (`PATCH /motifs-rendez-vous/{id}`).
+        if (!motif.actif) {
+          throw new ErreurMetier(
+            'VALIDATION_ECHOUEE',
+            `Le motif « ${motif.libelleFr} » est désactivé : choisissez un motif actif.`,
+            {
+              erreurs: [
+                {
+                  champ: 'motifId',
+                  code: 'motif_desactive',
+                  message: 'Ce motif de rendez-vous est désactivé.',
+                },
+              ],
+            },
+          );
+        }
 
         const dureeEstimeeMinutes = entree.dureeEstimeeMinutes ?? dureeMinutesDepuisMotif(motif);
         if (dureeEstimeeMinutes === null) {

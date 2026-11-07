@@ -36,7 +36,7 @@ cp .env.example .env   # optional for a first try on localhost
 docker compose up -d
 ```
 
-Open http://localhost:8080 in your browser. The first start generates the database passwords, applies the migrations, then starts the API. Create the first garage account with `docker compose exec api node dist/cli/creer-garage.js --garage "Garage Exemple" --email direction@example.ch`, then sign in.
+Open http://localhost:8080 in your browser. The first start generates the database passwords, applies the migrations, then starts the API. Create the first garage account with `docker compose exec api node dist/cli/creer-garage.js --garage "Garage Exemple" --email direction@example.ch`, then sign in. In development, run `pnpm --filter @dfa/api exec tsx src/cli/creer-garage.ts --garage "Garage Exemple" --email direction@example.ch` instead.
 
 For a server with a domain name and HTTPS, set `DFA_SITE_ADDRESS` and `DFA_PUBLIC_URL` in `.env`, then read [Install on a server](https://dmsforall.selfhostr.io/docs/get-started/installation/). Set up backups before you enter real data: [Back up and restore](https://dmsforall.selfhostr.io/docs/get-started/backup-and-restore/).
 

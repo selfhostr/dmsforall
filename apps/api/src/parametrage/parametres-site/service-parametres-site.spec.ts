@@ -21,14 +21,32 @@ function ligneBrute(champs: Partial<schema.LigneParametreSite> = {}): schema.Lig
   } as schema.LigneParametreSite;
 }
 
+/**
+ * Fausse `AccesBase`. `selects` : réponses successives des SELECT, dans l'ordre d'appel du service
+ * (ligne de paramètres, puis éventuellement le site, puis la ligne relue après insertion).
+ */
 function accesFactice(options: {
+  readonly selects?: ReadonlyArray<ReadonlyArray<unknown>>;
   readonly ligneSelect?: schema.LigneParametreSite | undefined;
   readonly ligneUpdate?: schema.LigneParametreSite | undefined;
-}): AccesBase {
+}): AccesBase & { readonly insertions: unknown[] } {
+  const insertions: unknown[] = [];
+  const file = [...(options.selects ?? [])];
   const tx = {
     select: () => ({
       from: () => ({
-        where: () => Promise.resolve(options.ligneSelect ? [options.ligneSelect] : []),
+        where: () => {
+          if (options.selects) return Promise.resolve(file.shift() ?? []);
+          return Promise.resolve(options.ligneSelect ? [options.ligneSelect] : []);
+        },
+      }),
+    }),
+    insert: () => ({
+      values: (valeurs: unknown) => ({
+        onConflictDoNothing: () => {
+          insertions.push(valeurs);
+          return Promise.resolve();
+        },
       }),
     }),
     update: () => ({
@@ -40,6 +58,7 @@ function accesFactice(options: {
     }),
   };
   return {
+    insertions,
     enTenant: vi.fn((_ctx, travail) => travail(tx as never)),
     verifierConnexion: vi.fn(),
     verifierPostureRls: vi.fn(),
@@ -62,18 +81,29 @@ describe('ServiceParametresSite.obtenir', () => {
     expect(dto.capaciteHeuresJourCentiemes).toBeNull();
   });
 
-  it('site sans ligne de paramétrage : RESSOURCE_INTROUVABLE', async () => {
-    const service = new ServiceParametresSite(accesFactice({ ligneSelect: undefined }));
-    await expect(service.obtenir(CTX, SITE_ID)).rejects.toMatchObject({
+  it('site de ce tenant sans ligne (garage neuf) : crée la ligne par défaut au lieu de répondre 404', async () => {
+    const acces = accesFactice({ selects: [[], [{ id: SITE_ID }], [ligneBrute()]] });
+    const dto = await new ServiceParametresSite(acces).obtenir(CTX, SITE_ID);
+    expect(acces.insertions).toEqual([{ tenantId: 'tid', siteId: SITE_ID }]);
+    expect(dto.siteId).toBe(SITE_ID);
+  });
+
+  it('site inconnu de ce tenant : RESSOURCE_INTROUVABLE, aucune ligne créée', async () => {
+    const acces = accesFactice({ selects: [[], []] });
+    await expect(new ServiceParametresSite(acces).obtenir(CTX, SITE_ID)).rejects.toMatchObject({
       code: 'RESSOURCE_INTROUVABLE',
     });
+    expect(acces.insertions).toHaveLength(0);
   });
 });
 
 describe('ServiceParametresSite.modifier', () => {
   it('écrit les colonnes fournies et rend la ligne mise à jour', async () => {
     const service = new ServiceParametresSite(
-      accesFactice({ ligneUpdate: ligneBrute({ capaciteHeuresJourCentiemes: 80000 }) }),
+      accesFactice({
+        ligneSelect: ligneBrute(),
+        ligneUpdate: ligneBrute({ capaciteHeuresJourCentiemes: 80000 }),
+      }),
     );
     const dto = await service.modifier(CTX, SITE_ID, { capaciteHeuresJourCentiemes: 80000 });
     expect(dto.capaciteHeuresJourCentiemes).toBe(80000);

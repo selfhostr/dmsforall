@@ -48,4 +48,34 @@ describe('ServicePolitiqueMotDePasse.verifier', () => {
       });
     }
   });
+
+  describe('nomme le motif exact du refus (detail + code)', () => {
+    function capter(motDePasse: string): { message: string; code: string | undefined } {
+      try {
+        service.verifier(motDePasse, INDICES);
+      } catch (erreur) {
+        const e = erreur as { message: string; erreurs?: Array<{ code?: string }> };
+        return { message: e.message, code: e.erreurs?.[0]?.code };
+      }
+      throw new Error('aucun refus');
+    }
+
+    it('liste des plus courants : « trop courant »', () => {
+      const r = capter('password1234');
+      expect(r.code).toBe('mot_de_passe_trop_commun');
+      expect(r.message).toContain('trop courant');
+    });
+
+    it('motif structurel : « trop prévisible »', () => {
+      const r = capter('abcdefghijkl');
+      expect(r.code).toBe('mot_de_passe_trop_previsible');
+      expect(r.message).toContain('trop prévisible');
+    });
+
+    it('contient le courriel : le dit', () => {
+      const r = capter('julie.rey-est-super');
+      expect(r.code).toBe('mot_de_passe_contient_email');
+      expect(r.message).toContain('adresse courriel');
+    });
+  });
 });

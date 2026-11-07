@@ -5,3 +5,4 @@
 
 export * from './enums';
 export * from './rendez-vous';
+export * from './motif';

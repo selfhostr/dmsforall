@@ -760,6 +760,10 @@ export const CODES_AVERTISSEMENT = [
   // financier reste émis), seulement signalé pour que le magasinier enregistre le retour physique
   // à la main s'il a réellement eu lieu (`POST /articles/{id}/mouvements/retour-client`).
   'AVOIR_RETOUR_STOCK_NON_DECLENCHE',
+  // Facture émise sans bloc créancier complet (IBAN, adresse) : elle est valable et verrouillée,
+  // mais ne porte pas de QR-facture. `donnees.documentId` : la facture concernée. Voie de sortie :
+  // renseigner le bloc créancier (`PATCH /parametres-facturation/creancier`) pour les suivantes.
+  'FACTURE_SANS_QR',
 ] as const;
 export type CodeAvertissement = (typeof CODES_AVERTISSEMENT)[number];
 

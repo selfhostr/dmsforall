@@ -3,6 +3,8 @@
  *
  * Usage (image de production) :
  *   docker compose exec api node dist/cli/creer-garage.js --garage "Garage Exemple" --email direction@example.ch
+ * Usage (développement, base lancée avec `pnpm docker:up`, `.env` racine lu comme par l'API) :
+ *   pnpm --filter @dfa/api exec tsx src/cli/creer-garage.ts --garage "Garage Exemple" --email direction@example.ch
  * Options : --first-name, --last-name (défaut « Direction » / « Garage »), --help.
  * Mot de passe : variable DFA_PREMIER_MOT_DE_PASSE, sinon saisie interactive sans écho.
  *
@@ -16,6 +18,7 @@ import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { Client } from 'pg';
 
+import { chargerFichierEnv } from '../config/charger-fichier-env';
 import {
   creerGarage,
   ErreurCreerGarage,
@@ -24,8 +27,26 @@ import {
 } from './creer-garage.service';
 
 const ARGON2ID: Algorithm = 2;
-const AIDE = `Usage: node dist/cli/creer-garage.js --garage <name> --email <email> [--first-name <n>] [--last-name <n>]
-Password: env DFA_PREMIER_MOT_DE_PASSE, otherwise prompted without echo.`;
+const AIDE = `Usage: creer-garage --garage <name> --email <email> [--first-name <n>] [--last-name <n>]
+
+Creates a garage: its site, its first "direction" account, its workshop settings, an hourly
+rate ("ATELIER", CHF 140.00) and a set of appointment reasons. All of it can be changed afterwards.
+
+Options:
+  --garage <name>       Garage name (required)
+  --email <email>       E-mail address of the first account (required)
+  --first-name <name>   First name of the account (default: Direction)
+  --last-name <name>    Last name of the account (default: Garage)
+  --help                Show this help
+
+Password: env DFA_PREMIER_MOT_DE_PASSE, otherwise prompted without echo.
+
+Database: env DATABASE_URL_MIGRATION (read from the .env file at the repository root in
+development), otherwise /secrets/migrator_password inside the production image.
+
+Run:
+  production   docker compose exec api node dist/cli/creer-garage.js ...
+  development  pnpm --filter @dfa/api exec tsx src/cli/creer-garage.ts ...`;
 
 /** `docker compose exec` ne passe pas par l'entrypoint : on reconstruit l'URL depuis /secrets. */
 function urlMigration(): string {
@@ -39,7 +60,9 @@ function urlMigration(): string {
     return `postgresql://dfa_migrator:${encodeURIComponent(mdp)}@${hote}:${port}/${base}`;
   } catch {
     throw new Error(
-      'DATABASE_URL_MIGRATION is not set and /secrets/migrator_password is unreadable.',
+      'DATABASE_URL_MIGRATION is not set and /secrets/migrator_password is unreadable. ' +
+        'In development, set DATABASE_URL_MIGRATION in the .env file at the repository root ' +
+        '(see .env.example); in production, run the command inside the api container.',
     );
   }
 }
@@ -87,6 +110,8 @@ function lireMotDePasseInteractif(): Promise<string> {
 }
 
 async function principal(): Promise<number> {
+  // Même chargement que l'API (`main.ts`) : le `.env` racine, sans écraser l'environnement existant.
+  chargerFichierEnv();
   const { values } = parseArgs({
     options: {
       garage: { type: 'string' },
@@ -98,7 +123,7 @@ async function principal(): Promise<number> {
     strict: true,
   });
   if (values.help || !values.garage || !values.email) {
-    process.stderr.write(`${AIDE}\n`);
+    (values.help ? process.stdout : process.stderr).write(`${AIDE}\n`);
     return values.help ? 0 : 2;
   }
 
