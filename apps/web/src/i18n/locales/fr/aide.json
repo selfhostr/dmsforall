@@ -1,0 +1,41 @@
+{
+  "ouvrir": "Afficher l'aide",
+  "ouvrirSujet": "Aide : {sujet}",
+  "or": {
+    "provenanceLigne": "D'où vient la ligne : demandée par le client, découverte pendant l'intervention, campagne constructeur, garantie, retouche ou interne. Cela décide qui paie.",
+    "travauxReportes": "Travaux conseillés au client mais pas faits cette fois. Ils restent attachés au véhicule pour les proposer à la prochaine visite.",
+    "statuts": "Le statut dit où en est l'OR : ouvert, en cours, terminé, facturé. « Attente pièces » se cumule avec n'importe quel statut."
+  },
+  "vehicules": {
+    "travauxReportes": "Travaux repérés mais pas faits (client pas d'accord, pièce manquante). Ils restent sur la fiche du véhicule pour la prochaine visite."
+  },
+  "facturation": {
+    "arrondiEspeces": {
+      "sujet": "Arrondi espèces",
+      "texte": "En espèces, le total est arrondi au multiple de 5 centimes le plus proche (règle suisse). Par carte ou TWINT, le montant reste exact."
+    },
+    "encaissement": {
+      "sujet": "Encaissement",
+      "texte": "Espèces arrondies à 5 centimes. Si le client paie plus que le solde, l'excédent est gardé comme avance client, à affecter plus tard sur une autre facture."
+    }
+  },
+  "pieces": {
+    "reliquat": "Reliquat : quantité commandée qui n'est pas encore arrivée. Elle reste attendue du fournisseur tant qu'on ne l'annule pas.",
+    "consignes": "Consigne : somme versée par le client pour une pièce échange standard. Elle est rendue quand il rapporte l'ancienne pièce."
+  },
+  "pointage": {
+    "borne": {
+      "sujet": "Borne de pointage",
+      "texte": "La borne est la tablette ou le PC fixe de l'atelier où les mécaniciens pointent leur temps sur un OR."
+    }
+  },
+  "export": {
+    "fiduciaire": "Le fichier à remettre à votre fiduciaire pour sa comptabilité : factures, avoirs et encaissements de la période, au format de son logiciel."
+  },
+  "pneus": {
+    "hangar": "Les jeux de pneus d'un client stockés chez vous pour la saison. « À relancer » liste ceux dont le changement de saison approche."
+  },
+  "ventes": {
+    "reprise": "Reprise : le véhicule du client que vous rachetez en déduction du prix du véhicule vendu. Sa valeur est soustraite du total de la vente."
+  }
+}

@@ -1,6 +1,5 @@
 {
   "titre": "Scanner un permis de circulation",
-  "sousTitre": "Photographiez le permis, vérifiez, puis validez.",
   "echappement": {
     "message": "Vue simplifiée pour téléphone : seul le scan est accessible ici.",
     "action": "Ouvrir l'application complète"

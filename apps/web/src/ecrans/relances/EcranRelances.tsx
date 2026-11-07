@@ -5,7 +5,7 @@ import type { ReponseEnvoiRelances, ReponsePlanificationRelances } from '@dfa/sh
 
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
@@ -15,6 +15,14 @@ import { useEnvoyerRelances } from '@/hooks/relances/useEnvoyerRelances';
 import { useHistoriqueRelances } from '@/hooks/relances/useHistoriqueRelances';
 import { usePlanifierRelances } from '@/hooks/relances/usePlanifierRelances';
 import { formaterDate } from '@/lib/formats';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 import { BadgeStatutEnvoiRelance } from './BadgeStatutEnvoiRelance';
 
@@ -46,7 +54,7 @@ export function EcranRelances() {
   const { t } = useTranslation(['relances', 'commun']);
 
   return (
-    <GabaritEcran titre={t('relances:titre')} sousTitre={t('relances:sousTitre')}>
+    <GabaritEcran titre={t('relances:titre')}>
       <BlocDeclenchementManuel />
       <BlocTracabilite />
     </GabaritEcran>
@@ -69,7 +77,6 @@ function BlocDeclenchementManuel() {
     <Card>
       <CardHeader>
         <CardTitle className="texte-titre-section">{t('relances:declenchement.titre')}</CardTitle>
-        <CardDescription>{t('relances:declenchement.description')}</CardDescription>
       </CardHeader>
 
       {/* Bordures conservées sur les deux panneaux (DESIGN.md) : ce ne sont pas de simples groupes
@@ -176,10 +183,7 @@ function BlocTracabilite() {
     // propre cadre (`rounded-lg border` sur le wrapper `overflow-x-auto`, filet seul entre les
     // lignes), pas de carte qui l'enveloppe en plus.
     <section className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <h2 className="texte-titre-section">{t('relances:tracabilite.titre')}</h2>
-        <p className="texte-corps text-muted-foreground">{t('relances:tracabilite.description')}</p>
-      </div>
+      <h2 className="texte-titre-section">{t('relances:tracabilite.titre')}</h2>
 
       {resultat.isPending ? (
         <EtatChargement lignes={3} />
@@ -196,41 +200,35 @@ function BlocTracabilite() {
         />
       ) : (
         <>
-          <div className="overflow-x-auto rounded-lg border">
-            <table className="w-full texte-corps">
-              <thead>
-                <tr className="border-b text-left text-muted-foreground">
-                  <th scope="col" className="py-2 pr-4 font-medium">
-                    {t('relances:tracabilite.colonnes.date')}
-                  </th>
-                  <th scope="col" className="py-2 pr-4 font-medium">
-                    {t('relances:tracabilite.colonnes.facture')}
-                  </th>
-                  <th scope="col" className="py-2 pr-4 font-medium">
-                    {t('relances:tracabilite.colonnes.palier')}
-                  </th>
-                  <th scope="col" className="py-2 pr-4 font-medium">
-                    {t('relances:tracabilite.colonnes.destinataire')}
-                  </th>
-                  <th scope="col" className="py-2 pr-4 font-medium">
-                    {t('relances:tracabilite.colonnes.canal')}
-                  </th>
-                  <th scope="col" className="py-2 font-medium">
-                    {t('relances:tracabilite.colonnes.resultat')}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
+          <div className="overflow-hidden rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('relances:tracabilite.colonnes.date')}</TableHead>
+                  <TableHead>{t('relances:tracabilite.colonnes.facture')}</TableHead>
+                  <TableHead>{t('relances:tracabilite.colonnes.palier')}</TableHead>
+                  <TableHead>{t('relances:tracabilite.colonnes.destinataire')}</TableHead>
+                  <TableHead>{t('relances:tracabilite.colonnes.canal')}</TableHead>
+                  <TableHead>{t('relances:tracabilite.colonnes.resultat')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {elements.map((envoi) => (
-                  <tr key={envoi.id} className="border-b last:border-0">
-                    <td className="py-2 pr-4 tabular-nums">{formaterDate(envoi.envoyeLe)}</td>
-                    <td className="py-2 pr-4">{envoi.factureNumero ?? '—'}</td>
-                    <td className="py-2 pr-4">
+                  <TableRow key={envoi.id}>
+                    <TableCell className="whitespace-nowrap tabular-nums">
+                      {formaterDate(envoi.envoyeLe)}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {envoi.factureNumero ?? '—'}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
                       {t('relances:regles.paliers.libelle', { n: envoi.palier })}
-                    </td>
-                    <td className="py-2 pr-4">{envoi.destinataire}</td>
-                    <td className="py-2 pr-4">{t(`relances:regles.canaux.${envoi.canal}`)}</td>
-                    <td className="py-2">
+                    </TableCell>
+                    <TableCell>{envoi.destinataire}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {t(`relances:regles.canaux.${envoi.canal}`)}
+                    </TableCell>
+                    <TableCell>
                       <div className="flex flex-col items-start gap-0.5">
                         <BadgeStatutEnvoiRelance statut={envoi.statutEnvoi} />
                         {envoi.statutEnvoi === 'echoue' ? (
@@ -239,11 +237,11 @@ function BlocTracabilite() {
                           </span>
                         ) : null}
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
             <BoutonChargerPlus
               aChargerPlus={resultat.hasNextPage ?? false}
               enChargement={resultat.isFetchingNextPage}

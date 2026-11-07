@@ -6,15 +6,6 @@ import { schemaCreationTravailReporte, URGENCES_TRAVAIL, type UrgenceTravail } f
 import { messageErreur } from '@/api/erreurs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -25,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 
 import { useCreerTravailReporte } from './useCreerTravailReporte';
 
@@ -94,76 +86,68 @@ export function DialogueReporterTravail({
   }
 
   return (
-    <Dialog open={ouvert} onOpenChange={changerOuvert}>
-      <DialogContent>
-        <form onSubmit={soumettre} className="flex flex-col gap-4">
-          <DialogHeader>
-            <DialogTitle>{t('vehicules:travauxReportes.reporter.titre')}</DialogTitle>
-            <DialogDescription>
-              {t('vehicules:travauxReportes.reporter.description')}
-            </DialogDescription>
-          </DialogHeader>
+    <PanneauLateral
+      ouvert={ouvert}
+      onOuvertChange={changerOuvert}
+      titre={t('vehicules:travauxReportes.reporter.titre')}
+      pied={
+        <>
+          <Button type="button" variant="outline" onClick={() => changerOuvert(false)}>
+            {t('commun:actions.annuler')}
+          </Button>
+          <Button type="submit" form="formulaire-reporter-travail" disabled={creer.isPending}>
+            {t('vehicules:travauxReportes.reporter.enregistrer')}
+          </Button>
+        </>
+      }
+    >
+      <form id="formulaire-reporter-travail" onSubmit={soumettre} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="reporter-designation">
+            {t('vehicules:travauxReportes.dialogue.designation')}
+          </Label>
+          <Input
+            id="reporter-designation"
+            value={designation}
+            maxLength={200}
+            required
+            placeholder={t('vehicules:travauxReportes.reporter.designationPlaceholder')}
+            onChange={(e) => setDesignation(e.target.value)}
+          />
+        </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="reporter-designation">
-              {t('vehicules:travauxReportes.dialogue.designation')}
-            </Label>
-            <Input
-              id="reporter-designation"
-              value={designation}
-              maxLength={200}
-              required
-              placeholder={t('vehicules:travauxReportes.reporter.designationPlaceholder')}
-              onChange={(e) => setDesignation(e.target.value)}
-            />
-          </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="reporter-detail">{t('vehicules:travauxReportes.reporter.detail')}</Label>
+          <Textarea
+            id="reporter-detail"
+            value={detail}
+            maxLength={4000}
+            onChange={(e) => setDetail(e.target.value)}
+          />
+        </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="reporter-detail">
-              {t('vehicules:travauxReportes.reporter.detail')}
-            </Label>
-            <Textarea
-              id="reporter-detail"
-              value={detail}
-              maxLength={4000}
-              onChange={(e) => setDetail(e.target.value)}
-            />
-          </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="reporter-urgence">{t('vehicules:travauxReportes.urgence')}</Label>
+          <Select value={urgence} onValueChange={(v) => setUrgence(v as UrgenceTravail)}>
+            <SelectTrigger id="reporter-urgence">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {URGENCES_TRAVAIL.map((u) => (
+                <SelectItem key={u} value={u}>
+                  {t(`vehicules:travauxReportes.urgences.${CLES_URGENCE[u]}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="reporter-urgence">{t('vehicules:travauxReportes.urgence')}</Label>
-            <Select value={urgence} onValueChange={(v) => setUrgence(v as UrgenceTravail)}>
-              <SelectTrigger id="reporter-urgence">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {URGENCES_TRAVAIL.map((u) => (
-                  <SelectItem key={u} value={u}>
-                    {t(`vehicules:travauxReportes.urgences.${CLES_URGENCE[u]}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {erreur || creer.isError ? (
-            <Alert variant="destructive">
-              <AlertDescription>{erreur ?? messageErreur(creer.error, t)}</AlertDescription>
-            </Alert>
-          ) : null}
-
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                {t('commun:actions.annuler')}
-              </Button>
-            </DialogClose>
-            <Button type="submit" disabled={creer.isPending}>
-              {t('vehicules:travauxReportes.reporter.enregistrer')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        {erreur || creer.isError ? (
+          <Alert variant="destructive">
+            <AlertDescription>{erreur ?? messageErreur(creer.error, t)}</AlertDescription>
+          </Alert>
+        ) : null}
+      </form>
+    </PanneauLateral>
   );
 }

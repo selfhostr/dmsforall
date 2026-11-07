@@ -341,6 +341,7 @@ export function EcranFicheFacture() {
 
   const actionsEnTete =
     peutImprimer ||
+    proposeCorriger ||
     peutPdfDevis ||
     proposeCreerOr ||
     boutonActionPrimaire ||
@@ -366,6 +367,11 @@ export function EcranFicheFacture() {
             onClick={() => setCreationOrOuverte(true)}
           >
             {t('facturation:fiche.actions.creerOr')}
+          </Button>
+        ) : null}
+        {proposeCorriger ? (
+          <Button type="button" variant="outline" onClick={ouvrirCorrection}>
+            {t('facturation:fiche.actions.corrigerFacture')}
           </Button>
         ) : null}
         {peutImprimer ? (
@@ -493,8 +499,10 @@ export function EcranFicheFacture() {
         </div>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
-        <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6">
+        {/* En-tête (badges ci-dessus), puis destinataire et montants côte à côte, lignes, remise
+            (brouillon), enfin paiement et documents liés. */}
+        <div className="grid items-start gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle className="texte-titre-section">
@@ -573,245 +581,245 @@ export function EcranFicheFacture() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
-              <CardTitle className="texte-titre-section">
-                {t('facturation:fiche.lignes.titre')}
-              </CardTitle>
-              {/* Issue #125 : seul geste qui manquait pour qu'un brouillon puisse porter du
+          <div className="flex flex-col gap-6">
+            <RecapitulatifTVA
+              ventilationTva={document_.ventilationTva}
+              totalTtcCentimes={document_.totalTtcCentimes}
+              devise={document_.devise}
+            />
+
+            <div>
+              {/* DESIGN.md « densité » — exactement le patron cité par le socle comme candidat
+                évident (« une carte, un chiffre, un libellé ») : `Card compact` remplace l'ancien
+                `rounded-md border p-4` ad hoc, avec le même rembourrage réduit que ce lot appelait
+                de ses vœux. Pas dans une grille CSS (`flex justify-end` seul) : la mise en garde
+                « compact aggrave le vide sans `items-start` » ne s'applique pas ici. */}
+              <Card compact className="text-right">
+                <CardHeader>
+                  <p className="texte-libelle text-muted-foreground">
+                    {t('facturation:fiche.totalTtc')}
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <p className="texte-chiffre-geant tabular-nums font-semibold text-foreground">
+                    {document_.totalTtcCentimes !== undefined
+                      ? formaterMontantAvecDevise(document_.totalTtcCentimes, document_.devise)
+                      : t('facturation:fiche.montantIndisponible')}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
+            <CardTitle className="texte-titre-section">
+              {t('facturation:fiche.lignes.titre')}
+            </CardTitle>
+            {/* Issue #125 : seul geste qui manquait pour qu'un brouillon puisse porter du
                   contenu commercial avant émission. Aucun `peut*(actions)` supplémentaire ici — même
                   doctrine que la Card « Remise globale » juste en dessous, déjà éditable sur tout
                   brouillon sans re-vérification de rôle côté écran (le serveur reste l'arbitre
                   final, `facturation.document.modifier`, `ExigerDroit` sur la route). */}
-              {estBrouillon ? (
-                <DialogueLigneDocumentVente
-                  documentId={document_.id}
-                  enfantDeclencheur={
-                    <Button type="button" variant="outline" size="sm">
-                      <Plus className="h-4 w-4" aria-hidden />
-                      {t('facturation:fiche.lignes.ajouter')}
-                    </Button>
-                  }
-                />
-              ) : null}
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              {/* DÉFAUT CORRIGÉ (voir le commentaire de tête de `proposeCorriger` plus haut) : ce
+            {estBrouillon ? (
+              <DialogueLigneDocumentVente
+                documentId={document_.id}
+                enfantDeclencheur={
+                  <Button type="button" variant="outline" size="sm">
+                    <Plus className="h-4 w-4" aria-hidden />
+                    {t('facturation:fiche.lignes.ajouter')}
+                  </Button>
+                }
+              />
+            ) : null}
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {/* DÉFAUT CORRIGÉ (voir le commentaire de tête de `proposeCorriger` plus haut) : ce
                   lien était câblé sur `!estBrouillon` SEUL, sans aucun contrôle de rôle — actif
                   pour n'importe quel rôle, y compris `chef_atelier`/`admin`. `proposeCorriger`
                   gouverne désormais L'ACTION elle-même ; un rôle sans droit garde le message
                   informatif (« facture émise, non modifiable »), sans le lien cliquable. */}
-              {!estBrouillon && proposeCorriger ? (
-                <button
-                  type="button"
-                  className="w-fit texte-libelle text-muted-foreground underline-offset-2 hover:underline"
-                  onClick={ouvrirCorrection}
-                >
-                  {messageVerrouille} {t('facturation:verrouille.corriger')}
-                </button>
-              ) : null}
-              {!estBrouillon && !proposeCorriger ? (
-                <p className="w-fit texte-libelle text-muted-foreground">{messageVerrouille}</p>
-              ) : null}
-              {document_.lignes.length === 0 ? (
-                <p className="texte-corps text-muted-foreground">
-                  {t('facturation:fiche.lignes.vide')}
-                </p>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t('facturation:fiche.lignes.colonnes.designation')}</TableHead>
+            {!estBrouillon && proposeCorriger ? (
+              <button
+                type="button"
+                className="w-fit texte-libelle text-muted-foreground underline-offset-2 hover:underline"
+                onClick={ouvrirCorrection}
+              >
+                {messageVerrouille} {t('facturation:verrouille.corriger')}
+              </button>
+            ) : null}
+            {!estBrouillon && !proposeCorriger ? (
+              <p className="w-fit texte-libelle text-muted-foreground">{messageVerrouille}</p>
+            ) : null}
+            {document_.lignes.length === 0 ? (
+              <p className="texte-corps text-muted-foreground">
+                {t('facturation:fiche.lignes.vide')}
+              </p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('facturation:fiche.lignes.colonnes.designation')}</TableHead>
+                    <TableHead className="text-right">
+                      {t('facturation:fiche.lignes.colonnes.quantite')}
+                    </TableHead>
+                    <TableHead className="text-right">
+                      {t('facturation:fiche.lignes.colonnes.prixUnitaire')}
+                    </TableHead>
+                    <TableHead className="text-right">
+                      {t('facturation:fiche.lignes.colonnes.montant')}
+                    </TableHead>
+                    <TableHead className="text-right">
+                      {t('facturation:fiche.lignes.colonnes.tva')}
+                    </TableHead>
+                    {estBrouillon ? (
                       <TableHead className="text-right">
-                        {t('facturation:fiche.lignes.colonnes.quantite')}
+                        <span className="sr-only">{t('commun:actions.modifier')}</span>
                       </TableHead>
-                      <TableHead className="text-right">
-                        {t('facturation:fiche.lignes.colonnes.prixUnitaire')}
-                      </TableHead>
-                      <TableHead className="text-right">
-                        {t('facturation:fiche.lignes.colonnes.montant')}
-                      </TableHead>
-                      <TableHead className="text-right">
-                        {t('facturation:fiche.lignes.colonnes.tva')}
-                      </TableHead>
-                      {estBrouillon ? (
-                        <TableHead className="text-right">
-                          <span className="sr-only">{t('commun:actions.modifier')}</span>
-                        </TableHead>
-                      ) : null}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {document_.lignes.map((ligne) => {
-                      // Une ligne RECOPIÉE d'un OR (`ligneOrId !== null`) n'est jamais éditée ici :
-                      // `ligne.ts` (contrat) est explicite — « une ligne issue d'un OR n'est JAMAIS
-                      // saisie [en facturation], elle est RECOPIÉE par l'action serveur ». Retenue
-                      // par symétrie pour l'édition/suppression : ce dialogue ne sert QUE les
-                      // lignes saisies directement ici (vente comptoir, débours, correction),
-                      // jamais la provenance OR — décision de ce lot, non tirée d'une ligne
-                      // explicite de la spécification, signalée au rapport de livraison.
-                      const modifiable = estBrouillon && ligne.ligneOrId === null;
-                      return (
-                        <TableRow key={ligne.id} className={cnLigne(ligne.ligneOrId !== null)}>
-                          <TableCell>
-                            {ligne.designation}
-                            {ligne.ligneOrId !== null ? (
-                              <span className="ml-2 texte-libelle text-muted-foreground">
-                                {t('facturation:ligneDepuisOrGenerique')}
-                              </span>
-                            ) : null}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums">
-                            {(ligne.quantiteMillieme / 1000).toString()}
-                          </TableCell>
-                          {/* Pas de préfixe devise ICI : toutes les lignes d'UN document partagent
+                    ) : null}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {document_.lignes.map((ligne) => {
+                    // Une ligne RECOPIÉE d'un OR (`ligneOrId !== null`) n'est jamais éditée ici :
+                    // `ligne.ts` (contrat) est explicite — « une ligne issue d'un OR n'est JAMAIS
+                    // saisie [en facturation], elle est RECOPIÉE par l'action serveur ». Retenue
+                    // par symétrie pour l'édition/suppression : ce dialogue ne sert QUE les
+                    // lignes saisies directement ici (vente comptoir, débours, correction),
+                    // jamais la provenance OR — décision de ce lot, non tirée d'une ligne
+                    // explicite de la spécification, signalée au rapport de livraison.
+                    const modifiable = estBrouillon && ligne.ligneOrId === null;
+                    return (
+                      <TableRow key={ligne.id} className={cnLigne(ligne.ligneOrId !== null)}>
+                        <TableCell>
+                          {ligne.designation}
+                          {ligne.ligneOrId !== null ? (
+                            <span className="ml-2 texte-libelle text-muted-foreground">
+                              {t('facturation:ligneDepuisOrGenerique')}
+                            </span>
+                          ) : null}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {(ligne.quantiteMillieme / 1000).toString()}
+                        </TableCell>
+                        {/* Pas de préfixe devise ICI : toutes les lignes d'UN document partagent
                               nécessairement la même devise (`document_.devise`), déjà annoncée au
                               pied du document (Total TTC) et dans le dialogue d'émission — la
                               répéter sur chaque ligne serait du bruit, pas de l'information (à la
                               différence d'`EcranListeFactures`, où chaque LIGNE est un document
                               distinct qui peut porter sa propre devise). */}
-                          <TableCell className="text-right tabular-nums">
-                            {ligne.prixUnitaireTtcCentimes !== null &&
-                            ligne.prixUnitaireTtcCentimes !== undefined
-                              ? formaterMontant(ligne.prixUnitaireTtcCentimes)
-                              : ''}
+                        <TableCell className="text-right tabular-nums">
+                          {ligne.prixUnitaireTtcCentimes !== null &&
+                          ligne.prixUnitaireTtcCentimes !== undefined
+                            ? formaterMontant(ligne.prixUnitaireTtcCentimes)
+                            : ''}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {ligne.montants ? formaterMontant(ligne.montants.montantTtcCentimes) : ''}
+                        </TableCell>
+                        <TableCell className="text-right texte-libelle text-muted-foreground">
+                          {formaterPourmille(ligne.tauxTvaPourmille)}
+                        </TableCell>
+                        {estBrouillon ? (
+                          <TableCell className="text-right">
+                            {modifiable ? (
+                              <div className="flex justify-end gap-1">
+                                <DialogueLigneDocumentVente
+                                  documentId={document_.id}
+                                  ligne={ligne}
+                                  enfantDeclencheur={
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      aria-label={t('facturation:fiche.lignes.modifierAria', {
+                                        designation: ligne.designation,
+                                      })}
+                                    >
+                                      <Pencil className="h-4 w-4" aria-hidden />
+                                    </Button>
+                                  }
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  disabled={
+                                    suppressionLigne.isPending &&
+                                    suppressionLigne.variables?.ligneId === ligne.id
+                                  }
+                                  aria-label={t('facturation:fiche.lignes.retirerAria', {
+                                    designation: ligne.designation,
+                                  })}
+                                  onClick={() =>
+                                    suppressionLigne.mutate({
+                                      documentId: document_.id,
+                                      ligneId: ligne.id,
+                                    })
+                                  }
+                                >
+                                  {t('facturation:fiche.lignes.retirer')}
+                                </Button>
+                              </div>
+                            ) : null}
                           </TableCell>
-                          <TableCell className="text-right tabular-nums">
-                            {ligne.montants
-                              ? formaterMontant(ligne.montants.montantTtcCentimes)
-                              : ''}
-                          </TableCell>
-                          <TableCell className="text-right texte-libelle text-muted-foreground">
-                            {formaterPourmille(ligne.tauxTvaPourmille)}
-                          </TableCell>
-                          {estBrouillon ? (
-                            <TableCell className="text-right">
-                              {modifiable ? (
-                                <div className="flex justify-end gap-1">
-                                  <DialogueLigneDocumentVente
-                                    documentId={document_.id}
-                                    ligne={ligne}
-                                    enfantDeclencheur={
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        aria-label={t('facturation:fiche.lignes.modifierAria', {
-                                          designation: ligne.designation,
-                                        })}
-                                      >
-                                        <Pencil className="h-4 w-4" aria-hidden />
-                                      </Button>
-                                    }
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    disabled={
-                                      suppressionLigne.isPending &&
-                                      suppressionLigne.variables?.ligneId === ligne.id
-                                    }
-                                    aria-label={t('facturation:fiche.lignes.retirerAria', {
-                                      designation: ligne.designation,
-                                    })}
-                                    onClick={() =>
-                                      suppressionLigne.mutate({
-                                        documentId: document_.id,
-                                        ligneId: ligne.id,
-                                      })
-                                    }
-                                  >
-                                    {t('facturation:fiche.lignes.retirer')}
-                                  </Button>
-                                </div>
-                              ) : null}
-                            </TableCell>
-                          ) : null}
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              )}
-              {suppressionLigne.isError ? (
-                <p role="alert" className="texte-libelle text-destructive">
-                  {messageErreur(suppressionLigne.error, t)}
-                </p>
-              ) : null}
-            </CardContent>
-          </Card>
+                        ) : null}
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+            {suppressionLigne.isError ? (
+              <p role="alert" className="texte-libelle text-destructive">
+                {messageErreur(suppressionLigne.error, t)}
+              </p>
+            ) : null}
+          </CardContent>
+        </Card>
 
-          {estBrouillon ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="texte-titre-section">
-                  {t('facturation:champs.remiseGlobale.titre')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex items-end gap-3">
-                <ChampMontant
-                  valeurCentimes={remiseCentimes}
-                  onChangeCentimes={setRemiseCentimes}
-                  label={t('facturation:champs.remiseGlobale.montant')}
-                  devise={document_.devise}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={modification.isPending}
-                  onClick={enregistrerRemise}
-                >
-                  {t('facturation:actions.enregistrer')}
-                </Button>
-              </CardContent>
-              {/* Défaut corrigé (issue #63) : ce bouton mettait bien à jour le total TTC en cas de
+        {estBrouillon ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="texte-titre-section">
+                {t('facturation:champs.remiseGlobale.titre')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-end gap-3">
+              <ChampMontant
+                valeurCentimes={remiseCentimes}
+                onChangeCentimes={setRemiseCentimes}
+                label={t('facturation:champs.remiseGlobale.montant')}
+                devise={document_.devise}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={modification.isPending}
+                onClick={enregistrerRemise}
+              >
+                {t('facturation:actions.enregistrer')}
+              </Button>
+            </CardContent>
+            {/* Défaut corrigé (issue #63) : ce bouton mettait bien à jour le total TTC en cas de
                   succès (revalidation visible), mais un ÉCHEC (ex. `409` sur une facture déjà
                   émise entre-temps par un autre poste) ne produisait ICI aucun message — seul le
                   bouton redevenait cliquable. Même patron que `emission.isError`/
                   `suppressionLigne.isError` plus haut sur cet écran. */}
-              {modification.isError ? (
-                <CardContent className="pt-0">
-                  {messagesErreurMutation(modification.error, t).map((message, index) => (
-                    <p key={index} role="alert" className="texte-libelle text-destructive">
-                      {message}
-                    </p>
-                  ))}
-                </CardContent>
-              ) : null}
-            </Card>
-          ) : null}
-
-          <div className="flex justify-end">
-            {/* DESIGN.md « densité » — exactement le patron cité par le socle comme candidat
-                évident (« une carte, un chiffre, un libellé ») : `Card compact` remplace l'ancien
-                `rounded-md border p-4` ad hoc, avec le même rembourrage réduit que ce lot appelait
-                de ses vœux. Pas dans une grille CSS (`flex justify-end` seul) : la mise en garde
-                « compact aggrave le vide sans `items-start` » ne s'applique pas ici. */}
-            <Card compact className="text-right">
-              <CardHeader>
-                <p className="texte-libelle text-muted-foreground">
-                  {t('facturation:fiche.totalTtc')}
-                </p>
-              </CardHeader>
-              <CardContent>
-                <p className="texte-chiffre-geant tabular-nums font-semibold text-foreground">
-                  {document_.totalTtcCentimes !== undefined
-                    ? formaterMontantAvecDevise(document_.totalTtcCentimes, document_.devise)
-                    : t('facturation:fiche.montantIndisponible')}
-                </p>
+            {modification.isError ? (
+              <CardContent className="pt-0">
+                {messagesErreurMutation(modification.error, t).map((message, index) => (
+                  <p key={index} role="alert" className="texte-libelle text-destructive">
+                    {message}
+                  </p>
+                ))}
               </CardContent>
-            </Card>
-          </div>
-        </div>
+            ) : null}
+          </Card>
+        ) : null}
 
-        <div className="flex flex-col gap-6">
-          <RecapitulatifTVA
-            ventilationTva={document_.ventilationTva}
-            totalTtcCentimes={document_.totalTtcCentimes}
-            devise={document_.devise}
-          />
-
+        <div className="grid items-start gap-6 lg:grid-cols-2">
           <CarteBulletinVersement qr={document_.qr} />
 
           <Card>

@@ -1,4 +1,3 @@
-import { X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -11,6 +10,7 @@ import {
   type StatutConsigneEchangeStandard,
 } from '@dfa/shared';
 
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -192,10 +192,14 @@ export function EcranConsignesPieces() {
   }
 
   return (
-    <GabaritEcran titre={t('pieces:consignes.titre')}>
-      <div className="flex flex-wrap items-end gap-groupe">
+    <GabaritEcran
+      titre={t('pieces:consignes.titre')}
+      actions={
+        <AideContextuelle sujet={t('pieces:consignes.titre')} texte={t('aide:pieces.consignes')} />
+      }
+    >
+      <div className="flex flex-nowrap items-center gap-controles">
         <div className="flex flex-col gap-champ max-w-xs">
-          <Label htmlFor="filtre-statut-consigne">{t('pieces:consignes.statut')}</Label>
           <Select
             value={statut ?? 'toutes'}
             onValueChange={(valeur) =>
@@ -231,11 +235,6 @@ export function EcranConsignesPieces() {
             onChange={(evenement) => setAncienneteSaisie(evenement.target.value)}
           />
         </div>
-
-        <Button type="button" variant="ghost" disabled={!filtresActifs} onClick={effacerFiltres}>
-          <X aria-hidden className="h-4 w-4" />
-          {t('commun:actions.effacerFiltres')}
-        </Button>
       </div>
 
       <TableComptoir

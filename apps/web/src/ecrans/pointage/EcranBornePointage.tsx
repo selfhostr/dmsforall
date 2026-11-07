@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Navigate } from 'react-router';
+import { Link, Navigate } from 'react-router';
 
 import {
   ACTIVITES_INDIRECTES,
@@ -11,6 +11,7 @@ import {
   type ReponseOrdreReparation,
 } from '@dfa/shared';
 
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { ErreurApi, ErreurReseau, messageErreur } from '@/api/erreurs';
 import { genererCleIdempotence } from '@/api/idempotence';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -33,6 +34,8 @@ import { useIdentificationPin } from '@/hooks/pointage/useIdentificationPin';
 import { useMesOrdresAssignes } from '@/hooks/pointage/useMesOrdresAssignes';
 import { usePointageOuvertTechnicien } from '@/hooks/pointage/usePointageOuvertTechnicien';
 import { useSession } from '@/hooks/useSession';
+import { peut } from '@/droits';
+import { chemins } from '@/routes/chemins';
 import { genererUuid } from '@/lib/uuid';
 
 import { BandeauReprisePointage } from './BandeauReprisePointage';
@@ -618,6 +621,28 @@ export function EcranBornePointage() {
     );
   }
 
+  // Le code PIN n'existe que sur la borne partagée (compte de service) : il sert à savoir QUI
+  // pointe. Un compte personnel est déjà identifié par sa session, pointe sans PIN depuis « Mon
+  // travail » ; l'API lui refuserait d'ailleurs l'identification (403). Aucun pavé ne lui est montré.
+  if (!peut(session.actions, 'atelier.pointage.identifier')) {
+    return (
+      <div className="flex flex-col gap-6">
+        <h1 className="texte-titre-page">{t('pointage:borne.comptePersonnel.titre')}</h1>
+        <EtatVide
+          titre={t('pointage:borne.comptePersonnel.titreVide')}
+          description={t('pointage:borne.comptePersonnel.description')}
+          action={
+            <Button asChild>
+              <Link to={chemins.pointage.saisie()}>
+                {t('pointage:borne.comptePersonnel.action')}
+              </Link>
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
   // PLUS DE GARDE `!siteId` ICI (décision 14.08.2026, voir la docstring de tête) : le site vient
   // désormais de l'identification PIN, pas de la session — il n'est simplement pas encore connu
   // avant `identifie`, ce qui n'empêche jamais le pavé de saisie de s'afficher (branche `!identifie`
@@ -692,8 +717,12 @@ export function EcranBornePointage() {
         </CardHeader>
         {toutesOrOuvertesVisible ? (
           <CardContent className="flex flex-col gap-3">
-            <p className="texte-corps text-muted-foreground">
+            <p className="flex items-center gap-1.5 texte-corps text-muted-foreground">
               {t('pointage:toutesLesOr.siteBorne')}
+              <AideContextuelle
+                sujet={t('aide:pointage.borne.sujet')}
+                texte={t('aide:pointage.borne.texte')}
+              />
             </p>
             <SelecteurOrOuvert
               siteId={siteId}

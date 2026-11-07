@@ -153,7 +153,6 @@ export function EcranListeDossiersVente() {
   } = useListeDossiersVente(filtres);
 
   const filtresStructuresActifs = filtreStatut !== 'tous' || afficherTermines;
-  const filtresActifs = q.trim() !== '' || filtresStructuresActifs;
 
   function effacerFiltres() {
     setQSaisie('');
@@ -276,24 +275,23 @@ export function EcranListeDossiersVente() {
   // chantier) : rejoint la rangée filtres + tri ci-dessous, à sa suite, plutôt que de rester isolé.
   return (
     <GabaritEcran titre={t('ventes:dossier.liste.titre')}>
-      {/* Rangée UNIQUE filtres + tri + action (correctif « mise en page ventes », 19.08.2026 : « grands
-          espaces vides entre le titre et le premier contenu ») — `SelecteurTri` tenait auparavant
-          toute une rangée pleine largeur à lui seul sous la barre de filtres, un `gap-6` (24px)
-          de plus rien que pour l'espacer. `BarreFiltres` grandit (`flex-1`), le tri puis le bouton
-          « Nouveau dossier de vente » viennent à sa suite dans le même `flex-wrap` : sur un écran
-          étroit ils repassent sous les filtres comme avant, sur un poste large ils s'alignent à
-          droite au lieu de laisser filer une ligne quasi vide. Le libellé « Statut » retiré
-          au-dessus du sélecteur de statut (defect signalé : le bouton affiche déjà « Tous les
-          statuts », `aria-label` déjà porté par `SelectTrigger` — même correctif que les trois
-          filtres de `EcranListeVehiculesStock`). */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex items-center gap-3">
         <BarreFiltres
           q={qSaisie}
           onChangeQ={setQSaisie}
           placeholderRecherche={t('ventes:dossier.liste.filtres.q')}
-          filtresActifs={filtresActifs}
-          onEffacerFiltres={effacerFiltres}
           className="min-w-0 flex-1"
+          tri={
+            <SelecteurTri
+              options={TRIS_DOSSIERS_VENTE.map((valeur) => ({
+                valeur,
+                libelle: t(CLES_TRI[valeur]),
+              }))}
+              valeur={tri}
+              onChangeValeur={setTri}
+              label={t('ventes:dossier.liste.tri.label')}
+            />
+          }
         >
           <Select
             value={filtreStatut}
@@ -301,7 +299,7 @@ export function EcranListeDossiersVente() {
           >
             <SelectTrigger
               id="filtre-statut-dossier-vente"
-              className="w-[220px]"
+              className="w-auto min-w-44 shrink-0"
               aria-label={t('ventes:dossier.liste.filtres.statutLabel')}
             >
               <SelectValue />
@@ -319,7 +317,7 @@ export function EcranListeDossiersVente() {
           {filtreStatut === 'tous' ? (
             <label
               htmlFor="dossiers-afficher-termines"
-              className="flex items-center gap-2 texte-corps"
+              className="flex shrink items-center gap-2 texte-corps"
             >
               <Checkbox
                 id="dossiers-afficher-termines"
@@ -330,15 +328,6 @@ export function EcranListeDossiersVente() {
             </label>
           ) : null}
         </BarreFiltres>
-
-        <SelecteurTri
-          options={TRIS_DOSSIERS_VENTE.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
-          valeur={tri}
-          onChangeValeur={setTri}
-          label={t('ventes:dossier.liste.tri.label')}
-          className="w-[220px] shrink-0"
-        />
-
         {boutonNouveauDossier}
       </div>
 

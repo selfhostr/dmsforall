@@ -3,21 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { Segments } from '@/composants/commun/Segments';
 
 /**
- * Liste / Plan (issue #142) — bascule ORTHOGONALE à `BasculeVueStock` (vendeur/client, question de
- * CONFIDENTIALITÉ) : celle-ci ne change aucune donnée affichée, seulement sa MISE EN FORME (table
- * plate vs. regroupement par zone). Même patron d'implémentation que `BasculeVueStock`
- * (`@base-ui/react/tabs` directement, pas `components/ui/tabs.tsx` — voir la note de style de ce
- * fichier), état porté par `?affichage=` dans l'URL, jamais un état local : un lien partagé
- * « regarde la zone Devant » doit rouvrir la vue Plan, pas retomber sur la table par défaut.
- *
- * `@base-ui/react/tabs` plutôt que `@radix-ui/react-tabs` (chantier d'unification inter-écrans,
- * 25.08.2026, même motif que `BasculeVueStock`/`EcranListeFactures.tsx`/`components/ui/tabs.tsx`) :
- * Tabs n'est pas un composant à portail/superposition, la frontière Radix/Base UI de CONTRIBUTING.md ne
- * s'y applique pas. WCAG 4.1.2 (`aria-controls` de référence brisée) : ces onglets FILTRENT
- * l'affichage de la même liste, ils n'ouvrent jamais de panneau dédié (aucun `TabsPrimitive.Panel`
- * n'est jamais rendu) — Base UI omet `aria-controls` quand aucun panneau n'est monté (voir
- * `BasculeVueStock.tsx` pour le détail vérifié dans le code source), vérifié ici aussi dans
- * `BasculeAffichageStock.spec.tsx`.
+ * Liste / Plan (issue #142) : change seulement la MISE EN FORME (table plate vs. regroupement par
+ * zone), jamais les données. État porté par `?affichage=` dans l'URL : un lien partagé « regarde la
+ * zone Devant » rouvre la vue Plan. `@base-ui/react/tabs` via `Segments` : Tabs n'est pas un
+ * composant à portail, la frontière Radix/Base UI de CONTRIBUTING.md ne s'y applique pas. Aucun
+ * panneau n'est monté, donc Base UI omet `aria-controls` (WCAG 4.1.2).
  */
 export type AffichageStock = 'liste' | 'plan';
 
