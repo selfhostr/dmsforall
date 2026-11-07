@@ -189,6 +189,13 @@ export default defineConfig(({ mode }) => {
     build: {
       sourcemap: true,
       rollupOptions: {
+        // `@dfa/shared` est résolu vers ses sources par alias (donc hors `node_modules`), et Vite
+        // n'y applique pas son `"sideEffects": false`. Sans cette règle, Rollup garde chaque module
+        // du barrel (`export *`), donc tous les schémas zod, dans le chunk initial. Chaque module
+        // du paquet n'a que des exports purs : un module dont aucun export n'est utilisé est élagué.
+        treeshake: {
+          moduleSideEffects: (id) => !id.includes('/packages/shared/src/'),
+        },
         output: {
           // Vendors stables séparés du code applicatif : leur nom de fichier ne change qu'à la
           // montée de version d'une dépendance, le navigateur les garde en cache d'une livraison
