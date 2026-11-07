@@ -124,7 +124,7 @@ describe('EcranAgendaRendezVous', () => {
     expect(onChangerVue).toHaveBeenCalledWith('liste');
   });
 
-  it('« choisissez un site » ne renvoie plus « en haut à gauche » et propose les sites', async () => {
+  it('« choisissez un site » ne renvoie à aucun sélecteur « en haut » et propose les sites', async () => {
     const utilisateur = userEvent.setup();
     const onChangerSite = vi.fn();
     rendre(
@@ -140,7 +140,7 @@ describe('EcranAgendaRendezVous', () => {
       />,
     );
     expect(screen.queryByText(/en haut à gauche/)).not.toBeInTheDocument();
-    expect(screen.getByText(/en haut à droite/)).toBeInTheDocument();
+    expect(screen.queryByText(/en haut à droite/)).not.toBeInTheDocument();
     await utilisateur.click(screen.getByRole('button', { name: 'Martigny' }));
     expect(onChangerSite).toHaveBeenCalledWith('s-2');
   });

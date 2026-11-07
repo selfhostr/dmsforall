@@ -500,7 +500,7 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
         </Alert>
       ) : null}
 
-      <div className="space-y-champ">
+      <div className="space-y-2">
         <Label>{t('clients:liste.filtres.type')}</Label>
         {/* Bordure structurelle : contour d'un contrôle de saisie (bascule particulier/
          *  entreprise, `role="group"` de boutons). */}
@@ -609,9 +609,9 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
         </div>
       )}
 
-      <fieldset className="space-y-groupe p-carte">
-        <legend className="px-1 texte-libelle font-medium text-foreground">
-          {t('clients:adresses.types.principale')}
+      <fieldset className="space-y-groupe">
+        <legend className="mb-2 texte-libelle font-medium text-foreground">
+          {t('clients:formulaireNouveau.adresse')}
         </legend>
         <div className="space-y-champ">
           <Label htmlFor="nc-rue">{t('clients:adresses.champs.rue')}</Label>

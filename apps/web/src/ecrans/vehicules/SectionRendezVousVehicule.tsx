@@ -196,10 +196,7 @@ export function SectionRendezVousVehicule({ vehicule, detenteur, site }: Props) 
             onReessayer={() => void requeteRdv.refetch()}
           />
         ) : rendezVousAVenir.length === 0 ? (
-          <EtatVide
-            titre={t('vehicules:fiche.rendezVous.titre')}
-            description={t('vehicules:fiche.rendezVous.vide')}
-          />
+          <EtatVide description={t('vehicules:fiche.rendezVous.vide')} />
         ) : (
           <ul className="flex flex-col gap-2">
             {rendezVousAVenir.map((rdv) => (

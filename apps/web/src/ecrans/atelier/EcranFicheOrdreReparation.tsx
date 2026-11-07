@@ -275,7 +275,6 @@ export function EcranFicheOrdreReparation() {
               />
             ) : documentsLies.length === 0 ? (
               <EtatVide
-                titre={t('or:fiche.documentsVente.titre')}
                 description={
                   // Issue #105 (rapport terrain) : « OR restitué + clôturé, aucune facture liée,
                   // bug ? » — non, `cloturer()` ne vérifie jamais l'existence d'un document

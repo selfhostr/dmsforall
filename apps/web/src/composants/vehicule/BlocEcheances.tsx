@@ -5,6 +5,7 @@ import type { GarantieVehicule, ReponseContexteAtelier } from '@dfa/shared';
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { formaterDate, formaterKilometrage } from '@/lib/formats';
 import { cn } from '@/lib/utils';
 
@@ -41,7 +42,10 @@ export function BlocEcheances({
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle className="texte-titre-section">{t('expertise.titre')}</CardTitle>
+        <CardTitle className="flex items-center gap-1.5 texte-titre-section">
+          {t('expertise.titre')}
+          <AideContextuelle sujet={t('expertise.titre')} texte={t('aide:vehicules.expertise')} />
+        </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-groupe">
         <LigneEcheanceExpertise expertise={expertise} />

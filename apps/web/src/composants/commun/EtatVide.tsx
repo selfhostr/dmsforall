@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
 
 interface Props {
-  readonly titre: string;
+  /** Absent quand l'état vide vit sous un titre qui dit déjà la même chose (titre de carte,
+   *  d'onglet) : ne jamais répéter ce titre ici. */
+  readonly titre?: string;
   readonly description: string;
   readonly note?: string;
   readonly action?: ReactNode;
@@ -31,7 +33,7 @@ interface Props {
 export function EtatVide({ titre, description, note, action }: Props) {
   return (
     <div className="flex flex-col items-center gap-groupe rounded-lg border border-dashed p-carte text-center">
-      <h2 className="texte-titre-section">{titre}</h2>
+      {titre ? <h2 className="texte-titre-section">{titre}</h2> : null}
       <p className="max-w-md text-muted-foreground">{description}</p>
       {note ? <p className="texte-corps text-muted-foreground">{note}</p> : null}
       {action}

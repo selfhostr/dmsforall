@@ -150,7 +150,6 @@
   },
   "doublonsEcran": {
     "titre": "Kundendubletten",
-    "description": "Suchen Sie einen Kunden nach Name, PLZ, E-Mail, Telefon oder UID-Nummer, bevor Sie einen neuen anlegen, oder prüfen Sie, ob zwei Kundenkarten dieselbe Person betreffen.",
     "champs": {
       "nom": "Name oder Firmenname",
       "npa": "PLZ",
@@ -220,6 +219,7 @@
     "filtreDescription": "Ändern oder löschen Sie die aktiven Filter."
   },
   "formulaireNouveau": {
+    "adresse": "Adresse",
     "brouillon": {
       "ignorer": "Entwurf verwerfen"
     },

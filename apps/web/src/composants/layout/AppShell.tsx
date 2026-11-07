@@ -119,7 +119,7 @@ export function AppShell() {
           {afficheNavigation ? (
             // Tiroir de la barre latérale (téléphone/tablette), ouvert par « Plus » de la barre basse.
             <Sheet open={ouvert} onOpenChange={setOuvert}>
-              <SheetContent side="left" className="w-60 p-0">
+              <SheetContent side="left" className="w-60 content-stretch auto-rows-fr p-0">
                 {/* `SheetContent side="left"` pose déjà `fixed inset-y-0 ... h-full` (voir
                     `components/ui/sheet.tsx`) : le tiroir a donc une hauteur de viewport définie
                     sans rien ajouter ici, et `BarreLaterale` (h-full) s'y ancre exactement comme

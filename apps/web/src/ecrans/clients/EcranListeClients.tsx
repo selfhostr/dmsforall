@@ -89,8 +89,6 @@ export function EcranListeClients() {
     [requete.data],
   );
 
-  const filtresActifs = qSaisi.trim() !== '' || type !== undefined || inclureInactifs;
-
   const effacerFiltres = () => {
     setQSaisi('');
     setType(undefined);
@@ -181,18 +179,18 @@ export function EcranListeClients() {
     // auparavant, qui demandait ce même h1 visible : l'onglet « Clients », déjà affiché à
     // l'écran, porte désormais ce libellé, le h1 devient `sr-only` (jamais retiré du DOM).
     // Aucun padding local : `AppShell` pose déjà `p-4 sm:p-6` sur tout écran routé.
-    //
-    // « Nouveau client » N'EST PAS dans l'emplacement `actions` du gabarit (qui le placerait juste
-    // sous le titre, seul sur sa ligne, et décalerait tout le reste) — retour produit, chantier
-    // « zone haute des écrans de liste » : le bouton descend juste sous la barre de filtres,
-    // aligné à droite, même déplacement que sur Atelier/Pneus/Véhicules.
-    <GabaritEcran titre={t('clients:titre')}>
-      <BarreFiltres
-        q={qSaisi}
-        onChangeQ={setQSaisi}
-        filtresActifs={filtresActifs}
-        onEffacerFiltres={effacerFiltres}
-      >
+    // « Nouveau client » est l'action du gabarit : titre et action sur la même ligne, filtres
+    // en dessous sur une seule ligne (BarreFiltres).
+    <GabaritEcran
+      titre={t('clients:titre')}
+      actions={
+        <Button type="button" onClick={() => setSheetOuvert(true)}>
+          <Plus aria-hidden className="h-4 w-4" />
+          {t('clients:nouveau')}
+        </Button>
+      }
+    >
+      <BarreFiltres q={qSaisi} onChangeQ={setQSaisi}>
         <Select
           value={type ?? 'tous'}
           onValueChange={(valeur) =>
@@ -219,16 +217,6 @@ export function EcranListeClients() {
           </Label>
         </div>
       </BarreFiltres>
-
-      {/* Pas de `SelecteurTri` sur cet écran (tri par colonnes triables de `TableComptoir`) :
-          le bouton d'action rejoint donc sa propre ligne, aligné à droite, directement sous la
-          barre de filtres — même principe que la ligne « Trier par » des autres écrans. */}
-      <div className="flex justify-end">
-        <Button type="button" onClick={() => setSheetOuvert(true)}>
-          <Plus aria-hidden className="h-4 w-4" />
-          {t('clients:nouveau')}
-        </Button>
-      </div>
 
       {requete.isError ? (
         <EtatErreur
