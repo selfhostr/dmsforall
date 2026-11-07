@@ -256,70 +256,73 @@ export function EcranListeArticles() {
           ) : null}
         </>
       }
+      barre={
+        <BarreFiltres
+          tri={
+            <SelecteurTri
+              options={TRIS_ARTICLES.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
+              valeur={tri}
+              onChangeValeur={setTri}
+              label={t('pieces:articles.tri.label')}
+            />
+          }
+          q={qSaisie}
+          onChangeQ={setQSaisie}
+        >
+          <div className="flex flex-col gap-champ">
+            <Select
+              value={categorie ?? 'toutes'}
+              onValueChange={(valeur) =>
+                setCategorie(valeur === 'toutes' ? undefined : (valeur as CategorieArticle))
+              }
+            >
+              <SelectTrigger
+                id="filtre-categorie"
+                className="w-[200px]"
+                aria-label={t('pieces:articles.categorie')}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="toutes">
+                  {t('pieces:articles.filtres.categorieToutes')}
+                </SelectItem>
+                {CATEGORIES_ARTICLE.map((valeur) => (
+                  <SelectItem key={valeur} value={valeur}>
+                    {t(`pieces:articles.categories.${valeur}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-champ">
+            <Select
+              value={statut ?? 'tous'}
+              onValueChange={(valeur) =>
+                setStatut(valeur === 'tous' ? undefined : (valeur as StatutArticle))
+              }
+            >
+              <SelectTrigger
+                id="filtre-statut"
+                className="w-[180px]"
+                aria-label={t('pieces:articles.statut')}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="tous">{t('pieces:articles.filtres.statutTous')}</SelectItem>
+                {STATUTS_ARTICLE.map((valeur) => (
+                  <SelectItem key={valeur} value={valeur}>
+                    {t(`pieces:articles.statuts.${valeur}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <FiltreSite filtre={filtreSite} />
+        </BarreFiltres>
+      }
     >
-      <BarreFiltres
-        tri={
-          <SelecteurTri
-            options={TRIS_ARTICLES.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
-            valeur={tri}
-            onChangeValeur={setTri}
-            label={t('pieces:articles.tri.label')}
-          />
-        }
-        q={qSaisie}
-        onChangeQ={setQSaisie}
-      >
-        <div className="flex flex-col gap-champ">
-          <Select
-            value={categorie ?? 'toutes'}
-            onValueChange={(valeur) =>
-              setCategorie(valeur === 'toutes' ? undefined : (valeur as CategorieArticle))
-            }
-          >
-            <SelectTrigger
-              id="filtre-categorie"
-              className="w-[200px]"
-              aria-label={t('pieces:articles.categorie')}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="toutes">{t('pieces:articles.filtres.categorieToutes')}</SelectItem>
-              {CATEGORIES_ARTICLE.map((valeur) => (
-                <SelectItem key={valeur} value={valeur}>
-                  {t(`pieces:articles.categories.${valeur}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex flex-col gap-champ">
-          <Select
-            value={statut ?? 'tous'}
-            onValueChange={(valeur) =>
-              setStatut(valeur === 'tous' ? undefined : (valeur as StatutArticle))
-            }
-          >
-            <SelectTrigger
-              id="filtre-statut"
-              className="w-[180px]"
-              aria-label={t('pieces:articles.statut')}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="tous">{t('pieces:articles.filtres.statutTous')}</SelectItem>
-              {STATUTS_ARTICLE.map((valeur) => (
-                <SelectItem key={valeur} value={valeur}>
-                  {t(`pieces:articles.statuts.${valeur}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <FiltreSite filtre={filtreSite} />
-      </BarreFiltres>
-
       <TableComptoir
         colonnes={colonnes}
         lignes={articles}

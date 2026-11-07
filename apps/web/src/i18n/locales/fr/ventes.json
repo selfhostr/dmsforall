@@ -187,7 +187,7 @@
           "description": "Mettez votre premier véhicule en stock."
         }
       },
-      "rechercherPlaceholder": "Plaque, VIN ou désignation…",
+      "rechercherPlaceholder": "Plaque, VIN…",
       "erreur": {
         "titre": "Impossible d'afficher les véhicules en stock"
       },

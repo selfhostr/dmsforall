@@ -502,7 +502,7 @@ export function EcranFicheFacture() {
       <div className="flex flex-col gap-6">
         {/* En-tête (badges ci-dessus), puis destinataire et montants côte à côte, lignes, remise
             (brouillon), enfin paiement et documents liés. */}
-        <div className="grid items-start gap-6 lg:grid-cols-2">
+        <div className="grid items-stretch gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle className="texte-titre-section">
@@ -581,35 +581,12 @@ export function EcranFicheFacture() {
             </CardContent>
           </Card>
 
-          <div className="flex flex-col gap-6">
-            <RecapitulatifTVA
-              ventilationTva={document_.ventilationTva}
-              totalTtcCentimes={document_.totalTtcCentimes}
-              devise={document_.devise}
-            />
-
-            <div>
-              {/* DESIGN.md « densité » — exactement le patron cité par le socle comme candidat
-                évident (« une carte, un chiffre, un libellé ») : `Card compact` remplace l'ancien
-                `rounded-md border p-4` ad hoc, avec le même rembourrage réduit que ce lot appelait
-                de ses vœux. Pas dans une grille CSS (`flex justify-end` seul) : la mise en garde
-                « compact aggrave le vide sans `items-start` » ne s'applique pas ici. */}
-              <Card compact className="text-right">
-                <CardHeader>
-                  <p className="texte-libelle text-muted-foreground">
-                    {t('facturation:fiche.totalTtc')}
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <p className="texte-chiffre-geant tabular-nums font-semibold text-foreground">
-                    {document_.totalTtcCentimes !== undefined
-                      ? formaterMontantAvecDevise(document_.totalTtcCentimes, document_.devise)
-                      : t('facturation:fiche.montantIndisponible')}
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+          {/* Un seul total : `RecapitulatifTVA` porte déjà « Total TTC » (ligne de pied). */}
+          <RecapitulatifTVA
+            ventilationTva={document_.ventilationTva}
+            totalTtcCentimes={document_.totalTtcCentimes}
+            devise={document_.devise}
+          />
         </div>
 
         <Card>

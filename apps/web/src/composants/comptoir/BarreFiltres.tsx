@@ -22,9 +22,9 @@ export interface ProprietesBarreFiltres {
 }
 
 /**
- * Barre de recherche + filtres + tri d'une liste : UNE seule ligne, jamais de retour à la ligne.
- * Quand la place manque, la recherche rétrécit (`min-w-0 flex-1`), les filtres gardent leur
- * largeur. Tous les contrôles ont la même hauteur (44 px) et l'alignement est celui de la grille
+ * Barre de recherche + filtres + tri d'une liste : UNE seule ligne tant que la place suffit. Quand elle manque,
+ * la recherche rétrécit jusqu'à 8 rem, puis les filtres passent proprement à la ligne (jamais de
+ * chevauchement ni de débordement). Tous les contrôles ont la même hauteur (44 px) et l'alignement est celui de la grille
  * de la page : pas de libellé au-dessus, donc rien qui décale.
  */
 export function BarreFiltres({
@@ -38,8 +38,8 @@ export function BarreFiltres({
   const { t } = useTranslation('commun');
 
   return (
-    <div className={cn('flex flex-nowrap items-center gap-3', className)}>
-      <div className="relative min-w-[8rem] max-w-md flex-1">
+    <div className={cn('flex flex-wrap items-center gap-3', className)}>
+      <div className="relative min-w-[8rem] max-w-md flex-1 basis-48">
         <Search
           aria-hidden
           className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"

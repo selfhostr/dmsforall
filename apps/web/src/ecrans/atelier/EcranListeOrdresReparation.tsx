@@ -161,7 +161,11 @@ export function EcranListeOrdresReparation() {
     {
       id: 'numero',
       libelle: t('or:liste.colonnes.numero'),
-      rendu: (or) => <span className="font-medium text-foreground">{or.numero}</span>,
+      rendu: (or) => (
+        <span className="whitespace-nowrap font-mono font-medium tabular-nums text-foreground">
+          {or.numero}
+        </span>
+      ),
     },
     {
       id: 'vehicule',
@@ -183,7 +187,7 @@ export function EcranListeOrdresReparation() {
       libelle: t('or:liste.colonnes.restitutionPromise'),
       rendu: (or) => (
         <span className="texte-libelle text-muted-foreground">
-          {or.restitutionPromiseLe ? formaterDate(or.restitutionPromiseLe) : ''}
+          {or.restitutionPromiseLe ? formaterDate(or.restitutionPromiseLe) : '—'}
         </span>
       ),
     },
@@ -284,86 +288,90 @@ export function EcranListeOrdresReparation() {
   // ligne « Trier par », à droite — écran de référence de ce chantier, même déplacement appliqué
   // ensuite à Pneus/Clients/Véhicules et, en parallèle, à Pièces (`EcranListeArticles.tsx`).
   return (
-    <GabaritEcran titre={t('or:liste.titre')} actions={<>{boutonNouveauOr}</>}>
-      <BarreFiltres
-        tri={
-          <SelecteurTri
-            options={TRIS_ORDRES_REPARATION.map((valeur) => ({
-              valeur,
-              libelle: t(CLES_TRI[valeur]),
-            }))}
-            valeur={tri}
-            onChangeValeur={setTri}
-            label={t('or:liste.tri.label')}
-          />
-        }
-        q={qSaisie}
-        onChangeQ={setQSaisie}
-      >
-        <FiltreSite filtre={filtreSite} />
-        {/* Libellé retiré de l'affichage (demande produit : « Statut »/« Attente » au-dessus du
-         *  contrôle ne font que répéter ce que le contrôle dit déjà) — `sr-only`, jamais un
-         *  contrôle anonyme : `htmlFor`/`id` + `aria-label` sur le déclencheur conservent le nom
-         *  accessible complet pour un lecteur d'écran. Plus de conteneur `flex-col` autour : sans
-         *  libellé visible à empiler au-dessus, le `<Select>` (h-11) s'aligne directement sur la
-         *  hauteur du champ de recherche voisin. */}
-        <Label htmlFor="filtre-statut-or" className="sr-only">
-          {t('or:liste.filtres.statut')}
-        </Label>
-        <Select
-          value={statut ?? 'tous'}
-          onValueChange={(valeur) =>
-            setStatut(valeur === 'tous' ? undefined : (valeur as StatutOrdreReparation))
+    <GabaritEcran
+      titre={t('or:liste.titre')}
+      actions={<>{boutonNouveauOr}</>}
+      barre={
+        <BarreFiltres
+          tri={
+            <SelecteurTri
+              options={TRIS_ORDRES_REPARATION.map((valeur) => ({
+                valeur,
+                libelle: t(CLES_TRI[valeur]),
+              }))}
+              valeur={tri}
+              onChangeValeur={setTri}
+              label={t('or:liste.tri.label')}
+            />
           }
+          q={qSaisie}
+          onChangeQ={setQSaisie}
         >
-          <SelectTrigger
-            id="filtre-statut-or"
-            className="w-[200px]"
-            aria-label={t('or:liste.filtres.statut')}
+          <FiltreSite filtre={filtreSite} />
+          {/* Libellé retiré de l'affichage (demande produit : « Statut »/« Attente » au-dessus du
+           *  contrôle ne font que répéter ce que le contrôle dit déjà) — `sr-only`, jamais un
+           *  contrôle anonyme : `htmlFor`/`id` + `aria-label` sur le déclencheur conservent le nom
+           *  accessible complet pour un lecteur d'écran. Plus de conteneur `flex-col` autour : sans
+           *  libellé visible à empiler au-dessus, le `<Select>` (h-11) s'aligne directement sur la
+           *  hauteur du champ de recherche voisin. */}
+          <Label htmlFor="filtre-statut-or" className="sr-only">
+            {t('or:liste.filtres.statut')}
+          </Label>
+          <Select
+            value={statut ?? 'tous'}
+            onValueChange={(valeur) =>
+              setStatut(valeur === 'tous' ? undefined : (valeur as StatutOrdreReparation))
+            }
           >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="tous">{t('or:liste.filtres.statutTous')}</SelectItem>
-            {STATUTS_ORDRE_REPARATION.map((valeur) => (
-              <SelectItem key={valeur} value={valeur}>
-                {t(`or:statuts.${CLES_STATUT[valeur]}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+            <SelectTrigger
+              id="filtre-statut-or"
+              className="w-[200px]"
+              aria-label={t('or:liste.filtres.statut')}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="tous">{t('or:liste.filtres.statutTous')}</SelectItem>
+              {STATUTS_ORDRE_REPARATION.map((valeur) => (
+                <SelectItem key={valeur} value={valeur}>
+                  {t(`or:statuts.${CLES_STATUT[valeur]}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        {/* Issue #111 — filtre séparé, jamais fusionné dans le `<Select>` du statut ci-dessus
-         *  (voir `CLES_ATTENTE`) : « Attente pièces » est un drapeau, pas un état de la liste des
-         *  statuts réels, cumulable avec n'importe lequel d'entre eux. */}
-        <Label htmlFor="filtre-attente-or" className="sr-only">
-          {t('or:liste.filtres.attente')}
-        </Label>
-        <Select
-          value={attente ?? 'toutes'}
-          onValueChange={(valeur) =>
-            setAttente(valeur === 'toutes' ? undefined : (valeur as AttenteOrdreReparation))
-          }
-        >
-          <SelectTrigger
-            id="filtre-attente-or"
-            className="w-[200px]"
-            aria-label={t('or:liste.filtres.attente')}
+          {/* Issue #111 — filtre séparé, jamais fusionné dans le `<Select>` du statut ci-dessus
+           *  (voir `CLES_ATTENTE`) : « Attente pièces » est un drapeau, pas un état de la liste des
+           *  statuts réels, cumulable avec n'importe lequel d'entre eux. */}
+          <Label htmlFor="filtre-attente-or" className="sr-only">
+            {t('or:liste.filtres.attente')}
+          </Label>
+          <Select
+            value={attente ?? 'toutes'}
+            onValueChange={(valeur) =>
+              setAttente(valeur === 'toutes' ? undefined : (valeur as AttenteOrdreReparation))
+            }
           >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="toutes">{t('or:liste.filtres.attenteToutes')}</SelectItem>
-            {ATTENTES_ORDRE_REPARATION.map((valeur) => (
-              <SelectItem key={valeur} value={valeur}>
-                {t(`or:statuts.${CLES_ATTENTE[valeur]}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <AideContextuelle sujet={t('or:liste.filtres.statut')} texte={t('aide:or.statuts')} />
-      </BarreFiltres>
-
+            <SelectTrigger
+              id="filtre-attente-or"
+              className="w-[200px]"
+              aria-label={t('or:liste.filtres.attente')}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="toutes">{t('or:liste.filtres.attenteToutes')}</SelectItem>
+              {ATTENTES_ORDRE_REPARATION.map((valeur) => (
+                <SelectItem key={valeur} value={valeur}>
+                  {t(`or:statuts.${CLES_ATTENTE[valeur]}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <AideContextuelle sujet={t('or:liste.filtres.statut')} texte={t('aide:or.statuts')} />
+        </BarreFiltres>
+      }
+    >
       <TableComptoir
         colonnes={colonnes}
         lignes={ordres}

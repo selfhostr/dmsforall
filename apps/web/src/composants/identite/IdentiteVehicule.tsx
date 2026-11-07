@@ -34,9 +34,11 @@ export function IdentiteVehicule({ vehicule, taillePlaque = 'md', className, onC
   const contenu = (
     <>
       <Plaque canton={vehicule.canton} numero={vehicule.plaque} taille={taillePlaque} />
-      <span aria-hidden className="text-muted-foreground">
-        ·
-      </span>
+      {vehicule.plaque ? (
+        <span aria-hidden className="text-muted-foreground">
+          ·
+        </span>
+      ) : null}
       <span className="truncate texte-corps font-medium text-foreground">
         {vehicule.designation}
       </span>

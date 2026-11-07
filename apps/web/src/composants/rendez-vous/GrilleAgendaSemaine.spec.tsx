@@ -172,7 +172,7 @@ describe('GrilleAgendaSemaine', () => {
         <GrilleAgendaSemaine jours={jours7} onCliquerJour={vi.fn()} onOuvrirRendezVous={vi.fn()} />,
       );
       expect(conteneurSemaine.querySelector('[role="grid"]')?.className).toContain(
-        'lg:grid-cols-7',
+        'min-[1360px]:grid-cols-7',
       );
 
       const { container: conteneurJour } = render(
@@ -183,7 +183,7 @@ describe('GrilleAgendaSemaine', () => {
         />,
       );
       expect(conteneurJour.querySelector('[role="grid"]')?.className).not.toContain(
-        'lg:grid-cols-7',
+        'min-[1360px]:grid-cols-7',
       );
     });
   });

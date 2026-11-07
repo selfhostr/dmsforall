@@ -1,6 +1,7 @@
 import { CalendarPlus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+import type { FiltreSite as EtatFiltreSite } from '@/hooks/site/useFiltreSite';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -52,6 +53,8 @@ interface Props {
   /** Saute à demain — pour appeler les clients de la veille du rendez-vous. */
   readonly onDemain?: () => void;
   /** Sites que l'utilisateur peut choisir quand aucun n'est sélectionné. */
+  /** Filtre de site partagé (segments codes courts) ; absent : menu local du bandeau. */
+  readonly filtreSite?: EtatFiltreSite;
   readonly sitesChoisissables?: readonly {
     readonly id: string;
     readonly nom: string;
@@ -87,6 +90,7 @@ export function EcranAgendaRendezVous({
   onChangerSite,
   onDemain,
   sitesChoisissables = [],
+  filtreSite,
 }: Props) {
   const { t } = useTranslation(['planning', 'commun', 'erreurs']);
 
@@ -187,60 +191,66 @@ export function EcranAgendaRendezVous({
   }
 
   return (
-    <GabaritEcran titre={t('planning:titre')} titreVisible={false}>
-      <div className="flex flex-wrap items-center gap-3">
-        <Tabs value={vue} onValueChange={(valeur) => onChangerVue(valeur as VueAgendaEcran)}>
-          <TabsList>
-            <TabsTrigger value="semaine">{t('planning:toolbar.bascule.semaine')}</TabsTrigger>
-            <TabsTrigger value="jour">{t('planning:toolbar.bascule.jour')}</TabsTrigger>
-            <TabsTrigger value="liste">{t('planning:toolbar.bascule.liste')}</TabsTrigger>
-          </TabsList>
-        </Tabs>
-
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onPrecedent}
-            aria-label={t('planning:toolbar.navigation.semainePrecedente')}
-          >
-            ←
-          </Button>
-          <Button type="button" variant="outline" size="sm" onClick={onAujourdhui}>
-            {t('planning:toolbar.navigation.aujourdhui')}
-          </Button>
-          {onDemain ? (
-            <Button type="button" variant="outline" size="sm" onClick={onDemain}>
-              {t('planning:toolbar.navigation.demain')}
-            </Button>
-          ) : null}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onSuivant}
-            aria-label={t('planning:toolbar.navigation.semaineSuivante')}
-          >
-            →
-          </Button>
-          <span className="texte-corps font-medium text-foreground">{periodeLabel}</span>
-        </div>
-
-        {onNouveauRendezVous ? (
-          <Button type="button" className="ml-auto" onClick={onNouveauRendezVous}>
+    <GabaritEcran
+      titre={t('planning:titre')}
+      titreVisible={false}
+      actions={
+        onNouveauRendezVous ? (
+          <Button type="button" onClick={onNouveauRendezVous}>
             <CalendarPlus aria-hidden className="h-4 w-4" />
             {t('planning:toolbar.nouveauRendezVous')}
           </Button>
-        ) : null}
-      </div>
+        ) : undefined
+      }
+      barre={
+        <div className="flex flex-wrap items-center gap-3">
+          <Tabs value={vue} onValueChange={(valeur) => onChangerVue(valeur as VueAgendaEcran)}>
+            <TabsList>
+              <TabsTrigger value="semaine">{t('planning:toolbar.bascule.semaine')}</TabsTrigger>
+              <TabsTrigger value="jour">{t('planning:toolbar.bascule.jour')}</TabsTrigger>
+              <TabsTrigger value="liste">{t('planning:toolbar.bascule.liste')}</TabsTrigger>
+            </TabsList>
+          </Tabs>
 
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onPrecedent}
+              aria-label={t('planning:toolbar.navigation.semainePrecedente')}
+            >
+              ←
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={onAujourdhui}>
+              {t('planning:toolbar.navigation.aujourdhui')}
+            </Button>
+            {onDemain ? (
+              <Button type="button" variant="outline" size="sm" onClick={onDemain}>
+                {t('planning:toolbar.navigation.demain')}
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onSuivant}
+              aria-label={t('planning:toolbar.navigation.semaineSuivante')}
+            >
+              →
+            </Button>
+            <span className="texte-corps font-medium text-foreground">{periodeLabel}</span>
+          </div>
+        </div>
+      }
+    >
       <BandeauAutresSites
         siteId={site.id}
         sites={sitesChoisissables}
         autresSites={autresSites}
         onChangerSite={(id) => onChangerSite?.(id)}
         portee={vue === 'jour' ? 'jour' : 'semaine'}
+        filtreSite={filtreSite}
       />
 
       <BarreFiltres
