@@ -1,5 +1,5 @@
 import { and, desc, eq, isNull, or } from 'drizzle-orm';
-import type { AdresseStructureeQr, StatutDossierVente } from '@dfa/shared';
+import { formaterNomClient, type AdresseStructureeQr, type StatutDossierVente } from '@dfa/shared';
 
 import type { ContexteTenant, TransactionDfa } from '../../db';
 import {
@@ -22,13 +22,12 @@ import { ErreurMetier } from '../../common/erreurs/erreur-metier';
  * service d'un autre module (anti-couplage inter-experts, doctrine du projet).
  */
 
-/** `nomAffiche` d'un client : raison sociale pour une entreprise, "nom prénom" sinon. Copie
+/** `nomAffiche` d'un client : raison sociale pour une entreprise, "Prénom Nom" sinon. Copie
  *  verbatim de `atelier/references.ts` (même règle, deux modules indépendants). */
 export function nomAfficheClient(
   row: Pick<LigneClient, 'type' | 'nom' | 'prenom' | 'raisonSociale'>,
 ): string {
-  if (row.type === 'entreprise') return row.raisonSociale ?? '';
-  return [row.nom, row.prenom].filter((v): v is string => Boolean(v)).join(' ');
+  return formaterNomClient(row);
 }
 
 export async function chargerClientLigne(

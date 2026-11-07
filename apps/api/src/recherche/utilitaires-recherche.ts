@@ -9,7 +9,12 @@
  * a déjà normalisé.
  */
 
-import type { EtatAfficheOrdreReparation, StatutOrdreReparation, TypeClient } from '@dfa/shared';
+import {
+  formaterNomClient,
+  type EtatAfficheOrdreReparation,
+  type StatutOrdreReparation,
+  type TypeClient,
+} from '@dfa/shared';
 
 // -------------------------------------------------------------------------------------------
 // Motif de fragment (CT-04)
@@ -71,7 +76,7 @@ export interface IdentiteClient {
 }
 
 /**
- * Nom affiché d'un client, convention suisse "Nom Prénom" (RM-01 : `type` détermine quel champ est
+ * Nom affiché d'un client, convention « Prénom Nom » (RM-01 : `type` détermine quel champ est
  * la source — jamais l'inverse). DUPLICATION MINIMALE ET ASSUMÉE de la même règle canonique portée
  * par `vehicules/client-resume.helper.ts::calculerNomAfficheClient` (module voisin, L1-09,
  * développé en parallèle, hors périmètre `apps/api/src/recherche/**`) — l'importer depuis
@@ -80,10 +85,7 @@ export interface IdentiteClient {
  * `@dfa/shared`) — signalé, pas résolu ici (même signalement que dans le module voisin).
  */
 export function nomAfficheClient(client: IdentiteClient): string {
-  if (client.type === 'entreprise') {
-    return client.raisonSociale ?? '';
-  }
-  return [client.nom, client.prenom].filter((partie) => Boolean(partie && partie.trim())).join(' ');
+  return formaterNomClient(client);
 }
 
 export interface IdentiteVehicule {

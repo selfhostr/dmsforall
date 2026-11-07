@@ -2,7 +2,7 @@ import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { ROLES_CONTACT, type RoleContact } from '@dfa/shared';
+import { formaterNomPersonne, ROLES_CONTACT, type RoleContact } from '@dfa/shared';
 
 import { ErreurApi, messageErreur, messageErreurChamp } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
@@ -231,8 +231,7 @@ export function OngletContacts({ clientId }: Props) {
             <li key={contact.id} className="py-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="texte-corps font-medium text-foreground">
-                  {contact.nom}
-                  {contact.prenom ? ` ${contact.prenom}` : ''}
+                  {formaterNomPersonne(contact)}
                 </span>
                 <div className="flex flex-wrap gap-1">
                   {contact.roles.map((role) => (
