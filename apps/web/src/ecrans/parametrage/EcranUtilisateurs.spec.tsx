@@ -37,6 +37,7 @@ const EMPLOYE_TECHNICIEN: UtilisateurResume = {
   capacites: capacitesDuPrereglage('technicien'),
   statut: 'actif',
   sites: [{ id: 'site-1', nom: 'Site principal' }],
+  sitePrincipalId: 'site-1',
   derniereConnexionLe: null,
   creeLe: '2026-08-01T08:00:00.000Z',
 };
@@ -201,7 +202,7 @@ describe('EcranUtilisateurs — création', () => {
           capacites: capacitesDuPrereglage('direction'),
           sites: [
             ...SESSION_TEST.sites,
-            { id: 'site-2', code: 'S2', nom: 'Site deux', actif: true },
+            { id: 'site-2', code: 'S2', codeCourt: 'S2', nom: 'Site deux', actif: true },
           ],
         }),
       ),

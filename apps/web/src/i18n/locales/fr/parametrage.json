@@ -203,6 +203,15 @@
       "titre": "Aucun site",
       "description": "Aucun site n'est encore rattaché à ce garage."
     },
+    "codeCourt": {
+      "titre": "Code court",
+      "champ": "Code court du site",
+      "aide": "De 1 à 5 lettres ou chiffres (par exemple MART ou SION). C'est lui qui s'affiche dans les filtres de site.",
+      "format": "Utilisez 1 à 5 lettres sans accent ou chiffres.",
+      "enregistrer": "Enregistrer le code",
+      "enregistre": "Code court enregistré.",
+      "dejaPris": "Ce code est déjà utilisé par un autre site."
+    },
     "horaires": {
       "titre": "Horaires",
       "ouverture": "Ouverture",
@@ -281,6 +290,10 @@
       "actif": "Actif",
       "suspendu": "Désactivé",
       "invite": "Invité"
+    },
+    "sitePrincipal": {
+      "label": "Site principal",
+      "aide": "Le site proposé par défaut dans les écrans de cette personne."
     },
     "sitesAucun": "Aucun site renseigné",
     "actions": {

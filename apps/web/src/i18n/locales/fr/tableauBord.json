@@ -182,10 +182,9 @@
     "rendezVousJour": {
       "titre": "Rendez-vous du jour",
       "description": "Rendez-vous confirmés ou déjà honorés aujourd'hui, dans l'ordre de la journée.",
-      "siteRequis": "Choisissez un site pour voir les rendez-vous du jour.",
       "vide": {
         "titre": "Aucun rendez-vous aujourd'hui",
-        "description": "Aucun rendez-vous n'est planifié pour aujourd'hui sur ce site."
+        "description": "Aucun rendez-vous n'est planifié pour aujourd'hui."
       },
       "erreur": {
         "titre": "Impossible d'afficher les rendez-vous du jour"

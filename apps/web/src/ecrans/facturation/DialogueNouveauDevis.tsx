@@ -28,6 +28,7 @@ import { useVehiculesClient } from '@/hooks/clients/useVehiculesClient';
 import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { useCreerDevis } from '@/hooks/facturation/useCreerDevis';
 import { useSiteImplicite } from '@/hooks/site/useSiteImplicite';
+import { useSitePrincipal } from '@/hooks/site/useSitePrincipal';
 import { useSession } from '@/hooks/useSession';
 import { chemins } from '@/routes/chemins';
 
@@ -76,7 +77,9 @@ export function DialogueNouveauDevis({
   const [devisCree, setDevisCree] = useState<ReponseDocumentVente | null>(null);
 
   const client = clientFixe ?? clientChoisi;
-  const siteId = siteUrl ?? siteChoisi ?? siteImplicite;
+  // Le site du devis : celui de l'URL, sinon le choix du formulaire, sinon le site principal.
+  const sitePrincipal = useSitePrincipal();
+  const siteId = siteUrl ?? siteChoisi ?? sitePrincipal ?? siteImplicite;
 
   const resultats = useListeClients(
     { q: rechercheTemporisee },
@@ -255,7 +258,7 @@ export function DialogueNouveauDevis({
                 <Label htmlFor="devis-site" requis>
                   {t('facturation:devis.nouveau.site')}
                 </Label>
-                <Select value={siteChoisi} onValueChange={setSiteChoisi}>
+                <Select value={siteChoisi ?? sitePrincipal} onValueChange={setSiteChoisi}>
                   <SelectTrigger
                     id="devis-site"
                     aria-label={t('facturation:devis.nouveau.site')}

@@ -19,7 +19,12 @@ interface Props {
   /** Site dont l'agenda est affiché. */
   readonly siteId: string;
   /** Tous les sites choisissables : un seul = aucun sélecteur, aucune ligne (le site est évident). */
-  readonly sites: readonly { readonly id: string; readonly nom: string }[];
+  readonly sites: readonly {
+    readonly id: string;
+    readonly nom: string;
+    /** Étiquette compacte affichée dans le sélecteur (repli : `nom`). */
+    readonly codeCourt?: string;
+  }[];
   /** Rendez-vous des AUTRES sites sur la période affichée (0 = site sans rendez-vous, omis). */
   readonly autresSites: readonly AutreSiteResume[];
   readonly onChangerSite: (siteId: string) => void;
@@ -47,13 +52,13 @@ export function BandeauAutresSites({
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1" data-testid="bandeau-sites">
       {/* Sélecteur compact : la valeur affichée dit déjà « quel site » — pas de libellé au-dessus. */}
       <Select value={siteId} onValueChange={onChangerSite}>
-        <SelectTrigger className="w-auto min-w-40" aria-label={t('planning:siteSelecteur')}>
+        <SelectTrigger className="w-auto min-w-28" aria-label={t('planning:siteSelecteur')}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
           {sites.map((s) => (
-            <SelectItem key={s.id} value={s.id}>
-              {s.nom}
+            <SelectItem key={s.id} value={s.id} title={s.nom}>
+              {s.codeCourt ?? s.nom}
             </SelectItem>
           ))}
         </SelectContent>

@@ -30,6 +30,7 @@ import { PanneauLateral } from '@/composants/PanneauLateral';
 import { FormulaireNouveauClient } from '@/ecrans/clients/FormulaireNouveauClient';
 import { useClient } from '@/hooks/clients/useClient';
 import { useVehiculesClient } from '@/hooks/clients/useVehiculesClient';
+import { useSitePrincipal } from '@/hooks/site/useSitePrincipal';
 import { chemins } from '@/routes/chemins';
 
 import { FormulaireNouvelOrdreReparation } from './FormulaireNouvelOrdreReparation';
@@ -128,7 +129,9 @@ function EcranNouvelOrdreReparationClassique() {
   const { t } = useTranslation(['or', 'commun', 'erreurs']);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const site = searchParams.get('site') ?? undefined;
+  // Site de l'OR : l'URL (lien depuis une liste filtrée), sinon le site principal de la personne.
+  const sitePrincipal = useSitePrincipal();
+  const site = searchParams.get('site') ?? sitePrincipal;
   const clientId = searchParams.get('clientId') ?? undefined;
   const vehiculeIdPreselectionne = searchParams.get('vehiculeId') ?? undefined;
 

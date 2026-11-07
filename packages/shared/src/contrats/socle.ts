@@ -16,9 +16,27 @@ export interface TenantCourant {
 export interface SiteResume {
   readonly id: string;
   readonly code: string;
+  /** Étiquette compacte (1 à 5 caractères A-Z/0-9, ex. `MART`) affichée dans les filtres de site. */
+  readonly codeCourt: string;
   readonly nom: string;
   readonly actif: boolean;
 }
+
+/** Code court d'un site : 1 à 5 caractères A-Z ou 0-9, ramené en majuscules à la saisie. */
+export const schemaCodeCourtSite = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^[A-Z0-9]{1,5}$/, '1 à 5 caractères (lettres sans accent ou chiffres).');
+
+/** Corps de `PATCH /api/v1/sites/{siteId}` — au moins un champ, `.strict()` (tenant jamais lu du corps). */
+export const schemaModificationSite = z
+  .object({ codeCourt: schemaCodeCourtSite.optional() })
+  .strict()
+  .refine((valeur) => valeur.codeCourt !== undefined, {
+    message: 'Au moins un champ (codeCourt) doit être fourni.',
+  });
+export type EntreeModificationSite = z.infer<typeof schemaModificationSite>;
 
 // =================================================================================================
 // Gestion des employés (issue #137) — le patron d'un garage crée/gère lui-même les accès de ses
@@ -49,6 +67,8 @@ export interface UtilisateurResume {
   readonly capacites: CapacitesPersonne;
   readonly statut: StatutUtilisateur;
   readonly sites: readonly SiteAffecteResume[];
+  /** Site principal (défaut des filtres de site), `null` si non renseigné. Toujours l'un de `sites`. */
+  readonly sitePrincipalId: string | null;
   /** ISO 8601, `null` si l'employé ne s'est encore jamais connecté. */
   readonly derniereConnexionLe: string | null;
   readonly creeLe: string;
@@ -81,6 +101,8 @@ export const schemaCreationUtilisateur = z
     /** Préréglage de départ (défaut : celui du rôle). Son rôle d'origine doit égaler `role`. */
     prereglage: z.enum(IDS_PREREGLAGE).optional(),
     siteIds: schemaSiteIds,
+    /** Site principal ; défaut = premier de `siteIds`. Doit figurer dans `siteIds`. */
+    sitePrincipalId: z.string().uuid().optional(),
   })
   .strict();
 export type EntreeCreationUtilisateur = z.infer<typeof schemaCreationUtilisateur>;
@@ -94,11 +116,17 @@ export const schemaModificationUtilisateur = z
     /** Avec `role` : préréglage appliqué (ex. `fiduciaire` pour `comptable`). Défaut : celui du rôle. */
     prereglage: z.enum(IDS_PREREGLAGE).optional(),
     siteIds: schemaSiteIds.optional(),
+    /** Doit figurer dans les sites de la personne (après modification éventuelle de `siteIds`). */
+    sitePrincipalId: z.string().uuid().optional(),
   })
   .strict()
-  .refine((valeur) => valeur.role !== undefined || valeur.siteIds !== undefined, {
-    message: 'Au moins un champ (role ou siteIds) doit être fourni.',
-  });
+  .refine(
+    (valeur) =>
+      valeur.role !== undefined ||
+      valeur.siteIds !== undefined ||
+      valeur.sitePrincipalId !== undefined,
+    { message: 'Au moins un champ (role, siteIds ou sitePrincipalId) doit être fourni.' },
+  );
 export type EntreeModificationUtilisateur = z.infer<typeof schemaModificationUtilisateur>;
 
 /**

@@ -6,7 +6,6 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import '@/i18n';
 
-import { FournisseurSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
@@ -76,13 +75,11 @@ function stubsAccueil(role: (typeof SESSION_TEST)['utilisateur']['role']) {
 function rendre() {
   return render(
     <QueryClientProvider client={creerQueryClientTest()}>
-      <FournisseurSiteCourant>
-        <MemoryRouter initialEntries={['/tableau-bord']}>
-          <Routes>
-            <Route path="/tableau-bord" element={<EcranTableauBord />} />
-          </Routes>
-        </MemoryRouter>
-      </FournisseurSiteCourant>
+      <MemoryRouter initialEntries={['/tableau-bord']}>
+        <Routes>
+          <Route path="/tableau-bord" element={<EcranTableauBord />} />
+        </Routes>
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -97,7 +94,7 @@ describe('Accueil orienté tâche', () => {
 
     const actions = screen.getByRole('navigation', { name: 'Actions rapides' });
     const creer = within(actions).getByRole('link', { name: 'Créer un OR' });
-    expect(creer).toHaveAttribute('href', '/atelier/ordres-reparation/depuis-plaque?site=site-1');
+    expect(creer).toHaveAttribute('href', '/atelier/ordres-reparation/depuis-plaque');
     expect(within(actions).getByRole('link', { name: 'Nouveau rendez-vous' })).toBeInTheDocument();
     expect(within(actions).getByRole('button', { name: 'Nouveau devis' })).toBeInTheDocument();
     expect(within(actions).getByRole('link', { name: 'Encaisser' })).toBeInTheDocument();

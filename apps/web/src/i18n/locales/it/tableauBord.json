@@ -182,10 +182,9 @@
     "rendezVousJour": {
       "titre": "Appuntamenti di oggi",
       "description": "Appuntamenti confermati o già arrivati per oggi, nell'ordine della giornata.",
-      "siteRequis": "Selezioni una sede per vedere gli appuntamenti di oggi.",
       "vide": {
         "titre": "Nessun appuntamento oggi",
-        "description": "Nessun appuntamento è previsto per oggi in questa sede."
+        "description": "Nessun appuntamento è previsto per oggi."
       },
       "erreur": {
         "titre": "Impossibile visualizzare gli appuntamenti di oggi"

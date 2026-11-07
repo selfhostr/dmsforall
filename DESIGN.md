@@ -193,6 +193,7 @@ Un composant feuille, sans portail ni piège de focus, peut provenir du registre
 
 - **Un seul composant d'onglets** : `components/ui/tabs.tsx` (Base UI). `TabsList variante="soulignee"` (défaut) pour les onglets de fiche ; `variante="segments"` pour un sélecteur segmenté. Pour un simple filtre sans panneau (bascule liste/plan, horizon, onglet de liste), utiliser `composants/commun/Segments.tsx` : `<Segments valeur onChange options ariaLabel />`. Interdit : réécrire un `tablist` à la main avec `h-9`.
 - `OngletsDomaine` est une navigation par liens (`aria-current`), pas un `tablist` ; il lit les mêmes jetons de taille.
+- **Filtre de site** : pas de site global. Chaque écran dont les données sont par site pose `composants/commun/FiltreSite.tsx` (segments, ou menu au-delà de quatre choix) dans sa ligne d'en-tête ou de filtres, branché sur `useFiltreSite('<domaine.ecran>')`. Il affiche le code court du site (« MART »), jamais le nom long ; le nom complet est le nom accessible. Défaut : site principal de la personne ; « Tous » seulement pour les rôles pilotant plusieurs sites, jamais sur un écran qui exige un site ; masqué avec un seul site actif. L'accueil n'a aucun filtre de site.
 - **Un seul badge de statut** : `composants/identite/BadgeStatut.tsx` (`icone`, `token`, `forme`). Interdit de recomposer `border-statut-*` / `bg-statut-*-fond` dans un écran.
 
 ## Focus et accessibilité

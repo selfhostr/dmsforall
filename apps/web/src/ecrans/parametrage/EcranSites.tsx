@@ -27,6 +27,7 @@ import { useSession } from '@/hooks/useSession';
 import { formaterDate } from '@/lib/formats';
 import { cn } from '@/lib/utils';
 
+import { CarteCodeCourtSite } from './CarteCodeCourtSite';
 import { ChampTempsCentiemes } from './ChampTempsCentiemes';
 import { peutModifierParametrage } from './droits';
 
@@ -137,11 +138,19 @@ export function EcranSites() {
 
           <div className="flex-1">
             {siteSelectionneId ? (
-              <FormulaireSite
-                key={siteSelectionneId}
-                siteId={siteSelectionneId}
-                actions={session.actions}
-              />
+              <div className="flex flex-col gap-6">
+                <CarteCodeCourtSite
+                  key={`code-${siteSelectionneId}`}
+                  siteId={siteSelectionneId}
+                  codeCourt={sites.find((s) => s.id === siteSelectionneId)?.codeCourt ?? ''}
+                  peutEcrire={peutModifierParametrage(session.actions)}
+                />
+                <FormulaireSite
+                  key={siteSelectionneId}
+                  siteId={siteSelectionneId}
+                  actions={session.actions}
+                />
+              </div>
             ) : null}
           </div>
         </div>

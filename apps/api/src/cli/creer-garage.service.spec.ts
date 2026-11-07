@@ -63,6 +63,8 @@ describe('creerGarage', () => {
     expect(insertUser?.valeurs).toContain('direction@example.ch');
     expect(insertUser?.valeurs).toContain('hash(Correct-Horse-Battery-42)');
     expect(insertUser?.texte).toContain("'direction'");
+    // Le premier compte a pour site principal l'unique site créé.
+    expect(insertUser?.valeurs).toContain('site-1');
     expect(res).toEqual({
       tenantId: 'tenant-1',
       slug: 'garage-exemple',

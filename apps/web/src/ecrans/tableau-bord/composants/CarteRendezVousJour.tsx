@@ -48,10 +48,8 @@ function comparerRendezVous(a: ReponseRendezVous, b: ReponseRendezVous): number 
  * lot) résolu sur la journée courante (calendaire LOCAL, `versDateIsoLocale` — même doctrine que
  * `CalendrierEcheances`).
  *
- * `siteId` est OBLIGATOIRE côté serveur pour cet endpoint (RV-06, un agenda reste toujours scopé à
- * UN site) — contrairement aux autres blocs du tableau de bord, ce bloc ne peut donc pas agréger
- * « tous les sites » : `site` absent est un état EXPLICITE (« choisissez un site »), jamais une
- * requête devinée ni un état vide trompeur.
+ * `site` absent (cas de l'accueil) : les rendez-vous du jour de TOUS les sites du garage. Seul
+ * l'agenda du planning reste scopé à un site (RV-06, capacité calculée site par site).
  *
  * Tous les statuts de la journée sont affichés (`confirme`/`honore`/`absent`/`annule`), badge à
  * l'appui — masquer les rendez-vous déjà honorés ou annulés donnerait au réceptionnaire une image
@@ -62,7 +60,8 @@ export function CarteRendezVousJour({ site }: Props) {
   const { langue } = useLangue();
   const aujourdhui = useMemo(() => versDateIsoLocale(new Date()), []);
 
-  const filtres = site ? { du: aujourdhui, au: aujourdhui, siteId: site } : undefined;
+  // Sans site : tous les sites du garage (l'accueil montre l'entreprise entière).
+  const filtres = { du: aujourdhui, au: aujourdhui, siteId: site };
   const requete = useAgendaRendezVous(filtres);
 
   const rendezVous = useMemo(
@@ -73,13 +72,7 @@ export function CarteRendezVousJour({ site }: Props) {
   const surplus = rendezVous.length - visibles.length;
 
   let contenu: ReactNode;
-  if (!site) {
-    contenu = (
-      <p className="texte-corps text-muted-foreground" role="status">
-        {t('tableauBord:receptionnaire.rendezVousJour.siteRequis')}
-      </p>
-    );
-  } else if (requete.isPending) {
+  if (requete.isPending) {
     contenu = <EtatChargement lignes={3} />;
   } else if (requete.isError) {
     const estErreurReseau = requete.error instanceof ErreurReseau;

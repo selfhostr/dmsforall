@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, useSearchParams } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 
 import {
   STATUTS_DOSSIER_VENTE,
@@ -33,7 +33,8 @@ import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
-import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
+import { FiltreSite } from '@/composants/commun/FiltreSite';
+import { useFiltreSite } from '@/hooks/site/useFiltreSite';
 import { useListeDossiersVente } from '@/hooks/ventes/dossiers/useListeDossiersVente';
 import { useSession } from '@/hooks/useSession';
 import { formaterDate } from '@/lib/formats';
@@ -106,16 +107,10 @@ const CLES_STATUT: Record<StatutDossierVente, string> = {
 export function EcranListeDossiersVente() {
   const { t } = useTranslation(['ventes', 'commun']);
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { preferenceSiteId } = useSiteCourant();
-  // Défaut CORRIGÉ (issue #161, 16.08.2026) : au premier chargement d'un onglet (arrivée directe,
-  // ou rechargement de la page), aucune navigation interne n'a encore écrit `?site=` dans l'URL —
-  // seule la PRÉFÉRENCE mémorisée du poste (`useSiteCourant`, même résolution que
-  // `SelecteurSiteEntete`/`EcranListeArticles`) sait quel site l'en-tête affiche. Sans ce repli,
-  // `site` valait `undefined` malgré un site actif visible en haut de page, et le bouton « Nouveau
-  // dossier de vente » héritait de cette absence (`chemins.ventes.dossiers.nouveau(site)` ci-dessous)
-  // jusqu'à ce que l'utilisateur rouvre le sélecteur — qui, lui, écrit `?site=` dans l'URL.
-  const site = searchParams.get('site') ?? preferenceSiteId;
+  // Filtre de site LOCAL : site principal par défaut, mémorisé par écran. Le bouton « Nouveau
+  // dossier de vente » hérite du site filtré (sinon le site principal côté formulaire).
+  const filtreSite = useFiltreSite('ventes.dossiers');
+  const site = filtreSite.siteId;
   const { data: session } = useSession();
 
   const [qSaisie, setQSaisie] = useState('');
@@ -295,6 +290,7 @@ export function EcranListeDossiersVente() {
           onEffacerFiltres={effacerFiltres}
           className="min-w-0 flex-1"
         >
+          <FiltreSite filtre={filtreSite} />
           <Select
             value={filtreStatut}
             onValueChange={(valeur) => setFiltreStatut(valeur as FiltreStatut)}

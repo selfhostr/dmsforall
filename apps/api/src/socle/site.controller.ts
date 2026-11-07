@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
 import {
   ApiCookieAuth,
   ApiOkResponse,
@@ -7,10 +7,16 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import { schemaParametresPage, type ParametresPage } from '@dfa/shared';
+import {
+  schemaModificationSite,
+  schemaParametresPage,
+  type EntreeModificationSite,
+  type ParametresPage,
+} from '@dfa/shared';
 import { z } from 'zod';
 import { ServiceContexteRequete } from '../common/contexte';
 import { ExigerDroit, GardeDroit } from '../common/droits';
+import { CorpsZod } from '../common/documentation';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
 import { PageSiteResumeDto, SiteResumeDto } from './dto';
@@ -73,5 +79,29 @@ export class SiteController {
   async parId(@Param('siteId', new PipeZod(schemaSiteId)) siteId: string): Promise<SiteResumeDto> {
     const ctx = this.contexte.contexteTenant();
     return this.serviceSite.parId(ctx, siteId);
+  }
+
+  @Patch(':siteId')
+  @ExigerDroit('parametrage.atelier.modifier')
+  @ApiOperation({
+    summary: 'Modifier un site (code court)',
+    description:
+      'Code court : 1 à 5 caractères A-Z/0-9, unique dans le garage. Même droit que les ' +
+      'réglages par site.',
+  })
+  @ApiParam({ name: 'siteId', format: 'uuid' })
+  @ApiOkResponse({ type: SiteResumeDto })
+  @ApiReponseProbleme(400, 'Corps invalide (code court hors format).')
+  @ApiReponseProbleme(401, 'Session absente ou expirée.')
+  @ApiReponseProbleme(403, 'Droit insuffisant (parametrage.atelier.modifier).')
+  @ApiReponseProbleme(404, 'Site introuvable pour ce tenant.')
+  @ApiReponseProbleme(409, 'CONFLIT — ce code court est déjà utilisé par un autre site.')
+  async modifier(
+    @Param('siteId', new PipeZod(schemaSiteId)) siteId: string,
+    @CorpsZod(schemaModificationSite, { exemple: { codeCourt: 'MART' } })
+    corps: EntreeModificationSite,
+  ): Promise<SiteResumeDto> {
+    const ctx = this.contexte.contexteTenant();
+    return this.serviceSite.modifier(ctx, siteId, corps);
   }
 }

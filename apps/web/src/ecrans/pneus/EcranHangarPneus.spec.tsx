@@ -507,7 +507,17 @@ describe('EcranHangarPneus', () => {
       async () => {
         const utilisateur = userEvent.setup();
         server.use(
-          http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+          http.get('/api/v1/auth/moi', () =>
+            HttpResponse.json({
+              ...SESSION_TEST,
+              // Deux sites et aucun site principal : seul cas où le hangar réclame un site.
+              sitePrincipalId: null,
+              sites: [
+                ...SESSION_TEST.sites,
+                { id: 'site-2', code: 'S2', codeCourt: 'S2', nom: 'Second site', actif: true },
+              ],
+            }),
+          ),
           http.get('/api/v1/depots-pneus/a-relancer', ({ request }) => {
             // Preuve que la vue est bien tenant entier : aucun `siteId` envoyé.
             expect(new URL(request.url).searchParams.get('siteId')).toBeNull();

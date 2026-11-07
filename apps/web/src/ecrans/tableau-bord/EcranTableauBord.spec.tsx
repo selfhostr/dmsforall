@@ -1,9 +1,9 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type {
   ClientResume,
@@ -19,7 +19,6 @@ import type {
 import '@/i18n';
 import i18n from '@/i18n';
 
-import { FournisseurSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
@@ -30,19 +29,6 @@ import { EcranTableauBord } from './EcranTableauBord';
 vi.mock('@/ecrans/accueil/composants/ChecklistDemarrage', () => ({
   ChecklistDemarrage: () => null,
 }));
-
-// Radix Select (`@radix-ui/react-select`, sous `SelecteurSiteTableauBord`) appelle
-// `hasPointerCapture`/`scrollIntoView`, absents de jsdom — même stub local que
-// `composants/comptoir/SelecteurTri.spec.tsx` et
-// `composants/recherche/PanneauResultatsRecherche.spec.tsx` (cmdk), posé ici pour le seul
-// describe de ce fichier qui ouvre réellement le sélecteur (« synchronisation de la préférence de
-// site »), sans affecter les specs qui se contentent de lire sa valeur affichée.
-beforeAll(() => {
-  Element.prototype.hasPointerCapture = vi.fn().mockReturnValue(false);
-  Element.prototype.setPointerCapture = vi.fn();
-  Element.prototype.releasePointerCapture = vi.fn();
-  Element.prototype.scrollIntoView = vi.fn();
-});
 
 const CHEMIN_ACTIVITE = '/api/v1/tableau-bord/activite';
 const CHEMIN_FINANCIER = '/api/v1/tableau-bord/financier';
@@ -314,7 +300,7 @@ const NOM_SELECTEUR_SITE = 'Tous les sites';
 
 const DEUX_SITES = [
   ...SESSION_TEST.sites,
-  { id: 'site-2', code: 'SECOND', nom: 'Second site', actif: true },
+  { id: 'site-2', code: 'SECOND', codeCourt: 'SECON', nom: 'Second site', actif: true },
 ];
 
 /** `sites` : un seul site (défaut) masque le sélecteur de site (site implicite). */
@@ -471,22 +457,22 @@ describe('EcranTableauBord — accueil sans chiffres', () => {
 });
 
 describe('EcranTableauBord — Réceptionnaire', () => {
-  it('sans site choisi (garage à plusieurs sites) : invite à en choisir un pour les rendez-vous, garde les autres blocs réels', async () => {
+  it('garage à plusieurs sites : les rendez-vous du jour couvrent tout le garage, les autres blocs restent réels', async () => {
     connecterSession('receptionnaire', DEUX_SITES);
     server.use(
       http.get(CHEMIN_ACTIVITE, () => HttpResponse.json(ACTIVITE_NOMINALE)),
+      http.get(CHEMIN_RENDEZ_VOUS, () =>
+        HttpResponse.json({ ...PAGE_VIDE, donnees: [RENDEZ_VOUS_TEST] }),
+      ),
       http.get(CHEMIN_OR, () => HttpResponse.json({ ...PAGE_VIDE, donnees: [OR_RESUME_TEST] })),
     );
     rendre();
 
-    expect(
-      await screen.findByText(i18n.t('tableauBord:receptionnaire.rendezVousJour.siteRequis')),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('08:30')).toBeInTheDocument();
     // La répartition par statut n'est plus sur l'accueil (chiffres retirés).
     expect(
       screen.queryByText(i18n.t('tableauBord:activite.repartitionStatuts.titre')),
     ).not.toBeInTheDocument();
-    // Restitutions du jour : ne dépend pas non plus d'un site choisi (agrège tous les sites).
     expect(
       await screen.findByText(i18n.t('tableauBord:receptionnaire.restitutionsJour.titre')),
     ).toBeInTheDocument();
@@ -678,8 +664,8 @@ describe('EcranTableauBord — Admin (RF-115, non-fuite financière)', () => {
   });
 });
 
-describe('EcranTableauBord — sélecteur de site commun', () => {
-  it('reste présent quel que soit le rôle (en-tête partagée)', async () => {
+describe('EcranTableauBord — aucun filtre de site (l’entreprise entière)', () => {
+  it('garage à plusieurs sites : aucun sélecteur de site, quel que soit le rôle', async () => {
     connecterSession('comptable', DEUX_SITES);
     server.use(
       // Factures échues : sans handler ici, MSW logue une requête non interceptée.
@@ -687,80 +673,38 @@ describe('EcranTableauBord — sélecteur de site commun', () => {
     );
     rendre();
 
-    await screen.findByRole('combobox', { name: NOM_SELECTEUR_SITE });
-    expect(
-      within(document.body).getByText(i18n.t('navigation:entete.tousLesSites')),
-    ).toBeInTheDocument();
+    await screen.findByRole('button', { name: i18n.t('accueil:actions.rechercher') });
+    expect(screen.queryByRole('combobox', { name: NOM_SELECTEUR_SITE })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('filtre-site')).not.toBeInTheDocument();
   });
 
-  it('garage à un seul site : aucun sélecteur (le site est implicite)', async () => {
+  it('les requêtes de l’accueil ne portent AUCUN siteId (même avec un site principal et un `?site=`)', async () => {
+    connecterSession('receptionnaire', DEUX_SITES);
+    const siteIdsVus: Array<string | null> = [];
+    server.use(
+      http.get(CHEMIN_ACTIVITE, () => HttpResponse.json(ACTIVITE_NOMINALE)),
+      http.get(CHEMIN_RENDEZ_VOUS, ({ request }) => {
+        siteIdsVus.push(new URL(request.url).searchParams.get('siteId'));
+        return HttpResponse.json({ ...PAGE_VIDE, donnees: [RENDEZ_VOUS_TEST] });
+      }),
+      http.get(CHEMIN_OR, ({ request }) => {
+        siteIdsVus.push(new URL(request.url).searchParams.get('siteId'));
+        return HttpResponse.json(PAGE_VIDE);
+      }),
+    );
+    rendre('/tableau-bord?site=site-1');
+
+    expect(await screen.findByText('08:30')).toBeInTheDocument();
+    expect(siteIdsVus.length).toBeGreaterThan(0);
+    expect(siteIdsVus.every((id) => id === null)).toBe(true);
+  });
+
+  it('garage à un seul site : aucun sélecteur non plus', async () => {
     connecterSession('comptable');
     server.use(http.get(CHEMIN_DOCUMENTS_VENTE, () => HttpResponse.json(PAGE_VIDE)));
     rendre();
 
     await screen.findByRole('button', { name: i18n.t('accueil:actions.rechercher') });
     expect(screen.queryByRole('combobox', { name: NOM_SELECTEUR_SITE })).not.toBeInTheDocument();
-  });
-});
-
-/**
- * DÉFAUT MESURÉ n°1, corrigé au lot « bandeau haut » (26.08.2026) : avant ce lot, AUCUN choix fait
- * dans ce sélecteur — site précis ou « Tous les sites » — ne synchronisait
- * `ContexteSiteCourant.tsx`, seul mécanisme lu par le CHROME (`BarreOutilsSuperieure.tsx`,
- * `BarreLaterale.tsx`) pour résoudre le site de la navigation suivante. Conséquence : un clic de
- * menu APRÈS un passage par « Tous les sites » ici pouvait ramener sur un site jamais choisi dans
- * cette session, sans le moindre signal. `rendreAvecPreferenceSite` monte `FournisseurSiteCourant`
- * (absent de `rendre()` ci-dessus, comme en usage réel hors d'`AppShell.tsx`) — seul moyen
- * d'observer cette synchronisation.
- */
-describe('EcranTableauBord — synchronisation de la préférence de site (défaut mesuré n°1)', () => {
-  function rendreAvecPreferenceSite(cheminInitial = '/tableau-bord'): void {
-    const queryClient = creerQueryClientTest();
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[cheminInitial]}>
-          <FournisseurSiteCourant>
-            <Routes>
-              <Route path="/tableau-bord" element={<EcranTableauBord />} />
-            </Routes>
-          </FournisseurSiteCourant>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
-  }
-
-  afterEach(() => {
-    window.localStorage.clear();
-  });
-
-  it('choisir un site PRÉCIS mémorise ce site comme préférence globale', async () => {
-    connecterSession('comptable', DEUX_SITES);
-    server.use(http.get(CHEMIN_DOCUMENTS_VENTE, () => HttpResponse.json(PAGE_VIDE)));
-    const utilisateur = userEvent.setup();
-    rendreAvecPreferenceSite();
-
-    await screen.findByRole('combobox', { name: NOM_SELECTEUR_SITE });
-    await utilisateur.click(screen.getByRole('combobox', { name: NOM_SELECTEUR_SITE }));
-    await utilisateur.click(await screen.findByText('Site principal'));
-
-    expect(window.localStorage.getItem('dfa.site-courant.tenant-1')).toBe('site-1');
-  });
-
-  it('« Tous les sites » NE touche PAS la préférence mémorisée — le dernier site réel reste le défaut', async () => {
-    window.localStorage.setItem('dfa.site-courant.tenant-1', 'site-1');
-    connecterSession('comptable', DEUX_SITES);
-    server.use(http.get(CHEMIN_DOCUMENTS_VENTE, () => HttpResponse.json(PAGE_VIDE)));
-    const utilisateur = userEvent.setup();
-    // Départ sur `?site=site-1` (le trigger affiche donc « Site principal », jamais « Tous les
-    // sites » comme celui de l'autre test ci-dessus) : ce texte cible SANS AMBIGUÏTÉ l'option
-    // « Tous les sites » du menu déroulant, qui ne duplique alors le libellé d'aucun autre élément
-    // déjà visible à l'écran.
-    rendreAvecPreferenceSite('/tableau-bord?site=site-1');
-
-    await screen.findByRole('combobox', { name: NOM_SELECTEUR_SITE });
-    await utilisateur.click(screen.getByRole('combobox', { name: NOM_SELECTEUR_SITE }));
-    await utilisateur.click(await screen.findByText(i18n.t('navigation:entete.tousLesSites')));
-
-    expect(window.localStorage.getItem('dfa.site-courant.tenant-1')).toBe('site-1');
   });
 });

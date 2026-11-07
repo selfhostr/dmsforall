@@ -34,6 +34,8 @@ import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
+import { FiltreSite } from '@/composants/commun/FiltreSite';
+import { useFiltreSite } from '@/hooks/site/useFiltreSite';
 import { useSession } from '@/hooks/useSession';
 import { useListeVehiculesStock } from '@/hooks/ventes/stock/useListeVehiculesStock';
 import { formaterMontant } from '@/lib/formats';
@@ -82,10 +84,10 @@ export function EcranListeVehiculesStock() {
   const { data: session } = useSession();
   const actions = session?.actions;
 
-  // Le site sélectionné est un paramètre de requête, jamais un état global (routes/chemins.ts) :
-  // deux onglets sur deux sites différents ne doivent pas se contredire.
   const [searchParams, setSearchParams] = useSearchParams();
-  const site = searchParams.get('site') ?? undefined;
+  // Filtre de site LOCAL (site principal par défaut, mémorisé par écran).
+  const filtreSite = useFiltreSite('ventes.stock');
+  const site = filtreSite.siteId;
   const vue = lireVueAffichageStock(searchParams);
   const affichage = lireAffichageStock(searchParams);
 
@@ -377,6 +379,7 @@ export function EcranListeVehiculesStock() {
           onEffacerFiltres={effacerFiltres}
           className="min-w-0 flex-1"
         >
+          <FiltreSite filtre={filtreSite} />
           {/* Libellés au-dessus des trois filtres RETIRÉS (correctif « mise en page ventes »,
               19.08.2026) : chaque `SelectTrigger` affiche déjà la valeur choisie en toutes lettres
               (« Tous les types », « VN », etc.) — un libellé fixe juste au-dessus ne faisait que

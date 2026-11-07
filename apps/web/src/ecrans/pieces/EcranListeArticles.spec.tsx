@@ -1,15 +1,14 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import type { PageCurseur, ReponseArticle } from '@dfa/shared';
 
 import '@/i18n';
 import i18n from '@/i18n';
 
-import { FournisseurSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
@@ -24,8 +23,8 @@ const CHEMIN = '/api/v1/articles';
 const SESSION_DEUX_SITES = {
   ...SESSION_TEST,
   sites: [
-    { id: 'site-1', code: 'PRINCIPAL', nom: 'Site principal', actif: true },
-    { id: 'site-2', code: 'SECONDAIRE', nom: 'Site secondaire', actif: true },
+    { id: 'site-1', code: 'PRINCIPAL', codeCourt: 'PRINC', nom: 'Site principal', actif: true },
+    { id: 'site-2', code: 'SECONDAIRE', codeCourt: 'SECON', nom: 'Site secondaire', actif: true },
   ],
 };
 
@@ -63,9 +62,6 @@ function connecterSession(session: typeof SESSION_TEST = SESSION_TEST) {
   server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(session)));
 }
 
-/** `FournisseurSiteCourant` monté explicitement — sans lui, `useSiteCourant()` dégrade vers
- *  « aucune préférence », ce que certains des tests ci-dessous veulent justement exercer (pas
- *  d'omission par accident : c'est le comportement par défaut hors fournisseur, testé aussi). */
 function rendre(routeInitiale: string) {
   const queryClient = creerQueryClientTest();
   const ecran = (
@@ -75,13 +71,7 @@ function rendre(routeInitiale: string) {
       </Routes>
     </MemoryRouter>
   );
-  // `FournisseurSiteCourant` DOIT être À L'INTÉRIEUR de `QueryClientProvider` : il lit
-  // `useSession()`, qui exige un client React Query dans son arbre d'ancêtres.
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <FournisseurSiteCourant>{ecran}</FournisseurSiteCourant>
-    </QueryClientProvider>,
-  );
+  return render(<QueryClientProvider client={queryClient}>{ecran}</QueryClientProvider>);
 }
 
 /**
@@ -124,29 +114,36 @@ describe('EcranListeArticles — titre de page (doublon avec l’onglet « Artic
   });
 });
 
-describe('EcranListeArticles — propagation du site déjà choisi vers la colonne « Disponible »', () => {
-  it('quantité INCONNUE (« — ») : aucun site résolu nulle part (ni ?site= ni préférence), plusieurs sites actifs — jamais une valeur devinée', async () => {
-    connecterSession(SESSION_DEUX_SITES);
-    server.use(
-      http.get(CHEMIN, () =>
-        HttpResponse.json(
-          pageArticles([
-            article({
-              stocksResume: [
-                {
-                  siteId: 'site-1',
-                  quantitePhysiqueMillieme: 3000,
-                  quantiteDisponibleMillieme: 3000,
-                  emplacement: null,
-                  rayon: null,
-                  tiroir: null,
-                },
-              ],
-            }),
-          ]),
-        ),
-      ),
-    );
+function stock(siteId: string, quantiteMillieme: number) {
+  return {
+    siteId,
+    quantitePhysiqueMillieme: quantiteMillieme,
+    quantiteDisponibleMillieme: quantiteMillieme,
+    emplacement: null,
+    rayon: null,
+    tiroir: null,
+  };
+}
+
+function servirArticle(stocksResume: ReturnType<typeof stock>[]) {
+  server.use(http.get(CHEMIN, () => HttpResponse.json(pageArticles([article({ stocksResume })]))));
+}
+
+function cleMemoire(session: typeof SESSION_DEUX_SITES) {
+  return `dfa.filtre-site.${session.tenant.id}.${session.utilisateur.id}.pieces.articles`;
+}
+
+describe('EcranListeArticles — filtre de site local et colonne « Disponible »', () => {
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('quantité INCONNUE (« — ») : aucun site actif résolu — jamais une valeur devinée', async () => {
+    connecterSession({
+      ...SESSION_TEST,
+      sites: SESSION_TEST.sites.map((site) => ({ ...site, actif: false })),
+    });
+    servirArticle([stock('site-1', 3000)]);
 
     rendre('/pieces/articles');
 
@@ -157,28 +154,9 @@ describe('EcranListeArticles — propagation du site déjà choisi vers la colon
     ).not.toBeInTheDocument();
   });
 
-  it('quantité ZÉRO (badge « Rupture », jamais « — ») : site déjà choisi via `?site=` de l’URL, stock disponible à 0 sur ce site', async () => {
+  it('quantité ZÉRO (badge « Rupture », jamais « — ») : site de l’URL, stock disponible à 0 sur ce site', async () => {
     connecterSession(SESSION_DEUX_SITES);
-    server.use(
-      http.get(CHEMIN, () =>
-        HttpResponse.json(
-          pageArticles([
-            article({
-              stocksResume: [
-                {
-                  siteId: 'site-1',
-                  quantitePhysiqueMillieme: 0,
-                  quantiteDisponibleMillieme: 0,
-                  emplacement: null,
-                  rayon: null,
-                  tiroir: null,
-                },
-              ],
-            }),
-          ]),
-        ),
-      ),
-    );
+    servirArticle([stock('site-1', 0)]);
 
     rendre('/pieces/articles?site=site-1');
 
@@ -189,29 +167,9 @@ describe('EcranListeArticles — propagation du site déjà choisi vers la colon
     expect(screen.queryByText('—')).not.toBeInTheDocument();
   });
 
-  it('quantité RÉELLE (> 0) : AUCUN `?site=` dans l’URL, mais une préférence de site mémorisée du poste (`useSiteCourant`) — même résolution que l’en-tête (`EnTete.tsx`)', async () => {
-    connecterSession(SESSION_DEUX_SITES);
-    server.use(
-      http.get(CHEMIN, () =>
-        HttpResponse.json(
-          pageArticles([
-            article({
-              stocksResume: [
-                {
-                  siteId: 'site-2',
-                  quantitePhysiqueMillieme: 5000,
-                  quantiteDisponibleMillieme: 5000,
-                  emplacement: null,
-                  rayon: null,
-                  tiroir: null,
-                },
-              ],
-            }),
-          ]),
-        ),
-      ),
-    );
-    window.localStorage.setItem(`dfa.site-courant.${SESSION_DEUX_SITES.tenant.id}`, 'site-2');
+  it('par défaut : le SITE PRINCIPAL de la personne, sans rien choisir ni `?site=`', async () => {
+    connecterSession({ ...SESSION_DEUX_SITES, sitePrincipalId: 'site-2' });
+    servirArticle([stock('site-1', 3000), stock('site-2', 5000)]);
 
     rendre('/pieces/articles');
 
@@ -220,39 +178,57 @@ describe('EcranListeArticles — propagation du site déjà choisi vers la colon
       await screen.findByText(i18n.t('pieces:rechercheComptoir.resultat.disponible', { n: '5' })),
     ).toBeInTheDocument();
     expect(screen.queryByText('—')).not.toBeInTheDocument();
-
-    window.localStorage.clear();
   });
 
-  it('un `siteId` de préférence qui ne correspond à AUCUN site de la session est traité comme une ABSENCE, jamais comme une valeur brute (même doctrine que `EnTete.tsx`)', async () => {
-    connecterSession(SESSION_DEUX_SITES);
-    server.use(
-      http.get(CHEMIN, () =>
-        HttpResponse.json(
-          pageArticles([
-            article({
-              stocksResume: [
-                {
-                  siteId: 'site-1',
-                  quantitePhysiqueMillieme: 3000,
-                  quantiteDisponibleMillieme: 3000,
-                  emplacement: null,
-                  rayon: null,
-                  tiroir: null,
-                },
-              ],
-            }),
-          ]),
-        ),
-      ),
-    );
-    window.localStorage.setItem(`dfa.site-courant.${SESSION_DEUX_SITES.tenant.id}`, 'site-fantome');
+  it('le choix mémorisé pour cet écran l’emporte sur le site principal', async () => {
+    const session = { ...SESSION_DEUX_SITES, sitePrincipalId: 'site-1' };
+    connecterSession(session);
+    servirArticle([stock('site-1', 3000), stock('site-2', 5000)]);
+    window.localStorage.setItem(cleMemoire(session), 'site-2');
+
+    rendre('/pieces/articles');
+
+    expect(
+      await screen.findByText(i18n.t('pieces:rechercheComptoir.resultat.disponible', { n: '5' })),
+    ).toBeInTheDocument();
+  });
+
+  it('un site mémorisé qui n’existe plus est ignoré : retour au site principal, jamais une valeur brute', async () => {
+    const session = { ...SESSION_DEUX_SITES, sitePrincipalId: 'site-1' };
+    connecterSession(session);
+    servirArticle([stock('site-1', 3000)]);
+    window.localStorage.setItem(cleMemoire(session), 'site-fantome');
+
+    rendre('/pieces/articles');
+
+    expect(
+      await screen.findByText(i18n.t('pieces:rechercheComptoir.resultat.disponible', { n: '3' })),
+    ).toBeInTheDocument();
+  });
+
+  it('garage à deux sites : le filtre de site compact affiche les codes courts, sans « Tous » (un stock se lit sur un site)', async () => {
+    connecterSession({ ...SESSION_DEUX_SITES, sitePrincipalId: 'site-1' });
+    servirArticle([stock('site-1', 3000)]);
 
     rendre('/pieces/articles');
 
     await screen.findByText('Plaquettes de frein avant');
-    expect(screen.getByText('—')).toBeInTheDocument();
+    const filtre = await screen.findByRole('tablist', {
+      name: i18n.t('commun:filtreSite.libelle'),
+    });
+    expect(within(filtre).getByRole('tab', { name: 'Site principal' })).toBeInTheDocument();
+    expect(within(filtre).getByText('PRINC')).toBeInTheDocument();
+    expect(within(filtre).getByText('SECON')).toBeInTheDocument();
+    expect(within(filtre).queryByText(i18n.t('commun:filtreSite.tous'))).not.toBeInTheDocument();
+  });
 
-    window.localStorage.clear();
+  it('garage à un seul site : aucun filtre de site à l’écran', async () => {
+    connecterSession(SESSION_TEST);
+    servirArticle([stock('site-1', 3000)]);
+
+    rendre('/pieces/articles');
+
+    await screen.findByText('Plaquettes de frein avant');
+    expect(screen.queryByTestId('filtre-site')).not.toBeInTheDocument();
   });
 });

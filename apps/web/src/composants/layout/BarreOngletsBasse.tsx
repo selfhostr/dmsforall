@@ -2,7 +2,6 @@ import { Menu } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useSearchParams } from 'react-router';
 
-import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { useSession } from '@/hooks/useSession';
 import { cn } from '@/lib/utils';
 
@@ -69,8 +68,7 @@ interface Props {
 export function BarreOngletsBasse({ ouvrirPlus, plusOuvert }: Props) {
   const { t } = useTranslation('navigation');
   const [searchParams] = useSearchParams();
-  const { preferenceSiteId } = useSiteCourant();
-  const site = searchParams.get('site') ?? preferenceSiteId;
+  const site = searchParams.get('site') ?? undefined;
   const { pathname } = useLocation();
   const { data: session } = useSession();
   const sujet = sujetNavigation(session);

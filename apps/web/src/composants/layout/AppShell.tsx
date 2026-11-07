@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { Navigate, Outlet, useLocation } from 'react-router';
 
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
-import { FournisseurSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { useSession } from '@/hooks/useSession';
 import { cn } from '@/lib/utils';
 import { chemins } from '@/routes/chemins';
@@ -71,12 +70,7 @@ export function AppShell() {
   const afficheBarreBasse = afficheNavigation && !modeScan.actif;
 
   return (
-    // Porte la préférence de site (issue #91) pour toute la coquille et l'écran routé — voir
-    // `hooks/site/ContexteSiteCourant.tsx`. Montée ICI (au-dessus d'`EnTete`/`BarreLaterale`/
-    // `OngletsDomaine` ET de `<Outlet/>`) : les trois composants de navigation la lisent en frères
-    // synchronisés, et la route index (`routeur.tsx`) peut s'en servir pour atterrir directement
-    // sur le dernier site connu plutôt que sur « aucun site ».
-    <FournisseurSiteCourant>
+    <>
       {/* `pt-zone-sure-haut`/`pl-zone-sure-gauche`/`pr-zone-sure-droite` : depuis que
           `index.html` porte `viewport-fit=cover` (voir `BarreOngletsBasse.tsx`), la page peut
           s'étendre sous l'encoche/le coin arrondi sur TOUS les côtés, pas seulement en bas —
@@ -172,12 +166,11 @@ export function AppShell() {
         {/* Barre basse — téléphone ET tablette (`lg:hidden`) : le bandeau du haut est supprimé,
             son bouton « Plus » est le seul déclencheur du `Sheet` (tiroir de la barre latérale). Placée hors de la
             colonne de droite (position `fixed`, indifférente à l'endroit du DOM) mais toujours
-            sous `FournisseurSiteCourant`, dont elle a besoin pour résoudre le site courant des
-            liens qu'elle pose. */}
+            à l'URL (`?site=`) pour les liens qu'elle pose. */}
         {afficheBarreBasse ? (
           <BarreOngletsBasse ouvrirPlus={() => setOuvert(true)} plusOuvert={ouvert} />
         ) : null}
       </div>
-    </FournisseurSiteCourant>
+    </>
   );
 }

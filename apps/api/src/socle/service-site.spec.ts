@@ -21,6 +21,7 @@ function ligneSite(
     id: champs.id ?? ID_S1,
     tenantId: 'tid-1',
     code: champs.code ?? 'SION',
+    codeCourt: champs.codeCourt ?? 'SION',
     nom: champs.nom ?? 'Site Sion',
     rue: null,
     npa: null,

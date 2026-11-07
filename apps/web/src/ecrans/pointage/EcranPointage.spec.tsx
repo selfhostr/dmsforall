@@ -61,8 +61,8 @@ describe('EcranPointage', () => {
           HttpResponse.json({
             ...SESSION_TEST,
             sites: [
-              { id: 'site-1', code: 'P', nom: 'Site principal', actif: true },
-              { id: 'site-2', code: 'S', nom: 'Site secondaire', actif: true },
+              { id: 'site-1', code: 'P', codeCourt: 'P', nom: 'Site principal', actif: true },
+              { id: 'site-2', code: 'S', codeCourt: 'S', nom: 'Site secondaire', actif: true },
             ],
           }),
         ),

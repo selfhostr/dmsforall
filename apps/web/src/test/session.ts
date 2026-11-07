@@ -62,8 +62,11 @@ export function creerSessionTest(
       raisonSociale: 'Garage Test SA',
       langueDefaut: 'fr',
     },
-    sites: [{ id: 'site-1', code: 'PRINCIPAL', nom: 'Site principal', actif: true }],
+    sites: [
+      { id: 'site-1', code: 'PRINCIPAL', codeCourt: 'PRINC', nom: 'Site principal', actif: true },
+    ],
     siteRattachementId: role === 'poste_atelier' ? 'site-1' : null,
+    sitePrincipalId: role === 'poste_atelier' ? null : 'site-1',
     actions: actionsDuRole(role),
     capacites: capacitesDuRole(role),
     expireLe: new Date(Date.now() + 60 * 60 * 1000).toISOString(),

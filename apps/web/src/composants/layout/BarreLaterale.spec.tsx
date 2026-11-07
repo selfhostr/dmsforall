@@ -9,7 +9,6 @@ import '@/i18n';
 
 import type { RoleUtilisateur } from '@dfa/shared';
 
-import { FournisseurSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
@@ -52,22 +51,6 @@ function rendre(routeInitiale: string): RenderResult & { queryClient: QueryClien
       </QueryClientProvider>,
     ),
   };
-}
-
-/** Même rendu que `rendre`, sous `FournisseurSiteCourant` — seul moyen d'exercer la préférence de
- *  site mémorisée (`hooks/site/ContexteSiteCourant.tsx`, issue #91), que `BarreLaterale` seule ne
- *  peut pas lire (contexte non fourni hors d'`AppShell.tsx` en usage réel). */
-function rendreAvecPreferenceSite(routeInitiale: string): void {
-  const queryClient = creerQueryClientTest();
-  render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[routeInitiale]}>
-        <FournisseurSiteCourant>
-          <BarreLaterale />
-        </FournisseurSiteCourant>
-      </MemoryRouter>
-    </QueryClientProvider>,
-  );
 }
 
 /** Même rendu que `rendre` ci-dessus, avec le prop `repli` fourni — c'est ce que fait uniquement
@@ -300,41 +283,6 @@ describe('BarreLaterale — conservation du site courant', () => {
 
     expect(hrefDuLien(/clients & véhicules/i)).toBe('/clients');
     expect(hrefDuLien(/^atelier$/i)).toBe('/ordres-reparation');
-  });
-});
-
-/**
- * Régression issue #91 (« il oublie mon choix dès que je change d'écran ») : quand l'URL courante
- * ne porte AUCUN `?site=` (parce qu'un écran hors de ce périmètre a construit un lien interne sans
- * le propager), la barre latérale ne retombe plus sur « aucun site » — elle reprend la dernière
- * préférence mémorisée (`hooks/site/ContexteSiteCourant.tsx`, tenant `SESSION_TEST.tenant.id` =
- * `'tenant-1'`). Un `?site=` déjà présent dans l'URL continue de faire foi (test précédent,
- * inchangé) : la préférence ne comble que son absence, jamais ne l'écrase.
- */
-describe('BarreLaterale — reprise de la préférence de site (issue #91)', () => {
-  afterEach(() => {
-    window.localStorage.clear();
-  });
-
-  it('reprend la préférence mémorisée quand l’URL n’en porte pas', async () => {
-    window.localStorage.setItem('dfa.site-courant.tenant-1', 'site-secondaire');
-    connecte('direction');
-    rendreAvecPreferenceSite('/');
-
-    await screen.findByRole('link', { name: /^pièces$/i });
-
-    expect(hrefDuLien(/clients & véhicules/i)).toBe('/clients?site=site-secondaire');
-    expect(hrefDuLien(/^atelier$/i)).toBe('/ordres-reparation?site=site-secondaire');
-  });
-
-  it('l’URL reste prioritaire sur la préférence mémorisée quand les deux sont présents', async () => {
-    window.localStorage.setItem('dfa.site-courant.tenant-1', 'site-secondaire');
-    connecte('direction');
-    rendreAvecPreferenceSite('/clients?site=site-sion');
-
-    await screen.findByRole('link', { name: /^pièces$/i });
-
-    expect(hrefDuLien(/clients & véhicules/i)).toBe('/clients?site=site-sion');
   });
 });
 
@@ -805,7 +753,7 @@ describe('BarreLaterale — recherche, site et choix du compte regroupés dans l
           ...SESSION_TEST,
           sites: [
             ...SESSION_TEST.sites,
-            { id: 'site-2', code: 'SECOND', nom: 'Second site', actif: true },
+            { id: 'site-2', code: 'SECOND', codeCourt: 'SECON', nom: 'Second site', actif: true },
           ],
         }),
       ),

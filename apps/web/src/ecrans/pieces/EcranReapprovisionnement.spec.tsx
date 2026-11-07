@@ -111,22 +111,26 @@ describe('EcranReapprovisionnement — titre de page (doublon avec l’onglet «
 });
 
 describe('EcranReapprovisionnement — états de base', () => {
-  it('demande un site tant qu’aucun n’est sélectionné', async () => {
-    // Garage à deux sites : en mono-site le site est implicite (aucune question posée).
+  it('ouvre sur le site principal sans rien demander (garage à deux sites)', async () => {
     server.use(
+      http.get(CHEMIN, () => HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 })),
       http.get('/api/v1/auth/moi', () =>
         HttpResponse.json({
           ...SESSION_TEST,
+          sitePrincipalId: 'site-1',
           sites: [
             ...SESSION_TEST.sites,
-            { id: 'site-2', code: 'S2', nom: 'Second site', actif: true },
+            { id: 'site-2', code: 'S2', codeCourt: 'S2', nom: 'Second site', actif: true },
           ],
         }),
       ),
     );
     rendre('/pieces/reapprovisionnement');
 
-    expect(await screen.findByText(i18n.t('pieces:siteRequis.titre'))).toBeInTheDocument();
+    expect(
+      await screen.findByRole('tablist', { name: i18n.t('commun:filtreSite.libelle') }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(i18n.t('pieces:siteRequis.titre'))).not.toBeInTheDocument();
   });
 
   it('affiche un état d’erreur actionnable sur une panne serveur', async () => {

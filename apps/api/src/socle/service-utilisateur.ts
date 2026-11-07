@@ -171,6 +171,11 @@ export class ServiceUtilisateur {
 
     return this.acces.enTenant(ctx, async (tx) => {
       await this.verifierSitesDuTenant(tx, ctx, entree.siteIds);
+      const sitePrincipalId = resoudreSitePrincipal({
+        sitesApres: entree.siteIds,
+        demande: entree.sitePrincipalId,
+        actuel: null,
+      });
 
       let ligne: LigneUtilisateur | undefined;
       try {
@@ -183,6 +188,7 @@ export class ServiceUtilisateur {
             prenom: entree.prenom,
             nom: entree.nom,
             role: entree.role,
+            sitePrincipalId,
             ...colonnesDepuisGrille(grilleInitiale),
             // Un mot de passe réel existe déjà : `actif`, jamais `invite` (« invite » = créé mais
             // mot de passe jamais posé — voir db/schema/utilisateur.ts).
@@ -281,9 +287,12 @@ export class ServiceUtilisateur {
         }
       }
 
+      let idsSitesAvant: readonly string[] | undefined;
+
       if (entree.siteIds !== undefined) {
         await this.verifierSitesDuTenant(tx, ctx, entree.siteIds);
         const sitesAvant = await this.chargerSitesParUtilisateur(tx, ctx, [utilisateurId]);
+        idsSitesAvant = (sitesAvant.get(utilisateurId) ?? []).map((s) => s.id);
         await tx
           .delete(utilisateurSite)
           .where(
@@ -305,6 +314,34 @@ export class ServiceUtilisateur {
           avant: { siteIds: (sitesAvant.get(utilisateurId) ?? []).map((s) => s.id) },
           apres: { siteIds: entree.siteIds },
         });
+      }
+
+      if (entree.siteIds !== undefined || entree.sitePrincipalId !== undefined) {
+        const sitesApres =
+          entree.siteIds ??
+          idsSitesAvant ??
+          (await this.chargerSitesParUtilisateur(tx, ctx, [utilisateurId]))
+            .get(utilisateurId)
+            ?.map((s) => s.id) ??
+          [];
+        const principalAvant = ligne.sitePrincipalId;
+        const principalApres = resoudreSitePrincipal({
+          sitesApres,
+          demande: entree.sitePrincipalId,
+          actuel: principalAvant,
+        });
+        if (principalApres !== principalAvant) {
+          await tx
+            .update(utilisateur)
+            .set({ sitePrincipalId: principalApres })
+            .where(and(eq(utilisateur.tenantId, ctx.tenantId), eq(utilisateur.id, utilisateurId)));
+          await this.ecrireAudit(tx, ctx, {
+            utilisateurCibleId: utilisateurId,
+            action: 'modification_sites',
+            avant: { sitePrincipalId: principalAvant },
+            apres: { sitePrincipalId: principalApres },
+          });
+        }
       }
 
       const ligneFinale = await this.chargerUtilisateurPourEcriture(tx, ctx, utilisateurId);
@@ -723,6 +760,40 @@ export class ServiceUtilisateur {
   }
 }
 
+/**
+ * Site principal d'une personne après création/modification. Règles :
+ * - un site principal demandé doit figurer dans les sites de la personne (400 sinon) ;
+ * - sans demande, l'actuel est conservé s'il figure encore dans les sites, sinon le premier ;
+ * - aucun site : pas de site principal (`null`).
+ */
+export function resoudreSitePrincipal(entree: {
+  readonly sitesApres: readonly string[];
+  readonly demande: string | undefined;
+  readonly actuel: string | null;
+}): string | null {
+  const { sitesApres, demande, actuel } = entree;
+  if (demande !== undefined) {
+    if (!sitesApres.includes(demande)) {
+      throw new ErreurMetier(
+        'VALIDATION_ECHOUEE',
+        'Le site principal doit être un des sites de la personne.',
+        {
+          erreurs: [
+            {
+              champ: 'sitePrincipalId',
+              code: 'site_principal_hors_sites',
+              message: 'Le site principal doit être un des sites de la personne.',
+            },
+          ],
+        },
+      );
+    }
+    return demande;
+  }
+  if (actuel !== null && sitesApres.includes(actuel)) return actuel;
+  return sitesApres[0] ?? null;
+}
+
 function versUtilisateurResume(
   ligne: LigneUtilisateur,
   sites: ReadonlyArray<{ readonly id: string; readonly nom: string }>,
@@ -739,6 +810,7 @@ function versUtilisateurResume(
     capacites: capacitesPersonneDe(ligne.role, grilleDepuisLigne(ligne)),
     statut: ligne.statut,
     sites: [...sites].sort((a, b) => a.nom.localeCompare(b.nom)),
+    sitePrincipalId: ligne.sitePrincipalId,
     derniereConnexionLe: ligne.derniereConnexionLe ? ligne.derniereConnexionLe.toISOString() : null,
     creeLe: ligne.creeLe.toISOString(),
   };

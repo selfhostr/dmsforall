@@ -22,6 +22,9 @@ import { formaterDate, formaterMontant } from '@/lib/formats';
 import { BadgeEtatDocument } from './BadgeEtatDocument';
 import { BadgeStatutDevis } from './BadgeStatutDevis';
 import { BadgeStatutReglement } from './BadgeStatutReglement';
+import { FiltreSite } from '@/composants/commun/FiltreSite';
+import { useFiltreSite } from '@/hooks/site/useFiltreSite';
+
 import { BoutonNouveauDevis } from './BoutonNouveauDevis';
 import { chemins } from '@/routes/chemins';
 
@@ -85,6 +88,7 @@ export function EcranListeFactures() {
   // clignoter le tableau (même principe que `autoriseFinancier` sur `EcranTableauBord`).
   const voitMontantsFacturation = peutVoirMontantsFacturation(actions);
 
+  const filtreSite = useFiltreSite('facturation.liste');
   const [qSaisie, setQSaisie] = useState('');
   const [q, reinitialiserQ] = useValeurDebouncee(qSaisie, DELAI_DEBOUNCE_MS);
   // Onglet par défaut : « Non réglées » (§7.1) — reste un badge neutre, l'onglet organise le
@@ -96,6 +100,7 @@ export function EcranListeFactures() {
       typeDocument: onglet === 'devis' ? ['devis'] : ['facture'],
       q: q.trim() === '' ? undefined : q.trim(),
       tri: onglet === 'nonReglees' ? 'dateDocument:asc' : 'dateDocument:desc',
+      siteId: filtreSite.siteId,
     };
     if (onglet === 'devis') {
       // Les devis n'ont ni règlement ni échéance : aucun autre filtre que le type, du plus récent
@@ -119,7 +124,7 @@ export function EcranListeFactures() {
       return { ...base, enRetard: true, relanceNiveau: 0 };
     }
     return base;
-  }, [q, onglet]);
+  }, [q, onglet, filtreSite.siteId]);
 
   const {
     documents,
@@ -313,6 +318,7 @@ export function EcranListeFactures() {
       titre={t('facturation:liste.titre')}
       actions={
         <>
+          <FiltreSite filtre={filtreSite} />
           {peutVoirChiffres(actions) ? (
             <Link
               to={chemins.facturation.chiffres()}

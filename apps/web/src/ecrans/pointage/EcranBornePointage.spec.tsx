@@ -45,8 +45,11 @@ const SESSION_BORNE: SessionCourante = creerSessionTest('poste_atelier', {
     raisonSociale: 'Garage Test SA',
     langueDefaut: 'fr',
   },
-  sites: [{ id: 'site-1', code: 'PRINCIPAL', nom: 'Site principal', actif: true }],
+  sites: [
+    { id: 'site-1', code: 'PRINCIPAL', codeCourt: 'PRINC', nom: 'Site principal', actif: true },
+  ],
   siteRattachementId: 'site-1',
+  sitePrincipalId: null,
   expireLe: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
 });
 

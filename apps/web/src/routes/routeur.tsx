@@ -1,7 +1,6 @@
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
 
 import { AppShell } from '@/composants/layout/AppShell';
-import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { EcranConnexion } from '@/ecrans/EcranConnexion';
 // `EcranRendezVous` (routé ci-dessous) est le CONTENEUR réseau ; il rend `EcranAgendaRendezVous`
 // (présentation pure, testée séparément par fixtures locales) — l'écran métier existe donc bien
@@ -108,18 +107,11 @@ import {
 
 /**
  * Atterrissage des rôles de PILOTAGE (`ATTERRISSAGE_PAR_ROLE` ne les redirige pas, voir
- * `atterrissage.ts`) — CORRECTIF issue #91 (« le logiciel me redemande sans arrêt un site »). Avant
- * ce correctif, cette route rendait littéralement `<Navigate to="/tableau-bord" replace />` : un
- * utilisateur qui travaille toujours au même site atterrissait pourtant sur « aucun site » à
- * CHAQUE connexion, devant re-choisir un site qu'il avait déjà choisi la veille. Cette route lit
- * la préférence mémorisée (`hooks/site/ContexteSiteCourant.tsx`, posée par `SelecteurSiteEntete`
- * dès qu'un site est choisi une fois) et la propage dans l'URL d'atterrissage — `undefined` la
- * laisse simplement absente, comportement identique à avant pour un poste qui n'a encore jamais
- * choisi de site.
+ * `atterrissage.ts`). Plus de site dans l'URL : l'accueil montre l'entreprise entière, et chaque
+ * écran qui filtre par site retrouve le site principal de la personne (`FiltreSite`).
  */
 function AtterrissageTableauBord() {
-  const { preferenceSiteId } = useSiteCourant();
-  return <Navigate to={chemins.tableauBord(preferenceSiteId)} replace />;
+  return <Navigate to={chemins.tableauBord()} replace />;
 }
 
 export const routesConfig: RouteObject[] = [

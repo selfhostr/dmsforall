@@ -3960,7 +3960,11 @@ export interface paths {
     delete?: never;
     options?: never;
     head?: never;
-    patch?: never;
+    /**
+     * Modifier un site (code court)
+     * @description Code court : 1 à 5 caractères A-Z/0-9, unique dans le garage. Même droit que les réglages par site.
+     */
+    patch: operations['SiteController_modifier'];
     trace?: never;
   };
   '/sites/{siteId}/hangar-pneus': {
@@ -9031,6 +9035,8 @@ export interface components {
       /** Format: date-time */
       expireLe: string;
       /** Format: uuid */
+      sitePrincipalId: string | null;
+      /** Format: uuid */
       siteRattachementId: string | null;
       sites: components['schemas']['SiteResumeDto'][];
       tenant: components['schemas']['TenantCourantDto'];
@@ -9056,6 +9062,11 @@ export interface components {
       actif: boolean;
       /** @example SION */
       code: string;
+      /**
+       * @description Étiquette compacte, 1 à 5 caractères A-Z/0-9.
+       * @example SION
+       */
+      codeCourt: string;
       /** Format: uuid */
       id: string;
       /** @example Sion */
@@ -9240,6 +9251,8 @@ export interface components {
         | 'technicien'
         | 'magasinier'
         | 'comptable';
+      /** Format: uuid */
+      sitePrincipalId: string | null;
       sites: components['schemas']['SiteAffecteResumeDto'][];
       /**
        * @example actif
@@ -25890,6 +25903,78 @@ export interface operations {
       };
     };
   };
+  SiteController_modifier: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        siteId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          codeCourt?: string;
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SiteResumeDto'];
+        };
+      };
+      /** @description Corps invalide (code court hors format). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant (parametrage.atelier.modifier). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Site introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description CONFLIT — ce code court est déjà utilisé par un autre site. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
   SiteHangarPneusController_hangar: {
     parameters: {
       query?: never;
@@ -26303,6 +26388,8 @@ export interface operations {
             | 'magasinier'
             | 'comptable';
           siteIds: string[];
+          /** Format: uuid */
+          sitePrincipalId?: string;
         };
       };
     };
@@ -26387,6 +26474,8 @@ export interface operations {
             | 'magasinier'
             | 'comptable';
           siteIds?: string[];
+          /** Format: uuid */
+          sitePrincipalId?: string;
         };
       };
     };

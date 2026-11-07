@@ -5,6 +5,8 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 export interface OptionSegment<T extends string> {
   readonly valeur: T;
   readonly libelle: string;
+  /** Nom complet, lu par les lecteurs d'écran et au survol quand `libelle` est une abréviation. */
+  readonly titre?: string;
 }
 
 interface Props<T extends string> {
@@ -31,7 +33,12 @@ export function Segments<T extends string>({
     <Tabs value={valeur} onValueChange={(v) => onChange(v as T)}>
       <TabsList variante="segments" aria-label={ariaLabel}>
         {options.map((option) => (
-          <TabsTrigger key={option.valeur} value={option.valeur}>
+          <TabsTrigger
+            key={option.valeur}
+            value={option.valeur}
+            title={option.titre}
+            aria-label={option.titre}
+          >
             {option.libelle}
           </TabsTrigger>
         ))}

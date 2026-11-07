@@ -52,7 +52,11 @@ interface Props {
   /** Saute à demain — pour appeler les clients de la veille du rendez-vous. */
   readonly onDemain?: () => void;
   /** Sites que l'utilisateur peut choisir quand aucun n'est sélectionné. */
-  readonly sitesChoisissables?: readonly { readonly id: string; readonly nom: string }[];
+  readonly sitesChoisissables?: readonly {
+    readonly id: string;
+    readonly nom: string;
+    readonly codeCourt?: string;
+  }[];
 }
 
 /**

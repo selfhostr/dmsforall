@@ -265,6 +265,7 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
             // chaque appel, jamais depuis le principal — `connecter()` construit un principal
             // sans site (voir son commentaire), et cette méthode sert les deux chemins.
             siteId: utilisateur.siteId,
+            sitePrincipalId: utilisateur.sitePrincipalId,
             // Grille de capacités : relue ici comme le rôle, pour que `actions` reflète la
             // personne réelle (jamais un préréglage périmé).
             niveauAtelier: utilisateur.niveauAtelier,
@@ -319,7 +320,13 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
             : eq(site.tenantId, principal.tenantId);
 
         const lignesSites = await tx
-          .select({ id: site.id, code: site.code, nom: site.nom, actif: site.actif })
+          .select({
+            id: site.id,
+            code: site.code,
+            codeCourt: site.codeCourt,
+            nom: site.nom,
+            actif: site.actif,
+          })
           .from(site)
           .where(conditionSites)
           .orderBy(asc(site.code));
@@ -358,6 +365,7 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
           tenant: ligneTenant,
           sites: lignesSites,
           siteRattachementId,
+          sitePrincipalId: ligneUtilisateur.sitePrincipalId,
           actions: [...droitsDe(ligneUtilisateur.role, grille).actions].sort(),
           capacites: capacitesPersonneDe(ligneUtilisateur.role, grille),
           expireLe: ligneSession.expireLe.toISOString(),

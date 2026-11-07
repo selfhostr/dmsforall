@@ -72,6 +72,9 @@ export class SiteResumeDto implements SiteResume {
   @ApiProperty()
   code!: string;
 
+  @ApiProperty({ description: 'Étiquette compacte (1 à 5 caractères A-Z/0-9), ex. MART.' })
+  codeCourt!: string;
+
   @ApiProperty()
   nom!: string;
 
@@ -101,6 +104,10 @@ export class SessionCouranteDto implements SessionCourante {
    */
   @ApiProperty({ format: 'uuid', nullable: true, type: String })
   siteRattachementId!: string | null;
+
+  /** Site principal de la personne : défaut des filtres de site (jamais un droit). */
+  @ApiProperty({ format: 'uuid', nullable: true, type: String })
+  sitePrincipalId!: string | null;
 
   @ApiProperty({
     type: [String],

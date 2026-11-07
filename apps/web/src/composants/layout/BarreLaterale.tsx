@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { SelecteurLangueMenu } from '@/composants/SelecteurLangueMenu';
 import { useSiteImplicite } from '@/hooks/site/useSiteImplicite';
-import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { useDeconnexion } from '@/hooks/useDeconnexion';
 import { useSession } from '@/hooks/useSession';
 import { cleTraductionRole } from '@/lib/roles';
@@ -176,7 +175,6 @@ interface Props {
 export function BarreLaterale({ className, repli }: Props) {
   const { t } = useTranslation(['navigation', 'auth']);
   const [searchParams] = useSearchParams();
-  const { preferenceSiteId } = useSiteCourant();
   // CORRECTIF issue #91 (« le logiciel oublie mon choix dès que je change d'écran ») : l'URL reste
   // la source qui FAIT FOI (doctrine ci-dessous, inchangée), mais quand elle n'en porte AUCUN, on
   // retombe sur la dernière préférence connue (`hooks/site/ContexteSiteCourant.tsx`) plutôt que sur
@@ -184,7 +182,7 @@ export function BarreLaterale({ className, repli }: Props) {
   // sans que l'utilisateur ait rien changé, quand un écran hors de ce périmètre construisait un lien
   // interne sans propager `?site=`. Une fois CE lien cliqué, l'URL suivante porte à nouveau le site,
   // qui redevient alors la source pour la navigation suivante.
-  const site = searchParams.get('site') ?? preferenceSiteId;
+  const site = searchParams.get('site') ?? undefined;
   const { pathname } = useLocation();
   const { data: session } = useSession();
   const sujet = sujetNavigation(session);

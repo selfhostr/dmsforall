@@ -56,7 +56,9 @@ function rendre() {
 
 describe('EcranSites — garage mono-site', () => {
   it('présélectionne l’unique site et affiche ses paramètres', async () => {
-    connecterSession([{ id: 'site-1', code: 'PRINCIPAL', nom: 'Site principal', actif: true }]);
+    connecterSession([
+      { id: 'site-1', code: 'PRINCIPAL', codeCourt: 'PRINC', nom: 'Site principal', actif: true },
+    ]);
     server.use(http.get(CHEMIN('site-1'), () => HttpResponse.json(PARAMETRES_SITE_1)));
     rendre();
 
@@ -72,7 +74,9 @@ describe('EcranSites — garage mono-site', () => {
   });
 
   it('enregistre une modification des horaires', async () => {
-    connecterSession([{ id: 'site-1', code: 'PRINCIPAL', nom: 'Site principal', actif: true }]);
+    connecterSession([
+      { id: 'site-1', code: 'PRINCIPAL', codeCourt: 'PRINC', nom: 'Site principal', actif: true },
+    ]);
     let corpsRecu: unknown;
     server.use(
       http.get(CHEMIN('site-1'), () => HttpResponse.json(PARAMETRES_SITE_1)),
@@ -105,7 +109,7 @@ describe('EcranSites — garage mono-site', () => {
 
   it("affiche un bandeau lecture seule pour un rôle sans droit d'écriture (technicien)", async () => {
     connecterSession(
-      [{ id: 'site-1', code: 'PRINCIPAL', nom: 'Site principal', actif: true }],
+      [{ id: 'site-1', code: 'PRINCIPAL', codeCourt: 'PRINC', nom: 'Site principal', actif: true }],
       'technicien',
     );
     server.use(http.get(CHEMIN('site-1'), () => HttpResponse.json(PARAMETRES_SITE_1)));
@@ -118,7 +122,9 @@ describe('EcranSites — garage mono-site', () => {
   });
 
   it('affiche un état d’erreur actionnable sur une panne serveur', async () => {
-    connecterSession([{ id: 'site-1', code: 'PRINCIPAL', nom: 'Site principal', actif: true }]);
+    connecterSession([
+      { id: 'site-1', code: 'PRINCIPAL', codeCourt: 'PRINC', nom: 'Site principal', actif: true },
+    ]);
     server.use(
       http.get(CHEMIN('site-1'), () =>
         HttpResponse.json(
@@ -144,8 +150,8 @@ describe('EcranSites — garage mono-site', () => {
 describe('EcranSites — garage multi-sites', () => {
   it('affiche la liste des sites et bascule entre eux', async () => {
     connecterSession([
-      { id: 'site-1', code: 'PRINCIPAL', nom: 'Site principal', actif: true },
-      { id: 'site-2', code: 'ANNEXE', nom: 'Site annexe', actif: true },
+      { id: 'site-1', code: 'PRINCIPAL', codeCourt: 'PRINC', nom: 'Site principal', actif: true },
+      { id: 'site-2', code: 'ANNEXE', codeCourt: 'ANNEX', nom: 'Site annexe', actif: true },
     ]);
     server.use(
       http.get(CHEMIN('site-1'), () => HttpResponse.json(PARAMETRES_SITE_1)),
@@ -178,5 +184,102 @@ describe('EcranSites — garage multi-sites', () => {
     rendre();
 
     expect(await screen.findByText(i18n.t('parametrage:sites.vide.titre'))).toBeInTheDocument();
+  });
+});
+
+describe('EcranSites — code court du site', () => {
+  const UN_SITE = [
+    { id: 'site-1', code: 'PRINCIPAL', codeCourt: 'PRINC', nom: 'Site principal', actif: true },
+  ];
+
+  it('affiche le code court actuel et l’enregistre en majuscules (PATCH /sites/{id})', async () => {
+    connecterSession(UN_SITE, 'direction');
+    let corps: unknown;
+    server.use(
+      http.get(CHEMIN('site-1'), () => HttpResponse.json(PARAMETRES_SITE_1)),
+      http.patch('/api/v1/sites/site-1', async ({ request }) => {
+        corps = await request.json();
+        return HttpResponse.json({ ...UN_SITE[0], codeCourt: 'MART' });
+      }),
+    );
+    const utilisateur = userEvent.setup();
+    rendre();
+
+    const champ = await screen.findByLabelText(i18n.t('parametrage:sites.codeCourt.champ'));
+    expect(champ).toHaveValue('PRINC');
+    await utilisateur.clear(champ);
+    await utilisateur.type(champ, 'mart');
+    await utilisateur.click(
+      screen.getByRole('button', { name: i18n.t('parametrage:sites.codeCourt.enregistrer') }),
+    );
+
+    await waitFor(() => expect(corps).toEqual({ codeCourt: 'MART' }));
+    expect(
+      await screen.findByText(i18n.t('parametrage:sites.codeCourt.enregistre')),
+    ).toBeInTheDocument();
+  });
+
+  it('refuse un code hors format, champ par champ, sans rien envoyer', async () => {
+    connecterSession(UN_SITE, 'direction');
+    let appels = 0;
+    server.use(
+      http.get(CHEMIN('site-1'), () => HttpResponse.json(PARAMETRES_SITE_1)),
+      http.patch('/api/v1/sites/site-1', () => {
+        appels += 1;
+        return HttpResponse.json(UN_SITE[0]);
+      }),
+    );
+    const utilisateur = userEvent.setup();
+    rendre();
+
+    const champ = await screen.findByLabelText(i18n.t('parametrage:sites.codeCourt.champ'));
+    await utilisateur.clear(champ);
+    await utilisateur.type(champ, 'a-b');
+    await utilisateur.click(
+      screen.getByRole('button', { name: i18n.t('parametrage:sites.codeCourt.enregistrer') }),
+    );
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      i18n.t('parametrage:sites.codeCourt.format'),
+    );
+    expect(appels).toBe(0);
+    expect(champ).toHaveValue('a-b');
+  });
+
+  it('doublon dans le garage (409) : message actionnable, saisie conservée', async () => {
+    connecterSession(UN_SITE, 'direction');
+    server.use(
+      http.get(CHEMIN('site-1'), () => HttpResponse.json(PARAMETRES_SITE_1)),
+      http.patch('/api/v1/sites/site-1', () =>
+        HttpResponse.json(
+          {
+            type: 'https://docs.dmsforall.example/erreurs/CONFLIT',
+            title: 'Conflit',
+            status: 409,
+            instance: '/api/v1/sites/site-1',
+            code: 'CONFLIT',
+            detail: 'Ce code court est déjà utilisé par un autre site.',
+            erreurs: [
+              { champ: 'codeCourt', code: 'code_court_deja_utilise', message: 'déjà pris' },
+            ],
+          },
+          { status: 409, headers: { 'content-type': 'application/problem+json' } },
+        ),
+      ),
+    );
+    const utilisateur = userEvent.setup();
+    rendre();
+
+    const champ = await screen.findByLabelText(i18n.t('parametrage:sites.codeCourt.champ'));
+    await utilisateur.clear(champ);
+    await utilisateur.type(champ, 'SION');
+    await utilisateur.click(
+      screen.getByRole('button', { name: i18n.t('parametrage:sites.codeCourt.enregistrer') }),
+    );
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      i18n.t('parametrage:sites.codeCourt.dejaPris'),
+    );
+    expect(champ).toHaveValue('SION');
   });
 });

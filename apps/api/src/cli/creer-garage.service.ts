@@ -200,9 +200,9 @@ export async function creerGarage(
     const utilisateurId = String(
       (
         await bd.query(
-          `insert into utilisateur (tenant_id, email, mot_de_passe_hash, prenom, nom, langue, role, statut)
-           values ($1, $2, $3, $4, $5, 'fr', 'direction', 'actif') returning id`,
-          [tenantId, email, motDePasseHash, entree.prenom, entree.nom],
+          `insert into utilisateur (tenant_id, email, mot_de_passe_hash, prenom, nom, langue, role, statut, site_principal_id)
+           values ($1, $2, $3, $4, $5, 'fr', 'direction', 'actif', $6) returning id`,
+          [tenantId, email, motDePasseHash, entree.prenom, entree.nom, siteId],
         )
       ).rows[0]?.id,
     );

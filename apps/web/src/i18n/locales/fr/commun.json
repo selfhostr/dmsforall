@@ -117,5 +117,10 @@
     "QRFacture": "Bulletin de paiement suisse avec code QR, à scanner dans l'e-banking.",
     "Avoir": "Facture de correction qui annule tout ou partie d'une facture émise.",
     "Detenteur": "Personne inscrite sur le permis de circulation ; pas forcément le propriétaire, par exemple en leasing."
+  },
+  "filtreSite": {
+    "libelle": "Site",
+    "tous": "Tous",
+    "titreTous": "Tous les sites"
   }
 }

@@ -1,7 +1,7 @@
 import { Plus } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, useSearchParams } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 
 import {
   ATTENTES_ORDRE_REPARATION,
@@ -40,6 +40,8 @@ import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { peutCreerOrdreReparation } from '@/ecrans/atelier/droits';
 import { useListeOrdresReparation } from '@/hooks/atelier/useListeOrdresReparation';
 import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
+import { FiltreSite } from '@/composants/commun/FiltreSite';
+import { useFiltreSite } from '@/hooks/site/useFiltreSite';
 import { useSession } from '@/hooks/useSession';
 import { formaterDate, formaterMontant } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
@@ -103,10 +105,9 @@ function cheminDetailOr(id: string, site: string | undefined): string {
 export function EcranListeOrdresReparation() {
   const { t } = useTranslation(['or', 'commun']);
   const navigate = useNavigate();
-  // Le site sélectionné est un paramètre de requête, jamais un état global (routes/chemins.ts) :
-  // deux onglets sur deux sites différents ne doivent pas se contredire.
-  const [searchParams] = useSearchParams();
-  const site = searchParams.get('site') ?? undefined;
+  // Filtre de site LOCAL à cet écran (défaut : site principal, mémorisé par écran).
+  const filtreSite = useFiltreSite('atelier.or.liste');
+  const site = filtreSite.siteId;
 
   // CORRECTIF issue #47 : cet écran n'avait aucun bouton de création — le geste le plus fréquent
   // du comptoir (`EcranNouvelOrdreReparation.tsx`) n'était atteignable que depuis la fiche d'un
@@ -290,6 +291,7 @@ export function EcranListeOrdresReparation() {
         filtresActifs={filtresActifs}
         onEffacerFiltres={effacerFiltres}
       >
+        <FiltreSite filtre={filtreSite} />
         {/* Libellé retiré de l'affichage (demande produit : « Statut »/« Attente » au-dessus du
          *  contrôle ne font que répéter ce que le contrôle dit déjà) — `sr-only`, jamais un
          *  contrôle anonyme : `htmlFor`/`id` + `aria-label` sur le déclencheur conservent le nom

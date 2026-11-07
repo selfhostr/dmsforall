@@ -32,7 +32,7 @@ import { useRechercheTypee } from '@/hooks/atelier/useRechercheTypee';
 import { useClient } from '@/hooks/clients/useClient';
 import { useVehiculesClient } from '@/hooks/clients/useVehiculesClient';
 import { useParametresAtelier } from '@/hooks/parametres/useParametresAtelier';
-import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
+import { useSitePrincipal } from '@/hooks/site/useSitePrincipal';
 import { useSiteImplicite } from '@/hooks/site/useSiteImplicite';
 import { useLangue } from '@/hooks/useLangue';
 import { useSession } from '@/hooks/useSession';
@@ -99,12 +99,12 @@ export function EcranOrdreDepuisPlaque() {
   const { langue } = useLangue();
   const { data: session } = useSession();
   const { estMonoSite, siteId: siteImplicite } = useSiteImplicite();
-  const { preferenceSiteId } = useSiteCourant();
+  const sitePrincipal = useSitePrincipal();
   const parametresAtelier = useParametresAtelier();
   const creation = useOrdreDepuisPlaque();
 
   // --- Site : jamais demandé à un garage mono-site.
-  const [siteChoisi, setSiteChoisi] = useState(siteUrl ?? preferenceSiteId ?? '');
+  const [siteChoisi, setSiteChoisi] = useState(siteUrl ?? sitePrincipal ?? '');
   const sitesActifs = (session?.sites ?? []).filter((site) => site.actif);
   const siteId = estMonoSite ? (siteImplicite ?? '') : siteChoisi;
 

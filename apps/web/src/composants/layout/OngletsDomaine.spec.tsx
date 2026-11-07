@@ -8,7 +8,6 @@ import '@/i18n';
 
 import type { RoleUtilisateur } from '@dfa/shared';
 
-import { FournisseurSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
@@ -33,21 +32,6 @@ function rendre(routeInitiale: string): RenderResult & { queryClient: QueryClien
       </QueryClientProvider>,
     ),
   };
-}
-
-/** Même rendu que `rendre`, sous `FournisseurSiteCourant` — seul moyen d'exercer la préférence de
- *  site mémorisée (`hooks/site/ContexteSiteCourant.tsx`, issue #91). */
-function rendreAvecPreferenceSite(routeInitiale: string): void {
-  const queryClient = creerQueryClientTest();
-  render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[routeInitiale]}>
-        <FournisseurSiteCourant>
-          <OngletsDomaine />
-        </FournisseurSiteCourant>
-      </MemoryRouter>
-    </QueryClientProvider>,
-  );
 }
 
 function connecte(role: RoleUtilisateur): void {
@@ -309,21 +293,6 @@ describe('OngletsDomaine — contraintes du produit', () => {
       'href',
       '/pointage/jour?site=site-secondaire',
     );
-  });
-
-  /** Régression issue #91 : même correctif que `BarreLaterale.spec.tsx` — l'URL fait toujours foi,
-   *  la préférence mémorisée ne comble que son absence. */
-  it('reprend la préférence mémorisée de site quand l’URL n’en porte pas', async () => {
-    window.localStorage.setItem('dfa.site-courant.tenant-1', 'site-secondaire');
-    connecte('chef_atelier');
-    rendreAvecPreferenceSite('/pointage/jour');
-
-    const onglets = await screen.findByRole('navigation', { name: /onglets/i });
-    expect(within(onglets).getByRole('link', { name: /dépôt pneus/i })).toHaveAttribute(
-      'href',
-      '/pneus?site=site-secondaire',
-    );
-    window.localStorage.clear();
   });
 
   /** Postes de comptoir tactiles (≥ 24 pouces) — §4.6 : plancher de 44 px partout, y compris sur

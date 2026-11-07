@@ -12444,6 +12444,11 @@
             "format": "date-time",
             "type": "string"
           },
+          "sitePrincipalId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
           "siteRattachementId": {
             "format": "uuid",
             "nullable": true,
@@ -12467,6 +12472,7 @@
           "tenant",
           "sites",
           "siteRattachementId",
+          "sitePrincipalId",
           "actions",
           "capacites",
           "expireLe"
@@ -12534,6 +12540,11 @@
             "example": "SION",
             "type": "string"
           },
+          "codeCourt": {
+            "description": "Étiquette compacte, 1 à 5 caractères A-Z/0-9.",
+            "example": "SION",
+            "type": "string"
+          },
           "id": {
             "format": "uuid",
             "type": "string"
@@ -12546,6 +12557,7 @@
         "required": [
           "id",
           "code",
+          "codeCourt",
           "nom",
           "actif"
         ],
@@ -13033,6 +13045,11 @@
             "example": "technicien",
             "type": "string"
           },
+          "sitePrincipalId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
           "sites": {
             "items": {
               "$ref": "#/components/schemas/SiteAffecteResumeDto"
@@ -13058,6 +13075,7 @@
           "capacites",
           "statut",
           "sites",
+          "sitePrincipalId",
           "derniereConnexionLe",
           "creeLe"
         ],
@@ -42669,6 +42687,116 @@
         "tags": [
           "Socle"
         ]
+      },
+      "patch": {
+        "description": "Code court : 1 à 5 caractères A-Z/0-9, unique dans le garage. Même droit que les réglages par site.",
+        "operationId": "SiteController_modifier",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "siteId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "codeCourt": "MART"
+                  }
+                }
+              },
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "codeCourt": {
+                    "pattern": "^[A-Z0-9]{1,5}$",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteResumeDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide (code court hors format)."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (parametrage.atelier.modifier)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Site introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "CONFLIT — ce code court est déjà utilisé par un autre site."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Modifier un site (code court)",
+        "tags": [
+          "Socle"
+        ]
       }
     },
     "/sites/{siteId}/hangar-pneus": {
@@ -43352,6 +43480,11 @@
                     "maxItems": 50,
                     "minItems": 1,
                     "type": "array"
+                  },
+                  "sitePrincipalId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
                   }
                 },
                 "required": [
@@ -43494,6 +43627,11 @@
                     "maxItems": 50,
                     "minItems": 1,
                     "type": "array"
+                  },
+                  "sitePrincipalId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
                   }
                 },
                 "type": "object"

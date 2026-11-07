@@ -34,6 +34,7 @@ import { useModifierUtilisateur } from '@/hooks/parametrage/useModifierUtilisate
 import { useSiteImplicite } from '@/hooks/site/useSiteImplicite';
 import { useSession } from '@/hooks/useSession';
 import { ChampRoleEmploye } from './ChampRoleEmploye';
+import { ChampSitePrincipal } from './ChampSitePrincipal';
 
 interface Props {
   readonly employe: UtilisateurResume | null;
@@ -76,6 +77,7 @@ export function DialogueModifierEmploye({
   });
 
   const [siteIds, setSiteIds] = useState<readonly string[]>([]);
+  const [sitePrincipalId, setSitePrincipalId] = useState<string | undefined>(undefined);
   const [erreur, setErreur] = useState<unknown>(null);
   const [enCours, setEnCours] = useState(false);
   // Étape 1 (poste/sites) réussie : le poste de référence a changé, on ne la rejoue pas.
@@ -85,6 +87,7 @@ export function DialogueModifierEmploye({
     if (employe) {
       etat.reinitialiser(prereglageDe(employe), grilleARestaurer ?? grilleDe(employe.capacites));
       setSiteIds(employe.sites.map((s) => s.id));
+      setSitePrincipalId(employe.sitePrincipalId ?? undefined);
       setErreur(null);
       setPosteAppliqueId(null);
       modifier.reset();
@@ -96,6 +99,11 @@ export function DialogueModifierEmploye({
   const sites = session?.sites ?? [];
   const siteIdsEffectifs: readonly string[] =
     estMonoSite && siteImplicite ? [siteImplicite] : siteIds;
+  // Site principal effectif : le choix s'il figure parmi les sites cochés, sinon le premier.
+  const sitesCoches = sites.filter((site) => siteIdsEffectifs.includes(site.id));
+  const sitePrincipalEffectif = sitesCoches.some((site) => site.id === sitePrincipalId)
+    ? sitePrincipalId
+    : sitesCoches[0]?.id;
   const prereglagesProposes: readonly IdPrereglage[] = [
     ...ROLES_PERSONNE,
     'fiduciaire' as const,
@@ -130,11 +138,15 @@ export function DialogueModifierEmploye({
         (siteIdsEffectifs.length !== sitesInitiaux.length ||
           siteIdsEffectifs.some((id) => !sitesInitiaux.includes(id)));
       const posteChange = etat.prereglageId !== posteDeReference;
+      const principalChange =
+        !estMonoSite &&
+        sitePrincipalEffectif !== undefined &&
+        sitePrincipalEffectif !== (employe.sitePrincipalId ?? undefined);
 
       let grilleDeBase: GrilleCapacites = employe.capacites;
       if (posteAppliqueId !== null && etat.prereglage) grilleDeBase = etat.prereglage.grille;
 
-      if (posteChange || (sitesChanges && posteAppliqueId === null)) {
+      if (posteChange || ((sitesChanges || principalChange) && posteAppliqueId === null)) {
         await modifier.mutateAsync({
           utilisateurId: employe.id,
           entree: {
@@ -145,6 +157,7 @@ export function DialogueModifierEmploye({
                 }
               : {}),
             ...(sitesChanges ? { siteIds: [...siteIdsEffectifs] } : {}),
+            ...(principalChange ? { sitePrincipalId: sitePrincipalEffectif } : {}),
           },
         });
         if (posteChange) {
@@ -221,6 +234,13 @@ export function DialogueModifierEmploye({
               ) : null}
             </fieldset>
           )}
+
+          <ChampSitePrincipal
+            idPrefixe="modifier-employe"
+            sites={sitesCoches}
+            valeur={sitePrincipalEffectif}
+            onChange={setSitePrincipalId}
+          />
 
           <SectionQuiPeutQuoi requete={requeteModele} etat={etat} erreursChamp={erreursChamp} />
         </div>

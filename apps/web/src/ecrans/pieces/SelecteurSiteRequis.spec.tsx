@@ -26,8 +26,8 @@ beforeAll(() => {
 const SESSION_DEUX_SITES: SessionCourante = {
   ...SESSION_TEST,
   sites: [
-    { id: 'site-1', code: 'PRINCIPAL', nom: 'Site principal', actif: true },
-    { id: 'site-2', code: 'SECONDAIRE', nom: 'Site secondaire', actif: true },
+    { id: 'site-1', code: 'PRINCIPAL', codeCourt: 'PRINC', nom: 'Site principal', actif: true },
+    { id: 'site-2', code: 'SECONDAIRE', codeCourt: 'SECON', nom: 'Site secondaire', actif: true },
   ],
 };
 
@@ -93,9 +93,21 @@ describe('SelecteurSiteRequis', () => {
         HttpResponse.json({
           ...SESSION_TEST,
           sites: [
-            { id: 'site-1', code: 'PRINCIPAL', nom: 'Site principal', actif: true },
-            { id: 'site-2', code: 'SECONDAIRE', nom: 'Site secondaire', actif: true },
-            { id: 'site-3', code: 'FERME', nom: 'Site fermé', actif: false },
+            {
+              id: 'site-1',
+              code: 'PRINCIPAL',
+              codeCourt: 'PRINC',
+              nom: 'Site principal',
+              actif: true,
+            },
+            {
+              id: 'site-2',
+              code: 'SECONDAIRE',
+              codeCourt: 'SECON',
+              nom: 'Site secondaire',
+              actif: true,
+            },
+            { id: 'site-3', code: 'FERME', codeCourt: 'FERME', nom: 'Site fermé', actif: false },
           ],
         }),
       ),

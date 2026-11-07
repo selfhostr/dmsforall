@@ -23,6 +23,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ChampRoleEmploye } from './ChampRoleEmploye';
+import { ChampSitePrincipal } from './ChampSitePrincipal';
 import { diffCapacites } from '@/composants/capacites/grille';
 import {
   depassementsAvantEnvoi,
@@ -75,6 +76,7 @@ export function DialogueNouvelEmploye({
   const [nom, setNom] = useState('');
   const [email, setEmail] = useState('');
   const [siteIds, setSiteIds] = useState<readonly string[]>([]);
+  const [sitePrincipalId, setSitePrincipalId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (!ouvert) {
@@ -83,6 +85,7 @@ export function DialogueNouvelEmploye({
       setEmail('');
       etat.reinitialiser(prereglageInitial);
       setSiteIds([]);
+      setSitePrincipalId(undefined);
       creer.reset();
       modifierCapacites.reset();
     } else {
@@ -119,6 +122,12 @@ export function DialogueNouvelEmploye({
     siteIdsEffectifs.length > 0 &&
     grilleValide;
 
+  // Site principal effectif : le choix s'il figure parmi les sites cochés, sinon le premier.
+  const sitesCoches = (session?.sites ?? []).filter((site) => siteIdsEffectifs.includes(site.id));
+  const sitePrincipalEffectif = sitesCoches.some((site) => site.id === sitePrincipalId)
+    ? sitePrincipalId
+    : sitesCoches[0]?.id;
+
   function basculerSite(siteId: string) {
     setSiteIds((valeur) =>
       valeur.includes(siteId) ? valeur.filter((id) => id !== siteId) : [...valeur, siteId],
@@ -136,6 +145,9 @@ export function DialogueNouvelEmploye({
         role: PREREGLAGES[etat.prereglageId].roleOrigine,
         prereglage: etat.prereglageId,
         siteIds: [...siteIdsEffectifs],
+        ...(sitesCoches.length > 1 && sitePrincipalEffectif
+          ? { sitePrincipalId: sitePrincipalEffectif }
+          : {}),
       },
       {
         onSuccess: (reponse) => {
@@ -263,6 +275,13 @@ export function DialogueNouvelEmploye({
               ) : null}
             </fieldset>
           )}
+
+          <ChampSitePrincipal
+            idPrefixe="nouvel-employe"
+            sites={sitesCoches}
+            valeur={sitePrincipalEffectif}
+            onChange={setSitePrincipalId}
+          />
 
           <SectionQuiPeutQuoi requete={requeteModele} etat={etat} erreursChamp={erreursChamp} />
         </div>

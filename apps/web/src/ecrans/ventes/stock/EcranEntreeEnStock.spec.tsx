@@ -125,7 +125,15 @@ describe('EcranEntreeEnStock', () => {
     server.use(http.get('/api/v1/vehicules', () => HttpResponse.json(pageDe([VEHICULE]))));
     rendre({
       ...SESSION_TEST,
-      sites: [{ id: SITE_UUID, code: 'PRINCIPAL', nom: 'Site principal', actif: true }],
+      sites: [
+        {
+          id: SITE_UUID,
+          code: 'PRINCIPAL',
+          codeCourt: 'PRINC',
+          nom: 'Site principal',
+          actif: true,
+        },
+      ],
     });
 
     const utilisateur = userEvent.setup();

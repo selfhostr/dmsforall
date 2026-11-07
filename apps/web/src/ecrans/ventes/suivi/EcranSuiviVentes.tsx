@@ -1,17 +1,19 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useNavigate } from 'react-router';
 
 import type { LigneSuiviVente } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
+import { FiltreSite } from '@/composants/commun/FiltreSite';
 import { Segments } from '@/composants/commun/Segments';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
+import { useFiltreSite } from '@/hooks/site/useFiltreSite';
 import { useListeSuiviVente } from '@/hooks/ventes/suivi/useListeSuiviVente';
 import { chemins } from '@/routes/chemins';
 
@@ -48,8 +50,8 @@ function versDansJours(horizon: Horizon): number | undefined {
 export function EcranSuiviVentes() {
   const { t } = useTranslation(['ventes', 'commun']);
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const site = searchParams.get('site') ?? undefined;
+  const filtreSite = useFiltreSite('ventes.suivi');
+  const site = filtreSite.siteId;
 
   const [horizon, setHorizon] = useState<Horizon>(HORIZON_DEFAUT);
 
@@ -139,7 +141,7 @@ export function EcranSuiviVentes() {
   // d'erreur réseau, plus aucun moyen de revenir à l'onglet précédent. Seul le CONTENU sous les
   // onglets (chargement / erreur / table) varie selon l'état de la requête.
   return (
-    <GabaritEcran titre={t('ventes:suivi.titre')}>
+    <GabaritEcran titre={t('ventes:suivi.titre')} actions={<FiltreSite filtre={filtreSite} />}>
       {/* Sélecteur d'horizon — retour produit du 17.08.2026 : « 30/90/60 jours, toutes les échéances des
           jours, tu peux enlever l'espace aussi qui n'est pas très beau ». `components/ui/tabs.tsx`
           (utilisé avant ce correctif) porte le style de la NAVIGATION (soulignement, `h-11`,

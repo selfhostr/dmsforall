@@ -1,4 +1,4 @@
-import { siteUniqueActif } from './ContexteSiteCourant';
+import { siteUniqueActif } from './sites';
 import { useSession } from '@/hooks/useSession';
 
 export interface SiteImplicite {

@@ -11,7 +11,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -73,7 +72,6 @@ export function SelecteurSiteEntete({ sites, siteIdActif, libelle, compact = fal
   const { t } = useTranslation('navigation');
   const { pathname } = useLocation();
   const [searchParams] = useSearchParams();
-  const { definirPreferenceSite } = useSiteCourant();
 
   const sitesActifs = sites.filter((site) => site.actif);
   // Lot « bandeau haut » (26.08.2026) — DÉFAUT MESURÉ CORRIGÉ ICI : avant ce lot, `nonChoisi`
@@ -158,12 +156,7 @@ export function SelecteurSiteEntete({ sites, siteIdActif, libelle, compact = fal
           <DropdownMenuLabel>{t('navigation:entete.changerSite')}</DropdownMenuLabel>
           {autresSites.map((site) => (
             <DropdownMenuItem key={site.id} asChild>
-              <Link
-                to={construireHrefSite(pathname, searchParams, site.id)}
-                onClick={() => definirPreferenceSite(site.id)}
-              >
-                {site.nom}
-              </Link>
+              <Link to={construireHrefSite(pathname, searchParams, site.id)}>{site.nom}</Link>
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>
@@ -195,15 +188,7 @@ export function SelecteurSiteEntete({ sites, siteIdActif, libelle, compact = fal
         <DropdownMenuLabel>{t('navigation:entete.changerSite')}</DropdownMenuLabel>
         {autresSites.map((site) => (
           <DropdownMenuItem key={site.id} asChild>
-            {/* `onClick` en plus du `Link` (jamais à sa place) : mémorise le choix comme
-                PRÉFÉRENCE (`hooks/site/ContexteSiteCourant.tsx`, issue #91) sans changer la
-                navigation elle-même — Ctrl/Clic continue d'ouvrir un nouvel onglet normalement. */}
-            <Link
-              to={construireHrefSite(pathname, searchParams, site.id)}
-              onClick={() => definirPreferenceSite(site.id)}
-            >
-              {site.nom}
-            </Link>
+            <Link to={construireHrefSite(pathname, searchParams, site.id)}>{site.nom}</Link>
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

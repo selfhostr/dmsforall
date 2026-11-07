@@ -31,6 +31,7 @@ function ligneBorne(champs: Partial<LigneUtilisateur> = {}): LigneUtilisateur {
     langue: 'fr',
     role: 'poste_atelier',
     siteId: ID_SITE,
+    sitePrincipalId: null,
     statut: 'actif',
     echecsConnexion: 0,
     verrouilleJusquA: null,

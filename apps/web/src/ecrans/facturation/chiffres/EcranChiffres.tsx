@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useSearchParams } from 'react-router';
+import { Link } from 'react-router';
 
 import { Alert } from '@/components/ui/alert';
 import {
@@ -12,8 +12,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { EtatVide } from '@/composants/commun/EtatVide';
+import { FiltreSite } from '@/composants/commun/FiltreSite';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { versDateIsoLocale } from '@/ecrans/accueil/semaine';
+import { useFiltreSite } from '@/hooks/site/useFiltreSite';
 import { useSession } from '@/hooks/useSession';
 import { formaterDate, formaterMontant } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
@@ -56,8 +58,8 @@ function LigneValeur({ libelle, valeur }: { readonly libelle: string; readonly v
 export function EcranChiffres() {
   const { t } = useTranslation(['facturation', 'commun', 'erreurs']);
   const { data: session, isPending: sessionEnCours } = useSession();
-  const [searchParams] = useSearchParams();
-  const siteId = searchParams.get('site') ?? undefined;
+  const filtreSite = useFiltreSite('facturation.chiffres');
+  const siteId = filtreSite.siteId;
   const autorise = peutVoirChiffres(session?.actions);
 
   const periodes = useMemo(() => periodesChiffres(versDateIsoLocale(new Date())), []);
@@ -86,6 +88,7 @@ export function EcranChiffres() {
     <GabaritEcran
       titre={t('facturation:chiffres.titre')}
       sousTitre={t('facturation:chiffres.sousTitre')}
+      actions={<FiltreSite filtre={filtreSite} />}
     >
       <SectionChiffreAffaires periodes={periodes} siteId={siteId} />
       <SectionEncaissements periode={periodes.moisCourant} siteId={siteId} />

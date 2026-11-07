@@ -30,6 +30,7 @@ import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useHangarPneus } from '@/hooks/pneus/useHangarPneus';
 import { useJeuxARelancer } from '@/hooks/pneus/useJeuxARelancer';
 import { useRechercheHangarPneus } from '@/hooks/pneus/useRechercheHangarPneus';
+import { useSitePrincipal } from '@/hooks/site/useSitePrincipal';
 import { useSession } from '@/hooks/useSession';
 import { formaterDate } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
@@ -164,7 +165,11 @@ function versOngletHangar(valeur: string | null): OngletHangar {
 export function EcranHangarPneus() {
   const { t } = useTranslation(['pneus', 'commun', 'erreurs']);
   const [searchParams, setSearchParams] = useSearchParams();
+  // `site` = filtre explicite de l'URL (« À relancer » reste sur tous les sites sans lui). Le hangar,
+  // lui, est celui d'UN site : l'URL, sinon le site principal de la personne (`siteHangar`).
+  const sitePrincipal = useSitePrincipal();
   const site = searchParams.get('site') ?? undefined;
+  const siteHangar = site ?? sitePrincipal;
   const onglet = versOngletHangar(searchParams.get('onglet'));
   // Mise en évidence d'un dépôt précis (ex. lien « Voir dans le hangar à pneus » de la fiche
   // véhicule, `EcranFicheVehicule.tsx`) — MÊME mécanique `?xxx=` que `site`/`onglet` ci-dessus,
@@ -209,7 +214,7 @@ export function EcranHangarPneus() {
 
   const recherche = useRechercheHangarPneus();
 
-  const hangar = useHangarPneus(site, {
+  const hangar = useHangarPneus(siteHangar, {
     statut: STATUTS_HANGAR_PHYSIQUE,
     saison: filtreSaison === 'toutes' ? undefined : filtreSaison,
     tri: 'dernierMouvementLe:desc',
@@ -378,7 +383,7 @@ export function EcranHangarPneus() {
         </TabsList>
 
         <TabsContent value="actifs" className="flex flex-col gap-6">
-          {!site ? (
+          {!siteHangar ? (
             <div className="mx-auto flex w-full max-w-lg flex-col gap-4 p-6">
               <EtatVide
                 titre={t('pneus:hangar.siteRequis.titre')}
@@ -674,7 +679,7 @@ export function EcranHangarPneus() {
       />
       <DialogueSortirDepotPneu depot={depotSortie} onFerme={() => setDepotSortie(null)} />
       <DialogueNouveauDepotPneu
-        siteId={site}
+        siteId={siteHangar}
         ouvert={creationOuverte}
         onFerme={() => setCreationOuverte(false)}
       />

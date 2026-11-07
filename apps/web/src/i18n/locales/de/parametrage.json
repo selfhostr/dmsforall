@@ -203,6 +203,15 @@
       "titre": "Kein Standort vorhanden",
       "description": "Dieser Garage ist noch kein Standort zugeordnet."
     },
+    "codeCourt": {
+      "titre": "Kurzcode",
+      "champ": "Kurzcode des Standorts",
+      "aide": "1 bis 5 Buchstaben oder Ziffern (zum Beispiel MART oder SION). Er erscheint in den Standortfiltern.",
+      "format": "Verwenden Sie 1 bis 5 Buchstaben ohne Akzent oder Ziffern.",
+      "enregistrer": "Kurzcode speichern",
+      "enregistre": "Kurzcode gespeichert.",
+      "dejaPris": "Dieser Kurzcode wird bereits von einem anderen Standort verwendet."
+    },
     "horaires": {
       "titre": "Öffnungszeiten",
       "ouverture": "Öffnung",
@@ -281,6 +290,10 @@
       "actif": "Aktiv",
       "suspendu": "Deaktiviert",
       "invite": "Eingeladen"
+    },
+    "sitePrincipal": {
+      "label": "Hauptstandort",
+      "aide": "Der Standort, der in den Ansichten dieser Person standardmässig vorgeschlagen wird."
     },
     "sitesAucun": "Kein Standort angegeben",
     "actions": {

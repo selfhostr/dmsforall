@@ -203,6 +203,15 @@
       "titre": "Nessuna sede",
       "description": "Nessuna sede è ancora collegata a questa officina."
     },
+    "codeCourt": {
+      "titre": "Codice breve",
+      "champ": "Codice breve della sede",
+      "aide": "Da 1 a 5 lettere o cifre (ad esempio MART o SION). Compare nei filtri di sede.",
+      "format": "Usi da 1 a 5 lettere senza accento o cifre.",
+      "enregistrer": "Salva il codice",
+      "enregistre": "Codice breve salvato.",
+      "dejaPris": "Questo codice è già usato da un'altra sede."
+    },
     "horaires": {
       "titre": "Orari",
       "ouverture": "Apertura",
@@ -281,6 +290,10 @@
       "actif": "Attivo",
       "suspendu": "Disattivato",
       "invite": "Invitato"
+    },
+    "sitePrincipal": {
+      "label": "Sede principale",
+      "aide": "La sede proposta per impostazione predefinita nelle schermate di questa persona."
     },
     "sitesAucun": "Nessuna sede indicata",
     "actions": {
