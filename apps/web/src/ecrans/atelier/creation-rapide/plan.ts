@@ -1,4 +1,4 @@
-import { schemaCreationClient, type Langue, type TypeOrdreReparation } from '@dfa/shared';
+import { type Langue, type TypeOrdreReparation } from '@dfa/shared';
 
 import { telephoneValide, type EntreeVehiculeRapide } from '@/hooks/atelier/ordre-depuis-plaque';
 import type { PlanOrdreDepuisPlaque } from '@/hooks/atelier/useOrdreDepuisPlaque';
@@ -7,6 +7,7 @@ import type { CandidatVehicule } from './candidats';
 import type { ClientChoisi } from './SectionClientRapide';
 
 export const KILOMETRAGE_MAX = 9_999_999;
+const NOM_MAX = 200;
 
 export interface SaisieOrdreDepuisPlaque {
   readonly siteId: string;
@@ -75,11 +76,13 @@ export function construirePlan(
   } else if (saisie.vehiculeNouveau) {
     if (vide(saisie.marque)) erreurs.marque = 'requis';
     if (vide(saisie.modele)) erreurs.modele = 'requis';
-    if (!erreurs.marque && !erreurs.modele) {
+    // `POST /ordres-reparation/creation-rapide` : la plaque d'un véhicule à créer est obligatoire.
+    if (saisie.plaque.trim().length < 2) erreurs.vehicule = 'requis';
+    if (!erreurs.marque && !erreurs.modele && !erreurs.vehicule) {
       const entree: EntreeVehiculeRapide = {
         marque: saisie.marque.trim(),
         modele: saisie.modele.trim(),
-        plaque: vide(saisie.plaque) ? undefined : saisie.plaque.trim(),
+        plaque: saisie.plaque.trim(),
         importe: false,
       };
       vehicule = { mode: 'nouveau', entree };
@@ -96,14 +99,18 @@ export function construirePlan(
       erreurs.telephone = vide(saisie.telephone) ? 'requis' : 'invalide';
     }
     if (!erreurs.nom && !erreurs.telephone) {
-      const analyse = schemaCreationClient.safeParse({
-        type: 'particulier',
-        nom: saisie.nom.trim(),
-        langueCorrespondance: saisie.langue,
-        telephones: [{ valeur: saisie.telephone.trim(), principal: true }],
-      });
-      if (analyse.success) client = { mode: 'nouveau', entree: analyse.data };
-      else erreurs.nom = 'invalide';
+      if (saisie.nom.trim().length > NOM_MAX) erreurs.nom = 'invalide';
+      else {
+        client = {
+          mode: 'nouveau',
+          entree: {
+            type: 'particulier',
+            nom: saisie.nom.trim(),
+            telephone: saisie.telephone.trim(),
+            langueCorrespondance: saisie.langue,
+          },
+        };
+      }
     }
   } else {
     erreurs.client = 'requis';

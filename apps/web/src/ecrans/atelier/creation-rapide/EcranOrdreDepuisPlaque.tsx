@@ -190,12 +190,11 @@ export function EcranOrdreDepuisPlaque() {
   const kilometrageObligatoire = parametresAtelier.data?.reception.kmEntreeObligatoire ?? false;
   const poObligatoire = ficheClient.data?.poObligatoire ?? false;
 
-  const vehiculeIdConnu = creation.faits.vehiculeId ?? vehiculeChoisi?.id;
-  const contexteAtelier = useContexteAtelier(vehiculeIdConnu);
+  const contexteAtelier = useContexteAtelier(vehiculeChoisi?.id);
   const orsOuverts = contexteAtelier.data?.ordresReparationOuverts ?? [];
 
-  const verrouilleClient = creation.faits.clientId !== undefined;
-  const verrouilleVehicule = creation.faits.vehiculeId !== undefined;
+  // Saisie figée pendant l'appel : le serveur crée tout ou rien, rien à verrouiller après un échec.
+  const verrouille = creation.enCours;
 
   function texteErreur(code: ErreurSaisie | undefined): string | undefined {
     if (code === undefined) return undefined;
@@ -237,16 +236,8 @@ export function EcranOrdreDepuisPlaque() {
 
   const vehiculeAffiche =
     vehiculeChoisi !== null || vehiculeAcreer || recherchePlaque.active || plaque !== '';
-  const echec = creation.echec;
-  const estErreurReseau = echec?.erreur instanceof ErreurReseau;
-
-  function messageEchec(): string {
-    if (!echec) return '';
-    if (echec.etape === 'or' && creation.erreurActive === null) {
-      return messageErreurMutation(echec.erreur, t);
-    }
-    return messageErreurMutation(echec.erreur, t);
-  }
+  const echec = creation.erreur;
+  const estErreurReseau = echec instanceof ErreurReseau;
 
   const deuxOrOuverts =
     creation.confirmationsRequises.includes('VEHICULE_DEUX_OR_OUVERTS') && orsOuverts.length > 0;
@@ -290,7 +281,7 @@ export function EcranOrdreDepuisPlaque() {
             onModeleChange={setModele}
             erreurMarque={texteErreur(erreurs.marque)}
             erreurModele={texteErreur(erreurs.modele)}
-            verrouille={verrouilleVehicule}
+            verrouille={verrouille}
             autoFocus={vehiculeIdUrl === undefined}
           />
           {erreurs.vehicule && !vehiculeAffiche ? (
@@ -330,7 +321,7 @@ export function EcranOrdreDepuisPlaque() {
             onTelephoneChange={setTelephone}
             erreurNom={texteErreur(erreurs.nom)}
             erreurTelephone={texteErreur(erreurs.telephone)}
-            verrouille={verrouilleClient}
+            verrouille={verrouille}
             imposeParUrl={clientImposeParUrl}
           />
           {erreurs.client ? (
@@ -448,21 +439,9 @@ export function EcranOrdreDepuisPlaque() {
             ) : (
               <AlertCircle className="h-4 w-4" aria-hidden="true" />
             )}
-            <AlertTitle>{t(`or:nouveau.rapide.echec.${echec.etape}`)}</AlertTitle>
+            <AlertTitle>{t('or:nouveau.rapide.echec.titre')}</AlertTitle>
             <AlertDescription className="flex flex-col gap-1">
-              {creation.faits.clientId !== undefined && !clientImposeParUrl && clientNouveau ? (
-                <span className="inline-flex items-center gap-1.5">
-                  <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-                  {t('or:nouveau.rapide.echec.clientCree')}
-                </span>
-              ) : null}
-              {creation.faits.vehiculeId !== undefined && vehiculeAcreer ? (
-                <span className="inline-flex items-center gap-1.5">
-                  <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-                  {t('or:nouveau.rapide.echec.vehiculeCree')}
-                </span>
-              ) : null}
-              <span>{messageEchec()}</span>
+              <span>{messageErreurMutation(echec, t)}</span>
               <span>{t('or:nouveau.rapide.echec.reprise')}</span>
             </AlertDescription>
           </Alert>

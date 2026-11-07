@@ -5,6 +5,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import '@/i18n';
 
+import { obtenirToastsSucces } from '@/composants/motifs/toast-succes';
 import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { renduAvecRoutes } from '@/test/utils';
@@ -75,6 +76,17 @@ function orCree() {
   };
 }
 
+function creationRapideReussie(avertissements: unknown[] = []) {
+  return {
+    donnees: {
+      client: { id: 'c-new' },
+      vehicule: { id: 'v-new' },
+      ordreReparation: { id: 'or-9', numero: 'OR-9', client: { id: 'c-new' } },
+    },
+    avertissements,
+  };
+}
+
 function handlersCommuns() {
   return [
     http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
@@ -117,9 +129,9 @@ describe('EcranOrdreDepuisPlaque', () => {
       http.get('/api/v1/vehicules/v1/contexte-atelier', () =>
         HttpResponse.json(contexteAtelierVide('v1')),
       ),
-      http.post('/api/v1/ordres-reparation', async ({ request }) => {
+      http.post('/api/v1/ordres-reparation/creation-rapide', async ({ request }) => {
         corps.push((await request.json()) as Record<string, unknown>);
-        return HttpResponse.json(orCree(), { status: 201 });
+        return HttpResponse.json(creationRapideReussie(), { status: 201 });
       }),
     );
     const utilisateur = userEvent.setup();
@@ -137,11 +149,9 @@ describe('EcranOrdreDepuisPlaque', () => {
     await waitFor(() => expect(screen.getByText('PAGE_FICHE_OR')).toBeInTheDocument());
     expect(corps).toHaveLength(1);
     expect(corps[0]).toMatchObject({
-      siteId: SITE_ID,
-      clientId: 'c1',
-      vehiculeId: 'v1',
-      type: 'reparation',
-      demandes: [{ verbatim: 'Bruit au freinage' }],
+      client: { id: 'c1' },
+      vehicule: { id: 'v1' },
+      or: { siteId: SITE_ID, type: 'reparation', demandes: [{ verbatim: 'Bruit au freinage' }] },
     });
     expect(routeur.state.location.pathname).toBe('/ordres-reparation/or-9');
   });
@@ -163,77 +173,19 @@ describe('EcranOrdreDepuisPlaque', () => {
     expect(screen.queryByText('Détenteur du véhicule')).not.toBeInTheDocument();
   });
 
-  it('véhicule inconnu + nouveau client : client, véhicule puis OR sont créés dans cet ordre', async () => {
-    const appels: string[] = [];
-    const corpsVehicule: Record<string, unknown>[] = [];
-    const corpsOr: Record<string, unknown>[] = [];
-    server.use(
-      ...handlersCommuns(),
-      http.get('/api/v1/recherche', () =>
-        HttpResponse.json({ resultats: [], plaqueInterchangeable: false }),
-      ),
-      http.get('/api/v1/doublons-clients', () => HttpResponse.json({ candidats: [] })),
-      http.post('/api/v1/clients', async ({ request }) => {
-        appels.push('client');
-        const corps = (await request.json()) as { nom: string; telephones: unknown };
-        expect(corps).toMatchObject({
-          type: 'particulier',
-          nom: 'Martin',
-          telephones: [{ valeur: '079 123 45 67', principal: true }],
-        });
-        return HttpResponse.json(
-          {
-            donnees: { ...CLIENT_EXISTANT, id: 'c-new', nomAffiche: 'Martin' },
-            avertissements: [],
-          },
-          { status: 201 },
-        );
-      }),
-      http.post('/api/v1/vehicules', async ({ request }) => {
-        appels.push('vehicule');
-        corpsVehicule.push((await request.json()) as Record<string, unknown>);
-        return HttpResponse.json(
-          { donnees: { id: 'v-new', designation: 'Audi A3', plaque: null }, avertissements: [] },
-          { status: 201 },
-        );
-      }),
-      http.get('/api/v1/clients/c-new', () =>
-        HttpResponse.json({ ...CLIENT_EXISTANT, id: 'c-new', nomAffiche: 'Martin' }),
-      ),
-      http.get('/api/v1/vehicules/v-new/contexte-atelier', () =>
-        HttpResponse.json(contexteAtelierVide('v-new')),
-      ),
-      http.post('/api/v1/ordres-reparation', async ({ request }) => {
-        appels.push('or');
-        corpsOr.push((await request.json()) as Record<string, unknown>);
-        return HttpResponse.json(orCree(), { status: 201 });
-      }),
-    );
-    const utilisateur = userEvent.setup();
-    rendre(`/atelier/ordres-reparation/depuis-plaque?site=${SITE_ID}&plaque=ZZ999`);
-
-    expect(await screen.findByText(/Plaque inconnue/)).toBeInTheDocument();
+  async function remplirNouveauClientEtVehicule(utilisateur: ReturnType<typeof userEvent.setup>) {
+    await screen.findByText(/Plaque inconnue/);
     await utilisateur.type(screen.getByLabelText(/Marque/), 'Audi');
     await utilisateur.type(screen.getByLabelText(/Modèle/), 'A3');
     await utilisateur.click(screen.getByRole('button', { name: 'Nouveau client' }));
     await utilisateur.type(screen.getByLabelText(/Nom du client/), 'Martin');
     await utilisateur.type(screen.getByLabelText(/Téléphone/), '079 123 45 67');
     await utilisateur.click(screen.getByRole('button', { name: "Ouvrir l'ordre de réparation" }));
+  }
 
-    await waitFor(() => expect(screen.getByText('PAGE_FICHE_OR')).toBeInTheDocument());
-    expect(appels).toEqual(['client', 'vehicule', 'or']);
-    expect(corpsVehicule[0]).toMatchObject({
-      marque: 'Audi',
-      modele: 'A3',
-      plaque: 'ZZ999',
-      detenteurId: 'c-new',
-    });
-    expect(corpsOr[0]).toMatchObject({ clientId: 'c-new', vehiculeId: 'v-new' });
-  });
-
-  it('échec partiel : le client déjà créé est dit et conservé, le second essai ne le recrée pas', async () => {
-    let creationsClient = 0;
-    let essaisVehicule = 0;
+  it('véhicule inconnu + nouveau client : UN seul appel porte client, véhicule et OR', async () => {
+    const appels: { cle: string | null; corps: Record<string, unknown> }[] = [];
+    let appelsSepares = 0;
     server.use(
       ...handlersCommuns(),
       http.get('/api/v1/recherche', () =>
@@ -241,18 +193,67 @@ describe('EcranOrdreDepuisPlaque', () => {
       ),
       http.get('/api/v1/doublons-clients', () => HttpResponse.json({ candidats: [] })),
       http.post('/api/v1/clients', () => {
-        creationsClient += 1;
+        appelsSepares += 1;
+        return HttpResponse.json({}, { status: 500 });
+      }),
+      http.post('/api/v1/vehicules', () => {
+        appelsSepares += 1;
+        return HttpResponse.json({}, { status: 500 });
+      }),
+      http.post('/api/v1/ordres-reparation', () => {
+        appelsSepares += 1;
+        return HttpResponse.json({}, { status: 500 });
+      }),
+      http.post('/api/v1/ordres-reparation/creation-rapide', async ({ request }) => {
+        appels.push({
+          cle: request.headers.get('Idempotency-Key'),
+          corps: (await request.json()) as Record<string, unknown>,
+        });
         return HttpResponse.json(
-          {
-            donnees: { ...CLIENT_EXISTANT, id: 'c-new', nomAffiche: 'Martin' },
-            avertissements: [],
-          },
+          creationRapideReussie([{ code: 'CLIENT_DOUBLON_PROBABLE', message: 'x', donnees: {} }]),
           { status: 201 },
         );
       }),
-      http.post('/api/v1/vehicules', () => {
-        essaisVehicule += 1;
-        if (essaisVehicule === 1) {
+    );
+    const utilisateur = userEvent.setup();
+    rendre(`/atelier/ordres-reparation/depuis-plaque?site=${SITE_ID}&plaque=ZZ999`);
+    await remplirNouveauClientEtVehicule(utilisateur);
+
+    await waitFor(() => expect(screen.getByText('PAGE_FICHE_OR')).toBeInTheDocument());
+    expect(appelsSepares).toBe(0);
+    expect(appels).toHaveLength(1);
+    expect(appels[0]?.cle).toBeTruthy();
+    expect(appels[0]?.corps).toMatchObject({
+      client: {
+        nouveau: {
+          type: 'particulier',
+          nom: 'Martin',
+          telephone: '079 123 45 67',
+          langueCorrespondance: 'fr',
+        },
+      },
+      vehicule: { nouveau: { marque: 'Audi', modele: 'A3', plaque: 'ZZ999' } },
+      or: { siteId: SITE_ID },
+    });
+    // Doublon probable : jamais bloquant, signalé.
+    expect(
+      obtenirToastsSucces()
+        .map((toast) => toast.message)
+        .join(' '),
+    ).toMatch(/client très semblable existe déjà/);
+  });
+
+  it('échec : la saisie est conservée et le nouvel essai rejoue la MÊME clé d’idempotence', async () => {
+    const cles: (string | null)[] = [];
+    server.use(
+      ...handlersCommuns(),
+      http.get('/api/v1/recherche', () =>
+        HttpResponse.json({ resultats: [], plaqueInterchangeable: false }),
+      ),
+      http.get('/api/v1/doublons-clients', () => HttpResponse.json({ candidats: [] })),
+      http.post('/api/v1/ordres-reparation/creation-rapide', ({ request }) => {
+        cles.push(request.headers.get('Idempotency-Key'));
+        if (cles.length === 1) {
           return HttpResponse.json(
             {
               type: 'about:blank',
@@ -264,40 +265,21 @@ describe('EcranOrdreDepuisPlaque', () => {
             { status: 500, headers: { 'Content-Type': 'application/problem+json' } },
           );
         }
-        return HttpResponse.json(
-          { donnees: { id: 'v-new', designation: 'Audi A3', plaque: null }, avertissements: [] },
-          { status: 201 },
-        );
+        return HttpResponse.json(creationRapideReussie(), { status: 201 });
       }),
-      http.get('/api/v1/clients/c-new', () =>
-        HttpResponse.json({ ...CLIENT_EXISTANT, id: 'c-new', nomAffiche: 'Martin' }),
-      ),
-      http.get('/api/v1/vehicules/v-new/contexte-atelier', () =>
-        HttpResponse.json(contexteAtelierVide('v-new')),
-      ),
-      http.post('/api/v1/ordres-reparation', () => HttpResponse.json(orCree(), { status: 201 })),
     );
     const utilisateur = userEvent.setup();
     rendre(`/atelier/ordres-reparation/depuis-plaque?site=${SITE_ID}&plaque=ZZ999`);
-
-    await screen.findByText(/Plaque inconnue/);
-    await utilisateur.type(screen.getByLabelText(/Marque/), 'Audi');
-    await utilisateur.type(screen.getByLabelText(/Modèle/), 'A3');
-    await utilisateur.click(screen.getByRole('button', { name: 'Nouveau client' }));
-    await utilisateur.type(screen.getByLabelText(/Nom du client/), 'Martin');
-    await utilisateur.type(screen.getByLabelText(/Téléphone/), '079 123 45 67');
-    await utilisateur.click(screen.getByRole('button', { name: "Ouvrir l'ordre de réparation" }));
+    await remplirNouveauClientEtVehicule(utilisateur);
 
     const alerte = await screen.findByRole('alert');
-    expect(alerte).toHaveTextContent("Le véhicule n'a pas pu être créé");
-    expect(alerte).toHaveTextContent('Client créé.');
-    // Saisie conservée.
+    expect(alerte).toHaveTextContent('L’OR n’a pas pu être ouvert');
     expect(screen.getByLabelText(/Nom du client/)).toHaveValue('Martin');
 
     await utilisateur.click(screen.getByRole('button', { name: 'Réessayer' }));
     await waitFor(() => expect(screen.getByText('PAGE_FICHE_OR')).toBeInTheDocument());
-    expect(creationsClient).toBe(1);
-    expect(essaisVehicule).toBe(2);
+    expect(cles).toHaveLength(2);
+    expect(cles[1]).toBe(cles[0]);
   });
 
   it('validation : dit champ par champ ce qui manque, sans rien créer', async () => {

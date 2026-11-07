@@ -528,12 +528,8 @@
         "demande": "Richiesta del cliente"
       },
       "echec": {
-        "client": "Impossibile creare il cliente",
-        "vehicule": "Impossibile creare il veicolo",
-        "or": "Impossibile aprire l’ordine",
-        "clientCree": "Cliente creato.",
-        "vehiculeCree": "Veicolo creato.",
-        "reprise": "I vostri dati sono conservati: riprovate, nulla sarà creato due volte."
+        "titre": "Non è stato possibile aprire l’OR",
+        "reprise": "L’inserimento è conservato: riprova, nulla verrà creato due volte."
       },
       "reessayer": "Riprova",
       "ancienParcours": "Percorso dettagliato",

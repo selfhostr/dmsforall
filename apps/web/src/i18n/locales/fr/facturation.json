@@ -445,16 +445,9 @@
     "enCours": "En cours…",
     "reessayer": "Réessayer",
     "enDetail": "Facturer en détail",
-    "etapes": {
-      "facturation": "Création de la facture…",
-      "emission": "Émission de la facture…",
-      "encaissement": "Enregistrement de l’encaissement…"
-    },
     "echec": {
       "facturation": "La facture n’a pas pu être créée.",
-      "emission": "La facture est créée mais pas encore émise.",
-      "encaissement": "La facture est émise mais l’encaissement n’est pas enregistré.",
-      "factureConservee": "Rien n’est perdu : « Réessayer » reprend là où ça s’est arrêté, sans recréer la facture."
+      "factureConservee": "Rien n’a été enregistré : vous pouvez réessayer sans risque de doublon."
     },
     "succes": {
       "titre": "C’est fait",
@@ -464,7 +457,10 @@
       "telechargerPdf": "Télécharger le PDF",
       "envoyerCourriel": "Envoyer par e-mail",
       "courrielEnvoye": "Facture envoyée à {destinataire}.",
-      "ouvrirFacture": "Ouvrir la facture"
+      "ouvrirFacture": "Ouvrir la facture",
+      "encaissementEchoue": "Facture {numero} émise, mais l’encaissement n’a pas abouti. Le solde de la facture est intact.",
+      "encaisserMaintenant": "Encaisser maintenant",
+      "encaissementErreur": "L’encaissement n’est pas enregistré."
     }
   }
 }
