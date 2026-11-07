@@ -66,7 +66,14 @@ function apercu(surcharge: Partial<ApercuExport> = {}): ApercuExport {
     cible: 'winbiz',
     periodeDu: '2026-10-01',
     periodeAu: '2026-10-31',
-    documents: { nbFactures: 12, nbAvoirs: 2, aExporter: 14, dejaExportes: 3 },
+    documents: {
+      nbFactures: 12,
+      nbAvoirs: 2,
+      aExporter: 14,
+      dejaExportes: 3,
+      dejaExportesFactures: 2,
+      dejaExportesAvoirs: 1,
+    },
     encaissements: { aExporter: 9, dejaExportes: 1, imputationsAExporter: 9 },
     totaux: { htCentimes: 1000000, tvaCentimes: 81000, ttcCentimes: 1081000 },
     plageNumeros: {
@@ -511,7 +518,16 @@ describe('EcranExportFiduciaire — aperçu', () => {
                   },
                 ],
               },
-              { code: 'FONCTION_NON_DISPONIBLE', limites: ['Compensation sur FAC-2026-00017'] },
+              {
+                code: 'FONCTION_NON_DISPONIBLE',
+                limites: ['Compensation sur FAC-2026-00017'],
+                details: [
+                  {
+                    code: 'COMPENSATION_NON_SUPPORTEE',
+                    donnees: { paiementId: 'p-1', documentId: 'FAC-2026-00017' },
+                  },
+                ],
+              },
             ],
           }),
         ),
