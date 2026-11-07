@@ -36,17 +36,17 @@ function rendre() {
 }
 
 describe('PanneauTravauxReportesOr — « Reprendre dans cet OR »', () => {
-  it('crée la ligne sur l’OR (désignation, urgence, sécurité, estimation) puis marque le travail repris', async () => {
+  it('un seul appel : la ligne porte travailReporteId, plus de second PATCH', async () => {
     const lignes: Record<string, unknown>[] = [];
-    const patchs: Record<string, unknown>[] = [];
+    let patchs = 0;
     server.use(
       http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json([TRAVAIL])),
       http.post('/api/v1/ordres-reparation/or-1/lignes', async ({ request }) => {
         lignes.push((await request.json()) as Record<string, unknown>);
         return HttpResponse.json({ donnees: { id: 'l-1' }, avertissements: [] }, { status: 201 });
       }),
-      http.patch('/api/v1/vehicules/v1/travaux-reportes/t1', async ({ request }) => {
-        patchs.push((await request.json()) as Record<string, unknown>);
+      http.patch('/api/v1/vehicules/v1/travaux-reportes/t1', () => {
+        patchs += 1;
         return HttpResponse.json({ ...TRAVAIL, statut: 'repris' });
       }),
     );
@@ -55,17 +55,17 @@ describe('PanneauTravauxReportesOr — « Reprendre dans cet OR »', () => {
 
     await utilisateur.click(await screen.findByRole('button', { name: /Reprendre dans cet OR/ }));
 
-    await waitFor(() => expect(patchs).toHaveLength(1));
+    await waitFor(() => expect(lignes).toHaveLength(1));
     expect(lignes[0]).toMatchObject({
-      designation: 'Plaquettes de frein avant',
-      urgence: 'urgent',
-      securite: true,
-      prixUnitaireCentimes: 24000,
+      type: 'forfait',
+      origine: 'commandee',
+      travailReporteId: 't1',
     });
-    expect(patchs[0]).toEqual({ statut: 'repris' });
+    expect(lignes[0]).not.toHaveProperty('designation');
+    expect(patchs).toBe(0);
   });
 
-  it('un échec de création de ligne ne marque PAS le travail repris, et le dit', async () => {
+  it('un échec de création de ligne est dit, sans second appel', async () => {
     let patch = 0;
     server.use(
       http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json([TRAVAIL])),
