@@ -91,7 +91,10 @@
       "ADAPTATEUR_NON_CABLE": "Le format {cible} n’est pas encore disponible pour l’export.",
       "COMPENSATION_NON_SUPPORTEE": "Un encaissement par compensation ne peut pas encore être exporté.",
       "TAUX_MULTIPLES_NON_SUPPORTE": "{nature, select, perte {Une perte} other {Un escompte}} sur une facture à plusieurs taux de TVA ne peut pas encore être exporté."
-    }
+    },
+    "encaissements": "(+ {count, plural, one {# encaissement} other {# encaissements}})",
+    "saisir": "Saisir",
+    "saisirPoste": "Saisir : {poste}"
   },
   "apercu": {
     "titre": "Aperçu de la période",
@@ -157,6 +160,28 @@
       "exclu": "Exclu",
       "marge": "Taxation de la marge",
       "acquisition": "Acquisition"
+    },
+    "poste": {
+      "produit": {
+        "main_oeuvre_bareme": "Main-d'œuvre (barème)",
+        "main_oeuvre_temps_reel": "Main-d'œuvre (temps réel)",
+        "forfait": "Forfaits",
+        "piece": "Pièces",
+        "fourniture": "Fournitures",
+        "sous_traitance": "Sous-traitance",
+        "produit_atelier": "Produits d'atelier",
+        "taxe": "Taxes et émoluments",
+        "consigne": "Consignes",
+        "repartition": "Franchise / part du tiers"
+      },
+      "financier": {
+        "especes": "Paiements en espèces (caisse)",
+        "carte": "Paiements par carte",
+        "virement": "Paiements par virement (compte bancaire)",
+        "qr": "Paiements QR-facture (compte bancaire)",
+        "twint": "Paiements TWINT",
+        "leasing": "Paiements leasing"
+      }
     }
   },
   "historique": {

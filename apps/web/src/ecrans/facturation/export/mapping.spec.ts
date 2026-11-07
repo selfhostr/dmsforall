@@ -70,9 +70,31 @@ describe('mapping des comptes', () => {
     expect(suite['compte:creances_clients:defaut']).toBe('1100');
     expect(suite['tva:normal:81']).toBe('TN81');
     expect(suite['compte:produit:piece']).toBe('3300');
-    expect(suite['compte:arrondi:defaut']).toBe('');
-    expect(nbValeursProposables(etat, saisi)).toBe(2);
+    // Pas de suggestion de l'API pour l'arrondi : repli WinBIZ.
+    expect(suite['compte:arrondi:defaut']).toBe('3809');
+    expect(nbValeursProposables(etat, saisi)).toBe(3);
     expect(nbValeursProposables(etat, suite)).toBe(0);
+  });
+
+  it('propose le code TVA 8.1 % et l’arrondi WinBIZ quand l’API ne propose rien', () => {
+    const sansSuggestion: EtatMappingExport = {
+      ...etat,
+      codesTva: etat.codesTva.map((c) => ({ ...c, codeParDefaut: null })),
+    };
+    const suite = appliquerValeursProposees(sansSuggestion, brouillonInitial(sansSuggestion));
+    expect(suite['tva:normal:81']).toBe('N81');
+    expect(suite['compte:arrondi:defaut']).toBe('3809');
+  });
+
+  it('ne propose aucun repli WinBIZ pour une autre cible', () => {
+    const csv: EtatMappingExport = {
+      ...etat,
+      cible: 'csv',
+      codesTva: etat.codesTva.map((c) => ({ ...c, codeParDefaut: null })),
+    };
+    const suite = appliquerValeursProposees(csv, brouillonInitial(csv));
+    expect(suite['tva:normal:81']).toBe('');
+    expect(suite['compte:arrondi:defaut']).toBe('');
   });
 
   it('n’envoie que les postes modifiés', () => {

@@ -91,7 +91,10 @@
       "ADAPTATEUR_NON_CABLE": "Il formato {cible} non è ancora disponibile per l’esportazione.",
       "COMPENSATION_NON_SUPPORTEE": "Un incasso per compensazione non può ancora essere esportato.",
       "TAUX_MULTIPLES_NON_SUPPORTE": "{nature, select, perte {Una perdita} other {Uno sconto}} su una fattura con più aliquote IVA non può ancora essere esportato."
-    }
+    },
+    "encaissements": "(+ {count, plural, one {# incasso} other {# incassi}})",
+    "saisir": "Impostare",
+    "saisirPoste": "Impostare: {poste}"
   },
   "apercu": {
     "titre": "Anteprima del periodo",
@@ -157,6 +160,28 @@
       "exclu": "Escluso",
       "marge": "Imposizione del margine",
       "acquisition": "Imposta sull'acquisto"
+    },
+    "poste": {
+      "produit": {
+        "main_oeuvre_bareme": "Manodopera (tariffa)",
+        "main_oeuvre_temps_reel": "Manodopera (tempo effettivo)",
+        "forfait": "Forfait",
+        "piece": "Ricambi",
+        "fourniture": "Forniture",
+        "sous_traitance": "Subappalto",
+        "produit_atelier": "Prodotti d’officina",
+        "taxe": "Tasse e emolumenti",
+        "consigne": "Depositi cauzionali",
+        "repartition": "Franchigia / quota del terzo"
+      },
+      "financier": {
+        "especes": "Pagamenti in contanti (cassa)",
+        "carte": "Pagamenti con carta",
+        "virement": "Bonifici (conto bancario)",
+        "qr": "Pagamenti con fattura QR (conto bancario)",
+        "twint": "Pagamenti TWINT",
+        "leasing": "Pagamenti leasing"
+      }
     }
   },
   "historique": {
