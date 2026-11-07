@@ -49,7 +49,9 @@ create table public.ligne_or_photo (
 
 comment on table public.ligne_or_photo is
   'Photo jointe à une ligne d''OR (travail constaté). Binaire sur disque (cle_fichier), '
-  'jamais en base. Ajout et suppression seulement, pas de modification.';
+  'jamais en base. Ajout et suppression seulement, pas de modification. '
+  '[dfa:suppression-physique] retirer une photo prise par erreur ou floue est un geste métier '
+  'courant ; la trace reste dans audit_atelier et le fichier est effacé du disque.';
 
 create index ligne_or_photo_ligne_idx
   on public.ligne_or_photo (tenant_id, ligne_or_id, cree_le, id);
