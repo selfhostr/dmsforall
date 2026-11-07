@@ -8,9 +8,11 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SelecteurLangueMenu } from '@/composants/SelecteurLangueMenu';
+import { useSiteImplicite } from '@/hooks/site/useSiteImplicite';
 import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { useDeconnexion } from '@/hooks/useDeconnexion';
 import { useSession } from '@/hooks/useSession';
@@ -26,6 +28,11 @@ import {
   trouverCorrespondance,
   type EntreeMenu,
 } from './navigation-modele';
+import { RechercheGlobale } from './RechercheGlobale';
+import { SelecteurSiteEntete } from './SelecteurSiteEntete';
+import { SelecteurTailleMenu } from './SelecteurTailleMenu';
+import { SelecteurThemeMenu } from './SelecteurThemeMenu';
+import { resoudreLibelleSite } from './libelle-site';
 import type { UtiliserRepliBarreLaterale } from './useRepliBarreLaterale';
 
 /**
@@ -53,6 +60,14 @@ import type { UtiliserRepliBarreLaterale } from './useRepliBarreLaterale';
 function infoVersionBrute(): string {
   const brut = import.meta.env.VITE_DFA_VERSION_INFO;
   return typeof brut === 'string' && brut.trim() !== '' ? brut : '';
+}
+
+/** « v0.2.0 » : le numéro de version de `apps/web/package.json` seul (avant le premier « + »,
+ *  qui introduit hash Git et marqueur « modifié » — gardés dans l'infobulle pour le support).
+ *  Vide si l'information n'est pas disponible (valeur « inconnu » de `vite.config.ts` comprise). */
+export function versionAffichee(brut: string): string {
+  const numero = brut.split('+')[0]?.trim() ?? '';
+  return /^\d+\.\d+\.\d+/.test(numero) ? `v${numero}` : '';
 }
 
 interface Props {
@@ -177,7 +192,11 @@ export function BarreLaterale({ className, repli }: Props) {
   // Numéro de version — voir la doc de `infoVersionBrute` en tête de fichier. Repli traduit
   // (« inconnue ») posé ICI, pas dans `infoVersionBrute`, pour rester une fonction pure sans
   // dépendance à `t`.
-  const infoVersion = infoVersionBrute() || t('navigation:pied.versionInconnue');
+  const infoBrute = infoVersionBrute();
+  const infoVersion = infoBrute || t('navigation:pied.versionInconnue');
+  const versionCourte = versionAffichee(infoBrute) || t('navigation:pied.versionInconnue');
+  const { estMonoSite } = useSiteImplicite();
+  const libelleSite = resoudreLibelleSite(session?.sites, site, t);
 
   // Identité du pied compte (§2 du lot ci-dessus) — repris à l'identique de l'ancien
   // `MenuUtilisateur.tsx` (initiales, nom complet, libellé de rôle traduit).
@@ -320,8 +339,21 @@ export function BarreLaterale({ className, repli }: Props) {
               </Button>
             ) : null}
           </div>
+          {session && !estMonoSite ? (
+            <SelecteurSiteEntete
+              sites={session.sites}
+              siteIdActif={site}
+              libelle={libelleSite}
+              compact={replie}
+            />
+          ) : null}
         </div>
       ) : null}
+
+      {/* Recherche globale : entrée de menu au-dessus des six entrées (Ctrl/⌘+K aussi). */}
+      <div className={cn('shrink-0', replie ? 'px-2 pt-2' : 'px-3 pt-3')}>
+        <RechercheGlobale replie={replie} raccourciClavier={repli !== undefined} />
+      </div>
 
       {/* AUCUN `overflow-y-auto` ICI — voir le paragraphe « aucun défilement » en tête de fichier.
           `flex-1` pousse simplement le pied en bas quand la colonne est plus haute que ses six
@@ -370,11 +402,6 @@ export function BarreLaterale({ className, repli }: Props) {
               même besoin que le sélecteur de site (atteignable SANS ouvrir le tiroir sur
               tablette), tranché explicitement par @laupernoe. Le pied compte, lui, NE bouge PAS — seul
               déclencheur restant ici. */}
-          {/* Réglages en accès direct, toujours visible : un garage neuf ne doit pas chercher la
-              porte de configuration dans le menu du compte (qui la propose encore). */}
-          {reglagesVisibles(sujet) ? (
-            <ul className="mb-1">{rendreEntree(ENTREE_REGLAGES)}</ul>
-          ) : null}
           <div className="min-w-0">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -419,6 +446,10 @@ export function BarreLaterale({ className, repli }: Props) {
                     </Link>
                   </DropdownMenuItem>
                 ) : null}
+                <SelecteurThemeMenu />
+                <SelecteurTailleMenu />
+                <SelecteurLangueMenu />
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onSelect={() => deconnexion.mutate()}
                   disabled={deconnexion.isPending}
@@ -426,7 +457,6 @@ export function BarreLaterale({ className, repli }: Props) {
                   <LogOut className="h-4 w-4" aria-hidden="true" />
                   {t('auth:deconnexion.action')}
                 </DropdownMenuItem>
-                <SelecteurLangueMenu />
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -437,7 +467,7 @@ export function BarreLaterale({ className, repli }: Props) {
             )}
             title={t('navigation:pied.version', { info: infoVersion })}
           >
-            {infoVersion}
+            {versionCourte}
           </p>
         </div>
       ) : null}

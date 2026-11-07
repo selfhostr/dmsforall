@@ -117,7 +117,7 @@ export function BarreOngletsBasse({ ouvrirPlus, plusOuvert }: Props) {
     // portrait), voir `AppShell.tsx`.
     <nav
       aria-label={t('navigation:barreBasse.aria')}
-      className="fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-zone-sure-bas pl-zone-sure-gauche pr-zone-sure-droite md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-zone-sure-bas pl-zone-sure-gauche pr-zone-sure-droite lg:hidden"
     >
       <ul className="flex h-barre-onglets-hauteur items-stretch gap-1 px-1">
         {entrees.map((entree) => rendreEntree(entree))}
