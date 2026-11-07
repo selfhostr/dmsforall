@@ -23,7 +23,6 @@ import {
   ServiceEmissionDocument,
 } from '../facturation/documents/service-emission';
 import { ServiceDocumentsVente } from '../facturation/documents/service-documents';
-import { ARRONDI_ESPECES_MAGNITUDE_MAX_CENTIMES } from '../facturation/paiements/arrondi-especes';
 import {
   chargerArrondiEspecesActif,
   chargerDocumentPourEcriture,
@@ -38,12 +37,11 @@ type MoyenRapide = NonNullable<EntreeFacturerEtEncaisserOr['paiement']>['mode'];
 /**
  * Montants d'un encaissement rapide pour un solde donné (fonction pure, testée seule).
  *
- * Arrondi au 5 centimes — espèces SEULEMENT, paramètre tenant actif, et seulement quand on encaisse
- * le solde exact : le modèle d'imputation (`imputations.ts`, `verifierArrondiEspeces`) n'admet qu'un
- * arrondi POSITIF de 1 ou 2 ct (le garage fait cadeau de l'écart : règlement + arrondi = total).
- * Solde se terminant par 1/2 ct (modulo 5) -> règlement = solde - écart, arrondi = écart. Se
- * terminant par 3/4 ct -> un arrondi « vers le haut » n'est pas représentable : on encaisse le
- * solde exact, sans arrondi (ambiguïté de contrat signalée au rapport, rien d'inventé).
+ * Espèces (paramètre tenant actif, solde exact encaissé) : le paiement est la somme réellement remise,
+ * le multiple de 5 ct le plus proche du solde, dans les deux sens ; le règlement vaut ce paiement et
+ * l'imputation `arrondi` SIGNÉE vaut `solde - espèces` (ex. 109.44 -> 109.45, arrondi -1 ; 109.42 ->
+ * 109.40, arrondi +2), de sorte que `règlement + arrondi = solde` exactement, sans avance client.
+ * Carte, TWINT, montant partiel ou arrondi désactivé : au centime exact, pas d'arrondi.
  */
 export function calculerEncaissementRapide(
   soldeCentimes: number,
@@ -54,9 +52,11 @@ export function calculerEncaissementRapide(
   const montant = montantDemandeCentimes ?? soldeCentimes;
   const encaisseLeSolde = montant === soldeCentimes;
   if (mode === 'especes' && arrondiEspecesActif && encaisseLeSolde) {
-    const ecart = soldeCentimes % 5;
-    if (ecart >= 1 && ecart <= ARRONDI_ESPECES_MAGNITUDE_MAX_CENTIMES && soldeCentimes > ecart) {
-      return { reglementCentimes: soldeCentimes - ecart, arrondiCentimes: ecart };
+    const reste = soldeCentimes % 5;
+    const especes = reste >= 3 ? soldeCentimes + (5 - reste) : soldeCentimes - reste;
+    // Un solde minuscule (1-2 ct) arrondirait à 0 : pas de paiement nul, on garde le solde exact.
+    if (reste !== 0 && especes > 0) {
+      return { reglementCentimes: especes, arrondiCentimes: soldeCentimes - especes };
     }
   }
   return { reglementCentimes: montant, arrondiCentimes: 0 };
@@ -204,7 +204,7 @@ export class ServiceFacturationEncaissementOr {
       payeurLibelle: doc.clientDesignationFigee,
       imputations: [
         { documentId: doc.id, montantCentimes: reglementCentimes, nature: 'reglement' },
-        ...(arrondiCentimes > 0
+        ...(arrondiCentimes !== 0
           ? [{ documentId: doc.id, montantCentimes: arrondiCentimes, nature: 'arrondi' as const }]
           : []),
       ],

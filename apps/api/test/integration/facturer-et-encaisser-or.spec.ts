@@ -134,7 +134,7 @@ async function etatFacture(id: string) {
 }
 
 describe('POST /ordres-reparation/{orId}/facturer-et-encaisser', () => {
-  it('espèces : facture émise, encaissée, arrondi 5 ct en faveur du client, OR facturé', async () => {
+  it('espèces : facture émise, encaissée, arrondi 5 ct, OR facturé', async () => {
     const orId = await orTermine('realisee', 10801);
     const r = await appeler(orId, { paiement: { mode: 'especes' } });
     expect(r.status, JSON.stringify(r.body)).toBe(201);
@@ -149,6 +149,43 @@ describe('POST /ordres-reparation/{orId}/facturer-et-encaisser', () => {
     expect(etat).toMatchObject({ statut: 'emis', total: 10801, regle: 10801, solde: 0 });
     expect(etat.statut_reglement).toBe('regle');
   }, 120_000);
+
+  it.each([
+    { solde: 10944, paiement: 10945, arrondi: -1 },
+    { solde: 10942, paiement: 10940, arrondi: 2 },
+  ])(
+    'espèces $solde : paiement au multiple de 5 ct ($paiement), arrondi signé $arrondi, facture réglée, aucune avance',
+    async ({ solde, paiement, arrondi }) => {
+      const orId = await orTermine('realisee', solde);
+      const r = await appeler(orId, { paiement: { mode: 'especes' } });
+      expect(r.status, JSON.stringify(r.body)).toBe(201);
+      const corps = r.body as Corps;
+      expect(corps.avertissements, JSON.stringify(corps.avertissements)).toEqual([]);
+      expect(corps.donnees.paiement?.montantCentimes).toBe(paiement);
+      expect(await etatFacture(corps.donnees.facture.id)).toMatchObject({
+        total: solde,
+        regle: solde,
+        solde: 0,
+        statut_reglement: 'regle',
+      });
+      const imp = await bdd.poolSuperutilisateur.query(
+        'select nature, montant_centimes::int as montant from imputation_paiement where document_id = $1 order by nature',
+        [corps.donnees.facture.id],
+      );
+      expect(imp.rows).toEqual([
+        { nature: 'reglement', montant: paiement },
+        { nature: 'arrondi', montant: arrondi },
+      ]);
+      // Aucune avance : le paiement est entièrement imputé en règlement.
+      const nonImpute = await bdd.poolSuperutilisateur.query(
+        `select p.montant_centimes::int - coalesce(sum(i.montant_centimes) filter (where i.nature = 'reglement'), 0)::int as reste
+           from paiement p join imputation_paiement i on i.paiement_id = p.id
+          where i.document_id = $1 group by p.id`,
+        [corps.donnees.facture.id],
+      );
+      expect(nonImpute.rows).toEqual([{ reste: 0 }]);
+    },
+  );
 
   it('carte : encaisse le solde exact, sans arrondi', async () => {
     const orId = await orTermine('realisee', 10801);

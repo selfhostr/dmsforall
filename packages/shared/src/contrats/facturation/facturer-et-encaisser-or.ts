@@ -25,8 +25,9 @@ import type { ReponseOrdreReparation } from '../atelier/ordre-reparation';
  * tout, y compris la création.
  *
  * Arrondi au 5 centimes (espèces UNIQUEMENT, paramètre tenant actif, solde exact uniquement) : le
- * modèle d'imputation n'admet qu'un arrondi en faveur du client (1 ou 2 ct) ; solde se terminant par
- * 3 ou 4 ct -> l'encaissement porte le solde exact (ambiguïté signalée, non inventée).
+ * paiement = multiple de 5 ct le plus proche du solde (dans les deux sens), règlement = paiement,
+ * imputation `arrondi` signée = solde - espèces (109.44 -> paiement 10945, arrondi -1). Carte et
+ * TWINT au centime exact.
  */
 export const MODES_ENCAISSEMENT_RAPIDE = ['especes', 'carte', 'twint'] as const;
 export type ModeEncaissementRapide = (typeof MODES_ENCAISSEMENT_RAPIDE)[number];

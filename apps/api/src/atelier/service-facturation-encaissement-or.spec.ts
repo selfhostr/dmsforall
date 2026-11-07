@@ -10,24 +10,33 @@ import {
 } from './service-facturation-encaissement-or';
 
 describe('calculerEncaissementRapide', () => {
-  it('espèces, solde finissant par 1 ou 2 ct : arrondi en faveur du client, règlement + arrondi = solde', () => {
+  it('espèces : multiple de 5 ct le plus proche dans les deux sens, règlement + arrondi = solde', () => {
+    // 1, 2 ct : vers le bas (arrondi positif) ; 3, 4 ct : vers le haut (arrondi négatif).
     expect(calculerEncaissementRapide(10801, 'especes', undefined, true)).toEqual({
       reglementCentimes: 10800,
       arrondiCentimes: 1,
     });
-    expect(calculerEncaissementRapide(10807, 'especes', undefined, true)).toEqual({
-      reglementCentimes: 10805,
+    expect(calculerEncaissementRapide(10842, 'especes', undefined, true)).toEqual({
+      reglementCentimes: 10840,
       arrondiCentimes: 2,
+    });
+    expect(calculerEncaissementRapide(10844, 'especes', undefined, true)).toEqual({
+      reglementCentimes: 10845,
+      arrondiCentimes: -1,
+    });
+    expect(calculerEncaissementRapide(10803, 'especes', undefined, true)).toEqual({
+      reglementCentimes: 10805,
+      arrondiCentimes: -2,
+    });
+    expect(calculerEncaissementRapide(10809, 'especes', undefined, true)).toEqual({
+      reglementCentimes: 10810,
+      arrondiCentimes: -1,
     });
   });
 
-  it('espèces, solde finissant par 3 ou 4 ct : arrondi vers le haut non représentable, solde exact', () => {
-    expect(calculerEncaissementRapide(10803, 'especes', undefined, true)).toEqual({
-      reglementCentimes: 10803,
-      arrondiCentimes: 0,
-    });
-    expect(calculerEncaissementRapide(10804, 'especes', undefined, true)).toEqual({
-      reglementCentimes: 10804,
+  it('solde de 1 ou 2 ct : jamais de paiement nul, solde exact', () => {
+    expect(calculerEncaissementRapide(2, 'especes', undefined, true)).toEqual({
+      reglementCentimes: 2,
       arrondiCentimes: 0,
     });
   });

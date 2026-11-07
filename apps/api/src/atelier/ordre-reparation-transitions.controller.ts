@@ -463,7 +463,7 @@ export class OrdreReparationTransitionsController {
       'Même logique que `POST .../facturer` (groupe `client`) suivie de l’émission, dans UNE transaction. ' +
       'L’encaissement (`especes`, `carte` ou `twint`, montant par défaut = solde) s’exécute dans un savepoint : ' +
       's’il échoue, la facture reste émise et la réponse porte l’avertissement `ENCAISSEMENT_ECHOUE` (sans `paiement`). ' +
-      'Arrondi 5 ct espèces seulement, en faveur du client (1 ou 2 ct), uniquement si le solde exact est encaissé. ' +
+      'Espèces : paiement arrondi au multiple de 5 ct le plus proche (dans les deux sens, arrondi signé) si le solde exact est encaissé ; carte et TWINT au centime. ' +
       'Droits : `facturation.document.creer` + droit d’émettre une facture + `facturation.paiement.creer` si `paiement` est fourni.',
   })
   @ApiParam({ name: 'orId', format: 'uuid' })
