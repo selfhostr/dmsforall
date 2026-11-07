@@ -20,6 +20,7 @@ export * from './ligne';
 export * from './document';
 export * from './paiement';
 export * from './export';
+export * from './export-fiduciaire';
 export * from './facturer-or';
 export * from './creancier';
 export * from './imputation-devise-incoherente';

@@ -60,12 +60,17 @@
 
 import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, between, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { gzipSync } from 'node:zlib';
 import type {
   CibleExport,
+  DocumentExporte,
   EcritureExport,
   EntreeLancerExport,
-  MoyenPaiement,
+  ImputationExportee,
+  LotExportProduit,
+  PaiementExporte,
   ReponseAvecAvertissements,
+  ReponseExportComptable,
 } from '@dfa/shared';
 
 import type { ContexteTenant, TransactionDfa } from '../../db';
@@ -73,6 +78,7 @@ import {
   documentVente,
   documentVenteTva,
   exportComptable,
+  exportComptableFichier,
   imputationPaiement,
   ligneDocument,
   paiement,
@@ -93,9 +99,20 @@ import {
 } from '../../common/idempotence';
 
 import {
-  verifierContinuiteNumerotation,
+  decrireTrous,
+  trouverTrousNumerotation,
   type CandidatContinuite,
+  type TrouDetecte,
 } from './continuite/verification-continuite';
+import { CsvExporteurService } from './csv';
+import { ErreurEcritureDesequilibree } from './ecritures/erreur-desequilibre';
+import {
+  blocagesDesequilibres,
+  blocagesLimites,
+  blocagesMapping,
+  blocagesTrous,
+  type DiagnosticExport,
+} from './prerequis/prerequis-export';
 import { construireEcritureDocument } from './ecritures/construction-ecriture';
 import { decrireBesoinManquant, type BesoinMappingManquant } from './ecritures/comptes-resolus';
 import {
@@ -116,59 +133,42 @@ type TypeDocumentExportable = (typeof TYPES_DOCUMENT_EXPORTABLES)[number];
  *  par être exportée — donc candidate au même titre qu'un document toujours `emis`. */
 const STATUTS_EXPORTABLES = ['emis', 'annule_par_avoir'] as const;
 
-export interface LotExportProduit {
-  readonly exportId: string;
-  readonly cible: CibleExport;
+/** Contrat de réponse porté par `@dfa/shared` (`contrats/facturation/export-fiduciaire.ts`) —
+ *  ré-exporté ici pour les DTO Swagger et les tests de ce domaine. */
+export type {
+  DocumentExporte,
+  ImputationExportee,
+  LotExportProduit,
+  PaiementExporte,
+  ReponseExportComptable,
+};
+
+/** Plafond du fichier conservé (gzip) — miroir du CHECK de `export_comptable_fichier` (0084). */
+const PLAFOND_FICHIER_GZ_OCTETS = 16 * 1024 * 1024;
+
+/** Lot sérialisé, indépendant de la cible (structure commune WinBIZ / CSV). */
+interface LotFichier {
+  readonly contenu: Buffer;
   readonly nomFichier: string;
   readonly nbEcritures: number;
   readonly nbLignesCsv: number;
-  readonly totalDebitCentimes: string;
-  readonly totalCreditCentimes: string;
+  readonly totalDebitCentimes: bigint;
+  readonly totalCreditCentimes: bigint;
   readonly empreinteSha256: string;
-  /** Contenu du fichier, encodé base64 — aucun stockage de blob n'existe dans le périmètre de ce
-   *  service (contrairement au PDF, `pdf_cle`, propriété d'un autre domaine) : le fichier est
-   *  rendu directement dans la réponse, à l'appelant de le persister s'il le souhaite. */
-  readonly contenuBase64: string;
-  readonly avertissements: readonly string[];
+  readonly avertissements: readonly { readonly message: string }[];
 }
 
-export interface DocumentExporte {
-  readonly id: string;
-  readonly numero: string;
-  readonly typeDocument: TypeDocumentExportable;
-}
-
-/**
- * Un paiement DONT LE CASH A ÉTÉ TRANSMIS dans ce lot — c'est-à-dire dont `exporteLe` passe de
- * `null` à une valeur ICI (migration 0019, MD-91 : voir l'en-tête de fichier §« Granularité du
- * suivi d'export »). Un paiement peut apparaître dans `imputationsExportees` SANS apparaître ici :
- * c'est exactement le cas d'une imputation tardive sur un paiement déjà encaissé dans un lot
- * antérieur — son cash ne repart pas une seconde fois. `id` (UUID) est la seule référence stable
- * (un paiement n'a pas de numéro affiché, contrairement à `DocumentExporte.numero`, MD-90).
- */
-export interface PaiementExporte {
-  readonly id: string;
-  readonly moyen: MoyenPaiement;
-}
-
-/**
- * Une imputation dont l'effet sur SON document (créance soldée, et le cas échéant escompte/perte/
- * arrondi) a été transmis dans ce lot — la granularité RÉELLE du suivi d'export depuis la migration
- * 0019 (`imputation_paiement.exporteLe`). Toujours accompagnée soit d'un `PaiementExporte` (si son
- * paiement encaisse pour la première fois dans ce même lot), soit de rien de plus (paiement déjà
- * encaissé dans un lot antérieur — voir `PaiementExporte`).
- */
-export interface ImputationExportee {
-  readonly id: string;
-  readonly paiementId: string;
-  readonly documentId: string;
-}
-
-export interface ReponseExportComptable {
-  readonly lots: readonly LotExportProduit[];
-  readonly documentsExportes: readonly DocumentExporte[];
-  readonly paiementsExportes: readonly PaiementExporte[];
-  readonly imputationsExportees: readonly ImputationExportee[];
+/** Ce que `preparer` sait de la période, SANS rien lever ni écrire : socle commun de l'aperçu et du
+ *  déclenchement. */
+export interface PreparationExport {
+  readonly candidats: readonly LigneDocumentVente[];
+  readonly infosCandidats: readonly CandidatContinuite[];
+  readonly imputations: readonly LigneImputationPaiement[];
+  readonly paiementsFinancierNouveau: readonly LignePaiement[];
+  readonly ecritures: readonly EcritureExport[];
+  /** `reference` d'écriture → désignation du client (document) ou du payeur (paiement). */
+  readonly clientParReference: ReadonlyMap<string, string>;
+  readonly diagnostic: DiagnosticExport;
 }
 
 function estTypeDocumentExportable(t: string): t is TypeDocumentExportable {
@@ -180,6 +180,7 @@ export class ServiceExportComptable {
   constructor(
     @Inject(JETON_IDEMPOTENCE) private readonly idempotence: ServiceIdempotence,
     private readonly winbiz: WinbizExporteurService,
+    private readonly csv: CsvExporteurService,
     private readonly horloge: Horloge,
   ) {}
 
@@ -203,8 +204,8 @@ export class ServiceExportComptable {
       ctx,
       { methode: 'POST', chemin: '/exports-fiduciaires', cle: cleIdempotence, corps: entree },
       async (tx) => {
-        if (entree.cible !== 'winbiz') {
-          const message = `Aucun adaptateur d'export n'est câblé pour la cible « ${entree.cible} » — seul winbiz est disponible dans ce lot.`;
+        if (entree.cible !== 'winbiz' && entree.cible !== 'csv') {
+          const message = `Aucun adaptateur d'export n'est câblé pour la cible « ${entree.cible} » — seuls winbiz et csv sont disponibles.`;
           throw new ErreurMetier('FONCTION_NON_DISPONIBLE', message, { detail: message });
         }
         if (entree.granularite !== undefined && entree.granularite !== 'detaille') {
@@ -212,11 +213,27 @@ export class ServiceExportComptable {
           throw new ErreurMetier('FONCTION_NON_DISPONIBLE', message, { detail: message });
         }
 
-        const [candidats, { imputations: imputationsCandidates, paiementsFinancierNouveau }] =
-          await Promise.all([
-            this.chargerCandidats(tx, ctx, entree),
-            this.chargerCandidatsPaiements(tx, ctx, entree),
-          ]);
+        if (entree.periodeAu < entree.periodeDu) {
+          throw new ErreurMetier('VALIDATION_ECHOUEE', 'La fin de période précède son début.', {
+            erreurs: [
+              {
+                champ: 'periodeAu',
+                code: 'periode_inversee',
+                message: 'La fin de période précède son début.',
+              },
+            ],
+          });
+        }
+        const preparation = await this.preparer(tx, ctx, entree);
+        const {
+          candidats,
+          infosCandidats,
+          imputations: imputationsCandidates,
+          paiementsFinancierNouveau,
+          ecritures,
+          clientParReference,
+          diagnostic,
+        } = preparation;
         if (
           candidats.length === 0 &&
           imputationsCandidates.length === 0 &&
@@ -236,93 +253,61 @@ export class ServiceExportComptable {
           };
         }
 
-        // Validation explicite des invariants attendus sur tout document `emis`/`annule_par_avoir`
-        // (numéro, séquence, exercice attribués — `document_vente_numero_brouillon_chk` le garantit
-        // pour `numero`) plutôt qu'une assertion de type : une régression du schéma ou un statut mal
-        // filtré doit faire échouer LOUD ici, jamais produire une écriture avec un `numero` fantôme.
-        const infosCandidats: readonly CandidatContinuite[] = candidats.map((c) => {
-          if (c.numero === null || c.numeroSequence === null || c.exercice === null) {
-            const message = `Document ${c.id} candidat à l'export sans numéro/séquence/exercice alors que son statut (${c.statut}) l'exige.`;
-            throw new ErreurMetier('ERREUR_INTERNE', message, { detail: message });
-          }
-          if (!estTypeDocumentExportable(c.typeDocument)) {
-            const message = `Document ${c.id} de type ${c.typeDocument} ne devrait jamais être candidat à l'export.`;
-            throw new ErreurMetier('ERREUR_INTERNE', message, { detail: message });
-          }
-          return {
-            id: c.id,
-            typeDocument: c.typeDocument,
-            exercice: c.exercice,
-            numeroSequence: c.numeroSequence,
-            numero: c.numero,
-          };
-        });
-
-        // La continuité de numérotation (MD-32) ne concerne QUE facture/avoir — un paiement n'a pas
-        // de série numérotée. Rien à vérifier si cette période n'a produit aucun document candidat
-        // (un export peut être exclusivement composé de paiements, p. ex. un mois où seuls des
-        // encaissements sur des factures antérieures restent à transmettre).
-        if (infosCandidats.length > 0) {
-          await verifierContinuiteNumerotation(tx, ctx, infosCandidats);
+        // Prérequis bloquants. Les éléments utiles (numéros, comptes, montants) voyagent dans
+        // `blocages[].donnees` : le front n'affiche jamais `detail` (convention), `detail` ne sert
+        // qu'au support et aux logs.
+        if (diagnostic.trous.length > 0) {
+          const message = `Trou de numérotation détecté avant export : ${decrireTrous(diagnostic.trous)} — émis, non exportés, et absents de ce lot (hors période ou déjà traités séparément).`;
+          throw new ErreurMetier('EXPORT_TROU_NUMEROTATION', message, {
+            detail: message,
+            blocages: blocagesTrous(diagnostic.trous),
+          });
         }
-
-        const [
-          { ecritures: ecrituresDocuments, manquants: manquantsDocuments },
-          {
-            ecritures: ecrituresPaiements,
-            manquants: manquantsPaiements,
-            limites: limitesPaiements,
-          },
-        ] = await Promise.all([
-          this.construireEcritures(tx, ctx, candidats, entree.cible),
-          this.construireEcrituresPaiements(
-            tx,
-            ctx,
-            imputationsCandidates,
-            paiementsFinancierNouveau,
-            entree.cible,
-          ),
-        ]);
-
-        const manquants = [...manquantsDocuments, ...manquantsPaiements];
-        if (manquants.length > 0) {
-          const nommes = manquants.slice(0, 20).map(decrireBesoinManquant);
+        if (diagnostic.manquants.length > 0) {
+          const nommes = diagnostic.manquants.slice(0, 20).map(decrireBesoinManquant);
           const message =
-            `Mapping comptable incomplet pour ${String(manquants.length)} élément(s) — export refusé en bloc plutôt que partiel : ` +
+            `Mapping comptable incomplet pour ${String(diagnostic.manquants.length)} élément(s) — export refusé en bloc plutôt que partiel : ` +
             nommes.join(' ; ') +
-            (manquants.length > 20 ? ` … et ${String(manquants.length - 20)} de plus.` : '');
-          throw new ErreurMetier('EXPORT_MAPPING_INCOMPLET', message, { detail: message });
+            (diagnostic.manquants.length > 20
+              ? ` … et ${String(diagnostic.manquants.length - 20)} de plus.`
+              : '');
+          throw new ErreurMetier('EXPORT_MAPPING_INCOMPLET', message, {
+            detail: message,
+            blocages: blocagesMapping(diagnostic.manquants),
+          });
+        }
+        if (diagnostic.desequilibres.length > 0) {
+          const message = `Écritures déséquilibrées (MD-85) : ${diagnostic.desequilibres.map((e) => e.message).join(' ; ')}`;
+          throw new ErreurMetier('EXPORT_ECRITURES_DESEQUILIBREES', message, {
+            detail: message,
+            blocages: blocagesDesequilibres(diagnostic.desequilibres),
+          });
         }
         // Distinct de `manquants` (paramétrage rattrapable) : ce que ce lot logiciel ne sait PAS
         // construire du tout (compensation, escompte/perte multi-taux — voir l'en-tête de
         // `construction-ecriture-paiement.ts`). `FONCTION_NON_DISPONIBLE`, jamais une écriture
         // devinée et fausse.
-        if (limitesPaiements.length > 0) {
-          const nommees = limitesPaiements.slice(0, 20).map(decrireLimitePaiement);
+        if (diagnostic.limites.length > 0) {
+          const nommees = diagnostic.limites.slice(0, 20).map(decrireLimitePaiement);
           const message =
-            `Construction d'écriture de paiement non prise en charge pour ${String(limitesPaiements.length)} imputation(s) — export refusé en bloc : ` +
+            `Construction d'écriture de paiement non prise en charge pour ${String(diagnostic.limites.length)} imputation(s) — export refusé en bloc : ` +
             nommees.join(' ; ') +
-            (limitesPaiements.length > 20
-              ? ` … et ${String(limitesPaiements.length - 20)} de plus.`
+            (diagnostic.limites.length > 20
+              ? ` … et ${String(diagnostic.limites.length - 20)} de plus.`
               : '');
-          throw new ErreurMetier('FONCTION_NON_DISPONIBLE', message, { detail: message });
+          throw new ErreurMetier('FONCTION_NON_DISPONIBLE', message, {
+            detail: message,
+            blocages: blocagesLimites(diagnostic.limites),
+          });
         }
 
-        const ecritures = [...ecrituresDocuments, ...ecrituresPaiements];
-        const lots = this.winbiz.genererLots(ecritures, (index) => this.nomFichier(entree, index));
-        if (lots.length > 1) {
-          // Voir l'en-tête de ce fichier, §« Multi-lot » : la corrélation document → lot au-delà
-          // d'un seul lot n'est pas construite dans ce service — refuser plutôt que mécompter.
-          const message =
-            `Le lot dépasse la taille maximale d'un fichier WinBIZ et devrait être scindé en ${String(lots.length)} fichiers — ` +
-            'non supporté par ce service (corrélation document/lot non construite) : réduire la période demandée.';
+        const lot = this.produireLot(entree, ecritures, clientParReference);
+        const contenuGz = gzipSync(lot.contenu);
+        if (contenuGz.length > PLAFOND_FICHIER_GZ_OCTETS) {
+          const message = `Le fichier produit (${String(contenuGz.length)} octets compressés) dépasse le plafond de conservation de ${String(PLAFOND_FICHIER_GZ_OCTETS)} octets : réduire la période demandée.`;
           throw new ErreurMetier('FONCTION_NON_DISPONIBLE', message, { detail: message });
         }
-        const lot = lots[0];
-        if (!lot) {
-          const message = 'Aucun lot produit malgré des candidats non vides.';
-          throw new ErreurMetier('ERREUR_INTERNE', message, { detail: message });
-        }
+        const synthese = syntheseDocuments(candidats);
 
         const [ligneExport] = await tx
           .insert(exportComptable)
@@ -338,12 +323,33 @@ export class ServiceExportComptable {
             totalCreditCentimes: lot.totalCreditCentimes,
             empreinteSha256: lot.empreinteSha256,
             statut: 'genere',
+            nbFactures: synthese.nbFactures,
+            nbAvoirs: synthese.nbAvoirs,
+            nbEncaissements: paiementsFinancierNouveau.length,
+            totalHtCentimes: synthese.totalHtCentimes,
+            totalTvaCentimes: synthese.totalTvaCentimes,
+            totalTtcCentimes: synthese.totalTtcCentimes,
+            facturePremier: synthese.facturePremier,
+            factureDernier: synthese.factureDernier,
+            avoirPremier: synthese.avoirPremier,
+            avoirDernier: synthese.avoirDernier,
           })
           .returning();
         if (!ligneExport) {
           const message = "Échec de l'enregistrement du lot d'export.";
           throw new ErreurMetier('ERREUR_INTERNE', message, { detail: message });
         }
+
+        // Fichier conservé (gzip, table séparée 0084) : permet `GET /exports-fiduciaires/{id}/fichier`
+        // à l'identique, empreinte SHA-256 vérifiable.
+        await tx.insert(exportComptableFichier).values({
+          tenantId: ctx.tenantId,
+          exportId: ligneExport.id,
+          nomFichier: lot.nomFichier,
+          typeMime: typeMimeCible(entree.cible),
+          tailleOctets: lot.contenu.length,
+          contenuGz,
+        });
 
         // Marquage `exporte_le`/`export_id` — la SEULE écriture possible sur un document verrouillé
         // (MD-20), un paiement immuable (MD-52, `paiement_verrouiller`) ou une imputation immuable
@@ -430,11 +436,136 @@ export class ServiceExportComptable {
     return `dfa-export-${entree.cible}-${entree.periodeDu}-au-${entree.periodeAu}-lot${String(indexLot + 1)}.csv`;
   }
 
+  /** Sérialise selon la cible. WinBIZ peut exiger plusieurs fichiers (100 Ko) : non supporté ici. */
+  private produireLot(
+    entree: EntreeLancerExport,
+    ecritures: readonly EcritureExport[],
+    clientParReference: ReadonlyMap<string, string>,
+  ): LotFichier {
+    if (entree.cible === 'csv') {
+      return this.csv.genererLot(
+        ecritures,
+        `dfa-export-csv-${entree.periodeDu}-au-${entree.periodeAu}.csv`,
+        clientParReference,
+      );
+    }
+    const lots = this.winbiz.genererLots(ecritures, (index) => this.nomFichier(entree, index));
+    if (lots.length > 1) {
+      // Voir l'en-tête de ce fichier, §« Multi-lot » : la corrélation document → lot au-delà
+      // d'un seul lot n'est pas construite dans ce service — refuser plutôt que mécompter.
+      const message =
+        `Le lot dépasse la taille maximale d'un fichier WinBIZ et devrait être scindé en ${String(lots.length)} fichiers — ` +
+        'non supporté par ce service (corrélation document/lot non construite) : réduire la période demandée.';
+      throw new ErreurMetier('FONCTION_NON_DISPONIBLE', message, { detail: message });
+    }
+    const lot = lots[0];
+    if (!lot) {
+      const message = 'Aucun lot produit malgré des candidats non vides.';
+      throw new ErreurMetier('ERREUR_INTERNE', message, { detail: message });
+    }
+    return lot;
+  }
+
+  /**
+   * Socle commun de l'aperçu et du déclenchement : sélectionne les candidats de la période, détecte
+   * les trous de numérotation, construit les écritures et COLLECTE tout ce qui empêcherait l'export
+   * (`diagnostic`) sans rien lever ni écrire. Un `ERREUR_INTERNE` (invariant de schéma rompu)
+   * continue, lui, de lever.
+   */
+  async preparer(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    entree: Pick<EntreeLancerExport, 'cible' | 'periodeDu' | 'periodeAu' | 'siteId'>,
+  ): Promise<PreparationExport> {
+    const [candidats, { imputations, paiementsFinancierNouveau }] = await Promise.all([
+      this.chargerCandidats(tx, ctx, entree),
+      this.chargerCandidatsPaiements(tx, ctx, entree),
+    ]);
+
+    // Validation explicite des invariants attendus sur tout document `emis`/`annule_par_avoir`
+    // (numéro, séquence, exercice attribués — `document_vente_numero_brouillon_chk` le garantit
+    // pour `numero`) plutôt qu'une assertion de type : une régression du schéma ou un statut mal
+    // filtré doit faire échouer LOUD ici, jamais produire une écriture avec un `numero` fantôme.
+    const infosCandidats: readonly CandidatContinuite[] = candidats.map((c) => {
+      if (c.numero === null || c.numeroSequence === null || c.exercice === null) {
+        const message = `Document ${c.id} candidat à l'export sans numéro/séquence/exercice alors que son statut (${c.statut}) l'exige.`;
+        throw new ErreurMetier('ERREUR_INTERNE', message, { detail: message });
+      }
+      if (!estTypeDocumentExportable(c.typeDocument)) {
+        const message = `Document ${c.id} de type ${c.typeDocument} ne devrait jamais être candidat à l'export.`;
+        throw new ErreurMetier('ERREUR_INTERNE', message, { detail: message });
+      }
+      return {
+        id: c.id,
+        typeDocument: c.typeDocument,
+        exercice: c.exercice,
+        numeroSequence: c.numeroSequence,
+        numero: c.numero,
+      };
+    });
+
+    if (
+      candidats.length === 0 &&
+      imputations.length === 0 &&
+      paiementsFinancierNouveau.length === 0
+    ) {
+      return {
+        candidats,
+        infosCandidats,
+        imputations,
+        paiementsFinancierNouveau,
+        ecritures: [],
+        clientParReference: new Map(),
+        diagnostic: { trous: [], manquants: [], desequilibres: [], limites: [] },
+      };
+    }
+
+    // La continuité de numérotation (MD-32) ne concerne QUE facture/avoir — un paiement n'a pas
+    // de série numérotée. Rien à vérifier si cette période n'a produit aucun document candidat
+    // (un export peut être exclusivement composé de paiements, p. ex. un mois où seuls des
+    // encaissements sur des factures antérieures restent à transmettre).
+    const trous: readonly TrouDetecte[] =
+      infosCandidats.length > 0 ? await trouverTrousNumerotation(tx, ctx, infosCandidats) : [];
+
+    const [docs, paiements] = await Promise.all([
+      this.construireEcritures(tx, ctx, candidats, entree.cible),
+      this.construireEcrituresPaiements(
+        tx,
+        ctx,
+        imputations,
+        paiementsFinancierNouveau,
+        entree.cible,
+      ),
+    ]);
+
+    const clientParReference = new Map<string, string>();
+    for (const c of candidats) {
+      if (c.numero !== null) clientParReference.set(c.numero, c.clientDesignationFigee);
+    }
+    for (const p of paiementsFinancierNouveau) clientParReference.set(p.id, p.payeurLibelle);
+    for (const [id, libelle] of paiements.payeurParPaiement) clientParReference.set(id, libelle);
+
+    return {
+      candidats,
+      infosCandidats,
+      imputations,
+      paiementsFinancierNouveau,
+      ecritures: [...docs.ecritures, ...paiements.ecritures],
+      clientParReference,
+      diagnostic: {
+        trous,
+        manquants: [...docs.manquants, ...paiements.manquants],
+        desequilibres: [...docs.desequilibres, ...paiements.desequilibres],
+        limites: paiements.limites,
+      },
+    };
+  }
+
   /** Sélection tenant-scopée, RESCOPÉE explicitement (le RLS est le filet, pas le mécanisme). */
   private async chargerCandidats(
     tx: TransactionDfa,
     ctx: ContexteTenant,
-    entree: EntreeLancerExport,
+    entree: Pick<EntreeLancerExport, 'periodeDu' | 'periodeAu' | 'siteId'>,
   ): Promise<readonly LigneDocumentVente[]> {
     const conditions = [
       eq(documentVente.tenantId, ctx.tenantId),
@@ -468,8 +599,10 @@ export class ServiceExportComptable {
   ): Promise<{
     ecritures: readonly EcritureExport[];
     manquants: readonly BesoinMappingManquant[];
+    desequilibres: readonly ErreurEcritureDesequilibree[];
   }> {
     const ids = candidats.map((c) => c.id);
+    if (ids.length === 0) return { ecritures: [], manquants: [], desequilibres: [] };
 
     const [toutesLesLignes, toutesLesVentilations, sites, codesTva] = await Promise.all([
       tx
@@ -517,6 +650,7 @@ export class ServiceExportComptable {
 
     const ecritures: EcritureExport[] = [];
     const manquants: BesoinMappingManquant[] = [];
+    const desequilibres: ErreurEcritureDesequilibree[] = [];
 
     for (const doc of candidats) {
       const comptes = doc.dateDocument !== null ? comptesParDate.get(doc.dateDocument) : undefined;
@@ -524,18 +658,23 @@ export class ServiceExportComptable {
         const message = `Résolution du plan comptable manquante pour la date ${String(doc.dateDocument)}.`;
         throw new ErreurMetier('ERREUR_INTERNE', message, { detail: message });
       }
-      const resultat = construireEcritureDocument(
-        doc,
-        lignesParDocument.get(doc.id) ?? [],
-        ventilationsParDocument.get(doc.id) ?? [],
-        comptes,
-        codeSiteParId.get(doc.siteId) ?? null,
-      );
-      if (resultat.succes) ecritures.push(resultat.ecriture);
-      else manquants.push(...resultat.manquants);
+      try {
+        const resultat = construireEcritureDocument(
+          doc,
+          lignesParDocument.get(doc.id) ?? [],
+          ventilationsParDocument.get(doc.id) ?? [],
+          comptes,
+          codeSiteParId.get(doc.siteId) ?? null,
+        );
+        if (resultat.succes) ecritures.push(resultat.ecriture);
+        else manquants.push(...resultat.manquants);
+      } catch (e) {
+        if (!(e instanceof ErreurEcritureDesequilibree)) throw e;
+        desequilibres.push(e);
+      }
     }
 
-    return { ecritures, manquants };
+    return { ecritures, manquants, desequilibres };
   }
 
   /**
@@ -559,7 +698,7 @@ export class ServiceExportComptable {
   private async chargerCandidatsPaiements(
     tx: TransactionDfa,
     ctx: ContexteTenant,
-    entree: EntreeLancerExport,
+    entree: Pick<EntreeLancerExport, 'periodeDu' | 'periodeAu' | 'siteId'>,
   ): Promise<{
     imputations: readonly LigneImputationPaiement[];
     paiementsFinancierNouveau: readonly LignePaiement[];
@@ -635,9 +774,18 @@ export class ServiceExportComptable {
     ecritures: readonly EcritureExport[];
     manquants: readonly BesoinMappingManquant[];
     limites: readonly LimiteEcriturePaiement[];
+    desequilibres: readonly ErreurEcritureDesequilibree[];
+    /** Payeur de chaque paiement traité — alimente la colonne « Client » du CSV. */
+    payeurParPaiement: ReadonlyMap<string, string>;
   }> {
     if (imputations.length === 0 && paiementsFinancierNouveau.length === 0) {
-      return { ecritures: [], manquants: [], limites: [] };
+      return {
+        ecritures: [],
+        manquants: [],
+        limites: [],
+        desequilibres: [],
+        payeurParPaiement: new Map(),
+      };
     }
 
     const idsFinancierNouveau = new Set(paiementsFinancierNouveau.map((p) => p.id));
@@ -779,6 +927,7 @@ export class ServiceExportComptable {
     const ecritures: EcritureExport[] = [];
     const manquants: BesoinMappingManquant[] = [];
     const limites: LimiteEcriturePaiement[] = [];
+    const desequilibres: ErreurEcritureDesequilibree[] = [];
 
     for (const p of paiementsAProcess) {
       const comptes = comptesParDate.get(p.dateValeur);
@@ -791,30 +940,95 @@ export class ServiceExportComptable {
         montantCentimes: i.montantCentimes,
         nature: i.nature,
       }));
-      const resultat = construireEcriturePaiement(
-        {
-          id: p.id,
-          dateValeur: p.dateValeur,
-          moyen: p.moyen,
-          montantCentimes: p.montantCentimes,
-          payeurLibelle: p.payeurLibelle,
-        },
-        imps,
-        documentsInfo,
-        comptes,
-        codeSiteParId.get(p.siteId) ?? null,
-        idsFinancierNouveau.has(p.id),
-      );
-      if (resultat.succes) {
-        ecritures.push(resultat.ecriture);
-      } else {
-        manquants.push(...resultat.manquants);
-        limites.push(...resultat.limites);
+      try {
+        const resultat = construireEcriturePaiement(
+          {
+            id: p.id,
+            dateValeur: p.dateValeur,
+            moyen: p.moyen,
+            montantCentimes: p.montantCentimes,
+            payeurLibelle: p.payeurLibelle,
+          },
+          imps,
+          documentsInfo,
+          comptes,
+          codeSiteParId.get(p.siteId) ?? null,
+          idsFinancierNouveau.has(p.id),
+        );
+        if (resultat.succes) {
+          ecritures.push(resultat.ecriture);
+        } else {
+          manquants.push(...resultat.manquants);
+          limites.push(...resultat.limites);
+        }
+      } catch (e) {
+        if (!(e instanceof ErreurEcritureDesequilibree)) throw e;
+        desequilibres.push(e);
       }
     }
 
-    return { ecritures, manquants, limites };
+    return {
+      ecritures,
+      manquants,
+      limites,
+      desequilibres,
+      payeurParPaiement: new Map(paiementsAProcess.map((p) => [p.id, p.payeurLibelle])),
+    };
   }
+}
+
+function typeMimeCible(cible: CibleExport): string {
+  return cible === 'csv' ? 'text/csv; charset=utf-8' : 'text/csv; charset=windows-1252';
+}
+
+interface SyntheseDocuments {
+  readonly nbFactures: number;
+  readonly nbAvoirs: number;
+  readonly totalHtCentimes: bigint;
+  readonly totalTvaCentimes: bigint;
+  readonly totalTtcCentimes: bigint;
+  readonly facturePremier: string | null;
+  readonly factureDernier: string | null;
+  readonly avoirPremier: string | null;
+  readonly avoirDernier: string | null;
+}
+
+/** Compteurs, totaux (avoirs en négatif, MD-46) et plage de numéros — candidats triés par date puis
+ *  numéro de séquence : premier/dernier = extrêmes de la SÉQUENCE, pas de la date. */
+export function syntheseDocuments(candidats: readonly LigneDocumentVente[]): SyntheseDocuments {
+  let totalHt = 0n;
+  let totalTva = 0n;
+  let totalTtc = 0n;
+  const cle = (d: LigneDocumentVente): number =>
+    (d.exercice ?? 0) * 1_000_000_000 + (d.numeroSequence ?? 0);
+  const extremes: Record<
+    'facture' | 'avoir',
+    { min: LigneDocumentVente | null; max: LigneDocumentVente | null }
+  > = { facture: { min: null, max: null }, avoir: { min: null, max: null } };
+  let nbFactures = 0;
+  let nbAvoirs = 0;
+  for (const c of candidats) {
+    totalHt += c.totalHtCentimes;
+    totalTva += c.totalTvaCentimes;
+    totalTtc += c.totalTtcCentimes;
+    if (c.typeDocument !== 'facture' && c.typeDocument !== 'avoir') continue;
+    if (c.typeDocument === 'facture') nbFactures += 1;
+    else nbAvoirs += 1;
+    const e = extremes[c.typeDocument];
+    if (e.min === null || cle(c) < cle(e.min)) e.min = c;
+    if (e.max === null || cle(c) > cle(e.max)) e.max = c;
+  }
+  return {
+    nbFactures,
+    nbAvoirs,
+    totalHtCentimes: totalHt,
+    totalTvaCentimes: totalTva,
+    totalTtcCentimes: totalTtc,
+    facturePremier: extremes.facture.min?.numero ?? null,
+    factureDernier: extremes.facture.max?.numero ?? null,
+    avoirPremier: extremes.avoir.min?.numero ?? null,
+    avoirDernier: extremes.avoir.max?.numero ?? null,
+  };
 }
 
 function grouperParDocument<T>(lignes: readonly T[], cle: (l: T) => string): Map<string, T[]> {

@@ -22,7 +22,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-import { colonnesHorodatage, colonneId, colonneTenantId } from '../colonnes-communes';
+import { bytea, colonnesHorodatage, colonneId, colonneTenantId } from '../colonnes-communes';
 import { tenant } from '../tenant';
 import { utilisateur } from '../utilisateur';
 import {
@@ -114,6 +114,18 @@ export const exportComptable = pgTable(
     statut: statutExportComptableEnum('statut').notNull().default('genere'),
     reponseCible: jsonb('reponse_cible'),
 
+    // Synthèse (migration 0084) — NULL pour les lots antérieurs.
+    nbFactures: integer('nb_factures'),
+    nbAvoirs: integer('nb_avoirs'),
+    nbEncaissements: integer('nb_encaissements'),
+    totalHtCentimes: bigint('total_ht_centimes', { mode: 'bigint' }),
+    totalTvaCentimes: bigint('total_tva_centimes', { mode: 'bigint' }),
+    totalTtcCentimes: bigint('total_ttc_centimes', { mode: 'bigint' }),
+    facturePremier: text('facture_premier'),
+    factureDernier: text('facture_dernier'),
+    avoirPremier: text('avoir_premier'),
+    avoirDernier: text('avoir_dernier'),
+
     ...colonnesHorodatage(),
   },
   (t) => [
@@ -129,6 +141,29 @@ export const exportComptable = pgTable(
       'export_comptable_equilibre_chk',
       sql`${t.totalDebitCentimes} = ${t.totalCreditCentimes}`,
     ),
+  ],
+);
+
+/** Fichier produit par un lot (migration 0084) — gzip, immuable, hors audit (voir la migration). */
+export const exportComptableFichier = pgTable(
+  'export_comptable_fichier',
+  {
+    id: colonneId(),
+    tenantId: colonneTenantId().references(() => tenant.id, { onDelete: 'restrict' }),
+    exportId: uuid('export_id').notNull(),
+    nomFichier: text('nom_fichier').notNull(),
+    typeMime: text('type_mime').notNull(),
+    tailleOctets: integer('taille_octets').notNull(),
+    contenuGz: bytea('contenu_gz').notNull(),
+    creeLe: timestamp('cree_le', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('export_comptable_fichier_export_uk').on(t.tenantId, t.exportId),
+    foreignKey({
+      name: 'export_comptable_fichier_fk_export',
+      columns: [t.tenantId, t.exportId],
+      foreignColumns: [exportComptable.tenantId, exportComptable.id],
+    }).onDelete('restrict'),
   ],
 );
 
