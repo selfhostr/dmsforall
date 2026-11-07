@@ -3,22 +3,18 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { SessionCourante } from '@dfa/shared';
 
+import { creerSessionTest } from '@/test/session';
+
 import { FournisseurSiteCourant, useSiteCourant } from './ContexteSiteCourant';
-import { CAPACITES_TEST } from '@/test/capacites';
 
 const { useSessionMock } = vi.hoisted(() => ({ useSessionMock: vi.fn() }));
 vi.mock('@/hooks/useSession', () => ({ useSession: useSessionMock }));
 
 function session(tenantId: string): SessionCourante {
+  const base = creerSessionTest('direction');
   return {
-    utilisateur: {
-      id: 'u-1',
-      email: 'a@garage-martin.ch',
-      prenom: 'Anna',
-      nom: 'Dupont',
-      role: 'direction',
-      langue: 'fr',
-    },
+    ...base,
+    utilisateur: { ...base.utilisateur, id: 'u-1', email: 'a@garage-martin.ch', prenom: 'Anna' },
     tenant: {
       id: tenantId,
       slug: 'garage-martin',
@@ -29,10 +25,6 @@ function session(tenantId: string): SessionCourante {
       { id: 'site-sion', code: 'SIO', nom: 'Sion', actif: true },
       { id: 'site-martigny', code: 'MTG', nom: 'Martigny', actif: true },
     ],
-    siteRattachementId: null,
-    actions: [],
-    capacites: CAPACITES_TEST,
-    expireLe: new Date(Date.now() + 3_600_000).toISOString(),
   };
 }
 

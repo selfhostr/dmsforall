@@ -55,7 +55,7 @@ const MODES: readonly ModePeriode[] = ['moisPrecedent', 'trimestrePrecedent', 'p
 export function EcranExportFiduciaire() {
   const { t } = useTranslation(['export', 'commun', 'erreurs']);
   const { data: session, isPending: sessionEnCours } = useSession();
-  const peutExporter = peutExporterVersFiduciaire(session?.utilisateur.role);
+  const peutExporter = peutExporterVersFiduciaire(session?.actions);
 
   const [mode, setMode] = useState<ModePeriode>('moisPrecedent');
   const [maintenant] = useState(() => new Date());

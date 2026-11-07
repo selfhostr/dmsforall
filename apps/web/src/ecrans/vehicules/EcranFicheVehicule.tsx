@@ -89,13 +89,13 @@ export function EcranFicheVehicule() {
   // la section affiche son squelette de chargement (`session.isLoading`) plutôt que de flasher le
   // message de refus avant de savoir — voir le rendu de la section plus bas.
   const session = useSession();
-  const peutVoirDossiersVente = peutLireDossierVente(session.data?.utilisateur.role);
+  const peutVoirDossiersVente = peutLireDossierVente(session.data?.actions);
   // DÉFAUT CORRIGÉ (issue #162, 16.08.2026) : même motif que `peutVoirDossiersVente` ci-dessus,
   // repéré ici en cherchant s'il se répétait ailleurs dans cet écran — il se répétait. Un rôle
   // sans `atelier.or.lire` (ex. `vendeur`) laissait cette section « Ordres de réparation » en
   // squelette de chargement indéfiniment (403 stable, réessayé par défaut, jamais transformé en
   // état affichable).
-  const peutVoirOrdresReparation = peutLireOrdresReparation(session.data?.utilisateur.role);
+  const peutVoirOrdresReparation = peutLireOrdresReparation(session.data?.actions);
   const reessayerOr = useDoitReessayer();
 
   // Lot B (`docs/plan-refonte-navigation.md`) — « ses OR », via la fonction de transport

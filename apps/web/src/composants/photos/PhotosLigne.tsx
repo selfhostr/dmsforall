@@ -44,7 +44,7 @@ export function PhotosLigne({
   const [erreur, setErreur] = useState<string | null>(null);
   const [enPreparation, setEnPreparation] = useState(false);
 
-  const peutAjouter = modifiable && peutAjouterPhoto(session.data?.utilisateur.role);
+  const peutAjouter = modifiable && peutAjouterPhoto(session.data?.actions);
   const complet = photos.length >= NOMBRE_MAX_PHOTOS_PAR_LIGNE;
 
   async function surChoix(fichier: File) {

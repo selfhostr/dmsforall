@@ -139,7 +139,7 @@ export function EcranFicheOrdreReparation() {
   }));
 
   const documentsLies = requeteDocuments.data?.donnees ?? [];
-  const role = session.data?.utilisateur.role;
+  const actions = session.data?.actions;
   // Lignes ajoutables et courtoisie utile tant que l'OR n'est ni facturé ni clos.
   const ouvertAuxTravaux = !['termine', 'facture', 'restitue', 'cloture', 'annule'].includes(
     or.statut,
@@ -156,7 +156,7 @@ export function EcranFicheOrdreReparation() {
         <CardContent>
           <div className="flex flex-col gap-3">
             <PanneauActionsOr or={or} />
-            {ouvertAuxTravaux && peutPreterCourtoisie(role) ? (
+            {ouvertAuxTravaux && peutPreterCourtoisie(actions) ? (
               <div className="flex flex-wrap gap-2">
                 <BoutonVehiculeCourtoisieOr orId={or.id} clientId={or.client.id} />
               </div>
@@ -168,7 +168,7 @@ export function EcranFicheOrdreReparation() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
           <CardTitle className="texte-titre-section">{t('or:lignes.titre')}</CardTitle>
-          {peutCreerLigneOr(session.data?.utilisateur.role) ? (
+          {peutCreerLigneOr(session.data?.actions) ? (
             <DialogueAjoutLigneOr
               orId={or.id}
               siteId={or.siteId}
@@ -183,7 +183,7 @@ export function EcranFicheOrdreReparation() {
             <p role="status" className="mb-3 flex items-center gap-2 texte-corps text-foreground">
               <Clock aria-hidden className="h-4 w-4 shrink-0 text-statut-attention" />
               {t(
-                peutValiderLigneOr(session.data?.utilisateur.role)
+                peutValiderLigneOr(session.data?.actions)
                   ? 'or:lignes.attenteAccord.ajouteeBureau'
                   : 'or:lignes.attenteAccord.ajouteeAtelier',
               )}
@@ -199,7 +199,7 @@ export function EcranFicheOrdreReparation() {
         </CardContent>
       </Card>
 
-      {ouvertAuxTravaux && peutCreerLigneOr(role) ? (
+      {ouvertAuxTravaux && peutCreerLigneOr(actions) ? (
         <PanneauTravauxReportesOr orId={or.id} vehiculeId={or.vehicule.id} />
       ) : null}
 

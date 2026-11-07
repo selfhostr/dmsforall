@@ -1,8 +1,7 @@
+import { peut } from '@/droits';
 import { CheckCircle2, Circle, CircleHelp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-
-import type { RoleUtilisateur } from '@dfa/shared';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,8 +12,6 @@ import { useMasquageDemarrage } from '@/hooks/accueil/useMasquageDemarrage';
 import { useSession } from '@/hooks/useSession';
 import { chemins } from '@/routes/chemins';
 import { cn } from '@/lib/utils';
-
-const ROLES_DEMARRAGE: readonly RoleUtilisateur[] = ['direction', 'admin'];
 
 const LIENS: Readonly<Record<IdEtapeDemarrage, string>> = {
   coordonnees: chemins.parametrage.facturation(),
@@ -34,8 +31,7 @@ const LIENS: Readonly<Record<IdEtapeDemarrage, string>> = {
  */
 export function ChecklistDemarrage() {
   const { data: session } = useSession();
-  const role = session?.utilisateur.role;
-  const autorise = role !== undefined && ROLES_DEMARRAGE.includes(role);
+  const autorise = peut(session?.actions, 'socle.utilisateur.lire');
   const { masque, masquer } = useMasquageDemarrage(autorise ? session?.utilisateur.id : undefined);
   if (!autorise || masque) return null;
   return <CarteDemarrage masquer={masquer} />;

@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 
-import type { RoleUtilisateur } from '@dfa/shared';
-
-import { ROLES_SCAN } from '@/routes/droits-routes';
+import { peutUne, type ActionsSession } from '@/droits';
+import { ACCES_SCAN } from '@/routes/droits-routes';
 
 /**
  * RESTRICTION MOBILE AU SCAN SEUL — décision de conception (chantier scanner de permis de circulation) :
@@ -68,14 +67,14 @@ export interface ModeScanMobile {
 }
 
 /**
- * `role` = celui de la session en cours (`undefined` tant qu'elle n'est pas résolue). La
- * restriction ne s'applique QUE si le rôle fait partie de `ROLES_SCAN` : les rôles qui ont déjà
+ * `actions` = celles de la session en cours (`undefined` tant qu'elle n'est pas résolue). La
+ * restriction ne s'applique QUE si la personne détient une action de `ACCES_SCAN` : les rôles qui ont déjà
  * leur propre atterrissage dédié pour un usage tactile (`poste_atelier` -> borne, `technicien` ->
  * pointage, `magasinier` -> comptoir pièces, `routes/atterrissage.ts`) gardent leur écran habituel
  * sur téléphone — leur imposer le scan casserait un usage établi sans aucun rapport avec le
  * comptoir de réception.
  */
-export function useModeScanMobile(role: RoleUtilisateur | undefined): ModeScanMobile {
+export function useModeScanMobile(actions: ActionsSession): ModeScanMobile {
   const [mobile, setMobile] = useState(detecterMobile);
   const [echappe, setEchappe] = useState(lireEchappement);
 
@@ -97,7 +96,7 @@ export function useModeScanMobile(role: RoleUtilisateur | undefined): ModeScanMo
     setEchappe(true);
   }
 
-  const roleConcerne = role !== undefined && ROLES_SCAN.includes(role);
+  const roleConcerne = peutUne(actions, ...ACCES_SCAN);
 
   return { actif: mobile && roleConcerne && !echappe, quitter };
 }

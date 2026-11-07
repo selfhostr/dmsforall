@@ -12,11 +12,12 @@ import { clesQuery } from '@/api/cles';
 import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
 
+import type { Acces } from './droits-routes';
 import { RouteProtegee } from './RouteProtegee';
 import { SESSION_TEST } from '@/test/msw/handlers';
 
 function rendre(
-  rolesAutorises?: readonly SessionCourante['utilisateur']['role'][],
+  accesAutorise?: Acces,
   redirectionParRole?: Partial<Record<SessionCourante['utilisateur']['role'], string>>,
 ) {
   const queryClient = creerQueryClientTest();
@@ -29,10 +30,7 @@ function rendre(
           <Route
             path="/"
             element={
-              <RouteProtegee
-                rolesAutorises={rolesAutorises}
-                redirectionParRole={redirectionParRole}
-              >
+              <RouteProtegee accesAutorise={accesAutorise} redirectionParRole={redirectionParRole}>
                 <div>CONTENU_PROTEGE</div>
               </RouteProtegee>
             }
@@ -109,14 +107,14 @@ describe('RouteProtegee — erreur d’arrière-plan avec session déjà connue'
 });
 
 /**
- * `rolesAutorises` — ajout du lot 2 : la route elle-même doit refuser un rôle non autorisé, pas
+ * `accesAutorise` — ajout du lot 2 : la route elle-même doit refuser un rôle non autorisé, pas
  * seulement le masquer du menu (`BarreLaterale`). `SESSION_TEST` porte le rôle `chef_atelier`
  * (voir `test/msw/handlers.ts`).
  */
-describe('RouteProtegee — rolesAutorises', () => {
-  it('rôle absent de `rolesAutorises` : affiche l’écran d’accès refusé, jamais le contenu ni une redirection vers /login', async () => {
+describe('RouteProtegee — accesAutorise', () => {
+  it('rôle absent de `accesAutorise` : affiche l’écran d’accès refusé, jamais le contenu ni une redirection vers /login', async () => {
     server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
-    rendre(['direction', 'admin']);
+    rendre(['socle.utilisateur.lire']);
     expect(
       await screen.findByText(
         "Votre rôle ne permet pas cette action. Demandez à la direction de vous l'ouvrir, ou faites-la faire par un collègue autorisé.",
@@ -126,13 +124,13 @@ describe('RouteProtegee — rolesAutorises', () => {
     expect(screen.queryByText('PAGE_LOGIN')).not.toBeInTheDocument();
   });
 
-  it('rôle présent dans `rolesAutorises` : affiche le contenu protégé', async () => {
+  it('rôle présent dans `accesAutorise` : affiche le contenu protégé', async () => {
     server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
-    rendre(['chef_atelier', 'direction', 'admin']);
+    rendre(['parametrage.atelier.modifier']);
     expect(await screen.findByText('CONTENU_PROTEGE')).toBeInTheDocument();
   });
 
-  it('`rolesAutorises` omis : tout utilisateur authentifié passe (comportement historique inchangé)', async () => {
+  it('`accesAutorise` omis : tout utilisateur authentifié passe (comportement historique inchangé)', async () => {
     server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
     rendre(undefined);
     expect(await screen.findByText('CONTENU_PROTEGE')).toBeInTheDocument();
@@ -141,7 +139,7 @@ describe('RouteProtegee — rolesAutorises', () => {
 
 /**
  * `redirectionParRole` — ajout du Lot 0 de la refonte de navigation
- * (`docs/plan-refonte-navigation.md`) : mécanisme distinct de `rolesAutorises` — le rôle qui
+ * (`docs/plan-refonte-navigation.md`) : mécanisme distinct de `accesAutorise` — le rôle qui
  * matche a bien le droit d'être ici, on choisit seulement de ne jamais lui montrer CET écran-ci.
  * Utilisé en production pour faire atterrir `poste_atelier` sur `/pointage/borne` plutôt que sur
  * `EcranAccueil` (voir `routeur.tsx`, route index). `SESSION_TEST` porte le rôle `chef_atelier`.

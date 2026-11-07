@@ -1,3 +1,4 @@
+import { creerSessionTest } from '@/test/session';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -11,7 +12,6 @@ import type { SessionCourante } from '@dfa/shared';
 import { creerQueryClientTest } from '@/test/utils';
 
 import { BandeauSansNavigation } from './BandeauSansNavigation';
-import { CAPACITES_TEST } from '@/test/capacites';
 
 /**
  * Lot « cadre applicatif » (19.08.2026) — remplace `EnTete.tsx` pour les DEUX postes SANS barre
@@ -28,7 +28,7 @@ vi.mock('@/hooks/useDeconnexion', () => ({
   useDeconnexion: () => ({ mutate: mutateMock, isPending: false }),
 }));
 
-const session: SessionCourante = {
+const session: SessionCourante = creerSessionTest('poste_atelier', {
   utilisateur: {
     id: 'u-borne',
     email: 'borne@garage-martin.ch',
@@ -45,10 +45,8 @@ const session: SessionCourante = {
   },
   sites: [{ id: 'site-martigny', code: 'MTG', nom: 'Martigny', actif: true }],
   siteRattachementId: 'site-martigny',
-  actions: [],
-  capacites: CAPACITES_TEST,
   expireLe: new Date(Date.now() + 3_600_000).toISOString(),
-};
+});
 
 function rendre() {
   const queryClient = creerQueryClientTest();

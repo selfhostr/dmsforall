@@ -18,15 +18,15 @@ import { creerQueryClientTest } from '@/test/utils';
 
 import { EcranBornePointage } from '@/ecrans/pointage/EcranBornePointage';
 
+import { creerSessionTest } from '../session';
 import { auditerAccessibiliteEcran, exigerAucuneViolation } from './harnais';
-import { CAPACITES_TEST } from '@/test/capacites';
 
 /**
  * Mesure 1/4 — famille « borne tactile », le cas le plus contraint du produit : utilisée debout,
  * avec des gants, cibles tactiles larges, aucune saisie clavier. Fixtures reprises telles quelles
  * de `EcranBornePointage.spec.tsx` (session `poste_atelier`, seul rôle qui atteint cet écran).
  */
-const SESSION_BORNE: SessionCourante = {
+const SESSION_BORNE: SessionCourante = creerSessionTest('poste_atelier', {
   utilisateur: {
     id: 'borne-atelier-1',
     email: 'borne-atelier-1@garage.ch',
@@ -35,18 +35,7 @@ const SESSION_BORNE: SessionCourante = {
     role: 'poste_atelier',
     langue: 'fr',
   },
-  tenant: {
-    id: 'tenant-1',
-    slug: 'garage-test',
-    raisonSociale: 'Garage Test SA',
-    langueDefaut: 'fr',
-  },
-  sites: [{ id: 'site-1', code: 'PRINCIPAL', nom: 'Site principal', actif: true }],
-  siteRattachementId: 'site-1',
-  actions: [],
-  capacites: CAPACITES_TEST,
-  expireLe: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-};
+});
 
 const IDENTIFICATION_MARCO: ReponseIdentificationPin = {
   technicienId: 'technicien-marco',

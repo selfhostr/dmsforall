@@ -123,7 +123,7 @@ const ETAT_INITIAL: EtatFormulaire = {
 
 /**
  * `POST /ordres-reparation/{orId}/lignes` (§7.8) — saisie manuelle d'une ligne de travail ou de
- * pièce. Monté UNIQUEMENT derrière `peutCreerLigneOr(role)` (`ecrans/atelier/droits.ts`) par
+ * pièce. Monté UNIQUEMENT derrière `peutCreerLigneOr(actions)` (`ecrans/atelier/droits.ts`) par
  * l'appelant (`EcranFicheOrdreReparation`) : ce composant ne revérifie donc pas le droit dans son
  * JSX — même doctrine que `PanneauActionsOr`, qui ne revérifie pas non plus `or.actionsDisponibles`
  * une fois le bouton affiché. Le serveur reste l'arbitre final (`@ExigerDroit('atelier.ligne.creer')`).
@@ -177,7 +177,7 @@ export function DialogueAjoutLigneOr({ orId, siteId, onAjoutee }: Props) {
   // catalogue (`DROITS_PIECES_PAR_ROLE.admin = []`, RF-115) — sans ce garde, le raccourci
   // catalogue s'ouvrait puis échouait sur chaque frappe (`403 DROIT_INSUFFISANT`). La saisie
   // manuelle ci-dessous reste intacte pour ce rôle, seul le raccourci disparaît.
-  const peutChercherArticle = peutRechercherArticlePiece(session.data?.utilisateur.role);
+  const peutChercherArticle = peutRechercherArticlePiece(session.data?.actions);
 
   // Résultat de recherche magasin CHOISI (`SelecteurArticlePiece`) — porte déjà `statutSuivi` et
   // `quantiteDisponibleMillieme` (contrat `ResultatRechercheComptoirArticle`, @dfa/shared) : la

@@ -768,18 +768,18 @@ describe('EcranFicheFacture — droits par geste (émettre / encaisser / créer 
   );
 
   it(
-    '« Créer un avoir » (menu ⋯) : absent pour vendeur (pas de droit `emettre_avoir`), présent ' +
+    '« Créer un avoir » (menu ⋯) : absent pour magasinier (pas de droit `emettre_avoir`), présent ' +
       'pour réceptionnaire (autorisé)',
     async () => {
       installerHandlerDocument(construireDocument());
-      connecterSession('vendeur');
+      connecterSession('magasinier');
       const utilisateur = userEvent.setup();
       const rendu1 = rendre();
-      // vendeur n'a ni `peutCorrigerFacture` ni `peutEmettreAvoir` : aucune action secondaire,
+      // magasinier n'a ni `peutCorrigerFacture` ni `peutEmettreAvoir` : aucune action secondaire,
       // donc le menu « Autres actions » lui-même ne s'affiche plus (Imprimer, qui le maintenait en
       // vie à lui seul avant le chantier d'unification inter-écrans du 25.08.2026, est désormais un
       // bouton autonome) — seul le bouton primaire « Encaisser » (droit distinct, voir
-      // `peutEncaisser`, qui inclut `vendeur`) reste visible.
+      // `peutEncaisser`, qui inclut `magasinier`) reste visible.
       await screen.findByRole('button', { name: 'Encaisser' });
       expect(screen.queryByRole('button', { name: 'Autres actions' })).not.toBeInTheDocument();
       expect(screen.queryByRole('menuitem', { name: 'Créer un avoir' })).not.toBeInTheDocument();

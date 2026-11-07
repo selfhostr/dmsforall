@@ -107,7 +107,7 @@ export function EcranFicheFacture() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: session } = useSession();
-  const role = session?.utilisateur.role;
+  const actions = session?.actions;
 
   const requete = useDocumentVente(id);
   const modification = useModifierDocumentVente();
@@ -202,10 +202,10 @@ export function EcranFicheFacture() {
   // points d'entrée (menu, lien sous les lignes, action du champ verrouillé) sont désormais
   // gouvernés par CE SEUL booléen — voir `peutCorrigerFacture` (`./droits.ts`) pour le détail du
   // rôle et l'état RÉEL du serveur aujourd'hui (l'endpoint `POST .../corriger` n'existe pas encore).
-  const proposeEmettre = estBrouillon && peutEmettreFacture(role);
-  const proposeEncaisser = peutGererFacture && resteAEncaisser && peutEncaisser(role);
-  const proposeCreerAvoir = peutGererFacture && peutEmettreAvoir(role);
-  const proposeCorriger = peutGererFacture && peutCorrigerFacture(role);
+  const proposeEmettre = estBrouillon && peutEmettreFacture(actions);
+  const proposeEncaisser = peutGererFacture && resteAEncaisser && peutEncaisser(actions);
+  const proposeCreerAvoir = peutGererFacture && peutEmettreAvoir(actions);
+  const proposeCorriger = peutGererFacture && peutCorrigerFacture(actions);
   // Imprimer : condition DÉCOUPLÉE de `peutGererFacture` — voir le commentaire de tête de fichier.
   // `document_.qr !== null` implique déjà `typeDocument === 'facture'` et une émission passée
   // (`mapperDocument`, serveur), donc ce document reste imprimable même `estAnnuleeParAvoir`
@@ -214,7 +214,7 @@ export function EcranFicheFacture() {
   // PDF d'un DEVIS : pas de lien direct (`qr` est toujours `null` hors facture émise) mais un
   // téléchargement qui affiche l'échec — `DOCUMENT_PDF_INDISPONIBLE` tant que l'API ne le produit
   // pas, plutôt qu'un onglet vide. Réservé aux rôles qui voient les montants.
-  const peutPdfDevis = document_.typeDocument === 'devis' && peutVoirMontantsFacturation(role);
+  const peutPdfDevis = document_.typeDocument === 'devis' && peutVoirMontantsFacturation(actions);
   const urlPdf = `${obtenirEnv().VITE_API_URL}/documents-vente/${document_.id}/pdf`;
   // Titre de FICHE (chantier « titres doublés & espacements », 17.08.2026) — « Facture 2026-00002 »
   // / « Avoir 2026-AV-00001 » : CONTRE-EXEMPLE cité par le contrat du chantier, il ne fait PAS
@@ -517,7 +517,7 @@ export function EcranFicheFacture() {
                 {t('facturation:fiche.lignes.titre')}
               </CardTitle>
               {/* Issue #125 : seul geste qui manquait pour qu'un brouillon puisse porter du
-                  contenu commercial avant émission. Aucun `peut*(role)` supplémentaire ici — même
+                  contenu commercial avant émission. Aucun `peut*(actions)` supplémentaire ici — même
                   doctrine que la Card « Remise globale » juste en dessous, déjà éditable sur tout
                   brouillon sans re-vérification de rôle côté écran (le serveur reste l'arbitre
                   final, `facturation.document.modifier`, `ExigerDroit` sur la route). */}

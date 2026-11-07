@@ -1,3 +1,4 @@
+import { actionsDuRole } from '@/test/session';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -41,7 +42,7 @@ describe('CarteFinancement', () => {
         financements={[]}
         financementsTronques={false}
         statutDossierVente="engage"
-        role="vendeur"
+        actions={actionsDuRole('vendeur')}
       />,
     );
 
@@ -57,7 +58,7 @@ describe('CarteFinancement', () => {
         financements={[]}
         financementsTronques={false}
         statutDossierVente="clos"
-        role="vendeur"
+        actions={actionsDuRole('vendeur')}
       />,
     );
 
@@ -74,7 +75,7 @@ describe('CarteFinancement', () => {
         financements={[FINANCEMENT_COURANT]}
         financementsTronques={false}
         statutDossierVente="engage"
-        role="vendeur"
+        actions={actionsDuRole('vendeur')}
       />,
     );
 
@@ -95,7 +96,7 @@ describe('CarteFinancement', () => {
         financements={[FINANCEMENT_COURANT]}
         financementsTronques
         statutDossierVente="engage"
-        role="vendeur"
+        actions={actionsDuRole('vendeur')}
       />,
     );
 
@@ -126,7 +127,7 @@ describe('CarteFinancement', () => {
         financements={[]}
         financementsTronques={false}
         statutDossierVente="engage"
-        role="vendeur"
+        actions={actionsDuRole('vendeur')}
       />,
     );
 
@@ -185,7 +186,7 @@ describe('CarteFinancement', () => {
         financements={[]}
         financementsTronques={false}
         statutDossierVente="prospection"
-        role="vendeur"
+        actions={actionsDuRole('vendeur')}
         onMutationReussie={onMutationReussie}
       />,
     );
@@ -225,7 +226,7 @@ describe('CarteFinancement', () => {
         financements={[FINANCEMENT_COURANT]}
         financementsTronques={false}
         statutDossierVente="engage"
-        role="vendeur"
+        actions={actionsDuRole('vendeur')}
         onMutationReussie={onMutationReussie}
       />,
     );
@@ -262,7 +263,7 @@ describe('CarteFinancement', () => {
         financements={[FINANCEMENT_COURANT]}
         financementsTronques={false}
         statutDossierVente="engage"
-        role="vendeur"
+        actions={actionsDuRole('vendeur')}
       />,
     );
 
@@ -295,7 +296,7 @@ describe('CarteFinancement', () => {
         financements={[FINANCEMENT_COURANT]}
         financementsTronques={false}
         statutDossierVente="engage"
-        role="receptionnaire"
+        actions={actionsDuRole('receptionnaire')}
       />,
     );
 

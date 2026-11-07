@@ -59,7 +59,7 @@ export function EcranListeCommandesFournisseur() {
   const { t } = useTranslation(['pieces', 'commun']);
   const navigate = useNavigate();
   const { data: session } = useSession();
-  const role = session?.utilisateur.role;
+  const actions = session?.actions;
   const sites = session?.sites ?? [];
 
   const [statut, setStatut] = useState<StatutCommandeFournisseur | undefined>(undefined);
@@ -173,7 +173,7 @@ export function EcranListeCommandesFournisseur() {
   // titre CONTIENT le libellé de la vue). Défaut cité nommément par @laupernoe le 17.08.2026 (« dans
   // Commandes, "Commandes fournisseur" ») — l'ancien commentaire ici (« pas un doublon », retiré
   // par ce correctif) argumentait l'inverse ; le choix produit a explicitement tranché dans l'autre sens.
-  const boutonCreer = peutEcrireCommandeFournisseur(role) ? (
+  const boutonCreer = peutEcrireCommandeFournisseur(actions) ? (
     <Button onClick={() => navigate('/pieces/commandes-fournisseur/nouvelle')}>
       {t('pieces:commandes.actions.creer')}
     </Button>

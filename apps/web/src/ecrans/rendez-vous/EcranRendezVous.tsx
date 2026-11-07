@@ -103,7 +103,7 @@ export function EcranRendezVous() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: session } = useSession();
   const { preferenceSiteId } = useSiteCourant();
-  const role = session?.utilisateur.role;
+  const actions = session?.actions;
   const sitesSession = useMemo(() => session?.sites ?? [], [session]);
   // Site affiché : celui de l'URL, sinon la préférence du poste, sinon l'unique site du garage —
   // jamais « Choisissez un site » quand la réponse est évidente.
@@ -288,11 +288,11 @@ export function EcranRendezVous() {
     setPanneauOuvert(true);
   }
 
-  const peutLire = peutLireRendezVous(role);
-  const peutCreer = peutCreerRendezVous(role);
-  const peutAgir = peutAgirSurRendezVous(role);
+  const peutLire = peutLireRendezVous(actions);
+  const peutCreer = peutCreerRendezVous(actions);
+  const peutAgir = peutAgirSurRendezVous(actions);
 
-  if (!peutLire && role !== undefined) {
+  if (!peutLire && actions !== undefined) {
     // Défensif d'ergonomie seulement — la route est déjà gardée par `ROLES_LECTURE_RENDEZ_VOUS`
     // (`routes/routeur.tsx`), le serveur reste l'arbitre final (même doctrine que
     // `ecrans/atelier/droits.ts`).
@@ -418,7 +418,7 @@ export function EcranRendezVous() {
           peutAgir={peutAgir}
           onVehiculeArrive={() => setDialogueArriveeOuvert(true)}
           slotCourtoisie={
-            peutPreterCourtoisie(role) ? (
+            peutPreterCourtoisie(actions) ? (
               <BoutonVehiculeCourtoisieOr
                 rendezVousId={rdvSelectionne.id}
                 clientId={rdvSelectionne.client.id}

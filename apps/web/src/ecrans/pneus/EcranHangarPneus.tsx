@@ -177,17 +177,17 @@ export function EcranHangarPneus() {
     isError: sessionEnErreur,
     refetch: relancerSession,
   } = useSession();
-  const role = session?.utilisateur.role;
+  const actions = session?.actions;
   // Droits PAR ACTION, calqués un à un sur `apps/api/src/auth/matrice-droits.ts` — DÉFAUT CORRIGÉ :
   // un seul booléen `peutGererDepotPneus` gouvernait auparavant `creer`/`changer_saison`/`deplacer`/
   // `sortir` indifféremment, alors que le serveur distingue deux périmètres (`technicien`/
   // `magasinier` ont `creer`/`changer_saison`/`deplacer` mais PAS `sortir`) — un technicien voyait
   // le bouton « Sortir », cliquait, remplissait le dialogue, et recevait un `403` honnête mais
   // évitable. Voir `ecrans/pneus/droits.ts` pour le détail de chaque liste de rôles.
-  const peutCreer = peutCreerDepotPneus(role);
-  const peutChangerSaison = peutChangerSaisonDepotPneus(role);
-  const peutDeplacer = peutDeplacerDepotPneus(role);
-  const peutSortir = peutSortirDepotPneus(role);
+  const peutCreer = peutCreerDepotPneus(actions);
+  const peutChangerSaison = peutChangerSaisonDepotPneus(actions);
+  const peutDeplacer = peutDeplacerDepotPneus(actions);
+  const peutSortir = peutSortirDepotPneus(actions);
 
   const [filtreSaison, setFiltreSaison] = useState<SaisonPneu | 'toutes'>('toutes');
   const [filtreRepere, setFiltreRepere] = useState('');
