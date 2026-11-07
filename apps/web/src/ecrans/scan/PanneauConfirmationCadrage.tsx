@@ -4,11 +4,12 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 
 import { CadrePermis } from './CadrePermis';
+import { useApercuFichier } from './useApercuFichier';
 import { urlApercuSure } from './urlApercuSure';
 import type { FractionsCadre } from './geometrieCadre';
 
 interface Props {
-  readonly urlApercu: string;
+  readonly fichier: File;
   readonly fractions: FractionsCadre;
   readonly onContinuer: () => void;
   readonly onPhotoEntiere: () => void;
@@ -39,12 +40,13 @@ interface Props {
  * sans aucun recadrage, si la détection s'est trompée.
  */
 export function PanneauConfirmationCadrage({
-  urlApercu,
+  fichier,
   fractions,
   onContinuer,
   onPhotoEntiere,
 }: Props) {
   const { t } = useTranslation('scan');
+  const urlApercu = useApercuFichier(fichier);
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-4">
