@@ -10,6 +10,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { SelecteurLangueMenu } from '@/composants/SelecteurLangueMenu';
 import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { useDeconnexion } from '@/hooks/useDeconnexion';
 import { useSession } from '@/hooks/useSession';
@@ -425,6 +426,7 @@ export function BarreLaterale({ className, repli }: Props) {
                   <LogOut className="h-4 w-4" aria-hidden="true" />
                   {t('auth:deconnexion.action')}
                 </DropdownMenuItem>
+                <SelecteurLangueMenu />
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

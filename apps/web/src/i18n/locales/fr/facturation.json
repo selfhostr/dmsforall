@@ -48,7 +48,8 @@
   "ligneDepuisOrGenerique": "depuis l'OR",
   "verrouille": {
     "message": "Cette facture est émise et ne peut plus être modifiée.",
-    "corriger": "Corriger par un avoir →"
+    "corriger": "Corriger par un avoir →",
+    "messageDevis": "Ce devis est envoyé et ne peut plus être modifié."
   },
   "paiementVerrouille": {
     "message": "Ce paiement est enregistré et ne peut plus être modifié.",
@@ -243,7 +244,10 @@
         "creerAvoir": "Créer un avoir",
         "journal": "Voir le journal"
       },
-      "telechargerPdf": "Télécharger le PDF"
+      "telechargerPdf": "Télécharger le PDF",
+      "envoyerDevis": "Envoyer le devis",
+      "accordClient": "Accord du client",
+      "creerOr": "Créer l'OR"
     },
     "dialogueEmission": {
       "titre": "Émettre la facture ?",
@@ -253,7 +257,12 @@
       "avertissement": "Une fois émise, cette facture ne pourra plus être modifiée — seule une correction par avoir sera possible ensuite.",
       "avertissementAvoir": "Il vient en réduction de la facture {numero} et ne pourra pas être annulé une fois émis.",
       "confirmer": "Émettre",
-      "enCours": "Émission…"
+      "enCours": "Émission…",
+      "titreDevis": "Envoyer le devis ?",
+      "resumeDevis": "Devis pour {destinataire} — {montant} TTC",
+      "avertissementDevis": "Une fois envoyé, ce devis ne pourra plus être modifié. Si le client change d'avis, il faudra en faire un nouveau.",
+      "confirmerDevis": "Envoyer",
+      "enCoursDevis": "Envoi…"
     },
     "refusEmission": {
       "blocCreancierIncomplet": "Impossible d'émettre — les coordonnées bancaires du garage sont incomplètes.",
@@ -284,7 +293,8 @@
     },
     "montantIndisponible": "Non communiqué",
     "titreBrouillonDevis": "Nouveau devis",
-    "titreBrouillonBonCommande": "Nouveau bon de commande"
+    "titreBrouillonBonCommande": "Nouveau bon de commande",
+    "envoyeLe": "envoyé le {date}"
   },
   "encaissement": {
     "titre": "Encaisser · {destinataire}",
@@ -409,8 +419,7 @@
     },
     "cree": {
       "titre": "Devis créé",
-      "description": "Ajoutez maintenant la main-d'œuvre et les pièces sur le devis. Si le client accepte, ouvrez un OR prérempli avec le même client et le même véhicule.",
-      "creerOr": "Créer l'OR à partir de ce devis",
+      "description": "Ajoutez maintenant la main-d'œuvre et les pièces sur le devis. Une fois le devis envoyé et accepté par le client, vous pourrez en faire un OR.",
       "ouvrir": "Ouvrir le devis"
     },
     "statuts": {
@@ -423,6 +432,14 @@
       "transforme": "Transformé",
       "annule": "Annulé",
       "abandonne": "Abandonné"
+    },
+    "creerOr": {
+      "titre": "Créer l'OR à partir de ce devis",
+      "description": "L'OR reprend le client, le véhicule et toutes les lignes du devis de {destinataire}. Le devis passe à « Accepté ».",
+      "kilometrage": "Kilométrage à l'entrée",
+      "kilometrageAide": "Relevé au compteur à l'entrée (facultatif si le garage ne l'exige pas)",
+      "confirmer": "Créer l'OR",
+      "enCours": "Création…"
     }
   },
   "facturerEncaisser": {
@@ -462,5 +479,9 @@
       "encaisserMaintenant": "Encaisser maintenant",
       "encaissementErreur": "L’encaissement n’est pas enregistré."
     }
+  },
+  "toasts": {
+    "devisEnvoye": "Devis envoyé",
+    "devisAccepte": "Accord du client enregistré"
   }
 }

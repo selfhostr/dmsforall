@@ -728,6 +728,10 @@ describe('BarreLaterale — pied compte', () => {
     expect(elements.map((element) => element.textContent?.trim())).toEqual([
       expect.stringContaining('Réglages'),
       expect.stringContaining('Se déconnecter'),
+      // Choix de langue (SelecteurLangueMenu), après la déconnexion, dans sa propre langue.
+      expect.stringContaining('Français'),
+      expect.stringContaining('Deutsch'),
+      expect.stringContaining('Italiano'),
     ]);
   });
 

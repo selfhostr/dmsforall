@@ -184,6 +184,16 @@ export function detecterLangueInitiale(
   return 'fr';
 }
 
+/** `<html lang>` suit toujours la langue active (rendu, lecteurs d'écran, césure du navigateur).
+ *  Appelé par le listener `languageChanged` ET après l'init : l'init peut émettre avant qu'un
+ *  listener ne soit posé (init synchrone quand les ressources sont en mémoire), d'où le second
+ *  appel explicite — sans lui, `<html lang>` reste sur la valeur statique de `index.html`. */
+export function appliquerLangueDocument(langue: string): void {
+  if (estLangueValide(langue)) document.documentElement.lang = langue;
+}
+
+i18next.on('languageChanged', appliquerLangueDocument);
+
 /** Résolue quand la langue initiale (et le repli FR) est en mémoire : `main.tsx` l'attend avant
  *  le premier rendu, donc aucun écran ne voit une clé brute. */
 export const i18nPret: Promise<void> = i18next
@@ -199,7 +209,9 @@ export const i18nPret: Promise<void> = i18next
     interpolation: { escapeValue: false },
     returnNull: false,
   })
-  .then(() => undefined);
+  .then(() => {
+    appliquerLangueDocument(i18next.resolvedLanguage ?? i18next.language);
+  });
 
 /** Charge les autres langues (tests, ou préchargement explicite) — `changeLanguage` charge de
  *  toute façon à la demande. */
@@ -207,9 +219,5 @@ export async function chargerLangues(langues: readonly Langue[] = LANGUES): Prom
   await i18nPret;
   await i18next.loadLanguages([...langues]);
 }
-
-i18next.on('languageChanged', (langue) => {
-  document.documentElement.lang = langue;
-});
 
 export default i18next;

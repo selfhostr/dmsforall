@@ -64,6 +64,7 @@ export function EcranExportFiduciaire() {
   const [confirmation, setConfirmation] = useState(false);
   const [format, setFormat] = useState<FormatExport>('winbiz');
   const [comptesOuverts, setComptesOuverts] = useState(false);
+  const [champAFocaliser, setChampAFocaliser] = useState<string | undefined>();
   const exportation = useExportFiduciaire();
 
   const periode =
@@ -78,7 +79,12 @@ export function EcranExportFiduciaire() {
       ? { cible: format, periodeDu: periode.du, periodeAu: periode.au }
       : undefined,
   );
-  const reglerComptes = peutExporter ? () => setComptesOuverts(true) : undefined;
+  const reglerComptes = peutExporter
+    ? (cle?: string) => {
+        setChampAFocaliser(cle);
+        setComptesOuverts(true);
+      }
+    : undefined;
 
   function lancer() {
     if (validation !== 'ok' || !periode.du || !periode.au) return;
@@ -212,7 +218,7 @@ export function EcranExportFiduciaire() {
             <Download aria-hidden className="mr-2 h-4 w-4" />
             {exportation.isPending ? t('export:action.encours') : t('export:action.telecharger')}
           </Button>
-          <Button type="button" variant="outline" onClick={() => setComptesOuverts(true)}>
+          <Button type="button" variant="outline" onClick={() => reglerComptes?.()}>
             <ListChecks aria-hidden className="mr-2 h-4 w-4" />
             {t('export:mapping.ouvrir')}
           </Button>
@@ -232,7 +238,12 @@ export function EcranExportFiduciaire() {
 
       <HistoriqueExports peutTelecharger={peutExporter} />
 
-      <MappingComptes ouvert={comptesOuverts} onOuvertChange={setComptesOuverts} cible={format} />
+      <MappingComptes
+        ouvert={comptesOuverts}
+        onOuvertChange={setComptesOuverts}
+        cible={format}
+        champAFocaliser={champAFocaliser}
+      />
 
       <Dialog open={confirmation} onOpenChange={setConfirmation}>
         <DialogContent>
@@ -272,7 +283,7 @@ function BlocErreur({
 }: {
   erreur: unknown;
   onReessayer: () => void;
-  onReglerComptes?: () => void;
+  onReglerComptes?: (cle?: string) => void;
 }) {
   const { t } = useTranslation(['export', 'erreurs']);
   const code = erreur instanceof ErreurApi ? erreur.probleme.code : undefined;

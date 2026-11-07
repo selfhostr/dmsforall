@@ -8,12 +8,14 @@ import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { formaterMontant } from '@/lib/formats';
 
+import { cleCodeTva, cleCompte } from './mapping';
 import { nomCodeTva, nomPosteCompte } from './postes';
 
 interface Props {
   readonly prerequis: readonly PrerequisExport[];
   /** Ouvre la saisie des comptes ; absent si l'utilisateur ne peut pas les régler. */
-  readonly onReglerComptes?: () => void;
+  /** `cle` : poste à mettre au premier plan dans la saisie (`cleCompte`/`cleCodeTva`). */
+  readonly onReglerComptes?: (cle?: string) => void;
 }
 
 /** Ce qui empêche l'export, en clair, avec le détail (comptes, numéros, écritures). Sert à
@@ -34,23 +36,48 @@ export function ListePrerequis({ prerequis, onReglerComptes }: Props) {
           {p.code === 'EXPORT_MAPPING_INCOMPLET' ? (
             <>
               <ul className="mt-2 list-disc pl-5">
-                {p.comptes.map((c) => (
-                  <li key={`${c.usage}:${c.categorie}`}>
-                    {nomPosteCompte(t, c.usage, c.categorie)}
-                    <Pieces references={c.references} />
-                  </li>
-                ))}
-                {p.codesTva.map((c) => (
-                  <li key={`${c.regimeTva}:${String(c.tauxPourmille)}`}>
-                    {t('export:prerequis.codeTva', {
-                      poste: nomCodeTva(t, c.regimeTva, c.tauxPourmille),
-                    })}
-                    <Pieces references={c.references} />
-                  </li>
-                ))}
+                {p.comptes.map((c) => {
+                  const nom = nomPosteCompte(t, c.usage, c.categorie);
+                  return (
+                    <li key={`compte:${c.usage}:${c.categorie}`}>
+                      {nom}
+                      <Pieces references={c.references} />
+                      <Saisir
+                        poste={nom}
+                        onClick={
+                          onReglerComptes &&
+                          (() => onReglerComptes(cleCompte(c.usage, c.categorie)))
+                        }
+                      />
+                    </li>
+                  );
+                })}
+                {p.codesTva.map((c) => {
+                  const nom = t('export:prerequis.codeTva', {
+                    poste: nomCodeTva(t, c.regimeTva, c.tauxPourmille),
+                  });
+                  return (
+                    <li key={`tva:${c.regimeTva}:${String(c.tauxPourmille)}`}>
+                      {nom}
+                      <Pieces references={c.references} />
+                      <Saisir
+                        poste={nom}
+                        onClick={
+                          onReglerComptes &&
+                          (() => onReglerComptes(cleCodeTva(c.regimeTva, c.tauxPourmille)))
+                        }
+                      />
+                    </li>
+                  );
+                })}
               </ul>
               {onReglerComptes ? (
-                <Button type="button" variant="outline" className="mt-3" onClick={onReglerComptes}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-3"
+                  onClick={() => onReglerComptes()}
+                >
                   {t('export:mapping.regler')}
                 </Button>
               ) : null}
@@ -73,8 +100,8 @@ export function ListePrerequis({ prerequis, onReglerComptes }: Props) {
 
           {p.code === 'EXPORT_ECRITURES_DESEQUILIBREES' ? (
             <ul className="mt-2 list-disc pl-5">
-              {p.ecritures.map((e) => (
-                <li key={e.reference}>
+              {p.ecritures.map((e, index) => (
+                <li key={`${e.reference}-${String(index)}`}>
                   {t('export:prerequis.desequilibre', {
                     reference: e.reference,
                     debit: formaterMontant(e.totalDebitCentimes),
@@ -91,7 +118,7 @@ export function ListePrerequis({ prerequis, onReglerComptes }: Props) {
                 ? p.details.map((detail, index) => (
                     <li key={`${detail.code}-${String(index)}`}>{texteLimite(detail, t)}</li>
                   ))
-                : p.limites.map((l) => <li key={l}>{l}</li>)}
+                : p.limites.map((l, index) => <li key={`${l}-${String(index)}`}>{l}</li>)}
             </ul>
           ) : null}
         </Alert>
@@ -100,19 +127,47 @@ export function ListePrerequis({ prerequis, onReglerComptes }: Props) {
   );
 }
 
+/** Un identifiant technique (uuid) ne dit rien au garagiste : on ne l'affiche pas. */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Pièces concernées : les numéros de facture tels quels ; un encaissement n'est référencé par
+ * l'API que par son identifiant, qu'on ne montre pas — on le compte.
+ */
 function Pieces({ references }: { references: readonly string[] }) {
   const { t } = useTranslation(['export']);
+  const numeros = references.filter((r) => !UUID.test(r));
+  const nbEncaissements = references.length - numeros.length;
   if (references.length === 0) return null;
   return (
     <span className="text-muted-foreground">
-      {' '}
-      {t('export:prerequis.pieces', { pieces: references.join(', ') })}
+      {numeros.length > 0
+        ? ` ${t('export:prerequis.pieces', { pieces: numeros.join(', ') })}`
+        : null}
+      {nbEncaissements > 0
+        ? ` ${t('export:prerequis.encaissements', { count: nbEncaissements })}`
+        : null}
     </span>
   );
 }
 
-/** Un identifiant technique (uuid) ne dit rien au garagiste : on ne l'affiche pas. */
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** Raccourci vers le champ à remplir : ouvre la saisie des comptes directement dessus. */
+function Saisir({ poste, onClick }: { poste: string; onClick?: () => void }) {
+  const { t } = useTranslation(['export']);
+  if (!onClick) return null;
+  return (
+    <Button
+      type="button"
+      variant="link"
+      size="sm"
+      className="ml-2 px-1"
+      aria-label={t('export:prerequis.saisirPoste', { poste })}
+      onClick={onClick}
+    >
+      {t('export:prerequis.saisir')}
+    </Button>
+  );
+}
 
 function referenceLisible(valeur: unknown): string | undefined {
   return typeof valeur === 'string' && valeur !== '' && !UUID.test(valeur) ? valeur : undefined;

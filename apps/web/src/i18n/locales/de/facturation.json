@@ -48,7 +48,8 @@
   "ligneDepuisOrGenerique": "vom Reparaturauftrag",
   "verrouille": {
     "message": "Diese Rechnung ist ausgestellt und kann nicht mehr geändert werden.",
-    "corriger": "Mit Gutschrift korrigieren →"
+    "corriger": "Mit Gutschrift korrigieren →",
+    "messageDevis": "Diese Offerte ist gesendet und kann nicht mehr geändert werden."
   },
   "paiementVerrouille": {
     "message": "Diese Zahlung ist erfasst und kann nicht mehr geändert werden.",
@@ -243,7 +244,10 @@
         "creerAvoir": "Gutschrift erstellen",
         "journal": "Protokoll anzeigen"
       },
-      "telechargerPdf": "PDF herunterladen"
+      "telechargerPdf": "PDF herunterladen",
+      "envoyerDevis": "Offerte senden",
+      "accordClient": "Zustimmung des Kunden",
+      "creerOr": "AR erstellen"
     },
     "dialogueEmission": {
       "titre": "Rechnung ausstellen?",
@@ -253,7 +257,12 @@
       "avertissement": "Einmal ausgestellt, kann diese Rechnung nicht mehr geändert werden — nur eine Korrektur per Gutschrift bleibt danach möglich.",
       "avertissementAvoir": "Sie mindert die Rechnung {numero} und kann nach dem Ausstellen nicht mehr storniert werden.",
       "confirmer": "Ausstellen",
-      "enCours": "Wird ausgestellt…"
+      "enCours": "Wird ausgestellt…",
+      "titreDevis": "Offerte senden?",
+      "resumeDevis": "Offerte für {destinataire} — {montant} inkl. MWST",
+      "avertissementDevis": "Einmal gesendet, kann diese Offerte nicht mehr geändert werden. Ändert der Kunde seine Meinung, muss eine neue Offerte erstellt werden.",
+      "confirmerDevis": "Senden",
+      "enCoursDevis": "Wird gesendet…"
     },
     "refusEmission": {
       "blocCreancierIncomplet": "Ausstellen nicht möglich — die Bankverbindung der Werkstatt ist unvollständig.",
@@ -284,7 +293,8 @@
     },
     "montantIndisponible": "Nicht mitgeteilt",
     "titreBrouillonDevis": "Neue Offerte",
-    "titreBrouillonBonCommande": "Neue Bestellung"
+    "titreBrouillonBonCommande": "Neue Bestellung",
+    "envoyeLe": "gesendet am {date}"
   },
   "encaissement": {
     "titre": "Inkassieren · {destinataire}",
@@ -409,8 +419,7 @@
     },
     "cree": {
       "titre": "Offerte erstellt",
-      "description": "Erfassen Sie jetzt Arbeit und Teile in der Offerte. Wenn der Kunde zustimmt, eröffnen Sie einen AR mit demselben Kunden und Fahrzeug.",
-      "creerOr": "AR aus dieser Offerte erstellen",
+      "description": "Erfassen Sie jetzt Arbeit und Teile in der Offerte. Sobald die Offerte gesendet und vom Kunden angenommen ist, können Sie daraus einen AR erstellen.",
       "ouvrir": "Offerte öffnen"
     },
     "statuts": {
@@ -423,6 +432,14 @@
       "transforme": "Umgewandelt",
       "annule": "Storniert",
       "abandonne": "Verworfen"
+    },
+    "creerOr": {
+      "titre": "AR aus dieser Offerte erstellen",
+      "description": "Der AR übernimmt Kunde, Fahrzeug und alle Positionen der Offerte von {destinataire}. Die Offerte wird auf «Angenommen» gesetzt.",
+      "kilometrage": "Kilometerstand bei Eingang",
+      "kilometrageAide": "Am Tacho abgelesener Stand bei Eingang (freiwillig, wenn der Betrieb ihn nicht verlangt)",
+      "confirmer": "AR erstellen",
+      "enCours": "Wird erstellt…"
     }
   },
   "facturerEncaisser": {
@@ -462,5 +479,9 @@
       "encaisserMaintenant": "Jetzt kassieren",
       "encaissementErreur": "Die Zahlung ist nicht erfasst."
     }
+  },
+  "toasts": {
+    "devisEnvoye": "Offerte gesendet",
+    "devisAccepte": "Zustimmung des Kunden erfasst"
   }
 }
