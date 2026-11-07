@@ -58,7 +58,9 @@ export class ServiceMotifsRendezVous {
         }
         return versDtoMotifRendezVous(ligne);
       } catch (erreur) {
-        if ((erreur as { code?: unknown } | null)?.code === SQLSTATE_UNICITE) {
+        // Drizzle enveloppe l'erreur pg : le SQLSTATE est sur `cause`.
+        const brute = erreur as { code?: unknown; cause?: { code?: unknown } } | null;
+        if (brute?.code === SQLSTATE_UNICITE || brute?.cause?.code === SQLSTATE_UNICITE) {
           throw new ErreurMetier(
             'CONFLIT',
             `Un motif de rendez-vous avec le code « ${entree.code} » existe déjà.`,

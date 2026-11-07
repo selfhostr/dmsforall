@@ -94,6 +94,16 @@ describe('ServiceMotifsRendezVous.creer', () => {
     ).rejects.toMatchObject({ code: 'CONFLIT' });
   });
 
+  it('code déjà pris, erreur pg enveloppée par Drizzle (cause) : CONFLIT', async () => {
+    const enveloppe = Object.assign(new Error('Failed query'), {
+      cause: Object.assign(new Error('dup'), { code: '23505' }),
+    });
+    const a = acces({ erreurInsert: enveloppe });
+    await expect(
+      new ServiceMotifsRendezVous(a).creer(CTX, { code: 'SERVICE', libelleFr: 'x' }),
+    ).rejects.toMatchObject({ code: 'CONFLIT' });
+  });
+
   it('autre erreur base : remontée telle quelle', async () => {
     const a = acces({ erreurInsert: new Error('boom') });
     await expect(
