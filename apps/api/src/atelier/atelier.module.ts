@@ -18,6 +18,7 @@ import { DevisComplementaireController } from './devis-complementaire.controller
 import { ImpressionDevisController } from './impression/impression-devis.controller';
 import { ServiceImpressionDevis } from './impression/service-impression-devis';
 import { LigneOrController } from './ligne-or.controller';
+import { PhotosLigneModule } from './photos/photos-ligne.module';
 import { OrdreReparationController } from './ordre-reparation.controller';
 import { OrdreReparationTransitionsController } from './ordre-reparation-transitions.controller';
 import { ServiceDevis } from './service-devis';
@@ -84,7 +85,7 @@ import { ServiceTransitions } from './service-transitions';
  * `ImpressionOrModule`, resterait un refactor cosmétique sans risque si la symétrie est préférée.
  */
 @Module({
-  imports: [FacturationModule, VehiculesModule, PointageModule, PiecesModule],
+  imports: [FacturationModule, VehiculesModule, PointageModule, PiecesModule, PhotosLigneModule],
   controllers: [
     OrdreReparationController,
     OrdreReparationTransitionsController,

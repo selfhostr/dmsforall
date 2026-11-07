@@ -14,3 +14,4 @@ export * from './vehicule';
 export * from './rendez-vous';
 export * from './courtoisie';
 export * from './ordre-reparation';
+export * from './ligne-or-photo';

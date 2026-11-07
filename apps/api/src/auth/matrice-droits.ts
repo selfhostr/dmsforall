@@ -576,6 +576,15 @@ export const TOUTES_ACTIONS = [
   'courtoisie.preter',
   'courtoisie.parc.gerer',
   'vehicule.travail_reporte.signaler',
+  // ---- Photos d'une ligne d'OR ------------------------------------------------------------------
+  //    `ajouter` : le geste physique de prendre la photo — mêmes titulaires que
+  //    `atelier.ligne.creer` (magasinier inclus, vendeur/comptable exclus). La borne `poste_atelier`
+  //    est exclue (compte de service, invariant « pointage seul »). `lire` : tous les rôles de
+  //    personne. `supprimer` : encadrement partout ; technicien et magasinier seulement leurs
+  //    propres photos (contrôle d'auteur dans le service). Aucune n'est financière.
+  'atelier.ligne.photo.ajouter',
+  'atelier.ligne.photo.lire',
+  'atelier.ligne.photo.supprimer',
 ] as const;
 
 /**
@@ -2190,6 +2199,31 @@ const DROITS_COURTOISIE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Acti
   poste_atelier: [],
 };
 
+// =================================================================================================
+// Photos d'une ligne d'OR — voir le commentaire des trois entrées de `TOUTES_ACTIONS` ci-dessus.
+// =================================================================================================
+const PHOTO_LECTURE: readonly Action[] = ['atelier.ligne.photo.lire'];
+const PHOTO_TERRAIN: readonly Action[] = [
+  ...PHOTO_LECTURE,
+  'atelier.ligne.photo.ajouter',
+  'atelier.ligne.photo.supprimer',
+];
+
+const DROITS_PHOTO_LIGNE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
+  admin: [...PHOTO_TERRAIN],
+  direction: [...PHOTO_TERRAIN],
+  receptionnaire: [...PHOTO_TERRAIN],
+  chef_atelier: [...PHOTO_TERRAIN],
+  technicien: [...PHOTO_TERRAIN],
+  magasinier: [...PHOTO_TERRAIN],
+  // Aucun droit : la borne est un compte de service sans identité de personne, et sa matrice est
+  // verrouillée à la lecture + pointage (invariant testé RM-115/RM-131) — une photo sans auteur
+  // identifiable n'a pas sa place là.
+  poste_atelier: [],
+  vendeur: [...PHOTO_LECTURE],
+  comptable: [...PHOTO_LECTURE],
+};
+
 export const MATRICE_DROITS = {
   admin: [
     ...DROITS_ADMIN,
@@ -2210,6 +2244,7 @@ export const MATRICE_DROITS = {
     ...DROITS_UTILISATEUR_PAR_ROLE.admin,
     ...DROITS_REPRISE_PAR_ROLE.admin,
     ...DROITS_COURTOISIE_PAR_ROLE.admin,
+    ...DROITS_PHOTO_LIGNE_PAR_ROLE.admin,
   ],
   direction: [
     ...DROITS_DIRECTION,
@@ -2230,6 +2265,7 @@ export const MATRICE_DROITS = {
     ...DROITS_UTILISATEUR_PAR_ROLE.direction,
     ...DROITS_REPRISE_PAR_ROLE.direction,
     ...DROITS_COURTOISIE_PAR_ROLE.direction,
+    ...DROITS_PHOTO_LIGNE_PAR_ROLE.direction,
   ],
   vendeur: [
     ...DROITS_VENDEUR,
@@ -2250,6 +2286,7 @@ export const MATRICE_DROITS = {
     ...DROITS_UTILISATEUR_PAR_ROLE.vendeur,
     ...DROITS_REPRISE_PAR_ROLE.vendeur,
     ...DROITS_COURTOISIE_PAR_ROLE.vendeur,
+    ...DROITS_PHOTO_LIGNE_PAR_ROLE.vendeur,
   ],
   receptionnaire: [
     ...DROITS_RECEPTIONNAIRE,
@@ -2270,6 +2307,7 @@ export const MATRICE_DROITS = {
     ...DROITS_UTILISATEUR_PAR_ROLE.receptionnaire,
     ...DROITS_REPRISE_PAR_ROLE.receptionnaire,
     ...DROITS_COURTOISIE_PAR_ROLE.receptionnaire,
+    ...DROITS_PHOTO_LIGNE_PAR_ROLE.receptionnaire,
   ],
   chef_atelier: [
     ...DROITS_CHEF_ATELIER,
@@ -2290,6 +2328,7 @@ export const MATRICE_DROITS = {
     ...DROITS_UTILISATEUR_PAR_ROLE.chef_atelier,
     ...DROITS_REPRISE_PAR_ROLE.chef_atelier,
     ...DROITS_COURTOISIE_PAR_ROLE.chef_atelier,
+    ...DROITS_PHOTO_LIGNE_PAR_ROLE.chef_atelier,
   ],
   technicien: [
     ...DROITS_TECHNICIEN,
@@ -2310,6 +2349,7 @@ export const MATRICE_DROITS = {
     ...DROITS_UTILISATEUR_PAR_ROLE.technicien,
     ...DROITS_REPRISE_PAR_ROLE.technicien,
     ...DROITS_COURTOISIE_PAR_ROLE.technicien,
+    ...DROITS_PHOTO_LIGNE_PAR_ROLE.technicien,
   ],
   magasinier: [
     ...DROITS_MAGASINIER,
@@ -2330,6 +2370,7 @@ export const MATRICE_DROITS = {
     ...DROITS_UTILISATEUR_PAR_ROLE.magasinier,
     ...DROITS_REPRISE_PAR_ROLE.magasinier,
     ...DROITS_COURTOISIE_PAR_ROLE.magasinier,
+    ...DROITS_PHOTO_LIGNE_PAR_ROLE.magasinier,
   ],
   comptable: [
     ...DROITS_COMPTABLE,
@@ -2350,6 +2391,7 @@ export const MATRICE_DROITS = {
     ...DROITS_UTILISATEUR_PAR_ROLE.comptable,
     ...DROITS_REPRISE_PAR_ROLE.comptable,
     ...DROITS_COURTOISIE_PAR_ROLE.comptable,
+    ...DROITS_PHOTO_LIGNE_PAR_ROLE.comptable,
   ],
   poste_atelier: [
     ...DROITS_POSTE_ATELIER,
@@ -2370,6 +2412,7 @@ export const MATRICE_DROITS = {
     ...DROITS_UTILISATEUR_PAR_ROLE.poste_atelier,
     ...DROITS_REPRISE_PAR_ROLE.poste_atelier,
     ...DROITS_COURTOISIE_PAR_ROLE.poste_atelier,
+    ...DROITS_PHOTO_LIGNE_PAR_ROLE.poste_atelier,
   ],
 } as const satisfies Readonly<Record<RoleUtilisateur, readonly Action[]>>;
 

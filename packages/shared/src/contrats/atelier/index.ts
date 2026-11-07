@@ -27,3 +27,4 @@ export * from './devis';
 export * from './parametrage';
 export * from './recherche';
 export * from './evenement';
+export * from './photo-ligne';
