@@ -2,39 +2,36 @@
 
 All notable changes to dmsforall are recorded here, for people who run it and for people who use it. Each entry says what changes for you. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/) until 1.0.
 
-## [Non publié]
+## Unreleased
 
-### Ajouté
+### Added
 
-- **Tableau de bord.** « Aujourd'hui » devient « Tableau de bord ». L'accueil ne garde que les tâches du jour ; les chiffres sont dans Facturation › Chiffres.
-- **Plusieurs sites.** Chaque collaborateur a un site principal. Chaque site a un code court. Les écrans ont un filtre de site compact.
-- **Modules activables.** Réglages › Modules : retirez les modules que votre garage n'utilise pas. Ils disparaissent du menu.
-- **Signaler un problème.** Un bouton envoie un diagnostic anonymisé. Le garage peut activer ou désactiver ce bouton dans ses réglages.
-- **Mon garage.** Réglages › Mon garage regroupe les coordonnées, l'adresse et le statut TVA. Le premier collaborateur devient facultatif.
-- **Garage non assujetti à la TVA.** Répondez « Non » dans Mon garage. Vos factures, devis et ordres de réparation sont alors émis sans TVA, et les PDF portent la mention « Non assujetti à la TVA ». Un garage assujetti doit saisir son numéro de TVA avant d'émettre une facture.
-- **Corriger une facture.** Une facture émise ne se modifie pas. « Corriger » crée un avoir total et un nouveau brouillon pré-rempli, à reprendre et à émettre.
-- **Menu du compte et recherche.** Réglages, thème, taille du texte et langue sont dans le menu du compte. La recherche est une entrée du menu.
-- **Jeu de démonstration complet.** Un jeu de données de démonstration couvre tout l'écran du garage. On peut le recharger à volonté.
+- **VAT status of the garage.** Settings ask "Is your garage subject to VAT?". A garage that answers No issues invoices, quotes and repair order invoices with no VAT, and its PDFs say "Not subject to VAT" (in French, German or Italian) with no VAT column. A garage that answers Yes must enter its VAT number before it can issue an invoice. `creer-garage --non-assujetti` creates a garage that is not subject to VAT.
+- **Dashboard.** "Aujourd'hui" is now "Tableau de bord". The home screen only shows today's tasks; the figures are under Facturation › Chiffres.
+- **Several sites.** Each employee has a main site. Each site has a short code. Screens have a compact site filter.
+- **Activatable modules.** Réglages › Modules lets you remove the modules your garage does not use. They disappear from the menu.
+- **Report a problem.** A button sends an anonymised diagnostic. The garage can turn this button on or off in its settings.
+- **My garage.** Réglages › Mon garage groups the contact details, the address and the VAT status. The first employee is now optional.
+- **Invoice correction.** An issued invoice cannot be edited. "Corriger" creates a full credit note and a new pre-filled draft to review and issue.
+- **Account menu and search.** Settings, theme, text size and language are in the account menu. Search is a menu entry.
+- **Complete demonstration data.** A demonstration data set covers the whole garage screen and can be reloaded at any time.
 
-### Modifié
+### Changed
 
-- **Interface uniforme.** En-têtes, filtres sur une seule ligne, tri par icône, saisies dans un panneau latéral, badges de statut communs, et un bouton « ? » pour l'aide de chaque écran.
-- **Pointage.** Le code PIN ne sert qu'à la borne de pointage, pas à l'écran de l'atelier.
-- **Droits par rôle.** L'accueil, la borne, le logo et le pointage ne montrent et n'appellent que ce que votre rôle permet.
+- **Uniform interface.** Headers, one-line filters, sort by icon, entry forms in a side panel, common status badges, and a "?" help button on each screen.
+- **Time clock.** The PIN is only used at the time-clock terminal, not on the workshop screen.
+- **Roles.** The home screen, the terminal, the logo and the time clock only show and call what your role allows.
 
-### Corrigé
+### Fixed
 
-- Les titres des listes sont visibles. Les mises en page du stock VO, du planning et de la fiche facture sont corrigées.
-- Le régime TVA et les modules sont lisibles par tous les rôles.
-- La checklist de démarrage demande le numéro de rue, comme l'émission d'une facture.
+- List titles are visible. Layouts of the used-car stock, the planning and the invoice sheet are corrected.
+- The VAT regime and the modules are readable by every role.
+- The start-up checklist asks for the street number, as issuing an invoice does.
 
-### Mise à jour
+### Upgrade notes
 
-- Les garages existants sont marqués assujettis à la TVA : rien ne change en silence. Un garage assujetti sans numéro de TVA ne peut plus émettre de facture tant qu'il ne l'a pas saisi, ou tant qu'il ne répond pas « Non ».
-
-### Technique
-
-- Migrations 0089 à 0093, réversibles (`down/`) : `entite_auditee.tenant` (audit de la raison sociale), `tenant.assujetti_tva`, site principal et code court par site, `tenant.modules_desactives`, `tenant.mode_signalement`.
+- Existing garages are marked as subject to VAT, so nothing changes silently. A garage that is subject to VAT but has no VAT number saved can no longer issue invoices until it enters the number (or answers No if it is not subject to VAT).
+- Migrations 0089 to 0093 are reversible (`down/`): `entite_auditee.tenant` (audit of the company name), `tenant.assujetti_tva`, a main site and a short code per site, `tenant.modules_desactives`, `tenant.mode_signalement`.
 
 ## 0.2.0 (2026-11-07)
 
