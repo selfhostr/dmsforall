@@ -152,6 +152,7 @@
     "IMPUTATION_DEVISE_INCOHERENTE": "Die Zahlungswährung stimmt nicht mit der Dokumentwährung überein. Überprüfen Sie Ihre Eingabe.",
     "IMPUTATION_DOCUMENT_NON_REGLABLE": "Dieses Dokument ist nicht in einem Zustand, der eine Zahlung erlaubt.",
     "AVOIR_RETOUR_STOCK_NON_DECLENCHE": "Das Guthaben wurde für einen Teilbetrag verbucht. Die Teilerückgabe konnte nicht automatisch erfasst werden. Wenn Sie das Teil zurückerhalten haben, erfassen Sie die Rückgabe manuell.",
+    "FACTURE_SANS_QR": "Rechnung ohne QR-Rechnung ausgestellt: Vervollständigen Sie Ihre Bankverbindung unter Einstellungen > Fakturierung.",
     "VEHICULE_DEPOTS_PNEUS_OUVERTS": "An diesem Fahrzeug sind noch Reifenlagerplätze angebracht. Entscheiden Sie, ob Sie diese mit dem Fahrzeug abgeben, zurückbehalten oder an den Kunden übertragen.",
     "VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE": "Die Rechnung wurde erfolgreich ausgestellt. Das Markieren des Fahrzeugs als verkauft konnte nicht finalisiert werden. Korrigieren Sie es manuell, falls notwendig.",
     "CLIENT_DEJA_ANONYMISE": "Dieser Kunde wurde bereits gemäss seines Löschrechts anonymisiert. Sie können diesen Vorgang nicht wiederholen.",

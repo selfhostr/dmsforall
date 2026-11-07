@@ -152,6 +152,7 @@
     "IMPUTATION_DEVISE_INCOHERENTE": "La devise du paiement ne correspond pas à celle du document. Vérifiez votre saisie.",
     "IMPUTATION_DOCUMENT_NON_REGLABLE": "Ce document n'est pas dans un état permettant le règlement.",
     "AVOIR_RETOUR_STOCK_NON_DECLENCHE": "L'avoir a été crédité pour un montant partiel. Le retour de pièce n'a pas pu être enregistré automatiquement. Si vous avez récupéré la pièce, enregistrez le retour manuellement.",
+    "FACTURE_SANS_QR": "Facture émise sans QR-facture : complétez vos coordonnées bancaires dans Réglages > Facturation.",
     "VEHICULE_DEPOTS_PNEUS_OUVERTS": "Des dépôts de pneus sont encore attachés à ce véhicule. Décidez si vous les cédez avec le véhicule, les reprenez ou les transférez au client.",
     "VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE": "La facture a été émise avec succès. Le marquage du véhicule comme vendu n'a pas pu être finalisé. Corrigez-le manuellement si nécessaire.",
     "CLIENT_DEJA_ANONYMISE": "Ce client a déjà été anonymisé conformément à son droit à l'effacement. Vous ne pouvez pas répéter cette opération.",
