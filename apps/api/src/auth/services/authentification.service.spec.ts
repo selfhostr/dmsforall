@@ -927,9 +927,7 @@ describe('ServiceAuthentificationImpl.sessionCourante — portée de site des co
 });
 
 describe('ServiceAuthentificationImpl.sessionCourante — modules actifs', () => {
-  function svcAvecModulesDesactives(
-    desactives: readonly string[],
-  ): ServiceAuthentificationImpl {
+  function svcAvecModulesDesactives(desactives: readonly string[]): ServiceAuthentificationImpl {
     return new ServiceAuthentificationImpl(
       configTest(),
       accesBaseTest(desactives),

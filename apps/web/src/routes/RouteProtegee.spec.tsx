@@ -206,4 +206,3 @@ describe('RouteProtegee — modules activables', () => {
     expect(screen.queryByText('ECRAN_PNEUS')).not.toBeInTheDocument();
   });
 });
-

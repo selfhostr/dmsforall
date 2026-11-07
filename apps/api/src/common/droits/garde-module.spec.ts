@@ -18,7 +18,9 @@ const PRINCIPAL: PrincipalAuthentifie = {
 };
 
 function reflectorTest(module: ModuleApp | undefined): Reflector {
-  return { getAllAndOverride: vi.fn((cle: string) => (cle === CLE_META_MODULE ? module : undefined)) } as unknown as Reflector;
+  return {
+    getAllAndOverride: vi.fn((cle: string) => (cle === CLE_META_MODULE ? module : undefined)),
+  } as unknown as Reflector;
 }
 
 function execution(methode: string): ExecutionContext {
@@ -29,7 +31,11 @@ function execution(methode: string): ExecutionContext {
   } as unknown as ExecutionContext;
 }
 
-function garde(opts: { module?: ModuleApp; desactives?: ModuleApp[]; principal?: PrincipalAuthentifie | null }) {
+function garde(opts: {
+  module?: ModuleApp;
+  desactives?: ModuleApp[];
+  principal?: PrincipalAuthentifie | null;
+}) {
   const principal = opts.principal === undefined ? PRINCIPAL : opts.principal;
   const requetes = vi.fn();
   const acces: AccesBase = {

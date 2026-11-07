@@ -44,7 +44,10 @@ export const tenant = pgTable(
      * Modules de l'application que le garage a retirés (migration 0092, Réglages > Modules). Vide :
      * tout est actif. Les dépendances entre modules ne sont jamais stockées (`modulesActifsDepuis`).
      */
-    modulesDesactives: moduleAppEnum('modules_desactives').array().notNull().default(sql`'{}'::module_app[]`),
+    modulesDesactives: moduleAppEnum('modules_desactives')
+      .array()
+      .notNull()
+      .default(sql`'{}'::module_app[]`),
 
     /** Code pays ISO 3166-1 alpha-2. `CH` par défaut : le marché initial. */
     pays: char('pays', { length: 2 }).notNull().default('CH'),

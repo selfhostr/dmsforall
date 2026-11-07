@@ -46,8 +46,7 @@ export class ServiceModules {
       if (!avant) throw this.tenantIntrouvable();
 
       const apres = normaliserModulesDesactives(entree.modulesDesactives);
-      const identique =
-        avant.d.length === apres.length && avant.d.every((m, i) => apres[i] === m);
+      const identique = avant.d.length === apres.length && avant.d.every((m, i) => apres[i] === m);
       if (identique) return reponse(avant.d);
 
       await tx

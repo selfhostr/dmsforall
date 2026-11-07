@@ -909,7 +909,8 @@ export function ongletsVisibles(
 ): readonly OngletDomaine[] {
   if (estCompteAppareil(sujet)) return [];
   return entree.onglets.filter(
-    (onglet) => estAutorise(onglet.acces, sujet) && moduleActif(onglet.module, sujet?.modulesActifs),
+    (onglet) =>
+      estAutorise(onglet.acces, sujet) && moduleActif(onglet.module, sujet?.modulesActifs),
   );
 }
 

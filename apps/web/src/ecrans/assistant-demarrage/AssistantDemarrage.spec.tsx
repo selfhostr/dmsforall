@@ -200,7 +200,7 @@ describe('AssistantDemarrage', () => {
 
     await remplirGarage();
     await userEvent.click(await enregistrer());
-
+    await passerModules();
     await titreEtape('paiements');
     expect(ecrit(appels, 'PATCH', '/parametres-facturation/creancier')[0]?.corps).toEqual({
       nom: 'Garage Test SA',
@@ -221,6 +221,7 @@ describe('AssistantDemarrage', () => {
     await userEvent.type(raison, '  Garage du Lac Sàrl ');
     await remplirGarage();
     await userEvent.click(await enregistrer());
+    await passerModules();
     await titreEtape('paiements');
     expect(ecrit(appels, 'PATCH', '/parametres-entreprise')[0]?.corps).toEqual({
       raisonSociale: 'Garage du Lac Sàrl',
@@ -388,18 +389,29 @@ describe('AssistantDemarrage', () => {
     await titreEtape('modules');
 
     // Tout est activé au départ.
-    const atelier = await screen.findByRole('switch', { name: t('parametrage:modules.items.atelier.nom') });
+    const atelier = await screen.findByRole('switch', {
+      name: t('parametrage:modules.items.atelier.nom'),
+    });
     expect(atelier).toBeChecked();
     expect(
-      screen.getByText(t('parametrage:modules.retireAussi', {
-        modules: [t('parametrage:modules.items.pointage.nom'), t('parametrage:modules.items.tablettes.nom')].join(', '),
-      })),
+      screen.getByText(
+        t('parametrage:modules.retireAussi', {
+          modules: [
+            t('parametrage:modules.items.pointage.nom'),
+            t('parametrage:modules.items.tablettes.nom'),
+          ].join(', '),
+        }),
+      ),
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('switch', { name: t('parametrage:modules.items.pneus.nom') }));
+    await userEvent.click(
+      screen.getByRole('switch', { name: t('parametrage:modules.items.pneus.nom') }),
+    );
     await userEvent.click(atelier);
     // Atelier retiré : pointage et tablettes sont bloqués, la dépendance est écrite sur la ligne.
-    expect(screen.getByRole('switch', { name: t('parametrage:modules.items.pointage.nom') })).toBeDisabled();
+    expect(
+      screen.getByRole('switch', { name: t('parametrage:modules.items.pointage.nom') }),
+    ).toBeDisabled();
     await userEvent.click(await enregistrer());
     await titreEtape('paiements');
     expect(ecrit(appels, 'PATCH', '/parametres-entreprise/modules')[0]?.corps).toEqual({

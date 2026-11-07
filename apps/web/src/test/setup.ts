@@ -43,6 +43,21 @@ global.ResizeObserver = class {
   disconnect() {}
 } as unknown as typeof ResizeObserver;
 
+// `PointerEvent`, absent de jsdom : Base UI (l'interrupteur `components/ui/switch.tsx`) le construit
+// au clic. Une MouseEvent portant les mêmes champs suffit aux specs ; rien d'autre ne dépend de
+// ses attributs propres (pression, inclinaison).
+if (typeof window.PointerEvent === 'undefined') {
+  window.PointerEvent = class PointerEvent extends MouseEvent {
+    readonly pointerId: number;
+    readonly pointerType: string;
+    constructor(type: string, init: PointerEventInit = {}) {
+      super(type, init);
+      this.pointerId = init.pointerId ?? 1;
+      this.pointerType = init.pointerType ?? 'mouse';
+    }
+  } as unknown as typeof PointerEvent;
+}
+
 beforeAll(() => {
   server.listen({ onUnhandledRequest: 'error' });
   // Normalise `GET /auth/moi` : voir `normaliserSessionDeTest` (session dérivée par changement de rôle).

@@ -2859,6 +2859,30 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/parametres-entreprise/modules': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Modules retirés et modules actifs du garage.
+     * @description `modulesDesactives` : le choix du garage. `modulesActifs` : ce qui fonctionne réellement (pointage dépend de atelier, tablettes de pointage). Les mêmes `modulesActifs` sont dans `GET /auth/moi`.
+     */
+    get: operations['ModulesController_obtenir'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Remplace la liste des modules retirés par le garage.
+     * @description `modulesDesactives` est la liste COMPLÈTE des modules retirés (`[]` : tout est actif). Les écritures d’un module retiré, ou dont une dépendance est retirée, répondent ensuite `403 MODULE_DESACTIVE` ; les lectures restent possibles. Aucune donnée n’est supprimée : réactiver restaure tout. Le changement est journalisé (avant/après).
+     */
+    patch: operations['ModulesController_modifier'];
+    trace?: never;
+  };
   '/parametres-facturation/creancier': {
     parameters: {
       query?: never;
@@ -6993,7 +7017,8 @@ export interface components {
         | 'AUTH_JETON_REINITIALISATION_INVALIDE'
         | 'FACTURE_DESTINATAIRE_COURRIEL_ABSENT'
         | 'TVA_NON_ASSUJETTI_TAUX_INTERDIT'
-        | 'TVA_NUMERO_REQUIS';
+        | 'TVA_NUMERO_REQUIS'
+        | 'MODULE_DESACTIVE';
       /** @description Détail technique — jamais affiché à l'utilisateur final. */
       detail?: string;
       erreurs?: components['schemas']['ErreurChampCommunDto'][];
@@ -7137,7 +7162,8 @@ export interface components {
         | 'AUTH_JETON_REINITIALISATION_INVALIDE'
         | 'FACTURE_DESTINATAIRE_COURRIEL_ABSENT'
         | 'TVA_NON_ASSUJETTI_TAUX_INTERDIT'
-        | 'TVA_NUMERO_REQUIS';
+        | 'TVA_NUMERO_REQUIS'
+        | 'MODULE_DESACTIVE';
       detail?: string;
       erreurs?: components['schemas']['ErreurChampDto'][];
       instance: string;
@@ -8048,6 +8074,39 @@ export interface components {
     };
     ReponseModelesVehiculesChDto: {
       modeles: components['schemas']['ModeleVehiculeChDto'][];
+    };
+    ReponseModulesDto: {
+      /** @description Modules effectivement actifs (choix du garage et dépendances). Les écritures des autres répondent `403 MODULE_DESACTIVE`. */
+      modulesActifs: (
+        | 'atelier'
+        | 'planning'
+        | 'pointage'
+        | 'tablettes'
+        | 'pieces'
+        | 'ventes'
+        | 'pneus'
+        | 'courtoisie'
+        | 'relances'
+        | 'export_fiduciaire'
+      )[];
+      /**
+       * @description Modules retirés par le garage (son choix). Un module dont une dépendance est retirée est inactif sans figurer ici.
+       * @example [
+       *       "pneus"
+       *     ]
+       */
+      modulesDesactives: (
+        | 'atelier'
+        | 'planning'
+        | 'pointage'
+        | 'tablettes'
+        | 'pieces'
+        | 'ventes'
+        | 'pneus'
+        | 'courtoisie'
+        | 'relances'
+        | 'export_fiduciaire'
+      )[];
     };
     ReponseMotifRendezVousDto: {
       actif: boolean;
@@ -9039,6 +9098,19 @@ export interface components {
       capacites: components['schemas']['CapacitesPersonneDto'];
       /** Format: date-time */
       expireLe: string;
+      /** @description Modules effectivement actifs pour le garage (Réglages > Modules). Le front masque menus, routes et raccourcis des autres ; le serveur refuse leurs écritures (`MODULE_DESACTIVE`). */
+      modulesActifs: (
+        | 'atelier'
+        | 'planning'
+        | 'pointage'
+        | 'tablettes'
+        | 'pieces'
+        | 'ventes'
+        | 'pneus'
+        | 'courtoisie'
+        | 'relances'
+        | 'export_fiduciaire'
+      )[];
       /** Format: uuid */
       siteRattachementId: string | null;
       sites: components['schemas']['SiteResumeDto'][];
@@ -22104,6 +22176,106 @@ export interface operations {
         };
       };
       /** @description DROIT_INSUFFISANT — réservé à direction/comptable. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  ModulesController_obtenir: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseModulesDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description DROIT_INSUFFISANT. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  ModulesController_modifier: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          modulesDesactives: (
+            | 'atelier'
+            | 'planning'
+            | 'pointage'
+            | 'tablettes'
+            | 'pieces'
+            | 'ventes'
+            | 'pneus'
+            | 'courtoisie'
+            | 'relances'
+            | 'export_fiduciaire'
+          )[];
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseModulesDto'];
+        };
+      };
+      /** @description VALIDATION_ECHOUEE — module inconnu. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description DROIT_INSUFFISANT. */
       403: {
         headers: {
           [name: string]: unknown;

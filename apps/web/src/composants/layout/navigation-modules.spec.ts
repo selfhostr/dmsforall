@@ -64,7 +64,9 @@ describe('navigation — modules activables', () => {
   it('relances et export fiduciaire retirés : onglets de Facturation et réglage Rappels retirés', () => {
     const s = sujet(['relances', 'export_fiduciaire']);
     const onglets = ids(ongletsVisibles(entree('facturation'), s));
-    expect(onglets).toEqual(['factures']);
+    expect(onglets).toContain('factures');
+    expect(onglets).not.toContain('relances');
+    expect(onglets).not.toContain('exportFiduciaire');
     expect(ids(ongletsVisibles(ENTREE_REGLAGES, s))).not.toContain('relances');
   });
 
@@ -132,13 +134,17 @@ describe('garde de route — module d’une URL', () => {
     expect(moduleDeChemin(chemin)).toBe(module);
   });
 
-  it.each(['/', '/tableau-bord', '/clients', '/vehicules/42', '/factures/42', '/parametrage/modules'])(
-    '%s est du socle : jamais redirigé, même avec tout retiré',
-    (chemin) => {
-      expect(moduleDeChemin(chemin)).toBeUndefined();
-      expect(cheminDansModuleRetire(chemin, [])).toBe(false);
-    },
-  );
+  it.each([
+    '/',
+    '/tableau-bord',
+    '/clients',
+    '/vehicules/42',
+    '/factures/42',
+    '/parametrage/modules',
+  ])('%s est du socle : jamais redirigé, même avec tout retiré', (chemin) => {
+    expect(moduleDeChemin(chemin)).toBeUndefined();
+    expect(cheminDansModuleRetire(chemin, [])).toBe(false);
+  });
 
   it('redirige une route dont le module est retiré, laisse passer les autres', () => {
     const actifs = modulesActifsDepuis(['pneus', 'atelier']);

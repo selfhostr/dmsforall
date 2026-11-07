@@ -14,7 +14,9 @@ import {
 describe('modules activables', () => {
   it('le socle n’est jamais désactivable', () => {
     for (const s of MODULES_SOCLE) expect(MODULES_APP).not.toContain(s);
-    expect(schemaModificationModules.safeParse({ modulesDesactives: ['facturation'] }).success).toBe(false);
+    expect(
+      schemaModificationModules.safeParse({ modulesDesactives: ['facturation'] }).success,
+    ).toBe(false);
   });
 
   it('aucune dépendance ne pointe vers un module inconnu ni vers lui-même (pas de cycle)', () => {
@@ -48,11 +50,16 @@ describe('modules activables', () => {
   });
 
   it('normalise : sans doublon, dans l’ordre du contrat', () => {
-    expect(normaliserModulesDesactives(['ventes', 'atelier', 'ventes'])).toEqual(['atelier', 'ventes']);
+    expect(normaliserModulesDesactives(['ventes', 'atelier', 'ventes'])).toEqual([
+      'atelier',
+      'ventes',
+    ]);
   });
 
   it('refuse un module inconnu', () => {
-    expect(schemaModificationModules.safeParse({ modulesDesactives: ['inconnu'] }).success).toBe(false);
+    expect(schemaModificationModules.safeParse({ modulesDesactives: ['inconnu'] }).success).toBe(
+      false,
+    );
     expect(schemaModificationModules.safeParse({ modulesDesactives: [] }).success).toBe(true);
   });
 });

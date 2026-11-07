@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { MODULES_APP, modulesActifsDepuis, type ModuleApp, type ReponseEtatDemarrage } from '@dfa/shared';
+import {
+  MODULES_APP,
+  modulesActifsDepuis,
+  type ModuleApp,
+  type ReponseEtatDemarrage,
+} from '@dfa/shared';
 
 import { calculerEtapesDemarrage, demarrageComplet } from './etapes-demarrage';
 
@@ -109,4 +114,3 @@ describe('calculerEtapesDemarrage — modules retirés', () => {
     expect(demarrageComplet(etapes)).toBe(true);
   });
 });
-

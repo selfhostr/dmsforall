@@ -3,7 +3,11 @@ import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/r
 import { clesQuery } from '@/api/cles';
 
 import { clesParametrage } from './cles';
-import { modifierModules, type EntreeModificationModules, type ReponseModules } from './modules.api';
+import {
+  modifierModules,
+  type EntreeModificationModules,
+  type ReponseModules,
+} from './modules.api';
 
 /**
  * Enregistre les modules retirés. La session est invalidée : menus, routes et raccourcis lisent

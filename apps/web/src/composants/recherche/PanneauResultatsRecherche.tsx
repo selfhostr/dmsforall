@@ -88,13 +88,10 @@ export function PanneauResultatsRecherche({
   );
   const vehicules = resultatsVisibles.filter((resultat) => resultat.type === 'vehicule');
   const clients = resultatsVisibles.filter((resultat) => resultat.type === 'client');
-  const ordres =
-    resultatsVisibles.filter((resultat) => resultat.type === 'ordre_reparation');
-  const documents =
-    resultatsVisibles.filter((resultat) => resultat.type === 'document_vente');
+  const ordres = resultatsVisibles.filter((resultat) => resultat.type === 'ordre_reparation');
+  const documents = resultatsVisibles.filter((resultat) => resultat.type === 'document_vente');
   const articles = resultatsVisibles.filter((resultat) => resultat.type === 'article');
-  const fournisseurs =
-    resultatsVisibles.filter((resultat) => resultat.type === 'fournisseur');
+  const fournisseurs = resultatsVisibles.filter((resultat) => resultat.type === 'fournisseur');
   const depotsPneus = resultatsVisibles.filter((resultat) => resultat.type === 'depot_pneu');
   const plaqueInterchangeable = reponse?.plaqueInterchangeable === true;
   const aucunResultat = reponse !== null && resultatsVisibles.length === 0;

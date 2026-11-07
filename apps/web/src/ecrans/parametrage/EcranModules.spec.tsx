@@ -74,7 +74,9 @@ describe('EcranModules', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        t('parametrage:modules.retireAussi', { modules: `${nom('pointage')}, ${nom('tablettes')}` }),
+        t('parametrage:modules.retireAussi', {
+          modules: `${nom('pointage')}, ${nom('tablettes')}`,
+        }),
       ),
     ).toBeInTheDocument();
   });
@@ -91,7 +93,9 @@ describe('EcranModules', () => {
     const ecritures = simuler();
     rendre();
     await userEvent.click(await screen.findByRole('switch', { name: nom('atelier') }));
-    await waitFor(() => expect(screen.getByRole('switch', { name: nom('pointage') })).toBeDisabled());
+    await waitFor(() =>
+      expect(screen.getByRole('switch', { name: nom('pointage') })).toBeDisabled(),
+    );
     expect(screen.getByRole('switch', { name: nom('tablettes') })).toBeDisabled();
     expect(screen.getByRole('switch', { name: nom('pointage') })).not.toBeChecked();
     expect(
@@ -100,7 +104,9 @@ describe('EcranModules', () => {
 
     await userEvent.click(screen.getByRole('switch', { name: nom('atelier') }));
     await waitFor(() => expect(ecritures.at(-1)).toEqual({ modulesDesactives: [] }));
-    await waitFor(() => expect(screen.getByRole('switch', { name: nom('pointage') })).toBeChecked());
+    await waitFor(() =>
+      expect(screen.getByRole('switch', { name: nom('pointage') })).toBeChecked(),
+    );
   });
 
   it('erreur de chargement : message et bouton Réessayer', async () => {
