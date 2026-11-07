@@ -702,7 +702,7 @@ describe('ServiceOr.lister — recherche q (numéro OR / plaque courante / nom c
       expect(where).toContain('"ordre_reparation"."client_id" in (select "id" from "client"');
       expect(where).toContain('public.normaliser_recherche(coalesce("client"."raison_sociale"');
       // La recherche par nom accepte « Nom Prénom » ET « Prénom Nom » (deux comparaisons).
-      expect(where).toContain("concat_ws(' ', \"client\".\"prenom\", \"client\".\"nom\")");
+      expect(where).toContain('concat_ws(\' \', "client"."prenom", "client"."nom")');
       // Les trois branches portent LE MÊME motif fragment, jamais un motif tronqué ou réécrit
       // (numéro, plaque, nom « nom prénom », nom « prénom nom » = 4 occurrences).
       expect(params.filter((p) => p === '%445566%')).toHaveLength(4);
