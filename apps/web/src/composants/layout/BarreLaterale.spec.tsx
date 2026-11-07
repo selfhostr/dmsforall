@@ -144,7 +144,7 @@ describe('BarreLaterale — les six entrées', () => {
     await screen.findByRole('link', { name: /^pièces$/i });
 
     expect(libellesDesEntrees()).toEqual([
-      "Tableau de bord",
+      'Tableau de bord',
       'Atelier',
       'Clients & véhicules',
       'Pièces',
@@ -162,7 +162,7 @@ describe('BarreLaterale — les six entrées', () => {
     // Atelier reste avant Clients & véhicules, qui reste avant Pièces : l'ordre est absolu, pas
     // relatif au rôle. Ventes apparaît : la grille (Pièces : Faire) ouvre `ventes.dossier.lire`.
     expect(libellesDesEntrees()).toEqual([
-      "Tableau de bord",
+      'Tableau de bord',
       'Atelier',
       'Clients & véhicules',
       'Pièces',
@@ -426,7 +426,7 @@ describe('BarreLaterale — masquage par rôle', () => {
       '/factures',
     );
     expect(libellesDesEntrees()).toEqual([
-      "Tableau de bord",
+      'Tableau de bord',
       'Atelier',
       'Clients & véhicules',
       'Pièces',
@@ -521,7 +521,7 @@ describe('BarreLaterale — repli desktop', () => {
     await screen.findByRole('link', { name: /^pièces$/i });
 
     expect(libellesDesEntrees()).toEqual([
-      "Tableau de bord",
+      'Tableau de bord',
       'Atelier',
       'Clients & véhicules',
       'Pièces',
