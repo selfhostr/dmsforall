@@ -2,6 +2,7 @@ import type { ResultatRecherche, TypeDocumentVente } from '@dfa/shared';
 import { TYPES_DOCUMENT_VENTE } from '@dfa/shared';
 
 import { BadgeTypeDocument } from '@/ecrans/facturation/BadgeTypeDocument';
+import { formaterDate } from '@/lib/formats';
 
 import { texteResume } from './resume';
 
@@ -38,7 +39,7 @@ export function ResultatDocumentVente({ resultat }: ProprietesResultatDocumentVe
       {estTypeDocumentVente(type) ? <BadgeTypeDocument type={type} /> : null}
       {clientNom ? <span className="texte-libelle text-muted-foreground">{clientNom}</span> : null}
       {dateDocument ? (
-        <span className="texte-libelle text-muted-foreground">{dateDocument}</span>
+        <span className="texte-libelle text-muted-foreground">{formaterDate(dateDocument)}</span>
       ) : null}
     </div>
   );
