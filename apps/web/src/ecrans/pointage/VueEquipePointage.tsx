@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import type { ReponsePointage } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -27,6 +26,7 @@ import {
 import { useListePointages } from '@/hooks/pointage/useListePointages';
 import { formaterHeure } from '@/lib/formats';
 
+import { BadgeAnomaliePointage, BadgeStatutPointage } from './BadgeStatutPointage';
 import { DialogueCloturePeriode } from './DialogueCloturePeriode';
 import { DialogueCorrectionPointage } from './DialogueCorrectionPointage';
 import { peutCorrigerPointage, peutVerrouillerPeriode } from './droits';
@@ -220,13 +220,11 @@ export function VueEquipePointage({ siteId, actions }: Props) {
                   : ''}
               </td>
               <td className="p-3">
-                <Badge variant={pointage.statut === 'en_cours' ? 'secondary' : 'outline'}>
-                  {t(`pointage:statuts.${pointage.statut}`)}
-                </Badge>
+                <BadgeStatutPointage statut={pointage.statut} />
                 {pointage.anomalie && pointage.anomalie.traiteeLe === null ? (
-                  <Badge variant="destructive" className="ml-1">
+                  <BadgeAnomaliePointage className="ml-1">
                     {t('pointage:anomalies.corriger')}
-                  </Badge>
+                  </BadgeAnomaliePointage>
                 ) : null}
               </td>
               <td className="p-3">

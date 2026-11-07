@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { useModifierBlocCreancier } from '@/hooks/parametrage/useModifierBlocCreancier';
 import { useParametresEntreprise } from '@/hooks/parametrage/useParametresEntreprise';
 import type {
@@ -269,21 +270,18 @@ export function SectionComptesBancaires({
           <ChampCompte
             id="bc-qr-iban"
             libelle={t('parametrage:creancier.comptes.qrIban')}
-            aide={t('parametrage:creancier.comptes.qrIbanAide')}
+            aide={
+              <AideContextuelle
+                sujet={t('parametrage:creancier.comptes.qrIban')}
+                texte={t('aide:parametrage.qrIban')}
+              />
+            }
             lectureSeule={lectureSeule}
             register={form.register('qrIban')}
             erreur={erreurPourChamp('qrIban')}
             t={t}
           />
 
-          <details className="texte-corps">
-            <summary className="cursor-pointer font-medium text-foreground">
-              {t('parametrage:creancier.comptes.difference')}
-            </summary>
-            <p className="mt-2 text-muted-foreground">
-              {t('parametrage:creancier.comptes.explication')}
-            </p>
-          </details>
         </fieldset>
       </CardContent>
     </Card>
@@ -311,7 +309,7 @@ function ElementCompletude({ ok, texte }: { readonly ok: boolean; readonly texte
 interface PropsChampCompte {
   readonly id: string;
   readonly libelle: string;
-  readonly aide?: string;
+  readonly aide?: ReactNode;
   readonly lectureSeule: boolean;
   readonly register: UseFormRegisterReturn;
   readonly erreur: { readonly code: string } | undefined;
@@ -328,7 +326,10 @@ function ChampCompte({ id, libelle, aide, lectureSeule, register, erreur, t }: P
   const idErreur = `${id}-erreur`;
   return (
     <div className="space-y-2">
-      <Label htmlFor={id}>{libelle}</Label>
+      <div className="flex items-center gap-1.5">
+        <Label htmlFor={id}>{libelle}</Label>
+        {aide}
+      </div>
       <Input
         id={id}
         maxLength={34}
@@ -337,7 +338,6 @@ function ChampCompte({ id, libelle, aide, lectureSeule, register, erreur, t }: P
         aria-describedby={erreur ? idErreur : undefined}
         {...register}
       />
-      {aide ? <p className="texte-corps text-muted-foreground">{aide}</p> : null}
       {erreur ? (
         <p id={idErreur} className="texte-corps text-destructive" role="alert">
           {t(`erreurs:codes.${erreur.code}`, {

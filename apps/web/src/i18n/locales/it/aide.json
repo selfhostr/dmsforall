@@ -38,5 +38,16 @@
   },
   "ventes": {
     "reprise": "Permuta: il veicolo del cliente che Lei ritira in deduzione dal prezzo del veicolo venduto. Il suo valore viene sottratto dal totale della vendita."
+  },
+  "parametrage": {
+    "methodePrixAchat": "Come viene ricalcolato il prezzo d'acquisto di un articolo a ogni ricezione di merce.",
+    "seuilAjustement": "Una rettifica di inventario superiore a questo importo richiede una conferma.",
+    "delaiConsigne": "Numero di giorni dopo i quali una cauzione non restituita resta all'autofficina.",
+    "raisonSociale": "Questo nome compare sulle fatture e sui documenti. Quelli già emessi mantengono il vecchio nome.",
+    "assujetti": "Sotto i CHF 100'000 di cifra d'affari annua può non essere soggetto all'IVA.",
+    "delaiPaiement": "Applicato ai clienti senza condizione di pagamento propria. Da 0 a 365 giorni.",
+    "plafondDefaut": "Oltre questo importo il cliente deve confermare prima dei lavori. Vuoto: nessun limite.",
+    "qrIban": "Il suo IBAN è il conto abituale. Il QR-IBAN è un conto speciale della banca per le fatture QR (inizia con CH e la 5a cifra è 3). Con un QR-IBAN ogni fattura riporta un riferimento QR. Non inserire mai l'uno nel campo dell'altro: la banca rifiuterebbe la polizza.",
+    "motifsRdv": "I motivi scelti alla presa di appuntamento (tagliando, pneumatici, collaudo MFK…). MFK: controllo tecnico ufficiale del veicolo. Tenga attivo almeno un motivo."
   }
 }

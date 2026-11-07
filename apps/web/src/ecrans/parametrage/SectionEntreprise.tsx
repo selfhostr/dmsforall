@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import type { ReponseParametresEntreprise } from '@/hooks/parametrage/entreprise.api';
@@ -98,14 +99,16 @@ function FormulaireEntreprise({ donnees }: { readonly donnees: ReponseParametres
           <CardTitle className="texte-titre-section">{t('parametrage:entreprise.titre')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="texte-corps text-muted-foreground">
-            {t('parametrage:entreprise.explication')}
-          </p>
-
           <div className="space-y-2">
-            <Label htmlFor="ent-raison-sociale" requis>
-              {t('parametrage:entreprise.raisonSociale')}
-            </Label>
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="ent-raison-sociale" requis>
+                {t('parametrage:entreprise.raisonSociale')}
+              </Label>
+              <AideContextuelle
+                sujet={t('parametrage:entreprise.raisonSociale')}
+                texte={t('aide:parametrage.raisonSociale')}
+              />
+            </div>
             <Input
               id="ent-raison-sociale"
               maxLength={LONGUEUR_MAX_RAISON_SOCIALE}
@@ -114,18 +117,13 @@ function FormulaireEntreprise({ donnees }: { readonly donnees: ReponseParametres
               readOnly={modifier.isPending}
               aria-required="true"
               aria-invalid={raisonInvalide ? true : undefined}
-              aria-describedby={
-                raisonInvalide ? 'ent-raison-aide ent-raison-erreur' : 'ent-raison-aide'
-              }
+              aria-describedby={raisonInvalide ? 'ent-raison-erreur' : undefined}
               onChange={(e) => {
                 setRaison(e.target.value);
                 setRaisonInvalide(false);
                 setEnregistre(false);
               }}
             />
-            <p id="ent-raison-aide" className="texte-corps text-muted-foreground">
-              {t('parametrage:entreprise.raisonSocialeAide')}
-            </p>
             {raisonInvalide ? (
               <p id="ent-raison-erreur" className="texte-corps text-destructive" role="alert">
                 {t('parametrage:entreprise.erreurRaison')}
@@ -135,7 +133,13 @@ function FormulaireEntreprise({ donnees }: { readonly donnees: ReponseParametres
 
           <fieldset className="space-y-2" aria-describedby="ent-assujetti-aide">
             <legend className="texte-libelle">
-              {t('parametrage:entreprise.assujetti.legende')}
+              <span className="inline-flex items-center gap-1.5">
+                {t('parametrage:entreprise.assujetti.legende')}
+                <AideContextuelle
+                  sujet={t('parametrage:entreprise.assujetti.legende')}
+                  texte={t('aide:parametrage.assujetti')}
+                />
+              </span>
             </legend>
             <div className="flex gap-6 texte-corps">
               {([true, false] as const).map((valeur) => (
@@ -160,11 +164,11 @@ function FormulaireEntreprise({ donnees }: { readonly donnees: ReponseParametres
                 </label>
               ))}
             </div>
-            <p id="ent-assujetti-aide" className="texte-corps text-muted-foreground">
-              {assujetti
-                ? t('parametrage:entreprise.assujetti.aide')
-                : t('parametrage:entreprise.assujetti.nonInfo')}
-            </p>
+            {assujetti ? null : (
+              <p id="ent-assujetti-aide" className="texte-corps text-muted-foreground">
+                {t('parametrage:entreprise.assujetti.nonInfo')}
+              </p>
+            )}
           </fieldset>
 
           {assujetti ? (
@@ -178,18 +182,20 @@ function FormulaireEntreprise({ donnees }: { readonly donnees: ReponseParametres
                 value={saisie}
                 readOnly={modifier.isPending}
                 aria-invalid={raisonErreur ? true : undefined}
-                aria-describedby={raisonErreur ? 'ent-tva-aide ent-tva-erreur' : 'ent-tva-aide'}
+                aria-describedby={
+                  raisonErreur ? 'ent-tva-erreur' : saisie.trim() === '' ? 'ent-tva-aide' : undefined
+                }
                 onChange={(e) => {
                   setSaisie(e.target.value);
                   setRaisonErreur(undefined);
                   setEnregistre(false);
                 }}
               />
-              <p id="ent-tva-aide" className="texte-corps text-muted-foreground">
-                {saisie.trim() === ''
-                  ? t('parametrage:entreprise.assujetti.ouiSansNumero')
-                  : t('parametrage:entreprise.numeroTvaAide')}
-              </p>
+              {saisie.trim() === '' ? (
+                <p id="ent-tva-aide" className="texte-corps text-muted-foreground">
+                  {t('parametrage:entreprise.assujetti.ouiSansNumero')}
+                </p>
+              ) : null}
               {raisonErreur ? (
                 <p id="ent-tva-erreur" className="texte-corps text-destructive" role="alert">
                   {t(`parametrage:entreprise.erreurTva.${raisonErreur}`)}
@@ -199,7 +205,13 @@ function FormulaireEntreprise({ donnees }: { readonly donnees: ReponseParametres
           ) : null}
 
           <div className="space-y-2">
-            <Label htmlFor="ent-delai">{t('parametrage:entreprise.delaiPaiement')}</Label>
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="ent-delai">{t('parametrage:entreprise.delaiPaiement')}</Label>
+              <AideContextuelle
+                sujet={t('parametrage:entreprise.delaiPaiement')}
+                texte={t('aide:parametrage.delaiPaiement')}
+              />
+            </div>
             <Input
               id="ent-delai"
               className="max-w-32"
@@ -211,18 +223,13 @@ function FormulaireEntreprise({ donnees }: { readonly donnees: ReponseParametres
               value={delai}
               readOnly={modifier.isPending}
               aria-invalid={delaiInvalide ? true : undefined}
-              aria-describedby={
-                delaiInvalide ? 'ent-delai-aide ent-delai-erreur' : 'ent-delai-aide'
-              }
+              aria-describedby={delaiInvalide ? 'ent-delai-erreur' : undefined}
               onChange={(e) => {
                 setDelai(e.target.value);
                 setDelaiInvalide(false);
                 setEnregistre(false);
               }}
             />
-            <p id="ent-delai-aide" className="texte-corps text-muted-foreground">
-              {t('parametrage:entreprise.delaiPaiementAide')}
-            </p>
             {delaiInvalide ? (
               <p id="ent-delai-erreur" className="texte-corps text-destructive" role="alert">
                 {t('parametrage:entreprise.erreurDelai')}

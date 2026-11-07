@@ -21,13 +21,10 @@
     },
     "comptes": {
       "titre": "Comptes bancaires",
-      "explication": "Un QR-IBAN (compte auprès d'un institut réservé aux QR-factures) exige une référence QR sur chaque facture. Un IBAN ordinaire n'accepte qu'une référence SCOR ou aucune référence. Ce sont deux comptes distincts : ne saisissez jamais l'un dans le champ de l'autre, sous peine de bulletins refusés par la banque.",
       "iban": "IBAN (compte ordinaire)",
       "qrIban": "QR-IBAN",
-      "qrIbanAide": "Compte réservé aux QR-factures (identifiant d'institut financier entre 30000 et 31999).",
       "groupe": "Compte bancaire",
-      "groupeAide": "Au moins un des deux comptes est obligatoire.",
-      "difference": "Quelle différence entre les deux ?"
+      "groupeAide": "Au moins un des deux comptes est obligatoire."
     },
     "completude": {
       "titre": "Pour pouvoir émettre une facture avec bulletin QR",
@@ -143,8 +140,7 @@
       "titre": "Réception du véhicule",
       "kmEntreeObligatoire": "Kilométrage d'entrée obligatoire",
       "kmSortieObligatoire": "Kilométrage de sortie obligatoire",
-      "plafondDefautCentimes": "Accord du client requis au-delà de",
-      "plafondDefautAide": "Au-delà de ce montant, le client doit confirmer avant les travaux. Laissez vide pour ne fixer aucune limite."
+      "plafondDefautCentimes": "Accord du client requis au-delà de"
     },
     "travaux": {
       "titre": "Travaux",
@@ -226,7 +222,6 @@
     "valorisation": {
       "titre": "Prix d'achat et inventaire",
       "methodePrixAchat": "Calcul du prix d'achat",
-      "methodePrixAchatAide": "Détermine comment le prix d'achat affiché sur un article est recalculé après chaque réception. Reste non réglée tant qu'aucune méthode n'a été arbitrée.",
       "methodePrixAchatValeurs": {
         "aucune": "Non réglée",
         "dernier_prix": "Dernier prix connu",
@@ -234,13 +229,11 @@
       }
     },
     "inventaire": {
-      "seuilValeurAjustementSignificatif": "Seuil d'alerte pour un ajustement significatif",
-      "seuilValeurAjustementSignificatifAide": "Un ajustement d'inventaire dont la valeur dépasse ce montant déclenche un avertissement au moment de la saisie. Laissez vide tant qu'aucun seuil n'est arbitré."
+      "seuilValeurAjustementSignificatif": "Seuil d'alerte pour un ajustement significatif"
     },
     "consigne": {
       "titre": "Consigne d'échange standard",
       "delaiAcquisitionJours": "Délai avant proposition d'acquisition (jours)",
-      "delaiAcquisitionJoursAide": "Laissez vide tant qu'aucun délai n'est arbitré : aucune consigne n'est proposée comme acquise automatiquement.",
       "tauxTva": "Taux de TVA appliqué à la consigne"
     }
   },
@@ -366,17 +359,13 @@
   },
   "entreprise": {
     "titre": "Entreprise",
-    "explication": "Ces informations identifient votre garage sur les factures.",
     "raisonSociale": "Nom du garage (raison sociale)",
     "erreurRaison": "Indiquez le nom du garage.",
-    "raisonSocialeAide": "Ce nom apparaît sur vos documents et factures. Les documents déjà émis gardent l'ancien nom.",
     "numeroTva": "Numéro de TVA",
-    "numeroTvaAide": "Format : CHE-123.456.789 TVA. Il figure sur vos factures.",
     "assujetti": {
       "legende": "Votre garage est-il assujetti à la TVA ?",
       "oui": "Oui",
       "non": "Non",
-      "aide": "En dessous de CHF 100'000 de chiffre d'affaires par an, vous pouvez ne pas l'être.",
       "ouiSansNumero": "Sans numéro de TVA, vous ne pourrez pas émettre de facture.",
       "nonInfo": "Vos factures et devis n'indiquent pas de TVA et portent la mention « Non assujetti à la TVA »."
     },
@@ -390,7 +379,6 @@
       "titre": "Impossible de charger les informations de l'entreprise"
     },
     "delaiPaiement": "Délai de paiement par défaut (jours)",
-    "delaiPaiementAide": "Appliqué aux factures des clients qui n’ont pas de condition de paiement propre. De 0 à 365 jours.",
     "erreurDelai": "Indiquez un nombre entier de jours, de 0 à 365.",
     "logo": {
       "titre": "Logo",
@@ -449,8 +437,7 @@
     },
     "erreur": {
       "titre": "Impossible de charger les motifs"
-    },
-    "auMoinsUn": "Au moins un motif actif."
+    }
   },
   "obligatoire": {
     "legende": "* obligatoire",

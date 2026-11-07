@@ -21,13 +21,10 @@
     },
     "comptes": {
       "titre": "Bankkonten",
-      "explication": "Ein QR-IBAN (Konto bei einem für QR-Rechnungen reservierten Institut) verlangt auf jeder Rechnung eine QR-Referenz. Ein gewöhnlicher IBAN akzeptiert nur eine SCOR-Referenz oder keine Referenz. Es handelt sich um zwei unterschiedliche Konten: nie das eine im Feld des anderen erfassen, sonst wird der Zahlteil von der Bank abgelehnt.",
       "iban": "IBAN (gewöhnliches Konto)",
       "qrIban": "QR-IBAN",
-      "qrIbanAide": "Für QR-Rechnungen reserviertes Konto (Institut-Identifikation zwischen 30000 und 31999).",
       "groupe": "Bankkonto",
-      "groupeAide": "Mindestens eines der beiden Konten ist erforderlich.",
-      "difference": "Was ist der Unterschied zwischen beiden?"
+      "groupeAide": "Mindestens eines der beiden Konten ist erforderlich."
     },
     "completude": {
       "titre": "Für die Ausstellung einer Rechnung mit QR-Zahlteil nötig",
@@ -143,8 +140,7 @@
       "titre": "Fahrzeugannahme",
       "kmEntreeObligatoire": "Kilometerstand bei Annahme obligatorisch",
       "kmSortieObligatoire": "Kilometerstand bei Abgabe obligatorisch",
-      "plafondDefautCentimes": "Freigabe des Kunden erforderlich ab",
-      "plafondDefautAide": "Ab diesem Betrag muss der Kunde vor den Arbeiten zustimmen. Leer lassen, um keine Grenze festzulegen."
+      "plafondDefautCentimes": "Freigabe des Kunden erforderlich ab"
     },
     "travaux": {
       "titre": "Arbeiten",
@@ -226,7 +222,6 @@
     "valorisation": {
       "titre": "Einkaufspreis und Inventur",
       "methodePrixAchat": "Berechnung des Einkaufspreises",
-      "methodePrixAchatAide": "Bestimmt, wie der auf einem Artikel angezeigte Einkaufspreis nach jedem Wareneingang neu berechnet wird. Bleibt unbestimmt, solange keine Methode festgelegt wurde.",
       "methodePrixAchatValeurs": {
         "aucune": "Nicht festgelegt",
         "dernier_prix": "Letzter bekannter Preis",
@@ -234,13 +229,11 @@
       }
     },
     "inventaire": {
-      "seuilValeurAjustementSignificatif": "Warnschwelle für eine bedeutende Korrektur",
-      "seuilValeurAjustementSignificatifAide": "Eine Bestandskorrektur, deren Wert diesen Betrag übersteigt, löst bei der Erfassung eine Warnung aus. Leer lassen, solange kein Schwellenwert festgelegt wurde."
+      "seuilValeurAjustementSignificatif": "Warnschwelle für eine bedeutende Korrektur"
     },
     "consigne": {
       "titre": "Austauschpfand",
       "delaiAcquisitionJours": "Frist vor Vorschlag zur Übernahme (Tage)",
-      "delaiAcquisitionJoursAide": "Leer lassen, solange keine Frist festgelegt wurde: kein Pfand wird automatisch als erworben vorgeschlagen.",
       "tauxTva": "Auf das Pfand angewendeter MWST-Satz"
     }
   },
@@ -366,17 +359,13 @@
   },
   "entreprise": {
     "titre": "Unternehmen",
-    "explication": "Diese Angaben identifizieren Ihre Garage auf den Rechnungen.",
     "raisonSociale": "Name der Garage (Firmenname)",
     "erreurRaison": "Geben Sie den Namen der Garage an.",
-    "raisonSocialeAide": "Dieser Name erscheint auf Ihren Dokumenten und Rechnungen. Bereits ausgestellte Dokumente behalten den alten Namen.",
     "numeroTva": "MWST-Nummer",
-    "numeroTvaAide": "Format: CHE-123.456.789 MWST. Sie erscheint auf Ihren Rechnungen.",
     "assujetti": {
       "legende": "Ist Ihre Garage mehrwertsteuerpflichtig?",
       "oui": "Ja",
       "non": "Nein",
-      "aide": "Unter CHF 100'000 Jahresumsatz müssen Sie nicht mehrwertsteuerpflichtig sein.",
       "ouiSansNumero": "Ohne MWST-Nummer können Sie keine Rechnung ausstellen.",
       "nonInfo": "Ihre Rechnungen und Offerten weisen keine MWST aus und tragen den Vermerk «Nicht mehrwertsteuerpflichtig»."
     },
@@ -390,7 +379,6 @@
       "titre": "Unternehmensdaten konnten nicht geladen werden"
     },
     "delaiPaiement": "Standard-Zahlungsfrist (Tage)",
-    "delaiPaiementAide": "Gilt für Rechnungen von Kunden ohne eigene Zahlungsbedingung. 0 bis 365 Tage.",
     "erreurDelai": "Geben Sie eine ganze Zahl von Tagen zwischen 0 und 365 an.",
     "logo": {
       "titre": "Logo",
@@ -449,8 +437,7 @@
     },
     "erreur": {
       "titre": "Termingründe konnten nicht geladen werden"
-    },
-    "auMoinsUn": "Mindestens ein aktiver Grund."
+    }
   },
   "obligatoire": {
     "legende": "* Pflichtfeld",
