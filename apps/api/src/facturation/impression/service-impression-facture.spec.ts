@@ -146,6 +146,7 @@ function accesBaseFake(
       localite: 'Sion',
     },
   ],
+  assujettiTva = true,
 ): AccesBase & { readonly misAJour: { cle: string; sha256: string }[] } {
   const misAJour: { cle: string; sha256: string }[] = [];
   return {
@@ -157,7 +158,9 @@ function accesBaseFake(
             where: () => ({
               limit: async () => {
                 if (table === tenant)
-                  return [{ raisonSociale: 'Garage Martin SA', numeroTva: numeroTvaTenant }];
+                  return [
+                    { raisonSociale: 'Garage Martin SA', numeroTva: numeroTvaTenant, assujettiTva },
+                  ];
                 if (table === site)
                   return [{ rue: 'Rue du Site', npa: '1000', localite: 'Lausanne' }];
                 return blocCreancier;
@@ -208,6 +211,7 @@ describe('ServiceImpressionFacture', () => {
         npa: '1950',
         localite: 'Sion',
         numeroTva: 'CHE-114.873.733 TVA',
+        nonAssujettiTva: false,
       },
       null, // pas de logo déposé
     );
@@ -252,6 +256,47 @@ describe('ServiceImpressionFacture', () => {
       npa: '1000',
       localite: 'Lausanne',
       numeroTva: 'CHE-114.873.733 TVA',
+      nonAssujettiTva: false,
+    });
+  });
+
+  describe('garage non assujetti à la TVA', () => {
+    function ligne(tauxTvaPourmille: number): ReponseDocumentVente['lignes'][number] {
+      return { tauxTvaPourmille } as unknown as ReponseDocumentVente['lignes'][number];
+    }
+
+    async function expediteurPour(
+      assujettiTva: boolean,
+      lignes: ReponseDocumentVente['lignes'],
+    ): Promise<unknown> {
+      const serviceDocuments = {
+        obtenirComplet: vi.fn().mockResolvedValue(documentFacture({ qr: null, lignes })),
+      } as unknown as ServiceDocumentsVente;
+      vi.mocked(genererPdfFacture).mockResolvedValue(Buffer.from('%PDF-f'));
+      const service = new ServiceImpressionFacture(
+        accesBaseFake(null, [], assujettiTva),
+        new StockagePdfMemoire(),
+        serviceDocuments,
+      );
+      await service.obtenirPdf(CTX, PRINCIPAL, 'doc-1');
+      return vi.mocked(genererPdfFacture).mock.calls.at(-1)?.[1];
+    }
+
+    it('non assujetti ET toutes les lignes à 0 ‰ : le PDF est rendu sans TVA', async () => {
+      expect(await expediteurPour(false, [ligne(0), ligne(0)])).toMatchObject({
+        nonAssujettiTva: true,
+        numeroTva: null,
+      });
+    });
+
+    it('non assujetti mais une ligne taxée (émise quand le garage était assujetti) : TVA conservée', async () => {
+      expect(await expediteurPour(false, [ligne(0), ligne(81)])).toMatchObject({
+        nonAssujettiTva: false,
+      });
+    });
+
+    it('assujetti, lignes à 0 ‰ : jamais de mention « non assujetti »', async () => {
+      expect(await expediteurPour(true, [ligne(0)])).toMatchObject({ nonAssujettiTva: false });
     });
   });
 

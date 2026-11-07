@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { LANGUES, type Langue, type TenantCourant } from '@dfa/shared';
+import {
+  LANGUES,
+  MODES_SIGNALEMENT,
+  type Langue,
+  type ModeSignalement,
+  type TenantCourant,
+} from '@dfa/shared';
 
 export class TenantCourantDto implements TenantCourant {
   @ApiProperty({ format: 'uuid' })
@@ -13,4 +19,7 @@ export class TenantCourantDto implements TenantCourant {
 
   @ApiProperty({ enum: LANGUES })
   readonly langueDefaut!: Langue;
+
+  @ApiProperty({ enum: MODES_SIGNALEMENT })
+  readonly modeSignalement!: ModeSignalement;
 }

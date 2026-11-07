@@ -550,10 +550,8 @@
       "surPlace": "Sul posto",
       "email": "E-mail"
     },
-    "horodatage": "Data e ora vengono registrate adesso.",
     "enregistrer": "Registra l'accordo",
     "action": "Accordo del cliente",
-    "description": "{count, plural, one {Il cliente ha dato l'accordo per # lavoro. Sarà convalidato.} other {Il cliente ha dato l'accordo per # lavori. Saranno convalidati.}}",
     "pourTous": "{count, plural, one {Accordo del cliente per il lavoro proposto} other {Accordo del cliente per i # lavori proposti}}"
   },
   "lignesEnAttente": {

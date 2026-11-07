@@ -60,7 +60,6 @@
   },
   "echeances": {
     "titre": "Échéances à venir",
-    "description": "Jeux de pneus sans mouvement depuis plus de deux ans, à relancer auprès du client.",
     "droitRequis": "Vous n'avez pas le droit de consulter le hangar à pneus.",
     "vide": {
       "titre": "Aucune échéance",

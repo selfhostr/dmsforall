@@ -73,9 +73,8 @@ export function ChampTempsCentiemes({
 
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
-      <Label htmlFor={idChamp}>
+      <Label htmlFor={idChamp} requis={obligatoire}>
         {label}
-        {obligatoire ? ' *' : ''}
       </Label>
       <div className="relative">
         <Input

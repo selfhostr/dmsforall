@@ -24,6 +24,7 @@ import {
   EcranParametrageAtelier,
   EcranChiffres,
   EcranExportFiduciaire,
+  EcranMonGarage,
   EcranParametresFacturation,
   EcranReferentiels,
   EcranSites,
@@ -314,6 +315,9 @@ export const routesConfig: RouteObject[] = [
       // sans gain de sécurité (le `403` serveur protège déjà la donnée réelle). Le masquage du lien
       // dans `BarreLaterale` (`ACCES_MENU_FINANCIER`) reste néanmoins posé, par confort.
       { path: 'parametrage/facturation', element: <EcranParametresFacturation /> },
+      // « Mon garage » : même absence volontaire de `rolesAutorises` que `parametrage/facturation`
+      // (l'adresse vient du même bloc créancier, `403` géré par l'écran lui-même).
+      { path: 'parametrage/garage', element: <EcranMonGarage /> },
       // Les trois routes ci-dessous (référentiels, atelier, sites) N'ONT PAS de `rolesAutorises` —
       // arbitrage du coordinateur (lot 2), qui a corrigé sa propre consigne initiale après lecture
       // de ce fichier : `parametrage.referentiel.lire`/`parametrage.atelier.lire` sont accordés à

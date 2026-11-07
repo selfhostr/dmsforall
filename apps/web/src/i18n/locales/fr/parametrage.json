@@ -1,14 +1,7 @@
 {
-  "titre": "Paramètres de facturation",
-  "monCompte": {
-    "titre": "Mon compte",
-    "langue": {
-      "description": "Cette langue ne concerne que votre compte, pas les autres utilisateurs du garage."
-    }
-  },
+  "titre": "Facturation et paiements",
   "creancier": {
     "titre": "Coordonnées bancaires du garage",
-    "description": "Ces coordonnées apparaissent sur le bulletin QR de chaque facture émise. Tant qu'elles ne sont pas complètes, aucune facture ne peut porter de QR-facture payable.",
     "nonConfigure": "Ces coordonnées n'ont encore jamais été saisies.",
     "identite": {
       "titre": "Identité",
@@ -20,7 +13,7 @@
     "adresse": {
       "titre": "Adresse",
       "rue": "Rue",
-      "numero": "Numéro",
+      "numero": "N°",
       "numeroAide": "Laissez ce champ vide si vous n'avez pas de numéro (case postale, lieu-dit). Attention : l'émission d'une facture avec bulletin QR l'exige — sans lui, l'émission restera bloquée tant qu'il ne sera pas complété.",
       "npa": "NPA",
       "localite": "Localité",
@@ -30,9 +23,11 @@
       "titre": "Comptes bancaires",
       "explication": "Un QR-IBAN (compte auprès d'un institut réservé aux QR-factures) exige une référence QR sur chaque facture. Un IBAN ordinaire n'accepte qu'une référence SCOR ou aucune référence. Ce sont deux comptes distincts : ne saisissez jamais l'un dans le champ de l'autre, sous peine de bulletins refusés par la banque.",
       "iban": "IBAN (compte ordinaire)",
-      "ibanAide": "Le compte courant habituel du garage — pas un QR-IBAN.",
       "qrIban": "QR-IBAN",
-      "qrIbanAide": "Compte réservé aux QR-factures (identifiant d'institut financier entre 30000 et 31999)."
+      "qrIbanAide": "Compte réservé aux QR-factures (identifiant d'institut financier entre 30000 et 31999).",
+      "groupe": "Compte bancaire",
+      "groupeAide": "Au moins un des deux comptes est obligatoire.",
+      "difference": "Quelle différence entre les deux ?"
     },
     "completude": {
       "titre": "Pour pouvoir émettre une facture avec bulletin QR",
@@ -56,11 +51,9 @@
   },
   "referentiels": {
     "titre": "Tarifs de l'atelier",
-    "introduction": "Les taux horaires et le catalogue de prestations servent à chiffrer chaque ligne d'un ordre de réparation. Sans un taux horaire ou une prestation valide, une ligne ne peut pas porter de prix.",
     "enCours": "en cours",
     "tauxHoraires": {
       "onglet": "Taux horaires",
-      "explication": "Un taux horaire est une période datée : le montant appliqué à une ligne d'OR est celui valide au jour du chiffrage. Deux périodes du même code ne peuvent jamais se chevaucher.",
       "nouveau": "Nouveau taux horaire",
       "modifier": "Modifier le taux horaire",
       "codeVerrouille": "Le code ne peut pas être modifié après création — il est repris sur les lignes d'OR déjà chiffrées.",
@@ -76,11 +69,11 @@
       "vide": {
         "titre": "Aucun taux horaire",
         "description": "Créez au moins un taux horaire pour pouvoir chiffrer une main d'œuvre au temps réel."
-      }
+      },
+      "auMoinsUn": "* Au moins un taux horaire."
     },
     "prestations": {
       "onglet": "Catalogue de prestations",
-      "explication": "Les prestations sont les forfaits, pièces et lignes standard proposés au comptoir. Un changement de prix ouvre une nouvelle période — les OR déjà chiffrés gardent leur prix d'origine.",
       "nouvelle": "Nouvelle prestation",
       "modifier": "Modifier la prestation",
       "codeVerrouille": "Le code ne peut pas être modifié après création.",
@@ -124,13 +117,13 @@
     }
   },
   "atelier": {
-    "titre": "Paramètres de l'atelier",
+    "titre": "Atelier et rendez-vous",
     "lectureSeule": "Ces réglages sont réservés au chef d'atelier et à la direction. Vous pouvez les consulter mais pas les modifier.",
     "enregistrementReussi": "Paramètres enregistrés.",
     "or": {
-      "titre": "Ordres de réparation",
-      "prefixe": "Préfixe des numéros d'OR",
-      "porteeNumerotation": "Numérotation",
+      "titre": "Ordres de réparation (OR)",
+      "prefixe": "Début des numéros d'OR",
+      "porteeNumerotation": "Séries de numéros",
       "porteeNumerotationValeurs": {
         "tenant": "Une série pour tout le garage",
         "site": "Une série par site"
@@ -147,12 +140,11 @@
       "rdvRetroactifAuto": "Rattacher automatiquement un rendez-vous passé à l'OR"
     },
     "reception": {
-      "titre": "Réception",
+      "titre": "Réception du véhicule",
       "kmEntreeObligatoire": "Kilométrage d'entrée obligatoire",
       "kmSortieObligatoire": "Kilométrage de sortie obligatoire",
-      "plafondDefautCentimes": "Plafond d'accord client par défaut",
-      "plafondDefautAide": "Au-delà de ce montant, un accord explicite du client est exigé avant toute validation payante. Laissez vide pour n'imposer aucun plafond.",
-      "signature": "Signature du client à la réception"
+      "plafondDefautCentimes": "Accord du client requis au-delà de",
+      "plafondDefautAide": "Au-delà de ce montant, le client doit confirmer avant les travaux. Laissez vide pour ne fixer aucune limite."
     },
     "travaux": {
       "titre": "Travaux",
@@ -161,16 +153,15 @@
         "heures_decimales": "Heures décimales (1.25 h)",
         "unites_constructeur": "Unités constructeur (UT)"
       },
-      "controleQualite": "Contrôle qualité avant restitution",
+      "controleQualite": "Contrôle qualité avant remise du véhicule",
       "controleQualiteValeurs": {
         "jamais": "Jamais requis",
         "toujours": "Toujours requis"
-      },
-      "pointage": "Réglages du pointage (arrondi, chevauchement, durée maximale)"
+      }
     },
     "documents": {
-      "titre": "Documents",
-      "langue": "Langue des documents remis au client",
+      "titre": "Documents remis au client",
+      "langue": "Langue des documents",
       "langueValeurs": {
         "client": "Langue de correspondance du client",
         "site": "Langue par défaut du site"
@@ -184,20 +175,16 @@
     "vehicule": {
       "titre": "Véhicules",
       "expertiseAlerteMois": "Alerte d'expertise (mois avant échéance)",
-      "visibiliteHistorique": "Historique visible pour un nouveau détenteur",
+      "visibiliteHistorique": "Historique visible pour un nouveau propriétaire",
       "visibiliteHistoriqueValeurs": {
         "tout": "Tout l'historique",
         "technique": "Historique technique uniquement",
         "rien": "Rien"
       }
-    },
-    "inerte": {
-      "signature": "disponible avec la capture de signature électronique, non livrée à ce jour",
-      "pointage": "disponible avec le module de pointage, non livré à ce jour"
     }
   },
   "sites": {
-    "titre": "Paramètres par site",
+    "titre": "Horaires et fermetures",
     "inactif": "Inactif",
     "vide": {
       "titre": "Aucun site",
@@ -216,25 +203,26 @@
       "titre": "Horaires",
       "ouverture": "Ouverture",
       "fermeture": "Fermeture",
-      "cloturePointage": "Clôture automatique du pointage",
-      "cloturePointageAide": "Un pointage encore ouvert à cette heure est clôturé automatiquement — évite un pointage oublié qui court toute la nuit."
+      "cloturePointage": "Fin automatique du pointage"
     },
     "capacite": {
       "titre": "Capacité",
-      "champ": "Capacité horaire par jour",
-      "aide": "Somme des heures productives disponibles sur ce site en une journée, tous techniciens confondus — sert à afficher la charge du planning. Laissez vide si elle n'est pas encore connue."
+      "champ": "Capacité d'accueil par jour (h)",
+      "aide": "Heures de travail disponibles par jour, tous mécaniciens confondus : sert à calculer la charge du planning. Laissez vide si vous ne la connaissez pas."
     },
     "fermeture": {
       "titre": "Jours de fermeture",
-      "explication": "Ces jours n'apparaissent pas comme disponibles à la planification (jours fériés, fermeture annuelle).",
       "aucun": "Aucun jour de fermeture programmé.",
       "retirer": "Retirer le {date}",
       "ajouter": "Ajouter"
     },
-    "enregistrementReussi": "Paramètres du site enregistrés."
+    "enregistrementReussi": "Paramètres du site enregistrés.",
+    "avance": {
+      "titre": "Réglages avancés"
+    }
   },
   "pieces": {
-    "titre": "Paramètres pièces",
+    "titre": "Pièces et stock",
     "enregistrementReussi": "Paramètres enregistrés.",
     "erreur": {
       "titre": "Impossible de charger les paramètres pièces"
@@ -245,8 +233,8 @@
       "stockNegatifForcageAutorise": "Autoriser le forçage d'une sortie malgré un stock insuffisant"
     },
     "valorisation": {
-      "titre": "Valorisation du stock",
-      "methodePrixAchat": "Méthode de prix d'achat",
+      "titre": "Prix d'achat et inventaire",
+      "methodePrixAchat": "Calcul du prix d'achat",
       "methodePrixAchatAide": "Détermine comment le prix d'achat affiché sur un article est recalculé après chaque réception. Reste non réglée tant qu'aucune méthode n'a été arbitrée.",
       "methodePrixAchatValeurs": {
         "aucune": "Non réglée",
@@ -255,7 +243,6 @@
       }
     },
     "inventaire": {
-      "titre": "Inventaire",
       "seuilValeurAjustementSignificatif": "Seuil d'alerte pour un ajustement significatif",
       "seuilValeurAjustementSignificatifAide": "Un ajustement d'inventaire dont la valeur dépasse ce montant déclenche un avertissement au moment de la saisie. Laissez vide tant qu'aucun seuil n'est arbitré."
     },
@@ -264,10 +251,6 @@
       "delaiAcquisitionJours": "Délai avant proposition d'acquisition (jours)",
       "delaiAcquisitionJoursAide": "Laissez vide tant qu'aucun délai n'est arbitré : aucune consigne n'est proposée comme acquise automatiquement.",
       "tauxTva": "Taux de TVA appliqué à la consigne"
-    },
-    "conditionnement": {
-      "articleDistinct": "Un conditionnement différent est un article distinct",
-      "inerte": "réglage fixe, pas encore paramétrable"
     }
   },
   "utilisateurs": {
@@ -309,7 +292,7 @@
       "champPrenom": "Prénom",
       "champNom": "Nom",
       "champEmail": "E-mail",
-      "champRole": "Poste (point de départ)",
+      "champRole": "Poste",
       "champSites": "Sites où travaille l'employé",
       "aucunSiteDisponible": "Aucun site n'est encore rattaché à ce garage.",
       "sitesAucunSelectionne": "Sélectionnez au moins un site.",
@@ -359,19 +342,19 @@
     },
     "roleUnique": "Chaque personne a un seul rôle. Dans un petit garage, choisissez Direction : ce rôle peut tout faire.",
     "bornes": {
-      "titre": "Bornes d'atelier",
-      "description": "Une borne est la tablette murale de l'atelier : les mécaniciens y pointent avec leur code PIN.",
-      "nouveau": "Ajouter une borne",
-      "vide": "Aucune borne d'atelier pour l'instant.",
+      "titre": "Tablettes d'atelier",
+      "description": "Tablette murale où les mécaniciens pointent avec leur code PIN.",
+      "nouveau": "Ajouter une tablette",
+      "vide": "Aucune tablette d'atelier pour l'instant.",
       "colNom": "Nom",
       "colIdentifiant": "Identifiant",
       "colSite": "Site",
       "colStatut": "Statut",
       "colActions": "Actions",
-      "champNom": "Nom de la borne",
-      "champSite": "Site de la borne",
+      "champNom": "Nom de la tablette",
+      "champSite": "Site de la tablette",
       "placeholderSite": "Choisir un site",
-      "creer": "Créer la borne",
+      "creer": "Créer la tablette",
       "acces": "Identifiant et mot de passe de la borne",
       "accesDescription": "Saisissez-les une seule fois sur la tablette. Le mot de passe ne sera plus jamais affiché.",
       "desactiver": "Désactiver",
@@ -401,7 +384,15 @@
     "erreurRaison": "Indiquez le nom du garage.",
     "raisonSocialeAide": "Ce nom apparaît sur vos documents et factures. Les documents déjà émis gardent l'ancien nom.",
     "numeroTva": "Numéro de TVA",
-    "numeroTvaAide": "Format : CHE-123.456.789 TVA. Laissez vide si vous n'êtes pas assujetti à la TVA.",
+    "numeroTvaAide": "Format : CHE-123.456.789 TVA. Il figure sur vos factures.",
+    "assujetti": {
+      "legende": "Votre garage est-il assujetti à la TVA ?",
+      "oui": "Oui",
+      "non": "Non",
+      "aide": "En dessous de CHF 100'000 de chiffre d'affaires par an, vous pouvez ne pas l'être.",
+      "ouiSansNumero": "Sans numéro de TVA, vous ne pourrez pas émettre de facture.",
+      "nonInfo": "Vos factures et devis n'indiquent pas de TVA et portent la mention « Non assujetti à la TVA »."
+    },
     "erreurTva": {
       "format": "Le numéro doit ressembler à CHE-123.456.789 TVA.",
       "cle": "Ce numéro n'existe pas : vérifiez les chiffres."
@@ -431,11 +422,8 @@
   },
   "motifsRdv": {
     "titre": "Motifs de rendez-vous",
-    "explication": "Ce que vos clients viennent faire : un rendez-vous se prend toujours avec un motif.",
     "nouveau": "Nouveau motif",
     "modifier": "Modifier le motif",
-    "dialogueAide": "Le nom français suffit ; les traductions sont facultatives.",
-    "traductionsAide": "Les traductions s'affichent aux clients et collaborateurs qui utilisent le logiciel dans cette langue.",
     "champs": {
       "libelleFr": "Nom du motif",
       "libelleDe": "Nom en allemand",
@@ -474,6 +462,35 @@
     },
     "erreur": {
       "titre": "Impossible de charger les motifs"
+    },
+    "auMoinsUn": "Au moins un motif actif."
+  },
+  "obligatoire": {
+    "legende": "* obligatoire",
+    "sr": "obligatoire"
+  },
+  "garage": {
+    "titre": "Mon garage",
+    "aCompleter": {
+      "titre": "À compléter",
+      "adresse": "L'adresse du garage (rue, N°, NPA, localité)"
+    }
+  },
+  "signalements": {
+    "titre": "Signalements",
+    "modes": {
+      "via_site": "Envoyer via le site",
+      "copie_seule": "Copier seulement",
+      "desactive": "Désactivé"
+    },
+    "aide": {
+      "via_site": "Le bouton « Signaler un problème » ouvre le site de dmsforall pour terminer l’envoi, sans compte GitHub.",
+      "copie_seule": "Le signalement se copie et se transmet à la main : le bouton « Continuer sur le site » n’apparaît pas.",
+      "desactive": "L’entrée « Signaler un problème » n’apparaît plus dans le menu du profil."
+    },
+    "enregistre": "Réglage enregistré.",
+    "erreur": {
+      "titre": "Impossible de charger le réglage des signalements"
     }
   }
 }

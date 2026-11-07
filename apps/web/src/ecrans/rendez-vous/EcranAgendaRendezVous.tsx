@@ -247,8 +247,6 @@ export function EcranAgendaRendezVous({
         q={recherche}
         onChangeQ={onChangerRecherche}
         placeholderRecherche={t('planning:toolbar.recherchePlaceholder')}
-        filtresActifs={rechercheActive}
-        onEffacerFiltres={() => onChangerRecherche('')}
       />
 
       {contenu()}

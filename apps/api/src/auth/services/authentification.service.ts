@@ -298,6 +298,7 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
             slug: tenant.slug,
             raisonSociale: tenant.raisonSociale,
             langueDefaut: tenant.langueDefaut,
+            modeSignalement: tenant.modeSignalement,
           })
           .from(tenant)
           .where(eq(tenant.id, principal.tenantId));

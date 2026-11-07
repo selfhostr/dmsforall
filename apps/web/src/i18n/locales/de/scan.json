@@ -1,6 +1,5 @@
 {
   "titre": "Fahrzeugausweis scannen",
-  "sousTitre": "Fahrzeugausweis fotografieren, prüfen, dann bestätigen.",
   "echappement": {
     "message": "Vereinfachte Ansicht für Mobilgeräte: Hier ist nur der Scan verfügbar.",
     "action": "Vollständige Anwendung öffnen"

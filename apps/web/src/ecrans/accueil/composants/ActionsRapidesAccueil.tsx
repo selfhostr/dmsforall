@@ -3,22 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
 import { Button } from '@/components/ui/button';
+import { useOuvrirRechercheGlobale } from '@/composants/layout/RechercheGlobale';
 import { peutCreerOrdreReparation } from '@/ecrans/atelier/droits';
 import { BoutonNouveauDevis } from '@/ecrans/facturation/BoutonNouveauDevis';
 import { peutEncaisser } from '@/ecrans/facturation/droits';
 import { peutCreerRendezVous } from '@/ecrans/rendez-vous/droits';
 import { useSession } from '@/hooks/useSession';
 import { chemins } from '@/routes/chemins';
-
-/**
- * Ouvre la recherche globale du bandeau (`composants/layout/RechercheGlobale.tsx`) : ce composant
- * n'exporte aucun point d'ouverture, et il écoute déjà `Ctrl+K` sur `window` — on rejoue ce
- * raccourci plutôt que de monter une seconde fenêtre de recherche (deux fenêtres s'ouvriraient à
- * chaque `Ctrl+K`).
- */
-function ouvrirRechercheGlobale() {
-  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, cancelable: true }));
-}
 
 interface Props {
   readonly site: string | undefined;
@@ -32,6 +23,7 @@ export function ActionsRapidesAccueil({ site }: Props) {
   const { t } = useTranslation('accueil');
   const { data: session } = useSession();
   const actions = session?.actions;
+  const ouvrirRechercheGlobale = useOuvrirRechercheGlobale();
 
   return (
     <div className="flex flex-wrap items-center gap-2">

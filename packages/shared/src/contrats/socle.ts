@@ -1,6 +1,12 @@
 import { z } from 'zod';
 
-import { ROLES_PERSONNE, type Langue, type RolePersonne, type StatutUtilisateur } from './enums';
+import {
+  ROLES_PERSONNE,
+  type Langue,
+  type ModeSignalement,
+  type RolePersonne,
+  type StatutUtilisateur,
+} from './enums';
 import type { PageCurseur } from './pagination';
 import { IDS_PREREGLAGE, type CapacitesPersonne } from './capacites';
 
@@ -10,6 +16,8 @@ export interface TenantCourant {
   readonly slug: string;
   readonly raisonSociale: string;
   readonly langueDefaut: Langue;
+  /** Réglage « Signalements » du garage : lisible par tout compte (il décide de l'entrée de menu). */
+  readonly modeSignalement: ModeSignalement;
 }
 
 /** Élément de `GET /api/v1/sites` et corps de `GET /api/v1/sites/{siteId}`. */

@@ -2,8 +2,11 @@ import { Menu } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useSearchParams } from 'react-router';
 
+import { usePastilleAssistant } from '@/hooks/assistant/usePastilleAssistant';
 import { useSession } from '@/hooks/useSession';
 import { cn } from '@/lib/utils';
+
+import { PastilleConfiguration } from './PastilleConfiguration';
 
 import {
   cheminEntree,
@@ -66,6 +69,7 @@ interface Props {
  * autant.
  */
 export function BarreOngletsBasse({ ouvrirPlus, plusOuvert }: Props) {
+  const garageAConfigurer = usePastilleAssistant();
   const { t } = useTranslation('navigation');
   const [searchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
@@ -132,9 +136,15 @@ export function BarreOngletsBasse({ ouvrirPlus, plusOuvert }: Props) {
                 : 'font-medium text-muted-foreground hover:bg-muted hover:text-foreground',
             )}
           >
-            <Menu className="h-5 w-5 shrink-0" aria-hidden="true" />
+            <span className="relative flex">
+              <Menu className="h-5 w-5 shrink-0" aria-hidden="true" />
+              {garageAConfigurer ? <PastilleConfiguration className="-right-1 -top-1" /> : null}
+            </span>
             <span className="texte-petit w-full truncate leading-none">
               {t('navigation:barreBasse.plus')}
+              {garageAConfigurer ? (
+                <span className="sr-only"> — {t('navigation:configurer.pastille')}</span>
+              ) : null}
             </span>
           </button>
         </li>

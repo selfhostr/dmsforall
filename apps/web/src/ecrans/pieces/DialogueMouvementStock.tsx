@@ -7,15 +7,9 @@ import { useCleIdempotence } from '@/api/idempotence';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import {
   Select,
   SelectContent,
@@ -217,100 +211,66 @@ export function DialogueMouvementStock({
   }
 
   return (
-    <Dialog open={ouvert} onOpenChange={onOuvertChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t('pieces:stock.mouvements.nouveauMouvement.titre')}</DialogTitle>
-        </DialogHeader>
+    <PanneauLateral
+      ouvert={ouvert}
+      onOuvertChange={onOuvertChange}
+      titre={t('pieces:stock.mouvements.nouveauMouvement.titre')}
+      pied={
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOuvertChange(false)}
+            disabled={enCours}
+          >
+            {t('commun:actions.annuler')}
+          </Button>
+          <Button type="button" disabled={enCours} onClick={soumettre}>
+            {enCours ? t('commun:chargement.enCours') : t('commun:actions.enregistrer')}
+          </Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-groupe">
+        <LegendeChampsObligatoires>
+          {t('commun:formulaires.champsObligatoiresLegende')}
+        </LegendeChampsObligatoires>
 
-        <div className="flex flex-col gap-groupe">
-          <LegendeChampsObligatoires>
-            {t('commun:formulaires.champsObligatoiresLegende')}
-          </LegendeChampsObligatoires>
-
-          <div className="flex flex-col gap-champ">
-            <Label htmlFor="mvt-type">
-              {t('pieces:stock.mouvements.nouveauMouvement.champType')}
-            </Label>
-            <Select
-              value={type}
-              onValueChange={(valeur) => setType(valeur as TypeMouvementStock)}
-              disabled={enCours}
+        <div className="flex flex-col gap-champ">
+          <Label htmlFor="mvt-type">
+            {t('pieces:stock.mouvements.nouveauMouvement.champType')}
+          </Label>
+          <Select
+            value={type}
+            onValueChange={(valeur) => setType(valeur as TypeMouvementStock)}
+            disabled={enCours}
+          >
+            <SelectTrigger
+              id="mvt-type"
+              aria-label={t('pieces:stock.mouvements.nouveauMouvement.champType')}
             >
-              <SelectTrigger
-                id="mvt-type"
-                aria-label={t('pieces:stock.mouvements.nouveauMouvement.champType')}
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TYPES_SAISISSABLES.map((valeur) => (
-                  <SelectItem key={valeur} value={valeur}>
-                    {t(`pieces:stock.mouvements.types.${valeur}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TYPES_SAISISSABLES.map((valeur) => (
+                <SelectItem key={valeur} value={valeur}>
+                  {t(`pieces:stock.mouvements.types.${valeur}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-          {type === 'transfert' ? (
-            <div className="grid grid-cols-2 gap-controles">
-              <div className="flex flex-col gap-champ">
-                <Label htmlFor="mvt-site-source" requis>
-                  {t('pieces:stock.mouvements.siteSource')}
-                </Label>
-                <Select value={siteSourceId} onValueChange={setSiteSourceId} disabled={enCours}>
-                  <SelectTrigger
-                    id="mvt-site-source"
-                    aria-label={t('pieces:stock.mouvements.siteSource')}
-                    aria-required="true"
-                  >
-                    <SelectValue placeholder={t('pieces:stock.site')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sites.map((site) => (
-                      <SelectItem key={site.id} value={site.id}>
-                        {site.nom}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-champ">
-                <Label htmlFor="mvt-site-destination" requis>
-                  {t('pieces:stock.mouvements.siteDestination')}
-                </Label>
-                <Select
-                  value={siteDestinationId}
-                  onValueChange={setSiteDestinationId}
-                  disabled={enCours}
-                >
-                  <SelectTrigger
-                    id="mvt-site-destination"
-                    aria-label={t('pieces:stock.mouvements.siteDestination')}
-                    aria-required="true"
-                  >
-                    <SelectValue placeholder={t('pieces:stock.site')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sites.map((site) => (
-                      <SelectItem key={site.id} value={site.id}>
-                        {site.nom}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          ) : (
+        {type === 'transfert' ? (
+          <div className="grid grid-cols-2 gap-controles">
             <div className="flex flex-col gap-champ">
-              <Label htmlFor="mvt-site" requis>
-                {t('pieces:stock.site')}
+              <Label htmlFor="mvt-site-source" requis>
+                {t('pieces:stock.mouvements.siteSource')}
               </Label>
-              <Select value={siteId} onValueChange={setSiteId} disabled={enCours}>
+              <Select value={siteSourceId} onValueChange={setSiteSourceId} disabled={enCours}>
                 <SelectTrigger
-                  id="mvt-site"
-                  aria-label={t('pieces:stock.site')}
+                  id="mvt-site-source"
+                  aria-label={t('pieces:stock.mouvements.siteSource')}
                   aria-required="true"
                 >
                   <SelectValue placeholder={t('pieces:stock.site')} />
@@ -324,113 +284,142 @@ export function DialogueMouvementStock({
                 </SelectContent>
               </Select>
             </div>
-          )}
-
-          <div className="flex flex-col gap-champ">
-            <Label htmlFor="mvt-quantite" requis>
-              {type === 'ajustement_inventaire'
-                ? t('pieces:stock.mouvements.nouveauMouvement.champQuantiteComptee')
-                : t('pieces:stock.mouvements.quantite')}
-            </Label>
-            <Input
-              id="mvt-quantite"
-              type="text"
-              inputMode="decimal"
-              required
-              readOnly={enCours}
-              value={quantiteSaisie}
-              onChange={(evenement) => setQuantiteSaisie(evenement.target.value)}
-            />
-          </div>
-
-          <div className="flex flex-col gap-champ">
-            <Label htmlFor="mvt-motif" requis={motifObligatoire}>
-              {t('pieces:stock.mouvements.motif')}
-            </Label>
-            <Input
-              id="mvt-motif"
-              required={motifObligatoire}
-              readOnly={enCours}
-              value={motif}
-              onChange={(evenement) => setMotif(evenement.target.value)}
-            />
-          </div>
-
-          {type === 'casse' || type === 'perte' ? (
-            <label htmlFor="mvt-forcer" className="flex items-center gap-2 texte-corps">
-              <Checkbox
-                id="mvt-forcer"
-                checked={forcer}
-                onCheckedChange={(coche) => setForcer(coche === true)}
+            <div className="flex flex-col gap-champ">
+              <Label htmlFor="mvt-site-destination" requis>
+                {t('pieces:stock.mouvements.siteDestination')}
+              </Label>
+              <Select
+                value={siteDestinationId}
+                onValueChange={setSiteDestinationId}
                 disabled={enCours}
-              />
-              {t('pieces:stock.mouvements.nouveauMouvement.champForcer')}
-            </label>
-          ) : null}
+              >
+                <SelectTrigger
+                  id="mvt-site-destination"
+                  aria-label={t('pieces:stock.mouvements.siteDestination')}
+                  aria-required="true"
+                >
+                  <SelectValue placeholder={t('pieces:stock.site')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {sites.map((site) => (
+                    <SelectItem key={site.id} value={site.id}>
+                      {site.nom}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-champ">
+            <Label htmlFor="mvt-site" requis>
+              {t('pieces:stock.site')}
+            </Label>
+            <Select value={siteId} onValueChange={setSiteId} disabled={enCours}>
+              <SelectTrigger id="mvt-site" aria-label={t('pieces:stock.site')} aria-required="true">
+                <SelectValue placeholder={t('pieces:stock.site')} />
+              </SelectTrigger>
+              <SelectContent>
+                {sites.map((site) => (
+                  <SelectItem key={site.id} value={site.id}>
+                    {site.nom}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
-          {forcer && (type === 'casse' || type === 'perte') ? (
-            apercuForcage.isPending ? (
-              <p className="texte-libelle text-muted-foreground">
-                {t('pieces:stock.mouvements.nouveauMouvement.apercuForcage.chargement')}
-              </p>
-            ) : apercuForcage.isError ? (
-              <p className="texte-libelle text-destructive" role="alert">
-                {t('pieces:stock.mouvements.nouveauMouvement.apercuForcage.erreur')}
-              </p>
-            ) : reservationsMenacees.length > 0 ? (
-              <Alert variant="avertissement">
-                <AlertDescription>
-                  <p>
-                    {t('pieces:stock.mouvements.nouveauMouvement.apercuForcage.titre', {
-                      count: reservationsMenacees.length,
-                    })}
-                  </p>
-                  <p>
-                    {t('pieces:stock.mouvements.nouveauMouvement.apercuForcage.listeOrs', {
-                      numeros: reservationsMenacees
-                        .map((reservation) => reservation.ordreReparationNumero)
-                        .join(', '),
-                    })}
-                  </p>
-                </AlertDescription>
-              </Alert>
-            ) : null
-          ) : null}
-
-          {aucunMouvementCree ? (
-            <Alert variant="avertissement">
-              <AlertDescription>
-                {t('pieces:stock.mouvements.nouveauMouvement.aucunEcart')}
-              </AlertDescription>
-            </Alert>
-          ) : null}
-
-          {erreurValidation ? (
-            <p className="texte-libelle text-destructive" role="alert">
-              {erreurValidation}
-            </p>
-          ) : null}
-          {erreur ? (
-            <p className="texte-libelle text-destructive" role="alert">
-              {messageErreurMutation(erreur, t)}
-            </p>
-          ) : null}
+        <div className="flex flex-col gap-champ">
+          <Label htmlFor="mvt-quantite" requis>
+            {type === 'ajustement_inventaire'
+              ? t('pieces:stock.mouvements.nouveauMouvement.champQuantiteComptee')
+              : t('pieces:stock.mouvements.quantite')}
+          </Label>
+          <Input
+            id="mvt-quantite"
+            type="text"
+            inputMode="decimal"
+            required
+            readOnly={enCours}
+            value={quantiteSaisie}
+            onChange={(evenement) => setQuantiteSaisie(evenement.target.value)}
+          />
         </div>
 
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOuvertChange(false)}
-            disabled={enCours}
-          >
-            {t('commun:actions.annuler')}
-          </Button>
-          <Button type="button" disabled={enCours} onClick={soumettre}>
-            {enCours ? t('commun:chargement.enCours') : t('commun:actions.enregistrer')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <div className="flex flex-col gap-champ">
+          <Label htmlFor="mvt-motif" requis={motifObligatoire}>
+            {t('pieces:stock.mouvements.motif')}
+          </Label>
+          <Input
+            id="mvt-motif"
+            required={motifObligatoire}
+            readOnly={enCours}
+            value={motif}
+            onChange={(evenement) => setMotif(evenement.target.value)}
+          />
+        </div>
+
+        {type === 'casse' || type === 'perte' ? (
+          <label htmlFor="mvt-forcer" className="flex items-center gap-2 texte-corps">
+            <Checkbox
+              id="mvt-forcer"
+              checked={forcer}
+              onCheckedChange={(coche) => setForcer(coche === true)}
+              disabled={enCours}
+            />
+            {t('pieces:stock.mouvements.nouveauMouvement.champForcer')}
+          </label>
+        ) : null}
+
+        {forcer && (type === 'casse' || type === 'perte') ? (
+          apercuForcage.isPending ? (
+            <p className="texte-libelle text-muted-foreground">
+              {t('pieces:stock.mouvements.nouveauMouvement.apercuForcage.chargement')}
+            </p>
+          ) : apercuForcage.isError ? (
+            <p className="texte-libelle text-destructive" role="alert">
+              {t('pieces:stock.mouvements.nouveauMouvement.apercuForcage.erreur')}
+            </p>
+          ) : reservationsMenacees.length > 0 ? (
+            <Alert variant="avertissement">
+              <AlertDescription>
+                <p>
+                  {t('pieces:stock.mouvements.nouveauMouvement.apercuForcage.titre', {
+                    count: reservationsMenacees.length,
+                  })}
+                </p>
+                <p>
+                  {t('pieces:stock.mouvements.nouveauMouvement.apercuForcage.listeOrs', {
+                    numeros: reservationsMenacees
+                      .map((reservation) => reservation.ordreReparationNumero)
+                      .join(', '),
+                  })}
+                </p>
+              </AlertDescription>
+            </Alert>
+          ) : null
+        ) : null}
+
+        {aucunMouvementCree ? (
+          <Alert variant="avertissement">
+            <AlertDescription>
+              {t('pieces:stock.mouvements.nouveauMouvement.aucunEcart')}
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {erreurValidation ? (
+          <p className="texte-libelle text-destructive" role="alert">
+            {erreurValidation}
+          </p>
+        ) : null}
+        {erreur ? (
+          <p className="texte-libelle text-destructive" role="alert">
+            {messageErreurMutation(erreur, t)}
+          </p>
+        ) : null}
+      </div>
+    </PanneauLateral>
   );
 }

@@ -266,9 +266,9 @@ export function EcranFicheVehicule() {
   // véhicule, la chaîne client › véhicule a un sens réel ». Un véhicule SANS détenteur courant
   // (occasion pas encore rattachée, cas réel couvert par `DialogueRattacherClient`) n'a aucun
   // ancêtre cliquable — jamais un client inventé, le fil se réduit alors à la seule page courante.
-  const libellePageVehicule = vehicule.plaque
-    ? `${vehicule.plaque} · ${vehicule.designation}`
-    : vehicule.designation;
+  // La page courante du fil ne répète PAS l'identité (plaque · désignation) : l'en-tête juste
+  // dessous l'affiche déjà en grand — c'était le titre en double relevé à la recette.
+  const libellePageVehicule = t('commun:titres.vehiculeDetail');
   const segmentsFilAriane: readonly SegmentFilAriane[] = proprietaireActuel
     ? [
         {
@@ -281,7 +281,9 @@ export function EcranFicheVehicule() {
 
   return (
     <GabaritEcran titre={t('commun:titres.vehiculeDetail')} titreVisible={false}>
-      <FilAriane segments={segmentsFilAriane} pageCourante={libellePageVehicule} />
+      {segmentsFilAriane.length > 0 ? (
+        <FilAriane segments={segmentsFilAriane} pageCourante={libellePageVehicule} />
+      ) : null}
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <EnTeteFicheVehicule vehicule={vehicule} dernierKilometrage={contexte.dernierKilometrage} />
@@ -428,10 +430,7 @@ export function EcranFicheVehicule() {
               onReessayer={() => void requeteDossiersVente.refetch()}
             />
           ) : dossiersVente.length === 0 ? (
-            <EtatVide
-              titre={t('vehicules:fiche.dossierVente.titre')}
-              description={t('vehicules:fiche.dossierVente.vide')}
-            />
+            <EtatVide description={t('vehicules:fiche.dossierVente.vide')} />
           ) : (
             <ul className="flex flex-col divide-y">
               {dossiersVente.map((dossier) => (
@@ -463,10 +462,7 @@ export function EcranFicheVehicule() {
               onReessayer={() => void requeteDepotsPneus.refetch()}
             />
           ) : depotsPneus.length === 0 ? (
-            <EtatVide
-              titre={t('vehicules:fiche.pneus.titre')}
-              description={t('vehicules:fiche.pneus.vide')}
-            />
+            <EtatVide description={t('vehicules:fiche.pneus.vide')} />
           ) : (
             <ul className="flex flex-col divide-y">
               {depotsPneus.map((depot) => (
@@ -513,10 +509,7 @@ export function EcranFicheVehicule() {
               onReessayer={() => void requeteOr.refetch()}
             />
           ) : ordresVehicule.length === 0 ? (
-            <EtatVide
-              titre={t('vehicules:fiche.ordresReparation.titre')}
-              description={t('vehicules:fiche.ordresReparation.vide')}
-            />
+            <EtatVide description={t('vehicules:fiche.ordresReparation.vide')} />
           ) : (
             <ul className="flex flex-col divide-y">
               {ordresVehicule.map((or) => (
@@ -572,10 +565,7 @@ export function EcranFicheVehicule() {
               onReessayer={() => void requeteFactures.refetch()}
             />
           ) : facturesVehicule.length === 0 ? (
-            <EtatVide
-              titre={t('vehicules:fiche.factures.titre')}
-              description={t('vehicules:fiche.factures.vide')}
-            />
+            <EtatVide description={t('vehicules:fiche.factures.vide')} />
           ) : (
             <ul className="flex flex-col divide-y">
               {facturesVehicule.map((document_) => (

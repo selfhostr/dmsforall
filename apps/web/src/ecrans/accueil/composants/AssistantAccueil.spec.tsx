@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router';
@@ -8,6 +8,11 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import '@/i18n';
 import i18n from '@/i18n';
 
+import {
+  demanderOuvertureAssistant,
+  memoriserEtapeAssistant,
+  reinitialiserEtatAssistant,
+} from '@/hooks/assistant/etat-assistant';
 import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { creerSessionTest } from '@/test/session';
@@ -67,7 +72,10 @@ function rendre() {
 const assistant = () => screen.queryByRole('dialog', { name: t('assistant:titre') });
 
 describe('ouverture de l’assistant de démarrage depuis l’accueil', () => {
-  beforeEach(() => window.localStorage.clear());
+  beforeEach(() => {
+    window.localStorage.clear();
+    reinitialiserEtatAssistant();
+  });
 
   it('garage neuf + droit : s’ouvre tout seul', async () => {
     api('direction');
@@ -121,7 +129,9 @@ describe('ouverture de l’assistant de démarrage depuis l’accueil', () => {
     api('direction');
     rendre();
     await screen.findByRole('dialog', { name: t('assistant:titre') });
-    await userEvent.click(screen.getByRole('button', { name: t('assistant:actions.quitter') }));
+    await userEvent.click(
+      await screen.findByRole('button', { name: t('assistant:actions.quitter') }),
+    );
     expect(assistant()).toBeNull();
     expect(window.localStorage.getItem(CLE_FERMEE)).toBe('1');
 
@@ -129,6 +139,22 @@ describe('ouverture de l’assistant de démarrage depuis l’accueil', () => {
       await screen.findByRole('button', { name: t('assistant:reprise.bouton') }),
     );
     expect(await screen.findByRole('dialog', { name: t('assistant:titre') })).toBeInTheDocument();
+  });
+
+  it('demande de la barre latérale : rouvre l’assistant à l’étape où il a été laissé', async () => {
+    window.localStorage.setItem(CLE_FERMEE, '1');
+    api('direction');
+    memoriserEtapeAssistant('paiements');
+    rendre();
+    await screen.findByRole('button', { name: t('assistant:reprise.bouton') });
+    expect(assistant()).toBeNull();
+
+    act(() => demanderOuvertureAssistant());
+
+    expect(await screen.findByRole('dialog', { name: t('assistant:titre') })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: t('assistant:etapes.paiements.titre'), level: 3 }),
+    ).toBeInTheDocument();
   });
 
   it('une autre personne du même poste voit l’assistant (mémoire par utilisateur)', async () => {

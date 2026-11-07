@@ -1,0 +1,42 @@
+{
+  "ouvrir": "Hilfe anzeigen",
+  "ouvrirSujet": "Hilfe: {sujet}",
+  "or": {
+    "provenanceLigne": "Woher die Position stammt: vom Kunden gewünscht, bei der Arbeit entdeckt, Herstellerkampagne, Garantie, Nacharbeit oder intern. Das entscheidet, wer zahlt.",
+    "travauxReportes": "Arbeiten, die dem Kunden empfohlen, aber diesmal nicht ausgeführt wurden. Sie bleiben beim Fahrzeug, um sie beim nächsten Besuch anzubieten.",
+    "statuts": "Der Status zeigt, wie weit der Auftrag ist: offen, in Arbeit, erledigt, verrechnet. «Warten auf Teile» lässt sich mit jedem Status kombinieren."
+  },
+  "vehicules": {
+    "expertise": "MFK: amtliche Fahrzeugprüfung. Der nächste Termin wird aus der letzten Prüfung berechnet oder der Vorladung entnommen.",
+    "travauxReportes": "Festgestellte, aber nicht ausgeführte Arbeiten (Kunde nicht einverstanden, Teil fehlt). Sie bleiben im Fahrzeugdossier für den nächsten Besuch."
+  },
+  "facturation": {
+    "arrondiEspeces": {
+      "sujet": "Barrundung",
+      "texte": "Bei Barzahlung wird der Total auf 5 Rappen gerundet (Schweizer Regel). Mit Karte oder TWINT bleibt der Betrag exakt."
+    },
+    "encaissement": {
+      "sujet": "Zahlungseingang",
+      "texte": "Bar auf 5 Rappen gerundet. Zahlt der Kunde mehr als den Saldo, bleibt der Überschuss als Kundenguthaben, das später einer anderen Rechnung zugeordnet wird."
+    }
+  },
+  "pieces": {
+    "reliquat": "Restmenge: bestellte Menge, die noch nicht eingetroffen ist. Sie wird vom Lieferanten weiter erwartet, bis man sie storniert.",
+    "consignes": "Pfand: Betrag, den der Kunde für ein Austauschteil hinterlegt. Er wird zurückerstattet, wenn das Altteil zurückkommt."
+  },
+  "pointage": {
+    "borne": {
+      "sujet": "Stempelterminal",
+      "texte": "Das Terminal ist das Tablet oder der feste PC in der Werkstatt, an dem die Mechaniker ihre Zeit auf einen Auftrag stempeln."
+    }
+  },
+  "export": {
+    "fiduciaire": "Die Datei für Ihren Treuhänder: Rechnungen, Gutschriften und Zahlungen der Periode im Format seiner Buchhaltungssoftware."
+  },
+  "pneus": {
+    "hangar": "Die Reifensätze eines Kunden, die für die Saison bei Ihnen eingelagert sind. «Nachfassen» zeigt die, deren Saisonwechsel naht."
+  },
+  "ventes": {
+    "reprise": "Inzahlungnahme: das Fahrzeug des Kunden, das Sie vom Preis des verkauften Fahrzeugs abziehen. Der Wert wird vom Verkaufstotal abgezogen."
+  }
+}

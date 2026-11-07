@@ -43,8 +43,8 @@ describe('ListeTravauxReportes', () => {
 
   it('affiche un état vide dédié (pas une grille de champs vides) quand il n’y a aucun travail reporté', () => {
     render(<ListeTravauxReportes travaux={[]} />);
-    // Le titre de carte ET le titre de l'état vide portent le même libellé : deux occurrences.
-    expect(screen.getAllByText('Travaux reportés')).toHaveLength(2);
+    // Le titre de la carte n'est pas répété dans l'état vide : une seule occurrence.
+    expect(screen.getAllByText('Travaux reportés')).toHaveLength(1);
     expect(screen.queryByRole('list')).not.toBeInTheDocument();
   });
 

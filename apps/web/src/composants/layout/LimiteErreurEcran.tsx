@@ -2,6 +2,7 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { EtatErreur } from '@/composants/commun/EtatErreur';
+import { enregistrerErreur } from '@/diagnostic/tampon';
 import { signalerErreur } from '@/observabilite/sentry';
 
 interface EtatLimiteErreurEcran {
@@ -26,6 +27,7 @@ class LimiteErreurEcranInterne extends Component<PropsInternes, EtatLimiteErreur
 
   override componentDidCatch(erreur: Error, info: ErrorInfo): void {
     console.error('Erreur non rattrapée dans l’écran routé :', erreur, info.componentStack);
+    enregistrerErreur(erreur);
     void signalerErreur(erreur, { componentStack: info.componentStack ?? undefined });
   }
 

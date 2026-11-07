@@ -15,6 +15,9 @@ import { creerQueryClientTest } from '@/test/utils';
 
 import { SectionMotifsRendezVous } from './SectionMotifsRendezVous';
 
+/** Libellé d'un champ obligatoire : l'étoile (aria-hidden) fait partie du texte du <label>. */
+const avecEtoile = (libelle: string) => new RegExp(`^${libelle}\\*?$`);
+
 const CHEMIN = '/api/v1/motifs-rendez-vous';
 
 const REVISION: ReponseMotifRendezVous = {
@@ -78,7 +81,7 @@ describe('SectionMotifsRendezVous', () => {
     );
     const dialogue = await screen.findByRole('dialog');
     await userEvent.type(
-      within(dialogue).getByLabelText(t('parametrage:motifsRdv.champs.libelleFr')),
+      within(dialogue).getByLabelText(avecEtoile(t('parametrage:motifsRdv.champs.libelleFr'))),
       'Expertise MFK',
     );
     await userEvent.type(
@@ -112,7 +115,9 @@ describe('SectionMotifsRendezVous', () => {
       await screen.findByRole('button', { name: t('parametrage:motifsRdv.nouveau') }),
     );
     const dialogue = await screen.findByRole('dialog');
-    const champ = within(dialogue).getByLabelText(t('parametrage:motifsRdv.champs.libelleFr'));
+    const champ = within(dialogue).getByLabelText(
+      avecEtoile(t('parametrage:motifsRdv.champs.libelleFr')),
+    );
     await userEvent.type(champ, 'Révision');
     await userEvent.click(
       within(dialogue).getByRole('button', { name: t('commun:actions.enregistrer') }),
@@ -159,5 +164,24 @@ describe('SectionMotifsRendezVous', () => {
     );
     rendre();
     expect(await screen.findByText(t('parametrage:motifsRdv.erreur.titre'))).toBeInTheDocument();
+  });
+
+  it('marque la section obligatoire et le nom du motif aria-required', async () => {
+    server.use(http.get(CHEMIN, () => HttpResponse.json([])));
+    rendre();
+    expect(
+      await screen.findByRole('heading', { name: new RegExp(t('parametrage:motifsRdv.titre')) }),
+    ).toHaveTextContent(t('parametrage:obligatoire.sr'));
+    await userEvent.click(
+      await screen.findByRole('button', { name: t('parametrage:motifsRdv.nouveau') }),
+    );
+    const dialogue = await screen.findByRole('dialog');
+    expect(within(dialogue).getByText(t('parametrage:obligatoire.legende'))).toBeInTheDocument();
+    expect(
+      within(dialogue).getByLabelText(avecEtoile(t('parametrage:motifsRdv.champs.libelleFr'))),
+    ).toHaveAttribute('aria-required', 'true');
+    expect(
+      within(dialogue).getByLabelText(t('parametrage:motifsRdv.champs.dureeMinutes')),
+    ).not.toHaveAttribute('aria-required');
   });
 });

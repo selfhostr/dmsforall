@@ -60,7 +60,6 @@
   },
   "echeances": {
     "titre": "Anstehende Fristen",
-    "description": "Reifensätze ohne Bewegung seit mehr als zwei Jahren, beim Kunden nachzufragen.",
     "droitRequis": "Sie haben keine Berechtigung, das Reifenlager einzusehen.",
     "vide": {
       "titre": "Keine Frist",

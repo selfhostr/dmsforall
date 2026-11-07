@@ -148,15 +148,15 @@ export function EcranSuiviVentes() {
           `border-b`) — un poids visuel de rangée de navigation pour un simple filtre d'horizon, qui
           épaississait l'écart entre l'en-tête, ce groupe et le tableau. Ce contrôle change la façon
           dont CET écran affiche les mêmes lignes, il ne navigue nulle part : même doctrine, mêmes
-          classes que `BasculeVueStock` (issue #84, déjà approuvée par @laupernoe pour EXACTEMENT ce
+          classes que `BasculeAffichageStock` (issue #84, déjà approuvée par @laupernoe pour EXACTEMENT ce
           distinguo) — fond plein compact plutôt que soulignement, alignée sur le gabarit de poids
           visuel de la barre de filtres (`BarreFiltres`) plutôt que sur la navigation de premier
           niveau. Rôles ARIA (`tablist`/`tab`) et clavier inchangés, même contrat de test
           (`getByRole('tab', …)`) — `@base-ui/react/tabs` directement (chantier d'unification
-          inter-écrans, 25.08.2026, même motif que `BasculeVueStock`/`EcranListeFactures.tsx` :
+          inter-écrans, 25.08.2026, même motif que `BasculeAffichageStock`/`EcranListeFactures.tsx` :
           Tabs n'est pas un composant à portail, la frontière Radix/Base UI de CONTRIBUTING.md ne s'y
           applique pas ; ces onglets FILTRENT la même table, aucun `TabsPrimitive.Panel` n'est
-          jamais rendu, donc Base UI omet `aria-controls` — WCAG 4.1.2, voir `BasculeVueStock.tsx`
+          jamais rendu, donc Base UI omet `aria-controls` — WCAG 4.1.2, voir `BasculeAffichageStock.tsx`
           pour le détail vérifié dans le code source, et `EcranSuiviVentes.spec.tsx` pour la preuve
           ici). */}
       <Segments

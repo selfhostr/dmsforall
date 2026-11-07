@@ -85,7 +85,7 @@ describe('Barre d’onglets basse — la couleur n’est jamais le seul indice d
     expect(actif.className).toContain('font-semibold');
     expect(actif.className).toContain('text-primary');
 
-    const inactif = screen.getByRole('link', { name: "Aujourd'hui" });
+    const inactif = screen.getByRole('link', { name: 'Tableau de bord' });
     expect(inactif.className).not.toContain('font-semibold');
     expect(inactif.className).not.toContain('text-primary');
     expect(inactif.className).toContain('font-medium');
@@ -109,7 +109,7 @@ describe('Barre d’onglets basse — clavier', () => {
     // `tabIndex` explicite ne soit nécessaire — vérifié ici en rejouant la tabulation réelle plutôt
     // qu'en inspectant l'attribut, qui ne prouve rien sur l'ordre effectif.
     const cibles = [
-      screen.getByRole('link', { name: "Aujourd'hui" }),
+      screen.getByRole('link', { name: 'Tableau de bord' }),
       screen.getByRole('link', { name: 'Atelier' }),
       screen.getByRole('link', { name: 'Clients & véhicules' }),
       screen.getByRole('link', { name: 'Pièces' }),

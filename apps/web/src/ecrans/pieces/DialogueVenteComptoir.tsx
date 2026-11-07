@@ -6,15 +6,9 @@ import type { ResultatRechercheComptoirArticle } from '@dfa/shared';
 import { ErreurApi } from '@/api/erreurs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { useVenteComptoir } from '@/hooks/pieces/useVenteComptoirPieces';
 import { formaterMontant } from '@/lib/formats';
 
@@ -117,88 +111,12 @@ export function DialogueVenteComptoir({ ouvert, onOuvertChange, siteId, article 
   }
 
   return (
-    <Dialog open={ouvert} onOpenChange={onOuvertChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t('pieces:comptoirVente.vente.titre')}</DialogTitle>
-        </DialogHeader>
-
-        <div className="flex flex-col gap-groupe">
-          <LegendeChampsObligatoires>
-            {t('commun:formulaires.champsObligatoiresLegende')}
-          </LegendeChampsObligatoires>
-
-          <div className="flex flex-col gap-0.5">
-            <span className="font-medium">{article.designation}</span>
-            <span className="font-mono texte-libelle text-muted-foreground">
-              {article.referencePrincipale}
-            </span>
-          </div>
-
-          <Alert variant="avertissement">
-            <AlertDescription>{t('pieces:comptoirVente.vente.avisSansFacture')}</AlertDescription>
-          </Alert>
-
-          <div className="flex flex-col gap-champ">
-            <Label htmlFor="vente-quantite" requis>
-              {t('pieces:comptoirVente.vente.quantite')}
-            </Label>
-            <Input
-              id="vente-quantite"
-              type="text"
-              inputMode="decimal"
-              required
-              autoFocus
-              readOnly={enCours}
-              value={quantiteSaisie}
-              onChange={(evenement) => setQuantiteSaisie(evenement.target.value)}
-            />
-            <span className="texte-libelle text-muted-foreground">
-              {t('pieces:comptoirVente.vente.disponible', {
-                n: formaterQuantiteMillieme(disponible),
-              })}
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center justify-between texte-libelle text-muted-foreground">
-              <span>{t('pieces:comptoirVente.vente.prixUnitaire')}</span>
-              <span className="tabular-nums">{formaterMontant(article.prixVenteTtcCentimes)}</span>
-            </div>
-            <div className="flex items-center justify-between texte-corps">
-              <span className="text-muted-foreground">
-                {t('pieces:comptoirVente.vente.totalTtc')}
-              </span>
-              <span className="tabular-nums font-medium">
-                {totalTtcCentimes !== null ? formaterMontant(totalTtcCentimes) : '—'}
-              </span>
-            </div>
-          </div>
-
-          {erreurValidation ? (
-            <p className="texte-libelle text-statut-attention" role="alert">
-              {erreurValidation}
-            </p>
-          ) : null}
-          {erreur && stockInsuffisant ? (
-            // Un refus stock insuffisant est une règle métier NORMALE, pas une panne — jamais le
-            // ton/la couleur d'une erreur (`text-destructive`), même traitement que
-            // l'`erreurValidation` locale juste au-dessus (même refus, chemin serveur plutôt que
-            // pré-contrôle client).
-            <p className="texte-libelle text-statut-attention" role="alert">
-              {t('pieces:comptoirVente.vente.erreur.stockInsuffisant', {
-                n: formaterQuantiteMillieme(disponible),
-              })}
-            </p>
-          ) : null}
-          {erreur && !stockInsuffisant ? (
-            <p className="texte-libelle text-destructive" role="alert">
-              {messageErreurMutation(erreur, t)}
-            </p>
-          ) : null}
-        </div>
-
-        <DialogFooter>
+    <PanneauLateral
+      ouvert={ouvert}
+      onOuvertChange={onOuvertChange}
+      titre={t('pieces:comptoirVente.vente.titre')}
+      pied={
+        <>
           <Button
             type="button"
             variant="outline"
@@ -210,8 +128,83 @@ export function DialogueVenteComptoir({ ouvert, onOuvertChange, siteId, article 
           <Button type="button" disabled={enCours} onClick={soumettre}>
             {enCours ? t('commun:chargement.enCours') : t('pieces:comptoirVente.vente.confirmer')}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-groupe">
+        <LegendeChampsObligatoires>
+          {t('commun:formulaires.champsObligatoiresLegende')}
+        </LegendeChampsObligatoires>
+
+        <div className="flex flex-col gap-0.5">
+          <span className="font-medium">{article.designation}</span>
+          <span className="font-mono texte-libelle text-muted-foreground">
+            {article.referencePrincipale}
+          </span>
+        </div>
+
+        <Alert variant="avertissement">
+          <AlertDescription>{t('pieces:comptoirVente.vente.avisSansFacture')}</AlertDescription>
+        </Alert>
+
+        <div className="flex flex-col gap-champ">
+          <Label htmlFor="vente-quantite" requis>
+            {t('pieces:comptoirVente.vente.quantite')}
+          </Label>
+          <Input
+            id="vente-quantite"
+            type="text"
+            inputMode="decimal"
+            required
+            autoFocus
+            readOnly={enCours}
+            value={quantiteSaisie}
+            onChange={(evenement) => setQuantiteSaisie(evenement.target.value)}
+          />
+          <span className="texte-libelle text-muted-foreground">
+            {t('pieces:comptoirVente.vente.disponible', {
+              n: formaterQuantiteMillieme(disponible),
+            })}
+          </span>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between texte-libelle text-muted-foreground">
+            <span>{t('pieces:comptoirVente.vente.prixUnitaire')}</span>
+            <span className="tabular-nums">{formaterMontant(article.prixVenteTtcCentimes)}</span>
+          </div>
+          <div className="flex items-center justify-between texte-corps">
+            <span className="text-muted-foreground">
+              {t('pieces:comptoirVente.vente.totalTtc')}
+            </span>
+            <span className="tabular-nums font-medium">
+              {totalTtcCentimes !== null ? formaterMontant(totalTtcCentimes) : '—'}
+            </span>
+          </div>
+        </div>
+
+        {erreurValidation ? (
+          <p className="texte-libelle text-statut-attention" role="alert">
+            {erreurValidation}
+          </p>
+        ) : null}
+        {erreur && stockInsuffisant ? (
+          // Un refus stock insuffisant est une règle métier NORMALE, pas une panne — jamais le
+          // ton/la couleur d'une erreur (`text-destructive`), même traitement que
+          // l'`erreurValidation` locale juste au-dessus (même refus, chemin serveur plutôt que
+          // pré-contrôle client).
+          <p className="texte-libelle text-statut-attention" role="alert">
+            {t('pieces:comptoirVente.vente.erreur.stockInsuffisant', {
+              n: formaterQuantiteMillieme(disponible),
+            })}
+          </p>
+        ) : null}
+        {erreur && !stockInsuffisant ? (
+          <p className="texte-libelle text-destructive" role="alert">
+            {messageErreurMutation(erreur, t)}
+          </p>
+        ) : null}
+      </div>
+    </PanneauLateral>
   );
 }

@@ -1,6 +1,5 @@
 {
   "titre": "Veicoli di cortesia",
-  "sousTitre": "Auto sostitutive prestate ai clienti durante la riparazione.",
   "jour": "Giorno",
   "erreur": "Impossibile caricare i veicoli di cortesia",
   "resume": "{libres, plural, =0 {Nessuna auto libera} one {# auto libera} other {# auto libere}} su {total}",

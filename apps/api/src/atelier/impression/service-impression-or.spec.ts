@@ -100,8 +100,12 @@ function ordreReparationMinimal(
   };
 }
 
-function accesBaseAvecSite(nomSite: string | null): AccesBase {
-  const ligneTenant = { raisonSociale: 'Garage Martin SA', numeroTva: 'CHE-114.873.733 TVA' };
+function accesBaseAvecSite(nomSite: string | null, assujettiTva?: boolean): AccesBase {
+  const ligneTenant = {
+    raisonSociale: 'Garage Martin SA',
+    numeroTva: 'CHE-114.873.733 TVA',
+    ...(assujettiTva === undefined ? {} : { assujettiTva }),
+  };
   let appel = 0;
   return {
     async enTenant<T>(_ctx: ContexteTenant, travail: (tx: unknown) => Promise<T>): Promise<T> {
@@ -156,6 +160,35 @@ describe('ServiceImpressionOr', () => {
         numeroTva: 'CHE-114.873.733 TVA',
       },
     );
+  });
+
+  it('garage non assujetti : mention « Non assujetti à la TVA » transmise à l’en-tête', async () => {
+    vi.mocked(genererPdfOr).mockResolvedValue(Buffer.from('%PDF'));
+    const serviceOr = {
+      obtenirComplet: vi.fn().mockResolvedValue(ordreReparationMinimal()),
+    } as unknown as ServiceOr;
+    const service = new ServiceImpressionOr(accesBaseAvecSite('Garage Martin', false), serviceOr);
+
+    await service.obtenirPdf(CTX, PRINCIPAL, 'or-1');
+
+    expect(genererPdfOr).toHaveBeenCalledWith(
+      expect.anything(),
+      'Garage Martin',
+      expect.objectContaining({ mentionNonAssujetti: 'Non assujetti à la TVA' }),
+    );
+  });
+
+  it('garage assujetti : aucune mention dans l’en-tête', async () => {
+    vi.mocked(genererPdfOr).mockResolvedValue(Buffer.from('%PDF'));
+    const serviceOr = {
+      obtenirComplet: vi.fn().mockResolvedValue(ordreReparationMinimal()),
+    } as unknown as ServiceOr;
+    const service = new ServiceImpressionOr(accesBaseAvecSite('Garage Martin', true), serviceOr);
+
+    await service.obtenirPdf(CTX, PRINCIPAL, 'or-1');
+
+    const emetteur = vi.mocked(genererPdfOr).mock.calls[0]?.[2];
+    expect(emetteur).not.toHaveProperty('mentionNonAssujetti');
   });
 
   it('ne met RIEN en cache et régénère à chaque appel — deux appels, deux générations', async () => {

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Download, FileText, ListChecks } from 'lucide-react';
 
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { ErreurApi, messageErreur } from '@/api/erreurs';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -101,11 +102,13 @@ export function EcranExportFiduciaire() {
   }
 
   return (
-    <GabaritEcran titre={t('export:titre')} sousTitre={t('export:sousTitre')}>
+    <GabaritEcran titre={t('export:titre')}>
       <Card>
         <CardHeader>
-          <CardTitle className="texte-titre-section">{t('export:format.titre')}</CardTitle>
-          <CardDescription>{t('export:format.description')}</CardDescription>
+          <div className="flex items-center gap-1.5">
+            <CardTitle className="texte-titre-section">{t('export:format.titre')}</CardTitle>
+            <AideContextuelle sujet={t('export:titre')} texte={t('aide:export.fiduciaire')} />
+          </div>
         </CardHeader>
         <CardContent>
           <fieldset className="grid gap-2 sm:grid-cols-2">
@@ -141,7 +144,6 @@ export function EcranExportFiduciaire() {
       <Card>
         <CardHeader>
           <CardTitle className="texte-titre-section">{t('export:periode.titre')}</CardTitle>
-          <CardDescription>{t('export:periode.description')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <fieldset className="flex flex-wrap gap-2">

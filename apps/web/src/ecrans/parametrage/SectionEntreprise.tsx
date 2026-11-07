@@ -21,7 +21,7 @@ import { validerDelaiPaiement } from './delai-paiement';
 import { validerNumeroTva } from './numero-tva';
 
 /**
- * Identité du garage (`GET|PATCH /parametres-entreprise`) : nom du garage (raison sociale), n° TVA et délai de paiement par défaut modifiables, logo
+ * Identité du garage (`GET|PATCH /parametres-entreprise`) : nom du garage (raison sociale), assujettissement à la TVA (+ n° TVA si assujetti) et délai de paiement par défaut modifiables, logo
  * (`BlocLogoEntreprise`). Le numéro est imprimé sur les factures émises ; une faute de frappe est
  * refusée ICI (format + clé de contrôle) avant l'appel.
  */
@@ -47,6 +47,7 @@ function FormulaireEntreprise({ donnees }: { readonly donnees: ReponseParametres
   const modifier = useModifierParametresEntreprise();
   const [raison, setRaison] = useState(donnees.raisonSociale);
   const [raisonInvalide, setRaisonInvalide] = useState(false);
+  const [assujetti, setAssujetti] = useState(donnees.assujettiTva);
   const [saisie, setSaisie] = useState(donnees.numeroTva ?? '');
   const [raisonErreur, setRaisonErreur] = useState<'format' | 'cle' | undefined>(undefined);
   const [delai, setDelai] = useState(String(donnees.delaiPaiementJoursDefaut));
@@ -59,7 +60,8 @@ function FormulaireEntreprise({ donnees }: { readonly donnees: ReponseParametres
     const raisonNettoyee = raison.trim();
     const raisonVide = raisonNettoyee === '';
     setRaisonInvalide(raisonVide);
-    const resultat = validerNumeroTva(saisie);
+    // Non assujetti : pas de n° TVA (le serveur le vide) — rien à valider.
+    const resultat = assujetti ? validerNumeroTva(saisie) : ({ ok: true, valeur: null } as const);
     if (raisonVide) return;
     if (!resultat.ok) {
       setRaisonErreur(resultat.raison);
@@ -72,12 +74,15 @@ function FormulaireEntreprise({ donnees }: { readonly donnees: ReponseParametres
     modifier.mutate(
       {
         raisonSociale: raisonNettoyee,
-        numeroTva: resultat.valeur,
+        assujettiTva: assujetti,
+        // Jamais de n° envoyé à un garage non assujetti (le serveur le refuserait).
+        ...(assujetti ? { numeroTva: resultat.valeur } : {}),
         delaiPaiementJoursDefaut: delaiJours,
       },
       {
         onSuccess: (reponse) => {
           setRaison(reponse.raisonSociale);
+          setAssujetti(reponse.assujettiTva);
           setSaisie(reponse.numeroTva ?? '');
           setDelai(String(reponse.delaiPaiementJoursDefaut));
           setEnregistre(true);
@@ -98,13 +103,16 @@ function FormulaireEntreprise({ donnees }: { readonly donnees: ReponseParametres
           </p>
 
           <div className="space-y-2">
-            <Label htmlFor="ent-raison-sociale">{t('parametrage:entreprise.raisonSociale')}</Label>
+            <Label htmlFor="ent-raison-sociale" requis>
+              {t('parametrage:entreprise.raisonSociale')}
+            </Label>
             <Input
               id="ent-raison-sociale"
               maxLength={LONGUEUR_MAX_RAISON_SOCIALE}
               autoComplete="organization"
               value={raison}
               readOnly={modifier.isPending}
+              aria-required="true"
               aria-invalid={raisonInvalide ? true : undefined}
               aria-describedby={
                 raisonInvalide ? 'ent-raison-aide ent-raison-erreur' : 'ent-raison-aide'
@@ -125,32 +133,70 @@ function FormulaireEntreprise({ donnees }: { readonly donnees: ReponseParametres
             ) : null}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="ent-tva">{t('parametrage:entreprise.numeroTva')}</Label>
-            <Input
-              id="ent-tva"
-              className="max-w-xs font-mono"
-              autoComplete="off"
-              placeholder="CHE-123.456.789 TVA"
-              value={saisie}
-              readOnly={modifier.isPending}
-              aria-invalid={raisonErreur ? true : undefined}
-              aria-describedby={raisonErreur ? 'ent-tva-aide ent-tva-erreur' : 'ent-tva-aide'}
-              onChange={(e) => {
-                setSaisie(e.target.value);
-                setRaisonErreur(undefined);
-                setEnregistre(false);
-              }}
-            />
-            <p id="ent-tva-aide" className="texte-corps text-muted-foreground">
-              {t('parametrage:entreprise.numeroTvaAide')}
+          <fieldset className="space-y-2" aria-describedby="ent-assujetti-aide">
+            <legend className="texte-libelle">
+              {t('parametrage:entreprise.assujetti.legende')}
+            </legend>
+            <div className="flex gap-6 texte-corps">
+              {([true, false] as const).map((valeur) => (
+                <label key={String(valeur)} className="flex min-h-11 items-center gap-2">
+                  <input
+                    type="radio"
+                    name="ent-assujetti"
+                    className="h-4 w-4"
+                    checked={assujetti === valeur}
+                    disabled={modifier.isPending}
+                    onChange={() => {
+                      setAssujetti(valeur);
+                      setRaisonErreur(undefined);
+                      setEnregistre(false);
+                    }}
+                  />
+                  {t(
+                    valeur
+                      ? 'parametrage:entreprise.assujetti.oui'
+                      : 'parametrage:entreprise.assujetti.non',
+                  )}
+                </label>
+              ))}
+            </div>
+            <p id="ent-assujetti-aide" className="texte-corps text-muted-foreground">
+              {assujetti
+                ? t('parametrage:entreprise.assujetti.aide')
+                : t('parametrage:entreprise.assujetti.nonInfo')}
             </p>
-            {raisonErreur ? (
-              <p id="ent-tva-erreur" className="texte-corps text-destructive" role="alert">
-                {t(`parametrage:entreprise.erreurTva.${raisonErreur}`)}
+          </fieldset>
+
+          {assujetti ? (
+            <div className="space-y-2">
+              <Label htmlFor="ent-tva">{t('parametrage:entreprise.numeroTva')}</Label>
+              <Input
+                id="ent-tva"
+                className="max-w-xs font-mono"
+                autoComplete="off"
+                placeholder="CHE-123.456.789 TVA"
+                value={saisie}
+                readOnly={modifier.isPending}
+                aria-invalid={raisonErreur ? true : undefined}
+                aria-describedby={raisonErreur ? 'ent-tva-aide ent-tva-erreur' : 'ent-tva-aide'}
+                onChange={(e) => {
+                  setSaisie(e.target.value);
+                  setRaisonErreur(undefined);
+                  setEnregistre(false);
+                }}
+              />
+              <p id="ent-tva-aide" className="texte-corps text-muted-foreground">
+                {saisie.trim() === ''
+                  ? t('parametrage:entreprise.assujetti.ouiSansNumero')
+                  : t('parametrage:entreprise.numeroTvaAide')}
               </p>
-            ) : null}
-          </div>
+              {raisonErreur ? (
+                <p id="ent-tva-erreur" className="texte-corps text-destructive" role="alert">
+                  {t(`parametrage:entreprise.erreurTva.${raisonErreur}`)}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="space-y-2">
             <Label htmlFor="ent-delai">{t('parametrage:entreprise.delaiPaiement')}</Label>

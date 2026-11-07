@@ -87,7 +87,6 @@ export function EcranChiffres() {
   return (
     <GabaritEcran
       titre={t('facturation:chiffres.titre')}
-      sousTitre={t('facturation:chiffres.sousTitre')}
       actions={<FiltreSite filtre={filtreSite} />}
     >
       <SectionChiffreAffaires periodes={periodes} siteId={siteId} />

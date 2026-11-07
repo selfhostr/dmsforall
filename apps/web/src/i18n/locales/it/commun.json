@@ -103,11 +103,10 @@
   },
   "densite": {
     "titre": "Dimensione dell'interfaccia",
-    "court": { "auto": "Auto", "compacte": "Compatta", "aeree": "Ampia" },
     "auto": "Automatica (secondo il dispositivo)",
     "compacte": "Compatta",
     "aeree": "Ampia",
-    "aide": "Ampia: testo più grande e righe più alte, per tablet e dito."
+    "revenirAuto": "Tornare alla dimensione automatica"
   },
   "glossaire": {
     "OR": "Ordine di riparazione (OR): scheda dei lavori di un veicolo, dalla consegna alla restituzione.",

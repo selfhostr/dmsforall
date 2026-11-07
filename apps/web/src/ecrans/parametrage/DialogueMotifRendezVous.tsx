@@ -8,13 +8,12 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import {
   useCreerMotifRendezVous,
   useModifierMotifRendezVous,
@@ -89,24 +88,29 @@ export function DialogueMotifRendezVous({ ouvert, onOuvertChange, motif }: Props
 
   return (
     <Dialog open={ouvert} onOpenChange={onOuvertChange}>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>
             {estModification
               ? t('parametrage:motifsRdv.modifier')
               : t('parametrage:motifsRdv.nouveau')}
           </DialogTitle>
-          <DialogDescription>{t('parametrage:motifsRdv.dialogueAide')}</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={soumettre} noValidate className="flex flex-col gap-4">
+          <LegendeChampsObligatoires>
+            {t('parametrage:obligatoire.legende')}
+          </LegendeChampsObligatoires>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="mrv-libelle-fr">{t('parametrage:motifsRdv.champs.libelleFr')}</Label>
+            <Label htmlFor="mrv-libelle-fr" requis>
+              {t('parametrage:motifsRdv.champs.libelleFr')}
+            </Label>
             <Input
               id="mrv-libelle-fr"
               value={saisie.libelleFr}
               maxLength={200}
               readOnly={enCours}
+              aria-required="true"
               aria-invalid={champEnErreur === 'libelleFr' || dejaPris ? true : undefined}
               aria-describedby={
                 champEnErreur === 'libelleFr' || dejaPris ? 'mrv-libelle-fr-erreur' : undefined
@@ -147,10 +151,6 @@ export function DialogueMotifRendezVous({ ouvert, onOuvertChange, motif }: Props
               />
             </div>
           </div>
-          <p className="texte-libelle text-muted-foreground">
-            {t('parametrage:motifsRdv.traductionsAide')}
-          </p>
-
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="mrv-duree">{t('parametrage:motifsRdv.champs.dureeMinutes')}</Label>

@@ -3,7 +3,7 @@
     "aria": "Navigazione principale"
   },
   "entrees": {
-    "aujourdhui": "Oggi",
+    "aujourdhui": "Cruscotto",
     "atelier": "Officina",
     "clientsVehicules": "Clienti e veicoli",
     "pieces": "Ricambi",
@@ -41,12 +41,14 @@
     "piecesFacturesFournisseur": "Fatture fornitore",
     "piecesConsignes": "Cauzioni",
     "facturationFactures": "Fatture",
+    "facturationChiffres": "Cifre",
     "facturationEncaissements": "Incassi",
     "facturationRelances": "Solleciti",
     "facturationExportFiduciaire": "Esportazione fiduciaria",
     "ventesDossiers": "Vendite in corso",
     "ventesParc": "Veicoli in stock",
     "ventesSuivi": "Finanziamento e garanzia",
+    "reglagesGarage": "Il mio garage",
     "reglagesAtelier": "Officina",
     "reglagesSites": "Sedi",
     "reglagesFacturation": "Fatturazione",
@@ -96,7 +98,16 @@
     "passerSombre": "Passa al tema scuro"
   },
   "pied": {
-    "version": "Versione {info}",
-    "versionInconnue": "sconosciuta"
+    "version": "Versione {info}"
+  },
+  "configurer": {
+    "entree": "Configurare l’autorimessa",
+    "pastille": "Autorimessa da configurare"
+  },
+  "rangee": {
+    "aria": "Impostazioni rapide"
+  },
+  "signalement": {
+    "entree": "Segnala un problema"
   }
 }

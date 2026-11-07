@@ -17,10 +17,8 @@
     "aucun": "Aucun casier renseigné",
     "dialogue": {
       "titre": "Casier de rangement",
-      "description": "Rayon et tiroir sont facultatifs — un complément structuré au texte libre déjà en place, qui reste utilisable pour les cas particuliers.",
       "rayon": "Rayon",
       "tiroir": "Tiroir",
-      "aide": "« B3 », « b3 » et « B 3 » désignent le même rayon : majuscules et espaces n'ont pas d'importance.",
       "libreActuel": "Texte libre actuel pour ce site : {emplacement}",
       "libreAucun": "Aucun texte libre renseigné pour ce site."
     }
@@ -205,7 +203,6 @@
       "action": "Seuil de réapprovisionnement",
       "actionAria": "Définir le seuil de réapprovisionnement — {nomSite}",
       "champ": "Nouveau seuil",
-      "champAide": "La valeur actuelle n'est pas affichée ici. Si cet article est déjà sous son seuil, celui-ci est visible et modifiable dans l'écran Réapprovisionnement. Enregistrer ici pose ou remplace le seuil pour ce site.",
       "erreurVide": "Entrez une quantité, ou utilisez « Retirer le seuil » pour ne pas en poser.",
       "erreurInvalide": "Quantité invalide. Un seuil à zéro n'est pas possible — pour ne jamais réapprovisionner cet article, utilisez « Retirer le seuil ».",
       "retirer": "Retirer le seuil",
@@ -399,7 +396,6 @@
     },
     "reception": {
       "titre": "Réception",
-      "description": "Indiquez ce qui a été effectivement livré, ligne par ligne.",
       "ligneNumero": "Ligne {numero}",
       "aucuneLigne": "Sélectionnez au moins une ligne reçue.",
       "referenceLibellee": "Référence livrée",
@@ -559,7 +555,6 @@
   "facturesFournisseur": {
     "titre": "Factures fournisseur",
     "titreDepot": "Déposer une facture fournisseur",
-    "sousTitreDepot": "Déposez le PDF reçu du fournisseur : il est lu automatiquement et rapproché à la commande correspondante.",
     "deposeeLe": "Déposée le {date}",
     "sansNumero": "Facture sans numéro lu",
     "vide": {

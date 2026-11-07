@@ -256,7 +256,6 @@
     "reporter": {
       "bouton": "Arbeit zurückstellen",
       "titre": "Arbeit zurückstellen",
-      "description": "Notieren Sie, was beim nächsten Besuch zu erledigen ist: Es erscheint auf der Fahrzeugkarte und beim Öffnen des nächsten Arbeitsauftrags.",
       "designationPlaceholder": "z. B. Zahnriemen",
       "detail": "Details (optional)",
       "enregistrer": "Speichern",

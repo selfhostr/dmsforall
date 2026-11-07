@@ -2,11 +2,11 @@ import { Clock, PackageCheck, ShieldAlert, UserRound } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { ReponseLigneOr, StatutLigneOr, TypeLigneOr } from '@dfa/shared';
+import type { ReponseLigneOr, TypeLigneOr } from '@dfa/shared';
 
 import { ErreurApi } from '@/api/erreurs';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { BadgeStatutLigneOr } from '@/composants/identite/BadgeStatutLigneOr';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
@@ -79,17 +79,6 @@ export const CLES_TYPE: Record<TypeLigneOr, string> = {
   texte: 'texte',
 };
 
-const CLES_STATUT: Record<StatutLigneOr, string> = {
-  proposee: 'proposee',
-  a_valider: 'aValider',
-  validee: 'validee',
-  en_cours: 'enCours',
-  realisee: 'realisee',
-  facturee: 'facturee',
-  refusee: 'refusee',
-  annulee: 'annulee',
-};
-
 type ActionGroupeeLigne = 'valider' | 'refuser' | 'annuler';
 
 interface Props {
@@ -130,9 +119,7 @@ const STATUTS_REPORTABLES: ReadonlySet<ReponseLigneOr['statut']> = new Set([
  * valider/refuser la ligne `proposee`/`a_valider` qui bloquait — avant ce correctif, rien sur cet
  * écran ne le permettait, quel que soit le rôle.
  *
- * Pas de composant `BadgeStatutLigne` dédié à ce jour (seul `BadgeStatutOr` existe dans
- * `composants/identite/` — voir le commentaire de `components/ui/badge.tsx`) : le statut de ligne
- * utilise donc le `Badge` générique, à remplacer par un composant dédié quand il existera.
+ * Le statut de ligne s'affiche via `BadgeStatutLigneOr` (famille `BadgeStatut`).
  */
 export function ListeLignesOrdreReparation({
   orId,
@@ -397,7 +384,7 @@ export function ListeLignesOrdreReparation({
       // sous-texte discret en `flex flex-col gap-0.5`).
       rendu: (ligne) => (
         <div className="flex flex-col gap-0.5">
-          <Badge variant="secondary">{t(`or:lignes.statuts.${CLES_STATUT[ligne.statut]}`)}</Badge>
+          <BadgeStatutLigneOr statut={ligne.statut} className="w-fit" />
           {ligne.statut === 'annulee' && ligne.motifAnnulation ? (
             <span className="texte-libelle text-muted-foreground">{ligne.motifAnnulation}</span>
           ) : null}
@@ -505,7 +492,7 @@ export function ListeLignesOrdreReparation({
         colonnes={colonnes}
         lignes={lignes}
         cleLigne={(ligne) => ligne.id}
-        contenuVide={<EtatVide titre={t('or:lignes.titre')} description={t('or:lignes.vide')} />}
+        contenuVide={<EtatVide description={t('or:lignes.vide')} />}
       />
       {lignesTronquees ? (
         <p className="texte-libelle text-muted-foreground">{t('or:lignes.tronquees')}</p>

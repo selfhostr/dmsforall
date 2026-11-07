@@ -285,5 +285,13 @@
       "action": "Entsperren",
       "resultat": "{count, plural, one {# Zeiterfassung entsperrt.} other {# Zeiterfassungen entsperrt.}}"
     }
+  },
+  "borne": {
+    "comptePersonnel": {
+      "titre": "Werkstattterminal",
+      "titreVide": "Werkstattterminal",
+      "description": "Der PIN-Code gilt nur am gemeinsamen Terminal. Mit Ihrem Konto stempeln Sie ohne Code.",
+      "action": "Meine Arbeit"
+    }
   }
 }
