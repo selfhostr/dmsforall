@@ -10340,6 +10340,16 @@
             "minimum": 0,
             "type": "number"
           },
+          "modeSignalement": {
+            "description": "Réglage « Signalements » : `via_site` (défaut) ouvre le site pour terminer le signalement, `copie_seule` ne propose que la copie du rapport, `desactive` retire le bouton « Signaler un problème ».",
+            "enum": [
+              "via_site",
+              "copie_seule",
+              "desactive"
+            ],
+            "example": "via_site",
+            "type": "string"
+          },
           "numeroTva": {
             "description": "N° IDE avec mention TVA (CHE-123.456.789 TVA, MWST ou IVA), clé de contrôle vérifiée. `null` : numéro pas encore saisi, ou garage non assujetti.",
             "example": "CHE-116.281.710 TVA",
@@ -10355,7 +10365,8 @@
           "raisonSociale",
           "assujettiTva",
           "numeroTva",
-          "delaiPaiementJoursDefaut"
+          "delaiPaiementJoursDefaut",
+          "modeSignalement"
         ],
         "type": "object"
       },
@@ -12841,6 +12852,14 @@
             ],
             "type": "string"
           },
+          "modeSignalement": {
+            "enum": [
+              "via_site",
+              "copie_seule",
+              "desactive"
+            ],
+            "type": "string"
+          },
           "raisonSociale": {
             "example": "Garage du Léman Sàrl",
             "type": "string"
@@ -12854,7 +12873,8 @@
           "id",
           "slug",
           "raisonSociale",
-          "langueDefaut"
+          "langueDefaut",
+          "modeSignalement"
         ],
         "type": "object"
       },
@@ -36126,7 +36146,7 @@
         ]
       },
       "patch": {
-        "description": "`raisonSociale` : 1 à 200 caractères (espaces de bord retirés), journalisée dans le journal d'audit (avant/après). Le slug du garage ne change jamais. Les documents déjà émis gardent leur raison sociale ; les suivants prennent la nouvelle (sauf si le bloc créancier porte son propre nom, qui reste prioritaire et se change dans la facturation). Format IDE suisse `CHE-123.456.789 TVA` (`MWST`/`IVA` acceptés), clé de contrôle modulo 11 vérifiée. `numeroTva: null` efface le numéro. `assujettiTva: false` déclare le garage non assujetti : le numéro est vidé et les documents émis ensuite n’ont aucune TVA ; `assujettiTva: false` avec un `numeroTva` non nul (ou un numéro envoyé à un garage non assujetti) est refusé (`VALIDATION_ECHOUEE`, `erreurs[0].champ = numeroTva`). `assujettiTva: true` sans numéro est accepté, mais l’émission d’une facture exige alors le numéro (`TVA_NUMERO_REQUIS`). Chaque changement de raison sociale, d'assujettissement ou de numéro est journalisé (avant/après). Corps vide : aucun effet.",
+        "description": "`raisonSociale` : 1 à 200 caractères (espaces de bord retirés), journalisée dans le journal d'audit (avant/après). Le slug du garage ne change jamais. Les documents déjà émis gardent leur raison sociale ; les suivants prennent la nouvelle (sauf si le bloc créancier porte son propre nom, qui reste prioritaire et se change dans la facturation). Format IDE suisse `CHE-123.456.789 TVA` (`MWST`/`IVA` acceptés), clé de contrôle modulo 11 vérifiée. `numeroTva: null` efface le numéro. `assujettiTva: false` déclare le garage non assujetti : le numéro est vidé et les documents émis ensuite n’ont aucune TVA ; `assujettiTva: false` avec un `numeroTva` non nul (ou un numéro envoyé à un garage non assujetti) est refusé (`VALIDATION_ECHOUEE`, `erreurs[0].champ = numeroTva`). `assujettiTva: true` sans numéro est accepté, mais l’émission d’une facture exige alors le numéro (`TVA_NUMERO_REQUIS`). Chaque changement de raison sociale, d'assujettissement ou de numéro est journalisé (avant/après). `modeSignalement` (`via_site`, `copie_seule`, `desactive`) règle le bouton « Signaler un problème » ; son changement est journalisé. Corps vide : aucun effet.",
         "operationId": "ParametresEntrepriseController_modifier",
         "parameters": [],
         "requestBody": {
@@ -36149,6 +36169,14 @@
                     "maximum": 365,
                     "minimum": 0,
                     "type": "integer"
+                  },
+                  "modeSignalement": {
+                    "enum": [
+                      "via_site",
+                      "copie_seule",
+                      "desactive"
+                    ],
+                    "type": "string"
                   },
                   "numeroTva": {
                     "type": [

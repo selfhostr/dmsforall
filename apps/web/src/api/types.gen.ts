@@ -2832,7 +2832,7 @@ export interface paths {
     head?: never;
     /**
      * Modifie la raison sociale, l’assujettissement à la TVA, le n° TVA ou le délai de paiement du garage.
-     * @description `raisonSociale` : 1 à 200 caractères (espaces de bord retirés), journalisée dans le journal d'audit (avant/après). Le slug du garage ne change jamais. Les documents déjà émis gardent leur raison sociale ; les suivants prennent la nouvelle (sauf si le bloc créancier porte son propre nom, qui reste prioritaire et se change dans la facturation). Format IDE suisse `CHE-123.456.789 TVA` (`MWST`/`IVA` acceptés), clé de contrôle modulo 11 vérifiée. `numeroTva: null` efface le numéro. `assujettiTva: false` déclare le garage non assujetti : le numéro est vidé et les documents émis ensuite n’ont aucune TVA ; `assujettiTva: false` avec un `numeroTva` non nul (ou un numéro envoyé à un garage non assujetti) est refusé (`VALIDATION_ECHOUEE`, `erreurs[0].champ = numeroTva`). `assujettiTva: true` sans numéro est accepté, mais l’émission d’une facture exige alors le numéro (`TVA_NUMERO_REQUIS`). Chaque changement de raison sociale, d'assujettissement ou de numéro est journalisé (avant/après). Corps vide : aucun effet.
+     * @description `raisonSociale` : 1 à 200 caractères (espaces de bord retirés), journalisée dans le journal d'audit (avant/après). Le slug du garage ne change jamais. Les documents déjà émis gardent leur raison sociale ; les suivants prennent la nouvelle (sauf si le bloc créancier porte son propre nom, qui reste prioritaire et se change dans la facturation). Format IDE suisse `CHE-123.456.789 TVA` (`MWST`/`IVA` acceptés), clé de contrôle modulo 11 vérifiée. `numeroTva: null` efface le numéro. `assujettiTva: false` déclare le garage non assujetti : le numéro est vidé et les documents émis ensuite n’ont aucune TVA ; `assujettiTva: false` avec un `numeroTva` non nul (ou un numéro envoyé à un garage non assujetti) est refusé (`VALIDATION_ECHOUEE`, `erreurs[0].champ = numeroTva`). `assujettiTva: true` sans numéro est accepté, mais l’émission d’une facture exige alors le numéro (`TVA_NUMERO_REQUIS`). Chaque changement de raison sociale, d'assujettissement ou de numéro est journalisé (avant/après). `modeSignalement` (`via_site`, `copie_seule`, `desactive`) règle le bouton « Signaler un problème » ; son changement est journalisé. Corps vide : aucun effet.
      */
     patch: operations['ParametresEntrepriseController_modifier'];
     trace?: never;
@@ -22002,6 +22002,7 @@ export interface operations {
         'application/json': {
           assujettiTva?: boolean;
           delaiPaiementJoursDefaut?: number;
+          /** @enum {string} */
           modeSignalement?: 'via_site' | 'copie_seule' | 'desactive';
           numeroTva?: string | null;
           raisonSociale?: string;
