@@ -335,13 +335,6 @@ export function EcranListeVehiculesStock() {
       <EtatVidePremierUsage
         titre={t('ventes:stock.liste.vide.premierUsage.titre')}
         description={t('ventes:stock.liste.vide.premierUsage.description')}
-        action={
-          peutEcrireVehiculeStock(actions) && vue === 'vendeur' ? (
-            <Button onClick={() => navigate(chemins.ventes.stock.nouveau(site))}>
-              {t('ventes:stock.liste.actions.mettreEnStock')}
-            </Button>
-          ) : undefined
-        }
       />
     );
   }
