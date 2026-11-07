@@ -79,9 +79,7 @@ export function EcranPointage() {
   if (!siteId) {
     return (
       <GabaritEcran titre={t('pointage:titre')}>
-        <SelecteurSitePointage
-          onChoisir={(valeur) => filtreSite.choisir(valeur)}
-        />
+        <SelecteurSitePointage onChoisir={(valeur) => filtreSite.choisir(valeur)} />
       </GabaritEcran>
     );
   }
