@@ -20,7 +20,10 @@ const CHEMIN = '/api/v1/parametres-entreprise/modules';
 const t = (cle: string, options?: Record<string, unknown>) => i18n.t(cle, options);
 const nom = (id: ModuleApp) => t(`parametrage:modules.items.${id}.nom`);
 
-function simuler(desactivesInitiaux: ModuleApp[] = [], role: 'direction' | 'chef_atelier' = 'direction') {
+function simuler(
+  desactivesInitiaux: ModuleApp[] = [],
+  role: 'direction' | 'chef_atelier' = 'direction',
+) {
   const ecritures: unknown[] = [];
   let desactives = desactivesInitiaux;
   server.use(

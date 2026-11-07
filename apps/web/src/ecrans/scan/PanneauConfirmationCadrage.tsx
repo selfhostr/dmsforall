@@ -54,7 +54,11 @@ export function PanneauConfirmationCadrage({
           parfois dans le fond de page. Le filet ici délimite le bord RÉEL de la photo, pas un
           simple regroupement de contenu. */}
       <div className="relative overflow-hidden rounded-lg border">
-        <img src={urlApercuSure(urlApercu)} alt={t('scan:cadrage.apercuAlt')} className="block w-full" />
+        <img
+          src={urlApercuSure(urlApercu)}
+          alt={t('scan:cadrage.apercuAlt')}
+          className="block w-full"
+        />
         <CadrePermis fractions={fractions} />
       </div>
 

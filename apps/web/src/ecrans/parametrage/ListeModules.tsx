@@ -50,7 +50,12 @@ interface Props {
  * réglage. L'état s'écrit en toutes lettres (Activé / Retiré) en plus de l'interrupteur ; la
  * dépendance s'affiche sur la ligne, jamais seulement par un interrupteur grisé.
  */
-export function ListeModules({ desactives, onChange, desactiveTout = false, lectureSeule = false }: Props) {
+export function ListeModules({
+  desactives,
+  onChange,
+  desactiveTout = false,
+  lectureSeule = false,
+}: Props) {
   const { t } = useTranslation('parametrage');
   const noms = (ids: readonly ModuleApp[]) =>
     ids.map((id) => t(`parametrage:modules.items.${id}.nom`)).join(', ');

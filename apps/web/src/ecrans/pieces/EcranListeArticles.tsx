@@ -76,7 +76,8 @@ export function EcranListeArticles() {
   const filtreSite = useFiltreSite('pieces.articles');
   const site = filtreSite.siteId;
   const siteConnu =
-    site !== undefined || (filtreSite.pret && filtreSite.tousPropose && filtreSite.sites.length > 0);
+    site !== undefined ||
+    (filtreSite.pret && filtreSite.tousPropose && filtreSite.sites.length > 0);
 
   const filtres = useMemo(
     () => ({ q: q.trim() === '' ? undefined : q.trim(), categorie, statut, tri }),
