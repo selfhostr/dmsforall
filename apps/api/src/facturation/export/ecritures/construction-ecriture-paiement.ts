@@ -223,6 +223,52 @@ const NATURES_SOLDANT_UN_DOCUMENT: ReadonlySet<NatureImputation> = new Set([
   'perte',
 ]);
 
+/** `1234.5` -> `1'234.50` (centimes entiers, jamais de flottant). */
+function formaterChf(centimes: bigint): string {
+  const negatif = centimes < 0n;
+  const abs = negatif ? -centimes : centimes;
+  const entier = (abs / 100n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "'");
+  const cts = (abs % 100n).toString().padStart(2, '0');
+  return `${negatif ? '-' : ''}${entier}.${cts}`;
+}
+
+/** `2026-03-12` -> `12.03.2026`. */
+function formaterDateSuisse(iso: string): string {
+  const [a, m, j] = iso.slice(0, 10).split('-');
+  return `${j ?? ''}.${m ?? ''}.${a ?? ''}`;
+}
+
+/**
+ * Référence lisible d'un encaissement bloquant : n° de la ou des factures réglées, date et montant
+ * du paiement (« FA-2026-00108 · encaissement du 12.03.2026 · CHF 1'234.50 »). Sans imputation
+ * (avance, acompte non affecté) : pas de n° de facture, le reste suffit à retrouver le paiement.
+ */
+export function decrireEncaissement(
+  paiement: Pick<PaiementPourEcriture, 'dateValeur' | 'montantCentimes'>,
+  numerosDocuments: readonly string[],
+): string {
+  const quoi = paiement.montantCentimes < 0n ? 'remboursement' : 'encaissement';
+  const detail = `${quoi} du ${formaterDateSuisse(paiement.dateValeur)} · CHF ${formaterChf(paiement.montantCentimes)}`;
+  return numerosDocuments.length === 0
+    ? `${detail} (sans facture)`
+    : `${numerosDocuments.join(', ')} · ${detail}`;
+}
+
+/**
+ * N° de pièce comptable d'un paiement (convention fiduciaire : la pièce est le n° de la facture
+ * réglée). Un seul document : son numéro tel quel. Plusieurs : numéro (ordre alphabétique) du
+ * premier + `+N` (N = nombre d'autres documents), ex. « FA-2026-00108+2 » ; le suffixe `+N` est
+ * préservé par la troncature WinBIZ (`formaterPieceWinbiz`). `undefined` sans document (avance) :
+ * l'adaptateur retombe sur `reference`.
+ */
+export function pieceComptablePaiement(numerosDocuments: readonly string[]): string | undefined {
+  const premier = numerosDocuments[0];
+  if (premier === undefined) return undefined;
+  return numerosDocuments.length === 1
+    ? premier
+    : `${premier}+${String(numerosDocuments.length - 1)}`;
+}
+
 export function construireEcriturePaiement(
   paiement: PaiementPourEcriture,
   imputations: readonly ImputationPourEcriturePaiement[],
@@ -440,6 +486,18 @@ export function construireEcriturePaiement(
     });
   }
 
+  // Documents réglés (hors compensation), numéros distincts triés : sert à la lisibilité des
+  // blocages (le garagiste reconnaît la facture, pas l'UUID du paiement) et au n° de pièce.
+  const numerosDocuments = [
+    ...new Set(
+      imputations
+        .filter((i) => NATURES_SOLDANT_UN_DOCUMENT.has(i.nature))
+        .map((i) => documents.get(i.documentId)?.numero)
+        .filter((n): n is string => n !== undefined),
+    ),
+  ].sort();
+  const referenceBlocage = decrireEncaissement(paiement, numerosDocuments);
+
   const manquants: BesoinMappingManquant[] = [];
   for (const g of groupes) {
     if (g.montantSigneCentimes === 0n) continue;
@@ -448,7 +506,7 @@ export function construireEcriturePaiement(
         type: 'compte',
         usage: g.usage,
         categorie: g.categorie,
-        documentNumero: paiement.id,
+        documentNumero: referenceBlocage,
       });
     }
     if (g.usage === 'tva_due' && g.codeTva === null) {
@@ -456,7 +514,7 @@ export function construireEcriturePaiement(
         type: 'code_tva',
         regimeTva: g.regimeTvaPourManquant ?? '',
         tauxPourmille: g.tauxPourmille ?? 0,
-        documentNumero: paiement.id,
+        documentNumero: referenceBlocage,
       });
     }
   }
@@ -513,6 +571,7 @@ export function construireEcriturePaiement(
   // vers DFA pour une écriture de paiement — `documentId` reste la traçabilité PROPRE au document.
   const ecriture: EcritureExport = {
     reference: paiement.id,
+    piece: pieceComptablePaiement(numerosDocuments),
     date: paiement.dateValeur,
     libelle: `${verbe} (${paiement.moyen}) — ${paiement.payeurLibelle}`,
     centreDeCharge,

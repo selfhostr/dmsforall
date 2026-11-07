@@ -101,7 +101,7 @@ export const POSTES_COMPTES: readonly DefinitionPosteCompte[] = [
     categorie: 'defaut',
     libelle: "Écart d'arrondi (5 centimes)",
     requis: false,
-    defaut: null,
+    defaut: '3809',
   },
   {
     usage: 'escompte',
@@ -133,11 +133,20 @@ export const POSTES_CODES_TVA: readonly DefinitionPosteCodeTva[] = [
 ];
 
 /**
- * Suggestion de code TVA : seule la cible `csv` est libre (aucun logiciel en face) — le taux
- * lui-même est un code lisible. Pour WinBIZ/Bexio/Abacus/Banana les codes sont ceux du logiciel du
- * garage, qu'on n'invente pas.
+ * Codes TVA WinBIZ par défaut : seul le taux normal 8.1 % (`N81`) est proposé. Les codes des
+ * taux réduit/hébergement dépendent du paramétrage du garage dans WinBIZ, qu'on n'invente pas.
+ */
+const CODES_TVA_WINBIZ_PAR_DEFAUT: Readonly<Record<string, string>> = { 'normal:81': 'N81' };
+
+/**
+ * Suggestion de code TVA : la cible `csv` est libre (le taux lui-même est un code lisible) ;
+ * WinBIZ reçoit `N81` pour le taux normal. Bexio/Abacus/Banana : codes du logiciel du garage, non
+ * inventés.
  */
 export function codeTvaParDefaut(cible: CibleExport, poste: DefinitionPosteCodeTva): string | null {
+  if (cible === 'winbiz') {
+    return CODES_TVA_WINBIZ_PAR_DEFAUT[`${poste.regimeTva}:${String(poste.tauxPourmille)}`] ?? null;
+  }
   if (cible !== 'csv') return null;
   return `${String(Math.floor(poste.tauxPourmille / 10))}.${String(poste.tauxPourmille % 10)}`;
 }

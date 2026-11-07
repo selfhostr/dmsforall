@@ -36,6 +36,9 @@ export interface LigneEcritureExport {
  *  paiement : c'est ce que la fiduciaire tape pour retrouver la pièce en trente secondes (`RF-108`). */
 export interface EcritureExport {
   readonly reference: string;
+  /** N° de pièce comptable si différent de `reference` (écriture de paiement : n° de la facture
+   *  réglée, + `+N` si plusieurs). Absent : l'adaptateur utilise `reference`. */
+  readonly piece?: string;
   readonly date: string;
   readonly libelle: string;
   /** Code du site — `null` si le tenant n'utilise pas de centre de charge. */

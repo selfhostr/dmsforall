@@ -98,6 +98,15 @@ describe('formaterPieceWinbiz — troncature depuis la DROITE (10 caractères, E
     expect(resultat.tronque).toBe(true);
   });
 
+  it('paiement multi-factures : le suffixe « +N » est conservé, le numéro est tronqué pour tenir en 10', () => {
+    expect(formaterPieceWinbiz('FA-2026-00108+2')).toEqual({ valeur: '26-00108+2', tronque: true });
+    expect(formaterPieceWinbiz('FA-2026-00108+12')).toEqual({
+      valeur: '6-00108+12',
+      tronque: true,
+    });
+    expect(formaterPieceWinbiz('2026-1+3')).toEqual({ valeur: '2026-1+3', tronque: false });
+  });
+
   it('assainit avant de tronquer (un « ; » ne doit jamais survivre dans Pièce)', () => {
     const resultat = formaterPieceWinbiz('FA;2026;00123');
     expect(resultat.valeur).not.toContain(';');
