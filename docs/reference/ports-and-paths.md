@@ -34,6 +34,7 @@ Only the proxy publishes a port. Keep other ports closed at the firewall.
 | `dmsforall_dfa_postgres_backups`    | Encrypted nightly backups (profile `backup`).  | Local copy only.                |
 | `dmsforall_dfa_api_uploads`         | Uploaded and generated PDF documents.          | No.                             |
 | `dmsforall_dfa_exports_resiliation` | Exports made when a garage leaves the service. | No.                             |
+| `dmsforall_dfa_photos_or`           | Repair order photos and thumbnails.            | No.                             |
 | `dmsforall_dfa_secrets`             | Generated database passwords.                  | No. Keep a copy somewhere safe. |
 | `dmsforall_dfa_redis_data`          | Redis data.                                    | No.                             |
 | `dmsforall_dfa_caddy_data`          | TLS certificates obtained by Caddy.            | No.                             |
