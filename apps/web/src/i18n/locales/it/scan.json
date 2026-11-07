@@ -1,9 +1,9 @@
 {
-  "titre": "Scansionare una licenza di circolazione",
+  "titre": "Scansiona una licenza di circolazione",
   "sousTitre": "Fotografi la licenza, verifichi, poi confermi.",
   "echappement": {
     "message": "Vista semplificata per cellulare: qui è disponibile solo la scansione.",
-    "action": "Aprire l'applicazione completa"
+    "action": "Apri l'applicazione completa"
   },
   "capture": {
     "objectifTitre": "Fotografate la licenza di circolazione",
@@ -17,8 +17,8 @@
   "cadrage": {
     "titre": "Ritaglio automatico rilevato",
     "description": "I bordi del documento sono stati individuati automaticamente. Verifichi che non manchi nulla.",
-    "continuer": "Continuare",
-    "photoEntiere": "Usare la foto intera",
+    "continuer": "Continua",
+    "photoEntiere": "Usa la foto intera",
     "apercuAlt": "Anteprima della foto con il ritaglio rilevato automaticamente"
   },
   "captureLive": {
@@ -38,7 +38,7 @@
       "photoFloue": "La foto è sfocata. Tenga l'apparecchio ben fermo."
     },
     "avertissementEnvoiForce": "Senza rifare la foto, la lettura automatica sarà probabilmente incompleta.",
-    "envoyerQuandMeme": "Inviare comunque",
+    "envoyerQuandMeme": "Invia comunque",
     "apercuAlt": "Anteprima della foto scattata per la verifica"
   },
   "preparation": {
@@ -65,7 +65,7 @@
   },
   "actions": {
     "reessayer": "Rifai la foto",
-    "scannerUnAutre": "Scansionare un'altra licenza"
+    "scannerUnAutre": "Scansiona un'altra licenza"
   },
   "formulaire": {
     "sectionDetenteur": "Detentore",
@@ -74,7 +74,7 @@
     "clientCreeTitre": "Cliente registrato",
     "clientCreeDescription": "{nom} è stato creato. Verifichi ora il veicolo qui sotto.",
     "langueAide": "Non stampata sulla licenza — da scegliere Lei stesso.",
-    "valider": "Confermare e registrare"
+    "valider": "Conferma e registra"
   },
   "confiance": {
     "nonLu": "Non letto — da completare",

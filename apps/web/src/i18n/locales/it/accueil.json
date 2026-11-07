@@ -7,7 +7,7 @@
       "masquer": "Non mostrare più",
       "chargement": "Verifica della configurazione",
       "verificationImpossible": "Alcuni passaggi non hanno potuto essere verificati.",
-      "reessayer": "Riprovare"
+      "reessayer": "Riprova"
     },
     "etat": {
       "fait": "Fatto",
@@ -16,7 +16,7 @@
     },
     "facultatif": "facoltativo",
     "regler": "Configura",
-    "modifier": "Modificare",
+    "modifier": "Modifica",
     "etapes": {
       "coordonnees": {
         "titre": "Nome e indirizzo dell'autofficina",
@@ -68,7 +68,7 @@
     },
     "depuisLe": "Senza movimento dal {date}",
     "autres": "{count, plural, one {+ # altro set da richiamare} other {+ # altri set da richiamare}}",
-    "voirTout": "Vedere tutto il deposito pneumatici",
+    "voirTout": "Vedi tutto il deposito pneumatici",
     "aVenir": "I controlli MFK e le garanzie verranno aggiunti a questo elenco molto presto."
   },
   "recherche": {
@@ -76,13 +76,13 @@
   },
   "actions": {
     "titre": "Azioni rapide",
-    "creerOr": "Creare un ordine",
+    "creerOr": "Crea un ordine",
     "nouveauRendezVous": "Nuovo appuntamento",
-    "encaisser": "Incassare"
+    "encaisser": "Incassa"
   },
   "aFaire": {
     "titre": "Da fare oggi",
-    "toutVoir": "Mostrare tutto",
+    "toutVoir": "Mostra tutto",
     "aFacturer": {
       "titre": "Terminati, da fatturare",
       "description": "Lavori finiti la cui fattura non è ancora stata fatta.",

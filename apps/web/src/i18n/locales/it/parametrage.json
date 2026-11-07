@@ -39,7 +39,7 @@
       "compte": "Un conto bancario, IBAN o QR-IBAN"
     },
     "actions": {
-      "enregistrer": "Salvare"
+      "enregistrer": "Salva"
     },
     "enregistrementReussi": "Coordinate salvate.",
     "erreur": {
@@ -48,7 +48,7 @@
     "refus": {
       "titre": "Accesso riservato alla direzione e alla contabilità",
       "description": "Questa schermata gestisce le coordinate bancarie dell'officina, un dato finanziario sensibile. È accessibile solo ai ruoli Direzione e Contabilità — mai al ruolo Admin, che gestisce gli account utente ma non dispone di alcun diritto finanziario. Acceda nuovamente con un account Direzione o Contabilità per continuare.",
-      "retourAccueil": "Tornare alla home"
+      "retourAccueil": "Torna alla home"
     }
   },
   "referentiels": {
@@ -59,7 +59,7 @@
       "onglet": "Tariffe orarie",
       "explication": "Una tariffa oraria è un periodo datato: l'importo applicato a una riga dell'ordine è quello valido il giorno della valorizzazione. Due periodi dello stesso codice non possono mai sovrapporsi.",
       "nouveau": "Nuova tariffa oraria",
-      "modifier": "Modificare tariffa oraria",
+      "modifier": "Modifica tariffa oraria",
       "codeVerrouille": "Il codice non può essere modificato dopo la creazione — viene ripreso sulle righe d'ordine già valorizzate.",
       "valideAuLeAide": "Lasciare vuoto se questa tariffa resta valida fino a nuovo ordine.",
       "erreurChevauchement": "Questo periodo si sovrappone a un periodo già valido per lo stesso codice. Modificare le date o chiudere prima il periodo esistente.",
@@ -79,7 +79,7 @@
       "onglet": "Catalogo prestazioni",
       "explication": "Le prestazioni sono i forfait, i pezzi e le righe standard proposti al banco. Una modifica di prezzo apre un nuovo periodo — gli ordini già valorizzati mantengono il prezzo originario.",
       "nouvelle": "Nuova prestazione",
-      "modifier": "Modificare prestazione",
+      "modifier": "Modifica prestazione",
       "codeVerrouille": "Il codice non può essere modificato dopo la creazione.",
       "prixTvaComprise": "Il prezzo inserito è IVA inclusa — è quello annunciato al banco.",
       "aucunTauxHoraire": "Nessuna (prezzo fisso)",
@@ -216,8 +216,8 @@
       "titre": "Giorni di chiusura",
       "explication": "Questi giorni non compaiono come disponibili nella pianificazione (giorni festivi, chiusura annuale).",
       "aucun": "Nessun giorno di chiusura programmato.",
-      "retirer": "Rimuovere il {date}",
-      "ajouter": "Aggiungere"
+      "retirer": "Rimuovi il {date}",
+      "ajouter": "Aggiungi"
     },
     "enregistrementReussi": "Impostazioni della sede salvate."
   },
@@ -280,14 +280,14 @@
     },
     "sitesAucun": "Nessuna sede indicata",
     "actions": {
-      "modifier": "Modificare ruolo o sedi",
-      "desactiver": "Disattivare",
-      "reactiver": "Riattivare",
+      "modifier": "Modifica ruolo o sedi",
+      "desactiver": "Disattiva",
+      "reactiver": "Riattiva",
       "reinitialiserAcces": "Reimposta accesso",
       "menuAria": "Azioni per {nom}"
     },
     "creation": {
-      "titre": "Creare un dipendente",
+      "titre": "Crea un dipendente",
       "description": "La password non si inserisce qui: viene generata e mostrata una sola volta dopo la creazione.",
       "champPrenom": "Nome",
       "champNom": "Cognome",
@@ -297,14 +297,14 @@
       "aucunSiteDisponible": "Nessuna sede è ancora collegata a questa officina.",
       "sitesAucunSelectionne": "Selezioni almeno una sede.",
       "actions": {
-        "creer": "Creare"
+        "creer": "Crea"
       }
     },
     "modification": {
-      "titre": "Modificare {nom}",
+      "titre": "Modifica {nom}",
       "description": "Cambi il ruolo e/o le sedi — utile in caso di cambio di mansione.",
       "actions": {
-        "enregistrer": "Salvare"
+        "enregistrer": "Salva"
       }
     },
     "acces": {
@@ -317,12 +317,12 @@
     "desactiver": {
       "titre": "Disattivare {nom}?",
       "description": "Il dipendente non potrà più accedere. La sua cronologia (ordini di riparazione, fatture, timbrature) resta attribuibile — non è un'eliminazione, l'account può essere riattivato in qualsiasi momento.",
-      "confirmer": "Disattivare"
+      "confirmer": "Disattiva"
     },
     "reactiver": {
       "titre": "Riattivare {nom}?",
       "description": "Il dipendente potrà nuovamente accedere con la password esistente.",
-      "confirmer": "Riattivare"
+      "confirmer": "Riattiva"
     },
     "reinitialiserAcces": {
       "titre": "Reimpostare l'accesso di {nom}?",
@@ -343,7 +343,7 @@
     "bornes": {
       "titre": "Postazioni d'officina",
       "description": "Una postazione è il tablet a muro dell'officina: i meccanici timbrano con il loro codice PIN.",
-      "nouveau": "Aggiungere una postazione",
+      "nouveau": "Aggiungi una postazione",
       "vide": "Nessuna postazione d'officina per ora.",
       "colNom": "Nome",
       "colIdentifiant": "Identificativo",
@@ -352,12 +352,12 @@
       "colActions": "Azioni",
       "champNom": "Nome della postazione",
       "champSite": "Sede della postazione",
-      "placeholderSite": "Scegliere una sede",
-      "creer": "Creare la postazione",
+      "placeholderSite": "Scegli una sede",
+      "creer": "Crea la postazione",
       "acces": "Identificativo e password della postazione",
       "accesDescription": "Inseriteli una sola volta sul tablet. La password non verrà più mostrata.",
-      "desactiver": "Disattivare",
-      "reactiver": "Riattivare",
+      "desactiver": "Disattiva",
+      "reactiver": "Riattiva",
       "reinitialiser": "Nuova password",
       "desactiverTitre": "Disattivare la postazione {nom}?",
       "desactiverDescription": "Il tablet viene scollegato subito.",
@@ -380,7 +380,7 @@
       "format": "Il numero deve avere la forma CHE-123.456.789 IVA.",
       "cle": "Questo numero non esiste: controlli le cifre."
     },
-    "enregistrer": "Salvare azienda",
+    "enregistrer": "Salva azienda",
     "enregistrementReussi": "Modifiche salvate.",
     "erreur": {
       "titre": "Impossibile caricare i dati dell'azienda"
@@ -392,9 +392,9 @@
       "titre": "Logo",
       "alt": "Logo dell’officina",
       "aucun": "Nessun logo caricato: le fatture vengono stampate senza logo.",
-      "choisir": "Scegliere un logo",
-      "remplacer": "Sostituire il logo",
-      "supprimer": "Eliminare",
+      "choisir": "Scegli un logo",
+      "remplacer": "Sostituisci il logo",
+      "supprimer": "Elimina",
       "aide": "PNG, JPEG o SVG, massimo 1 MB. Solo i nuovi PDF riportano il logo: le fatture già stampate non cambiano.",
       "svgNonImprime": "L’SVG viene mostrato qui ma non è stampato sui PDF. Usi un PNG o un JPEG perché compaia sulle fatture.",
       "refus": {
@@ -407,7 +407,7 @@
     "titre": "Motivi degli appuntamenti",
     "explication": "Perché vengono i clienti: un appuntamento si prende sempre con un motivo.",
     "nouveau": "Nuovo motivo",
-    "modifier": "Modificare il motivo",
+    "modifier": "Modifica il motivo",
     "dialogueAide": "Il nome francese basta; le traduzioni sono facoltative.",
     "traductionsAide": "Le traduzioni sono visibili ai clienti e ai collaboratori che usano il software in questa lingua.",
     "champs": {
@@ -433,8 +433,8 @@
       "aucune": "Non definita"
     },
     "actions": {
-      "desactiver": "Disattivare",
-      "reactiver": "Riattivare"
+      "desactiver": "Disattiva",
+      "reactiver": "Riattiva"
     },
     "erreurs": {
       "libelle": "Indichi il nome del motivo.",

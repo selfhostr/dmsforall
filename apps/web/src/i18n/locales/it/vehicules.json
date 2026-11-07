@@ -2,7 +2,7 @@
   "titre": "Veicoli",
   "nouveau": "Nuovo veicolo",
   "nouveauPourClient": "Questo veicolo sarà associato a {nom}.",
-  "creer": "Creare veicolo",
+  "creer": "Crea veicolo",
   "liste": {
     "titre": "Veicoli",
     "colonnes": {
@@ -20,7 +20,7 @@
       "importe": "Solo importati"
     },
     "tri": {
-      "label": "Ordinare per",
+      "label": "Ordina per",
       "plaqueAsc": "Targa (A→Z)",
       "plaqueDesc": "Targa (Z→A)",
       "creeLeDesc": "Più recenti",
@@ -38,8 +38,8 @@
       "titre": "Sezione non disponibile"
     },
     "actions": {
-      "nouvelOr": "Creare un OR",
-      "modifierTitre": "Modificare identità del veicolo"
+      "nouvelOr": "Crea un OR",
+      "modifierTitre": "Modifica identità del veicolo"
     },
     "proprietaire": {
       "titre": "Proprietario e detentori",
@@ -69,11 +69,11 @@
       "vide": "Nessun set di pneumatici in deposito per questo veicolo.",
       "emplacement": "Posizione: {emplacement}",
       "emplacementNonRenseigne": "Posizione non indicata",
-      "lienHangar": "Vedere nel deposito pneumatici"
+      "lienHangar": "Vedi nel deposito pneumatici"
     },
     "rendezVous": {
       "titre": "Prossimi appuntamenti",
-      "prendre": "Fissare un appuntamento",
+      "prendre": "Fissa un appuntamento",
       "vide": "Nessun appuntamento previsto per questo veicolo.",
       "creeTitre": "Appuntamento registrato",
       "droitRequis": "Non ha il diritto di consultare gli appuntamenti di questo veicolo."
@@ -95,7 +95,7 @@
     "plaqueAide": "Cantone poi numero, con uno spazio, come sulla targa: VS 123456.",
     "mise1reCirc": "1a immatricolazione",
     "kmActuels": "Km attuali",
-    "copierCodeType": "Copiare codice tipo",
+    "copierCodeType": "Copia codice tipo",
     "autocompletion": {
       "placeholderMarque": "Es. Volkswagen",
       "placeholderModele": "Es. Golf",
@@ -117,13 +117,13 @@
   "collisionPlaque": {
     "avecDetail": "Targa {plaque} già assegnata a {vehicule} dal {debutLe}.",
     "sansDetail": "Questa targa è già assegnata a un altro veicolo.",
-    "voirVehicule": "Vedere questo veicolo"
+    "voirVehicule": "Vedi questo veicolo"
   },
   "detentions": {
     "titre": "Proprietà",
     "detenteur": "Proprietario attuale",
     "historique": "Storico dei proprietari",
-    "changer": "Cambiare proprietario",
+    "changer": "Cambia proprietario",
     "rattacher": "Associa a un cliente",
     "motifs": {
       "vente": "Vendita",
@@ -134,19 +134,19 @@
     },
     "dialogue": {
       "titreRattacher": "Associa questo veicolo a un cliente",
-      "titreChanger": "Cambiare il proprietario di questo veicolo",
+      "titreChanger": "Cambia il proprietario di questo veicolo",
       "detenteurActuelLabel": "Proprietario attuale",
       "clientLabel": "Cliente",
       "rechercherPlaceholder": "Nome, numero cliente…",
       "aucunClient": "Nessun cliente trovato.",
       "dateLabel": "Dal",
       "motifLabel": "Motivo di fine detenzione",
-      "modifierSelection": "Modificare"
+      "modifierSelection": "Modifica"
     }
   },
   "kilometrage": {
     "titre": "Chilometraggio",
-    "relever": "Registrare chilometraggio",
+    "relever": "Registra chilometraggio",
     "valeur": "Km",
     "date": "Data",
     "source": "Fonte",
@@ -227,7 +227,7 @@
       "corriger": "Correggi",
       "reprendre": "Segna come ripreso",
       "abandonner": "Abbandona",
-      "enregistrer": "Salvare",
+      "enregistrer": "Salva",
       "reprendreDansOr": "Riprendere in {numero}",
       "reprendreDansUnOr": "Riprendere in un OR"
     },
@@ -259,7 +259,7 @@
       "description": "Annotate cosa andrà fatto alla prossima visita: comparirà sulla scheda del veicolo e all'apertura del prossimo ordine di riparazione.",
       "designationPlaceholder": "Es. cinghia di distribuzione",
       "detail": "Dettaglio (facoltativo)",
-      "enregistrer": "Salvare",
+      "enregistrer": "Salva",
       "erreurValidation": "Indichi il lavoro da fare (al massimo 200 caratteri)."
     }
   },
@@ -294,7 +294,7 @@
     "garantie": "Garanzia",
     "alerteClient": "Avviso cliente",
     "importe": "Veicolo importato",
-    "ajouter": "Aggiungere a questo appuntamento"
+    "ajouter": "Aggiungi a questo appuntamento"
   },
   "vide": {
     "identite": "Veicolo non identificato",

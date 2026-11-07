@@ -2,7 +2,7 @@
   "titre": "Console di amministrazione",
   "titreOnglet": "Console di amministrazione — Console DFA",
   "bandeConsole": {
-    "deconnexion": "Uscire"
+    "deconnexion": "Esci"
   },
   "plateforme": {
     "titre": "Vista piattaforma",
@@ -40,7 +40,7 @@
     },
     "filtre": {
       "actif": "Filtrato per: {libelle}",
-      "retirer": "Rimuovere filtro"
+      "retirer": "Rimuovi filtro"
     },
     "indicateurs": {
       "groupe": "Indicatori piattaforma — fai clic per filtrare l'elenco dei garage",
@@ -87,10 +87,10 @@
         "comptesVerrouilles": "Account bloccati",
         "relancesEnRetard": "Solleciti in ritardo",
         "exportCompta": "Contabilità",
-        "entrer": "Accedere"
+        "entrer": "Accedi"
       },
-      "entrer": "Accedere",
-      "entrerAria": "Accedere a {raisonSociale}",
+      "entrer": "Accedi",
+      "entrerAria": "Accedi a {raisonSociale}",
       "jamaisConnecte": "Mai connesso",
       "derniereActivite": {
         "minute": "{n, plural, =0 {Proprio ora} one {# minuto fa} other {# minuti fa}}",
@@ -108,7 +108,7 @@
   },
   "bandeauContexte": {
     "contenu": "Stai consultando {nomGarage} — accesso supporto",
-    "quitter": "Uscire",
+    "quitter": "Esci",
     "duree": {
       "moins5Min": "meno di 5 minuti fa",
       "moins30Min": "meno di 30 minuti fa",

@@ -14,7 +14,7 @@
       "aujourdhui": "Oggi",
       "demain": "Domani"
     },
-    "rechercheLabel": "Cercare cliente, veicolo o targa",
+    "rechercheLabel": "Cerca cliente, veicolo o targa",
     "recherchePlaceholder": "Cliente, veicolo, targa…",
     "nouveauRendezVous": "Nuovo appuntamento"
   },
@@ -71,7 +71,7 @@
     "toute_journee": "Tutto il giorno"
   },
   "carte": {
-    "ouvrir": "Aprire l’appuntamento di {client}, {heure}"
+    "ouvrir": "Apri l’appuntamento di {client}, {heure}"
   },
   "champs": {
     "client": "Cliente",
@@ -115,7 +115,7 @@
       "signalerAbsence": "Segnalare l’assenza del cliente",
       "annuler": "Annullare l’appuntamento",
       "voirOrdre": "Vedere l’ordine di riparazione",
-      "deplacer": "Spostare"
+      "deplacer": "Sposta"
     },
     "annulation": {
       "titre": "Annullare l’appuntamento",
@@ -155,7 +155,7 @@
   "autresSites": {
     "compteJour": "{count, plural, one {# appuntamento} other {# appuntamenti}} a {site} quel giorno",
     "compteSemaine": "{count, plural, one {# appuntamento} other {# appuntamenti}} a {site} questa settimana",
-    "voir": "Vedere l’agenda di {site}"
+    "voir": "Vedi l’agenda di {site}"
   },
   "aide": {
     "planning": {
@@ -186,8 +186,8 @@
     "case": "casella {code}"
   },
   "deplacer": {
-    "titre": "Spostare l’appuntamento",
+    "titre": "Sposta l’appuntamento",
     "nouvelleDate": "Nuova data",
-    "confirmer": "Spostare l’appuntamento"
+    "confirmer": "Sposta l’appuntamento"
   }
 }

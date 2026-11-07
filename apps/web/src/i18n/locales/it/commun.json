@@ -4,24 +4,24 @@
     "nomCourt": "DFA"
   },
   "actions": {
-    "reessayer": "Riprovare",
-    "rechargerApplication": "Ricaricare l'applicazione",
-    "retourAccueil": "Tornare alla home",
-    "fermer": "Chiudere",
-    "annuler": "Annullare",
-    "enregistrer": "Salvare",
-    "modifier": "Modificare",
-    "ajouter": "Aggiungere",
-    "rechercher": "Cercare",
-    "filtrer": "Filtrare",
-    "effacerFiltres": "Cancellare filtri",
-    "continuerQuandMeme": "Continuare comunque",
-    "confirmer": "Confermare",
-    "chargerPlus": "Caricare altro",
-    "copier": "Copiare",
-    "imprimer": "Stampare",
-    "voir": "Visualizzare",
-    "ouvrirElement": "Aprire {nom}"
+    "reessayer": "Riprova",
+    "rechargerApplication": "Ricarica l'applicazione",
+    "retourAccueil": "Torna alla home",
+    "fermer": "Chiudi",
+    "annuler": "Annulla",
+    "enregistrer": "Salva",
+    "modifier": "Modifica",
+    "ajouter": "Aggiungi",
+    "rechercher": "Cerca",
+    "filtrer": "Filtra",
+    "effacerFiltres": "Cancella filtri",
+    "continuerQuandMeme": "Continua comunque",
+    "confirmer": "Conferma",
+    "chargerPlus": "Carica altro",
+    "copier": "Copia",
+    "imprimer": "Stampa",
+    "voir": "Visualizza",
+    "ouvrirElement": "Apri {nom}"
   },
   "chargement": {
     "enCours": "Caricamento..."
@@ -31,7 +31,7 @@
   },
   "langue": {
     "libelle": "Lingua",
-    "choisir": "Scegliere la lingua"
+    "choisir": "Scegli la lingua"
   },
   "langues": {
     "fr": "Francais",
@@ -57,7 +57,7 @@
     "masqueDescription": "Questo importo esiste, ma il suo ruolo non ha accesso agli importi."
   },
   "tableComptoir": {
-    "trierPar": "Ordinare per"
+    "trierPar": "Ordina per"
   },
   "roles": {
     "direction": "Direzione",
@@ -71,7 +71,7 @@
     "posteAtelier": "Terminale officina"
   },
   "toasts": {
-    "annuler": "Annullare",
+    "annuler": "Annulla",
     "clientCree": "Cliente creato",
     "vehiculeCree": "Veicolo registrato",
     "rdvDeplace": "Appuntamento spostato",
