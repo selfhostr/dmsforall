@@ -177,7 +177,7 @@ export function PanneauActionsOr({ or }: Props) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const role = session.data?.utilisateur.role;
+  const actions = session.data?.actions;
 
   // Champs locaux — un seul jeu à la fois, remis à zéro à l'ouverture de chaque dialogue.
   const [kilometrage, setKilometrage] = useState<number | null>(null);
@@ -823,7 +823,7 @@ export function PanneauActionsOr({ or }: Props) {
         ouvert={entreeAvecLignesEnAttente !== null}
         nombre={lignesEnAttente.length}
         libelleAction={titreDialogue}
-        peutRetirer={peutAnnulerLigneOr(role)}
+        peutRetirer={peutAnnulerLigneOr(actions)}
         enCours={retirerLignes.isPending || (mutationActive?.isPending ?? false)}
         messageErreur={retirerLignes.isError ? messageErreurMutation(retirerLignes.error, t) : null}
         onAnnuler={() => {

@@ -1,3 +1,4 @@
+import type { ActionsSession } from '@/droits';
 import { Pencil, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -20,10 +21,10 @@ import { DialoguePrestation } from './DialoguePrestation';
 import { peutModifierParametrage } from './droits';
 
 interface Props {
-  readonly role: RoleUtilisateur | undefined;
+  readonly actions: ActionsSession;
 }
 
-export function OngletPrestations({ role }: Props) {
+export function OngletPrestations({ actions }: Props) {
   const { t } = useTranslation(['parametrage', 'commun', 'erreurs']);
   const { langue } = useLangue();
   const requete = useListePrestations();
@@ -36,7 +37,7 @@ export function OngletPrestations({ role }: Props) {
       requeteTauxHoraires.data?.pages.flatMap((page) => page.donnees.map((th) => th.code)) ?? [],
     [requeteTauxHoraires.data],
   );
-  const peutEcrire = peutModifierParametrage(role);
+  const peutEcrire = peutModifierParametrage(actions);
 
   const [dialogueOuvert, setDialogueOuvert] = useState(false);
   const [prestationEnEdition, setPrestationEnEdition] = useState<ReponsePrestation | undefined>(

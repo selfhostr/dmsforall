@@ -21,11 +21,11 @@ interface Props {
 export function ActionsRapidesAccueil({ site }: Props) {
   const { t } = useTranslation('accueil');
   const { data: session } = useSession();
-  const role = session?.utilisateur.role;
+  const actions = session?.actions;
 
   return (
     <nav aria-label={t('actions.titre')} className="flex flex-wrap gap-2">
-      {peutCreerOrdreReparation(role) ? (
+      {peutCreerOrdreReparation(actions) ? (
         <Button asChild>
           <Link to={chemins.atelier.ordresReparation.depuisPlaque({ site })}>
             <Wrench aria-hidden className="h-4 w-4" />
@@ -33,7 +33,7 @@ export function ActionsRapidesAccueil({ site }: Props) {
           </Link>
         </Button>
       ) : null}
-      {peutCreerRendezVous(role) ? (
+      {peutCreerRendezVous(actions) ? (
         <Button asChild variant="outline">
           <Link to={chemins.atelier.rendezVous.agenda(site)}>
             <CalendarPlus aria-hidden className="h-4 w-4" />
@@ -42,7 +42,7 @@ export function ActionsRapidesAccueil({ site }: Props) {
         </Button>
       ) : null}
       <BoutonNouveauDevis />
-      {peutEncaisser(role) ? (
+      {peutEncaisser(actions) ? (
         <Button asChild variant="outline">
           <Link to={chemins.facturation.liste(site)}>
             <HandCoins aria-hidden className="h-4 w-4" />

@@ -1,3 +1,4 @@
+import type { ActionsSession } from '@/droits';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -28,7 +29,7 @@ interface Props {
   /** `dossier.reprise !== null` (`RepriseResume`, embarqué dans `ReponseDossierVente`) — déjà
    *  connu de l'appelant (fiche dossier), voir l'en-tête de `hooks/ventes/reprises/useReprise.ts`. */
   readonly possedeReprise: boolean;
-  readonly role: RoleUtilisateur | undefined;
+  readonly actions: ActionsSession;
   /** Appelé après toute mutation réussie (création/modification/négociation/confirmation/refus) —
    *  à passer par l'intégrateur pour invalider/recharger sa propre requête dossier, dont
    *  `dossier.reprise` (embarqué, `RepriseResume`) reste sinon périmé. */
@@ -45,13 +46,13 @@ interface Props {
  * `valeurNegocieeCentimes` s'affichent CÔTE À CÔTE, jamais l'une sans l'autre. Aucune base TVA,
  * aucun montant de TVA lié à l'écart n'apparaît nulle part ici (§8.3, QV-05 non tranché).
  */
-export function CarteReprise({ dossierVenteId, possedeReprise, role, onMutationReussie }: Props) {
+export function CarteReprise({ dossierVenteId, possedeReprise, actions, onMutationReussie }: Props) {
   const { t } = useTranslation(['ventes', 'commun', 'erreurs']);
   const [creationOuverte, setCreationOuverte] = useState(false);
   const [modificationOuverte, setModificationOuverte] = useState(false);
 
   const requete = useReprise(dossierVenteId, possedeReprise);
-  const peutEcrire = peutEcrireReprise(role);
+  const peutEcrire = peutEcrireReprise(actions);
 
   // Valeur estimée / écart masqués par défaut — même doctrine que `EcranFicheVehiculeStock` :
   // juxtaposée à la valeur négociée (celle annoncée au client), l'estimation interne du garage
@@ -65,7 +66,7 @@ export function CarteReprise({ dossierVenteId, possedeReprise, role, onMutationR
     setEstimationRevelee(false);
   }, [dossierVenteId]);
 
-  if (!peutLireReprise(role)) {
+  if (!peutLireReprise(actions)) {
     return null;
   }
 
@@ -233,7 +234,7 @@ export function CarteReprise({ dossierVenteId, possedeReprise, role, onMutationR
           <PanneauActionsReprise
             dossierVenteId={dossierVenteId}
             reprise={reprise}
-            role={role}
+            actions={actions}
             onModifier={() => setModificationOuverte(true)}
             onMutationReussie={onMutationReussie}
           />

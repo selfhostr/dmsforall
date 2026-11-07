@@ -29,7 +29,7 @@ interface Props {
 export function ActionsCreerOrRecherche({ saisie, reponse, site }: Props) {
   const { t } = useTranslation('recherche');
   const { data: session } = useSession();
-  if (!peutCreerOrdreReparation(session?.utilisateur.role)) return null;
+  if (!peutCreerOrdreReparation(session?.actions)) return null;
   if (saisie.trim() === '' || reponse === null) return null;
 
   const vehicules = reponse.resultats

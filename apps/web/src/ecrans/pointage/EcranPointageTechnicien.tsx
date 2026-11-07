@@ -186,7 +186,7 @@ export function EcranPointageTechnicien() {
   const { t } = useTranslation(['pointage', 'commun']);
   const { data: session } = useSession();
   const technicien = session?.utilisateur;
-  const role = technicien?.role;
+  const actions = session?.actions;
 
   const [searchParams, setSearchParams] = useSearchParams();
   const siteParam = searchParams.get('site') ?? undefined;
@@ -399,7 +399,7 @@ export function EcranPointageTechnicien() {
         p.nature === 'productif_ligne' &&
         p.ordreReparationId &&
         p.ligneOrId &&
-        peutMarquerLigneRealisee(role)
+        peutMarquerLigneRealisee(actions)
       ) {
         setLigneAFinir({
           ordreReparationId: p.ordreReparationId,
@@ -590,7 +590,7 @@ export function EcranPointageTechnicien() {
                 <CarteOrDuJour
                   key={or.id}
                   or={or}
-                  desactive={!peutDemarrerPointage(role) || enTraitement}
+                  desactive={!peutDemarrerPointage(actions) || enTraitement}
                   siteNom={
                     sitesActifs.length > 1
                       ? sitesActifs.find((site) => site.id === or.siteId)?.nom
@@ -625,7 +625,7 @@ export function EcranPointageTechnicien() {
             <SelecteurOrOuvert
               siteId={siteId}
               onChoisirOr={(orId) => setOrSelectionneId(orId)}
-              disabled={!peutDemarrerPointage(role) || enTraitement}
+              disabled={!peutDemarrerPointage(actions) || enTraitement}
             />
           </CardContent>
         ) : null}
@@ -652,7 +652,7 @@ export function EcranPointageTechnicien() {
                   size="lg"
                   variant="outline"
                   className="min-h-[72px] texte-annexe"
-                  disabled={!peutDemarrerPointage(role) || enTraitement}
+                  disabled={!peutDemarrerPointage(actions) || enTraitement}
                   onClick={() => handleDemarrerActiviteIndirecte(activite)}
                 >
                   {libelleActiviteIndirecte(activite, t)}
@@ -709,7 +709,7 @@ export function EcranPointageTechnicien() {
           }
           onReprendre={reprisePossible ? () => void handleReprendre() : undefined}
           onChanger={
-            peutDemarrerPointage(role)
+            peutDemarrerPointage(actions)
               ? () => setChangementCibleOuvert((valeur) => !valeur)
               : undefined
           }

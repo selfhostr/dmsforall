@@ -75,12 +75,12 @@ export function EcranListeFactures() {
   const { t } = useTranslation(['facturation', 'commun']);
   const navigate = useNavigate();
   const { data: session } = useSession();
-  const role = session?.utilisateur.role;
+  const actions = session?.actions;
   // Tant que la session n'est pas résolue, `role === undefined` -> `peutVoirMontantsFacturation`
   // rend `false` -> la colonne « Retard » reste absente jusqu'à confirmation du droit. Jamais
   // l'inverse (colonne visible puis retirée) : cette direction est la seule qui ne fait pas
   // clignoter le tableau (même principe que `autoriseFinancier` sur `EcranTableauBord`).
-  const voitMontantsFacturation = peutVoirMontantsFacturation(role);
+  const voitMontantsFacturation = peutVoirMontantsFacturation(actions);
 
   const [qSaisie, setQSaisie] = useState('');
   const [q, reinitialiserQ] = useValeurDebouncee(qSaisie, DELAI_DEBOUNCE_MS);

@@ -80,7 +80,7 @@ export function EcranListeVehiculesStock() {
   const { t } = useTranslation(['ventes', 'commun']);
   const navigate = useNavigate();
   const { data: session } = useSession();
-  const role = session?.utilisateur.role;
+  const actions = session?.actions;
 
   // Le site sélectionné est un paramètre de requête, jamais un état global (routes/chemins.ts) :
   // deux onglets sur deux sites différents ne doivent pas se contredire.
@@ -306,7 +306,7 @@ export function EcranListeVehiculesStock() {
   // largeur avec les filtres et le champ de recherche plutôt que de rester seuls sur leur rangée —
   // voir plus bas.
   const boutonMettreEnStock =
-    peutEcrireVehiculeStock(role) && vue === 'vendeur' ? (
+    peutEcrireVehiculeStock(actions) && vue === 'vendeur' ? (
       <Button onClick={() => navigate(chemins.ventes.stock.nouveau(site))}>
         {t('ventes:stock.liste.actions.mettreEnStock')}
       </Button>
@@ -336,7 +336,7 @@ export function EcranListeVehiculesStock() {
         titre={t('ventes:stock.liste.vide.premierUsage.titre')}
         description={t('ventes:stock.liste.vide.premierUsage.description')}
         action={
-          peutEcrireVehiculeStock(role) && vue === 'vendeur' ? (
+          peutEcrireVehiculeStock(actions) && vue === 'vendeur' ? (
             <Button onClick={() => navigate(chemins.ventes.stock.nouveau(site))}>
               {t('ventes:stock.liste.actions.mettreEnStock')}
             </Button>

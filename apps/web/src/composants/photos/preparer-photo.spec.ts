@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { actionsDuRole } from '@/test/session';
+
 import { peutAjouterPhoto } from './droits';
 import { dimensionsReduites } from './preparer-photo';
 
@@ -24,10 +26,10 @@ describe('peutAjouterPhoto', () => {
       'technicien',
       'magasinier',
     ] as const) {
-      expect(peutAjouterPhoto(role)).toBe(true);
+      expect(peutAjouterPhoto(actionsDuRole(role))).toBe(true);
     }
     for (const role of ['vendeur', 'comptable', 'poste_atelier'] as const) {
-      expect(peutAjouterPhoto(role)).toBe(false);
+      expect(peutAjouterPhoto(actionsDuRole(role))).toBe(false);
     }
     expect(peutAjouterPhoto(undefined)).toBe(false);
   });

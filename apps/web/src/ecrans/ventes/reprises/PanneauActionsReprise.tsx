@@ -1,3 +1,4 @@
+import type { ActionsSession } from '@/droits';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -43,7 +44,7 @@ import { peutConfirmerReprise, peutEcrireReprise, peutRefuserReprise } from './d
 interface Props {
   readonly dossierVenteId: string;
   readonly reprise: ReponseReprise;
-  readonly role: RoleUtilisateur | undefined;
+  readonly actions: ActionsSession;
   readonly onModifier: () => void;
   /** Voir `CarteReprise` : appelé après CHAQUE mutation réussie (négocier/confirmer/refuser) pour
    *  que l'intégrateur (fiche dossier) puisse invalider son propre `dossier.reprise` embarqué. */
@@ -73,7 +74,7 @@ const CLES_ACTION: Partial<Record<ActionReprise, string>> = {
 export function PanneauActionsReprise({
   dossierVenteId,
   reprise,
-  role,
+  actions,
   // TODO(ventes) : pas encore câblé sur un élément du panneau — voir la découverte remontée à
   // l'équipe Ventes (comparer `EnTeteFicheArticle.tsx`, qui câble le même contrat sur un
   // `DropdownMenuItem`). Prop publique conservée telle quelle, seule la variable locale est
@@ -138,9 +139,9 @@ export function PanneauActionsReprise({
     (action): action is 'negocier' | 'refuser' => action === 'negocier' || action === 'refuser',
   );
   const peutCorriger =
-    reprise.actionsDisponibles.includes('confirmer') && peutConfirmerReprise(role);
-  const peutEcrire = peutEcrireReprise(role);
-  const peutRefuser = peutRefuserReprise(role);
+    reprise.actionsDisponibles.includes('confirmer') && peutConfirmerReprise(actions);
+  const peutEcrire = peutEcrireReprise(actions);
+  const peutRefuser = peutRefuserReprise(actions);
 
   // Titre du dialog : phrase complète dédiée par action (`ventes:reprise.<action>.titre`),
   // distincte du libellé court du bouton/menu (`ventes:reprise.actions.<action>`).

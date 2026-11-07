@@ -24,7 +24,7 @@ export function BoutonNouveauDevis({ client, vehiculeId, variante = 'outline' }:
   const session = useSession();
   const [ouvert, setOuvert] = useState(false);
 
-  if (!peutCreerDevis(session.data?.utilisateur.role)) return null;
+  if (!peutCreerDevis(session.data?.actions)) return null;
 
   return (
     <>

@@ -67,7 +67,7 @@ const DELAI_DEBOUNCE_MS = 300;
 export function EcranReservationsPieces() {
   const { t } = useTranslation(['pieces', 'commun']);
   const { data: session } = useSession();
-  const role = session?.utilisateur.role;
+  const actions = session?.actions;
 
   const [statut, setStatut] = useState<StatutReservationPiece | undefined>('active');
   const [reservationALiberer, setReservationALiberer] = useState<string | null>(null);
@@ -160,7 +160,7 @@ export function EcranReservationsPieces() {
         if (reservation.statut !== 'active') return null;
         return (
           <div className="flex justify-end gap-2">
-            {peutSatisfaireReservation(role) ? (
+            {peutSatisfaireReservation(actions) ? (
               <Button
                 type="button"
                 size="sm"
@@ -171,7 +171,7 @@ export function EcranReservationsPieces() {
                 {t('pieces:reservations.actions.satisfaire')}
               </Button>
             ) : null}
-            {peutLibererReservation(role) ? (
+            {peutLibererReservation(actions) ? (
               <Button
                 type="button"
                 size="sm"

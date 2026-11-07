@@ -77,10 +77,10 @@ export function EcranReferentiels() {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="tauxHoraires" className="pt-4">
-          <OngletTauxHoraires role={session?.utilisateur.role} />
+          <OngletTauxHoraires actions={session?.actions} />
         </TabsContent>
         <TabsContent value="prestations" className="pt-4">
-          <OngletPrestations role={session?.utilisateur.role} />
+          <OngletPrestations actions={session?.actions} />
         </TabsContent>
       </Tabs>
     </GabaritEcran>

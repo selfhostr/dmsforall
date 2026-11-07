@@ -1,3 +1,4 @@
+import type { ActionsSession } from '@/droits';
 import type { ReponseOrdreReparation, RoleUtilisateur } from '@dfa/shared';
 
 import type { DemandeFacturerEtEncaisser } from '@/ecrans/facturation/DialogueFacturerEtEncaisser';
@@ -14,10 +15,10 @@ import {
  */
 export function demandeFacturerEtEncaisserDepuisOr(
   or: ReponseOrdreReparation,
-  role: RoleUtilisateur | undefined,
+  actions: ActionsSession,
 ): DemandeFacturerEtEncaisser | null {
   if (!or.actionsDisponibles.includes('facturer')) return null;
-  if (!peutEmettreFacture(role) || !peutEncaisser(role)) return null;
+  if (!peutEmettreFacture(actions) || !peutEncaisser(actions)) return null;
   if (or.demontageFacturablePropose) return null;
   if (or.lignes.some((ligne) => STATUTS_INDECIS.has(ligne.statut))) return null;
   const groupes = calculerGroupesFacturables(or);

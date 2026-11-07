@@ -85,7 +85,7 @@ function ContenuFacturerOrdreReparation({
   const navigate = useNavigate();
 
   const { data: session } = useSession();
-  const role = session?.utilisateur.role;
+  const actions = session?.actions;
   const requete = useOrdreReparation(orId);
   const facturation = useFacturationOrdreReparation();
   const marquerRealisees = useMarquerLignesRealisees(orId ?? '');
@@ -189,7 +189,7 @@ function ContenuFacturerOrdreReparation({
   // rôle qui peut créer, émettre ET encaisser — sinon le parcours détaillé reste la seule voie.
   const groupeUnique = groupesCoches.length === 1 ? groupesCoches[0] : undefined;
   const peutFacturerEtEncaisser =
-    groupeUnique !== undefined && peutEmettreFacture(role) && peutEncaisser(role);
+    groupeUnique !== undefined && peutEmettreFacture(actions) && peutEncaisser(actions);
 
   function ouvrirFacturerEtEncaisser() {
     if (!orId || !groupeUnique) return;

@@ -34,8 +34,8 @@ export function EcranFicheFournisseur() {
   const { t } = useTranslation(['pieces', 'commun', 'erreurs']);
   const { id } = useParams<{ id: string }>();
   const session = useSession();
-  const role = session.data?.utilisateur.role;
-  const peutLire = peutLireFournisseur(role);
+  const actions = session.data?.actions;
+  const peutLire = peutLireFournisseur(actions);
 
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
@@ -91,7 +91,7 @@ export function EcranFicheFournisseur() {
   }
 
   const fournisseur = requeteFournisseur.data;
-  const peutEcrire = peutEcrireFournisseur(role);
+  const peutEcrire = peutEcrireFournisseur(actions);
 
   // Fil d'Ariane contextuel (même doctrine que `EnTeteFicheArticle`, Lot C) — un seul ancêtre
   // honnête ici : la liste des fournisseurs dont cette fiche vient. Ressource par TENANT (pas de

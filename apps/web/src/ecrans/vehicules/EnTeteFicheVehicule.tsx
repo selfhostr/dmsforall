@@ -47,8 +47,8 @@ interface DefinitionChamp {
 export function EnTeteFicheVehicule({ vehicule, dernierKilometrage }: Props) {
   const { t } = useTranslation('vehicules');
   const { data: session } = useSession();
-  const peutModifierEmplacement = peutModifierVehicule(session?.utilisateur.role);
-  const peutGererPlaque = peutGererPlaqueVehicule(session?.utilisateur.role);
+  const peutModifierEmplacement = peutModifierVehicule(session?.actions);
+  const peutGererPlaque = peutGererPlaqueVehicule(session?.actions);
   const [dialogueIdentiteOuvert, setDialogueIdentiteOuvert] = useState(false);
 
   const champs: DefinitionChamp[] = [];

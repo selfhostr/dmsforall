@@ -1,3 +1,4 @@
+import type { ActionsSession } from '@/droits';
 import { CheckCircle2, Plus, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -139,7 +140,7 @@ export function EcranSites() {
               <FormulaireSite
                 key={siteSelectionneId}
                 siteId={siteSelectionneId}
-                role={session.utilisateur.role}
+                actions={session.actions}
               />
             ) : null}
           </div>
@@ -151,13 +152,13 @@ export function EcranSites() {
 
 interface PropsFormulaireSite {
   readonly siteId: string;
-  readonly role: RoleUtilisateur | undefined;
+  readonly actions: ActionsSession;
 }
 
-function FormulaireSite({ siteId, role }: PropsFormulaireSite) {
+function FormulaireSite({ siteId, actions }: PropsFormulaireSite) {
   const { t } = useTranslation(['parametrage', 'commun', 'erreurs']);
   const requete = useParametresSite(siteId);
-  const peutEcrire = peutModifierParametrage(role);
+  const peutEcrire = peutModifierParametrage(actions);
 
   if (requete.isPending) return <EtatChargement lignes={8} />;
   if (requete.isError) {

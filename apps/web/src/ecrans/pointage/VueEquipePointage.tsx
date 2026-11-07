@@ -1,3 +1,4 @@
+import type { ActionsSession } from '@/droits';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -40,7 +41,7 @@ interface Props {
   /** Résolu par l'appelant (`EcranPointage`) — cette vue ne gère plus sa propre gate de site,
    *  consolidée une seule fois au niveau de l'écran (voir l'en-tête d'`EcranPointage.tsx`). */
   readonly siteId: string;
-  readonly role: RoleUtilisateur | undefined;
+  readonly actions: ActionsSession;
 }
 
 function CarteParOr({ orId }: { readonly orId: string }) {
@@ -149,7 +150,7 @@ function CarteParOr({ orId }: { readonly orId: string }) {
  *
  * Anciennement `EcranEquipePointage` — voir l'en-tête d'`EcranPointage.tsx` pour la fusion.
  */
-export function VueEquipePointage({ siteId, role }: Props) {
+export function VueEquipePointage({ siteId, actions }: Props) {
   const { t } = useTranslation(['pointage', 'commun']);
 
   const [onglet, setOnglet] = useState<Onglet>('liste');
@@ -230,7 +231,7 @@ export function VueEquipePointage({ siteId, role }: Props) {
                 ) : null}
               </td>
               <td className="p-3">
-                {peutCorrigerPointage(role) ? (
+                {peutCorrigerPointage(actions) ? (
                   <Button
                     size="sm"
                     variant="outline"
@@ -312,7 +313,7 @@ export function VueEquipePointage({ siteId, role }: Props) {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="texte-titre-section">{t('pointage:equipe.titre')}</h2>
-        {peutVerrouillerPeriode(role) ? (
+        {peutVerrouillerPeriode(actions) ? (
           <Button variant="outline" onClick={() => setCloturePeriodeOuverte(true)}>
             {t('pointage:equipe.clotureAction')}
           </Button>

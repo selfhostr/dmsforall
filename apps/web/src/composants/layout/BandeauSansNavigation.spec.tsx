@@ -1,3 +1,4 @@
+import { creerSessionTest } from '@/test/session';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -27,7 +28,7 @@ vi.mock('@/hooks/useDeconnexion', () => ({
   useDeconnexion: () => ({ mutate: mutateMock, isPending: false }),
 }));
 
-const session: SessionCourante = {
+const session: SessionCourante = creerSessionTest('poste_atelier', {
   utilisateur: {
     id: 'u-borne',
     email: 'borne@garage-martin.ch',
@@ -44,9 +45,8 @@ const session: SessionCourante = {
   },
   sites: [{ id: 'site-martigny', code: 'MTG', nom: 'Martigny', actif: true }],
   siteRattachementId: 'site-martigny',
-  actions: [],
   expireLe: new Date(Date.now() + 3_600_000).toISOString(),
-};
+});
 
 function rendre() {
   const queryClient = creerQueryClientTest();

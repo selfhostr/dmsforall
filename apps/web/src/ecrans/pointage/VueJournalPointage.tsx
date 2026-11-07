@@ -46,7 +46,7 @@ interface Props {
 export function VueJournalPointage({ siteId }: Props) {
   const { t } = useTranslation(['pointage', 'commun']);
   const { data: session } = useSession();
-  const role = session?.utilisateur.role;
+  const actions = session?.actions;
   const technicienId = session?.utilisateur.id;
 
   const [periode, setPeriode] = useState<Periode>('jour');
@@ -56,7 +56,7 @@ export function VueJournalPointage({ siteId }: Props) {
     return periode === 'jour' ? bornesJourneeLocale(aujourdHui) : bornesSemaineLocale(aujourdHui);
   }, [periode]);
 
-  const vueEquipe = peutVoirEquipePointage(role);
+  const vueEquipe = peutVoirEquipePointage(actions);
 
   const filtres = useMemo(
     () => ({

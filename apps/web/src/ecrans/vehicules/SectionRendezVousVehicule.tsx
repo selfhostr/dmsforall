@@ -107,7 +107,7 @@ export function SectionRendezVousVehicule({ vehicule, detenteur, site }: Props) 
   // DISTINCTS (« on ne sait pas », « il n'y en a pas » et « tu n'as pas le droit » ne partagent
   // jamais le même rendu, doctrine du dépôt).
   const session = useSession();
-  const peutVoirRendezVous = peutLireRendezVous(session.data?.utilisateur.role);
+  const peutVoirRendezVous = peutLireRendezVous(session.data?.actions);
 
   const requeteRdv = useRendezVousAVenirVehicule(vehicule.id, { enabled: peutVoirRendezVous });
   const requeteMotifs = useMotifsRendezVous();

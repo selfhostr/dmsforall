@@ -1,3 +1,4 @@
+import type { ActionsSession } from '@/droits';
 import { Pencil, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -17,13 +18,13 @@ import { DialogueTauxHoraire } from './DialogueTauxHoraire';
 import { peutModifierParametrage } from './droits';
 
 interface Props {
-  readonly role: RoleUtilisateur | undefined;
+  readonly actions: ActionsSession;
 }
 
-export function OngletTauxHoraires({ role }: Props) {
+export function OngletTauxHoraires({ actions }: Props) {
   const { t } = useTranslation(['parametrage', 'commun', 'erreurs']);
   const requete = useListeTauxHoraires();
-  const peutEcrire = peutModifierParametrage(role);
+  const peutEcrire = peutModifierParametrage(actions);
 
   const [dialogueOuvert, setDialogueOuvert] = useState(false);
   const [tauxEnEdition, setTauxEnEdition] = useState<ReponseTauxHoraire | undefined>(undefined);

@@ -162,7 +162,7 @@ export function EcranParametrageAtelier() {
   const { t } = useTranslation(['parametrage', 'commun', 'erreurs']);
   const requete = useParametresAtelier();
   const { data: session } = useSession();
-  const peutEcrire = peutModifierParametrage(session?.utilisateur.role);
+  const peutEcrire = peutModifierParametrage(session?.actions);
 
   return (
     <GabaritEcran titre={t('parametrage:atelier.titre')}>

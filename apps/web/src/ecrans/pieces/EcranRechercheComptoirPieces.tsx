@@ -43,7 +43,7 @@ export function EcranRechercheComptoirPieces() {
   const site = searchParams.get('site') ?? undefined;
 
   const { data: session } = useSession();
-  const peutVendre = peutCreerMouvement(session?.utilisateur.role);
+  const peutVendre = peutCreerMouvement(session?.actions);
 
   const {
     saisie,

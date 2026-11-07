@@ -87,7 +87,7 @@ export function EcranFicheVehiculeStock() {
   const [searchParams, setSearchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
   const { data: session } = useSession();
-  const role = session?.utilisateur.role;
+  const actions = session?.actions;
 
   // Vue client (issue #84) : quand cette fiche est ouverte depuis la liste en vue client (bouton
   // « Fiche commerciale », voir `EcranListeVehiculesStock.cheminFicheCommerciale`), le mode suit
@@ -164,12 +164,12 @@ export function EcranFicheVehiculeStock() {
   }
 
   const stock = requeteStock.data;
-  const peutEcrire = peutEcrireVehiculeStock(role);
-  const peutCorriger = peutCorrigerVehiculeStock(role);
+  const peutEcrire = peutEcrireVehiculeStock(actions);
+  const peutCorriger = peutCorrigerVehiculeStock(actions);
   // Droit DISTINCT de `peutEcrire`/`peutCorriger` ci-dessus : gouverne le véhicule lui-même
   // (emplacement, garantie), pas la fiche commerciale de stock — voir
   // `droits.ts::peutModifierVehiculeAssocie`.
-  const peutModifierVehicule = peutModifierVehiculeAssocie(role);
+  const peutModifierVehicule = peutModifierVehiculeAssocie(actions);
 
   const proposeMettreAJour = peutEcrire && stock.actionsDisponibles.includes('mettre_a_jour');
   const proposeReceptionner = peutEcrire && stock.actionsDisponibles.includes('receptionner');

@@ -1,3 +1,4 @@
+import { capacitesDuRole } from '@/test/session';
 import { describe, expect, it } from 'vitest';
 
 import type { ReponseBlocCreancier, ReponseMotifRendezVous, UtilisateurResume } from '@dfa/shared';
@@ -37,6 +38,7 @@ const utilisateur = (id: string): UtilisateurResume => ({
   nom: 'B',
   email: 'a@b.ch',
   role: 'technicien',
+  capacites: capacitesDuRole('technicien'),
   statut: 'actif',
   sites: [],
   derniereConnexionLe: null,
