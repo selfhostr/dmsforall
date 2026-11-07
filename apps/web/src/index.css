@@ -140,7 +140,7 @@
      quasi-noir du texte (saturation 0 %) : bouton primaire foncé à texte blanc, lien et élément
      actif en gris très foncé, anneau de focus de même valeur. La couleur est RÉSERVÉE aux
      `--statut-*` (et `--avertissement`, `--destructive`) : elle y porte du sens, pas de décor.
-     L'orange du logo (`public/favicon.svg`) n'est pas concerné, il reste dans l'icône seule.
+     La favicon (`public/favicon.svg`) est elle aussi monochrome, sans fond.
 
      Les noms `--marque*` sont conservés (alias partout dans l'UI) : seule la valeur change.
      Le survol d'une surface pleine ÉCLAIRCIT (`--marque-fort`) ; le surlignage (`--marque-doux`)

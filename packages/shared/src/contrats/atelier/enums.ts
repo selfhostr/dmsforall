@@ -521,6 +521,7 @@ export const ENTITES_AUDITEES = [
   'financement_vente',
   'vehicule_travail_reporte',
   'depot_pneus',
+  'tenant',
 ] as const;
 export type EntiteAuditee = (typeof ENTITES_AUDITEES)[number];
 

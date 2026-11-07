@@ -480,5 +480,68 @@
   "toasts": {
     "devisEnvoye": "Devis envoyé",
     "devisAccepte": "Accord du client enregistré"
+  },
+  "chiffres": {
+    "titre": "Chiffres",
+    "sousTitre": "Chiffre d'affaires, encaissements et factures à suivre.",
+    "erreur": "Ces chiffres n'ont pas pu être chargés.",
+    "incomplet": "Beaucoup de lignes : les totaux ci-dessus sont des minimums.",
+    "voirFactures": "Retour à la liste des factures",
+    "voirChiffres": "Voir les chiffres",
+    "refuse": {
+      "titre": "Page réservée",
+      "description": "Les chiffres sont réservés à la direction et à la comptabilité."
+    },
+    "periodes": {
+      "moisCourant": "Ce mois-ci",
+      "moisPrecedent": "Mois précédent",
+      "annee": "Cette année"
+    },
+    "colonnes": {
+      "periode": "Période",
+      "factures": "Factures",
+      "ht": "Total HT",
+      "tva": "TVA",
+      "ttc": "Total TTC",
+      "moyen": "Moyen de paiement",
+      "paiements": "Paiements",
+      "montant": "Montant"
+    },
+    "chiffreAffaires": {
+      "titre": "Chiffre d'affaires",
+      "description": "Factures émises, avoirs déduits.",
+      "vide": {
+        "titre": "Aucune facture émise",
+        "description": "Les chiffres apparaîtront dès la première facture émise."
+      }
+    },
+    "encaissements": {
+      "titre": "Encaissements du mois",
+      "description": "Argent reçu du {periode}, par moyen de paiement.",
+      "total": "Total encaissé",
+      "vide": {
+        "titre": "Aucun encaissement ce mois-ci",
+        "description": "Les paiements enregistrés ce mois apparaîtront ici."
+      }
+    },
+    "facturesOuvertes": {
+      "titre": "Factures à encaisser",
+      "description": "Factures émises, pas encore réglées.",
+      "ouvertes": "{count, plural, =0 {Aucune facture ouverte} one {# facture ouverte} other {# factures ouvertes}}",
+      "enRetard": "{count, plural, =0 {Aucune en retard} one {# en retard} other {# en retard}}",
+      "vide": {
+        "titre": "Aucune facture ouverte",
+        "description": "Tous vos clients ont payé."
+      }
+    },
+    "travauxTermines": {
+      "titre": "Travaux à facturer",
+      "description": "Ordres de réparation terminés, pas encore facturés (montant TTC estimé).",
+      "nombre": "{count, plural, one {# ordre de réparation} other {# ordres de réparation}}",
+      "vide": {
+        "titre": "Rien à facturer",
+        "description": "Aucun ordre de réparation terminé n'attend sa facture."
+      }
+    }
   }
 }

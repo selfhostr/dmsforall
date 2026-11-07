@@ -25,7 +25,9 @@ describe('BandeauAutresSites', () => {
   });
 
   it('plusieurs sites : sélecteur compact avec aria-label, sans libellé visible', () => {
-    render(<BandeauAutresSites siteId="s" sites={SITES} autresSites={[]} onChangerSite={vi.fn()} />);
+    render(
+      <BandeauAutresSites siteId="s" sites={SITES} autresSites={[]} onChangerSite={vi.fn()} />,
+    );
     expect(screen.getByRole('combobox', { name: 'Site' })).toHaveTextContent('Sion');
     expect(screen.queryByText(/Site affiché/)).not.toBeInTheDocument();
   });
@@ -35,7 +37,8 @@ describe('BandeauAutresSites', () => {
     const onChangerSite = vi.fn();
     render(
       <BandeauAutresSites
-        siteId="s" sites={SITES}
+        siteId="s"
+        sites={SITES}
         portee="jour"
         autresSites={[{ siteId: 'm', nom: 'Martigny', total: 2 }]}
         onChangerSite={onChangerSite}
@@ -49,7 +52,8 @@ describe('BandeauAutresSites', () => {
   it("n'affiche rien pour un site sans rendez-vous", () => {
     render(
       <BandeauAutresSites
-        siteId="s" sites={SITES}
+        siteId="s"
+        sites={SITES}
         autresSites={[{ siteId: 'm', nom: 'Martigny', total: 0 }]}
         onChangerSite={vi.fn()}
       />,

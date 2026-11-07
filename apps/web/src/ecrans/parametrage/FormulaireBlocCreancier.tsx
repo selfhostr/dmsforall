@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useModifierBlocCreancier } from '@/hooks/parametrage/useModifierBlocCreancier';
+import { useParametresEntreprise } from '@/hooks/parametrage/useParametresEntreprise';
 import type {
   BlocCreancier,
   EntreeModificationBlocCreancier,
@@ -90,9 +91,22 @@ export function FormulaireBlocCreancier({ blocCreancier }: Props) {
   const form = useForm<ValeursFormulaire>({ defaultValues: versValeursFormulaire(blocCreancier) });
   const valeurs = form.watch();
 
+  // Un seul nom visible : celui de l'onglet Entreprise (raison sociale). Le bulletin QR reprend ce
+  // nom (70 car. max, limite du standard) ; un nom différent (titulaire du compte sous un autre
+  // nom) reste possible via le lien, et s'ouvre de lui-même si le bloc en porte déjà un autre.
+  const entreprise = useParametresEntreprise();
+  const nomEntreprise = entreprise.data?.raisonSociale.trim().slice(0, 70);
+  const [autreNomDemande, setAutreNomDemande] = useState(false);
+  const nomDejaDifferent =
+    blocCreancier.nom !== null &&
+    blocCreancier.nom.trim() !== '' &&
+    blocCreancier.nom !== nomEntreprise;
+  const nomSepare = nomEntreprise === undefined || autreNomDemande || nomDejaDifferent;
+  const nomEffectif = nomSepare ? valeurs.nom : (nomEntreprise ?? '');
+
   const soumettre = form.handleSubmit((donnees) => {
     setDernierEnregistrementReussi(false);
-    modifier.mutate(versEntree(donnees), {
+    modifier.mutate(versEntree({ ...donnees, nom: nomSepare ? donnees.nom : nomEffectif }), {
       onSuccess: () => setDernierEnregistrementReussi(true),
     });
   });
@@ -106,7 +120,7 @@ export function FormulaireBlocCreancier({ blocCreancier }: Props) {
   const erreurGlobaleAAfficher = erreur && erreursChamp.length === 0;
   const estErreurReseau = erreur instanceof ErreurReseau;
 
-  const nomRempli = valeurs.nom.trim() !== '';
+  const nomRempli = nomEffectif.trim() !== '';
   const adresseComplete = [valeurs.rue, valeurs.numero, valeurs.npa, valeurs.localite].every(
     (v) => v.trim() !== '',
   );
@@ -165,13 +179,34 @@ export function FormulaireBlocCreancier({ blocCreancier }: Props) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          <Label htmlFor="bc-nom">{t('parametrage:creancier.identite.nom')}</Label>
-          <Input
-            id="bc-nom"
-            maxLength={70}
-            readOnly={modifier.isPending}
-            {...form.register('nom')}
-          />
+          {nomSepare ? (
+            <>
+              <Label htmlFor="bc-nom">{t('parametrage:creancier.identite.nomBulletin')}</Label>
+              <Input
+                id="bc-nom"
+                maxLength={70}
+                readOnly={modifier.isPending}
+                {...form.register('nom')}
+              />
+              <p className="texte-corps text-muted-foreground">
+                {t('parametrage:creancier.identite.nomBulletinAide')}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="texte-corps">
+                {t('parametrage:creancier.identite.nomRepris', { nom: nomEntreprise })}
+              </p>
+              <Button
+                type="button"
+                variant="link"
+                className="h-auto p-0"
+                onClick={() => setAutreNomDemande(true)}
+              >
+                {t('parametrage:creancier.identite.nomDifferent')}
+              </Button>
+            </>
+          )}
         </CardContent>
       </Card>
 

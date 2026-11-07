@@ -165,7 +165,6 @@ export function EcranListeFournisseurs() {
       <EtatVidePremierUsage
         titre={t('pieces:fournisseurs.vide.premierUsage.titre')}
         description={t('pieces:fournisseurs.vide.premierUsage.description')}
-        action={boutonAjouter}
       />
     );
   }

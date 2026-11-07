@@ -17,12 +17,13 @@ export const ROLES_ACCUEIL_BUREAU: readonly RoleUtilisateur[] = [
   'comptable',
 ];
 
-/** Le bloc « à faire aujourd'hui » : tout le bureau sauf le comptable, dont le tableau de bord
- *  porte déjà les factures à encaisser et à relancer. */
+/** Le bloc « à faire aujourd'hui » : tout le bureau. Le comptable y retrouve les factures échues
+ *  et les OR à facturer (ses chiffres vivent dans Facturation > Chiffres, plus sur l'accueil). */
 export const ROLES_A_FAIRE_AUJOURDHUI: readonly RoleUtilisateur[] = [
   'direction',
   'receptionnaire',
   'chef_atelier',
+  'comptable',
 ];
 
 export function estRoleAccueilBureau(role: RoleUtilisateur | undefined): boolean {

@@ -200,7 +200,6 @@ export function EcranListeCommandesFournisseur() {
       <EtatVidePremierUsage
         titre={t('pieces:commandes.vide.premierUsage.titre')}
         description={t('pieces:commandes.vide.premierUsage.description')}
-        action={boutonCreer}
       />
     );
   }

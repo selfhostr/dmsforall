@@ -155,14 +155,6 @@ export function EcranListeVehicules() {
       <EtatVidePremierUsage
         titre={t('vehicules:vide.nouveau.titre')}
         description={t('vehicules:vide.nouveau.description')}
-        action={
-          <Button asChild>
-            <Link to={chemins.vehicules.nouveau(site)}>
-              <Plus aria-hidden className="h-4 w-4" />
-              {t('vehicules:nouveau')}
-            </Link>
-          </Button>
-        }
       />
     );
   }

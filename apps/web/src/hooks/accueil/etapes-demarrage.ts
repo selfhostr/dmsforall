@@ -22,7 +22,7 @@ export type EtatEtapeDemarrage = 'fait' | 'aFaire' | 'inconnu';
 export interface EtapeDemarrage {
   readonly id: IdEtapeDemarrage;
   readonly etat: EtatEtapeDemarrage;
-  /** Une étape facultative ne retient pas la liste affichée une fois le reste réglé. */
+  /** Une étape facultative (borne, n° TVA) ne retient pas la liste affichée une fois le reste réglé. */
   readonly facultative: boolean;
 }
 
@@ -46,7 +46,9 @@ export function calculerEtapesDemarrage(
     return {
       id,
       etat: fait === undefined ? 'inconnu' : fait ? 'fait' : 'aFaire',
-      facultative: id === 'borne',
+      // La borne et le n° TVA sont facultatifs : un garage non assujetti n'a pas de numéro.
+      // (L'API n'expose aucun champ « assujetti » : `numeroTva` vide = non assujetti OU pas saisi.)
+      facultative: id === 'borne' || id === 'tva',
     };
   });
 }

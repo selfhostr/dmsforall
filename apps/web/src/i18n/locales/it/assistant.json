@@ -1,0 +1,120 @@
+{
+  "titre": "Benvenuto! Configuriamo la vostra autorimessa",
+  "description": "Bastano pochi minuti. Può uscire in qualsiasi momento e riprendere più tardi dalla pagina iniziale.",
+  "navigation": {
+    "liste": "Passaggi della procedura guidata",
+    "position": "Passaggio {numero} di {total}",
+    "terminee": "completato"
+  },
+  "actions": {
+    "suivant": "Avanti",
+    "retour": "Indietro",
+    "passer": "Salta",
+    "enregistrerContinuer": "Salva e continua",
+    "enregistrement": "Salvataggio in corso…",
+    "quitter": "Esci per ora"
+  },
+  "chargement": "Caricamento delle impostazioni",
+  "erreur": {
+    "titre": "Impossibile caricare le impostazioni",
+    "enregistrement": "Il salvataggio non è riuscito. I dati inseriti sono conservati: corregga e riprovi."
+  },
+  "reprise": {
+    "titre": "Procedura guidata di avvio",
+    "description": "Configuri l'essenziale della sua autorimessa passo dopo passo.",
+    "bouton": "Riprendi la procedura"
+  },
+  "etapes": {
+    "garage": {
+      "titre": "La sua autorimessa",
+      "intro": "Queste informazioni compaiono sulle fatture e sulla fattura QR."
+    },
+    "paiements": {
+      "titre": "Pagamenti",
+      "intro": "Il suo conto bancario permette di stampare la fattura QR: i clienti pagano con una scansione."
+    },
+    "atelier": {
+      "titre": "Officina",
+      "intro": "La tariffa oraria valorizza la manodopera; i motivi servono per fissare gli appuntamenti."
+    },
+    "logo": {
+      "titre": "Il suo logo",
+      "intro": "Viene stampato in alto sulle fatture. Può aggiungerlo più tardi."
+    },
+    "equipe": {
+      "titre": "Team",
+      "intro": "Crei gli account dei collaboratori: ognuno vede ciò che il suo ruolo consente."
+    },
+    "termine": {
+      "titre": "Completato",
+      "intro": "Ecco a che punto è la sua autorimessa."
+    }
+  },
+  "garage": {
+    "raisonSociale": "Ragione sociale",
+    "raisonSocialeNote": "Proviene dalla creazione del suo account e per ora non si modifica qui. Ci scriva se deve cambiare.",
+    "adresse": "Indirizzo dell'autorimessa",
+    "rue": "Via",
+    "numero": "N.",
+    "npa": "NPA",
+    "localite": "Località",
+    "numeroAide": "Facoltativo (casella postale, località isolata).",
+    "erreurRue": "Indichi la via.",
+    "erreurNpa": "Indichi il NPA.",
+    "erreurLocalite": "Indichi la località.",
+    "contactNote": "Telefono ed e-mail dell'autorimessa: da inserire più tardi, per ora non si possono salvare qui.",
+    "tva": {
+      "question": "La sua autorimessa è soggetta all'IVA?",
+      "oui": "Sì",
+      "non": "No",
+      "numero": "Numero IVA",
+      "aide": "Facoltativo. Formato CHE-123.456.789 IVA. Compare sulle fatture.",
+      "erreurFormat": "Questo numero non ha il formato corretto. Esempio: CHE-123.456.789 IVA.",
+      "erreurCle": "Questo numero IVA non è corretto: controlli le cifre."
+    }
+  },
+  "paiements": {
+    "comptant": "Incasso solo in contanti",
+    "comptantAide": "Nessuna fattura QR verrà preparata. Potrà aggiungere un conto più tardi.",
+    "iban": "IBAN o QR-IBAN",
+    "ibanAide": "Facoltativo. Lo incolli con o senza spazi, ad esempio CH93 0076 2011 6238 5295 7."
+  },
+  "atelier": {
+    "tauxHoraire": "Tariffa oraria (CHF all'ora)",
+    "tauxHoraireAide": "Precompilata a CHF 140.00. Modificabile più tardi nelle Impostazioni.",
+    "tauxDejaDefini": "Tariffa oraria già definita: CHF {montant} all'ora.",
+    "erreurMontant": "Indichi un importo valido, ad esempio 140.00.",
+    "horaires": "Orari di apertura",
+    "ouverture": "Apertura",
+    "fermeture": "Chiusura",
+    "horairesPlusieursSites": "La sua autorimessa ha più sedi: imposti gli orari di apertura sede per sede nelle Impostazioni.",
+    "motifs": "Motivi di appuntamento",
+    "motifsAide": "Selezioni ciò per cui vengono i clienti.",
+    "motifDejaPresent": "già presente"
+  },
+  "equipe": {
+    "prenom": "Nome",
+    "nom": "Cognome",
+    "email": "E-mail",
+    "inviter": "Crea l'account",
+    "plusTard": "Più tardi",
+    "erreurChamps": "Nome, cognome ed e-mail sono obbligatori.",
+    "invitesTitre": "Account creati",
+    "aucun": "Nessun account creato finora.",
+    "accesTemporaire": "Password temporanea: {mot}. La annoti, non verrà più mostrata.",
+    "continuer": "Continua"
+  },
+  "termine": {
+    "recapitulatif": "Riepilogo",
+    "etat": {
+      "fait": "Configurato",
+      "aFaire": "Da configurare",
+      "aFaireFacultatif": "Facoltativo, non configurato",
+      "inconnu": "Da verificare"
+    },
+    "comptesCrees": "{nombre, plural, =0 {Nessun account creato} one {# account creato} other {# account creati}} durante questa procedura.",
+    "creerOr": "Crea un primo OR",
+    "ajouterClient": "Aggiungi un cliente",
+    "accueil": "Vai alla pagina iniziale"
+  }
+}

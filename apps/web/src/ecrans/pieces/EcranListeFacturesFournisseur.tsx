@@ -229,7 +229,6 @@ export function EcranListeFacturesFournisseur() {
       <EtatVidePremierUsage
         titre={t('pieces:facturesFournisseur.vide.premierUsage.titre')}
         description={t('pieces:facturesFournisseur.vide.premierUsage.description')}
-        action={boutonDeposer}
       />
     );
   }

@@ -23,6 +23,7 @@ import {
   EcranConsolePlateforme,
   EcranParametragePieces,
   EcranParametrageAtelier,
+  EcranChiffres,
   EcranExportFiduciaire,
   EcranParametresFacturation,
   EcranReferentiels,
@@ -77,6 +78,7 @@ import {
   ACCES_PIECES,
   ACCES_PNEUS,
   ACCES_POINTAGE,
+  ACCES_CHIFFRES,
   ACCES_MENU_FINANCIER,
   ACCES_RELANCES,
   ACCES_SCAN,
@@ -285,6 +287,15 @@ export const routesConfig: RouteObject[] = [
         ),
       },
       { path: 'factures', element: <EcranListeFactures /> },
+      // Chiffres : route statique, classée avant `factures/:id` par React Router.
+      {
+        path: 'factures/chiffres',
+        element: (
+          <RouteProtegee accesAutorise={ACCES_CHIFFRES}>
+            <EcranChiffres />
+          </RouteProtegee>
+        ),
+      },
       // `:id` (pas `:orId` ni `:factureId`) — `EcranFicheFacture` lit `useParams<{ id: string }>()`.
       { path: 'factures/:id', element: <EcranFicheFacture /> },
       // Même remarque : `EcranAvoir` lit aussi `useParams<{ id: string }>()` — `id` y désigne la

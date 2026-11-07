@@ -248,7 +248,6 @@ export function EcranListeOrdresReparation() {
       <EtatVidePremierUsage
         titre={t('or:liste.vide.premierUsage.titre')}
         description={t('or:liste.vide.premierUsage.description')}
-        action={boutonNouveauOr}
       />
     );
   }

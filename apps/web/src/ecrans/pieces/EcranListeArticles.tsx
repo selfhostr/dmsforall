@@ -226,13 +226,6 @@ export function EcranListeArticles() {
       <EtatVidePremierUsage
         titre={t('pieces:articles.liste.vide.premierUsage.titre')}
         description={t('pieces:articles.liste.vide.premierUsage.description')}
-        action={
-          peutEcrireArticle(actions) ? (
-            <Button onClick={() => setFormulaireOuvert(true)}>
-              {t('pieces:articles.actions.ajouter')}
-            </Button>
-          ) : undefined
-        }
       />
     );
   }

@@ -42,6 +42,14 @@ describe('calculerEtapesDemarrage', () => {
     expect(demarrageComplet(etapes)).toBe(true);
   });
 
+  it('garage non assujetti (n° TVA absent) : complet, le n° TVA est facultatif', () => {
+    const etapes = calculerEtapesDemarrage({
+      etapes: { ...TOUT_FAIT.etapes, numeroTva: false },
+    });
+    expect(etapes.find((e) => e.id === 'tva')).toMatchObject({ etat: 'aFaire', facultative: true });
+    expect(demarrageComplet(etapes)).toBe(true);
+  });
+
   it('chaque étape suit sa propre clé serveur', () => {
     const reponse = { etapes: { ...TOUT_FAIT.etapes, iban: false, motifsRdv: false } };
     expect(etat(reponse, 'compte')).toBe('aFaire');

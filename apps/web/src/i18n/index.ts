@@ -52,6 +52,7 @@ export const NAMESPACES = [
   'export',
   'capacites',
   'aide',
+  'assistant',
 ] as const;
 
 /** Chargeurs paresseux : un `import()` par fichier, donc un chunk par langue et namespace.
@@ -85,6 +86,7 @@ const ressources = {
     export: () => import('./locales/fr/export.json'),
     capacites: () => import('./locales/fr/capacites.json'),
     aide: () => import('./locales/fr/aide.json'),
+    assistant: () => import('./locales/fr/assistant.json'),
   },
   de: {
     commun: () => import('./locales/de/commun.json'),
@@ -114,6 +116,7 @@ const ressources = {
     export: () => import('./locales/de/export.json'),
     capacites: () => import('./locales/de/capacites.json'),
     aide: () => import('./locales/de/aide.json'),
+    assistant: () => import('./locales/de/assistant.json'),
   },
   it: {
     commun: () => import('./locales/it/commun.json'),
@@ -143,6 +146,7 @@ const ressources = {
     export: () => import('./locales/it/export.json'),
     capacites: () => import('./locales/it/capacites.json'),
     aide: () => import('./locales/it/aide.json'),
+    assistant: () => import('./locales/it/assistant.json'),
   },
 } as const;
 

@@ -68,6 +68,7 @@ export const ACTIONS_CITEES = [
   'rendez_vous.modifier',
   'socle.utilisateur.lire',
   'tableau_bord.activite.lire',
+  'tableau_bord.financier.lire',
   'vehicule.creer',
   'vehicule.modifier',
   'vehicule.plaque.gerer',

@@ -6,10 +6,11 @@ import type {
 } from '@dfa/shared';
 
 import { JETON_DB, schema, type AccesBase, type ContexteTenant } from '../../db';
+import { auditAtelier } from '../../db/schema';
 import { ErreurMetier } from '../../common/erreurs';
 
 /**
- * Identité fiscale du tenant courant (`tenant.numero_tva`). Le tenant vient du contexte de session,
+ * Identité du tenant courant (`tenant.raison_sociale`, `numero_tva`, délai de paiement). Le tenant vient du contexte de session,
  * jamais d'un paramètre : il n'existe aucun `tenantId` dans cette API.
  */
 @Injectable()
@@ -35,16 +36,34 @@ export class ServiceParametresEntreprise {
     ctx: ContexteTenant,
     entree: EntreeModificationParametresEntreprise,
   ): Promise<ReponseParametresEntreprise> {
-    if (entree.numeroTva === undefined && entree.delaiPaiementJoursDefaut === undefined) {
+    if (
+      entree.raisonSociale === undefined &&
+      entree.numeroTva === undefined &&
+      entree.delaiPaiementJoursDefaut === undefined
+    ) {
       return this.obtenir(ctx);
     }
 
     return this.acces.enTenant(ctx, async (tx) => {
+      // Raison sociale : valeur AVANT lue dans la transaction pour le journal. Le slug n'est
+      // jamais écrit ; les documents déjà émis gardent leur raison sociale figée (leur snapshot),
+      // les nouveaux lisent la valeur courante.
+      let avant: string | undefined;
+      if (entree.raisonSociale !== undefined) {
+        const [courante] = await tx
+          .select({ raisonSociale: schema.tenant.raisonSociale })
+          .from(schema.tenant)
+          .where(eq(schema.tenant.id, ctx.tenantId));
+        if (!courante) throw this.tenantIntrouvable();
+        avant = courante.raisonSociale;
+      }
+
       // Seuls les champs ENVOYÉS sont écrits (`undefined` est ignoré par Drizzle) : un PATCH du
       // délai ne touche pas au n° TVA, et inversement.
       const [ligne] = await tx
         .update(schema.tenant)
         .set({
+          raisonSociale: entree.raisonSociale,
           numeroTva: entree.numeroTva,
           delaiPaiementJoursDefaut: entree.delaiPaiementJoursDefaut,
         })
@@ -55,6 +74,19 @@ export class ServiceParametresEntreprise {
           delaiPaiementJoursDefaut: schema.tenant.delaiPaiementJoursDefaut,
         });
       if (!ligne) throw this.tenantIntrouvable();
+      if (avant !== undefined && avant !== ligne.raisonSociale) {
+        await tx.insert(auditAtelier).values({
+          tenantId: ctx.tenantId,
+          entite: 'tenant',
+          entiteId: ctx.tenantId,
+          action: 'modification',
+          champ: 'raison_sociale',
+          valeurAvant: avant,
+          valeurApres: ligne.raisonSociale,
+          utilisateurId: ctx.utilisateurId,
+          requeteId: ctx.requeteId,
+        });
+      }
       return ligne;
     });
   }

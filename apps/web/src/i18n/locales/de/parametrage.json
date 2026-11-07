@@ -12,7 +12,10 @@
     "nonConfigure": "Diese Angaben wurden noch nie erfasst.",
     "identite": {
       "titre": "Identität",
-      "nom": "Name der Garage"
+      "nomBulletin": "Name auf dem Zahlschein",
+      "nomBulletinAide": "Der Name des Kontoinhabers, wie ihn die Bank kennt. Er wird vom Garagennamen (Register Unternehmen) übernommen, solange Sie ihn hier nicht ändern.",
+      "nomRepris": "Der Zahlschein trägt den Namen der Garage: {nom}.",
+      "nomDifferent": "Das Konto lautet auf einen anderen Namen?"
     },
     "adresse": {
       "titre": "Adresse",
@@ -381,7 +384,9 @@
   "entreprise": {
     "titre": "Unternehmen",
     "explication": "Diese Angaben identifizieren Ihre Garage auf den Rechnungen.",
-    "raisonSociale": "Firmenname",
+    "raisonSociale": "Name der Garage (Firmenname)",
+    "erreurRaison": "Geben Sie den Namen der Garage an.",
+    "raisonSocialeAide": "Dieser Name erscheint auf Ihren Dokumenten und Rechnungen. Bereits ausgestellte Dokumente behalten den alten Namen.",
     "numeroTva": "MWST-Nummer",
     "numeroTvaAide": "Format: CHE-123.456.789 MWST. Leer lassen, wenn Sie nicht mehrwertsteuerpflichtig sind.",
     "erreurTva": {
