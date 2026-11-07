@@ -338,4 +338,37 @@ describe('FiltreProbleme — blocages, confirmationsRequises et actionsProposees
     const corpsEnvoye = (reponse.json as ReturnType<typeof vi.fn>).mock.calls[0]?.[0];
     expect(corpsEnvoye).toHaveProperty('blocages', blocages);
   });
+
+  it("journalise les causes techniques d'une erreur de base (code, constraint, detail, message de cause) sans jamais journaliser les paramètres de requête", () => {
+    const journal = serviceJournalTest();
+    const filtre = new FiltreProbleme(serviceContexteTest(PRINCIPAL_TEST), journal);
+    // Forme d'une `DrizzleQueryError` : `cause` porte l'erreur `pg`, et la requête porte SQL + paramètres.
+    const causePg = Object.assign(new Error('duplicate key value violates unique constraint'), {
+      code: '23505',
+      constraint: 'clients_tenant_numero_uniq',
+      detail: 'Key (tenant_id, numero)=(t1, 42) already exists.',
+    });
+    const exception = Object.assign(new Error('Failed query: insert into clients'), {
+      cause: causePg,
+      query: 'insert into clients (nom) values ($1)',
+      params: ['Jean Dupont-secret'],
+    });
+
+    filtre.catch(exception, hostTest(requeteTest(), reponseTest()));
+
+    expect(journal.error).toHaveBeenCalledTimes(1);
+    const donnees = (journal.error as ReturnType<typeof vi.fn>).mock.calls[0]?.[2];
+    expect(donnees).toEqual({
+      requeteId: 'requete-id-1',
+      cause: {
+        code: '23505',
+        constraint: 'clients_tenant_numero_uniq',
+        detail: 'Key (tenant_id, numero)=(t1, 42) already exists.',
+        message: 'duplicate key value violates unique constraint',
+      },
+    });
+    // Les paramètres de requête ne doivent jamais entrer dans les données ajoutées au journal.
+    expect(JSON.stringify(donnees)).not.toContain('Jean Dupont-secret');
+    expect(JSON.stringify(donnees)).not.toContain('insert into clients');
+  });
 });
