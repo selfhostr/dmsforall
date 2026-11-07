@@ -363,7 +363,7 @@
     "fiche": {
       "titre": "Verkauf",
       "erreur": {
-        "titre": "Dieses Dossier kann nicht angezeigt werden"
+        "titre": "Dieser Verkauf kann nicht angezeigt werden"
       },
       "factureA": "Rechnung an: {nom}",
       "conducteur": "Fahrer: {nom}",

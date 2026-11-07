@@ -363,7 +363,7 @@
     "fiche": {
       "titre": "Vendita",
       "erreur": {
-        "titre": "Impossibile visualizzare questa pratica"
+        "titre": "Impossibile visualizzare questa vendita"
       },
       "factureA": "Fatturato a: {nom}",
       "conducteur": "Conducente: {nom}",

@@ -568,7 +568,7 @@ describe('EcranFicheDossierVente', () => {
 
     rendre();
 
-    expect(await screen.findByText("Impossible d'afficher ce dossier")).toBeInTheDocument();
+    expect(await screen.findByText("Impossible d'afficher cette vente")).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Réessayer' })).toBeInTheDocument();
   });
 

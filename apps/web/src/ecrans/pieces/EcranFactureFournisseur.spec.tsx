@@ -68,7 +68,7 @@ describe('EcranFactureFournisseur', () => {
     expect(screen.getByText('Aucune commande correspondante')).toBeInTheDocument();
     expect(await screen.findByText(/Facture validée le/)).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Valider le rapprochement' }),
+      screen.queryByRole('button', { name: 'Valider la facture fournisseur' }),
     ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Rejeter' })).not.toBeInTheDocument();
     // Le nom lu par OCR (`nomCreancier`) n'est pas garanti — marqueur « À vérifier » attendu.
