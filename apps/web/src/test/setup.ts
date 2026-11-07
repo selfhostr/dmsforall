@@ -4,12 +4,17 @@ import { configure } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll } from 'vitest';
 
 import { definirEnvPourTests } from '@/config/env';
+import { chargerLangues } from '@/i18n';
 
 import { server } from './msw/server';
 
 // La couche api/client.ts lit obtenirEnv() : en test, on l'initialise directement plutôt que
 // de dépendre d'un vrai .env (voir aussi test.env dans vitest.config.ts).
 definirEnvPourTests({ VITE_API_URL: '/api/v1' });
+
+// i18n est paresseux en production (une seule langue en mémoire) ; les specs changent de langue de
+// façon synchrone, donc les trois langues sont chargées avant le premier test.
+await chargerLangues();
 
 // Délai global pour `findBy*`/`waitFor` (@testing-library/dom), à la place du défaut 1000 ms.
 //

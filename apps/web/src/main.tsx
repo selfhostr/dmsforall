@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import '@/i18n';
+import { i18nPret } from '@/i18n';
 import '@/index.css';
 import { ErreurEnvInvalide, initialiserEnv } from '@/config/env';
 import { initialiserSentry } from '@/observabilite/sentry';
@@ -11,6 +11,9 @@ if (!conteneur) {
   throw new Error('Élément racine #root introuvable dans index.html.');
 }
 const racine = createRoot(conteneur);
+
+// Traductions de la langue active en mémoire avant tout rendu (y compris l'écran d'erreur ci-dessous).
+await i18nPret.catch(() => undefined);
 
 // La config est validée AVANT tout le reste : si elle est invalide, on n'importe même pas
 // App (et donc jamais api/client.ts, qui lit VITE_API_URL) — import dynamique volontaire.
