@@ -13,7 +13,6 @@ import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
 
 import { DialogueModifierEmploye } from './DialogueModifierEmploye';
-import { CAPACITES_TEST } from '@/test/capacites';
 
 // Rattaché à un site actif ET à un site inactif (absent de la liste des sites actifs).
 const EMPLOYE: UtilisateurResume = {
@@ -29,7 +28,6 @@ const EMPLOYE: UtilisateurResume = {
     { id: 'site-ferme', nom: 'Ancien site' },
   ],
   derniereConnexionLe: null,
-  capacites: CAPACITES_TEST,
   creeLe: '2026-08-01T08:00:00.000Z',
 };
 

@@ -16,7 +16,6 @@ import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
 
 import { EcranUtilisateurs } from './EcranUtilisateurs';
-import { CAPACITES_TEST } from '@/test/capacites';
 
 beforeAll(() => {
   // Même stub que `EcranNouvelOrdreReparation.spec.tsx`/`mesures.dialogue-ajout-ligne-or.spec.tsx` :
@@ -39,7 +38,6 @@ const EMPLOYE_TECHNICIEN: UtilisateurResume = {
   statut: 'actif',
   sites: [{ id: 'site-1', nom: 'Site principal' }],
   derniereConnexionLe: null,
-  capacites: CAPACITES_TEST,
   creeLe: '2026-08-01T08:00:00.000Z',
 };
 
