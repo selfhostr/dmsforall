@@ -143,7 +143,11 @@ describe('DialogueFacturerEtEncaisser', () => {
     expect(appels.paiements[0]?.corps).toMatchObject({
       moyen: 'especes',
       montantCentimes: 10945,
-      imputations: [{ documentId: 'fact-1', montantCentimes: 10944, nature: 'reglement' }],
+      // Règlement = espèces remises, écart d'arrondi = arrondi signé : aucun centime d'avance.
+      imputations: [
+        { documentId: 'fact-1', montantCentimes: 10945, nature: 'reglement' },
+        { documentId: 'fact-1', montantCentimes: -1, nature: 'arrondi' },
+      ],
     });
   });
 

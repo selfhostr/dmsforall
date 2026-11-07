@@ -231,6 +231,104 @@ describe('appliquerImputationsLettrage — arrondi espèces (RF-49 → RF-52)', 
     expect(updates[0]?.statutReglement).toBe('regle');
   });
 
+  it.each([
+    // [solde, espèces remises, arrondi signé, règlement imputé]
+    [10943, 10945, -2],
+    [10944, 10945, -1],
+    [10948, 10950, -2],
+    [10949, 10950, -1],
+  ])(
+    'arrondi vers le HAUT : solde %i ct payé %i ct en espèces + arrondi %i ct solde le document, sans avance (CF-05)',
+    async (solde, especes, ecart) => {
+      const document = documentFactice({
+        totalTtcCentimes: BigInt(solde),
+        montantRegleCentimes: 0n,
+      });
+      const { tx, updates, inserts } = txFactice({ documents: [document] });
+      const paiement = paiementFactice({ moyen: 'especes', montantCentimes: BigInt(especes) });
+
+      await appliquerImputationsLettrage(tx, CTX, paiement, [
+        { documentId: 'doc-1', montantCentimes: especes, nature: 'reglement' },
+        { documentId: 'doc-1', montantCentimes: ecart, nature: 'arrondi' },
+      ]);
+
+      // L'arrondi négatif est posé AVANT le règlement (trigger MD-51.a évalué ligne par ligne).
+      expect(inserts.map((i) => i.nature)).toEqual(['arrondi', 'reglement']);
+      expect(inserts.map((i) => i.montantCentimes)).toEqual([BigInt(ecart), BigInt(especes)]);
+      // Σ reglement = montant du paiement : aucun reliquat non imputé, donc aucune avance client.
+      expect(updates[0]?.montantRegleCentimes).toBe(BigInt(solde));
+      expect(updates[0]?.soldeCentimes).toBe(0n);
+      expect(updates[0]?.statutReglement).toBe('regle');
+    },
+  );
+
+  it.each([
+    [10941, 10940, 1],
+    [10942, 10940, 2],
+    [10946, 10945, 1],
+    [10947, 10945, 2],
+  ])(
+    'arrondi vers le BAS : solde %i ct payé %i ct en espèces + arrondi +%i ct solde le document',
+    async (solde, especes, ecart) => {
+      const document = documentFactice({
+        totalTtcCentimes: BigInt(solde),
+        montantRegleCentimes: 0n,
+      });
+      const { tx, updates, inserts } = txFactice({ documents: [document] });
+      const paiement = paiementFactice({ moyen: 'especes', montantCentimes: BigInt(especes) });
+
+      await appliquerImputationsLettrage(tx, CTX, paiement, [
+        { documentId: 'doc-1', montantCentimes: especes, nature: 'reglement' },
+        { documentId: 'doc-1', montantCentimes: ecart, nature: 'arrondi' },
+      ]);
+
+      expect(inserts.map((i) => i.nature)).toEqual(['reglement', 'arrondi']);
+      expect(updates[0]?.montantRegleCentimes).toBe(BigInt(solde));
+      expect(updates[0]?.soldeCentimes).toBe(0n);
+      expect(updates[0]?.statutReglement).toBe('regle');
+    },
+  );
+
+  it('refuse 109.45 en règlement SANS arrondi sur un solde de 109.44 (dépassement du solde)', async () => {
+    const document = documentFactice({ totalTtcCentimes: 10944n, montantRegleCentimes: 0n });
+    const { tx } = txFactice({ documents: [document] });
+    const paiement = paiementFactice({ moyen: 'especes', montantCentimes: 10945n });
+
+    await expect(
+      appliquerImputationsLettrage(tx, CTX, paiement, [
+        { documentId: 'doc-1', montantCentimes: 10945, nature: 'reglement' },
+      ]),
+    ).rejects.toMatchObject({ code: 'IMPUTATION_MONTANT_EXCEDENTAIRE' });
+  });
+
+  it('refuse un arrondi négatif en carte : 109.45 en carte sur 109.44 reste impossible', async () => {
+    const document = documentFactice({ totalTtcCentimes: 10944n, montantRegleCentimes: 0n });
+    const { tx, inserts } = txFactice({ documents: [document] });
+    const paiement = paiementFactice({ moyen: 'carte', montantCentimes: 10945n });
+
+    await expect(
+      appliquerImputationsLettrage(tx, CTX, paiement, [
+        { documentId: 'doc-1', montantCentimes: 10945, nature: 'reglement' },
+        { documentId: 'doc-1', montantCentimes: -1, nature: 'arrondi' },
+      ]),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ECHOUEE' });
+    expect(inserts).toHaveLength(0);
+  });
+
+  it('refuse un encaissement espèces de 109.46 avec arrondi -2 sur 109.44 (pas un multiple de 5 ct)', async () => {
+    const document = documentFactice({ totalTtcCentimes: 10944n, montantRegleCentimes: 0n });
+    const { tx, inserts } = txFactice({ documents: [document] });
+    const paiement = paiementFactice({ moyen: 'especes', montantCentimes: 10946n });
+
+    await expect(
+      appliquerImputationsLettrage(tx, CTX, paiement, [
+        { documentId: 'doc-1', montantCentimes: 10946, nature: 'reglement' },
+        { documentId: 'doc-1', montantCentimes: -2, nature: 'arrondi' },
+      ]),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ECHOUEE' });
+    expect(inserts).toHaveLength(0);
+  });
+
   it("rejette l'arrondi sur un moyen autre que 'especes' (carte) — RF-49 littéral", async () => {
     const document = documentFactice({ totalTtcCentimes: 20431n, montantRegleCentimes: 0n });
     const { tx } = txFactice({ documents: [document] });
