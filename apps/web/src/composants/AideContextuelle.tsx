@@ -25,22 +25,32 @@ export function AideContextuelle({ texte, sujet, className }: Props) {
   const { t } = useTranslation('aide');
   const [ouvert, setOuvert] = useState(false);
   const minuteur = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Le clic qui suit un survol ne doit pas refermer la bulle que le survol vient d'ouvrir. */
+  const enSurvol = useRef(false);
 
   const annulerFermeture = () => {
     if (minuteur.current) clearTimeout(minuteur.current);
     minuteur.current = null;
   };
   const ouvrir = () => {
+    enSurvol.current = true;
     annulerFermeture();
     setOuvert(true);
   };
   const fermerPlusTard = () => {
+    enSurvol.current = false;
     annulerFermeture();
     minuteur.current = setTimeout(() => setOuvert(false), DELAI_FERMETURE_MS);
   };
 
   return (
-    <Popover open={ouvert} onOpenChange={setOuvert}>
+    <Popover
+      open={ouvert}
+      onOpenChange={(valeur) => {
+        if (!valeur && enSurvol.current) return;
+        setOuvert(valeur);
+      }}
+    >
       <PopoverTrigger asChild>
         <button
           type="button"
@@ -61,7 +71,10 @@ export function AideContextuelle({ texte, sujet, className }: Props) {
         sideOffset={6}
         className="max-w-xs p-3"
         onOpenAutoFocus={(e) => e.preventDefault()}
-        onMouseEnter={annulerFermeture}
+        onEscapeKeyDown={() => {
+          enSurvol.current = false;
+        }}
+        onMouseEnter={ouvrir}
         onMouseLeave={fermerPlusTard}
       >
         {texte}
