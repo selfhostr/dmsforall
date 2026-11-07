@@ -28,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
@@ -394,6 +395,12 @@ function FormulaireParametresAtelier({ donnees, peutEcrire }: PropsFormulairePar
               <ChampMontant
                 id="pa-plafond"
                 label={t('parametrage:atelier.reception.plafondDefautCentimes')}
+                aide={
+                  <AideContextuelle
+                    sujet={t('parametrage:atelier.reception.plafondDefautCentimes')}
+                    texte={t('aide:parametrage.plafondDefaut')}
+                  />
+                }
                 disabled={!peutEcrire}
                 // `field.value` peut valoir `undefined` le temps que l'option `values` de
                 // `useForm` (mise à jour asynchrone à l'arrivée des données) rattrape le
@@ -405,9 +412,6 @@ function FormulaireParametresAtelier({ donnees, peutEcrire }: PropsFormulairePar
               />
             )}
           />
-          <p className="texte-libelle text-muted-foreground">
-            {t('parametrage:atelier.reception.plafondDefautAide')}
-          </p>
         </CardContent>
       </Card>
 

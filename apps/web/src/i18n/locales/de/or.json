@@ -172,6 +172,7 @@
       "choisi": "Aus dem Lager übernommen",
       "changer": "Anderes Teil suchen",
       "prixConverti": "Katalogpreis {prixTtc} inkl. MWST, umgerechnet auf netto (MWST {taux} %).",
+      "prixSansTva": "Katalogpreis {prixTtc} inkl. MWST, unverändert übernommen (Ihre Garage verrechnet keine MWST).",
       "parcours": {
         "aide": "Tippen Sie eine genaue Referenz zum Suchen, oder wählen Sie direkt aus dem Katalog unten.",
         "vide": "Für diesen Standort ist aktuell kein Artikel im Katalog aktiv. Sie können das Teil unten manuell erfassen."

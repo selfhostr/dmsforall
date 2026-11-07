@@ -150,7 +150,10 @@ describe('SectionMotifsRendezVous', () => {
     server.use(http.get(CHEMIN, () => HttpResponse.json([REVISION])));
     rendre(false);
     expect(await screen.findByText('Révision')).toBeInTheDocument();
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    // Seul bouton toléré : la bulle d'aide « ? » (lecture, aucune action de modification).
+    const aideSeule = i18n.t('aide:ouvrirSujet', { sujet: i18n.t('parametrage:motifsRdv.titre') });
+    const boutons = screen.queryAllByRole('button');
+    expect(boutons.map((b) => b.getAttribute('aria-label'))).toEqual([aideSeule]);
   });
 
   it('erreur de chargement : message avec Réessayer', async () => {

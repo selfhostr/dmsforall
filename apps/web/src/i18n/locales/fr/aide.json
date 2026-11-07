@@ -38,5 +38,16 @@
   },
   "ventes": {
     "reprise": "Reprise : le véhicule du client que vous rachetez en déduction du prix du véhicule vendu. Sa valeur est soustraite du total de la vente."
+  },
+  "parametrage": {
+    "methodePrixAchat": "Comment le prix d'achat d'un article est recalculé à chaque réception de marchandise.",
+    "seuilAjustement": "Un ajustement d'inventaire plus gros que ce montant vous demande confirmation.",
+    "delaiConsigne": "Nombre de jours après lesquels une consigne non rendue est gardée par le garage.",
+    "raisonSociale": "Ce nom figure sur vos factures et documents. Ceux déjà émis gardent l'ancien nom.",
+    "assujetti": "En dessous de CHF 100'000 de chiffre d'affaires par an, vous pouvez ne pas être assujetti.",
+    "delaiPaiement": "Appliqué aux clients sans condition de paiement propre. De 0 à 365 jours.",
+    "plafondDefaut": "Au-delà de ce montant, le client doit confirmer avant les travaux. Vide : aucune limite.",
+    "qrIban": "Votre IBAN est le compte habituel. Le QR-IBAN est un compte spécial de la banque pour les QR-factures (il commence par CH et le 5e chiffre est 3). Avec un QR-IBAN, chaque facture porte une référence QR. Ne mettez jamais l'un dans le champ de l'autre : la banque refuserait les bulletins.",
+    "motifsRdv": "Les motifs que le client ou la réception choisit à la prise de rendez-vous (révision, pneus, expertise MFK…). MFK : contrôle technique officiel du véhicule. Gardez au moins un motif actif."
   }
 }

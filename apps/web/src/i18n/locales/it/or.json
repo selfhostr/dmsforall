@@ -172,6 +172,7 @@
       "choisi": "Scelto dal magazzino",
       "changer": "Cerca un altro pezzo",
       "prixConverti": "Prezzo di catalogo {prixTtc} IVA inclusa, convertito in netto (IVA {taux} %).",
+      "prixSansTva": "Prezzo di catalogo {prixTtc} IVA inclusa, riportato invariato (il Suo garage non fattura IVA).",
       "parcours": {
         "aide": "Digiti un riferimento preciso per cercare, oppure scelga direttamente dal catalogo qui sotto.",
         "vide": "Nessun articolo attivo nel catalogo di questa sede al momento. Può inserire il pezzo manualmente qui sotto."

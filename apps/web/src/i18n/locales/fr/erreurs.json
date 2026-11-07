@@ -101,6 +101,8 @@
     "QR_CREANCIER_INCOMPLET": "Vos coordonnées bancaires sont incomplètes pour la QR-facture. Complétez-les dans les réglages de facturation.",
     "TVA_NON_ASSUJETTI_TAUX_INTERDIT": "Votre garage n'est pas assujetti à la TVA : aucune ligne ne peut porter de TVA. Mettez le taux à 0 %, ou indiquez dans les réglages de facturation que vous êtes assujetti.",
     "TVA_NUMERO_REQUIS": "Votre garage est assujetti à la TVA : saisissez votre numéro de TVA dans les réglages de facturation avant d'émettre une facture.",
+    "FACTURE_DEJA_CORRIGEE": "Cette facture a déjà été annulée par un avoir : elle est déjà corrigée. Ouvrez la facture qui la remplace.",
+    "FACTURE_CORRECTION_REGLEMENT_EXISTANT": "Cette facture est déjà réglée en tout ou partie : impossible de la refaire en brouillon. Annulez d'abord le paiement, ou corrigez l'adresse seulement.",
     "IBAN_INVALIDE": "Cet IBAN semble incorrect (forme ou clé de contrôle). Vérifiez la saisie, chiffre par chiffre.",
     "IBAN_EST_UN_QR_IBAN": "Ceci est un QR-IBAN : saisissez-le dans le champ « QR-IBAN », pas dans le champ « IBAN ».",
     "QR_IBAN_SANS_IID_RESERVE": "Ceci est un IBAN ordinaire, pas un QR-IBAN : saisissez-le dans le champ « IBAN », pas dans le champ « QR-IBAN ».",

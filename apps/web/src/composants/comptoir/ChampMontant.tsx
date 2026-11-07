@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type FocusEvent } from 'react';
+import { useEffect, useId, useState, type FocusEvent, type ReactNode } from 'react';
 
 import type { DeviseFacturation } from '@dfa/shared';
 
@@ -15,6 +15,8 @@ export interface ProprietesChampMontant {
    *  jamais une chaîne partielle (voir docs/plan-lot1-frontend-execution.md, F1-U6 « Done »). */
   readonly onChangeCentimes: (centimes: number | null) => void;
   readonly label: string;
+  /** Bulle « ? » à côté du libellé (aide sur demande). */
+  readonly aide?: ReactNode;
   readonly placeholder?: string;
   readonly obligatoire?: boolean;
   readonly disabled?: boolean;
@@ -49,6 +51,7 @@ export function ChampMontant({
   valeurCentimes,
   onChangeCentimes,
   label,
+  aide,
   placeholder,
   obligatoire,
   disabled,
@@ -90,9 +93,18 @@ export function ChampMontant({
 
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
-      <Label htmlFor={idChamp} requis={obligatoire}>
-        {label}
-      </Label>
+      {aide ? (
+        <div className="flex items-center gap-1.5">
+          <Label htmlFor={idChamp} requis={obligatoire}>
+            {label}
+          </Label>
+          {aide}
+        </div>
+      ) : (
+        <Label htmlFor={idChamp} requis={obligatoire}>
+          {label}
+        </Label>
+      )}
       <div className="relative">
         <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 texte-libelle text-muted-foreground">
           {devise}

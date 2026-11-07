@@ -21,13 +21,10 @@
     },
     "comptes": {
       "titre": "Conti bancari",
-      "explication": "Un QR-IBAN (conto presso un istituto riservato alle fatture QR) richiede un riferimento QR su ogni fattura. Un IBAN ordinario accetta solo un riferimento SCOR o nessun riferimento. Sono due conti distinti: non inserire mai l'uno nel campo dell'altro, pena una polizza rifiutata dalla banca.",
       "iban": "IBAN (conto ordinario)",
       "qrIban": "QR-IBAN",
-      "qrIbanAide": "Conto riservato alle fatture QR (identificativo dell'istituto finanziario tra 30000 e 31999).",
       "groupe": "Conto bancario",
-      "groupeAide": "Almeno uno dei due conti è obbligatorio.",
-      "difference": "Qual è la differenza tra i due?"
+      "groupeAide": "Almeno uno dei due conti è obbligatorio."
     },
     "completude": {
       "titre": "Per poter emettere una fattura con polizza QR",
@@ -143,8 +140,7 @@
       "titre": "Accettazione del veicolo",
       "kmEntreeObligatoire": "Chilometraggio in entrata obbligatorio",
       "kmSortieObligatoire": "Chilometraggio in uscita obbligatorio",
-      "plafondDefautCentimes": "Approvazione del cliente richiesta oltre",
-      "plafondDefautAide": "Oltre questo importo il cliente deve confermare prima dei lavori. Lasciare vuoto per non fissare alcun limite."
+      "plafondDefautCentimes": "Approvazione del cliente richiesta oltre"
     },
     "travaux": {
       "titre": "Lavori",
@@ -235,7 +231,6 @@
     "valorisation": {
       "titre": "Prezzo d'acquisto e inventario",
       "methodePrixAchat": "Calcolo del prezzo d'acquisto",
-      "methodePrixAchatAide": "Determina come viene ricalcolato il prezzo d'acquisto mostrato su un articolo dopo ogni ricezione. Resta non impostato finché nessun metodo è stato deciso.",
       "methodePrixAchatValeurs": {
         "aucune": "Non impostato",
         "dernier_prix": "Ultimo prezzo noto",
@@ -243,13 +238,11 @@
       }
     },
     "inventaire": {
-      "seuilValeurAjustementSignificatif": "Soglia di avviso per una rettifica significativa",
-      "seuilValeurAjustementSignificatifAide": "Una rettifica di inventario il cui valore supera questo importo genera un avviso al momento della registrazione. Lasciare vuoto finché nessuna soglia è stata decisa."
+      "seuilValeurAjustementSignificatif": "Soglia di avviso per una rettifica significativa"
     },
     "consigne": {
       "titre": "Cauzione di scambio standard",
       "delaiAcquisitionJours": "Termine prima della proposta di acquisizione (giorni)",
-      "delaiAcquisitionJoursAide": "Lasciare vuoto finché nessun termine è stato deciso: nessuna cauzione viene proposta come acquisita automaticamente.",
       "tauxTva": "Aliquota IVA applicata alla cauzione"
     }
   },
@@ -379,17 +372,13 @@
   },
   "entreprise": {
     "titre": "Azienda",
-    "explication": "Queste informazioni identificano la sua autofficina sulle fatture.",
     "raisonSociale": "Nome dell'autofficina (ragione sociale)",
     "erreurRaison": "Indichi il nome dell'autofficina.",
-    "raisonSocialeAide": "Questo nome compare sui suoi documenti e sulle fatture. I documenti già emessi mantengono il vecchio nome.",
     "numeroTva": "Numero IVA",
-    "numeroTvaAide": "Formato: CHE-123.456.789 IVA. Compare sulle Sue fatture.",
     "assujetti": {
       "legende": "Il Suo garage è soggetto all'IVA?",
       "oui": "Sì",
       "non": "No",
-      "aide": "Sotto i CHF 100'000 di cifra d'affari annua, Lei può non esserlo.",
       "ouiSansNumero": "Senza numero IVA, Lei non potrà emettere fatture.",
       "nonInfo": "Le Sue fatture e i Suoi preventivi non indicano l'IVA e riportano la dicitura «Non soggetto all'IVA»."
     },
@@ -403,7 +392,6 @@
       "titre": "Impossibile caricare i dati dell'azienda"
     },
     "delaiPaiement": "Termine di pagamento predefinito (giorni)",
-    "delaiPaiementAide": "Applicato alle fatture dei clienti senza condizione di pagamento propria. Da 0 a 365 giorni.",
     "erreurDelai": "Indichi un numero intero di giorni, da 0 a 365.",
     "logo": {
       "titre": "Logo",
@@ -462,8 +450,7 @@
     },
     "erreur": {
       "titre": "Impossibile caricare i motivi"
-    },
-    "auMoinsUn": "Almeno un motivo attivo."
+    }
   },
   "obligatoire": {
     "legende": "* obbligatorio",

@@ -283,7 +283,19 @@
         "npa": "NPA",
         "localite": "Località"
       },
-      "motifMontantTaux": "Le correzioni di importo o di aliquota si effettuano tramite la schermata Nota di credito: non sono gestite qui.",
+      "choix": {
+        "legende": "Cosa desidera fare?",
+        "remplacement": {
+          "titre": "Correggere solo l'indirizzo",
+          "aide": "Il destinatario o l'indirizzo cambiano, gli importi restano identici. La fattura corretta viene emessa subito."
+        },
+        "brouillon": {
+          "titre": "Rifare la fattura (nota di credito + nuova bozza)",
+          "aide": "La fattura viene annullata da una nota di credito, poi viene creata una bozza identica. La modifica liberamente (righe, prezzi, IVA) prima di emetterla. L'IVA segue il regime attuale del Suo garage.",
+          "dejaRegle": "Non disponibile: questa fattura è già pagata in tutto o in parte. Annulli prima il pagamento."
+        }
+      },
+      "confirmerBrouillon": "Creare la nota di credito e la bozza",
       "corrigerFiche": "Correggere anche la scheda cliente con questo indirizzo",
       "confirmer": "Correggere la fattura",
       "enCours": "Correzione in corso…",

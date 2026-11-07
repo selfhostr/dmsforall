@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -28,6 +27,7 @@ import {
 import { useListePointages } from '@/hooks/pointage/useListePointages';
 import { useSession } from '@/hooks/useSession';
 
+import { BadgeAnomaliePointage, BadgeEnCoursPointage } from './BadgeStatutPointage';
 import { peutVoirEquipePointage } from './droits';
 
 type Periode = 'jour' | 'semaine';
@@ -136,11 +136,7 @@ export function VueJournalPointage({ siteId }: Props) {
               <TableRow key={cumul.technicienId}>
                 <TableCell>
                   <span className="font-medium">{cumul.technicienNomAffiche}</span>
-                  {cumul.enCours ? (
-                    <Badge variant="secondary" className="ml-2">
-                      {t('pointage:jour.enCoursBadge')}
-                    </Badge>
-                  ) : null}
+                  {cumul.enCours ? <BadgeEnCoursPointage className="ml-2" /> : null}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {formaterDureeLisible(cumul.productifSecondes)}
@@ -153,7 +149,7 @@ export function VueJournalPointage({ siteId }: Props) {
                 </TableCell>
                 <TableCell className="text-right">
                   {cumul.nombreAnomalies > 0 ? (
-                    <Badge variant="destructive">{cumul.nombreAnomalies}</Badge>
+                    <BadgeAnomaliePointage>{cumul.nombreAnomalies}</BadgeAnomaliePointage>
                   ) : null}
                 </TableCell>
               </TableRow>
@@ -171,7 +167,7 @@ export function VueJournalPointage({ siteId }: Props) {
               </TableCell>
               <TableCell className="text-right">
                 {total.nombreAnomalies > 0 ? (
-                  <Badge variant="destructive">{total.nombreAnomalies}</Badge>
+                  <BadgeAnomaliePointage>{total.nombreAnomalies}</BadgeAnomaliePointage>
                 ) : null}
               </TableCell>
             </TableRow>

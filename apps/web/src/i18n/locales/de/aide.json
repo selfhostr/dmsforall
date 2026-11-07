@@ -38,5 +38,16 @@
   },
   "ventes": {
     "reprise": "Inzahlungnahme: das Fahrzeug des Kunden, das Sie vom Preis des verkauften Fahrzeugs abziehen. Der Wert wird vom Verkaufstotal abgezogen."
+  },
+  "parametrage": {
+    "methodePrixAchat": "Wie der Einkaufspreis eines Artikels bei jedem Wareneingang neu berechnet wird.",
+    "seuilAjustement": "Bei einer Bestandskorrektur über diesem Betrag wird eine Bestätigung verlangt.",
+    "delaiConsigne": "Anzahl Tage, nach denen ein nicht zurückgegebenes Pfand beim Garagisten bleibt.",
+    "raisonSociale": "Dieser Name steht auf Ihren Rechnungen und Dokumenten. Bereits ausgestellte behalten den alten Namen.",
+    "assujetti": "Unter CHF 100'000 Jahresumsatz müssen Sie nicht mehrwertsteuerpflichtig sein.",
+    "delaiPaiement": "Gilt für Kunden ohne eigene Zahlungsbedingung. 0 bis 365 Tage.",
+    "plafondDefaut": "Ab diesem Betrag muss der Kunde vor den Arbeiten zustimmen. Leer: keine Grenze.",
+    "qrIban": "Ihre IBAN ist das gewöhnliche Konto. Die QR-IBAN ist ein spezielles Bankkonto für QR-Rechnungen (beginnt mit CH, die 5. Ziffer ist 3). Mit einer QR-IBAN trägt jede Rechnung eine QR-Referenz. Nie das eine im Feld des anderen erfassen: die Bank würde den Zahlteil ablehnen.",
+    "motifsRdv": "Die Gründe, die bei der Terminvereinbarung gewählt werden (Service, Reifen, MFK…). MFK: amtliche Fahrzeugprüfung. Mindestens einen Grund aktiv lassen."
   }
 }
