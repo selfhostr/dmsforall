@@ -17,6 +17,9 @@ export const clesParametrage = {
   /** Identité fiscale du garage (`GET|PATCH /parametres-entreprise`) : raison sociale, n° TVA. */
   entreprise: () => ['parametrage', 'entreprise'] as const,
 
+  /** Modules activables (`GET|PATCH /parametres-entreprise/modules`). */
+  modules: () => ['parametrage', 'modules'] as const,
+
   /** Logo du garage (`GET|PUT|DELETE /parametres-entreprise/logo`). */
   logo: () => ['parametrage', 'entreprise', 'logo'] as const,
 

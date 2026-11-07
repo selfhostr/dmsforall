@@ -461,5 +461,68 @@
   "obligatoire": {
     "legende": "* obbligatorio",
     "sr": "obbligatorio"
+  },
+  "modules": {
+    "titre": "Moduli",
+    "carte": {
+      "titre": "Ciò che usa la vostra autorimessa",
+      "description": "Togliete ciò che non usate: i menu scompaiono per tutti. Nulla viene eliminato, riattivare ripristina tutto."
+    },
+    "socle": "Sempre presenti: pagina iniziale, clienti e veicoli, fatturazione, impostazioni.",
+    "etat": {
+      "actif": "Attivo",
+      "retire": "Rimosso"
+    },
+    "necessite": "Richiede: {modules}",
+    "bloque": "Non disponibile: {modules} è rimosso.",
+    "retireAussi": "Rimuove anche: {modules}",
+    "toast": {
+      "enregistre": "Moduli salvati"
+    },
+    "erreur": {
+      "titre": "Impossibile caricare i moduli"
+    },
+    "items": {
+      "atelier": {
+        "nom": "Officina",
+        "description": "Ordini di riparazione e preventivi d'officina."
+      },
+      "planning": {
+        "nom": "Pianificazione e appuntamenti",
+        "description": "Agenda dell'officina e presa di appuntamenti."
+      },
+      "pointage": {
+        "nom": "Rilevamento ore",
+        "description": "Ore dei meccanici su ogni ordine."
+      },
+      "tablettes": {
+        "nom": "Tablet d'officina",
+        "description": "Postazioni a muro per il rilevamento ore in officina."
+      },
+      "pieces": {
+        "nom": "Ricambi e magazzino",
+        "description": "Articoli, scorte e ordini ai fornitori."
+      },
+      "ventes": {
+        "nom": "Vendite VN/VO",
+        "description": "Pratiche di vendita, veicoli in stock, permute."
+      },
+      "pneus": {
+        "nom": "Deposito pneumatici",
+        "description": "Treni di pneumatici dei clienti in deposito."
+      },
+      "courtoisie": {
+        "nom": "Auto di cortesia",
+        "description": "Prestito e restituzione dei veicoli sostitutivi."
+      },
+      "relances": {
+        "nom": "Solleciti di pagamento",
+        "description": "Solleciti per le fatture scadute."
+      },
+      "export_fiduciaire": {
+        "nom": "Esportazione fiduciaria",
+        "description": "Trasferimento delle registrazioni alla fiduciaria."
+      }
+    }
   }
 }

@@ -7,6 +7,7 @@ import { peutCreerOrdreReparation } from '@/ecrans/atelier/droits';
 import { BoutonNouveauDevis } from '@/ecrans/facturation/BoutonNouveauDevis';
 import { peutEncaisser } from '@/ecrans/facturation/droits';
 import { peutCreerRendezVous } from '@/ecrans/rendez-vous/droits';
+import { useModulesActifs } from '@/hooks/modules/useModulesActifs';
 import { useSession } from '@/hooks/useSession';
 import { chemins } from '@/routes/chemins';
 
@@ -32,11 +33,12 @@ export function ActionsRapidesAccueil({ site }: Props) {
   const { t } = useTranslation('accueil');
   const { data: session } = useSession();
   const actions = session?.actions;
+  const { estActif } = useModulesActifs();
 
   return (
     <div className="flex flex-wrap items-center gap-2">
       <nav aria-label={t('actions.titre')} className="flex flex-wrap gap-2">
-        {peutCreerOrdreReparation(actions) ? (
+        {estActif('atelier') && peutCreerOrdreReparation(actions) ? (
           <Button asChild>
             <Link to={chemins.atelier.ordresReparation.depuisPlaque({ site })}>
               <Wrench aria-hidden className="h-4 w-4" />
@@ -44,7 +46,7 @@ export function ActionsRapidesAccueil({ site }: Props) {
             </Link>
           </Button>
         ) : null}
-        {peutCreerRendezVous(actions) ? (
+        {estActif('planning') && peutCreerRendezVous(actions) ? (
           <Button asChild variant="outline">
             <Link to={chemins.atelier.rendezVous.agenda(site)}>
               <CalendarPlus aria-hidden className="h-4 w-4" />

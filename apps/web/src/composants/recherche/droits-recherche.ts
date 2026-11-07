@@ -1,4 +1,4 @@
-import type { TypeResultatRecherche } from '@dfa/shared';
+import type { ModuleApp, TypeResultatRecherche } from '@dfa/shared';
 import { TYPES_RESULTAT_RECHERCHE } from '@dfa/shared';
 
 import { peut, type ActionCitee, type ActionsSession } from '@/droits';
@@ -59,3 +59,19 @@ export function recherchePerimetreRestreint(actions: ActionsSession): boolean {
   if (actions === undefined) return false;
   return naturesRechercheesPourRole(actions).length < TYPES_RESULTAT_RECHERCHE.length;
 }
+
+/**
+ * Module du garage qui porte chaque nature de résultat (Réglages > Modules). Un module retiré
+ * n'apparaît plus dans la recherche (Ctrl K comprise) ; absent : socle (clients, véhicules,
+ * documents de vente), jamais retiré. Exhaustif sur `TypeResultatRecherche` : une nouvelle nature
+ * oblige à dire de quel module elle dépend.
+ */
+export const MODULE_PAR_NATURE: Readonly<Record<TypeResultatRecherche, ModuleApp | undefined>> = {
+  vehicule: undefined,
+  client: undefined,
+  ordre_reparation: 'atelier',
+  document_vente: undefined,
+  article: 'pieces',
+  fournisseur: 'pieces',
+  depot_pneu: 'pneus',
+};

@@ -461,5 +461,68 @@
   "obligatoire": {
     "legende": "* obligatoire",
     "sr": "obligatoire"
+  },
+  "modules": {
+    "titre": "Modules",
+    "carte": {
+      "titre": "Ce que votre garage utilise",
+      "description": "Retirez ce que vous n'utilisez pas : les menus disparaissent pour tout le monde. Rien n'est supprimé, réactiver rétablit tout."
+    },
+    "socle": "Toujours présents : accueil, clients et véhicules, facturation, réglages.",
+    "etat": {
+      "actif": "Activé",
+      "retire": "Retiré"
+    },
+    "necessite": "Nécessite : {modules}",
+    "bloque": "Indisponible : {modules} est retiré.",
+    "retireAussi": "Retire aussi : {modules}",
+    "toast": {
+      "enregistre": "Modules enregistrés"
+    },
+    "erreur": {
+      "titre": "Impossible de charger les modules"
+    },
+    "items": {
+      "atelier": {
+        "nom": "Atelier",
+        "description": "Ordres de réparation et devis atelier."
+      },
+      "planning": {
+        "nom": "Planning et rendez-vous",
+        "description": "Agenda de l'atelier et prise de rendez-vous."
+      },
+      "pointage": {
+        "nom": "Pointage",
+        "description": "Heures des mécaniciens sur chaque OR."
+      },
+      "tablettes": {
+        "nom": "Tablettes d'atelier",
+        "description": "Bornes de pointage murales pour l'atelier."
+      },
+      "pieces": {
+        "nom": "Pièces et stock",
+        "description": "Articles, stock et commandes fournisseur."
+      },
+      "ventes": {
+        "nom": "Ventes VN/VO",
+        "description": "Dossiers de vente, véhicules en stock, reprises."
+      },
+      "pneus": {
+        "nom": "Hôtel à pneus",
+        "description": "Jeux de pneus des clients en dépôt."
+      },
+      "courtoisie": {
+        "nom": "Voitures de courtoisie",
+        "description": "Prêt et retour des véhicules de remplacement."
+      },
+      "relances": {
+        "nom": "Rappels de paiement",
+        "description": "Rappels des factures échues."
+      },
+      "export_fiduciaire": {
+        "nom": "Export fiduciaire",
+        "description": "Transfert des écritures à la fiduciaire."
+      }
+    }
   }
 }

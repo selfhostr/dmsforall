@@ -29,6 +29,10 @@
       "titre": "Votre garage",
       "intro": "Ces informations figurent sur vos factures et sur la QR-facture."
     },
+    "modules": {
+      "titre": "Ce que vous utilisez",
+      "intro": "Retirez ce que votre garage n'utilise pas. Vous pourrez le changer dans Réglages > Modules."
+    },
     "paiements": {
       "titre": "Paiements",
       "intro": "Votre compte bancaire permet d'imprimer la QR-facture : vos clients paient d'un scan."

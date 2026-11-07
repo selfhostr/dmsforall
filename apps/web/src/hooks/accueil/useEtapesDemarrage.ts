@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { ReponseEtatDemarrage } from '@dfa/shared';
 
 import { requeteApi } from '@/api/client';
+import { useModulesActifs } from '@/hooks/modules/useModulesActifs';
 
 import { calculerEtapesDemarrage, demarrageComplet, type EtapeDemarrage } from './etapes-demarrage';
 
@@ -34,7 +35,11 @@ export function useEtapesDemarrage(): EtatDemarrage {
     },
   });
 
-  const etapes = useMemo(() => calculerEtapesDemarrage(requete.data), [requete.data]);
+  const { modulesActifs } = useModulesActifs();
+  const etapes = useMemo(
+    () => calculerEtapesDemarrage(requete.data, modulesActifs),
+    [requete.data, modulesActifs],
+  );
 
   return {
     etapes,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ReponseEtatDemarrage } from '@dfa/shared';
+import { MODULES_APP, modulesActifsDepuis, type ModuleApp, type ReponseEtatDemarrage } from '@dfa/shared';
 
 import { calculerEtapesDemarrage, demarrageComplet } from './etapes-demarrage';
 
@@ -64,3 +64,38 @@ describe('calculerEtapesDemarrage', () => {
     expect(demarrageComplet(etapes)).toBe(false);
   });
 });
+
+describe('calculerEtapesDemarrage — modules retirés', () => {
+  const ids = (modulesActifs?: readonly ModuleApp[]) =>
+    calculerEtapesDemarrage(TOUT_FAIT, modulesActifs).map((e) => e.id);
+
+  it('sans liste de modules : les sept étapes', () => {
+    expect(ids(undefined)).toHaveLength(7);
+    expect(ids([...MODULES_APP])).toHaveLength(7);
+  });
+
+  it('atelier retiré : plus d’étape « taux horaire »', () => {
+    expect(ids(modulesActifsDepuis(['atelier']))).not.toContain('tauxHoraire');
+  });
+
+  it('planning retiré : plus d’étape « motifs de rendez-vous »', () => {
+    expect(ids(modulesActifsDepuis(['planning']))).not.toContain('motifs');
+  });
+
+  it('tablettes retirées : plus d’étape « borne » ; le socle (coordonnées, compte, équipe) reste', () => {
+    const restantes = ids(modulesActifsDepuis(['tablettes']));
+    expect(restantes).not.toContain('borne');
+    expect(restantes).toEqual(
+      expect.arrayContaining(['coordonnees', 'compte', 'tva', 'collaborateur']),
+    );
+  });
+
+  it('un module retiré ne bloque pas « complet » : la liste se retire seule', () => {
+    const etapes = calculerEtapesDemarrage(
+      { etapes: { ...TOUT_FAIT.etapes, tauxHoraire: false } },
+      modulesActifsDepuis(['atelier']),
+    );
+    expect(demarrageComplet(etapes)).toBe(true);
+  });
+});
+

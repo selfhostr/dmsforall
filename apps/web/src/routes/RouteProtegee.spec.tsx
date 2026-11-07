@@ -170,3 +170,40 @@ describe('RouteProtegee — redirectionParRole', () => {
     expect(await screen.findByText('CONTENU_PROTEGE')).toBeInTheDocument();
   });
 });
+
+describe('RouteProtegee — modules activables', () => {
+  function rendreSur(chemin: string, modulesActifs: SessionCourante['modulesActifs']) {
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json({ ...SESSION_TEST, modulesActifs })),
+    );
+    render(
+      <QueryClientProvider client={creerQueryClientTest()}>
+        <MemoryRouter initialEntries={[chemin]}>
+          <Routes>
+            <Route path="/" element={<div>ACCUEIL</div>} />
+            <Route
+              path="/pneus"
+              element={
+                <RouteProtegee>
+                  <div>ECRAN_PNEUS</div>
+                </RouteProtegee>
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  }
+
+  it('module actif : l’écran s’affiche', async () => {
+    rendreSur('/pneus', ['pneus']);
+    expect(await screen.findByText('ECRAN_PNEUS')).toBeInTheDocument();
+  });
+
+  it('module retiré : redirection vers l’accueil, jamais l’écran', async () => {
+    rendreSur('/pneus', []);
+    expect(await screen.findByText('ACCUEIL')).toBeInTheDocument();
+    expect(screen.queryByText('ECRAN_PNEUS')).not.toBeInTheDocument();
+  });
+});
+

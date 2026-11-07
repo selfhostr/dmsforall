@@ -29,6 +29,10 @@
       "titre": "Ihr Betrieb",
       "intro": "Diese Angaben stehen auf Ihren Rechnungen und auf der QR-Rechnung."
     },
+    "modules": {
+      "titre": "Was Sie nutzen",
+      "intro": "Entfernen Sie, was Ihre Garage nicht nutzt. Sie können das später unter Einstellungen > Module ändern."
+    },
     "paiements": {
       "titre": "Zahlungen",
       "intro": "Mit Ihrem Bankkonto wird die QR-Rechnung gedruckt: Ihre Kunden zahlen per Scan."

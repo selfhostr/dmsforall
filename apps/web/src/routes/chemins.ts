@@ -152,6 +152,8 @@ export const chemins = {
     referentiels: (site?: string) => construireChemin('/parametrage/referentiels', { site }),
     atelier: (site?: string) => construireChemin('/parametrage/atelier', { site }),
     sites: (site?: string) => construireChemin('/parametrage/sites', { site }),
+    /** Réglages > Modules (`GET|PATCH /parametres-entreprise/modules`) : singleton par TENANT. */
+    modules: (site?: string) => construireChemin('/parametrage/modules', { site }),
     /** Singleton par TENANT (`GET|PATCH /parametrage/pieces`), même famille que `atelier`/
      *  `referentiels` ci-dessus — pas de `?site=`. À la différence de ces deux-là, la route est
      *  gardée par `rolesAutorises={ROLES_PARAMETRAGE_PIECES}` (`routeur.tsx`) : la lecture elle-même

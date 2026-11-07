@@ -23,6 +23,7 @@ import { EtapeAtelier } from './etapes/EtapeAtelier';
 import { EtapeEquipe, type CompteCree } from './etapes/EtapeEquipe';
 import { EtapeGarage } from './etapes/EtapeGarage';
 import { EtapeLogo } from './etapes/EtapeLogo';
+import { EtapeModules } from './etapes/EtapeModules';
 import { EtapePaiements } from './etapes/EtapePaiements';
 import { EtapeTermine } from './etapes/EtapeTermine';
 import type { MemoireEtapes } from './memoire-etapes';
@@ -34,7 +35,7 @@ interface Props {
 }
 
 /**
- * Assistant de premier démarrage : grand dialogue Radix en six étapes courtes. L'assistant reste
+ * Assistant de premier démarrage : grand dialogue Radix en sept étapes courtes. L'assistant reste
  * monté quand il est fermé : étape courante, saisies et comptes créés survivent à « Quitter pour
  * l'instant », et la reprise (lien de l'accueil) repart où la personne s'était arrêtée.
  */
@@ -126,6 +127,7 @@ export function AssistantDemarrage({ ouvert, onFermer }: Props) {
           </div>
 
           {etape === 'garage' ? <EtapeGarage {...propsEtape} /> : null}
+          {etape === 'modules' ? <EtapeModules {...propsEtape} /> : null}
           {etape === 'paiements' ? <EtapePaiements {...propsEtape} /> : null}
           {etape === 'atelier' ? <EtapeAtelier {...propsEtape} /> : null}
           {etape === 'logo' ? <EtapeLogo {...propsEtape} /> : null}

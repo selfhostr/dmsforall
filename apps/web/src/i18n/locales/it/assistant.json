@@ -29,6 +29,10 @@
       "titre": "La sua autorimessa",
       "intro": "Queste informazioni compaiono sulle fatture e sulla fattura QR."
     },
+    "modules": {
+      "titre": "Ciò che usate",
+      "intro": "Togliete ciò che la vostra autorimessa non usa. Potrete cambiarlo in Impostazioni > Moduli."
+    },
     "paiements": {
       "titre": "Pagamenti",
       "intro": "Il suo conto bancario permette di stampare la fattura QR: i clienti pagano con una scansione."

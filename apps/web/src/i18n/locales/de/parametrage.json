@@ -461,5 +461,68 @@
   "obligatoire": {
     "legende": "* Pflichtfeld",
     "sr": "Pflichtfeld"
+  },
+  "modules": {
+    "titre": "Module",
+    "carte": {
+      "titre": "Was Ihre Garage nutzt",
+      "description": "Entfernen Sie, was Sie nicht nutzen: Die Menüs verschwinden für alle. Nichts wird gelöscht, die Reaktivierung stellt alles wieder her."
+    },
+    "socle": "Immer vorhanden: Startseite, Kunden und Fahrzeuge, Fakturierung, Einstellungen.",
+    "etat": {
+      "actif": "Aktiv",
+      "retire": "Entfernt"
+    },
+    "necessite": "Benötigt: {modules}",
+    "bloque": "Nicht verfügbar: {modules} ist entfernt.",
+    "retireAussi": "Entfernt auch: {modules}",
+    "toast": {
+      "enregistre": "Module gespeichert"
+    },
+    "erreur": {
+      "titre": "Die Module konnten nicht geladen werden"
+    },
+    "items": {
+      "atelier": {
+        "nom": "Werkstatt",
+        "description": "Reparaufträge und Werkstattofferten."
+      },
+      "planning": {
+        "nom": "Planung und Termine",
+        "description": "Werkstattagenda und Terminvergabe."
+      },
+      "pointage": {
+        "nom": "Zeiterfassung",
+        "description": "Stunden der Mechaniker pro Auftrag."
+      },
+      "tablettes": {
+        "nom": "Werkstatt-Tablets",
+        "description": "Wandterminals zur Zeiterfassung in der Werkstatt."
+      },
+      "pieces": {
+        "nom": "Teile und Lager",
+        "description": "Artikel, Lagerbestand und Lieferantenbestellungen."
+      },
+      "ventes": {
+        "nom": "Verkauf NW/GW",
+        "description": "Verkaufsdossiers, Fahrzeuglager, Inzahlungnahmen."
+      },
+      "pneus": {
+        "nom": "Reifenhotel",
+        "description": "Eingelagerte Reifensätze der Kunden."
+      },
+      "courtoisie": {
+        "nom": "Ersatzfahrzeuge",
+        "description": "Ausgabe und Rückgabe von Ersatzfahrzeugen."
+      },
+      "relances": {
+        "nom": "Zahlungserinnerungen",
+        "description": "Mahnungen für fällige Rechnungen."
+      },
+      "export_fiduciaire": {
+        "nom": "Treuhand-Export",
+        "description": "Übergabe der Buchungen an die Treuhand."
+      }
+    }
   }
 }

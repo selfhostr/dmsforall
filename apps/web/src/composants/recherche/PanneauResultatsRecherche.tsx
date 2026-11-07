@@ -15,7 +15,13 @@ import { EtatVide } from '@/composants/commun/EtatVide';
 import { useSession } from '@/hooks/useSession';
 
 import { ChoixPlaqueInterchangeable } from './ChoixPlaqueInterchangeable';
-import { naturesRechercheesPourRole, recherchePerimetreRestreint } from './droits-recherche';
+import { moduleActif } from '@/composants/layout/navigation-modele';
+
+import {
+  MODULE_PAR_NATURE,
+  naturesRechercheesPourRole,
+  recherchePerimetreRestreint,
+} from './droits-recherche';
 import { ResultatArticle } from './ResultatArticle';
 import { ResultatClient } from './ResultatClient';
 import { ResultatDepotPneu } from './ResultatDepotPneu';
@@ -66,6 +72,7 @@ export function PanneauResultatsRecherche({
   const { t, i18n } = useTranslation('recherche');
   const { data: session } = useSession();
   const actions = session?.actions;
+  const modulesActifs = session?.modulesActifs;
 
   function gererClavier(evenement: KeyboardEvent<HTMLDivElement>) {
     if (evenement.key === 'Escape' && onEchap) {
@@ -74,18 +81,23 @@ export function PanneauResultatsRecherche({
     }
   }
 
-  const vehicules = reponse?.resultats.filter((resultat) => resultat.type === 'vehicule') ?? [];
-  const clients = reponse?.resultats.filter((resultat) => resultat.type === 'client') ?? [];
+  // Module retiré par le garage : ses résultats (OR, articles, fournisseurs, pneus) ne s'affichent
+  // plus — l'historique reste en base, mais la recherche ne mène plus à un écran qu'on a retiré.
+  const resultatsVisibles = (reponse?.resultats ?? []).filter((resultat) =>
+    moduleActif(MODULE_PAR_NATURE[resultat.type], modulesActifs),
+  );
+  const vehicules = resultatsVisibles.filter((resultat) => resultat.type === 'vehicule');
+  const clients = resultatsVisibles.filter((resultat) => resultat.type === 'client');
   const ordres =
-    reponse?.resultats.filter((resultat) => resultat.type === 'ordre_reparation') ?? [];
+    resultatsVisibles.filter((resultat) => resultat.type === 'ordre_reparation');
   const documents =
-    reponse?.resultats.filter((resultat) => resultat.type === 'document_vente') ?? [];
-  const articles = reponse?.resultats.filter((resultat) => resultat.type === 'article') ?? [];
+    resultatsVisibles.filter((resultat) => resultat.type === 'document_vente');
+  const articles = resultatsVisibles.filter((resultat) => resultat.type === 'article');
   const fournisseurs =
-    reponse?.resultats.filter((resultat) => resultat.type === 'fournisseur') ?? [];
-  const depotsPneus = reponse?.resultats.filter((resultat) => resultat.type === 'depot_pneu') ?? [];
+    resultatsVisibles.filter((resultat) => resultat.type === 'fournisseur');
+  const depotsPneus = resultatsVisibles.filter((resultat) => resultat.type === 'depot_pneu');
   const plaqueInterchangeable = reponse?.plaqueInterchangeable === true;
-  const aucunResultat = reponse !== null && reponse.resultats.length === 0;
+  const aucunResultat = reponse !== null && resultatsVisibles.length === 0;
 
   // RF-116 / « une absence de donnée n'est pas une valeur » (CONTRIBUTING.md) : un rôle sans droit sur
   // une nature (ex. `admin` sans `pieces.article.lire`, RF-115) ne doit jamais lire « Aucun
@@ -123,7 +135,7 @@ export function PanneauResultatsRecherche({
   } else if (aucunResultat) {
     annonceLive = titreVide;
   } else if (reponse !== null) {
-    annonceLive = t('annonceResultats', { count: reponse.resultats.length });
+    annonceLive = t('annonceResultats', { count: resultatsVisibles.length });
   } else {
     // Rien saisi/recherché encore — aucune annonce, l'aide (`recherche:aide`) affichée à côté
     // reste l'unique message tant qu'aucune requête n'est partie.
