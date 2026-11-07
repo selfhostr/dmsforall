@@ -103,11 +103,10 @@
   },
   "densite": {
     "titre": "Taille de l'interface",
-    "court": { "auto": "Auto", "compacte": "Compacte", "aeree": "Aérée" },
     "auto": "Automatique (selon l'appareil)",
     "compacte": "Compacte",
     "aeree": "Aérée",
-    "aide": "Aérée : texte plus grand et lignes plus hautes, pour tablette et doigt."
+    "revenirAuto": "Revenir à la taille automatique"
   },
   "glossaire": {
     "OR": "Ordre de réparation : la fiche de travaux d'un véhicule, de la réception à la restitution.",

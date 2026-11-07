@@ -41,6 +41,7 @@
     "piecesFacturesFournisseur": "Fatture fornitore",
     "piecesConsignes": "Cauzioni",
     "facturationFactures": "Fatture",
+    "facturationChiffres": "Cifre",
     "facturationEncaissements": "Incassi",
     "facturationRelances": "Solleciti",
     "facturationExportFiduciaire": "Esportazione fiduciaria",
@@ -96,7 +97,13 @@
     "passerSombre": "Passa al tema scuro"
   },
   "pied": {
-    "version": "Versione {info}",
-    "versionInconnue": "sconosciuta"
+    "version": "Versione {info}"
+  },
+  "configurer": {
+    "entree": "Configurare l’autorimessa",
+    "pastille": "Autorimessa da configurare"
+  },
+  "rangee": {
+    "aria": "Impostazioni rapide"
   }
 }

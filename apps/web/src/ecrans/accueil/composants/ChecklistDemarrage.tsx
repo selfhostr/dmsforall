@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AssistantDemarrage } from '@/ecrans/assistant-demarrage/AssistantDemarrage';
+import { consommerDemandeOuverture, useEtatAssistant } from '@/hooks/assistant/etat-assistant';
 import { doitOuvrirAutomatiquement } from '@/hooks/assistant/ouverture-assistant';
 import { useFermetureAssistant } from '@/hooks/assistant/useFermetureAssistant';
 import type { EtapeDemarrage, IdEtapeDemarrage } from '@/hooks/accueil/etapes-demarrage';
@@ -71,6 +72,14 @@ function AssistantAccueil({
   const { ferme, memoriserFermeture } = useFermetureAssistant(tenantId, utilisateurId);
   const [ouvert, setOuvert] = useState(false);
   const ouvertureTentee = useRef(false);
+  const { ouvertureDemandee } = useEtatAssistant();
+
+  // Demande venue de la barre latérale (« Configurer le garage ») : rouvre à l'étape mémorisée.
+  useEffect(() => {
+    if (!ouvertureDemandee) return;
+    consommerDemandeOuverture();
+    setOuvert(true);
+  }, [ouvertureDemandee]);
 
   useEffect(() => {
     if (ouvertureTentee.current) return;

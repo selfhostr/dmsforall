@@ -41,6 +41,7 @@
     "piecesFacturesFournisseur": "Lieferantenrechnungen",
     "piecesConsignes": "Pfand",
     "facturationFactures": "Rechnungen",
+    "facturationChiffres": "Kennzahlen",
     "facturationEncaissements": "Zahlungseingänge",
     "facturationRelances": "Mahnungen",
     "facturationExportFiduciaire": "Treuhand-Export",
@@ -96,7 +97,13 @@
     "passerSombre": "Zu dunklem Design wechseln"
   },
   "pied": {
-    "version": "Version {info}",
-    "versionInconnue": "unbekannt"
+    "version": "Version {info}"
+  },
+  "configurer": {
+    "entree": "Garage einrichten",
+    "pastille": "Garage noch einzurichten"
+  },
+  "rangee": {
+    "aria": "Schnelleinstellungen"
   }
 }

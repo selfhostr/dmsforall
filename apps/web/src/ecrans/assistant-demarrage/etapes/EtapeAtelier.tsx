@@ -191,7 +191,6 @@ function FormulaireAtelier({
             setSaisie((s) => ({ ...s, taux: e.target.value }));
             setMontantInvalide(false);
           }}
-          aide={t('assistant:atelier.tauxHoraireAide')}
           erreur={montantInvalide ? t('assistant:atelier.erreurMontant') : undefined}
         />
       )}
@@ -224,9 +223,6 @@ function FormulaireAtelier({
 
       <fieldset className="flex flex-col gap-1">
         <legend className="texte-libelle font-medium">{t('assistant:atelier.motifs')}</legend>
-        <p className="texte-libelle mb-1 text-muted-foreground">
-          {t('assistant:atelier.motifsAide')}
-        </p>
         <ul className="grid gap-x-4 sm:grid-cols-2">
           {MOTIFS_PROPOSES.map((m) => {
             const present = codesExistants.has(m.code);

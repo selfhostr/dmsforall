@@ -41,6 +41,7 @@
     "piecesFacturesFournisseur": "Factures fournisseurs",
     "piecesConsignes": "Consignes",
     "facturationFactures": "Factures",
+    "facturationChiffres": "Chiffres",
     "facturationEncaissements": "Encaissements",
     "facturationRelances": "Relances",
     "facturationExportFiduciaire": "Export fiduciaire",
@@ -96,7 +97,13 @@
     "passerSombre": "Passer en thème sombre"
   },
   "pied": {
-    "version": "Version {info}",
-    "versionInconnue": "inconnue"
+    "version": "Version {info}"
+  },
+  "configurer": {
+    "entree": "Configurer le garage",
+    "pastille": "Garage à configurer"
+  },
+  "rangee": {
+    "aria": "Réglages rapides"
   }
 }

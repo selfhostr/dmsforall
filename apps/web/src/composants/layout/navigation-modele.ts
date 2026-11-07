@@ -21,6 +21,7 @@ import {
   ACCES_LECTURE_OR,
   ACCES_LECTURE_RENDEZ_VOUS,
   ACCES_MENU_FACTURATION,
+  ACCES_CHIFFRES,
   ACCES_GESTION_UTILISATEURS,
   ACCES_MENU_FINANCIER,
   ACCES_MENU_PARAMETRAGE_ATELIER,
@@ -535,6 +536,14 @@ const ONGLETS_FACTURATION: readonly OngletDomaine[] = [
     chemin: (site) => chemins.facturation.liste(site),
     motifs: ['/factures'],
     acces: ACCES_MENU_FACTURATION,
+  },
+  {
+    id: 'chiffres',
+    cleLibelle: 'navigation:onglets.facturationChiffres',
+    chemin: (site) => chemins.facturation.chiffres(site),
+    // Avant `/factures` de l'onglet Factures (voir ci-dessus) : le motif le plus long gagne.
+    motifs: ['/factures/chiffres'],
+    acces: ACCES_CHIFFRES,
   },
   /**
    * Déclenchement des relances sous FACTURATION, pas sous Réglages (§4.5 : « déclenchement ->
