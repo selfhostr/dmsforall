@@ -101,6 +101,12 @@ export const ordreReparation = pgTable(
     rendezVousId: uuid('rendez_vous_id'),
 
     numeroCommandeInterne: text('numero_commande_interne'),
+    /**
+     * migrations/0083 : devis dont l'OR a repris les lignes (FK composite vers `document_vente` et
+     * index unique partiel posés en SQL — pas de référence ici, `schema/facturation` importe déjà
+     * `schema/atelier`).
+     */
+    devisOrigineId: uuid('devis_origine_id'),
     receptionnaireId: uuid('receptionnaire_id'),
 
     retentionInvoqueeLe: timestamp('retention_invoquee_le', { withTimezone: true, mode: 'date' }),

@@ -9,6 +9,7 @@ import {
   ATTENTES_ORDRE_REPARATION,
   ENTITES_AUDITEES,
   LOCALISATIONS_VEHICULE,
+  MOTIFS_KILOMETRAGE_REGRESSIF,
   MOTIFS_LIEN_OR,
   STATUTS_INITIAUX_ORDRE_REPARATION,
   STATUTS_ORDRE_REPARATION,
@@ -493,6 +494,14 @@ export const schemaActionReceptionner = z
     /** RM-51 / §6.12 : la signature peut être différée, mais alors le motif est exigé. */
     signatureDifferee: z.boolean().default(false),
     motifDifferee: schemaMotif.optional(),
+    /**
+     * Réponse à l'action proposée `FOURNIR_MOTIF` (`409 VEHICULE_KILOMETRAGE_REGRESSIF`) : le
+     * kilométrage saisi est inférieur au dernier relevé connu. Sans ce champ la réception est
+     * refusée ; avec, le relevé est enregistré (`vehicule_kilometrage.motif_regression`) et le
+     * droit `vehicule.kilometrage.corriger_regression` est exigé, comme pour
+     * `POST /vehicules/{id}/kilometrages`. Ignoré si le relevé n'est pas régressif.
+     */
+    motifKilometrageRegressif: z.enum(MOTIFS_KILOMETRAGE_REGRESSIF).optional(),
   })
   .extend(schemaConfirmations.shape)
   .strict()
@@ -552,6 +561,16 @@ export const schemaActionRestituer = z
     /** RM-78 : pièces remplacées effectivement remises au client. */
     piecesRestituees: z.array(schemaIdentifiant).max(200).optional(),
     paiementRecu: z.boolean().optional(),
+    /**
+     * Réponse à l'action proposée `SIGNER_RESERVE_SECURITE` (`409 OR_RESERVE_SECURITE_REQUISE`) :
+     * déclare que le client a signé la réserve sur les lignes de sécurité refusées. Le serveur
+     * trace la déclaration au journal de l'OR (nom, date) ; l'image ou le document signé n'est PAS
+     * stocké par cette API. Ignoré s'il n'y a aucune réserve à signer.
+     */
+    reserveSecuriteSignee: z
+      .object({ signataireNom: schemaTexteCourt, signeLe: schemaHorodatage.optional() })
+      .strict()
+      .optional(),
   })
   .extend(schemaConfirmations.shape)
   .strict();

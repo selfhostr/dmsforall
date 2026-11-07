@@ -232,7 +232,9 @@ export class LigneOrController {
   @ApiOperation({
     summary: 'Action groupée ATOMIQUE : `proposee|a_valider -> validee` (§10 L967).',
     description:
-      'Le plafond de l’OR (RM-54) est vérifié UNE FOIS sur la somme du lot avant toute écriture — tout ou rien.',
+      'Le plafond de l’OR (RM-54) est vérifié UNE FOIS sur la somme du lot avant toute écriture — tout ou rien. ' +
+      '`accord` (facultatif) trace l’accord du client recueilli hors application (nom, canal, heure, commentaire) : ' +
+      'une entrée de journal par ligne validée (`GET .../journal`, entité `ligne_or`, champ `motif`) — aucune colonne dédiée.',
   })
   @ApiParam({ name: 'orId', format: 'uuid' })
   @ApiOkResponse({ type: EnveloppeOrdreReparationDto })
@@ -247,7 +249,10 @@ export class LigneOrController {
   async validerLignes(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
     @CorpsZod(schemaValidationLignes, {
-      exemple: { ligneIds: ['5a1c9e2e-2f0a-4b3a-9c1a-8e6f2d4b7a10'] },
+      exemple: {
+        ligneIds: ['5a1c9e2e-2f0a-4b3a-9c1a-8e6f2d4b7a10'],
+        accord: { nom: 'Mme Perret', canal: 'telephone', horodate: '2026-11-07T09:15:00.000Z' },
+      },
     })
     entree: EntreeValidationLignes,
     @Res({ passthrough: true }) res: Response,

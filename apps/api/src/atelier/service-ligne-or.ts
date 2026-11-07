@@ -21,6 +21,7 @@ import {
 
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
 import {
+  auditAtelier,
   ligneOr,
   reservationPiece,
   type LigneLigneOr,
@@ -47,6 +48,7 @@ import {
   type CalculLigne,
   type CreationTravailReporte,
 } from './atelier.jetons';
+import { phraseAccordClient } from './accord-client';
 import { roleVoitLesMontants, mapperLigneOr } from './mappeurs';
 import {
   chargerLigneOrPourEcriture,
@@ -686,6 +688,21 @@ export class ServiceLigneOr {
           // ce qui lève le blocage, exactement comme `annulerLignesAccord` (`service-transitions.ts`
           // ~L197) le fait pour un refus/une annulation de la demande.
           await this.transitionnerLigne(tx, ctx, ligne, 'validee', { blocage: 'aucun' });
+          // Accord recueilli hors application : tracé dans le journal d'audit de CHAQUE ligne
+          // validée (aucune colonne dédiée) — même mécanisme `champ = 'motif'` que `rouvrir`
+          // (`service-transitions.ts`), que `GET .../journal` rend dans `motif`.
+          if (entree.accord) {
+            await tx.insert(auditAtelier).values({
+              tenantId: ctx.tenantId,
+              entite: 'ligne_or',
+              entiteId: ligne.id,
+              action: 'transition',
+              champ: 'motif',
+              valeurApres: phraseAccordClient(entree.accord),
+              utilisateurId: principal.utilisateurId,
+              requeteId: ctx.requeteId,
+            });
+          }
         }
       },
     );
