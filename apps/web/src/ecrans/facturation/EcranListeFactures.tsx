@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
+import { Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
 
@@ -7,9 +8,9 @@ import type { DocumentVenteResume, FiltresDocumentsVente } from '@dfa/shared';
 import { messageErreur } from '@/api/erreurs';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
+import { Input } from '@/components/ui/input';
 import { Segments } from '@/composants/commun/Segments';
 import { EtatVide } from '@/composants/commun/EtatVide';
-import { BarreFiltres } from '@/composants/comptoir/BarreFiltres';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
@@ -28,6 +29,7 @@ import { chemins } from '@/routes/chemins';
 import { peutVoirChiffres } from './chiffres/droits';
 import { peutVoirMontantsFacturation } from './droits';
 import { IndicateurRetard } from './IndicateurRetard';
+import { MenuTriFactures, type TriFactures } from './MenuTriFactures';
 
 const DELAI_DEBOUNCE_MS = 300;
 
@@ -86,16 +88,28 @@ export function EcranListeFactures() {
   const voitMontantsFacturation = peutVoirMontantsFacturation(actions);
 
   const [qSaisie, setQSaisie] = useState('');
-  const [q, reinitialiserQ] = useValeurDebouncee(qSaisie, DELAI_DEBOUNCE_MS);
+  const [q] = useValeurDebouncee(qSaisie, DELAI_DEBOUNCE_MS);
   // Onglet par défaut : « Non réglées » (§7.1) — reste un badge neutre, l'onglet organise le
   // travail du patron sans l'alarmer.
   const [onglet, setOnglet] = useState<OngletListeFactures>('nonReglees');
+  // `null` = tri par défaut de l'onglet (les plus anciennes d'abord pour « Non réglées »).
+  const [triChoisi, setTriChoisi] = useState<TriFactures | null>(null);
+  const triParDefaut: TriFactures =
+    onglet === 'nonReglees' ? 'dateDocument:asc' : 'dateDocument:desc';
+  const tri = triChoisi ?? triParDefaut;
+  const optionsTri: readonly TriFactures[] = [
+    'dateDocument:desc',
+    'dateDocument:asc',
+    'numeroSequence:desc',
+    'numeroSequence:asc',
+    ...(voitMontantsFacturation ? (['soldeCentimes:desc'] as const) : []),
+  ];
 
   const filtres: FiltresDocumentsVente = useMemo(() => {
     const base: FiltresDocumentsVente = {
       typeDocument: onglet === 'devis' ? ['devis'] : ['facture'],
       q: q.trim() === '' ? undefined : q.trim(),
-      tri: onglet === 'nonReglees' ? 'dateDocument:asc' : 'dateDocument:desc',
+      tri,
     };
     if (onglet === 'devis') {
       // Les devis n'ont ni règlement ni échéance : aucun autre filtre que le type, du plus récent
@@ -119,7 +133,7 @@ export function EcranListeFactures() {
       return { ...base, enRetard: true, relanceNiveau: 0 };
     }
     return base;
-  }, [q, onglet]);
+  }, [q, onglet, tri]);
 
   const {
     documents,
@@ -131,14 +145,6 @@ export function EcranListeFactures() {
     isFetchingNextPage,
     fetchNextPage,
   } = useListeDocumentsVente(filtres);
-
-  function effacerFiltres() {
-    // Levier de reset (choix produit 26.08.2026) : `effacerFiltres` est un geste de reprise en
-    // main, pas une frappe — `q` doit refléter la case vide immédiatement, pas après le même
-    // délai qu'une recherche (voir le commentaire de `useValeurDebouncee`, `hooks/commun/`).
-    setQSaisie('');
-    reinitialiserQ();
-  }
 
   const colonnes: ColonneComptoir<DocumentVenteResume>[] = [
     {
@@ -364,12 +370,23 @@ export function EcranListeFactures() {
         }))}
       />
 
-      <BarreFiltres
-        q={qSaisie}
-        onChangeQ={setQSaisie}
-        filtresActifs={q.trim() !== ''}
-        onEffacerFiltres={effacerFiltres}
-      />
+      <div className="flex items-center gap-3">
+        <div className="relative min-w-0 flex-1">
+          <Search
+            aria-hidden
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+          />
+          <Input
+            type="search"
+            className="pl-9"
+            placeholder={t('commun:actions.rechercher')}
+            aria-label={t('commun:actions.rechercher')}
+            value={qSaisie}
+            onChange={(evenement) => setQSaisie(evenement.target.value)}
+          />
+        </div>
+        <MenuTriFactures valeur={tri} options={optionsTri} onChange={setTriChoisi} />
+      </div>
 
       {isPending ? (
         <EtatChargement lignes={6} />

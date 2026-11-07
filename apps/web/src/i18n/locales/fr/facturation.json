@@ -230,7 +230,9 @@
       "payablePar": "Payable par",
       "iban": "IBAN",
       "reference": "Référence",
-      "sansReference": "Sans référence"
+      "sansReference": "Sans référence",
+      "copier": "Copier",
+      "copie": "Copié"
     },
     "actions": {
       "emettre": "Émettre",
@@ -240,10 +242,11 @@
         "imprimer": "Imprimer / télécharger le PDF",
         "envoyer": "Envoyer par e-mail",
         "dupliquer": "Dupliquer (réimpression)",
-        "corriger": "Corriger cette facture",
+        "corriger": "Corriger l'adresse",
         "creerAvoir": "Créer un avoir",
         "journal": "Voir le journal"
       },
+      "corrigerFacture": "Corriger la facture",
       "telechargerPdf": "Télécharger le PDF",
       "envoyerDevis": "Envoyer le devis",
       "accordClient": "Accord du client",
@@ -270,6 +273,12 @@
     },
     "annuleeParAvoir": {
       "message": "Cette facture a été annulée par un avoir. Voir le document lié ci-contre."
+    },
+    "remplacement": {
+      "titre": "Corriger la facture {numero}",
+      "explication": "La facture {numero} sera annulée par un avoir. Une nouvelle facture en brouillon s'ouvre avec les mêmes lignes, à modifier puis émettre.",
+      "confirmer": "Annuler et créer le brouillon",
+      "enCours": "Création…"
     },
     "correction": {
       "titre": "Corriger la facture {numero}",
@@ -346,6 +355,17 @@
   },
   "liste": {
     "titre": "Factures",
+    "tri": {
+      "label": "Trier",
+      "options": {
+        "dateDesc": "Date, récentes d'abord",
+        "dateAsc": "Date, anciennes d'abord",
+        "numeroDesc": "N°, décroissant",
+        "numeroAsc": "N°, croissant",
+        "soldeDesc": "Solde, le plus élevé d'abord",
+        "relanceAsc": "Prochaine relance"
+      }
+    },
     "onglets": {
       "groupeLabel": "Filtrer les factures",
       "toutes": "Toutes",

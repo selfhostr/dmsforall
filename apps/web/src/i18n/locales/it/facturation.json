@@ -230,7 +230,9 @@
       "payablePar": "Pagabile da",
       "iban": "IBAN",
       "reference": "Riferimento",
-      "sansReference": "Senza riferimento"
+      "sansReference": "Senza riferimento",
+      "copier": "Copiare",
+      "copie": "Copiato"
     },
     "actions": {
       "emettre": "Emettere",
@@ -240,10 +242,11 @@
         "imprimer": "Stampare / scaricare il PDF",
         "envoyer": "Inviare per e-mail",
         "dupliquer": "Duplicare (ristampa)",
-        "corriger": "Correggere questa fattura",
+        "corriger": "Correggere l'indirizzo",
         "creerAvoir": "Creare una nota di credito",
         "journal": "Vedere il registro"
       },
+      "corrigerFacture": "Correggere la fattura",
       "telechargerPdf": "Scarica il PDF",
       "envoyerDevis": "Inviare il preventivo",
       "accordClient": "Accordo del cliente",
@@ -270,6 +273,12 @@
     },
     "annuleeParAvoir": {
       "message": "Questa fattura è stata annullata da una nota di credito. Vedere il documento collegato qui accanto."
+    },
+    "remplacement": {
+      "titre": "Correggere la fattura {numero}",
+      "explication": "La fattura {numero} sarà annullata da una nota di credito. Si apre una nuova fattura in bozza con le stesse righe, da modificare ed emettere.",
+      "confirmer": "Annullare e creare la bozza",
+      "enCours": "Creazione…"
     },
     "correction": {
       "titre": "Correggere la fattura {numero}",
@@ -346,6 +355,17 @@
   },
   "liste": {
     "titre": "Fatture",
+    "tri": {
+      "label": "Ordinare",
+      "options": {
+        "dateDesc": "Data, più recenti prima",
+        "dateAsc": "Data, più vecchie prima",
+        "numeroDesc": "N°, decrescente",
+        "numeroAsc": "N°, crescente",
+        "soldeDesc": "Saldo, più alto prima",
+        "relanceAsc": "Prossimo sollecito"
+      }
+    },
     "onglets": {
       "groupeLabel": "Filtra le fatture",
       "toutes": "Tutte",

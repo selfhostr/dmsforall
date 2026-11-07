@@ -230,7 +230,9 @@
       "payablePar": "Zahlbar durch",
       "iban": "IBAN",
       "reference": "Referenz",
-      "sansReference": "Ohne Referenz"
+      "sansReference": "Ohne Referenz",
+      "copier": "Kopieren",
+      "copie": "Kopiert"
     },
     "actions": {
       "emettre": "Ausstellen",
@@ -240,10 +242,11 @@
         "imprimer": "PDF drucken / herunterladen",
         "envoyer": "Per E-Mail senden",
         "dupliquer": "Duplizieren (Neudruck)",
-        "corriger": "Diese Rechnung korrigieren",
+        "corriger": "Adresse korrigieren",
         "creerAvoir": "Gutschrift erstellen",
         "journal": "Protokoll anzeigen"
       },
+      "corrigerFacture": "Rechnung korrigieren",
       "telechargerPdf": "PDF herunterladen",
       "envoyerDevis": "Offerte senden",
       "accordClient": "Zustimmung des Kunden",
@@ -270,6 +273,12 @@
     },
     "annuleeParAvoir": {
       "message": "Diese Rechnung wurde durch eine Gutschrift storniert. Siehe verknüpftes Dokument nebenan."
+    },
+    "remplacement": {
+      "titre": "Rechnung {numero} korrigieren",
+      "explication": "Die Rechnung {numero} wird durch eine Gutschrift storniert. Eine neue Rechnung wird als Entwurf mit denselben Positionen geöffnet, zum Ändern und Ausstellen.",
+      "confirmer": "Stornieren und Entwurf erstellen",
+      "enCours": "Wird erstellt…"
     },
     "correction": {
       "titre": "Rechnung {numero} korrigieren",
@@ -346,6 +355,17 @@
   },
   "liste": {
     "titre": "Rechnungen",
+    "tri": {
+      "label": "Sortieren",
+      "options": {
+        "dateDesc": "Datum, neueste zuerst",
+        "dateAsc": "Datum, älteste zuerst",
+        "numeroDesc": "Nr., absteigend",
+        "numeroAsc": "Nr., aufsteigend",
+        "soldeDesc": "Saldo, höchster zuerst",
+        "relanceAsc": "Nächste Mahnung"
+      }
+    },
     "onglets": {
       "groupeLabel": "Rechnungen filtern",
       "toutes": "Alle",
