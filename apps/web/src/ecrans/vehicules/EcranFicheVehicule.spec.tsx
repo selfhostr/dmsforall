@@ -336,7 +336,11 @@ describe('EcranFicheVehicule', () => {
     rendre();
 
     expect(await screen.findByText('Impossible de charger le véhicule')).toBeInTheDocument();
-    expect(screen.getByText('Cet élément est introuvable.')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Cet élément n'existe plus ou a été supprimé. Revenez à la liste et recherchez-le de nouveau.",
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Réessayer' })).toBeInTheDocument();
   });
 
@@ -685,9 +689,7 @@ describe('EcranFicheVehicule', () => {
       rendre();
 
       expect(
-        await screen.findByText(
-          "Vous n'avez pas le droit de consulter les dossiers de vente de ce véhicule.",
-        ),
+        await screen.findByText("Vous n'avez pas le droit de consulter les ventes de ce véhicule."),
       ).toBeInTheDocument();
     },
   );

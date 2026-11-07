@@ -38,7 +38,9 @@ describe('construireErreurApi / messageErreur', () => {
     expect(erreur.probleme.code).toBe('AUTH_IDENTIFIANTS_INVALIDES');
 
     const message = messageErreur(erreur, i18n.t);
-    expect(message).toBe('Adresse e-mail ou mot de passe incorrect.');
+    expect(message).toBe(
+      'E-mail ou mot de passe incorrect. Vérifiez la saisie, ou cliquez sur « Mot de passe oublié ».',
+    );
     expect(message).not.toContain('Ne doit jamais apparaître');
   });
 
@@ -50,7 +52,9 @@ describe('construireErreurApi / messageErreur', () => {
     });
     const erreur = construireErreurApi(reponse, await reponse.clone().text());
     expect(erreur.probleme.code).toBe('ERREUR_INTERNE');
-    expect(messageErreur(erreur, i18n.t)).toBe("Une erreur interne s'est produite. Réessayez.");
+    expect(messageErreur(erreur, i18n.t)).toBe(
+      "Un problème inattendu est survenu. Réessayez dans un instant ; s'il revient, prévenez le support en indiquant l'heure.",
+    );
   });
 
   it('synthétise ERREUR_INTERNE si le Content-Type annonce problem+json mais le corps est illisible', async () => {
@@ -379,7 +383,9 @@ describe('messageErreurChamp — ne jamais afficher un message zod anglais brut 
     );
     expect(message).not.toContain('Too big');
     expect(message).not.toContain('expected string');
-    expect(message).toBe('Certaines informations sont incorrectes.');
+    expect(message).toBe(
+      'Certaines informations sont incorrectes ou incomplètes. Corrigez les champs signalés, puis réessayez.',
+    );
   });
 
   it('reconnaît un e-mail invalide (code zod `invalid_format` sur un champ `email`) via la clé existante `validation:email.invalide`', async () => {

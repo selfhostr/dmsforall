@@ -9,7 +9,7 @@
     "attentePieces": "Attente pièces",
     "attenteExterne": "Attente externe",
     "controle": "Contrôle",
-    "termine": "Terminé",
+    "termine": "Travaux terminés",
     "facture": "Facturé",
     "restitue": "Restitué",
     "cloture": "Clôturé",
@@ -26,8 +26,8 @@
     "termine": "Travaux terminés, prêt au retrait",
     "facture": "Facturé, en attente de paiement",
     "restitue": "Véhicule restitué au client",
-    "cloture": "Dossier fermé",
-    "annule": "Dossier annulé"
+    "cloture": "OR clôturé",
+    "annule": "OR annulé"
   },
   "bandeau": {
     "numero": "OR",
@@ -38,14 +38,14 @@
     "localisation": "Localisation",
     "restitutionPromise": "Restitution promise",
     "plafond": "Plafond",
-    "totalDuJour": "Aujourd'hui",
+    "totalDuJour": "Total du jour",
     "techniciensEnCours": "Techniciens en cours",
     "numeroPo": "N° de bon de commande du client",
     "restitutionReportee": "Reportée",
     "orPrecedent": "OR précédent : {numero}"
   },
   "localisations": {
-    "parc": "Parc",
+    "parc": "Parking",
     "atelier": "Atelier",
     "sousTraitant": "Chez {fournisseur}",
     "essaiRoutier": "Essai routier",
@@ -67,21 +67,21 @@
       "annule": "Annulé"
     },
     "colonnes": {
-      "origine": "Origine",
+      "origine": "Provenance",
       "designation": "Désignation",
       "type": "Type",
       "quantite": "Qté",
-      "tempsBareme": "Temps barémé",
+      "tempsBareme": "Temps forfaitaire",
       "tempsPointe": "Temps pointé",
       "prixUnitaire": "Prix unitaire HT",
       "rabais": "Rabais",
-      "payeur": "Payeur",
+      "payeur": "Qui paie",
       "technicien": "Technicien",
       "totalTtc": "Total TTC",
       "statut": "Statut"
     },
     "types": {
-      "mainOeuvreBaremee": "Main-d'œuvre (temps barémé)",
+      "mainOeuvreBaremee": "Main-d'œuvre (temps forfaitaire)",
       "mainOeuvreTempsReel": "Main-d'œuvre (temps réellement pointé)",
       "forfait": "Forfait",
       "piece": "Pièce (prélevée du stock)",
@@ -134,7 +134,7 @@
       "placeholder": "Saisissez une désignation (Ctrl+Entrée)",
       "aide": "Saisie rapide : Entrée crée, Maj+Entrée reste sur la ligne, Échap abandonne. Alt+T/R/F/P/S pour type",
       "raccourcis": {
-        "travail": "Alt+T = M.O. barémée",
+        "travail": "Alt+T = M.O. forfaitaire",
         "tempsReel": "Alt+R = Temps réel",
         "forfait": "Alt+F = Forfait",
         "piece": "Alt+P = Pièce",
@@ -147,7 +147,7 @@
       "annuler": "Annuler",
       "dupliquer": "Dupliquer",
       "affecterTechnicien": "Affecter technicien",
-      "changerPayeur": "Changer payeur"
+      "changerPayeur": "Changer qui paie"
     },
     "annulation": {
       "titre": "Annuler la ligne",
@@ -212,7 +212,7 @@
   },
   "demandes": {
     "titre": "Demandes du client",
-    "verbatim": "Verbatim",
+    "verbatim": "Demandes du client",
     "ajouter": "Ajouter",
     "aide": "Les demandes ne sont jamais reformulées – elles gardent les termes exacts du client",
     "jamaisReformule": "Conservé tel quel"
@@ -247,7 +247,7 @@
       },
       "interlocuteur": "Personne qui a répondu",
       "interlocuteurRequis": "Le nom de l'interlocuteur est obligatoire",
-      "retranscription": "Retranscription libre",
+      "retranscription": "Remarque libre",
       "enregistrer": "Enregistrer la réponse"
     },
     "enAttenteDepuis": "En attente depuis {duree}",
@@ -289,7 +289,7 @@
     "passerEnControle": "Passer en contrôle",
     "refuserControle": "Refuser le contrôle",
     "validerControle": "Valider le contrôle",
-    "terminer": "Terminer",
+    "terminer": "Travaux terminés",
     "facturer": "Facturer",
     "restituer": "Restituer le véhicule",
     "cloturer": "Clôturer",
@@ -415,7 +415,7 @@
     "motifRequis": "Le motif est obligatoire",
     "kilometrageEntree": "Kilométrage à l'entrée",
     "kilometrageSortie": "Kilométrage à la sortie",
-    "signatureDifferee": "Signer plus tard",
+    "signatureDifferee": "Le client signera plus tard",
     "motifSignatureDifferee": "Motif du report de signature",
     "paiementRecu": "Paiement reçu à la restitution",
     "aucuneActionDisponible": "Aucune action possible pour le moment.",
@@ -428,7 +428,7 @@
     "aideDistinction": "« Total validé » suit le plafond de l'OR (lignes déjà validées, tous payeurs confondus) — ce n'est pas un montant à facturer. Pour annoncer un montant, utilisez la ligne du payeur concerné ci-dessus."
   },
   "nouveau": {
-    "titre": "Nouvel ordre de réparation",
+    "titre": "Créer un OR",
     "siteManquant": {
       "titre": "Site non sélectionné",
       "description": "Choisissez un site avant d'ouvrir un ordre de réparation : la numérotation et le paramétrage de l'ordre de réparation en dépendent.",
@@ -466,7 +466,7 @@
       "interne": "Interne"
     },
     "champs": {
-      "statutInitial": "Statut à l'ouverture",
+      "statutInitial": "Statut de départ",
       "avance": "Informations complémentaires",
       "kmInvalide": "Le kilométrage saisi dépasse la limite acceptée.",
       "plafondInvalide": "Le montant plafond ne peut pas être négatif.",
@@ -582,8 +582,8 @@
   },
   "erreurs": {
     "transitionInterdite": {
-      "avecStatut": "Cette action n'est pas possible : l'OR est au statut « {statut} ». Rechargez la page, puis choisissez une des actions proposées.",
-      "sansStatut": "Cette action n'est pas possible dans l'état actuel de l'OR. Rechargez la page, puis choisissez une des actions proposées."
+      "avecStatut": "Cette action n'est pas possible : l'OR est « {statut} ». Rechargez la page et choisissez parmi les boutons proposés.",
+      "sansStatut": "Cette action n'est pas possible à cette étape de l'OR. Rechargez la page et choisissez parmi les boutons proposés."
     }
   },
   "travauxReportes": {

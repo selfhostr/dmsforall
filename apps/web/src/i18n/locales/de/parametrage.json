@@ -97,7 +97,7 @@
         "actif": "Leistung aktiv"
       },
       "typesLigne": {
-        "main_oeuvre_bareme": "Arbeit nach Vorgabezeit",
+        "main_oeuvre_bareme": "Arbeit (Vorgabe)",
         "main_oeuvre_temps_reel": "Arbeit nach effektiver Zeit",
         "forfait": "Pauschale",
         "piece": "Teil",
@@ -109,10 +109,10 @@
         "texte": "Information"
       },
       "tauxTvaLibelles": {
-        "81": "8.1 % (Normalsatz)",
+        "0": "0 % (befreit)",
         "26": "2.6 % (reduzierter Satz)",
         "38": "3.8 % (Beherbergung)",
-        "0": "0 % (befreit)"
+        "81": "8.1 % (Normalsatz)"
       },
       "vide": {
         "titre": "Keine Leistung vorhanden",

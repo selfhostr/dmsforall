@@ -28,7 +28,7 @@
   },
   "enCours": {
     "demarrer": "Zeiterfassung starten",
-    "terminer": "Beenden",
+    "terminer": "Diese Zeiterfassung beenden",
     "changerLigne": "Arbeit wechseln",
     "signaler": "Befund melden"
   },
@@ -277,10 +277,10 @@
       "arretReussi": "Zeiterfassungen beendet — Sie können erneut sperren."
     },
     "deverrouiller": {
-      "titre": "Entsperren (Gegenbuchung)",
+      "titre": "Gesperrte Periode korrigieren",
       "description": "Betrifft nur bereits gesperrte Zeiterfassungen des Standorts, die wieder als bestätigt gelten.",
       "jusquau": "Bis (einschliesslich)",
-      "motif": "Grund der Gegenbuchung",
+      "motif": "Grund der Korrektur",
       "motifRequis": "Der Grund ist erforderlich, um eine Periode zu entsperren.",
       "action": "Entsperren",
       "resultat": "{count, plural, one {# Zeiterfassung entsperrt.} other {# Zeiterfassungen entsperrt.}}"

@@ -150,7 +150,7 @@ describe('EcranNouveauDossierVente', () => {
     const utilisateur = userEvent.setup();
 
     expect(await screen.findByText('Jean Dupont')).toBeInTheDocument();
-    await utilisateur.click(screen.getByRole('button', { name: 'Créer le dossier' }));
+    await utilisateur.click(screen.getByRole('button', { name: 'Créer la vente' }));
 
     expect(await screen.findByText('Fiche du dossier créé')).toBeInTheDocument();
     await waitFor(() =>

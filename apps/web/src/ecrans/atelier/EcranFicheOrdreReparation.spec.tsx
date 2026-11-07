@@ -267,7 +267,7 @@ describe('EcranFicheOrdreReparation', () => {
       rendre();
 
       expect(await screen.findByText('Aucune action possible pour le moment.')).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Terminer' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Travaux terminés' })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Passer en contrôle' })).not.toBeInTheDocument();
     });
 
@@ -278,7 +278,7 @@ describe('EcranFicheOrdreReparation', () => {
       rendre();
 
       expect(await screen.findByRole('button', { name: 'Passer en contrôle' })).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Terminer' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Travaux terminés' })).not.toBeInTheDocument();
       expect(
         screen.queryByRole('button', { name: 'Restituer le véhicule' }),
       ).not.toBeInTheDocument();
@@ -307,7 +307,7 @@ describe('EcranFicheOrdreReparation', () => {
       const utilisateur = userEvent.setup();
       rendre();
 
-      await utilisateur.click(await screen.findByRole('button', { name: 'Terminer' }));
+      await utilisateur.click(await screen.findByRole('button', { name: 'Travaux terminés' }));
       const dialogue = await screen.findByRole('dialog');
       await utilisateur.click(within(dialogue).getByRole('button', { name: 'Confirmer' }));
 
@@ -315,7 +315,7 @@ describe('EcranFicheOrdreReparation', () => {
       // silencieuse qui laisserait croire que l'action a réussi.
       expect(
         await within(dialogue).findByText(
-          "Cette action n'est pas possible dans l'état actuel de l'OR. Rechargez la page, puis choisissez une des actions proposées.",
+          "Cette action n'est pas possible à cette étape de l'OR. Rechargez la page et choisissez parmi les boutons proposés.",
         ),
       ).toBeInTheDocument();
       expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -346,7 +346,7 @@ describe('EcranFicheOrdreReparation', () => {
       // débordement « Autres actions » — jamais cinq boutons de poids visuel égal (constat de ce
       // lot).
       expect(screen.queryByRole('button', { name: 'Passer en contrôle' })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Terminer' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Travaux terminés' })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: "Annuler l'OR" })).not.toBeInTheDocument();
       expect(
         screen.queryByRole('button', { name: 'Reprendre les travaux' }),
@@ -358,7 +358,7 @@ describe('EcranFicheOrdreReparation', () => {
       expect(
         await screen.findByRole('menuitem', { name: 'Passer en contrôle' }),
       ).toBeInTheDocument();
-      expect(screen.getByRole('menuitem', { name: 'Terminer' })).toBeInTheDocument();
+      expect(screen.getByRole('menuitem', { name: 'Travaux terminés' })).toBeInTheDocument();
       expect(screen.getByRole('menuitem', { name: "Annuler l'OR" })).toBeInTheDocument();
       expect(screen.getByRole('menuitem', { name: 'Reprendre les travaux' })).toBeInTheDocument();
     });
@@ -373,7 +373,7 @@ describe('EcranFicheOrdreReparation', () => {
       );
       const premierRendu = rendre();
 
-      const boutonTerminer = await screen.findByRole('button', { name: 'Terminer' });
+      const boutonTerminer = await screen.findByRole('button', { name: 'Travaux terminés' });
       expect(boutonTerminer).not.toHaveClass('bg-primary');
 
       // Non-régression du chemin déjà correct : sur `en_cours` (travaux commencés), `terminer`
@@ -389,7 +389,7 @@ describe('EcranFicheOrdreReparation', () => {
       premierRendu.unmount();
       installerHandler(construireOr({ statut: 'en_cours', actionsDisponibles: ['terminer'] }));
       rendre();
-      const boutonTerminerEnCours = await screen.findByRole('button', { name: 'Terminer' });
+      const boutonTerminerEnCours = await screen.findByRole('button', { name: 'Travaux terminés' });
       expect(boutonTerminerEnCours).toHaveClass('bg-primary');
     });
 
@@ -438,7 +438,7 @@ describe('EcranFicheOrdreReparation', () => {
       installerHandler(construireOr({ statut: 'en_cours', actionsDisponibles: ['terminer'] }));
       rendre();
 
-      expect(await screen.findByRole('button', { name: 'Terminer' })).toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: 'Travaux terminés' })).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Autres actions' })).not.toBeInTheDocument();
     });
   });

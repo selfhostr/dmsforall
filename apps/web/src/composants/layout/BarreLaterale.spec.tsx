@@ -147,7 +147,7 @@ describe('BarreLaterale — les six entrées', () => {
       'Clients & véhicules',
       'Pièces',
       'Facturation',
-      'Ventes',
+      'Véhicules à vendre',
     ]);
   });
 
@@ -211,7 +211,7 @@ describe('BarreLaterale — où mène chaque entrée', () => {
     expect(hrefDuLien(/clients & véhicules/i)).toBe('/clients');
     expect(hrefDuLien(/^pièces$/i)).toBe('/pieces/recherche-comptoir');
     expect(hrefDuLien(/^facturation$/i)).toBe('/factures');
-    expect(hrefDuLien(/^ventes$/i)).toBe('/ventes/dossiers');
+    expect(hrefDuLien(/^véhicules à vendre$/i)).toBe('/ventes/dossiers');
   });
 
   /**
@@ -387,7 +387,7 @@ describe('BarreLaterale — masquage par rôle', () => {
 
     expect(screen.queryByRole('link', { name: /^facturation$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /^pièces$/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /^ventes$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^véhicules à vendre$/i })).not.toBeInTheDocument();
     // Il garde en revanche Réglages : la gouvernance atelier lui est ouverte — vérifié dans le
     // menu du pied compte, où Réglages vit désormais (Lot « cadre applicatif »).
     await ouvrirMenuCompte();
@@ -413,7 +413,7 @@ describe('BarreLaterale — masquage par rôle', () => {
       'Clients & véhicules',
       'Pièces',
       'Facturation',
-      'Ventes',
+      'Véhicules à vendre',
     ]);
   });
 
@@ -422,7 +422,7 @@ describe('BarreLaterale — masquage par rôle', () => {
     rendre('/');
 
     expect(await screen.findByRole('link', { name: /^facturation$/i })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /^ventes$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^véhicules à vendre$/i })).not.toBeInTheDocument();
   });
 
   /**
@@ -508,7 +508,7 @@ describe('BarreLaterale — repli desktop', () => {
       'Clients & véhicules',
       'Pièces',
       'Facturation',
-      'Ventes',
+      'Véhicules à vendre',
     ]);
     // Déplié, le libellé reste un texte normal (pas `sr-only`) — repli fourni ou non ne doit rien
     // changer au rendu déplié.

@@ -19,19 +19,19 @@ describe('Namespace ventes — chargeable à l’exécution', () => {
 
   it('résout des clés ventes:* dans les trois langues (fr, de, it)', async () => {
     await i18n.changeLanguage('fr');
-    expect(i18n.t('ventes:titre')).toBe('Ventes');
+    expect(i18n.t('ventes:titre')).toBe('Véhicules à vendre');
     expect(i18n.t('ventes:stock.statuts.disponible')).toBe('Disponible');
     expect(i18n.t('ventes:dossier.statuts.pretALivrer')).toBe('Prêt à livrer');
     expect(i18n.t('ventes:reprise.statuts.confirmee')).toBe('Confirmée');
     expect(i18n.t('ventes:financement.types.leasing')).toBe('Leasing');
 
     await i18n.changeLanguage('de');
-    expect(i18n.t('ventes:titre')).toBe('Verkauf');
+    expect(i18n.t('ventes:titre')).toBe('Fahrzeugverkauf');
     expect(i18n.t('ventes:stock.statuts.disponible')).toBe('Verfügbar');
     expect(i18n.t('ventes:dossier.statuts.pretALivrer')).toBe('Übergabebereit');
 
     await i18n.changeLanguage('it');
-    expect(i18n.t('ventes:titre')).toBe('Vendite');
+    expect(i18n.t('ventes:titre')).toBe('Veicoli in vendita');
     expect(i18n.t('ventes:stock.statuts.disponible')).toBe('Disponibile');
     expect(i18n.t('ventes:dossier.statuts.pretALivrer')).toBe('Pronto per la consegna');
   });

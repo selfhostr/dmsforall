@@ -87,5 +87,13 @@
     "compacte": "Kompakt",
     "aeree": "Luftig",
     "aide": "Luftig: grössere Schrift und höhere Zeilen, für Tablet und Finger."
+  },
+  "glossaire": {
+    "OR": "Reparaturauftrag (RA): Auftrag für ein Fahrzeug in der Werkstatt, von der Annahme bis zur Rückgabe.",
+    "MFK": "Motorfahrzeugkontrolle: amtliche Fahrzeugprüfung in der Schweiz (italienisch: collaudo).",
+    "VN": "Neuwagen: vor dem Verkauf nie immatrikuliert.",
+    "VO": "Occasion: bereits gebraucht, vom Betrieb verkauft oder in Zahlung genommen.",
+    "QRFacture": "QR-Rechnung: Schweizer Zahlteil mit QR-Code, im E-Banking scannbar.",
+    "Avoir": "Gutschrift: Korrekturbeleg, der eine ausgestellte Rechnung ganz oder teilweise storniert."
   }
 }

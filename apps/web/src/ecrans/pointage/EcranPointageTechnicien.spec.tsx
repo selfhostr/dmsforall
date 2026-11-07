@@ -953,7 +953,9 @@ describe('EcranPointageTechnicien', () => {
         await utilisateur.click(boutonOrEntier);
 
         expect(
-          await screen.findByText("L'opération n'a pas pu être effectuée. Réessayez."),
+          await screen.findByText(
+            "L'opération n'a pas abouti. Réessayez ; si cela revient, prévenez le support.",
+          ),
         ).toBeInTheDocument();
 
         // Laisse Node achever son cycle de détection des rejections non gérées PENDANT que le
@@ -1198,9 +1200,12 @@ describe('EcranPointageTechnicien', () => {
         // doit rester utilisable — jamais vide, jamais figé — pas la ligne cliquée, qui n'est plus
         // affichée nulle part une fois la vue refermée.
         expect(
-          await screen.findByText("Cette ligne n'est pas dans un état permettant un pointage.", {
-            exact: false,
-          }),
+          await screen.findByText(
+            'Cette ligne ne peut pas être pointée à cette étape. Pointez une ligne validée et en cours de travaux.',
+            {
+              exact: false,
+            },
+          ),
         ).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /OR-000123/ })).toBeEnabled();
 

@@ -416,15 +416,20 @@ describe('FormulaireNouveauClient', () => {
       await utilisateur.type(screen.getByLabelText('Rue et numéro'), 'Rue Neuve 5');
       await utilisateur.type(screen.getByLabelText('NPA'), '1000');
       await utilisateur.type(screen.getByLabelText('Localité'), 'Lausanne');
-      await utilisateur.type(screen.getByLabelText('IDE'), '12345');
+      await utilisateur.type(screen.getByLabelText("N° d'entreprise (IDE)"), '12345');
 
       await utilisateur.click(screen.getByRole('button', { name: 'Créer le client' }));
 
       // Avant le correctif : rien ne s'affichait ici (impasse silencieuse).
       expect(
-        await screen.findByText('Certaines informations sont incorrectes.'),
+        await screen.findByText(
+          'Certaines informations sont incorrectes ou incomplètes. Corrigez les champs signalés, puis réessayez.',
+        ),
       ).toBeInTheDocument();
-      expect(screen.getByLabelText('IDE')).toHaveAttribute('aria-invalid', 'true');
+      expect(screen.getByLabelText("N° d'entreprise (IDE)")).toHaveAttribute(
+        'aria-invalid',
+        'true',
+      );
       expect(onCree).not.toHaveBeenCalled();
 
       // Avec un IDE valide, la même soumission part normalement (pas de régression du chemin
@@ -443,8 +448,8 @@ describe('FormulaireNouveauClient', () => {
           HttpResponse.json({ donnees: clientEntreprise, avertissements: [] }),
         ),
       );
-      await utilisateur.clear(screen.getByLabelText('IDE'));
-      await utilisateur.type(screen.getByLabelText('IDE'), 'CHE-116.281.277');
+      await utilisateur.clear(screen.getByLabelText("N° d'entreprise (IDE)"));
+      await utilisateur.type(screen.getByLabelText("N° d'entreprise (IDE)"), 'CHE-116.281.277');
       await utilisateur.click(screen.getByRole('button', { name: 'Créer le client' }));
       await waitFor(() => expect(onCree).toHaveBeenCalledWith(clientEntreprise));
     });

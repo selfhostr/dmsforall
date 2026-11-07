@@ -87,5 +87,13 @@
     "compacte": "Compacte",
     "aeree": "Aérée",
     "aide": "Aérée : texte plus grand et lignes plus hautes, pour tablette et doigt."
+  },
+  "glossaire": {
+    "OR": "Ordre de réparation : la fiche de travaux d'un véhicule, de la réception à la restitution.",
+    "MFK": "Contrôle technique officiel suisse (Motorfahrzeugkontrolle, en italien collaudo).",
+    "VN": "Véhicule neuf : jamais immatriculé avant la vente.",
+    "VO": "Véhicule d'occasion : déjà utilisé, vendu par le garage ou repris à la reprise.",
+    "QRFacture": "Bulletin de paiement suisse avec code QR, à scanner dans l'e-banking.",
+    "Avoir": "Facture de correction qui annule tout ou partie d'une facture émise."
   }
 }

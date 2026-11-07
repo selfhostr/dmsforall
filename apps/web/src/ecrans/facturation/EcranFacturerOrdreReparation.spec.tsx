@@ -237,13 +237,11 @@ describe('EcranFacturerOrdreReparation', () => {
       installerHandlerOr(construireOr());
       rendre();
 
-      expect(await screen.findByText('Groupe payeur « Client »')).toBeInTheDocument();
+      expect(await screen.findByText('Facture pour « Client »')).toBeInTheDocument();
       expect(
-        await screen.findByText('Groupe payeur « Assurance — Zurich Assurances »'),
+        await screen.findByText('Facture pour « Assurance — Zurich Assurances »'),
       ).toBeInTheDocument();
-      expect(
-        await screen.findByText('Groupe payeur « Assurance — Mobilière »'),
-      ).toBeInTheDocument();
+      expect(await screen.findByText('Facture pour « Assurance — Mobilière »')).toBeInTheDocument();
       // Trois groupes, trois lignes uniques réparties une par groupe — pas de fusion silencieuse.
       expect(screen.getByText('Vidange')).toBeInTheDocument();
       expect(screen.getByText('Choc avant')).toBeInTheDocument();
@@ -281,7 +279,7 @@ describe('EcranFacturerOrdreReparation', () => {
       const utilisateur = userEvent.setup();
       rendre();
 
-      await screen.findByText('Groupe payeur « Client »');
+      await screen.findByText('Facture pour « Client »');
       const bouton = screen.getByRole('button', { name: /Créer 3 factures/ });
       await utilisateur.click(bouton);
 

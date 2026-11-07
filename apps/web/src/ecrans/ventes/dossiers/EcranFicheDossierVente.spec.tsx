@@ -743,7 +743,7 @@ describe('EcranFicheDossierVente', () => {
 
     expect(
       await screen.findByText(
-        'Ce dossier de vente est clos, annulé ou abandonné. Aucun document ne peut lui être rattaché.',
+        'Cette vente est close, annulée ou abandonnée : rien ne peut lui être rattaché. Choisissez une vente en cours.',
       ),
     ).toBeInTheDocument();
   });

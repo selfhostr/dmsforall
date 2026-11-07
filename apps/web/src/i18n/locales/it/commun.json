@@ -87,5 +87,13 @@
     "compacte": "Compatta",
     "aeree": "Ampia",
     "aide": "Ampia: testo più grande e righe più alte, per tablet e dito."
+  },
+  "glossaire": {
+    "OR": "Ordine di riparazione (OR): scheda dei lavori di un veicolo, dalla consegna alla restituzione.",
+    "MFK": "Controllo tecnico ufficiale svizzero (Motorfahrzeugkontrolle, in tedesco MFK).",
+    "VN": "Veicolo nuovo: mai immatricolato prima della vendita.",
+    "VO": "Veicolo usato: già utilizzato, venduto dall'officina o ritirato come usato.",
+    "QRFacture": "Bollettino di pagamento svizzero con codice QR, da scansionare nell'e-banking.",
+    "Avoir": "Nota di credito: documento che annulla in tutto o in parte una fattura emessa."
   }
 }

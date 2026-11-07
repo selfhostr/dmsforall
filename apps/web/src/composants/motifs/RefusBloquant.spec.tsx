@@ -148,7 +148,9 @@ describe('RefusBloquant', () => {
     render(<RefusBloquant code="OR_ANNULATION_IMPOSSIBLE" blocages={[]} actionsProposees={[]} />);
 
     expect(
-      screen.getByText("L'opération n'a pas pu être effectuée. Réessayez."),
+      screen.getByText(
+        "L'opération n'a pas abouti. Réessayez ; si cela revient, prévenez le support.",
+      ),
     ).toBeInTheDocument();
     expect(signalerErreur).toHaveBeenCalledTimes(1);
   });
@@ -165,7 +167,9 @@ describe('RefusBloquant', () => {
     );
 
     expect(
-      screen.queryByText("L'opération n'a pas pu être effectuée. Réessayez."),
+      screen.queryByText(
+        "L'opération n'a pas abouti. Réessayez ; si cela revient, prévenez le support.",
+      ),
     ).not.toBeInTheDocument();
     expect(signalerErreur).not.toHaveBeenCalled();
   });

@@ -264,7 +264,9 @@ describe('routeur — /relances refuse les rôles hors direction/comptable', () 
     renduAvecRoutes(routesConfig, { routeInitiale: '/relances' });
 
     expect(
-      await screen.findByText("Vous n'avez pas les droits pour cette action."),
+      await screen.findByText(
+        "Votre rôle ne permet pas cette action. Demandez à la direction de vous l'ouvrir, ou faites-la faire par un collègue autorisé.",
+      ),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('heading', { name: 'Relances automatiques' }),
@@ -286,7 +288,9 @@ describe('routeur — /relances refuse les rôles hors direction/comptable', () 
       await screen.findByRole('heading', { name: 'Relances automatiques' }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByText("Vous n'avez pas les droits pour cette action."),
+      screen.queryByText(
+        "Votre rôle ne permet pas cette action. Demandez à la direction de vous l'ouvrir, ou faites-la faire par un collègue autorisé.",
+      ),
     ).not.toBeInTheDocument();
   });
 });

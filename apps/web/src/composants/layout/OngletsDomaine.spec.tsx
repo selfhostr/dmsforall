@@ -99,8 +99,8 @@ describe('OngletsDomaine — les onglets d’un domaine', () => {
 
     const onglets = await screen.findByRole('navigation', { name: /onglets/i });
     expect(libelles(onglets)).toEqual([
-      'Dossiers',
-      'Véhicules en parc',
+      'Ventes en cours',
+      'Véhicules en stock',
       'Suivi financement & garantie',
     ]);
   });
@@ -110,11 +110,11 @@ describe('OngletsDomaine — les onglets d’un domaine', () => {
     rendre('/ventes/stock');
 
     const onglets = await screen.findByRole('navigation', { name: /onglets/i });
-    expect(within(onglets).getByRole('link', { name: /véhicules en parc/i })).toHaveAttribute(
+    expect(within(onglets).getByRole('link', { name: /véhicules en stock/i })).toHaveAttribute(
       'aria-current',
       'page',
     );
-    expect(within(onglets).getByRole('link', { name: /^dossiers$/i })).not.toHaveAttribute(
+    expect(within(onglets).getByRole('link', { name: /^ventes en cours$/i })).not.toHaveAttribute(
       'aria-current',
     );
   });
@@ -126,7 +126,7 @@ describe('OngletsDomaine — les onglets d’un domaine', () => {
     rendre('/ventes/dossiers/42');
 
     const onglets = await screen.findByRole('navigation', { name: /onglets/i });
-    expect(within(onglets).getByRole('link', { name: /^dossiers$/i })).toHaveAttribute(
+    expect(within(onglets).getByRole('link', { name: /^ventes en cours$/i })).toHaveAttribute(
       'aria-current',
       'page',
     );

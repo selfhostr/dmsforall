@@ -240,7 +240,7 @@ describe('PanneauActionsOr — action proposée « Marquer les lignes comme réa
   async function ouvrirTerminerEtConfirmer() {
     const utilisateur = userEvent.setup({ pointerEventsCheck: 0 });
     rendre(construireOr({ statut: 'en_cours', actionsDisponibles: ['terminer'] }));
-    await utilisateur.click(await screen.findByRole('button', { name: 'Terminer' }));
+    await utilisateur.click(await screen.findByRole('button', { name: 'Travaux terminés' }));
     const dialogue = await screen.findByRole('dialog');
     await utilisateur.click(within(dialogue).getByRole('button', { name: 'Confirmer' }));
     return { utilisateur, dialogue };

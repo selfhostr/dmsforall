@@ -9,7 +9,7 @@
     "attentePieces": "Wartet auf Teile",
     "attenteExterne": "Wartet auf Fremdfertigung",
     "controle": "Kontrolle",
-    "termine": "Abgeschlossen",
+    "termine": "Arbeiten abgeschlossen",
     "facture": "Fakturiert",
     "restitue": "Zurückgegeben",
     "cloture": "Geschlossen",
@@ -26,8 +26,8 @@
     "termine": "Arbeiten abgeschlossen, bereit zur Abholung",
     "facture": "Fakturiert, wartet auf Zahlung",
     "restitue": "Fahrzeug zurückgegeben",
-    "cloture": "Akte geschlossen",
-    "annule": "Akte storniert"
+    "cloture": "RA abgeschlossen",
+    "annule": "RA storniert"
   },
   "bandeau": {
     "numero": "RA",
@@ -38,14 +38,14 @@
     "localisation": "Position",
     "restitutionPromise": "Versprochene Rückgabe",
     "plafond": "Kostengrenze",
-    "totalDuJour": "Heute",
+    "totalDuJour": "Tagestotal",
     "techniciensEnCours": "Techniker aktiv",
     "numeroPo": "Kundenauftrag",
     "restitutionReportee": "Verschoben",
     "orPrecedent": "Vorheriger RA: {numero}"
   },
   "localisations": {
-    "parc": "Stellplatz",
+    "parc": "Parkplatz",
     "atelier": "Werkstatt",
     "sousTraitant": "Bei {fournisseur}",
     "essaiRoutier": "Probefahrt",
@@ -67,21 +67,21 @@
       "annule": "Storniert"
     },
     "colonnes": {
-      "origine": "Ursprung",
+      "origine": "Herkunft",
       "designation": "Bezeichnung",
       "type": "Typ",
       "quantite": "Menge",
-      "tempsBareme": "Richtzeit",
+      "tempsBareme": "Vorgabezeit",
       "tempsPointe": "Erfasste Zeit",
       "prixUnitaire": "Einzelpreis exkl. MWST",
       "rabais": "Rabatt",
-      "payeur": "Zahler",
+      "payeur": "Zahlungspflichtig",
       "technicien": "Techniker",
       "totalTtc": "Total inkl. MwSt.",
       "statut": "Status"
     },
     "types": {
-      "mainOeuvreBaremee": "Arbeitszeit (Richtzeit-Tarif)",
+      "mainOeuvreBaremee": "Arbeit (Vorgabezeit)",
       "mainOeuvreTempsReel": "Arbeitszeit (effektiv erfasste Zeit)",
       "forfait": "Pauschal",
       "piece": "Teil (aus Lager entnommen)",
@@ -134,7 +134,7 @@
       "placeholder": "Geben Sie eine Bezeichnung ein (Ctrl+Eingabe)",
       "aide": "Schnelleintrag: Eingabe erstellt, Umschalt+Eingabe bleibt in der Zeile, Escape bricht ab. Alt+T/R/F/P/S für Typ",
       "raccourcis": {
-        "travail": "Alt+T = Arbeitszeit Tarif",
+        "travail": "Alt+T = Arbeit (Vorgabe)",
         "tempsReel": "Alt+R = Realzeit",
         "forfait": "Alt+F = Pauschal",
         "piece": "Alt+P = Teil",
@@ -147,7 +147,7 @@
       "annuler": "Stornieren",
       "dupliquer": "Duplizieren",
       "affecterTechnicien": "Techniker zuweisen",
-      "changerPayeur": "Zahler ändern"
+      "changerPayeur": "Zahlungspflichtigen ändern"
     },
     "annulation": {
       "titre": "Arbeit stornieren",
@@ -212,7 +212,7 @@
   },
   "demandes": {
     "titre": "Kundenangaben",
-    "verbatim": "Wortlaut",
+    "verbatim": "Kundenwünsche",
     "ajouter": "Hinzufügen",
     "aide": "Kundenangaben werden nie umformuliert – sie behalten die exakten Begriffe des Kunden",
     "jamaisReformule": "Wie vorgegeben gespeichert"
@@ -247,7 +247,7 @@
       },
       "interlocuteur": "Person die geantwortet hat",
       "interlocuteurRequis": "Der Name ist erforderlich",
-      "retranscription": "Freier Text",
+      "retranscription": "Freie Bemerkung",
       "enregistrer": "Antwort speichern"
     },
     "enAttenteDepuis": "Ausstehend seit {duree}",
@@ -289,7 +289,7 @@
     "passerEnControle": "Zur Kontrolle",
     "refuserControle": "Kontrolle ablehnen",
     "validerControle": "Kontrolle validieren",
-    "terminer": "Abschliessen",
+    "terminer": "Arbeiten abgeschlossen",
     "facturer": "Fakturieren",
     "restituer": "Fahrzeug restitieren",
     "cloturer": "Schliessend",
@@ -338,7 +338,7 @@
   "liste": {
     "titre": "Reparaturaufträge",
     "actions": {
-      "nouveau": "Auftrag eröffnen"
+      "nouveau": "RA erstellen"
     },
     "colonnes": {
       "numero": "RA-Nr.",
@@ -415,7 +415,7 @@
     "motifRequis": "Der Grund ist obligatorisch",
     "kilometrageEntree": "Kilometerstand bei Annahme",
     "kilometrageSortie": "Kilometerstand bei Abfahrt",
-    "signatureDifferee": "Später unterschreiben",
+    "signatureDifferee": "Kunde unterschreibt später",
     "motifSignatureDifferee": "Grund für die aufgeschobene Unterschrift",
     "paiementRecu": "Zahlung bei Rückgabe erhalten",
     "aucuneActionDisponible": "Momentan keine Aktion möglich.",
@@ -428,7 +428,7 @@
     "aideDistinction": "«Validiertes Total» überwacht die Kostengrenze des Auftrags (bereits validierte Positionen, alle Kostenträger zusammen) — kein zu fakturierender Betrag. Für einen Betrag an einen Kostenträger die entsprechende Zeile oben verwenden."
   },
   "nouveau": {
-    "titre": "Neuer Reparaturauftrag",
+    "titre": "RA erstellen",
     "siteManquant": {
       "titre": "Kein Standort ausgewählt",
       "description": "Wählen Sie einen Standort, bevor Sie einen Reparaturauftrag eröffnen: Die Nummerierung und die Einstellungen des Reparaturauftrags hängen davon ab.",
@@ -466,7 +466,7 @@
       "interne": "Intern"
     },
     "champs": {
-      "statutInitial": "Status bei Eröffnung",
+      "statutInitial": "Ausgangsstatus",
       "avance": "Weitere Angaben",
       "kmInvalide": "Der eingegebene Kilometerstand überschreitet die zulässige Grenze.",
       "plafondInvalide": "Die Kostengrenze darf nicht negativ sein.",
@@ -582,8 +582,8 @@
   },
   "erreurs": {
     "transitionInterdite": {
-      "avecStatut": "Diese Aktion ist nicht möglich: der AR hat den Status «{statut}». Laden Sie die Seite neu und wählen Sie eine der vorgeschlagenen Aktionen.",
-      "sansStatut": "Diese Aktion ist im aktuellen Zustand des AR nicht möglich. Laden Sie die Seite neu und wählen Sie eine der vorgeschlagenen Aktionen."
+      "avecStatut": "Diese Aktion ist nicht möglich: Das RA ist « {statut} ». Laden Sie die Seite neu und wählen Sie einen der angebotenen Schritte.",
+      "sansStatut": "Diese Aktion ist in dieser Phase des RA nicht möglich. Laden Sie die Seite neu und wählen Sie einen der angebotenen Schritte."
     }
   },
   "travauxReportes": {

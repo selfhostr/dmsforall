@@ -9,7 +9,7 @@
     "attentePieces": "In attesa di ricambi",
     "attenteExterne": "In attesa di subfornitura",
     "controle": "Controllo",
-    "termine": "Terminato",
+    "termine": "Lavori terminati",
     "facture": "Fatturato",
     "restitue": "Restituito",
     "cloture": "Chiuso",
@@ -26,8 +26,8 @@
     "termine": "Lavori terminati, pronto al ritiro",
     "facture": "Fatturato, in attesa di pagamento",
     "restitue": "Veicolo restituito al cliente",
-    "cloture": "Pratica chiusa",
-    "annule": "Pratica annullata"
+    "cloture": "OR chiuso",
+    "annule": "OR annullato"
   },
   "bandeau": {
     "numero": "Ordine",
@@ -38,7 +38,7 @@
     "localisation": "Localizzazione",
     "restitutionPromise": "Restituzione promessa",
     "plafond": "Tetto di spesa",
-    "totalDuJour": "Oggi",
+    "totalDuJour": "Totale del giorno",
     "techniciensEnCours": "Tecnici attivi",
     "numeroPo": "N. buono d'ordine del cliente",
     "restitutionReportee": "Posticipata",
@@ -67,21 +67,21 @@
       "annule": "Annullato"
     },
     "colonnes": {
-      "origine": "Origine",
+      "origine": "Provenienza",
       "designation": "Descrizione",
       "type": "Tipo",
       "quantite": "Qta",
-      "tempsBareme": "Tempo tariffario",
+      "tempsBareme": "Tempo forfettario",
       "tempsPointe": "Tempo registrato",
       "prixUnitaire": "Prezzo unitario IVA esclusa",
       "rabais": "Sconto",
-      "payeur": "Pagante",
+      "payeur": "Chi paga",
       "technicien": "Tecnico",
       "totalTtc": "Totale IVA inc.",
       "statut": "Stato"
     },
     "types": {
-      "mainOeuvreBaremee": "Manodopera (tempo tariffario)",
+      "mainOeuvreBaremee": "Manodopera (tempo forfettario)",
       "mainOeuvreTempsReel": "Manodopera (tempo effettivamente registrato)",
       "forfait": "Forfait",
       "piece": "Ricambio (prelevato dal magazzino)",
@@ -134,7 +134,7 @@
       "placeholder": "Inserisci descrizione (Ctrl+Invio)",
       "aide": "Inserimento rapido: Invio crea, Maiusc+Invio rimane in riga, Esc abbandona. Alt+T/R/F/P/S per tipo",
       "raccourcis": {
-        "travail": "Alt+T = M.O. tariffaria",
+        "travail": "Alt+T = manodopera forfettaria",
         "tempsReel": "Alt+R = Tempo reale",
         "forfait": "Alt+F = Forfait",
         "piece": "Alt+P = Ricambio",
@@ -147,7 +147,7 @@
       "annuler": "Annulla",
       "dupliquer": "Duplica",
       "affecterTechnicien": "Assegna tecnico",
-      "changerPayeur": "Cambia pagante"
+      "changerPayeur": "Cambia chi paga"
     },
     "annulation": {
       "titre": "Annulla lavoro",
@@ -212,7 +212,7 @@
   },
   "demandes": {
     "titre": "Richieste del cliente",
-    "verbatim": "Testuale",
+    "verbatim": "Richieste del cliente",
     "ajouter": "Aggiungi",
     "aide": "Le richieste non vengono mai riformulate – mantengono i termini esatti del cliente",
     "jamaisReformule": "Conservato come dichiarato"
@@ -247,7 +247,7 @@
       },
       "interlocuteur": "Persona che ha risposto",
       "interlocuteurRequis": "Il nome è obbligatorio",
-      "retranscription": "Testo libero",
+      "retranscription": "Nota libera",
       "enregistrer": "Salva risposta"
     },
     "enAttenteDepuis": "In sospeso da {duree}",
@@ -289,7 +289,7 @@
     "passerEnControle": "Passa a controllo",
     "refuserControle": "Rifiuta il controllo",
     "validerControle": "Valida controllo",
-    "terminer": "Termina",
+    "terminer": "Lavori terminati",
     "facturer": "Fattura",
     "restituer": "Restituisci veicolo",
     "cloturer": "Chiudi",
@@ -338,7 +338,7 @@
   "liste": {
     "titre": "Ordini di riparazione",
     "actions": {
-      "nouveau": "Crea un ordine"
+      "nouveau": "Crea un OR"
     },
     "colonnes": {
       "numero": "N. ordine",
@@ -415,7 +415,7 @@
     "motifRequis": "Il motivo è obbligatorio",
     "kilometrageEntree": "Chilometraggio all'ingresso",
     "kilometrageSortie": "Chilometraggio all'uscita",
-    "signatureDifferee": "Firmare più tardi",
+    "signatureDifferee": "Il cliente firmerà più tardi",
     "motifSignatureDifferee": "Motivo del rinvio della firma",
     "paiementRecu": "Pagamento ricevuto alla restituzione",
     "aucuneActionDisponible": "Nessuna azione disponibile al momento.",
@@ -428,7 +428,7 @@
     "aideDistinction": "«Totale validato» segue il tetto di spesa dell'OR (righe già validate, tutti i pagatori insieme) — non è un importo da fatturare. Per comunicare un importo, usare la riga del pagatore interessato qui sopra."
   },
   "nouveau": {
-    "titre": "Nuovo ordine di riparazione",
+    "titre": "Crea un OR",
     "siteManquant": {
       "titre": "Nessuna sede selezionata",
       "description": "Selezionare una sede prima di aprire un ordine di riparazione: la numerazione e i parametri dell'ordine di riparazione ne dipendono.",
@@ -466,7 +466,7 @@
       "interne": "Interno"
     },
     "champs": {
-      "statutInitial": "Stato all'apertura",
+      "statutInitial": "Stato iniziale",
       "avance": "Informazioni supplementari",
       "kmInvalide": "Il chilometraggio inserito supera il limite consentito.",
       "plafondInvalide": "Il tetto di spesa non può essere negativo.",
@@ -582,8 +582,8 @@
   },
   "erreurs": {
     "transitionInterdite": {
-      "avecStatut": "Questa azione non è possibile: l'OR ha lo stato «{statut}». Ricaricate la pagina, poi scegliete una delle azioni proposte.",
-      "sansStatut": "Questa azione non è possibile nello stato attuale dell'OR. Ricaricate la pagina, poi scegliete una delle azioni proposte."
+      "avecStatut": "Questa azione non è possibile: l'OR è « {statut} ». Ricaricate la pagina e scegliete tra i pulsanti proposti.",
+      "sansStatut": "Questa azione non è possibile in questa fase dell'OR. Ricaricate la pagina e scegliete tra i pulsanti proposti."
     }
   },
   "travauxReportes": {

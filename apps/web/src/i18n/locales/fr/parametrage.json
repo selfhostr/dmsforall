@@ -90,14 +90,14 @@
         "code": "Code",
         "designation": "Désignation",
         "typeLigne": "Type de ligne",
-        "tempsBareme": "Temps barémé",
+        "tempsBareme": "Temps forfaitaire",
         "prix": "Prix",
         "tauxHoraireCode": "Taux horaire associé",
         "tauxTva": "Taux de TVA",
         "actif": "Prestation active"
       },
       "typesLigne": {
-        "main_oeuvre_bareme": "M.O. barémée",
+        "main_oeuvre_bareme": "M.O. forfaitaire",
         "main_oeuvre_temps_reel": "M.O. temps réel",
         "forfait": "Forfait",
         "piece": "Pièce",
@@ -109,10 +109,10 @@
         "texte": "Information"
       },
       "tauxTvaLibelles": {
-        "81": "8.1 % (taux normal)",
+        "0": "0 % (exonéré)",
         "26": "2.6 % (taux réduit)",
         "38": "3.8 % (hébergement)",
-        "0": "0 % (exonéré)"
+        "81": "8.1 % (taux normal)"
       },
       "vide": {
         "titre": "Aucune prestation",

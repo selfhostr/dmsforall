@@ -476,7 +476,9 @@ describe('routeur — /parametrage/referentiels, /parametrage/atelier, /parametr
 
       expect(await screen.findAllByRole('tab')).toHaveLength(2);
       expect(
-        screen.queryByText("Vous n'avez pas les droits pour cette action."),
+        screen.queryByText(
+          "Votre rôle ne permet pas cette action. Demandez à la direction de vous l'ouvrir, ou faites-la faire par un collègue autorisé.",
+        ),
       ).not.toBeInTheDocument();
     },
   );
@@ -640,7 +642,9 @@ describe('routeur — /pieces/* refuse admin (protection RÉELLE, RF-115), ouvre
     renduAvecRoutes(routesConfig, { routeInitiale: '/pieces/reservations' });
 
     expect(
-      await screen.findByText("Vous n'avez pas les droits pour cette action."),
+      await screen.findByText(
+        "Votre rôle ne permet pas cette action. Demandez à la direction de vous l'ouvrir, ou faites-la faire par un collègue autorisé.",
+      ),
     ).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Réservations' })).not.toBeInTheDocument();
   });
@@ -656,7 +660,9 @@ describe('routeur — /pieces/* refuse admin (protection RÉELLE, RF-115), ouvre
 
     expect(await screen.findByRole('heading', { name: 'Réservations' })).toBeInTheDocument();
     expect(
-      screen.queryByText("Vous n'avez pas les droits pour cette action."),
+      screen.queryByText(
+        "Votre rôle ne permet pas cette action. Demandez à la direction de vous l'ouvrir, ou faites-la faire par un collègue autorisé.",
+      ),
     ).not.toBeInTheDocument();
   });
 

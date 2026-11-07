@@ -542,7 +542,7 @@ describe('EcranFicheFacture — vocabulaire du badge de règlement sur un avoir 
     rendre('avoir-vocabulaire');
 
     await screen.findAllByText('Jean Dupont');
-    expect(await screen.findByText('Non imputé')).toBeInTheDocument();
+    expect(await screen.findByText('Pas encore utilisé')).toBeInTheDocument();
     expect(screen.queryByText('Non réglée')).not.toBeInTheDocument();
   });
 
@@ -965,7 +965,7 @@ describe('EcranFicheFacture — carte « Documents liés » (dossier de vente / 
       rendreAvecRoutesLiees();
 
       const lienDossier = await screen.findByRole('button', {
-        name: 'Dossier de vente lié →',
+        name: 'Vente liée →',
       });
       expect(lienDossier).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Véhicule lié →' })).toBeInTheDocument();
@@ -1000,9 +1000,7 @@ describe('EcranFicheFacture — carte « Documents liés » (dossier de vente / 
       rendreAvecRoutesLiees();
 
       await screen.findAllByText('Jean Dupont');
-      expect(
-        screen.queryByRole('button', { name: 'Dossier de vente lié →' }),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Vente liée →' })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Véhicule lié →' })).not.toBeInTheDocument();
       expect(await screen.findByText('Aucun document lié.')).toBeInTheDocument();
     },
@@ -1030,9 +1028,7 @@ describe('EcranFicheFacture — carte « Documents liés » (dossier de vente / 
       expect(
         await screen.findByRole('button', { name: "Facture d'origine →" }),
       ).toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', { name: 'Dossier de vente lié →' }),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Vente liée →' })).not.toBeInTheDocument();
       expect(screen.queryByText('Aucun document lié.')).not.toBeInTheDocument();
     },
   );
@@ -1251,6 +1247,10 @@ describe('EcranFicheFacture — lignes de document (issue #125)', () => {
         "Ce document n'a aucune ligne : ajoutez au moins une ligne avant de l'émettre.",
       ),
     ).toBeInTheDocument();
-    expect(screen.queryByText('Certaines informations sont incorrectes.')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'Certaines informations sont incorrectes ou incomplètes. Corrigez les champs signalés, puis réessayez.',
+      ),
+    ).not.toBeInTheDocument();
   });
 });
