@@ -85,6 +85,12 @@
     "typeDocument": {
       "facture": "Fatture",
       "avoir": "Note di credito"
+    },
+    "limite": {
+      "sur": "(documento {reference})",
+      "ADAPTATEUR_NON_CABLE": "Il formato {cible} non è ancora disponibile per l’esportazione.",
+      "COMPENSATION_NON_SUPPORTEE": "Un incasso per compensazione non può ancora essere esportato.",
+      "TAUX_MULTIPLES_NON_SUPPORTE": "{nature, select, perte {Una perdita} other {Uno sconto}} su una fattura con più aliquote IVA non può ancora essere esportato."
     }
   },
   "apercu": {
