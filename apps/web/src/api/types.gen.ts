@@ -1230,7 +1230,7 @@ export interface paths {
     put?: never;
     /**
      * Correction — annule par avoir ET recrée une facture, dans la même transaction (RF-12 → RF-14).
-     * @description `Idempotency-Key` obligatoire — c'est une création de facture, donc une création sensible. Une facture ÉMISE ne se modifie JAMAIS (MD-20) : ce geste produit TROIS documents immuables — un avoir TOTAL (déjà émis, sans retour physique de stock) créditant la facture d'origine (qui bascule `annule_par_avoir`), et une facture de remplacement (déjà émise) reprenant les mêmes lignes avec l'en-tête corrigé (`champsCorriges` : désignation et/ou adresse de facturation uniquement — une erreur de montant ou de taux se corrige par un avoir libre, `POST /documents-vente/{factureId}/avoirs`, jamais par ce geste). Droit DÉDIÉ, périmètre volontairement PLUS ÉTROIT qu'émettre un avoir simple : `direction`/`comptable` SEULS (ni `receptionnaire`, ni `admin`, RF-115).
+     * @description `Idempotency-Key` obligatoire — c'est une création de facture, donc une création sensible. Une facture ÉMISE ne se modifie JAMAIS (MD-20) : ce geste produit TROIS documents immuables — un avoir TOTAL (déjà émis, sans retour physique de stock) créditant la facture d'origine (qui bascule `annule_par_avoir`), et une facture de remplacement (déjà émise) reprenant les mêmes lignes avec l'en-tête corrigé (`champsCorriges` : désignation et/ou adresse de facturation uniquement — une erreur de montant ou de taux se corrige par un avoir libre, `POST /documents-vente/{factureId}/avoirs`, jamais par ce geste). `mode` (défaut `remplacement`, comportement historique) : avec `mode = 'brouillon'`, la facture de remplacement n'est PAS émise — elle est créée en BROUILLON (mêmes lignes, TVA recalculée au régime ACTUEL du garage), `champsCorriges` est alors interdit et la réponse porte `mode = 'brouillon'` ; `factureRemplacement.id` est le brouillon à ouvrir, modifier puis émettre. Refusé en mode brouillon : facture déjà annulée par un avoir (`FACTURE_DEJA_CORRIGEE`) ou déjà réglée en tout ou partie (`FACTURE_CORRECTION_REGLEMENT_EXISTANT`). Droit DÉDIÉ, périmètre volontairement PLUS ÉTROIT qu'émettre un avoir simple : `direction`/`comptable` SEULS (ni `receptionnaire`, ni `admin`, RF-115).
      */
     post: operations['DocumentVenteTransitionsController_corriger'];
     delete?: never;
@@ -7022,6 +7022,8 @@ export interface components {
         | 'FACTURE_DESTINATAIRE_COURRIEL_ABSENT'
         | 'TVA_NON_ASSUJETTI_TAUX_INTERDIT'
         | 'TVA_NUMERO_REQUIS'
+        | 'FACTURE_DEJA_CORRIGEE'
+        | 'FACTURE_CORRECTION_REGLEMENT_EXISTANT'
         | 'MODULE_DESACTIVE';
       /** @description Détail technique — jamais affiché à l'utilisateur final. */
       detail?: string;
@@ -7167,6 +7169,8 @@ export interface components {
         | 'FACTURE_DESTINATAIRE_COURRIEL_ABSENT'
         | 'TVA_NON_ASSUJETTI_TAUX_INTERDIT'
         | 'TVA_NUMERO_REQUIS'
+        | 'FACTURE_DEJA_CORRIGEE'
+        | 'FACTURE_CORRECTION_REGLEMENT_EXISTANT'
         | 'MODULE_DESACTIVE';
       detail?: string;
       erreurs?: components['schemas']['ErreurChampDto'][];
@@ -7369,6 +7373,11 @@ export interface components {
     ReponseCorrectionFactureDto: {
       avoir: components['schemas']['ReponseDocumentVenteDto'];
       factureRemplacement: components['schemas']['ReponseDocumentVenteDto'];
+      /**
+       * @description `remplacement` : `factureRemplacement` est une facture émise. `brouillon` : c'est un brouillon (sans numéro) à modifier puis émettre.
+       * @enum {string}
+       */
+      mode: 'remplacement' | 'brouillon';
     };
     ReponseCreationBorneDto: {
       acces: components['schemas']['ReponseAccesTemporaireDto'];
@@ -14641,7 +14650,7 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': {
-          champsCorriges: {
+          champsCorriges?: {
             adresseFacturation?: {
               localite: string;
               npa: string;
@@ -14662,6 +14671,11 @@ export interface operations {
           )[];
           /** @default true */
           corrigerFicheClient?: boolean;
+          /**
+           * @default remplacement
+           * @enum {string}
+           */
+          mode?: 'remplacement' | 'brouillon';
           /** @enum {string} */
           motif:
             | 'erreur_adresse'
@@ -14720,7 +14734,7 @@ export interface operations {
           'application/json': components['schemas']['ProblemeDetailCommunDto'];
         };
       };
-      /** @description DOCUMENT_TRANSITION_INTERDITE (facture non émise ou déjà corrigée/annulée) ou IDEMPOTENCE_CONFLIT. */
+      /** @description DOCUMENT_TRANSITION_INTERDITE (facture non émise), FACTURE_DEJA_CORRIGEE et FACTURE_CORRECTION_REGLEMENT_EXISTANT (mode brouillon), TVA_NUMERO_REQUIS ou IDEMPOTENCE_CONFLIT. */
       409: {
         headers: {
           [name: string]: unknown;
