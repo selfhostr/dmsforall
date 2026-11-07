@@ -267,39 +267,39 @@ export function EcranListeClients() {
         ouvert={sheetOuvert}
         onOuvertChange={setSheetOuvert}
         titre={t('clients:nouveau')}
-          // Issue #78 (mesuré en navigateur : Échap et un clic sur la zone grisée hors du panneau
-          // ferment tous deux ce tiroir PAR DÉFAUT, chez Radix, sans confirmation — un
-          // réceptionniste a perdu nom/prénom/téléphone/rue en plein comptoir de cette façon).
-          // Les DEUX interactions passent par ces rappels avant d'atteindre `onOpenChange` ;
-          // `preventDefault()` les bloque tant qu'une saisie réelle est en jeu
-          // (`aUnBrouillonNouveauClientEnCours`, `FormulaireNouveauClient.tsx` — même source de
-          // vérité que le brouillon qu'il persiste). Le bouton de fermeture visible (coin
-          // supérieur droit de `SheetContent`) n'est PAS concerné : il ne déclenche ni l'un ni
-          // l'autre de ces événements, une fermeture par ce bouton reste toujours immédiate — le
-          // brouillon reste alors le filet de rattrapage, pas ce garde-fou.
-          onEscapeKeyDown={(evenement) => {
-            if (aUnBrouillonNouveauClientEnCours()) evenement.preventDefault();
-          }}
-          onPointerDownOutside={(evenement) => {
-            if (aUnBrouillonNouveauClientEnCours()) evenement.preventDefault();
-          }}
-          onInteractOutside={(evenement) => {
-            if (aUnBrouillonNouveauClientEnCours()) evenement.preventDefault();
-          }}
+        // Issue #78 (mesuré en navigateur : Échap et un clic sur la zone grisée hors du panneau
+        // ferment tous deux ce tiroir PAR DÉFAUT, chez Radix, sans confirmation — un
+        // réceptionniste a perdu nom/prénom/téléphone/rue en plein comptoir de cette façon).
+        // Les DEUX interactions passent par ces rappels avant d'atteindre `onOpenChange` ;
+        // `preventDefault()` les bloque tant qu'une saisie réelle est en jeu
+        // (`aUnBrouillonNouveauClientEnCours`, `FormulaireNouveauClient.tsx` — même source de
+        // vérité que le brouillon qu'il persiste). Le bouton de fermeture visible (coin
+        // supérieur droit de `SheetContent`) n'est PAS concerné : il ne déclenche ni l'un ni
+        // l'autre de ces événements, une fermeture par ce bouton reste toujours immédiate — le
+        // brouillon reste alors le filet de rattrapage, pas ce garde-fou.
+        onEscapeKeyDown={(evenement) => {
+          if (aUnBrouillonNouveauClientEnCours()) evenement.preventDefault();
+        }}
+        onPointerDownOutside={(evenement) => {
+          if (aUnBrouillonNouveauClientEnCours()) evenement.preventDefault();
+        }}
+        onInteractOutside={(evenement) => {
+          if (aUnBrouillonNouveauClientEnCours()) evenement.preventDefault();
+        }}
       >
-          <FormulaireNouveauClient
-            ouvert={sheetOuvert}
-            onCree={(client) => {
-              setSheetOuvert(false);
-              // Issue #79 : transmet numéro + nom affiché via l'état de navigation — si la
-              // LECTURE de la fiche qui suit échoue (`EcranFicheClient`), l'écran doit pouvoir dire
-              // « le client a bien été créé, seul l'affichage a échoué » plutôt que de laisser
-              // planer le doute qui a failli faire ressaisir Rossier une seconde fois.
-              navigate(chemins.clients.detail(client.id, site), {
-                state: { clientCreeNumero: client.numeroClient, clientCreeNom: client.nomAffiche },
-              });
-            }}
-          />
+        <FormulaireNouveauClient
+          ouvert={sheetOuvert}
+          onCree={(client) => {
+            setSheetOuvert(false);
+            // Issue #79 : transmet numéro + nom affiché via l'état de navigation — si la
+            // LECTURE de la fiche qui suit échoue (`EcranFicheClient`), l'écran doit pouvoir dire
+            // « le client a bien été créé, seul l'affichage a échoué » plutôt que de laisser
+            // planer le doute qui a failli faire ressaisir Rossier une seconde fois.
+            navigate(chemins.clients.detail(client.id, site), {
+              state: { clientCreeNumero: client.numeroClient, clientCreeNom: client.nomAffiche },
+            });
+          }}
+        />
       </PanneauLateral>
     </GabaritEcran>
   );

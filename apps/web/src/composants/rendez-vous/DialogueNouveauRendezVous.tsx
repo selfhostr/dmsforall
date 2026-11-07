@@ -377,7 +377,6 @@ export function DialogueNouveauRendezVous({
             </div>
           </div>
         )}
-
       </PanneauLateral>
 
       {onConfirmerQuandMeme ? (

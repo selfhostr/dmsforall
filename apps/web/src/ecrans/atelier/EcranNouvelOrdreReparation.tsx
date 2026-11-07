@@ -79,7 +79,13 @@ function versClientResume(client: {
 
 /** Cadre commun des états du parcours détaillé : panneau latéral droit par-dessus la liste des OR
  *  (même geste que « Nouveau client »). Fermer = retour à la liste, `?site=` conservé. */
-function GabaritEcran({ titre, children }: { readonly titre: string; readonly children: ReactNode }) {
+function GabaritEcran({
+  titre,
+  children,
+}: {
+  readonly titre: string;
+  readonly children: ReactNode;
+}) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   return (
@@ -216,21 +222,21 @@ function EcranNouvelOrdreReparationClassique() {
             onOuvertChange={setCreationClientOuverte}
             titre={t('or:nouveau.client.creerTitre')}
           >
-              <FormulaireNouveauClient
-                ouvert={creationClientOuverte}
-                onCree={(client: ReponseClient) => {
-                  setCreationClientOuverte(false);
-                  // Reste sur CET écran (jamais un aller-retour par `/recherche` ou la fiche
-                  // client) : le client vient d'être choisi, l'étape suivante naturelle est le
-                  // véhicule — `setSearchParams` complète l'URL exactement comme
-                  // `SelecteurSiteOrRequis` le fait déjà pour `?site=` juste au-dessus.
-                  setSearchParams((params) => {
-                    const suivant = new URLSearchParams(params);
-                    suivant.set('clientId', client.id);
-                    return suivant;
-                  });
-                }}
-              />
+            <FormulaireNouveauClient
+              ouvert={creationClientOuverte}
+              onCree={(client: ReponseClient) => {
+                setCreationClientOuverte(false);
+                // Reste sur CET écran (jamais un aller-retour par `/recherche` ou la fiche
+                // client) : le client vient d'être choisi, l'étape suivante naturelle est le
+                // véhicule — `setSearchParams` complète l'URL exactement comme
+                // `SelecteurSiteOrRequis` le fait déjà pour `?site=` juste au-dessus.
+                setSearchParams((params) => {
+                  const suivant = new URLSearchParams(params);
+                  suivant.set('clientId', client.id);
+                  return suivant;
+                });
+              }}
+            />
           </PanneauLateral>
         </div>
       </GabaritEcran>
