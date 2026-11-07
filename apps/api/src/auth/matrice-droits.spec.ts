@@ -1621,6 +1621,10 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'courtoisie.preter',
       'courtoisie.parc.gerer',
       'vehicule.travail_reporte.signaler',
+      // Photos d'une ligne d'OR.
+      'atelier.ligne.photo.ajouter',
+      'atelier.ligne.photo.lire',
+      'atelier.ligne.photo.supprimer',
     ];
 
     const actionsAccordees = new Set(Object.values(MATRICE_DROITS).flat());
@@ -2247,5 +2251,32 @@ describe('courtoisie et signalement de travaux reportés', () => {
       ['admin', 'chef_atelier', 'direction', 'receptionnaire', 'technicien'].sort(),
     );
     expect(MATRICE_DROITS.technicien).not.toContain('vehicule.travail_reporte.gerer');
+  });
+});
+
+describe('photos d’une ligne d’OR', () => {
+  const rolesAyant = (action: Action) =>
+    (Object.keys(MATRICE_DROITS) as (keyof typeof MATRICE_DROITS)[])
+      .filter((role) => (MATRICE_DROITS[role] as readonly Action[]).includes(action))
+      .sort();
+
+  const TERRAIN = [
+    'admin',
+    'chef_atelier',
+    'direction',
+    'magasinier',
+    'receptionnaire',
+    'technicien',
+  ];
+
+  it('ajouter et supprimer : le terrain (technicien compris), jamais vendeur, comptable ni la borne', () => {
+    expect(rolesAyant('atelier.ligne.photo.ajouter')).toEqual(TERRAIN);
+    expect(rolesAyant('atelier.ligne.photo.supprimer')).toEqual(TERRAIN);
+  });
+
+  it('lire : tous les rôles', () => {
+    expect(rolesAyant('atelier.ligne.photo.lire')).toEqual(
+      [...TERRAIN, 'comptable', 'vendeur'].sort(),
+    );
   });
 });
