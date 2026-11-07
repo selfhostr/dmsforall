@@ -78,7 +78,8 @@
     "titre": "Schnellaktionen",
     "creerOr": "Auftrag eröffnen",
     "nouveauRendezVous": "Neuer Termin",
-    "encaisser": "Kassieren"
+    "encaisser": "Kassieren",
+    "rechercher": "Suche öffnen"
   },
   "aFaire": {
     "titre": "Heute zu erledigen",

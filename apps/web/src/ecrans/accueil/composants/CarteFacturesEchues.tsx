@@ -4,7 +4,6 @@ import { Link } from 'react-router';
 
 import { BadgeStatut } from '@/composants/identite/BadgeStatut';
 import { useFacturesEchues } from '@/hooks/accueil/useFacturesEchues';
-import { formaterMontant } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
 import { CarteListeAFaire } from './CarteListeAFaire';
@@ -48,11 +47,6 @@ export function CarteFacturesEchues({ site }: Props) {
               <BadgeStatut icone={AlertTriangle} token="danger" forme="contour">
                 {t('aFaire.facturesEchues.retard', { count: facture.joursRetard })}
               </BadgeStatut>
-            ) : null}
-            {facture.soldeCentimes !== undefined ? (
-              <span className="texte-corps font-semibold tabular-nums text-foreground">
-                CHF {formaterMontant(facture.soldeCentimes)}
-              </span>
             ) : null}
           </span>
         </Link>

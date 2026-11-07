@@ -483,5 +483,68 @@
   "toasts": {
     "devisEnvoye": "Preventivo inviato",
     "devisAccepte": "Accordo del cliente registrato"
+  },
+  "chiffres": {
+    "titre": "Cifre",
+    "sousTitre": "Cifra d'affari, incassi e fatture da seguire.",
+    "erreur": "Impossibile caricare queste cifre.",
+    "incomplet": "Molte righe: i totali qui sopra sono valori minimi.",
+    "voirFactures": "Torni all'elenco delle fatture",
+    "voirChiffres": "Veda le cifre",
+    "refuse": {
+      "titre": "Pagina riservata",
+      "description": "Le cifre sono riservate alla direzione e alla contabilità."
+    },
+    "periodes": {
+      "moisCourant": "Questo mese",
+      "moisPrecedent": "Mese precedente",
+      "annee": "Quest'anno"
+    },
+    "colonnes": {
+      "periode": "Periodo",
+      "factures": "Fatture",
+      "ht": "Totale IVA esclusa",
+      "tva": "IVA",
+      "ttc": "Totale IVA inclusa",
+      "moyen": "Mezzo di pagamento",
+      "paiements": "Pagamenti",
+      "montant": "Importo"
+    },
+    "chiffreAffaires": {
+      "titre": "Cifra d'affari",
+      "description": "Fatture emesse, note di credito dedotte.",
+      "vide": {
+        "titre": "Nessuna fattura emessa",
+        "description": "Le cifre appariranno dalla prima fattura emessa."
+      }
+    },
+    "encaissements": {
+      "titre": "Incassi del mese",
+      "description": "Denaro ricevuto dal {periode}, per mezzo di pagamento.",
+      "total": "Totale incassato",
+      "vide": {
+        "titre": "Nessun incasso questo mese",
+        "description": "I pagamenti registrati questo mese appariranno qui."
+      }
+    },
+    "facturesOuvertes": {
+      "titre": "Fatture da incassare",
+      "description": "Fatture emesse, non ancora saldate.",
+      "ouvertes": "{count, plural, =0 {Nessuna fattura aperta} one {# fattura aperta} other {# fatture aperte}}",
+      "enRetard": "{count, plural, =0 {Nessuna scaduta} one {# scaduta} other {# scadute}}",
+      "vide": {
+        "titre": "Nessuna fattura aperta",
+        "description": "Tutti i clienti hanno pagato."
+      }
+    },
+    "travauxTermines": {
+      "titre": "Lavori da fatturare",
+      "description": "Ordini di riparazione terminati, non ancora fatturati (importo stimato IVA inclusa).",
+      "nombre": "{count, plural, one {# ordine di riparazione} other {# ordini di riparazione}}",
+      "vide": {
+        "titre": "Nulla da fatturare",
+        "description": "Nessun ordine di riparazione terminato attende la fattura."
+      }
+    }
   }
 }

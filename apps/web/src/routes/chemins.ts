@@ -130,6 +130,8 @@ export const chemins = {
     /** `id` est la facture D'ORIGINE à partir de laquelle l'avoir est émis, pas l'avoir lui-même
      *  (qui n'existe pas encore quand cet écran s'ouvre) — voir `routeur.tsx`. */
     avoir: (id: string, site?: string) => construireChemin(`/factures/${id}/avoir`, { site }),
+    /** Page « Chiffres » (`/factures/chiffres`) : CA, encaissements, factures à suivre. */
+    chiffres: (site?: string) => construireChemin('/factures/chiffres', { site }),
     /** Export fiduciaire (`/export-fiduciaire`) — onglet de Facturation. */
     exportFiduciaire: (site?: string) => construireChemin('/export-fiduciaire', { site }),
   },
