@@ -26,7 +26,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ChampKilometrage } from '@/composants/comptoir/ChampKilometrage';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
 import { BandeauAlerteClient } from '@/composants/motifs/BandeauAlerteClient';
-import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { useOrdreDepuisPlaque } from '@/hooks/atelier/useOrdreDepuisPlaque';
 import { useRechercheTypee } from '@/hooks/atelier/useRechercheTypee';
 import { useClient } from '@/hooks/clients/useClient';
@@ -242,10 +242,40 @@ export function EcranOrdreDepuisPlaque() {
   const deuxOrOuverts =
     creation.confirmationsRequises.includes('VEHICULE_DEUX_OR_OUVERTS') && orsOuverts.length > 0;
 
+  // Saisie dans le panneau latéral droit (comme « Nouveau client »), par-dessus la liste des OR :
+  // fermer le panneau ramène à la liste, sans perdre `?site=`.
+  const fermer = () => navigate(chemins.atelier.ordresReparation.liste(siteId || siteUrl));
+
   return (
-    <GabaritEcran titre={t('or:nouveau.rapide.titre')}>
+    <>
+      <PanneauLateral
+        ouvert
+        onOuvertChange={(ouvert) => {
+          if (!ouvert) fermer();
+        }}
+        titre={t('or:nouveau.rapide.titre')}
+        pied={
+          <>
+            <Button asChild variant="outline">
+              <Link
+                to={chemins.atelier.ordresReparation.nouveau(siteId || undefined, client?.id, true)}
+              >
+                {t('or:nouveau.rapide.ancienParcours')}
+              </Link>
+            </Button>
+            <Button type="submit" form="or-rapide-formulaire" disabled={creation.enCours}>
+              {creation.enCours
+                ? t('or:nouveau.actions.enCours')
+                : echec
+                  ? t('or:nouveau.rapide.reessayer')
+                  : t('or:nouveau.actions.creer')}
+            </Button>
+          </>
+        }
+      >
       <form
-        className="mx-auto flex w-full max-w-2xl flex-col gap-6"
+        id="or-rapide-formulaire"
+        className="flex w-full flex-col gap-6"
         noValidate
         onSubmit={(evenement) => {
           evenement.preventDefault();
@@ -446,24 +476,8 @@ export function EcranOrdreDepuisPlaque() {
             </AlertDescription>
           </Alert>
         ) : null}
-
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Button asChild variant="outline">
-            <Link
-              to={chemins.atelier.ordresReparation.nouveau(siteId || undefined, client?.id, true)}
-            >
-              {t('or:nouveau.rapide.ancienParcours')}
-            </Link>
-          </Button>
-          <Button type="submit" disabled={creation.enCours}>
-            {creation.enCours
-              ? t('or:nouveau.actions.enCours')
-              : echec
-                ? t('or:nouveau.rapide.reessayer')
-                : t('or:nouveau.actions.creer')}
-          </Button>
-        </div>
       </form>
+      </PanneauLateral>
 
       <AvertissementConfirmable
         ouvert={creation.confirmationsRequises.length > 0 && !confirmationRejetee}
@@ -506,6 +520,6 @@ export function EcranOrdreDepuisPlaque() {
           </ul>
         ) : null}
       </AvertissementConfirmable>
-    </GabaritEcran>
+    </>
   );
 }

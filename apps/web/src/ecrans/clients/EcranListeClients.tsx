@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { BarreFiltres } from '@/composants/comptoir/BarreFiltres';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import {
@@ -263,9 +263,10 @@ export function EcranListeClients() {
         </>
       )}
 
-      <Sheet open={sheetOuvert} onOpenChange={setSheetOuvert}>
-        <SheetContent
-          className="w-full overflow-y-auto sm:max-w-lg"
+      <PanneauLateral
+        ouvert={sheetOuvert}
+        onOuvertChange={setSheetOuvert}
+        titre={t('clients:nouveau')}
           // Issue #78 (mesuré en navigateur : Échap et un clic sur la zone grisée hors du panneau
           // ferment tous deux ce tiroir PAR DÉFAUT, chez Radix, sans confirmation — un
           // réceptionniste a perdu nom/prénom/téléphone/rue en plein comptoir de cette façon).
@@ -285,10 +286,7 @@ export function EcranListeClients() {
           onInteractOutside={(evenement) => {
             if (aUnBrouillonNouveauClientEnCours()) evenement.preventDefault();
           }}
-        >
-          <SheetHeader>
-            <SheetTitle>{t('clients:nouveau')}</SheetTitle>
-          </SheetHeader>
+      >
           <FormulaireNouveauClient
             ouvert={sheetOuvert}
             onCree={(client) => {
@@ -302,8 +300,7 @@ export function EcranListeClients() {
               });
             }}
           />
-        </SheetContent>
-      </Sheet>
+      </PanneauLateral>
     </GabaritEcran>
   );
 }

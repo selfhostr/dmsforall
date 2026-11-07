@@ -9,7 +9,6 @@ import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
-import { AideContextuelle } from '@/composants/rendez-vous/AideContextuelle';
 import {
   BandeauAutresSites,
   type AutreSiteResume,
@@ -95,7 +94,7 @@ export function EcranAgendaRendezVous({
   // états (même patron que `EcranNouvelOrdreReparation`).
   if (!site) {
     return (
-      <GabaritEcran titre={t('planning:titre')}>
+      <GabaritEcran titre={t('planning:titre')} titreVisible={false}>
         <EtatVide
           titre={t('planning:site.manquant.titre')}
           description={t('planning:site.manquant.description')}
@@ -192,8 +191,8 @@ export function EcranAgendaRendezVous({
   }
 
   return (
-    <GabaritEcran titre={t('planning:titre')}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <GabaritEcran titre={t('planning:titre')} titreVisible={false}>
+      <div className="flex flex-wrap items-center gap-3">
         <Tabs value={vue} onValueChange={(valeur) => onChangerVue(valeur as VueAgendaEcran)}>
           <TabsList>
             <TabsTrigger value="semaine">{t('planning:toolbar.bascule.semaine')}</TabsTrigger>
@@ -233,29 +232,20 @@ export function EcranAgendaRendezVous({
         </div>
 
         {onNouveauRendezVous ? (
-          <Button type="button" onClick={onNouveauRendezVous}>
+          <Button type="button" className="ml-auto" onClick={onNouveauRendezVous}>
             <CalendarPlus aria-hidden className="h-4 w-4" />
             {t('planning:toolbar.nouveauRendezVous')}
           </Button>
         ) : null}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <BandeauAutresSites
-          siteNom={site.nom}
-          autresSites={autresSites}
-          onChangerSite={(id) => onChangerSite?.(id)}
-          portee={vue === 'jour' ? 'jour' : 'semaine'}
-        />
-        <div className="flex items-center gap-1">
-          <p className="texte-libelle text-muted-foreground">
-            {t('planning:aide.planning.resume')}
-          </p>
-          <AideContextuelle libelle={t('planning:aide.planning.libelle')}>
-            <p className="texte-corps">{t('planning:aide.planning.texte')}</p>
-          </AideContextuelle>
-        </div>
-      </div>
+      <BandeauAutresSites
+        siteId={site.id}
+        sites={sitesChoisissables}
+        autresSites={autresSites}
+        onChangerSite={(id) => onChangerSite?.(id)}
+        portee={vue === 'jour' ? 'jour' : 'semaine'}
+      />
 
       <BarreFiltres
         q={recherche}
