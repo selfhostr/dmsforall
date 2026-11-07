@@ -69,13 +69,6 @@ function contexteAtelierVide(vehiculeId: string) {
   };
 }
 
-function orCree() {
-  return {
-    donnees: { id: 'or-9', numero: 'OR-9', client: { id: 'c1' } },
-    avertissements: [],
-  };
-}
-
 function creationRapideReussie(avertissements: unknown[] = []) {
   return {
     donnees: {

@@ -1,9 +1,9 @@
-import type { VehiculeResume } from '@dfa/shared';
+import type { VehiculeResumeListe } from '@dfa/shared';
 
 import { Plaque } from '@/composants/identite/Plaque';
 
 interface Props {
-  readonly vehicule: VehiculeResume;
+  readonly vehicule: VehiculeResumeListe;
 }
 
 /**

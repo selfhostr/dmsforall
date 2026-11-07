@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, WifiOff } from 'lucide-react';
+import { AlertCircle, WifiOff } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router';
