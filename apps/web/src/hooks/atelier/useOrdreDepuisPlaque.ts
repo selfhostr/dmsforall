@@ -1,20 +1,19 @@
 import { useRef, useState } from 'react';
 
-import type { EntreeCreationOrdreReparation, ReponseOrdreReparation } from '@dfa/shared';
+import type {
+  CodeConfirmation,
+  EntreeCreationOrdreReparation,
+  EntreeCreationRapideOrdreReparation,
+  ReponseOrdreReparation,
+} from '@dfa/shared';
 
+import { ErreurApi } from '@/api/erreurs';
 import { genererCleIdempotence } from '@/api/idempotence';
-import { useCreerClient } from '@/hooks/clients/useCreerClient';
-import { useCreerVehicule } from '@/hooks/vehicules/useCreerVehicule';
+import { afficherToastSucces } from '@/composants/motifs/toast-succes';
+import i18n from '@/i18n';
 
-import {
-  EchecEtapeCreation,
-  preparerClientEtVehicule,
-  type EtapeCreation,
-  type PlanClient,
-  type PlanVehicule,
-  type ProgressionCreation,
-} from './ordre-depuis-plaque';
-import { useCreationOrdreReparation } from './useCreationOrdreReparation';
+import type { PlanClient, PlanVehicule } from './ordre-depuis-plaque';
+import { useCreerOrdreRapide } from './useCreerOrdreRapide';
 
 export interface PlanOrdreDepuisPlaque {
   readonly client: PlanClient;
@@ -22,87 +21,79 @@ export interface PlanOrdreDepuisPlaque {
   readonly ordre: Omit<EntreeCreationOrdreReparation, 'clientId' | 'vehiculeId'>;
 }
 
-export interface EchecCreation {
-  readonly etape: EtapeCreation;
-  readonly erreur: unknown;
+/** Corps de `POST /ordres-reparation/creation-rapide` pour un plan de l'écran. */
+export function corpsCreationRapide(
+  plan: PlanOrdreDepuisPlaque,
+  confirmations: readonly CodeConfirmation[] = [],
+): EntreeCreationRapideOrdreReparation {
+  return {
+    client:
+      plan.client.mode === 'existant' ? { id: plan.client.id } : { nouveau: plan.client.entree },
+    vehicule:
+      plan.vehicule.mode === 'existant'
+        ? { id: plan.vehicule.id }
+        : { nouveau: plan.vehicule.entree },
+    or:
+      confirmations.length > 0 ? { ...plan.ordre, confirmations: [...confirmations] } : plan.ordre,
+  };
 }
 
 /**
- * Orchestration client -> véhicule -> OR du parcours « depuis une plaque ». Les trois appels
- * existants sont réutilisés tels quels (chacun garde son toast de succès et son invalidation de
- * cache) ; ce hook ajoute seulement l'enchaînement, la reprise et les clés d'idempotence stables
- * d'un essai à l'autre — un second clic après coupure réseau ne crée ni second client ni second
- * véhicule.
+ * « Depuis une plaque » : UN appel `POST /ordres-reparation/creation-rapide`, une transaction et
+ * une `Idempotency-Key` — un second clic après coupure réseau rejoue la même clé (ni second client
+ * ni second véhicule). La clé change seulement quand le corps change (confirmations ajoutées) et
+ * après un succès. Le doublon probable de client (`CLIENT_DOUBLON_PROBABLE`) n'est jamais bloquant :
+ * il est signalé par un toast.
  */
 export function useOrdreDepuisPlaque() {
-  const creerClient = useCreerClient();
-  const creerVehicule = useCreerVehicule();
-  const creationOr = useCreationOrdreReparation();
-  const progression = useRef<ProgressionCreation>({});
-  const cles = useRef({ client: genererCleIdempotence(), vehicule: genererCleIdempotence() });
-  const [etape, setEtape] = useState<EtapeCreation | null>(null);
-  const [echecPrealable, setEchecPrealable] = useState<EchecCreation | null>(null);
-  // Miroir de `progression` pour le rendu (un ref ne déclenche pas de rendu).
-  const [faits, setFaits] = useState<ProgressionCreation>({});
+  const mutation = useCreerOrdreRapide();
+  const cle = useRef(genererCleIdempotence());
+  const [dernierPlan, setDernierPlan] = useState<PlanOrdreDepuisPlaque | null>(null);
 
-  async function lancer(
+  const erreurActive = mutation.error instanceof ErreurApi ? mutation.error : null;
+  const confirmationsRequises = erreurActive?.confirmationsRequises ?? [];
+
+  function envoyer(
     plan: PlanOrdreDepuisPlaque,
+    confirmations: readonly CodeConfirmation[],
     onSuccess: (or: ReponseOrdreReparation) => void,
   ) {
-    setEchecPrealable(null);
-    try {
-      const { clientId, vehiculeId } = await preparerClientEtVehicule(plan, progression.current, {
-        surEtape: setEtape,
-        creerClient: async (entree) => {
-          const reponse = await creerClient.mutateAsync({
-            entree,
-            idempotencyKey: cles.current.client,
-          });
-          cles.current.client = genererCleIdempotence();
-          setFaits({ ...progression.current, clientId: reponse.donnees.id });
-          return reponse.donnees;
+    setDernierPlan(plan);
+    mutation.mutate(
+      { entree: corpsCreationRapide(plan, confirmations), idempotencyKey: cle.current },
+      {
+        onSuccess: (reponse) => {
+          cle.current = genererCleIdempotence();
+          setDernierPlan(null);
+          if (reponse.avertissements.some((a) => a.code === 'CLIENT_DOUBLON_PROBABLE')) {
+            afficherToastSucces({ message: i18n.t('erreurs:codes.CLIENT_DOUBLON_PROBABLE') });
+          }
+          onSuccess(reponse.donnees.ordreReparation);
         },
-        creerVehicule: async (entree) => {
-          const reponse = await creerVehicule.mutateAsync({
-            entree,
-            idempotencyKey: cles.current.vehicule,
-          });
-          cles.current.vehicule = genererCleIdempotence();
-          setFaits({ ...progression.current, vehiculeId: reponse.donnees.id });
-          return reponse.donnees;
-        },
-      });
-      setFaits({ ...progression.current });
-      setEtape('or');
-      creationOr.soumettre({ ...plan.ordre, clientId, vehiculeId }, { onSuccess });
-    } catch (erreur) {
-      setFaits({ ...progression.current });
-      if (erreur instanceof EchecEtapeCreation) {
-        setEchecPrealable({ etape: erreur.etape, erreur: erreur.erreur });
-      } else {
-        setEchecPrealable({ etape: 'client', erreur });
-      }
-    } finally {
-      // `soumettre` est lancé sans attente : l'état « OR en cours » vient de `creationOr.enCours`.
-      setEtape(null);
-    }
+      },
+    );
   }
 
-  const echec: EchecCreation | null =
-    echecPrealable ??
-    (creationOr.erreur !== null && creationOr.erreur !== undefined
-      ? { etape: 'or', erreur: creationOr.erreur }
-      : null);
+  function lancer(plan: PlanOrdreDepuisPlaque, onSuccess: (or: ReponseOrdreReparation) => void) {
+    envoyer(plan, [], onSuccess);
+  }
+
+  /** Rejeu après accord explicite : les confirmations entrent dans l'empreinte, donc nouvelle clé. */
+  function confirmerEtResoumettre(options: {
+    readonly onSuccess: (or: ReponseOrdreReparation) => void;
+  }) {
+    if (!dernierPlan) return;
+    cle.current = genererCleIdempotence();
+    envoyer(dernierPlan, confirmationsRequises, options.onSuccess);
+  }
 
   return {
     lancer,
-    confirmerEtResoumettre: creationOr.confirmerEtResoumettre,
-    confirmationsRequises: creationOr.confirmationsRequises,
-    erreurActive: creationOr.erreurActive,
-    /** Création en vol (client, véhicule ou OR). */
-    enCours: etape !== null || creationOr.enCours,
-    echec,
-    /** Ce qui est déjà en base : l'écran verrouille les sections correspondantes. */
-    faits,
+    confirmerEtResoumettre,
+    confirmationsRequises,
+    erreurActive,
+    enCours: mutation.isPending,
+    /** Erreur de la dernière tentative, masquée pendant une confirmation à résoudre. */
+    erreur: confirmationsRequises.length > 0 ? null : mutation.error,
   };
 }

@@ -387,6 +387,9 @@ export interface OrdreReparationResumeListe {
   readonly designationsApercu: readonly string[];
   /** Toutes les lignes de l'OR, tous statuts confondus (comme `ReponseOrdreReparation.nombreLignes`). */
   readonly nombreLignes: number;
+  /** Lignes de cet OR assignées à l'UTILISATEUR COURANT (`ligne_or.technicien_id`), hors annulées et
+   *  refusées. `0` pour un compte sans technicien (borne). Sert « Mes OR du jour » sans le document complet. */
+  readonly nombreLignesAssignees: number;
   /** Absent pour un rôle sans droit aux montants. */
   readonly totalTtcCentimes?: number;
   readonly version: number;

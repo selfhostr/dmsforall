@@ -380,10 +380,27 @@
       "format": "Le numéro doit ressembler à CHE-123.456.789 TVA.",
       "cle": "Ce numéro n'existe pas : vérifiez les chiffres."
     },
-    "enregistrer": "Enregistrer le numéro",
-    "enregistrementReussi": "Numéro de TVA enregistré.",
+    "enregistrer": "Enregistrer l’entreprise",
+    "enregistrementReussi": "Modifications enregistrées.",
     "erreur": {
       "titre": "Impossible de charger les informations de l'entreprise"
+    },
+    "delaiPaiement": "Délai de paiement par défaut (jours)",
+    "delaiPaiementAide": "Appliqué aux factures des clients qui n’ont pas de condition de paiement propre. De 0 à 365 jours.",
+    "erreurDelai": "Indiquez un nombre entier de jours, de 0 à 365.",
+    "logo": {
+      "titre": "Logo",
+      "alt": "Logo du garage",
+      "aucun": "Aucun logo déposé : vos factures sont imprimées sans logo.",
+      "choisir": "Choisir un logo",
+      "remplacer": "Remplacer le logo",
+      "supprimer": "Supprimer",
+      "aide": "PNG, JPEG ou SVG, 1 Mo au maximum. Seuls les nouveaux PDF portent le logo : les factures déjà imprimées ne changent pas.",
+      "svgNonImprime": "Le SVG s’affiche ici mais n’est pas imprimé sur les PDF. Utilisez un PNG ou un JPEG pour qu’il figure sur vos factures.",
+      "refus": {
+        "type": "Ce fichier n’est pas accepté : choisissez un PNG, un JPEG ou un SVG.",
+        "taille": "Ce fichier dépasse 1 Mo : choisissez une image plus légère."
+      }
     }
   },
   "motifsRdv": {

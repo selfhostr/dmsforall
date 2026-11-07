@@ -1,8 +1,7 @@
 import { Clock, TriangleAlert } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import type { ReponseOrdreReparation } from '@dfa/shared';
-
+import type { OrDuJour } from '@/hooks/pointage/useMesOrdresAssignes';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { formaterDateHeure } from '@/lib/formats';
@@ -11,9 +10,7 @@ import { cn } from '@/lib/utils';
 import { VehiculeGrand } from './VehiculeGrand';
 
 interface Props {
-  readonly or: ReponseOrdreReparation;
-  /** Lignes assignées au technicien courant, déjà comptées par l'appelant. */
-  readonly lignesAssignees: number;
+  readonly or: OrDuJour;
   readonly onChoisir: () => void;
   readonly desactive: boolean;
   /** Borne : numéro, plaque et désignation à 24 px (lecture à 1,5 m). */
@@ -33,7 +30,6 @@ interface Props {
  */
 export function CarteOrDuJour({
   or,
-  lignesAssignees,
   onChoisir,
   desactive,
   grand = false,
@@ -86,7 +82,7 @@ export function CarteOrDuJour({
       <IdentiteClient client={or.client} />
       <div className="flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <span className="texte-libelle text-muted-foreground">
-          {t('technicien.mesOrs.lignesAssignees', { count: lignesAssignees })}
+          {t('technicien.mesOrs.lignesAssignees', { count: or.lignesAssignees })}
         </span>
         {horsSite ? (
           <span className="texte-corps font-medium text-avertissement">

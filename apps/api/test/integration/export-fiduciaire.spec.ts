@@ -133,7 +133,14 @@ describe('export fiduciaire — parcours complet (tenant A)', () => {
       '/exports-fiduciaires/apercu?cible=csv&periodeDu=2026-02-01&periodeAu=2026-02-28',
     );
     expect(r.status, JSON.stringify(r.body)).toBe(200);
-    expect(r.body.documents).toEqual({ nbFactures: 3, nbAvoirs: 0, aExporter: 3, dejaExportes: 0 });
+    expect(r.body.documents).toEqual({
+      nbFactures: 3,
+      nbAvoirs: 0,
+      aExporter: 3,
+      dejaExportes: 0,
+      dejaExportesFactures: 0,
+      dejaExportesAvoirs: 0,
+    });
     expect(r.body.totaux).toEqual({
       htCentimes: 3 * PRIMITIVE_HT,
       tvaCentimes: 3 * PRIMITIVE_TVA,
@@ -270,7 +277,12 @@ describe('export fiduciaire — parcours complet (tenant A)', () => {
       'get',
       '/exports-fiduciaires/apercu?cible=csv&periodeDu=2026-02-01&periodeAu=2026-02-28',
     );
-    expect(r.body.documents).toMatchObject({ aExporter: 0, dejaExportes: 3 });
+    expect(r.body.documents).toMatchObject({
+      aExporter: 0,
+      dejaExportes: 3,
+      dejaExportesFactures: 3,
+      dejaExportesAvoirs: 0,
+    });
     expect(r.body.aQuelqueChoseAExporter).toBe(false);
     expect(r.body.exportable).toBe(false);
   });

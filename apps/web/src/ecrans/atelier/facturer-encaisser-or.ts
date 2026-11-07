@@ -25,7 +25,6 @@ export function demandeFacturerEtEncaisserDepuisOr(
   if (!groupe || groupe.payeur !== 'client' || groupe.totalTtcCentimes === undefined) return null;
   return {
     orId: or.id,
-    entree: { groupes: [{ payeur: 'client', payeurClientId: null }], motifsReport: [] },
     totalEstimeCentimes: groupe.totalTtcCentimes,
     destinataireNom: groupe.destinataire?.nomAffiche ?? or.client.nomAffiche,
   };

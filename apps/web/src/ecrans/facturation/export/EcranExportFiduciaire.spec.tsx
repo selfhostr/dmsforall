@@ -66,7 +66,14 @@ function apercu(surcharge: Partial<ApercuExport> = {}): ApercuExport {
     cible: 'winbiz',
     periodeDu: '2026-10-01',
     periodeAu: '2026-10-31',
-    documents: { nbFactures: 12, nbAvoirs: 2, aExporter: 14, dejaExportes: 3 },
+    documents: {
+      nbFactures: 12,
+      nbAvoirs: 2,
+      aExporter: 14,
+      dejaExportes: 3,
+      dejaExportesFactures: 2,
+      dejaExportesAvoirs: 1,
+    },
     encaissements: { aExporter: 9, dejaExportes: 1, imputationsAExporter: 9 },
     totaux: { htCentimes: 1000000, tvaCentimes: 81000, ttcCentimes: 1081000 },
     plageNumeros: {
@@ -511,7 +518,16 @@ describe('EcranExportFiduciaire — aperçu', () => {
                   },
                 ],
               },
-              { code: 'FONCTION_NON_DISPONIBLE', limites: ['Compensation sur FAC-2026-00017'] },
+              {
+                code: 'FONCTION_NON_DISPONIBLE',
+                limites: ['Compensation sur FAC-2026-00017'],
+                details: [
+                  {
+                    code: 'COMPENSATION_NON_SUPPORTEE',
+                    donnees: { paiementId: 'p-1', documentId: 'FAC-2026-00017' },
+                  },
+                ],
+              },
             ],
           }),
         ),
@@ -524,8 +540,56 @@ describe('EcranExportFiduciaire — aperçu', () => {
     expect(
       screen.getByText('FAC-2026-00016 : débit CHF 100.00, crédit CHF 99.95'),
     ).toBeInTheDocument();
-    expect(screen.getByText('Compensation sur FAC-2026-00017')).toBeInTheDocument();
+    // `details` structurés rendus en clair (le libellé de repli `limites` n'est pas affiché).
+    expect(
+      screen.getByText(
+        'Un encaissement par compensation ne peut pas encore être exporté. (document FAC-2026-00017)',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Compensation sur FAC-2026-00017')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Télécharger' })).toBeDisabled();
+  });
+
+  it('FONCTION_NON_DISPONIBLE : détails traduits (uuid masqué, nature, format), repli sur limites', async () => {
+    connecte('comptable');
+    server.use(
+      http.get('/api/v1/exports-fiduciaires/apercu', () =>
+        HttpResponse.json(
+          apercu({
+            exportable: false,
+            prerequis: [
+              {
+                code: 'FONCTION_NON_DISPONIBLE',
+                limites: ['Texte de repli français'],
+                details: [
+                  {
+                    code: 'TAUX_MULTIPLES_NON_SUPPORTE',
+                    donnees: {
+                      paiementId: 'p-2',
+                      documentId: '4d1c4f86-2b6a-4a7e-9b86-0f1e8d3a1a11',
+                      nature: 'perte',
+                    },
+                  },
+                  { code: 'ADAPTATEUR_NON_CABLE', donnees: { cible: 'winbiz' } },
+                ],
+              },
+              { code: 'FONCTION_NON_DISPONIBLE', limites: ['Seul le repli existe'], details: [] },
+            ],
+          }),
+        ),
+      ),
+    );
+    rendre();
+    expect(
+      await screen.findByText(
+        'Une perte sur une facture à plusieurs taux de TVA ne peut pas encore être exporté.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Le format WinBIZ n’est pas encore disponible pour l’export.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Texte de repli français')).not.toBeInTheDocument();
+    expect(screen.getByText('Seul le repli existe')).toBeInTheDocument();
   });
 
   it('dit qu’il n’y a rien à exporter et garde le bouton désactivé', async () => {

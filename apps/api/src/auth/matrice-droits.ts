@@ -594,6 +594,8 @@ export const TOUTES_ACTIONS = [
   'atelier.ligne.photo.ajouter',
   'atelier.ligne.photo.lire',
   'atelier.ligne.photo.supprimer',
+  // ---- Accueil — état de mise en route (`GET /accueil/etat-demarrage`) : direction et admin. -----
+  'accueil.demarrage.lire',
 ] as const;
 
 /**

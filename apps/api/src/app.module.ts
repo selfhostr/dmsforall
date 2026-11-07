@@ -37,6 +37,7 @@ import { RelancesModule } from './relances/relances.module';
 import { RepriseJobModule } from './reprise/reprise-job.module';
 import { RepriseModule } from './reprise/reprise.module';
 import { RendezVousModule } from './rendezvous/rendezvous.module';
+import { AccueilModule } from './accueil/accueil.module';
 import { SanteModule } from './sante';
 import { SocleModule } from './socle';
 import { TableauBordModule } from './tableau-bord/tableau-bord.module';
@@ -159,6 +160,8 @@ export class AppModule implements NestModule {
         // même raisonnement que `PneusModule`/`RelancesModule` ci-dessus (aucune contrainte
         // d'ordre réelle, `AtelierModule` n'importe jamais ce module — sens unique).
         RendezVousModule,
+        // `AccueilModule` (`GET /accueil/etat-demarrage`) — lecture seule, sans dépendance de module.
+        AccueilModule,
         CourtoisieModule,
         // `RepriseModule` (reprise de données par dépôt d'archive, `contrats/reprise.ts`,
         // migrations 0066/0067) — aucune dépendance de compilation avec un autre module métier

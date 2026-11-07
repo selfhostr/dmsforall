@@ -1,8 +1,6 @@
-import { CheckCircle2, Download, Mail } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Download, Mail } from 'lucide-react';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-
-import type { EntreeFacturationOrdreReparation } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
@@ -29,7 +27,6 @@ import { formaterMontant, formaterMontantAvecDevise } from '@/lib/formats';
  *  vide la liste des lignes à facturer de l'OR (le dialogue ne doit pas disparaître avec elle). */
 export interface DemandeFacturerEtEncaisser {
   readonly orId: string;
-  readonly entree: EntreeFacturationOrdreReparation;
   /** Total TTC estimé (somme des groupes cochés) ; le montant réellement encaissé est celui du
    *  solde de la facture créée. `undefined` pour un rôle sans droit aux montants. */
   readonly totalEstimeCentimes: number | undefined;
@@ -50,8 +47,8 @@ const DEVISE = 'CHF' as const;
 
 /**
  * « Facturer et encaisser » : un seul dialogue pour créer la facture, l'émettre et encaisser, puis
- * télécharger le PDF ou l'envoyer par e-mail. Toute la séquence vit dans
- * `useFacturerEtEncaisser` (reprise propre si une étape échoue) ; ici, seulement l'affichage.
+ * télécharger le PDF ou l'envoyer par e-mail. Un seul appel serveur (`useFacturerEtEncaisser`) ;
+ * ici, seulement l'affichage.
  */
 export function DialogueFacturerEtEncaisser({
   demande,
@@ -67,11 +64,11 @@ export function DialogueFacturerEtEncaisser({
   const [choix, setChoix] = useState<ChoixPaiementComptoir>('especes');
 
   const ouvert = demande !== null;
-  const { resultat, facture } = flux;
+  const { resultat } = flux;
 
   function fermer() {
     if (flux.enCours) return;
-    const factureId = facture?.id ?? null;
+    const factureId = resultat?.document.id ?? null;
     flux.reinitialiser();
     pdf.reset();
     courriel.reset();
@@ -116,16 +113,41 @@ export function DialogueFacturerEtEncaisser({
               aria-live="polite"
               className="flex flex-col items-center gap-2 py-2 text-center"
             >
-              <CheckCircle2 aria-hidden className="h-10 w-10 text-statut-succes" />
+              {resultat.encaissementEchoue ? (
+                <AlertTriangle aria-hidden className="h-10 w-10 text-statut-attention" />
+              ) : (
+                <CheckCircle2 aria-hidden className="h-10 w-10 text-statut-succes" />
+              )}
               <p className="texte-corps font-medium text-foreground">
-                {resultat.moyen && resultat.encaisseCentimes !== null
-                  ? t('facturation:facturerEncaisser.succes.encaisse', {
-                      montant: formaterMontantAvecDevise(resultat.encaisseCentimes, DEVISE),
-                      moyen: t(`facturation:moyensPaiement.${resultat.moyen}`),
+                {resultat.encaissementEchoue
+                  ? t('facturation:facturerEncaisser.succes.encaissementEchoue', {
+                      numero: resultat.document.numero ?? '',
                     })
-                  : t('facturation:facturerEncaisser.succes.plusTard')}
+                  : resultat.moyen && resultat.encaisseCentimes !== null
+                    ? t('facturation:facturerEncaisser.succes.encaisse', {
+                        montant: formaterMontantAvecDevise(resultat.encaisseCentimes, DEVISE),
+                        moyen: t(`facturation:moyensPaiement.${resultat.moyen}`),
+                      })
+                    : t('facturation:facturerEncaisser.succes.plusTard')}
               </p>
             </section>
+            {resultat.encaissementEchoue ? (
+              <div className="flex flex-col items-center gap-2">
+                <Button
+                  type="button"
+                  disabled={flux.enCours}
+                  onClick={() => void flux.encaisserMaintenant()}
+                >
+                  {t('facturation:facturerEncaisser.succes.encaisserMaintenant')}
+                </Button>
+                {flux.erreurEncaissement ? (
+                  <p role="alert" className="texte-libelle text-destructive">
+                    {t('facturation:facturerEncaisser.succes.encaissementErreur')}{' '}
+                    {messageErreur(flux.erreurEncaissement, t)}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
@@ -242,12 +264,6 @@ export function DialogueFacturerEtEncaisser({
                   : t('facturation:facturerEncaisser.apercuInconnu')}
             </p>
 
-            {flux.enCours && flux.etape ? (
-              <p role="status" className="texte-libelle text-muted-foreground">
-                {t(`facturation:facturerEncaisser.etapes.${flux.etape}`)}
-              </p>
-            ) : null}
-
             {flux.erreurConfirmation ? (
               <div
                 role="alert"
@@ -271,25 +287,17 @@ export function DialogueFacturerEtEncaisser({
             {flux.erreur ? (
               <div role="alert" className="flex flex-col gap-1">
                 <p className="texte-corps font-medium text-destructive">
-                  {t(`facturation:facturerEncaisser.echec.${flux.erreur.etape}`)}
+                  {t('facturation:facturerEncaisser.echec.facturation')}
                 </p>
-                <p className="texte-libelle text-destructive">
-                  {messageErreur(flux.erreur.erreur, t)}
+                <p className="texte-libelle text-destructive">{messageErreur(flux.erreur, t)}</p>
+                <p className="texte-libelle text-muted-foreground">
+                  {t('facturation:facturerEncaisser.echec.factureConservee')}
                 </p>
-                {facture ? (
-                  <p className="texte-libelle text-muted-foreground">
-                    {t('facturation:facturerEncaisser.echec.factureConservee')}
-                  </p>
-                ) : null}
               </div>
             ) : null}
 
             <DialogFooter>
-              {facture && flux.erreur ? (
-                <Button type="button" variant="outline" onClick={() => onOuvrirFacture(facture.id)}>
-                  {t('facturation:facturerEncaisser.succes.ouvrirFacture')}
-                </Button>
-              ) : onFacturerEnDetail ? (
+              {onFacturerEnDetail ? (
                 <Button
                   type="button"
                   variant="outline"
@@ -305,9 +313,7 @@ export function DialogueFacturerEtEncaisser({
               <Button
                 type="button"
                 disabled={flux.enCours || flux.confirmationsRequises.length > 0 || !demande}
-                onClick={() =>
-                  demande ? void flux.lancer(demande.orId, demande.entree, choix) : undefined
-                }
+                onClick={() => (demande ? void flux.lancer(demande.orId, choix) : undefined)}
               >
                 {libelleBouton}
               </Button>

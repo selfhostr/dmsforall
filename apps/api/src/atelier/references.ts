@@ -158,6 +158,7 @@ export async function versClientResume(
     langueCorrespondance: ligne.langue,
     poObligatoire: ligne.poObligatoire,
     telephone: ligne.telephone,
+    email: ligne.email,
     localite: adressePrincipale?.localite ?? null,
     nombreVehicules: vehiculesDetenus.length,
     dernierPassageLe: dernierOrOuvert?.ouvertLe ? dernierOrOuvert.ouvertLe.toISOString() : null,

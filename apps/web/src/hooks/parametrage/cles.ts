@@ -17,6 +17,9 @@ export const clesParametrage = {
   /** Identité fiscale du garage (`GET|PATCH /parametres-entreprise`) : raison sociale, n° TVA. */
   entreprise: () => ['parametrage', 'entreprise'] as const,
 
+  /** Logo du garage (`GET|PUT|DELETE /parametres-entreprise/logo`). */
+  logo: () => ['parametrage', 'entreprise', 'logo'] as const,
+
   tauxHoraires: {
     /** Liste paginée par curseur (`useInfiniteQuery`) — un seul cache par tenant, pas de filtre
      *  aujourd'hui (le catalogue de taux horaires d'un garage compte rarement plus de quelques

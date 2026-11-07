@@ -175,6 +175,48 @@ describe('construireEcriturePaiement', () => {
     expect(parCompte.get('3900')).toMatchObject({ sens: 'credit', montantCentimes: 2 }); // Arrondi (gain)
   });
 
+  it.each([
+    // solde, espèces remises, arrondi signé, sens attendu du compte d'arrondi, montant du poste
+    [10_941n, 10_940n, 1n, 'debit'],
+    [10_942n, 10_940n, 2n, 'debit'],
+    [10_943n, 10_945n, -2n, 'credit'],
+    [10_944n, 10_945n, -1n, 'credit'],
+  ] as const)(
+    'solde %i ct, espèces %i ct, arrondi %i : écriture équilibrée, poste d’arrondi au %s, aucune avance',
+    (solde, especes, arrondi, sens) => {
+      const p = paiement({ id: 'paiement-4', montantCentimes: especes, moyen: 'especes' });
+      const imps = [
+        imputation({ documentId: 'doc-4', montantCentimes: especes, nature: 'reglement' }),
+        imputation({ documentId: 'doc-4', montantCentimes: arrondi, nature: 'arrondi' }),
+      ];
+      const docs = documentsDeTest({ 'doc-4': { numero: '2026-00109', ventilationTva: [] } });
+
+      const resultat = construireEcriturePaiement(p, imps, docs, comptesDeTest(), null, true);
+
+      expect(resultat.succes).toBe(true);
+      if (!resultat.succes) return;
+      const montantArrondi = arrondi < 0n ? -arrondi : arrondi;
+      const debitTotal = sens === 'debit' ? especes + montantArrondi : especes;
+      expect(resultat.totalDebitCentimes).toBe(debitTotal);
+      expect(resultat.totalCreditCentimes).toBe(debitTotal);
+      const parCompte = new Map(resultat.ecriture.lignes.map((l) => [l.compte, l]));
+      expect(parCompte.get('1000')).toMatchObject({
+        sens: 'debit',
+        montantCentimes: Number(especes),
+      });
+      expect(parCompte.get('1100')).toMatchObject({
+        sens: 'credit',
+        montantCentimes: Number(solde),
+      });
+      expect(parCompte.get('3900')).toMatchObject({
+        sens,
+        montantCentimes: Number(montantArrondi),
+      });
+      // Trois lignes exactement : pas de ligne « avance non affectée » (acomptes reçus).
+      expect(resultat.ecriture.lignes).toHaveLength(3);
+    },
+  );
+
   it('CF-14 : escompte 2 % avec correction proportionnelle de TVA — le calcul tombe juste au centime', () => {
     // Facture 3459.20 TTC (81 ‰), escompte 69.18 (dont TVA 5.18, HT 64.00), client verse 3390.02.
     const p = paiement({ id: 'paiement-cf14', montantCentimes: 339_002n });

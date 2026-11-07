@@ -153,6 +153,7 @@
     "IMPUTATION_DEVISE_INCOHERENTE": "La valuta del pagamento non corrisponde a quella della fattura. Reinserisca il pagamento nella valuta della fattura.",
     "IMPUTATION_DOCUMENT_NON_REGLABLE": "Questa fattura non può ancora essere saldata: va prima emessa.",
     "AVOIR_RETOUR_STOCK_NON_DECLENCHE": "Il credito è stato registrato per un importo parziale. Il reso parziale non ha potuto essere registrato automaticamente. Se hai ricevuto il pezzo, registra il reso manualmente.",
+    "ENCAISSEMENT_ECHOUE": "Fattura emessa, ma l'incasso non ha potuto essere registrato: incassala dalla fattura.",
     "FACTURE_SANS_QR": "Fattura emessa senza fattura QR: completa le tue coordini bancarie in Impostazioni > Fatturazione.",
     "VEHICULE_DEPOTS_PNEUS_OUVERTS": "A questo veicolo sono ancora collegati depositi di pneumatici. Decida se seguono il veicolo, se vengono ripresi o trasferiti al cliente.",
     "VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE": "La fattura è stata emessa con successo. La marcatura del veicolo come venduto non ha potuto essere finalizzata. Correggila manualmente se necessario.",

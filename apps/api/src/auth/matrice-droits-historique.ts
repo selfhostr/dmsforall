@@ -1638,6 +1638,21 @@ const DROITS_PHOTO_LIGNE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Act
   comptable: [...PHOTO_LECTURE],
 };
 
+// =================================================================================================
+// Accueil — état de mise en route du garage (`accueil.demarrage.lire`) : direction et admin.
+// =================================================================================================
+const DROITS_ACCUEIL_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
+  admin: ['accueil.demarrage.lire'],
+  direction: ['accueil.demarrage.lire'],
+  vendeur: [],
+  receptionnaire: [],
+  chef_atelier: [],
+  technicien: [],
+  magasinier: [],
+  comptable: [],
+  poste_atelier: [],
+};
+
 export const MATRICE_DROITS_HISTORIQUE = {
   admin: [
     ...DROITS_ADMIN,
@@ -1659,6 +1674,7 @@ export const MATRICE_DROITS_HISTORIQUE = {
     ...DROITS_REPRISE_PAR_ROLE.admin,
     ...DROITS_COURTOISIE_PAR_ROLE.admin,
     ...DROITS_PHOTO_LIGNE_PAR_ROLE.admin,
+    ...DROITS_ACCUEIL_PAR_ROLE.admin,
   ],
   direction: [
     ...DROITS_DIRECTION,
@@ -1680,6 +1696,7 @@ export const MATRICE_DROITS_HISTORIQUE = {
     ...DROITS_REPRISE_PAR_ROLE.direction,
     ...DROITS_COURTOISIE_PAR_ROLE.direction,
     ...DROITS_PHOTO_LIGNE_PAR_ROLE.direction,
+    ...DROITS_ACCUEIL_PAR_ROLE.direction,
   ],
   vendeur: [
     ...DROITS_VENDEUR,
@@ -1701,6 +1718,7 @@ export const MATRICE_DROITS_HISTORIQUE = {
     ...DROITS_REPRISE_PAR_ROLE.vendeur,
     ...DROITS_COURTOISIE_PAR_ROLE.vendeur,
     ...DROITS_PHOTO_LIGNE_PAR_ROLE.vendeur,
+    ...DROITS_ACCUEIL_PAR_ROLE.vendeur,
   ],
   receptionnaire: [
     ...DROITS_RECEPTIONNAIRE,
@@ -1722,6 +1740,7 @@ export const MATRICE_DROITS_HISTORIQUE = {
     ...DROITS_REPRISE_PAR_ROLE.receptionnaire,
     ...DROITS_COURTOISIE_PAR_ROLE.receptionnaire,
     ...DROITS_PHOTO_LIGNE_PAR_ROLE.receptionnaire,
+    ...DROITS_ACCUEIL_PAR_ROLE.receptionnaire,
   ],
   chef_atelier: [
     ...DROITS_CHEF_ATELIER,
@@ -1743,6 +1762,7 @@ export const MATRICE_DROITS_HISTORIQUE = {
     ...DROITS_REPRISE_PAR_ROLE.chef_atelier,
     ...DROITS_COURTOISIE_PAR_ROLE.chef_atelier,
     ...DROITS_PHOTO_LIGNE_PAR_ROLE.chef_atelier,
+    ...DROITS_ACCUEIL_PAR_ROLE.chef_atelier,
   ],
   technicien: [
     ...DROITS_TECHNICIEN,
@@ -1764,6 +1784,7 @@ export const MATRICE_DROITS_HISTORIQUE = {
     ...DROITS_REPRISE_PAR_ROLE.technicien,
     ...DROITS_COURTOISIE_PAR_ROLE.technicien,
     ...DROITS_PHOTO_LIGNE_PAR_ROLE.technicien,
+    ...DROITS_ACCUEIL_PAR_ROLE.technicien,
   ],
   magasinier: [
     ...DROITS_MAGASINIER,
@@ -1785,6 +1806,7 @@ export const MATRICE_DROITS_HISTORIQUE = {
     ...DROITS_REPRISE_PAR_ROLE.magasinier,
     ...DROITS_COURTOISIE_PAR_ROLE.magasinier,
     ...DROITS_PHOTO_LIGNE_PAR_ROLE.magasinier,
+    ...DROITS_ACCUEIL_PAR_ROLE.magasinier,
   ],
   comptable: [
     ...DROITS_COMPTABLE,
@@ -1806,6 +1828,7 @@ export const MATRICE_DROITS_HISTORIQUE = {
     ...DROITS_REPRISE_PAR_ROLE.comptable,
     ...DROITS_COURTOISIE_PAR_ROLE.comptable,
     ...DROITS_PHOTO_LIGNE_PAR_ROLE.comptable,
+    ...DROITS_ACCUEIL_PAR_ROLE.comptable,
   ],
   poste_atelier: [
     ...DROITS_POSTE_ATELIER,
@@ -1827,6 +1850,7 @@ export const MATRICE_DROITS_HISTORIQUE = {
     ...DROITS_REPRISE_PAR_ROLE.poste_atelier,
     ...DROITS_COURTOISIE_PAR_ROLE.poste_atelier,
     ...DROITS_PHOTO_LIGNE_PAR_ROLE.poste_atelier,
+    ...DROITS_ACCUEIL_PAR_ROLE.poste_atelier,
   ],
 } as const satisfies Readonly<Record<RoleUtilisateur, readonly Action[]>>;
 

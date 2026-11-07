@@ -11,6 +11,7 @@ import {
   type EcritureDesequilibree,
   type EtatMappingExport,
   type ExportHistorique,
+  type LimiteExport,
   type ModeGranulariteExport,
   type PageCurseur,
   type PlageNumeros,
@@ -68,6 +69,20 @@ export class EcritureDesequilibreeDto implements EcritureDesequilibree {
   @ApiProperty({ description: 'Centimes.' }) readonly totalCreditCentimes!: number;
 }
 
+export class LimiteExportDto {
+  @ApiProperty({
+    enum: ['ADAPTATEUR_NON_CABLE', 'COMPENSATION_NON_SUPPORTEE', 'TAUX_MULTIPLES_NON_SUPPORTE'],
+  })
+  readonly code!: LimiteExport['code'];
+  @ApiProperty({
+    type: 'object',
+    additionalProperties: true,
+    description:
+      '`ADAPTATEUR_NON_CABLE` : { cible } ; `COMPENSATION_NON_SUPPORTEE` : { paiementId, documentId } ; `TAUX_MULTIPLES_NON_SUPPORTE` : { paiementId, documentId, nature }.',
+  })
+  readonly donnees!: Readonly<Record<string, unknown>>;
+}
+
 /**
  * Union discriminée par `code` (OpenAPI : un seul schéma, les champs utiles selon le code) :
  * `EXPORT_MAPPING_INCOMPLET` → `comptes` + `codesTva` ; `EXPORT_TROU_NUMEROTATION` → `trous` ;
@@ -83,7 +98,17 @@ export class PrerequisExportDto {
   readonly trous?: readonly TrouNumerotationDto[];
   @ApiPropertyOptional({ type: () => [EcritureDesequilibreeDto] })
   readonly ecritures?: readonly EcritureDesequilibreeDto[];
-  @ApiPropertyOptional({ type: [String] }) readonly limites?: readonly string[];
+  @ApiPropertyOptional({
+    type: [String],
+    deprecated: true,
+    description: 'Libellés français (support, logs). L’écran lit `details`.',
+  })
+  readonly limites?: readonly string[];
+  @ApiPropertyOptional({
+    type: () => [LimiteExportDto],
+    description: 'Les mêmes limites, en données structurées à traduire côté écran.',
+  })
+  readonly details?: readonly LimiteExportDto[];
 }
 
 class ApercuDocumentsDto {
@@ -92,6 +117,10 @@ class ApercuDocumentsDto {
   @ApiProperty({ description: 'Émis et non exportés.' }) readonly aExporter!: number;
   @ApiProperty({ description: 'Émis sur la période, déjà partis dans un lot antérieur.' })
   readonly dejaExportes!: number;
+  @ApiProperty({ description: 'Dont factures (`dejaExportes` = factures + avoirs).' })
+  readonly dejaExportesFactures!: number;
+  @ApiProperty({ description: 'Dont avoirs.' })
+  readonly dejaExportesAvoirs!: number;
 }
 
 class ApercuEncaissementsDto {

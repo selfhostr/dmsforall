@@ -209,13 +209,21 @@ export const cloturerOrdreReparation = (orId: string, entree: EntreeActionSansCo
 export const annulerOrdreReparation = (orId: string, entree: EntreeActionAnnuler) =>
   executerActionOr(orId, 'annuler', entree);
 
+/** Ligne créée depuis un travail reporté : le serveur reprend désignation, estimation, urgence et
+ *  sécurité du travail (envoyer le défaut `securite: false` l'écraserait). */
+export interface EntreeLigneDepuisTravailReporte {
+  readonly type: EntreeCreationLigneOr['type'];
+  readonly origine: EntreeCreationLigneOr['origine'];
+  readonly travailReporteId: string;
+}
+
 /** `POST /ordres-reparation/{orId}/lignes` (§7.8) — `Idempotency-Key` OBLIGATOIRE (saisie en
  *  rafale au comptoir, un rejeu ne doit pas créer deux lignes). Renvoie SEULEMENT la ligne créée
  *  (`EnveloppeLigneOrDto`), jamais le document OR complet — voir `useActionsLigneOr.ts` pour la
  *  conséquence côté cache (invalidation, pas `setQueryData`). */
 export async function creerLigneOrdreReparation(
   orId: string,
-  entree: EntreeCreationLigneOr,
+  entree: EntreeCreationLigneOr | EntreeLigneDepuisTravailReporte,
   idempotencyKey: string,
 ): Promise<ReponseAvecAvertissements<ReponseLigneOr>> {
   const reponse = await requeteApi<ReponseAvecAvertissements<ReponseLigneOr>>(

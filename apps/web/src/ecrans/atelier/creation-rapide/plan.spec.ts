@@ -76,7 +76,8 @@ describe('construirePlan', () => {
       entree: {
         type: 'particulier',
         nom: 'Martin',
-        telephones: [{ valeur: '079 123 45 67', principal: true }],
+        telephone: '079 123 45 67',
+        langueCorrespondance: 'fr',
       },
     });
   });

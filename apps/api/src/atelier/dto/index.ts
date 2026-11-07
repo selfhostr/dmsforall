@@ -8,3 +8,4 @@ export * from './journal.dto';
 export * from './ordre-reparation.dto';
 export * from './facturation-or.dto';
 export * from './devis-vers-or.dto';
+export * from './creation-rapide-or.dto';

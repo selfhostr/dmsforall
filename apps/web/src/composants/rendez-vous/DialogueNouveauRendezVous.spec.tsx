@@ -161,16 +161,6 @@ describe('DialogueNouveauRendezVous — aide et présélections', () => {
   });
 });
 
-describe('DialogueNouveauRendezVous — motifs désactivés', () => {
-  it('ne propose pas un motif désactivé (actif === false)', async () => {
-    rendreAvecMotifs({ motifsDisponibles: [MOTIF_MFK, { ...MOTIF_PNEUS, actif: false }] });
-    const utilisateur = userEvent.setup();
-    await utilisateur.click(screen.getByRole('combobox', { name: 'Motif du rendez-vous' }));
-    expect(screen.getByRole('option', { name: 'Passage à l’expertise MFK' })).toBeInTheDocument();
-    expect(screen.queryByRole('option', { name: 'Changement de pneus' })).not.toBeInTheDocument();
-  });
-});
-
 describe('DialogueNouveauRendezVous', () => {
   it('affiche le sujet déjà connu SANS sélecteur, avec un lien "Changer" (points d’entrée 2/3)', () => {
     render(

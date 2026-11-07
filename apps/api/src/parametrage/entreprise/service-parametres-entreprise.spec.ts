@@ -5,16 +5,24 @@ import { ServiceParametresEntreprise } from './service-parametres-entreprise';
 
 const CTX: ContexteTenant = { tenantId: 'tid', utilisateurId: null, requeteId: null };
 
-function acces(ligne: { raisonSociale: string; numeroTva: string | null } | undefined) {
+interface LigneTenant {
+  raisonSociale: string;
+  numeroTva: string | null;
+  delaiPaiementJoursDefaut?: number;
+}
+
+function acces(ligneBrute: LigneTenant | undefined) {
+  const ligne = ligneBrute && { delaiPaiementJoursDefaut: 30, ...ligneBrute };
   const sets: unknown[] = [];
   const tx = {
     select: () => ({ from: () => ({ where: () => Promise.resolve(ligne ? [ligne] : []) }) }),
     update: () => ({
-      set: (v: { numeroTva: string | null }) => {
+      set: (v: { numeroTva?: string | null; delaiPaiementJoursDefaut?: number }) => {
         sets.push(v);
+        const definis = Object.fromEntries(Object.entries(v).filter(([, x]) => x !== undefined));
         return {
           where: () => ({
-            returning: () => Promise.resolve(ligne ? [{ ...ligne, numeroTva: v.numeroTva }] : []),
+            returning: () => Promise.resolve(ligne ? [{ ...ligne, ...definis }] : []),
           }),
         };
       },
@@ -34,6 +42,7 @@ describe('ServiceParametresEntreprise', () => {
     expect(await new ServiceParametresEntreprise(base).obtenir(CTX)).toEqual({
       raisonSociale: 'Garage Sandra',
       numeroTva: null,
+      delaiPaiementJoursDefaut: 30,
     });
   });
 
@@ -65,5 +74,24 @@ describe('ServiceParametresEntreprise', () => {
     await expect(new ServiceParametresEntreprise(base).obtenir(CTX)).rejects.toMatchObject({
       code: 'RESSOURCE_INTROUVABLE',
     });
+  });
+
+  it('modifie le délai de paiement par défaut sans toucher au n° TVA', async () => {
+    const { base, sets } = acces({ raisonSociale: 'G', numeroTva: 'CHE-116.281.710 TVA' });
+    const dto = await new ServiceParametresEntreprise(base).modifier(CTX, {
+      delaiPaiementJoursDefaut: 10,
+    });
+    expect(sets).toEqual([{ delaiPaiementJoursDefaut: 10 }]);
+    expect(dto).toEqual({
+      raisonSociale: 'G',
+      numeroTva: 'CHE-116.281.710 TVA',
+      delaiPaiementJoursDefaut: 10,
+    });
+  });
+
+  it('accepte un délai de 0 jour (comptant) : zéro n’est pas « absent »', async () => {
+    const { base, sets } = acces({ raisonSociale: 'G', numeroTva: null });
+    await new ServiceParametresEntreprise(base).modifier(CTX, { delaiPaiementJoursDefaut: 0 });
+    expect(sets).toEqual([{ delaiPaiementJoursDefaut: 0 }]);
   });
 });

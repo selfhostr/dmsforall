@@ -51,6 +51,8 @@ export const CAPACITE_DE_L_ACTION: Readonly<Record<Action, Classement>> = {
   'reprise.plan.valider': 'patron',
   'reprise.import.lancer': 'patron',
   'facturation.parametrage.creancier.modifier': 'patron',
+  // Tableau « Démarrer votre garage » : outil de la direction ; `admin` (intégrateur) le voit aussi.
+  'accueil.demarrage.lire': 'employes',
   // ---- Encadrer --------------------------------------------------------------------------------
   'parametrage.atelier.modifier': 'encadrer',
   'parametrage.referentiel.modifier': 'encadrer',

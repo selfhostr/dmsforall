@@ -118,6 +118,14 @@ export function releverOperationsDelete(
  */
 const EXCEPTIONS_DELETE_JUSTIFIEES_RM_110: ReadonlySet<string> = new Set([
   '/documents-vente/{id}/lignes/{ligneId}',
+  // `DELETE /photos/{id}` (`atelier/photos/photos-ligne.controller.ts`) : retirer une photo de
+  // ligne d'OR prise par erreur ou floue ; table `ligne_or_photo` marquée
+  // `[dfa:suppression-physique]` (migration 0085_ligne_or_photo.sql).
+  '/photos/{id}',
+  // `DELETE /parametres-entreprise/logo` (`facturation/impression/logo/logo-entreprise.controller.ts`) :
+  // retire le logo imprimé sur les documents, un réglage d'entreprise remplaçable, pas un
+  // enregistrement métier ni une trace comptable.
+  '/parametres-entreprise/logo',
 ]);
 
 describe('C-03 — aucune opération DELETE dans tout le document, hors liste blanche justifiée (RM-110 : pas de suppression physique)', () => {

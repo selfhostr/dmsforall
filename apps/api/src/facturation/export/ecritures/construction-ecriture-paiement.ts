@@ -101,6 +101,7 @@
 import type {
   EcritureExport,
   LigneEcritureExport,
+  LimiteExport,
   MoyenPaiement,
   NatureImputation,
 } from '@dfa/shared';
@@ -163,6 +164,20 @@ export type LimiteEcriturePaiement =
       readonly documentId: string;
       readonly nature: 'escompte' | 'perte';
     };
+
+/** Même limite, en données structurées (`code` + `donnees`) pour l'aperçu d'export. */
+export function structurerLimitePaiement(l: LimiteEcriturePaiement): LimiteExport {
+  if (l.type === 'compensation_non_supportee') {
+    return {
+      code: 'COMPENSATION_NON_SUPPORTEE',
+      donnees: { paiementId: l.paiementId, documentId: l.documentId },
+    };
+  }
+  return {
+    code: 'TAUX_MULTIPLES_NON_SUPPORTE',
+    donnees: { paiementId: l.paiementId, documentId: l.documentId, nature: l.nature },
+  };
+}
 
 export function decrireLimitePaiement(l: LimiteEcriturePaiement): string {
   if (l.type === 'compensation_non_supportee') {

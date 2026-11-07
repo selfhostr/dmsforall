@@ -58,10 +58,26 @@ beforeEach(() => {
   );
 });
 
+/** Page de `GET /ordres-reparation`. « Mes OR du jour » demande `forme=resume` : le serveur ajoute
+ *  alors `nombreLignesAssignees` (lignes du compte de SESSION, hors annulées et refusées) — calculé
+ *  ici depuis `lignes`, comme le fait le serveur. Le champ en plus est sans effet pour les autres
+ *  appelants (sélecteur « Toutes les OR ouvertes »). */
 function pageOrdres(
   donnees: readonly ReponseOrdreReparation[],
-): PageCurseur<ReponseOrdreReparation> {
-  return { donnees, curseurSuivant: null, limite: 50 };
+): PageCurseur<ReponseOrdreReparation & { nombreLignesAssignees: number }> {
+  return {
+    donnees: donnees.map((or) => ({
+      ...or,
+      nombreLignesAssignees: or.lignes.filter(
+        (ligne) =>
+          ligne.technicienId === SESSION_TEST.utilisateur.id &&
+          ligne.statut !== 'annulee' &&
+          ligne.statut !== 'refusee',
+      ).length,
+    })),
+    curseurSuivant: null,
+    limite: 50,
+  };
 }
 
 function pagePointages(donnees: readonly ReponsePointage[]): PageCurseur<ReponsePointage> {
@@ -298,6 +314,30 @@ describe('EcranPointageTechnicien', () => {
     expect(screen.getByText('Jean Dupont')).toBeInTheDocument();
     // Activité indirecte, tuile toujours proposée (RM-87 : trois cibles, à tout instant).
     expect(screen.getByRole('button', { name: 'Nettoyage' })).toBeInTheDocument();
+  });
+
+  it('« Mes OR du jour » demande forme=resume et lit nombreLignesAssignees (aucune ligne dans la réponse)', async () => {
+    const requetes: URL[] = [];
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([]))),
+      http.get('/api/v1/ordres-reparation', ({ request }) => {
+        requetes.push(new URL(request.url));
+        const { lignes: _lignes, ...resume } = OR_ASSIGNE;
+        return HttpResponse.json({
+          donnees: [{ ...resume, nombreLignesAssignees: 3 }],
+          curseurSuivant: null,
+          limite: 50,
+        });
+      }),
+    );
+
+    rendre();
+
+    expect(await screen.findByText('3 lignes qui vous sont assignées')).toBeInTheDocument();
+    const miennes = requetes.filter((u) => u.searchParams.has('technicienId'));
+    expect(miennes.length).toBeGreaterThan(0);
+    expect(miennes.every((u) => u.searchParams.get('forme') === 'resume')).toBe(true);
   });
 
   it(

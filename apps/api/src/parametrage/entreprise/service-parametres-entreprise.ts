@@ -22,6 +22,7 @@ export class ServiceParametresEntreprise {
         .select({
           raisonSociale: schema.tenant.raisonSociale,
           numeroTva: schema.tenant.numeroTva,
+          delaiPaiementJoursDefaut: schema.tenant.delaiPaiementJoursDefaut,
         })
         .from(schema.tenant)
         .where(eq(schema.tenant.id, ctx.tenantId));
@@ -34,16 +35,24 @@ export class ServiceParametresEntreprise {
     ctx: ContexteTenant,
     entree: EntreeModificationParametresEntreprise,
   ): Promise<ReponseParametresEntreprise> {
-    if (entree.numeroTva === undefined) return this.obtenir(ctx);
+    if (entree.numeroTva === undefined && entree.delaiPaiementJoursDefaut === undefined) {
+      return this.obtenir(ctx);
+    }
 
     return this.acces.enTenant(ctx, async (tx) => {
+      // Seuls les champs ENVOYÉS sont écrits (`undefined` est ignoré par Drizzle) : un PATCH du
+      // délai ne touche pas au n° TVA, et inversement.
       const [ligne] = await tx
         .update(schema.tenant)
-        .set({ numeroTva: entree.numeroTva })
+        .set({
+          numeroTva: entree.numeroTva,
+          delaiPaiementJoursDefaut: entree.delaiPaiementJoursDefaut,
+        })
         .where(eq(schema.tenant.id, ctx.tenantId))
         .returning({
           raisonSociale: schema.tenant.raisonSociale,
           numeroTva: schema.tenant.numeroTva,
+          delaiPaiementJoursDefaut: schema.tenant.delaiPaiementJoursDefaut,
         });
       if (!ligne) throw this.tenantIntrouvable();
       return ligne;

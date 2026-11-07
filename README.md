@@ -13,9 +13,6 @@
 
 </div>
 
-> [!WARNING]
-> Development is paused for now. The code, images and docs stay available, but do not expect new features or quick fixes.
-
 ## Overview
 
 - **One app for the workshop and the counter.** Clients, vehicles, repair orders (OR), appointments, time clocking, parts stock, quotes, invoices and payments run in one browser application.
@@ -71,7 +68,7 @@ The web interface is a React single-page application built with Vite. It calls a
 
 ## Status
 
-Alpha. Development is paused for now. The code, images and docs stay available, but do not expect new features or quick fixes. Version `0.1.0` is the first release, and no stable release line exists. Until version 1.0, an upgrade can require manual steps. Read the [changelog](CHANGELOG.md) before each upgrade.
+Alpha. Development is active, and each release brings new features and fixes. Version `0.2.0` is the current release, and no stable release line exists. Until version 1.0, an upgrade can require manual steps. Read the [changelog](CHANGELOG.md) before each upgrade.
 
 ## Contributing
 

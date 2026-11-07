@@ -161,6 +161,8 @@ services:
       - dfa_exports_resiliation:/repo/apps/api/uploads/exports-resiliation
       # Repair order photos and their thumbnails: must outlive container recreation.
       - dfa_photos_or:/repo/apps/api/uploads/photos-or
+      # Previous-software archives (reprise): must outlive container recreation.
+      - dfa_reprise:/repo/apps/api/uploads/reprise
     depends_on:
       postgres:
         condition: service_healthy
@@ -186,6 +188,8 @@ services:
       - dfa_exports_resiliation:/repo/apps/api/uploads/exports-resiliation
       # Repair order photos and their thumbnails: must outlive container recreation.
       - dfa_photos_or:/repo/apps/api/uploads/photos-or
+      # Previous-software archives (reprise): must outlive container recreation.
+      - dfa_reprise:/repo/apps/api/uploads/reprise
     depends_on:
       postgres:
         condition: service_healthy
@@ -297,6 +301,7 @@ services:
       - dfa_api_uploads:/uploads/documents-pdf:ro
       - dfa_exports_resiliation:/uploads/exports-resiliation:ro
       - dfa_photos_or:/uploads/photos-or:ro
+      - dfa_reprise:/uploads/reprise:ro
     tmpfs:
       - /scratch:mode=1777,size=1g
     depends_on:
@@ -360,6 +365,7 @@ volumes:
   dfa_api_uploads:
   dfa_exports_resiliation:
   dfa_photos_or:
+  dfa_reprise:
   dfa_caddy_data:
   dfa_caddy_config:
   dfa_postgres_backups:

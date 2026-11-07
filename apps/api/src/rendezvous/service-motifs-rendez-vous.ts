@@ -3,6 +3,7 @@ import { and, asc, eq } from 'drizzle-orm';
 import type {
   EntreeCreationMotifRendezVous,
   EntreeModificationMotifRendezVous,
+  FiltresMotifsRendezVous,
   ReponseMotifRendezVous,
 } from '@dfa/shared';
 
@@ -23,12 +24,18 @@ const SQLSTATE_UNICITE = '23505';
 export class ServiceMotifsRendezVous {
   constructor(@Inject(JETON_DB) private readonly acces: AccesBase) {}
 
-  async lister(ctx: ContexteTenant): Promise<readonly ReponseMotifRendezVous[]> {
+  async lister(
+    ctx: ContexteTenant,
+    filtres: FiltresMotifsRendezVous = {},
+  ): Promise<readonly ReponseMotifRendezVous[]> {
     return this.acces.enTenant(ctx, async (tx) => {
+      // `actifs` comparé à `undefined` (jamais `if (filtres.actifs)`) : `false` est un filtre valide.
+      const conditions = [eq(motifRendezVous.tenantId, ctx.tenantId)];
+      if (filtres.actifs !== undefined) conditions.push(eq(motifRendezVous.actif, filtres.actifs));
       const lignes = await tx
         .select()
         .from(motifRendezVous)
-        .where(eq(motifRendezVous.tenantId, ctx.tenantId))
+        .where(and(...conditions))
         .orderBy(asc(motifRendezVous.libelleFr));
       return lignes.map(versDtoMotifRendezVous);
     });

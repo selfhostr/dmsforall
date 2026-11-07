@@ -54,6 +54,7 @@ The backup container mounts the upload volumes read-only under `/uploads` and ar
 - `dmsforall_dfa_api_uploads`: invoice and other PDF documents.
 - `dmsforall_dfa_photos_or`: repair order photos and their thumbnails.
 - `dmsforall_dfa_exports_resiliation`: the exports handed to a garage that leaves. They can contain a whole garage's data and cannot always be generated again once the garage is gone.
+- `dmsforall_dfa_reprise`: the archives uploaded to take over data from the previous software. They are the source of the takeover and cannot be regenerated.
 
 A new uploads volume added to the `api` service in `docker-compose.yml` is not backed up until you also mount it, read-only, under `/uploads/` in the `backup` service.
 

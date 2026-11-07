@@ -410,7 +410,13 @@ export async function appliquerImputationsLettrage(
     }
 
     const sommeReglement = reglements.reduce((acc, i) => acc + BigInt(i.montantCentimes), 0n);
-    if (sommeReglement > restantAvant) {
+    // Arrondi vers le HAUT (CF-05) : l'arrondi est négatif et le règlement (espèces réellement
+    // remises) dépasse le solde d'autant — `reglement + arrondi` ne doit pas dépasser le solde.
+    // La validité du couple (moyen espèces, borne ±2, solde exact) est tranchée juste après par
+    // `verifierArrondiEspeces`, toujours AVANT la première insertion.
+    const arrondiAPayerEnPlus =
+      arrondis[0] && arrondis[0].montantCentimes < 0 ? BigInt(-arrondis[0].montantCentimes) : 0n;
+    if (sommeReglement > restantAvant + arrondiAPayerEnPlus) {
       throw new ErreurMetier(
         'IMPUTATION_MONTANT_EXCEDENTAIRE',
         `La somme des imputations (CHF ${formaterMontantCentimes(sommeReglement)}) dépasse le solde restant du document (CHF ${formaterMontantCentimes(restantAvant)}).`,
@@ -430,11 +436,18 @@ export async function appliquerImputationsLettrage(
         montantRegleAvantCentimes: document.montantRegleCentimes,
         sommeReglementLotCentimes: sommeReglement,
         arrondiCentimes: BigInt(arrondi.montantCentimes),
+        paiementMontantCentimes: paiementLigne.montantCentimes,
       });
     }
 
     try {
-      for (const imp of groupe) {
+      // Un arrondi NÉGATIF s'insère AVANT le règlement : le trigger MD-51.a est évalué ligne par
+      // ligne et le règlement seul (solde + |arrondi|) dépasserait le total du document tant que
+      // l'arrondi qui le compense n'est pas posé.
+      const ordreInsertion = [...groupe].sort(
+        (a, b) => Number(b.montantCentimes < 0) - Number(a.montantCentimes < 0),
+      );
+      for (const imp of ordreInsertion) {
         const [ligne] = await tx
           .insert(imputationPaiement)
           .values({

@@ -71,7 +71,10 @@ function construireCorps(
   instance: string,
   champs: ChampsCorpsFacultatifs = {},
 ): ProblemeDetail {
-  const { detail, erreurs, blocages, confirmationsRequises, actionsProposees } = champs;
+  const { detail, erreurs, confirmationsRequises, actionsProposees } = champs;
+  // `FONCTION_NON_DISPONIBLE` (501) porte TOUJOURS `blocages` : tableau vide quand rien de nommé ne
+  // bloque (cible non câblée, mode non implémenté) — le front lit `blocages` sans test de présence.
+  const blocages = champs.blocages ?? (code === 'FONCTION_NON_DISPONIBLE' ? [] : undefined);
   return {
     type: `${TYPE_BASE}/${code}`,
     title: TITRE_PAR_CODE[code],

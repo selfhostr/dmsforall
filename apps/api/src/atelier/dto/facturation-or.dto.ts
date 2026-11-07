@@ -2,10 +2,13 @@ import { ApiProperty } from '@nestjs/swagger';
 import type {
   ReponseDocumentVente,
   ReponseFacturationOrdreReparation,
+  ReponseFacturerEtEncaisserOr,
   ReponseOrdreReparation,
+  ReponsePaiement,
 } from '@dfa/shared';
 
 import { ReponseDocumentVenteDto } from '../../facturation/documents/dto';
+import { ReponsePaiementDto } from '../../facturation/paiements/dto/paiement.dto';
 
 import { ReponseOrdreReparationDto } from './ordre-reparation.dto';
 
@@ -28,5 +31,25 @@ export class ReponseFacturationOrdreReparationDto implements ReponseFacturationO
     type: () => ReponseOrdreReparationDto,
     description: "L'OR à jour — même patron que les actions de §7.7.",
   })
+  readonly ordreReparation!: ReponseOrdreReparation;
+}
+
+/** `POST /ordres-reparation/{orId}/facturer-et-encaisser` — voir `facturer-et-encaisser-or.ts`. */
+export class ReponseFacturerEtEncaisserOrDto implements ReponseFacturerEtEncaisserOr {
+  @ApiProperty({
+    type: () => ReponseDocumentVenteDto,
+    description: 'La facture ÉMISE (numéro attribué, verrouillée), règlement à jour.',
+  })
+  readonly facture!: ReponseDocumentVente;
+
+  @ApiProperty({
+    type: () => ReponsePaiementDto,
+    required: false,
+    description:
+      "Absent si aucun `paiement` demandé, ou si l'encaissement a échoué (avertissement `ENCAISSEMENT_ECHOUE`).",
+  })
+  readonly paiement?: ReponsePaiement;
+
+  @ApiProperty({ type: () => ReponseOrdreReparationDto, description: "L'OR à jour." })
   readonly ordreReparation!: ReponseOrdreReparation;
 }

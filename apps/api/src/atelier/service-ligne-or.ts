@@ -24,6 +24,7 @@ import {
   auditAtelier,
   ligneOr,
   reservationPiece,
+  vehiculeTravailReporte,
   type LigneLigneOr,
   type LigneOrdreReparation,
   type NouvelleReservationPiece,
@@ -143,7 +144,7 @@ export function refuserSiRealisationImpossible(ligne: LigneLigneOr, voitMontants
   const libelle = consigne?.libelle ?? ligne.statut;
   throw new ErreurMetier(
     'LIGNE_TRANSITION_INTERDITE',
-    `Transition ${ligne.statut} → realisee interdite.`,
+    `Ligne non réalisable : elle est ${libelle}.`,
     {
       detail:
         `La ligne est ${libelle} : seule une ligne validée ou en cours peut être marquée réalisée. ` +
@@ -268,13 +269,34 @@ export class ServiceLigneOr {
           ? this.exigerTauxHoraire(await this.resoudreTauxHoraireCentimes(tx, ctx, or))
           : null;
 
+        // Reprise d'un travail reporté (RM-73) : verrouillé `for update` — deux reprises
+        // concurrentes ne peuvent pas créer deux lignes pour le même travail.
+        const travail = entree.travailReporteId
+          ? await this.chargerTravailAReprendre(tx, ctx, or, entree.travailReporteId)
+          : null;
+        const designation = entree.designation ?? travail?.designation;
+        if (!designation) {
+          throw new ErreurMetier('VALIDATION_ECHOUEE', 'La désignation de la ligne est requise.', {
+            erreurs: [
+              {
+                champ: 'designation',
+                code: 'requis',
+                message: 'Une désignation est requise sans travail reporté.',
+              },
+            ],
+          });
+        }
+        const prixUnitaireCentimes = entree.prixUnitaireCentimes ?? travail?.montantEstimeCentimes;
+        const urgence = entree.urgence ?? travail?.urgence ?? null;
+        const securite = entree.securite || (travail?.securite ?? false);
+
         const montants =
           entree.payeur === 'garage'
             ? { montantHtCentimes: 0, montantTvaCentimes: 0, montantTtcCentimes: 0 } // RM-70
             : this.calcul.calculer({
                 type: entree.type,
                 quantiteMillieme: entree.quantiteMillieme,
-                prixUnitaireCentimes: entree.prixUnitaireCentimes ?? null,
+                prixUnitaireCentimes: prixUnitaireCentimes ?? null,
                 tempsBaremeCentiemes: entree.tempsBaremeCentiemes ?? null,
                 tauxHoraireCentimes,
                 rabaisPourmille: entree.rabaisPourmille,
@@ -346,21 +368,21 @@ export class ServiceLigneOr {
             payeur: entree.payeur,
             payeurClientId: entree.payeurClientId ?? null,
             blocage,
-            designation: entree.designation,
+            designation,
             referenceTexte: entree.referenceTexte ?? null,
             articleId: entree.articleId ?? null,
             quantiteMillieme: entree.quantiteMillieme,
             tempsBaremeCentiemes: entree.tempsBaremeCentiemes ?? null,
             tauxHoraireCentimes,
-            prixUnitaireCentimes: entree.prixUnitaireCentimes ?? null,
+            prixUnitaireCentimes: prixUnitaireCentimes ?? null,
             rabaisPourmille: entree.rabaisPourmille,
             tauxTvaPourmille: 81,
             montantHtCentimes: montants.montantHtCentimes,
             montantTvaCentimes: montants.montantTvaCentimes,
             montantTtcCentimes: montants.montantTtcCentimes,
             technicienId: entree.technicienId ?? null,
-            urgence: entree.urgence ?? null,
-            securite: entree.securite,
+            urgence,
+            securite,
             fourniParClient: entree.fournieParClient,
             aRestituer: entree.pieceARestituer,
             codeOperation: entree.codeOperation ?? null,
@@ -374,6 +396,18 @@ export class ServiceLigneOr {
             'ERREUR_INTERNE',
             "L'insertion de la ligne n'a rendu aucune ligne.",
           );
+        }
+
+        if (travail) {
+          await tx
+            .update(vehiculeTravailReporte)
+            .set({ statut: 'repris', ordreReparationRepriseId: orId })
+            .where(
+              and(
+                eq(vehiculeTravailReporte.tenantId, ctx.tenantId),
+                eq(vehiculeTravailReporte.id, travail.id),
+              ),
+            );
         }
 
         if (entree.origine === 'constatee') {
@@ -394,6 +428,42 @@ export class ServiceLigneOr {
         };
       },
     );
+  }
+
+  /** Travail reporté à reprendre : de CE véhicule (404 sinon, jamais d'indice sur un autre), encore
+   *  `ouvert` (409 `CONFLIT` sinon). Verrouillé pour la transaction. */
+  private async chargerTravailAReprendre(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    or: LigneOrdreReparation,
+    travailId: string,
+  ) {
+    const [travail] = await tx
+      .select()
+      .from(vehiculeTravailReporte)
+      .where(
+        and(
+          eq(vehiculeTravailReporte.tenantId, ctx.tenantId),
+          eq(vehiculeTravailReporte.id, travailId),
+          eq(vehiculeTravailReporte.vehiculeId, or.vehiculeId),
+        ),
+      )
+      .limit(1)
+      .for('update');
+    if (!travail) {
+      throw new ErreurMetier(
+        'RESSOURCE_INTROUVABLE',
+        'Travail reporté introuvable pour ce véhicule.',
+      );
+    }
+    if (travail.statut !== 'ouvert') {
+      throw new ErreurMetier(
+        'CONFLIT',
+        `Ce travail reporté n'est plus à reprendre (statut : ${travail.statut}).`,
+        { actionsProposees: [{ code: 'RAFRAICHIR' }] },
+      );
+    }
+    return travail;
   }
 
   /**

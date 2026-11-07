@@ -1,26 +1,21 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { useRef } from 'react';
 
-import { schemaCreationLigneOr, type ReponseTravailReporte } from '@dfa/shared';
+import type { ReponseTravailReporte } from '@dfa/shared';
 
 import { clesQuery } from '@/api/cles';
 import { genererCleIdempotence } from '@/api/idempotence';
-import { creerLigneOrdreReparation } from '@/hooks/atelier/ordres-reparation.api';
-import { modifierTravailReporteVehicule } from '@/ecrans/vehicules/travauxReportes.api';
+import {
+  creerLigneOrdreReparation,
+  type EntreeLigneDepuisTravailReporte,
+} from '@/hooks/atelier/ordres-reparation.api';
 
-/** Entrée d'ajout de ligne correspondant à un travail reporté. Le contrat de création de ligne
- *  (`schemaCreationLigneOr`) ne porte pas `ordreReparationRepriseId` : le lien travail -> OR est
- *  posé par le passage du travail à « repris » (étape 2) ; ici on copie la désignation, l'urgence,
- *  la sécurité et l'estimation. Le prix n'est repris que s'il est connu (rôle avec montants). */
-export function ligneDepuisTravailReporte(travail: ReponseTravailReporte) {
-  return schemaCreationLigneOr.parse({
-    type: 'forfait',
-    origine: 'commandee',
-    designation: travail.designation,
-    urgence: travail.urgence,
-    securite: travail.securite,
-    prixUnitaireCentimes: travail.montantEstimeCentimes ?? undefined,
-  });
+/** Entrée d'ajout de ligne pour un travail reporté : le serveur reprend désignation, estimation,
+ *  urgence et sécurité du travail, et le passe à « repris » dans la même transaction. */
+export function ligneDepuisTravailReporte(
+  travail: ReponseTravailReporte,
+): EntreeLigneDepuisTravailReporte {
+  return { type: 'forfait', origine: 'commandee', travailReporteId: travail.id };
 }
 
 export interface VariablesReprise {
@@ -29,9 +24,9 @@ export interface VariablesReprise {
 }
 
 /**
- * « Reprendre dans cet OR » : crée une ligne sur l'OR à partir du travail reporté, puis le marque
- * « repris ». Deux appels, donc reprise propre : la clé d'idempotence de la ligne est conservée par
- * travail, un rejeu après un échec du second appel ne crée JAMAIS une deuxième ligne.
+ * « Reprendre dans cet OR » : UN appel `POST /ordres-reparation/{id}/lignes` avec `travailReporteId`
+ * (ligne créée et travail marqué « repris » atomiquement). La clé d'idempotence est conservée par
+ * travail jusqu'au succès : un rejeu après coupure ne crée jamais une deuxième ligne.
  */
 export function useReprendreTravailDansOr(
   vehiculeId: string,
@@ -49,7 +44,6 @@ export function useReprendreTravailDansOr(
         cles.current.set(cleMemo, cle);
       }
       await creerLigneOrdreReparation(orId, ligneDepuisTravailReporte(travail), cle);
-      await modifierTravailReporteVehicule(vehiculeId, travail.id, { statut: 'repris' });
       cles.current.delete(cleMemo);
     },
     onSettled: async (_donnees, _erreur, { orId }) => {

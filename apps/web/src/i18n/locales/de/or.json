@@ -204,7 +204,7 @@
     "attenteAccord": {
       "indicateur": "Wartet auf Zustimmung des Kunden",
       "ajouteeBureau": "Arbeit hinzugefügt, wartet auf Zustimmung des Kunden. Nutzen Sie «Zustimmung des Kunden» in der Zeile.",
-      "ajouteeAtelier": "Arbeit hinzugefügt, wartet auf Zustimmung des Kunden. Das Büro sieht sie in diesem AR."
+      "ajouteeAtelier": "Arbeit hinzugefügt, wartet auf Zustimmung des Kunden. Das Büro sieht sie in diesem RA."
     },
     "reporter": {
       "action": "Arbeit verschieben"
@@ -528,12 +528,8 @@
         "demande": "Anliegen des Kunden"
       },
       "echec": {
-        "client": "Der Kunde konnte nicht erfasst werden",
-        "vehicule": "Das Fahrzeug konnte nicht erfasst werden",
-        "or": "Der Auftrag konnte nicht eröffnet werden",
-        "clientCree": "Kunde erfasst.",
-        "vehiculeCree": "Fahrzeug erfasst.",
-        "reprise": "Ihre Eingaben bleiben erhalten: versuchen Sie es erneut, nichts wird doppelt erfasst."
+        "titre": "Der Auftrag konnte nicht eröffnet werden",
+        "reprise": "Ihre Eingabe bleibt erhalten: erneut versuchen, nichts wird doppelt angelegt."
       },
       "reessayer": "Erneut versuchen",
       "ancienParcours": "Detaillierter Ablauf",
@@ -558,10 +554,10 @@
   },
   "lignesEnAttente": {
     "annuler": "Abbrechen",
-    "motifRetrait": "Aus dem AR entfernt: keine Zustimmung des Kunden.",
+    "motifRetrait": "Aus dem RA entfernt: keine Zustimmung des Kunden.",
     "titre": "{count, plural, one {# Arbeit wartet noch auf die Zustimmung des Kunden} other {# Arbeiten warten noch auf die Zustimmung des Kunden}}",
     "description": "{count, plural, one {Diese Arbeit ist «Vorgeschlagen»: weder akzeptiert noch abgelehnt. Was tun vor «{action}»?} other {Diese Arbeiten sind «Vorgeschlagen»: weder akzeptiert noch abgelehnt. Was tun vor «{action}»?}}",
-    "retirer": "{count, plural, one {Aus dem AR entfernen} other {Aus dem AR entfernen}}",
+    "retirer": "{count, plural, one {Aus dem RA entfernen} other {Aus dem RA entfernen}}",
     "laisser": "{count, plural, one {Wartend lassen} other {Wartend lassen}}"
   },
   "arretPointages": {
@@ -573,7 +569,7 @@
     "fournirMotif": "Der eingegebene Kilometerstand liegt unter dem letzten Stand ({km} km). Korrigieren Sie ihn bei einem Tippfehler.",
     "signerReserveSecurite": "Lassen Sie den Sicherheitsvorbehalt vom Kunden unterzeichnen und wiederholen Sie dann die Rückgabe.",
     "demanderHabilitation": "Diese Aktion ist einer verantwortlichen Person vorbehalten. Bitten Sie sie um Bestätigung.",
-    "controleQualite": "Die Qualitätskontrolle ist für diesen Betrieb Pflicht: der AR muss in die Kontrolle, bevor er abgeschlossen wird.",
+    "controleQualite": "Die Qualitätskontrolle ist für diesen Betrieb Pflicht: der RA muss in die Kontrolle, bevor er abgeschlossen wird.",
     "receptionnerIndisponible": "Das Fahrzeug muss zuerst angenommen werden. Ihre Rolle erlaubt das nicht: fragen Sie den Empfang."
   },
   "renseignerPo": {
@@ -589,12 +585,12 @@
   "travauxReportes": {
     "titre": "Verschobene Arbeiten dieses Fahrzeugs",
     "description": "{count, plural, one {Eine Arbeit wartete auf dieses Fahrzeug.} other {# Arbeiten warteten auf dieses Fahrzeug.}}",
-    "reprendre": "In diesen AR übernehmen"
+    "reprendre": "In diesen RA übernehmen"
   },
   "courtoisie": {
     "action": "Ersatzfahrzeug",
     "titre": "Ersatzfahrzeug",
-    "description": "Wählen Sie ein heute freies Auto: Die Ausleihe wird diesem Kunden und diesem AR zugeordnet.",
+    "description": "Wählen Sie ein heute freies Auto: Die Ausleihe wird diesem Kunden und diesem RA zugeordnet.",
     "aucunLibre": "Heute ist kein Ersatzfahrzeug frei."
   },
   "photos": {

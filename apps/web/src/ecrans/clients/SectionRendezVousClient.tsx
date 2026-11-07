@@ -78,7 +78,7 @@ export function SectionRendezVousClient({ client, vehiculesClient, site }: Props
   const [rdvVenantDetreCree, setRdvVenantDetreCree] = useState<ReponseRendezVous | null>(null);
 
   const requeteRdv = useRendezVousAVenirClient(client.id);
-  const requeteMotifs = useMotifsRendezVous();
+  const requeteMotifs = useMotifsRendezVous({ actifs: true });
   const creation = useCreationRendezVous();
 
   function ouvrirDialogue() {

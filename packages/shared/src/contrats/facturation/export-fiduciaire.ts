@@ -131,8 +131,23 @@ export type PrerequisExport =
   | {
       /** Imputation `compensation`, escompte/perte multi-taux : non construits (501 au déclenchement). */
       readonly code: 'FONCTION_NON_DISPONIBLE';
+      /** @deprecated Libellés français pour le support/les logs — l'écran lit `details`. */
       readonly limites: readonly string[];
+      /** Même contenu que `limites`, en données structurées (`code` stable + `donnees`), à traduire côté écran. */
+      readonly details: readonly LimiteExport[];
     };
+
+/**
+ * Une limite de l'export, en données structurées. Codes :
+ *  - `ADAPTATEUR_NON_CABLE` — `{ cible }` : aucun adaptateur pour cette cible ;
+ *  - `COMPENSATION_NON_SUPPORTEE` — `{ paiementId, documentId }` ;
+ *  - `TAUX_MULTIPLES_NON_SUPPORTE` — `{ paiementId, documentId, nature: 'escompte' | 'perte' }`.
+ */
+export interface LimiteExport {
+  readonly code:
+    'ADAPTATEUR_NON_CABLE' | 'COMPENSATION_NON_SUPPORTEE' | 'TAUX_MULTIPLES_NON_SUPPORTE';
+  readonly donnees: Readonly<Record<string, unknown>>;
+}
 
 /* ------------------------------------------------------------------ */
 /* Aperçu                                                              */
@@ -156,8 +171,12 @@ export interface ApercuExport {
     readonly nbAvoirs: number;
     /** Émis, non exportés (= nbFactures + nbAvoirs). */
     readonly aExporter: number;
-    /** Émis sur la période et déjà partis dans un lot antérieur. */
+    /** Émis sur la période et déjà partis dans un lot antérieur (= factures + avoirs). */
     readonly dejaExportes: number;
+    /** Dont factures. */
+    readonly dejaExportesFactures: number;
+    /** Dont avoirs. */
+    readonly dejaExportesAvoirs: number;
   };
   readonly encaissements: {
     /** Paiements dont le cash n'est jamais parti. */

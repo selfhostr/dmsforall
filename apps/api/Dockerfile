@@ -73,7 +73,7 @@ COPY --chmod=0755 docker/entrypoint-api.sh /usr/local/bin/dfa-entrypoint
 
 # Data directories, created here so that a fresh named volume mounted on them inherits the
 # dfa ownership.
-RUN mkdir -p /repo/apps/api/uploads/documents-pdf /repo/apps/api/uploads/exports-resiliation /repo/apps/api/uploads/photos-or && \
+RUN mkdir -p /repo/apps/api/uploads/documents-pdf /repo/apps/api/uploads/exports-resiliation /repo/apps/api/uploads/photos-or /repo/apps/api/uploads/reprise && \
     chown -R dfa:dfa /repo/apps/api/uploads
 
 # Version reported by GET /api/v1/sante. There is no .git directory in the image, so the build

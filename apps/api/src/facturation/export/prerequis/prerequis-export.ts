@@ -19,6 +19,7 @@ import type { ElementBloquant } from '@dfa/shared';
 import type { BesoinMappingManquant } from '../ecritures/comptes-resolus';
 import {
   decrireLimitePaiement,
+  structurerLimitePaiement,
   type LimiteEcriturePaiement,
 } from '../ecritures/construction-ecriture-paiement';
 import type { ErreurEcritureDesequilibree } from '../ecritures/erreur-desequilibre';
@@ -109,6 +110,7 @@ export function versPrerequis(d: DiagnosticExport): readonly PrerequisExport[] {
     resultat.push({
       code: 'FONCTION_NON_DISPONIBLE',
       limites: d.limites.map(decrireLimitePaiement),
+      details: d.limites.map(structurerLimitePaiement),
     });
   }
   return resultat;

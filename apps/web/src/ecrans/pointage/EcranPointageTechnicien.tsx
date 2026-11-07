@@ -25,7 +25,6 @@ import {
   cibleCumulDepuisPointage,
   useCumulsPointagesJour,
 } from '@/hooks/pointage/cumul-cible-jour';
-import { compterLignesAssigneesPointables } from '@/hooks/pointage/lignes-assignees';
 import { trierParEcheance } from '@/hooks/pointage/ordres-du-jour';
 import { useArreterPointage } from '@/hooks/pointage/useArreterPointage';
 import { useDemarrerPointage } from '@/hooks/pointage/useDemarrerPointage';
@@ -596,7 +595,6 @@ export function EcranPointageTechnicien() {
                       ? sitesActifs.find((site) => site.id === or.siteId)?.nom
                       : undefined
                   }
-                  lignesAssignees={compterLignesAssigneesPointables(or, technicienId)}
                   onChoisir={() => setOrSelectionneId(or.id)}
                 />
               ))}

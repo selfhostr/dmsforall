@@ -445,16 +445,9 @@
     "enCours": "In corso…",
     "reessayer": "Riprova",
     "enDetail": "Fatturare nel dettaglio",
-    "etapes": {
-      "facturation": "Creazione della fattura…",
-      "emission": "Emissione della fattura…",
-      "encaissement": "Registrazione dell’incasso…"
-    },
     "echec": {
       "facturation": "Non è stato possibile creare la fattura.",
-      "emission": "La fattura è creata ma non ancora emessa.",
-      "encaissement": "La fattura è emessa ma l’incasso non è registrato.",
-      "factureConservee": "Nulla è perso: «Riprova» riparte da dove si era fermato, senza ricreare la fattura."
+      "factureConservee": "Nulla è stato registrato: puoi riprovare senza rischio di duplicati."
     },
     "succes": {
       "titre": "Fatto",
@@ -464,7 +457,10 @@
       "telechargerPdf": "Scarica il PDF",
       "envoyerCourriel": "Invia per e-mail",
       "courrielEnvoye": "Fattura inviata a {destinataire}.",
-      "ouvrirFacture": "Apri la fattura"
+      "ouvrirFacture": "Apri la fattura",
+      "encaissementEchoue": "Fattura {numero} emessa, ma l’incasso non è andato a buon fine. Il saldo della fattura è intatto.",
+      "encaisserMaintenant": "Incassa ora",
+      "encaissementErreur": "L’incasso non è registrato."
     }
   }
 }

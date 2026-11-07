@@ -105,6 +105,15 @@ export class ServiceVehicule {
     );
   }
 
+  /** Comme `parId`, dans une transaction déjà ouverte (création rapide d'OR). */
+  async parIdTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    vehiculeId: string,
+  ): Promise<ReponseVehicule> {
+    return construireReponseVehicule(tx, ctx, vehiculeId, this.horloge.maintenant());
+  }
+
   /**
    * `POST /vehicules` — appelée par le contrôleur À L'INTÉRIEUR de `ServiceIdempotence.executer`
    * (l'`Idempotency-Key` est obligatoire, RM-15/RM-16 : un doublon de véhicule pollue la recherche

@@ -70,7 +70,7 @@ import { adresseDepuisJsonb, ServiceDocumentsVente } from './service-documents';
  * Avertissement `FACTURE_SANS_QR` : une facture émise sans bloc QR (bloc créancier incomplet à
  * l'émission). La facture est valide et verrouillée ; seul le bulletin de paiement manque.
  */
-function avertissementsSansQr(documentId: string, sansQr: boolean): Avertissement[] {
+export function avertissementsSansQr(documentId: string, sansQr: boolean): Avertissement[] {
   if (!sansQr) return [];
   return [
     {
@@ -201,8 +201,9 @@ export class ServiceEmissionDocument {
     return (await this.emettreCoeurDetailleTx(tx, ctx, principal, documentId)).document;
   }
 
-  /** Comme `emettreCoeurTx`, et dit si une FACTURE vient d'être émise sans bloc QR. */
-  private async emettreCoeurDetailleTx(
+  /** Comme `emettreCoeurTx`, et dit si une FACTURE vient d'être émise sans bloc QR. Public pour
+   *  `facturer-et-encaisser` (même cœur d'émission, enveloppe d'idempotence propre à l'appelant). */
+  async emettreCoeurDetailleTx(
     tx: TransactionDfa,
     ctx: ContexteTenant,
     principal: PrincipalAuthentifie,

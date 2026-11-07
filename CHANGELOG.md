@@ -2,9 +2,67 @@
 
 All notable changes to dmsforall are recorded here, for people who run it and for people who use it. Each entry says what changes for you. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/) until 1.0.
 
+## 0.2.0 (2026-11-07)
+
+This release fixes the repair order invoicing problem found in 0.1.0, and adds quotes, courtesy cars and an accounting export for your fiduciary. Read the upgrade notes before you update.
+
+### Fixed
+
+- **Repair orders can be invoiced.** The "mark as done" action on repair order lines is now wired, so a repair order can move on to invoicing. Every line type can be marked done, including labour and flat-rate lines, without a time-clock entry. Refusals say which status blocks the action and what to do.
+- **Cash payments round to 5 centimes in both directions.** A balance ending in 3, 4, 8 or 9 centimes rounds up as well as down. The difference is recorded as a rounding entry, not as a customer advance.
+- **First document number is safe.** Creating the first document of a kind at the same moment as someone else no longer fails with a server error.
+- **Hourly rate history is kept.** A new rate starts on its date and closes the previous period. A closed period cannot be changed.
+- **Accounting role cannot change the creditor IBAN.** It can still read it.
+- **WinBIZ export errors are explained** in the screen, in French, German or Italian.
+- **Single-site garages** are no longer asked which site to use, and saving an employee keeps their existing site assignments.
+- **Error messages** say what blocks and what to do, in French, German and Italian. Status refusals name the current and the requested status.
+- **Terminal refusals** name the site where the repair order is.
+- **Dates in search results** follow the Swiss format (dd.mm.yyyy).
+- **Uploaded files are backed up.** Nightly backups and restores include invoice PDFs, repair order photos and resignation exports, next to the database.
+- **Error logs hide values.** Query parameters and database values appear as `[masqué]` in logs.
+
+### Added
+
+- **Quotes.** Create a quote, send it as a PDF by e-mail, turn it into a repair order with its lines, and let the client approve each line in one click.
+- **Courtesy cars.** A fleet list, loans by period, and a Courtoisie screen under Atelier. A courtesy car can be lent from an appointment.
+- **Deferred work.** Note work to do at the next visit from the vehicle page. It is picked up when you add the line to a repair order.
+- **Accounting export for your fiduciary.** A screen with preview and history, a WinBIZ export, a generic CSV export and account mapping.
+- **Photos on repair order lines.**
+- **Invoice and collect payment in one step** from a repair order.
+- **Quick repair order creation.** Create the client, the vehicle and the repair order in one action, from a plate.
+- **Start-up checklist for a new garage** on the home screen. A new garage gets sensible defaults: workshop settings, an hourly rate, eight appointment reasons, and a VAT number field.
+- **Invoices without complete bank details** are issued without a QR-bill, and the screen warns you. Fill in your bank details in the settings before you invoice.
+- **Company logo and default payment term**, printed on invoices and quotes.
+- **Appointments.** Site and vehicle are preselected. Phone numbers are clickable. Appointments on other sites are shown with a link.
+- **Home screen organised by tasks.** Search by plate, client or repair order, quick actions, and a "to do today" list.
+- **Success messages with undo** after the main actions.
+
+### Changed
+
+- **Garage vocabulary** in French, German and Italian. For example "Ventes" becomes "Véhicules à vendre", "Parc" becomes "stock", "Verbatim" becomes "Demandes du client", and "Paliers de relance" becomes "Rappels de paiement". On a repair order, "Terminer" becomes "Travaux terminés". The glossary covers OR, MFK, VN, VO, QR-facture and Avoir.
+- **Appointment reasons** are deactivated, not deleted.
+- **Export screen** shows invoices and credit notes separately, with a preview.
+- **Easier to tap on touch screens.** Buttons have 44 px targets, and the density adapts to the device.
+- **Lighter repair order list.** The list loads a summary of each order, with fewer queries and less data per page.
+
+### Performance
+
+- **Repair order and invoice lists load in batches.** Each page is loaded with one query per table, and pages use keyset pagination. Two new indexes speed up sorting.
+- **Screens load when you open them.** Reference lists are kept for five minutes. Translations load per language.
+- **Smaller Docker images.** The base images are refreshed, and npm is removed from the runtime image.
+
+### Upgrade notes
+
+- **Migrations 0076 to 0088 run automatically** when you start the stack. Nothing to do.
+- **Two new Docker volumes** are created on `docker compose up -d`: `dfa_photos_or` for repair order photos and `dfa_reprise` for archives from your previous software. Do not delete them.
+- **If you changed `docker-compose.yml`**, mount the two new volumes in the `backup` service too, read-only, so that the nightly backup includes them.
+- **Back up before you upgrade.** See [Back up and restore](https://dmsforall.selfhostr.io/docs/get-started/backup-and-restore/).
+
+The alpha limits in the [README](README.md#limits) apply.
+
 ## 0.1.0 (2026-11-06)
 
-This is the first public version of dmsforall. Development is paused for now. The code, images and docs stay available, but do not expect new features or quick fixes. The alpha limits in the [README](README.md#limits) apply.
+This is the first public version of dmsforall. The alpha limits in the [README](README.md#limits) apply.
 
 What it contains:
 

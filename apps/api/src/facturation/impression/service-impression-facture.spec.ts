@@ -117,8 +117,12 @@ class StockagePdfMemoire implements StockagePdf {
   }
   async lire(cle: string): Promise<Buffer> {
     const b = this.contenu.get(cle);
-    if (!b) throw new Error(`clé absente : ${cle}`);
+    // Comme le disque : une clé absente est une ENOENT (le logo, optionnel, en dépend).
+    if (!b) throw Object.assign(new Error(`clé absente : ${cle}`), { code: 'ENOENT' });
     return b;
+  }
+  async supprimer(cle: string): Promise<void> {
+    this.contenu.delete(cle);
   }
   // Non exercée par ces tests (impression, pas résiliation) — voir
   // `exploitation/cycle-vie-tenant/service-cycle-vie-resiliation.spec.ts` pour la couverture réelle
@@ -194,6 +198,7 @@ describe('ServiceImpressionFacture', () => {
         npa: '1950',
         localite: 'Sion',
       },
+      null, // pas de logo déposé
     );
     expect(genererPdfFacture).not.toHaveBeenCalled();
     expect(stockage.contenu.size).toBe(0);
@@ -214,7 +219,29 @@ describe('ServiceImpressionFacture', () => {
     expect(genererPdfFacture).toHaveBeenCalledWith(
       expect.objectContaining({ qr: null }),
       expect.objectContaining({ nom: 'Garage Martin SA' }),
+      null, // pas de logo déposé
     );
+  });
+
+  it('passe le logo PNG déposé par le garage au rendu du devis (et ignore celui d’un autre tenant)', async () => {
+    const serviceDocuments = {
+      obtenirComplet: vi
+        .fn()
+        .mockResolvedValue(documentFacture({ typeDocument: 'devis', qr: null, numero: 'DEV-1' })),
+    } as unknown as ServiceDocumentsVente;
+    vi.mocked(genererPdfDevis).mockResolvedValue(Buffer.from('%PDF-devis'));
+    const png = Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      Buffer.alloc(8),
+    ]);
+    const stockage = new StockagePdfMemoire();
+    stockage.contenu.set('t-1/logo', png);
+    stockage.contenu.set('t-2/logo', Buffer.from('autre'));
+    const service = new ServiceImpressionFacture(accesBaseFake(), stockage, serviceDocuments);
+
+    await service.obtenirPdf(CTX, PRINCIPAL, 'doc-1');
+
+    expect(vi.mocked(genererPdfDevis).mock.calls[0]?.[2]).toEqual(png);
   });
 
   it('refuse un brouillon de facture', async () => {
