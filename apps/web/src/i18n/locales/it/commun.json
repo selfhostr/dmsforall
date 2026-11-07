@@ -78,7 +78,8 @@
     "articleCree": "Articolo creato",
     "pointageArrete": "Timbratura fermata",
     "orTermine": "OR terminato",
-    "factureEmise": "Fattura emessa"
+    "factureEmise": "Fattura emessa",
+    "orCree": "Ordine aperto"
   },
   "densite": {
     "titre": "Densità di visualizzazione",

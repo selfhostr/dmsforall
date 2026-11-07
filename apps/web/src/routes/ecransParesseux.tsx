@@ -28,6 +28,11 @@ export const EcranListeOrdresReparation = paresseux(() =>
 export const EcranNouvelOrdreReparation = paresseux(() =>
   import('@/ecrans/atelier/EcranNouvelOrdreReparation').then((m) => m.EcranNouvelOrdreReparation),
 );
+export const EcranOrdreDepuisPlaque = paresseux(() =>
+  import('@/ecrans/atelier/creation-rapide/EcranOrdreDepuisPlaque').then(
+    (m) => m.EcranOrdreDepuisPlaque,
+  ),
+);
 export const EcranFicheClient = paresseux(() =>
   import('@/ecrans/clients/EcranFicheClient').then((m) => m.EcranFicheClient),
 );

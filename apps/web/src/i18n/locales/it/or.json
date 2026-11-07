@@ -338,7 +338,7 @@
   "liste": {
     "titre": "Ordini di riparazione",
     "actions": {
-      "nouveau": "Nuovo ordine di riparazione"
+      "nouveau": "Crea un ordine"
     },
     "colonnes": {
       "numero": "N. ordine",
@@ -446,7 +446,13 @@
     "vehicule": {
       "titre": "Veicolo",
       "aucun": "Questo cliente non ha alcun veicolo registrato a suo nome.",
-      "erreur": "Impossibile caricare i veicoli di questo cliente"
+      "erreur": "Impossibile caricare i veicoli di questo cliente",
+      "ajouter": {
+        "action": "Aggiungi un veicolo",
+        "titre": "Nuovo veicolo di questo cliente",
+        "valider": "Salva il veicolo",
+        "enCours": "Salvataggio…"
+      }
     },
     "type": {
       "libelle": "Tipo di ordine di riparazione",
@@ -481,6 +487,57 @@
       "creer": "Apri l'ordine di riparazione",
       "enCours": "Apertura in corso…",
       "ignorerBrouillon": "Ignora la bozza"
+    },
+    "rapide": {
+      "titre": "Apri un ordine",
+      "intro": "Digitate la targa: veicolo e cliente vengono ritrovati. Altrimenti completate qualche informazione qui sotto, tutto viene creato in una volta.",
+      "plaque": "Targa",
+      "plaqueExemple": "VD 123456",
+      "plaqueAide": "Spazi e trattini sono ignorati.",
+      "vehicule": {
+        "titre": "Veicolo",
+        "requis": "Digitate la targa del veicolo o sceglietelo dall’elenco.",
+        "choisir": "Scegliete un veicolo dall’elenco o indicate un altro veicolo."
+      },
+      "vehiculesTrouves": "{count, plural, one {# veicolo corrisponde} other {# veicoli corrispondono}}",
+      "vehiculesDuClient": "Veicoli di questo cliente",
+      "autreVehicule": "Nessuno di questi: altro veicolo",
+      "plaqueInconnue": "Targa sconosciuta. Indicate marca e modello, il veicolo sarà creato con l’ordine.",
+      "nouveauVehicule": "Altro veicolo: indicate marca e modello.",
+      "retourListe": "Torna all’elenco",
+      "rechercheErreur": "Ricerca impossibile",
+      "orDejaOuvert": "Ordine già aperto",
+      "anciennePlaque": "Vecchia targa",
+      "changer": "Cambia",
+      "invalide": "Valore non valido.",
+      "client": {
+        "titre": "Cliente",
+        "detenteur": "Detentore del veicolo",
+        "recherche": "Cercare un cliente (nome, telefono, n. cliente)",
+        "aucun": "Nessun cliente trovato.",
+        "nouveau": "Nuovo cliente",
+        "nom": "Nome del cliente",
+        "telephone": "Telefono",
+        "adressePlusTard": "L’indirizzo si completa più tardi, dalla scheda del cliente.",
+        "similaires": "Forse esiste già un cliente con questo nome:",
+        "chercherExistant": "Cerca un cliente esistente",
+        "requis": "Scegliete un cliente o createne uno."
+      },
+      "ordre": {
+        "titre": "Ordine di riparazione",
+        "demande": "Richiesta del cliente"
+      },
+      "echec": {
+        "client": "Impossibile creare il cliente",
+        "vehicule": "Impossibile creare il veicolo",
+        "or": "Impossibile aprire l’ordine",
+        "clientCree": "Cliente creato.",
+        "vehiculeCree": "Veicolo creato.",
+        "reprise": "I vostri dati sono conservati: riprovate, nulla sarà creato due volte."
+      },
+      "reessayer": "Riprova",
+      "ancienParcours": "Percorso dettagliato",
+      "clientIntrouvable": "Questo cliente non è stato trovato: sceglietelo di nuovo qui sotto."
     }
   },
   "accordClient": {

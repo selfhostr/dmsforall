@@ -9,8 +9,6 @@ import { formaterMontant } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
 import { CarteChiffreRequete } from './composants/CarteChiffreRequete';
-import { CarteOrEnRetard } from './composants/CarteOrEnRetard';
-import { CarteRestitutionsJour } from './composants/CarteRestitutionsJour';
 import { SelecteurPeriodeTableauBord } from './SelecteurPeriodeTableauBord';
 
 interface Props {
@@ -209,22 +207,6 @@ export function TableauBordDirection({ site }: Props) {
             </>
           )}
         />
-      </div>
-
-      {/* Largeur exploitée plutôt que deux blocs empilés : deux listes indépendantes, de hauteur
-          comparable, posées côte à côte dès `lg` (mission « le défilement vertical est l'ennemi »).
-          `items-start` : ne pas étirer la carte la plus courte à la hauteur de sa voisine. */}
-      <div className="grid gap-groupe lg:grid-cols-2 lg:items-start">
-        <CarteRestitutionsJour
-          site={site}
-          titreCle="tableauBord:direction.sortiesDuSoir.titre"
-          descriptionCle="tableauBord:direction.sortiesDuSoir.description"
-          videTitreCle="tableauBord:direction.sortiesDuSoir.vide.titre"
-          videDescriptionCle="tableauBord:direction.sortiesDuSoir.vide.description"
-        />
-
-        {/* Issue #112 : voir la doc de tête de `CarteOrEnRetard.tsx`. */}
-        <CarteOrEnRetard site={site} />
       </div>
     </div>
   );

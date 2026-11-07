@@ -70,5 +70,43 @@
     "autres": "{count, plural, one {+ # weiterer nachzuverfolgender Satz} other {+ # weitere nachzuverfolgende Sätze}}",
     "voirTout": "Ganzes Reifenlager anzeigen",
     "aVenir": "MFK-Prüfungen und Garantien werden dieser Liste sehr bald hinzugefügt."
+  },
+  "recherche": {
+    "placeholder": "Kontrollschild, Kunde oder Auftragsnr."
+  },
+  "actions": {
+    "titre": "Schnellaktionen",
+    "creerOr": "Auftrag eröffnen",
+    "nouveauRendezVous": "Neuer Termin",
+    "encaisser": "Kassieren"
+  },
+  "aFaire": {
+    "titre": "Heute zu erledigen",
+    "toutVoir": "Alle anzeigen",
+    "aFacturer": {
+      "titre": "Abgeschlossen, zu verrechnen",
+      "description": "Fertige Arbeiten, deren Rechnung noch fehlt.",
+      "vide": {
+        "titre": "Nichts zu verrechnen",
+        "description": "Alle abgeschlossenen Arbeiten sind verrechnet."
+      }
+    },
+    "accordClient": {
+      "titre": "Warten auf die Zustimmung des Kunden",
+      "description": "Zusätzlich vorgeschlagene Arbeiten: die Antwort des Kunden fehlt.",
+      "vide": {
+        "titre": "Keine Antwort ausstehend",
+        "description": "Keine Arbeit wartet auf die Zustimmung eines Kunden."
+      }
+    },
+    "facturesEchues": {
+      "titre": "Fällige Rechnungen",
+      "description": "Rechnungen mit überschrittenem Zahlungsziel.",
+      "retard": "{count, plural, one {# Tag überfällig} other {# Tage überfällig}}",
+      "vide": {
+        "titre": "Keine fälligen Rechnungen",
+        "description": "Kein Kunde überschreitet sein Zahlungsziel."
+      }
+    }
   }
 }

@@ -70,5 +70,43 @@
     "autres": "{count, plural, one {+ # altro set da richiamare} other {+ # altri set da richiamare}}",
     "voirTout": "Vedi tutto il deposito pneumatici",
     "aVenir": "I controlli MFK e le garanzie verranno aggiunti a questo elenco molto presto."
+  },
+  "recherche": {
+    "placeholder": "Targa, cliente o n. d'ordine"
+  },
+  "actions": {
+    "titre": "Azioni rapide",
+    "creerOr": "Crea un ordine",
+    "nouveauRendezVous": "Nuovo appuntamento",
+    "encaisser": "Incassa"
+  },
+  "aFaire": {
+    "titre": "Da fare oggi",
+    "toutVoir": "Mostra tutto",
+    "aFacturer": {
+      "titre": "Terminati, da fatturare",
+      "description": "Lavori finiti la cui fattura non è ancora stata fatta.",
+      "vide": {
+        "titre": "Niente da fatturare",
+        "description": "Tutti i lavori terminati sono fatturati."
+      }
+    },
+    "accordClient": {
+      "titre": "In attesa dell'accordo del cliente",
+      "description": "Lavori aggiuntivi proposti: manca la risposta del cliente.",
+      "vide": {
+        "titre": "Nessuna risposta da attendere",
+        "description": "Nessun lavoro attende l'accordo di un cliente."
+      }
+    },
+    "facturesEchues": {
+      "titre": "Fatture scadute",
+      "description": "Fatture con la data di pagamento superata.",
+      "retard": "{count, plural, one {# giorno di ritardo} other {# giorni di ritardo}}",
+      "vide": {
+        "titre": "Nessuna fattura scaduta",
+        "description": "Nessun cliente supera il termine di pagamento."
+      }
+    }
   }
 }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, useSearchParams } from 'react-router';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
 
 import type {
   ClientResume,
@@ -99,7 +99,7 @@ function versClientResume(client: {
  * un OR peut viser un autre véhicule du même client (amené par quelqu'un d'autre que son
  * détenteur, cas réel en garage) — le champ reste modifiable via `onChangerVehicule`.
  */
-export function EcranNouvelOrdreReparation() {
+function EcranNouvelOrdreReparationClassique() {
   const { t } = useTranslation(['or', 'commun', 'erreurs']);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -272,5 +272,29 @@ export function EcranNouvelOrdreReparation() {
         )}
       </div>
     </GabaritEcran>
+  );
+}
+
+/**
+ * Point d'entrée historique de la création d'un OR (fiche client, fiche véhicule, anciens liens) :
+ * redirige vers l'écran « depuis une plaque » (`creation-rapide/`), qui reprend `site`, `clientId`
+ * et `vehiculeId` et ouvre l'OR en un écran au lieu de quatre. L'ancien parcours (site, puis client,
+ * puis véhicule, puis formulaire) reste atteignable avec `?parcours=classique` — c'est le lien
+ * « parcours détaillé » de l'écran rapide.
+ */
+export function EcranNouvelOrdreReparation() {
+  const [searchParams] = useSearchParams();
+  if (searchParams.get('parcours') === 'classique') {
+    return <EcranNouvelOrdreReparationClassique />;
+  }
+  return (
+    <Navigate
+      replace
+      to={chemins.atelier.ordresReparation.depuisPlaque({
+        site: searchParams.get('site') ?? undefined,
+        clientId: searchParams.get('clientId') ?? undefined,
+        vehiculeId: searchParams.get('vehiculeId') ?? undefined,
+      })}
+    />
   );
 }

@@ -338,7 +338,7 @@
   "liste": {
     "titre": "Reparaturaufträge",
     "actions": {
-      "nouveau": "Neuer Reparaturauftrag"
+      "nouveau": "Auftrag eröffnen"
     },
     "colonnes": {
       "numero": "RA-Nr.",
@@ -446,7 +446,13 @@
     "vehicule": {
       "titre": "Fahrzeug",
       "aucun": "Für diesen Kunden ist kein Fahrzeug erfasst.",
-      "erreur": "Die Fahrzeuge dieses Kunden konnten nicht geladen werden"
+      "erreur": "Die Fahrzeuge dieses Kunden konnten nicht geladen werden",
+      "ajouter": {
+        "action": "Fahrzeug hinzufügen",
+        "titre": "Neues Fahrzeug dieses Kunden",
+        "valider": "Fahrzeug speichern",
+        "enCours": "Wird gespeichert…"
+      }
     },
     "type": {
       "libelle": "Reparaturauftrag-Typ",
@@ -481,6 +487,57 @@
       "creer": "Reparaturauftrag eröffnen",
       "enCours": "Wird eröffnet…",
       "ignorerBrouillon": "Entwurf verwerfen"
+    },
+    "rapide": {
+      "titre": "Auftrag eröffnen",
+      "intro": "Kontrollschild eingeben: Fahrzeug und Kunde werden gefunden. Andernfalls ergänzen Sie unten ein paar Angaben, alles wird in einem Zug erfasst.",
+      "plaque": "Kontrollschild",
+      "plaqueExemple": "VD 123456",
+      "plaqueAide": "Leerzeichen und Bindestriche werden ignoriert.",
+      "vehicule": {
+        "titre": "Fahrzeug",
+        "requis": "Geben Sie das Kontrollschild ein oder wählen Sie das Fahrzeug aus der Liste.",
+        "choisir": "Wählen Sie ein Fahrzeug aus der Liste oder geben Sie ein anderes Fahrzeug an."
+      },
+      "vehiculesTrouves": "{count, plural, one {# Fahrzeug passt} other {# Fahrzeuge passen}}",
+      "vehiculesDuClient": "Fahrzeuge dieses Kunden",
+      "autreVehicule": "Keines davon: anderes Fahrzeug",
+      "plaqueInconnue": "Kontrollschild unbekannt. Geben Sie Marke und Modell an, das Fahrzeug wird mit dem Auftrag erfasst.",
+      "nouveauVehicule": "Anderes Fahrzeug: Geben Sie Marke und Modell an.",
+      "retourListe": "Zurück zur Liste",
+      "rechercheErreur": "Suche nicht möglich",
+      "orDejaOuvert": "Auftrag bereits offen",
+      "anciennePlaque": "Früheres Kontrollschild",
+      "changer": "Ändern",
+      "invalide": "Ungültiger Wert.",
+      "client": {
+        "titre": "Kunde",
+        "detenteur": "Halter des Fahrzeugs",
+        "recherche": "Kunde suchen (Name, Telefon, Kundennr.)",
+        "aucun": "Kein Kunde gefunden.",
+        "nouveau": "Neuer Kunde",
+        "nom": "Name des Kunden",
+        "telephone": "Telefon",
+        "adressePlusTard": "Die Adresse wird später auf der Kundenkarte ergänzt.",
+        "similaires": "Ein Kunde mit diesem Namen existiert vielleicht schon:",
+        "chercherExistant": "Bestehenden Kunden suchen",
+        "requis": "Wählen Sie einen Kunden oder erfassen Sie einen neuen."
+      },
+      "ordre": {
+        "titre": "Reparaturauftrag",
+        "demande": "Anliegen des Kunden"
+      },
+      "echec": {
+        "client": "Der Kunde konnte nicht erfasst werden",
+        "vehicule": "Das Fahrzeug konnte nicht erfasst werden",
+        "or": "Der Auftrag konnte nicht eröffnet werden",
+        "clientCree": "Kunde erfasst.",
+        "vehiculeCree": "Fahrzeug erfasst.",
+        "reprise": "Ihre Eingaben bleiben erhalten: versuchen Sie es erneut, nichts wird doppelt erfasst."
+      },
+      "reessayer": "Erneut versuchen",
+      "ancienParcours": "Detaillierter Ablauf",
+      "clientIntrouvable": "Dieser Kunde wurde nicht gefunden: wählen Sie ihn unten erneut aus."
     }
   },
   "accordClient": {

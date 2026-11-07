@@ -78,7 +78,8 @@
     "articleCree": "Article créé",
     "pointageArrete": "Pointage arrêté",
     "orTermine": "OR terminé",
-    "factureEmise": "Facture émise"
+    "factureEmise": "Facture émise",
+    "orCree": "OR ouvert"
   },
   "densite": {
     "titre": "Densité d'affichage",

@@ -12,6 +12,7 @@ import {
   EcranFicheOrdreReparation,
   EcranListeOrdresReparation,
   EcranNouvelOrdreReparation,
+  EcranOrdreDepuisPlaque,
   EcranFicheClient,
   EcranListeClients,
   EcranAvoir,
@@ -233,6 +234,10 @@ export const routesConfig: RouteObject[] = [
       // chemin ici) — voir EcranNouvelOrdreReparation.tsx pour le détail des deux repos honnêtes
       // affichés quand l'un des deux manque.
       { path: 'atelier/ordres-reparation/nouveau', element: <EcranNouvelOrdreReparation /> },
+      // Parcours « depuis une plaque » : un seul écran (véhicule, client, OR). Lit `?plaque=`,
+      // `?vehiculeId=`, `?clientId=` et `?site=` pour arriver prérempli depuis l'accueil, la
+      // recherche, la liste des OR et les fiches client/véhicule.
+      { path: 'atelier/ordres-reparation/depuis-plaque', element: <EcranOrdreDepuisPlaque /> },
       { path: 'ordres-reparation/:orId/facturer', element: <EcranFacturerOrdreReparation /> },
       // Agenda de rendez-vous (Lot RDV-1) — `rendez_vous.lire` ferme la LECTURE elle-même à
       // `vendeur`/`magasinier`/`comptable`/`poste_atelier` côté API (`droits-routes.ts`), cette

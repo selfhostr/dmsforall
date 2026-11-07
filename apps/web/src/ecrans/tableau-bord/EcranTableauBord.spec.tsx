@@ -352,6 +352,10 @@ function construireFactureARelancer(id: string): ReponseDocumentVente {
   };
 }
 
+/** Le champ de recherche de l'accueil (cmdk) est lui aussi un `combobox` : le sélecteur de site se
+ *  désigne par son nom. */
+const NOM_SELECTEUR_SITE = 'Tous les sites';
+
 const DEUX_SITES = [
   ...SESSION_TEST.sites,
   { id: 'site-2', code: 'SECOND', nom: 'Second site', actif: true },
@@ -369,6 +373,13 @@ function connecterSession(
         sites,
         utilisateur: { ...SESSION_TEST.utilisateur, role },
       }),
+    ),
+    // Blocs « à faire » de l'accueil (factures échues) et recherche : vides par défaut, un test
+    // qui s'intéresse à ces données les surcharge avec son propre `server.use`.
+    http.get(CHEMIN_DOCUMENTS_VENTE, () => HttpResponse.json(PAGE_VIDE)),
+    http.get(CHEMIN_RENDEZ_VOUS, () => HttpResponse.json(PAGE_VIDE)),
+    http.get('/api/v1/recherche', () =>
+      HttpResponse.json({ resultats: [], plaqueInterchangeable: false }),
     ),
   );
 }
@@ -522,8 +533,8 @@ describe('EcranTableauBord — Chef d’atelier', () => {
 });
 
 describe('EcranTableauBord — Réceptionnaire', () => {
-  it('sans site choisi : invite à en choisir un pour les rendez-vous, garde les autres blocs réels', async () => {
-    connecterSession('receptionnaire');
+  it('sans site choisi (garage à plusieurs sites) : invite à en choisir un pour les rendez-vous, garde les autres blocs réels', async () => {
+    connecterSession('receptionnaire', DEUX_SITES);
     server.use(
       http.get(CHEMIN_ACTIVITE, () => HttpResponse.json(ACTIVITE_NOMINALE)),
       http.get(CHEMIN_OR, () => HttpResponse.json({ ...PAGE_VIDE, donnees: [OR_RESUME_TEST] })),
@@ -838,7 +849,7 @@ describe('EcranTableauBord — sélecteur de site commun', () => {
     rendre();
 
     await screen.findByText('CHF 456.00');
-    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: NOM_SELECTEUR_SITE })).not.toBeInTheDocument();
   });
 });
 
@@ -882,7 +893,7 @@ describe('EcranTableauBord — synchronisation de la préférence de site (défa
     rendreAvecPreferenceSite();
 
     await screen.findByText('CHF 456.00');
-    await utilisateur.click(screen.getByRole('combobox'));
+    await utilisateur.click(screen.getByRole('combobox', { name: NOM_SELECTEUR_SITE }));
     await utilisateur.click(await screen.findByText('Site principal'));
 
     expect(window.localStorage.getItem('dfa.site-courant.tenant-1')).toBe('site-1');
@@ -903,7 +914,7 @@ describe('EcranTableauBord — synchronisation de la préférence de site (défa
     rendreAvecPreferenceSite('/tableau-bord?site=site-1');
 
     await screen.findByText('CHF 456.00');
-    await utilisateur.click(screen.getByRole('combobox'));
+    await utilisateur.click(screen.getByRole('combobox', { name: NOM_SELECTEUR_SITE }));
     await utilisateur.click(await screen.findByText(i18n.t('navigation:entete.tousLesSites')));
 
     expect(window.localStorage.getItem('dfa.site-courant.tenant-1')).toBe('site-1');

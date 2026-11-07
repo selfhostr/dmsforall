@@ -33,5 +33,11 @@
     "depot_pneu": "dépôts de pneus"
   },
   "chargement": "Recherche…",
-  "annonceResultats": "{count, plural, one {# résultat trouvé} other {# résultats trouvés}}"
+  "annonceResultats": "{count, plural, one {# résultat trouvé} other {# résultats trouvés}}",
+  "creerOr": {
+    "titre": "Créer un OR",
+    "pourVehicule": "Pour {vehicule}",
+    "pourClient": "Pour {client}",
+    "pourSaisie": "Pour « {saisie} » (plaque ou client inconnu)"
+  }
 }

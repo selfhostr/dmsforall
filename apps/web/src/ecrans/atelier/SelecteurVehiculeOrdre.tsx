@@ -1,8 +1,11 @@
+import { Plus } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { VehiculeResume } from '@dfa/shared';
 
 import { ErreurReseau, messageErreur } from '@/api/erreurs';
+import { Button } from '@/components/ui/button';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
@@ -10,6 +13,8 @@ import { EtatVide } from '@/composants/commun/EtatVide';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { useVehiculesClient } from '@/hooks/clients/useVehiculesClient';
 import { cn } from '@/lib/utils';
+
+import { FormulaireVehiculeRapide } from './creation-rapide/FormulaireVehiculeRapide';
 
 interface Props {
   readonly clientId: string;
@@ -25,13 +30,15 @@ interface Props {
  * réceptionnaire compare des plaques et des désignations, pas des libellés texte dans une liste
  * déroulante — mêmes variantes d'identité que partout ailleurs (`IdentiteVehicule`, invariant n°1).
  *
- * Aucune action « créer un véhicule » sur l'état vide : `/vehicules/nouveau` n'a pas encore de
- * route câblée (voir `routes/routeur.tsx`) — proposer un lien y mènerait sur un 404, pire que pas
- * de lien du tout (même principe que `EcranFonctionAVenir` : jamais un lien cassé).
+ * Client sans véhicule : plus de cul-de-sac. « Ajouter un véhicule » ouvre sur place un formulaire
+ * minimal (plaque, marque, modèle — `FormulaireVehiculeRapide`), le véhicule est rattaché au client
+ * et choisi aussitôt. Même action disponible sous la liste quand le client en a déjà (l'OR peut viser
+ * un véhicule neuf pour lui).
  */
 export function SelecteurVehiculeOrdre({ clientId, valeur, onChangeValeur }: Props) {
   const { t } = useTranslation(['or', 'commun', 'erreurs']);
   const requete = useVehiculesClient(clientId);
+  const [ajoutOuvert, setAjoutOuvert] = useState(false);
 
   if (requete.isPending) {
     return <EtatChargement lignes={2} />;
@@ -50,12 +57,33 @@ export function SelecteurVehiculeOrdre({ clientId, valeur, onChangeValeur }: Pro
 
   const vehicules = requete.data.pages.flatMap((page) => page.donnees);
 
+  const formulaireAjout = ajoutOuvert ? (
+    <FormulaireVehiculeRapide
+      clientId={clientId}
+      onAnnuler={() => setAjoutOuvert(false)}
+      onCree={(vehicule) => {
+        setAjoutOuvert(false);
+        onChangeValeur(vehicule.id, vehicule);
+      }}
+    />
+  ) : null;
+
   if (vehicules.length === 0) {
     return (
-      <EtatVide
-        titre={t('or:nouveau.vehicule.titre')}
-        description={t('or:nouveau.vehicule.aucun')}
-      />
+      <div className="flex flex-col gap-3">
+        {formulaireAjout ?? (
+          <EtatVide
+            titre={t('or:nouveau.vehicule.titre')}
+            description={t('or:nouveau.vehicule.aucun')}
+            action={
+              <Button type="button" onClick={() => setAjoutOuvert(true)}>
+                <Plus aria-hidden className="h-4 w-4" />
+                {t('or:nouveau.vehicule.ajouter.action')}
+              </Button>
+            }
+          />
+        )}
+      </div>
     );
   }
 
@@ -90,6 +118,17 @@ export function SelecteurVehiculeOrdre({ clientId, valeur, onChangeValeur }: Pro
         enChargement={requete.isFetchingNextPage}
         onChargerPlus={() => void requete.fetchNextPage()}
       />
+      {formulaireAjout ?? (
+        <Button
+          type="button"
+          variant="outline"
+          className="self-start"
+          onClick={() => setAjoutOuvert(true)}
+        >
+          <Plus aria-hidden className="h-4 w-4" />
+          {t('or:nouveau.vehicule.ajouter.action')}
+        </Button>
+      )}
     </div>
   );
 }

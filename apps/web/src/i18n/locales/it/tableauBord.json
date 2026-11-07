@@ -201,5 +201,8 @@
         "description": "Nessun ordine di riparazione aperto ha una data di restituzione promessa per oggi."
       }
     }
+  },
+  "chiffres": {
+    "titre": "Cifre"
   }
 }
