@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 
 import { cn } from '@/lib/utils';
 
+import { HAUTEUR_MIN_ENTETE_COLONNE } from './hauteur-entete-colonne';
 import { useNavigationActive } from './useNavigationActive';
 
 interface Props {
@@ -61,7 +62,13 @@ export function OngletsDomaine({ className }: Props) {
     /* UNE SEULE rangée quand la place le permet (gain de 44 à 56 px avant le titre d'écran, audit
           §1) : onglets à gauche, vues à droite du même niveau ; `flex-wrap` ne passe sur une
           seconde rangée que si les deux ne tiennent pas côte à côte (tablette portrait). */
-    <div className={cn('flex shrink-0 flex-wrap items-center border-b bg-background', className)}>
+    <div
+      className={cn(
+        'flex shrink-0 flex-wrap items-center border-b bg-background',
+        HAUTEUR_MIN_ENTETE_COLONNE,
+        className,
+      )}
+    >
       {afficheOnglets ? (
         // `aria-label` nommé par le domaine (« Onglets d'Atelier ») et non « Onglets » tout court :
         // deux zones de navigation dans la même page (barre latérale + onglets) doivent porter des

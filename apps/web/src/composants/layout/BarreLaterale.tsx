@@ -1,6 +1,12 @@
-import { ChevronsUpDown, LogOut, PanelLeftClose, PanelLeftOpen, Settings } from 'lucide-react';
+import {
+  ChevronsUpDown,
+  LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
+  SlidersHorizontal,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Link, useLocation, useSearchParams } from 'react-router';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -11,8 +17,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { SelecteurLangueMenu } from '@/composants/SelecteurLangueMenu';
-import { useSiteImplicite } from '@/hooks/site/useSiteImplicite';
+import { demanderOuvertureAssistant } from '@/hooks/assistant/etat-assistant';
+import { usePastilleAssistant } from '@/hooks/assistant/usePastilleAssistant';
 import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { useDeconnexion } from '@/hooks/useDeconnexion';
 import { useSession } from '@/hooks/useSession';
@@ -28,12 +34,14 @@ import {
   trouverCorrespondance,
   type EntreeMenu,
 } from './navigation-modele';
+import { HAUTEUR_ENTETE_COLONNE } from './hauteur-entete-colonne';
+import { PastilleConfiguration } from './PastilleConfiguration';
 import { RechercheGlobale } from './RechercheGlobale';
-import { SelecteurSiteEntete } from './SelecteurSiteEntete';
-import { SelecteurTailleMenu } from './SelecteurTailleMenu';
-import { SelecteurThemeMenu } from './SelecteurThemeMenu';
-import { resoudreLibelleSite } from './libelle-site';
+import { RangeeReglagesCompte } from './RangeeReglagesCompte';
 import type { UtiliserRepliBarreLaterale } from './useRepliBarreLaterale';
+
+/** Au-delà, le nom du garage passe d'un cran de police plus petit. */
+const NOM_LONG = 18;
 
 /**
  * Numéro de version affiché collé au bouton Réglages (demande produit explicite, 17.08.2026 :
@@ -189,14 +197,15 @@ export function BarreLaterale({ className, repli }: Props) {
   const { data: session } = useSession();
   const sujet = sujetNavigation(session);
   const deconnexion = useDeconnexion();
+  const navigate = useNavigate();
+  const garageAConfigurer = usePastilleAssistant();
   // Numéro de version — voir la doc de `infoVersionBrute` en tête de fichier. Repli traduit
   // (« inconnue ») posé ICI, pas dans `infoVersionBrute`, pour rester une fonction pure sans
   // dépendance à `t`.
   const infoBrute = infoVersionBrute();
-  const infoVersion = infoBrute || t('navigation:pied.versionInconnue');
-  const versionCourte = versionAffichee(infoBrute) || t('navigation:pied.versionInconnue');
-  const { estMonoSite } = useSiteImplicite();
-  const libelleSite = resoudreLibelleSite(session?.sites, site, t);
+  const infoVersion = infoBrute;
+  // Version absente : aucune ligne (jamais un « inconnue » affiché).
+  const versionCourte = versionAffichee(infoBrute);
 
   // Identité du pied compte (§2 du lot ci-dessus) — repris à l'identique de l'ancien
   // `MenuUtilisateur.tsx` (initiales, nom complet, libellé de rôle traduit).
@@ -205,6 +214,10 @@ export function BarreLaterale({ className, repli }: Props) {
   const initiales = session
     ? `${session.utilisateur.prenom.charAt(0)}${session.utilisateur.nom.charAt(0)}`.toUpperCase()
     : '';
+
+  const nomCompte = garageAConfigurer
+    ? `${libelleCompte} — ${libelleRole} — ${t('navigation:configurer.pastille')}`
+    : `${libelleCompte} — ${libelleRole}`;
 
   // `repli` absent (tiroir mobile) => jamais replié, quelle que soit la préférence mémorisée par
   // ailleurs : la lecture de cette préférence est entièrement du ressort de l'appelant desktop.
@@ -300,23 +313,27 @@ export function BarreLaterale({ className, repli }: Props) {
         // affirmer de faux pendant le chargement (même doctrine que le reste du fichier, « le menu
         // s'enrichit, il ne clignote pas »).
         <div
-          className={cn(
-            'flex shrink-0 flex-col gap-2 border-b p-3',
-            replie ? 'items-center gap-3 p-2' : undefined,
-          )}
+          className={cn('flex shrink-0 flex-col overflow-hidden border-b', HAUTEUR_ENTETE_COLONNE)}
         >
           <div
             className={cn(
-              'flex w-full items-center gap-2',
-              replie ? 'flex-col' : 'justify-between',
+              'flex min-h-0 flex-1 items-center gap-2',
+              replie ? 'justify-center px-2' : 'justify-between px-3',
             )}
           >
             {session && !replie ? (
+              // Même retrait que les entrées du menu dessous (`px-3` de l'entrée), deux lignes au
+              // plus avec coupure aux mots, jamais d'ellipse sur une ligne. Hauteur FIXE (celle des
+              // onglets) : un nom long baisse d'un cran de police plutôt que d'agrandir le bloc.
+              // Aucun emplacement de logo ici. Replié : rien (les initiales du compte sont plus bas).
               <p
-                className="min-w-0 flex-1 truncate texte-corps font-semibold tracking-tight"
+                className={cn(
+                  'flex min-w-0 flex-1 items-center px-3 font-semibold leading-tight tracking-tight',
+                  session.tenant.raisonSociale.length > NOM_LONG ? 'texte-libelle' : 'texte-corps',
+                )}
                 title={session.tenant.raisonSociale}
               >
-                {session.tenant.raisonSociale}
+                <span className="line-clamp-2 break-words">{session.tenant.raisonSociale}</span>
               </p>
             ) : null}
             {repli ? (
@@ -326,6 +343,7 @@ export function BarreLaterale({ className, repli }: Props) {
                 type="button"
                 variant="ghost"
                 size="icon"
+                className="shrink-0"
                 onClick={repli.basculer}
                 aria-expanded={!replie}
                 aria-label={t(replie ? 'navigation:repli.agrandir' : 'navigation:repli.reduire')}
@@ -339,21 +357,8 @@ export function BarreLaterale({ className, repli }: Props) {
               </Button>
             ) : null}
           </div>
-          {session && !estMonoSite ? (
-            <SelecteurSiteEntete
-              sites={session.sites}
-              siteIdActif={site}
-              libelle={libelleSite}
-              compact={replie}
-            />
-          ) : null}
         </div>
       ) : null}
-
-      {/* Recherche globale : entrée de menu au-dessus des six entrées (Ctrl/⌘+K aussi). */}
-      <div className={cn('shrink-0', replie ? 'px-2 pt-2' : 'px-3 pt-3')}>
-        <RechercheGlobale replie={replie} raccourciClavier={repli !== undefined} />
-      </div>
 
       {/* AUCUN `overflow-y-auto` ICI — voir le paragraphe « aucun défilement » en tête de fichier.
           `flex-1` pousse simplement le pied en bas quand la colonne est plus haute que ses six
@@ -362,6 +367,12 @@ export function BarreLaterale({ className, repli }: Props) {
       <ul className={cn('flex flex-1 flex-col gap-1', replie ? 'p-2' : 'p-3', className)}>
         {entrees.map((entree) => rendreEntree(entree))}
       </ul>
+
+      {/* Recherche globale : champ en bas de colonne, juste au-dessus du filet du pied compte, à la
+          même place sur tous les écrans (Ctrl/⌘+K aussi). */}
+      <div className={cn('shrink-0 pb-3', replie ? 'px-2' : 'px-3')}>
+        <RechercheGlobale replie={replie} raccourciClavier={repli !== undefined} />
+      </div>
 
       {/*
        * PIED COMPTE — identité + Réglages + déconnexion, voir le §2 du lot « cadre applicatif » en
@@ -411,14 +422,17 @@ export function BarreLaterale({ className, repli }: Props) {
                     'anneau-focus flex h-11 w-full items-center rounded-md texte-corps font-medium transition-colors hover:bg-muted',
                     replie ? 'justify-center px-2' : 'gap-3 px-3',
                   )}
-                  aria-label={`${libelleCompte} — ${libelleRole}`}
-                  title={replie ? `${libelleCompte} — ${libelleRole}` : undefined}
+                  aria-label={nomCompte}
+                  title={replie ? nomCompte : undefined}
                 >
                   <span
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary texte-petit font-semibold text-primary-foreground"
+                    className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary texte-petit font-semibold text-primary-foreground"
                     aria-hidden="true"
                   >
                     {initiales}
+                    {garageAConfigurer ? (
+                      <PastilleConfiguration className="-right-1 -top-1" />
+                    ) : null}
                   </span>
                   {!replie ? (
                     <>
@@ -438,17 +452,25 @@ export function BarreLaterale({ className, repli }: Props) {
                 <DropdownMenuLabel className="truncate font-normal text-muted-foreground">
                   {libelleCompte} — {libelleRole}
                 </DropdownMenuLabel>
-                {reglagesVisibles(sujet) ? (
-                  <DropdownMenuItem asChild>
-                    <Link to={cheminEntree(ENTREE_REGLAGES, sujet, site) ?? ''}>
-                      <Settings className="h-4 w-4" aria-hidden="true" />
-                      {t('navigation:entrees.reglages')}
-                    </Link>
+                {garageAConfigurer ? (
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      demanderOuvertureAssistant();
+                      void navigate('/');
+                    }}
+                  >
+                    <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+                    {t('navigation:configurer.entree')}
                   </DropdownMenuItem>
                 ) : null}
-                <SelecteurThemeMenu />
-                <SelecteurTailleMenu />
-                <SelecteurLangueMenu />
+                <DropdownMenuSeparator />
+                <RangeeReglagesCompte
+                  cheminReglages={
+                    reglagesVisibles(sujet)
+                      ? (cheminEntree(ENTREE_REGLAGES, sujet, site) ?? undefined)
+                      : undefined
+                  }
+                />
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onSelect={() => deconnexion.mutate()}
@@ -460,15 +482,17 @@ export function BarreLaterale({ className, repli }: Props) {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <p
-            className={cn(
-              'texte-libelle select-text text-muted-foreground',
-              replie ? 'hidden' : 'mt-1 px-3',
-            )}
-            title={t('navigation:pied.version', { info: infoVersion })}
-          >
-            {versionCourte}
-          </p>
+          {versionCourte ? (
+            <p
+              className={cn(
+                'texte-libelle select-text text-muted-foreground',
+                replie ? 'hidden' : 'mt-1 px-3',
+              )}
+              title={t('navigation:pied.version', { info: infoVersion })}
+            >
+              {versionCourte}
+            </p>
+          ) : null}
         </div>
       ) : null}
     </nav>

@@ -20,7 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import {
   depassementsAvantEnvoi,
   erreurPorteSurLaGrille,
@@ -188,6 +188,9 @@ export function DialogueModifierEmploye({
         ) : null}
 
         <div className="flex flex-col gap-4">
+          <LegendeChampsObligatoires>
+            {t('parametrage:obligatoire.legende')}
+          </LegendeChampsObligatoires>
           <ChampRoleEmploye
             idPrefixe="modifier-employe"
             valeur={etat.prereglageId}
@@ -198,7 +201,10 @@ export function DialogueModifierEmploye({
           {estMonoSite ? null : (
             <fieldset className="flex flex-col gap-1.5">
               <legend className="texte-corps font-medium">
-                {t('parametrage:utilisateurs.creation.champSites')} *
+                {t('parametrage:utilisateurs.creation.champSites')}
+                <span aria-hidden="true" className="ml-0.5">
+                  *
+                </span>
               </legend>
               <div className="flex flex-col gap-2">
                 {sites.map((site) => (

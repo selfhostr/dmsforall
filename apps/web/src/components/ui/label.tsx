@@ -32,7 +32,9 @@ export const Label = forwardRef<ElementRef<typeof LabelPrimitive.Root>, Propriet
         // `aria-hidden` : le lecteur d'écran ne doit JAMAIS annoncer « astérisque », qui ne veut
         // rien dire à l'oreille — c'est `required`/`aria-required` posé sur le CHAMP qui porte
         // l'information accessible, ce symbole n'est qu'un rappel visuel.
-        <span aria-hidden="true" className="ml-0.5 text-destructive">
+        // Couleur neutre (jamais `text-destructive`) : le rouge ne signale que l'erreur, or un champ
+        // vierge n'en est pas une.
+        <span aria-hidden="true" className="ml-0.5 text-foreground">
           *
         </span>
       ) : null}

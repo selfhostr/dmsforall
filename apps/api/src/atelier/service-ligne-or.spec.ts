@@ -53,6 +53,11 @@ vi.mock('./or-requetes', () => ({
   listerLignesOr: vi.fn(),
 }));
 
+vi.mock('../facturation/documents/assujettissement', () => ({
+  chargerSituationTva: vi.fn(),
+}));
+
+import * as assujettissement from '../facturation/documents/assujettissement';
 import { CODE_TAUX_HORAIRE_DEFAUT, ServiceLigneOr } from './service-ligne-or';
 import * as orRequetes from './or-requetes';
 
@@ -453,6 +458,10 @@ function serviceFacticePiecesRealisation(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(assujettissement.chargerSituationTva).mockResolvedValue({
+    assujetti: true,
+    numeroTva: 'CHE-123.456.789 TVA',
+  });
 });
 
 describe('ServiceLigneOr.refuserLignes — câblage du port CreationTravailReporte (RM-73)', () => {
@@ -1766,5 +1775,103 @@ describe('ServiceLigneOr.creer — travailReporteId (reprise d’un travail repo
         'idem-tr-5',
       ),
     ).rejects.toMatchObject({ code: 'VALIDATION_ECHOUEE' });
+  });
+});
+
+describe('ServiceLigneOr — garage NON assujetti à la TVA (0 ‰, HT = TTC)', () => {
+  const NON_ASSUJETTI = { assujetti: false, numeroTva: null } as const;
+
+  it('creer : taux 0 ‰ figé, 1.5 h à 100.00/h → HT 15000, TVA 0, TTC 15000', async () => {
+    vi.mocked(assujettissement.chargerSituationTva).mockResolvedValue(NON_ASSUJETTI);
+    const or = { ...orFixture(), conditionsFigees: {} };
+    vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(or);
+    vi.mocked(orRequetes.listerLignesOr).mockResolvedValue([]);
+    const { tx, appelsInsert } = txMainOeuvre(
+      [tauxHoraireFixture({ montantCentimes: 10_000 })],
+      ligneFixture({ type: 'main_oeuvre_bareme', tauxHoraireCentimes: 10_000 }),
+    );
+
+    await serviceFacticeMainOeuvre(tx).creer(
+      CTX,
+      principal('receptionnaire'),
+      OR_ID,
+      entreeMainOeuvreFixture(),
+      'idem-non-assujetti',
+    );
+
+    expect(valeursLigneInseree(appelsInsert)).toMatchObject({
+      tauxTvaPourmille: 0,
+      montantHtCentimes: 15_000,
+      montantTvaCentimes: 0,
+      montantTtcCentimes: 15_000,
+    });
+  });
+
+  it('creer, garage assujetti (non-régression) : 8.1 % → HT 15000, TVA 1215, TTC 16215', async () => {
+    const or = { ...orFixture(), conditionsFigees: {} };
+    vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(or);
+    vi.mocked(orRequetes.listerLignesOr).mockResolvedValue([]);
+    const { tx, appelsInsert } = txMainOeuvre(
+      [tauxHoraireFixture({ montantCentimes: 10_000 })],
+      ligneFixture({ type: 'main_oeuvre_bareme', tauxHoraireCentimes: 10_000 }),
+    );
+
+    await serviceFacticeMainOeuvre(tx).creer(
+      CTX,
+      principal('receptionnaire'),
+      OR_ID,
+      entreeMainOeuvreFixture(),
+      'idem-assujetti',
+    );
+
+    expect(valeursLigneInseree(appelsInsert)).toMatchObject({
+      tauxTvaPourmille: 81,
+      montantHtCentimes: 15_000,
+      montantTvaCentimes: 1_215,
+      montantTtcCentimes: 16_215,
+    });
+  });
+
+  it('modifier : une ligne héritée à 8.1 % repasse à 0 ‰ (21750 = HT = TTC) ; assujetti : taux figé 81 conservé (TVA 1762)', async () => {
+    const or = { ...orFixture(), conditionsFigees: {} };
+    const ligne = ligneFixture({ type: 'forfait', tauxHoraireCentimes: null, statut: 'validee' });
+    vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(or);
+    vi.mocked(orRequetes.chargerLigneOrPourEcriture).mockResolvedValue(ligne);
+
+    for (const [situation, attendu] of [
+      [NON_ASSUJETTI, { tauxTvaPourmille: 0, montantTvaCentimes: 0, montantTtcCentimes: 21_750 }],
+      [
+        { assujetti: true, numeroTva: 'CHE-1' },
+        { montantTvaCentimes: 1_762, montantTtcCentimes: 23_512 },
+      ],
+    ] as const) {
+      vi.mocked(assujettissement.chargerSituationTva).mockResolvedValue(situation);
+      const select = construireSelect(
+        new Map<unknown, unknown[]>([[tauxHoraire, [tauxHoraireFixture()]]]),
+      );
+      const { update, appels: appelsUpdate } = construireUpdate(
+        new Map([[ligneOr, [{ ...ligne, type: 'main_oeuvre_temps_reel' }]]]),
+      );
+      const tx = { select, update } as unknown as TransactionDfa;
+      const service = new ServiceLigneOr(
+        accesBaseFactice(tx) as never,
+        {} as never,
+        {} as never,
+        new CalculLigneSimple(),
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+      );
+
+      await service.modifier(CTX, principal('receptionnaire'), OR_ID, LIGNE_ID, {
+        type: 'main_oeuvre_temps_reel',
+        tempsBaremeCentiemes: 150,
+      } as never);
+
+      const valeurs = appelsUpdate.find((a) => a.table === ligneOr)?.valeurs;
+      expect(valeurs).toMatchObject({ montantHtCentimes: 21_750, ...attendu });
+      if (situation.assujetti) expect(valeurs).not.toHaveProperty('tauxTvaPourmille');
+    }
   });
 });

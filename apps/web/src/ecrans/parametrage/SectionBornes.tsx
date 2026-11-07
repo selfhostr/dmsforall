@@ -15,7 +15,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -210,12 +210,16 @@ export function SectionBornes() {
             <DialogTitle>{t('parametrage:utilisateurs.bornes.nouveau')}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4">
+            <LegendeChampsObligatoires>
+              {t('parametrage:obligatoire.legende')}
+            </LegendeChampsObligatoires>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="nouvelle-borne-nom">
-                {t('parametrage:utilisateurs.bornes.champNom')} *
+              <Label htmlFor="nouvelle-borne-nom" requis>
+                {t('parametrage:utilisateurs.bornes.champNom')}
               </Label>
               <Input
                 id="nouvelle-borne-nom"
+                aria-required="true"
                 value={nom}
                 maxLength={100}
                 onChange={(e) => setNom(e.target.value)}
@@ -223,11 +227,11 @@ export function SectionBornes() {
             </div>
             {estMonoSite ? null : (
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="nouvelle-borne-site">
-                  {t('parametrage:utilisateurs.bornes.champSite')} *
+                <Label htmlFor="nouvelle-borne-site" requis>
+                  {t('parametrage:utilisateurs.bornes.champSite')}
                 </Label>
                 <Select value={siteId} onValueChange={setSiteId}>
-                  <SelectTrigger id="nouvelle-borne-site">
+                  <SelectTrigger id="nouvelle-borne-site" aria-required="true">
                     <SelectValue
                       placeholder={t('parametrage:utilisateurs.bornes.placeholderSite')}
                     />

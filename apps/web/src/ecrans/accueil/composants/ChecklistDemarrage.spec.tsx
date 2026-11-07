@@ -93,10 +93,20 @@ describe('ChecklistDemarrage', () => {
       'href',
       '/parametrage/atelier#motifs-rendez-vous',
     );
-    expect(within(ligne('tva')).getByRole('link')).toHaveAttribute(
+    expect(within(ligne('tva')).getByRole('link')).toHaveAttribute('href', '/parametrage/garage');
+    expect(within(ligne('coordonnees')).getByRole('link')).toHaveAttribute(
+      'href',
+      '/parametrage/garage',
+    );
+    expect(within(ligne('compte')).getByRole('link')).toHaveAttribute(
       'href',
       '/parametrage/facturation',
     );
+    expect(
+      within(ligne('collaborateur')).getByText(t('accueil:demarrage.facultatif'), {
+        exact: false,
+      }),
+    ).toBeInTheDocument();
     expect(within(ligne('tauxHoraire')).getByRole('link')).toHaveAttribute(
       'href',
       '/parametrage/referentiels',
@@ -123,7 +133,7 @@ describe('ChecklistDemarrage', () => {
       within(ligne('motifs')).getByText(t('accueil:demarrage.etat.aFaire'), { exact: false }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(t('accueil:demarrage.checklist.progression', { faites: 1, total: 5 })),
+      screen.getByText(t('accueil:demarrage.checklist.progression', { faites: 1, total: 4 })),
     ).toBeInTheDocument();
   });
 

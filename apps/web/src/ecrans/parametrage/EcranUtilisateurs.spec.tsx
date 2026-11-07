@@ -17,6 +17,9 @@ import { creerQueryClientTest } from '@/test/utils';
 
 import { EcranUtilisateurs } from './EcranUtilisateurs';
 
+/** Libellé d'un champ obligatoire : l'étoile (aria-hidden) fait partie du texte du <label>. */
+const avecEtoile = (libelle: string) => new RegExp(`^${libelle}\\*?$`);
+
 beforeAll(() => {
   // Même stub que `EcranNouvelOrdreReparation.spec.tsx`/`mesures.dialogue-ajout-ligne-or.spec.tsx` :
   // Radix Select (rôle) appelle `hasPointerCapture`/`scrollIntoView`, absents de jsdom.
@@ -166,15 +169,15 @@ describe('EcranUtilisateurs — création', () => {
     );
 
     await util.type(
-      screen.getByLabelText(`${i18n.t('parametrage:utilisateurs.creation.champPrenom')} *`),
+      screen.getByLabelText(avecEtoile(i18n.t('parametrage:utilisateurs.creation.champPrenom'))),
       'Julie',
     );
     await util.type(
-      screen.getByLabelText(`${i18n.t('parametrage:utilisateurs.creation.champNom')} *`),
+      screen.getByLabelText(avecEtoile(i18n.t('parametrage:utilisateurs.creation.champNom'))),
       'Rey',
     );
     await util.type(
-      screen.getByLabelText(`${i18n.t('parametrage:utilisateurs.creation.champEmail')} *`),
+      screen.getByLabelText(avecEtoile(i18n.t('parametrage:utilisateurs.creation.champEmail'))),
       'julie.rey@garage-martin.ch',
     );
     // Garage mono-site : aucun champ « site », le site est envoyé implicitement (assert du POST).
@@ -245,7 +248,7 @@ describe('EcranUtilisateurs — création', () => {
       await screen.findByRole('button', { name: i18n.t('parametrage:utilisateurs.nouveau') }),
     );
     await util.click(
-      screen.getByLabelText(`${i18n.t('parametrage:utilisateurs.creation.champRole')} *`),
+      screen.getByLabelText(avecEtoile(i18n.t('parametrage:utilisateurs.creation.champRole'))),
     );
     expect(
       screen.queryByRole('option', { name: i18n.t('commun:roles.admin') }),
@@ -253,18 +256,36 @@ describe('EcranUtilisateurs — création', () => {
   });
 });
 
+describe('EcranUtilisateurs — champs obligatoires', () => {
+  it('affiche la légende et pose aria-required sur prénom, nom, e-mail et poste', async () => {
+    connecterSession('direction');
+    server.use(http.get(CHEMIN_LISTE, () => HttpResponse.json(pageDe([]))));
+    rendre();
+    const util = userEvent.setup();
+    await util.click(
+      await screen.findByRole('button', { name: i18n.t('parametrage:utilisateurs.nouveau') }),
+    );
+    expect(screen.getByText(i18n.t('parametrage:obligatoire.legende'))).toBeInTheDocument();
+    for (const cle of ['champPrenom', 'champNom', 'champEmail', 'champRole']) {
+      expect(
+        screen.getByLabelText(avecEtoile(i18n.t(`parametrage:utilisateurs.creation.${cle}`))),
+      ).toHaveAttribute('aria-required', 'true');
+    }
+  });
+});
+
 describe('EcranUtilisateurs — fiduciaire et droits personnalisés', () => {
   async function remplirIdentite(util: ReturnType<typeof userEvent.setup>) {
     await util.type(
-      screen.getByLabelText(`${i18n.t('parametrage:utilisateurs.creation.champPrenom')} *`),
+      screen.getByLabelText(avecEtoile(i18n.t('parametrage:utilisateurs.creation.champPrenom'))),
       'Anne',
     );
     await util.type(
-      screen.getByLabelText(`${i18n.t('parametrage:utilisateurs.creation.champNom')} *`),
+      screen.getByLabelText(avecEtoile(i18n.t('parametrage:utilisateurs.creation.champNom'))),
       'Fidu',
     );
     await util.type(
-      screen.getByLabelText(`${i18n.t('parametrage:utilisateurs.creation.champEmail')} *`),
+      screen.getByLabelText(avecEtoile(i18n.t('parametrage:utilisateurs.creation.champEmail'))),
       'anne@fiduciaire.ch',
     );
   }

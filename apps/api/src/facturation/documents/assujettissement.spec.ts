@@ -5,6 +5,7 @@ import type { ContexteTenant, TransactionDfa } from '../../db';
 import {
   chargerSituationTva,
   REGIME_NON_ASSUJETTI,
+  normaliserTauxEtRegime,
   verifierEmissionSelonAssujettissement,
 } from './assujettissement';
 
@@ -134,6 +135,41 @@ describe('chargerSituationTva', () => {
   it('tenant introuvable : RESSOURCE_INTROUVABLE, jamais « assujetti » par défaut', async () => {
     await expect(chargerSituationTva(txRendant([]), ctx)).rejects.toMatchObject({
       code: 'RESSOURCE_INTROUVABLE',
+    });
+  });
+});
+
+describe('normaliserTauxEtRegime', () => {
+  const NON = { assujetti: false, numeroTva: null } as const;
+  const OUI = { assujetti: true, numeroTva: 'CHE-1' } as const;
+
+  it('non assujetti : taux absent = 0, régime exclu', () => {
+    expect(
+      normaliserTauxEtRegime(NON, { tauxTvaPourmille: undefined, regimeTva: 'normal' }),
+    ).toEqual({ tauxTvaPourmille: 0, regimeTva: 'exclu' });
+  });
+
+  it('non assujetti : taux 0 explicite accepté, régime forcé à exclu', () => {
+    expect(normaliserTauxEtRegime(NON, { tauxTvaPourmille: 0, regimeTva: 'reduit' })).toEqual({
+      tauxTvaPourmille: 0,
+      regimeTva: 'exclu',
+    });
+  });
+
+  it('non assujetti : taux 81 refusé, TVA_NON_ASSUJETTI_TAUX_INTERDIT', () => {
+    expect(() =>
+      normaliserTauxEtRegime(NON, { tauxTvaPourmille: 81, regimeTva: 'normal' }, 3),
+    ).toThrow(expect.objectContaining({ code: 'TVA_NON_ASSUJETTI_TAUX_INTERDIT' }));
+  });
+
+  it('assujetti : valeurs inchangées, taux absent reste null', () => {
+    expect(normaliserTauxEtRegime(OUI, { tauxTvaPourmille: 26, regimeTva: 'reduit' })).toEqual({
+      tauxTvaPourmille: 26,
+      regimeTva: 'reduit',
+    });
+    expect(normaliserTauxEtRegime(OUI, { tauxTvaPourmille: null, regimeTva: 'normal' })).toEqual({
+      tauxTvaPourmille: null,
+      regimeTva: 'normal',
     });
   });
 });

@@ -49,6 +49,7 @@ import {
   type CalculLigne,
   type CreationTravailReporte,
 } from './atelier.jetons';
+import { chargerSituationTva } from '../facturation/documents/assujettissement';
 import { phraseAccordClient } from './accord-client';
 import { roleVoitLesMontants, mapperLigneOr } from './mappeurs';
 import {
@@ -185,6 +186,9 @@ export function refuserSiRealisationImpossible(ligne: LigneLigneOr, voitMontants
  * (`POST /ordres-reparation/{orId}/devis-complementaires`, `ServiceDevis`) — les deux endpoints ne
  * se confondent pas : l'un MARQUE des lignes en attente d'accord, l'autre ENVOIE le document.
  */
+/** Taux normal 2026 (8,1 %), appliqué aux lignes d'OR d'un garage assujetti. */
+const TAUX_TVA_NORMAL_PAR_DEFAUT_POURMILLE = 81;
+
 @Injectable()
 export class ServiceLigneOr {
   constructor(
@@ -268,6 +272,10 @@ export class ServiceLigneOr {
         const tauxHoraireCentimes = this.estMainOeuvre(entree.type)
           ? this.exigerTauxHoraire(await this.resoudreTauxHoraireCentimes(tx, ctx, or))
           : null;
+        // Garage non assujetti : jamais de TVA (art. 27 LTVA) → 0 ‰ ; sinon taux légal par défaut.
+        const tauxTvaPourmille = (await chargerSituationTva(tx, ctx)).assujetti
+          ? TAUX_TVA_NORMAL_PAR_DEFAUT_POURMILLE
+          : 0;
 
         // Reprise d'un travail reporté (RM-73) : verrouillé `for update` — deux reprises
         // concurrentes ne peuvent pas créer deux lignes pour le même travail.
@@ -300,7 +308,7 @@ export class ServiceLigneOr {
                 tempsBaremeCentiemes: entree.tempsBaremeCentiemes ?? null,
                 tauxHoraireCentimes,
                 rabaisPourmille: entree.rabaisPourmille,
-                tauxTvaPourmille: 81, // taux légal suisse par défaut ; figé de la même façon que le taux horaire (RM-65)
+                tauxTvaPourmille, // figé à la création comme le taux horaire (RM-65)
               });
 
         // `AC-08`/`MD-62`/`MD-67` : `payeurClientId` obligatoire pour un payeur tiers réel, refusé
@@ -376,7 +384,7 @@ export class ServiceLigneOr {
             tauxHoraireCentimes,
             prixUnitaireCentimes: prixUnitaireCentimes ?? null,
             rabaisPourmille: entree.rabaisPourmille,
-            tauxTvaPourmille: 81,
+            tauxTvaPourmille,
             montantHtCentimes: montants.montantHtCentimes,
             montantTvaCentimes: montants.montantTvaCentimes,
             montantTtcCentimes: montants.montantTtcCentimes,
@@ -521,23 +529,30 @@ export class ServiceLigneOr {
           this.exigerTauxHoraire(await this.resoudreTauxHoraireCentimes(tx, ctx, or)))
         : ligne.tauxHoraireCentimes;
 
-      const montants = !champsTarifRenseignes
-        ? {
-            montantHtCentimes: ligne.montantHtCentimes,
-            montantTvaCentimes: ligne.montantTvaCentimes,
-            montantTtcCentimes: ligne.montantTtcCentimes,
-          }
-        : payeurEffectif === 'garage'
-          ? { montantHtCentimes: 0, montantTvaCentimes: 0, montantTtcCentimes: 0 }
-          : this.calcul.calculer({
-              type: typeEffectif,
-              quantiteMillieme: entree.quantiteMillieme ?? ligne.quantiteMillieme ?? 1000,
-              prixUnitaireCentimes: entree.prixUnitaireCentimes ?? ligne.prixUnitaireCentimes,
-              tempsBaremeCentiemes: entree.tempsBaremeCentiemes ?? ligne.tempsBaremeCentiemes,
-              tauxHoraireCentimes,
-              rabaisPourmille: entree.rabaisPourmille ?? ligne.rabaisPourmille ?? 0,
-              tauxTvaPourmille: ligne.tauxTvaPourmille,
-            });
+      // Non assujetti : la ligne passe à 0 ‰ (une ligne créée avant le changement de statut du
+      // garage est recalculée à sa première modification) ; assujetti : taux figé inchangé (RM-65).
+      const assujetti = (await chargerSituationTva(tx, ctx)).assujetti;
+      const tauxTvaPourmille = assujetti ? ligne.tauxTvaPourmille : 0;
+      const tauxAChange = tauxTvaPourmille !== ligne.tauxTvaPourmille;
+
+      const montants =
+        !champsTarifRenseignes && !tauxAChange
+          ? {
+              montantHtCentimes: ligne.montantHtCentimes,
+              montantTvaCentimes: ligne.montantTvaCentimes,
+              montantTtcCentimes: ligne.montantTtcCentimes,
+            }
+          : payeurEffectif === 'garage'
+            ? { montantHtCentimes: 0, montantTvaCentimes: 0, montantTtcCentimes: 0 }
+            : this.calcul.calculer({
+                type: typeEffectif,
+                quantiteMillieme: entree.quantiteMillieme ?? ligne.quantiteMillieme ?? 1000,
+                prixUnitaireCentimes: entree.prixUnitaireCentimes ?? ligne.prixUnitaireCentimes,
+                tempsBaremeCentiemes: entree.tempsBaremeCentiemes ?? ligne.tempsBaremeCentiemes,
+                tauxHoraireCentimes,
+                rabaisPourmille: entree.rabaisPourmille ?? ligne.rabaisPourmille ?? 0,
+                tauxTvaPourmille,
+              });
 
       // Même règle SERVEUR qu'à la création (AC-08/MD-62/MD-67), évaluée sur le payeur EFFECTIF
       // (après fusion avec l'existant) — un `PATCH { payeur: 'assurance' }` sans `payeurClientId`
@@ -658,6 +673,7 @@ export class ServiceLigneOr {
             : {}),
           ...(entree.blocage !== undefined ? { blocage: entree.blocage } : {}),
           ...(tauxHoraireCentimes !== ligne.tauxHoraireCentimes ? { tauxHoraireCentimes } : {}),
+          ...(tauxAChange ? { tauxTvaPourmille } : {}),
           montantHtCentimes: montants.montantHtCentimes,
           montantTvaCentimes: montants.montantTvaCentimes,
           montantTtcCentimes: montants.montantTtcCentimes,
