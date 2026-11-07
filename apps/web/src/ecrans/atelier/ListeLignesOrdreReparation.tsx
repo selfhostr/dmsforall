@@ -24,6 +24,7 @@ import { EtatVide } from '@/composants/commun/EtatVide';
 import {
   peutAnnulerLigneOr,
   peutRefuserLigneOr,
+  peutReporterTravail,
   peutValiderLigneOr,
 } from '@/ecrans/atelier/droits';
 import {
@@ -33,6 +34,8 @@ import {
 } from '@/hooks/atelier/useActionsLigneOr';
 import { useSession } from '@/hooks/useSession';
 import { formaterMontant, formaterMontantAvecDevise, formaterPourmille } from '@/lib/formats';
+
+import { DialogueReporterTravail } from '@/ecrans/vehicules/DialogueReporterTravail';
 
 import { DialogueAccordClient } from './DialogueAccordClient';
 import { messagesErreurMutation } from './messages-erreur-mutation';
@@ -94,7 +97,17 @@ interface Props {
   readonly lignesTronquees: boolean;
   /** Plafond actuel de l'OR (centimes), repris tel quel dans le devis de l'accord client. */
   readonly plafondCentimes?: number;
+  /** Véhicule de l'OR : active « Reporter ce travail » sur les lignes pas encore réalisées. */
+  readonly vehiculeId?: string;
 }
+
+/** Lignes qu'on peut encore décider de ne pas faire maintenant : ni réalisées, ni facturées. */
+const STATUTS_REPORTABLES: ReadonlySet<ReponseLigneOr['statut']> = new Set([
+  'proposee',
+  'a_valider',
+  'validee',
+  'refusee',
+]);
 
 /**
  * Lignes de l'OR (travaux/pièces/forfaits…). Le montant total n'est JAMAIS recalculé côté client
@@ -125,6 +138,7 @@ export function ListeLignesOrdreReparation({
   lignes,
   lignesTronquees,
   plafondCentimes = 0,
+  vehiculeId,
 }: Props) {
   const { t } = useTranslation(['or', 'commun']);
   const session = useSession();
@@ -136,6 +150,8 @@ export function ListeLignesOrdreReparation({
   const [erreurValidation, setErreurValidation] = useState<string | null>(null);
   // « Accord du client » : lignes concernées (une seule, ou tous les travaux proposés).
   const [accordLigneIds, setAccordLigneIds] = useState<readonly string[] | null>(null);
+  // « Reporter ce travail » : ligne dont on garde la désignation pour la prochaine visite.
+  const [ligneAReporter, setLigneAReporter] = useState<ReponseLigneOr | null>(null);
 
   const validerLignes = useValiderLignesOr(orId);
   const refuserLignes = useRefuserLignesOr(orId);
@@ -146,6 +162,7 @@ export function ListeLignesOrdreReparation({
   const peutAnnuler = peutAnnulerLigneOr(role);
   const peutDecider = peutValider || peutRefuser || peutAnnuler;
   const lignesProposees = lignes.filter((ligne) => ligne.statut === 'proposee');
+  const peutReporter = vehiculeId !== undefined && peutReporterTravail(role);
 
   function basculerSelection(ligneId: string) {
     setSelection((precedente) => {
@@ -398,6 +415,18 @@ export function ListeLignesOrdreReparation({
               <span className="sr-only"> — {ligne.designation}</span>
             </Button>
           ) : null}
+          {peutReporter && STATUTS_REPORTABLES.has(ligne.statut) ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="self-start"
+              onClick={() => setLigneAReporter(ligne)}
+            >
+              {t('or:lignes.reporter.action')}
+              <span className="sr-only"> — {ligne.designation}</span>
+            </Button>
+          ) : null}
         </div>
       ),
     },
@@ -414,6 +443,21 @@ export function ListeLignesOrdreReparation({
 
   return (
     <div className="flex flex-col gap-2">
+      {ligneAReporter && vehiculeId ? (
+        <DialogueReporterTravail
+          key={ligneAReporter.id}
+          vehiculeId={vehiculeId}
+          ouvert
+          onOuvertChange={(ouvert) => (ouvert ? undefined : setLigneAReporter(null))}
+          ordreReparationOrigineId={orId}
+          valeursInitiales={{
+            designation: ligneAReporter.designation,
+            urgence: ligneAReporter.urgence,
+            securite: ligneAReporter.securite,
+          }}
+        />
+      ) : null}
+
       {peutValider && lignesProposees.length > 1 ? (
         <div className="flex flex-wrap items-center gap-2">
           <Button

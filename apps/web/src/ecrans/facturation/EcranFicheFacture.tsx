@@ -1,4 +1,4 @@
-import { Pencil, Plus } from 'lucide-react';
+import { Download, Pencil, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
@@ -34,6 +34,7 @@ import { BoutonImprimerDocument } from '@/composants/motifs/BoutonImprimerDocume
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { obtenirEnv } from '@/config/env';
 import { useDocumentVente } from '@/hooks/facturation/useDocumentVente';
+import { useTelechargerPdfDocument } from '@/hooks/facturation/useTelechargerPdfDocument';
 import { useEmettreDocumentVente } from '@/hooks/facturation/useEmettreDocumentVente';
 import { useSupprimerLigneDocument } from '@/hooks/facturation/useLignesDocumentVente';
 import { useModifierDocumentVente } from '@/hooks/facturation/useModifierDocumentVente';
@@ -52,7 +53,13 @@ import { CarteBulletinVersement } from './CarteBulletinVersement';
 import { ChampVerrouille } from './ChampVerrouille';
 import { DialogueCorrectionFacture } from './DialogueCorrectionFacture';
 import { DialogueLigneDocumentVente } from './DialogueLigneDocumentVente';
-import { peutCorrigerFacture, peutEmettreAvoir, peutEmettreFacture, peutEncaisser } from './droits';
+import {
+  peutCorrigerFacture,
+  peutEmettreAvoir,
+  peutEmettreFacture,
+  peutEncaisser,
+  peutVoirMontantsFacturation,
+} from './droits';
 import { IndicateurRetard } from './IndicateurRetard';
 import { messagesErreurMutation } from './messages-erreur-mutation';
 import { RecapitulatifTVA } from './RecapitulatifTVA';
@@ -106,6 +113,7 @@ export function EcranFicheFacture() {
   const modification = useModifierDocumentVente();
   const emission = useEmettreDocumentVente();
   const suppressionLigne = useSupprimerLigneDocument();
+  const pdfDevis = useTelechargerPdfDocument();
 
   const [dialogueEmissionOuvert, setDialogueEmissionOuvert] = useState(false);
   const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
@@ -203,6 +211,10 @@ export function EcranFicheFacture() {
   // (`mapperDocument`, serveur), donc ce document reste imprimable même `estAnnuleeParAvoir`
   // (`impression-facture.controller.ts` ne teste que `typeDocument`/`qr`, jamais `statut`).
   const peutImprimer = document_.qr !== null;
+  // PDF d'un DEVIS : pas de lien direct (`qr` est toujours `null` hors facture émise) mais un
+  // téléchargement qui affiche l'échec — `DOCUMENT_PDF_INDISPONIBLE` tant que l'API ne le produit
+  // pas, plutôt qu'un onglet vide. Réservé aux rôles qui voient les montants.
+  const peutPdfDevis = document_.typeDocument === 'devis' && peutVoirMontantsFacturation(role);
   const urlPdf = `${obtenirEnv().VITE_API_URL}/documents-vente/${document_.id}/pdf`;
   // Titre de FICHE (chantier « titres doublés & espacements », 17.08.2026) — « Facture 2026-00002 »
   // / « Avoir 2026-AV-00001 » : CONTRE-EXEMPLE cité par le contrat du chantier, il ne fait PAS
@@ -216,7 +228,11 @@ export function EcranFicheFacture() {
       })
     : document_.typeDocument === 'avoir'
       ? t('facturation:fiche.titreBrouillonAvoir')
-      : t('facturation:fiche.titreBrouillonFacture');
+      : document_.typeDocument === 'devis'
+        ? t('facturation:fiche.titreBrouillonDevis')
+        : document_.typeDocument === 'bon_commande'
+          ? t('facturation:fiche.titreBrouillonBonCommande')
+          : t('facturation:fiche.titreBrouillonFacture');
 
   function ouvrirCorrection() {
     setCorrectionOuverte(true);
@@ -290,8 +306,21 @@ export function EcranFicheFacture() {
   ) : null;
 
   const actionsEnTete =
-    peutImprimer || boutonActionPrimaire || actionsSecondairesFacture.length > 0 ? (
+    peutImprimer || peutPdfDevis || boutonActionPrimaire || actionsSecondairesFacture.length > 0 ? (
       <div className="flex items-center gap-controles">
+        {peutPdfDevis ? (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pdfDevis.isPending}
+            onClick={() =>
+              pdfDevis.mutate({ id: document_.id, nom: document_.numero ?? document_.id })
+            }
+          >
+            <Download aria-hidden className="h-4 w-4" />
+            {t('facturation:fiche.actions.telechargerPdf')}
+          </Button>
+        ) : null}
         {peutImprimer ? (
           <BoutonImprimerDocument
             url={urlPdf}
@@ -322,6 +351,12 @@ export function EcranFicheFacture() {
   return (
     <GabaritEcran titre={titreDocument} actions={actionsEnTete}>
       <FilAriane segments={segmentsFilAriane} pageCourante={titreDocument} />
+
+      {pdfDevis.isError ? (
+        <p role="alert" className="texte-corps text-destructive">
+          {messageErreur(pdfDevis.error, t)}
+        </p>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-3">
         <BadgeEtatDocument etat={etatAffiche} />

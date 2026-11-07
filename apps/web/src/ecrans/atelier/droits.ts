@@ -60,6 +60,20 @@ export function peutCreerLigneOr(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && ROLES_CREATION_LIGNE.has(role);
 }
 
+/** Reporter un travail à la prochaine visite : mêmes rôles que le signalement sur la fiche véhicule
+ *  (`ROLES_SIGNALEMENT_TRAVAIL_REPORTE`, `ecrans/vehicules/PanneauTravauxReportes.tsx`). */
+const ROLES_REPORT_TRAVAIL: ReadonlySet<RoleUtilisateur> = new Set([
+  'receptionnaire',
+  'chef_atelier',
+  'direction',
+  'admin',
+  'technicien',
+]);
+
+export function peutReporterTravail(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_REPORT_TRAVAIL.has(role);
+}
+
 export function peutValiderLigneOr(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && ROLES_DECISION_LIGNE.has(role);
 }

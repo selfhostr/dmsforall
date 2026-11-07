@@ -37,6 +37,8 @@ interface Props {
   readonly onOuvertChange: (ouvert: boolean) => void;
   /** Client déjà connu (entrée depuis sa fiche) : le champ de recherche disparaît. */
   readonly client?: Pick<ClientResume, 'id' | 'nomAffiche'>;
+  /** Véhicule présélectionné (entrée depuis sa fiche) ; l'utilisateur peut encore le retirer. */
+  readonly vehiculeIdInitial?: string;
 }
 
 /**
@@ -46,7 +48,12 @@ interface Props {
  * (main-d'œuvre, pièces) ou ouvrir un OR prérempli (client + véhicule) — l'API n'offre pas de
  * transformation directe devis -> OR.
  */
-export function DialogueNouveauDevis({ ouvert, onOuvertChange, client: clientFixe }: Props) {
+export function DialogueNouveauDevis({
+  ouvert,
+  onOuvertChange,
+  client: clientFixe,
+  vehiculeIdInitial,
+}: Props) {
   const { t } = useTranslation(['facturation', 'commun']);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -61,7 +68,7 @@ export function DialogueNouveauDevis({ ouvert, onOuvertChange, client: clientFix
   const [clientChoisi, setClientChoisi] = useState<Pick<ClientResume, 'id' | 'nomAffiche'> | null>(
     null,
   );
-  const [vehiculeId, setVehiculeId] = useState(SANS_VEHICULE);
+  const [vehiculeId, setVehiculeId] = useState(vehiculeIdInitial ?? SANS_VEHICULE);
   const [siteChoisi, setSiteChoisi] = useState<string | undefined>(undefined);
   const [erreurClient, setErreurClient] = useState(false);
   const [devisCree, setDevisCree] = useState<ReponseDocumentVente | null>(null);
@@ -84,7 +91,7 @@ export function DialogueNouveauDevis({ ouvert, onOuvertChange, client: clientFix
       setErreurClient(false);
       setClientChoisi(null);
       setRecherche('');
-      setVehiculeId(SANS_VEHICULE);
+      setVehiculeId(vehiculeIdInitial ?? SANS_VEHICULE);
     }
     onOuvertChange(valeur);
   }

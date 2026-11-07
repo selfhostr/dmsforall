@@ -57,7 +57,8 @@
   "avanceClient": {
     "message": "Questo incasso supera il saldo di {montant} — l'eccedenza sarà registrata come acconto cliente, da imputare in seguito.",
     "aucuneFactureOuverte": "Questo cliente non ha nessuna fattura aperta da saldare.",
-    "confirmerAction": "Registrare comunque come acconto cliente"
+    "confirmerAction": "Registrare comunque come acconto cliente",
+    "excedent": "Incassate {excedent} in più rispetto al saldo di {solde}: l'eccedenza sarà registrata come anticipo del cliente, da assegnare più tardi."
   },
   "motifsAvoir": {
     "erreurAdresse": "Errore d'indirizzo",
@@ -241,7 +242,8 @@
         "corriger": "Correggere questa fattura",
         "creerAvoir": "Creare una nota di credito",
         "journal": "Vedere il registro"
-      }
+      },
+      "telechargerPdf": "Scarica il PDF"
     },
     "dialogueEmission": {
       "titre": "Emettere la fattura?",
@@ -280,7 +282,9 @@
     "erreur": {
       "titre": "Impossibile caricare questa fattura"
     },
-    "montantIndisponible": "Non comunicato"
+    "montantIndisponible": "Non comunicato",
+    "titreBrouillonDevis": "Nuovo preventivo",
+    "titreBrouillonBonCommande": "Nuovo ordine"
   },
   "encaissement": {
     "titre": "Incassare · {destinataire}",
@@ -309,7 +313,8 @@
     "erreur": {
       "titre": "Impossibile registrare l'incasso"
     },
-    "chargement": "Caricamento delle fatture aperte…"
+    "chargement": "Caricamento delle fatture aperte…",
+    "paiementPartiel": "Pagamento parziale: restano {reste} da pagare su questa fattura."
   },
   "avoir": {
     "titre": "Nota di credito sulla fattura {numero} — {destinataire}",
@@ -336,7 +341,8 @@
       "toutes": "Tutte",
       "nonReglees": "Non pagate",
       "enRetard": "In ritardo",
-      "aRelancer": "Da sollecitare"
+      "aRelancer": "Da sollecitare",
+      "devis": "Preventivi"
     },
     "colonnes": {
       "numero": "N.",
@@ -371,6 +377,10 @@
       "recherche": {
         "titre": "Nessuna fattura trovata",
         "description": "Nessuna fattura corrisponde a questo numero o nome cliente."
+      },
+      "devis": {
+        "titre": "Nessun preventivo",
+        "description": "I preventivi che create compaiono qui, dal più recente al più vecchio."
       }
     }
   },
@@ -402,6 +412,59 @@
       "description": "Aggiungete ora manodopera e ricambi al preventivo. Se il cliente accetta, aprite un OR con lo stesso cliente e lo stesso veicolo.",
       "creerOr": "Crea l'OR da questo preventivo",
       "ouvrir": "Apri il preventivo"
+    },
+    "statuts": {
+      "brouillon": "Bozza",
+      "emis": "Inviato",
+      "accepte": "Accettato",
+      "refuse": "Rifiutato",
+      "expire": "Scaduto",
+      "remplace": "Sostituito",
+      "transforme": "Trasformato",
+      "annule": "Annullato",
+      "abandonne": "Abbandonato"
+    }
+  },
+  "facturerEncaisser": {
+    "bouton": "Fatturare e incassare",
+    "titre": "Fatturare e incassare",
+    "resume": "{destinataire} · totale {montant} IVA incl.",
+    "modeLegende": "Come paga il cliente?",
+    "modes": {
+      "especes": "Contanti",
+      "carte": "Carta",
+      "twint": "TWINT",
+      "plus_tard": "Il cliente pagherà più tardi"
+    },
+    "apercuExact": "Da incassare: {montant}",
+    "apercuArrondi": "Da incassare: {montant} (arrotondato a 5 ct, {ecart})",
+    "apercuPlusTard": "La fattura viene emessa, ora non si incassa nulla.",
+    "apercuInconnu": "L’importo sarà calcolato all’emissione della fattura.",
+    "action": "Fatturare e incassare {montant}",
+    "actionPlusTard": "Fatturare senza incassare",
+    "enCours": "In corso…",
+    "reessayer": "Riprova",
+    "enDetail": "Fatturare nel dettaglio",
+    "etapes": {
+      "facturation": "Creazione della fattura…",
+      "emission": "Emissione della fattura…",
+      "encaissement": "Registrazione dell’incasso…"
+    },
+    "echec": {
+      "facturation": "Non è stato possibile creare la fattura.",
+      "emission": "La fattura è creata ma non ancora emessa.",
+      "encaissement": "La fattura è emessa ma l’incasso non è registrato.",
+      "factureConservee": "Nulla è perso: «Riprova» riparte da dove si era fermato, senza ricreare la fattura."
+    },
+    "succes": {
+      "titre": "Fatto",
+      "facture": "Fattura {numero} emessa.",
+      "encaisse": "{montant} incassati ({moyen}).",
+      "plusTard": "Fattura emessa, il cliente pagherà più tardi.",
+      "telechargerPdf": "Scarica il PDF",
+      "envoyerCourriel": "Invia per e-mail",
+      "courrielEnvoye": "Fattura inviata a {destinataire}.",
+      "ouvrirFacture": "Apri la fattura"
     }
   }
 }

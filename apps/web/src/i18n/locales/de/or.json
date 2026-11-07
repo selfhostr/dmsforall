@@ -205,6 +205,9 @@
       "indicateur": "Wartet auf Zustimmung des Kunden",
       "ajouteeBureau": "Arbeit hinzugefügt, wartet auf Zustimmung des Kunden. Nutzen Sie «Zustimmung des Kunden» in der Zeile.",
       "ajouteeAtelier": "Arbeit hinzugefügt, wartet auf Zustimmung des Kunden. Das Büro sieht sie in diesem AR."
+    },
+    "reporter": {
+      "action": "Arbeit verschieben"
     }
   },
   "demandes": {
@@ -292,7 +295,8 @@
     "cloturer": "Schliessend",
     "annuler": "RA stornieren",
     "rouvrir": "Wiederöffnen",
-    "reprendreTravaux": "Arbeiten fortsetzen"
+    "reprendreTravaux": "Arbeiten fortsetzen",
+    "facturerEncaisser": "Verrechnen und kassieren"
   },
   "refus": {
     "ligneAValider": "Einige Arbeiten erwarten Freigabe. Sie sind unten aufgelistet.",
@@ -524,5 +528,16 @@
       "avecStatut": "Diese Aktion ist nicht möglich: der AR hat den Status «{statut}». Laden Sie die Seite neu und wählen Sie eine der vorgeschlagenen Aktionen.",
       "sansStatut": "Diese Aktion ist im aktuellen Zustand des AR nicht möglich. Laden Sie die Seite neu und wählen Sie eine der vorgeschlagenen Aktionen."
     }
+  },
+  "travauxReportes": {
+    "titre": "Verschobene Arbeiten dieses Fahrzeugs",
+    "description": "{count, plural, one {Eine Arbeit wartete auf dieses Fahrzeug.} other {# Arbeiten warteten auf dieses Fahrzeug.}}",
+    "reprendre": "In diesen AR übernehmen"
+  },
+  "courtoisie": {
+    "action": "Ersatzfahrzeug",
+    "titre": "Ersatzfahrzeug",
+    "description": "Wählen Sie ein heute freies Auto: Die Ausleihe wird diesem Kunden und diesem AR zugeordnet.",
+    "aucunLibre": "Heute ist kein Ersatzfahrzeug frei."
   }
 }

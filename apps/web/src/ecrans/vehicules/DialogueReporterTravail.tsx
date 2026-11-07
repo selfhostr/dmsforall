@@ -40,6 +40,14 @@ interface Props {
   readonly onOuvertChange: (ouvert: boolean) => void;
   /** OR d'où vient la remarque (facultatif ; absent = saisie libre depuis la fiche véhicule). */
   readonly ordreReparationOrigineId?: string;
+  /** Pré-remplissage (« Reporter ce travail » depuis une ligne d'OR) : lu à l'ouverture seulement,
+   *  l'appelant remonte le dialogue (`key`) pour une autre ligne. */
+  readonly valeursInitiales?: {
+    readonly designation: string;
+    readonly detail?: string | null;
+    readonly urgence?: UrgenceTravail | null;
+    readonly securite?: boolean;
+  };
 }
 
 /** « Reporter un travail » : le mécanicien note ce qui sera à faire à la prochaine visite. */
@@ -48,12 +56,13 @@ export function DialogueReporterTravail({
   ouvert,
   onOuvertChange,
   ordreReparationOrigineId,
+  valeursInitiales,
 }: Props) {
   const { t } = useTranslation(['vehicules', 'commun', 'erreurs']);
   const creer = useCreerTravailReporte(vehiculeId);
-  const [designation, setDesignation] = useState('');
-  const [detail, setDetail] = useState('');
-  const [urgence, setUrgence] = useState<UrgenceTravail>('a_faire');
+  const [designation, setDesignation] = useState(valeursInitiales?.designation ?? '');
+  const [detail, setDetail] = useState(valeursInitiales?.detail ?? '');
+  const [urgence, setUrgence] = useState<UrgenceTravail>(valeursInitiales?.urgence ?? 'a_faire');
   const [erreur, setErreur] = useState<string | null>(null);
 
   function changerOuvert(valeur: boolean) {
@@ -73,6 +82,7 @@ export function DialogueReporterTravail({
       designation,
       detail: detail.trim() === '' ? undefined : detail,
       urgence,
+      securite: valeursInitiales?.securite ? true : undefined,
       ordreReparationOrigineId,
     });
     if (!resultat.success) {

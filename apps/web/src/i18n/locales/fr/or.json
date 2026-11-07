@@ -205,6 +205,9 @@
       "indicateur": "En attente d'accord du client",
       "ajouteeBureau": "Travail ajouté, en attente d'accord du client. Utilisez « Accord du client » sur la ligne.",
       "ajouteeAtelier": "Travail ajouté, en attente d'accord du client. Le bureau le voit sur cet OR."
+    },
+    "reporter": {
+      "action": "Reporter ce travail"
     }
   },
   "demandes": {
@@ -292,7 +295,8 @@
     "cloturer": "Clôturer",
     "annuler": "Annuler l'OR",
     "rouvrir": "Rouvrir",
-    "reprendreTravaux": "Reprendre les travaux"
+    "reprendreTravaux": "Reprendre les travaux",
+    "facturerEncaisser": "Facturer et encaisser"
   },
   "refus": {
     "ligneAValider": "Certaines lignes attendent un accord. Elles sont listées ci-dessous.",
@@ -524,5 +528,16 @@
       "avecStatut": "Cette action n'est pas possible : l'OR est au statut « {statut} ». Rechargez la page, puis choisissez une des actions proposées.",
       "sansStatut": "Cette action n'est pas possible dans l'état actuel de l'OR. Rechargez la page, puis choisissez une des actions proposées."
     }
+  },
+  "travauxReportes": {
+    "titre": "Travaux reportés de ce véhicule",
+    "description": "{count, plural, one {Un travail attendait ce véhicule.} other {# travaux attendaient ce véhicule.}}",
+    "reprendre": "Reprendre dans cet OR"
+  },
+  "courtoisie": {
+    "action": "Véhicule de courtoisie",
+    "titre": "Véhicule de courtoisie",
+    "description": "Choisissez une voiture libre aujourd’hui : le prêt sera rattaché à ce client et à cet OR.",
+    "aucunLibre": "Aucun véhicule de courtoisie n’est libre aujourd’hui."
   }
 }

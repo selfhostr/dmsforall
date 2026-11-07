@@ -227,7 +227,9 @@
       "corriger": "Correggi",
       "reprendre": "Segna come ripreso",
       "abandonner": "Abbandona",
-      "enregistrer": "Salva"
+      "enregistrer": "Salva",
+      "reprendreDansOr": "Riprendere in {numero}",
+      "reprendreDansUnOr": "Riprendere in un OR"
     },
     "dialogue": {
       "corrigerTitre": "Correggi il lavoro rinviato",
