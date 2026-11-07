@@ -372,9 +372,7 @@ export function EcranHangarPneus() {
   return (
     <GabaritEcran
       titre={t('pneus:hangar.titre')}
-      actions={
-        <AideContextuelle sujet={t('pneus:hangar.titre')} texte={t('aide:pneus.hangar')} />
-      }
+      actions={<AideContextuelle sujet={t('pneus:hangar.titre')} texte={t('aide:pneus.hangar')} />}
     >
       <Tabs value={onglet} onValueChange={changerOnglet} className="flex flex-col gap-6">
         <TabsList aria-label={t('pneus:hangar.onglets.ariaLabel')}>

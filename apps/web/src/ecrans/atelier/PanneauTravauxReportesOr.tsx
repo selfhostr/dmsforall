@@ -45,7 +45,10 @@ export function PanneauTravauxReportesOr({ orId, vehiculeId }: Props) {
       <CardHeader>
         <div className="flex items-center gap-1.5">
           <CardTitle className="texte-titre-section">{t('or:travauxReportes.titre')}</CardTitle>
-          <AideContextuelle sujet={t('or:travauxReportes.titre')} texte={t('aide:or.travauxReportes')} />
+          <AideContextuelle
+            sujet={t('or:travauxReportes.titre')}
+            texte={t('aide:or.travauxReportes')}
+          />
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-2">

@@ -228,9 +228,7 @@ export function EcranConsolePlateforme() {
 
   return (
     <ConsoleShell>
-      <GabaritEcran titre={t('console:plateforme.titre')}>
-        {contenu}
-      </GabaritEcran>
+      <GabaritEcran titre={t('console:plateforme.titre')}>{contenu}</GabaritEcran>
     </ConsoleShell>
   );
 }

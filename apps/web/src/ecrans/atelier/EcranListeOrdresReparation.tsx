@@ -352,10 +352,7 @@ export function EcranListeOrdresReparation() {
             ))}
           </SelectContent>
         </Select>
-        <AideContextuelle
-          sujet={t('or:liste.filtres.statut')}
-          texte={t('aide:or.statuts')}
-        />
+        <AideContextuelle sujet={t('or:liste.filtres.statut')} texte={t('aide:or.statuts')} />
       </BarreFiltres>
 
       <div className="flex flex-wrap items-end justify-between gap-3">
