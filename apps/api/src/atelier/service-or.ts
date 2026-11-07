@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, eq, exists, gte, inArray, isNull, lte, or, sql, type SQL } from 'drizzle-orm';
+import { and, eq, exists, gte, inArray, isNull, lte, or, sql } from 'drizzle-orm';
 import type {
   AttentesOr,
   ClientResume,
@@ -10,6 +10,7 @@ import type {
   FiltresOrdresReparation,
   ReponseAvecAvertissements,
   ReponseEntreeJournal,
+  ReponseDevisComplementaire,
   ReponseOrdreReparation,
   ReponseOrdreReparationDemande,
   TotauxPayeurOr,
@@ -23,7 +24,10 @@ import {
   ordreReparationDemande,
   vehiculePlaque,
   type LigneLigneOr,
+  type LigneOrControleQualite,
   type LigneOrdreReparation,
+  type LigneVehicule,
+  type LigneVehiculePlaque,
 } from '../db/schema';
 import { MATRICE_DROITS } from '../auth/matrice-droits';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
@@ -38,6 +42,15 @@ import {
   type ResultatIdempotent,
   type ServiceIdempotence,
 } from '../common/idempotence';
+import {
+  construireConditionKeyset,
+  construireOrderBy,
+  decoderCurseurPourTri,
+  encoderCurseurTrie,
+  expressionTriValeur,
+  valeurCurseurDepuisTri,
+  type DefinitionTri,
+} from '../common/pagination';
 import { debutJourneeSuisse, finJourneeSuisse } from '../common/temps';
 import { JETON_COMPTEURS } from '../parametrage/compteurs/compteurs.jetons';
 import type { ServiceCompteurs } from '../parametrage/compteurs/compteurs.types';
@@ -46,6 +59,7 @@ import { JETON_LECTURE_POINTAGE, type LecturePointage } from './atelier.jetons';
 import { verifierConfirmation } from './confirmations';
 import { calculerActionsDisponiblesPourRole, calculerEtatAffiche } from './etat-affiche';
 import { convertirEnKm } from './kilometrage';
+import { chargerLotListeOr, exigerClient, exigerVehicule } from './liste-or-lot';
 import { mapperDemande, mapperDevis, mapperLigneOr, roleVoitLesMontants } from './mappeurs';
 import { estRestitutionEnRetard } from './restitution-retard';
 import {
@@ -68,6 +82,7 @@ import {
   chargerVehiculeLigne,
   construireVehiculeResume,
   versClientResume,
+  type ResumeUtilisateur,
 } from './references';
 import { ServiceSnapshotOr } from './service-snapshot-or';
 import { calculerTotauxParPayeur, STATUTS_EXCLUS_DES_TOTAUX } from './totaux-payeur';
@@ -635,15 +650,13 @@ export class ServiceOr {
    * que reconduit à l'identique (câbler `ouvertLe:desc` proprement, y compris comme valeur par
    * défaut, fait partie du périmètre de ce correctif).
    *
-   * Cohérence du CURSEUR (offset opaque, `decoderCurseurOffset`/`encoderCurseurOffset`, partagé
-   * avec `service-ligne-or.ts`/`service-devis.ts`/`service-documents.ts` — pas touché ici) : un
-   * curseur d'offset exige un ORDER BY qui soit un ORDRE TOTAL déterministe, sinon Postgres peut
-   * réordonner les ex æquo différemment entre deux exécutions et la page 2 saute ou répète des
-   * lignes SANS qu'aucune écriture concurrente n'ait eu lieu. L'ancien tiebreak `creeLe desc`
-   * n'était pas garanti unique (deux OR ouverts dans la même transaction batch, même seconde) ;
-   * `construireOrdreTri` ajoute désormais `id asc` comme DERNIER critère, sur TOUTES les branches
-   * (y compris le défaut) — `id` est la clé primaire, donc unique par construction, ce qui rend
-   * l'ordre total quel que soit le nombre d'ex æquo sur la colonne de tri principale.
+   * CURSEUR (keyset, depuis le correctif de performance des listes) : curseur opaque v2
+   * (`common/pagination`, `construireConditionKeyset`) qui encode la valeur de la clé de tri ET
+   * l'`id` de la dernière ligne — coût constant quelle que soit la profondeur de page, aucune
+   * ligne sautée ni répétée si un OR est créé entre deux requêtes. `construireOrderBy` départage
+   * par `id` DANS LE SENS du tri (la comparaison ROW du keyset l'exige), clé primaire donc ordre
+   * total. Un curseur de l'ancien format (offset), forgé, ou émis pour un autre `tri` rend
+   * `400 VALIDATION_ECHOUEE` (`curseur_invalide`), comme tout curseur illisible du dépôt.
    *
    * `joursAttenteRetrait:desc` (choix produit, 12.08.2026) — lecture ATELIER, pas lecture client :
    * « la voiture est prête, elle occupe une place, le client ne vient pas la chercher ». Le décompte
@@ -843,25 +856,97 @@ export class ServiceOr {
         );
       }
 
-      const decalage = decoderCurseurOffset(curseur);
+      // Pagination KEYSET (curseur v2 opaque `{t, v, i}`, `common/pagination`) : coût constant quelle
+      // que soit la profondeur de page, et aucune ligne sautée/répétée si un OR est créé entre deux
+      // requêtes. Un curseur de l'ancien format (offset) est refusé en `400 VALIDATION_ECHOUEE`
+      // (`curseur_invalide`) — convention du dépôt pour tout curseur illisible, jamais une première
+      // page muette.
+      const definition = DEFINITIONS_TRI_OR[filtres.tri];
+      const idExpr = sql`${ordreReparation.id}`;
+      const reprise = decoderCurseurPourTri(curseur, filtres.tri, DEFINITIONS_TRI_OR);
+      if (reprise) {
+        conditions.push(
+          sql`${construireConditionKeyset(definition, idExpr, reprise.valeur, reprise.id)}`,
+        );
+      }
+
       const lignes = await tx
-        .select()
+        .select({
+          ligne: ordreReparation,
+          triValeur: sql<string | null>`${expressionTriValeur(definition)}`,
+        })
         .from(ordreReparation)
         .where(and(...conditions))
-        .orderBy(...construireOrdreTri(filtres.tri))
-        .limit(limite + 1)
-        .offset(decalage);
+        .orderBy(construireOrderBy(definition, idExpr))
+        .limit(limite + 1);
 
-      const page = lignes.slice(0, limite);
-      const suite = lignes.length > limite ? encoderCurseurOffset(decalage + limite) : null;
+      const pageLignes = lignes.slice(0, limite);
+      const derniere = pageLignes.at(-1);
+      const suite =
+        lignes.length > limite && derniere
+          ? encoderCurseurTrie({
+              tri: filtres.tri,
+              valeur: valeurCurseurDepuisTri(definition, derniere.triValeur),
+              id: derniere.ligne.id,
+            })
+          : null;
 
-      // `pourListe = true` : voir la note sur `assemblerDocument` ci-dessous — évite d'ouvrir
-      // jusqu'à `limite` (max 200) transactions d'audit imbriquées en parallèle sur une seule
-      // page (épuisement du pool `pg`, `max 10` par défaut).
-      const donnees = await Promise.all(
-        page.map((l) => this.assemblerDocument(tx, ctx, principal.role, l.id, true)),
+      // Chargement PAR LOT de la page (voir `liste-or-lot.ts`), puis assemblage en mémoire par le
+      // même `construireReponse` que la fiche : ~11 requêtes par page, quelle que soit sa taille.
+      const donnees = await this.assemblerListe(
+        tx,
+        ctx,
+        principal.role,
+        pageLignes.map((l) => l.ligne),
       );
       return { donnees, curseurSuivant: suite };
+    });
+  }
+
+  /**
+   * Version PAR LOT de `assemblerDocument(…, pourListe = true)` — mêmes champs, mêmes valeurs,
+   * même masquage par rôle (le `construireReponse` est partagé), `modifiePar` à `null` comme en
+   * liste unitaire (le journal d'audit n'est pas lu). Ne lit RIEN par OR : tout vient de
+   * `chargerLotListeOr` (une requête par table pour la page). L'ordre d'entrée est conservé.
+   */
+  async assemblerListe(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    role: PrincipalAuthentifie['role'],
+    ors: readonly LigneOrdreReparation[],
+  ): Promise<readonly ReponseOrdreReparation[]> {
+    if (ors.length === 0) return [];
+    const voitMontants = roleVoitLesMontants(role);
+    const lot = await chargerLotListeOr(tx, ctx, ors, voitMontants);
+    const resumePour = (id: string | null) => (id ? (lot.utilisateurs.get(id) ?? null) : null);
+
+    return ors.map((or) => {
+      const clientResume = exigerClient(lot, or.clientId);
+      const lignesToutes = lot.lignes.get(or.id) ?? [];
+      return this.construireReponse({
+        or,
+        clientResume,
+        vehiculeLigne: exigerVehicule(lot, or.vehiculeId),
+        plaque: lot.plaques.get(or.vehiculeId) ?? null,
+        demandes: (lot.demandes.get(or.id) ?? []).map((d) =>
+          mapperDemande(d, resumePour(d.saisiParId)),
+        ),
+        devis: (lot.devis.get(or.id) ?? []).map((d) =>
+          mapperDevis(d, lot.lignesDevis.get(d.id) ?? [], resumePour(d.emetteurId), role),
+        ),
+        lignesToutes,
+        controle: lot.controles.get(or.id) ?? null,
+        nombrePointagesOuverts: lot.pointagesOuverts.get(or.id) ?? 0,
+        modifiePar: null,
+        totauxParPayeur: voitMontants
+          ? calculerTotauxParPayeur(
+              lignesToutes,
+              { clientId: clientResume.id, nomAffiche: clientResume.nomAffiche },
+              (payeurClientId) => lot.destinatairesPayeurs.get(payeurClientId),
+            )
+          : undefined,
+        role,
+      });
     });
   }
 
@@ -943,6 +1028,56 @@ export class ServiceOr {
       }),
     );
 
+    const modifiePar = resumePour(dernierEvenement?.utilisateurId ?? null);
+    const voitMontants = roleVoitLesMontants(role);
+
+    // `totauxParPayeur` (MD-62) : résout le destinataire de chaque groupe payeur tiers en UN SEUL
+    // aller-retour batché sur `client` (jamais une requête par ligne) — voir
+    // `totaux-payeur.ts::ResolveurDestinataireTiers`. Calculé uniquement pour un rôle qui voit les
+    // montants (même garde que le reste de ce bloc), le fetch supplémentaire n'a pas de coût pour
+    // `technicien`.
+    const totauxParPayeur = voitMontants
+      ? await this.calculerTotauxAvecDestinataires(tx, ctx, lignesToutes, clientResume)
+      : undefined;
+
+    return this.construireReponse({
+      or,
+      clientResume,
+      vehiculeLigne,
+      plaque,
+      demandes,
+      devis,
+      lignesToutes,
+      controle,
+      nombrePointagesOuverts: pointagesOuverts.length,
+      modifiePar,
+      totauxParPayeur,
+      role,
+    });
+  }
+
+  /**
+   * Construction PURE (aucun accès base) de la réponse `ReponseOrdreReparation` — unique chemin de
+   * vérité partagé par `assemblerDocument` (fiche, un OR) et `assemblerListe` (liste, chargement
+   * par lot) : les deux ne peuvent pas diverger sur les champs, le masquage des montants par rôle
+   * ou les totaux. `totauxParPayeur` est déjà gaté par le rôle par l'appelant (`undefined` pour
+   * un rôle sans droit aux montants).
+   */
+  private construireReponse(e: EntreeConstructionReponseOr): ReponseOrdreReparation {
+    const {
+      or,
+      clientResume,
+      vehiculeLigne,
+      plaque,
+      demandes,
+      devis,
+      lignesToutes,
+      controle,
+      modifiePar,
+      totauxParPayeur,
+      role,
+    } = e;
+    const voitMontants = roleVoitLesMontants(role);
     const lignesTronquees = lignesToutes.length > 200;
     const lignesEmbarquees = lignesTronquees ? lignesToutes.slice(0, 200) : lignesToutes;
 
@@ -966,17 +1101,6 @@ export class ServiceOr {
       pieces: or.attentePieces,
       externe: or.attenteExterne,
     };
-    const modifiePar = resumePour(dernierEvenement?.utilisateurId ?? null);
-    const voitMontants = roleVoitLesMontants(role);
-
-    // `totauxParPayeur` (MD-62) : résout le destinataire de chaque groupe payeur tiers en UN SEUL
-    // aller-retour batché sur `client` (jamais une requête par ligne) — voir
-    // `totaux-payeur.ts::ResolveurDestinataireTiers`. Calculé uniquement pour un rôle qui voit les
-    // montants (même garde que le reste de ce bloc), le fetch supplémentaire n'a pas de coût pour
-    // `technicien`.
-    const totauxParPayeur = voitMontants
-      ? await this.calculerTotauxAvecDestinataires(tx, ctx, lignesToutes, clientResume)
-      : undefined;
 
     // #76 : `totalTtcCentimes` — la colonne « Total TTC » de la liste des OR (`ServiceOr.lister`,
     // qui appelle CETTE méthode) était vide car `assemblerDocument` ne le rendait jamais, alors que
@@ -1084,7 +1208,7 @@ export class ServiceOr {
       cumulsPointage: {
         totalCentiemes: 0,
         parTechnicien: [],
-        pointagesOuverts: pointagesOuverts.length,
+        pointagesOuverts: e.nombrePointagesOuverts,
       },
       ...(voitMontants ? { totauxParPayeur } : {}),
       attentes,
@@ -1215,43 +1339,66 @@ export function decoderCurseurOffset(curseur: string | undefined): number {
 }
 
 /**
- * Traduit `filtres.tri` (`FiltresOrdresReparation['tri']`, 5 valeurs, `TRIS_ORDRES_REPARATION`) en
- * critères `ORDER BY` réels pour `ServiceOr.lister` — voir la doc de tête de `lister()` pour la
- * doctrine complète (NULLS LAST dans les deux sens, tiebreak `id`, et l'arbitrage
- * `joursAttenteRetrait`).
+ * Définitions de tri keyset de `ServiceOr.lister`, une par valeur de `TRIS_ORDRES_REPARATION`
+ * (`Record` exhaustif : toute valeur ajoutée au contrat sans être traitée ICI casse la compilation
+ * plutôt que de retomber en silence sur le tri par défaut). Doctrine inchangée : colonnes
+ * nullables, `NULLS LAST` dans les deux sens (un OR sans date n'est ni « le plus ancien » ni « le
+ * plus récent »). Les expressions sont des CONSTANTES du code (`common/pagination/keyset.ts`).
  *
- * `switch` exhaustif sur les 5 valeurs (pas de `default` générique) : toute future valeur ajoutée à
- * `TRIS_ORDRES_REPARATION` sans être traitée ICI casse la compilation (`exhaustif: never`) plutôt
- * que de retomber en silence sur le tri par défaut — exactement le mensonge que le correctif #73 a
- * fermé.
+ * Le départage final par `id` suit désormais le SENS du tri (comparaison ROW du keyset) : seuls
+ * deux OR de timestamp strictement identique (à la microseconde) sont concernés, leur ordre
+ * relatif n'ayant jamais été défini métier.
+ *
+ * `joursAttenteRetrait:desc` : « jours d'attente de retrait » = maintenant - `termine_le`, pour un
+ * OR encore `termine` ou `facture` seulement ; le trier DESC équivaut à trier `termine_le` ASC
+ * parmi ces deux statuts (le `case` sans `else` rend NULL pour les autres, relégués en fin).
  */
-function construireOrdreTri(tri: FiltresOrdresReparation['tri']): SQL[] {
-  const tiebreakId = asc(ordreReparation.id);
-  switch (tri) {
-    case 'ouvertLe:asc':
-      return [sql`${ordreReparation.ouvertLe} asc nulls last`, tiebreakId];
-    case 'ouvertLe:desc':
-      return [sql`${ordreReparation.ouvertLe} desc nulls last`, tiebreakId];
-    case 'restitutionPromiseLe:asc':
-      return [sql`${ordreReparation.restitutionPromiseLe} asc nulls last`, tiebreakId];
-    case 'restitutionPromiseLe:desc':
-      return [sql`${ordreReparation.restitutionPromiseLe} desc nulls last`, tiebreakId];
-    case 'joursAttenteRetrait:desc': {
-      // « jours d'attente de retrait » = maintenant - termine_le, UNIQUEMENT pour un OR encore
-      // `termine` ou `facture` (voir la doc de tête de `lister()`) — les autres statuts n'attendent
-      // pas d'être retirés. Trier `joursAttenteRetrait` DESC (le plus longtemps en attente
-      // d'abord) équivaut à trier `termine_le` ASC (le plus ancien d'abord) parmi ces deux statuts
-      // : pas besoin de matérialiser la soustraction, l'ordre relatif est le même. Le `case` (sans
-      // `else`) rend NULL pour tout autre statut, donc `nulls last` les relègue en fin de liste —
-      // jamais un tri qui invente une position pour un OR hors-sujet.
-      const attenteDepuisFinTravaux = sql`(case when ${ordreReparation.statut} in ('termine', 'facture') then ${ordreReparation.termineLe} end)`;
-      return [sql`${attenteDepuisFinTravaux} asc nulls last`, tiebreakId];
-    }
-    default: {
-      const exhaustif: never = tri;
-      return exhaustif;
-    }
-  }
+const DEFINITIONS_TRI_OR: Readonly<Record<FiltresOrdresReparation['tri'], DefinitionTri>> = {
+  'ouvertLe:desc': {
+    expression: sql`${ordreReparation.ouvertLe}`,
+    sens: 'desc',
+    nullable: true,
+    temporel: true,
+  },
+  'ouvertLe:asc': {
+    expression: sql`${ordreReparation.ouvertLe}`,
+    sens: 'asc',
+    nullable: true,
+    temporel: true,
+  },
+  'restitutionPromiseLe:asc': {
+    expression: sql`${ordreReparation.restitutionPromiseLe}`,
+    sens: 'asc',
+    nullable: true,
+    temporel: true,
+  },
+  'restitutionPromiseLe:desc': {
+    expression: sql`${ordreReparation.restitutionPromiseLe}`,
+    sens: 'desc',
+    nullable: true,
+    temporel: true,
+  },
+  'joursAttenteRetrait:desc': {
+    expression: sql`(case when ${ordreReparation.statut} in ('termine', 'facture') then ${ordreReparation.termineLe} end)`,
+    sens: 'asc',
+    nullable: true,
+    temporel: true,
+  },
+};
+
+interface EntreeConstructionReponseOr {
+  readonly or: LigneOrdreReparation;
+  readonly clientResume: ClientResume;
+  readonly vehiculeLigne: LigneVehicule;
+  readonly plaque: LigneVehiculePlaque | null;
+  readonly demandes: readonly ReponseOrdreReparationDemande[];
+  readonly devis: readonly ReponseDevisComplementaire[];
+  readonly lignesToutes: readonly LigneLigneOr[];
+  readonly controle: LigneOrControleQualite | null;
+  readonly nombrePointagesOuverts: number;
+  readonly modifiePar: ResumeUtilisateur | null;
+  readonly totauxParPayeur: readonly TotauxPayeurOr[] | undefined;
+  readonly role: PrincipalAuthentifie['role'];
 }
 
 // Réexporté pour les actions de transition (marquage réalisée, etc.) qui doivent charger une
