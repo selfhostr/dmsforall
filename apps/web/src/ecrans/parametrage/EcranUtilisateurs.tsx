@@ -1,8 +1,8 @@
-import { MoreHorizontal, Plus } from 'lucide-react';
+import { Landmark, MoreHorizontal, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { UtilisateurResume } from '@dfa/shared';
+import type { GrilleCapacites, UtilisateurResume } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { ResumeAcces } from '@/composants/capacites/ResumeAcces';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
@@ -66,6 +67,13 @@ export function EcranUtilisateurs() {
   const requete = useListeUtilisateurs();
 
   const [dialogueOuvert, setDialogueOuvert] = useState(false);
+  const [dialogueFiduciaire, setDialogueFiduciaire] = useState(false);
+  // Compte créé dont les droits personnalisés ont échoué : fiche rouverte à la fermeture du mot de passe.
+  const [aRevoir, setARevoir] = useState<{
+    readonly employe: UtilisateurResume;
+    readonly grille: GrilleCapacites;
+  } | null>(null);
+  const [revoirOuvert, setRevoirOuvert] = useState(false);
   const [employeAModifier, setEmployeAModifier] = useState<UtilisateurResume | null>(null);
   const [actionEnAttente, setActionEnAttente] = useState<ActionEnAttente | null>(null);
   const [motDePasseAffiche, setMotDePasseAffiche] = useState<string | null>(null);
@@ -110,7 +118,11 @@ export function EcranUtilisateurs() {
           tri (juste une table + une action) : pas de `BarreFiltres`/`SelecteurTri` pour partager
           la rangée, le bouton reste seul, mais dans le flux du contenu — jamais dans le slot
           d'en-tête réservé aux actions. */}
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button type="button" variant="outline" onClick={() => setDialogueFiduciaire(true)}>
+          <Landmark className="h-4 w-4" aria-hidden="true" />
+          {t('parametrage:utilisateurs.fiduciaire.bouton')}
+        </Button>
         <Button type="button" onClick={() => setDialogueOuvert(true)}>
           <Plus className="h-4 w-4" aria-hidden="true" />
           {t('parametrage:utilisateurs.nouveau')}
@@ -149,6 +161,7 @@ export function EcranUtilisateurs() {
                 <TableHead>{t('parametrage:utilisateurs.colonnes.nom')}</TableHead>
                 <TableHead>{t('parametrage:utilisateurs.colonnes.email')}</TableHead>
                 <TableHead>{t('parametrage:utilisateurs.colonnes.role')}</TableHead>
+                <TableHead>{t('parametrage:utilisateurs.colonnes.acces')}</TableHead>
                 <TableHead>{t('parametrage:utilisateurs.colonnes.sites')}</TableHead>
                 <TableHead>{t('parametrage:utilisateurs.colonnes.statut')}</TableHead>
                 <TableHead className="text-right">
@@ -164,6 +177,9 @@ export function EcranUtilisateurs() {
                   </TableCell>
                   <TableCell className="text-muted-foreground">{employe.email}</TableCell>
                   <TableCell>{t(cleTraductionRole(employe.role))}</TableCell>
+                  <TableCell>
+                    <ResumeAcces capacites={employe.capacites} roleAffiche={employe.role} />
+                  </TableCell>
                   <TableCell>
                     {employe.sites.length === 0 ? (
                       <span className="text-muted-foreground">
@@ -242,11 +258,25 @@ export function EcranUtilisateurs() {
         ouvert={dialogueOuvert}
         onFerme={() => setDialogueOuvert(false)}
         onCree={(motDePasseTemporaire) => setMotDePasseAffiche(motDePasseTemporaire)}
+        onDroitsARevoir={(employe, grille) => setARevoir({ employe, grille })}
+      />
+
+      <DialogueNouvelEmploye
+        ouvert={dialogueFiduciaire}
+        prereglageInitial="fiduciaire"
+        onFerme={() => setDialogueFiduciaire(false)}
+        onCree={(motDePasseTemporaire) => setMotDePasseAffiche(motDePasseTemporaire)}
       />
 
       <DialogueModifierEmploye
-        employe={employeAModifier}
-        onFerme={() => setEmployeAModifier(null)}
+        employe={employeAModifier ?? (revoirOuvert ? (aRevoir?.employe ?? null) : null)}
+        grilleARestaurer={employeAModifier === null ? aRevoir?.grille : undefined}
+        droitsNonEnregistres={employeAModifier === null && revoirOuvert}
+        onFerme={() => {
+          setEmployeAModifier(null);
+          setRevoirOuvert(false);
+          setARevoir(null);
+        }}
       />
 
       <DialogueConfirmationEmploye
@@ -276,7 +306,10 @@ export function EcranUtilisateurs() {
       <DialogueAccesTemporaire
         ouvert={motDePasseAffiche !== null}
         motDePasseTemporaire={motDePasseAffiche}
-        onFerme={() => setMotDePasseAffiche(null)}
+        onFerme={() => {
+          setMotDePasseAffiche(null);
+          if (aRevoir) setRevoirOuvert(true);
+        }}
       />
     </GabaritEcran>
   );
