@@ -36,7 +36,11 @@
 # détruite en fin d'exécution quoi qu'il arrive (voir le `trap` ci-dessous).
 #
 # Usage :
-#   restaurer-test.sh <dump-donnees.dump.age> <dump-roles.roles.sql.age>
+#   restaurer-test.sh <dump-donnees.dump.age> <dump-roles.roles.sql.age> [<fichiers.uploads.tar.gz.age>]
+#
+# Le troisième argument (optionnel) est l'archive des fichiers déposés : elle est déchiffrée et
+# listée (`tar -tz`), ce qui prouve la clé, le chiffrement et l'intégrité gzip/tar de bout en bout,
+# sans rien extraire sur disque.
 #
 # Variable requise :
 #   AGE_CLE_PRIVEE_FICHIER   chemin vers UNE clé privée age qui déchiffre les deux fichiers — soit
@@ -50,9 +54,10 @@
 set -euo pipefail
 
 FICHIER_DONNEES="${1:?Usage: restaurer-test.sh <dump-donnees.dump.age> <dump-roles.roles.sql.age>}"
-FICHIER_ROLES="${2:?Usage: restaurer-test.sh <dump-donnees.dump.age> <dump-roles.roles.sql.age>}"
+FICHIER_ROLES="${2:?Usage: restaurer-test.sh <dump-donnees.dump.age> <dump-roles.roles.sql.age> [<fichiers.uploads.tar.gz.age>]}"
+FICHIER_UPLOADS="${3:-}"
 
-for f in "$FICHIER_DONNEES" "$FICHIER_ROLES"; do
+for f in "$FICHIER_DONNEES" "$FICHIER_ROLES" ${FICHIER_UPLOADS:+"$FICHIER_UPLOADS"}; do
   if [ ! -r "$f" ]; then
     echo "Introuvable ou illisible : $f" >&2
     exit 1
@@ -175,10 +180,23 @@ if [ "$nb_tenants_superuser" -gt 0 ]; then
   fi
 fi
 
+if [ -n "$FICHIER_UPLOADS" ]; then
+  echo "→ Archive des fichiers déposés : déchiffrement et lecture complète (tar -tz)..."
+  nb_entrees="$(age -d -i "$AGE_CLE_PRIVEE_FICHIER" "$FICHIER_UPLOADS" | tar -tzf - | wc -l)"
+  echo "  Entrées dans l'archive : ${nb_entrees// /}"
+  if [ "${nb_entrees// /}" -eq 0 ]; then
+    echo "ÉCHEC : l'archive des fichiers est vide (pas même le dossier racine)." >&2
+    exit 1
+  fi
+fi
+
 echo ""
 echo "OK. Restauration complète (rôles + schéma + données) réussie et vérifiée depuis :"
 echo "  - $(basename "$FICHIER_DONNEES")"
 echo "  - $(basename "$FICHIER_ROLES")"
+if [ -n "$FICHIER_UPLOADS" ]; then
+  echo "  - $(basename "$FICHIER_UPLOADS")"
+fi
 echo ""
 echo "RAPPEL : consigner la date et le résultat de CETTE exécution quelque part de durable"
 echo "(changelog interne, ticket) si ce test a été lancé À LA MAIN — l'exécution automatisée"
