@@ -42,7 +42,8 @@ export class ReponseImputationPaiementDto implements ReponseImputationPaiement {
   readonly documentId!: string;
 
   @ApiProperty({
-    description: 'Toujours positif sur ce lettrage (le signe vit sur le paiement, MD-50).',
+    description:
+      "Positif sur ce lettrage (le signe vit sur le paiement, MD-50), sauf la nature 'arrondi' : signée, ±1 ou ±2 centimes (RF-51, CF-05).",
   })
   readonly montantCentimes!: number;
 

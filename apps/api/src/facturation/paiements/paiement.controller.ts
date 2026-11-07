@@ -89,7 +89,8 @@ export class PaiementController {
       "dans `GET /paiements?nonImputeUniquement=true` jusqu'à affectation explicite. Le lettrage est TOUJOURS explicite : aucune " +
       "règle n'impute automatiquement une facture à la place de l'appelant. " +
       "Arrondi espèces (RF-49 → RF-52) : soumis comme une imputation `nature: 'arrondi'` explicite dans `imputations[]`, " +
-      "revalidée intégralement côté serveur (moyen 'especes' uniquement, ±2 centimes, et seulement si elle solde exactement le document).",
+      "revalidée intégralement côté serveur (moyen 'especes' uniquement, ±1/±2 centimes, montant du paiement multiple de 5 ct, et seulement si elle solde exactement le document). " +
+      'Signe : `+1/+2` = le client paie MOINS que le solde (solde finissant par 1, 2, 6, 7) ; `-1/-2` = le client paie PLUS (solde finissant par 3, 4, 8, 9) — le règlement imputé vaut alors solde + |arrondi|.',
   })
   @ApiHeader({
     name: 'Idempotency-Key',

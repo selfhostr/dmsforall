@@ -14,6 +14,7 @@ function contexte(champs: Partial<ContexteVerificationArrondi> = {}): ContexteVe
     montantRegleAvantCentimes: 0n,
     sommeReglementLotCentimes: 20430n,
     arrondiCentimes: 1n,
+    paiementMontantCentimes: 20430n,
     ...champs,
   };
 }
@@ -120,28 +121,57 @@ describe('verifierArrondiEspeces — RF-49 : uniquement ce qui SOLDE le document
   });
 });
 
-describe('verifierArrondiEspeces — arrondi vers le haut ET vers le bas (RF-52)', () => {
-  it('204.33 → 204.35 (arrondi +2) accepté au même titre que 204.31 → 204.30 (arrondi +1) : jamais un sens privilégié', () => {
-    expect(() =>
-      verifierArrondiEspeces(
-        contexte({
-          totalDocumentCentimes: 20433n,
-          sommeReglementLotCentimes: 20431n,
-          arrondiCentimes: 2n,
-        }),
-      ),
-    ).not.toThrow();
-  });
+describe('verifierArrondiEspeces — arrondi vers le haut ET vers le bas (RF-52, CF-05)', () => {
+  // Terminaison du solde → espèces remises → arrondi signé de l'imputation.
+  it.each([
+    { solde: 10941n, especes: 10940n, arrondi: 1n },
+    { solde: 10942n, especes: 10940n, arrondi: 2n },
+    { solde: 10943n, especes: 10945n, arrondi: -2n },
+    { solde: 10944n, especes: 10945n, arrondi: -1n },
+    { solde: 10946n, especes: 10945n, arrondi: 1n },
+    { solde: 10947n, especes: 10945n, arrondi: 2n },
+    { solde: 10948n, especes: 10950n, arrondi: -2n },
+    { solde: 10949n, especes: 10950n, arrondi: -1n },
+  ])(
+    'solde $solde ct payé $especes ct en espèces : arrondi $arrondi ct accepté',
+    ({ solde, especes, arrondi }) => {
+      expect(() =>
+        verifierArrondiEspeces(
+          contexte({
+            totalDocumentCentimes: solde,
+            sommeReglementLotCentimes: especes,
+            paiementMontantCentimes: especes,
+            arrondiCentimes: arrondi,
+          }),
+        ),
+      ).not.toThrow();
+    },
+  );
 
-  it('un arrondi négatif (le règlement en espèces dépasse le total nominal) est accepté dans les mêmes bornes', () => {
+  it('refuse un encaissement dont le montant n’est pas un multiple de 5 ct (109.44 payé 109.46 + arrondi -2)', () => {
     expect(() =>
       verifierArrondiEspeces(
         contexte({
-          totalDocumentCentimes: 20428n,
-          sommeReglementLotCentimes: 20430n,
+          totalDocumentCentimes: 10944n,
+          sommeReglementLotCentimes: 10946n,
+          paiementMontantCentimes: 10946n,
           arrondiCentimes: -2n,
         }),
       ),
-    ).not.toThrow();
+    ).toThrow(expect.objectContaining({ code: 'VALIDATION_ECHOUEE' }));
+  });
+
+  it('refuse un arrondi négatif sur une carte : jamais absorbé hors espèces', () => {
+    expect(() =>
+      verifierArrondiEspeces(
+        contexte({
+          moyenPaiement: 'carte',
+          totalDocumentCentimes: 10944n,
+          sommeReglementLotCentimes: 10945n,
+          paiementMontantCentimes: 10945n,
+          arrondiCentimes: -1n,
+        }),
+      ),
+    ).toThrow(expect.objectContaining({ code: 'VALIDATION_ECHOUEE' }));
   });
 });
