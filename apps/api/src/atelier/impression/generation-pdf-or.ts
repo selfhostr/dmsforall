@@ -23,6 +23,11 @@
 import PDFDocument from 'pdfkit';
 import type { ReponseOrdreReparation } from '@dfa/shared';
 
+import {
+  dessinerEnTeteEmetteur,
+  lignesEnTeteEmetteur,
+  type IdentiteEmetteur,
+} from '../../facturation/impression/en-tete-emetteur';
 import { construireDonneesImpressionOr, type DonneesImpressionOr } from './donnees-impression-or';
 
 const MARGE_PT = 40;
@@ -31,9 +36,22 @@ const LARGEUR_PAGE_PT = 555;
  *  14 polices standard de `pdfkit` — un rectangle vectoriel reste fiable quel que soit le PDF. */
 const TAILLE_CASE_PT = 9;
 
-function dessinerEnTete(doc: PDFKit.PDFDocument, d: DonneesImpressionOr): void {
+function dessinerEnTete(
+  doc: PDFKit.PDFDocument,
+  d: DonneesImpressionOr,
+  emetteur?: IdentiteEmetteur,
+): void {
   const l = d.libelles;
-  doc.fontSize(18).fillColor('#000000').text(l.ordreReparationNumero(d.numero), MARGE_PT, MARGE_PT);
+  // Identité du garage (raison sociale, adresse, n° TVA) en tête ; le titre est décalé en dessous.
+  let yTitre = MARGE_PT;
+  if (emetteur) {
+    const nbLignes = lignesEnTeteEmetteur(emetteur).length;
+    if (nbLignes > 0) {
+      dessinerEnTeteEmetteur(doc, emetteur, MARGE_PT, MARGE_PT);
+      yTitre = MARGE_PT + nbLignes * 12 + 14;
+    }
+  }
+  doc.fontSize(18).fillColor('#000000').text(l.ordreReparationNumero(d.numero), MARGE_PT, yTitre);
   doc.moveDown(0.3);
 
   doc.fontSize(10).fillColor('#333333');
@@ -124,6 +142,7 @@ function dessinerLignes(doc: PDFKit.PDFDocument, d: DonneesImpressionOr): void {
 export async function genererPdfOr(
   document: ReponseOrdreReparation,
   nomSite: string,
+  emetteur?: IdentiteEmetteur,
 ): Promise<Buffer> {
   const donnees = construireDonneesImpressionOr(document, nomSite);
 
@@ -143,7 +162,7 @@ export async function genererPdfOr(
     pdf.on('end', () => resolve(Buffer.concat(morceaux)));
     pdf.on('error', reject);
 
-    dessinerEnTete(pdf, donnees);
+    dessinerEnTete(pdf, donnees, emetteur);
     dessinerFicheVehicule(pdf, donnees);
     dessinerTechnicien(pdf, donnees);
     dessinerDemandes(pdf, donnees);

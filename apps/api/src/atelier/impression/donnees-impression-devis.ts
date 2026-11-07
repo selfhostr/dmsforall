@@ -54,6 +54,8 @@ export interface IdentiteGarage {
   readonly rue: string | null;
   readonly npa: string | null;
   readonly localite: string | null;
+  /** N° TVA tel que saisi dans les réglages ; absent si non renseigné. */
+  readonly numeroTva?: string | null;
 }
 
 export interface LigneImprimeeDevis {
@@ -86,6 +88,7 @@ export interface DonneesImpressionDevis {
   readonly garageSiteNom: string;
   readonly garageAdresseLigne1: string | null;
   readonly garageAdresseLigne2: string | null;
+  readonly garageNumeroTva: string | null;
   readonly dateEnvoi: string;
   readonly canal: string;
   readonly statutDevis: string;
@@ -226,6 +229,7 @@ export function construireDonneesImpressionDevis(
     garageSiteNom: identite.siteNom,
     garageAdresseLigne1: adresseSite.ligne1,
     garageAdresseLigne2: adresseSite.ligne2,
+    garageNumeroTva: identite.numeroTva?.trim() || null,
     dateEnvoi: formaterDateSuisse(devis.envoyeLe),
     canal: l.canaux[canal],
     statutDevis: construireStatutDevis(devis, l),
