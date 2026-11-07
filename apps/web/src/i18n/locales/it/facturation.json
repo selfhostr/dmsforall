@@ -53,12 +53,12 @@
   },
   "paiementVerrouille": {
     "message": "Questo pagamento è registrato e non può più essere modificato.",
-    "corriger": "Registrare un pagamento correttivo →"
+    "corriger": "Registra un pagamento correttivo →"
   },
   "avanceClient": {
     "message": "Questo incasso supera il saldo di {montant} — l'eccedenza sarà registrata come acconto cliente, da imputare in seguito.",
     "aucuneFactureOuverte": "Questo cliente non ha nessuna fattura aperta da saldare.",
-    "confirmerAction": "Registrare comunque come acconto cliente",
+    "confirmerAction": "Registra comunque come acconto cliente",
     "excedent": "Incassate {excedent} in più rispetto al saldo di {solde}: l'eccedenza sarà registrata come anticipo del cliente, da assegnare più tardi."
   },
   "motifsAvoir": {
@@ -120,7 +120,7 @@
     },
     "demontage": {
       "message": "È stato eseguito uno smontaggio per un preventivo rifiutato — fatturabile: {montant} IVA incl.",
-      "ajouter": "Aggiungere questa riga alla fattura del cliente"
+      "ajouter": "Aggiungi questa riga alla fattura del cliente"
     },
     "groupe": {
       "titre": "Fattura per « {payeur} »",
@@ -138,8 +138,8 @@
       "message": "Un deposito cauzionale di {montant} IVA incl. sarà fatturato ora. Al ritorno del pezzo vecchio, viene rimborsato con una nota di credito parziale — non aspettando il ritorno."
     },
     "action": {
-      "unSingulier": "Creare 1 fattura ({payeur}) — {montant} IVA incl.",
-      "plusieurs": "Creare {count} fatture — {montant} IVA incl. in totale",
+      "unSingulier": "Crea 1 fattura ({payeur}) — {montant} IVA incl.",
+      "plusieurs": "Crea {count} fatture — {montant} IVA incl. in totale",
       "enCours": "Creazione in corso…"
     },
     "vide": {
@@ -169,10 +169,10 @@
         "montant": "Importo IVA incl.",
         "tva": "IVA"
       },
-      "ajouterDemontage": "Aggiungere la riga di smontaggio proposta",
+      "ajouterDemontage": "Aggiungi la riga di smontaggio proposta",
       "ajouter": "Aggiungi una riga",
       "retirer": "Rimuovere",
-      "modifierAria": "Modificare la riga « {designation} »",
+      "modifierAria": "Modifica la riga « {designation} »",
       "retirerAria": "Rimuovere la riga « {designation} »",
       "vide": "Nessuna riga su questo documento.",
       "dialogueAjout": {
@@ -233,21 +233,21 @@
       "sansReference": "Senza riferimento"
     },
     "actions": {
-      "emettre": "Emettere",
-      "encaisser": "Incassare",
+      "emettre": "Emetti",
+      "encaisser": "Incassa",
       "autresActions": "Altre azioni",
       "menu": {
-        "imprimer": "Stampare / scaricare il PDF",
-        "envoyer": "Inviare per e-mail",
-        "dupliquer": "Duplicare (ristampa)",
-        "corriger": "Correggere questa fattura",
-        "creerAvoir": "Creare una nota di credito",
-        "journal": "Vedere il registro"
+        "imprimer": "Stampa / scarica il PDF",
+        "envoyer": "Invia per e-mail",
+        "dupliquer": "Duplica (ristampa)",
+        "corriger": "Correggi questa fattura",
+        "creerAvoir": "Crea una nota di credito",
+        "journal": "Vedi il registro"
       },
       "telechargerPdf": "Scarica il PDF",
-      "envoyerDevis": "Inviare il preventivo",
+      "envoyerDevis": "Invia il preventivo",
       "accordClient": "Accordo del cliente",
-      "creerOr": "Creare l'OR"
+      "creerOr": "Crea l'OR"
     },
     "dialogueEmission": {
       "titre": "Emettere la fattura?",
@@ -256,12 +256,12 @@
       "resumeAvoir": "Nota di credito sulla fattura {numero} — {montant} IVA incl.",
       "avertissement": "Una volta emessa, questa fattura non potrà più essere modificata — solo una correzione tramite nota di credito sarà possibile in seguito.",
       "avertissementAvoir": "Riduce la fattura {numero} e non potrà essere annullata una volta emessa.",
-      "confirmer": "Emettere",
+      "confirmer": "Emetti",
       "enCours": "Emissione…",
       "titreDevis": "Inviare il preventivo?",
       "resumeDevis": "Preventivo per {destinataire} — {montant} IVA incl.",
       "avertissementDevis": "Una volta inviato, questo preventivo non potrà più essere modificato. Se il cliente cambia idea, dovrà crearne uno nuovo.",
-      "confirmerDevis": "Inviare",
+      "confirmerDevis": "Invia",
       "enCoursDevis": "Invio…"
     },
     "refusEmission": {
@@ -311,14 +311,14 @@
       "titre": "Incassi",
       "moyen": "Modalità",
       "montant": "Importo",
-      "ajouter": "Aggiungere una modalità di pagamento",
+      "ajouter": "Aggiungi una modalità di pagamento",
       "retirer": "Rimuovere questa modalità di pagamento",
       "arrondi": "arrotondamento {ecart}"
     },
     "lignesInvalides": "Ogni modalità di pagamento deve avere un importo superiore a zero.",
     "resteAEncaisser": "Residuo da incassare",
     "confirmationSucces": "Incasso registrato",
-    "confirmer": "Registrare l'incasso",
+    "confirmer": "Registra l'incasso",
     "enCours": "Registrazione…",
     "erreur": {
       "titre": "Impossibile registrare l'incasso"
@@ -337,7 +337,7 @@
     "totalAvoir": "Totale della nota di credito",
     "motifObligatoire": "Motivo obbligatorio, richiesto all'emissione",
     "action": {
-      "emettre": "Emettere la nota di credito",
+      "emettre": "Emetti la nota di credito",
       "enCours": "Creazione in corso…"
     },
     "erreur": {
@@ -395,12 +395,12 @@
     }
   },
   "actions": {
-    "emettre": "Emettere",
-    "creer": "Creare",
-    "enregistrer": "Salvare",
-    "encaisser": "Incassare",
-    "corriger": "Correggere",
-    "modifier": "Modificare"
+    "emettre": "Emetti",
+    "creer": "Crea",
+    "enregistrer": "Salva",
+    "encaisser": "Incassa",
+    "corriger": "Correggi",
+    "modifier": "Modifica"
   },
   "devis": {
     "nouveau": {

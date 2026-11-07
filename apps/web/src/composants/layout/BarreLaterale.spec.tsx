@@ -612,14 +612,18 @@ describe('BarreLaterale — numéro de version, collé au pied compte', () => {
     expect(screen.getByText('0.1.0+a1b2c3d+modifié')).toBeInTheDocument();
   });
 
-  it('retombe sur « inconnue » (traduit) quand l’information n’est pas disponible — jamais une chaîne vide ni une exception', async () => {
-    vi.stubEnv('VITE_DFA_VERSION_INFO', undefined);
-    connecte('direction');
-    rendre('/');
+  it.each([undefined, 'inconnu'])(
+    'n’affiche rien quand la version n’est pas disponible (%s) — jamais « inconnu »',
+    async (valeur) => {
+      vi.stubEnv('VITE_DFA_VERSION_INFO', valeur);
+      connecte('direction');
+      rendre('/');
 
-    await screen.findByRole('button', { name: /jean dupont/i });
-    expect(screen.getByText('inconnue')).toBeInTheDocument();
-  });
+      await screen.findByRole('button', { name: /jean dupont/i });
+      expect(screen.queryByText(/inconnu/i)).not.toBeInTheDocument();
+      expect(screen.queryByTitle(/^Version/)).not.toBeInTheDocument();
+    },
+  );
 
   it('repliée : le texte de version est masqué entièrement (jamais tronqué), le pied compte reste accessible en icône', async () => {
     vi.stubEnv('VITE_DFA_VERSION_INFO', '0.1.0+a1b2c3d');

@@ -97,11 +97,11 @@ describe('ChampAutocompletionVehicule', () => {
 
     const champ = screen.getByRole('combobox', { name: 'Marque' });
     await utilisateur.type(champ, 'Une marque totalement inconnue');
-    expect(screen.queryByText(/Ne figure pas dans le référentiel/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Absent de la liste/)).not.toBeInTheDocument();
 
     await utilisateur.tab();
 
-    expect(await screen.findByText(/Ne figure pas dans le référentiel/)).toBeInTheDocument();
+    expect(await screen.findByText(/Absent de la liste/)).toBeInTheDocument();
   });
 
   it('n\'affiche jamais le repli "hors référentiel" pour une valeur vide', async () => {
@@ -112,7 +112,7 @@ describe('ChampAutocompletionVehicule', () => {
     await utilisateur.click(champ);
     await utilisateur.tab();
 
-    expect(screen.queryByText(/Ne figure pas dans le référentiel/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Absent de la liste/)).not.toBeInTheDocument();
   });
 
   it('ne signale pas "hors référentiel" pour une valeur reconnue (tolérante à la casse et aux accents)', async () => {
@@ -123,7 +123,7 @@ describe('ChampAutocompletionVehicule', () => {
     await utilisateur.type(champ, 'volkswagen');
     await utilisateur.tab();
 
-    expect(screen.queryByText(/Ne figure pas dans le référentiel/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Absent de la liste/)).not.toBeInTheDocument();
   });
 
   it('annonce le chargement puis le nombre de résultats pour les lecteurs d’écran', async () => {
@@ -176,7 +176,7 @@ describe('ChampAutocompletionVehicule', () => {
     expect(
       (await screen.findAllByText('Impossible de charger les suggestions.')).length,
     ).toBeGreaterThan(0);
-    expect(screen.queryByText(/Ne figure pas dans le référentiel/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Absent de la liste/)).not.toBeInTheDocument();
     expect(champ).toHaveValue('Une marque tapée à la main');
     expect(champ).not.toBeDisabled();
   });

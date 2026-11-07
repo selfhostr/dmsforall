@@ -87,7 +87,15 @@ function FormulaireEntreprise({ donnees }: { readonly donnees: ReponseParametres
 
           <div className="space-y-2">
             <Label htmlFor="ent-raison-sociale">{t('parametrage:entreprise.raisonSociale')}</Label>
-            <Input id="ent-raison-sociale" value={donnees.raisonSociale} readOnly />
+            <Input
+              id="ent-raison-sociale"
+              value={donnees.raisonSociale}
+              readOnly
+              aria-describedby="ent-raison-sociale-aide"
+            />
+            <p id="ent-raison-sociale-aide" className="texte-corps text-muted-foreground">
+              {t('parametrage:entreprise.raisonSocialeAide')}
+            </p>
           </div>
 
           <div className="space-y-2">

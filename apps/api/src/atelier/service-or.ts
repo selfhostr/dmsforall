@@ -83,6 +83,7 @@ import {
 } from './or-requetes';
 import {
   chargerClientLigne,
+  enregistrerReleveReception,
   chargerParametresAtelier,
   chargerPlaqueCourante,
   chargerResumesUtilisateurs,
@@ -298,6 +299,17 @@ export class ServiceOr {
     }
 
     if (ligne.statut === 'ouvert') {
+      if (entree.kilometrageEntree != null && kilometrageEntreeKm !== null) {
+        await enregistrerReleveReception(tx, ctx, {
+          vehiculeId: entree.vehiculeId,
+          orId: ligne.id,
+          valeur: entree.kilometrageEntree,
+          unite: entree.uniteKilometrage,
+          valeurKm: kilometrageEntreeKm,
+          releveLe: maintenant,
+          saisiParId: principal.utilisateurId,
+        });
+      }
       await this.evenements.publier(tx, ctx, {
         type: 'ordre_reparation.ouvert',
         versionSchema: 1,

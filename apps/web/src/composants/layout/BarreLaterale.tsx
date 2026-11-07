@@ -52,7 +52,9 @@ import type { UtiliserRepliBarreLaterale } from './useRepliBarreLaterale';
  */
 function infoVersionBrute(): string {
   const brut = import.meta.env.VITE_DFA_VERSION_INFO;
-  return typeof brut === 'string' && brut.trim() !== '' ? brut : '';
+  // `'inconnu'` est le marqueur posé par `vite.config.ts` quand `git` est absent : ce n'est pas un
+  // numéro de version, on n'affiche donc rien (absence de donnée ≠ valeur).
+  return typeof brut === 'string' && brut.trim() !== '' && brut.trim() !== 'inconnu' ? brut : '';
 }
 
 interface Props {
@@ -174,10 +176,9 @@ export function BarreLaterale({ className, repli }: Props) {
   const { data: session } = useSession();
   const sujet = sujetNavigation(session);
   const deconnexion = useDeconnexion();
-  // Numéro de version — voir la doc de `infoVersionBrute` en tête de fichier. Repli traduit
-  // (« inconnue ») posé ICI, pas dans `infoVersionBrute`, pour rester une fonction pure sans
-  // dépendance à `t`.
-  const infoVersion = infoVersionBrute() || t('navigation:pied.versionInconnue');
+  // Numéro de version — voir la doc de `infoVersionBrute` en tête de fichier. Absent => rien
+  // n'est affiché (jamais de mot « inconnue » à la place d'une donnée manquante).
+  const infoVersion = infoVersionBrute();
 
   // Identité du pied compte (§2 du lot ci-dessus) — repris à l'identique de l'ancien
   // `MenuUtilisateur.tsx` (initiales, nom complet, libellé de rôle traduit).
@@ -430,15 +431,17 @@ export function BarreLaterale({ className, repli }: Props) {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <p
-            className={cn(
-              'texte-libelle select-text text-muted-foreground',
-              replie ? 'hidden' : 'mt-1 px-3',
-            )}
-            title={t('navigation:pied.version', { info: infoVersion })}
-          >
-            {infoVersion}
-          </p>
+          {infoVersion ? (
+            <p
+              className={cn(
+                'texte-libelle select-text text-muted-foreground',
+                replie ? 'hidden' : 'mt-1 px-3',
+              )}
+              title={t('navigation:pied.version', { info: infoVersion })}
+            >
+              {infoVersion}
+            </p>
+          ) : null}
         </div>
       ) : null}
     </nav>
