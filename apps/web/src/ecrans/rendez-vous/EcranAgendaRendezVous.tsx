@@ -9,6 +9,11 @@ import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
+import { AideContextuelle } from '@/composants/rendez-vous/AideContextuelle';
+import {
+  BandeauAutresSites,
+  type AutreSiteResume,
+} from '@/composants/rendez-vous/BandeauAutresSites';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { GrilleAgendaSemaine } from '@/composants/rendez-vous/GrilleAgendaSemaine';
 import { VueListeRendezVous } from '@/composants/rendez-vous/VueListeRendezVous';
@@ -42,6 +47,13 @@ interface Props {
   readonly jours: readonly JourAgenda[];
   readonly onCliquerJour: (jour: JourAgenda) => void;
   readonly onOuvrirRendezVous: (rendezVous: RendezVousCarte) => void;
+  /** Rendez-vous existant sur les AUTRES sites du garage sur la période affichée. */
+  readonly autresSites?: readonly AutreSiteResume[];
+  readonly onChangerSite?: (siteId: string) => void;
+  /** Saute à demain — pour appeler les clients de la veille du rendez-vous. */
+  readonly onDemain?: () => void;
+  /** Sites que l'utilisateur peut choisir quand aucun n'est sélectionné. */
+  readonly sitesChoisissables?: readonly { readonly id: string; readonly nom: string }[];
 }
 
 /**
@@ -68,6 +80,10 @@ export function EcranAgendaRendezVous({
   jours,
   onCliquerJour,
   onOuvrirRendezVous,
+  autresSites = [],
+  onChangerSite,
+  onDemain,
+  sitesChoisissables = [],
 }: Props) {
   const { t } = useTranslation(['planning', 'commun', 'erreurs']);
 
@@ -83,6 +99,17 @@ export function EcranAgendaRendezVous({
         <EtatVide
           titre={t('planning:site.manquant.titre')}
           description={t('planning:site.manquant.description')}
+          action={
+            onChangerSite && sitesChoisissables.length > 0 ? (
+              <div className="flex flex-wrap justify-center gap-2">
+                {sitesChoisissables.map((s) => (
+                  <Button key={s.id} type="button" onClick={() => onChangerSite(s.id)}>
+                    {s.nom}
+                  </Button>
+                ))}
+              </div>
+            ) : undefined
+          }
         />
       </GabaritEcran>
     );
@@ -188,6 +215,11 @@ export function EcranAgendaRendezVous({
           <Button type="button" variant="outline" size="sm" onClick={onAujourdhui}>
             {t('planning:toolbar.navigation.aujourdhui')}
           </Button>
+          {onDemain ? (
+            <Button type="button" variant="outline" size="sm" onClick={onDemain}>
+              {t('planning:toolbar.navigation.demain')}
+            </Button>
+          ) : null}
           <Button
             type="button"
             variant="outline"
@@ -206,6 +238,23 @@ export function EcranAgendaRendezVous({
             {t('planning:toolbar.nouveauRendezVous')}
           </Button>
         ) : null}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <BandeauAutresSites
+          siteNom={site.nom}
+          autresSites={autresSites}
+          onChangerSite={(id) => onChangerSite?.(id)}
+          portee={vue === 'jour' ? 'jour' : 'semaine'}
+        />
+        <div className="flex items-center gap-1">
+          <p className="texte-libelle text-muted-foreground">
+            {t('planning:aide.planning.resume')}
+          </p>
+          <AideContextuelle libelle={t('planning:aide.planning.libelle')}>
+            <p className="texte-corps">{t('planning:aide.planning.texte')}</p>
+          </AideContextuelle>
+        </div>
       </div>
 
       <BarreFiltres

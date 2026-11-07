@@ -64,4 +64,23 @@ describe('VueListeRendezVous', () => {
     );
     expect(screen.getByText('Rien ici')).toBeInTheDocument();
   });
+
+  it('affiche le téléphone du client en lien tel: sans ouvrir la ligne', async () => {
+    const utilisateur = userEvent.setup();
+    const onOuvrir = vi.fn();
+    render(
+      <VueListeRendezVous
+        rendezVous={[
+          construireRendezVous({ clientTelephone: '079 123 45 67' }),
+          construireRendezVous({ id: 'rdv-2', clientNom: 'Anne Roux', clientTelephone: null }),
+        ]}
+        onOuvrirRendezVous={onOuvrir}
+      />,
+    );
+    const lien = screen.getByRole('link', { name: '079 123 45 67' });
+    expect(lien).toHaveAttribute('href', 'tel:0791234567');
+    expect(screen.getByText('Pas de téléphone')).toBeInTheDocument();
+    await utilisateur.click(lien);
+    expect(onOuvrir).not.toHaveBeenCalled();
+  });
 });

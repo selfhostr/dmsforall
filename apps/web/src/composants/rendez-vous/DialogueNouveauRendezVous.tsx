@@ -36,7 +36,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
+import type { EtatDepotPneusClient } from '@/hooks/rendez-vous/useDepotsPneusClient';
 import { useLangue } from '@/hooks/useLangue';
+
+import { AideContextuelle } from './AideContextuelle';
 
 import { libelleMotif } from './types';
 
@@ -94,6 +97,13 @@ export interface Props {
    *  qu'un avertissement de la réponse (RV-06, choix produit #1 : avertir, jamais bloquer). */
   readonly confirmationsRequises?: readonly CodeConfirmation[];
   readonly onConfirmerQuandMeme?: () => void;
+  /** Dépôt pneus du client — affiché seulement pour un motif « pneus ». */
+  readonly etatPneus?: EtatDepotPneusClient;
+}
+
+/** Une phrase d'aide par motif technique, clé `planning:motifs.aide.<CODE>` — absente = pas d'aide. */
+export function cleAideMotif(code: string): string {
+  return `planning:motifs.aide.${code}`;
 }
 
 /**
@@ -122,8 +132,9 @@ export function DialogueNouveauRendezVous({
   erreur = null,
   confirmationsRequises = [],
   onConfirmerQuandMeme,
+  etatPneus,
 }: Props) {
-  const { t } = useTranslation(['planning', 'commun', 'validation']);
+  const { t, i18n } = useTranslation(['planning', 'commun', 'validation']);
   const { langue } = useLangue();
 
   const [dateLe, setDateLe] = useState(dateInitiale ?? '');
@@ -184,13 +195,25 @@ export function DialogueNouveauRendezVous({
     onConfirmer(resultat.data);
   }
 
+  const motifChoisi = motifsDisponibles.find((candidat) => candidat.id === motifId);
+  const aideMotif =
+    motifChoisi && i18n.exists(cleAideMotif(motifChoisi.code))
+      ? t(cleAideMotif(motifChoisi.code))
+      : null;
+  const motifPneus = motifChoisi ? typeDepuisMotif(motifChoisi) === 'pneus' : false;
+
   const etapeChoixSujet = client === null || (vehicule === null && slotSelecteurVehicule);
 
   return (
     <Dialog open={ouvert} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t('planning:dialogueNouveau.titre')}</DialogTitle>
+          <div className="flex items-center justify-between gap-controles">
+            <DialogTitle>{t('planning:dialogueNouveau.titre')}</DialogTitle>
+            <AideContextuelle libelle={t('planning:aide.nouveau.libelle')}>
+              <p className="texte-corps">{t('planning:aide.nouveau.texte')}</p>
+            </AideContextuelle>
+          </div>
         </DialogHeader>
 
         {erreur ? (
@@ -246,7 +269,10 @@ export function DialogueNouveauRendezVous({
 
             <div className="flex flex-col gap-champ">
               <Label>{t('planning:champs.site')}</Label>
-              <p className="texte-corps text-foreground">{site.nom}</p>
+              <p className="texte-corps font-medium text-foreground">{site.nom}</p>
+              <p className="texte-libelle text-muted-foreground">
+                {t('planning:dialogueNouveau.siteAide')}
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-groupe">
@@ -312,6 +338,12 @@ export function DialogueNouveauRendezVous({
               {erreursChamps.motifId ? (
                 <p className="texte-petit text-destructive">{erreursChamps.motifId}</p>
               ) : null}
+              {aideMotif ? (
+                <p className="texte-libelle text-muted-foreground" data-testid="aide-motif">
+                  {aideMotif}
+                </p>
+              ) : null}
+              {motifPneus && etatPneus ? <NoticePneus etat={etatPneus} /> : null}
             </div>
 
             <div className="flex flex-col gap-champ">
@@ -367,5 +399,37 @@ export function DialogueNouveauRendezVous({
         />
       ) : null}
     </Dialog>
+  );
+}
+
+function NoticePneus({ etat }: { readonly etat: EtatDepotPneusClient }) {
+  const { t } = useTranslation('planning');
+  let texte: string;
+  if (etat.etat === 'inconnu') texte = t('planning:pneus.inconnu');
+  else if (etat.etat === 'chargement') texte = t('planning:pneus.chargement');
+  else if (etat.etat === 'erreur') texte = t('planning:pneus.erreur');
+  else if (etat.etat === 'absent') texte = t('planning:pneus.absent');
+  else {
+    const lignes = etat.depots
+      .map((d) =>
+        [d.dimension, d.codeCase ? t('planning:pneus.case', { code: d.codeCase }) : null]
+          .filter(Boolean)
+          .join(', '),
+      )
+      .filter((ligne) => ligne !== '')
+      .join(' ; ');
+    texte = t('planning:pneus.present', {
+      count: etat.depots.length,
+      detail: lignes === '' ? '' : ` (${lignes})`,
+    });
+  }
+  return (
+    <p
+      role="status"
+      className="rounded-md border bg-muted p-carte texte-corps text-foreground"
+      data-testid="notice-pneus"
+    >
+      {texte}
+    </p>
   );
 }
