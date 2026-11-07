@@ -30,6 +30,13 @@ vi.mock('./qr-emission', () => ({
   construireBlocQrPourEmission: vi.fn(),
 }));
 
+// Assujettissement du garage (migration 0090) : lu en base par l'émission ; ces tests ne couvrent
+// pas ce sujet (voir `assujettissement.spec.ts`), le garage est donc « assujetti avec n° TVA ».
+vi.mock('./assujettissement', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./assujettissement')>()),
+  chargerSituationTva: async () => ({ assujetti: true, numeroTva: 'CHE-116.281.710 TVA' }),
+}));
+
 import { ServiceEmissionDocument } from './service-emission';
 import * as documentRequetes from './document-requetes';
 import * as qrEmission from './qr-emission';

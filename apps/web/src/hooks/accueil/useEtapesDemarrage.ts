@@ -20,8 +20,9 @@ export interface EtatDemarrage {
  * case cochée à la main). Rafraîchi au retour sur l'accueil et au retour de focus, pour refléter
  * un réglage fait entre-temps.
  */
-export function useEtapesDemarrage(): EtatDemarrage {
+export function useEtapesDemarrage(actif = true): EtatDemarrage {
   const requete = useQuery({
+    enabled: actif,
     staleTime: 0,
     refetchOnWindowFocus: true,
     queryKey: ['accueil', 'etat-demarrage'],

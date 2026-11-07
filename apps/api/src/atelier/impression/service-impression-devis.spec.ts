@@ -119,7 +119,7 @@ function ordreReparationAvecDevis(): ReponseOrdreReparation {
  * par appel plutôt que par table ciblée, comme `service-impression-or.spec.ts::accesBaseAvecSite`.
  */
 function accesBaseAvecIdentite(
-  tenantRow: { raisonSociale: string; numeroTva: string | null } | null,
+  tenantRow: { raisonSociale: string; numeroTva: string | null; assujettiTva?: boolean } | null,
   siteRow: { nom: string; rue: string | null; npa: string | null; localite: string | null } | null,
 ): AccesBase {
   let appel = 0;
@@ -181,6 +181,25 @@ describe('ServiceImpressionDevis', () => {
         localite: 'Sion',
         numeroTva: 'CHE-114.873.733 TVA',
       },
+    );
+  });
+
+  it('garage non assujetti : assujettiTva=false transmis à la génération', async () => {
+    vi.mocked(genererPdfDevis).mockResolvedValue(Buffer.from('%PDF-devis'));
+    const serviceOr = {
+      obtenirComplet: vi.fn().mockResolvedValue(ordreReparationAvecDevis()),
+    } as unknown as ServiceOr;
+    const service = new ServiceImpressionDevis(
+      accesBaseAvecIdentite({ ...IDENTITE_ROWS.tenant, assujettiTva: false }, IDENTITE_ROWS.site),
+      serviceOr,
+    );
+
+    await service.obtenirPdf(CTX, principal('chef_atelier'), 'or-1', 'devis-2');
+
+    expect(genererPdfDevis).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ assujettiTva: false }),
     );
   });
 

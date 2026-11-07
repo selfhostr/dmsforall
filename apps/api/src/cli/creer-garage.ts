@@ -5,7 +5,8 @@
  *   docker compose exec api node dist/cli/creer-garage.js --garage "Garage Exemple" --email direction@example.ch
  * Usage (développement, base lancée avec `pnpm docker:up`, `.env` racine lu comme par l'API) :
  *   pnpm --filter @dfa/api exec tsx src/cli/creer-garage.ts --garage "Garage Exemple" --email direction@example.ch
- * Options : --first-name, --last-name (défaut « Direction » / « Garage »), --help.
+ * Options : --first-name, --last-name (défaut « Direction » / « Garage »), --non-assujetti
+ * (garage non assujetti à la TVA : aucune TVA sur ses documents), --help.
  * Mot de passe : variable DFA_PREMIER_MOT_DE_PASSE, sinon saisie interactive sans écho.
  *
  * Rôle de base : `dfa_migrator` (DATABASE_URL_MIGRATION) — créer un tenant est une opération
@@ -37,6 +38,7 @@ Options:
   --email <email>       E-mail address of the first account (required)
   --first-name <name>   First name of the account (default: Direction)
   --last-name <name>    Last name of the account (default: Garage)
+  --non-assujetti       The garage is not subject to VAT (no VAT on its documents)
   --help                Show this help
 
 Password: env DFA_PREMIER_MOT_DE_PASSE, otherwise prompted without echo.
@@ -118,6 +120,7 @@ async function principal(): Promise<number> {
       email: { type: 'string' },
       'first-name': { type: 'string', default: 'Direction' },
       'last-name': { type: 'string', default: 'Garage' },
+      'non-assujetti': { type: 'boolean', default: false },
       help: { type: 'boolean', default: false },
     },
     strict: true,
@@ -134,6 +137,7 @@ async function principal(): Promise<number> {
     motDePasse,
     prenom: values['first-name'],
     nom: values['last-name'],
+    assujettiTva: !values['non-assujetti'],
   };
 
   const hacher: HacherMotDePasse = (clair) =>

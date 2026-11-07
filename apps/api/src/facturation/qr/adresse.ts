@@ -85,6 +85,41 @@ export const CHAMPS_REQUIS_BLOC_CREANCIER: readonly ChampAdresse[] = [
   'pays',
 ];
 
+/** Colonnes de `tenant_bloc_creancier` qui forment l'adresse du créancier. */
+export interface LigneAdresseCreancier {
+  readonly nom: string | null;
+  readonly rue: string | null;
+  readonly numero: string | null;
+  readonly npa: string | null;
+  readonly localite: string | null;
+  readonly pays: string | null;
+}
+
+/** Adresse créancier à partir d'une ligne `tenant_bloc_creancier` (absente = adresse vide). */
+export function adresseCreancierDepuisLigne(
+  ligne: LigneAdresseCreancier | null | undefined,
+): AdresseStructuree {
+  return {
+    nom: ligne?.nom ?? '',
+    rue: ligne?.rue ?? null,
+    numero: ligne?.numero ?? null,
+    npa: ligne?.npa ?? null,
+    localite: ligne?.localite ?? null,
+    pays: ligne?.pays ?? null,
+  };
+}
+
+/**
+ * UNIQUE point de vérité de la complétude du créancier : l'émission (`resoudreBlocCreancierPour
+ * Emission`) et l'état de démarrage (`GET /accueil/etat-demarrage`, étape « coordonnées ») l'appellent
+ * tous deux — la liste ne peut plus dire « Fait » quand l'émission refuserait (n° de rue oublié).
+ */
+export function evaluerCompletudeCreancier(
+  ligne: LigneAdresseCreancier | null | undefined,
+): CompletudeAdresse {
+  return evaluerCompletudeAdresse(adresseCreancierDepuisLigne(ligne), CHAMPS_REQUIS_BLOC_CREANCIER);
+}
+
 /**
  * Champs exigés du bloc **débiteur** pour qu'il soit émis. Un seul manquant → aucun bloc
  * débiteur, jamais un bloc partiel. Contrôle mécanique, jamais laissé au jugement de

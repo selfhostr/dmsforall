@@ -128,13 +128,11 @@ export function EtapeEquipe({ memoire, onSuivant, onRetour, comptes, onCompteCre
         </div>
       </form>
 
-      <section aria-labelledby="assistant-comptes-titre" className="flex flex-col gap-2">
-        <h3 id="assistant-comptes-titre" className="texte-libelle font-medium">
-          {t('assistant:equipe.invitesTitre')}
-        </h3>
-        {comptes.length === 0 ? (
-          <p className="texte-corps text-muted-foreground">{t('assistant:equipe.aucun')}</p>
-        ) : (
+      {comptes.length > 0 ? (
+        <section aria-labelledby="assistant-comptes-titre" className="flex flex-col gap-2">
+          <h3 id="assistant-comptes-titre" className="texte-libelle font-medium">
+            {t('assistant:equipe.invitesTitre')}
+          </h3>
           <ul className="divide-y rounded-md bg-muted">
             {comptes.map((c) => (
               <li key={c.email} className="px-3 py-2 texte-corps" role="status">
@@ -145,8 +143,8 @@ export function EtapeEquipe({ memoire, onSuivant, onRetour, comptes, onCompteCre
               </li>
             ))}
           </ul>
-        )}
-      </section>
+        </section>
+      ) : null}
 
       <PiedEtape
         submit={false}

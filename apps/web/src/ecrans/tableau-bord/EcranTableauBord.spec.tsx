@@ -19,6 +19,7 @@ import type {
 import '@/i18n';
 import i18n from '@/i18n';
 
+import { RechercheGlobale } from '@/composants/layout/RechercheGlobale';
 import { FournisseurSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
@@ -340,13 +341,21 @@ function connecterSession(
   );
 }
 
-function rendre(cheminInitial = '/tableau-bord') {
+function rendre(cheminInitial = '/tableau-bord', avecRechercheGlobale = false) {
   const queryClient = creerQueryClientTest();
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[cheminInitial]}>
         <Routes>
-          <Route path="/tableau-bord" element={<EcranTableauBord />} />
+          <Route
+            path="/tableau-bord"
+            element={
+              <>
+                {avecRechercheGlobale ? <RechercheGlobale /> : null}
+                <EcranTableauBord />
+              </>
+            }
+          />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -425,27 +434,27 @@ describe('EcranTableauBord — accueil sans chiffres', () => {
     expect(titreAFaire.className).toContain('group-has-[[data-demarrage]]/accueil:not-sr-only');
   });
 
-  it('direction : la recherche à côté des actions rapides rejoue Ctrl+K (ouvre la recherche globale)', async () => {
+  it('direction : la recherche à côté des actions rapides ouvre la recherche globale, sans faux événement clavier', async () => {
     connecterSession('direction');
     server.use(
       http.get(CHEMIN_OR, () => HttpResponse.json(PAGE_VIDE)),
       http.get(CHEMIN_DOCUMENTS_VENTE, () => HttpResponse.json(PAGE_VIDE)),
       http.get(CHEMIN_RENDEZ_VOUS, () => HttpResponse.json(PAGE_VIDE)),
     );
-    rendre('/tableau-bord?site=site-1');
+    rendre('/tableau-bord?site=site-1', true);
 
     const recues: KeyboardEvent[] = [];
     const ecouteur = (evenement: KeyboardEvent) => recues.push(evenement);
     window.addEventListener('keydown', ecouteur);
     const utilisateur = userEvent.setup();
-    await utilisateur.click(
-      await screen.findByRole('button', { name: i18n.t('accueil:actions.rechercher') }),
-    );
+    const champs = await screen.findAllByRole('button', {
+      name: i18n.t('accueil:actions.rechercher'),
+    });
+    await utilisateur.click(champs[champs.length - 1] as HTMLElement);
     window.removeEventListener('keydown', ecouteur);
 
-    expect(recues).toHaveLength(1);
-    expect(recues[0]?.key).toBe('k');
-    expect(recues[0]?.ctrlKey).toBe(true);
+    expect(recues).toHaveLength(0);
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
   it('grille « à faire » régulière : cartes étirées à la même hauteur par rangée', async () => {

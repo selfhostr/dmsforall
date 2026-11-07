@@ -334,4 +334,63 @@ describe('construireDonneesImpressionDevis', () => {
     expect(d.garageAdresseLigne1).toBe('Route de Lausanne 12');
     expect(d.garageAdresseLigne2).toBe('1950 Sion');
   });
+
+  describe('garage non assujetti à la TVA', () => {
+    const SANS_TVA_1 = ligneFixture({
+      tauxTvaPourmille: 0,
+      montants: { montantHtCentimes: 10000, montantTvaCentimes: 0, montantTtcCentimes: 10000 },
+    });
+    const SANS_TVA_2 = ligneFixture({
+      id: 'ligne-2',
+      numeroOrdre: 2,
+      prixUnitaireCentimes: 5000,
+      tauxTvaPourmille: 0,
+      montants: { montantHtCentimes: 5000, montantTvaCentimes: 0, montantTtcCentimes: 5000 },
+    });
+    const ORDRE = { ...ordreReparationFixture(), lignes: [SANS_TVA_1, SANS_TVA_2] };
+
+    it('devis sans TVA : total 150.00 = HT, mention à la place du n° TVA, rendu sans TVA', () => {
+      const d = construireDonneesImpressionDevis(ORDRE, devisFixture(), {
+        ...IDENTITE,
+        numeroTva: 'CHE-114.873.733 TVA',
+        assujettiTva: false,
+      });
+
+      expect(d.sansTva).toBe(true);
+      expect(d.totalTtc).toBe('CHF 150.00');
+      expect(d.totalHt).toBe('CHF 150.00');
+      expect(d.totalTva).toBe('CHF 0.00');
+      expect(d.garageNumeroTva).toBe('Non assujetti à la TVA');
+      expect(d.mentionNonAssujetti).toBe('Non assujetti à la TVA');
+    });
+
+    it('même mention que la facture en allemand', () => {
+      const d = construireDonneesImpressionDevis(
+        { ...ORDRE, client: { ...ORDRE.client, langueCorrespondance: 'de' } },
+        devisFixture(),
+        { ...IDENTITE, assujettiTva: false },
+      );
+      expect(d.mentionNonAssujetti).toBe('Nicht mehrwertsteuerpflichtig');
+    });
+
+    it('devis dont des lignes portent encore de la TVA : rendu complet conservé', () => {
+      const d = construireDonneesImpressionDevis(ordreReparationFixture(), devisFixture(), {
+        ...IDENTITE,
+        assujettiTva: false,
+      });
+      expect(d.sansTva).toBe(false);
+      expect(d.totalTva).toBe('CHF 9.40');
+    });
+
+    it('garage assujetti (non-régression) : sansTva faux, n° TVA conservé', () => {
+      const d = construireDonneesImpressionDevis(ordreReparationFixture(), devisFixture(), {
+        ...IDENTITE,
+        numeroTva: 'CHE-114.873.733 TVA',
+        assujettiTva: true,
+      });
+      expect(d.sansTva).toBe(false);
+      expect(d.garageNumeroTva).toBe('CHE-114.873.733 TVA');
+      expect(d.totalTtc).toBe('CHF 159.40');
+    });
+  });
 });

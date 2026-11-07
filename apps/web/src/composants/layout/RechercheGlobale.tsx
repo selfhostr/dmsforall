@@ -42,6 +42,21 @@ interface Props {
   readonly raccourciClavier?: boolean;
 }
 
+const ecouteursOuverture = new Set<() => void>();
+
+/**
+ * Point d'ouverture de la recherche globale pour les écrans (ex. le champ de l'accueil) : même
+ * effet que Ctrl/⌘+K, sans rejouer d'événement clavier. Seule l'instance qui écoute le raccourci
+ * (`raccourciClavier`) s'ouvre, donc jamais deux fenêtres.
+ */
+export function useOuvrirRechercheGlobale(): () => void {
+  return ouvrirRechercheGlobale;
+}
+
+function ouvrirRechercheGlobale(): void {
+  ecouteursOuverture.forEach((ouvrir) => ouvrir());
+}
+
 /** Indication du raccourci selon la plateforme (⌘K sur Apple, Ctrl K ailleurs). */
 function indicationRaccourci(): string {
   const plateforme = typeof navigator === 'undefined' ? '' : navigator.platform;
@@ -68,8 +83,13 @@ export function RechercheGlobale({ replie = false, raccourciClavier = true }: Pr
         setOuvert(true);
       }
     }
+    const ouvrir = () => setOuvert(true);
+    ecouteursOuverture.add(ouvrir);
     window.addEventListener('keydown', gererRaccourci);
-    return () => window.removeEventListener('keydown', gererRaccourci);
+    return () => {
+      ecouteursOuverture.delete(ouvrir);
+      window.removeEventListener('keydown', gererRaccourci);
+    };
   }, [raccourciClavier]);
 
   // Vide la saisie à la fermeture : rouvrir (Ctrl+K ou loupe) repart toujours d'un panneau propre
@@ -89,16 +109,16 @@ export function RechercheGlobale({ replie = false, raccourciClavier = true }: Pr
 
   return (
     <>
-      {/* Entrée de menu, même gabarit que les entrées de la barre latérale (h-11, 44 px) : pas de
-          champ de saisie permanent. Un vrai <button> ; replié, la loupe seule garde son nom. */}
+      {/* Champ de recherche visuel (pas un vrai champ de saisie : un bouton qui ouvre le panneau),
+          h-11 = 44 px. Replié : la loupe seule, infobulle « Rechercher (Ctrl K) ». */}
       <button
         type="button"
         onClick={() => setOuvert(true)}
         aria-label={t('commun:actions.rechercher')}
         aria-keyshortcuts="Control+K Meta+K"
-        title={replie ? t('commun:actions.rechercher') : undefined}
+        title={replie ? `${t('commun:actions.rechercher')} (${indicationRaccourci()})` : undefined}
         className={cn(
-          'anneau-focus flex h-11 w-full items-center rounded-md texte-corps font-medium text-foreground transition-colors hover:bg-muted',
+          'anneau-focus flex h-11 w-full items-center rounded-md border border-input bg-background texte-corps text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
           replie ? 'justify-center px-2' : 'gap-3 px-3',
         )}
       >
@@ -106,7 +126,7 @@ export function RechercheGlobale({ replie = false, raccourciClavier = true }: Pr
         {replie ? null : (
           <>
             <span className="flex-1 text-left">{t('commun:actions.rechercher')}</span>
-            <kbd className="texte-libelle font-normal text-muted-foreground">
+            <kbd className="rounded bg-muted px-1.5 py-0.5 texte-libelle font-normal text-muted-foreground">
               {indicationRaccourci()}
             </kbd>
           </>

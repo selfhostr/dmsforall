@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { LONGUEUR_MAX_RAISON_SOCIALE } from '@dfa/shared';
+
 import { messageErreur } from '@/api/erreurs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,6 +22,7 @@ import type { PropsEtape } from '../types-etape';
 type Assujetti = 'oui' | 'non' | undefined;
 
 interface Saisie {
+  readonly raisonSociale: string;
   readonly rue: string;
   readonly numero: string;
   readonly npa: string;
@@ -30,9 +33,8 @@ interface Saisie {
 
 /**
  * Étape 1 — « Votre garage ». Adresse -> bloc créancier (`PATCH /parametres-facturation/creancier`),
- * n° TVA -> `PATCH /parametres-entreprise`. La raison sociale est LECTURE SEULE : l'API ne
- * l'accepte pas en écriture. Téléphone et e-mail : aucun endpoint d'écriture, donc une note.
- * Le n° TVA est facultatif : « non assujetti » ne touche à rien (l'API n'a pas de champ dédié).
+ * raison sociale et n° TVA -> `PATCH /parametres-entreprise` (un seul appel, seulement si l'un des
+ * deux a changé). Le n° TVA est facultatif : « non assujetti » l'efface.
  */
 export function EtapeGarage(props: PropsEtape) {
   const { t } = useTranslation(['assistant', 'erreurs', 'commun']);
@@ -64,9 +66,10 @@ export function EtapeGarage(props: PropsEtape) {
   return (
     <FormulaireGarage
       {...props}
-      raisonSociale={entreprise.data.raisonSociale}
+      raisonSocialeActuelle={entreprise.data.raisonSociale}
       nomCreancier={creancier.data.nom}
       initial={{
+        raisonSociale: entreprise.data.raisonSociale,
         rue: creancier.data.rue ?? '',
         numero: creancier.data.numero ?? '',
         npa: creancier.data.npa ?? '',
@@ -81,17 +84,18 @@ export function EtapeGarage(props: PropsEtape) {
 function FormulaireGarage({
   memoire,
   onSuivant,
-  raisonSociale,
+  raisonSocialeActuelle,
   nomCreancier,
   initial,
 }: PropsEtape & {
-  readonly raisonSociale: string;
+  readonly raisonSocialeActuelle: string;
   readonly nomCreancier: string | null;
   readonly initial: Saisie;
 }) {
   const { t } = useTranslation(['assistant', 'erreurs', 'commun']);
   const [saisie, setSaisie] = useMemoireEtape<Saisie>(memoire, 'garage', initial);
   const [manquants, setManquants] = useState<readonly ChampAdresse[]>([]);
+  const [raisonSocialeVide, setRaisonSocialeVide] = useState(false);
   const [raisonTva, setRaisonTva] = useState<'format' | 'cle' | undefined>(undefined);
   const [erreurEnvoi, setErreurEnvoi] = useState<unknown>(undefined);
   const modifierCreancier = useModifierBlocCreancier();
@@ -107,9 +111,11 @@ function FormulaireGarage({
     setErreurEnvoi(undefined);
     const absents = champsAdresseManquants(saisie);
     setManquants(absents);
+    const raisonSociale = saisie.raisonSociale.trim();
+    setRaisonSocialeVide(raisonSociale === '');
     const tva = saisie.assujetti === 'oui' ? validerNumeroTva(saisie.numeroTva) : undefined;
     setRaisonTva(tva && !tva.ok ? tva.raison : undefined);
-    if (absents.length > 0 || (tva && !tva.ok)) return;
+    if (raisonSociale === '' || absents.length > 0 || (tva && !tva.ok)) return;
     try {
       await modifierCreancier.mutateAsync({
         nom: (nomCreancier?.trim() || raisonSociale).slice(0, 70),
@@ -118,10 +124,15 @@ function FormulaireGarage({
         npa: saisie.npa.trim(),
         localite: saisie.localite.trim(),
       });
+      const changements: { raisonSociale?: string; numeroTva?: string | null } = {};
+      if (raisonSociale !== raisonSocialeActuelle) changements.raisonSociale = raisonSociale;
       if (saisie.assujetti === 'non') {
-        await modifierEntreprise.mutateAsync({ numeroTva: null });
+        changements.numeroTva = null;
       } else if (tva?.ok && tva.valeur !== null) {
-        await modifierEntreprise.mutateAsync({ numeroTva: tva.valeur });
+        changements.numeroTva = tva.valeur;
+      }
+      if (Object.keys(changements).length > 0) {
+        await modifierEntreprise.mutateAsync(changements);
       }
       onSuivant();
     } catch (erreur) {
@@ -136,13 +147,17 @@ function FormulaireGarage({
     <form onSubmit={(e) => void soumettre(e)} noValidate className="flex flex-col gap-5">
       <ChampAssistant
         libelle={t('assistant:garage.raisonSociale')}
-        value={raisonSociale}
-        readOnly
-        aide={t('assistant:garage.raisonSocialeNote')}
+        autoComplete="organization"
+        maxLength={LONGUEUR_MAX_RAISON_SOCIALE}
+        value={saisie.raisonSociale}
+        onChange={(e) => {
+          maj({ raisonSociale: e.target.value });
+          setRaisonSocialeVide(false);
+        }}
+        erreur={raisonSocialeVide ? t('assistant:garage.erreurRaisonSociale') : undefined}
       />
 
-      <fieldset className="flex flex-col gap-4">
-        <legend className="texte-libelle mb-2 font-medium">{t('assistant:garage.adresse')}</legend>
+      <div className="flex flex-col gap-4">
         <div className="grid gap-4 sm:grid-cols-[1fr_8rem]">
           <ChampAssistant
             libelle={t('assistant:garage.rue')}
@@ -159,9 +174,6 @@ function FormulaireGarage({
             onChange={(e) => maj({ numero: e.target.value })}
           />
         </div>
-        <p className="texte-libelle -mt-2 text-muted-foreground">
-          {t('assistant:garage.numeroAide')}
-        </p>
         <div className="grid gap-4 sm:grid-cols-[8rem_1fr]">
           <ChampAssistant
             libelle={t('assistant:garage.npa')}
@@ -181,7 +193,7 @@ function FormulaireGarage({
             erreur={erreurChamp('localite', 'assistant:garage.erreurLocalite')}
           />
         </div>
-      </fieldset>
+      </div>
 
       <fieldset className="flex flex-col gap-3">
         <legend className="texte-libelle mb-2 font-medium">
@@ -212,7 +224,6 @@ function FormulaireGarage({
               maj({ numeroTva: e.target.value });
               setRaisonTva(undefined);
             }}
-            aide={t('assistant:garage.tva.aide')}
             erreur={
               raisonTva === 'format'
                 ? t('assistant:garage.tva.erreurFormat')
@@ -223,8 +234,6 @@ function FormulaireGarage({
           />
         ) : null}
       </fieldset>
-
-      <p className="texte-corps text-muted-foreground">{t('assistant:garage.contactNote')}</p>
 
       {erreurEnvoi !== undefined ? (
         <Alert variant="destructive">

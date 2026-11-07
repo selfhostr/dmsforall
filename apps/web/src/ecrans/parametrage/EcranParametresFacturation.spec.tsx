@@ -14,6 +14,9 @@ import { creerQueryClientTest } from '@/test/utils';
 
 import { EcranParametresFacturation } from './EcranParametresFacturation';
 
+/** Libellé d'un champ obligatoire : l'étoile (aria-hidden) fait partie du texte du <label>. */
+const avecEtoile = (libelle: string) => new RegExp(`^${libelle}\\*?$`);
+
 const CHEMIN = '/api/v1/parametres-facturation/creancier';
 
 // Radix Select (pays) appelle `hasPointerCapture`/`scrollIntoView`, absents de jsdom — même stub
@@ -58,7 +61,11 @@ const BLOC_COMPLET: BlocCreancier = {
 function rendre() {
   server.use(
     http.get('/api/v1/parametres-entreprise', () =>
-      HttpResponse.json({ raisonSociale: 'Garage Martin SA', numeroTva: null }),
+      HttpResponse.json({
+        raisonSociale: 'Garage Martin SA',
+        assujettiTva: true,
+        numeroTva: null,
+      }),
     ),
   );
   const queryClient = creerQueryClientTest();
@@ -145,7 +152,9 @@ describe('EcranParametresFacturation — données réelles déjà saisies', () =
         name: i18n.t('parametrage:creancier.identite.nomDifferent'),
       }),
     );
-    const champNom = screen.getByLabelText(i18n.t('parametrage:creancier.identite.nomBulletin'));
+    const champNom = screen.getByLabelText(
+      avecEtoile(i18n.t('parametrage:creancier.identite.nomBulletin')),
+    );
     await utilisateur.clear(champNom);
     await utilisateur.type(champNom, 'Garage Martin & Fils SA');
     await utilisateur.click(
@@ -281,5 +290,38 @@ describe('EcranParametresFacturation — chargement', () => {
         ),
       ).toBeInTheDocument(),
     );
+  });
+});
+
+describe('EcranParametresFacturation — champs obligatoires', () => {
+  it('affiche la légende en tête, pose aria-required sur le nom, et traite IBAN / QR-IBAN comme un groupe « un sur deux »', async () => {
+    server.use(http.get(CHEMIN, () => HttpResponse.json(BLOC_VIDE)));
+    rendre();
+
+    await userEvent.setup().click(
+      await screen.findByRole('button', {
+        name: i18n.t('parametrage:creancier.identite.nomDifferent'),
+      }),
+    );
+    const nom = await screen.findByLabelText(
+      avecEtoile(i18n.t('parametrage:creancier.identite.nomBulletin')),
+    );
+    expect(screen.getByText(i18n.t('parametrage:obligatoire.legende'))).toBeInTheDocument();
+    expect(nom).toHaveAttribute('aria-required', 'true');
+    // L'adresse se règle dans « Mon garage » : plus de champ ici, un lien depuis la checklist.
+    expect(screen.queryByLabelText(/^Rue/)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: i18n.t('parametrage:creancier.completude.adresse') }),
+    ).toHaveAttribute('href', '/parametrage/garage');
+    // Un seul des deux comptes suffit : aucun des deux champs n'est « requis » individuellement,
+    // l'obligation est portée par le groupe (fieldset + légende + description).
+    const iban = screen.getByLabelText(i18n.t('parametrage:creancier.comptes.iban'));
+    const qrIban = screen.getByLabelText(i18n.t('parametrage:creancier.comptes.qrIban'));
+    expect(iban).not.toHaveAttribute('aria-required');
+    expect(qrIban).not.toHaveAttribute('aria-required');
+    const groupe = screen.getByRole('group', {
+      name: new RegExp(i18n.t('parametrage:creancier.comptes.groupe')),
+    });
+    expect(groupe).toHaveAccessibleDescription(i18n.t('parametrage:creancier.comptes.groupeAide'));
   });
 });

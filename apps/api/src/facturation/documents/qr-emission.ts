@@ -7,13 +7,13 @@ import { tenantBlocCreancier } from '../../db/schema';
 import { ErreurMetier } from '../../common/erreurs/erreur-metier';
 import type { ServiceCompteurs } from '../../parametrage/compteurs/compteurs.types';
 import {
-  CHAMPS_REQUIS_BLOC_CREANCIER,
   ErreurQrFacture,
+  adresseCreancierDepuisLigne,
   construireReferenceQrr,
   construireReferenceScor,
   encoderChargeUtileQr,
   estQrIban,
-  evaluerCompletudeAdresse,
+  evaluerCompletudeCreancier,
   validerIbanCreancier,
   type AdresseStructuree,
 } from '../qr';
@@ -76,16 +76,8 @@ export async function resoudreBlocCreancierPourEmission(
     .where(eq(tenantBlocCreancier.tenantId, ctx.tenantId))
     .limit(1);
 
-  const adresse: AdresseStructuree = {
-    nom: ligne?.nom ?? '',
-    rue: ligne?.rue ?? null,
-    numero: ligne?.numero ?? null,
-    npa: ligne?.npa ?? null,
-    localite: ligne?.localite ?? null,
-    pays: ligne?.pays ?? null,
-  };
-
-  const completude = evaluerCompletudeAdresse(adresse, CHAMPS_REQUIS_BLOC_CREANCIER);
+  const adresse: AdresseStructuree = adresseCreancierDepuisLigne(ligne);
+  const completude = evaluerCompletudeCreancier(ligne);
   // QRR si `qr_iban` est renseigné, sinon SCOR via `iban` — décision applicative (migration 0014
   // §arbitrage 2) : le QR-IBAN gouverne quand il existe, l'IBAN ordinaire sert de repli.
   const ibanBrut = ligne?.qrIban || ligne?.iban || null;
