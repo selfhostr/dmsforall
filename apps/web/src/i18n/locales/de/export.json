@@ -7,6 +7,10 @@
     "winbiz": {
       "nom": "WinBIZ",
       "phrase": "Für WinBIZ: eine Buchung pro Rechnung oder Gutschrift, dann eine pro Zahlungseingang."
+    },
+    "csv": {
+      "nom": "CSV",
+      "phrase": "CSV: von Excel und jeder Treuhandstelle lesbar."
     }
   },
   "periode": {
@@ -32,12 +36,11 @@
   },
   "confirmation": {
     "titre": "An die Treuhandstelle exportieren?",
-    "description": "Die Rechnungen, Gutschriften und Zahlungseingänge vom {du} bis {au} werden als an die Treuhandstelle übermittelt markiert. Die Datei wird nicht auf unseren Servern gespeichert: Bewahren Sie sie nach dem Herunterladen auf.",
+    "description": "Die Rechnungen, Gutschriften und Zahlungseingänge vom {du} bis {au} werden als an die Treuhandstelle übermittelt markiert. Die Datei wird aufbewahrt: Sie können sie im Verlauf erneut herunterladen.",
     "valider": "Exportieren und herunterladen"
   },
   "resultat": {
     "titre": "Export abgeschlossen",
-    "fichierNonConserve": "Die Datei wurde heruntergeladen. Sie wird nicht auf unseren Servern gespeichert: Wenn Sie diese Seite verlassen, können Sie sie nicht mehr abrufen.",
     "factures": "Exportierte Rechnungen",
     "avoirs": "Exportierte Gutschriften",
     "encaissements": "Exportierte Zahlungseingänge",
@@ -47,7 +50,8 @@
     "numerosAvoirs": "Gutschriftsnummern",
     "plage": "{premier} bis {dernier}",
     "avertissements": "Punkte, die in der Datei zu prüfen sind",
-    "retelecharger": "{nom} erneut herunterladen"
+    "retelecharger": "{nom} erneut herunterladen",
+    "fichierConserve": "Die Datei wurde heruntergeladen. Sie wird aufbewahrt: Sie finden sie im Verlauf unten."
   },
   "vide": {
     "titre": "Nichts zu exportieren in diesem Zeitraum",
@@ -60,19 +64,117 @@
   "prerequis": {
     "EXPORT_MAPPING_INCOMPLET": {
       "titre": "Der Kontenplan ist nicht vollständig",
-      "description": "Einige Konten oder MWST-Codes der Treuhandstelle sind Ihren Buchungen noch nicht zugeordnet. Es wurde kein Dokument exportiert. Fragen Sie Ihre Treuhandstelle nach der Kontenliste und wenden Sie sich dann an den Support, um sie zu erfassen."
+      "description": "Einige Konten oder MWST-Codes der Treuhandstelle sind Ihren Buchungen noch nicht zugeordnet. Es wurde kein Dokument exportiert. Erfassen Sie die Konten unten und starten Sie den Export erneut."
     },
     "EXPORT_TROU_NUMEROTATION": {
       "titre": "Eine Rechnungs- oder Gutschriftsnummer fehlt",
-      "description": "In der Nummernfolge des Zeitraums gibt es eine Lücke: Die Datei geht so nicht an die Treuhandstelle. Es wurde kein Dokument exportiert. Wenden Sie sich an den Support."
+      "description": "In der Nummernfolge des Zeitraums gibt es eine Lücke: Die Datei geht so nicht an die Treuhandstelle. Es wurde kein Dokument exportiert. Wenden Sie sich mit den Nummern unten an den Support."
     },
     "EXPORT_ECRITURES_DESEQUILIBREES": {
       "titre": "Einige Buchungen sind nicht ausgeglichen",
-      "description": "Die Datei wurde nicht erstellt, es wurde kein Dokument exportiert. Wenden Sie sich an den Support."
+      "description": "Die Datei wurde nicht erstellt, es wurde kein Dokument exportiert. Wenden Sie sich mit den Referenzen unten an den Support."
     },
     "FONCTION_NON_DISPONIBLE": {
       "titre": "Dieser Zeitraum enthält einen nicht unterstützten Fall",
       "description": "Ein Zahlungseingang des Zeitraums (Verrechnung oder Skonto auf eine Rechnung mit mehreren MWST-Sätzen) kann noch nicht exportiert werden. Es wurde kein Dokument exportiert. Wenden Sie sich an den Support."
+    },
+    "codeTva": "MWST-Code: {poste}",
+    "pieces": "(Belege: {pieces})",
+    "trou": "{type}, Geschäftsjahr {exercice}: fehlende Nummern {numeros}",
+    "desequilibre": "{reference}: Soll CHF {debit}, Haben CHF {credit}",
+    "typeDocument": {
+      "facture": "Rechnungen",
+      "avoir": "Gutschriften"
     }
+  },
+  "apercu": {
+    "titre": "Vorschau des Zeitraums",
+    "description": "Was die Datei enthalten würde, bevor sie erstellt wird.",
+    "erreur": "Die Vorschau konnte nicht berechnet werden",
+    "periodeRequise": "Wählen Sie einen gültigen Zeitraum, um die Vorschau zu sehen.",
+    "aucun": "Keine",
+    "facturesAExporter": "Zu exportierende Rechnungen",
+    "avoirsAExporter": "Zu exportierende Gutschriften",
+    "encaissementsAExporter": "Zu exportierende Zahlungseingänge",
+    "dejaExportes": "Bereits exportiert",
+    "dejaExportesValeur": "{documents} Dokumente, {encaissements} Zahlungseingänge",
+    "totalHt": "Total ohne MWST",
+    "totalTva": "Total MWST",
+    "totalTtc": "Total inkl. MWST"
+  },
+  "mapping": {
+    "ouvrir": "Buchungskonten",
+    "regler": "Konten erfassen",
+    "titre": "Buchungskonten",
+    "description": "Welchem Konto und welchem MWST-Code Ihrer Treuhandstelle jeder Posten zugeordnet ist.",
+    "aValider": "Die vorgeschlagenen Werte folgen dem Schweizer KMU-Kontenrahmen: mit Ihrer Treuhandstelle zu bestätigen.",
+    "complet": "Alle benötigten Konten sind erfasst.",
+    "manquants": "{count, plural, one {# Posten zu erfassen} other {# Posten zu erfassen}}",
+    "utiliserProposees": "Vorgeschlagene Werte übernehmen",
+    "comptes": "Konten",
+    "codesTva": "MWST-Codes",
+    "facultatif": "(optional)",
+    "propose": "Vorschlag: {valeur}",
+    "aucuneProposition": "Kein Vorschlag: Fragen Sie Ihre Treuhandstelle nach dem Konto.",
+    "valeurInvalide": "Ungültiges Konto oder ungültiger Code (höchstens 12 Zeichen, Buchstaben, Ziffern, Punkt, Bindestrich).",
+    "enregistrer": "Speichern",
+    "enregistrement": "Speichern…",
+    "erreurLecture": "Die Konten konnten nicht geladen werden",
+    "erreurEnregistrement": "Die Konten wurden nicht gespeichert",
+    "usage": {
+      "creances_clients": "Debitoren",
+      "produit": "Erträge",
+      "tva_due": "Geschuldete MWST",
+      "acomptes_recus": "Erhaltene Anzahlungen",
+      "financier": "Finanzkonto",
+      "arrondi": "Rundung",
+      "escompte": "Skonto",
+      "perte": "Debitorenverluste",
+      "ecart_reprise": "Übernahmedifferenz"
+    },
+    "categorie": {
+      "main_oeuvre": "Arbeit",
+      "piece": "Teile",
+      "fourniture": "Material",
+      "forfait": "Pauschale",
+      "especes": "Bargeld",
+      "virement": "Überweisung",
+      "carte": "Karte",
+      "twint": "TWINT",
+      "cheque": "Check"
+    },
+    "regime": {
+      "normal": "Normal",
+      "reduit": "Reduziert",
+      "hebergement": "Beherbergung",
+      "exonere": "Befreit",
+      "exclu": "Ausgenommen",
+      "marge": "Margenbesteuerung",
+      "acquisition": "Bezugsteuer"
+    }
+  },
+  "historique": {
+    "titre": "Exportverlauf",
+    "description": "Die bereits an die Treuhandstelle übergebenen Dateien.",
+    "erreur": "Der Verlauf konnte nicht geladen werden",
+    "erreurFichier": "Die Datei konnte nicht heruntergeladen werden",
+    "vide": {
+      "titre": "Noch kein Export",
+      "description": "Der erste Export erscheint hier, mit seiner Datei."
+    },
+    "colonnes": {
+      "genereLe": "Datum",
+      "periode": "Zeitraum",
+      "format": "Format",
+      "ecritures": "Buchungen",
+      "total": "Total inkl. MWST",
+      "numeros": "Nummern",
+      "auteur": "Von",
+      "fichier": "Datei"
+    },
+    "periode": "{du} bis {au}",
+    "auteurInconnu": "Benutzer gelöscht",
+    "retelecharger": "Erneut herunterladen",
+    "nonConserve": "Nicht aufbewahrt"
   }
 }

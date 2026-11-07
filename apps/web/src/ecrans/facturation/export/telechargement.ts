@@ -18,3 +18,15 @@ export function telechargerFichier(nomFichier: string, base64: string, typeMime:
   lien.remove();
   URL.revokeObjectURL(url);
 }
+
+/** Enregistre des octets déjà reçus (fichier relu depuis l'historique). */
+export function enregistrerBlob(nomFichier: string, blob: Blob): void {
+  const url = URL.createObjectURL(blob);
+  const lien = document.createElement('a');
+  lien.href = url;
+  lien.download = nomFichier;
+  document.body.appendChild(lien);
+  lien.click();
+  lien.remove();
+  URL.revokeObjectURL(url);
+}
