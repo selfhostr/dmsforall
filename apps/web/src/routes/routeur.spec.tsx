@@ -318,7 +318,7 @@ describe('routeur — protection par défaut', () => {
     });
     expect(await screen.findByText('Site non sélectionné')).toBeInTheDocument();
     expect(
-      screen.queryByText("Cette fonctionnalité n'est pas encore disponible."),
+      screen.queryByText("Cette fonction n'est pas encore disponible pour votre garage."),
     ).not.toBeInTheDocument();
     expect(screen.queryByText("Cette page n'existe pas")).not.toBeInTheDocument();
   });

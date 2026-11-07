@@ -363,7 +363,7 @@
     "fiche": {
       "titre": "Vente",
       "erreur": {
-        "titre": "Impossible d'afficher ce dossier"
+        "titre": "Impossible d'afficher cette vente"
       },
       "factureA": "Facturé à : {nom}",
       "conducteur": "Conducteur : {nom}",

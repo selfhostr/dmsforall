@@ -86,11 +86,11 @@ const HORS_MENU: Readonly<Record<string, string>> = {
     'Objet — Pièces › Approvisionnement › Commandes, fiche fournisseur.',
   '/pieces/fournisseurs/id-de-test':
     'Objet — Pièces › Approvisionnement › Fournisseurs, fiche commande.',
-  '/ventes/stock/id-de-test': 'Objet — Ventes › Véhicules en parc, fiche dossier.',
+  '/ventes/stock/id-de-test': 'Objet — Véhicules à vendre › Véhicules en stock, fiche dossier.',
   '/ventes/dossiers/id-de-test': 'Objet — Ventes › Dossiers, fiche client, fiche véhicule en parc.',
 
   '/vehicules/nouveau': 'Création — action primaire de la liste Véhicules et de la fiche client.',
-  '/ventes/stock/nouveau': 'Création — action primaire de Ventes › Véhicules en parc.',
+  '/ventes/stock/nouveau': 'Création — action primaire de Véhicules à vendre › Véhicules en stock.',
   '/ventes/dossiers/nouveau':
     'Création — action primaire de Ventes › Dossiers, et de la fiche client.',
   '/pieces/commandes-fournisseur/nouvelle':
