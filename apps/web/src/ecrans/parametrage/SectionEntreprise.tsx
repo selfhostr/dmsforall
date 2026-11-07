@@ -98,13 +98,16 @@ function FormulaireEntreprise({ donnees }: { readonly donnees: ReponseParametres
           </p>
 
           <div className="space-y-2">
-            <Label htmlFor="ent-raison-sociale">{t('parametrage:entreprise.raisonSociale')}</Label>
+            <Label htmlFor="ent-raison-sociale" requis>
+              {t('parametrage:entreprise.raisonSociale')}
+            </Label>
             <Input
               id="ent-raison-sociale"
               maxLength={LONGUEUR_MAX_RAISON_SOCIALE}
               autoComplete="organization"
               value={raison}
               readOnly={modifier.isPending}
+              aria-required="true"
               aria-invalid={raisonInvalide ? true : undefined}
               aria-describedby={
                 raisonInvalide ? 'ent-raison-aide ent-raison-erreur' : 'ent-raison-aide'

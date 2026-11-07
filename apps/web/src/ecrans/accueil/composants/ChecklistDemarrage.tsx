@@ -18,9 +18,9 @@ import { chemins } from '@/routes/chemins';
 import { cn } from '@/lib/utils';
 
 const LIENS: Readonly<Record<IdEtapeDemarrage, string>> = {
-  coordonnees: chemins.parametrage.facturation(),
+  coordonnees: chemins.parametrage.garage(),
   compte: chemins.parametrage.facturation(),
-  tva: chemins.parametrage.facturation(),
+  tva: chemins.parametrage.garage(),
   tauxHoraire: chemins.parametrage.referentiels(),
   motifs: `${chemins.parametrage.atelier()}#motifs-rendez-vous`,
   collaborateur: chemins.parametrage.utilisateurs(),

@@ -11,7 +11,6 @@ import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useBlocCreancier } from '@/hooks/parametrage/useBlocCreancier';
 
 import { FormulaireBlocCreancier } from './FormulaireBlocCreancier';
-import { SectionEntreprise } from './SectionEntreprise';
 
 /**
  * Écran de paramétrage du bloc créancier (RF-54/PF-03) — adresse structurée du garage + comptes
@@ -73,7 +72,6 @@ export function EcranParametresFacturation() {
           <LegendeChampsObligatoires>
             {t('parametrage:obligatoire.legende')}
           </LegendeChampsObligatoires>
-          <SectionEntreprise />
           <FormulaireBlocCreancier blocCreancier={requete.data} />
         </div>
       )}

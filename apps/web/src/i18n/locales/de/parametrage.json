@@ -1,11 +1,5 @@
 {
   "titre": "Rechnungen und Zahlungen",
-  "monCompte": {
-    "titre": "Mein Konto",
-    "langue": {
-      "description": "Diese Sprache betrifft nur Ihr Konto, nicht die anderen Benutzer der Garage."
-    }
-  },
   "creancier": {
     "titre": "Bankverbindung der Garage",
     "nonConfigure": "Diese Angaben wurden noch nie erfasst.",
@@ -453,5 +447,12 @@
   "obligatoire": {
     "legende": "* Pflichtfeld",
     "sr": "Pflichtfeld"
+  },
+  "garage": {
+    "titre": "Meine Garage",
+    "aCompleter": {
+      "titre": "Zu ergänzen",
+      "adresse": "Die Adresse der Garage (Strasse, Nr., PLZ, Ort)"
+    }
   }
 }

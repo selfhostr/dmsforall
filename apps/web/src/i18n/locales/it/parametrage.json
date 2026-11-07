@@ -1,11 +1,5 @@
 {
   "titre": "Fatturazione e pagamenti",
-  "monCompte": {
-    "titre": "Il mio account",
-    "langue": {
-      "description": "Questa lingua riguarda solo il suo account, non gli altri utenti dell'officina."
-    }
-  },
   "creancier": {
     "titre": "Coordinate bancarie dell'officina",
     "nonConfigure": "Questi dati non sono ancora mai stati inseriti.",
@@ -453,5 +447,12 @@
   "obligatoire": {
     "legende": "* obbligatorio",
     "sr": "obbligatorio"
+  },
+  "garage": {
+    "titre": "Il mio garage",
+    "aCompleter": {
+      "titre": "Da completare",
+      "adresse": "L'indirizzo del garage (via, n., NPA, località)"
+    }
   }
 }

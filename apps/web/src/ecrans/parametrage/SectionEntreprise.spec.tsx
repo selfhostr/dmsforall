@@ -13,6 +13,10 @@ import { creerQueryClientTest } from '@/test/utils';
 
 import { SectionEntreprise } from './SectionEntreprise';
 
+/** Libellé d'un champ obligatoire : l'étoile (aria-hidden) fait partie du texte du <label>. */
+const avecEtoile = (libelle: string) =>
+  new RegExp(`^${libelle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\*?$`);
+
 const CHEMIN = '/api/v1/parametres-entreprise';
 const CHEMIN_LOGO = `${CHEMIN}/logo`;
 const BASE = { raisonSociale: 'G', numeroTva: null, delaiPaiementJoursDefaut: 30 };
@@ -52,7 +56,9 @@ describe('SectionEntreprise', () => {
       ),
     );
     rendre();
-    const raison = await screen.findByLabelText(i18n.t('parametrage:entreprise.raisonSociale'));
+    const raison = await screen.findByLabelText(
+      avecEtoile(i18n.t('parametrage:entreprise.raisonSociale')),
+    );
     expect(raison).toHaveValue('Garage Martin SA');
     expect(raison).not.toHaveAttribute('readonly');
     expect(screen.getByLabelText(i18n.t('parametrage:entreprise.numeroTva'))).toHaveValue(
@@ -139,7 +145,9 @@ describe('SectionEntreprise', () => {
       }),
     );
     rendre();
-    const champ = await screen.findByLabelText(i18n.t('parametrage:entreprise.raisonSociale'));
+    const champ = await screen.findByLabelText(
+      avecEtoile(i18n.t('parametrage:entreprise.raisonSociale')),
+    );
     await userEvent.clear(champ);
     await userEvent.type(champ, '  Garage Martin Sàrl ');
     await userEvent.click(
@@ -166,7 +174,9 @@ describe('SectionEntreprise', () => {
       }),
     );
     rendre();
-    const champ = await screen.findByLabelText(i18n.t('parametrage:entreprise.raisonSociale'));
+    const champ = await screen.findByLabelText(
+      avecEtoile(i18n.t('parametrage:entreprise.raisonSociale')),
+    );
     await userEvent.clear(champ);
     await userEvent.click(
       screen.getByRole('button', { name: i18n.t('parametrage:entreprise.enregistrer') }),

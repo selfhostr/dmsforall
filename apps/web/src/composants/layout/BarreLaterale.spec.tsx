@@ -249,7 +249,8 @@ describe('BarreLaterale — où mène chaque entrée', () => {
 
     await ouvrirMenuCompte();
     const reglages = await screen.findByRole('menuitem', { name: /réglages/i });
-    expect(reglages.getAttribute('href')).toBe('/parametrage/atelier');
+    // « Mon garage » est le premier onglet de Réglages : c'est lui qui s'ouvre.
+    expect(reglages.getAttribute('href')).toBe('/parametrage/garage');
   });
 
   it('repliée : Réglages reste atteignable par le menu du compte (avatar)', async () => {
@@ -261,13 +262,13 @@ describe('BarreLaterale — où mène chaque entrée', () => {
     expect(await screen.findByRole('menuitem', { name: /réglages/i })).toBeInTheDocument();
   });
 
-  it('comptable : le menu du pied ouvre Réglages sur les coordonnées bancaires (gouvernance atelier fermée)', async () => {
+  it('comptable : le menu du pied ouvre Réglages sur Mon garage (gouvernance atelier fermée)', async () => {
     connecte('comptable');
     rendre('/');
 
     await ouvrirMenuCompte();
     const reglages = await screen.findByRole('menuitem', { name: /réglages/i });
-    expect(reglages.getAttribute('href')).toBe('/parametrage/facturation');
+    expect(reglages.getAttribute('href')).toBe('/parametrage/garage');
   });
 });
 
