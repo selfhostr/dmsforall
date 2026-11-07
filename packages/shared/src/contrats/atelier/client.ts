@@ -117,6 +117,9 @@ export interface ClientResume {
   readonly poObligatoire: boolean;
   /** Colonne directe de la fiche client. */
   readonly telephone: string | null;
+  /** Courriel de la fiche. Renseigné quand le résumé est embarqué dans un OR ou un rendez-vous
+   *  (`null` = aucun courriel) ; ABSENT sur `GET /clients` (additif, jamais requis). */
+  readonly email?: string | null;
   /** Localité de l'adresse PRINCIPALE active du client. `null` si aucune adresse — cas normal (fiche fraîche). */
   readonly localite: string | null;
   /** Véhicules actuellement détenus par le client (détentions ouvertes, `vehicule_detention.au is null`). */

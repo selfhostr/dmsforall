@@ -31,6 +31,9 @@ export interface StockagePdf {
    *  et le contenu généré est déterministe (mêmes octets), donc l'écrasement est sans conséquence. */
   ecrire(cle: string, buffer: Buffer): Promise<void>;
   lire(cle: string): Promise<Buffer>;
+  /** Supprime `cle`. Idempotente : une clé absente ne lève pas. Sert au logo d'entreprise
+   *  (`<tenantId>/logo`), stocké sous la même racine et purgé avec elle à la résiliation. */
+  supprimer(cle: string): Promise<void>;
   /** Purge TOUS les PDF d'un tenant (`<tenantId>/**`) — résiliation nLPD. Idempotente : un tenant
    *  qui n'a jamais rien déposé ne lève pas. Refuse tout chemin qui sortirait de la racine de
    *  stockage (défense en profondeur, même si `tenantId` est un UUID non falsifiable). */
@@ -66,6 +69,14 @@ export class StockagePdfDisqueLocal implements StockagePdf {
 
   async lire(cle: string): Promise<Buffer> {
     return readFile(this.cheminAbsolu(cle));
+  }
+
+  async supprimer(cle: string): Promise<void> {
+    const chemin = resolve(this.racine, cle);
+    if (chemin === resolve(this.racine) || !estSousRacine(this.racine, chemin)) {
+      throw new Error(`StockagePdfDisqueLocal.supprimer : clé refusée (« ${cle} »).`);
+    }
+    await rm(chemin, { force: true });
   }
 
   async purgerTenant(tenantId: string): Promise<void> {

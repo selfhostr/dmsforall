@@ -144,157 +144,170 @@ export class ServiceOr {
     return this.idempotence.executer(
       ctx,
       { methode: 'POST', chemin: '/ordres-reparation', cle: cleIdempotence, corps: entree },
-      async (tx) => {
-        const clientLigne = await chargerClientLigne(tx, ctx, entree.clientId);
-        if (clientLigne.statut === 'bloque') {
-          verifierConfirmation('CLIENT_BLOQUE', principal.role, entree.confirmations);
-        }
-        await chargerVehiculeLigne(tx, ctx, entree.vehiculeId);
+      async (tx) => ({
+        statutHttp: 201,
+        corps: { donnees: await this.creerTx(tx, ctx, principal, entree), avertissements: [] },
+      }),
+    );
+  }
 
-        const parametres = await chargerParametresAtelier(tx, ctx);
+  /**
+   * Cœur transactionnel de `creer()` SANS enveloppe d'idempotence — réutilisé par
+   * `POST /ordres-reparation/creation-rapide` (client + véhicule + OR dans une seule transaction).
+   */
+  async creerTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    entree: EntreeCreationOrdreReparation,
+  ): Promise<ReponseOrdreReparation> {
+    const clientLigne = await chargerClientLigne(tx, ctx, entree.clientId);
+    if (clientLigne.statut === 'bloque') {
+      verifierConfirmation('CLIENT_BLOQUE', principal.role, entree.confirmations);
+    }
+    await chargerVehiculeLigne(tx, ctx, entree.vehiculeId);
 
-        if (parametres.deuxOrMemeVehicule !== 'autoriser') {
-          const orsOuverts = await tx
-            .select({ id: ordreReparation.id })
-            .from(ordreReparation)
-            .where(
-              and(
-                eq(ordreReparation.tenantId, ctx.tenantId),
-                eq(ordreReparation.vehiculeId, entree.vehiculeId),
-                inArray(ordreReparation.statut, [...STATUTS_OR_ACTIFS]),
-              ),
-            );
-          if (orsOuverts.length > 0) {
-            if (parametres.deuxOrMemeVehicule === 'bloquer') {
-              throw new ErreurMetier(
-                'CONFLIT',
-                'Un ordre de réparation est déjà ouvert sur ce véhicule.',
-                {
-                  blocages: orsOuverts.map((o) => ({
-                    type: 'ordre_reparation' as const,
-                    id: o.id,
-                    libelle: 'OR déjà ouvert',
-                  })),
-                  actionsProposees: [{ code: 'RAFRAICHIR' }],
-                },
-              );
-            }
-            verifierConfirmation('VEHICULE_DEUX_OR_OUVERTS', principal.role, entree.confirmations);
-          }
-        }
+    const parametres = await chargerParametresAtelier(tx, ctx);
 
-        if (!parametres.orSansRdvAutorise && !entree.rendezVousId) {
-          verifierConfirmation('OR_SANS_RDV', principal.role, entree.confirmations);
-        }
-
-        if (entree.statutInitial === 'planifie' && !parametres.etatPlanifieActif) {
+    if (parametres.deuxOrMemeVehicule !== 'autoriser') {
+      const orsOuverts = await tx
+        .select({ id: ordreReparation.id })
+        .from(ordreReparation)
+        .where(
+          and(
+            eq(ordreReparation.tenantId, ctx.tenantId),
+            eq(ordreReparation.vehiculeId, entree.vehiculeId),
+            inArray(ordreReparation.statut, [...STATUTS_OR_ACTIFS]),
+          ),
+        );
+      if (orsOuverts.length > 0) {
+        if (parametres.deuxOrMemeVehicule === 'bloquer') {
           throw new ErreurMetier(
-            'VALIDATION_ECHOUEE',
-            "L'état « planifié » n'est pas activé pour ce garage (P-22).",
+            'CONFLIT',
+            'Un ordre de réparation est déjà ouvert sur ce véhicule.',
             {
-              erreurs: [
-                {
-                  champ: 'statutInitial',
-                  code: 'etat_planifie_inactif',
-                  message: 'État planifié désactivé.',
-                },
-              ],
+              blocages: orsOuverts.map((o) => ({
+                type: 'ordre_reparation' as const,
+                id: o.id,
+                libelle: 'OR déjà ouvert',
+              })),
+              actionsProposees: [{ code: 'RAFRAICHIR' }],
             },
           );
         }
+        verifierConfirmation('VEHICULE_DEUX_OR_OUVERTS', principal.role, entree.confirmations);
+      }
+    }
 
-        const kilometrageEntreeKm =
-          entree.kilometrageEntree != null
-            ? convertirEnKm(entree.kilometrageEntree, entree.uniteKilometrage)
-            : null;
+    if (!parametres.orSansRdvAutorise && !entree.rendezVousId) {
+      verifierConfirmation('OR_SANS_RDV', principal.role, entree.confirmations);
+    }
 
-        if (
-          entree.statutInitial === 'ouvert' &&
-          parametres.kmEntreeObligatoire &&
-          kilometrageEntreeKm === null
-        ) {
-          throw new ErreurMetier(
-            'OR_KM_ENTREE_REQUIS',
-            "Le kilométrage d'entrée est obligatoire à la réception (RM-51).",
-          );
-        }
+    if (entree.statutInitial === 'planifie' && !parametres.etatPlanifieActif) {
+      throw new ErreurMetier(
+        'VALIDATION_ECHOUEE',
+        "L'état « planifié » n'est pas activé pour ce garage (P-22).",
+        {
+          erreurs: [
+            {
+              champ: 'statutInitial',
+              code: 'etat_planifie_inactif',
+              message: 'État planifié désactivé.',
+            },
+          ],
+        },
+      );
+    }
 
-        const maintenant = this.horloge.maintenant();
-        const snapshot = await this.snapshot.capturer(
-          tx,
-          ctx,
-          entree.clientId,
-          entree.vehiculeId,
-          maintenant,
-        );
-        const numero = await this.genererNumero(tx, ctx, entree.siteId, parametres, maintenant);
+    const kilometrageEntreeKm =
+      entree.kilometrageEntree != null
+        ? convertirEnKm(entree.kilometrageEntree, entree.uniteKilometrage)
+        : null;
 
-        const [ligne] = await tx
-          .insert(ordreReparation)
-          .values({
-            tenantId: ctx.tenantId,
-            numero,
-            siteId: entree.siteId,
-            type: entree.type,
-            statut: entree.statutInitial,
-            clientId: entree.clientId,
-            vehiculeId: entree.vehiculeId,
-            clientDesignationFigee: snapshot.clientDesignationFigee,
-            adresseFacturationFigee: snapshot.adresseFacturationFigee,
-            conditionsFigees: snapshot.conditionsFigees ?? {},
-            plaqueFigee: snapshot.plaqueFigee,
-            detenteurFigeClientId: snapshot.detenteurFigeClientId,
-            conducteurPresentNom: entree.conducteurPresentNom ?? null,
-            kmEntree: kilometrageEntreeKm,
-            plafondCentimes: entree.plafondCentimes ?? null,
-            plafondAutorisePar: entree.plafondAutorisePar ?? null,
-            restitutionPromiseLe: entree.restitutionPromiseLe
-              ? new Date(entree.restitutionPromiseLe)
-              : null,
-            restitutionInitialeLe: entree.restitutionPromiseLe
-              ? new Date(entree.restitutionPromiseLe)
-              : null,
-            ordreReparationParentId: entree.ordreReparationParentId ?? null,
-            motifLien: entree.motifLien ?? null,
-            rendezVousId: entree.rendezVousId ?? null,
-            numeroCommandeInterne: entree.numeroCommandeInterne ?? null,
-            receptionnaireId: principal.utilisateurId,
-            ouvertLe: entree.statutInitial === 'ouvert' ? maintenant : null,
-          })
-          .returning();
-        if (!ligne) {
-          throw new ErreurMetier(
-            'ERREUR_INTERNE',
-            "L'insertion de l'ordre de réparation n'a rendu aucune ligne.",
-          );
-        }
+    if (
+      entree.statutInitial === 'ouvert' &&
+      parametres.kmEntreeObligatoire &&
+      kilometrageEntreeKm === null
+    ) {
+      throw new ErreurMetier(
+        'OR_KM_ENTREE_REQUIS',
+        "Le kilométrage d'entrée est obligatoire à la réception (RM-51).",
+      );
+    }
 
-        let ordreDemande = 1;
-        for (const demande of entree.demandes) {
-          // eslint-disable-next-line no-await-in-loop -- append-only, ordre strictement croissant
-          await tx.insert(ordreReparationDemande).values({
-            tenantId: ctx.tenantId,
-            ordreReparationId: ligne.id,
-            ordre: ordreDemande++,
-            verbatim: demande.verbatim,
-            saisiParId: principal.utilisateurId,
-          });
-        }
-
-        if (ligne.statut === 'ouvert') {
-          await this.evenements.publier(tx, ctx, {
-            type: 'ordre_reparation.ouvert',
-            versionSchema: 1,
-            siteId: entree.siteId,
-            ressource: { type: 'ordre_reparation', id: ligne.id, numero },
-            donnees: { statut: 'ouvert' },
-          });
-        }
-
-        const document = await this.assemblerDocument(tx, ctx, principal.role, ligne.id);
-        return { statutHttp: 201, corps: { donnees: document, avertissements: [] } };
-      },
+    const maintenant = this.horloge.maintenant();
+    const snapshot = await this.snapshot.capturer(
+      tx,
+      ctx,
+      entree.clientId,
+      entree.vehiculeId,
+      maintenant,
     );
+    const numero = await this.genererNumero(tx, ctx, entree.siteId, parametres, maintenant);
+
+    const [ligne] = await tx
+      .insert(ordreReparation)
+      .values({
+        tenantId: ctx.tenantId,
+        numero,
+        siteId: entree.siteId,
+        type: entree.type,
+        statut: entree.statutInitial,
+        clientId: entree.clientId,
+        vehiculeId: entree.vehiculeId,
+        clientDesignationFigee: snapshot.clientDesignationFigee,
+        adresseFacturationFigee: snapshot.adresseFacturationFigee,
+        conditionsFigees: snapshot.conditionsFigees ?? {},
+        plaqueFigee: snapshot.plaqueFigee,
+        detenteurFigeClientId: snapshot.detenteurFigeClientId,
+        conducteurPresentNom: entree.conducteurPresentNom ?? null,
+        kmEntree: kilometrageEntreeKm,
+        plafondCentimes: entree.plafondCentimes ?? null,
+        plafondAutorisePar: entree.plafondAutorisePar ?? null,
+        restitutionPromiseLe: entree.restitutionPromiseLe
+          ? new Date(entree.restitutionPromiseLe)
+          : null,
+        restitutionInitialeLe: entree.restitutionPromiseLe
+          ? new Date(entree.restitutionPromiseLe)
+          : null,
+        ordreReparationParentId: entree.ordreReparationParentId ?? null,
+        motifLien: entree.motifLien ?? null,
+        rendezVousId: entree.rendezVousId ?? null,
+        numeroCommandeInterne: entree.numeroCommandeInterne ?? null,
+        receptionnaireId: principal.utilisateurId,
+        ouvertLe: entree.statutInitial === 'ouvert' ? maintenant : null,
+      })
+      .returning();
+    if (!ligne) {
+      throw new ErreurMetier(
+        'ERREUR_INTERNE',
+        "L'insertion de l'ordre de réparation n'a rendu aucune ligne.",
+      );
+    }
+
+    let ordreDemande = 1;
+    for (const demande of entree.demandes) {
+      // eslint-disable-next-line no-await-in-loop -- append-only, ordre strictement croissant
+      await tx.insert(ordreReparationDemande).values({
+        tenantId: ctx.tenantId,
+        ordreReparationId: ligne.id,
+        ordre: ordreDemande++,
+        verbatim: demande.verbatim,
+        saisiParId: principal.utilisateurId,
+      });
+    }
+
+    if (ligne.statut === 'ouvert') {
+      await this.evenements.publier(tx, ctx, {
+        type: 'ordre_reparation.ouvert',
+        versionSchema: 1,
+        siteId: entree.siteId,
+        ressource: { type: 'ordre_reparation', id: ligne.id, numero },
+        donnees: { statut: 'ouvert' },
+      });
+    }
+
+    return this.assemblerDocument(tx, ctx, principal.role, ligne.id);
   }
 
   async obtenirComplet(
@@ -794,6 +807,7 @@ export class ServiceOr {
           ...(technicien ? { technicienAssigne: technicien } : {}),
           designationsApercu: agregat?.designationsApercu ?? [],
           nombreLignes: agregat?.nombreLignes ?? 0,
+          nombreLignesAssignees: agregat?.nombreLignesAssignees ?? 0,
           ...(voitMontants ? { totalTtcCentimes: agregat?.totalTtcCentimes ?? 0 } : {}),
           version: or.version,
         };

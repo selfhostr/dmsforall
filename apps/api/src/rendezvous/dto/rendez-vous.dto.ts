@@ -9,6 +9,7 @@ import {
   type OrigineRdv,
   type ReponseMotifRendezVous,
   type ReponseRendezVous,
+  type ResumeSiteRendezVous,
   type StatutRdv,
   type TypeOrdreReparation,
   type VehiculeResume,
@@ -99,4 +100,13 @@ export class ReponseRendezVousDto implements ReponseRendezVous {
 
   @ApiProperty({ format: 'date-time' })
   readonly modifieLe!: string;
+}
+
+/** `GET /rendez-vous/resume-sites` — un compteur par site. */
+export class ResumeSiteRendezVousDto implements ResumeSiteRendezVous {
+  @ApiProperty({ format: 'uuid' })
+  readonly siteId!: string;
+
+  @ApiProperty({ description: 'Rendez-vous non annulés de la période (0 si aucun).' })
+  readonly nombre!: number;
 }

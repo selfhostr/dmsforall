@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { PointageModule } from '../pointage/pointage.module';
 import { ServiceLecturePointage } from '../pointage/service-lecture-pointage';
+import { ClientsModule } from '../clients/clients.module';
 import { FacturationModule } from '../facturation/facturation.module';
 import { PiecesModule } from '../pieces/pieces.module';
 import { ServiceVehiculeTravailReporte } from '../vehicules/service-vehicule-travail-reporte';
@@ -23,6 +24,8 @@ import { OrdreReparationController } from './ordre-reparation.controller';
 import { OrdreReparationTransitionsController } from './ordre-reparation-transitions.controller';
 import { ServiceDevis } from './service-devis';
 import { ServiceDevisVersOr } from './service-devis-vers-or';
+import { ServiceCreationRapideOr } from './service-creation-rapide-or';
+import { ServiceFacturationEncaissementOr } from './service-facturation-encaissement-or';
 import { ServiceFacturationOr } from './service-facturation-or';
 import { ServiceLigneOr } from './service-ligne-or';
 import { ServiceOr } from './service-or';
@@ -85,7 +88,14 @@ import { ServiceTransitions } from './service-transitions';
  * `ImpressionOrModule`, resterait un refactor cosmétique sans risque si la symétrie est préférée.
  */
 @Module({
-  imports: [FacturationModule, VehiculesModule, PointageModule, PiecesModule, PhotosLigneModule],
+  imports: [
+    FacturationModule,
+    VehiculesModule,
+    PointageModule,
+    PiecesModule,
+    PhotosLigneModule,
+    ClientsModule,
+  ],
   controllers: [
     OrdreReparationController,
     OrdreReparationTransitionsController,
@@ -102,6 +112,8 @@ import { ServiceTransitions } from './service-transitions';
     ServiceDevis,
     ServiceDevisVersOr,
     ServiceFacturationOr,
+    ServiceFacturationEncaissementOr,
+    ServiceCreationRapideOr,
     ServiceImpressionDevis,
     { provide: JETON_LECTURE_POINTAGE, useExisting: ServiceLecturePointage },
     { provide: JETON_CALCUL_LIGNE, useClass: CalculLigneSimple },

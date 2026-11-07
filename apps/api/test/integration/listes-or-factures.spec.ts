@@ -339,6 +339,10 @@ describe('GET /ordres-reparation — chargement par lot', () => {
           attentes: o.attentes,
           designationsApercu: o.designationsApercu,
           nombreLignes: o.nombreLignes,
+          // Champ propre à la forme résumé (absent du document complet) : sans utilisateur dans le
+          // contexte, aucune ligne n'est « assignée au courant ». Le cas avec utilisateur est prouvé
+          // plus bas contre les lignes du document complet.
+          nombreLignesAssignees: 0,
           totalTtcCentimes: o.totalTtcCentimes,
           version: o.version,
         })),
@@ -349,6 +353,27 @@ describe('GET /ordres-reparation — chargement par lot', () => {
         return reste;
       });
       expect(sansTechnicien).toEqual(attendu);
+
+      // `nombreLignesAssignees` : pour un utilisateur donné, égal au décompte des lignes du document
+      // complet qui lui sont assignées (hors annulées/refusées).
+      const technicienId = resume.find((o) => o.technicienAssigne)?.technicienAssigne
+        ?.utilisateurId;
+      expect(technicienId).toBeDefined();
+      const cUser = { ...c, utilisateurId: technicienId as string };
+      const resumeUser = (
+        await service.listerResumes(cUser, principal(role), filtres, 200, undefined)
+      ).donnees;
+      const attenduAssignees = complet.map((o) => ({
+        id: o.id,
+        n: o.lignes.filter(
+          (l) =>
+            l.technicienId === technicienId && l.statut !== 'annulee' && l.statut !== 'refusee',
+        ).length,
+      }));
+      expect(resumeUser.map((o) => ({ id: o.id, n: o.nombreLignesAssignees }))).toEqual(
+        attenduAssignees,
+      );
+      expect(attenduAssignees.some((a) => a.n > 0)).toBe(true);
 
       // Garde-fous : la fixture exerce les chemins sensibles.
       expect(resume.some((o) => o.nombreLignes > 0)).toBe(true);

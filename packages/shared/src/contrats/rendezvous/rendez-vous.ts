@@ -133,6 +133,19 @@ export const schemaFiltresRendezVous = z.object({
 });
 export type FiltresRendezVous = z.infer<typeof schemaFiltresRendezVous>;
 
+/** `GET /rendez-vous/resume-sites?du=&au=` — bornes de date INCLUSES, mêmes que la liste. */
+export const schemaFiltresResumeSitesRendezVous = z.object({
+  du: schemaDateJour,
+  au: schemaDateJour,
+});
+export type FiltresResumeSitesRendezVous = z.infer<typeof schemaFiltresResumeSitesRendezVous>;
+
+/** Un site et le nombre de rendez-vous NON annulés de la période (`0` pour un site sans rendez-vous). */
+export interface ResumeSiteRendezVous {
+  readonly siteId: string;
+  readonly nombre: number;
+}
+
 export const schemaParametresPageRendezVous = schemaParametresPage;
 
 /* ------------------------------------------------------------------ */

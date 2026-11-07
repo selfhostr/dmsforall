@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -14,14 +15,17 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 import {
   schemaCreationMotifRendezVous,
+  schemaFiltresMotifsRendezVous,
   schemaIdentifiant,
   schemaModificationMotifRendezVous,
   type EntreeCreationMotifRendezVous,
   type EntreeModificationMotifRendezVous,
+  type FiltresMotifsRendezVous,
 } from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../common/contexte';
@@ -55,11 +59,21 @@ export class MotifsRendezVousController {
   @ApiOperation({
     summary: 'Catalogue des motifs de rendez-vous, avec leur durée par défaut (RV-01/RV-02).',
   })
+  @ApiQuery({
+    name: 'actifs',
+    required: false,
+    type: Boolean,
+    description:
+      '`true` : seulement les motifs proposables à la prise de rendez-vous ; `false` : seulement les inactifs ; absent : tous (comportement historique).',
+  })
   @ApiOkResponse({ type: [ReponseMotifRendezVousDto] })
+  @ApiReponseProbleme(400, 'Filtre invalide.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
-  async lister(): Promise<readonly ReponseMotifRendezVousDto[]> {
+  async lister(
+    @Query(new PipeZod(schemaFiltresMotifsRendezVous)) filtres: FiltresMotifsRendezVous,
+  ): Promise<readonly ReponseMotifRendezVousDto[]> {
     const ctx = this.contexte.contexteTenant();
-    return this.service.lister(ctx);
+    return this.service.lister(ctx, filtres);
   }
 
   @Post()

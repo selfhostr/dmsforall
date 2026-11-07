@@ -23,6 +23,7 @@ export * from './client';
 export * from './vehicule';
 export * from './ligne';
 export * from './ordre-reparation';
+export * from './creation-rapide-or';
 export * from './devis';
 export * from './parametrage';
 export * from './recherche';

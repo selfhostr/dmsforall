@@ -80,6 +80,12 @@ import { VentesModule } from '../ventes/ventes.module';
     ServiceAvoir,
     ServiceCorrectionFacture,
   ],
-  exports: [ServiceDocumentsVente, ServiceEmissionDocument, ServiceAvoir, ServiceCorrectionFacture],
+  exports: [
+    ServiceDocumentsVente,
+    ServiceEmissionDocument,
+    ServiceAvoir,
+    ServiceCorrectionFacture,
+    PaiementsModule,
+  ],
 })
 export class FacturationModule {}

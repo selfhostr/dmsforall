@@ -61,22 +61,27 @@ export class ServiceApercuExport {
         eq(paiement.devise, 'CHF'),
       ];
 
-      const [[docsDeja], [paiementsDeja]] = await Promise.all([
+      const [docsDejaParType, [paiementsDeja]] = await Promise.all([
         tx
-          .select({ n: count() })
+          .select({ type: documentVente.typeDocument, n: count() })
           .from(documentVente)
-          .where(and(...conditionsDocs)),
+          .where(and(...conditionsDocs))
+          .groupBy(documentVente.typeDocument),
         tx
           .select({ n: count() })
           .from(paiement)
           .where(and(...conditionsPaiements)),
       ]);
 
+      const dejaFactures = docsDejaParType.find((l) => l.type === 'facture')?.n ?? 0;
+      const dejaAvoirs = docsDejaParType.find((l) => l.type === 'avoir')?.n ?? 0;
+
       const prerequis: PrerequisExport[] = [...versPrerequis(prep.diagnostic)];
       if (!CIBLES_CABLEES.includes(entree.cible)) {
         prerequis.push({
           code: 'FONCTION_NON_DISPONIBLE',
           limites: [`Aucun adaptateur d'export n'est câblé pour la cible « ${entree.cible} ».`],
+          details: [{ code: 'ADAPTATEUR_NON_CABLE', donnees: { cible: entree.cible } }],
         });
       }
 
@@ -93,7 +98,9 @@ export class ServiceApercuExport {
           nbFactures: synthese.nbFactures,
           nbAvoirs: synthese.nbAvoirs,
           aExporter: prep.candidats.length,
-          dejaExportes: docsDeja?.n ?? 0,
+          dejaExportes: dejaFactures + dejaAvoirs,
+          dejaExportesFactures: dejaFactures,
+          dejaExportesAvoirs: dejaAvoirs,
         },
         encaissements: {
           aExporter: prep.paiementsFinancierNouveau.length,

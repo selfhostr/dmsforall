@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { schemaTexteCourt } from '../atelier/primitives';
+import { schemaBooleenQuery } from '../filtres';
 
 /**
  * Écriture du référentiel des motifs de rendez-vous (`POST /motifs-rendez-vous`,
@@ -48,3 +49,13 @@ export const schemaModificationMotifRendezVous = z.object({
 
 export type EntreeCreationMotifRendezVous = z.infer<typeof schemaCreationMotifRendezVous>;
 export type EntreeModificationMotifRendezVous = z.infer<typeof schemaModificationMotifRendezVous>;
+
+/**
+ * `GET /motifs-rendez-vous?actifs=true` — ne rend que les motifs proposables à la prise de rendez-vous.
+ * Absent (défaut) : TOUS les motifs, actifs et inactifs (l'écran de paramétrage réactive les inactifs).
+ * `actifs=false` : seulement les inactifs.
+ */
+export const schemaFiltresMotifsRendezVous = z.object({
+  actifs: schemaBooleenQuery().optional(),
+});
+export type FiltresMotifsRendezVous = z.infer<typeof schemaFiltresMotifsRendezVous>;

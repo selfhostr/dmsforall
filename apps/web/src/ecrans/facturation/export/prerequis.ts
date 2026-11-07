@@ -1,4 +1,9 @@
-import type { ElementBloquant, PrerequisExport, UsageMappingCompte } from '@dfa/shared';
+import type {
+  ElementBloquant,
+  LimiteExport,
+  PrerequisExport,
+  UsageMappingCompte,
+} from '@dfa/shared';
 
 /** Codes d'erreur des `409`/`501` qui sont des prérequis ou des limites connues, pas des pannes. */
 export const CODES_PREREQUIS = [
@@ -91,5 +96,16 @@ export function prerequisDepuisBlocages(
   }
 
   const limites = blocages.map((b) => b.libelle).filter((l) => l.length > 0);
-  return limites.length > 0 ? { code, limites } : undefined;
+  // `details` reconstruit depuis les `blocages` d'un 409 (`donnees.limite` = type serveur en minuscules).
+  const details: LimiteExport[] = blocages.flatMap((b) => {
+    const limite = texte(b.donnees?.limite);
+    const code =
+      limite === 'compensation_non_supportee'
+        ? 'COMPENSATION_NON_SUPPORTEE'
+        : limite === 'taux_multiples_non_supporte'
+          ? 'TAUX_MULTIPLES_NON_SUPPORTE'
+          : undefined;
+    return code ? [{ code, donnees: { paiementId: b.donnees?.paiementId, documentId: b.id } }] : [];
+  });
+  return limites.length > 0 ? { code, limites, details } : undefined;
 }
