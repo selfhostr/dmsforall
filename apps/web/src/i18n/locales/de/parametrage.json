@@ -388,7 +388,15 @@
     "erreurRaison": "Geben Sie den Namen der Garage an.",
     "raisonSocialeAide": "Dieser Name erscheint auf Ihren Dokumenten und Rechnungen. Bereits ausgestellte Dokumente behalten den alten Namen.",
     "numeroTva": "MWST-Nummer",
-    "numeroTvaAide": "Format: CHE-123.456.789 MWST. Leer lassen, wenn Sie nicht mehrwertsteuerpflichtig sind.",
+    "numeroTvaAide": "Format: CHE-123.456.789 MWST. Sie erscheint auf Ihren Rechnungen.",
+    "assujetti": {
+      "legende": "Ist Ihre Garage mehrwertsteuerpflichtig?",
+      "oui": "Ja",
+      "non": "Nein",
+      "aide": "Unter CHF 100'000 Jahresumsatz müssen Sie nicht mehrwertsteuerpflichtig sein.",
+      "ouiSansNumero": "Ohne MWST-Nummer können Sie keine Rechnung ausstellen.",
+      "nonInfo": "Ihre Rechnungen und Offerten weisen keine MWST aus und tragen den Vermerk «Nicht mehrwertsteuerpflichtig»."
+    },
     "erreurTva": {
       "format": "Die Nummer muss wie CHE-123.456.789 MWST aussehen.",
       "cle": "Diese Nummer existiert nicht: prüfen Sie die Ziffern."

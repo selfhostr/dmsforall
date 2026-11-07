@@ -58,7 +58,11 @@ const BLOC_COMPLET: BlocCreancier = {
 function rendre() {
   server.use(
     http.get('/api/v1/parametres-entreprise', () =>
-      HttpResponse.json({ raisonSociale: 'Garage Martin SA', numeroTva: null }),
+      HttpResponse.json({
+        raisonSociale: 'Garage Martin SA',
+        assujettiTva: true,
+        numeroTva: null,
+      }),
     ),
   );
   const queryClient = creerQueryClientTest();

@@ -95,7 +95,7 @@ export class ServiceImpressionFacture {
     // de divergence — cette fonction ne fait qu'orchestrer la mise en cache autour.
     const buffer = await genererPdfFacture(
       document,
-      await this.lireExpediteur(ctx, document.siteId),
+      await this.lireExpediteur(ctx, document.siteId, document.lignes),
       await lireLogoImprimable(this.stockage, ctx.tenantId),
     );
     const sha256 = sha256Hex(buffer);
@@ -118,7 +118,7 @@ export class ServiceImpressionFacture {
     ctx: ContexteTenant,
     document: ReponseDocumentVente,
   ): Promise<PdfFactureResultat> {
-    const expediteur = await this.lireExpediteur(ctx, document.siteId);
+    const expediteur = await this.lireExpediteur(ctx, document.siteId, document.lignes);
     const buffer = await genererPdfDevis(
       document,
       expediteur,
@@ -134,7 +134,11 @@ export class ServiceImpressionFacture {
    * tenant et adresse du site du document (un garage sans IBAN n'a pas de bloc créancier mais doit
    * quand même figurer en en-tête). N° TVA : `tenant.numero_tva` (réglages entreprise).
    */
-  private async lireExpediteur(ctx: ContexteTenant, siteId: string): Promise<ExpediteurImpression> {
+  private async lireExpediteur(
+    ctx: ContexteTenant,
+    siteId: string,
+    lignes: readonly { readonly tauxTvaPourmille: number }[],
+  ): Promise<ExpediteurImpression> {
     return this.acces.enTenant(ctx, async (tx) => {
       const [bloc] = await tx
         .select({
@@ -148,7 +152,11 @@ export class ServiceImpressionFacture {
         .where(eq(tenantBlocCreancier.tenantId, ctx.tenantId))
         .limit(1);
       const [ligneTenant] = await tx
-        .select({ raisonSociale: tenant.raisonSociale, numeroTva: tenant.numeroTva })
+        .select({
+          raisonSociale: tenant.raisonSociale,
+          numeroTva: tenant.numeroTva,
+          assujettiTva: tenant.assujettiTva,
+        })
         .from(tenant)
         .where(eq(tenant.id, ctx.tenantId))
         .limit(1);
@@ -166,6 +174,10 @@ export class ServiceImpressionFacture {
         npa: blocComplet ? (bloc?.npa ?? null) : (ligneSite?.npa ?? null),
         localite: blocComplet ? (bloc?.localite ?? null) : (ligneSite?.localite ?? null),
         numeroTva: ligneTenant?.numeroTva ?? null,
+        // Non assujetti = réglage du garage ET aucune ligne taxée : un document émis quand le
+        // garage était assujetti conserve sa TVA à l'impression (jamais réécrit après coup).
+        nonAssujettiTva:
+          ligneTenant?.assujettiTva === false && lignes.every((l) => l.tauxTvaPourmille === 0),
       };
     });
   }

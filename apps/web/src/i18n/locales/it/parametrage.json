@@ -388,7 +388,15 @@
     "erreurRaison": "Indichi il nome dell'autofficina.",
     "raisonSocialeAide": "Questo nome compare sui suoi documenti e sulle fatture. I documenti già emessi mantengono il vecchio nome.",
     "numeroTva": "Numero IVA",
-    "numeroTvaAide": "Formato: CHE-123.456.789 IVA. Lasci vuoto se non è soggetto all'IVA.",
+    "numeroTvaAide": "Formato: CHE-123.456.789 IVA. Compare sulle Sue fatture.",
+    "assujetti": {
+      "legende": "Il Suo garage è soggetto all'IVA?",
+      "oui": "Sì",
+      "non": "No",
+      "aide": "Sotto i CHF 100'000 di cifra d'affari annua, Lei può non esserlo.",
+      "ouiSansNumero": "Senza numero IVA, Lei non potrà emettere fatture.",
+      "nonInfo": "Le Sue fatture e i Suoi preventivi non indicano l'IVA e riportano la dicitura «Non soggetto all'IVA»."
+    },
     "erreurTva": {
       "format": "Il numero deve avere la forma CHE-123.456.789 IVA.",
       "cle": "Questo numero non esiste: controlli le cifre."

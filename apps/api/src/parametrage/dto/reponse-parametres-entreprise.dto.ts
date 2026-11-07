@@ -7,11 +7,18 @@ export class ReponseParametresEntrepriseDto implements ReponseParametresEntrepri
   readonly raisonSociale!: string;
 
   @ApiProperty({
+    example: true,
+    description:
+      'Le garage est-il assujetti à la TVA ? `false` : aucune TVA sur ses documents (taux 0, régime « exclu »), mention « Non assujetti à la TVA », `numeroTva` toujours `null`. `true` par défaut (comportement historique) ; une facture ne peut être émise sans `numeroTva` quand il vaut `true`.',
+  })
+  readonly assujettiTva!: boolean;
+
+  @ApiProperty({
     type: String,
     nullable: true,
     example: 'CHE-116.281.710 TVA',
     description:
-      'N° IDE avec mention TVA (CHE-123.456.789 TVA, MWST ou IVA), clé de contrôle vérifiée. `null` : garage non assujetti ou numéro pas encore saisi.',
+      'N° IDE avec mention TVA (CHE-123.456.789 TVA, MWST ou IVA), clé de contrôle vérifiée. `null` : numéro pas encore saisi, ou garage non assujetti.',
   })
   readonly numeroTva!: string | null;
 

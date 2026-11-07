@@ -13,6 +13,8 @@ export interface IdentiteEmetteur {
   readonly localite?: string | null;
   /** N° TVA tel que saisi dans les réglages (ex. « CHE-114.873.733 TVA »). */
   readonly numeroTva?: string | null;
+  /** Mention « Non assujetti à la TVA » (déjà traduite), imprimée À LA PLACE du n° TVA. */
+  readonly mentionNonAssujetti?: string | null;
 }
 
 /** Lignes imprimables de l'en-tête, dans l'ordre : nom, site, rue, NPA localité, n° TVA. */
@@ -26,8 +28,10 @@ export function lignesEnTeteEmetteur(e: IdentiteEmetteur): string[] {
   if (rue) lignes.push(e.numero?.trim() ? `${rue} ${e.numero.trim()}` : rue);
   const ville = `${e.npa?.trim() ?? ''} ${e.localite?.trim() ?? ''}`.trim();
   if (ville) lignes.push(ville);
+  const mention = e.mentionNonAssujetti?.trim();
   const tva = e.numeroTva?.trim();
-  if (tva) lignes.push(tva);
+  if (mention) lignes.push(mention);
+  else if (tva) lignes.push(tva);
   return lignes;
 }
 
