@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, inArray } from 'drizzle-orm';
+import { MOTIFS_KILOMETRAGE_REGRESSIF } from '@dfa/shared';
 import type {
   ElementBloquant,
   EntreeActionAnnuler,
@@ -16,6 +17,7 @@ import type {
   RoleUtilisateur,
 } from '@dfa/shared';
 
+import { MATRICE_DROITS } from '../auth/matrice-droits';
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
 import {
   auditAtelier,
@@ -44,7 +46,7 @@ import {
 } from './references';
 import { calculerRestitutionAmorcee } from './restitution-amorcage';
 import { ServiceOr, estOrVerrouille } from './service-or';
-import { traduireErreurTransition } from './traducteur-transition';
+import { libelleStatutOr, traduireErreurTransition } from './traducteur-transition';
 
 /**
  * Les 11 actions de transition de l'OR (§7.7) — chacune : gardes conditionnelles couche 4 (§3.3
@@ -83,7 +85,8 @@ export class ServiceTransitions {
         // Drizzle ; un relevé existant SANS valeur km comparable n'a rien à opposer à la saisie —
         // c'est le même cas métier qu'« aucun relevé antérieur », pas un relevé à zéro km.
         const dernierKm = dernier?.valeurKm ?? null;
-        if (dernierKm !== null && kmKm < dernierKm) {
+        const regressif = dernierKm !== null && kmKm < dernierKm;
+        if (regressif && !entree.motifKilometrageRegressif) {
           throw new ErreurMetier(
             'VEHICULE_KILOMETRAGE_REGRESSIF',
             'Le kilométrage saisi est inférieur au dernier relevé connu.',
@@ -99,17 +102,23 @@ export class ServiceTransitions {
               actionsProposees: [
                 {
                   code: 'FOURNIR_MOTIF',
-                  parametres: {
-                    motifsAcceptes: [
-                      'compteur_remplace',
-                      'erreur_saisie',
-                      'changement_unite',
-                      'correction',
-                    ],
-                  },
+                  parametres: { motifsAcceptes: MOTIFS_KILOMETRAGE_REGRESSIF },
                 },
               ],
             },
+          );
+        }
+        // Branche régressive AVEC motif : c'est une CORRECTION, pas une saisie normale — même droit
+        // fort que `POST /vehicules/{id}/kilometrages` (`service-vehicule-kilometrage.ts`).
+        if (
+          regressif &&
+          !(MATRICE_DROITS[principal.role] ?? []).includes(
+            'vehicule.kilometrage.corriger_regression',
+          )
+        ) {
+          throw new ErreurMetier(
+            'DROIT_INSUFFISANT',
+            `Le rôle "${principal.role}" n'a pas le droit de corriger un kilométrage régressif (RM-24).`,
           );
         }
 
@@ -153,6 +162,7 @@ export class ServiceTransitions {
           unite: entree.unite,
           releveLe: maintenant,
           source: 'reception',
+          motifRegression: regressif ? (entree.motifKilometrageRegressif ?? null) : null,
           ordreReparationId: orId,
           saisiParId: principal.utilisateurId,
         });
@@ -399,7 +409,7 @@ export class ServiceTransitions {
             'OR_TRANSITION_INTERDITE',
             `Transition ${or.statut} → en_cours interdite : rouvrir (T-15) n'est valide que depuis « termine ».`,
             {
-              detail: `entite=ordre_reparation;depuis=${or.statut};vers=en_cours`,
+              detail: `L'OR est « ${libelleStatutOr(or.statut)} » : il ne peut être rouvert que depuis « ${libelleStatutOr('termine')} ».`,
               blocages: [
                 {
                   type: 'ordre_reparation',
@@ -453,7 +463,24 @@ export class ServiceTransitions {
         if (parametres.mentionSecurite === 'obligatoire') {
           const lignes = await listerLignesOr(tx, ctx, orId);
           const refuseesSecurite = lignes.filter((l) => l.securite && l.statut === 'refusee');
-          if (refuseesSecurite.length > 0) {
+          if (refuseesSecurite.length > 0 && entree.reserveSecuriteSignee) {
+            // Réponse à `SIGNER_RESERVE_SECURITE` : la signature elle-même n'est pas stockée par
+            // l'API, la déclaration (qui, quand, quelles lignes) est tracée au journal de l'OR.
+            const { signataireNom, signeLe } = entree.reserveSecuriteSignee;
+            await tx.insert(auditAtelier).values({
+              tenantId: ctx.tenantId,
+              entite: 'ordre_reparation',
+              entiteId: orId,
+              action: 'transition',
+              champ: 'motif',
+              valeurApres:
+                `Réserve de sécurité signée par ${signataireNom}` +
+                (signeLe ? ` (${signeLe})` : '') +
+                ` — lignes refusées : ${refuseesSecurite.map((l) => String(l.numeroOrdre)).join(', ')}.`,
+              utilisateurId: principal.utilisateurId,
+              requeteId: ctx.requeteId,
+            });
+          } else if (refuseesSecurite.length > 0) {
             throw new ErreurMetier(
               'OR_RESERVE_SECURITE_REQUISE',
               'Une réserve de sécurité doit être signée avant restitution (§6.12).',

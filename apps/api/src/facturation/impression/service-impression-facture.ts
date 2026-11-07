@@ -16,12 +16,16 @@ import { and, eq, isNull } from 'drizzle-orm';
 import type { ReponseDocumentVente } from '@dfa/shared';
 
 import { JETON_DB, type AccesBase, type ContexteTenant } from '../../db';
-import { documentVente } from '../../db/schema';
+import { documentVente, tenantBlocCreancier } from '../../db/schema';
 import type { PrincipalAuthentifie } from '../../common/contexte/contexte-requete.types';
 import { ErreurMetier } from '../../common/erreurs/erreur-metier';
 
 import { ServiceDocumentsVente } from '../documents/service-documents';
-import { genererPdfFacture } from './generation-pdf-facture';
+import {
+  genererPdfDevis,
+  genererPdfFacture,
+  type ExpediteurImpression,
+} from './generation-pdf-facture';
 import { JETON_STOCKAGE_PDF } from './impression.jetons';
 import { cleePdfDocument, sha256Hex, type StockagePdf } from './stockage-pdf';
 
@@ -33,12 +37,11 @@ export interface PdfFactureResultat {
 }
 
 function estEligibleImpression(document: ReponseDocumentVente): boolean {
-  // Seule une FACTURE ÉMISE porte un bulletin QR (`RF-54`) : un devis, un bon de commande ou un
-  // avoir (il crédite le client, il ne se paie pas) n'ont jamais de PDF. `document.qr === null`
-  // couvre aussi le brouillon (bulletin construit seulement à l'émission, `qr-emission.ts`), la
-  // devise hors CHF/EUR (`RF-58`, pas de bulletin QR alors) et — défense en profondeur — un rôle
-  // sans droit aux montants dont la réponse a déjà `qr` masqué à `null`.
-  return document.typeDocument === 'facture' && document.qr !== null;
+  // Une FACTURE non brouillon s'imprime : avec bulletin QR quand le bloc est figé, SANS bulletin
+  // (mention « coordonnées de paiement non renseignées ») quand `qr` est null — garage sans bloc
+  // créancier complet à l'émission, ou devise hors CHF/EUR (RF-58). Un bon de commande ou un avoir
+  // (il crédite le client) n'ont jamais de PDF ; un brouillon n'a ni numéro ni montants figés.
+  return document.typeDocument === 'facture' && document.statut !== 'brouillon';
 }
 
 @Injectable()
@@ -56,11 +59,15 @@ export class ServiceImpressionFacture {
   ): Promise<PdfFactureResultat> {
     const document = await this.serviceDocuments.obtenirComplet(ctx, principal, documentId);
 
+    if (document.typeDocument === 'devis') {
+      return this.obtenirPdfDevis(ctx, document);
+    }
+
     if (!estEligibleImpression(document)) {
       throw new ErreurMetier(
         'DOCUMENT_PDF_INDISPONIBLE',
-        `Le document ${documentId} n'a pas de bulletin QR-facture : seule une FACTURE ÉMISE en ` +
-          "porte un (un devis, un bon de commande, un avoir ou un brouillon n'en ont jamais).",
+        `Le document ${documentId} n'a pas de PDF : seuls un devis et une FACTURE ÉMISE ` +
+          "s'impriment (un bon de commande, un avoir ou un brouillon de facture, non).",
       );
     }
 
@@ -85,7 +92,10 @@ export class ServiceImpressionFacture {
     // Première demande : génération paresseuse. `genererPdfFacture` vérifie elle-même
     // l'équivalence du payload QR (DI-3/MD-77) et refuse AVANT de rendre quoi que ce soit en cas
     // de divergence — cette fonction ne fait qu'orchestrer la mise en cache autour.
-    const buffer = await genererPdfFacture(document);
+    const buffer = await genererPdfFacture(
+      document,
+      document.qr === null ? await this.lireExpediteur(ctx) : undefined,
+    );
     const sha256 = sha256Hex(buffer);
     const cle = cleePdfDocument(ctx.tenantId, documentId);
 
@@ -93,6 +103,47 @@ export class ServiceImpressionFacture {
     await this.persisterCleEtEmpreinte(ctx, documentId, cle, sha256);
 
     return { buffer, sha256, nomFichier };
+  }
+
+  /**
+   * Devis : PDF sans bulletin QR ni numéro de facture, rendu à chaque demande (non mis en cache :
+   * un devis brouillon reste modifiable). Tout statut de devis s'imprime, brouillon compris (titre
+   * « Devis (brouillon) » sans numéro). Les montants sont exigés visibles (même garde RF-116 que
+   * la facture, `exigerMontantsVisibles`). L'expéditeur vient du paramétrage du garage
+   * (`tenant_bloc_creancier`, nom + adresse seulement — jamais l'IBAN).
+   */
+  private async obtenirPdfDevis(
+    ctx: ContexteTenant,
+    document: ReponseDocumentVente,
+  ): Promise<PdfFactureResultat> {
+    const expediteur = await this.lireExpediteur(ctx);
+    const buffer = await genererPdfDevis(document, expediteur);
+    const sha256 = sha256Hex(buffer);
+    const nomFichier = `Devis-${(document.numero ?? document.id).replace(/[^A-Za-z0-9._-]/g, '_')}.pdf`;
+    return { buffer, sha256, nomFichier };
+  }
+
+  private async lireExpediteur(ctx: ContexteTenant): Promise<ExpediteurImpression> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      const [ligne] = await tx
+        .select({
+          nom: tenantBlocCreancier.nom,
+          rue: tenantBlocCreancier.rue,
+          numero: tenantBlocCreancier.numero,
+          npa: tenantBlocCreancier.npa,
+          localite: tenantBlocCreancier.localite,
+        })
+        .from(tenantBlocCreancier)
+        .where(eq(tenantBlocCreancier.tenantId, ctx.tenantId))
+        .limit(1);
+      return {
+        nom: ligne?.nom ?? '',
+        rue: ligne?.rue ?? null,
+        numero: ligne?.numero ?? null,
+        npa: ligne?.npa ?? null,
+        localite: ligne?.localite ?? null,
+      };
+    });
   }
 
   /**

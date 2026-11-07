@@ -40,7 +40,14 @@ export function traduireErreurTransition(
     interpretation.code,
     `Transition ${interpretation.statutDepuis} → ${interpretation.statutVers} interdite.`,
     {
-      detail: `entite=${interpretation.entite};depuis=${interpretation.statutDepuis};vers=${interpretation.statutVers}`,
+      // `detail` = phrase de garagiste, affichable telle quelle. Les données machine (statuts bruts)
+      // restent dans `blocages[].donnees` (`statutActuel` / `statutDemande`).
+      detail: phraseTransitionInterdite(
+        interpretation.entite,
+        interpretation.statutDepuis,
+        interpretation.statutVers,
+        interpretation.estEtatTerminal ? 'terminal' : interpretation.transitionsPossibles,
+      ),
       blocages,
       actionsProposees: construireActionsProposees(interpretation, entiteId),
     },
@@ -86,4 +93,61 @@ function construireActionsProposees(
   }
 
   return [{ code: 'RAFRAICHIR' }];
+}
+
+const LIBELLES_STATUT_OR: Readonly<Record<string, string>> = {
+  planifie: 'Planifié',
+  ouvert: 'Ouvert',
+  en_cours: 'En cours',
+  controle: 'En contrôle',
+  termine: 'Terminé',
+  facture: 'Facturé',
+  restitue: 'Restitué',
+  cloture: 'Clôturé',
+  annule: 'Annulé',
+};
+
+const LIBELLES_STATUT_LIGNE: Readonly<Record<string, string>> = {
+  proposee: 'Proposée',
+  a_valider: 'À valider',
+  validee: 'Validée',
+  en_cours: 'En cours',
+  realisee: 'Réalisée',
+  facturee: 'Facturée',
+  refusee: 'Refusée',
+  annulee: 'Annulée',
+};
+
+/** Libellé français d'un statut d'OR (`controle` -> `En contrôle`) ; statut inconnu rendu tel quel. */
+export function libelleStatutOr(statut: string): string {
+  return LIBELLES_STATUT_OR[statut] ?? statut;
+}
+
+/**
+ * Phrase française d'une transition refusée, destinée à `detail` : « L'OR est « En contrôle » : il
+ * ne peut pas passer à « Terminé ». Étapes possibles : « Facturé », « En cours ». ». Un statut
+ * inconnu est rendu tel quel (jamais masqué). `possibles` : liste des statuts atteignables, ou
+ * `'terminal'` quand plus aucune sortie n'existe.
+ */
+export function phraseTransitionInterdite(
+  entite: string,
+  depuis: string,
+  vers: string,
+  possibles: readonly string[] | 'terminal',
+): string {
+  const estLigne = entite === 'ligne_or';
+  const libelles = estLigne ? LIBELLES_STATUT_LIGNE : LIBELLES_STATUT_OR;
+  const nom = (statut: string): string => `« ${libelles[statut] ?? statut} »`;
+
+  let phrase = estLigne
+    ? `La ligne est ${nom(depuis)} : elle ne peut pas passer à ${nom(vers)}.`
+    : `L'OR est ${nom(depuis)} : il ne peut pas passer à ${nom(vers)}.`;
+  if (possibles === 'terminal') {
+    phrase += estLigne
+      ? " Cette ligne est définitive : plus aucune action n'est possible."
+      : " Cet OR est définitif : plus aucune action n'est possible.";
+  } else if (possibles.length > 0) {
+    phrase += ` Étape${possibles.length > 1 ? 's' : ''} possible${possibles.length > 1 ? 's' : ''} : ${possibles.map(nom).join(', ')}.`;
+  }
+  return phrase;
 }

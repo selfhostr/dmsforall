@@ -13,6 +13,7 @@ import {
   JETON_LECTURE_POINTAGE,
 } from './atelier.jetons';
 import { CalculLigneSimple } from './calcul-ligne';
+import { DevisVersOrController } from './devis-vers-or.controller';
 import { DevisComplementaireController } from './devis-complementaire.controller';
 import { ImpressionDevisController } from './impression/impression-devis.controller';
 import { ServiceImpressionDevis } from './impression/service-impression-devis';
@@ -20,6 +21,7 @@ import { LigneOrController } from './ligne-or.controller';
 import { OrdreReparationController } from './ordre-reparation.controller';
 import { OrdreReparationTransitionsController } from './ordre-reparation-transitions.controller';
 import { ServiceDevis } from './service-devis';
+import { ServiceDevisVersOr } from './service-devis-vers-or';
 import { ServiceFacturationOr } from './service-facturation-or';
 import { ServiceLigneOr } from './service-ligne-or';
 import { ServiceOr } from './service-or';
@@ -88,6 +90,7 @@ import { ServiceTransitions } from './service-transitions';
     OrdreReparationTransitionsController,
     LigneOrController,
     DevisComplementaireController,
+    DevisVersOrController,
     ImpressionDevisController,
   ],
   providers: [
@@ -96,6 +99,7 @@ import { ServiceTransitions } from './service-transitions';
     ServiceTransitions,
     ServiceLigneOr,
     ServiceDevis,
+    ServiceDevisVersOr,
     ServiceFacturationOr,
     ServiceImpressionDevis,
     { provide: JETON_LECTURE_POINTAGE, useExisting: ServiceLecturePointage },

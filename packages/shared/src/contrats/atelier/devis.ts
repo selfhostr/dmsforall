@@ -64,7 +64,9 @@ export const schemaFiltresDevis = z.object({
 export const schemaCreationDevisComplementaire = z
   .object({
     ligneIds: schemaListeIdentifiants,
-    nouveauPlafondCentimes: schemaCentimesPositif,
+    /** Facultatif : absent = plafond actuel de l'OR (`plafondCentimes`) ; sans plafond sur l'OR, le
+     *  devis n'en fixe aucun et l'OR n'est pas modifié. Fourni, il REMPLACE le plafond de l'OR. */
+    nouveauPlafondCentimes: schemaCentimesPositif.optional(),
     canal: z.enum(CANAUX_DEVIS),
     destinataireContactId: schemaIdentifiant.nullish(),
     impactRestitutionLe: schemaHorodatage.nullish(),

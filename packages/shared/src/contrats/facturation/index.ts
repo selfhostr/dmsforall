@@ -22,5 +22,6 @@ export * from './paiement';
 export * from './export';
 export * from './export-fiduciaire';
 export * from './facturer-or';
+export * from './document-ordre-reparation';
 export * from './creancier';
 export * from './imputation-devise-incoherente';

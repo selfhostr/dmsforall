@@ -29,6 +29,13 @@ export interface LibellesFacture {
   readonly totalTva: string;
   readonly totalTtc: string;
   readonly mentionTvaComprise: string;
+  /** Devis : titre, variante brouillon (pas de numéro), validité et mention de non-facture. */
+  readonly devisNumero: (numero: string) => string;
+  readonly devisBrouillon: string;
+  readonly valableJusqu: string;
+  readonly devisMention: string;
+  /** Facture sans bulletin QR : coordonnées bancaires du garage non renseignées. */
+  readonly paiementNonRenseigne: string;
 }
 
 const FR: LibellesFacture = {
@@ -49,6 +56,12 @@ const FR: LibellesFacture = {
   totalTva: 'Total TVA',
   totalTtc: 'Total TTC',
   mentionTvaComprise: 'Prix TVA comprise',
+  devisNumero: (numero) => `Devis n° ${numero}`,
+  devisBrouillon: 'Devis (brouillon)',
+  valableJusqu: "Valable jusqu'au",
+  devisMention: "Ce devis n'est pas une facture.",
+  paiementNonRenseigne:
+    'Coordonnées de paiement : non renseignées sur ce document — voir les conditions de paiement ou contacter le garage.',
 };
 
 const DE: LibellesFacture = {
@@ -69,6 +82,12 @@ const DE: LibellesFacture = {
   totalTva: 'Total MWST',
   totalTtc: 'Total Brutto',
   mentionTvaComprise: 'Preise inkl. MWST',
+  devisNumero: (numero) => `Offerte Nr. ${numero}`,
+  devisBrouillon: 'Offerte (Entwurf)',
+  valableJusqu: 'Gültig bis',
+  devisMention: 'Diese Offerte ist keine Rechnung.',
+  paiementNonRenseigne:
+    'Zahlungsangaben: auf diesem Dokument nicht hinterlegt — siehe Zahlungsbedingungen oder Garage kontaktieren.',
 };
 
 const IT: LibellesFacture = {
@@ -89,6 +108,12 @@ const IT: LibellesFacture = {
   totalTva: 'Totale IVA',
   totalTtc: 'Totale lordo',
   mentionTvaComprise: 'Prezzi IVA inclusa',
+  devisNumero: (numero) => `Preventivo n. ${numero}`,
+  devisBrouillon: 'Preventivo (bozza)',
+  valableJusqu: 'Valido fino al',
+  devisMention: 'Questo preventivo non è una fattura.',
+  paiementNonRenseigne:
+    'Coordinate di pagamento: non indicate su questo documento — vedere le condizioni di pagamento o contattare il garage.',
 };
 
 const LIBELLES_PAR_LANGUE: Readonly<Record<Langue, LibellesFacture>> = { fr: FR, de: DE, it: IT };

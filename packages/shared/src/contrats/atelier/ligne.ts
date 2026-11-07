@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import {
   BLOCAGES_LIGNE_OR,
+  CANAUX_DEVIS,
   ORIGINES_LIGNE_OR,
   PAYEURS_LIGNE_OR,
   STATUTS_LIGNE_OR,
@@ -17,6 +18,7 @@ import {
 import {
   schemaCentiemes,
   schemaCentimes,
+  schemaHorodatage,
   schemaIdentifiant,
   schemaListeIdentifiants,
   schemaMotif,
@@ -229,7 +231,26 @@ export const schemaMarquageRealisee = z
  * Une action de ligne est groupée au niveau de l'OR **si et seulement si** elle porte un invariant
  * INTER-LIGNES (le plafond) ou un motif PARTAGÉ. Sinon elle reste sur la ligne.
  */
-export const schemaValidationLignes = z.object({ ligneIds: schemaListeIdentifiants }).strict();
+/**
+ * Accord du client recueilli hors application (téléphone, comptoir, courriel…) — optionnel sur
+ * `valider-lignes`. Quand il est fourni, le serveur trace pour CHAQUE ligne validée une entrée de
+ * journal (`GET /ordres-reparation/{orId}/journal`, entité `ligne_or`, champ `motif`) :
+ * « Accord du client : <nom> (<canal>), le <date et heure> ». Aucune colonne dédiée : l'accord vit
+ * dans le journal d'audit (qui / quoi / quand), pas dans la ligne. `horodate` absent = maintenant.
+ * `canal` : MÊME vocabulaire que les devis complémentaires (`CANAUX_DEVIS`).
+ */
+export const schemaAccordClientLignes = z
+  .object({
+    nom: schemaTexteCourt,
+    canal: z.enum(CANAUX_DEVIS),
+    horodate: schemaHorodatage.optional(),
+    commentaire: schemaMotif.optional(),
+  })
+  .strict();
+
+export const schemaValidationLignes = z
+  .object({ ligneIds: schemaListeIdentifiants, accord: schemaAccordClientLignes.optional() })
+  .strict();
 
 export const schemaRefusLignes = z
   .object({
@@ -269,6 +290,7 @@ export type EntreeCreationLigneOr = z.infer<typeof schemaCreationLigneOr>;
 export type EntreeModificationLigneOr = z.infer<typeof schemaModificationLigneOr>;
 export type EntreeMarquageRealisee = z.infer<typeof schemaMarquageRealisee>;
 export type EntreeValidationLignes = z.infer<typeof schemaValidationLignes>;
+export type EntreeAccordClientLignes = z.infer<typeof schemaAccordClientLignes>;
 export type EntreeRefusLignes = z.infer<typeof schemaRefusLignes>;
 export type EntreeAnnulationLignes = z.infer<typeof schemaAnnulationLignes>;
 export type EntreeSoumissionLignesADevis = z.infer<typeof schemaSoumissionLignesADevis>;

@@ -23,6 +23,8 @@ export interface ParametresContenuEnvoiFacture {
    *  voir `roleVoitLesMontants`), mais le texte reste correct sans montant plutôt que de planter. */
   readonly totalTtcCentimes: number | undefined;
   readonly langue: Langue;
+  /** `facture` par défaut ; `devis` change sujet et texte (un devis n'est pas une facture). */
+  readonly typeDocument?: 'facture' | 'devis';
 }
 
 function formaterMontantChf(centimes: number): string {
@@ -41,6 +43,20 @@ export function construireContenuEnvoiFacture(
   p: ParametresContenuEnvoiFacture,
 ): ContenuEnvoiFacture {
   const montant = p.totalTtcCentimes !== undefined ? formaterMontantChf(p.totalTtcCentimes) : null;
+
+  if (p.typeDocument === 'devis') {
+    const sujetsDevis: Record<Langue, string> = {
+      fr: `Devis ${p.numero}`,
+      de: `Offerte ${p.numero}`,
+      it: `Preventivo ${p.numero}`,
+    };
+    const textesDevis: Record<Langue, string> = {
+      fr: `Veuillez trouver ci-joint notre devis ${p.numero}${montant ? `, d'un montant de CHF ${montant}` : ''}.`,
+      de: `Anbei erhalten Sie unsere Offerte ${p.numero}${montant ? ` über CHF ${montant}` : ''}.`,
+      it: `In allegato trovate il nostro preventivo ${p.numero}${montant ? `, di importo CHF ${montant}` : ''}.`,
+    };
+    return { sujet: sujetsDevis[p.langue], texte: textesDevis[p.langue] };
+  }
 
   const sujets: Record<Langue, string> = {
     fr: `Facture ${p.numero}`,
