@@ -230,7 +230,9 @@
       "payablePar": "Pagabile da",
       "iban": "IBAN",
       "reference": "Riferimento",
-      "sansReference": "Senza riferimento"
+      "sansReference": "Senza riferimento",
+      "copier": "Copiare",
+      "copie": "Copiato"
     },
     "actions": {
       "emettre": "Emettere",
@@ -244,6 +246,7 @@
         "creerAvoir": "Creare una nota di credito",
         "journal": "Vedere il registro"
       },
+      "corrigerFacture": "Correggere la fattura",
       "telechargerPdf": "Scarica il PDF",
       "envoyerDevis": "Inviare il preventivo",
       "accordClient": "Accordo del cliente",
@@ -346,6 +349,17 @@
   },
   "liste": {
     "titre": "Fatture",
+    "tri": {
+      "label": "Ordinare",
+      "options": {
+        "dateDesc": "Data, più recenti prima",
+        "dateAsc": "Data, più vecchie prima",
+        "numeroDesc": "N°, decrescente",
+        "numeroAsc": "N°, crescente",
+        "soldeDesc": "Saldo, più alto prima",
+        "relanceAsc": "Prossimo sollecito"
+      }
+    },
     "onglets": {
       "groupeLabel": "Filtra le fatture",
       "toutes": "Tutte",

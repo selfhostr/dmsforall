@@ -135,11 +135,6 @@
       "non": "Non",
       "nonRenseigne": "Non renseigné"
     },
-    "vue": {
-      "groupeLabel": "Mode d'affichage",
-      "vendeur": "Vue vendeur",
-      "client": "Vue client"
-    },
     "joursStock": {
       "libelle": "Jours en stock",
       "valeur": "{n, plural, one {# jour} other {# jours}}"
@@ -315,7 +310,7 @@
         "statutLabel": "Statut",
         "statutActifs": "Ventes actives",
         "statutTous": "Tous les statuts",
-        "afficherTermines": "Afficher aussi les ventes closes, annulées ou abandonnées"
+        "afficherTermines": "Inclure les ventes closes ou annulées"
       },
       "tri": {
         "label": "Trier par",

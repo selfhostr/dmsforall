@@ -3,7 +3,7 @@
     "aria": "Navigation principale"
   },
   "entrees": {
-    "aujourdhui": "Aujourd'hui",
+    "aujourdhui": "Tableau de bord",
     "atelier": "Atelier",
     "clientsVehicules": "Clients & véhicules",
     "pieces": "Pièces",
@@ -106,5 +106,8 @@
   },
   "rangee": {
     "aria": "Réglages rapides"
+  },
+  "signalement": {
+    "entree": "Signaler un problème"
   }
 }

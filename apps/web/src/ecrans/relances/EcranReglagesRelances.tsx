@@ -385,7 +385,7 @@ function FormulaireRegleFactureEchue({ regle, onAnnuler, onEnregistre }: PropsFo
         </p>
       ) : null}
 
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         <Button type="button" variant="outline" onClick={onAnnuler} disabled={upserter.isPending}>
           {t('relances:regles.actions.annuler')}
         </Button>

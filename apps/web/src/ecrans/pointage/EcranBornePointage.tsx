@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Navigate } from 'react-router';
+import { Link, Navigate } from 'react-router';
 
 import {
   ACTIVITES_INDIRECTES,
@@ -34,6 +34,8 @@ import { useIdentificationPin } from '@/hooks/pointage/useIdentificationPin';
 import { useMesOrdresAssignes } from '@/hooks/pointage/useMesOrdresAssignes';
 import { usePointageOuvertTechnicien } from '@/hooks/pointage/usePointageOuvertTechnicien';
 import { useSession } from '@/hooks/useSession';
+import { peut } from '@/droits';
+import { chemins } from '@/routes/chemins';
 import { genererUuid } from '@/lib/uuid';
 
 import { BandeauReprisePointage } from './BandeauReprisePointage';
@@ -614,6 +616,28 @@ export function EcranBornePointage() {
         <EtatErreur
           titre={t('pointage:identification.erreur.titre')}
           description={t('pointage:identification.erreur.session')}
+        />
+      </div>
+    );
+  }
+
+  // Le code PIN n'existe que sur la borne partagée (compte de service) : il sert à savoir QUI
+  // pointe. Un compte personnel est déjà identifié par sa session, pointe sans PIN depuis « Mon
+  // travail » ; l'API lui refuserait d'ailleurs l'identification (403). Aucun pavé ne lui est montré.
+  if (!peut(session.actions, 'atelier.pointage.identifier')) {
+    return (
+      <div className="flex flex-col gap-6">
+        <h1 className="texte-titre-page">{t('pointage:borne.comptePersonnel.titre')}</h1>
+        <EtatVide
+          titre={t('pointage:borne.comptePersonnel.titreVide')}
+          description={t('pointage:borne.comptePersonnel.description')}
+          action={
+            <Button asChild>
+              <Link to={chemins.pointage.saisie()}>
+                {t('pointage:borne.comptePersonnel.action')}
+              </Link>
+            </Button>
+          }
         />
       </div>
     );

@@ -10,6 +10,7 @@ interface LigneTenant {
   assujettiTva?: boolean;
   numeroTva: string | null;
   delaiPaiementJoursDefaut?: number;
+  modeSignalement?: string;
 }
 
 function acces(ligneBrute: LigneTenant | undefined) {
@@ -30,6 +31,7 @@ function acces(ligneBrute: LigneTenant | undefined) {
         numeroTva?: string | null;
         assujettiTva?: boolean;
         delaiPaiementJoursDefaut?: number;
+        modeSignalement?: string;
       }) => {
         sets.push(v);
         const definis = Object.fromEntries(Object.entries(v).filter(([, x]) => x !== undefined));
@@ -167,6 +169,45 @@ describe('ServiceParametresEntreprise', () => {
     const dto = await new ServiceParametresEntreprise(base).modifier(CTX, { numeroTva: null });
     expect(sets).toEqual([{ numeroTva: null }]);
     expect(dto.numeroTva).toBeNull();
+  });
+
+  it('change le mode de signalement : écrit le champ seul et le journalise avant/après', async () => {
+    const { base, sets, audits } = acces({
+      raisonSociale: 'G',
+      numeroTva: null,
+      modeSignalement: 'via_site',
+    });
+    const r = await new ServiceParametresEntreprise(base).modifier(CTX, {
+      modeSignalement: 'copie_seule',
+    });
+    expect(sets).toEqual([
+      {
+        raisonSociale: undefined,
+        numeroTva: undefined,
+        assujettiTva: undefined,
+        delaiPaiementJoursDefaut: undefined,
+        modeSignalement: 'copie_seule',
+      },
+    ]);
+    expect(r).toMatchObject({ modeSignalement: 'copie_seule' });
+    expect(audits).toEqual([
+      expect.objectContaining({
+        entite: 'tenant',
+        champ: 'mode_signalement',
+        valeurAvant: 'via_site',
+        valeurApres: 'copie_seule',
+      }),
+    ]);
+  });
+
+  it('même mode de signalement : pas de ligne d’audit', async () => {
+    const { base, audits } = acces({
+      raisonSociale: 'G',
+      numeroTva: null,
+      modeSignalement: 'desactive',
+    });
+    await new ServiceParametresEntreprise(base).modifier(CTX, { modeSignalement: 'desactive' });
+    expect(audits).toEqual([]);
   });
 
   it('corps vide : aucune écriture', async () => {

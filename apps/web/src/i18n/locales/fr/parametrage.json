@@ -462,5 +462,22 @@
       "titre": "À compléter",
       "adresse": "L'adresse du garage (rue, N°, NPA, localité)"
     }
+  },
+  "signalements": {
+    "titre": "Signalements",
+    "modes": {
+      "via_site": "Envoyer via le site",
+      "copie_seule": "Copier seulement",
+      "desactive": "Désactivé"
+    },
+    "aide": {
+      "via_site": "Le bouton « Signaler un problème » ouvre le site de dmsforall pour terminer l’envoi, sans compte GitHub.",
+      "copie_seule": "Le signalement se copie et se transmet à la main : le bouton « Continuer sur le site » n’apparaît pas.",
+      "desactive": "L’entrée « Signaler un problème » n’apparaît plus dans le menu du profil."
+    },
+    "enregistre": "Réglage enregistré.",
+    "erreur": {
+      "titre": "Impossible de charger le réglage des signalements"
+    }
   }
 }

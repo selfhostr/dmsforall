@@ -230,7 +230,9 @@
       "payablePar": "Zahlbar durch",
       "iban": "IBAN",
       "reference": "Referenz",
-      "sansReference": "Ohne Referenz"
+      "sansReference": "Ohne Referenz",
+      "copier": "Kopieren",
+      "copie": "Kopiert"
     },
     "actions": {
       "emettre": "Ausstellen",
@@ -244,6 +246,7 @@
         "creerAvoir": "Gutschrift erstellen",
         "journal": "Protokoll anzeigen"
       },
+      "corrigerFacture": "Rechnung korrigieren",
       "telechargerPdf": "PDF herunterladen",
       "envoyerDevis": "Offerte senden",
       "accordClient": "Zustimmung des Kunden",
@@ -346,6 +349,17 @@
   },
   "liste": {
     "titre": "Rechnungen",
+    "tri": {
+      "label": "Sortieren",
+      "options": {
+        "dateDesc": "Datum, neueste zuerst",
+        "dateAsc": "Datum, älteste zuerst",
+        "numeroDesc": "Nr., absteigend",
+        "numeroAsc": "Nr., aufsteigend",
+        "soldeDesc": "Saldo, höchster zuerst",
+        "relanceAsc": "Nächste Mahnung"
+      }
+    },
     "onglets": {
       "groupeLabel": "Rechnungen filtern",
       "toutes": "Alle",

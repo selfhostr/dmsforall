@@ -12,6 +12,9 @@ const schemaEnv = z.object({
   // fonctionnement. Son absence (dev local, garage sans configuration Sentry) ne doit jamais
   // empêcher l'application de démarrer — voir observabilite/sentry.ts.
   VITE_SENTRY_DSN: z.string().trim().min(1).optional(),
+  // Page publique qui termine un signalement (« Signaler un problème »). Optionnelle : la valeur
+  // par défaut est dans `diagnostic/rapport.ts`.
+  VITE_URL_SIGNALEMENT: z.string().trim().url().optional(),
 });
 
 export type EnvWeb = Readonly<z.infer<typeof schemaEnv>>;

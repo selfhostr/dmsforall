@@ -14,6 +14,7 @@ const COLONNES_REPONSE = {
   assujettiTva: schema.tenant.assujettiTva,
   numeroTva: schema.tenant.numeroTva,
   delaiPaiementJoursDefaut: schema.tenant.delaiPaiementJoursDefaut,
+  modeSignalement: schema.tenant.modeSignalement,
 } as const;
 
 /**
@@ -43,7 +44,8 @@ export class ServiceParametresEntreprise {
       entree.raisonSociale === undefined &&
       entree.numeroTva === undefined &&
       entree.assujettiTva === undefined &&
-      entree.delaiPaiementJoursDefaut === undefined
+      entree.delaiPaiementJoursDefaut === undefined &&
+      entree.modeSignalement === undefined
     ) {
       return this.obtenir(ctx);
     }
@@ -91,6 +93,7 @@ export class ServiceParametresEntreprise {
           numeroTva,
           assujettiTva: entree.assujettiTva,
           delaiPaiementJoursDefaut: entree.delaiPaiementJoursDefaut,
+          modeSignalement: entree.modeSignalement,
         })
         .where(eq(schema.tenant.id, ctx.tenantId))
         .returning(COLONNES_REPONSE);
@@ -99,6 +102,7 @@ export class ServiceParametresEntreprise {
       const champsAudites = [
         ['raison_sociale', avant.raisonSociale, ligne.raisonSociale],
         ['assujetti_tva', avant.assujettiTva, ligne.assujettiTva],
+        ['mode_signalement', avant.modeSignalement, ligne.modeSignalement],
         // Le n° TVA n'est journalisé que lorsqu'il est EFFACÉ par un changement d'assujettissement
         // (« Non ») : sa saisie ordinaire n'a jamais été auditée.
         ['numero_tva', avant.numeroTva, ligne.numeroTva],

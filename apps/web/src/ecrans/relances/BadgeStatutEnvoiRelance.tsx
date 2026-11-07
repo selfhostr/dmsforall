@@ -3,34 +3,23 @@ import { useTranslation } from 'react-i18next';
 
 import type { StatutEnvoiRelance } from '@dfa/shared';
 
-import { Badge, type BadgeProps } from '@/components/ui/badge';
+import { BadgeStatut } from '@/composants/identite/BadgeStatut';
+import type { FormeBadge, TokenStatut } from '@/composants/identite/BadgeStatut';
 
 interface EntreeStatutEnvoi {
   readonly icone: LucideIcon;
-  readonly variant: NonNullable<BadgeProps['variant']>;
+  readonly token: TokenStatut;
+  readonly forme: FormeBadge;
 }
 
 /**
- * Mapping exhaustif (sur le modèle de `composants/identite/BadgeStatutOr.tsx`) : ajouter une valeur
- * à `StatutEnvoiRelance` fait échouer `tsc` avant d'atteindre l'écran.
- *
- * DESIGN.md, refonte visuelle : « une relance "envoyée" confondue avec "planifiée" fait relancer un
- * client deux fois » — la trace d'envoi (`relance_envoi.statutEnvoi`, seul statut de ce domaine
- * réellement affiché à ce jour, voir `EcranRelances.tsx` §BlocTracabilite) portait jusqu'ici un
- * `<Badge>` coloré SEUL (`variant={envoi.statutEnvoi === 'envoye' ? 'default' : 'destructive'}`),
- * sans icône.
- *
- * VOLONTAIREMENT sur `<Badge>` générique (`components/ui/badge.tsx`), PAS sur `BadgeStatut`
- * (`composants/identite/`, famille des badges de statut d'OR) : DESIGN.md réserve les six jetons
- * `--statut-*` EXCLUSIVEMENT au statut d'un OR/d'une ligne d'OR, « jamais à une autre dimension »
- * — un statut d'envoi de relance en est une. `composants/identite/` est de toute façon hors
- * périmètre d'écriture de ce chantier. `variant="secondary"` (neutre) plutôt que `"default"`
- * (`bg-primary`, couleur de MARQUE) pour la même raison côté marque : un badge de statut ne
- * réutilise jamais la teinte de marque comme signal.
+ * Mapping exhaustif : ajouter une valeur à `StatutEnvoiRelance` fait échouer `tsc` avant d'atteindre
+ * l'écran. Badge de statut standard (`BadgeStatut`) : forme + icône + mot, jamais la couleur seule.
+ * Un échec d'envoi est plein (signal à traiter), un envoi réussi en contour.
  */
 const CONFIG_STATUT_ENVOI: Readonly<Record<StatutEnvoiRelance, EntreeStatutEnvoi>> = {
-  envoye: { icone: CheckCircle2, variant: 'secondary' },
-  echoue: { icone: XCircle, variant: 'destructive' },
+  envoye: { icone: CheckCircle2, token: 'succes', forme: 'contour' },
+  echoue: { icone: XCircle, token: 'danger', forme: 'plein' },
 };
 
 interface Props {
@@ -41,12 +30,10 @@ interface Props {
 export function BadgeStatutEnvoiRelance({ statut, className }: Props) {
   const { t } = useTranslation('relances');
   const config = CONFIG_STATUT_ENVOI[statut];
-  const Icone = config.icone;
 
   return (
-    <Badge variant={config.variant} className={className}>
-      <Icone aria-hidden className="h-3.5 w-3.5 shrink-0" />
+    <BadgeStatut icone={config.icone} token={config.token} forme={config.forme} className={className}>
       {t(`relances:tracabilite.statut.${statut}`)}
-    </Badge>
+    </BadgeStatut>
   );
 }
