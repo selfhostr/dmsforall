@@ -124,7 +124,7 @@ export function EcranFicheClient() {
   // `undefined` et `peutLireDossierVente(undefined)` renvoie `false` : la section affiche son
   // squelette de chargement (`session.isLoading`) plutôt que de flasher le message de refus avant
   // de savoir — voir le rendu de la section plus bas.
-  const peutVoirDossiersVente = peutLireDossierVente(session.data?.utilisateur.role);
+  const peutVoirDossiersVente = peutLireDossierVente(session.data?.actions);
   // Lot B (correction 6, ajout hors liste initiale) — « ses dossiers de vente », troisième liste
   // à côté de « ses véhicules » et « ses OR » déjà câblées. `useListeDossiersVente`
   // (hooks/ventes/dossiers/, déjà existant) accepte `clientAcheteurId` tel quel dans son filtre

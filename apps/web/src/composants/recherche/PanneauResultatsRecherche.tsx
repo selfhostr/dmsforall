@@ -65,7 +65,7 @@ export function PanneauResultatsRecherche({
 }: ProprietesPanneauResultatsRecherche) {
   const { t, i18n } = useTranslation('recherche');
   const { data: session } = useSession();
-  const role = session?.utilisateur.role;
+  const actions = session?.actions;
 
   function gererClavier(evenement: KeyboardEvent<HTMLDivElement>) {
     if (evenement.key === 'Escape' && onEchap) {
@@ -100,12 +100,12 @@ export function PanneauResultatsRecherche({
   // côté serveur sur la session serveur, qui a cherché dans les sept natures — affirmer ici un
   // périmètre restreint qu'on n'a pas vérifié serait un mensonge, pas une prudence. On retombe
   // simplement sur le message plat (`vide.description`).
-  const perimetreRestreint = recherchePerimetreRestreint(role);
+  const perimetreRestreint = recherchePerimetreRestreint(actions);
   const titreVide = perimetreRestreint ? t('vide.titrePerimetreRestreint') : t('vide.titre');
   const descriptionVide = perimetreRestreint
     ? t('vide.descriptionPerimetreRestreint', {
         natures: formaterListeNatures(
-          naturesRechercheesPourRole(role).map((nature: TypeResultatRecherche) =>
+          naturesRechercheesPourRole(actions).map((nature: TypeResultatRecherche) =>
             t(`natures.${nature}`),
           ),
           i18n.language,

@@ -505,6 +505,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/capacites/modele': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Modèle de la grille de capacités (domaines, niveaux, options, préréglages)
+     * @description Libellés sous forme de clés i18n. Les préréglages portent la grille complète à appliquer ; `fiduciaire` s'enregistre avec le rôle d'origine `comptable`.
+     */
+    get: operations['CapacitesController_modele'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/clients': {
     parameters: {
       query?: never;
@@ -4093,10 +4113,30 @@ export interface paths {
     options?: never;
     head?: never;
     /**
-     * Modifier le rôle et/ou les sites d’un employé
+     * Modifier le rôle (préréglage) et/ou les sites d’un employé
      * @description Au moins un des deux champs (role, siteIds) requis. Promouvoir vers admin est réservé à un acteur déjà admin (403 sinon), même avec le droit socle.utilisateur.modifier.
      */
     patch: operations['UtilisateurController_modifier'];
+    trace?: never;
+  };
+  '/utilisateurs/{utilisateurId}/capacites': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Ajuster la grille de capacités d’un employé
+     * @description Niveaux Rien/Voir/Faire par domaine (atelier, accueil, facturation, pieces, ventes, finances), encadrer, et options (voitMontants, voitPrixAchat, avoirsPlafonnes) ; champs omis inchangés. Règle « on ne coche pas ce qu’on n’a pas » : 403 si la grille dépasse celle de l’appelant, ou si l’appelant se modifie lui-même, ou modifie quelqu’un de plus puissant (un compte admin n’est modifiable que par un admin). gererEmployes et patron ne se modifient pas ici (suivent le rôle). Les sessions de la personne sont révoquées si ses droits baissent. Audit avant/après.
+     */
+    patch: operations['UtilisateurController_modifierCapacites'];
     trace?: never;
   };
   '/utilisateurs/{utilisateurId}/desactiver': {
@@ -4996,6 +5036,30 @@ export interface components {
       /** @enum {string} */
       moment: 'matin' | 'apres_midi' | 'toute_journee';
     };
+    CapacitesPersonneDto: {
+      /** @description Corriger les heures des autres, rouvrir un OR, lever un blocage. */
+      encadrer: boolean;
+      /** @description Employés & réglages (comptes, bornes). Suit le préréglage. */
+      gererEmployes: boolean;
+      niveaux: components['schemas']['NiveauxCapacitesDto'];
+      options: components['schemas']['OptionsCapacitesDto'];
+      /** @description Gestes irréversibles (IBAN, reprise). Suit le préréglage. */
+      patron: boolean;
+      /** @description La grille diffère du préréglage du rôle. */
+      personnalisee: boolean;
+      /** @enum {string|null} */
+      prereglage:
+        | 'admin'
+        | 'direction'
+        | 'vendeur'
+        | 'receptionnaire'
+        | 'chef_atelier'
+        | 'technicien'
+        | 'magasinier'
+        | 'comptable'
+        | 'fiduciaire'
+        | null;
+    };
     ChampScanneBooleenDto: {
       /** @enum {string} */
       confiance: 'sure' | 'douteuse' | 'absente';
@@ -5043,6 +5107,10 @@ export interface components {
        * @enum {string}
        */
       type: 'ligne' | 'or';
+    };
+    CleCaseDto: {
+      descriptionCle: string;
+      libelleCle: string;
     };
     ClientAdresseAvecAvertissementsDto: {
       avertissements: components['schemas']['AvertissementDto'][];
@@ -5598,6 +5666,13 @@ export interface components {
       tauxTvaPourmille: number;
       tvaCentimes: number;
     };
+    DomaineModeleDto: {
+      descriptionCle: string;
+      exemplesCles: string[];
+      /** @enum {string} */
+      id: 'atelier' | 'accueil' | 'facturation' | 'pieces' | 'ventes' | 'finances';
+      libelleCle: string;
+    };
     DonneesPermisScanneDto: {
       detenteur: components['schemas']['DetenteurScanneDto'];
       vehicule: components['schemas']['VehiculeScanneDto'];
@@ -5932,6 +6007,16 @@ export interface components {
       finLe: string | null;
       plafondKm: number | null;
     };
+    GrilleCapacitesDto: {
+      /** @description Corriger les heures des autres, rouvrir un OR, lever un blocage. */
+      encadrer: boolean;
+      /** @description Employés & réglages (comptes, bornes). Suit le préréglage. */
+      gererEmployes: boolean;
+      niveaux: components['schemas']['NiveauxCapacitesDto'];
+      options: components['schemas']['OptionsCapacitesDto'];
+      /** @description Gestes irréversibles (IBAN, reprise). Suit le préréglage. */
+      patron: boolean;
+    };
     ImportationVehiculeDto: {
       estImporte: boolean;
       /** Format: date */
@@ -6093,6 +6178,14 @@ export interface components {
        */
       nombreModeles: number;
     };
+    ModeleCapacitesDto: {
+      domaines: components['schemas']['DomaineModeleDto'][];
+      encadrer: components['schemas']['CleCaseDto'];
+      gererEmployes: components['schemas']['CleCaseDto'];
+      niveaux: components['schemas']['NiveauModeleDto'][];
+      options: components['schemas']['OptionModeleDto'][];
+      prereglages: components['schemas']['PrereglageModeleDto'][];
+    };
     ModeleVehiculeChDto: {
       /**
        * @description Code type ASTRA, seulement quand ce nom de modèle correspond à un unique code type pour la marque demandée — `null` si plusieurs motorisations/variantes le partagent.
@@ -6170,6 +6263,39 @@ export interface components {
         | 'casse'
         | 'perte'
         | 'retour_consigne';
+    };
+    NiveauModeleDto: {
+      /** @enum {string} */
+      id: 'rien' | 'voir' | 'faire';
+      libelleCle: string;
+    };
+    NiveauxCapacitesDto: {
+      /** @enum {string} */
+      accueil: 'rien' | 'voir' | 'faire';
+      /** @enum {string} */
+      atelier: 'rien' | 'voir' | 'faire';
+      /** @enum {string} */
+      facturation: 'rien' | 'voir' | 'faire';
+      /** @enum {string} */
+      finances: 'rien' | 'voir' | 'faire';
+      /** @enum {string} */
+      pieces: 'rien' | 'voir' | 'faire';
+      /** @enum {string} */
+      ventes: 'rien' | 'voir' | 'faire';
+    };
+    OptionModeleDto: {
+      descriptionCle: string;
+      /** @enum {string} */
+      id: 'voitMontants' | 'voitPrixAchat' | 'avoirsPlafonnes';
+      libelleCle: string;
+    };
+    OptionsCapacitesDto: {
+      /** @description Avoirs plafonnés au plafond d'avoir du garage (une contrainte). */
+      avoirsPlafonnes: boolean;
+      /** @description Voit les prix de vente, totaux et montants. */
+      voitMontants: boolean;
+      /** @description Voit les prix d'achat et marges (pièces). */
+      voitPrixAchat: boolean;
     };
     OrdreReparationOuvertContexteDto: {
       /** Format: uuid */
@@ -6690,6 +6816,32 @@ export interface components {
         | 'escompte'
         | 'perte'
         | 'ecart_reprise';
+    };
+    PrereglageModeleDto: {
+      descriptionCle: string;
+      grille: components['schemas']['GrilleCapacitesDto'];
+      /** @enum {string} */
+      id:
+        | 'admin'
+        | 'direction'
+        | 'vendeur'
+        | 'receptionnaire'
+        | 'chef_atelier'
+        | 'technicien'
+        | 'magasinier'
+        | 'comptable'
+        | 'fiduciaire';
+      libelleCle: string;
+      /** @enum {string} */
+      roleOrigine:
+        | 'admin'
+        | 'direction'
+        | 'vendeur'
+        | 'receptionnaire'
+        | 'chef_atelier'
+        | 'technicien'
+        | 'magasinier'
+        | 'comptable';
     };
     PrerequisExportDto: {
       /** @enum {string} */
@@ -8873,6 +9025,8 @@ export interface components {
        *     ]
        */
       actions: string[];
+      /** @description Grille de capacités du compte (niveaux par domaine, encadrer, options). Pour l'affichage ; la décision reste `actions`. */
+      capacites: components['schemas']['CapacitesPersonneDto'];
       /** Format: date-time */
       expireLe: string;
       /** Format: uuid */
@@ -9059,6 +9213,7 @@ export interface components {
         | 'poste_atelier';
     };
     UtilisateurResumeDto: {
+      capacites: components['schemas']['CapacitesPersonneDto'];
       /** Format: date-time */
       creeLe: string;
       /** Format: date-time */
@@ -11158,6 +11313,43 @@ export interface operations {
       };
       /** @description Borne introuvable pour ce tenant. */
       404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  CapacitesController_modele: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ModeleCapacitesDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant (rôle sans socle.utilisateur.lire). */
+      403: {
         headers: {
           [name: string]: unknown;
         };
@@ -26088,6 +26280,17 @@ export interface operations {
           nom: string;
           prenom: string;
           /** @enum {string} */
+          prereglage?:
+            | 'admin'
+            | 'direction'
+            | 'vendeur'
+            | 'receptionnaire'
+            | 'chef_atelier'
+            | 'technicien'
+            | 'magasinier'
+            | 'comptable'
+            | 'fiduciaire';
+          /** @enum {string} */
           role:
             | 'admin'
             | 'direction'
@@ -26161,6 +26364,17 @@ export interface operations {
       content: {
         'application/json': {
           /** @enum {string} */
+          prereglage?:
+            | 'admin'
+            | 'direction'
+            | 'vendeur'
+            | 'receptionnaire'
+            | 'chef_atelier'
+            | 'technicien'
+            | 'magasinier'
+            | 'comptable'
+            | 'fiduciaire';
+          /** @enum {string} */
           role?:
             | 'admin'
             | 'direction'
@@ -26221,6 +26435,88 @@ export interface operations {
       };
     };
   };
+  UtilisateurController_modifierCapacites: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        utilisateurId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          encadrer?: boolean;
+          niveaux?: {
+            /** @enum {string} */
+            accueil?: 'rien' | 'voir' | 'faire';
+            /** @enum {string} */
+            atelier?: 'rien' | 'voir' | 'faire';
+            /** @enum {string} */
+            facturation?: 'rien' | 'voir' | 'faire';
+            /** @enum {string} */
+            finances?: 'rien' | 'voir' | 'faire';
+            /** @enum {string} */
+            pieces?: 'rien' | 'voir' | 'faire';
+            /** @enum {string} */
+            ventes?: 'rien' | 'voir' | 'faire';
+          };
+          options?: {
+            avoirsPlafonnes?: boolean;
+            voitMontants?: boolean;
+            voitPrixAchat?: boolean;
+          };
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UtilisateurResumeDto'];
+        };
+      };
+      /** @description Corps invalide (champ inconnu, niveau inconnu, corps vide). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant, grille supérieure à celle de l’appelant, auto-modification, ou cible plus puissante. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Employé introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
   UtilisateurController_desactiver: {
     parameters: {
       query?: never;
@@ -26249,7 +26545,11 @@ export interface operations {
           'application/json': components['schemas']['ProblemeDetailCommunDto'];
         };
       };
-      /** @description Droit insuffisant (rôle sans socle.utilisateur.desactiver). */
+      /**
+       * @description Cible plus puissante que l’appelant, ou compte admin par un non-admin.
+       *
+       *     Droit insuffisant (rôle sans socle.utilisateur.desactiver).
+       */
       403: {
         headers: {
           [name: string]: unknown;
@@ -26267,7 +26567,7 @@ export interface operations {
           'application/json': components['schemas']['ProblemeDetailCommunDto'];
         };
       };
-      /** @description Tentative de désactiver son propre compte. */
+      /** @description Tentative de désactiver son propre compte, ou dernier patron. */
       409: {
         headers: {
           [name: string]: unknown;

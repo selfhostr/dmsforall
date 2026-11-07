@@ -65,7 +65,7 @@ export function EcranFicheDossierVente() {
 
   const requete = useDossierVente(id);
   const session = useSession();
-  const role = session.data?.utilisateur.role;
+  const actions = session.data?.actions;
   const vehiculeId = requete.data?.vehicule?.id;
 
   // DÉFAUT CORRIGÉ (issue #162, 16.08.2026) : un rôle sans `atelier.or.lire` (ex. `vendeur`)
@@ -75,7 +75,7 @@ export function EcranFicheDossierVente() {
   // `peutLireOrdresReparation` DUPLIQUÉE dans `ecrans/vehicules/droits.ts` (matrice serveur), gate
   // via `enabled`, les trois états — chargement de la session, droit manquant, résultat — restent
   // chacun DISTINCTS.
-  const peutVoirOrdresReparation = peutLireOrdresReparation(role);
+  const peutVoirOrdresReparation = peutLireOrdresReparation(actions);
   const reessayerOr = useDoitReessayer();
 
   // Lot B — « l'OR de préparation ». SIGNALÉ : `ReponseDossierVente` (contrat gelé,
@@ -132,7 +132,7 @@ export function EcranFicheDossierVente() {
   // `CarteGarantieDossier` exige un `vehiculeStockId`) : c'est ce qui permet de choisir ENTRE
   // « les deux onglets » et « une seule carte, pas d'onglet à un seul choix » — un onglet unique
   // n'offre aucun choix, même doctrine que `OngletsDomaine` (« un onglet unique ne rend rien »).
-  const afficheFinancement = peutLireFinancement(role);
+  const afficheFinancement = peutLireFinancement(actions);
   const afficheGarantie = vehiculeId !== undefined;
 
   // Titre VISIBLE — « Dossier de vente » (`ventes:dossier.fiche.titre`) ne fait AUCUNE inclusion
@@ -163,7 +163,7 @@ export function EcranFicheDossierVente() {
       <CarteReprise
         dossierVenteId={dossier.id}
         possedeReprise={dossier.reprise !== null}
-        role={role}
+        actions={actions}
         onMutationReussie={() => void requete.refetch()}
       />
 
@@ -180,7 +180,7 @@ export function EcranFicheDossierVente() {
               financements={dossier.financements ?? []}
               financementsTronques={dossier.financementsTronques ?? false}
               statutDossierVente={dossier.statut}
-              role={role}
+              actions={actions}
               onMutationReussie={() => void requete.refetch()}
             />
           </TabsContent>
@@ -201,7 +201,7 @@ export function EcranFicheDossierVente() {
           financements={dossier.financements ?? []}
           financementsTronques={dossier.financementsTronques ?? false}
           statutDossierVente={dossier.statut}
-          role={role}
+          actions={actions}
           onMutationReussie={() => void requete.refetch()}
         />
       ) : afficheGarantie ? (

@@ -42,7 +42,7 @@ import { JETON_COMPTEURS } from '../parametrage/compteurs/compteurs.jetons';
 import type { ServiceCompteurs } from '../parametrage/compteurs/compteurs.types';
 
 import { detecterDoublons } from './detection-doublons';
-import { ROLES_CLIENT_CONTACT, verifierRoleAutorise } from './droits-provisoires';
+import { exigerCapacite } from '../auth/droits-personne';
 import { versClientResponse, versClientResume } from './mappers';
 import {
   construireConditionKeyset,
@@ -645,7 +645,7 @@ export class ServiceClient {
     clientId: string,
     entree: EntreeArreterContactClient,
   ): Promise<ReponseAvecAvertissements<ReponseClient>> {
-    verifierRoleAutorise(role, ROLES_CLIENT_CONTACT, 'client.contact.arreter');
+    exigerCapacite(role, 'accueil.faire', 'client.contact.arreter');
     return this.acces.enTenant(ctx, async (tx) => {
       await this.chargerOu404(tx, ctx, clientId);
 
@@ -682,7 +682,7 @@ export class ServiceClient {
     clientId: string,
     entree: EntreeReprendreContactClient,
   ): Promise<ReponseAvecAvertissements<ReponseClient>> {
-    verifierRoleAutorise(role, ROLES_CLIENT_CONTACT, 'client.contact.reprendre');
+    exigerCapacite(role, 'accueil.faire', 'client.contact.reprendre');
     return this.acces.enTenant(ctx, async (tx) => {
       await this.chargerOu404(tx, ctx, clientId);
 

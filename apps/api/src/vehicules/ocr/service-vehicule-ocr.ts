@@ -23,6 +23,7 @@ import type {
   RoleUtilisateur,
   VehiculeScanne,
 } from '@dfa/shared';
+import { ROLES_PERSONNE } from '@dfa/shared';
 import { sql } from 'drizzle-orm';
 
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../../db';
@@ -61,17 +62,12 @@ import {
 import type { ConfigOcrPermis } from './config-ocr';
 
 /**
- * Rôles autorisés à recevoir l'événement temps réel « client déjà identifié » quand un scan
- * retrouve un client existant — arbitrage : les rôles qui tiennent un comptoir/accueillent le
- * client (`receptionnaire`, `vendeur`) plus `direction` (visibilité transverse déjà accordée
- * ailleurs sur les mêmes données). Défini ICI, pas dans `auth/matrice-droits.ts` (hors périmètre) —
- * point à confirmer par @laupernoe si ce choix ne convient pas (signalé dans le rapport de livraison).
+ * Destinataires de l'événement temps réel « client déjà identifié » : TOUTE personne qui détient le
+ * droit `client.lire` (sa grille réelle), jamais une liste de rôles. Tous les rôles de personne
+ * sont candidats ; le filtre de droit est appliqué par le registre à chaque abonné.
  */
-const ROLES_NOTIFIES_CORRESPONDANCE_CLIENT: readonly RoleUtilisateur[] = [
-  'receptionnaire',
-  'vendeur',
-  'direction',
-];
+const ROLES_CANDIDATS_CORRESPONDANCE_CLIENT: readonly RoleUtilisateur[] = ROLES_PERSONNE;
+const DROIT_CORRESPONDANCE_CLIENT = 'client.lire' as const;
 
 function champAbsent<T>(): ChampScanne<T> {
   return { valeur: null, confiance: 'absente' };
@@ -241,7 +237,8 @@ export class ServiceVehiculeOcr {
           ctx.tenantId,
           'vehicule.correspondance_scan_permis',
           { clientId: correspondanceClient.id },
-          ROLES_NOTIFIES_CORRESPONDANCE_CLIENT,
+          ROLES_CANDIDATS_CORRESPONDANCE_CLIENT,
+          DROIT_CORRESPONDANCE_CLIENT,
         );
       }
 

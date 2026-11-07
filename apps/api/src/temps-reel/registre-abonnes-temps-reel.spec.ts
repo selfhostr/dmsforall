@@ -140,3 +140,53 @@ describe('RegistreAbonnesTempsReel — isolation tenant et propagation multi-ins
     expect(rappel).not.toHaveBeenCalled();
   });
 });
+
+describe('RegistreAbonnesTempsReel — filtre sur le DROIT de l’abonné (revue sécurité F3)', () => {
+  it('un abonné dont la grille n’a pas le droit requis ne reçoit rien, même si son rôle est ciblé', async () => {
+    const courtier = new FauxCourtierRedis();
+    const emetteur = publieur(courtier);
+    const registre = nouvelleInstance(courtier);
+
+    const avecDroit: EvenementDiffuseLocalement[] = [];
+    const sansDroit: EvenementDiffuseLocalement[] = [];
+    registre.enregistrer(
+      'tenant-a',
+      'vendeur',
+      (e) => avecDroit.push(e),
+      () => true,
+    );
+    registre.enregistrer(
+      'tenant-a',
+      'vendeur',
+      (e) => sansDroit.push(e),
+      () => false,
+    );
+
+    await emetteur.publier(
+      'tenant-a',
+      'vehicule.correspondance_scan_permis',
+      { clientId: 'c' },
+      ['vendeur'],
+      'client.lire',
+    );
+
+    expect(avecDroit).toHaveLength(1);
+    expect(sansDroit).toHaveLength(0);
+  });
+
+  it('sans prédicat explicite, le préréglage du rôle décide (fiduciaire/technicien sans client.lire inclus)', async () => {
+    const courtier = new FauxCourtierRedis();
+    const emetteur = publieur(courtier);
+    const registre = nouvelleInstance(courtier);
+    const recus: EvenementDiffuseLocalement[] = [];
+    registre.enregistrer('tenant-a', 'poste_atelier', (e) => recus.push(e));
+    await emetteur.publier(
+      'tenant-a',
+      'vehicule.correspondance_scan_permis',
+      { clientId: 'c' },
+      ['poste_atelier'],
+      'client.lire',
+    );
+    expect(recus).toHaveLength(0);
+  });
+});

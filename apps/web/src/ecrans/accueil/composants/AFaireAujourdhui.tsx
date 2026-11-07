@@ -1,3 +1,4 @@
+import type { ActionsSession } from '@/droits';
 import { useTranslation } from 'react-i18next';
 
 import type { RoleUtilisateur } from '@dfa/shared';
@@ -18,6 +19,7 @@ import { CarteOrAFaire } from './CarteOrAFaire';
 
 interface Props {
   readonly role: RoleUtilisateur | undefined;
+  readonly actions: ActionsSession;
   readonly site: string | undefined;
 }
 
@@ -36,7 +38,7 @@ const CLES_RESTITUTIONS: Readonly<Record<string, string>> = {
  * rendez-vous, de restitution et de retard sont celles que les tableaux de bord par rôle
  * affichaient déjà (aucun bloc perdu, seulement remonté ici).
  */
-export function AFaireAujourdhui({ role, site }: Props) {
+export function AFaireAujourdhui({ role, actions, site }: Props) {
   const { t } = useTranslation('accueil');
   const cles = (role && CLES_RESTITUTIONS[role]) ?? CLES_RESTITUTIONS.receptionnaire;
 
@@ -46,8 +48,8 @@ export function AFaireAujourdhui({ role, site }: Props) {
         {t('aFaire.titre')}
       </h2>
       <div className="grid items-start gap-groupe lg:grid-cols-2">
-        {peutLireRendezVous(role) ? <CarteRendezVousJour site={site} /> : null}
-        {peutLireEcheancesOr(role) ? (
+        {peutLireRendezVous(actions) ? <CarteRendezVousJour site={site} /> : null}
+        {peutLireEcheancesOr(actions) ? (
           <CarteRestitutionsJour
             site={site}
             titreCle={`${cles}.titre`}
@@ -56,8 +58,8 @@ export function AFaireAujourdhui({ role, site }: Props) {
             videDescriptionCle={`${cles}.vide.description`}
           />
         ) : null}
-        {peutLireEcheancesOr(role) ? <CarteOrEnRetard site={site} /> : null}
-        {peutEmettreFacture(role) ? (
+        {peutLireEcheancesOr(actions) ? <CarteOrEnRetard site={site} /> : null}
+        {peutEmettreFacture(actions) ? (
           <CarteOrAFaire
             site={site}
             filtre={{ statut: 'termine' }}
@@ -65,10 +67,10 @@ export function AFaireAujourdhui({ role, site }: Props) {
             destination="facturer"
           />
         ) : null}
-        {peutEncaisser(role) && peutVoirMontantsFacturation(role) ? (
+        {peutEncaisser(actions) && peutVoirMontantsFacturation(actions) ? (
           <CarteFacturesEchues site={site} />
         ) : null}
-        {peutLireEcheancesOr(role) ? (
+        {peutLireEcheancesOr(actions) ? (
           <CarteOrAFaire
             site={site}
             filtre={{ attente: 'accord' }}

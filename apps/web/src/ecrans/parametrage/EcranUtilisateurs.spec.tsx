@@ -10,6 +10,7 @@ import type { PageUtilisateurResume, UtilisateurResume } from '@dfa/shared';
 import '@/i18n';
 import i18n from '@/i18n';
 
+import { capacitesDuPrereglage, modeleCapacitesDeTest } from '@/composants/capacites/modele-test';
 import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
@@ -33,6 +34,7 @@ const EMPLOYE_TECHNICIEN: UtilisateurResume = {
   nom: 'Rey',
   email: 'julie.rey@garage-martin.ch',
   role: 'technicien',
+  capacites: capacitesDuPrereglage('technicien'),
   statut: 'actif',
   sites: [{ id: 'site-1', nom: 'Site principal' }],
   derniereConnexionLe: null,
@@ -42,8 +44,13 @@ const EMPLOYE_TECHNICIEN: UtilisateurResume = {
 function connecterSession(role: (typeof SESSION_TEST)['utilisateur']['role'] = 'direction') {
   server.use(
     http.get('/api/v1/auth/moi', () =>
-      HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role } }),
+      HttpResponse.json({
+        ...SESSION_TEST,
+        utilisateur: { ...SESSION_TEST.utilisateur, role },
+        capacites: capacitesDuPrereglage(role === 'poste_atelier' ? 'direction' : role),
+      }),
     ),
+    http.get('/api/v1/capacites/modele', () => HttpResponse.json(modeleCapacitesDeTest())),
   );
 }
 
@@ -83,6 +90,31 @@ describe('EcranUtilisateurs — liste', () => {
     expect(screen.getByText(i18n.t('commun:roles.technicien'))).toBeInTheDocument();
     expect(screen.getByText('Site principal')).toBeInTheDocument();
     expect(screen.getByText(i18n.t('parametrage:utilisateurs.statut.actif'))).toBeInTheDocument();
+  });
+
+  it('colonne Accès : domaines où la personne agit, et préréglage d’origine ou « Personnalisé »', async () => {
+    connecterSession();
+    const personnalisee: UtilisateurResume = {
+      ...EMPLOYE_TECHNICIEN,
+      id: 'emp-2',
+      prenom: 'Marc',
+      email: 'marc@garage-martin.ch',
+      capacites: {
+        ...capacitesDuPrereglage('technicien'),
+        niveaux: { ...capacitesDuPrereglage('technicien').niveaux, pieces: 'faire' },
+        encadrer: true,
+        prereglage: null,
+        personnalisee: true,
+      },
+    };
+    server.use(
+      http.get(CHEMIN_LISTE, () => HttpResponse.json(pageDe([EMPLOYE_TECHNICIEN, personnalisee]))),
+    );
+    rendre();
+
+    expect(await screen.findByText('Atelier')).toBeInTheDocument();
+    expect(screen.getByText(i18n.t('capacites:editeur.personnalise'))).toBeInTheDocument();
+    expect(screen.getByText('Atelier, Pièces · encadre')).toBeInTheDocument();
   });
 
   it('affiche un état d’erreur actionnable sur une panne serveur', async () => {
@@ -166,6 +198,7 @@ describe('EcranUtilisateurs — création', () => {
       http.get('/api/v1/auth/moi', () =>
         HttpResponse.json({
           ...SESSION_TEST,
+          capacites: capacitesDuPrereglage('direction'),
           sites: [
             ...SESSION_TEST.sites,
             { id: 'site-2', code: 'S2', nom: 'Site deux', actif: true },
@@ -217,6 +250,147 @@ describe('EcranUtilisateurs — création', () => {
     expect(
       screen.queryByRole('option', { name: i18n.t('commun:roles.admin') }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe('EcranUtilisateurs — fiduciaire et droits personnalisés', () => {
+  async function remplirIdentite(util: ReturnType<typeof userEvent.setup>) {
+    await util.type(
+      screen.getByLabelText(`${i18n.t('parametrage:utilisateurs.creation.champPrenom')} *`),
+      'Anne',
+    );
+    await util.type(
+      screen.getByLabelText(`${i18n.t('parametrage:utilisateurs.creation.champNom')} *`),
+      'Fidu',
+    );
+    await util.type(
+      screen.getByLabelText(`${i18n.t('parametrage:utilisateurs.creation.champEmail')} *`),
+      'anne@fiduciaire.ch',
+    );
+  }
+
+  it('fiduciaire en un clic : préréglage fiduciaire (rôle comptable), lecture seule', async () => {
+    connecterSession('direction');
+    const corps: { valeur: Record<string, unknown> | null } = { valeur: null };
+    server.use(
+      http.get(CHEMIN_LISTE, () => HttpResponse.json(pageDe([]))),
+      http.post(CHEMIN_LISTE, async ({ request }) => {
+        corps.valeur = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(
+          {
+            utilisateur: {
+              ...EMPLOYE_TECHNICIEN,
+              role: 'comptable',
+              capacites: capacitesDuPrereglage('fiduciaire'),
+            },
+            acces: { motDePasseTemporaire: 'MdpFiduciaire123' },
+          },
+          { status: 201 },
+        );
+      }),
+    );
+    rendre();
+
+    const util = userEvent.setup();
+    await util.click(
+      await screen.findByRole('button', {
+        name: i18n.t('parametrage:utilisateurs.fiduciaire.bouton'),
+      }),
+    );
+    expect(
+      await screen.findByText(i18n.t('parametrage:utilisateurs.fiduciaire.titre')),
+    ).toBeInTheDocument();
+    await remplirIdentite(util);
+    const envoyer = screen.getByRole('button', {
+      name: i18n.t('parametrage:utilisateurs.creation.actions.creer'),
+    });
+    await waitFor(() => expect(envoyer).toBeEnabled());
+    await util.click(envoyer);
+
+    expect(await screen.findByDisplayValue('MdpFiduciaire123')).toBeInTheDocument();
+    expect(corps.valeur).toMatchObject({
+      role: 'comptable',
+      prereglage: 'fiduciaire',
+      siteIds: ['site-1'],
+    });
+  });
+
+  it('droits personnalisés : création puis PATCH des seuls écarts', async () => {
+    connecterSession('direction');
+    let patch: Record<string, unknown> | null = null;
+    server.use(
+      http.get(CHEMIN_LISTE, () => HttpResponse.json(pageDe([]))),
+      http.post(CHEMIN_LISTE, () =>
+        HttpResponse.json(
+          {
+            utilisateur: { ...EMPLOYE_TECHNICIEN },
+            acces: { motDePasseTemporaire: 'MdpPerso12345' },
+          },
+          { status: 201 },
+        ),
+      ),
+      http.patch(`${CHEMIN_LISTE}/emp-1/capacites`, async ({ request }) => {
+        patch = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ ...EMPLOYE_TECHNICIEN });
+      }),
+    );
+    rendre();
+
+    const util = userEvent.setup();
+    await util.click(
+      await screen.findByRole('button', { name: i18n.t('parametrage:utilisateurs.nouveau') }),
+    );
+    await remplirIdentite(util);
+    const groupePieces = await screen.findByRole('radiogroup', {
+      name: i18n.t('capacites:editeur.domaineAria', {
+        domaine: i18n.t('capacites:domaines.pieces.libelle'),
+      }),
+    });
+    await util.click(within(groupePieces).getByRole('radio', { name: 'Faire' }));
+    expect(screen.getByText(i18n.t('capacites:editeur.personnalise'))).toBeInTheDocument();
+    await util.click(
+      screen.getByRole('button', {
+        name: i18n.t('parametrage:utilisateurs.creation.actions.creer'),
+      }),
+    );
+
+    expect(await screen.findByDisplayValue('MdpPerso12345')).toBeInTheDocument();
+    expect(patch).toEqual({ niveaux: { pieces: 'faire' } });
+  });
+
+  it('incohérence : Finances sans montants bloque la création avant tout envoi', async () => {
+    connecterSession('direction');
+    let postRecu = false;
+    server.use(
+      http.get(CHEMIN_LISTE, () => HttpResponse.json(pageDe([]))),
+      http.post(CHEMIN_LISTE, () => {
+        postRecu = true;
+        return HttpResponse.json({}, { status: 201 });
+      }),
+    );
+    rendre();
+
+    const util = userEvent.setup();
+    await util.click(
+      await screen.findByRole('button', { name: i18n.t('parametrage:utilisateurs.nouveau') }),
+    );
+    await remplirIdentite(util);
+    const groupeFinances = await screen.findByRole('radiogroup', {
+      name: i18n.t('capacites:editeur.domaineAria', {
+        domaine: i18n.t('capacites:domaines.finances.libelle'),
+      }),
+    });
+    await util.click(within(groupeFinances).getByRole('radio', { name: 'Voir' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      i18n.t('capacites:editeur.incoherence.finances'),
+    );
+    const creer = screen.getByRole('button', {
+      name: i18n.t('parametrage:utilisateurs.creation.actions.creer'),
+    });
+    expect(creer).toBeDisabled();
+    await util.click(creer);
+    expect(postRecu).toBe(false);
   });
 });
 

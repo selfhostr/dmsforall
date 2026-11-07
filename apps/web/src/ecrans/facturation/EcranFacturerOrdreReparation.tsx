@@ -85,7 +85,7 @@ function ContenuFacturerOrdreReparation({
   const navigate = useNavigate();
 
   const { data: session } = useSession();
-  const role = session?.utilisateur.role;
+  const actions = session?.actions;
   const requete = useOrdreReparation(orId);
   const facturation = useFacturationOrdreReparation();
   const marquerRealisees = useMarquerLignesRealisees(orId ?? '');
@@ -193,8 +193,8 @@ function ContenuFacturerOrdreReparation({
     // Le raccourci serveur ne facture que le groupe client, sans report ni démontage refusé.
     groupeUnique.payeur === 'client' &&
     !inclureDemontageRefuse &&
-    peutEmettreFacture(role) &&
-    peutEncaisser(role);
+    peutEmettreFacture(actions) &&
+    peutEncaisser(actions);
 
   function ouvrirFacturerEtEncaisser() {
     if (!orId || !groupeUnique) return;

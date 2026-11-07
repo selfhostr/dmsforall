@@ -16,7 +16,8 @@ import {
   ligneDocument,
   type LigneDocumentVente,
 } from '../../db/schema';
-import { MATRICE_DROITS, type Action } from '../../auth/matrice-droits';
+import { type Action } from '../../auth/matrice-droits';
+import { droitsDuPrincipal } from '../../auth/droits-personne';
 import type { PrincipalAuthentifie } from '../../common/contexte/contexte-requete.types';
 import { ErreurMetier } from '../../common/erreurs/erreur-metier';
 import { Horloge } from '../../common/horloge/horloge';
@@ -780,7 +781,7 @@ export class ServiceEmissionDocument {
         : typeDocument === 'avoir'
           ? 'facturation.document.emettre_avoir'
           : 'facturation.document.emettre_devis_bc';
-    const droitsDuRole = MATRICE_DROITS[principal.role] ?? [];
+    const droitsDuRole = droitsDuPrincipal(principal).actions;
     if (!droitsDuRole.includes(action)) {
       throw new ErreurMetier(
         'DROIT_INSUFFISANT',
@@ -828,7 +829,7 @@ export class ServiceEmissionDocument {
     doc: LigneDocumentVente,
     totalAvoirTtcCentimes: number,
   ): Promise<void> {
-    if (!MATRICE_DROITS[principal.role].includes('facturation.avoir.plafonne')) return;
+    if (!droitsDuPrincipal(principal).actions.includes('facturation.avoir.plafonne')) return;
 
     const plafondCentimes = await chargerPlafondAvoirReceptionnaire(tx, ctx);
     if (plafondCentimes === null) return; // NULL = aucun plafond convenu (0018 §3) — inchangé.

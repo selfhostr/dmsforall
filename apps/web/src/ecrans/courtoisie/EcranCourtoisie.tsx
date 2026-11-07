@@ -49,7 +49,7 @@ const CONFIG_DISPONIBILITE: Record<
 export function EcranCourtoisie() {
   const { t } = useTranslation(['courtoisie', 'commun', 'erreurs']);
   const session = useSession();
-  const role = session.data?.utilisateur.role;
+  const actions = session.data?.actions;
   const [jour, setJour] = useState(() => jourLocal(new Date()));
   const { du, au } = bornesDuJour(jour);
   const requete = useVehiculesCourtoisie(du, au);
@@ -60,8 +60,8 @@ export function EcranCourtoisie() {
   const [aRendre, setARendre] = useState<ReponsePretCourtoisie | null>(null);
   const [ajoutOuvert, setAjoutOuvert] = useState(false);
 
-  const peutPreter = peutPreterCourtoisie(role);
-  const peutGererParc = peutGererParcCourtoisie(role);
+  const peutPreter = peutPreterCourtoisie(actions);
+  const peutGererParc = peutGererParcCourtoisie(actions);
   const vehicules = requete.data?.vehicules ?? [];
   const nbLibres = vehicules.filter((v) => v.disponibilite === 'libre').length;
 

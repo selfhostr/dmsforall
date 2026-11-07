@@ -55,14 +55,14 @@ function estVueGlobale(valeur: string | null): valeur is VueGlobale {
 export function EcranPointage() {
   const { t } = useTranslation(['pointage', 'commun']);
   const { data: session } = useSession();
-  const role = session?.utilisateur.role;
+  const actions = session?.actions;
 
   const [searchParams, setSearchParams] = useSearchParams();
   const siteParam = searchParams.get('site') ?? undefined;
   const sitesActifs = (session?.sites ?? []).filter((site) => site.actif);
   const siteId = siteParam ?? (sitesActifs.length === 1 ? sitesActifs[0]?.id : undefined);
 
-  const vueEquipe = peutVoirEquipePointage(role);
+  const vueEquipe = peutVoirEquipePointage(actions);
   const vueParam = searchParams.get('vue');
   const vue: VueGlobale = vueEquipe && estVueGlobale(vueParam) ? vueParam : 'journal';
 
@@ -98,7 +98,7 @@ export function EcranPointage() {
             <VueJournalPointage siteId={siteId} />
           </TabsContent>
           <TabsContent value="equipe" className="pt-4">
-            <VueEquipePointage siteId={siteId} role={role} />
+            <VueEquipePointage siteId={siteId} actions={actions} />
           </TabsContent>
         </Tabs>
       ) : (

@@ -1,6 +1,14 @@
 import type { RoleUtilisateur } from '@dfa/shared';
 
 import { chemins } from './chemins';
+import { ACCES_PIECES, ACCES_POINTAGE, ACCES_VENTES, type Acces } from './droits-routes';
+
+/** Où atterrit un rôle d'origine (gabarit) — seulement si la personne a bien accès à la cible
+ *  (une grille personnalisée qui a perdu le droit retombe sur l'accueil, jamais sur un refus). */
+export interface DestinationAtterrissage {
+  readonly chemin: string;
+  readonly acces: Acces;
+}
 
 /**
  * TABLE D'ATTERRISSAGE PAR RÔLE — Lot D (`docs/refonte-navigation.md` §2, table « Rôle /
@@ -55,9 +63,9 @@ import { chemins } from './chemins';
  * `technicien` reste utile — audit trail, reprise d'un pointage, consultation d'un OR — et quand il
  * sert, c'est pour pointer : « Mon travail » est le seul atterrissage qui ait un sens.
  */
-export const ATTERRISSAGE_PAR_ROLE: Partial<Record<RoleUtilisateur, string>> = {
-  poste_atelier: chemins.pointage.borne(),
-  technicien: chemins.pointage.saisie(),
-  magasinier: chemins.pieces.rechercheComptoir(),
-  vendeur: chemins.ventes.dossiers.liste(),
+export const ATTERRISSAGE_PAR_ROLE: Partial<Record<RoleUtilisateur, DestinationAtterrissage>> = {
+  poste_atelier: { chemin: chemins.pointage.borne(), acces: ['atelier.pointage.identifier'] },
+  technicien: { chemin: chemins.pointage.saisie(), acces: ACCES_POINTAGE },
+  magasinier: { chemin: chemins.pieces.rechercheComptoir(), acces: ACCES_PIECES },
+  vendeur: { chemin: chemins.ventes.dossiers.liste(), acces: ACCES_VENTES },
 };

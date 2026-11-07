@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
+import { CapacitesController } from './capacites.controller';
 import { BorneController } from './borne.controller';
 import { SiteController } from './site.controller';
 import { TenantController } from './tenant.controller';
@@ -21,7 +22,13 @@ import { ServiceUtilisateur } from './service-utilisateur';
  */
 @Module({
   imports: [AuthModule],
-  controllers: [TenantController, SiteController, UtilisateurController, BorneController],
+  controllers: [
+    TenantController,
+    SiteController,
+    UtilisateurController,
+    BorneController,
+    CapacitesController,
+  ],
   providers: [ServiceTenant, ServiceSite, ServiceUtilisateur, ServiceBorne],
 })
 export class SocleModule {}

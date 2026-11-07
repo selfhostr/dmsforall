@@ -1,3 +1,4 @@
+import { creerSessionTest } from '@/test/session';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -29,7 +30,7 @@ import { EcranBornePointage } from './EcranBornePointage';
  * n'est atteignable qu'en session `poste_atelier` (compte de service, exactement UN site via
  * `sites[0]`, voir l'en-tête d'`EcranBornePointage.tsx`). Fixture dédiée, propre à ce fichier.
  */
-const SESSION_BORNE: SessionCourante = {
+const SESSION_BORNE: SessionCourante = creerSessionTest('poste_atelier', {
   utilisateur: {
     id: 'borne-atelier-1',
     email: 'borne-atelier-1@garage.ch',
@@ -46,9 +47,8 @@ const SESSION_BORNE: SessionCourante = {
   },
   sites: [{ id: 'site-1', code: 'PRINCIPAL', nom: 'Site principal', actif: true }],
   siteRattachementId: 'site-1',
-  actions: [],
   expireLe: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-};
+});
 
 const IDENTIFICATION_MARCO: ReponseIdentificationPin = {
   technicienId: 'technicien-marco',

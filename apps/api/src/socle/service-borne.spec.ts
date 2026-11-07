@@ -1,3 +1,5 @@
+import { GRILLE_VIDE } from '@dfa/shared';
+import { colonnesDepuisGrille } from '../auth/grille-utilisateur';
 import { describe, expect, it, vi } from 'vitest';
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db/db.types';
 import type { LigneUtilisateur } from '../db/schema';
@@ -35,6 +37,8 @@ function ligneBorne(champs: Partial<LigneUtilisateur> = {}): LigneUtilisateur {
     derniereConnexionLe: null,
     creeLe: new Date('2026-08-01T08:00:00.000Z'),
     modifieLe: new Date('2026-08-01T08:00:00.000Z'),
+    // Borne = profil figé : grille vide (contrainte `utilisateur_borne_sans_grille_chk`).
+    ...colonnesDepuisGrille(GRILLE_VIDE),
     ...champs,
   };
 }

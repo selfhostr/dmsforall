@@ -19,12 +19,16 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, getTableColumns, inArray, isNull, ne, sql } from 'drizzle-orm';
 import {
   TRI_DEFAUT_CREATION,
+  PREREGLAGES,
+  droitsBaissent,
+  incoherencesDeGrille,
   type EntreeCreationUtilisateur,
+  type EntreeModificationCapacites,
   type EntreeModificationUtilisateur,
+  type GrilleCapacites,
   type PageUtilisateurResume,
   type ReponseAccesTemporaire,
   type ReponseCreationUtilisateur,
-  type RoleUtilisateur,
   type UtilisateurResume,
 } from '@dfa/shared';
 
@@ -46,7 +50,19 @@ import {
 import { ErreurMetier } from '../common/erreurs';
 import { remonterCauseParCode } from '../common/erreurs-pg';
 import { genererMotDePasseTemporaire } from '../auth/generateur-mot-de-passe-temporaire';
-import { verifierAttributionRoleAutorisee } from '../auth/gouvernance-roles';
+import {
+  verifierAttributionRoleAutorisee,
+  verifierCibleModifiable,
+  verifierGrilleAttribuable,
+  verifierPasAutoModification,
+  resoudrePrereglage,
+  type ActeurGouvernance,
+} from '../auth/gouvernance-roles';
+import {
+  capacitesPersonneDe,
+  colonnesDepuisGrille,
+  grilleDepuisLigne,
+} from '../auth/grille-utilisateur';
 import {
   JETON_SERVICE_MOT_DE_PASSE,
   JETON_SERVICE_REINITIALISATION_MOT_DE_PASSE,
@@ -141,10 +157,14 @@ export class ServiceUtilisateur {
   async creer(
     ctx: ContexteTenant,
     entree: EntreeCreationUtilisateur,
-    acteurRole: RoleUtilisateur,
+    acteur: ActeurGouvernance,
   ): Promise<ReponseCreationUtilisateur> {
     // Garde n°1 (« personne ne s'octroie plus de droits qu'il n'en a ») — AVANT tout accès base.
+    const acteurRole = typeof acteur === 'string' ? acteur : acteur.role;
     verifierAttributionRoleAutorisee(acteurRole, entree.role);
+    const choix = resoudrePrereglage(entree.role, entree.prereglage);
+    const grilleInitiale = PREREGLAGES[choix?.id ?? entree.role].grille;
+    verifierGrilleAttribuable(acteur, grilleInitiale, { prereglage: true });
 
     const motDePasseClair = genererMotDePasseTemporaire();
     const motDePasseHash = await this.motDePasse.hacher(motDePasseClair);
@@ -163,6 +183,7 @@ export class ServiceUtilisateur {
             prenom: entree.prenom,
             nom: entree.nom,
             role: entree.role,
+            ...colonnesDepuisGrille(grilleInitiale),
             // Un mot de passe réel existe déjà : `actif`, jamais `invite` (« invite » = créé mais
             // mot de passe jamais posé — voir db/schema/utilisateur.ts).
             statut: 'actif',
@@ -198,7 +219,12 @@ export class ServiceUtilisateur {
         utilisateurCibleId: ligne.id,
         action: 'creation',
         avant: null,
-        apres: { role: entree.role, statut: 'actif' },
+        apres: {
+          role: entree.role,
+          statut: 'actif',
+          prereglage: choix?.id ?? entree.role,
+          capacites: grilleInitiale,
+        },
       });
 
       const sites = await this.chargerSites(tx, ctx, entree.siteIds);
@@ -209,32 +235,50 @@ export class ServiceUtilisateur {
     });
   }
 
-  /** Modifie le rôle et/ou les sites d'un employé. Au moins un des deux champs est déjà garanti
-   *  présent par `schemaModificationUtilisateur` (zod `.refine`). */
+  /** Modifie le rôle (= applique un préréglage) et/ou les sites d'un employé. Au moins un des deux
+   *  champs est déjà garanti présent par `schemaModificationUtilisateur` (zod `.refine`).
+   *  Changer de rôle REMPLACE la grille de la personne par le préréglage du nouveau rôle (les
+   *  personnalisations sont perdues, l'audit garde l'avant/après). */
   async modifier(
     ctx: ContexteTenant,
     utilisateurId: string,
     entree: EntreeModificationUtilisateur,
-    acteurRole: RoleUtilisateur,
+    acteur: ActeurGouvernance,
   ): Promise<UtilisateurResume> {
-    if (entree.role !== undefined) {
-      verifierAttributionRoleAutorisee(acteurRole, entree.role);
+    const acteurRole = typeof acteur === 'string' ? acteur : acteur.role;
+    const choix = resoudrePrereglage(entree.role, entree.prereglage);
+    if (choix !== null) {
+      verifierAttributionRoleAutorisee(acteurRole, choix.role);
+      verifierPasAutoModification(ctx.utilisateurId ?? null, utilisateurId);
+      verifierGrilleAttribuable(acteur, PREREGLAGES[choix.id].grille, { prereglage: true });
     }
 
     return this.acces.enTenant(ctx, async (tx) => {
       const ligne = await this.chargerUtilisateurPourEcriture(tx, ctx, utilisateurId);
 
-      if (entree.role !== undefined && entree.role !== ligne.role) {
-        await tx
-          .update(utilisateur)
-          .set({ role: entree.role })
-          .where(and(eq(utilisateur.tenantId, ctx.tenantId), eq(utilisateur.id, utilisateurId)));
-        await this.ecrireAudit(tx, ctx, {
-          utilisateurCibleId: utilisateurId,
-          action: 'modification_role',
-          avant: { role: ligne.role },
-          apres: { role: entree.role },
-        });
+      if (choix !== null) {
+        const grilleAvant = grilleDepuisLigne(ligne);
+        verifierCibleModifiable(acteur, ligne.role, grilleAvant);
+        const grilleApres = PREREGLAGES[choix.id].grille;
+        // Un préréglage nommé s'applique toujours (c'est le moyen de « remettre à zéro » une grille
+        // personnalisée) ; un simple rôle identique au rôle actuel ne touche à rien.
+        const change = choix.role !== ligne.role || entree.prereglage !== undefined;
+        if (change) {
+          await this.verifierPasDernierPatron(tx, ctx, ligne, grilleApres);
+          await tx
+            .update(utilisateur)
+            .set({ role: choix.role, ...colonnesDepuisGrille(grilleApres) })
+            .where(and(eq(utilisateur.tenantId, ctx.tenantId), eq(utilisateur.id, utilisateurId)));
+          if (droitsBaissent(grilleAvant, grilleApres)) {
+            await this.revoquerSessionsActives(tx, ctx, utilisateurId);
+          }
+          await this.ecrireAudit(tx, ctx, {
+            utilisateurCibleId: utilisateurId,
+            action: 'modification_role',
+            avant: { role: ligne.role, capacites: grilleAvant },
+            apres: { role: choix.role, prereglage: choix.id, capacites: grilleApres },
+          });
+        }
       }
 
       if (entree.siteIds !== undefined) {
@@ -269,23 +313,95 @@ export class ServiceUtilisateur {
     });
   }
 
+  /**
+   * `PATCH /utilisateurs/{id}/capacites` — ajuste la grille d'UNE personne (niveaux, encadrer,
+   * options). Gardes, dans l'ordre : pas de modification de soi-même ; la cible ne doit pas
+   * dépasser l'acteur ; la nouvelle grille ne doit pas dépasser l'acteur ; `gererEmployes` et
+   * `patron` ne bougent pas ici. Les sessions de la personne sont révoquées si ses droits baissent.
+   */
+  async modifierCapacites(
+    ctx: ContexteTenant,
+    utilisateurId: string,
+    entree: EntreeModificationCapacites,
+    acteur: ActeurGouvernance,
+  ): Promise<UtilisateurResume> {
+    verifierPasAutoModification(ctx.utilisateurId ?? null, utilisateurId);
+
+    return this.acces.enTenant(ctx, async (tx) => {
+      const ligne = await this.chargerUtilisateurPourEcriture(tx, ctx, utilisateurId);
+      const avant = grilleDepuisLigne(ligne);
+      verifierCibleModifiable(acteur, ligne.role, avant);
+
+      const apres: GrilleCapacites = {
+        niveaux: { ...avant.niveaux, ...definis(entree.niveaux) },
+        encadrer: entree.encadrer ?? avant.encadrer,
+        gererEmployes: avant.gererEmployes,
+        patron: avant.patron,
+        options: { ...avant.options, ...definis(entree.options) },
+      };
+      const incoherences = incoherencesDeGrille(apres);
+      if (incoherences.length > 0) {
+        throw new ErreurMetier(
+          'VALIDATION_ECHOUEE',
+          'Grille incohérente : sans « voit les montants », on ne facture pas, on ne vend pas et on n’accède pas aux finances.',
+          {
+            erreurs: incoherences.map((champ) => ({
+              champ,
+              code: 'grille_incoherente',
+              message: 'Incompatible avec l’option « voit les montants » désactivée.',
+            })),
+          },
+        );
+      }
+      verifierGrilleAttribuable(acteur, apres, { prereglage: false });
+
+      await tx
+        .update(utilisateur)
+        .set(colonnesDepuisGrille(apres))
+        .where(and(eq(utilisateur.tenantId, ctx.tenantId), eq(utilisateur.id, utilisateurId)));
+
+      if (droitsBaissent(avant, apres)) {
+        await this.revoquerSessionsActives(tx, ctx, utilisateurId);
+      }
+      await this.ecrireAudit(tx, ctx, {
+        utilisateurCibleId: utilisateurId,
+        action: 'modification_role',
+        avant: { role: ligne.role, capacites: avant },
+        apres: { role: ligne.role, capacites: apres },
+      });
+
+      const ligneFinale = await this.chargerUtilisateurPourEcriture(tx, ctx, utilisateurId);
+      const sites = await this.chargerSitesParUtilisateur(tx, ctx, [utilisateurId]);
+      return versUtilisateurResume(ligneFinale, sites.get(utilisateurId) ?? []);
+    });
+  }
+
   /** Désactive un employé (`statut = 'suspendu'`) — jamais une suppression, l'historique (OR,
    *  factures, pointages) doit rester attribuable des années plus tard. Révoque immédiatement
    *  toute session active : sans quoi la désactivation resterait cosmétique jusqu'à l'expiration
    *  naturelle de la session en cours. */
-  async desactiver(ctx: ContexteTenant, utilisateurId: string): Promise<UtilisateurResume> {
+  async desactiver(
+    ctx: ContexteTenant,
+    utilisateurId: string,
+    acteur: ActeurGouvernance,
+  ): Promise<UtilisateurResume> {
     if (utilisateurId === ctx.utilisateurId) {
       throw new ErreurMetier(
         'CONFLIT',
         'Impossible de désactiver son propre compte — demandez à un autre titulaire de direction/admin.',
       );
     }
-    return this.basculerStatut(ctx, utilisateurId, 'suspendu', 'desactivation', true);
+    return this.basculerStatut(ctx, utilisateurId, 'suspendu', 'desactivation', true, acteur);
   }
 
   /** Réactive un employé précédemment désactivé (`statut = 'actif'`). */
-  async reactiver(ctx: ContexteTenant, utilisateurId: string): Promise<UtilisateurResume> {
-    return this.basculerStatut(ctx, utilisateurId, 'actif', 'reactivation', false);
+  async reactiver(
+    ctx: ContexteTenant,
+    utilisateurId: string,
+    acteur: ActeurGouvernance,
+  ): Promise<UtilisateurResume> {
+    verifierPasAutoModification(ctx.utilisateurId ?? null, utilisateurId);
+    return this.basculerStatut(ctx, utilisateurId, 'actif', 'reactivation', false, acteur);
   }
 
   /**
@@ -296,12 +412,17 @@ export class ServiceUtilisateur {
   async reinitialiserAcces(
     ctx: ContexteTenant,
     utilisateurId: string,
+    acteur: ActeurGouvernance,
   ): Promise<ReponseAccesTemporaire> {
+    // Reprendre la main sur un compte (mot de passe temporaire rendu en clair) est le geste le plus
+    // dangereux : jamais sur soi-même, jamais sur plus puissant que soi (sinon on devient lui).
+    verifierPasAutoModification(ctx.utilisateurId ?? null, utilisateurId);
     const motDePasseClair = genererMotDePasseTemporaire();
     const motDePasseHash = await this.motDePasse.hacher(motDePasseClair);
 
     await this.acces.enTenant(ctx, async (tx) => {
-      await this.chargerUtilisateurPourEcriture(tx, ctx, utilisateurId);
+      const cible = await this.chargerUtilisateurPourEcriture(tx, ctx, utilisateurId);
+      verifierCibleModifiable(acteur, cible.role, grilleDepuisLigne(cible));
 
       await tx
         .update(utilisateur)
@@ -342,11 +463,18 @@ export class ServiceUtilisateur {
     statutCible: 'actif' | 'suspendu',
     action: 'desactivation' | 'reactivation',
     revoquerSessions: boolean,
+    acteur: ActeurGouvernance,
   ): Promise<UtilisateurResume> {
     return this.acces.enTenant(ctx, async (tx) => {
       const ligne = await this.chargerUtilisateurPourEcriture(tx, ctx, utilisateurId);
+      // Suspendre ou réactiver un compte plus puissant que soi serait un déni de service (ou une
+      // réactivation d'un compte révoqué) hors de ses droits.
+      verifierCibleModifiable(acteur, ligne.role, grilleDepuisLigne(ligne));
 
       if (ligne.statut !== statutCible) {
+        if (statutCible === 'suspendu') {
+          await this.verifierPasDernierPatron(tx, ctx, ligne, null);
+        }
         await tx
           .update(utilisateur)
           .set({ statut: statutCible })
@@ -368,6 +496,57 @@ export class ServiceUtilisateur {
       const sites = await this.chargerSitesParUtilisateur(tx, ctx, [utilisateurId]);
       return versUtilisateurResume(ligneFinale, sites.get(utilisateurId) ?? []);
     });
+  }
+
+  /**
+   * Un garage ne reste jamais sans patron : si `ligne` est un patron ACTIF qui cesserait de l'être
+   * (grille de remplacement sans `patron`, ou désactivation quand `grilleApres` est `null`), il
+   * doit en rester au moins un autre actif dans le tenant. Sans quoi plus personne ne pourrait
+   * gérer les comptes ni modifier l'IBAN.
+   */
+  private async verifierPasDernierPatron(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    ligne: LigneUtilisateur,
+    grilleApres: GrilleCapacites | null,
+  ): Promise<void> {
+    if (!ligne.estPatron || ligne.statut !== 'actif') return;
+    if (grilleApres !== null && grilleApres.patron) return;
+    // Sérialise, par garage, les rétrogradations/désactivations de patrons : sans verrou, deux
+    // transactions concurrentes voient chacune l'AUTRE patron encore actif et le garage se
+    // retrouve sans patron. Verrou consultatif de transaction (pas de FOR UPDATE croisé : deux
+    // patrons se verrouillant mutuellement feraient un interblocage). Le comptage qui suit lit
+    // l'état validé par la transaction précédente (READ COMMITTED).
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtextextended(${`patron:${ctx.tenantId}`}, 0))`,
+    );
+    const [autres] = await tx
+      .select({ n: sql<number>`count(*)::int` })
+      .from(utilisateur)
+      .where(
+        and(
+          eq(utilisateur.tenantId, ctx.tenantId),
+          eq(utilisateur.estPatron, true),
+          eq(utilisateur.statut, 'actif'),
+          ne(utilisateur.id, ligne.id),
+          CONDITION_ROLE_PERSONNE,
+        ),
+      );
+    if ((autres?.n ?? 0) === 0) {
+      throw new ErreurMetier(
+        'CONFLIT',
+        'Dernier patron du garage : désignez d’abord un autre patron avant de modifier ou désactiver ce compte.',
+        {
+          erreurs: [
+            {
+              champ: 'utilisateurId',
+              code: 'dernier_patron',
+              message: 'Un garage doit garder au moins un patron actif.',
+            },
+          ],
+        },
+      );
+    }
   }
 
   private async chargerUtilisateurPourEcriture(
@@ -557,9 +736,18 @@ function versUtilisateurResume(
     // sur les lignes que ce service charge) — cast local plutôt qu'un filtrage TypeScript
     // impossible à exprimer depuis `LigneUtilisateur.role: RoleUtilisateur`.
     role: ligne.role as UtilisateurResume['role'],
+    capacites: capacitesPersonneDe(ligne.role, grilleDepuisLigne(ligne)),
     statut: ligne.statut,
     sites: [...sites].sort((a, b) => a.nom.localeCompare(b.nom)),
     derniereConnexionLe: ligne.derniereConnexionLe ? ligne.derniereConnexionLe.toISOString() : null,
     creeLe: ligne.creeLe.toISOString(),
   };
+}
+
+/** Retire les clés `undefined` d'un objet partiel (un spread laisserait `undefined` écraser). */
+function definis<T extends object>(partiel: T | undefined): Partial<T> {
+  if (partiel === undefined) return {};
+  return Object.fromEntries(
+    Object.entries(partiel).filter(([, v]) => v !== undefined),
+  ) as Partial<T>;
 }

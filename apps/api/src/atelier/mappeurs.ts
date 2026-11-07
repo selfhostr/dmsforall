@@ -13,16 +13,16 @@ import type {
   LigneLigneOr,
   LigneOrdreReparationDemande,
 } from '../db/schema';
-import { ROLES_SANS_MONTANT } from '../auth/matrice-droits';
+import { voitLesMontants } from '../auth/droits-personne';
 import type { ResumeUtilisateur } from './references';
 
 /**
  * Filtrage des montants par rôle (§3.5 règle 4, invariant frontend n°10) — décision
- * d'AUTORISATION appliquée CÔTÉ SERVEUR, jamais laissée au front. `ROLES_SANS_MONTANT` vit dans
- * `auth/matrice-droits.ts` et nulle part ailleurs ; ce module se contente de le consulter.
+ * d'AUTORISATION appliquée CÔTÉ SERVEUR, jamais laissée au front. l'option « voit les montants » de la personne vit dans
+ * `auth/droits-personne.ts` et nulle part ailleurs ; ce module se contente de la consulter.
  */
 export function roleVoitLesMontants(role: RoleUtilisateur): boolean {
-  return !ROLES_SANS_MONTANT.includes(role);
+  return voitLesMontants(role);
 }
 
 export function mapperLigneOr(ligne: LigneLigneOr, role: RoleUtilisateur): ReponseLigneOr {

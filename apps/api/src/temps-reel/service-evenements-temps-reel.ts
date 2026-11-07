@@ -10,6 +10,7 @@
  * non connecté au moment de l'émission ne rattrape rien — c'est le comportement voulu pour une
  * notification (« untel est déjà présenté au comptoir »), pas un fait qui doit survivre.
  */
+import type { Action } from '../auth/matrice-droits';
 import { Inject, Injectable } from '@nestjs/common';
 import type {
   DonneesEvenementTempsReel,
@@ -46,12 +47,14 @@ export class ServiceEvenementsTempsReel {
     type: T,
     donnees: DonneesEvenementTempsReel[T],
     rolesCibles: readonly RoleUtilisateur[],
+    droitRequis?: Action,
   ): Promise<void> {
     const enveloppe: EnveloppeEvenementTempsReelInterne<T> = {
       type,
       emisLe: new Date().toISOString(),
       donnees,
       rolesCibles,
+      ...(droitRequis === undefined ? {} : { droitRequis }),
     };
     await this.publieur.publish(canalTenant(tenantId), JSON.stringify(enveloppe));
   }

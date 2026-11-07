@@ -7,10 +7,12 @@
  *
  * Import relatif vers `apps/api` : réservé à ce test, jamais au code livré dans le bundle.
  */
-import { ROLES_UTILISATEUR, type RoleUtilisateur } from '@dfa/shared';
+import { ROLES_UTILISATEUR } from '@dfa/shared';
 import { describe, expect, it } from 'vitest';
 
-import { MATRICE_DROITS, type Action } from '../../api/src/auth/matrice-droits';
+import { MATRICE_DROITS, TOUTES_ACTIONS, type Action } from '../../api/src/auth/matrice-droits';
+
+import { ACTIONS_CITEES, type ActionsSession } from './droits';
 
 import * as pieces from './ecrans/pieces/droits';
 import * as pneus from './ecrans/pneus/droits';
@@ -20,7 +22,7 @@ import * as financements from './ecrans/ventes/financements/droits';
 import * as reprises from './ecrans/ventes/reprises/droits';
 import * as stock from './ecrans/ventes/stock/droits';
 
-type PeutX = (role: RoleUtilisateur | undefined) => boolean;
+type PeutX = (actions: ActionsSession) => boolean;
 
 /** Fonction web → action(s) de la matrice (le rôle doit les détenir TOUTES). */
 const PARITE: ReadonlyArray<readonly [string, PeutX, readonly Action[]]> = [
@@ -106,16 +108,21 @@ const PARITE: ReadonlyArray<readonly [string, PeutX, readonly Action[]]> = [
 
 describe('parité des droits web ↔ MATRICE_DROITS de l’API', () => {
   it.each(PARITE)(
-    '%s rend exactement ce que la matrice accorde, pour les 9 rôles',
+    '%s suit exactement les actions du préréglage, pour les 9 rôles',
     (_nom, peut, actions) => {
       for (const role of ROLES_UTILISATEUR) {
         const attendu = actions.every((a) => MATRICE_DROITS[role].includes(a));
-        expect(peut(role), `${_nom} pour ${role}`).toBe(attendu);
+        expect(peut(MATRICE_DROITS[role]), `${_nom} pour ${role}`).toBe(attendu);
       }
     },
   );
 
-  it('un rôle indéfini (session non chargée) n’a jamais aucun droit', () => {
+  it('une session non chargée (actions indéfinies) n’a jamais aucun droit', () => {
     for (const [, peut] of PARITE) expect(peut(undefined)).toBe(false);
+  });
+
+  it('chaque action interrogée par le web existe dans TOUTES_ACTIONS', () => {
+    const connues = new Set<string>(TOUTES_ACTIONS);
+    for (const action of ACTIONS_CITEES) expect(connues.has(action), action).toBe(true);
   });
 });

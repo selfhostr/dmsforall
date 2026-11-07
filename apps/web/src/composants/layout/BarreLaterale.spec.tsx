@@ -157,14 +157,15 @@ describe('BarreLaterale — les six entrées', () => {
 
     await screen.findByRole('link', { name: /^pièces$/i });
 
-    // Pas de Ventes (`ventes.*` fermé au magasinier), mais Atelier reste avant
-    // Clients & véhicules, qui reste avant Pièces : l'ordre est absolu, pas relatif au rôle.
+    // Atelier reste avant Clients & véhicules, qui reste avant Pièces : l'ordre est absolu, pas
+    // relatif au rôle. Ventes apparaît : la grille (Pièces : Faire) ouvre `ventes.dossier.lire`.
     expect(libellesDesEntrees()).toEqual([
       "Aujourd'hui",
       'Atelier',
       'Clients & véhicules',
       'Pièces',
       'Facturation',
+      'Véhicules à vendre',
     ]);
   });
 
@@ -379,13 +380,14 @@ describe('BarreLaterale — masquage par rôle', () => {
    * une liste sans un seul montant annonce un contenu qu'il ne verra jamais. Jusqu'ici le lien
    * `/factures` était le SEUL du menu sans aucune garde de rôle.
    */
-  it('admin : aucune entrée Facturation (RF-115), ni Pièces, ni Ventes', async () => {
+  it('admin : ni Pièces, ni Ventes (les montants restent fermés)', async () => {
     connecte('admin');
     rendre('/');
 
     await screen.findByRole('link', { name: /^atelier$/i });
 
-    expect(screen.queryByRole('link', { name: /^facturation$/i })).not.toBeInTheDocument();
+    // Facturation : `facturation.document.lire` lui est accordé via « Encadrer » (grille) ; le menu
+    // suit le serveur. Les montants restent masqués (`facturation.paiement.lire` absent).
     expect(screen.queryByRole('link', { name: /^pièces$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /^véhicules à vendre$/i })).not.toBeInTheDocument();
     // Il garde en revanche Réglages : la gouvernance atelier lui est ouverte — vérifié dans le

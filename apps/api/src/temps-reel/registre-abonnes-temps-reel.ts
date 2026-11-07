@@ -12,6 +12,8 @@
  * pour le même tenant) et n'offre rien de plus ici qu'un `Set` — écrit à la main pour un contrôle
  * explicite, pas par dogme anti-bibliothèque.
  */
+import { droitsDe } from '../auth/droits-personne';
+import type { Action } from '../auth/matrice-droits';
 import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
 import type { RoleUtilisateur } from '@dfa/shared';
@@ -68,9 +70,16 @@ export class RegistreAbonnesTempsReel implements OnModuleInit, OnModuleDestroy {
    * désabonner du canal Redis du tenant dès que son dernier poste repart, et donc de libérer la
    * ressource sans attendre un redémarrage.
    */
-  enregistrer(tenantId: string, role: RoleUtilisateur, rappel: Rappel): () => void {
+  enregistrer(
+    tenantId: string,
+    role: RoleUtilisateur,
+    rappel: Rappel,
+    aLeDroit: (action: Action) => boolean = droitsDe(role).aLeDroit,
+  ): () => void {
     const filtreInterne: FiltreInterne = (enveloppe) => {
       if (!enveloppe.rolesCibles.includes(role)) return;
+      // Second filtre : le DROIT de la personne (sa grille), pas seulement son rôle d'origine.
+      if (enveloppe.droitRequis !== undefined && !aLeDroit(enveloppe.droitRequis)) return;
       const visible: EvenementDiffuseLocalement = {
         type: enveloppe.type,
         emisLe: enveloppe.emisLe,

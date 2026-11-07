@@ -135,7 +135,7 @@ export function EnTeteOrdreReparation({ or }: Props) {
   // rester ouvert pour l'encaissement et le PDF.
   const session = useSession();
   const [demande, setDemande] = useState<DemandeFacturerEtEncaisser | null>(null);
-  const demandeSimple = demandeFacturerEtEncaisserDepuisOr(or, session.data?.utilisateur.role);
+  const demandeSimple = demandeFacturerEtEncaisserDepuisOr(or, session.data?.actions);
 
   // Lot B (`docs/plan-refonte-navigation.md`) — « l'OR précédent du même véhicule ». Requête
   // minimale via la fonction de transport (`vehiculeId` désormais sérialisé, défaut réparé), non

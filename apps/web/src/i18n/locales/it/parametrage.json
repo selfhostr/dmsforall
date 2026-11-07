@@ -269,6 +269,7 @@
       "nom": "Nome",
       "email": "E-mail",
       "role": "Ruolo",
+      "acces": "Accesso",
       "sites": "Sedi",
       "statut": "Stato",
       "actions": "Azioni"
@@ -292,17 +293,18 @@
       "champPrenom": "Nome",
       "champNom": "Cognome",
       "champEmail": "E-mail",
-      "champRole": "Ruolo",
+      "champRole": "Funzione (punto di partenza)",
       "champSites": "Sedi in cui lavora il dipendente",
       "aucunSiteDisponible": "Nessuna sede è ancora collegata a questa officina.",
       "sitesAucunSelectionne": "Selezioni almeno una sede.",
       "actions": {
         "creer": "Crea"
-      }
+      },
+      "droitsNonEnregistres": "L'account è stato creato, ma i diritti non sono stati salvati. La Sua scelta è stata conservata: la verifichi e salvi."
     },
     "modification": {
       "titre": "Modifica {nom}",
-      "description": "Cambi il ruolo e/o le sedi — utile in caso di cambio di mansione.",
+      "description": "Cambi la funzione, le sedi o i diritti di questa persona — utile in caso di cambio di mansione.",
       "actions": {
         "enregistrer": "Salva"
       }
@@ -368,7 +370,13 @@
       "identifiantLabel": "Identificativo",
       "motDePasseLabel": "Password",
       "fermer": "Ho annotato queste informazioni"
-    }
+    },
+    "fiduciaire": {
+      "bouton": "Aggiungi una fiduciaria",
+      "titre": "Nuovo account fiduciaria",
+      "description": "Account in sola lettura per la Sua fiduciaria: fatturazione e finanze, nient'altro."
+    },
+    "accesPerso": "{role} (personalizzato)"
   },
   "entreprise": {
     "titre": "Azienda",

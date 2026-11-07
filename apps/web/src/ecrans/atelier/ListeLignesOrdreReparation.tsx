@@ -143,7 +143,7 @@ export function ListeLignesOrdreReparation({
 }: Props) {
   const { t } = useTranslation(['or', 'commun']);
   const session = useSession();
-  const role = session.data?.utilisateur.role;
+  const actions = session.data?.actions;
 
   const [selection, setSelection] = useState<ReadonlySet<string>>(new Set());
   const [actionOuverte, setActionOuverte] = useState<ActionGroupeeLigne | null>(null);
@@ -158,12 +158,12 @@ export function ListeLignesOrdreReparation({
   const refuserLignes = useRefuserLignesOr(orId);
   const annulerLignes = useAnnulerLignesOr(orId);
 
-  const peutValider = peutValiderLigneOr(role);
-  const peutRefuser = peutRefuserLigneOr(role);
-  const peutAnnuler = peutAnnulerLigneOr(role);
+  const peutValider = peutValiderLigneOr(actions);
+  const peutRefuser = peutRefuserLigneOr(actions);
+  const peutAnnuler = peutAnnulerLigneOr(actions);
   const peutDecider = peutValider || peutRefuser || peutAnnuler;
   const lignesProposees = lignes.filter((ligne) => ligne.statut === 'proposee');
-  const peutReporter = vehiculeId !== undefined && peutReporterTravail(role);
+  const peutReporter = vehiculeId !== undefined && peutReporterTravail(actions);
 
   function basculerSelection(ligneId: string) {
     setSelection((precedente) => {

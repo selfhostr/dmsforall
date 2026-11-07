@@ -51,7 +51,7 @@ export function EcranFicheArticle() {
   const [searchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
   const session = useSession();
-  const role = session.data?.utilisateur.role;
+  const actions = session.data?.actions;
   const sites = session.data?.sites ?? [];
   // Défaut corrigé : `pieces.fournisseur.lire`/`pieces.commande_fournisseur.lire` (direction,
   // chef_atelier, magasinier SEULS, `ecrans/pieces/droits.ts`) sont STRICTEMENT plus étroits que
@@ -65,8 +65,8 @@ export function EcranFicheArticle() {
   // texte « droit refusé » ne doivent s'afficher avant que la session soit résolue : les deux
   // sections gardent leur squelette de chargement pendant ce court instant (voir le rendu plus
   // bas, `session.isLoading ? …`).
-  const peutLireFournisseurArticle = peutLireFournisseur(role);
-  const peutLireCommandesArticle = peutLireCommandeFournisseur(role);
+  const peutLireFournisseurArticle = peutLireFournisseur(actions);
+  const peutLireCommandesArticle = peutLireCommandeFournisseur(actions);
 
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
@@ -150,7 +150,7 @@ export function EcranFicheArticle() {
   }
 
   const article = requeteArticle.data;
-  const peutEcrire = peutEcrireArticle(role);
+  const peutEcrire = peutEcrireArticle(actions);
   const consommations = requeteConsommations.reservations;
   const reservationsActives = requeteReservationsActives.reservations;
   const commandesAvecArticle = (requeteCommandes.data?.donnees ?? []).filter((commande) =>
@@ -427,13 +427,13 @@ export function EcranFicheArticle() {
         articleId={article.id}
         stocksResume={article.stocksResume}
         sites={sites}
-        peutModifierStock={peutEcrireStockSite(role)}
+        peutModifierStock={peutEcrireStockSite(actions)}
       />
 
       <PanneauMouvementsArticle
         articleId={article.id}
         sites={sites}
-        peutCreerMouvement={peutCreerMouvement(role)}
+        peutCreerMouvement={peutCreerMouvement(actions)}
         siteParDefaut={site}
       />
 

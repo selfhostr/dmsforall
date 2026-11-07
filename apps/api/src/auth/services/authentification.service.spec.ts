@@ -1,3 +1,5 @@
+import { GRILLE_VIDE, PREREGLAGES } from '@dfa/shared';
+import { colonnesDepuisGrille } from '../grille-utilisateur';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
@@ -67,6 +69,7 @@ function accesBaseTest(): AccesBase {
       // Compte de personne : aucun rattachement de site (migration 0039) — `sessionCourante()`
       // rend alors TOUS les sites du tenant, comportement inchangé depuis l'étape 0.
       siteId: null,
+      ...colonnesDepuisGrille(PREREGLAGES.admin.grille),
     },
     tenant: {
       id: 'tenant-id',
@@ -786,6 +789,10 @@ describe('ServiceAuthentificationImpl.sessionCourante — portée de site des co
           role: siteIdUtilisateur === null ? 'admin' : 'poste_atelier',
           langue: 'fr',
           siteId: siteIdUtilisateur,
+          // Colonnes de grille : la borne n'en a pas (profil figé), un admin a son préréglage.
+          ...colonnesDepuisGrille(
+            siteIdUtilisateur === null ? PREREGLAGES.admin.grille : GRILLE_VIDE,
+          ),
         },
       ],
       tenant: [

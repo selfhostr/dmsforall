@@ -50,6 +50,7 @@ export const NAMESPACES = [
   'scan',
   'reprise',
   'export',
+  'capacites',
 ] as const;
 
 /** Chargeurs paresseux : un `import()` par fichier, donc un chunk par langue et namespace.
@@ -81,6 +82,7 @@ const ressources = {
     scan: () => import('./locales/fr/scan.json'),
     reprise: () => import('./locales/fr/reprise.json'),
     export: () => import('./locales/fr/export.json'),
+    capacites: () => import('./locales/fr/capacites.json'),
   },
   de: {
     commun: () => import('./locales/de/commun.json'),
@@ -108,6 +110,7 @@ const ressources = {
     scan: () => import('./locales/de/scan.json'),
     reprise: () => import('./locales/de/reprise.json'),
     export: () => import('./locales/de/export.json'),
+    capacites: () => import('./locales/de/capacites.json'),
   },
   it: {
     commun: () => import('./locales/it/commun.json'),
@@ -135,6 +138,7 @@ const ressources = {
     scan: () => import('./locales/it/scan.json'),
     reprise: () => import('./locales/it/reprise.json'),
     export: () => import('./locales/it/export.json'),
+    capacites: () => import('./locales/it/capacites.json'),
   },
 } as const;
 

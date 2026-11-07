@@ -8,10 +8,10 @@ import {
   NOMBRE_MAX_PHOTOS_PAR_LIGNE,
   type ReponseListePhotosLigne,
   type ReponsePhotoLigne,
-  type RoleUtilisateur,
   type TypeMimePhotoLigne,
 } from '@dfa/shared';
 
+import { droitsDuPrincipal } from '../../auth/droits-personne';
 import type { PrincipalAuthentifie } from '../../common/contexte/contexte-requete.types';
 import { ErreurMetier } from '../../common/erreurs/erreur-metier';
 import { JETON_DB, type AccesBase, type ContexteTenant } from '../../db';
@@ -23,13 +23,12 @@ import { detecterTypeImage } from './detection-image';
 import { JETON_STOCKAGE_PHOTOS } from './photos.jetons';
 import { clePhoto, cleVignettePhoto, type PortStockagePhotos } from './stockage-photos';
 
-/** Encadrement : peut supprimer la photo de n'importe qui (les autres, seulement les leurs). */
-const ROLES_ENCADREMENT: ReadonlySet<RoleUtilisateur> = new Set([
-  'admin',
-  'direction',
-  'chef_atelier',
-  'receptionnaire',
-]);
+/** Encadrement : peut supprimer la photo de n'importe qui (les autres, seulement les leurs).
+ *  Accordé par « Encadrer » ou « Accueil : Faire » (réceptionnaire) — plus par une liste de rôles. */
+function peutSupprimerLesPhotosDesAutres(principal: PrincipalAuthentifie): boolean {
+  const capacites = droitsDuPrincipal(principal).capacites;
+  return capacites.has('encadrer') || capacites.has('accueil.faire');
+}
 
 export interface FichierRecu {
   readonly buffer: Buffer;
@@ -294,7 +293,9 @@ export class ServicePhotosLigne {
   }
 
   private peutSupprimer(photo: LigneLigneOrPhoto, principal: PrincipalAuthentifie): boolean {
-    return ROLES_ENCADREMENT.has(principal.role) || photo.creeParId === principal.utilisateurId;
+    return (
+      peutSupprimerLesPhotosDesAutres(principal) || photo.creeParId === principal.utilisateurId
+    );
   }
 
   private mapper(

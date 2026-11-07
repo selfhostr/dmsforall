@@ -10,7 +10,8 @@ import { Reflector } from '@nestjs/core';
 // ici (common/droits/, propriété l'équipe backend) pour rester réutilisable par tous les futurs
 // modules métier (pas seulement socle). À CONFIRMER avec l'équipe authentification : nom réel du fichier/export,
 // et s'assurer qu'aucun mécanisme équivalent n'est dupliqué côté auth/.
-import { MATRICE_DROITS, type Action } from '../../auth/matrice-droits';
+import { type Action } from '../../auth/matrice-droits';
+import { droitsDuPrincipal } from '../../auth/droits-personne';
 // Lecture seule de la métadonnée `@Public()` (propriété l'équipe authentification, auth/decorateurs/public.decorator.ts) :
 // GardeDroit ne définit ni ne modifie ce décorateur, il se contente de le reconnaître pour qu'une
 // route publique n'ait pas besoin de porter EN PLUS `@AucunDroitRequis()` — voir le commentaire de
@@ -86,7 +87,7 @@ export class GardeDroit implements CanActivate {
     const action = this.reflector.getAllAndOverride<Action | undefined>(CLE_META_ACTION, cibles);
     if (action) {
       const principal = this.contexte.exigerPrincipal();
-      const droitsDuRole: readonly Action[] = MATRICE_DROITS[principal.role] ?? [];
+      const droitsDuRole: readonly Action[] = droitsDuPrincipal(principal).actions;
       if (!droitsDuRole.includes(action)) {
         throw new ErreurMetier(
           'DROIT_INSUFFISANT',

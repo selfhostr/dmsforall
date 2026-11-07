@@ -1,3 +1,4 @@
+import { actionsDuRole } from '@/test/session';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -62,7 +63,7 @@ function rendre() {
   const queryClient = creerQueryClientTest();
   render(
     <QueryClientProvider client={queryClient}>
-      <VueEquipePointage siteId="site-1" role="chef_atelier" />
+      <VueEquipePointage siteId="site-1" actions={actionsDuRole('chef_atelier')} />
     </QueryClientProvider>,
   );
 }
@@ -263,7 +264,7 @@ describe('VueEquipePointage', () => {
       const queryClient = creerQueryClientTest();
       render(
         <QueryClientProvider client={queryClient}>
-          <VueEquipePointage siteId="site-1" role="comptable" />
+          <VueEquipePointage siteId="site-1" actions={actionsDuRole('comptable')} />
         </QueryClientProvider>,
       );
 

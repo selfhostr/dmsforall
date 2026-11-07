@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
-import type { RolePersonne } from '@dfa/shared';
+import { ROLES_UTILISATEUR, type IdPrereglage } from '@dfa/shared';
 
 import { Label } from '@/components/ui/label';
 import {
@@ -12,30 +12,26 @@ import {
 } from '@/components/ui/select';
 import { cleTraductionRole } from '@/lib/roles';
 
-/** Clé i18n de la phrase qui décrit ce que fait chaque rôle, en mots de garagiste. Mapping
- *  explicite : `tsc` signale l'oubli d'un rôle si `RolePersonne` évolue. */
-const CLES_DESCRIPTION_ROLE: Readonly<Record<RolePersonne, string>> = {
-  direction: 'parametrage:utilisateurs.rolesDescription.direction',
-  chef_atelier: 'parametrage:utilisateurs.rolesDescription.chef_atelier',
-  receptionnaire: 'parametrage:utilisateurs.rolesDescription.receptionnaire',
-  technicien: 'parametrage:utilisateurs.rolesDescription.technicien',
-  magasinier: 'parametrage:utilisateurs.rolesDescription.magasinier',
-  vendeur: 'parametrage:utilisateurs.rolesDescription.vendeur',
-  comptable: 'parametrage:utilisateurs.rolesDescription.comptable',
-  admin: 'parametrage:utilisateurs.rolesDescription.admin',
-};
-
 interface Props {
   readonly idPrefixe: string;
-  readonly valeur: RolePersonne;
-  readonly roles: readonly RolePersonne[];
-  readonly onChange: (role: RolePersonne) => void;
+  readonly valeur: IdPrereglage;
+  /** Points de départ proposés (préréglages), dans l'ordre d'affichage. */
+  readonly prereglages: readonly IdPrereglage[];
+  readonly onChange: (prereglage: IdPrereglage) => void;
 }
 
-/** Sélecteur de rôle d'un employé : chaque rôle est décrit en une phrase, et le texte rappelle
- *  qu'une personne n'a qu'un seul rôle. */
-export function ChampRoleEmploye({ idPrefixe, valeur, roles, onChange }: Props) {
-  const { t } = useTranslation(['parametrage', 'commun']);
+/** Un préréglage qui est aussi un rôle garde le libellé du rôle (« Technicien ») ; les autres
+ *  (« Fiduciaire ») prennent le leur dans le namespace `capacites`. */
+function libellePrereglage(id: IdPrereglage, t: (cle: string) => string): string {
+  return (ROLES_UTILISATEUR as readonly string[]).includes(id)
+    ? t(cleTraductionRole(id as (typeof ROLES_UTILISATEUR)[number]))
+    : t(`capacites:prereglages.${id}.libelle`);
+}
+
+/** Choix du point de départ d'un employé : chaque préréglage est décrit en une phrase. Ce n'est
+ *  qu'un point de départ : la grille « Qui peut quoi » juste dessous l'ajuste. */
+export function ChampRoleEmploye({ idPrefixe, valeur, prereglages, onChange }: Props) {
+  const { t } = useTranslation(['parametrage', 'commun', 'capacites']);
   const idAide = `${idPrefixe}-role-aide`;
 
   return (
@@ -43,17 +39,17 @@ export function ChampRoleEmploye({ idPrefixe, valeur, roles, onChange }: Props) 
       <Label htmlFor={`${idPrefixe}-role`}>
         {t('parametrage:utilisateurs.creation.champRole')} *
       </Label>
-      <Select value={valeur} onValueChange={(v) => onChange(v as RolePersonne)}>
+      <Select value={valeur} onValueChange={(v) => onChange(v as IdPrereglage)}>
         <SelectTrigger id={`${idPrefixe}-role`} aria-describedby={idAide}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {roles.map((r) => (
-            <SelectItem key={r} value={r}>
+          {prereglages.map((id) => (
+            <SelectItem key={id} value={id}>
               <span className="flex flex-col">
-                <span>{t(cleTraductionRole(r))}</span>
+                <span>{libellePrereglage(id, t)}</span>
                 <span className="texte-libelle text-muted-foreground">
-                  {t(CLES_DESCRIPTION_ROLE[r])}
+                  {t(`capacites:prereglages.${id}.description`)}
                 </span>
               </span>
             </SelectItem>
@@ -61,7 +57,7 @@ export function ChampRoleEmploye({ idPrefixe, valeur, roles, onChange }: Props) 
         </SelectContent>
       </Select>
       <p id={idAide} className="texte-libelle text-muted-foreground">
-        {t(CLES_DESCRIPTION_ROLE[valeur])} {t('parametrage:utilisateurs.roleUnique')}
+        {t(`capacites:prereglages.${valeur}.description`)}
       </p>
     </div>
   );

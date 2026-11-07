@@ -10,7 +10,7 @@ import {
   type TransactionDfa,
 } from '../../db';
 import { ErreurMetier } from '../../common/erreurs';
-import { MATRICE_DROITS } from '../../auth/matrice-droits';
+import { actionsCourantes } from '../../auth/droits-personne';
 import { verifierChampsActifsParametresAtelier } from './gouvernance-fonctionnalites';
 import {
   versColonnesMiseAJour,
@@ -147,7 +147,7 @@ export class ServiceParametresAtelier {
     const modifieLePlafond = valeurSoumise !== undefined && valeurSoumise !== valeurActuelle;
     if (!modifieLePlafond) return;
 
-    const droitsDuRole = MATRICE_DROITS[role] ?? [];
+    const droitsDuRole = actionsCourantes(role);
     if (!droitsDuRole.includes('parametrage.atelier.plafond_avoir.modifier')) {
       throw new ErreurMetier(
         'DROIT_INSUFFISANT',

@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { ROLES_PERSONNE, type Langue, type RolePersonne, type StatutUtilisateur } from './enums';
 import type { PageCurseur } from './pagination';
+import { IDS_PREREGLAGE, type CapacitesPersonne } from './capacites';
 
 /** Corps de `GET /api/v1/tenant/courant`. */
 export interface TenantCourant {
@@ -44,6 +45,8 @@ export interface UtilisateurResume {
   readonly nom: string;
   readonly email: string;
   readonly role: RolePersonne;
+  /** Grille de capacités de la personne (le rôle n'en est que le préréglage d'origine). */
+  readonly capacites: CapacitesPersonne;
   readonly statut: StatutUtilisateur;
   readonly sites: readonly SiteAffecteResume[];
   /** ISO 8601, `null` si l'employé ne s'est encore jamais connecté. */
@@ -75,6 +78,8 @@ export const schemaCreationUtilisateur = z
     nom: schemaNomPersonne,
     email: schemaEmailUtilisateur,
     role: z.enum(ROLES_PERSONNE_TUPLE),
+    /** Préréglage de départ (défaut : celui du rôle). Son rôle d'origine doit égaler `role`. */
+    prereglage: z.enum(IDS_PREREGLAGE).optional(),
     siteIds: schemaSiteIds,
   })
   .strict();
@@ -86,6 +91,8 @@ export type EntreeCreationUtilisateur = z.infer<typeof schemaCreationUtilisateur
 export const schemaModificationUtilisateur = z
   .object({
     role: z.enum(ROLES_PERSONNE_TUPLE).optional(),
+    /** Avec `role` : préréglage appliqué (ex. `fiduciaire` pour `comptable`). Défaut : celui du rôle. */
+    prereglage: z.enum(IDS_PREREGLAGE).optional(),
     siteIds: schemaSiteIds.optional(),
   })
   .strict()

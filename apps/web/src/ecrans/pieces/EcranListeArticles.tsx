@@ -60,7 +60,7 @@ export function EcranListeArticles() {
   const { t } = useTranslation(['pieces', 'commun']);
   const navigate = useNavigate();
   const { data: session } = useSession();
-  const role = session?.utilisateur.role;
+  const actions = session?.actions;
 
   const [qSaisie, setQSaisie] = useState('');
   const [q, reinitialiserQ] = useValeurDebouncee(qSaisie, DELAI_DEBOUNCE_MS);
@@ -228,7 +228,7 @@ export function EcranListeArticles() {
         titre={t('pieces:articles.liste.vide.premierUsage.titre')}
         description={t('pieces:articles.liste.vide.premierUsage.description')}
         action={
-          peutEcrireArticle(role) ? (
+          peutEcrireArticle(actions) ? (
             <Button onClick={() => setFormulaireOuvert(true)}>
               {t('pieces:articles.actions.ajouter')}
             </Button>
@@ -362,7 +362,7 @@ export function EcranListeArticles() {
           label={t('pieces:articles.tri.label')}
           className="max-w-xs"
         />
-        {peutEcrireArticle(role) ? (
+        {peutEcrireArticle(actions) ? (
           <Button onClick={() => setFormulaireOuvert(true)}>
             {t('pieces:articles.actions.ajouter')}
           </Button>

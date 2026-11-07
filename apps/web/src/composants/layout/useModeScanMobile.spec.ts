@@ -1,3 +1,4 @@
+import { actionsDuRole } from '@/test/session';
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -41,19 +42,19 @@ describe('useModeScanMobile', () => {
 
   it('téléphone détecté + rôle autorisé -> restriction active', () => {
     installerMatchMedia(true);
-    const { result } = renderHook(() => useModeScanMobile('receptionnaire'));
+    const { result } = renderHook(() => useModeScanMobile(actionsDuRole('receptionnaire')));
     expect(result.current.actif).toBe(true);
   });
 
   it('téléphone NON détecté (poste fixe, fenêtre étroite comprise) -> jamais restreint', () => {
     installerMatchMedia(false);
-    const { result } = renderHook(() => useModeScanMobile('receptionnaire'));
+    const { result } = renderHook(() => useModeScanMobile(actionsDuRole('receptionnaire')));
     expect(result.current.actif).toBe(false);
   });
 
   it('téléphone détecté mais rôle hors ROLES_SCAN (ex. technicien, atterrissage propre) -> pas de restriction imposée', () => {
     installerMatchMedia(true);
-    const { result } = renderHook(() => useModeScanMobile('technicien'));
+    const { result } = renderHook(() => useModeScanMobile(actionsDuRole('technicien')));
     expect(result.current.actif).toBe(false);
   });
 
@@ -74,18 +75,18 @@ describe('useModeScanMobile', () => {
     ] as const;
     const refuses = ['technicien', 'comptable', 'vendeur', 'poste_atelier'] as const;
     for (const role of autorises) {
-      const { result } = renderHook(() => useModeScanMobile(role));
+      const { result } = renderHook(() => useModeScanMobile(actionsDuRole(role)));
       expect(result.current.actif, `rôle ${role} devrait être restreint`).toBe(true);
     }
     for (const role of refuses) {
-      const { result } = renderHook(() => useModeScanMobile(role));
+      const { result } = renderHook(() => useModeScanMobile(actionsDuRole(role)));
       expect(result.current.actif, `rôle ${role} ne devrait pas être restreint`).toBe(false);
     }
   });
 
   it('quitter() désactive la restriction immédiatement, sans attendre un nouveau rendu externe', () => {
     installerMatchMedia(true);
-    const { result } = renderHook(() => useModeScanMobile('receptionnaire'));
+    const { result } = renderHook(() => useModeScanMobile(actionsDuRole('receptionnaire')));
     expect(result.current.actif).toBe(true);
 
     act(() => result.current.quitter());
@@ -95,11 +96,11 @@ describe('useModeScanMobile', () => {
 
   it('quitter() persiste (sessionStorage) : un nouveau montage sur le même onglet reste hors restriction', () => {
     installerMatchMedia(true);
-    const premier = renderHook(() => useModeScanMobile('receptionnaire'));
+    const premier = renderHook(() => useModeScanMobile(actionsDuRole('receptionnaire')));
     act(() => premier.result.current.quitter());
     premier.unmount();
 
-    const second = renderHook(() => useModeScanMobile('receptionnaire'));
+    const second = renderHook(() => useModeScanMobile(actionsDuRole('receptionnaire')));
     expect(second.result.current.actif).toBe(false);
   });
 
@@ -111,12 +112,14 @@ describe('useModeScanMobile', () => {
       return getItemOriginal(cle);
     });
 
-    expect(() => renderHook(() => useModeScanMobile('receptionnaire'))).not.toThrow();
+    expect(() =>
+      renderHook(() => useModeScanMobile(actionsDuRole('receptionnaire'))),
+    ).not.toThrow();
   });
 
   it('un changement de correspondance media (rotation, redimensionnement) est écouté et réévalue `actif`', () => {
     const liste = installerMatchMedia(true);
-    const { result } = renderHook(() => useModeScanMobile('receptionnaire'));
+    const { result } = renderHook(() => useModeScanMobile(actionsDuRole('receptionnaire')));
     expect(result.current.actif).toBe(true);
     expect(liste.addEventListener).toHaveBeenCalledWith('change', expect.any(Function));
 

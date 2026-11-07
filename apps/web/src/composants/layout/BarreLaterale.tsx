@@ -21,6 +21,7 @@ import {
   cheminEntree,
   ENTREE_REGLAGES,
   entreesVisibles,
+  sujetNavigation,
   reglagesVisibles,
   trouverCorrespondance,
   type EntreeMenu,
@@ -171,7 +172,7 @@ export function BarreLaterale({ className, repli }: Props) {
   const site = searchParams.get('site') ?? preferenceSiteId;
   const { pathname } = useLocation();
   const { data: session } = useSession();
-  const role = session?.utilisateur.role;
+  const sujet = sujetNavigation(session);
   const deconnexion = useDeconnexion();
   // Numéro de version — voir la doc de `infoVersionBrute` en tête de fichier. Repli traduit
   // (« inconnue ») posé ICI, pas dans `infoVersionBrute`, pour rester une fonction pure sans
@@ -194,12 +195,12 @@ export function BarreLaterale({ className, repli }: Props) {
   // `routes/chemins.ts`) : deux onglets ouverts sur deux sites différents ne doivent pas se
   // contredire, et un utilisateur qui a navigué vers un site autre que son défaut de session ne
   // doit pas y être silencieusement ramené en cliquant une entrée de cette barre.
-  const entrees = entreesVisibles(role);
+  const entrees = entreesVisibles(sujet);
   const correspondance = trouverCorrespondance(pathname);
   const idEntreeActive = correspondance?.entree.id;
 
   function rendreEntree(entree: EntreeMenu) {
-    const cible = cheminEntree(entree, role, site);
+    const cible = cheminEntree(entree, sujet, site);
     if (cible === undefined) return null;
     const Icone = entree.icone;
     const actif = entree.id === idEntreeActive;
@@ -338,14 +339,14 @@ export function BarreLaterale({ className, repli }: Props) {
        * même destination sur le même écran — Réglages ne vit donc QUE dans ce menu, pas aussi en
        * lien direct à côté.
        *
-       * Rendu dès que `session` existe, SANS dépendre de `reglagesVisibles(role)` — contrairement
+       * Rendu dès que `session` existe, SANS dépendre de `reglagesVisibles(sujet)` — contrairement
        * à l'ancien pied qui conditionnait tout (Réglages ET la version) sur ce même test. Piège
        * évité : `reglagesVisibles` ne vaut aujourd'hui jamais `false` pour un rôle de personne
        * (l'onglet « Tarifs et prestations » n'a AUCUNE restriction), donc l'ancien couplage était
        * invisible en pratique — mais un futur retrait de cette exception aurait fait disparaître la
        * DÉCONNEXION en même temps que Réglages pour le rôle concerné, une régression opérationnelle
        * bien plus grave qu'un onglet manquant. Le menu ne propose Réglages QUE si
-       * `reglagesVisibles(role)` reste vrai ; la déconnexion, elle, est TOUJOURS proposée.
+       * `reglagesVisibles(sujet)` reste vrai ; la déconnexion, elle, est TOUJOURS proposée.
        *
        * Numéro de version SOUS le déclencheur, pas dessus (demande produit, 17.08.2026 : « au-dessus ou
        * en dessous du bouton Réglages », choix laissé à le lot — Réglages a changé de forme depuis,
@@ -371,7 +372,7 @@ export function BarreLaterale({ className, repli }: Props) {
               déclencheur restant ici. */}
           {/* Réglages en accès direct, toujours visible : un garage neuf ne doit pas chercher la
               porte de configuration dans le menu du compte (qui la propose encore). */}
-          {reglagesVisibles(role) ? (
+          {reglagesVisibles(sujet) ? (
             <ul className="mb-1">{rendreEntree(ENTREE_REGLAGES)}</ul>
           ) : null}
           <div className="min-w-0">
@@ -410,9 +411,9 @@ export function BarreLaterale({ className, repli }: Props) {
                 <DropdownMenuLabel className="truncate font-normal text-muted-foreground">
                   {libelleCompte} — {libelleRole}
                 </DropdownMenuLabel>
-                {reglagesVisibles(role) ? (
+                {reglagesVisibles(sujet) ? (
                   <DropdownMenuItem asChild>
-                    <Link to={cheminEntree(ENTREE_REGLAGES, role, site) ?? ''}>
+                    <Link to={cheminEntree(ENTREE_REGLAGES, sujet, site) ?? ''}>
                       <Settings className="h-4 w-4" aria-hidden="true" />
                       {t('navigation:entrees.reglages')}
                     </Link>

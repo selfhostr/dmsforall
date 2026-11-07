@@ -116,7 +116,7 @@ export function EcranListeOrdresReparation() {
   // liste ne porte pas de client précis, `EcranNouvelOrdreReparation` gère déjà cette absence en
   // renvoyant vers `/recherche` (état « Client non sélectionné »).
   const session = useSession();
-  const peutCreer = peutCreerOrdreReparation(session.data?.utilisateur.role);
+  const peutCreer = peutCreerOrdreReparation(session.data?.actions);
 
   const [qSaisie, setQSaisie] = useState('');
   const [q, reinitialiserQ] = useValeurDebouncee(qSaisie, DELAI_DEBOUNCE_MS);

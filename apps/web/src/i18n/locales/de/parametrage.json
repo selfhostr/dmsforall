@@ -269,6 +269,7 @@
       "nom": "Name",
       "email": "E-Mail",
       "role": "Rolle",
+      "acces": "Zugriff",
       "sites": "Standorte",
       "statut": "Status",
       "actions": "Aktionen"
@@ -292,17 +293,18 @@
       "champPrenom": "Vorname",
       "champNom": "Name",
       "champEmail": "E-Mail",
-      "champRole": "Rolle",
+      "champRole": "Stelle (Ausgangspunkt)",
       "champSites": "Standorte, an denen der Mitarbeiter arbeitet",
       "aucunSiteDisponible": "Dieser Garage ist noch kein Standort zugeordnet.",
       "sitesAucunSelectionne": "Wählen Sie mindestens einen Standort aus.",
       "actions": {
         "creer": "Erstellen"
-      }
+      },
+      "droitsNonEnregistres": "Das Konto wurde erstellt, aber die Rechte konnten nicht gespeichert werden. Ihre Auswahl bleibt erhalten: prüfen und speichern Sie sie."
     },
     "modification": {
       "titre": "{nom} bearbeiten",
-      "description": "Rolle und/oder Standorte ändern — nützlich bei einem Stellenwechsel.",
+      "description": "Stelle, Standorte oder Rechte dieser Person ändern — nützlich, wenn jemand die Funktion wechselt.",
       "actions": {
         "enregistrer": "Speichern"
       }
@@ -368,7 +370,13 @@
       "identifiantLabel": "Kennung",
       "motDePasseLabel": "Passwort",
       "fermer": "Ich habe die Angaben notiert"
-    }
+    },
+    "fiduciaire": {
+      "bouton": "Treuhänder hinzufügen",
+      "titre": "Neues Treuhänder-Konto",
+      "description": "Nur-Lese-Konto für Ihre Treuhandstelle: Fakturierung und Finanzen, sonst nichts."
+    },
+    "accesPerso": "{role} (angepasst)"
   },
   "entreprise": {
     "titre": "Unternehmen",

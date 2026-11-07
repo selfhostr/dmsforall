@@ -269,6 +269,7 @@
       "nom": "Nom",
       "email": "E-mail",
       "role": "Rôle",
+      "acces": "Accès",
       "sites": "Sites",
       "statut": "Statut",
       "actions": "Actions"
@@ -292,17 +293,18 @@
       "champPrenom": "Prénom",
       "champNom": "Nom",
       "champEmail": "E-mail",
-      "champRole": "Rôle",
+      "champRole": "Poste (point de départ)",
       "champSites": "Sites où travaille l'employé",
       "aucunSiteDisponible": "Aucun site n'est encore rattaché à ce garage.",
       "sitesAucunSelectionne": "Sélectionnez au moins un site.",
       "actions": {
         "creer": "Créer"
-      }
+      },
+      "droitsNonEnregistres": "Le compte a été créé, mais ses droits n'ont pas pu être enregistrés. Votre choix est conservé : vérifiez-le et enregistrez."
     },
     "modification": {
       "titre": "Modifier {nom}",
-      "description": "Changer le rôle et/ou les sites — utile quand un employé change de poste.",
+      "description": "Changer le poste, les sites ou les droits de cette personne — utile quand un employé change de fonction.",
       "actions": {
         "enregistrer": "Enregistrer"
       }
@@ -368,7 +370,13 @@
       "identifiantLabel": "Identifiant",
       "motDePasseLabel": "Mot de passe",
       "fermer": "J'ai noté ces informations"
-    }
+    },
+    "fiduciaire": {
+      "bouton": "Ajouter une fiduciaire",
+      "titre": "Nouveau compte fiduciaire",
+      "description": "Compte en lecture seule pour votre fiduciaire : facturation et finances, rien d'autre."
+    },
+    "accesPerso": "{role} (personnalisé)"
   },
   "entreprise": {
     "titre": "Entreprise",

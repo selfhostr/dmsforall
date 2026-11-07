@@ -7,6 +7,7 @@ import { definirEnvPourTests } from '@/config/env';
 import { chargerLangues } from '@/i18n';
 
 import { server } from './msw/server';
+import { normaliserSessionDeTest } from './session';
 
 // La couche api/client.ts lit obtenirEnv() : en test, on l'initialise directement plutôt que
 // de dépendre d'un vrai .env (voir aussi test.env dans vitest.config.ts).
@@ -42,6 +43,26 @@ global.ResizeObserver = class {
   disconnect() {}
 } as unknown as typeof ResizeObserver;
 
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: 'error' });
+  // Normalise `GET /auth/moi` : voir `normaliserSessionDeTest` (session dérivée par changement de rôle).
+  const fetchMsw = globalThis.fetch;
+  globalThis.fetch = async (...args: Parameters<typeof fetch>) => {
+    const reponse = await fetchMsw(...args);
+    const entree = args[0];
+    const url =
+      typeof entree === 'string' ? entree : entree instanceof URL ? entree.href : entree.url;
+    if (!reponse.ok || !url.includes('/auth/moi')) return reponse;
+    const corps: unknown = await reponse
+      .clone()
+      .json()
+      .catch(() => undefined);
+    if (corps === undefined) return reponse;
+    return new Response(JSON.stringify(normaliserSessionDeTest(corps)), {
+      status: reponse.status,
+      headers: { 'content-type': 'application/json' },
+    });
+  };
+});
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
