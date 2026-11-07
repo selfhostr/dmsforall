@@ -1,10 +1,10 @@
 {
-  "titre": "Vendite",
+  "titre": "Veicoli in vendita",
   "commun": {
     "titrePage": {
-      "parc": "Parco veicoli in stock",
-      "dossiers": "Pratiche di vendita",
-      "dossierDetail": "Pratica di vendita"
+      "parc": "Veicoli in stock",
+      "dossiers": "Vendite in corso",
+      "dossierDetail": "Vendita"
     },
     "typeVehicule": {
       "vn": "Nuovo",
@@ -38,9 +38,9 @@
       "autre": "Altro"
     },
     "actions": {
-      "nouveauDossier": "Nuova pratica di vendita",
+      "nouveauDossier": "Nuova vendita",
       "vendre": "Vendere",
-      "voirDossier": "Visualizzare la pratica di vendita",
+      "voirDossier": "Vedi la vendita",
       "assignerVehicule": "Assegnare un veicolo",
       "creerBonCommande": "Creare l'ordine di acquisto",
       "creerDevis": "Creare un preventivo",
@@ -59,7 +59,7 @@
     }
   },
   "stock": {
-    "titre": "Parco veicoli in stock",
+    "titre": "Veicoli in stock",
     "filtres": {
       "q": "Targa, VIN o descrizione…",
       "statutCommercial": "Stato commerciale",
@@ -177,15 +177,15 @@
       "prixVente": "Prezzo di vendita esposto"
     },
     "liste": {
-      "titre": "Veicoli in parco",
+      "titre": "Veicoli in stock",
       "vide": {
         "recherche": {
           "titre": "Nessun veicolo trovato",
-          "description": "Nessun veicolo del parco corrisponde a questa ricerca."
+          "description": "Nessun veicolo in stock corrisponde a questa ricerca."
         },
         "filtre": {
           "titre": "Nessun veicolo con questi filtri",
-          "description": "Nessun veicolo del parco corrisponde ai filtri selezionati."
+          "description": "Nessun veicolo in stock corrisponde ai filtri scelti."
         },
         "premierUsage": {
           "titre": "Nessun veicolo in stock",
@@ -194,7 +194,7 @@
       },
       "rechercherPlaceholder": "Targa, VIN o descrizione…",
       "erreur": {
-        "titre": "Impossibile visualizzare il parco veicoli in stock"
+        "titre": "Impossibile visualizzare i veicoli in stock"
       },
       "colonnes": {
         "vehicule": "Veicolo",
@@ -274,7 +274,7 @@
     },
     "vide": "Nessun veicolo in stock.",
     "erreur": {
-      "titre": "Impossibile visualizzare il parco veicoli in stock"
+      "titre": "Impossibile visualizzare i veicoli in stock"
     },
     "refus": {
       "dejaExistant": "Questo veicolo è già in stock."
@@ -283,25 +283,25 @@
   "dossier": {
     "titre": "Pratiche di vendita",
     "liste": {
-      "titre": "Pratiche di vendita",
-      "nouveauDossier": "Nuova pratica di vendita",
+      "titre": "Vendite in corso",
+      "nouveauDossier": "Nuova vendita",
       "vide": {
         "recherche": {
           "titre": "Nessuna pratica trovata",
-          "description": "Nessuna pratica di vendita corrisponde a questa ricerca."
+          "description": "Nessuna vendita corrisponde a questa ricerca."
         },
         "filtre": {
           "titre": "Nessuna pratica con questi filtri",
-          "description": "Nessuna pratica di vendita corrisponde ai filtri selezionati."
+          "description": "Nessuna vendita corrisponde ai filtri scelti."
         },
         "premierUsage": {
-          "titre": "Nessuna pratica di vendita",
-          "description": "Apritene una non appena un cliente è interessato."
+          "titre": "Nessuna vendita in corso",
+          "description": "Createne una appena un cliente è interessato."
         }
       },
       "vehiculeNonAssigne": "— non assegnato",
       "erreur": {
-        "titre": "Impossibile visualizzare le pratiche di vendita"
+        "titre": "Impossibile visualizzare le vendite in corso"
       },
       "colonnes": {
         "client": "Cliente",
@@ -314,9 +314,9 @@
         "q": "Nome del cliente o targa…",
         "statut": "Stato",
         "statutLabel": "Stato",
-        "statutActifs": "Pratiche attive",
+        "statutActifs": "Vendite attive",
         "statutTous": "Tutti gli stati",
-        "afficherTermines": "Mostra anche le pratiche chiuse, annullate o abbandonate"
+        "afficherTermines": "Mostra anche le vendite chiuse, annullate o abbandonate"
       },
       "tri": {
         "label": "Ordina per",
@@ -327,19 +327,19 @@
       }
     },
     "creation": {
-      "titre": "Nuova pratica di vendita",
+      "titre": "Nuova vendita",
       "aideVehicule": "Facoltativo — il veicolo può essere assegnato in seguito.",
       "aideClientFacture": "Facoltativo — per impostazione predefinita, il cliente acquirente.",
       "aideConducteur": "Facoltativo — per impostazione predefinita, il cliente acquirente.",
-      "bouton": "Creare la pratica"
+      "bouton": "Crea la vendita"
     },
     "nouveau": {
-      "titre": "Nuova pratica di vendita",
-      "creer": "Creare la pratica",
+      "titre": "Nuova vendita",
+      "creer": "Crea la vendita",
       "dateLivraisonEstimee": "Data di consegna prevista",
       "siteManquant": {
         "titre": "Nessuna sede selezionata",
-        "description": "Scegliere una sede per creare una pratica di vendita."
+        "description": "Scelga una sede per creare una vendita."
       },
       "client": {
         "titre": "Cliente acquirente",
@@ -361,7 +361,7 @@
       }
     },
     "fiche": {
-      "titre": "Pratica di vendita",
+      "titre": "Vendita",
       "erreur": {
         "titre": "Impossibile visualizzare questa pratica"
       },
@@ -561,7 +561,7 @@
       "erreurLigne": "Impossibile salvare — riprovare"
     },
     "erreur": {
-      "titre": "Impossibile visualizzare questa pratica",
+      "titre": "Impossibile visualizzare questa vendita",
       "titreSection": "Impossibile caricare questa sezione"
     },
     "refus": {
@@ -570,8 +570,8 @@
       "financementNonConfirme": "Il finanziamento deve essere confermato prima di contrassegnare la pratica come pronta per la consegna.",
       "expertiseRequise": "Una MFK richiesta deve essere risolta prima della consegna.",
       "livraisonIncomplete": "Non tutti gli elementi richiesti per la consegna sono riuniti.",
-      "annulationImpossible": "Questa pratica non può più essere annullata o abbandonata in questa fase.",
-      "transitionInterdite": "Questa transizione non è consentita nello stato attuale della pratica."
+      "annulationImpossible": "Questa vendita non può più essere annullata o abbandonata in questa fase. Chiudetela se è conclusa.",
+      "transitionInterdite": "Questo passaggio non è possibile per questa vendita. Ricaricate la pagina per vedere a che punto è."
     }
   },
   "reprise": {
@@ -789,7 +789,7 @@
     },
     "vide": {
       "titre": "Nessuna scadenza in arrivo",
-      "description": "Buona notizia: nessuna pratica raggiunge una scadenza nel periodo selezionato."
+      "description": "Buone notizie: nessuna vendita scade nel periodo scelto."
     },
     "erreur": {
       "titre": "Impossibile visualizzare il monitoraggio delle scadenze"

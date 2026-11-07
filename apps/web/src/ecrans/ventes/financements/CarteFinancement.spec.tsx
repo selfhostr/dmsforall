@@ -134,7 +134,11 @@ describe('CarteFinancement', () => {
     await utilisateur.click(await screen.findByRole('button', { name: 'Proposer' }));
 
     await waitFor(() => {
-      expect(screen.getByText("Une erreur interne s'est produite. Réessayez.")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Un problème inattendu est survenu. Réessayez dans un instant ; s'il revient, prévenez le support en indiquant l'heure.",
+        ),
+      ).toBeInTheDocument();
     });
     // Le dialog reste ouvert — l'erreur est visible DANS le dialog (§4 du design), jamais après
     // fermeture.

@@ -567,7 +567,7 @@ describe('EcranScan', () => {
     await photographier(utilisateur);
 
     expect(
-      await screen.findByText('Votre session a expiré. Veuillez vous reconnecter.'),
+      await screen.findByText('Votre session a expiré. Reconnectez-vous pour continuer.'),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Se reconnecter' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Reprendre une photo' })).not.toBeInTheDocument();

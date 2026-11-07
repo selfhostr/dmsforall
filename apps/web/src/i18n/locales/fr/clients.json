@@ -32,7 +32,7 @@
   },
   "fiche": {
     "titre": "Fiche client",
-    "ouvrirOr": "Ouvrir un OR",
+    "ouvrirOr": "Créer un OR",
     "actions": {
       "fusionner": "Fusionner",
       "ajouterVehicule": "Ajouter un véhicule"
@@ -47,9 +47,9 @@
     "vehiculesVide": "Aucun véhicule rattaché.",
     "derniersOr": "Derniers passages à l'atelier",
     "derniersOrVide": "Aucun passage enregistré.",
-    "dossiersVente": "Dossiers de vente",
-    "dossiersVenteVide": "Aucun dossier de vente.",
-    "dossiersVenteDroitRequis": "Vous n'avez pas le droit de consulter les dossiers de vente de ce client.",
+    "dossiersVente": "Ventes du client",
+    "dossiersVenteVide": "Aucune vente pour ce client.",
+    "dossiersVenteDroitRequis": "Vous n'avez pas le droit de consulter les ventes de ce client.",
     "dossierSansVehicule": "Véhicule non assigné",
     "rendezVous": {
       "titre": "Prochains rendez-vous",
@@ -67,7 +67,7 @@
     "nom": "Nom",
     "prenom": "Prénom",
     "raisonSociale": "Raison sociale",
-    "ide": "IDE",
+    "ide": "N° d'entreprise (IDE)",
     "ideFormatInvalide": "Format attendu : CHE-123.456.789.",
     "langue": "Langue de correspondance",
     "po": "N° de commande (PO)",
@@ -150,17 +150,17 @@
   },
   "doublonsEcran": {
     "titre": "Doublons clients",
-    "description": "Recherchez un client par nom, NPA, e-mail, téléphone ou IDE avant d'en créer un nouveau, ou pour vérifier si deux fiches désignent la même personne.",
+    "description": "Recherchez un client par nom, NPA, e-mail, téléphone ou numéro d'entreprise avant d'en créer un nouveau, ou pour vérifier si deux fiches désignent la même personne.",
     "champs": {
       "nom": "Nom ou raison sociale",
       "npa": "NPA",
       "email": "E-mail",
       "telephone": "Téléphone",
-      "ide": "IDE"
+      "ide": "N° d'entreprise (IDE)"
     },
     "vide": {
       "premier": "Saisissez au moins un critère de recherche",
-      "premierDescription": "Nom, NPA, e-mail, téléphone ou IDE — un seul critère suffit.",
+      "premierDescription": "Nom, NPA, e-mail, téléphone ou numéro d'entreprise : un seul critère suffit.",
       "aucunDoublon": "Aucun doublon détecté",
       "aucunDoublonDescription": "Aucun client existant ne correspond à ces critères."
     },

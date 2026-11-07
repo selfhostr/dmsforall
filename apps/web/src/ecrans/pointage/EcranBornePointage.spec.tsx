@@ -571,7 +571,7 @@ describe('EcranBornePointage', () => {
 
     expect(
       await screen.findByText(
-        "Code PIN temporairement verrouillé. Demandez l'accord d'un responsable pour continuer.",
+        "Code PIN bloqué après trop d'essais. Demandez à un responsable de le débloquer.",
       ),
     ).toBeInTheDocument();
     expect(

@@ -35,7 +35,7 @@ describe('messageErreurPointage', () => {
 
   it('retombe sur le message du code, sans nom, quand le site n’est pas donné', () => {
     expect(messageErreurPointage(refus(), t)).toBe(
-      "Cet OR est au site d'une autre borne ; pointez depuis la borne de ce site ou demandez au bureau.",
+      'Cet OR est sur un autre site. Pointez depuis la borne de ce site, ou demandez au bureau.',
     );
   });
 

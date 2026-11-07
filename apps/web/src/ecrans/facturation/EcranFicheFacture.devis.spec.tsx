@@ -80,7 +80,7 @@ describe('EcranFicheFacture — devis', () => {
     await utilisateur.click(await screen.findByRole('button', { name: 'Télécharger le PDF' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      "Le PDF n'est pas encore prêt. Patientez quelques instants.",
+      "Le PDF n'est pas encore prêt. Patientez quelques instants, puis réessayez.",
     );
   });
 });

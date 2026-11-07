@@ -109,7 +109,7 @@ describe('EcranEntreeEnStock', () => {
 
     expect(
       await screen.findByText(
-        "Une erreur interne s'est produite. Réessayez.",
+        "Un problème inattendu est survenu. Réessayez dans un instant ; s'il revient, prévenez le support en indiquant l'heure.",
         {},
         { timeout: 2000 },
       ),

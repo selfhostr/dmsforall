@@ -181,7 +181,9 @@ describe('ChampEmplacementVehicule', () => {
     await utilisateur.click(screen.getByRole('button', { name: 'Enregistrer' }));
 
     expect(
-      await screen.findByText("Une erreur interne s'est produite. Réessayez."),
+      await screen.findByText(
+        "Un problème inattendu est survenu. Réessayez dans un instant ; s'il revient, prévenez le support en indiquant l'heure.",
+      ),
     ).toBeInTheDocument();
     // Toujours en édition, saisie intacte — aucune perte, standard non négociable (CONTRIBUTING.md).
     expect(screen.getByLabelText('Emplacement')).toHaveValue('Chez le carrossier');

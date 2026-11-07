@@ -8,7 +8,7 @@
     "clientsVehicules": "Clienti e veicoli",
     "pieces": "Ricambi",
     "facturation": "Fatturazione",
-    "ventes": "Vendite",
+    "ventes": "Veicoli in vendita",
     "reglages": "Impostazioni"
   },
   "onglets": {
@@ -44,9 +44,8 @@
     "facturationEncaissements": "Incassi",
     "facturationRelances": "Solleciti",
     "facturationExportFiduciaire": "Esportazione fiduciaria",
-    "facturationExportFiduciaire": "Esportazione fiduciaria",
-    "ventesDossiers": "Pratiche",
-    "ventesParc": "Veicoli in parco",
+    "ventesDossiers": "Vendite in corso",
+    "ventesParc": "Veicoli in stock",
     "ventesSuivi": "Finanziamento e garanzia",
     "reglagesAtelier": "Officina",
     "reglagesSites": "Sedi",
@@ -54,7 +53,7 @@
     "reglagesTarifs": "Tariffe e prestazioni",
     "reglagesPieces": "Ricambi",
     "reglagesUtilisateurs": "Utenti",
-    "reglagesRelances": "Livelli di sollecito",
+    "reglagesRelances": "Solleciti di pagamento",
     "atelierCourtoisie": "Auto di cortesia"
   },
   "liens": {

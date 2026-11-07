@@ -191,7 +191,9 @@ describe('EcranRecherche', () => {
     await userEvent.setup().type(screen.getByRole('combobox'), 'VD 123456');
 
     expect(
-      await screen.findByText("Une erreur interne s'est produite. Réessayez."),
+      await screen.findByText(
+        "Un problème inattendu est survenu. Réessayez dans un instant ; s'il revient, prévenez le support en indiquant l'heure.",
+      ),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Réessayer' })).toBeInTheDocument();
   });

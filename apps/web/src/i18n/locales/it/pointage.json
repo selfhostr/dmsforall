@@ -28,7 +28,7 @@
   },
   "enCours": {
     "demarrer": "Inizia timbratura",
-    "terminer": "Termina",
+    "terminer": "Ferma questa rilevazione",
     "changerLigne": "Cambia lavoro",
     "signaler": "Segnala constatazione"
   },
@@ -277,10 +277,10 @@
       "arretReussi": "Timbrature fermate — puoi bloccare di nuovo."
     },
     "deverrouiller": {
-      "titre": "Sblocca (storno)",
+      "titre": "Correggi il periodo bloccato",
       "description": "Riguarda solo le timbrature gia bloccate della sede, che tornano convalidate.",
       "jusquau": "Fino al (incluso)",
-      "motif": "Motivo dello storno",
+      "motif": "Motivo della correzione",
       "motifRequis": "Il motivo e obbligatorio per sbloccare un periodo.",
       "action": "Sblocca",
       "resultat": "{count, plural, one {# timbratura sbloccata.} other {# timbrature sbloccate.}}"

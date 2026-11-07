@@ -38,19 +38,19 @@
       "titre": "Section indisponible"
     },
     "actions": {
-      "nouvelOr": "Nouvel OR",
+      "nouvelOr": "Créer un OR",
       "modifierTitre": "Modifier l'identité du véhicule"
     },
     "proprietaire": {
       "titre": "Propriétaire et détenteurs",
       "actuel": "Propriétaire actuel",
-      "precedents": "Détenteurs précédents",
+      "precedents": "Propriétaires précédents",
       "vide": "Aucun détenteur enregistré pour ce véhicule."
     },
     "dossierVente": {
-      "titre": "Dossier de vente",
-      "vide": "Aucun dossier de vente pour ce véhicule.",
-      "droitRequis": "Vous n'avez pas le droit de consulter les dossiers de vente de ce véhicule."
+      "titre": "Vente",
+      "vide": "Aucune vente pour ce véhicule.",
+      "droitRequis": "Vous n'avez pas le droit de consulter les ventes de ce véhicule."
     },
     "ordresReparation": {
       "titre": "Ordres de réparation",
@@ -89,7 +89,7 @@
     "version": "Version",
     "finition": "Finition",
     "vin": "VIN",
-    "codeType": "Code type CH",
+    "codeType": "Code type (carte grise)",
     "plaque": "Plaque",
     "plaqueExemple": "VS 123456",
     "plaqueAide": "Canton puis numéro, avec un espace, comme sur la plaque : VS 123456.",
@@ -121,7 +121,7 @@
   },
   "detentions": {
     "titre": "Détention",
-    "detenteur": "Détenteur actuel",
+    "detenteur": "Propriétaire actuel",
     "historique": "Historique des détenteurs",
     "changer": "Changer le détenteur",
     "rattacher": "Rattacher à un client",
@@ -135,7 +135,7 @@
     "dialogue": {
       "titreRattacher": "Rattacher ce véhicule à un client",
       "titreChanger": "Changer le détenteur de ce véhicule",
-      "detenteurActuelLabel": "Détenteur actuel",
+      "detenteurActuelLabel": "Propriétaire actuel",
       "clientLabel": "Client",
       "rechercherPlaceholder": "Nom, numéro client…",
       "aucunClient": "Aucun client trouvé.",

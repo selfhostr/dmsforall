@@ -2,7 +2,7 @@
   "titre": "Solleciti automatici",
   "sousTitre": "Promemoria per fatture non pagate: avvia la pianificazione e l'invio, consulta lo storico.",
   "reglages": {
-    "titre": "Livelli di sollecito",
+    "titre": "Solleciti di pagamento",
     "sousTitre": "Imposta i termini e i canali di invio dei promemoria per fatture non pagate di questo garage."
   },
   "navigation": {
@@ -24,7 +24,7 @@
       "description": "Per questo garage non è ancora impostato alcun sollecito per fatture non pagate. Applica la preimpostazione consigliata per iniziare, poi modificala se necessario."
     },
     "paliers": {
-      "titre": "Livelli",
+      "titre": "Fasi",
       "vide": "Nessun livello definito",
       "libelle": "Livello {n}",
       "jours": "{n, plural, one {# giorno} other {# giorni}} dopo la scadenza"
@@ -55,7 +55,7 @@
       "supprimerPalier": "Rimuovi il livello {n}",
       "canauxLabel": "Canali di invio",
       "erreurPalierPositif": "Ogni livello deve essere un numero intero di giorni maggiore di zero.",
-      "erreurPaliersRequis": "Aggiungi almeno un livello per attivare i promemoria.",
+      "erreurPaliersRequis": "Aggiungete almeno una fase per attivare i solleciti di pagamento.",
       "erreurCanauxRequis": "Scegli almeno un canale per attivare i promemoria.",
       "succes": "Regola salvata."
     }

@@ -15,7 +15,7 @@
   "champs": {
     "kmEntree": "Km all'ingresso (obbligatorio)",
     "kmSortie": "Km stimati all'uscita",
-    "demandes": "Richieste del cliente (testuale)",
+    "demandes": "Richieste del cliente, testualmente",
     "plafond": "Tetto di spesa (CHF)",
     "autorisePar": "Autorizzato da",
     "restitutionPromise": "Restituzione promessa",

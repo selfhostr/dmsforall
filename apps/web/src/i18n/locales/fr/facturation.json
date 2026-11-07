@@ -24,7 +24,7 @@
       "irrecouvrable": "Irrécouvrable"
     },
     "statutAvoir": {
-      "nonRegle": "Non imputé",
+      "nonRegle": "Pas encore utilisé",
       "partiel": "Partiellement imputé",
       "regle": "Imputé",
       "tropPercu": "Trop imputé",
@@ -122,11 +122,11 @@
       "ajouter": "Ajouter cette ligne à la facture client"
     },
     "groupe": {
-      "titre": "Groupe payeur « {payeur} »",
+      "titre": "Facture pour « {payeur} »",
       "facturerMaintenant": "Facturer maintenant",
       "sousTotal": "Sous-total",
       "motifReport": "Raison du report (facultatif)",
-      "motifReportPlaceholder": "Ex. dossier sinistre en attente d'accord"
+      "motifReportPlaceholder": "Ex. sinistre en attente d'accord"
     },
     "ligneOfferte": "offert ({raison})",
     "lignesRefusees": {
@@ -214,7 +214,7 @@
     "documentsLies": {
       "titre": "Documents liés",
       "or": "Ordre de réparation lié →",
-      "dossierVente": "Dossier de vente lié →",
+      "dossierVente": "Vente liée →",
       "vehicule": "Véhicule lié →",
       "facture": "Facture d'origine →",
       "avoir": "Avoir lié →",
@@ -320,9 +320,9 @@
     "titre": "Avoir sur facture {numero} — {destinataire}",
     "motif": "Motif",
     "lignesOrigine": {
-      "titre": "Lignes de la facture d'origine",
+      "titre": "Lignes de la facture corrigée",
       "dejaCreditee": "déjà créditée",
-      "toutSelectionner": "Tout sélectionner (avoir total)"
+      "toutSelectionner": "Tout sélectionner (annulation totale)"
     },
     "totalAvoir": "Total de l'avoir",
     "motifObligatoire": "Motif obligatoire, requis à l'émission",

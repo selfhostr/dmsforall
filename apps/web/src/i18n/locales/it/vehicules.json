@@ -38,19 +38,19 @@
       "titre": "Sezione non disponibile"
     },
     "actions": {
-      "nouvelOr": "Nuovo ordine",
+      "nouvelOr": "Crea un OR",
       "modifierTitre": "Modifica identità del veicolo"
     },
     "proprietaire": {
       "titre": "Proprietario e detentori",
       "actuel": "Proprietario attuale",
-      "precedents": "Detentori precedenti",
+      "precedents": "Proprietari precedenti",
       "vide": "Nessun detentore registrato per questo veicolo."
     },
     "dossierVente": {
-      "titre": "Pratica di vendita",
-      "vide": "Nessuna pratica di vendita per questo veicolo.",
-      "droitRequis": "Non ha il diritto di consultare le pratiche di vendita di questo veicolo."
+      "titre": "Vendita",
+      "vide": "Nessuna vendita per questo veicolo.",
+      "droitRequis": "Non ha il diritto di consultare le vendite di questo veicolo."
     },
     "ordresReparation": {
       "titre": "Ordini di riparazione",
@@ -89,7 +89,7 @@
     "version": "Versione",
     "finition": "Allestimento",
     "vin": "VIN",
-    "codeType": "Codice CH",
+    "codeType": "Codice tipo (carta di circolazione)",
     "plaque": "Targa",
     "plaqueExemple": "VS 123456",
     "plaqueAide": "Cantone poi numero, con uno spazio, come sulla targa: VS 123456.",

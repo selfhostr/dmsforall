@@ -24,7 +24,7 @@
       "irrecouvrable": "Inesigibile"
     },
     "statutAvoir": {
-      "nonRegle": "Non imputato",
+      "nonRegle": "Non ancora utilizzato",
       "partiel": "Imputato parzialmente",
       "regle": "Imputato",
       "tropPercu": "Imputato in eccesso",
@@ -122,11 +122,11 @@
       "ajouter": "Aggiungere questa riga alla fattura del cliente"
     },
     "groupe": {
-      "titre": "Gruppo pagante «{payeur}»",
+      "titre": "Fattura per « {payeur} »",
       "facturerMaintenant": "Fatturare ora",
       "sousTotal": "Subtotale",
       "motifReport": "Motivo del rinvio (facoltativo)",
-      "motifReportPlaceholder": "Es. pratica sinistro in attesa di approvazione"
+      "motifReportPlaceholder": "Es. sinistro in attesa di approvazione"
     },
     "ligneOfferte": "offerto ({raison})",
     "lignesRefusees": {
@@ -214,7 +214,7 @@
     "documentsLies": {
       "titre": "Documenti collegati",
       "or": "Ordine di riparazione collegato →",
-      "dossierVente": "Pratica di vendita collegata →",
+      "dossierVente": "Vendita collegata →",
       "vehicule": "Veicolo collegato →",
       "facture": "Fattura d'origine →",
       "avoir": "Nota di credito collegata →",
@@ -320,9 +320,9 @@
     "titre": "Nota di credito sulla fattura {numero} — {destinataire}",
     "motif": "Motivo",
     "lignesOrigine": {
-      "titre": "Righe della fattura d'origine",
+      "titre": "Righe della fattura corretta",
       "dejaCreditee": "già accreditata",
-      "toutSelectionner": "Selezionare tutto (nota di credito totale)"
+      "toutSelectionner": "Seleziona tutto (nota di credito totale)"
     },
     "totalAvoir": "Totale della nota di credito",
     "motifObligatoire": "Motivo obbligatorio, richiesto all'emissione",

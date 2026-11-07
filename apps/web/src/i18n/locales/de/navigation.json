@@ -8,7 +8,7 @@
     "clientsVehicules": "Kunden & Fahrzeuge",
     "pieces": "Teile",
     "facturation": "Abrechnung",
-    "ventes": "Verkauf",
+    "ventes": "Fahrzeugverkauf",
     "reglages": "Einstellungen"
   },
   "onglets": {
@@ -44,9 +44,8 @@
     "facturationEncaissements": "Zahlungseingänge",
     "facturationRelances": "Mahnungen",
     "facturationExportFiduciaire": "Treuhand-Export",
-    "facturationExportFiduciaire": "Treuhand-Export",
-    "ventesDossiers": "Dossiers",
-    "ventesParc": "Fahrzeugbestand",
+    "ventesDossiers": "Laufende Verkäufe",
+    "ventesParc": "Fahrzeuge im Lager",
     "ventesSuivi": "Finanzierung & Garantie",
     "reglagesAtelier": "Werkstatt",
     "reglagesSites": "Standorte",
@@ -54,7 +53,7 @@
     "reglagesTarifs": "Tarife & Leistungen",
     "reglagesPieces": "Teile",
     "reglagesUtilisateurs": "Benutzer",
-    "reglagesRelances": "Mahnstufen",
+    "reglagesRelances": "Zahlungserinnerungen",
     "atelierCourtoisie": "Ersatzwagen"
   },
   "liens": {

@@ -118,7 +118,9 @@ describe('RouteProtegee — rolesAutorises', () => {
     server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
     rendre(['direction', 'admin']);
     expect(
-      await screen.findByText("Vous n'avez pas les droits pour cette action."),
+      await screen.findByText(
+        "Votre rôle ne permet pas cette action. Demandez à la direction de vous l'ouvrir, ou faites-la faire par un collègue autorisé.",
+      ),
     ).toBeInTheDocument();
     expect(screen.queryByText('CONTENU_PROTEGE')).not.toBeInTheDocument();
     expect(screen.queryByText('PAGE_LOGIN')).not.toBeInTheDocument();
@@ -151,7 +153,9 @@ describe('RouteProtegee — redirectionParRole', () => {
     expect(await screen.findByText('PAGE_DESTINATION')).toBeInTheDocument();
     expect(screen.queryByText('CONTENU_PROTEGE')).not.toBeInTheDocument();
     expect(
-      screen.queryByText("Vous n'avez pas les droits pour cette action."),
+      screen.queryByText(
+        "Votre rôle ne permet pas cette action. Demandez à la direction de vous l'ouvrir, ou faites-la faire par un collègue autorisé.",
+      ),
     ).not.toBeInTheDocument();
   });
 

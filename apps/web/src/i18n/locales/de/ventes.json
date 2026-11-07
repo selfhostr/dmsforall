@@ -1,10 +1,10 @@
 {
-  "titre": "Verkauf",
+  "titre": "Fahrzeugverkauf",
   "commun": {
     "titrePage": {
-      "parc": "Fahrzeugbestand",
-      "dossiers": "Verkaufsdossiers",
-      "dossierDetail": "Verkaufsdossier"
+      "parc": "Fahrzeuge im Lager",
+      "dossiers": "Laufende Verkäufe",
+      "dossierDetail": "Verkauf"
     },
     "typeVehicule": {
       "vn": "VN",
@@ -38,9 +38,9 @@
       "autre": "Andere"
     },
     "actions": {
-      "nouveauDossier": "Neues Verkaufsdossier",
+      "nouveauDossier": "Neuer Verkauf",
       "vendre": "Verkaufen",
-      "voirDossier": "Verkaufsdossier anzeigen",
+      "voirDossier": "Verkauf anzeigen",
       "assignerVehicule": "Fahrzeug zuweisen",
       "creerBonCommande": "Bestellung erstellen",
       "creerDevis": "Kostenvoranschlag erstellen",
@@ -59,7 +59,7 @@
     }
   },
   "stock": {
-    "titre": "Fahrzeugbestand",
+    "titre": "Fahrzeuge im Lager",
     "filtres": {
       "q": "Kennzeichen, VIN oder Bezeichnung…",
       "statutCommercial": "Verkaufsstatus",
@@ -177,15 +177,15 @@
       "prixVente": "Angezeigter Verkaufspreis"
     },
     "liste": {
-      "titre": "Fahrzeugbestand",
+      "titre": "Fahrzeuge im Lager",
       "vide": {
         "recherche": {
           "titre": "Kein Fahrzeug gefunden",
-          "description": "Kein Fahrzeug im Bestand entspricht dieser Suche."
+          "description": "Kein Fahrzeug im Lager entspricht dieser Suche."
         },
         "filtre": {
           "titre": "Kein Fahrzeug mit diesen Filtern",
-          "description": "Kein Fahrzeug im Bestand entspricht den gewählten Filtern."
+          "description": "Kein Fahrzeug im Lager entspricht den gewählten Filtern."
         },
         "premierUsage": {
           "titre": "Kein Fahrzeug im Bestand",
@@ -194,7 +194,7 @@
       },
       "rechercherPlaceholder": "Kennzeichen, VIN oder Bezeichnung…",
       "erreur": {
-        "titre": "Der Fahrzeugbestand kann nicht angezeigt werden"
+        "titre": "Fahrzeuge im Lager können nicht angezeigt werden"
       },
       "colonnes": {
         "vehicule": "Fahrzeug",
@@ -274,7 +274,7 @@
     },
     "vide": "Kein Fahrzeug im Bestand.",
     "erreur": {
-      "titre": "Der Fahrzeugbestand kann nicht angezeigt werden"
+      "titre": "Fahrzeuge im Lager können nicht angezeigt werden"
     },
     "refus": {
       "dejaExistant": "Dieses Fahrzeug ist bereits im Bestand."
@@ -283,25 +283,25 @@
   "dossier": {
     "titre": "Verkaufsdossiers",
     "liste": {
-      "titre": "Verkaufsdossiers",
-      "nouveauDossier": "Neues Verkaufsdossier",
+      "titre": "Laufende Verkäufe",
+      "nouveauDossier": "Neuer Verkauf",
       "vide": {
         "recherche": {
           "titre": "Kein Dossier gefunden",
-          "description": "Kein Verkaufsdossier entspricht dieser Suche."
+          "description": "Kein Verkauf entspricht dieser Suche."
         },
         "filtre": {
           "titre": "Kein Dossier mit diesen Filtern",
-          "description": "Kein Verkaufsdossier entspricht den gewählten Filtern."
+          "description": "Kein Verkauf entspricht den gewählten Filtern."
         },
         "premierUsage": {
-          "titre": "Kein Verkaufsdossier",
-          "description": "Eröffnen Sie eines, sobald sich ein Kunde interessiert."
+          "titre": "Keine laufenden Verkäufe",
+          "description": "Erstellen Sie einen Verkauf, sobald ein Kunde Interesse zeigt."
         }
       },
       "vehiculeNonAssigne": "— nicht zugewiesen",
       "erreur": {
-        "titre": "Die Verkaufsdossiers können nicht angezeigt werden"
+        "titre": "Laufende Verkäufe können nicht angezeigt werden"
       },
       "colonnes": {
         "client": "Kunde",
@@ -314,9 +314,9 @@
         "q": "Kundenname oder Kennzeichen…",
         "statut": "Status",
         "statutLabel": "Status",
-        "statutActifs": "Aktive Dossiers",
+        "statutActifs": "Aktive Verkäufe",
         "statutTous": "Alle Status",
-        "afficherTermines": "Auch abgeschlossene, stornierte oder aufgegebene Dossiers anzeigen"
+        "afficherTermines": "Auch abgeschlossene, annullierte oder aufgegebene Verkäufe anzeigen"
       },
       "tri": {
         "label": "Sortieren nach",
@@ -327,19 +327,19 @@
       }
     },
     "creation": {
-      "titre": "Neues Verkaufsdossier",
+      "titre": "Neuer Verkauf",
       "aideVehicule": "Optional — das Fahrzeug kann später zugewiesen werden.",
       "aideClientFacture": "Optional — standardmässig der Käufer.",
       "aideConducteur": "Optional — standardmässig der Käufer.",
-      "bouton": "Dossier erstellen"
+      "bouton": "Verkauf erstellen"
     },
     "nouveau": {
-      "titre": "Neues Verkaufsdossier",
-      "creer": "Dossier erstellen",
+      "titre": "Neuer Verkauf",
+      "creer": "Verkauf erstellen",
       "dateLivraisonEstimee": "Voraussichtliches Übergabedatum",
       "siteManquant": {
         "titre": "Kein Standort ausgewählt",
-        "description": "Wählen Sie einen Standort, um ein Verkaufsdossier zu erstellen."
+        "description": "Wählen Sie einen Standort, um einen Verkauf zu erstellen."
       },
       "client": {
         "titre": "Käufer",
@@ -361,7 +361,7 @@
       }
     },
     "fiche": {
-      "titre": "Verkaufsdossier",
+      "titre": "Verkauf",
       "erreur": {
         "titre": "Dieses Dossier kann nicht angezeigt werden"
       },
@@ -561,7 +561,7 @@
       "erreurLigne": "Speichern nicht möglich — erneut versuchen"
     },
     "erreur": {
-      "titre": "Dieses Dossier kann nicht angezeigt werden",
+      "titre": "Dieser Verkauf kann nicht angezeigt werden",
       "titreSection": "Dieser Abschnitt kann nicht geladen werden"
     },
     "refus": {
@@ -570,8 +570,8 @@
       "financementNonConfirme": "Die Finanzierung muss bestätigt sein, bevor das Dossier als übergabebereit markiert werden kann.",
       "expertiseRequise": "Eine erforderliche MFK muss vor der Übergabe geklärt werden.",
       "livraisonIncomplete": "Nicht alle für die Übergabe erforderlichen Elemente sind vorhanden.",
-      "annulationImpossible": "Dieses Dossier kann in diesem Stadium nicht mehr storniert oder aufgegeben werden.",
-      "transitionInterdite": "Dieser Übergang ist im aktuellen Status des Dossiers nicht zulässig."
+      "annulationImpossible": "Dieser Verkauf kann in diesem Stadium nicht mehr storniert oder aufgegeben werden. Schliessen Sie ihn ab, wenn er erledigt ist.",
+      "transitionInterdite": "Dieser Schritt ist für diesen Verkauf nicht möglich. Laden Sie die Seite neu, um den aktuellen Stand zu sehen."
     }
   },
   "reprise": {
@@ -789,7 +789,7 @@
     },
     "vide": {
       "titre": "Keine anstehende Fälligkeit",
-      "description": "Gute Nachricht: In diesem Zeitraum wird kein Dossier fällig."
+      "description": "Gute Nachricht: Im gewählten Zeitraum steht kein Verkauf zur Fälligkeit an."
     },
     "erreur": {
       "titre": "Die Fälligkeitsübersicht kann nicht angezeigt werden"

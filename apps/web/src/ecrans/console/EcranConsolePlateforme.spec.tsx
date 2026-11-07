@@ -278,7 +278,11 @@ describe('EcranConsolePlateforme — état erreur', () => {
     const utilisateur = userEvent.setup();
 
     expect(await screen.findByText("Impossible d'afficher la vue plateforme")).toBeInTheDocument();
-    expect(screen.getByText("Une erreur interne s'est produite. Réessayez.")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Un problème inattendu est survenu. Réessayez dans un instant ; s'il revient, prévenez le support en indiquant l'heure.",
+      ),
+    ).toBeInTheDocument();
 
     repondreGarages([GARAGE_ROSSI]);
     await utilisateur.click(screen.getByRole('button', { name: 'Réessayer' }));

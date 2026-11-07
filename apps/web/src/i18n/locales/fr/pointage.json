@@ -28,7 +28,7 @@
   },
   "enCours": {
     "demarrer": "Démarrer le pointage",
-    "terminer": "Terminer",
+    "terminer": "Arrêter ce pointage",
     "changerLigne": "Changer de ligne",
     "signaler": "Signaler un constat"
   },
@@ -277,10 +277,10 @@
       "arretReussi": "Pointages arrêtés — vous pouvez verrouiller à nouveau."
     },
     "deverrouiller": {
-      "titre": "Déverrouiller (contre-passation)",
+      "titre": "Corriger la période verrouillée",
       "description": "Ne concerne que les pointages déjà verrouillés du site, qui redeviennent validés.",
       "jusquau": "Jusqu'au (inclus)",
-      "motif": "Motif de la contre-passation",
+      "motif": "Motif de la correction",
       "motifRequis": "Le motif est obligatoire pour déverrouiller une période.",
       "action": "Déverrouiller",
       "resultat": "{count, plural, one {# pointage déverrouillé.} other {# pointages déverrouillés.}}"

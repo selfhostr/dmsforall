@@ -90,14 +90,14 @@
         "code": "Codice",
         "designation": "Descrizione",
         "typeLigne": "Tipo di riga",
-        "tempsBareme": "Tempo a barème",
+        "tempsBareme": "Tempo forfettario",
         "prix": "Prezzo",
         "tauxHoraireCode": "Tariffa oraria associata",
         "tauxTva": "Aliquota IVA",
         "actif": "Prestazione attiva"
       },
       "typesLigne": {
-        "main_oeuvre_bareme": "Manodopera a barème",
+        "main_oeuvre_bareme": "Manodopera forfettaria",
         "main_oeuvre_temps_reel": "Manodopera a tempo effettivo",
         "forfait": "Forfait",
         "piece": "Pezzo",
@@ -109,10 +109,10 @@
         "texte": "Informazione"
       },
       "tauxTvaLibelles": {
-        "81": "8.1 % (aliquota normale)",
+        "0": "0 % (esente)",
         "26": "2.6 % (aliquota ridotta)",
         "38": "3.8 % (settore alberghiero)",
-        "0": "0 % (esente)"
+        "81": "8.1 % (aliquota normale)"
       },
       "vide": {
         "titre": "Nessuna prestazione",

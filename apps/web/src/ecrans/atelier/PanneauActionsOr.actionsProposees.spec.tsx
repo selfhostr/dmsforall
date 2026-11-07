@@ -52,7 +52,7 @@ function probleme(code: string, extra: Record<string, unknown>) {
 async function terminerEtConfirmer(or: ReponseOrdreReparation) {
   const utilisateur = userEvent.setup({ pointerEventsCheck: 0 });
   renduAvecRoutes([{ path: '/', element: <PanneauActionsOr or={or} /> }]);
-  await utilisateur.click(await screen.findByRole('button', { name: 'Terminer' }));
+  await utilisateur.click(await screen.findByRole('button', { name: 'Travaux terminés' }));
   const dialogue = await screen.findByRole('dialog');
   await utilisateur.click(within(dialogue).getByRole('button', { name: 'Confirmer' }));
   return { utilisateur, dialogue };

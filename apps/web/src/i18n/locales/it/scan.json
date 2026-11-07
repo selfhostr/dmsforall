@@ -68,7 +68,7 @@
     "scannerUnAutre": "Scansiona un'altra licenza"
   },
   "formulaire": {
-    "sectionDetenteur": "Detentore",
+    "sectionDetenteur": "Proprietario attuale",
     "sectionVehicule": "Veicolo",
     "clientTrouve": "Cliente già registrato — il veicolo gli sarà collegato",
     "clientCreeTitre": "Cliente registrato",

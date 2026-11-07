@@ -32,7 +32,7 @@ describe('FriseDetentions', () => {
     render(<FriseDetentions detentions={[DETENTION_COURANTE, DETENTION_PASSEE]} />);
     expect(screen.getByText('Hans Meier')).toBeInTheDocument();
     expect(screen.getByText('Maria Rossi')).toBeInTheDocument();
-    expect(screen.getByText('Détenteur actuel')).toBeInTheDocument();
+    expect(screen.getByText('Propriétaire actuel')).toBeInTheDocument();
     expect(screen.getByText('Vente')).toBeInTheDocument();
   });
 

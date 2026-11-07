@@ -24,7 +24,7 @@
       "irrecouvrable": "Uneinbringlich"
     },
     "statutAvoir": {
-      "nonRegle": "Nicht verrechnet",
+      "nonRegle": "Noch nicht verrechnet",
       "partiel": "Teilweise verrechnet",
       "regle": "Verrechnet",
       "tropPercu": "Zu viel verrechnet",
@@ -122,11 +122,11 @@
       "ajouter": "Diese Position zur Kundenrechnung hinzufügen"
     },
     "groupe": {
-      "titre": "Zahlergruppe «{payeur}»",
+      "titre": "Rechnung für « {payeur} »",
       "facturerMaintenant": "Jetzt fakturieren",
       "sousTotal": "Zwischensumme",
       "motifReport": "Grund der Verschiebung (fakultativ)",
-      "motifReportPlaceholder": "Z. B. Schadenfall wartet auf Zusage"
+      "motifReportPlaceholder": "Z. B. Schadenfall, Zustimmung ausstehend"
     },
     "ligneOfferte": "gratis ({raison})",
     "lignesRefusees": {
@@ -214,7 +214,7 @@
     "documentsLies": {
       "titre": "Verknüpfte Dokumente",
       "or": "Verknüpfter Reparaturauftrag →",
-      "dossierVente": "Verknüpfter Verkaufsvorgang →",
+      "dossierVente": "Verknüpfter Verkauf →",
       "vehicule": "Verknüpftes Fahrzeug →",
       "facture": "Ursprüngliche Rechnung →",
       "avoir": "Verknüpfte Gutschrift →",
@@ -320,9 +320,9 @@
     "titre": "Gutschrift auf Rechnung {numero} — {destinataire}",
     "motif": "Grund",
     "lignesOrigine": {
-      "titre": "Positionen der ursprünglichen Rechnung",
+      "titre": "Positionen der korrigierten Rechnung",
       "dejaCreditee": "bereits gutgeschrieben",
-      "toutSelectionner": "Alles auswählen (vollständige Gutschrift)"
+      "toutSelectionner": "Alle auswählen (vollständige Gutschrift)"
     },
     "totalAvoir": "Total der Gutschrift",
     "motifObligatoire": "Grund obligatorisch, beim Ausstellen erforderlich",

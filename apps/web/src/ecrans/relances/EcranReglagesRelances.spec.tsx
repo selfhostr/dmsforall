@@ -60,7 +60,7 @@ describe('EcranReglagesRelances — nominal', () => {
     rendre();
 
     expect(await screen.findByText('Active')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Paliers de relance' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Rappels de paiement' })).toBeInTheDocument();
     expect(screen.getByText('Palier 1', { exact: false })).toBeInTheDocument();
     expect(screen.getByText("10 jours après l'échéance", { exact: false })).toBeInTheDocument();
     expect(screen.getByText('E-mail')).toBeInTheDocument();
@@ -159,7 +159,7 @@ describe('EcranReglagesRelances — modification manuelle', () => {
     await utilisateur.click(screen.getByRole('button', { name: 'Enregistrer' }));
 
     expect(
-      await screen.findByText('Ajoutez au moins un palier pour activer les rappels.'),
+      await screen.findByText('Ajoutez au moins une étape pour activer les rappels de paiement.'),
     ).toBeInTheDocument();
   });
 
@@ -198,9 +198,11 @@ describe('routeur — /parametrage/relances refuse les rôles hors direction/com
     renduAvecRoutes(routesConfig, { routeInitiale: '/parametrage/relances' });
 
     expect(
-      await screen.findByText("Vous n'avez pas les droits pour cette action."),
+      await screen.findByText(
+        "Votre rôle ne permet pas cette action. Demandez à la direction de vous l'ouvrir, ou faites-la faire par un collègue autorisé.",
+      ),
     ).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Paliers de relance' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Rappels de paiement' })).not.toBeInTheDocument();
   });
 
   it('direction : atteint le contenu réel de /parametrage/relances', async () => {
@@ -215,9 +217,11 @@ describe('routeur — /parametrage/relances refuse les rôles hors direction/com
     );
     renduAvecRoutes(routesConfig, { routeInitiale: '/parametrage/relances' });
 
-    expect(await screen.findByRole('heading', { name: 'Paliers de relance' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Rappels de paiement' })).toBeInTheDocument();
     expect(
-      screen.queryByText("Vous n'avez pas les droits pour cette action."),
+      screen.queryByText(
+        "Votre rôle ne permet pas cette action. Demandez à la direction de vous l'ouvrir, ou faites-la faire par un collègue autorisé.",
+      ),
     ).not.toBeInTheDocument();
   });
 });
