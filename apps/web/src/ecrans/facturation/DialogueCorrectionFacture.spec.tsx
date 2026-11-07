@@ -23,6 +23,12 @@ beforeAll(() => {
 const FACTURE_ID = '11111111-1111-4111-8111-111111111111';
 const BROUILLON_ID = '22222222-2222-4222-8222-222222222222';
 
+/** Échappe TOUS les métacaractères d'une regex (pas seulement `()+`) : un libellé avec `.`, `?`,
+ *  `[` ou `$` ne doit jamais changer le sens du motif. */
+function echapperRegex(texte: string): string {
+  return texte.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function facture(montantRegleCentimes: number): ReponseDocumentVente {
   return {
     id: FACTURE_ID,
@@ -60,7 +66,7 @@ describe('DialogueCorrectionFacture — deux gestes', () => {
     expect(
       screen.getByRole('radio', {
         name: new RegExp(
-          t('facturation:fiche.correction.choix.brouillon.titre').replace(/[()+]/g, '\\$&'),
+          echapperRegex(t('facturation:fiche.correction.choix.brouillon.titre')),
         ),
       }),
     ).not.toBeChecked();
@@ -90,7 +96,7 @@ describe('DialogueCorrectionFacture — deux gestes', () => {
     await utilisateur.click(
       await screen.findByRole('radio', {
         name: new RegExp(
-          t('facturation:fiche.correction.choix.brouillon.titre').replace(/[()+]/g, '\\$&'),
+          echapperRegex(t('facturation:fiche.correction.choix.brouillon.titre')),
         ),
       }),
     );
@@ -110,7 +116,7 @@ describe('DialogueCorrectionFacture — deux gestes', () => {
     rendre(facture(15_000));
     const refaire = await screen.findByRole('radio', {
       name: new RegExp(
-        t('facturation:fiche.correction.choix.brouillon.titre').replace(/[()+]/g, '\\$&'),
+        echapperRegex(t('facturation:fiche.correction.choix.brouillon.titre')),
       ),
     });
     expect(refaire).toBeDisabled();
