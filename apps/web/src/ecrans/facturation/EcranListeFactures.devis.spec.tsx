@@ -42,9 +42,11 @@ describe('EcranListeFactures — onglet Devis', () => {
     await utilisateur.click(await screen.findByRole('tab', { name: 'Devis' }));
 
     await waitFor(() => {
-      const appel = listerDocumentsVenteMock.mock.calls.at(-1) as readonly [FiltresDocumentsVente];
-      expect(appel[0].typeDocument).toEqual(['devis']);
-      expect(appel[0].statutReglement).toBeUndefined();
+      const filtres = (
+        listerDocumentsVenteMock.mock.calls.at(-1) as unknown[]
+      )[0] as FiltresDocumentsVente;
+      expect(filtres.typeDocument).toEqual(['devis']);
+      expect(filtres.statutReglement).toBeUndefined();
     });
     expect(await screen.findByText('Aucun devis')).toBeInTheDocument();
   });
