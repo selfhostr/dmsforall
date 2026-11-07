@@ -486,6 +486,7 @@
       "titre": "Was Ihre Garage nutzt",
       "description": "Entfernen Sie, was Sie nicht nutzen: Die Menüs verschwinden für alle. Nichts wird gelöscht, die Reaktivierung stellt alles wieder her."
     },
+    "lectureSeule": "Nur die Geschäftsleitung kann Module entfernen oder wieder aktivieren.",
     "socle": "Immer vorhanden: Startseite, Kunden und Fahrzeuge, Fakturierung, Einstellungen.",
     "etat": {
       "actif": "Aktiv",

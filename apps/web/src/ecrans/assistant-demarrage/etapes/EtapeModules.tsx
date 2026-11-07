@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { ListeModules } from '@/ecrans/parametrage/ListeModules';
+import { usePeut } from '@/droits';
 import { useModifierModules } from '@/hooks/parametrage/useModifierModules';
 import { useModules } from '@/hooks/parametrage/useModules';
 
@@ -20,9 +21,10 @@ import type { PropsEtape } from '../types-etape';
  * la personne ne touche à rien.
  */
 export function EtapeModules({ onSuivant, onRetour, onPasser }: PropsEtape) {
-  const { t } = useTranslation(['assistant', 'erreurs']);
+  const { t } = useTranslation(['assistant', 'parametrage', 'erreurs']);
   const requete = useModules();
   const modifier = useModifierModules();
+  const peutModifier = usePeut('parametrage.modules.modifier');
   const [choix, setChoix] = useState<readonly ModuleApp[] | undefined>(undefined);
 
   if (requete.isPending) {
@@ -62,8 +64,12 @@ export function EtapeModules({ onSuivant, onRetour, onPasser }: PropsEtape) {
       <ListeModules
         desactives={desactives}
         desactiveTout={modifier.isPending}
+        lectureSeule={!peutModifier}
         onChange={setChoix}
       />
+      {peutModifier ? null : (
+        <p className="texte-corps text-foreground">{t('parametrage:modules.lectureSeule')}</p>
+      )}
       {modifier.isError ? (
         <Alert variant="destructive">
           <AlertDescription>

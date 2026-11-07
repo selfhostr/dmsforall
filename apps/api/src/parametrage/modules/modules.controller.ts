@@ -1,7 +1,7 @@
 /**
  * `GET|PATCH /parametres-entreprise/modules` — Réglages > Modules : le garage retire ce qu'il
- * n'utilise pas. Droits : ceux du paramétrage atelier (`parametrage.atelier.lire`/`.modifier`,
- * grille existante). Le socle (accueil, clients et véhicules, facturation, réglages) n'est pas
+ * n'utilise pas. Droits : lecture `parametrage.atelier.lire`, écriture `parametrage.modules.modifier`
+ * (direction et admin seuls, pas le chef d'atelier). Le socle (accueil, clients et véhicules, facturation, réglages) n'est pas
  * un module : il ne se retire pas.
  */
 import { Controller, Get, Patch } from '@nestjs/common';
@@ -39,7 +39,7 @@ export class ModulesController {
     return this.service.obtenir(this.contexte.contexteTenant());
   }
 
-  @ExigerDroit('parametrage.atelier.modifier')
+  @ExigerDroit('parametrage.modules.modifier')
   @Patch()
   @ApiOperation({
     summary: 'Remplace la liste des modules retirés par le garage.',

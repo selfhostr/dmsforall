@@ -208,7 +208,7 @@ describe('EcranListeArticles — filtre de site local et colonne « Disponible �
     ).toBeInTheDocument();
   });
 
-  it('garage à deux sites : le filtre de site compact affiche les codes courts, sans « Tous » (un stock se lit sur un site)', async () => {
+  it('garage à deux sites : le filtre de site compact affiche les codes courts, sans « Tous » pour un rôle non autorisé', async () => {
     connecterSession({ ...SESSION_DEUX_SITES, sitePrincipalId: 'site-1' });
     servirArticle([stock('site-1', 3000)]);
 
@@ -222,6 +222,27 @@ describe('EcranListeArticles — filtre de site local et colonne « Disponible �
     expect(within(filtre).getByText('PRINC')).toBeInTheDocument();
     expect(within(filtre).getByText('SECON')).toBeInTheDocument();
     expect(within(filtre).queryByText(i18n.t('commun:filtreSite.tous'))).not.toBeInTheDocument();
+  });
+
+  it('direction : « Tous » est proposé et la colonne « Disponible » somme tous les sites', async () => {
+    const session = {
+      ...SESSION_DEUX_SITES,
+      sitePrincipalId: 'site-1',
+      utilisateur: { ...SESSION_DEUX_SITES.utilisateur, role: 'direction' as const },
+    };
+    connecterSession(session);
+    servirArticle([stock('site-1', 3000), stock('site-2', 5000)]);
+    window.localStorage.setItem(cleMemoire(session), 'tous');
+
+    rendre('/pieces/articles');
+
+    expect(
+      await screen.findByText(i18n.t('pieces:rechercheComptoir.resultat.disponible', { n: '8' })),
+    ).toBeInTheDocument();
+    const filtre = await screen.findByRole('tablist', {
+      name: i18n.t('commun:filtreSite.libelle'),
+    });
+    expect(within(filtre).getByText(i18n.t('commun:filtreSite.tous'))).toBeInTheDocument();
   });
 
   it('garage à un seul site : aucun filtre de site à l’écran', async () => {

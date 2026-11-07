@@ -20,11 +20,11 @@ const CHEMIN = '/api/v1/parametres-entreprise/modules';
 const t = (cle: string, options?: Record<string, unknown>) => i18n.t(cle, options);
 const nom = (id: ModuleApp) => t(`parametrage:modules.items.${id}.nom`);
 
-function simuler(desactivesInitiaux: ModuleApp[] = []) {
+function simuler(desactivesInitiaux: ModuleApp[] = [], role: 'direction' | 'chef_atelier' = 'direction') {
   const ecritures: unknown[] = [];
   let desactives = desactivesInitiaux;
   server.use(
-    http.get('/api/v1/auth/moi', () => HttpResponse.json(creerSessionTest('direction'))),
+    http.get('/api/v1/auth/moi', () => HttpResponse.json(creerSessionTest(role))),
     http.get(CHEMIN, () =>
       HttpResponse.json({
         modulesDesactives: desactives,
@@ -63,6 +63,22 @@ describe('EcranModules', () => {
     }
     expect(screen.getByText(t('parametrage:modules.socle'))).toBeInTheDocument();
     expect(screen.queryByRole('switch', { name: /facturation/i })).toBeNull();
+  });
+
+  it('chef d’atelier : lecture seule, interrupteurs désactivés et mention du droit', async () => {
+    simuler([], 'chef_atelier');
+    rendre();
+    for (const id of MODULES_APP) {
+      expect(await screen.findByRole('switch', { name: nom(id) })).toBeDisabled();
+    }
+    expect(screen.getByText(t('parametrage:modules.lectureSeule'))).toBeInTheDocument();
+  });
+
+  it('direction : interrupteurs actifs, pas de mention de lecture seule', async () => {
+    simuler();
+    rendre();
+    expect(await screen.findByRole('switch', { name: nom('pneus') })).toBeEnabled();
+    expect(screen.queryByText(t('parametrage:modules.lectureSeule'))).toBeNull();
   });
 
   it('annonce la dépendance sur la ligne du module qui en dépend', async () => {

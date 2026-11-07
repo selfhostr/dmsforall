@@ -105,7 +105,7 @@ function adresseEstVide(adresse: ValeursSaisieFormulaire['adressePrincipale']): 
 export const CLE_BROUILLON_NOUVEAU_CLIENT = 'client-nouveau';
 
 /** Champs couverts par le brouillon (issue #78, verbatim terrain : « Nom, prénom, téléphone,
- *  rue : tout parti. ») — l'identité, le moyen de contact et l'adresse, c'est-à-dire tout ce
+ *  rue : tout parti. ») — l'identité et l'adresse (le téléphone n'est PAS persisté, donnée personnelle), c'est-à-dire tout ce
  *  qu'un réceptionniste tape avant de cliquer « Créer le client ». Volontairement PAS `email`/
  *  `ide`/langue de correspondance à part `langueCorrespondance` (nécessaire pour reconstruire des
  *  valeurs de formulaire valides) : portée alignée sur l'incident réel, pas un brouillon
@@ -122,7 +122,6 @@ interface ValeursBrouillonNouveauClient {
   readonly ide?: string | null;
   readonly email?: string | null;
   readonly langueCorrespondance: EntreeCreationClient['langueCorrespondance'];
-  readonly telephoneSaisi: string;
   readonly adressePrincipale?: ValeursSaisieFormulaire['adressePrincipale'];
 }
 
@@ -139,7 +138,6 @@ function brouillonEstVide(valeurs: ValeursBrouillonNouveauClient): boolean {
     !valeurs.raisonSociale?.trim() &&
     !valeurs.ide?.trim() &&
     !valeurs.email?.trim() &&
-    !valeurs.telephoneSaisi.trim() &&
     adresseEstVide(valeurs.adressePrincipale)
   );
 }
@@ -348,7 +346,8 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
     form.reset(
       aBrouillon ? valeursDepuisBrouillon(brouillon.valeurs) : valeursParDefaut(langueCourante),
     );
-    setTelephoneSaisi(aBrouillon ? brouillon.valeurs.telephoneSaisi : '');
+    // Le téléphone n'est volontairement jamais persisté dans le brouillon (donnée personnelle).
+    setTelephoneSaisi('');
     setBrouillonRepriseLe(aBrouillon ? brouillon.enregistreLe : null);
     setEntreeEnAttente(null);
     // Levier de reset (`hooks/commun/useValeurDebouncee`) : sans lui, l'aperçu de doublon de la
@@ -383,7 +382,6 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
     ide,
     email,
     langueCorrespondance,
-    telephoneSaisi,
     adressePrincipale,
   });
 

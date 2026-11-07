@@ -40,6 +40,8 @@ interface Props {
   readonly desactives: readonly ModuleApp[];
   readonly onChange: (desactives: readonly ModuleApp[]) => void;
   readonly desactiveTout?: boolean;
+  /** Sans le droit d'écrire : l'état se lit, aucun interrupteur ne se manipule. */
+  readonly lectureSeule?: boolean;
 }
 
 /**
@@ -48,7 +50,7 @@ interface Props {
  * réglage. L'état s'écrit en toutes lettres (Activé / Retiré) en plus de l'interrupteur ; la
  * dépendance s'affiche sur la ligne, jamais seulement par un interrupteur grisé.
  */
-export function ListeModules({ desactives, onChange, desactiveTout = false }: Props) {
+export function ListeModules({ desactives, onChange, desactiveTout = false, lectureSeule = false }: Props) {
   const { t } = useTranslation('parametrage');
   const noms = (ids: readonly ModuleApp[]) =>
     ids.map((id) => t(`parametrage:modules.items.${id}.nom`)).join(', ');
@@ -104,7 +106,7 @@ export function ListeModules({ desactives, onChange, desactiveTout = false }: Pr
               </span>
               <Switch
                 checked={ligne.actif}
-                disabled={desactiveTout || bloque}
+                disabled={desactiveTout || bloque || lectureSeule}
                 aria-labelledby={idNom}
                 aria-describedby={idAide}
                 onCheckedChange={(coche) => onChange(basculerModule(desactives, ligne.id, coche))}

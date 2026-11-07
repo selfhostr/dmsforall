@@ -486,6 +486,7 @@
       "titre": "Ce que votre garage utilise",
       "description": "Retirez ce que vous n'utilisez pas : les menus disparaissent pour tout le monde. Rien n'est supprimé, réactiver rétablit tout."
     },
+    "lectureSeule": "Seule la direction peut retirer ou réactiver des modules.",
     "socle": "Toujours présents : accueil, clients et véhicules, facturation, réglages.",
     "etat": {
       "actif": "Activé",

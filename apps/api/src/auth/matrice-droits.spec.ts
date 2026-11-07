@@ -246,4 +246,13 @@ describe('droits vus par le menu et l’accueil (audit navigateur du 07.11.2026)
     ).sort();
     expect(titulaires).toEqual(['admin', 'direction']);
   });
+
+  it('parametrage.modules.modifier : direction et admin seulement, chef d’atelier refusé en écriture mais lecture gardée', () => {
+    const titulaires = ROLES_PERSONNE.filter((r) =>
+      MATRICE_DROITS[r as RoleUtilisateur].includes('parametrage.modules.modifier'),
+    ).sort();
+    expect(titulaires).toEqual(['admin', 'direction']);
+    expect(MATRICE_DROITS.chef_atelier).not.toContain('parametrage.modules.modifier');
+    expect(MATRICE_DROITS.chef_atelier).toContain('parametrage.atelier.lire');
+  });
 });

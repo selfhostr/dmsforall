@@ -42,7 +42,7 @@ import { chemins } from '@/routes/chemins';
 import { BadgeStatutArticle } from './BadgeStatutArticle';
 import { FormulaireArticle } from './FormulaireArticle';
 import { peutEcrireArticle } from './droits';
-import { formaterQuantiteMillieme } from './utils';
+import { formaterQuantiteMillieme, quantiteDisponibleMillieme } from './utils';
 
 const DELAI_DEBOUNCE_MS = 300;
 
@@ -69,12 +69,14 @@ export function EcranListeArticles() {
   const [tri, setTri] = useState<string>(TRI_DEFAUT_ARTICLES);
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
 
-  // Site dont la colonne « disponible » lit le stock : filtre local (défaut = site principal du
-  // magasinier, mémorisé par écran), jamais « Tous » — un stock se lit sur UN site. Filtre
-  // d'affichage pur : ne change jamais la requête `/articles`, seulement la lecture de
-  // `stocksResume`. Absence de donnée ≠ valeur : sans site résolu, la colonne affiche « — ».
-  const filtreSite = useFiltreSite('pieces.articles', { siteObligatoire: true });
-  const site = filtreSite.siteId ?? '';
+  // Site dont la colonne « disponible » lit le stock : filtre local (défaut = site principal,
+  // mémorisé par écran). « Tous » (rôles autorisés) = somme de `stocksResume` sur tous les sites.
+  // Filtre d'affichage pur : ne change jamais la requête `/articles`. Absence de donnée ≠ valeur :
+  // session pas encore résolue -> la colonne affiche « — ».
+  const filtreSite = useFiltreSite('pieces.articles');
+  const site = filtreSite.siteId;
+  const siteConnu =
+    site !== undefined || (filtreSite.pret && filtreSite.tousPropose && filtreSite.sites.length > 0);
 
   const filtres = useMemo(
     () => ({ q: q.trim() === '' ? undefined : q.trim(), categorie, statut, tri }),
@@ -148,10 +150,9 @@ export function EcranListeArticles() {
       ),
     },
     {
-      // Disponibilité RÉELLE au site choisi, jamais un total tous sites confondus (brief : « ce
-      // qu'il peut réellement sortir aujourd'hui, sur son site »). Trois rendus distincts, jamais
+      // Disponibilité au site choisi, ou somme de tous les sites avec « Tous ». Trois rendus distincts, jamais
       // confondus (règle du dépôt « absence de donnée ≠ valeur ») :
-      //  - aucun site choisi -> « — » (inconnu, pas zéro) ;
+      //  - session non résolue -> « — » (inconnu, pas zéro) ;
       //  - site choisi, stock à 0 (ou jamais mouvementé sur ce site) -> badge « Rupture »,
       //    l'information utile pour le magasinier reste la même dans les deux cas (rien à sortir
       //    aujourd'hui sur ce site) ;
@@ -161,12 +162,10 @@ export function EcranListeArticles() {
       libelle: t('pieces:stock.quantites.disponible'),
       alignement: 'droite',
       rendu: (article) => {
-        if (site === '') {
+        if (!siteConnu) {
           return <span className="tabular-nums text-muted-foreground">—</span>;
         }
-        const quantite =
-          article.stocksResume.find((resume) => resume.siteId === site)
-            ?.quantiteDisponibleMillieme ?? 0;
+        const quantite = quantiteDisponibleMillieme(article.stocksResume, site);
         return quantite > 0 ? (
           <span className="tabular-nums text-statut-succes">
             {t('pieces:rechercheComptoir.resultat.disponible', {

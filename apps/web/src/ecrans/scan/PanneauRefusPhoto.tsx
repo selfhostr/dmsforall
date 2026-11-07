@@ -5,6 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
 import { CadrePermis } from './CadrePermis';
+import { urlApercuSure } from './urlApercuSure';
 import type { MotifRefusPhoto } from './analyserQualitePhoto';
 import type { FractionsCadre } from './geometrieCadre';
 
@@ -46,7 +47,7 @@ export function PanneauRefusPhoto({
           parfois dans le fond de page. Le filet ici délimite le bord RÉEL de la photo, pas un
           simple regroupement de contenu. */}
       <div className="relative overflow-hidden rounded-lg border">
-        <img src={urlApercu} alt={t('scan:refus.apercuAlt')} className="block w-full" />
+        <img src={urlApercuSure(urlApercu)} alt={t('scan:refus.apercuAlt')} className="block w-full" />
         <CadrePermis fractions={fractions} />
       </div>
 

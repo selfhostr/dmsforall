@@ -40,6 +40,7 @@ export const ACTIONS_CITEES = [
   'facturation.paiement.creer',
   'facturation.paiement.lire',
   'parametrage.atelier.modifier',
+  'parametrage.modules.modifier',
   'pieces.article.creer',
   'pieces.article.lire',
   'pieces.commande_fournisseur.creer',

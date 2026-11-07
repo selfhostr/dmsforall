@@ -1642,8 +1642,8 @@ const DROITS_PHOTO_LIGNE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Act
 // Accueil — état de mise en route du garage (`accueil.demarrage.lire`) : direction et admin.
 // =================================================================================================
 const DROITS_ACCUEIL_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
-  admin: ['accueil.demarrage.lire'],
-  direction: ['accueil.demarrage.lire'],
+  admin: ['accueil.demarrage.lire', 'parametrage.modules.modifier'],
+  direction: ['accueil.demarrage.lire', 'parametrage.modules.modifier'],
   vendeur: [],
   receptionnaire: [],
   chef_atelier: [],

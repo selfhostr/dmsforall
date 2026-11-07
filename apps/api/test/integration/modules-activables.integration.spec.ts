@@ -43,9 +43,9 @@ afterEach(async () => {
   await bdd.poolSuperutilisateur.query(`update tenant set modules_desactives = '{}'`);
 });
 
-async function avec(tenant: 'A' | 'B' = 'A') {
+async function avec(tenant: 'A' | 'B' = 'A', role: 'direction' | 'chef_atelier' = 'direction') {
   const t = tenant === 'A' ? garage.tenantA : garage.tenantB;
-  const cookie = await cookiePour(t, 'direction');
+  const cookie = await cookiePour(t, role);
   return {
     get: (chemin: string) => ctx.requete.get(chemin).set('Cookie', cookie),
     patch: (chemin: string, corps: Record<string, unknown>) =>
@@ -79,6 +79,14 @@ describe('modules activables', () => {
     expect(r.body.modulesActifs).toEqual([...MODULES_APP]);
     const moi = await api.get('/api/v1/auth/moi');
     expect(moi.body.modulesActifs).toEqual([...MODULES_APP]);
+  });
+
+  it('chef d’atelier : lecture permise, écriture refusée 403 DROIT_INSUFFISANT', async () => {
+    const api = await avec('A', 'chef_atelier');
+    expect((await api.get(CHEMIN)).status).toBe(200);
+    const r = await api.patch(CHEMIN, { modulesDesactives: ['pneus'] });
+    expect(r.status).toBe(403);
+    expect(r.body.code).toBe('DROIT_INSUFFISANT');
   });
 
   it('retirer pneus : l’écriture répond 403 MODULE_DESACTIVE, la lecture reste permise', async () => {

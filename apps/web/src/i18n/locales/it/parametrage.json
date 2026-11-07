@@ -486,6 +486,7 @@
       "titre": "Ciò che usa la vostra autorimessa",
       "description": "Togliete ciò che non usate: i menu scompaiono per tutti. Nulla viene eliminato, riattivare ripristina tutto."
     },
+    "lectureSeule": "Solo la direzione può rimuovere o riattivare i moduli.",
     "socle": "Sempre presenti: pagina iniziale, clienti e veicoli, fatturazione, impostazioni.",
     "etat": {
       "actif": "Attivo",

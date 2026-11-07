@@ -7,6 +7,7 @@ import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useModifierModules } from '@/hooks/parametrage/useModifierModules';
+import { usePeut } from '@/droits';
 import { useModules } from '@/hooks/parametrage/useModules';
 
 import { ListeModules } from './ListeModules';
@@ -21,6 +22,7 @@ export function EcranModules() {
   const { t } = useTranslation(['parametrage', 'commun', 'erreurs']);
   const requete = useModules();
   const modifier = useModifierModules();
+  const peutModifier = usePeut('parametrage.modules.modifier');
 
   return (
     <GabaritEcran titre={t('parametrage:modules.titre')}>
@@ -46,10 +48,14 @@ export function EcranModules() {
             <ListeModules
               desactives={requete.data.modulesDesactives}
               desactiveTout={modifier.isPending}
+              lectureSeule={!peutModifier}
               onChange={(modulesDesactives) =>
                 modifier.mutate({ modulesDesactives: [...modulesDesactives] })
               }
             />
+            {peutModifier ? null : (
+              <p className="texte-corps text-foreground">{t('parametrage:modules.lectureSeule')}</p>
+            )}
             <p className="texte-corps text-muted-foreground">{t('parametrage:modules.socle')}</p>
             {modifier.isError ? (
               <Alert variant="destructive">
