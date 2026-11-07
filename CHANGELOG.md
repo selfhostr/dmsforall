@@ -2,7 +2,7 @@
 
 All notable changes to dmsforall are recorded here, for people who run it and for people who use it. Each entry says what changes for you. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/) until 1.0.
 
-## [0.2.0] - 2026-11-07
+## 0.2.0 (2026-11-07)
 
 This release fixes the repair order invoicing problem found in 0.1.0, and adds quotes, courtesy cars and an accounting export for your fiduciary. Read the upgrade notes before you update.
 
