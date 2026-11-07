@@ -189,7 +189,7 @@
         },
         "premierUsage": {
           "titre": "Nessun veicolo in stock",
-          "description": "Immetti il tuo primo veicolo in stock."
+          "description": "Immetta il suo primo veicolo in stock."
         }
       },
       "rechercherPlaceholder": "Targa, VIN o descrizione…",
@@ -475,9 +475,9 @@
         "documentsReunis": "Documenti di consegna riuniti"
       },
       "aFaire": {
-        "assignerVehicule": "Chi: voi — assegnare un veicolo",
-        "verifierIdentite": "Chi: voi — verificare un documento d'identità",
-        "negocierReprise": "Chi: voi — negoziare la permuta prima della firma",
+        "assignerVehicule": "Chi: officina — assegnazione di un veicolo",
+        "verifierIdentite": "Chi: officina — verifica di un documento d'identità",
+        "negocierReprise": "Chi: officina — negoziazione della permuta prima della firma",
         "financementEnAttente": "Chi: {organisme} — finanziamento in attesa",
         "financementEnAttenteGenerique": "Chi: l'istituto di finanziamento — finanziamento in attesa",
         "verifierExpertise": "Chi: l'officina — verificare la MFK",

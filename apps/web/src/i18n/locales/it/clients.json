@@ -159,7 +159,7 @@
       "ide": "Numero IDI"
     },
     "vide": {
-      "premier": "Inserisci almeno un criterio di ricerca",
+      "premier": "Inserisca almeno un criterio di ricerca",
       "premierDescription": "Nome, NPA, e-mail, telefono o numero IDI: basta un solo criterio.",
       "aucunDoublon": "Nessun duplicato rilevato",
       "aucunDoublonDescription": "Nessun cliente esistente corrisponde a questi criteri."
@@ -202,7 +202,7 @@
   },
   "fusion": {
     "titre": "Unisci due clienti",
-    "confirmation": "Digitare il nome del cliente da unire per confermare",
+    "confirmation": "Digiti il nome del cliente da unire per confermare",
     "irreversible": "Questa azione e irreversibile.",
     "transferer": "Le seguenti informazioni verranno trasferite",
     "colonnes": {
@@ -213,11 +213,11 @@
   },
   "vide": {
     "premier": "Nessun cliente registrato. Crearne uno.",
-    "premierDescription": "Inizia creando il tuo primo cliente.",
+    "premierDescription": "Inizi creando il suo primo cliente.",
     "recherche": "Nessun cliente trovato.",
-    "rechercheDescription": "Prova un'altra ricerca.",
+    "rechercheDescription": "Provi un'altra ricerca.",
     "filtre": "Nessun risultato con questi filtri.",
-    "filtreDescription": "Modifica o cancella i filtri attivi."
+    "filtreDescription": "Modifichi o cancelli i filtri attivi."
   },
   "formulaireNouveau": {
     "brouillon": {
@@ -227,7 +227,7 @@
   },
   "ficheApresCreation": {
     "titre": "Cliente registrato",
-    "description": "Il cliente {nom} è stato registrato correttamente ({numero}), ma la sua scheda non è potuta essere visualizzata. Riprova, oppure trovalo nell'elenco clienti — non crearlo di nuovo.",
+    "description": "Il cliente {nom} è stato registrato correttamente ({numero}), ma la sua scheda non è potuta essere visualizzata. Riprovi, oppure lo trovi nell'elenco clienti — non lo crei di nuovo.",
     "retourListe": "Torna all'elenco clienti"
   }
 }
