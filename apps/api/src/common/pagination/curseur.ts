@@ -204,7 +204,7 @@ function validerContenuValeur(valeur: string | number | null, typeValeur: TypeVa
   throw erreurCurseurInvalide();
 }
 
-function erreurCurseurInvalide(): ErreurMetier {
+export function erreurCurseurInvalide(): ErreurMetier {
   return new ErreurMetier('VALIDATION_ECHOUEE', 'Curseur de pagination invalide.', {
     erreurs: [
       { champ: 'curseur', code: 'curseur_invalide', message: 'Curseur de pagination illisible.' },

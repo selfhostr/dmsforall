@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, gt, gte, inArray, isNotNull, lt, lte, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, lt, lte, sql } from 'drizzle-orm';
 import { schemaModificationLigneDocument } from '@dfa/shared';
 import type {
   EntreeCreationDocumentVente,
@@ -15,8 +15,11 @@ import type {
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../../db';
 import {
   documentVente,
+  documentVenteTva,
   ligneDocument,
+  vehiculePlaque,
   type LigneDocumentVente,
+  type LigneDocumentVenteTva,
   type LigneLigneDocument,
 } from '../../db/schema';
 import type { PrincipalAuthentifie } from '../../common/contexte/contexte-requete.types';
@@ -50,6 +53,13 @@ import {
   listerVentilationTva,
 } from './document-requetes';
 import { versionDocumentVente } from './document-vente.etag';
+import {
+  colonnesCurseurDocuments,
+  conditionReprise,
+  decoderCurseurDocuments,
+  encoderCurseurDocuments,
+  ordreDocuments,
+} from './pagination-documents';
 import { traduireErreurDocument } from './erreurs-sql-document';
 import { mapperDocument, mapperLigneDocument, type TotauxDocumentMappes } from './mappeurs';
 import {
@@ -61,6 +71,7 @@ import {
   chargerResumeUtilisateur,
   nomAfficheClient,
   verifierVehiculeExiste,
+  type ResumeUtilisateur,
 } from './references';
 
 /** Statuts au-delà desquels une ligne ne peut plus être ajoutée/modifiée/supprimée (`MD-21`) — la
@@ -253,7 +264,7 @@ export class ServiceDocumentsVente {
    * `GET /documents-vente` — TOUS les filtres de `FiltresDocumentsVente` sont câblés (`siteId`,
    * `typeDocument`, `natureFacture`, `statut`, `statutReglement`, `clientId`, `vehiculeId`,
    * `ordreReparationId`, `dateDocumentDu`/`dateDocumentAu`, `enRetard`, `relanceNiveau`, `q`), tri
-   * `dateDocument:desc` par défaut. Défaut PRÉCÉDENT corrigé : `ordreReparationId` était ACCEPTÉ par
+   * `dateDocument:desc` par défaut (les six `tri` du contrat sont appliqués, voir `pagination-documents.ts`). Défaut PRÉCÉDENT corrigé : `ordreReparationId` était ACCEPTÉ par
    * la validation zod mais jamais traduit en SQL — une fiche d'OR listait alors les cinq derniers
    * documents du TENANT ENTIER (aucune condition sur cette colonne), preuve obtenue en comparant un
    * OR réel à un `ordreReparationId` inexistant qui rendait rigoureusement la même liste.
@@ -273,9 +284,9 @@ export class ServiceDocumentsVente {
    * volume, ~230 ms mesurés par `recherche/service-recherche.ts` sur 91k lignes) — tradeoff déjà
    * accepté ailleurs dans le dépôt pour la même colonne, pas réintroduit ni aggravé ici.
    *
-   * Pagination par curseur d'offset opaque — volume d'un tenant, pas un flux illimité ; chaque
-   * filtre supplémentaire ne fait que rétrécir la clause `where` commune aux deux appels
-   * (page N puis N+1), sans toucher au mécanisme de curseur lui-même.
+   * Pagination keyset (curseur v2 opaque, `pagination-documents.ts`) et chargement par lot de la
+   * page (`assemblerListe`) : ~4 requêtes par page quelle que soit sa taille. Un curseur de
+   * l'ancien format (offset) rend `400 VALIDATION_ECHOUEE` (`curseur_invalide`).
    */
   async lister(
     ctx: ContexteTenant,
@@ -343,27 +354,121 @@ export class ServiceDocumentsVente {
         )`);
       }
 
-      const decalage = decoderCurseurOffset(curseur);
+      // Pagination keyset (voir `pagination-documents.ts`) : le curseur d'un ancien format (offset)
+      // est refusé en `400 VALIDATION_ECHOUEE` / `curseur_invalide`, comme tout curseur illisible
+      // — convention de `common/pagination` (`decoderCurseurTrie`), jamais une première page muette.
+      const reprise = decoderCurseurDocuments(curseur, filtres.tri);
+      if (reprise) conditions.push(conditionReprise(filtres.tri, reprise));
+
+      const colonnesCurseur = colonnesCurseurDocuments(filtres.tri);
       const lignes = await tx
-        .select()
+        .select({
+          doc: documentVente,
+          cle: colonnesCurseur.cle,
+          creeLeTexte: colonnesCurseur.creeLeTexte,
+        })
         .from(documentVente)
         .where(and(...conditions))
-        .orderBy(desc(documentVente.dateDocument), desc(documentVente.creeLe))
-        .limit(limite + 1)
-        .offset(decalage);
+        .orderBy(ordreDocuments(filtres.tri))
+        .limit(limite + 1);
 
-      const page = lignes.slice(0, limite);
-      const suite = lignes.length > limite ? encoderCurseurOffset(decalage + limite) : null;
+      const pageLignes = lignes.slice(0, limite);
+      const derniere = pageLignes.at(-1);
+      const suite =
+        lignes.length > limite && derniere
+          ? encoderCurseurDocuments(filtres.tri, {
+              id: derniere.doc.id,
+              cle: derniere.cle,
+              creeLeTexte: derniere.creeLeTexte,
+            })
+          : null;
 
-      // `pourListe = true` : voir la note sur `assemblerDocument` — évite d'ouvrir jusqu'à
-      // `limite` (max 200) transactions d'audit imbriquées en parallèle sur une seule page
-      // (épuisement du pool `pg`, `max 10` par défaut). Même correctif que
-      // `atelier/service-or.ts::lister`.
-      const donnees = await Promise.all(
-        page.map((l) => this.assemblerDocument(tx, ctx, principal.role, l.id, true)),
+      // Chargement PAR LOT (une requête par table pour toute la page) : l'ancien
+      // `assemblerDocument` par ligne coûtait ~4 requêtes par document, en série sur la même
+      // connexion. Résultat strictement identique, `pourListe` implicite (pas d'audit : voir la
+      // note de `assemblerDocument`).
+      const donnees = await this.assemblerListe(
+        tx,
+        ctx,
+        principal.role,
+        pageLignes.map((l) => l.doc),
       );
       return { donnees, curseurSuivant: suite };
     });
+  }
+
+  /**
+   * Version PAR LOT de `assemblerDocument(…, pourListe = true)` : lignes, ventilation TVA et
+   * plaques de TOUTE la page en une requête chacune (`= any(...)`), assemblage en mémoire par le
+   * même `construireReponse`. Les documents arrivent déjà chargés (ligne `document_vente` lue par
+   * la requête de page) ; l'ordre d'entrée est conservé.
+   */
+  async assemblerListe(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    role: PrincipalAuthentifie['role'],
+    docs: readonly LigneDocumentVente[],
+  ): Promise<readonly ReponseDocumentVente[]> {
+    if (docs.length === 0) return [];
+    const ids = docs.map((d) => d.id);
+    const idsHorsBrouillon = docs.filter((d) => d.statut !== 'brouillon').map((d) => d.id);
+    const vehiculeIds = [
+      ...new Set(docs.map((d) => d.vehiculeId).filter((id): id is string => id !== null)),
+    ];
+
+    const [lignes, ventilations, plaques] = await Promise.all([
+      tx
+        .select()
+        .from(ligneDocument)
+        .where(
+          and(eq(ligneDocument.tenantId, ctx.tenantId), inArray(ligneDocument.documentId, ids)),
+        )
+        .orderBy(asc(ligneDocument.numeroOrdre)),
+      idsHorsBrouillon.length === 0
+        ? Promise.resolve<readonly LigneDocumentVenteTva[]>([])
+        : tx
+            .select()
+            .from(documentVenteTva)
+            .where(
+              and(
+                eq(documentVenteTva.tenantId, ctx.tenantId),
+                inArray(documentVenteTva.documentId, idsHorsBrouillon),
+              ),
+            ),
+      vehiculeIds.length === 0
+        ? Promise.resolve<readonly { vehiculeId: string; valeur: string }[]>([])
+        : tx
+            .select({ vehiculeId: vehiculePlaque.vehiculeId, valeur: vehiculePlaque.valeur })
+            .from(vehiculePlaque)
+            .where(
+              and(
+                eq(vehiculePlaque.tenantId, ctx.tenantId),
+                inArray(vehiculePlaque.vehiculeId, vehiculeIds),
+                isNull(vehiculePlaque.au),
+              ),
+            )
+            // Même règle que `chargerPlaqueVehiculeCourante` : la plus récemment ouverte d'abord.
+            .orderBy(desc(vehiculePlaque.du)),
+    ]);
+
+    const lignesParDocument = grouper(lignes, (l) => l.documentId);
+    const ventilationParDocument = grouper(ventilations, (v) => v.documentId);
+    const plaqueParVehicule = new Map<string, string>();
+    for (const p of plaques) {
+      if (!plaqueParVehicule.has(p.vehiculeId)) plaqueParVehicule.set(p.vehiculeId, p.valeur);
+    }
+
+    return docs.map((doc) =>
+      this.construireReponse({
+        doc,
+        lignesToutes: lignesParDocument.get(doc.id) ?? [],
+        ventilationRows: ventilationParDocument.get(doc.id) ?? [],
+        plaque: doc.vehiculeId ? (plaqueParVehicule.get(doc.vehiculeId) ?? null) : null,
+        role,
+        emisPar: null,
+        modifiePar: null,
+      }),
+    );
   }
 
   /* -------------------------------------------------------------------------------------------- */
@@ -547,7 +652,46 @@ export class ServiceDocumentsVente {
   ): Promise<ReponseDocumentVente> {
     const doc = await chargerDocument(tx, ctx, documentId);
     const lignesToutes = await listerLignesDocument(tx, ctx, documentId);
+    const ventilationRows =
+      doc.statut === 'brouillon' ? [] : await listerVentilationTva(tx, ctx, documentId);
+    const plaque = await chargerPlaqueVehiculeCourante(tx, ctx, doc.vehiculeId);
 
+    const journalDoc = pourListe
+      ? ([] as readonly EntreeAudit[])
+      : await this.audit.pourEntite(ctx, 'document_vente', documentId);
+    const dernier = journalDoc.at(-1) ?? null;
+    const modifiePar = await chargerResumeUtilisateur(tx, ctx, dernier?.utilisateurId ?? null);
+    const entreeEmission = journalDoc.find(
+      (e) => (e.valeurApres as Record<string, unknown> | null)?.statut === 'emis',
+    );
+    const emisPar = await chargerResumeUtilisateur(tx, ctx, entreeEmission?.utilisateurId ?? null);
+
+    return this.construireReponse({
+      doc,
+      lignesToutes,
+      ventilationRows,
+      plaque,
+      role,
+      emisPar,
+      modifiePar,
+    });
+  }
+
+  /**
+   * Construction PURE de la réponse (aucun accès base) — unique chemin de vérité partagé par
+   * `assemblerDocument` (fiche) et `assemblerListe` (liste par lot) : les deux ne peuvent donc pas
+   * diverger sur les totaux, la ventilation TVA ou le masquage par rôle.
+   */
+  private construireReponse(e: {
+    readonly doc: LigneDocumentVente;
+    readonly lignesToutes: readonly LigneLigneDocument[];
+    readonly ventilationRows: readonly LigneDocumentVenteTva[];
+    readonly plaque: string | null;
+    readonly role: PrincipalAuthentifie['role'];
+    readonly emisPar: ResumeUtilisateur | null;
+    readonly modifiePar: ResumeUtilisateur | null;
+  }): ReponseDocumentVente {
+    const { doc, lignesToutes } = e;
     const brouillon = doc.statut === 'brouillon';
     const totaux: TotauxDocumentMappes = brouillon
       ? { ...calculerTotauxDocument(lignesToutes), ecartRepriseCentimes: 0 }
@@ -560,35 +704,22 @@ export class ServiceDocumentsVente {
 
     const ventilationTva = brouillon
       ? agregerLignesEnDirect(lignesToutes)
-      : (await listerVentilationTva(tx, ctx, documentId)).map((v) => ({
+      : e.ventilationRows.map((v) => ({
           regimeTva: v.regimeTva,
           tauxTvaPourmille: v.tauxTvaPourmille,
           baseCentimes: v.baseCentimes,
           tvaCentimes: v.tvaCentimes,
         }));
 
-    const figeesAdresse = adresseDepuisJsonb(doc.adresseFacturationFigee);
-    const figeesPlaque = await chargerPlaqueVehiculeCourante(tx, ctx, doc.vehiculeId);
-
-    const journalDoc = pourListe
-      ? ([] as readonly EntreeAudit[])
-      : await this.audit.pourEntite(ctx, 'document_vente', documentId);
-    const dernier = journalDoc.at(-1) ?? null;
-    const modifiePar = await chargerResumeUtilisateur(tx, ctx, dernier?.utilisateurId ?? null);
-    const entreeEmission = journalDoc.find(
-      (e) => (e.valeurApres as Record<string, unknown> | null)?.statut === 'emis',
-    );
-    const emisPar = await chargerResumeUtilisateur(tx, ctx, entreeEmission?.utilisateurId ?? null);
-
     return mapperDocument({
       doc,
       lignesToutes,
       ventilationTva,
-      role,
-      figeesAdresse,
-      figeesPlaque,
-      emisPar,
-      modifiePar,
+      role: e.role,
+      figeesAdresse: adresseDepuisJsonb(doc.adresseFacturationFigee),
+      figeesPlaque: e.plaque,
+      emisPar: e.emisPar,
+      modifiePar: e.modifiePar,
       totaux,
       version: versionDocumentVente(doc.modifieLe),
       // Instant de LECTURE, jamais stocké — sert uniquement à dériver `enRetard`/`joursRetard`
@@ -896,25 +1027,16 @@ export class ServiceDocumentsVente {
   }
 }
 
-/* ------------------------------------------------------------------ */
-/* Curseur d'offset opaque — même mécanisme que atelier/service-or.ts   */
-/* ------------------------------------------------------------------ */
-
-export function encoderCurseurOffset(decalage: number): string {
-  return Buffer.from(String(decalage), 'utf8').toString('base64url');
-}
-
-export function decoderCurseurOffset(curseur: string | undefined): number {
-  if (!curseur) return 0;
-  const brut = Number(Buffer.from(curseur, 'base64url').toString('utf8'));
-  if (!Number.isInteger(brut) || brut < 0) {
-    throw new ErreurMetier('VALIDATION_ECHOUEE', 'Curseur de pagination invalide.', {
-      erreurs: [
-        { champ: 'curseur', code: 'curseur_invalide', message: 'Curseur de pagination illisible.' },
-      ],
-    });
+/** Regroupe par clé en conservant l'ordre d'arrivée dans chaque groupe. */
+function grouper<T>(elements: readonly T[], cle: (e: T) => string): Map<string, T[]> {
+  const parCle = new Map<string, T[]>();
+  for (const e of elements) {
+    const k = cle(e);
+    const groupe = parCle.get(k);
+    if (groupe) groupe.push(e);
+    else parCle.set(k, [e]);
   }
-  return brut;
+  return parCle;
 }
 
 function agregerLignesEnDirect(lignes: readonly LigneLigneDocument[]): readonly {

@@ -23,7 +23,8 @@ vi.mock('./or-requetes', () => ({
   chargerOrPourEcriture: vi.fn(),
 }));
 
-import { encoderCurseurOffset, ServiceOr } from './service-or';
+import { encoderCurseurTrie } from '../common/pagination';
+import { ServiceOr } from './service-or';
 import * as orRequetes from './or-requetes';
 
 const CTX: ContexteTenant = { tenantId: 'tenant-a', utilisateurId: 'user-1', requeteId: 'req-1' };
@@ -320,19 +321,23 @@ describe('ServiceOr.lister — filtre technicienId (I-19/#19)', () => {
     expect(sql).not.toMatch(/\bexists\b/i);
   });
 
-  it("aucun OR n'est perdu ni dupliqué par la pagination : la requête outer reste une SELECT simple sur ordre_reparation (pas de GROUP BY, pas de DISTINCT rendus nécessaires par le filtre), avec limit/offset intacts — le exists(...) ne change ni la forme ni le compte de lignes retournées par OR", async () => {
+  it("aucun OR n'est perdu ni dupliqué par la pagination : la requête outer reste une SELECT simple sur ordre_reparation (pas de GROUP BY, pas de DISTINCT rendus nécessaires par le filtre), avec limit intact et reprise keyset (jamais d'offset) — le exists(...) ne change ni la forme ni le compte de lignes retournées par OR", async () => {
     const { sql, params } = await executerListerEtCapturer(
       { technicienId: 'tech-1', siteId: 'site-1' },
-      // Curseur non nul : `decoderCurseurOffset(undefined)` vaut 0, et drizzle omet la clause
-      // `offset` quand la valeur est 0 (rien à sauter) — un curseur réel, produit par
-      // `encoderCurseurOffset`, est nécessaire pour observer la clause dans le SQL généré.
-      encoderCurseurOffset(10),
+      // Curseur keyset réel (tri par défaut `ouvertLe:desc`) : la reprise est une comparaison ROW
+      // sur `(ouvert_le, id)`, JAMAIS un `offset`.
+      encoderCurseurTrie({
+        tri: TRI_DEFAUT_ORDRES_REPARATION,
+        valeur: '2026-03-01T08:00:00.100000+00:00',
+        id: '0e2424ea-8c3c-4653-9d13-54265a03a033',
+      }),
     );
 
     expect(sql).not.toMatch(/\bgroup by\b/i);
     expect(sql).not.toMatch(/\bdistinct\b/i);
     expect(sql).toMatch(/\blimit \$\d+/i);
-    expect(sql).toMatch(/\boffset \$\d+/i);
+    expect(sql).not.toMatch(/\boffset\b/i);
+    expect(sql).toMatch(/\("ordre_reparation"\."ouvert_le", "ordre_reparation"\."id"\) < \(/);
     // Le filtre siteId (déjà câblé) et technicienId (nouvellement câblé) COMPOSENT par ET, sans
     // que l'un écrase l'autre.
     expect(sql).toContain('"ordre_reparation"."site_id" = $');
@@ -855,7 +860,7 @@ describe('ServiceOr.lister — tri (#73 suite, filtres.tri câblé)', () => {
     return requeteOuter(capturedSelects).sql;
   }
 
-  it('ouvertLe:asc — `ouvert_le asc nulls last`, tiebreak `id asc`', async () => {
+  it('ouvertLe:asc — `ouvert_le asc nulls last`, tiebreak `id` dans le sens du tri', async () => {
     const sqlTexte = await executerListerEtCapturer('ouvertLe:asc');
     expect(clauseOrderBy(sqlTexte)).toBe(
       ' order by "ordre_reparation"."ouvert_le" asc nulls last, "ordre_reparation"."id" asc',
@@ -865,7 +870,7 @@ describe('ServiceOr.lister — tri (#73 suite, filtres.tri câblé)', () => {
   it("ouvertLe:desc — `ouvert_le desc nulls last` — sens STRICTEMENT inverse d'ouvertLe:asc, même colonne", async () => {
     const sqlTexte = await executerListerEtCapturer('ouvertLe:desc');
     expect(clauseOrderBy(sqlTexte)).toBe(
-      ' order by "ordre_reparation"."ouvert_le" desc nulls last, "ordre_reparation"."id" asc',
+      ' order by "ordre_reparation"."ouvert_le" desc nulls last, "ordre_reparation"."id" desc',
     );
   });
 
@@ -879,7 +884,7 @@ describe('ServiceOr.lister — tri (#73 suite, filtres.tri câblé)', () => {
   it('restitutionPromiseLe:desc — `restitution_promise_le desc nulls last` — sens STRICTEMENT inverse de restitutionPromiseLe:asc, même colonne', async () => {
     const sqlTexte = await executerListerEtCapturer('restitutionPromiseLe:desc');
     expect(clauseOrderBy(sqlTexte)).toBe(
-      ' order by "ordre_reparation"."restitution_promise_le" desc nulls last, "ordre_reparation"."id" asc',
+      ' order by "ordre_reparation"."restitution_promise_le" desc nulls last, "ordre_reparation"."id" desc',
     );
   });
 
@@ -945,7 +950,7 @@ describe('ServiceOr.lister — tri (#73 suite, filtres.tri câblé)', () => {
     },
   );
 
-  it("le tiebreak `id asc` termine TOUJOURS la clause order by, quelle que soit la valeur de tri — garantit un ordre total pour une pagination par curseur d'offset cohérente", async () => {
+  it('le tiebreak `id` (MÊME sens que la clé de tri, exigé par la comparaison ROW du keyset) termine TOUJOURS la clause order by — garantit un ordre total pour la pagination par curseur', async () => {
     for (const tri of [
       'ouvertLe:asc',
       'ouvertLe:desc',
@@ -955,7 +960,8 @@ describe('ServiceOr.lister — tri (#73 suite, filtres.tri câblé)', () => {
     ] as const) {
       // eslint-disable-next-line no-await-in-loop -- lecture séquentielle indépendante, pas d'écriture
       const sqlTexte = await executerListerEtCapturer(tri);
-      expect(clauseOrderBy(sqlTexte)).toMatch(/, "ordre_reparation"\."id" asc$/);
+      const sens = tri.endsWith(':desc') && tri !== 'joursAttenteRetrait:desc' ? 'desc' : 'asc';
+      expect(clauseOrderBy(sqlTexte)).toMatch(new RegExp(`, "ordre_reparation"\\."id" ${sens}$`));
     }
   });
 });
