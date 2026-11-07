@@ -295,7 +295,7 @@
       "desactiver": "Désactiver",
       "reactiver": "Réactiver",
       "reinitialiserAcces": "Réinitialiser l'accès",
-      "menuAria": "Actions pour {{nom}}"
+      "menuAria": "Actions pour {nom}"
     },
     "creation": {
       "titre": "Créer un employé",
@@ -312,7 +312,7 @@
       }
     },
     "modification": {
-      "titre": "Modifier {{nom}}",
+      "titre": "Modifier {nom}",
       "description": "Changer le rôle et/ou les sites — utile quand un employé change de poste.",
       "actions": {
         "enregistrer": "Enregistrer"
@@ -326,19 +326,59 @@
       "fermer": "J'ai noté le mot de passe"
     },
     "desactiver": {
-      "titre": "Désactiver {{nom}} ?",
+      "titre": "Désactiver {nom} ?",
       "description": "L'employé ne pourra plus se connecter. Son historique (ordres de réparation, factures, pointages) reste attribuable — ce n'est pas une suppression, et le compte peut être réactivé à tout moment.",
       "confirmer": "Désactiver"
     },
     "reactiver": {
-      "titre": "Réactiver {{nom}} ?",
+      "titre": "Réactiver {nom} ?",
       "description": "L'employé pourra à nouveau se connecter avec son mot de passe existant.",
       "confirmer": "Réactiver"
     },
     "reinitialiserAcces": {
-      "titre": "Réinitialiser l'accès de {{nom}} ?",
+      "titre": "Réinitialiser l'accès de {nom} ?",
       "description": "Un nouveau mot de passe temporaire est généré et toute session ouverte de cet employé est fermée immédiatement.",
       "confirmer": "Réinitialiser"
+    },
+    "rolesDescription": {
+      "direction": "Fait tout : réception, ventes, facturation, pièces, réglages et employés.",
+      "chef_atelier": "Dirige l'atelier : planifie, contrôle, corrige les heures et lève les blocages. Voit les prix.",
+      "receptionnaire": "Accueille les clients, ouvre les ordres de réparation, prépare devis et factures.",
+      "technicien": "Voit et pointe ses travaux, jamais les prix.",
+      "magasinier": "Tient le stock : sorties de pièces, inventaire, réception des commandes.",
+      "vendeur": "Vend les véhicules neufs et d'occasion et suit les dossiers de vente.",
+      "comptable": "Suit la facturation, les paiements et les exports pour la fiduciaire.",
+      "admin": "Compte technique : gère les accès, sans aucun droit sur l'atelier ni la facturation."
+    },
+    "roleUnique": "Chaque personne a un seul rôle. Dans un petit garage, choisissez Direction : ce rôle peut tout faire.",
+    "bornes": {
+      "titre": "Bornes d'atelier",
+      "description": "Une borne est la tablette murale de l'atelier : les mécaniciens y pointent avec leur code PIN.",
+      "nouveau": "Ajouter une borne",
+      "vide": "Aucune borne d'atelier pour l'instant.",
+      "colNom": "Nom",
+      "colIdentifiant": "Identifiant",
+      "colSite": "Site",
+      "colStatut": "Statut",
+      "colActions": "Actions",
+      "champNom": "Nom de la borne",
+      "champSite": "Site de la borne",
+      "placeholderSite": "Choisir un site",
+      "creer": "Créer la borne",
+      "acces": "Identifiant et mot de passe de la borne",
+      "accesDescription": "Saisissez-les une seule fois sur la tablette. Le mot de passe ne sera plus jamais affiché.",
+      "desactiver": "Désactiver",
+      "reactiver": "Réactiver",
+      "reinitialiser": "Nouveau mot de passe",
+      "desactiverTitre": "Désactiver la borne {nom} ?",
+      "desactiverDescription": "La tablette est déconnectée immédiatement.",
+      "reactiverTitre": "Réactiver la borne {nom} ?",
+      "reactiverDescription": "La tablette pourra de nouveau se connecter.",
+      "reinitialiserTitre": "Nouveau mot de passe pour {nom} ?",
+      "reinitialiserDescription": "La tablette est déconnectée : il faudra y saisir le nouveau mot de passe.",
+      "identifiantLabel": "Identifiant",
+      "motDePasseLabel": "Mot de passe",
+      "fermer": "J'ai noté ces informations"
     }
   }
 }

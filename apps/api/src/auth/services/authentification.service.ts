@@ -24,6 +24,7 @@ import type { PrincipalAuthentifie } from '../../common/contexte/contexte-requet
 import { JETON_SERVICE_LIMITATION_DEBIT } from '../../common/limitation/limitation-debit.jetons';
 import type { ServiceLimitationDebit } from '../../common/limitation/limitation-debit.types';
 import { JETON_SERVICE_MOT_DE_PASSE, JETON_SERVICE_SESSION } from '../jetons';
+import { MATRICE_DROITS } from '../matrice-droits';
 import type {
   ServiceAuthentification,
   ServiceMotDePasse,
@@ -340,6 +341,7 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
           tenant: ligneTenant,
           sites: lignesSites,
           siteRattachementId,
+          actions: [...(MATRICE_DROITS[ligneUtilisateur.role] ?? [])].sort(),
           expireLe: ligneSession.expireLe.toISOString(),
         } satisfies SessionCourante;
       },

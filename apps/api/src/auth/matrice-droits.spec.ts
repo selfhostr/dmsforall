@@ -685,7 +685,6 @@ describe('MATRICE_DROITS — admin et direction (superset SAUF droits financiers
   ] as const;
   const ROLES_SANS_ECRITURE = [
     'admin',
-    'direction',
     'chef_atelier',
     'comptable',
     'poste_atelier',
@@ -713,7 +712,7 @@ describe('MATRICE_DROITS — admin et direction (superset SAUF droits financiers
     expect(MATRICE_DROITS.chef_atelier).toContain('pieces.commande_fournisseur.lire');
   });
 
-  it('déposer/valider/rejeter accordés à magasinier SEUL — même périmètre que pieces.commande_fournisseur.reception', () => {
+  it('déposer/valider/rejeter accordés à magasinier ET direction (phase 0 rôles) — même périmètre que pieces.commande_fournisseur.reception', () => {
     for (const action of ACTIONS_ECRITURE) {
       expect(MATRICE_DROITS.magasinier).toContain(action);
       for (const role of ROLES_SANS_ECRITURE) {
@@ -724,9 +723,9 @@ describe('MATRICE_DROITS — admin et direction (superset SAUF droits financiers
     expect(MATRICE_DROITS.magasinier).toContain('pieces.commande_fournisseur.reception');
   });
 
-  it('direction et admin N’ONT PAS l’écriture — le palliatif remplacé la leur accordait à tort (direction : aucun geste de confirmation physique dans ce cluster ; admin : RF-115)', () => {
+  it('direction a l’écriture (petit garage sans magasinier : le patron dépose/valide/rejette) ; admin ne l’a PAS (RF-115)', () => {
     for (const action of ACTIONS_ECRITURE) {
-      expect(MATRICE_DROITS.direction).not.toContain(action);
+      expect(MATRICE_DROITS.direction).toContain(action);
       expect(MATRICE_DROITS.admin).not.toContain(action);
     }
   });
@@ -809,7 +808,6 @@ describe('MATRICE_DROITS — factures fournisseur (RP-26/RF-conservation, bascul
   ] as const;
   const ROLES_SANS_ECRITURE = [
     'admin',
-    'direction',
     'chef_atelier',
     'comptable',
     'poste_atelier',
@@ -837,7 +835,7 @@ describe('MATRICE_DROITS — factures fournisseur (RP-26/RF-conservation, bascul
     expect(MATRICE_DROITS.chef_atelier).toContain('pieces.commande_fournisseur.lire');
   });
 
-  it('déposer/valider/rejeter accordés à magasinier SEUL — même périmètre que pieces.commande_fournisseur.reception', () => {
+  it('déposer/valider/rejeter accordés à magasinier ET direction (phase 0 rôles) — même périmètre que pieces.commande_fournisseur.reception', () => {
     for (const action of ACTIONS_ECRITURE) {
       expect(MATRICE_DROITS.magasinier).toContain(action);
       for (const role of ROLES_SANS_ECRITURE) {
@@ -848,9 +846,9 @@ describe('MATRICE_DROITS — factures fournisseur (RP-26/RF-conservation, bascul
     expect(MATRICE_DROITS.magasinier).toContain('pieces.commande_fournisseur.reception');
   });
 
-  it('direction et admin N’ONT PAS l’écriture — le palliatif remplacé la leur accordait à tort (direction : aucun geste de confirmation physique dans ce cluster ; admin : RF-115)', () => {
+  it('direction a l’écriture (petit garage sans magasinier : le patron dépose/valide/rejette) ; admin ne l’a PAS (RF-115)', () => {
     for (const action of ACTIONS_ECRITURE) {
-      expect(MATRICE_DROITS.direction).not.toContain(action);
+      expect(MATRICE_DROITS.direction).toContain(action);
       expect(MATRICE_DROITS.admin).not.toContain(action);
     }
   });
@@ -1433,6 +1431,10 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'socle.utilisateur.modifier',
       'socle.utilisateur.desactiver',
       'socle.utilisateur.reinitialiser_acces',
+      'socle.borne.lire',
+      'socle.borne.creer',
+      'socle.borne.desactiver',
+      'socle.borne.reinitialiser_acces',
       'parametrage.atelier.lire',
       'parametrage.atelier.modifier',
       // Issue #45 / RF-117, étendu #52 : plafonds d'avoir réceptionnaire ET par défaut de
@@ -1460,7 +1462,6 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'vehicule.kilometrage.saisir',
       'vehicule.kilometrage.corriger_regression',
       'vehicule.expertise.saisir',
-      'vehicule.campagne.gerer',
       'vehicule.travail_reporte.gerer',
       'recherche.executer',
       'atelier.or.lire',
@@ -1488,8 +1489,6 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'atelier.confirmation.client_bloque',
       'atelier.confirmation.deux_or_ouverts',
       'atelier.confirmation.or_sans_rdv',
-      'rendez_vous.confirmation.ressource_chevauchement',
-      'rendez_vous.confirmation.hors_ouverture',
       // --- Rendez-vous d'atelier (lot RDV-1) — DROITS_RENDEZ_VOUS_PAR_ROLE, voir bloc dédié plus bas ---
       'rendez_vous.lire',
       'rendez_vous.creer',
@@ -1497,7 +1496,6 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'rendez_vous.arrivee',
       'rendez_vous.absence',
       'rendez_vous.annuler',
-      'pret_vehicule.confirmation.indisponible',
       // --- Étape 2 : facturation — documents (RF-1 → RF-32, RF-114 → RF-120) ---
       'facturation.document.lire',
       'facturation.document.creer',
@@ -1508,6 +1506,7 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'facturation.document.emettre_facture',
       'facturation.document.emettre_avoir',
       'facturation.avoir.creer',
+      'facturation.avoir.plafonne',
       // Posée en avance de l'endpoint (voir le test dédié ci-dessus) : direction/comptable EXACTEMENT.
       'facturation.document.corriger',
       // --- Étape 2 : facturation — paiements (RF-65 → RF-80, RF-114 → RF-116) ---
@@ -1676,15 +1675,14 @@ describe('DROIT_PAR_CONFIRMATION', () => {
     expect(MATRICE_DROITS.receptionnaire).not.toContain(DROIT_PAR_CONFIRMATION.OR_SANS_RDV);
   });
 
-  it('mappe les 3 confirmations hors périmètre (RDV, prêt) vers des actions dédiées, elles aussi détenues par chef_atelier et direction', () => {
+  it('les 3 codes jamais émis (RDV, prêt) retombent sur le droit le plus strict (chef_atelier/direction), jamais sur un droit plus large', () => {
     for (const code of [
       'RDV_RESSOURCE_CHEVAUCHEMENT',
       'RDV_HORS_OUVERTURE',
       'PRET_VEHICULE_INDISPONIBLE',
     ] as const) {
-      const action = DROIT_PAR_CONFIRMATION[code];
-      expect(MATRICE_DROITS.chef_atelier).toContain(action);
-      expect(MATRICE_DROITS.direction).toContain(action);
+      expect(DROIT_PAR_CONFIRMATION[code]).toBe('atelier.confirmation.client_bloque');
+      expect(MATRICE_DROITS.receptionnaire).not.toContain(DROIT_PAR_CONFIRMATION[code]);
     }
   });
 
@@ -1918,7 +1916,6 @@ describe('MATRICE_DROITS — invariante structurelle : écrire une entité impli
         'vehicule.kilometrage.saisir',
         'vehicule.kilometrage.corriger_regression',
         'vehicule.expertise.saisir',
-        'vehicule.campagne.gerer',
         'vehicule.travail_reporte.gerer',
       ],
     },
@@ -2128,5 +2125,92 @@ describe('MATRICE_DROITS — invariante structurelle : écrire une entité impli
   it('démonstration ciblée du signalement d’origine — admin sur pieces.article : NI creer NI lire (pas « creer sans lire »), donc conforme à l’invariante par construction', () => {
     expect(MATRICE_DROITS.admin).not.toContain('pieces.article.creer');
     expect(MATRICE_DROITS.admin).not.toContain('pieces.article.lire');
+  });
+});
+
+describe('MATRICE_DROITS — phase 0 rôles : direction reprend les 8 gestes du magasinier', () => {
+  const HUIT_GESTES = [
+    'pieces.mouvement.creer',
+    'pieces.mouvement.forcer',
+    'pieces.reservation.satisfaire',
+    'pieces.commande_fournisseur.reception',
+    'pieces.consigne.retourner',
+    'pieces.facture_fournisseur.deposer',
+    'pieces.facture_fournisseur.valider',
+    'pieces.facture_fournisseur.rejeter',
+  ] as const;
+
+  it('direction et magasinier ont les 8 ; chef_atelier, admin et tous les autres rôles non', () => {
+    for (const action of HUIT_GESTES) {
+      const detenteurs = (Object.keys(MATRICE_DROITS) as (keyof typeof MATRICE_DROITS)[])
+        .filter((r) => MATRICE_DROITS[r].includes(action))
+        .sort();
+      expect(detenteurs).toEqual(['direction', 'magasinier']);
+    }
+  });
+
+  it('direction est un sur-ensemble de magasinier sur tout le domaine pieces.*', () => {
+    for (const action of MATRICE_DROITS.magasinier.filter((a) => a.startsWith('pieces.'))) {
+      expect(MATRICE_DROITS.direction).toContain(action);
+    }
+  });
+
+  it('les 4 droits morts ont disparu de la matrice', () => {
+    for (const r of Object.keys(MATRICE_DROITS) as (keyof typeof MATRICE_DROITS)[]) {
+      for (const morte of [
+        'vehicule.campagne.gerer',
+        'rendez_vous.confirmation.ressource_chevauchement',
+        'rendez_vous.confirmation.hors_ouverture',
+        'pret_vehicule.confirmation.indisponible',
+      ]) {
+        expect(MATRICE_DROITS[r] as readonly string[]).not.toContain(morte);
+      }
+    }
+  });
+});
+
+describe('MATRICE_DROITS — plafond d’avoir RF-117 (contrainte facturation.avoir.plafonne)', () => {
+  it('seul receptionnaire est plafonné ; direction/comptable (qui émettent des avoirs) ne le sont pas', () => {
+    const plafonnes = (Object.keys(MATRICE_DROITS) as (keyof typeof MATRICE_DROITS)[])
+      .filter((r) => MATRICE_DROITS[r].includes('facturation.avoir.plafonne'))
+      .sort();
+    expect(plafonnes).toEqual(['receptionnaire']);
+  });
+
+  it('tout rôle plafonné peut effectivement émettre un avoir (sinon la contrainte serait inerte)', () => {
+    for (const r of Object.keys(MATRICE_DROITS) as (keyof typeof MATRICE_DROITS)[]) {
+      if (MATRICE_DROITS[r].includes('facturation.avoir.plafonne')) {
+        expect(MATRICE_DROITS[r]).toContain('facturation.document.emettre_avoir');
+      }
+    }
+  });
+});
+
+describe('MATRICE_DROITS — bornes d’atelier (phase 0 rôles)', () => {
+  const actionsBorne: Action[] = [
+    'socle.borne.lire',
+    'socle.borne.creer',
+    'socle.borne.desactiver',
+    'socle.borne.reinitialiser_acces',
+  ];
+
+  it('EXACTEMENT direction et admin détiennent les 4 actions socle.borne.*', () => {
+    for (const action of actionsBorne) {
+      expect(rolesAyant(action)).toEqual(['admin', 'direction']);
+    }
+  });
+
+  it('aucun autre rôle (dont poste_atelier lui-même) ne gère les bornes, même en lecture', () => {
+    for (const role of [
+      'vendeur',
+      'receptionnaire',
+      'chef_atelier',
+      'technicien',
+      'magasinier',
+      'comptable',
+      'poste_atelier',
+    ] as const) {
+      expect(MATRICE_DROITS[role].filter((a) => a.startsWith('socle.borne.'))).toEqual([]);
+    }
   });
 });

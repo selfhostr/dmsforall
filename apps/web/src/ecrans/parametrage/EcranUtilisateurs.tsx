@@ -32,6 +32,7 @@ import { useReinitialiserAccesUtilisateur } from '@/hooks/parametrage/useReiniti
 import { cleTraductionRole } from '@/lib/roles';
 
 import { DialogueAccesTemporaire } from './DialogueAccesTemporaire';
+import { SectionBornes } from './SectionBornes';
 import { DialogueConfirmationEmploye } from './DialogueConfirmationEmploye';
 import { DialogueModifierEmploye } from './DialogueModifierEmploye';
 import { DialogueNouvelEmploye } from './DialogueNouvelEmploye';
@@ -269,6 +270,8 @@ export function EcranUtilisateurs() {
         onConfirmer={confirmerAction}
         onAnnuler={() => setActionEnAttente(null)}
       />
+
+      <SectionBornes />
 
       <DialogueAccesTemporaire
         ouvert={motDePasseAffiche !== null}

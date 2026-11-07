@@ -29,6 +29,7 @@ function session(tenantId: string): SessionCourante {
       { id: 'site-martigny', code: 'MTG', nom: 'Martigny', actif: true },
     ],
     siteRattachementId: null,
+    actions: [],
     expireLe: new Date(Date.now() + 3_600_000).toISOString(),
   };
 }

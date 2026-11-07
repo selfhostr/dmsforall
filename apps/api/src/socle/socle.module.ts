@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
+import { BorneController } from './borne.controller';
 import { SiteController } from './site.controller';
 import { TenantController } from './tenant.controller';
 import { UtilisateurController } from './utilisateur.controller';
+import { ServiceBorne } from './service-borne';
 import { ServiceSite } from './service-site';
 import { ServiceTenant } from './service-tenant';
 import { ServiceUtilisateur } from './service-utilisateur';
@@ -19,7 +21,7 @@ import { ServiceUtilisateur } from './service-utilisateur';
  */
 @Module({
   imports: [AuthModule],
-  controllers: [TenantController, SiteController, UtilisateurController],
-  providers: [ServiceTenant, ServiceSite, ServiceUtilisateur],
+  controllers: [TenantController, SiteController, UtilisateurController, BorneController],
+  providers: [ServiceTenant, ServiceSite, ServiceUtilisateur, ServiceBorne],
 })
 export class SocleModule {}

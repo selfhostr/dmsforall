@@ -137,5 +137,11 @@ export interface SessionCourante {
    * au serveur.
    */
   readonly siteRattachementId: string | null;
+  /**
+   * Actions de la matrice (`auth/matrice-droits.ts`) détenues par le rôle de ce compte, triées.
+   * Lues côté serveur depuis la matrice : le front n'a plus à la recopier à la main. Informatif
+   * pour l'affichage (bouton visible ou non) — le serveur re-vérifie toujours chaque requête.
+   */
+  readonly actions: readonly string[];
   readonly expireLe: string; // ISO 8601
 }

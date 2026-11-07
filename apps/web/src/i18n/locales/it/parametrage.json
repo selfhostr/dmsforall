@@ -295,7 +295,7 @@
       "desactiver": "Disattiva",
       "reactiver": "Riattiva",
       "reinitialiserAcces": "Reimposta accesso",
-      "menuAria": "Azioni per {{nom}}"
+      "menuAria": "Azioni per {nom}"
     },
     "creation": {
       "titre": "Crea un dipendente",
@@ -312,7 +312,7 @@
       }
     },
     "modification": {
-      "titre": "Modifica {{nom}}",
+      "titre": "Modifica {nom}",
       "description": "Cambia il ruolo e/o le sedi — utile in caso di cambio di mansione.",
       "actions": {
         "enregistrer": "Salva"
@@ -326,19 +326,59 @@
       "fermer": "Ho annotato la password"
     },
     "desactiver": {
-      "titre": "Disattivare {{nom}}?",
+      "titre": "Disattivare {nom}?",
       "description": "Il dipendente non potrà più accedere. La sua cronologia (ordini di riparazione, fatture, timbrature) resta attribuibile — non è un'eliminazione, l'account può essere riattivato in qualsiasi momento.",
       "confirmer": "Disattiva"
     },
     "reactiver": {
-      "titre": "Riattivare {{nom}}?",
+      "titre": "Riattivare {nom}?",
       "description": "Il dipendente potrà nuovamente accedere con la password esistente.",
       "confirmer": "Riattiva"
     },
     "reinitialiserAcces": {
-      "titre": "Reimpostare l'accesso di {{nom}}?",
+      "titre": "Reimpostare l'accesso di {nom}?",
       "description": "Viene generata una nuova password temporanea e ogni sessione aperta di questo dipendente viene chiusa immediatamente.",
       "confirmer": "Reimposta"
+    },
+    "rolesDescription": {
+      "direction": "Fa tutto: accettazione, vendite, fatturazione, ricambi, impostazioni e collaboratori.",
+      "chef_atelier": "Dirige l'officina: pianifica, controlla, corregge le ore e sblocca. Vede i prezzi.",
+      "receptionnaire": "Accoglie i clienti, apre gli ordini di riparazione, prepara preventivi e fatture.",
+      "technicien": "Vede e timbra i suoi lavori, mai i prezzi.",
+      "magasinier": "Gestisce il magazzino: uscite di ricambi, inventario, ricezione degli ordini.",
+      "vendeur": "Vende veicoli nuovi e usati e segue i dossier di vendita.",
+      "comptable": "Segue fatturazione, pagamenti ed esportazioni per la fiduciaria.",
+      "admin": "Account tecnico: gestisce gli accessi, senza diritti su officina o fatturazione."
+    },
+    "roleUnique": "Ogni persona ha un solo ruolo. In una piccola officina scegliete Direzione: questo ruolo può fare tutto.",
+    "bornes": {
+      "titre": "Postazioni d'officina",
+      "description": "Una postazione è il tablet a muro dell'officina: i meccanici timbrano con il loro codice PIN.",
+      "nouveau": "Aggiungi una postazione",
+      "vide": "Nessuna postazione d'officina per ora.",
+      "colNom": "Nome",
+      "colIdentifiant": "Identificativo",
+      "colSite": "Sede",
+      "colStatut": "Stato",
+      "colActions": "Azioni",
+      "champNom": "Nome della postazione",
+      "champSite": "Sede della postazione",
+      "placeholderSite": "Scegli una sede",
+      "creer": "Crea la postazione",
+      "acces": "Identificativo e password della postazione",
+      "accesDescription": "Inseriteli una sola volta sul tablet. La password non verrà più mostrata.",
+      "desactiver": "Disattiva",
+      "reactiver": "Riattiva",
+      "reinitialiser": "Nuova password",
+      "desactiverTitre": "Disattivare la postazione {nom}?",
+      "desactiverDescription": "Il tablet viene scollegato subito.",
+      "reactiverTitre": "Riattivare la postazione {nom}?",
+      "reactiverDescription": "Il tablet potrà di nuovo collegarsi.",
+      "reinitialiserTitre": "Nuova password per {nom}?",
+      "reinitialiserDescription": "Il tablet viene scollegato: bisognerà inserire la nuova password.",
+      "identifiantLabel": "Identificativo",
+      "motDePasseLabel": "Password",
+      "fermer": "Ho annotato queste informazioni"
     }
   }
 }

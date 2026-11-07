@@ -295,7 +295,7 @@
       "desactiver": "Deaktivieren",
       "reactiver": "Reaktivieren",
       "reinitialiserAcces": "Zugang zurücksetzen",
-      "menuAria": "Aktionen für {{nom}}"
+      "menuAria": "Aktionen für {nom}"
     },
     "creation": {
       "titre": "Mitarbeiter erstellen",
@@ -312,7 +312,7 @@
       }
     },
     "modification": {
-      "titre": "{{nom}} bearbeiten",
+      "titre": "{nom} bearbeiten",
       "description": "Rolle und/oder Standorte ändern — nützlich bei einem Stellenwechsel.",
       "actions": {
         "enregistrer": "Speichern"
@@ -326,19 +326,59 @@
       "fermer": "Ich habe das Passwort notiert"
     },
     "desactiver": {
-      "titre": "{{nom}} deaktivieren?",
+      "titre": "{nom} deaktivieren?",
       "description": "Der Mitarbeiter kann sich nicht mehr anmelden. Sein Verlauf (Reparaturaufträge, Rechnungen, Zeiterfassung) bleibt zuordenbar — dies ist keine Löschung, das Konto kann jederzeit reaktiviert werden.",
       "confirmer": "Deaktivieren"
     },
     "reactiver": {
-      "titre": "{{nom}} reaktivieren?",
+      "titre": "{nom} reaktivieren?",
       "description": "Der Mitarbeiter kann sich mit seinem bestehenden Passwort wieder anmelden.",
       "confirmer": "Reaktivieren"
     },
     "reinitialiserAcces": {
-      "titre": "Zugang von {{nom}} zurücksetzen?",
+      "titre": "Zugang von {nom} zurücksetzen?",
       "description": "Ein neues temporäres Passwort wird generiert und alle offenen Sitzungen dieses Mitarbeiters werden sofort geschlossen.",
       "confirmer": "Zurücksetzen"
+    },
+    "rolesDescription": {
+      "direction": "Macht alles: Annahme, Verkauf, Fakturierung, Teile, Einstellungen und Mitarbeitende.",
+      "chef_atelier": "Leitet die Werkstatt: plant, kontrolliert, korrigiert Zeiten und hebt Sperren auf. Sieht die Preise.",
+      "receptionnaire": "Empfängt Kunden, eröffnet Reparaturaufträge, bereitet Offerten und Rechnungen vor.",
+      "technicien": "Sieht und stempelt seine Arbeiten, nie die Preise.",
+      "magasinier": "Führt das Lager: Teileausgaben, Inventur, Wareneingang von Bestellungen.",
+      "vendeur": "Verkauft Neu- und Occasionsfahrzeuge und verfolgt die Verkaufsdossiers.",
+      "comptable": "Verfolgt Fakturierung, Zahlungen und Exporte für die Treuhandstelle.",
+      "admin": "Technisches Konto: verwaltet Zugänge, ohne Rechte auf Werkstatt oder Fakturierung."
+    },
+    "roleUnique": "Jede Person hat nur eine Rolle. In einem kleinen Betrieb wählen Sie Direktion: Diese Rolle kann alles.",
+    "bornes": {
+      "titre": "Werkstatt-Terminals",
+      "description": "Ein Terminal ist das Wandtablet der Werkstatt: Die Mechaniker stempeln dort mit ihrem PIN-Code.",
+      "nouveau": "Terminal hinzufügen",
+      "vide": "Noch kein Werkstatt-Terminal.",
+      "colNom": "Name",
+      "colIdentifiant": "Kennung",
+      "colSite": "Standort",
+      "colStatut": "Status",
+      "colActions": "Aktionen",
+      "champNom": "Name des Terminals",
+      "champSite": "Standort des Terminals",
+      "placeholderSite": "Standort wählen",
+      "creer": "Terminal erstellen",
+      "acces": "Kennung und Passwort des Terminals",
+      "accesDescription": "Geben Sie sie einmalig auf dem Tablet ein. Das Passwort wird nie mehr angezeigt.",
+      "desactiver": "Deaktivieren",
+      "reactiver": "Reaktivieren",
+      "reinitialiser": "Neues Passwort",
+      "desactiverTitre": "Terminal {nom} deaktivieren?",
+      "desactiverDescription": "Das Tablet wird sofort abgemeldet.",
+      "reactiverTitre": "Terminal {nom} reaktivieren?",
+      "reactiverDescription": "Das Tablet kann sich wieder anmelden.",
+      "reinitialiserTitre": "Neues Passwort für {nom}?",
+      "reinitialiserDescription": "Das Tablet wird abgemeldet: Das neue Passwort muss dort eingegeben werden.",
+      "identifiantLabel": "Kennung",
+      "motDePasseLabel": "Passwort",
+      "fermer": "Ich habe die Angaben notiert"
     }
   }
 }

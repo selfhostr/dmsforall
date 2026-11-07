@@ -50,6 +50,7 @@ function sessionAvecRole(role: SessionCourante['utilisateur']['role']): { data: 
       },
       sites: [{ id: 'site-1', code: 'MTG', nom: 'Martigny', actif: true }],
       siteRattachementId: null,
+      actions: [],
       expireLe: new Date(Date.now() + 3_600_000).toISOString(),
     },
   };

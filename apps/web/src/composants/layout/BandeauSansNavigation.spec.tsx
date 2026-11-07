@@ -44,6 +44,7 @@ const session: SessionCourante = {
   },
   sites: [{ id: 'site-martigny', code: 'MTG', nom: 'Martigny', actif: true }],
   siteRattachementId: 'site-martigny',
+  actions: [],
   expireLe: new Date(Date.now() + 3_600_000).toISOString(),
 };
 
