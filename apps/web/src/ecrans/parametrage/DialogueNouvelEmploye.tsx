@@ -16,16 +16,9 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { ChampRoleEmploye } from './ChampRoleEmploye';
 import { useCreerUtilisateur } from '@/hooks/parametrage/useCreerUtilisateur';
 import { useSession } from '@/hooks/useSession';
-import { cleTraductionRole } from '@/lib/roles';
 
 interface Props {
   readonly ouvert: boolean;
@@ -145,23 +138,12 @@ export function DialogueNouvelEmploye({ ouvert, onFerme, onCree }: Props) {
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="nouvel-employe-role">
-              {t('parametrage:utilisateurs.creation.champRole')} *
-            </Label>
-            <Select value={role} onValueChange={(v) => setRole(v as RolePersonne)}>
-              <SelectTrigger id="nouvel-employe-role">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {rolesProposes.map((valeur) => (
-                  <SelectItem key={valeur} value={valeur}>
-                    {t(cleTraductionRole(valeur))}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <ChampRoleEmploye
+            idPrefixe="nouvel-employe"
+            valeur={role}
+            roles={rolesProposes}
+            onChange={setRole}
+          />
 
           <fieldset className="flex flex-col gap-1.5">
             <legend className="texte-corps font-medium">

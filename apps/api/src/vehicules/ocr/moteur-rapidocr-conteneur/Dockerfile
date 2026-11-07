@@ -3,7 +3,7 @@
 #
 # Service OCR dédié — piste RapidOCR (voir moteur.py), comparée à moteur-paddleocr-conteneur/ à
 # côté. python:3.12-slim SUFFIT ICI (contrairement à paddlepaddle direct) : onnxruntime est un
-# runtime auto-contenu, aucun segfault constaté sur la glibc de python:3.12-slim — vérifié avant de
+# runtime auto-contenu, aucun segfault constaté sur bookworm/glibc récente — vérifié avant de
 # choisir cette base, pas supposé.
 #
 # poppler-utils : pdftoppm (rastérisation PDF -> PNG, 300dpi) + pdftotext (détection de couche

@@ -46,6 +46,7 @@ const SESSION_BORNE: SessionCourante = {
   },
   sites: [{ id: 'site-1', code: 'PRINCIPAL', nom: 'Site principal', actif: true }],
   siteRattachementId: 'site-1',
+  actions: [],
   expireLe: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
 };
 

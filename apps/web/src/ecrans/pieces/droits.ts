@@ -31,12 +31,16 @@ const ROLES_ECRITURE_STOCK_SITE: ReadonlySet<RoleUtilisateur> = new Set([
 ]);
 
 /** §11 « Enregistrer une entrée/sortie », « Réceptionner », « Faire l'inventaire » : `magasinier`
- *  SEUL, de façon ferme. */
-const ROLES_ECRITURE_MOUVEMENT: ReadonlySet<RoleUtilisateur> = new Set(['magasinier']);
+ *  ET `direction` (phase 0 rôles : dans un petit garage sans magasinier, le patron fait ces
+ *  gestes). `chef_atelier` et `admin` restent exclus. */
+const ROLES_ECRITURE_MOUVEMENT: ReadonlySet<RoleUtilisateur> = new Set(['direction', 'magasinier']);
 
 /** §11 « Enregistrer une sortie » (satisfaire une réservation) : même périmètre que les
  *  mouvements, `magasinier` seul. */
-const ROLES_SATISFACTION_RESERVATION: ReadonlySet<RoleUtilisateur> = new Set(['magasinier']);
+const ROLES_SATISFACTION_RESERVATION: ReadonlySet<RoleUtilisateur> = new Set([
+  'direction',
+  'magasinier',
+]);
 
 /** §11 « Libérer une réservation active » : direction, chef_atelier, magasinier. */
 const ROLES_LIBERATION_RESERVATION: ReadonlySet<RoleUtilisateur> = new Set([
@@ -78,11 +82,14 @@ const ROLES_ECRITURE_COMMANDE_FOURNISSEUR: ReadonlySet<RoleUtilisateur> = new Se
 
 /** Réception (`pieces.commande_fournisseur.reception` — couvre aussi `annuler-reliquat`, gardé
  *  par le MÊME droit côté contrôleur) : `magasinier` SEUL, comme les mouvements de stock. */
-const ROLES_RECEPTION_COMMANDE_FOURNISSEUR: ReadonlySet<RoleUtilisateur> = new Set(['magasinier']);
+const ROLES_RECEPTION_COMMANDE_FOURNISSEUR: ReadonlySet<RoleUtilisateur> = new Set([
+  'direction',
+  'magasinier',
+]);
 
 /** Retour fournisseur d'une consigne (`pieces.consigne.retourner`) : `magasinier` SEUL — le geste
  *  de comptoir qui constate physiquement le retour. */
-const ROLES_RETOUR_CONSIGNE: ReadonlySet<RoleUtilisateur> = new Set(['magasinier']);
+const ROLES_RETOUR_CONSIGNE: ReadonlySet<RoleUtilisateur> = new Set(['direction', 'magasinier']);
 
 /**
  * Paramétrage pièces (`pieces.parametrage.lire`/`pieces.parametrage.modifier`,
@@ -127,7 +134,10 @@ const ROLES_LECTURE_FACTURE_FOURNISSEUR: ReadonlySet<RoleUtilisateur> = new Set(
   'magasinier',
   'comptable',
 ]);
-const ROLES_ECRITURE_FACTURE_FOURNISSEUR: ReadonlySet<RoleUtilisateur> = new Set(['magasinier']);
+const ROLES_ECRITURE_FACTURE_FOURNISSEUR: ReadonlySet<RoleUtilisateur> = new Set([
+  'direction',
+  'magasinier',
+]);
 
 export function peutEcrireArticle(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && ROLES_ECRITURE_ARTICLE.has(role);

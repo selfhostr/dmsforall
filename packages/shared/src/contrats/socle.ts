@@ -108,3 +108,41 @@ export interface ReponseCreationUtilisateur {
   readonly utilisateur: UtilisateurResume;
   readonly acces: ReponseAccesTemporaire;
 }
+
+// =================================================================================================
+// Bornes d'atelier (comptes de service `poste_atelier`) — phase 0 rôles. Une borne est une
+// tablette murale rattachée à UN site ; elle se connecte avec un identifiant et un mot de passe
+// générés par le serveur. Les PIN de pointage sont, eux, par technicien (`PUT /pointage/pins`).
+// Droits `socle.borne.*` : `direction` et `admin` seuls.
+// =================================================================================================
+
+/** Élément de `GET /api/v1/bornes`. */
+export interface BorneResume {
+  readonly id: string;
+  /** Libellé affiché (ex. « Atelier Sion »). */
+  readonly nom: string;
+  /** Identifiant de connexion de la tablette (généré par le serveur). */
+  readonly identifiant: string;
+  readonly site: SiteAffecteResume;
+  readonly statut: StatutUtilisateur;
+  /** ISO 8601, `null` si la borne ne s'est encore jamais connectée. */
+  readonly derniereConnexionLe: string | null;
+  readonly creeLe: string;
+}
+
+export type PageBorneResume = PageCurseur<BorneResume>;
+
+/** Corps de `POST /api/v1/bornes`. `.strict()` : un `tenantId` dans le corps est refusé (400). */
+export const schemaCreationBorne = z
+  .object({
+    nom: z.string().trim().min(1).max(100),
+    siteId: z.string().uuid(),
+  })
+  .strict();
+export type EntreeCreationBorne = z.infer<typeof schemaCreationBorne>;
+
+/** Corps de `201 POST /api/v1/bornes` : le mot de passe n'apparaît qu'ici, une seule fois. */
+export interface ReponseCreationBorne {
+  readonly borne: BorneResume;
+  readonly acces: ReponseAccesTemporaire;
+}

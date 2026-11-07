@@ -97,6 +97,11 @@ export const TOUTES_ACTIONS = [
   'socle.utilisateur.modifier',
   'socle.utilisateur.desactiver',
   'socle.utilisateur.reinitialiser_acces',
+  // Bornes d'atelier (comptes de service `poste_atelier`) : mêmes titulaires que les employés.
+  'socle.borne.lire',
+  'socle.borne.creer',
+  'socle.borne.desactiver',
+  'socle.borne.reinitialiser_acces',
   // ---- Paramétrage atelier et référentiels (plan-lot1-execution.md §6.4) ----------------------
   'parametrage.atelier.lire',
   'parametrage.atelier.modifier',
@@ -136,7 +141,6 @@ export const TOUTES_ACTIONS = [
   'vehicule.kilometrage.saisir',
   'vehicule.kilometrage.corriger_regression',
   'vehicule.expertise.saisir',
-  'vehicule.campagne.gerer',
   'vehicule.travail_reporte.gerer',
   // ---- Recherche comptoir (RM-112, spec ligne 370) ---------------------------------------------
   'recherche.executer',
@@ -170,29 +174,6 @@ export const TOUTES_ACTIONS = [
   'atelier.confirmation.client_bloque',
   'atelier.confirmation.deux_or_ouverts',
   'atelier.confirmation.or_sans_rdv',
-  // ---- Confirmations hors périmètre opérationnel du lot 1 (RDV, prêt de véhicule) ---------------
-  // `CodeConfirmation` (packages/shared/src/contrats/probleme.ts) porte 6 valeurs ; seules 3 ont
-  // une action opérationnelle au lot 1 (les tables rendez_vous*/*_courtoisie ne sont pas créées,
-  // voir plan-lot1-execution.md §7.2 L1-05 delta Δ4). `DROIT_PAR_CONFIRMATION` doit néanmoins être
-  // exhaustif sur `CodeConfirmation` (le compilateur l'impose, arbitrage confirmé : un
-  // `Partial<Record<...>>` reproduirait le bloquant B3 — `[code]` rendrait `Action | undefined`,
-  // et le traitement naturel de ce cas par un consommateur futur serait soit fail-open soit une
-  // panne muette). Ces 3 actions sont donc créées par anticipation, inertes tant que les lots
-  // RDV/prêt ne livrent aucun endpoint qui les consulte — même principe que les enums de modules
-  // absents créés en L1-05 pour rester exhaustif.
-  //
-  // ATTENTION à qui câble le module RDV/prêt plus tard : le droit ci-dessous (chef d'atelier ou
-  // direction, aligné sur contrats-api-etape-1.md lignes 526-528) est calé PAR COHÉRENCE avec
-  // `client_bloque`/`or_sans_rdv` en l'ABSENCE d'information métier propre à RDV/prêt — ce n'est
-  // PAS une décision métier prise pour ce module. Il doit être réexaminé avec la spec du module
-  // au moment de son implémentation (qui a réellement le droit de forcer une double réservation
-  // de ressource RDV, ou de confirmer l'indisponibilité d'un véhicule de courtoisie ? la matrice
-  // §10 de la spec étape 1, lignes 963-964, suggère déjà `chef_atelier`/`direction` pour le
-  // chevauchement de ressource — à vérifier contre la spec du module RDV le moment venu, pas à
-  // supposer déjà tranché.
-  'rendez_vous.confirmation.ressource_chevauchement',
-  'rendez_vous.confirmation.hors_ouverture',
-  'pret_vehicule.confirmation.indisponible',
   // ---- Facturation — paiements (étape 2, RF-65 → RF-80, RF-114 → RF-116) -----------------------
   // Ajouté par le lot `paiements` (`apps/api/src/facturation/paiements/`), périmètre disjoint de
   // ce fichier (`apps/api/src/auth/`) — voir le rapport de livraison pour le détail de l'arbitrage.
@@ -250,6 +231,9 @@ export const TOUTES_ACTIONS = [
   'facturation.document.emettre_facture',
   'facturation.document.emettre_avoir',
   'facturation.avoir.creer',
+  // Marqueur de CONTRAINTE (pas un pouvoir) : le rôle qui le détient voit ses avoirs soumis au
+  // plafond RF-117 (`parametre_atelier.plafond_avoir_receptionnaire_centimes`). Vérifié en service.
+  'facturation.avoir.plafonne',
   // `facturation.document.corriger` — demande relayée par le mainteneur pour le compte d'un lot
   // sans accès à ce fichier (même patron que les blocs additifs déjà présents ici). ENDPOINT SERVEUR
   // PAS ENCORE ÉCRIT à la date de cet ajout : contrat et écran l'appellent déjà, défaut ouvert par
@@ -510,7 +494,7 @@ export const TOUTES_ACTIONS = [
   // à toucher ce fichier pour cette tâche — contrairement aux autres blocs additifs ci-dessus, pas
   // un palliatif : aucune route ne tournait avant ce bloc).
   //
-  // Distinct de `atelier.confirmation.or_sans_rdv`/`rendez_vous.confirmation.*` (préexistants,
+  // Distinct de `atelier.confirmation.or_sans_rdv`/les anciennes confirmations RDV/prêt (supprimées,
   // inertes) : ceux-là gouvernent des CONFIRMATIONS (§4.4), ceux-ci des ACTIONS. Distinct aussi de
   // `parametrage.referentiel.lire`, réutilisé tel quel pour `GET /motifs-rendez-vous` (catalogue
   // paramétrable, même nature que `GET /referentiels/taux-horaires` — pas une action propre au
@@ -704,7 +688,6 @@ const INFERE_VEHICULE_GESTION: readonly Action[] = [
   'vehicule.archiver',
   'vehicule.plaque.gerer',
   'vehicule.expertise.saisir',
-  'vehicule.campagne.gerer',
   'vehicule.travail_reporte.gerer',
 ];
 
@@ -885,19 +868,6 @@ const CONFIRMATION_CHEF_ATELIER_DIRECTION: readonly Action[] = [
  */
 const CONFIRMATION_DEUX_OR_OUVERTS: readonly Action[] = ['atelier.confirmation.deux_or_ouverts'];
 
-/**
- * Actions de confirmation hors périmètre opérationnel du lot 1 (RDV, prêt de véhicule) — voir le
- * commentaire sur le type `Action`. Même droit que `CONFIRMATION_CHEF_ATELIER_DIRECTION` par
- * cohérence avec contrats-api-etape-1.md lignes 526-528 (chef d'atelier ou direction pour les 3) —
- * PAS une décision métier prise pour le futur module RDV/prêt : à réexaminer avec sa spec, voir
- * l'avertissement détaillé sur le type `Action`.
- */
-const CONFIRMATION_HORS_LOT1: readonly Action[] = [
-  'rendez_vous.confirmation.ressource_chevauchement',
-  'rendez_vous.confirmation.hors_ouverture',
-  'pret_vehicule.confirmation.indisponible',
-];
-
 // =================================================================================================
 // Composition par rôle
 // =================================================================================================
@@ -957,7 +927,6 @@ const DROITS_CHEF_ATELIER: readonly Action[] = [
   ...INFERE_OR_ROUVRIR,
   ...INFERE_LIGNE_REALISATION,
   ...CONFIRMATION_CHEF_ATELIER_DIRECTION,
-  ...CONFIRMATION_HORS_LOT1,
 ];
 
 /**
@@ -1172,6 +1141,9 @@ const EMISSION_AVOIR: readonly Action[] = [
   'facturation.document.emettre_avoir',
 ];
 
+/** RF-117 : les avoirs de ce rôle sont plafonnés (contrainte, remplace `role === 'receptionnaire'`). */
+const AVOIR_PLAFONNE: readonly Action[] = ['facturation.avoir.plafonne'];
+
 /**
  * `facturation.document.corriger` — demande relayée par le mainteneur (voir le commentaire sur
  * `TOUTES_ACTIONS` ci-dessus pour la doctrine complète : endpoint pas encore écrit, droit posé en
@@ -1207,6 +1179,7 @@ const DROITS_DOCUMENT_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action
     ...EMISSION_DEVIS_BC,
     ...EMISSION_FACTURE,
     ...EMISSION_AVOIR,
+    ...AVOIR_PLAFONNE,
   ],
   chef_atelier: [...LECTURE_DOCUMENT, ...ECRITURE_BROUILLON, ...EMISSION_DEVIS_BC],
   magasinier: [...LECTURE_DOCUMENT, ...ECRITURE_BROUILLON],
@@ -1541,6 +1514,16 @@ const ECRITURE_FACTURE_FOURNISSEUR_PIECES: readonly Action[] = [
   'pieces.facture_fournisseur.rejeter',
 ];
 
+/** Les 8 gestes de stock/réception, accordés à `magasinier` ET à `direction` (phase 0 rôles). */
+const ACTIONS_MAGASINIER_ACCORDEES_A_DIRECTION: readonly Action[] = [
+  ...ECRITURE_MOUVEMENT_PIECES,
+  ...FORCAGE_MOUVEMENT_PIECES,
+  ...SATISFACTION_RESERVATION_PIECES,
+  ...RECEPTION_COMMANDE_FOURNISSEUR_PIECES,
+  ...RETOUR_CONSIGNE_PIECES,
+  ...ECRITURE_FACTURE_FOURNISSEUR_PIECES,
+];
+
 const DROITS_PIECES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
   direction: [
     ...LECTURE_PIECES,
@@ -1555,6 +1538,12 @@ const DROITS_PIECES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]
     ...LECTURE_PARAMETRAGE_PIECES,
     ...ECRITURE_PARAMETRAGE_PIECES,
     ...LECTURE_FACTURE_FOURNISSEUR_PIECES,
+    // Phase 0 rôles : dans un petit garage sans magasinier, le patron EST le magasinier — sans
+    // ces 8 gestes personne ne pouvait réceptionner une livraison ni valider une facture
+    // fournisseur. `direction` devient donc un sur-ensemble du magasinier sur tout le domaine.
+    // `chef_atelier` NE les reçoit PAS (matrice §11 « non (P) » maintenue : il gère la relation
+    // fournisseur et la commande, la réception reste un geste de stock) ; `admin` reste `[]`.
+    ...ACTIONS_MAGASINIER_ACCORDEES_A_DIRECTION,
   ],
   // Consigne : une consigne d'échange standard jamais rendue est une créance qui dort — donnée
   // financière, INFÉRÉ par le lot qui a livré ce bloc (pas une ligne littérale de la matrice §11).
@@ -2101,6 +2090,10 @@ const GESTION_UTILISATEURS_COMPLETE: readonly Action[] = [
   'socle.utilisateur.modifier',
   'socle.utilisateur.desactiver',
   'socle.utilisateur.reinitialiser_acces',
+  'socle.borne.lire',
+  'socle.borne.creer',
+  'socle.borne.desactiver',
+  'socle.borne.reinitialiser_acces',
 ];
 
 const DROITS_UTILISATEUR_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
@@ -2358,7 +2351,10 @@ export const DROIT_PAR_CONFIRMATION: Readonly<Record<CodeConfirmation, Action>> 
   CLIENT_BLOQUE: 'atelier.confirmation.client_bloque',
   VEHICULE_DEUX_OR_OUVERTS: 'atelier.confirmation.deux_or_ouverts',
   OR_SANS_RDV: 'atelier.confirmation.or_sans_rdv',
-  RDV_RESSOURCE_CHEVAUCHEMENT: 'rendez_vous.confirmation.ressource_chevauchement',
-  RDV_HORS_OUVERTURE: 'rendez_vous.confirmation.hors_ouverture',
-  PRET_VEHICULE_INDISPONIBLE: 'pret_vehicule.confirmation.indisponible',
+  // Codes jamais émis par l'API (aucun contrôleur ni écran ne les cite) : conservés dans l'enum
+  // partagé (contrat publié) donc la table reste exhaustive, mais sans action dédiée — fail-closed
+  // sur le droit le plus strict (chef d'atelier / direction) en attendant un vrai usage.
+  RDV_RESSOURCE_CHEVAUCHEMENT: 'atelier.confirmation.client_bloque',
+  RDV_HORS_OUVERTURE: 'atelier.confirmation.client_bloque',
+  PRET_VEHICULE_INDISPONIBLE: 'atelier.confirmation.client_bloque',
 };

@@ -764,7 +764,7 @@ export class ServiceEmissionDocument {
     doc: LigneDocumentVente,
     totalAvoirTtcCentimes: number,
   ): Promise<void> {
-    if (principal.role !== 'receptionnaire') return;
+    if (!MATRICE_DROITS[principal.role].includes('facturation.avoir.plafonne')) return;
 
     const plafondCentimes = await chargerPlafondAvoirReceptionnaire(tx, ctx);
     if (plafondCentimes === null) return; // NULL = aucun plafond convenu (0018 §3) — inchangé.

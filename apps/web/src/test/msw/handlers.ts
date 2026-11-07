@@ -21,6 +21,7 @@ export const SESSION_TEST: SessionCourante = {
   // Compte de personne (role: 'chef_atelier') : `siteRattachementId` n'est renseigné que pour les
   // comptes de service (`ROLES_COMPTE_DE_SERVICE`, ex. `poste_atelier`), voir `@dfa/shared`.
   siteRattachementId: null,
+  actions: [],
   expireLe: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
 };
 

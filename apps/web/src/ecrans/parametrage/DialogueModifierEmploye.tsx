@@ -15,16 +15,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useModifierUtilisateur } from '@/hooks/parametrage/useModifierUtilisateur';
 import { useSession } from '@/hooks/useSession';
-import { cleTraductionRole } from '@/lib/roles';
+import { ChampRoleEmploye } from './ChampRoleEmploye';
 
 interface Props {
   readonly employe: UtilisateurResume | null;
@@ -91,23 +84,12 @@ export function DialogueModifierEmploye({ employe, onFerme }: Props) {
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="modifier-employe-role">
-              {t('parametrage:utilisateurs.creation.champRole')} *
-            </Label>
-            <Select value={role} onValueChange={(v) => setRole(v as RolePersonne)}>
-              <SelectTrigger id="modifier-employe-role">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {rolesProposes.map((valeur) => (
-                  <SelectItem key={valeur} value={valeur}>
-                    {t(cleTraductionRole(valeur))}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <ChampRoleEmploye
+            idPrefixe="modifier-employe"
+            valeur={role}
+            roles={rolesProposes}
+            onChange={setRole}
+          />
 
           <fieldset className="flex flex-col gap-1.5">
             <legend className="texte-corps font-medium">
