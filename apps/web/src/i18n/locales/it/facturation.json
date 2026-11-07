@@ -48,7 +48,8 @@
   "ligneDepuisOrGenerique": "dall'ordine di riparazione",
   "verrouille": {
     "message": "Questa fattura è emessa e non può più essere modificata.",
-    "corriger": "Correggere con una nota di credito →"
+    "corriger": "Correggere con una nota di credito →",
+    "messageDevis": "Questo preventivo è inviato e non può più essere modificato."
   },
   "paiementVerrouille": {
     "message": "Questo pagamento è registrato e non può più essere modificato.",
@@ -243,7 +244,10 @@
         "creerAvoir": "Creare una nota di credito",
         "journal": "Vedere il registro"
       },
-      "telechargerPdf": "Scarica il PDF"
+      "telechargerPdf": "Scarica il PDF",
+      "envoyerDevis": "Inviare il preventivo",
+      "accordClient": "Accordo del cliente",
+      "creerOr": "Creare l'OR"
     },
     "dialogueEmission": {
       "titre": "Emettere la fattura?",
@@ -253,7 +257,12 @@
       "avertissement": "Una volta emessa, questa fattura non potrà più essere modificata — solo una correzione tramite nota di credito sarà possibile in seguito.",
       "avertissementAvoir": "Riduce la fattura {numero} e non potrà essere annullata una volta emessa.",
       "confirmer": "Emettere",
-      "enCours": "Emissione…"
+      "enCours": "Emissione…",
+      "titreDevis": "Inviare il preventivo?",
+      "resumeDevis": "Preventivo per {destinataire} — {montant} IVA incl.",
+      "avertissementDevis": "Una volta inviato, questo preventivo non potrà più essere modificato. Se il cliente cambia idea, dovrà crearne uno nuovo.",
+      "confirmerDevis": "Inviare",
+      "enCoursDevis": "Invio…"
     },
     "refusEmission": {
       "blocCreancierIncomplet": "Impossibile emettere — le coordinate bancarie dell'officina sono incomplete.",
@@ -284,7 +293,8 @@
     },
     "montantIndisponible": "Non comunicato",
     "titreBrouillonDevis": "Nuovo preventivo",
-    "titreBrouillonBonCommande": "Nuovo ordine"
+    "titreBrouillonBonCommande": "Nuovo ordine",
+    "envoyeLe": "inviato il {date}"
   },
   "encaissement": {
     "titre": "Incassare · {destinataire}",
@@ -409,8 +419,7 @@
     },
     "cree": {
       "titre": "Preventivo creato",
-      "description": "Aggiungete ora manodopera e ricambi al preventivo. Se il cliente accetta, aprite un OR con lo stesso cliente e lo stesso veicolo.",
-      "creerOr": "Crea l'OR da questo preventivo",
+      "description": "Aggiunga ora manodopera e ricambi al preventivo. Una volta inviato il preventivo e accettato dal cliente, potrà trasformarlo in un OR.",
       "ouvrir": "Apri il preventivo"
     },
     "statuts": {
@@ -423,6 +432,14 @@
       "transforme": "Trasformato",
       "annule": "Annullato",
       "abandonne": "Abbandonato"
+    },
+    "creerOr": {
+      "titre": "Crea l'OR da questo preventivo",
+      "description": "L'OR riprende il cliente, il veicolo e tutte le righe del preventivo di {destinataire}. Il preventivo passa a «Accettato».",
+      "kilometrage": "Chilometraggio all'ingresso",
+      "kilometrageAide": "Lettura del contachilometri all'ingresso (facoltativa se l'officina non la richiede)",
+      "confirmer": "Crea l'OR",
+      "enCours": "Creazione…"
     }
   },
   "facturerEncaisser": {
@@ -462,5 +479,9 @@
       "encaisserMaintenant": "Incassa ora",
       "encaissementErreur": "L’incasso non è registrato."
     }
+  },
+  "toasts": {
+    "devisEnvoye": "Preventivo inviato",
+    "devisAccepte": "Accordo del cliente registrato"
   }
 }

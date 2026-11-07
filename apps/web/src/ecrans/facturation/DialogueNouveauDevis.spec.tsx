@@ -66,8 +66,11 @@ describe('DialogueNouveauDevis', () => {
       devise: 'CHF',
       lignes: [],
     });
+    // Un devis neuf est vide : l'OR s'ouvre depuis le devis une fois envoyé et accepté, jamais
+    // depuis un formulaire d'OR vierge.
+    expect(await screen.findByRole('button', { name: 'Ouvrir le devis' })).toBeInTheDocument();
     expect(
-      await screen.findByRole('button', { name: "Créer l'OR à partir de ce devis" }),
-    ).toBeInTheDocument();
+      screen.queryByRole('button', { name: "Créer l'OR à partir de ce devis" }),
+    ).not.toBeInTheDocument();
   });
 });
