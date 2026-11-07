@@ -68,7 +68,7 @@ function libelles(nav: HTMLElement): string[] {
 }
 
 describe('OngletsDomaine — les onglets d’un domaine', () => {
-  it('Atelier : Ordres de réparation, Rendez-vous, Pointage et Dépôt pneus — les entrées de menu retirées, retrouvées ici', async () => {
+  it('Atelier : Ordres de réparation, Rendez-vous, Courtoisie, Pointage et Dépôt pneus — les entrées de menu retirées, retrouvées ici', async () => {
     connecte('chef_atelier');
     rendre('/ordres-reparation');
 
@@ -79,6 +79,7 @@ describe('OngletsDomaine — les onglets d’un domaine', () => {
     expect(libelles(onglets)).toEqual([
       'Ordres de réparation',
       'Planning',
+      'Courtoisie',
       'Pointage',
       'Dépôt pneus',
     ]);

@@ -38,6 +38,7 @@ const TRAVAIL_OUVERT: ReponseTravailReporte = {
   ordreReparationRepriseId: null,
   // Jamais de motif de clôture sur un travail encore OUVERT (pas encore clos/abandonné).
   motifModification: null,
+  detail: null,
 };
 
 const TRAVAIL_REPRIS: ReponseTravailReporte = {
@@ -53,6 +54,7 @@ const TRAVAIL_REPRIS: ReponseTravailReporte = {
   ligneOrOrigineId: null,
   ordreReparationRepriseId: 'or-9',
   motifModification: 'Le client a accepté le devis au comptoir.',
+  detail: null,
 };
 
 function installerSession(role: (typeof SESSION_TEST)['utilisateur']['role'] = 'chef_atelier') {
@@ -298,6 +300,7 @@ describe('PanneauTravauxReportes', () => {
           ...TRAVAIL_OUVERT,
           statut: 'abandonne',
           motifModification: 'Parti à la concurrence.',
+          detail: null,
         });
       }),
     );
@@ -371,5 +374,36 @@ describe('PanneauTravauxReportes', () => {
     await utilisateur.click(within(dialogue).getByRole('button', { name: 'Marquer comme repris' }));
 
     expect(await screen.findByRole('alert')).toBeInTheDocument();
+  });
+
+  it('« Reporter un travail » : un technicien (sans droit de gestion) note un travail, POST envoyé avec urgence par défaut', async () => {
+    installerSession('technicien');
+    server.use(http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json([])));
+    let corps: unknown = null;
+    server.use(
+      http.post('/api/v1/vehicules/v1/travaux-reportes', async ({ request }) => {
+        corps = await request.json();
+        return HttpResponse.json({ ...TRAVAIL_OUVERT, designation: 'Courroie' }, { status: 201 });
+      }),
+    );
+    rendre();
+
+    const bouton = await screen.findByRole('button', { name: 'Reporter un travail' });
+    expect(screen.queryByRole('button', { name: 'Corriger' })).not.toBeInTheDocument();
+    await userEvent.click(bouton);
+    const dialogue = await screen.findByRole('dialog');
+    await userEvent.type(within(dialogue).getByLabelText('Désignation'), 'Courroie');
+    await userEvent.click(within(dialogue).getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() => expect(corps).toEqual({ designation: 'Courroie', urgence: 'a_faire' }));
+  });
+
+  it('« Reporter un travail » est absent pour un rôle sans `vehicule.travail_reporte.signaler` (vendeur)', async () => {
+    installerSession('vendeur');
+    server.use(http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json([])));
+    rendre();
+
+    await screen.findByText('Aucun travail reporté pour ce véhicule.');
+    expect(screen.queryByRole('button', { name: 'Reporter un travail' })).not.toBeInTheDocument();
   });
 });

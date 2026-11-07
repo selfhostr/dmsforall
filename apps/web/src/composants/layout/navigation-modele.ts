@@ -195,6 +195,13 @@ const ONGLETS_ATELIER: readonly OngletDomaine[] = [
     motifs: ['/rendez-vous'],
     roles: ROLES_LECTURE_RENDEZ_VOUS,
   },
+  {
+    id: 'courtoisie',
+    cleLibelle: 'navigation:onglets.atelierCourtoisie',
+    chemin: (site) => chemins.atelier.courtoisie(site),
+    motifs: ['/courtoisie'],
+    roles: ROLES_LECTURE_RENDEZ_VOUS,
+  },
   /**
    * Pointage — CINQ vues, dont la borne. « Clôture de période » N'EST PLUS un écran autonome
    * depuis la fusion Lot E (`ecrans/pointage/EcranPointage.tsx`, commentaire de tête) :

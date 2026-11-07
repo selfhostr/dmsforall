@@ -1,4 +1,8 @@
-import type { EntreeModificationTravailReporte, ReponseTravailReporte } from '@dfa/shared';
+import type {
+  EntreeCreationTravailReporte,
+  EntreeModificationTravailReporte,
+  ReponseTravailReporte,
+} from '@dfa/shared';
 
 import { requeteApi } from '@/api/client';
 
@@ -40,6 +44,21 @@ export async function modifierTravailReporteVehicule(
   );
   if (!reponse) {
     throw new Error('Réponse de modification du travail reporté inattendue : corps vide.');
+  }
+  return reponse;
+}
+
+/** `POST /vehicules/{vehiculeId}/travaux-reportes` — noter un travail « à faire la prochaine fois ». */
+export async function creerTravailReporteVehicule(
+  vehiculeId: string,
+  entree: EntreeCreationTravailReporte,
+): Promise<ReponseTravailReporte> {
+  const reponse = await requeteApi<ReponseTravailReporte>(
+    `/vehicules/${vehiculeId}/travaux-reportes`,
+    { method: 'POST', body: JSON.stringify(entree) },
+  );
+  if (!reponse) {
+    throw new Error('Réponse de création du travail reporté inattendue : corps vide.');
   }
   return reponse;
 }

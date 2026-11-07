@@ -1616,6 +1616,11 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'reprise.plan.valider',
       'reprise.import.lire',
       'reprise.import.lancer',
+      // Véhicules de courtoisie + signalement de travaux reportés.
+      'courtoisie.lire',
+      'courtoisie.preter',
+      'courtoisie.parc.gerer',
+      'vehicule.travail_reporte.signaler',
     ];
 
     const actionsAccordees = new Set(Object.values(MATRICE_DROITS).flat());
@@ -2212,5 +2217,35 @@ describe('MATRICE_DROITS — bornes d’atelier (phase 0 rôles)', () => {
     ] as const) {
       expect(MATRICE_DROITS[role].filter((a) => a.startsWith('socle.borne.'))).toEqual([]);
     }
+  });
+});
+
+describe('courtoisie et signalement de travaux reportés', () => {
+  const rolesAyant = (action: Action) =>
+    (Object.keys(MATRICE_DROITS) as (keyof typeof MATRICE_DROITS)[])
+      .filter((role) => (MATRICE_DROITS[role] as readonly Action[]).includes(action))
+      .sort();
+
+  it('courtoisie.lire : réceptionnaire, chef d’atelier, direction, admin, technicien', () => {
+    expect(rolesAyant('courtoisie.lire')).toEqual(
+      ['admin', 'chef_atelier', 'direction', 'receptionnaire', 'technicien'].sort(),
+    );
+  });
+
+  it('courtoisie.preter : comptoir et au-dessus, jamais le technicien', () => {
+    expect(rolesAyant('courtoisie.preter')).toEqual(
+      ['admin', 'chef_atelier', 'direction', 'receptionnaire'].sort(),
+    );
+  });
+
+  it('courtoisie.parc.gerer : chef d’atelier, direction, admin seuls', () => {
+    expect(rolesAyant('courtoisie.parc.gerer')).toEqual(['admin', 'chef_atelier', 'direction']);
+  });
+
+  it('vehicule.travail_reporte.signaler : comme la lecture, technicien compris ; la gestion (clore, corriger) reste sans technicien', () => {
+    expect(rolesAyant('vehicule.travail_reporte.signaler')).toEqual(
+      ['admin', 'chef_atelier', 'direction', 'receptionnaire', 'technicien'].sort(),
+    );
+    expect(MATRICE_DROITS.technicien).not.toContain('vehicule.travail_reporte.gerer');
   });
 });

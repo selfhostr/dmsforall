@@ -52,4 +52,11 @@ export class ReponseTravailReporteDto implements ReponseTravailReporte {
       "Raison d'une correction ou d'un abandon ultérieur (distincte du motif de refus initial au devis). Non filtrée par rôle.",
   })
   readonly motifModification!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Explication libre saisie avec le travail (symptôme, pièce à prévoir).',
+  })
+  readonly detail!: string | null;
 }
