@@ -971,6 +971,57 @@
         ],
         "type": "object"
       },
+      "CapacitesPersonneDto": {
+        "properties": {
+          "encadrer": {
+            "description": "Corriger les heures des autres, rouvrir un OR, lever un blocage.",
+            "type": "boolean"
+          },
+          "gererEmployes": {
+            "description": "Employés & réglages (comptes, bornes). Suit le préréglage.",
+            "type": "boolean"
+          },
+          "niveaux": {
+            "$ref": "#/components/schemas/NiveauxCapacitesDto"
+          },
+          "options": {
+            "$ref": "#/components/schemas/OptionsCapacitesDto"
+          },
+          "patron": {
+            "description": "Gestes irréversibles (IBAN, reprise). Suit le préréglage.",
+            "type": "boolean"
+          },
+          "personnalisee": {
+            "description": "La grille diffère du préréglage du rôle.",
+            "type": "boolean"
+          },
+          "prereglage": {
+            "enum": [
+              "admin",
+              "direction",
+              "vendeur",
+              "receptionnaire",
+              "chef_atelier",
+              "technicien",
+              "magasinier",
+              "comptable",
+              "fiduciaire"
+            ],
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "niveaux",
+          "encadrer",
+          "gererEmployes",
+          "patron",
+          "options",
+          "prereglage",
+          "personnalisee"
+        ],
+        "type": "object"
+      },
       "ChampScanneBooleenDto": {
         "properties": {
           "confiance": {
@@ -1090,6 +1141,21 @@
           "siteId",
           "interrompuLe",
           "cumulSecondesDuJour"
+        ],
+        "type": "object"
+      },
+      "CleCaseDto": {
+        "properties": {
+          "descriptionCle": {
+            "type": "string"
+          },
+          "libelleCle": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "libelleCle",
+          "descriptionCle"
         ],
         "type": "object"
       },
@@ -2818,6 +2884,40 @@
         ],
         "type": "object"
       },
+      "DomaineModeleDto": {
+        "properties": {
+          "descriptionCle": {
+            "type": "string"
+          },
+          "exemplesCles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "enum": [
+              "atelier",
+              "accueil",
+              "facturation",
+              "pieces",
+              "ventes",
+              "finances"
+            ],
+            "type": "string"
+          },
+          "libelleCle": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "libelleCle",
+          "descriptionCle",
+          "exemplesCles"
+        ],
+        "type": "object"
+      },
       "DonneesPermisScanneDto": {
         "properties": {
           "detenteur": {
@@ -4033,6 +4133,36 @@
         ],
         "type": "object"
       },
+      "GrilleCapacitesDto": {
+        "properties": {
+          "encadrer": {
+            "description": "Corriger les heures des autres, rouvrir un OR, lever un blocage.",
+            "type": "boolean"
+          },
+          "gererEmployes": {
+            "description": "Employés & réglages (comptes, bornes). Suit le préréglage.",
+            "type": "boolean"
+          },
+          "niveaux": {
+            "$ref": "#/components/schemas/NiveauxCapacitesDto"
+          },
+          "options": {
+            "$ref": "#/components/schemas/OptionsCapacitesDto"
+          },
+          "patron": {
+            "description": "Gestes irréversibles (IBAN, reprise). Suit le préréglage.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "niveaux",
+          "encadrer",
+          "gererEmployes",
+          "patron",
+          "options"
+        ],
+        "type": "object"
+      },
       "ImportationVehiculeDto": {
         "properties": {
           "estImporte": {
@@ -4505,6 +4635,49 @@
         ],
         "type": "object"
       },
+      "ModeleCapacitesDto": {
+        "properties": {
+          "domaines": {
+            "items": {
+              "$ref": "#/components/schemas/DomaineModeleDto"
+            },
+            "type": "array"
+          },
+          "encadrer": {
+            "$ref": "#/components/schemas/CleCaseDto"
+          },
+          "gererEmployes": {
+            "$ref": "#/components/schemas/CleCaseDto"
+          },
+          "niveaux": {
+            "items": {
+              "$ref": "#/components/schemas/NiveauModeleDto"
+            },
+            "type": "array"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/OptionModeleDto"
+            },
+            "type": "array"
+          },
+          "prereglages": {
+            "items": {
+              "$ref": "#/components/schemas/PrereglageModeleDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "domaines",
+          "niveaux",
+          "options",
+          "encadrer",
+          "gererEmployes",
+          "prereglages"
+        ],
+        "type": "object"
+      },
       "ModeleVehiculeChDto": {
         "properties": {
           "codeTypeCh": {
@@ -4718,6 +4891,133 @@
           "inventaireReferenceId",
           "reservationId",
           "creeLe"
+        ],
+        "type": "object"
+      },
+      "NiveauModeleDto": {
+        "properties": {
+          "id": {
+            "enum": [
+              "rien",
+              "voir",
+              "faire"
+            ],
+            "type": "string"
+          },
+          "libelleCle": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "libelleCle"
+        ],
+        "type": "object"
+      },
+      "NiveauxCapacitesDto": {
+        "properties": {
+          "accueil": {
+            "enum": [
+              "rien",
+              "voir",
+              "faire"
+            ],
+            "type": "string"
+          },
+          "atelier": {
+            "enum": [
+              "rien",
+              "voir",
+              "faire"
+            ],
+            "type": "string"
+          },
+          "facturation": {
+            "enum": [
+              "rien",
+              "voir",
+              "faire"
+            ],
+            "type": "string"
+          },
+          "finances": {
+            "enum": [
+              "rien",
+              "voir",
+              "faire"
+            ],
+            "type": "string"
+          },
+          "pieces": {
+            "enum": [
+              "rien",
+              "voir",
+              "faire"
+            ],
+            "type": "string"
+          },
+          "ventes": {
+            "enum": [
+              "rien",
+              "voir",
+              "faire"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "atelier",
+          "accueil",
+          "facturation",
+          "pieces",
+          "ventes",
+          "finances"
+        ],
+        "type": "object"
+      },
+      "OptionModeleDto": {
+        "properties": {
+          "descriptionCle": {
+            "type": "string"
+          },
+          "id": {
+            "enum": [
+              "voitMontants",
+              "voitPrixAchat",
+              "avoirsPlafonnes"
+            ],
+            "type": "string"
+          },
+          "libelleCle": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "libelleCle",
+          "descriptionCle"
+        ],
+        "type": "object"
+      },
+      "OptionsCapacitesDto": {
+        "properties": {
+          "avoirsPlafonnes": {
+            "description": "Avoirs plafonnés au plafond d'avoir du garage (une contrainte).",
+            "type": "boolean"
+          },
+          "voitMontants": {
+            "description": "Voit les prix de vente, totaux et montants.",
+            "type": "boolean"
+          },
+          "voitPrixAchat": {
+            "description": "Voit les prix d'achat et marges (pièces).",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "voitMontants",
+          "voitPrixAchat",
+          "avoirsPlafonnes"
         ],
         "type": "object"
       },
@@ -6333,6 +6633,54 @@
           "actifDu",
           "compteParDefaut",
           "requis"
+        ],
+        "type": "object"
+      },
+      "PrereglageModeleDto": {
+        "properties": {
+          "descriptionCle": {
+            "type": "string"
+          },
+          "grille": {
+            "$ref": "#/components/schemas/GrilleCapacitesDto"
+          },
+          "id": {
+            "enum": [
+              "admin",
+              "direction",
+              "vendeur",
+              "receptionnaire",
+              "chef_atelier",
+              "technicien",
+              "magasinier",
+              "comptable",
+              "fiduciaire"
+            ],
+            "type": "string"
+          },
+          "libelleCle": {
+            "type": "string"
+          },
+          "roleOrigine": {
+            "enum": [
+              "admin",
+              "direction",
+              "vendeur",
+              "receptionnaire",
+              "chef_atelier",
+              "technicien",
+              "magasinier",
+              "comptable"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "roleOrigine",
+          "libelleCle",
+          "descriptionCle",
+          "grille"
         ],
         "type": "object"
       },
@@ -12083,6 +12431,14 @@
             },
             "type": "array"
           },
+          "capacites": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CapacitesPersonneDto"
+              }
+            ],
+            "description": "Grille de capacités du compte (niveaux par domaine, encadrer, options). Pour l'affichage ; la décision reste `actions`."
+          },
           "expireLe": {
             "format": "date-time",
             "type": "string"
@@ -12111,6 +12467,7 @@
           "sites",
           "siteRattachementId",
           "actions",
+          "capacites",
           "expireLe"
         ],
         "type": "object"
@@ -12633,6 +12990,9 @@
       },
       "UtilisateurResumeDto": {
         "properties": {
+          "capacites": {
+            "$ref": "#/components/schemas/CapacitesPersonneDto"
+          },
           "creeLe": {
             "format": "date-time",
             "type": "string"
@@ -12694,6 +13054,7 @@
           "nom",
           "email",
           "role",
+          "capacites",
           "statut",
           "sites",
           "derniereConnexionLe",
@@ -13163,7 +13524,7 @@
     "contact": {},
     "description": "API du DMS (Dealer Management System) pour garages et concessions suisses. Contrat d'erreur unique application/problem+json (schéma ProblemeDetailCommunDto, code machine stable). Le tenant est toujours résolu depuis la session — aucun endpoint n'accepte de tenantId en paramètre.",
     "title": "API dmsforall (DFA)",
-    "version": "0.1.459+56174bf6"
+    "version": "0.1.0-dev+inconnu"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -16265,6 +16626,54 @@
           }
         ],
         "summary": "Nouveau mot de passe d'une borne",
+        "tags": [
+          "Socle"
+        ]
+      }
+    },
+    "/capacites/modele": {
+      "get": {
+        "description": "Libellés sous forme de clés i18n. Les préréglages portent la grille complète à appliquer ; `fiduciaire` s'enregistre avec le rôle d'origine `comptable`.",
+        "operationId": "CapacitesController_modele",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeleCapacitesDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (rôle sans socle.utilisateur.lire)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Modèle de la grille de capacités (domaines, niveaux, options, préréglages)",
         "tags": [
           "Socle"
         ]
@@ -42900,6 +43309,20 @@
                     "minLength": 1,
                     "type": "string"
                   },
+                  "prereglage": {
+                    "enum": [
+                      "admin",
+                      "direction",
+                      "vendeur",
+                      "receptionnaire",
+                      "chef_atelier",
+                      "technicien",
+                      "magasinier",
+                      "comptable",
+                      "fiduciaire"
+                    ],
+                    "type": "string"
+                  },
                   "role": {
                     "enum": [
                       "admin",
@@ -43028,6 +43451,20 @@
               "schema": {
                 "additionalProperties": false,
                 "properties": {
+                  "prereglage": {
+                    "enum": [
+                      "admin",
+                      "direction",
+                      "vendeur",
+                      "receptionnaire",
+                      "chef_atelier",
+                      "technicien",
+                      "magasinier",
+                      "comptable",
+                      "fiduciaire"
+                    ],
+                    "type": "string"
+                  },
                   "role": {
                     "enum": [
                       "admin",
@@ -43115,7 +43552,182 @@
             "cookie": []
           }
         ],
-        "summary": "Modifier le rôle et/ou les sites d’un employé",
+        "summary": "Modifier le rôle (préréglage) et/ou les sites d’un employé",
+        "tags": [
+          "Socle"
+        ]
+      }
+    },
+    "/utilisateurs/{utilisateurId}/capacites": {
+      "patch": {
+        "description": "Niveaux Rien/Voir/Faire par domaine (atelier, accueil, facturation, pieces, ventes, finances), encadrer, et options (voitMontants, voitPrixAchat, avoirsPlafonnes) ; champs omis inchangés. Règle « on ne coche pas ce qu’on n’a pas » : 403 si la grille dépasse celle de l’appelant, ou si l’appelant se modifie lui-même, ou modifie quelqu’un de plus puissant (un compte admin n’est modifiable que par un admin). gererEmployes et patron ne se modifient pas ici (suivent le rôle). Les sessions de la personne sont révoquées si ses droits baissent. Audit avant/après.",
+        "operationId": "UtilisateurController_modifierCapacites",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "utilisateurId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "niveaux": {
+                      "pieces": "faire"
+                    },
+                    "options": {
+                      "voitPrixAchat": true
+                    }
+                  }
+                }
+              },
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "encadrer": {
+                    "type": "boolean"
+                  },
+                  "niveaux": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "accueil": {
+                        "enum": [
+                          "rien",
+                          "voir",
+                          "faire"
+                        ],
+                        "type": "string"
+                      },
+                      "atelier": {
+                        "enum": [
+                          "rien",
+                          "voir",
+                          "faire"
+                        ],
+                        "type": "string"
+                      },
+                      "facturation": {
+                        "enum": [
+                          "rien",
+                          "voir",
+                          "faire"
+                        ],
+                        "type": "string"
+                      },
+                      "finances": {
+                        "enum": [
+                          "rien",
+                          "voir",
+                          "faire"
+                        ],
+                        "type": "string"
+                      },
+                      "pieces": {
+                        "enum": [
+                          "rien",
+                          "voir",
+                          "faire"
+                        ],
+                        "type": "string"
+                      },
+                      "ventes": {
+                        "enum": [
+                          "rien",
+                          "voir",
+                          "faire"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "options": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "avoirsPlafonnes": {
+                        "type": "boolean"
+                      },
+                      "voitMontants": {
+                        "type": "boolean"
+                      },
+                      "voitPrixAchat": {
+                        "type": "boolean"
+                      }
+                    },
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UtilisateurResumeDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide (champ inconnu, niveau inconnu, corps vide)."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant, grille supérieure à celle de l’appelant, auto-modification, ou cible plus puissante."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Employé introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Ajuster la grille de capacités d’un employé",
         "tags": [
           "Socle"
         ]
@@ -43165,7 +43777,7 @@
                 }
               }
             },
-            "description": "Droit insuffisant (rôle sans socle.utilisateur.desactiver)."
+            "description": "Cible plus puissante que l’appelant, ou compte admin par un non-admin.\n\nDroit insuffisant (rôle sans socle.utilisateur.desactiver)."
           },
           "404": {
             "content": {
@@ -43185,7 +43797,7 @@
                 }
               }
             },
-            "description": "Tentative de désactiver son propre compte."
+            "description": "Tentative de désactiver son propre compte, ou dernier patron."
           }
         },
         "security": [
