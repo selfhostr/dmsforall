@@ -91,7 +91,6 @@
     "passerSombre": "Zu dunklem Design wechseln"
   },
   "pied": {
-    "version": "Version {info}",
-    "versionInconnue": "unbekannt"
+    "version": "Version {info}"
   }
 }

@@ -18,7 +18,7 @@
       "titre": "Adresse",
       "rue": "Strasse",
       "numero": "Hausnummer",
-      "numeroAide": "Leer lassen, wenn keine Hausnummer vorhanden ist (Postfach, Weiler). Achtung: Für die Ausstellung einer Rechnung mit QR-Zahlteil ist sie erforderlich — ohne sie bleibt die Ausstellung blockiert, bis sie ergänzt wird.",
+      "numeroAide": "Erforderlich für die Ausstellung einer Rechnung mit QR-Zahlteil. Ohne Hausnummer (Postfach, Weiler) «s/n» eintragen.",
       "npa": "PLZ",
       "localite": "Ort",
       "pays": "Land"
@@ -382,6 +382,7 @@
     "titre": "Unternehmen",
     "explication": "Diese Angaben identifizieren Ihre Garage auf den Rechnungen.",
     "raisonSociale": "Firmenname",
+    "raisonSocialeAide": "Sie wird bei der Kontoerstellung festgelegt und lässt sich hier nicht ändern: Wenden Sie sich an den dmsforall-Support, um sie zu ändern.",
     "numeroTva": "MWST-Nummer",
     "numeroTvaAide": "Format: CHE-123.456.789 MWST. Leer lassen, wenn Sie nicht mehrwertsteuerpflichtig sind.",
     "erreurTva": {

@@ -91,7 +91,6 @@
     "passerSombre": "Passer en thème sombre"
   },
   "pied": {
-    "version": "Version {info}",
-    "versionInconnue": "inconnue"
+    "version": "Version {info}"
   }
 }

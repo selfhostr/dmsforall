@@ -18,7 +18,7 @@
       "titre": "Adresse",
       "rue": "Rue",
       "numero": "Numéro",
-      "numeroAide": "Laissez ce champ vide si vous n'avez pas de numéro (case postale, lieu-dit). Attention : l'émission d'une facture avec bulletin QR l'exige — sans lui, l'émission restera bloquée tant qu'il ne sera pas complété.",
+      "numeroAide": "Requis pour émettre une facture avec bulletin QR. Sans numéro (case postale, lieu-dit), indiquez « s/n ».",
       "npa": "NPA",
       "localite": "Localité",
       "pays": "Pays"
@@ -382,6 +382,7 @@
     "titre": "Entreprise",
     "explication": "Ces informations identifient votre garage sur les factures.",
     "raisonSociale": "Raison sociale",
+    "raisonSocialeAide": "Elle est définie à la création de votre compte et ne se modifie pas ici : contactez le support dmsforall pour la changer.",
     "numeroTva": "Numéro de TVA",
     "numeroTvaAide": "Format : CHE-123.456.789 TVA. Laissez vide si vous n'êtes pas assujetti à la TVA.",
     "erreurTva": {

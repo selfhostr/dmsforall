@@ -18,7 +18,7 @@
       "titre": "Indirizzo",
       "rue": "Via",
       "numero": "Numero civico",
-      "numeroAide": "Lasciare vuoto se non si dispone di un numero civico (casella postale, frazione). Attenzione: l'emissione di una fattura con polizza QR lo richiede — senza di esso, l'emissione resterà bloccata finché non verrà completato.",
+      "numeroAide": "Obbligatorio per emettere una fattura con polizza QR. Senza numero civico (casella postale, frazione), indicare «s/n».",
       "npa": "NPA",
       "localite": "Località",
       "pays": "Paese"
@@ -382,6 +382,7 @@
     "titre": "Azienda",
     "explication": "Queste informazioni identificano la sua autofficina sulle fatture.",
     "raisonSociale": "Ragione sociale",
+    "raisonSocialeAide": "Viene definita alla creazione dell'account e non si modifica qui: contatti il supporto dmsforall per cambiarla.",
     "numeroTva": "Numero IVA",
     "numeroTvaAide": "Formato: CHE-123.456.789 IVA. Lasci vuoto se non è soggetto all'IVA.",
     "erreurTva": {
