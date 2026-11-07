@@ -36,7 +36,7 @@ const ROLES_ECRITURE_STOCK_SITE: ReadonlySet<RoleUtilisateur> = new Set([
 const ROLES_ECRITURE_MOUVEMENT: ReadonlySet<RoleUtilisateur> = new Set(['direction', 'magasinier']);
 
 /** §11 « Enregistrer une sortie » (satisfaire une réservation) : même périmètre que les
- *  mouvements, `magasinier` seul. */
+ *  mouvements, `direction` et `magasinier`. */
 const ROLES_SATISFACTION_RESERVATION: ReadonlySet<RoleUtilisateur> = new Set([
   'direction',
   'magasinier',
@@ -81,13 +81,13 @@ const ROLES_ECRITURE_COMMANDE_FOURNISSEUR: ReadonlySet<RoleUtilisateur> = new Se
 ]);
 
 /** Réception (`pieces.commande_fournisseur.reception` — couvre aussi `annuler-reliquat`, gardé
- *  par le MÊME droit côté contrôleur) : `magasinier` SEUL, comme les mouvements de stock. */
+ *  par le MÊME droit côté contrôleur) : `direction` et `magasinier`, comme les mouvements de stock. */
 const ROLES_RECEPTION_COMMANDE_FOURNISSEUR: ReadonlySet<RoleUtilisateur> = new Set([
   'direction',
   'magasinier',
 ]);
 
-/** Retour fournisseur d'une consigne (`pieces.consigne.retourner`) : `magasinier` SEUL — le geste
+/** Retour fournisseur d'une consigne (`pieces.consigne.retourner`) : `direction` et `magasinier` — le geste
  *  de comptoir qui constate physiquement le retour. */
 const ROLES_RETOUR_CONSIGNE: ReadonlySet<RoleUtilisateur> = new Set(['direction', 'magasinier']);
 
@@ -115,11 +115,11 @@ const ROLES_ECRITURE_PARAMETRAGE_PIECES: ReadonlySet<RoleUtilisateur> = new Set(
  * la facture qui règle ce qu'il a commandé prolonge son périmètre fournisseur/commande fournisseur,
  * ce n'est pas un droit nouveau) — et à `comptable` (pièce comptable, RF-115 mise à part `admin`
  * reste `[]`), même raisonnement qu'une consigne non rendue (« une créance/dépense qui dort »).
- * Dépôt, validation ET rejet réservés à `magasinier` SEUL (« le
+ * Dépôt, validation ET rejet réservés à `direction` et `magasinier` (« le
  * magasinier confirme », brief) — même périmètre que `ROLES_RECEPTION_COMMANDE_FOURNISSEUR` (geste
  * physique de confirmation), délibérément PAS `ROLES_ECRITURE_FOURNISSEUR`/
- * `ROLES_ECRITURE_COMMANDE_FOURNISSEUR` : direction/chef_atelier gèrent la relation fournisseur et
- * la commande, mais ne détiennent pas la réception physique — le dépôt/rapprochement d'une facture
+ * `ROLES_ECRITURE_COMMANDE_FOURNISSEUR` : chef_atelier gère la relation fournisseur et
+ * la commande, mais ne détient pas la réception physique — le dépôt/rapprochement d'une facture
  * est le même geste, pas un acte de gestion.
  *
  * DÉFENSIF D'ERGONOMIE SEULEMENT (voir l'en-tête de ce fichier) : rien ne garantit MÉCANIQUEMENT
@@ -176,7 +176,7 @@ export function peutEcrireCommandeFournisseur(role: RoleUtilisateur | undefined)
   return role !== undefined && ROLES_ECRITURE_COMMANDE_FOURNISSEUR.has(role);
 }
 
-/** Réceptionner, annuler un reliquat de ligne : même droit côté contrôleur, `magasinier` seul. */
+/** Réceptionner, annuler un reliquat de ligne : même droit côté contrôleur : `direction` et `magasinier`. */
 export function peutReceptionnerCommandeFournisseur(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && ROLES_RECEPTION_COMMANDE_FOURNISSEUR.has(role);
 }
@@ -193,12 +193,12 @@ export function peutLireFactureFournisseur(role: RoleUtilisateur | undefined): b
   return role !== undefined && ROLES_LECTURE_FACTURE_FOURNISSEUR.has(role);
 }
 
-/** Déposer une facture ET confirmer son rapprochement : même droit, `magasinier` seul. */
+/** Déposer une facture ET confirmer son rapprochement : même droit : `direction` et `magasinier`. */
 export function peutDeposerFactureFournisseur(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && ROLES_ECRITURE_FACTURE_FOURNISSEUR.has(role);
 }
 
-/** Valider OU rejeter le rapprochement : même droit côté contrôleur (déduit, `magasinier` seul —
+/** Valider OU rejeter le rapprochement : même droit côté contrôleur (déduit : `direction` et `magasinier` —
  *  « le magasinier confirme », brief). Un seul nom couvre les DEUX transitions terminales
  *  (`STATUTS_FACTURE_FOURNISSEUR`, `@dfa/shared`) : elles engagent la même décision humaine. */
 export function peutDeciderFactureFournisseur(role: RoleUtilisateur | undefined): boolean {
