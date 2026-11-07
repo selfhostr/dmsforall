@@ -68,7 +68,7 @@
     "scannerUnAutre": "Scanner un autre permis"
   },
   "formulaire": {
-    "sectionDetenteur": "Propriétaire actuel",
+    "sectionDetenteur": "Détenteur",
     "sectionVehicule": "Véhicule",
     "clientTrouve": "Client déjà enregistré — le véhicule lui sera rattaché",
     "clientCreeTitre": "Client enregistré",

@@ -94,6 +94,7 @@
     "VN": "Neuwagen: vor dem Verkauf nie immatrikuliert.",
     "VO": "Occasion: bereits gebraucht, vom Betrieb verkauft oder in Zahlung genommen.",
     "QRFacture": "QR-Rechnung: Schweizer Zahlteil mit QR-Code, im E-Banking scannbar.",
-    "Avoir": "Gutschrift: Korrekturbeleg, der eine ausgestellte Rechnung ganz oder teilweise storniert."
+    "Avoir": "Gutschrift: Korrekturbeleg, der eine ausgestellte Rechnung ganz oder teilweise storniert.",
+    "Detenteur": "Person, die im Fahrzeugausweis eingetragen ist; nicht unbedingt der Eigentümer, z. B. beim Leasing."
   }
 }

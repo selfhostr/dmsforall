@@ -68,7 +68,7 @@
     "scannerUnAutre": "Weiteren Fahrzeugausweis scannen"
   },
   "formulaire": {
-    "sectionDetenteur": "Aktueller Halter",
+    "sectionDetenteur": "Halter",
     "sectionVehicule": "Fahrzeug",
     "clientTrouve": "Kunde bereits erfasst — das Fahrzeug wird ihm zugeordnet",
     "clientCreeTitre": "Kunde erfasst",

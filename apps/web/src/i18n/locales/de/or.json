@@ -481,7 +481,7 @@
     },
     "confirmation": {
       "vehiculeDeuxOrOuverts": "Für dieses Fahrzeug bereits offen: {numeros}. Trotzdem einen neuen Reparaturauftrag eröffnen?",
-      "ouvrirOr": "AR {numero} öffnen (neuer Tab)"
+      "ouvrirOr": "RA {numero} öffnen (neuer Tab)"
     },
     "actions": {
       "creer": "Reparaturauftrag eröffnen",

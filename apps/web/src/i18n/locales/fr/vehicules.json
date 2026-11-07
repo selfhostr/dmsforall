@@ -44,7 +44,7 @@
     "proprietaire": {
       "titre": "Propriétaire et détenteurs",
       "actuel": "Propriétaire actuel",
-      "precedents": "Propriétaires précédents",
+      "precedents": "Détenteurs précédents",
       "vide": "Aucun détenteur enregistré pour ce véhicule."
     },
     "dossierVente": {
@@ -121,7 +121,7 @@
   },
   "detentions": {
     "titre": "Détention",
-    "detenteur": "Propriétaire actuel",
+    "detenteur": "Détenteur actuel",
     "historique": "Historique des détenteurs",
     "changer": "Changer le détenteur",
     "rattacher": "Rattacher à un client",
@@ -135,7 +135,7 @@
     "dialogue": {
       "titreRattacher": "Rattacher ce véhicule à un client",
       "titreChanger": "Changer le détenteur de ce véhicule",
-      "detenteurActuelLabel": "Propriétaire actuel",
+      "detenteurActuelLabel": "Détenteur actuel",
       "clientLabel": "Client",
       "rechercherPlaceholder": "Nom, numéro client…",
       "aucunClient": "Aucun client trouvé.",

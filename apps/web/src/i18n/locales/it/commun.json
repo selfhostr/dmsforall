@@ -94,6 +94,7 @@
     "VN": "Veicolo nuovo: mai immatricolato prima della vendita.",
     "VO": "Veicolo usato: già utilizzato, venduto dall'officina o ritirato come usato.",
     "QRFacture": "Bollettino di pagamento svizzero con codice QR, da scansionare nell'e-banking.",
-    "Avoir": "Nota di credito: documento che annulla in tutto o in parte una fattura emessa."
+    "Avoir": "Nota di credito: documento che annulla in tutto o in parte una fattura emessa.",
+    "Detenteur": "Persona iscritta sulla carta di circolazione; non necessariamente il proprietario, per esempio in leasing."
   }
 }

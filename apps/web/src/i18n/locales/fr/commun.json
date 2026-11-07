@@ -94,6 +94,7 @@
     "VN": "Véhicule neuf : jamais immatriculé avant la vente.",
     "VO": "Véhicule d'occasion : déjà utilisé, vendu par le garage ou repris à la reprise.",
     "QRFacture": "Bulletin de paiement suisse avec code QR, à scanner dans l'e-banking.",
-    "Avoir": "Facture de correction qui annule tout ou partie d'une facture émise."
+    "Avoir": "Facture de correction qui annule tout ou partie d'une facture émise.",
+    "Detenteur": "Personne inscrite sur le permis de circulation ; pas forcément le propriétaire, par exemple en leasing."
   }
 }

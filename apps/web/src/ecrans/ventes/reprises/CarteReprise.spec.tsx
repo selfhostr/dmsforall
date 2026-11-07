@@ -80,7 +80,7 @@ describe('CarteReprise', () => {
   it('affiche un état vide avec une action « Ajouter une reprise » quand le dossier n’en a pas', () => {
     rendre(<CarteReprise dossierVenteId="dossier-1" possedeReprise={false} role="vendeur" />);
 
-    expect(screen.getByText('Pas de reprise sur ce dossier')).toBeInTheDocument();
+    expect(screen.getByText('Pas de reprise sur cette vente')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Ajouter une reprise' })).toBeInTheDocument();
   });
 
@@ -89,7 +89,7 @@ describe('CarteReprise', () => {
       <CarteReprise dossierVenteId="dossier-1" possedeReprise={false} role="receptionnaire" />,
     );
 
-    expect(screen.getByText('Pas de reprise sur ce dossier')).toBeInTheDocument();
+    expect(screen.getByText('Pas de reprise sur cette vente')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Ajouter une reprise' })).not.toBeInTheDocument();
   });
 
