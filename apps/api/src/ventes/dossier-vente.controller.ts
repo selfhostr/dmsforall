@@ -59,6 +59,7 @@ import {
   ReponseDossierVenteDto,
 } from './dto';
 import { ServiceDossierVente } from './service-dossier-vente';
+import { ExigerModule } from '../common/droits/garde-module';
 
 /**
  * Le dossier de vente (RV-29→RV-38, RV-52→RV-58, §6.2) — objet CENTRAL du module. Ressource,
@@ -68,6 +69,7 @@ import { ServiceDossierVente } from './service-dossier-vente';
  */
 @ApiTags('Dossiers de vente')
 @ApiCookieAuth()
+@ExigerModule('ventes')
 @Controller({ path: 'dossiers-vente', version: '1' })
 @UseGuards(GardeDroit)
 export class DossierVenteController {

@@ -11,7 +11,12 @@ import { isIP } from 'node:net';
 
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { and, asc, eq } from 'drizzle-orm';
-import type { EntreeConnexion, SessionCourante, TypeEvenementSecurite } from '@dfa/shared';
+import {
+  modulesActifsDepuis,
+  type EntreeConnexion,
+  type SessionCourante,
+  type TypeEvenementSecurite,
+} from '@dfa/shared';
 
 import { JETON_CONFIG } from '../../config/config.jetons';
 import type { Config } from '../../config/config.types';
@@ -297,6 +302,7 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
             slug: tenant.slug,
             raisonSociale: tenant.raisonSociale,
             langueDefaut: tenant.langueDefaut,
+            modulesDesactives: tenant.modulesDesactives,
           })
           .from(tenant)
           .where(eq(tenant.id, principal.tenantId));
@@ -355,11 +361,17 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
             role: ligneUtilisateur.role,
             langue: ligneUtilisateur.langue,
           },
-          tenant: ligneTenant,
+          tenant: {
+            id: ligneTenant.id,
+            slug: ligneTenant.slug,
+            raisonSociale: ligneTenant.raisonSociale,
+            langueDefaut: ligneTenant.langueDefaut,
+          },
           sites: lignesSites,
           siteRattachementId,
           actions: [...droitsDe(ligneUtilisateur.role, grille).actions].sort(),
           capacites: capacitesPersonneDe(ligneUtilisateur.role, grille),
+          modulesActifs: modulesActifsDepuis(ligneTenant.modulesDesactives),
           expireLe: ligneSession.expireLe.toISOString(),
         } satisfies SessionCourante;
       },

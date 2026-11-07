@@ -49,6 +49,7 @@ import { EnveloppeOrDto, PageOrDto } from '../atelier/dto';
 import { ReponseCapaciteRendezVousDto, ReponseRendezVousDto, ResumeSiteRendezVousDto } from './dto';
 import { ServiceCapaciteRendezVous } from './service-capacite-rendez-vous';
 import { ServiceRendezVous } from './service-rendez-vous';
+import { ExigerModule } from '../common/droits/garde-module';
 
 const EnveloppeRendezVousDto = EnveloppeOrDto(ReponseRendezVousDto, 'RendezVous');
 const PageRendezVousDto = PageOrDto(ReponseRendezVousDto, 'RendezVous');
@@ -70,6 +71,7 @@ type EntreeListeRendezVous = z.infer<typeof schemaListeRendezVous>;
  */
 @ApiTags('Rendez-vous')
 @ApiCookieAuth()
+@ExigerModule('planning')
 @Controller({ path: 'rendez-vous', version: '1' })
 @UseGuards(GardeDroit)
 export class RendezVousController {

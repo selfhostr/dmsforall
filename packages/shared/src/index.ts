@@ -6,6 +6,7 @@ export * from './contrats/probleme';
 export * from './contrats/pagination';
 export * from './contrats/socle';
 export * from './contrats/tenant';
+export * from './contrats/modules';
 export * from './contrats/auth';
 export * from './contrats/capacites';
 export * from './contrats/atelier';

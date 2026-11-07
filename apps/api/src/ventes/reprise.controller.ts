@@ -42,6 +42,7 @@ import { PipeZod } from '../common/validation';
 
 import { RepriseAvecAvertissementsDto, ReponseRepriseDto } from './dto';
 import { ServiceReprise } from './service-reprise';
+import { ExigerModule } from '../common/droits/garde-module';
 
 /**
  * La reprise (RV-19→RV-28, §6.3) — sous-ressource SINGULIÈRE d'un dossier de vente (0 ou 1), pas de
@@ -52,6 +53,7 @@ import { ServiceReprise } from './service-reprise';
  */
 @ApiTags('Reprise')
 @ApiCookieAuth()
+@ExigerModule('ventes')
 @Controller({ path: 'dossiers-vente/:dossierVenteId/reprise', version: '1' })
 @UseGuards(GardeDroit)
 export class RepriseController {

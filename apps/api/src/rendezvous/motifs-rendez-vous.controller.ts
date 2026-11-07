@@ -36,6 +36,7 @@ import { PipeZod } from '../common/validation';
 
 import { ReponseMotifRendezVousDto } from './dto';
 import { ServiceMotifsRendezVous } from './service-motifs-rendez-vous';
+import { ExigerModule } from '../common/droits/garde-module';
 
 /**
  * `GET|POST /motifs-rendez-vous`, `PATCH /motifs-rendez-vous/{id}` — catalogue paramétrable par
@@ -46,6 +47,7 @@ import { ServiceMotifsRendezVous } from './service-motifs-rendez-vous';
  */
 @ApiTags('Rendez-vous')
 @ApiCookieAuth()
+@ExigerModule('planning')
 @Controller({ path: 'motifs-rendez-vous', version: '1' })
 @UseGuards(GardeDroit)
 export class MotifsRendezVousController {

@@ -346,6 +346,8 @@ export const CODES_ERREUR = [
   // Garage assujetti : son n° TVA n'est pas saisi, une facture ne peut pas être émise
   // (art. 26 LTVA). Se règle dans Réglages > Mon garage.
   'TVA_NUMERO_REQUIS',
+  // --- Modules activables (migration 0092) : écriture sur un module que le garage a retiré ---
+  'MODULE_DESACTIVE',
 ] as const;
 export type CodeErreur = (typeof CODES_ERREUR)[number];
 
@@ -496,6 +498,7 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   FACTURE_DESTINATAIRE_COURRIEL_ABSENT: 409,
   TVA_NON_ASSUJETTI_TAUX_INTERDIT: 409,
   TVA_NUMERO_REQUIS: 409,
+  MODULE_DESACTIVE: 403,
 };
 
 /**
@@ -632,6 +635,7 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   FACTURE_DESTINATAIRE_COURRIEL_ABSENT: "Le client n'a pas d'adresse courriel enregistrée",
   TVA_NON_ASSUJETTI_TAUX_INTERDIT: 'TVA interdite pour un garage non assujetti',
   TVA_NUMERO_REQUIS: 'Numéro de TVA requis pour émettre',
+  MODULE_DESACTIVE: 'Module désactivé pour ce garage',
 };
 
 /**

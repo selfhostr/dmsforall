@@ -1,4 +1,4 @@
-import { GRILLE_VIDE, PREREGLAGES } from '@dfa/shared';
+import { GRILLE_VIDE, MODULES_APP, PREREGLAGES } from '@dfa/shared';
 import { colonnesDepuisGrille } from '../grille-utilisateur';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SQL } from 'drizzle-orm';
@@ -57,7 +57,7 @@ function requeteMock<T>(resultat: readonly T[]) {
   return Object.assign(promesse, { orderBy: () => requeteMock(resultat) });
 }
 
-function accesBaseTest(): AccesBase {
+function accesBaseTest(modulesDesactives: readonly string[] = []): AccesBase {
   const donnees = {
     utilisateur: {
       id: 'utilisateur-id',
@@ -76,6 +76,7 @@ function accesBaseTest(): AccesBase {
       slug: 'garage-dupont',
       raisonSociale: 'Garage Dupont Sàrl',
       langueDefaut: 'fr',
+      modulesDesactives,
     },
     sites: [{ id: 'site-id', code: 'SION', nom: 'Sion', actif: true }],
     session: { expireLe: new Date('2026-07-28T12:00:00.000Z') },
@@ -495,6 +496,7 @@ describe('ServiceAuthentificationImpl.connecter — rehachage en arrière-plan, 
           slug: 'garage-dupont',
           raisonSociale: 'Garage Dupont Sàrl',
           langueDefaut: 'fr',
+          modulesDesactives: [],
         },
       ],
       sites: [{ id: 'site-id', code: 'SION', nom: 'Sion', actif: true }],
@@ -599,6 +601,7 @@ describe('ServiceAuthentificationImpl.sessionCourante — scoping tenant (findin
           slug: 'garage-dupont',
           raisonSociale: 'Garage Dupont Sàrl',
           langueDefaut: 'fr',
+          modulesDesactives: [],
         },
       ],
       sites: [{ id: 'site-id', code: 'SION', nom: 'Sion', actif: true }],
@@ -801,6 +804,7 @@ describe('ServiceAuthentificationImpl.sessionCourante — portée de site des co
           slug: 'garage-dupont',
           raisonSociale: 'Garage Dupont Sàrl',
           langueDefaut: 'fr',
+          modulesDesactives: [],
         },
       ],
       sites: [{ id: 'site-sion', code: 'SION', nom: 'Sion', actif: true }],
@@ -919,5 +923,41 @@ describe('ServiceAuthentificationImpl.sessionCourante — portée de site des co
     });
     expect(admin.actions).toEqual([...MATRICE_DROITS.admin].sort());
     expect(admin.actions).not.toContain('facturation.paiement.encaisser');
+  });
+});
+
+describe('ServiceAuthentificationImpl.sessionCourante — modules actifs', () => {
+  function svcAvecModulesDesactives(
+    desactives: readonly string[],
+  ): ServiceAuthentificationImpl {
+    return new ServiceAuthentificationImpl(
+      configTest(),
+      accesBaseTest(desactives),
+      {} as unknown as AccesAmorcage,
+      {} as unknown as ServiceMotDePasse,
+      {} as unknown as ServiceSession,
+      {} as unknown as ServiceLimitationDebit,
+      contexteTest(),
+    );
+  }
+  const principal = {
+    sessionId: 'session-id',
+    tenantId: 'tenant-id',
+    utilisateurId: 'utilisateur-id',
+    role: 'admin',
+    langue: 'fr',
+  } as const;
+
+  it('tout est actif par défaut, et `tenant` ne porte pas la liste brute', async () => {
+    const corps = await svcAvecModulesDesactives([]).sessionCourante(principal);
+    expect(corps.modulesActifs).toEqual(MODULES_APP);
+    expect(corps.tenant).not.toHaveProperty('modulesDesactives');
+  });
+
+  it('retire le module choisi ET ses dépendants (atelier -> pointage -> tablettes)', async () => {
+    const corps = await svcAvecModulesDesactives(['atelier', 'pneus']).sessionCourante(principal);
+    expect(corps.modulesActifs).toEqual(
+      MODULES_APP.filter((m) => !['atelier', 'pointage', 'tablettes', 'pneus'].includes(m)),
+    );
   });
 });

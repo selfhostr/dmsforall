@@ -10,6 +10,7 @@ import { z } from 'zod';
 
 import type { CapacitesPersonne } from './capacites';
 import type { Langue, RoleUtilisateur } from './enums';
+import type { ModuleApp } from './modules';
 import type { SiteResume, TenantCourant } from './socle';
 
 /**
@@ -151,5 +152,11 @@ export interface SessionCourante {
    * une grille vide (profil d'appareil figé).
    */
   readonly capacites: CapacitesPersonne;
+  /**
+   * Modules effectivement actifs pour le garage (`GET|PATCH /parametres-modules`). Le front filtre
+   * menus, routes et raccourcis dessus sans requête de plus ; le serveur refuse de toute façon les
+   * écritures d'un module désactivé (`MODULE_DESACTIVE`).
+   */
+  readonly modulesActifs: readonly ModuleApp[];
   readonly expireLe: string; // ISO 8601
 }

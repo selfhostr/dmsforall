@@ -19,10 +19,12 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   CODES_ERREUR,
   LANGUES,
+  MODULES_APP,
   ROLES_UTILISATEUR,
   type CodeErreur,
   type ErreurChamp,
   type Langue,
+  type ModuleApp,
   type ProblemeDetail,
   type RoleUtilisateur,
   type SessionCourante,
@@ -116,6 +118,14 @@ export class SessionCouranteDto implements SessionCourante {
       "Grille de capacités du compte (niveaux par domaine, encadrer, options). Pour l'affichage ; la décision reste `actions`.",
   })
   capacites!: CapacitesPersonneDto;
+
+  @ApiProperty({
+    enum: MODULES_APP,
+    isArray: true,
+    description:
+      'Modules effectivement actifs pour le garage (Réglages > Modules). Le front masque menus, routes et raccourcis des autres ; le serveur refuse leurs écritures (`MODULE_DESACTIVE`).',
+  })
+  modulesActifs!: readonly ModuleApp[];
 
   @ApiProperty({ format: 'date-time' })
   expireLe!: string;
