@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
 
@@ -11,13 +11,12 @@ import type {
 
 import { ErreurReseau, messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { BandeauAlerteClient } from '@/composants/motifs/BandeauAlerteClient';
-import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 // Import de lecture depuis le module `clients` (hors périmètre d'écriture ici, voir CONTRIBUTING.md) —
 // réutilise TEL QUEL le même formulaire que `EcranListeClients.tsx` (tiroir « Nouveau client »),
 // jamais une resaisie locale de la création client. Issue #107 (test terrain, verbatim : « c'est
@@ -76,6 +75,26 @@ function versClientResume(client: {
     nombreVehicules: 0,
     dernierPassageLe: client.dernierPassageLe,
   };
+}
+
+/** Cadre commun des états du parcours détaillé : panneau latéral droit par-dessus la liste des OR
+ *  (même geste que « Nouveau client »). Fermer = retour à la liste, `?site=` conservé. */
+function GabaritEcran({ titre, children }: { readonly titre: string; readonly children: ReactNode }) {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  return (
+    <PanneauLateral
+      ouvert
+      onOuvertChange={(ouvert) => {
+        if (!ouvert) {
+          navigate(chemins.atelier.ordresReparation.liste(searchParams.get('site') ?? undefined));
+        }
+      }}
+      titre={titre}
+    >
+      {children}
+    </PanneauLateral>
+  );
 }
 
 /**
@@ -157,7 +176,7 @@ function EcranNouvelOrdreReparationClassique() {
   if (!site) {
     return (
       <GabaritEcran titre={t('or:nouveau.titre')}>
-        <div className="mx-auto flex w-full max-w-lg flex-col gap-4">
+        <div className="flex w-full flex-col gap-4">
           <SelecteurSiteOrRequis
             onChoisir={(siteId) =>
               setSearchParams((params) => {
@@ -175,7 +194,7 @@ function EcranNouvelOrdreReparationClassique() {
   if (!clientId) {
     return (
       <GabaritEcran titre={t('or:nouveau.titre')}>
-        <div className="mx-auto flex w-full max-w-lg flex-col gap-4">
+        <div className="flex w-full flex-col gap-4">
           <EtatVide
             titre={t('or:nouveau.client.requisTitre')}
             description={t('or:nouveau.client.requisDescription')}
@@ -192,11 +211,11 @@ function EcranNouvelOrdreReparationClassique() {
               </div>
             }
           />
-          <Dialog open={creationClientOuverte} onOpenChange={setCreationClientOuverte}>
-            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle>{t('or:nouveau.client.creerTitre')}</DialogTitle>
-              </DialogHeader>
+          <PanneauLateral
+            ouvert={creationClientOuverte}
+            onOuvertChange={setCreationClientOuverte}
+            titre={t('or:nouveau.client.creerTitre')}
+          >
               <FormulaireNouveauClient
                 ouvert={creationClientOuverte}
                 onCree={(client: ReponseClient) => {
@@ -212,8 +231,7 @@ function EcranNouvelOrdreReparationClassique() {
                   });
                 }}
               />
-            </DialogContent>
-          </Dialog>
+          </PanneauLateral>
         </div>
       </GabaritEcran>
     );
@@ -222,7 +240,7 @@ function EcranNouvelOrdreReparationClassique() {
   if (requeteClient.isPending) {
     return (
       <GabaritEcran titre={t('or:nouveau.titre')}>
-        <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+        <div className="flex w-full flex-col gap-6">
           <EtatChargement lignes={6} />
         </div>
       </GabaritEcran>
@@ -233,7 +251,7 @@ function EcranNouvelOrdreReparationClassique() {
     const estErreurReseau = requeteClient.error instanceof ErreurReseau;
     return (
       <GabaritEcran titre={t('or:nouveau.titre')}>
-        <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+        <div className="flex w-full flex-col gap-6">
           <EtatErreur
             titre={t(estErreurReseau ? 'erreurs:reseau.titre' : 'erreurs:inattendue.titre')}
             description={messageErreur(requeteClient.error, t)}
@@ -248,7 +266,7 @@ function EcranNouvelOrdreReparationClassique() {
 
   return (
     <GabaritEcran titre={t('or:nouveau.titre')}>
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
+      <div className="flex w-full flex-col gap-4">
         <BandeauAlerteClient
           bloque={client.statut === 'bloque'}
           alertes={client.notesAlerte.map((note) => ({ id: note.id, texte: note.texte }))}
