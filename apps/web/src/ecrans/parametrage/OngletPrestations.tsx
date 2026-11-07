@@ -120,23 +120,12 @@ export function OngletPrestations({ actions }: Props) {
     <EtatVidePremierUsage
       titre={t('parametrage:referentiels.prestations.vide.titre')}
       description={t('parametrage:referentiels.prestations.vide.description')}
-      action={
-        peutEcrire ? (
-          <Button type="button" onClick={ouvrirCreation}>
-            <Plus aria-hidden className="h-4 w-4" />
-            {t('parametrage:referentiels.prestations.nouvelle')}
-          </Button>
-        ) : undefined
-      }
     />
   );
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-4">
-        <p className="texte-corps text-muted-foreground">
-          {t('parametrage:referentiels.prestations.explication')}
-        </p>
+      <div className="flex items-center justify-end gap-4">
         {peutEcrire ? (
           <Button type="button" onClick={ouvrirCreation}>
             <Plus aria-hidden className="h-4 w-4" />

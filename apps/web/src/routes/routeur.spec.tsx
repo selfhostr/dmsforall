@@ -544,7 +544,7 @@ describe('routeur — /parametrage/facturation refuse réellement (protection pa
     );
     renduAvecRoutes(routesConfig, { routeInitiale: '/parametrage/facturation' });
 
-    expect(await screen.findByLabelText('Nom du garage')).toBeInTheDocument();
+    expect(await screen.findByLabelText(/^Nom du garage\*?$/)).toBeInTheDocument();
     expect(
       screen.queryByText('Accès réservé à la direction et à la comptabilité'),
     ).not.toBeInTheDocument();

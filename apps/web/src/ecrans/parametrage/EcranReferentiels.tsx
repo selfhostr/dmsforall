@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { LegendeChampsObligatoires } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SelecteurLangue } from '@/composants/layout/SelecteurLangue';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
@@ -46,10 +47,9 @@ export function EcranReferentiels() {
   const [onglet, setOnglet] = useState<Onglet>('tauxHoraires');
 
   return (
-    <GabaritEcran
-      titre={t('parametrage:referentiels.titre')}
-      sousTitre={t('parametrage:referentiels.introduction')}
-    >
+    <GabaritEcran titre={t('parametrage:referentiels.titre')}>
+      <LegendeChampsObligatoires>{t('parametrage:obligatoire.legende')}</LegendeChampsObligatoires>
+
       <Card>
         <CardHeader>
           <CardTitle className="texte-titre-section">{t('parametrage:monCompte.titre')}</CardTitle>
@@ -71,6 +71,9 @@ export function EcranReferentiels() {
         <TabsList>
           <TabsTrigger value="tauxHoraires">
             {t('parametrage:referentiels.tauxHoraires.onglet')}
+            <span aria-hidden="true" className="ml-0.5">
+              *
+            </span>
           </TabsTrigger>
           <TabsTrigger value="prestations">
             {t('parametrage:referentiels.prestations.onglet')}

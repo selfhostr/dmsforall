@@ -14,6 +14,9 @@ import { creerQueryClientTest } from '@/test/utils';
 
 import { EcranParametresFacturation } from './EcranParametresFacturation';
 
+/** Libellé d'un champ obligatoire : l'étoile (aria-hidden) fait partie du texte du <label>. */
+const avecEtoile = (libelle: string) => new RegExp(`^${libelle}\\*?$`);
+
 const CHEMIN = '/api/v1/parametres-facturation/creancier';
 
 // Radix Select (pays) appelle `hasPointerCapture`/`scrollIntoView`, absents de jsdom — même stub
@@ -285,5 +288,32 @@ describe('EcranParametresFacturation — chargement', () => {
         ),
       ).toBeInTheDocument(),
     );
+  });
+});
+
+describe('EcranParametresFacturation — champs obligatoires', () => {
+  it('affiche la légende en tête, pose aria-required sur l’adresse, et traite IBAN / QR-IBAN comme un groupe « un sur deux »', async () => {
+    server.use(http.get(CHEMIN, () => HttpResponse.json(BLOC_VIDE)));
+    rendre();
+
+    await screen.findByText(
+      i18n.t('parametrage:creancier.identite.nomRepris', { nom: 'Garage Martin SA' }),
+    );
+    expect(screen.getByText(i18n.t('parametrage:obligatoire.legende'))).toBeInTheDocument();
+    for (const cle of ['rue', 'numero', 'npa', 'localite']) {
+      expect(
+        screen.getByLabelText(avecEtoile(i18n.t(`parametrage:creancier.adresse.${cle}`))),
+      ).toHaveAttribute('aria-required', 'true');
+    }
+    // Un seul des deux comptes suffit : aucun des deux champs n'est « requis » individuellement,
+    // l'obligation est portée par le groupe (fieldset + légende + description).
+    const iban = screen.getByLabelText(i18n.t('parametrage:creancier.comptes.iban'));
+    const qrIban = screen.getByLabelText(i18n.t('parametrage:creancier.comptes.qrIban'));
+    expect(iban).not.toHaveAttribute('aria-required');
+    expect(qrIban).not.toHaveAttribute('aria-required');
+    const groupe = screen.getByRole('group', {
+      name: new RegExp(i18n.t('parametrage:creancier.comptes.groupe')),
+    });
+    expect(groupe).toHaveAccessibleDescription(i18n.t('parametrage:creancier.comptes.groupeAide'));
   });
 });

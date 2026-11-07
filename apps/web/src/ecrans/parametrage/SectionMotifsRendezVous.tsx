@@ -135,12 +135,18 @@ export function SectionMotifsRendezVous({ peutEcrire }: Props) {
   return (
     <Card id={ID_SECTION_MOTIFS_RDV} ref={carte}>
       <CardHeader>
-        <CardTitle className="texte-titre-section">{t('parametrage:motifsRdv.titre')}</CardTitle>
+        <CardTitle className="texte-titre-section">
+          {t('parametrage:motifsRdv.titre')}
+          <span aria-hidden="true" className="ml-0.5">
+            *
+          </span>
+          <span className="sr-only"> ({t('parametrage:obligatoire.sr')})</span>
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between gap-4">
           <p className="texte-corps text-muted-foreground">
-            {t('parametrage:motifsRdv.explication')}
+            {t('parametrage:motifsRdv.auMoinsUn')}
           </p>
           {motifs.length > 0 ? boutonNouveau : null}
         </div>
