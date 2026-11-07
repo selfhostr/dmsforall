@@ -135,33 +135,28 @@
   --popover: 0 0% 100%;
   --popover-foreground: 240 10% 3.9%;
 
-  /* ── Couleur de marque ────────────────────────────────────────────────────
-     ORANGE dmsforall, teinte 26°, celui du logo (`#F07E17`, `public/favicon.svg`).
-     `#F07E17` lui-même ne tient PAS le texte en clair : 2.73:1 pour du blanc dessus, 2.40:1 pour
-     lui-même sur `--background`. En clair, la marque est donc l'orange PROFOND de la même famille
-     (`#9f4704`, 26°) : même teinte, luminosité abaissée jusqu'à tenir AA en bouton plein (texte
-     blanc) ET en texte posé sur le fond de page (`text-primary`). En sombre, l'orange vif du logo
-     tient tel quel (voir `.dark`).
+  /* ── Marque : interface MONOCHROME ────────────────────────────────────────
+     Décision de @laupernoe : aucune couleur d'accentuation dans l'interface. La « marque » est le
+     quasi-noir du texte (saturation 0 %) : bouton primaire foncé à texte blanc, lien et élément
+     actif en gris très foncé, anneau de focus de même valeur. La couleur est RÉSERVÉE aux
+     `--statut-*` (et `--avertissement`, `--destructive`) : elle y porte du sens, pas de décor.
+     L'orange du logo (`public/favicon.svg`) n'est pas concerné, il reste dans l'icône seule.
 
-     Écart de teinte avec les statuts : le bleu (`--statut-info`, 217°) est à plus de 30°. Le
-     rouge (0°) et l'ambre d'attention (38°) sont, eux, PROCHES de l'orange (écarts 26° et 12°) :
-     même arbitrage écrit que pour la marque sombre d'avant — l'écart de teinte est assumé, et la
-     contrainte « forme + icône + mot sur tout badge de statut, jamais la couleur seule »
-     (DESIGN.md) est ce qui le rend acceptable. La sentinelle de `contraste-jetons.spec.ts`
-     verrouille ces écarts mesurés.
+     Les noms `--marque*` sont conservés (alias partout dans l'UI) : seule la valeur change.
+     Le survol d'une surface pleine ÉCLAIRCIT (`--marque-fort`) ; le surlignage (`--marque-doux`)
+     est un gris clair franchement plus sombre que le fond de page.
 
      Contraste mesuré (WCAG 2.1, rejoué par `src/test/accessibilite/contraste-jetons.spec.ts`) :
-       blanc sur --marque (bouton plein) ......... 6.22:1 AA
-       blanc sur --marque-fort (survol) .......... 9.15:1 AAA
-       --marque sur --background ................. 5.47:1 AA
-       --marque sur --muted ...................... 5.66:1 AA
-       --marque sur --marque-doux ................ 5.51:1 AA
-       --marque-doux-foreground sur --marque-doux  9.00:1 AAA
+       blanc sur --marque (bouton plein) ......... 17.94:1 AAA
+       blanc sur --marque-fort (survol) .......... 10.41:1 AAA
+       --marque sur --background (lien, focus) ... 15.89:1 AAA
+       --marque sur --muted ...................... 16.32:1 AAA
+       --marque sur --marque-doux ................ voir le test (>= 4.5:1)
      ─────────────────────────────────────────────────────────────────────── */
-  --marque: 26 95% 32%; /* #9f4704 */
-  --marque-fort: 26 95% 24%; /* survol / appui d'une surface pleine de marque, #773503 */
-  --marque-doux: 28 80% 94%; /* surface de surlignage (élément de menu actif), #fcefe3 */
-  --marque-doux-foreground: 26 90% 22%; /* #6b3106 */
+  --marque: 0 0% 9%; /* #171717 */
+  --marque-fort: 0 0% 25%; /* survol / appui d'une surface pleine, #404040 */
+  --marque-doux: 0 0% 85%; /* surlignage (élément de menu actif), #d9d9d9 */
+  --marque-doux-foreground: 0 0% 9%; /* #171717 */
 
   /* `--primary` EST la couleur de marque. Une seule source de vérité : il n'existe
      pas d'un côté un « gris primaire » et de l'autre une marque décorative, sans quoi
@@ -211,10 +206,9 @@
   --border: 240 5% 86%;
   --input: 240 6% 56%;
 
-  /* Anneau de focus = couleur de marque. Un anneau gris quasi noir (défaut shadcn) est
-     indiscernable d'une simple bordure : le focus clavier doit se voir d'un coup d'œil,
-     à un mètre d'un écran de comptoir. 8.25:1 sur blanc, largement au-delà des 3:1
-     exigés par WCAG 1.4.11 pour un indicateur non textuel. */
+  /* Anneau de focus = marque (quasi-noir en clair, quasi-blanc en sombre) : 15.89:1 sur le fond de
+     page, 17.94:1 sur une carte, très au-delà des 3:1 de WCAG 1.4.11 / 2.4.13. Épaisseur
+     `--focus-epaisseur` plus décalage : visible aussi autour d'un bouton plein de même valeur. */
   --ring: var(--marque);
 
   --radius: 0.5rem;
@@ -303,16 +297,8 @@
    la valeur par défaut de shadcn). Mesuré : 3.68:1 sur fond, 3.43:1 sur carte, 3.10:1 sur
    `--muted`/`--secondary`/`--accent` (`.dark` plus bas) — les trois au-dessus du seuil 3:1.
 
-   MARQUE — l'orange profond du clair (`#9f4704`) mesure 2.6:1 sur fond sombre : insuffisant en
-   texte, un jeton par thème est donc obligatoire ici. En sombre, la marque est l'orange vif du
-   logo, `#F07E17` : 6.75:1 sur `--background`, 6.29:1 sur `--card`. Texte SOMBRE (`#111113`) sur
-   bouton plein de marque, 6.75:1 : le blanc ne ferait que 2.73:1 sur cet orange, d'où
-   `--primary-foreground` = couleur du FOND, comme avant.
-
-   Écarts de teinte (même arbitrage écrit qu'en clair, voir `--marque` en tête) : bleu `info` à
-   plus de 30° ; `attention` (46°) et `danger` (2°) à 18° et 26° — assumé, à la condition que forme +
-   icône + mot restent TOUJOURS les trois signaux d'un badge de statut, jamais la couleur seule.
-   Voir DESIGN.md et la sentinelle de `contraste-jetons.spec.ts`.
+   MARQUE — monochrome aussi en sombre (voir `--marque` en tête) : quasi-blanc (`#f5f5f5`, 17.30:1
+   sur `--background`), bouton plein clair à texte SOMBRE (`--primary-foreground`, gris neutre ~ fond). Aucune teinte, saturation 0 %. La couleur reste réservée aux `--statut-*`.
    ══════════════════════════════════════════════════════════════════════════ */
 .dark {
   color-scheme: dark;
@@ -324,17 +310,15 @@
   --popover: 225 6% 14%; /* #212225 — surface « haute » (menu, popover), 1.19:1 sur --background */
   --popover-foreground: 220 9% 94%;
 
-  --marque: 28 87.4% 51.4%; /* #F07E17 — l'orange du logo, 6.75:1 sur --background */
-  --marque-fort: 29 90% 58%; /* #f48d34 — survol/appui : ÉCLAIRCIE (pas assombrie comme en clair),
-    la direction « plus d'emphase » s'inverse avec le fond ; 7.82:1 sur --background */
-  --marque-doux: 28 45% 16%; /* #3b2816 — surlignage d'un élément de menu actif, tonalité sombre
-    de la marque plutôt que la marque elle-même en fond (qui serait éblouissante en pleine surface) */
-  --marque-doux-foreground: 28 87.4% 51.4%; /* = --marque : 5.01:1 sur --marque-doux */
+  --marque: 0 0% 96%; /* #f5f5f5 — 17.30:1 sur --background */
+  --marque-fort: 0 0% 82%; /* #d1d1d1 — survol/appui : ASSOMBRIE légèrement le quasi-blanc, 12.38:1 pour le texte sombre */
+  --marque-doux: 0 0% 22%; /* #383838 — surlignage d'un élément de menu actif */
+  --marque-doux-foreground: 0 0% 96%; /* = --marque */
 
   /* `--primary` reste l'alias de `--marque` (voir :root) : hérite automatiquement de la valeur
      ci-dessus, aucune redéclaration nécessaire — c'est tout l'intérêt de l'alias. */
-  --primary-foreground: 240 6% 7%; /* = --background : texte SOMBRE sur bouton plein clair, voir le
-    commentaire de tête (« MARQUE ») — 9.96:1 */
+  --primary-foreground: 0 0% 7%; /* #121212 — texte SOMBRE neutre sur bouton plein clair, voir le
+    commentaire de tête (« MARQUE ») — 17.4:1 */
 
   /* `--secondary`/`--muted`/`--accent` partagent une seule surface, comme en clair (`--muted` et
      `--secondary` y valent déjà la même chose) : le palier « surface haute » (`--popover`),
