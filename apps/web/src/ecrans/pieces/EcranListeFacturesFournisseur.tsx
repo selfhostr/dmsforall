@@ -60,8 +60,8 @@ export function EcranListeFacturesFournisseur() {
   const { t } = useTranslation(['pieces', 'commun']);
   const navigate = useNavigate();
   const session = useSession();
-  const role = session.data?.utilisateur.role;
-  const peutLire = peutLireFactureFournisseur(role);
+  const actions = session.data?.actions;
+  const peutLire = peutLireFactureFournisseur(actions);
 
   const [statut, setStatut] = useState<StatutFactureFournisseur | undefined>(undefined);
 
@@ -102,7 +102,7 @@ export function EcranListeFacturesFournisseur() {
     setStatut(undefined);
   }
 
-  const boutonDeposer = peutDeposerFactureFournisseur(role) ? (
+  const boutonDeposer = peutDeposerFactureFournisseur(actions) ? (
     <Button onClick={() => navigate('/pieces/factures-fournisseur/deposer')}>
       {t('pieces:facturesFournisseur.actions.deposer')}
     </Button>

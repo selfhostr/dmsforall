@@ -5,6 +5,7 @@ import {
   ligneOr,
   ordreReparation,
   parametreAtelier,
+  site,
   utilisateur,
   type LigneLigneOr,
   type LigneOrdreReparation,
@@ -153,6 +154,21 @@ export async function chargerLignesOrPourAgregat(
     .where(
       and(eq(ligneOr.tenantId, ctx.tenantId), eq(ligneOr.ordreReparationId, ordreReparationId)),
     );
+}
+
+/** Nom d'un site du tenant, ou `null` s'il n'existe pas — sert uniquement à rédiger un refus clair
+ *  (`POINTAGE_SITE_AUTRE`), jamais à autoriser quoi que ce soit. */
+export async function chargerNomSite(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  siteId: string,
+): Promise<string | null> {
+  const [ligne] = await tx
+    .select({ nom: site.nom })
+    .from(site)
+    .where(and(eq(site.tenantId, ctx.tenantId), eq(site.id, siteId)))
+    .limit(1);
+  return ligne?.nom ?? null;
 }
 
 export interface ResumeTechnicien {

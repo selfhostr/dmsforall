@@ -8,7 +8,7 @@
     "clientsVehicules": "Clients & véhicules",
     "pieces": "Pièces",
     "facturation": "Facturation",
-    "ventes": "Ventes",
+    "ventes": "Véhicules à vendre",
     "reglages": "Réglages"
   },
   "onglets": {
@@ -44,8 +44,8 @@
     "facturationEncaissements": "Encaissements",
     "facturationRelances": "Relances",
     "facturationExportFiduciaire": "Export fiduciaire",
-    "ventesDossiers": "Dossiers",
-    "ventesParc": "Véhicules en parc",
+    "ventesDossiers": "Ventes en cours",
+    "ventesParc": "Véhicules en stock",
     "ventesSuivi": "Suivi financement & garantie",
     "reglagesAtelier": "Atelier",
     "reglagesSites": "Sites",
@@ -53,7 +53,8 @@
     "reglagesTarifs": "Tarifs et prestations",
     "reglagesPieces": "Pièces",
     "reglagesUtilisateurs": "Utilisateurs",
-    "reglagesRelances": "Paliers de relance"
+    "reglagesRelances": "Rappels de paiement",
+    "atelierCourtoisie": "Courtoisie"
   },
   "liens": {
     "clients": "Clients",

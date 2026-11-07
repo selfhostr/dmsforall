@@ -178,7 +178,7 @@ describe('EcranDepotFactureFournisseur', () => {
     expect(screen.getByText('BOSCH-4521')).toBeInTheDocument();
     expect(screen.getByText('BOSCH AG')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Valider le rapprochement' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Valider la facture fournisseur' }));
 
     expect(await screen.findByText('Facture validée')).toBeInTheDocument();
   });

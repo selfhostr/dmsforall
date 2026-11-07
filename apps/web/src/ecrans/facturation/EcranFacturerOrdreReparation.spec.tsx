@@ -237,13 +237,11 @@ describe('EcranFacturerOrdreReparation', () => {
       installerHandlerOr(construireOr());
       rendre();
 
-      expect(await screen.findByText('Groupe payeur « Client »')).toBeInTheDocument();
+      expect(await screen.findByText('Facture pour « Client »')).toBeInTheDocument();
       expect(
-        await screen.findByText('Groupe payeur « Assurance — Zurich Assurances »'),
+        await screen.findByText('Facture pour « Assurance — Zurich Assurances »'),
       ).toBeInTheDocument();
-      expect(
-        await screen.findByText('Groupe payeur « Assurance — Mobilière »'),
-      ).toBeInTheDocument();
+      expect(await screen.findByText('Facture pour « Assurance — Mobilière »')).toBeInTheDocument();
       // Trois groupes, trois lignes uniques réparties une par groupe — pas de fusion silencieuse.
       expect(screen.getByText('Vidange')).toBeInTheDocument();
       expect(screen.getByText('Choc avant')).toBeInTheDocument();
@@ -281,7 +279,7 @@ describe('EcranFacturerOrdreReparation', () => {
       const utilisateur = userEvent.setup();
       rendre();
 
-      await screen.findByText('Groupe payeur « Client »');
+      await screen.findByText('Facture pour « Client »');
       const bouton = screen.getByRole('button', { name: /Créer 3 factures/ });
       await utilisateur.click(bouton);
 
@@ -299,4 +297,95 @@ describe('EcranFacturerOrdreReparation', () => {
       expect((corpsRecu as { groupes: unknown[] }).groupes).toHaveLength(3);
     },
   );
+
+  it(
+    'lignes bloquantes : affiche leur vrai statut et ce qu’il faut faire, « Marquer réalisées » les ' +
+      'passe en place, puis « Créer la facture » s’active',
+    async () => {
+      const bloquee = construireOr({
+        lignes: [
+          construireLigne({ id: 'l-ok', designation: 'Vidange' }),
+          construireLigne({ id: 'l-val', designation: 'Freins', statut: 'validee' }),
+          construireLigne({ id: 'l-dec', designation: 'Pneus', statut: 'a_valider' }),
+        ],
+      });
+      const resolue = construireOr({
+        lignes: [
+          construireLigne({ id: 'l-ok', designation: 'Vidange' }),
+          construireLigne({ id: 'l-val', designation: 'Freins' }),
+          construireLigne({ id: 'l-dec', designation: 'Pneus' }),
+        ],
+      });
+      let marquee = false;
+      const marquages: string[] = [];
+      server.use(
+        http.get('/api/v1/ordres-reparation/or-1', () =>
+          HttpResponse.json(marquee ? resolue : bloquee),
+        ),
+        http.post(
+          '/api/v1/ordres-reparation/or-1/lignes/:ligneId/marquer-realisee',
+          ({ params }) => {
+            marquages.push(String(params.ligneId));
+            marquee = true;
+            return HttpResponse.json({
+              donnees: { id: params.ligneId, statut: 'realisee' },
+              avertissements: [],
+            });
+          },
+        ),
+      );
+
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      expect(await screen.findByText('2 lignes empêchent la facturation')).toBeInTheDocument();
+      // Statut réel affiché (et non « à valider » pour une ligne déjà validée).
+      expect(screen.getByText(/Freins — Validée/)).toBeInTheDocument();
+      expect(screen.getByText(/à marquer comme réalisée/)).toBeInTheDocument();
+      expect(screen.getByText(/Pneus — À valider/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^Créer/ })).toBeDisabled();
+
+      // Seule la ligne « Validée » est marquable ici ; l'autre se règle dans l'OR.
+      await utilisateur.click(
+        screen.getByRole('button', { name: 'Marquer la ligne comme réalisée' }),
+      );
+
+      await waitFor(() => expect(marquages).toEqual(['l-val']));
+      await waitFor(() =>
+        expect(screen.queryByText(/empêchent la facturation|empêche la facturation/)).toBeNull(),
+      );
+      expect(screen.getByRole('button', { name: /^Créer/ })).toBeEnabled();
+    },
+  );
+
+  it('affiche le message de l’API tel quel quand une ligne ne peut pas être marquée (409)', async () => {
+    installerHandlerOr(
+      construireOr({
+        lignes: [construireLigne({ id: 'l-val', designation: 'Freins', statut: 'validee' })],
+      }),
+    );
+    server.use(
+      http.post('/api/v1/ordres-reparation/or-1/lignes/l-val/marquer-realisee', () =>
+        HttpResponse.json(
+          {
+            type: 'https://docs.dmsforall.example/erreurs/LIGNE_TRANSITION_INTERDITE',
+            title: 'Transition interdite',
+            status: 409,
+            code: 'LIGNE_TRANSITION_INTERDITE',
+            detail: 'Aucun temps pointé sur « Freins ».',
+            instance: 'req-9',
+          },
+          { status: 409, headers: { 'content-type': 'application/problem+json' } },
+        ),
+      ),
+    );
+
+    const utilisateur = userEvent.setup();
+    rendre();
+    await utilisateur.click(
+      await screen.findByRole('button', { name: 'Marquer la ligne comme réalisée' }),
+    );
+
+    expect(await screen.findByText('Aucun temps pointé sur « Freins ».')).toBeInTheDocument();
+  });
 });

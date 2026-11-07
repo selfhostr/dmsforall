@@ -104,7 +104,7 @@ describe('EcranListeDossiersVente', () => {
 
     rendre();
 
-    expect(await screen.findByText('Aucun dossier de vente')).toBeInTheDocument();
+    expect(await screen.findByText('Aucune vente en cours')).toBeInTheDocument();
   });
 
   it('état erreur : message actionnable avec retry', async () => {
@@ -126,7 +126,7 @@ describe('EcranListeDossiersVente', () => {
     rendre();
 
     expect(
-      await screen.findByText("Impossible d'afficher les dossiers de vente"),
+      await screen.findByText("Impossible d'afficher les ventes en cours"),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Réessayer' })).toBeInTheDocument();
   });

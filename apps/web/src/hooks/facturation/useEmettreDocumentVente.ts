@@ -24,14 +24,17 @@ interface VariablesEmission {
  * document ÉMIS directement dans son propre cache (l'écran ne relit jamais après succès, même
  * principe que les transitions d'OR) et invalide la liste par préfixe.
  */
-export function useEmettreDocumentVente(): UseMutationResult<
-  ReponseAvecAvertissements<ReponseDocumentVente>,
-  unknown,
-  VariablesEmission
-> {
+export function useEmettreDocumentVente(
+  options: { readonly succes?: string | null } = {},
+): UseMutationResult<ReponseAvecAvertissements<ReponseDocumentVente>, unknown, VariablesEmission> {
   const queryClient = useQueryClient();
 
   return useMutation({
+    // `succes: null` : appelant qui enchaîne d'autres étapes et annonce lui-même le résultat final.
+    meta:
+      options.succes === null
+        ? undefined
+        : { succes: options.succes ?? 'commun:toasts.factureEmise' },
     mutationFn: ({ id, entree, idempotencyKey }: VariablesEmission) =>
       emettreDocumentVente(id, entree, idempotencyKey),
     onSuccess: (reponse) => {

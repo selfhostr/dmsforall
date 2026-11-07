@@ -12,7 +12,13 @@ import type {
   ReponsePaiement,
 } from '@dfa/shared';
 
-import { enDate, JETON_DB, type AccesBase, type ContexteTenant } from '../../db';
+import {
+  enDate,
+  JETON_DB,
+  type AccesBase,
+  type ContexteTenant,
+  type TransactionDfa,
+} from '../../db';
 import {
   imputationPaiement,
   paiement,
@@ -156,93 +162,104 @@ export class ServicePaiement {
     return this.idempotence.executer(
       ctx,
       { methode: 'POST', chemin: '/paiements', cle: cleIdempotence, corps: entree },
-      async (tx) => {
-        // BARRIÈRE 1/3 (issue #9, GitHub — « un paiement négatif crédite une facture ») :
-        // `POST /paiements` est le geste d'ENCAISSEMENT — MD-50 dit qu'un `paiement` PEUT être
-        // signé négativement (remboursement/contre-passation), mais ce signe négatif est le
-        // produit d'un geste métier DISTINCT, déjà modélisé et implémenté plus bas dans ce fichier
-        // (`rembourser()`, RF-79 issue 1, MD-57) : il crée un paiement de sens opposé, plafonné au
-        // solde réellement remboursable, tracé par `contrePasseId` vers l'avance d'origine — et
-        // insère DIRECTEMENT en base sans jamais repasser par cette méthode `creer()`. Un montant
-        // négatif saisi ICI n'aurait donc AUCUNE de ces garanties (pas d'origine, pas de plafond,
-        // pas de traçabilité) : ce n'est pas un remboursement, c'est un trou.
-        //
-        // Le schéma partagé (`schemaCreationPaiement.montantCentimes: schemaCentimesTtc`,
-        // `packages/shared/src/contrats/facturation/primitives.ts`) n'impose AUCUNE borne — signalé
-        // pour resserrement côté contrat (hors périmètre `facturation/` de ce lot, voir le
-        // rapport de livraison), corrigé ICI en attendant : la garde applicative est le premier
-        // rempart, pas le seul (voir aussi `mappeurs.ts::calculerMontantNonImputeCentimes` et
-        // `imputations.ts::verifierPaiementImputable` pour les deux suivants).
-        if (entree.montantCentimes <= 0) {
-          const negatif = entree.montantCentimes < 0;
-          throw new ErreurMetier(
-            'VALIDATION_ECHOUEE',
-            negatif
-              ? "Le montant d'un paiement créé via POST /paiements doit être strictement positif " +
-                  "— c'est un encaissement. Un remboursement se crée via " +
-                  'POST /paiements/{id}/rembourser (RF-79), jamais avec un montant négatif saisi ' +
-                  'directement.'
-              : "Le montant d'un paiement ne peut pas être nul.",
-            {
-              erreurs: [
-                {
-                  champ: 'montantCentimes',
-                  code: negatif ? 'montant_negatif' : 'montant_nul',
-                  message: negatif
-                    ? 'Montant strictement positif requis — utiliser POST /paiements/{id}/rembourser pour un remboursement.'
-                    : 'Montant non nul requis.',
-                },
-              ],
-            },
-          );
-        }
-        if (entree.payeurClientId) {
-          await verifierClientExiste(tx, ctx, entree.payeurClientId);
-        }
-
-        let ligne: LignePaiement | undefined;
-        try {
-          [ligne] = await tx
-            .insert(paiement)
-            .values({
-              tenantId: ctx.tenantId,
-              siteId: entree.siteId,
-              dateValeur: entree.dateValeur,
-              moyen: entree.moyen,
-              montantCentimes: BigInt(entree.montantCentimes),
-              devise: entree.devise,
-              payeurClientId: entree.payeurClientId ?? null,
-              payeurLibelle: entree.payeurLibelle,
-              identifiantTransactionBanque: entree.identifiantTransactionBanque ?? null,
-              source: 'manuel',
-              creeParId: ctx.utilisateurId,
-            })
-            .returning();
-        } catch (erreur) {
-          if (estViolationUnicite(erreur)) {
-            throw new ErreurMetier(
-              'CONFLIT',
-              `Une transaction bancaire ${entree.identifiantTransactionBanque ?? ''} a déjà été enregistrée pour ce tenant.`,
-            );
-          }
-          throw erreur;
-        }
-        if (!ligne) throw new ErreurMetier('ERREUR_INTERNE', 'Échec de la création du paiement.');
-
-        const imputations =
-          entree.imputations.length > 0
-            ? await appliquerImputationsLettrage(tx, ctx, ligne, entree.imputations)
-            : [];
-
-        const resumes = await chargerResumesUtilisateurs(
-          tx,
-          ctx,
-          idsUtilisateurs(ligne, imputations),
-        );
-        const reponse = versPaiement(ligne, imputations, resumes);
-        return { statutHttp: 201, corps: { donnees: reponse, avertissements: [] } };
-      },
+      async (tx) => ({
+        statutHttp: 201,
+        corps: { donnees: await this.creerTx(tx, ctx, entree), avertissements: [] },
+      }),
     );
+  }
+
+  /**
+   * Cœur transactionnel de `creer()` : encaissement + lettrage optionnel, SANS enveloppe
+   * d'idempotence. Réutilisé tel quel par `POST /ordres-reparation/{orId}/facturer-et-encaisser`
+   * (qui porte sa propre clé d'idempotence pour le geste entier) — une seule implémentation des
+   * barrières (montant strictement positif, doublon bancaire, lettrage).
+   */
+  async creerTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    entree: EntreeCreationPaiement,
+  ): Promise<ReponsePaiement> {
+    // BARRIÈRE 1/3 (issue #9, GitHub — « un paiement négatif crédite une facture ») :
+    // `POST /paiements` est le geste d'ENCAISSEMENT — MD-50 dit qu'un `paiement` PEUT être
+    // signé négativement (remboursement/contre-passation), mais ce signe négatif est le
+    // produit d'un geste métier DISTINCT, déjà modélisé et implémenté plus bas dans ce fichier
+    // (`rembourser()`, RF-79 issue 1, MD-57) : il crée un paiement de sens opposé, plafonné au
+    // solde réellement remboursable, tracé par `contrePasseId` vers l'avance d'origine — et
+    // insère DIRECTEMENT en base sans jamais repasser par cette méthode `creer()`. Un montant
+    // négatif saisi ICI n'aurait donc AUCUNE de ces garanties (pas d'origine, pas de plafond,
+    // pas de traçabilité) : ce n'est pas un remboursement, c'est un trou.
+    //
+    // Le schéma partagé (`schemaCreationPaiement.montantCentimes: schemaCentimesTtc`,
+    // `packages/shared/src/contrats/facturation/primitives.ts`) n'impose AUCUNE borne — signalé
+    // pour resserrement côté contrat (hors périmètre `facturation/` de ce lot, voir le
+    // rapport de livraison), corrigé ICI en attendant : la garde applicative est le premier
+    // rempart, pas le seul (voir aussi `mappeurs.ts::calculerMontantNonImputeCentimes` et
+    // `imputations.ts::verifierPaiementImputable` pour les deux suivants).
+    if (entree.montantCentimes <= 0) {
+      const negatif = entree.montantCentimes < 0;
+      throw new ErreurMetier(
+        'VALIDATION_ECHOUEE',
+        negatif
+          ? "Le montant d'un paiement créé via POST /paiements doit être strictement positif " +
+              "— c'est un encaissement. Un remboursement se crée via " +
+              'POST /paiements/{id}/rembourser (RF-79), jamais avec un montant négatif saisi ' +
+              'directement.'
+          : "Le montant d'un paiement ne peut pas être nul.",
+        {
+          erreurs: [
+            {
+              champ: 'montantCentimes',
+              code: negatif ? 'montant_negatif' : 'montant_nul',
+              message: negatif
+                ? 'Montant strictement positif requis — utiliser POST /paiements/{id}/rembourser pour un remboursement.'
+                : 'Montant non nul requis.',
+            },
+          ],
+        },
+      );
+    }
+    if (entree.payeurClientId) {
+      await verifierClientExiste(tx, ctx, entree.payeurClientId);
+    }
+
+    let ligne: LignePaiement | undefined;
+    try {
+      [ligne] = await tx
+        .insert(paiement)
+        .values({
+          tenantId: ctx.tenantId,
+          siteId: entree.siteId,
+          dateValeur: entree.dateValeur,
+          moyen: entree.moyen,
+          montantCentimes: BigInt(entree.montantCentimes),
+          devise: entree.devise,
+          payeurClientId: entree.payeurClientId ?? null,
+          payeurLibelle: entree.payeurLibelle,
+          identifiantTransactionBanque: entree.identifiantTransactionBanque ?? null,
+          source: 'manuel',
+          creeParId: ctx.utilisateurId,
+        })
+        .returning();
+    } catch (erreur) {
+      if (estViolationUnicite(erreur)) {
+        throw new ErreurMetier(
+          'CONFLIT',
+          `Une transaction bancaire ${entree.identifiantTransactionBanque ?? ''} a déjà été enregistrée pour ce tenant.`,
+        );
+      }
+      throw erreur;
+    }
+    if (!ligne) throw new ErreurMetier('ERREUR_INTERNE', 'Échec de la création du paiement.');
+
+    const imputations =
+      entree.imputations.length > 0
+        ? await appliquerImputationsLettrage(tx, ctx, ligne, entree.imputations)
+        : [];
+
+    const resumes = await chargerResumesUtilisateurs(tx, ctx, idsUtilisateurs(ligne, imputations));
+    const reponse = versPaiement(ligne, imputations, resumes);
+    return reponse;
   }
 
   async parId(ctx: ContexteTenant, paiementId: string): Promise<ReponsePaiement> {

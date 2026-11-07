@@ -37,7 +37,9 @@
 # retenu (quasi tous les services S3-compatible en proposent, ex. « supprimer après 400 jours »)
 # une fois l'hébergement choisi, plutôt que réinventer une rotation distante ici.
 #
-# Usage : copier-hors-site.sh <sauvegardes-dir> <fichier-principal> <fichier-roles>
+# Usage : copier-hors-site.sh <sauvegardes-dir> <fichier-principal> <fichier-roles> [<archive-uploads>]
+#   L'archive des fichiers déposés (dfa_<horodatage>.uploads.tar.gz.age) est copiée avec le reste,
+#   mêmes règles (additif, jamais de suppression distante).
 #
 # Variables d'environnement :
 #   RCLONE_REMOTE          ex. « offsite:dfa-prod/sauvegardes » (syntaxe rclone <remote>:<chemin>).
@@ -57,6 +59,7 @@ set -euo pipefail
 SAUVEGARDES_DIR="${1:?Usage: copier-hors-site.sh <sauvegardes-dir> <fichier-principal> <fichier-roles>}"
 FICHIER_PRINCIPAL="${2:?Usage: copier-hors-site.sh <sauvegardes-dir> <fichier-principal> <fichier-roles>}"
 FICHIER_ROLES="${3:?Usage: copier-hors-site.sh <sauvegardes-dir> <fichier-principal> <fichier-roles>}"
+FICHIER_UPLOADS="${4:-}"
 
 RCLONE_CONFIG="${RCLONE_CONFIG:-/secrets/rclone.conf}"
 export RCLONE_CONFIG
@@ -84,6 +87,9 @@ trap echo_erreur ERR
 journaliser "DEBUT copie vers ${RCLONE_REMOTE}"
 rclone copyto "$SAUVEGARDES_DIR/$FICHIER_PRINCIPAL" "${RCLONE_REMOTE}/${FICHIER_PRINCIPAL}"
 rclone copyto "$SAUVEGARDES_DIR/$FICHIER_ROLES" "${RCLONE_REMOTE}/${FICHIER_ROLES}"
+if [ -n "$FICHIER_UPLOADS" ]; then
+  rclone copyto "$SAUVEGARDES_DIR/$FICHIER_UPLOADS" "${RCLONE_REMOTE}/${FICHIER_UPLOADS}"
+fi
 
-journaliser "OK copie de ${FICHIER_PRINCIPAL} et ${FICHIER_ROLES} vers ${RCLONE_REMOTE}"
+journaliser "OK copie de ${FICHIER_PRINCIPAL}, ${FICHIER_ROLES} et ${FICHIER_UPLOADS:-sans archive de fichiers} vers ${RCLONE_REMOTE}"
 echo "OK $(date -Iseconds)" >"$STATUT"

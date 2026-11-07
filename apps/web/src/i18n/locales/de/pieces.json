@@ -63,10 +63,10 @@
     },
     "tva": "Mwst.",
     "tauxTvaLibelles": {
-      "81": "8.1 % (Normalsatz)",
+      "0": "0 % (befreit)",
       "26": "2.6 % (reduzierter Satz)",
       "38": "3.8 % (Beherbergung)",
-      "0": "0 % (befreit)"
+      "81": "8.1 % (Normalsatz)"
     },
     "categorie": "Kategorie",
     "categories": {
@@ -573,7 +573,7 @@
       },
       "premierUsage": {
         "titre": "Keine Lieferantenrechnung hochgeladen",
-        "description": "Laden Sie eine Rechnung hoch, um den Abgleich zu starten."
+        "description": "Legen Sie eine Lieferantenrechnung ab: Wir lesen sie aus und verknüpfen sie mit einer Bestellung."
       }
     },
     "erreur": {
@@ -632,8 +632,8 @@
       "titre": "Ergebnis der Lesung",
       "fournisseurTrouveTitre": "Lieferant erkannt",
       "fournisseurAbsentTitre": "Kein Lieferant erkannt",
-      "fournisseurAbsentDescription": "Der auf der Rechnung gelesene Name entspricht keinem Lieferanten des Mandanten. Bitte vor der Bestätigung prüfen.",
-      "commandeTrouveeTitre": "Einer Lieferantenbestellung zugeordnet",
+      "fournisseurAbsentDescription": "Der Name auf der Rechnung passt zu keinem Lieferanten Ihres Betriebs. Prüfen Sie ihn oder legen Sie den Lieferanten an, bevor Sie bestätigen.",
+      "commandeTrouveeTitre": "Mit einer Lieferantenbestellung verknüpft",
       "commandeAbsenteTitre": "Keine passende Bestellung",
       "commandeAbsenteDescription": "Diese Rechnung konnte keiner Lieferantenbestellung zugeordnet werden. Prüfen Sie sie manuell, bevor Sie sie bestätigen."
     },
@@ -679,7 +679,7 @@
     "actions": {
       "deposer": "Rechnung hochladen",
       "voirDocument": "Dokument anzeigen",
-      "valider": "Abgleich bestätigen",
+      "valider": "Lieferantenrechnung bestätigen",
       "rejeter": "Ablehnen",
       "deposerUneAutre": "Weitere Rechnung hochladen",
       "consulter": "Anzeigen"

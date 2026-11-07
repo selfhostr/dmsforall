@@ -116,6 +116,10 @@ describe('OngletContacts — erreurs de création (RM-04)', () => {
     await utilisateur.click(screen.getByRole('button', { name: 'Ajouter' }));
 
     await waitFor(() => expect(screen.queryByLabelText('Nom')).not.toBeInTheDocument());
-    expect(screen.queryByText('Certaines informations sont incorrectes.')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'Certaines informations sont incorrectes ou incomplètes. Corrigez les champs signalés, puis réessayez.',
+      ),
+    ).not.toBeInTheDocument();
   });
 });

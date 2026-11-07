@@ -1,5 +1,5 @@
 import ICU from 'i18next-icu';
-import i18next from 'i18next';
+import i18next, { type BackendModule } from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
 import { LANGUES, type Langue } from '@dfa/shared';
@@ -8,77 +8,7 @@ import { CLE_STOCKAGE_LANGUE } from './langues';
 
 export { CLE_STOCKAGE_LANGUE } from './langues';
 
-import deAccueil from './locales/de/accueil.json';
-import deAuth from './locales/de/auth.json';
-import deCommun from './locales/de/commun.json';
-import deErreurs from './locales/de/erreurs.json';
-import deNavigation from './locales/de/navigation.json';
-import deValidation from './locales/de/validation.json';
-import deRecherche from './locales/de/recherche.json';
-import deClients from './locales/de/clients.json';
-import deVehicules from './locales/de/vehicules.json';
-import dePlanning from './locales/de/planning.json';
-import deReception from './locales/de/reception.json';
-import dePointage from './locales/de/pointage.json';
-import deOr from './locales/de/or.json';
-import deFacturation from './locales/de/facturation.json';
-import deParametrage from './locales/de/parametrage.json';
-import dePieces from './locales/de/pieces.json';
-import deVentes from './locales/de/ventes.json';
-import dePneus from './locales/de/pneus.json';
-import deTableauBord from './locales/de/tableauBord.json';
-import deRelances from './locales/de/relances.json';
-import deConsole from './locales/de/console.json';
-import deScan from './locales/de/scan.json';
-import deReprise from './locales/de/reprise.json';
-import frAccueil from './locales/fr/accueil.json';
-import frAuth from './locales/fr/auth.json';
-import frCommun from './locales/fr/commun.json';
-import frErreurs from './locales/fr/erreurs.json';
-import frNavigation from './locales/fr/navigation.json';
-import frValidation from './locales/fr/validation.json';
-import frRecherche from './locales/fr/recherche.json';
-import frClients from './locales/fr/clients.json';
-import frVehicules from './locales/fr/vehicules.json';
-import frPlanning from './locales/fr/planning.json';
-import frReception from './locales/fr/reception.json';
-import frPointage from './locales/fr/pointage.json';
-import frOr from './locales/fr/or.json';
-import frFacturation from './locales/fr/facturation.json';
-import frParametrage from './locales/fr/parametrage.json';
-import frPieces from './locales/fr/pieces.json';
-import frVentes from './locales/fr/ventes.json';
-import frPneus from './locales/fr/pneus.json';
-import frTableauBord from './locales/fr/tableauBord.json';
-import frRelances from './locales/fr/relances.json';
-import frConsole from './locales/fr/console.json';
-import frScan from './locales/fr/scan.json';
-import frReprise from './locales/fr/reprise.json';
-import itAccueil from './locales/it/accueil.json';
-import itAuth from './locales/it/auth.json';
-import itCommun from './locales/it/commun.json';
-import itErreurs from './locales/it/erreurs.json';
-import itNavigation from './locales/it/navigation.json';
-import itValidation from './locales/it/validation.json';
-import itRecherche from './locales/it/recherche.json';
-import itClients from './locales/it/clients.json';
-import itVehicules from './locales/it/vehicules.json';
-import itPlanning from './locales/it/planning.json';
-import itReception from './locales/it/reception.json';
-import itPointage from './locales/it/pointage.json';
-import itOr from './locales/it/or.json';
-import itFacturation from './locales/it/facturation.json';
-import itParametrage from './locales/it/parametrage.json';
-import itPieces from './locales/it/pieces.json';
-import itVentes from './locales/it/ventes.json';
-import itPneus from './locales/it/pneus.json';
-import itTableauBord from './locales/it/tableauBord.json';
-import itRelances from './locales/it/relances.json';
-import itConsole from './locales/it/console.json';
-import itScan from './locales/it/scan.json';
-import itReprise from './locales/it/reprise.json';
-
-/** 19 namespaces par domaine (propriété l'équipe i18n) : jamais modifiés ici, seulement importés.
+/** 25 namespaces par domaine (propriété l'équipe i18n) : jamais modifiés ici, seulement importés.
  *  Les 6 premiers sont le socle (étape 0) ; les 7 suivants (`recherche` à `or`) sont le lot 1 —
  *  voir docs/plan-lot1-frontend-execution.md §2.3 (verrou V3). `facturation` et `parametrage`
  *  sont l'étape 2, `pieces` l'étape 3, `ventes` l'étape 4, `tableauBord` le tableau de bord.
@@ -104,6 +34,7 @@ export const NAMESPACES = [
   'recherche',
   'clients',
   'vehicules',
+  'courtoisie',
   'planning',
   'reception',
   'pointage',
@@ -118,85 +49,120 @@ export const NAMESPACES = [
   'console',
   'scan',
   'reprise',
+  'export',
+  'capacites',
 ] as const;
 
+/** Chargeurs paresseux : un `import()` par fichier, donc un chunk par langue et namespace.
+ *  Seule la langue active (et le repli FR) est téléchargée ; voir `fournisseurRessources`. */
 const ressources = {
   fr: {
-    commun: frCommun,
-    auth: frAuth,
-    navigation: frNavigation,
-    accueil: frAccueil,
-    erreurs: frErreurs,
-    validation: frValidation,
-    recherche: frRecherche,
-    clients: frClients,
-    vehicules: frVehicules,
-    planning: frPlanning,
-    reception: frReception,
-    pointage: frPointage,
-    or: frOr,
-    facturation: frFacturation,
-    parametrage: frParametrage,
-    pieces: frPieces,
-    ventes: frVentes,
-    pneus: frPneus,
-    tableauBord: frTableauBord,
-    relances: frRelances,
-    console: frConsole,
-    scan: frScan,
-    reprise: frReprise,
+    commun: () => import('./locales/fr/commun.json'),
+    auth: () => import('./locales/fr/auth.json'),
+    navigation: () => import('./locales/fr/navigation.json'),
+    accueil: () => import('./locales/fr/accueil.json'),
+    erreurs: () => import('./locales/fr/erreurs.json'),
+    validation: () => import('./locales/fr/validation.json'),
+    recherche: () => import('./locales/fr/recherche.json'),
+    clients: () => import('./locales/fr/clients.json'),
+    vehicules: () => import('./locales/fr/vehicules.json'),
+    courtoisie: () => import('./locales/fr/courtoisie.json'),
+    planning: () => import('./locales/fr/planning.json'),
+    reception: () => import('./locales/fr/reception.json'),
+    pointage: () => import('./locales/fr/pointage.json'),
+    or: () => import('./locales/fr/or.json'),
+    facturation: () => import('./locales/fr/facturation.json'),
+    parametrage: () => import('./locales/fr/parametrage.json'),
+    pieces: () => import('./locales/fr/pieces.json'),
+    ventes: () => import('./locales/fr/ventes.json'),
+    pneus: () => import('./locales/fr/pneus.json'),
+    tableauBord: () => import('./locales/fr/tableauBord.json'),
+    relances: () => import('./locales/fr/relances.json'),
+    console: () => import('./locales/fr/console.json'),
+    scan: () => import('./locales/fr/scan.json'),
+    reprise: () => import('./locales/fr/reprise.json'),
+    export: () => import('./locales/fr/export.json'),
+    capacites: () => import('./locales/fr/capacites.json'),
   },
   de: {
-    commun: deCommun,
-    auth: deAuth,
-    navigation: deNavigation,
-    accueil: deAccueil,
-    erreurs: deErreurs,
-    validation: deValidation,
-    recherche: deRecherche,
-    clients: deClients,
-    vehicules: deVehicules,
-    planning: dePlanning,
-    reception: deReception,
-    pointage: dePointage,
-    or: deOr,
-    facturation: deFacturation,
-    parametrage: deParametrage,
-    pieces: dePieces,
-    ventes: deVentes,
-    pneus: dePneus,
-    tableauBord: deTableauBord,
-    relances: deRelances,
-    console: deConsole,
-    scan: deScan,
-    reprise: deReprise,
+    commun: () => import('./locales/de/commun.json'),
+    auth: () => import('./locales/de/auth.json'),
+    navigation: () => import('./locales/de/navigation.json'),
+    accueil: () => import('./locales/de/accueil.json'),
+    erreurs: () => import('./locales/de/erreurs.json'),
+    validation: () => import('./locales/de/validation.json'),
+    recherche: () => import('./locales/de/recherche.json'),
+    clients: () => import('./locales/de/clients.json'),
+    vehicules: () => import('./locales/de/vehicules.json'),
+    courtoisie: () => import('./locales/de/courtoisie.json'),
+    planning: () => import('./locales/de/planning.json'),
+    reception: () => import('./locales/de/reception.json'),
+    pointage: () => import('./locales/de/pointage.json'),
+    or: () => import('./locales/de/or.json'),
+    facturation: () => import('./locales/de/facturation.json'),
+    parametrage: () => import('./locales/de/parametrage.json'),
+    pieces: () => import('./locales/de/pieces.json'),
+    ventes: () => import('./locales/de/ventes.json'),
+    pneus: () => import('./locales/de/pneus.json'),
+    tableauBord: () => import('./locales/de/tableauBord.json'),
+    relances: () => import('./locales/de/relances.json'),
+    console: () => import('./locales/de/console.json'),
+    scan: () => import('./locales/de/scan.json'),
+    reprise: () => import('./locales/de/reprise.json'),
+    export: () => import('./locales/de/export.json'),
+    capacites: () => import('./locales/de/capacites.json'),
   },
   it: {
-    commun: itCommun,
-    auth: itAuth,
-    navigation: itNavigation,
-    accueil: itAccueil,
-    erreurs: itErreurs,
-    validation: itValidation,
-    recherche: itRecherche,
-    clients: itClients,
-    vehicules: itVehicules,
-    planning: itPlanning,
-    reception: itReception,
-    pointage: itPointage,
-    or: itOr,
-    facturation: itFacturation,
-    parametrage: itParametrage,
-    pieces: itPieces,
-    ventes: itVentes,
-    pneus: itPneus,
-    tableauBord: itTableauBord,
-    relances: itRelances,
-    console: itConsole,
-    scan: itScan,
-    reprise: itReprise,
+    commun: () => import('./locales/it/commun.json'),
+    auth: () => import('./locales/it/auth.json'),
+    navigation: () => import('./locales/it/navigation.json'),
+    accueil: () => import('./locales/it/accueil.json'),
+    erreurs: () => import('./locales/it/erreurs.json'),
+    validation: () => import('./locales/it/validation.json'),
+    recherche: () => import('./locales/it/recherche.json'),
+    clients: () => import('./locales/it/clients.json'),
+    vehicules: () => import('./locales/it/vehicules.json'),
+    courtoisie: () => import('./locales/it/courtoisie.json'),
+    planning: () => import('./locales/it/planning.json'),
+    reception: () => import('./locales/it/reception.json'),
+    pointage: () => import('./locales/it/pointage.json'),
+    or: () => import('./locales/it/or.json'),
+    facturation: () => import('./locales/it/facturation.json'),
+    parametrage: () => import('./locales/it/parametrage.json'),
+    pieces: () => import('./locales/it/pieces.json'),
+    ventes: () => import('./locales/it/ventes.json'),
+    pneus: () => import('./locales/it/pneus.json'),
+    tableauBord: () => import('./locales/it/tableauBord.json'),
+    relances: () => import('./locales/it/relances.json'),
+    console: () => import('./locales/it/console.json'),
+    scan: () => import('./locales/it/scan.json'),
+    reprise: () => import('./locales/it/reprise.json'),
+    export: () => import('./locales/it/export.json'),
+    capacites: () => import('./locales/it/capacites.json'),
   },
 } as const;
+
+type Chargeur = () => Promise<{ default: Record<string, unknown> }>;
+
+/** Backend i18next minimal : résout `langue`/`namespace` vers le chargeur de `ressources`. */
+const fournisseurRessources: BackendModule = {
+  type: 'backend',
+  init: () => undefined,
+  read(langue, namespace, rappel) {
+    const chargeur = (ressources as Record<string, Record<string, Chargeur> | undefined>)[langue]?.[
+      namespace
+    ];
+    if (!chargeur) {
+      rappel(new Error(`Namespace i18n inconnu : ${langue}/${namespace}`), null);
+      return;
+    }
+    chargeur().then(
+      (module) => rappel(null, module.default),
+      (erreur: unknown) =>
+        rappel(erreur instanceof Error ? erreur : new Error(String(erreur)), null),
+    );
+  },
+};
 
 export function estLangueValide(valeur: string | null | undefined): valeur is Langue {
   return valeur != null && (LANGUES as readonly string[]).includes(valeur);
@@ -218,11 +184,23 @@ export function detecterLangueInitiale(
   return 'fr';
 }
 
-void i18next
+/** `<html lang>` suit toujours la langue active (rendu, lecteurs d'écran, césure du navigateur).
+ *  Appelé par le listener `languageChanged` ET après l'init : l'init peut émettre avant qu'un
+ *  listener ne soit posé (init synchrone quand les ressources sont en mémoire), d'où le second
+ *  appel explicite — sans lui, `<html lang>` reste sur la valeur statique de `index.html`. */
+export function appliquerLangueDocument(langue: string): void {
+  if (estLangueValide(langue)) document.documentElement.lang = langue;
+}
+
+i18next.on('languageChanged', appliquerLangueDocument);
+
+/** Résolue quand la langue initiale (et le repli FR) est en mémoire : `main.tsx` l'attend avant
+ *  le premier rendu, donc aucun écran ne voit une clé brute. */
+export const i18nPret: Promise<void> = i18next
   .use(ICU)
+  .use(fournisseurRessources)
   .use(initReactI18next)
   .init({
-    resources: ressources,
     lng: detecterLangueInitiale(),
     fallbackLng: 'fr',
     supportedLngs: LANGUES as unknown as string[],
@@ -230,10 +208,16 @@ void i18next
     defaultNS: 'commun',
     interpolation: { escapeValue: false },
     returnNull: false,
+  })
+  .then(() => {
+    appliquerLangueDocument(i18next.resolvedLanguage ?? i18next.language);
   });
 
-i18next.on('languageChanged', (langue) => {
-  document.documentElement.lang = langue;
-});
+/** Charge les autres langues (tests, ou préchargement explicite) — `changeLanguage` charge de
+ *  toute façon à la demande. */
+export async function chargerLangues(langues: readonly Langue[] = LANGUES): Promise<void> {
+  await i18nPret;
+  await i18next.loadLanguages([...langues]);
+}
 
 export default i18next;

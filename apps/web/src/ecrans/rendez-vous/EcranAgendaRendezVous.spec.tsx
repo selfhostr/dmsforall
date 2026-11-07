@@ -123,4 +123,54 @@ describe('EcranAgendaRendezVous', () => {
     await utilisateur.click(screen.getByRole('tab', { name: 'Liste' }));
     expect(onChangerVue).toHaveBeenCalledWith('liste');
   });
+
+  it('« choisissez un site » ne renvoie plus « en haut à gauche » et propose les sites', async () => {
+    const utilisateur = userEvent.setup();
+    const onChangerSite = vi.fn();
+    rendre(
+      <EcranAgendaRendezVous
+        {...PROPS_BASE}
+        site={undefined}
+        etat="contenu"
+        sitesChoisissables={[
+          { id: 's-1', nom: 'Sion' },
+          { id: 's-2', nom: 'Martigny' },
+        ]}
+        onChangerSite={onChangerSite}
+      />,
+    );
+    expect(screen.queryByText(/en haut à gauche/)).not.toBeInTheDocument();
+    expect(screen.getByText(/en haut à droite/)).toBeInTheDocument();
+    await utilisateur.click(screen.getByRole('button', { name: 'Martigny' }));
+    expect(onChangerSite).toHaveBeenCalledWith('s-2');
+  });
+
+  it('indique le site affiché et les rendez-vous des autres sites, avec un lien pour y aller', async () => {
+    const utilisateur = userEvent.setup();
+    const onChangerSite = vi.fn();
+    rendre(
+      <EcranAgendaRendezVous
+        {...PROPS_BASE}
+        etat="contenu"
+        autresSites={[{ siteId: 's-2', nom: 'Martigny', total: 2 }]}
+        onChangerSite={onChangerSite}
+      />,
+    );
+    expect(screen.getByText('Site affiché : Garage Martin — Sion')).toBeInTheDocument();
+    expect(screen.getByText('2 rendez-vous à Martigny cette semaine')).toBeInTheDocument();
+    await utilisateur.click(screen.getByRole('button', { name: 'Voir l’agenda de Martigny' }));
+    expect(onChangerSite).toHaveBeenCalledWith('s-2');
+  });
+
+  it('propose un « ? » d’aide en vocabulaire de garagiste et un bouton « Demain »', async () => {
+    const utilisateur = userEvent.setup();
+    const onDemain = vi.fn();
+    rendre(<EcranAgendaRendezVous {...PROPS_BASE} etat="contenu" onDemain={onDemain} />);
+    await utilisateur.click(screen.getByRole('button', { name: 'Aide : le planning' }));
+    expect(
+      screen.getByText(/Cet agenda montre les rendez-vous d’un seul site/),
+    ).toBeInTheDocument();
+    await utilisateur.click(screen.getByRole('button', { name: 'Demain' }));
+    expect(onDemain).toHaveBeenCalled();
+  });
 });

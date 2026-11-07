@@ -2,7 +2,11 @@ import { Module } from '@nestjs/common';
 
 import { ExportComptableController } from './export-comptable.controller';
 import { JETON_EXPORTEUR_WINBIZ } from './export.jetons';
+import { CsvExporteurService } from './csv';
+import { ServiceApercuExport } from './service-apercu-export';
 import { ServiceExportComptable } from './service-export-comptable';
+import { ServiceHistoriqueExport } from './service-historique-export';
+import { ServiceMappingExport } from './service-mapping-export';
 import { WinbizExporteurService } from './winbiz';
 
 /**
@@ -30,7 +34,11 @@ import { WinbizExporteurService } from './winbiz';
   providers: [
     WinbizExporteurService,
     { provide: JETON_EXPORTEUR_WINBIZ, useExisting: WinbizExporteurService },
+    CsvExporteurService,
     ServiceExportComptable,
+    ServiceApercuExport,
+    ServiceHistoriqueExport,
+    ServiceMappingExport,
   ],
   controllers: [ExportComptableController],
   exports: [WinbizExporteurService, JETON_EXPORTEUR_WINBIZ, ServiceExportComptable],

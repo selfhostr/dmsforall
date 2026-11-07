@@ -10,13 +10,19 @@ import type {
   EntreeActionTerminer,
   EntreeActionValiderControle,
   EntreeAnnulationLignes,
+  EntreeCreationDevisComplementaire,
   EntreeCreationLigneOr,
   EntreeCreationOrdreReparation,
+  EntreeMarquageRealisee,
+  EntreeModificationOrdreReparation,
   EntreeRefusLignes,
+  EntreeReponseDevisComplementaire,
   EntreeValidationLignes,
   OrdreReparationResume,
+  OrdreReparationResumeListe,
   PageCurseur,
   ReponseAvecAvertissements,
+  ReponseDevisComplementaire,
   ReponseLigneOr,
   ReponseOrdreReparation,
   StatutOrdreReparation,
@@ -96,6 +102,21 @@ export async function listerOrdresReparation(
 ): Promise<PageCurseur<OrdreReparationResume>> {
   const page_ = await requeteApi<PageCurseur<OrdreReparationResume>>(
     `/ordres-reparation?${construireParametres(filtres, page)}`,
+    { method: 'GET' },
+  );
+  return page_ ?? { donnees: [], curseurSuivant: null, limite: page.limite };
+}
+
+/** `GET /ordres-reparation?forme=resume` — résumé de liste (`OrdreReparationResumeListe`), environ
+ *  dix fois plus léger que le document complet : c'est ce que consomme l'écran liste. Mêmes filtres,
+ *  mêmes tris, mêmes curseurs que `listerOrdresReparation`. */
+export async function listerResumesOrdresReparation(
+  filtres: FiltresListeOrdresReparation,
+  page: PageOrdresReparation,
+): Promise<PageCurseur<OrdreReparationResumeListe>> {
+  const parametres = `${construireParametres(filtres, page)}&forme=resume`;
+  const page_ = await requeteApi<PageCurseur<OrdreReparationResumeListe>>(
+    `/ordres-reparation?${parametres}`,
     { method: 'GET' },
   );
   return page_ ?? { donnees: [], curseurSuivant: null, limite: page.limite };
@@ -188,13 +209,21 @@ export const cloturerOrdreReparation = (orId: string, entree: EntreeActionSansCo
 export const annulerOrdreReparation = (orId: string, entree: EntreeActionAnnuler) =>
   executerActionOr(orId, 'annuler', entree);
 
+/** Ligne créée depuis un travail reporté : le serveur reprend désignation, estimation, urgence et
+ *  sécurité du travail (envoyer le défaut `securite: false` l'écraserait). */
+export interface EntreeLigneDepuisTravailReporte {
+  readonly type: EntreeCreationLigneOr['type'];
+  readonly origine: EntreeCreationLigneOr['origine'];
+  readonly travailReporteId: string;
+}
+
 /** `POST /ordres-reparation/{orId}/lignes` (§7.8) — `Idempotency-Key` OBLIGATOIRE (saisie en
  *  rafale au comptoir, un rejeu ne doit pas créer deux lignes). Renvoie SEULEMENT la ligne créée
  *  (`EnveloppeLigneOrDto`), jamais le document OR complet — voir `useActionsLigneOr.ts` pour la
  *  conséquence côté cache (invalidation, pas `setQueryData`). */
 export async function creerLigneOrdreReparation(
   orId: string,
-  entree: EntreeCreationLigneOr,
+  entree: EntreeCreationLigneOr | EntreeLigneDepuisTravailReporte,
   idempotencyKey: string,
 ): Promise<ReponseAvecAvertissements<ReponseLigneOr>> {
   const reponse = await requeteApi<ReponseAvecAvertissements<ReponseLigneOr>>(
@@ -204,6 +233,22 @@ export async function creerLigneOrdreReparation(
   if (!reponse) {
     throw new Error(`Réponse vide inattendue : POST /ordres-reparation/${orId}/lignes.`);
   }
+  return reponse;
+}
+
+/** `POST /ordres-reparation/{orId}/lignes/{ligneId}/marquer-realisee` — `en_cours -> realisee`.
+ *  Réponse : la LIGNE mise à jour (enveloppe), jamais le document OR complet. */
+export async function marquerLigneOrRealisee(
+  orId: string,
+  ligneId: string,
+  entree: EntreeMarquageRealisee = {},
+): Promise<ReponseAvecAvertissements<ReponseLigneOr>> {
+  const chemin = `/ordres-reparation/${orId}/lignes/${ligneId}/marquer-realisee`;
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseLigneOr>>(chemin, {
+    method: 'POST',
+    body: JSON.stringify(entree),
+  });
+  if (!reponse) throw new Error(`Réponse vide inattendue : POST ${chemin}.`);
   return reponse;
 }
 
@@ -217,3 +262,55 @@ export const refuserLignesOrdreReparation = (orId: string, entree: EntreeRefusLi
 
 export const annulerLignesOrdreReparation = (orId: string, entree: EntreeAnnulationLignes) =>
   executerActionOr(orId, 'annuler-lignes', entree);
+
+/** `POST /ordres-reparation/{orId}/devis-complementaires` — `Idempotency-Key` OBLIGATOIRE (pièce à
+ *  valeur probante, RM-79). Le montant est calculé par le serveur depuis les lignes référencées. */
+export async function creerDevisComplementaire(
+  orId: string,
+  entree: EntreeCreationDevisComplementaire,
+  idempotencyKey: string,
+): Promise<ReponseAvecAvertissements<ReponseDevisComplementaire>> {
+  const chemin = `/ordres-reparation/${orId}/devis-complementaires`;
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseDevisComplementaire>>(chemin, {
+    method: 'POST',
+    body: JSON.stringify(entree),
+    idempotencyKey,
+  });
+  if (!reponse) throw new Error(`Réponse vide inattendue : POST ${chemin}.`);
+  return reponse;
+}
+
+/** `POST /ordres-reparation/{orId}/devis-complementaires/{devisId}/repondre` — enregistre QUI a
+ *  répondu et QUAND (RM-81, `interlocuteurNom` obligatoire). `accepte` valide les lignes du devis. */
+export async function repondreDevisComplementaire(
+  orId: string,
+  devisId: string,
+  entree: EntreeReponseDevisComplementaire,
+  idempotencyKey: string,
+): Promise<ReponseAvecAvertissements<ReponseDevisComplementaire>> {
+  const chemin = `/ordres-reparation/${orId}/devis-complementaires/${devisId}/repondre`;
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseDevisComplementaire>>(chemin, {
+    method: 'POST',
+    body: JSON.stringify(entree),
+    idempotencyKey,
+  });
+  if (!reponse) throw new Error(`Réponse vide inattendue : POST ${chemin}.`);
+  return reponse;
+}
+
+/** `PATCH /ordres-reparation/{orId}` — champs libres de l'en-tête. `If-Match: W/"<version>"`
+ *  obligatoire (§9). */
+export async function modifierOrdreReparation(
+  orId: string,
+  entree: EntreeModificationOrdreReparation,
+  version: number,
+): Promise<ReponseAvecAvertissements<ReponseOrdreReparation>> {
+  const chemin = `/ordres-reparation/${orId}`;
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseOrdreReparation>>(chemin, {
+    method: 'PATCH',
+    body: JSON.stringify(entree),
+    ifMatch: `W/"${version}"`,
+  });
+  if (!reponse) throw new Error(`Réponse vide inattendue : PATCH ${chemin}.`);
+  return reponse;
+}

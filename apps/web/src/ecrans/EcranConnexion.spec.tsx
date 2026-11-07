@@ -54,7 +54,9 @@ describe('EcranConnexion', () => {
     await soumettre('jean.dupont@garage.ch', 'mauvais-mot-de-passe');
 
     expect(
-      await screen.findByText('Adresse e-mail ou mot de passe incorrect.'),
+      await screen.findByText(
+        'E-mail ou mot de passe incorrect. Vérifiez la saisie, ou cliquez sur « Mot de passe oublié ».',
+      ),
     ).toBeInTheDocument();
     expect(screen.getByLabelText('Adresse e-mail')).toHaveValue('jean.dupont@garage.ch');
     // Le mot de passe est effacé après échec (hygiène) : le message ne désigne jamais lequel
@@ -73,7 +75,11 @@ describe('EcranConnexion', () => {
     expect(
       await screen.findByText('Vérifiez votre connexion internet, puis réessayez.'),
     ).toBeInTheDocument();
-    expect(screen.queryByText('Adresse e-mail ou mot de passe incorrect.')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'E-mail ou mot de passe incorrect. Vérifiez la saisie, ou cliquez sur « Mot de passe oublié ».',
+      ),
+    ).not.toBeInTheDocument();
     // Titre distinct de l'alerte réseau vs l'alerte identifiants.
     expect(screen.getByText('Connexion impossible')).toBeInTheDocument();
   });
@@ -94,7 +100,11 @@ describe('EcranConnexion', () => {
     expect(screen.getByRole('button', { name: 'Se connecter' })).toBeInTheDocument();
     // Message distinct de « identifiants invalides » et de « réseau » : le garagiste sait que
     // ce n'est ni sa faute (mot de passe) ni son réseau, mais le service qui est indisponible.
-    expect(screen.queryByText('Adresse e-mail ou mot de passe incorrect.')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'E-mail ou mot de passe incorrect. Vérifiez la saisie, ou cliquez sur « Mot de passe oublié ».',
+      ),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByText('Vérifiez votre connexion internet, puis réessayez.'),
     ).not.toBeInTheDocument();

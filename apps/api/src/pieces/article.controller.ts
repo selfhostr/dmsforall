@@ -109,7 +109,8 @@ export class ArticleController {
     },
   ): Promise<readonly ResultatRechercheComptoirArticleDto[]> {
     const ctx = this.contexte.contexteTenant();
-    return this.service.rechercheComptoir(ctx, query);
+    const { role } = this.contexte.exigerPrincipal();
+    return this.service.rechercheComptoir(ctx, role, query);
   }
 
   @Post()

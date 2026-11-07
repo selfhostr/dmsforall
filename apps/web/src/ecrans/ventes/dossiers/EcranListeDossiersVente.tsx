@@ -162,7 +162,7 @@ export function EcranListeDossiersVente() {
     setAfficherTermines(false);
   }
 
-  const peutCreer = peutEcrireDossierVente(session?.utilisateur.role);
+  const peutCreer = peutEcrireDossierVente(session?.actions);
 
   const boutonNouveauDossier = peutCreer ? (
     <Button asChild>

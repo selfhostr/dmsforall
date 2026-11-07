@@ -1,3 +1,4 @@
+import type { ActionsSession } from '@/droits';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -7,7 +8,6 @@ import {
   type CodeConfirmation,
   type FinancementResume,
   type ReponseFinancement,
-  type RoleUtilisateur,
 } from '@dfa/shared';
 
 import { ErreurApi, messageErreur } from '@/api/erreurs';
@@ -34,7 +34,7 @@ import { peutConfirmerOuRefuserFinancement } from './droits';
 interface Props {
   readonly dossierVenteId: string;
   readonly financement: FinancementResume;
-  readonly role: RoleUtilisateur | undefined;
+  readonly actions: ActionsSession;
   /** Appelé après toute mutation réussie — signal générique pour que l'intégrateur recharge sa
    *  requête dossier (voir l'en-tête de `CarteFinancement`). */
   readonly onMutationReussie?: () => void;
@@ -57,7 +57,7 @@ type ActionOuverte = 'confirmer' | 'refuser' | null;
 export function PanneauActionsFinancement({
   dossierVenteId,
   financement,
-  role,
+  actions,
   onMutationReussie,
   onSucces,
 }: Props) {
@@ -71,7 +71,10 @@ export function PanneauActionsFinancement({
   const confirmer = useConfirmerFinancement(dossierVenteId);
   const refuser = useRefuserFinancement(dossierVenteId);
 
-  if (financement.statutConfirmation !== 'en_attente' || !peutConfirmerOuRefuserFinancement(role)) {
+  if (
+    financement.statutConfirmation !== 'en_attente' ||
+    !peutConfirmerOuRefuserFinancement(actions)
+  ) {
     return null;
   }
 

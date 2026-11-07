@@ -23,12 +23,13 @@ import type {
 } from '@dfa/shared';
 
 import { ErreurMetier } from '../../common/erreurs/erreur-metier';
+import { dessinerEnTeteEmetteur } from './en-tete-emetteur';
 import {
   construireDonneesSwissQrBill,
   langueSwissQrBill,
   validerLangueFigee,
 } from './donnees-swissqrbill';
-import { formaterDateSuisse, formaterMontantAvecDevise } from './formatage-suisse';
+import { ajouterJoursIso, formaterDateSuisse, formaterMontantAvecDevise } from './formatage-suisse';
 import { libellesImpression, type LibellesFacture } from './libelles-impression';
 import { verifierEquivalencePayload } from './verification-payload-qr';
 
@@ -68,25 +69,47 @@ function exigerMontantsVisibles(document: ReponseDocumentVente): {
   };
 }
 
+/** En-tête d'expéditeur imprimé : nom + adresse postale (la facture le tire du bloc QR figé, le
+ *  devis du paramétrage du garage — voir `service-impression-facture.ts`). */
+export interface ExpediteurImpression {
+  readonly nom: string;
+  readonly rue: string | null;
+  readonly numero: string | null;
+  readonly npa: string | null;
+  readonly localite: string | null;
+  /** N° TVA du garage tel que saisi dans les réglages ; absent s'il n'est pas renseigné. */
+  readonly numeroTva?: string | null;
+}
+
+/** Logo en haut à droite, dans une boîte de 140 x 60 pt. Un fichier que `pdfkit` ne sait pas
+ *  décoder est ignoré : un logo illisible ne doit jamais empêcher d'imprimer une facture. */
+function dessinerLogo(doc: PDFKit.PDFDocument, logo: Buffer | null | undefined): void {
+  if (!logo) return;
+  try {
+    doc.image(logo, doc.page.width - MARGE_PT - 140, MARGE_PT, { fit: [140, 60], align: 'right' });
+  } catch {
+    // ignoré
+  }
+}
+
 function dessinerEnTete(
   doc: PDFKit.PDFDocument,
   document: ReponseDocumentVente,
+  expediteur: ExpediteurImpression,
+  titre: string,
   l: LibellesFacture,
+  lignesSousTitre: readonly string[] = [],
+  logo?: Buffer | null,
 ): void {
-  const creancier = document.qr!.creancier;
-
-  doc.fontSize(9).fillColor('#333333');
-  doc.text(creancier.nom, MARGE_PT, MARGE_PT);
-  doc.text(
-    `${creancier.adresse.rue}${creancier.adresse.numero ? ' ' + creancier.adresse.numero : ''}`,
-  );
-  doc.text(`${creancier.adresse.npa} ${creancier.adresse.localite}`);
+  dessinerLogo(doc, logo);
+  dessinerEnTeteEmetteur(doc, expediteur, MARGE_PT, MARGE_PT);
 
   doc
     .fillColor('#000000')
     .fontSize(18)
-    .text(l.factureNumero(document.numero ?? ''), MARGE_PT, MARGE_PT + 70);
+    .text(titre, MARGE_PT, MARGE_PT + 70);
   doc.fontSize(10).text(`${l.dateDocument} : ${formaterDateSuisse(document.dateDocument)}`);
+  for (const ligne of lignesSousTitre) doc.text(ligne);
   doc.moveDown(1.5);
 
   doc.fontSize(9).text(l.client, MARGE_PT);
@@ -209,29 +232,48 @@ function dessinerRecapitulatifTva(
 }
 
 /**
- * @throws ErreurMetier `ERREUR_INTERNE` — document sans bloc QR, montants absents, ou divergence
- *         de payload détectée par `verifierEquivalencePayload` (DI-3/MD-77).
+ * @param expediteur nom + adresse du garage, OBLIGATOIRE quand `document.qr` est `null` (facture
+ *        émise sans bloc créancier complet, ou devise hors CHF/EUR) : le PDF est alors rendu SANS
+ *        bulletin QR, avec la mention « coordonnées de paiement non renseignées ».
+ * @throws ErreurMetier `ERREUR_INTERNE` — document qui n'est pas une facture, QR absent sans
+ *         expéditeur, montants absents, ou divergence de payload (DI-3/MD-77).
  */
-export async function genererPdfFacture(document: ReponseDocumentVente): Promise<Buffer> {
-  if (document.typeDocument !== 'facture' || document.qr == null) {
+export async function genererPdfFacture(
+  document: ReponseDocumentVente,
+  expediteur?: ExpediteurImpression,
+  logo?: Buffer | null,
+): Promise<Buffer> {
+  if (document.typeDocument !== 'facture' || (document.qr == null && !expediteur)) {
     throw new ErreurMetier(
       'ERREUR_INTERNE',
-      `genererPdfFacture appelé sur le document ${document.id} sans bloc QR — l'appelant doit ` +
-        'filtrer en amont (typeDocument = facture, statut émis, qr non nul).',
+      `genererPdfFacture appelé sur le document ${document.id} sans bloc QR ni expéditeur — ` +
+        "l'appelant doit filtrer en amont (typeDocument = facture, statut émis).",
     );
   }
 
   const qr = document.qr;
   const numero = document.numero ?? '';
-  const donneesSwissQrBill = construireDonneesSwissQrBill(qr, numero);
+  const donneesSwissQrBill = qr ? construireDonneesSwissQrBill(qr, numero) : null;
 
   // DI-3/MD-77 : refuse AVANT tout rendu si le payload que swissqrbill encoderait diverge du
   // payload figé à l'émission.
-  verifierEquivalencePayload(donneesSwissQrBill, qr.qrPayload, document.id);
+  if (qr && donneesSwissQrBill)
+    verifierEquivalencePayload(donneesSwissQrBill, qr.qrPayload, document.id);
 
-  const langueImpression = validerLangueFigee(qr.qrLangue);
-  const libelles = libellesImpression(langueImpression);
+  const langueClient = qr ? qr.qrLangue : document.figees.clientLangue;
+  const libelles = libellesImpression(
+    qr
+      ? validerLangueFigee(langueClient)
+      : langueClient === 'de' || langueClient === 'it'
+        ? langueClient
+        : 'fr',
+  );
   const totaux = exigerMontantsVisibles(document);
+  // Avec bloc QR, nom et adresse viennent du bloc figé à l'émission (cohérence avec le bulletin) ;
+  // le n° TVA, lui, vient toujours de l'expéditeur fourni (réglages entreprise).
+  const expediteurFacture: ExpediteurImpression = qr
+    ? { nom: qr.creancier.nom, ...qr.creancier.adresse, numeroTva: expediteur?.numeroTva ?? null }
+    : (expediteur as ExpediteurImpression);
 
   const pdf = new PDFDocument({
     size: 'A4',
@@ -251,14 +293,27 @@ export async function genererPdfFacture(document: ReponseDocumentVente): Promise
     pdf.on('end', () => resolve(Buffer.concat(morceaux)));
     pdf.on('error', reject);
 
-    dessinerEnTete(pdf, document, libelles);
+    dessinerEnTete(
+      pdf,
+      document,
+      expediteurFacture,
+      libelles.factureNumero(document.numero ?? ''),
+      libelles,
+      [],
+      logo,
+    );
     dessinerLignes(pdf, document.lignes, libelles, document.devise);
     dessinerRecapitulatifTva(pdf, totaux, libelles, document.devise);
 
-    const qrBill = new SwissQRBill(donneesSwissQrBill, {
-      language: langueSwissQrBill(qr.qrLangue),
-    });
-    qrBill.attachTo(pdf);
+    if (qr && donneesSwissQrBill) {
+      const qrBill = new SwissQRBill(donneesSwissQrBill, {
+        language: langueSwissQrBill(qr.qrLangue),
+      });
+      qrBill.attachTo(pdf);
+    } else {
+      pdf.moveDown(1.5);
+      pdf.fontSize(9).fillColor('#000000').text(libelles.paiementNonRenseigne, MARGE_PT);
+    }
 
     // `pdfkit` est un flux Node standard : les événements `data` sont émis de façon ASYNCHRONE
     // (vérifié en exécution, `.../scratchpad/qrbill-eval/` — 0 octet lu juste après `.end()`, le
@@ -268,4 +323,62 @@ export async function genererPdfFacture(document: ReponseDocumentVente): Promise
   });
 
   return buffer;
+}
+
+/** Validité commerciale d'un devis imprimé quand aucune date de validité n'est stockée (le modèle
+ *  n'a pas de colonne dédiée) : 30 jours après `dateDocument`. */
+export const VALIDITE_DEVIS_JOURS = 30;
+
+export function dateValiditeDevis(dateDocument: string): string {
+  return ajouterJoursIso(dateDocument, VALIDITE_DEVIS_JOURS);
+}
+
+/**
+ * PDF d'un DEVIS (brouillon ou non) : même corps que la facture (lignes, récapitulatif TVA, totaux),
+ * titre « Devis », date de validité, et AUCUN bulletin QR ni numéro de facture. L'appelant
+ * (`service-impression-facture.ts`) vérifie le type et fournit l'expéditeur (paramétrage garage).
+ * Non mis en cache : un devis brouillon change, et le rendu est peu coûteux.
+ */
+export async function genererPdfDevis(
+  document: ReponseDocumentVente,
+  expediteur: ExpediteurImpression,
+  logo?: Buffer | null,
+): Promise<Buffer> {
+  if (document.typeDocument !== 'devis') {
+    throw new ErreurMetier(
+      'ERREUR_INTERNE',
+      `genererPdfDevis appelé sur le document ${document.id} qui n'est pas un devis.`,
+    );
+  }
+
+  // Un devis n'a pas de `qr_langue` figée : une langue client inconnue retombe sur le français
+  // (source i18n) plutôt que de refuser d'imprimer un devis.
+  const langueClient = document.figees.clientLangue;
+  const libelles = libellesImpression(
+    langueClient === 'de' || langueClient === 'it' ? langueClient : 'fr',
+  );
+  const totaux = exigerMontantsVisibles(document);
+  const titre = document.numero ? libelles.devisNumero(document.numero) : libelles.devisBrouillon;
+  const validite = `${libelles.valableJusqu} : ${formaterDateSuisse(dateValiditeDevis(document.dateDocument))}`;
+
+  const pdf = new PDFDocument({
+    size: 'A4',
+    autoFirstPage: true,
+    margin: MARGE_PT,
+    info: { CreationDate: new Date(document.modifieLe), ModDate: new Date(document.modifieLe) },
+  });
+
+  return new Promise<Buffer>((resolve, reject) => {
+    const morceaux: Buffer[] = [];
+    pdf.on('data', (chunk: Buffer) => morceaux.push(chunk));
+    pdf.on('end', () => resolve(Buffer.concat(morceaux)));
+    pdf.on('error', reject);
+
+    dessinerEnTete(pdf, document, expediteur, titre, libelles, [validite], logo);
+    dessinerLignes(pdf, document.lignes, libelles, document.devise);
+    dessinerRecapitulatifTva(pdf, totaux, libelles, document.devise);
+    pdf.moveDown(1.5);
+    pdf.fontSize(8).fillColor('#666666').text(libelles.devisMention, MARGE_PT);
+    pdf.end();
+  });
 }

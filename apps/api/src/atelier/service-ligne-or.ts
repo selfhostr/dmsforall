@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
 import {
   schemaModificationLigneOr,
+  type CodeActionProposee,
   type ElementBloquant,
   type EntreeAnnulationLignes,
   type EntreeCreationLigneOr,
@@ -20,8 +21,10 @@ import {
 
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
 import {
+  auditAtelier,
   ligneOr,
   reservationPiece,
+  vehiculeTravailReporte,
   type LigneLigneOr,
   type LigneOrdreReparation,
   type NouvelleReservationPiece,
@@ -46,6 +49,7 @@ import {
   type CalculLigne,
   type CreationTravailReporte,
 } from './atelier.jetons';
+import { phraseAccordClient } from './accord-client';
 import { roleVoitLesMontants, mapperLigneOr } from './mappeurs';
 import {
   chargerLigneOrPourEcriture,
@@ -86,6 +90,84 @@ const PAYEURS_AVEC_TIERS: ReadonlySet<PayeurLigneOr> = new Set([
  * './service-ligne-or'`).
  */
 export { CODE_TAUX_HORAIRE_DEFAUT } from './taux-horaire';
+
+/** Statuts depuis lesquels une ligne peut être marquée réalisée (0076) : `validee` (sans
+ *  pointage) et `en_cours` (après un pointage). */
+const STATUTS_REALISABLES: ReadonlySet<string> = new Set(['validee', 'en_cours']);
+
+/** Libellé garagiste d'un statut de ligne + la marche à suivre quand on tente de la réaliser. */
+const CONSIGNE_REALISATION_PAR_STATUT: Readonly<
+  Record<
+    string,
+    { readonly libelle: string; readonly marche: string; readonly action: CodeActionProposee }
+  >
+> = {
+  proposee: {
+    libelle: 'proposée',
+    marche: 'Validez d’abord la ligne, puis marquez-la réalisée.',
+    action: 'VALIDER_LIGNES',
+  },
+  a_valider: {
+    libelle: 'en attente de l’accord du client',
+    marche: 'Validez la ligne une fois l’accord reçu, puis marquez-la réalisée.',
+    action: 'VALIDER_LIGNES',
+  },
+  refusee: {
+    libelle: 'refusée par le client',
+    marche: 'Une ligne refusée ne peut pas être réalisée : demandez un nouvel accord au client.',
+    action: 'RAFRAICHIR',
+  },
+  realisee: {
+    libelle: 'déjà réalisée',
+    marche: 'Rien à faire : la ligne est déjà réalisée.',
+    action: 'RAFRAICHIR',
+  },
+  facturee: {
+    libelle: 'déjà facturée',
+    marche: 'Une ligne facturée est figée : corrigez par un avoir.',
+    action: 'RAFRAICHIR',
+  },
+  annulee: {
+    libelle: 'annulée',
+    marche: 'Une ligne annulée ne peut plus être réalisée : ajoutez une nouvelle ligne.',
+    action: 'RAFRAICHIR',
+  },
+};
+
+/**
+ * Garde applicative de `marquerRealisee` : le trigger ZDFA1 dit seulement « transition interdite » ;
+ * ici le `detail` du problème dit le statut actuel, les statuts acceptés et ce qu'il faut faire.
+ */
+export function refuserSiRealisationImpossible(ligne: LigneLigneOr, voitMontants: boolean): void {
+  if (STATUTS_REALISABLES.has(ligne.statut)) return;
+  const consigne = CONSIGNE_REALISATION_PAR_STATUT[ligne.statut];
+  const libelle = consigne?.libelle ?? ligne.statut;
+  throw new ErreurMetier(
+    'LIGNE_TRANSITION_INTERDITE',
+    `Ligne non réalisable : elle est ${libelle}.`,
+    {
+      detail:
+        `La ligne est ${libelle} : seule une ligne validée ou en cours peut être marquée réalisée. ` +
+        (consigne?.marche ?? 'Actualisez l’ordre de réparation.'),
+      blocages: [
+        {
+          type: 'ligne_or',
+          id: ligne.id,
+          libelle: ligne.designation ?? '',
+          donnees: {
+            statutActuel: ligne.statut,
+            statutDemande: 'realisee',
+            statutsAcceptes: ['validee', 'en_cours'],
+            numeroLigne: ligne.numeroOrdre,
+            origine: ligne.origine,
+            ...(voitMontants ? { totalTtcCentimes: ligne.montantTtcCentimes } : {}),
+          },
+        },
+      ],
+      actionsProposees: [{ code: consigne?.action ?? 'RAFRAICHIR' }],
+    },
+  );
+}
 
 /**
  * Lignes d'ordre de réparation (contrats-api-etape-1.md §7.8) : création, modification libre,
@@ -187,13 +269,34 @@ export class ServiceLigneOr {
           ? this.exigerTauxHoraire(await this.resoudreTauxHoraireCentimes(tx, ctx, or))
           : null;
 
+        // Reprise d'un travail reporté (RM-73) : verrouillé `for update` — deux reprises
+        // concurrentes ne peuvent pas créer deux lignes pour le même travail.
+        const travail = entree.travailReporteId
+          ? await this.chargerTravailAReprendre(tx, ctx, or, entree.travailReporteId)
+          : null;
+        const designation = entree.designation ?? travail?.designation;
+        if (!designation) {
+          throw new ErreurMetier('VALIDATION_ECHOUEE', 'La désignation de la ligne est requise.', {
+            erreurs: [
+              {
+                champ: 'designation',
+                code: 'requis',
+                message: 'Une désignation est requise sans travail reporté.',
+              },
+            ],
+          });
+        }
+        const prixUnitaireCentimes = entree.prixUnitaireCentimes ?? travail?.montantEstimeCentimes;
+        const urgence = entree.urgence ?? travail?.urgence ?? null;
+        const securite = entree.securite || (travail?.securite ?? false);
+
         const montants =
           entree.payeur === 'garage'
             ? { montantHtCentimes: 0, montantTvaCentimes: 0, montantTtcCentimes: 0 } // RM-70
             : this.calcul.calculer({
                 type: entree.type,
                 quantiteMillieme: entree.quantiteMillieme,
-                prixUnitaireCentimes: entree.prixUnitaireCentimes ?? null,
+                prixUnitaireCentimes: prixUnitaireCentimes ?? null,
                 tempsBaremeCentiemes: entree.tempsBaremeCentiemes ?? null,
                 tauxHoraireCentimes,
                 rabaisPourmille: entree.rabaisPourmille,
@@ -265,21 +368,21 @@ export class ServiceLigneOr {
             payeur: entree.payeur,
             payeurClientId: entree.payeurClientId ?? null,
             blocage,
-            designation: entree.designation,
+            designation,
             referenceTexte: entree.referenceTexte ?? null,
             articleId: entree.articleId ?? null,
             quantiteMillieme: entree.quantiteMillieme,
             tempsBaremeCentiemes: entree.tempsBaremeCentiemes ?? null,
             tauxHoraireCentimes,
-            prixUnitaireCentimes: entree.prixUnitaireCentimes ?? null,
+            prixUnitaireCentimes: prixUnitaireCentimes ?? null,
             rabaisPourmille: entree.rabaisPourmille,
             tauxTvaPourmille: 81,
             montantHtCentimes: montants.montantHtCentimes,
             montantTvaCentimes: montants.montantTvaCentimes,
             montantTtcCentimes: montants.montantTtcCentimes,
             technicienId: entree.technicienId ?? null,
-            urgence: entree.urgence ?? null,
-            securite: entree.securite,
+            urgence,
+            securite,
             fourniParClient: entree.fournieParClient,
             aRestituer: entree.pieceARestituer,
             codeOperation: entree.codeOperation ?? null,
@@ -293,6 +396,18 @@ export class ServiceLigneOr {
             'ERREUR_INTERNE',
             "L'insertion de la ligne n'a rendu aucune ligne.",
           );
+        }
+
+        if (travail) {
+          await tx
+            .update(vehiculeTravailReporte)
+            .set({ statut: 'repris', ordreReparationRepriseId: orId })
+            .where(
+              and(
+                eq(vehiculeTravailReporte.tenantId, ctx.tenantId),
+                eq(vehiculeTravailReporte.id, travail.id),
+              ),
+            );
         }
 
         if (entree.origine === 'constatee') {
@@ -313,6 +428,42 @@ export class ServiceLigneOr {
         };
       },
     );
+  }
+
+  /** Travail reporté à reprendre : de CE véhicule (404 sinon, jamais d'indice sur un autre), encore
+   *  `ouvert` (409 `CONFLIT` sinon). Verrouillé pour la transaction. */
+  private async chargerTravailAReprendre(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    or: LigneOrdreReparation,
+    travailId: string,
+  ) {
+    const [travail] = await tx
+      .select()
+      .from(vehiculeTravailReporte)
+      .where(
+        and(
+          eq(vehiculeTravailReporte.tenantId, ctx.tenantId),
+          eq(vehiculeTravailReporte.id, travailId),
+          eq(vehiculeTravailReporte.vehiculeId, or.vehiculeId),
+        ),
+      )
+      .limit(1)
+      .for('update');
+    if (!travail) {
+      throw new ErreurMetier(
+        'RESSOURCE_INTROUVABLE',
+        'Travail reporté introuvable pour ce véhicule.',
+      );
+    }
+    if (travail.statut !== 'ouvert') {
+      throw new ErreurMetier(
+        'CONFLIT',
+        `Ce travail reporté n'est plus à reprendre (statut : ${travail.statut}).`,
+        { actionsProposees: [{ code: 'RAFRAICHIR' }] },
+      );
+    }
+    return travail;
   }
 
   /**
@@ -525,9 +676,12 @@ export class ServiceLigneOr {
   }
 
   /**
-   * `POST .../lignes/{ligneId}/marquer-realisee` (§7.9) — `en_cours -> realisee` uniquement ;
-   * `refusee -> realisee` n'existe pas dans `transition_autorisee` (RM-72, CT-28) et lève
-   * `LIGNE_TRANSITION_INTERDITE` via le même mécanisme ZDFA1 que les transitions d'OR.
+   * `POST .../lignes/{ligneId}/marquer-realisee` (§7.9) — `validee|en_cours -> realisee`, pour
+   * TOUS les types de ligne et SANS pointage (0076) : un garage qui ne pointe pas doit pouvoir
+   * facturer ses heures. Depuis tout autre statut (`refusee -> realisee` n'existe pas, RM-72,
+   * CT-28), `LIGNE_TRANSITION_INTERDITE` dont le `detail` dit le statut actuel, les statuts
+   * acceptés et l'action à faire (`refuserTransitionRealisation`). Le trigger ZDFA1 reste le
+   * filet si le statut change entre la lecture et l'écriture.
    *
    * RP-21/RP-38 (`pieces/reservation.ts`, `pieces/consigne.ts`) : une ligne `piece` réservée sort
    * PHYSIQUEMENT du stock (`sortie_or`) et, si l'article est d'échange standard, pose la consigne
@@ -546,6 +700,7 @@ export class ServiceLigneOr {
       const or = await chargerOrPourEcriture(tx, ctx, orId);
       this.garantirNonVerrouille(or, orId);
       const ligne = await chargerLigneOrPourEcriture(tx, ctx, orId, ligneId);
+      refuserSiRealisationImpossible(ligne, roleVoitLesMontants(principal.role));
 
       const misAJour = await this.transitionnerLigne(tx, ctx, ligne, 'realisee', {});
       // `temps_reel_centiemes` n'a nulle part où se poser en base au lot 1 (Δ4, module pointage
@@ -603,6 +758,21 @@ export class ServiceLigneOr {
           // ce qui lève le blocage, exactement comme `annulerLignesAccord` (`service-transitions.ts`
           // ~L197) le fait pour un refus/une annulation de la demande.
           await this.transitionnerLigne(tx, ctx, ligne, 'validee', { blocage: 'aucun' });
+          // Accord recueilli hors application : tracé dans le journal d'audit de CHAQUE ligne
+          // validée (aucune colonne dédiée) — même mécanisme `champ = 'motif'` que `rouvrir`
+          // (`service-transitions.ts`), que `GET .../journal` rend dans `motif`.
+          if (entree.accord) {
+            await tx.insert(auditAtelier).values({
+              tenantId: ctx.tenantId,
+              entite: 'ligne_or',
+              entiteId: ligne.id,
+              action: 'transition',
+              champ: 'motif',
+              valeurApres: phraseAccordClient(entree.accord),
+              utilisateurId: principal.utilisateurId,
+              requeteId: ctx.requeteId,
+            });
+          }
         }
       },
     );

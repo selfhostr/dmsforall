@@ -6,6 +6,7 @@ import type { ClientResume } from '@dfa/shared';
 
 import { ErreurReseau, messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
+import { BoutonNouveauDevis } from '@/ecrans/facturation/BoutonNouveauDevis';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
@@ -123,7 +124,7 @@ export function EcranFicheClient() {
   // `undefined` et `peutLireDossierVente(undefined)` renvoie `false` : la section affiche son
   // squelette de chargement (`session.isLoading`) plutôt que de flasher le message de refus avant
   // de savoir — voir le rendu de la section plus bas.
-  const peutVoirDossiersVente = peutLireDossierVente(session.data?.utilisateur.role);
+  const peutVoirDossiersVente = peutLireDossierVente(session.data?.actions);
   // Lot B (correction 6, ajout hors liste initiale) — « ses dossiers de vente », troisième liste
   // à côté de « ses véhicules » et « ses OR » déjà câblées. `useListeDossiersVente`
   // (hooks/ventes/dossiers/, déjà existant) accepte `clientAcheteurId` tel quel dans son filtre
@@ -244,10 +245,13 @@ export function EcranFicheClient() {
         <IdentiteClient client={clientPourIdentite} alerte={client.notesAlerte.length > 0} />
         {/* Action primaire unique de la fiche (RM-21) — chemin assumé en l'absence de câblage
          *  du module atelier à ce jour, à ajuster par le lot de routage si besoin. */}
-        <Button type="button" onClick={() => navigate(cheminNouvelOr(client.id, site))}>
-          <Wrench aria-hidden className="h-4 w-4" />
-          {t('clients:fiche.ouvrirOr')}
-        </Button>
+        <div className="flex flex-wrap items-center gap-controles">
+          <BoutonNouveauDevis client={{ id: client.id, nomAffiche: client.nomAffiche }} />
+          <Button type="button" onClick={() => navigate(cheminNouvelOr(client.id, site))}>
+            <Wrench aria-hidden className="h-4 w-4" />
+            {t('clients:fiche.ouvrirOr')}
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">

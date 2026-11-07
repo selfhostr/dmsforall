@@ -162,209 +162,217 @@ export class ServiceFacturationOr {
         cle: cleIdempotence,
         corps: { orId, ...entree },
       },
-      async (tx) => {
-        const or = await chargerOrPourEcriture(tx, ctx, orId);
-        if (or.statut !== 'termine') {
-          throw new ErreurMetier(
-            'OR_TRANSITION_INTERDITE',
-            `Seul un OR « termine » peut être facturé (statut actuel : ${or.statut}).`,
+      async (tx) => ({
+        statutHttp: 201,
+        corps: {
+          donnees: await this.facturerTx(tx, ctx, principal, orId, entree),
+          avertissements: [],
+        },
+      }),
+    );
+  }
+
+  /**
+   * Cœur transactionnel de `facturer()` (création des brouillons, bascule des lignes et de l'OR),
+   * SANS enveloppe d'idempotence — réutilisé par `facturer-et-encaisser` qui porte sa propre clé.
+   */
+  async facturerTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    orId: string,
+    entree: EntreeFacturationOrdreReparation,
+  ): Promise<ReponseFacturationOrdreReparation> {
+    const or = await chargerOrPourEcriture(tx, ctx, orId);
+    if (or.statut !== 'termine') {
+      throw new ErreurMetier(
+        'OR_TRANSITION_INTERDITE',
+        `Seul un OR « termine » peut être facturé (statut actuel : ${or.statut}).`,
+        {
+          blocages: [
             {
-              blocages: [
-                {
-                  type: 'ordre_reparation',
-                  id: orId,
-                  libelle: or.numero,
-                  donnees: { statutActuel: or.statut },
-                },
-              ],
-              actionsProposees: [{ code: 'RAFRAICHIR' }],
+              type: 'ordre_reparation',
+              id: orId,
+              libelle: or.numero,
+              donnees: { statutActuel: or.statut },
             },
-          );
-        }
+          ],
+          actionsProposees: [{ code: 'RAFRAICHIR' }],
+        },
+      );
+    }
 
-        const toutesLignes = await listerLignesOrPourEcriture(tx, ctx, orId);
+    const toutesLignes = await listerLignesOrPourEcriture(tx, ctx, orId);
 
-        // RF-85/RF-86 : refusé tant qu'une ligne facturable de l'OR — TOUS groupes confondus, pas
-        // seulement ceux demandés par cet appel — attend encore une décision.
-        const indecises = toutesLignes.filter((l) => STATUTS_LIGNE_INDECIS.has(l.statut));
-        if (indecises.length > 0) {
-          throw new ErreurMetier(
-            'FACTURATION_LIGNES_INDECISES',
-            'Des lignes attendent encore une décision avant facturation (RF-85/RF-86).',
-            {
-              blocages: indecises.slice(0, 50).map((l) => ({
-                type: 'ligne_or' as const,
-                id: l.id,
-                libelle: l.designation ?? '',
-                donnees: { numeroLigne: l.numeroOrdre, statutActuel: l.statut },
-              })),
-              actionsProposees: [{ code: 'VALIDER_LIGNES' }],
-            },
-          );
-        }
+    // RF-85/RF-86 : refusé tant qu'une ligne facturable de l'OR — TOUS groupes confondus, pas
+    // seulement ceux demandés par cet appel — attend encore une décision.
+    const indecises = toutesLignes.filter((l) => STATUTS_LIGNE_INDECIS.has(l.statut));
+    if (indecises.length > 0) {
+      throw new ErreurMetier(
+        'FACTURATION_LIGNES_INDECISES',
+        'Des lignes attendent encore une décision avant facturation (RF-85/RF-86).',
+        {
+          blocages: indecises.slice(0, 50).map((l) => ({
+            type: 'ligne_or' as const,
+            id: l.id,
+            libelle: l.designation ?? '',
+            donnees: { numeroLigne: l.numeroOrdre, statutActuel: l.statut },
+          })),
+          actionsProposees: [{ code: 'VALIDER_LIGNES' }],
+        },
+      );
+    }
 
-        const clientOrLigne = await chargerClientLigne(tx, ctx, or.clientId);
-        const maintenant = this.horloge.maintenant();
-        const dateDocument = maintenant.toISOString().slice(0, 10);
-        const datePrestation = or.termineLe
-          ? or.termineLe.toISOString().slice(0, 10)
-          : dateDocument;
+    const clientOrLigne = await chargerClientLigne(tx, ctx, or.clientId);
+    const maintenant = this.horloge.maintenant();
+    const dateDocument = maintenant.toISOString().slice(0, 10);
+    const datePrestation = or.termineLe ? or.termineLe.toISOString().slice(0, 10) : dateDocument;
 
-        const idsTraites = new Set<string>();
-        const facturesCreees: ReponseDocumentVente[] = [];
-        // Cache des fiches client destinataire déjà résolues (une par groupe, au plus) — évite de
-        // recharger deux fois le même tiers si un appel invraisemblable le référence deux fois
-        // (déjà exclu par `schemaFacturationOrdreReparation.refine`, filet supplémentaire ici).
-        const clientsResolus = new Map<string, LigneClient>();
+    const idsTraites = new Set<string>();
+    const facturesCreees: ReponseDocumentVente[] = [];
+    // Cache des fiches client destinataire déjà résolues (une par groupe, au plus) — évite de
+    // recharger deux fois le même tiers si un appel invraisemblable le référence deux fois
+    // (déjà exclu par `schemaFacturationOrdreReparation.refine`, filet supplémentaire ici).
+    const clientsResolus = new Map<string, LigneClient>();
 
-        for (const groupe of entree.groupes) {
-          const lignesDuGroupe = toutesLignes.filter((l) => ligneAppartientAuGroupe(l, groupe));
-          const lignesRealisees = lignesDuGroupe.filter((l) => l.statut === 'realisee');
+    for (const groupe of entree.groupes) {
+      const lignesDuGroupe = toutesLignes.filter((l) => ligneAppartientAuGroupe(l, groupe));
+      const lignesRealisees = lignesDuGroupe.filter((l) => l.statut === 'realisee');
 
-          if (lignesRealisees.length === 0) {
-            throw new ErreurMetier(
-              'OR_FACTURATION_AUCUNE_LIGNE',
-              `Aucune ligne « realisee » à facturer pour le groupe payeur « ${groupe.payeur} ».`,
+      if (lignesRealisees.length === 0) {
+        throw new ErreurMetier(
+          'OR_FACTURATION_AUCUNE_LIGNE',
+          `Aucune ligne « realisee » à facturer pour le groupe payeur « ${groupe.payeur} ».`,
+          {
+            blocages: [
               {
-                blocages: [
-                  {
-                    type: 'ordre_reparation',
-                    id: orId,
-                    libelle: or.numero,
-                    donnees: {
-                      payeur: groupe.payeur,
-                      payeurClientId: groupe.payeurClientId ?? null,
-                    },
-                  },
-                ],
-                actionsProposees: [{ code: 'RAFRAICHIR' }],
+                type: 'ordre_reparation',
+                id: orId,
+                libelle: or.numero,
+                donnees: {
+                  payeur: groupe.payeur,
+                  payeurClientId: groupe.payeurClientId ?? null,
+                },
               },
-            );
-          }
-
-          const destinataireId =
-            groupe.payeur === 'client' ? or.clientId : (groupe.payeurClientId as string);
-          const destinataireLigne =
-            clientsResolus.get(destinataireId) ??
-            (destinataireId === or.clientId
-              ? clientOrLigne
-              : await chargerClientLigne(tx, ctx, destinataireId));
-          clientsResolus.set(destinataireId, destinataireLigne);
-
-          if (destinataireLigne.statut === 'bloque') {
-            verifierConfirmation('CLIENT_BLOQUE', principal.role, entree.confirmations);
-          }
-
-          const adresseFacturationFigee =
-            (await chargerAdresseFacturationStructuree(tx, ctx, destinataireId)) ?? {};
-          // RM-07/RF-04/PF-04, même patron que `facturation/documents/service-documents.ts::creer`
-          // (défaut soldé, cf. rapport de livraison signalé par l'équipe facturation) : conditions de
-          // paiement du DESTINATAIRE (pas forcément `or.clientId` — un groupe payeur `assurance`/
-          // `constructeur`/`tiers` facture un tiers différent, RF-92) EN VIGUEUR à `dateDocument`.
-          // `{}` si aucune ligne `client_condition` n'est en vigueur — jamais un délai fabriqué à
-          // partir d'un défaut codé en dur (aucune colonne ne le porte, voir l'en-tête d'`echeance.ts`) :
-          // l'échéance de cette facture reste alors `null`, honnête plutôt que fausse.
-          const conditionsPaiementFigees = await chargerConditionsPaiementEnVigueur(
-            tx,
-            ctx,
-            destinataireId,
-            new Date(`${dateDocument}T00:00:00.000Z`),
-          );
-
-          const [doc] = await tx
-            .insert(documentVente)
-            .values({
-              tenantId: ctx.tenantId,
-              siteId: or.siteId,
-              typeDocument: 'facture',
-              natureFacture: 'ordinaire',
-              statut: 'brouillon',
-              clientId: destinataireId,
-              vehiculeId: or.vehiculeId,
-              ordreReparationId: or.id,
-              clientDesignationFigee: nomAfficheClient(destinataireLigne),
-              clientIdeFige: destinataireLigne.ide,
-              langueFigee: destinataireLigne.langue,
-              adresseFacturationFigee,
-              conditionsPaiementFigees,
-              dateDocument,
-              devise: 'CHF',
-            })
-            .returning();
-          if (!doc)
-            throw new ErreurMetier(
-              'ERREUR_INTERNE',
-              "L'insertion du document de vente n'a rendu aucune ligne.",
-            );
-
-          let numeroOrdre = 1;
-          for (const ligneOrCourante of lignesRealisees) {
-            await this.inserterLigneDepuisOr(
-              tx,
-              ctx,
-              doc.id,
-              numeroOrdre++,
-              ligneOrCourante,
-              datePrestation,
-            );
-
-            try {
-              await tx
-                .update(ligneOr)
-                .set({ statut: 'facturee', factureId: doc.id })
-                .where(and(eq(ligneOr.tenantId, ctx.tenantId), eq(ligneOr.id, ligneOrCourante.id)));
-            } catch (erreur) {
-              const traduite = traduireErreurTransition(
-                erreur,
-                ligneOrCourante.id,
-                ligneOrCourante.designation ?? '',
-              );
-              if (traduite) throw traduite;
-              throw erreur;
-            }
-            idsTraites.add(ligneOrCourante.id);
-          }
-
-          facturesCreees.push(
-            await this.documents.assemblerDocument(tx, ctx, principal.role, doc.id),
-          );
-        }
-
-        // `inclureDemontageRefuse`/`motifsReport` : voir l'en-tête du contrat (`facturer-or.ts`) —
-        // `demontageFacturablePropose` n'est calculé par AUCUN service au lot 1 (toujours `undefined`
-        // sur `ReponseOrdreReparation`, voir `service-or.ts::assemblerDocument`), donc l'option n'a
-        // structurellement aucun démontage à ajouter ici — pas un oubli, une conséquence directe de
-        // l'absence de la fonctionnalité source. `motifsReport` est validé par le schéma d'entrée
-        // (zod) mais SIGNALÉ COMME NON PERSISTÉ par le contrat lui-même (« décision d'implémentation,
-        // hors périmètre de ce fichier ») : accepté silencieusement, comme le contrat l'anticipe.
-        void entree.inclureDemontageRefuse;
-        void entree.motifsReport;
-
-        // RF-84 : l'OR ne passe à `facture` QUE si cet appel traite le DERNIER groupe encore
-        // facturable — une ligne `realisee` qui n'appartenait à AUCUN groupe demandé reste en
-        // attente, l'OR reste `termine`.
-        const resteAFacturer = toutesLignes.some(
-          (l) => l.statut === 'realisee' && !idsTraites.has(l.id),
+            ],
+            actionsProposees: [{ code: 'RAFRAICHIR' }],
+          },
         );
-        if (!resteAFacturer) {
-          await this.transitionnerVersFacture(tx, ctx, or, maintenant);
-        }
+      }
 
-        const ordreReparationAJour = await this.serviceOr.assemblerDocument(
+      const destinataireId =
+        groupe.payeur === 'client' ? or.clientId : (groupe.payeurClientId as string);
+      const destinataireLigne =
+        clientsResolus.get(destinataireId) ??
+        (destinataireId === or.clientId
+          ? clientOrLigne
+          : await chargerClientLigne(tx, ctx, destinataireId));
+      clientsResolus.set(destinataireId, destinataireLigne);
+
+      if (destinataireLigne.statut === 'bloque') {
+        verifierConfirmation('CLIENT_BLOQUE', principal.role, entree.confirmations);
+      }
+
+      const adresseFacturationFigee =
+        (await chargerAdresseFacturationStructuree(tx, ctx, destinataireId)) ?? {};
+      // RM-07/RF-04/PF-04, même patron que `facturation/documents/service-documents.ts::creer`
+      // (défaut soldé, cf. rapport de livraison signalé par l'équipe facturation) : conditions de
+      // paiement du DESTINATAIRE (pas forcément `or.clientId` — un groupe payeur `assurance`/
+      // `constructeur`/`tiers` facture un tiers différent, RF-92) EN VIGUEUR à `dateDocument`.
+      // `{}` si aucune ligne `client_condition` n'est en vigueur — jamais un délai fabriqué à
+      // partir d'un défaut codé en dur (aucune colonne ne le porte, voir l'en-tête d'`echeance.ts`) :
+      // l'échéance de cette facture reste alors `null`, honnête plutôt que fausse.
+      const conditionsPaiementFigees = await chargerConditionsPaiementEnVigueur(
+        tx,
+        ctx,
+        destinataireId,
+        new Date(`${dateDocument}T00:00:00.000Z`),
+      );
+
+      const [doc] = await tx
+        .insert(documentVente)
+        .values({
+          tenantId: ctx.tenantId,
+          siteId: or.siteId,
+          typeDocument: 'facture',
+          natureFacture: 'ordinaire',
+          statut: 'brouillon',
+          clientId: destinataireId,
+          vehiculeId: or.vehiculeId,
+          ordreReparationId: or.id,
+          clientDesignationFigee: nomAfficheClient(destinataireLigne),
+          clientIdeFige: destinataireLigne.ide,
+          langueFigee: destinataireLigne.langue,
+          adresseFacturationFigee,
+          conditionsPaiementFigees,
+          dateDocument,
+          devise: 'CHF',
+        })
+        .returning();
+      if (!doc)
+        throw new ErreurMetier(
+          'ERREUR_INTERNE',
+          "L'insertion du document de vente n'a rendu aucune ligne.",
+        );
+
+      let numeroOrdre = 1;
+      for (const ligneOrCourante of lignesRealisees) {
+        await this.inserterLigneDepuisOr(
           tx,
           ctx,
-          principal.role,
-          orId,
+          doc.id,
+          numeroOrdre++,
+          ligneOrCourante,
+          datePrestation,
         );
-        return {
-          statutHttp: 201,
-          corps: {
-            donnees: { facturesCreees, ordreReparation: ordreReparationAJour },
-            avertissements: [],
-          },
-        };
-      },
+
+        try {
+          await tx
+            .update(ligneOr)
+            .set({ statut: 'facturee', factureId: doc.id })
+            .where(and(eq(ligneOr.tenantId, ctx.tenantId), eq(ligneOr.id, ligneOrCourante.id)));
+        } catch (erreur) {
+          const traduite = traduireErreurTransition(
+            erreur,
+            ligneOrCourante.id,
+            ligneOrCourante.designation ?? '',
+          );
+          if (traduite) throw traduite;
+          throw erreur;
+        }
+        idsTraites.add(ligneOrCourante.id);
+      }
+
+      facturesCreees.push(await this.documents.assemblerDocument(tx, ctx, principal.role, doc.id));
+    }
+
+    // `inclureDemontageRefuse`/`motifsReport` : voir l'en-tête du contrat (`facturer-or.ts`) —
+    // `demontageFacturablePropose` n'est calculé par AUCUN service au lot 1 (toujours `undefined`
+    // sur `ReponseOrdreReparation`, voir `service-or.ts::assemblerDocument`), donc l'option n'a
+    // structurellement aucun démontage à ajouter ici — pas un oubli, une conséquence directe de
+    // l'absence de la fonctionnalité source. `motifsReport` est validé par le schéma d'entrée
+    // (zod) mais SIGNALÉ COMME NON PERSISTÉ par le contrat lui-même (« décision d'implémentation,
+    // hors périmètre de ce fichier ») : accepté silencieusement, comme le contrat l'anticipe.
+    void entree.inclureDemontageRefuse;
+    void entree.motifsReport;
+
+    // RF-84 : l'OR ne passe à `facture` QUE si cet appel traite le DERNIER groupe encore
+    // facturable — une ligne `realisee` qui n'appartenait à AUCUN groupe demandé reste en
+    // attente, l'OR reste `termine`.
+    const resteAFacturer = toutesLignes.some(
+      (l) => l.statut === 'realisee' && !idsTraites.has(l.id),
     );
+    if (!resteAFacturer) {
+      await this.transitionnerVersFacture(tx, ctx, or, maintenant);
+    }
+
+    const ordreReparationAJour = await this.serviceOr.assemblerDocument(
+      tx,
+      ctx,
+      principal.role,
+      orId,
+    );
+    return { facturesCreees, ordreReparation: ordreReparationAJour };
   }
 
   private async transitionnerVersFacture(

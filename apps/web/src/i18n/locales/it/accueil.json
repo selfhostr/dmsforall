@@ -1,11 +1,57 @@
 {
   "demarrage": {
-    "titre": "Cosa succede oggi"
+    "titre": "Cosa succede oggi",
+    "checklist": {
+      "titre": "Avviare la sua autofficina",
+      "progression": "{faites} passaggi su {total} completati. Ognuno richiede pochi minuti.",
+      "masquer": "Non mostrare più",
+      "chargement": "Verifica della configurazione",
+      "verificationImpossible": "Alcuni passaggi non hanno potuto essere verificati.",
+      "reessayer": "Riprova"
+    },
+    "etat": {
+      "fait": "Fatto",
+      "aFaire": "Da fare",
+      "inconnu": "Da verificare"
+    },
+    "facultatif": "facoltativo",
+    "regler": "Configura",
+    "modifier": "Modifica",
+    "etapes": {
+      "coordonnees": {
+        "titre": "Nome e indirizzo dell'autofficina",
+        "pourquoi": "Compaiono su ogni fattura e sulla fattura QR."
+      },
+      "compte": {
+        "titre": "Conto bancario (IBAN)",
+        "pourquoi": "Senza IBAN le fatture non hanno la fattura QR e i clienti non possono pagare facilmente."
+      },
+      "tva": {
+        "titre": "Numero IVA",
+        "pourquoi": "Deve comparire sulle fatture se è soggetto all'IVA. Altrimenti nasconda questo elenco quando il resto è a posto."
+      },
+      "tauxHoraire": {
+        "titre": "Tariffa oraria",
+        "pourquoi": "Serve a calcolare la manodopera sugli ordini di riparazione."
+      },
+      "motifs": {
+        "titre": "Motivi degli appuntamenti",
+        "pourquoi": "Un appuntamento richiede un motivo (tagliando, collaudo MFK …): controlli l'elenco o aggiunga i suoi."
+      },
+      "collaborateur": {
+        "titre": "Primo collaboratore",
+        "pourquoi": "Crei gli account del team: ognuno vede ciò che il suo ruolo consente."
+      },
+      "borne": {
+        "titre": "Terminale d'officina",
+        "pourquoi": "Un tablet fisso in officina su cui i meccanici timbrano le ore."
+      }
+    }
   },
   "calendrier": {
     "titre": "Questa settimana",
     "apercu": "Anteprima — le date di restituzione promesse questa settimana.",
-    "droitRequis": "Non hai il diritto di consultare gli ordini di riparazione.",
+    "droitRequis": "Non ha il diritto di consultare gli ordini di riparazione.",
     "vide": {
       "titre": "Nessuna restituzione promessa questa settimana",
       "description": "Nessun ordine di riparazione aperto ha una data di restituzione promessa nei prossimi 7 giorni."
@@ -15,7 +61,7 @@
   "echeances": {
     "titre": "Scadenze in arrivo",
     "description": "Set di pneumatici senza movimento da oltre due anni, da richiamare presso il cliente.",
-    "droitRequis": "Non hai il diritto di consultare il deposito pneumatici.",
+    "droitRequis": "Non ha il diritto di consultare il deposito pneumatici.",
     "vide": {
       "titre": "Nessuna scadenza",
       "description": "Nessun set di pneumatici è al momento da richiamare."
@@ -24,5 +70,43 @@
     "autres": "{count, plural, one {+ # altro set da richiamare} other {+ # altri set da richiamare}}",
     "voirTout": "Vedi tutto il deposito pneumatici",
     "aVenir": "I controlli MFK e le garanzie verranno aggiunti a questo elenco molto presto."
+  },
+  "recherche": {
+    "placeholder": "Targa, cliente o n. d'ordine"
+  },
+  "actions": {
+    "titre": "Azioni rapide",
+    "creerOr": "Crea un ordine",
+    "nouveauRendezVous": "Nuovo appuntamento",
+    "encaisser": "Incassa"
+  },
+  "aFaire": {
+    "titre": "Da fare oggi",
+    "toutVoir": "Mostra tutto",
+    "aFacturer": {
+      "titre": "Terminati, da fatturare",
+      "description": "Lavori finiti la cui fattura non è ancora stata fatta.",
+      "vide": {
+        "titre": "Niente da fatturare",
+        "description": "Tutti i lavori terminati sono fatturati."
+      }
+    },
+    "accordClient": {
+      "titre": "In attesa dell'accordo del cliente",
+      "description": "Lavori aggiuntivi proposti: manca la risposta del cliente.",
+      "vide": {
+        "titre": "Nessuna risposta da attendere",
+        "description": "Nessun lavoro attende l'accordo di un cliente."
+      }
+    },
+    "facturesEchues": {
+      "titre": "Fatture scadute",
+      "description": "Fatture con la data di pagamento superata.",
+      "retard": "{count, plural, one {# giorno di ritardo} other {# giorni di ritardo}}",
+      "vide": {
+        "titre": "Nessuna fattura scaduta",
+        "description": "Nessun cliente supera il termine di pagamento."
+      }
+    }
   }
 }

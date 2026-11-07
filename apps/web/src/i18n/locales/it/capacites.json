@@ -1,0 +1,163 @@
+{
+  "domaines": {
+    "atelier": {
+      "libelle": "Officina",
+      "description": "Gli ordini di riparazione e il lavoro in officina.",
+      "exemples": {
+        "1": "Vedere gli ordini di riparazione in corso",
+        "2": "Aprire un ordine e aggiungervi delle righe",
+        "3": "Timbrare le proprie ore",
+        "4": "Convalidare o rifiutare una riga"
+      }
+    },
+    "accueil": {
+      "libelle": "Accettazione",
+      "description": "I clienti, i loro veicoli e gli appuntamenti.",
+      "exemples": {
+        "1": "Cercare un cliente o un veicolo",
+        "2": "Creare una scheda cliente",
+        "3": "Fissare un appuntamento",
+        "4": "Prestare un veicolo di cortesia"
+      }
+    },
+    "facturation": {
+      "libelle": "Fatturazione",
+      "description": "I preventivi, le fatture e i pagamenti.",
+      "exemples": {
+        "1": "Consultare preventivi e fatture",
+        "2": "Allestire un preventivo",
+        "3": "Emettere una fattura",
+        "4": "Incassare un pagamento"
+      }
+    },
+    "pieces": {
+      "libelle": "Ricambi",
+      "description": "Il magazzino, i fornitori e gli ordini di ricambi.",
+      "exemples": {
+        "1": "Consultare il magazzino e le prenotazioni",
+        "2": "Registrare un'entrata o un'uscita",
+        "3": "Ordinare presso un fornitore",
+        "4": "Ricevere una consegna"
+      }
+    },
+    "ventes": {
+      "libelle": "Vendite",
+      "description": "I veicoli nuovi e usati, i ritiri e i finanziamenti.",
+      "exemples": {
+        "1": "Consultare lo stock di veicoli",
+        "2": "Aprire un dossier di vendita",
+        "3": "Registrare un ritiro dell'usato",
+        "4": "Proporre un finanziamento"
+      }
+    },
+    "finances": {
+      "libelle": "Finanze",
+      "description": "Il controllo del denaro dell'autorimessa e la contabilità.",
+      "exemples": {
+        "1": "Vedere il cruscotto finanziario",
+        "2": "Seguire i solleciti delle fatture non pagate",
+        "3": "Emettere una nota di credito o correggere una fattura",
+        "4": "Esportare verso la fiduciaria"
+      }
+    }
+  },
+  "niveaux": {
+    "rien": "Niente",
+    "voir": "Vedere",
+    "faire": "Fare"
+  },
+  "options": {
+    "voitMontants": {
+      "libelle": "Vede gli importi",
+      "description": "Vede i prezzi, i totali e gli importi dei documenti. Senza questo non può né fatturare, né vendere, né accedere alle finanze."
+    },
+    "voitPrixAchat": {
+      "libelle": "Vede i prezzi d'acquisto",
+      "description": "Vede quanto costano i ricambi all'autorimessa, quindi i margini."
+    },
+    "avoirsPlafonnes": {
+      "libelle": "Note di credito limitate",
+      "description": "Può emettere una nota di credito solo fino al massimale fissato nelle impostazioni dell'officina."
+    }
+  },
+  "encadrer": {
+    "libelle": "Guida la squadra",
+    "description": "Corregge le ore degli altri, riapre un ordine di riparazione, toglie un blocco e regola l'officina."
+  },
+  "gererEmployes": {
+    "libelle": "Dipendenti e impostazioni",
+    "description": "Crea gli account dei dipendenti e i terminali d'officina. Si regola con la funzione, non casella per casella."
+  },
+  "prereglages": {
+    "admin": {
+      "libelle": "Amministratore tecnico",
+      "description": "Account dell'integratore: officina, accettazione e account. Nessun accesso a denaro, ricambi o vendite."
+    },
+    "direction": {
+      "libelle": "Direzione",
+      "description": "Il titolare: tutto, compresi i gesti irreversibili come l'IBAN dell'autorimessa."
+    },
+    "vendeur": {
+      "libelle": "Venditore",
+      "description": "Vende i veicoli e fattura. Vede i ricambi, non l'officina. Note di credito limitate."
+    },
+    "receptionnaire": {
+      "libelle": "Addetto all'accettazione",
+      "description": "Tiene il banco: accoglie, allestisce preventivi e fatture, incassa. Note di credito limitate."
+    },
+    "chef_atelier": {
+      "libelle": "Capo officina",
+      "description": "Dirige l'officina: guida la squadra, gestisce i ricambi e fattura. Note di credito limitate."
+    },
+    "technicien": {
+      "libelle": "Meccanico",
+      "description": "Lavora in officina e timbra le sue ore. Non vede alcun importo."
+    },
+    "magasinier": {
+      "libelle": "Magazziniere",
+      "description": "Gestisce il magazzino ricambi, fattura al banco e timbra le sue ore. Note di credito limitate."
+    },
+    "comptable": {
+      "libelle": "Contabile",
+      "description": "Fatturazione e finanze, guarda il resto. Non può cambiare l'IBAN dell'autorimessa."
+    },
+    "fiduciaire": {
+      "libelle": "Fiduciaria (sola lettura)",
+      "description": "Contabile esterno: consulta fatturazione e finanze, non modifica nulla."
+    }
+  },
+  "editeur": {
+    "titre": "Chi può fare cosa",
+    "description": "Scelga un punto di partenza, poi lo adatti se questa persona deve poter fare di più o di meno.",
+    "depart": "Punto di partenza",
+    "grilleTitre": "Cosa può fare questa persona",
+    "domaineAria": "Accesso {domaine}",
+    "exemplesTitre": "Per esempio",
+    "optionsTitre": "Opzioni",
+    "autresTitre": "Altri diritti",
+    "gererEmployesOui": "Sì, con questo punto di partenza",
+    "gererEmployesNon": "No",
+    "personnalise": "Personalizzato",
+    "personnaliseAide": "Questa griglia si discosta dal punto di partenza «{prereglage}».",
+    "conformeAide": "Questa griglia segue esattamente il punto di partenza.",
+    "revenir": "Torna al punto di partenza",
+    "chargement": "Caricamento dei diritti…",
+    "erreurTitre": "Impossibile caricare i diritti",
+    "reessayer": "Riprova",
+    "incoherence": {
+      "montants": "Senza «Vede gli importi», questa persona non può avere questo livello. Passi a «Vedere» o «Niente», oppure attivi l'opzione.",
+      "finances": "Le finanze riguardano il denaro: attivi «Vede gli importi» oppure scelga «Niente».",
+      "depassement": "Non può concedere più di quanto ha Lei stesso."
+    },
+    "incoherencesResume": "Corregga i punti segnalati prima di salvare.",
+    "enregistrer": "Salva i diritti",
+    "enregistrerEnCours": "Salvataggio…",
+    "enregistre": "Diritti salvati."
+  },
+  "resume": {
+    "aucun": "Nessun accesso",
+    "voit": "Vede: {liste}",
+    "encadre": "guida la squadra",
+    "lectureSeule": "Sola lettura"
+  }
+}

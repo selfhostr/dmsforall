@@ -28,7 +28,7 @@
   },
   "enCours": {
     "demarrer": "Démarrer le pointage",
-    "terminer": "Terminer",
+    "terminer": "Arrêter ce pointage",
     "changerLigne": "Changer de ligne",
     "signaler": "Signaler un constat"
   },
@@ -107,6 +107,7 @@
     "aucunOrDescription": "Vous pouvez tout de même choisir n'importe quelle OR ouverte ci-dessous pour démarrer un pointage."
   },
   "toutesLesOr": {
+    "siteBorne": "Seules les OR de ce site sont proposées sur cette borne.",
     "titre": "Toutes les OR ouvertes",
     "afficher": "Afficher toutes les OR ouvertes",
     "masquer": "Masquer",
@@ -147,7 +148,8 @@
     "pointageEnCours": {
       "titre": "Pointage en cours",
       "depuis": "Depuis {heure}",
-      "cumulAujourdhui": "Aujourd'hui sur cette cible : {duree}"
+      "cumulAujourdhui": "Aujourd'hui sur cette cible : {duree}",
+      "etat": "En cours"
     },
     "bandeauReprise": {
       "titre": "Reprendre : {cible}",
@@ -166,12 +168,24 @@
       "reprendre": "Reprendre",
       "changer": "Changer",
       "demarrerOr": "Pointer sur cet OR",
-      "demarrerLigne": "Pointer sur cette ligne"
+      "demarrerLigne": "Pointer sur cette ligne",
+      "photo": "Photo"
     },
     "mesOrs": {
       "titre": "Mes OR du jour",
-      "lignesAssignees": "{count, plural, one {# ligne qui vous est assignée} other {# lignes qui vous sont assignées}}"
+      "lignesAssignees": "{count, plural, one {# ligne qui vous est assignée} other {# lignes qui vous sont assignées}}",
+      "restitution": "Retour promis {date}",
+      "enRetard": "En retard, promis {date}",
+      "horsSite": "Site {site} : pointez depuis la borne de ce site",
+      "horsSiteSansNom": "Autre site : pointez depuis la borne de ce site"
     },
+    "ligneARealiser": {
+      "titre": "Ligne terminée ?",
+      "bouton": "Marquer cette ligne réalisée",
+      "plusTard": "Pas maintenant",
+      "ok": "Ligne marquée réalisée."
+    },
+    "siteAutre": "Cet OR est au site {site} ; pointez depuis la borne de ce site ou demandez au bureau.",
     "choisirCible": {
       "titre": "Que pointez-vous ?",
       "retour": "Retour",
@@ -183,7 +197,8 @@
       "nonPointable": "Pas encore disponible pour le pointage."
     },
     "erreur": {
-      "titre": "Impossible de charger votre pointage"
+      "titre": "Impossible de charger votre pointage",
+      "titreAction": "Pointage impossible"
     }
   },
   "jour": {
@@ -262,10 +277,10 @@
       "arretReussi": "Pointages arrêtés — vous pouvez verrouiller à nouveau."
     },
     "deverrouiller": {
-      "titre": "Déverrouiller (contre-passation)",
+      "titre": "Corriger la période verrouillée",
       "description": "Ne concerne que les pointages déjà verrouillés du site, qui redeviennent validés.",
       "jusquau": "Jusqu'au (inclus)",
-      "motif": "Motif de la contre-passation",
+      "motif": "Motif de la correction",
       "motifRequis": "Le motif est obligatoire pour déverrouiller une période.",
       "action": "Déverrouiller",
       "resultat": "{count, plural, one {# pointage déverrouillé.} other {# pointages déverrouillés.}}"

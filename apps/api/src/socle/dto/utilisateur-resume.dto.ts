@@ -1,3 +1,4 @@
+import { CapacitesPersonneDto } from '../../auth/dto/capacites.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { ROLES_PERSONNE, STATUTS_UTILISATEUR, type UtilisateurResume } from '@dfa/shared';
 import { SiteAffecteResumeDto } from './site-affecte-resume.dto';
@@ -17,6 +18,9 @@ export class UtilisateurResumeDto implements UtilisateurResume {
 
   @ApiProperty({ enum: ROLES_PERSONNE, example: 'technicien' })
   readonly role!: UtilisateurResume['role'];
+
+  @ApiProperty({ type: () => CapacitesPersonneDto })
+  readonly capacites!: CapacitesPersonneDto;
 
   @ApiProperty({ enum: STATUTS_UTILISATEUR, example: 'actif' })
   readonly statut!: UtilisateurResume['statut'];

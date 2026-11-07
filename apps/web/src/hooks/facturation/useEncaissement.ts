@@ -13,14 +13,13 @@ interface VariablesEncaissement {
 /** `POST /paiements` — écran 3 (encaissement). Invalide chaque document imputé (son
  *  `statutReglement`/`soldeCentimes` change) et la liste des factures ; invalide aussi les
  *  « factures ouvertes » de chaque payeur concerné (elles peuvent quitter cette liste). */
-export function useEncaissement(): UseMutationResult<
-  ReponsePaiement,
-  unknown,
-  VariablesEncaissement
-> {
+export function useEncaissement(
+  options: { readonly silencieux?: boolean } = {},
+): UseMutationResult<ReponsePaiement, unknown, VariablesEncaissement> {
   const queryClient = useQueryClient();
 
   return useMutation({
+    meta: options.silencieux ? undefined : { succes: 'commun:toasts.paiementEnregistre' },
     mutationFn: ({ entree, idempotencyKey }: VariablesEncaissement) =>
       creerPaiement(entree, idempotencyKey),
     onSuccess: (paiement, variables) => {

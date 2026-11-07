@@ -16,9 +16,21 @@ interface ContexteRequeteInterne extends Omit<ContexteRequete, 'principal'> {
  * `attacherPrincipal` ne doit être appelée qu'une seule fois, par `GardeSession` : c'est ce
  * qui interdit à toute couche ultérieure de changer le tenant en cours de requête.
  */
+/**
+ * Stockage UNIQUE du processus (et non par instance) : `auth/droits-personne.ts` doit pouvoir lire
+ * le principal de la requête en cours depuis des fonctions pures qui ne reçoivent qu'un `role`
+ * (mappers de montants, aides de services) sans changer la signature d'une centaine d'appelants.
+ */
+const STOCKAGE_REQUETE = new AsyncLocalStorage<ContexteRequeteInterne>();
+
+/** Principal de la requête en cours, `null` hors requête (tâche de fond, test unitaire). */
+export function principalDeLaRequeteCourante(): PrincipalAuthentifie | null {
+  return STOCKAGE_REQUETE.getStore()?.principal ?? null;
+}
+
 @Injectable()
 export class ServiceContexteRequete {
-  private readonly stockage = new AsyncLocalStorage<ContexteRequeteInterne>();
+  private readonly stockage = STOCKAGE_REQUETE;
 
   demarrer<T>(init: Omit<ContexteRequete, 'principal'>, suite: () => T): T {
     const contexte: ContexteRequeteInterne = { ...init, principal: null };

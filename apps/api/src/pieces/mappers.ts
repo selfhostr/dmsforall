@@ -20,6 +20,7 @@ import type {
 import { SEUIL_LIGNES_EMBARQUEES_COMMANDE_FOURNISSEUR } from '@dfa/shared';
 import type { RoleUtilisateur } from '@dfa/shared';
 
+import { voitLesPrixAchat } from '../auth/droits-personne';
 import { enDate } from '../db';
 import type {
   LigneArticle,
@@ -34,27 +35,13 @@ import type {
   LigneStockArticle,
 } from '../db/schema';
 
-/**
- * Rôles auxquels `ReponseArticle.prixAchatCentimes` est masqué (`null` renvoyé quelle que soit la
- * valeur en base) — §11 de `docs/specification-etape-3-pieces.md`, ligne « Voir prix d'achat /
- * marge ». Même doctrine que `ROLES_SANS_MONTANT`/`ROLES_SANS_MONTANT_FACTURATION`
- * (`auth/matrice-droits.ts`, `facturation/documents/mappeurs.ts`) : le filtrage d'un champ
- * financier est une décision d'AUTORISATION appliquée côté serveur, jamais une préférence
- * d'affichage front — vit ici, localement au domaine, comme son homologue facturation.
- *
- * `vendeur`/`receptionnaire` : « non (P) » dans la matrice §11 — paramétrable en théorie, mais
- * AUCUN paramètre `parametre_pieces` ne porte ce réglage (`PP-01`→`PP-08` n'en prévoit aucun pour
- * la visibilité du prix d'achat) : traité comme un « non » ferme pour ce lot, non paramétrable.
- * `technicien` : « non » littéral. `admin` : « non » (RF-115, aucun droit métier). `direction`,
- * `comptable`, `chef_atelier` (« oui (P) », traité oui par défaut faute de paramètre dédié),
- * `magasinier` : « oui ».
+/*
+ * Masquage du prix d'achat (§11 de `docs/specification-etape-3-pieces.md`, ligne « Voir prix
+ * d'achat / marge ») : décision d'AUTORISATION appliquée côté serveur. Elle suit l'option « voit
+ * les prix d'achat » de la personne (`auth/droits-personne.ts::voitLesPrixAchat`). Préréglages
+ * historiques : non pour vendeur, réceptionnaire, technicien, admin ; oui pour direction,
+ * comptable, chef d'atelier, magasinier (et fiduciaire).
  */
-export const ROLES_SANS_PRIX_ACHAT_PIECES: readonly RoleUtilisateur[] = [
-  'vendeur',
-  'receptionnaire',
-  'technicien',
-  'admin',
-];
 
 export function versArticleReferenceResponse(
   ligne: LigneArticleReference,
@@ -76,7 +63,7 @@ export function versArticleResponse(
   referencesTronquees: boolean,
   stocksResume: readonly StockResumeArticle[],
 ): ReponseArticle {
-  const masquerPrixAchat = ROLES_SANS_PRIX_ACHAT_PIECES.includes(role);
+  const masquerPrixAchat = !voitLesPrixAchat(role);
   return {
     id: ligne.id,
     // `numeroArticle` nullable côté Drizzle (voir schema/pieces/article.ts) mais toujours
@@ -214,7 +201,7 @@ export function versMouvementResponse(
   ligne: LigneMouvementStock,
   role: RoleUtilisateur,
 ): ReponseMouvementStock {
-  const masquerPrixAchat = ROLES_SANS_PRIX_ACHAT_PIECES.includes(role);
+  const masquerPrixAchat = !voitLesPrixAchat(role);
   return {
     id: ligne.id,
     articleId: ligne.articleId,
@@ -285,6 +272,7 @@ export interface DonneesRechercheComptoir {
   readonly designation: string;
   readonly referencePrincipale: string;
   readonly prixVenteTtcCentimes: number;
+  readonly prixAchatCentimes: number | null;
   readonly quantitePhysiqueMillieme: number | null;
   readonly quantiteReserveeMillieme: number | null;
   readonly suiviQuelquePart: boolean;
@@ -297,6 +285,7 @@ export interface DonneesRechercheComptoir {
 
 export function versRechercheComptoirResultat(
   donnees: DonneesRechercheComptoir,
+  role: RoleUtilisateur,
 ): ResultatRechercheComptoirArticle {
   const suivi = donnees.quantitePhysiqueMillieme !== null;
   const statutSuivi: StatutSuiviStockArticle = suivi
@@ -310,6 +299,7 @@ export function versRechercheComptoirResultat(
     designation: donnees.designation,
     referencePrincipale: donnees.referencePrincipale,
     prixVenteTtcCentimes: donnees.prixVenteTtcCentimes,
+    prixAchatCentimes: !voitLesPrixAchat(role) ? null : donnees.prixAchatCentimes,
     quantiteDisponibleMillieme: suivi
       ? (donnees.quantitePhysiqueMillieme ?? 0) - (donnees.quantiteReserveeMillieme ?? 0)
       : 0,

@@ -134,6 +134,7 @@ const CONTEXTE: ReponseContexteAtelier = {
         ligneOrOrigineId: null,
         ordreReparationRepriseId: null,
         motifModification: null,
+        detail: null,
       },
       {
         id: 't2',
@@ -148,6 +149,7 @@ const CONTEXTE: ReponseContexteAtelier = {
         ligneOrOrigineId: null,
         ordreReparationRepriseId: null,
         motifModification: null,
+        detail: null,
       },
     ],
   },
@@ -174,6 +176,7 @@ const TRAVAUX_REPORTES: readonly ReponseTravailReporte[] = [
     ligneOrOrigineId: null,
     ordreReparationRepriseId: null,
     motifModification: null,
+    detail: null,
   },
   {
     id: 't2',
@@ -188,6 +191,7 @@ const TRAVAUX_REPORTES: readonly ReponseTravailReporte[] = [
     ligneOrOrigineId: null,
     ordreReparationRepriseId: null,
     motifModification: null,
+    detail: null,
   },
 ];
 
@@ -332,7 +336,11 @@ describe('EcranFicheVehicule', () => {
     rendre();
 
     expect(await screen.findByText('Impossible de charger le véhicule')).toBeInTheDocument();
-    expect(screen.getByText('Cet élément est introuvable.')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Cet élément n'existe plus ou a été supprimé. Revenez à la liste et recherchez-le de nouveau.",
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Réessayer' })).toBeInTheDocument();
   });
 
@@ -681,9 +689,7 @@ describe('EcranFicheVehicule', () => {
       rendre();
 
       expect(
-        await screen.findByText(
-          "Vous n'avez pas le droit de consulter les dossiers de vente de ce véhicule.",
-        ),
+        await screen.findByText("Vous n'avez pas le droit de consulter les ventes de ce véhicule."),
       ).toBeInTheDocument();
     },
   );
@@ -760,6 +766,9 @@ describe('EcranFicheVehicule', () => {
       // `CarteRendezVous` (composant partagé, hors périmètre ici) affiche le créneau
       // (moment/heure) et le client, jamais `dateLe` directement — voir `libelleCreneau`.
       expect(await screen.findByText('Matin')).toBeInTheDocument();
+      // Chaque ligne dit AUSSI quel jour et quel site (« jj.mm.aaaa · nom du site »), pas seulement
+      // « Matin Confirmé ».
+      expect(screen.getByText('01.09.2026 · Site principal')).toBeInTheDocument();
       expect(screen.getByText('Client Sans Lien', { exact: false })).toBeInTheDocument();
       // Le filtre serveur porte sur `vehiculeId`, plus jamais sur `clientId` (l'ancien
       // contournement, désormais retiré).

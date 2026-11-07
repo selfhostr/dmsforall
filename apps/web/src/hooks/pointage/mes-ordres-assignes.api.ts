@@ -1,10 +1,15 @@
-import type { PageCurseur, ReponseOrdreReparation, StatutOrdreReparation } from '@dfa/shared';
+import type {
+  OrdreReparationResumeListe,
+  PageCurseur,
+  ReponseOrdreReparation,
+  StatutOrdreReparation,
+} from '@dfa/shared';
 
 import { requeteApi } from '@/api/client';
 
 /**
- * `GET /ordres-reparation?technicienId=&statut[]=` — « Mes OR du jour » (écran de pointage du
- * technicien). Transport DÉDIÉ, PAS une réutilisation de `hooks/atelier/ordres-reparation.api.ts` :
+ * `GET /ordres-reparation?technicienId=&statut[]=&forme=resume` — « Mes OR du jour » (écran de
+ * pointage du technicien). Transport DÉDIÉ, PAS une réutilisation de `hooks/atelier/ordres-reparation.api.ts` :
  * ce fichier — hors périmètre d'écriture de ce lot — expose `FiltresListeOrdresReparation` sans
  * `technicienId` ET avec `statut` en mono-sélection, alors que le contrat serveur
  * (`schemaFiltresOrdresReparation`, `contrats/atelier/ordre-reparation.ts`) accepte bel et bien les
@@ -29,7 +34,23 @@ function construireParametres(filtres: FiltresMesOrdresAssignes, limite: number)
   return parametres.toString();
 }
 
+/** `forme=resume` : `OrdreReparationResumeListe` (avec `nombreLignesAssignees`), ~10 % du poids du
+ *  document complet. */
 export async function listerMesOrdresAssignes(
+  filtres: FiltresMesOrdresAssignes,
+  limite: number,
+): Promise<PageCurseur<OrdreReparationResumeListe>> {
+  const page = await requeteApi<PageCurseur<OrdreReparationResumeListe>>(
+    `/ordres-reparation?${construireParametres(filtres, limite)}&forme=resume`,
+    { method: 'GET' },
+  );
+  return page ?? { donnees: [], curseurSuivant: null, limite };
+}
+
+/** Document complet (`lignes` incluses) : seulement pour la borne, où le compte de session n'est
+ *  pas le technicien identifié par PIN, donc `nombreLignesAssignees` (calculé pour le compte de
+ *  session) vaut 0 et ne peut pas servir. */
+export async function listerMesOrdresAssignesComplets(
   filtres: FiltresMesOrdresAssignes,
   limite: number,
 ): Promise<PageCurseur<ReponseOrdreReparation>> {

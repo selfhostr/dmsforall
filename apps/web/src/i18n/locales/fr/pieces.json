@@ -63,10 +63,10 @@
     },
     "tva": "TVA",
     "tauxTvaLibelles": {
-      "81": "8.1 % (taux normal)",
+      "0": "0 % (exonéré)",
       "26": "2.6 % (taux réduit)",
       "38": "3.8 % (hébergement)",
-      "0": "0 % (exonéré)"
+      "81": "8.1 % (taux normal)"
     },
     "categorie": "Catégorie",
     "categories": {
@@ -364,7 +364,7 @@
       "cloturee": "Clôturée",
       "annulee": "Annulée"
     },
-    "origine": "Origine",
+    "origine": "Provenance",
     "origines": {
       "manuelle": "Manuelle",
       "reservation_rupture": "Rupture de réservation",
@@ -573,7 +573,7 @@
       },
       "premierUsage": {
         "titre": "Aucune facture fournisseur déposée",
-        "description": "Déposez une facture pour démarrer le rapprochement."
+        "description": "Déposez une facture fournisseur : nous la lisons et la relions à une commande."
       }
     },
     "erreur": {
@@ -632,8 +632,8 @@
       "titre": "Résultat de la lecture",
       "fournisseurTrouveTitre": "Fournisseur reconnu",
       "fournisseurAbsentTitre": "Aucun fournisseur reconnu",
-      "fournisseurAbsentDescription": "Le nom lu sur la facture ne correspond à aucun fournisseur du tenant. Vérifiez-le avant de valider.",
-      "commandeTrouveeTitre": "Rapprochée à une commande fournisseur",
+      "fournisseurAbsentDescription": "Le nom lu sur la facture ne correspond à aucun fournisseur de votre garage. Vérifiez-le, ou créez le fournisseur avant de valider.",
+      "commandeTrouveeTitre": "Reliée à une commande fournisseur",
       "commandeAbsenteTitre": "Aucune commande correspondante",
       "commandeAbsenteDescription": "Cette facture n'a pas pu être rattachée à une commande fournisseur. Vérifiez-la manuellement avant de valider."
     },
@@ -679,7 +679,7 @@
     "actions": {
       "deposer": "Déposer une facture",
       "voirDocument": "Voir le document",
-      "valider": "Valider le rapprochement",
+      "valider": "Valider la facture fournisseur",
       "rejeter": "Rejeter",
       "deposerUneAutre": "Déposer une autre facture",
       "consulter": "Consulter"

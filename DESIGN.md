@@ -110,11 +110,11 @@ Deux polices, auto-hébergées dans `apps/web/src/polices/` et servies par l'app
 - **IBM Plex Sans** pour la lecture.
 - **IBM Plex Mono** pour les identifiants (plaque, VIN, numéro d'ordre de réparation). Le zéro est barré et les caractères `1`, `l` et `I` sont distincts.
 
-Huit rôles typographiques, définis dans `apps/web/src/index.css` (`.densite-dense`, `.densite-aeree`, `.densite-tres-aeree`). La taille d'un rôle ne change pas avec le thème.
+Huit rôles typographiques, définis dans `apps/web/src/index.css` (`.densite-dense`, `.densite-aeree`, `.densite-tres-aeree`). La taille d'un rôle ne change pas avec le thème. Plancher : aucun texte lu ne descend sous 13 px (le libellé compact valait 12 px avant le lot « densité et cibles »).
 
 | Rôle               | Classe                      | Dense | Aérée | Très aérée |
 | ------------------ | --------------------------- | ----- | ----- | ---------- |
-| Libellé            | `.texte-libelle`            | 12/16 | 14/20 | 16/24      |
+| Libellé            | `.texte-libelle`            | 13/16 | 14/20 | 16/24      |
 | Corps              | `.texte-corps`              | 14/20 | 16/24 | 18/28      |
 | Titre de section   | `.texte-titre-section`      | 16/24 | 18/28 | 20/28      |
 | Titre d'écran      | `.texte-titre-page`         | 20/28 | 22/28 | 24/32      |
@@ -125,13 +125,36 @@ Huit rôles typographiques, définis dans `apps/web/src/index.css` (`.densite-de
 
 Trois densités, chacune avec son jeu de jetons `--espace-*`, hérité par toute la sous-arborescence :
 
-- `.densite-dense` : poste de comptoir et de bureau ;
-- `.densite-aeree` : tablette d'atelier ;
-- `.densite-tres-aeree` : pointage.
+- `.densite-dense` (nom d'usage : **compacte**) : souris et grand écran ;
+- `.densite-aeree` : tablette ;
+- `.densite-tres-aeree` : pointage (borne).
+
+### Choix selon l'appareil
+
+La densité de l'application est choisie par `useDensite()` (`apps/web/src/hooks/useDensite.ts`) et posée sur `<html>` par `SynchronisationDensite` (montée dans `App.tsx`). Un écran n'a rien à faire : il lit les jetons.
+
+| Condition (mode automatique)             | Densité    | Corps | Libellé | Ligne de tableau | Barre haute |
+| ---------------------------------------- | ---------- | ----- | ------- | ---------------- | ----------- |
+| `(pointer: coarse)` OU largeur < 1024 px | `aeree`    | 16 px | 14 px   | 48 px            | 56 px       |
+| Sinon (souris, y compris 1024-1279 px)   | `compacte` | 14 px | 13 px   | 40 px            | 44 px       |
+
+- L'utilisateur peut forcer « Compacte » ou « Aérée » depuis le bouton `Aa` de la barre haute (`SelecteurDensite`, à côté de la bascule de thème). Le choix est stocké dans le navigateur (`localStorage`, clé `dfa-densite`), comme le thème : aucun point d'API. « Automatique » est le défaut.
+- `index.html` pose `densite-dense`/`densite-aeree` avant le premier rendu (même règle que `resoudreDensite`) ; `Button size="sm"` mesure 44 px visibles en `aeree` et `tres-aeree`.
+- La borne de pointage garde `densite-tres-aeree` posée localement (sa sous-arborescence l'emporte sur la racine).
+- `Table` et `TableComptoir` n'ont plus de densité par défaut : ils héritent de la racine. Ne passer `densite=` que pour un cas qui diffère réellement de l'appareil.
+- Aucune hauteur ou taille n'est écrite en dur dans un composant : `--densite-hauteur-ligne`, `--hauteur-barre-haute`, `--texte-*`, `--cible-tactile` (index.css).
+
+### Cible tactile
+
+`--cible-tactile` vaut 44 px dans toutes les densités. Tout contrôle interactif (onglet, segment, bouton icône, lien de fil d'Ariane, bouton d'identification de ligne, bouton de copie) mesure au moins 44 px de haut et de large, y compris à la souris : un poste de bureau peut devenir une tablette. Un contrôle visuellement plus petit étend sa zone avec la classe `.zone-cible` (pseudo-élément invisible, aucun effet sur la mise en page). Interdit : `h-8`, `h-9` sur un contrôle cliquable.
+
+`--espace-carte` vaut 16, 20 et 24 px selon la densité. `--espace-carte-compacte` vaut 12, 16 et 20 px. Le composant `Card` accepte la prop `compact` pour basculer sur ce second rembourrage.
 
 Un écran n'écrit jamais de marge en dur (`p-6`). Il lit `p-carte`, `gap-groupe` ou `gap-section`.
 
-`--espace-carte` vaut 16, 20 et 24 px selon la densité. `--espace-carte-compacte` vaut 12, 16 et 20 px. Le composant `Card` accepte la prop `compact` pour basculer sur ce second rembourrage.
+### Cadre
+
+La barre haute vaut 44 px en compacte et 56 px en aérée (`--hauteur-barre-haute`). Les onglets de domaine et les vues (`OngletsDomaine`) tiennent sur UNE rangée de 44 px quand la largeur le permet, les vues à droite ; elles ne passent sur une seconde rangée que si les deux ne tiennent pas côte à côte. Hauteur avant le titre d'écran : 89 px au lieu de 104 à 148 px en compacte avec vues.
 
 ## Bordure structurelle uniquement
 
@@ -161,6 +184,12 @@ Tout composant à superposition ou portail (Dialog, Popover, Select, Combobox, M
 
 Un composant feuille, sans portail ni piège de focus, peut provenir du registre coss (MIT). Chaque fichier garde un commentaire de provenance. Base UI et Radix gèrent chacun le focus et `aria-hidden` de leurs propres couches sans se connaître : mesuré en exécution, un Dialog Radix modal ouvert avec un Popover Base UI rend ce dernier invisible aux lecteurs d'écran. Ne jamais mélanger les deux familles dans un même arbre de composants ouverts en même temps.
 
+### Onglets, segments et badges de statut
+
+- **Un seul composant d'onglets** : `components/ui/tabs.tsx` (Base UI). `TabsList variante="soulignee"` (défaut) pour les onglets de fiche ; `variante="segments"` pour un sélecteur segmenté. Pour un simple filtre sans panneau (bascule liste/plan, horizon, onglet de liste), utiliser `composants/commun/Segments.tsx` : `<Segments valeur onChange options ariaLabel />`. Interdit : réécrire un `tablist` à la main avec `h-9`.
+- `OngletsDomaine` est une navigation par liens (`aria-current`), pas un `tablist` ; il lit les mêmes jetons de taille.
+- **Un seul badge de statut** : `composants/identite/BadgeStatut.tsx` (`icone`, `token`, `forme`). Interdit de recomposer `border-statut-*` / `bg-statut-*-fond` dans un écran.
+
 ## Focus et accessibilité
 
 - Le focus est visible partout. `.anneau-focus` (anneau extérieur) pour les contrôles du flux. `.anneau-focus-interne` (anneau intérieur, `box-shadow: inset`) pour un élément dans un conteneur `overflow: hidden`, comme un item de `Select`.
@@ -174,3 +203,46 @@ Un composant feuille, sans portail ni piège de focus, peut provenir du registre
 Les ratios sont calculés par `apps/web/src/test/accessibilite/contraste.ts` (luminance relative WCAG 2.1, sans dépendance) à partir des jetons lus dans `index.css` par `jetons-css.ts`. Ce module distingue les blocs `:root` et `.dark` et reproduit la cascade CSS : un jeton absent de `.dark` retombe sur sa valeur `:root`.
 
 `axe-core` ne mesure pas le contraste réel dans ce dépôt, car jsdom ne calcule pas les styles rendus. La mesure sur les valeurs HSL déclarées est donc la méthode retenue.
+
+## Retour après une action
+
+Chaque action qui réussit donne un retour visible. Mécanisme générique, branché sur le `mutationCache` de `App.tsx` (`apps/web/src/api/toast-succes-mutation.ts`) : la mutation déclare son toast dans `meta`, elle n'appelle jamais un toast elle-même.
+
+```ts
+useMutation({
+  mutationFn,
+  // Toast « Client créé », 8 s, sans bouton.
+  meta: { succes: 'commun:toasts.clientCree' },
+});
+
+useMutation({
+  mutationFn,
+  // Toast « OR terminé » avec « Annuler » pendant 8 s ; `annuler` reçoit (donnees, variables)
+  // et doit rétablir l'état précédent (appel API inverse) en rejetant s'il échoue.
+  meta: {
+    succes: 'commun:toasts.orTermine',
+    annuler: (_donnees, { id }) => rouvrirOrdreReparation(id),
+  },
+});
+```
+
+- `succes` : clé i18n `namespace:cle`. Sans `meta.succes`, rien n'est affiché (pas de bruit pour un brouillon ou un rafraîchissement). Valeurs ICU : `succesVariables: (donnees, variables) => ({ nom })`.
+- `annuler` : facultatif, réservé aux actions réellement réversibles par l'API. Le toast se met en pause au survol et au focus.
+- Les clés partagées vivent dans `commun.json` sous `toasts.*` (FR, DE, IT) ; une clé propre à un domaine peut vivre dans son namespace.
+- Exemples branchés : `useCreerClient`, `useCreerVehicule`, `useDeplacerRendezVous`, `useCreerArticle`, `useArreterPointage`.
+- Un échec reste traité par le filet d'erreur (`FiletErreurMutation`) ; `ToastsSucces` (bas gauche, `role="status"`) et le filet d'erreur (bas droit, `role="alert"`) ne se mélangent jamais. Le toast de succès flotte sur `bg-popover` (icône `statut-succes` pour le signal) : la couleur `statut-succes-fond` reste réservée aux badges de statut « terminé ».
+
+### Quand garder un dialogue de confirmation
+
+Le dialogue est réservé aux actions **irréversibles ou à effet externe**. Toute action réversible passe en toast avec « Annuler ».
+
+Dialogue obligatoire :
+
+- émission d'une facture (verrouillée ; la correction passe par un avoir) et émission d'un avoir ;
+- clôture d'une période de pointage ;
+- envoi d'un document ou d'une relance au client (courriel, impression officielle) ;
+- suppression définitive d'une donnée (client, véhicule, article) et rejet d'un brouillon ;
+- encaissement (écriture comptable) et export fiduciaire ;
+- changement de rôle ou retrait d'accès d'un utilisateur.
+
+Toast avec « Annuler » (pas de dialogue) : démarrer ou terminer un OR, déplacer un rendez-vous, changer un statut de ligne, marquer une consigne rendue, créer une fiche.

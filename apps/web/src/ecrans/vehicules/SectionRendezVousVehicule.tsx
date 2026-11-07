@@ -107,11 +107,17 @@ export function SectionRendezVousVehicule({ vehicule, detenteur, site }: Props) 
   // DISTINCTS (« on ne sait pas », « il n'y en a pas » et « tu n'as pas le droit » ne partagent
   // jamais le même rendu, doctrine du dépôt).
   const session = useSession();
-  const peutVoirRendezVous = peutLireRendezVous(session.data?.utilisateur.role);
+  const peutVoirRendezVous = peutLireRendezVous(session.data?.actions);
 
   const requeteRdv = useRendezVousAVenirVehicule(vehicule.id, { enabled: peutVoirRendezVous });
-  const requeteMotifs = useMotifsRendezVous();
+  const requeteMotifs = useMotifsRendezVous({ actifs: true });
   const creation = useCreationRendezVous();
+
+  /** « jj.mm.aaaa · nom du site » — le créneau seul ne dit ni quel jour ni quel site. */
+  function contexteRendezVous(rdv: ReponseRendezVous): string {
+    const siteNom = session.data?.sites.find((s) => s.id === rdv.siteId)?.nom;
+    return siteNom ? `${formaterDate(rdv.dateLe)} · ${siteNom}` : formaterDate(rdv.dateLe);
+  }
 
   function ouvrirDialogue() {
     const d = requeteDetenteurComplet.data;
@@ -201,6 +207,7 @@ export function SectionRendezVousVehicule({ vehicule, detenteur, site }: Props) 
                 <CarteRendezVous
                   rendezVous={versCarteRendezVous(rdv, langue)}
                   onOuvrir={() => navigate(chemins.atelier.rendezVous.agenda(site?.id))}
+                  contexte={contexteRendezVous(rdv)}
                   dense
                 />
               </li>

@@ -355,9 +355,65 @@ describe('EcranNouvelleCommandeFournisseur — pré-remplissage depuis le réapp
     expect(
       await screen.findByRole('heading', { name: 'Nouvelle commande fournisseur' }),
     ).toBeInTheDocument();
+    // Garage mono-site (SESSION_TEST) : le site est implicite — pas de champ « site », la recherche
+    // d'articles est disponible sans « choisir un site d'abord ».
     expect(
-      screen.getByText(i18n.t('pieces:commandes.nouvelle.choisirSiteDabord')),
+      await screen.findByPlaceholderText(i18n.t('pieces:rechercheComptoir.champRecherche')),
     ).toBeInTheDocument();
+    expect(screen.queryByLabelText(i18n.t('pieces:commandes.site'))).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(i18n.t('pieces:commandes.nouvelle.choisirSiteDabord')),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('Plaquettes de frein avant')).not.toBeInTheDocument();
+  });
+
+  describe('ajout depuis la recherche comptoir : le prix attendu vient du prix d’ACHAT, jamais du prix de vente', () => {
+    function resultatRecherche(prixAchatCentimes: number | null) {
+      return {
+        articleId: ARTICLE_UUID,
+        numeroArticle: 'P-000123',
+        designation: 'Plaquettes de frein avant',
+        referencePrincipale: '1K0698151',
+        prixVenteTtcCentimes: 8900,
+        prixAchatCentimes,
+        quantiteDisponibleMillieme: 0,
+        statutSuivi: 'nonSuiviNullePart',
+        emplacement: null,
+        rayon: null,
+        tiroir: null,
+        estEchangeStandard: false,
+        montantConsigneTtcCentimes: null,
+      };
+    }
+
+    async function ajouterDepuisRecherche(prixAchatCentimes: number | null) {
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_UUID)),
+        http.get('/api/v1/fournisseurs', () =>
+          HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 200 }),
+        ),
+        http.get('/api/v1/articles/recherche-comptoir', () =>
+          HttpResponse.json([resultatRecherche(prixAchatCentimes)]),
+        ),
+      );
+      rendreAvecPreremplissage({ siteId: SITE_UUID, lignes: [] });
+      const utilisateur = userEvent.setup();
+      await utilisateur.type(
+        await screen.findByPlaceholderText(i18n.t('pieces:rechercheComptoir.champRecherche')),
+        'plaq',
+      );
+      await utilisateur.click(
+        await screen.findByRole('button', { name: /Plaquettes de frein avant/ }),
+      );
+      return screen.findByLabelText(i18n.t('pieces:commandes.lignes.prixAchatAttendu'));
+    }
+
+    it('prix d’achat connu : champ prérempli avec sa valeur exacte (12.00, pas 89.00)', async () => {
+      expect(await ajouterDepuisRecherche(1200)).toHaveValue('12.00');
+    });
+
+    it('prix d’achat inconnu (null) : champ laissé vide, le prix de vente n’est jamais repris', async () => {
+      expect(await ajouterDepuisRecherche(null)).toHaveValue('');
+    });
   });
 });

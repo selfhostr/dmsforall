@@ -1,5 +1,7 @@
 import type { TFunction } from 'i18next';
 
+import { ErreurApi, messageErreur } from '@/api/erreurs';
+
 import type { ActiviteIndirecte, ReponseOrdreReparation, ReponsePointage } from '@dfa/shared';
 
 /**
@@ -135,4 +137,18 @@ export function libelleCiblePointageTechnicien(
     return t('pointage:technicien.cible.or', { numero: or.numero });
   }
   return libelleCiblePointage(pointage, t);
+}
+
+/**
+ * Message d'un geste de pointage refusé. `POINTAGE_SITE_AUTRE` (OR d'un autre site que la borne)
+ * dit LE SITE en clair quand le serveur le nomme (`blocages[0].donnees.siteNom`) ; tout autre
+ * refus garde le message générique du code (`messageErreur`).
+ */
+export function messageErreurPointage(erreur: unknown, t: TFunction): string {
+  if (erreur instanceof ErreurApi && erreur.probleme.code === 'POINTAGE_SITE_AUTRE') {
+    const site = erreur.blocages[0]?.donnees?.['siteNom'];
+    if (typeof site === 'string' && site !== '')
+      return t('pointage:technicien.siteAutre', { site });
+  }
+  return messageErreur(erreur, t);
 }

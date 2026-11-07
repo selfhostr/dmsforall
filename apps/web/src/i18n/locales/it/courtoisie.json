@@ -1,0 +1,50 @@
+{
+  "titre": "Veicoli di cortesia",
+  "sousTitre": "Auto sostitutive prestate ai clienti durante la riparazione.",
+  "jour": "Giorno",
+  "erreur": "Impossibile caricare i veicoli di cortesia",
+  "resume": "{libres, plural, =0 {Nessuna auto libera} one {# auto libera} other {# auto libere}} su {total}",
+  "vide": {
+    "titre": "Nessun veicolo di cortesia",
+    "description": "Aggiungete le auto che prestate ai clienti per sapere quale è libera."
+  },
+  "disponibilite": {
+    "libre": "Libera",
+    "occupe": "In prestito"
+  },
+  "etat": {
+    "disponible": "Disponibile",
+    "en_entretien": "In manutenzione",
+    "hors_service": "Fuori servizio"
+  },
+  "enRetard": "Non ancora restituita",
+  "reserve": "Prenotata",
+  "actions": {
+    "preter": "Prestare",
+    "rendu": "Restituita",
+    "remettre": "Consegnare le chiavi",
+    "annuler": "Annullare il prestito"
+  },
+  "pret": {
+    "titre": "Prestare un'auto",
+    "client": "Cliente",
+    "du": "Dal",
+    "au": "Al",
+    "kmDepart": "km alla partenza",
+    "confirmer": "Prestare",
+    "erreurValidation": "Scelga un cliente e un periodo valido (fine dopo l'inizio)."
+  },
+  "retour": {
+    "titre": "Riprendere l'auto",
+    "kmRetour": "km al ritorno",
+    "confirmer": "Registra il ritorno"
+  },
+  "parc": {
+    "ajouter": "Aggiungere un'auto",
+    "ajouterTitre": "Aggiungere un'auto di cortesia",
+    "designation": "Designazione",
+    "designationPlaceholder": "Es. VW Polo grigia",
+    "plaque": "Targa",
+    "erreurValidation": "Indichi la designazione dell'auto."
+  }
+}

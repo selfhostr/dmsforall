@@ -9,7 +9,7 @@
     "attentePieces": "Attente pièces",
     "attenteExterne": "Attente externe",
     "controle": "Contrôle",
-    "termine": "Terminé",
+    "termine": "Travaux terminés",
     "facture": "Facturé",
     "restitue": "Restitué",
     "cloture": "Clôturé",
@@ -26,8 +26,8 @@
     "termine": "Travaux terminés, prêt au retrait",
     "facture": "Facturé, en attente de paiement",
     "restitue": "Véhicule restitué au client",
-    "cloture": "Dossier fermé",
-    "annule": "Dossier annulé"
+    "cloture": "OR clôturé",
+    "annule": "OR annulé"
   },
   "bandeau": {
     "numero": "OR",
@@ -38,14 +38,14 @@
     "localisation": "Localisation",
     "restitutionPromise": "Restitution promise",
     "plafond": "Plafond",
-    "totalDuJour": "Aujourd'hui",
+    "totalDuJour": "Total du jour",
     "techniciensEnCours": "Techniciens en cours",
     "numeroPo": "N° de bon de commande du client",
     "restitutionReportee": "Reportée",
     "orPrecedent": "OR précédent : {numero}"
   },
   "localisations": {
-    "parc": "Parc",
+    "parc": "Parking",
     "atelier": "Atelier",
     "sousTraitant": "Chez {fournisseur}",
     "essaiRoutier": "Essai routier",
@@ -67,21 +67,21 @@
       "annule": "Annulé"
     },
     "colonnes": {
-      "origine": "Origine",
+      "origine": "Provenance",
       "designation": "Désignation",
       "type": "Type",
       "quantite": "Qté",
-      "tempsBareme": "Temps barémé",
+      "tempsBareme": "Temps forfaitaire",
       "tempsPointe": "Temps pointé",
       "prixUnitaire": "Prix unitaire HT",
       "rabais": "Rabais",
-      "payeur": "Payeur",
+      "payeur": "Qui paie",
       "technicien": "Technicien",
       "totalTtc": "Total TTC",
       "statut": "Statut"
     },
     "types": {
-      "mainOeuvreBaremee": "Main-d'œuvre (temps barémé)",
+      "mainOeuvreBaremee": "Main-d'œuvre (temps forfaitaire)",
       "mainOeuvreTempsReel": "Main-d'œuvre (temps réellement pointé)",
       "forfait": "Forfait",
       "piece": "Pièce (prélevée du stock)",
@@ -93,8 +93,8 @@
       "texte": "Information"
     },
     "origines": {
-      "commandee": "Client",
-      "constatee": "Constatée",
+      "commandee": "Demandé par le client",
+      "constatee": "Découvert pendant l'intervention",
       "campagne": "Campagne",
       "garantie": "Garantie",
       "retouche": "Retouche",
@@ -134,7 +134,7 @@
       "placeholder": "Saisissez une désignation (Ctrl+Entrée)",
       "aide": "Saisie rapide : Entrée crée, Maj+Entrée reste sur la ligne, Échap abandonne. Alt+T/R/F/P/S pour type",
       "raccourcis": {
-        "travail": "Alt+T = M.O. barémée",
+        "travail": "Alt+T = M.O. forfaitaire",
         "tempsReel": "Alt+R = Temps réel",
         "forfait": "Alt+F = Forfait",
         "piece": "Alt+P = Pièce",
@@ -146,9 +146,8 @@
       "refuser": "Refuser",
       "annuler": "Annuler",
       "dupliquer": "Dupliquer",
-      "marquerRealisee": "Marquer réalisée",
       "affecterTechnicien": "Affecter technicien",
-      "changerPayeur": "Changer payeur"
+      "changerPayeur": "Changer qui paie"
     },
     "annulation": {
       "titre": "Annuler la ligne",
@@ -201,11 +200,19 @@
       "validerTitre": "{count, plural, one {Valider # ligne} other {Valider # lignes}}",
       "refuserTitre": "{count, plural, one {Refuser # ligne} other {Refuser # lignes}}",
       "annulerTitre": "{count, plural, one {Annuler # ligne} other {Annuler # lignes}}"
+    },
+    "attenteAccord": {
+      "indicateur": "En attente d'accord du client",
+      "ajouteeBureau": "Travail ajouté, en attente d'accord du client. Utilisez « Accord du client » sur la ligne.",
+      "ajouteeAtelier": "Travail ajouté, en attente d'accord du client. Le bureau le voit sur cet OR."
+    },
+    "reporter": {
+      "action": "Reporter ce travail"
     }
   },
   "demandes": {
     "titre": "Demandes du client",
-    "verbatim": "Verbatim",
+    "verbatim": "Demandes du client",
     "ajouter": "Ajouter",
     "aide": "Les demandes ne sont jamais reformulées – elles gardent les termes exacts du client",
     "jamaisReformule": "Conservé tel quel"
@@ -240,7 +247,7 @@
       },
       "interlocuteur": "Personne qui a répondu",
       "interlocuteurRequis": "Le nom de l'interlocuteur est obligatoire",
-      "retranscription": "Retranscription libre",
+      "retranscription": "Remarque libre",
       "enregistrer": "Enregistrer la réponse"
     },
     "enAttenteDepuis": "En attente depuis {duree}",
@@ -282,13 +289,14 @@
     "passerEnControle": "Passer en contrôle",
     "refuserControle": "Refuser le contrôle",
     "validerControle": "Valider le contrôle",
-    "terminer": "Terminer",
+    "terminer": "Travaux terminés",
     "facturer": "Facturer",
     "restituer": "Restituer le véhicule",
     "cloturer": "Clôturer",
     "annuler": "Annuler l'OR",
     "rouvrir": "Rouvrir",
-    "reprendreTravaux": "Reprendre les travaux"
+    "reprendreTravaux": "Reprendre les travaux",
+    "facturerEncaisser": "Facturer et encaisser"
   },
   "refus": {
     "ligneAValider": "Certaines lignes attendent un accord. Elles sont listées ci-dessous.",
@@ -330,7 +338,7 @@
   "liste": {
     "titre": "Ordres de réparation",
     "actions": {
-      "nouveau": "Nouvel ordre de réparation"
+      "nouveau": "Créer un OR"
     },
     "colonnes": {
       "numero": "N° OR",
@@ -401,17 +409,22 @@
     "titre": "Actions",
     "imprimer": "Imprimer l'OR",
     "confirmer": "Confirmer",
-    "confirmerAction": "Confirmez cette action.",
+    "confirmation": {
+      "demarrer": "L'OR passe en cours : les techniciens peuvent commencer à pointer et à réaliser les travaux.",
+      "passerEnControle": "L'OR passe en contrôle : les travaux sont vérifiés avant d'être déclarés terminés.",
+      "cloturer": "L'OR est clôturé : il ne pourra plus être modifié ni facturé."
+    },
     "annulerAvertissement": "Cette action est définitive : l'ordre de réparation annulé ne pourra plus être ni modifié ni repris.",
     "motif": "Motif",
     "motifRequis": "Le motif est obligatoire",
     "kilometrageEntree": "Kilométrage à l'entrée",
     "kilometrageSortie": "Kilométrage à la sortie",
-    "signatureDifferee": "Signer plus tard",
+    "signatureDifferee": "Le client signera plus tard",
     "motifSignatureDifferee": "Motif du report de signature",
     "paiementRecu": "Paiement reçu à la restitution",
     "aucuneActionDisponible": "Aucune action possible pour le moment.",
-    "autresActions": "Autres actions"
+    "autresActions": "Autres actions",
+    "kilometrageAide": "Relevé au compteur à l'entrée"
   },
   "totaux": {
     "titre": "Totaux",
@@ -419,7 +432,7 @@
     "aideDistinction": "« Total validé » suit le plafond de l'OR (lignes déjà validées, tous payeurs confondus) — ce n'est pas un montant à facturer. Pour annoncer un montant, utilisez la ligne du payeur concerné ci-dessus."
   },
   "nouveau": {
-    "titre": "Nouvel ordre de réparation",
+    "titre": "Créer un OR",
     "siteManquant": {
       "titre": "Site non sélectionné",
       "description": "Choisissez un site avant d'ouvrir un ordre de réparation : la numérotation et le paramétrage de l'ordre de réparation en dépendent.",
@@ -437,7 +450,13 @@
     "vehicule": {
       "titre": "Véhicule",
       "aucun": "Ce client n'a aucun véhicule enregistré à son nom.",
-      "erreur": "Impossible de charger les véhicules de ce client"
+      "erreur": "Impossible de charger les véhicules de ce client",
+      "ajouter": {
+        "action": "Ajouter un véhicule",
+        "titre": "Nouveau véhicule de ce client",
+        "valider": "Enregistrer le véhicule",
+        "enCours": "Enregistrement…"
+      }
     },
     "type": {
       "libelle": "Type d'ordre de réparation",
@@ -451,7 +470,7 @@
       "interne": "Interne"
     },
     "champs": {
-      "statutInitial": "Statut à l'ouverture",
+      "statutInitial": "Statut de départ",
       "avance": "Informations complémentaires",
       "kmInvalide": "Le kilométrage saisi dépasse la limite acceptée.",
       "plafondInvalide": "Le montant plafond ne peut pas être négatif.",
@@ -465,12 +484,159 @@
       "titre": "Impossible d'ouvrir l'ordre de réparation"
     },
     "confirmation": {
-      "vehiculeDeuxOrOuverts": "Déjà ouvert pour ce véhicule : {numeros}. Ouvrir quand même un nouvel ordre de réparation ?"
+      "vehiculeDeuxOrOuverts": "Déjà ouvert pour ce véhicule : {numeros}. Ouvrir quand même un nouvel ordre de réparation ?",
+      "ouvrirOr": "Ouvrir l'OR {numero} (nouvel onglet)"
     },
     "actions": {
       "creer": "Ouvrir l'ordre de réparation",
       "enCours": "Création en cours…",
       "ignorerBrouillon": "Ignorer le brouillon"
+    },
+    "rapide": {
+      "titre": "Ouvrir un OR",
+      "intro": "Tapez la plaque : le véhicule et son client sont retrouvés. Sinon, complétez quelques informations ci-dessous, tout se crée en une fois.",
+      "plaque": "Plaque",
+      "plaqueExemple": "VD 123456",
+      "plaqueAide": "Les espaces et les tirets sont ignorés.",
+      "vehicule": {
+        "titre": "Véhicule",
+        "requis": "Tapez la plaque du véhicule, ou choisissez-le dans la liste.",
+        "choisir": "Choisissez un véhicule dans la liste, ou indiquez un autre véhicule."
+      },
+      "vehiculesTrouves": "{count, plural, one {# véhicule correspond} other {# véhicules correspondent}}",
+      "vehiculesDuClient": "Véhicules de ce client",
+      "autreVehicule": "Aucun de ceux-là : autre véhicule",
+      "plaqueInconnue": "Plaque inconnue. Indiquez la marque et le modèle, le véhicule sera créé avec l’OR.",
+      "nouveauVehicule": "Autre véhicule : indiquez la marque et le modèle.",
+      "retourListe": "Revenir à la liste",
+      "rechercheErreur": "Recherche impossible",
+      "orDejaOuvert": "OR déjà ouvert",
+      "anciennePlaque": "Ancienne plaque",
+      "changer": "Changer",
+      "invalide": "Valeur non valide.",
+      "client": {
+        "titre": "Client",
+        "detenteur": "Détenteur du véhicule",
+        "recherche": "Chercher un client (nom, téléphone, n° client)",
+        "aucun": "Aucun client trouvé.",
+        "nouveau": "Nouveau client",
+        "nom": "Nom du client",
+        "telephone": "Téléphone",
+        "adressePlusTard": "L'adresse se complète plus tard, depuis la fiche du client.",
+        "similaires": "Un client de ce nom existe peut-être déjà :",
+        "chercherExistant": "Chercher un client existant",
+        "requis": "Choisissez un client, ou créez-en un."
+      },
+      "ordre": {
+        "titre": "Ordre de réparation",
+        "demande": "Demande du client"
+      },
+      "echec": {
+        "titre": "L’OR n’a pas pu être ouvert",
+        "reprise": "Votre saisie est conservée : réessayez, rien ne sera créé deux fois."
+      },
+      "reessayer": "Réessayer",
+      "ancienParcours": "Parcours détaillé",
+      "clientIntrouvable": "Ce client n'a pas été retrouvé : choisissez-le à nouveau ci-dessous."
+    }
+  },
+  "accordClient": {
+    "titre": "Accord du client",
+    "nom": "Qui a donné l'accord ?",
+    "nomRequis": "Indiquez le nom de la personne.",
+    "mode": {
+      "libelle": "Comment ?",
+      "telephone": "Téléphone",
+      "surPlace": "Sur place",
+      "email": "E-mail"
+    },
+    "horodatage": "La date et l'heure sont enregistrées maintenant.",
+    "enregistrer": "Enregistrer l'accord",
+    "action": "Accord du client",
+    "description": "{count, plural, one {Le client a donné son accord pour # travail. Il sera validé.} other {Le client a donné son accord pour # travaux. Ils seront validés.}}",
+    "pourTous": "{count, plural, one {Accord du client pour le travail proposé} other {Accord du client pour les # travaux proposés}}"
+  },
+  "lignesEnAttente": {
+    "annuler": "Annuler",
+    "motifRetrait": "Retiré de l'OR : accord du client non obtenu.",
+    "titre": "{count, plural, one {# travail attend encore l'accord du client} other {# travaux attendent encore l'accord du client}}",
+    "description": "{count, plural, one {Ce travail est « Proposée » : ni accepté ni refusé. Que faire avant « {action} » ?} other {Ces travaux sont « Proposée » : ni acceptés ni refusés. Que faire avant « {action} » ?}}",
+    "retirer": "{count, plural, one {Le retirer de l'OR} other {Les retirer de l'OR}}",
+    "laisser": "{count, plural, one {Le laisser en attente} other {Les laisser en attente}}"
+  },
+  "arretPointages": {
+    "titre": "{count, plural, one {Arrêter # pointage ?} other {Arrêter # pointages ?}}",
+    "description": "{count, plural, one {Le pointage en cours sera arrêté maintenant. Le technicien devra reprendre son pointage.} other {Les pointages en cours seront arrêtés maintenant. Les techniciens devront reprendre leur pointage.}}",
+    "confirmer": "{count, plural, one {Arrêter le pointage} other {Arrêter les pointages}}"
+  },
+  "consignes": {
+    "fournirMotif": "Le kilométrage saisi est inférieur au dernier relevé ({km} km). Corrigez-le si c'est une faute de frappe.",
+    "signerReserveSecurite": "Faites signer la réserve de sécurité par le client, puis recommencez la restitution.",
+    "demanderHabilitation": "Cette action est réservée à un responsable. Demandez-lui de la confirmer.",
+    "controleQualite": "Le contrôle qualité est obligatoire pour ce garage : l'OR doit passer en contrôle avant d'être terminé.",
+    "receptionnerIndisponible": "Le véhicule doit d'abord être réceptionné. Votre rôle ne le permet pas : demandez à la réception."
+  },
+  "renseignerPo": {
+    "titre": "Renseigner le n° de bon de commande",
+    "requis": "Indiquez le numéro de commande du client."
+  },
+  "erreurs": {
+    "transitionInterdite": {
+      "avecStatut": "Cette action n'est pas possible : l'OR est « {statut} ». Rechargez la page et choisissez parmi les boutons proposés.",
+      "sansStatut": "Cette action n'est pas possible à cette étape de l'OR. Rechargez la page et choisissez parmi les boutons proposés."
+    }
+  },
+  "travauxReportes": {
+    "titre": "Travaux reportés de ce véhicule",
+    "description": "{count, plural, one {Un travail attendait ce véhicule.} other {# travaux attendaient ce véhicule.}}",
+    "reprendre": "Reprendre dans cet OR"
+  },
+  "courtoisie": {
+    "action": "Véhicule de courtoisie",
+    "titre": "Véhicule de courtoisie",
+    "description": "Choisissez une voiture libre aujourd’hui : le prêt sera rattaché à ce client et à cet OR.",
+    "aucunLibre": "Aucun véhicule de courtoisie n’est libre aujourd’hui."
+  },
+  "lignesARealiser": {
+    "avertissement": "{count, plural, one {# travail n'est pas encore marqué réalisé. Il le sera en même temps que la fin des travaux.} other {# travaux ne sont pas encore marqués réalisés. Ils le seront en même temps que la fin des travaux.}}",
+    "action": "{count, plural, one {Marquer la ligne réalisée et terminer} other {Marquer les # lignes réalisées et terminer}}"
+  },
+  "pretCourtoisie": {
+    "titre": "Voiture de courtoisie",
+    "chargement": "Chargement du prêt de courtoisie…",
+    "erreur": "Impossible de charger le prêt de voiture de courtoisie.",
+    "enCours": "Voiture de courtoisie : {vehicule}, prêtée le {date}",
+    "enRetard": "Voiture de courtoisie : {vehicule}, prêtée le {date} — pas encore rendue",
+    "reserve": "Voiture de courtoisie : {vehicule}, réservée dès le {date}",
+    "retourne": "Voiture de courtoisie : {vehicule}, prêtée le {date}, rendue le {dateRetour}"
+  },
+  "photos": {
+    "bouton": "Photo",
+    "ajouter": "Ajouter une photo",
+    "boutonPour": "Ajouter une photo — {designation}",
+    "compteur": "{count, plural, one {# photo} other {# photos}}",
+    "complet": "Maximum atteint ({max} photos).",
+    "liste": "Photos du travail",
+    "ouvrir": "Ouvrir la photo {numero} sur {total}",
+    "apercuAttente": "Photo {numero} à envoyer",
+    "retirer": "Retirer la photo {numero}",
+    "apercuDevis": "{count, plural, one {# photo jointe à ce travail} other {# photos jointes à ces travaux}}",
+    "echecApresCreation": "{count, plural, one {Le travail est enregistré, mais # photo n’a pas pu être envoyée.} other {Le travail est enregistré, mais # photos n’ont pas pu être envoyées.}}",
+    "reessayer": "Réessayer l’envoi",
+    "continuerSans": "Continuer sans la photo",
+    "erreurs": {
+      "tropLourde": "Cette photo est trop lourde, même après réduction. Reprenez-la.",
+      "illisible": "Cette photo ne peut pas être lue. Reprenez-la.",
+      "heic": "Ce format de photo (HEIC) n’est pas lisible ici. Réglez l’appareil sur « le plus compatible » (JPEG) et reprenez la photo."
+    },
+    "visionneuse": {
+      "titre": "Photo du travail",
+      "position": "Photo {numero} sur {total}",
+      "sansLegende": "Photo du travail",
+      "precedente": "Précédente",
+      "suivante": "Suivante",
+      "supprimer": "Supprimer la photo",
+      "confirmerSuppression": "Oui, supprimer"
     }
   }
 }

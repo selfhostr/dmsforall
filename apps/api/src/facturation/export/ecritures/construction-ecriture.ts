@@ -45,6 +45,7 @@ import type {
   LigneLigneDocument,
 } from '../../../db/schema';
 import type { BesoinMappingManquant, ComptesResolusADate } from './comptes-resolus';
+import { ErreurEcritureDesequilibree } from './erreur-desequilibre';
 
 export type ResultatConstructionEcriture =
   | {
@@ -232,8 +233,9 @@ export function construireEcritureDocument(
   // document, un contournement de CHECK par migration destructive… doivent faire échouer LOUD,
   // pas produire un lot faux en silence).
   if (totalDebitCentimes !== totalCreditCentimes) {
-    throw new Error(
+    throw new ErreurEcritureDesequilibree(
       `Écriture déséquilibrée pour le document ${numero} : débit=${totalDebitCentimes.toString()}, crédit=${totalCreditCentimes.toString()} — EXPORT_ECRITURES_DESEQUILIBREES.`,
+      { reference: numero, documentId: document.id, totalDebitCentimes, totalCreditCentimes },
     );
   }
 

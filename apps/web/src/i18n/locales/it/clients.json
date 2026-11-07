@@ -32,7 +32,7 @@
   },
   "fiche": {
     "titre": "Scheda cliente",
-    "ouvrirOr": "Apri ordine",
+    "ouvrirOr": "Crea un OR",
     "actions": {
       "fusionner": "Unisci",
       "ajouterVehicule": "Aggiungi un veicolo"
@@ -47,9 +47,9 @@
     "vehiculesVide": "Nessun veicolo associato.",
     "derniersOr": "Ultimi passaggi in officina",
     "derniersOrVide": "Nessun passaggio registrato.",
-    "dossiersVente": "Pratiche di vendita",
-    "dossiersVenteVide": "Nessuna pratica di vendita.",
-    "dossiersVenteDroitRequis": "Non ha il diritto di consultare le pratiche di vendita di questo cliente.",
+    "dossiersVente": "Vendite del cliente",
+    "dossiersVenteVide": "Nessuna vendita per questo cliente.",
+    "dossiersVenteDroitRequis": "Non ha il diritto di consultare le vendite di questo cliente.",
     "dossierSansVehicule": "Veicolo non assegnato",
     "rendezVous": {
       "titre": "Prossimi appuntamenti",
@@ -67,7 +67,7 @@
     "nom": "Nome",
     "prenom": "Cognome",
     "raisonSociale": "Ragione sociale",
-    "ide": "CHE",
+    "ide": "Numero IDI",
     "ideFormatInvalide": "Formato previsto: CHE-123.456.789.",
     "langue": "Lingua di corrispondenza",
     "po": "N° ordine (PO)",
@@ -150,17 +150,17 @@
   },
   "doublonsEcran": {
     "titre": "Duplicati clienti",
-    "description": "Cerca un cliente per nome, CAP, e-mail, telefono o numero IDE prima di crearne uno nuovo, oppure per verificare se due schede si riferiscono alla stessa persona.",
+    "description": "Cercate un cliente per nome, NPA, e-mail, telefono o numero IDI prima di crearne uno nuovo, oppure per verificare se due schede riguardano la stessa persona.",
     "champs": {
       "nom": "Nome o ragione sociale",
       "npa": "CAP",
       "email": "E-mail",
       "telephone": "Telefono",
-      "ide": "IDE"
+      "ide": "Numero IDI"
     },
     "vide": {
-      "premier": "Inserisci almeno un criterio di ricerca",
-      "premierDescription": "Nome, CAP, e-mail, telefono o IDE — un solo criterio è sufficiente.",
+      "premier": "Inserisca almeno un criterio di ricerca",
+      "premierDescription": "Nome, NPA, e-mail, telefono o numero IDI: basta un solo criterio.",
       "aucunDoublon": "Nessun duplicato rilevato",
       "aucunDoublonDescription": "Nessun cliente esistente corrisponde a questi criteri."
     },
@@ -202,7 +202,7 @@
   },
   "fusion": {
     "titre": "Unisci due clienti",
-    "confirmation": "Digitare il nome del cliente da unire per confermare",
+    "confirmation": "Digiti il nome del cliente da unire per confermare",
     "irreversible": "Questa azione e irreversibile.",
     "transferer": "Le seguenti informazioni verranno trasferite",
     "colonnes": {
@@ -213,11 +213,11 @@
   },
   "vide": {
     "premier": "Nessun cliente registrato. Crearne uno.",
-    "premierDescription": "Inizia creando il tuo primo cliente.",
+    "premierDescription": "Inizi creando il suo primo cliente.",
     "recherche": "Nessun cliente trovato.",
-    "rechercheDescription": "Prova un'altra ricerca.",
+    "rechercheDescription": "Provi un'altra ricerca.",
     "filtre": "Nessun risultato con questi filtri.",
-    "filtreDescription": "Modifica o cancella i filtri attivi."
+    "filtreDescription": "Modifichi o cancelli i filtri attivi."
   },
   "formulaireNouveau": {
     "brouillon": {
@@ -227,7 +227,7 @@
   },
   "ficheApresCreation": {
     "titre": "Cliente registrato",
-    "description": "Il cliente {nom} è stato registrato correttamente ({numero}), ma la sua scheda non è potuta essere visualizzata. Riprova, oppure trovalo nell'elenco clienti — non crearlo di nuovo.",
+    "description": "Il cliente {nom} è stato registrato correttamente ({numero}), ma la sua scheda non è potuta essere visualizzata. Riprovi, oppure lo trovi nell'elenco clienti — non lo crei di nuovo.",
     "retourListe": "Torna all'elenco clienti"
   }
 }

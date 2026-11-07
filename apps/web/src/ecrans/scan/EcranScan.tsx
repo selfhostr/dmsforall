@@ -162,7 +162,7 @@ export function EcranScan() {
     data: session,
     refetch: rafraichirSession,
   } = useSession();
-  const modeScan = useModeScanMobile(session?.utilisateur.role);
+  const modeScan = useModeScanMobile(session?.actions);
   const [searchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
 

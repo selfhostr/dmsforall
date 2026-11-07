@@ -1,6 +1,8 @@
 import type {
   EntreeCorrectionFacture,
   EntreeCreationAvoir,
+  EntreeCreationDocumentVente,
+  EntreeCreationOrdreDepuisDevis,
   EntreeCreationLigneDocument,
   EntreeEmissionDocumentVente,
   EntreeModificationDocumentVente,
@@ -9,6 +11,7 @@ import type {
   PageCurseur,
   ReponseAvecAvertissements,
   ReponseCorrectionFacture,
+  ReponseCreationOrdreDepuisDevis,
   ReponseDocumentVente,
   DocumentVenteResume,
 } from '@dfa/shared';
@@ -310,6 +313,52 @@ export async function corrigerFacture(
   );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /documents-vente/corriger.');
+  }
+  return reponse;
+}
+
+/** `POST /documents-vente` — `Idempotency-Key` OBLIGATOIRE. Crée un BROUILLON (ici : un devis,
+ *  `typeDocument = 'devis'`) ; les lignes s'ajoutent ensuite sur la fiche (`ajouterLigneDocument`). */
+export async function creerDocumentVente(
+  entree: EntreeCreationDocumentVente,
+  idempotencyKey: string,
+): Promise<ReponseAvecAvertissements<ReponseDocumentVente>> {
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseDocumentVente>>(
+    '/documents-vente',
+    { method: 'POST', body: JSON.stringify(entree), idempotencyKey },
+  );
+  if (!reponse) {
+    throw new Error('Réponse vide inattendue : POST /documents-vente.');
+  }
+  return reponse;
+}
+
+/** `POST /documents-vente/{id}/accepter` — accord du client sur un devis `emis` (`emis` -> `accepte`).
+ *  Corps vide : seules les `confirmations` éventuelles y figurent, aucune n'est exigée ici. */
+export async function accepterDevis(id: string): Promise<ReponseDocumentVente> {
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseDocumentVente>>(
+    `/documents-vente/${id}/accepter`,
+    { method: 'POST', body: JSON.stringify({}) },
+  );
+  if (!reponse) {
+    throw new Error('Réponse vide inattendue : POST /documents-vente/accepter.');
+  }
+  return reponse.donnees;
+}
+
+/** `POST /documents-vente/{id}/creer-ordre-reparation` — ouvre un OR depuis un devis (client,
+ *  véhicule, site et lignes viennent du devis). `Idempotency-Key` OBLIGATOIRE. */
+export async function creerOrdreDepuisDevis(
+  id: string,
+  entree: EntreeCreationOrdreDepuisDevis,
+  idempotencyKey: string,
+): Promise<ReponseAvecAvertissements<ReponseCreationOrdreDepuisDevis>> {
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseCreationOrdreDepuisDevis>>(
+    `/documents-vente/${id}/creer-ordre-reparation`,
+    { method: 'POST', body: JSON.stringify(entree), idempotencyKey },
+  );
+  if (!reponse) {
+    throw new Error('Réponse vide inattendue : POST /documents-vente/creer-ordre-reparation.');
   }
   return reponse;
 }

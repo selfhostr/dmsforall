@@ -13,21 +13,26 @@ import type { RoleUtilisateur } from '@dfa/shared';
 
 import { chemins } from '@/routes/chemins';
 import {
-  ROLES_BORNE_POINTAGE,
-  ROLES_LECTURE_RENDEZ_VOUS,
-  ROLES_MENU_FACTURATION,
-  ROLES_GESTION_UTILISATEURS,
-  ROLES_MENU_FINANCIER,
-  ROLES_MENU_PARAMETRAGE_ATELIER,
-  ROLES_PARAMETRAGE_PIECES,
-  ROLES_PIECES,
-  ROLES_PNEUS,
-  ROLES_POINTAGE,
-  ROLES_POINTAGE_ENCADREMENT,
-  ROLES_RELANCES,
-  ROLES_SCAN,
-  ROLES_TABLEAU_BORD_ACTIVITE,
-  ROLES_VENTES,
+  type Acces,
+  ACCES_BORNE_POINTAGE,
+  ACCES_LECTURE_CONSIGNE_PIECES,
+  ACCES_LECTURE_FACTURE_FOURNISSEUR_PIECES,
+  ACCES_LECTURE_FOURNISSEUR_PIECES,
+  ACCES_LECTURE_OR,
+  ACCES_LECTURE_RENDEZ_VOUS,
+  ACCES_MENU_FACTURATION,
+  ACCES_GESTION_UTILISATEURS,
+  ACCES_MENU_FINANCIER,
+  ACCES_MENU_PARAMETRAGE_ATELIER,
+  ACCES_PARAMETRAGE_PIECES,
+  ACCES_PIECES,
+  ACCES_PNEUS,
+  ACCES_POINTAGE,
+  ACCES_POINTAGE_ENCADREMENT,
+  ACCES_RELANCES,
+  ACCES_SCAN,
+  ACCES_TABLEAU_BORD_ACTIVITE,
+  ACCES_VENTES,
 } from '@/routes/droits-routes';
 
 /**
@@ -67,7 +72,13 @@ import {
  */
 
 /** Rôles autorisés, ou `undefined` pour « aucune restriction » — voir `estAutorise`. */
-type Roles = readonly RoleUtilisateur[] | undefined;
+type AccesEntree = Acces | undefined;
+
+/** Qui regarde le menu : son rôle d'origine (gabarit, appareil) et ses actions (droits). */
+export interface SujetNavigation {
+  readonly role: RoleUtilisateur;
+  readonly actions: readonly string[];
+}
 
 export interface VueDomaine {
   readonly id: string;
@@ -76,7 +87,7 @@ export interface VueDomaine {
   readonly chemin: (site?: string) => string;
   /** Préfixes d'URL qui activent cette vue — voir `cheminCorrespond`. */
   readonly motifs: readonly string[];
-  readonly roles?: Roles;
+  readonly acces?: AccesEntree;
 }
 
 export interface OngletDomaine {
@@ -89,7 +100,7 @@ export interface OngletDomaine {
    * l'inverse).
    */
   readonly motifs: readonly string[];
-  readonly roles?: Roles;
+  readonly acces?: AccesEntree;
   readonly vues?: readonly VueDomaine[];
 }
 
@@ -109,7 +120,7 @@ const ONGLETS_AUJOURDHUI: readonly OngletDomaine[] = [
    * `/` (`EcranAccueil`) et `/tableau-bord` (`EcranTableauBord`) ont été FUSIONNÉS (Lot F) :
    * `EcranAccueil` est supprimé, `/` n'est plus qu'un relais vers `/tableau-bord`. Un seul onglet
    * subsiste donc ici — deux onglets pour un seul écran auraient fait rebondir « Accueil » sur son
-   * voisin. `roles` reprend ceux du tableau de bord (`ROLES_TABLEAU_BORD_ACTIVITE`), plus large que
+   * voisin. `roles` reprend ceux du tableau de bord (`ACCES_TABLEAU_BORD_ACTIVITE`), plus large que
    * les quatre rôles dont l'ancien atterrissage était `/` : tout rôle qui lit l'activité du garage y
    * a sa place, plus de restriction héritée du relais.
    *
@@ -124,7 +135,7 @@ const ONGLETS_AUJOURDHUI: readonly OngletDomaine[] = [
     cleLibelle: 'navigation:onglets.aujourdhuiTableauBord',
     chemin: (site) => chemins.tableauBord(site),
     motifs: ['/', '/tableau-bord'],
-    roles: ROLES_TABLEAU_BORD_ACTIVITE,
+    acces: ACCES_TABLEAU_BORD_ACTIVITE,
   },
 ];
 
@@ -157,20 +168,10 @@ function avecVueEquipe(chemin: string): string {
  * `GET /ordres-reparation` en 403 quatre fois en dix secondes avant de se stabiliser sur un message
  * de refus — voir aussi `useListeOrdresReparation.ts` pour le second correctif (arrêt du réessai).
  */
-const ROLES_LECTURE_OR: readonly RoleUtilisateur[] = [
-  'admin',
-  'direction',
-  'receptionnaire',
-  'chef_atelier',
-  'technicien',
-  'magasinier',
-  'comptable',
-  'poste_atelier',
-];
 
 const ONGLETS_ATELIER: readonly OngletDomaine[] = [
   /**
-   * Restreint à `ROLES_LECTURE_OR` ci-dessus (issue #46) — `vendeur` n'a pas `atelier.or.lire`.
+   * Restreint à `ACCES_LECTURE_OR` ci-dessus (issue #46) — `vendeur` n'a pas `atelier.or.lire`.
    * Trois motifs — la ressource vit sous `/ordres-reparation` SAUF sa route de création, restée
    * sous `/atelier/ordres-reparation/nouveau` (repris du design, cf. `routeur.tsx`) : sans ce
    * second motif, l'écran de création serait le seul écran d'atelier sans onglet actif.
@@ -180,12 +181,12 @@ const ONGLETS_ATELIER: readonly OngletDomaine[] = [
     cleLibelle: 'navigation:onglets.atelierOrdresReparation',
     chemin: (site) => chemins.atelier.ordresReparation.liste(site),
     motifs: ['/ordres-reparation', '/atelier/ordres-reparation'],
-    roles: ROLES_LECTURE_OR,
+    acces: ACCES_LECTURE_OR,
   },
   /**
    * Rendez-vous (Lot RDV-1) — activation du slot réservé au Lot D (§4.2 : « DEUXIÈME onglet
    * d'Atelier, entre Ordres de réparation et Pointage »), retiré d'`EMPLACEMENTS_RESERVES`
-   * ci-dessous. `ROLES_LECTURE_RENDEZ_VOUS` reflète `rendez_vous.lire` (`droits-routes.ts`) : ferme
+   * ci-dessous. `ACCES_LECTURE_RENDEZ_VOUS` reflète `rendez_vous.lire` (`droits-routes.ts`) : ferme
    * la lecture elle-même à `vendeur`/`magasinier`/`comptable`/`poste_atelier`.
    */
   {
@@ -193,7 +194,14 @@ const ONGLETS_ATELIER: readonly OngletDomaine[] = [
     cleLibelle: 'navigation:onglets.atelierPlanning',
     chemin: (site) => chemins.atelier.rendezVous.agenda(site),
     motifs: ['/rendez-vous'],
-    roles: ROLES_LECTURE_RENDEZ_VOUS,
+    acces: ACCES_LECTURE_RENDEZ_VOUS,
+  },
+  {
+    id: 'courtoisie',
+    cleLibelle: 'navigation:onglets.atelierCourtoisie',
+    chemin: (site) => chemins.atelier.courtoisie(site),
+    motifs: ['/courtoisie'],
+    acces: ACCES_LECTURE_RENDEZ_VOUS,
   },
   /**
    * Pointage — CINQ vues, dont la borne. « Clôture de période » N'EST PLUS un écran autonome
@@ -217,7 +225,7 @@ const ONGLETS_ATELIER: readonly OngletDomaine[] = [
    * « Borne d'atelier » : la borne est un APPAREIL, pas un poste de travail — §2 la met hors de
    * l'arborescence et `poste_atelier` y atterrit directement au login. Elle figure quand même ici
    * pour `chef_atelier`/`admin`, qui installent la tablette et ont besoin d'ouvrir l'écran pour
-   * relever l'URL à mettre en favori. Voir `ROLES_BORNE_POINTAGE` (`routes/droits-routes.ts`) pour
+   * relever l'URL à mettre en favori. Voir `ACCES_BORNE_POINTAGE` (`routes/droits-routes.ts`) pour
    * la limite assumée de cet accès (l'identification par PIN y répond `403` pour ces deux rôles).
    */
   {
@@ -225,42 +233,42 @@ const ONGLETS_ATELIER: readonly OngletDomaine[] = [
     cleLibelle: 'navigation:onglets.atelierPointage',
     chemin: (site) => chemins.pointage.saisie(site),
     motifs: ['/pointage'],
-    roles: ROLES_POINTAGE,
+    acces: ACCES_POINTAGE,
     vues: [
       {
         id: 'monTravail',
         cleLibelle: 'navigation:onglets.pointageMonTravail',
         chemin: (site) => chemins.pointage.saisie(site),
         motifs: ['/pointage'],
-        roles: ROLES_POINTAGE,
+        acces: ACCES_POINTAGE,
       },
       {
         id: 'journal',
         cleLibelle: 'navigation:onglets.pointageJournal',
         chemin: (site) => chemins.pointage.jour(site),
         motifs: ['/pointage/jour'],
-        roles: ROLES_POINTAGE,
+        acces: ACCES_POINTAGE,
       },
       {
         id: 'equipe',
         cleLibelle: 'navigation:onglets.pointageEquipe',
         chemin: (site) => avecVueEquipe(chemins.pointage.equipe(site)),
         motifs: ['/pointage/equipe'],
-        roles: ROLES_POINTAGE_ENCADREMENT,
+        acces: ACCES_POINTAGE_ENCADREMENT,
       },
       {
         id: 'cloture',
         cleLibelle: 'navigation:onglets.pointageCloture',
         chemin: (site) => avecVueEquipe(chemins.pointage.cloture(site)),
         motifs: ['/pointage/cloture'],
-        roles: ROLES_POINTAGE_ENCADREMENT,
+        acces: ACCES_POINTAGE_ENCADREMENT,
       },
       {
         id: 'borne',
         cleLibelle: 'navigation:onglets.pointageBorne',
         chemin: () => chemins.pointage.borne(),
         motifs: ['/pointage/borne'],
-        roles: ROLES_BORNE_POINTAGE,
+        acces: ACCES_BORNE_POINTAGE,
       },
     ],
   },
@@ -287,7 +295,7 @@ const ONGLETS_ATELIER: readonly OngletDomaine[] = [
     cleLibelle: 'navigation:onglets.atelierDepotPneus',
     chemin: (site) => chemins.pneus.hangar(site),
     motifs: ['/pneus'],
-    roles: ROLES_PNEUS,
+    acces: ACCES_PNEUS,
   },
 ];
 
@@ -331,7 +339,7 @@ const ONGLETS_CLIENTS_VEHICULES: readonly OngletDomaine[] = [
    * mobile). Rangement choisi ici, pas une septième entrée de menu (§4.1, « la règle de
    * rangement ») : le scan est une DESTINATION (« créer client + véhicule depuis un permis »), pas
    * un objet, et il crée exactement ce que ces deux onglets voisins listent — même famille que
-   * §4.1 le prescrit. `roles: ROLES_SCAN` (`routes/droits-routes.ts`) : seuls les rôles qui
+   * §4.1 le prescrit. `acces: ACCES_SCAN` (`routes/droits-routes.ts`) : seuls les rôles qui
    * détiennent `client.creer` ET `vehicule.creer` voient l'onglet, faute de quoi la soumission du
    * formulaire échouerait systématiquement en `403` pour eux.
    *
@@ -344,7 +352,7 @@ const ONGLETS_CLIENTS_VEHICULES: readonly OngletDomaine[] = [
     cleLibelle: 'navigation:onglets.scan',
     chemin: (site) => chemins.scan(site),
     motifs: ['/scan'],
-    roles: ROLES_SCAN,
+    acces: ACCES_SCAN,
   },
 ];
 
@@ -354,61 +362,43 @@ const ONGLETS_CLIENTS_VEHICULES: readonly OngletDomaine[] = [
  * `DROITS_PIECES_PAR_ROLE`) : `direction`, `chef_atelier`, `magasinier` SEULS — PAS `comptable`,
  * `vendeur`, `receptionnaire`, `technicien` (qui n'ont que la lecture générale `pieces.article.lire`/
  * `pieces.stock.lire`). Mêmes trois rôles, MÊMES VALEURS littérales que la constante privée
- * `ROLES_LECTURE_FOURNISSEUR` d'`apps/web/src/ecrans/pieces/droits.ts` — reprise ici plutôt
+ * `ACCES_LECTURE_FOURNISSEUR` d'`apps/web/src/ecrans/pieces/droits.ts` — reprise ici plutôt
  * qu'importée (`routes/` et `composants/layout/` ne dépendent jamais d'`ecrans/*`, voir l'en-tête
  * de `routes/droits-routes.ts` : « Lot D... rend routes/ et composants/layout/ autonomes »), même
- * chaîne de duplication assumée que `ROLES_PIECES`/`ROLES_PARAMETRAGE_PIECES` ci-dessous
- * (`routes/droits-routes.ts`). CORRECTIF issue #44 : ces deux vues portaient à tort `ROLES_PIECES`
+ * chaîne de duplication assumée que `ACCES_PIECES`/`ACCES_PARAMETRAGE_PIECES` ci-dessous
+ * (`routes/droits-routes.ts`). CORRECTIF issue #44 : ces deux vues portaient à tort `ACCES_PIECES`
  * (les sept rôles), un menu affichant un onglet que le serveur refuse en 403 à quatre d'entre eux.
  */
-const ROLES_LECTURE_FOURNISSEUR_PIECES: readonly RoleUtilisateur[] = [
-  'direction',
-  'chef_atelier',
-  'magasinier',
-];
 
 /**
  * Lecture consigne (`pieces.consigne.lire`, `DROITS_PIECES_PAR_ROLE`) : `direction`, `chef_atelier`,
  * `magasinier`, ET `comptable` (donnée financière — « une consigne jamais rendue est une créance
  * qui dort ») — PAS `vendeur`, `receptionnaire`, `technicien`. `ecrans/pieces/droits.ts` portait
- * autrefois une constante privée équivalente (`ROLES_LECTURE_CONSIGNE`) : retirée (chasse au code
+ * autrefois une constante privée équivalente (`ACCES_LECTURE_CONSIGNE`) : retirée (chasse au code
  * mort, 27.08.2026) car sans appelant — la lecture consigne n'a pas de garde locale dans cet
  * écran, uniquement la garde de route ici. CORRECTIF issue #44, second cas trouvé en vérifiant
  * systématiquement les autres onglets du fichier après le rapport du chasseur : l'onglet Consignes
- * portait le même défaut (`ROLES_PIECES`) et n'avait pas été testé par lui.
+ * portait le même défaut (`ACCES_PIECES`) et n'avait pas été testé par lui.
  */
 /**
  * Lecture facture fournisseur (`pieces.facture_fournisseur.lire`, INFÉRÉ — pas encore de
  * `matrice-droits.ts` côté serveur pour ce sous-domaine au moment où cette vue est câblée, voir
  * `hooks/pieces/factures-fournisseur.temporaire.ts`) : `direction`, `chef_atelier`, `magasinier`,
  * ET `comptable` — mêmes valeurs, MÊME raisonnement (« une créance/dépense qui dort ») que
- * `ROLES_LECTURE_CONSIGNE_PIECES` ci-dessous, mais gardée SÉPARÉE plutôt que réutilisée : les deux
+ * `ACCES_LECTURE_CONSIGNE_PIECES` ci-dessous, mais gardée SÉPARÉE plutôt que réutilisée : les deux
  * droits sont distincts côté API (consigne vs facture fournisseur), une coïncidence de valeurs
  * aujourd'hui ne garantit rien pour demain. Mêmes valeurs littérales que la constante privée
- * `ROLES_LECTURE_FACTURE_FOURNISSEUR` d'`apps/web/src/ecrans/pieces/droits.ts` (celle-ci, à la
- * différence de `ROLES_LECTURE_CONSIGNE` ci-dessus, reste appelée par un écran — pas candidate à
- * la même suppression) — même chaîne de duplication assumée que `ROLES_LECTURE_FOURNISSEUR_PIECES`
+ * `ACCES_LECTURE_FACTURE_FOURNISSEUR` d'`apps/web/src/ecrans/pieces/droits.ts` (celle-ci, à la
+ * différence de `ACCES_LECTURE_CONSIGNE` ci-dessus, reste appelée par un écran — pas candidate à
+ * la même suppression) — même chaîne de duplication assumée que `ACCES_LECTURE_FOURNISSEUR_PIECES`
  * ci-dessus (`routes/` et `composants/layout/` ne dépendent jamais d'`ecrans/*`).
  */
-const ROLES_LECTURE_FACTURE_FOURNISSEUR_PIECES: readonly RoleUtilisateur[] = [
-  'direction',
-  'chef_atelier',
-  'magasinier',
-  'comptable',
-];
-
-const ROLES_LECTURE_CONSIGNE_PIECES: readonly RoleUtilisateur[] = [
-  'direction',
-  'chef_atelier',
-  'magasinier',
-  'comptable',
-];
 
 const ONGLETS_PIECES: readonly OngletDomaine[] = [
   /**
    * `DROITS_PIECES_PAR_ROLE.admin` vaut `[]` littéralement côté API (RF-115), la LECTURE elle-même
    * est fermée à `admin` — l'entrée Pièces entière disparaît donc pour lui, comme aujourd'hui.
-   * Comptoir et Articles portent `ROLES_PIECES` (les sept rôles, `pieces.article.lire`/
+   * Comptoir et Articles portent `ACCES_PIECES` (les sept rôles, `pieces.article.lire`/
    * `pieces.stock.lire`/`pieces.reservation.lire` ouverts à tous) ; Approvisionnement et Consignes
    * sont plus étroits à l'intérieur — voir leurs commentaires respectifs.
    *
@@ -420,7 +410,7 @@ const ONGLETS_PIECES: readonly OngletDomaine[] = [
     cleLibelle: 'navigation:onglets.piecesComptoir',
     chemin: (site) => chemins.pieces.rechercheComptoir(site),
     motifs: ['/pieces/recherche-comptoir'],
-    roles: ROLES_PIECES,
+    acces: ACCES_PIECES,
   },
   /**
    * §4.5 range « Réservations » comme un FILTRE d'Articles. `EcranReservationsPieces` est
@@ -433,21 +423,21 @@ const ONGLETS_PIECES: readonly OngletDomaine[] = [
     cleLibelle: 'navigation:onglets.piecesArticles',
     chemin: (site) => chemins.pieces.articles(site),
     motifs: ['/pieces/articles', '/pieces/reservations'],
-    roles: ROLES_PIECES,
+    acces: ACCES_PIECES,
     vues: [
       {
         id: 'tous',
         cleLibelle: 'navigation:onglets.piecesArticlesTous',
         chemin: (site) => chemins.pieces.articles(site),
         motifs: ['/pieces/articles'],
-        roles: ROLES_PIECES,
+        acces: ACCES_PIECES,
       },
       {
         id: 'reservations',
         cleLibelle: 'navigation:onglets.piecesReservations',
         chemin: (site) => chemins.pieces.reservations(site),
         motifs: ['/pieces/reservations'],
-        roles: ROLES_PIECES,
+        acces: ACCES_PIECES,
       },
     ],
   },
@@ -457,11 +447,11 @@ const ONGLETS_PIECES: readonly OngletDomaine[] = [
    * et « Fournisseurs ». Un fournisseur se consulte depuis une commande, jamais dans l'absolu —
    * d'où sa place en troisième vue et non en onglet.
    *
-   * L'ONGLET porte `ROLES_PIECES` (les sept rôles) parce que sa vue par défaut, « À commander »
+   * L'ONGLET porte `ACCES_PIECES` (les sept rôles) parce que sa vue par défaut, « À commander »
    * (`pieces.stock.lire`), leur est ouverte à tous. SES DEUX AUTRES VUES sont plus étroites :
-   * « Commandes » et « Fournisseurs » portent `ROLES_LECTURE_FOURNISSEUR_PIECES` (trois rôles),
-   * pas `ROLES_PIECES` — voir sa définition ci-dessus. Avant correctif (issue #44), les deux
-   * portaient `ROLES_PIECES` : un `vendeur`/`comptable`/`receptionnaire`/`technicien` voyait ces
+   * « Commandes » et « Fournisseurs » portent `ACCES_LECTURE_FOURNISSEUR_PIECES` (trois rôles),
+   * pas `ACCES_PIECES` — voir sa définition ci-dessus. Avant correctif (issue #44), les deux
+   * portaient `ACCES_PIECES` : un `vendeur`/`comptable`/`receptionnaire`/`technicien` voyait ces
    * deux vues, cliquait, et recevait un `403` de l'API suivi d'un écran d'erreur sans retour
    * possible — l'onglet mentait sur ce qu'il proposait.
    */
@@ -475,33 +465,33 @@ const ONGLETS_PIECES: readonly OngletDomaine[] = [
       '/pieces/fournisseurs',
       '/pieces/factures-fournisseur',
     ],
-    roles: ROLES_PIECES,
+    acces: ACCES_PIECES,
     vues: [
       {
         id: 'aCommander',
         cleLibelle: 'navigation:onglets.piecesACommander',
         chemin: (site) => chemins.pieces.reapprovisionnement(site),
         motifs: ['/pieces/reapprovisionnement'],
-        roles: ROLES_PIECES,
+        acces: ACCES_PIECES,
       },
       {
         id: 'commandes',
         cleLibelle: 'navigation:onglets.piecesCommandes',
         chemin: (site) => chemins.pieces.commandesFournisseur.liste(site),
         motifs: ['/pieces/commandes-fournisseur'],
-        roles: ROLES_LECTURE_FOURNISSEUR_PIECES,
+        acces: ACCES_LECTURE_FOURNISSEUR_PIECES,
       },
       {
         id: 'fournisseurs',
         cleLibelle: 'navigation:onglets.piecesFournisseurs',
         chemin: (site) => chemins.pieces.fournisseurs.liste(site),
         motifs: ['/pieces/fournisseurs'],
-        roles: ROLES_LECTURE_FOURNISSEUR_PIECES,
+        acces: ACCES_LECTURE_FOURNISSEUR_PIECES,
       },
       /**
        * Factures fournisseurs (dépôt, rapprochement, décision) — dernière vue du groupe, même
        * famille que Commandes/Fournisseurs ci-dessus (workflow fournisseur), rôles ÉLARGIS à
-       * `comptable` (voir `ROLES_LECTURE_FACTURE_FOURNISSEUR_PIECES`, pièce comptable) —
+       * `comptable` (voir `ACCES_LECTURE_FACTURE_FOURNISSEUR_PIECES`, pièce comptable) —
        * `vendeur`/`receptionnaire`/`technicien` n'y ont aucun droit, comme pour Commandes et
        * Fournisseurs. Motif couvre les trois routes (`liste`, `deposer`, `:id`) : correspondance
        * par segment (`cheminCorrespond`), un seul préfixe suffit.
@@ -511,22 +501,22 @@ const ONGLETS_PIECES: readonly OngletDomaine[] = [
         cleLibelle: 'navigation:onglets.piecesFacturesFournisseur',
         chemin: (site) => chemins.pieces.facturesFournisseur.liste(site),
         motifs: ['/pieces/factures-fournisseur'],
-        roles: ROLES_LECTURE_FACTURE_FOURNISSEUR_PIECES,
+        acces: ACCES_LECTURE_FACTURE_FOURNISSEUR_PIECES,
       },
     ],
   },
   /**
    * `pieces.consigne.lire` est fermé à `vendeur`/`receptionnaire`/`technicien` (voir
-   * `ROLES_LECTURE_CONSIGNE_PIECES` ci-dessus) — DEUXIÈME cas du même défaut qu'Approvisionnement,
+   * `ACCES_LECTURE_CONSIGNE_PIECES` ci-dessus) — DEUXIÈME cas du même défaut qu'Approvisionnement,
    * trouvé en vérifiant systématiquement ce fichier après le rapport de l'issue #44 (le chasseur
-   * n'avait testé que Commandes/Fournisseurs). Portait `ROLES_PIECES` avant correctif.
+   * n'avait testé que Commandes/Fournisseurs). Portait `ACCES_PIECES` avant correctif.
    */
   {
     id: 'consignes',
     cleLibelle: 'navigation:onglets.piecesConsignes',
     chemin: (site) => chemins.pieces.consignes(site),
     motifs: ['/pieces/consignes'],
-    roles: ROLES_LECTURE_CONSIGNE_PIECES,
+    acces: ACCES_LECTURE_CONSIGNE_PIECES,
   },
 ];
 
@@ -544,7 +534,7 @@ const ONGLETS_FACTURATION: readonly OngletDomaine[] = [
     cleLibelle: 'navigation:onglets.facturationFactures',
     chemin: (site) => chemins.facturation.liste(site),
     motifs: ['/factures'],
-    roles: ROLES_MENU_FACTURATION,
+    acces: ACCES_MENU_FACTURATION,
   },
   /**
    * Déclenchement des relances sous FACTURATION, pas sous Réglages (§4.5 : « déclenchement ->
@@ -559,14 +549,26 @@ const ONGLETS_FACTURATION: readonly OngletDomaine[] = [
     cleLibelle: 'navigation:onglets.facturationRelances',
     chemin: (site) => chemins.relances(site),
     motifs: ['/relances'],
-    roles: ROLES_RELANCES,
+    acces: ACCES_RELANCES,
+  },
+  /**
+   * Export fiduciaire (`facturation.export.creer`, direction/comptable seuls, `admin: []`) —
+   * TROISIÈME onglet de Facturation : un export se déclenche depuis le domaine dont il exporte les
+   * documents, jamais depuis Réglages (opération datée qu'on rejoue chaque fin de mois).
+   */
+  {
+    id: 'exportFiduciaire',
+    cleLibelle: 'navigation:onglets.facturationExportFiduciaire',
+    chemin: (site) => chemins.facturation.exportFiduciaire(site),
+    motifs: ['/export-fiduciaire'],
+    acces: ACCES_MENU_FINANCIER,
   },
 ];
 
 const ONGLETS_VENTES: readonly OngletDomaine[] = [
   /**
    * « Dossiers » en PREMIER, donc onglet par défaut : c'est l'atterrissage du vendeur (§2). Les
-   * trois onglets portent `ROLES_VENTES` — `ventes.*` est `[]` pour `admin`/`technicien`/
+   * trois onglets portent `ACCES_VENTES` — `ventes.*` est `[]` pour `admin`/`technicien`/
    * `magasinier` côté API (RF-115), l'entrée entière disparaît pour eux.
    *
    * « Véhicules en parc » et non « Stock » (§4.3) : lève l'homonymie avec Pièces, et dit ce que
@@ -577,21 +579,21 @@ const ONGLETS_VENTES: readonly OngletDomaine[] = [
     cleLibelle: 'navigation:onglets.ventesDossiers',
     chemin: (site) => chemins.ventes.dossiers.liste(site),
     motifs: ['/ventes/dossiers'],
-    roles: ROLES_VENTES,
+    acces: ACCES_VENTES,
   },
   {
     id: 'parc',
     cleLibelle: 'navigation:onglets.ventesParc',
     chemin: (site) => chemins.ventes.stock.liste(site),
     motifs: ['/ventes/stock'],
-    roles: ROLES_VENTES,
+    acces: ACCES_VENTES,
   },
   {
     id: 'suivi',
     cleLibelle: 'navigation:onglets.ventesSuivi',
     chemin: (site) => chemins.ventes.suivi(site),
     motifs: ['/ventes/suivi'],
-    roles: ROLES_VENTES,
+    acces: ACCES_VENTES,
   },
 ];
 
@@ -613,21 +615,21 @@ const ONGLETS_REGLAGES: readonly OngletDomaine[] = [
     cleLibelle: 'navigation:onglets.reglagesAtelier',
     chemin: (site) => chemins.parametrage.atelier(site),
     motifs: ['/parametrage/atelier'],
-    roles: ROLES_MENU_PARAMETRAGE_ATELIER,
+    acces: ACCES_MENU_PARAMETRAGE_ATELIER,
   },
   {
     id: 'sites',
     cleLibelle: 'navigation:onglets.reglagesSites',
     chemin: (site) => chemins.parametrage.sites(site),
     motifs: ['/parametrage/sites'],
-    roles: ROLES_MENU_PARAMETRAGE_ATELIER,
+    acces: ACCES_MENU_PARAMETRAGE_ATELIER,
   },
   {
     id: 'facturation',
     cleLibelle: 'navigation:onglets.reglagesFacturation',
     chemin: (site) => chemins.parametrage.facturation(site),
     motifs: ['/parametrage/facturation'],
-    roles: ROLES_MENU_FINANCIER,
+    acces: ACCES_MENU_FINANCIER,
   },
   {
     id: 'tarifs',
@@ -640,24 +642,24 @@ const ONGLETS_REGLAGES: readonly OngletDomaine[] = [
     cleLibelle: 'navigation:onglets.reglagesPieces',
     chemin: (site) => chemins.parametrage.pieces(site),
     motifs: ['/parametrage/pieces'],
-    roles: ROLES_PARAMETRAGE_PIECES,
+    acces: ACCES_PARAMETRAGE_PIECES,
   },
   /** Gestion des employés (issue #137) — dernier onglet de Réglages : « le patron d'un garage ne
    *  peut pas gérer ses employés » (brief). Visible SEULEMENT à `direction`/`admin`, même groupe
-   *  que la garde de route (`ROLES_GESTION_UTILISATEURS`, `droits-routes.ts`) — reflet direct de
+   *  que la garde de route (`ACCES_GESTION_UTILISATEURS`, `droits-routes.ts`) — reflet direct de
    *  `socle.utilisateur.lire` côté API, pas une restriction inventée par ce menu. */
   {
     id: 'utilisateurs',
     cleLibelle: 'navigation:onglets.reglagesUtilisateurs',
     chemin: (site) => chemins.parametrage.utilisateurs(site),
     motifs: ['/parametrage/utilisateurs'],
-    roles: ROLES_GESTION_UTILISATEURS,
+    acces: ACCES_GESTION_UTILISATEURS,
   },
   /**
    * Paliers de relance (scission de l'ancien `EcranRelances`, §4.5 : « paliers -> Réglages »).
    * DERNIER onglet de Réglages — l'emplacement était RÉSERVÉ ici depuis le lot D
    * (voir l'historique d'`EMPLACEMENTS_RESERVES` ci-dessous), le temps que l'écran mixte se scinde.
-   * `roles: ROLES_RELANCES` reflète la même restriction RÉELLE que l'onglet `relances` de
+   * `acces: ACCES_RELANCES` reflète la même restriction RÉELLE que l'onglet `relances` de
    * Facturation ci-dessus : `relances.facturation.regle.lire` ferme la LECTURE elle-même à tout
    * rôle hors `direction`/`comptable` côté API.
    */
@@ -666,7 +668,7 @@ const ONGLETS_REGLAGES: readonly OngletDomaine[] = [
     cleLibelle: 'navigation:onglets.reglagesRelances',
     chemin: (site) => chemins.parametrage.relances(site),
     motifs: ['/parametrage/relances'],
-    roles: ROLES_RELANCES,
+    acces: ACCES_RELANCES,
   },
 ];
 
@@ -746,17 +748,6 @@ export const EMPLACEMENTS_RESERVES: readonly {
 }[] = [
   {
     entree: 'facturation',
-    onglet: 'exportFiduciaire',
-    cleLibelle: 'navigation:onglets.facturationExportFiduciaire',
-    motif:
-      "Export vers la fiduciaire (WinBIZ, Bexio, Abacus, Banana). L'API expose déjà " +
-      "`facturation.export.creer` (direction/comptable seuls, `admin: []`) ; il manque l'écran. " +
-      'Va en TROISIÈME onglet de Facturation, après Relances — un export se déclenche depuis le ' +
-      "domaine dont il exporte les documents, jamais depuis Réglages (ce n'est pas un paramètre, " +
-      "c'est une opération datée qu'on rejoue chaque fin de mois).",
-  },
-  {
-    entree: 'facturation',
     onglet: 'encaissements',
     cleLibelle: 'navigation:onglets.facturationEncaissements',
     motif:
@@ -792,12 +783,24 @@ function scoreCorrespondance(pathname: string, motifs: readonly string[]): numbe
   return meilleur;
 }
 
-/** `undefined` sur `roles` = aucune restriction, visible même session non encore résolue (le menu
- *  ne doit pas clignoter au chargement). Une restriction posée + rôle inconnu = masqué : on ne
- *  montre jamais une entrée gouvernée « au cas où ». */
-export function estAutorise(roles: Roles, role: RoleUtilisateur | undefined): boolean {
-  if (roles === undefined) return true;
-  return role !== undefined && roles.includes(role);
+export function sujetNavigation(
+  session:
+    | {
+        readonly utilisateur: { readonly role: RoleUtilisateur };
+        readonly actions: readonly string[];
+      }
+    | null
+    | undefined,
+): SujetNavigation | undefined {
+  return session ? { role: session.utilisateur.role, actions: session.actions } : undefined;
+}
+
+/** `undefined` sur `acces` = aucune restriction, visible même session non encore résolue (le menu
+ *  ne doit pas clignoter au chargement). Une restriction posée + session inconnue = masqué : on ne
+ *  montre jamais une entrée gouvernée « au cas où ». Autorisé = au moins une des actions listées. */
+export function estAutorise(acces: AccesEntree, sujet: SujetNavigation | undefined): boolean {
+  if (acces === undefined) return true;
+  return sujet !== undefined && acces.some((action) => sujet.actions.includes(action));
 }
 
 /**
@@ -806,37 +809,37 @@ export function estAutorise(roles: Roles, role: RoleUtilisateur | undefined): bo
  * par entrée laisserait passer celles qui n'ont aucune restriction (Clients & véhicules, Ordres de
  * réparation), ce qui remettrait un menu sur une tablette qui n'en veut pas.
  */
-function estCompteAppareil(role: RoleUtilisateur | undefined): boolean {
-  return role === 'poste_atelier';
+function estCompteAppareil(sujet: SujetNavigation | undefined): boolean {
+  return sujet?.role === 'poste_atelier';
 }
 
 export function vuesVisibles(
   onglet: OngletDomaine,
-  role: RoleUtilisateur | undefined,
+  sujet: SujetNavigation | undefined,
 ): readonly VueDomaine[] {
   // Même garde que `ongletsVisibles` : la borne murale ne rend aucun niveau de navigation. Sans
   // elle, `poste_atelier` verrait la rangée de vues du pointage — précisément ce que §2 exclut.
-  if (estCompteAppareil(role)) return [];
-  return (onglet.vues ?? []).filter((vue) => estAutorise(vue.roles, role));
+  if (estCompteAppareil(sujet)) return [];
+  return (onglet.vues ?? []).filter((vue) => estAutorise(vue.acces, sujet));
 }
 
 export function ongletsVisibles(
   entree: EntreeMenu,
-  role: RoleUtilisateur | undefined,
+  sujet: SujetNavigation | undefined,
 ): readonly OngletDomaine[] {
-  if (estCompteAppareil(role)) return [];
-  return entree.onglets.filter((onglet) => estAutorise(onglet.roles, role));
+  if (estCompteAppareil(sujet)) return [];
+  return entree.onglets.filter((onglet) => estAutorise(onglet.acces, sujet));
 }
 
 /** Une entrée existe pour un rôle si et seulement si au moins un de ses onglets lui est ouvert —
  *  aucune liste de rôles séparée au niveau de l'entrée, donc aucune divergence possible entre
  *  « l'entrée est visible » et « son contenu est vide ». */
-export function entreesVisibles(role: RoleUtilisateur | undefined): readonly EntreeMenu[] {
-  return ENTREES_MENU.filter((entree) => ongletsVisibles(entree, role).length > 0);
+export function entreesVisibles(sujet: SujetNavigation | undefined): readonly EntreeMenu[] {
+  return ENTREES_MENU.filter((entree) => ongletsVisibles(entree, sujet).length > 0);
 }
 
-export function reglagesVisibles(role: RoleUtilisateur | undefined): boolean {
-  return ongletsVisibles(ENTREE_REGLAGES, role).length > 0;
+export function reglagesVisibles(sujet: SujetNavigation | undefined): boolean {
+  return ongletsVisibles(ENTREE_REGLAGES, sujet).length > 0;
 }
 
 /**
@@ -861,21 +864,22 @@ const ONGLET_DEFAUT_PAR_ROLE: Partial<Record<RoleUtilisateur, DefautsOngletParEn
  *  fermée. */
 export function ongletDefaut(
   entree: EntreeMenu,
-  role: RoleUtilisateur | undefined,
+  sujet: SujetNavigation | undefined,
 ): OngletDomaine | undefined {
-  const visibles = ongletsVisibles(entree, role);
+  const visibles = ongletsVisibles(entree, sujet);
   if (visibles.length === 0) return undefined;
-  const idSouhaite = role === undefined ? undefined : ONGLET_DEFAUT_PAR_ROLE[role]?.[entree.id];
+  const idSouhaite =
+    sujet === undefined ? undefined : ONGLET_DEFAUT_PAR_ROLE[sujet.role]?.[entree.id];
   return visibles.find((onglet) => onglet.id === idSouhaite) ?? visibles[0];
 }
 
 /** La cible du lien de menu : le chemin de l'onglet par défaut, site courant conservé. */
 export function cheminEntree(
   entree: EntreeMenu,
-  role: RoleUtilisateur | undefined,
+  sujet: SujetNavigation | undefined,
   site: string | undefined,
 ): string | undefined {
-  return ongletDefaut(entree, role)?.chemin(site);
+  return ongletDefaut(entree, sujet)?.chemin(site);
 }
 
 export interface CorrespondanceNavigation {

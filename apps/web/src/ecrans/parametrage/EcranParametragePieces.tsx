@@ -104,7 +104,7 @@ export function EcranParametragePieces() {
   const { t } = useTranslation(['parametrage', 'pieces', 'commun', 'erreurs']);
   const requete = useParametresPieces();
   const { data: session } = useSession();
-  const peutEcrire = peutModifierParametragePieces(session?.utilisateur.role);
+  const peutEcrire = peutModifierParametragePieces(session?.actions);
 
   return (
     <GabaritEcran titre={t('parametrage:pieces.titre')}>

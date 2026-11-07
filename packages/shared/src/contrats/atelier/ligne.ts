@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import {
   BLOCAGES_LIGNE_OR,
+  CANAUX_DEVIS,
   ORIGINES_LIGNE_OR,
   PAYEURS_LIGNE_OR,
   STATUTS_LIGNE_OR,
@@ -17,6 +18,7 @@ import {
 import {
   schemaCentiemes,
   schemaCentimes,
+  schemaHorodatage,
   schemaIdentifiant,
   schemaListeIdentifiants,
   schemaMotif,
@@ -167,7 +169,17 @@ export const schemaCreationLigneOr = z
   .object({
     type: z.enum(TYPES_LIGNE_OR),
     origine: z.enum(ORIGINES_LIGNE_OR),
-    designation: schemaTexteCourt,
+    /** Obligatoire, SAUF si `travailReporteId` est fourni : la ligne reprend alors la désignation du
+     *  travail reporté (`400 VALIDATION_ECHOUEE` si ni l'une ni l'autre). */
+    designation: schemaTexteCourt.optional(),
+    /**
+     * Reprise d'un travail reporté du véhicule de l'OR (RM-73) : dans la même transaction, la ligne
+     * reprend la désignation (si absente), l'estimation (`prixUnitaireCentimes`, si absent), l'urgence
+     * et le drapeau sécurité du travail, qui passe à `repris` (`ordreReparationRepriseId` = l'OR).
+     * `409 CONFLIT` si le travail n'est pas `ouvert` ; `404` s'il n'appartient pas à ce véhicule.
+     * Le champ `detail` du travail n'a pas d'équivalent sur la ligne d'OR : non recopié.
+     */
+    travailReporteId: schemaIdentifiant.nullish(),
     referenceTexte: z.string().trim().max(80).nullish(),
     /** RP-19/RP-20 (`pieces/reservation.ts`, GELÉ) : quand `type = 'piece'` et
      *  `fournieParClient = false`, réserve la pièce en base — voir `ReponseLigneOr.articleId`. */
@@ -208,7 +220,7 @@ export const schemaCreationLigneOr = z
  * Sur une ligne déjà `validee`, une hausse de montant peut produire `409 OR_PLAFOND_DEPASSE`.
  */
 export const schemaModificationLigneOr = schemaCreationLigneOr
-  .omit({ origine: true, blocage: true })
+  .omit({ origine: true, blocage: true, travailReporteId: true })
   .partial()
   .extend({ blocage: z.enum(BLOCAGES_LIGNE_OR).optional() });
 
@@ -229,7 +241,26 @@ export const schemaMarquageRealisee = z
  * Une action de ligne est groupée au niveau de l'OR **si et seulement si** elle porte un invariant
  * INTER-LIGNES (le plafond) ou un motif PARTAGÉ. Sinon elle reste sur la ligne.
  */
-export const schemaValidationLignes = z.object({ ligneIds: schemaListeIdentifiants }).strict();
+/**
+ * Accord du client recueilli hors application (téléphone, comptoir, courriel…) — optionnel sur
+ * `valider-lignes`. Quand il est fourni, le serveur trace pour CHAQUE ligne validée une entrée de
+ * journal (`GET /ordres-reparation/{orId}/journal`, entité `ligne_or`, champ `motif`) :
+ * « Accord du client : <nom> (<canal>), le <date et heure> ». Aucune colonne dédiée : l'accord vit
+ * dans le journal d'audit (qui / quoi / quand), pas dans la ligne. `horodate` absent = maintenant.
+ * `canal` : MÊME vocabulaire que les devis complémentaires (`CANAUX_DEVIS`).
+ */
+export const schemaAccordClientLignes = z
+  .object({
+    nom: schemaTexteCourt,
+    canal: z.enum(CANAUX_DEVIS),
+    horodate: schemaHorodatage.optional(),
+    commentaire: schemaMotif.optional(),
+  })
+  .strict();
+
+export const schemaValidationLignes = z
+  .object({ ligneIds: schemaListeIdentifiants, accord: schemaAccordClientLignes.optional() })
+  .strict();
 
 export const schemaRefusLignes = z
   .object({
@@ -269,6 +300,7 @@ export type EntreeCreationLigneOr = z.infer<typeof schemaCreationLigneOr>;
 export type EntreeModificationLigneOr = z.infer<typeof schemaModificationLigneOr>;
 export type EntreeMarquageRealisee = z.infer<typeof schemaMarquageRealisee>;
 export type EntreeValidationLignes = z.infer<typeof schemaValidationLignes>;
+export type EntreeAccordClientLignes = z.infer<typeof schemaAccordClientLignes>;
 export type EntreeRefusLignes = z.infer<typeof schemaRefusLignes>;
 export type EntreeAnnulationLignes = z.infer<typeof schemaAnnulationLignes>;
 export type EntreeSoumissionLignesADevis = z.infer<typeof schemaSoumissionLignesADevis>;

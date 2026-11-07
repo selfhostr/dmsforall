@@ -11,6 +11,7 @@ import { messageErreur } from '@/api/erreurs';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
+import { useChoisirSiteImplicite } from '@/hooks/site/useChoisirSiteImplicite';
 import { useSession } from '@/hooks/useSession';
 
 interface Props {
@@ -30,8 +31,10 @@ interface Props {
 export function SelecteurSitePointage({ onChoisir }: Props) {
   const { t } = useTranslation(['pointage', 'commun']);
   const { data: session, isPending, isError, error, refetch } = useSession();
+  // Mono-site : le site s'impose, aucune question à poser.
+  const siteImpose = useChoisirSiteImplicite(onChoisir);
 
-  if (isPending) {
+  if (isPending || siteImpose) {
     return <EtatChargement lignes={1} />;
   }
 

@@ -195,42 +195,12 @@ export const ALLOWLIST_ACTIONS_SANS_DECORATEUR: readonly EntreeAllowlistAction[]
   // Actions inertes, créées par anticipation
   // ---------------------------------------------------------------------------------------------
   {
-    // Les tables `rendez_vous*`/`*_courtoisie` ne sont pas créées au lot 1 (plan-lot1-execution.md
-    // §7.2 L1-05 delta Δ4) : il n'existe aucun module RDV, donc aucune route à décorer. L'action
-    // existe déjà pour que `DROIT_PAR_CONFIRMATION: Record<CodeConfirmation, Action>` (6 valeurs)
-    // reste exhaustif SANS `Partial<...>` — voir le commentaire détaillé sur le type `Action` dans
-    // `auth/matrice-droits.ts`. Elle est déjà, structurellement, une valeur de
-    // `DROIT_PAR_CONFIRMATION` (couverte aussi par ce mécanisme automatique) ; listée ici EN PLUS
-    // pour documenter explicitement son statut anticipé et forcer sa réévaluation au moment où le
-    // module RDV sera implémenté (voir l'avertissement détaillé sur le type `Action`, qui précise
-    // que le rôle assigné aujourd'hui n'est PAS une décision métier tranchée pour ce futur module).
-    action: 'rendez_vous.confirmation.ressource_chevauchement',
-    categorie: 'action-inerte-anticipee',
+    // Marqueur de contrainte : détenu par `receptionnaire`, lu par le service d'émission pour
+    // décider si le plafond d'avoir RF-117 s'applique (remplace un test `role === 'receptionnaire'`).
+    action: 'facturation.avoir.plafonne',
+    categorie: 'verification-conditionnelle-service',
     justification:
-      'Aucun module rendez_vous au lot 1 (aucune table, aucun contrôleur, plan-lot1-execution.md §7.2 delta Δ4) : ' +
-      'action créée par anticipation pour garder DROIT_PAR_CONFIRMATION exhaustif sur les 6 valeurs de ' +
-      'CodeConfirmation (auth/matrice-droits.ts, tête de fichier et commentaire sur le type Action). À réexaminer ' +
-      'avec la spec du module RDV au moment de son implémentation, pas à supposer déjà tranchée.',
-  },
-  {
-    // Même situation que `rendez_vous.confirmation.ressource_chevauchement` ci-dessus : aucun
-    // module rendez_vous au lot 1.
-    action: 'rendez_vous.confirmation.hors_ouverture',
-    categorie: 'action-inerte-anticipee',
-    justification:
-      'Même situation que rendez_vous.confirmation.ressource_chevauchement ci-dessus : aucun module rendez_vous au ' +
-      'lot 1 (plan-lot1-execution.md §7.2 delta Δ4), action créée par anticipation pour DROIT_PAR_CONFIRMATION ' +
-      '(auth/matrice-droits.ts).',
-  },
-  {
-    // Même famille que les deux entrées RDV ci-dessus : le module de prêt de véhicule (courtoisie)
-    // n'existe pas non plus au lot 1 (mêmes tables absentes, même delta Δ4).
-    action: 'pret_vehicule.confirmation.indisponible',
-    categorie: 'action-inerte-anticipee',
-    justification:
-      'Aucun module pret_vehicule au lot 1 (tables *_courtoisie absentes, plan-lot1-execution.md §7.2 delta Δ4) : ' +
-      'action créée par anticipation pour DROIT_PAR_CONFIRMATION (auth/matrice-droits.ts), au même titre que les 2 ' +
-      'actions rendez_vous.confirmation.* ci-dessus.',
+      "Contrôle réel : ServiceEmissionDocument.verifierPlafondAvoirReceptionnaire() (apps/api/src/facturation/documents/service-emission.ts) : `MATRICE_DROITS[principal.role].includes('facturation.avoir.plafonne')` décide si le plafond RF-117 s'applique, AVANT toute écriture. Ce n'est pas un pouvoir mais une contrainte, donc aucun @ExigerDroit.",
   },
   {
     // `POST /documents-vente/{id}/emettre` expose UN SEUL endpoint pour les QUATRE types de document
@@ -277,24 +247,6 @@ export const ALLOWLIST_ACTIONS_SANS_DECORATEUR: readonly EntreeAllowlistAction[]
       "d'avoir par receptionnaire) NON IMPLÉMENTÉ ici : aucune colonne de paramétrage pour ce plafond n'existe, la " +
       'vérification reste binaire (a le droit / ne l’a pas), sans notion de montant — dégradé documenté, voir ' +
       'auth/matrice-droits.ts et auth/matrice-droits.spec.ts pour le détail.',
-  },
-  {
-    // `vehicules.module.ts` (commentaire de tête, au-dessus du décorateur `@Module`) est explicite :
-    // « ServiceVehiculeCampagne ... n'a, comme clients/, aucun contrôleur qui appelle LEURS
-    // méthodes (CRUD) au lot 1 (aucune route POST/PATCH campagnes ... publiée) — déclaré ici quand
-    // même pour que l'injection soit prête le jour où ces contrôleurs existeront ». La LECTURE des
-    // campagnes ouvertes est déjà exposée en HTTP (`GET .../contexte-atelier`, gardée par
-    // `vehicule.lire`, via les fonctions de requête partagées de `vehicule-requetes.ts`), mais
-    // l'ÉCRITURE (créer/modifier une campagne) n'a aucune route : rien à décorer avec
-    // `vehicule.campagne.gerer` aujourd'hui — le service existe, le provider est enregistré dans
-    // `VehiculesModule`, aucun `@Controller` ne l'appelle.
-    action: 'vehicule.campagne.gerer',
-    categorie: 'action-inerte-anticipee',
-    justification:
-      'Aucune route HTTP pour ServiceVehiculeCampagne.creer()/modifier() au lot 1 — voir le commentaire de tête de ' +
-      'apps/api/src/vehicules/vehicules.module.ts, juste au-dessus du décorateur @Module. Le service et le provider ' +
-      "existent, prêts pour un futur contrôleur d'écriture ; la lecture (campagnes ouvertes) passe par GET " +
-      '.../contexte-atelier sous le droit vehicule.lire, pas sous cette action.',
   },
   {
     // `apps/api/src/ventes/financement.controller.ts` (tête de fichier) est explicite : le

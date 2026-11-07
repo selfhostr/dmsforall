@@ -54,9 +54,9 @@ export function EcranFicheCommandeFournisseur() {
   const { t } = useTranslation(['pieces', 'commun', 'erreurs']);
   const { id } = useParams<{ id: string }>();
   const session = useSession();
-  const role = session.data?.utilisateur.role;
+  const actions = session.data?.actions;
   const sites = session.data?.sites ?? [];
-  const peutLire = peutLireCommandeFournisseur(role);
+  const peutLire = peutLireCommandeFournisseur(actions);
 
   const [receptionOuverte, setReceptionOuverte] = useState(false);
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
@@ -119,8 +119,8 @@ export function EcranFicheCommandeFournisseur() {
   const nomSite = sites.find((site) => site.id === commande.siteId)?.nom ?? commande.siteId;
   const nomFournisseur = requeteFournisseur.data?.nom;
 
-  const peutEcrire = peutEcrireCommandeFournisseur(role);
-  const peutReceptionner = peutReceptionnerCommandeFournisseur(role);
+  const peutEcrire = peutEcrireCommandeFournisseur(actions);
+  const peutReceptionner = peutReceptionnerCommandeFournisseur(actions);
   const peutEnvoyer = peutEcrire && commande.statut === 'brouillon';
   const peutAnnulerCommande =
     peutEcrire && (commande.statut === 'brouillon' || commande.statut === 'envoyee');

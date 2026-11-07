@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { ROLES_PERSONNE, type Langue, type RolePersonne, type StatutUtilisateur } from './enums';
 import type { PageCurseur } from './pagination';
+import { IDS_PREREGLAGE, type CapacitesPersonne } from './capacites';
 
 /** Corps de `GET /api/v1/tenant/courant`. */
 export interface TenantCourant {
@@ -44,6 +45,8 @@ export interface UtilisateurResume {
   readonly nom: string;
   readonly email: string;
   readonly role: RolePersonne;
+  /** Grille de capacités de la personne (le rôle n'en est que le préréglage d'origine). */
+  readonly capacites: CapacitesPersonne;
   readonly statut: StatutUtilisateur;
   readonly sites: readonly SiteAffecteResume[];
   /** ISO 8601, `null` si l'employé ne s'est encore jamais connecté. */
@@ -75,6 +78,8 @@ export const schemaCreationUtilisateur = z
     nom: schemaNomPersonne,
     email: schemaEmailUtilisateur,
     role: z.enum(ROLES_PERSONNE_TUPLE),
+    /** Préréglage de départ (défaut : celui du rôle). Son rôle d'origine doit égaler `role`. */
+    prereglage: z.enum(IDS_PREREGLAGE).optional(),
     siteIds: schemaSiteIds,
   })
   .strict();
@@ -86,6 +91,8 @@ export type EntreeCreationUtilisateur = z.infer<typeof schemaCreationUtilisateur
 export const schemaModificationUtilisateur = z
   .object({
     role: z.enum(ROLES_PERSONNE_TUPLE).optional(),
+    /** Avec `role` : préréglage appliqué (ex. `fiduciaire` pour `comptable`). Défaut : celui du rôle. */
+    prereglage: z.enum(IDS_PREREGLAGE).optional(),
     siteIds: schemaSiteIds.optional(),
   })
   .strict()
@@ -106,5 +113,43 @@ export interface ReponseAccesTemporaire {
 /** Corps de `201 POST /api/v1/utilisateurs`. */
 export interface ReponseCreationUtilisateur {
   readonly utilisateur: UtilisateurResume;
+  readonly acces: ReponseAccesTemporaire;
+}
+
+// =================================================================================================
+// Bornes d'atelier (comptes de service `poste_atelier`) — phase 0 rôles. Une borne est une
+// tablette murale rattachée à UN site ; elle se connecte avec un identifiant et un mot de passe
+// générés par le serveur. Les PIN de pointage sont, eux, par technicien (`PUT /pointage/pins`).
+// Droits `socle.borne.*` : `direction` et `admin` seuls.
+// =================================================================================================
+
+/** Élément de `GET /api/v1/bornes`. */
+export interface BorneResume {
+  readonly id: string;
+  /** Libellé affiché (ex. « Atelier Sion »). */
+  readonly nom: string;
+  /** Identifiant de connexion de la tablette (généré par le serveur). */
+  readonly identifiant: string;
+  readonly site: SiteAffecteResume;
+  readonly statut: StatutUtilisateur;
+  /** ISO 8601, `null` si la borne ne s'est encore jamais connectée. */
+  readonly derniereConnexionLe: string | null;
+  readonly creeLe: string;
+}
+
+export type PageBorneResume = PageCurseur<BorneResume>;
+
+/** Corps de `POST /api/v1/bornes`. `.strict()` : un `tenantId` dans le corps est refusé (400). */
+export const schemaCreationBorne = z
+  .object({
+    nom: z.string().trim().min(1).max(100),
+    siteId: z.string().uuid(),
+  })
+  .strict();
+export type EntreeCreationBorne = z.infer<typeof schemaCreationBorne>;
+
+/** Corps de `201 POST /api/v1/bornes` : le mot de passe n'apparaît qu'ici, une seule fois. */
+export interface ReponseCreationBorne {
+  readonly borne: BorneResume;
   readonly acces: ReponseAccesTemporaire;
 }

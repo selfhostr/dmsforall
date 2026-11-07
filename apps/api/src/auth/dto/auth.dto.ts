@@ -14,6 +14,7 @@
  * accepté pour ne pas créer de dépendance de compilation entre répertoires appartenant à des
  * experts différents (voir contrats-etape-0.md §1).
  */
+import { CapacitesPersonneDto } from './capacites.dto';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   CODES_ERREUR,
@@ -100,6 +101,21 @@ export class SessionCouranteDto implements SessionCourante {
    */
   @ApiProperty({ format: 'uuid', nullable: true, type: String })
   siteRattachementId!: string | null;
+
+  @ApiProperty({
+    type: [String],
+    description:
+      'Actions de la matrice de droits détenues par le rôle du compte (triées). Informatif : le serveur re-vérifie chaque requête.',
+    example: ['atelier.or.lire', 'client.lire'],
+  })
+  actions!: readonly string[];
+
+  @ApiProperty({
+    type: () => CapacitesPersonneDto,
+    description:
+      "Grille de capacités du compte (niveaux par domaine, encadrer, options). Pour l'affichage ; la décision reste `actions`.",
+  })
+  capacites!: CapacitesPersonneDto;
 
   @ApiProperty({ format: 'date-time' })
   expireLe!: string;

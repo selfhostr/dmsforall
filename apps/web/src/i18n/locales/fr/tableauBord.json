@@ -201,5 +201,8 @@
         "description": "Aucun ordre de réparation ouvert n'a de date de restitution promise aujourd'hui."
       }
     }
+  },
+  "chiffres": {
+    "titre": "Chiffres"
   }
 }

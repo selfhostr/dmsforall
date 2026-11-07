@@ -33,6 +33,7 @@ import { creerAccesBaseTest, demarrerRedisEphemere, type RedisEphemere } from '.
 import { ServiceCycleVieResiliation } from '../../src/exploitation/cycle-vie-tenant/service-cycle-vie-resiliation';
 import { ServiceExportTenant } from '../../src/exploitation/cycle-vie-tenant/service-export-tenant';
 import { StockageExportTenantDisqueLocal } from '../../src/exploitation/cycle-vie-tenant/service-stockage-export-tenant';
+import { StockagePhotosDisqueLocal } from '../../src/atelier/photos/stockage-photos';
 import { StockageArchiveRepriseDisqueLocal } from '../../src/reprise/depot/stockage-archive-reprise';
 import {
   StockagePdfDisqueLocal,
@@ -96,6 +97,8 @@ async function construireServices() {
     stockageReprise,
     stockagePdf,
     stockage,
+    // Photos d'OR : sans objet pour cette spec (aucun fichier déposé), racine éphémère dédiée.
+    new StockagePhotosDisqueLocal(`${racinePdf}-photos`),
   );
   const exportTenant = new ServiceExportTenant(accesBase, stockage, cycleVie);
   return { accesBase, stockage, stockageReprise, stockagePdf, cycleVie, exportTenant, fermer };

@@ -3,7 +3,7 @@
   "monCompte": {
     "titre": "Il mio account",
     "langue": {
-      "description": "Questa lingua riguarda solo il vostro account, non gli altri utenti dell'officina."
+      "description": "Questa lingua riguarda solo il suo account, non gli altri utenti dell'officina."
     }
   },
   "creancier": {
@@ -47,7 +47,7 @@
     },
     "refus": {
       "titre": "Accesso riservato alla direzione e alla contabilità",
-      "description": "Questa schermata gestisce le coordinate bancarie dell'officina, un dato finanziario sensibile. È accessibile solo ai ruoli Direzione e Contabilità — mai al ruolo Admin, che gestisce gli account utente ma non dispone di alcun diritto finanziario. Accedi nuovamente con un account Direzione o Contabilità per continuare.",
+      "description": "Questa schermata gestisce le coordinate bancarie dell'officina, un dato finanziario sensibile. È accessibile solo ai ruoli Direzione e Contabilità — mai al ruolo Admin, che gestisce gli account utente ma non dispone di alcun diritto finanziario. Acceda nuovamente con un account Direzione o Contabilità per continuare.",
       "retourAccueil": "Torna alla home"
     }
   },
@@ -72,7 +72,7 @@
       },
       "vide": {
         "titre": "Nessuna tariffa oraria",
-        "description": "Crea almeno una tariffa oraria per poter valorizzare una manodopera a tempo effettivo."
+        "description": "Crei almeno una tariffa oraria per poter valorizzare una manodopera a tempo effettivo."
       }
     },
     "prestations": {
@@ -90,14 +90,14 @@
         "code": "Codice",
         "designation": "Descrizione",
         "typeLigne": "Tipo di riga",
-        "tempsBareme": "Tempo a barème",
+        "tempsBareme": "Tempo forfettario",
         "prix": "Prezzo",
         "tauxHoraireCode": "Tariffa oraria associata",
         "tauxTva": "Aliquota IVA",
         "actif": "Prestazione attiva"
       },
       "typesLigne": {
-        "main_oeuvre_bareme": "Manodopera a barème",
+        "main_oeuvre_bareme": "Manodopera forfettaria",
         "main_oeuvre_temps_reel": "Manodopera a tempo effettivo",
         "forfait": "Forfait",
         "piece": "Pezzo",
@@ -109,20 +109,20 @@
         "texte": "Informazione"
       },
       "tauxTvaLibelles": {
-        "81": "8.1 % (aliquota normale)",
+        "0": "0 % (esente)",
         "26": "2.6 % (aliquota ridotta)",
         "38": "3.8 % (settore alberghiero)",
-        "0": "0 % (esente)"
+        "81": "8.1 % (aliquota normale)"
       },
       "vide": {
         "titre": "Nessuna prestazione",
-        "description": "Crea la tua prima prestazione per utilizzarla su una riga di un ordine di riparazione."
+        "description": "Crei la sua prima prestazione per utilizzarla su una riga di un ordine di riparazione."
       }
     }
   },
   "atelier": {
     "titre": "Impostazioni dell'officina",
-    "lectureSeule": "Queste impostazioni sono riservate al capo officina e alla direzione. Puoi consultarle ma non modificarle.",
+    "lectureSeule": "Queste impostazioni sono riservate al capo officina e alla direzione. Può consultarle ma non modificarle.",
     "enregistrementReussi": "Impostazioni salvate.",
     "or": {
       "titre": "Ordini di riparazione",
@@ -186,17 +186,6 @@
         "tout": "Tutto lo storico",
         "technique": "Solo storico tecnico",
         "rien": "Nessuno"
-      }
-    },
-    "aVenir": {
-      "titre": "Funzionalità future",
-      "description": "Queste impostazioni esistono già nel contratto dell'API ma non sono ancora collegate ad alcuna funzionalità rilasciata — non compaiono quindi come caselle modificabili senza alcun effetto.",
-      "pasEncoreDisponible": "non ancora disponibile",
-      "fonctionnalites": {
-        "facturation": "Fatturazione d'officina",
-        "stockPieces": "Magazzino ricambi",
-        "depotPneus": "Deposito pneumatici",
-        "prets": "Veicoli sostitutivi"
       }
     },
     "inerte": {
@@ -274,12 +263,13 @@
     "nouveau": "Nuovo dipendente",
     "vide": {
       "titre": "Nessun dipendente",
-      "description": "Crea il primo accesso per un dipendente di questa officina."
+      "description": "Crei il primo accesso per un dipendente di questa officina."
     },
     "colonnes": {
       "nom": "Nome",
       "email": "E-mail",
       "role": "Ruolo",
+      "acces": "Accesso",
       "sites": "Sedi",
       "statut": "Stato",
       "actions": "Azioni"
@@ -295,7 +285,7 @@
       "desactiver": "Disattiva",
       "reactiver": "Riattiva",
       "reinitialiserAcces": "Reimposta accesso",
-      "menuAria": "Azioni per {{nom}}"
+      "menuAria": "Azioni per {nom}"
     },
     "creation": {
       "titre": "Crea un dipendente",
@@ -303,17 +293,18 @@
       "champPrenom": "Nome",
       "champNom": "Cognome",
       "champEmail": "E-mail",
-      "champRole": "Ruolo",
+      "champRole": "Funzione (punto di partenza)",
       "champSites": "Sedi in cui lavora il dipendente",
       "aucunSiteDisponible": "Nessuna sede è ancora collegata a questa officina.",
-      "sitesAucunSelectionne": "Seleziona almeno una sede.",
+      "sitesAucunSelectionne": "Selezioni almeno una sede.",
       "actions": {
         "creer": "Crea"
-      }
+      },
+      "droitsNonEnregistres": "L'account è stato creato, ma i diritti non sono stati salvati. La Sua scelta è stata conservata: la verifichi e salvi."
     },
     "modification": {
-      "titre": "Modifica {{nom}}",
-      "description": "Cambia il ruolo e/o le sedi — utile in caso di cambio di mansione.",
+      "titre": "Modifica {nom}",
+      "description": "Cambi la funzione, le sedi o i diritti di questa persona — utile in caso di cambio di mansione.",
       "actions": {
         "enregistrer": "Salva"
       }
@@ -326,19 +317,145 @@
       "fermer": "Ho annotato la password"
     },
     "desactiver": {
-      "titre": "Disattivare {{nom}}?",
+      "titre": "Disattivare {nom}?",
       "description": "Il dipendente non potrà più accedere. La sua cronologia (ordini di riparazione, fatture, timbrature) resta attribuibile — non è un'eliminazione, l'account può essere riattivato in qualsiasi momento.",
       "confirmer": "Disattiva"
     },
     "reactiver": {
-      "titre": "Riattivare {{nom}}?",
+      "titre": "Riattivare {nom}?",
       "description": "Il dipendente potrà nuovamente accedere con la password esistente.",
       "confirmer": "Riattiva"
     },
     "reinitialiserAcces": {
-      "titre": "Reimpostare l'accesso di {{nom}}?",
+      "titre": "Reimpostare l'accesso di {nom}?",
       "description": "Viene generata una nuova password temporanea e ogni sessione aperta di questo dipendente viene chiusa immediatamente.",
       "confirmer": "Reimposta"
+    },
+    "rolesDescription": {
+      "direction": "Fa tutto: accettazione, vendite, fatturazione, ricambi, impostazioni e collaboratori.",
+      "chef_atelier": "Dirige l'officina: pianifica, controlla, corregge le ore e sblocca. Vede i prezzi.",
+      "receptionnaire": "Accoglie i clienti, apre gli ordini di riparazione, prepara preventivi e fatture.",
+      "technicien": "Vede e timbra i suoi lavori, mai i prezzi.",
+      "magasinier": "Gestisce il magazzino: uscite di ricambi, inventario, ricezione degli ordini.",
+      "vendeur": "Vende veicoli nuovi e usati e segue i dossier di vendita.",
+      "comptable": "Segue fatturazione, pagamenti ed esportazioni per la fiduciaria.",
+      "admin": "Account tecnico: gestisce gli accessi, senza diritti su officina o fatturazione."
+    },
+    "roleUnique": "Ogni persona ha un solo ruolo. In una piccola officina scelga Direzione: questo ruolo può fare tutto.",
+    "bornes": {
+      "titre": "Postazioni d'officina",
+      "description": "Una postazione è il tablet a muro dell'officina: i meccanici timbrano con il loro codice PIN.",
+      "nouveau": "Aggiungi una postazione",
+      "vide": "Nessuna postazione d'officina per ora.",
+      "colNom": "Nome",
+      "colIdentifiant": "Identificativo",
+      "colSite": "Sede",
+      "colStatut": "Stato",
+      "colActions": "Azioni",
+      "champNom": "Nome della postazione",
+      "champSite": "Sede della postazione",
+      "placeholderSite": "Scegli una sede",
+      "creer": "Crea la postazione",
+      "acces": "Identificativo e password della postazione",
+      "accesDescription": "Inseriteli una sola volta sul tablet. La password non verrà più mostrata.",
+      "desactiver": "Disattiva",
+      "reactiver": "Riattiva",
+      "reinitialiser": "Nuova password",
+      "desactiverTitre": "Disattivare la postazione {nom}?",
+      "desactiverDescription": "Il tablet viene scollegato subito.",
+      "reactiverTitre": "Riattivare la postazione {nom}?",
+      "reactiverDescription": "Il tablet potrà di nuovo collegarsi.",
+      "reinitialiserTitre": "Nuova password per {nom}?",
+      "reinitialiserDescription": "Il tablet viene scollegato: bisognerà inserire la nuova password.",
+      "identifiantLabel": "Identificativo",
+      "motDePasseLabel": "Password",
+      "fermer": "Ho annotato queste informazioni"
+    },
+    "fiduciaire": {
+      "bouton": "Aggiungi una fiduciaria",
+      "titre": "Nuovo account fiduciaria",
+      "description": "Account in sola lettura per la Sua fiduciaria: fatturazione e finanze, nient'altro."
+    },
+    "accesPerso": "{role} (personalizzato)"
+  },
+  "entreprise": {
+    "titre": "Azienda",
+    "explication": "Queste informazioni identificano la sua autofficina sulle fatture.",
+    "raisonSociale": "Ragione sociale",
+    "numeroTva": "Numero IVA",
+    "numeroTvaAide": "Formato: CHE-123.456.789 IVA. Lasci vuoto se non è soggetto all'IVA.",
+    "erreurTva": {
+      "format": "Il numero deve avere la forma CHE-123.456.789 IVA.",
+      "cle": "Questo numero non esiste: controlli le cifre."
+    },
+    "enregistrer": "Salva azienda",
+    "enregistrementReussi": "Modifiche salvate.",
+    "erreur": {
+      "titre": "Impossibile caricare i dati dell'azienda"
+    },
+    "delaiPaiement": "Termine di pagamento predefinito (giorni)",
+    "delaiPaiementAide": "Applicato alle fatture dei clienti senza condizione di pagamento propria. Da 0 a 365 giorni.",
+    "erreurDelai": "Indichi un numero intero di giorni, da 0 a 365.",
+    "logo": {
+      "titre": "Logo",
+      "alt": "Logo dell’officina",
+      "aucun": "Nessun logo caricato: le fatture vengono stampate senza logo.",
+      "choisir": "Scegli un logo",
+      "remplacer": "Sostituisci il logo",
+      "supprimer": "Elimina",
+      "aide": "PNG, JPEG o SVG, massimo 1 MB. Solo i nuovi PDF riportano il logo: le fatture già stampate non cambiano.",
+      "svgNonImprime": "L’SVG viene mostrato qui ma non è stampato sui PDF. Usi un PNG o un JPEG perché compaia sulle fatture.",
+      "refus": {
+        "type": "Questo file non è accettato: scelga un PNG, un JPEG o un SVG.",
+        "taille": "Questo file supera 1 MB: scelga un’immagine più leggera."
+      }
+    }
+  },
+  "motifsRdv": {
+    "titre": "Motivi degli appuntamenti",
+    "explication": "Perché vengono i clienti: un appuntamento si prende sempre con un motivo.",
+    "nouveau": "Nuovo motivo",
+    "modifier": "Modifica il motivo",
+    "dialogueAide": "Il nome francese basta; le traduzioni sono facoltative.",
+    "traductionsAide": "Le traduzioni sono visibili ai clienti e ai collaboratori che usano il software in questa lingua.",
+    "champs": {
+      "libelleFr": "Nome del motivo",
+      "libelleDe": "Nome in tedesco",
+      "libelleIt": "Nome in italiano",
+      "dureeMinutes": "Durata (minuti)",
+      "dureeMinutesAide": "Per una fascia fissa, es. 60.",
+      "heuresAtelier": "Ore d'officina",
+      "heuresAtelierAide": "Tempo conteggiato sulla giornata, es. 1,5."
+    },
+    "colonnes": {
+      "duree": "Durata",
+      "statut": "Stato"
+    },
+    "statut": {
+      "actif": "Attivo",
+      "desactive": "Disattivato"
+    },
+    "duree": {
+      "minutes": "{count} min",
+      "heures": "{heures} h d'officina",
+      "aucune": "Non definita"
+    },
+    "actions": {
+      "desactiver": "Disattiva",
+      "reactiver": "Riattiva"
+    },
+    "erreurs": {
+      "libelle": "Indichi il nome del motivo.",
+      "dejaPris": "Esiste già un motivo con questo nome.",
+      "duree": "Indichi un numero intero di minuti.",
+      "heures": "Indichi le ore, es. 1,5."
+    },
+    "vide": {
+      "titre": "Nessun motivo di appuntamento",
+      "description": "Crei almeno un motivo, altrimenti non si può fissare alcun appuntamento."
+    },
+    "erreur": {
+      "titre": "Impossibile caricare i motivi"
     }
   }
 }

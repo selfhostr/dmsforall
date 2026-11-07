@@ -42,7 +42,7 @@ import { JETON_COMPTEURS } from '../parametrage/compteurs/compteurs.jetons';
 import type { ServiceCompteurs } from '../parametrage/compteurs/compteurs.types';
 
 import { detecterDoublons } from './detection-doublons';
-import { ROLES_CLIENT_CONTACT, verifierRoleAutorise } from './droits-provisoires';
+import { exigerCapacite } from '../auth/droits-personne';
 import { versClientResponse, versClientResume } from './mappers';
 import {
   construireConditionKeyset,
@@ -195,7 +195,7 @@ export class ServiceClient {
           // gommés par `normaliser_recherche()`), servi par le même index GIN trigram déjà posé
           // (`client_recherche_idx`, migration 0006 — `gin_trgm_ops` supporte `~~`/`like`, pas
           // seulement `%`, donc aucun index supplémentaire n'est nécessaire).
-          sql`public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''))) like public.normaliser_recherche(${motif})`,
+          sql`(public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''))) like public.normaliser_recherche(${motif}) or public.normaliser_recherche(coalesce(c.raison_sociale, concat_ws(' ', c.prenom, c.nom))) like public.normaliser_recherche(${motif}))`,
           sql`c.numero ilike ${motif}`,
           sql`c.email ilike ${motif}`,
           sql`c.ide ilike ${motif}`,
@@ -330,110 +330,120 @@ export class ServiceClient {
     return this.idempotence.executer(
       ctx,
       { methode: 'POST', chemin: '/clients', cle: cleIdempotence, corps: entree },
-      async (tx) => {
-        const collecteur = new CollecteurAvertissements();
-
-        const telephonePrincipal = choisirTelephonePrincipal(entree.telephones);
-        const telephoneE164 = normaliserTelephoneCh(telephonePrincipal);
-
-        const nomComplet =
-          entree.type === 'entreprise'
-            ? (entree.raisonSociale ?? '')
-            : [entree.nom, entree.prenom].filter((v): v is string => Boolean(v)).join(' ');
-
-        // RM-05 : détection AVANT création, jamais bloquante (CT-01) — voir `detection-doublons.ts`.
-        const candidats = await detecterDoublons(tx, ctx.tenantId, {
-          nomComplet: nomComplet || undefined,
-          npa: entree.adressePrincipale?.npa,
-          email: entree.email ?? undefined,
-          telephoneE164: telephoneE164 ?? undefined,
-          ide: entree.type === 'entreprise' ? (entree.ide ?? undefined) : undefined,
-        });
-        if (candidats.length > 0) {
-          collecteur.ajouter(
-            'CLIENT_DOUBLON_PROBABLE',
-            `${candidats.length} fiche(s) client existante(s) ressemble(nt) à celle-ci.`,
-            { candidats },
-          );
-        }
-
-        const numeroBrut = await this.compteurs.prochainNumero(tx, {
-          tenantId: ctx.tenantId,
-          typeDocument: 'client',
-          annee: ANNEE_COMPTEUR_CLIENT,
-          siteId: null,
-        });
-        const numero = formaterNumeroClient(numeroBrut);
-
-        const [ligne] = await tx
-          .insert(client)
-          .values({
-            tenantId: ctx.tenantId,
-            numero,
-            type: entree.type,
-            civilite: entree.civilite ?? null,
-            nom: entree.nom ?? null,
-            prenom: entree.prenom ?? null,
-            raisonSociale: entree.raisonSociale ?? null,
-            ide: entree.ide ?? null,
-            langue: entree.langueCorrespondance,
-            email: entree.email ?? null,
-            telephone: telephonePrincipal,
-            telephoneE164,
-            poObligatoire: entree.poObligatoire,
-            groupeClientId: entree.groupeId ?? null,
-            referenceExterne: entree.referenceExterne ?? null,
-          })
-          .returning();
-        if (!ligne) throw new ErreurMetier('ERREUR_INTERNE', 'Échec de création du client.');
-
-        // Particulier au comptoir sans rendez-vous (RF-59) : pas d'adresse, pas de ligne
-        // `client_adresse` — une absence n'est pas une adresse à champs vides.
-        if (entree.adressePrincipale) {
-          await tx.insert(clientAdresse).values({
-            tenantId: ctx.tenantId,
-            clientId: ligne.id,
-            type: 'principale',
-            rue: entree.adressePrincipale.rue,
-            complement: entree.adressePrincipale.complement ?? null,
-            npa: entree.adressePrincipale.npa,
-            localite: entree.adressePrincipale.localite,
-            pays: entree.adressePrincipale.pays,
-          });
-        }
-
-        if (entree.conditions) {
-          await tx.insert(clientCondition).values({
-            tenantId: ctx.tenantId,
-            clientId: ligne.id,
-            rabaisMoPourmille: entree.conditions.rabaisMoPourmille,
-            rabaisPiecesPourmille: entree.conditions.rabaisPiecesPourmille,
-            rabaisPneusPourmille: entree.conditions.rabaisPneusPourmille,
-            tauxHoraireCode: entree.conditions.tauxHoraireCode ?? null,
-            delaiPaiementJours: entree.conditions.delaiPaiementJours ?? null,
-            modePaiement: entree.conditions.modePaiement ?? null,
-            plafondCentimes: entree.conditions.plafondCentimes ?? null,
-            valideDu: this.dateDuJour(),
-            valideAu: null,
-          });
-        }
-
-        // Fiche fraîchement créée : aucune note d'alerte ne peut encore exister pour elle.
-        return {
-          statutHttp: 201,
-          corps: collecteur.envelopper(versClientResponse(ligne, null, [])),
-        };
-      },
+      async (tx) => ({ statutHttp: 201, corps: await this.creerTx(tx, ctx, entree) }),
     );
   }
 
-  async parId(ctx: ContexteTenant, clientId: string): Promise<ReponseClient> {
-    return this.acces.enTenant(ctx, async (tx) => {
-      const ligne = await this.chargerOu404(tx, ctx, clientId);
-      const dernierPassageLe = await this.dernierPassage(tx, ctx, clientId);
-      const notesAlerte = await this.chargerNotesAlerte(tx, ctx, clientId);
-      return versClientResponse(ligne, dernierPassageLe, notesAlerte);
+  /**
+   * Cœur transactionnel de `creer()` (détection de doublon non bloquante, numéro, fiche, adresse,
+   * conditions), SANS enveloppe d'idempotence — réutilisé par `POST /ordres-reparation/creation-rapide`.
+   */
+  async creerTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    entree: EntreeCreationClient,
+  ): Promise<ReponseAvecAvertissements<ReponseClient>> {
+    const collecteur = new CollecteurAvertissements();
+
+    const telephonePrincipal = choisirTelephonePrincipal(entree.telephones);
+    const telephoneE164 = normaliserTelephoneCh(telephonePrincipal);
+
+    const nomComplet =
+      entree.type === 'entreprise'
+        ? (entree.raisonSociale ?? '')
+        : [entree.nom, entree.prenom].filter((v): v is string => Boolean(v)).join(' ');
+
+    // RM-05 : détection AVANT création, jamais bloquante (CT-01) — voir `detection-doublons.ts`.
+    const candidats = await detecterDoublons(tx, ctx.tenantId, {
+      nomComplet: nomComplet || undefined,
+      npa: entree.adressePrincipale?.npa,
+      email: entree.email ?? undefined,
+      telephoneE164: telephoneE164 ?? undefined,
+      ide: entree.type === 'entreprise' ? (entree.ide ?? undefined) : undefined,
     });
+    if (candidats.length > 0) {
+      collecteur.ajouter(
+        'CLIENT_DOUBLON_PROBABLE',
+        `${candidats.length} fiche(s) client existante(s) ressemble(nt) à celle-ci.`,
+        { candidats },
+      );
+    }
+
+    const numeroBrut = await this.compteurs.prochainNumero(tx, {
+      tenantId: ctx.tenantId,
+      typeDocument: 'client',
+      annee: ANNEE_COMPTEUR_CLIENT,
+      siteId: null,
+    });
+    const numero = formaterNumeroClient(numeroBrut);
+
+    const [ligne] = await tx
+      .insert(client)
+      .values({
+        tenantId: ctx.tenantId,
+        numero,
+        type: entree.type,
+        civilite: entree.civilite ?? null,
+        nom: entree.nom ?? null,
+        prenom: entree.prenom ?? null,
+        raisonSociale: entree.raisonSociale ?? null,
+        ide: entree.ide ?? null,
+        langue: entree.langueCorrespondance,
+        email: entree.email ?? null,
+        telephone: telephonePrincipal,
+        telephoneE164,
+        poObligatoire: entree.poObligatoire,
+        groupeClientId: entree.groupeId ?? null,
+        referenceExterne: entree.referenceExterne ?? null,
+      })
+      .returning();
+    if (!ligne) throw new ErreurMetier('ERREUR_INTERNE', 'Échec de création du client.');
+
+    // Particulier au comptoir sans rendez-vous (RF-59) : pas d'adresse, pas de ligne
+    // `client_adresse` — une absence n'est pas une adresse à champs vides.
+    if (entree.adressePrincipale) {
+      await tx.insert(clientAdresse).values({
+        tenantId: ctx.tenantId,
+        clientId: ligne.id,
+        type: 'principale',
+        rue: entree.adressePrincipale.rue,
+        complement: entree.adressePrincipale.complement ?? null,
+        npa: entree.adressePrincipale.npa,
+        localite: entree.adressePrincipale.localite,
+        pays: entree.adressePrincipale.pays,
+      });
+    }
+
+    if (entree.conditions) {
+      await tx.insert(clientCondition).values({
+        tenantId: ctx.tenantId,
+        clientId: ligne.id,
+        rabaisMoPourmille: entree.conditions.rabaisMoPourmille,
+        rabaisPiecesPourmille: entree.conditions.rabaisPiecesPourmille,
+        rabaisPneusPourmille: entree.conditions.rabaisPneusPourmille,
+        tauxHoraireCode: entree.conditions.tauxHoraireCode ?? null,
+        delaiPaiementJours: entree.conditions.delaiPaiementJours ?? null,
+        modePaiement: entree.conditions.modePaiement ?? null,
+        plafondCentimes: entree.conditions.plafondCentimes ?? null,
+        valideDu: this.dateDuJour(),
+        valideAu: null,
+      });
+    }
+
+    // Fiche fraîchement créée : aucune note d'alerte ne peut encore exister pour elle.
+    return collecteur.envelopper(versClientResponse(ligne, null, []));
+  }
+
+  async parId(ctx: ContexteTenant, clientId: string): Promise<ReponseClient> {
+    return this.acces.enTenant(ctx, (tx) => this.parIdTx(tx, ctx, clientId));
+  }
+
+  /** Comme `parId`, dans une transaction déjà ouverte (création rapide d'OR). */
+  async parIdTx(tx: TransactionDfa, ctx: ContexteTenant, clientId: string): Promise<ReponseClient> {
+    const ligne = await this.chargerOu404(tx, ctx, clientId);
+    const dernierPassageLe = await this.dernierPassage(tx, ctx, clientId);
+    const notesAlerte = await this.chargerNotesAlerte(tx, ctx, clientId);
+    return versClientResponse(ligne, dernierPassageLe, notesAlerte);
   }
 
   /**
@@ -635,7 +645,7 @@ export class ServiceClient {
     clientId: string,
     entree: EntreeArreterContactClient,
   ): Promise<ReponseAvecAvertissements<ReponseClient>> {
-    verifierRoleAutorise(role, ROLES_CLIENT_CONTACT, 'client.contact.arreter');
+    exigerCapacite(role, 'accueil.faire', 'client.contact.arreter');
     return this.acces.enTenant(ctx, async (tx) => {
       await this.chargerOu404(tx, ctx, clientId);
 
@@ -672,7 +682,7 @@ export class ServiceClient {
     clientId: string,
     entree: EntreeReprendreContactClient,
   ): Promise<ReponseAvecAvertissements<ReponseClient>> {
-    verifierRoleAutorise(role, ROLES_CLIENT_CONTACT, 'client.contact.reprendre');
+    exigerCapacite(role, 'accueil.faire', 'client.contact.reprendre');
     return this.acces.enTenant(ctx, async (tx) => {
       await this.chargerOu404(tx, ctx, clientId);
 

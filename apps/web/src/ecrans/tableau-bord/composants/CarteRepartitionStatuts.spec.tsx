@@ -150,7 +150,7 @@ describe('CarteRepartitionStatuts', () => {
 
       render(<CarteRepartitionStatuts resultat={resultat({ data: donneesUnSeulStatut })} />);
 
-      const jaugeTermine = screen.getByRole('meter', { name: 'Terminé' });
+      const jaugeTermine = screen.getByRole('meter', { name: 'Travaux terminés' });
       expect(jaugeTermine).toHaveAttribute('aria-valuenow', '5');
       // Total = 5 (un seul statut non nul) : cette jauge affiche bien 100 % de la charge réelle,
       // ce n'est plus un artefact du calcul (`max` = ce même statut par construction du bug), mais

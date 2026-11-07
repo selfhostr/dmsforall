@@ -14,7 +14,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
 
 import { JETON_DB, type AccesBase, type ContexteTenant } from '../../db';
-import { site } from '../../db/schema';
+import { site, tenant } from '../../db/schema';
+import type { IdentiteEmetteur } from '../../facturation/impression/en-tete-emetteur';
 import type { PrincipalAuthentifie } from '../../common/contexte/contexte-requete.types';
 
 import { ServiceOr } from '../service-or';
@@ -45,7 +46,9 @@ export class ServiceImpressionOr {
     const document = await this.serviceOr.obtenirComplet(ctx, principal, orId);
     const nomSite = await this.chargerNomSite(ctx, document.siteId);
 
-    const buffer = await genererPdfOr(document, nomSite);
+    const emetteur = await this.chargerEmetteur(ctx, document.siteId);
+
+    const buffer = await genererPdfOr(document, nomSite, emetteur);
     const nomFichier = `OR-${document.numero.replace(/[^A-Za-z0-9._-]/g, '_')}.pdf`;
 
     return { buffer, nomFichier };
@@ -68,6 +71,29 @@ export class ServiceImpressionOr {
         .where(and(eq(site.tenantId, ctx.tenantId), eq(site.id, siteId)))
         .limit(1);
       return ligne?.nom ?? '';
+    });
+  }
+
+  /** En-tête garage : raison sociale + n° TVA du tenant, adresse du site de l'OR. */
+  private async chargerEmetteur(ctx: ContexteTenant, siteId: string): Promise<IdentiteEmetteur> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      const [ligneTenant] = await tx
+        .select({ raisonSociale: tenant.raisonSociale, numeroTva: tenant.numeroTva })
+        .from(tenant)
+        .where(eq(tenant.id, ctx.tenantId))
+        .limit(1);
+      const [ligneSite] = await tx
+        .select({ rue: site.rue, npa: site.npa, localite: site.localite })
+        .from(site)
+        .where(and(eq(site.tenantId, ctx.tenantId), eq(site.id, siteId)))
+        .limit(1);
+      return {
+        nom: ligneTenant?.raisonSociale ?? '',
+        rue: ligneSite?.rue ?? null,
+        npa: ligneSite?.npa ?? null,
+        localite: ligneSite?.localite ?? null,
+        numeroTva: ligneTenant?.numeroTva ?? null,
+      };
     });
   }
 }

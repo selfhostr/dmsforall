@@ -16,7 +16,6 @@ import {
 
 import { ErreurApi, messageErreur, messageErreurChamp } from '@/api/erreurs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -41,6 +40,7 @@ import { useParametresAtelier } from '@/hooks/parametres/useParametresAtelier';
 import { useSession } from '@/hooks/useSession';
 
 import { peutModifierParametrage } from './droits';
+import { SectionMotifsRendezVous } from './SectionMotifsRendezVous';
 
 /** Contrôle qualité restreint à `jamais`/`toujours` au lot 1 (CHECK SQL Δ3, voir
  *  `gouvernance-fonctionnalites.ts`) — les deux autres valeurs de l'union existent dans le type
@@ -162,7 +162,7 @@ export function EcranParametrageAtelier() {
   const { t } = useTranslation(['parametrage', 'commun', 'erreurs']);
   const requete = useParametresAtelier();
   const { data: session } = useSession();
-  const peutEcrire = peutModifierParametrage(session?.utilisateur.role);
+  const peutEcrire = peutModifierParametrage(session?.actions);
 
   return (
     <GabaritEcran titre={t('parametrage:atelier.titre')}>
@@ -177,6 +177,9 @@ export function EcranParametrageAtelier() {
       ) : (
         <FormulaireParametresAtelier donnees={requete.data} peutEcrire={peutEcrire} />
       )}
+      {/* Hors du <form> des réglages et monté même si ceux-ci échouent : indépendant de
+          `GET /parametres-atelier` (son propre appel), il doit rester utilisable. */}
+      <SectionMotifsRendezVous peutEcrire={peutEcrire} />
     </GabaritEcran>
   );
 }
@@ -568,31 +571,6 @@ function FormulaireParametresAtelier({ donnees, peutEcrire }: PropsFormulairePar
               )}
             />
           </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="texte-titre-section">
-            {t('parametrage:atelier.aVenir.titre')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <p className="texte-corps text-muted-foreground">
-            {t('parametrage:atelier.aVenir.description')}
-          </p>
-          <ul className="space-y-1.5">
-            {(['facturation', 'stockPieces', 'depotPneus', 'prets'] as const).map((cle) => (
-              <li key={cle} className="flex items-center gap-2 texte-corps">
-                <Badge variant="outline">
-                  {t(`parametrage:atelier.aVenir.fonctionnalites.${cle}`)}
-                </Badge>
-                <span className="text-muted-foreground">
-                  {t('parametrage:atelier.aVenir.pasEncoreDisponible')}
-                </span>
-              </li>
-            ))}
-          </ul>
         </CardContent>
       </Card>
 

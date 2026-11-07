@@ -38,6 +38,15 @@ export class ClientResumeOrDto implements ClientResume {
   @ApiProperty({
     type: String,
     nullable: true,
+    required: false,
+    description:
+      'Courriel de la fiche (`null` = aucun). Absent sur `GET /clients` ; présent quand le résumé est embarqué dans un OR ou un rendez-vous.',
+  })
+  readonly email?: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
     description: "Localité de l'adresse PRINCIPALE active du client. `null` si aucune adresse.",
   })
   readonly localite!: string | null;

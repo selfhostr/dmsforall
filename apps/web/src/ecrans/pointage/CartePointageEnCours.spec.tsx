@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { ReponsePointage } from '@dfa/shared';
+import type { ReponsePointage, VehiculeResume } from '@dfa/shared';
 
 import '@/i18n';
 
@@ -192,5 +192,56 @@ describe('CartePointageEnCours', () => {
 
     const boutonArreter = screen.getByRole('button', { name: 'Arrêter' });
     expect(boutonArreter.className).not.toContain('destructive');
+  });
+
+  it('borne (`grand`) : état, cible et désignation du véhicule à 24 px, plaque au palier xl', () => {
+    render(
+      <CartePointageEnCours
+        pointage={POINTAGE}
+        libelleCible="OR-000123 — OR entier"
+        onArreter={vi.fn()}
+        onPause={undefined}
+        onReprendre={undefined}
+        onChanger={undefined}
+        enTraitement={false}
+        messageErreur={undefined}
+        avertissement={undefined}
+        cumulAujourdhuiSecondes={undefined}
+        grand
+        vehicule={
+          {
+            id: 'v1',
+            canton: 'VS',
+            plaque: '55512',
+            designation: 'VW Golf 1.4',
+            premiereMiseEnCirculationLe: null,
+          } as unknown as VehiculeResume
+        }
+      />,
+    );
+    expect(screen.getByText('En cours').className).toContain('text-2xl');
+    expect(screen.getByText('OR-000123 — OR entier').className).toContain('text-2xl');
+    expect(screen.getByText('VW Golf 1.4').className).toContain('text-2xl');
+    expect(screen.getByText(/^Depuis /).className).toContain('text-2xl');
+    expect(screen.getByText('55512').closest('span.texte-donnee-proeminente')).not.toBeNull();
+  });
+
+  it('écran personnel (sans `grand`) : ni état « En cours » ni véhicule, tailles inchangées', () => {
+    render(
+      <CartePointageEnCours
+        pointage={POINTAGE}
+        libelleCible="OR-000123 — OR entier"
+        onArreter={vi.fn()}
+        onPause={undefined}
+        onReprendre={undefined}
+        onChanger={undefined}
+        enTraitement={false}
+        messageErreur={undefined}
+        avertissement={undefined}
+        cumulAujourdhuiSecondes={undefined}
+      />,
+    );
+    expect(screen.queryByText('En cours')).toBeNull();
+    expect(screen.getByText('OR-000123 — OR entier').className).not.toContain('text-2xl');
   });
 });

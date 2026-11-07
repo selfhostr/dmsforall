@@ -38,6 +38,7 @@ export function useArreterPointage(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation({
+    meta: { succes: 'commun:toasts.pointageArrete' },
     mutationFn: ({ id, entree, idempotencyKey }: VariablesArretPointage) =>
       arreterPointage(id, entree, idempotencyKey),
 

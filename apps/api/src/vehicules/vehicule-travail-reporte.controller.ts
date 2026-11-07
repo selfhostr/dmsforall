@@ -1,15 +1,35 @@
-import { Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
-import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiCookieAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from '@nestjs/swagger';
+import {
+  schemaCreationTravailReporte,
   schemaFiltresTravauxReportes,
   schemaIdentifiant,
   schemaModificationTravailReporte,
+  type EntreeCreationTravailReporte,
   type EntreeModificationTravailReporte,
 } from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../common/contexte';
 import { CorpsZod } from '../common/documentation';
 import { ExigerDroit, GardeDroit } from '../common/droits';
+import { Horloge } from '../common/horloge/horloge';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
 import { ReponseTravailReporteDto } from './dto';
@@ -17,12 +37,10 @@ import type { FiltresTravauxReportes } from './schemas-locales';
 import { ServiceVehiculeTravailReporte } from './service-vehicule-travail-reporte';
 
 /**
- * `GET`/`PATCH` des travaux reportés (RM-73) — c'est ce que le réceptionnaire relit quand le
- * véhicule revient au garage. La CRÉATION n'a AUCUNE route ici : un travail reporté naît d'un
- * refus de ligne d'OR (`POST /ordres-reparation/{orId}/refuser-lignes`, module `atelier`, hors
- * périmètre de ce fichier), jamais d'une saisie directe côté `vehicules` — voir le port
- * `CreationTravailReporte` exporté par `service-vehicule-travail-reporte.ts` et la réponse de
- * tâche pour le câblage exact attendu côté `atelier`.
+ * `GET`/`POST`/`PATCH` des travaux reportés (RM-73) — c'est ce que le réceptionnaire relit quand le
+ * véhicule revient au garage. Un travail reporté naît soit d'un refus de ligne d'OR (port
+ * `CreationTravailReporte`, module `atelier`), soit d'une saisie directe (`POST`, « à faire la
+ * prochaine fois : courroie ») depuis la fiche véhicule ou un OR.
  */
 @ApiTags('Véhicules')
 @ApiCookieAuth()
@@ -32,6 +50,7 @@ export class VehiculeTravailReporteController {
   constructor(
     private readonly service: ServiceVehiculeTravailReporte,
     private readonly contexte: ServiceContexteRequete,
+    private readonly horloge: Horloge,
   ) {}
 
   @Get()
@@ -55,6 +74,34 @@ export class VehiculeTravailReporteController {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
     return this.service.lister(ctx, vehiculeId, filtres, principal.role);
+  }
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ExigerDroit('vehicule.travail_reporte.signaler')
+  @ApiOperation({
+    summary: 'Noter un travail à faire la prochaine fois (RM-73).',
+    description:
+      'Saisie directe : désignation, détail, priorité (`a_faire` par défaut), origine facultative ' +
+      '(`ordreReparationOrigineId`, un OR de CE véhicule ; absent = saisie libre). Ressort sur la ' +
+      "fiche véhicule et à l'ouverture du prochain OR.",
+  })
+  @ApiParam({ name: 'vehiculeId', format: 'uuid' })
+  @ApiCreatedResponse({ type: ReponseTravailReporteDto })
+  @ApiReponseProbleme(400, 'Corps invalide.')
+  @ApiReponseProbleme(401, 'Session absente ou expirée.')
+  @ApiReponseProbleme(403, 'Droit insuffisant.')
+  @ApiReponseProbleme(404, 'Véhicule ou ordre de réparation introuvable pour ce tenant.')
+  async creer(
+    @Param('vehiculeId', new PipeZod(schemaIdentifiant)) vehiculeId: string,
+    @CorpsZod(schemaCreationTravailReporte, {
+      exemple: { designation: 'Courroie de distribution', urgence: 'a_faire' },
+    })
+    entree: EntreeCreationTravailReporte,
+  ) {
+    const ctx = this.contexte.contexteTenant();
+    const principal = this.contexte.exigerPrincipal();
+    return this.service.creer(ctx, vehiculeId, entree, principal.role, this.horloge.maintenant());
   }
 
   @Patch(':travailId')

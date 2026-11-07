@@ -2,7 +2,7 @@
   "titre": "Relances automatiques",
   "sousTitre": "Rappels de factures impayées : déclenchez la planification et l'envoi, consultez l'historique.",
   "reglages": {
-    "titre": "Paliers de relance",
+    "titre": "Rappels de paiement",
     "sousTitre": "Réglez les délais et les canaux d'envoi des rappels de facture impayée pour ce garage."
   },
   "navigation": {
@@ -24,7 +24,7 @@
       "description": "Aucun rappel de facture impayée n'est encore réglé pour ce garage. Appliquez le préréglage recommandé pour démarrer, puis ajustez-le si besoin."
     },
     "paliers": {
-      "titre": "Paliers",
+      "titre": "Étapes",
       "vide": "Aucun palier défini",
       "libelle": "Palier {n}",
       "jours": "{n, plural, one {# jour} other {# jours}} après l'échéance"
@@ -55,7 +55,7 @@
       "supprimerPalier": "Retirer le palier {n}",
       "canauxLabel": "Canaux d'envoi",
       "erreurPalierPositif": "Chaque palier doit être un nombre entier de jours supérieur à zéro.",
-      "erreurPaliersRequis": "Ajoutez au moins un palier pour activer les rappels.",
+      "erreurPaliersRequis": "Ajoutez au moins une étape pour activer les rappels de paiement.",
       "erreurCanauxRequis": "Choisissez au moins un canal pour activer les rappels.",
       "succes": "Règle enregistrée."
     }

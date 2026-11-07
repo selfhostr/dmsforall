@@ -21,6 +21,7 @@ import { BlocEcheances } from '@/composants/vehicule/BlocEcheances';
 import { EncartAlertesVehicule } from '@/composants/vehicule/EncartAlertesVehicule';
 import { FriseDetentions } from '@/composants/vehicule/FriseDetentions';
 import { FriseKilometrage } from '@/composants/vehicule/FriseKilometrage';
+import { BoutonNouveauDevis } from '@/ecrans/facturation/BoutonNouveauDevis';
 import { BadgeStatutDossierVente } from '@/ecrans/ventes/dossiers/BadgeStatutDossierVente';
 import { peutLireDossierVente } from '@/ecrans/ventes/dossiers/droits';
 import { listerOrdresReparation } from '@/hooks/atelier/ordres-reparation.api';
@@ -88,13 +89,13 @@ export function EcranFicheVehicule() {
   // la section affiche son squelette de chargement (`session.isLoading`) plutôt que de flasher le
   // message de refus avant de savoir — voir le rendu de la section plus bas.
   const session = useSession();
-  const peutVoirDossiersVente = peutLireDossierVente(session.data?.utilisateur.role);
+  const peutVoirDossiersVente = peutLireDossierVente(session.data?.actions);
   // DÉFAUT CORRIGÉ (issue #162, 16.08.2026) : même motif que `peutVoirDossiersVente` ci-dessus,
   // repéré ici en cherchant s'il se répétait ailleurs dans cet écran — il se répétait. Un rôle
   // sans `atelier.or.lire` (ex. `vendeur`) laissait cette section « Ordres de réparation » en
   // squelette de chargement indéfiniment (403 stable, réessayé par défaut, jamais transformé en
   // état affichable).
-  const peutVoirOrdresReparation = peutLireOrdresReparation(session.data?.utilisateur.role);
+  const peutVoirOrdresReparation = peutLireOrdresReparation(session.data?.actions);
   const reessayerOr = useDoitReessayer();
 
   // Lot B (`docs/plan-refonte-navigation.md`) — « ses OR », via la fonction de transport
@@ -291,19 +292,32 @@ export function EcranFicheVehicule() {
          *  rechoisir parmi TOUS les véhicules du client (dont d'autres sans rapport avec cette
          *  fiche). Le choix reste modifiable sur l'écran suivant : un véhicule peut être amené par
          *  quelqu'un d'autre que son détenteur (cas réel en garage). */}
-        <Button
-          type="button"
-          onClick={() =>
-            navigate(
+        <div className="flex flex-wrap items-center gap-2">
+          <BoutonNouveauDevis
+            client={
               proprietaireActuel
-                ? `/atelier/ordres-reparation/nouveau?clientId=${encodeURIComponent(proprietaireActuel.client.id)}&vehiculeId=${encodeURIComponent(vehicule.id)}${site ? `&site=${encodeURIComponent(site)}` : ''}`
-                : `/atelier/ordres-reparation/nouveau${site ? `?site=${encodeURIComponent(site)}` : ''}`,
-            )
-          }
-        >
-          <Wrench aria-hidden className="h-4 w-4" />
-          {t('vehicules:fiche.actions.nouvelOr')}
-        </Button>
+                ? {
+                    id: proprietaireActuel.client.id,
+                    nomAffiche: proprietaireActuel.client.nomAffiche,
+                  }
+                : undefined
+            }
+            vehiculeId={vehicule.id}
+          />
+          <Button
+            type="button"
+            onClick={() =>
+              navigate(
+                proprietaireActuel
+                  ? `/atelier/ordres-reparation/nouveau?clientId=${encodeURIComponent(proprietaireActuel.client.id)}&vehiculeId=${encodeURIComponent(vehicule.id)}${site ? `&site=${encodeURIComponent(site)}` : ''}`
+                  : `/atelier/ordres-reparation/nouveau${site ? `?site=${encodeURIComponent(site)}` : ''}`,
+              )
+            }
+          >
+            <Wrench aria-hidden className="h-4 w-4" />
+            {t('vehicules:fiche.actions.nouvelOr')}
+          </Button>
+        </div>
       </div>
 
       <EncartAlertesVehicule

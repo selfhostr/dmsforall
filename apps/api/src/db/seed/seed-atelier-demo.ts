@@ -56,7 +56,8 @@ import { ServiceReservation } from '../../pieces/service-reservation';
 // Lot 2 (pointage) — voir la note de tête de la section « OR n°3 — Master » plus bas : c'est ce
 // service qui fait passer une ligne `validee -> en_cours` (RM-117), condition désormais réelle
 // (donc exigible d'un vrai geste applicatif, plus d'un contournement) pour atteindre `realisee`
-// (`ServiceLigneOr.marquerRealisee`, `en_cours -> realisee` uniquement).
+// (`ServiceLigneOr.marquerRealisee`, `validee|en_cours -> realisee` depuis la migration 0076 :
+// `validee -> realisee` vaut pour tous les types de ligne, sans pointage).
 import { ServicePointage } from '../../pointage/service-pointage';
 import { ServiceAccesBase } from '../acces-base.service';
 import type { ConfigBase, ContexteTenant } from '../index';
@@ -479,9 +480,10 @@ export async function semerAtelierDemo(options: OptionsSeedAtelier): Promise<Res
     // === OR n°3 — Master / Transports Rhône — état « terminé », 2 lignes réalisées ================
     // JUSQU'ICI SANS LIGNE, DÉLIBÉRÉMENT (historique, corrigé ici) : au lot 1, aucune méthode de
     // service ne faisait jamais passer une ligne au statut `en_cours` (module pointage absent) —
-    // seule la transition `en_cours -> realisee` existe (migrations/0003_prealables_etape1.sql,
-    // `transition_autorisee`), et une ligne restée `validee` aurait bloqué `terminer()` (garde
-    // I-10, `ServiceTransitions.verifierLignesNonRealisees`) sans AUCUN moyen valide de la lever.
+    // seule la transition `en_cours -> realisee` existait (migrations/0003_prealables_etape1.sql,
+    // `transition_autorisee` ; ouverte à `validee` depuis la migration 0076), et une ligne restée
+    // `validee` aurait bloqué `terminer()` (garde I-10, `ServiceTransitions.verifierLignesNonRealisees`)
+    // sans AUCUN moyen valide de la lever.
     // DÉFAUT CORRIGÉ ICI (constat : `document_vente.ordre_reparation_id` était NULL sur les 5
     // documents du jeu de démo — la section « Devis et facture » de toute fiche d'OR restait donc
     // structurellement vide) : le Lot 2 (pointage) livre désormais un chemin RÉEL, `validee ->

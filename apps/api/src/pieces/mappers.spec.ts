@@ -77,6 +77,7 @@ describe('versRechercheComptoirResultat — GET /articles/recherche-comptoir', (
       designation: 'Plaquettes avant',
       referencePrincipale: 'REF-1',
       prixVenteTtcCentimes: 4500,
+      prixAchatCentimes: 2750,
       quantitePhysiqueMillieme: 3000,
       quantiteReserveeMillieme: 1000,
       suiviQuelquePart: true,
@@ -90,14 +91,42 @@ describe('versRechercheComptoirResultat — GET /articles/recherche-comptoir', (
   }
 
   it('aucun casier : rayon/tiroir/emplacement `null`, résultat inchangé sinon (rétrocompatible)', () => {
-    const resultat = versRechercheComptoirResultat(donnees());
+    const resultat = versRechercheComptoirResultat(donnees(), 'direction');
     expect(resultat.emplacement).toBeNull();
     expect(resultat.rayon).toBeNull();
     expect(resultat.tiroir).toBeNull();
   });
 
+  it.each(['direction', 'magasinier', 'chef_atelier', 'comptable'] as const)(
+    'prix d’achat : %s voit la valeur exacte',
+    (role) => {
+      expect(versRechercheComptoirResultat(donnees(), role).prixAchatCentimes).toBe(2750);
+    },
+  );
+
+  it.each(['vendeur', 'receptionnaire', 'technicien', 'admin'] as const)(
+    'prix d’achat : %s reçoit null, jamais la valeur',
+    (role) => {
+      expect(versRechercheComptoirResultat(donnees(), role).prixAchatCentimes).toBeNull();
+    },
+  );
+
+  it('prix d’achat absent en base : null (et 0 reste 0 pour un rôle autorisé)', () => {
+    expect(
+      versRechercheComptoirResultat(donnees({ prixAchatCentimes: null }), 'direction')
+        .prixAchatCentimes,
+    ).toBeNull();
+    expect(
+      versRechercheComptoirResultat(donnees({ prixAchatCentimes: 0 }), 'direction')
+        .prixAchatCentimes,
+    ).toBe(0);
+  });
+
   it('casier structuré : passthrough exact des deux champs', () => {
-    const resultat = versRechercheComptoirResultat(donnees({ rayon: 'C4', tiroir: '1' }));
+    const resultat = versRechercheComptoirResultat(
+      donnees({ rayon: 'C4', tiroir: '1' }),
+      'direction',
+    );
     expect(resultat.rayon).toBe('C4');
     expect(resultat.tiroir).toBe('1');
   });

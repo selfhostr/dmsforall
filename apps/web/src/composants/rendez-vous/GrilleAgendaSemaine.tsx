@@ -143,6 +143,7 @@ export function GrilleAgendaSemaine({ jours, onCliquerJour, onOuvrirRendezVous }
                 <CarteRendezVous
                   key={rendezVous.id}
                   rendezVous={rendezVous}
+                  dense={!vueSemaine}
                   onOuvrir={onOuvrirRendezVous}
                 />
               ))}

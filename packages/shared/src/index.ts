@@ -1,10 +1,13 @@
 export * from './arithmetique/arrondi-commercial';
+export * from './identite/nom-affiche';
 
 export * from './contrats/enums';
 export * from './contrats/probleme';
 export * from './contrats/pagination';
 export * from './contrats/socle';
+export * from './contrats/tenant';
 export * from './contrats/auth';
+export * from './contrats/capacites';
 export * from './contrats/atelier';
 export * from './contrats/facturation';
 export * from './contrats/pieces';
@@ -17,6 +20,8 @@ export * from './contrats/relances';
 export * from './contrats/exploitation';
 export * from './contrats/rendezvous';
 export * from './contrats/vehicules';
+export * from './contrats/courtoisie';
 export * from './contrats/temps-reel';
 export * from './contrats/cycle-vie-tenant';
 export * from './contrats/reprise';
+export * from './contrats/accueil';

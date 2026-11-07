@@ -101,13 +101,23 @@ function ordreReparationMinimal(
 }
 
 function accesBaseAvecSite(nomSite: string | null): AccesBase {
+  const ligneTenant = { raisonSociale: 'Garage Martin SA', numeroTva: 'CHE-114.873.733 TVA' };
+  let appel = 0;
   return {
     async enTenant<T>(_ctx: ContexteTenant, travail: (tx: unknown) => Promise<T>): Promise<T> {
       const tx = {
         select: () => ({
           from: () => ({
             where: () => ({
-              limit: async () => (nomSite === null ? [] : [{ nom: nomSite }]),
+              // Ordre des lectures du service : nom du site, puis tenant, puis adresse du site.
+              limit: async () => {
+                appel += 1;
+                if ((appel - 1) % 3 === 1) return [ligneTenant];
+                if (nomSite === null) return [];
+                return [
+                  { nom: nomSite, rue: 'Route de Lausanne 12', npa: '1950', localite: 'Sion' },
+                ];
+              },
             }),
           }),
         }),
@@ -138,6 +148,13 @@ describe('ServiceImpressionOr', () => {
     expect(genererPdfOr).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'or-1' }),
       'Garage Martin — Sion',
+      {
+        nom: 'Garage Martin SA',
+        rue: 'Route de Lausanne 12',
+        npa: '1950',
+        localite: 'Sion',
+        numeroTva: 'CHE-114.873.733 TVA',
+      },
     );
   });
 
@@ -165,7 +182,11 @@ describe('ServiceImpressionOr', () => {
 
     await service.obtenirPdf(CTX, PRINCIPAL, 'or-1');
 
-    expect(genererPdfOr).toHaveBeenCalledWith(expect.objectContaining({ id: 'or-1' }), '');
+    expect(genererPdfOr).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'or-1' }),
+      '',
+      expect.objectContaining({ rue: null, npa: null, localite: null }),
+    );
   });
 
   it("propage RESSOURCE_INTROUVABLE (404) quand l'OR n'existe pas pour ce tenant, sans jamais appeler genererPdfOr", async () => {

@@ -102,7 +102,9 @@ describe('Accessibilité WCAG 2.1 AA — réglages des relances', () => {
     }
     await utilisateur.click(screen.getByRole('button', { name: 'Enregistrer' }));
 
-    const erreur = await screen.findByText('Ajoutez au moins un palier pour activer les rappels.');
+    const erreur = await screen.findByText(
+      'Ajoutez au moins une étape pour activer les rappels de paiement.',
+    );
     // L'assertion ci-dessous prouve que l'état invalide se perçoit par un TEXTE annoncé
     // (`role="alert"`) — jamais par la seule couleur `text-destructive` posée en CSS, qu'aucun test
     // de ce harnais ne peut de toute façon lire (`css: false`, voir `harnais.ts`).

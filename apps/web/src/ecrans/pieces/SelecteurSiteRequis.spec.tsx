@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
@@ -94,6 +94,7 @@ describe('SelecteurSiteRequis', () => {
           ...SESSION_TEST,
           sites: [
             { id: 'site-1', code: 'PRINCIPAL', nom: 'Site principal', actif: true },
+            { id: 'site-2', code: 'SECONDAIRE', nom: 'Site secondaire', actif: true },
             { id: 'site-3', code: 'FERME', nom: 'Site fermé', actif: false },
           ],
         }),
@@ -107,5 +108,19 @@ describe('SelecteurSiteRequis', () => {
 
     expect(await screen.findByText('Site principal')).toBeInTheDocument();
     expect(screen.queryByText('Site fermé')).not.toBeInTheDocument();
+  });
+
+  it('garage mono-site : choisit le site d’office, sans poser de question', async () => {
+    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
+    const onChoisir = vi.fn();
+    render(
+      <QueryClientProvider client={creerQueryClientTest()}>
+        <SelecteurSiteRequis onChoisir={onChoisir} />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => expect(onChoisir).toHaveBeenCalledWith('site-1'));
+    expect(onChoisir).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 });

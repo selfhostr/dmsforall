@@ -20,7 +20,7 @@ import {
 // `apps/api/src/recherche/**`) — même patron déjà établi par `common/droits/garde-droit.ts` pour
 // consulter la matrice sans y ajouter d'action. Sert uniquement à RF-116 (voir `chercherDocuments`
 // ci-dessous) : aucune action n'est créée, modifiée ni retirée ici.
-import { MATRICE_DROITS } from '../auth/matrice-droits';
+import { actionsCourantes } from '../auth/droits-personne';
 import { ServiceContexteRequete } from '../common/contexte';
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
 import {
@@ -458,22 +458,34 @@ async function chercherClients(
          limit 1
       )                as localite,
       case
-        when public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''), ''))
-             like public.normaliser_recherche(${motif})
+        when (public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''), ''))
+               like public.normaliser_recherche(${motif})
+             or public.normaliser_recherche(coalesce(c.raison_sociale, concat_ws(' ', c.prenom, c.nom), ''))
+               like public.normaliser_recherche(${motif}))
         then 'nom' else 'email'
       end              as champ,
       case
-        when public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''), ''))
-             like public.normaliser_recherche(${motif})
-        then coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''))
+        when (public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''), ''))
+               like public.normaliser_recherche(${motif})
+             or public.normaliser_recherche(coalesce(c.raison_sociale, concat_ws(' ', c.prenom, c.nom), ''))
+               like public.normaliser_recherche(${motif}))
+        then coalesce(c.raison_sociale, concat_ws(' ', c.prenom, c.nom))
         else c.email
       end              as valeur_matchee,
       case
-        when public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''), ''))
-             like public.normaliser_recherche(${motif})
-        then public.similarity(
-               public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''), '')),
-               public.normaliser_recherche(${motif})
+        when (public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''), ''))
+               like public.normaliser_recherche(${motif})
+             or public.normaliser_recherche(coalesce(c.raison_sociale, concat_ws(' ', c.prenom, c.nom), ''))
+               like public.normaliser_recherche(${motif}))
+        then greatest(
+               public.similarity(
+                 public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''), '')),
+                 public.normaliser_recherche(${motif})
+               ),
+               public.similarity(
+                 public.normaliser_recherche(coalesce(c.raison_sociale, concat_ws(' ', c.prenom, c.nom), '')),
+                 public.normaliser_recherche(${motif})
+               )
              )
         else 1.0
       end              as score
@@ -481,8 +493,10 @@ async function chercherClients(
      where c.tenant_id = ${tenantId}
        and c.statut <> 'inactif'
        and (
-         public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''), ''))
-           like public.normaliser_recherche(${motif})
+         (public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''), ''))
+               like public.normaliser_recherche(${motif})
+             or public.normaliser_recherche(coalesce(c.raison_sociale, concat_ws(' ', c.prenom, c.nom), ''))
+               like public.normaliser_recherche(${motif}))
          or (c.email is not null and lower(c.email) = lower(${q}))
        )
      order by score desc
@@ -1027,7 +1041,7 @@ export class ServiceRecherche {
     // indépendant des deux autres et de `recherche.executer` (voir la note de tête de fichier).
     // `MATRICE_DROITS` est lue ici, jamais modifiée (`apps/api/src/auth/` hors périmètre).
     const role = this.contexte.exigerPrincipal().role;
-    const droitsRole = MATRICE_DROITS[role] ?? [];
+    const droitsRole = actionsCourantes(role);
     const peutVoirDocuments = droitsRole.includes('facturation.document.lire');
     const peutVoirArticles = droitsRole.includes('pieces.article.lire');
     const peutVoirFournisseurs = droitsRole.includes('pieces.fournisseur.lire');

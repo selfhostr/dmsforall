@@ -38,7 +38,7 @@
       "titre": "Sezione non disponibile"
     },
     "actions": {
-      "nouvelOr": "Nuovo ordine",
+      "nouvelOr": "Crea un OR",
       "modifierTitre": "Modifica identità del veicolo"
     },
     "proprietaire": {
@@ -48,9 +48,9 @@
       "vide": "Nessun detentore registrato per questo veicolo."
     },
     "dossierVente": {
-      "titre": "Pratica di vendita",
-      "vide": "Nessuna pratica di vendita per questo veicolo.",
-      "droitRequis": "Non ha il diritto di consultare le pratiche di vendita di questo veicolo."
+      "titre": "Vendita",
+      "vide": "Nessuna vendita per questo veicolo.",
+      "droitRequis": "Non ha il diritto di consultare le vendite di questo veicolo."
     },
     "ordresReparation": {
       "titre": "Ordini di riparazione",
@@ -89,7 +89,7 @@
     "version": "Versione",
     "finition": "Allestimento",
     "vin": "VIN",
-    "codeType": "Codice CH",
+    "codeType": "Codice tipo (carta di circolazione)",
     "plaque": "Targa",
     "plaqueExemple": "VS 123456",
     "plaqueAide": "Cantone poi numero, con uno spazio, come sulla targa: VS 123456.",
@@ -227,7 +227,9 @@
       "corriger": "Correggi",
       "reprendre": "Segna come ripreso",
       "abandonner": "Abbandona",
-      "enregistrer": "Salva"
+      "enregistrer": "Salva",
+      "reprendreDansOr": "Riprendere in {numero}",
+      "reprendreDansUnOr": "Riprendere in un OR"
     },
     "dialogue": {
       "corrigerTitre": "Correggi il lavoro rinviato",
@@ -236,7 +238,7 @@
       "reprendreDescription": "Il cliente ha accettato questo lavoro: non comparirà più tra i lavori da riproporre.",
       "abandonnerTitre": "Abbandonare questo lavoro rinviato?",
       "abandonnerDescription": "Il cliente ha rifiutato questo lavoro. Non comparirà più tra i lavori da riproporre, ma resta consultabile nello storico.",
-      "erreurValidation": "Verifica la descrizione e la priorità inserite.",
+      "erreurValidation": "Verifichi la descrizione e la priorità inserite.",
       "motifLabel": "Motivo (facoltativo)",
       "motifPlaceholder": "Es.: il cliente ha rinviato questo lavoro al prossimo controllo.",
       "erreurValidationMotif": "Il motivo deve contenere almeno 3 caratteri, se inserito."
@@ -250,6 +252,15 @@
     },
     "erreur": {
       "titre": "Impossibile caricare i lavori rinviati"
+    },
+    "reporter": {
+      "bouton": "Rimandare un lavoro",
+      "titre": "Rimandare un lavoro",
+      "description": "Annotate cosa andrà fatto alla prossima visita: comparirà sulla scheda del veicolo e all'apertura del prossimo ordine di riparazione.",
+      "designationPlaceholder": "Es. cinghia di distribuzione",
+      "detail": "Dettaglio (facoltativo)",
+      "enregistrer": "Salva",
+      "erreurValidation": "Indichi il lavoro da fare (al massimo 200 caratteri)."
     }
   },
   "donnees": {
@@ -291,7 +302,7 @@
     "kilometrage": "Nessun chilometraggio registrato",
     "nouveau": {
       "titre": "Nessun veicolo registrato",
-      "description": "Crea il tuo primo veicolo"
+      "description": "Crei il suo primo veicolo"
     },
     "recherche": {
       "titre": "Nessun veicolo trovato",

@@ -3,79 +3,85 @@ import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
 import { AppShell } from '@/composants/layout/AppShell';
 import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { EcranConnexion } from '@/ecrans/EcranConnexion';
-import { EcranFicheOrdreReparation } from '@/ecrans/atelier/EcranFicheOrdreReparation';
-import { EcranListeOrdresReparation } from '@/ecrans/atelier/EcranListeOrdresReparation';
-import { EcranNouvelOrdreReparation } from '@/ecrans/atelier/EcranNouvelOrdreReparation';
-import { EcranFicheClient } from '@/ecrans/clients/EcranFicheClient';
-import { EcranListeClients } from '@/ecrans/clients/EcranListeClients';
-import { EcranAvoir } from '@/ecrans/facturation/EcranAvoir';
-import { EcranFacturerOrdreReparation } from '@/ecrans/facturation/EcranFacturerOrdreReparation';
-import { EcranFicheFacture } from '@/ecrans/facturation/EcranFicheFacture';
-import { EcranListeFactures } from '@/ecrans/facturation/EcranListeFactures';
-import { EcranDoublonsClients } from '@/ecrans/clients/EcranDoublonsClients';
-import { EcranConsolePlateforme } from '@/ecrans/console/EcranConsolePlateforme';
-import { EcranParametragePieces } from '@/ecrans/parametrage/EcranParametragePieces';
-import { EcranParametrageAtelier } from '@/ecrans/parametrage/EcranParametrageAtelier';
-import { EcranParametresFacturation } from '@/ecrans/parametrage/EcranParametresFacturation';
-import { EcranReferentiels } from '@/ecrans/parametrage/EcranReferentiels';
-import { EcranSites } from '@/ecrans/parametrage/EcranSites';
-import { EcranUtilisateurs } from '@/ecrans/parametrage/EcranUtilisateurs';
-import { EcranConsignesPieces } from '@/ecrans/pieces/EcranConsignesPieces';
-import { EcranDepotFactureFournisseur } from '@/ecrans/pieces/EcranDepotFactureFournisseur';
-import { EcranFactureFournisseur } from '@/ecrans/pieces/EcranFactureFournisseur';
-import { EcranFicheArticle } from '@/ecrans/pieces/EcranFicheArticle';
-import { EcranFicheCommandeFournisseur } from '@/ecrans/pieces/EcranFicheCommandeFournisseur';
-import { EcranFicheFournisseur } from '@/ecrans/pieces/EcranFicheFournisseur';
-import { EcranListeArticles } from '@/ecrans/pieces/EcranListeArticles';
-import { EcranListeCommandesFournisseur } from '@/ecrans/pieces/EcranListeCommandesFournisseur';
-import { EcranListeFacturesFournisseur } from '@/ecrans/pieces/EcranListeFacturesFournisseur';
-import { EcranListeFournisseurs } from '@/ecrans/pieces/EcranListeFournisseurs';
-import { EcranNouvelleCommandeFournisseur } from '@/ecrans/pieces/EcranNouvelleCommandeFournisseur';
-import { EcranReapprovisionnement } from '@/ecrans/pieces/EcranReapprovisionnement';
-import { EcranRechercheComptoirPieces } from '@/ecrans/pieces/EcranRechercheComptoirPieces';
-import { EcranReservationsPieces } from '@/ecrans/pieces/EcranReservationsPieces';
-import { EcranHangarPneus } from '@/ecrans/pneus/EcranHangarPneus';
-import { EcranBornePointage } from '@/ecrans/pointage/EcranBornePointage';
-import { EcranPointage } from '@/ecrans/pointage/EcranPointage';
-import { EcranPointageTechnicien } from '@/ecrans/pointage/EcranPointageTechnicien';
-import { EcranRecherche } from '@/ecrans/recherche/EcranRecherche';
-import { EcranReglagesRelances } from '@/ecrans/relances/EcranReglagesRelances';
-import { EcranRelances } from '@/ecrans/relances/EcranRelances';
-import { EcranReprise } from '@/ecrans/reprise/EcranReprise';
-import { EcranScan } from '@/ecrans/scan/EcranScan';
 // `EcranRendezVous` (routé ci-dessous) est le CONTENEUR réseau ; il rend `EcranAgendaRendezVous`
 // (présentation pure, testée séparément par fixtures locales) — l'écran métier existe donc bien
 // dans ce fichier, à un niveau d'indirection près (`ecrans/rendez-vous/EcranAgendaRendezVous.tsx`).
-import { EcranRendezVous } from '@/ecrans/rendez-vous/EcranRendezVous';
 import { EcranPageIntrouvable } from '@/ecrans/systeme/EcranPageIntrouvable';
-import { EcranTableauBord } from '@/ecrans/tableau-bord/EcranTableauBord';
-import { EcranFicheVehicule } from '@/ecrans/vehicules/EcranFicheVehicule';
-import { EcranListeVehicules } from '@/ecrans/vehicules/EcranListeVehicules';
-import { EcranNouveauVehicule } from '@/ecrans/vehicules/EcranNouveauVehicule';
-import { EcranFicheDossierVente } from '@/ecrans/ventes/dossiers/EcranFicheDossierVente';
-import { EcranListeDossiersVente } from '@/ecrans/ventes/dossiers/EcranListeDossiersVente';
-import { EcranNouveauDossierVente } from '@/ecrans/ventes/dossiers/EcranNouveauDossierVente';
-import { EcranEntreeEnStock } from '@/ecrans/ventes/stock/EcranEntreeEnStock';
-import { EcranFicheVehiculeStock } from '@/ecrans/ventes/stock/EcranFicheVehiculeStock';
-import { EcranListeVehiculesStock } from '@/ecrans/ventes/stock/EcranListeVehiculesStock';
-import { EcranSuiviVentes } from '@/ecrans/ventes/suivi/EcranSuiviVentes';
 
+import {
+  EcranFicheOrdreReparation,
+  EcranListeOrdresReparation,
+  EcranNouvelOrdreReparation,
+  EcranOrdreDepuisPlaque,
+  EcranFicheClient,
+  EcranListeClients,
+  EcranAvoir,
+  EcranFacturerOrdreReparation,
+  EcranFicheFacture,
+  EcranListeFactures,
+  EcranDoublonsClients,
+  EcranConsolePlateforme,
+  EcranParametragePieces,
+  EcranParametrageAtelier,
+  EcranExportFiduciaire,
+  EcranParametresFacturation,
+  EcranReferentiels,
+  EcranSites,
+  EcranUtilisateurs,
+  EcranConsignesPieces,
+  EcranDepotFactureFournisseur,
+  EcranFactureFournisseur,
+  EcranFicheArticle,
+  EcranFicheCommandeFournisseur,
+  EcranFicheFournisseur,
+  EcranListeArticles,
+  EcranListeCommandesFournisseur,
+  EcranListeFacturesFournisseur,
+  EcranListeFournisseurs,
+  EcranNouvelleCommandeFournisseur,
+  EcranReapprovisionnement,
+  EcranRechercheComptoirPieces,
+  EcranReservationsPieces,
+  EcranHangarPneus,
+  EcranBornePointage,
+  EcranPointage,
+  EcranPointageTechnicien,
+  EcranRecherche,
+  EcranReglagesRelances,
+  EcranRelances,
+  EcranReprise,
+  EcranScan,
+  EcranRendezVous,
+  EcranCourtoisie,
+  EcranTableauBord,
+  EcranFicheVehicule,
+  EcranListeVehicules,
+  EcranNouveauVehicule,
+  EcranFicheDossierVente,
+  EcranListeDossiersVente,
+  EcranNouveauDossierVente,
+  EcranEntreeEnStock,
+  EcranFicheVehiculeStock,
+  EcranListeVehiculesStock,
+  EcranSuiviVentes,
+} from './ecransParesseux';
 import { ATTERRISSAGE_PAR_ROLE } from './atterrissage';
 import { chemins } from './chemins';
 import { RouteProtegee } from './RouteProtegee';
 import { RoutePublique } from './RoutePublique';
 import {
-  ROLES_BORNE_POINTAGE,
-  ROLES_GESTION_UTILISATEURS,
-  ROLES_LECTURE_RENDEZ_VOUS,
-  ROLES_PARAMETRAGE_PIECES,
-  ROLES_PIECES,
-  ROLES_PNEUS,
-  ROLES_POINTAGE,
-  ROLES_RELANCES,
-  ROLES_SCAN,
-  ROLES_TABLEAU_BORD_ACTIVITE,
-  ROLES_VENTES,
+  ACCES_BORNE_POINTAGE,
+  ACCES_GESTION_UTILISATEURS,
+  ACCES_LECTURE_RENDEZ_VOUS,
+  ACCES_PARAMETRAGE_PIECES,
+  ACCES_PIECES,
+  ACCES_PNEUS,
+  ACCES_POINTAGE,
+  ACCES_MENU_FINANCIER,
+  ACCES_RELANCES,
+  ACCES_SCAN,
+  ACCES_TABLEAU_BORD_ACTIVITE,
+  ACCES_VENTES,
 } from './droits-routes';
 
 /**
@@ -194,7 +200,7 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'tableau-bord',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_TABLEAU_BORD_ACTIVITE}>
+          <RouteProtegee accesAutorise={ACCES_TABLEAU_BORD_ACTIVITE}>
             <EcranTableauBord />
           </RouteProtegee>
         ),
@@ -228,15 +234,28 @@ export const routesConfig: RouteObject[] = [
       // chemin ici) — voir EcranNouvelOrdreReparation.tsx pour le détail des deux repos honnêtes
       // affichés quand l'un des deux manque.
       { path: 'atelier/ordres-reparation/nouveau', element: <EcranNouvelOrdreReparation /> },
+      // Parcours « depuis une plaque » : un seul écran (véhicule, client, OR). Lit `?plaque=`,
+      // `?vehiculeId=`, `?clientId=` et `?site=` pour arriver prérempli depuis l'accueil, la
+      // recherche, la liste des OR et les fiches client/véhicule.
+      { path: 'atelier/ordres-reparation/depuis-plaque', element: <EcranOrdreDepuisPlaque /> },
       { path: 'ordres-reparation/:orId/facturer', element: <EcranFacturerOrdreReparation /> },
       // Agenda de rendez-vous (Lot RDV-1) — `rendez_vous.lire` ferme la LECTURE elle-même à
       // `vendeur`/`magasinier`/`comptable`/`poste_atelier` côté API (`droits-routes.ts`), cette
-      // garde reflète donc une restriction RÉELLE, comme `ROLES_PIECES`/`ROLES_PNEUS` plus bas.
+      // garde reflète donc une restriction RÉELLE, comme `ACCES_PIECES`/`ACCES_PNEUS` plus bas.
       {
         path: 'rendez-vous',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_LECTURE_RENDEZ_VOUS}>
+          <RouteProtegee accesAutorise={ACCES_LECTURE_RENDEZ_VOUS}>
             <EcranRendezVous />
+          </RouteProtegee>
+        ),
+      },
+      // Véhicules de courtoisie — `courtoisie.lire` a la même population que `rendez_vous.lire`.
+      {
+        path: 'courtoisie',
+        element: (
+          <RouteProtegee accesAutorise={ACCES_LECTURE_RENDEZ_VOUS}>
+            <EcranCourtoisie />
           </RouteProtegee>
         ),
       },
@@ -265,7 +284,7 @@ export const routesConfig: RouteObject[] = [
       // `rolesAutorises` ici court-circuiterait cet écran dédié au profit du refus générique de
       // `EcranAccesRefuse` — une régression UX pour un cas explicitement soigné par un autre lot,
       // sans gain de sécurité (le `403` serveur protège déjà la donnée réelle). Le masquage du lien
-      // dans `BarreLaterale` (`ROLES_MENU_FINANCIER`) reste néanmoins posé, par confort.
+      // dans `BarreLaterale` (`ACCES_MENU_FINANCIER`) reste néanmoins posé, par confort.
       { path: 'parametrage/facturation', element: <EcranParametresFacturation /> },
       // Les trois routes ci-dessous (référentiels, atelier, sites) N'ONT PAS de `rolesAutorises` —
       // arbitrage du coordinateur (lot 2), qui a corrigé sa propre consigne initiale après lecture
@@ -279,7 +298,7 @@ export const routesConfig: RouteObject[] = [
       // `peutModifierParametrage`, `ecrans/parametrage/droits.ts`) ET refusée par le serveur, la
       // seule barrière qui compte. Voir `droits-routes.ts` pour le détail de cet arbitrage et pour
       // la distinction « qui peut atteindre la route » (rien ici) / « à qui on propose le lien dans
-      // le menu » (`ROLES_MENU_PARAMETRAGE_ATELIER`, ergonomie pure, dans `BarreLaterale.tsx`).
+      // le menu » (`ACCES_MENU_PARAMETRAGE_ATELIER`, ergonomie pure, dans `BarreLaterale.tsx`).
       // `routeur.spec.tsx` verrouille cette décision : un test rougit si quelqu'un réintroduit
       // `rolesAutorises` ici en croyant « rétablir la sécurité ».
       { path: 'parametrage/referentiels', element: <EcranReferentiels /> },
@@ -289,14 +308,14 @@ export const routesConfig: RouteObject[] = [
       // par tenant). L'écran gère lui-même l'absence de `?site=` (repli honnête), pas un paramètre de
       // chemin ici : cohérent avec `EcranNouvelOrdreReparation` plus haut.
       { path: 'parametrage/sites', element: <EcranSites /> },
-      // Gestion des employés (issue #137) — `rolesAutorises={ROLES_GESTION_UTILISATEURS}` REFLÈTE
+      // Gestion des employés (issue #137) — `accesAutorise={ACCES_GESTION_UTILISATEURS}` REFLÈTE
       // une restriction RÉELLE côté API (`socle.utilisateur.lire` : direction/admin seuls,
-      // `auth/matrice-droits.ts`), même raisonnement que `ROLES_PIECES`/`ROLES_VENTES` — la garde
+      // `auth/matrice-droits.ts`), même raisonnement que `ACCES_PIECES`/`ACCES_VENTES` — la garde
       // ne fait qu'anticiper le 403 que tout autre rôle recevrait de toute façon.
       {
         path: 'parametrage/utilisateurs',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_GESTION_UTILISATEURS}>
+          <RouteProtegee accesAutorise={ACCES_GESTION_UTILISATEURS}>
             <EcranUtilisateurs />
           </RouteProtegee>
         ),
@@ -308,8 +327,8 @@ export const routesConfig: RouteObject[] = [
       // statique (`doublons`) avant un segment dynamique (`:id`), l'ordre de déclaration ne change
       // rien à la résolution.
       { path: 'clients/doublons', element: <EcranDoublonsClients /> },
-      // Scanner de permis de circulation (mobile) — `rolesAutorises={ROLES_SCAN}` REFLÈTE une
-      // restriction RÉELLE, même raisonnement que `ROLES_PIECES`/`ROLES_VENTES` ci-dessus : sans
+      // Scanner de permis de circulation (mobile) — `accesAutorise={ACCES_SCAN}` REFLÈTE une
+      // restriction RÉELLE, même raisonnement que `ACCES_PIECES`/`ACCES_VENTES` ci-dessus : sans
       // `client.creer` ET `vehicule.creer` à la fois, la soumission du formulaire prérempli par
       // l'OCR échoue systématiquement en `403` — voir `droits-routes.ts` pour le détail complet.
       // Rattachée au menu comme TROISIÈME onglet de Clients & véhicules
@@ -318,12 +337,12 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'scan',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_SCAN}>
+          <RouteProtegee accesAutorise={ACCES_SCAN}>
             <EcranScan />
           </RouteProtegee>
         ),
       },
-      // Module pièces (étape 3) — CINQ routes, TOUTES sous `rolesAutorises={ROLES_PIECES}`
+      // Module pièces (étape 3) — CINQ routes, TOUTES sous `accesAutorise={ACCES_PIECES}`
       // (`droits-routes.ts`) : `DROITS_PIECES_PAR_ROLE.admin` vaut `[]` littéralement côté API
       // (RF-115), la lecture elle-même est fermée à `admin` — contrairement à
       // `parametrage/referentiels` ci-dessus, cette garde reflète une restriction RÉELLE, elle ne
@@ -333,7 +352,7 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'pieces/recherche-comptoir',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+          <RouteProtegee accesAutorise={ACCES_PIECES}>
             <EcranRechercheComptoirPieces />
           </RouteProtegee>
         ),
@@ -341,7 +360,7 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'pieces/articles',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+          <RouteProtegee accesAutorise={ACCES_PIECES}>
             <EcranListeArticles />
           </RouteProtegee>
         ),
@@ -352,7 +371,7 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'pieces/articles/:id',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+          <RouteProtegee accesAutorise={ACCES_PIECES}>
             <EcranFicheArticle />
           </RouteProtegee>
         ),
@@ -360,7 +379,7 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'pieces/reservations',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+          <RouteProtegee accesAutorise={ACCES_PIECES}>
             <EcranReservationsPieces />
           </RouteProtegee>
         ),
@@ -368,17 +387,17 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'pieces/reapprovisionnement',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+          <RouteProtegee accesAutorise={ACCES_PIECES}>
             <EcranReapprovisionnement />
           </RouteProtegee>
         ),
       },
       // Commandes fournisseur + fournisseurs + consignes (étape 3, complément) — même garde
-      // `ROLES_PIECES` que le reste du module (restriction RÉELLE, `admin` exclu, voir plus haut).
+      // `ACCES_PIECES` que le reste du module (restriction RÉELLE, `admin` exclu, voir plus haut).
       {
         path: 'pieces/commandes-fournisseur',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+          <RouteProtegee accesAutorise={ACCES_PIECES}>
             <EcranListeCommandesFournisseur />
           </RouteProtegee>
         ),
@@ -389,7 +408,7 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'pieces/commandes-fournisseur/nouvelle',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+          <RouteProtegee accesAutorise={ACCES_PIECES}>
             <EcranNouvelleCommandeFournisseur />
           </RouteProtegee>
         ),
@@ -397,7 +416,7 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'pieces/commandes-fournisseur/:id',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+          <RouteProtegee accesAutorise={ACCES_PIECES}>
             <EcranFicheCommandeFournisseur />
           </RouteProtegee>
         ),
@@ -405,7 +424,7 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'pieces/fournisseurs',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+          <RouteProtegee accesAutorise={ACCES_PIECES}>
             <EcranListeFournisseurs />
           </RouteProtegee>
         ),
@@ -413,12 +432,12 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'pieces/fournisseurs/:id',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+          <RouteProtegee accesAutorise={ACCES_PIECES}>
             <EcranFicheFournisseur />
           </RouteProtegee>
         ),
       },
-      // Factures fournisseur (dépôt/rapprochement) — même garde `ROLES_PIECES` (7 rôles) que
+      // Factures fournisseur (dépôt/rapprochement) — même garde `ACCES_PIECES` (7 rôles) que
       // `commandes-fournisseur`/`fournisseurs` ci-dessus : le droit fin (`peutLireFactureFournisseur`,
       // `ecrans/pieces/droits.ts`, direction/chef_atelier/magasinier/comptable) est vérifié DANS
       // chaque écran, pas ici — même raisonnement que ces deux routes (voir leurs commentaires).
@@ -427,7 +446,7 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'pieces/factures-fournisseur',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+          <RouteProtegee accesAutorise={ACCES_PIECES}>
             <EcranListeFacturesFournisseur />
           </RouteProtegee>
         ),
@@ -435,7 +454,7 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'pieces/factures-fournisseur/deposer',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+          <RouteProtegee accesAutorise={ACCES_PIECES}>
             <EcranDepotFactureFournisseur />
           </RouteProtegee>
         ),
@@ -443,7 +462,7 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'pieces/factures-fournisseur/:id',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+          <RouteProtegee accesAutorise={ACCES_PIECES}>
             <EcranFactureFournisseur />
           </RouteProtegee>
         ),
@@ -451,35 +470,35 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'pieces/consignes',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+          <RouteProtegee accesAutorise={ACCES_PIECES}>
             <EcranConsignesPieces />
           </RouteProtegee>
         ),
       },
       // Paramétrage pièces (`GET|PATCH /parametrage/pieces`, §10) — garde DISTINCTE de
-      // `ROLES_PIECES` ci-dessus : `pieces.parametrage.lire` restreint la LECTURE elle-même à
+      // `ACCES_PIECES` ci-dessus : `pieces.parametrage.lire` restreint la LECTURE elle-même à
       // `direction`/`chef_atelier`/`magasinier` (voir `droits-routes.ts`,
-      // `ROLES_PARAMETRAGE_PIECES`), un sous-ensemble strict des sept rôles opérationnels du
+      // `ACCES_PARAMETRAGE_PIECES`), un sous-ensemble strict des sept rôles opérationnels du
       // module. Chemin littéral `parametrage/pieces` (pas `pieces/parametrage`) : même famille que
       // `parametrage/atelier`/`parametrage/sites`/`parametrage/facturation` plus haut, cohérent
       // avec `chemins.parametrage.pieces`.
       {
         path: 'parametrage/pieces',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_PARAMETRAGE_PIECES}>
+          <RouteProtegee accesAutorise={ACCES_PARAMETRAGE_PIECES}>
             <EcranParametragePieces />
           </RouteProtegee>
         ),
       },
       // Paliers de relance (scission de l'ancien `EcranRelances`, §4.5 : « paliers -> Réglages ») —
-      // `rolesAutorises={ROLES_RELANCES}` reflète la même restriction RÉELLE que `relances`
+      // `accesAutorise={ACCES_RELANCES}` reflète la même restriction RÉELLE que `relances`
       // ci-dessous (`relances.facturation.regle.lire`, direction/comptable seuls côté API) : lire
       // la règle expose une politique de recouvrement, réservée à la gouvernance/comptabilité.
       // Chemin littéral `parametrage/relances`, même famille que `parametrage/pieces` ci-dessus.
       {
         path: 'parametrage/relances',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_RELANCES}>
+          <RouteProtegee accesAutorise={ACCES_RELANCES}>
             <EcranReglagesRelances />
           </RouteProtegee>
         ),
@@ -492,15 +511,15 @@ export const routesConfig: RouteObject[] = [
       // (`?vue=journal|equipe`), et l'ancienne Clôture de période (`EcranCloturePeriodePointage`,
       // écran supprimé) est devenue une action de l'onglet Équipe (`DialogueCloturePeriode`).
       //
-      // GARDE UNIQUE `ROLES_POINTAGE` (la plus large des deux gardes qui existaient avant la
+      // GARDE UNIQUE `ACCES_POINTAGE` (la plus large des deux gardes qui existaient avant la
       // fusion) sur les trois : `EcranPointage` gère lui-même la restriction interne de l'onglet
       // Équipe (`peutVoirEquipePointage`) — absent du DOM pour qui n'y a pas droit, jamais grisé —
-      // donc une garde de route plus étroite que `ROLES_POINTAGE` bloquerait `technicien`/
+      // donc une garde de route plus étroite que `ACCES_POINTAGE` bloquerait `technicien`/
       // `magasinier` avant même d'atteindre l'onglet Journal, qui leur reste pourtant ouvert.
       {
         path: 'pointage',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_POINTAGE}>
+          <RouteProtegee accesAutorise={ACCES_POINTAGE}>
             <EcranPointageTechnicien />
           </RouteProtegee>
         ),
@@ -508,7 +527,7 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'pointage/jour',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_POINTAGE}>
+          <RouteProtegee accesAutorise={ACCES_POINTAGE}>
             <EcranPointage />
           </RouteProtegee>
         ),
@@ -516,7 +535,7 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'pointage/equipe',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_POINTAGE}>
+          <RouteProtegee accesAutorise={ACCES_POINTAGE}>
             <EcranPointage />
           </RouteProtegee>
         ),
@@ -535,7 +554,7 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'pointage/cloture',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_POINTAGE}>
+          <RouteProtegee accesAutorise={ACCES_POINTAGE}>
             <EcranPointage />
           </RouteProtegee>
         ),
@@ -544,7 +563,7 @@ export const routesConfig: RouteObject[] = [
       // module pointage, distincte des deux précédentes. Elle valait `['poste_atelier']` seul
       // jusqu'au Lot D, ce qui rendait la borne inatteignable depuis l'interface pour ceux qui
       // l'INSTALLENT : un `chef_atelier` qui accroche la tablette au mur doit pouvoir ouvrir
-      // l'écran, relever l'URL à mettre en favori et vérifier le rendu. `ROLES_BORNE_POINTAGE`
+      // l'écran, relever l'URL à mettre en favori et vérifier le rendu. `ACCES_BORNE_POINTAGE`
       // (`droits-routes.ts`) ajoute donc `chef_atelier`/`admin`, et documente la limite assumée :
       // l'identification par PIN leur répond `403` (seul `poste_atelier` détient
       // `atelier.pointage.identifier`), c'est un accès de mise en service, pas d'usage.
@@ -555,15 +574,15 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'pointage/borne',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_BORNE_POINTAGE}>
+          <RouteProtegee accesAutorise={ACCES_BORNE_POINTAGE}>
             <EcranBornePointage />
           </RouteProtegee>
         ),
       },
       // Hangar à pneus (Lot B, fusion Lot D) — UNE SEULE route désormais, sous
-      // `rolesAutorises={ROLES_PNEUS}` (`droits-routes.ts`) : `ROLES_PNEUS_DEPOT_LECTURE` ferme la
+      // `accesAutorise={ACCES_PNEUS}` (`droits-routes.ts`) : `ACCES_PNEUS_DEPOT_LECTURE` ferme la
       // lecture elle-même à `poste_atelier` côté API (voir `apps/api/src/pneus/droits-provisoires.ts`)
-      // — même raisonnement que `ROLES_PIECES`/`ROLES_VENTES` ci-dessus, cette garde reflète une
+      // — même raisonnement que `ACCES_PIECES`/`ACCES_VENTES` ci-dessus, cette garde reflète une
       // restriction RÉELLE (bien que PROVISOIRE côté matrice de droits).
       //
       // `pneus/a-relancer` a été RETIRÉE (l'ancien écran `EcranJeuxARelancer` est supprimé, fusionné
@@ -575,20 +594,20 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'pneus',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_PNEUS}>
+          <RouteProtegee accesAutorise={ACCES_PNEUS}>
             <EcranHangarPneus />
           </RouteProtegee>
         ),
       },
-      // Module ventes VN/VO (étape 4) — SEPT routes, TOUTES sous `rolesAutorises={ROLES_VENTES}`
+      // Module ventes VN/VO (étape 4) — SEPT routes, TOUTES sous `accesAutorise={ACCES_VENTES}`
       // (`droits-routes.ts`) : `ventes.vehicule_stock.lire` et `ventes.dossier.lire` ferment tous
       // deux la LECTURE elle-même à `admin`/`technicien`/`magasinier` (RF-115, voir
       // `ecrans/ventes/stock/droits.ts` et `ecrans/ventes/dossiers/droits.ts`) — même raisonnement
-      // que `ROLES_PIECES` ci-dessus, cette garde reflète une restriction RÉELLE de l'API. Reprise
+      // que `ACCES_PIECES` ci-dessus, cette garde reflète une restriction RÉELLE de l'API. Reprise
       // et Financement N'ONT PAS de route dédiée : ce sont des cartes intégrées à la fiche dossier
       // (design gelé §8-9), pas des écrans autonomes. `ventes/suivi` (suivi financement & garantie,
       // `GET /ventes/suivi`) est gardé par le MÊME droit `ventes.dossier.lire` que `ventes/dossiers`
-      // ci-dessous (`suivi-vente.controller.ts`), donc le même `ROLES_VENTES` suffit — aucune
+      // ci-dessous (`suivi-vente.controller.ts`), donc le même `ACCES_VENTES` suffit — aucune
       // nouvelle liste de rôles n'est nécessaire.
       //
       // Segment statique `nouveau` déclaré AVANT `:id` dans chacun des deux sous-groupes, même
@@ -597,7 +616,7 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'ventes/stock',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_VENTES}>
+          <RouteProtegee accesAutorise={ACCES_VENTES}>
             <EcranListeVehiculesStock />
           </RouteProtegee>
         ),
@@ -605,7 +624,7 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'ventes/stock/nouveau',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_VENTES}>
+          <RouteProtegee accesAutorise={ACCES_VENTES}>
             <EcranEntreeEnStock />
           </RouteProtegee>
         ),
@@ -613,7 +632,7 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'ventes/stock/:id',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_VENTES}>
+          <RouteProtegee accesAutorise={ACCES_VENTES}>
             <EcranFicheVehiculeStock />
           </RouteProtegee>
         ),
@@ -621,7 +640,7 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'ventes/dossiers',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_VENTES}>
+          <RouteProtegee accesAutorise={ACCES_VENTES}>
             <EcranListeDossiersVente />
           </RouteProtegee>
         ),
@@ -631,7 +650,7 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'ventes/suivi',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_VENTES}>
+          <RouteProtegee accesAutorise={ACCES_VENTES}>
             <EcranSuiviVentes />
           </RouteProtegee>
         ),
@@ -639,7 +658,7 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'ventes/dossiers/nouveau',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_VENTES}>
+          <RouteProtegee accesAutorise={ACCES_VENTES}>
             <EcranNouveauDossierVente />
           </RouteProtegee>
         ),
@@ -647,7 +666,7 @@ export const routesConfig: RouteObject[] = [
       {
         path: 'ventes/dossiers/:id',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_VENTES}>
+          <RouteProtegee accesAutorise={ACCES_VENTES}>
             <EcranFicheDossierVente />
           </RouteProtegee>
         ),
@@ -655,15 +674,24 @@ export const routesConfig: RouteObject[] = [
       // Déclenchement des relances automatiques (rappels de facture impayée) — écran opérationnel
       // (planifier/envoyer/historique), sous Facturation depuis la scission de l'ancien
       // `EcranRelances` (§4.5, voir `parametrage/relances` ci-dessus pour le pendant réglage des
-      // paliers, passé sous Réglages). `rolesAutorises={ROLES_RELANCES}` (`droits-routes.ts`)
-      // reflète une restriction RÉELLE, même raisonnement que `ROLES_PIECES`/`ROLES_VENTES`/
-      // `ROLES_PNEUS` plus haut : `relances.facturation.planifier`/`.envoyer`/`.regle.lire`
+      // paliers, passé sous Réglages). `accesAutorise={ACCES_RELANCES}` (`droits-routes.ts`)
+      // reflète une restriction RÉELLE, même raisonnement que `ACCES_PIECES`/`ACCES_VENTES`/
+      // `ACCES_PNEUS` plus haut : `relances.facturation.planifier`/`.envoyer`/`.regle.lire`
       // (historique) ferment ces trois opérations à tout rôle hors `direction`/`comptable`
       // (`apps/api/src/relances/relances.controller.ts`) — cette garde ne l'invente pas.
+      // Export fiduciaire : `facturation.export.creer` = direction/comptable (`ACCES_MENU_FINANCIER`).
+      {
+        path: 'export-fiduciaire',
+        element: (
+          <RouteProtegee accesAutorise={ACCES_MENU_FINANCIER}>
+            <EcranExportFiduciaire />
+          </RouteProtegee>
+        ),
+      },
       {
         path: 'relances',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_RELANCES}>
+          <RouteProtegee accesAutorise={ACCES_RELANCES}>
             <EcranRelances />
           </RouteProtegee>
         ),

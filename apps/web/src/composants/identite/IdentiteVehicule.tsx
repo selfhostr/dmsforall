@@ -1,4 +1,4 @@
-import type { VehiculeResume } from '@dfa/shared';
+import type { VehiculeResumeListe } from '@dfa/shared';
 
 import { cn } from '@/lib/utils';
 
@@ -6,7 +6,7 @@ import { BadgeIdentificationIncomplete } from './BadgeIdentificationIncomplete';
 import { Plaque } from './Plaque';
 
 interface Props {
-  readonly vehicule: VehiculeResume;
+  readonly vehicule: VehiculeResumeListe;
   /** Taille de la `Plaque` composée. Bureau dense : `sm`/`md` ; fiche/tête d'écran : `xl`. */
   readonly taillePlaque?: 'sm' | 'md' | 'xl';
   readonly className?: string;

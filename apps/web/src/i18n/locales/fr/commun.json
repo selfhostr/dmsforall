@@ -69,5 +69,52 @@
     "comptable": "Comptable",
     "admin": "Administrateur",
     "posteAtelier": "Borne d'atelier"
+  },
+  "toasts": {
+    "annuler": "Annuler",
+    "clientCree": "Client créé",
+    "vehiculeCree": "Véhicule enregistré",
+    "rdvDeplace": "Rendez-vous déplacé",
+    "articleCree": "Article créé",
+    "pointageArrete": "Pointage arrêté",
+    "orTermine": "OR terminé",
+    "factureEmise": "Facture émise",
+    "orCree": "OR ouvert",
+    "orReceptionne": "OR réceptionné",
+    "orDemarre": "OR démarré",
+    "travauxRepris": "Travaux repris",
+    "orEnControle": "OR passé en contrôle",
+    "controleRefuse": "Contrôle refusé, OR remis en cours",
+    "controleValide": "Contrôle validé",
+    "travauxTermines": "Travaux terminés",
+    "orRouvert": "OR rouvert",
+    "orRestitue": "Véhicule restitué",
+    "orCloture": "OR clôturé",
+    "orAnnule": "OR annulé",
+    "avoirEmis": "Avoir émis",
+    "paiementEnregistre": "Paiement enregistré",
+    "factureEncaissee": "Facture émise et encaissée",
+    "rdvCree": "Rendez-vous enregistré",
+    "pretCree": "Prêt enregistré",
+    "travailReporteRepris": "Travail reporté repris dans l’OR",
+    "motifRdvCree": "Motif de rendez-vous créé",
+    "motifRdvModifie": "Motif de rendez-vous modifié",
+    "employeCree": "Employé créé"
+  },
+  "densite": {
+    "titre": "Densité d'affichage",
+    "auto": "Automatique (selon l'appareil)",
+    "compacte": "Compacte",
+    "aeree": "Aérée",
+    "aide": "Aérée : texte plus grand et lignes plus hautes, pour tablette et doigt."
+  },
+  "glossaire": {
+    "OR": "Ordre de réparation : la fiche de travaux d'un véhicule, de la réception à la restitution.",
+    "MFK": "Contrôle technique officiel suisse (Motorfahrzeugkontrolle, en italien collaudo).",
+    "VN": "Véhicule neuf : jamais immatriculé avant la vente.",
+    "VO": "Véhicule d'occasion : déjà utilisé, vendu par le garage ou repris à la reprise.",
+    "QRFacture": "Bulletin de paiement suisse avec code QR, à scanner dans l'e-banking.",
+    "Avoir": "Facture de correction qui annule tout ou partie d'une facture émise.",
+    "Detenteur": "Personne inscrite sur le permis de circulation ; pas forcément le propriétaire, par exemple en leasing."
   }
 }

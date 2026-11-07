@@ -47,7 +47,7 @@ describe('EcranDoublonsClients', () => {
 
     expect(await screen.findByText('Duplicati clienti')).toBeInTheDocument();
     expect(screen.getByLabelText('Nome o ragione sociale')).toBeInTheDocument();
-    expect(screen.getByText('Inserisci almeno un criterio di ricerca')).toBeInTheDocument();
+    expect(screen.getByText('Inserisca almeno un criterio di ricerca')).toBeInTheDocument();
   });
 
   it("affiche l'état « aucun critère » avant toute saisie, sans appeler le serveur", () => {
@@ -77,7 +77,7 @@ describe('EcranDoublonsClients', () => {
     expect(titre.className).toMatch(/\bsr-only\b/);
     expect(
       screen.getByText(
-        "Recherchez un client par nom, NPA, e-mail, téléphone ou IDE avant d'en créer un nouveau, ou pour vérifier si deux fiches désignent la même personne.",
+        "Recherchez un client par nom, NPA, e-mail, téléphone ou numéro d'entreprise avant d'en créer un nouveau, ou pour vérifier si deux fiches désignent la même personne.",
       ),
     ).toBeInTheDocument();
   });
@@ -183,7 +183,7 @@ describe('EcranDoublonsClients', () => {
     const utilisateur = userEvent.setup();
     rendreEcran();
 
-    await utilisateur.type(screen.getByLabelText('IDE'), 'CHE-123');
+    await utilisateur.type(screen.getByLabelText("N° d'entreprise (IDE)"), 'CHE-123');
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 500));
     });

@@ -371,7 +371,7 @@ describe('GabaritEcran — détection automatique du doublon, route par route (t
     connecte('vendeur');
     rendre(
       '/ventes/dossiers',
-      <GabaritEcran titre="Dossiers de vente">
+      <GabaritEcran titre="Ventes en cours">
         <p>Contenu</p>
       </GabaritEcran>,
     );
@@ -420,7 +420,7 @@ describe('estTitreDoublonNavigation — fonction pure, filet rapide indépendant
     ['Recherche comptoir', ['Comptoir'], true],
     ['Réapprovisionnement', ['Approvisionnement'], true],
     ['Commandes fournisseur', ['Commandes'], true],
-    ['Dossiers de vente', ['Dossiers'], true],
+    ['Ventes en cours', ['Ventes en cours'], true],
     ['Factures', ['Factures'], true],
     ['Véhicules', ['Véhicules'], true],
     ['Nouvelle commande fournisseur', ['Commandes'], false],

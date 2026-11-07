@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Mail, Phone } from 'lucide-react';
 import { Link } from 'react-router';
 
 import { Button } from '@/components/ui/button';
@@ -30,7 +31,11 @@ interface Props {
    *  (consigne du coordinateur). */
   readonly peutAgir: boolean;
   readonly onVehiculeArrive: () => void;
+  /** Raccourci facultatif (ex. prêt d'un véhicule de courtoisie), posé avec les gestes du RDV. */
+  readonly slotCourtoisie?: ReactNode;
   readonly onSignalerAbsence: () => void;
+  /** Déplacer le rendez-vous (nouvelle date / moment) — le bouton n'existe que si fourni. */
+  readonly onDeplacer?: () => void;
   readonly onAnnuler: (motif: string) => void;
   readonly enCoursAction?: boolean;
   /** Message d'échec DÉJÀ TRADUIT — jamais un enregistrement silencieux, succès comme échec. */
@@ -75,7 +80,9 @@ export function PanneauDetailRendezVous({
   delaiGracePasse,
   peutAgir,
   onVehiculeArrive,
+  slotCourtoisie,
   onSignalerAbsence,
+  onDeplacer,
   onAnnuler,
   enCoursAction = false,
   erreurAction = null,
@@ -107,7 +114,9 @@ export function PanneauDetailRendezVous({
 
   return (
     <Sheet open={ouvert} onOpenChange={onOpenChange}>
-      <SheetContent>
+      {/* `content-start` : le corps du Sheet est une grille de hauteur fixe dont les rangées
+          s'étirent par défaut — c'est ce qui ouvrait un grand blanc entre le titre et le contenu. */}
+      <SheetContent className="content-start">
         <SheetHeader>
           <SheetTitle>{t('planning:detail.titre')}</SheetTitle>
         </SheetHeader>
@@ -137,14 +146,40 @@ export function PanneauDetailRendezVous({
             </p>
           ) : null}
 
+          <section aria-label={t('planning:detail.contact.titre')} className="flex flex-col gap-1">
+            <p className="texte-corps font-semibold text-foreground">{rendezVous.clientNom}</p>
+            {rendezVous.clientTelephone ? (
+              <a
+                href={`tel:${rendezVous.clientTelephone.replace(/[^+\d]/g, '')}`}
+                className="inline-flex min-h-11 items-center gap-2 texte-corps font-medium text-primary underline-offset-4 hover:underline anneau-focus"
+              >
+                <Phone aria-hidden className="h-4 w-4" />
+                {rendezVous.clientTelephone}
+              </a>
+            ) : (
+              <p className="texte-corps text-muted-foreground">
+                {t('planning:detail.contact.pasDeTelephone')}
+              </p>
+            )}
+            {rendezVous.clientEmail ? (
+              <a
+                href={`mailto:${rendezVous.clientEmail}`}
+                className="inline-flex min-h-11 items-center gap-2 texte-corps text-primary underline-offset-4 hover:underline anneau-focus"
+              >
+                <Mail aria-hidden className="h-4 w-4" />
+                {rendezVous.clientEmail}
+              </a>
+            ) : null}
+          </section>
+
           <dl className="grid grid-cols-2 gap-groupe texte-corps">
             <div>
-              <dt className="text-muted-foreground">{t('planning:champs.client')}</dt>
-              <dd className="text-foreground">{rendezVous.clientNom}</dd>
-            </div>
-            <div>
               <dt className="text-muted-foreground">{t('planning:champs.vehicule')}</dt>
-              <dd className="text-foreground">{rendezVous.vehiculeDesignation ?? '—'}</dd>
+              <dd className="text-foreground">
+                {rendezVous.vehiculePlaque
+                  ? `${rendezVous.vehiculePlaque} · ${rendezVous.vehiculeDesignation ?? ''}`
+                  : (rendezVous.vehiculeDesignation ?? '—')}
+              </dd>
             </div>
             <div>
               <dt className="text-muted-foreground">{t('planning:champs.site')}</dt>
@@ -153,6 +188,12 @@ export function PanneauDetailRendezVous({
             <div>
               <dt className="text-muted-foreground">{t('planning:champs.date')}</dt>
               <dd className="text-foreground">{libelleCreneau(rendezVous, t)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">{t('planning:champs.duree')}</dt>
+              <dd className="text-foreground">
+                {t('planning:dureeMinutes', { minutes: rendezVous.dureeEstimeeMinutes })}
+              </dd>
             </div>
             <div className="col-span-2">
               <dt className="text-muted-foreground">{t('planning:champs.motif')}</dt>
@@ -206,6 +247,17 @@ export function PanneauDetailRendezVous({
                   disabled={enCoursAction}
                 >
                   {t('planning:detail.actions.signalerAbsence')}
+                </Button>
+              ) : null}
+              {slotCourtoisie}
+              {onDeplacer && rendezVous.statut === 'confirme' ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onDeplacer}
+                  disabled={enCoursAction}
+                >
+                  {t('planning:detail.actions.deplacer')}
                 </Button>
               ) : null}
               <Button

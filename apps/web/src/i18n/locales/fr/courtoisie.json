@@ -1,0 +1,50 @@
+{
+  "titre": "Véhicules de courtoisie",
+  "sousTitre": "Voitures de remplacement prêtées aux clients pendant la réparation.",
+  "jour": "Jour",
+  "erreur": "Impossible de charger les véhicules de courtoisie",
+  "resume": "{libres, plural, =0 {Aucune voiture libre} one {# voiture libre} other {# voitures libres}} sur {total}",
+  "vide": {
+    "titre": "Aucun véhicule de courtoisie",
+    "description": "Ajoutez les voitures que vous prêtez à vos clients pour savoir laquelle est libre."
+  },
+  "disponibilite": {
+    "libre": "Libre",
+    "occupe": "Prêtée"
+  },
+  "etat": {
+    "disponible": "Disponible",
+    "en_entretien": "À l'entretien",
+    "hors_service": "Hors service"
+  },
+  "enRetard": "Pas encore rendue",
+  "reserve": "Réservée",
+  "actions": {
+    "preter": "Prêter",
+    "rendu": "Rendu",
+    "remettre": "Remettre les clés",
+    "annuler": "Annuler le prêt"
+  },
+  "pret": {
+    "titre": "Prêter une voiture",
+    "client": "Client",
+    "du": "Du",
+    "au": "Au",
+    "kmDepart": "Km au départ",
+    "confirmer": "Prêter",
+    "erreurValidation": "Choisissez un client et une période valide (la fin après le début)."
+  },
+  "retour": {
+    "titre": "Rendre la voiture",
+    "kmRetour": "Km au retour",
+    "confirmer": "Enregistrer le retour"
+  },
+  "parc": {
+    "ajouter": "Ajouter une voiture",
+    "ajouterTitre": "Ajouter une voiture de courtoisie",
+    "designation": "Désignation",
+    "designationPlaceholder": "Ex. : VW Polo grise",
+    "plaque": "Plaque",
+    "erreurValidation": "Indiquez la désignation de la voiture."
+  }
+}

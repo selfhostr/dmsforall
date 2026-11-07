@@ -1,7 +1,6 @@
-import { Tabs as TabsPrimitive } from '@base-ui/react/tabs';
 import { useTranslation } from 'react-i18next';
 
-import { cn } from '@/lib/utils';
+import { Segments } from '@/composants/commun/Segments';
 
 /**
  * Liste / Plan (issue #142) — bascule ORTHOGONALE à `BasculeVueStock` (vendeur/client, question de
@@ -35,33 +34,14 @@ export function BasculeAffichageStock({ affichage, onChangeAffichage }: Props) {
   const { t } = useTranslation('ventes');
 
   return (
-    <TabsPrimitive.Root
-      value={affichage}
-      onValueChange={(valeur) => onChangeAffichage(valeur as AffichageStock)}
-    >
-      <TabsPrimitive.List
-        aria-label={t('ventes:stock.liste.plan.groupeLabelBascule')}
-        className="inline-flex items-stretch gap-1 rounded-md border bg-muted/40 p-1"
-      >
-        {(['liste', 'plan'] as const).map((valeur) => (
-          <TabsPrimitive.Tab
-            key={valeur}
-            value={valeur}
-            className={cn(
-              // 36 px visibles, 44 px cliquables : même technique que `Button` `size="sm"`
-              // (`components/ui/button.tsx`) — le pseudo-élément déborde de 4 px en haut et en
-              // bas pour tenir la règle des 44 px sans imposer une bascule plus haute dans une
-              // barre d'outils dense. Zone étendue invisible, hors du flux, ne décale rien.
-              'relative flex h-9 items-center whitespace-nowrap rounded-sm px-3 texte-corps font-medium transition-colors after:absolute after:inset-x-0 after:-inset-y-1 after:content-[""]',
-              'anneau-focus',
-              'text-muted-foreground hover:text-foreground',
-              'data-active:bg-background data-active:font-semibold data-active:text-foreground data-active:shadow-sm',
-            )}
-          >
-            {t(`ventes:stock.liste.plan.affichage.${valeur}`)}
-          </TabsPrimitive.Tab>
-        ))}
-      </TabsPrimitive.List>
-    </TabsPrimitive.Root>
+    <Segments
+      valeur={affichage}
+      onChange={onChangeAffichage}
+      ariaLabel={t('ventes:stock.liste.plan.groupeLabelBascule')}
+      options={(['liste', 'plan'] as const).map((valeur) => ({
+        valeur,
+        libelle: t(`ventes:stock.liste.plan.affichage.${valeur}`),
+      }))}
+    />
   );
 }

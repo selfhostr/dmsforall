@@ -60,7 +60,7 @@ import { messageErreurMutation } from './messages-erreur-mutation';
 export function EcranConsignesPieces() {
   const { t } = useTranslation(['pieces', 'commun']);
   const { data: session } = useSession();
-  const role = session?.utilisateur.role;
+  const actions = session?.actions;
 
   const [statut, setStatut] = useState<StatutConsigneEchangeStandard | undefined>(
     'en_attente_retour_fournisseur',
@@ -153,7 +153,7 @@ export function EcranConsignesPieces() {
       libelle: '',
       actions: true,
       rendu: (consigne) => {
-        if (consigne.statut !== 'en_attente_retour_fournisseur' || !peutRetournerConsigne(role))
+        if (consigne.statut !== 'en_attente_retour_fournisseur' || !peutRetournerConsigne(actions))
           return null;
         return (
           <div className="flex justify-end">

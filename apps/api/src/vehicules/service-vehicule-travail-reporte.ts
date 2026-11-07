@@ -1,14 +1,19 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
 import type {
+  EntreeCreationTravailReporte,
   EntreeModificationTravailReporte,
   ReponseTravailReporte,
   RoleUtilisateur,
   UrgenceTravail,
 } from '@dfa/shared';
-import { ROLES_SANS_MONTANT } from '../auth/matrice-droits';
+import { voitLesMontants } from '../auth/droits-personne';
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
-import { vehiculeTravailReporte, type LigneVehiculeTravailReporte } from '../db/schema';
+import {
+  ordreReparation,
+  vehiculeTravailReporte,
+  type LigneVehiculeTravailReporte,
+} from '../db/schema';
 import { ErreurMetier } from '../common/erreurs';
 import type { FiltresTravauxReportes } from './schemas-locales';
 import {
@@ -49,8 +54,9 @@ export function versReponseTravailReporte(
     ligneOrOrigineId: ligne.ligneOrOrigineId,
     ordreReparationRepriseId: ligne.ordreReparationRepriseId,
     motifModification: ligne.motifModification,
+    detail: ligne.detail,
   };
-  if (ROLES_SANS_MONTANT.includes(role)) {
+  if (!voitLesMontants(role)) {
     return base;
   }
   return { ...base, montantEstimeCentimes: ligne.montantEstimeCentimes };
@@ -154,6 +160,63 @@ export class ServiceVehiculeTravailReporte implements CreationTravailReporte {
       }
 
       return lignes.map((ligne) => versReponseTravailReporte(ligne, role));
+    });
+  }
+
+  /**
+   * `POST /vehicules/{id}/travaux-reportes` — saisie directe d'un travail « à faire la prochaine
+   * fois » (RM-73), en plus de la naissance par refus de ligne (`creerDepuisRefus`). Origine :
+   * l'OR indiqué (doit appartenir au même véhicule et au même tenant) ou saisie libre.
+   */
+  async creer(
+    ctx: ContexteTenant,
+    vehiculeId: string,
+    entree: EntreeCreationTravailReporte,
+    role: RoleUtilisateur,
+    maintenant: Date,
+  ): Promise<ReponseTravailReporte> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      await chargerLigneVehicule(tx, ctx, vehiculeId);
+      if (entree.ordreReparationOrigineId !== undefined) {
+        const [or] = await tx
+          .select({ id: ordreReparation.id })
+          .from(ordreReparation)
+          .where(
+            and(
+              eq(ordreReparation.tenantId, ctx.tenantId),
+              eq(ordreReparation.id, entree.ordreReparationOrigineId),
+              eq(ordreReparation.vehiculeId, vehiculeId),
+            ),
+          )
+          .limit(1);
+        if (!or) {
+          throw new ErreurMetier(
+            'RESSOURCE_INTROUVABLE',
+            'Ordre de réparation introuvable pour ce véhicule.',
+          );
+        }
+      }
+      const dernierKm = await lireDernierKilometrage(tx, ctx, vehiculeId);
+      const [cree] = await tx
+        .insert(vehiculeTravailReporte)
+        .values({
+          tenantId: ctx.tenantId,
+          vehiculeId,
+          designation: entree.designation,
+          detail: entree.detail?.trim() || null,
+          urgence: entree.urgence ?? 'a_faire',
+          securite: entree.securite ?? false,
+          montantEstimeCentimes: entree.montantEstimeCentimes ?? null,
+          kmConstat: dernierKm?.valeurKm ?? null,
+          dateConstat: jourIso(maintenant),
+          ordreReparationOrigineId: entree.ordreReparationOrigineId ?? null,
+          statut: 'ouvert',
+        })
+        .returning();
+      if (!cree) {
+        throw new ErreurMetier('ERREUR_INTERNE', 'La création du travail reporté a échoué.');
+      }
+      return versReponseTravailReporte(cree, role);
     });
   }
 

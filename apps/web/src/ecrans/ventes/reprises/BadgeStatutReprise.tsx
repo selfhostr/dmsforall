@@ -3,14 +3,11 @@ import { useTranslation } from 'react-i18next';
 
 import type { StatutReprise } from '@dfa/shared';
 
-import { cn } from '@/lib/utils';
-
-type TokenStatut = 'neutre' | 'info' | 'succes' | 'danger';
-type FormeBadge = 'plein' | 'contour';
+import { BadgeStatut, type FormeBadge, type TokenStatut } from '@/composants/identite/BadgeStatut';
 
 interface EntreeStatutReprise {
   readonly icone: LucideIcon;
-  readonly token: TokenStatut;
+  readonly token: Extract<TokenStatut, 'neutre' | 'info' | 'succes' | 'danger'>;
   readonly forme: FormeBadge;
 }
 
@@ -30,20 +27,6 @@ const CONFIG_STATUT_REPRISE: Readonly<Record<StatutReprise, EntreeStatutReprise>
   refusee: { icone: Ban, token: 'danger', forme: 'contour' },
 };
 
-const CLASSES_PLEIN: Readonly<Record<TokenStatut, string>> = {
-  neutre: 'border-transparent bg-statut-neutre-fond text-statut-neutre',
-  info: 'border-transparent bg-statut-info-fond text-statut-info',
-  succes: 'border-transparent bg-statut-succes-fond text-statut-succes',
-  danger: 'border-transparent bg-statut-danger-fond text-statut-danger',
-};
-
-const CLASSES_CONTOUR: Readonly<Record<TokenStatut, string>> = {
-  neutre: 'border-statut-neutre bg-background text-statut-neutre',
-  info: 'border-statut-info bg-background text-statut-info',
-  succes: 'border-statut-succes bg-background text-statut-succes',
-  danger: 'border-statut-danger bg-background text-statut-danger',
-};
-
 interface Props {
   readonly statut: StatutReprise;
   readonly className?: string;
@@ -54,20 +37,14 @@ interface Props {
 export function BadgeStatutReprise({ statut, className }: Props) {
   const { t } = useTranslation('ventes');
   const config = CONFIG_STATUT_REPRISE[statut];
-  const Icone = config.icone;
-  const classesToken =
-    config.forme === 'plein' ? CLASSES_PLEIN[config.token] : CLASSES_CONTOUR[config.token];
-
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 texte-libelle font-medium',
-        classesToken,
-        className,
-      )}
+    <BadgeStatut
+      icone={config.icone}
+      token={config.token}
+      forme={config.forme}
+      className={className}
     >
-      <Icone aria-hidden className="h-3.5 w-3.5 shrink-0" />
       {t(`ventes:reprise.statuts.${statut}`)}
-    </span>
+    </BadgeStatut>
   );
 }

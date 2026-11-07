@@ -14,6 +14,7 @@ import {
   devisComplementaire,
   devisComplementaireLigne,
   ligneOr,
+  ordreReparation,
   type LigneLigneOr,
   type LigneOrdreReparation,
 } from '../db/schema';
@@ -57,11 +58,28 @@ import { traduireErreurTransition } from './traducteur-transition';
  * SIMPLIFICATIONS SIGNALÉES (RM-73, P-24, CT-36) : les lignes refusées n'alimentent pas encore les
  * travaux reportés du véhicule (propriété du module `vehicules/`, hors périmètre de ce fichier), et
  * aucune proposition de ligne de démontage/remontage n'est émise dans `avertissements` — `CODES_AVERTISSEMENT`
- * (gelé, `packages/shared`) ne porte aucun code pour ce cas. `nouveauPlafondCentimes` n'est PAS
- * automatiquement reporté sur `ordre_reparation.plafond_centimes` après acceptation : le contrat
- * disponible ne tranche pas ce point et le modifier resterait un geste distinct
- * (`atelier.or.plafond_modifier`, `PATCH /ordres-reparation/{id}`).
+ * (gelé, `packages/shared`) ne porte aucun code pour ce cas. `nouveauPlafondCentimes` est facultatif
+ * (voir `determinerPlafondDevis`) et, quand le client accepte au moins une ligne, REPORTÉ sur
+ * `ordre_reparation.plafond_centimes` si l'OR a un plafond et que le devis le relève (`repondre`).
  */
+/**
+ * Plafond porté par un devis complémentaire. Fourni par l'appelant : tel quel. Sinon :
+ *  - OR sans plafond : `null` (illimité, l'OR n'est pas modifié) ;
+ *  - OR avec plafond : le plafond actuel, relevé juste assez pour couvrir les lignes du devis
+ *    (`total déjà validé + montant du devis`) quand le plafond actuel ne suffit pas — sans quoi un
+ *    devis dont la seule raison d'être est de dépasser le plafond n'aurait aucun effet.
+ */
+export function determinerPlafondDevis(
+  fourni: number | undefined,
+  plafondOr: number | null,
+  totalValideCentimes: number,
+  montantDevisTtcCentimes: number,
+): number | null {
+  if (fourni !== undefined) return fourni;
+  if (plafondOr === null) return null;
+  return Math.max(plafondOr, totalValideCentimes + montantDevisTtcCentimes);
+}
+
 @Injectable()
 export class ServiceDevis {
   constructor(
@@ -144,6 +162,13 @@ export class ServiceDevis {
         const lignesCiblees = await chargerLignesPourEcriture(tx, ctx, orId, entree.ligneIds);
         const montantTtcCentimes = lignesCiblees.reduce((s, l) => s + l.montantTtcCentimes, 0);
 
+        const nouveauPlafondCentimes = determinerPlafondDevis(
+          entree.nouveauPlafondCentimes,
+          or.plafondCentimes,
+          or.totalValideCentimes,
+          montantTtcCentimes,
+        );
+
         const existants = await listerDevisOr(tx, ctx, orId);
         const numeroOrdre = (existants.at(-1)?.numeroOrdre ?? 0) + 1;
         const maintenant = this.horloge.maintenant();
@@ -155,7 +180,7 @@ export class ServiceDevis {
             ordreReparationId: orId,
             numeroOrdre,
             montantTtcCentimes,
-            nouveauPlafondCentimes: entree.nouveauPlafondCentimes,
+            nouveauPlafondCentimes,
             impactRestitutionLe: entree.impactRestitutionLe
               ? new Date(entree.impactRestitutionLe)
               : null,
@@ -280,6 +305,10 @@ export class ServiceDevis {
           }
         }
 
+        const aDesLignesAcceptees =
+          entree.decision === 'accepte' ||
+          (entree.decision === 'partiel' &&
+            (entree.lignes ?? []).some((l) => l.decision === 'accepte'));
         const [misAJour] = await tx
           .update(devisComplementaire)
           .set({
@@ -301,6 +330,24 @@ export class ServiceDevis {
             'ERREUR_INTERNE',
             "La mise à jour du devis complémentaire n'a rendu aucune ligne.",
           );
+        }
+
+        // Le plafond du devis n'est reporté QUE si l'OR en a un (sinon l'OR est sans plafond et le
+        // reste), que le client a accepté au moins une ligne, et qu'il RELÈVE le plafond actuel :
+        // un devis ne sert pas à abaisser un plafond convenu (geste distinct, `PATCH` de l'OR).
+        if (
+          aDesLignesAcceptees &&
+          or.plafondCentimes !== null &&
+          misAJour.nouveauPlafondCentimes !== null &&
+          misAJour.nouveauPlafondCentimes > or.plafondCentimes
+        ) {
+          await tx
+            .update(ordreReparation)
+            .set({
+              plafondCentimes: misAJour.nouveauPlafondCentimes,
+              plafondAutorisePar: `Devis complémentaire n°${String(devis.numeroOrdre)} — ${entree.interlocuteurNom} (${entree.canal})`,
+            })
+            .where(and(eq(ordreReparation.tenantId, ctx.tenantId), eq(ordreReparation.id, orId)));
         }
 
         await this.evenements.publier(tx, ctx, {

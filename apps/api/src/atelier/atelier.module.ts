@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { PointageModule } from '../pointage/pointage.module';
 import { ServiceLecturePointage } from '../pointage/service-lecture-pointage';
+import { ClientsModule } from '../clients/clients.module';
 import { FacturationModule } from '../facturation/facturation.module';
 import { PiecesModule } from '../pieces/pieces.module';
 import { ServiceVehiculeTravailReporte } from '../vehicules/service-vehicule-travail-reporte';
@@ -13,13 +14,18 @@ import {
   JETON_LECTURE_POINTAGE,
 } from './atelier.jetons';
 import { CalculLigneSimple } from './calcul-ligne';
+import { DevisVersOrController } from './devis-vers-or.controller';
 import { DevisComplementaireController } from './devis-complementaire.controller';
 import { ImpressionDevisController } from './impression/impression-devis.controller';
 import { ServiceImpressionDevis } from './impression/service-impression-devis';
 import { LigneOrController } from './ligne-or.controller';
+import { PhotosLigneModule } from './photos/photos-ligne.module';
 import { OrdreReparationController } from './ordre-reparation.controller';
 import { OrdreReparationTransitionsController } from './ordre-reparation-transitions.controller';
 import { ServiceDevis } from './service-devis';
+import { ServiceDevisVersOr } from './service-devis-vers-or';
+import { ServiceCreationRapideOr } from './service-creation-rapide-or';
+import { ServiceFacturationEncaissementOr } from './service-facturation-encaissement-or';
 import { ServiceFacturationOr } from './service-facturation-or';
 import { ServiceLigneOr } from './service-ligne-or';
 import { ServiceOr } from './service-or';
@@ -82,12 +88,20 @@ import { ServiceTransitions } from './service-transitions';
  * `ImpressionOrModule`, resterait un refactor cosmétique sans risque si la symétrie est préférée.
  */
 @Module({
-  imports: [FacturationModule, VehiculesModule, PointageModule, PiecesModule],
+  imports: [
+    FacturationModule,
+    VehiculesModule,
+    PointageModule,
+    PiecesModule,
+    PhotosLigneModule,
+    ClientsModule,
+  ],
   controllers: [
     OrdreReparationController,
     OrdreReparationTransitionsController,
     LigneOrController,
     DevisComplementaireController,
+    DevisVersOrController,
     ImpressionDevisController,
   ],
   providers: [
@@ -96,7 +110,10 @@ import { ServiceTransitions } from './service-transitions';
     ServiceTransitions,
     ServiceLigneOr,
     ServiceDevis,
+    ServiceDevisVersOr,
     ServiceFacturationOr,
+    ServiceFacturationEncaissementOr,
+    ServiceCreationRapideOr,
     ServiceImpressionDevis,
     { provide: JETON_LECTURE_POINTAGE, useExisting: ServiceLecturePointage },
     { provide: JETON_CALCUL_LIGNE, useClass: CalculLigneSimple },

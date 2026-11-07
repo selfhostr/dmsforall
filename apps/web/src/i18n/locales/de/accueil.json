@@ -1,6 +1,52 @@
 {
   "demarrage": {
-    "titre": "Was heute ansteht"
+    "titre": "Was heute ansteht",
+    "checklist": {
+      "titre": "Ihre Garage einrichten",
+      "progression": "{faites} von {total} Schritten erledigt. Jeder dauert nur wenige Minuten.",
+      "masquer": "Nicht mehr anzeigen",
+      "chargement": "Ihre Einrichtung wird geprüft",
+      "verificationImpossible": "Einige Schritte konnten nicht geprüft werden.",
+      "reessayer": "Erneut versuchen"
+    },
+    "etat": {
+      "fait": "Erledigt",
+      "aFaire": "Offen",
+      "inconnu": "Zu prüfen"
+    },
+    "facultatif": "optional",
+    "regler": "Einrichten",
+    "modifier": "Ändern",
+    "etapes": {
+      "coordonnees": {
+        "titre": "Name und Adresse der Garage",
+        "pourquoi": "Sie erscheinen auf jeder Rechnung und auf der QR-Rechnung."
+      },
+      "compte": {
+        "titre": "Bankkonto (IBAN)",
+        "pourquoi": "Ohne IBAN haben die Rechnungen keine QR-Rechnung und Ihre Kunden können nicht einfach bezahlen."
+      },
+      "tva": {
+        "titre": "MWST-Nummer",
+        "pourquoi": "Sie muss auf Ihren Rechnungen stehen, wenn Sie mehrwertsteuerpflichtig sind. Sonst blenden Sie diese Liste aus, sobald der Rest erledigt ist."
+      },
+      "tauxHoraire": {
+        "titre": "Stundenansatz",
+        "pourquoi": "Er dient zur Berechnung der Arbeitszeit auf den Reparaturaufträgen."
+      },
+      "motifs": {
+        "titre": "Termingründe",
+        "pourquoi": "Ein Termin braucht einen Grund (Service, MFK-Prüfung …): prüfen Sie die Liste oder fügen Sie eigene hinzu."
+      },
+      "collaborateur": {
+        "titre": "Erster Mitarbeiter",
+        "pourquoi": "Legen Sie die Konten Ihres Teams an: Jede Person sieht, was ihre Rolle erlaubt."
+      },
+      "borne": {
+        "titre": "Werkstatt-Terminal",
+        "pourquoi": "Ein fest montiertes Tablet in der Werkstatt, mit dem die Mechaniker ihre Stunden stempeln."
+      }
+    }
   },
   "calendrier": {
     "titre": "Diese Woche",
@@ -24,5 +70,43 @@
     "autres": "{count, plural, one {+ # weiterer nachzuverfolgender Satz} other {+ # weitere nachzuverfolgende Sätze}}",
     "voirTout": "Ganzes Reifenlager anzeigen",
     "aVenir": "MFK-Prüfungen und Garantien werden dieser Liste sehr bald hinzugefügt."
+  },
+  "recherche": {
+    "placeholder": "Kontrollschild, Kunde oder Auftragsnr."
+  },
+  "actions": {
+    "titre": "Schnellaktionen",
+    "creerOr": "Auftrag eröffnen",
+    "nouveauRendezVous": "Neuer Termin",
+    "encaisser": "Kassieren"
+  },
+  "aFaire": {
+    "titre": "Heute zu erledigen",
+    "toutVoir": "Alle anzeigen",
+    "aFacturer": {
+      "titre": "Abgeschlossen, zu verrechnen",
+      "description": "Fertige Arbeiten, deren Rechnung noch fehlt.",
+      "vide": {
+        "titre": "Nichts zu verrechnen",
+        "description": "Alle abgeschlossenen Arbeiten sind verrechnet."
+      }
+    },
+    "accordClient": {
+      "titre": "Warten auf die Zustimmung des Kunden",
+      "description": "Zusätzlich vorgeschlagene Arbeiten: die Antwort des Kunden fehlt.",
+      "vide": {
+        "titre": "Keine Antwort ausstehend",
+        "description": "Keine Arbeit wartet auf die Zustimmung eines Kunden."
+      }
+    },
+    "facturesEchues": {
+      "titre": "Fällige Rechnungen",
+      "description": "Rechnungen mit überschrittenem Zahlungsziel.",
+      "retard": "{count, plural, one {# Tag überfällig} other {# Tage überfällig}}",
+      "vide": {
+        "titre": "Keine fälligen Rechnungen",
+        "description": "Kein Kunde überschreitet sein Zahlungsziel."
+      }
+    }
   }
 }

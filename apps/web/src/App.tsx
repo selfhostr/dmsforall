@@ -3,9 +3,13 @@ import { ThemeProvider, useTheme } from 'next-themes';
 import { Component, type ErrorInfo, type ReactNode, useEffect } from 'react';
 import { RouterProvider } from 'react-router';
 
+import { doitReessayerParDefaut, FRAICHEUR_PAR_DEFAUT_MS } from '@/api/reessai';
 import { gererEchecMutationSansTraitement } from '@/api/gestion-echecs-mutation';
+import { afficherToastSuccesMutation } from '@/api/toast-succes-mutation';
+import { SynchronisationDensite } from '@/composants/commun/SynchronisationDensite';
 import { SynchronisationLangue } from '@/composants/commun/SynchronisationLangue';
 import { FiletErreurMutation } from '@/composants/motifs/FiletErreurMutation';
+import { ToastsSucces } from '@/composants/motifs/ToastsSucces';
 import { EcranErreurFatale } from '@/ecrans/systeme/EcranErreurFatale';
 import { signalerErreur } from '@/observabilite/sentry';
 import { routeur } from '@/routes/routeur';
@@ -14,7 +18,21 @@ import { routeur } from '@/routes/routeur';
 // `gererEchecMutationSansTraitement` pour le mécanisme complet — n'affiche RIEN quand un écran a
 // déjà traité l'erreur lui-même, quelle que soit la façon dont il l'a fait.
 const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Évite de recharger à chaque montage d'écran ou retour sur l'onglet ce qui vient d'être lu ;
+      // les hooks qui exigent plus (session, référentiels) posent leur propre `staleTime`.
+      staleTime: FRAICHEUR_PAR_DEFAUT_MS,
+      refetchOnWindowFocus: false,
+      retry: doitReessayerParDefaut,
+    },
+  },
   mutationCache: new MutationCache({
+    // Retour de succès déclaré par la mutation (`meta.succes`, `meta.annuler`) — sans `meta`,
+    // rien. Voir `toast-succes-mutation.ts` et DESIGN.md « Retour après une action ».
+    onSuccess: (donnees, variables, _onMutateResult, mutation) => {
+      afficherToastSuccesMutation(donnees, variables, mutation);
+    },
     onError: (erreur, _variables, _onMutateResult, mutation) => {
       gererEchecMutationSansTraitement(erreur, mutation);
     },
@@ -104,8 +122,10 @@ export default function App() {
         <SynchroniseCouleurBarreSysteme />
         <QueryClientProvider client={queryClient}>
           <SynchronisationLangue />
+          <SynchronisationDensite />
           <RouterProvider router={routeur} />
           <FiletErreurMutation />
+          <ToastsSucces />
         </QueryClientProvider>
       </ThemeProvider>
     </LimiteErreur>

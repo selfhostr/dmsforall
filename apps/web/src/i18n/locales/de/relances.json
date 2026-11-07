@@ -2,7 +2,7 @@
   "titre": "Automatische Mahnungen",
   "sousTitre": "Erinnerungen für offene Rechnungen: Planung und Versand auslösen, Verlauf einsehen.",
   "reglages": {
-    "titre": "Mahnstufen",
+    "titre": "Zahlungserinnerungen",
     "sousTitre": "Fristen und Versandkanäle der Mahnungen für offene Rechnungen dieses Betriebs einstellen."
   },
   "navigation": {
@@ -55,7 +55,7 @@
       "supprimerPalier": "Stufe {n} entfernen",
       "canauxLabel": "Versandkanäle",
       "erreurPalierPositif": "Jede Stufe muss eine ganze Anzahl Tage grösser als null sein.",
-      "erreurPaliersRequis": "Fügen Sie mindestens eine Stufe hinzu, um Erinnerungen zu aktivieren.",
+      "erreurPaliersRequis": "Fügen Sie mindestens eine Stufe hinzu, um die Zahlungserinnerungen zu aktivieren.",
       "erreurCanauxRequis": "Wählen Sie mindestens einen Kanal, um Erinnerungen zu aktivieren.",
       "succes": "Regel gespeichert."
     }

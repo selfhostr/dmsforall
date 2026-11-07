@@ -10,6 +10,7 @@ import {
   type OrigineLigneOr,
   type PayeurLigneOr,
   type ResultatRechercheComptoirArticle,
+  type ReponseLigneOr,
   type TypeLigneOr,
 } from '@dfa/shared';
 
@@ -36,7 +37,12 @@ import {
 } from '@/components/ui/select';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
+import {
+  SelecteurPhotosEnAttente,
+  type PhotoEnAttente,
+} from '@/composants/photos/SelecteurPhotosEnAttente';
 import { useCreerLigneOr } from '@/hooks/atelier/useActionsLigneOr';
+import { useAjouterPhotoLigne } from '@/hooks/atelier/usePhotosOr';
 import { useArticle } from '@/hooks/pieces/useArticle';
 import { useSession } from '@/hooks/useSession';
 import { formaterMontant } from '@/lib/formats';
@@ -51,6 +57,8 @@ import { SelecteurArticlePiece } from './SelecteurArticlePiece';
 
 interface Props {
   readonly orId: string;
+  /** Appelé avec la ligne créée (le statut dit si elle attend l'accord du client : `proposee`). */
+  readonly onAjoutee?: (ligne: ReponseLigneOr) => void;
   /**
    * Site de l'OR — permet d'interroger la disponibilité magasin au bon endroit
    * (`SelecteurArticlePiece`, même doctrine que `useRechercheComptoirPieces`).
@@ -115,7 +123,7 @@ const ETAT_INITIAL: EtatFormulaire = {
 
 /**
  * `POST /ordres-reparation/{orId}/lignes` (§7.8) — saisie manuelle d'une ligne de travail ou de
- * pièce. Monté UNIQUEMENT derrière `peutCreerLigneOr(role)` (`ecrans/atelier/droits.ts`) par
+ * pièce. Monté UNIQUEMENT derrière `peutCreerLigneOr(actions)` (`ecrans/atelier/droits.ts`) par
  * l'appelant (`EcranFicheOrdreReparation`) : ce composant ne revérifie donc pas le droit dans son
  * JSX — même doctrine que `PanneauActionsOr`, qui ne revérifie pas non plus `or.actionsDisponibles`
  * une fois le bouton affiché. Le serveur reste l'arbitre final (`@ExigerDroit('atelier.ligne.creer')`).
@@ -137,13 +145,22 @@ const ETAT_INITIAL: EtatFormulaire = {
  * DISTINCT (prestations catalogue à prix figé serveur, hors périmètre ici) — ce correctif ne le
  * remplace pas, il comble seulement l'absence de raccourci catalogue sur CE dialogue.
  */
-export function DialogueAjoutLigneOr({ orId, siteId }: Props) {
+export function DialogueAjoutLigneOr({ orId, siteId, onAjoutee }: Props) {
   const { t } = useTranslation(['or', 'commun', 'validation']);
   const mutation = useCreerLigneOr(orId);
+  const ajoutPhoto = useAjouterPhotoLigne(orId);
   const session = useSession();
   const [ouvert, setOuvert] = useState(false);
   const [etat, setEtat] = useState<EtatFormulaire>(ETAT_INITIAL);
   const [erreurValidation, setErreurValidation] = useState<string | null>(null);
+  // Photos prises avant la création (la ligne n'a pas encore d'identifiant) ; envoyées juste après.
+  const [photosEnAttente, setPhotosEnAttente] = useState<readonly PhotoEnAttente[]>([]);
+  // La ligne est créée mais des photos n'ont pas pu partir : on garde le dialogue ouvert, sans
+  // permettre de recréer la ligne (doublon), et on propose de réessayer ou de continuer sans.
+  const [echecPhotos, setEchecPhotos] = useState<{
+    readonly ligne: ReponseLigneOr;
+    readonly restantes: readonly PhotoEnAttente[];
+  } | null>(null);
 
   const estMainOeuvre = TYPES_MAIN_OEUVRE.has(etat.type);
   const estPiece = etat.type === 'piece';
@@ -160,7 +177,7 @@ export function DialogueAjoutLigneOr({ orId, siteId }: Props) {
   // catalogue (`DROITS_PIECES_PAR_ROLE.admin = []`, RF-115) — sans ce garde, le raccourci
   // catalogue s'ouvrait puis échouait sur chaque frappe (`403 DROIT_INSUFFISANT`). La saisie
   // manuelle ci-dessous reste intacte pour ce rôle, seul le raccourci disparaît.
-  const peutChercherArticle = peutRechercherArticlePiece(session.data?.utilisateur.role);
+  const peutChercherArticle = peutRechercherArticlePiece(session.data?.actions);
 
   // Résultat de recherche magasin CHOISI (`SelecteurArticlePiece`) — porte déjà `statutSuivi` et
   // `quantiteDisponibleMillieme` (contrat `ResultatRechercheComptoirArticle`, @dfa/shared) : la
@@ -239,13 +256,44 @@ export function DialogueAjoutLigneOr({ orId, siteId }: Props) {
     setErreurValidation(null);
     setResultatChoisi(null);
     setEntreeEnAttenteConfirmationStock(null);
+    setPhotosEnAttente([]);
+    setEchecPhotos(null);
     mutation.reset();
+  }
+
+  /** Envoie les photos en attente sur la ligne créée, une à une ; au premier échec, s'arrête et
+   *  garde les restantes pour un nouvel essai. */
+  async function envoyerPhotos(ligne: ReponseLigneOr, photos: readonly PhotoEnAttente[]) {
+    setEchecPhotos(null);
+    for (const [index, photo] of photos.entries()) {
+      try {
+        await ajoutPhoto.mutateAsync({
+          ligneId: ligne.id,
+          photo: photo.photo,
+          vignette: photo.vignette,
+        });
+      } catch {
+        setEchecPhotos({ ligne, restantes: photos.slice(index) });
+        return;
+      }
+    }
+    fermer();
+    onAjoutee?.(ligne);
   }
 
   function envoyer(entree: EntreeCreationLigneOr) {
     mutation.mutate(
       { entree, idempotencyKey: genererCleIdempotence() },
-      { onSuccess: () => fermer() },
+      {
+        onSuccess: (reponse) => {
+          if (photosEnAttente.length > 0) {
+            void envoyerPhotos(reponse.donnees, photosEnAttente);
+            return;
+          }
+          fermer();
+          onAjoutee?.(reponse.donnees);
+        },
+      },
     );
   }
 
@@ -616,6 +664,41 @@ export function DialogueAjoutLigneOr({ orId, siteId }: Props) {
               </>
             ) : null}
 
+            <SelecteurPhotosEnAttente
+              photos={photosEnAttente}
+              onChange={setPhotosEnAttente}
+              desactive={mutation.isPending || ajoutPhoto.isPending || echecPhotos !== null}
+            />
+
+            {echecPhotos ? (
+              <div role="alert" className="flex flex-col gap-2">
+                <p className="texte-libelle text-destructive">
+                  {t('or:photos.echecApresCreation', { count: echecPhotos.restantes.length })}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    enChargement={ajoutPhoto.isPending}
+                    onClick={() => void envoyerPhotos(echecPhotos.ligne, echecPhotos.restantes)}
+                  >
+                    {t('or:photos.reessayer')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      const { ligne } = echecPhotos;
+                      fermer();
+                      onAjoutee?.(ligne);
+                    }}
+                  >
+                    {t('or:photos.continuerSans')}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
             {erreurValidation ? (
               <p className="texte-libelle text-destructive">{erreurValidation}</p>
             ) : null}
@@ -634,7 +717,11 @@ export function DialogueAjoutLigneOr({ orId, siteId }: Props) {
                 {t('commun:actions.annuler')}
               </Button>
             </DialogClose>
-            <Button type="submit" enChargement={mutation.isPending}>
+            <Button
+              type="submit"
+              enChargement={mutation.isPending || ajoutPhoto.isPending}
+              disabled={echecPhotos !== null}
+            >
               {t('or:actions.confirmer')}
             </Button>
           </DialogFooter>

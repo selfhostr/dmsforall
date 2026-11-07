@@ -104,6 +104,7 @@ const TRAVAIL_EXISTANT: LigneVehiculeTravailReporte = {
   ordreReparationRepriseId: null,
   motifRefus: 'Client reporte au prochain contrôle.',
   motifModification: null,
+  detail: null,
   creeLe: new Date('2026-07-01T08:00:00.000Z'),
   modifieLe: new Date('2026-07-01T08:00:00.000Z'),
 };

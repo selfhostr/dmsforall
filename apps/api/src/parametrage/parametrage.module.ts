@@ -3,6 +3,8 @@ import { Module } from '@nestjs/common';
 import { BlocCreancierController } from './bloc-creancier/bloc-creancier.controller';
 import { ServiceBlocCreancier } from './bloc-creancier/service-bloc-creancier';
 import { CompteursModule } from './compteurs/compteurs.module';
+import { ParametresEntrepriseController } from './entreprise/parametres-entreprise.controller';
+import { ServiceParametresEntreprise } from './entreprise/service-parametres-entreprise';
 import { ParametresAtelierController } from './parametres-atelier/parametres-atelier.controller';
 import { ServiceParametresAtelier } from './parametres-atelier/service-parametres-atelier';
 import { ParametresSiteController } from './parametres-site/parametres-site.controller';
@@ -15,6 +17,7 @@ import { ServiceTauxHoraires } from './referentiels/taux-horaires/service-taux-h
 /**
  * Assemble `GET|PATCH /parametres-atelier`, `GET|PATCH /sites/:siteId/parametres-atelier`,
  * `GET|POST /referentiels/prestations(/{id})`, `GET|POST /referentiels/taux-horaires(/{id})`,
+ * `GET|PATCH /parametres-entreprise` (n° TVA),
  * `GET|PATCH /parametres-facturation/creancier` (contrats-api-etape-1.md §8.2, §7.9, §7.12,
  * RM-65 ; bloc créancier RF-54/PF-03, migration 0014).
  *
@@ -28,6 +31,7 @@ import { ServiceTauxHoraires } from './referentiels/taux-horaires/service-taux-h
   controllers: [
     ParametresAtelierController,
     ParametresSiteController,
+    ParametresEntrepriseController,
     PrestationsController,
     TauxHorairesController,
     BlocCreancierController,
@@ -35,6 +39,7 @@ import { ServiceTauxHoraires } from './referentiels/taux-horaires/service-taux-h
   providers: [
     ServiceParametresAtelier,
     ServiceParametresSite,
+    ServiceParametresEntreprise,
     ServicePrestations,
     ServiceTauxHoraires,
     ServiceBlocCreancier,
