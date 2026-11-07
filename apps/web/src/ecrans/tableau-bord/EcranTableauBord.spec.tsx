@@ -447,7 +447,9 @@ describe('EcranTableauBord — accueil sans chiffres', () => {
     const ecouteur = (evenement: KeyboardEvent) => recues.push(evenement);
     window.addEventListener('keydown', ecouteur);
     const utilisateur = userEvent.setup();
-    const champs = await screen.findAllByRole('button', { name: i18n.t('accueil:actions.rechercher') });
+    const champs = await screen.findAllByRole('button', {
+      name: i18n.t('accueil:actions.rechercher'),
+    });
     await utilisateur.click(champs[champs.length - 1] as HTMLElement);
     window.removeEventListener('keydown', ecouteur);
 

@@ -20,10 +20,7 @@ export function EtapeTermine({ nombreComptesCrees, onTerminer }: Props) {
 
   return (
     <div className="flex flex-col gap-5">
-      <section
-        aria-label={t('assistant:etapes.termine.titre')}
-        className="flex flex-col gap-2"
-      >
+      <section aria-label={t('assistant:etapes.termine.titre')} className="flex flex-col gap-2">
         {enChargement ? (
           <div role="status" aria-label={t('assistant:chargement')} className="space-y-2">
             <Skeleton className="h-8 w-full" />
