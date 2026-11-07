@@ -620,6 +620,13 @@ const ONGLETS_REGLAGES: readonly OngletDomaine[] = [
    * décision, pas un oubli — voir `droits-routes.ts`.
    */
   {
+    id: 'garage',
+    cleLibelle: 'navigation:onglets.reglagesGarage',
+    chemin: (site) => chemins.parametrage.garage(site),
+    motifs: ['/parametrage/garage'],
+    acces: ACCES_MENU_FINANCIER,
+  },
+  {
     id: 'atelier',
     cleLibelle: 'navigation:onglets.reglagesAtelier',
     chemin: (site) => chemins.parametrage.atelier(site),

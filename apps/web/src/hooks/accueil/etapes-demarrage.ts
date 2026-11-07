@@ -46,9 +46,10 @@ export function calculerEtapesDemarrage(
     return {
       id,
       etat: fait === undefined ? 'inconnu' : fait ? 'fait' : 'aFaire',
-      // La borne et le n° TVA sont facultatifs : un garage non assujetti n'a pas de numéro.
+      // La borne, le n° TVA et le premier collaborateur sont facultatifs : un garage non assujetti
+      // n'a pas de numéro, et un garage d'une personne n'a pas de collaborateur.
       // (L'API n'expose aucun champ « assujetti » : `numeroTva` vide = non assujetti OU pas saisi.)
-      facultative: id === 'borne' || id === 'tva',
+      facultative: id === 'borne' || id === 'tva' || id === 'collaborateur',
     };
   });
 }
