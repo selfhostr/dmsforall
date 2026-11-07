@@ -34,12 +34,15 @@ import {
   joursDeLaSemaine,
   versDateIsoLocale,
 } from '@/hooks/rendez-vous/periode-agenda';
+import { BoutonVehiculeCourtoisieOr } from '@/ecrans/atelier/BoutonVehiculeCourtoisieOr';
+import { peutPreterCourtoisie } from '@/ecrans/courtoisie/droits';
 import { useClient } from '@/hooks/clients/useClient';
 import { useDeplacerRendezVous } from '@/hooks/rendez-vous/useDeplacerRendezVous';
 import { useDepotsPneusClient } from '@/hooks/rendez-vous/useDepotsPneusClient';
 import { useRendezVousAutresSites } from '@/hooks/rendez-vous/useRendezVousAutresSites';
 import { resoudreSiteId, vehiculeParDefaut } from '@/hooks/rendez-vous/preselection';
 import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
+import { useSiteImplicite } from '@/hooks/site/useSiteImplicite';
 import { DialogueDeplacerRendezVous } from '@/composants/rendez-vous/DialogueDeplacerRendezVous';
 import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { formaterDate } from '@/lib/formats';
@@ -104,7 +107,9 @@ export function EcranRendezVous() {
   const sitesSession = useMemo(() => session?.sites ?? [], [session]);
   // Site affiché : celui de l'URL, sinon la préférence du poste, sinon l'unique site du garage —
   // jamais « Choisissez un site » quand la réponse est évidente.
-  const siteId = resoudreSiteId(searchParams.get('site'), preferenceSiteId, sitesSession);
+  const { siteId: siteImplicite } = useSiteImplicite();
+  const siteId =
+    resoudreSiteId(searchParams.get('site'), preferenceSiteId, sitesSession) ?? siteImplicite;
   const site = siteId ? sitesSession.find((s) => s.id === siteId) : undefined;
 
   function onChangerSite(nouveauSiteId: string) {
@@ -418,6 +423,14 @@ export function EcranRendezVous() {
           delaiGracePasse={rdvSelectionne.dateLe <= versDateIsoLocale(new Date())}
           peutAgir={peutAgir}
           onVehiculeArrive={() => setDialogueArriveeOuvert(true)}
+          slotCourtoisie={
+            peutPreterCourtoisie(role) ? (
+              <BoutonVehiculeCourtoisieOr
+                rendezVousId={rdvSelectionne.id}
+                clientId={rdvSelectionne.client.id}
+              />
+            ) : undefined
+          }
           onDeplacer={peutAgir ? () => setDialogueDeplacerOuvert(true) : undefined}
           onSignalerAbsence={() => absence.mutate({}, { onSuccess: () => setPanneauOuvert(false) })}
           onAnnuler={(motif) =>

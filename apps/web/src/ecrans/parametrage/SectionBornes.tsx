@@ -37,6 +37,7 @@ import {
   useListeBornes,
   useReinitialiserAccesBorne,
 } from '@/hooks/parametrage/useBornes';
+import { useSiteImplicite } from '@/hooks/site/useSiteImplicite';
 import { useSession } from '@/hooks/useSession';
 
 import { DialogueConfirmationEmploye } from './DialogueConfirmationEmploye';
@@ -59,6 +60,7 @@ interface Acces {
 export function SectionBornes() {
   const { t } = useTranslation(['parametrage', 'commun', 'erreurs']);
   const { data: session } = useSession();
+  const { estMonoSite, siteId: siteImplicite } = useSiteImplicite();
   const requete = useListeBornes();
   const creer = useCreerBorne();
   const desactiver = useBasculerBorne('desactiver');
@@ -72,6 +74,8 @@ export function SectionBornes() {
   const [acces, setAcces] = useState<Acces | null>(null);
 
   const sites = session?.sites ?? [];
+  // Garage mono-site : le site est implicite, jamais demandé.
+  const siteIdEffectif = estMonoSite && siteImplicite ? siteImplicite : siteId;
   const lignes = requete.data?.pages.flatMap((p) => p.donnees) ?? [];
 
   function fermerCreation() {
@@ -83,7 +87,7 @@ export function SectionBornes() {
 
   function soumettreCreation() {
     creer.mutate(
-      { nom: nom.trim(), siteId },
+      { nom: nom.trim(), siteId: siteIdEffectif },
       {
         onSuccess: (r: ReponseCreationBorne) => {
           setAcces({ identifiant: r.borne.identifiant, motDePasse: r.acces.motDePasseTemporaire });
@@ -217,23 +221,27 @@ export function SectionBornes() {
                 onChange={(e) => setNom(e.target.value)}
               />
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="nouvelle-borne-site">
-                {t('parametrage:utilisateurs.bornes.champSite')} *
-              </Label>
-              <Select value={siteId} onValueChange={setSiteId}>
-                <SelectTrigger id="nouvelle-borne-site">
-                  <SelectValue placeholder={t('parametrage:utilisateurs.bornes.placeholderSite')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {sites.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.nom}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {estMonoSite ? null : (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="nouvelle-borne-site">
+                  {t('parametrage:utilisateurs.bornes.champSite')} *
+                </Label>
+                <Select value={siteId} onValueChange={setSiteId}>
+                  <SelectTrigger id="nouvelle-borne-site">
+                    <SelectValue
+                      placeholder={t('parametrage:utilisateurs.bornes.placeholderSite')}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sites.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.nom}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           {creer.error ? (
             <p className="texte-libelle text-destructive" role="alert">
@@ -246,7 +254,7 @@ export function SectionBornes() {
             </Button>
             <Button
               type="button"
-              disabled={nom.trim() === '' || siteId === '' || creer.isPending}
+              disabled={nom.trim() === '' || siteIdEffectif === '' || creer.isPending}
               onClick={soumettreCreation}
             >
               {creer.isPending

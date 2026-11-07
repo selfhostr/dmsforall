@@ -103,7 +103,7 @@
     "siteAide": "Der Termin wird in diesem Standort vereinbart. Für einen anderen Standort wechseln Sie in der Planung den Standort."
   },
   "dialogueArrivee": {
-    "titre": "Das Fahrzeug ist eingetroffen",
+    "titre": "Der Kunde ist eingetroffen",
     "confirmer": "Ankunft bestätigen",
     "confirmationDeuxOrOuverts": "Für dieses Fahrzeug sind bereits zwei Reparaturaufträge offen.",
     "confirmationGenerique": "Eine Bestätigung ist erforderlich, um die Ankunft zu speichern."

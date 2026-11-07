@@ -766,6 +766,9 @@ describe('EcranFicheVehicule', () => {
       // `CarteRendezVous` (composant partagé, hors périmètre ici) affiche le créneau
       // (moment/heure) et le client, jamais `dateLe` directement — voir `libelleCreneau`.
       expect(await screen.findByText('Matin')).toBeInTheDocument();
+      // Chaque ligne dit AUSSI quel jour et quel site (« jj.mm.aaaa · nom du site »), pas seulement
+      // « Matin Confirmé ».
+      expect(screen.getByText('01.09.2026 · Site principal')).toBeInTheDocument();
       expect(screen.getByText('Client Sans Lien', { exact: false })).toBeInTheDocument();
       // Le filtre serveur porte sur `vehiculeId`, plus jamais sur `clientId` (l'ancien
       // contournement, désormais retiré).

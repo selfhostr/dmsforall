@@ -39,10 +39,12 @@ export function useVehiculesCourtoisie(
 
 function useMutationCourtoisie<TVar, TRes>(
   fn: (variables: TVar) => Promise<TRes>,
+  succes?: string,
 ): UseMutationResult<TRes, unknown, TVar> {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: fn,
+    meta: succes ? { succes } : undefined,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: RACINE }),
   });
 }
@@ -57,7 +59,7 @@ export const useCreerPretCourtoisie = (): UseMutationResult<
   ReponsePretCourtoisie,
   unknown,
   EntreeCreationPretCourtoisie
-> => useMutationCourtoisie(creerPretCourtoisie);
+> => useMutationCourtoisie(creerPretCourtoisie, 'commun:toasts.pretCree');
 
 export const useRendrePretCourtoisie = (): UseMutationResult<
   ReponsePretCourtoisie,

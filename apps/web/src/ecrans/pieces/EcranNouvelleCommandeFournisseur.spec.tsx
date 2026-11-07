@@ -355,9 +355,15 @@ describe('EcranNouvelleCommandeFournisseur — pré-remplissage depuis le réapp
     expect(
       await screen.findByRole('heading', { name: 'Nouvelle commande fournisseur' }),
     ).toBeInTheDocument();
+    // Garage mono-site (SESSION_TEST) : le site est implicite — pas de champ « site », la recherche
+    // d'articles est disponible sans « choisir un site d'abord ».
     expect(
-      screen.getByText(i18n.t('pieces:commandes.nouvelle.choisirSiteDabord')),
+      await screen.findByPlaceholderText(i18n.t('pieces:rechercheComptoir.champRecherche')),
     ).toBeInTheDocument();
+    expect(screen.queryByLabelText(i18n.t('pieces:commandes.site'))).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(i18n.t('pieces:commandes.nouvelle.choisirSiteDabord')),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('Plaquettes de frein avant')).not.toBeInTheDocument();
   });
 

@@ -19,6 +19,7 @@ export function useCreerMotifRendezVous(): UseMutationResult<
 > {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: { succes: 'commun:toasts.motifRdvCree' },
     mutationFn: (entree: EntreeCreationMotifRendezVous) =>
       requeteApi<ReponseMotifRendezVous>('/motifs-rendez-vous', {
         method: 'POST',
@@ -42,6 +43,7 @@ export function useModifierMotifRendezVous(): UseMutationResult<
 > {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: { succes: 'commun:toasts.motifRdvModifie' },
     mutationFn: ({ id, entree }: ModificationMotifRendezVous) =>
       requeteApi<ReponseMotifRendezVous>(`/motifs-rendez-vous/${id}`, {
         method: 'PATCH',

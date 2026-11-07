@@ -10,6 +10,8 @@ import {
 
 import { ErreurApi } from '@/api/erreurs';
 import { genererCleIdempotence } from '@/api/idempotence';
+import { afficherToastSucces } from '@/composants/motifs/toast-succes';
+import i18n from '@/i18n';
 
 import { montantPourMoyen } from './montant-encaissement';
 import { useEmettreDocumentVente } from './useEmettreDocumentVente';
@@ -76,8 +78,8 @@ interface Demande {
  */
 export function useFacturerEtEncaisser(): FacturerEtEncaisser {
   const facturation = useFacturerOrdreReparation();
-  const emission = useEmettreDocumentVente();
-  const encaissement = useEncaissement();
+  const emission = useEmettreDocumentVente({ succes: null });
+  const encaissement = useEncaissement({ silencieux: true });
 
   const [enCours, setEnCours] = useState(false);
   const [etape, setEtape] = useState<EtapeFacturerEncaisser | null>(null);
@@ -133,6 +135,7 @@ export function useFacturerEtEncaisser(): FacturerEtEncaisser {
       const emise = emiseRef.current;
       if (demande.choix === 'plus_tard') {
         setResultat({ document: emise, encaisseCentimes: null, moyen: null });
+        afficherToastSucces({ message: i18n.t('commun:toasts.factureEmise') });
         return;
       }
 
@@ -172,6 +175,7 @@ export function useFacturerEtEncaisser(): FacturerEtEncaisser {
         encaisseCentimes = montantCentimes;
       }
       setResultat({ document: emise, encaisseCentimes, moyen });
+      afficherToastSucces({ message: i18n.t('commun:toasts.factureEncaissee') });
     } catch (cause) {
       setErreur({ etape: etapeCourante, erreur: cause });
     } finally {

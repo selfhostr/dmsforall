@@ -19,7 +19,10 @@ import { bornesDuJour, jourLocal } from '@/ecrans/courtoisie/periode';
 import { useVehiculesCourtoisie } from '@/hooks/courtoisie/useCourtoisie';
 
 interface Props {
-  readonly orId: string;
+  /** Rattachement à une fiche OR… */
+  readonly orId?: string;
+  /** …ou à un rendez-vous (panneau de RDV). */
+  readonly rendezVousId?: string;
   readonly clientId: string;
 }
 
@@ -28,7 +31,7 @@ interface Props {
  * le dialogue de prêt s'ouvre avec le client et l'OR déjà renseignés (plus de ressaisie depuis
  * l'écran Courtoisie).
  */
-export function BoutonVehiculeCourtoisieOr({ orId, clientId }: Props) {
+export function BoutonVehiculeCourtoisieOr({ orId, rendezVousId, clientId }: Props) {
   const { t } = useTranslation(['or', 'courtoisie', 'commun', 'erreurs']);
   const [choixOuvert, setChoixOuvert] = useState(false);
   const [aPreter, setAPreter] = useState<ReponseVehiculeCourtoisie | null>(null);
@@ -63,6 +66,7 @@ export function BoutonVehiculeCourtoisieOr({ orId, clientId }: Props) {
         jour={jour}
         clientIdInitial={clientId}
         ordreReparationId={orId}
+        rendezVousId={rendezVousId}
         onFermer={() => setAPreter(null)}
       />
     </>

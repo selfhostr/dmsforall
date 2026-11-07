@@ -14,6 +14,11 @@ async function saisirKilometrage(utilisateur: ReturnType<typeof userEvent.setup>
 }
 
 describe('DialogueArriveeRendezVous', () => {
+  it('titre « Le client est arrivé » (aligné sur le bouton du panneau)', () => {
+    render(<DialogueArriveeRendezVous ouvert onOpenChange={vi.fn()} onConfirmer={vi.fn()} />);
+    expect(screen.getByRole('dialog', { name: 'Le client est arrivé' })).toBeInTheDocument();
+  });
+
   it('refuse la confirmation sans kilométrage saisi', async () => {
     const utilisateur = userEvent.setup();
     const onConfirmer = vi.fn();

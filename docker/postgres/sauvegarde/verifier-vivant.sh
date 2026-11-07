@@ -15,15 +15,6 @@
 # =================================================================================================
 set -euo pipefail
 
-# Les fichiers déposés font partie de la sauvegarde : si UPLOADS_DIR est posé (docker-compose.yml
-# le pose pour le service backup ; absent pour le conteneur de test mensuel, qui n'archive rien)
-# mais n'existe plus, le service est dégradé (montage perdu).
-UPLOADS_DIR="${UPLOADS_DIR:-}"
-if [ -n "$UPLOADS_DIR" ] && [ ! -d "$UPLOADS_DIR" ]; then
-  echo "dossier des fichiers déposés absent : $UPLOADS_DIR" >&2
-  exit 1
-fi
-
 FICHIER_VIVANT="${FICHIER_VIVANT:-/tmp/planifier-vivant}"
 SEUIL_SECONDES="${SEUIL_SECONDES:-90}"
 

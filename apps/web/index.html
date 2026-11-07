@@ -45,6 +45,15 @@
           racine.style.colorScheme = sombre ? 'dark' : 'light';
           var metaCouleur = document.querySelector('meta[name="theme-color"]');
           if (metaCouleur) metaCouleur.setAttribute('content', sombre ? '#111113' : '#f0f0f3');
+          // Densité : même règle que `resoudreDensite` (`hooks/useDensite.ts`), clé `dfa-densite`.
+          // Posée avant le premier rendu pour éviter le saut de mise en page à l'hydratation.
+          var densiteStockee = localStorage.getItem('dfa-densite');
+          var aeree =
+            densiteStockee === 'aeree' ||
+            (densiteStockee !== 'compacte' &&
+              (window.matchMedia('(pointer: coarse)').matches ||
+                window.matchMedia('(max-width: 1023.98px)').matches));
+          racine.classList.add(aeree ? 'densite-aeree' : 'densite-dense');
         } catch (erreur) {
           // Stockage indisponible (navigation privée stricte, quota, etc.) : le produit démarre en
           // clair, le comportement d'avant ce lot — jamais un premier rendu cassé pour un réglage

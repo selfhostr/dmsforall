@@ -5,8 +5,7 @@
 #   docker compose --profile backup up -d     (AGE_CLE_PUBLIQUE must be set, see .env.example)
 FROM postgres:16-alpine@sha256:0cefaabd882e42bcb2a2f3dc56d3ce4770560ba62fd7f197f1a2e008fd5731ab
 
-# bash and coreutils: the scripts use bash features and GNU date. age encrypts the dumps and the
-# archive of uploaded files (busybox tar and gzip are already in the base image).
+# bash and coreutils: the scripts use bash features and GNU date. age encrypts the dumps.
 # rclone copies them off site when RCLONE_REMOTE is set.
 RUN apk add --no-cache bash coreutils age tzdata rclone
 ENV TZ=UTC

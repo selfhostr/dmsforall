@@ -81,7 +81,7 @@ tenter_test() {
     return 1
   fi
 
-  local zone tmp_donnees tmp_roles tmp_uploads nom_donnees nom_roles nom_uploads
+  local zone tmp_donnees tmp_roles nom_donnees nom_roles
   zone="$(mktemp -d)"
   journaliser "DEBUT — récupération de la dernière sauvegarde depuis ${RCLONE_REMOTE}"
 
@@ -96,7 +96,6 @@ tenter_test() {
   fi
   nom_roles="${nom_donnees%.dump.age}.roles.sql.age"
 
-  nom_uploads="${nom_donnees%.dump.age}.uploads.tar.gz.age"
   tmp_donnees="$zone/$nom_donnees"
   tmp_roles="$zone/$nom_roles"
   if ! rclone copyto "${RCLONE_REMOTE}/${nom_donnees}" "$tmp_donnees" \
@@ -107,23 +106,8 @@ tenter_test() {
     return 1
   fi
 
-  # Archive des fichiers déposés : absente des jeux antérieurs à son introduction (alors ignorée),
-  # mais si le jeu en a une et qu'elle ne se récupère pas, c'est un ECHEC.
-  tmp_uploads=""
-  if rclone lsf "$RCLONE_REMOTE" --include "$nom_uploads" | grep -q .; then
-    tmp_uploads="$zone/$nom_uploads"
-    if ! rclone copyto "${RCLONE_REMOTE}/${nom_uploads}" "$tmp_uploads"; then
-      journaliser "ECHEC récupération de ${nom_uploads} depuis ${RCLONE_REMOTE}"
-      echo "ECHEC $(date -Iseconds)" >"$STATUT"
-      rm -rf -- "$zone"
-      return 1
-    fi
-  else
-    journaliser "ATTENTION pas d'archive de fichiers (${nom_uploads}) hors site pour ce jeu"
-  fi
-
-  journaliser "récupérés : ${nom_donnees}, ${nom_roles} ${tmp_uploads:+et ${nom_uploads} }— lancement de restaurer-test.sh"
-  if AGE_CLE_PRIVEE_FICHIER="$AGE_CLE_PRIVEE_TEST_FICHIER" /scripts/restaurer-test.sh "$tmp_donnees" "$tmp_roles" ${tmp_uploads:+"$tmp_uploads"}; then
+  journaliser "récupérés : ${nom_donnees}, ${nom_roles} — lancement de restaurer-test.sh"
+  if AGE_CLE_PRIVEE_FICHIER="$AGE_CLE_PRIVEE_TEST_FICHIER" /scripts/restaurer-test.sh "$tmp_donnees" "$tmp_roles"; then
     journaliser "OK — restauration de test réussie (${nom_donnees})"
     echo "OK $(date -Iseconds) ${nom_donnees}" >"$STATUT"
     rm -rf -- "$zone"
