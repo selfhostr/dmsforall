@@ -45,9 +45,9 @@ interface Props {
 /**
  * « Nouveau devis » : pour un client, avec ou sans véhicule — la réponse à « combien pour changer
  * les freins ? » sans ouvrir un OR (qui exige, lui, un véhicule réceptionné et un kilométrage).
- * Crée un devis en brouillon puis propose les suites : ouvrir le devis pour y poser les lignes
- * (main-d'œuvre, pièces) ou ouvrir un OR prérempli (client + véhicule) — l'API n'offre pas de
- * transformation directe devis -> OR.
+ * Crée un devis en brouillon puis l'ouvre pour y poser les lignes (main-d'œuvre, pièces). L'OR se
+ * crée ensuite DEPUIS le devis envoyé (fiche du devis, `POST .../creer-ordre-reparation`) : un
+ * formulaire d'OR vierge ouvert d'ici ne reprendrait ni les lignes ni le lien avec le devis.
  */
 export function DialogueNouveauDevis({
   ouvert,
@@ -115,12 +115,6 @@ export function DialogueNouveauDevis({
     );
   }
 
-  const cheminOr = client
-    ? `${chemins.atelier.ordresReparation.nouveau(siteId, client.id)}${
-        vehiculeId === SANS_VEHICULE ? '' : `&vehiculeId=${encodeURIComponent(vehiculeId)}`
-      }`
-    : '';
-
   return (
     <Dialog open={ouvert} onOpenChange={fermer}>
       <DialogContent>
@@ -131,16 +125,6 @@ export function DialogueNouveauDevis({
               <DialogDescription>{t('facturation:devis.cree.description')}</DialogDescription>
             </DialogHeader>
             <DialogFooter className="flex-wrap">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  fermer(false);
-                  navigate(cheminOr);
-                }}
-              >
-                {t('facturation:devis.cree.creerOr')}
-              </Button>
               <Button
                 type="button"
                 onClick={() => {

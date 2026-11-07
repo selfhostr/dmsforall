@@ -144,3 +144,29 @@ const ROLES_CREATION_DEVIS: ReadonlySet<RoleUtilisateur> = new Set([
 export function peutCreerDevis(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && ROLES_CREATION_DEVIS.has(role);
 }
+
+/**
+ * Accord du client sur un devis (`POST .../accepter`, droit `facturation.document.transitionner`,
+ * `ECRITURE_BROUILLON` côté serveur) : mêmes rôles que la création d'un devis. Défensif
+ * d'ergonomie, le serveur reste l'arbitre.
+ */
+export function peutAccepterDevis(role: RoleUtilisateur | undefined): boolean {
+  return peutCreerDevis(role);
+}
+
+/**
+ * Envoyer (émettre) un devis : `facturation.document.emettre_devis_bc` (`EMISSION_DEVIS_BC`) —
+ * direction, comptable, vendeur, réceptionnaire, chef d'atelier. Distinct de l'émission d'une
+ * facture, qui exclut le chef d'atelier.
+ */
+const ROLES_EMISSION_DEVIS: ReadonlySet<RoleUtilisateur> = new Set([
+  'direction',
+  'comptable',
+  'vendeur',
+  'receptionnaire',
+  'chef_atelier',
+]);
+
+export function peutEmettreDevis(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_EMISSION_DEVIS.has(role);
+}
