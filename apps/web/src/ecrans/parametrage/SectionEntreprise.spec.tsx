@@ -41,7 +41,7 @@ function rendre() {
 }
 
 describe('SectionEntreprise', () => {
-  it('affiche la raison sociale en lecture seule et le n° TVA actuel', async () => {
+  it('affiche la raison sociale modifiable et le n° TVA actuel', async () => {
     server.use(
       http.get(CHEMIN, () =>
         HttpResponse.json({
@@ -54,7 +54,7 @@ describe('SectionEntreprise', () => {
     rendre();
     const raison = await screen.findByLabelText(i18n.t('parametrage:entreprise.raisonSociale'));
     expect(raison).toHaveValue('Garage Martin SA');
-    expect(raison).toHaveAttribute('readonly');
+    expect(raison).not.toHaveAttribute('readonly');
     expect(screen.getByLabelText(i18n.t('parametrage:entreprise.numeroTva'))).toHaveValue(
       'CHE-116.281.710 TVA',
     );
@@ -102,7 +102,11 @@ describe('SectionEntreprise', () => {
     expect(
       await screen.findByText(i18n.t('parametrage:entreprise.enregistrementReussi')),
     ).toBeInTheDocument();
-    expect(corps).toEqual({ numeroTva: 'CHE-116.281.710 TVA', delaiPaiementJoursDefaut: 30 });
+    expect(corps).toEqual({
+      raisonSociale: 'G',
+      numeroTva: 'CHE-116.281.710 TVA',
+      delaiPaiementJoursDefaut: 30,
+    });
   });
 
   it('champ vidé : envoie null (efface le numéro)', async () => {
@@ -120,7 +124,57 @@ describe('SectionEntreprise', () => {
     await userEvent.click(
       screen.getByRole('button', { name: i18n.t('parametrage:entreprise.enregistrer') }),
     );
-    await waitFor(() => expect(corps).toEqual({ numeroTva: null, delaiPaiementJoursDefaut: 30 }));
+    await waitFor(() =>
+      expect(corps).toEqual({ raisonSociale: 'G', numeroTva: null, delaiPaiementJoursDefaut: 30 }),
+    );
+  });
+
+  it('raison sociale modifiée : PATCH avec la valeur nettoyée, confirmation affichée', async () => {
+    let corps: unknown;
+    server.use(
+      http.get(CHEMIN, () => HttpResponse.json(BASE)),
+      http.patch(CHEMIN, async ({ request }) => {
+        corps = await request.json();
+        return HttpResponse.json({ ...BASE, raisonSociale: 'Garage Martin Sàrl' });
+      }),
+    );
+    rendre();
+    const champ = await screen.findByLabelText(i18n.t('parametrage:entreprise.raisonSociale'));
+    await userEvent.clear(champ);
+    await userEvent.type(champ, '  Garage Martin Sàrl ');
+    await userEvent.click(
+      screen.getByRole('button', { name: i18n.t('parametrage:entreprise.enregistrer') }),
+    );
+    expect(
+      await screen.findByText(i18n.t('parametrage:entreprise.enregistrementReussi')),
+    ).toBeInTheDocument();
+    expect(corps).toEqual({
+      raisonSociale: 'Garage Martin Sàrl',
+      numeroTva: null,
+      delaiPaiementJoursDefaut: 30,
+    });
+    expect(champ).toHaveValue('Garage Martin Sàrl');
+  });
+
+  it('raison sociale vidée : refus local sans appel API', async () => {
+    let appels = 0;
+    server.use(
+      http.get(CHEMIN, () => HttpResponse.json(BASE)),
+      http.patch(CHEMIN, () => {
+        appels += 1;
+        return HttpResponse.json(BASE);
+      }),
+    );
+    rendre();
+    const champ = await screen.findByLabelText(i18n.t('parametrage:entreprise.raisonSociale'));
+    await userEvent.clear(champ);
+    await userEvent.click(
+      screen.getByRole('button', { name: i18n.t('parametrage:entreprise.enregistrer') }),
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      i18n.t('parametrage:entreprise.erreurRaison'),
+    );
+    expect(appels).toBe(0);
   });
 
   it('erreur de chargement : message actionnable avec Réessayer', async () => {
@@ -156,7 +210,9 @@ describe('SectionEntreprise', () => {
     await userEvent.click(
       screen.getByRole('button', { name: i18n.t('parametrage:entreprise.enregistrer') }),
     );
-    await waitFor(() => expect(corps).toEqual({ numeroTva: null, delaiPaiementJoursDefaut: 45 }));
+    await waitFor(() =>
+      expect(corps).toEqual({ raisonSociale: 'G', numeroTva: null, delaiPaiementJoursDefaut: 45 }),
+    );
   });
 
   it('délai hors bornes : refusé avant tout appel, saisie conservée', async () => {

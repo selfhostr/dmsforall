@@ -2831,8 +2831,8 @@ export interface paths {
     options?: never;
     head?: never;
     /**
-     * Saisit ou efface le n° TVA du garage.
-     * @description Format IDE suisse `CHE-123.456.789 TVA` (`MWST`/`IVA` acceptés), clé de contrôle modulo 11 vérifiée. `numeroTva: null` efface le numéro (garage non assujetti). Corps vide : aucun effet.
+     * Modifie la raison sociale, le n° TVA ou le délai de paiement du garage.
+     * @description `raisonSociale` : 1 à 200 caractères (espaces de bord retirés), journalisée dans le journal d'audit (avant/après). Le slug du garage ne change jamais. Les documents déjà émis gardent leur raison sociale ; les suivants prennent la nouvelle (sauf si le bloc créancier porte son propre nom, qui reste prioritaire et se change dans la facturation). Format IDE suisse `CHE-123.456.789 TVA` (`MWST`/`IVA` acceptés), clé de contrôle modulo 11 vérifiée. `numeroTva: null` efface le numéro (garage non assujetti). Corps vide : aucun effet.
      */
     patch: operations['ParametresEntrepriseController_modifier'];
     trace?: never;
@@ -7720,7 +7720,8 @@ export interface components {
         | 'reprise'
         | 'financement_vente'
         | 'vehicule_travail_reporte'
-        | 'depot_pneus';
+        | 'depot_pneus'
+        | 'tenant';
       /** Format: uuid */
       entiteId: string;
       /** Format: uuid */
@@ -21912,6 +21913,7 @@ export interface operations {
         'application/json': {
           delaiPaiementJoursDefaut?: number;
           numeroTva?: string | null;
+          raisonSociale?: string;
         };
       };
     };
@@ -21924,7 +21926,7 @@ export interface operations {
           'application/json': components['schemas']['ReponseParametresEntrepriseDto'];
         };
       };
-      /** @description VALIDATION_ECHOUEE — format ou clé de contrôle du n° TVA invalide. */
+      /** @description VALIDATION_ECHOUEE — raison sociale vide ou trop longue, format ou clé de contrôle du n° TVA invalide. */
       400: {
         headers: {
           [name: string]: unknown;
