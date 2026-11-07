@@ -258,6 +258,7 @@ export async function chargerLotListeOr(
         langueCorrespondance: c.ligne.langue,
         poObligatoire: c.ligne.poObligatoire,
         telephone: c.ligne.telephone,
+        email: c.ligne.email,
         localite: c.localite ?? null,
         nombreVehicules: c.nombreVehicules,
         dernierPassageLe: c.dernierPassage ? new Date(c.dernierPassage).toISOString() : null,

@@ -40,7 +40,7 @@ export function detecterTypeLogo(contenu: Buffer): TypeMimeLogo | null {
 function estSvgSur(contenu: Buffer): boolean {
   // Texte UTF-8 uniquement (un octet nul = binaire déguisé), BOM toléré.
   if (contenu.includes(0)) return false;
-  const texte = contenu.toString('utf8').replace(/^﻿/, '');
+  const texte = contenu.toString('utf8').replace(new RegExp('^\\u' + 'FEFF'), '');
   const debut = texte.trimStart().slice(0, 512).toLowerCase();
   const ressembleASvg =
     debut.startsWith('<svg') ||
