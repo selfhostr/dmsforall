@@ -238,3 +238,45 @@ describe('genererPdfDevis — en-tête garage et n° TVA', () => {
     expect(blocs).toContain('Garage Martin SA');
   });
 });
+
+describe('genererPdfDevis — garage non assujetti à la TVA', () => {
+  function ordreSansTva(): ReponseOrdreReparation {
+    const base = ordreReparationFixture();
+    return {
+      ...base,
+      lignes: base.lignes.map((l) => ({
+        ...l,
+        tauxTvaPourmille: 0,
+        montants: { montantHtCentimes: 10000, montantTvaCentimes: 0, montantTtcCentimes: 10000 },
+      })),
+    };
+  }
+
+  it('aucune colonne ni récapitulatif TVA ; total 100.00 et mention « Non assujetti à la TVA »', async () => {
+    const blocs = extraireBlocsTexte(
+      await genererPdfDevis(ordreSansTva(), devisFixture(), {
+        ...IDENTITE,
+        numeroTva: 'CHE-114.873.733 TVA',
+        assujettiTva: false,
+      }),
+    );
+    expect(blocs).toContain('Non assujetti à la TVA');
+    expect(blocs.some((b) => b.includes('CHE-'))).toBe(false);
+    expect(blocs).not.toContain('TVA');
+    expect(blocs.some((b) => b.includes('Récapitulatif'))).toBe(false);
+    expect(blocs.some((b) => b.includes('Total TVA') || b.includes('Total HT'))).toBe(false);
+    expect(blocs.some((b) => b.includes('Total : CHF 100.00'))).toBe(true);
+  });
+
+  it('garage assujetti (non-régression) : colonne et récapitulatif TVA présents, aucune mention', async () => {
+    const blocs = extraireBlocsTexte(
+      await genererPdfDevis(ordreReparationFixture(), devisFixture(), {
+        ...IDENTITE,
+        assujettiTva: true,
+      }),
+    );
+    expect(blocs).toContain('TVA');
+    expect(blocs.some((b) => b.includes('Récapitulatif TVA'))).toBe(true);
+    expect(blocs).not.toContain('Non assujetti à la TVA');
+  });
+});

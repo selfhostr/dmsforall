@@ -399,3 +399,109 @@ describe('OR facturé', () => {
     expect(doc.rows).toEqual([{ ht: 9_992, tva: 809, ttc: 10_801 }]);
   }, 120_000);
 });
+
+describe('modifierLigne — garage NON assujetti', () => {
+  async function ligneDuBrouillon(id: string): Promise<string> {
+    const r = await bdd.poolSuperutilisateur.query(
+      'select id from ligne_document where document_id = $1',
+      [id],
+    );
+    return (r.rows[0] as { id: string }).id;
+  }
+
+  it('taux 81 refusé (409 TVA_NON_ASSUJETTI_TAUX_INTERDIT), ligne inchangée ; taux absent → 0 / exclu', async () => {
+    await fixerTenantA(true, NUMERO_TVA);
+    const id = await creerBrouillon('facture', { tauxTvaPourmille: 81 });
+    const ligneId = await ligneDuBrouillon(id);
+    await fixerTenantA(false, null);
+    const api = await avec('A');
+
+    const refus = await api.patch(`/api/v1/documents-vente/${id}/lignes/${ligneId}`, {
+      tauxTvaPourmille: 81,
+    });
+    expect(refus.status, JSON.stringify(refus.body)).toBe(409);
+    expect(refus.body).toMatchObject({ code: 'TVA_NON_ASSUJETTI_TAUX_INTERDIT' });
+    const intacte = await bdd.poolSuperutilisateur.query(
+      'select taux_tva_pourmille, tva_centimes::int tva from ligne_document where id = $1',
+      [ligneId],
+    );
+    expect(intacte.rows).toEqual([{ taux_tva_pourmille: 81, tva: 1_620 }]);
+
+    const ok = await api.patch(`/api/v1/documents-vente/${id}/lignes/${ligneId}`, {
+      designation: 'Vidange complète',
+    });
+    expect(ok.status, JSON.stringify(ok.body)).toBe(200);
+    const apres = await bdd.poolSuperutilisateur.query(
+      `select regime_tva, taux_tva_pourmille, ht_centimes::int ht, tva_centimes::int tva, ttc_centimes::int ttc
+         from ligne_document where id = $1`,
+      [ligneId],
+    );
+    expect(apres.rows).toEqual([
+      { regime_tva: 'exclu', taux_tva_pourmille: 0, ht: 21_620, tva: 0, ttc: 21_620 },
+    ]);
+  });
+
+  it('garage assujetti (non-régression) : PATCH désignation conserve 81 ‰ (HT 20000, TVA 1620)', async () => {
+    const id = await creerBrouillon('facture', { tauxTvaPourmille: 81 });
+    const ligneId = await ligneDuBrouillon(id);
+    const r = await (
+      await avec('A')
+    ).patch(`/api/v1/documents-vente/${id}/lignes/${ligneId}`, { designation: 'Vidange complète' });
+    expect(r.status, JSON.stringify(r.body)).toBe(200);
+    const apres = await bdd.poolSuperutilisateur.query(
+      'select taux_tva_pourmille, ht_centimes::int ht, tva_centimes::int tva from ligne_document where id = $1',
+      [ligneId],
+    );
+    expect(apres.rows).toEqual([{ taux_tva_pourmille: 81, ht: 20_000, tva: 1_620 }]);
+  });
+});
+
+describe('correction d’une ancienne facture par un garage devenu NON assujetti', () => {
+  it('avoir à l’identique (TVA 1620) ; facture de remplacement recalculée à 0 ‰ / exclu, TTC 21620 inchangé', async () => {
+    const id = await creerBrouillon('facture', { tauxTvaPourmille: 81 });
+    expect((await emettre(id)).status).toBe(200);
+    await fixerTenantA(false, null);
+
+    const r = await (
+      await avec('A')
+    ).post(`/api/v1/documents-vente/${id}/corriger`, {
+      motif: 'erreur_adresse',
+      corrigerFicheClient: false,
+      champsCorriges: { clientDesignation: 'Client corrigé' },
+      confirmations: [],
+    });
+    expect(r.status, JSON.stringify(r.body)).toBe(201);
+    const { avoir, factureRemplacement } = (
+      r.body as { donnees: { avoir: DocumentRepondu; factureRemplacement: DocumentRepondu } }
+    ).donnees;
+    expect(Math.abs(avoir.totalTvaCentimes)).toBe(1_620);
+    expect(factureRemplacement).toMatchObject({
+      statut: 'emis',
+      totalHtCentimes: 21_620,
+      totalTvaCentimes: 0,
+      totalTtcCentimes: 21_620,
+    });
+    expect(factureRemplacement.ventilationTva).toEqual([
+      { regimeTva: 'exclu', tauxTvaPourmille: 0, baseCentimes: 21_620, tvaCentimes: 0 },
+    ]);
+    expect(factureRemplacement.lignes).toMatchObject([{ regimeTva: 'exclu', tauxTvaPourmille: 0 }]);
+  });
+
+  it('garage assujetti (non-régression) : le remplacement garde 81 ‰ (TVA 1620)', async () => {
+    const id = await creerBrouillon('facture', { tauxTvaPourmille: 81 });
+    expect((await emettre(id)).status).toBe(200);
+    const r = await (
+      await avec('A')
+    ).post(`/api/v1/documents-vente/${id}/corriger`, {
+      motif: 'erreur_adresse',
+      corrigerFicheClient: false,
+      champsCorriges: { clientDesignation: 'Client corrigé' },
+      confirmations: [],
+    });
+    expect(r.status, JSON.stringify(r.body)).toBe(201);
+    const { factureRemplacement } = (
+      r.body as { donnees: { factureRemplacement: DocumentRepondu } }
+    ).donnees;
+    expect(factureRemplacement).toMatchObject({ totalTvaCentimes: 1_620, totalHtCentimes: 20_000 });
+  });
+});

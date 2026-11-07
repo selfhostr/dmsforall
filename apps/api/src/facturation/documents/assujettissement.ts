@@ -39,6 +39,42 @@ export async function chargerSituationTva(
   return { assujetti: ligne.assujetti, numeroTva: ligne.numeroTva };
 }
 
+/**
+ * Taux et régime d'une ligne SAISIE ou RECOPIÉE, au régime ACTUEL du garage.
+ *
+ * - Non assujetti : taux absent = 0 ; taux > 0 refusé (`TVA_NON_ASSUJETTI_TAUX_INTERDIT`, même
+ *   code que l'émission) ; régime toujours {@link REGIME_NON_ASSUJETTI}.
+ * - Assujetti : valeurs inchangées (le taux, s'il manque, reste à la charge de l'appelant).
+ */
+export function normaliserTauxEtRegime(
+  situation: SituationTvaGarage,
+  saisi: { readonly tauxTvaPourmille: number | null | undefined; readonly regimeTva: RegimeTva },
+  numeroOrdre?: number,
+): { readonly tauxTvaPourmille: number | null; readonly regimeTva: RegimeTva } {
+  if (situation.assujetti) {
+    return { tauxTvaPourmille: saisi.tauxTvaPourmille ?? null, regimeTva: saisi.regimeTva };
+  }
+  const taux = saisi.tauxTvaPourmille ?? 0;
+  if (taux > 0)
+    throw erreurTauxInterdit([{ numeroOrdre: numeroOrdre ?? 0, tauxTvaPourmille: taux }]);
+  return { tauxTvaPourmille: 0, regimeTva: REGIME_NON_ASSUJETTI };
+}
+
+function erreurTauxInterdit(fautives: readonly LigneAControler[]): ErreurMetier {
+  return new ErreurMetier(
+    'TVA_NON_ASSUJETTI_TAUX_INTERDIT',
+    'Le garage n’est pas assujetti à la TVA : aucune ligne ne peut porter de TVA ' +
+      `(ligne(s) ${fautives.map((l) => l.numeroOrdre).join(', ')}).`,
+    {
+      erreurs: fautives.map((l) => ({
+        champ: `lignes[${l.numeroOrdre}].tauxTvaPourmille`,
+        code: 'taux_tva_interdit_non_assujetti',
+        message: `Ligne ${l.numeroOrdre} : taux ${l.tauxTvaPourmille} ‰ interdit, le garage n’est pas assujetti à la TVA (taux 0 attendu).`,
+      })),
+    },
+  );
+}
+
 interface LigneAControler {
   readonly numeroOrdre: number;
   readonly tauxTvaPourmille: number;
@@ -64,18 +100,7 @@ export function verifierEmissionSelonAssujettissement(
     if (typeDocument === 'avoir') return;
     const fautives = lignes.filter((l) => l.tauxTvaPourmille > 0);
     if (fautives.length > 0) {
-      throw new ErreurMetier(
-        'TVA_NON_ASSUJETTI_TAUX_INTERDIT',
-        'Le garage n’est pas assujetti à la TVA : aucune ligne ne peut porter de TVA ' +
-          `(ligne(s) ${fautives.map((l) => l.numeroOrdre).join(', ')}).`,
-        {
-          erreurs: fautives.map((l) => ({
-            champ: `lignes[${l.numeroOrdre}].tauxTvaPourmille`,
-            code: 'taux_tva_interdit_non_assujetti',
-            message: `Ligne ${l.numeroOrdre} : taux ${l.tauxTvaPourmille} ‰ interdit, le garage n’est pas assujetti à la TVA (taux 0 attendu).`,
-          })),
-        },
-      );
+      throw erreurTauxInterdit(fautives);
     }
     return;
   }

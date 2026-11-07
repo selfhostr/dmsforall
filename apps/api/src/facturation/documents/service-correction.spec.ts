@@ -28,11 +28,17 @@ vi.mock('./references', () => ({
   chargerIdAdresseFacturationActive: vi.fn(),
 }));
 
+vi.mock('./assujettissement', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./assujettissement')>()),
+  chargerSituationTva: vi.fn(),
+}));
+
 import { ErreurMetier } from '../../common/erreurs/erreur-metier';
 
 import { ServiceCorrectionFacture } from './service-correction';
 import * as documentRequetes from './document-requetes';
 import * as references from './references';
+import * as assujettissement from './assujettissement';
 
 const CTX: ContexteTenant = { tenantId: 'tenant-a', utilisateurId: 'user-1', requeteId: 'req-1' };
 const FACTURE_ID = 'facture-1';
@@ -219,6 +225,10 @@ function serviceFactice(tx: TransactionDfa) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(assujettissement.chargerSituationTva).mockResolvedValue({
+    assujetti: true,
+    numeroTva: 'CHE-123.456.789 TVA',
+  });
 });
 
 describe('ServiceCorrectionFacture.corriger — orchestration', () => {
@@ -369,6 +379,50 @@ describe('ServiceCorrectionFacture.corriger — orchestration', () => {
     // ttc = ht + tva, exactement (même invariant que ligne_document_montant_coherent_chk).
     expect((l1['htCentimes'] as number) + (l1['tvaCentimes'] as number)).toBe(l1['ttcCentimes']);
     expect((l2['htCentimes'] as number) + (l2['tvaCentimes'] as number)).toBe(l2['ttcCentimes']);
+  });
+
+  it('garage devenu NON assujetti : lignes de remplacement recalculées à 0 ‰ / exclu, HT = TTC (100.00 et 50.00), total TTC inchangé', async () => {
+    vi.mocked(assujettissement.chargerSituationTva).mockResolvedValue({
+      assujetti: false,
+      numeroTva: null,
+    });
+    vi.mocked(documentRequetes.chargerDocumentPourEcriture).mockResolvedValue(factureFixture());
+    vi.mocked(documentRequetes.listerLignesDocumentPourEcriture).mockResolvedValue([
+      LIGNE_1,
+      LIGNE_2,
+    ] as never);
+    vi.mocked(references.chargerIdAdresseFacturationActive).mockResolvedValue(null);
+    const { tx, lignesInserees } = txFactice();
+    const { service } = serviceFactice(tx);
+
+    await service.corriger(
+      CTX,
+      principal('direction'),
+      FACTURE_ID,
+      {
+        motif: 'erreur_adresse',
+        corrigerFicheClient: false,
+        champsCorriges: {},
+        confirmations: [],
+      } as never,
+      CLE_IDEMPOTENCE,
+    );
+
+    expect(lignesInserees).toHaveLength(2);
+    expect(lignesInserees[0]).toMatchObject({
+      regimeTva: 'exclu',
+      tauxTvaPourmille: 0,
+      htCentimes: 10_000,
+      tvaCentimes: 0,
+      ttcCentimes: 10_000,
+    });
+    expect(lignesInserees[1]).toMatchObject({
+      regimeTva: 'exclu',
+      tauxTvaPourmille: 0,
+      htCentimes: 5_000,
+      tvaCentimes: 0,
+      ttcCentimes: 5_000,
+    });
   });
 
   it('corrigerFicheClient=false — la fiche client (client_adresse) n’est JAMAIS écrite, même avec une adresse corrigée', async () => {
