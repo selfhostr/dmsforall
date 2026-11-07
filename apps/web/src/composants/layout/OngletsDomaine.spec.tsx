@@ -334,7 +334,7 @@ describe('OngletsDomaine — contraintes du produit', () => {
 
     await screen.findByRole('navigation', { name: /vues/i });
     for (const lien of screen.getAllByRole('link')) {
-      expect(lien.className).toContain('h-11');
+      expect(lien.className).toContain('h-[var(--cible-tactile)]');
     }
   });
 

@@ -54,9 +54,10 @@ describe('BarreOutilsSuperieure', () => {
     expect(screen.queryByRole('button', { name: /se déconnecter/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/garage/i)).not.toBeInTheDocument();
     // Site : attend `session.sites`, absent tant qu’elle n’est pas résolue (même doctrine que
-    // le reste du chrome — rien n’est affirmé de faux pendant le chargement). Trois boutons
-    // seulement (hamburger, recherche, thème) : pas un quatrième pour un site non résolu.
-    expect(screen.getAllByRole('button')).toHaveLength(3);
+    // le reste du chrome — rien n’est affirmé de faux pendant le chargement). Quatre boutons
+    // seulement (hamburger, recherche, densité, thème) : pas un de plus pour un site non résolu.
+    expect(screen.getByRole('button', { name: /densité d.affichage/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('button')).toHaveLength(4);
   });
 
   it('session résolue, site unique : le sélecteur de site (compact) et la bascule de thème sont tous deux présents', async () => {
