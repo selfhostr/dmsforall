@@ -1,7 +1,13 @@
-import { MapPin } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export interface AutreSiteResume {
   readonly siteId: string;
@@ -11,7 +17,9 @@ export interface AutreSiteResume {
 
 interface Props {
   /** Site dont l'agenda est affiché. */
-  readonly siteNom: string;
+  readonly siteId: string;
+  /** Tous les sites choisissables : un seul = aucun sélecteur, aucune ligne (le site est évident). */
+  readonly sites: readonly { readonly id: string; readonly nom: string }[];
   /** Rendez-vous des AUTRES sites sur la période affichée (0 = site sans rendez-vous, omis). */
   readonly autresSites: readonly AutreSiteResume[];
   readonly onChangerSite: (siteId: string) => void;
@@ -20,24 +28,36 @@ interface Props {
 }
 
 /**
- * Dit clairement quel site l'agenda montre, et signale les rendez-vous qui existent ailleurs — sans
+ * Sélecteur de site compact (plusieurs sites seulement) et signalement des les rendez-vous qui existent ailleurs — sans
  * cela un rendez-vous pris à Martigny est invisible dans le planning de Sion, sans aucun indice.
  */
 export function BandeauAutresSites({
-  siteNom,
+  siteId,
+  sites,
   autresSites,
   onChangerSite,
   portee = 'semaine',
 }: Props) {
   const { t } = useTranslation('planning');
+  // Un seul site : rien à choisir, rien à annoncer (et aucun « autre site » à compter).
+  if (sites.length <= 1) return null;
   const avecRendezVous = autresSites.filter((s) => s.total > 0);
 
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1" data-testid="bandeau-sites">
-      <p className="flex items-center gap-1.5 texte-corps font-medium text-foreground">
-        <MapPin aria-hidden className="h-4 w-4 text-muted-foreground" />
-        {t('planning:siteAffiche', { site: siteNom })}
-      </p>
+      {/* Sélecteur compact : la valeur affichée dit déjà « quel site » — pas de libellé au-dessus. */}
+      <Select value={siteId} onValueChange={onChangerSite}>
+        <SelectTrigger className="w-auto min-w-40" aria-label={t('planning:siteSelecteur')}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {sites.map((s) => (
+            <SelectItem key={s.id} value={s.id}>
+              {s.nom}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       {avecRendezVous.map((autre) => (
         <p key={autre.siteId} className="flex items-center gap-1 texte-corps text-muted-foreground">
           <span>

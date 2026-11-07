@@ -145,31 +145,51 @@ describe('EcranAgendaRendezVous', () => {
     expect(onChangerSite).toHaveBeenCalledWith('s-2');
   });
 
-  it('indique le site affiché et les rendez-vous des autres sites, avec un lien pour y aller', async () => {
+  it('plusieurs sites : sélecteur compact sans libellé « Site affiché », autres sites comptés', async () => {
     const utilisateur = userEvent.setup();
     const onChangerSite = vi.fn();
     rendre(
       <EcranAgendaRendezVous
         {...PROPS_BASE}
         etat="contenu"
+        sitesChoisissables={[
+          { id: 's-1', nom: 'Sion' },
+          { id: 's-2', nom: 'Martigny' },
+        ]}
         autresSites={[{ siteId: 's-2', nom: 'Martigny', total: 2 }]}
         onChangerSite={onChangerSite}
       />,
     );
-    expect(screen.getByText('Site affiché : Garage Martin — Sion')).toBeInTheDocument();
+    expect(screen.queryByText(/Site affiché/)).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Site' })).toBeInTheDocument();
     expect(screen.getByText('2 rendez-vous à Martigny cette semaine')).toBeInTheDocument();
     await utilisateur.click(screen.getByRole('button', { name: 'Voir l’agenda de Martigny' }));
     expect(onChangerSite).toHaveBeenCalledWith('s-2');
   });
 
-  it('propose un « ? » d’aide en vocabulaire de garagiste et un bouton « Demain »', async () => {
+  it('un seul site : aucun sélecteur, aucune ligne de site', () => {
+    rendre(
+      <EcranAgendaRendezVous
+        {...PROPS_BASE}
+        etat="contenu"
+        sitesChoisissables={[{ id: 's-1', nom: 'Sion' }]}
+      />,
+    );
+    expect(screen.queryByText(/Site affiché/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Site' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('bandeau-sites')).not.toBeInTheDocument();
+  });
+
+  it('le titre « Rendez-vous » est masqué visuellement (h1 lecteur d’écran seulement)', () => {
+    rendre(<EcranAgendaRendezVous {...PROPS_BASE} etat="contenu" />);
+    expect(screen.getByRole('heading', { level: 1, name: 'Rendez-vous' })).toHaveClass('sr-only');
+  });
+
+  it('propose un bouton « Demain »', async () => {
     const utilisateur = userEvent.setup();
     const onDemain = vi.fn();
     rendre(<EcranAgendaRendezVous {...PROPS_BASE} etat="contenu" onDemain={onDemain} />);
-    await utilisateur.click(screen.getByRole('button', { name: 'Aide : le planning' }));
-    expect(
-      screen.getByText(/Cet agenda montre les rendez-vous d’un seul site/),
-    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Aide : le planning' })).not.toBeInTheDocument();
     await utilisateur.click(screen.getByRole('button', { name: 'Demain' }));
     expect(onDemain).toHaveBeenCalled();
   });

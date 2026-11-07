@@ -421,9 +421,7 @@ describe('routeur — /vehicules/nouveau rend l’écran de création, jamais la
     );
     renduAvecRoutes(routesConfig, { routeInitiale: '/vehicules/nouveau' });
 
-    expect(
-      await screen.findByRole('heading', { name: 'Nouveau véhicule', level: 1 }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Nouveau véhicule' })).toBeInTheDocument();
     // Preuve négative : ni le message d'erreur de la fiche, ni un appel réseau vers
     // `GET /vehicules/nouveau` (le défaut exact du bug initial).
     expect(screen.queryByText('Impossible de charger le véhicule')).not.toBeInTheDocument();

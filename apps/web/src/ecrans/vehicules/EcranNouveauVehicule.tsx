@@ -15,7 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DateInput } from '@/components/ui/date-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import {
   ChampAutocompletionVehicule,
   type OptionAutocompletionVehicule,
@@ -166,21 +166,32 @@ export function EcranNouveauVehicule() {
     ? chemins.clients.detail(clientId, site)
     : chemins.vehicules.liste(site);
 
-  // Titre laissé à la détection automatique du gabarit (chantier « titres doublés &
-  // espacements », 17.08.2026) : « Nouveau véhicule » ne recoupe aucun libellé de navigation
-  // affiché (l'onglet actif reste « Véhicules », pas d'inclusion dans les deux sens) — le h1 reste
-  // donc visible, conformément à l'exigence du contrat pour les écrans de création.
+  // Saisie dans le panneau latéral droit (même geste que « Nouveau client »), par-dessus la liste.
   return (
-    <GabaritEcran
+    <PanneauLateral
+      ouvert
+      onOuvertChange={(ouvert) => {
+        if (!ouvert) navigate(cheminAnnuler);
+      }}
       titre={t('vehicules:nouveau')}
-      sousTitre={
+      description={
         clientId && requeteClient.data
           ? t('vehicules:nouveauPourClient', { nom: requeteClient.data.nomAffiche })
           : undefined
       }
+      pied={
+        <>
+          <Button type="button" variant="outline" disabled={enCours} asChild>
+            <Link to={cheminAnnuler}>{t('commun:actions.annuler')}</Link>
+          </Button>
+          <Button type="submit" form="nv-formulaire" disabled={enCours}>
+            {enCours ? t('commun:chargement.enCours') : t('vehicules:creer')}
+          </Button>
+        </>
+      }
     >
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-5">
-        <form onSubmit={soumettre} noValidate className="flex flex-col gap-5">
+      <div className="flex w-full flex-col gap-5">
+        <form id="nv-formulaire" onSubmit={soumettre} noValidate className="flex flex-col gap-5">
           {erreurBandeau ? (
             <Alert variant={estErreurReseau ? 'avertissement' : 'destructive'}>
               {estErreurReseau ? (
@@ -385,17 +396,8 @@ export function EcranNouveauVehicule() {
             />
             {t('vehicules:importation.importe')}
           </label>
-
-          <div className="flex items-center gap-3">
-            <Button type="submit" disabled={enCours}>
-              {enCours ? t('commun:chargement.enCours') : t('vehicules:creer')}
-            </Button>
-            <Button type="button" variant="outline" disabled={enCours} asChild>
-              <Link to={cheminAnnuler}>{t('commun:actions.annuler')}</Link>
-            </Button>
-          </div>
         </form>
       </div>
-    </GabaritEcran>
+    </PanneauLateral>
   );
 }
