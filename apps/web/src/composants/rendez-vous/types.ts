@@ -53,6 +53,9 @@ export interface RendezVousCarte {
   readonly heureSouhaitee: string | null;
   readonly dureeEstimeeMinutes: number;
   readonly clientNom: string;
+  /** Téléphone de la fiche client (`ClientResume.telephone`) — `null` = non renseigné, jamais une
+   *  chaîne vide : l'écran affiche alors « pas de téléphone », pas un blanc. */
+  readonly clientTelephone?: string | null;
   readonly vehiculePlaque: string | null;
   readonly vehiculeCanton: string | null;
   readonly vehiculeDesignation: string | null;
@@ -71,6 +74,9 @@ export interface EntreeHistoriqueRendezVous {
  *  dans le panneau détaillé. */
 export interface RendezVousDetail extends RendezVousCarte {
   readonly siteNom: string;
+  /** E-mail du client — absent de `ClientResume` (liste de RDV), chargé à l'ouverture du panneau
+   *  depuis la fiche client. `undefined` = pas encore chargé, `null` = non renseigné. */
+  readonly clientEmail?: string | null;
   readonly remarque: string | null;
   readonly motifAnnulation: string | null;
   readonly historique: readonly EntreeHistoriqueRendezVous[];

@@ -57,6 +57,11 @@ export function CarteRendezVous({ rendezVous, onOuvrir, dense = false, className
       <span className="truncate texte-libelle text-muted-foreground">
         {rendezVous.motifLibelle}
       </span>
+      {dense && rendezVous.clientTelephone ? (
+        <span className="truncate texte-libelle tabular-nums text-muted-foreground">
+          {rendezVous.clientTelephone}
+        </span>
+      ) : null}
       {dense ? (
         <div className="flex items-center justify-between gap-1 pt-0.5">
           <span className="truncate texte-libelle text-muted-foreground">

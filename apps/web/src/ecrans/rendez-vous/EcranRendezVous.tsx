@@ -34,6 +34,13 @@ import {
   joursDeLaSemaine,
   versDateIsoLocale,
 } from '@/hooks/rendez-vous/periode-agenda';
+import { useClient } from '@/hooks/clients/useClient';
+import { useDeplacerRendezVous } from '@/hooks/rendez-vous/useDeplacerRendezVous';
+import { useDepotsPneusClient } from '@/hooks/rendez-vous/useDepotsPneusClient';
+import { useRendezVousAutresSites } from '@/hooks/rendez-vous/useRendezVousAutresSites';
+import { resoudreSiteId, vehiculeParDefaut } from '@/hooks/rendez-vous/preselection';
+import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
+import { DialogueDeplacerRendezVous } from '@/composants/rendez-vous/DialogueDeplacerRendezVous';
 import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { formaterDate } from '@/lib/formats';
 import { useLangue } from '@/hooks/useLangue';
@@ -53,6 +60,7 @@ function versCarte(
     heureSouhaitee: rdv.heureSouhaitee,
     dureeEstimeeMinutes: rdv.dureeEstimeeMinutes,
     clientNom: rdv.client.nomAffiche,
+    clientTelephone: rdv.client.telephone,
     vehiculePlaque: rdv.vehicule?.plaque ?? null,
     vehiculeCanton: rdv.vehicule?.canton ?? null,
     vehiculeDesignation: rdv.vehicule?.designation ?? null,
@@ -89,12 +97,26 @@ function versDetail(
 export function EcranRendezVous() {
   const { t, i18n } = useTranslation(['planning', 'commun', 'erreurs']);
   const { langue } = useLangue();
-  const [searchParams] = useSearchParams();
-  const siteId = searchParams.get('site') ?? undefined;
-
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: session } = useSession();
+  const { preferenceSiteId } = useSiteCourant();
   const role = session?.utilisateur.role;
-  const site = siteId ? session?.sites.find((s) => s.id === siteId) : undefined;
+  const sitesSession = useMemo(() => session?.sites ?? [], [session]);
+  // Site affiché : celui de l'URL, sinon la préférence du poste, sinon l'unique site du garage —
+  // jamais « Choisissez un site » quand la réponse est évidente.
+  const siteId = resoudreSiteId(searchParams.get('site'), preferenceSiteId, sitesSession);
+  const site = siteId ? sitesSession.find((s) => s.id === siteId) : undefined;
+
+  function onChangerSite(nouveauSiteId: string) {
+    setSearchParams(
+      (courants) => {
+        const suivants = new URLSearchParams(courants);
+        suivants.set('site', nouveauSiteId);
+        return suivants;
+      },
+      { replace: false },
+    );
+  }
 
   const [vueListe, setVueListe] = useState(false);
   const [vueJourSemaine, setVueJourSemaine] = useVueAgendaPreferee();
@@ -145,10 +167,17 @@ export function EcranRendezVous() {
   function onAujourdhui() {
     setDateReference(new Date());
   }
+  function onDemain() {
+    setDateReference(ajouterJours(new Date(), 1));
+    setVueListe(false);
+    setVueJourSemaine('jour');
+  }
 
   const filtresPeriode = site ? { du: periode.du, au: periode.au, siteId: site.id } : undefined;
   const requeteAgenda = useAgendaRendezVous(filtresPeriode);
   const requeteCapacite = useCapaciteRendezVous(filtresPeriode);
+
+  const autresSites = useRendezVousAutresSites(sitesSession, site?.id, periode);
 
   const jours: readonly JourAgenda[] = useMemo(() => {
     const rdvParJour = new Map<string, ReponseRendezVous[]>();
@@ -211,6 +240,16 @@ export function EcranRendezVous() {
   const requeteVehiculesCreation = useVehiculesClient(
     !vehiculeIgnore ? (clientCreation?.id ?? undefined) : undefined,
   );
+  const vehiculesClient = useMemo(
+    () => requeteVehiculesCreation.data?.pages.flatMap((p) => p.donnees) ?? [],
+    [requeteVehiculesCreation.data],
+  );
+  // Un seul véhicule connu : présélectionné, la réceptionniste n'a rien à deviner.
+  const vehiculeEffectif = vehiculeParDefaut(vehiculeCreation, vehiculesClient, vehiculeIgnore);
+  const etatPneus = useDepotsPneusClient(
+    vehiculesClient.map((v) => v.id),
+    clientCreation !== null && dialogueOuvert,
+  );
 
   function ouvrirNouveauRendezVous(dateInitiale?: string) {
     setClientCreation(null);
@@ -233,6 +272,11 @@ export function EcranRendezVous() {
 
   const rdvSelectionne = requeteAgenda.data?.donnees.find((r) => r.id === rdvSelectionneId) ?? null;
 
+  const clientDetail = useClient(
+    rdvSelectionne && panneauOuvert ? rdvSelectionne.client.id : undefined,
+  );
+  const [dialogueDeplacerOuvert, setDialogueDeplacerOuvert] = useState(false);
+  const deplacer = useDeplacerRendezVous(rdvSelectionneId ?? '');
   const absence = useAbsenceRendezVous(rdvSelectionneId ?? '');
   const annuler = useAnnulerRendezVous(rdvSelectionneId ?? '');
   const arrivee = useArriveeRendezVous(rdvSelectionneId ?? '');
@@ -275,6 +319,10 @@ export function EcranRendezVous() {
         jours={jours}
         onCliquerJour={onCliquerJour}
         onOuvrirRendezVous={onOuvrirRendezVous}
+        autresSites={autresSites}
+        onChangerSite={onChangerSite}
+        onDemain={onDemain}
+        sitesChoisissables={sitesSession}
       />
 
       {site ? (
@@ -282,7 +330,13 @@ export function EcranRendezVous() {
           ouvert={dialogueOuvert}
           onOpenChange={setDialogueOuvert}
           client={clientCreation}
-          vehicule={vehiculeCreation}
+          vehicule={vehiculeEffectif}
+          onChangerClient={() => {
+            setClientCreation(null);
+            setVehiculeCreation(null);
+            setVehiculeIgnore(false);
+          }}
+          etatPneus={etatPneus}
           site={site}
           dateInitiale={dateCreneauInitiale}
           motifsDisponibles={requeteMotifs.data ?? []}
@@ -318,20 +372,17 @@ export function EcranRendezVous() {
           }
           slotSelecteurVehicule={
             <div className="flex max-h-64 flex-col gap-1 overflow-y-auto">
-              {(requeteVehiculesCreation.data?.pages.flatMap((p) => p.donnees) ?? []).map(
-                (vehicule) => (
-                  <button
-                    key={vehicule.id}
-                    type="button"
-                    onClick={() => setVehiculeCreation(vehicule)}
-                    className="rounded-md border border-input p-2 text-left hover:bg-muted anneau-focus"
-                  >
-                    <IdentiteVehicule vehicule={vehicule} />
-                  </button>
-                ),
-              )}
-              {requeteVehiculesCreation.data &&
-              requeteVehiculesCreation.data.pages.flatMap((p) => p.donnees).length === 0 ? (
+              {vehiculesClient.map((vehicule) => (
+                <button
+                  key={vehicule.id}
+                  type="button"
+                  onClick={() => setVehiculeCreation(vehicule)}
+                  className="rounded-md border border-input p-2 text-left hover:bg-muted anneau-focus"
+                >
+                  <IdentiteVehicule vehicule={vehicule} />
+                </button>
+              ))}
+              {requeteVehiculesCreation.data && vehiculesClient.length === 0 ? (
                 <p className="texte-libelle text-muted-foreground">
                   {t('planning:dialogueNouveau.aucunVehicule')}
                 </p>
@@ -354,7 +405,10 @@ export function EcranRendezVous() {
         <PanneauDetailRendezVous
           ouvert={panneauOuvert}
           onOpenChange={setPanneauOuvert}
-          rendezVous={versDetail(rdvSelectionne, site.nom, langue)}
+          rendezVous={{
+            ...versDetail(rdvSelectionne, site.nom, langue),
+            clientEmail: clientDetail.data?.email,
+          }}
           siteUrl={site.id}
           // Le jour J : comparaison sur la DATE seule (pas d'heure de rendez-vous garantie —
           // `heureSouhaitee` optionnel) — le rendez-vous devient actionnable dès le jour même.
@@ -364,6 +418,7 @@ export function EcranRendezVous() {
           delaiGracePasse={rdvSelectionne.dateLe <= versDateIsoLocale(new Date())}
           peutAgir={peutAgir}
           onVehiculeArrive={() => setDialogueArriveeOuvert(true)}
+          onDeplacer={peutAgir ? () => setDialogueDeplacerOuvert(true) : undefined}
           onSignalerAbsence={() => absence.mutate({}, { onSuccess: () => setPanneauOuvert(false) })}
           onAnnuler={(motif) =>
             annuler.mutate({ motif }, { onSuccess: () => setPanneauOuvert(false) })
@@ -376,6 +431,25 @@ export function EcranRendezVous() {
                 ? messageErreur(annuler.error, t)
                 : null
           }
+        />
+      ) : null}
+
+      {rdvSelectionne ? (
+        <DialogueDeplacerRendezVous
+          ouvert={dialogueDeplacerOuvert}
+          onOpenChange={setDialogueDeplacerOuvert}
+          dateActuelle={rdvSelectionne.dateLe}
+          momentActuel={rdvSelectionne.moment}
+          onConfirmer={(entree) =>
+            deplacer.mutate(entree, {
+              onSuccess: () => {
+                setDialogueDeplacerOuvert(false);
+                setPanneauOuvert(false);
+              },
+            })
+          }
+          enCours={deplacer.isPending}
+          erreur={deplacer.error ? messageErreur(deplacer.error, t) : null}
         />
       ) : null}
 

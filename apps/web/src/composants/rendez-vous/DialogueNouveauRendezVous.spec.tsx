@@ -71,6 +71,96 @@ const MOTIFS: ReponseMotifRendezVous[] = [
   },
 ];
 
+const MOTIF_MFK: ReponseMotifRendezVous = {
+  id: '66666666-6666-4666-8666-666666666666',
+  code: 'EXPERTISE-MFK',
+  libelleFr: 'Passage à l’expertise MFK',
+  libelleDe: null,
+  libelleIt: null,
+  dureeDefautMinutes: 90,
+  heuresAtelierDefautCentiemes: null,
+  actif: true,
+};
+const MOTIF_PNEUS: ReponseMotifRendezVous = {
+  ...MOTIF_MFK,
+  id: '77777777-7777-4777-8777-777777777777',
+  code: 'PNEUS',
+  libelleFr: 'Changement de pneus',
+  dureeDefautMinutes: 45,
+};
+
+function rendreAvecMotifs(
+  props: Partial<React.ComponentProps<typeof DialogueNouveauRendezVous>> = {},
+) {
+  return render(
+    <DialogueNouveauRendezVous
+      ouvert
+      onOpenChange={vi.fn()}
+      client={CLIENT}
+      vehicule={VEHICULE}
+      site={SITE}
+      dateInitiale="2026-08-20"
+      motifsDisponibles={[MOTIF_MFK, MOTIF_PNEUS]}
+      onConfirmer={vi.fn()}
+      {...props}
+    />,
+  );
+}
+
+async function choisirMotif(nom: string) {
+  const utilisateur = userEvent.setup();
+  await utilisateur.click(screen.getByRole('combobox', { name: 'Motif du rendez-vous' }));
+  await utilisateur.click(screen.getByRole('option', { name: nom }));
+}
+
+describe('DialogueNouveauRendezVous — aide et présélections', () => {
+  it('nomme le site du rendez-vous et dit comment en changer', () => {
+    rendreAvecMotifs();
+    expect(screen.getByText('Garage Martin — Sion')).toBeInTheDocument();
+    expect(screen.getByText(/changez de site dans le planning/)).toBeInTheDocument();
+  });
+
+  it('explique le motif expertise MFK en une phrase', async () => {
+    rendreAvecMotifs();
+    await choisirMotif('Passage à l’expertise MFK');
+    expect(screen.getByTestId('aide-motif')).toHaveTextContent(
+      'Contrôle périodique obligatoire du véhicule par le service des automobiles',
+    );
+  });
+
+  it('motif pneus : dit que les pneus sont déjà au dépôt, avec la case', async () => {
+    rendreAvecMotifs({
+      etatPneus: {
+        etat: 'present',
+        depots: [{ id: 'd1', dimension: '205/55 R16', codeCase: 'A12' } as never],
+      },
+    });
+    await choisirMotif('Changement de pneus');
+    expect(screen.getByTestId('notice-pneus')).toHaveTextContent(
+      'Un jeu de pneus de ce client est déjà au dépôt (205/55 R16, case A12).',
+    );
+  });
+
+  it('motif pneus : dit que le client doit apporter ses roues quand rien au dépôt', async () => {
+    rendreAvecMotifs({ etatPneus: { etat: 'absent' } });
+    await choisirMotif('Changement de pneus');
+    expect(screen.getByTestId('notice-pneus')).toHaveTextContent('il doit apporter ses roues');
+  });
+
+  it('pas de notice pneus pour un autre motif', async () => {
+    rendreAvecMotifs({ etatPneus: { etat: 'absent' } });
+    await choisirMotif('Passage à l’expertise MFK');
+    expect(screen.queryByTestId('notice-pneus')).not.toBeInTheDocument();
+  });
+
+  it('propose une aide « ? » sur la prise de rendez-vous', async () => {
+    const utilisateur = userEvent.setup();
+    rendreAvecMotifs();
+    await utilisateur.click(screen.getByRole('button', { name: 'Aide : prendre un rendez-vous' }));
+    expect(screen.getByText(/Cherchez le client/)).toBeInTheDocument();
+  });
+});
+
 describe('DialogueNouveauRendezVous', () => {
   it('affiche le sujet déjà connu SANS sélecteur, avec un lien "Changer" (points d’entrée 2/3)', () => {
     render(
