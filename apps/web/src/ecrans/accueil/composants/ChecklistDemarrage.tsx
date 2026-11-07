@@ -1,11 +1,15 @@
 import { peut } from '@/droits';
 import { CheckCircle2, Circle, CircleHelp } from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AssistantDemarrage } from '@/ecrans/assistant-demarrage/AssistantDemarrage';
+import { doitOuvrirAutomatiquement } from '@/hooks/assistant/ouverture-assistant';
+import { useFermetureAssistant } from '@/hooks/assistant/useFermetureAssistant';
 import type { EtapeDemarrage, IdEtapeDemarrage } from '@/hooks/accueil/etapes-demarrage';
 import { useEtapesDemarrage } from '@/hooks/accueil/useEtapesDemarrage';
 import { useMasquageDemarrage } from '@/hooks/accueil/useMasquageDemarrage';
@@ -33,12 +37,79 @@ export function ChecklistDemarrage() {
   const { data: session } = useSession();
   const autorise = peut(session?.actions, 'socle.utilisateur.lire');
   const { masque, masquer } = useMasquageDemarrage(autorise ? session?.utilisateur.id : undefined);
-  if (!autorise || masque) return null;
-  return <CarteDemarrage masquer={masquer} />;
+  const gereLesParametres = peut(session?.actions, 'parametrage.atelier.modifier');
+  return (
+    <>
+      {gereLesParametres && session ? (
+        <AssistantAccueil tenantId={session.tenant.id} utilisateurId={session.utilisateur.id}>
+          {(reprendre) =>
+            autorise && !masque ? <CarteDemarrage masquer={masquer} reprendre={reprendre} /> : null
+          }
+        </AssistantAccueil>
+      ) : autorise && !masque ? (
+        <CarteDemarrage masquer={masquer} />
+      ) : null}
+    </>
+  );
 }
 
-function CarteDemarrage({ masquer }: { readonly masquer: () => void }) {
-  const { t } = useTranslation('accueil');
+/**
+ * Assistant de démarrage : s'ouvre tout seul pour qui gère les paramètres d'un garage pas encore
+ * configuré, tant qu'il n'a pas été fermé (mémoire locale par garage et utilisateur). Le lien
+ * « Reprendre l'assistant » de la carte le rouvre.
+ */
+function AssistantAccueil({
+  tenantId,
+  utilisateurId,
+  children,
+}: {
+  readonly tenantId: string;
+  readonly utilisateurId: string;
+  readonly children: (reprendre: () => void) => ReactNode;
+}) {
+  const { etapes, complet, enChargement } = useEtapesDemarrage();
+  const { ferme, memoriserFermeture } = useFermetureAssistant(tenantId, utilisateurId);
+  const [ouvert, setOuvert] = useState(false);
+  const ouvertureTentee = useRef(false);
+
+  useEffect(() => {
+    if (ouvertureTentee.current) return;
+    if (
+      doitOuvrirAutomatiquement({
+        autorise: true,
+        // Un état qui n'a pas répondu (erreur réseau, refus) n'est PAS « garage neuf ».
+        etatConnu: !enChargement && etapes.every((e) => e.etat !== 'inconnu'),
+        garageConfigure: complet,
+        ferme,
+      })
+    ) {
+      ouvertureTentee.current = true;
+      setOuvert(true);
+    }
+  }, [enChargement, etapes, complet, ferme]);
+
+  return (
+    <>
+      <AssistantDemarrage
+        ouvert={ouvert}
+        onFermer={() => {
+          setOuvert(false);
+          memoriserFermeture();
+        }}
+      />
+      {children(() => setOuvert(true))}
+    </>
+  );
+}
+
+function CarteDemarrage({
+  masquer,
+  reprendre,
+}: {
+  readonly masquer: () => void;
+  readonly reprendre?: (() => void) | undefined;
+}) {
+  const { t } = useTranslation(['accueil', 'assistant']);
   const { etapes, enChargement, complet, reessayer } = useEtapesDemarrage();
 
   if (complet) return null;
@@ -60,9 +131,16 @@ function CarteDemarrage({ masquer }: { readonly masquer: () => void }) {
             </p>
           ) : null}
         </div>
-        <Button type="button" variant="ghost" size="sm" onClick={masquer}>
-          {t('accueil:demarrage.checklist.masquer')}
-        </Button>
+        <div className="flex flex-wrap justify-end gap-2">
+          {reprendre ? (
+            <Button type="button" size="sm" onClick={reprendre}>
+              {t('assistant:reprise.bouton')}
+            </Button>
+          ) : null}
+          <Button type="button" variant="ghost" size="sm" onClick={masquer}>
+            {t('accueil:demarrage.checklist.masquer')}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {enChargement ? (

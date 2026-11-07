@@ -28,7 +28,7 @@
       },
       "tva": {
         "titre": "Numéro de TVA",
-        "pourquoi": "Il doit apparaître sur vos factures si vous êtes assujetti à la TVA. Sinon, masquez cette liste quand le reste est réglé."
+        "pourquoi": "Votre garage est-il assujetti à la TVA ? Si oui, ce numéro figure sur vos factures. Sinon, passez cette étape."
       },
       "tauxHoraire": {
         "titre": "Taux horaire",
