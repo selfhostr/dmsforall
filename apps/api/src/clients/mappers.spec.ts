@@ -142,7 +142,7 @@ describe('versClientResume', () => {
     expect(resume).toEqual({
       id: 'c1',
       numeroClient: 'CL-000001',
-      nomAffiche: 'Muster Hans',
+      nomAffiche: 'Hans Muster',
       type: 'particulier',
       statut: 'actif',
       langueCorrespondance: 'fr',
