@@ -1,5 +1,5 @@
 import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
-import type { ClientResume } from '@dfa/shared';
+import type { ClientResume, ClientResumeListe, VehiculeResumeListe } from '@dfa/shared';
 
 import type { ContexteTenant, TransactionDfa } from '../db';
 import {
@@ -24,7 +24,12 @@ import {
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
 import { calculerNomAffiche } from '../common/identite-client';
 
-import { chargerResumesUtilisateurs, nomAfficheClient, type ResumeUtilisateur } from './references';
+import {
+  chargerResumesUtilisateurs,
+  designationVehicule,
+  nomAfficheClient,
+  type ResumeUtilisateur,
+} from './references';
 
 /**
  * Chargement PAR LOT de tout ce qu'il faut pour assembler une PAGE d'ordres de réparation
@@ -305,6 +310,166 @@ export function exigerClient(lot: LotListeOr, clientId: string): ClientResume {
 }
 
 export function exigerVehicule(lot: LotListeOr, vehiculeId: string): LigneVehicule {
+  const v = lot.vehicules.get(vehiculeId);
+  if (!v) throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Véhicule ${vehiculeId} introuvable.`);
+  return v;
+}
+
+// -------------------------------------------------------------------------------------------
+// Forme `resume` (`GET /ordres-reparation?forme=resume`) : 3 à 4 requêtes pour toute la page, au
+// lieu des ~11 du document complet. Rien n'est lu au-delà de ce que la liste affiche.
+// -------------------------------------------------------------------------------------------
+
+/** Mêmes statuts que `totaux-payeur.ts::STATUTS_EXCLUS_DES_TOTAUX` (une ligne annulée n'a jamais
+ *  eu lieu, une refusée n'a jamais été faite) — écrits en SQL pour l'agrégat ; le test d'identité
+ *  d'intégration compare au document complet pour garantir qu'ils ne divergent pas. */
+const STATUTS_EXCLUS_SQL = sql`${ligneOr.statut} not in ('annulee', 'refusee')`;
+
+/** Aperçu des désignations : mêmes bornes que `service-or.ts::SEUIL_DESIGNATIONS_APERCU`. */
+const NOMBRE_DESIGNATIONS_APERCU = 3;
+
+export interface AgregatLignesOr {
+  readonly nombreLignes: number;
+  readonly totalTtcCentimes: number;
+  readonly designationsApercu: readonly string[];
+  /** Technicien de la première ligne assignée (par `numero_ordre`), hors annulée/refusée. */
+  readonly technicienId: string | null;
+}
+
+export interface LotResumeListeOr {
+  readonly clients: ReadonlyMap<string, ClientResumeListe>;
+  readonly vehicules: ReadonlyMap<string, VehiculeResumeListe>;
+  readonly agregats: ReadonlyMap<string, AgregatLignesOr>;
+  readonly techniciens: ReadonlyMap<string, ResumeUtilisateur>;
+}
+
+const VEHICULE_ID = sql.raw('"vehicule"."id"');
+const VEHICULE_TENANT_ID = sql.raw('"vehicule"."tenant_id"');
+
+export async function chargerLotResumeListeOr(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  ors: readonly LigneOrdreReparation[],
+  voitMontants: boolean,
+): Promise<LotResumeListeOr> {
+  const t = ctx.tenantId;
+  const orIds = ors.map((o) => o.id);
+  const clientIds = unique(ors.map((o) => o.clientId));
+  const vehiculeIds = unique(ors.map((o) => o.vehiculeId));
+
+  const [clientsLignes, vehiculesLignes, agregatsLignes] = await Promise.all([
+    tx
+      .select({
+        id: client.id,
+        numero: client.numero,
+        type: client.type,
+        statut: client.statut,
+        nom: client.nom,
+        prenom: client.prenom,
+        raisonSociale: client.raisonSociale,
+      })
+      .from(client)
+      .where(and(eq(client.tenantId, t), inArray(client.id, clientIds))),
+    // Plaque COURANTE (`au is null`, la plus récemment ouverte) en sous-sélections scalaires : même
+    // règle que `chargerPlaqueCourante`, sans seconde requête.
+    tx
+      .select({
+        id: vehicule.id,
+        marque: vehicule.marque,
+        modele: vehicule.modele,
+        version: vehicule.version,
+        date1reCirculation: vehicule.date1reCirculation,
+        identificationIncomplete: vehicule.identificationIncomplete,
+        plaque: sql<string | null>`(
+          select vp.valeur from public.vehicule_plaque vp
+           where vp.tenant_id = ${VEHICULE_TENANT_ID} and vp.vehicule_id = ${VEHICULE_ID}
+             and vp.au is null
+           order by vp.du desc limit 1)`,
+        canton: sql<string | null>`(
+          select vp.canton from public.vehicule_plaque vp
+           where vp.tenant_id = ${VEHICULE_TENANT_ID} and vp.vehicule_id = ${VEHICULE_ID}
+             and vp.au is null
+           order by vp.du desc limit 1)`,
+      })
+      .from(vehicule)
+      .where(and(eq(vehicule.tenantId, t), inArray(vehicule.id, vehiculeIds))),
+    tx
+      .select({
+        ordreReparationId: ligneOr.ordreReparationId,
+        nombre: sql<number>`count(*)::int`,
+        totalTtc: voitMontants
+          ? sql<number>`coalesce(sum(${ligneOr.montantTtcCentimes}) filter (where ${STATUTS_EXCLUS_SQL}), 0)::int`
+          : sql<number>`0`,
+        designations: sql<
+          string[] | null
+        >`(array_agg(btrim(${ligneOr.designation}, E' \t\r\n') order by ${ligneOr.numeroOrdre}) filter (where ${STATUTS_EXCLUS_SQL} and btrim(coalesce(${ligneOr.designation}, ''), E' \t\r\n') <> ''))[1:${sql.raw(String(NOMBRE_DESIGNATIONS_APERCU))}]`,
+        technicienId: sql<
+          string | null
+        >`(array_agg(${ligneOr.technicienId} order by ${ligneOr.numeroOrdre}) filter (where ${ligneOr.technicienId} is not null and ${STATUTS_EXCLUS_SQL}))[1]`,
+      })
+      .from(ligneOr)
+      .where(and(eq(ligneOr.tenantId, t), inArray(ligneOr.ordreReparationId, orIds)))
+      .groupBy(ligneOr.ordreReparationId),
+  ]);
+
+  const agregats = new Map<string, AgregatLignesOr>(
+    agregatsLignes.map((a) => [
+      a.ordreReparationId,
+      {
+        nombreLignes: a.nombre,
+        totalTtcCentimes: a.totalTtc,
+        designationsApercu: a.designations ?? [],
+        technicienId: a.technicienId,
+      },
+    ]),
+  );
+  const techniciens = await chargerResumesUtilisateurs(
+    tx,
+    ctx,
+    [...agregats.values()].map((a) => a.technicienId),
+  );
+
+  return {
+    clients: new Map(
+      clientsLignes.map((c) => [
+        c.id,
+        {
+          id: c.id,
+          numeroClient: c.numero,
+          nomAffiche: nomAfficheClient(c),
+          type: c.type,
+          statut: c.statut,
+        },
+      ]),
+    ),
+    vehicules: new Map(
+      vehiculesLignes.map((v) => [
+        v.id,
+        {
+          id: v.id,
+          plaque: v.plaque,
+          canton: v.canton,
+          designation: designationVehicule(v),
+          premiereMiseEnCirculationLe: v.date1reCirculation,
+          identificationIncomplete: v.identificationIncomplete,
+        },
+      ]),
+    ),
+    agregats,
+    techniciens,
+  };
+}
+
+export function exigerClientListe(lot: LotResumeListeOr, clientId: string): ClientResumeListe {
+  const c = lot.clients.get(clientId);
+  if (!c) throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Client ${clientId} introuvable.`);
+  return c;
+}
+
+export function exigerVehiculeListe(
+  lot: LotResumeListeOr,
+  vehiculeId: string,
+): VehiculeResumeListe {
   const v = lot.vehicules.get(vehiculeId);
   if (!v) throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Véhicule ${vehiculeId} introuvable.`);
   return v;

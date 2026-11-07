@@ -16,14 +16,18 @@ import {
   ApiCookieAuth,
   ApiHeader,
   ApiOkResponse,
+  ApiExtraModels,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiResponse,
   ApiTags,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { z } from 'zod';
 import {
+  FORMES_LISTE_ORDRES_REPARATION,
   schemaCreationOrdreReparation,
   schemaDemandeOrdreReparation,
   schemaFiltresJournal,
@@ -50,18 +54,25 @@ import {
   ReponseEntreeJournalDto,
   ReponseOrdreReparationDemandeDto,
   ReponseOrdreReparationDto,
+  OrdreReparationResumeListeDto,
 } from './dto';
 import { etagOrdreReparation } from './ordre-reparation.etag';
 import { ServiceOr } from './service-or';
 
 const EnveloppeOrdreReparationDto = EnveloppeOrDto(ReponseOrdreReparationDto, 'OrdreReparation');
 const PageOrdreReparationDto = PageOrDto(ReponseOrdreReparationDto, 'OrdreReparation');
+const PageOrdreReparationResumeListeDto = PageOrDto(
+  OrdreReparationResumeListeDto,
+  'OrdreReparationResumeListe',
+);
 const PageEntreeJournalDto = PageOrDto(ReponseEntreeJournalDto, 'EntreeJournal');
 
 /** `?limite=&curseur=` fusionnés au filtre domaine — même pattern que `vehicules/vehicule.controller.ts`. */
 const schemaListeOrdresReparation = schemaFiltresOrdresReparation.extend({
   limite: z.coerce.number().int().min(1).max(200).default(50),
   curseur: z.string().max(512).optional(),
+  /** `complet` (défaut, rétrocompatible) : document complet ; `resume` : `OrdreReparationResumeListe`. */
+  forme: z.enum(FORMES_LISTE_ORDRES_REPARATION).default('complet'),
 });
 type EntreeListeOrdresReparation = z.infer<typeof schemaListeOrdresReparation>;
 
@@ -97,7 +108,24 @@ export class OrdreReparationController {
       'SOUS-ENSEMBLE des filtres du contrat au lot 1 (`siteId`, `statut`, `clientId`, `vehiculeId`) — ' +
       'voir `ServiceOr.lister` pour le détail des filtres non câblés (signalé, non silencieux).',
   })
-  @ApiOkResponse({ type: PageOrdreReparationDto })
+  @ApiExtraModels(PageOrdreReparationDto, PageOrdreReparationResumeListeDto)
+  @ApiQuery({
+    name: 'forme',
+    required: false,
+    enum: FORMES_LISTE_ORDRES_REPARATION,
+    description:
+      '`complet` (défaut) : document complet par élément. `resume` : résumé de liste ' +
+      '(`OrdreReparationResumeListe`), environ dix fois plus léger.',
+  })
+  @ApiOkResponse({
+    description: 'Page de documents complets (`forme=complet`) ou de résumés (`forme=resume`).',
+    schema: {
+      oneOf: [
+        { $ref: getSchemaPath(PageOrdreReparationDto) },
+        { $ref: getSchemaPath(PageOrdreReparationResumeListeDto) },
+      ],
+    },
+  })
   @ApiReponseProbleme(400, 'Filtres, tri ou curseur invalides.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant (rôle sans atelier.or.lire).')
@@ -106,7 +134,11 @@ export class OrdreReparationController {
   ) {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
-    const { limite, curseur, ...filtres } = query;
+    const { limite, curseur, forme, ...filtres } = query;
+    if (forme === 'resume') {
+      const page = await this.serviceOr.listerResumes(ctx, principal, filtres, limite, curseur);
+      return { donnees: page.donnees, curseurSuivant: page.curseurSuivant, limite };
+    }
     const { donnees, curseurSuivant } = await this.serviceOr.lister(
       ctx,
       principal,

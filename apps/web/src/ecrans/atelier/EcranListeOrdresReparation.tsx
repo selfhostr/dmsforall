@@ -9,7 +9,7 @@ import {
   TRI_DEFAUT_ORDRES_REPARATION,
   TRIS_ORDRES_REPARATION,
   type AttenteOrdreReparation,
-  type OrdreReparationResume,
+  type OrdreReparationResumeListe,
   type StatutOrdreReparation,
 } from '@dfa/shared';
 
@@ -156,7 +156,7 @@ export function EcranListeOrdresReparation() {
     setAttente(undefined);
   }
 
-  const colonnes: ColonneComptoir<OrdreReparationResume>[] = [
+  const colonnes: ColonneComptoir<OrdreReparationResumeListe>[] = [
     {
       id: 'numero',
       libelle: t('or:liste.colonnes.numero'),

@@ -5,7 +5,7 @@ import type { ClientResume, OrdreReparationResume, VehiculeResume } from '@dfa/s
 
 import { server } from '@/test/msw/server';
 
-import { listerOrdresReparation } from './ordres-reparation.api';
+import { listerOrdresReparation, listerResumesOrdresReparation } from './ordres-reparation.api';
 
 const VEHICULE_MEIER: VehiculeResume = {
   id: 'veh-meier-1',
@@ -103,5 +103,41 @@ describe('ordres-reparation.api — listerOrdresReparation — sérialisation de
     await listerOrdresReparation({ tri: 'ouvertLe:desc' }, { limite: 5 });
 
     expect(urlCapturee?.searchParams.has('vehiculeId')).toBe(false);
+  });
+});
+
+describe('ordres-reparation.api — listerResumesOrdresReparation', () => {
+  it('demande la forme résumé, sans perdre les filtres ni le curseur', async () => {
+    let urlCapturee: URL | undefined;
+    server.use(
+      http.get('/api/v1/ordres-reparation', ({ request }) => {
+        urlCapturee = new URL(request.url);
+        return HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 });
+      }),
+    );
+
+    await listerResumesOrdresReparation(
+      { q: 'meier', tri: 'ouvertLe:desc' },
+      { limite: 50, curseur: 'abc' },
+    );
+
+    expect(urlCapturee?.searchParams.get('forme')).toBe('resume');
+    expect(urlCapturee?.searchParams.get('q')).toBe('meier');
+    expect(urlCapturee?.searchParams.get('curseur')).toBe('abc');
+    expect(urlCapturee?.searchParams.get('limite')).toBe('50');
+  });
+
+  it('listerOrdresReparation ne demande PAS la forme résumé (autres écrans inchangés)', async () => {
+    let urlCapturee: URL | undefined;
+    server.use(
+      http.get('/api/v1/ordres-reparation', ({ request }) => {
+        urlCapturee = new URL(request.url);
+        return HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 5 });
+      }),
+    );
+
+    await listerOrdresReparation({ tri: 'ouvertLe:desc' }, { limite: 5 });
+
+    expect(urlCapturee?.searchParams.has('forme')).toBe(false);
   });
 });
