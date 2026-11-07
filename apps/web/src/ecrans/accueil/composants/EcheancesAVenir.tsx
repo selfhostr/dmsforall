@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
 import { ErreurReseau, messageErreur } from '@/api/erreurs';
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
@@ -57,7 +57,6 @@ export function EcheancesAVenir({ site }: Props) {
           <BellRing className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
           <CardTitle>{t('accueil:echeances.titre')}</CardTitle>
         </div>
-        <CardDescription>{t('accueil:echeances.description')}</CardDescription>
       </CardHeader>
       <div className="px-carte pb-carte">
         {sessionEnChargement ? (

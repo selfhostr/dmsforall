@@ -2832,7 +2832,7 @@ export interface paths {
     head?: never;
     /**
      * Modifie la raison sociale, l’assujettissement à la TVA, le n° TVA ou le délai de paiement du garage.
-     * @description `raisonSociale` : 1 à 200 caractères (espaces de bord retirés), journalisée dans le journal d'audit (avant/après). Le slug du garage ne change jamais. Les documents déjà émis gardent leur raison sociale ; les suivants prennent la nouvelle (sauf si le bloc créancier porte son propre nom, qui reste prioritaire et se change dans la facturation). Format IDE suisse `CHE-123.456.789 TVA` (`MWST`/`IVA` acceptés), clé de contrôle modulo 11 vérifiée. `numeroTva: null` efface le numéro. `assujettiTva: false` déclare le garage non assujetti : le numéro est vidé et les documents émis ensuite n’ont aucune TVA ; `assujettiTva: false` avec un `numeroTva` non nul (ou un numéro envoyé à un garage non assujetti) est refusé (`VALIDATION_ECHOUEE`, `erreurs[0].champ = numeroTva`). `assujettiTva: true` sans numéro est accepté, mais l’émission d’une facture exige alors le numéro (`TVA_NUMERO_REQUIS`). Chaque changement de raison sociale, d'assujettissement ou de numéro est journalisé (avant/après). Corps vide : aucun effet.
+     * @description `raisonSociale` : 1 à 200 caractères (espaces de bord retirés), journalisée dans le journal d'audit (avant/après). Le slug du garage ne change jamais. Les documents déjà émis gardent leur raison sociale ; les suivants prennent la nouvelle (sauf si le bloc créancier porte son propre nom, qui reste prioritaire et se change dans la facturation). Format IDE suisse `CHE-123.456.789 TVA` (`MWST`/`IVA` acceptés), clé de contrôle modulo 11 vérifiée. `numeroTva: null` efface le numéro. `assujettiTva: false` déclare le garage non assujetti : le numéro est vidé et les documents émis ensuite n’ont aucune TVA ; `assujettiTva: false` avec un `numeroTva` non nul (ou un numéro envoyé à un garage non assujetti) est refusé (`VALIDATION_ECHOUEE`, `erreurs[0].champ = numeroTva`). `assujettiTva: true` sans numéro est accepté, mais l’émission d’une facture exige alors le numéro (`TVA_NUMERO_REQUIS`). Chaque changement de raison sociale, d'assujettissement ou de numéro est journalisé (avant/après). `modeSignalement` (`via_site`, `copie_seule`, `desactive`) règle le bouton « Signaler un problème » ; son changement est journalisé. Corps vide : aucun effet.
      */
     patch: operations['ParametresEntrepriseController_modifier'];
     trace?: never;
@@ -2857,6 +2857,30 @@ export interface paths {
     options?: never;
     head?: never;
     patch?: never;
+    trace?: never;
+  };
+  '/parametres-entreprise/modules': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Modules retirés et modules actifs du garage.
+     * @description `modulesDesactives` : le choix du garage. `modulesActifs` : ce qui fonctionne réellement (pointage dépend de atelier, tablettes de pointage). Les mêmes `modulesActifs` sont dans `GET /auth/moi`.
+     */
+    get: operations['ModulesController_obtenir'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Remplace la liste des modules retirés par le garage.
+     * @description `modulesDesactives` est la liste COMPLÈTE des modules retirés (`[]` : tout est actif). Les écritures d’un module retiré, ou dont une dépendance est retirée, répondent ensuite `403 MODULE_DESACTIVE` ; les lectures restent possibles. Aucune donnée n’est supprimée : réactiver restaure tout. Le changement est journalisé (avant/après).
+     */
+    patch: operations['ModulesController_modifier'];
     trace?: never;
   };
   '/parametres-facturation/creancier': {
@@ -6993,7 +7017,8 @@ export interface components {
         | 'AUTH_JETON_REINITIALISATION_INVALIDE'
         | 'FACTURE_DESTINATAIRE_COURRIEL_ABSENT'
         | 'TVA_NON_ASSUJETTI_TAUX_INTERDIT'
-        | 'TVA_NUMERO_REQUIS';
+        | 'TVA_NUMERO_REQUIS'
+        | 'MODULE_DESACTIVE';
       /** @description Détail technique — jamais affiché à l'utilisateur final. */
       detail?: string;
       erreurs?: components['schemas']['ErreurChampCommunDto'][];
@@ -7137,7 +7162,8 @@ export interface components {
         | 'AUTH_JETON_REINITIALISATION_INVALIDE'
         | 'FACTURE_DESTINATAIRE_COURRIEL_ABSENT'
         | 'TVA_NON_ASSUJETTI_TAUX_INTERDIT'
-        | 'TVA_NUMERO_REQUIS';
+        | 'TVA_NUMERO_REQUIS'
+        | 'MODULE_DESACTIVE';
       detail?: string;
       erreurs?: components['schemas']['ErreurChampDto'][];
       instance: string;
@@ -8049,6 +8075,39 @@ export interface components {
     ReponseModelesVehiculesChDto: {
       modeles: components['schemas']['ModeleVehiculeChDto'][];
     };
+    ReponseModulesDto: {
+      /** @description Modules effectivement actifs (choix du garage et dépendances). Les écritures des autres répondent `403 MODULE_DESACTIVE`. */
+      modulesActifs: (
+        | 'atelier'
+        | 'planning'
+        | 'pointage'
+        | 'tablettes'
+        | 'pieces'
+        | 'ventes'
+        | 'pneus'
+        | 'courtoisie'
+        | 'relances'
+        | 'export_fiduciaire'
+      )[];
+      /**
+       * @description Modules retirés par le garage (son choix). Un module dont une dépendance est retirée est inactif sans figurer ici.
+       * @example [
+       *       "pneus"
+       *     ]
+       */
+      modulesDesactives: (
+        | 'atelier'
+        | 'planning'
+        | 'pointage'
+        | 'tablettes'
+        | 'pieces'
+        | 'ventes'
+        | 'pneus'
+        | 'courtoisie'
+        | 'relances'
+        | 'export_fiduciaire'
+      )[];
+    };
     ReponseMotifRendezVousDto: {
       actif: boolean;
       /** @example SERVICE */
@@ -8302,6 +8361,12 @@ export interface components {
        * @example 30
        */
       delaiPaiementJoursDefaut: number;
+      /**
+       * @description Réglage « Signalements » : `via_site` (défaut) ouvre le site pour terminer le signalement, `copie_seule` ne propose que la copie du rapport, `desactive` retire le bouton « Signaler un problème ».
+       * @example via_site
+       * @enum {string}
+       */
+      modeSignalement: 'via_site' | 'copie_seule' | 'desactive';
       /**
        * @description N° IDE avec mention TVA (CHE-123.456.789 TVA, MWST ou IVA), clé de contrôle vérifiée. `null` : numéro pas encore saisi, ou garage non assujetti.
        * @example CHE-116.281.710 TVA
@@ -9039,6 +9104,19 @@ export interface components {
       capacites: components['schemas']['CapacitesPersonneDto'];
       /** Format: date-time */
       expireLe: string;
+      /** @description Modules effectivement actifs pour le garage (Réglages > Modules). Le front masque menus, routes et raccourcis des autres ; le serveur refuse leurs écritures (`MODULE_DESACTIVE`). */
+      modulesActifs: (
+        | 'atelier'
+        | 'planning'
+        | 'pointage'
+        | 'tablettes'
+        | 'pieces'
+        | 'ventes'
+        | 'pneus'
+        | 'courtoisie'
+        | 'relances'
+        | 'export_fiduciaire'
+      )[];
       /** Format: uuid */
       siteRattachementId: string | null;
       sites: components['schemas']['SiteResumeDto'][];
@@ -9142,6 +9220,8 @@ export interface components {
       id: string;
       /** @enum {string} */
       langueDefaut: 'fr' | 'de' | 'it';
+      /** @enum {string} */
+      modeSignalement: 'via_site' | 'copie_seule' | 'desactive';
       /** @example Garage du Léman Sàrl */
       raisonSociale: string;
       /** @example garage-du-leman */
@@ -21922,6 +22002,8 @@ export interface operations {
         'application/json': {
           assujettiTva?: boolean;
           delaiPaiementJoursDefaut?: number;
+          /** @enum {string} */
+          modeSignalement?: 'via_site' | 'copie_seule' | 'desactive';
           numeroTva?: string | null;
           raisonSociale?: string;
         };
@@ -22104,6 +22186,106 @@ export interface operations {
         };
       };
       /** @description DROIT_INSUFFISANT — réservé à direction/comptable. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  ModulesController_obtenir: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseModulesDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description DROIT_INSUFFISANT. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  ModulesController_modifier: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          modulesDesactives: (
+            | 'atelier'
+            | 'planning'
+            | 'pointage'
+            | 'tablettes'
+            | 'pieces'
+            | 'ventes'
+            | 'pneus'
+            | 'courtoisie'
+            | 'relances'
+            | 'export_fiduciaire'
+          )[];
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseModulesDto'];
+        };
+      };
+      /** @description VALIDATION_ECHOUEE — module inconnu. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description DROIT_INSUFFISANT. */
       403: {
         headers: {
           [name: string]: unknown;

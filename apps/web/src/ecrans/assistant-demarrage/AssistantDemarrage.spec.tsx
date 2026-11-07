@@ -5,6 +5,8 @@ import { http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { MODULES_APP, modulesActifsDepuis, type ModuleApp } from '@dfa/shared';
+
 import '@/i18n';
 import i18n from '@/i18n';
 
@@ -47,6 +49,16 @@ function simulerApi(): Appel[] {
         },
       }),
     ),
+    http.get(`${API}/parametres-entreprise/modules`, () =>
+      HttpResponse.json({ modulesDesactives: [], modulesActifs: [...MODULES_APP] }),
+    ),
+    http.patch(`${API}/parametres-entreprise/modules`, async ({ request }) => {
+      const corps = (await noter(request)) as { modulesDesactives: ModuleApp[] };
+      return HttpResponse.json({
+        modulesDesactives: corps.modulesDesactives,
+        modulesActifs: modulesActifsDepuis(corps.modulesDesactives),
+      });
+    }),
     http.get(`${API}/parametres-entreprise`, () =>
       HttpResponse.json({
         raisonSociale: 'Garage Test SA',
@@ -160,6 +172,12 @@ const enregistrer = () => bouton(t('assistant:actions.enregistrerContinuer'));
 const titreEtape = (id: string) =>
   screen.findByRole('heading', { name: t(`assistant:etapes.${id}.titre`), level: 3 });
 
+/** Étape « Ce que vous utilisez » : on la traverse sans toucher aux interrupteurs (rien n'est écrit). */
+async function passerModules() {
+  await titreEtape('modules');
+  await userEvent.click(await enregistrer());
+}
+
 async function remplirGarage() {
   await userEvent.type(await screen.findByLabelText(t('assistant:garage.rue')), 'Rue du Lac');
   await userEvent.type(screen.getByLabelText(t('assistant:garage.npa')), '1950');
@@ -182,7 +200,7 @@ describe('AssistantDemarrage', () => {
 
     await remplirGarage();
     await userEvent.click(await enregistrer());
-
+    await passerModules();
     await titreEtape('paiements');
     expect(ecrit(appels, 'PATCH', '/parametres-facturation/creancier')[0]?.corps).toEqual({
       nom: 'Garage Test SA',
@@ -203,6 +221,7 @@ describe('AssistantDemarrage', () => {
     await userEvent.type(raison, '  Garage du Lac Sàrl ');
     await remplirGarage();
     await userEvent.click(await enregistrer());
+    await passerModules();
     await titreEtape('paiements');
     expect(ecrit(appels, 'PATCH', '/parametres-entreprise')[0]?.corps).toEqual({
       raisonSociale: 'Garage du Lac Sàrl',
@@ -263,6 +282,7 @@ describe('AssistantDemarrage', () => {
     await userEvent.click(screen.getByRole('radio', { name: t('assistant:garage.tva.non') }));
     expect(screen.queryByLabelText(t('assistant:garage.tva.numero'))).toBeNull();
     await userEvent.click(await enregistrer());
+    await passerModules();
     await titreEtape('paiements');
     expect(ecrit(appels, 'PATCH', '/parametres-entreprise')[0]?.corps).toEqual({ numeroTva: null });
   });
@@ -277,6 +297,7 @@ describe('AssistantDemarrage', () => {
       'CHE-116.281.710 TVA',
     );
     await userEvent.click(await enregistrer());
+    await passerModules();
     await titreEtape('paiements');
     expect(ecrit(appels, 'PATCH', '/parametres-entreprise')[0]?.corps).toEqual({
       numeroTva: 'CHE-116.281.710 TVA',
@@ -289,7 +310,11 @@ describe('AssistantDemarrage', () => {
     await remplirGarage();
     await userEvent.click(await enregistrer());
 
-    // 2. Paiements : un QR-IBAN est rangé dans « qrIban ».
+    // 2. Ce que vous utilisez : tout reste activé, rien n'est écrit.
+    await passerModules();
+    expect(ecrit(appels, 'PATCH', '/parametres-entreprise/modules')).toHaveLength(0);
+
+    // 3. Paiements : un QR-IBAN est rangé dans « qrIban ».
     await titreEtape('paiements');
     await userEvent.type(
       screen.getByLabelText(t('assistant:paiements.iban')),
@@ -302,7 +327,7 @@ describe('AssistantDemarrage', () => {
       iban: null,
     });
 
-    // 3. Atelier : taux prérempli 140.00, 8 motifs cochés, heures d'ouverture.
+    // 4. Atelier : taux prérempli 140.00, 8 motifs cochés, heures d'ouverture.
     const taux = await screen.findByLabelText(t('assistant:atelier.tauxHoraire'));
     expect(taux).toHaveValue('140.00');
     fireEvent.change(screen.getByLabelText(t('assistant:atelier.ouverture')), {
@@ -324,10 +349,10 @@ describe('AssistantDemarrage', () => {
     expect(motifs).toHaveLength(7);
     expect(motifs).not.toContain('DEVIS');
 
-    // 4. Logo : facultatif.
+    // 5. Logo : facultatif.
     await userEvent.click(await bouton(t('assistant:actions.passer')));
 
-    // 5. Équipe : un compte, le mot de passe temporaire est montré.
+    // 6. Équipe : un compte, le mot de passe temporaire est montré.
     await titreEtape('equipe');
     await userEvent.type(screen.getByLabelText(t('assistant:equipe.prenom')), 'Marc');
     await userEvent.type(screen.getByLabelText(t('assistant:equipe.nom')), 'Rey');
@@ -343,7 +368,7 @@ describe('AssistantDemarrage', () => {
     });
     await userEvent.click(await bouton(t('assistant:equipe.continuer')));
 
-    // 6. Terminé : récapitulatif et trois suites.
+    // 7. Terminé : récapitulatif et trois suites.
     await titreEtape('termine');
     expect(
       await screen.findByRole('region', { name: t('assistant:etapes.termine.titre') }),
@@ -356,11 +381,50 @@ describe('AssistantDemarrage', () => {
     expect(onFermer).toHaveBeenCalledTimes(1);
   });
 
+  it('étape modules : retirer un module l’enregistre tel quel, et les dépendances s’affichent', async () => {
+    const appels = simulerApi();
+    rendre();
+    await remplirGarage();
+    await userEvent.click(await enregistrer());
+    await titreEtape('modules');
+
+    // Tout est activé au départ.
+    const atelier = await screen.findByRole('switch', {
+      name: t('parametrage:modules.items.atelier.nom'),
+    });
+    expect(atelier).toBeChecked();
+    expect(
+      screen.getByText(
+        t('parametrage:modules.retireAussi', {
+          modules: [
+            t('parametrage:modules.items.pointage.nom'),
+            t('parametrage:modules.items.tablettes.nom'),
+          ].join(', '),
+        }),
+      ),
+    ).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole('switch', { name: t('parametrage:modules.items.pneus.nom') }),
+    );
+    await userEvent.click(atelier);
+    // Atelier retiré : pointage et tablettes sont bloqués, la dépendance est écrite sur la ligne.
+    expect(
+      screen.getByRole('switch', { name: t('parametrage:modules.items.pointage.nom') }),
+    ).toBeDisabled();
+    await userEvent.click(await enregistrer());
+    await titreEtape('paiements');
+    expect(ecrit(appels, 'PATCH', '/parametres-entreprise/modules')[0]?.corps).toEqual({
+      modulesDesactives: ['atelier', 'pneus'],
+    });
+  });
+
   it('« Je n’encaisse qu’au comptant » : aucun compte enregistré', async () => {
     const appels = simulerApi();
     rendre();
     await remplirGarage();
     await userEvent.click(await enregistrer());
+    await passerModules();
     await titreEtape('paiements');
     await userEvent.click(
       screen.getByRole('checkbox', { name: t('assistant:paiements.comptant') }),
@@ -376,7 +440,10 @@ describe('AssistantDemarrage', () => {
     rendre();
     await remplirGarage();
     await userEvent.click(await enregistrer());
+    await passerModules();
     await titreEtape('paiements');
+    await userEvent.click(await bouton(t('assistant:actions.retour')));
+    await titreEtape('modules');
     await userEvent.click(await bouton(t('assistant:actions.retour')));
     await titreEtape('garage');
     expect(await screen.findByLabelText(t('assistant:garage.localite'))).toHaveValue('Sion');
@@ -407,7 +474,16 @@ describe('AssistantDemarrage', () => {
   it('« Quitter pour l’instant » ferme sans rien exiger', async () => {
     simulerApi();
     const onFermer = rendre();
+    // Attendre le formulaire : pendant le chargement le pied réduit porte déjà « Quitter », puis
+    // se remplace par le pied complet — cliquer entre les deux perdrait le clic.
+    await screen.findByLabelText(t('assistant:garage.rue'));
     await userEvent.click(await bouton(t('assistant:actions.quitter')));
     expect(onFermer).toHaveBeenCalledTimes(1);
+  });
+
+  it('« Quitter pour l’instant » reste proposé pendant le chargement de l’étape', async () => {
+    simulerApi();
+    rendre();
+    expect(await bouton(t('assistant:actions.quitter'))).toBeInTheDocument();
   });
 });

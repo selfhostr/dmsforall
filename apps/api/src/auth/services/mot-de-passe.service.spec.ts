@@ -48,6 +48,9 @@ describe('ServiceMotDePasseArgon2id', () => {
   it("verifierLeurre() a un coût CPU du même ordre de grandeur qu'un verifier() réel", async () => {
     const service = new ServiceMotDePasseArgon2id(configTest());
     const hash = await service.hacher('mot-de-passe-de-reference');
+    // Échauffement : le premier verify() paie l'allocation mémoire argon2 à froid (≈1 s sous charge
+    // de la suite complète), ce qui faussait la comparaison sans rien dire du coût réel.
+    await service.verifier(hash, 'echauffement');
 
     const debutVerifier = performance.now();
     await service.verifier(hash, 'mauvaise-tentative');

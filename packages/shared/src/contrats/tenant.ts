@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { MODES_SIGNALEMENT, type ModeSignalement } from './enums';
+
 /**
  * Identité fiscale du garage (`GET|PATCH /parametres-entreprise`).
  *
@@ -54,6 +56,9 @@ export const schemaModificationParametresEntreprise = z.object({
   /** Délai de paiement par défaut (jours) des factures d'un client sans condition de paiement
    *  propre (`tenant.delai_paiement_jours_defaut`). Entier 0–365 ; absent = inchangé. */
   delaiPaiementJoursDefaut: z.number().int().min(0).max(365).optional(),
+  /** Réglage « Signalements » : `via_site` (défaut), `copie_seule` (pas de bouton « Continuer sur
+   *  le site »), `desactive` (entrée de menu retirée). Absent = inchangé. */
+  modeSignalement: z.enum(MODES_SIGNALEMENT).optional(),
 });
 
 export interface ReponseParametresEntreprise {
@@ -65,6 +70,8 @@ export interface ReponseParametresEntreprise {
   readonly numeroTva: string | null;
   /** Délai de paiement par défaut, en jours (30 tant que le garage n'a rien choisi). */
   readonly delaiPaiementJoursDefaut: number;
+  /** Réglage « Signalements » (`via_site` tant que le garage n'a rien choisi). */
+  readonly modeSignalement: ModeSignalement;
 }
 
 /** Taille maximale du logo d'entreprise (`PUT /parametres-entreprise/logo`) : 1 Mo. */

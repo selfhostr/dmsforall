@@ -22,9 +22,11 @@ import { ApiReponseProbleme } from '../../common/erreurs';
 import { PipeZod } from '../../common/validation';
 
 import { ServiceImpressionDevis } from './service-impression-devis';
+import { ExigerModule } from '../../common/droits/garde-module';
 
 @ApiTags('Ordres de réparation — devis complémentaires')
 @ApiCookieAuth()
+@ExigerModule('atelier')
 @Controller({ path: 'ordres-reparation', version: '1' })
 @UseGuards(GardeDroit)
 export class ImpressionDevisController {

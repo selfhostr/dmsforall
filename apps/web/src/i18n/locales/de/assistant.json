@@ -25,6 +25,10 @@
     "garage": {
       "titre": "Ihr Betrieb"
     },
+    "modules": {
+      "titre": "Was Sie nutzen",
+      "intro": "Entfernen Sie, was Ihre Garage nicht nutzt. Sie können das später unter Einstellungen > Module ändern."
+    },
     "paiements": {
       "titre": "Zahlungen"
     },

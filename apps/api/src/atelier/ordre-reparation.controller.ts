@@ -58,6 +58,7 @@ import {
 } from './dto';
 import { etagOrdreReparation } from './ordre-reparation.etag';
 import { ServiceOr } from './service-or';
+import { ExigerModule } from '../common/droits/garde-module';
 
 const EnveloppeOrdreReparationDto = EnveloppeOrDto(ReponseOrdreReparationDto, 'OrdreReparation');
 const PageOrdreReparationDto = PageOrDto(ReponseOrdreReparationDto, 'OrdreReparation');
@@ -91,6 +92,7 @@ type EntreeListeJournal = z.infer<typeof schemaListeJournal>;
  */
 @ApiTags('Ordres de réparation')
 @ApiCookieAuth()
+@ExigerModule('atelier')
 @Controller({ path: 'ordres-reparation', version: '1' })
 @UseGuards(GardeDroit)
 export class OrdreReparationController {

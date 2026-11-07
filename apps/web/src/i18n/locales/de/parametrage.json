@@ -462,5 +462,85 @@
       "titre": "Zu ergänzen",
       "adresse": "Die Adresse der Garage (Strasse, Nr., PLZ, Ort)"
     }
+  },
+  "signalements": {
+    "titre": "Meldungen",
+    "modes": {
+      "via_site": "Über die Website senden",
+      "copie_seule": "Nur kopieren",
+      "desactive": "Deaktiviert"
+    },
+    "aide": {
+      "via_site": "Die Schaltfläche «Problem melden» öffnet die dmsforall-Website, um die Meldung abzuschliessen – ohne GitHub-Konto.",
+      "copie_seule": "Die Meldung wird kopiert und von Hand weitergegeben: die Schaltfläche «Weiter auf der Website» erscheint nicht.",
+      "desactive": "Der Eintrag «Problem melden» erscheint nicht mehr im Profilmenü."
+    },
+    "enregistre": "Einstellung gespeichert.",
+    "erreur": {
+      "titre": "Die Einstellung für Meldungen konnte nicht geladen werden"
+    }
+  },
+  "modules": {
+    "titre": "Module",
+    "carte": {
+      "titre": "Was Ihre Garage nutzt",
+      "description": "Entfernen Sie, was Sie nicht nutzen: Die Menüs verschwinden für alle. Nichts wird gelöscht, die Reaktivierung stellt alles wieder her."
+    },
+    "socle": "Immer vorhanden: Startseite, Kunden und Fahrzeuge, Fakturierung, Einstellungen.",
+    "etat": {
+      "actif": "Aktiv",
+      "retire": "Entfernt"
+    },
+    "necessite": "Benötigt: {modules}",
+    "bloque": "Nicht verfügbar: {modules} ist entfernt.",
+    "retireAussi": "Entfernt auch: {modules}",
+    "toast": {
+      "enregistre": "Module gespeichert"
+    },
+    "erreur": {
+      "titre": "Die Module konnten nicht geladen werden"
+    },
+    "items": {
+      "atelier": {
+        "nom": "Werkstatt",
+        "description": "Reparaufträge und Werkstattofferten."
+      },
+      "planning": {
+        "nom": "Planung und Termine",
+        "description": "Werkstattagenda und Terminvergabe."
+      },
+      "pointage": {
+        "nom": "Zeiterfassung",
+        "description": "Stunden der Mechaniker pro Auftrag."
+      },
+      "tablettes": {
+        "nom": "Werkstatt-Tablets",
+        "description": "Wandterminals zur Zeiterfassung in der Werkstatt."
+      },
+      "pieces": {
+        "nom": "Teile und Lager",
+        "description": "Artikel, Lagerbestand und Lieferantenbestellungen."
+      },
+      "ventes": {
+        "nom": "Verkauf NW/GW",
+        "description": "Verkaufsdossiers, Fahrzeuglager, Inzahlungnahmen."
+      },
+      "pneus": {
+        "nom": "Reifenhotel",
+        "description": "Eingelagerte Reifensätze der Kunden."
+      },
+      "courtoisie": {
+        "nom": "Ersatzfahrzeuge",
+        "description": "Ausgabe und Rückgabe von Ersatzfahrzeugen."
+      },
+      "relances": {
+        "nom": "Zahlungserinnerungen",
+        "description": "Mahnungen für fällige Rechnungen."
+      },
+      "export_fiduciaire": {
+        "nom": "Treuhand-Export",
+        "description": "Übergabe der Buchungen an die Treuhand."
+      }
+    }
   }
 }

@@ -3,7 +3,7 @@
     "aria": "Navigation principale"
   },
   "entrees": {
-    "aujourdhui": "Aujourd'hui",
+    "aujourdhui": "Tableau de bord",
     "atelier": "Atelier",
     "clientsVehicules": "Clients & véhicules",
     "pieces": "Pièces",
@@ -56,7 +56,8 @@
     "reglagesPieces": "Pièces",
     "reglagesUtilisateurs": "Utilisateurs",
     "reglagesRelances": "Rappels de paiement",
-    "atelierCourtoisie": "Courtoisie"
+    "atelierCourtoisie": "Courtoisie",
+    "reglagesModules": "Modules"
   },
   "liens": {
     "clients": "Clients",
@@ -106,5 +107,8 @@
   },
   "rangee": {
     "aria": "Réglages rapides"
+  },
+  "signalement": {
+    "entree": "Signaler un problème"
   }
 }

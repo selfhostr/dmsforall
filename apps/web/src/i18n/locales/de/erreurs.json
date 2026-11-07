@@ -34,6 +34,7 @@
     "AUTH_TROP_DE_TENTATIVES": "Zu viele Versuche. Versuchen Sie es in {minutes, plural, one {# Minute} other {# Minuten}} erneut.",
     "AUTH_ORIGINE_REFUSEE": "Anfrage aus Sicherheitsgründen blockiert. Laden Sie die Seite neu; wenn es sich wiederholt, informieren Sie den Support.",
     "DROIT_INSUFFISANT": "Ihre Rolle erlaubt diese Aktion nicht. Bitten Sie die Geschäftsleitung um Freigabe oder lassen Sie einen berechtigten Kollegen handeln.",
+    "MODULE_DESACTIVE": "Dieses Modul ist für Ihre Garage entfernt. Die Geschäftsleitung kann es unter Einstellungen > Module wieder aktivieren.",
     "RESSOURCE_INTROUVABLE": "Dieses Element existiert nicht mehr oder wurde gelöscht. Gehen Sie zurück zur Liste und suchen Sie es erneut.",
     "CONFLIT": "Dieses Element wurde inzwischen von jemand anderem geändert. Laden Sie die Seite neu und wiederholen Sie Ihre Änderung.",
     "ERREUR_INTERNE": "Ein unerwartetes Problem ist aufgetreten. Versuchen Sie es gleich nochmals; falls es wiederkommt, informieren Sie den Support mit der Uhrzeit.",

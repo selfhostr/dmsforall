@@ -3,8 +3,8 @@ import { useTranslation } from 'react-i18next';
 
 import type { ReponseVehiculeDetention } from '@dfa/shared';
 
-import { Badge } from '@/components/ui/badge';
 import { EtatVide } from '@/composants/commun/EtatVide';
+import { BadgeStatut } from '@/composants/identite/BadgeStatut';
 import { formaterDate } from '@/lib/formats';
 
 export interface ProprietesFriseDetentions {
@@ -18,7 +18,7 @@ export function FriseDetentions({ detentions, className }: ProprietesFriseDetent
   const { t } = useTranslation('vehicules');
 
   if (detentions.length === 0) {
-    return <EtatVide titre={t('detentions.titre')} description={t('vide.detentions')} />;
+    return <EtatVide description={t('vide.detentions')} />;
   }
 
   return (
@@ -45,12 +45,9 @@ export function FriseDetentions({ detentions, className }: ProprietesFriseDetent
               ) : null}
             </div>
             {courante ? (
-              <Badge
-                variant="outline"
-                className="ml-auto border-statut-succes/40 text-statut-succes"
-              >
+              <BadgeStatut icone={User} token="succes" forme="contour" className="ml-auto">
                 {t('detentions.detenteur')}
-              </Badge>
+              </BadgeStatut>
             ) : null}
           </li>
         );

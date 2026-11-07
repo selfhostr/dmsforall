@@ -22,6 +22,7 @@ import {
   EcranDoublonsClients,
   EcranConsolePlateforme,
   EcranParametragePieces,
+  EcranModules,
   EcranParametrageAtelier,
   EcranChiffres,
   EcranExportFiduciaire,
@@ -81,6 +82,7 @@ import {
   ACCES_POINTAGE,
   ACCES_CHIFFRES,
   ACCES_MENU_FINANCIER,
+  ACCES_MENU_PARAMETRAGE_ATELIER,
   ACCES_RELANCES,
   ACCES_SCAN,
   ACCES_TABLEAU_BORD_ACTIVITE,
@@ -343,6 +345,15 @@ export const routesConfig: RouteObject[] = [
       // `rolesAutorises` ici en croyant « rétablir la sécurité ».
       { path: 'parametrage/referentiels', element: <EcranReferentiels /> },
       { path: 'parametrage/atelier', element: <EcranParametrageAtelier /> },
+      // Réglages > Modules : même garde que le menu (`ACCES_MENU_PARAMETRAGE_ATELIER`), l'API répond 403 sinon.
+      {
+        path: 'parametrage/modules',
+        element: (
+          <RouteProtegee accesAutorise={ACCES_MENU_PARAMETRAGE_ATELIER}>
+            <EcranModules />
+          </RouteProtegee>
+        ),
+      },
       // `EcranSites` lit `?site=` pour choisir le site à paramétrer (voir `chemins.parametrage.sites`) —
       // même mécanisme que `clients`/`vehicules`, à la différence des deux routes précédentes (singletons
       // par tenant). L'écran gère lui-même l'absence de `?site=` (repli honnête), pas un paramètre de

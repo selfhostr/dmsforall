@@ -315,10 +315,7 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
         ) : null}
 
         {travaux.length === 0 ? (
-          <EtatVide
-            titre={t('vehicules:travauxReportes.titre')}
-            description={t('vehicules:travauxReportes.vide.aucun')}
-          />
+          <EtatVide description={t('vehicules:travauxReportes.vide.aucun')} />
         ) : (
           <Tabs value={onglet} onValueChange={(valeur) => setOnglet(valeur as Onglet)}>
             <TabsList>
@@ -332,10 +329,7 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
             {ONGLETS.map((cle) => (
               <TabsContent key={cle} value={cle}>
                 {travauxOnglet.length === 0 ? (
-                  <EtatVide
-                    titre={t('vehicules:travauxReportes.titre')}
-                    description={t('vehicules:travauxReportes.vide.onglet')}
-                  />
+                  <EtatVide description={t('vehicules:travauxReportes.vide.onglet')} />
                 ) : (
                   <ul className="flex flex-col divide-y">
                     {travauxOnglet.map((travail) => {

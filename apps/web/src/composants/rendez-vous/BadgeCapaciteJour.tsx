@@ -117,7 +117,7 @@ export function BadgeCapaciteJour({
           icone={config.icone}
           token={config.token}
           forme={config.forme}
-          className={cn('max-w-full', className)}
+          className={cn('max-w-full items-start rounded-lg py-1 text-left', className)}
         >
           {/* PAS de `items-start` ici : sur un flex-col, il fait revenir EXACTEMENT le même piège
               que le wrapper englobant (ci-dessus) — chaque ligne reprendrait sa largeur de
@@ -125,8 +125,8 @@ export function BadgeCapaciteJour({
               largeur de référence pour tronquer. Défaut `stretch` : chaque ligne suit la largeur
               du badge, `min-w-0` sur chacune l'autorise à rétrécir sous son propre contenu. */}
           <span className="flex min-w-0 flex-col leading-tight">
-            <span className="min-w-0 truncate">{libelleEtat}</span>
-            {libelleResume ? <span className="min-w-0 truncate">{libelleResume}</span> : null}
+            <span className="min-w-0 break-words">{libelleEtat}</span>
+            {libelleResume ? <span className="min-w-0 break-words">{libelleResume}</span> : null}
           </span>
         </BadgeStatut>
       </span>

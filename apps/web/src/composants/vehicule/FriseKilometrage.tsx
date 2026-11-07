@@ -33,7 +33,7 @@ export function FriseKilometrage({ releves, className }: ProprietesFriseKilometr
   const { t } = useTranslation('vehicules');
 
   if (releves.length === 0) {
-    return <EtatVide titre={t('kilometrage.titre')} description={t('vide.kilometrage')} />;
+    return <EtatVide description={t('vide.kilometrage')} />;
   }
 
   return (

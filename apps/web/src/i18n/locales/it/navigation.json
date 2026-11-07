@@ -3,7 +3,7 @@
     "aria": "Navigazione principale"
   },
   "entrees": {
-    "aujourdhui": "Oggi",
+    "aujourdhui": "Cruscotto",
     "atelier": "Officina",
     "clientsVehicules": "Clienti e veicoli",
     "pieces": "Ricambi",
@@ -56,7 +56,8 @@
     "reglagesPieces": "Ricambi",
     "reglagesUtilisateurs": "Utenti",
     "reglagesRelances": "Solleciti di pagamento",
-    "atelierCourtoisie": "Auto di cortesia"
+    "atelierCourtoisie": "Auto di cortesia",
+    "reglagesModules": "Moduli"
   },
   "liens": {
     "clients": "Clienti",
@@ -106,5 +107,8 @@
   },
   "rangee": {
     "aria": "Impostazioni rapide"
+  },
+  "signalement": {
+    "entree": "Segnala un problema"
   }
 }

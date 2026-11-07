@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router';
 
 import type { RoleUtilisateur } from '@dfa/shared';
 
+import { cheminDansModuleRetire } from '@/composants/layout/navigation-modele';
 import { peutUne } from '@/droits';
 import { useSession } from '@/hooks/useSession';
 import { EcranServiceIndisponible } from '@/ecrans/systeme/EcranServiceIndisponible';
@@ -84,6 +85,11 @@ export function RouteProtegee({ children, accesAutorise, redirectionParRole }: P
   if (accesAutorise && !peutUne(data.actions, ...accesAutorise)) {
     return <EcranAccesRefuse />;
   }
+  // Module retiré par le garage (Réglages > Modules) : la route n'existe plus pour personne. Le
+  // module d'une URL vient du modèle de navigation — un seul endroit, aucune route à annoter.
+  if (cheminDansModuleRetire(location.pathname, data.modulesActifs)) {
+    return <Navigate to="/" replace />;
+  }
   const brute = redirectionParRole?.[data.utilisateur.role];
   const destinationRedirection =
     typeof brute === 'object' && !peutUne(data.actions, ...brute.acces)
@@ -91,7 +97,12 @@ export function RouteProtegee({ children, accesAutorise, redirectionParRole }: P
       : typeof brute === 'object'
         ? brute.chemin
         : brute;
-  if (destinationRedirection) {
+  // Un atterrissage vers un module retiré (ex. la borne quand les tablettes le sont) ne redirige
+  // pas : l'accueil s'affiche, sans boucle `/` -> destination -> `/`.
+  if (
+    destinationRedirection &&
+    !cheminDansModuleRetire(destinationRedirection.split('?')[0] ?? '', data.modulesActifs)
+  ) {
     return <Navigate to={destinationRedirection} replace />;
   }
   return <>{children}</>;

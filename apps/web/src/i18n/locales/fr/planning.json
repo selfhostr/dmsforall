@@ -21,7 +21,7 @@
   "site": {
     "manquant": {
       "titre": "Choisissez un site",
-      "description": "Choisissez un site ci-dessous, ou avec le sélecteur de site en haut à droite de l’écran, pour voir son agenda de rendez-vous."
+      "description": "Choisissez un site pour voir son agenda de rendez-vous."
     }
   },
   "vide": {

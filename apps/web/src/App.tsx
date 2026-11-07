@@ -10,6 +10,7 @@ import { SynchronisationDensite } from '@/composants/commun/SynchronisationDensi
 import { SynchronisationLangue } from '@/composants/commun/SynchronisationLangue';
 import { FiletErreurMutation } from '@/composants/motifs/FiletErreurMutation';
 import { ToastsSucces } from '@/composants/motifs/ToastsSucces';
+import { enregistrerErreur } from '@/diagnostic/tampon';
 import { EcranErreurFatale } from '@/ecrans/systeme/EcranErreurFatale';
 import { signalerErreur } from '@/observabilite/sentry';
 import { routeur } from '@/routes/routeur';
@@ -57,6 +58,7 @@ class LimiteErreur extends Component<{ children: ReactNode }, EtatLimiteErreur> 
     // Dernier filet avant écran blanc, doit rester visible en prod (`console.error` est
     // explicitement autorisé par la configuration ESLint du dépôt, règle `no-console`).
     console.error('Erreur non rattrapée dans l’arbre React :', erreur, info.componentStack);
+    enregistrerErreur(erreur);
     // `componentStack` ne contient que des noms de composants et des emplacements source,
     // jamais de props ni de données affichées — safe à joindre tel quel (nettoyerEvenement
     // s'applique de toute façon dessus avant tout envoi). Volontairement non attendue : un

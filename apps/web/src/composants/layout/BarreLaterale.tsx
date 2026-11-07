@@ -1,4 +1,5 @@
 import {
+  Bug,
   ChevronsUpDown,
   LogOut,
   PanelLeftClose,
@@ -18,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { demanderOuvertureAssistant } from '@/hooks/assistant/etat-assistant';
+import { ouvrirSignalement } from '@/hooks/signalement/etat-signalement';
 import { usePastilleAssistant } from '@/hooks/assistant/usePastilleAssistant';
 import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { useDeconnexion } from '@/hooks/useDeconnexion';
@@ -461,6 +463,12 @@ export function BarreLaterale({ className, repli }: Props) {
                   >
                     <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
                     {t('navigation:configurer.entree')}
+                  </DropdownMenuItem>
+                ) : null}
+                {session?.tenant.modeSignalement !== 'desactive' ? (
+                  <DropdownMenuItem onSelect={ouvrirSignalement}>
+                    <Bug className="h-4 w-4" aria-hidden="true" />
+                    {t('navigation:signalement.entree')}
                   </DropdownMenuItem>
                 ) : null}
                 <DropdownMenuSeparator />

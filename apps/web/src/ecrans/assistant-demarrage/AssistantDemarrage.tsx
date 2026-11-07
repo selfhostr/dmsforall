@@ -2,7 +2,6 @@ import { Check } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { memoriserEtapeAssistant, useEtatAssistant } from '@/hooks/assistant/etat-assistant';
 import { cn } from '@/lib/utils';
@@ -14,10 +13,12 @@ import {
   etapeSuivante,
   type IdEtapeAssistant,
 } from './etapes';
+import { ContexteQuitterAssistant } from './contexte-quitter';
 import { EtapeAtelier } from './etapes/EtapeAtelier';
 import { EtapeEquipe, type CompteCree } from './etapes/EtapeEquipe';
 import { EtapeGarage } from './etapes/EtapeGarage';
 import { EtapeLogo } from './etapes/EtapeLogo';
+import { EtapeModules } from './etapes/EtapeModules';
 import { EtapePaiements } from './etapes/EtapePaiements';
 import { EtapeTermine } from './etapes/EtapeTermine';
 import type { MemoireEtapes } from './memoire-etapes';
@@ -68,80 +69,75 @@ export function AssistantDemarrage({ ouvert, onFermer }: Props) {
   return (
     <Dialog open={ouvert} onOpenChange={(o) => (o ? undefined : onFermer())}>
       <DialogContent className="max-w-3xl" aria-describedby={undefined}>
-        <DialogHeader>
-          <DialogTitle>{t('assistant:titre')}</DialogTitle>
-        </DialogHeader>
+        <ContexteQuitterAssistant.Provider value={onFermer}>
+          <DialogHeader>
+            <DialogTitle>{t('assistant:titre')}</DialogTitle>
+          </DialogHeader>
 
-        <nav aria-label={t('assistant:navigation.liste')}>
-          <ol className="flex flex-wrap gap-x-4 gap-y-1">
-            {ETAPES_ASSISTANT.map((id, i) => {
-              const courante = id === etape;
-              const terminee = faites.has(id);
-              return (
-                <li
-                  key={id}
-                  aria-current={courante ? 'step' : undefined}
-                  className={cn(
-                    'flex items-center gap-1.5 texte-libelle',
-                    courante ? 'font-semibold text-foreground' : 'text-muted-foreground',
-                  )}
-                >
-                  <span
-                    aria-hidden="true"
+          <nav aria-label={t('assistant:navigation.liste')}>
+            <ol className="flex flex-wrap gap-x-4 gap-y-1">
+              {ETAPES_ASSISTANT.map((id, i) => {
+                const courante = id === etape;
+                const terminee = faites.has(id);
+                return (
+                  <li
+                    key={id}
+                    aria-current={courante ? 'step' : undefined}
                     className={cn(
-                      'flex h-6 w-6 items-center justify-center rounded-full border',
-                      courante && 'border-primary bg-primary text-primary-foreground',
+                      'flex items-center gap-1.5 texte-libelle',
+                      courante ? 'font-semibold text-foreground' : 'text-muted-foreground',
                     )}
                   >
-                    {terminee ? <Check className="h-4 w-4" /> : i + 1}
-                  </span>
-                  {t(`assistant:etapes.${id}.titre`)}
-                  {terminee ? (
-                    <span className="sr-only"> ({t('assistant:navigation.terminee')})</span>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ol>
-        </nav>
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        'flex h-6 w-6 items-center justify-center rounded-full border',
+                        courante && 'border-primary bg-primary text-primary-foreground',
+                      )}
+                    >
+                      {terminee ? <Check className="h-4 w-4" /> : i + 1}
+                    </span>
+                    {t(`assistant:etapes.${id}.titre`)}
+                    {terminee ? (
+                      <span className="sr-only"> ({t('assistant:navigation.terminee')})</span>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
 
-        <div className="flex flex-col gap-4">
-          <div>
-            <p className="sr-only" aria-live="polite">
-              {t('assistant:navigation.position', { numero, total })}
-            </p>
-            <h3
-              ref={titreEtape}
-              tabIndex={-1}
-              className="texte-titre-section font-semibold outline-none"
-            >
-              {t(`assistant:etapes.${etape}.titre`)}
-            </h3>
-          </div>
-
-          {etape === 'garage' ? <EtapeGarage {...propsEtape} /> : null}
-          {etape === 'paiements' ? <EtapePaiements {...propsEtape} /> : null}
-          {etape === 'atelier' ? <EtapeAtelier {...propsEtape} /> : null}
-          {etape === 'logo' ? <EtapeLogo {...propsEtape} /> : null}
-          {etape === 'equipe' ? (
-            <EtapeEquipe
-              {...propsEtape}
-              comptes={comptes}
-              onCompteCree={(c) => setComptes((l) => [...l, c])}
-            />
-          ) : null}
-          {etape === 'termine' ? (
-            <EtapeTermine nombreComptesCrees={comptes.length} onTerminer={onFermer} />
-          ) : null}
-
-          {etape !== 'termine' ? (
+          <div className="flex flex-col gap-4">
             <div>
-              <Button type="button" variant="link" size="sm" onClick={onFermer}>
-                {t('assistant:actions.quitter')}
-              </Button>
+              <p className="sr-only" aria-live="polite">
+                {t('assistant:navigation.position', { numero, total })}
+              </p>
+              <h3
+                ref={titreEtape}
+                tabIndex={-1}
+                className="texte-titre-section font-semibold outline-none"
+              >
+                {t(`assistant:etapes.${etape}.titre`)}
+              </h3>
             </div>
-          ) : null}
-        </div>
+
+            {etape === 'garage' ? <EtapeGarage {...propsEtape} /> : null}
+            {etape === 'modules' ? <EtapeModules {...propsEtape} /> : null}
+            {etape === 'paiements' ? <EtapePaiements {...propsEtape} /> : null}
+            {etape === 'atelier' ? <EtapeAtelier {...propsEtape} /> : null}
+            {etape === 'logo' ? <EtapeLogo {...propsEtape} /> : null}
+            {etape === 'equipe' ? (
+              <EtapeEquipe
+                {...propsEtape}
+                comptes={comptes}
+                onCompteCree={(c) => setComptes((l) => [...l, c])}
+              />
+            ) : null}
+            {etape === 'termine' ? (
+              <EtapeTermine nombreComptesCrees={comptes.length} onTerminer={onFermer} />
+            ) : null}
+          </div>
+        </ContexteQuitterAssistant.Provider>
       </DialogContent>
     </Dialog>
   );

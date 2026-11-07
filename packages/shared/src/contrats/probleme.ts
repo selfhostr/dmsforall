@@ -353,6 +353,8 @@ export const CODES_ERREUR = [
   // La facture porte déjà un règlement (partiel ou total) : refaire un brouillon libre détacherait
   // l'encaissement de sa facture. À traiter d'abord (annuler/rembourser le paiement).
   'FACTURE_CORRECTION_REGLEMENT_EXISTANT',
+  // --- Modules activables (migration 0092) : écriture sur un module que le garage a retiré ---
+  'MODULE_DESACTIVE',
 ] as const;
 export type CodeErreur = (typeof CODES_ERREUR)[number];
 
@@ -505,6 +507,7 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   TVA_NUMERO_REQUIS: 409,
   FACTURE_DEJA_CORRIGEE: 409,
   FACTURE_CORRECTION_REGLEMENT_EXISTANT: 409,
+  MODULE_DESACTIVE: 403,
 };
 
 /**
@@ -643,6 +646,7 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   TVA_NUMERO_REQUIS: 'Numéro de TVA requis pour émettre',
   FACTURE_DEJA_CORRIGEE: 'Facture déjà corrigée',
   FACTURE_CORRECTION_REGLEMENT_EXISTANT: 'Facture déjà réglée en tout ou partie',
+  MODULE_DESACTIVE: 'Module désactivé pour ce garage',
 };
 
 /**

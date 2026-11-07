@@ -4,7 +4,12 @@ import { createRoot } from 'react-dom/client';
 import { i18nPret } from '@/i18n';
 import '@/index.css';
 import { ErreurEnvInvalide, initialiserEnv } from '@/config/env';
+import { installerCollecteur } from '@/diagnostic/tampon';
 import { initialiserSentry } from '@/observabilite/sentry';
+
+// Tampon mémoire du diagnostic de « Signaler un problème » : branché avant tout le reste pour ne
+// rien manquer du démarrage. Rien n'est persisté ni envoyé tant que l'utilisateur ne le demande pas.
+installerCollecteur();
 
 const conteneur = document.getElementById('root');
 if (!conteneur) {

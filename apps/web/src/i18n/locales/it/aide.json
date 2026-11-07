@@ -7,6 +7,7 @@
     "statuts": "Lo stato indica a che punto è l'OR: aperto, in corso, terminato, fatturato. «Attesa ricambi» si somma a qualsiasi stato."
   },
   "vehicules": {
+    "expertise": "Collaudo (MFK): controllo tecnico ufficiale del veicolo. La prossima scadenza è calcolata dall'ultimo collaudo o letta dalla convocazione.",
     "travauxReportes": "Lavori individuati ma non eseguiti (cliente non d'accordo, ricambio mancante). Restano sulla scheda del veicolo per la prossima visita."
   },
   "facturation": {

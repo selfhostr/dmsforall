@@ -1,5 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { ReponseParametresEntreprise } from '@dfa/shared';
+import {
+  MODES_SIGNALEMENT,
+  type ModeSignalement,
+  type ReponseParametresEntreprise,
+} from '@dfa/shared';
 
 /** DTO Swagger de `GET|PATCH /parametres-entreprise` (garde de compilation : `implements`). */
 export class ReponseParametresEntrepriseDto implements ReponseParametresEntreprise {
@@ -30,4 +34,12 @@ export class ReponseParametresEntrepriseDto implements ReponseParametresEntrepri
       'Délai de paiement par défaut des factures, en jours, pour un client sans condition de paiement propre.',
   })
   readonly delaiPaiementJoursDefaut!: number;
+
+  @ApiProperty({
+    enum: MODES_SIGNALEMENT,
+    example: 'via_site',
+    description:
+      'Réglage « Signalements » : `via_site` (défaut) ouvre le site pour terminer le signalement, `copie_seule` ne propose que la copie du rapport, `desactive` retire le bouton « Signaler un problème ».',
+  })
+  readonly modeSignalement!: ModeSignalement;
 }
