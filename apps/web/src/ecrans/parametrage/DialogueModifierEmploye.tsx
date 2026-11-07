@@ -56,7 +56,7 @@ export function DialogueModifierEmploye({ employe, onFerme }: Props) {
   const rolesProposes = ROLES_PERSONNE.filter(
     (r) => r !== 'admin' || session?.utilisateur.role === 'admin' || employe?.role === 'admin',
   );
-  const formulaireValide = siteIdsEffectifs.length > 0;
+  const formulaireValide = estMonoSite || siteIdsEffectifs.length > 0;
 
   function basculerSite(siteId: string) {
     setSiteIds((valeur) =>
@@ -67,7 +67,10 @@ export function DialogueModifierEmploye({ employe, onFerme }: Props) {
   function soumettre() {
     if (!employe || !formulaireValide) return;
     modifier.mutate(
-      { utilisateurId: employe.id, entree: { role, siteIds: [...siteIdsEffectifs] } },
+      {
+        utilisateurId: employe.id,
+        entree: estMonoSite ? { role } : { role, siteIds: [...siteIdsEffectifs] },
+      },
       { onSuccess: onFerme },
     );
   }
