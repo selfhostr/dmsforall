@@ -7,9 +7,9 @@ import type { DetailCollisionPlaqueVehicule, ReponseVehicule } from '@dfa/shared
 import { ErreurApi, ErreurReseau, messageErreur } from '@/api/erreurs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { useAttribuerPlaqueVehicule } from '@/hooks/vehicules/useAttribuerPlaqueVehicule';
 import { useModifierIdentiteVehicule } from '@/hooks/vehicules/useModifierIdentiteVehicule';
 import { formaterDate } from '@/lib/formats';
@@ -161,108 +161,108 @@ export function DialogueModifierIdentiteVehicule({
   const estErreurReseau = erreur instanceof ErreurReseau;
 
   return (
-    <Dialog open={ouvert} onOpenChange={fermer}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t('vehicules:fiche.actions.modifierTitre')}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={soumettre} className="flex flex-col gap-4">
-          {erreur ? (
-            <Alert variant={estErreurReseau ? 'avertissement' : 'destructive'}>
-              <AlertTitle>
-                {t(estErreurReseau ? 'erreurs:reseau.titre' : 'erreurs:inattendue.titre')}
-              </AlertTitle>
-              <AlertDescription>
-                {mutationIdentite.error
-                  ? `${t('vehicules:identite.vin')} : ${messageErreur(mutationIdentite.error, t)}`
-                  : null}
-                {mutationIdentite.error && erreurPlaqueBandeau ? <br /> : null}
-                {erreurPlaqueBandeau
-                  ? `${t('vehicules:identite.plaque')} : ${messageErreur(erreurPlaqueBandeau, t)}`
-                  : null}
-              </AlertDescription>
-            </Alert>
-          ) : null}
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="modifier-vin">{t('vehicules:identite.vin')}</Label>
-            <Input
-              id="modifier-vin"
-              readOnly={enCours}
-              value={vin}
-              onChange={(evenement) => setVin(evenement.target.value)}
-            />
-          </div>
-
-          {plaqueAAttribuer ? (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="modifier-plaque">{t('vehicules:identite.plaque')}</Label>
-                <Input
-                  id="modifier-plaque"
-                  readOnly={enCours}
-                  placeholder={t('vehicules:identite.plaqueExemple')}
-                  value={plaqueValeur}
-                  onChange={(evenement) => setPlaqueValeur(evenement.target.value)}
-                  aria-invalid={erreurPlaqueEstCollision ? true : undefined}
-                  aria-describedby={
-                    erreurPlaqueEstCollision ? 'modifier-plaque-collision-erreur' : undefined
-                  }
-                />
-                <p className="texte-libelle text-muted-foreground">
-                  {t('vehicules:identite.plaqueAide')}
-                </p>
-                {erreurPlaqueEstCollision ? (
-                  <Alert
-                    id="modifier-plaque-collision-erreur"
-                    variant="destructive"
-                    className="p-3"
-                  >
-                    <AlertDescription>
-                      {detailCollisionPlaque ? (
-                        <>
-                          {t('vehicules:collisionPlaque.avecDetail', {
-                            plaque: detailCollisionPlaque.plaque,
-                            vehicule: `${detailCollisionPlaque.marque} ${detailCollisionPlaque.modele}${
-                              detailCollisionPlaque.version
-                                ? ` ${detailCollisionPlaque.version}`
-                                : ''
-                            }`,
-                            debutLe: formaterDate(detailCollisionPlaque.debutLe),
-                          })}{' '}
-                          <Link
-                            to={chemins.vehicules.detail(detailCollisionPlaque.vehiculeId)}
-                            className="underline"
-                          >
-                            {t('vehicules:collisionPlaque.voirVehicule')}
-                          </Link>
-                        </>
-                      ) : (
-                        t('vehicules:collisionPlaque.sansDetail')
-                      )}
-                    </AlertDescription>
-                  </Alert>
-                ) : null}
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="modifier-canton">{t('vehicules:plaques.canton')}</Label>
-                <Input
-                  id="modifier-canton"
-                  readOnly={enCours}
-                  maxLength={2}
-                  placeholder={t('vehicules:plaques.cantonExemple')}
-                  value={canton}
-                  onChange={(evenement) => setCanton(evenement.target.value)}
-                />
-              </div>
-            </div>
-          ) : null}
-
-          <Button type="submit" disabled={!pretASoumettre || enCours}>
+    <PanneauLateral
+      ouvert={ouvert}
+      onOuvertChange={fermer}
+      titre={t('vehicules:fiche.actions.modifierTitre')}
+      pied={
+        <>
+          <Button type="button" variant="outline" onClick={() => fermer(false)}>
+            {t('commun:actions.annuler')}
+          </Button>
+          <Button
+            type="submit"
+            form="formulaire-modifier-identite"
+            disabled={!pretASoumettre || enCours}
+          >
             {t(enCours ? 'commun:chargement.enCours' : 'commun:actions.enregistrer')}
           </Button>
-        </form>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      <form id="formulaire-modifier-identite" onSubmit={soumettre} className="flex flex-col gap-4">
+        {erreur ? (
+          <Alert variant={estErreurReseau ? 'avertissement' : 'destructive'}>
+            <AlertTitle>
+              {t(estErreurReseau ? 'erreurs:reseau.titre' : 'erreurs:inattendue.titre')}
+            </AlertTitle>
+            <AlertDescription>
+              {mutationIdentite.error
+                ? `${t('vehicules:identite.vin')} : ${messageErreur(mutationIdentite.error, t)}`
+                : null}
+              {mutationIdentite.error && erreurPlaqueBandeau ? <br /> : null}
+              {erreurPlaqueBandeau
+                ? `${t('vehicules:identite.plaque')} : ${messageErreur(erreurPlaqueBandeau, t)}`
+                : null}
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="modifier-vin">{t('vehicules:identite.vin')}</Label>
+          <Input
+            id="modifier-vin"
+            readOnly={enCours}
+            value={vin}
+            onChange={(evenement) => setVin(evenement.target.value)}
+          />
+        </div>
+
+        {plaqueAAttribuer ? (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="modifier-plaque">{t('vehicules:identite.plaque')}</Label>
+              <Input
+                id="modifier-plaque"
+                readOnly={enCours}
+                placeholder={t('vehicules:identite.plaqueExemple')}
+                value={plaqueValeur}
+                onChange={(evenement) => setPlaqueValeur(evenement.target.value)}
+                aria-invalid={erreurPlaqueEstCollision ? true : undefined}
+                aria-describedby={
+                  erreurPlaqueEstCollision ? 'modifier-plaque-collision-erreur' : undefined
+                }
+              />
+              {erreurPlaqueEstCollision ? (
+                <Alert id="modifier-plaque-collision-erreur" variant="destructive" className="p-3">
+                  <AlertDescription>
+                    {detailCollisionPlaque ? (
+                      <>
+                        {t('vehicules:collisionPlaque.avecDetail', {
+                          plaque: detailCollisionPlaque.plaque,
+                          vehicule: `${detailCollisionPlaque.marque} ${detailCollisionPlaque.modele}${
+                            detailCollisionPlaque.version ? ` ${detailCollisionPlaque.version}` : ''
+                          }`,
+                          debutLe: formaterDate(detailCollisionPlaque.debutLe),
+                        })}{' '}
+                        <Link
+                          to={chemins.vehicules.detail(detailCollisionPlaque.vehiculeId)}
+                          className="underline"
+                        >
+                          {t('vehicules:collisionPlaque.voirVehicule')}
+                        </Link>
+                      </>
+                    ) : (
+                      t('vehicules:collisionPlaque.sansDetail')
+                    )}
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="modifier-canton">{t('vehicules:plaques.canton')}</Label>
+              <Input
+                id="modifier-canton"
+                readOnly={enCours}
+                maxLength={2}
+                placeholder={t('vehicules:plaques.cantonExemple')}
+                value={canton}
+                onChange={(evenement) => setCanton(evenement.target.value)}
+              />
+            </div>
+          </div>
+        ) : null}
+      </form>
+    </PanneauLateral>
   );
 }

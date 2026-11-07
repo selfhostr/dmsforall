@@ -8,15 +8,9 @@ import {
 } from '@dfa/shared';
 
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { ChampTelephone } from '@/composants/comptoir/ChampTelephone';
 import { useCreerFournisseur } from '@/hooks/pieces/useCreerFournisseur';
 import { useModifierFournisseur } from '@/hooks/pieces/useTransitionsFournisseur';
@@ -130,104 +124,104 @@ export function FormulaireFournisseur({ ouvert, onOuvertChange, fournisseur, onC
   const erreur = estModification ? modifier.error : creer.error;
 
   return (
-    <Dialog open={ouvert} onOpenChange={onOuvertChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>
-            {estModification
-              ? t('pieces:fournisseurs.actions.modifier')
-              : t('pieces:fournisseurs.actions.ajouter')}
-          </DialogTitle>
-        </DialogHeader>
-
-        <form
-          onSubmit={(evenement) => {
-            evenement.preventDefault();
-            soumettre();
-          }}
-          noValidate
-          className="flex flex-col gap-groupe"
-        >
-          <LegendeChampsObligatoires>
-            {t('commun:formulaires.champsObligatoiresLegende')}
-          </LegendeChampsObligatoires>
-
-          <div className="flex flex-col gap-champ">
-            <Label htmlFor="fourn-nom" requis>
-              {t('pieces:fournisseurs.nom')}
-            </Label>
-            <Input
-              id="fourn-nom"
-              required
-              readOnly={enCours}
-              aria-invalid={erreurNom ? true : undefined}
-              value={valeurs.nom}
-              onChange={(evenement) => setValeurs((v) => ({ ...v, nom: evenement.target.value }))}
-            />
-            {erreurNom ? (
-              <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
-            ) : null}
-          </div>
-
-          <div className="flex flex-col gap-champ">
-            <Label htmlFor="fourn-email">{t('pieces:fournisseurs.email')}</Label>
-            <Input
-              id="fourn-email"
-              type="email"
-              readOnly={enCours}
-              value={valeurs.email}
-              onChange={(evenement) => setValeurs((v) => ({ ...v, email: evenement.target.value }))}
-            />
-          </div>
-
-          <ChampTelephone
-            id="fourn-telephone"
-            label={t('pieces:fournisseurs.telephone')}
+    <PanneauLateral
+      ouvert={ouvert}
+      onOuvertChange={onOuvertChange}
+      titre={
+        estModification
+          ? t('pieces:fournisseurs.actions.modifier')
+          : t('pieces:fournisseurs.actions.ajouter')
+      }
+      pied={
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOuvertChange(false)}
             disabled={enCours}
-            valeur={valeurs.telephone}
-            onChangeValeur={(valeur) => setValeurs((v) => ({ ...v, telephone: valeur }))}
+          >
+            {t('commun:actions.annuler')}
+          </Button>
+          <Button type="submit" form="formulaire-fournisseur" disabled={enCours}>
+            {enCours ? t('commun:chargement.enCours') : t('commun:actions.enregistrer')}
+          </Button>
+        </>
+      }
+    >
+      <form
+        id="formulaire-fournisseur"
+        onSubmit={(evenement) => {
+          evenement.preventDefault();
+          soumettre();
+        }}
+        noValidate
+        className="flex flex-col gap-groupe"
+      >
+        <LegendeChampsObligatoires>
+          {t('commun:formulaires.champsObligatoiresLegende')}
+        </LegendeChampsObligatoires>
+
+        <div className="flex flex-col gap-champ">
+          <Label htmlFor="fourn-nom" requis>
+            {t('pieces:fournisseurs.nom')}
+          </Label>
+          <Input
+            id="fourn-nom"
+            required
+            readOnly={enCours}
+            aria-invalid={erreurNom ? true : undefined}
+            value={valeurs.nom}
+            onChange={(evenement) => setValeurs((v) => ({ ...v, nom: evenement.target.value }))}
           />
-
-          <div className="flex flex-col gap-champ">
-            <Label htmlFor="fourn-delai">{t('pieces:fournisseurs.delaiHabituelJours')}</Label>
-            <Input
-              id="fourn-delai"
-              type="number"
-              min={0}
-              inputMode="numeric"
-              readOnly={enCours}
-              aria-invalid={erreurDelai ? true : undefined}
-              value={valeurs.delaiHabituelJours}
-              onChange={(evenement) =>
-                setValeurs((v) => ({ ...v, delaiHabituelJours: evenement.target.value }))
-              }
-            />
-            {erreurDelai ? (
-              <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
-            ) : null}
-          </div>
-
-          {erreur ? (
-            <p className="texte-libelle text-destructive" role="alert">
-              {messageErreurMutation(erreur, t)}
-            </p>
+          {erreurNom ? (
+            <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
           ) : null}
+        </div>
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOuvertChange(false)}
-              disabled={enCours}
-            >
-              {t('commun:actions.annuler')}
-            </Button>
-            <Button type="submit" disabled={enCours}>
-              {enCours ? t('commun:chargement.enCours') : t('commun:actions.enregistrer')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        <div className="flex flex-col gap-champ">
+          <Label htmlFor="fourn-email">{t('pieces:fournisseurs.email')}</Label>
+          <Input
+            id="fourn-email"
+            type="email"
+            readOnly={enCours}
+            value={valeurs.email}
+            onChange={(evenement) => setValeurs((v) => ({ ...v, email: evenement.target.value }))}
+          />
+        </div>
+
+        <ChampTelephone
+          id="fourn-telephone"
+          label={t('pieces:fournisseurs.telephone')}
+          disabled={enCours}
+          valeur={valeurs.telephone}
+          onChangeValeur={(valeur) => setValeurs((v) => ({ ...v, telephone: valeur }))}
+        />
+
+        <div className="flex flex-col gap-champ">
+          <Label htmlFor="fourn-delai">{t('pieces:fournisseurs.delaiHabituelJours')}</Label>
+          <Input
+            id="fourn-delai"
+            type="number"
+            min={0}
+            inputMode="numeric"
+            readOnly={enCours}
+            aria-invalid={erreurDelai ? true : undefined}
+            value={valeurs.delaiHabituelJours}
+            onChange={(evenement) =>
+              setValeurs((v) => ({ ...v, delaiHabituelJours: evenement.target.value }))
+            }
+          />
+          {erreurDelai ? (
+            <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
+          ) : null}
+        </div>
+
+        {erreur ? (
+          <p className="texte-libelle text-destructive" role="alert">
+            {messageErreurMutation(erreur, t)}
+          </p>
+        ) : null}
+      </form>
+    </PanneauLateral>
   );
 }

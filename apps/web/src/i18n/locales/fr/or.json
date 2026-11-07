@@ -550,10 +550,8 @@
       "surPlace": "Sur place",
       "email": "E-mail"
     },
-    "horodatage": "La date et l'heure sont enregistrées maintenant.",
     "enregistrer": "Enregistrer l'accord",
     "action": "Accord du client",
-    "description": "{count, plural, one {Le client a donné son accord pour # travail. Il sera validé.} other {Le client a donné son accord pour # travaux. Ils seront validés.}}",
     "pourTous": "{count, plural, one {Accord du client pour le travail proposé} other {Accord du client pour les # travaux proposés}}"
   },
   "lignesEnAttente": {

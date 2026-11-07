@@ -11,6 +11,7 @@ import {
   type ReponseOrdreReparation,
 } from '@dfa/shared';
 
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { ErreurApi, ErreurReseau, messageErreur } from '@/api/erreurs';
 import { genererCleIdempotence } from '@/api/idempotence';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -716,8 +717,12 @@ export function EcranBornePointage() {
         </CardHeader>
         {toutesOrOuvertesVisible ? (
           <CardContent className="flex flex-col gap-3">
-            <p className="texte-corps text-muted-foreground">
+            <p className="flex items-center gap-1.5 texte-corps text-muted-foreground">
               {t('pointage:toutesLesOr.siteBorne')}
+              <AideContextuelle
+                sujet={t('aide:pointage.borne.sujet')}
+                texte={t('aide:pointage.borne.texte')}
+              />
             </p>
             <SelecteurOrOuvert
               siteId={siteId}

@@ -36,11 +36,11 @@ export function ChampRoleEmploye({ idPrefixe, valeur, prereglages, onChange }: P
 
   return (
     <div className="flex flex-col gap-1.5">
-      <Label htmlFor={`${idPrefixe}-role`}>
-        {t('parametrage:utilisateurs.creation.champRole')} *
+      <Label htmlFor={`${idPrefixe}-role`} requis>
+        {t('parametrage:utilisateurs.creation.champRole')}
       </Label>
       <Select value={valeur} onValueChange={(v) => onChange(v as IdPrereglage)}>
-        <SelectTrigger id={`${idPrefixe}-role`} aria-describedby={idAide}>
+        <SelectTrigger id={`${idPrefixe}-role`} aria-required="true" aria-describedby={idAide}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

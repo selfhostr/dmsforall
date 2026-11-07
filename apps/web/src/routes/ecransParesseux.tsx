@@ -71,6 +71,9 @@ export const EcranParametragePieces = paresseux(() =>
 export const EcranParametrageAtelier = paresseux(() =>
   import('@/ecrans/parametrage/EcranParametrageAtelier').then((m) => m.EcranParametrageAtelier),
 );
+export const EcranMonGarage = paresseux(() =>
+  import('@/ecrans/parametrage/EcranMonGarage').then((m) => m.EcranMonGarage),
+);
 export const EcranParametresFacturation = paresseux(() =>
   import('@/ecrans/parametrage/EcranParametresFacturation').then(
     (m) => m.EcranParametresFacturation,

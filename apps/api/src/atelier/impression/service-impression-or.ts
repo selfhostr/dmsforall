@@ -13,8 +13,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
 
+import type { Langue } from '@dfa/shared';
+
 import { JETON_DB, type AccesBase, type ContexteTenant } from '../../db';
 import { site, tenant } from '../../db/schema';
+import { libellesImpression } from '../../facturation/impression/libelles-impression';
 import type { IdentiteEmetteur } from '../../facturation/impression/en-tete-emetteur';
 import type { PrincipalAuthentifie } from '../../common/contexte/contexte-requete.types';
 
@@ -46,7 +49,11 @@ export class ServiceImpressionOr {
     const document = await this.serviceOr.obtenirComplet(ctx, principal, orId);
     const nomSite = await this.chargerNomSite(ctx, document.siteId);
 
-    const emetteur = await this.chargerEmetteur(ctx, document.siteId);
+    const emetteur = await this.chargerEmetteur(
+      ctx,
+      document.siteId,
+      document.client.langueCorrespondance,
+    );
 
     const buffer = await genererPdfOr(document, nomSite, emetteur);
     const nomFichier = `OR-${document.numero.replace(/[^A-Za-z0-9._-]/g, '_')}.pdf`;
@@ -75,10 +82,18 @@ export class ServiceImpressionOr {
   }
 
   /** En-tête garage : raison sociale + n° TVA du tenant, adresse du site de l'OR. */
-  private async chargerEmetteur(ctx: ContexteTenant, siteId: string): Promise<IdentiteEmetteur> {
+  private async chargerEmetteur(
+    ctx: ContexteTenant,
+    siteId: string,
+    langue: Langue,
+  ): Promise<IdentiteEmetteur> {
     return this.acces.enTenant(ctx, async (tx) => {
       const [ligneTenant] = await tx
-        .select({ raisonSociale: tenant.raisonSociale, numeroTva: tenant.numeroTva })
+        .select({
+          raisonSociale: tenant.raisonSociale,
+          numeroTva: tenant.numeroTva,
+          assujettiTva: tenant.assujettiTva,
+        })
         .from(tenant)
         .where(eq(tenant.id, ctx.tenantId))
         .limit(1);
@@ -93,6 +108,11 @@ export class ServiceImpressionOr {
         npa: ligneSite?.npa ?? null,
         localite: ligneSite?.localite ?? null,
         numeroTva: ligneTenant?.numeroTva ?? null,
+        // Garage non assujetti : même mention que la facture, à la place du n° TVA. La feuille
+        // d'atelier n'imprime aucun montant, donc rien d'autre à retirer.
+        ...(ligneTenant?.assujettiTva === false
+          ? { mentionNonAssujetti: libellesImpression(langue).nonAssujettiTva }
+          : {}),
       };
     });
   }

@@ -7,7 +7,7 @@ import type { ExportHistorique } from '@dfa/shared';
 import { messageErreur } from '@/api/erreurs';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -47,7 +47,6 @@ export function HistoriqueExports({ peutTelecharger }: { peutTelecharger: boolea
     <Card>
       <CardHeader>
         <CardTitle className="texte-titre-section">{t('export:historique.titre')}</CardTitle>
-        <CardDescription>{t('export:historique.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {resultat.isPending ? (

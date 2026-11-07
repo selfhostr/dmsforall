@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { SAISONS_PNEU, type SaisonPneu, type VehiculeResume } from '@dfa/shared';
@@ -6,14 +6,6 @@ import { SAISONS_PNEU, type SaisonPneu, type VehiculeResume } from '@dfa/shared'
 import { messageErreur } from '@/api/erreurs';
 import { useCleIdempotence } from '@/api/idempotence';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -24,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { useCreerDepotPneus } from '@/hooks/pneus/useCreerDepotPneus';
 
 import { SelecteurVehiculePourDepot } from './composants/SelecteurVehiculePourDepot';
@@ -65,7 +58,8 @@ export function DialogueNouveauDepotPneu({ siteId, ouvert, onFerme }: Props) {
 
   const formulaireValide = vehicule !== null && siteId !== undefined;
 
-  function soumettre() {
+  function soumettre(evenement?: FormEvent) {
+    evenement?.preventDefault();
     if (!formulaireValide || !vehicule || !siteId) return;
     creer.mutate(
       {
@@ -89,83 +83,81 @@ export function DialogueNouveauDepotPneu({ siteId, ouvert, onFerme }: Props) {
   }
 
   return (
-    <Dialog open={ouvert} onOpenChange={(valeurOuverte) => !valeurOuverte && onFerme()}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{t('pneus:creation.titre')}</DialogTitle>
-          <DialogDescription>{t('pneus:creation.description')}</DialogDescription>
-        </DialogHeader>
+    <PanneauLateral
+      ouvert={ouvert}
+      onOuvertChange={(valeurOuverte) => !valeurOuverte && onFerme()}
+      titre={t('pneus:creation.titre')}
+      pied={
+        <>
+          <Button type="button" variant="outline" onClick={onFerme} disabled={creer.isPending}>
+            {t('commun:actions.annuler')}
+          </Button>
+          <Button
+            type="submit"
+            form="formulaire-nouveau-depot-pneu"
+            disabled={!formulaireValide || creer.isPending}
+          >
+            {creer.isPending ? t('commun:chargement.enCours') : t('pneus:creation.actions.creer')}
+          </Button>
+        </>
+      }
+    >
+      <form id="formulaire-nouveau-depot-pneu" onSubmit={soumettre} className="flex flex-col gap-4">
+        <SelecteurVehiculePourDepot valeur={vehicule?.id ?? null} onChangeValeur={setVehicule} />
 
-        <div className="flex flex-col gap-4">
-          <SelecteurVehiculePourDepot valeur={vehicule?.id ?? null} onChangeValeur={setVehicule} />
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="depot-pneu-saison">{t('pneus:creation.champSaison')} *</Label>
-            <Select value={saison} onValueChange={(v) => setSaison(v as SaisonPneu)}>
-              <SelectTrigger id="depot-pneu-saison">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {SAISONS_PNEU.map((valeur) => (
-                  <SelectItem key={valeur} value={valeur}>
-                    {t(`pneus:saison.${valeur}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="depot-pneu-code-case">{t('pneus:creation.champCodeCase')}</Label>
-            <Input
-              id="depot-pneu-code-case"
-              value={codeCase}
-              maxLength={60}
-              placeholder={t('pneus:creation.champCodeCasePlaceholder')}
-              onChange={(evenement) => setCodeCase(evenement.target.value)}
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="depot-pneu-dimension">{t('pneus:creation.champDimension')}</Label>
-            <Input
-              id="depot-pneu-dimension"
-              value={dimension}
-              maxLength={60}
-              placeholder={t('pneus:creation.champDimensionPlaceholder')}
-              onChange={(evenement) => setDimension(evenement.target.value)}
-            />
-            <p className="texte-libelle text-muted-foreground">
-              {t('pneus:creation.champDimensionIndication')}
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="depot-pneu-etat">{t('pneus:creation.champEtat')}</Label>
-            <Textarea
-              id="depot-pneu-etat"
-              value={etat}
-              maxLength={500}
-              onChange={(evenement) => setEtat(evenement.target.value)}
-            />
-          </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="depot-pneu-saison">{t('pneus:creation.champSaison')} *</Label>
+          <Select value={saison} onValueChange={(v) => setSaison(v as SaisonPneu)}>
+            <SelectTrigger id="depot-pneu-saison">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SAISONS_PNEU.map((valeur) => (
+                <SelectItem key={valeur} value={valeur}>
+                  {t(`pneus:saison.${valeur}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="depot-pneu-code-case">{t('pneus:creation.champCodeCase')}</Label>
+          <Input
+            id="depot-pneu-code-case"
+            value={codeCase}
+            maxLength={60}
+            placeholder={t('pneus:creation.champCodeCasePlaceholder')}
+            onChange={(evenement) => setCodeCase(evenement.target.value)}
+          />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="depot-pneu-dimension">{t('pneus:creation.champDimension')}</Label>
+          <Input
+            id="depot-pneu-dimension"
+            value={dimension}
+            maxLength={60}
+            placeholder={t('pneus:creation.champDimensionPlaceholder')}
+            onChange={(evenement) => setDimension(evenement.target.value)}
+          />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="depot-pneu-etat">{t('pneus:creation.champEtat')}</Label>
+          <Textarea
+            id="depot-pneu-etat"
+            value={etat}
+            maxLength={500}
+            onChange={(evenement) => setEtat(evenement.target.value)}
+          />
+        </div>
         {creer.error ? (
           <p className="texte-libelle text-destructive" role="alert">
             {messageErreur(creer.error, t)}
           </p>
         ) : null}
-
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onFerme} disabled={creer.isPending}>
-            {t('commun:actions.annuler')}
-          </Button>
-          <Button type="button" disabled={!formulaireValide || creer.isPending} onClick={soumettre}>
-            {creer.isPending ? t('commun:chargement.enCours') : t('pneus:creation.actions.creer')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </form>
+    </PanneauLateral>
   );
 }

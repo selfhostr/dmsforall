@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 
 import { cn } from '@/lib/utils';
 
+import { HAUTEUR_MIN_ENTETE_COLONNE } from './hauteur-entete-colonne';
 import { useNavigationActive } from './useNavigationActive';
 
 interface Props {
@@ -60,8 +61,14 @@ export function OngletsDomaine({ className }: Props) {
   return (
     /* DEUX rangées : onglets du domaine, puis vues de l'onglet en barre secondaire pleine largeur
           dessous (retour terrain du 07.11.2026 : vues et onglets dans la même barre se lisaient
-          comme un seul niveau). */
-    <div className={cn('flex shrink-0 flex-col border-b bg-background', className)}>
+          comme un seul niveau). Le filet entre les rangées prolonge celui de la barre latérale. */
+    <div
+      className={cn(
+        'flex shrink-0 flex-col border-b bg-background',
+        HAUTEUR_MIN_ENTETE_COLONNE,
+        className,
+      )}
+    >
       {afficheOnglets ? (
         // `aria-label` nommé par le domaine (« Onglets d'Atelier ») et non « Onglets » tout court :
         // deux zones de navigation dans la même page (barre latérale + onglets) doivent porter des

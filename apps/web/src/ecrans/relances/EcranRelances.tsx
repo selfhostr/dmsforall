@@ -46,7 +46,7 @@ export function EcranRelances() {
   const { t } = useTranslation(['relances', 'commun']);
 
   return (
-    <GabaritEcran titre={t('relances:titre')} sousTitre={t('relances:sousTitre')}>
+    <GabaritEcran titre={t('relances:titre')}>
       <BlocDeclenchementManuel />
       <BlocTracabilite />
     </GabaritEcran>

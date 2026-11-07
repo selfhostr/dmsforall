@@ -83,7 +83,7 @@ describe('EcranParametragePieces', () => {
     );
   });
 
-  it('affiche les valeurs actuelles, y compris les champs `null` (non arbitrés) et le réglage inerte (rôle habilité)', async () => {
+  it('affiche les valeurs actuelles, y compris les champs `null` (non arbitrés) et sans réglage inerte (rôle habilité)', async () => {
     connecterSession('chef_atelier');
     server.use(http.get(CHEMIN, () => HttpResponse.json(PARAMETRES)));
     rendre();
@@ -94,13 +94,10 @@ describe('EcranParametragePieces', () => {
     expect(
       screen.getByLabelText(i18n.t('parametrage:pieces.consigne.delaiAcquisitionJours')),
     ).toHaveValue(null);
-    // `ChampInerte` combine libellé et raison dans un seul nœud texte (« libellé — raison ») —
-    // recherche par sous-chaîne plutôt qu'un texte exact.
+    // Le réglage inerte « conditionnement » n'est plus affiché (rien à régler, que du bruit).
     expect(
-      screen.getByText((contenu) =>
-        contenu.includes(i18n.t('parametrage:pieces.conditionnement.articleDistinct')),
-      ),
-    ).toBeInTheDocument();
+      screen.queryByText((contenu) => contenu.includes('onditionnement')),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText(i18n.t('parametrage:atelier.lectureSeule'))).not.toBeInTheDocument();
   });
 

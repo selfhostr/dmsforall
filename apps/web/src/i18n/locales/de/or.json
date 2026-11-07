@@ -550,10 +550,8 @@
       "surPlace": "Vor Ort",
       "email": "E-Mail"
     },
-    "horodatage": "Datum und Uhrzeit werden jetzt erfasst.",
     "enregistrer": "Zustimmung speichern",
     "action": "Zustimmung des Kunden",
-    "description": "{count, plural, one {Der Kunde hat für # Arbeit zugestimmt. Sie wird freigegeben.} other {Der Kunde hat für # Arbeiten zugestimmt. Sie werden freigegeben.}}",
     "pourTous": "{count, plural, one {Zustimmung des Kunden für die vorgeschlagene Arbeit} other {Zustimmung des Kunden für die # vorgeschlagenen Arbeiten}}"
   },
   "lignesEnAttente": {

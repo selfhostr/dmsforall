@@ -1,9 +1,7 @@
 {
   "titre": "Solleciti automatici",
-  "sousTitre": "Promemoria per fatture non pagate: avvia la pianificazione e l'invio, consulta lo storico.",
   "reglages": {
-    "titre": "Solleciti di pagamento",
-    "sousTitre": "Imposta i termini e i canali di invio dei promemoria per fatture non pagate di questo garage."
+    "titre": "Solleciti di pagamento"
   },
   "navigation": {
     "lien": "Solleciti"
@@ -14,7 +12,6 @@
   },
   "regles": {
     "titre": "Regola di sollecito — fattura scaduta",
-    "description": "Un promemoria parte automaticamente a ogni livello, contato in giorni dopo la scadenza della fattura.",
     "statut": {
       "active": "Attiva",
       "inactive": "Inattiva"
@@ -47,9 +44,7 @@
     },
     "formulaire": {
       "actif": "Invia questi promemoria automaticamente",
-      "actifAide": "Deselezioni per sospendere i solleciti di fattura senza perdere l'impostazione.",
       "paliersLabel": "Scadenze dei livelli (giorni dopo la scadenza)",
-      "paliersAide": "Una scadenza per livello, nell'ordine di invio. Esempio: 10, poi 20, poi 30.",
       "palierPlaceholder": "Giorni",
       "ajouterPalier": "Aggiungi un livello",
       "supprimerPalier": "Rimuovi il livello {n}",

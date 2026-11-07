@@ -247,7 +247,6 @@
       "marquerVenduDescription": "Il veicolo passa allo stato «Venduto».",
       "garantie": {
         "titre": "Garanzia",
-        "description": "Inserimento manuale — da compilare quando l'informazione è nota, mai calcolata automaticamente.",
         "debutLe": "Inizio della garanzia",
         "mois": "Durata (mesi)",
         "km": "Limite chilometrico",
@@ -605,7 +604,6 @@
       "champVehiculeIndication": "Digitare una targa o una descrizione per cercare il veicolo permutato.",
       "aucunVehiculeTrouve": "Nessun veicolo corrisponde a questa ricerca.",
       "creerVehiculeBouton": "Crea questo veicolo",
-      "creerVehiculeAide": "Il cliente porta un veicolo che l'officina non conosce ancora? Createlo con le informazioni minime — il resto si completa più tardi dalla sua scheda.",
       "creerVehiculeSoumettre": "Crea e seleziona",
       "vehiculeSelectionne": "Veicolo selezionato: {designation}",
       "champValeurEstimee": "Valore stimato",
@@ -644,7 +642,6 @@
       "enNegociation": "In fase di negoziazione",
       "ecart": "Differenza / gesto commerciale",
       "detteResiduelle": "Debito residuo di finanziamento",
-      "detteAide": "Condizione sospensiva della permuta.",
       "organisme": "Istituto"
     },
     "modification": {

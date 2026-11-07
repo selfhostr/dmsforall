@@ -44,7 +44,11 @@ import { ServiceMouvement } from '../../pieces/service-mouvement';
 import { motifFragment } from '../../recherche/utilitaires-recherche';
 import { neGarderQueChampsEnvoyes, PipeZod } from '../../common/validation';
 
-import { chargerSituationTva, REGIME_NON_ASSUJETTI } from './assujettissement';
+import {
+  chargerSituationTva,
+  normaliserTauxEtRegime,
+  REGIME_NON_ASSUJETTI,
+} from './assujettissement';
 import { calculerLigneDocument, calculerTotauxDocument } from './calcul-document';
 import {
   chargerDocument,
@@ -555,7 +559,23 @@ export class ServiceDocumentsVente {
       await this.refuserSiLigneStockLiee(tx, ctx, ligneId);
 
       const ligneActuelle = await chargerLignePourEcriture(tx, ctx, documentId, ligneId);
-      const fusionnee = this.fusionnerLigne(ligneActuelle, entree);
+      const fusionneeBrute = this.fusionnerLigne(ligneActuelle, entree);
+      // Assujettissement : aligné sur la création (`inserterLigne`). Non assujetti : taux absent
+      // = 0, taux > 0 refusé (TVA_NON_ASSUJETTI_TAUX_INTERDIT), régime « hors champ ». On lit le
+      // taux ENVOYÉ (pas celui hérité de la ligne) : une ligne ancienne à 8,1 % rouvre à 0.
+      const situationTva = await chargerSituationTva(tx, ctx);
+      const normalise = normaliserTauxEtRegime(
+        situationTva,
+        { tauxTvaPourmille: entree.tauxTvaPourmille, regimeTva: fusionneeBrute.regimeTva },
+        ligneActuelle.numeroOrdre,
+      );
+      const fusionnee = situationTva.assujetti
+        ? fusionneeBrute
+        : {
+            ...fusionneeBrute,
+            tauxTvaPourmille: normalise.tauxTvaPourmille ?? 0,
+            regimeTva: normalise.regimeTva,
+          };
       const montants = calculerLigneDocument({
         prixUnitaireTtcCentimes: fusionnee.prixUnitaireTtcCentimes,
         quantiteMillieme: fusionnee.quantiteMillieme,

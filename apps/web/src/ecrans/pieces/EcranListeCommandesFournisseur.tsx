@@ -10,10 +10,10 @@ import {
   type StatutCommandeFournisseur,
 } from '@dfa/shared';
 
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -93,7 +93,6 @@ export function EcranListeCommandesFournisseur() {
   const nomSite = (siteId: string) => sites.find((site) => site.id === siteId)?.nom ?? siteId;
 
   const filtresStructuresActifs = statut !== undefined || avecReliquat;
-  const filtresActifs = q.trim() !== '' || filtresStructuresActifs;
   function effacerFiltres() {
     // Levier de reset (choix produit 26.08.2026) : `effacerFiltres` est un geste de reprise en
     // main, pas une frappe — `q` doit refléter la case vide immédiatement, pas après le même
@@ -210,11 +209,8 @@ export function EcranListeCommandesFournisseur() {
         q={qSaisie}
         onChangeQ={setQSaisie}
         placeholderRecherche={t('pieces:commandes.filtres.rechercherPlaceholder')}
-        filtresActifs={filtresActifs}
-        onEffacerFiltres={effacerFiltres}
       >
         <div className="flex flex-col gap-champ">
-          <Label htmlFor="filtre-statut-commande">{t('pieces:commandes.statut')}</Label>
           <Select
             value={statut ?? 'tous'}
             onValueChange={(valeur) =>
@@ -246,6 +242,10 @@ export function EcranListeCommandesFournisseur() {
           />
           {t('pieces:commandes.filtres.avecReliquat')}
         </label>
+        <AideContextuelle
+          sujet={t('pieces:commandes.filtres.avecReliquat')}
+          texte={t('aide:pieces.reliquat')}
+        />
       </BarreFiltres>
 
       <TableComptoir
