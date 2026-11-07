@@ -101,10 +101,12 @@ function dessinerLignes(doc: PDFKit.PDFDocument, d: DonneesImpressionDevis): voi
     width: colX.quantite - colX.designation,
   });
   doc.text(l.colonneQuantite, colX.quantite, yEntete, { width: colX.prixUnitaire - colX.quantite });
+  // Sans TVA : pas de colonne TVA, le prix unitaire reprend sa largeur.
+  const finPrix = d.sansTva ? colX.total : colX.tva;
   doc.text(l.colonnePrixUnitaire, colX.prixUnitaire, yEntete, {
-    width: colX.tva - colX.prixUnitaire,
+    width: finPrix - colX.prixUnitaire,
   });
-  doc.text(l.colonneTva, colX.tva, yEntete, { width: colX.total - colX.tva });
+  if (!d.sansTva) doc.text(l.colonneTva, colX.tva, yEntete, { width: colX.total - colX.tva });
   doc.text(l.colonneTotal, colX.total, yEntete, { width: MARGE_DROITE_PT - colX.total });
   doc.moveDown(0.3);
   doc.moveTo(MARGE_PT, doc.y).lineTo(MARGE_DROITE_PT, doc.y).strokeColor('#cccccc').stroke();
@@ -115,8 +117,8 @@ function dessinerLignes(doc: PDFKit.PDFDocument, d: DonneesImpressionDevis): voi
     const y = doc.y;
     doc.text(ligne.designation, colX.designation, y, { width: colX.quantite - colX.designation });
     doc.text(ligne.quantite, colX.quantite, y, { width: colX.prixUnitaire - colX.quantite });
-    doc.text(ligne.prixUnitaire, colX.prixUnitaire, y, { width: colX.tva - colX.prixUnitaire });
-    doc.text(ligne.tauxTva, colX.tva, y, { width: colX.total - colX.tva });
+    doc.text(ligne.prixUnitaire, colX.prixUnitaire, y, { width: finPrix - colX.prixUnitaire });
+    if (!d.sansTva) doc.text(ligne.tauxTva, colX.tva, y, { width: colX.total - colX.tva });
     doc.text(ligne.montantTtc, colX.total, y, { width: MARGE_DROITE_PT - colX.total });
     doc.moveDown(0.4);
   }
@@ -125,6 +127,16 @@ function dessinerLignes(doc: PDFKit.PDFDocument, d: DonneesImpressionDevis): voi
 function dessinerRecapitulatifTva(doc: PDFKit.PDFDocument, d: DonneesImpressionDevis): void {
   const l = d.libelles;
   doc.moveDown(1);
+  if (d.sansTva) {
+    // Non assujetti : ni récapitulatif, ni HT/TVA — le total (= TTC = HT) et la mention.
+    doc.x = MARGE_PT;
+    doc.fontSize(11).fillColor('#000000').text(`${d.libelleTotalSansTva} : ${d.totalTtc}`, {
+      align: 'right',
+    });
+    doc.fontSize(8).fillColor('#666666').text(d.mentionNonAssujetti, { align: 'right' });
+    doc.fillColor('#000000');
+    return;
+  }
   doc.fontSize(10).fillColor('#000000').text(l.recapitulatifTva, MARGE_PT);
   doc.moveDown(0.3);
 

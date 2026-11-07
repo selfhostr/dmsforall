@@ -26,8 +26,14 @@ vi.mock('./document-requetes', () => ({
   listerLignesDocument: vi.fn(),
 }));
 
+vi.mock('./assujettissement', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./assujettissement')>()),
+  chargerSituationTva: vi.fn(),
+}));
+
 import { ServiceDocumentsVente } from './service-documents';
 import * as documentRequetes from './document-requetes';
+import * as assujettissement from './assujettissement';
 
 const CTX: ContexteTenant = { tenantId: 'tenant-a', utilisateurId: 'user-1', requeteId: 'req-1' };
 const DOCUMENT_ID = 'document-1';
@@ -107,6 +113,10 @@ function serviceFactice(tx: TransactionDfa) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(assujettissement.chargerSituationTva).mockResolvedValue({
+    assujetti: true,
+    numeroTva: 'CHE-123.456.789 TVA',
+  });
 });
 
 describe('schemaModificationLigneDocument — mécanique du défaut (toujours vraie, indépendante du correctif)', () => {
@@ -162,5 +172,57 @@ describe('ServiceDocumentsVente.modifierLigne — un PATCH { designation } seul 
     ).rejects.toMatchObject({ code: 'VALIDATION_ECHOUEE' });
 
     expect(setUpdate).not.toHaveBeenCalled();
+  });
+});
+
+describe('ServiceDocumentsVente.modifierLigne — garage NON assujetti à la TVA', () => {
+  beforeEach(() => {
+    vi.mocked(assujettissement.chargerSituationTva).mockResolvedValue({
+      assujetti: false,
+      numeroTva: null,
+    });
+    vi.mocked(documentRequetes.chargerDocumentPourEcriture).mockResolvedValue(docFixture());
+    vi.mocked(documentRequetes.chargerLignePourEcriture).mockResolvedValue(ligneExistanteFixture());
+  });
+
+  it('taux absent = 0 : une ligne héritée à 2.6 % passe à 0 ‰ / exclu, HT = TTC = 3000', async () => {
+    const { tx, setUpdate } = txFactice();
+    const { service } = serviceFactice(tx);
+
+    await service.modifierLigne(CTX, principal(), DOCUMENT_ID, LIGNE_ID, { designation: 'Lot' });
+
+    const ecrit = setUpdate.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(ecrit.tauxTvaPourmille).toBe(0);
+    expect(ecrit.regimeTva).toBe('exclu');
+    expect(ecrit.tvaCentimes).toBe(0);
+    expect(ecrit.htCentimes).toBe(3000);
+    expect(ecrit.ttcCentimes).toBe(3000);
+  });
+
+  it('taux > 0 refusé : TVA_NON_ASSUJETTI_TAUX_INTERDIT, rien écrit', async () => {
+    const { tx, setUpdate } = txFactice();
+    const { service } = serviceFactice(tx);
+
+    await expect(
+      service.modifierLigne(CTX, principal(), DOCUMENT_ID, LIGNE_ID, {
+        tauxTvaPourmille: 81,
+        regimeTva: 'normal',
+      }),
+    ).rejects.toMatchObject({ code: 'TVA_NON_ASSUJETTI_TAUX_INTERDIT' });
+    expect(setUpdate).not.toHaveBeenCalled();
+  });
+
+  it('taux 0 explicite accepté, régime forcé à exclu même si « normal » envoyé', async () => {
+    const { tx, setUpdate } = txFactice();
+    const { service } = serviceFactice(tx);
+
+    await service.modifierLigne(CTX, principal(), DOCUMENT_ID, LIGNE_ID, {
+      tauxTvaPourmille: 0,
+      regimeTva: 'normal',
+    });
+
+    const ecrit = setUpdate.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(ecrit.regimeTva).toBe('exclu');
+    expect(ecrit.tauxTvaPourmille).toBe(0);
   });
 });
