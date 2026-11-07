@@ -176,6 +176,17 @@ describe('OngletsDomaine — les vues d’un onglet', () => {
     );
   });
 
+  it('Pointage : les vues sont une barre secondaire sous la barre des onglets, pas dans la même rangée', async () => {
+    connecte('chef_atelier');
+    rendre('/pointage/jour');
+
+    const vues = await screen.findByRole('navigation', { name: /vues/i });
+    const onglets = screen.getByRole('navigation', { name: /^onglets —/i });
+    expect(onglets.compareDocumentPosition(vues) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(vues).toHaveClass('w-full');
+    expect(vues).not.toHaveClass('ml-auto');
+  });
+
   it('technicien : ni Équipe, ni Clôture, ni Borne — les vues d’encadrement disparaissent', async () => {
     connecte('technicien');
     rendre('/pointage/jour');

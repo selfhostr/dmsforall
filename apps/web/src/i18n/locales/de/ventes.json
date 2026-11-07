@@ -135,11 +135,6 @@
       "non": "Nein",
       "nonRenseigne": "Nicht angegeben"
     },
-    "vue": {
-      "groupeLabel": "Anzeigemodus",
-      "vendeur": "Verkäuferansicht",
-      "client": "Kundenansicht"
-    },
     "joursStock": {
       "libelle": "Tage im Bestand",
       "valeur": "{n, plural, one {# Tag} other {# Tage}}"
@@ -316,7 +311,7 @@
         "statutLabel": "Status",
         "statutActifs": "Aktive Verkäufe",
         "statutTous": "Alle Status",
-        "afficherTermines": "Auch abgeschlossene, annullierte oder aufgegebene Verkäufe anzeigen"
+        "afficherTermines": "Abgeschlossene und stornierte einbeziehen"
       },
       "tri": {
         "label": "Sortieren nach",

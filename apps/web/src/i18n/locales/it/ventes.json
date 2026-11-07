@@ -135,11 +135,6 @@
       "non": "No",
       "nonRenseigne": "Non indicato"
     },
-    "vue": {
-      "groupeLabel": "Modalità di visualizzazione",
-      "vendeur": "Vista venditore",
-      "client": "Vista cliente"
-    },
     "joursStock": {
       "libelle": "Giorni in stock",
       "valeur": "{n, plural, one {# giorno} other {# giorni}}"
@@ -316,7 +311,7 @@
         "statutLabel": "Stato",
         "statutActifs": "Vendite attive",
         "statutTous": "Tutti gli stati",
-        "afficherTermines": "Mostra anche le vendite chiuse, annullate o abbandonate"
+        "afficherTermines": "Includi chiuse e annullate"
       },
       "tri": {
         "label": "Ordina per",
