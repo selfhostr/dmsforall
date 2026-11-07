@@ -11,7 +11,10 @@
     "nonConfigure": "Ces coordonnées n'ont encore jamais été saisies.",
     "identite": {
       "titre": "Identité",
-      "nom": "Nom du garage"
+      "nomBulletin": "Nom sur le bulletin de paiement",
+      "nomBulletinAide": "Le nom du titulaire du compte, tel que la banque le connaît. Il est repris du nom du garage (onglet Entreprise) tant que vous ne le changez pas ici.",
+      "nomRepris": "Le bulletin de paiement porte le nom du garage : {nom}.",
+      "nomDifferent": "Le compte est à un autre nom ?"
     },
     "adresse": {
       "titre": "Adresse",
@@ -370,7 +373,9 @@
   "entreprise": {
     "titre": "Entreprise",
     "explication": "Ces informations identifient votre garage sur les factures.",
-    "raisonSociale": "Raison sociale",
+    "raisonSociale": "Nom du garage (raison sociale)",
+    "erreurRaison": "Indiquez le nom du garage.",
+    "raisonSocialeAide": "Ce nom apparaît sur vos documents et factures. Les documents déjà émis gardent l'ancien nom.",
     "numeroTva": "Numéro de TVA",
     "numeroTvaAide": "Format : CHE-123.456.789 TVA. Laissez vide si vous n'êtes pas assujetti à la TVA.",
     "erreurTva": {

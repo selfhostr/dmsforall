@@ -81,3 +81,19 @@ describe('délai de paiement par défaut', () => {
     expect(schema.safeParse({ delaiPaiementJoursDefaut: 10.5 }).success).toBe(false);
   });
 });
+
+describe('raison sociale', () => {
+  const schema = schemaModificationParametresEntreprise;
+  it('retire les espaces de bord et accepte 1 à 200 caractères', () => {
+    expect(schema.parse({ raisonSociale: '  Garage Martin Sàrl ' })).toEqual({
+      raisonSociale: 'Garage Martin Sàrl',
+    });
+    expect(schema.safeParse({ raisonSociale: 'x'.repeat(200) }).success).toBe(true);
+  });
+  it('refuse vide, blanche ou trop longue', () => {
+    expect(schema.safeParse({ raisonSociale: '' }).success).toBe(false);
+    expect(schema.safeParse({ raisonSociale: '   ' }).success).toBe(false);
+    expect(schema.safeParse({ raisonSociale: 'x'.repeat(201) }).success).toBe(false);
+    expect(schema.safeParse({ raisonSociale: null }).success).toBe(false);
+  });
+});

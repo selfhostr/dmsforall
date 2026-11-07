@@ -274,43 +274,46 @@ describe.each(THEMES)(
 );
 
 /**
- * Marque orange (`#F07E17` en sombre, orange profond 26° en clair) : écarts de teinte avec les
- * statuts. Le bleu `info` et le vert `succes` restent à >= 30° ; `attention` (ambre) et `danger`
- * (rouge) sont PROCHES de l'orange — exception écrite (index.css, DESIGN.md), compensée par forme +
- * icône + mot obligatoires sur tout badge. Ces tests verrouillent les écarts réellement mesurés
- * pour qu'une dérive accidentelle rougisse.
+ * Interface monochrome (décision de @laupernoe) : la marque n'a AUCUNE teinte, la couleur est
+ * réservée aux `--statut-*`. Sentinelle de saturation + ratios nommés du bouton primaire, du lien
+ * (`text-primary`) et du focus, dans les deux thèmes.
  */
-describe.each([
-  { cle: 'clair' as const, minAttention: 10, minDanger: 20, plageMin: 24, plageMax: 30 },
-  { cle: 'sombre' as const, minAttention: 15, minDanger: 20, plageMin: 26, plageMax: 30 },
-])(
-  'marque orange ($cle) — écart de teinte avec les statuts d’OR',
-  ({ cle, minAttention, minDanger, plageMin, plageMax }) => {
-    function ecartTeinte(h1: number, h2: number): number {
-      const d = Math.abs(h1 - h2) % 360;
-      return d > 180 ? 360 - d : d;
+describe.each(THEMES)('marque sans saturation ($nom)', ({ cle }) => {
+  it.each(['marque', 'marque-fort', 'marque-doux', 'marque-doux-foreground', 'primary-foreground'])(
+    '--%s a une saturation nulle',
+    (jeton) => {
+      expect(analyserHsl(valeurHslJeton(jeton, cle)).s).toBe(0);
+    },
+  );
+
+  it('--primary-foreground est neutre aussi ; --ring et --primary résolvent --marque', () => {
+    expect(valeurHslJeton('ring', cle)).toBe(valeurHslJeton('marque', cle));
+    expect(valeurHslJeton('primary', cle)).toBe(valeurHslJeton('marque', cle));
+  });
+
+  it('bouton primaire : texte sur --primary atteint AAA (7:1)', () => {
+    expect(ratio('primary-foreground', 'primary', cle)).toBeGreaterThanOrEqual(7);
+  });
+
+  it('lien (text-primary) sur background, card et muted atteint AAA (7:1)', () => {
+    for (const fond of ['background', 'card', 'muted']) {
+      expect(ratio('primary', fond, cle)).toBeGreaterThanOrEqual(7);
     }
-    const teinte = (jeton: string) => analyserHsl(valeurHslJeton(jeton, cle)).h;
+  });
 
-    it.each(['statut-info', 'statut-succes'])('--marque reste à >= 30° de --%s', (statut) => {
-      expect(ecartTeinte(teinte('marque'), teinte(statut))).toBeGreaterThanOrEqual(30);
-    });
+  it('focus : --ring sur background, card et popover atteint 3:1 (WCAG 1.4.11 / 2.4.13)', () => {
+    for (const fond of ['background', 'card', 'popover']) {
+      expect(ratio('ring', fond, cle)).toBeGreaterThanOrEqual(SEUIL_AA_COMPOSANT_UI);
+    }
+  });
 
-    it("l'écart marque/statut-attention ne descend pas sous le seuil mesuré (exception écrite)", () => {
-      expect(ecartTeinte(teinte('marque'), teinte('statut-attention'))).toBeGreaterThanOrEqual(
-        minAttention,
-      );
-    });
+  it('survol : texte sur --primary-fort atteint 4.5:1', () => {
+    expect(ratio('primary-foreground', 'primary-fort', cle)).toBeGreaterThanOrEqual(
+      SEUIL_AA_TEXTE_NORMAL,
+    );
+  });
 
-    it("l'écart marque/statut-danger ne descend pas sous le seuil mesuré (exception écrite)", () => {
-      expect(ecartTeinte(teinte('marque'), teinte('statut-danger'))).toBeGreaterThanOrEqual(
-        minDanger,
-      );
-    });
-
-    it('la teinte de --marque reste dans la famille orange', () => {
-      expect(teinte('marque')).toBeGreaterThanOrEqual(plageMin);
-      expect(teinte('marque')).toBeLessThanOrEqual(plageMax);
-    });
-  },
-);
+  it('surlignage : se détache du fond de page (>= 1.1:1, renfort non textuel)', () => {
+    expect(ratio('marque-doux', 'background', cle)).toBeGreaterThanOrEqual(1.1);
+  });
+});

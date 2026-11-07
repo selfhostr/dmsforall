@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { AccesBase, ContexteTenant } from '../../db';
 import { ServiceParametresEntreprise } from './service-parametres-entreprise';
 
-const CTX: ContexteTenant = { tenantId: 'tid', utilisateurId: null, requeteId: null };
+const CTX: ContexteTenant = { tenantId: 'tid', utilisateurId: 'uid', requeteId: 'req' };
 
 interface LigneTenant {
   raisonSociale: string;
@@ -14,10 +14,21 @@ interface LigneTenant {
 function acces(ligneBrute: LigneTenant | undefined) {
   const ligne = ligneBrute && { delaiPaiementJoursDefaut: 30, ...ligneBrute };
   const sets: unknown[] = [];
+  const audits: unknown[] = [];
   const tx = {
+    insert: () => ({
+      values: (v: unknown) => {
+        audits.push(v);
+        return Promise.resolve();
+      },
+    }),
     select: () => ({ from: () => ({ where: () => Promise.resolve(ligne ? [ligne] : []) }) }),
     update: () => ({
-      set: (v: { numeroTva?: string | null; delaiPaiementJoursDefaut?: number }) => {
+      set: (v: {
+        raisonSociale?: string;
+        numeroTva?: string | null;
+        delaiPaiementJoursDefaut?: number;
+      }) => {
         sets.push(v);
         const definis = Object.fromEntries(Object.entries(v).filter(([, x]) => x !== undefined));
         return {
@@ -33,7 +44,7 @@ function acces(ligneBrute: LigneTenant | undefined) {
     verifierConnexion: vi.fn(),
     verifierPostureRls: vi.fn(),
   };
-  return { base, sets };
+  return { base, sets, audits };
 }
 
 describe('ServiceParametresEntreprise', () => {
@@ -93,5 +104,40 @@ describe('ServiceParametresEntreprise', () => {
     const { base, sets } = acces({ raisonSociale: 'G', numeroTva: null });
     await new ServiceParametresEntreprise(base).modifier(CTX, { delaiPaiementJoursDefaut: 0 });
     expect(sets).toEqual([{ delaiPaiementJoursDefaut: 0 }]);
+  });
+
+  it('change la raison sociale : écrit le champ seul, journalise avant/après, ne touche pas au slug', async () => {
+    const { base, sets, audits } = acces({ raisonSociale: 'Garage Martin SA', numeroTva: null });
+    const dto = await new ServiceParametresEntreprise(base).modifier(CTX, {
+      raisonSociale: 'Garage Martin Sàrl',
+    });
+    expect(sets).toEqual([{ raisonSociale: 'Garage Martin Sàrl' }]);
+    expect(Object.keys(sets[0] as object)).not.toContain('slug');
+    expect(dto.raisonSociale).toBe('Garage Martin Sàrl');
+    expect(audits).toEqual([
+      {
+        tenantId: 'tid',
+        entite: 'tenant',
+        entiteId: 'tid',
+        action: 'modification',
+        champ: 'raison_sociale',
+        valeurAvant: 'Garage Martin SA',
+        valeurApres: 'Garage Martin Sàrl',
+        utilisateurId: 'uid',
+        requeteId: 'req',
+      },
+    ]);
+  });
+
+  it('raison sociale identique : pas de ligne d’audit', async () => {
+    const { base, audits } = acces({ raisonSociale: 'G', numeroTva: null });
+    await new ServiceParametresEntreprise(base).modifier(CTX, { raisonSociale: 'G' });
+    expect(audits).toHaveLength(0);
+  });
+
+  it('modifier le seul n° TVA ne journalise pas de raison sociale', async () => {
+    const { base, audits } = acces({ raisonSociale: 'G', numeroTva: null });
+    await new ServiceParametresEntreprise(base).modifier(CTX, { numeroTva: 'CHE-116.281.710 TVA' });
+    expect(audits).toHaveLength(0);
   });
 });

@@ -10,6 +10,7 @@ import type { ActionCitee } from '@/droits';
 export type Acces = readonly ActionCitee[];
 
 export const ACCES_MENU_PARAMETRAGE_ATELIER: Acces = ['parametrage.atelier.modifier'];
+export const ACCES_CHIFFRES: Acces = ['tableau_bord.financier.lire'];
 export const ACCES_MENU_FINANCIER: Acces = ['facturation.export.lire'];
 export const ACCES_PIECES: Acces = ['pieces.article.lire'];
 export const ACCES_PARAMETRAGE_PIECES: Acces = ['pieces.parametrage.lire'];

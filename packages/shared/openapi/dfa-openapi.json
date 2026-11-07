@@ -8736,7 +8736,8 @@
               "reprise",
               "financement_vente",
               "vehicule_travail_reporte",
-              "depot_pneus"
+              "depot_pneus",
+              "tenant"
             ],
             "type": "string"
           },
@@ -13524,7 +13525,7 @@
     "contact": {},
     "description": "API du DMS (Dealer Management System) pour garages et concessions suisses. Contrat d'erreur unique application/problem+json (schéma ProblemeDetailCommunDto, code machine stable). Le tenant est toujours résolu depuis la session — aucun endpoint n'accepte de tenantId en paramètre.",
     "title": "API dmsforall (DFA)",
-    "version": "0.1.0-dev+inconnu"
+    "version": "0.2.0-dev+inconnu"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -36045,7 +36046,7 @@
         ]
       },
       "patch": {
-        "description": "Format IDE suisse `CHE-123.456.789 TVA` (`MWST`/`IVA` acceptés), clé de contrôle modulo 11 vérifiée. `numeroTva: null` efface le numéro (garage non assujetti). Corps vide : aucun effet.",
+        "description": "`raisonSociale` : 1 à 200 caractères (espaces de bord retirés), journalisée dans le journal d'audit (avant/après). Le slug du garage ne change jamais. Les documents déjà émis gardent leur raison sociale ; les suivants prennent la nouvelle (sauf si le bloc créancier porte son propre nom, qui reste prioritaire et se change dans la facturation). Format IDE suisse `CHE-123.456.789 TVA` (`MWST`/`IVA` acceptés), clé de contrôle modulo 11 vérifiée. `numeroTva: null` efface le numéro (garage non assujetti). Corps vide : aucun effet.",
         "operationId": "ParametresEntrepriseController_modifier",
         "parameters": [],
         "requestBody": {
@@ -36054,7 +36055,8 @@
               "examples": {
                 "defaut": {
                   "value": {
-                    "numeroTva": "CHE-116.281.710 TVA"
+                    "numeroTva": "CHE-116.281.710 TVA",
+                    "raisonSociale": "Garage Martin SA"
                   }
                 }
               },
@@ -36070,6 +36072,11 @@
                       "string",
                       "null"
                     ]
+                  },
+                  "raisonSociale": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
                   }
                 },
                 "type": "object"
@@ -36097,7 +36104,7 @@
                 }
               }
             },
-            "description": "VALIDATION_ECHOUEE — format ou clé de contrôle du n° TVA invalide."
+            "description": "VALIDATION_ECHOUEE — raison sociale vide ou trop longue, format ou clé de contrôle du n° TVA invalide."
           },
           "401": {
             "content": {
@@ -36125,7 +36132,7 @@
             "cookie": []
           }
         ],
-        "summary": "Saisit ou efface le n° TVA du garage.",
+        "summary": "Modifie la raison sociale, le n° TVA ou le délai de paiement du garage.",
         "tags": [
           "Paramétrage"
         ]

@@ -37,7 +37,14 @@ export const schemaNumeroTva = z
   );
 
 /** `null` efface le numéro (garage non assujetti à la TVA). */
+/** Longueur maximale de la raison sociale (la colonne `tenant.raison_sociale` est un `text` : la
+ *  borne est applicative ; 200 couvre largement une raison sociale inscrite au RC). */
+export const LONGUEUR_MAX_RAISON_SOCIALE = 200;
+
 export const schemaModificationParametresEntreprise = z.object({
+  /** Raison sociale du garage (`tenant.raison_sociale`), ni vide ni blanche. Absente = inchangée.
+   *  Le slug du garage ne suit JAMAIS ce champ. */
+  raisonSociale: z.string().trim().min(1).max(LONGUEUR_MAX_RAISON_SOCIALE).optional(),
   numeroTva: schemaNumeroTva.nullable().optional(),
   /** Délai de paiement par défaut (jours) des factures d'un client sans condition de paiement
    *  propre (`tenant.delai_paiement_jours_defaut`). Entier 0–365 ; absent = inchangé. */

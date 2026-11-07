@@ -151,18 +151,12 @@
     },
     "pasDeTelephone": "Nessun telefono"
   },
-  "siteAffiche": "Sede visualizzata: {site}",
   "autresSites": {
     "compteJour": "{count, plural, one {# appuntamento} other {# appuntamenti}} a {site} quel giorno",
     "compteSemaine": "{count, plural, one {# appuntamento} other {# appuntamenti}} a {site} questa settimana",
     "voir": "Vedi l’agenda di {site}"
   },
   "aide": {
-    "planning": {
-      "resume": "Un’agenda per sede",
-      "libelle": "Aiuto: la pianificazione",
-      "texte": "Questa agenda mostra gli appuntamenti di una sola sede alla volta. Gli appuntamenti delle altre sedi sono contati sopra l’agenda: clicchi per passare a quella sede. Clicchi su un appuntamento per chiamare il cliente, spostarlo, annullarlo o aprire l’ordine di riparazione all’arrivo. La vista Elenco mostra tutti i numeri di telefono in una volta."
-    },
     "nouveau": {
       "libelle": "Aiuto: fissare un appuntamento",
       "texte": "Cerchi il cliente, scelga il veicolo, poi il giorno e la fascia (mattina, pomeriggio o ora precisa). Il motivo imposta la durata, che Lei può correggere. L’appuntamento è fissato nella sede indicata qui sotto."
@@ -189,5 +183,6 @@
     "titre": "Sposta l’appuntamento",
     "nouvelleDate": "Nuova data",
     "confirmer": "Sposta l’appuntamento"
-  }
+  },
+  "siteSelecteur": "Sede"
 }

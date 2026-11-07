@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 
 import type { DocumentVenteResume, FiltresDocumentsVente } from '@dfa/shared';
 
@@ -23,6 +23,9 @@ import { BadgeEtatDocument } from './BadgeEtatDocument';
 import { BadgeStatutDevis } from './BadgeStatutDevis';
 import { BadgeStatutReglement } from './BadgeStatutReglement';
 import { BoutonNouveauDevis } from './BoutonNouveauDevis';
+import { chemins } from '@/routes/chemins';
+
+import { peutVoirChiffres } from './chiffres/droits';
 import { peutVoirMontantsFacturation } from './droits';
 import { IndicateurRetard } from './IndicateurRetard';
 
@@ -278,7 +281,6 @@ export function EcranListeFactures() {
       <EtatVide
         titre={t('facturation:liste.vide.devis.titre')}
         description={t('facturation:liste.vide.devis.description')}
-        action={<BoutonNouveauDevis variante="default" />}
       />
     );
   } else if (onglet === 'enRetard') {
@@ -307,7 +309,22 @@ export function EcranListeFactures() {
     // Clients, c'est mieux » (12.08.2026), tranchée dans l'autre sens le 17.08.2026 pour ce cas
     // précis. Aucun padding local : le gabarit ne pose ni max-largeur ni remplissage, `AppShell`
     // fournit déjà l'unique `p-4 sm:p-6` de tout écran routé.
-    <GabaritEcran titre={t('facturation:liste.titre')} actions={<BoutonNouveauDevis />}>
+    <GabaritEcran
+      titre={t('facturation:liste.titre')}
+      actions={
+        <>
+          {peutVoirChiffres(actions) ? (
+            <Link
+              to={chemins.facturation.chiffres()}
+              className="anneau-focus inline-flex min-h-11 items-center rounded-md texte-corps font-medium text-primary underline underline-offset-2"
+            >
+              {t('facturation:chiffres.voirChiffres')}
+            </Link>
+          ) : null}
+          <BoutonNouveauDevis />
+        </>
+      }
+    >
       {/* Bascule de VUE à l'intérieur de cet écran (elle ne navigue nulle part — elle change quelles
           factures la même liste affiche), pas un second niveau de NAVIGATION : empilée sous la
           rangée d'onglets d'`OngletsDomaine` (soulignement, `components/ui/tabs.tsx`), une même

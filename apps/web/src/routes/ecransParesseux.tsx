@@ -50,6 +50,9 @@ export const EcranFacturerOrdreReparation = paresseux(() =>
 export const EcranFicheFacture = paresseux(() =>
   import('@/ecrans/facturation/EcranFicheFacture').then((m) => m.EcranFicheFacture),
 );
+export const EcranChiffres = paresseux(() =>
+  import('@/ecrans/facturation/chiffres/EcranChiffres').then((m) => m.EcranChiffres),
+);
 export const EcranExportFiduciaire = paresseux(() =>
   import('@/ecrans/facturation/export/EcranExportFiduciaire').then((m) => m.EcranExportFiduciaire),
 );

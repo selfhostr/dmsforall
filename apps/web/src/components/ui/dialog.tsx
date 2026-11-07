@@ -48,7 +48,13 @@ export const DialogContent = forwardRef<
         // ci-dessous (voir issue #67 : sur un formulaire long, le bouton « Confirmer » sortait
         // du viewport sans qu'aucun défilement ne soit possible pour l'atteindre).
         'fixed left-1/2 top-1/2 z-50 flex max-h-[90vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg border bg-background shadow-lg',
-        'animation-dialogue',
+        // Apparition : fondu + léger zoom par TRANSITION (`@starting-style`), jamais par image-clé
+        // `transform`. Tailwind v4 centre via la propriété `translate` ; l'ancienne image-clé
+        // `dfa-dialogue-entree` posait en plus `transform: translate(-50%,-50%)`, les deux
+        // s'additionnaient (-100%/-100%) : la boîte partait en haut à gauche puis sautait au centre.
+        // `scale` est une propriété distincte de `translate` : le centrage n'est jamais touché.
+        // La règle `prefers-reduced-motion` de index.css ramène les transitions à ~0.
+        'transition-[opacity,scale] duration-[var(--duree-normale)] ease-[var(--courbe-sortie)] starting:scale-95 starting:opacity-0',
         className,
       )}
       {...props}

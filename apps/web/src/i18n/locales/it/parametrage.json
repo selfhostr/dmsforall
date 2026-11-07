@@ -11,7 +11,10 @@
     "nonConfigure": "Questi dati non sono ancora mai stati inseriti.",
     "identite": {
       "titre": "Identità",
-      "nom": "Nome dell'officina"
+      "nomBulletin": "Nome sulla polizza di versamento",
+      "nomBulletinAide": "Il nome del titolare del conto, come lo conosce la banca. Viene ripreso dal nome dell'autofficina (scheda Azienda) finché non lo modifica qui.",
+      "nomRepris": "La polizza di versamento riporta il nome dell'autofficina: {nom}.",
+      "nomDifferent": "Il conto è intestato a un altro nome?"
     },
     "adresse": {
       "titre": "Indirizzo",
@@ -370,7 +373,9 @@
   "entreprise": {
     "titre": "Azienda",
     "explication": "Queste informazioni identificano la sua autofficina sulle fatture.",
-    "raisonSociale": "Ragione sociale",
+    "raisonSociale": "Nome dell'autofficina (ragione sociale)",
+    "erreurRaison": "Indichi il nome dell'autofficina.",
+    "raisonSocialeAide": "Questo nome compare sui suoi documenti e sulle fatture. I documenti già emessi mantengono il vecchio nome.",
     "numeroTva": "Numero IVA",
     "numeroTvaAide": "Formato: CHE-123.456.789 IVA. Lasci vuoto se non è soggetto all'IVA.",
     "erreurTva": {

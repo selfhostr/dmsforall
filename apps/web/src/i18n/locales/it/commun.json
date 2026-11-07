@@ -102,7 +102,8 @@
     "employeCree": "Dipendente creato"
   },
   "densite": {
-    "titre": "Densità di visualizzazione",
+    "titre": "Dimensione dell'interfaccia",
+    "court": { "auto": "Auto", "compacte": "Compatta", "aeree": "Ampia" },
     "auto": "Automatica (secondo il dispositivo)",
     "compacte": "Compatta",
     "aeree": "Ampia",

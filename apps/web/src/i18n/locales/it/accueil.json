@@ -28,7 +28,7 @@
       },
       "tva": {
         "titre": "Numero IVA",
-        "pourquoi": "Deve comparire sulle fatture se è soggetto all'IVA. Altrimenti nasconda questo elenco quando il resto è a posto."
+        "pourquoi": "La vostra autorimessa è soggetta all'IVA? In caso affermativo, questo numero compare sulle fatture. Altrimenti salti questo passaggio."
       },
       "tauxHoraire": {
         "titre": "Tariffa oraria",
@@ -78,7 +78,8 @@
     "titre": "Azioni rapide",
     "creerOr": "Crea un ordine",
     "nouveauRendezVous": "Nuovo appuntamento",
-    "encaisser": "Incassa"
+    "encaisser": "Incassa",
+    "rechercher": "Apri la ricerca"
   },
   "aFaire": {
     "titre": "Da fare oggi",

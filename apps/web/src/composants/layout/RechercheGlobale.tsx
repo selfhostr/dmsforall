@@ -6,13 +6,13 @@ import { useNavigate, useSearchParams } from 'react-router';
 import type { ResultatRecherche } from '@dfa/shared';
 
 import { ErreurReseau, messageErreur } from '@/api/erreurs';
-import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { CONSTRUCTEURS_CHEMIN_RESULTAT } from '@/composants/recherche/chemins-resultats';
 import { PanneauResultatsRecherche } from '@/composants/recherche/PanneauResultatsRecherche';
 import { useRechercheComptoir } from '@/hooks/recherche/useRechercheComptoir';
+import { cn } from '@/lib/utils';
 
 /** `Ctrl+K` (Windows/Linux) ou `Cmd+K` (macOS) — `preventDefault()` sur le `keydown` supprime le
  *  raccourci natif du navigateur (Chrome/Firefox réservent Ctrl+K pour la barre d'adresse) avant
@@ -34,7 +34,21 @@ function estRaccourciRecherche(evenement: KeyboardEvent): boolean {
  * `EcranRecherche.tsx`) : ce composant ne fait qu'orchestrer l'ouverture/fermeture et la
  * navigation au clic, exactement comme `EcranRecherche.tsx` le fait pour la route dédiée.
  */
-export function RechercheGlobale() {
+interface Props {
+  /** Barre latérale repliée : la loupe seule (nom accessible conservé). */
+  readonly replie?: boolean;
+  /** Enregistre Ctrl/⌘+K. Faux pour l'instance du tiroir mobile, afin qu'une seule instance
+   *  écoute le raccourci quand l'`aside` (masqué mais monté) et le tiroir coexistent. */
+  readonly raccourciClavier?: boolean;
+}
+
+/** Indication du raccourci selon la plateforme (⌘K sur Apple, Ctrl K ailleurs). */
+function indicationRaccourci(): string {
+  const plateforme = typeof navigator === 'undefined' ? '' : navigator.platform;
+  return /mac|iphone|ipad/i.test(plateforme) ? '⌘K' : 'Ctrl K';
+}
+
+export function RechercheGlobale({ replie = false, raccourciClavier = true }: Props) {
   const { t } = useTranslation(['recherche', 'commun', 'erreurs']);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -47,6 +61,7 @@ export function RechercheGlobale() {
   // seulement quand le panneau est déjà ouvert — c'est tout le point du Lot A (« depuis n'importe
   // quel écran »).
   useEffect(() => {
+    if (!raccourciClavier) return undefined;
     function gererRaccourci(evenement: KeyboardEvent) {
       if (estRaccourciRecherche(evenement)) {
         evenement.preventDefault();
@@ -55,7 +70,7 @@ export function RechercheGlobale() {
     }
     window.addEventListener('keydown', gererRaccourci);
     return () => window.removeEventListener('keydown', gererRaccourci);
-  }, []);
+  }, [raccourciClavier]);
 
   // Vide la saisie à la fermeture : rouvrir (Ctrl+K ou loupe) repart toujours d'un panneau propre
   // plutôt que d'exposer une recherche périmée — le contexte perdu ici est celui du panneau
@@ -74,23 +89,29 @@ export function RechercheGlobale() {
 
   return (
     <>
-      {/* Champ permanent + équivalent tactile du raccourci en UN SEUL élément : un vrai <button>
-          (jamais un <div onClick>), aria-label explicite, icône décorative aria-hidden, ≥44px de
-          cible tactile (Button size="default" = h-11), focus-visible hérité de Button. Le texte
-          affiché EST le placeholder de `recherche:placeholder`, qui contient déjà « (Ctrl+K) » —
-          le raccourci est donc annoncé dans le champ sans clé i18n supplémentaire. Sur very narrow
-          viewport le libellé se masque (`hidden sm:inline`) mais le bouton et son icône loupe
-          restent affichés : la cible tactile n'est jamais retirée. */}
-      <Button
+      {/* Entrée de menu, même gabarit que les entrées de la barre latérale (h-11, 44 px) : pas de
+          champ de saisie permanent. Un vrai <button> ; replié, la loupe seule garde son nom. */}
+      <button
         type="button"
-        variant="outline"
         onClick={() => setOuvert(true)}
         aria-label={t('commun:actions.rechercher')}
-        className="w-full max-w-md justify-start gap-2 text-muted-foreground font-normal"
+        aria-keyshortcuts="Control+K Meta+K"
+        title={replie ? t('commun:actions.rechercher') : undefined}
+        className={cn(
+          'anneau-focus flex h-11 w-full items-center rounded-md texte-corps font-medium text-foreground transition-colors hover:bg-muted',
+          replie ? 'justify-center px-2' : 'gap-3 px-3',
+        )}
       >
         <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
-        <span className="truncate hidden sm:inline">{t('recherche:placeholder')}</span>
-      </Button>
+        {replie ? null : (
+          <>
+            <span className="flex-1 text-left">{t('commun:actions.rechercher')}</span>
+            <kbd className="texte-libelle font-normal text-muted-foreground">
+              {indicationRaccourci()}
+            </kbd>
+          </>
+        )}
+      </button>
 
       <Dialog open={ouvert} onOpenChange={(valeur) => (valeur ? setOuvert(true) : fermer())}>
         <DialogContent className="max-w-2xl gap-0 overflow-hidden p-0">

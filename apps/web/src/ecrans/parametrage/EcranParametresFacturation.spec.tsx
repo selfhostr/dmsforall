@@ -88,8 +88,13 @@ describe('EcranParametresFacturation — état vide (jamais configuré)', () => 
     ).toBeInTheDocument();
     // Champ vide, jamais bloqué à la saisie (numero pas requis) — formulaire directement éditable.
     expect(
-      screen.getByLabelText(avecEtoile(i18n.t('parametrage:creancier.identite.nom'))),
-    ).toHaveValue('');
+      await screen.findByText(
+        i18n.t('parametrage:creancier.identite.nomRepris', { nom: 'Garage Martin SA' }),
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText(i18n.t('parametrage:creancier.identite.nomBulletin')),
+    ).not.toBeInTheDocument();
     // Checklist : rien n'est encore complet.
     expect(
       screen.queryByText(i18n.t('parametrage:creancier.completude.complet')),
@@ -104,8 +109,10 @@ describe('EcranParametresFacturation — données réelles déjà saisies', () =
     rendre();
 
     expect(
-      await screen.findByLabelText(avecEtoile(i18n.t('parametrage:creancier.identite.nom'))),
-    ).toHaveValue('Garage Martin SA');
+      await screen.findByText(
+        i18n.t('parametrage:creancier.identite.nomRepris', { nom: 'Garage Martin SA' }),
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText(i18n.t('parametrage:creancier.comptes.iban'))).toHaveValue(
       BLOC_COMPLET.iban,
     );
@@ -135,10 +142,15 @@ describe('EcranParametresFacturation — données réelles déjà saisies', () =
     );
     rendre();
 
-    const champNom = await screen.findByLabelText(
-      avecEtoile(i18n.t('parametrage:creancier.identite.nom')),
-    );
     const utilisateur = userEvent.setup();
+    await utilisateur.click(
+      await screen.findByRole('button', {
+        name: i18n.t('parametrage:creancier.identite.nomDifferent'),
+      }),
+    );
+    const champNom = screen.getByLabelText(
+      avecEtoile(i18n.t('parametrage:creancier.identite.nomBulletin')),
+    );
     await utilisateur.clear(champNom);
     await utilisateur.type(champNom, 'Garage Martin & Fils SA');
     await utilisateur.click(
@@ -181,7 +193,9 @@ describe('EcranParametresFacturation — données réelles déjà saisies', () =
     );
     rendre();
 
-    await screen.findByLabelText(avecEtoile(i18n.t('parametrage:creancier.identite.nom')));
+    await screen.findByText(
+      i18n.t('parametrage:creancier.identite.nomRepris', { nom: 'Garage Martin SA' }),
+    );
     const utilisateur = userEvent.setup();
     await utilisateur.click(
       screen.getByRole('button', { name: i18n.t('parametrage:creancier.actions.enregistrer') }),
@@ -267,7 +281,9 @@ describe('EcranParametresFacturation — chargement', () => {
     expect(screen.getByText(i18n.t('commun:chargement.enCours'))).toBeInTheDocument();
     await waitFor(() =>
       expect(
-        screen.getByLabelText(avecEtoile(i18n.t('parametrage:creancier.identite.nom'))),
+        screen.getByText(
+          i18n.t('parametrage:creancier.identite.nomRepris', { nom: 'Garage Martin SA' }),
+        ),
       ).toBeInTheDocument(),
     );
   });
@@ -278,8 +294,13 @@ describe('EcranParametresFacturation — champs obligatoires', () => {
     server.use(http.get(CHEMIN, () => HttpResponse.json(BLOC_VIDE)));
     rendre();
 
+    await userEvent.setup().click(
+      await screen.findByRole('button', {
+        name: i18n.t('parametrage:creancier.identite.nomDifferent'),
+      }),
+    );
     const nom = await screen.findByLabelText(
-      avecEtoile(i18n.t('parametrage:creancier.identite.nom')),
+      avecEtoile(i18n.t('parametrage:creancier.identite.nomBulletin')),
     );
     expect(screen.getByText(i18n.t('parametrage:obligatoire.legende'))).toBeInTheDocument();
     expect(nom).toHaveAttribute('aria-required', 'true');

@@ -547,13 +547,6 @@ export function EcranHangarPneus() {
                       <EtatVidePremierUsage
                         titre={t('pneus:hangar.vide.titre')}
                         description={t('pneus:hangar.vide.premierUsage')}
-                        action={
-                          peutCreer ? (
-                            <Button type="button" onClick={() => setCreationOuverte(true)}>
-                              {t('pneus:creation.actions.ouvrir')}
-                            </Button>
-                          ) : undefined
-                        }
                       />
                     )
                   ) : (

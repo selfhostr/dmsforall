@@ -23,6 +23,7 @@ import {
   EcranConsolePlateforme,
   EcranParametragePieces,
   EcranParametrageAtelier,
+  EcranChiffres,
   EcranExportFiduciaire,
   EcranParametresFacturation,
   EcranReferentiels,
@@ -77,6 +78,7 @@ import {
   ACCES_PIECES,
   ACCES_PNEUS,
   ACCES_POINTAGE,
+  ACCES_CHIFFRES,
   ACCES_MENU_FINANCIER,
   ACCES_RELANCES,
   ACCES_SCAN,
@@ -220,7 +222,15 @@ export const routesConfig: RouteObject[] = [
       // l'API et l'alerte générique de l'écran, jamais par une garde de route (voir
       // `droits-routes.ts`, cas de figure 1 : une garde de route n'a de sens que si la LECTURE
       // elle-même est restreinte, ce qui n'est pas le cas ici).
-      { path: 'vehicules/nouveau', element: <EcranNouveauVehicule /> },
+      {
+        path: 'vehicules/nouveau',
+        element: (
+          <>
+            <EcranListeVehicules />
+            <EcranNouveauVehicule />
+          </>
+        ),
+      },
       { path: 'vehicules/:vehiculeId', element: <EcranFicheVehicule /> },
       { path: 'ordres-reparation', element: <EcranListeOrdresReparation /> },
       // Le paramètre s'appelle `orId` (pas `id`) pour matcher exactement ce que
@@ -233,11 +243,28 @@ export const routesConfig: RouteObject[] = [
       // L'écran lit `?site=` et `?clientId=` en paramètres de requête (jamais de paramètre de
       // chemin ici) — voir EcranNouvelOrdreReparation.tsx pour le détail des deux repos honnêtes
       // affichés quand l'un des deux manque.
-      { path: 'atelier/ordres-reparation/nouveau', element: <EcranNouvelOrdreReparation /> },
+      // Création en panneau latéral droit par-dessus la liste des OR (les liens existants marchent).
+      {
+        path: 'atelier/ordres-reparation/nouveau',
+        element: (
+          <>
+            <EcranListeOrdresReparation />
+            <EcranNouvelOrdreReparation />
+          </>
+        ),
+      },
       // Parcours « depuis une plaque » : un seul écran (véhicule, client, OR). Lit `?plaque=`,
       // `?vehiculeId=`, `?clientId=` et `?site=` pour arriver prérempli depuis l'accueil, la
       // recherche, la liste des OR et les fiches client/véhicule.
-      { path: 'atelier/ordres-reparation/depuis-plaque', element: <EcranOrdreDepuisPlaque /> },
+      {
+        path: 'atelier/ordres-reparation/depuis-plaque',
+        element: (
+          <>
+            <EcranListeOrdresReparation />
+            <EcranOrdreDepuisPlaque />
+          </>
+        ),
+      },
       { path: 'ordres-reparation/:orId/facturer', element: <EcranFacturerOrdreReparation /> },
       // Agenda de rendez-vous (Lot RDV-1) — `rendez_vous.lire` ferme la LECTURE elle-même à
       // `vendeur`/`magasinier`/`comptable`/`poste_atelier` côté API (`droits-routes.ts`), cette
@@ -260,6 +287,15 @@ export const routesConfig: RouteObject[] = [
         ),
       },
       { path: 'factures', element: <EcranListeFactures /> },
+      // Chiffres : route statique, classée avant `factures/:id` par React Router.
+      {
+        path: 'factures/chiffres',
+        element: (
+          <RouteProtegee accesAutorise={ACCES_CHIFFRES}>
+            <EcranChiffres />
+          </RouteProtegee>
+        ),
+      },
       // `:id` (pas `:orId` ni `:factureId`) — `EcranFicheFacture` lit `useParams<{ id: string }>()`.
       { path: 'factures/:id', element: <EcranFicheFacture /> },
       // Même remarque : `EcranAvoir` lit aussi `useParams<{ id: string }>()` — `id` y désigne la

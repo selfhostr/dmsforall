@@ -240,12 +240,25 @@ describe('BarreLaterale — où mène chaque entrée', () => {
     expect(reglages.getAttribute('href')).toBe('/parametrage/referentiels');
   });
 
-  it('direction : Réglages est un lien direct de la barre, visible sans ouvrir le menu du compte', async () => {
+  it('direction : Réglages vit dans le menu du compte, il n’y a plus de lien direct dans la barre', async () => {
     connecte('direction');
     rendre('/');
 
-    const lien = await screen.findByRole('link', { name: /réglages/i });
-    expect(lien.getAttribute('href')).toBe('/parametrage/atelier');
+    await screen.findByRole('link', { name: /^pièces$/i });
+    expect(screen.queryByRole('link', { name: /réglages/i })).not.toBeInTheDocument();
+
+    await ouvrirMenuCompte();
+    const reglages = await screen.findByRole('menuitem', { name: /réglages/i });
+    expect(reglages.getAttribute('href')).toBe('/parametrage/atelier');
+  });
+
+  it('repliée : Réglages reste atteignable par le menu du compte (avatar)', async () => {
+    connecte('direction');
+    rendreAvecRepli('/', true);
+
+    expect(screen.queryByRole('link', { name: /réglages/i })).not.toBeInTheDocument();
+    await ouvrirMenuCompte();
+    expect(await screen.findByRole('menuitem', { name: /réglages/i })).toBeInTheDocument();
   });
 
   it('comptable : le menu du pied ouvre Réglages sur les coordonnées bancaires (gouvernance atelier fermée)', async () => {
@@ -589,7 +602,7 @@ describe('BarreLaterale — numéro de version, collé au pied compte', () => {
     rendre('/');
 
     const compte = await screen.findByRole('button', { name: /jean dupont/i });
-    const version = screen.getByText('0.1.0+a1b2c3d');
+    const version = screen.getByText('v0.1.0');
     // Même pied que le déclencheur du compte, pas un pied détaché — ancré sur `.border-t`
     // (le filet qui délimite VISUELLEMENT le pied compte, `BarreLaterale.tsx`) plutôt que sur
     // `closest('div')` : le déclencheur est nichée sous un `div` de mise en page intermédiaire
@@ -603,13 +616,14 @@ describe('BarreLaterale — numéro de version, collé au pied compte', () => {
     expect(version).toHaveAttribute('title', 'Version 0.1.0+a1b2c3d');
   });
 
-  it('affiche le marqueur « +modifié » quand l’arbre était sale au moment du build', async () => {
+  it('format court « v0.1.0 » : hash et marqueur « +modifié » réservés à l’infobulle', async () => {
     vi.stubEnv('VITE_DFA_VERSION_INFO', '0.1.0+a1b2c3d+modifié');
     connecte('direction');
     rendre('/');
 
     await screen.findByRole('button', { name: /jean dupont/i });
-    expect(screen.getByText('0.1.0+a1b2c3d+modifié')).toBeInTheDocument();
+    // Affichage court « v0.1.0 » ; hash et marqueur restent dans l'infobulle, pour le support.
+    expect(screen.getByText('v0.1.0')).toHaveAttribute('title', 'Version 0.1.0+a1b2c3d+modifié');
   });
 
   it('retombe sur « inconnue » (traduit) quand l’information n’est pas disponible — jamais une chaîne vide ni une exception', async () => {
@@ -628,7 +642,7 @@ describe('BarreLaterale — numéro de version, collé au pied compte', () => {
 
     const compte = await screen.findByRole('button', { name: /jean dupont/i });
     expect(compte).toBeInTheDocument();
-    const version = screen.getByText('0.1.0+a1b2c3d');
+    const version = screen.getByText('v0.1.0');
     expect(version.className).toContain('hidden');
   });
 
@@ -638,7 +652,7 @@ describe('BarreLaterale — numéro de version, collé au pied compte', () => {
     rendreAvecRepli('/', false);
 
     await screen.findByRole('button', { name: /jean dupont/i });
-    const version = screen.getByText('0.1.0+a1b2c3d');
+    const version = screen.getByText('v0.1.0');
     expect(version.className).not.toContain('hidden');
   });
 
@@ -658,7 +672,7 @@ describe('BarreLaterale — numéro de version, collé au pied compte', () => {
     await waitFor(() => {
       expect(screen.queryByRole('link')).not.toBeInTheDocument();
     });
-    expect(screen.getByText('0.1.0+a1b2c3d')).toBeInTheDocument();
+    expect(screen.getByText('v0.1.0')).toBeInTheDocument();
 
     await ouvrirMenuCompte();
     expect(screen.queryByRole('menuitem', { name: /réglages/i })).not.toBeInTheDocument();
@@ -714,24 +728,32 @@ describe('BarreLaterale — pied compte', () => {
     expect(declencheur).toHaveTextContent('JD');
   });
 
-  it('le menu propose Réglages puis Se déconnecter, dans cet ordre — en plus du lien direct de la barre', async () => {
+  it('le menu propose Réglages, thème, taille, langue puis Se déconnecter — sans lien direct dans la barre', async () => {
     connecte('chef_atelier');
     rendre('/');
 
-    // Depuis l'audit « garage neuf » : Réglages est aussi un lien direct, toujours visible (un
-    // garage neuf ne trouvait pas la porte de configuration dans le menu du compte).
+    // Réglages n'est plus un bouton séparé (gain de place) : il n'existe que dans ce menu.
     await screen.findByRole('link', { name: /^pièces$/i });
-    expect(screen.getByRole('link', { name: /^réglages$/i })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^réglages$/i })).not.toBeInTheDocument();
 
     await ouvrirMenuCompte();
     const elements = await screen.findAllByRole('menuitem');
     expect(elements.map((element) => element.textContent?.trim())).toEqual([
       expect.stringContaining('Réglages'),
-      expect.stringContaining('Se déconnecter'),
-      // Choix de langue (SelecteurLangueMenu), après la déconnexion, dans sa propre langue.
+      // Langue (SelecteurLangueMenu), dans sa propre langue, puis la déconnexion en dernier.
       expect.stringContaining('Français'),
       expect.stringContaining('Deutsch'),
       expect.stringContaining('Italiano'),
+      expect.stringContaining('Se déconnecter'),
+    ]);
+    // Thème et taille : contrôles segmentés (menuitemradio) du même menu.
+    expect(screen.getAllByRole('menuitemradio').map((e) => e.getAttribute('aria-label'))).toEqual([
+      'Passer en thème clair',
+      'Passer en thème sombre',
+      'Suivre le thème du système',
+      "Automatique (selon l'appareil)",
+      'Compacte',
+      'Aérée',
     ]);
   });
 
@@ -751,5 +773,60 @@ describe('BarreLaterale — pied compte', () => {
 
     const declencheur = await screen.findByRole('button', { name: /jean dupont.*chef d.atelier/i });
     expect(declencheur.querySelector('span.min-w-0')).not.toBeInTheDocument();
+  });
+});
+
+describe('BarreLaterale — recherche, site et choix du compte regroupés dans la colonne', () => {
+  it('la recherche est une entrée de menu « Rechercher » placée avant la première entrée', async () => {
+    connecte('direction');
+    rendre('/');
+
+    const recherche = await screen.findByRole('button', { name: 'Rechercher' });
+    const aujourdhui = await screen.findByRole('link', { name: /aujourd/i });
+    expect(
+      recherche.compareDocumentPosition(aujourdhui) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(recherche).toHaveTextContent(/Ctrl K|⌘K/);
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  });
+
+  it('repliée : la loupe seule reste atteignable', async () => {
+    connecte('direction');
+    rendreAvecRepli('/', true);
+
+    const recherche = await screen.findByRole('button', { name: 'Rechercher' });
+    expect(recherche).not.toHaveTextContent('Rechercher');
+  });
+
+  it('plusieurs sites : le sélecteur de site est dans la colonne', async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({
+          ...SESSION_TEST,
+          sites: [
+            ...SESSION_TEST.sites,
+            { id: 'site-2', code: 'SECOND', nom: 'Second site', actif: true },
+          ],
+        }),
+      ),
+    );
+    rendre('/?site=site-1');
+
+    expect(await screen.findByText('Site principal')).toBeInTheDocument();
+  });
+
+  it('thème et taille se choisissent dans le menu du compte, menu laissé ouvert', async () => {
+    connecte('direction');
+    const utilisateur = userEvent.setup();
+    rendre('/');
+
+    await ouvrirMenuCompte();
+    await utilisateur.click(await screen.findByRole('menuitemradio', { name: /thème sombre/i }));
+    expect(screen.getByRole('menuitemradio', { name: /thème sombre/i })).toBeInTheDocument();
+    await utilisateur.click(screen.getByRole('menuitemradio', { name: 'Aérée' }));
+    expect(screen.getByRole('menuitemradio', { name: 'Aérée' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
   });
 });

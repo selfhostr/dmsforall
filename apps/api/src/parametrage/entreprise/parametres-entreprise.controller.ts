@@ -45,18 +45,25 @@ export class ParametresEntrepriseController {
   @ExigerDroit('facturation.parametrage.creancier.modifier')
   @Patch()
   @ApiOperation({
-    summary: 'Saisit ou efface le n° TVA du garage.',
+    summary: 'Modifie la raison sociale, le n° TVA ou le délai de paiement du garage.',
     description:
+      '`raisonSociale` : 1 à 200 caractères (espaces de bord retirés), journalisée dans le journal ' +
+      "d'audit (avant/après). Le slug du garage ne change jamais. Les documents déjà émis gardent " +
+      'leur raison sociale ; les suivants prennent la nouvelle (sauf si le bloc créancier porte ' +
+      'son propre nom, qui reste prioritaire et se change dans la facturation). ' +
       'Format IDE suisse `CHE-123.456.789 TVA` (`MWST`/`IVA` acceptés), clé de contrôle modulo 11 ' +
       'vérifiée. `numeroTva: null` efface le numéro (garage non assujetti). Corps vide : aucun effet.',
   })
   @ApiOkResponse({ type: ReponseParametresEntrepriseDto })
-  @ApiReponseProbleme(400, 'VALIDATION_ECHOUEE — format ou clé de contrôle du n° TVA invalide.')
+  @ApiReponseProbleme(
+    400,
+    'VALIDATION_ECHOUEE — raison sociale vide ou trop longue, format ou clé de contrôle du n° TVA invalide.',
+  )
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'DROIT_INSUFFISANT — réservé à direction/comptable.')
   async modifier(
     @CorpsZod(schemaModificationParametresEntreprise, {
-      exemple: { numeroTva: 'CHE-116.281.710 TVA' },
+      exemple: { raisonSociale: 'Garage Martin SA', numeroTva: 'CHE-116.281.710 TVA' },
     })
     corps: EntreeModificationParametresEntreprise,
   ): Promise<ReponseParametresEntrepriseDto> {
