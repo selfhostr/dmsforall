@@ -1,6 +1,7 @@
 import { Writable } from 'node:stream';
 import { describe, expect, it } from 'vitest';
-import { construireLoggerPino } from './service-journal';
+import { DrizzleQueryError } from 'drizzle-orm';
+import { construireLoggerPino, serialiserErreur } from './service-journal';
 import type { Config } from '../../config';
 
 /**
@@ -101,5 +102,30 @@ describe('construireLoggerPino — rédaction des données personnelles (config 
     });
 
     expect(lignes[0]?.sujet).toBe('Rappel pour jean.dupont@example.ch');
+  });
+
+  it('une DrizzleQueryError journalisée ne contient ni la valeur d un IBAN ni le téléphone, ni dans le message ni dans la pile', () => {
+    const iban = 'CH9300762011623852957';
+    const telephone = '+41791234567';
+    const erreur = new DrizzleQueryError(
+      'insert into "clients" ("iban", "telephone") values ($1, $2)',
+      [iban, telephone],
+    );
+
+    const { lignes } = capturerLignesJson((logger) => {
+      logger.error({ erreur: serialiserErreur(erreur) }, 'Erreur de base de test');
+    });
+
+    const sortie = JSON.stringify(lignes[0]);
+    expect(sortie).not.toContain(iban);
+    expect(sortie).not.toContain(telephone);
+    expect(lignes[0]?.erreur).toMatchObject({
+      message:
+        'Failed query: insert into "clients" ("iban", "telephone") values ($1, $2)\nparams: [masqué]',
+    });
+  });
+
+  it('une erreur ordinaire garde son message tel quel (pas de masquage hors requête de base)', () => {
+    expect(serialiserErreur(new Error('boom'))).toMatchObject({ nom: 'Error', message: 'boom' });
   });
 });

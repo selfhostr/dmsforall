@@ -62,9 +62,32 @@ function construireCheminsRedaction(): string[] {
   return chemins;
 }
 
-function serialiserErreur(erreur: unknown): Record<string, unknown> {
+/**
+ * Une `DrizzleQueryError` embarque dans son `message` la requête ET ses paramètres
+ * (`Failed query: <SQL>\nparams: <valeurs>`) : les valeurs sont des données client (noms, IBAN,
+ * téléphones). On ne journalise que le SQL, les valeurs deviennent `[masqué]`.
+ */
+function masquerParametresRequete(message: string): string {
+  const indexParams = message.search(/\r?\nparams:/);
+  if (indexParams === -1) return message;
+  return `${message.slice(0, indexParams)}\nparams: [masqué]`;
+}
+
+function estErreurRequeteBase(erreur: Error): boolean {
+  return (
+    erreur.message.startsWith('Failed query') || erreur.constructor.name === 'DrizzleQueryError'
+  );
+}
+
+export function serialiserErreur(erreur: unknown): Record<string, unknown> {
   if (erreur instanceof Error) {
-    return { nom: erreur.name, message: erreur.message, pile: erreur.stack };
+    if (!estErreurRequeteBase(erreur)) {
+      return { nom: erreur.name, message: erreur.message, pile: erreur.stack };
+    }
+    const messageMasque = masquerParametresRequete(erreur.message);
+    // La pile reprend le message (en-tête V8) : le même masquage doit y être appliqué.
+    const pileMasquee = erreur.stack?.split(erreur.message).join(messageMasque);
+    return { nom: erreur.name, message: messageMasque, pile: pileMasquee };
   }
   return { valeur: erreur };
 }
