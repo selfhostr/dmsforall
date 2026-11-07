@@ -14,8 +14,10 @@ const LIMITE = 50;
 /** Ce que « Mes OR du jour » affiche d'un OR : identité, échéance et nombre de lignes assignées. */
 export type OrDuJour = Pick<
   OrdreReparationResumeListe,
-  'id' | 'numero' | 'siteId' | 'restitutionPromiseLe' | 'enRetard' | 'vehicule' | 'client'
+  'id' | 'numero' | 'siteId' | 'restitutionPromiseLe' | 'vehicule' | 'client'
 > & {
+  /** Le serveur calcule le retard ; absent = pas dit en retard. */
+  readonly enRetard?: boolean;
   /** Lignes de l'OR assignées au technicien, hors annulées et refusées. */
   readonly lignesAssignees: number;
 };

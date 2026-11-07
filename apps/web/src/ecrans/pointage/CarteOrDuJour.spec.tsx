@@ -2,13 +2,13 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { ReponseOrdreReparation } from '@dfa/shared';
+import type { OrDuJour } from '@/hooks/pointage/useMesOrdresAssignes';
 
 import '@/i18n';
 
 import { CarteOrDuJour } from './CarteOrDuJour';
 
-function orDe(surcharge: Partial<ReponseOrdreReparation> = {}): ReponseOrdreReparation {
+function orDe(surcharge: Partial<OrDuJour> = {}): OrDuJour {
   return {
     id: 'or-1',
     numero: 'OR-2026-2',
@@ -38,21 +38,14 @@ function orDe(surcharge: Partial<ReponseOrdreReparation> = {}): ReponseOrdreRepa
       nombreVehicules: 1,
       dernierPassageLe: null,
     },
+    lignesAssignees: 1,
     ...surcharge,
-  } as unknown as ReponseOrdreReparation;
+  } as unknown as OrDuJour;
 }
 
 function afficher(props: Partial<Parameters<typeof CarteOrDuJour>[0]> = {}) {
   const onChoisir = vi.fn();
-  render(
-    <CarteOrDuJour
-      or={orDe()}
-      lignesAssignees={1}
-      onChoisir={onChoisir}
-      desactive={false}
-      {...props}
-    />,
-  );
+  render(<CarteOrDuJour or={orDe()} onChoisir={onChoisir} desactive={false} {...props} />);
   return onChoisir;
 }
 
