@@ -27,6 +27,21 @@ function estCodeErreur(valeur: unknown): valeur is CodeErreur {
  */
 const TITRE_PAR_CODE = TITRE_FR_PAR_CODE_ERREUR;
 
+/**
+ * Causes techniques d'une erreur de base (ex. `DrizzleQueryError` enveloppant l'erreur `pg`) :
+ * `code`, `constraint`, `detail` et `message` de `cause`, sans JAMAIS les paramètres de requête
+ * (`query`, `params`) ni le texte SQL — ils peuvent porter des données personnelles.
+ */
+function causeTechnique(exception: unknown): Record<string, unknown> | undefined {
+  if (typeof exception !== 'object' || exception === null || !('cause' in exception)) {
+    return undefined;
+  }
+  const cause = (exception as { cause?: unknown }).cause;
+  if (typeof cause !== 'object' || cause === null) return undefined;
+  const { code, constraint, detail, message } = cause as Record<string, unknown>;
+  return { cause: { code, constraint, detail, message } };
+}
+
 /** Champs facultatifs de `ProblemeDetail` au-delà du socle (type/title/status/code/instance). */
 interface ChampsCorpsFacultatifs {
   readonly detail?: ProblemeDetail['detail'];
@@ -210,6 +225,7 @@ export class FiltreProbleme implements ExceptionFilter {
     // quel. On journalise la vraie erreur, on renvoie un ERREUR_INTERNE générique.
     this.journal.error('Exception non typée capturée par FiltreProbleme', exception, {
       requeteId: instance,
+      ...causeTechnique(exception),
     });
     capturerErreurInattendue(exception, contexteSentry);
     const corps = construireCorps('ERREUR_INTERNE', 500, instance);

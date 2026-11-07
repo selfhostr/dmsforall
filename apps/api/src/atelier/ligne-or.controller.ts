@@ -205,7 +205,7 @@ export class LigneOrController {
   @ExigerDroit('atelier.ligne.marquer_realisee')
   @ApiOperation({
     summary:
-      '`en_cours -> realisee`. `refusee -> realisee` n’existe pas (RM-72, CT-28) — `LIGNE_TRANSITION_INTERDITE`.',
+      '`validee|en_cours -> realisee`. `refusee -> realisee` n’existe pas (RM-72, CT-28) — `LIGNE_TRANSITION_INTERDITE`.',
   })
   @ApiParam({ name: 'orId', format: 'uuid' })
   @ApiParam({ name: 'ligneId', format: 'uuid' })
