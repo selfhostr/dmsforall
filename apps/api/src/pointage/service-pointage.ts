@@ -69,6 +69,7 @@ import { dureeBruteDepuisPeriode, mapperPointage } from './mappeurs';
 import {
   chargerLigneOuNull,
   chargerLignesOrPourAgregat,
+  chargerNomSite,
   chargerOrOuNull,
   chargerLignePourPointage,
   chargerOrPourPointage,
@@ -219,6 +220,41 @@ export class ServicePointage {
   }
 
   /**
+   * Règle : le pointage se fait sur le site de l'OR, et une borne ne pointe que sur SON site. Même
+   * confinement que `verifierSiteAutorise`, mais le refus dit CLAIREMENT pourquoi
+   * (`403 POINTAGE_SITE_AUTRE`, avec le nom du site de l'OR dans `blocages[0].donnees.siteNom`)
+   * au lieu d'un `DROIT_INSUFFISANT` muet. Aucune écriture n'est atteinte.
+   */
+  private async exigerSiteDeLaBorne(
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    entree: EntreeDemarragePointage,
+  ): Promise<void> {
+    const siteBorne = siteImposeAuPrincipal(principal);
+    if (siteBorne === null || siteBorne === entree.siteId) return;
+    const siteNom = await this.acces.enTenant(ctx, (tx) => chargerNomSite(tx, ctx, entree.siteId));
+    const ordreReparationId = 'ordreReparationId' in entree ? entree.ordreReparationId : null;
+    throw new ErreurMetier(
+      'POINTAGE_SITE_AUTRE',
+      siteNom
+        ? `Cet ordre de réparation est au site ${siteNom} ; pointez depuis la borne de ce site ou demandez au bureau.`
+        : 'Cet ordre de réparation est à un autre site ; pointez depuis la borne de ce site ou demandez au bureau.',
+      {
+        blocages: siteNom
+          ? [
+              {
+                type: 'ordre_reparation',
+                id: ordreReparationId ?? entree.siteId,
+                libelle: siteNom,
+                donnees: { siteId: entree.siteId, siteNom },
+              },
+            ]
+          : undefined,
+      },
+    );
+  }
+
+  /**
    * `POST /pointages` — RM-87 (trois cibles), RM-89/90 (chevauchement), RM-117 (cascade
    * ligne_or/ordre_reparation). Idempotence à DEUX niveaux (voir le commentaire de
    * `schemaDemarragePointage`, `contrats/pointage/pointage.ts`) :
@@ -248,7 +284,7 @@ export class ServicePointage {
     // contrôle de site existant plus bas, ligne ~283, ne vérifie que la cohérence `siteId` ↔ OR
     // ciblé, jamais la portée du principal). Un compte de PERSONNE n'est jamais restreint ici
     // (portée tenant, voir `verifierSiteAutorise`, `auth/comptes-de-service.ts`).
-    verifierSiteAutorise(principal, entree.siteId);
+    await this.exigerSiteDeLaBorne(ctx, principal, entree);
     return this.idempotence.executer(
       ctx,
       { methode: 'POST', chemin: '/pointages', cle: cleIdempotence, corps: entree },

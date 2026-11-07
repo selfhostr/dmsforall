@@ -19,8 +19,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
-import { IdentiteClient } from '@/composants/identite/IdentiteClient';
-import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { useOrdreReparation } from '@/hooks/atelier/useOrdreReparation';
 import {
   calculerCumulSecondesCible,
@@ -28,6 +26,7 @@ import {
   useCumulsPointagesJour,
 } from '@/hooks/pointage/cumul-cible-jour';
 import { compterLignesAssigneesPointables } from '@/hooks/pointage/lignes-assignees';
+import { estHorsSite, trierParEcheance } from '@/hooks/pointage/ordres-du-jour';
 import { useArreterPointage } from '@/hooks/pointage/useArreterPointage';
 import { useDemarrerPointage } from '@/hooks/pointage/useDemarrerPointage';
 import { useDerniereCiblePointage } from '@/hooks/pointage/useDerniereCiblePointage';
@@ -40,7 +39,8 @@ import { genererUuid } from '@/lib/uuid';
 import { BandeauReprisePointage } from './BandeauReprisePointage';
 import { CartePointageEnCours } from './CartePointageEnCours';
 import { DialogueChoixCiblePointage } from './DialogueChoixCiblePointage';
-import { libelleActiviteIndirecte, libelleCiblePointage } from './libelles';
+import { CarteOrDuJour } from './CarteOrDuJour';
+import { libelleActiviteIndirecte, libelleCiblePointage, messageErreurPointage } from './libelles';
 import { PaveNumerique } from './PaveNumerique';
 import { SelecteurOrOuvert } from './SelecteurOrOuvert';
 
@@ -236,6 +236,15 @@ export function EcranBornePointage() {
   const pointageOuvert = usePointageOuvertTechnicien(technicienId);
   const mesOrdres = useMesOrdresAssignes(technicienId);
   const requeteOrSelectionne = useOrdreReparation(orSelectionneId);
+  // Véhicule de l'OR pointé (affiché en grand sur la carte « en cours ») : document OR de la cible
+  // du pointage OUVERT, jamais un état local. `undefined` -> requête inerte (activité indirecte).
+  const requeteOrPointageActuel = useOrdreReparation(
+    pointageOuvert.data?.ordreReparationId ?? undefined,
+  );
+  // Nom d'un site connu de la session. Une borne n'en connaît qu'UN (le sien) : pour l'OR d'un
+  // autre site, `undefined` -> l'étiquette générique « Autre site », jamais un nom inventé.
+  const nomSite = (id: string): string | undefined =>
+    session?.sites.find((candidat) => candidat.id === id)?.nom;
   // Point 6 (« deux nombres ») — même mécanique qu'`EcranPointageTechnicien` : voir l'en-tête de
   // `cumul-cible-jour.ts`. Couvre le cumul du SEGMENT COURANT (`cumulSegmentCourant` plus bas),
   // jamais celui de la cible de REPRISE — `useDerniereCiblePointage` rend directement le sien.
@@ -434,7 +443,7 @@ export function EcranBornePointage() {
       // (`handlePause`/`handleReprendre`) n'ont besoin d'aucune propagation supplémentaire : ils
       // portent leur propre `finally` (nettoyage `enChainage`), inconditionnel qu'il y ait eu
       // rethrow ou non.
-      setErreurAction(messageErreur(erreurCapturee, t));
+      setErreurAction(messageErreurPointage(erreurCapturee, t));
     }
   }
 
@@ -477,7 +486,7 @@ export function EcranBornePointage() {
       setAvertissementAction(undefined);
       setChangementCibleOuvert(false);
     } catch (erreurCapturee) {
-      setErreurAction(messageErreur(erreurCapturee, t));
+      setErreurAction(messageErreurPointage(erreurCapturee, t));
     }
   }
 
@@ -497,7 +506,7 @@ export function EcranBornePointage() {
       });
       await demarrerEtSuivre({ nature: 'indirect', activiteIndirecte: 'pause', siteId: p.siteId });
     } catch (erreurCapturee) {
-      setErreurAction(messageErreur(erreurCapturee, t));
+      setErreurAction(messageErreurPointage(erreurCapturee, t));
     } finally {
       setEnChainage(false);
     }
@@ -535,7 +544,7 @@ export function EcranBornePointage() {
         });
       }
     } catch (erreurCapturee) {
-      setErreurAction(messageErreur(erreurCapturee, t));
+      setErreurAction(messageErreurPointage(erreurCapturee, t));
     } finally {
       setEnChainage(false);
     }
@@ -645,31 +654,20 @@ export function EcranBornePointage() {
             />
           ) : (
             <div className="flex flex-col gap-3">
-              {(mesOrdres.data ?? []).map((or) => (
-                <button
+              {trierParEcheance(mesOrdres.data ?? []).map((or) => (
+                <CarteOrDuJour
                   key={or.id}
-                  type="button"
-                  disabled={enTraitement}
-                  onClick={() => {
+                  or={or}
+                  grand
+                  desactive={enTraitement}
+                  horsSite={estHorsSite(or, siteId)}
+                  siteNom={nomSite(or.siteId)}
+                  lignesAssignees={compterLignesAssigneesPointables(or, technicienId as string)}
+                  onChoisir={() => {
                     reinitialiserInactivite();
                     setOrSelectionneId(or.id);
                   }}
-                  // Bordure conservée : carte cliquable de sélection d'OR, zone d'action réelle
-                  // (DESIGN.md). `anneau-focus` (dépôt) plutôt que l'anneau natif du navigateur —
-                  // rôle accru ici (mode borne : gants, plein jour, contraste prioritaire).
-                  className="flex min-h-[72px] flex-col items-start gap-1 rounded-lg border p-4 text-left transition-colors hover:bg-muted anneau-focus disabled:pointer-events-none disabled:opacity-50 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="flex flex-col gap-1">
-                    <span className="font-medium">{or.numero}</span>
-                    <IdentiteVehicule vehicule={or.vehicule} taillePlaque="sm" />
-                    <IdentiteClient client={or.client} />
-                  </div>
-                  <span className="texte-libelle text-muted-foreground">
-                    {t('pointage:technicien.mesOrs.lignesAssignees', {
-                      count: compterLignesAssigneesPointables(or, technicienId as string),
-                    })}
-                  </span>
-                </button>
+                />
               ))}
             </div>
           )}
@@ -695,7 +693,10 @@ export function EcranBornePointage() {
           </Button>
         </CardHeader>
         {toutesOrOuvertesVisible ? (
-          <CardContent>
+          <CardContent className="flex flex-col gap-3">
+            <p className="texte-corps text-muted-foreground">
+              {t('pointage:toutesLesOr.siteBorne')}
+            </p>
             <SelecteurOrOuvert
               siteId={siteId}
               onChoisirOr={(orId) => {
@@ -847,6 +848,8 @@ export function EcranBornePointage() {
                   pointage={pointageOuvert.data}
                   libelleCible={libelleCiblePointage(pointageOuvert.data, t)}
                   cumulAujourdhuiSecondes={cumulSegmentCourant}
+                  grand
+                  vehicule={requeteOrPointageActuel.data?.vehicule}
                   onArreter={() => void handleArreter()}
                   onPause={
                     pointageOuvert.data.nature === 'productif_ligne' ||
@@ -873,7 +876,7 @@ export function EcranBornePointage() {
                 <>
                   {erreurAction ? (
                     <EtatErreur
-                      titre={t('pointage:technicien.erreur.titre')}
+                      titre={t('pointage:technicien.erreur.titreAction')}
                       description={erreurAction}
                     />
                   ) : null}

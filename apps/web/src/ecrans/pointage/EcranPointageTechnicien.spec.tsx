@@ -453,7 +453,7 @@ describe('EcranPointageTechnicien', () => {
       await waitFor(() => expect(appelsDemarrer).toHaveLength(1));
       expect(appelsArreter).toHaveLength(0);
       expect(
-        await screen.findByText('Ce pointage a été clôturé automatiquement à la fermeture.'),
+        await screen.findByText('Votre pointage précédent a été clôturé automatiquement.'),
       ).toBeInTheDocument();
     },
   );
@@ -1213,4 +1213,116 @@ describe('EcranPointageTechnicien', () => {
       expect(rejetsNonRattrapes).toEqual([]);
     },
   );
+
+  describe('après « Arrêter » sur une ligne — marquer réalisée en un geste', () => {
+    function poserHandlersArret(pointage: ReponsePointage, appelsRealisee: string[]) {
+      let ouvert = true;
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/pointages', () =>
+          HttpResponse.json(pagePointages(ouvert ? [pointage] : [])),
+        ),
+        http.get('/api/v1/ordres-reparation', () => HttpResponse.json(pageOrdres([]))),
+        http.get('/api/v1/ordres-reparation/or-1', () =>
+          HttpResponse.json(construireOrDetail({ lignes: [construireLigne({ id: 'ligne-1' })] })),
+        ),
+        http.post('/api/v1/pointages/:id/arreter', () => {
+          ouvert = false;
+          return HttpResponse.json({
+            donnees: { ...pointage, statut: 'termine', finLe: new Date().toISOString() },
+            avertissements: [],
+          });
+        }),
+        http.post(
+          '/api/v1/ordres-reparation/or-1/lignes/:ligneId/marquer-realisee',
+          ({ params }) => {
+            appelsRealisee.push(String(params['ligneId']));
+            return HttpResponse.json({
+              donnees: construireLigne({ id: String(params['ligneId']), statut: 'realisee' }),
+              avertissements: [],
+            });
+          },
+        ),
+      );
+    }
+
+    it('propose « Marquer cette ligne réalisée » et envoie UN appel marquer-realisee sur la ligne arrêtée', async () => {
+      const appels: string[] = [];
+      poserHandlersArret(
+        { ...POINTAGE_EN_COURS, nature: 'productif_ligne', ligneOrId: 'ligne-1' },
+        appels,
+      );
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      await utilisateur.click(await screen.findByRole('button', { name: 'Arrêter' }));
+      await utilisateur.click(
+        await screen.findByRole('button', { name: 'Marquer cette ligne réalisée' }),
+      );
+
+      expect(await screen.findByText('Ligne marquée réalisée.')).toBeInTheDocument();
+      expect(appels).toEqual(['ligne-1']);
+    });
+
+    it('« Pas maintenant » referme la proposition sans rien envoyer', async () => {
+      const appels: string[] = [];
+      poserHandlersArret(
+        { ...POINTAGE_EN_COURS, nature: 'productif_ligne', ligneOrId: 'ligne-1' },
+        appels,
+      );
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      await utilisateur.click(await screen.findByRole('button', { name: 'Arrêter' }));
+      await utilisateur.click(await screen.findByRole('button', { name: 'Pas maintenant' }));
+
+      expect(screen.queryByRole('button', { name: 'Marquer cette ligne réalisée' })).toBeNull();
+      expect(appels).toEqual([]);
+    });
+
+    it('ne propose rien après l’arrêt d’un pointage sur l’OR entier (aucune ligne précise)', async () => {
+      poserHandlersArret(POINTAGE_EN_COURS, []);
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      await utilisateur.click(await screen.findByRole('button', { name: 'Arrêter' }));
+      await waitFor(() =>
+        expect(screen.queryByRole('button', { name: 'Arrêter' })).not.toBeInTheDocument(),
+      );
+      expect(screen.queryByRole('button', { name: 'Marquer cette ligne réalisée' })).toBeNull();
+    });
+  });
+
+  it('« Mes OR du jour » : l’OR dont la restitution est la plus proche passe en premier, avec son échéance', async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([]))),
+      http.get('/api/v1/ordres-reparation', () =>
+        HttpResponse.json(
+          pageOrdres([
+            construireOrDetail({ id: 'or-a', numero: 'OR-A', restitutionPromiseLe: null }),
+            construireOrDetail({
+              id: 'or-b',
+              numero: 'OR-B',
+              restitutionPromiseLe: '2026-11-09T15:00:00.000Z',
+            }),
+            construireOrDetail({
+              id: 'or-c',
+              numero: 'OR-C',
+              restitutionPromiseLe: '2026-11-05T09:00:00.000Z',
+              enRetard: true,
+            }),
+          ]),
+        ),
+      ),
+    );
+
+    rendre();
+
+    await screen.findByText('OR-C');
+    const numeros = screen.getAllByText(/^OR-[ABC]$/).map((n) => n.textContent);
+    expect(numeros).toEqual(['OR-C', 'OR-B', 'OR-A']);
+    expect(screen.getByText(/En retard, promis 05\.11\.2026/)).toBeInTheDocument();
+    expect(screen.getByText(/Retour promis 09\.11\.2026/)).toBeInTheDocument();
+  });
 });

@@ -453,7 +453,7 @@ describe('EcranBornePointage', () => {
       await waitFor(() => expect(appelsDemarrer).toHaveLength(1));
       expect(appelsArreter).toHaveLength(0);
       expect(
-        await screen.findByText('Ce pointage a été clôturé automatiquement à la fermeture.'),
+        await screen.findByText('Votre pointage précédent a été clôturé automatiquement.'),
       ).toBeInTheDocument();
     },
   );

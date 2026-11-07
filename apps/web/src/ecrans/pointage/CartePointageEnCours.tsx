@@ -1,12 +1,16 @@
+import { Timer } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import type { ReponsePointage } from '@dfa/shared';
+import type { ReponsePointage, VehiculeResume } from '@dfa/shared';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formaterDureeLisible, useChronoPointage } from '@/hooks/pointage/temps-pointage';
 import { formaterHeure } from '@/lib/formats';
+import { cn } from '@/lib/utils';
+
+import { VehiculeGrand } from './VehiculeGrand';
 
 interface Props {
   readonly pointage: ReponsePointage;
@@ -45,6 +49,12 @@ interface Props {
    * distingue pas visuellement de son absence, donc jamais rendu).
    */
   readonly cumulAujourdhuiSecondes: number | undefined;
+  /** BORNE : lecture à 1,5 m — état (« En cours »), numéro d'OR/cible et désignation du véhicule
+   *  à 24 px (`text-2xl`), plaque au palier `xl`. Omis -> rendu inchangé (écran personnel). */
+  readonly grand?: boolean;
+  /** Véhicule de l'OR pointé, affiché en grand sur la borne (`grand`). `undefined` tant que le
+   *  document OR n'est pas chargé, ou pour une activité indirecte (aucun véhicule). */
+  readonly vehicule?: VehiculeResume;
 }
 
 /**
@@ -76,6 +86,8 @@ export function CartePointageEnCours({
   messageErreur,
   avertissement,
   cumulAujourdhuiSecondes,
+  grand = false,
+  vehicule,
 }: Props) {
   const { t } = useTranslation(['pointage', 'commun']);
   const chrono = useChronoPointage(pointage.debutLe);
@@ -101,8 +113,25 @@ export function CartePointageEnCours({
           <span className="texte-chiffre-geant tabular-nums" aria-live="off">
             {chrono.libelle}
           </span>
-          <span className="texte-corps text-muted-foreground">{libelleCible}</span>
-          <span className="texte-libelle text-muted-foreground">
+          {grand ? (
+            <span className="inline-flex items-center gap-2 text-2xl font-semibold text-primary">
+              <Timer aria-hidden="true" className="h-6 w-6" />
+              {t('pointage:technicien.pointageEnCours.etat')}
+            </span>
+          ) : null}
+          <span
+            className={cn(
+              grand ? 'text-center text-2xl font-semibold' : 'texte-corps text-muted-foreground',
+            )}
+          >
+            {libelleCible}
+          </span>
+          {grand && vehicule ? <VehiculeGrand vehicule={vehicule} /> : null}
+          <span
+            className={cn(
+              grand ? 'text-2xl text-muted-foreground' : 'texte-libelle text-muted-foreground',
+            )}
+          >
             {t('pointage:technicien.pointageEnCours.depuis', {
               heure: formaterHeure(pointage.debutLe),
             })}
