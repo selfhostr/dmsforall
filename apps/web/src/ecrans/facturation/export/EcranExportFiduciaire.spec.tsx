@@ -601,7 +601,7 @@ describe('EcranExportFiduciaire — aperçu', () => {
     );
     rendre();
 
-    expect(await screen.findByText(/Produits \(Pièces\)/)).toBeInTheDocument();
+    expect(await screen.findByText(/Pièces \(pièces : FAC-2026-00015\)/)).toBeInTheDocument();
     expect(screen.getByText(/numéros manquants FAC-2026-00013/)).toBeInTheDocument();
     expect(
       screen.getByText('FAC-2026-00016 : débit CHF 100.00, crédit CHF 99.95'),
@@ -767,7 +767,7 @@ describe('EcranExportFiduciaire — comptes comptables', () => {
       await screen.findByRole('button', { name: 'Utiliser les valeurs proposées' }),
     );
 
-    expect(screen.getByLabelText('Arrondi')).toHaveValue('3809');
+    expect(screen.getByLabelText(/^Arrondi/)).toHaveValue('3809');
     expect(screen.getByLabelText('Normal, 8.1 %')).toHaveValue('N81');
   });
 
