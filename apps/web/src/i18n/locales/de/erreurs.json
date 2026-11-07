@@ -101,6 +101,8 @@
     "QR_CREANCIER_INCOMPLET": "Ihre Bankangaben für die QR-Rechnung sind unvollständig. Ergänzen Sie sie in den Abrechnungseinstellungen.",
     "TVA_NON_ASSUJETTI_TAUX_INTERDIT": "Ihre Garage ist nicht mehrwertsteuerpflichtig: keine Position darf MWST enthalten. Setzen Sie den Satz auf 0 % oder geben Sie in den Fakturierungseinstellungen an, dass Sie mehrwertsteuerpflichtig sind.",
     "TVA_NUMERO_REQUIS": "Ihre Garage ist mehrwertsteuerpflichtig: Erfassen Sie Ihre MWST-Nummer in den Fakturierungseinstellungen, bevor Sie eine Rechnung ausstellen.",
+    "FACTURE_DEJA_CORRIGEE": "Diese Rechnung wurde bereits durch eine Gutschrift storniert und ist damit schon korrigiert. Öffnen Sie die Rechnung, die sie ersetzt.",
+    "FACTURE_CORRECTION_REGLEMENT_EXISTANT": "Diese Rechnung ist bereits ganz oder teilweise bezahlt: Sie kann nicht als Entwurf neu erstellt werden. Stornieren Sie zuerst die Zahlung oder korrigieren Sie nur die Adresse.",
     "IBAN_INVALIDE": "Dieser IBAN scheint falsch zu sein (Form oder Prüfziffer). Überprüfen Sie die Eingabe Ziffer für Ziffer.",
     "IBAN_EST_UN_QR_IBAN": "Dies ist ein QR-IBAN: Erfassen Sie ihn im Feld «QR-IBAN», nicht im Feld «IBAN».",
     "QR_IBAN_SANS_IID_RESERVE": "Dies ist ein gewöhnlicher IBAN, kein QR-IBAN: Erfassen Sie ihn im Feld «IBAN», nicht im Feld «QR-IBAN».",

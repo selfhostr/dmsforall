@@ -60,6 +60,25 @@ export function normaliserTauxEtRegime(
   return { tauxTvaPourmille: 0, regimeTva: REGIME_NON_ASSUJETTI };
 }
 
+/**
+ * Taux et régime d'une ligne RECOPIÉE d'un document antérieur (correction de facture en
+ * brouillon, conversion devis → OR), au régime ACTUEL du garage.
+ *
+ * Contrairement à {@link normaliserTauxEtRegime}, ne REFUSE jamais une ligne héritée à taux > 0 :
+ * un garage devenu non assujetti depuis l'émission d'origine recopie ses lignes à 0 ‰ / `exclu`
+ * (le prix TTC saisi est conservé, donc HT = TTC) ; l'ancien taux n'est pas une saisie fautive.
+ * Un garage assujetti garde taux et régime d'origine.
+ */
+export function adapterLigneRecopieeAuRegimeActuel(
+  situation: SituationTvaGarage,
+  origine: { readonly tauxTvaPourmille: number | null | undefined; readonly regimeTva: RegimeTva },
+): { readonly tauxTvaPourmille: number | null; readonly regimeTva: RegimeTva } {
+  return normaliserTauxEtRegime(situation, {
+    tauxTvaPourmille: situation.assujetti ? origine.tauxTvaPourmille : 0,
+    regimeTva: origine.regimeTva,
+  });
+}
+
 function erreurTauxInterdit(fautives: readonly LigneAControler[]): ErreurMetier {
   return new ErreurMetier(
     'TVA_NON_ASSUJETTI_TAUX_INTERDIT',

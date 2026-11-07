@@ -346,6 +346,13 @@ export const CODES_ERREUR = [
   // Garage assujetti : son n° TVA n'est pas saisi, une facture ne peut pas être émise
   // (art. 26 LTVA). Se règle dans Réglages > Mon garage.
   'TVA_NUMERO_REQUIS',
+  // --- Correction de facture en brouillon (POST /documents-vente/{id}/corriger, mode 'brouillon') ---
+  // La facture a déjà été annulée par un avoir (donc déjà corrigée ou créditée) : `blocages[]`
+  // pointe le brouillon/la facture de remplacement quand il existe.
+  'FACTURE_DEJA_CORRIGEE',
+  // La facture porte déjà un règlement (partiel ou total) : refaire un brouillon libre détacherait
+  // l'encaissement de sa facture. À traiter d'abord (annuler/rembourser le paiement).
+  'FACTURE_CORRECTION_REGLEMENT_EXISTANT',
   // --- Modules activables (migration 0092) : écriture sur un module que le garage a retiré ---
   'MODULE_DESACTIVE',
 ] as const;
@@ -498,6 +505,8 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   FACTURE_DESTINATAIRE_COURRIEL_ABSENT: 409,
   TVA_NON_ASSUJETTI_TAUX_INTERDIT: 409,
   TVA_NUMERO_REQUIS: 409,
+  FACTURE_DEJA_CORRIGEE: 409,
+  FACTURE_CORRECTION_REGLEMENT_EXISTANT: 409,
   MODULE_DESACTIVE: 403,
 };
 
@@ -635,6 +644,8 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   FACTURE_DESTINATAIRE_COURRIEL_ABSENT: "Le client n'a pas d'adresse courriel enregistrée",
   TVA_NON_ASSUJETTI_TAUX_INTERDIT: 'TVA interdite pour un garage non assujetti',
   TVA_NUMERO_REQUIS: 'Numéro de TVA requis pour émettre',
+  FACTURE_DEJA_CORRIGEE: 'Facture déjà corrigée',
+  FACTURE_CORRECTION_REGLEMENT_EXISTANT: 'Facture déjà réglée en tout ou partie',
   MODULE_DESACTIVE: 'Module désactivé pour ce garage',
 };
 

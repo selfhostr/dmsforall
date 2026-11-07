@@ -283,7 +283,19 @@
         "npa": "PLZ",
         "localite": "Ort"
       },
-      "motifMontantTaux": "Betrags- oder Satzkorrekturen erfolgen über die Gutschrift-Ansicht: sie werden hier nicht unterstützt.",
+      "choix": {
+        "legende": "Was möchten Sie tun?",
+        "remplacement": {
+          "titre": "Nur die Adresse korrigieren",
+          "aide": "Empfänger oder Adresse ändern sich, die Beträge bleiben gleich. Die korrigierte Rechnung wird sofort ausgestellt."
+        },
+        "brouillon": {
+          "titre": "Rechnung neu erstellen (Gutschrift + neuer Entwurf)",
+          "aide": "Die Rechnung wird durch eine Gutschrift storniert, danach wird ein identischer Entwurf erstellt. Sie ändern ihn frei (Positionen, Preise, MWST), bevor Sie ihn ausstellen. Die MWST folgt der aktuellen Regelung Ihrer Garage.",
+          "dejaRegle": "Nicht verfügbar: Diese Rechnung ist bereits ganz oder teilweise bezahlt. Stornieren Sie zuerst die Zahlung."
+        }
+      },
+      "confirmerBrouillon": "Gutschrift und Entwurf erstellen",
       "corrigerFiche": "Auch die Kundenkarte mit dieser Adresse korrigieren",
       "confirmer": "Rechnung korrigieren",
       "enCours": "Wird korrigiert…",

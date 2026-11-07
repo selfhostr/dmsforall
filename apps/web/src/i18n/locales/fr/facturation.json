@@ -283,7 +283,19 @@
         "npa": "NPA",
         "localite": "Localité"
       },
-      "motifMontantTaux": "Les corrections de montant ou de taux se font par l'écran Avoir : elles ne sont pas prises en charge ici.",
+      "choix": {
+        "legende": "Que voulez-vous faire ?",
+        "remplacement": {
+          "titre": "Corriger l'adresse seulement",
+          "aide": "Le destinataire ou l'adresse changent, les montants restent identiques. La facture corrigée est émise tout de suite."
+        },
+        "brouillon": {
+          "titre": "Refaire la facture (avoir + nouveau brouillon)",
+          "aide": "La facture est annulée par un avoir, puis un brouillon identique est créé. Vous le modifiez librement (lignes, prix, TVA) avant de l'émettre. La TVA suit le régime actuel de votre garage.",
+          "dejaRegle": "Indisponible : cette facture est déjà réglée en tout ou partie. Annulez d'abord le paiement."
+        }
+      },
+      "confirmerBrouillon": "Créer l'avoir et le brouillon",
       "corrigerFiche": "Corriger aussi la fiche client avec cette adresse",
       "confirmer": "Corriger la facture",
       "enCours": "Correction en cours…",

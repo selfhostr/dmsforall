@@ -101,6 +101,8 @@
     "QR_CREANCIER_INCOMPLET": "I suoi dati bancari per la QR-fattura sono incompleti. Completili nelle impostazioni di fatturazione.",
     "TVA_NON_ASSUJETTI_TAUX_INTERDIT": "Il Suo garage non è soggetto all'IVA: nessuna riga può contenere IVA. Imposti l'aliquota allo 0 %, oppure indichi nelle impostazioni di fatturazione di essere soggetto all'IVA.",
     "TVA_NUMERO_REQUIS": "Il Suo garage è soggetto all'IVA: inserisca il Suo numero IVA nelle impostazioni di fatturazione prima di emettere una fattura.",
+    "FACTURE_DEJA_CORRIGEE": "Questa fattura è già stata annullata da una nota di credito ed è quindi già corretta. Apra la fattura che la sostituisce.",
+    "FACTURE_CORRECTION_REGLEMENT_EXISTANT": "Questa fattura è già pagata in tutto o in parte: non può essere rifatta come bozza. Annulli prima il pagamento, oppure corregga solo l'indirizzo.",
     "IBAN_INVALIDE": "Questo IBAN sembra errato (forma o cifra di controllo). Verifichi l'inserimento, cifra per cifra.",
     "IBAN_EST_UN_QR_IBAN": "Questo è un QR-IBAN: lo inserisca nel campo «QR-IBAN», non nel campo «IBAN».",
     "QR_IBAN_SANS_IID_RESERVE": "Questo è un IBAN ordinario, non un QR-IBAN: lo inserisca nel campo «IBAN», non nel campo «QR-IBAN».",
