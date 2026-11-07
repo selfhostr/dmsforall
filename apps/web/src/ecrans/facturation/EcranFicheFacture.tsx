@@ -56,7 +56,6 @@ import { BadgeTypeDocument } from './BadgeTypeDocument';
 import { CarteBulletinVersement } from './CarteBulletinVersement';
 import { ChampVerrouille } from './ChampVerrouille';
 import { DialogueCorrectionFacture } from './DialogueCorrectionFacture';
-import { DialogueRemplacerFacture } from './DialogueRemplacerFacture';
 import { DialogueCreerOrDepuisDevis } from './DialogueCreerOrDepuisDevis';
 import { DialogueLigneDocumentVente } from './DialogueLigneDocumentVente';
 import {
@@ -131,7 +130,6 @@ export function EcranFicheFacture() {
   const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
   const [encaissementOuvert, setEncaissementOuvert] = useState(false);
   const [correctionOuverte, setCorrectionOuverte] = useState(false);
-  const [remplacementOuvert, setRemplacementOuvert] = useState(false);
   const [creationOrOuverte, setCreationOrOuverte] = useState(false);
   const [remiseCentimes, setRemiseCentimes] = useState<number | null>(null);
 
@@ -372,7 +370,7 @@ export function EcranFicheFacture() {
           </Button>
         ) : null}
         {proposeCorriger ? (
-          <Button type="button" variant="outline" onClick={() => setRemplacementOuvert(true)}>
+          <Button type="button" variant="outline" onClick={ouvrirCorrection}>
             {t('facturation:fiche.actions.corrigerFacture')}
           </Button>
         ) : null}
@@ -646,7 +644,7 @@ export function EcranFicheFacture() {
               <button
                 type="button"
                 className="w-fit texte-libelle text-muted-foreground underline-offset-2 hover:underline"
-                onClick={() => setRemplacementOuvert(true)}
+                onClick={ouvrirCorrection}
               >
                 {messageVerrouille} {t('facturation:verrouille.corriger')}
               </button>
@@ -978,13 +976,6 @@ export function EcranFicheFacture() {
           }
         />
       ) : null}
-
-      <DialogueRemplacerFacture
-        facture={document_}
-        ouvert={remplacementOuvert}
-        onOuvertChange={setRemplacementOuvert}
-        onSucces={(brouillonId) => navigate(`/factures/${brouillonId}`)}
-      />
 
       <DialogueCorrectionFacture
         facture={document_}

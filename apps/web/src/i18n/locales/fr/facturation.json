@@ -242,7 +242,7 @@
         "imprimer": "Imprimer / télécharger le PDF",
         "envoyer": "Envoyer par e-mail",
         "dupliquer": "Dupliquer (réimpression)",
-        "corriger": "Corriger l'adresse",
+        "corriger": "Corriger cette facture",
         "creerAvoir": "Créer un avoir",
         "journal": "Voir le journal"
       },
@@ -273,12 +273,6 @@
     },
     "annuleeParAvoir": {
       "message": "Cette facture a été annulée par un avoir. Voir le document lié ci-contre."
-    },
-    "remplacement": {
-      "titre": "Corriger la facture {numero}",
-      "explication": "La facture {numero} sera annulée par un avoir. Une nouvelle facture en brouillon s'ouvre avec les mêmes lignes, à modifier puis émettre.",
-      "confirmer": "Annuler et créer le brouillon",
-      "enCours": "Création…"
     },
     "correction": {
       "titre": "Corriger la facture {numero}",

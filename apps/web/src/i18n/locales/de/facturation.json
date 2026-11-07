@@ -242,7 +242,7 @@
         "imprimer": "PDF drucken / herunterladen",
         "envoyer": "Per E-Mail senden",
         "dupliquer": "Duplizieren (Neudruck)",
-        "corriger": "Adresse korrigieren",
+        "corriger": "Diese Rechnung korrigieren",
         "creerAvoir": "Gutschrift erstellen",
         "journal": "Protokoll anzeigen"
       },
@@ -273,12 +273,6 @@
     },
     "annuleeParAvoir": {
       "message": "Diese Rechnung wurde durch eine Gutschrift storniert. Siehe verknüpftes Dokument nebenan."
-    },
-    "remplacement": {
-      "titre": "Rechnung {numero} korrigieren",
-      "explication": "Die Rechnung {numero} wird durch eine Gutschrift storniert. Eine neue Rechnung wird als Entwurf mit denselben Positionen geöffnet, zum Ändern und Ausstellen.",
-      "confirmer": "Stornieren und Entwurf erstellen",
-      "enCours": "Wird erstellt…"
     },
     "correction": {
       "titre": "Rechnung {numero} korrigieren",

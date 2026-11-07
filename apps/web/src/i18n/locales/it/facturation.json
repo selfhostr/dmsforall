@@ -242,7 +242,7 @@
         "imprimer": "Stampare / scaricare il PDF",
         "envoyer": "Inviare per e-mail",
         "dupliquer": "Duplicare (ristampa)",
-        "corriger": "Correggere l'indirizzo",
+        "corriger": "Correggere questa fattura",
         "creerAvoir": "Creare una nota di credito",
         "journal": "Vedere il registro"
       },
@@ -273,12 +273,6 @@
     },
     "annuleeParAvoir": {
       "message": "Questa fattura è stata annullata da una nota di credito. Vedere il documento collegato qui accanto."
-    },
-    "remplacement": {
-      "titre": "Correggere la fattura {numero}",
-      "explication": "La fattura {numero} sarà annullata da una nota di credito. Si apre una nuova fattura in bozza con le stesse righe, da modificare ed emettere.",
-      "confirmer": "Annullare e creare la bozza",
-      "enCours": "Creazione…"
     },
     "correction": {
       "titre": "Correggere la fattura {numero}",
