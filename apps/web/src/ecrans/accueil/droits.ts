@@ -16,3 +16,32 @@ import type { RoleUtilisateur } from '@dfa/shared';
 export function peutLireEcheancesOr(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && role !== 'vendeur';
 }
+
+/**
+ * Rôles « de bureau » dont l'accueil commence par la recherche et les actions rapides (plaque,
+ * client ou n° d'OR ; créer un OR, un rendez-vous, un devis, encaisser). Les techniciens, le
+ * magasinier et le poste d'atelier gardent leur propre point d'entrée (`routes/atterrissage.ts`) ;
+ * `admin` n'a aucun droit métier. Chaque ACTION reste en plus gouvernée par son droit propre.
+ */
+export const ROLES_ACCUEIL_BUREAU: readonly RoleUtilisateur[] = [
+  'direction',
+  'receptionnaire',
+  'chef_atelier',
+  'comptable',
+];
+
+/** Le bloc « à faire aujourd'hui » : tout le bureau sauf le comptable, dont le tableau de bord
+ *  porte déjà les factures à encaisser et à relancer. */
+export const ROLES_A_FAIRE_AUJOURDHUI: readonly RoleUtilisateur[] = [
+  'direction',
+  'receptionnaire',
+  'chef_atelier',
+];
+
+export function estRoleAccueilBureau(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_ACCUEIL_BUREAU.includes(role);
+}
+
+export function voitAFaireAujourdhui(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_A_FAIRE_AUJOURDHUI.includes(role);
+}

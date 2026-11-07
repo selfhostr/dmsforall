@@ -77,8 +77,30 @@ export const chemins = {
        *  « Ordres de réparation » d'Atelier : sans lui, l'écran de création serait le seul écran
        *  d'atelier sans onglet actif. `clientId` pré-remplit le client (l'écran lit les deux en
        *  paramètres de requête, jamais en paramètre de chemin). */
-      nouveau: (site?: string, clientId?: string) =>
-        construireChemin('/atelier/ordres-reparation/nouveau', { site, clientId }),
+      nouveau: (site?: string, clientId?: string, classique?: boolean) =>
+        construireChemin('/atelier/ordres-reparation/nouveau', {
+          site,
+          clientId,
+          parcours: classique ? 'classique' : undefined,
+        }),
+      /** Ouvrir un OR depuis une plaque, en un écran (véhicule + client + OR ; crée client et
+       *  véhicule s'ils n'existent pas). Tout est facultatif : chaque paramètre ne fait que
+       *  préremplir l'écran. C'est le point d'entrée des boutons « Créer un OR » ; l'ancien
+       *  parcours (`nouveau` ci-dessus) reste accessible. */
+      depuisPlaque: (
+        options: {
+          readonly site?: string;
+          readonly plaque?: string;
+          readonly vehiculeId?: string;
+          readonly clientId?: string;
+        } = {},
+      ) =>
+        construireChemin('/atelier/ordres-reparation/depuis-plaque', {
+          site: options.site,
+          plaque: options.plaque?.trim(),
+          vehiculeId: options.vehiculeId,
+          clientId: options.clientId,
+        }),
       /** Facturation d'un OR (`/ordres-reparation/:orId/facturer`) — passerelle atelier ->
        *  facturation, rattachée à l'onglet « Ordres de réparation » par son préfixe. */
       facturer: (id: string, site?: string) =>

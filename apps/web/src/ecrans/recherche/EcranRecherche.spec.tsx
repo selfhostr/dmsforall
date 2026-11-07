@@ -7,6 +7,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import i18n from '@/i18n';
 
+import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { renduAvecRoutes } from '@/test/utils';
 
@@ -83,6 +84,7 @@ function rendre(routeInitiale = '/recherche') {
       { path: '/clients/:id', element: <div>PAGE_CLIENT</div> },
       { path: '/vehicules/:id', element: <div>PAGE_VEHICULE</div> },
       { path: '/factures/:id', element: <div>PAGE_FACTURE</div> },
+      { path: '/atelier/ordres-reparation/depuis-plaque', element: <div>PAGE_DEPUIS_PLAQUE</div> },
     ],
     { routeInitiale },
   );
@@ -241,5 +243,60 @@ describe('EcranRecherche', () => {
       expect(await screen.findByText('PAGE_CLIENT')).toBeInTheDocument();
       expect(routeur.state.location.search).toBe('');
     });
+  });
+});
+
+describe('EcranRecherche — « Créer un OR » depuis un résultat', () => {
+  function connecter(role: (typeof SESSION_TEST)['utilisateur']['role']) {
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role } }),
+      ),
+    );
+  }
+
+  it('propose de créer un OR pour le véhicule trouvé (écran prérempli) et pour la saisie', async () => {
+    connecter('receptionnaire');
+    server.use(http.get('/api/v1/recherche', () => HttpResponse.json(REPONSE_VEHICULE)));
+    rendre('/recherche?site=site-1');
+
+    await userEvent.setup().type(screen.getByRole('combobox'), 'VD 123456');
+
+    const lienVehicule = await screen.findByRole('link', { name: /Pour VD 123456 · VW Touran/ });
+    expect(lienVehicule).toHaveAttribute(
+      'href',
+      '/atelier/ordres-reparation/depuis-plaque?site=site-1&vehiculeId=v1',
+    );
+    const lienSaisie = screen.getByRole('link', { name: /Pour « VD 123456 »/ });
+    expect(lienSaisie).toHaveAttribute(
+      'href',
+      '/atelier/ordres-reparation/depuis-plaque?site=site-1&plaque=VD+123456',
+    );
+  });
+
+  it('plaque inconnue : la saisie reste un point de départ pour créer véhicule, client et OR', async () => {
+    connecter('direction');
+    server.use(
+      http.get('/api/v1/recherche', () =>
+        HttpResponse.json({ plaqueInterchangeable: false, resultats: [] }),
+      ),
+    );
+    rendre();
+
+    await userEvent.setup().type(screen.getByRole('combobox'), 'ZZ999');
+
+    const lien = await screen.findByRole('link', { name: /Pour « ZZ999 »/ });
+    expect(lien).toHaveAttribute('href', '/atelier/ordres-reparation/depuis-plaque?plaque=ZZ999');
+  });
+
+  it('un rôle sans droit de créer un OR ne voit aucune de ces actions', async () => {
+    connecter('technicien');
+    server.use(http.get('/api/v1/recherche', () => HttpResponse.json(REPONSE_VEHICULE)));
+    rendre();
+
+    await userEvent.setup().type(screen.getByRole('combobox'), 'VD 123456');
+
+    expect(await screen.findByText(/VW Touran 2\.0 TDI/)).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Pour « VD 123456 »/ })).not.toBeInTheDocument();
   });
 });

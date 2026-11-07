@@ -40,6 +40,10 @@ export function useCreerOrdreReparation(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation({
+    // Toast « OR ouvert » (DESIGN.md, retours d'action) : l'écran de création navigue aussitôt vers
+    // la fiche, le toast confirme l'ouverture sans interrompre. Pas de bouton « Annuler » : un OR
+    // ouvert ne se défait pas, il s'annule depuis sa fiche.
+    meta: { succes: 'commun:toasts.orCree' },
     mutationFn: ({ entree, idempotencyKey }: VariablesCreationOrdreReparation) =>
       creerOrdreReparation(entree, idempotencyKey),
     onSuccess: (reponse) => {

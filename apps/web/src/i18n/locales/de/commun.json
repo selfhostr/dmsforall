@@ -78,7 +78,8 @@
     "articleCree": "Artikel erstellt",
     "pointageArrete": "Zeiterfassung gestoppt",
     "orTermine": "Auftrag abgeschlossen",
-    "factureEmise": "Rechnung ausgestellt"
+    "factureEmise": "Rechnung ausgestellt",
+    "orCree": "Auftrag eröffnet"
   },
   "densite": {
     "titre": "Anzeigedichte",

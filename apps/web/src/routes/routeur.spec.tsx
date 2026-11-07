@@ -313,7 +313,9 @@ describe('routeur — protection par défaut', () => {
     // un texte que SEUL l'écran réel produit : le repli « site manquant » de
     // `EcranNouvelOrdreReparation.tsx`, déclenché ici en n'apportant aucun `?site=`.
     server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
-    renduAvecRoutes(routesConfig, { routeInitiale: '/atelier/ordres-reparation/nouveau' });
+    renduAvecRoutes(routesConfig, {
+      routeInitiale: '/atelier/ordres-reparation/nouveau?parcours=classique',
+    });
     expect(await screen.findByText('Site non sélectionné')).toBeInTheDocument();
     expect(
       screen.queryByText("Cette fonctionnalité n'est pas encore disponible."),
@@ -327,9 +329,24 @@ describe('routeur — protection par défaut', () => {
     // que le câblage passe bien par la query string, pas par un paramètre de route.
     server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
     renduAvecRoutes(routesConfig, {
-      routeInitiale: '/atelier/ordres-reparation/nouveau?site=site-1',
+      routeInitiale: '/atelier/ordres-reparation/nouveau?parcours=classique&site=site-1',
     });
     expect(await screen.findByText('Client non sélectionné')).toBeInTheDocument();
+  });
+
+  it('la route « depuis une plaque » rend l’écran réel, et l’ancienne route de création y redirige', async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      http.get('/api/v1/parametres-atelier', () =>
+        HttpResponse.json({ reception: { kmEntreeObligatoire: false }, or: {} }),
+      ),
+    );
+    const { routeur } = renduAvecRoutes(routesConfig, {
+      routeInitiale: '/atelier/ordres-reparation/nouveau?site=site-1',
+    });
+    expect(await screen.findByLabelText('Plaque')).toBeInTheDocument();
+    expect(routeur.state.location.pathname).toBe('/atelier/ordres-reparation/depuis-plaque');
+    expect(routeur.state.location.search).toBe('?site=site-1');
   });
 
   it('la fiche d’OR reçoit son identifiant depuis l’URL (`:orId`) et déclenche son chargement', async () => {

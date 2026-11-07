@@ -201,5 +201,8 @@
         "description": "Kein eröffneter Reparaturauftrag hat ein zugesagtes Rückgabedatum für heute."
       }
     }
+  },
+  "chiffres": {
+    "titre": "Zahlen"
   }
 }

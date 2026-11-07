@@ -338,7 +338,7 @@
   "liste": {
     "titre": "Ordres de réparation",
     "actions": {
-      "nouveau": "Nouvel ordre de réparation"
+      "nouveau": "Créer un OR"
     },
     "colonnes": {
       "numero": "N° OR",
@@ -446,7 +446,13 @@
     "vehicule": {
       "titre": "Véhicule",
       "aucun": "Ce client n'a aucun véhicule enregistré à son nom.",
-      "erreur": "Impossible de charger les véhicules de ce client"
+      "erreur": "Impossible de charger les véhicules de ce client",
+      "ajouter": {
+        "action": "Ajouter un véhicule",
+        "titre": "Nouveau véhicule de ce client",
+        "valider": "Enregistrer le véhicule",
+        "enCours": "Enregistrement…"
+      }
     },
     "type": {
       "libelle": "Type d'ordre de réparation",
@@ -481,6 +487,57 @@
       "creer": "Ouvrir l'ordre de réparation",
       "enCours": "Création en cours…",
       "ignorerBrouillon": "Ignorer le brouillon"
+    },
+    "rapide": {
+      "titre": "Ouvrir un OR",
+      "intro": "Tapez la plaque : le véhicule et son client sont retrouvés. Sinon, complétez quelques informations ci-dessous, tout se crée en une fois.",
+      "plaque": "Plaque",
+      "plaqueExemple": "VD 123456",
+      "plaqueAide": "Les espaces et les tirets sont ignorés.",
+      "vehicule": {
+        "titre": "Véhicule",
+        "requis": "Tapez la plaque du véhicule, ou choisissez-le dans la liste.",
+        "choisir": "Choisissez un véhicule dans la liste, ou indiquez un autre véhicule."
+      },
+      "vehiculesTrouves": "{count, plural, one {# véhicule correspond} other {# véhicules correspondent}}",
+      "vehiculesDuClient": "Véhicules de ce client",
+      "autreVehicule": "Aucun de ceux-là : autre véhicule",
+      "plaqueInconnue": "Plaque inconnue. Indiquez la marque et le modèle, le véhicule sera créé avec l’OR.",
+      "nouveauVehicule": "Autre véhicule : indiquez la marque et le modèle.",
+      "retourListe": "Revenir à la liste",
+      "rechercheErreur": "Recherche impossible",
+      "orDejaOuvert": "OR déjà ouvert",
+      "anciennePlaque": "Ancienne plaque",
+      "changer": "Changer",
+      "invalide": "Valeur non valide.",
+      "client": {
+        "titre": "Client",
+        "detenteur": "Détenteur du véhicule",
+        "recherche": "Chercher un client (nom, téléphone, n° client)",
+        "aucun": "Aucun client trouvé.",
+        "nouveau": "Nouveau client",
+        "nom": "Nom du client",
+        "telephone": "Téléphone",
+        "adressePlusTard": "L'adresse se complète plus tard, depuis la fiche du client.",
+        "similaires": "Un client de ce nom existe peut-être déjà :",
+        "chercherExistant": "Chercher un client existant",
+        "requis": "Choisissez un client, ou créez-en un."
+      },
+      "ordre": {
+        "titre": "Ordre de réparation",
+        "demande": "Demande du client"
+      },
+      "echec": {
+        "client": "Le client n'a pas pu être créé",
+        "vehicule": "Le véhicule n'a pas pu être créé",
+        "or": "L'OR n'a pas pu être ouvert",
+        "clientCree": "Client créé.",
+        "vehiculeCree": "Véhicule créé.",
+        "reprise": "Votre saisie est conservée : réessayez, rien ne sera créé deux fois."
+      },
+      "reessayer": "Réessayer",
+      "ancienParcours": "Parcours détaillé",
+      "clientIntrouvable": "Ce client n'a pas été retrouvé : choisissez-le à nouveau ci-dessous."
     }
   },
   "accordClient": {

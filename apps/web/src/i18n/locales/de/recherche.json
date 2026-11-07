@@ -33,5 +33,11 @@
     "depot_pneu": "Reifendepots"
   },
   "chargement": "Suche läuft…",
-  "annonceResultats": "{count, plural, one {# Ergebnis gefunden} other {# Ergebnisse gefunden}}"
+  "annonceResultats": "{count, plural, one {# Ergebnis gefunden} other {# Ergebnisse gefunden}}",
+  "creerOr": {
+    "titre": "Auftrag eröffnen",
+    "pourVehicule": "Für {vehicule}",
+    "pourClient": "Für {client}",
+    "pourSaisie": "Für «{saisie}» (Kontrollschild oder Kunde unbekannt)"
+  }
 }

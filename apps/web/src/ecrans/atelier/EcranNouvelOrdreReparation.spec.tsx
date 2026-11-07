@@ -190,6 +190,7 @@ function rendre(routeInitiale: string) {
       { path: '/ordres-reparation/nouveau', element: <EcranNouvelOrdreReparation /> },
       { path: '/ordres-reparation/:id', element: <div>PAGE_FICHE_OR</div> },
       { path: '/recherche', element: <div>PAGE_RECHERCHE</div> },
+      { path: '/atelier/ordres-reparation/depuis-plaque', element: <div>PAGE_DEPUIS_PLAQUE</div> },
     ],
     { routeInitiale },
   );
@@ -198,6 +199,21 @@ function rendre(routeInitiale: string) {
 describe('EcranNouvelOrdreReparation', () => {
   afterEach(async () => {
     await i18n.changeLanguage('fr');
+  });
+
+  describe('point d’entrée historique', () => {
+    it('sans `?parcours=classique`, redirige vers l’écran « depuis une plaque » en gardant site, client et véhicule', async () => {
+      const { routeur } = rendre(
+        `/ordres-reparation/nouveau?site=${SITE_ID}&clientId=${CLIENT_ID}&vehiculeId=${VEHICULE_ID}`,
+      );
+
+      expect(await screen.findByText('PAGE_DEPUIS_PLAQUE')).toBeInTheDocument();
+      expect(routeur.state.location.pathname).toBe('/atelier/ordres-reparation/depuis-plaque');
+      const parametres = new URLSearchParams(routeur.state.location.search);
+      expect(parametres.get('site')).toBe(SITE_ID);
+      expect(parametres.get('clientId')).toBe(CLIENT_ID);
+      expect(parametres.get('vehiculeId')).toBe(VEHICULE_ID);
+    });
   });
 
   describe("le site n'est jamais inventé, mais son absence se résout SANS quitter l'écran", () => {
@@ -209,7 +225,7 @@ describe('EcranNouvelOrdreReparation', () => {
         http.get(`/api/v1/clients/${CLIENT_ID}`, () => HttpResponse.json(CLIENT)),
         http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
       );
-      rendre(`/ordres-reparation/nouveau?clientId=${CLIENT_ID}`);
+      rendre(`/ordres-reparation/nouveau?parcours=classique&clientId=${CLIENT_ID}`);
 
       expect(await screen.findByText('Site non sélectionné')).toBeInTheDocument();
       expect(
@@ -237,7 +253,7 @@ describe('EcranNouvelOrdreReparation', () => {
         ),
       );
       const utilisateur = userEvent.setup();
-      rendre(`/ordres-reparation/nouveau?clientId=${CLIENT_ID}`);
+      rendre(`/ordres-reparation/nouveau?parcours=classique&clientId=${CLIENT_ID}`);
 
       const selecteur = await screen.findByRole('combobox', { name: 'Site' });
       await utilisateur.click(selecteur);
@@ -252,7 +268,7 @@ describe('EcranNouvelOrdreReparation', () => {
 
   describe('le client est un prérequis explicite, jamais deviné', () => {
     it('sans `?clientId=`, propose de rechercher un client existant (renvoie vers `/recherche`, site conservé) OU d’en créer un nouveau sans quitter cet écran', async () => {
-      rendre(`/ordres-reparation/nouveau?site=${SITE_ID}`);
+      rendre(`/ordres-reparation/nouveau?parcours=classique&site=${SITE_ID}`);
 
       expect(await screen.findByText('Client non sélectionné')).toBeInTheDocument();
       const lien = screen.getByRole('link', { name: 'Rechercher' });
@@ -317,7 +333,7 @@ describe('EcranNouvelOrdreReparation', () => {
 
       const utilisateur = userEvent.setup();
       const { routeur } = rendre(
-        `/ordres-reparation/nouveau?site=${SITE_ID}&clientId=${CLIENT_ID}`,
+        `/ordres-reparation/nouveau?parcours=classique&site=${SITE_ID}&clientId=${CLIENT_ID}`,
       );
 
       expect(await screen.findByText('Jean Dupont')).toBeInTheDocument();
