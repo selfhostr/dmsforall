@@ -28,6 +28,8 @@ import {
   brouillonInitial,
   cleCodeTva,
   cleCompte,
+  codeTvaSuggere,
+  compteSuggere,
   construireMiseAJour,
   nbValeursProposables,
   type BrouillonMapping,
@@ -39,10 +41,12 @@ interface Props {
   readonly ouvert: boolean;
   readonly onOuvertChange: (ouvert: boolean) => void;
   readonly cible: FormatExport;
+  /** Clé du poste à mettre au premier plan à l'ouverture (`cleCompte`/`cleCodeTva`). */
+  readonly champAFocaliser?: string;
 }
 
 /** « Comptes comptables » : à quel compte (et code TVA) de la fiduciaire chaque poste part. */
-export function MappingComptes({ ouvert, onOuvertChange, cible }: Props) {
+export function MappingComptes({ ouvert, onOuvertChange, cible, champAFocaliser }: Props) {
   const { t } = useTranslation(['export', 'commun', 'erreurs']);
   const mapping = useMappingExport(cible, ouvert);
   const enregistrer = useEnregistrerMapping();
@@ -61,6 +65,15 @@ export function MappingComptes({ ouvert, onOuvertChange, cible }: Props) {
   }, [ouvert, mapping.data, initialiseDepuis]);
 
   const etat = mapping.data;
+
+  // Arrivée depuis un blocage : le curseur va directement sur le poste à remplir.
+  useEffect(() => {
+    if (!ouvert || !champAFocaliser || initialiseDepuis === undefined) return;
+    const champ = document.getElementById(`mapping-${champAFocaliser}`);
+    if (!champ) return;
+    champ.focus();
+    champ.scrollIntoView?.({ block: 'center' });
+  }, [ouvert, champAFocaliser, initialiseDepuis]);
 
   function enregistrerLesComptes() {
     if (!etat) return;
@@ -141,7 +154,7 @@ export function MappingComptes({ ouvert, onOuvertChange, cible }: Props) {
                     id={id}
                     libelle={nomPosteCompte(t, c.usage, c.categorie)}
                     requis={c.requis}
-                    propose={c.compteParDefaut}
+                    propose={compteSuggere(etat.cible, c)}
                     valeur={brouillon[cle] ?? ''}
                     invalide={erreurs[cle] === true}
                     onChange={(v) => saisir(cle, v)}
@@ -161,7 +174,7 @@ export function MappingComptes({ ouvert, onOuvertChange, cible }: Props) {
                       id={`mapping-${cle}`}
                       libelle={nomCodeTva(t, c.regimeTva, c.tauxPourmille)}
                       requis={c.requis}
-                      propose={c.codeParDefaut}
+                      propose={codeTvaSuggere(etat.cible, c)}
                       valeur={brouillon[cle] ?? ''}
                       invalide={erreurs[cle] === true}
                       onChange={(v) => saisir(cle, v)}

@@ -3,7 +3,31 @@ import {
   type CibleExport,
   type EntreeMettreAJourMapping,
   type EtatMappingExport,
+  type PosteCodeTvaMapping,
+  type PosteCompteMapping,
 } from '@dfa/shared';
+
+/**
+ * Repli WinBIZ quand l'API ne propose rien (elle n'invente pas les codes du logiciel du garage) :
+ * compte d'arrondi usuel du plan PME et code TVA du taux normal 8.1 %. Jamais appliqué sans geste
+ * explicite, et le dialogue rappelle de valider avec la fiduciaire.
+ */
+const REPLI_WINBIZ_COMPTES: Readonly<Record<string, string>> = { 'arrondi:defaut': '3809' };
+const REPLI_WINBIZ_CODES_TVA: Readonly<Record<string, string>> = { 'normal:81': 'N81' };
+
+/** Suggestion d'un compte : celle de l'API, sinon le repli de la cible. */
+export function compteSuggere(cible: CibleExport, c: PosteCompteMapping): string | null {
+  if (c.compteParDefaut) return c.compteParDefaut;
+  return cible === 'winbiz' ? (REPLI_WINBIZ_COMPTES[`${c.usage}:${c.categorie}`] ?? null) : null;
+}
+
+/** Suggestion d'un code TVA : celle de l'API, sinon le repli de la cible. */
+export function codeTvaSuggere(cible: CibleExport, c: PosteCodeTvaMapping): string | null {
+  if (c.codeParDefaut) return c.codeParDefaut;
+  return cible === 'winbiz'
+    ? (REPLI_WINBIZ_CODES_TVA[`${c.regimeTva}:${String(c.tauxPourmille)}`] ?? null)
+    : null;
+}
 
 /** Brouillon de saisie : clé de poste -> texte saisi. Jamais perdu tant que la boîte est ouverte. */
 export type BrouillonMapping = Readonly<Record<string, string>>;
@@ -33,11 +57,13 @@ export function appliquerValeursProposees(
   const suite: Record<string, string> = { ...brouillon };
   for (const c of etat.comptes) {
     const cle = cleCompte(c.usage, c.categorie);
-    if ((suite[cle] ?? '').trim() === '' && c.compteParDefaut) suite[cle] = c.compteParDefaut;
+    const propose = compteSuggere(etat.cible, c);
+    if ((suite[cle] ?? '').trim() === '' && propose) suite[cle] = propose;
   }
   for (const c of etat.codesTva) {
     const cle = cleCodeTva(c.regimeTva, c.tauxPourmille);
-    if ((suite[cle] ?? '').trim() === '' && c.codeParDefaut) suite[cle] = c.codeParDefaut;
+    const propose = codeTvaSuggere(etat.cible, c);
+    if ((suite[cle] ?? '').trim() === '' && propose) suite[cle] = propose;
   }
   return suite;
 }
@@ -46,11 +72,13 @@ export function appliquerValeursProposees(
 export function nbValeursProposables(etat: EtatMappingExport, brouillon: BrouillonMapping): number {
   return (
     etat.comptes.filter(
-      (c) => c.compteParDefaut && (brouillon[cleCompte(c.usage, c.categorie)] ?? '').trim() === '',
+      (c) =>
+        compteSuggere(etat.cible, c) &&
+        (brouillon[cleCompte(c.usage, c.categorie)] ?? '').trim() === '',
     ).length +
     etat.codesTva.filter(
       (c) =>
-        c.codeParDefaut &&
+        codeTvaSuggere(etat.cible, c) &&
         (brouillon[cleCodeTva(c.regimeTva, c.tauxPourmille)] ?? '').trim() === '',
     ).length
   );

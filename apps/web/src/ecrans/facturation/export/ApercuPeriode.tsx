@@ -16,7 +16,7 @@ interface Props {
   readonly enChargement: boolean;
   readonly erreur: unknown;
   readonly onReessayer: () => void;
-  readonly onReglerComptes?: () => void;
+  readonly onReglerComptes?: (cle?: string) => void;
 }
 
 /** Ce que le fichier contiendrait pour la période : lu avant de cliquer sur Télécharger. */
@@ -65,7 +65,7 @@ function Contenu({
   onReglerComptes,
 }: {
   apercu: ApercuExport;
-  onReglerComptes?: () => void;
+  onReglerComptes?: (cle?: string) => void;
 }) {
   const { t } = useTranslation(['export']);
   const { documents, encaissements, totaux, plageNumeros } = apercu;

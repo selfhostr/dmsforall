@@ -91,7 +91,10 @@
       "ADAPTATEUR_NON_CABLE": "Das Format {cible} ist für den Export noch nicht verfügbar.",
       "COMPENSATION_NON_SUPPORTEE": "Eine Zahlung per Verrechnung kann noch nicht exportiert werden.",
       "TAUX_MULTIPLES_NON_SUPPORTE": "{nature, select, perte {Ein Verlust} other {Ein Skonto}} auf einer Rechnung mit mehreren MWST-Sätzen kann noch nicht exportiert werden."
-    }
+    },
+    "encaissements": "(+ {count, plural, one {# Zahlung} other {# Zahlungen}})",
+    "saisir": "Erfassen",
+    "saisirPoste": "Erfassen: {poste}"
   },
   "apercu": {
     "titre": "Vorschau des Zeitraums",
@@ -157,6 +160,28 @@
       "exclu": "Ausgenommen",
       "marge": "Margenbesteuerung",
       "acquisition": "Bezugsteuer"
+    },
+    "poste": {
+      "produit": {
+        "main_oeuvre_bareme": "Arbeit (Tarif)",
+        "main_oeuvre_temps_reel": "Arbeit (effektive Zeit)",
+        "forfait": "Pauschalen",
+        "piece": "Teile",
+        "fourniture": "Material",
+        "sous_traitance": "Fremdleistungen",
+        "produit_atelier": "Werkstattprodukte",
+        "taxe": "Gebühren und Abgaben",
+        "consigne": "Depots",
+        "repartition": "Selbstbehalt / Anteil Dritter"
+      },
+      "financier": {
+        "especes": "Barzahlungen (Kasse)",
+        "carte": "Kartenzahlungen",
+        "virement": "Überweisungen (Bankkonto)",
+        "qr": "QR-Rechnung-Zahlungen (Bankkonto)",
+        "twint": "TWINT-Zahlungen",
+        "leasing": "Leasingzahlungen"
+      }
     }
   },
   "historique": {

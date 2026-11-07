@@ -373,6 +373,72 @@ describe('EcranExportFiduciaire', () => {
     expect(screen.getByRole('button', { name: 'Régler les comptes' })).toBeInTheDocument();
   });
 
+  it('parle le langage du garagiste : ni identifiant ni clé technique dans les blocages', async () => {
+    connecte('comptable');
+    const paiement = '5c0b6a52-3e1e-4e6a-9c4d-c7de3620f1aa';
+    server.use(
+      http.get('/api/v1/exports-fiduciaires/apercu', () =>
+        HttpResponse.json(
+          apercu({
+            exportable: false,
+            prerequis: [
+              {
+                code: 'EXPORT_MAPPING_INCOMPLET',
+                comptes: [
+                  {
+                    usage: 'produit',
+                    categorie: 'main_oeuvre_bareme',
+                    references: ['FAC-2026-00012'],
+                  },
+                  { usage: 'financier', categorie: 'qr', references: [paiement] },
+                ],
+                codesTva: [],
+              },
+            ],
+          }),
+        ),
+      ),
+    );
+    rendre();
+
+    expect(await screen.findByText(/Main-d'œuvre \(barème\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Paiements QR-facture \(compte bancaire\)/)).toBeInTheDocument();
+    expect(screen.getByText(/\+ 1 encaissement\)/)).toBeInTheDocument();
+    expect(screen.getByText(/pièces : FAC-2026-00012/)).toBeInTheDocument();
+    const texte = document.body.textContent ?? '';
+    expect(texte).not.toContain(paiement);
+    expect(texte).not.toContain('main_oeuvre_bareme');
+    expect(texte).not.toContain('(qr)');
+  });
+
+  it('« Saisir » ouvre les comptes avec le curseur sur le poste bloquant', async () => {
+    connecte('comptable');
+    server.use(
+      http.get('/api/v1/exports-fiduciaires/apercu', () =>
+        HttpResponse.json(
+          apercu({
+            exportable: false,
+            prerequis: [
+              {
+                code: 'EXPORT_MAPPING_INCOMPLET',
+                comptes: [{ usage: 'tva_due', categorie: '81', references: [] }],
+                codesTva: [{ regimeTva: 'normal', tauxPourmille: 81, references: [] }],
+              },
+            ],
+          }),
+        ),
+      ),
+      http.get('/api/v1/exports-fiduciaires/mapping', () => HttpResponse.json(etatMapping())),
+    );
+    const utilisateur = userEvent.setup();
+    rendre();
+
+    await utilisateur.click(await screen.findByRole('button', { name: /^Saisir : Code TVA/ }));
+
+    const champ = await screen.findByLabelText('Normal, 8.1 %');
+    await waitFor(() => expect(champ).toHaveFocus());
+  });
+
   it('détaille un trou de numérotation et un déséquilibre venant d’un 409', async () => {
     connecte('comptable');
     server.use(
@@ -660,6 +726,49 @@ describe('EcranExportFiduciaire — comptes comptables', () => {
       codesTva: [{ regimeTva: 'normal', tauxPourmille: 81, codeExterne: 'TN81' }],
     });
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('remplit aussi le code TVA 8.1 % et l’arrondi quand l’API ne propose rien', async () => {
+    connecte('comptable');
+    server.use(
+      http.get('/api/v1/exports-fiduciaires/mapping', () =>
+        HttpResponse.json(
+          etatMapping({
+            comptes: [
+              {
+                usage: 'arrondi',
+                categorie: 'defaut',
+                libelle: 'Écart d’arrondi',
+                compte: null,
+                actifDu: null,
+                compteParDefaut: null,
+                requis: false,
+              },
+            ],
+            codesTva: [
+              {
+                regimeTva: 'normal',
+                tauxPourmille: 81,
+                libelle: 'Normal 8.1 %',
+                codeExterne: null,
+                codeParDefaut: null,
+                requis: true,
+              },
+            ],
+          }),
+        ),
+      ),
+    );
+    const utilisateur = userEvent.setup();
+    rendre();
+
+    await utilisateur.click(await screen.findByRole('button', { name: 'Comptes comptables' }));
+    await utilisateur.click(
+      await screen.findByRole('button', { name: 'Utiliser les valeurs proposées' }),
+    );
+
+    expect(screen.getByLabelText('Arrondi')).toHaveValue('3809');
+    expect(screen.getByLabelText('Normal, 8.1 %')).toHaveValue('N81');
   });
 
   it('signale un compte invalide champ par champ sans perdre la saisie', async () => {
