@@ -43,6 +43,7 @@ Store the file encrypted and outside the server.
 
 - The uploaded documents, in the volume `dmsforall_dfa_api_uploads`. Check the backup scope before you rely on it.
 - The repair order photos and their thumbnails, in the volume `dmsforall_dfa_photos_or`. The nightly backup does not cover it either.
+- The archives uploaded for a data takeover from your previous software, in the volume `dmsforall_dfa_reprise`. The nightly backup mounts this volume read-only but does not copy it: it only dumps the database.
 - The Redis data. Queues and short-lived state are recreated.
 
 ## Restore

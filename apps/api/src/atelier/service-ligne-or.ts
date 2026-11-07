@@ -143,7 +143,7 @@ export function refuserSiRealisationImpossible(ligne: LigneLigneOr, voitMontants
   const libelle = consigne?.libelle ?? ligne.statut;
   throw new ErreurMetier(
     'LIGNE_TRANSITION_INTERDITE',
-    `Transition ${ligne.statut} → realisee interdite.`,
+    `Ligne non réalisable : elle est ${libelle}.`,
     {
       detail:
         `La ligne est ${libelle} : seule une ligne validée ou en cours peut être marquée réalisée. ` +

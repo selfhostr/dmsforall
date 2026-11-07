@@ -38,7 +38,7 @@ export function traduireErreurTransition(
 
   return new ErreurMetier(
     interpretation.code,
-    `Transition ${interpretation.statutDepuis} → ${interpretation.statutVers} interdite.`,
+    `Passage à « ${libelleStatut(interpretation.entite, interpretation.statutVers)} » impossible : l’élément est « ${libelleStatut(interpretation.entite, interpretation.statutDepuis)} ».`,
     {
       // `detail` = phrase de garagiste, affichable telle quelle. Les données machine (statuts bruts)
       // restent dans `blocages[].donnees` (`statutActuel` / `statutDemande`).
@@ -123,6 +123,12 @@ export function libelleStatutOr(statut: string): string {
   return LIBELLES_STATUT_OR[statut] ?? statut;
 }
 
+/** Libellé français d'un statut selon l'entité (OR ou ligne d'OR) ; statut inconnu rendu tel quel. */
+export function libelleStatut(entite: string, statut: string): string {
+  const libelles = entite === 'ligne_or' ? LIBELLES_STATUT_LIGNE : LIBELLES_STATUT_OR;
+  return libelles[statut] ?? statut;
+}
+
 /**
  * Phrase française d'une transition refusée, destinée à `detail` : « L'OR est « En contrôle » : il
  * ne peut pas passer à « Terminé ». Étapes possibles : « Facturé », « En cours ». ». Un statut
@@ -136,8 +142,7 @@ export function phraseTransitionInterdite(
   possibles: readonly string[] | 'terminal',
 ): string {
   const estLigne = entite === 'ligne_or';
-  const libelles = estLigne ? LIBELLES_STATUT_LIGNE : LIBELLES_STATUT_OR;
-  const nom = (statut: string): string => `« ${libelles[statut] ?? statut} »`;
+  const nom = (statut: string): string => `« ${libelleStatut(entite, statut)} »`;
 
   let phrase = estLigne
     ? `La ligne est ${nom(depuis)} : elle ne peut pas passer à ${nom(vers)}.`

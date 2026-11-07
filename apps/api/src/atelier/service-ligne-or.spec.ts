@@ -1628,6 +1628,7 @@ describe('ServiceLigneOr.marquerRealisee — sans pointage, tous types (0076)', 
       const e = erreur as ErreurMetier;
       expect(e.code).toBe('LIGNE_TRANSITION_INTERDITE');
       expect(e.status).toBe(409);
+      expect(e.message).toBe(`Ligne non réalisable : elle est ${libelle}.`);
       expect(e.detail).toContain(`La ligne est ${libelle}`);
       expect(e.detail).toContain('validée ou en cours');
       expect(e.blocages?.[0]?.donnees).toMatchObject({
