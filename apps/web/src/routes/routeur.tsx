@@ -72,6 +72,10 @@ import { chemins } from './chemins';
 import { RouteProtegee } from './RouteProtegee';
 import { RoutePublique } from './RoutePublique';
 import {
+  CHEMIN_CHANGEMENT_MOT_DE_PASSE,
+  EcranChangementMotDePasse,
+} from '@/ecrans/EcranChangementMotDePasse';
+import {
   ACCES_BORNE_POINTAGE,
   ACCES_GESTION_UTILISATEURS,
   ACCES_LECTURE_RENDEZ_VOUS,
@@ -118,6 +122,9 @@ function AtterrissageTableauBord() {
 }
 
 export const routesConfig: RouteObject[] = [
+  // Issue #58 : choix du mot de passe à la première connexion. Hors `AppShell` (comme `/login`) ;
+  // l'écran gère lui-même les cas sans session / sans obligation.
+  { path: CHEMIN_CHANGEMENT_MOT_DE_PASSE, element: <EcranChangementMotDePasse /> },
   {
     path: '/login',
     element: (

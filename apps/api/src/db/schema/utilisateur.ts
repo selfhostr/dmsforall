@@ -89,6 +89,10 @@ export const utilisateur = pgTable(
     voitPrixAchat: boolean('voit_prix_achat').notNull().default(sansDefautBase),
     avoirsPlafonnes: boolean('avoirs_plafonnes').notNull().default(sansDefautBase),
 
+    /** Migration 0096 : true tant que la personne n'a pas remplacé le mot de passe temporaire donné
+     *  par la direction. Jamais vrai pour un compte de service (CHECK en base). */
+    motDePasseAChanger: boolean('mot_de_passe_a_changer').notNull().default(false),
+
     /**
      * Site de rattachement du COMPTE (migration 0039).
      *

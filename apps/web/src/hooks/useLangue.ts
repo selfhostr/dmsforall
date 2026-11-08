@@ -10,9 +10,11 @@ export interface UtiliserLangue {
   readonly changerLangue: (langue: Langue) => void;
 }
 
-/** Bascule de langue sans rechargement : met à jour i18next, la préférence explicite en
- *  localStorage (qui devient alors prioritaire sur `utilisateur.langue`) et
- *  `document.documentElement.lang` (via le listener `languageChanged` de src/i18n/index.ts). */
+/** Bascule de langue sans rechargement : met à jour i18next, la langue de l'ÉCRAN DE CONNEXION
+ *  gardée sur le poste (localStorage) et `document.documentElement.lang` (via le listener
+ *  `languageChanged` de src/i18n/index.ts). Une fois connecté, la langue appartient au profil et
+ *  les sélecteurs passent par `useLangueProfil` (issue #62) ; `utilisateur.langue` gagne toujours
+ *  sur la valeur du poste (`SynchronisationLangue`). */
 export function useLangue(): UtiliserLangue {
   const { i18n } = useTranslation();
   const langue = estLangueValide(i18n.language) ? i18n.language : 'fr';

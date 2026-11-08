@@ -9,6 +9,8 @@ import { useSession } from '@/hooks/useSession';
 import { EcranServiceIndisponible } from '@/ecrans/systeme/EcranServiceIndisponible';
 import { EcranVerificationSession } from '@/ecrans/systeme/EcranVerificationSession';
 
+import { CHEMIN_CHANGEMENT_MOT_DE_PASSE } from '@/ecrans/EcranChangementMotDePasse';
+
 import { EcranAccesRefuse } from './EcranAccesRefuse';
 import type { DestinationAtterrissage } from './atterrissage';
 import { chemins } from './chemins';
@@ -88,6 +90,11 @@ export function RouteProtegee({ children, accesAutorise, redirectionParRole }: P
   }
   if (data === null) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
+  // Issue #58 : mot de passe temporaire jamais remplacé -> écran de changement, avant tout contenu.
+  // (Le serveur refuse de toute façon chaque route métier : ceci n'est que le confort.)
+  if (data.motDePasseAChanger === true && location.pathname !== CHEMIN_CHANGEMENT_MOT_DE_PASSE) {
+    return <Navigate to={CHEMIN_CHANGEMENT_MOT_DE_PASSE} replace />;
   }
   // Borne murale (`poste_atelier`) : un appareil, pas un employé. Son profil API lit les OR (pour
   // le pointage) mais l'interface ne lui ouvre QUE l'écran de la borne — jamais la liste des OR ni

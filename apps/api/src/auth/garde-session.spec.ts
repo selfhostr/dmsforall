@@ -7,7 +7,12 @@ import type { Config } from '../config/config.types';
 import type { ServiceContexteRequete } from '../common/contexte/contexte-requete.service';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
 import { GardeSession } from './garde-session';
-import { ErreurOrigineRefusee, ErreurSessionAbsente, ErreurSessionExpiree } from './erreurs-auth';
+import {
+  ErreurChangementMotDePasseRequis,
+  ErreurOrigineRefusee,
+  ErreurSessionAbsente,
+  ErreurSessionExpiree,
+} from './erreurs-auth';
 import type { ServiceSession } from './auth.types';
 
 const PRINCIPAL_TEST: PrincipalAuthentifie = {
@@ -476,5 +481,68 @@ describe('GardeSession — attacherPrincipal() appelé une seule fois par requê
       'attacherPrincipal() déjà appelé pour cette requête.',
     );
     expect(attacherPrincipal).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('GardeSession -- changement de mot de passe obligatoire (issue #58)', () => {
+  const PRINCIPAL_A_CHANGER: PrincipalAuthentifie = { ...PRINCIPAL_TEST, motDePasseAChanger: true };
+
+  function gardePour(principal: PrincipalAuthentifie, autorisee: boolean): GardeSession {
+    const reflector = {
+      // 1er appel : @Public (faux) ; 2e : @AutoriseAvantChangementMotDePasse.
+      getAllAndOverride: vi.fn((cle: string) =>
+        cle === 'dfa:autorise-avant-changement-mdp' ? autorisee : false,
+      ),
+    } as unknown as Reflector;
+    const contexteRequete = {
+      attacherPrincipal: vi.fn(),
+      actuelOuNull: vi.fn(),
+    } as unknown as ServiceContexteRequete;
+    return new GardeSession(
+      reflector,
+      configTest(),
+      serviceSessionTest(async () => principal),
+      contexteRequete,
+    );
+  }
+
+  it('refuse (403) une route non marquée tant que le mot de passe est à changer', async () => {
+    const { context } = contexteExecutionTest({
+      method: 'GET',
+      cookies: { dfa_session: 'jeton' },
+    });
+    await expect(gardePour(PRINCIPAL_A_CHANGER, false).canActivate(context)).rejects.toBeInstanceOf(
+      ErreurChangementMotDePasseRequis,
+    );
+  });
+
+  it('refuse aussi une écriture (POST) non marquée', async () => {
+    const { context } = contexteExecutionTest({
+      method: 'POST',
+      origin: 'https://app.dmsforall.example',
+      cookies: { dfa_session: 'jeton' },
+    });
+    await expect(gardePour(PRINCIPAL_A_CHANGER, false).canActivate(context)).rejects.toBeInstanceOf(
+      ErreurChangementMotDePasseRequis,
+    );
+  });
+
+  it('laisse passer une route marquée @AutoriseAvantChangementMotDePasse', async () => {
+    const { context } = contexteExecutionTest({
+      method: 'GET',
+      cookies: { dfa_session: 'jeton' },
+    });
+    await expect(gardePour(PRINCIPAL_A_CHANGER, true).canActivate(context)).resolves.toBe(true);
+  });
+
+  it('ne gêne pas un principal sans obligation (drapeau faux ou absent)', async () => {
+    const { context } = contexteExecutionTest({
+      method: 'GET',
+      cookies: { dfa_session: 'jeton' },
+    });
+    await expect(gardePour(PRINCIPAL_TEST, false).canActivate(context)).resolves.toBe(true);
+    await expect(
+      gardePour({ ...PRINCIPAL_TEST, motDePasseAChanger: false }, false).canActivate(context),
+    ).resolves.toBe(true);
   });
 });

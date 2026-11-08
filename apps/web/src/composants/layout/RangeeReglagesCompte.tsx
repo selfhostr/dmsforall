@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { type PreferenceDensite, useDensite } from '@/hooks/useDensite';
-import { useLangue } from '@/hooks/useLangue';
+import { useLangueProfil } from '@/hooks/useLangueProfil';
 import { cn } from '@/lib/utils';
 
 type ChoixTheme = 'light' | 'dark' | 'system';
@@ -37,7 +37,7 @@ interface Props {
  */
 export function RangeeReglagesCompte({ cheminReglages }: Props) {
   const { t } = useTranslation(['navigation', 'commun']);
-  const { langue, languesDisponibles, changerLangue } = useLangue();
+  const { langue, languesDisponibles, changerLangue } = useLangueProfil();
   const { theme, setTheme } = useTheme();
   const { preference, definirPreference } = useDensite();
 

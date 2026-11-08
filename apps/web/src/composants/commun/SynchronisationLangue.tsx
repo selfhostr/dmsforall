@@ -1,25 +1,25 @@
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
-import { CLE_STOCKAGE_LANGUE } from '@/i18n';
+import { detecterLangueInitiale } from '@/i18n';
 import { useLangue } from '@/hooks/useLangue';
 import { useSession } from '@/hooks/useSession';
 
-/** Applique `utilisateur.langue` comme langue d'interface une fois la session connue, SAUF si
- *  l'utilisateur a déjà choisi explicitement une langue sur ce poste (présence en
- *  localStorage) — cette préférence locale reste prioritaire (voir priorité définie dans
- *  src/i18n/index.ts). Composant sans rendu, monté une fois près de la racine. */
+/** Règle de priorité (issue #62), composant sans rendu monté une fois près de la racine :
+ *  - connecté : `utilisateur.langue` (profil) l'emporte TOUJOURS. Sur un poste partagé, le choix
+ *    du premier utilisateur n'est jamais imposé au suivant ;
+ *  - déconnecté : langue de l'écran de connexion gardée sur le poste (localStorage), sinon langue
+ *    du navigateur, sinon FR (`detecterLangueInitiale`). */
 export function SynchronisationLangue() {
   const { data: session } = useSession();
-  const { langue, changerLangue } = useLangue();
+  const { langue } = useLangue();
+  const { i18n } = useTranslation();
 
   useEffect(() => {
-    if (!session) return;
-    const preferenceExplicite = window.localStorage.getItem(CLE_STOCKAGE_LANGUE);
-    if (preferenceExplicite) return;
-    if (session.utilisateur.langue !== langue) {
-      changerLangue(session.utilisateur.langue);
-    }
-  }, [session, langue, changerLangue]);
+    if (session === undefined) return;
+    const cible = session ? session.utilisateur.langue : detecterLangueInitiale();
+    if (cible !== langue) void i18n.changeLanguage(cible);
+  }, [session, langue, i18n]);
 
   return null;
 }

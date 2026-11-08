@@ -58,6 +58,16 @@ export class ErreurSessionAbsente extends ErreurAuth {
   }
 }
 
+/** 403 — mot de passe temporaire jamais remplacé (issue #58) : seule la route de changement passe. */
+export class ErreurChangementMotDePasseRequis extends ErreurAuth {
+  constructor() {
+    super(HttpStatus.FORBIDDEN, {
+      code: 'AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS',
+      message: 'Vous devez choisir votre propre mot de passe avant de continuer.',
+    });
+  }
+}
+
 /** 401 — cookie présent mais session inconnue, révoquée, ou expirée (absolu ou glissant). */
 export class ErreurSessionExpiree extends ErreurAuth {
   constructor() {

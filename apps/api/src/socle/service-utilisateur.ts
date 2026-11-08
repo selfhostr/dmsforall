@@ -185,6 +185,8 @@ export class ServiceUtilisateur {
             tenantId: ctx.tenantId,
             email: entree.email,
             motDePasseHash,
+            // Issue #58 : l'employé choisit son propre mot de passe à la première connexion.
+            motDePasseAChanger: true,
             prenom: entree.prenom,
             nom: entree.nom,
             role: entree.role,
@@ -463,7 +465,13 @@ export class ServiceUtilisateur {
 
       await tx
         .update(utilisateur)
-        .set({ motDePasseHash, echecsConnexion: 0, verrouilleJusquA: null })
+        .set({
+          motDePasseHash,
+          // Issue #58 : le mot de passe temporaire est à remplacer à la prochaine connexion.
+          motDePasseAChanger: true,
+          echecsConnexion: 0,
+          verrouilleJusquA: null,
+        })
         .where(and(eq(utilisateur.tenantId, ctx.tenantId), eq(utilisateur.id, utilisateurId)));
 
       await this.revoquerSessionsActives(tx, ctx, utilisateurId);

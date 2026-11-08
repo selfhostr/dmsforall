@@ -390,6 +390,43 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/auth/moi/langue': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Enregistre la langue d’interface dans le profil de la personne connectée. */
+    patch: operations['AuthController_changerLangue'];
+    trace?: never;
+  };
+  '/auth/mot-de-passe/changement': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Changement du mot de passe de la personne connectée.
+     * @description Exige le mot de passe actuel. Lève le blocage AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS. Les autres sessions de la personne sont révoquées.
+     */
+    post: operations['AuthController_changerMotDePasse'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/auth/mot-de-passe/oubli': {
     parameters: {
       query?: never;
@@ -7024,7 +7061,8 @@ export interface components {
         | 'TVA_NUMERO_REQUIS'
         | 'FACTURE_DEJA_CORRIGEE'
         | 'FACTURE_CORRECTION_REGLEMENT_EXISTANT'
-        | 'MODULE_DESACTIVE';
+        | 'MODULE_DESACTIVE'
+        | 'AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS';
       /** @description Détail technique — jamais affiché à l'utilisateur final. */
       detail?: string;
       erreurs?: components['schemas']['ErreurChampCommunDto'][];
@@ -7171,7 +7209,8 @@ export interface components {
         | 'TVA_NUMERO_REQUIS'
         | 'FACTURE_DEJA_CORRIGEE'
         | 'FACTURE_CORRECTION_REGLEMENT_EXISTANT'
-        | 'MODULE_DESACTIVE';
+        | 'MODULE_DESACTIVE'
+        | 'AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS';
       detail?: string;
       erreurs?: components['schemas']['ErreurChampDto'][];
       instance: string;
@@ -9130,6 +9169,8 @@ export interface components {
         | 'relances'
         | 'export_fiduciaire'
       )[];
+      /** @description true tant que le mot de passe temporaire n’a pas été remplacé : toute route métier répond 403 AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS. */
+      motDePasseAChanger?: boolean;
       /** Format: uuid */
       sitePrincipalId: string | null;
       /** Format: uuid */
@@ -11073,6 +11114,110 @@ export interface operations {
       };
       /** @description AUTH_SESSION_ABSENTE ou AUTH_SESSION_EXPIREE. */
       401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailDto'];
+        };
+      };
+    };
+  };
+  AuthController_changerLangue: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @enum {string} */
+          langue: 'fr' | 'de' | 'it';
+        };
+      };
+    };
+    responses: {
+      /** @description Langue enregistrée. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description VALIDATION_ECHOUEE. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailDto'];
+        };
+      };
+      /** @description AUTH_SESSION_ABSENTE ou AUTH_SESSION_EXPIREE. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailDto'];
+        };
+      };
+      /** @description AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailDto'];
+        };
+      };
+    };
+  };
+  AuthController_changerMotDePasse: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          motDePasseActuel: string;
+          nouveauMotDePasse: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Mot de passe changé. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description VALIDATION_ECHOUEE. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailDto'];
+        };
+      };
+      /** @description AUTH_SESSION_ABSENTE ou AUTH_SESSION_EXPIREE. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailDto'];
+        };
+      };
+      /** @description AUTH_TROP_DE_TENTATIVES. */
+      429: {
         headers: {
           [name: string]: unknown;
         };
