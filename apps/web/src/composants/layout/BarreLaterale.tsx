@@ -1,9 +1,13 @@
 import {
+  BookOpen,
   Bug,
   ChevronsUpDown,
+  CircleArrowUp,
+  Code,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
+  Settings,
   SlidersHorizontal,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -20,6 +24,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { demanderOuvertureAssistant } from '@/hooks/assistant/etat-assistant';
 import { ouvrirSignalement } from '@/hooks/signalement/etat-signalement';
+import { useMiseAJourDisponible } from '@/hooks/useMiseAJourDisponible';
 import { usePastilleAssistant } from '@/hooks/assistant/usePastilleAssistant';
 import { useDeconnexion } from '@/hooks/useDeconnexion';
 import { useSession } from '@/hooks/useSession';
@@ -38,11 +43,14 @@ import {
 import { HAUTEUR_ENTETE_COLONNE } from './hauteur-entete-colonne';
 import { PastilleConfiguration } from './PastilleConfiguration';
 import { RechercheGlobale } from './RechercheGlobale';
-import { RangeeReglagesCompte } from './RangeeReglagesCompte';
+import { PreferencesMenuCompte } from './PreferencesMenuCompte';
 import type { UtiliserRepliBarreLaterale } from './useRepliBarreLaterale';
 
 /** Au-delà, le nom du garage passe d'un cran de police plus petit. */
 const NOM_LONG = 18;
+
+const URL_DOCUMENTATION = 'https://dmsforall.selfhostr.io/docs/';
+const URL_CODE_SOURCE = 'https://github.com/selfhostr/dmsforall';
 
 /**
  * Numéro de version affiché collé au bouton Réglages (demande produit explicite, 17.08.2026 :
@@ -215,9 +223,19 @@ export function BarreLaterale({ className, repli }: Props) {
     ? `${session.utilisateur.prenom.charAt(0)}${session.utilisateur.nom.charAt(0)}`.toUpperCase()
     : '';
 
-  const nomCompte = garageAConfigurer
-    ? `${libelleCompte} — ${libelleRole} — ${t('navigation:configurer.pastille')}`
-    : `${libelleCompte} — ${libelleRole}`;
+  const miseAJour = useMiseAJourDisponible(session?.utilisateur.role);
+  const cheminReglages = reglagesVisibles(sujet)
+    ? (cheminEntree(ENTREE_REGLAGES, sujet, site) ?? undefined)
+    : undefined;
+
+  const nomCompte = [
+    libelleCompte,
+    libelleRole,
+    garageAConfigurer ? t('navigation:configurer.pastille') : null,
+    miseAJour ? t('navigation:version.pastille') : null,
+  ]
+    .filter((partie) => partie !== null)
+    .join(' — ');
 
   // `repli` absent (tiroir mobile) => jamais replié, quelle que soit la préférence mémorisée par
   // ailleurs : la lecture de cette préférence est entièrement du ressort de l'appelant desktop.
@@ -433,6 +451,9 @@ export function BarreLaterale({ className, repli }: Props) {
                     {garageAConfigurer ? (
                       <PastilleConfiguration className="-right-1 -top-1" />
                     ) : null}
+                    {miseAJour ? (
+                      <PastilleConfiguration className="-bottom-0.5 -right-1" />
+                    ) : null}
                   </span>
                   {!replie ? (
                     <>
@@ -459,30 +480,62 @@ export function BarreLaterale({ className, repli }: Props) {
                       void navigate('/');
                     }}
                   >
-                    <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+                    <SlidersHorizontal className="h-4 w-4 shrink-0" aria-hidden="true" />
                     {t('navigation:configurer.entree')}
                   </DropdownMenuItem>
                 ) : null}
-                {session?.tenant.modeSignalement !== 'desactive' ? (
-                  <DropdownMenuItem onSelect={ouvrirSignalement}>
-                    <Bug className="h-4 w-4" aria-hidden="true" />
-                    {t('navigation:signalement.entree')}
+                {cheminReglages !== undefined ? (
+                  <DropdownMenuItem asChild>
+                    <Link to={cheminReglages}>
+                      <Settings className="h-4 w-4 shrink-0" aria-hidden="true" />
+                      {t('navigation:entrees.reglages')}
+                    </Link>
                   </DropdownMenuItem>
                 ) : null}
                 <DropdownMenuSeparator />
-                <RangeeReglagesCompte
-                  cheminReglages={
-                    reglagesVisibles(sujet)
-                      ? (cheminEntree(ENTREE_REGLAGES, sujet, site) ?? undefined)
-                      : undefined
-                  }
-                />
+                <PreferencesMenuCompte />
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <a href={URL_DOCUMENTATION} target="_blank" rel="noopener noreferrer">
+                    <BookOpen className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    {t('navigation:liens.documentation')}
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <a href={URL_CODE_SOURCE} target="_blank" rel="noopener noreferrer">
+                    <Code className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    {t('navigation:liens.codeSource')}
+                  </a>
+                </DropdownMenuItem>
+                {session?.tenant.modeSignalement !== 'desactive' ? (
+                  <DropdownMenuItem onSelect={ouvrirSignalement}>
+                    <Bug className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    {t('navigation:signalement.entree')}
+                  </DropdownMenuItem>
+                ) : null}
+                {miseAJour ? (
+                  <DropdownMenuItem asChild>
+                    <a
+                      href={miseAJour.urlNotes ?? URL_CODE_SOURCE}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <CircleArrowUp className="h-4 w-4 shrink-0" aria-hidden="true" />
+                      {t('navigation:version.disponible', { version: miseAJour.derniere })}
+                    </a>
+                  </DropdownMenuItem>
+                ) : null}
+                {versionCourte ? (
+                  <DropdownMenuLabel className="texte-libelle select-text font-normal text-muted-foreground">
+                    {t('navigation:version.installee', { version: versionCourte })}
+                  </DropdownMenuLabel>
+                ) : null}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onSelect={() => deconnexion.mutate()}
                   disabled={deconnexion.isPending}
                 >
-                  <LogOut className="h-4 w-4" aria-hidden="true" />
+                  <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
                   {t('auth:deconnexion.action')}
                 </DropdownMenuItem>
               </DropdownMenuContent>

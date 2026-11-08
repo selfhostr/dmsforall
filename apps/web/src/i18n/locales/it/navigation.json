@@ -60,9 +60,8 @@
     "reglagesModules": "Moduli"
   },
   "liens": {
-    "clients": "Clienti",
-    "vehicules": "Veicoli",
-    "piecesArticles": "Articoli"
+    "documentation": "Documentazione",
+    "codeSource": "Codice sorgente (GitHub)"
   },
   "menu": {
     "ouvrir": "Apri menu"
@@ -93,10 +92,7 @@
     "titre": "Tema",
     "clair": "Chiaro",
     "sombre": "Scuro",
-    "systeme": "Sistema",
-    "passerSysteme": "Segui il tema del sistema",
-    "passerClair": "Passa al tema chiaro",
-    "passerSombre": "Passa al tema scuro"
+    "systeme": "Sistema"
   },
   "pied": {
     "version": "Versione {info}"
@@ -105,10 +101,18 @@
     "entree": "Configurare l’autorimessa",
     "pastille": "Autorimessa da configurare"
   },
-  "rangee": {
-    "aria": "Impostazioni rapide"
-  },
   "signalement": {
     "entree": "Segnala un problema"
+  },
+  "taille": {
+    "titre": "Dimensione del testo",
+    "auto": "Automatica",
+    "compacte": "Compatta",
+    "aeree": "Ariosa"
+  },
+  "version": {
+    "installee": "Versione {version}",
+    "disponible": "Versione {version} disponibile",
+    "pastille": "Nuova versione disponibile"
   }
 }

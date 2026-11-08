@@ -1,5 +1,5 @@
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query';
-import { render, screen, waitFor, type RenderResult } from '@testing-library/react';
+import { render, screen, waitFor, within, type RenderResult } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router';
@@ -680,7 +680,7 @@ describe('BarreLaterale — pied compte', () => {
     expect(declencheur).toHaveTextContent('JD');
   });
 
-  it('le menu est compact : nom et rôle, une seule rangée de contrôles, puis Se déconnecter avec son icône', async () => {
+  it('le menu : entrées avec icône, trois préférences en lignes « libellé : valeur », liens externes, déconnexion en dernier', async () => {
     connecte('chef_atelier');
     rendre('/');
 
@@ -688,25 +688,103 @@ describe('BarreLaterale — pied compte', () => {
     expect(screen.queryByRole('link', { name: /^réglages$/i })).not.toBeInTheDocument();
 
     await ouvrirMenuCompte();
-    const rangee = await screen.findByRole('group', { name: 'Réglages rapides' });
-    // Langue, taille (A / A), thème, Réglages : quatre contrôles, chacun nommé et avec infobulle.
-    const controles = Array.from(rangee.querySelectorAll<HTMLElement>('[role^="menuitem"]'));
-    expect(controles.map((e) => e.getAttribute('aria-label'))).toEqual([
-      'Langue : Français',
-      expect.stringMatching(/^Taille de l.interface : Compacte/),
-      expect.stringMatching(/^Taille de l.interface : Aérée/),
-      expect.stringMatching(/^Thème : Système/),
+    const menu = await screen.findByRole('menu');
+    const entrees = within(menu).getAllByRole('menuitem');
+    expect(entrees.map((e) => e.getAttribute('aria-label') ?? e.textContent?.trim())).toEqual([
       'Réglages',
+      'Langue : Français',
+      'Taille du texte : Automatique',
+      'Thème : Système',
+      'Documentation',
+      'Code source (GitHub)',
+      'Signaler un problème',
+      'Se déconnecter',
     ]);
-    for (const controle of controles) expect(controle).toHaveAttribute('title');
-    // Plus de grandes sections : ni liste des trois langues, ni « Thème »/« Langue » en en-têtes.
-    expect(screen.queryByText('Deutsch')).not.toBeInTheDocument();
-    const deconnexion = screen.getByRole('menuitem', { name: /se déconnecter/i });
-    expect(deconnexion.querySelector('svg')).not.toBeNull();
-    // La rangée est juste au-dessus de « Se déconnecter ».
-    expect(
-      rangee.compareDocumentPosition(deconnexion) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    // Chaque entrée porte une icône ; plus aucune rangée de contrôles muets.
+    for (const entree of entrees) expect(entree.querySelector('svg')).not.toBeNull();
+    expect(screen.queryByRole('group', { name: 'Réglages rapides' })).not.toBeInTheDocument();
+    expect(entrees.at(-1)).toHaveTextContent('Se déconnecter');
+  });
+
+  it('les liens Documentation et Code source s’ouvrent dans un nouvel onglet, sans opener', async () => {
+    connecte('chef_atelier');
+    rendre('/');
+
+    await ouvrirMenuCompte();
+    const doc = await screen.findByRole('menuitem', { name: 'Documentation' });
+    const code = screen.getByRole('menuitem', { name: 'Code source (GitHub)' });
+    expect(doc).toHaveAttribute('href', 'https://dmsforall.selfhostr.io/docs/');
+    expect(code).toHaveAttribute('href', 'https://github.com/selfhostr/dmsforall');
+    for (const lien of [doc, code]) {
+      expect(lien).toHaveAttribute('target', '_blank');
+      expect(lien).toHaveAttribute('rel', expect.stringContaining('noopener'));
+    }
+  });
+
+  it('le thème se choisit dans un sous-menu et la ligne affiche le choix', async () => {
+    connecte('chef_atelier');
+    const utilisateur = userEvent.setup();
+    rendre('/');
+
+    await ouvrirMenuCompte();
+    await utilisateur.click(await screen.findByRole('menuitem', { name: /^thème/i }));
+    await utilisateur.click(await screen.findByRole('menuitemradio', { name: 'Sombre' }));
+    await ouvrirMenuCompte();
+    expect(await screen.findByRole('menuitem', { name: 'Thème : Sombre' })).toBeInTheDocument();
+  });
+
+  it('direction : une mise à jour disponible ajoute une pastille et une ligne vers les notes', async () => {
+    connecte('direction');
+    server.use(
+      http.get('/api/v1/systeme/version', () =>
+        HttpResponse.json({
+          actuelle: '0.3.0',
+          derniere: '0.4.0',
+          miseAJourDisponible: true,
+          urlNotes: 'https://github.com/selfhostr/dmsforall/releases/tag/v0.4.0',
+        }),
+      ),
+    );
+    rendre('/');
+
+    const declencheur = await screen.findByRole('button', { name: /nouvelle version disponible/i });
+    expect(declencheur.querySelector('[data-testid="pastille-configuration"]')).not.toBeNull();
+    await userEvent.setup().click(declencheur);
+    const ligne = await screen.findByRole('menuitem', { name: 'Version 0.4.0 disponible' });
+    expect(ligne).toHaveAttribute(
+      'href',
+      'https://github.com/selfhostr/dmsforall/releases/tag/v0.4.0',
+    );
+    expect(ligne).toHaveAttribute('target', '_blank');
+  });
+
+  it('un rôle qui n’installe pas ne voit jamais l’alerte, même si le serveur en annonce une', async () => {
+    connecte('chef_atelier');
+    server.use(
+      http.get('/api/v1/systeme/version', () =>
+        HttpResponse.json({
+          actuelle: '0.3.0',
+          derniere: '0.4.0',
+          miseAJourDisponible: true,
+          urlNotes: 'https://github.com/selfhostr/dmsforall/releases/tag/v0.4.0',
+        }),
+      ),
+    );
+    rendre('/');
+
+    await ouvrirMenuCompte();
+    await screen.findByRole('menuitem', { name: 'Documentation' });
+    expect(screen.queryByRole('menuitem', { name: /disponible/i })).not.toBeInTheDocument();
+  });
+
+  it('direction : si la vérification échoue, aucun message et aucune pastille', async () => {
+    connecte('direction');
+    server.use(http.get('/api/v1/systeme/version', () => HttpResponse.error()));
+    rendre('/');
+
+    await ouvrirMenuCompte();
+    await screen.findByRole('menuitem', { name: 'Documentation' });
+    expect(screen.queryByRole('menuitem', { name: /disponible/i })).not.toBeInTheDocument();
   });
 
   it('déclenche la mutation de déconnexion au clic sur « Se déconnecter »', async () => {

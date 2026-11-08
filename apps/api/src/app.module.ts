@@ -39,6 +39,7 @@ import { RepriseModule } from './reprise/reprise.module';
 import { RendezVousModule } from './rendezvous/rendezvous.module';
 import { AccueilModule } from './accueil/accueil.module';
 import { SanteModule } from './sante';
+import { SystemeModule } from './systeme';
 import { SocleModule } from './socle';
 import { TableauBordModule } from './tableau-bord/tableau-bord.module';
 import { TempsReelModule } from './temps-reel';
@@ -58,6 +59,7 @@ export class AppModule implements NestModule {
         AuthModule,
         SocleModule,
         SanteModule,
+        SystemeModule,
         // Socle d'ordonnancement (BullMQ) — PREMIER ordonnanceur de ce dépôt, voir
         // `ordonnancement/ordonnancement.module.ts` pour le choix d'architecture complet. Monté
         // une seule fois ici ; tout module de job (ex. `ReferentielVehiculesChJobModule`, le job
