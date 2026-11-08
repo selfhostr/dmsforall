@@ -29,7 +29,7 @@ body:
     id: observed
     attributes:
       label: Observed behavior
-      description: Include error messages or screenshots. Remove customer data and secrets first.
+      description: Include error messages. Remove customer data and secrets first.
     validations:
       required: true
   - type: dropdown

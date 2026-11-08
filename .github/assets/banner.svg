@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 280" role="img" aria-label="dmsforall: Garage management for Swiss garages.">
+  <defs><pattern id="g" width="44" height="44" patternUnits="userSpaceOnUse"><path d="M44 0H0V44" fill="none" stroke="#ffffff" stroke-opacity=".05"/></pattern></defs>
+  <rect width="1280" height="280" rx="18" fill="#07080a"/>
+  <rect width="1280" height="280" rx="18" fill="url(#g)"/>
+  <g transform="translate(64 72) scale(2.1875)"><rect width="64" height="64" rx="15" fill="#111419"/><path d="M32 8L53.97 20.7V47.05L38.48 56V48.32C38.48 46.73 39.17 46.22 40.13 45.59C43.62 43.43 46.03 39.75 46.03 34.98C46.03 29.59 43.3 25.78 39.62 23.75C38.73 23.24 37.97 23.75 37.97 24.63V34.67C37.97 35.3 37.71 35.68 37.21 36L32.63 38.79Q32 39.11 31.37 38.79L26.48 35.87C26.03 35.56 25.78 35.17 25.78 34.67V24.63C25.78 23.75 25.02 23.24 24.13 23.75C20.44 25.78 17.78 29.59 17.78 34.98C17.78 39.75 20.19 43.43 23.75 45.59C24.7 46.22 25.4 46.86 25.4 48.32L25.4 56L10.03 47.05V20.7Z" fill="#F07E17"/></g>
+  <text x="228" y="134" fill="#eceef1" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="60" font-weight="600" letter-spacing="-1.2">dmsforall</text>
+  <text x="230" y="184" fill="#c9ccd1" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="28">Garage management for Swiss garages.</text>
+  <text x="1216" y="244" text-anchor="end" fill="#8b9098" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="17">a selfhostr project</text>
+</svg>
