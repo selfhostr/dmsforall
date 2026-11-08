@@ -151,6 +151,45 @@ describe('serialiserEcrituresWinbiz — forme du fichier', () => {
   });
 });
 
+describe('serialiserEcrituresWinbiz — facture mixte 8.1 % / 2.6 %', () => {
+  it('chaque ligne TVA porte son code et son taux', () => {
+    const mixte = ecriture({
+      reference: 'FA-2026-00200',
+      documentId: 'doc-mixte',
+      lignes: [
+        ligne({ compte: '1100', sens: 'debit', montantCentimes: 15940 }),
+        ligne({ compte: '3200', sens: 'credit', montantCentimes: 10000 }),
+        ligne({ compte: '3400', sens: 'credit', montantCentimes: 5000 }),
+        ligne({
+          compte: '1170',
+          sens: 'credit',
+          montantCentimes: 810,
+          codeTva: 'N81',
+          tauxPourmille: 81,
+          baseTvaCentimes: 10000,
+        }),
+        ligne({
+          compte: '1170',
+          sens: 'credit',
+          montantCentimes: 130,
+          codeTva: 'R26',
+          tauxPourmille: 26,
+          baseTvaCentimes: 5000,
+        }),
+      ],
+    });
+    const lignesTva = serialiserEcrituresWinbiz([mixte]).contenu
+      .toString('latin1')
+      .split(FIN_DE_LIGNE_WINBIZ)
+      .map((l) => l.split(SEPARATEUR_CHAMP_WINBIZ))
+      .filter((c) => c[4] === '1170');
+    expect(lignesTva.map((c) => [c[5], c[9], c[12], c[19]])).toEqual([
+      ['8.1', '8.1', '2', '<vt_code=N81>'],
+      ['1.3', '2.6', '2', '<vt_code=R26>'],
+    ]);
+  });
+});
+
 describe('serialiserEcrituresWinbiz — encodage réel produit, octets vérifiés', () => {
   it('encode un libellé accentué en Windows-1252, PAS en UTF-8', () => {
     const avecAccent = ecriture({
