@@ -116,7 +116,6 @@ const OR_CREE: ReponseOrdreReparation = {
   devisComplementaires: [],
   controleQualite: null,
   signatures: [],
-  pret: null,
   cumulsPointage: { totalCentiemes: 0, parTechnicien: [], pointagesOuverts: 0 },
   attentes: { accord: false, pieces: false, externe: false },
   etatAffiche: 'ouvert',

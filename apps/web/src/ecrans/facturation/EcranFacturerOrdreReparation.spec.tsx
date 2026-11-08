@@ -155,7 +155,6 @@ function construireOr(overrides: Partial<ReponseOrdreReparation> = {}): ReponseO
     devisComplementaires: [],
     controleQualite: null,
     signatures: [],
-    pret: null,
     cumulsPointage: { totalCentiemes: 0, parTechnicien: [], pointagesOuverts: 0 },
     totauxParPayeur: [
       {
