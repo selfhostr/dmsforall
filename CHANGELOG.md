@@ -10,6 +10,7 @@ All notable changes to dmsforall are recorded here, for people who run it and fo
 
 ### Changed
 
+- **Fonts.** The interface uses Inter and JetBrains Mono (plates, VIN, document numbers), both self-hosted and under the SIL Open Font License, instead of IBM Plex. Sizes and layout do not change.
 - **Valkey instead of Redis.** The `redis` service now runs Valkey (`valkey/valkey:9.1.3-alpine`), the open-source, Redis-compatible store, because recent Redis versions are no longer open source. The service name, the port, `REDIS_URL` and the `dfa_redis_data` volume are unchanged, and the existing data is compatible. See the upgrade notes.
 - In production with no sending server at all, an e-mail is now reported as not sent instead of being silently set aside.
 

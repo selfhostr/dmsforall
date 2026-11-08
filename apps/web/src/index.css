@@ -11,81 +11,84 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ═════════════════════════════════════════════════════════════════════════════
-   TYPOGRAPHIE — IBM Plex Sans (lecture) + IBM Plex Mono (identifiants)
-   Lot K. Avant ce lot, aucune `font-family` n'était déclarée : le produit
-   retombait sur le défaut de Tailwind Preflight (Segoe UI sur les PC du
-   comptoir, San Francisco sur l'iPad de l'atelier, Roboto ailleurs). Trois
-   rendus différents pour un même écran, aucun choisi.
+   TYPOGRAPHIE — Inter (lecture) + JetBrains Mono (identifiants)
+   Une seule famille pour le texte, une seule pour le code. Avant le lot K,
+   aucune `font-family` n'était déclarée : le produit retombait sur le défaut de
+   Tailwind Preflight (Segoe UI au comptoir, San Francisco sur l'iPad de
+   l'atelier, Roboto ailleurs), trois rendus pour un même écran.
 
-   Pourquoi Plex, et pourquoi deux rôles :
-   - Plex Sans est dessiné pour l'outillage technique lu toute la journée :
-     ouvertures larges, hauteur d'x généreuse, chasse contenue — un tableau d'OR
-     à 14 px sur 24 pouces reste lisible, et un mot allemand long
+   Deux rôles :
+   - Inter porte toute l'interface (400, 500, 600) : dessinée pour l'écran,
+     lisible à 14 px sur un tableau d'OR, et un mot allemand long
      (« Fahrgestellnummer », « Reparaturauftrag ») tient dans une colonne.
-   - Plex Mono porte les IDENTIFIANTS (plaque, châssis/VIN, n° d'OR, n° de
-     facture, n° d'article). Son zéro est barré et ses 1/l/I sont distincts :
-     sur un VIN de 17 caractères recopié à la main, c'est la différence entre un
-     document juste et un document faux. Même superfamille que Plex Sans, donc
-     mêmes proportions — un identifiant en mono au milieu d'une ligne de tableau
-     ne fait pas sauter le rythme.
-   Les MONTANTS restent en Plex Sans avec `tabular-nums` (voir .texte-montant) :
-   du mono sur une colonne de francs serait trop large et trop « code ».
+   - JetBrains Mono porte les IDENTIFIANTS (plaque, châssis/VIN, n° d'OR, n° de
+     facture, n° d'article) : zéro barré, `1`, `l` et `I` distincts, ce qui compte
+     sur un VIN de 17 caractères recopié à la main.
+   Les MONTANTS restent en Inter avec `tabular-nums` (voir .texte-montant) : du
+   mono sur une colonne de francs serait trop large et trop « code ».
 
-   AUTO-HÉBERGÉ, JAMAIS DE CDN : fichiers dans `src/polices/` (~107 Ko, woff2,
-   licence SIL OFL 1.1 — voir src/polices/LICENCE-IBM-Plex.txt). Le produit est
-   hébergé en Suisse (nLPD) ; un appel à fonts.googleapis.com enverrait l'IP de
-   chaque garagiste à un tiers et ajouterait un point de panne réseau au
-   démarrage de l'application. Vite empreinte ces fichiers au build (cache
-   immuable). Ne JAMAIS réintroduire un `@import url(...)` distant ici.
+   AUTO-HÉBERGÉ, JAMAIS DE CDN : les fichiers woff2 viennent des paquets npm
+   `@fontsource-variable/inter` et `@fontsource-variable/jetbrains-mono` (licence
+   SIL OFL 1.1, voir NOTICE). Le produit est hébergé en Suisse (nLPD) ; un appel à
+   fonts.googleapis.com enverrait l'IP de chaque garagiste à un tiers. Vite
+   empreinte ces fichiers au build (cache immuable). Ne JAMAIS réintroduire un
+   `@import url(...)` distant ici.
 
-   Sous-ensembles : `latin` (U+0000-00FF — couvre ä ö ü é è à ç, donc FR/DE/IT)
-   et `latin-ext` (U+0100-02BA — couvre ć š ž ş ğ ł des noms de clients, réalité
-   d'un fichier client suisse). Le navigateur ne télécharge `latin-ext` que si
-   un caractère de cette plage est réellement affiché. Plex Mono n'a pas de
-   `latin-ext` : un identifiant de véhicule est toujours ASCII.
+   Sous-ensembles : `latin` (U+0000-00FF, couvre ä ö ü é è à ç, donc FR/DE/IT) et
+   `latin-ext` (U+0100-02BA, couvre ć š ž ş ğ ł des noms de clients). Le navigateur
+   ne télécharge `latin-ext` que si un caractère de cette plage est affiché.
+   Les polices sont variables : toutes les graisses utilisées (400 à 600) sont
+   servies sans faux gras synthétisé.
    ══════════════════════════════════════════════════════════════════════════ */
 
 @font-face {
-  font-family: 'IBM Plex Sans Variable';
+  font-family: 'Inter Variable';
   font-style: normal;
   font-display: swap;
-  font-weight: 100 700;
-  src: url('./polices/ibm-plex-sans-latin-wght-normal.woff2') format('woff2');
+  font-weight: 100 900;
+  src: url('@fontsource-variable/inter/files/inter-latin-wght-normal.woff2')
+    format('woff2-variations');
   unicode-range:
     U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
     U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
-  font-family: 'IBM Plex Sans Variable';
+  font-family: 'Inter Variable';
   font-style: normal;
   font-display: swap;
-  font-weight: 100 700;
-  src: url('./polices/ibm-plex-sans-latin-ext-wght-normal.woff2') format('woff2');
+  font-weight: 100 900;
+  src: url('@fontsource-variable/inter/files/inter-latin-ext-wght-normal.woff2')
+    format('woff2-variations');
   unicode-range:
     U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
     U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
     U+A720-A7FF;
 }
 
-/* Plex Mono n'est livré qu'en 400 et 600. Les plages `font-weight` ci-dessous couvrent
-   volontairement tout l'intervalle 100–700 : une demande de 700 est servie par le fichier 600
-   réel plutôt que par un faux gras synthétisé par le navigateur (qui épaissit les traits et
-   referme les contreformes — exactement ce qu'on cherche à éviter sur un VIN). */
 @font-face {
-  font-family: 'IBM Plex Mono';
+  font-family: 'JetBrains Mono Variable';
   font-style: normal;
   font-display: swap;
-  font-weight: 100 450;
-  src: url('./polices/ibm-plex-mono-latin-400-normal.woff2') format('woff2');
+  font-weight: 100 800;
+  src: url('@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2')
+    format('woff2-variations');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
-  font-family: 'IBM Plex Mono';
+  font-family: 'JetBrains Mono Variable';
   font-style: normal;
   font-display: swap;
-  font-weight: 451 700;
-  src: url('./polices/ibm-plex-mono-latin-600-normal.woff2') format('woff2');
+  font-weight: 100 800;
+  src: url('@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-ext-wght-normal.woff2')
+    format('woff2-variations');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════
@@ -415,10 +418,9 @@
 
   /* Les deux rôles de police, exposés à Tailwind : `font-sans` (défaut, tout le produit)
      et `font-mono` (identifiants — préférer l'utilitaire `.texte-identifiant`). */
-  --font-sans:
-    'IBM Plex Sans Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
-    'Helvetica Neue', Arial, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono:
+    'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* Espacement sémantique disponible en utilitaires : `gap-groupe`, `p-carte`,
      `space-y-section`, `px-ecran`… — plus jamais de `p-6` en dur dans un écran. */
@@ -862,7 +864,7 @@
   }
 
   /* Identifiant technique : plaque, châssis/VIN, n° d'OR, n° de facture, n° d'article.
-     Second rôle de police (IBM Plex Mono) — zéro barré, 1/l/I non ambigus. À réserver
+     Second rôle de police (JetBrains Mono) — zéro barré, 1/l/I non ambigus. À réserver
      STRICTEMENT aux chaînes recopiées ou dictées : du mono sur un nom de client ou un
      libellé de prestation serait juste illisible. */
   .texte-identifiant {
