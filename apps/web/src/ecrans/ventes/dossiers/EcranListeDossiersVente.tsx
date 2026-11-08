@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
 
 import {
   STATUTS_DOSSIER_VENTE,
@@ -11,7 +11,6 @@ import {
 } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
@@ -158,13 +157,12 @@ export function EcranListeDossiersVente() {
 
   const peutCreer = peutEcrireDossierVente(session?.actions);
 
-  const boutonNouveauDossier = peutCreer ? (
-    <Button asChild>
-      <Link to={chemins.ventes.dossiers.nouveau(site)}>
-        {t('ventes:commun.actions.nouveauDossier')}
-      </Link>
-    </Button>
-  ) : undefined;
+  const actionCreerDossier = peutCreer
+    ? {
+        libelle: t('ventes:commun.actions.creerDossier'),
+        to: chemins.ventes.dossiers.nouveau(site),
+      }
+    : undefined;
 
   const colonnes: ColonneComptoir<ReponseDossierVente>[] = [
     {
@@ -270,62 +268,59 @@ export function EcranListeDossiersVente() {
   // chantier) : rejoint la rangée filtres + tri ci-dessous, à sa suite, plutôt que de rester isolé.
   return (
     <GabaritEcran titre={t('ventes:dossier.liste.titre')}>
-      <div className="flex items-center gap-3">
-        <BarreFiltres
-          q={qSaisie}
-          onChangeQ={setQSaisie}
-          placeholderRecherche={t('ventes:dossier.liste.filtres.q')}
-          className="min-w-0 flex-1"
-          tri={
-            <SelecteurTri
-              options={TRIS_DOSSIERS_VENTE.map((valeur) => ({
-                valeur,
-                libelle: t(CLES_TRI[valeur]),
-              }))}
-              valeur={tri}
-              onChangeValeur={setTri}
-              label={t('ventes:dossier.liste.tri.label')}
-            />
-          }
+      <BarreFiltres
+        actionCreer={actionCreerDossier}
+        q={qSaisie}
+        onChangeQ={setQSaisie}
+        placeholderRecherche={t('ventes:dossier.liste.filtres.q')}
+        tri={
+          <SelecteurTri
+            options={TRIS_DOSSIERS_VENTE.map((valeur) => ({
+              valeur,
+              libelle: t(CLES_TRI[valeur]),
+            }))}
+            valeur={tri}
+            onChangeValeur={setTri}
+            label={t('ventes:dossier.liste.tri.label')}
+          />
+        }
+      >
+        <FiltreSite filtre={filtreSite} />
+        <Select
+          value={filtreStatut}
+          onValueChange={(valeur) => setFiltreStatut(valeur as FiltreStatut)}
         >
-          <FiltreSite filtre={filtreSite} />
-          <Select
-            value={filtreStatut}
-            onValueChange={(valeur) => setFiltreStatut(valeur as FiltreStatut)}
+          <SelectTrigger
+            id="filtre-statut-dossier-vente"
+            className="w-auto min-w-28 shrink-0"
+            aria-label={t('ventes:dossier.liste.filtres.statutLabel')}
           >
-            <SelectTrigger
-              id="filtre-statut-dossier-vente"
-              className="w-auto min-w-44 shrink-0"
-              aria-label={t('ventes:dossier.liste.filtres.statutLabel')}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="tous">{t('ventes:dossier.liste.filtres.statutTous')}</SelectItem>
-              {STATUTS_DOSSIER_VENTE.map((valeur) => (
-                <SelectItem key={valeur} value={valeur}>
-                  {t(`ventes:dossier.statuts.${CLES_STATUT[valeur]}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="tous">{t('ventes:dossier.liste.filtres.statutTous')}</SelectItem>
+            {STATUTS_DOSSIER_VENTE.map((valeur) => (
+              <SelectItem key={valeur} value={valeur}>
+                {t(`ventes:dossier.statuts.${CLES_STATUT[valeur]}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-          {filtreStatut === 'tous' ? (
-            <label
-              htmlFor="dossiers-afficher-termines"
-              className="flex shrink items-center gap-2 texte-corps"
-            >
-              <Checkbox
-                id="dossiers-afficher-termines"
-                checked={afficherTermines}
-                onCheckedChange={(coche) => setAfficherTermines(coche === true)}
-              />
-              {t('ventes:dossier.liste.filtres.afficherTermines')}
-            </label>
-          ) : null}
-        </BarreFiltres>
-        {boutonNouveauDossier}
-      </div>
+        {filtreStatut === 'tous' ? (
+          <label
+            htmlFor="dossiers-afficher-termines"
+            className="flex shrink items-center gap-2 texte-corps"
+          >
+            <Checkbox
+              id="dossiers-afficher-termines"
+              checked={afficherTermines}
+              onCheckedChange={(coche) => setAfficherTermines(coche === true)}
+            />
+            {t('ventes:dossier.liste.filtres.afficherTermines')}
+          </label>
+        ) : null}
+      </BarreFiltres>
 
       <TableComptoir
         colonnes={colonnes}

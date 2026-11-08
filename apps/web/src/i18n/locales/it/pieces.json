@@ -389,6 +389,7 @@
     },
     "actions": {
       "creer": "Crea ordine",
+      "creerInfobulle": "Crea un ordine fornitore",
       "envoyer": "Invia",
       "receptionner": "Registra ricezione",
       "annulerReliquat": "Annulla importo in sospeso",
@@ -673,6 +674,7 @@
     },
     "actions": {
       "deposer": "Carica una fattura",
+      "deposerInfobulle": "Carica una fattura fornitore",
       "voirDocument": "Visualizza il documento",
       "valider": "Convalida la fattura del fornitore",
       "rejeter": "Respingi",

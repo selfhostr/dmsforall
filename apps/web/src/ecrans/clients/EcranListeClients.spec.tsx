@@ -84,12 +84,12 @@ function repondreListeVide() {
   );
 }
 
-/** Bouton « Nouveau client » de l'en-tête. L'état vide n'en porte plus (doublon retiré) : un seul
- *  bouton existe, même liste vide. */
+/** Bouton « + » (nom accessible « Créer un client ») en bout de la barre de filtres. L'état vide
+ *  n'en porte plus (doublon retiré) : un seul bouton existe, même liste vide. */
 async function boutonNouveauClient() {
-  const boutons = await screen.findAllByRole('button', { name: 'Nouveau client' });
+  const boutons = await screen.findAllByRole('button', { name: 'Créer un client' });
   const bouton = boutons[0];
-  if (!bouton) throw new Error('Bouton « Nouveau client » introuvable.');
+  if (!bouton) throw new Error('Bouton « Créer un client » introuvable.');
   return bouton;
 }
 
@@ -160,8 +160,8 @@ describe('EcranListeClients', () => {
     expect(
       await screen.findByText('Aucun client enregistré. Créez le premier.'),
     ).toBeInTheDocument();
-    // Un seul bouton de création : celui de l'en-tête, pas de doublon dans l'état vide.
-    expect(screen.getAllByRole('button', { name: 'Nouveau client' })).toHaveLength(1);
+    // Un seul bouton de création : celui de la barre de filtres, pas de doublon dans l'état vide.
+    expect(screen.getAllByRole('button', { name: 'Créer un client' })).toHaveLength(1);
   });
 
   it("affiche un état d'erreur actionnable si le serveur répond en erreur", async () => {

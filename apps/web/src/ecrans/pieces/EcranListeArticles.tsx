@@ -13,7 +13,6 @@ import {
 } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
-import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -247,17 +246,16 @@ export function EcranListeArticles() {
   return (
     <GabaritEcran
       titre={t('pieces:articles.liste.titre')}
-      actions={
-        <>
-          {peutEcrireArticle(actions) ? (
-            <Button onClick={() => setFormulaireOuvert(true)}>
-              {t('pieces:articles.actions.ajouter')}
-            </Button>
-          ) : null}
-        </>
-      }
       barre={
         <BarreFiltres
+          actionCreer={
+            peutEcrireArticle(actions)
+              ? {
+                  libelle: t('pieces:articles.actions.ajouter'),
+                  onClick: () => setFormulaireOuvert(true),
+                }
+              : undefined
+          }
           tri={
             <SelecteurTri
               options={TRIS_ARTICLES.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
@@ -278,7 +276,7 @@ export function EcranListeArticles() {
             >
               <SelectTrigger
                 id="filtre-categorie"
-                className="w-[200px]"
+                className="w-auto min-w-28"
                 aria-label={t('pieces:articles.categorie')}
               >
                 <SelectValue />
@@ -304,7 +302,7 @@ export function EcranListeArticles() {
             >
               <SelectTrigger
                 id="filtre-statut"
-                className="w-[180px]"
+                className="w-auto min-w-28"
                 aria-label={t('pieces:articles.statut')}
               >
                 <SelectValue />
