@@ -1,6 +1,6 @@
 # Development stack.
 #
-# Default (hybrid): PostgreSQL, Redis and the registration-document scanner run in containers,
+# Default (hybrid): PostgreSQL, Valkey and the registration-document scanner run in containers,
 # the API and the web app run with Node on the host for hot reload (`pnpm dev`):
 #
 #   pnpm docker:up && pnpm db:migrate && pnpm db:seed && pnpm dev
@@ -11,7 +11,7 @@
 #   docker compose -f docker-compose.dev.yml --profile containers up
 #
 # Integration tests do not use these containers: testcontainers starts its own throwaway
-# PostgreSQL and Redis. The dfa_dev database is for manual work only.
+# PostgreSQL and Valkey. The dfa_dev database is for manual work only.
 #
 # The postgres service starts as superuser (dfa) only to initialise the container. On the first
 # start with an empty volume it runs docker/postgres/init/01-roles.sql, which creates the two
@@ -45,16 +45,16 @@ services:
       start_period: 10s
 
   redis:
-    image: redis:7-alpine@sha256:8da19c7399dca900c6822a1cf30f9d2285585e2c4b457ff4095b0f4500054d3f
+    image: valkey/valkey:9.1.3-alpine@sha256:bf09d58e96d6b4524a15396b65b242bbe18beebbcc15a04d8ee75ddac62fae0b
     container_name: dfa-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes
+    command: valkey-server --appendonly yes
     ports:
       - '6379:6379'
     volumes:
       - dfa_redis_data:/data
     healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
+      test: ['CMD', 'valkey-cli', 'ping']
       interval: 5s
       timeout: 3s
       retries: 10

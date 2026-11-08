@@ -25,6 +25,7 @@ This release adds the VAT status of the garage, several sites, activatable modul
 - **Time clock.** The PIN is only used at the time-clock terminal, not on the workshop screen.
 - **Roles.** The home screen, the terminal, the logo and the time clock only show and call what your role allows.
 - In production with no sending server at all, an e-mail is now reported as not sent instead of being silently set aside.
+- **Valkey instead of Redis.** The `redis` service now runs Valkey (`valkey/valkey:9.1.3-alpine`), the open-source, Redis-compatible store, because recent Redis versions are no longer open source. The service name, the port, `REDIS_URL` and the `dfa_redis_data` volume are unchanged, and the existing data is compatible.
 
 ### Fixed
 

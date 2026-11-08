@@ -46,10 +46,10 @@ HTTPS with a real domain has not been tested end to end yet. Check the certifica
 | `worker`       | Background jobs, from the same image as the API.               |
 | `migrate`      | Applies the database migrations before the API starts.         |
 | `postgres`     | PostgreSQL 16. Not published.                                  |
-| `redis`        | Redis. Not published.                                          |
+| `redis`        | Valkey. Not published.                                         |
 | `init-secrets` | Generates the database passwords once.                         |
 
-PostgreSQL and Redis are never published on a host port.
+PostgreSQL and Valkey are never published on a host port.
 
 ## Optional profiles
 

@@ -36,7 +36,7 @@ Open http://localhost:8080 and sign in. You need Docker with Compose v2. Set up 
 
 ## Architecture
 
-A React single-page application built with Vite calls a NestJS API that publishes an OpenAPI description. The API stores data in PostgreSQL 16 through Drizzle ORM, with row-level security on tenant tables. Redis and BullMQ run background jobs, and Caddy fronts the production Docker stack. More in [ARCHITECTURE.md](ARCHITECTURE.md).
+A React single-page application built with Vite calls a NestJS API that publishes an OpenAPI description. The API stores data in PostgreSQL 16 through Drizzle ORM, with row-level security on tenant tables. Valkey (Redis-compatible) and BullMQ run background jobs, and Caddy fronts the production Docker stack. More in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Limits
 
