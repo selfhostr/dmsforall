@@ -299,6 +299,7 @@ describe('construireEcriturePaiement', () => {
         type: 'compensation_non_supportee',
         paiementId: 'paiement-compensation',
         documentId: 'doc-regularisation',
+        documentNumero: null,
       },
     ]);
     expect(resultat.manquants).toEqual([]);
@@ -328,6 +329,7 @@ describe('construireEcriturePaiement', () => {
         type: 'taux_multiples_non_supporte',
         paiementId: 'paiement-multitaux',
         documentId: 'doc-multitaux',
+        documentNumero: '2026-00600',
         nature: 'escompte',
       },
     ]);
@@ -415,7 +417,7 @@ describe('construireEcriturePaiement', () => {
           type: 'compte',
           usage: 'financier',
           categorie: 'twint',
-          documentNumero: '2026-00700 · encaissement du 12.07.2026 · CHF 50.00',
+          documentNumero: '2026-00700',
         },
       ]),
     );
@@ -455,7 +457,7 @@ describe('construireEcriturePaiement', () => {
         type: 'compte',
         usage: 'financier',
         categorie: 'virement',
-        documentNumero: "FA-2026-00108, FA-2026-00200 · encaissement du 12.03.2026 · CHF 1'234.50",
+        documentNumero: 'FA-2026-00108, FA-2026-00200',
       },
     ]);
   });
@@ -470,7 +472,7 @@ describe('construireEcriturePaiement', () => {
       type: 'compte',
       usage: 'financier',
       categorie: 'virement',
-      documentNumero: 'encaissement du 05.01.2026 · CHF 0.05 (sans facture)',
+      documentNumero: 'avance-1',
     });
     const ok = construireEcriturePaiement(p, [], documentsDeTest({}), comptesDeTest(), null, true);
     expect(ok.succes && ok.ecriture.piece).toBeUndefined();

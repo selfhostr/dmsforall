@@ -78,6 +78,7 @@
     "codeTva": "Codice IVA: {poste}",
     "pieces": "(documenti: {pieces})",
     "trou": "{type}, esercizio {exercice}: numeri mancanti {numeros}",
+    "encaissementSansFacture": "Incasso senza fattura",
     "desequilibre": "{reference}: dare CHF {debit}, avere CHF {credit}",
     "typeDocument": {
       "facture": "Fatture",

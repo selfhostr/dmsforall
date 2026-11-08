@@ -474,14 +474,14 @@ async function chercherClients(
       case
         when (public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''), ''))
                like public.normaliser_recherche(${motif})
-             or public.normaliser_recherche(coalesce(c.raison_sociale, concat_ws(' ', c.prenom, c.nom), ''))
+             or public.normaliser_recherche(coalesce(c.raison_sociale, coalesce(c.prenom || ' ', '') || c.nom, ''))
                like public.normaliser_recherche(${motif}))
         then 'nom' else 'email'
       end              as champ,
       case
         when (public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''), ''))
                like public.normaliser_recherche(${motif})
-             or public.normaliser_recherche(coalesce(c.raison_sociale, concat_ws(' ', c.prenom, c.nom), ''))
+             or public.normaliser_recherche(coalesce(c.raison_sociale, coalesce(c.prenom || ' ', '') || c.nom, ''))
                like public.normaliser_recherche(${motif}))
         then coalesce(c.raison_sociale, concat_ws(' ', c.prenom, c.nom))
         else c.email
@@ -489,7 +489,7 @@ async function chercherClients(
       case
         when (public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''), ''))
                like public.normaliser_recherche(${motif})
-             or public.normaliser_recherche(coalesce(c.raison_sociale, concat_ws(' ', c.prenom, c.nom), ''))
+             or public.normaliser_recherche(coalesce(c.raison_sociale, coalesce(c.prenom || ' ', '') || c.nom, ''))
                like public.normaliser_recherche(${motif}))
         then greatest(
                public.similarity(
@@ -497,7 +497,7 @@ async function chercherClients(
                  public.normaliser_recherche(${motif})
                ),
                public.similarity(
-                 public.normaliser_recherche(coalesce(c.raison_sociale, concat_ws(' ', c.prenom, c.nom), '')),
+                 public.normaliser_recherche(coalesce(c.raison_sociale, coalesce(c.prenom || ' ', '') || c.nom, '')),
                  public.normaliser_recherche(${motif})
                )
              )
@@ -509,7 +509,7 @@ async function chercherClients(
        and (
          (public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''), ''))
                like public.normaliser_recherche(${motif})
-             or public.normaliser_recherche(coalesce(c.raison_sociale, concat_ws(' ', c.prenom, c.nom), ''))
+             or public.normaliser_recherche(coalesce(c.raison_sociale, coalesce(c.prenom || ' ', '') || c.nom, ''))
                like public.normaliser_recherche(${motif}))
          or (c.email is not null and lower(c.email) = lower(${q}))
        )
