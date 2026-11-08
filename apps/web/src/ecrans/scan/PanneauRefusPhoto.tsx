@@ -5,8 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
 import { CadrePermis } from './CadrePermis';
-import { useApercuFichier } from './useApercuFichier';
-import { urlApercuSure } from './urlApercuSure';
+import { ApercuPhotoFichier } from './ApercuPhotoFichier';
 import type { MotifRefusPhoto } from './analyserQualitePhoto';
 import type { FractionsCadre } from './geometrieCadre';
 
@@ -39,7 +38,6 @@ export function PanneauRefusPhoto({
   onEnvoyerQuandMeme,
 }: Props) {
   const { t } = useTranslation('scan');
-  const urlApercu = useApercuFichier(fichier);
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-4">
@@ -49,8 +47,8 @@ export function PanneauRefusPhoto({
           parfois dans le fond de page. Le filet ici délimite le bord RÉEL de la photo, pas un
           simple regroupement de contenu. */}
       <div className="relative overflow-hidden rounded-lg border">
-        <img
-          src={urlApercuSure(urlApercu)}
+        <ApercuPhotoFichier
+          fichier={fichier}
           alt={t('scan:refus.apercuAlt')}
           className="block w-full"
         />

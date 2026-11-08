@@ -198,9 +198,9 @@ export function EcranScan() {
     setEtape({ phase: 'capture' });
   }
 
-  // L'aperçu des phases `refus` et `cadrage` est créé ET révoqué par le panneau qui l'affiche
-  // (`useApercuFichier`) : il ne transite jamais par cet état. Donc quitter ces phases libère l'URL
-  // sans nettoyage ici, quel que soit le chemin (reprendre, envoyer quand même, continuer, démontage).
+  // L'aperçu des phases `refus` et `cadrage` est dessiné par le panneau qui l'affiche
+  // (`ApercuPhotoFichier`, à partir du `File`) : aucune URL d'objet ne transite par cet état, donc
+  // rien à révoquer ici. Le panneau ferme son bitmap au démontage, quel que soit le chemin de sortie.
 
   /**
    * ÉTAPE 1/2 du traitement d'une photo : contrôle qualité AVANT tout envoi réseau — jamais un
