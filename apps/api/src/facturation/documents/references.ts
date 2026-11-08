@@ -11,6 +11,7 @@ import {
   utilisateur,
   vehicule,
   vehiculePlaque,
+  vehiculeStock,
   type LigneClient,
 } from '../../db/schema';
 import { ErreurMetier } from '../../common/erreurs/erreur-metier';
@@ -333,4 +334,54 @@ export async function chargerResumeUtilisateur(
     .limit(1);
   if (!ligne) return null;
   return { utilisateurId: ligne.id, nomAffiche: `${ligne.prenom} ${ligne.nom}` };
+}
+
+/**
+ * Prix de vente affiché et désignation du véhicule en stock d'un dossier de vente — source du prix
+ * reporté sur le bon de commande puis la facture créés SANS ligne (recette #64). Refus 422
+ * `DOCUMENT_DOSSIER_VENTE_PRIX_REQUIS` si le dossier n'a pas de véhicule ou que son prix est absent
+ * ou nul : un document ne naît jamais vide à 0.00 (« absence de donnée » ≠ « zéro »).
+ */
+export async function chargerPrixVehiculeDuDossier(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  dossierVenteId: string,
+): Promise<{ readonly designation: string; readonly prixTtcCentimes: number }> {
+  const [ligne] = await tx
+    .select({
+      prix: vehiculeStock.prixVenteAfficheCentimes,
+      marque: vehicule.marque,
+      modele: vehicule.modele,
+      version: vehicule.version,
+      vehiculeId: dossierVente.vehiculeId,
+    })
+    .from(dossierVente)
+    .leftJoin(
+      vehiculeStock,
+      and(eq(vehiculeStock.id, dossierVente.vehiculeId), eq(vehiculeStock.tenantId, ctx.tenantId)),
+    )
+    .leftJoin(
+      vehicule,
+      and(eq(vehicule.id, dossierVente.vehiculeId), eq(vehicule.tenantId, ctx.tenantId)),
+    )
+    .where(and(eq(dossierVente.tenantId, ctx.tenantId), eq(dossierVente.id, dossierVenteId)))
+    .limit(1);
+  if (!ligne?.vehiculeId) {
+    throw new ErreurMetier(
+      'DOCUMENT_DOSSIER_VENTE_PRIX_REQUIS',
+      "Le dossier de vente n'a pas de véhicule : assignez-en un avant de créer un bon de commande ou une facture.",
+      { detail: 'raison=sans_vehicule' },
+    );
+  }
+  if (ligne.prix === null || ligne.prix <= 0) {
+    throw new ErreurMetier(
+      'DOCUMENT_DOSSIER_VENTE_PRIX_REQUIS',
+      "Le véhicule du dossier n'a pas de prix de vente : fixez-le dans le stock avant de créer ce document.",
+      { detail: 'raison=sans_prix' },
+    );
+  }
+  const designation =
+    [ligne.marque, ligne.modele, ligne.version].filter((v): v is string => Boolean(v)).join(' ') ||
+    'Véhicule';
+  return { designation, prixTtcCentimes: ligne.prix };
 }

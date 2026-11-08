@@ -149,6 +149,7 @@
     "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE": "Indiquez la valeur négociée de la reprise.",
     "VENTE_REPRISE_DEJA_EXISTANTE": "Une reprise existe déjà pour cette vente. Modifiez-la au lieu d'en créer une autre.",
     "DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE": "Cette vente est close, annulée ou abandonnée : rien ne peut lui être rattaché. Choisissez une vente en cours.",
+    "DOCUMENT_DOSSIER_VENTE_PRIX_REQUIS": "Le véhicule de cette vente n'a pas de prix de vente (ou aucun véhicule n'est assigné). Fixez le prix dans le stock avant de créer ce document.",
     "CONNECTEUR_TYPE_INDISPONIBLE": "Ce type de connecteur n'est pas disponible pour votre garage.",
     "CONNECTEUR_IDENTIFIANTS_MANQUANTS": "Identifiants du connecteur manquants. Saisissez-les dans les réglages, puis réessayez.",
     "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE": "Ce connecteur ne peut pas être activé dans son état actuel. Rechargez la page pour voir son statut.",
