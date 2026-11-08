@@ -19,6 +19,7 @@ const ALLOWED = new Set([
   'BlueOak-1.0.0',
   'ISC',
   'MIT',
+  'OFL-1.1',
   'MIT-0',
   'MPL-2.0',
   'Python-2.0',
