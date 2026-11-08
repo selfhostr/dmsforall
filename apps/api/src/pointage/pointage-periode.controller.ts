@@ -17,6 +17,7 @@ import {
   ReponseVerrouillagePeriodePointageDto,
 } from './dto';
 import { ServiceVerrouillagePeriode } from './service-verrouillage-periode';
+import { ExigerModule } from '../common/droits/garde-module';
 
 /**
  * Verrouillage de période (RM-95) — DEUX ACTIONS, PAS UNE RESSOURCE (voir `contrats/pointage/
@@ -25,6 +26,7 @@ import { ServiceVerrouillagePeriode } from './service-verrouillage-periode';
  */
 @ApiTags('Pointage — verrouillage de période')
 @ApiCookieAuth()
+@ExigerModule('pointage')
 @Controller({ path: 'pointages', version: '1' })
 @UseGuards(GardeDroit)
 export class PointagePeriodeController {

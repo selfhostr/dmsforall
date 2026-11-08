@@ -1,8 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FiltreSite } from '@/composants/commun/FiltreSite';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
+import { useFiltreSite } from '@/hooks/site/useFiltreSite';
 import { useSession } from '@/hooks/useSession';
 
 import { peutVoirEquipePointage } from './droits';
@@ -57,50 +58,32 @@ export function EcranPointage() {
   const { data: session } = useSession();
   const actions = session?.actions;
 
-  const [searchParams, setSearchParams] = useSearchParams();
-  const siteParam = searchParams.get('site') ?? undefined;
-  const sitesActifs = (session?.sites ?? []).filter((site) => site.actif);
-  const siteId = siteParam ?? (sitesActifs.length === 1 ? sitesActifs[0]?.id : undefined);
+  const [searchParams] = useSearchParams();
+  // Même mécanique de site que les autres écrans : site principal par défaut, choix mémorisé,
+  // `?site=` d'un lien profond respecté. Les vues Journal/Équipe/Clôture travaillent sur UN site
+  // (`siteObligatoire`) : pas de « Tous ».
+  const filtreSite = useFiltreSite('pointage', { siteObligatoire: true });
+  const siteId = filtreSite.siteId;
 
   const vueEquipe = peutVoirEquipePointage(actions);
   const vueParam = searchParams.get('vue');
   const vue: VueGlobale = vueEquipe && estVueGlobale(vueParam) ? vueParam : 'journal';
 
-  function changerVue(valeur: VueGlobale) {
-    const parametres = new URLSearchParams(searchParams);
-    parametres.set('vue', valeur);
-    setSearchParams(parametres);
-  }
-
   if (!siteId) {
     return (
       <GabaritEcran titre={t('pointage:titre')}>
-        <SelecteurSitePointage
-          onChoisir={(valeur) => {
-            const parametres = new URLSearchParams(searchParams);
-            parametres.set('site', valeur);
-            setSearchParams(parametres);
-          }}
-        />
+        <SelecteurSitePointage onChoisir={(valeur) => filtreSite.choisir(valeur)} />
       </GabaritEcran>
     );
   }
 
   return (
     <GabaritEcran titre={t('pointage:titre')}>
-      {vueEquipe ? (
-        <Tabs value={vue} onValueChange={(valeur) => changerVue(valeur as VueGlobale)}>
-          <TabsList>
-            <TabsTrigger value="journal">{t('pointage:vues.journal')}</TabsTrigger>
-            <TabsTrigger value="equipe">{t('pointage:vues.equipe')}</TabsTrigger>
-          </TabsList>
-          <TabsContent value="journal" className="pt-4">
-            <VueJournalPointage siteId={siteId} />
-          </TabsContent>
-          <TabsContent value="equipe" className="pt-4">
-            <VueEquipePointage siteId={siteId} actions={actions} />
-          </TabsContent>
-        </Tabs>
+      <FiltreSite filtre={filtreSite} />
+      {/* Journal/Équipe sont déjà des sous-onglets de la barre du domaine (`?vue=`) : pas de
+          second jeu d'onglets ici, seulement la vue désignée. */}
+      {vueEquipe && vue === 'equipe' ? (
+        <VueEquipePointage siteId={siteId} actions={actions} />
       ) : (
         <VueJournalPointage siteId={siteId} />
       )}

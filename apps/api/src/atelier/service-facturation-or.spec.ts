@@ -37,6 +37,13 @@ vi.mock('../facturation/documents/references', () => ({
   chargerConditionsPaiementEnVigueur: vi.fn(),
 }));
 
+// Assujettissement du garage (migration 0090) : lu en base par l'émission ; ces tests ne couvrent
+// pas ce sujet (voir `assujettissement.spec.ts`), le garage est donc « assujetti avec n° TVA ».
+vi.mock('../facturation/documents/assujettissement', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../facturation/documents/assujettissement')>()),
+  chargerSituationTva: async () => ({ assujetti: true, numeroTva: 'CHE-116.281.710 TVA' }),
+}));
+
 import type { EntreeFacturationOrdreReparation } from '@dfa/shared';
 import {
   ligneAppartientAuGroupe,

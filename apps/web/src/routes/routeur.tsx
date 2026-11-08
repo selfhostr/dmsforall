@@ -1,7 +1,6 @@
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
 
 import { AppShell } from '@/composants/layout/AppShell';
-import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { EcranConnexion } from '@/ecrans/EcranConnexion';
 // `EcranRendezVous` (routé ci-dessous) est le CONTENEUR réseau ; il rend `EcranAgendaRendezVous`
 // (présentation pure, testée séparément par fixtures locales) — l'écran métier existe donc bien
@@ -22,8 +21,11 @@ import {
   EcranDoublonsClients,
   EcranConsolePlateforme,
   EcranParametragePieces,
+  EcranModules,
   EcranParametrageAtelier,
+  EcranChiffres,
   EcranExportFiduciaire,
+  EcranMonGarage,
   EcranParametresFacturation,
   EcranReferentiels,
   EcranSites,
@@ -70,6 +72,10 @@ import { chemins } from './chemins';
 import { RouteProtegee } from './RouteProtegee';
 import { RoutePublique } from './RoutePublique';
 import {
+  CHEMIN_CHANGEMENT_MOT_DE_PASSE,
+  EcranChangementMotDePasse,
+} from '@/ecrans/EcranChangementMotDePasse';
+import {
   ACCES_BORNE_POINTAGE,
   ACCES_GESTION_UTILISATEURS,
   ACCES_LECTURE_RENDEZ_VOUS,
@@ -77,7 +83,9 @@ import {
   ACCES_PIECES,
   ACCES_PNEUS,
   ACCES_POINTAGE,
+  ACCES_CHIFFRES,
   ACCES_MENU_FINANCIER,
+  ACCES_MENU_PARAMETRAGE_ATELIER,
   ACCES_RELANCES,
   ACCES_SCAN,
   ACCES_TABLEAU_BORD_ACTIVITE,
@@ -106,21 +114,17 @@ import {
 
 /**
  * Atterrissage des rôles de PILOTAGE (`ATTERRISSAGE_PAR_ROLE` ne les redirige pas, voir
- * `atterrissage.ts`) — CORRECTIF issue #91 (« le logiciel me redemande sans arrêt un site »). Avant
- * ce correctif, cette route rendait littéralement `<Navigate to="/tableau-bord" replace />` : un
- * utilisateur qui travaille toujours au même site atterrissait pourtant sur « aucun site » à
- * CHAQUE connexion, devant re-choisir un site qu'il avait déjà choisi la veille. Cette route lit
- * la préférence mémorisée (`hooks/site/ContexteSiteCourant.tsx`, posée par `SelecteurSiteEntete`
- * dès qu'un site est choisi une fois) et la propage dans l'URL d'atterrissage — `undefined` la
- * laisse simplement absente, comportement identique à avant pour un poste qui n'a encore jamais
- * choisi de site.
+ * `atterrissage.ts`). Plus de site dans l'URL : l'accueil montre l'entreprise entière, et chaque
+ * écran qui filtre par site retrouve le site principal de la personne (`FiltreSite`).
  */
 function AtterrissageTableauBord() {
-  const { preferenceSiteId } = useSiteCourant();
-  return <Navigate to={chemins.tableauBord(preferenceSiteId)} replace />;
+  return <Navigate to={chemins.tableauBord()} replace />;
 }
 
 export const routesConfig: RouteObject[] = [
+  // Issue #58 : choix du mot de passe à la première connexion. Hors `AppShell` (comme `/login`) ;
+  // l'écran gère lui-même les cas sans session / sans obligation.
+  { path: CHEMIN_CHANGEMENT_MOT_DE_PASSE, element: <EcranChangementMotDePasse /> },
   {
     path: '/login',
     element: (
@@ -220,7 +224,15 @@ export const routesConfig: RouteObject[] = [
       // l'API et l'alerte générique de l'écran, jamais par une garde de route (voir
       // `droits-routes.ts`, cas de figure 1 : une garde de route n'a de sens que si la LECTURE
       // elle-même est restreinte, ce qui n'est pas le cas ici).
-      { path: 'vehicules/nouveau', element: <EcranNouveauVehicule /> },
+      {
+        path: 'vehicules/nouveau',
+        element: (
+          <>
+            <EcranListeVehicules />
+            <EcranNouveauVehicule />
+          </>
+        ),
+      },
       { path: 'vehicules/:vehiculeId', element: <EcranFicheVehicule /> },
       { path: 'ordres-reparation', element: <EcranListeOrdresReparation /> },
       // Le paramètre s'appelle `orId` (pas `id`) pour matcher exactement ce que
@@ -233,11 +245,28 @@ export const routesConfig: RouteObject[] = [
       // L'écran lit `?site=` et `?clientId=` en paramètres de requête (jamais de paramètre de
       // chemin ici) — voir EcranNouvelOrdreReparation.tsx pour le détail des deux repos honnêtes
       // affichés quand l'un des deux manque.
-      { path: 'atelier/ordres-reparation/nouveau', element: <EcranNouvelOrdreReparation /> },
+      // Création en panneau latéral droit par-dessus la liste des OR (les liens existants marchent).
+      {
+        path: 'atelier/ordres-reparation/nouveau',
+        element: (
+          <>
+            <EcranListeOrdresReparation />
+            <EcranNouvelOrdreReparation />
+          </>
+        ),
+      },
       // Parcours « depuis une plaque » : un seul écran (véhicule, client, OR). Lit `?plaque=`,
       // `?vehiculeId=`, `?clientId=` et `?site=` pour arriver prérempli depuis l'accueil, la
       // recherche, la liste des OR et les fiches client/véhicule.
-      { path: 'atelier/ordres-reparation/depuis-plaque', element: <EcranOrdreDepuisPlaque /> },
+      {
+        path: 'atelier/ordres-reparation/depuis-plaque',
+        element: (
+          <>
+            <EcranListeOrdresReparation />
+            <EcranOrdreDepuisPlaque />
+          </>
+        ),
+      },
       { path: 'ordres-reparation/:orId/facturer', element: <EcranFacturerOrdreReparation /> },
       // Agenda de rendez-vous (Lot RDV-1) — `rendez_vous.lire` ferme la LECTURE elle-même à
       // `vendeur`/`magasinier`/`comptable`/`poste_atelier` côté API (`droits-routes.ts`), cette
@@ -260,6 +289,15 @@ export const routesConfig: RouteObject[] = [
         ),
       },
       { path: 'factures', element: <EcranListeFactures /> },
+      // Chiffres : route statique, classée avant `factures/:id` par React Router.
+      {
+        path: 'factures/chiffres',
+        element: (
+          <RouteProtegee accesAutorise={ACCES_CHIFFRES}>
+            <EcranChiffres />
+          </RouteProtegee>
+        ),
+      },
       // `:id` (pas `:orId` ni `:factureId`) — `EcranFicheFacture` lit `useParams<{ id: string }>()`.
       { path: 'factures/:id', element: <EcranFicheFacture /> },
       // Même remarque : `EcranAvoir` lit aussi `useParams<{ id: string }>()` — `id` y désigne la
@@ -286,6 +324,9 @@ export const routesConfig: RouteObject[] = [
       // sans gain de sécurité (le `403` serveur protège déjà la donnée réelle). Le masquage du lien
       // dans `BarreLaterale` (`ACCES_MENU_FINANCIER`) reste néanmoins posé, par confort.
       { path: 'parametrage/facturation', element: <EcranParametresFacturation /> },
+      // « Mon garage » : même absence volontaire de `rolesAutorises` que `parametrage/facturation`
+      // (l'adresse vient du même bloc créancier, `403` géré par l'écran lui-même).
+      { path: 'parametrage/garage', element: <EcranMonGarage /> },
       // Les trois routes ci-dessous (référentiels, atelier, sites) N'ONT PAS de `rolesAutorises` —
       // arbitrage du coordinateur (lot 2), qui a corrigé sa propre consigne initiale après lecture
       // de ce fichier : `parametrage.referentiel.lire`/`parametrage.atelier.lire` sont accordés à
@@ -303,6 +344,15 @@ export const routesConfig: RouteObject[] = [
       // `rolesAutorises` ici en croyant « rétablir la sécurité ».
       { path: 'parametrage/referentiels', element: <EcranReferentiels /> },
       { path: 'parametrage/atelier', element: <EcranParametrageAtelier /> },
+      // Réglages > Modules : même garde que le menu (`ACCES_MENU_PARAMETRAGE_ATELIER`), l'API répond 403 sinon.
+      {
+        path: 'parametrage/modules',
+        element: (
+          <RouteProtegee accesAutorise={ACCES_MENU_PARAMETRAGE_ATELIER}>
+            <EcranModules />
+          </RouteProtegee>
+        ),
+      },
       // `EcranSites` lit `?site=` pour choisir le site à paramétrer (voir `chemins.parametrage.sites`) —
       // même mécanisme que `clients`/`vehicules`, à la différence des deux routes précédentes (singletons
       // par tenant). L'écran gère lui-même l'absence de `?site=` (repli honnête), pas un paramètre de

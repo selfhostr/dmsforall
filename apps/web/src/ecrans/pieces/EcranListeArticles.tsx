@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useNavigate } from 'react-router';
 
 import {
   CATEGORIES_ARTICLE,
@@ -14,7 +14,6 @@ import {
 
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -34,7 +33,8 @@ import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { useListeArticles } from '@/hooks/pieces/useListeArticles';
-import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
+import { FiltreSite } from '@/composants/commun/FiltreSite';
+import { useFiltreSite } from '@/hooks/site/useFiltreSite';
 import { useSession } from '@/hooks/useSession';
 import { formaterMontant } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
@@ -42,7 +42,7 @@ import { chemins } from '@/routes/chemins';
 import { BadgeStatutArticle } from './BadgeStatutArticle';
 import { FormulaireArticle } from './FormulaireArticle';
 import { peutEcrireArticle } from './droits';
-import { formaterQuantiteMillieme } from './utils';
+import { formaterQuantiteMillieme, quantiteDisponibleMillieme } from './utils';
 
 const DELAI_DEBOUNCE_MS = 300;
 
@@ -69,33 +69,15 @@ export function EcranListeArticles() {
   const [tri, setTri] = useState<string>(TRI_DEFAUT_ARTICLES);
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
 
-  // Site dont la colonne « disponible » lit le stock — jamais deviné à plusieurs choix possibles
-  // (même doctrine que `SelecteurSiteRequis`). Filtre d'affichage pur : ne change jamais la
-  // requête `/articles`, seulement la lecture de `stocksResume`.
-  //
-  // DÉFAUT CORRIGÉ (test manuel du 14.08.2026, défaut n°5) : avant ce correctif, ce filtre local
-  // ne s'auto-sélectionnait QUE quand un seul site actif existait — il ignorait totalement le site
-  // déjà choisi en haut de page (`?site=` de l'URL, ou la préférence mémorisée du poste,
-  // `useSiteCourant`, MÊME résolution que `EnTete.tsx`/`SelecteurSiteEntete.tsx`), forçant un
-  // magasinier à re-choisir un site déjà visible dans l'en-tête avant de voir la moindre quantité —
-  // « — » (inconnu) affiché à tort là où une vraie valeur (potentiellement zéro) était disponible.
-  // Piège maison : absence de donnée ≠ valeur — ce correctif répare la PROPAGATION du site choisi,
-  // jamais le rendu du tiret lui-même (qui reste correct pour un site RÉELLEMENT non choisi).
-  const sitesActifs = useMemo(() => (session?.sites ?? []).filter((site) => site.actif), [session]);
-  const [searchParams] = useSearchParams();
-  const { preferenceSiteId } = useSiteCourant();
-  const [site, setSite] = useState('');
-  useEffect(() => {
-    if (site !== '') return;
-    const siteUrlOuPreference = searchParams.get('site') ?? preferenceSiteId;
-    const siteDejaChoisi =
-      siteUrlOuPreference && sitesActifs.some((candidat) => candidat.id === siteUrlOuPreference)
-        ? siteUrlOuPreference
-        : undefined;
-    const siteUnique = sitesActifs.length === 1 ? sitesActifs[0]?.id : undefined;
-    const siteResolu = siteDejaChoisi ?? siteUnique;
-    if (siteResolu) setSite(siteResolu);
-  }, [site, sitesActifs, searchParams, preferenceSiteId]);
+  // Site dont la colonne « disponible » lit le stock : filtre local (défaut = site principal,
+  // mémorisé par écran). « Tous » (rôles autorisés) = somme de `stocksResume` sur tous les sites.
+  // Filtre d'affichage pur : ne change jamais la requête `/articles`. Absence de donnée ≠ valeur :
+  // session pas encore résolue -> la colonne affiche « — ».
+  const filtreSite = useFiltreSite('pieces.articles');
+  const site = filtreSite.siteId;
+  const siteConnu =
+    site !== undefined ||
+    (filtreSite.pret && filtreSite.tousPropose && filtreSite.sites.length > 0);
 
   const filtres = useMemo(
     () => ({ q: q.trim() === '' ? undefined : q.trim(), categorie, statut, tri }),
@@ -114,7 +96,6 @@ export function EcranListeArticles() {
   } = useListeArticles(filtres);
 
   const filtresStructuresActifs = categorie !== undefined || statut !== undefined;
-  const filtresActifs = q.trim() !== '' || filtresStructuresActifs;
 
   function effacerFiltres() {
     // Levier de reset (choix produit 26.08.2026) : `effacerFiltres` est un geste de reprise en
@@ -170,10 +151,9 @@ export function EcranListeArticles() {
       ),
     },
     {
-      // Disponibilité RÉELLE au site choisi, jamais un total tous sites confondus (brief : « ce
-      // qu'il peut réellement sortir aujourd'hui, sur son site »). Trois rendus distincts, jamais
+      // Disponibilité au site choisi, ou somme de tous les sites avec « Tous ». Trois rendus distincts, jamais
       // confondus (règle du dépôt « absence de donnée ≠ valeur ») :
-      //  - aucun site choisi -> « — » (inconnu, pas zéro) ;
+      //  - session non résolue -> « — » (inconnu, pas zéro) ;
       //  - site choisi, stock à 0 (ou jamais mouvementé sur ce site) -> badge « Rupture »,
       //    l'information utile pour le magasinier reste la même dans les deux cas (rien à sortir
       //    aujourd'hui sur ce site) ;
@@ -183,12 +163,10 @@ export function EcranListeArticles() {
       libelle: t('pieces:stock.quantites.disponible'),
       alignement: 'droite',
       rendu: (article) => {
-        if (site === '') {
+        if (!siteConnu) {
           return <span className="tabular-nums text-muted-foreground">—</span>;
         }
-        const quantite =
-          article.stocksResume.find((resume) => resume.siteId === site)
-            ?.quantiteDisponibleMillieme ?? 0;
+        const quantite = quantiteDisponibleMillieme(article.stocksResume, site);
         return quantite > 0 ? (
           <span className="tabular-nums text-statut-succes">
             {t('pieces:rechercheComptoir.resultat.disponible', {
@@ -227,13 +205,6 @@ export function EcranListeArticles() {
       <EtatVidePremierUsage
         titre={t('pieces:articles.liste.vide.premierUsage.titre')}
         description={t('pieces:articles.liste.vide.premierUsage.description')}
-        action={
-          peutEcrireArticle(actions) ? (
-            <Button onClick={() => setFormulaireOuvert(true)}>
-              {t('pieces:articles.actions.ajouter')}
-            </Button>
-          ) : undefined
-        }
       />
     );
   }
@@ -274,101 +245,84 @@ export function EcranListeArticles() {
   // ce chantier) : la barre de recherche remonte directement sous le titre, plus rien ne
   // l'en sépare.
   return (
-    <GabaritEcran titre={t('pieces:articles.liste.titre')}>
-      <BarreFiltres
-        q={qSaisie}
-        onChangeQ={setQSaisie}
-        filtresActifs={filtresActifs}
-        onEffacerFiltres={effacerFiltres}
-      >
-        <div className="flex flex-col gap-champ">
-          <Label htmlFor="filtre-categorie">{t('pieces:articles.categorie')}</Label>
-          <Select
-            value={categorie ?? 'toutes'}
-            onValueChange={(valeur) =>
-              setCategorie(valeur === 'toutes' ? undefined : (valeur as CategorieArticle))
-            }
-          >
-            <SelectTrigger
-              id="filtre-categorie"
-              className="w-[200px]"
-              aria-label={t('pieces:articles.categorie')}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="toutes">{t('pieces:articles.filtres.categorieToutes')}</SelectItem>
-              {CATEGORIES_ARTICLE.map((valeur) => (
-                <SelectItem key={valeur} value={valeur}>
-                  {t(`pieces:articles.categories.${valeur}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex flex-col gap-champ">
-          <Label htmlFor="filtre-statut">{t('pieces:articles.statut')}</Label>
-          <Select
-            value={statut ?? 'tous'}
-            onValueChange={(valeur) =>
-              setStatut(valeur === 'tous' ? undefined : (valeur as StatutArticle))
-            }
-          >
-            <SelectTrigger
-              id="filtre-statut"
-              className="w-[180px]"
-              aria-label={t('pieces:articles.statut')}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="tous">{t('pieces:articles.filtres.statutTous')}</SelectItem>
-              {STATUTS_ARTICLE.map((valeur) => (
-                <SelectItem key={valeur} value={valeur}>
-                  {t(`pieces:articles.statuts.${valeur}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        {sitesActifs.length > 1 ? (
+    <GabaritEcran
+      titre={t('pieces:articles.liste.titre')}
+      actions={
+        <>
+          {peutEcrireArticle(actions) ? (
+            <Button onClick={() => setFormulaireOuvert(true)}>
+              {t('pieces:articles.actions.ajouter')}
+            </Button>
+          ) : null}
+        </>
+      }
+      barre={
+        <BarreFiltres
+          tri={
+            <SelecteurTri
+              options={TRIS_ARTICLES.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
+              valeur={tri}
+              onChangeValeur={setTri}
+              label={t('pieces:articles.tri.label')}
+            />
+          }
+          q={qSaisie}
+          onChangeQ={setQSaisie}
+        >
           <div className="flex flex-col gap-champ">
-            <Label htmlFor="filtre-site">{t('pieces:siteRequis.label')}</Label>
-            <Select value={site} onValueChange={setSite}>
+            <Select
+              value={categorie ?? 'toutes'}
+              onValueChange={(valeur) =>
+                setCategorie(valeur === 'toutes' ? undefined : (valeur as CategorieArticle))
+              }
+            >
               <SelectTrigger
-                id="filtre-site"
+                id="filtre-categorie"
                 className="w-[200px]"
-                aria-label={t('pieces:siteRequis.label')}
+                aria-label={t('pieces:articles.categorie')}
               >
-                <SelectValue placeholder={t('pieces:siteRequis.label')} />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {sitesActifs.map((siteOption) => (
-                  <SelectItem key={siteOption.id} value={siteOption.id}>
-                    {siteOption.nom}
+                <SelectItem value="toutes">
+                  {t('pieces:articles.filtres.categorieToutes')}
+                </SelectItem>
+                {CATEGORIES_ARTICLE.map((valeur) => (
+                  <SelectItem key={valeur} value={valeur}>
+                    {t(`pieces:articles.categories.${valeur}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-        ) : null}
-      </BarreFiltres>
-
-      <div className="flex flex-wrap items-end justify-between gap-controles">
-        <SelecteurTri
-          options={TRIS_ARTICLES.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
-          valeur={tri}
-          onChangeValeur={setTri}
-          label={t('pieces:articles.tri.label')}
-          className="max-w-xs"
-        />
-        {peutEcrireArticle(actions) ? (
-          <Button onClick={() => setFormulaireOuvert(true)}>
-            {t('pieces:articles.actions.ajouter')}
-          </Button>
-        ) : null}
-      </div>
-
+          <div className="flex flex-col gap-champ">
+            <Select
+              value={statut ?? 'tous'}
+              onValueChange={(valeur) =>
+                setStatut(valeur === 'tous' ? undefined : (valeur as StatutArticle))
+              }
+            >
+              <SelectTrigger
+                id="filtre-statut"
+                className="w-[180px]"
+                aria-label={t('pieces:articles.statut')}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="tous">{t('pieces:articles.filtres.statutTous')}</SelectItem>
+                {STATUTS_ARTICLE.map((valeur) => (
+                  <SelectItem key={valeur} value={valeur}>
+                    {t(`pieces:articles.statuts.${valeur}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <FiltreSite filtre={filtreSite} />
+        </BarreFiltres>
+      }
+    >
       <TableComptoir
         colonnes={colonnes}
         lignes={articles}

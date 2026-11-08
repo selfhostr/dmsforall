@@ -2,6 +2,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import {
   TYPES_RESULTAT_RECHERCHE,
+  modulesActifsDepuis,
+  type ModuleApp,
   type ParametresRecherche,
   type ReponseRecherche,
   type ResultatRecherche,
@@ -130,6 +132,18 @@ import {
 const STATUTS_OR_FERMES: readonly StatutOrdreReparation[] = ['restitue', 'cloture', 'annule'];
 
 const TOUS_LES_TYPES: readonly TypeResultatRecherche[] = TYPES_RESULTAT_RECHERCHE;
+
+/**
+ * Module activable (Réglages > Modules) qui porte chaque nature de résultat. Absent = socle
+ * (véhicules, clients, documents de vente ne se désactivent jamais). Un module retiré (ou dont une
+ * dépendance l'est) ne remonte AUCUN résultat de ses natures, même demandées explicitement.
+ */
+const MODULE_PAR_TYPE: Readonly<Partial<Record<TypeResultatRecherche, ModuleApp>>> = {
+  ordre_reparation: 'atelier',
+  article: 'pieces',
+  fournisseur: 'pieces',
+  depot_pneu: 'pneus',
+};
 
 // =================================================================================================
 // Véhicules — plaque (courante + historique + interchangeable) et VIN
@@ -460,14 +474,14 @@ async function chercherClients(
       case
         when (public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''), ''))
                like public.normaliser_recherche(${motif})
-             or public.normaliser_recherche(coalesce(c.raison_sociale, concat_ws(' ', c.prenom, c.nom), ''))
+             or public.normaliser_recherche(coalesce(c.raison_sociale, coalesce(c.prenom || ' ', '') || c.nom, ''))
                like public.normaliser_recherche(${motif}))
         then 'nom' else 'email'
       end              as champ,
       case
         when (public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''), ''))
                like public.normaliser_recherche(${motif})
-             or public.normaliser_recherche(coalesce(c.raison_sociale, concat_ws(' ', c.prenom, c.nom), ''))
+             or public.normaliser_recherche(coalesce(c.raison_sociale, coalesce(c.prenom || ' ', '') || c.nom, ''))
                like public.normaliser_recherche(${motif}))
         then coalesce(c.raison_sociale, concat_ws(' ', c.prenom, c.nom))
         else c.email
@@ -475,7 +489,7 @@ async function chercherClients(
       case
         when (public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''), ''))
                like public.normaliser_recherche(${motif})
-             or public.normaliser_recherche(coalesce(c.raison_sociale, concat_ws(' ', c.prenom, c.nom), ''))
+             or public.normaliser_recherche(coalesce(c.raison_sociale, coalesce(c.prenom || ' ', '') || c.nom, ''))
                like public.normaliser_recherche(${motif}))
         then greatest(
                public.similarity(
@@ -483,7 +497,7 @@ async function chercherClients(
                  public.normaliser_recherche(${motif})
                ),
                public.similarity(
-                 public.normaliser_recherche(coalesce(c.raison_sociale, concat_ws(' ', c.prenom, c.nom), '')),
+                 public.normaliser_recherche(coalesce(c.raison_sociale, coalesce(c.prenom || ' ', '') || c.nom, '')),
                  public.normaliser_recherche(${motif})
                )
              )
@@ -495,7 +509,7 @@ async function chercherClients(
        and (
          (public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''), ''))
                like public.normaliser_recherche(${motif})
-             or public.normaliser_recherche(coalesce(c.raison_sociale, concat_ws(' ', c.prenom, c.nom), ''))
+             or public.normaliser_recherche(coalesce(c.raison_sociale, coalesce(c.prenom || ' ', '') || c.nom, ''))
                like public.normaliser_recherche(${motif}))
          or (c.email is not null and lower(c.email) = lower(${q}))
        )
@@ -1048,6 +1062,30 @@ export class ServiceRecherche {
     const peutVoirDepotsPneus = droitsRole.includes('pneus.depot.lire');
 
     return this.acces.enTenant(ctx, async (tx) => {
+      // Modules retirés par le garage — lus seulement si une nature demandée ET autorisée en dépend
+      // (`::text[]` : `pg` ne décode pas un tableau d'enum).
+      const naturesAModule = (
+        [
+          ['ordre_reparation', true],
+          ['article', peutVoirArticles],
+          ['fournisseur', peutVoirFournisseurs],
+          ['depot_pneu', peutVoirDepotsPneus],
+        ] as const
+      ).filter(([type, autorise]) => autorise && typesDemandes.has(type));
+      let modulesActifs: readonly ModuleApp[] = [];
+      if (naturesAModule.length > 0) {
+        const lignesModules = await tx.execute<{ modules_desactives: string[] | null }>(
+          sql`select modules_desactives::text[] as modules_desactives from tenant where id = ${ctx.tenantId}`,
+        );
+        modulesActifs = modulesActifsDepuis(
+          (lignesModules.rows[0]?.modules_desactives ?? []) as ModuleApp[],
+        );
+      }
+      const natureActive = (type: TypeResultatRecherche): boolean => {
+        const module = MODULE_PAR_TYPE[type];
+        return module === undefined || modulesActifs.includes(module);
+      };
+
       const [vehicules, clients, ordres, documents, articles, fournisseurs, depotsPneus] =
         await Promise.all([
           typesDemandes.has('vehicule')
@@ -1060,19 +1098,19 @@ export class ServiceRecherche {
           typesDemandes.has('client')
             ? chercherClients(tx, ctx.tenantId, q, motif, limite)
             : Promise.resolve<readonly ResultatRecherche[]>([]),
-          typesDemandes.has('ordre_reparation')
+          typesDemandes.has('ordre_reparation') && natureActive('ordre_reparation')
             ? chercherOrdres(tx, ctx.tenantId, q, motif, limite)
             : Promise.resolve<readonly ResultatRecherche[]>([]),
           typesDemandes.has('document_vente') && peutVoirDocuments
             ? chercherDocuments(tx, ctx.tenantId, q, motif, limite)
             : Promise.resolve<readonly ResultatRecherche[]>([]),
-          typesDemandes.has('article') && peutVoirArticles
+          typesDemandes.has('article') && natureActive('article') && peutVoirArticles
             ? chercherArticles(tx, ctx.tenantId, q, motif, limite)
             : Promise.resolve<readonly ResultatRecherche[]>([]),
-          typesDemandes.has('fournisseur') && peutVoirFournisseurs
+          typesDemandes.has('fournisseur') && natureActive('fournisseur') && peutVoirFournisseurs
             ? chercherFournisseurs(tx, ctx.tenantId, q, motif, limite)
             : Promise.resolve<readonly ResultatRecherche[]>([]),
-          typesDemandes.has('depot_pneu') && peutVoirDepotsPneus
+          typesDemandes.has('depot_pneu') && natureActive('depot_pneu') && peutVoirDepotsPneus
             ? chercherDepotsPneus(tx, ctx.tenantId, q, motif, limite)
             : Promise.resolve<readonly ResultatRecherche[]>([]),
         ]);

@@ -1,0 +1,53 @@
+{
+  "ouvrir": "Mostri l'aiuto",
+  "ouvrirSujet": "Aiuto: {sujet}",
+  "or": {
+    "provenanceLigne": "Da dove viene la riga: richiesta dal cliente, scoperta durante l'intervento, campagna del costruttore, garanzia, ripresa o interna. Ciò decide chi paga.",
+    "travauxReportes": "Lavori consigliati al cliente ma non eseguiti questa volta. Restano legati al veicolo per proporli alla prossima visita.",
+    "statuts": "Lo stato indica a che punto è l'OR: aperto, in corso, terminato, fatturato. «Attesa ricambi» si somma a qualsiasi stato."
+  },
+  "vehicules": {
+    "expertise": "Collaudo (MFK): controllo tecnico ufficiale del veicolo. La prossima scadenza è calcolata dall'ultimo collaudo o letta dalla convocazione.",
+    "travauxReportes": "Lavori individuati ma non eseguiti (cliente non d'accordo, ricambio mancante). Restano sulla scheda del veicolo per la prossima visita."
+  },
+  "facturation": {
+    "arrondiEspeces": {
+      "sujet": "Arrotondamento contanti",
+      "texte": "In contanti il totale è arrotondato ai 5 centesimi (regola svizzera). Con carta o TWINT l'importo resta esatto."
+    },
+    "encaissement": {
+      "sujet": "Incasso",
+      "texte": "Contanti arrotondati ai 5 centesimi. Se il cliente paga più del saldo, l'eccedenza è conservata come anticipo cliente, da assegnare più tardi a un'altra fattura."
+    }
+  },
+  "pieces": {
+    "reliquat": "Residuo: quantità ordinata non ancora arrivata. Resta attesa dal fornitore finché non la si annulla.",
+    "consignes": "Cauzione: somma versata dal cliente per un ricambio a scambio. Viene restituita quando riporta il pezzo vecchio."
+  },
+  "pointage": {
+    "borne": {
+      "sujet": "Terminale di timbratura",
+      "texte": "Il terminale è il tablet o il PC fisso dell'officina dove i meccanici registrano il tempo su un OR."
+    }
+  },
+  "export": {
+    "fiduciaire": "Il file da consegnare al suo fiduciario: fatture, note di credito e incassi del periodo, nel formato del suo programma contabile."
+  },
+  "pneus": {
+    "hangar": "I treni di pneumatici di un cliente conservati da Lei per la stagione. «Da sollecitare» elenca quelli il cui cambio stagione si avvicina."
+  },
+  "ventes": {
+    "reprise": "Permuta: il veicolo del cliente che Lei ritira in deduzione dal prezzo del veicolo venduto. Il suo valore viene sottratto dal totale della vendita."
+  },
+  "parametrage": {
+    "methodePrixAchat": "Come viene ricalcolato il prezzo d'acquisto di un articolo a ogni ricezione di merce.",
+    "seuilAjustement": "Una rettifica di inventario superiore a questo importo richiede una conferma.",
+    "delaiConsigne": "Numero di giorni dopo i quali una cauzione non restituita resta all'autofficina.",
+    "raisonSociale": "Questo nome compare sulle fatture e sui documenti. Quelli già emessi mantengono il vecchio nome.",
+    "assujetti": "Sotto i CHF 100'000 di cifra d'affari annua può non essere soggetto all'IVA.",
+    "delaiPaiement": "Applicato ai clienti senza condizione di pagamento propria. Da 0 a 365 giorni.",
+    "plafondDefaut": "Oltre questo importo il cliente deve confermare prima dei lavori. Vuoto: nessun limite.",
+    "qrIban": "Il suo IBAN è il conto abituale. Il QR-IBAN è un conto speciale della banca per le fatture QR (inizia con CH e la 5a cifra è 3). Con un QR-IBAN ogni fattura riporta un riferimento QR. Non inserire mai l'uno nel campo dell'altro: la banca rifiuterebbe la polizza.",
+    "motifsRdv": "I motivi scelti alla presa di appuntamento (tagliando, pneumatici, collaudo MFK…). MFK: controllo tecnico ufficiale del veicolo. Tenga attivo almeno un motivo."
+  }
+}

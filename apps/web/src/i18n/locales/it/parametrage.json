@@ -1,35 +1,30 @@
 {
-  "titre": "Impostazioni di fatturazione",
-  "monCompte": {
-    "titre": "Il mio account",
-    "langue": {
-      "description": "Questa lingua riguarda solo il suo account, non gli altri utenti dell'officina."
-    }
-  },
+  "titre": "Fatturazione e pagamenti",
   "creancier": {
     "titre": "Coordinate bancarie dell'officina",
-    "description": "Questi dati compaiono sulla polizza QR di ogni fattura emessa. Finché non sono completi, nessuna fattura può avere una fattura QR pagabile.",
     "nonConfigure": "Questi dati non sono ancora mai stati inseriti.",
     "identite": {
       "titre": "Identità",
-      "nom": "Nome dell'officina"
+      "nomBulletin": "Nome sulla polizza di versamento",
+      "nomBulletinAide": "Il nome del titolare del conto, come lo conosce la banca. Viene ripreso dal nome dell'autofficina (scheda Azienda) finché non lo modifica qui.",
+      "nomRepris": "La polizza di versamento riporta il nome dell'autofficina: {nom}.",
+      "nomDifferent": "Il conto è intestato a un altro nome?"
     },
     "adresse": {
       "titre": "Indirizzo",
       "rue": "Via",
       "numero": "Numero civico",
-      "numeroAide": "Lasciare vuoto se non si dispone di un numero civico (casella postale, frazione). Attenzione: l'emissione di una fattura con polizza QR lo richiede — senza di esso, l'emissione resterà bloccata finché non verrà completato.",
+      "numeroAide": "Obbligatorio per emettere una fattura con polizza QR. Senza numero civico (casella postale, frazione), indicare «s/n».",
       "npa": "NPA",
       "localite": "Località",
       "pays": "Paese"
     },
     "comptes": {
       "titre": "Conti bancari",
-      "explication": "Un QR-IBAN (conto presso un istituto riservato alle fatture QR) richiede un riferimento QR su ogni fattura. Un IBAN ordinario accetta solo un riferimento SCOR o nessun riferimento. Sono due conti distinti: non inserire mai l'uno nel campo dell'altro, pena una polizza rifiutata dalla banca.",
       "iban": "IBAN (conto ordinario)",
-      "ibanAide": "Il conto corrente abituale dell'officina — non un QR-IBAN.",
       "qrIban": "QR-IBAN",
-      "qrIbanAide": "Conto riservato alle fatture QR (identificativo dell'istituto finanziario tra 30000 e 31999)."
+      "groupe": "Conto bancario",
+      "groupeAide": "Almeno uno dei due conti è obbligatorio."
     },
     "completude": {
       "titre": "Per poter emettere una fattura con polizza QR",
@@ -53,11 +48,9 @@
   },
   "referentiels": {
     "titre": "Tariffe dell'officina",
-    "introduction": "Le tariffe orarie e il catalogo prestazioni servono a valorizzare ogni riga di un ordine di riparazione. Senza una tariffa oraria o una prestazione valida, una riga non può avere un prezzo.",
     "enCours": "in corso",
     "tauxHoraires": {
       "onglet": "Tariffe orarie",
-      "explication": "Una tariffa oraria è un periodo datato: l'importo applicato a una riga dell'ordine è quello valido il giorno della valorizzazione. Due periodi dello stesso codice non possono mai sovrapporsi.",
       "nouveau": "Nuova tariffa oraria",
       "modifier": "Modifica tariffa oraria",
       "codeVerrouille": "Il codice non può essere modificato dopo la creazione — viene ripreso sulle righe d'ordine già valorizzate.",
@@ -73,11 +66,11 @@
       "vide": {
         "titre": "Nessuna tariffa oraria",
         "description": "Crei almeno una tariffa oraria per poter valorizzare una manodopera a tempo effettivo."
-      }
+      },
+      "auMoinsUn": "* Almeno una tariffa oraria."
     },
     "prestations": {
       "onglet": "Catalogo prestazioni",
-      "explication": "Le prestazioni sono i forfait, i pezzi e le righe standard proposti al banco. Una modifica di prezzo apre un nuovo periodo — gli ordini già valorizzati mantengono il prezzo originario.",
       "nouvelle": "Nuova prestazione",
       "modifier": "Modifica prestazione",
       "codeVerrouille": "Il codice non può essere modificato dopo la creazione.",
@@ -121,13 +114,13 @@
     }
   },
   "atelier": {
-    "titre": "Impostazioni dell'officina",
+    "titre": "Officina e appuntamenti",
     "lectureSeule": "Queste impostazioni sono riservate al capo officina e alla direzione. Può consultarle ma non modificarle.",
     "enregistrementReussi": "Impostazioni salvate.",
     "or": {
-      "titre": "Ordini di riparazione",
-      "prefixe": "Prefisso dei numeri d'ordine",
-      "porteeNumerotation": "Numerazione",
+      "titre": "Ordini di riparazione (OR)",
+      "prefixe": "Inizio dei numeri OR",
+      "porteeNumerotation": "Serie di numeri",
       "porteeNumerotationValeurs": {
         "tenant": "Una serie per tutta l'officina",
         "site": "Una serie per sede"
@@ -144,12 +137,10 @@
       "rdvRetroactifAuto": "Collegare automaticamente un appuntamento passato all'ordine"
     },
     "reception": {
-      "titre": "Accettazione",
+      "titre": "Accettazione del veicolo",
       "kmEntreeObligatoire": "Chilometraggio in entrata obbligatorio",
       "kmSortieObligatoire": "Chilometraggio in uscita obbligatorio",
-      "plafondDefautCentimes": "Tetto di approvazione cliente predefinito",
-      "plafondDefautAide": "Oltre questo importo è richiesta l'approvazione esplicita del cliente prima di ogni convalida a pagamento. Lasciare vuoto per non imporre alcun tetto.",
-      "signature": "Firma del cliente all'accettazione"
+      "plafondDefautCentimes": "Approvazione del cliente richiesta oltre"
     },
     "travaux": {
       "titre": "Lavori",
@@ -158,16 +149,15 @@
         "heures_decimales": "Ore decimali (1.25 h)",
         "unites_constructeur": "Unità costruttore (UT)"
       },
-      "controleQualite": "Controllo qualità prima della restituzione",
+      "controleQualite": "Controllo qualità prima della consegna del veicolo",
       "controleQualiteValeurs": {
         "jamais": "Mai richiesto",
         "toujours": "Sempre richiesto"
-      },
-      "pointage": "Impostazioni della timbratura (arrotondamento, sovrapposizione, durata massima)"
+      }
     },
     "documents": {
-      "titre": "Documenti",
-      "langue": "Lingua dei documenti consegnati al cliente",
+      "titre": "Documenti consegnati al cliente",
+      "langue": "Lingua dei documenti",
       "langueValeurs": {
         "client": "Lingua di corrispondenza del cliente",
         "site": "Lingua predefinita della sede"
@@ -181,48 +171,54 @@
     "vehicule": {
       "titre": "Veicoli",
       "expertiseAlerteMois": "Avviso di perizia (mesi prima della scadenza)",
-      "visibiliteHistorique": "Storico visibile per un nuovo detentore",
+      "visibiliteHistorique": "Storico visibile per un nuovo proprietario",
       "visibiliteHistoriqueValeurs": {
         "tout": "Tutto lo storico",
         "technique": "Solo storico tecnico",
         "rien": "Nessuno"
       }
-    },
-    "inerte": {
-      "signature": "disponibile con la cattura della firma elettronica, non ancora rilasciata",
-      "pointage": "disponibile con il modulo di timbratura, non ancora rilasciato"
     }
   },
   "sites": {
-    "titre": "Impostazioni per sede",
+    "titre": "Orari e chiusure",
     "inactif": "Inattiva",
     "vide": {
       "titre": "Nessuna sede",
       "description": "Nessuna sede è ancora collegata a questa officina."
     },
+    "codeCourt": {
+      "titre": "Codice breve",
+      "champ": "Codice breve della sede",
+      "aide": "Da 1 a 5 lettere o cifre (ad esempio MART o SION). Compare nei filtri di sede.",
+      "format": "Usi da 1 a 5 lettere senza accento o cifre.",
+      "enregistrer": "Salva il codice",
+      "enregistre": "Codice breve salvato.",
+      "dejaPris": "Questo codice è già usato da un'altra sede."
+    },
     "horaires": {
       "titre": "Orari",
       "ouverture": "Apertura",
       "fermeture": "Chiusura",
-      "cloturePointage": "Chiusura automatica della timbratura",
-      "cloturePointageAide": "Una timbratura ancora aperta a quest'ora viene chiusa automaticamente — evita una timbratura dimenticata che prosegue tutta la notte."
+      "cloturePointage": "Fine automatica della timbratura"
     },
     "capacite": {
       "titre": "Capacità",
-      "champ": "Capacità oraria giornaliera",
-      "aide": "Somma delle ore produttive disponibili in questa sede in una giornata, di tutti i tecnici — serve a visualizzare il carico di pianificazione. Lasciare vuoto se non ancora nota."
+      "champ": "Capacità giornaliera (h)",
+      "aide": "Ore di lavoro disponibili al giorno, tutti i meccanici insieme: serve a calcolare il carico della pianificazione. Lasciare vuoto se non nota."
     },
     "fermeture": {
       "titre": "Giorni di chiusura",
-      "explication": "Questi giorni non compaiono come disponibili nella pianificazione (giorni festivi, chiusura annuale).",
       "aucun": "Nessun giorno di chiusura programmato.",
       "retirer": "Rimuovi il {date}",
       "ajouter": "Aggiungi"
     },
-    "enregistrementReussi": "Impostazioni della sede salvate."
+    "enregistrementReussi": "Impostazioni della sede salvate.",
+    "avance": {
+      "titre": "Impostazioni avanzate"
+    }
   },
   "pieces": {
-    "titre": "Impostazioni ricambi",
+    "titre": "Ricambi e magazzino",
     "enregistrementReussi": "Impostazioni salvate.",
     "erreur": {
       "titre": "Impossibile caricare le impostazioni ricambi"
@@ -233,9 +229,8 @@
       "stockNegatifForcageAutorise": "Consentire di forzare un'uscita nonostante stock insufficiente"
     },
     "valorisation": {
-      "titre": "Valorizzazione del magazzino",
-      "methodePrixAchat": "Metodo del prezzo d'acquisto",
-      "methodePrixAchatAide": "Determina come viene ricalcolato il prezzo d'acquisto mostrato su un articolo dopo ogni ricezione. Resta non impostato finché nessun metodo è stato deciso.",
+      "titre": "Prezzo d'acquisto e inventario",
+      "methodePrixAchat": "Calcolo del prezzo d'acquisto",
       "methodePrixAchatValeurs": {
         "aucune": "Non impostato",
         "dernier_prix": "Ultimo prezzo noto",
@@ -243,19 +238,12 @@
       }
     },
     "inventaire": {
-      "titre": "Inventario",
-      "seuilValeurAjustementSignificatif": "Soglia di avviso per una rettifica significativa",
-      "seuilValeurAjustementSignificatifAide": "Una rettifica di inventario il cui valore supera questo importo genera un avviso al momento della registrazione. Lasciare vuoto finché nessuna soglia è stata decisa."
+      "seuilValeurAjustementSignificatif": "Soglia di avviso per una rettifica significativa"
     },
     "consigne": {
       "titre": "Cauzione di scambio standard",
       "delaiAcquisitionJours": "Termine prima della proposta di acquisizione (giorni)",
-      "delaiAcquisitionJoursAide": "Lasciare vuoto finché nessun termine è stato deciso: nessuna cauzione viene proposta come acquisita automaticamente.",
       "tauxTva": "Aliquota IVA applicata alla cauzione"
-    },
-    "conditionnement": {
-      "articleDistinct": "Un confezionamento diverso è un articolo distinto",
-      "inerte": "impostazione fissa, non ancora configurabile"
     }
   },
   "utilisateurs": {
@@ -279,6 +267,10 @@
       "suspendu": "Disattivato",
       "invite": "Invitato"
     },
+    "sitePrincipal": {
+      "label": "Sede principale",
+      "aide": "La sede proposta per impostazione predefinita nelle schermate di questa persona."
+    },
     "sitesAucun": "Nessuna sede indicata",
     "actions": {
       "modifier": "Modifica ruolo o sedi",
@@ -293,7 +285,7 @@
       "champPrenom": "Nome",
       "champNom": "Cognome",
       "champEmail": "E-mail",
-      "champRole": "Funzione (punto di partenza)",
+      "champRole": "Funzione",
       "champSites": "Sedi in cui lavora il dipendente",
       "aucunSiteDisponible": "Nessuna sede è ancora collegata a questa officina.",
       "sitesAucunSelectionne": "Selezioni almeno una sede.",
@@ -343,19 +335,19 @@
     },
     "roleUnique": "Ogni persona ha un solo ruolo. In una piccola officina scelga Direzione: questo ruolo può fare tutto.",
     "bornes": {
-      "titre": "Postazioni d'officina",
-      "description": "Una postazione è il tablet a muro dell'officina: i meccanici timbrano con il loro codice PIN.",
-      "nouveau": "Aggiungi una postazione",
-      "vide": "Nessuna postazione d'officina per ora.",
+      "titre": "Tablet d'officina",
+      "description": "Tablet a muro dove i meccanici timbrano con il loro codice PIN.",
+      "nouveau": "Aggiungi un tablet",
+      "vide": "Nessun tablet d'officina per ora.",
       "colNom": "Nome",
       "colIdentifiant": "Identificativo",
       "colSite": "Sede",
       "colStatut": "Stato",
       "colActions": "Azioni",
-      "champNom": "Nome della postazione",
-      "champSite": "Sede della postazione",
+      "champNom": "Nome del tablet",
+      "champSite": "Sede del tablet",
       "placeholderSite": "Scegli una sede",
-      "creer": "Crea la postazione",
+      "creer": "Crea il tablet",
       "acces": "Identificativo e password della postazione",
       "accesDescription": "Inseriteli una sola volta sul tablet. La password non verrà più mostrata.",
       "desactiver": "Disattiva",
@@ -380,10 +372,16 @@
   },
   "entreprise": {
     "titre": "Azienda",
-    "explication": "Queste informazioni identificano la sua autofficina sulle fatture.",
-    "raisonSociale": "Ragione sociale",
+    "raisonSociale": "Nome dell'autofficina (ragione sociale)",
+    "erreurRaison": "Indichi il nome dell'autofficina.",
     "numeroTva": "Numero IVA",
-    "numeroTvaAide": "Formato: CHE-123.456.789 IVA. Lasci vuoto se non è soggetto all'IVA.",
+    "assujetti": {
+      "legende": "Il Suo garage è soggetto all'IVA?",
+      "oui": "Sì",
+      "non": "No",
+      "ouiSansNumero": "Senza numero IVA, Lei non potrà emettere fatture.",
+      "nonInfo": "Le Sue fatture e i Suoi preventivi non indicano l'IVA e riportano la dicitura «Non soggetto all'IVA»."
+    },
     "erreurTva": {
       "format": "Il numero deve avere la forma CHE-123.456.789 IVA.",
       "cle": "Questo numero non esiste: controlli le cifre."
@@ -394,7 +392,6 @@
       "titre": "Impossibile caricare i dati dell'azienda"
     },
     "delaiPaiement": "Termine di pagamento predefinito (giorni)",
-    "delaiPaiementAide": "Applicato alle fatture dei clienti senza condizione di pagamento propria. Da 0 a 365 giorni.",
     "erreurDelai": "Indichi un numero intero di giorni, da 0 a 365.",
     "logo": {
       "titre": "Logo",
@@ -413,11 +410,8 @@
   },
   "motifsRdv": {
     "titre": "Motivi degli appuntamenti",
-    "explication": "Perché vengono i clienti: un appuntamento si prende sempre con un motivo.",
     "nouveau": "Nuovo motivo",
     "modifier": "Modifica il motivo",
-    "dialogueAide": "Il nome francese basta; le traduzioni sono facoltative.",
-    "traductionsAide": "Le traduzioni sono visibili ai clienti e ai collaboratori che usano il software in questa lingua.",
     "champs": {
       "libelleFr": "Nome del motivo",
       "libelleDe": "Nome in tedesco",
@@ -456,6 +450,98 @@
     },
     "erreur": {
       "titre": "Impossibile caricare i motivi"
+    }
+  },
+  "obligatoire": {
+    "legende": "* obbligatorio",
+    "sr": "obbligatorio"
+  },
+  "garage": {
+    "titre": "Il mio garage",
+    "aCompleter": {
+      "titre": "Da completare",
+      "adresse": "L'indirizzo del garage (via, n., NPA, località)"
+    }
+  },
+  "signalements": {
+    "titre": "Segnalazioni",
+    "modes": {
+      "via_site": "Invia tramite il sito",
+      "copie_seule": "Solo copia",
+      "desactive": "Disattivato"
+    },
+    "aide": {
+      "via_site": "Il pulsante «Segnala un problema» apre il sito di dmsforall per completare l’invio, senza account GitHub.",
+      "copie_seule": "La segnalazione si copia e si trasmette a mano: il pulsante «Continua sul sito» non compare.",
+      "desactive": "La voce «Segnala un problema» non compare più nel menu del profilo."
+    },
+    "enregistre": "Impostazione salvata.",
+    "erreur": {
+      "titre": "Impossibile caricare l’impostazione delle segnalazioni"
+    }
+  },
+  "modules": {
+    "titre": "Moduli",
+    "carte": {
+      "titre": "Ciò che usa la vostra autorimessa",
+      "description": "Togliete ciò che non usate: i menu scompaiono per tutti. Nulla viene eliminato, riattivare ripristina tutto."
+    },
+    "lectureSeule": "Solo la direzione può rimuovere o riattivare i moduli.",
+    "socle": "Sempre presenti: pagina iniziale, clienti e veicoli, fatturazione, impostazioni.",
+    "etat": {
+      "actif": "Attivo",
+      "retire": "Rimosso"
+    },
+    "necessite": "Richiede: {modules}",
+    "bloque": "Non disponibile: {modules} è rimosso.",
+    "retireAussi": "Rimuove anche: {modules}",
+    "toast": {
+      "enregistre": "Moduli salvati"
+    },
+    "erreur": {
+      "titre": "Impossibile caricare i moduli"
+    },
+    "items": {
+      "atelier": {
+        "nom": "Officina",
+        "description": "Ordini di riparazione e preventivi d'officina."
+      },
+      "planning": {
+        "nom": "Pianificazione e appuntamenti",
+        "description": "Agenda dell'officina e presa di appuntamenti."
+      },
+      "pointage": {
+        "nom": "Rilevamento ore",
+        "description": "Ore dei meccanici su ogni ordine."
+      },
+      "tablettes": {
+        "nom": "Tablet d'officina",
+        "description": "Postazioni a muro per il rilevamento ore in officina."
+      },
+      "pieces": {
+        "nom": "Ricambi e magazzino",
+        "description": "Articoli, scorte e ordini ai fornitori."
+      },
+      "ventes": {
+        "nom": "Vendite VN/VO",
+        "description": "Pratiche di vendita, veicoli in stock, permute."
+      },
+      "pneus": {
+        "nom": "Deposito pneumatici",
+        "description": "Treni di pneumatici dei clienti in deposito."
+      },
+      "courtoisie": {
+        "nom": "Auto di cortesia",
+        "description": "Prestito e restituzione dei veicoli sostitutivi."
+      },
+      "relances": {
+        "nom": "Solleciti di pagamento",
+        "description": "Solleciti per le fatture scadute."
+      },
+      "export_fiduciaire": {
+        "nom": "Esportazione fiduciaria",
+        "description": "Trasferimento delle registrazioni alla fiduciaria."
+      }
     }
   }
 }

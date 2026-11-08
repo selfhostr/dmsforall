@@ -42,7 +42,13 @@ import { JETON_CONFIG } from '../config/config.jetons';
 import { ServiceContexteRequete } from '../common/contexte/contexte-requete.service';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
 import { CLE_META_PUBLIC } from './decorateurs/public.decorator';
-import { ErreurOrigineRefusee, ErreurSessionAbsente, ErreurSessionExpiree } from './erreurs-auth';
+import {
+  ErreurChangementMotDePasseRequis,
+  ErreurOrigineRefusee,
+  ErreurSessionAbsente,
+  ErreurSessionExpiree,
+} from './erreurs-auth';
+import { CLE_META_AVANT_CHANGEMENT_MDP } from './decorateurs/autorise-avant-changement-mot-de-passe.decorator';
 import { JETON_SERVICE_SESSION } from './jetons';
 import type { ServiceSession } from './auth.types';
 
@@ -93,6 +99,17 @@ export class GardeSession implements CanActivate {
 
     this.contexte.attacherPrincipal(principal);
     req.dfaPrincipal = principal;
+
+    // Issue #58 : mot de passe temporaire jamais remplacé -> seules les routes explicitement
+    // marquées passent. Appliqué ICI, sur chaque requête, depuis l'état relu en base par
+    // `resoudre()` : l'interface n'est qu'un confort, jamais le mécanisme.
+    if (principal.motDePasseAChanger === true) {
+      const autorisee = this.reflector.getAllAndOverride<boolean>(CLE_META_AVANT_CHANGEMENT_MDP, [
+        context.getHandler(),
+        context.getClass(),
+      ]);
+      if (!autorisee) throw new ErreurChangementMotDePasseRequis();
+    }
 
     return true;
   }

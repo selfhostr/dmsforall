@@ -50,6 +50,7 @@ import { PipeZod } from '../common/validation';
 import { EnveloppeOrDto, PageOrDto, ReponseLigneOrDto, ReponseOrdreReparationDto } from './dto';
 import { etagOrdreReparation } from './ordre-reparation.etag';
 import { ServiceLigneOr } from './service-ligne-or';
+import { ExigerModule } from '../common/droits/garde-module';
 
 const EnveloppeLigneOrDto = EnveloppeOrDto(ReponseLigneOrDto, 'LigneOr');
 const EnveloppeOrdreReparationDto = EnveloppeOrDto(
@@ -72,6 +73,7 @@ type EntreeListeLignes = z.infer<typeof schemaListeLignes>;
  */
 @ApiTags('Ordres de réparation — lignes')
 @ApiCookieAuth()
+@ExigerModule('atelier')
 @Controller({ path: 'ordres-reparation', version: '1' })
 @UseGuards(GardeDroit)
 export class LigneOrController {

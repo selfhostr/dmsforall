@@ -156,6 +156,7 @@ export class ServiceSessionImpl implements ServiceSession {
       // Relue de la base à chaque requête avec le rôle (`amorcage.session_par_empreinte`) :
       // une baisse de droits prend effet immédiatement, sans attendre la fin de la session.
       capacites: s.capacites,
+      motDePasseAChanger: s.motDePasseAChanger === true,
     };
   }
 

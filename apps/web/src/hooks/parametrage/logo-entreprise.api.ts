@@ -12,7 +12,7 @@ const DELAI_ENVOI_MS = 30_000;
 export async function recupererLogoEntreprise(): Promise<Blob | null> {
   let reponse: Response;
   try {
-    reponse = await fetch(`${obtenirEnv().VITE_API_URL}${CHEMIN}`, {
+    reponse = await fetch(`${obtenirEnv().VITE_API_URL}${CHEMIN}?absence=vide`, {
       credentials: 'include',
       headers: { 'Accept-Language': i18n.language },
       signal: AbortSignal.timeout(DELAI_ENVOI_MS),
@@ -20,7 +20,9 @@ export async function recupererLogoEntreprise(): Promise<Blob | null> {
   } catch (cause) {
     throw new ErreurReseau(cause);
   }
-  if (reponse.status === 404) return null;
+  // `absence=vide` : 204 = pas de logo, état normal (sans erreur console). 404 gardé pour un
+  // serveur plus ancien.
+  if (reponse.status === 204 || reponse.status === 404) return null;
   if (!reponse.ok) throw construireErreurApi(reponse, await reponse.text());
   return reponse.blob();
 }

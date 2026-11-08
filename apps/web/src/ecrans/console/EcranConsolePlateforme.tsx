@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router';
 
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -84,9 +83,6 @@ export function EcranConsolePlateforme() {
       return true;
     });
   }, [garages, statutFiltre, filtreIndicateur, texteNormalise]);
-
-  const filtresActifs =
-    texteNormalise !== '' || statutFiltre !== undefined || filtreIndicateur !== null;
 
   function effacerFiltres() {
     setQSaisie('');
@@ -167,13 +163,8 @@ export function EcranConsolePlateforme() {
           q={qSaisie}
           onChangeQ={setQSaisie}
           placeholderRecherche={t('console:plateforme.recherche.placeholder')}
-          filtresActifs={filtresActifs}
-          onEffacerFiltres={effacerFiltres}
         >
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="filtre-statut-garage">
-              {t('console:plateforme.statutFiltre.label')}
-            </Label>
             <Select
               value={statutFiltre ?? 'tous'}
               onValueChange={(valeur) =>
@@ -232,14 +223,7 @@ export function EcranConsolePlateforme() {
 
   return (
     <ConsoleShell>
-      <GabaritEcran
-        titre={t('console:plateforme.titre')}
-        sousTitre={
-          !requete.isPending && !requete.isError ? t('console:plateforme.sousTitre') : undefined
-        }
-      >
-        {contenu}
-      </GabaritEcran>
+      <GabaritEcran titre={t('console:plateforme.titre')}>{contenu}</GabaritEcran>
     </ConsoleShell>
   );
 }

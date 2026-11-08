@@ -157,11 +157,14 @@ export type LimiteEcriturePaiement =
       readonly type: 'compensation_non_supportee';
       readonly paiementId: string;
       readonly documentId: string;
+      /** N° de la facture visée (ce que le garagiste reconnaît), `null` si le document est inconnu ici. */
+      readonly documentNumero: string | null;
     }
   | {
       readonly type: 'taux_multiples_non_supporte';
       readonly paiementId: string;
       readonly documentId: string;
+      readonly documentNumero: string | null;
       readonly nature: 'escompte' | 'perte';
     };
 
@@ -170,20 +173,30 @@ export function structurerLimitePaiement(l: LimiteEcriturePaiement): LimiteExpor
   if (l.type === 'compensation_non_supportee') {
     return {
       code: 'COMPENSATION_NON_SUPPORTEE',
-      donnees: { paiementId: l.paiementId, documentId: l.documentId },
+      donnees: {
+        paiementId: l.paiementId,
+        documentId: l.documentId,
+        documentNumero: l.documentNumero,
+      },
     };
   }
   return {
     code: 'TAUX_MULTIPLES_NON_SUPPORTE',
-    donnees: { paiementId: l.paiementId, documentId: l.documentId, nature: l.nature },
+    donnees: {
+      paiementId: l.paiementId,
+      documentId: l.documentId,
+      documentNumero: l.documentNumero,
+      nature: l.nature,
+    },
   };
 }
 
 export function decrireLimitePaiement(l: LimiteEcriturePaiement): string {
+  const document = l.documentNumero ?? l.documentId;
   if (l.type === 'compensation_non_supportee') {
-    return `imputation 'compensation' sur le document ${l.documentId} (paiement ${l.paiementId}) — non couverte par MD-84 §6.2, arbitrage requis avant construction.`;
+    return `imputation 'compensation' sur le document ${document} — non couverte par MD-84 §6.2, arbitrage requis avant construction.`;
   }
-  return `imputation '${l.nature}' sur le document ${l.documentId} (paiement ${l.paiementId}) porte plusieurs taux de TVA — répartition non documentée par CF-14, arbitrage requis.`;
+  return `imputation '${l.nature}' sur le document ${document} porte plusieurs taux de TVA — répartition non documentée par CF-14, arbitrage requis.`;
 }
 
 export type ResultatConstructionEcriturePaiement =
@@ -297,6 +310,7 @@ export function construireEcriturePaiement(
         type: 'compensation_non_supportee',
         paiementId: paiement.id,
         documentId: imp.documentId,
+        documentNumero: documents.get(imp.documentId)?.numero ?? null,
       });
       continue;
     }
@@ -328,6 +342,7 @@ export function construireEcriturePaiement(
         type: 'taux_multiples_non_supporte',
         paiementId: paiement.id,
         documentId: imp.documentId,
+        documentNumero: infoDocument?.numero ?? null,
         nature: imp.nature,
       });
       continue;
@@ -496,7 +511,9 @@ export function construireEcriturePaiement(
         .filter((n): n is string => n !== undefined),
     ),
   ].sort();
-  const referenceBlocage = decrireEncaissement(paiement, numerosDocuments);
+  // Donnée neutre en langue (le web la met en forme) : n° des factures réglées, sinon l'id du
+  // paiement (avance sans facture) que l'écran compte sans l'afficher.
+  const referenceBlocage = numerosDocuments.length > 0 ? numerosDocuments.join(', ') : paiement.id;
 
   const manquants: BesoinMappingManquant[] = [];
   for (const g of groupes) {
@@ -555,8 +572,14 @@ export function construireEcriturePaiement(
   // `construction-ecriture.ts`.
   if (totalDebitCentimes !== totalCreditCentimes) {
     throw new ErreurEcritureDesequilibree(
-      `Écriture déséquilibrée pour le paiement ${paiement.id} : débit=${totalDebitCentimes.toString()}, crédit=${totalCreditCentimes.toString()} — EXPORT_ECRITURES_DESEQUILIBREES.`,
-      { reference: paiement.id, documentId: null, totalDebitCentimes, totalCreditCentimes },
+      `Écriture déséquilibrée pour ${decrireEncaissement(paiement, numerosDocuments)} : débit=${totalDebitCentimes.toString()}, crédit=${totalCreditCentimes.toString()} — EXPORT_ECRITURES_DESEQUILIBREES.`,
+      {
+        reference: paiement.id,
+        documentId: null,
+        pieces: numerosDocuments,
+        totalDebitCentimes,
+        totalCreditCentimes,
+      },
     );
   }
 

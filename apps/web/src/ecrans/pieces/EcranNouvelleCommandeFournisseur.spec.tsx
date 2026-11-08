@@ -178,7 +178,9 @@ const REFERENCE_UUID = '44444444-4444-4444-8444-444444444444';
 
 const SESSION_UUID = {
   ...SESSION_TEST,
-  sites: [{ id: SITE_UUID, code: 'PRINCIPAL', nom: 'Site principal', actif: true }],
+  sites: [
+    { id: SITE_UUID, code: 'PRINCIPAL', codeCourt: 'PRINC', nom: 'Site principal', actif: true },
+  ],
 };
 
 const ARTICLE_PREREMPLI: ReponseArticle = {

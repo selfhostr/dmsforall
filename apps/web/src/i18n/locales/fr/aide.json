@@ -1,0 +1,53 @@
+{
+  "ouvrir": "Afficher l'aide",
+  "ouvrirSujet": "Aide : {sujet}",
+  "or": {
+    "provenanceLigne": "D'où vient la ligne : demandée par le client, découverte pendant l'intervention, campagne constructeur, garantie, retouche ou interne. Cela décide qui paie.",
+    "travauxReportes": "Travaux conseillés au client mais pas faits cette fois. Ils restent attachés au véhicule pour les proposer à la prochaine visite.",
+    "statuts": "Le statut dit où en est l'OR : ouvert, en cours, terminé, facturé. « Attente pièces » se cumule avec n'importe quel statut."
+  },
+  "vehicules": {
+    "expertise": "MFK : contrôle technique officiel du véhicule. La prochaine échéance est calculée depuis la dernière expertise ou lue sur la convocation.",
+    "travauxReportes": "Travaux repérés mais pas faits (client pas d'accord, pièce manquante). Ils restent sur la fiche du véhicule pour la prochaine visite."
+  },
+  "facturation": {
+    "arrondiEspeces": {
+      "sujet": "Arrondi espèces",
+      "texte": "En espèces, le total est arrondi au multiple de 5 centimes le plus proche (règle suisse). Par carte ou TWINT, le montant reste exact."
+    },
+    "encaissement": {
+      "sujet": "Encaissement",
+      "texte": "Espèces arrondies à 5 centimes. Si le client paie plus que le solde, l'excédent est gardé comme avance client, à affecter plus tard sur une autre facture."
+    }
+  },
+  "pieces": {
+    "reliquat": "Reliquat : quantité commandée qui n'est pas encore arrivée. Elle reste attendue du fournisseur tant qu'on ne l'annule pas.",
+    "consignes": "Consigne : somme versée par le client pour une pièce échange standard. Elle est rendue quand il rapporte l'ancienne pièce."
+  },
+  "pointage": {
+    "borne": {
+      "sujet": "Borne de pointage",
+      "texte": "La borne est la tablette ou le PC fixe de l'atelier où les mécaniciens pointent leur temps sur un OR."
+    }
+  },
+  "export": {
+    "fiduciaire": "Le fichier à remettre à votre fiduciaire pour sa comptabilité : factures, avoirs et encaissements de la période, au format de son logiciel."
+  },
+  "pneus": {
+    "hangar": "Les jeux de pneus d'un client stockés chez vous pour la saison. « À relancer » liste ceux dont le changement de saison approche."
+  },
+  "ventes": {
+    "reprise": "Reprise : le véhicule du client que vous rachetez en déduction du prix du véhicule vendu. Sa valeur est soustraite du total de la vente."
+  },
+  "parametrage": {
+    "methodePrixAchat": "Comment le prix d'achat d'un article est recalculé à chaque réception de marchandise.",
+    "seuilAjustement": "Un ajustement d'inventaire plus gros que ce montant vous demande confirmation.",
+    "delaiConsigne": "Nombre de jours après lesquels une consigne non rendue est gardée par le garage.",
+    "raisonSociale": "Ce nom figure sur vos factures et documents. Ceux déjà émis gardent l'ancien nom.",
+    "assujetti": "En dessous de CHF 100'000 de chiffre d'affaires par an, vous pouvez ne pas être assujetti.",
+    "delaiPaiement": "Appliqué aux clients sans condition de paiement propre. De 0 à 365 jours.",
+    "plafondDefaut": "Au-delà de ce montant, le client doit confirmer avant les travaux. Vide : aucune limite.",
+    "qrIban": "Votre IBAN est le compte habituel. Le QR-IBAN est un compte spécial de la banque pour les QR-factures (il commence par CH et le 5e chiffre est 3). Avec un QR-IBAN, chaque facture porte une référence QR. Ne mettez jamais l'un dans le champ de l'autre : la banque refuserait les bulletins.",
+    "motifsRdv": "Les motifs que le client ou la réception choisit à la prise de rendez-vous (révision, pneus, expertise MFK…). MFK : contrôle technique officiel du véhicule. Gardez au moins un motif actif."
+  }
+}

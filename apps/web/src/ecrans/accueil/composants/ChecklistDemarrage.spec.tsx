@@ -60,7 +60,14 @@ const ligne = (id: string) =>
   screen.getByText(t(`accueil:demarrage.etapes.${id}.titre`)).closest('li') as HTMLElement;
 
 describe('ChecklistDemarrage', () => {
-  beforeEach(() => window.localStorage.clear());
+  beforeEach(() => {
+    window.localStorage.clear();
+    // Ces tests portent sur la carte : l'assistant (fermé) ne doit pas recouvrir l'écran.
+    window.localStorage.setItem(
+      `dfa.assistant-demarrage.ferme.${SESSION_TEST.tenant.id}.${SESSION_TEST.utilisateur.id}`,
+      '1',
+    );
+  });
 
   it('garage neuf (direction) : sept lignes, toutes à faire, chacune avec son lien et sa raison', async () => {
     session('direction');
@@ -86,10 +93,20 @@ describe('ChecklistDemarrage', () => {
       'href',
       '/parametrage/atelier#motifs-rendez-vous',
     );
-    expect(within(ligne('tva')).getByRole('link')).toHaveAttribute(
+    expect(within(ligne('tva')).getByRole('link')).toHaveAttribute('href', '/parametrage/garage');
+    expect(within(ligne('coordonnees')).getByRole('link')).toHaveAttribute(
+      'href',
+      '/parametrage/garage',
+    );
+    expect(within(ligne('compte')).getByRole('link')).toHaveAttribute(
       'href',
       '/parametrage/facturation',
     );
+    expect(
+      within(ligne('collaborateur')).getByText(t('accueil:demarrage.facultatif'), {
+        exact: false,
+      }),
+    ).toBeInTheDocument();
     expect(within(ligne('tauxHoraire')).getByRole('link')).toHaveAttribute(
       'href',
       '/parametrage/referentiels',
@@ -116,7 +133,7 @@ describe('ChecklistDemarrage', () => {
       within(ligne('motifs')).getByText(t('accueil:demarrage.etat.aFaire'), { exact: false }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(t('accueil:demarrage.checklist.progression', { faites: 2, total: 6 })),
+      screen.getByText(t('accueil:demarrage.checklist.progression', { faites: 1, total: 4 })),
     ).toBeInTheDocument();
   });
 
@@ -141,6 +158,33 @@ describe('ChecklistDemarrage', () => {
     expect(
       screen.queryByRole('heading', { name: t('accueil:demarrage.checklist.titre') }),
     ).not.toBeInTheDocument();
+  });
+
+  it('garage non assujetti (pas de n° TVA) : tout le reste réglé suffit, la liste disparaît', async () => {
+    session('direction');
+    api({
+      coordonnees: true,
+      iban: true,
+      numeroTva: false,
+      tauxHoraire: true,
+      motifsRdv: true,
+      premierCollaborateur: true,
+    });
+    rendre();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(
+      screen.queryByRole('heading', { name: t('accueil:demarrage.checklist.titre') }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('le n° TVA est présenté comme facultatif, jamais bloquant', async () => {
+    session('direction');
+    api();
+    rendre();
+    await screen.findByText(t('accueil:demarrage.etapes.tva.titre'));
+    expect(
+      within(ligne('tva')).getByText(t('accueil:demarrage.facultatif'), { exact: false }),
+    ).toBeInTheDocument();
   });
 
   it('« Ne plus afficher » masque et persiste pour cet utilisateur', async () => {
@@ -173,6 +217,20 @@ describe('ChecklistDemarrage', () => {
       screen.queryByRole('heading', { name: t('accueil:demarrage.checklist.titre') }),
     ).not.toBeInTheDocument();
   });
+
+  it.each(['chef_atelier', 'vendeur', 'comptable', 'receptionnaire'])(
+    '%s : aucun appel à /accueil/etat-demarrage (droit absent, l’API répondrait 403), pas d’assistant',
+    async (role) => {
+      session(role);
+      const appels = api();
+      rendre();
+      await new Promise((r) => setTimeout(r, 50));
+      expect(appels.n).toBe(0);
+      expect(
+        screen.queryByRole('heading', { name: t('accueil:demarrage.checklist.titre') }),
+      ).not.toBeInTheDocument();
+    },
+  );
 
   it('source en erreur : « À vérifier » (jamais « À faire ») et possibilité de réessayer', async () => {
     session('direction');

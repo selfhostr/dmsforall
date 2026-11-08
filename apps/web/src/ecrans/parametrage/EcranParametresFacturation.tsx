@@ -4,13 +4,13 @@ import { Link } from 'react-router';
 
 import { ErreurApi, messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
+import { LegendeChampsObligatoires } from '@/components/ui/label';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useBlocCreancier } from '@/hooks/parametrage/useBlocCreancier';
 
 import { FormulaireBlocCreancier } from './FormulaireBlocCreancier';
-import { SectionEntreprise } from './SectionEntreprise';
 
 /**
  * Écran de paramétrage du bloc créancier (RF-54/PF-03) — adresse structurée du garage + comptes
@@ -69,7 +69,9 @@ export function EcranParametresFacturation() {
         />
       ) : (
         <div className="flex flex-col gap-6">
-          <SectionEntreprise />
+          <LegendeChampsObligatoires>
+            {t('parametrage:obligatoire.legende')}
+          </LegendeChampsObligatoires>
           <FormulaireBlocCreancier blocCreancier={requete.data} />
         </div>
       )}

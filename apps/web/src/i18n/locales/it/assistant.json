@@ -1,0 +1,106 @@
+{
+  "titre": "Configurare l’autorimessa",
+  "navigation": {
+    "liste": "Passaggi della procedura guidata",
+    "position": "Passaggio {numero} di {total}",
+    "terminee": "completato"
+  },
+  "actions": {
+    "suivant": "Avanti",
+    "retour": "Indietro",
+    "passer": "Salta",
+    "enregistrerContinuer": "Salva e continua",
+    "enregistrement": "Salvataggio in corso…",
+    "quitter": "Esci per ora"
+  },
+  "chargement": "Caricamento delle impostazioni",
+  "erreur": {
+    "titre": "Impossibile caricare le impostazioni",
+    "enregistrement": "Il salvataggio non è riuscito. I dati inseriti sono conservati: corregga e riprovi."
+  },
+  "reprise": {
+    "bouton": "Riprendi la procedura"
+  },
+  "etapes": {
+    "garage": {
+      "titre": "La sua autorimessa"
+    },
+    "modules": {
+      "titre": "Ciò che usate",
+      "intro": "Togliete ciò che la vostra autorimessa non usa. Potrete cambiarlo in Impostazioni > Moduli."
+    },
+    "paiements": {
+      "titre": "Pagamenti"
+    },
+    "atelier": {
+      "titre": "Officina"
+    },
+    "logo": {
+      "titre": "Il suo logo"
+    },
+    "equipe": {
+      "titre": "Team"
+    },
+    "termine": {
+      "titre": "Completato"
+    }
+  },
+  "garage": {
+    "raisonSociale": "Ragione sociale",
+    "rue": "Via",
+    "numero": "N.",
+    "npa": "NPA",
+    "localite": "Località",
+    "erreurRue": "Indichi la via.",
+    "erreurNpa": "Indichi il NPA.",
+    "erreurLocalite": "Indichi la località.",
+    "tva": {
+      "question": "La sua autorimessa è soggetta all'IVA?",
+      "oui": "Sì",
+      "non": "No",
+      "numero": "Numero IVA",
+      "erreurFormat": "Questo numero non ha il formato corretto. Esempio: CHE-123.456.789 IVA.",
+      "erreurCle": "Questo numero IVA non è corretto: controlli le cifre."
+    },
+    "erreurRaisonSociale": "Indichi la ragione sociale."
+  },
+  "paiements": {
+    "comptant": "Incasso solo in contanti",
+    "iban": "IBAN",
+    "ibanAide": "Per una fattura QR con riferimento QR, indichi il QR-IBAN e non l’IBAN."
+  },
+  "atelier": {
+    "tauxHoraire": "Tariffa oraria (CHF/h)",
+    "tauxDejaDefini": "Tariffa oraria già definita: CHF {montant} all'ora.",
+    "erreurMontant": "Indichi un importo valido, ad esempio 140.00.",
+    "horaires": "Orari di apertura",
+    "ouverture": "Apertura",
+    "fermeture": "Chiusura",
+    "horairesPlusieursSites": "La sua autorimessa ha più sedi: imposti gli orari di apertura sede per sede nelle Impostazioni.",
+    "motifs": "Motivi di appuntamento",
+    "motifDejaPresent": "già presente"
+  },
+  "equipe": {
+    "prenom": "Nome",
+    "nom": "Cognome",
+    "email": "E-mail",
+    "inviter": "Crea l'account",
+    "plusTard": "Più tardi",
+    "erreurChamps": "Nome, cognome ed e-mail sono obbligatori.",
+    "invitesTitre": "Account creati",
+    "accesTemporaire": "Password temporanea: {mot}. La annoti, non verrà più mostrata.",
+    "continuer": "Continua"
+  },
+  "termine": {
+    "etat": {
+      "fait": "Configurato",
+      "aFaire": "Da configurare",
+      "aFaireFacultatif": "Facoltativo, non configurato",
+      "inconnu": "Da verificare"
+    },
+    "comptesCrees": "{nombre, plural, =0 {Nessun account creato} one {# account creato} other {# account creati}} durante questa procedura.",
+    "creerOr": "Crea un primo OR",
+    "ajouterClient": "Aggiungi un cliente",
+    "accueil": "Vai alla pagina iniziale"
+  }
+}

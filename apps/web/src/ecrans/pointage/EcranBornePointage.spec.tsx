@@ -20,6 +20,7 @@ import type {
 
 import '@/i18n';
 
+import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
 
@@ -44,9 +45,14 @@ const SESSION_BORNE: SessionCourante = creerSessionTest('poste_atelier', {
     slug: 'garage-test',
     raisonSociale: 'Garage Test SA',
     langueDefaut: 'fr',
+    modeSignalement: 'via_site',
+    assujettiTva: true,
   },
-  sites: [{ id: 'site-1', code: 'PRINCIPAL', nom: 'Site principal', actif: true }],
+  sites: [
+    { id: 'site-1', code: 'PRINCIPAL', codeCourt: 'PRINC', nom: 'Site principal', actif: true },
+  ],
   siteRattachementId: 'site-1',
+  sitePrincipalId: null,
   expireLe: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
 });
 
@@ -222,6 +228,18 @@ describe('EcranBornePointage', () => {
     server.use(
       http.get('/api/v1/pointages/dernier-du-jour', () => HttpResponse.json({ cible: null })),
     );
+  });
+
+  it('compte personnel (non-borne) : aucun champ PIN, renvoi vers « Mon travail » où l’on pointe sans code', async () => {
+    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
+    rendre();
+
+    expect(await screen.findByRole('link', { name: 'Mon travail' })).toHaveAttribute(
+      'href',
+      '/pointage',
+    );
+    expect(screen.queryByRole('button', { name: 'Chiffre 1' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Valider' })).not.toBeInTheDocument();
   });
 
   it('affiche le pavé numérique neutre, sans aucun code en clair, tant que personne ne s’est identifié', async () => {

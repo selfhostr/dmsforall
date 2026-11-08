@@ -29,6 +29,7 @@ import {
   JETON_SERVICE_SESSION,
 } from './jetons';
 import { ServicePolitiqueMotDePasse } from './politique-mot-de-passe';
+import { ServiceProfilCourant } from './services/profil-courant.service';
 import { ServiceAuthentificationImpl } from './services/authentification.service';
 import { ServiceMotDePasseArgon2id } from './services/mot-de-passe.service';
 import { ServiceReinitialisationMotDePasseImpl } from './services/reinitialisation-mot-de-passe.service';
@@ -55,6 +56,7 @@ import { ServiceSessionImpl } from './services/session.service';
 
     // Injecté par classe : seul le contrôleur d'auth l'utilise, aucune substitution prévue.
     ServiceAuthentificationImpl,
+    ServiceProfilCourant,
     ServicePolitiqueMotDePasse,
 
     // Garde d'authentification appliquée à TOUTE l'application. Les endpoints publics sont

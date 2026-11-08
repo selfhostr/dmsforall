@@ -10,6 +10,28 @@
  * clé métier (slug du tenant, code du site, email de l'utilisateur) et mis à jour s'il existe
  * déjà. Un seed qu'on ne peut lancer qu'une fois est un seed qu'on n'utilise pas.
  *
+ * JEU « COMPLET » : lancé par `pnpm db:seed` (ou `node dist/db/seed/seed-dev.js` dans le conteneur
+ * `migrate`), le seed vide d'abord le SEUL tenant `garage-martin` (jamais les autres garages de
+ * l'instance, voir `seed-reinitialisation-demo.ts`), puis le recrée : socle (ce fichier), pièces,
+ * atelier, facturation, relances, ventes, pneus, rendez-vous, puis `seed-complement-demo.ts`
+ * (clients, parc, ~50 OR de tous statuts, factures, paiements, pointages, planning, stock,
+ * courtoisie, relances, export fiduciaire…). Toutes les dates sont relatives à « maintenant ».
+ * Refuse de tourner en production.
+ *
+ * COMPTES DE DÉMO (mot de passe commun `Demo1234!Garage`) :
+ *   direction@garage-martin.ch       direction (patron, tous droits métier)
+ *   comptable@garage-martin.ch       comptabilité, facturation, exports
+ *   chef.atelier@garage-martin.ch    chef d'atelier
+ *   technicien@garage-martin.ch      mécanicien (pointage)
+ *   receptionniste@garage-martin.ch  réception / accueil
+ *   vendeur@garage-martin.ch         ventes VN/VO
+ *   magasinier@garage-martin.ch      pièces et stock
+ *   borne.atelier@garage-martin.ch   compte de service de la tablette d'atelier (Sion)
+ *   admin@garage-martin.ch           administration technique, aucun droit métier
+ *   + marc.rey, julien.fournier, kevin.bonvin (techniciens), philippe.morard (chef d'atelier
+ *     Martigny), sandrine.carron (réception), laurent.gay (vendeur), patricia.delaloye
+ *     (magasinière) @garage-martin.ch ; thomas.bender@garage-martin.ch est invité, pas encore actif.
+ *
  * Se connecte avec `DATABASE_URL_MIGRATION` (rôle `dfa_migrator`) : créer un tenant est une
  * opération d'exploitation, pas une opération applicative, et `dfa_app` n'a de toute façon
  * aucune visibilité hors de son tenant courant.
@@ -133,6 +155,7 @@ async function chargerHacheurParDefaut(): Promise<HacherMotDePasse> {
 const SITES_DEMO = [
   {
     code: 'SION',
+    codeCourt: 'SION',
     nom: 'Garage Martin — Sion',
     rue: 'Route de Riddes 42',
     npa: '1950',
@@ -140,6 +163,7 @@ const SITES_DEMO = [
   },
   {
     code: 'MARTIGNY',
+    codeCourt: 'MART',
     nom: 'Garage Martin — Martigny',
     rue: 'Avenue du Grand-Saint-Bernard 18',
     npa: '1920',
@@ -652,6 +676,7 @@ export async function semerDev(options: OptionsSeed): Promise<ResultatSeedDev> {
         .values({
           tenantId,
           code: s.code,
+          codeCourt: s.codeCourt,
           nom: s.nom,
           rue: s.rue,
           npa: s.npa,
@@ -661,7 +686,14 @@ export async function semerDev(options: OptionsSeed): Promise<ResultatSeedDev> {
         })
         .onConflictDoUpdate({
           target: [site.tenantId, site.code],
-          set: { nom: s.nom, rue: s.rue, npa: s.npa, localite: s.localite, actif: true },
+          set: {
+            codeCourt: s.codeCourt,
+            nom: s.nom,
+            rue: s.rue,
+            npa: s.npa,
+            localite: s.localite,
+            actif: true,
+          },
         })
         .returning({ id: site.id });
       const idSite =
@@ -1298,6 +1330,16 @@ async function principal(): Promise<void> {
   const { chargerConfig } = await import('../../config/charger-config');
   const config = chargerConfig(process.env);
 
+  // Remise à zéro du SEUL tenant de démo (jamais les autres garages de l'instance) : le seed est
+  // ainsi rejouable sans doublon, voir `seed-reinitialisation-demo.ts`.
+  const { reinitialiserTenantDemo } = await import('./seed-reinitialisation-demo');
+  await reinitialiserTenantDemo({
+    urlMigration: config.DATABASE_URL_MIGRATION,
+    nodeEnv: config.NODE_ENV,
+    slug: SLUG_TENANT_DEMO,
+    journaliser: (m) => process.stdout.write(`${m}\n`),
+  });
+
   const resultat = await semerDev({
     urlMigration: config.DATABASE_URL_MIGRATION,
     nodeEnv: config.NODE_ENV,
@@ -1400,6 +1442,16 @@ async function principal(): Promise<void> {
     idsVehiculesParCle: resultat.idsVehiculesParCle,
     idsUtilisateursParRole: resultat.idsUtilisateursParRole,
     idsOrdresReparationParCle: resultatAtelier.idsOrdresReparationParCle,
+  });
+
+  // Étape 8 du seed : jeu « complet » — clients, parc, ~50 OR de tous statuts, factures, paiements,
+  // pointages, planning, stock, ventes, relances, export fiduciaire… pour qu'aucun écran ne soit
+  // vide. Voir `seed-complement-demo.ts`.
+  const { semerComplementDemo } = await import('./seed-complement-demo');
+  await semerComplementDemo({
+    urlMigration: config.DATABASE_URL_MIGRATION,
+    nodeEnv: config.NODE_ENV,
+    tenantId: resultat.tenantId,
   });
 }
 

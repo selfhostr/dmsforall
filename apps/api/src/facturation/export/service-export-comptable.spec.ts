@@ -307,6 +307,7 @@ describe('ServiceExportComptable.lancer — prérequis affichables (blocages)', 
         libelle: 'F-000123',
         donnees: {
           reference: 'F-000123',
+          pieces: [],
           totalDebitCentimes: 10000,
           totalCreditCentimes: 9999,
           total: 1,

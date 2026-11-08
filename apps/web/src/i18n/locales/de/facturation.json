@@ -187,6 +187,7 @@
         "reference": "Referenz",
         "quantite": "Menge",
         "prixUnitaire": "Einzelpreis inkl. MWST",
+        "prixUnitaireAide": "Preis inkl. MWST, wie in einer Offerte. Entspricht {{ht}} exkl. MWST beim gewählten Satz. In einem Auftrag wird der Preis exkl. MWST erfasst.",
         "taux": "MWST-Satz",
         "datePrestation": "Leistungsdatum"
       },
@@ -230,7 +231,9 @@
       "payablePar": "Zahlbar durch",
       "iban": "IBAN",
       "reference": "Referenz",
-      "sansReference": "Ohne Referenz"
+      "sansReference": "Ohne Referenz",
+      "copier": "Kopieren",
+      "copie": "Kopiert"
     },
     "actions": {
       "emettre": "Ausstellen",
@@ -244,9 +247,11 @@
         "creerAvoir": "Gutschrift erstellen",
         "journal": "Protokoll anzeigen"
       },
+      "corrigerFacture": "Rechnung korrigieren",
       "telechargerPdf": "PDF herunterladen",
       "envoyerDevis": "Offerte senden",
       "accordClient": "Zustimmung des Kunden",
+      "annulerAccord": "Zustimmung widerrufen",
       "creerOr": "AR erstellen"
     },
     "dialogueEmission": {
@@ -273,14 +278,26 @@
     },
     "correction": {
       "titre": "Rechnung {numero} korrigieren",
-      "explication": "Eine ausgestellte Rechnung ist unveränderlich: eine direkte Änderung ist nicht möglich. DFA erstellt eine Gutschrift, die diese Rechnung storniert, und anschliessend eine neue Rechnung mit der Korrektur. Beide behalten ihre Nummer in der Reihe — nichts verschwindet, nichts wird neu nummeriert.",
+      "explication": "Eine ausgestellte Rechnung wird nicht geändert: Eine Gutschrift storniert sie, danach wird eine korrigierte Rechnung erstellt.",
       "motif": "Grund der Korrektur",
       "adresse": {
         "rue": "Strasse und Nr.",
         "npa": "PLZ",
         "localite": "Ort"
       },
-      "motifMontantTaux": "Betrags- oder Satzkorrekturen erfolgen über die Gutschrift-Ansicht: sie werden hier nicht unterstützt.",
+      "choix": {
+        "legende": "Was möchten Sie tun?",
+        "remplacement": {
+          "titre": "Nur die Adresse korrigieren",
+          "aide": "Empfänger oder Adresse ändern sich, die Beträge bleiben gleich. Die korrigierte Rechnung wird sofort ausgestellt."
+        },
+        "brouillon": {
+          "titre": "Rechnung neu erstellen (Gutschrift + neuer Entwurf)",
+          "aide": "Die Rechnung wird durch eine Gutschrift storniert, danach wird ein identischer Entwurf erstellt. Sie ändern ihn frei (Positionen, Preise, MWST), bevor Sie ihn ausstellen. Die MWST folgt der aktuellen Regelung Ihrer Garage.",
+          "dejaRegle": "Nicht verfügbar: Diese Rechnung ist bereits ganz oder teilweise bezahlt. Stornieren Sie zuerst die Zahlung."
+        }
+      },
+      "confirmerBrouillon": "Gutschrift und Entwurf erstellen",
       "corrigerFiche": "Auch die Kundenkarte mit dieser Adresse korrigieren",
       "confirmer": "Rechnung korrigieren",
       "enCours": "Wird korrigiert…",
@@ -346,6 +363,17 @@
   },
   "liste": {
     "titre": "Rechnungen",
+    "tri": {
+      "label": "Sortieren",
+      "options": {
+        "dateDesc": "Datum, neueste zuerst",
+        "dateAsc": "Datum, älteste zuerst",
+        "numeroDesc": "Nr., absteigend",
+        "numeroAsc": "Nr., aufsteigend",
+        "soldeDesc": "Saldo, höchster zuerst",
+        "relanceAsc": "Nächste Mahnung"
+      }
+    },
     "onglets": {
       "groupeLabel": "Rechnungen filtern",
       "toutes": "Alle",
@@ -406,20 +434,17 @@
     "nouveau": {
       "action": "Neue Offerte",
       "titre": "Neue Offerte",
-      "description": "Ein Preis für einen Kunden, ohne Auftrag zu eröffnen. Das Fahrzeug ist optional.",
       "client": "Kunde",
       "clientPlaceholder": "Name, Telefon oder Kundennummer",
       "clientRequis": "Wählen Sie einen Kunden.",
       "aucunClient": "Kein Kunde gefunden.",
       "vehicule": "Fahrzeug",
-      "vehiculeAide": "Optional: lassen Sie «Ohne Fahrzeug», wenn das Auto noch nicht bekannt ist.",
       "sansVehicule": "Ohne Fahrzeug",
       "site": "Standort",
       "creer": "Offerte erstellen"
     },
     "cree": {
       "titre": "Offerte erstellt",
-      "description": "Erfassen Sie jetzt Arbeit und Teile in der Offerte. Sobald die Offerte gesendet und vom Kunden angenommen ist, können Sie daraus einen AR erstellen.",
       "ouvrir": "Offerte öffnen"
     },
     "statuts": {
@@ -482,6 +507,70 @@
   },
   "toasts": {
     "devisEnvoye": "Offerte gesendet",
-    "devisAccepte": "Zustimmung des Kunden erfasst"
+    "devisAccepte": "Zustimmung des Kunden erfasst",
+    "accordAnnule": "Zustimmung des Kunden widerrufen"
+  },
+  "chiffres": {
+    "titre": "Kennzahlen",
+    "sousTitre": "Umsatz, Zahlungseingänge und offene Rechnungen.",
+    "erreur": "Diese Zahlen konnten nicht geladen werden.",
+    "incomplet": "Sehr viele Zeilen: Die obigen Summen sind Mindestwerte.",
+    "voirFactures": "Zurück zur Rechnungsliste",
+    "voirChiffres": "Kennzahlen anzeigen",
+    "refuse": {
+      "titre": "Seite eingeschränkt",
+      "description": "Die Kennzahlen sind der Geschäftsleitung und der Buchhaltung vorbehalten."
+    },
+    "periodes": {
+      "moisCourant": "Dieser Monat",
+      "moisPrecedent": "Vormonat",
+      "annee": "Dieses Jahr"
+    },
+    "colonnes": {
+      "periode": "Zeitraum",
+      "factures": "Rechnungen",
+      "ht": "Total exkl. MWST",
+      "tva": "MWST",
+      "ttc": "Total inkl. MWST",
+      "moyen": "Zahlungsart",
+      "paiements": "Zahlungen",
+      "montant": "Betrag"
+    },
+    "chiffreAffaires": {
+      "titre": "Umsatz",
+      "description": "Ausgestellte Rechnungen, gutgeschriebene Beträge abgezogen.",
+      "vide": {
+        "titre": "Keine Rechnung ausgestellt",
+        "description": "Die Zahlen erscheinen ab der ersten ausgestellten Rechnung."
+      }
+    },
+    "encaissements": {
+      "titre": "Zahlungseingänge des Monats",
+      "description": "Eingegangenes Geld vom {periode}, nach Zahlungsart.",
+      "total": "Total eingegangen",
+      "vide": {
+        "titre": "Diesen Monat noch keine Zahlungseingänge",
+        "description": "Die in diesem Monat erfassten Zahlungen erscheinen hier."
+      }
+    },
+    "facturesOuvertes": {
+      "titre": "Offene Rechnungen",
+      "description": "Ausgestellte Rechnungen, noch nicht bezahlt.",
+      "ouvertes": "{count, plural, =0 {Keine offene Rechnung} one {# offene Rechnung} other {# offene Rechnungen}}",
+      "enRetard": "{count, plural, =0 {Keine überfällig} one {# überfällig} other {# überfällig}}",
+      "vide": {
+        "titre": "Keine offene Rechnung",
+        "description": "Alle Kunden haben bezahlt."
+      }
+    },
+    "travauxTermines": {
+      "titre": "Zu verrechnende Arbeiten",
+      "description": "Abgeschlossene Reparaturaufträge, noch nicht verrechnet (geschätzter Betrag inkl. MWST).",
+      "nombre": "{count, plural, one {# Reparaturauftrag} other {# Reparaturaufträge}}",
+      "vide": {
+        "titre": "Nichts zu verrechnen",
+        "description": "Kein abgeschlossener Reparaturauftrag wartet auf seine Rechnung."
+      }
+    }
   }
 }

@@ -2,6 +2,37 @@
 
 All notable changes to dmsforall are recorded here, for people who run it and for people who use it. Each entry says what changes for you. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/) until 1.0.
 
+## Unreleased
+
+### Added
+
+- **VAT status of the garage.** Settings ask "Is your garage subject to VAT?". A garage that answers No issues invoices, quotes and repair order invoices with no VAT, and its PDFs say "Not subject to VAT" (in French, German or Italian) with no VAT column. A garage that answers Yes must enter its VAT number before it can issue an invoice. `creer-garage --non-assujetti` creates a garage that is not subject to VAT.
+- **Dashboard.** "Aujourd'hui" is now "Tableau de bord". The home screen only shows today's tasks; the figures are under Facturation › Chiffres.
+- **Several sites.** Each employee has a main site. Each site has a short code. Screens have a compact site filter.
+- **Activatable modules.** Réglages › Modules lets you remove the modules your garage does not use. They disappear from the menu.
+- **Report a problem.** A button sends an anonymised diagnostic. The garage can turn this button on or off in its settings.
+- **My garage.** Réglages › Mon garage groups the contact details, the address and the VAT status. The first employee is now optional.
+- **Invoice correction.** An issued invoice cannot be edited. "Corriger" creates a full credit note and a new pre-filled draft to review and issue.
+- **Account menu and search.** Settings, theme, text size and language are in the account menu. Search is a menu entry.
+- **Complete demonstration data.** A demonstration data set covers the whole garage screen and can be reloaded at any time.
+
+### Changed
+
+- **Uniform interface.** Headers, one-line filters, sort by icon, entry forms in a side panel, common status badges, and a "?" help button on each screen.
+- **Time clock.** The PIN is only used at the time-clock terminal, not on the workshop screen.
+- **Roles.** The home screen, the terminal, the logo and the time clock only show and call what your role allows.
+
+### Fixed
+
+- List titles are visible. Layouts of the used-car stock, the planning and the invoice sheet are corrected.
+- The VAT regime and the modules are readable by every role.
+- The start-up checklist asks for the street number, as issuing an invoice does.
+
+### Upgrade notes
+
+- Existing garages are marked as subject to VAT, so nothing changes silently. A garage that is subject to VAT but has no VAT number saved can no longer issue invoices until it enters the number (or answers No if it is not subject to VAT).
+- Migrations 0089 to 0093 are reversible (`down/`): `entite_auditee.tenant` (audit of the company name), `tenant.assujetti_tva`, a main site and a short code per site, `tenant.modules_desactives`, `tenant.mode_signalement`.
+
 ## 0.2.0 (2026-11-07)
 
 This release fixes the repair order invoicing problem found in 0.1.0, and adds quotes, courtesy cars and an accounting export for your fiduciary. Read the upgrade notes before you update.

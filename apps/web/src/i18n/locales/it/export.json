@@ -1,9 +1,7 @@
 {
   "titre": "Esportazione per la fiduciaria",
-  "sousTitre": "Prepari il file da consegnare alla sua fiduciaria per il periodo.",
   "format": {
     "titre": "Formato del file",
-    "description": "Il formato che la sua fiduciaria importa nella sua contabilità.",
     "winbiz": {
       "nom": "WinBIZ",
       "phrase": "Per WinBIZ: una registrazione per fattura o nota di credito, poi una per incasso."
@@ -15,7 +13,6 @@
   },
   "periode": {
     "titre": "Periodo",
-    "description": "Per impostazione predefinita il mese precedente, il ritmo abituale di fine mese.",
     "modes": {
       "moisPrecedent": "Mese precedente",
       "trimestrePrecedent": "Trimestre precedente",
@@ -81,6 +78,7 @@
     "codeTva": "Codice IVA: {poste}",
     "pieces": "(documenti: {pieces})",
     "trou": "{type}, esercizio {exercice}: numeri mancanti {numeros}",
+    "encaissementSansFacture": "Incasso senza fattura",
     "desequilibre": "{reference}: dare CHF {debit}, avere CHF {credit}",
     "typeDocument": {
       "facture": "Fatture",
@@ -98,7 +96,6 @@
   },
   "apercu": {
     "titre": "Anteprima del periodo",
-    "description": "Ciò che il file conterrebbe, prima di produrlo.",
     "erreur": "Non è stato possibile calcolare l'anteprima",
     "periodeRequise": "Scelga un periodo valido per vedere l'anteprima.",
     "aucun": "Nessuno",
@@ -186,7 +183,6 @@
   },
   "historique": {
     "titre": "Cronologia delle esportazioni",
-    "description": "I file già consegnati alla fiduciaria.",
     "erreur": "Non è stato possibile caricare la cronologia",
     "erreurFichier": "Non è stato possibile scaricare il file",
     "vide": {

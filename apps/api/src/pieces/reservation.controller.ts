@@ -28,6 +28,7 @@ import {
 } from './dto';
 import { schemaFiltresReservations, schemaUuid } from './schemas';
 import { ServiceReservation } from './service-reservation';
+import { ExigerModule } from '../common/droits/garde-module';
 
 /**
  * Réservations de pièces (RP-19 → RP-25, §6.3) — LE cœur du sujet, priorité 4. Pas de `POST`
@@ -36,6 +37,7 @@ import { ServiceReservation } from './service-reservation';
  */
 @ApiTags('Pièces — Réservations')
 @ApiCookieAuth()
+@ExigerModule('pieces')
 @Controller({ path: 'reservations', version: '1' })
 @UseGuards(GardeDroit)
 export class ReservationController {

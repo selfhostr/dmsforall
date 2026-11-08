@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useNavigate } from 'react-router';
 
 import type { ResultatRechercheComptoirArticle } from '@dfa/shared';
 
@@ -14,6 +14,8 @@ import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useRechercheComptoirPieces } from '@/hooks/pieces/useRechercheComptoirPieces';
+import { FiltreSite } from '@/composants/commun/FiltreSite';
+import { useFiltreSite } from '@/hooks/site/useFiltreSite';
 import { useSession } from '@/hooks/useSession';
 import { formaterMontant } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
@@ -39,8 +41,8 @@ import { formaterQuantiteMillieme, texteEmplacementComplet } from './utils';
 export function EcranRechercheComptoirPieces() {
   const { t } = useTranslation(['pieces', 'commun']);
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const site = searchParams.get('site') ?? undefined;
+  const filtreSite = useFiltreSite('pieces.comptoir', { siteObligatoire: true });
+  const site = filtreSite.siteId;
 
   const { data: session } = useSession();
   const peutVendre = peutCreerMouvement(session?.actions);
@@ -162,7 +164,7 @@ export function EcranRechercheComptoirPieces() {
     return (
       <GabaritEcran titre={t('pieces:rechercheComptoir.titre')}>
         <div className="mx-auto w-full max-w-lg">
-          <SelecteurSiteRequis onChoisir={(siteId) => setSearchParams({ site: siteId })} />
+          <SelecteurSiteRequis onChoisir={(siteId) => filtreSite.choisir(siteId)} />
         </div>
       </GabaritEcran>
     );
@@ -179,8 +181,6 @@ export function EcranRechercheComptoirPieces() {
       </GabaritEcran>
     );
   }
-
-  const saisieNonVide = saisie.trim().length > 0;
 
   // Deux raisons distinctes pour une liste vide : le catalogue actif n'a AUCUN article (mode
   // parcours) contre « rien ne correspond à cette recherche » (mode recherche) — même distinction
@@ -223,9 +223,9 @@ export function EcranRechercheComptoirPieces() {
         q={saisie}
         onChangeQ={onSaisieChange}
         placeholderRecherche={t('pieces:rechercheComptoir.champRecherche')}
-        filtresActifs={saisieNonVide}
-        onEffacerFiltres={() => onSaisieChange('')}
-      />
+      >
+        <FiltreSite filtre={filtreSite} />
+      </BarreFiltres>
 
       <TableComptoir
         colonnes={colonnes}

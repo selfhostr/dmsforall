@@ -1,4 +1,4 @@
-import { CheckCircle2, Lock } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -28,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
@@ -38,6 +39,7 @@ import {
 } from '@/hooks/parametres/useModifierParametresAtelier';
 import { useParametresAtelier } from '@/hooks/parametres/useParametresAtelier';
 import { useSession } from '@/hooks/useSession';
+import { useModulesActifs } from '@/hooks/modules/useModulesActifs';
 
 import { peutModifierParametrage } from './droits';
 import { SectionMotifsRendezVous } from './SectionMotifsRendezVous';
@@ -154,18 +156,23 @@ function versEntreeModification(
  * domaine. Seuls les domaines/champs ACTIFS au lot 1 sont éditables ici (`or.*`, une partie de
  * `reception.*`/`travaux.*`, `documents.*`, `vehicule.*`) — `facturation.*` et `planning.*` sont
  * intégralement INERTES au lot 1 (aucune colonne en base, `PATCH` → `501`) et n'apparaissent donc
- * PAS comme des contrôles éditables : un réglage modifiable mais sans effet serait un mensonge
- * (`gouvernance-fonctionnalites.ts`). Ils sont listés en lecture seule dans la dernière carte,
- * avec les quatre drapeaux `fonctionnalites` qui disent honnêtement ce qui n'existe pas encore.
+ * PAS comme des contrôles éditables : ils ne sont tout simplement pas affichés (le bruit « non livré à
+ * ce jour » n'aidait aucun garagiste ; ils reviendront avec leur module).
  */
 export function EcranParametrageAtelier() {
   const { t } = useTranslation(['parametrage', 'commun', 'erreurs']);
   const requete = useParametresAtelier();
   const { data: session } = useSession();
   const peutEcrire = peutModifierParametrage(session?.actions);
+  const { estActif } = useModulesActifs();
 
   return (
     <GabaritEcran titre={t('parametrage:atelier.titre')}>
+      <LegendeChampsObligatoires>{t('parametrage:obligatoire.legende')}</LegendeChampsObligatoires>
+      {/* Motifs en tête : obligatoires pour prendre un rendez-vous, donc vus avant les cases à
+          cocher. Hors du <form> des réglages et monté même si ceux-ci échouent : indépendant de
+          `GET /parametres-atelier` (son propre appel), il doit rester utilisable. */}
+      {estActif('planning') ? <SectionMotifsRendezVous peutEcrire={peutEcrire} /> : null}
       {requete.isPending ? (
         <EtatChargement lignes={10} />
       ) : requete.isError ? (
@@ -177,9 +184,6 @@ export function EcranParametrageAtelier() {
       ) : (
         <FormulaireParametresAtelier donnees={requete.data} peutEcrire={peutEcrire} />
       )}
-      {/* Hors du <form> des réglages et monté même si ceux-ci échouent : indépendant de
-          `GET /parametres-atelier` (son propre appel), il doit rester utilisable. */}
-      <SectionMotifsRendezVous peutEcrire={peutEcrire} />
     </GabaritEcran>
   );
 }
@@ -211,6 +215,12 @@ function FormulaireParametresAtelier({ donnees, peutEcrire }: PropsFormulairePar
   const { t } = useTranslation(['parametrage', 'commun', 'erreurs']);
   const modifier = useModifierParametresAtelier();
   const [enregistre, setEnregistre] = useState(false);
+  const { data: session } = useSession();
+  // Une série de numéros par site n'a de sens que pour un garage à plusieurs sites. On ne masque
+  // le choix que si la session est chargée, qu'il n'y a qu'un site ET que la valeur n'est pas déjà
+  // « par site » : un réglage actif ne se cache jamais.
+  const afficherPortee =
+    session == null || session.sites.length > 1 || donnees.or.porteeNumerotation === 'site';
 
   // Erreur de CHAMP (`or.prefixe`, seul champ à saisie libre soumis à une contrainte que l'UI ne
   // garantit pas déjà structurellement — les autres réglages passent par un `<Select>`/
@@ -273,31 +283,44 @@ function FormulaireParametresAtelier({ donnees, peutEcrire }: PropsFormulairePar
                 </p>
               ) : null}
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="pa-portee">{t('parametrage:atelier.or.porteeNumerotation')}</Label>
-              <Controller
-                control={form.control}
-                name="porteeNumerotation"
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange} disabled={!peutEcrire}>
-                    <SelectTrigger
-                      id="pa-portee"
-                      aria-label={t('parametrage:atelier.or.porteeNumerotation')}
+            {afficherPortee ? (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="pa-portee">{t('parametrage:atelier.or.porteeNumerotation')}</Label>
+                <Controller
+                  control={form.control}
+                  name="porteeNumerotation"
+                  render={({ field }) => (
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={!peutEcrire}
                     >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PORTEES_NUMEROTATION.map((valeur) => (
-                        <SelectItem key={valeur} value={valeur}>
-                          {t(`parametrage:atelier.or.porteeNumerotationValeurs.${valeur}`)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
+                      <SelectTrigger
+                        id="pa-portee"
+                        aria-label={t('parametrage:atelier.or.porteeNumerotation')}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PORTEES_NUMEROTATION.map((valeur) => (
+                          <SelectItem key={valeur} value={valeur}>
+                            {t(`parametrage:atelier.or.porteeNumerotationValeurs.${valeur}`)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+            ) : null}
           </div>
+
+          <CaseACocher
+            name="resetAnnuel"
+            form={form}
+            disabled={!peutEcrire}
+            libelle={t('parametrage:atelier.or.resetAnnuel')}
+          />
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="pa-deux-or">{t('parametrage:atelier.or.deuxOrMemeVehicule')}</Label>
@@ -325,12 +348,6 @@ function FormulaireParametresAtelier({ donnees, peutEcrire }: PropsFormulairePar
             />
           </div>
 
-          <CaseACocher
-            name="resetAnnuel"
-            form={form}
-            disabled={!peutEcrire}
-            libelle={t('parametrage:atelier.or.resetAnnuel')}
-          />
           <CaseACocher
             name="etatPlanifieActif"
             form={form}
@@ -378,6 +395,12 @@ function FormulaireParametresAtelier({ donnees, peutEcrire }: PropsFormulairePar
               <ChampMontant
                 id="pa-plafond"
                 label={t('parametrage:atelier.reception.plafondDefautCentimes')}
+                aide={
+                  <AideContextuelle
+                    sujet={t('parametrage:atelier.reception.plafondDefautCentimes')}
+                    texte={t('aide:parametrage.plafondDefaut')}
+                  />
+                }
                 disabled={!peutEcrire}
                 // `field.value` peut valoir `undefined` le temps que l'option `values` de
                 // `useForm` (mise à jour asynchrone à l'arrivée des données) rattrape le
@@ -388,13 +411,6 @@ function FormulaireParametresAtelier({ donnees, peutEcrire }: PropsFormulairePar
                 className="max-w-xs"
               />
             )}
-          />
-          <p className="texte-libelle text-muted-foreground">
-            {t('parametrage:atelier.reception.plafondDefautAide')}
-          </p>
-          <ChampInerte
-            libelle={t('parametrage:atelier.reception.signature')}
-            raison={t('parametrage:atelier.inerte.signature')}
           />
         </CardContent>
       </Card>
@@ -458,10 +474,6 @@ function FormulaireParametresAtelier({ donnees, peutEcrire }: PropsFormulairePar
               />
             </div>
           </div>
-          <ChampInerte
-            libelle={t('parametrage:atelier.travaux.pointage')}
-            raison={t('parametrage:atelier.inerte.pointage')}
-          />
         </CardContent>
       </Card>
 
@@ -631,19 +643,5 @@ function CaseACocher({ name, form, disabled, libelle }: PropsCaseACocher) {
         </label>
       )}
     />
-  );
-}
-
-/** Réglage lu depuis l'API mais INERTE au lot 1 (aucun contrôle éditable — un contrôle modifiable
- *  sans effet serait un mensonge, voir l'en-tête de l'écran) : affiché en lecture seule avec la
- *  raison, jamais une case grisée qui laisserait croire à une limitation technique passagère. */
-function ChampInerte({ libelle, raison }: { readonly libelle: string; readonly raison: string }) {
-  return (
-    <div className="flex items-center gap-2 rounded-md border border-dashed p-3 texte-corps text-muted-foreground">
-      <Lock className="h-4 w-4 shrink-0" aria-hidden="true" />
-      <span>
-        {libelle} — {raison}
-      </span>
-    </div>
   );
 }

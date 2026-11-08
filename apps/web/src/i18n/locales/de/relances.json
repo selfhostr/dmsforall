@@ -1,9 +1,7 @@
 {
   "titre": "Automatische Mahnungen",
-  "sousTitre": "Erinnerungen für offene Rechnungen: Planung und Versand auslösen, Verlauf einsehen.",
   "reglages": {
-    "titre": "Zahlungserinnerungen",
-    "sousTitre": "Fristen und Versandkanäle der Mahnungen für offene Rechnungen dieses Betriebs einstellen."
+    "titre": "Zahlungserinnerungen"
   },
   "navigation": {
     "lien": "Mahnungen"
@@ -14,7 +12,6 @@
   },
   "regles": {
     "titre": "Mahnregel — fällige Rechnung",
-    "description": "Bei jeder Stufe wird automatisch eine Erinnerung versendet, gezählt in Tagen nach dem Fälligkeitsdatum der Rechnung.",
     "statut": {
       "active": "Aktiv",
       "inactive": "Inaktiv"
@@ -47,9 +44,7 @@
     },
     "formulaire": {
       "actif": "Diese Erinnerungen automatisch versenden",
-      "actifAide": "Deaktivieren, um Rechnungserinnerungen auszusetzen, ohne die Einstellung zu verlieren.",
       "paliersLabel": "Fristen der Stufen (Tage nach Fälligkeit)",
-      "paliersAide": "Eine Frist pro Stufe, in Versandreihenfolge. Beispiel: 10, dann 20, dann 30.",
       "palierPlaceholder": "Tage",
       "ajouterPalier": "Stufe hinzufügen",
       "supprimerPalier": "Stufe {n} entfernen",

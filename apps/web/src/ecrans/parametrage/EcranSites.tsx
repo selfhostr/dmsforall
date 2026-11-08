@@ -27,6 +27,7 @@ import { useSession } from '@/hooks/useSession';
 import { formaterDate } from '@/lib/formats';
 import { cn } from '@/lib/utils';
 
+import { CarteCodeCourtSite } from './CarteCodeCourtSite';
 import { ChampTempsCentiemes } from './ChampTempsCentiemes';
 import { peutModifierParametrage } from './droits';
 
@@ -137,11 +138,19 @@ export function EcranSites() {
 
           <div className="flex-1">
             {siteSelectionneId ? (
-              <FormulaireSite
-                key={siteSelectionneId}
-                siteId={siteSelectionneId}
-                actions={session.actions}
-              />
+              <div className="flex flex-col gap-6">
+                <CarteCodeCourtSite
+                  key={`code-${siteSelectionneId}`}
+                  siteId={siteSelectionneId}
+                  codeCourt={sites.find((s) => s.id === siteSelectionneId)?.codeCourt ?? ''}
+                  peutEcrire={peutModifierParametrage(session.actions)}
+                />
+                <FormulaireSite
+                  key={siteSelectionneId}
+                  siteId={siteSelectionneId}
+                  actions={session.actions}
+                />
+              </div>
             ) : null}
           </div>
         </div>
@@ -236,7 +245,7 @@ function FormulaireSiteContenu({ siteId, donnees, peutEcrire }: PropsFormulaireS
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="ps-ouverture">{t('parametrage:sites.horaires.ouverture')}</Label>
               <Input
@@ -255,51 +264,7 @@ function FormulaireSiteContenu({ siteId, donnees, peutEcrire }: PropsFormulaireS
                 {...form.register('heureFermeture')}
               />
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="ps-cloture-pointage">
-                {t('parametrage:sites.horaires.cloturePointage')}
-              </Label>
-              <Input
-                id="ps-cloture-pointage"
-                type="time"
-                disabled={!peutEcrire}
-                {...form.register('heureCloturePointage')}
-              />
-            </div>
           </div>
-          <p className="texte-libelle text-muted-foreground">
-            {t('parametrage:sites.horaires.cloturePointageAide')}
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="texte-titre-section">
-            {t('parametrage:sites.capacite.titre')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <Controller
-            control={form.control}
-            name="capaciteHeuresJourCentiemes"
-            render={({ field }) => (
-              <ChampTempsCentiemes
-                id="ps-capacite"
-                label={t('parametrage:sites.capacite.champ')}
-                disabled={!peutEcrire}
-                // Même repli que `EcranParametrageAtelier` : `field.value` peut valoir
-                // `undefined` avant que l'option `values` de `useForm` ne rattrape le premier
-                // rendu.
-                valeurCentiemes={field.value ?? null}
-                onChangeCentiemes={field.onChange}
-                className="max-w-xs"
-              />
-            )}
-          />
-          <p className="texte-libelle text-muted-foreground">
-            {t('parametrage:sites.capacite.aide')}
-          </p>
         </CardContent>
       </Card>
 
@@ -310,9 +275,6 @@ function FormulaireSiteContenu({ siteId, donnees, peutEcrire }: PropsFormulaireS
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="texte-corps text-muted-foreground">
-            {t('parametrage:sites.fermeture.explication')}
-          </p>
           {joursFermeture.length === 0 ? (
             <p className="texte-libelle text-muted-foreground">
               {t('parametrage:sites.fermeture.aucun')}
@@ -363,6 +325,49 @@ function FormulaireSiteContenu({ siteId, donnees, peutEcrire }: PropsFormulaireS
           ) : null}
         </CardContent>
       </Card>
+
+      <details className="rounded-lg border">
+        <summary className="cursor-pointer px-4 py-3 texte-titre-section">
+          {t('parametrage:sites.avance.titre')}
+        </summary>
+        <div className="space-y-4 px-4 pb-4">
+          <div className="space-y-2">
+            <Controller
+              control={form.control}
+              name="capaciteHeuresJourCentiemes"
+              render={({ field }) => (
+                <ChampTempsCentiemes
+                  id="ps-capacite"
+                  label={t('parametrage:sites.capacite.champ')}
+                  disabled={!peutEcrire}
+                  // Même repli que `EcranParametrageAtelier` : `field.value` peut valoir
+                  // `undefined` avant que l'option `values` de `useForm` ne rattrape le premier
+                  // rendu.
+                  valeurCentiemes={field.value ?? null}
+                  onChangeCentiemes={field.onChange}
+                  className="max-w-xs"
+                />
+              )}
+            />
+            <p className="texte-libelle text-muted-foreground">
+              {t('parametrage:sites.capacite.aide')}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="ps-cloture-pointage">
+                {t('parametrage:sites.horaires.cloturePointage')}
+              </Label>
+              <Input
+                id="ps-cloture-pointage"
+                type="time"
+                disabled={!peutEcrire}
+                {...form.register('heureCloturePointage')}
+              />
+            </div>
+          </div>
+        </div>
+      </details>
 
       {modifier.isError ? (
         <Alert variant="destructive">

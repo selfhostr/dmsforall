@@ -4,7 +4,7 @@ import type { AccesBase, ContexteTenant, TransactionDfa } from '../db/db.types';
 import type { LigneUtilisateur } from '../db/schema';
 import type { ServiceMotDePasse, ServiceReinitialisationMotDePasse } from '../auth/auth.types';
 import { colonnesDepuisGrille } from '../auth/grille-utilisateur';
-import { ServiceUtilisateur } from './service-utilisateur';
+import { resoudreSitePrincipal, ServiceUtilisateur } from './service-utilisateur';
 
 const CTX: ContexteTenant = { tenantId: 'tid-1', utilisateurId: 'acteur-1', requeteId: null };
 
@@ -40,10 +40,12 @@ function ligneUtilisateur(champs: Partial<LigneUtilisateur> = {}): LigneUtilisat
     langue: 'fr',
     role: 'vendeur',
     siteId: null,
+    sitePrincipalId: null,
     statut: 'actif',
     echecsConnexion: 0,
     verrouilleJusquA: null,
     derniereConnexionLe: null,
+    motDePasseAChanger: false,
     creeLe: new Date('2026-08-01T08:00:00.000Z'),
     modifieLe: new Date('2026-08-01T08:00:00.000Z'),
     // Grille du préréglage du rôle (comme le trigger d'insertion de la migration 0087).
@@ -182,6 +184,7 @@ describe('ServiceUtilisateur.creer — chemin heureux', () => {
     // clair : `entree`/`values(...)` ne comporte aucune clé `motDePasseTemporaire`/`motDePasseClair`.
     expect(appelUtilisateur?.payload).toMatchObject({
       motDePasseHash: `HASH(${resultat.acces.motDePasseTemporaire})`,
+      motDePasseAChanger: true,
     });
     expect(appelUtilisateur?.payload).not.toHaveProperty('motDePasseTemporaire');
     expect(appelUtilisateur?.payload).not.toHaveProperty('motDePasseClair');
@@ -334,6 +337,7 @@ describe('ServiceUtilisateur.reinitialiserAcces — jamais de mot de passe en cl
     );
     expect(appelUpdateUtilisateur?.payload).toMatchObject({
       motDePasseHash: `HASH(${resultat.motDePasseTemporaire})`,
+      motDePasseAChanger: true,
       echecsConnexion: 0,
       verrouilleJusquA: null,
     });
@@ -698,5 +702,43 @@ describe('ServiceUtilisateur — désactiver / réactiver / réinitialiser : mê
     await expect(serviceSansBase().reactiver(CTX, ID_ACTEUR, 'direction')).rejects.toMatchObject({
       code: 'DROIT_INSUFFISANT',
     });
+  });
+});
+
+describe('resoudreSitePrincipal', () => {
+  const MART = '33333333-3333-4333-8333-333333333333';
+
+  it('création sans demande : le premier site de la personne', () => {
+    expect(
+      resoudreSitePrincipal({ sitesApres: [ID_SITE, MART], demande: undefined, actuel: null }),
+    ).toBe(ID_SITE);
+  });
+
+  it('demande valide : elle est retenue', () => {
+    expect(
+      resoudreSitePrincipal({ sitesApres: [ID_SITE, MART], demande: MART, actuel: ID_SITE }),
+    ).toBe(MART);
+  });
+
+  it('demande hors des sites de la personne : 400 VALIDATION_ECHOUEE', () => {
+    expect(() =>
+      resoudreSitePrincipal({ sitesApres: [ID_SITE], demande: MART, actuel: ID_SITE }),
+    ).toThrowError(expect.objectContaining({ code: 'VALIDATION_ECHOUEE' }));
+  });
+
+  it('retrait du site principal des affectations : bascule sur le premier site restant', () => {
+    expect(resoudreSitePrincipal({ sitesApres: [MART], demande: undefined, actuel: ID_SITE })).toBe(
+      MART,
+    );
+  });
+
+  it('site principal conservé tant qu’il reste affecté', () => {
+    expect(
+      resoudreSitePrincipal({ sitesApres: [ID_SITE, MART], demande: undefined, actuel: MART }),
+    ).toBe(MART);
+  });
+
+  it('aucune affectation : pas de site principal', () => {
+    expect(resoudreSitePrincipal({ sitesApres: [], demande: undefined, actuel: MART })).toBeNull();
   });
 });

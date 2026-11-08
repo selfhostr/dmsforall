@@ -50,6 +50,9 @@ export const EcranFacturerOrdreReparation = paresseux(() =>
 export const EcranFicheFacture = paresseux(() =>
   import('@/ecrans/facturation/EcranFicheFacture').then((m) => m.EcranFicheFacture),
 );
+export const EcranChiffres = paresseux(() =>
+  import('@/ecrans/facturation/chiffres/EcranChiffres').then((m) => m.EcranChiffres),
+);
 export const EcranExportFiduciaire = paresseux(() =>
   import('@/ecrans/facturation/export/EcranExportFiduciaire').then((m) => m.EcranExportFiduciaire),
 );
@@ -65,8 +68,15 @@ export const EcranConsolePlateforme = paresseux(() =>
 export const EcranParametragePieces = paresseux(() =>
   import('@/ecrans/parametrage/EcranParametragePieces').then((m) => m.EcranParametragePieces),
 );
+export const EcranModules = paresseux(() =>
+  import('@/ecrans/parametrage/EcranModules').then((m) => m.EcranModules),
+);
+
 export const EcranParametrageAtelier = paresseux(() =>
   import('@/ecrans/parametrage/EcranParametrageAtelier').then((m) => m.EcranParametrageAtelier),
+);
+export const EcranMonGarage = paresseux(() =>
+  import('@/ecrans/parametrage/EcranMonGarage').then((m) => m.EcranMonGarage),
 );
 export const EcranParametresFacturation = paresseux(() =>
   import('@/ecrans/parametrage/EcranParametresFacturation').then(

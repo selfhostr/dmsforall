@@ -120,3 +120,14 @@ export function saisieVersSeuilMillieme(saisie: string): ResultatSaisieSeuil {
   if (millieme < 1) return { genre: 'invalide' };
   return { genre: 'valeur', millieme };
 }
+
+/** Quantité disponible (millièmes) d'un article : sur `siteId`, ou sommée sur tous les sites
+ *  quand `siteId` est `undefined` (filtre « Tous »). */
+export function quantiteDisponibleMillieme(
+  stocks: readonly { readonly siteId: string; readonly quantiteDisponibleMillieme: number }[],
+  siteId: string | undefined,
+): number {
+  return stocks
+    .filter((stock) => siteId === undefined || stock.siteId === siteId)
+    .reduce((somme, stock) => somme + stock.quantiteDisponibleMillieme, 0);
+}

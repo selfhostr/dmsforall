@@ -42,6 +42,7 @@ import { PipeZod } from '../common/validation';
 
 import { ReponseVehiculeStockDto, VehiculeStockAvecAvertissementsDto } from './dto';
 import { ServiceVehiculeStock } from './service-vehicule-stock';
+import { ExigerModule } from '../common/droits/garde-module';
 
 /**
  * Véhicule en stock (RV-01→RV-14, §6.1) — sous-ressource SINGULIÈRE d'un véhicule (0 ou 1),
@@ -51,6 +52,7 @@ import { ServiceVehiculeStock } from './service-vehicule-stock';
  */
 @ApiTags('Véhicules en stock')
 @ApiCookieAuth()
+@ExigerModule('ventes')
 @Controller({ path: 'vehicules/:vehiculeId/stock', version: '1' })
 @UseGuards(GardeDroit)
 export class VehiculeStockController {

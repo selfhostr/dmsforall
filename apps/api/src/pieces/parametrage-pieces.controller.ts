@@ -12,10 +12,12 @@ import { ApiReponseProbleme } from '../common/erreurs';
 
 import { ParametresPiecesDto } from './dto';
 import { ServiceParametragePieces } from './service-parametrage-pieces';
+import { ExigerModule } from '../common/droits/garde-module';
 
 /** Paramétrage du domaine pièces (§10, PP-01 → PP-08). Portée tenant. */
 @ApiTags('Pièces — Paramétrage')
 @ApiCookieAuth()
+@ExigerModule('pieces')
 @Controller({ path: 'parametrage/pieces', version: '1' })
 @UseGuards(GardeDroit)
 export class ParametragePiecesController {

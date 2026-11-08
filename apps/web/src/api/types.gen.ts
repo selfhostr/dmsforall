@@ -390,6 +390,43 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/auth/moi/langue': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Enregistre la langue d’interface dans le profil de la personne connectée. */
+    patch: operations['AuthController_changerLangue'];
+    trace?: never;
+  };
+  '/auth/mot-de-passe/changement': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Changement du mot de passe de la personne connectée.
+     * @description Exige le mot de passe actuel. Lève le blocage AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS. Les autres sessions de la personne sont révoquées.
+     */
+    post: operations['AuthController_changerMotDePasse'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/auth/mot-de-passe/oubli': {
     parameters: {
       query?: never;
@@ -1230,7 +1267,7 @@ export interface paths {
     put?: never;
     /**
      * Correction — annule par avoir ET recrée une facture, dans la même transaction (RF-12 → RF-14).
-     * @description `Idempotency-Key` obligatoire — c'est une création de facture, donc une création sensible. Une facture ÉMISE ne se modifie JAMAIS (MD-20) : ce geste produit TROIS documents immuables — un avoir TOTAL (déjà émis, sans retour physique de stock) créditant la facture d'origine (qui bascule `annule_par_avoir`), et une facture de remplacement (déjà émise) reprenant les mêmes lignes avec l'en-tête corrigé (`champsCorriges` : désignation et/ou adresse de facturation uniquement — une erreur de montant ou de taux se corrige par un avoir libre, `POST /documents-vente/{factureId}/avoirs`, jamais par ce geste). Droit DÉDIÉ, périmètre volontairement PLUS ÉTROIT qu'émettre un avoir simple : `direction`/`comptable` SEULS (ni `receptionnaire`, ni `admin`, RF-115).
+     * @description `Idempotency-Key` obligatoire — c'est une création de facture, donc une création sensible. Une facture ÉMISE ne se modifie JAMAIS (MD-20) : ce geste produit TROIS documents immuables — un avoir TOTAL (déjà émis, sans retour physique de stock) créditant la facture d'origine (qui bascule `annule_par_avoir`), et une facture de remplacement (déjà émise) reprenant les mêmes lignes avec l'en-tête corrigé (`champsCorriges` : désignation et/ou adresse de facturation uniquement — une erreur de montant ou de taux se corrige par un avoir libre, `POST /documents-vente/{factureId}/avoirs`, jamais par ce geste). `mode` (défaut `remplacement`, comportement historique) : avec `mode = 'brouillon'`, la facture de remplacement n'est PAS émise — elle est créée en BROUILLON (mêmes lignes, TVA recalculée au régime ACTUEL du garage), `champsCorriges` est alors interdit et la réponse porte `mode = 'brouillon'` ; `factureRemplacement.id` est le brouillon à ouvrir, modifier puis émettre. Refusé en mode brouillon : facture déjà annulée par un avoir (`FACTURE_DEJA_CORRIGEE`) ou déjà réglée en tout ou partie (`FACTURE_CORRECTION_REGLEMENT_EXISTANT`). Droit DÉDIÉ, périmètre volontairement PLUS ÉTROIT qu'émettre un avoir simple : `direction`/`comptable` SEULS (ni `receptionnaire`, ni `admin`, RF-115).
      */
     post: operations['DocumentVenteTransitionsController_corriger'];
     delete?: never;
@@ -1288,6 +1325,23 @@ export interface paths {
     put?: never;
     /** Annulation — bon de commande uniquement, motif obligatoire. */
     post: operations['DocumentVenteTransitionsController_annuler'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/documents-vente/{id}/annuler-accord': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Annuler l'accord du client — devis uniquement (devis.accepte → emis), tant qu'aucun OR ni document n'en est issu. */
+    post: operations['DocumentVenteTransitionsController_annulerAccord'];
     delete?: never;
     options?: never;
     head?: never;
@@ -1400,7 +1454,7 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * PDF d’une facture émise (avec bulletin QR) ou d’un devis (sans QR).
+     * PDF d’une facture émise (avec bulletin QR), d’un avoir émis ou d’un devis (sans QR).
      * @description Facture émise : génération paresseuse au premier appel, mise en cache (`document_vente.pdfCle`/`pdfSha256`), Un DEVIS (tout statut, brouillon compris) produit un PDF « Devis » sans bulletin QR, valable 30 jours après sa date, rendu à chaque appel et non mis en cache. JAMAIS régénérée ensuite — une facture émise est immuable, son PDF aussi (DI-3). `RF-116` : la charge QR contient le montant en clair — droit dédié, distinct de `facturation.document.lire`.
      */
     get: operations['ImpressionFactureController_telechargerPdf'];
@@ -2831,8 +2885,8 @@ export interface paths {
     options?: never;
     head?: never;
     /**
-     * Saisit ou efface le n° TVA du garage.
-     * @description Format IDE suisse `CHE-123.456.789 TVA` (`MWST`/`IVA` acceptés), clé de contrôle modulo 11 vérifiée. `numeroTva: null` efface le numéro (garage non assujetti). Corps vide : aucun effet.
+     * Modifie la raison sociale, l’assujettissement à la TVA, le n° TVA ou le délai de paiement du garage.
+     * @description `raisonSociale` : 1 à 200 caractères (espaces de bord retirés), journalisée dans le journal d'audit (avant/après). Le slug du garage ne change jamais. Les documents déjà émis gardent leur raison sociale ; les suivants prennent la nouvelle (sauf si le bloc créancier porte son propre nom, qui reste prioritaire et se change dans la facturation). Format IDE suisse `CHE-123.456.789 TVA` (`MWST`/`IVA` acceptés), clé de contrôle modulo 11 vérifiée. `numeroTva: null` efface le numéro. `assujettiTva: false` déclare le garage non assujetti : le numéro est vidé et les documents émis ensuite n’ont aucune TVA ; `assujettiTva: false` avec un `numeroTva` non nul (ou un numéro envoyé à un garage non assujetti) est refusé (`VALIDATION_ECHOUEE`, `erreurs[0].champ = numeroTva`). `assujettiTva: true` sans numéro est accepté, mais l’émission d’une facture exige alors le numéro (`TVA_NUMERO_REQUIS`). Chaque changement de raison sociale, d'assujettissement ou de numéro est journalisé (avant/après). `modeSignalement` (`via_site`, `copie_seule`, `desactive`) règle le bouton « Signaler un problème » ; son changement est journalisé. Corps vide : aucun effet.
      */
     patch: operations['ParametresEntrepriseController_modifier'];
     trace?: never;
@@ -2857,6 +2911,30 @@ export interface paths {
     options?: never;
     head?: never;
     patch?: never;
+    trace?: never;
+  };
+  '/parametres-entreprise/modules': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Modules retirés et modules actifs du garage.
+     * @description `modulesDesactives` : le choix du garage. `modulesActifs` : ce qui fonctionne réellement (pointage dépend de atelier, tablettes de pointage). Les mêmes `modulesActifs` sont dans `GET /auth/moi`.
+     */
+    get: operations['ModulesController_obtenir'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Remplace la liste des modules retirés par le garage.
+     * @description `modulesDesactives` est la liste COMPLÈTE des modules retirés (`[]` : tout est actif). Les écritures d’un module retiré, ou dont une dépendance est retirée, répondent ensuite `403 MODULE_DESACTIVE` ; les lectures restent possibles. Aucune donnée n’est supprimée : réactiver restaure tout. Le changement est journalisé (avant/après).
+     */
+    patch: operations['ModulesController_modifier'];
     trace?: never;
   };
   '/parametres-facturation/creancier': {
@@ -3960,7 +4038,11 @@ export interface paths {
     delete?: never;
     options?: never;
     head?: never;
-    patch?: never;
+    /**
+     * Modifier un site (code court)
+     * @description Code court : 1 à 5 caractères A-Z/0-9, unique dans le garage. Même droit que les réglages par site.
+     */
+    patch: operations['SiteController_modifier'];
     trace?: never;
   };
   '/sites/{siteId}/hangar-pneus': {
@@ -5795,13 +5877,13 @@ export interface components {
     EtapesDemarrageDto: {
       /** @description Au moins une borne d’atelier active. */
       borne: boolean;
-      /** @description Nom, rue, NPA et localité du bloc créancier renseignés. */
+      /** @description Nom, rue, n° de rue, NPA, localité et pays du bloc créancier renseignés (mêmes champs requis que l’émission d’une facture). */
       coordonnees: boolean;
       /** @description IBAN ou QR-IBAN renseigné. */
       iban: boolean;
       /** @description Au moins un motif de rendez-vous actif. */
       motifsRdv: boolean;
-      /** @description Numéro TVA du garage saisi. */
+      /** @description Étape TVA faite : le garage est non assujetti, ou assujetti avec son numéro de TVA saisi. */
       numeroTva: boolean;
       /** @description Un compte de personne autre que le vôtre (invité ou actif). */
       premierCollaborateur: boolean;
@@ -6991,7 +7073,13 @@ export interface components {
         | 'REPRISE_PLAN_NON_VALIDABLE'
         | 'REPRISE_AJUSTEMENT_ELEMENT_INCONNU'
         | 'AUTH_JETON_REINITIALISATION_INVALIDE'
-        | 'FACTURE_DESTINATAIRE_COURRIEL_ABSENT';
+        | 'FACTURE_DESTINATAIRE_COURRIEL_ABSENT'
+        | 'TVA_NON_ASSUJETTI_TAUX_INTERDIT'
+        | 'TVA_NUMERO_REQUIS'
+        | 'FACTURE_DEJA_CORRIGEE'
+        | 'FACTURE_CORRECTION_REGLEMENT_EXISTANT'
+        | 'MODULE_DESACTIVE'
+        | 'AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS';
       /** @description Détail technique — jamais affiché à l'utilisateur final. */
       detail?: string;
       erreurs?: components['schemas']['ErreurChampCommunDto'][];
@@ -7133,7 +7221,13 @@ export interface components {
         | 'REPRISE_PLAN_NON_VALIDABLE'
         | 'REPRISE_AJUSTEMENT_ELEMENT_INCONNU'
         | 'AUTH_JETON_REINITIALISATION_INVALIDE'
-        | 'FACTURE_DESTINATAIRE_COURRIEL_ABSENT';
+        | 'FACTURE_DESTINATAIRE_COURRIEL_ABSENT'
+        | 'TVA_NON_ASSUJETTI_TAUX_INTERDIT'
+        | 'TVA_NUMERO_REQUIS'
+        | 'FACTURE_DEJA_CORRIGEE'
+        | 'FACTURE_CORRECTION_REGLEMENT_EXISTANT'
+        | 'MODULE_DESACTIVE'
+        | 'AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS';
       detail?: string;
       erreurs?: components['schemas']['ErreurChampDto'][];
       instance: string;
@@ -7335,6 +7429,11 @@ export interface components {
     ReponseCorrectionFactureDto: {
       avoir: components['schemas']['ReponseDocumentVenteDto'];
       factureRemplacement: components['schemas']['ReponseDocumentVenteDto'];
+      /**
+       * @description `remplacement` : `factureRemplacement` est une facture émise. `brouillon` : c'est un brouillon (sans numéro) à modifier puis émettre.
+       * @enum {string}
+       */
+      mode: 'remplacement' | 'brouillon';
     };
     ReponseCreationBorneDto: {
       acces: components['schemas']['ReponseAccesTemporaireDto'];
@@ -7720,7 +7819,8 @@ export interface components {
         | 'reprise'
         | 'financement_vente'
         | 'vehicule_travail_reporte'
-        | 'depot_pneus';
+        | 'depot_pneus'
+        | 'tenant';
       /** Format: uuid */
       entiteId: string;
       /** Format: uuid */
@@ -8044,6 +8144,39 @@ export interface components {
     ReponseModelesVehiculesChDto: {
       modeles: components['schemas']['ModeleVehiculeChDto'][];
     };
+    ReponseModulesDto: {
+      /** @description Modules effectivement actifs (choix du garage et dépendances). Les écritures des autres répondent `403 MODULE_DESACTIVE`. */
+      modulesActifs: (
+        | 'atelier'
+        | 'planning'
+        | 'pointage'
+        | 'tablettes'
+        | 'pieces'
+        | 'ventes'
+        | 'pneus'
+        | 'courtoisie'
+        | 'relances'
+        | 'export_fiduciaire'
+      )[];
+      /**
+       * @description Modules retirés par le garage (son choix). Un module dont une dépendance est retirée est inactif sans figurer ici.
+       * @example [
+       *       "pneus"
+       *     ]
+       */
+      modulesDesactives: (
+        | 'atelier'
+        | 'planning'
+        | 'pointage'
+        | 'tablettes'
+        | 'pieces'
+        | 'ventes'
+        | 'pneus'
+        | 'courtoisie'
+        | 'relances'
+        | 'export_fiduciaire'
+      )[];
+    };
     ReponseMotifRendezVousDto: {
       actif: boolean;
       /** @example SERVICE */
@@ -8288,12 +8421,23 @@ export interface components {
     };
     ReponseParametresEntrepriseDto: {
       /**
+       * @description Le garage est-il assujetti à la TVA ? `false` : aucune TVA sur ses documents (taux 0, régime « exclu »), mention « Non assujetti à la TVA », `numeroTva` toujours `null`. `true` par défaut (comportement historique) ; une facture ne peut être émise sans `numeroTva` quand il vaut `true`.
+       * @example true
+       */
+      assujettiTva: boolean;
+      /**
        * @description Délai de paiement par défaut des factures, en jours, pour un client sans condition de paiement propre.
        * @example 30
        */
       delaiPaiementJoursDefaut: number;
       /**
-       * @description N° IDE avec mention TVA (CHE-123.456.789 TVA, MWST ou IVA), clé de contrôle vérifiée. `null` : garage non assujetti ou numéro pas encore saisi.
+       * @description Réglage « Signalements » : `via_site` (défaut) ouvre le site pour terminer le signalement, `copie_seule` ne propose que la copie du rapport, `desactive` retire le bouton « Signaler un problème ».
+       * @example via_site
+       * @enum {string}
+       */
+      modeSignalement: 'via_site' | 'copie_seule' | 'desactive';
+      /**
+       * @description N° IDE avec mention TVA (CHE-123.456.789 TVA, MWST ou IVA), clé de contrôle vérifiée. `null` : numéro pas encore saisi, ou garage non assujetti.
        * @example CHE-116.281.710 TVA
        */
       numeroTva: string | null;
@@ -9029,6 +9173,23 @@ export interface components {
       capacites: components['schemas']['CapacitesPersonneDto'];
       /** Format: date-time */
       expireLe: string;
+      /** @description Modules effectivement actifs pour le garage (Réglages > Modules). Le front masque menus, routes et raccourcis des autres ; le serveur refuse leurs écritures (`MODULE_DESACTIVE`). */
+      modulesActifs: (
+        | 'atelier'
+        | 'planning'
+        | 'pointage'
+        | 'tablettes'
+        | 'pieces'
+        | 'ventes'
+        | 'pneus'
+        | 'courtoisie'
+        | 'relances'
+        | 'export_fiduciaire'
+      )[];
+      /** @description true tant que le mot de passe temporaire n’a pas été remplacé : toute route métier répond 403 AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS. */
+      motDePasseAChanger?: boolean;
+      /** Format: uuid */
+      sitePrincipalId: string | null;
       /** Format: uuid */
       siteRattachementId: string | null;
       sites: components['schemas']['SiteResumeDto'][];
@@ -9055,6 +9216,11 @@ export interface components {
       actif: boolean;
       /** @example SION */
       code: string;
+      /**
+       * @description Étiquette compacte, 1 à 5 caractères A-Z/0-9.
+       * @example SION
+       */
+      codeCourt: string;
       /** Format: uuid */
       id: string;
       /** @example Sion */
@@ -9128,10 +9294,13 @@ export interface components {
       plafondKm: number | null;
     };
     TenantCourantDto: {
+      assujettiTva: boolean;
       /** Format: uuid */
       id: string;
       /** @enum {string} */
       langueDefaut: 'fr' | 'de' | 'it';
+      /** @enum {string} */
+      modeSignalement: 'via_site' | 'copie_seule' | 'desactive';
       /** @example Garage du Léman Sàrl */
       raisonSociale: string;
       /** @example garage-du-leman */
@@ -9239,6 +9408,8 @@ export interface components {
         | 'technicien'
         | 'magasinier'
         | 'comptable';
+      /** Format: uuid */
+      sitePrincipalId: string | null;
       sites: components['schemas']['SiteAffecteResumeDto'][];
       /**
        * @example actif
@@ -10960,6 +11131,110 @@ export interface operations {
       };
       /** @description AUTH_SESSION_ABSENTE ou AUTH_SESSION_EXPIREE. */
       401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailDto'];
+        };
+      };
+    };
+  };
+  AuthController_changerLangue: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @enum {string} */
+          langue: 'fr' | 'de' | 'it';
+        };
+      };
+    };
+    responses: {
+      /** @description Langue enregistrée. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description VALIDATION_ECHOUEE. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailDto'];
+        };
+      };
+      /** @description AUTH_SESSION_ABSENTE ou AUTH_SESSION_EXPIREE. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailDto'];
+        };
+      };
+      /** @description AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailDto'];
+        };
+      };
+    };
+  };
+  AuthController_changerMotDePasse: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          motDePasseActuel: string;
+          nouveauMotDePasse: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Mot de passe changé. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description VALIDATION_ECHOUEE. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailDto'];
+        };
+      };
+      /** @description AUTH_SESSION_ABSENTE ou AUTH_SESSION_EXPIREE. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailDto'];
+        };
+      };
+      /** @description AUTH_TROP_DE_TENTATIVES. */
+      429: {
         headers: {
           [name: string]: unknown;
         };
@@ -14338,7 +14613,7 @@ export interface operations {
             remiseMontantCentimes?: number;
             remisePourmille?: number;
             siteId?: string | null;
-            tauxTvaPourmille: number;
+            tauxTvaPourmille?: number;
             /** @enum {string} */
             type:
               | 'main_oeuvre_bareme'
@@ -14538,7 +14813,7 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': {
-          champsCorriges: {
+          champsCorriges?: {
             adresseFacturation?: {
               localite: string;
               npa: string;
@@ -14559,6 +14834,11 @@ export interface operations {
           )[];
           /** @default true */
           corrigerFicheClient?: boolean;
+          /**
+           * @default remplacement
+           * @enum {string}
+           */
+          mode?: 'remplacement' | 'brouillon';
           /** @enum {string} */
           motif:
             | 'erreur_adresse'
@@ -14617,7 +14897,7 @@ export interface operations {
           'application/json': components['schemas']['ProblemeDetailCommunDto'];
         };
       };
-      /** @description DOCUMENT_TRANSITION_INTERDITE (facture non émise ou déjà corrigée/annulée) ou IDEMPOTENCE_CONFLIT. */
+      /** @description DOCUMENT_TRANSITION_INTERDITE (facture non émise), FACTURE_DEJA_CORRIGEE et FACTURE_CORRECTION_REGLEMENT_EXISTANT (mode brouillon), TVA_NUMERO_REQUIS ou IDEMPOTENCE_CONFLIT. */
       409: {
         headers: {
           [name: string]: unknown;
@@ -14907,6 +15187,76 @@ export interface operations {
         };
       };
       /** @description DOCUMENT_TRANSITION_INTERDITE. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  DocumentVenteTransitionsController_annulerAccord: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': Record<string, never>;
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EnveloppeDocumentVenteDto'];
+        };
+      };
+      /** @description Type de document invalide (seul un devis a un accord). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Document introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description DOCUMENT_TRANSITION_INTERDITE (le devis n’est pas accepté) ou DOCUMENT_SOURCE_DEJA_TRANSFORME (un OR ou un document en est issu). */
       409: {
         headers: {
           [name: string]: unknown;
@@ -15209,7 +15559,7 @@ export interface operations {
           remiseMontantCentimes?: number;
           remisePourmille?: number;
           siteId?: string | null;
-          tauxTvaPourmille: number;
+          tauxTvaPourmille?: number;
           /** @enum {string} */
           type:
             | 'main_oeuvre_bareme'
@@ -15487,7 +15837,7 @@ export interface operations {
           'application/pdf': components['schemas']['ProblemeDetailCommunDto'];
         };
       };
-      /** @description DOCUMENT_PDF_INDISPONIBLE — le document n'est ni un devis ni une facture émise. */
+      /** @description DOCUMENT_PDF_INDISPONIBLE — le document n'est ni un devis, ni une facture ou un avoir émis. */
       409: {
         headers: {
           [name: string]: unknown;
@@ -21910,8 +22260,12 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': {
+          assujettiTva?: boolean;
           delaiPaiementJoursDefaut?: number;
+          /** @enum {string} */
+          modeSignalement?: 'via_site' | 'copie_seule' | 'desactive';
           numeroTva?: string | null;
+          raisonSociale?: string;
         };
       };
     };
@@ -21924,7 +22278,7 @@ export interface operations {
           'application/json': components['schemas']['ReponseParametresEntrepriseDto'];
         };
       };
-      /** @description VALIDATION_ECHOUEE — format ou clé de contrôle du n° TVA invalide. */
+      /** @description VALIDATION_ECHOUEE — raison sociale vide ou trop longue, format ou clé de contrôle du n° TVA invalide. */
       400: {
         headers: {
           [name: string]: unknown;
@@ -22092,6 +22446,106 @@ export interface operations {
         };
       };
       /** @description DROIT_INSUFFISANT — réservé à direction/comptable. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  ModulesController_obtenir: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseModulesDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description DROIT_INSUFFISANT. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  ModulesController_modifier: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          modulesDesactives: (
+            | 'atelier'
+            | 'planning'
+            | 'pointage'
+            | 'tablettes'
+            | 'pieces'
+            | 'ventes'
+            | 'pneus'
+            | 'courtoisie'
+            | 'relances'
+            | 'export_fiduciaire'
+          )[];
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseModulesDto'];
+        };
+      };
+      /** @description VALIDATION_ECHOUEE — module inconnu. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description DROIT_INSUFFISANT. */
       403: {
         headers: {
           [name: string]: unknown;
@@ -25888,6 +26342,78 @@ export interface operations {
       };
     };
   };
+  SiteController_modifier: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        siteId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          codeCourt?: string;
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SiteResumeDto'];
+        };
+      };
+      /** @description Corps invalide (code court hors format). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant (parametrage.atelier.modifier). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Site introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description CONFLIT — ce code court est déjà utilisé par un autre site. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
   SiteHangarPneusController_hangar: {
     parameters: {
       query?: never;
@@ -26301,6 +26827,8 @@ export interface operations {
             | 'magasinier'
             | 'comptable';
           siteIds: string[];
+          /** Format: uuid */
+          sitePrincipalId?: string;
         };
       };
     };
@@ -26385,6 +26913,8 @@ export interface operations {
             | 'magasinier'
             | 'comptable';
           siteIds?: string[];
+          /** Format: uuid */
+          sitePrincipalId?: string;
         };
       };
     };

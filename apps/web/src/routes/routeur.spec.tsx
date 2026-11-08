@@ -318,9 +318,10 @@ describe('routeur — protection par défaut', () => {
       http.get('/api/v1/auth/moi', () =>
         HttpResponse.json({
           ...SESSION_TEST,
+          sitePrincipalId: null,
           sites: [
             ...SESSION_TEST.sites,
-            { id: 'site-2', code: 'S2', nom: 'Second site', actif: true },
+            { id: 'site-2', code: 'S2', codeCourt: 'S2', nom: 'Second site', actif: true },
           ],
         }),
       ),
@@ -421,9 +422,7 @@ describe('routeur — /vehicules/nouveau rend l’écran de création, jamais la
     );
     renduAvecRoutes(routesConfig, { routeInitiale: '/vehicules/nouveau' });
 
-    expect(
-      await screen.findByRole('heading', { name: 'Nouveau véhicule', level: 1 }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Nouveau véhicule' })).toBeInTheDocument();
     // Preuve négative : ni le message d'erreur de la fiche, ni un appel réseau vers
     // `GET /vehicules/nouveau` (le défaut exact du bug initial).
     expect(screen.queryByText('Impossible de charger le véhicule')).not.toBeInTheDocument();
@@ -524,7 +523,9 @@ describe('routeur — /parametrage/facturation refuse réellement (protection pa
     expect(
       await screen.findByText('Accès réservé à la direction et à la comptabilité'),
     ).toBeInTheDocument();
-    expect(screen.queryByLabelText('Nom du garage')).not.toBeInTheDocument();
+    // Le champ que le formulaire réel affiche (cf. le test « direction » ci-dessous) est absent :
+    // l'écran de refus l'a remplacé, il ne s'y ajoute pas.
+    expect(screen.queryByLabelText('IBAN (compte ordinaire)')).not.toBeInTheDocument();
   });
 
   it('direction : atteint le formulaire réel, jamais l’écran de refus', async () => {
@@ -546,11 +547,16 @@ describe('routeur — /parametrage/facturation refuse réellement (protection pa
     );
     renduAvecRoutes(routesConfig, { routeInitiale: '/parametrage/facturation' });
 
-    expect(await screen.findByLabelText('Nom du garage')).toBeInTheDocument();
+    // Chunk `React.lazy` importé à froid (écran lourd) : le délai par défaut ne tient pas sous
+    // charge (les suites shared/api/web tournent ensemble en CI) — délai explicite, comme pour
+    // « /clients » plus haut, et délai de test relevé d'autant.
+    expect(
+      await screen.findByLabelText('IBAN (compte ordinaire)', {}, { timeout: 20_000 }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByText('Accès réservé à la direction et à la comptabilité'),
     ).not.toBeInTheDocument();
-  });
+  }, 30_000);
 });
 
 /**
@@ -593,7 +599,7 @@ describe('routeur — Réglages : les onglets existent dans l’assemblage réel
     const declencheurCompte = await screen.findByRole('button', { name: /jean dupont/i });
     await utilisateur.click(declencheurCompte);
     const reglages = await screen.findByRole('menuitem', { name: /réglages/i });
-    expect(reglages).toHaveAttribute('href', '/parametrage/referentiels?site=site-1');
+    expect(reglages).toHaveAttribute('href', '/parametrage/referentiels');
 
     // Un seul onglet visible => aucune rangée rendue (une rangée à un onglet n'offre aucun choix).
     await waitFor(() => {
@@ -613,15 +619,15 @@ describe('routeur — Réglages : les onglets existent dans l’assemblage réel
     const onglets = await screen.findByRole('navigation', { name: /onglets/i });
     expect(within(onglets).getByRole('link', { name: /^atelier$/i })).toHaveAttribute(
       'href',
-      '/parametrage/atelier?site=site-1',
+      '/parametrage/atelier',
     );
     expect(within(onglets).getByRole('link', { name: /^sites$/i })).toHaveAttribute(
       'href',
-      '/parametrage/sites?site=site-1',
+      '/parametrage/sites',
     );
     expect(within(onglets).getByRole('link', { name: /tarifs/i })).toHaveAttribute(
       'href',
-      '/parametrage/referentiels?site=site-1',
+      '/parametrage/referentiels',
     );
     // L'onglet courant est celui de l'URL, et il le dit aux lecteurs d'écran.
     expect(within(onglets).getByRole('link', { name: /tarifs/i })).toHaveAttribute(

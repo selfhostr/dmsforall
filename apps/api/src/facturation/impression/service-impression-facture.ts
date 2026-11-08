@@ -22,6 +22,7 @@ import { ErreurMetier } from '../../common/erreurs/erreur-metier';
 
 import { ServiceDocumentsVente } from '../documents/service-documents';
 import {
+  genererPdfAvoir,
   genererPdfDevis,
   genererPdfFacture,
   type ExpediteurImpression,
@@ -64,11 +65,15 @@ export class ServiceImpressionFacture {
       return this.obtenirPdfDevis(ctx, document);
     }
 
+    if (document.typeDocument === 'avoir' && document.statut !== 'brouillon') {
+      return this.obtenirPdfAvoir(ctx, document);
+    }
+
     if (!estEligibleImpression(document)) {
       throw new ErreurMetier(
         'DOCUMENT_PDF_INDISPONIBLE',
         `Le document ${documentId} n'a pas de PDF : seuls un devis et une FACTURE ÉMISE ` +
-          "s'impriment (un bon de commande, un avoir ou un brouillon de facture, non).",
+          "s'impriment (un bon de commande ou un brouillon, non).",
       );
     }
 
@@ -95,7 +100,7 @@ export class ServiceImpressionFacture {
     // de divergence — cette fonction ne fait qu'orchestrer la mise en cache autour.
     const buffer = await genererPdfFacture(
       document,
-      await this.lireExpediteur(ctx, document.siteId),
+      await this.lireExpediteur(ctx, document.siteId, document.lignes),
       await lireLogoImprimable(this.stockage, ctx.tenantId),
     );
     const sha256 = sha256Hex(buffer);
@@ -104,6 +109,41 @@ export class ServiceImpressionFacture {
     await this.stockage.ecrire(cle, buffer);
     await this.persisterCleEtEmpreinte(ctx, documentId, cle, sha256);
 
+    return { buffer, sha256, nomFichier };
+  }
+
+  /**
+   * Avoir ÉMIS : PDF sans bulletin QR, avec la référence de la facture corrigée (numéro lu en
+   * base, scoping tenant explicite). Rendu à chaque demande, octets déterministes (immuable).
+   */
+  private async obtenirPdfAvoir(
+    ctx: ContexteTenant,
+    document: ReponseDocumentVente,
+  ): Promise<PdfFactureResultat> {
+    const expediteur = await this.lireExpediteur(ctx, document.siteId, document.lignes);
+    const numeroFacture = document.factureAnnuleeId
+      ? await this.acces.enTenant(ctx, async (tx) => {
+          const [f] = await tx
+            .select({ numero: documentVente.numero })
+            .from(documentVente)
+            .where(
+              and(
+                eq(documentVente.tenantId, ctx.tenantId),
+                eq(documentVente.id, document.factureAnnuleeId as string),
+              ),
+            )
+            .limit(1);
+          return f?.numero ?? null;
+        })
+      : null;
+    const buffer = await genererPdfAvoir(
+      document,
+      expediteur,
+      numeroFacture,
+      await lireLogoImprimable(this.stockage, ctx.tenantId),
+    );
+    const sha256 = sha256Hex(buffer);
+    const nomFichier = `Avoir-${(document.numero ?? document.id).replace(/[^A-Za-z0-9._-]/g, '_')}.pdf`;
     return { buffer, sha256, nomFichier };
   }
 
@@ -118,7 +158,7 @@ export class ServiceImpressionFacture {
     ctx: ContexteTenant,
     document: ReponseDocumentVente,
   ): Promise<PdfFactureResultat> {
-    const expediteur = await this.lireExpediteur(ctx, document.siteId);
+    const expediteur = await this.lireExpediteur(ctx, document.siteId, document.lignes);
     const buffer = await genererPdfDevis(
       document,
       expediteur,
@@ -134,7 +174,11 @@ export class ServiceImpressionFacture {
    * tenant et adresse du site du document (un garage sans IBAN n'a pas de bloc créancier mais doit
    * quand même figurer en en-tête). N° TVA : `tenant.numero_tva` (réglages entreprise).
    */
-  private async lireExpediteur(ctx: ContexteTenant, siteId: string): Promise<ExpediteurImpression> {
+  private async lireExpediteur(
+    ctx: ContexteTenant,
+    siteId: string,
+    lignes: readonly { readonly tauxTvaPourmille: number }[],
+  ): Promise<ExpediteurImpression> {
     return this.acces.enTenant(ctx, async (tx) => {
       const [bloc] = await tx
         .select({
@@ -148,7 +192,11 @@ export class ServiceImpressionFacture {
         .where(eq(tenantBlocCreancier.tenantId, ctx.tenantId))
         .limit(1);
       const [ligneTenant] = await tx
-        .select({ raisonSociale: tenant.raisonSociale, numeroTva: tenant.numeroTva })
+        .select({
+          raisonSociale: tenant.raisonSociale,
+          numeroTva: tenant.numeroTva,
+          assujettiTva: tenant.assujettiTva,
+        })
         .from(tenant)
         .where(eq(tenant.id, ctx.tenantId))
         .limit(1);
@@ -166,6 +214,10 @@ export class ServiceImpressionFacture {
         npa: blocComplet ? (bloc?.npa ?? null) : (ligneSite?.npa ?? null),
         localite: blocComplet ? (bloc?.localite ?? null) : (ligneSite?.localite ?? null),
         numeroTva: ligneTenant?.numeroTva ?? null,
+        // Non assujetti = réglage du garage ET aucune ligne taxée : un document émis quand le
+        // garage était assujetti conserve sa TVA à l'impression (jamais réécrit après coup).
+        nonAssujettiTva:
+          ligneTenant?.assujettiTva === false && lignes.every((l) => l.tauxTvaPourmille === 0),
       };
     });
   }

@@ -13,7 +13,6 @@ import {
 
 import { ErreurApi, messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import {
   Select,
@@ -22,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { ChampKilometrage } from '@/composants/comptoir/ChampKilometrage';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
 import { useEnregistrerKilometrage } from '@/hooks/vehicules/useEnregistrerKilometrage';
@@ -113,105 +113,18 @@ export function FormulaireKilometrage({
 
   return (
     <>
-      <Dialog open={ouvert} onOpenChange={fermer}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('vehicules:kilometrage.relever')}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={soumettre} className="flex flex-col gap-4">
-            <LegendeChampsObligatoires>
-              {t('commun:formulaires.champsObligatoiresLegende')}
-            </LegendeChampsObligatoires>
-
-            <ChampKilometrage
-              valeur={valeur}
-              onChangeValeur={setValeur}
-              unite={unite}
-              label={t('vehicules:kilometrage.valeur')}
-              obligatoire
-            />
-
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="kilometrage-unite">{t('vehicules:kilometrage.unite')}</Label>
-              <Select
-                value={unite}
-                onValueChange={(valeurChoisie) => setUnite(valeurChoisie as UniteDistance)}
-              >
-                <SelectTrigger id="kilometrage-unite" aria-label={t('vehicules:kilometrage.unite')}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {UNITES_DISTANCE.map((valeurUnite) => (
-                    <SelectItem key={valeurUnite} value={valeurUnite}>
-                      {t(`vehicules:kilometrage.unites.${valeurUnite}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="kilometrage-source" requis>
-                {t('vehicules:kilometrage.source')}
-              </Label>
-              <Select
-                value={source}
-                onValueChange={(valeurSource) => setSource(valeurSource as SourceKilometrage)}
-              >
-                <SelectTrigger
-                  id="kilometrage-source"
-                  aria-label={t('vehicules:kilometrage.source')}
-                  aria-required="true"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SOURCES_KILOMETRAGE.map((valeurSource) => (
-                    <SelectItem key={valeurSource} value={valeurSource}>
-                      {t(`vehicules:${CLES_SOURCE[valeurSource]}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {erreurRegression ? (
-              // Bordure structurelle : encart d'alerte (régression de kilométrage détectée).
-              <div
-                role="alert"
-                className="flex flex-col gap-3 rounded-md border border-statut-attention bg-statut-attention-fond p-3"
-              >
-                <p className="texte-corps text-statut-attention">
-                  {messageErreur(erreurRegression, t)}
-                </p>
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="kilometrage-motif">{t('vehicules:kilometrage.motif')}</Label>
-                  <Select
-                    value={motif}
-                    onValueChange={(valeurMotif) =>
-                      setMotif(valeurMotif as MotifKilometrageRegressif)
-                    }
-                  >
-                    <SelectTrigger
-                      id="kilometrage-motif"
-                      aria-label={t('vehicules:kilometrage.motif')}
-                    >
-                      <SelectValue placeholder={t('vehicules:kilometrage.motif')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MOTIFS_KILOMETRAGE_REGRESSIF.map((valeurMotif) => (
-                        <SelectItem key={valeurMotif} value={valeurMotif}>
-                          {t(`vehicules:kilometrage.motifsRegression.${valeurMotif}`)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            ) : null}
-
+      <PanneauLateral
+        ouvert={ouvert}
+        onOuvertChange={fermer}
+        titre={t('vehicules:kilometrage.relever')}
+        pied={
+          <>
+            <Button type="button" variant="outline" onClick={() => fermer(false)}>
+              {t('commun:actions.annuler')}
+            </Button>
             <Button
               type="submit"
+              form="formulaire-kilometrage"
               disabled={
                 valeur === null ||
                 mutation.isPending ||
@@ -222,9 +135,102 @@ export function FormulaireKilometrage({
                 ? t('commun:actions.continuerQuandMeme')
                 : t('vehicules:kilometrage.relever')}
             </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
+          </>
+        }
+      >
+        <form id="formulaire-kilometrage" onSubmit={soumettre} className="flex flex-col gap-4">
+          <LegendeChampsObligatoires>
+            {t('commun:formulaires.champsObligatoiresLegende')}
+          </LegendeChampsObligatoires>
+
+          <ChampKilometrage
+            valeur={valeur}
+            onChangeValeur={setValeur}
+            unite={unite}
+            label={t('vehicules:kilometrage.valeur')}
+            obligatoire
+          />
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="kilometrage-unite">{t('vehicules:kilometrage.unite')}</Label>
+            <Select
+              value={unite}
+              onValueChange={(valeurChoisie) => setUnite(valeurChoisie as UniteDistance)}
+            >
+              <SelectTrigger id="kilometrage-unite" aria-label={t('vehicules:kilometrage.unite')}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {UNITES_DISTANCE.map((valeurUnite) => (
+                  <SelectItem key={valeurUnite} value={valeurUnite}>
+                    {t(`vehicules:kilometrage.unites.${valeurUnite}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="kilometrage-source" requis>
+              {t('vehicules:kilometrage.source')}
+            </Label>
+            <Select
+              value={source}
+              onValueChange={(valeurSource) => setSource(valeurSource as SourceKilometrage)}
+            >
+              <SelectTrigger
+                id="kilometrage-source"
+                aria-label={t('vehicules:kilometrage.source')}
+                aria-required="true"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SOURCES_KILOMETRAGE.map((valeurSource) => (
+                  <SelectItem key={valeurSource} value={valeurSource}>
+                    {t(`vehicules:${CLES_SOURCE[valeurSource]}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {erreurRegression ? (
+            // Bordure structurelle : encart d'alerte (régression de kilométrage détectée).
+            <div
+              role="alert"
+              className="flex flex-col gap-3 rounded-md border border-statut-attention bg-statut-attention-fond p-3"
+            >
+              <p className="texte-corps text-statut-attention">
+                {messageErreur(erreurRegression, t)}
+              </p>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="kilometrage-motif">{t('vehicules:kilometrage.motif')}</Label>
+                <Select
+                  value={motif}
+                  onValueChange={(valeurMotif) =>
+                    setMotif(valeurMotif as MotifKilometrageRegressif)
+                  }
+                >
+                  <SelectTrigger
+                    id="kilometrage-motif"
+                    aria-label={t('vehicules:kilometrage.motif')}
+                  >
+                    <SelectValue placeholder={t('vehicules:kilometrage.motif')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MOTIFS_KILOMETRAGE_REGRESSIF.map((valeurMotif) => (
+                      <SelectItem key={valeurMotif} value={valeurMotif}>
+                        {t(`vehicules:kilometrage.motifsRegression.${valeurMotif}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          ) : null}
+        </form>
+      </PanneauLateral>
 
       <AvertissementConfirmable
         ouvert={confirmationOuverte}

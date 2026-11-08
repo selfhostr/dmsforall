@@ -6,7 +6,6 @@ import type { SessionCourante } from '@dfa/shared';
 
 import { clesQuery } from '@/api/cles';
 import { recupererSessionCourante } from '@/api/session';
-import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 
 import {
   ongletsVisibles,
@@ -114,10 +113,9 @@ export interface NavigationActive {
 export function useNavigationActive(): NavigationActive {
   const pathname = useCheminTolerantAuRouteur();
   const searchParams = useParametresRechercheTolerants();
-  const { preferenceSiteId } = useSiteCourant();
   // Même correctif que `BarreLaterale.tsx`/`OngletsDomaine.tsx` (issue #91) : l'URL fait foi, la
   // préférence ne comble que son absence.
-  const site = searchParams.get('site') ?? preferenceSiteId;
+  const site = searchParams.get('site') ?? undefined;
   const sujet = useSujetNavigation();
 
   const correspondance = trouverCorrespondance(pathname);

@@ -11,7 +11,12 @@ import { isIP } from 'node:net';
 
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { and, asc, eq } from 'drizzle-orm';
-import type { EntreeConnexion, SessionCourante, TypeEvenementSecurite } from '@dfa/shared';
+import {
+  modulesActifsDepuis,
+  type EntreeConnexion,
+  type SessionCourante,
+  type TypeEvenementSecurite,
+} from '@dfa/shared';
 
 import { JETON_CONFIG } from '../../config/config.jetons';
 import type { Config } from '../../config/config.types';
@@ -265,6 +270,7 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
             // chaque appel, jamais depuis le principal — `connecter()` construit un principal
             // sans site (voir son commentaire), et cette méthode sert les deux chemins.
             siteId: utilisateur.siteId,
+            sitePrincipalId: utilisateur.sitePrincipalId,
             // Grille de capacités : relue ici comme le rôle, pour que `actions` reflète la
             // personne réelle (jamais un préréglage périmé).
             niveauAtelier: utilisateur.niveauAtelier,
@@ -279,6 +285,7 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
             voitMontants: utilisateur.voitMontants,
             voitPrixAchat: utilisateur.voitPrixAchat,
             avoirsPlafonnes: utilisateur.avoirsPlafonnes,
+            motDePasseAChanger: utilisateur.motDePasseAChanger,
           })
           .from(utilisateur)
           .where(
@@ -297,6 +304,9 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
             slug: tenant.slug,
             raisonSociale: tenant.raisonSociale,
             langueDefaut: tenant.langueDefaut,
+            modulesDesactives: tenant.modulesDesactives,
+            modeSignalement: tenant.modeSignalement,
+            assujettiTva: tenant.assujettiTva,
           })
           .from(tenant)
           .where(eq(tenant.id, principal.tenantId));
@@ -319,7 +329,13 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
             : eq(site.tenantId, principal.tenantId);
 
         const lignesSites = await tx
-          .select({ id: site.id, code: site.code, nom: site.nom, actif: site.actif })
+          .select({
+            id: site.id,
+            code: site.code,
+            codeCourt: site.codeCourt,
+            nom: site.nom,
+            actif: site.actif,
+          })
           .from(site)
           .where(conditionSites)
           .orderBy(asc(site.code));
@@ -343,6 +359,10 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
 
         const grille = grilleDepuisLigne(ligneUtilisateur);
 
+        // La liste brute des modules retirés n'est pas un champ de `TenantCourant` : la session
+        // n'expose que `modulesActifs` (effet des dépendances compris).
+        const { modulesDesactives, ...tenantCourant } = ligneTenant;
+
         // `siteId` est retiré de l'objet `utilisateur` : le contrat `UtilisateurCourant` ne porte
         // pas de site (c'est une propriété du COMPTE, exposée à part en `siteRattachementId`), et
         // renvoyer un champ non déclaré au contrat le ferait diverger de l'OpenAPI généré.
@@ -355,11 +375,14 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
             role: ligneUtilisateur.role,
             langue: ligneUtilisateur.langue,
           },
-          tenant: ligneTenant,
+          motDePasseAChanger: ligneUtilisateur.motDePasseAChanger,
+          tenant: tenantCourant,
           sites: lignesSites,
           siteRattachementId,
+          sitePrincipalId: ligneUtilisateur.sitePrincipalId,
           actions: [...droitsDe(ligneUtilisateur.role, grille).actions].sort(),
           capacites: capacitesPersonneDe(ligneUtilisateur.role, grille),
+          modulesActifs: modulesActifsDepuis(modulesDesactives),
           expireLe: ligneSession.expireLe.toISOString(),
         } satisfies SessionCourante;
       },

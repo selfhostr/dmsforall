@@ -45,6 +45,13 @@ vi.mock('./document-requetes', () => ({
   listerLignesDocument: vi.fn(),
 }));
 
+// Assujettissement du garage (migration 0090) : lu en base par l'émission ; ces tests ne couvrent
+// pas ce sujet (voir `assujettissement.spec.ts`), le garage est donc « assujetti avec n° TVA ».
+vi.mock('./assujettissement', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./assujettissement')>()),
+  chargerSituationTva: async () => ({ assujetti: true, numeroTva: 'CHE-116.281.710 TVA' }),
+}));
+
 import { ServiceDocumentsVente } from './service-documents';
 import * as documentRequetes from './document-requetes';
 

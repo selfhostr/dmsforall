@@ -13,7 +13,6 @@ import {
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -88,7 +87,6 @@ export function EcranListeVehicules() {
   } = useListeVehicules(filtres);
 
   const filtresStructuresActifs = statut !== undefined || importe;
-  const filtresActifs = q.trim() !== '' || filtresStructuresActifs;
 
   function effacerFiltres() {
     // Levier de reset (choix produit 26.08.2026) : `effacerFiltres` est un geste de reprise en
@@ -100,7 +98,7 @@ export function EcranListeVehicules() {
     setImporte(false);
   }
 
-  const colonnes: ColonneComptoir<VehiculeResume>[] = [
+  const colonnesToutes: ColonneComptoir<VehiculeResume>[] = [
     {
       id: 'vehicule',
       libelle: t('vehicules:liste.colonnes.vehicule'),
@@ -132,6 +130,10 @@ export function EcranListeVehicules() {
     },
   ];
 
+  // Colonne Emplacement masquée tant qu'aucune ligne chargée n'en porte un.
+  const afficherEmplacement = vehicules.some((v) => Boolean(v.emplacementLibre));
+  const colonnes = colonnesToutes.filter((c) => c.id !== 'emplacement' || afficherEmplacement);
+
   // Titres d'état vide nommant l'ABSENCE (jamais « Véhicules », qui répéterait l'onglet actif/le
   // menu — même défaut que celui corrigé le 17.08.2026 sur `EcranListeFactures.tsx`). Les textes
   // d'absence vivaient déjà, à tort, dans `description` — inversion corrigée ici.
@@ -156,14 +158,6 @@ export function EcranListeVehicules() {
       <EtatVidePremierUsage
         titre={t('vehicules:vide.nouveau.titre')}
         description={t('vehicules:vide.nouveau.description')}
-        action={
-          <Button asChild>
-            <Link to={chemins.vehicules.nouveau(site)}>
-              <Plus aria-hidden className="h-4 w-4" />
-              {t('vehicules:nouveau')}
-            </Link>
-          </Button>
-        }
       />
     );
   }
@@ -196,59 +190,61 @@ export function EcranListeVehicules() {
   // juste sous le titre, seul sur sa ligne, et décalerait tout le reste) : il rejoint la ligne
   // « Trier par », à droite — même déplacement que l'écran de référence (Atelier).
   return (
-    <GabaritEcran titre={t('vehicules:liste.titre')}>
-      <BarreFiltres
-        q={qSaisie}
-        onChangeQ={setQSaisie}
-        filtresActifs={filtresActifs}
-        onEffacerFiltres={effacerFiltres}
-      >
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="filtre-statut">{t('vehicules:liste.filtres.statut')}</Label>
-          <Select
-            value={statut ?? 'tous'}
-            onValueChange={(valeur) =>
-              setStatut(valeur === 'tous' ? undefined : (valeur as StatutVehicule))
-            }
-          >
-            <SelectTrigger
-              id="filtre-statut"
-              className="w-[180px]"
-              aria-label={t('vehicules:liste.filtres.statut')}
+    <GabaritEcran
+      titre={t('vehicules:liste.titre')}
+      actions={
+        <>
+          <Button asChild>
+            <Link to={chemins.vehicules.nouveau(site)}>
+              <Plus aria-hidden className="h-4 w-4" />
+              {t('vehicules:nouveau')}
+            </Link>
+          </Button>
+        </>
+      }
+      barre={
+        <BarreFiltres
+          tri={
+            <SelecteurTri
+              options={TRIS_VEHICULES.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
+              valeur={tri}
+              onChangeValeur={setTri}
+              label={t('vehicules:liste.tri.label')}
+            />
+          }
+          q={qSaisie}
+          onChangeQ={setQSaisie}
+        >
+          <div className="flex flex-col gap-1.5">
+            <Select
+              value={statut ?? 'tous'}
+              onValueChange={(valeur) =>
+                setStatut(valeur === 'tous' ? undefined : (valeur as StatutVehicule))
+              }
             >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="tous">{t('vehicules:liste.filtres.statutTous')}</SelectItem>
-              <SelectItem value="actif">{t('vehicules:liste.filtres.statuts.actif')}</SelectItem>
-              <SelectItem value="archive">
-                {t('vehicules:liste.filtres.statuts.archive')}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <label className="flex h-11 items-center gap-2 texte-corps">
-          <Checkbox checked={importe} onCheckedChange={(coche) => setImporte(coche === true)} />
-          {t('vehicules:liste.filtres.importe')}
-        </label>
-      </BarreFiltres>
-
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <SelecteurTri
-          options={TRIS_VEHICULES.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
-          valeur={tri}
-          onChangeValeur={setTri}
-          label={t('vehicules:liste.tri.label')}
-          className="max-w-xs"
-        />
-        <Button asChild>
-          <Link to={chemins.vehicules.nouveau(site)}>
-            <Plus aria-hidden className="h-4 w-4" />
-            {t('vehicules:nouveau')}
-          </Link>
-        </Button>
-      </div>
-
+              <SelectTrigger
+                id="filtre-statut"
+                className="w-[180px]"
+                aria-label={t('vehicules:liste.filtres.statut')}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="tous">{t('vehicules:liste.filtres.statutTous')}</SelectItem>
+                <SelectItem value="actif">{t('vehicules:liste.filtres.statuts.actif')}</SelectItem>
+                <SelectItem value="archive">
+                  {t('vehicules:liste.filtres.statuts.archive')}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <label className="flex h-11 items-center gap-2 texte-corps">
+            <Checkbox checked={importe} onCheckedChange={(coche) => setImporte(coche === true)} />
+            {t('vehicules:liste.filtres.importe')}
+          </label>
+        </BarreFiltres>
+      }
+    >
       <TableComptoir
         colonnes={colonnes}
         lignes={vehicules}

@@ -23,6 +23,7 @@ import { PipeZod } from '../common/validation';
 import { DisponibiliteArticleDto, StockArticleDto } from './dto';
 import { schemaUuid } from './schemas';
 import { ServiceStock } from './service-stock';
+import { ExigerModule } from '../common/droits/garde-module';
 
 const schemaQueteDisponibilite = z.object({ siteId: schemaIdentifiant });
 
@@ -33,6 +34,7 @@ const schemaQueteDisponibilite = z.object({ siteId: schemaIdentifiant });
  */
 @ApiTags('Pièces — Stock')
 @ApiCookieAuth()
+@ExigerModule('pieces')
 @Controller({ path: 'articles', version: '1' })
 @UseGuards(GardeDroit)
 export class StockArticleController {

@@ -11,7 +11,7 @@ import i18n from '@/i18n';
 import { server } from '@/test/msw/server';
 import { renduAvecRoutes } from '@/test/utils';
 
-import { RechercheGlobale } from './RechercheGlobale';
+import { RechercheGlobale, useOuvrirRechercheGlobale } from './RechercheGlobale';
 
 /**
  * Lot A (`docs/plan-refonte-navigation.md` §4) : la recherche montée dans l'en-tête, en
@@ -86,6 +86,33 @@ describe('RechercheGlobale', () => {
     expect(bouton.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
   });
 
+  it('déplié : entrée de menu « Rechercher » avec l’indication du raccourci, sans champ de saisie', () => {
+    rendre();
+
+    const bouton = screen.getByRole('button', { name: 'Rechercher' });
+    expect(bouton).toHaveTextContent('Rechercher');
+    expect(bouton.querySelector('kbd')).toHaveTextContent(/Ctrl K|⌘K/);
+    expect(bouton.className).toContain('h-11');
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+  });
+
+  it('replié : la loupe seule, nom accessible conservé, ni texte ni raccourci affichés', () => {
+    renduAvecRoutes([{ path: '/', element: <RechercheGlobale replie /> }]);
+
+    const bouton = screen.getByRole('button', { name: 'Rechercher' });
+    expect(bouton).not.toHaveTextContent('Rechercher');
+    expect(bouton.querySelector('kbd')).not.toBeInTheDocument();
+  });
+
+  it('sans raccourciClavier (instance du tiroir) : Ctrl+K n’ouvre rien', async () => {
+    const utilisateur = userEvent.setup();
+    renduAvecRoutes([{ path: '/', element: <RechercheGlobale raccourciClavier={false} /> }]);
+
+    await utilisateur.keyboard('{Control>}k{/Control}');
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
   it('le bouton loupe ouvre le panneau en surimpression', async () => {
     const utilisateur = userEvent.setup();
     rendre();
@@ -134,6 +161,60 @@ describe('RechercheGlobale', () => {
     await utilisateur.click(resultat);
 
     expect(await screen.findByText('Fiche véhicule ouverte')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('useOuvrirRechercheGlobale ouvre le panneau sans événement clavier', async () => {
+    const utilisateur = userEvent.setup();
+    function ChampAccueil() {
+      const ouvrir = useOuvrirRechercheGlobale();
+      return (
+        <button type="button" onClick={ouvrir}>
+          Chercher depuis l’accueil
+        </button>
+      );
+    }
+    renduAvecRoutes([
+      {
+        path: '/',
+        element: (
+          <>
+            <RechercheGlobale />
+            <ChampAccueil />
+          </>
+        ),
+      },
+    ]);
+
+    await utilisateur.click(screen.getByRole('button', { name: 'Chercher depuis l’accueil' }));
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('useOuvrirRechercheGlobale n’ouvre pas l’instance du tiroir (une seule fenêtre)', async () => {
+    const utilisateur = userEvent.setup();
+    function ChampAccueil() {
+      const ouvrir = useOuvrirRechercheGlobale();
+      return (
+        <button type="button" onClick={ouvrir}>
+          Chercher depuis l’accueil
+        </button>
+      );
+    }
+    renduAvecRoutes([
+      {
+        path: '/',
+        element: (
+          <>
+            <RechercheGlobale raccourciClavier={false} />
+            <ChampAccueil />
+          </>
+        ),
+      },
+    ]);
+
+    await utilisateur.click(screen.getByRole('button', { name: 'Chercher depuis l’accueil' }));
+
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

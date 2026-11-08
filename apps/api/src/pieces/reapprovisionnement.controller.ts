@@ -10,10 +10,12 @@ import { PipeZod } from '../common/validation';
 import { PageReapprovisionnementDto } from './dto';
 import { schemaFiltresReapprovisionnement } from './schemas';
 import { ServiceStock } from './service-stock';
+import { ExigerModule } from '../common/droits/garde-module';
 
 /** `GET /stock/reapprovisionnement` — RP-12 : propose, ne commande jamais automatiquement. */
 @ApiTags('Pièces — Stock')
 @ApiCookieAuth()
+@ExigerModule('pieces')
 @Controller({ path: 'stock', version: '1' })
 @UseGuards(GardeDroit)
 export class ReapprovisionnementController {

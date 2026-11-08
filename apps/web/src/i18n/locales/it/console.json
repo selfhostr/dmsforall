@@ -6,7 +6,6 @@
   },
   "plateforme": {
     "titre": "Vista piattaforma",
-    "sousTitre": "Panoramica dei problemi in tutti i garage.",
     "etatErreur": {
       "titre": "Impossibile visualizzare la vista piattaforma",
       "moduleInactif": {
@@ -31,7 +30,7 @@
     },
     "statutFiltre": {
       "label": "Stato",
-      "tous": "Tutti"
+      "tous": "Tutti gli stati"
     },
     "statut": {
       "critique": "Critico",

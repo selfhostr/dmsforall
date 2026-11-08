@@ -3,7 +3,7 @@
     "aria": "Hauptnavigation"
   },
   "entrees": {
-    "aujourdhui": "Heute",
+    "aujourdhui": "Übersicht",
     "atelier": "Werkstatt",
     "clientsVehicules": "Kunden & Fahrzeuge",
     "pieces": "Teile",
@@ -41,12 +41,14 @@
     "piecesFacturesFournisseur": "Lieferantenrechnungen",
     "piecesConsignes": "Pfand",
     "facturationFactures": "Rechnungen",
+    "facturationChiffres": "Kennzahlen",
     "facturationEncaissements": "Zahlungseingänge",
     "facturationRelances": "Mahnungen",
     "facturationExportFiduciaire": "Treuhand-Export",
     "ventesDossiers": "Laufende Verkäufe",
     "ventesParc": "Fahrzeuge im Lager",
     "ventesSuivi": "Finanzierung & Garantie",
+    "reglagesGarage": "Meine Garage",
     "reglagesAtelier": "Werkstatt",
     "reglagesSites": "Standorte",
     "reglagesFacturation": "Abrechnung",
@@ -54,7 +56,8 @@
     "reglagesPieces": "Teile",
     "reglagesUtilisateurs": "Benutzer",
     "reglagesRelances": "Zahlungserinnerungen",
-    "atelierCourtoisie": "Ersatzwagen"
+    "atelierCourtoisie": "Ersatzwagen",
+    "reglagesModules": "Module"
   },
   "liens": {
     "clients": "Kunden",
@@ -87,11 +90,25 @@
     "agrandir": "Seitenleiste ausklappen"
   },
   "theme": {
+    "titre": "Design",
+    "clair": "Hell",
+    "sombre": "Dunkel",
+    "systeme": "System",
+    "passerSysteme": "Dem System-Design folgen",
     "passerClair": "Zu hellem Design wechseln",
     "passerSombre": "Zu dunklem Design wechseln"
   },
   "pied": {
-    "version": "Version {info}",
-    "versionInconnue": "unbekannt"
+    "version": "Version {info}"
+  },
+  "configurer": {
+    "entree": "Garage einrichten",
+    "pastille": "Garage noch einzurichten"
+  },
+  "rangee": {
+    "aria": "Schnelleinstellungen"
+  },
+  "signalement": {
+    "entree": "Problem melden"
   }
 }

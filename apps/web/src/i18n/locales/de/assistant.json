@@ -1,0 +1,106 @@
+{
+  "titre": "Betrieb einrichten",
+  "navigation": {
+    "liste": "Schritte des Assistenten",
+    "position": "Schritt {numero} von {total}",
+    "terminee": "abgeschlossen"
+  },
+  "actions": {
+    "suivant": "Weiter",
+    "retour": "Zurück",
+    "passer": "Diesen Schritt überspringen",
+    "enregistrerContinuer": "Speichern und weiter",
+    "enregistrement": "Wird gespeichert…",
+    "quitter": "Vorerst beenden"
+  },
+  "chargement": "Ihre Einstellungen werden geladen",
+  "erreur": {
+    "titre": "Ihre Einstellungen konnten nicht geladen werden",
+    "enregistrement": "Das Speichern ist fehlgeschlagen. Ihre Eingaben bleiben erhalten: korrigieren Sie und versuchen Sie es erneut."
+  },
+  "reprise": {
+    "bouton": "Assistent fortsetzen"
+  },
+  "etapes": {
+    "garage": {
+      "titre": "Ihr Betrieb"
+    },
+    "modules": {
+      "titre": "Was Sie nutzen",
+      "intro": "Entfernen Sie, was Ihre Garage nicht nutzt. Sie können das später unter Einstellungen > Module ändern."
+    },
+    "paiements": {
+      "titre": "Zahlungen"
+    },
+    "atelier": {
+      "titre": "Werkstatt"
+    },
+    "logo": {
+      "titre": "Ihr Logo"
+    },
+    "equipe": {
+      "titre": "Team"
+    },
+    "termine": {
+      "titre": "Fertig"
+    }
+  },
+  "garage": {
+    "raisonSociale": "Firmenname",
+    "rue": "Strasse",
+    "numero": "Nr.",
+    "npa": "PLZ",
+    "localite": "Ort",
+    "erreurRue": "Geben Sie die Strasse an.",
+    "erreurNpa": "Geben Sie die PLZ an.",
+    "erreurLocalite": "Geben Sie den Ort an.",
+    "tva": {
+      "question": "Ist Ihr Betrieb mehrwertsteuerpflichtig?",
+      "oui": "Ja",
+      "non": "Nein",
+      "numero": "MWST-Nummer",
+      "erreurFormat": "Diese Nummer hat nicht das richtige Format. Beispiel: CHE-123.456.789 MWST.",
+      "erreurCle": "Diese MWST-Nummer ist falsch: Prüfen Sie die Ziffern."
+    },
+    "erreurRaisonSociale": "Geben Sie den Firmennamen an."
+  },
+  "paiements": {
+    "comptant": "Ich kassiere nur bar",
+    "iban": "IBAN",
+    "ibanAide": "Für eine QR-Rechnung mit QR-Referenz geben Sie die QR-IBAN an, nicht die IBAN."
+  },
+  "atelier": {
+    "tauxHoraire": "Stundensatz (CHF/h)",
+    "tauxDejaDefini": "Stundensatz bereits festgelegt: CHF {montant} pro Stunde.",
+    "erreurMontant": "Geben Sie einen gültigen Betrag an, zum Beispiel 140.00.",
+    "horaires": "Öffnungszeiten",
+    "ouverture": "Öffnung",
+    "fermeture": "Schliessung",
+    "horairesPlusieursSites": "Ihr Betrieb hat mehrere Standorte: Legen Sie die Öffnungszeiten pro Standort in den Einstellungen fest.",
+    "motifs": "Termingründe",
+    "motifDejaPresent": "bereits vorhanden"
+  },
+  "equipe": {
+    "prenom": "Vorname",
+    "nom": "Name",
+    "email": "E-Mail",
+    "inviter": "Konto erstellen",
+    "plusTard": "Später",
+    "erreurChamps": "Vorname, Name und E-Mail sind Pflichtfelder.",
+    "invitesTitre": "Erstellte Konten",
+    "accesTemporaire": "Temporäres Passwort: {mot}. Notieren Sie es, es wird nicht mehr angezeigt.",
+    "continuer": "Weiter"
+  },
+  "termine": {
+    "etat": {
+      "fait": "Erledigt",
+      "aFaire": "Noch zu erledigen",
+      "aFaireFacultatif": "Optional, nicht erledigt",
+      "inconnu": "Zu prüfen"
+    },
+    "comptesCrees": "{nombre, plural, =0 {Kein Konto erstellt} one {# Konto erstellt} other {# Konten erstellt}} während dieses Assistenten.",
+    "creerOr": "Ersten Reparaturauftrag erstellen",
+    "ajouterClient": "Kunden hinzufügen",
+    "accueil": "Zur Startseite"
+  }
+}

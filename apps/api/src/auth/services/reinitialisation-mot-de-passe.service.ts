@@ -263,7 +263,12 @@ export class ServiceReinitialisationMotDePasseImpl implements ServiceReinitialis
 
         await tx
           .update(utilisateur)
-          .set({ motDePasseHash, echecsConnexion: 0, verrouilleJusquA: null })
+          .set({
+            motDePasseHash,
+            motDePasseAChanger: false,
+            echecsConnexion: 0,
+            verrouilleJusquA: null,
+          })
           .where(and(eq(utilisateur.tenantId, u.tenantId), eq(utilisateur.id, u.id)));
       });
     } catch (erreur) {

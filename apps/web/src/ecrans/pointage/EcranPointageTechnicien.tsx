@@ -31,7 +31,7 @@ import { useDemarrerPointage } from '@/hooks/pointage/useDemarrerPointage';
 import { useDerniereCiblePointage } from '@/hooks/pointage/useDerniereCiblePointage';
 import { useMesOrdresAssignes } from '@/hooks/pointage/useMesOrdresAssignes';
 import { usePointageOuvertTechnicien } from '@/hooks/pointage/usePointageOuvertTechnicien';
-import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
+import { useSitePrincipal } from '@/hooks/site/useSitePrincipal';
 import { useSession } from '@/hooks/useSession';
 import { genererUuid } from '@/lib/uuid';
 
@@ -190,12 +190,12 @@ export function EcranPointageTechnicien() {
   const [searchParams, setSearchParams] = useSearchParams();
   const siteParam = searchParams.get('site') ?? undefined;
   const sitesActifs = (session?.sites ?? []).filter((site) => site.actif);
-  const { preferenceSiteId } = useSiteCourant();
+  const sitePrincipal = useSitePrincipal();
   // Site des activités indirectes (pause, nettoyage…), dans l'ordre : `?site=` explicite, site
-  // unique du tenant, dernier site choisi sur ce poste (préférence), puis — plus bas, une fois
+  // unique du tenant, site principal de la personne, puis — plus bas, une fois
   // « Mes OR » chargées — le site commun de tous mes OR. Le sélecteur de site n'apparaît que si
   // AUCUN de ces repères ne tranche.
-  const preferenceActive = sitesActifs.find((site) => site.id === preferenceSiteId)?.id;
+  const preferenceActive = sitesActifs.find((site) => site.id === sitePrincipal)?.id;
   const siteConnu =
     siteParam ?? (sitesActifs.length === 1 ? sitesActifs[0]?.id : undefined) ?? preferenceActive;
 
@@ -609,8 +609,7 @@ export function EcranPointageTechnicien() {
           <Button
             type="button"
             variant="ghost"
-            size="lg"
-            className="min-h-[72px]"
+            size="sm"
             onClick={() => setToutesOrOuvertesManuel(!toutesOrOuvertesVisible)}
           >
             {toutesOrOuvertesVisible

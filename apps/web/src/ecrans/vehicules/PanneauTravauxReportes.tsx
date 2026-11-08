@@ -19,6 +19,7 @@ import {
   type UrgenceTravail,
 } from '@dfa/shared';
 
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { ErreurReseau, messageErreur } from '@/api/erreurs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -284,9 +285,15 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
   return (
     <Card className={className}>
       <CardHeader className="flex flex-row items-center justify-between gap-2">
-        <CardTitle className="texte-titre-section">
-          {t('vehicules:travauxReportes.titre')}
-        </CardTitle>
+        <div className="flex items-center gap-1.5">
+          <CardTitle className="texte-titre-section">
+            {t('vehicules:travauxReportes.titre')}
+          </CardTitle>
+          <AideContextuelle
+            sujet={t('vehicules:travauxReportes.titre')}
+            texte={t('aide:vehicules.travauxReportes')}
+          />
+        </div>
         {peutSignaler ? (
           <Button type="button" variant="outline" size="sm" onClick={() => setReporterOuvert(true)}>
             <Plus aria-hidden className="h-4 w-4" />
@@ -308,10 +315,7 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
         ) : null}
 
         {travaux.length === 0 ? (
-          <EtatVide
-            titre={t('vehicules:travauxReportes.titre')}
-            description={t('vehicules:travauxReportes.vide.aucun')}
-          />
+          <EtatVide description={t('vehicules:travauxReportes.vide.aucun')} />
         ) : (
           <Tabs value={onglet} onValueChange={(valeur) => setOnglet(valeur as Onglet)}>
             <TabsList>
@@ -325,10 +329,7 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
             {ONGLETS.map((cle) => (
               <TabsContent key={cle} value={cle}>
                 {travauxOnglet.length === 0 ? (
-                  <EtatVide
-                    titre={t('vehicules:travauxReportes.titre')}
-                    description={t('vehicules:travauxReportes.vide.onglet')}
-                  />
+                  <EtatVide description={t('vehicules:travauxReportes.vide.onglet')} />
                 ) : (
                   <ul className="flex flex-col divide-y">
                     {travauxOnglet.map((travail) => {

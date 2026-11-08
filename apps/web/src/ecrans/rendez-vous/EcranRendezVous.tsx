@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSearchParams } from 'react-router';
 
 import type { ClientResume, ReponseRendezVous, VehiculeResume } from '@dfa/shared';
 
@@ -39,9 +38,8 @@ import { peutPreterCourtoisie } from '@/ecrans/courtoisie/droits';
 import { useDeplacerRendezVous } from '@/hooks/rendez-vous/useDeplacerRendezVous';
 import { useDepotsPneusClient } from '@/hooks/rendez-vous/useDepotsPneusClient';
 import { useRendezVousAutresSites } from '@/hooks/rendez-vous/useRendezVousAutresSites';
-import { resoudreSiteId, vehiculeParDefaut } from '@/hooks/rendez-vous/preselection';
-import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
-import { useSiteImplicite } from '@/hooks/site/useSiteImplicite';
+import { vehiculeParDefaut } from '@/hooks/rendez-vous/preselection';
+import { useFiltreSite } from '@/hooks/site/useFiltreSite';
 import { DialogueDeplacerRendezVous } from '@/composants/rendez-vous/DialogueDeplacerRendezVous';
 import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
 import { formaterDate } from '@/lib/formats';
@@ -100,27 +98,17 @@ function versDetail(
 export function EcranRendezVous() {
   const { t, i18n } = useTranslation(['planning', 'commun', 'erreurs']);
   const { langue } = useLangue();
-  const [searchParams, setSearchParams] = useSearchParams();
   const { data: session } = useSession();
-  const { preferenceSiteId } = useSiteCourant();
   const actions = session?.actions;
   const sitesSession = useMemo(() => session?.sites ?? [], [session]);
-  // Site affiché : celui de l'URL, sinon la préférence du poste, sinon l'unique site du garage —
-  // jamais « Choisissez un site » quand la réponse est évidente.
-  const { siteId: siteImplicite } = useSiteImplicite();
-  const siteId =
-    resoudreSiteId(searchParams.get('site'), preferenceSiteId, sitesSession) ?? siteImplicite;
+  // L'agenda est celui d'UN site : le site principal par défaut, jamais « Tous ». Le choix est
+  // mémorisé pour cet écran seulement.
+  const filtreSite = useFiltreSite('planning.agenda', { siteObligatoire: true });
+  const siteId = filtreSite.siteId;
   const site = siteId ? sitesSession.find((s) => s.id === siteId) : undefined;
 
   function onChangerSite(nouveauSiteId: string) {
-    setSearchParams(
-      (courants) => {
-        const suivants = new URLSearchParams(courants);
-        suivants.set('site', nouveauSiteId);
-        return suivants;
-      },
-      { replace: false },
-    );
+    filtreSite.choisir(nouveauSiteId);
   }
 
   const [vueListe, setVueListe] = useState(false);
@@ -325,6 +313,7 @@ export function EcranRendezVous() {
         onChangerSite={onChangerSite}
         onDemain={onDemain}
         sitesChoisissables={sitesSession}
+        filtreSite={filtreSite}
       />
 
       {site ? (

@@ -89,6 +89,10 @@ export const utilisateur = pgTable(
     voitPrixAchat: boolean('voit_prix_achat').notNull().default(sansDefautBase),
     avoirsPlafonnes: boolean('avoirs_plafonnes').notNull().default(sansDefautBase),
 
+    /** Migration 0096 : true tant que la personne n'a pas remplacé le mot de passe temporaire donné
+     *  par la direction. Jamais vrai pour un compte de service (CHECK en base). */
+    motDePasseAChanger: boolean('mot_de_passe_a_changer').notNull().default(false),
+
     /**
      * Site de rattachement du COMPTE (migration 0039).
      *
@@ -107,6 +111,13 @@ export const utilisateur = pgTable(
      * autre site.
      */
     siteId: uuid('site_id'),
+
+    /**
+     * Site principal d'une PERSONNE (migration 0091) : défaut des filtres de site de l'interface.
+     * Nullable. Ne confère aucun droit. Une borne (`poste_atelier`) n'en a pas (CHECK) : son site
+     * est `siteId` ci-dessus.
+     */
+    sitePrincipalId: uuid('site_principal_id'),
 
     /** `invite` = créé mais mot de passe jamais posé → ne peut pas se connecter. */
     statut: statutUtilisateurEnum('statut').notNull().default('invite'),
@@ -161,6 +172,19 @@ export const utilisateur = pgTable(
       columns: [t.tenantId, t.siteId],
       foreignColumns: [site.tenantId, site.id],
     }).onDelete('restrict'),
+
+    foreignKey({
+      name: 'utilisateur_fk_site_principal',
+      columns: [t.tenantId, t.sitePrincipalId],
+      foreignColumns: [site.tenantId, site.id],
+    }).onDelete('restrict'),
+    check(
+      'utilisateur_site_principal_personne_chk',
+      sql`${t.role} <> 'poste_atelier' or ${t.sitePrincipalId} is null`,
+    ),
+    index('utilisateur_site_principal_idx')
+      .on(t.tenantId, t.sitePrincipalId)
+      .where(sql`${t.sitePrincipalId} is not null`),
 
     // Biconditionnelle, PAS une simple implication : elle interdit aussi de rattacher un compte
     // de personne à un site, ce qui donnerait l'illusion d'une affectation utilisateur↔site

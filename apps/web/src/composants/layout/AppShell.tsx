@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, Outlet, useLocation } from 'react-router';
 
+import { SignalerProbleme } from '@/composants/signalement/SignalerProbleme';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
-import { FournisseurSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { useSession } from '@/hooks/useSession';
 import { cn } from '@/lib/utils';
 import { chemins } from '@/routes/chemins';
@@ -11,7 +11,6 @@ import { chemins } from '@/routes/chemins';
 import { BandeauSansNavigation } from './BandeauSansNavigation';
 import { BarreLaterale } from './BarreLaterale';
 import { BarreOngletsBasse } from './BarreOngletsBasse';
-import { BarreOutilsSuperieure } from './BarreOutilsSuperieure';
 import { LimiteErreurEcran } from './LimiteErreurEcran';
 import { entreesVisibles, sujetNavigation } from './navigation-modele';
 import { OngletsDomaine } from './OngletsDomaine';
@@ -22,16 +21,10 @@ import { useRepliBarreLaterale } from './useRepliBarreLaterale';
  * TROIS PALIERS (refonte navigation mobile, 24.08.2026 — voir aussi `BarreOngletsBasse.tsx`) :
  *
  *  - `>= lg` (1024px) — bureau : barre latérale fixe (240/64px repliée).
- *  - `md`..`lg` (768-1023px) — tablette portrait : ni barre latérale ni barre basse, la
- *    navigation passe par le tiroir (`Sheet`) déclenché depuis le hamburger de
- *    `BarreOutilsSuperieure.tsx`. Même mécanisme qu'avant ce lot, borné à cette plage.
- *  - `< md` (téléphone) — barre d'onglets basse (`BarreOngletsBasse.tsx`), fixée en bas,
- *    zone sûre respectée. Le hamburger de `BarreOutilsSuperieure` disparaît à ce palier
- *    (`hidden md:flex lg:hidden`) : il ferait doublon avec le bouton « Plus » de la barre
- *    basse, qui ouvre le MÊME tiroir via l'état `ouvert`/`setOuvert` ci-dessous, partagé
- *    entre les deux déclencheurs. La barre haute (recherche) et le tiroir ne disparaissent
- *    PAS pour autant : la barre basse est un mode téléphone, pas un remplacement (voir sa
- *    doc de tête) — la recherche reste accessible à tous les paliers.
+ *  - `< lg` (tablette et téléphone) — pas de barre latérale fixe ni de bandeau haut (supprimé) :
+ *    barre d'onglets basse (`BarreOngletsBasse.tsx`), dont le bouton « Plus » ouvre le tiroir
+ *    (`Sheet`, état `ouvert`/`setOuvert` ci-dessous) qui contient la barre latérale — recherche
+ *    globale, site, entrées, menu du compte.
  *  - Palier repris de `md` (768px, Tailwind par défaut) : c'est aussi celui du repli des
  *    tableaux en cartes traité en parallèle ailleurs dans ce lot — même seuil partout,
  *    jamais deux paliers différents pour une seule bascule téléphone/tablette.
@@ -45,9 +38,8 @@ import { useRepliBarreLaterale } from './useRepliBarreLaterale';
  * colonne vide sur une tablette d'atelier serait pire que de ne pas l'afficher.
  *
  * LOT « CADRE APPLICATIF » (19.08.2026, demande produit) — `EnTete.tsx` est SUPPRIMÉ, remplacé par DEUX
- * bandeaux mutuellement exclusifs, choisis sur le MÊME `afficheNavigation` qui gouvernait déjà
- * l'`aside` ci-dessous : `BarreOutilsSuperieure.tsx` (recherche + déclencheur du tiroir mobile)
- * quand la navigation existe — tenant, site, identité et déconnexion ont migré dans
+ * bandeaux mutuellement exclusifs ; le bandeau haut `BarreOutilsSuperieure.tsx` a depuis été
+ * SUPPRIMÉ (recherche et site descendus dans la barre latérale) — tenant, site, identité et déconnexion ont migré dans
  * `BarreLaterale.tsx`, contexte permanent du cadre plutôt que d'une bande répétée en haut de
  * chaque écran — et `BandeauSansNavigation.tsx` (déconnexion seule) sinon. Ce second cas couvre
  * exactement ce que gardait l'ancienne `EnTete.tsx` « contrairement à la lettre de §2 » : la borne
@@ -79,12 +71,8 @@ export function AppShell() {
   const afficheBarreBasse = afficheNavigation && !modeScan.actif;
 
   return (
-    // Porte la préférence de site (issue #91) pour toute la coquille et l'écran routé — voir
-    // `hooks/site/ContexteSiteCourant.tsx`. Montée ICI (au-dessus d'`EnTete`/`BarreLaterale`/
-    // `OngletsDomaine` ET de `<Outlet/>`) : les trois composants de navigation la lisent en frères
-    // synchronisés, et la route index (`routeur.tsx`) peut s'en servir pour atterrir directement
-    // sur le dernier site connu plutôt que sur « aucun site ».
-    <FournisseurSiteCourant>
+    <>
+      <SignalerProbleme />
       {/* `pt-zone-sure-haut`/`pl-zone-sure-gauche`/`pr-zone-sure-droite` : depuis que
           `index.html` porte `viewport-fit=cover` (voir `BarreOngletsBasse.tsx`), la page peut
           s'étendre sous l'encoche/le coin arrondi sur TOUS les côtés, pas seulement en bas —
@@ -125,13 +113,9 @@ export function AppShell() {
 
         <div className="flex min-w-0 flex-1 flex-col">
           {afficheNavigation ? (
-            // `Sheet` enveloppe `BarreOutilsSuperieure` (qui porte le `SheetTrigger`, déclencheur du
-            // tiroir sur mobile) ET `SheetContent` (le tiroir lui-même) : Radix relie les deux par
-            // contexte, la position exacte du déclencheur dans l'arbre n'a pas besoin d'être un
-            // enfant direct de `SheetContent`.
+            // Tiroir de la barre latérale (téléphone/tablette), ouvert par « Plus » de la barre basse.
             <Sheet open={ouvert} onOpenChange={setOuvert}>
-              <BarreOutilsSuperieure />
-              <SheetContent side="left" className="w-60 p-0">
+              <SheetContent side="left" className="w-60 content-stretch auto-rows-fr p-0">
                 {/* `SheetContent side="left"` pose déjà `fixed inset-y-0 ... h-full` (voir
                     `components/ui/sheet.tsx`) : le tiroir a donc une hauteur de viewport définie
                     sans rien ajouter ici, et `BarreLaterale` (h-full) s'y ancre exactement comme
@@ -162,7 +146,7 @@ export function AppShell() {
               // (`md:hidden` sur `BarreOngletsBasse`) : au-delà, `md:pb-6` reprend le rembourrage
               // ordinaire. Défaut classique évité ici (voir la doc de tête du composant) : sans
               // ce padding, la barre recouvre la dernière ligne de chaque écran qui défile.
-              afficheBarreBasse && 'pb-barre-onglets-degagement md:pb-6',
+              afficheBarreBasse && 'pb-barre-onglets-degagement lg:pb-6',
             )}
           >
             <LimiteErreurEcran>
@@ -181,16 +165,14 @@ export function AppShell() {
           </main>
         </div>
 
-        {/* Barre basse — mode téléphone seul (`md:hidden`, voir sa doc de tête). Son bouton
-            « Plus » ouvre le MÊME `Sheet` que le hamburger de `BarreOutilsSuperieure` ci-dessus :
-            état `ouvert`/`setOuvert` partagé, pas un second tiroir à maintenir. Placée hors de la
+        {/* Barre basse — téléphone ET tablette (`lg:hidden`) : le bandeau du haut est supprimé,
+            son bouton « Plus » est le seul déclencheur du `Sheet` (tiroir de la barre latérale). Placée hors de la
             colonne de droite (position `fixed`, indifférente à l'endroit du DOM) mais toujours
-            sous `FournisseurSiteCourant`, dont elle a besoin pour résoudre le site courant des
-            liens qu'elle pose. */}
+            à l'URL (`?site=`) pour les liens qu'elle pose. */}
         {afficheBarreBasse ? (
           <BarreOngletsBasse ouvrirPlus={() => setOuvert(true)} plusOuvert={ouvert} />
         ) : null}
       </div>
-    </FournisseurSiteCourant>
+    </>
   );
 }

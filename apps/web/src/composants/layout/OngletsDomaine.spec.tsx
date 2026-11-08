@@ -8,7 +8,6 @@ import '@/i18n';
 
 import type { RoleUtilisateur } from '@dfa/shared';
 
-import { FournisseurSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
@@ -33,21 +32,6 @@ function rendre(routeInitiale: string): RenderResult & { queryClient: QueryClien
       </QueryClientProvider>,
     ),
   };
-}
-
-/** Même rendu que `rendre`, sous `FournisseurSiteCourant` — seul moyen d'exercer la préférence de
- *  site mémorisée (`hooks/site/ContexteSiteCourant.tsx`, issue #91). */
-function rendreAvecPreferenceSite(routeInitiale: string): void {
-  const queryClient = creerQueryClientTest();
-  render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[routeInitiale]}>
-        <FournisseurSiteCourant>
-          <OngletsDomaine />
-        </FournisseurSiteCourant>
-      </MemoryRouter>
-    </QueryClientProvider>,
-  );
 }
 
 function connecte(role: RoleUtilisateur): void {
@@ -176,6 +160,17 @@ describe('OngletsDomaine — les vues d’un onglet', () => {
     );
   });
 
+  it('Pointage : les vues sont une barre secondaire sous la barre des onglets, pas dans la même rangée', async () => {
+    connecte('chef_atelier');
+    rendre('/pointage/jour');
+
+    const vues = await screen.findByRole('navigation', { name: /vues/i });
+    const onglets = screen.getByRole('navigation', { name: /^onglets —/i });
+    expect(onglets.compareDocumentPosition(vues) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(vues).toHaveClass('w-full');
+    expect(vues).not.toHaveClass('ml-auto');
+  });
+
   it('technicien : ni Équipe, ni Clôture, ni Borne — les vues d’encadrement disparaissent', async () => {
     connecte('technicien');
     rendre('/pointage/jour');
@@ -277,12 +272,12 @@ describe('OngletsDomaine — quand il ne rend rien', () => {
     });
   });
 
-  it('le même écran rend bien la rangée pour un rôle qui a trois onglets (contre-épreuve)', async () => {
+  it('le même écran rend bien la rangée pour un rôle qui a quatre onglets (contre-épreuve)', async () => {
     connecte('comptable');
     rendre('/factures');
 
     const onglets = await screen.findByRole('navigation', { name: /onglets/i });
-    expect(libelles(onglets)).toEqual(['Factures', 'Relances', 'Export fiduciaire']);
+    expect(libelles(onglets)).toEqual(['Factures', 'Chiffres', 'Relances', 'Export fiduciaire']);
   });
 });
 
@@ -309,21 +304,6 @@ describe('OngletsDomaine — contraintes du produit', () => {
       'href',
       '/pointage/jour?site=site-secondaire',
     );
-  });
-
-  /** Régression issue #91 : même correctif que `BarreLaterale.spec.tsx` — l'URL fait toujours foi,
-   *  la préférence mémorisée ne comble que son absence. */
-  it('reprend la préférence mémorisée de site quand l’URL n’en porte pas', async () => {
-    window.localStorage.setItem('dfa.site-courant.tenant-1', 'site-secondaire');
-    connecte('chef_atelier');
-    rendreAvecPreferenceSite('/pointage/jour');
-
-    const onglets = await screen.findByRole('navigation', { name: /onglets/i });
-    expect(within(onglets).getByRole('link', { name: /dépôt pneus/i })).toHaveAttribute(
-      'href',
-      '/pneus?site=site-secondaire',
-    );
-    window.localStorage.clear();
   });
 
   /** Postes de comptoir tactiles (≥ 24 pouces) — §4.6 : plancher de 44 px partout, y compris sur

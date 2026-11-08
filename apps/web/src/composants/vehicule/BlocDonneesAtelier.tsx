@@ -77,7 +77,7 @@ export function BlocDonneesAtelier({ donnees, className }: ProprietesBlocDonnees
       </CardHeader>
       <CardContent>
         {champs.length === 0 ? (
-          <EtatVide titre={t('donnees.titre')} description={t('donnees.vide')} />
+          <EtatVide description={t('donnees.vide')} />
         ) : (
           // `items-start` (leçon des lots d'écrans précédents) : sans lui, CSS Grid étire chaque
           // cellule à la hauteur de la plus haute de sa rangée — le `border-b` de chaque champ se

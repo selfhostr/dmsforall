@@ -4,11 +4,11 @@ import { Link, useSearchParams } from 'react-router';
 
 import type { ReponseDepotPneus, SaisonPneu } from '@dfa/shared';
 
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { messageErreur } from '@/api/erreurs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -30,6 +30,7 @@ import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useHangarPneus } from '@/hooks/pneus/useHangarPneus';
 import { useJeuxARelancer } from '@/hooks/pneus/useJeuxARelancer';
 import { useRechercheHangarPneus } from '@/hooks/pneus/useRechercheHangarPneus';
+import { useSitePrincipal } from '@/hooks/site/useSitePrincipal';
 import { useSession } from '@/hooks/useSession';
 import { formaterDate } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
@@ -164,7 +165,11 @@ function versOngletHangar(valeur: string | null): OngletHangar {
 export function EcranHangarPneus() {
   const { t } = useTranslation(['pneus', 'commun', 'erreurs']);
   const [searchParams, setSearchParams] = useSearchParams();
+  // `site` = filtre explicite de l'URL (« À relancer » reste sur tous les sites sans lui). Le hangar,
+  // lui, est celui d'UN site : l'URL, sinon le site principal de la personne (`siteHangar`).
+  const sitePrincipal = useSitePrincipal();
   const site = searchParams.get('site') ?? undefined;
+  const siteHangar = site ?? sitePrincipal;
   const onglet = versOngletHangar(searchParams.get('onglet'));
   // Mise en évidence d'un dépôt précis (ex. lien « Voir dans le hangar à pneus » de la fiche
   // véhicule, `EcranFicheVehicule.tsx`) — MÊME mécanique `?xxx=` que `site`/`onglet` ci-dessus,
@@ -209,7 +214,7 @@ export function EcranHangarPneus() {
 
   const recherche = useRechercheHangarPneus();
 
-  const hangar = useHangarPneus(site, {
+  const hangar = useHangarPneus(siteHangar, {
     statut: STATUTS_HANGAR_PHYSIQUE,
     saison: filtreSaison === 'toutes' ? undefined : filtreSaison,
     tri: 'dernierMouvementLe:desc',
@@ -370,7 +375,10 @@ export function EcranHangarPneus() {
   // hangar » où le geste « entrer un jeu » a lieu — voir plus bas, à l'intérieur de
   // `TabsContent value="actifs"`.
   return (
-    <GabaritEcran titre={t('pneus:hangar.titre')}>
+    <GabaritEcran
+      titre={t('pneus:hangar.titre')}
+      actions={<AideContextuelle sujet={t('pneus:hangar.titre')} texte={t('aide:pneus.hangar')} />}
+    >
       <Tabs value={onglet} onValueChange={changerOnglet} className="flex flex-col gap-6">
         <TabsList aria-label={t('pneus:hangar.onglets.ariaLabel')}>
           <TabsTrigger value="actifs">{t('pneus:hangar.onglets.actifs')}</TabsTrigger>
@@ -378,7 +386,7 @@ export function EcranHangarPneus() {
         </TabsList>
 
         <TabsContent value="actifs" className="flex flex-col gap-6">
-          {!site ? (
+          {!siteHangar ? (
             <div className="mx-auto flex w-full max-w-lg flex-col gap-4 p-6">
               <EtatVide
                 titre={t('pneus:hangar.siteRequis.titre')}
@@ -394,8 +402,8 @@ export function EcranHangarPneus() {
                       </SelectTrigger>
                       <SelectContent>
                         {sites.map((s) => (
-                          <SelectItem key={s.id} value={s.id}>
-                            {s.nom}
+                          <SelectItem key={s.id} value={s.id} title={s.nom}>
+                            {s.codeCourt}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -407,11 +415,9 @@ export function EcranHangarPneus() {
           ) : (
             <>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="pneus-recherche-plaque-client">
-                  {t('pneus:hangar.recherche.champLabel')}
-                </Label>
                 <Input
                   id="pneus-recherche-plaque-client"
+                  aria-label={t('pneus:hangar.recherche.champLabel')}
                   value={recherche.saisie}
                   placeholder={t('pneus:hangar.recherche.champPlaceholder')}
                   onChange={(evenement) => recherche.onSaisieChange(evenement.target.value)}
@@ -494,14 +500,15 @@ export function EcranHangarPneus() {
 
                   <div className="flex flex-wrap items-end gap-3">
                     <div className="flex flex-col gap-1.5">
-                      <Label htmlFor="pneus-filtre-saison">
-                        {t('pneus:hangar.filtres.saison')}
-                      </Label>
                       <Select
                         value={filtreSaison}
                         onValueChange={(valeur) => setFiltreSaison(valeur as SaisonPneu | 'toutes')}
                       >
-                        <SelectTrigger id="pneus-filtre-saison" className="w-44">
+                        <SelectTrigger
+                          id="pneus-filtre-saison"
+                          className="w-44"
+                          aria-label={t('pneus:hangar.filtres.saison')}
+                        >
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -515,11 +522,9 @@ export function EcranHangarPneus() {
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                      <Label htmlFor="pneus-filtre-repere">
-                        {t('pneus:hangar.filtres.repere')}
-                      </Label>
                       <Input
                         id="pneus-filtre-repere"
+                        aria-label={t('pneus:hangar.filtres.repere')}
                         value={filtreRepere}
                         placeholder={t('pneus:hangar.filtres.reperePlaceholder')}
                         className="w-48"
@@ -547,13 +552,6 @@ export function EcranHangarPneus() {
                       <EtatVidePremierUsage
                         titre={t('pneus:hangar.vide.titre')}
                         description={t('pneus:hangar.vide.premierUsage')}
-                        action={
-                          peutCreer ? (
-                            <Button type="button" onClick={() => setCreationOuverte(true)}>
-                              {t('pneus:creation.actions.ouvrir')}
-                            </Button>
-                          ) : undefined
-                        }
                       />
                     )
                   ) : (
@@ -604,26 +602,27 @@ export function EcranHangarPneus() {
             q={filtreRepereARelancer}
             onChangeQ={setFiltreRepereARelancer}
             placeholderRecherche={t('pneus:hangar.filtres.reperePlaceholder')}
-            filtresActifs={filtreRepereARelancer.trim() !== ''}
-            onEffacerFiltres={() => setFiltreRepereARelancer('')}
           >
             {sites.length > 0 ? (
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="pneus-a-relancer-site">{t('pneus:aRelancer.filtreSite')}</Label>
                 <Select
                   value={site ?? 'tous'}
                   onValueChange={(valeur) =>
                     changerParametre('site', valeur === 'tous' ? undefined : valeur)
                   }
                 >
-                  <SelectTrigger id="pneus-a-relancer-site" className="w-44">
+                  <SelectTrigger
+                    id="pneus-a-relancer-site"
+                    className="w-44"
+                    aria-label={t('pneus:aRelancer.filtreSite')}
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="tous">{t('pneus:aRelancer.filtreSiteTous')}</SelectItem>
                     {sites.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.nom}
+                      <SelectItem key={s.id} value={s.id} title={s.nom}>
+                        {s.codeCourt}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -681,7 +680,7 @@ export function EcranHangarPneus() {
       />
       <DialogueSortirDepotPneu depot={depotSortie} onFerme={() => setDepotSortie(null)} />
       <DialogueNouveauDepotPneu
-        siteId={site}
+        siteId={siteHangar}
         ouvert={creationOuverte}
         onFerme={() => setCreationOuverte(false)}
       />

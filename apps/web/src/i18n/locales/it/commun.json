@@ -102,11 +102,11 @@
     "employeCree": "Dipendente creato"
   },
   "densite": {
-    "titre": "Densità di visualizzazione",
+    "titre": "Dimensione dell'interfaccia",
     "auto": "Automatica (secondo il dispositivo)",
     "compacte": "Compatta",
     "aeree": "Ampia",
-    "aide": "Ampia: testo più grande e righe più alte, per tablet e dito."
+    "revenirAuto": "Tornare alla dimensione automatica"
   },
   "glossaire": {
     "OR": "Ordine di riparazione (OR): scheda dei lavori di un veicolo, dalla consegna alla restituzione.",
@@ -116,5 +116,10 @@
     "QRFacture": "Bollettino di pagamento svizzero con codice QR, da scansionare nell'e-banking.",
     "Avoir": "Nota di credito: documento che annulla in tutto o in parte una fattura emessa.",
     "Detenteur": "Persona iscritta sulla carta di circolazione; non necessariamente il proprietario, per esempio in leasing."
+  },
+  "filtreSite": {
+    "libelle": "Sede",
+    "tous": "Tutte",
+    "titreTous": "Tutte le sedi"
   }
 }

@@ -6,7 +6,6 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import '@/i18n';
 
-import { FournisseurSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
@@ -76,28 +75,26 @@ function stubsAccueil(role: (typeof SESSION_TEST)['utilisateur']['role']) {
 function rendre() {
   return render(
     <QueryClientProvider client={creerQueryClientTest()}>
-      <FournisseurSiteCourant>
-        <MemoryRouter initialEntries={['/tableau-bord']}>
-          <Routes>
-            <Route path="/tableau-bord" element={<EcranTableauBord />} />
-          </Routes>
-        </MemoryRouter>
-      </FournisseurSiteCourant>
+      <MemoryRouter initialEntries={['/tableau-bord']}>
+        <Routes>
+          <Route path="/tableau-bord" element={<EcranTableauBord />} />
+        </Routes>
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
 
 describe('Accueil orienté tâche', () => {
-  it('direction : recherche en haut, les quatre actions rapides, « à faire » avant les chiffres', async () => {
+  it('direction : les quatre actions rapides et la recherche sur une ligne, puis « à faire », aucun chiffre', async () => {
     stubsAccueil('direction');
     rendre();
 
-    const recherche = await screen.findByPlaceholderText("Plaque, client ou n° d'OR");
+    const recherche = await screen.findByRole('button', { name: 'Ouvrir la recherche' });
     expect(recherche).toBeInTheDocument();
 
     const actions = screen.getByRole('navigation', { name: 'Actions rapides' });
     const creer = within(actions).getByRole('link', { name: 'Créer un OR' });
-    expect(creer).toHaveAttribute('href', '/atelier/ordres-reparation/depuis-plaque?site=site-1');
+    expect(creer).toHaveAttribute('href', '/atelier/ordres-reparation/depuis-plaque');
     expect(within(actions).getByRole('link', { name: 'Nouveau rendez-vous' })).toBeInTheDocument();
     expect(within(actions).getByRole('button', { name: 'Nouveau devis' })).toBeInTheDocument();
     expect(within(actions).getByRole('link', { name: 'Encaisser' })).toBeInTheDocument();
@@ -107,14 +104,15 @@ describe('Accueil orienté tâche', () => {
     expect(within(aFaire).getByText('Factures échues')).toBeInTheDocument();
     expect(within(aFaire).getByText("En attente de l'accord du client")).toBeInTheDocument();
 
-    // L'ordre du DOM : recherche, puis à faire, puis chiffres.
-    const chiffres = screen.getByRole('heading', { name: 'Chiffres' });
+    // L'ordre du DOM : actions, recherche (même ligne), puis « à faire ».
+    expect(
+      actions.compareDocumentPosition(recherche) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(
       recherche.compareDocumentPosition(aFaire) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(
-      aFaire.compareDocumentPosition(chiffres) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    expect(actions.parentElement).toBe(recherche.parentElement);
+    expect(screen.queryByRole('heading', { name: 'Chiffres' })).not.toBeInTheDocument();
   });
 
   it("chef d'atelier : peut créer un OR mais ni encaisser ni voir les factures échues", async () => {
@@ -131,15 +129,16 @@ describe('Accueil orienté tâche', () => {
     expect(within(aFaire).getByText("En attente de l'accord du client")).toBeInTheDocument();
   });
 
-  it('comptable : recherche et encaisser, pas de création d’OR, pas de « à faire » atelier', async () => {
+  it('comptable : recherche et encaisser, pas de création d’OR, factures échues dans « à faire »', async () => {
     stubsAccueil('comptable');
     rendre();
 
-    expect(await screen.findByPlaceholderText("Plaque, client ou n° d'OR")).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Ouvrir la recherche' })).toBeInTheDocument();
     const actions = screen.getByRole('navigation', { name: 'Actions rapides' });
     expect(within(actions).getByRole('link', { name: 'Encaisser' })).toBeInTheDocument();
     expect(within(actions).queryByRole('link', { name: 'Créer un OR' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: "À faire aujourd'hui" })).not.toBeInTheDocument();
+    const aFaire = await screen.findByRole('region', { name: "À faire aujourd'hui" });
+    expect(within(aFaire).getByText('Factures échues')).toBeInTheDocument();
   });
 
   it('chaque bloc « à faire » a son état vide explicite (message, pas une carte muette)', async () => {

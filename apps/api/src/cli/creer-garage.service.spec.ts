@@ -63,6 +63,8 @@ describe('creerGarage', () => {
     expect(insertUser?.valeurs).toContain('direction@example.ch');
     expect(insertUser?.valeurs).toContain('hash(Correct-Horse-Battery-42)');
     expect(insertUser?.texte).toContain("'direction'");
+    // Le premier compte a pour site principal l'unique site créé.
+    expect(insertUser?.valeurs).toContain('site-1');
     expect(res).toEqual({
       tenantId: 'tenant-1',
       slug: 'garage-exemple',
@@ -171,6 +173,21 @@ describe('creerGarage', () => {
       code: 'GARAGE_EXISTANT',
     });
     expect(bd.appels.at(-1)?.texte).toBe('rollback');
+  });
+
+  it('crée un garage assujetti à la TVA par défaut', async () => {
+    const bd = fauxExecuteur();
+    await creerGarage(bd, entreeValide, hacher);
+    const insertion = bd.appels.find((a) => a.texte.includes('insert into tenant'));
+    expect(insertion?.valeurs).toEqual(['garage-exemple', 'Garage Exemple', true]);
+  });
+
+  it('crée un garage non assujetti quand assujettiTva vaut false', async () => {
+    const bd = fauxExecuteur();
+    await creerGarage(bd, { ...entreeValide, assujettiTva: false }, hacher);
+    const insertion = bd.appels.find((a) => a.texte.includes('insert into tenant'));
+    expect(insertion?.texte).toContain('assujetti_tva');
+    expect(insertion?.valeurs).toEqual(['garage-exemple', 'Garage Exemple', false]);
   });
 
   it('ne met jamais le mot de passe en clair dans une requête', async () => {

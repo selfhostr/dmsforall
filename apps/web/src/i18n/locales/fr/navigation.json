@@ -3,7 +3,7 @@
     "aria": "Navigation principale"
   },
   "entrees": {
-    "aujourdhui": "Aujourd'hui",
+    "aujourdhui": "Tableau de bord",
     "atelier": "Atelier",
     "clientsVehicules": "Clients & véhicules",
     "pieces": "Pièces",
@@ -41,12 +41,14 @@
     "piecesFacturesFournisseur": "Factures fournisseurs",
     "piecesConsignes": "Consignes",
     "facturationFactures": "Factures",
+    "facturationChiffres": "Chiffres",
     "facturationEncaissements": "Encaissements",
     "facturationRelances": "Relances",
     "facturationExportFiduciaire": "Export fiduciaire",
     "ventesDossiers": "Ventes en cours",
     "ventesParc": "Véhicules en stock",
     "ventesSuivi": "Suivi financement & garantie",
+    "reglagesGarage": "Mon garage",
     "reglagesAtelier": "Atelier",
     "reglagesSites": "Sites",
     "reglagesFacturation": "Facturation",
@@ -54,7 +56,8 @@
     "reglagesPieces": "Pièces",
     "reglagesUtilisateurs": "Utilisateurs",
     "reglagesRelances": "Rappels de paiement",
-    "atelierCourtoisie": "Courtoisie"
+    "atelierCourtoisie": "Courtoisie",
+    "reglagesModules": "Modules"
   },
   "liens": {
     "clients": "Clients",
@@ -87,11 +90,25 @@
     "agrandir": "Agrandir la barre latérale"
   },
   "theme": {
+    "titre": "Thème",
+    "clair": "Clair",
+    "sombre": "Sombre",
+    "systeme": "Système",
+    "passerSysteme": "Suivre le thème du système",
     "passerClair": "Passer en thème clair",
     "passerSombre": "Passer en thème sombre"
   },
   "pied": {
-    "version": "Version {info}",
-    "versionInconnue": "inconnue"
+    "version": "Version {info}"
+  },
+  "configurer": {
+    "entree": "Configurer le garage",
+    "pastille": "Garage à configurer"
+  },
+  "rangee": {
+    "aria": "Réglages rapides"
+  },
+  "signalement": {
+    "entree": "Signaler un problème"
   }
 }

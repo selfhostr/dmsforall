@@ -50,6 +50,7 @@ import {
   ReponseVehiculeCourtoisieDto,
 } from './dto';
 import { ServiceCourtoisie } from './service-courtoisie';
+import { ExigerModule } from '../../common/droits/garde-module';
 
 const PagePretCourtoisieDto = PageOrDto(ReponsePretCourtoisieDto, 'PretCourtoisie');
 
@@ -68,6 +69,7 @@ const schemaRemise = z.object({ kmDepart: schemaKilometrage.optional() }).strict
  */
 @ApiTags('Courtoisie')
 @ApiCookieAuth()
+@ExigerModule('courtoisie')
 @Controller({ path: 'courtoisie', version: '1' })
 @UseGuards(GardeDroit)
 export class CourtoisieController {

@@ -11,6 +11,11 @@ import type { EntreeAudit, ServiceAudit } from '../common/audit';
  * premier, et le bornage du second — même patron de mock que `service-or.assemblerDocument.spec.ts`
  * (query builder sans pilote réel, `LigneLigneOr` fixture reprise de `service-ligne-or.spec.ts`).
  */
+// Prêt lié : requête dédiée, couverte en intégration (courtoisie.spec.ts) — ici fonction simple,
+// non-vi.fn pour survivre au reset des mocks.
+vi.mock('./courtoisie/pret-or', () => ({
+  chargerPretsParOr: async () => new Map(),
+}));
 vi.mock('./or-requetes', () => ({
   chargerOr: vi.fn(),
   chargerControleQualite: vi.fn().mockResolvedValue(null),

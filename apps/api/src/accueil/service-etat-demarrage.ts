@@ -3,9 +3,10 @@ import { sql } from 'drizzle-orm';
 import type { ReponseEtatDemarrage } from '@dfa/shared';
 
 import { JETON_DB, type AccesBase, type ContexteTenant } from '../db';
+import { evaluerCompletudeCreancier, type LigneAdresseCreancier } from '../facturation/qr';
 
 type LigneEtat = {
-  readonly coordonnees: boolean;
+  readonly creancier: LigneAdresseCreancier | null;
   readonly iban: boolean;
   readonly numero_tva: boolean;
   readonly taux_horaire: boolean;
@@ -27,12 +28,12 @@ export class ServiceEtatDemarrage {
     const ligne = await this.acces.enTenant(ctx, async (tx) => {
       const resultat = await tx.execute<LigneEtat>(sql`
         select
-          coalesce((select btrim(coalesce(c.nom, '')) <> '' and btrim(coalesce(c.rue, '')) <> ''
-                           and btrim(coalesce(c.npa, '')) <> '' and btrim(coalesce(c.localite, '')) <> ''
-                      from public.tenant_bloc_creancier c where c.tenant_id = ${ctx.tenantId}), false) as coordonnees,
+          (select jsonb_build_object('nom', c.nom, 'rue', c.rue, 'numero', c.numero, 'npa', c.npa,
+                                     'localite', c.localite, 'pays', c.pays)
+             from public.tenant_bloc_creancier c where c.tenant_id = ${ctx.tenantId}) as creancier,
           coalesce((select btrim(coalesce(c.iban, '')) <> '' or btrim(coalesce(c.qr_iban, '')) <> ''
                       from public.tenant_bloc_creancier c where c.tenant_id = ${ctx.tenantId}), false) as iban,
-          coalesce((select btrim(coalesce(t.numero_tva, '')) <> ''
+          coalesce((select not t.assujetti_tva or btrim(coalesce(t.numero_tva, '')) <> ''
                       from public.tenant t where t.id = ${ctx.tenantId}), false) as numero_tva,
           exists (select 1 from public.taux_horaire th where th.tenant_id = ${ctx.tenantId}) as taux_horaire,
           exists (select 1 from public.motif_rendez_vous m
@@ -48,7 +49,11 @@ export class ServiceEtatDemarrage {
     });
     return {
       etapes: {
-        coordonnees: ligne?.coordonnees ?? false,
+        // Mêmes champs requis que l'émission (`CHAMPS_REQUIS_BLOC_CREANCIER`, n° de rue compris) :
+        // une seule fonction, `evaluerCompletudeCreancier`.
+        coordonnees: ligne?.creancier
+          ? evaluerCompletudeCreancier(ligne.creancier).complete
+          : false,
         iban: ligne?.iban ?? false,
         numeroTva: ligne?.numero_tva ?? false,
         tauxHoraire: ligne?.taux_horaire ?? false,

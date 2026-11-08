@@ -187,6 +187,7 @@
         "reference": "Référence",
         "quantite": "Quantité",
         "prixUnitaire": "Prix unitaire TTC",
+        "prixUnitaireAide": "Prix TVA comprise, comme dans un devis. Soit {{ht}} hors TVA au taux choisi. Dans un OR, le prix se saisit hors TVA.",
         "taux": "Taux de TVA",
         "datePrestation": "Date de prestation"
       },
@@ -230,7 +231,9 @@
       "payablePar": "Payable par",
       "iban": "IBAN",
       "reference": "Référence",
-      "sansReference": "Sans référence"
+      "sansReference": "Sans référence",
+      "copier": "Copier",
+      "copie": "Copié"
     },
     "actions": {
       "emettre": "Émettre",
@@ -244,9 +247,11 @@
         "creerAvoir": "Créer un avoir",
         "journal": "Voir le journal"
       },
+      "corrigerFacture": "Corriger la facture",
       "telechargerPdf": "Télécharger le PDF",
       "envoyerDevis": "Envoyer le devis",
       "accordClient": "Accord du client",
+      "annulerAccord": "Annuler l'accord",
       "creerOr": "Créer l'OR"
     },
     "dialogueEmission": {
@@ -273,14 +278,26 @@
     },
     "correction": {
       "titre": "Corriger la facture {numero}",
-      "explication": "Une facture émise est figée : impossible de la modifier directement. DFA va créer un avoir qui annule cette facture, puis une nouvelle facture avec la correction. Les deux gardent leur numéro dans la série — rien ne disparaît, rien ne se renumérote.",
+      "explication": "Une facture émise ne se modifie pas : un avoir l'annule, puis une nouvelle facture corrigée est créée.",
       "motif": "Motif de la correction",
       "adresse": {
         "rue": "Rue et n°",
         "npa": "NPA",
         "localite": "Localité"
       },
-      "motifMontantTaux": "Les corrections de montant ou de taux se font par l'écran Avoir : elles ne sont pas prises en charge ici.",
+      "choix": {
+        "legende": "Que voulez-vous faire ?",
+        "remplacement": {
+          "titre": "Corriger l'adresse seulement",
+          "aide": "Le destinataire ou l'adresse changent, les montants restent identiques. La facture corrigée est émise tout de suite."
+        },
+        "brouillon": {
+          "titre": "Refaire la facture (avoir + nouveau brouillon)",
+          "aide": "La facture est annulée par un avoir, puis un brouillon identique est créé. Vous le modifiez librement (lignes, prix, TVA) avant de l'émettre. La TVA suit le régime actuel de votre garage.",
+          "dejaRegle": "Indisponible : cette facture est déjà réglée en tout ou partie. Annulez d'abord le paiement."
+        }
+      },
+      "confirmerBrouillon": "Créer l'avoir et le brouillon",
       "corrigerFiche": "Corriger aussi la fiche client avec cette adresse",
       "confirmer": "Corriger la facture",
       "enCours": "Correction en cours…",
@@ -346,6 +363,17 @@
   },
   "liste": {
     "titre": "Factures",
+    "tri": {
+      "label": "Trier",
+      "options": {
+        "dateDesc": "Date, récentes d'abord",
+        "dateAsc": "Date, anciennes d'abord",
+        "numeroDesc": "N°, décroissant",
+        "numeroAsc": "N°, croissant",
+        "soldeDesc": "Solde, le plus élevé d'abord",
+        "relanceAsc": "Prochaine relance"
+      }
+    },
     "onglets": {
       "groupeLabel": "Filtrer les factures",
       "toutes": "Toutes",
@@ -406,20 +434,17 @@
     "nouveau": {
       "action": "Nouveau devis",
       "titre": "Nouveau devis",
-      "description": "Un prix pour un client, sans ouvrir d'ordre de réparation. Le véhicule est facultatif.",
       "client": "Client",
       "clientPlaceholder": "Nom, téléphone ou n° de client",
       "clientRequis": "Choisissez un client.",
       "aucunClient": "Aucun client trouvé.",
       "vehicule": "Véhicule",
-      "vehiculeAide": "Facultatif : laissez « Sans véhicule » si la voiture n'est pas encore connue.",
       "sansVehicule": "Sans véhicule",
       "site": "Site",
       "creer": "Créer le devis"
     },
     "cree": {
       "titre": "Devis créé",
-      "description": "Ajoutez maintenant la main-d'œuvre et les pièces sur le devis. Une fois le devis envoyé et accepté par le client, vous pourrez en faire un OR.",
       "ouvrir": "Ouvrir le devis"
     },
     "statuts": {
@@ -482,6 +507,70 @@
   },
   "toasts": {
     "devisEnvoye": "Devis envoyé",
-    "devisAccepte": "Accord du client enregistré"
+    "devisAccepte": "Accord du client enregistré",
+    "accordAnnule": "Accord du client annulé"
+  },
+  "chiffres": {
+    "titre": "Chiffres",
+    "sousTitre": "Chiffre d'affaires, encaissements et factures à suivre.",
+    "erreur": "Ces chiffres n'ont pas pu être chargés.",
+    "incomplet": "Beaucoup de lignes : les totaux ci-dessus sont des minimums.",
+    "voirFactures": "Retour à la liste des factures",
+    "voirChiffres": "Voir les chiffres",
+    "refuse": {
+      "titre": "Page réservée",
+      "description": "Les chiffres sont réservés à la direction et à la comptabilité."
+    },
+    "periodes": {
+      "moisCourant": "Ce mois-ci",
+      "moisPrecedent": "Mois précédent",
+      "annee": "Cette année"
+    },
+    "colonnes": {
+      "periode": "Période",
+      "factures": "Factures",
+      "ht": "Total HT",
+      "tva": "TVA",
+      "ttc": "Total TTC",
+      "moyen": "Moyen de paiement",
+      "paiements": "Paiements",
+      "montant": "Montant"
+    },
+    "chiffreAffaires": {
+      "titre": "Chiffre d'affaires",
+      "description": "Factures émises, avoirs déduits.",
+      "vide": {
+        "titre": "Aucune facture émise",
+        "description": "Les chiffres apparaîtront dès la première facture émise."
+      }
+    },
+    "encaissements": {
+      "titre": "Encaissements du mois",
+      "description": "Argent reçu du {periode}, par moyen de paiement.",
+      "total": "Total encaissé",
+      "vide": {
+        "titre": "Aucun encaissement ce mois-ci",
+        "description": "Les paiements enregistrés ce mois apparaîtront ici."
+      }
+    },
+    "facturesOuvertes": {
+      "titre": "Factures à encaisser",
+      "description": "Factures émises, pas encore réglées.",
+      "ouvertes": "{count, plural, =0 {Aucune facture ouverte} one {# facture ouverte} other {# factures ouvertes}}",
+      "enRetard": "{count, plural, =0 {Aucune en retard} one {# en retard} other {# en retard}}",
+      "vide": {
+        "titre": "Aucune facture ouverte",
+        "description": "Tous vos clients ont payé."
+      }
+    },
+    "travauxTermines": {
+      "titre": "Travaux à facturer",
+      "description": "Ordres de réparation terminés, pas encore facturés (montant TTC estimé).",
+      "nombre": "{count, plural, one {# ordre de réparation} other {# ordres de réparation}}",
+      "vide": {
+        "titre": "Rien à facturer",
+        "description": "Aucun ordre de réparation terminé n'attend sa facture."
+      }
+    }
   }
 }

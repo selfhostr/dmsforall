@@ -38,7 +38,8 @@ describe('FriseDetentions', () => {
 
   it('affiche un état vide en l’absence de détention', () => {
     render(<FriseDetentions detentions={[]} />);
-    expect(screen.getByText('Détention')).toBeInTheDocument();
+    expect(screen.getByText(/aucun/i)).toBeInTheDocument();
+    expect(screen.queryByRole('heading')).not.toBeInTheDocument();
   });
 
   it('traduit le motif de fin en allemand', async () => {

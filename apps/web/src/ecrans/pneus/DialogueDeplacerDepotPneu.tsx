@@ -1,20 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { ReponseDepotPneus } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { useDeplacerDepotPneus } from '@/hooks/pneus/useDeplacerDepotPneus';
 
 interface Props {
@@ -44,7 +37,8 @@ export function DialogueDeplacerDepotPneu({ depot, onFerme }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- réinitialisation à la réouverture seulement
   }, [depot]);
 
-  function confirmer() {
+  function confirmer(evenement?: FormEvent) {
+    evenement?.preventDefault();
     if (!depot) return;
     const valeur = codeCase.trim();
     deplacer.mutate(
@@ -54,19 +48,26 @@ export function DialogueDeplacerDepotPneu({ depot, onFerme }: Props) {
   }
 
   return (
-    <Dialog open={depot !== null} onOpenChange={(ouvert) => !ouvert && onFerme()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t('pneus:deplacement.titre')}</DialogTitle>
-          <DialogDescription>
-            {depot
-              ? t('pneus:deplacement.description', {
-                  codeCase: depot.codeCase ?? t('pneus:jeu.sansRepere'),
-                })
-              : null}
-          </DialogDescription>
-        </DialogHeader>
-
+    <PanneauLateral
+      ouvert={depot !== null}
+      onOuvertChange={(ouvert) => !ouvert && onFerme()}
+      titre={t('pneus:deplacement.titre')}
+      pied={
+        <>
+          <Button type="button" variant="outline" onClick={onFerme} disabled={deplacer.isPending}>
+            {t('commun:actions.annuler')}
+          </Button>
+          <Button type="submit" form="formulaire-deplacer-depot-pneu" disabled={deplacer.isPending}>
+            {deplacer.isPending ? t('commun:chargement.enCours') : t('pneus:jeu.actions.deplacer')}
+          </Button>
+        </>
+      }
+    >
+      <form
+        id="formulaire-deplacer-depot-pneu"
+        onSubmit={confirmer}
+        className="flex flex-col gap-4"
+      >
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="depot-pneu-deplacement-code-case">
             {t('pneus:deplacement.champCodeCase')}
@@ -87,16 +88,7 @@ export function DialogueDeplacerDepotPneu({ depot, onFerme }: Props) {
             {messageErreur(deplacer.error, t)}
           </p>
         ) : null}
-
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onFerme} disabled={deplacer.isPending}>
-            {t('commun:actions.annuler')}
-          </Button>
-          <Button type="button" disabled={deplacer.isPending} onClick={confirmer}>
-            {deplacer.isPending ? t('commun:chargement.enCours') : t('pneus:jeu.actions.deplacer')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </form>
+    </PanneauLateral>
   );
 }

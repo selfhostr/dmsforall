@@ -38,6 +38,7 @@ import { PipeZod } from '../common/validation';
 
 import { EnveloppeOrDto, PageOrDto, ReponseDevisComplementaireDto } from './dto';
 import { ServiceDevis } from './service-devis';
+import { ExigerModule } from '../common/droits/garde-module';
 
 const EnveloppeDevisComplementaireDto = EnveloppeOrDto(
   ReponseDevisComplementaireDto,
@@ -57,6 +58,7 @@ type EntreeListeDevis = z.infer<typeof schemaListeDevis>;
  */
 @ApiTags('Ordres de réparation — devis complémentaires')
 @ApiCookieAuth()
+@ExigerModule('atelier')
 @Controller({ path: 'ordres-reparation', version: '1' })
 @UseGuards(GardeDroit)
 export class DevisComplementaireController {

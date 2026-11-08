@@ -101,6 +101,7 @@ export function versPrerequis(d: DiagnosticExport): readonly PrerequisExport[] {
   if (d.desequilibres.length > 0) {
     const ecritures: EcritureDesequilibree[] = d.desequilibres.map((e) => ({
       reference: e.reference,
+      pieces: e.pieces,
       totalDebitCentimes: Number(e.totalDebitCentimes),
       totalCreditCentimes: Number(e.totalCreditCentimes),
     }));
@@ -170,6 +171,7 @@ export function blocagesDesequilibres(
       libelle: e.reference,
       donnees: {
         reference: e.reference,
+        pieces: e.pieces,
         totalDebitCentimes: Number(e.totalDebitCentimes),
         totalCreditCentimes: Number(e.totalCreditCentimes),
       },
@@ -185,7 +187,7 @@ export function blocagesLimites(
       type: 'document_vente',
       id: l.documentId,
       libelle: decrireLimitePaiement(l),
-      donnees: { paiementId: l.paiementId, limite: l.type },
+      donnees: { paiementId: l.paiementId, documentNumero: l.documentNumero, limite: l.type },
     })),
   );
 }

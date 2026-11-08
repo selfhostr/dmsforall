@@ -65,6 +65,7 @@ import { ServiceCreationRapideOr } from './service-creation-rapide-or';
 import { ServiceFacturationEncaissementOr } from './service-facturation-encaissement-or';
 import { ServiceFacturationOr } from './service-facturation-or';
 import { ServiceTransitions } from './service-transitions';
+import { ExigerModule } from '../common/droits/garde-module';
 
 const EnveloppeOrdreReparationDto = EnveloppeOrDto(
   ReponseOrdreReparationDto,
@@ -96,6 +97,7 @@ const EnveloppeFacturerEtEncaisserOrDto = EnveloppeOrDto(
  */
 @ApiTags('Ordres de réparation — transitions')
 @ApiCookieAuth()
+@ExigerModule('atelier')
 @Controller({ path: 'ordres-reparation', version: '1' })
 @UseGuards(GardeDroit)
 export class OrdreReparationTransitionsController {

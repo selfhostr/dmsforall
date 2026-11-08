@@ -19,6 +19,7 @@ import { PipeZod } from '../common/validation';
 import { ConsigneEchangeStandardDto, PageConsigneEchangeStandardDto } from './dto';
 import { schemaFiltresConsignes, schemaUuid } from './schemas';
 import { ServiceConsigne } from './service-consigne';
+import { ExigerModule } from '../common/droits/garde-module';
 
 /**
  * Consigne d'échange standard (RP-37 → RP-42, §6.4). PAS de `POST /consignes` : la pose naît comme
@@ -27,6 +28,7 @@ import { ServiceConsigne } from './service-consigne';
  */
 @ApiTags('Pièces — Consignes')
 @ApiCookieAuth()
+@ExigerModule('pieces')
 @Controller({ path: 'consignes', version: '1' })
 @UseGuards(GardeDroit)
 export class ConsigneController {

@@ -1,0 +1,106 @@
+{
+  "titre": "Configurer le garage",
+  "navigation": {
+    "liste": "Étapes de l'assistant",
+    "position": "Étape {numero} sur {total}",
+    "terminee": "terminée"
+  },
+  "actions": {
+    "suivant": "Suivant",
+    "retour": "Retour",
+    "passer": "Passer cette étape",
+    "enregistrerContinuer": "Enregistrer et continuer",
+    "enregistrement": "Enregistrement…",
+    "quitter": "Quitter pour l'instant"
+  },
+  "chargement": "Chargement de vos réglages",
+  "erreur": {
+    "titre": "Impossible de charger vos réglages",
+    "enregistrement": "L'enregistrement a échoué. Vos saisies sont conservées : corrigez et réessayez."
+  },
+  "reprise": {
+    "bouton": "Reprendre l'assistant"
+  },
+  "etapes": {
+    "garage": {
+      "titre": "Votre garage"
+    },
+    "modules": {
+      "titre": "Ce que vous utilisez",
+      "intro": "Retirez ce que votre garage n'utilise pas. Vous pourrez le changer dans Réglages > Modules."
+    },
+    "paiements": {
+      "titre": "Paiements"
+    },
+    "atelier": {
+      "titre": "Atelier"
+    },
+    "logo": {
+      "titre": "Votre logo"
+    },
+    "equipe": {
+      "titre": "Équipe"
+    },
+    "termine": {
+      "titre": "Terminé"
+    }
+  },
+  "garage": {
+    "raisonSociale": "Raison sociale",
+    "rue": "Rue",
+    "numero": "N°",
+    "npa": "NPA",
+    "localite": "Localité",
+    "erreurRue": "Indiquez la rue.",
+    "erreurNpa": "Indiquez le NPA.",
+    "erreurLocalite": "Indiquez la localité.",
+    "tva": {
+      "question": "Votre garage est-il assujetti à la TVA ?",
+      "oui": "Oui",
+      "non": "Non",
+      "numero": "N° de TVA",
+      "erreurFormat": "Ce numéro n'a pas le bon format. Exemple : CHE-123.456.789 TVA.",
+      "erreurCle": "Ce numéro de TVA est incorrect : vérifiez les chiffres."
+    },
+    "erreurRaisonSociale": "Indiquez la raison sociale."
+  },
+  "paiements": {
+    "comptant": "Je n'encaisse qu'au comptant",
+    "iban": "IBAN",
+    "ibanAide": "Pour une QR-facture avec référence QR, saisissez le QR-IBAN, pas l’IBAN."
+  },
+  "atelier": {
+    "tauxHoraire": "Taux horaire (CHF/h)",
+    "tauxDejaDefini": "Taux horaire déjà défini : CHF {montant} par heure.",
+    "erreurMontant": "Indiquez un montant valide, par exemple 140.00.",
+    "horaires": "Heures d'ouverture",
+    "ouverture": "Ouverture",
+    "fermeture": "Fermeture",
+    "horairesPlusieursSites": "Votre garage a plusieurs sites : réglez les heures d'ouverture site par site dans Réglages.",
+    "motifs": "Motifs de rendez-vous",
+    "motifDejaPresent": "déjà présent"
+  },
+  "equipe": {
+    "prenom": "Prénom",
+    "nom": "Nom",
+    "email": "E-mail",
+    "inviter": "Créer le compte",
+    "plusTard": "Plus tard",
+    "erreurChamps": "Prénom, nom et e-mail sont obligatoires.",
+    "invitesTitre": "Comptes créés",
+    "accesTemporaire": "Mot de passe temporaire : {mot}. Notez-le, il ne sera plus affiché.",
+    "continuer": "Continuer"
+  },
+  "termine": {
+    "etat": {
+      "fait": "Réglé",
+      "aFaire": "À régler",
+      "aFaireFacultatif": "Facultatif, pas réglé",
+      "inconnu": "À vérifier"
+    },
+    "comptesCrees": "{nombre, plural, =0 {Aucun compte créé} one {# compte créé} other {# comptes créés}} pendant cet assistant.",
+    "creerOr": "Créer un premier OR",
+    "ajouterClient": "Ajouter un client",
+    "accueil": "Aller à l'accueil"
+  }
+}

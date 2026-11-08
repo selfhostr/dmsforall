@@ -43,6 +43,7 @@ import {
   schemaUuid,
   type EntreeRejetFactureFournisseur,
 } from './schemas';
+import { ExigerModule } from '../../common/droits/garde-module';
 
 /**
  * `POST /factures-fournisseur` — dépôt depuis le poste fixe UNIQUEMENT (décision de conception : pas de
@@ -61,6 +62,7 @@ import {
  */
 @ApiTags('Pièces — Factures fournisseur')
 @ApiCookieAuth()
+@ExigerModule('pieces')
 @Controller({ path: 'factures-fournisseur', version: '1' })
 @UseGuards(GardeDroit)
 export class FactureFournisseurController {

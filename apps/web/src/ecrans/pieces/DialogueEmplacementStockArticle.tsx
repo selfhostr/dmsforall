@@ -2,16 +2,9 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { useModifierStockSite } from '@/hooks/pieces/useModifierStockSite';
 
 import { messageErreurMutation } from './messages-erreur-mutation';
@@ -65,62 +58,54 @@ export function DialogueEmplacementStockArticle({ casier, onFerme }: Props) {
   }
 
   return (
-    <Dialog open={casier !== null} onOpenChange={(ouvert) => !ouvert && onFerme()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>
-            {t('pieces:emplacement.dialogue.titre')}
-            {casier ? ` — ${casier.nomSite}` : ''}
-          </DialogTitle>
-          <DialogDescription>{t('pieces:emplacement.dialogue.description')}</DialogDescription>
-        </DialogHeader>
-
-        <div className="flex flex-col gap-controles">
-          <div className="flex flex-col gap-champ">
-            <Label htmlFor="casier-rayon">{t('pieces:emplacement.dialogue.rayon')}</Label>
-            <Input
-              id="casier-rayon"
-              readOnly={modifier.isPending}
-              value={rayon}
-              onChange={(evenement) => setRayon(evenement.target.value)}
-              maxLength={20}
-            />
-          </div>
-          <div className="flex flex-col gap-champ">
-            <Label htmlFor="casier-tiroir">{t('pieces:emplacement.dialogue.tiroir')}</Label>
-            <Input
-              id="casier-tiroir"
-              readOnly={modifier.isPending}
-              value={tiroir}
-              onChange={(evenement) => setTiroir(evenement.target.value)}
-              maxLength={20}
-            />
-          </div>
-          <p className="texte-libelle text-muted-foreground">
-            {t('pieces:emplacement.dialogue.aide')}
-          </p>
-          <p className="texte-libelle text-muted-foreground">
-            {casier?.emplacement
-              ? t('pieces:emplacement.dialogue.libreActuel', { emplacement: casier.emplacement })
-              : t('pieces:emplacement.dialogue.libreAucun')}
-          </p>
-        </div>
-
-        {modifier.error ? (
-          <p className="texte-libelle text-destructive" role="alert">
-            {messageErreurMutation(modifier.error, t)}
-          </p>
-        ) : null}
-
-        <DialogFooter>
+    <PanneauLateral
+      ouvert={casier !== null}
+      onOuvertChange={(ouvert) => !ouvert && onFerme()}
+      titre={`${t('pieces:emplacement.dialogue.titre')}${casier ? ` — ${casier.nomSite}` : ''}`}
+      pied={
+        <>
           <Button type="button" variant="outline" onClick={onFerme} disabled={modifier.isPending}>
             {t('commun:actions.annuler')}
           </Button>
           <Button type="button" disabled={modifier.isPending} onClick={soumettre}>
             {modifier.isPending ? t('commun:chargement.enCours') : t('commun:actions.enregistrer')}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-controles">
+        <div className="flex flex-col gap-champ">
+          <Label htmlFor="casier-rayon">{t('pieces:emplacement.dialogue.rayon')}</Label>
+          <Input
+            id="casier-rayon"
+            readOnly={modifier.isPending}
+            value={rayon}
+            onChange={(evenement) => setRayon(evenement.target.value)}
+            maxLength={20}
+          />
+        </div>
+        <div className="flex flex-col gap-champ">
+          <Label htmlFor="casier-tiroir">{t('pieces:emplacement.dialogue.tiroir')}</Label>
+          <Input
+            id="casier-tiroir"
+            readOnly={modifier.isPending}
+            value={tiroir}
+            onChange={(evenement) => setTiroir(evenement.target.value)}
+            maxLength={20}
+          />
+        </div>
+        <p className="texte-libelle text-muted-foreground">
+          {casier?.emplacement
+            ? t('pieces:emplacement.dialogue.libreActuel', { emplacement: casier.emplacement })
+            : t('pieces:emplacement.dialogue.libreAucun')}
+        </p>
+      </div>
+
+      {modifier.error ? (
+        <p className="texte-libelle text-destructive" role="alert">
+          {messageErreurMutation(modifier.error, t)}
+        </p>
+      ) : null}
+    </PanneauLateral>
   );
 }

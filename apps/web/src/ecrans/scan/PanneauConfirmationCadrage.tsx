@@ -4,10 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 
 import { CadrePermis } from './CadrePermis';
+import { ApercuPhotoFichier } from './ApercuPhotoFichier';
 import type { FractionsCadre } from './geometrieCadre';
 
 interface Props {
-  readonly urlApercu: string;
+  readonly fichier: File;
   readonly fractions: FractionsCadre;
   readonly onContinuer: () => void;
   readonly onPhotoEntiere: () => void;
@@ -38,7 +39,7 @@ interface Props {
  * sans aucun recadrage, si la détection s'est trompée.
  */
 export function PanneauConfirmationCadrage({
-  urlApercu,
+  fichier,
   fractions,
   onContinuer,
   onPhotoEntiere,
@@ -53,7 +54,11 @@ export function PanneauConfirmationCadrage({
           parfois dans le fond de page. Le filet ici délimite le bord RÉEL de la photo, pas un
           simple regroupement de contenu. */}
       <div className="relative overflow-hidden rounded-lg border">
-        <img src={urlApercu} alt={t('scan:cadrage.apercuAlt')} className="block w-full" />
+        <ApercuPhotoFichier
+          fichier={fichier}
+          alt={t('scan:cadrage.apercuAlt')}
+          className="block w-full"
+        />
         <CadrePermis fractions={fractions} />
       </div>
 

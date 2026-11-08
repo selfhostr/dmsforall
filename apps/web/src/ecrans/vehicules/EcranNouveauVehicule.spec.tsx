@@ -115,11 +115,9 @@ describe('EcranNouveauVehicule', () => {
   it('affiche le titre et les champs d’identité minimale (marque, modèle) — les champs avancés restent sur la fiche', () => {
     rendreEcran();
 
-    // Chantier « titres doublés & espacements » (17.08.2026) : écran de CRÉATION — le titre reste
-    // VISIBLE (aucune inclusion entre « Nouveau véhicule » et l'onglet actif « Véhicules », même
-    // logique que « Nouvelle commande fournisseur » face à « Commandes » dans le contrat du
-    // chantier), `toBeVisible()` est ici fiable (h1 sans classe `sr-only`).
-    const titre = screen.getByRole('heading', { name: 'Nouveau véhicule', level: 1 });
+    // Création en panneau latéral droit : le titre du panneau reste visible et nomme le dialogue.
+    expect(screen.getByRole('dialog', { name: 'Nouveau véhicule' })).toBeInTheDocument();
+    const titre = screen.getByRole('heading', { name: 'Nouveau véhicule' });
     expect(titre).toBeInTheDocument();
     expect(titre).toBeVisible();
     expect(screen.getByLabelText('Marque')).toBeInTheDocument();
@@ -343,9 +341,7 @@ describe('EcranNouveauVehicule', () => {
       const champMarque = screen.getByLabelText('Marque');
       await utilisateur.type(champMarque, 'Garage Import Zoug');
       await utilisateur.tab(); // perte de focus : c'est seulement là que le repli visible s'affiche.
-      await waitFor(() =>
-        expect(screen.getByText(/Ne figure pas dans le référentiel/)).toBeInTheDocument(),
-      );
+      await waitFor(() => expect(screen.getByText(/Absent de la liste/)).toBeInTheDocument());
       await utilisateur.type(screen.getByLabelText('Modèle'), 'Modèle maison');
 
       await utilisateur.click(screen.getByRole('button', { name: 'Créer le véhicule' }));

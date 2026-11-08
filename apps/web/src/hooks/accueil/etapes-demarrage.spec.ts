@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ReponseEtatDemarrage } from '@dfa/shared';
+import {
+  MODULES_APP,
+  modulesActifsDepuis,
+  type ModuleApp,
+  type ReponseEtatDemarrage,
+} from '@dfa/shared';
 
 import { calculerEtapesDemarrage, demarrageComplet } from './etapes-demarrage';
 
@@ -42,6 +47,25 @@ describe('calculerEtapesDemarrage', () => {
     expect(demarrageComplet(etapes)).toBe(true);
   });
 
+  it('garage non assujetti (n° TVA absent) : complet, le n° TVA est facultatif', () => {
+    const etapes = calculerEtapesDemarrage({
+      etapes: { ...TOUT_FAIT.etapes, numeroTva: false },
+    });
+    expect(etapes.find((e) => e.id === 'tva')).toMatchObject({ etat: 'aFaire', facultative: true });
+    expect(demarrageComplet(etapes)).toBe(true);
+  });
+
+  it('garage d’une personne (pas de collaborateur) : complet, le premier collaborateur est facultatif', () => {
+    const etapes = calculerEtapesDemarrage({
+      etapes: { ...TOUT_FAIT.etapes, premierCollaborateur: false },
+    });
+    expect(etapes.find((e) => e.id === 'collaborateur')).toMatchObject({
+      etat: 'aFaire',
+      facultative: true,
+    });
+    expect(demarrageComplet(etapes)).toBe(true);
+  });
+
   it('chaque étape suit sa propre clé serveur', () => {
     const reponse = { etapes: { ...TOUT_FAIT.etapes, iban: false, motifsRdv: false } };
     expect(etat(reponse, 'compte')).toBe('aFaire');
@@ -54,5 +78,39 @@ describe('calculerEtapesDemarrage', () => {
     const etapes = calculerEtapesDemarrage(undefined);
     expect(etapes.map((e) => e.etat)).toEqual(Array(7).fill('inconnu'));
     expect(demarrageComplet(etapes)).toBe(false);
+  });
+});
+
+describe('calculerEtapesDemarrage — modules retirés', () => {
+  const ids = (modulesActifs?: readonly ModuleApp[]) =>
+    calculerEtapesDemarrage(TOUT_FAIT, modulesActifs).map((e) => e.id);
+
+  it('sans liste de modules : les sept étapes', () => {
+    expect(ids(undefined)).toHaveLength(7);
+    expect(ids([...MODULES_APP])).toHaveLength(7);
+  });
+
+  it('atelier retiré : plus d’étape « taux horaire »', () => {
+    expect(ids(modulesActifsDepuis(['atelier']))).not.toContain('tauxHoraire');
+  });
+
+  it('planning retiré : plus d’étape « motifs de rendez-vous »', () => {
+    expect(ids(modulesActifsDepuis(['planning']))).not.toContain('motifs');
+  });
+
+  it('tablettes retirées : plus d’étape « borne » ; le socle (coordonnées, compte, équipe) reste', () => {
+    const restantes = ids(modulesActifsDepuis(['tablettes']));
+    expect(restantes).not.toContain('borne');
+    expect(restantes).toEqual(
+      expect.arrayContaining(['coordonnees', 'compte', 'tva', 'collaborateur']),
+    );
+  });
+
+  it('un module retiré ne bloque pas « complet » : la liste se retire seule', () => {
+    const etapes = calculerEtapesDemarrage(
+      { etapes: { ...TOUT_FAIT.etapes, tauxHoraire: false } },
+      modulesActifsDepuis(['atelier']),
+    );
+    expect(demarrageComplet(etapes)).toBe(true);
   });
 });

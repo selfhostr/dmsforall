@@ -39,6 +39,7 @@ import { PipeZod } from '../../common/validation';
 
 import { ReponseListePhotosLigneDto, ReponsePhotoLigneDto } from './dto';
 import { ServicePhotosLigne } from './service-photos-ligne';
+import { ExigerModule } from '../../common/droits/garde-module';
 
 interface FichiersEnvoyes {
   readonly photo?: Express.Multer.File[];
@@ -52,6 +53,7 @@ interface FichiersEnvoyes {
  */
 @ApiTags('Ordres de réparation — photos')
 @ApiCookieAuth()
+@ExigerModule('atelier')
 @Controller({ version: '1' })
 @UseGuards(GardeDroit)
 export class PhotosLigneController {

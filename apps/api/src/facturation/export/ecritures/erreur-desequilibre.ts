@@ -10,6 +10,8 @@ export class ErreurEcritureDesequilibree extends ErreurMetier {
   readonly reference: string;
   /** Présent pour une écriture de document ; `null` pour une écriture de paiement. */
   readonly documentId: string | null;
+  /** N° des factures concernées (écriture de paiement), pour que l'écran cite la facture et non l'id. */
+  readonly pieces: readonly string[];
   readonly totalDebitCentimes: bigint;
   readonly totalCreditCentimes: bigint;
 
@@ -18,6 +20,7 @@ export class ErreurEcritureDesequilibree extends ErreurMetier {
     donnees: {
       readonly reference: string;
       readonly documentId: string | null;
+      readonly pieces?: readonly string[];
       readonly totalDebitCentimes: bigint;
       readonly totalCreditCentimes: bigint;
     },
@@ -26,6 +29,7 @@ export class ErreurEcritureDesequilibree extends ErreurMetier {
     this.name = 'ErreurEcritureDesequilibree';
     this.reference = donnees.reference;
     this.documentId = donnees.documentId;
+    this.pieces = donnees.pieces ?? [];
     this.totalDebitCentimes = donnees.totalDebitCentimes;
     this.totalCreditCentimes = donnees.totalCreditCentimes;
   }

@@ -53,6 +53,8 @@ export const CAPACITE_DE_L_ACTION: Readonly<Record<Action, Classement>> = {
   'facturation.parametrage.creancier.modifier': 'patron',
   // Tableau « Démarrer votre garage » : outil de la direction ; `admin` (intégrateur) le voit aussi.
   'accueil.demarrage.lire': 'employes',
+  // Modules activables : direction et admin (gestion des comptes), jamais le chef d'atelier.
+  'parametrage.modules.modifier': 'employes',
   // ---- Encadrer --------------------------------------------------------------------------------
   'parametrage.atelier.modifier': 'encadrer',
   'parametrage.referentiel.modifier': 'encadrer',

@@ -82,7 +82,10 @@ export const SheetContent = forwardRef<
           // déjà `p-0` (ex. le tiroir de navigation, qui gère sa propre mise en page) doit
           // continuer à annuler le remplissage par défaut de cette zone, pas seulement celui
           // du cadre.
-          'grid min-h-0 flex-1 gap-groupe overflow-y-auto overscroll-contain p-carte',
+          // `content-start auto-rows-min` : sans eux, les lignes de la grille s'étirent pour remplir
+          // la hauteur du panneau et décollent le contenu du titre (~250 px de vide). Un panneau
+          // qui veut un pied collé en bas passe `grid-rows-[auto_1fr_auto]` (voir PanneauLateral).
+          'grid min-h-0 flex-1 content-start auto-rows-min gap-groupe overflow-y-auto overscroll-contain p-carte',
           className,
         )}
       >

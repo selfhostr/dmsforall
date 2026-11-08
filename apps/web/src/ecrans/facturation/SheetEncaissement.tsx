@@ -10,6 +10,7 @@ import {
   type MoyenPaiement,
 } from '@dfa/shared';
 
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { messageErreur } from '@/api/erreurs';
 import { genererCleIdempotence } from '@/api/idempotence';
 import { Button } from '@/components/ui/button';
@@ -82,6 +83,11 @@ interface Props {
    *  si ouvert depuis la fiche client (point d'entrée 2) : aucune présélection (`RF-70`). */
   readonly factureIdPreselectionnee?: string;
 }
+
+/** Grille commune de l'en-tête et des lignes de paiement : moyen, montant, retrait — mêmes colonnes,
+ *  champs alignés en haut et de même hauteur. */
+const GRILLE_LIGNE_PAIEMENT =
+  'grid grid-cols-[minmax(0,9rem)_minmax(0,1fr)_var(--cible-tactile)] items-start gap-x-3';
 
 /**
  * Écran 3 — Encaissement (`design-etape-2-facturation.md` §5). Un seul composant pour les deux
@@ -396,8 +402,8 @@ export function SheetEncaissement({
 
   return (
     <Sheet open={ouvert} onOpenChange={(valeur) => (valeur ? undefined : fermer())}>
-      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-lg">
-        <SheetHeader>
+      <SheetContent side="right" className="w-full gap-0 overflow-y-auto p-0 sm:max-w-lg">
+        <SheetHeader className="p-carte pb-3">
           <SheetTitle>
             {destinataireNom
               ? t('facturation:encaissement.titre', { destinataire: destinataireNom })
@@ -405,7 +411,7 @@ export function SheetEncaissement({
           </SheetTitle>
         </SheetHeader>
 
-        <div className="flex flex-col gap-6 py-4">
+        <div className="flex flex-col gap-6 px-carte pb-carte">
           {confirmationSucces ? (
             // Confirmation EXPLICITE du succès (item 3, testeur novice) : avant ce correctif, le
             // panneau se refermait en silence sur `fermer()`, identique visuellement à un abandon
@@ -451,20 +457,26 @@ export function SheetEncaissement({
                 ) : (
                   <ul className="flex flex-col gap-1.5">
                     {factures.map((facture) => (
-                      <li key={facture.id} className="flex items-center gap-2 texte-corps">
+                      <li
+                        key={facture.id}
+                        className="grid min-h-11 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 texte-corps"
+                      >
                         <Checkbox
                           id={`encaissement-facture-${facture.id}`}
                           checked={selection.has(facture.id)}
                           onCheckedChange={() => basculerFacture(facture.id)}
                         />
-                        <label htmlFor={`encaissement-facture-${facture.id}`} className="flex-1">
+                        <label
+                          htmlFor={`encaissement-facture-${facture.id}`}
+                          className="min-w-0 truncate"
+                        >
                           {facture.numero} ·{' '}
                           {t('facturation:encaissement.facturesOuvertes.emiseLe', {
                             date: formaterDate(facture.dateDocument),
                           })}
                         </label>
                         {facture.soldeCentimes !== undefined ? (
-                          <span className="tabular-nums text-muted-foreground">
+                          <span className="text-right tabular-nums text-muted-foreground">
                             {t('facturation:encaissement.facturesOuvertes.resteDu', {
                               montant: formaterMontantAvecDevise(
                                 facture.soldeCentimes,
@@ -503,18 +515,28 @@ export function SheetEncaissement({
               {saisieDisponible ? (
                 <>
                   <section className="flex flex-col gap-3">
-                    <h2 className="texte-libelle font-medium text-foreground">
-                      {t('facturation:encaissement.lignes.titre')}
-                    </h2>
+                    <div className="flex items-center gap-1.5">
+                      <h2 className="texte-libelle font-medium text-foreground">
+                        {t('facturation:encaissement.lignes.titre')}
+                      </h2>
+                      <AideContextuelle
+                        sujet={t('aide:facturation.encaissement.sujet')}
+                        texte={t('aide:facturation.encaissement.texte')}
+                      />
+                    </div>
+                    <div
+                      aria-hidden
+                      className={`${GRILLE_LIGNE_PAIEMENT} texte-libelle font-medium text-muted-foreground`}
+                    >
+                      <span>{t('facturation:encaissement.lignes.moyen')}</span>
+                      <span className="text-right">
+                        {t('facturation:encaissement.lignes.montant')}
+                      </span>
+                      <span />
+                    </div>
                     {lignes.map((ligne) => (
-                      // DESIGN.md « bordure structurelle » — conservée : ligne de saisie réelle
-                      // (moyen de paiement, montant, bouton « retirer ») dans un bloc qui gère
-                      // l'ajout/retrait de lignes de paiement, pas un simple regroupement.
-                      <div key={ligne.id} className="flex items-end gap-2 rounded-md border p-2">
-                        <div className="flex flex-col gap-1.5">
-                          <span className="texte-libelle text-muted-foreground">
-                            {t('facturation:encaissement.lignes.moyen')}
-                          </span>
+                      <div key={ligne.id} className="flex flex-col gap-1">
+                        <div className={GRILLE_LIGNE_PAIEMENT}>
                           <Select
                             value={ligne.moyen}
                             onValueChange={(valeur) =>
@@ -522,7 +544,7 @@ export function SheetEncaissement({
                             }
                           >
                             <SelectTrigger
-                              className="w-[160px]"
+                              className="w-full"
                               aria-label={t('facturation:encaissement.lignes.moyen')}
                             >
                               <SelectValue />
@@ -535,38 +557,34 @@ export function SheetEncaissement({
                               ))}
                             </SelectContent>
                           </Select>
-                        </div>
-                        <div className="flex-1">
-                          {/* Défaut corrigé (issue #135) : préfixe désormais la VRAIE devise de
-                              la facture réglée (`deviseSelectionCommune`) au lieu du défaut
-                              `CHF` figé de `ChampMontant` — un texte mort sur une sélection EUR,
-                              qui laissait croire à un paiement en francs sur une facture en
-                              euros. `undefined` uniquement pour l'avance client (aucune facture
-                              sélectionnée, § commentaire de `soumettre`), repli CHF alors
-                              inchangé. */}
+                          {/* Libellé porté par l'en-tête de colonne (visuel) et exposé en
+                              `sr-only` ici ; l'écho du montant de `ChampMontant` est masqué pour
+                              que le champ ait la hauteur du sélecteur voisin. Préfixe = devise de
+                              la facture réglée (issue #135), `undefined` pour une avance. */}
                           <ChampMontant
+                            className="[&>label]:sr-only [&>p]:hidden"
                             valeurCentimes={ligne.montantCentimes}
                             onChangeCentimes={(centimes) => modifierMontant(ligne.id, centimes)}
                             label={t('facturation:encaissement.lignes.montant')}
                             devise={deviseSelectionCommune}
                           />
-                          {ligne.ecartArrondiCentimes !== null ? (
-                            <p className="texte-libelle text-muted-foreground">
-                              {t('facturation:encaissement.lignes.arrondi', {
-                                ecart: `${ligne.ecartArrondiCentimes > 0 ? '+' : ''}${formaterMontant(ligne.ecartArrondiCentimes)}`,
-                              })}
-                            </p>
-                          ) : null}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            aria-label={t('facturation:encaissement.lignes.retirer')}
+                            onClick={() => retirerLigne(ligne.id)}
+                          >
+                            <X className="h-4 w-4" aria-hidden />
+                          </Button>
                         </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          aria-label={t('facturation:encaissement.lignes.retirer')}
-                          onClick={() => retirerLigne(ligne.id)}
-                        >
-                          <X className="h-4 w-4" aria-hidden />
-                        </Button>
+                        {ligne.ecartArrondiCentimes !== null ? (
+                          <p className="texte-libelle text-muted-foreground">
+                            {t('facturation:encaissement.lignes.arrondi', {
+                              ecart: `${ligne.ecartArrondiCentimes > 0 ? '+' : ''}${formaterMontant(ligne.ecartArrondiCentimes)}`,
+                            })}
+                          </p>
+                        ) : null}
                       </div>
                     ))}
                     <Button type="button" variant="outline" onClick={ajouterLigne}>
@@ -613,7 +631,7 @@ export function SheetEncaissement({
                     <p className="texte-libelle text-destructive">{erreurGenerique}</p>
                   ) : null}
 
-                  <div className="flex justify-end gap-2">
+                  <div className="flex flex-wrap justify-end gap-3">
                     <Button type="button" variant="outline" onClick={fermer} disabled={enCours}>
                       {t('commun:actions.annuler')}
                     </Button>
@@ -634,7 +652,7 @@ export function SheetEncaissement({
                 // que l'utilisateur n'a pas choisi, explicitement, d'enregistrer une avance. Le seul
                 // autre geste possible d'ici est d'annuler — jamais une saisie qui déboucherait sur
                 // une avance sans que ce mot ait été prononcé par un clic.
-                <div className="flex justify-end gap-2">
+                <div className="flex flex-wrap justify-end gap-3">
                   <Button type="button" variant="outline" onClick={fermer}>
                     {t('commun:actions.annuler')}
                   </Button>

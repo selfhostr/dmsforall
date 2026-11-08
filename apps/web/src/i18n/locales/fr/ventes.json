@@ -135,11 +135,6 @@
       "non": "Non",
       "nonRenseigne": "Non renseigné"
     },
-    "vue": {
-      "groupeLabel": "Mode d'affichage",
-      "vendeur": "Vue vendeur",
-      "client": "Vue client"
-    },
     "joursStock": {
       "libelle": "Jours en stock",
       "valeur": "{n, plural, one {# jour} other {# jours}}"
@@ -192,7 +187,7 @@
           "description": "Mettez votre premier véhicule en stock."
         }
       },
-      "rechercherPlaceholder": "Plaque, VIN ou désignation…",
+      "rechercherPlaceholder": "Plaque, VIN…",
       "erreur": {
         "titre": "Impossible d'afficher les véhicules en stock"
       },
@@ -252,7 +247,6 @@
       "marquerVenduDescription": "Le véhicule passe en statut « Vendu ».",
       "garantie": {
         "titre": "Garantie",
-        "description": "Saisie manuelle — à renseigner quand vous connaissez l'information, jamais calculée automatiquement.",
         "debutLe": "Début de la garantie",
         "mois": "Durée (mois)",
         "km": "Plafond kilométrique",
@@ -316,7 +310,7 @@
         "statutLabel": "Statut",
         "statutActifs": "Ventes actives",
         "statutTous": "Tous les statuts",
-        "afficherTermines": "Afficher aussi les ventes closes, annulées ou abandonnées"
+        "afficherTermines": "Inclure les ventes closes ou annulées"
       },
       "tri": {
         "label": "Trier par",
@@ -610,7 +604,6 @@
       "champVehiculeIndication": "Tapez une plaque ou une désignation pour rechercher le véhicule repris.",
       "aucunVehiculeTrouve": "Aucun véhicule ne correspond à cette recherche.",
       "creerVehiculeBouton": "Créer ce véhicule",
-      "creerVehiculeAide": "Le client apporte un véhicule que le garage ne connaît pas encore ? Créez-le avec le minimum d'informations — le reste se complète plus tard depuis sa fiche.",
       "creerVehiculeSoumettre": "Créer et sélectionner",
       "vehiculeSelectionne": "Véhicule sélectionné : {designation}",
       "champValeurEstimee": "Valeur estimée",
@@ -649,7 +642,6 @@
       "enNegociation": "En cours de négociation",
       "ecart": "Écart / geste commercial",
       "detteResiduelle": "Dette de financement résiduelle",
-      "detteAide": "Condition suspensive de la reprise.",
       "organisme": "Organisme"
     },
     "modification": {

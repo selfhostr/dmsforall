@@ -28,6 +28,9 @@ export class UtilisateurResumeDto implements UtilisateurResume {
   @ApiProperty({ type: () => [SiteAffecteResumeDto] })
   readonly sites!: readonly SiteAffecteResumeDto[];
 
+  @ApiProperty({ format: 'uuid', nullable: true, type: String })
+  readonly sitePrincipalId!: string | null;
+
   @ApiProperty({ type: String, format: 'date-time', nullable: true })
   readonly derniereConnexionLe!: string | null;
 

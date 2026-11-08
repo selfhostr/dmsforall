@@ -21,7 +21,7 @@
   "site": {
     "manquant": {
       "titre": "Choisissez un site",
-      "description": "Choisissez un site ci-dessous, ou avec le sélecteur de site en haut à droite de l’écran, pour voir son agenda de rendez-vous."
+      "description": "Choisissez un site pour voir son agenda de rendez-vous."
     }
   },
   "vide": {
@@ -151,18 +151,12 @@
     },
     "pasDeTelephone": "Pas de téléphone"
   },
-  "siteAffiche": "Site affiché : {site}",
   "autresSites": {
     "compteJour": "{count, plural, one {# rendez-vous} other {# rendez-vous}} à {site} ce jour-là",
     "compteSemaine": "{count, plural, one {# rendez-vous} other {# rendez-vous}} à {site} cette semaine",
     "voir": "Voir l’agenda de {site}"
   },
   "aide": {
-    "planning": {
-      "resume": "Un agenda par site",
-      "libelle": "Aide : le planning",
-      "texte": "Cet agenda montre les rendez-vous d’un seul site à la fois. Les rendez-vous des autres sites sont comptés au-dessus de l’agenda : cliquez pour passer à ce site. Cliquez sur un rendez-vous pour appeler le client, le déplacer, l’annuler ou ouvrir l’ordre de réparation quand il arrive. La vue Liste montre tous les téléphones d’un coup."
-    },
     "nouveau": {
       "libelle": "Aide : prendre un rendez-vous",
       "texte": "Cherchez le client, choisissez son véhicule, puis le jour et le créneau (matin, après-midi ou heure précise). Le motif règle la durée : vous pouvez la corriger. Le rendez-vous est pris dans le site affiché ci-dessous."
@@ -189,5 +183,6 @@
     "titre": "Déplacer le rendez-vous",
     "nouvelleDate": "Nouvelle date",
     "confirmer": "Déplacer le rendez-vous"
-  }
+  },
+  "siteSelecteur": "Site"
 }

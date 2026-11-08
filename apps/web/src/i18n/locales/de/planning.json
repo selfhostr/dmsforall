@@ -21,7 +21,7 @@
   "site": {
     "manquant": {
       "titre": "Standort wählen",
-      "description": "Wählen Sie unten oder mit der Standortauswahl oben rechts einen Standort, um dessen Terminkalender zu sehen."
+      "description": "Wählen Sie einen Standort, um dessen Terminkalender zu sehen."
     }
   },
   "vide": {
@@ -151,18 +151,12 @@
     },
     "pasDeTelephone": "Kein Telefon"
   },
-  "siteAffiche": "Angezeigter Standort: {site}",
   "autresSites": {
     "compteJour": "{count, plural, one {# Termin} other {# Termine}} in {site} an diesem Tag",
     "compteSemaine": "{count, plural, one {# Termin} other {# Termine}} in {site} diese Woche",
     "voir": "Terminkalender {site} anzeigen"
   },
   "aide": {
-    "planning": {
-      "resume": "Ein Kalender pro Standort",
-      "libelle": "Hilfe: Planung",
-      "texte": "Dieser Kalender zeigt die Termine jeweils eines Standorts. Die Termine der anderen Standorte werden oberhalb gezählt: Klicken Sie, um dorthin zu wechseln. Klicken Sie auf einen Termin, um den Kunden anzurufen, den Termin zu verschieben, abzusagen oder den Reparaturauftrag bei Ankunft zu öffnen. Die Listenansicht zeigt alle Telefonnummern auf einmal."
-    },
     "nouveau": {
       "libelle": "Hilfe: Termin vereinbaren",
       "texte": "Kunde suchen, Fahrzeug wählen, dann Tag und Zeitfenster (Vormittag, Nachmittag oder genaue Uhrzeit). Der Grund legt die Dauer fest, sie kann angepasst werden. Der Termin wird im unten angezeigten Standort vereinbart."
@@ -189,5 +183,6 @@
     "titre": "Termin verschieben",
     "nouvelleDate": "Neues Datum",
     "confirmer": "Termin verschieben"
-  }
+  },
+  "siteSelecteur": "Standort"
 }

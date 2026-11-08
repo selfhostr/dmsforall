@@ -11,7 +11,6 @@ import {
 
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -92,7 +91,6 @@ export function EcranListeFacturesFournisseur() {
     fetchNextPage,
   } = useListeFacturesFournisseur(filtres, !session.isLoading && peutLire);
 
-  const filtresActifs = q.trim() !== '' || statut !== undefined;
   function effacerFiltres() {
     // Levier de reset (choix produit 26.08.2026) : `effacerFiltres` est un geste de reprise en
     // main, pas une frappe — `q` doit refléter la case vide immédiatement, pas après le même
@@ -230,7 +228,6 @@ export function EcranListeFacturesFournisseur() {
       <EtatVidePremierUsage
         titre={t('pieces:facturesFournisseur.vide.premierUsage.titre')}
         description={t('pieces:facturesFournisseur.vide.premierUsage.description')}
-        action={boutonDeposer}
       />
     );
   }
@@ -241,13 +238,8 @@ export function EcranListeFacturesFournisseur() {
         q={qSaisie}
         onChangeQ={setQSaisie}
         placeholderRecherche={t('pieces:facturesFournisseur.filtres.rechercherPlaceholder')}
-        filtresActifs={filtresActifs}
-        onEffacerFiltres={effacerFiltres}
       >
         <div className="flex flex-col gap-champ">
-          <Label htmlFor="filtre-statut-facture">
-            {t('pieces:facturesFournisseur.colonnes.statut')}
-          </Label>
           <Select
             value={statut ?? 'tous'}
             onValueChange={(valeur) =>

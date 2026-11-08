@@ -2,9 +2,11 @@ import { Menu } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useSearchParams } from 'react-router';
 
-import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
+import { usePastilleAssistant } from '@/hooks/assistant/usePastilleAssistant';
 import { useSession } from '@/hooks/useSession';
 import { cn } from '@/lib/utils';
+
+import { PastilleConfiguration } from './PastilleConfiguration';
 
 import {
   cheminEntree,
@@ -67,10 +69,10 @@ interface Props {
  * autant.
  */
 export function BarreOngletsBasse({ ouvrirPlus, plusOuvert }: Props) {
+  const garageAConfigurer = usePastilleAssistant();
   const { t } = useTranslation('navigation');
   const [searchParams] = useSearchParams();
-  const { preferenceSiteId } = useSiteCourant();
-  const site = searchParams.get('site') ?? preferenceSiteId;
+  const site = searchParams.get('site') ?? undefined;
   const { pathname } = useLocation();
   const { data: session } = useSession();
   const sujet = sujetNavigation(session);
@@ -117,7 +119,7 @@ export function BarreOngletsBasse({ ouvrirPlus, plusOuvert }: Props) {
     // portrait), voir `AppShell.tsx`.
     <nav
       aria-label={t('navigation:barreBasse.aria')}
-      className="fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-zone-sure-bas pl-zone-sure-gauche pr-zone-sure-droite md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-zone-sure-bas pl-zone-sure-gauche pr-zone-sure-droite lg:hidden"
     >
       <ul className="flex h-barre-onglets-hauteur items-stretch gap-1 px-1">
         {entrees.map((entree) => rendreEntree(entree))}
@@ -134,9 +136,15 @@ export function BarreOngletsBasse({ ouvrirPlus, plusOuvert }: Props) {
                 : 'font-medium text-muted-foreground hover:bg-muted hover:text-foreground',
             )}
           >
-            <Menu className="h-5 w-5 shrink-0" aria-hidden="true" />
+            <span className="relative flex">
+              <Menu className="h-5 w-5 shrink-0" aria-hidden="true" />
+              {garageAConfigurer ? <PastilleConfiguration className="-right-1 -top-1" /> : null}
+            </span>
             <span className="texte-petit w-full truncate leading-none">
               {t('navigation:barreBasse.plus')}
+              {garageAConfigurer ? (
+                <span className="sr-only"> — {t('navigation:configurer.pastille')}</span>
+              ) : null}
             </span>
           </button>
         </li>

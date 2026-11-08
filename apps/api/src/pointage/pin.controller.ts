@@ -15,6 +15,7 @@ import {
   type EntreeRevocationPin,
 } from './pin-contrats';
 import { ServiceIdentificationPin } from './service-identification-pin';
+import { ExigerModule } from '../common/droits/garde-module';
 
 /**
  * Mode « borne partagée » du pointage (`docs/specification-pointage-borne.md`). Deux surfaces, deux
@@ -35,6 +36,7 @@ import { ServiceIdentificationPin } from './service-identification-pin';
  */
 @ApiTags('Pointage')
 @ApiCookieAuth()
+@ExigerModule('tablettes')
 @Controller({ path: 'pointages', version: '1' })
 @UseGuards(GardeDroit)
 export class PinController {

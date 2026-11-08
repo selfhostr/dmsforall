@@ -21,8 +21,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import { ChampRoleEmploye } from './ChampRoleEmploye';
+import { ChampSitePrincipal } from './ChampSitePrincipal';
 import { diffCapacites } from '@/composants/capacites/grille';
 import {
   depassementsAvantEnvoi,
@@ -75,6 +76,7 @@ export function DialogueNouvelEmploye({
   const [nom, setNom] = useState('');
   const [email, setEmail] = useState('');
   const [siteIds, setSiteIds] = useState<readonly string[]>([]);
+  const [sitePrincipalId, setSitePrincipalId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (!ouvert) {
@@ -83,6 +85,7 @@ export function DialogueNouvelEmploye({
       setEmail('');
       etat.reinitialiser(prereglageInitial);
       setSiteIds([]);
+      setSitePrincipalId(undefined);
       creer.reset();
       modifierCapacites.reset();
     } else {
@@ -119,6 +122,12 @@ export function DialogueNouvelEmploye({
     siteIdsEffectifs.length > 0 &&
     grilleValide;
 
+  // Site principal effectif : le choix s'il figure parmi les sites cochés, sinon le premier.
+  const sitesCoches = (session?.sites ?? []).filter((site) => siteIdsEffectifs.includes(site.id));
+  const sitePrincipalEffectif = sitesCoches.some((site) => site.id === sitePrincipalId)
+    ? sitePrincipalId
+    : sitesCoches[0]?.id;
+
   function basculerSite(siteId: string) {
     setSiteIds((valeur) =>
       valeur.includes(siteId) ? valeur.filter((id) => id !== siteId) : [...valeur, siteId],
@@ -136,6 +145,9 @@ export function DialogueNouvelEmploye({
         role: PREREGLAGES[etat.prereglageId].roleOrigine,
         prereglage: etat.prereglageId,
         siteIds: [...siteIdsEffectifs],
+        ...(sitesCoches.length > 1 && sitePrincipalEffectif
+          ? { sitePrincipalId: sitePrincipalEffectif }
+          : {}),
       },
       {
         onSuccess: (reponse) => {
@@ -183,43 +195,46 @@ export function DialogueNouvelEmploye({
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
+          <LegendeChampsObligatoires>
+            {t('parametrage:obligatoire.legende')}
+          </LegendeChampsObligatoires>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="nouvel-employe-prenom">
-                {t('parametrage:utilisateurs.creation.champPrenom')} *
+              <Label htmlFor="nouvel-employe-prenom" requis>
+                {t('parametrage:utilisateurs.creation.champPrenom')}
               </Label>
               <Input
                 id="nouvel-employe-prenom"
                 value={prenom}
                 maxLength={100}
-                required
+                aria-required="true"
                 onChange={(e) => setPrenom(e.target.value)}
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="nouvel-employe-nom">
-                {t('parametrage:utilisateurs.creation.champNom')} *
+              <Label htmlFor="nouvel-employe-nom" requis>
+                {t('parametrage:utilisateurs.creation.champNom')}
               </Label>
               <Input
                 id="nouvel-employe-nom"
                 value={nom}
                 maxLength={100}
-                required
+                aria-required="true"
                 onChange={(e) => setNom(e.target.value)}
               />
             </div>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="nouvel-employe-email">
-              {t('parametrage:utilisateurs.creation.champEmail')} *
+            <Label htmlFor="nouvel-employe-email" requis>
+              {t('parametrage:utilisateurs.creation.champEmail')}
             </Label>
             <Input
               id="nouvel-employe-email"
               type="email"
               value={email}
               maxLength={320}
-              required
+              aria-required="true"
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
@@ -234,7 +249,10 @@ export function DialogueNouvelEmploye({
           {estMonoSite ? null : (
             <fieldset className="flex flex-col gap-1.5">
               <legend className="texte-corps font-medium">
-                {t('parametrage:utilisateurs.creation.champSites')} *
+                {t('parametrage:utilisateurs.creation.champSites')}
+                <span aria-hidden="true" className="ml-0.5">
+                  *
+                </span>
               </legend>
               {sites.length === 0 ? (
                 <p className="texte-libelle text-muted-foreground">
@@ -263,6 +281,13 @@ export function DialogueNouvelEmploye({
               ) : null}
             </fieldset>
           )}
+
+          <ChampSitePrincipal
+            idPrefixe="nouvel-employe"
+            sites={sitesCoches}
+            valeur={sitePrincipalEffectif}
+            onChange={setSitePrincipalId}
+          />
 
           <SectionQuiPeutQuoi requete={requeteModele} etat={etat} erreursChamp={erreursChamp} />
         </div>

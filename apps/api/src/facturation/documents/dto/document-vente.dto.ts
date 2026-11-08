@@ -286,8 +286,15 @@ export class ReponseDocumentVenteDto implements ReponseDocumentVente {
 }
 
 /** `POST /documents-vente/{factureId}/corriger` (`RF-12`→`RF-14`) — les deux documents nés de la
- *  correction (avoir total + facture de remplacement, tous deux déjà `emis`). */
+ *  correction (avoir total déjà `emis` + facture de remplacement `emis`, ou brouillon en mode `brouillon`). */
 export class ReponseCorrectionFactureDto implements ReponseCorrectionFacture {
+  @ApiProperty({
+    enum: ['remplacement', 'brouillon'],
+    description:
+      "`remplacement` : `factureRemplacement` est une facture émise. `brouillon` : c'est un brouillon (sans numéro) à modifier puis émettre.",
+  })
+  readonly mode!: ReponseCorrectionFacture['mode'];
+
   @ApiProperty({ type: () => ReponseDocumentVenteDto })
   readonly avoir!: ReponseDocumentVente;
 

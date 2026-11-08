@@ -34,6 +34,8 @@ import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
+import { FiltreSite } from '@/composants/commun/FiltreSite';
+import { useFiltreSite } from '@/hooks/site/useFiltreSite';
 import { useSession } from '@/hooks/useSession';
 import { useListeVehiculesStock } from '@/hooks/ventes/stock/useListeVehiculesStock';
 import { formaterMontant } from '@/lib/formats';
@@ -45,11 +47,6 @@ import {
   lireAffichageStock,
   type AffichageStock,
 } from './_composants/BasculeAffichageStock';
-import {
-  BasculeVueStock,
-  lireVueAffichageStock,
-  type VueAffichageStock,
-} from './_composants/BasculeVueStock';
 import { PlanParcVehicules } from './_composants/PlanParcVehicules';
 import { peutEcrireVehiculeStock } from './droits';
 
@@ -82,24 +79,13 @@ export function EcranListeVehiculesStock() {
   const { data: session } = useSession();
   const actions = session?.actions;
 
-  // Le site sélectionné est un paramètre de requête, jamais un état global (routes/chemins.ts) :
-  // deux onglets sur deux sites différents ne doivent pas se contredire.
   const [searchParams, setSearchParams] = useSearchParams();
-  const site = searchParams.get('site') ?? undefined;
-  const vue = lireVueAffichageStock(searchParams);
+  // Filtre de site LOCAL (site principal par défaut, mémorisé par écran).
+  const filtreSite = useFiltreSite('ventes.stock');
+  const site = filtreSite.siteId;
   const affichage = lireAffichageStock(searchParams);
 
-  function definirVue(valeur: VueAffichageStock) {
-    const parametres = new URLSearchParams(searchParams);
-    if (valeur === 'client') {
-      parametres.set('vue', 'client');
-    } else {
-      parametres.delete('vue');
-    }
-    setSearchParams(parametres);
-  }
-
-  // Orthogonal à `vue` (confidentialité) : celui-ci choisit la MISE EN FORME, jamais les données —
+  // Choisit la MISE EN FORME (liste/plan), jamais les données —
   // voir la note d'en-tête de `BasculeAffichageStock`.
   function definirAffichage(valeur: AffichageStock) {
     const parametres = new URLSearchParams(searchParams);
@@ -111,14 +97,8 @@ export function EcranListeVehiculesStock() {
     setSearchParams(parametres);
   }
 
-  // Bouton « Fiche commerciale » d'une ligne (seule navigation OUVERTE par cet écran vers
-  // `EcranFicheVehiculeStock`) : propage `?vue=client` pour que la bascule reste cohérente en
-  // enchaînant liste -> fiche pendant qu'un client regarde encore l'écran. Le lien « voir la fiche
-  // véhicule » de la fiche commerciale part vers un autre écran (`/vehicules/{id}`, hors périmètre
-  // de ce module) qui n'a pas cette notion — pas propagé là.
   function cheminFicheCommerciale(id: string) {
-    const base = chemins.ventes.stock.detail(id, site);
-    return vue === 'client' ? `${base}${base.includes('?') ? '&' : '?'}vue=client` : base;
+    return chemins.ventes.stock.detail(id, site);
   }
 
   const [qSaisie, setQSaisie] = useState('');
@@ -130,17 +110,7 @@ export function EcranListeVehiculesStock() {
   const [typeVehicule, setTypeVehicule] = useState<TypeVehiculeVente | undefined>(undefined);
   const [tri, setTri] = useState<string>(TRI_DEFAUT_VEHICULES_STOCK);
 
-  // Vue client (issue #84) : la provenance et le tri par ancienneté sont des dimensions RETIRÉES
-  // de l'écran, pas des filtres qu'on continue d'appliquer en douce. La sélection du vendeur
-  // (`provenance`/`tri`) reste en état telle quelle — seule la valeur EFFECTIVE (envoyée à l'API,
-  // rendue dans les contrôles) est recalculée depuis `vue` ; revenir en vue vendeur la restaure
-  // sans rien perdre.
-  const provenanceActive = vue === 'client' ? undefined : provenance;
-  const optionsTri =
-    vue === 'client'
-      ? TRIS_VEHICULES_STOCK.filter((valeur) => !valeur.startsWith('joursStock'))
-      : TRIS_VEHICULES_STOCK;
-  const triActif = (optionsTri as readonly string[]).includes(tri)
+  const triActif = (TRIS_VEHICULES_STOCK as readonly string[]).includes(tri)
     ? tri
     : TRI_DEFAUT_VEHICULES_STOCK;
 
@@ -148,12 +118,12 @@ export function EcranListeVehiculesStock() {
     () => ({
       q: q.trim() === '' ? undefined : q.trim(),
       siteId: site,
-      provenance: provenanceActive === undefined ? undefined : [provenanceActive],
+      provenance: provenance === undefined ? undefined : [provenance],
       statutCommercial: statutCommercial === undefined ? undefined : [statutCommercial],
       typeVehicule,
       tri: triActif,
     }),
-    [q, site, provenanceActive, statutCommercial, typeVehicule, triActif],
+    [q, site, provenance, statutCommercial, typeVehicule, triActif],
   );
 
   const {
@@ -179,8 +149,7 @@ export function EcranListeVehiculesStock() {
   const planEnChargementComplet = affichage === 'plan' && (isFetchingNextPage || hasNextPage);
 
   const filtresStructuresActifs =
-    provenanceActive !== undefined || statutCommercial !== undefined || typeVehicule !== undefined;
-  const filtresActifs = q.trim() !== '' || filtresStructuresActifs;
+    provenance !== undefined || statutCommercial !== undefined || typeVehicule !== undefined;
 
   function effacerFiltres() {
     setQSaisie('');
@@ -190,25 +159,16 @@ export function EcranListeVehiculesStock() {
     setTypeVehicule(undefined);
   }
 
-  // Colonnes retirées en vue client (issue #84), pas masquées derrière un clic : la provenance
-  // (« c'est mon affaire, pas la sienne ») et les jours en stock (« si le client voit qu'une
-  // voiture est là depuis trois mois, il négocie 2000 francs »). `identificationIncomplete` de
-  // `IdentiteVehicule` est masqué de la même façon — la donnée n'est modifiée que dans l'objet
-  // passé au composant partagé, jamais chez lui (hors périmètre d'écriture de cet écran).
-  const toutesColonnes: ColonneComptoir<VehiculeStockResume>[] = [
+  // Colonne Emplacement masquée tant qu'aucune ligne chargée n'en porte un (sinon une colonne de « — »).
+  const afficherEmplacement = vehiculesStock.some((ligne) =>
+    Boolean(ligne.vehicule.emplacementLibre),
+  );
+
+  const colonnesToutes: ColonneComptoir<VehiculeStockResume>[] = [
     {
       id: 'vehicule',
       libelle: t('ventes:stock.liste.colonnes.vehicule'),
-      rendu: (ligne) => (
-        <IdentiteVehicule
-          vehicule={
-            vue === 'client'
-              ? { ...ligne.vehicule, identificationIncomplete: false }
-              : ligne.vehicule
-          }
-          taillePlaque="sm"
-        />
-      ),
+      rendu: (ligne) => <IdentiteVehicule vehicule={ligne.vehicule} taillePlaque="sm" />,
     },
     {
       id: 'type',
@@ -228,7 +188,9 @@ export function EcranListeVehiculesStock() {
     {
       id: 'statut',
       libelle: t('ventes:stock.liste.colonnes.statut'),
-      rendu: (ligne) => <BadgeStatutVehiculeStock statut={ligne.statutCommercial} />,
+      rendu: (ligne) => (
+        <BadgeStatutVehiculeStock statut={ligne.statutCommercial} className="whitespace-nowrap" />
+      ),
     },
     {
       id: 'joursStock',
@@ -280,37 +242,14 @@ export function EcranListeVehiculesStock() {
     },
   ];
 
-  const colonnesMasqueesVueClient = new Set(['provenance', 'joursStock']);
-  const colonnes =
-    vue === 'client'
-      ? toutesColonnes.filter((colonne) => !colonnesMasqueesVueClient.has(colonne.id))
-      : toutesColonnes;
+  const colonnes = colonnesToutes.filter((c) => c.id !== 'emplacement' || afficherEmplacement);
 
-  // « Mettre en stock » — seule ACTION de l'en-tête d'écran (retour produit du 17.08.2026 : « Vue
-  // vendeur, Vue client, il faut le mettre ailleurs »). Construite AVANT les retours anticipés
-  // chargement/erreur pour que l'en-tête garde EXACTEMENT la même composition entre les trois
-  // états (même doctrine que `EcranSuiviVentes` pour ses onglets d'horizon) — le bouton ne dépend
-  // pas des données de la requête, aucune raison de le faire apparaître/disparaître au chargement.
-  // `undefined` (jamais un fragment vide) quand aucun bouton n'est proposé : un fragment vide
-  // rendrait quand même un élément dans la rangée ci-dessous — React n'affiche rien pour un enfant
-  // `undefined`, contrairement à un fragment vide qui laisserait un espace `gap` fantôme.
-  //
-  // `BasculeAffichageStock` (Liste/Plan), `BasculeVueStock` (Vendeur/Client) ET, depuis le chantier
-  // d'unification inter-écrans du 25.08.2026, ce bouton lui-même ont QUITTÉ le slot `actions` de
-  // `GabaritEcran` (correctif « mise en page ventes », 19.08.2026, pour les deux bascules : « deux
-  // petits contrôles à droite créent un grand bandeau blanc sur toute la largeur restante » — cette
-  // fiche n'a pas de titre visible, « Véhicules en parc » doublonnant l'onglet actif, donc `actions`
-  // seul occupait toute la rangée ; `actions=` pour un bouton « Nouveau X » est par ailleurs
-  // lui-même le motif PÉRIMÉ, voir `EcranListeOrdresReparation`/`EcranListeClients`/
-  // `EcranListeVehicules`). Les trois contrôles rejoignent la barre de filtres, où ils partagent la
-  // largeur avec les filtres et le champ de recherche plutôt que de rester seuls sur leur rangée —
-  // voir plus bas.
-  const boutonMettreEnStock =
-    peutEcrireVehiculeStock(actions) && vue === 'vendeur' ? (
-      <Button onClick={() => navigate(chemins.ventes.stock.nouveau(site))}>
-        {t('ventes:stock.liste.actions.mettreEnStock')}
-      </Button>
-    ) : undefined;
+  // « Mettre en stock » : à droite de la barre d'outils, indépendant des données de la requête.
+  const boutonMettreEnStock = peutEcrireVehiculeStock(actions) ? (
+    <Button onClick={() => navigate(chemins.ventes.stock.nouveau(site))}>
+      {t('ventes:stock.liste.actions.mettreEnStock')}
+    </Button>
+  ) : undefined;
 
   // Titres d'état vide nommant l'ABSENCE (jamais « Véhicules en parc », qui répéterait l'onglet
   // actif/le menu — même défaut que celui corrigé le 17.08.2026 sur `EcranListeFactures.tsx`).
@@ -335,28 +274,12 @@ export function EcranListeVehiculesStock() {
       <EtatVidePremierUsage
         titre={t('ventes:stock.liste.vide.premierUsage.titre')}
         description={t('ventes:stock.liste.vide.premierUsage.description')}
-        action={
-          peutEcrireVehiculeStock(actions) && vue === 'vendeur' ? (
-            <Button onClick={() => navigate(chemins.ventes.stock.nouveau(site))}>
-              {t('ventes:stock.liste.actions.mettreEnStock')}
-            </Button>
-          ) : undefined
-        }
       />
     );
   }
 
-  // « Mettre en stock » quitte le slot `actions` de `GabaritEcran` (chantier d'unification
-  // inter-écrans, 25.08.2026 : `actions=` pour un bouton « Nouveau X » est le motif PÉRIMÉ, aligné
-  // sur `EcranListeOrdresReparation`/`EcranListeClients`/`EcranListeVehicules`). Conséquence directe
-  // du commentaire ci-dessus (« Construite AVANT les retours anticipés ... pour que l'en-tête garde
-  // EXACTEMENT la même composition entre les trois états ») : les trois retours anticipés séparés
-  // (chargement/erreur/contenu), chacun avec son propre `<GabaritEcran actions={...}>`, sont donc
-  // remplacés par UN SEUL retour — même patron que `EcranSuiviVentes` pour ses onglets d'horizon
-  // (« les onglets sont rendus INCONDITIONNELLEMENT, AVANT tout retour anticipé ») : la rangée
-  // filtres + bascules + bouton ne dépend d'aucune donnée de la requête, elle ne doit plus
-  // apparaître/disparaître selon `isPending`/`isError`. Seul le contenu SOUS cette rangée
-  // (chargement / erreur / plan / table) varie encore selon l'état de la requête.
+  // Un seul retour : la barre d'outils ne dépend d'aucune donnée de la requête, seul le contenu
+  // dessous (chargement / erreur / plan / table) varie.
   return (
     // Titre MASQUÉ automatiquement — `ventes:stock.liste.titre` vaut désormais littéralement
     // « Véhicules en parc », IDENTIQUE à l'onglet actif « Véhicules en parc » (`navigation-modele.ts`,
@@ -367,84 +290,89 @@ export function EcranListeVehiculesStock() {
     // §5.2, « ne jamais poser titreVisible pour être sûr ») : le texte, désormais identique à
     // l'allemand `stock.liste.titre`/`Fahrzeugbestand` qui matchait déjà son onglet par coïncidence,
     // fait tomber la détection automatique juste dans les trois langues.
-    //
-    // `BasculeVueStock`/`BasculeAffichageStock` ont quitté le slot `actions` du gabarit (correctif
-    // « mise en page ventes », 19.08.2026, voir `boutonMettreEnStock` ci-dessus) pour rejoindre la
-    // barre de filtres ci-dessous — visibles dans les DEUX modes d'affichage (`liste`/`plan`), donc
-    // posées à côté de `BarreFiltres`, qui elle non plus ne dépend pas du mode. Le contenu commence
-    // directement par cette rangée, remonté d'une rangée entière (retour produit du 17.08.2026,
-    // « tu peux mettre plus haut le truc »).
-    <GabaritEcran titre={t('ventes:stock.liste.titre')}>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <BarreFiltres
-          q={qSaisie}
-          onChangeQ={setQSaisie}
-          placeholderRecherche={t('ventes:stock.liste.rechercherPlaceholder')}
-          filtresActifs={filtresActifs}
-          onEffacerFiltres={effacerFiltres}
-          className="min-w-0 flex-1"
-        >
-          {/* Libellés au-dessus des trois filtres RETIRÉS (correctif « mise en page ventes »,
-              19.08.2026) : chaque `SelectTrigger` affiche déjà la valeur choisie en toutes lettres
-              (« Tous les types », « VN », etc.) — un libellé fixe juste au-dessus ne faisait que
-              répéter, en plus court, ce que le contrôle dit déjà, tout en consommant une ligne
-              entière (`flex-col`) par filtre. `aria-label` déjà porté par chaque `SelectTrigger` :
-              rien ne se perd pour un lecteur d'écran, qui annonce toujours le nom du filtre avant
-              sa valeur. */}
-          <Select
-            value={typeVehicule ?? 'tous'}
-            onValueChange={(valeur) =>
-              setTypeVehicule(valeur === 'tous' ? undefined : (valeur as TypeVehiculeVente))
+    <GabaritEcran
+      titre={t('ventes:stock.liste.titre')}
+      actions={
+        <>
+          <BasculeAffichageStock affichage={affichage} onChangeAffichage={definirAffichage} />
+          {boutonMettreEnStock}
+        </>
+      }
+      barre={
+        <div className="flex flex-wrap items-center gap-3">
+          <BarreFiltres
+            q={qSaisie}
+            onChangeQ={setQSaisie}
+            placeholderRecherche={t('ventes:stock.liste.rechercherPlaceholder')}
+            className="min-w-0 flex-1 basis-[28rem]"
+            tri={
+              affichage === 'liste' ? (
+                <SelecteurTri
+                  options={TRIS_VEHICULES_STOCK.map((valeur) => ({
+                    valeur,
+                    libelle: t(CLES_TRI[valeur]),
+                  }))}
+                  valeur={triActif}
+                  onChangeValeur={setTri}
+                  label={t('ventes:stock.liste.tri.label')}
+                />
+              ) : undefined
             }
           >
-            <SelectTrigger
-              id="filtre-type-vehicule"
-              className="w-[140px]"
-              aria-label={t('ventes:stock.champs.typeVehicule')}
+            <FiltreSite filtre={filtreSite} />
+            <Select
+              value={typeVehicule ?? 'tous'}
+              onValueChange={(valeur) =>
+                setTypeVehicule(valeur === 'tous' ? undefined : (valeur as TypeVehiculeVente))
+              }
             >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="tous">{t('ventes:stock.filtres.typeTous')}</SelectItem>
-              {TYPES_VEHICULE_VENTE.map((valeur) => (
-                <SelectItem key={valeur} value={valeur}>
-                  {t(`ventes:stock.types.${valeur}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={statutCommercial ?? 'tous'}
-            onValueChange={(valeur) =>
-              setStatutCommercial(
-                valeur === 'tous' ? undefined : (valeur as StatutCommercialVehicule),
-              )
-            }
-          >
-            <SelectTrigger
-              id="filtre-statut-commercial"
-              className="w-[180px]"
-              aria-label={t('ventes:stock.champs.statutCommercial')}
+              <SelectTrigger
+                id="filtre-type-vehicule"
+                className="w-auto min-w-36 shrink-0"
+                aria-label={t('ventes:stock.champs.typeVehicule')}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="tous">{t('ventes:stock.filtres.typeTous')}</SelectItem>
+                {TYPES_VEHICULE_VENTE.map((valeur) => (
+                  <SelectItem key={valeur} value={valeur}>
+                    {t(`ventes:stock.types.${valeur}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={statutCommercial ?? 'tous'}
+              onValueChange={(valeur) =>
+                setStatutCommercial(
+                  valeur === 'tous' ? undefined : (valeur as StatutCommercialVehicule),
+                )
+              }
             >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="tous">{t('ventes:stock.filtres.statutTous')}</SelectItem>
-              {STATUTS_COMMERCIAUX_VEHICULE.map((valeur) => (
-                <SelectItem key={valeur} value={valeur}>
-                  {t(`ventes:stock.statuts.${valeur}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {vue === 'vendeur' ? (
+              <SelectTrigger
+                id="filtre-statut-commercial"
+                className="w-auto min-w-36 shrink-0"
+                aria-label={t('ventes:stock.champs.statutCommercial')}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="tous">{t('ventes:stock.filtres.statutTous')}</SelectItem>
+                {STATUTS_COMMERCIAUX_VEHICULE.map((valeur) => (
+                  <SelectItem key={valeur} value={valeur}>
+                    {t(`ventes:stock.statuts.${valeur}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select
               value={provenance ?? 'toutes'}
               onValueChange={(valeur) => setProvenance(valeur === 'toutes' ? undefined : valeur)}
             >
               <SelectTrigger
                 id="filtre-provenance"
-                className="w-[200px]"
+                className="w-auto min-w-36 shrink-0"
                 aria-label={t('ventes:stock.champs.provenance')}
               >
                 <SelectValue />
@@ -458,22 +386,10 @@ export function EcranListeVehiculesStock() {
                 ))}
               </SelectContent>
             </Select>
-          ) : null}
-        </BarreFiltres>
-
-        {/* Bascules Liste/Plan et Vendeur/Client (correctif « mise en page ventes », 19.08.2026) —
-            groupées ici plutôt qu'isolées dans `actions` du gabarit : côte à côte avec la barre de
-            filtres sur la même rangée, elles ne réservent plus de bande pleine largeur à elles
-            deux. `shrink-0` : sur un poste étroit, cette rangée passe sous les filtres (`flex-wrap`
-            du conteneur) plutôt que de compresser les bascules. */}
-        <div className="flex shrink-0 items-center gap-2">
-          <BasculeAffichageStock affichage={affichage} onChangeAffichage={definirAffichage} />
-          <BasculeVueStock vue={vue} onChangeVue={definirVue} />
+          </BarreFiltres>
         </div>
-
-        {boutonMettreEnStock}
-      </div>
-
+      }
+    >
       {isPending ? (
         <EtatChargement lignes={6} />
       ) : isError ? (
@@ -500,15 +416,8 @@ export function EcranListeVehiculesStock() {
         )
       ) : (
         <>
-          <SelecteurTri
-            options={optionsTri.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
-            valeur={triActif}
-            onChangeValeur={setTri}
-            label={t('ventes:stock.liste.tri.label')}
-            className="max-w-xs"
-          />
-
           <TableComptoir
+            className="min-w-[56rem]"
             colonnes={colonnes}
             lignes={vehiculesStock}
             cleLigne={(ligne) => ligne.id}
