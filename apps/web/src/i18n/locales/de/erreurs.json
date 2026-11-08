@@ -179,7 +179,13 @@
     "REPRISE_AJUSTEMENT_ELEMENT_INCONNU": "Diese Anpassung passt zu keinem Element des Übernahmeplans. Laden Sie die Seite neu; bleibt das Problem, informieren Sie den Support.",
     "AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS": "Wählen Sie Ihr eigenes Passwort, bevor Sie fortfahren.",
     "AUTH_JETON_REINITIALISATION_INVALIDE": "Dieser Link zum Zurücksetzen ist nicht mehr gültig. Fordern Sie auf der Anmeldeseite einen neuen Link an.",
-    "FACTURE_DESTINATAIRE_COURRIEL_ABSENT": "Dieser Kunde hat keine registrierte E-Mail-Adresse. Ergänzen Sie die Kundenakte und versuchen Sie es dann erneut."
+    "FACTURE_DESTINATAIRE_COURRIEL_ABSENT": "Dieser Kunde hat keine registrierte E-Mail-Adresse. Ergänzen Sie die Kundenakte und versuchen Sie es dann erneut.",
+    "COURRIEL_NON_CONFIGURE": "Der E-Mail-Versand ist nicht eingerichtet. Tragen Sie den Postausgangsserver unter Einstellungen > E-Mail-Versand ein.",
+    "COURRIEL_CLE_CHIFFREMENT_ABSENTE": "Das Passwort kann nicht gespeichert werden: Auf diesem Server ist kein Verschlüsselungsschlüssel festgelegt. Wenden Sie sich an die Person, die die Installation betreut.",
+    "COURRIEL_AUTHENTIFICATION_ECHEC": "Der Postausgangsserver hat Benutzername oder Passwort abgelehnt. Bitte prüfen Sie beides (bei Gmail oder Microsoft 365 ist oft ein App-Passwort nötig).",
+    "COURRIEL_CONNEXION_ECHEC": "Der Postausgangsserver ist nicht erreichbar. Prüfen Sie Servername und Port.",
+    "COURRIEL_TLS_ECHEC": "Die sichere Verbindung zum Server ist fehlgeschlagen. Versuchen Sie eine andere Verschlüsselung (STARTTLS mit Port 587 oder TLS mit Port 465).",
+    "COURRIEL_ENVOI_ECHEC": "Der Server hat die Testnachricht abgelehnt. Prüfen Sie Absenderadresse und Empfängeradresse."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Nachtragsofferte erstellen",

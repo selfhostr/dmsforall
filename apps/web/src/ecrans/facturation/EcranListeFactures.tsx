@@ -1,6 +1,7 @@
+import { ChartColumn } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
 
 import type { DocumentVenteResume, FiltresDocumentsVente } from '@dfa/shared';
 
@@ -16,6 +17,7 @@ const CLE_TRI: Record<TriFactures, string> = {
 };
 
 import { messageErreur } from '@/api/erreurs';
+import { BoutonIconeInfobulle } from '@/composants/commun/BoutonIconeInfobulle';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { Segments } from '@/composants/commun/Segments';
@@ -332,23 +334,22 @@ export function EcranListeFactures() {
     // fournit déjà l'unique `p-4 sm:p-6` de tout écran routé.
     <GabaritEcran
       titre={t('facturation:liste.titre')}
-      actions={
-        <>
-          {peutVoirChiffres(actions) ? (
-            <Link
-              to={chemins.facturation.chiffres()}
-              className="anneau-focus inline-flex min-h-11 items-center rounded-md texte-corps font-medium text-primary underline underline-offset-2"
-            >
-              {t('facturation:chiffres.voirChiffres')}
-            </Link>
-          ) : null}
-          <BoutonNouveauDevis />
-        </>
-      }
       barre={
         <BarreFiltres
           q={qSaisie}
           onChangeQ={setQSaisie}
+          actionsSecondaires={
+            <>
+              {peutVoirChiffres(actions) ? (
+                <BoutonIconeInfobulle
+                  libelle={t('facturation:chiffres.voirChiffres')}
+                  icone={ChartColumn}
+                  to={chemins.facturation.chiffres()}
+                />
+              ) : null}
+              <BoutonNouveauDevis iconeSeule />
+            </>
+          }
           tri={
             <SelecteurTri
               label={t('facturation:liste.tri.label')}

@@ -1,7 +1,6 @@
-import { Plus } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 
 import {
   TRI_DEFAUT_VEHICULES,
@@ -11,7 +10,6 @@ import {
 } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
@@ -192,18 +190,12 @@ export function EcranListeVehicules() {
   return (
     <GabaritEcran
       titre={t('vehicules:liste.titre')}
-      actions={
-        <>
-          <Button asChild>
-            <Link to={chemins.vehicules.nouveau(site)}>
-              <Plus aria-hidden className="h-4 w-4" />
-              {t('vehicules:nouveau')}
-            </Link>
-          </Button>
-        </>
-      }
       barre={
         <BarreFiltres
+          actionCreer={{
+            libelle: t('vehicules:creerInfobulle'),
+            to: chemins.vehicules.nouveau(site),
+          }}
           tri={
             <SelecteurTri
               options={TRIS_VEHICULES.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
@@ -224,7 +216,7 @@ export function EcranListeVehicules() {
             >
               <SelectTrigger
                 id="filtre-statut"
-                className="w-[180px]"
+                className="w-auto min-w-28"
                 aria-label={t('vehicules:liste.filtres.statut')}
               >
                 <SelectValue />

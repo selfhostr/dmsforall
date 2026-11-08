@@ -1,9 +1,18 @@
-import { Search } from 'lucide-react';
+import { Plus, Search, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Input } from '@/components/ui/input';
+import {
+  BoutonIconeInfobulle,
+  type ProprietesBoutonIconeInfobulle,
+} from '@/composants/commun/BoutonIconeInfobulle';
 import { cn } from '@/lib/utils';
+
+/** Action de création de la liste : bouton carré « + » sans texte, en bout de barre. */
+export type ActionCreerBarre = Omit<ProprietesBoutonIconeInfobulle, 'icone'> & {
+  readonly icone?: LucideIcon;
+};
 
 export interface ProprietesBarreFiltres {
   readonly q: string;
@@ -13,6 +22,14 @@ export interface ProprietesBarreFiltres {
   readonly children?: ReactNode;
   /** Bouton de tri (`SelecteurTri`), en bout de ligne. */
   readonly tri?: ReactNode;
+  /**
+   * Création (« Créer un ordre de réparation ») : bouton carré blanc avec « + » seul, TOUJOURS au
+   * bout de la barre, jamais sur la ligne du titre. `libelle` = infobulle + `aria-label`.
+   * Absent (undefined) quand l'utilisateur n'a pas le droit de créer.
+   */
+  readonly actionCreer?: ActionCreerBarre;
+  /** Autres actions secondaires iconiques (bascule liste/plan…), avant le bouton de création. */
+  readonly actionsSecondaires?: ReactNode;
   /** @deprecated Le bouton « Effacer les filtres » n'existe plus : on revient à « Tous… » par
    *  les filtres eux-mêmes. Prop conservée, ignorée, le temps que tous les appelants migrent. */
   readonly filtresActifs?: boolean;
@@ -33,6 +50,8 @@ export function BarreFiltres({
   placeholderRecherche,
   children,
   tri,
+  actionCreer,
+  actionsSecondaires,
   className,
 }: ProprietesBarreFiltres) {
   const { t } = useTranslation('commun');
@@ -55,6 +74,19 @@ export function BarreFiltres({
       </div>
       {children}
       {tri ? <div className="ml-auto shrink-0">{tri}</div> : null}
+      {actionsSecondaires ? (
+        <div className={cn('flex shrink-0 items-center gap-controles', !tri && 'ml-auto')}>
+          {actionsSecondaires}
+        </div>
+      ) : null}
+      {actionCreer ? (
+        <div
+          className={cn('shrink-0', !tri && !actionsSecondaires && 'ml-auto')}
+          data-testid="action-creer-barre"
+        >
+          <BoutonIconeInfobulle {...actionCreer} icone={actionCreer.icone ?? Plus} />
+        </div>
+      ) : null}
     </div>
   );
 }

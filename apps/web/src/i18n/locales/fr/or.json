@@ -340,7 +340,7 @@
   "liste": {
     "titre": "Ordres de réparation",
     "actions": {
-      "nouveau": "Créer un OR"
+      "creer": "Créer un ordre de réparation"
     },
     "colonnes": {
       "numero": "N° OR",

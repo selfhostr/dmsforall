@@ -358,6 +358,13 @@ export const CODES_ERREUR = [
   'FACTURE_CORRECTION_REGLEMENT_EXISTANT',
   // --- Modules activables (migration 0092) : écriture sur un module que le garage a retiré ---
   'MODULE_DESACTIVE',
+  // --- Envoi des e-mails du garage (migration 0098) ---
+  'COURRIEL_NON_CONFIGURE',
+  'COURRIEL_CLE_CHIFFREMENT_ABSENTE',
+  'COURRIEL_AUTHENTIFICATION_ECHEC',
+  'COURRIEL_CONNEXION_ECHEC',
+  'COURRIEL_TLS_ECHEC',
+  'COURRIEL_ENVOI_ECHEC',
   // --- Changement de mot de passe obligatoire (issue #58) ---
   // Mot de passe temporaire jamais remplacé : toute route métier est refusée (403) jusqu'au
   // changement via POST /auth/mot-de-passe/changement.
@@ -520,6 +527,12 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   FACTURE_DEJA_CORRIGEE: 409,
   FACTURE_CORRECTION_REGLEMENT_EXISTANT: 409,
   MODULE_DESACTIVE: 403,
+  COURRIEL_NON_CONFIGURE: 409,
+  COURRIEL_CLE_CHIFFREMENT_ABSENTE: 409,
+  COURRIEL_AUTHENTIFICATION_ECHEC: 422,
+  COURRIEL_CONNEXION_ECHEC: 422,
+  COURRIEL_TLS_ECHEC: 422,
+  COURRIEL_ENVOI_ECHEC: 422,
   SERVICE_LECTURE_INDISPONIBLE: 503,
 };
 
@@ -662,6 +675,12 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   FACTURE_DEJA_CORRIGEE: 'Facture déjà corrigée',
   FACTURE_CORRECTION_REGLEMENT_EXISTANT: 'Facture déjà réglée en tout ou partie',
   MODULE_DESACTIVE: 'Module désactivé pour ce garage',
+  COURRIEL_NON_CONFIGURE: 'Envoi des e-mails non configuré',
+  COURRIEL_CLE_CHIFFREMENT_ABSENTE: 'Clé de chiffrement des secrets absente',
+  COURRIEL_AUTHENTIFICATION_ECHEC: "Authentification refusée par le serveur d'envoi",
+  COURRIEL_CONNEXION_ECHEC: "Serveur d'envoi injoignable",
+  COURRIEL_TLS_ECHEC: "Connexion sécurisée impossible avec le serveur d'envoi",
+  COURRIEL_ENVOI_ECHEC: "Échec d'envoi de l'e-mail",
   SERVICE_LECTURE_INDISPONIBLE: 'Service de lecture indisponible',
 };
 

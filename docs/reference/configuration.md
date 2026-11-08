@@ -73,6 +73,13 @@ E-mail is sent for real only when `NODE_ENV=production` **and** `COURRIEL_ENVOI_
 | `SMTP_MOT_DE_PASSE`   | none    | SMTP password.                                                   |
 | `SMTP_EXPEDITEUR`     | none    | Sender address. Must be a valid e-mail address.                  |
 
+Each garage can set its own sending server in the app (**Settings > Sending e-mails**). Order of use: the garage's setting, then the `SMTP_*` variables above, then nothing: with neither, the e-mail is not sent and the screen shows "Not configured". Outside production, ordinary e-mails stay captured whatever the garage setting; only the test e-mail of that screen is really sent.
+
+| Variable                         | Default | Effect                                                                                                                                                                                                                |
+| -------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CLE_CHIFFREMENT_SECRETS`        | none    | 32-byte key (base64 or 64 hex characters) that encrypts the garages' SMTP passwords. Without it, saving a password is refused. Generate with `openssl rand -base64 32`. Changing it means typing the passwords again. |
+| `COURRIEL_RESEAU_PRIVE_AUTORISE` | `false` | Allow a garage's sending server on a private network (192.168.x, 10.x, localhost) in production. Off by default so the test button cannot probe the internal network. Always allowed outside production.              |
+
 ## Supervision
 
 | Variable                             | Default    | Effect                                                                                  |
@@ -146,6 +153,7 @@ These variables are read by the Compose file, not by the API. Set them in `.env`
 | `DFA_SENTRY_DSN`                                                                                           | empty                   | Passed as `SENTRY_DSN`.                                                        |
 | `DFA_SMTP_ENABLED`                                                                                         | `false`                 | Passed as `COURRIEL_ENVOI_REEL`.                                               |
 | `DFA_SMTP_HOST`, `DFA_SMTP_PORT`, `DFA_SMTP_SECURE`, `DFA_SMTP_USER`, `DFA_SMTP_PASSWORD`, `DFA_SMTP_FROM` | see `.env.example`      | Passed as the `SMTP_*` variables.                                              |
+| `DFA_SECRETS_KEY`, `DFA_SMTP_ALLOW_PRIVATE_NETWORK`                                                        | empty, `false`          | Passed as `CLE_CHIFFREMENT_SECRETS` and `COURRIEL_RESEAU_PRIVE_AUTORISE`.      |
 | `DFA_TIMEZONE`                                                                                             | `UTC`                   | Time zone of the backup service.                                               |
 | `AGE_CLE_PUBLIQUE`                                                                                         | empty                   | `age` public key for the backup profile.                                       |
 | `HEURE_SAUVEGARDE`                                                                                         | `03:15`                 | Hour of the nightly backup.                                                    |

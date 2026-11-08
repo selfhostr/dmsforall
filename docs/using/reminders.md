@@ -31,5 +31,5 @@ A planned reminder stops automatically in these cases:
 The reason is recorded on the reminder.
 
 :::caution
-In this version, reminders are sent by e-mail only. A reminder planned for SMS is not sent. Reminders are delivered only when the server runs in production with e-mail sending enabled and a working SMTP account. Otherwise the messages are captured and not delivered. See the [configuration reference](../reference/configuration.md).
+In this version, reminders are sent by e-mail only. A reminder planned for SMS is not sent. Reminders are delivered only when the server runs in production and the garage has a working sending server (Réglages › Envoi des e-mails), or the installation has one. Without either, the reminder is not sent and the reason is recorded. See the [configuration reference](../reference/configuration.md).
 :::

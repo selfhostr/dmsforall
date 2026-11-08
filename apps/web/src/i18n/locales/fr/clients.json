@@ -1,6 +1,7 @@
 {
   "titre": "Clients",
   "nouveau": "Nouveau client",
+  "creerInfobulle": "Créer un client",
   "actions": {
     "creer": "Créer le client"
   },

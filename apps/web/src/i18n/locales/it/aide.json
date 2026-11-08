@@ -48,6 +48,15 @@
     "delaiPaiement": "Applicato ai clienti senza condizione di pagamento propria. Da 0 a 365 giorni.",
     "plafondDefaut": "Oltre questo importo il cliente deve confermare prima dei lavori. Vuoto: nessun limite.",
     "qrIban": "Il suo IBAN è il conto abituale. Il QR-IBAN è un conto speciale della banca per le fatture QR (inizia con CH e la 5a cifra è 3). Con un QR-IBAN ogni fattura riporta un riferimento QR. Non inserire mai l'uno nel campo dell'altro: la banca rifiuterebbe la polizza.",
-    "motifsRdv": "I motivi scelti alla presa di appuntamento (tagliando, pneumatici, collaudo MFK…). MFK: controllo tecnico ufficiale del veicolo. Tenga attivo almeno un motivo."
+    "motifsRdv": "I motivi scelti alla presa di appuntamento (tagliando, pneumatici, collaudo MFK…). MFK: controllo tecnico ufficiale del veicolo. Tenga attivo almeno un motivo.",
+    "envoiCourriel": {
+      "fournisseur": "Scelga il suo gestore di posta per compilare automaticamente server, porta e sicurezza. Scelga «Altro gestore» se il suo non è nell'elenco.",
+      "hote": "Il nome del server di posta in uscita (SMTP) fornito dal suo gestore, ad esempio mail.infomaniak.com.",
+      "securite": "STARTTLS con la porta 587 va bene nella maggior parte dei casi. TLS va con la porta 465. «Nessuna» solo su una rete interna fidata.",
+      "motDePasse": "Con Gmail e Microsoft 365 spesso bisogna creare una «password per le app» invece di usare la password abituale.",
+      "adresseExpediteur": "L'indirizzo che appare come mittente. Deve appartenere al suo account di posta, altrimenti il server rifiuterà l'invio.",
+      "adresseReponse": "Dove arrivano le risposte dei suoi clienti. Lasci vuoto per usare l'indirizzo del mittente.",
+      "essai": "L'indirizzo che riceve il messaggio di prova, ad esempio il suo."
+    }
   }
 }

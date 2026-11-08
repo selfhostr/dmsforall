@@ -36,7 +36,7 @@ docker compose ps
 
 ## E-mails do not arrive
 
-Messages are sent for real only when `NODE_ENV=production`, `COURRIEL_ENVOI_REEL=true`, and the `SMTP_*` variables are set. Otherwise the messages are captured and not delivered. Check these variables first, then the logs of the `api` service for the SMTP error.
+Each garage can set its own sending server in **Settings > Sending e-mails**; it is used first, and the screen has a test button. Without it, messages are sent for real only when `NODE_ENV=production`, `COURRIEL_ENVOI_REEL=true`, and the `SMTP_*` variables are set. Otherwise the messages are captured and not delivered. Check these variables first, then the logs of the `api` service for the SMTP error.
 
 ## The vehicle OCR does not read the document
 

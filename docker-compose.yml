@@ -55,6 +55,8 @@ x-api-env: &api-env
   SMTP_MOT_DE_PASSE: ${DFA_SMTP_PASSWORD:-}
   SMTP_EXPEDITEUR: ${DFA_SMTP_FROM:-}
   COURRIEL_ENVOI_REEL: ${DFA_SMTP_ENABLED:-false}
+  CLE_CHIFFREMENT_SECRETS: ${DFA_SECRETS_KEY:-}
+  COURRIEL_RESEAU_PRIVE_AUTORISE: ${DFA_SMTP_ALLOW_PRIVATE_NETWORK:-false}
 
 services:
   # One-shot job: creates the database passwords the first time, does nothing afterwards.

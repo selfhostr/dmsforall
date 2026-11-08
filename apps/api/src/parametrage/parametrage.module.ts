@@ -6,6 +6,8 @@ import { GardeModule } from '../common/droits/garde-module';
 import { BlocCreancierController } from './bloc-creancier/bloc-creancier.controller';
 import { ServiceBlocCreancier } from './bloc-creancier/service-bloc-creancier';
 import { CompteursModule } from './compteurs/compteurs.module';
+import { CourrielModule } from '../courriel';
+import { EnvoiCourrielController } from './envoi-courriel/envoi-courriel.controller';
 import { ModulesController } from './modules/modules.controller';
 import { ServiceModules } from './modules/service-modules';
 import { ParametresEntrepriseController } from './entreprise/parametres-entreprise.controller';
@@ -32,12 +34,13 @@ import { ServiceTauxHoraires } from './referentiels/taux-horaires/service-taux-h
  * `atelier/`) sans qu'ils importent `ParametrageModule` (anti-cycle, voir `atelier.jetons.ts`).
  */
 @Module({
-  imports: [CompteursModule],
+  imports: [CompteursModule, CourrielModule],
   controllers: [
     ParametresAtelierController,
     ParametresSiteController,
     ParametresEntrepriseController,
     ModulesController,
+    EnvoiCourrielController,
     PrestationsController,
     TauxHorairesController,
     BlocCreancierController,

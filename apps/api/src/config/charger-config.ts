@@ -192,6 +192,13 @@ export const schemaConfig = z
       (v) => (v === '' ? undefined : v),
       z.string().min(1).default(calculerBrancheParDefaut),
     ),
+    // Vérification de la dernière version publiée (menu du profil : « nouvelle version
+    // disponible »). L'API interroge GitHub côté serveur, avec cache ; `false` coupe tout appel
+    // sortant (installation isolée du réseau).
+    VERIFIER_MISE_A_JOUR: z
+      .enum(['true', 'false'])
+      .default('true')
+      .transform((v) => v === 'true'),
     // --- Supervision (Sentry, auto-hébergé en Suisse — décision de conception, cohérence nLPD) --------
     // DSN de l'instance Sentry. OPTIONNELLE et SANS DÉFAUT : son absence ne doit JAMAIS
     // empêcher l'API de démarrer, elle désactive proprement la supervision (voir

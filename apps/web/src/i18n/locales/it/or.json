@@ -340,7 +340,7 @@
   "liste": {
     "titre": "Ordini di riparazione",
     "actions": {
-      "nouveau": "Crea un OR"
+      "creer": "Crea un ordine di riparazione"
     },
     "colonnes": {
       "numero": "N. ordine",
