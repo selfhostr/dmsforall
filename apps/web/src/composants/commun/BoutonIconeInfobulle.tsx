@@ -4,19 +4,16 @@ import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
-interface PropsBase {
+export interface ProprietesBoutonIconeInfobulle {
   /** Libellé explicite : sert à la fois d'infobulle (survol ET focus clavier) et d'`aria-label`. */
   readonly libelle: string;
   readonly icone: LucideIcon;
+  /** Navigation (lien) ; à défaut, `onClick` (bouton). */
+  readonly to?: string;
+  readonly onClick?: () => void;
   readonly disabled?: boolean;
   readonly className?: string;
 }
-
-export type ProprietesBoutonIconeInfobulle = PropsBase &
-  (
-    | { readonly onClick: () => void; readonly to?: undefined }
-    | { readonly to: string; readonly onClick?: undefined }
-  );
 
 /**
  * Bouton carré blanc (variante `outline`, 44 px) avec une icône seule, un nom accessible et une

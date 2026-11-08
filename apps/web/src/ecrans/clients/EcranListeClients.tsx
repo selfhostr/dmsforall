@@ -5,7 +5,6 @@ import { useNavigate, useSearchParams } from 'react-router';
 import type { ClientResume, StatutClient, TypeClient } from '@dfa/shared';
 
 import { ErreurReseau, messageErreur } from '@/api/erreurs';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import {
@@ -185,7 +184,10 @@ export function EcranListeClients() {
         <BarreFiltres
           q={qSaisi}
           onChangeQ={setQSaisi}
-          actionCreer={{ libelle: t('clients:creerInfobulle'), onClick: () => setSheetOuvert(true) }}
+          actionCreer={{
+            libelle: t('clients:creerInfobulle'),
+            onClick: () => setSheetOuvert(true),
+          }}
         >
           <Select
             value={type ?? 'tous'}

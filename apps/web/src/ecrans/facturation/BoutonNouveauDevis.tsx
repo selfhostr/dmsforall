@@ -22,7 +22,12 @@ interface Props {
 }
 
 /** Entrée « Nouveau devis » — masquée aux rôles sans droit de créer un brouillon de vente. */
-export function BoutonNouveauDevis({ client, vehiculeId, variante = 'outline', iconeSeule = false }: Props) {
+export function BoutonNouveauDevis({
+  client,
+  vehiculeId,
+  variante = 'outline',
+  iconeSeule = false,
+}: Props) {
   const { t } = useTranslation('facturation');
   const session = useSession();
   const [ouvert, setOuvert] = useState(false);
