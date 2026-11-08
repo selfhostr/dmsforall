@@ -33,11 +33,11 @@ Booleans take the values `true` or `false`. Durations are in minutes, seconds or
 | `DATABASE_TIMEOUT_CONNEXION_MS` | `5000`                      | Maximum time to open a connection, in milliseconds.                                                                                        |
 | `DATABASE_TIMEOUT_IDLE_MS`      | `30000`                     | Time before an idle connection above the minimum is closed, in milliseconds.                                                               |
 
-## Redis
+## Valkey
 
 | Variable    | Default  | Effect                                                                                 |
 | ----------- | -------- | -------------------------------------------------------------------------------------- |
-| `REDIS_URL` | required | Redis URL. Must start with `redis`. Used for queues, real-time events and rate limits. |
+| `REDIS_URL` | required | Valkey URL (Redis protocol, so it starts with `redis`). Used for queues, real-time events and rate limits. |
 
 ## Sessions and sign-in
 

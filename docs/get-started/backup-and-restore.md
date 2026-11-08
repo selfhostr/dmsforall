@@ -62,7 +62,7 @@ The archive is written as a stream (`tar` into `age`): no clear text file is wri
 
 ## What is not backed up
 
-- The Redis data. Queues and short-lived state are recreated.
+- The Valkey data. Queues and short-lived state are recreated.
 - The generated database passwords (volume `dmsforall_dfa_secrets`) and the TLS certificates (volume `dmsforall_dfa_caddy_data`). Keep a copy of the passwords somewhere safe.
 - Files in an uploads directory that is not a mounted volume. They live in the container and are lost when it is recreated.
 

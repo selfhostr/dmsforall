@@ -2,6 +2,12 @@
 
 All notable changes to dmsforall are recorded here, for people who run it and for people who use it. Each entry says what changes for you. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/) until 1.0.
 
+## Unreleased
+
+### Changed
+
+- **Valkey instead of Redis.** The `redis` service now runs Valkey (`valkey/valkey:9.1.3-alpine`), the open-source, Redis-compatible store, because recent Redis versions are no longer open source. The service name, the port, `REDIS_URL` and the `dfa_redis_data` volume are unchanged, and the existing data is compatible. See the upgrade notes.
+
 ## 0.3.0 (2026-11-08)
 
 This release adds the VAT status of the garage, several sites, activatable modules and invoice correction, and reshapes the dashboard. Read the upgrade notes before you update.

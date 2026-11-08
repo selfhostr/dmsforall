@@ -10,7 +10,7 @@ This document describes how dmsforall is built. It is written for developers and
 | API                | NestJS, TypeScript (strict)                   | `apps/api/`                                                |
 | Worker             | The same NestJS code, started in worker mode  | `apps/api/src/main-worker.ts`                              |
 | Database           | PostgreSQL 16, Drizzle ORM                    | `apps/api/src/db/`                                         |
-| Queue and realtime | Redis, BullMQ                                 | `apps/api/src/ordonnancement/`, `apps/api/src/temps-reel/` |
+| Queue and realtime | Valkey, BullMQ                                | `apps/api/src/ordonnancement/`, `apps/api/src/temps-reel/` |
 | Shared contracts   | TypeScript package                            | `packages/shared/`                                         |
 | Reverse proxy      | Caddy, in front of the web and API containers | `docker-compose.yml`                                       |
 
