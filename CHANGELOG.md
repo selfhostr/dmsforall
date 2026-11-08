@@ -2,6 +2,16 @@
 
 All notable changes to dmsforall are recorded here, for people who run it and for people who use it. Each entry says what changes for you. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/) until 1.0.
 
+## Unreleased
+
+### Added
+
+- **Sending e-mails.** Réglages › Envoi des e-mails lets each garage set its own sending server (Infomaniak, Gmail / Google Workspace, Microsoft 365 or another), with a test e-mail button. The password is encrypted and never shown again. Without its own setting a garage uses the server of the installation, and without either, the screen says "Not configured" and invoices or reminders are not sent. New variables `CLE_CHIFFREMENT_SECRETS` (key that encrypts the passwords) and `COURRIEL_RESEAU_PRIVE_AUTORISE`; see the [configuration reference](docs/reference/configuration.md). Migration 0098.
+
+### Changed
+
+- In production with no sending server at all, an e-mail is now reported as not sent instead of being silently set aside.
+
 ## 0.3.0 (2026-11-08)
 
 This release adds the VAT status of the garage, several sites, activatable modules and invoice correction, and reshapes the dashboard. Read the upgrade notes before you update.

@@ -1022,6 +1022,18 @@
         ],
         "type": "object"
       },
+      "CauseEchecEnvoiCourriel": {
+        "description": "`null` si le test a réussi.",
+        "enum": [
+          "authentification",
+          "connexion",
+          "tls",
+          "refuse",
+          "hote_interdit",
+          "inconnue"
+        ],
+        "type": "string"
+      },
       "ChampScanneBooleenDto": {
         "properties": {
           "confiance": {
@@ -2452,6 +2464,35 @@
         ],
         "type": "object"
       },
+      "DernierTestEnvoiCourrielDto": {
+        "properties": {
+          "cause": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CauseEchecEnvoiCourriel"
+              }
+            ],
+            "description": "`null` si le test a réussi.",
+            "example": null,
+            "nullable": true
+          },
+          "le": {
+            "description": "Horodatage UTC (ISO 8601).",
+            "example": "2026-11-08T09:30:00.000Z",
+            "type": "string"
+          },
+          "succes": {
+            "example": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "le",
+          "succes",
+          "cause"
+        ],
+        "type": "object"
+      },
       "DesignationPrestationDto": {
         "properties": {
           "de": {
@@ -2975,6 +3016,13 @@
       },
       "EcritureDesequilibreeDto": {
         "properties": {
+          "pieces": {
+            "description": "N° des factures concernées (vide pour une avance).",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "reference": {
             "type": "string"
           },
@@ -2989,6 +3037,7 @@
         },
         "required": [
           "reference",
+          "pieces",
           "totalDebitCentimes",
           "totalCreditCentimes"
         ],
@@ -6847,6 +6896,7 @@
               "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE",
               "VENTE_REPRISE_DEJA_EXISTANTE",
               "DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE",
+              "DOCUMENT_DOSSIER_VENTE_PRIX_REQUIS",
               "CONNECTEUR_TYPE_INDISPONIBLE",
               "CONNECTEUR_IDENTIFIANTS_MANQUANTS",
               "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE",
@@ -6874,6 +6924,12 @@
               "FACTURE_DEJA_CORRIGEE",
               "FACTURE_CORRECTION_REGLEMENT_EXISTANT",
               "MODULE_DESACTIVE",
+              "COURRIEL_NON_CONFIGURE",
+              "COURRIEL_CLE_CHIFFREMENT_ABSENTE",
+              "COURRIEL_AUTHENTIFICATION_ECHEC",
+              "COURRIEL_CONNEXION_ECHEC",
+              "COURRIEL_TLS_ECHEC",
+              "COURRIEL_ENVOI_ECHEC",
               "AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS",
               "SERVICE_LECTURE_INDISPONIBLE"
             ],
@@ -7022,6 +7078,7 @@
               "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE",
               "VENTE_REPRISE_DEJA_EXISTANTE",
               "DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE",
+              "DOCUMENT_DOSSIER_VENTE_PRIX_REQUIS",
               "CONNECTEUR_TYPE_INDISPONIBLE",
               "CONNECTEUR_IDENTIFIANTS_MANQUANTS",
               "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE",
@@ -7049,6 +7106,12 @@
               "FACTURE_DEJA_CORRIGEE",
               "FACTURE_CORRECTION_REGLEMENT_EXISTANT",
               "MODULE_DESACTIVE",
+              "COURRIEL_NON_CONFIGURE",
+              "COURRIEL_CLE_CHIFFREMENT_ABSENTE",
+              "COURRIEL_AUTHENTIFICATION_ECHEC",
+              "COURRIEL_CONNEXION_ECHEC",
+              "COURRIEL_TLS_ECHEC",
+              "COURRIEL_ENVOI_ECHEC",
               "AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS",
               "SERVICE_LECTURE_INDISPONIBLE"
             ],
@@ -7204,6 +7267,74 @@
           "signature",
           "plafondDefautCentimes",
           "plafondAvoirReceptionnaireCentimes"
+        ],
+        "type": "object"
+      },
+      "ReglageEnvoiCourrielDto": {
+        "properties": {
+          "adresseExpediteur": {
+            "example": "atelier@garage-martin.ch",
+            "type": "string"
+          },
+          "adresseReponse": {
+            "example": "contact@garage-martin.ch",
+            "nullable": true,
+            "type": "string"
+          },
+          "dernierTest": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DernierTestEnvoiCourrielDto"
+              }
+            ],
+            "description": "`null` : aucun test depuis la dernière modification du réglage.",
+            "nullable": true,
+            "type": "object"
+          },
+          "hote": {
+            "example": "mail.infomaniak.com",
+            "type": "string"
+          },
+          "motDePasseDefini": {
+            "description": "Le mot de passe est enregistré (chiffré). Il n’est jamais renvoyé par l’API.",
+            "example": true,
+            "type": "boolean"
+          },
+          "nomAffiche": {
+            "example": "Garage Martin",
+            "nullable": true,
+            "type": "string"
+          },
+          "port": {
+            "example": 587,
+            "maximum": 65535,
+            "minimum": 1,
+            "type": "number"
+          },
+          "securite": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SecuriteSmtp"
+              }
+            ],
+            "example": "starttls"
+          },
+          "utilisateur": {
+            "example": "atelier@garage-martin.ch",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "hote",
+          "port",
+          "securite",
+          "utilisateur",
+          "motDePasseDefini",
+          "adresseExpediteur",
+          "nomAffiche",
+          "adresseReponse",
+          "dernierTest"
         ],
         "type": "object"
       },
@@ -8795,6 +8926,58 @@
         ],
         "type": "object"
       },
+      "ReponseEnvoiCourrielDto": {
+        "properties": {
+          "chiffrementDisponible": {
+            "description": "`false` : la clé de chiffrement du serveur est absente, enregistrer un mot de passe est refusé.",
+            "example": true,
+            "type": "boolean"
+          },
+          "configure": {
+            "description": "`false` : aucun envoi possible (`source = aucune`).",
+            "example": true,
+            "type": "boolean"
+          },
+          "instanceDisponible": {
+            "description": "Le serveur fournit un envoi de repli (SMTP_*).",
+            "example": false,
+            "type": "boolean"
+          },
+          "modeCapture": {
+            "description": "`true` hors production : les e-mails sont capturés et jamais remis (seul l’e-mail d’essai part réellement).",
+            "example": false,
+            "type": "boolean"
+          },
+          "reglage": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReglageEnvoiCourrielDto"
+              }
+            ],
+            "description": "Réglage propre au garage ; `null` s’il n’en a pas saisi.",
+            "nullable": true,
+            "type": "object"
+          },
+          "source": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SourceEnvoiCourriel"
+              }
+            ],
+            "description": "Ce qui sert réellement à envoyer : `garage` (son réglage), `instance` (variables SMTP_* du serveur) ou `aucune`.",
+            "example": "garage"
+          }
+        },
+        "required": [
+          "reglage",
+          "source",
+          "configure",
+          "modeCapture",
+          "instanceDisponible",
+          "chiffrementDisponible"
+        ],
+        "type": "object"
+      },
       "ReponseEnvoiFactureCourrielDto": {
         "properties": {
           "destinataire": {
@@ -10018,7 +10201,7 @@
           },
           "pret": {
             "additionalProperties": true,
-            "description": "Prêt de véhicule de courtoisie lié. Toujours `null` au lot 1 (module lot 5).",
+            "description": "Prêt de véhicule de courtoisie lié (même représentation que `GET /courtoisie/prets`) : le prêt réservé/en cours, sinon le plus récent ; `null` seulement si aucun prêt n’est lié à cet OR.",
             "nullable": true,
             "type": "object"
           },
@@ -11312,6 +11495,19 @@
         ],
         "type": "object"
       },
+      "ReponseTestEnvoiCourrielDto": {
+        "properties": {
+          "envoyeLe": {
+            "description": "Horodatage UTC (ISO 8601).",
+            "example": "2026-11-08T09:30:00.000Z",
+            "type": "string"
+          }
+        },
+        "required": [
+          "envoyeLe"
+        ],
+        "type": "object"
+      },
       "ReponseTrancheDeposeeDto": {
         "properties": {
           "numero": {
@@ -12509,6 +12705,14 @@
         ],
         "type": "object"
       },
+      "SecuriteSmtp": {
+        "enum": [
+          "tls_implicite",
+          "starttls",
+          "aucune"
+        ],
+        "type": "string"
+      },
       "SessionCouranteDto": {
         "properties": {
           "actions": {
@@ -12676,6 +12880,15 @@
           "actif"
         ],
         "type": "object"
+      },
+      "SourceEnvoiCourriel": {
+        "description": "Ce qui sert réellement à envoyer : `garage` (son réglage), `instance` (variables SMTP_* du serveur) ou `aucune`.",
+        "enum": [
+          "garage",
+          "instance",
+          "aucune"
+        ],
+        "type": "string"
       },
       "StockArticleDto": {
         "properties": {
@@ -36560,6 +36773,393 @@
         ]
       }
     },
+    "/parametres-entreprise/envoi-courriel": {
+      "delete": {
+        "description": "Idempotent. Journalisé. Le mot de passe enregistré est détruit.",
+        "operationId": "EnvoiCourrielController_reinitialiser",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseEnvoiCourrielDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "DROIT_INSUFFISANT."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Supprime le réglage du garage (retour au serveur de l’instance, s’il existe).",
+        "tags": [
+          "Paramétrage"
+        ]
+      },
+      "get": {
+        "description": "Priorité : réglage du garage > serveur de l’instance (SMTP_*) > aucun envoi. `source` dit ce qui sert réellement ; `configure: false` = « non configuré ». Le mot de passe n’est jamais renvoyé, seulement `reglage.motDePasseDefini`. `reglage.dernierTest` garde le résultat du dernier e-mail d’essai (remis à `null` à chaque modification).",
+        "operationId": "EnvoiCourrielController_obtenir",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseEnvoiCourrielDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "DROIT_INSUFFISANT — réservé à la direction et à l’administrateur."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Serveur d’envoi des e-mails du garage et état courant.",
+        "tags": [
+          "Paramétrage"
+        ]
+      },
+      "patch": {
+        "description": "Création au premier appel : `hote`, `port`, `securite` et `adresseExpediteur` sont alors obligatoires (`VALIDATION_ECHOUEE` sinon). Ensuite, seuls les champs envoyés changent. `securite` : `tls_implicite` (port 465 en général), `starttls` (587) ou `aucune` (réseau de confiance uniquement). `motDePasse` absent = inchangé, `null` = effacé, texte = remplacé ; il est chiffré au repos (`COURRIEL_CLE_CHIFFREMENT_ABSENTE` si le serveur n’a pas de clé). Changer `hote` ou `utilisateur` sans renvoyer `motDePasse` efface l’ancien mot de passe. Chaque changement est journalisé (avant/après, jamais le secret) et remet le dernier test à zéro. En production, un hôte sur réseau privé est refusé à l’envoi sauf `COURRIEL_RESEAU_PRIVE_AUTORISE`.",
+        "operationId": "EnvoiCourrielController_modifier",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "adresseExpediteur": "atelier@garage-martin.ch",
+                    "hote": "mail.infomaniak.com",
+                    "motDePasse": "mot-de-passe-du-compte",
+                    "nomAffiche": "Garage Martin",
+                    "port": 587,
+                    "securite": "starttls",
+                    "utilisateur": "atelier@garage-martin.ch"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "adresseExpediteur": {
+                    "allOf": [
+                      {
+                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                      },
+                      {
+                        "pattern": "^[^\\r\\n]*$"
+                      }
+                    ],
+                    "maxLength": 320,
+                    "minLength": 3,
+                    "type": "string"
+                  },
+                  "adresseReponse": {
+                    "anyOf": [
+                      {
+                        "allOf": [
+                          {
+                            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                          },
+                          {
+                            "pattern": "^[^\\r\\n]*$"
+                          }
+                        ],
+                        "maxLength": 320,
+                        "minLength": 3,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "hote": {
+                    "maxLength": 253,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "motDePasse": {
+                    "anyOf": [
+                      {
+                        "maxLength": 512,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "nomAffiche": {
+                    "anyOf": [
+                      {
+                        "maxLength": 100,
+                        "minLength": 1,
+                        "pattern": "^[^\\r\\n]*$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "port": {
+                    "maximum": 65535,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "securite": {
+                    "enum": [
+                      "tls_implicite",
+                      "starttls",
+                      "aucune"
+                    ],
+                    "type": "string"
+                  },
+                  "utilisateur": {
+                    "anyOf": [
+                      {
+                        "maxLength": 320,
+                        "minLength": 1,
+                        "pattern": "^[^\\r\\n]*$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseEnvoiCourrielDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "VALIDATION_ECHOUEE — champ invalide ou réglage incomplet."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "DROIT_INSUFFISANT."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "COURRIEL_CLE_CHIFFREMENT_ABSENTE — impossible de stocker un mot de passe."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Enregistre le serveur d’envoi du garage (hôte, port, sécurité, identifiants, expéditeur).",
+        "tags": [
+          "Paramétrage"
+        ]
+      }
+    },
+    "/parametres-entreprise/envoi-courriel/test": {
+      "post": {
+        "description": "Teste le réglage ENREGISTRÉ (enregistrer d’abord). L’envoi est réel même hors production : geste explicite de la direction, vers la seule adresse indiquée. La langue du message est celle de la personne connectée. Le résultat est conservé (`reglage.dernierTest`). Échecs en problem+json 422 : `COURRIEL_AUTHENTIFICATION_ECHEC`, `COURRIEL_CONNEXION_ECHEC` (serveur injoignable ou hôte interdit), `COURRIEL_TLS_ECHEC`, `COURRIEL_ENVOI_ECHEC` (message refusé) ; 409 `COURRIEL_NON_CONFIGURE` s’il n’y a pas de réglage. Jamais le message brut du serveur.",
+        "operationId": "EnvoiCourrielController_tester",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "destinataire": "direction@garage-martin.ch"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "destinataire": {
+                    "allOf": [
+                      {
+                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                      },
+                      {
+                        "pattern": "^[^\\r\\n]*$"
+                      }
+                    ],
+                    "maxLength": 320,
+                    "minLength": 3,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "destinataire"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseTestEnvoiCourrielDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "VALIDATION_ECHOUEE — adresse du destinataire invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "DROIT_INSUFFISANT."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "COURRIEL_NON_CONFIGURE — aucun réglage enregistré."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "COURRIEL_AUTHENTIFICATION_ECHEC, COURRIEL_CONNEXION_ECHEC, COURRIEL_TLS_ECHEC ou COURRIEL_ENVOI_ECHEC."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Envoie un e-mail d’essai avec le réglage enregistré du garage.",
+        "tags": [
+          "Paramétrage"
+        ]
+      }
+    },
     "/parametres-entreprise/logo": {
       "delete": {
         "operationId": "LogoEntrepriseController_supprimer",
@@ -36601,10 +37201,26 @@
       },
       "get": {
         "operationId": "LogoEntrepriseController_lire",
-        "parameters": [],
+        "parameters": [
+          {
+            "description": "Sans paramètre : 404 quand aucun logo n’est déposé (comportement historique). `absence=vide` : 204 sans corps, pour qu’un client qui demande « y a-t-il un logo ? » ne produise pas d’erreur.",
+            "in": "query",
+            "name": "absence",
+            "required": false,
+            "schema": {
+              "enum": [
+                "vide"
+              ],
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "L’image, avec son Content-Type."
+          },
+          "204": {
+            "description": "Aucun logo déposé, et `absence=vide` demandé."
           },
           "401": {
             "content": {
@@ -36664,7 +37280,7 @@
                 }
               }
             },
-            "description": "RESSOURCE_INTROUVABLE — aucun logo déposé."
+            "description": "RESSOURCE_INTROUVABLE — aucun logo déposé (sans `absence=vide`)."
           }
         },
         "security": [

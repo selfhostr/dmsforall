@@ -33,6 +33,44 @@ describe('schéma SMTP fusionné dans chargerConfig', () => {
     expect(config.COURRIEL_ENVOI_REEL).toBe(false);
   });
 
+  it('CLE_CHIFFREMENT_SECRETS : absente ou vide = non définie ; 32 octets base64 ou hexadécimal acceptés', () => {
+    expect(chargerConfig(envValide()).CLE_CHIFFREMENT_SECRETS).toBeUndefined();
+    expect(
+      chargerConfig(envValide({ CLE_CHIFFREMENT_SECRETS: '' })).CLE_CHIFFREMENT_SECRETS,
+    ).toBeUndefined();
+    const cle = Buffer.alloc(32, 5);
+    expect(
+      chargerConfig(envValide({ CLE_CHIFFREMENT_SECRETS: cle.toString('base64') }))
+        .CLE_CHIFFREMENT_SECRETS,
+    ).toBe(cle.toString('base64'));
+    expect(
+      chargerConfig(envValide({ CLE_CHIFFREMENT_SECRETS: cle.toString('hex') }))
+        .CLE_CHIFFREMENT_SECRETS,
+    ).toBe(cle.toString('hex'));
+  });
+
+  it('CLE_CHIFFREMENT_SECRETS de mauvaise taille : l’API refuse de démarrer', () => {
+    const courte = Buffer.alloc(16).toString('base64');
+    expect(() => chargerConfig(envValide({ CLE_CHIFFREMENT_SECRETS: courte }))).toThrow(
+      ErreurConfigInvalide,
+    );
+    expect(() => chargerConfig(envValide({ CLE_CHIFFREMENT_SECRETS: 'secret' }))).toThrow(
+      ErreurConfigInvalide,
+    );
+  });
+
+  it('COURRIEL_RESEAU_PRIVE_AUTORISE : faux par défaut, "false" reste faux, "true" est vrai', () => {
+    expect(chargerConfig(envValide()).COURRIEL_RESEAU_PRIVE_AUTORISE).toBe(false);
+    expect(
+      chargerConfig(envValide({ COURRIEL_RESEAU_PRIVE_AUTORISE: 'false' }))
+        .COURRIEL_RESEAU_PRIVE_AUTORISE,
+    ).toBe(false);
+    expect(
+      chargerConfig(envValide({ COURRIEL_RESEAU_PRIVE_AUTORISE: 'true' }))
+        .COURRIEL_RESEAU_PRIVE_AUTORISE,
+    ).toBe(true);
+  });
+
   it('un port SMTP non entier est refusé (config invalide, l’API refuse de démarrer)', () => {
     const env = envValide({ SMTP_PORT: 'pas-un-port' });
     expect(() => chargerConfig(env)).toThrow(ErreurConfigInvalide);

@@ -13,6 +13,7 @@
 export * from './enums';
 export * from './colonnes-communes';
 export * from './tenant';
+export * from './parametre-envoi-courriel';
 export * from './site';
 export * from './utilisateur';
 export * from './utilisateur-site';

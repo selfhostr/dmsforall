@@ -565,6 +565,7 @@ export class ServiceRelancesFacture {
 
     try {
       const resultat = await this.serviceCourriel.envoyer({
+        ctx,
         destinataires: [contenu.destinataire],
         sujet: contenu.sujet,
         corpsTexte: contenu.texte,

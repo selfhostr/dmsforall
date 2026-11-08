@@ -2,8 +2,13 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
 import { ServiceJournal } from '../common/journal/service-journal';
 import { JETON_CONFIG, type Config } from '../config';
-import { EXPEDITEUR_DFA_PAR_DEFAUT } from './config-courriel';
+import type { ContexteTenant } from '../db';
+import { courrielDoitEnvoyerReellement, EXPEDITEUR_DFA_PAR_DEFAUT } from './config-courriel';
 import { JETON_TRANSPORT_COURRIEL } from './courriel.jetons';
+import { FabriqueTransportSmtp } from './fabrique-transport-smtp';
+import { ErreurHoteSmtpInterdit } from './garde-hote-smtp';
+import { ErreurDechiffrementSecret } from './chiffrement-secrets';
+import { ServiceReglageEnvoiCourriel } from './service-reglage-envoi-courriel';
 import {
   TAILLE_MAX_PIECE_JOINTE_OCTETS,
   type PieceJointeCourriel,
@@ -18,18 +23,26 @@ import {
  * responsabilité de l'appelant.
  */
 export interface MessageCourriel {
+  /** Garage expéditeur : détermine le serveur d'envoi (réglage du garage, sinon instance). */
+  readonly ctx: ContexteTenant;
   readonly destinataires: readonly string[];
   readonly sujet: string;
   readonly corpsTexte?: string;
   readonly corpsHtml?: string;
   /** Nom du garage, pour le nom affiché de l'expéditeur (« <nomGarage> via dmsforall »). */
   readonly nomGarage: string;
-  /** Adresse de réponse du garage — posée en `Reply-To`, jamais comme adresse d'expédition
-   *  technique (voir tête de fichier `config-courriel.ts` : pas de SPF/DKIM côté garage). */
-  readonly adresseReponseGarage: string;
+  /** Adresse de réponse du garage — posée en `Reply-To`. Absente : l'adresse d'expédition. Sur le
+   *  serveur de l'instance, jamais comme adresse d'expédition (pas de SPF/DKIM côté garage). */
+  readonly adresseReponseGarage?: string;
   /** Voir `EnveloppeCourriel.piecesJointes` (`transport-courriel.interface.ts`) — taille cumulée
    *  bornée par `TAILLE_MAX_PIECE_JOINTE_OCTETS`, vérifiée par `envoyer()` ci-dessous. */
   readonly piecesJointes?: readonly PieceJointeCourriel[];
+}
+
+interface IdentiteEnvoi {
+  readonly de: string;
+  readonly nomExpediteurAffiche: string;
+  readonly repondreA: string | undefined;
 }
 
 /**
@@ -52,7 +65,74 @@ export class ServiceCourriel {
     @Inject(JETON_TRANSPORT_COURRIEL) private readonly transport: TransportCourriel,
     @Inject(JETON_CONFIG) private readonly config: Config,
     private readonly journal: ServiceJournal,
+    private readonly reglages: ServiceReglageEnvoiCourriel,
+    private readonly fabrique: FabriqueTransportSmtp,
   ) {}
+
+  /**
+   * Choisit qui envoie, dans l'ordre : réglage du garage > serveur de l'instance (`SMTP_*`) >
+   * rien (« non configuré », jamais un succès silencieux). Hors production, tout est capturé : le
+   * jeu de démo contient de fausses adresses de clients qui ne doivent jamais être atteintes — le
+   * réglage d'un garage n'y change rien (seul l'e-mail d'essai, explicite, part réellement).
+   */
+  private async choisirEnvoi(message: MessageCourriel): Promise<
+    | {
+        readonly type: 'transport';
+        readonly transport: TransportCourriel;
+        readonly identite: IdentiteEnvoi;
+      }
+    | { readonly type: 'echec'; readonly resultat: ResultatEnvoiCourriel }
+  > {
+    const parInstance = {
+      de: this.config.SMTP_EXPEDITEUR ?? EXPEDITEUR_DFA_PAR_DEFAUT,
+      nomExpediteurAffiche: `${message.nomGarage} via dmsforall`,
+      repondreA: message.adresseReponseGarage,
+    };
+    if (this.config.NODE_ENV !== 'production') {
+      return { type: 'transport', transport: this.transport, identite: parInstance };
+    }
+    try {
+      const garage = await this.reglages.resoudreEnvoiGarage(message.ctx);
+      if (garage) {
+        return {
+          type: 'transport',
+          transport: this.fabrique.creer(garage.smtp),
+          identite: {
+            de: garage.smtp.expediteur,
+            nomExpediteurAffiche: garage.nomAffiche ?? message.nomGarage,
+            repondreA: garage.adresseReponse ?? message.adresseReponseGarage,
+          },
+        };
+      }
+    } catch (erreur) {
+      const cause =
+        erreur instanceof ErreurHoteSmtpInterdit
+          ? 'hote_interdit'
+          : erreur instanceof ErreurDechiffrementSecret
+            ? 'authentification'
+            : 'inconnue';
+      this.journal.warn('Réglage d’envoi du garage inutilisable', { cause });
+      return {
+        type: 'echec',
+        resultat: {
+          succes: false,
+          erreur: `Réglage d’envoi du garage inutilisable (${cause}).`,
+          cause,
+        },
+      };
+    }
+    if (courrielDoitEnvoyerReellement(this.config)) {
+      return { type: 'transport', transport: this.transport, identite: parInstance };
+    }
+    return {
+      type: 'echec',
+      resultat: {
+        succes: false,
+        erreur: 'Envoi des e-mails non configuré (COURRIEL_NON_CONFIGURE).',
+        cause: 'inconnue',
+      },
+    };
+  }
 
   async envoyer(message: MessageCourriel): Promise<ResultatEnvoiCourriel> {
     const piecesJointes = message.piecesJointes ?? [];
@@ -72,12 +152,21 @@ export class ServiceCourriel {
       }
     }
 
-    const resultat = await this.transport.envoyer({
-      // Expéditeur TOUJOURS `SMTP_EXPEDITEUR` (no-reply@dmsforall.example) — jamais dérivé du garage
-      // ni de `adresseReponseGarage`, voir l'arbitrage en tête de `config-courriel.ts`.
-      de: this.config.SMTP_EXPEDITEUR ?? EXPEDITEUR_DFA_PAR_DEFAUT,
-      nomExpediteurAffiche: `${message.nomGarage} via dmsforall`,
-      repondreA: message.adresseReponseGarage,
+    const choix = await this.choisirEnvoi(message);
+    if (choix.type === 'echec') {
+      this.journal.warn('Échec d’envoi de courriel', {
+        nombreDestinataires: message.destinataires.length,
+        erreur: choix.resultat.erreur,
+      });
+      return choix.resultat;
+    }
+
+    const resultat = await choix.transport.envoyer({
+      // Sur le serveur de l'instance : expéditeur TOUJOURS `SMTP_EXPEDITEUR`, jamais dérivé du
+      // garage (pas de SPF/DKIM côté garage). Sur le serveur du garage : son adresse d'expédition.
+      de: choix.identite.de,
+      nomExpediteurAffiche: choix.identite.nomExpediteurAffiche,
+      repondreA: choix.identite.repondreA ?? choix.identite.de,
       destinataires: message.destinataires,
       sujet: message.sujet,
       corpsTexte: message.corpsTexte,

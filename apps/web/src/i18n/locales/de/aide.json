@@ -48,6 +48,15 @@
     "delaiPaiement": "Gilt für Kunden ohne eigene Zahlungsbedingung. 0 bis 365 Tage.",
     "plafondDefaut": "Ab diesem Betrag muss der Kunde vor den Arbeiten zustimmen. Leer: keine Grenze.",
     "qrIban": "Ihre IBAN ist das gewöhnliche Konto. Die QR-IBAN ist ein spezielles Bankkonto für QR-Rechnungen (beginnt mit CH, die 5. Ziffer ist 3). Mit einer QR-IBAN trägt jede Rechnung eine QR-Referenz. Nie das eine im Feld des anderen erfassen: die Bank würde den Zahlteil ablehnen.",
-    "motifsRdv": "Die Gründe, die bei der Terminvereinbarung gewählt werden (Service, Reifen, MFK…). MFK: amtliche Fahrzeugprüfung. Mindestens einen Grund aktiv lassen."
+    "motifsRdv": "Die Gründe, die bei der Terminvereinbarung gewählt werden (Service, Reifen, MFK…). MFK: amtliche Fahrzeugprüfung. Mindestens einen Grund aktiv lassen.",
+    "envoiCourriel": {
+      "fournisseur": "Wählen Sie Ihren E-Mail-Anbieter, um Server, Port und Sicherheit automatisch auszufüllen. Wählen Sie «Anderer Anbieter», wenn Ihrer nicht aufgeführt ist.",
+      "hote": "Der Name des Postausgangsservers (SMTP), den Ihr Anbieter angibt, z. B. mail.infomaniak.com.",
+      "securite": "STARTTLS mit Port 587 passt in den meisten Fällen. TLS gehört zu Port 465. «Keine» nur in einem vertrauenswürdigen internen Netz verwenden.",
+      "motDePasse": "Bei Gmail und Microsoft 365 muss oft ein «App-Passwort» erstellt werden, statt das übliche Passwort zu verwenden.",
+      "adresseExpediteur": "Die Adresse, die als Absender erscheint. Sie muss zu Ihrem E-Mail-Konto gehören, sonst verweigert der Server den Versand.",
+      "adresseReponse": "Wohin die Antworten Ihrer Kunden gehen. Leer lassen, um die Absenderadresse zu verwenden.",
+      "essai": "Die Adresse, die die Testnachricht erhält, z. B. Ihre eigene."
+    }
   }
 }

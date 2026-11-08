@@ -57,7 +57,8 @@
     "reglagesUtilisateurs": "Utenti",
     "reglagesRelances": "Solleciti di pagamento",
     "atelierCourtoisie": "Auto di cortesia",
-    "reglagesModules": "Moduli"
+    "reglagesModules": "Moduli",
+    "reglagesEnvoiCourriel": "Invio delle e-mail"
   },
   "liens": {
     "clients": "Clienti",

@@ -2891,6 +2891,54 @@ export interface paths {
     patch: operations['ParametresEntrepriseController_modifier'];
     trace?: never;
   };
+  '/parametres-entreprise/envoi-courriel': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Serveur d’envoi des e-mails du garage et état courant.
+     * @description Priorité : réglage du garage > serveur de l’instance (SMTP_*) > aucun envoi. `source` dit ce qui sert réellement ; `configure: false` = « non configuré ». Le mot de passe n’est jamais renvoyé, seulement `reglage.motDePasseDefini`. `reglage.dernierTest` garde le résultat du dernier e-mail d’essai (remis à `null` à chaque modification).
+     */
+    get: operations['EnvoiCourrielController_obtenir'];
+    put?: never;
+    post?: never;
+    /**
+     * Supprime le réglage du garage (retour au serveur de l’instance, s’il existe).
+     * @description Idempotent. Journalisé. Le mot de passe enregistré est détruit.
+     */
+    delete: operations['EnvoiCourrielController_reinitialiser'];
+    options?: never;
+    head?: never;
+    /**
+     * Enregistre le serveur d’envoi du garage (hôte, port, sécurité, identifiants, expéditeur).
+     * @description Création au premier appel : `hote`, `port`, `securite` et `adresseExpediteur` sont alors obligatoires (`VALIDATION_ECHOUEE` sinon). Ensuite, seuls les champs envoyés changent. `securite` : `tls_implicite` (port 465 en général), `starttls` (587) ou `aucune` (réseau de confiance uniquement). `motDePasse` absent = inchangé, `null` = effacé, texte = remplacé ; il est chiffré au repos (`COURRIEL_CLE_CHIFFREMENT_ABSENTE` si le serveur n’a pas de clé). Changer `hote` ou `utilisateur` sans renvoyer `motDePasse` efface l’ancien mot de passe. Chaque changement est journalisé (avant/après, jamais le secret) et remet le dernier test à zéro. En production, un hôte sur réseau privé est refusé à l’envoi sauf `COURRIEL_RESEAU_PRIVE_AUTORISE`.
+     */
+    patch: operations['EnvoiCourrielController_modifier'];
+    trace?: never;
+  };
+  '/parametres-entreprise/envoi-courriel/test': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Envoie un e-mail d’essai avec le réglage enregistré du garage.
+     * @description Teste le réglage ENREGISTRÉ (enregistrer d’abord). L’envoi est réel même hors production : geste explicite de la direction, vers la seule adresse indiquée. La langue du message est celle de la personne connectée. Le résultat est conservé (`reglage.dernierTest`). Échecs en problem+json 422 : `COURRIEL_AUTHENTIFICATION_ECHEC`, `COURRIEL_CONNEXION_ECHEC` (serveur injoignable ou hôte interdit), `COURRIEL_TLS_ECHEC`, `COURRIEL_ENVOI_ECHEC` (message refusé) ; 409 `COURRIEL_NON_CONFIGURE` s’il n’y a pas de réglage. Jamais le message brut du serveur.
+     */
+    post: operations['EnvoiCourrielController_tester'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/parametres-entreprise/logo': {
     parameters: {
       query?: never;
@@ -5142,6 +5190,12 @@ export interface components {
         | 'fiduciaire'
         | null;
     };
+    /**
+     * @description `null` si le test a réussi.
+     * @enum {string}
+     */
+    CauseEchecEnvoiCourriel:
+      'authentification' | 'connexion' | 'tls' | 'refuse' | 'hote_interdit' | 'inconnue';
     ChampScanneBooleenDto: {
       /** @enum {string} */
       confiance: 'sure' | 'douteuse' | 'absente';
@@ -5605,6 +5659,20 @@ export interface components {
       unite: 'km' | 'mi';
       valeurKm: number;
     };
+    DernierTestEnvoiCourrielDto: {
+      /**
+       * @description `null` si le test a réussi.
+       * @example null
+       */
+      cause: components['schemas']['CauseEchecEnvoiCourriel'] | null;
+      /**
+       * @description Horodatage UTC (ISO 8601).
+       * @example 2026-11-08T09:30:00.000Z
+       */
+      le: string;
+      /** @example true */
+      succes: boolean;
+    };
     DesignationPrestationDto: {
       /** @example Service A */
       de: string;
@@ -5772,6 +5840,8 @@ export interface components {
       totalCentimes: number;
     };
     EcritureDesequilibreeDto: {
+      /** @description N° des factures concernées (vide pour une avance). */
+      pieces: string[];
       reference: string;
       /** @description Centimes. */
       totalCreditCentimes: number;
@@ -7052,6 +7122,7 @@ export interface components {
         | 'VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE'
         | 'VENTE_REPRISE_DEJA_EXISTANTE'
         | 'DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE'
+        | 'DOCUMENT_DOSSIER_VENTE_PRIX_REQUIS'
         | 'CONNECTEUR_TYPE_INDISPONIBLE'
         | 'CONNECTEUR_IDENTIFIANTS_MANQUANTS'
         | 'CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE'
@@ -7079,6 +7150,12 @@ export interface components {
         | 'FACTURE_DEJA_CORRIGEE'
         | 'FACTURE_CORRECTION_REGLEMENT_EXISTANT'
         | 'MODULE_DESACTIVE'
+        | 'COURRIEL_NON_CONFIGURE'
+        | 'COURRIEL_CLE_CHIFFREMENT_ABSENTE'
+        | 'COURRIEL_AUTHENTIFICATION_ECHEC'
+        | 'COURRIEL_CONNEXION_ECHEC'
+        | 'COURRIEL_TLS_ECHEC'
+        | 'COURRIEL_ENVOI_ECHEC'
         | 'AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS'
         | 'SERVICE_LECTURE_INDISPONIBLE';
       /** @description Détail technique — jamais affiché à l'utilisateur final. */
@@ -7201,6 +7278,7 @@ export interface components {
         | 'VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE'
         | 'VENTE_REPRISE_DEJA_EXISTANTE'
         | 'DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE'
+        | 'DOCUMENT_DOSSIER_VENTE_PRIX_REQUIS'
         | 'CONNECTEUR_TYPE_INDISPONIBLE'
         | 'CONNECTEUR_IDENTIFIANTS_MANQUANTS'
         | 'CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE'
@@ -7228,6 +7306,12 @@ export interface components {
         | 'FACTURE_DEJA_CORRIGEE'
         | 'FACTURE_CORRECTION_REGLEMENT_EXISTANT'
         | 'MODULE_DESACTIVE'
+        | 'COURRIEL_NON_CONFIGURE'
+        | 'COURRIEL_CLE_CHIFFREMENT_ABSENTE'
+        | 'COURRIEL_AUTHENTIFICATION_ECHEC'
+        | 'COURRIEL_CONNEXION_ECHEC'
+        | 'COURRIEL_TLS_ECHEC'
+        | 'COURRIEL_ENVOI_ECHEC'
         | 'AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS'
         | 'SERVICE_LECTURE_INDISPONIBLE';
       detail?: string;
@@ -7272,6 +7356,29 @@ export interface components {
       plafondDefautCentimes: number | null;
       /** @enum {string} */
       signature: 'obligatoire' | 'recommandee' | 'desactivee';
+    };
+    ReglageEnvoiCourrielDto: {
+      /** @example atelier@garage-martin.ch */
+      adresseExpediteur: string;
+      /** @example contact@garage-martin.ch */
+      adresseReponse: string | null;
+      /** @description `null` : aucun test depuis la dernière modification du réglage. */
+      dernierTest: components['schemas']['DernierTestEnvoiCourrielDto'] | null;
+      /** @example mail.infomaniak.com */
+      hote: string;
+      /**
+       * @description Le mot de passe est enregistré (chiffré). Il n’est jamais renvoyé par l’API.
+       * @example true
+       */
+      motDePasseDefini: boolean;
+      /** @example Garage Martin */
+      nomAffiche: string | null;
+      /** @example 587 */
+      port: number;
+      /** @example starttls */
+      securite: components['schemas']['SecuriteSmtp'];
+      /** @example atelier@garage-martin.ch */
+      utilisateur: string | null;
     };
     RegleRelanceDto: {
       actif: boolean;
@@ -7831,6 +7938,35 @@ export interface components {
       /** Format: date-time */
       survenuLe: string;
     };
+    ReponseEnvoiCourrielDto: {
+      /**
+       * @description `false` : la clé de chiffrement du serveur est absente, enregistrer un mot de passe est refusé.
+       * @example true
+       */
+      chiffrementDisponible: boolean;
+      /**
+       * @description `false` : aucun envoi possible (`source = aucune`).
+       * @example true
+       */
+      configure: boolean;
+      /**
+       * @description Le serveur fournit un envoi de repli (SMTP_*).
+       * @example false
+       */
+      instanceDisponible: boolean;
+      /**
+       * @description `true` hors production : les e-mails sont capturés et jamais remis (seul l’e-mail d’essai part réellement).
+       * @example false
+       */
+      modeCapture: boolean;
+      /** @description Réglage propre au garage ; `null` s’il n’en a pas saisi. */
+      reglage: components['schemas']['ReglageEnvoiCourrielDto'] | null;
+      /**
+       * @description Ce qui sert réellement à envoyer : `garage` (son réglage), `instance` (variables SMTP_* du serveur) ou `aucune`.
+       * @example garage
+       */
+      source: components['schemas']['SourceEnvoiCourriel'];
+    };
     ReponseEnvoiFactureCourrielDto: {
       /**
        * @description Adresse courriel réellement utilisée (celle de la fiche client).
@@ -8308,7 +8444,7 @@ export interface components {
       plafondAutorisePar?: string | null;
       /** @description Absent pour un rôle sans droit aux montants. */
       plafondCentimes?: number;
-      /** @description Prêt de véhicule de courtoisie lié. Toujours `null` au lot 1 (module lot 5). */
+      /** @description Prêt de véhicule de courtoisie lié (même représentation que `GET /courtoisie/prets`) : le prêt réservé/en cours, sinon le plus récent ; `null` seulement si aucun prêt n’est lié à cet OR. */
       pret: {
         [key: string]: unknown;
       } | null;
@@ -8796,6 +8932,13 @@ export interface components {
       /** @example 2026-01-01 */
       valideDuLe: string;
     };
+    ReponseTestEnvoiCourrielDto: {
+      /**
+       * @description Horodatage UTC (ISO 8601).
+       * @example 2026-11-08T09:30:00.000Z
+       */
+      envoyeLe: string;
+    };
     ReponseTrancheDeposeeDto: {
       numero: number;
       octetsRecus: number;
@@ -9162,6 +9305,8 @@ export interface components {
       /** @enum {string} */
       redis: 'ok';
     };
+    /** @enum {string} */
+    SecuriteSmtp: 'tls_implicite' | 'starttls' | 'aucune';
     SessionCouranteDto: {
       /**
        * @description Actions de la matrice de droits détenues par le rôle du compte (triées). Informatif : le serveur re-vérifie chaque requête.
@@ -9228,6 +9373,11 @@ export interface components {
       /** @example Sion */
       nom: string;
     };
+    /**
+     * @description Ce qui sert réellement à envoyer : `garage` (son réglage), `instance` (variables SMTP_* du serveur) ou `aucune`.
+     * @enum {string}
+     */
+    SourceEnvoiCourriel: 'garage' | 'instance' | 'aucune';
     StockArticleDto: {
       /** Format: uuid */
       articleId: string;
@@ -22309,7 +22459,7 @@ export interface operations {
       };
     };
   };
-  LogoEntrepriseController_lire: {
+  EnvoiCourrielController_obtenir: {
     parameters: {
       query?: never;
       header?: never;
@@ -22318,8 +22468,231 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseEnvoiCourrielDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description DROIT_INSUFFISANT — réservé à la direction et à l’administrateur. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  EnvoiCourrielController_reinitialiser: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseEnvoiCourrielDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description DROIT_INSUFFISANT. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  EnvoiCourrielController_modifier: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          adresseExpediteur?: string & (unknown & unknown);
+          adresseReponse?: (string & (unknown & unknown)) | null;
+          hote?: string;
+          motDePasse?: string | null;
+          nomAffiche?: string | null;
+          port?: number;
+          /** @enum {string} */
+          securite?: 'tls_implicite' | 'starttls' | 'aucune';
+          utilisateur?: string | null;
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseEnvoiCourrielDto'];
+        };
+      };
+      /** @description VALIDATION_ECHOUEE — champ invalide ou réglage incomplet. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description DROIT_INSUFFISANT. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description COURRIEL_CLE_CHIFFREMENT_ABSENTE — impossible de stocker un mot de passe. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  EnvoiCourrielController_tester: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          destinataire: string & (unknown & unknown);
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseTestEnvoiCourrielDto'];
+        };
+      };
+      /** @description VALIDATION_ECHOUEE — adresse du destinataire invalide. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description DROIT_INSUFFISANT. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description COURRIEL_NON_CONFIGURE — aucun réglage enregistré. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description COURRIEL_AUTHENTIFICATION_ECHEC, COURRIEL_CONNEXION_ECHEC, COURRIEL_TLS_ECHEC ou COURRIEL_ENVOI_ECHEC. */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  LogoEntrepriseController_lire: {
+    parameters: {
+      query?: {
+        /** @description Sans paramètre : 404 quand aucun logo n’est déposé (comportement historique). `absence=vide` : 204 sans corps, pour qu’un client qui demande « y a-t-il un logo ? » ne produise pas d’erreur. */
+        absence?: 'vide';
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
       /** @description L’image, avec son Content-Type. */
       200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Aucun logo déposé, et `absence=vide` demandé. */
+      204: {
         headers: {
           [name: string]: unknown;
         };
@@ -22347,7 +22720,7 @@ export interface operations {
           'image/svg+xml': components['schemas']['ProblemeDetailCommunDto'];
         };
       };
-      /** @description RESSOURCE_INTROUVABLE — aucun logo déposé. */
+      /** @description RESSOURCE_INTROUVABLE — aucun logo déposé (sans `absence=vide`). */
       404: {
         headers: {
           [name: string]: unknown;

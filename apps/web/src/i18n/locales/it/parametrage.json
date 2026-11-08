@@ -543,5 +543,100 @@
         "description": "Trasferimento delle registrazioni alla fiduciaria."
       }
     }
+  },
+  "envoiCourriel": {
+    "titre": "Invio delle e-mail",
+    "erreur": {
+      "titre": "Impossibile caricare l'impostazione di invio delle e-mail"
+    },
+    "etat": {
+      "nonConfigure": "Non configurato",
+      "garage": "Configurato per questa autofficina",
+      "instance": "Server dell'installazione",
+      "essaiReussi": "Ultima prova riuscita il {{date}}",
+      "essaiEchoue": "Ultima prova fallita il {{date}}",
+      "aucunEssai": "Nessuna prova finora",
+      "explication": {
+        "nonConfigure": "Nessuna e-mail può partire: né fatture, né solleciti, né reimpostazioni della password. Inserisca qui sotto il suo server di posta in uscita.",
+        "garage": "Le e-mail della sua autofficina partono con il server impostato qui sotto.",
+        "instance": "La sua autofficina non ha una propria impostazione: le e-mail partono con il server dell'installazione. Può inserire il suo qui sotto."
+      },
+      "modeCapture": "Questa installazione è in modalità di prova: le e-mail vengono trattenute e non sono mai consegnate. Solo l'e-mail di prova qui sotto parte davvero."
+    },
+    "carte": {
+      "titre": "Server di posta in uscita",
+      "description": "Queste informazioni le fornisce il suo gestore di posta (Infomaniak, Google, Microsoft, hosting del sito …)."
+    },
+    "fournisseurs": {
+      "infomaniak": "Infomaniak",
+      "google": "Gmail / Google Workspace",
+      "microsoft365": "Microsoft 365",
+      "autre": "Altro gestore"
+    },
+    "champs": {
+      "fournisseur": {
+        "libelle": "Gestore di posta"
+      },
+      "hote": {
+        "libelle": "Server di posta in uscita",
+        "erreur": "Indichi il nome del server, ad esempio mail.infomaniak.com (senza http:// e senza porta)."
+      },
+      "port": {
+        "libelle": "Porta",
+        "erreur": "Indichi una porta tra 1 e 65535, di solito 587 o 465."
+      },
+      "securite": {
+        "libelle": "Sicurezza della connessione",
+        "options": {
+          "tls_implicite": "TLS (porta 465)",
+          "starttls": "STARTTLS (porta 587)",
+          "aucune": "Nessuna (sconsigliato)"
+        }
+      },
+      "utilisateur": {
+        "libelle": "Nome utente"
+      },
+      "motDePasse": {
+        "libelle": "Password",
+        "enregistre": "Password salvata",
+        "aide": "Viene salvata cifrata e non può più essere riletta.",
+        "aideEnregistre": "Lasci vuoto per mantenere la password salvata. Se cambia server o nome utente, deve inserirla di nuovo.",
+        "sansCle": "Su questo server non è definita la chiave di cifratura: la password non può essere salvata. Contatti la persona che amministra l'installazione."
+      },
+      "adresseExpediteur": {
+        "libelle": "Indirizzo del mittente",
+        "erreur": "Indichi un indirizzo e-mail valido, ad esempio officina@garage-martin.ch."
+      },
+      "nomAffiche": {
+        "libelle": "Nome visualizzato"
+      },
+      "adresseReponse": {
+        "libelle": "Indirizzo di risposta",
+        "erreur": "Indichi un indirizzo e-mail valido, oppure lasci il campo vuoto."
+      }
+    },
+    "enregistrer": "Salva il server di posta in uscita",
+    "lectureSeule": "Solo la direzione e l'amministratore possono modificare questa impostazione.",
+    "supprimer": {
+      "action": "Elimina questa impostazione",
+      "confirmationInstance": "Le e-mail partiranno di nuovo con il server dell'installazione.",
+      "confirmationAucun": "Nessuna e-mail potrà più partire finché non inserirà un nuovo server.",
+      "confirmer": "Sì, elimina"
+    },
+    "essai": {
+      "titre": "E-mail di prova",
+      "description": "Invia un messaggio con l'impostazione salvata per verificare che funzioni. Salvi prima le modifiche.",
+      "destinataire": "Invia la prova a",
+      "erreurAdresse": "Indichi un indirizzo e-mail valido.",
+      "envoyer": "Invia un'e-mail di prova",
+      "enCours": "Invio in corso…",
+      "reussi": "E-mail di prova inviata. Controlli la posta in arrivo (e la posta indesiderata).",
+      "dernier": "Ultima prova: {{date}}"
+    },
+    "chiffre": "La password è cifrata nel database e non viene mai mostrata.",
+    "toast": {
+      "enregistre": "Server di posta in uscita salvato",
+      "supprime": "Impostazione eliminata"
+    }
   }
 }
