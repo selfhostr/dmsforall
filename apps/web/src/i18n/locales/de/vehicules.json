@@ -1,6 +1,7 @@
 {
   "titre": "Fahrzeuge",
   "nouveau": "Neues Fahrzeug",
+  "creerInfobulle": "Fahrzeug erstellen",
   "nouveauPourClient": "Dieses Fahrzeug wird {nom} zugeordnet.",
   "creer": "Fahrzeug erstellen",
   "liste": {

@@ -191,3 +191,17 @@ describe('VERSION_APP / VERSION_APP_BRANCHE — préprocesseur zod et repli (voi
     expect(config.VERSION_APP_BRANCHE.length).toBeGreaterThan(0);
   });
 });
+
+describe('VERIFIER_MISE_A_JOUR', () => {
+  it('vaut true par défaut et se désactive avec false', () => {
+    expect(chargerConfig(envValide()).VERIFIER_MISE_A_JOUR).toBe(true);
+    expect(chargerConfig(envValide({ VERIFIER_MISE_A_JOUR: 'false' })).VERIFIER_MISE_A_JOUR).toBe(
+      false,
+    );
+  });
+  it('refuse une valeur invalide', () => {
+    expect(() => chargerConfig(envValide({ VERIFIER_MISE_A_JOUR: 'non' }))).toThrow(
+      ErreurConfigInvalide,
+    );
+  });
+});

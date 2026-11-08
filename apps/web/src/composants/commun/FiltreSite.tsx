@@ -8,7 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Segments } from '@/composants/commun/Segments';
 import type { FiltreSite as EtatFiltreSite } from '@/hooks/site/useFiltreSite';
 import { TOUS_LES_SITES } from '@/hooks/site/sites';
 
@@ -17,12 +16,9 @@ interface Props {
   readonly className?: string;
 }
 
-/** Au-delà, un menu court remplace les segments (la ligne d'en-tête reste compacte). */
-const MAX_SEGMENTS = 4;
-
 /**
- * Filtre de site compact d'un écran : codes courts (« MART », « SION ») en segments, ou en menu
- * au-delà de quatre choix. Masqué d'office avec un seul site actif. Le choix est mémorisé par
+ * Filtre de site compact d'un écran : toujours une liste déroulante étroite affichant le code court
+ * (« MART », « SION »), quel que soit le nombre de sites. Masqué d'office avec un seul site actif. Le choix est mémorisé par
  * écran (`useFiltreSite`) ; l'option « Tous » n'apparaît que si les droits le permettent.
  */
 export function FiltreSite({ filtre, className }: Props): ReactElement | null {
@@ -50,27 +46,21 @@ export function FiltreSite({ filtre, className }: Props): ReactElement | null {
 
   return (
     <div className={className} data-testid="filtre-site">
-      {options.length <= MAX_SEGMENTS ? (
-        <Segments
-          valeur={valeur}
-          onChange={changer}
-          options={options}
-          ariaLabel={t('commun:filtreSite.libelle')}
-        />
-      ) : (
-        <Select value={valeur} onValueChange={changer}>
-          <SelectTrigger aria-label={t('commun:filtreSite.libelle')} className="w-32">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {options.map((option) => (
-              <SelectItem key={option.valeur} value={option.valeur}>
-                {option.libelle}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
+      <Select value={valeur} onValueChange={changer}>
+        <SelectTrigger
+          aria-label={t('commun:filtreSite.libelle')}
+          className="w-auto min-w-24 gap-2"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((option) => (
+            <SelectItem key={option.valeur} value={option.valeur} title={option.titre}>
+              {option.libelle}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

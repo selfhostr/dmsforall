@@ -42,4 +42,12 @@ export const handlers = [
     ),
   ),
   http.get('/api/v1/sante', () => HttpResponse.json({ statut: 'ok', version: VERSION_TEST })),
+  http.get('/api/v1/systeme/version', () =>
+    HttpResponse.json({
+      actuelle: '0.3.0',
+      derniere: '0.3.0',
+      miseAJourDisponible: false,
+      urlNotes: null,
+    }),
+  ),
 ];

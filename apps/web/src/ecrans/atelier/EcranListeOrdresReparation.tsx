@@ -1,7 +1,6 @@
-import { Plus } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
 
 import {
   ATTENTES_ORDRE_REPARATION,
@@ -15,7 +14,6 @@ import {
 
 import { AideContextuelle } from '@/composants/AideContextuelle';
 import { messageErreur } from '@/api/erreurs';
-import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -219,14 +217,12 @@ export function EcranListeOrdresReparation() {
   // « depuis une plaque » : plaque -> véhicule reconnu ou créé -> client -> OR, en un écran
   // (`creation-rapide/`). Les fiches client et véhicule y mènent aussi (redirection de l'ancienne
   // route de création).
-  const boutonNouveauOr = peutCreer ? (
-    <Button asChild>
-      <Link to={chemins.atelier.ordresReparation.depuisPlaque({ site })}>
-        <Plus aria-hidden className="h-4 w-4" />
-        {t('or:liste.actions.nouveau')}
-      </Link>
-    </Button>
-  ) : undefined;
+  const actionCreerOr = peutCreer
+    ? {
+        libelle: t('or:liste.actions.creer'),
+        to: chemins.atelier.ordresReparation.depuisPlaque({ site }),
+      }
+    : undefined;
 
   // Titres d'état vide nommant l'ABSENCE (jamais « Ordres de réparation », qui ne ferait que
   // répéter l'onglet actif/l'entrée de menu Atelier, même défaut que celui corrigé le 17.08.2026
@@ -283,16 +279,14 @@ export function EcranListeOrdresReparation() {
   // posé ici : la détection automatique de `GabaritEcran` (§3 du contrat gabarit) masque ce h1
   // d'elle-même (`sr-only`, jamais retiré du DOM). L'ancien arbitrage du 12.08.2026 (titre toujours
   // visible) est superseded par celui du 17.08.2026 — voir l'en-tête de `GabaritEcran`.
-  // « Nouvel ordre de réparation » n'est PAS passé en `actions` de `GabaritEcran` (qui le
-  // placerait juste sous le titre, seul sur sa ligne, et décalerait tout le reste) : il rejoint la
-  // ligne « Trier par », à droite — écran de référence de ce chantier, même déplacement appliqué
-  // ensuite à Pneus/Clients/Véhicules et, en parallèle, à Pièces (`EcranListeArticles.tsx`).
+  // La création est le bouton « + » (`actionCreer` de `BarreFiltres`) : toujours au bout de la
+  // barre de filtres, jamais sur la ligne du titre — même motif sur toutes les listes.
   return (
     <GabaritEcran
       titre={t('or:liste.titre')}
-      actions={<>{boutonNouveauOr}</>}
       barre={
         <BarreFiltres
+          actionCreer={actionCreerOr}
           tri={
             <SelecteurTri
               options={TRIS_ORDRES_REPARATION.map((valeur) => ({
@@ -325,7 +319,7 @@ export function EcranListeOrdresReparation() {
           >
             <SelectTrigger
               id="filtre-statut-or"
-              className="w-[200px]"
+              className="w-auto min-w-28"
               aria-label={t('or:liste.filtres.statut')}
             >
               <SelectValue />
@@ -354,7 +348,7 @@ export function EcranListeOrdresReparation() {
           >
             <SelectTrigger
               id="filtre-attente-or"
-              className="w-[200px]"
+              className="w-auto min-w-28"
               aria-label={t('or:liste.filtres.attente')}
             >
               <SelectValue />

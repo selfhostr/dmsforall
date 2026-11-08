@@ -1639,6 +1639,8 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'accueil.demarrage.lire',
       // Modules activables.
       'parametrage.modules.modifier',
+      // Envoi des e-mails.
+      'parametrage.envoi_courriel.gerer',
     ];
 
     const actionsAccordees = new Set(Object.values(MATRICE_DROITS).flat());

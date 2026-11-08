@@ -22,6 +22,7 @@ import {
   ACCES_LECTURE_RENDEZ_VOUS,
   ACCES_MENU_FACTURATION,
   ACCES_CHIFFRES,
+  ACCES_ENVOI_COURRIEL,
   ACCES_GESTION_UTILISATEURS,
   ACCES_MENU_FINANCIER,
   ACCES_MENU_PARAMETRAGE_ATELIER,
@@ -714,6 +715,13 @@ const ONGLETS_REGLAGES: readonly OngletDomaine[] = [
     chemin: (site) => chemins.parametrage.modules(site),
     motifs: ['/parametrage/modules'],
     acces: ACCES_MENU_PARAMETRAGE_ATELIER,
+  },
+  {
+    id: 'envoi-courriel',
+    cleLibelle: 'navigation:onglets.reglagesEnvoiCourriel',
+    chemin: (site) => chemins.parametrage.envoiCourriel(site),
+    motifs: ['/parametrage/envoi-courriel'],
+    acces: ACCES_ENVOI_COURRIEL,
   },
   {
     id: 'relances',

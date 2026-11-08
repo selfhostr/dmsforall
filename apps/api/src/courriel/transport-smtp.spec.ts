@@ -10,7 +10,7 @@ vi.mock('nodemailer', () => ({
   default: { createTransport: vi.fn(() => ({ sendMail })) },
 }));
 
-import { TransportSmtp } from './transport-smtp';
+import { classerEchecSmtp, TransportSmtp } from './transport-smtp';
 import type { ConfigSmtpResolue } from './config-courriel';
 
 function configSmtp(): ConfigSmtpResolue {
@@ -90,6 +90,31 @@ describe('TransportSmtp — traduction de l’enveloppe vers nodemailer', () => 
       ],
     });
 
-    expect(resultat).toEqual({ succes: false, erreur: '554 message trop volumineux' });
+    expect(resultat).toEqual({
+      succes: false,
+      erreur: '554 message trop volumineux',
+      cause: 'inconnue',
+    });
+  });
+});
+
+describe('classerEchecSmtp', () => {
+  const avecCode = (code: string, message = 'x') => Object.assign(new Error(message), { code });
+
+  it.each([
+    [avecCode('EAUTH', 'Invalid login: 535 Authentication failed'), 'authentification'],
+    [avecCode('ETLS', 'Error upgrading connection with STARTTLS'), 'tls'],
+    [avecCode('ESOCKET', 'error:0A00010B:SSL routines::wrong version number'), 'tls'],
+    [avecCode('ESOCKET', 'self-signed certificate'), 'tls'],
+    [avecCode('ECONNECTION', 'connect ECONNREFUSED 127.0.0.1:1'), 'connexion'],
+    [avecCode('ETIMEDOUT', 'Connection timeout'), 'connexion'],
+    [avecCode('ENOTFOUND', 'getaddrinfo ENOTFOUND'), 'connexion'],
+    [avecCode('EENVELOPE', 'No recipients defined'), 'refuse'],
+    [Object.assign(new Error('550 mailbox unavailable'), { responseCode: 550 }), 'refuse'],
+    [new Error('quelque chose'), 'inconnue'],
+    ['pas une erreur', 'inconnue'],
+    [null, 'inconnue'],
+  ])('classe %# en %s', (erreur, attendu) => {
+    expect(classerEchecSmtp(erreur)).toBe(attendu);
   });
 });

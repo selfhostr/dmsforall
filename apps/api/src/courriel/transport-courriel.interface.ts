@@ -1,3 +1,5 @@
+import type { CauseEchecEnvoiCourriel } from '@dfa/shared';
+
 /**
  * Enveloppe d'un courriel à envoyer — interface ÉTROITE, socle seul. Aucun gabarit HTML
  * métier, aucune logique de relance : l'appelant (un futur module « relances », « facturation »,
@@ -72,6 +74,8 @@ export interface ResultatEnvoiCourriel {
   /** Message d'erreur si `succes` est faux — jamais la pile complète (voir `ServiceJournal`
    *  pour où la pile atterrit réellement). */
   readonly erreur?: string;
+  /** Famille de l'échec, pour un message précis au garagiste (test d'envoi). Absente si succès. */
+  readonly cause?: CauseEchecEnvoiCourriel;
 }
 
 /**

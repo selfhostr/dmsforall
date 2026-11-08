@@ -340,7 +340,7 @@
   "liste": {
     "titre": "Reparaturaufträge",
     "actions": {
-      "nouveau": "RA erstellen"
+      "creer": "Reparaturauftrag erstellen"
     },
     "colonnes": {
       "numero": "RA-Nr.",

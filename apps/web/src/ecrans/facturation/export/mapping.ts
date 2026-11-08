@@ -9,8 +9,8 @@ import {
 
 /**
  * Suggestions : celles de l'API seule (elle connaît les codes de chaque logiciel). Aucun repli
- * côté écran. Les codes TVA WinBIZ des taux 2.6 % et 3.8 % ne sont pas proposés tant qu'une
- * fiduciaire ne les a pas confirmés (comme le compte d'arrondi 3809 et le code N81).
+ * côté écran. Les codes TVA WinBIZ (N81, R26, H38) sont une convention
+ * modifiable, non confirmée par une fiduciaire (comme le compte d'arrondi 3809).
  */
 export function compteSuggere(_cible: CibleExport, c: PosteCompteMapping): string | null {
   return c.compteParDefaut ?? null;

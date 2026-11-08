@@ -179,7 +179,13 @@
     "REPRISE_AJUSTEMENT_ELEMENT_INCONNU": "Questo adeguamento non corrisponde a nessun elemento del piano di migrazione. Ricarichi la pagina; se il problema persiste, avvisi il supporto.",
     "AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS": "Scelga la sua password prima di continuare.",
     "AUTH_JETON_REINITIALISATION_INVALIDE": "Questo link di reimpostazione non è più valido. Richiedane uno nuovo dalla pagina di accesso.",
-    "FACTURE_DESTINATAIRE_COURRIEL_ABSENT": "Questo cliente non ha un indirizzo e-mail registrato. Completa la scheda cliente, poi riprovi."
+    "FACTURE_DESTINATAIRE_COURRIEL_ABSENT": "Questo cliente non ha un indirizzo e-mail registrato. Completa la scheda cliente, poi riprovi.",
+    "COURRIEL_NON_CONFIGURE": "L'invio delle e-mail non è configurato. Inserisca il server di posta in uscita in Impostazioni > Invio delle e-mail.",
+    "COURRIEL_CLE_CHIFFREMENT_ABSENTE": "La password non può essere salvata: su questo server non è definita la chiave di cifratura. Contatti la persona che amministra l'installazione.",
+    "COURRIEL_AUTHENTIFICATION_ECHEC": "Il server di posta in uscita ha rifiutato nome utente o password. Li verifichi (con Gmail o Microsoft 365 spesso serve una password per le app).",
+    "COURRIEL_CONNEXION_ECHEC": "Impossibile raggiungere il server di posta in uscita. Verifichi il nome del server e la porta.",
+    "COURRIEL_TLS_ECHEC": "La connessione sicura con il server non è riuscita. Provi un altro tipo di sicurezza (STARTTLS con porta 587, oppure TLS con porta 465).",
+    "COURRIEL_ENVOI_ECHEC": "Il server ha rifiutato il messaggio di prova. Verifichi l'indirizzo del mittente e quello del destinatario."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Crea preventivo supplementare",

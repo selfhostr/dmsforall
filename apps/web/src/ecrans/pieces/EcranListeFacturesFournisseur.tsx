@@ -10,7 +10,6 @@ import {
 } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
-import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -100,11 +99,12 @@ export function EcranListeFacturesFournisseur() {
     setStatut(undefined);
   }
 
-  const boutonDeposer = peutDeposerFactureFournisseur(actions) ? (
-    <Button onClick={() => navigate('/pieces/factures-fournisseur/deposer')}>
-      {t('pieces:facturesFournisseur.actions.deposer')}
-    </Button>
-  ) : undefined;
+  const actionDeposer = peutDeposerFactureFournisseur(actions)
+    ? {
+        libelle: t('pieces:facturesFournisseur.actions.deposerInfobulle'),
+        onClick: () => navigate('/pieces/factures-fournisseur/deposer'),
+      }
+    : undefined;
 
   const colonnes: ColonneComptoir<ReponseFactureFournisseur>[] = [
     {
@@ -233,8 +233,9 @@ export function EcranListeFacturesFournisseur() {
   }
 
   return (
-    <GabaritEcran titre={t('pieces:facturesFournisseur.titre')} actions={boutonDeposer}>
+    <GabaritEcran titre={t('pieces:facturesFournisseur.titre')}>
       <BarreFiltres
+        actionCreer={actionDeposer}
         q={qSaisie}
         onChangeQ={setQSaisie}
         placeholderRecherche={t('pieces:facturesFournisseur.filtres.rechercherPlaceholder')}
@@ -248,6 +249,7 @@ export function EcranListeFacturesFournisseur() {
           >
             <SelectTrigger
               id="filtre-statut-facture"
+              className="w-auto min-w-28"
               aria-label={t('pieces:facturesFournisseur.colonnes.statut')}
             >
               <SelectValue />

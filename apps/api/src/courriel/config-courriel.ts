@@ -1,4 +1,6 @@
+import type { SecuriteSmtp } from '@dfa/shared';
 import { z } from 'zod';
+import { decoderCleChiffrement } from './chiffrement-secrets';
 
 /**
  * Configuration SMTP — capacité d'envoi de courriel, SOCLE SEUL (aucun branchement métier ici :
@@ -72,6 +74,33 @@ export const schemaConfigCourriel = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((v) => v === 'true'),
+  /**
+   * Clé maîtresse (32 octets, base64 ou hexadécimal 64 caractères) qui chiffre au repos les secrets
+   * saisis dans l'application — aujourd'hui le mot de passe SMTP d'un garage
+   * (`parametre_envoi_courriel`). Générer : `openssl rand -base64 32`. Absente : l'API démarre, mais
+   * enregistrer un mot de passe est refusé (`COURRIEL_CLE_CHIFFREMENT_ABSENTE`). Perdre la clé
+   * oblige à ressaisir les mots de passe ; la changer fait de même.
+   */
+  CLE_CHIFFREMENT_SECRETS: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z
+      .string()
+      .refine((v) => decoderCleChiffrement(v) !== null, {
+        message:
+          'CLE_CHIFFREMENT_SECRETS doit représenter 32 octets (base64 ou 64 caractères hexadécimaux).',
+      })
+      .optional(),
+  ),
+  /**
+   * Autorise un serveur d'envoi sur un réseau privé (192.168.x, 10.x, localhost…) en production.
+   * Refusé par défaut : sans cela, un garage pourrait faire sonder le réseau interne du serveur par
+   * le bouton « e-mail d'essai ». À activer pour une installation où le relais SMTP est sur le
+   * réseau local. Toujours autorisé hors production (tests, développement).
+   */
+  COURRIEL_RESEAU_PRIVE_AUTORISE: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
 });
 
 /**
@@ -89,6 +118,8 @@ export interface ConfigAvecCourriel {
   readonly SMTP_UTILISATEUR?: string | undefined;
   readonly SMTP_MOT_DE_PASSE?: string | undefined;
   readonly SMTP_EXPEDITEUR?: string | undefined;
+  readonly CLE_CHIFFREMENT_SECRETS?: string | undefined;
+  readonly COURRIEL_RESEAU_PRIVE_AUTORISE?: boolean | undefined;
 }
 
 /**
@@ -108,6 +139,14 @@ export interface ConfigSmtpResolue {
   readonly utilisateur: string;
   readonly motDePasse: string;
   readonly expediteur: string;
+  /** Mode de sécurité explicite (réglage d'un garage). Absent : comportement historique de
+   *  l'instance — `securise` décide, STARTTLS opportuniste sinon. */
+  readonly securite?: SecuriteSmtp;
+  /** Utilisateur/mot de passe vides = serveur sans authentification (réglage d'un garage). */
+  readonly sansAuthentification?: boolean;
+  /** Adresse IP déjà résolue et vérifiée (`garde-hote-smtp.ts`) : on se connecte à elle, `hote`
+   *  ne sert plus qu'au contrôle du certificat TLS. */
+  readonly adresseConnexion?: string;
 }
 
 /**

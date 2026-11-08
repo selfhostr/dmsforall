@@ -1,3 +1,4 @@
+import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router';
@@ -20,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
+import { BoutonIconeInfobulle } from '@/composants/commun/BoutonIconeInfobulle';
 import { BarreFiltres } from '@/composants/comptoir/BarreFiltres';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
@@ -414,7 +416,7 @@ export function EcranHangarPneus() {
             </div>
           ) : (
             <>
-              <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-3">
                 <Input
                   id="pneus-recherche-plaque-client"
                   aria-label={t('pneus:hangar.recherche.champLabel')}
@@ -422,15 +424,15 @@ export function EcranHangarPneus() {
                   placeholder={t('pneus:hangar.recherche.champPlaceholder')}
                   onChange={(evenement) => recherche.onSaisieChange(evenement.target.value)}
                 />
+                {peutCreer ? (
+                  <BoutonIconeInfobulle
+                    libelle={t('pneus:creation.actions.ouvrir')}
+                    icone={Plus}
+                    onClick={() => setCreationOuverte(true)}
+                    className="shrink-0"
+                  />
+                ) : null}
               </div>
-
-              {peutCreer ? (
-                <div className="flex justify-end">
-                  <Button type="button" onClick={() => setCreationOuverte(true)}>
-                    {t('pneus:creation.actions.ouvrir')}
-                  </Button>
-                </div>
-              ) : null}
 
               {recherche.actif ? (
                 <div className="flex flex-col gap-4">
@@ -506,7 +508,7 @@ export function EcranHangarPneus() {
                       >
                         <SelectTrigger
                           id="pneus-filtre-saison"
-                          className="w-44"
+                          className="w-auto min-w-28"
                           aria-label={t('pneus:hangar.filtres.saison')}
                         >
                           <SelectValue />
@@ -613,7 +615,7 @@ export function EcranHangarPneus() {
                 >
                   <SelectTrigger
                     id="pneus-a-relancer-site"
-                    className="w-44"
+                    className="w-auto min-w-28"
                     aria-label={t('pneus:aRelancer.filtreSite')}
                   >
                     <SelectValue />

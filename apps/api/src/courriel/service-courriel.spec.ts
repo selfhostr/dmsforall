@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Config } from '../config';
+import type { ContexteTenant } from '../db';
+import type { FabriqueTransportSmtp } from './fabrique-transport-smtp';
+import type { ServiceReglageEnvoiCourriel } from './service-reglage-envoi-courriel';
 import type { ServiceJournal } from '../common/journal';
+import { ErreurDechiffrementSecret } from './chiffrement-secrets';
+import { ErreurHoteSmtpInterdit } from './garde-hote-smtp';
 import { ServiceCourriel } from './service-courriel';
 import {
   TAILLE_MAX_PIECE_JOINTE_OCTETS,
@@ -9,6 +14,16 @@ import {
   type PieceJointeCourriel,
   type TransportCourriel,
 } from './transport-courriel.interface';
+
+const CTX: ContexteTenant = { tenantId: 'tenant-a', utilisateurId: null, requeteId: null };
+
+function reglagesAucun(): ServiceReglageEnvoiCourriel {
+  return { resoudreEnvoiGarage: vi.fn(async () => null) } as unknown as ServiceReglageEnvoiCourriel;
+}
+
+function fabriqueFactice(): FabriqueTransportSmtp {
+  return { creer: vi.fn() } as unknown as FabriqueTransportSmtp;
+}
 
 function journalFactice(): ServiceJournal {
   return {
@@ -34,9 +49,16 @@ describe('ServiceCourriel — construction de l’enveloppe', () => {
   it('l’expéditeur est TOUJOURS SMTP_EXPEDITEUR (no-reply@dmsforall.example), jamais l’adresse du garage', async () => {
     const { transport, enveloppes } = transportEspion();
     const config = { SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' } as Config;
-    const service = new ServiceCourriel(transport, config, journalFactice());
+    const service = new ServiceCourriel(
+      transport,
+      config,
+      journalFactice(),
+      reglagesAucun(),
+      fabriqueFactice(),
+    );
 
     await service.envoyer({
+      ctx: CTX,
       destinataires: ['client@example.ch'],
       sujet: 'Rappel',
       nomGarage: 'Garage Martin',
@@ -49,9 +71,16 @@ describe('ServiceCourriel — construction de l’enveloppe', () => {
   it('utilise le repli no-reply@dmsforall.example si SMTP_EXPEDITEUR est absente (dev sans .env complet)', async () => {
     const { transport, enveloppes } = transportEspion();
     const config = {} as Config;
-    const service = new ServiceCourriel(transport, config, journalFactice());
+    const service = new ServiceCourriel(
+      transport,
+      config,
+      journalFactice(),
+      reglagesAucun(),
+      fabriqueFactice(),
+    );
 
     await service.envoyer({
+      ctx: CTX,
       destinataires: ['client@example.ch'],
       sujet: 'Rappel',
       nomGarage: 'Garage Martin',
@@ -64,9 +93,16 @@ describe('ServiceCourriel — construction de l’enveloppe', () => {
   it('le Reply-To porte l’adresse du garage, jamais l’expéditeur technique', async () => {
     const { transport, enveloppes } = transportEspion();
     const config = { SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' } as Config;
-    const service = new ServiceCourriel(transport, config, journalFactice());
+    const service = new ServiceCourriel(
+      transport,
+      config,
+      journalFactice(),
+      reglagesAucun(),
+      fabriqueFactice(),
+    );
 
     await service.envoyer({
+      ctx: CTX,
       destinataires: ['client@example.ch'],
       sujet: 'Rappel',
       nomGarage: 'Garage Martin',
@@ -79,9 +115,16 @@ describe('ServiceCourriel — construction de l’enveloppe', () => {
   it('le nom affiché porte le nom du garage, suffixé « via dmsforall »', async () => {
     const { transport, enveloppes } = transportEspion();
     const config = { SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' } as Config;
-    const service = new ServiceCourriel(transport, config, journalFactice());
+    const service = new ServiceCourriel(
+      transport,
+      config,
+      journalFactice(),
+      reglagesAucun(),
+      fabriqueFactice(),
+    );
 
     await service.envoyer({
+      ctx: CTX,
       destinataires: ['client@example.ch'],
       sujet: 'Rappel',
       nomGarage: 'Garage Martin',
@@ -94,9 +137,16 @@ describe('ServiceCourriel — construction de l’enveloppe', () => {
   it('rend le résultat du transport tel quel', async () => {
     const { transport } = transportEspion();
     const config = { SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' } as Config;
-    const service = new ServiceCourriel(transport, config, journalFactice());
+    const service = new ServiceCourriel(
+      transport,
+      config,
+      journalFactice(),
+      reglagesAucun(),
+      fabriqueFactice(),
+    );
 
     const resultat = await service.envoyer({
+      ctx: CTX,
       destinataires: ['client@example.ch'],
       sujet: 'Rappel',
       nomGarage: 'Garage Martin',
@@ -112,9 +162,16 @@ describe('ServiceCourriel — journalisation, sans données personnelles au nive
     const { transport } = transportEspion();
     const config = { SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' } as Config;
     const journal = journalFactice();
-    const service = new ServiceCourriel(transport, config, journal);
+    const service = new ServiceCourriel(
+      transport,
+      config,
+      journal,
+      reglagesAucun(),
+      fabriqueFactice(),
+    );
 
     await service.envoyer({
+      ctx: CTX,
       destinataires: ['client-un@example.ch', 'client-deux@example.ch'],
       sujet: 'Rappel facture 2026-042',
       nomGarage: 'Garage Martin',
@@ -139,9 +196,16 @@ describe('ServiceCourriel — journalisation, sans données personnelles au nive
     };
     const config = { SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' } as Config;
     const journal = journalFactice();
-    const service = new ServiceCourriel(transport, config, journal);
+    const service = new ServiceCourriel(
+      transport,
+      config,
+      journal,
+      reglagesAucun(),
+      fabriqueFactice(),
+    );
 
     await service.envoyer({
+      ctx: CTX,
       destinataires: ['client@example.ch'],
       sujet: 'Rappel facture 2026-042',
       nomGarage: 'Garage Martin',
@@ -163,9 +227,16 @@ describe('ServiceCourriel — journalisation, sans données personnelles au nive
     const { transport } = transportEspion();
     const config = { SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' } as Config;
     const journal = journalFactice();
-    const service = new ServiceCourriel(transport, config, journal);
+    const service = new ServiceCourriel(
+      transport,
+      config,
+      journal,
+      reglagesAucun(),
+      fabriqueFactice(),
+    );
 
     await service.envoyer({
+      ctx: CTX,
       destinataires: ['client@example.ch'],
       sujet: 'Rappel facture 2026-042',
       nomGarage: 'Garage Martin',
@@ -190,10 +261,17 @@ describe('ServiceCourriel — pièce jointe (facture PDF)', () => {
   it('traverse jusqu’à l’enveloppe transmise au transport', async () => {
     const { transport, enveloppes } = transportEspion();
     const config = { SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' } as Config;
-    const service = new ServiceCourriel(transport, config, journalFactice());
+    const service = new ServiceCourriel(
+      transport,
+      config,
+      journalFactice(),
+      reglagesAucun(),
+      fabriqueFactice(),
+    );
     const piece = pieceJointe(1024);
 
     await service.envoyer({
+      ctx: CTX,
       destinataires: ['client@example.ch'],
       sujet: 'Facture 2026-00042',
       nomGarage: 'Garage Martin',
@@ -207,10 +285,17 @@ describe('ServiceCourriel — pièce jointe (facture PDF)', () => {
   it('refuse AVANT tout appel au transport quand la taille cumulée dépasse la borne', async () => {
     const { transport, enveloppes } = transportEspion();
     const config = { SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' } as Config;
-    const service = new ServiceCourriel(transport, config, journalFactice());
+    const service = new ServiceCourriel(
+      transport,
+      config,
+      journalFactice(),
+      reglagesAucun(),
+      fabriqueFactice(),
+    );
 
     await expect(
       service.envoyer({
+        ctx: CTX,
         destinataires: ['client@example.ch'],
         sujet: 'Facture 2026-00042',
         nomGarage: 'Garage Martin',
@@ -225,9 +310,16 @@ describe('ServiceCourriel — pièce jointe (facture PDF)', () => {
   it('accepte pile la borne (limite inclusive)', async () => {
     const { transport, enveloppes } = transportEspion();
     const config = { SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' } as Config;
-    const service = new ServiceCourriel(transport, config, journalFactice());
+    const service = new ServiceCourriel(
+      transport,
+      config,
+      journalFactice(),
+      reglagesAucun(),
+      fabriqueFactice(),
+    );
 
     await service.envoyer({
+      ctx: CTX,
       destinataires: ['client@example.ch'],
       sujet: 'Facture 2026-00042',
       nomGarage: 'Garage Martin',
@@ -241,11 +333,18 @@ describe('ServiceCourriel — pièce jointe (facture PDF)', () => {
   it('la borne porte sur la taille CUMULÉE de plusieurs pièces jointes, pas chacune isolément', async () => {
     const { transport } = transportEspion();
     const config = { SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' } as Config;
-    const service = new ServiceCourriel(transport, config, journalFactice());
+    const service = new ServiceCourriel(
+      transport,
+      config,
+      journalFactice(),
+      reglagesAucun(),
+      fabriqueFactice(),
+    );
     const moitie = Math.floor(TAILLE_MAX_PIECE_JOINTE_OCTETS / 2) + 1;
 
     await expect(
       service.envoyer({
+        ctx: CTX,
         destinataires: ['client@example.ch'],
         sujet: 'Facture 2026-00042',
         nomGarage: 'Garage Martin',
@@ -259,9 +358,16 @@ describe('ServiceCourriel — pièce jointe (facture PDF)', () => {
     const { transport } = transportEspion();
     const config = { SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' } as Config;
     const journal = journalFactice();
-    const service = new ServiceCourriel(transport, config, journal);
+    const service = new ServiceCourriel(
+      transport,
+      config,
+      journal,
+      reglagesAucun(),
+      fabriqueFactice(),
+    );
 
     await service.envoyer({
+      ctx: CTX,
       destinataires: ['client@example.ch'],
       sujet: 'Facture 2026-00042',
       nomGarage: 'Garage Martin',
@@ -281,5 +387,133 @@ describe('ServiceCourriel — pièce jointe (facture PDF)', () => {
       Record<string, unknown>,
     ];
     expect(donneesDebug.nomsPiecesJointes).toEqual(['Facture-2026-00042-client-secret.pdf']);
+  });
+});
+
+describe('ServiceCourriel — choix du serveur d’envoi (garage > instance > rien)', () => {
+  const MESSAGE = {
+    ctx: CTX,
+    destinataires: ['client@example.ch'],
+    sujet: 'Facture',
+    nomGarage: 'Garage Martin',
+    adresseReponseGarage: 'contact@garage-martin.ch',
+  } as const;
+  const SMTP_GARAGE = {
+    hote: 'mail.garage-martin.ch',
+    port: 587,
+    securise: false,
+    utilisateur: 'atelier',
+    motDePasse: 'x',
+    expediteur: 'atelier@garage-martin.ch',
+  };
+
+  function monter(
+    config: Partial<Config>,
+    garage: Awaited<ReturnType<ServiceReglageEnvoiCourriel['resoudreEnvoiGarage']>> | Error,
+  ) {
+    const instance = transportEspion();
+    const garageTransport = transportEspion();
+    const reglages = {
+      resoudreEnvoiGarage: vi.fn(async () => {
+        if (garage instanceof Error) throw garage;
+        return garage;
+      }),
+    } as unknown as ServiceReglageEnvoiCourriel;
+    const fabrique = {
+      creer: vi.fn(() => garageTransport.transport),
+    } as unknown as FabriqueTransportSmtp;
+    const service = new ServiceCourriel(
+      instance.transport,
+      config as Config,
+      journalFactice(),
+      reglages,
+      fabrique,
+    );
+    return { service, instance, garageTransport, reglages, fabrique };
+  }
+
+  const PROD = { NODE_ENV: 'production', SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' } as const;
+
+  it('production + réglage du garage : part par SON serveur, avec SON adresse, SON nom et SA réponse', async () => {
+    const { service, garageTransport, instance, fabrique } = monter(PROD, {
+      smtp: SMTP_GARAGE,
+      nomAffiche: 'Atelier Martin',
+      adresseReponse: 'direction@garage-martin.ch',
+    });
+    const r = await service.envoyer(MESSAGE);
+    expect(r.succes).toBe(true);
+    expect(fabrique.creer).toHaveBeenCalledWith(SMTP_GARAGE);
+    expect(instance.enveloppes).toHaveLength(0);
+    expect(garageTransport.enveloppes[0]).toMatchObject({
+      de: 'atelier@garage-martin.ch',
+      nomExpediteurAffiche: 'Atelier Martin',
+      repondreA: 'direction@garage-martin.ch',
+    });
+  });
+
+  it('réglage du garage sans nom ni réponse : repli sur le nom du garage et l’adresse transmise, sans « via dmsforall »', async () => {
+    const { service, garageTransport } = monter(PROD, {
+      smtp: SMTP_GARAGE,
+      nomAffiche: null,
+      adresseReponse: null,
+    });
+    await service.envoyer(MESSAGE);
+    expect(garageTransport.enveloppes[0]).toMatchObject({
+      nomExpediteurAffiche: 'Garage Martin',
+      repondreA: 'contact@garage-martin.ch',
+    });
+  });
+
+  it('production sans réglage mais envoi réel de l’instance activé : serveur de l’instance, expéditeur technique', async () => {
+    const { service, instance, fabrique } = monter({ ...PROD, COURRIEL_ENVOI_REEL: true }, null);
+    const r = await service.envoyer(MESSAGE);
+    expect(r.succes).toBe(true);
+    expect(fabrique.creer).not.toHaveBeenCalled();
+    expect(instance.enveloppes[0]).toMatchObject({
+      de: 'no-reply@dmsforall.example',
+      nomExpediteurAffiche: 'Garage Martin via dmsforall',
+    });
+  });
+
+  it('production sans réglage ni envoi d’instance : échec EXPLICITE « non configuré », jamais un faux succès', async () => {
+    const { service, instance } = monter(PROD, null);
+    const r = await service.envoyer(MESSAGE);
+    expect(r.succes).toBe(false);
+    expect(r.erreur).toContain('COURRIEL_NON_CONFIGURE');
+    expect(instance.enveloppes).toHaveLength(0);
+  });
+
+  it('hors production : tout reste capturé, le réglage du garage n’est même pas consulté', async () => {
+    const { service, instance, reglages, fabrique } = monter(
+      { NODE_ENV: 'development' },
+      { smtp: SMTP_GARAGE, nomAffiche: null, adresseReponse: null },
+    );
+    const r = await service.envoyer(MESSAGE);
+    expect(r.succes).toBe(true);
+    expect(instance.enveloppes).toHaveLength(1);
+    expect(reglages.resoudreEnvoiGarage).not.toHaveBeenCalled();
+    expect(fabrique.creer).not.toHaveBeenCalled();
+  });
+
+  it('hôte du garage interdit (réseau privé) ou secret illisible : échec typé, rien ne part, pas de repli sur l’instance', async () => {
+    const interdit = monter(
+      { ...PROD, COURRIEL_ENVOI_REEL: true },
+      new ErreurHoteSmtpInterdit('10.0.0.1'),
+    );
+    const r1 = await interdit.service.envoyer(MESSAGE);
+    expect(r1).toMatchObject({ succes: false, cause: 'hote_interdit' });
+    expect(interdit.instance.enveloppes).toHaveLength(0);
+
+    const illisible = monter(PROD, new ErreurDechiffrementSecret());
+    expect(await illisible.service.envoyer(MESSAGE)).toMatchObject({
+      succes: false,
+      cause: 'authentification',
+    });
+  });
+
+  it('sans adresse de réponse fournie (mot de passe oublié), le Reply-To est l’expéditeur', async () => {
+    const { service, instance } = monter({ ...PROD, COURRIEL_ENVOI_REEL: true }, null);
+    await service.envoyer({ ...MESSAGE, adresseReponseGarage: undefined });
+    expect(instance.enveloppes[0]?.repondreA).toBe('no-reply@dmsforall.example');
   });
 });

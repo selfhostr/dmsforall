@@ -543,5 +543,93 @@
         "description": "Transfert des écritures à la fiduciaire."
       }
     }
+  },
+  "envoiCourriel": {
+    "titre": "Envoi des e-mails",
+    "erreur": {
+      "titre": "Impossible de charger le réglage d'envoi des e-mails"
+    },
+    "etat": {
+      "nonConfigure": "Non configuré",
+      "garage": "Configuré pour ce garage",
+      "instance": "Serveur de l'installation",
+      "essaiReussi": "Dernier essai réussi le {{date}}",
+      "essaiEchoue": "Dernier essai échoué le {{date}}",
+      "aucunEssai": "Pas encore d'essai",
+      "explication": {
+        "nonConfigure": "Aucun e-mail ne peut partir : ni factures, ni relances, ni mots de passe oubliés. Renseignez votre serveur d'envoi ci-dessous.",
+        "garage": "Les e-mails de votre garage partent avec le serveur que vous avez réglé ci-dessous.",
+        "instance": "Votre garage n'a pas son propre réglage : les e-mails partent avec le serveur de l'installation. Vous pouvez saisir le vôtre ci-dessous."
+      },
+      "modeCapture": "Cette installation est en mode essai : les e-mails sont mis de côté et ne sont jamais remis. Seul l'e-mail d'essai ci-dessous part réellement."
+    },
+    "carte": {
+      "titre": "Serveur d'envoi",
+      "description": "Ces informations vous sont données par votre fournisseur de messagerie (Infomaniak, Google, Microsoft, hébergeur du site…)."
+    },
+    "fournisseurs": {
+      "infomaniak": "Infomaniak",
+      "google": "Gmail / Google Workspace",
+      "microsoft365": "Microsoft 365",
+      "autre": "Autre fournisseur"
+    },
+    "champs": {
+      "fournisseur": {
+        "libelle": "Fournisseur de messagerie"
+      },
+      "hote": {
+        "libelle": "Serveur d'envoi",
+        "erreur": "Indiquez le nom du serveur, par exemple mail.infomaniak.com (sans http:// ni port)."
+      },
+      "port": {
+        "libelle": "Port",
+        "erreur": "Indiquez un port entre 1 et 65535, le plus souvent 587 ou 465."
+      },
+      "securite": {
+        "libelle": "Sécurité de la connexion",
+        "options": {
+          "tls_implicite": "TLS (port 465)",
+          "starttls": "STARTTLS (port 587)",
+          "aucune": "Aucune (déconseillé)"
+        }
+      },
+      "utilisateur": {
+        "libelle": "Identifiant"
+      },
+      "motDePasse": {
+        "libelle": "Mot de passe",
+        "enregistre": "Mot de passe enregistré",
+        "aide": "Il est enregistré chiffré et ne peut plus être relu ensuite.",
+        "aideEnregistre": "Laissez vide pour garder le mot de passe enregistré. Si vous changez le serveur ou l'identifiant, il faut le saisir à nouveau.",
+        "sansCle": "Ce serveur n'a pas de clé de chiffrement : le mot de passe ne peut pas être enregistré. Contactez la personne qui administre l'installation."
+      },
+      "adresseExpediteur": {
+        "libelle": "Adresse d'expédition",
+        "erreur": "Indiquez une adresse e-mail valide, par exemple atelier@garage-martin.ch."
+      },
+      "nomAffiche": {
+        "libelle": "Nom affiché"
+      },
+      "adresseReponse": {
+        "libelle": "Adresse de réponse",
+        "erreur": "Indiquez une adresse e-mail valide, ou laissez le champ vide."
+      }
+    },
+    "enregistrer": "Enregistrer le serveur d'envoi",
+    "lectureSeule": "Seules la direction et l'administrateur peuvent modifier ce réglage.",
+    "essai": {
+      "titre": "E-mail d'essai",
+      "description": "Envoie un message avec le réglage enregistré pour vérifier qu'il fonctionne. Enregistrez d'abord vos modifications.",
+      "destinataire": "Envoyer l'essai à",
+      "erreurAdresse": "Indiquez une adresse e-mail valide.",
+      "envoyer": "Envoyer un e-mail d'essai",
+      "enCours": "Envoi en cours…",
+      "reussi": "E-mail d'essai envoyé. Vérifiez votre boîte de réception (et les courriers indésirables).",
+      "dernier": "Dernier essai : {{date}}"
+    },
+    "chiffre": "Le mot de passe est chiffré dans la base de données et n'est jamais affiché.",
+    "toast": {
+      "enregistre": "Serveur d'envoi enregistré"
+    }
   }
 }

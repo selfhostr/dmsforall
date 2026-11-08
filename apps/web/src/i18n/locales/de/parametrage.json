@@ -543,5 +543,93 @@
         "description": "Übergabe der Buchungen an die Treuhand."
       }
     }
+  },
+  "envoiCourriel": {
+    "titre": "E-Mail-Versand",
+    "erreur": {
+      "titre": "Die Einstellung für den E-Mail-Versand kann nicht geladen werden"
+    },
+    "etat": {
+      "nonConfigure": "Nicht eingerichtet",
+      "garage": "Für diesen Betrieb eingerichtet",
+      "instance": "Server der Installation",
+      "essaiReussi": "Letzter Test erfolgreich am {{date}}",
+      "essaiEchoue": "Letzter Test fehlgeschlagen am {{date}}",
+      "aucunEssai": "Noch kein Test",
+      "explication": {
+        "nonConfigure": "Es kann keine E-Mail versendet werden: keine Rechnungen, keine Mahnungen, keine Passwort-Rücksetzungen. Tragen Sie unten Ihren Postausgangsserver ein.",
+        "garage": "Die E-Mails Ihres Betriebs werden über den unten eingestellten Server versendet.",
+        "instance": "Ihr Betrieb hat keine eigene Einstellung: Die E-Mails werden über den Server der Installation versendet. Sie können unten Ihren eigenen eintragen."
+      },
+      "modeCapture": "Diese Installation läuft im Testmodus: E-Mails werden zurückgehalten und nie zugestellt. Nur die Testnachricht unten wird wirklich versendet."
+    },
+    "carte": {
+      "titre": "Postausgangsserver",
+      "description": "Diese Angaben erhalten Sie von Ihrem E-Mail-Anbieter (Infomaniak, Google, Microsoft, Website-Hoster …)."
+    },
+    "fournisseurs": {
+      "infomaniak": "Infomaniak",
+      "google": "Gmail / Google Workspace",
+      "microsoft365": "Microsoft 365",
+      "autre": "Anderer Anbieter"
+    },
+    "champs": {
+      "fournisseur": {
+        "libelle": "E-Mail-Anbieter"
+      },
+      "hote": {
+        "libelle": "Postausgangsserver",
+        "erreur": "Geben Sie den Servernamen an, z. B. mail.infomaniak.com (ohne http:// und ohne Port)."
+      },
+      "port": {
+        "libelle": "Port",
+        "erreur": "Geben Sie einen Port zwischen 1 und 65535 an, meist 587 oder 465."
+      },
+      "securite": {
+        "libelle": "Verbindungssicherheit",
+        "options": {
+          "tls_implicite": "TLS (Port 465)",
+          "starttls": "STARTTLS (Port 587)",
+          "aucune": "Keine (nicht empfohlen)"
+        }
+      },
+      "utilisateur": {
+        "libelle": "Benutzername"
+      },
+      "motDePasse": {
+        "libelle": "Passwort",
+        "enregistre": "Passwort gespeichert",
+        "aide": "Es wird verschlüsselt gespeichert und kann danach nicht mehr angezeigt werden.",
+        "aideEnregistre": "Leer lassen, um das gespeicherte Passwort zu behalten. Wenn Sie Server oder Benutzername ändern, müssen Sie es erneut eingeben.",
+        "sansCle": "Auf diesem Server ist kein Verschlüsselungsschlüssel festgelegt: Das Passwort kann nicht gespeichert werden. Wenden Sie sich an die Person, die die Installation betreut."
+      },
+      "adresseExpediteur": {
+        "libelle": "Absenderadresse",
+        "erreur": "Geben Sie eine gültige E-Mail-Adresse an, z. B. werkstatt@garage-martin.ch."
+      },
+      "nomAffiche": {
+        "libelle": "Angezeigter Name"
+      },
+      "adresseReponse": {
+        "libelle": "Antwortadresse",
+        "erreur": "Geben Sie eine gültige E-Mail-Adresse an oder lassen Sie das Feld leer."
+      }
+    },
+    "enregistrer": "Postausgangsserver speichern",
+    "lectureSeule": "Nur die Geschäftsleitung und der Administrator können diese Einstellung ändern.",
+    "essai": {
+      "titre": "Testnachricht",
+      "description": "Sendet eine Nachricht mit der gespeicherten Einstellung, um zu prüfen, ob sie funktioniert. Speichern Sie zuerst Ihre Änderungen.",
+      "destinataire": "Test senden an",
+      "erreurAdresse": "Geben Sie eine gültige E-Mail-Adresse an.",
+      "envoyer": "Testnachricht senden",
+      "enCours": "Wird gesendet …",
+      "reussi": "Testnachricht gesendet. Prüfen Sie Ihren Posteingang (und den Spam-Ordner).",
+      "dernier": "Letzter Test: {{date}}"
+    },
+    "chiffre": "Das Passwort ist in der Datenbank verschlüsselt und wird nie angezeigt.",
+    "toast": {
+      "enregistre": "Postausgangsserver gespeichert"
+    }
   }
 }

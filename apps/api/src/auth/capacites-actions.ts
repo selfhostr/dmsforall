@@ -55,6 +55,7 @@ export const CAPACITE_DE_L_ACTION: Readonly<Record<Action, Classement>> = {
   'accueil.demarrage.lire': 'employes',
   // Modules activables : direction et admin (gestion des comptes), jamais le chef d'atelier.
   'parametrage.modules.modifier': 'employes',
+  'parametrage.envoi_courriel.gerer': 'employes',
   // ---- Encadrer --------------------------------------------------------------------------------
   'parametrage.atelier.modifier': 'encadrer',
   'parametrage.referentiel.modifier': 'encadrer',

@@ -48,6 +48,15 @@
     "delaiPaiement": "Appliqué aux clients sans condition de paiement propre. De 0 à 365 jours.",
     "plafondDefaut": "Au-delà de ce montant, le client doit confirmer avant les travaux. Vide : aucune limite.",
     "qrIban": "Votre IBAN est le compte habituel. Le QR-IBAN est un compte spécial de la banque pour les QR-factures (il commence par CH et le 5e chiffre est 3). Avec un QR-IBAN, chaque facture porte une référence QR. Ne mettez jamais l'un dans le champ de l'autre : la banque refuserait les bulletins.",
-    "motifsRdv": "Les motifs que le client ou la réception choisit à la prise de rendez-vous (révision, pneus, expertise MFK…). MFK : contrôle technique officiel du véhicule. Gardez au moins un motif actif."
+    "motifsRdv": "Les motifs que le client ou la réception choisit à la prise de rendez-vous (révision, pneus, expertise MFK…). MFK : contrôle technique officiel du véhicule. Gardez au moins un motif actif.",
+    "envoiCourriel": {
+      "fournisseur": "Choisissez votre fournisseur de messagerie pour remplir automatiquement le serveur, le port et la sécurité. Choisissez « Autre » si le vôtre n'est pas listé.",
+      "hote": "Le nom du serveur d'envoi (SMTP) donné par votre fournisseur, par exemple mail.infomaniak.com.",
+      "securite": "STARTTLS avec le port 587 convient dans la plupart des cas. TLS va avec le port 465. « Aucune » n'est à utiliser que sur un réseau interne de confiance.",
+      "motDePasse": "Chez Gmail et Microsoft 365, il faut souvent créer un « mot de passe d'application » plutôt que d'utiliser le mot de passe habituel.",
+      "adresseExpediteur": "L'adresse qui apparaît comme expéditeur. Elle doit appartenir à votre compte de messagerie, sinon le serveur refusera l'envoi.",
+      "adresseReponse": "Où arrivent les réponses de vos clients. Laissez vide pour utiliser l'adresse d'expédition.",
+      "essai": "L'adresse qui reçoit le message d'essai : la vôtre, par exemple."
+    }
   }
 }
