@@ -46,7 +46,9 @@ describe('prerequisDepuisBlocages', () => {
       ]),
     ).toEqual({
       code: 'EXPORT_ECRITURES_DESEQUILIBREES',
-      ecritures: [{ reference: 'F-1', totalDebitCentimes: 10000, totalCreditCentimes: 9995 }],
+      ecritures: [
+        { reference: 'F-1', pieces: [], totalDebitCentimes: 10000, totalCreditCentimes: 9995 },
+      ],
     });
   });
 

@@ -106,12 +106,18 @@ export function prerequisDepuisBlocages(
         : limite === 'taux_multiples_non_supporte'
           ? 'TAUX_MULTIPLES_NON_SUPPORTE'
           : undefined;
-    return code ? [{ code, donnees: {
-            paiementId: b.donnees?.paiementId,
-            documentId: b.id,
-            documentNumero: b.donnees?.documentNumero,
+    return code
+      ? [
+          {
+            code,
+            donnees: {
+              paiementId: b.donnees?.paiementId,
+              documentId: b.id,
+              documentNumero: b.donnees?.documentNumero,
+            },
           },
-        }] : [];
+        ]
+      : [];
   });
   return limites.length > 0 ? { code, limites, details } : undefined;
 }

@@ -106,7 +106,8 @@ export function ListePrerequis({ prerequis, onReglerComptes }: Props) {
                     reference:
                       e.pieces.length > 0
                         ? e.pieces.join(', ')
-                        : (referenceLisible(e.reference) ?? t('export:prerequis.encaissementSansFacture')),
+                        : (referenceLisible(e.reference) ??
+                          t('export:prerequis.encaissementSansFacture')),
                     debit: formaterMontant(e.totalDebitCentimes),
                     credit: formaterMontant(e.totalCreditCentimes),
                   })}
