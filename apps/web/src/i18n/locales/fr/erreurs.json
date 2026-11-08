@@ -175,6 +175,7 @@
     "REPRISE_TRANCHE_HORS_SEQUENCE": "L'envoi du fichier a été interrompu. Réessayez : il reprendra là où il s'est arrêté, rien n'est perdu.",
     "REPRISE_PLAN_NON_VALIDABLE": "Ce plan de reprise ne peut plus être validé à cette étape. Rechargez la page pour voir la version à jour.",
     "REPRISE_AJUSTEMENT_ELEMENT_INCONNU": "Cet ajustement ne correspond à aucun élément du plan de reprise. Rechargez la page ; si le problème persiste, prévenez le support.",
+    "AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS": "Choisissez votre propre mot de passe avant de continuer.",
     "AUTH_JETON_REINITIALISATION_INVALIDE": "Ce lien de réinitialisation n'est plus valide. Demandez un nouveau lien depuis la page de connexion.",
     "FACTURE_DESTINATAIRE_COURRIEL_ABSENT": "Ce client n'a pas d'adresse courriel enregistrée. Complétez la fiche client, puis réessayez."
   },

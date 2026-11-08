@@ -6873,7 +6873,8 @@
               "TVA_NUMERO_REQUIS",
               "FACTURE_DEJA_CORRIGEE",
               "FACTURE_CORRECTION_REGLEMENT_EXISTANT",
-              "MODULE_DESACTIVE"
+              "MODULE_DESACTIVE",
+              "AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS"
             ],
             "type": "string"
           },
@@ -7046,7 +7047,8 @@
               "TVA_NUMERO_REQUIS",
               "FACTURE_DEJA_CORRIGEE",
               "FACTURE_CORRECTION_REGLEMENT_EXISTANT",
-              "MODULE_DESACTIVE"
+              "MODULE_DESACTIVE",
+              "AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS"
             ],
             "type": "string"
           },
@@ -12549,6 +12551,10 @@
             },
             "type": "array"
           },
+          "motDePasseAChanger": {
+            "description": "true tant que le mot de passe temporaire n’a pas été remplacé : toute route métier répond 403 AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS.",
+            "type": "boolean"
+          },
           "sitePrincipalId": {
             "format": "uuid",
             "nullable": true,
@@ -16232,6 +16238,163 @@
           }
         },
         "summary": "Session courante de l’utilisateur authentifié.",
+        "tags": [
+          "Authentification"
+        ]
+      }
+    },
+    "/auth/moi/langue": {
+      "patch": {
+        "operationId": "AuthController_changerLangue",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "langue": "de"
+                  }
+                }
+              },
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "langue": {
+                    "enum": [
+                      "fr",
+                      "de",
+                      "it"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "langue"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Langue enregistrée."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailDto"
+                }
+              }
+            },
+            "description": "VALIDATION_ECHOUEE."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailDto"
+                }
+              }
+            },
+            "description": "AUTH_SESSION_ABSENTE ou AUTH_SESSION_EXPIREE."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailDto"
+                }
+              }
+            },
+            "description": "AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS."
+          }
+        },
+        "summary": "Enregistre la langue d’interface dans le profil de la personne connectée.",
+        "tags": [
+          "Authentification"
+        ]
+      }
+    },
+    "/auth/mot-de-passe/changement": {
+      "post": {
+        "description": "Exige le mot de passe actuel. Lève le blocage AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS. Les autres sessions de la personne sont révoquées.",
+        "operationId": "AuthController_changerMotDePasse",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "motDePasseActuel": "mot-de-passe-temporaire",
+                    "nouveauMotDePasse": "un-nouveau-mot-de-passe-solide"
+                  }
+                }
+              },
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "motDePasseActuel": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "nouveauMotDePasse": {
+                    "maxLength": 256,
+                    "minLength": 12,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "motDePasseActuel",
+                  "nouveauMotDePasse"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Mot de passe changé."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailDto"
+                }
+              }
+            },
+            "description": "VALIDATION_ECHOUEE."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailDto"
+                }
+              }
+            },
+            "description": "AUTH_SESSION_ABSENTE ou AUTH_SESSION_EXPIREE."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailDto"
+                }
+              }
+            },
+            "description": "AUTH_TROP_DE_TENTATIVES."
+          }
+        },
+        "summary": "Changement du mot de passe de la personne connectée.",
         "tags": [
           "Authentification"
         ]

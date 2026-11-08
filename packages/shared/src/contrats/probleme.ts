@@ -355,6 +355,10 @@ export const CODES_ERREUR = [
   'FACTURE_CORRECTION_REGLEMENT_EXISTANT',
   // --- Modules activables (migration 0092) : écriture sur un module que le garage a retiré ---
   'MODULE_DESACTIVE',
+  // --- Changement de mot de passe obligatoire (issue #58) ---
+  // Mot de passe temporaire jamais remplacé : toute route métier est refusée (403) jusqu'au
+  // changement via POST /auth/mot-de-passe/changement.
+  'AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS',
 ] as const;
 export type CodeErreur = (typeof CODES_ERREUR)[number];
 
@@ -502,6 +506,7 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   REPRISE_PLAN_NON_VALIDABLE: 409,
   REPRISE_AJUSTEMENT_ELEMENT_INCONNU: 400,
   AUTH_JETON_REINITIALISATION_INVALIDE: 400,
+  AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS: 403,
   FACTURE_DESTINATAIRE_COURRIEL_ABSENT: 409,
   TVA_NON_ASSUJETTI_TAUX_INTERDIT: 409,
   TVA_NUMERO_REQUIS: 409,
@@ -641,6 +646,7 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   REPRISE_PLAN_NON_VALIDABLE: 'Plan de reprise non validable',
   REPRISE_AJUSTEMENT_ELEMENT_INCONNU: 'Élément de plan inconnu',
   AUTH_JETON_REINITIALISATION_INVALIDE: 'Jeton de réinitialisation invalide',
+  AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS: 'Changement de mot de passe requis',
   FACTURE_DESTINATAIRE_COURRIEL_ABSENT: "Le client n'a pas d'adresse courriel enregistrée",
   TVA_NON_ASSUJETTI_TAUX_INTERDIT: 'TVA interdite pour un garage non assujetti',
   TVA_NUMERO_REQUIS: 'Numéro de TVA requis pour émettre',

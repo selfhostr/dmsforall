@@ -45,6 +45,7 @@ function ligneUtilisateur(champs: Partial<LigneUtilisateur> = {}): LigneUtilisat
     echecsConnexion: 0,
     verrouilleJusquA: null,
     derniereConnexionLe: null,
+    motDePasseAChanger: false,
     creeLe: new Date('2026-08-01T08:00:00.000Z'),
     modifieLe: new Date('2026-08-01T08:00:00.000Z'),
     // Grille du préréglage du rôle (comme le trigger d'insertion de la migration 0087).
@@ -183,6 +184,7 @@ describe('ServiceUtilisateur.creer — chemin heureux', () => {
     // clair : `entree`/`values(...)` ne comporte aucune clé `motDePasseTemporaire`/`motDePasseClair`.
     expect(appelUtilisateur?.payload).toMatchObject({
       motDePasseHash: `HASH(${resultat.acces.motDePasseTemporaire})`,
+      motDePasseAChanger: true,
     });
     expect(appelUtilisateur?.payload).not.toHaveProperty('motDePasseTemporaire');
     expect(appelUtilisateur?.payload).not.toHaveProperty('motDePasseClair');
@@ -335,6 +337,7 @@ describe('ServiceUtilisateur.reinitialiserAcces — jamais de mot de passe en cl
     );
     expect(appelUpdateUtilisateur?.payload).toMatchObject({
       motDePasseHash: `HASH(${resultat.motDePasseTemporaire})`,
+      motDePasseAChanger: true,
       echecsConnexion: 0,
       verrouilleJusquA: null,
     });

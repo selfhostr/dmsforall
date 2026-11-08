@@ -9,6 +9,7 @@ import {
   Body,
   Controller,
   Get,
+  Patch,
   HttpCode,
   HttpStatus,
   Inject,
@@ -20,6 +21,8 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import {
   schemaConfirmationReinitialisationMotDePasse,
+  schemaChangementLangue,
+  schemaChangementMotDePasse,
   schemaConnexion,
   schemaDemandeReinitialisationMotDePasse,
   type SessionCourante,
@@ -32,6 +35,8 @@ import { AucunDroitRequis } from '../common/droits';
 import { ApiCorpsZod } from '../common/documentation';
 import { Principal } from './decorateurs/principal.decorator';
 import { Public } from './decorateurs/public.decorator';
+import { AutoriseAvantChangementMotDePasse } from './decorateurs/autorise-avant-changement-mot-de-passe.decorator';
+import { ServiceProfilCourant } from './services/profil-courant.service';
 import { construireAttributsCookie, effacerCookieSession, poserCookieSession } from './cookie';
 import { ProblemeDetailDto, SessionCouranteDto } from './dto/auth.dto';
 import { ErreurValidation, type CorpsErreurAuth } from './erreurs-auth';
@@ -48,6 +53,7 @@ import { ServiceAuthentificationImpl } from './services/authentification.service
 export class AuthController {
   constructor(
     private readonly authService: ServiceAuthentificationImpl,
+    private readonly profil: ServiceProfilCourant,
     @Inject(JETON_SERVICE_SESSION) private readonly serviceSession: ServiceSession,
     @Inject(JETON_SERVICE_REINITIALISATION_MOT_DE_PASSE)
     private readonly serviceReinitialisation: ServiceReinitialisationMotDePasse,
@@ -276,6 +282,7 @@ export class AuthController {
   // `@UseGuards(GardeDroit)` local nécessaire, la garde s'applique déjà globalement en second
   // `APP_GUARD` (voir auth.module.ts) pour toute l'application, y compris ce contrôleur.
   @AucunDroitRequis()
+  @AutoriseAvantChangementMotDePasse()
   @Get('moi')
   @ApiOperation({ summary: 'Session courante de l’utilisateur authentifié.' })
   @ApiResponse({ status: 200, description: 'Session courante.', type: SessionCouranteDto })
@@ -286,6 +293,100 @@ export class AuthController {
   })
   async moi(@Principal() principal: PrincipalAuthentifie): Promise<SessionCourante> {
     return this.authService.sessionCourante(principal);
+  }
+
+  /**
+   * Changement du mot de passe de la personne connectée (issue #58). Seule route métier avec
+   * `GET /auth/moi` à rester ouverte tant que le mot de passe temporaire n'est pas remplacé.
+   */
+  @AucunDroitRequis()
+  @AutoriseAvantChangementMotDePasse()
+  @Post('mot-de-passe/changement')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Changement du mot de passe de la personne connectée.',
+    description:
+      'Exige le mot de passe actuel. Lève le blocage AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS. ' +
+      'Les autres sessions de la personne sont révoquées.',
+  })
+  @ApiCorpsZod(schemaChangementMotDePasse, {
+    exemple: {
+      motDePasseActuel: 'mot-de-passe-temporaire',
+      nouveauMotDePasse: 'un-nouveau-mot-de-passe-solide',
+    },
+  })
+  @ApiResponse({ status: 204, description: 'Mot de passe changé.' })
+  @ApiResponse({ status: 400, description: 'VALIDATION_ECHOUEE.', type: ProblemeDetailDto })
+  @ApiResponse({
+    status: 401,
+    description: 'AUTH_SESSION_ABSENTE ou AUTH_SESSION_EXPIREE.',
+    type: ProblemeDetailDto,
+  })
+  @ApiResponse({ status: 429, description: 'AUTH_TROP_DE_TENTATIVES.', type: ProblemeDetailDto })
+  async changerMotDePasse(
+    @Body() corpsBrut: unknown,
+    @Principal() principal: PrincipalAuthentifie,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<void> {
+    const resultat = schemaChangementMotDePasse.safeParse(corpsBrut);
+    if (!resultat.success) {
+      throw new ErreurValidation(
+        resultat.error.issues.map((issue) => ({
+          champ: issue.path.join('.') || '(racine)',
+          code: issue.code,
+          message: issue.message,
+        })),
+      );
+    }
+    try {
+      await this.profil.changerMotDePasse(
+        principal,
+        resultat.data,
+        this.ipDe(req),
+        this.userAgentDe(req),
+      );
+    } catch (erreur) {
+      this.appliquerRetryAfter(res, erreur);
+      throw erreur;
+    }
+  }
+
+  /** Langue d'interface = préférence du profil (issue #62), jamais du poste. */
+  @AucunDroitRequis()
+  @Patch('moi/langue')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Enregistre la langue d’interface dans le profil de la personne connectée.',
+  })
+  @ApiCorpsZod(schemaChangementLangue, { exemple: { langue: 'de' } })
+  @ApiResponse({ status: 204, description: 'Langue enregistrée.' })
+  @ApiResponse({ status: 400, description: 'VALIDATION_ECHOUEE.', type: ProblemeDetailDto })
+  @ApiResponse({
+    status: 401,
+    description: 'AUTH_SESSION_ABSENTE ou AUTH_SESSION_EXPIREE.',
+    type: ProblemeDetailDto,
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS.',
+    type: ProblemeDetailDto,
+  })
+  async changerLangue(
+    @Body() corpsBrut: unknown,
+    @Principal() principal: PrincipalAuthentifie,
+  ): Promise<void> {
+    const resultat = schemaChangementLangue.safeParse(corpsBrut);
+    if (!resultat.success) {
+      throw new ErreurValidation(
+        resultat.error.issues.map((issue) => ({
+          champ: issue.path.join('.') || '(racine)',
+          code: issue.code,
+          message: issue.message,
+        })),
+      );
+    }
+    await this.profil.changerLangue(principal, resultat.data);
   }
 
   private ipDe(req: Request): string | null {

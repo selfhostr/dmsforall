@@ -96,6 +96,13 @@ export class SessionCouranteDto implements SessionCourante {
   @ApiProperty({ type: UtilisateurCourantDto })
   utilisateur!: UtilisateurCourantDto;
 
+  @ApiProperty({
+    required: false,
+    description:
+      'true tant que le mot de passe temporaire n’a pas été remplacé : toute route métier répond 403 AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS.',
+  })
+  motDePasseAChanger?: boolean;
+
   @ApiProperty({ type: TenantCourantDto })
   tenant!: TenantCourantDto;
 

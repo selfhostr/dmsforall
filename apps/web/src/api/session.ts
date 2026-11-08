@@ -1,4 +1,9 @@
-import type { EntreeConnexion, SessionCourante } from '@dfa/shared';
+import type {
+  EntreeChangementMotDePasse,
+  EntreeConnexion,
+  Langue,
+  SessionCourante,
+} from '@dfa/shared';
 
 import { requeteApi } from './client';
 import { ErreurApi } from './erreurs';
@@ -33,4 +38,20 @@ export async function connecter(entree: EntreeConnexion): Promise<SessionCourant
  *  "session déjà absente" à gérer côté front. */
 export async function deconnecter(): Promise<void> {
   await requeteApi<undefined>('/auth/deconnexion', { method: 'POST' });
+}
+
+/** `POST /auth/mot-de-passe/changement` (issue #58) -- 204 ; 400 si l'actuel est faux ou le nouveau refusé. */
+export async function changerMotDePasse(entree: EntreeChangementMotDePasse): Promise<void> {
+  await requeteApi<undefined>('/auth/mot-de-passe/changement', {
+    method: 'POST',
+    body: JSON.stringify(entree),
+  });
+}
+
+/** `PATCH /auth/moi/langue` (issue #62) -- la langue est une préférence du profil. */
+export async function enregistrerLangueProfil(langue: Langue): Promise<void> {
+  await requeteApi<undefined>('/auth/moi/langue', {
+    method: 'PATCH',
+    body: JSON.stringify({ langue }),
+  });
 }

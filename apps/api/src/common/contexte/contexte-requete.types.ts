@@ -38,6 +38,12 @@ export interface PrincipalAuthentifie {
    * (`auth/droits-personne.ts`). `ServiceSessionImpl.resoudre()` la renseigne toujours.
    */
   readonly capacites?: GrilleCapacites;
+  /**
+   * Issue #58 : mot de passe temporaire jamais remplacé. Relu de la base à chaque requête (donc
+   * impossible à contourner côté client). `GardeSession` refuse alors toute route qui n'est pas
+   * marquée `@AutoriseAvantChangementMotDePasse()`.
+   */
+  readonly motDePasseAChanger?: boolean;
 }
 
 export interface ContexteRequete {
