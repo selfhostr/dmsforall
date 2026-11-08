@@ -13869,6 +13869,33 @@
           "montantCentimes"
         ],
         "type": "object"
+      },
+      "VersionSystemeDto": {
+        "properties": {
+          "actuelle": {
+            "example": "0.3.0",
+            "type": "string"
+          },
+          "derniere": {
+            "example": "0.4.0",
+            "nullable": true,
+            "type": "string"
+          },
+          "miseAJourDisponible": {
+            "type": "boolean"
+          },
+          "urlNotes": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "actuelle",
+          "derniere",
+          "miseAJourDisponible",
+          "urlNotes"
+        ],
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -44234,6 +44261,44 @@
         "summary": "Articles sous leur stock minimum, par site (RP-12).",
         "tags": [
           "Pièces — Stock"
+        ]
+      }
+    },
+    "/systeme/version": {
+      "get": {
+        "description": "`derniere` vaut `null` si la vérification est désactivée (`VERIFIER_MISE_A_JOUR=false`) ou si GitHub ne répond pas. Résultat mis en cache 12 h côté serveur.",
+        "operationId": "SystemeController_obtenir",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionSystemeDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Version installée et dernière version publiée.",
+        "tags": [
+          "Système"
         ]
       }
     },

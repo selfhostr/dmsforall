@@ -4141,6 +4141,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/systeme/version': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Version installée et dernière version publiée.
+     * @description `derniere` vaut `null` si la vérification est désactivée (`VERIFIER_MISE_A_JOUR=false`) ou si GitHub ne répond pas. Résultat mis en cache 12 h côté serveur.
+     */
+    get: operations['SystemeController_obtenir'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/tableau-bord/activite': {
     parameters: {
       query?: never;
@@ -9703,6 +9723,14 @@ export interface components {
       montantCentimes: number;
       /** @example 81 */
       tauxPourmille: number;
+    };
+    VersionSystemeDto: {
+      /** @example 0.3.0 */
+      actuelle: string;
+      /** @example 0.4.0 */
+      derniere: string | null;
+      miseAJourDisponible: boolean;
+      urlNotes: string | null;
     };
   };
   responses: never;
@@ -26930,6 +26958,34 @@ export interface operations {
       };
       /** @description Droit insuffisant. */
       403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  SystemeController_obtenir: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['VersionSystemeDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
         headers: {
           [name: string]: unknown;
         };
