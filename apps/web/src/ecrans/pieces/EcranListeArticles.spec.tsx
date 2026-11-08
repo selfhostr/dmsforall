@@ -1,5 +1,6 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -215,13 +216,16 @@ describe('EcranListeArticles — filtre de site local et colonne « Disponible �
     rendre('/pieces/articles');
 
     await screen.findByText('Plaquettes de frein avant');
-    const filtre = await screen.findByRole('tablist', {
+    const filtre = await screen.findByRole('combobox', {
       name: i18n.t('commun:filtreSite.libelle'),
     });
-    expect(within(filtre).getByRole('tab', { name: 'Site principal' })).toBeInTheDocument();
-    expect(within(filtre).getByText('PRINC')).toBeInTheDocument();
-    expect(within(filtre).getByText('SECON')).toBeInTheDocument();
-    expect(within(filtre).queryByText(i18n.t('commun:filtreSite.tous'))).not.toBeInTheDocument();
+    expect(filtre).toHaveTextContent('PRINC');
+    await userEvent.setup().click(filtre);
+    expect(screen.getByRole('option', { name: 'PRINC' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'SECON' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', { name: i18n.t('commun:filtreSite.tous') }),
+    ).not.toBeInTheDocument();
   });
 
   it('direction : « Tous » est proposé et la colonne « Disponible » somme tous les sites', async () => {
@@ -239,10 +243,10 @@ describe('EcranListeArticles — filtre de site local et colonne « Disponible �
     expect(
       await screen.findByText(i18n.t('pieces:rechercheComptoir.resultat.disponible', { n: '8' })),
     ).toBeInTheDocument();
-    const filtre = await screen.findByRole('tablist', {
+    const filtre = await screen.findByRole('combobox', {
       name: i18n.t('commun:filtreSite.libelle'),
     });
-    expect(within(filtre).getByText(i18n.t('commun:filtreSite.tous'))).toBeInTheDocument();
+    expect(filtre).toHaveTextContent(i18n.t('commun:filtreSite.tous'));
   });
 
   it('garage à un seul site : aucun filtre de site à l’écran', async () => {

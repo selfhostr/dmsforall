@@ -112,7 +112,7 @@ describe('EcranListeCommandesFournisseur', () => {
     rendre();
 
     expect(await screen.findByText('Aucune commande fournisseur')).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'Créer une commande' }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('button', { name: 'Créer une commande fournisseur' }).length).toBeGreaterThan(0);
   });
 
   it('état erreur : message actionnable avec retry', async () => {

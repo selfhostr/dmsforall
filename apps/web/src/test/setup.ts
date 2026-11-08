@@ -43,6 +43,13 @@ global.ResizeObserver = class {
   disconnect() {}
 } as unknown as typeof ResizeObserver;
 
+// Radix Select (déclencheur, options) interroge la capture de pointeur et fait défiler l'option
+// active : absents de jsdom. Posés une fois ici pour tout test qui ouvre une liste déroulante.
+Element.prototype.hasPointerCapture ??= () => false;
+Element.prototype.setPointerCapture ??= () => undefined;
+Element.prototype.releasePointerCapture ??= () => undefined;
+Element.prototype.scrollIntoView ??= () => undefined;
+
 // `PointerEvent`, absent de jsdom : Base UI (l'interrupteur `components/ui/switch.tsx`) le construit
 // au clic. Une MouseEvent portant les mêmes champs suffit aux specs ; rien d'autre ne dépend de
 // ses attributs propres (pression, inclinaison).
