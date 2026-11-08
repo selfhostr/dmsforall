@@ -759,7 +759,14 @@ export class ServiceEmissionDocument {
           },
         );
       }
-      if (doc.statut === 'accepte') {
+      if (doc.statut !== 'accepte') {
+        throw new ErreurMetier(
+          'DOCUMENT_TRANSITION_INTERDITE',
+          `Seul un devis accepté peut voir son accord annulé (statut actuel : ${doc.statut}).`,
+          { actionsProposees: [{ code: 'RAFRAICHIR' }] },
+        );
+      }
+      {
         const [or] = await tx
           .select({ id: ordreReparation.id, numero: ordreReparation.numero })
           .from(ordreReparation)

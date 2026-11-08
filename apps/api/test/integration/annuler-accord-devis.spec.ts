@@ -58,7 +58,6 @@ async function devisEmis(avecVehicule: boolean): Promise<{ id: string; cookie: s
   return { id, cookie };
 }
 
-
 function creerOr(cookie: string, devisId: string, cle: string = randomUUID()) {
   return ctx.requete
     .post(`/api/v1/documents-vente/${devisId}/creer-ordre-reparation`)
@@ -89,17 +88,18 @@ describe('POST /documents-vente/{id}/annuler-accord', () => {
     expect(r.status, JSON.stringify(r.body)).toBe(200);
     expect((r.body.donnees as { statut: string }).statut).toBe('emis');
     const audit = await bdd.poolSuperutilisateur.query(
-      "select count(*)::int as n from audit_atelier where entite_id = $1 and apres->>'statut' = 'emis' and avant->>'statut' = 'accepte'",
+      "select count(*)::int as n from audit_atelier where entite_id = $1 and valeur_apres->>'statut' = 'emis' and valeur_avant->>'statut' = 'accepte'",
       [id],
     );
     expect(audit.rows[0].n).toBe(1);
     expect((await post(cookie, id, 'accepter')).status).toBe(200);
   }, 120_000);
 
-  it('refuse (409 TRANSITION_INTERDITE) un devis non accepté', async () => {
+  it('refuse (409 DOCUMENT_TRANSITION_INTERDITE) un devis non accepté', async () => {
     const { id, cookie } = await devisEmis(true);
     const r = await post(cookie, id, 'annuler-accord');
     expect(r.status).toBe(409);
+    expect((r.body as { code?: string }).code).toBe('DOCUMENT_TRANSITION_INTERDITE');
   }, 120_000);
 
   it('refuse (409 DOCUMENT_SOURCE_DEJA_TRANSFORME) quand un OR est issu du devis', async () => {

@@ -69,7 +69,7 @@ const FR: LibellesFacture = {
   devisMention: "Ce devis n'est pas une facture.",
   avoirNumero: (n) => `Avoir n° ${n}`,
   avoirSurFacture: (n) => `Corrige la facture n° ${n}`,
-  avoirMention: 'Cet avoir crédite le client : aucun paiement n\'est à effectuer.',
+  avoirMention: "Cet avoir crédite le client : aucun paiement n'est à effectuer.",
   paiementNonRenseigne:
     'Coordonnées de paiement : non renseignées sur ce document — voir les conditions de paiement ou contacter le garage.',
 };
