@@ -128,7 +128,7 @@ describe('EcranReapprovisionnement — états de base', () => {
     rendre('/pieces/reapprovisionnement');
 
     expect(
-      await screen.findByRole('tablist', { name: i18n.t('commun:filtreSite.libelle') }),
+      await screen.findByRole('combobox', { name: i18n.t('commun:filtreSite.libelle') }),
     ).toBeInTheDocument();
     expect(screen.queryByText(i18n.t('pieces:siteRequis.titre'))).not.toBeInTheDocument();
   });

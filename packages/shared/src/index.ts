@@ -5,6 +5,7 @@ export * from './contrats/enums';
 export * from './contrats/probleme';
 export * from './contrats/pagination';
 export * from './contrats/socle';
+export * from './contrats/systeme';
 export * from './contrats/tenant';
 export * from './contrats/modules';
 export * from './contrats/envoi-courriel';

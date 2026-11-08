@@ -12,6 +12,10 @@ All notable changes to dmsforall are recorded here, for people who run it and fo
 
 - In production with no sending server at all, an e-mail is now reported as not sent instead of being silently set aside.
 
+### Fixed
+
+- **WinBIZ export proposes VAT codes for all Swiss rates.** The account mapping now suggests N81 (8.1 %), R26 (2.6 %) and H38 (3.8 %). WinBIZ publishes no default code list, so these are editable: change them in the mapping to match your WinBIZ VAT types.
+
 ## 0.3.0 (2026-11-08)
 
 This release adds the VAT status of the garage, several sites, activatable modules and invoice correction, and reshapes the dashboard. Read the upgrade notes before you update.

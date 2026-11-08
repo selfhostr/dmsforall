@@ -12,7 +12,6 @@ import {
 
 import { AideContextuelle } from '@/composants/AideContextuelle';
 import { messageErreur } from '@/api/erreurs';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
@@ -172,11 +171,12 @@ export function EcranListeCommandesFournisseur() {
   // titre CONTIENT le libellé de la vue). Défaut cité nommément par @laupernoe le 17.08.2026 (« dans
   // Commandes, "Commandes fournisseur" ») — l'ancien commentaire ici (« pas un doublon », retiré
   // par ce correctif) argumentait l'inverse ; le choix produit a explicitement tranché dans l'autre sens.
-  const boutonCreer = peutEcrireCommandeFournisseur(actions) ? (
-    <Button onClick={() => navigate('/pieces/commandes-fournisseur/nouvelle')}>
-      {t('pieces:commandes.actions.creer')}
-    </Button>
-  ) : undefined;
+  const actionCreer = peutEcrireCommandeFournisseur(actions)
+    ? {
+        libelle: t('pieces:commandes.actions.creerInfobulle'),
+        onClick: () => navigate('/pieces/commandes-fournisseur/nouvelle'),
+      }
+    : undefined;
 
   let contenuVide: ReactNode;
   if (q.trim() !== '') {
@@ -204,8 +204,9 @@ export function EcranListeCommandesFournisseur() {
   }
 
   return (
-    <GabaritEcran titre={t('pieces:commandes.titre')} actions={boutonCreer}>
+    <GabaritEcran titre={t('pieces:commandes.titre')}>
       <BarreFiltres
+        actionCreer={actionCreer}
         q={qSaisie}
         onChangeQ={setQSaisie}
         placeholderRecherche={t('pieces:commandes.filtres.rechercherPlaceholder')}
@@ -217,7 +218,11 @@ export function EcranListeCommandesFournisseur() {
               setStatut(valeur === 'tous' ? undefined : (valeur as StatutCommandeFournisseur))
             }
           >
-            <SelectTrigger id="filtre-statut-commande" aria-label={t('pieces:commandes.statut')}>
+            <SelectTrigger
+              id="filtre-statut-commande"
+              className="w-auto min-w-28"
+              aria-label={t('pieces:commandes.statut')}
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

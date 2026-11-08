@@ -51,6 +51,12 @@ function rendre(route = '/ecran', props: { siteObligatoire?: boolean } = {}) {
 
 afterEach(() => window.localStorage.clear());
 
+const NOM_LISTE = 'Site';
+
+async function ouvrir(utilisateur: ReturnType<typeof userEvent.setup>) {
+  await utilisateur.click(await screen.findByRole('combobox', { name: NOM_LISTE }));
+}
+
 describe('FiltreSite', () => {
   it('un seul site : aucun filtre, mais le site est celui du garage', async () => {
     connecter('direction', [MART], 'site-mart');
@@ -59,42 +65,55 @@ describe('FiltreSite', () => {
     expect(screen.queryByTestId('filtre-site')).not.toBeInTheDocument();
   });
 
-  it('deux sites : codes courts, défaut = site principal', async () => {
+  it('deux sites : liste déroulante affichant le code court, défaut = site principal', async () => {
     connecter('magasinier', [MART, SION], 'site-sion');
+    const utilisateur = userEvent.setup();
     rendre();
-    expect(await screen.findByRole('tab', { name: 'Sion' })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
-    expect(screen.getByText('MART')).toBeInTheDocument();
-    expect(screen.getByText('SION')).toBeInTheDocument();
+    const liste = await screen.findByRole('combobox', { name: NOM_LISTE });
+    expect(liste).toHaveTextContent('SION');
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
     expect(screen.getByTestId('site-effectif')).toHaveTextContent('site-sion');
+    await utilisateur.click(liste);
+    expect(screen.getByRole('option', { name: 'MART' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'SION' })).toBeInTheDocument();
+  });
+
+  it('une liste compacte, quel que soit le nombre de sites (largeur au contenu)', async () => {
+    connecter('direction', [MART, SION], 'site-mart');
+    rendre();
+    const liste = await screen.findByRole('combobox', { name: NOM_LISTE });
+    expect(liste.className).toContain('w-auto');
+    expect(liste.className).not.toContain('w-full');
   });
 
   it('« Tous » proposé à la direction, absent pour un magasinier', async () => {
     connecter('direction', [MART, SION], 'site-mart');
+    const utilisateur = userEvent.setup();
     const { unmount } = rendre();
-    expect(await screen.findByRole('tab', { name: 'Tous les sites' })).toBeInTheDocument();
+    await ouvrir(utilisateur);
+    expect(screen.getByRole('option', { name: 'Tous' })).toBeInTheDocument();
     unmount();
 
     connecter('magasinier', [MART, SION], 'site-mart');
     rendre();
-    await screen.findByRole('tab', { name: 'Martigny' });
-    expect(screen.queryByRole('tab', { name: 'Tous les sites' })).not.toBeInTheDocument();
+    await ouvrir(utilisateur);
+    expect(screen.queryByRole('option', { name: 'Tous' })).not.toBeInTheDocument();
   });
 
   it('« Tous » jamais proposé quand l’écran exige un site', async () => {
     connecter('direction', [MART, SION], 'site-mart');
+    const utilisateur = userEvent.setup();
     rendre('/ecran', { siteObligatoire: true });
-    await screen.findByRole('tab', { name: 'Martigny' });
-    expect(screen.queryByRole('tab', { name: 'Tous les sites' })).not.toBeInTheDocument();
+    await ouvrir(utilisateur);
+    expect(screen.queryByRole('option', { name: 'Tous' })).not.toBeInTheDocument();
   });
 
   it('le choix est mémorisé pour cet écran seulement et retrouvé au remontage', async () => {
     connecter('direction', [MART, SION], 'site-mart');
     const utilisateur = userEvent.setup();
     const { unmount } = rendre();
-    await utilisateur.click(await screen.findByRole('tab', { name: 'Tous les sites' }));
+    await ouvrir(utilisateur);
+    await utilisateur.click(screen.getByRole('option', { name: 'Tous' }));
     expect(screen.getByTestId('site-effectif')).toHaveTextContent('tous');
     expect(window.localStorage.getItem('dfa.filtre-site.tenant-1.utilisateur-1.test.ecran')).toBe(
       'tous',
@@ -102,7 +121,7 @@ describe('FiltreSite', () => {
     unmount();
 
     rendre();
-    await screen.findByRole('tab', { name: 'Tous les sites' });
+    expect(await screen.findByRole('combobox', { name: NOM_LISTE })).toHaveTextContent('Tous');
     expect(screen.getByTestId('site-effectif')).toHaveTextContent('tous');
   });
 
@@ -110,10 +129,11 @@ describe('FiltreSite', () => {
     connecter('direction', [MART, SION], 'site-mart');
     const utilisateur = userEvent.setup();
     rendre('/ecran?site=site-sion');
-    await screen.findByRole('tab', { name: 'Sion' });
+    expect(await screen.findByRole('combobox', { name: NOM_LISTE })).toHaveTextContent('SION');
     expect(screen.getByTestId('site-effectif')).toHaveTextContent('site-sion');
 
-    await utilisateur.click(screen.getByRole('tab', { name: 'Martigny' }));
+    await ouvrir(utilisateur);
+    await utilisateur.click(screen.getByRole('option', { name: 'MART' }));
     expect(screen.getByTestId('site-effectif')).toHaveTextContent('site-mart');
   });
 });

@@ -39,6 +39,7 @@
     },
     "actions": {
       "nouveauDossier": "Nouvelle vente",
+      "creerDossier": "Créer un dossier de vente",
       "vendre": "Vendre",
       "voirDossier": "Voir la vente",
       "assignerVehicule": "Assigner un véhicule",

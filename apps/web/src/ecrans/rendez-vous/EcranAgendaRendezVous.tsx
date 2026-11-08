@@ -193,14 +193,6 @@ export function EcranAgendaRendezVous({
   return (
     <GabaritEcran
       titre={t('planning:titre')}
-      actions={
-        onNouveauRendezVous ? (
-          <Button type="button" onClick={onNouveauRendezVous}>
-            <CalendarPlus aria-hidden className="h-4 w-4" />
-            {t('planning:toolbar.nouveauRendezVous')}
-          </Button>
-        ) : undefined
-      }
       barre={
         <div className="flex flex-wrap items-center gap-3">
           <Tabs value={vue} onValueChange={(valeur) => onChangerVue(valeur as VueAgendaEcran)}>
@@ -253,6 +245,15 @@ export function EcranAgendaRendezVous({
       />
 
       <BarreFiltres
+        actionCreer={
+          onNouveauRendezVous
+            ? {
+                libelle: t('planning:toolbar.nouveauRendezVous'),
+                onClick: onNouveauRendezVous,
+                icone: CalendarPlus,
+              }
+            : undefined
+        }
         q={recherche}
         onChangeQ={onChangerRecherche}
         placeholderRecherche={t('planning:toolbar.recherchePlaceholder')}
