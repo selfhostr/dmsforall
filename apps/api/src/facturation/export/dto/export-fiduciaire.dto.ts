@@ -65,6 +65,8 @@ export class TrouNumerotationDto implements TrouNumerotation {
 
 export class EcritureDesequilibreeDto implements EcritureDesequilibree {
   @ApiProperty() readonly reference!: string;
+  @ApiProperty({ type: [String], description: 'N° des factures concernées (vide pour une avance).' })
+  readonly pieces!: readonly string[];
   @ApiProperty({ description: 'Centimes.' }) readonly totalDebitCentimes!: number;
   @ApiProperty({ description: 'Centimes.' }) readonly totalCreditCentimes!: number;
 }

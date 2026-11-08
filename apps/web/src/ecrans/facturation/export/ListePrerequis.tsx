@@ -103,7 +103,10 @@ export function ListePrerequis({ prerequis, onReglerComptes }: Props) {
               {p.ecritures.map((e, index) => (
                 <li key={`${e.reference}-${String(index)}`}>
                   {t('export:prerequis.desequilibre', {
-                    reference: e.reference,
+                    reference:
+                      e.pieces.length > 0
+                        ? e.pieces.join(', ')
+                        : (referenceLisible(e.reference) ?? t('export:prerequis.encaissementSansFacture')),
                     debit: formaterMontant(e.totalDebitCentimes),
                     credit: formaterMontant(e.totalCreditCentimes),
                   })}
@@ -175,7 +178,8 @@ function referenceLisible(valeur: unknown): string | undefined {
 
 /** La limite de l'export en phrase du garagiste, depuis son code stable et ses données. */
 function texteLimite(detail: LimiteExport, t: TFunction<'export'>): string {
-  const reference = referenceLisible(detail.donnees.documentId);
+  const reference =
+    referenceLisible(detail.donnees.documentNumero) ?? referenceLisible(detail.donnees.documentId);
   const sur = reference ? ` ${t('export:prerequis.limite.sur', { reference })}` : '';
   switch (detail.code) {
     case 'ADAPTATEUR_NON_CABLE':

@@ -58,7 +58,7 @@ describe('versPrerequis', () => {
     });
     expect(p[2]).toEqual({
       code: 'EXPORT_ECRITURES_DESEQUILIBREES',
-      ecritures: [{ reference: 'F-5', totalDebitCentimes: 100, totalCreditCentimes: 90 }],
+      ecritures: [{ reference: 'F-5', pieces: [], totalDebitCentimes: 100, totalCreditCentimes: 90 }],
     });
   });
 });

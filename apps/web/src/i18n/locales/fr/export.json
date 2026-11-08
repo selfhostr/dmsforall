@@ -78,6 +78,7 @@
     "codeTva": "Code TVA : {poste}",
     "pieces": "(pièces : {pieces})",
     "trou": "{type}, exercice {exercice} : numéros manquants {numeros}",
+    "encaissementSansFacture": "Encaissement sans facture",
     "desequilibre": "{reference} : débit CHF {debit}, crédit CHF {credit}",
     "typeDocument": {
       "facture": "Factures",

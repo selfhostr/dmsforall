@@ -78,6 +78,7 @@
     "codeTva": "MWST-Code: {poste}",
     "pieces": "(Belege: {pieces})",
     "trou": "{type}, Geschäftsjahr {exercice}: fehlende Nummern {numeros}",
+    "encaissementSansFacture": "Zahlung ohne Rechnung",
     "desequilibre": "{reference}: Soll CHF {debit}, Haben CHF {credit}",
     "typeDocument": {
       "facture": "Rechnungen",
