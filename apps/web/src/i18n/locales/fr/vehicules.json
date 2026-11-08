@@ -102,7 +102,7 @@
       "recherche": "Recherche en cours…",
       "aucunResultat": "Aucune correspondance dans le référentiel — vous pouvez saisir librement.",
       "resultats": "{count, plural, one {# résultat} other {# résultats}}",
-      "horsReferentiel": "Ne figure pas dans le référentiel — sera enregistré tel quel.",
+      "horsReferentiel": "Absent de la liste : saisie libre acceptée, enregistré tel quel.",
       "nombreModeles": "{count, plural, one {# modèle} other {# modèles}}",
       "erreurRecherche": "Suggestions indisponibles pour le moment — vous pouvez saisir librement."
     }

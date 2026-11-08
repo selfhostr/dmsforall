@@ -8250,7 +8250,7 @@ export interface components {
       plafondAutorisePar?: string | null;
       /** @description Absent pour un rôle sans droit aux montants. */
       plafondCentimes?: number;
-      /** @description Prêt de véhicule de courtoisie lié. Toujours `null` au lot 1 (module lot 5). */
+      /** @description Prêt de véhicule de courtoisie lié (même représentation que `GET /courtoisie/prets`) : le prêt réservé/en cours, sinon le plus récent ; `null` seulement si aucun prêt n’est lié à cet OR. */
       pret: {
         [key: string]: unknown;
       } | null;

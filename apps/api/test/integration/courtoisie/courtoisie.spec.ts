@@ -17,6 +17,7 @@ import {
   type RedisEphemere,
 } from '../../setup/app-test';
 import {
+  creerOrPourTest,
   semerGarageDemoLot1,
   type GarageDemoLot1Fixture,
 } from '../../lot1/fixtures/garage-demo-lot1';
@@ -230,5 +231,54 @@ describe('courtoisie — disponibilité, chevauchement, retour', () => {
       ).status,
     ).toBe(403);
     expect((await appel('get', '/courtoisie/vehicules', cookieVendeur)).status).toBe(403);
+  });
+});
+
+describe('courtoisie — prêt exposé sur l’ordre de réparation', () => {
+  it('un OR avec prêt expose `pret` (fiche et liste), un OR sans prêt expose null', async () => {
+    const cookie = await cookiePour(garage.tenantA, 'direction');
+    const t = garage.tenantA;
+    const orAvec = await creerOrPourTest(
+      bdd,
+      t.tenant,
+      t.tenant.sites[0]!.id,
+      t.clients[0]!,
+      t.vehicules[0]!,
+    );
+    const orSans = await creerOrPourTest(
+      bdd,
+      t.tenant,
+      t.tenant.sites[0]!.id,
+      t.clients[0]!,
+      t.vehicules[0]!,
+    );
+    const v = await appel('post', '/courtoisie/vehicules', cookie).send({
+      designation: 'Skoda Fabia',
+    });
+    const pret = await appel('post', '/courtoisie/prets', cookie).send({
+      vehiculeCourtoisieId: v.body.id,
+      clientId: t.clients[0]!.id,
+      ordreReparationId: orAvec.id,
+      debutLe: '2032-01-12T07:00:00.000Z',
+      finPrevueLe: '2032-01-12T17:00:00.000Z',
+    });
+    expect(pret.status).toBe(201);
+
+    const ficheAvec = await appel('get', `/ordres-reparation/${orAvec.id}`, cookie);
+    expect(ficheAvec.status).toBe(200);
+    expect(ficheAvec.body.pret).toMatchObject({
+      id: pret.body.id,
+      ordreReparationId: orAvec.id,
+      vehiculeDesignation: 'Skoda Fabia',
+    });
+    const ficheSans = await appel('get', `/ordres-reparation/${orSans.id}`, cookie);
+    expect(ficheSans.status).toBe(200);
+    expect(ficheSans.body.pret).toBeNull();
+
+    const liste = await appel('get', '/ordres-reparation?limite=200', cookie);
+    expect(liste.status).toBe(200);
+    const lignes = liste.body.donnees as { id: string; pret?: { id: string } | null }[];
+    expect(lignes.find((o) => o.id === orAvec.id)?.pret?.id).toBe(pret.body.id);
+    expect(lignes.find((o) => o.id === orSans.id)?.pret ?? null).toBeNull();
   });
 });

@@ -19,6 +19,11 @@ import type { EntreeAudit, ServiceAudit } from '../common/audit';
  * prouve que la version corrigée fusionne les TROIS besoins (auteurs des demandes, émetteurs des
  * devis, auteur du dernier événement) en UN SEUL appel à `chargerResumesUtilisateurs`.
  */
+// Prêt lié : requête dédiée, couverte en intégration (courtoisie.spec.ts) — ici fonction simple,
+// non-vi.fn pour survivre au reset des mocks.
+vi.mock('./courtoisie/pret-or', () => ({
+  chargerPretsParOr: async () => new Map(),
+}));
 vi.mock('./or-requetes', () => ({
   chargerOr: vi.fn(),
   chargerControleQualite: vi.fn().mockResolvedValue(null),

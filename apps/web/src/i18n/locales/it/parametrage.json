@@ -13,8 +13,8 @@
     "adresse": {
       "titre": "Indirizzo",
       "rue": "Via",
-      "numero": "N.",
-      "numeroAide": "Lasciare vuoto se non si dispone di un numero civico (casella postale, frazione). Attenzione: l'emissione di una fattura con polizza QR lo richiede — senza di esso, l'emissione resterà bloccata finché non verrà completato.",
+      "numero": "Numero civico",
+      "numeroAide": "Obbligatorio per emettere una fattura con polizza QR. Senza numero civico (casella postale, frazione), indicare «s/n».",
       "npa": "NPA",
       "localite": "Località",
       "pays": "Paese"
