@@ -23264,6 +23264,110 @@
         ]
       }
     },
+    "/documents-vente/{id}/annuler-accord": {
+      "post": {
+        "operationId": "DocumentVenteTransitionsController_annulerAccord",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {}
+                }
+              },
+              "schema": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeDocumentVenteDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Type de document invalide (seul un devis a un accord)."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Document introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "DOCUMENT_TRANSITION_INTERDITE (le devis n’est pas accepté) ou DOCUMENT_SOURCE_DEJA_TRANSFORME (un OR ou un document en est issu)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Annuler l'accord du client — devis uniquement (devis.accepte → emis), tant qu'aucun OR ni document n'en est issu.",
+        "tags": [
+          "Documents de vente — transitions"
+        ]
+      }
+    },
     "/documents-vente/{id}/creer-ordre-reparation": {
       "post": {
         "description": "Client, véhicule et site viennent du devis. Chaque ligne du devis devient une ligne d'OR `validee` (origine `commandee`) avec ses montants HT/TVA/TTC recopiés à l’identique ; un devis `emis` passe à `accepte`. Le lien OR ← devis est posé (un devis ne crée qu’un seul OR). Mêmes confirmations que `POST /ordres-reparation` (client bloqué, deux OR sur le véhicule, OR sans RDV). `Idempotency-Key` obligatoire (uuid v4) : un rejeu ne crée ni second OR ni second numéro.",
@@ -24366,7 +24470,7 @@
                 }
               }
             },
-            "description": "DOCUMENT_PDF_INDISPONIBLE — le document n'est ni un devis ni une facture émise."
+            "description": "DOCUMENT_PDF_INDISPONIBLE — le document n'est ni un devis, ni une facture ou un avoir émis."
           }
         },
         "security": [
@@ -24374,7 +24478,7 @@
             "cookie": []
           }
         ],
-        "summary": "PDF d’une facture émise (avec bulletin QR) ou d’un devis (sans QR).",
+        "summary": "PDF d’une facture émise (avec bulletin QR), d’un avoir émis ou d’un devis (sans QR).",
         "tags": [
           "Documents de vente"
         ]
