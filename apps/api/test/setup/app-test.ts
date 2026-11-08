@@ -100,7 +100,9 @@ export async function demarrerRedisEphemere(): Promise<RedisEphemere> {
 }
 
 async function demarrerRedisEphemereTestcontainers(): Promise<RedisEphemere> {
-  const conteneur = await new GenericContainer('redis:7-alpine').withExposedPorts(6379).start();
+  const conteneur = await new GenericContainer('valkey/valkey:9.1.3-alpine')
+    .withExposedPorts(6379)
+    .start();
   const url = `redis://${conteneur.getHost()}:${conteneur.getMappedPort(6379)}`;
   return {
     conteneur,

@@ -16,7 +16,7 @@ pnpm db:seed
 pnpm dev
 ```
 
-`pnpm docker:*` drives `docker-compose.dev.yml`, which uses the Compose project name `dmsforall-dev`. It starts PostgreSQL and Redis only. Add `--profile containers` to run the whole development stack in containers.
+`pnpm docker:*` drives `docker-compose.dev.yml`, which uses the Compose project name `dmsforall-dev`. It starts PostgreSQL and Valkey only. Add `--profile containers` to run the whole development stack in containers.
 
 The API runs on port 3000 and the web interface on port 5173. The demo accounts are listed in the contributing guide.
 
