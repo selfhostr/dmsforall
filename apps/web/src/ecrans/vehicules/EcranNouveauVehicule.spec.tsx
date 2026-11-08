@@ -341,9 +341,7 @@ describe('EcranNouveauVehicule', () => {
       const champMarque = screen.getByLabelText('Marque');
       await utilisateur.type(champMarque, 'Garage Import Zoug');
       await utilisateur.tab(); // perte de focus : c'est seulement là que le repli visible s'affiche.
-      await waitFor(() =>
-        expect(screen.getByText(/Absent de la liste/)).toBeInTheDocument(),
-      );
+      await waitFor(() => expect(screen.getByText(/Absent de la liste/)).toBeInTheDocument());
       await utilisateur.type(screen.getByLabelText('Modèle'), 'Modèle maison');
 
       await utilisateur.click(screen.getByRole('button', { name: 'Créer le véhicule' }));
