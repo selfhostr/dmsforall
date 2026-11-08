@@ -110,10 +110,10 @@ Réserve : en sombre, `neutre` et `terminal` sont deux gris presque identiques. 
 
 ## Typographie
 
-Deux polices, auto-hébergées dans `apps/web/src/polices/` et servies par l'application. Aucune police n'est chargée depuis un CDN.
+Deux polices, auto-hébergées (paquets npm `@fontsource-variable/inter` et `@fontsource-variable/jetbrains-mono`, licence OFL 1.1) et servies par l'application. Aucune police n'est chargée depuis un CDN.
 
-- **IBM Plex Sans** pour la lecture.
-- **IBM Plex Mono** pour les identifiants (plaque, VIN, numéro d'ordre de réparation). Le zéro est barré et les caractères `1`, `l` et `I` sont distincts.
+- **Inter** pour la lecture (graisses 400, 500, 600).
+- **JetBrains Mono** pour les identifiants (plaque, VIN, numéro d'ordre de réparation). Le zéro est barré et les caractères `1`, `l` et `I` sont distincts.
 
 Huit rôles typographiques, définis dans `apps/web/src/index.css` (`.densite-dense`, `.densite-aeree`, `.densite-tres-aeree`). La taille d'un rôle ne change pas avec le thème. Plancher : aucun texte lu ne descend sous 13 px (le libellé compact valait 12 px avant le lot « densité et cibles »).
 
