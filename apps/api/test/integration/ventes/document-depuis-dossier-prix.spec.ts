@@ -140,8 +140,8 @@ describe.each(['bon_commande', 'facture'] as const)(
       expect(r.status, JSON.stringify(r.body)).toBe(201);
       const doc = r.body.donnees;
       expect(doc.lignes).toHaveLength(1);
-      expect(doc.lignes[0].prixUnitaireTtcCentimes).toBe(1_990_000);
-      expect(doc.lignes[0].quantiteMillieme).toBe(1000);
+      expect(doc.lignes[0]?.prixUnitaireTtcCentimes).toBe(1_990_000);
+      expect(doc.lignes[0]?.quantiteMillieme).toBe(1000);
       expect(doc.totalTtcCentimes).toBe(1_990_000);
       expect(doc.totalTvaCentimes).toBe(149_112);
       expect(doc.totalHtCentimes).toBe(1_840_888);
