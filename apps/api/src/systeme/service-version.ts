@@ -5,12 +5,16 @@ import { JETON_CONFIG, type Config } from '../config';
 import { comparerVersions, normaliserVersion } from './comparer-versions';
 
 export const JETON_FETCH_VERSION = Symbol('JETON_FETCH_VERSION');
-export type FetchVersion = (url: string, init: { signal: AbortSignal; headers: Record<string, string> }) => Promise<{
+export type FetchVersion = (
+  url: string,
+  init: { signal: AbortSignal; headers: Record<string, string> },
+) => Promise<{
   ok: boolean;
   json(): Promise<unknown>;
 }>;
 
-export const URL_DERNIERE_VERSION = 'https://api.github.com/repos/selfhostr/dmsforall/releases/latest';
+export const URL_DERNIERE_VERSION =
+  'https://api.github.com/repos/selfhostr/dmsforall/releases/latest';
 export const DUREE_CACHE_MS = 12 * 60 * 60 * 1000;
 /** Après un échec on réessaie plus tôt, mais jamais à chaque requête. */
 export const DUREE_CACHE_ECHEC_MS = 60 * 60 * 1000;

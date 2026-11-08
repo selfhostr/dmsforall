@@ -30,7 +30,7 @@ export class SystemeController {
   @ApiOperation({
     summary: 'Version installée et dernière version publiée.',
     description:
-      "`derniere` vaut `null` si la vérification est désactivée (`VERIFIER_MISE_A_JOUR=false`) ou si GitHub ne répond pas. Résultat mis en cache 12 h côté serveur.",
+      '`derniere` vaut `null` si la vérification est désactivée (`VERIFIER_MISE_A_JOUR=false`) ou si GitHub ne répond pas. Résultat mis en cache 12 h côté serveur.',
   })
   @ApiOkResponse({ type: VersionSystemeDto })
   @ApiReponseProbleme(401, 'Session absente ou expirée.')

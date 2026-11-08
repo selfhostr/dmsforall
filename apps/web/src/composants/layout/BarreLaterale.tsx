@@ -451,9 +451,7 @@ export function BarreLaterale({ className, repli }: Props) {
                     {garageAConfigurer ? (
                       <PastilleConfiguration className="-right-1 -top-1" />
                     ) : null}
-                    {miseAJour ? (
-                      <PastilleConfiguration className="-bottom-0.5 -right-1" />
-                    ) : null}
+                    {miseAJour ? <PastilleConfiguration className="-bottom-0.5 -right-1" /> : null}
                   </span>
                   {!replie ? (
                     <>
@@ -498,13 +496,13 @@ export function BarreLaterale({ className, repli }: Props) {
                 <DropdownMenuItem asChild>
                   <a href={URL_DOCUMENTATION} target="_blank" rel="noopener noreferrer">
                     <BookOpen className="h-4 w-4 shrink-0" aria-hidden="true" />
-                    {t('navigation:liens.documentation')}
+                    {t('navigation:externes.documentation')}
                   </a>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <a href={URL_CODE_SOURCE} target="_blank" rel="noopener noreferrer">
                     <Code className="h-4 w-4 shrink-0" aria-hidden="true" />
-                    {t('navigation:liens.codeSource')}
+                    {t('navigation:externes.codeSource')}
                   </a>
                 </DropdownMenuItem>
                 {session?.tenant.modeSignalement !== 'desactive' ? (

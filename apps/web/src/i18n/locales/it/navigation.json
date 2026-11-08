@@ -60,8 +60,9 @@
     "reglagesModules": "Moduli"
   },
   "liens": {
-    "documentation": "Documentazione",
-    "codeSource": "Codice sorgente (GitHub)"
+    "clients": "Clienti",
+    "vehicules": "Veicoli",
+    "piecesArticles": "Articoli"
   },
   "menu": {
     "ouvrir": "Apri menu"
@@ -114,5 +115,9 @@
     "installee": "Versione {version}",
     "disponible": "Versione {version} disponibile",
     "pastille": "Nuova versione disponibile"
+  },
+  "externes": {
+    "documentation": "Documentazione",
+    "codeSource": "Codice sorgente (GitHub)"
   }
 }

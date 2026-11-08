@@ -721,16 +721,15 @@ describe('BarreLaterale — pied compte', () => {
     }
   });
 
-  it('le thème se choisit dans un sous-menu et la ligne affiche le choix', async () => {
+  it('le thème propose clair, sombre et système dans un sous-menu', async () => {
     connecte('chef_atelier');
     const utilisateur = userEvent.setup();
     rendre('/');
 
     await ouvrirMenuCompte();
     await utilisateur.click(await screen.findByRole('menuitem', { name: /^thème/i }));
-    await utilisateur.click(await screen.findByRole('menuitemradio', { name: 'Sombre' }));
-    await ouvrirMenuCompte();
-    expect(await screen.findByRole('menuitem', { name: 'Thème : Sombre' })).toBeInTheDocument();
+    const choix = await screen.findAllByRole('menuitemradio');
+    expect(choix.map((e) => e.textContent)).toEqual(['Clair', 'Sombre', 'Système']);
   });
 
   it('direction : une mise à jour disponible ajoute une pastille et une ligne vers les notes', async () => {
@@ -836,30 +835,18 @@ describe('BarreLaterale — recherche, site et choix du compte regroupés dans l
     );
   });
 
-  it('thème, taille : se règlent depuis la rangée, menu laissé ouvert, état actif visible', async () => {
+  it('taille du texte : se règle dans un sous-menu, la ligne affiche ensuite le choix', async () => {
     connecte('direction');
     const utilisateur = userEvent.setup();
     rendre('/');
 
     await ouvrirMenuCompte();
-    const theme = await screen.findByRole('menuitem', { name: /^Thème : Système/ });
-    await utilisateur.click(theme);
-    // Menu laissé ouvert : le contrôle est toujours là (le fournisseur de thème n'est pas monté ici).
-    expect(screen.getByRole('menuitem', { name: /^Thème : /, hidden: false })).toBeInTheDocument();
-
-    const grand = screen.getByRole('menuitemradio', { name: /^Taille de l.interface : Aérée/ });
-    expect(grand).toHaveAttribute('aria-checked', 'false');
-    await utilisateur.click(grand);
-    expect(
-      screen.getByRole('menuitemradio', { name: /^Taille de l.interface : Aérée/ }),
-    ).toHaveAttribute('aria-checked', 'true');
-    // Un second clic sur la taille active revient à « automatique ».
-    await utilisateur.click(
-      screen.getByRole('menuitemradio', { name: /^Taille de l.interface : Aérée/ }),
-    );
-    expect(
-      screen.getByRole('menuitemradio', { name: /^Taille de l.interface : Aérée/ }),
-    ).toHaveAttribute('aria-checked', 'false');
+    await utilisateur.click(await screen.findByRole('menuitem', { name: /^taille du texte/i }));
+    const aeree = await screen.findByRole('menuitemradio', { name: 'Aérée' });
+    expect(aeree).toHaveAttribute('aria-checked', 'false');
+    aeree.focus();
+    await utilisateur.keyboard('{Enter}');
+    await waitFor(() => expect(window.localStorage.getItem('dfa-densite')).toBe('aeree'));
   });
 });
 
