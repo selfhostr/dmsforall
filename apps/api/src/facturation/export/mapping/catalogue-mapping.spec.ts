@@ -13,10 +13,10 @@ describe('défauts du catalogue de mapping', () => {
     expect(POSTES_COMPTES.find((p) => p.usage === 'arrondi')?.defaut).toBe('3809');
   });
 
-  it('WinBIZ : code TVA 8.1 % = N81 ; taux réduit et hébergement non inventés', () => {
+  it('WinBIZ : codes TVA N81 / R26 / H38', () => {
     expect(codeTvaParDefaut('winbiz', poste(81))).toBe('N81');
-    expect(codeTvaParDefaut('winbiz', poste(26))).toBeNull();
-    expect(codeTvaParDefaut('winbiz', poste(38))).toBeNull();
+    expect(codeTvaParDefaut('winbiz', poste(26))).toBe('R26');
+    expect(codeTvaParDefaut('winbiz', poste(38))).toBe('H38');
   });
 
   it('CSV inchangé (taux lisible), autres cibles sans suggestion', () => {
