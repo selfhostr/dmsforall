@@ -155,12 +155,21 @@ export function verifierArretAutomatiqueFacture(
  */
 export const NOMBRE_MAX_TENTATIVES_ENVOI = 3;
 
+/** Raisons de rejet qu'un réessai ne peut pas corriger (issue #64). */
+export const RAISONS_ECHEC_DEFINITIF: readonly string[] = [
+  'canal_non_supporte',
+  'destinataire_invalide',
+];
+
 /** §8 : après un échec d'ENVOI (jamais un `annulee` — cette fonction ne s'applique qu'aux échecs
  *  transitoires côté connecteur), retour à `prete` s'il reste des tentatives, `echouee`
  *  (définitif) sinon. */
 export function statutApresEchecEnvoi(
   tentative: number,
+  raison?: string,
 ): Extract<StatutRelancePlanifiee, 'prete' | 'echouee'> {
+  // Échec DÉFINITIF : retenter ne changera rien (canal sans prestataire câblé, adresse invalide).
+  if (raison !== undefined && RAISONS_ECHEC_DEFINITIF.includes(raison)) return 'echouee';
   return tentative < NOMBRE_MAX_TENTATIVES_ENVOI ? 'prete' : 'echouee';
 }
 

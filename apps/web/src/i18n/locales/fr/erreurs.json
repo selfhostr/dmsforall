@@ -35,6 +35,7 @@
     "AUTH_ORIGINE_REFUSEE": "Requête bloquée pour raison de sécurité. Rechargez la page ; si cela se répète, prévenez le support.",
     "DROIT_INSUFFISANT": "Votre rôle ne permet pas cette action. Demandez à la direction de vous l'ouvrir, ou faites-la faire par un collègue autorisé.",
     "MODULE_DESACTIVE": "Ce module est retiré pour votre garage. La direction peut le réactiver dans Réglages > Modules.",
+    "SERVICE_LECTURE_INDISPONIBLE": "Le service de lecture des permis ne répond pas pour le moment. Réessayez dans un instant, ou saisissez le véhicule à la main.",
     "RESSOURCE_INTROUVABLE": "Cet élément n'existe plus ou a été supprimé. Revenez à la liste et recherchez-le de nouveau.",
     "CONFLIT": "Quelqu'un a modifié cet élément entre-temps. Rechargez la page pour voir la version actuelle, puis refaites votre modification.",
     "ERREUR_INTERNE": "Un problème inattendu est survenu. Réessayez dans un instant ; s'il revient, prévenez le support en indiquant l'heure.",

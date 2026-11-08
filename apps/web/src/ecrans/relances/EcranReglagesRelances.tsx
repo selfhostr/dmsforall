@@ -32,6 +32,9 @@ import { PALIERS_PREREGLAGE_FACTURE, PREREGLAGE_FACTURE_ECHUE } from './preregla
 const TYPE_RELANCE_FACTURE_ECHUE = 'facture_echue' as const;
 
 const CANAUX_FORMULAIRE = ['sms', 'email'] as const satisfies readonly CanalMessageClient[];
+/** Canaux réellement câblés côté serveur : le SMS n'a pas encore de prestataire (issue #64), il
+ *  est affiché « bientôt » et ne peut être ni choisi ni conservé dans une règle. */
+const CANAUX_DISPONIBLES: readonly CanalMessageClient[] = ['email'];
 
 /**
  * Écran de RÉGLAGE des relances automatiques — paliers, canaux, préréglage (§4.5 de la refonte
@@ -221,7 +224,7 @@ function valeursFormulaireDepuisRegle(
   return {
     actif: regle.actif,
     delaisJours: [...regle.delaisJours],
-    canaux: [...regle.canaux],
+    canaux: regle.canaux.filter((canal) => CANAUX_DISPONIBLES.includes(canal)),
   };
 }
 
@@ -357,6 +360,7 @@ function FormulaireRegleFactureEchue({ regle, onAnnuler, onEnregistre }: PropsFo
                 <label key={canal} className="flex items-center gap-2 texte-corps">
                   <Checkbox
                     checked={field.value.includes(canal)}
+                    disabled={!CANAUX_DISPONIBLES.includes(canal) || upserter.isPending}
                     onCheckedChange={(coche) => {
                       field.onChange(
                         coche === true
@@ -364,9 +368,13 @@ function FormulaireRegleFactureEchue({ regle, onAnnuler, onEnregistre }: PropsFo
                           : field.value.filter((valeur) => valeur !== canal),
                       );
                     }}
-                    disabled={upserter.isPending}
                   />
                   {t(`relances:regles.canaux.${canal}`)}
+                  {CANAUX_DISPONIBLES.includes(canal) ? null : (
+                    <span className="texte-libelle text-muted-foreground">
+                      {t('relances:regles.canaux.bientot')}
+                    </span>
+                  )}
                 </label>
               ))}
             </div>

@@ -47,6 +47,7 @@
     "enCours": "Lettura della licenza in corso…"
   },
   "erreurs": {
+    "saisieManuelle": "Inserisci il veicolo a mano",
     "titre": "La foto non può essere utilizzata",
     "photoIllisible": "Questa foto non può essere aperta. La rifaccia con la fotocamera, ben piatta e ben illuminata.",
     "heicNonPrisEnCharge": "Questo formato di foto non è supportato su questo dispositivo. Rifate la foto con il pulsante «Scatta la foto» invece che dal rullino."

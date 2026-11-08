@@ -585,6 +585,33 @@ describe('EcranScan', () => {
     expect(screen.getByRole('link', { name: 'Se reconnecter' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Reprendre une photo' })).not.toBeInTheDocument();
   });
+
+  it('service de lecture indisponible (503) : message dédié et saisie manuelle proposée', async () => {
+    installerImageEtCanvasFactices('succes');
+    server.use(
+      http.post('/api/v1/scan/permis-circulation', () =>
+        HttpResponse.json(
+          {
+            type: 'https://docs.dmsforall.example/erreurs/SERVICE_LECTURE_INDISPONIBLE',
+            title: 'Service de lecture indisponible',
+            status: 503,
+            code: 'SERVICE_LECTURE_INDISPONIBLE',
+            instance: 'req-2',
+          },
+          { status: 503, headers: { 'content-type': 'application/problem+json' } },
+        ),
+      ),
+    );
+    const utilisateur = userEvent.setup();
+    rendre();
+
+    await photographier(utilisateur);
+
+    expect(
+      await screen.findByText(/Le service de lecture des permis ne répond pas/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Saisir le véhicule à la main' })).toBeInTheDocument();
+  });
 });
 
 /**

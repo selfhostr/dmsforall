@@ -6874,7 +6874,8 @@
               "FACTURE_DEJA_CORRIGEE",
               "FACTURE_CORRECTION_REGLEMENT_EXISTANT",
               "MODULE_DESACTIVE",
-              "AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS"
+              "AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS",
+              "SERVICE_LECTURE_INDISPONIBLE"
             ],
             "type": "string"
           },
@@ -7048,7 +7049,8 @@
               "FACTURE_DEJA_CORRIGEE",
               "FACTURE_CORRECTION_REGLEMENT_EXISTANT",
               "MODULE_DESACTIVE",
-              "AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS"
+              "AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS",
+              "SERVICE_LECTURE_INDISPONIBLE"
             ],
             "type": "string"
           },

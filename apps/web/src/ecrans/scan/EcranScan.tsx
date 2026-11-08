@@ -65,6 +65,8 @@ type EtapeScan =
        *  une photo » (qui échouerait de nouveau à l'identique, la session étant partie) par un
        *  lien explicite vers la connexion. Voir la doc de tête, § SESSION. */
       readonly sessionExpiree?: boolean;
+      /** `true` quand le service de lecture (OCR) est injoignable : on propose la saisie manuelle. */
+      readonly lectureIndisponible?: boolean;
     };
 
 /**
@@ -304,6 +306,8 @@ export function EcranScan() {
         message: messageErreur(cause, t),
         sessionExpiree:
           cause instanceof ErreurApi && cause.probleme.code === 'AUTH_SESSION_EXPIREE',
+        lectureIndisponible:
+          cause instanceof ErreurApi && cause.probleme.code === 'SERVICE_LECTURE_INDISPONIBLE',
       });
     }
   }
@@ -534,9 +538,16 @@ export function EcranScan() {
                 <Link to="/login">{t('scan:session.seReconnecter')}</Link>
               </Button>
             ) : (
-              <Button type="button" onClick={recommencer}>
-                {t('scan:actions.reessayer')}
-              </Button>
+              <>
+                <Button type="button" onClick={recommencer}>
+                  {t('scan:actions.reessayer')}
+                </Button>
+                {etape.lectureIndisponible ? (
+                  <Button type="button" variant="outline" asChild>
+                    <Link to="/vehicules/nouveau">{t('scan:erreurs.saisieManuelle')}</Link>
+                  </Button>
+                ) : null}
+              </>
             )}
           </div>
         ) : null}

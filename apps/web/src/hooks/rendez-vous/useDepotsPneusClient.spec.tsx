@@ -3,6 +3,8 @@ import { renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
+import { schemaFiltresDepotsPneusVehicule } from '@dfa/shared';
+
 import * as api from '@/hooks/pneus/depot-pneus.api';
 import { creerQueryClientTest } from '@/test/utils';
 
@@ -46,5 +48,22 @@ describe('useDepotsPneusClient', () => {
     vi.spyOn(api, 'listerDepotsPneusVehicule').mockRejectedValue(new Error('boom'));
     const b = renderHook(() => useDepotsPneusClient(['bmw'], true), { wrapper: envelopper() });
     await waitFor(() => expect(b.result.current.etat).toBe('erreur'));
+  });
+
+  it('interroge avec des filtres que le contrat de l’API accepte (tri et statuts valides)', async () => {
+    const espion = vi.spyOn(api, 'listerDepotsPneusVehicule').mockResolvedValue({
+      donnees: [],
+      curseurSuivant: null,
+      limite: 20,
+    });
+    renderHook(() => useDepotsPneusClient(['golf'], true), { wrapper: envelopper() });
+    await waitFor(() => expect(espion).toHaveBeenCalled());
+    const filtres = espion.mock.calls[0]![1];
+    const resultat = schemaFiltresDepotsPneusVehicule.safeParse({
+      statut: filtres.statut,
+      tri: filtres.tri,
+      limite: '20',
+    });
+    expect(resultat.success).toBe(true);
   });
 });

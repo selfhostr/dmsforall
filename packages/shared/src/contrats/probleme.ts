@@ -359,6 +359,9 @@ export const CODES_ERREUR = [
   // Mot de passe temporaire jamais remplacé : toute route métier est refusée (403) jusqu'au
   // changement via POST /auth/mot-de-passe/changement.
   'AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS',
+  // --- Scan de permis (issue #64) : le service de lecture (OCR) ne répond pas — 503, ce n'est pas
+  // une panne de l'application ; le front propose la saisie manuelle. ---
+  'SERVICE_LECTURE_INDISPONIBLE',
 ] as const;
 export type CodeErreur = (typeof CODES_ERREUR)[number];
 
@@ -513,6 +516,7 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   FACTURE_DEJA_CORRIGEE: 409,
   FACTURE_CORRECTION_REGLEMENT_EXISTANT: 409,
   MODULE_DESACTIVE: 403,
+  SERVICE_LECTURE_INDISPONIBLE: 503,
 };
 
 /**
@@ -653,6 +657,7 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   FACTURE_DEJA_CORRIGEE: 'Facture déjà corrigée',
   FACTURE_CORRECTION_REGLEMENT_EXISTANT: 'Facture déjà réglée en tout ou partie',
   MODULE_DESACTIVE: 'Module désactivé pour ce garage',
+  SERVICE_LECTURE_INDISPONIBLE: 'Service de lecture indisponible',
 };
 
 /**

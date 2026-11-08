@@ -21,6 +21,9 @@ export interface ProprietesChampMontant {
   readonly obligatoire?: boolean;
   readonly disabled?: boolean;
   readonly erreur?: string;
+  /** Nom accessible complet quand plusieurs champs du même libellé coexistent (une ligne par
+   *  article) : remplace le libellé visible pour les lecteurs d'écran. */
+  readonly nomAccessible?: string;
   readonly className?: string;
   /** Devise affichée en préfixe du champ (`CHF` par défaut). Ce champ sert très majoritairement
    *  des saisies qui n'ont structurellement PAS de devise propre — remise, taux horaire, prix
@@ -56,6 +59,7 @@ export function ChampMontant({
   obligatoire,
   disabled,
   erreur,
+  nomAccessible,
   className,
   devise = 'CHF',
 }: ProprietesChampMontant) {
@@ -117,6 +121,7 @@ export function ChampMontant({
           placeholder={placeholder ?? '0.00'}
           value={saisie}
           disabled={disabled}
+          aria-label={nomAccessible}
           aria-invalid={erreur ? true : undefined}
           aria-describedby={erreur ? idErreur : undefined}
           aria-required={obligatoire || undefined}

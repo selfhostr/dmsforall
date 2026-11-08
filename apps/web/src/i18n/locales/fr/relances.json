@@ -30,6 +30,7 @@
       "titre": "Canaux d'envoi",
       "sms": "SMS",
       "email": "E-mail",
+      "bientot": "(bientôt disponible)",
       "vide": "Aucun canal choisi"
     },
     "prereglage": {

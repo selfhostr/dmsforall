@@ -162,7 +162,7 @@ describe('ServiceVehiculeOcr.scanner — échecs du moteur OCR', () => {
     expect(parametresSql(requete)).toContain('format_non_supporte');
   });
 
-  it('moteur indisponible -> ErreurMetier ERREUR_INTERNE (503), journalisé', async () => {
+  it('moteur indisponible -> ErreurMetier SERVICE_LECTURE_INDISPONIBLE (503), journalisé', async () => {
     const tx = txFactice();
     const moteur: ClientMoteurOcr = {
       scanner: vi.fn().mockRejectedValue(new ErreurMoteurOcr('MOTEUR_INDISPONIBLE', 'timeout')),
@@ -170,7 +170,7 @@ describe('ServiceVehiculeOcr.scanner — échecs du moteur OCR', () => {
     const { service } = construireService({ tx, moteur });
 
     await expect(service.scanner(CTX, Buffer.from('x'))).rejects.toMatchObject({
-      code: 'ERREUR_INTERNE',
+      code: 'SERVICE_LECTURE_INDISPONIBLE',
       status: 503,
     });
 

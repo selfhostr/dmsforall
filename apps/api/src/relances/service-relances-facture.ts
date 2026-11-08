@@ -783,7 +783,7 @@ export class ServiceRelancesFacture {
            ${claim.destinataireCible}, ${claim.langue}, ${contenuFige}, 'echoue',
            null, ${erreurTexte}, now())
       `);
-      const statutSuivant = statutApresEchecEnvoi(claim.tentative);
+      const statutSuivant = statutApresEchecEnvoi(claim.tentative, reponse.raison);
       await tx
         .update(relancePlanifiee)
         .set({ statut: statutSuivant })
