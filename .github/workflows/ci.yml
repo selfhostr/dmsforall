@@ -93,7 +93,7 @@ jobs:
       - name: Install mdbtools
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends mdbtools
 
-      # testcontainers starts its own PostgreSQL and Redis, the settings below only satisfy the
+      # testcontainers starts its own PostgreSQL and Valkey, the settings below only satisfy the
       # configuration schema.
       - name: Integration tests
         run: pnpm test:integration

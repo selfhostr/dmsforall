@@ -24,7 +24,7 @@ Only the proxy publishes a port. Keep other ports closed at the firewall.
 | API           | 3000 | `PORT` in `.env`. Runs on the host with `pnpm dev`. |
 | Web interface | 5173 | Vite development server.                            |
 | PostgreSQL    | 5432 | Published so that tools can connect.                |
-| Redis         | 6379 | Published so that tools can connect.                |
+| Valkey        | 6379 | Published so that tools can connect.                |
 
 ## Storage paths
 
@@ -37,7 +37,7 @@ Only the proxy publishes a port. Keep other ports closed at the firewall.
 | `dmsforall_dfa_photos_or`           | Repair order photos and thumbnails.            | Yes, in the files archive.      |
 | `dmsforall_dfa_reprise`             | Archives uploaded for a data takeover.         | Yes, in the files archive.      |
 | `dmsforall_dfa_secrets`             | Generated database passwords.                  | No. Keep a copy somewhere safe. |
-| `dmsforall_dfa_redis_data`          | Redis data.                                    | No.                             |
+| `dmsforall_dfa_redis_data`          | Valkey data.                                   | No.                             |
 | `dmsforall_dfa_caddy_data`          | TLS certificates obtained by Caddy.            | No.                             |
 
 The files archive (`dfa_<timestamp>.uploads.tar.gz.age`) covers everything mounted under `/uploads` in the `backup` service. See [back up and restore](../get-started/backup-and-restore.md).

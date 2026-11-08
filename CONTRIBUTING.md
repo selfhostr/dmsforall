@@ -4,12 +4,12 @@ Thank you for helping. This page explains how to run dmsforall for development, 
 
 ## Development setup
 
-You need Node.js 22 or later, pnpm 11 (pinned in `package.json`) and Docker with Compose v2. Docker runs PostgreSQL 16 and Redis for development. The API and the web interface run on your host.
+You need Node.js 22 or later, pnpm 11 (pinned in `package.json`) and Docker with Compose v2. Docker runs PostgreSQL 16 and Valkey for development. The API and the web interface run on your host.
 
 ```sh
 cp .env.example .env
 pnpm install
-pnpm docker:up        # PostgreSQL and Redis (docker-compose.dev.yml, project dmsforall-dev)
+pnpm docker:up        # PostgreSQL and Valkey (docker-compose.dev.yml, project dmsforall-dev)
 pnpm db:migrate       # apply the migrations
 pnpm db:seed          # load a demo garage
 pnpm dev              # API on http://localhost:3000, web on http://localhost:5173
